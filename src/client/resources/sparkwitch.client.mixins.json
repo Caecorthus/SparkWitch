@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.caecorthus.sparkwitch.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "WitchSkillInventoryScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

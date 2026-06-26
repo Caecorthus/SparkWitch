@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "sparkwitch",
+  "version": "${version}",
+  "name": "SparkWitch",
+  "description": "Witch faction roles and active skill framework for Spark Wathe.",
+  "authors": [
+    "Caecorthus"
+  ],
+  "license": "AGPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.caecorthus.sparkwitch.SparkWitch"
+    ],
+    "client": [
+      "dev.caecorthus.sparkwitch.client.SparkWitchClient"
+    ],
+    "cardinal-components": [
+      "dev.caecorthus.sparkwitch.component.SparkWitchComponents"
+    ]
+  },
+  "custom": {
+    "cardinal-components": [
+      "sparkwitch:player",
+      "sparkwitch:world"
+    ]
+  },
+  "mixins": [
+    "sparkwitch.mixins.json",
+    {
+      "config": "sparkwitch.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21",
+    "wathe": "${wathe_version}",
+    "sparkfactionapi": ">=${sparkfactionapi_version}",
+    "cardinal-components-base": ">=${cca_version}",
+    "cardinal-components-entity": ">=${cca_version}",
+    "cardinal-components-world": ">=${cca_version}"
+  }
+}
