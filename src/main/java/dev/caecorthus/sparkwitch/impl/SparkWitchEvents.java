@@ -20,6 +20,8 @@ public final class SparkWitchEvents {
         }
         registered = true;
 
+        RitualSwordCombatService.register();
+        RitualSwordDashService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 WitchSkillAssignmentService.assignForRole(serverPlayer, role);

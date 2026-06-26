@@ -11,6 +11,7 @@ public final class SparkWitch implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        SparkWitchItems.register();
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();

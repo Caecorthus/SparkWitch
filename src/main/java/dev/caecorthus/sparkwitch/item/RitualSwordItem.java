@@ -1,0 +1,37 @@
+package dev.caecorthus.sparkwitch.item;
+
+import dev.caecorthus.sparkwitch.impl.RitualSwordDashService;
+import dev.doctor4t.wathe.game.GameFunctions;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Hand;
+import net.minecraft.util.TypedActionResult;
+import net.minecraft.world.World;
+import org.jetbrains.annotations.NotNull;
+
+public class RitualSwordItem extends Item {
+    public static final int DASH_COOLDOWN_TICKS = 100;
+
+    public RitualSwordItem(Settings settings) {
+        super(settings);
+    }
+
+    @Override
+    public TypedActionResult<ItemStack> use(@NotNull World world, @NotNull PlayerEntity user, Hand hand) {
+        ItemStack stack = user.getStackInHand(hand);
+        if (world.isClient) {
+            return TypedActionResult.success(stack);
+        }
+        if (!(user instanceof ServerPlayerEntity player)
+                || !GameFunctions.isPlayerPlayingAndAlive(player)
+                || player.getItemCooldownManager().isCoolingDown(this)) {
+            return TypedActionResult.fail(stack);
+        }
+
+        RitualSwordDashService.start(player);
+        player.getItemCooldownManager().set(this, DASH_COOLDOWN_TICKS);
+        return TypedActionResult.consume(stack);
+    }
+}
