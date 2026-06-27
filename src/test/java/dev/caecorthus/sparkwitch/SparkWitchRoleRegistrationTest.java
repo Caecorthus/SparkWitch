@@ -42,6 +42,8 @@ class SparkWitchRoleRegistrationTest {
         assertFalse(SparkWitchRoles.grandWitch().canUseKiller());
         assertFalse(SparkWitchRoles.accomplice().canUseKiller());
         assertFalse(capabilities.canUseKillerFeatures());
+        assertTrue(capabilities.isPunishableInnocentGunShooter());
+        assertFalse(capabilities.isPunishableInnocentGunVictim());
         assertTrue(capabilities.receivesKillerPassiveMoney());
         assertTrue(capabilities.receivesKillRewards());
         assertTrue(capabilities.hasBlackoutImmunity());

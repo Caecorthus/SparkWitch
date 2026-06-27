@@ -42,6 +42,9 @@ public final class SparkWitchRoles {
                         // 魔女成员只获得显式桥接能力，不进入 wathe 原生杀手阵营桶。
                         .receivesKillerPassiveMoney(true)
                         .receivesKillRewards(true)
+                        // Witch shooters opt into Wathe-style innocent-shot punishment.
+                        // 魔女阵营开枪者接入 wathe 风格的射击无辜惩罚。
+                        .isPunishableInnocentGunShooter(true)
                         .hasBlackoutImmunity(true)
                         .sharesCohort(true)
                         .canUseInstinct(true)
