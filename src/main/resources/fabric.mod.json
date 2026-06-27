@@ -39,6 +39,7 @@
     "minecraft": "${minecraft_version}",
     "java": ">=21",
     "wathe": "${wathe_version}",
+    "noellesroles": "*",
     "sparkfactionapi": ">=${sparkfactionapi_version}",
     "cardinal-components-base": ">=${cca_version}",
     "cardinal-components-entity": ">=${cca_version}",

@@ -16,12 +16,16 @@ public final class WitchEconomyService {
     private WitchEconomyService() {
     }
 
-    public static int accompliceStartingMoney(ServerPlayerEntity player, GameWorldComponent gameComponent) {
+    public static int killerStyleStartingMoney(ServerPlayerEntity player, GameWorldComponent gameComponent) {
         return WitchEconomyRules.killerStartingMoney(
                 player.getServerWorld().getPlayers().size(),
                 gameComponent.getAllKillerTeamPlayers().size(),
                 gameComponent.getKillerDividend()
         );
+    }
+
+    public static int accompliceStartingMoney(ServerPlayerEntity player, GameWorldComponent gameComponent) {
+        return killerStyleStartingMoney(player, gameComponent);
     }
 
     public static void afterKill(

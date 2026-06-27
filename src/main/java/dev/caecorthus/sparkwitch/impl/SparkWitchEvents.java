@@ -25,12 +25,15 @@ public final class SparkWitchEvents {
         CeremonialSwordCombatService.register();
         CeremonialSwordDashService.register();
         MightyForceCombatService.register();
+        FirePokerCombatService.register();
         GrandWitchFeatureService.register();
+        MurderousWitchFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 WitchSkillAssignmentService.assignForRole(serverPlayer, role);
                 WitchManaService.assignForRole(serverPlayer, role);
                 GrandWitchFeatureService.assignForRole(serverPlayer, role);
+                MurderousWitchFeatureService.assignForRole(serverPlayer, role);
             }
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);

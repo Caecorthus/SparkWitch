@@ -63,7 +63,9 @@ class ApprenticeWitchSkillRulesTest {
         assertTrue(dangerousItems.contains(Identifier.of("wathe", "scorpion")));
         assertTrue(dangerousItems.contains(Identifier.of("noellesroles", "poison_needle")));
         assertTrue(dangerousItems.contains(Identifier.of("noellesroles", "poison_gas_bomb")));
+        assertTrue(dangerousItems.contains(Identifier.of("noellesroles", "throwing_axe")));
         assertTrue(dangerousItems.contains(SparkWitch.id("ceremonial_sword")));
-        assertEquals(11, dangerousItems.size());
+        assertTrue(dangerousItems.contains(SparkWitch.id("fire_poker")));
+        assertEquals(13, dangerousItems.size());
     }
 }

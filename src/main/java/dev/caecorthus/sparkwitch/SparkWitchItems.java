@@ -8,7 +8,9 @@ import net.minecraft.util.Identifier;
 
 public final class SparkWitchItems {
     public static final Identifier CEREMONIAL_SWORD_ID = SparkWitch.id("ceremonial_sword");
+    public static final Identifier FIRE_POKER_ID = SparkWitch.id("fire_poker");
     private static Item ceremonialSword;
+    private static Item firePoker;
 
     private static boolean registered;
 
@@ -24,6 +26,11 @@ public final class SparkWitchItems {
                 CEREMONIAL_SWORD_ID,
                 new CeremonialSwordItem(new Item.Settings().maxCount(1))
         );
+        firePoker = Registry.register(
+                Registries.ITEM,
+                FIRE_POKER_ID,
+                new Item(new Item.Settings().maxCount(1))
+        );
         registered = true;
     }
 
@@ -32,5 +39,12 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return ceremonialSword;
+    }
+
+    public static Item firePoker() {
+        if (firePoker == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return firePoker;
     }
 }

@@ -48,6 +48,19 @@ public final class SparkWitchRoles {
                         .build())
                 .winCondition(WitchWinConditions::checkWin)
                 .build());
+        SparkFactionApi.registerFaction(FactionDefinition.builder(SparkWitchFactions.MURDEROUS_WITCH)
+                .color(0x7A3857)
+                .translationKeyPrefix("faction.sparkwitch.murderous_witch")
+                .capabilities(FactionCapabilities.builder()
+                        // Murderous Witch stays a native neutral role; these switches only bridge explicit powers.
+                        // 杀意魔女保持 wathe 原生中立职业，这里只桥接显式能力。
+                        .receivesKillerPassiveMoney(true)
+                        .receivesKillRewards(true)
+                        .hasBlackoutImmunity(true)
+                        .canUseInstinct(true)
+                        .instinctColor(0xC13838)
+                        .build())
+                .build());
 
         grandWitch = SparkFactionApi.registerRole(FactionRoleDefinition.builder(GRAND_WITCH_ID, SparkWitchFactions.WITCH)
                 .color(0xF2DFF7)
@@ -80,7 +93,7 @@ public final class SparkWitchRoles {
                 false,
                 false,
                 Role.MoodType.FAKE,
-                GameConstants.getInTicks(0, 10),
+                -1,
                 false,
                 RoleAppearanceCondition.minPlayers(24)
         ));

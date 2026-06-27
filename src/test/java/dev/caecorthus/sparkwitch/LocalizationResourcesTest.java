@@ -43,6 +43,7 @@ class LocalizationResourcesTest {
             "announcement.win.murderous_witch",
             "announcement.role.sparkwitch.murderous_witch",
             "item.sparkwitch.ceremonial_sword",
+            "item.sparkwitch.fire_poker",
             "skill.sparkwitch.ceremonial_sword.name",
             "skill.sparkwitch.ceremonial_sword.description",
             "skill.sparkwitch.mighty_force.name",
@@ -130,6 +131,8 @@ class LocalizationResourcesTest {
         assertEquals("运用你的魔力让人类血流成河", chinese.get("announcement.goals.grand_witch").getAsString());
         assertEquals("协助大魔女完成她的目标", chinese.get("announcement.goal.accomplice").getAsString());
         assertEquals("协助大魔女完成她的目标", chinese.get("announcement.goals.accomplice").getAsString());
+        assertEquals("杀死其他所有人。", chinese.get("announcement.goal.murderous_witch").getAsString());
+        assertEquals("杀死其他所有人。", chinese.get("announcement.goals.murderous_witch").getAsString());
     }
 
     @Test

@@ -68,7 +68,9 @@ public final class ApprenticeWitchSkillRules {
             Identifier.of("wathe", "scorpion"),
             Identifier.of("noellesroles", "poison_needle"),
             Identifier.of("noellesroles", "poison_gas_bomb"),
-            SparkWitch.id("ceremonial_sword")
+            Identifier.of("noellesroles", "throwing_axe"),
+            SparkWitch.id("ceremonial_sword"),
+            SparkWitch.id("fire_poker")
     );
 
     private ApprenticeWitchSkillRules() {

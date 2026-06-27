@@ -15,22 +15,23 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ItemModelResourcesTest {
-    private static final Path MODEL = Path.of("src/main/resources/assets/sparkwitch/models/item/ceremonial_sword.json");
-    private static final Path TEXTURE = Path.of("src/main/resources/assets/sparkwitch/textures/item/ceremonial_sword.png");
+    private static final Path CEREMONIAL_SWORD_MODEL = Path.of("src/main/resources/assets/sparkwitch/models/item/ceremonial_sword.json");
+    private static final Path CEREMONIAL_SWORD_TEXTURE = Path.of("src/main/resources/assets/sparkwitch/textures/item/ceremonial_sword.png");
     private static final Path MANA_FONT_TEXTURE = Path.of("src/main/resources/assets/sparkwitch/textures/font/mana.png");
     private static final Path DEFAULT_FONT = Path.of("src/main/resources/assets/minecraft/font/default.json");
+    private static final Path FIRE_POKER_MODEL = Path.of("src/main/resources/assets/sparkwitch/models/item/fire_poker.json");
 
     @Test
     void ceremonialSwordModelUsesSparkWitchTexture() throws IOException {
-        JsonObject model = JsonParser.parseString(Files.readString(MODEL)).getAsJsonObject();
+        JsonObject model = JsonParser.parseString(Files.readString(CEREMONIAL_SWORD_MODEL)).getAsJsonObject();
 
         assertEquals("sparkwitch:item/ceremonial_sword", model.getAsJsonObject("textures").get("layer0").getAsString());
     }
 
     @Test
     void ceremonialSwordModelResourceExists() throws IOException {
-        assertTrue(Files.isRegularFile(MODEL));
-        assertNotNull(ImageIO.read(TEXTURE.toFile()));
+        assertTrue(Files.isRegularFile(CEREMONIAL_SWORD_MODEL));
+        assertNotNull(ImageIO.read(CEREMONIAL_SWORD_TEXTURE.toFile()));
     }
 
     @Test
@@ -41,5 +42,18 @@ class ItemModelResourcesTest {
         assertTrue(fontJson.contains("\\uE782"));
         assertTrue(fontJson.contains("sparkwitch:font/mana.png"));
         assertFalse(fontJson.contains("\\uE781"));
+    }
+
+    @Test
+    void firePokerModelUsesHandheldBlazeRodPlaceholder() throws IOException {
+        JsonObject model = JsonParser.parseString(Files.readString(FIRE_POKER_MODEL)).getAsJsonObject();
+
+        assertEquals("minecraft:item/handheld", model.get("parent").getAsString());
+        assertEquals("minecraft:item/blaze_rod", model.getAsJsonObject("textures").get("layer0").getAsString());
+    }
+
+    @Test
+    void firePokerModelResourceExists() {
+        assertTrue(Files.isRegularFile(FIRE_POKER_MODEL));
     }
 }

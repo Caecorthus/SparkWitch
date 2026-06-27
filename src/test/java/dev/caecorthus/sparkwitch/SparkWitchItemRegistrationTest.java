@@ -15,6 +15,12 @@ class SparkWitchItemRegistrationTest {
     }
 
     @Test
+    void firePokerUsesSparkWitchItemId() {
+        assertEquals(SparkWitch.MOD_ID, SparkWitchItems.FIRE_POKER_ID.getNamespace());
+        assertEquals("fire_poker", SparkWitchItems.FIRE_POKER_ID.getPath());
+    }
+
+    @Test
     void ceremonialSwordDashUsesPlannedTuning() {
         assertEquals(100, CeremonialSwordItem.DASH_COOLDOWN_TICKS);
         assertEquals(6.0, CeremonialSwordDashService.DASH_DISTANCE_BLOCKS);

@@ -54,11 +54,11 @@ class SparkWitchRoleRegistrationTest {
     }
 
     @Test
-    void onlyWitchFactionRolesHaveInfiniteStamina() {
+    void witchRolesUsePlannedStamina() {
         assertEquals(-1, SparkWitchRoles.grandWitch().getMaxSprintTime());
         assertEquals(-1, SparkWitchRoles.accomplice().getMaxSprintTime());
         assertEquals(GameConstants.getInTicks(0, 10), SparkWitchRoles.apprenticeWitch().getMaxSprintTime());
-        assertEquals(GameConstants.getInTicks(0, 10), SparkWitchRoles.murderousWitch().getMaxSprintTime());
+        assertEquals(-1, SparkWitchRoles.murderousWitch().getMaxSprintTime());
     }
 
     @Test
@@ -71,5 +71,21 @@ class SparkWitchRoleRegistrationTest {
     void murderousWitchIsNativeNeutralRole() {
         assertTrue(SparkWitchRoles.murderousWitch().isNeutral());
         assertEquals(FactionIds.NEUTRAL, SparkFactionApi.resolveBaseFaction(SparkWitchRoles.murderousWitch()));
+    }
+
+    @Test
+    void murderousWitchEffectiveFactionIsRegisteredForExplicitBridgesOnly() {
+        FactionCapabilities capabilities = SparkFactionApi.getFaction(SparkWitchFactions.MURDEROUS_WITCH)
+                .orElseThrow()
+                .capabilities();
+
+        assertFalse(SparkWitchRoles.murderousWitch().canUseKiller());
+        assertFalse(capabilities.canUseKillerFeatures());
+        assertTrue(capabilities.receivesKillerPassiveMoney());
+        assertTrue(capabilities.receivesKillRewards());
+        assertTrue(capabilities.hasBlackoutImmunity());
+        assertFalse(capabilities.sharesCohort());
+        assertTrue(capabilities.canUseInstinct());
+        assertEquals(0xC13838, capabilities.instinctColor());
     }
 }
