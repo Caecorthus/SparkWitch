@@ -1,9 +1,11 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
+import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -49,6 +51,19 @@ public final class WitchManaService {
         int reward = WitchManaRules.killReward(killerRole, victimRole);
         if (reward > 0) {
             awardMana(killer, reward);
+        }
+
+        int grandWitchReward = WitchManaRules.grandWitchRewardForAccompliceKill(killerRole, victimRole);
+        if (grandWitchReward <= 0) {
+            return;
+        }
+        for (ServerPlayerEntity player : victim.getServerWorld().getPlayers()) {
+            if (!GameFunctions.isPlayerPlayingAndAlive(player)) {
+                continue;
+            }
+            if (gameComponent.getRole(player) == SparkWitchRoles.grandWitch()) {
+                awardMana(player, grandWitchReward);
+            }
         }
     }
 

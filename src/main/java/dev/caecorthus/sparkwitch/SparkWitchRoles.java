@@ -37,7 +37,14 @@ public final class SparkWitchRoles {
                 .color(0xE9D5F0)
                 .translationKeyPrefix("faction.sparkwitch.witch")
                 .capabilities(FactionCapabilities.builder()
+                        // Witch members get only explicit bridges; they stay out of Wathe's native killer bucket.
+                        // 魔女成员只获得显式桥接能力，不进入 wathe 原生杀手阵营桶。
+                        .receivesKillerPassiveMoney(true)
+                        .receivesKillRewards(true)
+                        .hasBlackoutImmunity(true)
                         .sharesCohort(true)
+                        .canUseInstinct(true)
+                        .instinctColor(0x36E51B)
                         .build())
                 .winCondition(WitchWinConditions::checkWin)
                 .build());
@@ -45,14 +52,14 @@ public final class SparkWitchRoles {
         grandWitch = SparkFactionApi.registerRole(FactionRoleDefinition.builder(GRAND_WITCH_ID, SparkWitchFactions.WITCH)
                 .color(0xF2DFF7)
                 .moodType(Role.MoodType.FAKE)
-                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .maxSprintTime(-1)
                 .canSeeTime(false)
                 .appearanceCondition(RoleAppearanceCondition.minPlayers(24))
                 .build());
         accomplice = SparkFactionApi.registerRole(FactionRoleDefinition.builder(ACCOMPLICE_ID, SparkWitchFactions.WITCH)
                 .color(0x7B6AA8)
                 .moodType(Role.MoodType.FAKE)
-                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .maxSprintTime(-1)
                 .canSeeTime(false)
                 .appearanceCondition(RoleAppearanceCondition.minPlayers(24))
                 .build());

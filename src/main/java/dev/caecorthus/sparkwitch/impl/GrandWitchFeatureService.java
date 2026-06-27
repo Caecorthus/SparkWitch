@@ -17,8 +17,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import java.util.OptionalInt;
 
 /**
- * Registers role-level Grand Witch features that must not become faction-wide powers.
- * 注册只属于大魔女本人的能力，避免把权限扩大到整个魔女阵营。
+ * Registers explicit Witch faction feature bridges without using Wathe's native killer bucket.
+ * 注册魔女阵营的显式能力桥接，不使用 wathe 原生杀手阵营桶。
  */
 public final class GrandWitchFeatureService {
     private static final int GRAND_WITCH_INSTINCT_PRIORITY = 200;
@@ -37,12 +37,17 @@ public final class GrandWitchFeatureService {
         SparkFactionApi.registerInstinctPolicy(GrandWitchFeatureService::instinctHighlight);
         BlackoutEffect.BEFORE.register(GrandWitchFeatureService::beforeBlackoutEffect);
         GrandWitchShopService.register();
+        AccompliceShopService.register();
     }
 
     public static void assignForRole(ServerPlayerEntity player, Role role) {
         if (GrandWitchRules.isGrandWitch(role)) {
             PlayerShopComponent.KEY.get(player).setBalance(GrandWitchRules.STARTING_MONEY);
             player.giveItemStack(new ItemStack(WatheItems.KNIFE));
+        } else if (GrandWitchRules.isAccomplice(role)) {
+            GameWorldComponent gameComponent = GameWorldComponent.KEY.get(player.getServerWorld());
+            PlayerShopComponent.KEY.get(player).setBalance(WitchEconomyService.accompliceStartingMoney(player, gameComponent));
+            GrandWitchActiveSkillService.clearCeremonialSword(player, false);
         } else {
             GrandWitchActiveSkillService.clearCeremonialSword(player, false);
         }
@@ -62,7 +67,7 @@ public final class GrandWitchFeatureService {
 
     private static BlackoutEffect.BlackoutResult beforeBlackoutEffect(ServerPlayerEntity player, int durationTicks) {
         Role role = GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player);
-        return GrandWitchRules.isGrandWitch(role) ? BlackoutEffect.BlackoutResult.cancel() : null;
+        return GrandWitchRules.isWitchFactionMember(role) ? BlackoutEffect.BlackoutResult.cancel() : null;
     }
 
     private static FactionInstinctPolicy.InstinctResult instinctHighlight(

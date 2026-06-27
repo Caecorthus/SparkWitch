@@ -1,11 +1,14 @@
 package dev.caecorthus.sparkwitch;
 
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
+import dev.caecorthus.sparkfactionapi.api.FactionCapabilities;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.doctor4t.wathe.game.GameConstants;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SparkWitchRoleRegistrationTest {
@@ -26,11 +29,36 @@ class SparkWitchRoleRegistrationTest {
     }
 
     @Test
+    void witchFactionUsesExplicitKillerLikeCapabilitiesWithoutNativeKillerBucket() {
+        FactionCapabilities capabilities = SparkFactionApi.getFaction(SparkWitchFactions.WITCH)
+                .orElseThrow()
+                .capabilities();
+
+        assertFalse(SparkWitchRoles.grandWitch().canUseKiller());
+        assertFalse(SparkWitchRoles.accomplice().canUseKiller());
+        assertFalse(capabilities.canUseKillerFeatures());
+        assertTrue(capabilities.receivesKillerPassiveMoney());
+        assertTrue(capabilities.receivesKillRewards());
+        assertTrue(capabilities.hasBlackoutImmunity());
+        assertTrue(capabilities.sharesCohort());
+        assertTrue(capabilities.canUseInstinct());
+        assertEquals(0x36E51B, capabilities.instinctColor());
+    }
+
+    @Test
     void witchRolesUseConfiguredColors() {
         assertEquals(0xF2DFF7, SparkWitchRoles.grandWitch().color());
         assertEquals(0x7B6AA8, SparkWitchRoles.accomplice().color());
         assertEquals(0x75EDFA, SparkWitchRoles.apprenticeWitch().color());
         assertEquals(0x7A3857, SparkWitchRoles.murderousWitch().color());
+    }
+
+    @Test
+    void onlyWitchFactionRolesHaveInfiniteStamina() {
+        assertEquals(-1, SparkWitchRoles.grandWitch().getMaxSprintTime());
+        assertEquals(-1, SparkWitchRoles.accomplice().getMaxSprintTime());
+        assertEquals(GameConstants.getInTicks(0, 10), SparkWitchRoles.apprenticeWitch().getMaxSprintTime());
+        assertEquals(GameConstants.getInTicks(0, 10), SparkWitchRoles.murderousWitch().getMaxSprintTime());
     }
 
     @Test

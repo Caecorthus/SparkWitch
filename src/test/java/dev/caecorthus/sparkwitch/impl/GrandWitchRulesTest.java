@@ -60,14 +60,25 @@ class GrandWitchRulesTest {
                 SparkWitchRoles.grandWitch(),
                 FactionEconomyPolicy.RewardKind.PASSIVE
         ));
-
-        assertNull(GrandWitchRules.economyDecision(
-                SparkWitchRoles.grandWitch(),
-                FactionEconomyPolicy.RewardKind.TEAM_KILL
-        ));
         assertNull(GrandWitchRules.economyDecision(
                 SparkWitchRoles.murderousWitch(),
                 FactionEconomyPolicy.RewardKind.DIRECT_KILL
+        ));
+    }
+
+    @Test
+    void accompliceEconomyUsesKillerPassiveAndDirectKillRewardsOnly() {
+        assertEquals(Boolean.TRUE, GrandWitchRules.economyDecision(
+                SparkWitchRoles.accomplice(),
+                FactionEconomyPolicy.RewardKind.PASSIVE
+        ));
+        assertEquals(Boolean.TRUE, GrandWitchRules.economyDecision(
+                SparkWitchRoles.accomplice(),
+                FactionEconomyPolicy.RewardKind.DIRECT_KILL
+        ));
+        assertNull(GrandWitchRules.economyDecision(
+                SparkWitchRoles.accomplice(),
+                FactionEconomyPolicy.RewardKind.TEAM_KILL
         ));
     }
 
@@ -89,13 +100,30 @@ class GrandWitchRulesTest {
                 OptionalInt.of(0x36E51B),
                 GrandWitchRules.instinctColor(SparkWitchRoles.grandWitch(), WatheRoles.CIVILIAN)
         );
-        assertTrue(GrandWitchRules.instinctColor(SparkWitchRoles.accomplice(), WatheRoles.CIVILIAN).isEmpty());
+    }
+
+    @Test
+    void accompliceInstinctColorsGrandWitchAndEveryoneElse() {
+        assertEquals(
+                OptionalInt.of(SparkWitchRoles.grandWitch().color()),
+                GrandWitchRules.instinctColor(SparkWitchRoles.accomplice(), SparkWitchRoles.grandWitch())
+        );
+        assertEquals(
+                OptionalInt.of(0x36E51B),
+                GrandWitchRules.instinctColor(SparkWitchRoles.accomplice(), SparkWitchRoles.accomplice())
+        );
+        assertEquals(
+                OptionalInt.of(0x36E51B),
+                GrandWitchRules.instinctColor(SparkWitchRoles.accomplice(), WatheRoles.CIVILIAN)
+        );
+        assertTrue(GrandWitchRules.instinctColor(SparkWitchRoles.murderousWitch(), WatheRoles.CIVILIAN).isEmpty());
     }
 
     @Test
     void activeSkillAndSpellTuningMatchGrandWitchPlan() {
         assertEquals(0, GrandWitchRules.STARTING_MONEY);
         assertEquals(100, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);
+        assertEquals(25, GrandWitchRules.WITCH_TEAM_KILL_MONEY_REWARD);
         assertEquals(100, GrandWitchRules.CEREMONIAL_SWORD_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 10), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(1, 30), GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);

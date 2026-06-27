@@ -34,6 +34,7 @@ public final class SparkWitchEvents {
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
         KillPlayer.AFTER.register(WitchManaService::afterKill);
+        KillPlayer.AFTER.register(WitchEconomyService::afterKill);
         KillPlayer.AFTER.register((victim, killer, deathReason) -> GrandWitchFeatureService.clearPlayerRuntime(victim));
         ResetPlayer.EVENT.register(player -> {
             GrandWitchFeatureService.clearPlayerRuntime(player);

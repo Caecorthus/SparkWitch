@@ -10,12 +10,13 @@ import net.minecraft.util.Identifier;
 import java.util.OptionalInt;
 
 /**
- * Pure Grand Witch rule constants and predicates.
- * 大魔女的纯规则集中在这里，事件和 UI 只读取这些判断。
+ * Pure Witch faction rule constants and predicates.
+ * 魔女阵营的纯规则集中在这里，事件和 UI 只读取这些判断。
  */
 public final class GrandWitchRules {
     public static final int STARTING_MONEY = 0;
     public static final int DIRECT_KILL_MONEY_REWARD = 100;
+    public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
 
     public static final int CEREMONIAL_SWORD_MANA_COST = 100;
     public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 10);
@@ -29,6 +30,10 @@ public final class GrandWitchRules {
 
     public static boolean isGrandWitch(Role role) {
         return role != null && role == SparkWitchRoles.grandWitch();
+    }
+
+    public static boolean isAccomplice(Role role) {
+        return role != null && role == SparkWitchRoles.accomplice();
     }
 
     public static boolean isWitchFactionMember(Role role) {
@@ -48,27 +53,39 @@ public final class GrandWitchRules {
     }
 
     public static OptionalInt instinctColor(Role viewerRole, Role targetRole) {
-        if (!isGrandWitch(viewerRole)) {
-            return OptionalInt.empty();
+        if (isGrandWitch(viewerRole)) {
+            if (targetRole == SparkWitchRoles.accomplice()) {
+                return OptionalInt.of(SparkWitchRoles.accomplice().color());
+            }
+            if (isOtherWitchRole(targetRole)) {
+                return OptionalInt.of(OTHER_WITCH_INSTINCT_COLOR);
+            }
+            return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
         }
-        if (targetRole == SparkWitchRoles.accomplice()) {
-            return OptionalInt.of(SparkWitchRoles.accomplice().color());
+        if (isAccomplice(viewerRole)) {
+            if (targetRole == SparkWitchRoles.grandWitch()) {
+                return OptionalInt.of(SparkWitchRoles.grandWitch().color());
+            }
+            return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
         }
-        if (isOtherWitchRole(targetRole)) {
-            return OptionalInt.of(OTHER_WITCH_INSTINCT_COLOR);
-        }
-        return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
+        return OptionalInt.empty();
     }
 
     public static Boolean economyDecision(Role role, FactionEconomyPolicy.RewardKind rewardKind) {
-        if (!isGrandWitch(role)) {
+        if (isGrandWitch(role)) {
+            if (rewardKind == FactionEconomyPolicy.RewardKind.DIRECT_KILL) {
+                return true;
+            }
+            if (rewardKind == FactionEconomyPolicy.RewardKind.PASSIVE) {
+                return false;
+            }
             return null;
         }
-        if (rewardKind == FactionEconomyPolicy.RewardKind.DIRECT_KILL) {
-            return true;
-        }
-        if (rewardKind == FactionEconomyPolicy.RewardKind.PASSIVE) {
-            return false;
+        if (isAccomplice(role)) {
+            if (rewardKind == FactionEconomyPolicy.RewardKind.DIRECT_KILL
+                    || rewardKind == FactionEconomyPolicy.RewardKind.PASSIVE) {
+                return true;
+            }
         }
         return null;
     }

@@ -54,6 +54,13 @@ public final class WitchManaRules {
         return canRegenerateNaturally(killerRole) ? GENERIC_KILL_REWARD : 0;
     }
 
+    public static int grandWitchRewardForAccompliceKill(Role killerRole, Role victimRole) {
+        if (killerRole != SparkWitchRoles.accomplice()) {
+            return 0;
+        }
+        return killReward(SparkWitchRoles.grandWitch(), victimRole);
+    }
+
     public static int applyNaturalRegeneration(int currentMana, Role role) {
         if (!canRegenerateNaturally(role)) {
             return Math.max(0, currentMana);

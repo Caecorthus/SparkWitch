@@ -78,4 +78,20 @@ class WitchManaRulesTest {
                 SparkWitchRoles.apprenticeWitch()
         ));
     }
+
+    @Test
+    void accompliceKillsCreateGrandWitchManaRewardsWithoutGivingAccompliceMana() {
+        assertEquals(25, WitchManaRules.grandWitchRewardForAccompliceKill(
+                SparkWitchRoles.accomplice(),
+                WatheRoles.CIVILIAN
+        ));
+        assertEquals(50, WitchManaRules.grandWitchRewardForAccompliceKill(
+                SparkWitchRoles.accomplice(),
+                SparkWitchRoles.apprenticeWitch()
+        ));
+        assertEquals(0, WitchManaRules.grandWitchRewardForAccompliceKill(
+                SparkWitchRoles.grandWitch(),
+                WatheRoles.CIVILIAN
+        ));
+    }
 }
