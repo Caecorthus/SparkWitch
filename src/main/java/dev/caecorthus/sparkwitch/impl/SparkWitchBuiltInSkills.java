@@ -22,5 +22,63 @@ public final class SparkWitchBuiltInSkills {
                 context -> GrandWitchRules.isGrandWitch(context.role()),
                 GrandWitchActiveSkillService::use
         ));
+        registerApprenticeSkill(
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_ID,
+                0x75EDFA,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_COOLDOWN_TICKS,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST,
+                ApprenticeWitchSkillService::useMightyForce
+        );
+        registerApprenticeSkill(
+                ApprenticeWitchSkillRules.SWIFT_STEP_ID,
+                0x9CF26F,
+                ApprenticeWitchSkillRules.SWIFT_STEP_COOLDOWN_TICKS,
+                ApprenticeWitchSkillRules.SWIFT_STEP_MANA_COST,
+                ApprenticeWitchSkillService::useSwiftStep
+        );
+        registerApprenticeSkill(
+                ApprenticeWitchSkillRules.MURDER_SENSE_ID,
+                ApprenticeWitchSkillRules.MURDER_SENSE_COLOR,
+                ApprenticeWitchSkillRules.MURDER_SENSE_COOLDOWN_TICKS,
+                ApprenticeWitchSkillRules.MURDER_SENSE_MANA_COST,
+                ApprenticeWitchSkillService::useMurderSense
+        );
+        registerApprenticeSkill(
+                ApprenticeWitchSkillRules.HEALING_ID,
+                0x6DF2A2,
+                ApprenticeWitchSkillRules.HEALING_COOLDOWN_TICKS,
+                ApprenticeWitchSkillRules.HEALING_MANA_COST,
+                ApprenticeWitchSkillService::useHealing
+        );
+        registerApprenticeSkill(
+                ApprenticeWitchSkillRules.CLAIRVOYANCE_ID,
+                ApprenticeWitchSkillRules.CLAIRVOYANCE_SELF_COLOR,
+                ApprenticeWitchSkillRules.CLAIRVOYANCE_COOLDOWN_TICKS,
+                ApprenticeWitchSkillRules.CLAIRVOYANCE_MANA_COST,
+                ApprenticeWitchSkillService::useClairvoyance
+        );
+    }
+
+    static synchronized void resetForTests() {
+        registered = false;
+    }
+
+    private static void registerApprenticeSkill(
+            net.minecraft.util.Identifier id,
+            int color,
+            int cooldownTicks,
+            int manaCost,
+            java.util.function.Function<dev.caecorthus.sparkwitch.api.WitchSkillUseContext, dev.caecorthus.sparkwitch.api.WitchSkillUseResult> useHandler
+    ) {
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                id,
+                color,
+                1,
+                ApprenticeWitchSkillRules.INITIAL_COOLDOWN_TICKS,
+                cooldownTicks,
+                manaCost,
+                context -> context.role() == dev.caecorthus.sparkwitch.SparkWitchRoles.apprenticeWitch(),
+                useHandler
+        ));
     }
 }

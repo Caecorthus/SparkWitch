@@ -24,6 +24,7 @@ public final class SparkWitchEvents {
 
         CeremonialSwordCombatService.register();
         CeremonialSwordDashService.register();
+        MightyForceCombatService.register();
         GrandWitchFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {

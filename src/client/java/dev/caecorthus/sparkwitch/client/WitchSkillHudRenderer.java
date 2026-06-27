@@ -39,11 +39,12 @@ public final class WitchSkillHudRenderer {
     }
 
     private static Text stateText(WitchPlayerComponent component, Identifier skillId) {
-        if (component.getCeremonialSwordTicks() > 0) {
+        int activeTicks = component.getActiveSkillWindowTicks();
+        if (activeTicks > 0) {
             return Text.translatable(
                     "hud.sparkwitch.skill.active",
                     WitchSkillClientTexts.name(skillId),
-                    seconds(component.getCeremonialSwordTicks())
+                    seconds(activeTicks)
             );
         }
         if (component.getCooldownTicks() > 0) {

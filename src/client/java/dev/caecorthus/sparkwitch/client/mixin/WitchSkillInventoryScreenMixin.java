@@ -59,7 +59,7 @@ public abstract class WitchSkillInventoryScreenMixin extends LimitedHandledScree
         if (mouseX >= x && mouseX <= x + hoverWidth && mouseY >= hoverTop && mouseY <= hoverBottom) {
             context.drawTooltip(
                     this.textRenderer,
-                    WitchSkillClientTexts.tooltip(skillId, component.getCooldownTicks(), component.getCeremonialSwordTicks()),
+                    WitchSkillClientTexts.tooltip(skillId, component.getCooldownTicks(), component.getActiveSkillWindowTicks()),
                     mouseX,
                     mouseY
             );
@@ -67,8 +67,9 @@ public abstract class WitchSkillInventoryScreenMixin extends LimitedHandledScree
     }
 
     private static Text stateText(WitchPlayerComponent component) {
-        if (component.getCeremonialSwordTicks() > 0) {
-            return Text.translatable("gui.sparkwitch.skill.active", (int) Math.ceil(component.getCeremonialSwordTicks() / 20.0));
+        int activeTicks = component.getActiveSkillWindowTicks();
+        if (activeTicks > 0) {
+            return Text.translatable("gui.sparkwitch.skill.active", (int) Math.ceil(activeTicks / 20.0));
         }
         if (component.getCooldownTicks() > 0) {
             return Text.translatable("gui.sparkwitch.skill.cooldown", (int) Math.ceil(component.getCooldownTicks() / 20.0));

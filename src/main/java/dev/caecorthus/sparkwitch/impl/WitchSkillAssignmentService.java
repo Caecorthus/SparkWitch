@@ -38,6 +38,6 @@ public final class WitchSkillAssignmentService {
                 random
         );
         component.setActiveSkill(selected.map(WitchSkillDefinition::id).orElse(null));
-        component.setCooldownTicks(0);
+        component.setCooldownTicks(selected.map(WitchSkillDefinition::initialCooldownTicks).orElse(0));
     }
 }

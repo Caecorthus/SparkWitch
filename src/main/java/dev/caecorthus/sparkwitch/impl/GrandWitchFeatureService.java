@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.impl;
 
 import dev.caecorthus.sparkfactionapi.api.FactionInstinctPolicy;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
@@ -9,9 +10,11 @@ import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
+import dev.doctor4t.wathe.index.tag.WatheItemTags;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.OptionalInt;
@@ -22,6 +25,7 @@ import java.util.OptionalInt;
  */
 public final class GrandWitchFeatureService {
     private static final int GRAND_WITCH_INSTINCT_PRIORITY = 200;
+    private static final int APPRENTICE_OUTLINE_PRIORITY = 300;
     private static final int OBSCURE_SKIP_PRIORITY = 1_000;
     private static boolean registered;
 
@@ -84,6 +88,12 @@ public final class GrandWitchFeatureService {
         if (!(target instanceof PlayerEntity targetPlayer)) {
             return null;
         }
+
+        FactionInstinctPolicy.InstinctResult apprenticeOutline = apprenticeOutline(viewer, targetPlayer);
+        if (apprenticeOutline != null) {
+            return apprenticeOutline;
+        }
+
         Role targetRole = gameComponent.getRole(targetPlayer);
         OptionalInt color = GrandWitchRules.instinctColor(viewerRole, targetRole);
         if (color.isEmpty()) {
@@ -94,5 +104,56 @@ public final class GrandWitchFeatureService {
             return FactionInstinctPolicy.InstinctResult.skip(GRAND_WITCH_INSTINCT_PRIORITY);
         }
         return FactionInstinctPolicy.InstinctResult.show(color.getAsInt(), true, GRAND_WITCH_INSTINCT_PRIORITY);
+    }
+
+    private static FactionInstinctPolicy.InstinctResult apprenticeOutline(PlayerEntity viewer, PlayerEntity target) {
+        WitchPlayerComponent viewerComponent = WitchPlayerComponent.KEY.get(viewer);
+        if (!GameFunctions.isPlayerPlayingAndAlive(viewer)) {
+            return null;
+        }
+
+        boolean self = viewer.getUuid().equals(target.getUuid());
+        if (self && viewerComponent.getClairvoyanceSelfTicks() > 0) {
+            return FactionInstinctPolicy.InstinctResult.show(
+                    ApprenticeWitchSkillRules.CLAIRVOYANCE_SELF_COLOR,
+                    false,
+                    APPRENTICE_OUTLINE_PRIORITY
+            );
+        }
+
+        if (!self && viewerComponent.getMurderSenseTicks() > 0 && canMurderSenseHighlight(viewer, target)) {
+            return FactionInstinctPolicy.InstinctResult.show(
+                    ApprenticeWitchSkillRules.MURDER_SENSE_COLOR,
+                    false,
+                    APPRENTICE_OUTLINE_PRIORITY
+            );
+        }
+
+        if (!self && viewerComponent.getClairvoyanceOthersTicks() > 0 && GameFunctions.isPlayerPlayingAndAlive(target)) {
+            return FactionInstinctPolicy.InstinctResult.show(
+                    ApprenticeWitchSkillRules.CLAIRVOYANCE_TARGET_COLOR,
+                    false,
+                    APPRENTICE_OUTLINE_PRIORITY
+            );
+        }
+        return null;
+    }
+
+    private static boolean canMurderSenseHighlight(PlayerEntity viewer, PlayerEntity target) {
+        if (!GameFunctions.isPlayerPlayingAndAlive(target)
+                || GameFunctions.isPlayerSpectatingOrCreative(target)) {
+            return false;
+        }
+        double range = ApprenticeWitchSkillRules.MURDER_SENSE_RANGE_BLOCKS;
+        if (viewer.squaredDistanceTo(target) > range * range) {
+            return false;
+        }
+        return isDangerousHeldItem(target.getMainHandStack()) || isDangerousHeldItem(target.getOffHandStack());
+    }
+
+    private static boolean isDangerousHeldItem(ItemStack stack) {
+        return !stack.isEmpty()
+                && (stack.isIn(WatheItemTags.GUNS)
+                || ApprenticeWitchSkillRules.DANGEROUS_ITEM_IDS.contains(Registries.ITEM.getId(stack.getItem())));
     }
 }
