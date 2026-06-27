@@ -12,10 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ItemModelResourcesTest {
-    private static final Path MODEL = Path.of("src/main/resources/assets/sparkwitch/models/item/ritual_sword.json");
+    private static final Path MODEL = Path.of("src/main/resources/assets/sparkwitch/models/item/ceremonial_sword.json");
 
     @Test
-    void ritualSwordModelUsesHandheldIronSwordPlaceholder() throws IOException {
+    void ceremonialSwordModelUsesHandheldIronSwordPlaceholder() throws IOException {
         JsonObject model = JsonParser.parseString(Files.readString(MODEL)).getAsJsonObject();
 
         assertEquals("minecraft:item/handheld", model.get("parent").getAsString());
@@ -23,7 +23,7 @@ class ItemModelResourcesTest {
     }
 
     @Test
-    void ritualSwordModelResourceExists() {
+    void ceremonialSwordModelResourceExists() {
         assertTrue(Files.isRegularFile(MODEL));
     }
 }

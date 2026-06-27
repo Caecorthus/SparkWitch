@@ -1,0 +1,123 @@
+package dev.caecorthus.sparkwitch.impl;
+
+import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.api.WatheRoles;
+import dev.doctor4t.wathe.game.GameConstants;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.util.OptionalInt;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class GrandWitchRulesTest {
+    @BeforeAll
+    static void registerRoles() {
+        SparkWitchRoles.register();
+    }
+
+    @Test
+    void witchFactionForAreaSpellsOnlyMeansGrandWitchAndAccomplice() {
+        assertTrue(GrandWitchRules.isWitchFactionMember(SparkWitchRoles.grandWitch()));
+        assertTrue(GrandWitchRules.isWitchFactionMember(SparkWitchRoles.accomplice()));
+
+        assertFalse(GrandWitchRules.isWitchFactionMember(SparkWitchRoles.murderousWitch()));
+        assertFalse(GrandWitchRules.isWitchFactionMember(SparkWitchRoles.apprenticeWitch()));
+        assertFalse(GrandWitchRules.isWitchFactionMember(WatheRoles.CIVILIAN));
+
+        assertFalse(GrandWitchRules.isAffectedByWitchAreaSpell(SparkWitchRoles.grandWitch()));
+        assertFalse(GrandWitchRules.isAffectedByWitchAreaSpell(SparkWitchRoles.accomplice()));
+        assertTrue(GrandWitchRules.isAffectedByWitchAreaSpell(SparkWitchRoles.murderousWitch()));
+        assertTrue(GrandWitchRules.isAffectedByWitchAreaSpell(SparkWitchRoles.apprenticeWitch()));
+        assertTrue(GrandWitchRules.isAffectedByWitchAreaSpell(WatheRoles.CIVILIAN));
+    }
+
+    @Test
+    void fearOnlyAffectsRealSanityRolesOutsideGrandWitchFaction() {
+        Role fakeNeutral = SparkWitchRoles.murderousWitch();
+        Role fakeGrandWitch = SparkWitchRoles.grandWitch();
+
+        assertTrue(GrandWitchRules.isAffectedByFear(SparkWitchRoles.apprenticeWitch()));
+        assertTrue(GrandWitchRules.isAffectedByFear(WatheRoles.CIVILIAN));
+        assertFalse(GrandWitchRules.isAffectedByFear(fakeNeutral));
+        assertFalse(GrandWitchRules.isAffectedByFear(fakeGrandWitch));
+        assertFalse(GrandWitchRules.isAffectedByFear(SparkWitchRoles.accomplice()));
+        assertFalse(GrandWitchRules.isAffectedByFear(null));
+    }
+
+    @Test
+    void grandWitchEconomyAllowsDirectKillsButRejectsPassiveMoney() {
+        assertEquals(Boolean.TRUE, GrandWitchRules.economyDecision(
+                SparkWitchRoles.grandWitch(),
+                FactionEconomyPolicy.RewardKind.DIRECT_KILL
+        ));
+        assertEquals(Boolean.FALSE, GrandWitchRules.economyDecision(
+                SparkWitchRoles.grandWitch(),
+                FactionEconomyPolicy.RewardKind.PASSIVE
+        ));
+
+        assertNull(GrandWitchRules.economyDecision(
+                SparkWitchRoles.grandWitch(),
+                FactionEconomyPolicy.RewardKind.TEAM_KILL
+        ));
+        assertNull(GrandWitchRules.economyDecision(
+                SparkWitchRoles.murderousWitch(),
+                FactionEconomyPolicy.RewardKind.DIRECT_KILL
+        ));
+    }
+
+    @Test
+    void grandWitchInstinctColorsCohortOtherWitchesAndEveryoneElse() {
+        assertEquals(
+                OptionalInt.of(SparkWitchRoles.accomplice().color()),
+                GrandWitchRules.instinctColor(SparkWitchRoles.grandWitch(), SparkWitchRoles.accomplice())
+        );
+        assertEquals(
+                OptionalInt.of(0x7AB8FF),
+                GrandWitchRules.instinctColor(SparkWitchRoles.grandWitch(), SparkWitchRoles.murderousWitch())
+        );
+        assertEquals(
+                OptionalInt.of(0x7AB8FF),
+                GrandWitchRules.instinctColor(SparkWitchRoles.grandWitch(), SparkWitchRoles.apprenticeWitch())
+        );
+        assertEquals(
+                OptionalInt.of(0x36E51B),
+                GrandWitchRules.instinctColor(SparkWitchRoles.grandWitch(), WatheRoles.CIVILIAN)
+        );
+        assertTrue(GrandWitchRules.instinctColor(SparkWitchRoles.accomplice(), WatheRoles.CIVILIAN).isEmpty());
+    }
+
+    @Test
+    void activeSkillAndSpellTuningMatchGrandWitchPlan() {
+        assertEquals(0, GrandWitchRules.STARTING_MONEY);
+        assertEquals(100, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);
+        assertEquals(100, GrandWitchRules.CEREMONIAL_SWORD_MANA_COST);
+        assertEquals(GameConstants.getInTicks(0, 10), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
+        assertEquals(GameConstants.getInTicks(1, 30), GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
+
+        assertSpell(GrandWitchRules.GrandWitchSpell.OBSCURE, "sparkwitch_obscure", 80, 30, 120);
+        assertSpell(GrandWitchRules.GrandWitchSpell.BLINDNESS, "sparkwitch_blindness", 80, 20, 180);
+        assertSpell(GrandWitchRules.GrandWitchSpell.FEAR, "sparkwitch_fear", 50, 10, 300);
+        assertSpell(GrandWitchRules.GrandWitchSpell.HEAVINESS, "sparkwitch_heaviness", 60, 10, 180);
+    }
+
+    private static void assertSpell(
+            GrandWitchRules.GrandWitchSpell spell,
+            String entryId,
+            int manaCost,
+            int durationSeconds,
+            int cooldownSeconds
+    ) {
+        assertEquals(entryId, spell.entryId());
+        assertEquals(manaCost, spell.manaCost());
+        assertEquals(GameConstants.getInTicks(0, durationSeconds), spell.durationTicks());
+        assertEquals(GameConstants.getInTicks(cooldownSeconds / 60, cooldownSeconds % 60), spell.cooldownTicks());
+        assertEquals(spell, GrandWitchRules.GrandWitchSpell.fromEntryId(entryId));
+        assertTrue(GrandWitchRules.isSparkWitchShopSpellId(entryId));
+    }
+}

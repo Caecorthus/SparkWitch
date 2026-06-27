@@ -4,6 +4,9 @@
   "package": "dev.caecorthus.sparkwitch.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "WitchCohortRoleNameMixin",
+    "WitchManaHudMixin",
+    "WitchShopPriceMixin",
     "WitchSkillInventoryScreenMixin"
   ],
   "injectors": {

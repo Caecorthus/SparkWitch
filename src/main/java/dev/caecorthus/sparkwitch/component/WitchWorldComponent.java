@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.impl.GrandWitchSpellService;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -8,12 +9,14 @@ import net.minecraft.nbt.NbtString;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
+import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -23,7 +26,7 @@ import java.util.Set;
  * Stores world-level witch skill toggles.
  * 保存世界级魔女技能配置，例如禁用列表。
  */
-public final class WitchWorldComponent implements AutoSyncedComponent {
+public final class WitchWorldComponent implements AutoSyncedComponent, ServerTickingComponent {
     public static final ComponentKey<WitchWorldComponent> KEY = ComponentRegistry.getOrCreate(
             SparkWitch.id("world"),
             WitchWorldComponent.class
@@ -31,6 +34,9 @@ public final class WitchWorldComponent implements AutoSyncedComponent {
 
     private final World world;
     private final LinkedHashSet<Identifier> disabledSkills = new LinkedHashSet<>();
+    private int instinctObscureTicks;
+    private int obscureActionbarTicks;
+    private int fearTicks;
 
     public WitchWorldComponent(World world) {
         this.world = world;
@@ -51,7 +57,33 @@ public final class WitchWorldComponent implements AutoSyncedComponent {
         return Set.copyOf(disabledSkills);
     }
 
+    public boolean isInstinctObscured() {
+        return instinctObscureTicks > 0;
+    }
+
+    public int getInstinctObscureTicks() {
+        return instinctObscureTicks;
+    }
+
+    public int getFearTicks() {
+        return fearTicks;
+    }
+
+    public void startInstinctObscure(int durationTicks) {
+        instinctObscureTicks = Math.max(0, durationTicks);
+        obscureActionbarTicks = 0;
+        sync();
+    }
+
+    public void startFear(int durationTicks) {
+        fearTicks = Math.max(0, durationTicks);
+        sync();
+    }
+
     public void clearRoundState() {
+        instinctObscureTicks = 0;
+        obscureActionbarTicks = 0;
+        fearTicks = 0;
         sync();
     }
 
@@ -65,24 +97,72 @@ public final class WitchWorldComponent implements AutoSyncedComponent {
     }
 
     @Override
+    public void serverTick() {
+        if (!(world instanceof ServerWorld serverWorld)) {
+            return;
+        }
+
+        boolean shouldSync = false;
+        if (instinctObscureTicks > 0) {
+            if (obscureActionbarTicks <= 0) {
+                GrandWitchSpellService.sendObscureActionbars(serverWorld, instinctObscureTicks);
+                obscureActionbarTicks = 20;
+            }
+            instinctObscureTicks--;
+            obscureActionbarTicks--;
+            shouldSync = instinctObscureTicks == 0 || instinctObscureTicks % 20 == 0;
+        } else {
+            obscureActionbarTicks = 0;
+        }
+
+        if (fearTicks > 0) {
+            GrandWitchSpellService.tickFear(serverWorld);
+            fearTicks--;
+            shouldSync = shouldSync || fearTicks == 0;
+        }
+
+        if (shouldSync) {
+            sync();
+        }
+    }
+
+    @Override
     public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) {
         writeIdentifierSet(buf, disabledSkills);
+        buf.writeVarInt(instinctObscureTicks);
+        buf.writeVarInt(fearTicks);
     }
 
     @Override
     public void applySyncPacket(RegistryByteBuf buf) {
         readIdentifierSet(buf, disabledSkills);
+        instinctObscureTicks = Math.max(0, buf.readVarInt());
+        fearTicks = Math.max(0, buf.readVarInt());
+        obscureActionbarTicks = 0;
     }
 
     @Override
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         tag.put("DisabledSkills", toNbt(disabledSkills));
+        if (instinctObscureTicks > 0) {
+            tag.putInt("InstinctObscureTicks", instinctObscureTicks);
+        }
+        if (fearTicks > 0) {
+            tag.putInt("FearTicks", fearTicks);
+        }
     }
 
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         disabledSkills.clear();
         fromNbt(tag.getList("DisabledSkills", NbtElement.STRING_TYPE), disabledSkills);
+        instinctObscureTicks = tag.contains("InstinctObscureTicks", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("InstinctObscureTicks"))
+                : 0;
+        fearTicks = tag.contains("FearTicks", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("FearTicks"))
+                : 0;
+        obscureActionbarTicks = 0;
     }
 
     private static NbtList toNbt(Collection<Identifier> ids) {

@@ -34,7 +34,7 @@ public final class SparkWitchRoles {
 
         SparkFactionApi.bootstrap();
         SparkFactionApi.registerFaction(FactionDefinition.builder(SparkWitchFactions.WITCH)
-                .color(0x8E5CFF)
+                .color(0xE9D5F0)
                 .translationKeyPrefix("faction.sparkwitch.witch")
                 .capabilities(FactionCapabilities.builder()
                         .sharesCohort(true)
@@ -43,14 +43,14 @@ public final class SparkWitchRoles {
                 .build());
 
         grandWitch = SparkFactionApi.registerRole(FactionRoleDefinition.builder(GRAND_WITCH_ID, SparkWitchFactions.WITCH)
-                .color(0x8E5CFF)
+                .color(0xF2DFF7)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(GameConstants.getInTicks(0, 10))
                 .canSeeTime(false)
                 .appearanceCondition(RoleAppearanceCondition.minPlayers(24))
                 .build());
         accomplice = SparkFactionApi.registerRole(FactionRoleDefinition.builder(ACCOMPLICE_ID, SparkWitchFactions.WITCH)
-                .color(0xB783FF)
+                .color(0x7B6AA8)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(GameConstants.getInTicks(0, 10))
                 .canSeeTime(false)
@@ -59,7 +59,7 @@ public final class SparkWitchRoles {
 
         apprenticeWitch = WatheRoles.registerRole(new Role(
                 APPRENTICE_WITCH_ID,
-                0xD4A7FF,
+                0x75EDFA,
                 true,
                 false,
                 Role.MoodType.REAL,
@@ -69,7 +69,7 @@ public final class SparkWitchRoles {
         ));
         murderousWitch = WatheRoles.registerRole(new Role(
                 MURDEROUS_WITCH_ID,
-                0xC24275,
+                0x7A3857,
                 false,
                 false,
                 Role.MoodType.FAKE,

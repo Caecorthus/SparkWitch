@@ -32,6 +32,10 @@ public final class WitchSkillClientTexts {
     }
 
     public static List<Text> tooltip(Identifier skillId, int cooldownTicks) {
+        return tooltip(skillId, cooldownTicks, 0);
+    }
+
+    public static List<Text> tooltip(Identifier skillId, int cooldownTicks, int activeTicks) {
         WitchSkillDefinition skill = WitchSkillRegistry.get(skillId);
         List<Text> lines = new ArrayList<>();
         if (skill == null) {
@@ -40,7 +44,9 @@ public final class WitchSkillClientTexts {
             lines.add(skill.name());
             lines.add(skill.description());
         }
-        if (cooldownTicks > 0) {
+        if (activeTicks > 0) {
+            lines.add(Text.translatable("gui.sparkwitch.skill.active", (int) Math.ceil(activeTicks / 20.0)));
+        } else if (cooldownTicks > 0) {
             lines.add(Text.translatable("gui.sparkwitch.skill.cooldown", (int) Math.ceil(cooldownTicks / 20.0)));
         } else {
             lines.add(Text.translatable("gui.sparkwitch.skill.ready"));

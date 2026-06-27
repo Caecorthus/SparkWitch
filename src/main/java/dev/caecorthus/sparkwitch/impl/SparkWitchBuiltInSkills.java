@@ -1,5 +1,8 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
+import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
+
 public final class SparkWitchBuiltInSkills {
     private static boolean registered;
 
@@ -11,7 +14,13 @@ public final class SparkWitchBuiltInSkills {
             return;
         }
         registered = true;
-        // v1 intentionally ships the active-skill pipeline without invented effects.
-        // v1 只交付主动技能管线，不在没有设计稿时凭空发明技能效果。
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID,
+                0xF2DFF7,
+                1,
+                0,
+                context -> GrandWitchRules.isGrandWitch(context.role()),
+                GrandWitchActiveSkillService::use
+        ));
     }
 }

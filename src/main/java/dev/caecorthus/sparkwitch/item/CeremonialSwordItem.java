@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.item;
 
-import dev.caecorthus.sparkwitch.impl.RitualSwordDashService;
+import dev.caecorthus.sparkwitch.impl.CeremonialSwordDashService;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -11,10 +11,10 @@ import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
-public class RitualSwordItem extends Item {
+public class CeremonialSwordItem extends Item {
     public static final int DASH_COOLDOWN_TICKS = 100;
 
-    public RitualSwordItem(Settings settings) {
+    public CeremonialSwordItem(Settings settings) {
         super(settings);
     }
 
@@ -30,7 +30,7 @@ public class RitualSwordItem extends Item {
             return TypedActionResult.fail(stack);
         }
 
-        RitualSwordDashService.start(player);
+        CeremonialSwordDashService.start(player);
         player.getItemCooldownManager().set(this, DASH_COOLDOWN_TICKS);
         return TypedActionResult.consume(stack);
     }

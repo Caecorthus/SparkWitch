@@ -1,14 +1,14 @@
 package dev.caecorthus.sparkwitch;
 
-import dev.caecorthus.sparkwitch.item.RitualSwordItem;
+import dev.caecorthus.sparkwitch.item.CeremonialSwordItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
 public final class SparkWitchItems {
-    public static final Identifier RITUAL_SWORD_ID = SparkWitch.id("ritual_sword");
-    private static Item ritualSword;
+    public static final Identifier CEREMONIAL_SWORD_ID = SparkWitch.id("ceremonial_sword");
+    private static Item ceremonialSword;
 
     private static boolean registered;
 
@@ -19,18 +19,18 @@ public final class SparkWitchItems {
         if (registered) {
             return;
         }
-        ritualSword = Registry.register(
+        ceremonialSword = Registry.register(
                 Registries.ITEM,
-                RITUAL_SWORD_ID,
-                new RitualSwordItem(new Item.Settings().maxCount(1))
+                CEREMONIAL_SWORD_ID,
+                new CeremonialSwordItem(new Item.Settings().maxCount(1))
         );
         registered = true;
     }
 
-    public static Item ritualSword() {
-        if (ritualSword == null) {
+    public static Item ceremonialSword() {
+        if (ceremonialSword == null) {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
-        return ritualSword;
+        return ceremonialSword;
     }
 }

@@ -13,10 +13,10 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 
-public final class RitualSwordCombatService {
+public final class CeremonialSwordCombatService {
     private static boolean registered;
 
-    private RitualSwordCombatService() {
+    private CeremonialSwordCombatService() {
     }
 
     public static synchronized void register() {
@@ -29,16 +29,16 @@ public final class RitualSwordCombatService {
     }
 
     public static ActionResult tryHandleAttack(Entity attacker, World world, Hand hand, Entity target) {
-        // Non-PASS cancels vanilla attack so ritual sword strikes do not inherit attack cooldown.
-        // 返回非 PASS 会取消原版攻击，让仪式剑左键不继承攻击冷却。
+        // Non-PASS cancels vanilla attack so ceremonial sword strikes do not inherit attack cooldown.
+        // 返回非 PASS 会取消原版攻击，让礼仪剑左键不继承攻击冷却。
         if (world.isClient
                 || !(attacker instanceof ServerPlayerEntity serverAttacker)
-                || !serverAttacker.getStackInHand(hand).isOf(SparkWitchItems.ritualSword())
+                || !serverAttacker.getStackInHand(hand).isOf(SparkWitchItems.ceremonialSword())
                 || !canStrike(serverAttacker, target)) {
             return ActionResult.PASS;
         }
 
-        killWithRitualSword(serverAttacker, (ServerPlayerEntity) target);
+        killWithCeremonialSword(serverAttacker, (ServerPlayerEntity) target);
         return ActionResult.SUCCESS;
     }
 
@@ -52,14 +52,14 @@ public final class RitualSwordCombatService {
                 && GameFunctions.isPlayerAliveAndSurvival(serverTarget);
     }
 
-    public static void killWithRitualSword(ServerPlayerEntity attacker, ServerPlayerEntity target) {
+    public static void killWithCeremonialSword(ServerPlayerEntity attacker, ServerPlayerEntity target) {
         GameRecordManager.recordItemUse(
                 attacker,
-                Registries.ITEM.getId(SparkWitchItems.ritualSword()),
+                Registries.ITEM.getId(SparkWitchItems.ceremonialSword()),
                 target,
                 null
         );
-        GameFunctions.killPlayer(target, true, attacker, SparkWitchDeathReasons.RITUAL_BLADE);
+        GameFunctions.killPlayer(target, true, attacker, SparkWitchDeathReasons.CEREMONIAL_BLADE);
         target.playSound(SoundEvents.ITEM_TRIDENT_HIT, 1.0f, 0.8f);
     }
 }

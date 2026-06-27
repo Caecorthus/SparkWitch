@@ -1,0 +1,135 @@
+package dev.caecorthus.sparkwitch.impl;
+
+import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
+import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.game.GameConstants;
+import net.minecraft.util.Identifier;
+
+import java.util.OptionalInt;
+
+/**
+ * Pure Grand Witch rule constants and predicates.
+ * 大魔女的纯规则集中在这里，事件和 UI 只读取这些判断。
+ */
+public final class GrandWitchRules {
+    public static final int STARTING_MONEY = 0;
+    public static final int DIRECT_KILL_MONEY_REWARD = 100;
+
+    public static final int CEREMONIAL_SWORD_MANA_COST = 100;
+    public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 10);
+    public static final int CEREMONIAL_SWORD_COOLDOWN_TICKS = GameConstants.getInTicks(1, 30);
+
+    public static final int OTHER_WITCH_INSTINCT_COLOR = 0x7AB8FF;
+    public static final int NON_WITCH_INSTINCT_COLOR = 0x36E51B;
+
+    private GrandWitchRules() {
+    }
+
+    public static boolean isGrandWitch(Role role) {
+        return role != null && role == SparkWitchRoles.grandWitch();
+    }
+
+    public static boolean isWitchFactionMember(Role role) {
+        return role != null && (role == SparkWitchRoles.grandWitch() || role == SparkWitchRoles.accomplice());
+    }
+
+    public static boolean isOtherWitchRole(Role role) {
+        return role != null && (role == SparkWitchRoles.murderousWitch() || role == SparkWitchRoles.apprenticeWitch());
+    }
+
+    public static boolean isAffectedByWitchAreaSpell(Role role) {
+        return !isWitchFactionMember(role);
+    }
+
+    public static boolean isAffectedByFear(Role role) {
+        return isAffectedByWitchAreaSpell(role) && role != null && role.getMoodType() == Role.MoodType.REAL;
+    }
+
+    public static OptionalInt instinctColor(Role viewerRole, Role targetRole) {
+        if (!isGrandWitch(viewerRole)) {
+            return OptionalInt.empty();
+        }
+        if (targetRole == SparkWitchRoles.accomplice()) {
+            return OptionalInt.of(SparkWitchRoles.accomplice().color());
+        }
+        if (isOtherWitchRole(targetRole)) {
+            return OptionalInt.of(OTHER_WITCH_INSTINCT_COLOR);
+        }
+        return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
+    }
+
+    public static Boolean economyDecision(Role role, FactionEconomyPolicy.RewardKind rewardKind) {
+        if (!isGrandWitch(role)) {
+            return null;
+        }
+        if (rewardKind == FactionEconomyPolicy.RewardKind.DIRECT_KILL) {
+            return true;
+        }
+        if (rewardKind == FactionEconomyPolicy.RewardKind.PASSIVE) {
+            return false;
+        }
+        return null;
+    }
+
+    public static boolean isSparkWitchShopSpellId(String entryId) {
+        return GrandWitchSpell.fromEntryId(entryId) != null;
+    }
+
+    public enum GrandWitchSpell {
+        OBSCURE("sparkwitch_obscure", 80, GameConstants.getInTicks(0, 30), GameConstants.getInTicks(2, 0)),
+        BLINDNESS("sparkwitch_blindness", 80, GameConstants.getInTicks(0, 20), GameConstants.getInTicks(3, 0)),
+        FEAR("sparkwitch_fear", 50, GameConstants.getInTicks(0, 10), GameConstants.getInTicks(5, 0)),
+        HEAVINESS("sparkwitch_heaviness", 60, GameConstants.getInTicks(0, 10), GameConstants.getInTicks(3, 0));
+
+        private final String entryId;
+        private final int manaCost;
+        private final int durationTicks;
+        private final int cooldownTicks;
+
+        GrandWitchSpell(String entryId, int manaCost, int durationTicks, int cooldownTicks) {
+            this.entryId = entryId;
+            this.manaCost = manaCost;
+            this.durationTicks = durationTicks;
+            this.cooldownTicks = cooldownTicks;
+        }
+
+        public String entryId() {
+            return entryId;
+        }
+
+        public int manaCost() {
+            return manaCost;
+        }
+
+        public int durationTicks() {
+            return durationTicks;
+        }
+
+        public int cooldownTicks() {
+            return cooldownTicks;
+        }
+
+        public Identifier id() {
+            return SparkWitch.id(path());
+        }
+
+        public String path() {
+            return entryId.substring("sparkwitch_".length());
+        }
+
+        public String translationKey() {
+            return "shop.sparkwitch." + path();
+        }
+
+        public static GrandWitchSpell fromEntryId(String entryId) {
+            for (GrandWitchSpell spell : values()) {
+                if (spell.entryId.equals(entryId)) {
+                    return spell;
+                }
+            }
+            return null;
+        }
+    }
+}

@@ -15,7 +15,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-public final class RitualSwordDashService {
+public final class CeremonialSwordDashService {
     public static final double DASH_DISTANCE_BLOCKS = 6.0;
     public static final double DASH_BLOCKS_PER_TICK = 1.5;
     public static final double DASH_STEP_BLOCKS = 0.25;
@@ -23,7 +23,7 @@ public final class RitualSwordDashService {
     private static final Map<UUID, DashState> DASHES = new HashMap<>();
     private static boolean registered;
 
-    private RitualSwordDashService() {
+    private CeremonialSwordDashService() {
     }
 
     public static synchronized void register() {
@@ -31,7 +31,7 @@ public final class RitualSwordDashService {
             return;
         }
         registered = true;
-        ServerTickEvents.END_SERVER_TICK.register(RitualSwordDashService::tickServer);
+        ServerTickEvents.END_SERVER_TICK.register(CeremonialSwordDashService::tickServer);
     }
 
     public static void start(ServerPlayerEntity player) {
@@ -87,7 +87,7 @@ public final class RitualSwordDashService {
 
             ServerPlayerEntity target = findDashTarget(player, currentBox.stretch(delta).expand(0.15));
             if (target != null) {
-                RitualSwordCombatService.killWithRitualSword(player, target);
+                CeremonialSwordCombatService.killWithCeremonialSword(player, target);
                 return true;
             }
 
@@ -109,7 +109,7 @@ public final class RitualSwordDashService {
 
     private static ServerPlayerEntity findDashTarget(ServerPlayerEntity player, Box sweptBox) {
         for (Entity entity : player.getServerWorld().getOtherEntities(player, sweptBox, entity -> entity instanceof ServerPlayerEntity)) {
-            if (RitualSwordCombatService.canStrike(player, entity)) {
+            if (CeremonialSwordCombatService.canStrike(player, entity)) {
                 return (ServerPlayerEntity) entity;
             }
         }

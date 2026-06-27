@@ -50,16 +50,29 @@ public abstract class WitchSkillInventoryScreenMixin extends LimitedHandledScree
 
         int hoverTop = y;
         y += this.textRenderer.fontHeight + LINE_GAP;
-        Text state = component.getCooldownTicks() > 0
-                ? Text.translatable("gui.sparkwitch.skill.cooldown", (int) Math.ceil(component.getCooldownTicks() / 20.0))
-                : Text.translatable("gui.sparkwitch.skill.ready");
+        Text state = stateText(component);
         int stateWidth = this.textRenderer.getWidth(state);
         context.drawTextWithShadow(this.textRenderer, state, x, y, 0xE7D8FF);
 
         int hoverWidth = Math.max(tagWidth, stateWidth);
         int hoverBottom = y + this.textRenderer.fontHeight;
         if (mouseX >= x && mouseX <= x + hoverWidth && mouseY >= hoverTop && mouseY <= hoverBottom) {
-            context.drawTooltip(this.textRenderer, WitchSkillClientTexts.tooltip(skillId, component.getCooldownTicks()), mouseX, mouseY);
+            context.drawTooltip(
+                    this.textRenderer,
+                    WitchSkillClientTexts.tooltip(skillId, component.getCooldownTicks(), component.getCeremonialSwordTicks()),
+                    mouseX,
+                    mouseY
+            );
         }
+    }
+
+    private static Text stateText(WitchPlayerComponent component) {
+        if (component.getCeremonialSwordTicks() > 0) {
+            return Text.translatable("gui.sparkwitch.skill.active", (int) Math.ceil(component.getCeremonialSwordTicks() / 20.0));
+        }
+        if (component.getCooldownTicks() > 0) {
+            return Text.translatable("gui.sparkwitch.skill.cooldown", (int) Math.ceil(component.getCooldownTicks() / 20.0));
+        }
+        return Text.translatable("gui.sparkwitch.skill.ready");
     }
 }
