@@ -33,6 +33,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     private final PlayerEntity player;
     private Identifier activeSkillId;
+    private Identifier forcedSkillId;
     private int cooldownTicks;
     private boolean manaEnabled;
     private int mana;
@@ -52,6 +53,10 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     public @Nullable Identifier getActiveSkillId() {
         return activeSkillId;
+    }
+
+    public @Nullable Identifier getForcedSkillId() {
+        return forcedSkillId;
     }
 
     public int getCooldownTicks() {
@@ -121,6 +126,22 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
+    /**
+     * Stores a next-round admin ability lock without exposing it in normal client sync.
+     * 保存下一局管理员锁定的能力，不通过普通客户端同步包展示。
+     */
+    public boolean setForcedSkill(@Nullable Identifier forcedSkillId) {
+        if (this.forcedSkillId == null ? forcedSkillId == null : this.forcedSkillId.equals(forcedSkillId)) {
+            return false;
+        }
+        this.forcedSkillId = forcedSkillId;
+        return true;
+    }
+
+    public boolean clearForcedSkill() {
+        return setForcedSkill(null);
+    }
+
     public void setCooldownTicks(int cooldownTicks) {
         int normalized = Math.max(0, cooldownTicks);
         if (this.cooldownTicks == normalized) {
@@ -160,6 +181,21 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         }
         mana = normalized;
         sync();
+    }
+
+    /**
+     * Sets mana directly for admin commands.
+     * 供管理员命令直接设定魔力值，并重置自然回复计时。
+     */
+    public void setMana(int amount) {
+        int normalized = Math.max(0, amount);
+        boolean changed = !manaEnabled || mana != normalized || manaRegenerationTicks != 0;
+        manaEnabled = true;
+        mana = normalized;
+        manaRegenerationTicks = 0;
+        if (changed) {
+            sync();
+        }
     }
 
     public boolean spendMana(int amount) {
@@ -448,6 +484,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         if (activeSkillId != null) {
             tag.putString("ActiveSkill", activeSkillId.toString());
         }
+        WitchForcedSkillState.writeToNbt(tag, forcedSkillId);
         if (cooldownTicks > 0) {
             tag.putInt("CooldownTicks", cooldownTicks);
         }
@@ -487,6 +524,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         activeSkillId = tag.contains("ActiveSkill", NbtElement.STRING_TYPE)
                 ? Identifier.tryParse(tag.getString("ActiveSkill"))
                 : null;
+        forcedSkillId = WitchForcedSkillState.readFromNbt(tag);
         cooldownTicks = tag.contains("CooldownTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("CooldownTicks"))
                 : 0;
