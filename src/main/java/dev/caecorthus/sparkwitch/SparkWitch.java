@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.impl.SparkWitchBuiltInSkills;
 import dev.caecorthus.sparkwitch.impl.SparkWitchEvents;
 import dev.caecorthus.sparkwitch.net.SparkWitchPackets;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.util.Identifier;
 
 public final class SparkWitch implements ModInitializer {
@@ -16,6 +17,7 @@ public final class SparkWitch implements ModInitializer {
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();
         SparkWitchEvents.register();
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> SparkWitchRoles.refreshAssassinGuessRoleOrder());
     }
 
     public static Identifier id(String path) {

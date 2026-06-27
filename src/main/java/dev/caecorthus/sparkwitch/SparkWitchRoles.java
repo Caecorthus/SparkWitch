@@ -28,6 +28,7 @@ public final class SparkWitchRoles {
 
     public static synchronized void register() {
         if (registered) {
+            appendAssassinGuessRoles();
             return;
         }
         registered = true;
@@ -97,6 +98,13 @@ public final class SparkWitchRoles {
                 false,
                 RoleAppearanceCondition.minPlayers(24)
         ));
+
+        appendAssassinGuessRoles();
+    }
+
+    public static synchronized void refreshAssassinGuessRoleOrder() {
+        ensureRegistered();
+        appendAssassinGuessRoles();
     }
 
     public static Role grandWitch() {
@@ -131,5 +139,22 @@ public final class SparkWitchRoles {
         if (!registered) {
             register();
         }
+    }
+
+    private static void appendAssassinGuessRoles() {
+        // Keep SparkWitch roles at the end of NoellesRoles/SparkTraits Assassin guess panels.
+        // 让 SparkWitch 职业稳定显示在 NoellesRoles/SparkTraits 刺客猜身份面板末尾。
+        WatheRoles.ROLES.removeIf(SparkWitchRoles::isRegisteredSparkWitchRole);
+        WatheRoles.ROLES.add(apprenticeWitch);
+        WatheRoles.ROLES.add(murderousWitch);
+        WatheRoles.ROLES.add(accomplice);
+        WatheRoles.ROLES.add(grandWitch);
+    }
+
+    private static boolean isRegisteredSparkWitchRole(Role role) {
+        return role == grandWitch
+                || role == accomplice
+                || role == apprenticeWitch
+                || role == murderousWitch;
     }
 }

@@ -3,9 +3,14 @@ package dev.caecorthus.sparkwitch;
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.FactionCapabilities;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.api.WatheRoles;
 import dev.doctor4t.wathe.game.GameConstants;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -87,5 +92,50 @@ class SparkWitchRoleRegistrationTest {
         assertFalse(capabilities.sharesCohort());
         assertTrue(capabilities.canUseInstinct());
         assertEquals(0xC13838, capabilities.instinctColor());
+    }
+
+    @Test
+    void assassinGuessPanelRolesAppendToWatheRoleTail() {
+        assertEquals(expectedAssassinGuessTail(), currentRoleTail());
+    }
+
+    @Test
+    void repeatedRegistrationMovesAssassinGuessPanelRolesBackToTailWithoutDuplicates() {
+        Role trailingRole = new Role(
+                SparkWitch.id("assassin_tail_probe"),
+                0xFFFFFF,
+                true,
+                false,
+                Role.MoodType.REAL,
+                GameConstants.getInTicks(0, 10),
+                false
+        );
+        WatheRoles.ROLES.add(trailingRole);
+
+        try {
+            SparkWitchRoles.register();
+
+            assertEquals(expectedAssassinGuessTail(), currentRoleTail());
+            for (Role role : expectedAssassinGuessTail()) {
+                assertEquals(1, Collections.frequency(WatheRoles.ROLES, role));
+            }
+        } finally {
+            WatheRoles.ROLES.remove(trailingRole);
+            SparkWitchRoles.register();
+        }
+    }
+
+    private static List<Role> expectedAssassinGuessTail() {
+        return List.of(
+                SparkWitchRoles.apprenticeWitch(),
+                SparkWitchRoles.murderousWitch(),
+                SparkWitchRoles.accomplice(),
+                SparkWitchRoles.grandWitch()
+        );
+    }
+
+    private static List<Role> currentRoleTail() {
+        List<Role> roles = WatheRoles.ROLES;
+        return roles.subList(roles.size() - expectedAssassinGuessTail().size(), roles.size());
     }
 }
