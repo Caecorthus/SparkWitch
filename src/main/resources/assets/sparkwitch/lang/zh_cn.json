@@ -41,7 +41,7 @@
   "skill.sparkwitch.swift_step.name": "滑步",
   "skill.sparkwitch.swift_step.description": "消耗 50 点魔力值，获得 5 秒速度 III。",
   "skill.sparkwitch.murder_sense.name": "杀意感知",
-  "skill.sparkwitch.murder_sense.description": "消耗 80 点魔力值，15 秒内红色高亮 10 格内手持危险物品的玩家。",
+  "skill.sparkwitch.murder_sense.description": "消耗 80 点魔力值，15 秒内红色高亮 20 格内手持危险物品的玩家。",
   "skill.sparkwitch.healing.name": "疗愈",
   "skill.sparkwitch.healing.description": "消耗 60 点魔力值，20 秒内每秒恢复 8 格内好人 3 点理智。",
   "skill.sparkwitch.clairvoyance.name": "千里眼",

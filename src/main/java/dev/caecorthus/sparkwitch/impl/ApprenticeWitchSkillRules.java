@@ -41,7 +41,7 @@ public final class ApprenticeWitchSkillRules {
     public static final int MURDER_SENSE_MANA_COST = 80;
     public static final int MURDER_SENSE_DURATION_TICKS = GameConstants.getInTicks(0, 15);
     public static final int MURDER_SENSE_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
-    public static final double MURDER_SENSE_RANGE_BLOCKS = 10.0;
+    public static final double MURDER_SENSE_RANGE_BLOCKS = 20.0;
     public static final int MURDER_SENSE_COLOR = 0xFF3030;
 
     public static final int HEALING_MANA_COST = 60;

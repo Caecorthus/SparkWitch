@@ -41,7 +41,7 @@
   "skill.sparkwitch.swift_step.name": "Swift Step",
   "skill.sparkwitch.swift_step.description": "Spend 50 mana to gain Speed III for 5 seconds.",
   "skill.sparkwitch.murder_sense.name": "Murder Sense",
-  "skill.sparkwitch.murder_sense.description": "Spend 80 mana to highlight nearby players holding dangerous items in red for 15 seconds.",
+  "skill.sparkwitch.murder_sense.description": "Spend 80 mana to highlight players within 20 blocks who are holding dangerous items in red for 15 seconds.",
   "skill.sparkwitch.healing.name": "Healing",
   "skill.sparkwitch.healing.description": "Spend 60 mana to restore 3 sanity per second to nearby innocent players for 20 seconds.",
   "skill.sparkwitch.clairvoyance.name": "Clairvoyance",

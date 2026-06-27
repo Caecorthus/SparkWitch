@@ -38,6 +38,7 @@ class ApprenticeWitchSkillRulesTest {
         assertEquals(80, ApprenticeWitchSkillRules.MURDER_SENSE_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 15), ApprenticeWitchSkillRules.MURDER_SENSE_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(1, 0), ApprenticeWitchSkillRules.MURDER_SENSE_COOLDOWN_TICKS);
+        assertEquals(20.0, runtimeDoubleConstant("MURDER_SENSE_RANGE_BLOCKS"));
 
         assertEquals(60, ApprenticeWitchSkillRules.HEALING_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 20), ApprenticeWitchSkillRules.HEALING_DURATION_TICKS);
@@ -67,5 +68,13 @@ class ApprenticeWitchSkillRulesTest {
         assertTrue(dangerousItems.contains(SparkWitch.id("ceremonial_sword")));
         assertTrue(dangerousItems.contains(SparkWitch.id("fire_poker")));
         assertEquals(13, dangerousItems.size());
+    }
+
+    private static double runtimeDoubleConstant(String fieldName) {
+        try {
+            return ApprenticeWitchSkillRules.class.getField(fieldName).getDouble(null);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError("Missing Apprentice Witch skill tuning field: " + fieldName, exception);
+        }
     }
 }
