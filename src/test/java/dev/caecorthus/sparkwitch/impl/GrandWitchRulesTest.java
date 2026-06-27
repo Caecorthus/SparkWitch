@@ -86,6 +86,10 @@ class GrandWitchRulesTest {
     @Test
     void grandWitchInstinctColorsCohortOtherWitchesAndEveryoneElse() {
         assertEquals(
+                OptionalInt.of(SparkWitchRoles.grandWitch().color()),
+                GrandWitchRules.instinctColor(SparkWitchRoles.grandWitch(), SparkWitchRoles.grandWitch())
+        );
+        assertEquals(
                 OptionalInt.of(SparkWitchRoles.accomplice().color()),
                 GrandWitchRules.instinctColor(SparkWitchRoles.grandWitch(), SparkWitchRoles.accomplice())
         );

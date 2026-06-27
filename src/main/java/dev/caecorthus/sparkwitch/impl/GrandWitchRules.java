@@ -88,6 +88,9 @@ public final class GrandWitchRules {
 
     public static OptionalInt instinctColor(Role viewerRole, Role targetRole) {
         if (isGrandWitch(viewerRole)) {
+            if (targetRole == SparkWitchRoles.grandWitch()) {
+                return OptionalInt.of(SparkWitchRoles.grandWitch().color());
+            }
             if (targetRole == SparkWitchRoles.accomplice()) {
                 return OptionalInt.of(SparkWitchRoles.accomplice().color());
             }
