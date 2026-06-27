@@ -4,6 +4,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.WatheRoles;
+import dev.doctor4t.wathe.api.event.GetInstinctHighlight;
 import dev.doctor4t.wathe.game.GameConstants;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -132,8 +133,23 @@ class GrandWitchRulesTest {
 
     @Test
     void customInstinctHighlightRequiresLivingViewer() {
-        assertTrue(GrandWitchRules.shouldUseCustomInstinctHighlight(true));
-        assertFalse(GrandWitchRules.shouldUseCustomInstinctHighlight(false));
+        assertTrue(GrandWitchRules.shouldUseCustomInstinctHighlight(true, false));
+        assertFalse(GrandWitchRules.shouldUseCustomInstinctHighlight(false, false));
+        assertFalse(GrandWitchRules.shouldUseCustomInstinctHighlight(true, true));
+    }
+
+    @Test
+    void ordinaryWitchInstinctLosesToWatheHardSkips() {
+        assertTrue(GrandWitchRules.INSTINCT_PRIORITY < GetInstinctHighlight.HighlightResult.PRIORITY_HIGH);
+    }
+
+    @Test
+    void obscureOnlyBlocksLivingNonWitchViewers() {
+        assertTrue(GrandWitchRules.shouldObscureInstinct(true, SparkWitchRoles.murderousWitch(), true, false));
+        assertFalse(GrandWitchRules.shouldObscureInstinct(true, SparkWitchRoles.grandWitch(), true, false));
+        assertFalse(GrandWitchRules.shouldObscureInstinct(false, SparkWitchRoles.murderousWitch(), true, false));
+        assertFalse(GrandWitchRules.shouldObscureInstinct(true, SparkWitchRoles.murderousWitch(), false, false));
+        assertFalse(GrandWitchRules.shouldObscureInstinct(true, SparkWitchRoles.murderousWitch(), true, true));
     }
 
     @Test

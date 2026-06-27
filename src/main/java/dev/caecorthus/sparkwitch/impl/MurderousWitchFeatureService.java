@@ -68,12 +68,14 @@ public final class MurderousWitchFeatureService {
             return null;
         }
         boolean viewerAlive = GameFunctions.isPlayerPlayingAndAlive(viewer);
-        if (!MurderousWitchRules.shouldUseCustomInstinctHighlight(viewerAlive)) {
+        boolean viewerSpectatingOrCreative = GameFunctions.isPlayerSpectatingOrCreative(viewer);
+        if (!MurderousWitchRules.shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)) {
             return null;
         }
         boolean samePlayer = viewer.getUuid().equals(targetPlayer.getUuid());
         boolean shouldHighlight = MurderousWitchRules.shouldHighlightInstinctTarget(
                 viewerAlive,
+                viewerSpectatingOrCreative,
                 samePlayer,
                 GameFunctions.isPlayerPlayingAndAlive(targetPlayer),
                 GameFunctions.isPlayerSpectatingOrCreative(targetPlayer)

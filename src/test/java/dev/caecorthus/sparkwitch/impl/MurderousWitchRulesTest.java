@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.impl;
 import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.doctor4t.wathe.api.WatheRoles;
+import dev.doctor4t.wathe.api.event.GetInstinctHighlight;
 import dev.doctor4t.wathe.game.GameFunctions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -51,17 +52,24 @@ class MurderousWitchRulesTest {
 
     @Test
     void customInstinctHighlightRequiresLivingViewer() {
-        assertTrue(MurderousWitchRules.shouldUseCustomInstinctHighlight(true));
-        assertFalse(MurderousWitchRules.shouldUseCustomInstinctHighlight(false));
+        assertTrue(MurderousWitchRules.shouldUseCustomInstinctHighlight(true, false));
+        assertFalse(MurderousWitchRules.shouldUseCustomInstinctHighlight(false, false));
+        assertFalse(MurderousWitchRules.shouldUseCustomInstinctHighlight(true, true));
+    }
+
+    @Test
+    void ordinaryMurderousWitchInstinctLosesToWatheHardSkips() {
+        assertTrue(MurderousWitchRules.INSTINCT_PRIORITY < GetInstinctHighlight.HighlightResult.PRIORITY_HIGH);
     }
 
     @Test
     void instinctHighlightsOnlyOtherLivingPlayers() {
-        assertTrue(MurderousWitchRules.shouldHighlightInstinctTarget(true, false, true, false));
-        assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(false, false, true, false));
-        assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(true, true, true, false));
-        assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(true, false, false, false));
-        assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(true, false, true, true));
+        assertTrue(MurderousWitchRules.shouldHighlightInstinctTarget(true, false, false, true, false));
+        assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(false, false, false, true, false));
+        assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(true, true, false, true, false));
+        assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(true, false, true, true, false));
+        assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(true, false, false, false, false));
+        assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(true, false, false, true, true));
     }
 
     @Test

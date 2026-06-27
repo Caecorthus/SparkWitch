@@ -24,6 +24,9 @@ public final class GrandWitchRules {
 
     public static final int OTHER_WITCH_INSTINCT_COLOR = 0x7AB8FF;
     public static final int NON_WITCH_INSTINCT_COLOR = 0x36E51B;
+    // Ordinary Witch instinct must stay below Wathe hard skips such as Last Stand and hidden Survival Master.
+    // 普通魔女本能必须低于 wathe 硬跳过规则，例如背水一战和被遮挡的生存大师。
+    public static final int INSTINCT_PRIORITY = 90;
 
     private GrandWitchRules() {
     }
@@ -48,8 +51,27 @@ public final class GrandWitchRules {
      * Grand Witch faction highlights are living-player instincts; dead spectators use Wathe defaults.
      * 大魔女阵营高亮只属于存活玩家本能；死亡旁观者使用 wathe 默认逻辑。
      */
+    public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive, boolean viewerSpectatingOrCreative) {
+        return viewerAlive && !viewerSpectatingOrCreative;
+    }
+
     public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive) {
-        return viewerAlive;
+        return shouldUseCustomInstinctHighlight(viewerAlive, false);
+    }
+
+    /**
+     * Obscure blocks only active non-Witch instinct users; spectators keep Wathe information vision.
+     * 障眼只遮蔽正在游玩的非魔女本能使用者；旁观者保留 wathe 信息透视。
+     */
+    public static boolean shouldObscureInstinct(
+            boolean instinctObscured,
+            Role viewerRole,
+            boolean viewerAlive,
+            boolean viewerSpectatingOrCreative
+    ) {
+        return shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)
+                && instinctObscured
+                && isAffectedByWitchAreaSpell(viewerRole);
     }
 
     public static boolean isOtherWitchRole(Role role) {

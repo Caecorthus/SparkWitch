@@ -24,7 +24,7 @@ import java.util.OptionalInt;
  * 注册魔女阵营的显式能力桥接，不使用 wathe 原生杀手阵营桶。
  */
 public final class GrandWitchFeatureService {
-    private static final int GRAND_WITCH_INSTINCT_PRIORITY = 200;
+    private static final int GRAND_WITCH_INSTINCT_PRIORITY = GrandWitchRules.INSTINCT_PRIORITY;
     private static final int APPRENTICE_OUTLINE_PRIORITY = 300;
     private static final int OBSCURE_SKIP_PRIORITY = 1_000;
     private static boolean registered;
@@ -80,11 +80,17 @@ public final class GrandWitchFeatureService {
             GameWorldComponent gameComponent
     ) {
         Role viewerRole = gameComponent.getRole(viewer);
-        if (!GrandWitchRules.shouldUseCustomInstinctHighlight(GameFunctions.isPlayerPlayingAndAlive(viewer))) {
+        boolean viewerAlive = GameFunctions.isPlayerPlayingAndAlive(viewer);
+        boolean viewerSpectatingOrCreative = GameFunctions.isPlayerSpectatingOrCreative(viewer);
+        if (!GrandWitchRules.shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)) {
             return null;
         }
-        if (WitchWorldComponent.KEY.get(viewer.getWorld()).isInstinctObscured()
-                && GrandWitchRules.isAffectedByWitchAreaSpell(viewerRole)) {
+        if (GrandWitchRules.shouldObscureInstinct(
+                WitchWorldComponent.KEY.get(viewer.getWorld()).isInstinctObscured(),
+                viewerRole,
+                viewerAlive,
+                viewerSpectatingOrCreative
+        )) {
             return FactionInstinctPolicy.InstinctResult.skip(OBSCURE_SKIP_PRIORITY);
         }
 
