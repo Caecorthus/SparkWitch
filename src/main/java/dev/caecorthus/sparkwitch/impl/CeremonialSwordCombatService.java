@@ -30,7 +30,7 @@ public final class CeremonialSwordCombatService {
 
     public static ActionResult tryHandleAttack(Entity attacker, World world, Hand hand, Entity target) {
         // Non-PASS cancels vanilla attack so ceremonial sword strikes do not inherit attack cooldown.
-        // 返回非 PASS 会取消原版攻击，让礼仪剑左键不继承攻击冷却。
+        // 返回非 PASS 会取消原版攻击，让仪礼剑左键不继承攻击冷却。
         if (world.isClient
                 || !(attacker instanceof ServerPlayerEntity serverAttacker)
                 || !serverAttacker.getStackInHand(hand).isOf(SparkWitchItems.ceremonialSword())

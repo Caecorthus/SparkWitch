@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.net.UseWitchSkillC2SPacket;
+import dev.doctor4t.wathe.api.event.CanSeePoison;
 import dev.doctor4t.wathe.api.event.ShouldShowCohort;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -30,6 +31,7 @@ public final class SparkWitchClient implements ClientModInitializer {
             }
             return null;
         });
+        CanSeePoison.EVENT.register(WitchPoisonVisionClientHooks::canSeeHiddenPoison);
     }
 
     public static Text abilityKeyText() {
