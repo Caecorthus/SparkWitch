@@ -7,6 +7,7 @@ import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.index.WatheItems;
 import dev.doctor4t.wathe.util.ShopEntry;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LoreComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -15,11 +16,14 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
+import java.util.List;
+
 /**
  * Builds the Grand Witch's mana shop without granting native killer shop access.
  * 构建大魔女专属魔力商店，不借用原生杀手商店权限。
  */
 public final class GrandWitchShopService {
+    private static final int SHOP_DESCRIPTION_COLOR = 0x808080;
     private static boolean registered;
 
     private GrandWitchShopService() {
@@ -50,22 +54,18 @@ public final class GrandWitchShopService {
                 .build());
         context.addEntry(spellEntry(
                 GrandWitchRules.GrandWitchSpell.OBSCURE,
-                displayItemForSpell(GrandWitchRules.GrandWitchSpell.OBSCURE),
                 ShopEntry.Type.TOOL
         ));
         context.addEntry(spellEntry(
                 GrandWitchRules.GrandWitchSpell.BLINDNESS,
-                displayItemForSpell(GrandWitchRules.GrandWitchSpell.BLINDNESS),
                 ShopEntry.Type.TOOL
         ));
         context.addEntry(spellEntry(
                 GrandWitchRules.GrandWitchSpell.FEAR,
-                displayItemForSpell(GrandWitchRules.GrandWitchSpell.FEAR),
                 ShopEntry.Type.TOOL
         ));
         context.addEntry(spellEntry(
                 GrandWitchRules.GrandWitchSpell.HEAVINESS,
-                displayItemForSpell(GrandWitchRules.GrandWitchSpell.HEAVINESS),
                 ShopEntry.Type.TOOL
         ));
     }
@@ -87,29 +87,41 @@ public final class GrandWitchShopService {
 
     private static ShopEntry spellEntry(
             GrandWitchRules.GrandWitchSpell spell,
-            Item displayItem,
             ShopEntry.Type type
     ) {
-        return new ShopEntry.Builder(spell.entryId(), named(displayItem, spell.translationKey()), 0, type)
+        return new ShopEntry.Builder(spell.entryId(), displayStackForSpell(spell), 0, type)
                 .cooldown(spell.cooldownTicks())
                 .onBuy(player -> player instanceof ServerPlayerEntity serverPlayer
                         && GrandWitchSpellService.cast(serverPlayer, spell))
                 .build();
     }
 
-    private static ItemStack named(Item item, String translationKey) {
-        ItemStack stack = item.getDefaultStack();
-        stack.set(DataComponentTypes.ITEM_NAME, Text.translatable(translationKey));
+    static ItemStack displayStackForSpell(GrandWitchRules.GrandWitchSpell spell) {
+        ItemStack stack = displayItemForSpell(spell).getDefaultStack();
+        stack.set(DataComponentTypes.ITEM_NAME, Text.translatable(spell.translationKey()));
+        // LimitedInventoryScreen renders display-stack lore as the lower shop description.
+        // LimitedInventoryScreen 会把展示物品的 lore 渲染为商店下方的功能描述。
+        stack.set(DataComponentTypes.LORE, descriptionLoreForSpell(spell));
         return stack;
     }
 
-    static Item displayItemForSpell(GrandWitchRules.GrandWitchSpell spell) {
+    static LoreComponent descriptionLoreForSpell(GrandWitchRules.GrandWitchSpell spell) {
+        return new LoreComponent(List.of(descriptionText(spell)));
+    }
+
+    private static Text descriptionText(GrandWitchRules.GrandWitchSpell spell) {
+        return Text.translatable(spell.descriptionTranslationKey())
+                .styled(style -> style.withItalic(false).withColor(SHOP_DESCRIPTION_COLOR));
+    }
+
+    private static Item displayItemForSpell(GrandWitchRules.GrandWitchSpell spell) {
         return Registries.ITEM.get(displayItemIdForSpell(spell));
     }
 
     static Identifier displayItemIdForSpell(GrandWitchRules.GrandWitchSpell spell) {
         return switch (spell) {
-            case OBSCURE, BLINDNESS -> Identifier.ofVanilla("ender_eye");
+            case OBSCURE -> Identifier.ofVanilla("barrier");
+            case BLINDNESS -> Identifier.ofVanilla("ender_pearl");
             case FEAR -> Identifier.ofVanilla("soul_lantern");
             case HEAVINESS -> Identifier.ofVanilla("anvil");
         };

@@ -144,6 +144,14 @@ public final class GrandWitchRules {
             return "shop.sparkwitch." + path();
         }
 
+        /**
+         * Player-facing description key for the Grand Witch mana shop.
+         * 大魔女魔力商店中展示给玩家看的功能描述翻译键。
+         */
+        public String descriptionTranslationKey() {
+            return translationKey() + ".description";
+        }
+
         public static GrandWitchSpell fromEntryId(String entryId) {
             for (GrandWitchSpell spell : values()) {
                 if (spell.entryId.equals(entryId)) {
