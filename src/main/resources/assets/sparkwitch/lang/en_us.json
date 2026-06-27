@@ -53,7 +53,6 @@
   "hud.sparkwitch.skill.active": "%s active: %ss",
   "hud.sparkwitch.skill.ready": "Press %2$s to use %1$s",
   "game.tip.sparkwitch.witch_cohort": "Witch Cohort",
-  "key.sparkwitch.ability": "Ability Control",
   "key.sparkwitch.skill": "Witch Skill",
   "message.sparkwitch.skill.no_skill": "You do not have a witch skill.",
   "message.sparkwitch.skill.not_witch": "Only witch roles can use witch skills.",

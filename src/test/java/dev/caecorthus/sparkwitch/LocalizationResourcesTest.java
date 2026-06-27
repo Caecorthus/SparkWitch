@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LocalizationResourcesTest {
@@ -60,7 +61,6 @@ class LocalizationResourcesTest {
             "hud.sparkwitch.skill.active",
             "hud.sparkwitch.skill.ready",
             "game.tip.sparkwitch.witch_cohort",
-            "key.sparkwitch.ability",
             "key.sparkwitch.skill",
             "message.sparkwitch.skill.no_skill",
             "message.sparkwitch.skill.not_witch",
@@ -90,6 +90,15 @@ class LocalizationResourcesTest {
             assertTrue(english.has(key), key);
             assertTrue(chinese.has(key), key);
         }
+    }
+
+    @Test
+    void sparkWitchDoesNotDeclareIndependentAbilityKey() throws IOException {
+        JsonObject english = readLang("en_us.json");
+        JsonObject chinese = readLang("zh_cn.json");
+
+        assertFalse(english.has("key.sparkwitch.ability"));
+        assertFalse(chinese.has("key.sparkwitch.ability"));
     }
 
     @Test

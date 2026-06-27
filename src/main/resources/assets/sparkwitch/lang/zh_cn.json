@@ -53,7 +53,6 @@
   "hud.sparkwitch.skill.active": "%s 生效中：%s秒",
   "hud.sparkwitch.skill.ready": "按 %2$s 使用 %1$s",
   "game.tip.sparkwitch.witch_cohort": "魔女同伙",
-  "key.sparkwitch.ability": "技能控制",
   "key.sparkwitch.skill": "魔女技能",
   "message.sparkwitch.skill.no_skill": "你没有魔女技能。",
   "message.sparkwitch.skill.not_witch": "只有魔女相关职业可以使用魔女技能。",
