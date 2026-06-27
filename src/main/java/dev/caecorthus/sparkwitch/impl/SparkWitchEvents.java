@@ -39,9 +39,13 @@ public final class SparkWitchEvents {
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
         KillPlayer.AFTER.register(WitchManaService::afterKill);
         KillPlayer.AFTER.register(WitchEconomyService::afterKill);
-        KillPlayer.AFTER.register((victim, killer, deathReason) -> GrandWitchFeatureService.clearPlayerRuntime(victim));
+        KillPlayer.AFTER.register((victim, killer, deathReason) -> {
+            GrandWitchFeatureService.clearPlayerRuntime(victim);
+            FirePokerFallAttributionService.clearPlayer(victim);
+        });
         ResetPlayer.EVENT.register(player -> {
             GrandWitchFeatureService.clearPlayerRuntime(player);
+            FirePokerFallAttributionService.clearPlayer(player);
             WitchPlayerComponent.KEY.get(player).clear();
         });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
@@ -49,6 +53,7 @@ public final class SparkWitchEvents {
                 // Round end clears only SparkWitch runtime state; role maps and other mods remain owned by wathe.
                 // 回合结束只清理 SparkWitch 运行态，身份表和其他模组状态仍由 wathe 自己管理。
                 WitchWorldComponent.KEY.get(serverWorld).clearRoundState();
+                FirePokerFallAttributionService.clearAll();
                 for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                     GrandWitchFeatureService.clearPlayerRuntime(player);
                     WitchPlayerComponent.KEY.get(player).clear();

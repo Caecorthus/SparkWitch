@@ -4,6 +4,7 @@
   "package": "dev.caecorthus.sparkwitch.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "GameWorldComponentMixin",
     "MurderGameModeMixin"
   ],
   "injectors": {

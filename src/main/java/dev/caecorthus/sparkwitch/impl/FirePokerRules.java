@@ -8,6 +8,7 @@ import dev.doctor4t.wathe.game.GameConstants;
  */
 public final class FirePokerRules {
     public static final int COOLDOWN_TICKS = GameConstants.getInTicks(0, 10);
+    public static final int FALL_ATTRIBUTION_WINDOW_TICKS = GameConstants.getInTicks(0, 10);
     public static final int MANA_COST = 20;
     public static final int EFFECT_DURATION_TICKS = GameConstants.getInTicks(0, 3);
     public static final int SLOWNESS_AMPLIFIER = 2;

@@ -11,6 +11,7 @@ class FirePokerRulesTest {
     @Test
     void firePokerUsesPlannedCooldownManaAndEffects() {
         assertEquals(GameConstants.getInTicks(0, 10), FirePokerRules.COOLDOWN_TICKS);
+        assertEquals(GameConstants.getInTicks(0, 10), FirePokerRules.FALL_ATTRIBUTION_WINDOW_TICKS);
         assertEquals(20, FirePokerRules.MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 3), FirePokerRules.EFFECT_DURATION_TICKS);
         assertEquals(2, FirePokerRules.SLOWNESS_AMPLIFIER);
