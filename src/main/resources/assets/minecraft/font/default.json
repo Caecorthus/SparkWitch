@@ -1,0 +1,13 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "sparkwitch:font/mana.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uE782"
+      ]
+    }
+  ]
+}

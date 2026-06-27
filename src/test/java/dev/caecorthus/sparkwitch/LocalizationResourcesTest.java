@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LocalizationResourcesTest {
     private static final Path LANG_DIR = Path.of("src/main/resources/assets/sparkwitch/lang");
+    private static final String MANA_GLYPH = "\uE782";
     private static final Set<String> REQUIRED_KEYS = Set.of(
             "faction.sparkwitch.witch",
             "announcement.role.grand_witch",
@@ -131,7 +132,26 @@ class LocalizationResourcesTest {
         assertEquals("协助大魔女完成她的目标", chinese.get("announcement.goals.accomplice").getAsString());
     }
 
+    @Test
+    void manaHudAndShopPriceUseIconWithoutManaWords() throws IOException {
+        JsonObject english = readLang("en_us.json");
+        JsonObject chinese = readLang("zh_cn.json");
+
+        assertManaIconText(english.get("gui.sparkwitch.mana").getAsString());
+        assertManaIconText(english.get("gui.sparkwitch.shop.mana_price").getAsString());
+        assertManaIconText(chinese.get("gui.sparkwitch.mana").getAsString());
+        assertManaIconText(chinese.get("gui.sparkwitch.shop.mana_price").getAsString());
+    }
+
     private static JsonObject readLang(String fileName) throws IOException {
         return JsonParser.parseString(Files.readString(LANG_DIR.resolve(fileName))).getAsJsonObject();
+    }
+
+    private static void assertManaIconText(String text) {
+        assertTrue(text.contains(MANA_GLYPH), text);
+        assertFalse(text.contains("Mana"), text);
+        assertFalse(text.contains("mana"), text);
+        assertFalse(text.contains("魔力"), text);
+        assertFalse(text.contains("魔力值"), text);
     }
 }
