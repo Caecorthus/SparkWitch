@@ -10,9 +10,10 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 /**
  * Builds the Grand Witch's mana shop without granting native killer shop access.
@@ -47,10 +48,26 @@ public final class GrandWitchShopService {
                 .build());
         context.addEntry(new ShopEntry.Builder("scorpion", WatheItems.SCORPION.getDefaultStack(), 100, ShopEntry.Type.POISON)
                 .build());
-        context.addEntry(spellEntry(GrandWitchRules.GrandWitchSpell.OBSCURE, WatheItems.BLACKOUT, ShopEntry.Type.TOOL));
-        context.addEntry(spellEntry(GrandWitchRules.GrandWitchSpell.BLINDNESS, Items.INK_SAC, ShopEntry.Type.TOOL));
-        context.addEntry(spellEntry(GrandWitchRules.GrandWitchSpell.FEAR, Items.SOUL_LANTERN, ShopEntry.Type.TOOL));
-        context.addEntry(spellEntry(GrandWitchRules.GrandWitchSpell.HEAVINESS, Items.ANVIL, ShopEntry.Type.TOOL));
+        context.addEntry(spellEntry(
+                GrandWitchRules.GrandWitchSpell.OBSCURE,
+                displayItemForSpell(GrandWitchRules.GrandWitchSpell.OBSCURE),
+                ShopEntry.Type.TOOL
+        ));
+        context.addEntry(spellEntry(
+                GrandWitchRules.GrandWitchSpell.BLINDNESS,
+                displayItemForSpell(GrandWitchRules.GrandWitchSpell.BLINDNESS),
+                ShopEntry.Type.TOOL
+        ));
+        context.addEntry(spellEntry(
+                GrandWitchRules.GrandWitchSpell.FEAR,
+                displayItemForSpell(GrandWitchRules.GrandWitchSpell.FEAR),
+                ShopEntry.Type.TOOL
+        ));
+        context.addEntry(spellEntry(
+                GrandWitchRules.GrandWitchSpell.HEAVINESS,
+                displayItemForSpell(GrandWitchRules.GrandWitchSpell.HEAVINESS),
+                ShopEntry.Type.TOOL
+        ));
     }
 
     private static ShopPurchase.PurchaseResult beforePurchase(ServerPlayerEntity player, ShopEntry entry, int index) {
@@ -84,5 +101,17 @@ public final class GrandWitchShopService {
         ItemStack stack = item.getDefaultStack();
         stack.set(DataComponentTypes.ITEM_NAME, Text.translatable(translationKey));
         return stack;
+    }
+
+    static Item displayItemForSpell(GrandWitchRules.GrandWitchSpell spell) {
+        return Registries.ITEM.get(displayItemIdForSpell(spell));
+    }
+
+    static Identifier displayItemIdForSpell(GrandWitchRules.GrandWitchSpell spell) {
+        return switch (spell) {
+            case OBSCURE, BLINDNESS -> Identifier.ofVanilla("ender_eye");
+            case FEAR -> Identifier.ofVanilla("soul_lantern");
+            case HEAVINESS -> Identifier.ofVanilla("anvil");
+        };
     }
 }

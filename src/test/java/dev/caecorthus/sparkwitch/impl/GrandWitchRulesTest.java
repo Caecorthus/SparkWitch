@@ -120,6 +120,17 @@ class GrandWitchRulesTest {
     }
 
     @Test
+    void killerStyleInstinctLightOnlyAppliesToGrandWitchFactionMembers() {
+        assertTrue(GrandWitchRules.usesKillerStyleInstinctLight(SparkWitchRoles.grandWitch()));
+        assertTrue(GrandWitchRules.usesKillerStyleInstinctLight(SparkWitchRoles.accomplice()));
+
+        assertFalse(GrandWitchRules.usesKillerStyleInstinctLight(SparkWitchRoles.apprenticeWitch()));
+        assertFalse(GrandWitchRules.usesKillerStyleInstinctLight(SparkWitchRoles.murderousWitch()));
+        assertFalse(GrandWitchRules.usesKillerStyleInstinctLight(WatheRoles.CIVILIAN));
+        assertFalse(GrandWitchRules.usesKillerStyleInstinctLight(null));
+    }
+
+    @Test
     void activeSkillAndSpellTuningMatchGrandWitchPlan() {
         assertEquals(0, GrandWitchRules.STARTING_MONEY);
         assertEquals(100, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);

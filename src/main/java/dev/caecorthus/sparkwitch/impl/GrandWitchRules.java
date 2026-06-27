@@ -40,6 +40,10 @@ public final class GrandWitchRules {
         return role != null && (role == SparkWitchRoles.grandWitch() || role == SparkWitchRoles.accomplice());
     }
 
+    public static boolean usesKillerStyleInstinctLight(Role role) {
+        return isWitchFactionMember(role);
+    }
+
     public static boolean isOtherWitchRole(Role role) {
         return role != null && (role == SparkWitchRoles.murderousWitch() || role == SparkWitchRoles.apprenticeWitch());
     }

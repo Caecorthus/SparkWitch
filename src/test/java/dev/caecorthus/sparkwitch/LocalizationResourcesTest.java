@@ -16,9 +16,29 @@ class LocalizationResourcesTest {
     private static final Path LANG_DIR = Path.of("src/main/resources/assets/sparkwitch/lang");
     private static final Set<String> REQUIRED_KEYS = Set.of(
             "faction.sparkwitch.witch",
+            "announcement.role.grand_witch",
+            "announcement.title.grand_witch",
+            "announcement.goal.grand_witch",
+            "announcement.goals.grand_witch",
+            "announcement.win.grand_witch",
             "announcement.role.sparkwitch.grand_witch",
+            "announcement.role.accomplice",
+            "announcement.title.accomplice",
+            "announcement.goal.accomplice",
+            "announcement.goals.accomplice",
+            "announcement.win.accomplice",
             "announcement.role.sparkwitch.accomplice",
+            "announcement.role.apprentice_witch",
+            "announcement.title.apprentice_witch",
+            "announcement.goal.apprentice_witch",
+            "announcement.goals.apprentice_witch",
+            "announcement.win.apprentice_witch",
             "announcement.role.sparkwitch.apprentice_witch",
+            "announcement.role.murderous_witch",
+            "announcement.title.murderous_witch",
+            "announcement.goal.murderous_witch",
+            "announcement.goals.murderous_witch",
+            "announcement.win.murderous_witch",
             "announcement.role.sparkwitch.murderous_witch",
             "item.sparkwitch.ceremonial_sword",
             "skill.sparkwitch.ceremonial_sword.name",
@@ -36,7 +56,11 @@ class LocalizationResourcesTest {
             "gui.sparkwitch.skill.cooldown",
             "gui.sparkwitch.skill.active",
             "gui.sparkwitch.skill.ready",
+            "hud.sparkwitch.skill.cooldown",
+            "hud.sparkwitch.skill.active",
+            "hud.sparkwitch.skill.ready",
             "game.tip.sparkwitch.witch_cohort",
+            "key.sparkwitch.ability",
             "key.sparkwitch.skill",
             "message.sparkwitch.skill.no_skill",
             "message.sparkwitch.skill.not_witch",
@@ -66,6 +90,18 @@ class LocalizationResourcesTest {
             assertTrue(english.has(key), key);
             assertTrue(chinese.has(key), key);
         }
+    }
+
+    @Test
+    void watheAnnouncementAndReplayKeysUseRolePathWithoutNamespace() throws IOException {
+        JsonObject chinese = readLang("zh_cn.json");
+
+        assertEquals("大魔女", chinese.get("announcement.role.grand_witch").getAsString());
+        assertEquals("共犯", chinese.get("announcement.role.accomplice").getAsString());
+        assertEquals("运用你的魔力让人类血流成河", chinese.get("announcement.goal.grand_witch").getAsString());
+        assertEquals("运用你的魔力让人类血流成河", chinese.get("announcement.goals.grand_witch").getAsString());
+        assertEquals("协助大魔女完成她的目标", chinese.get("announcement.goal.accomplice").getAsString());
+        assertEquals("协助大魔女完成她的目标", chinese.get("announcement.goals.accomplice").getAsString());
     }
 
     private static JsonObject readLang(String fileName) throws IOException {
