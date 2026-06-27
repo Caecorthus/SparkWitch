@@ -44,6 +44,14 @@ public final class GrandWitchRules {
         return isWitchFactionMember(role);
     }
 
+    /**
+     * Grand Witch faction highlights are living-player instincts; dead spectators use Wathe defaults.
+     * 大魔女阵营高亮只属于存活玩家本能；死亡旁观者使用 wathe 默认逻辑。
+     */
+    public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive) {
+        return viewerAlive;
+    }
+
     public static boolean isOtherWitchRole(Role role) {
         return role != null && (role == SparkWitchRoles.murderousWitch() || role == SparkWitchRoles.apprenticeWitch());
     }

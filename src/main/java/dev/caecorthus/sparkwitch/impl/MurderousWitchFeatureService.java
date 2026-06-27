@@ -67,9 +67,13 @@ public final class MurderousWitchFeatureService {
         if (!MurderousWitchRules.isMurderousWitch(viewerRole) || !(target instanceof PlayerEntity targetPlayer)) {
             return null;
         }
+        boolean viewerAlive = GameFunctions.isPlayerPlayingAndAlive(viewer);
+        if (!MurderousWitchRules.shouldUseCustomInstinctHighlight(viewerAlive)) {
+            return null;
+        }
         boolean samePlayer = viewer.getUuid().equals(targetPlayer.getUuid());
         boolean shouldHighlight = MurderousWitchRules.shouldHighlightInstinctTarget(
-                GameFunctions.isPlayerPlayingAndAlive(viewer),
+                viewerAlive,
                 samePlayer,
                 GameFunctions.isPlayerPlayingAndAlive(targetPlayer),
                 GameFunctions.isPlayerSpectatingOrCreative(targetPlayer)

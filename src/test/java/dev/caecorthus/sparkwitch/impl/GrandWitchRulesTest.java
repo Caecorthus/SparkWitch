@@ -131,6 +131,12 @@ class GrandWitchRulesTest {
     }
 
     @Test
+    void customInstinctHighlightRequiresLivingViewer() {
+        assertTrue(GrandWitchRules.shouldUseCustomInstinctHighlight(true));
+        assertFalse(GrandWitchRules.shouldUseCustomInstinctHighlight(false));
+    }
+
+    @Test
     void activeSkillAndSpellTuningMatchGrandWitchPlan() {
         assertEquals(0, GrandWitchRules.STARTING_MONEY);
         assertEquals(100, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);

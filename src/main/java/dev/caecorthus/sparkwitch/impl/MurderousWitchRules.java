@@ -24,6 +24,14 @@ public final class MurderousWitchRules {
         return isMurderousWitch(role);
     }
 
+    /**
+     * Murderous Witch's custom instinct is active-only; dead spectators use Wathe defaults.
+     * 杀意魔女的自定义本能只在存活时生效；死亡旁观者使用 wathe 默认逻辑。
+     */
+    public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive) {
+        return viewerAlive;
+    }
+
     public static Boolean economyDecision(Role role, FactionEconomyPolicy.RewardKind rewardKind) {
         if (!isMurderousWitch(role)) {
             return null;
@@ -41,7 +49,10 @@ public final class MurderousWitchRules {
             boolean targetAlive,
             boolean targetSpectatingOrCreative
     ) {
-        return viewerAlive && !samePlayer && targetAlive && !targetSpectatingOrCreative;
+        return shouldUseCustomInstinctHighlight(viewerAlive)
+                && !samePlayer
+                && targetAlive
+                && !targetSpectatingOrCreative;
     }
 
     public static WinAction winAction(

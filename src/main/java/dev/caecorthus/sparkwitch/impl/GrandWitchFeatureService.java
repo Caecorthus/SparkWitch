@@ -80,6 +80,9 @@ public final class GrandWitchFeatureService {
             GameWorldComponent gameComponent
     ) {
         Role viewerRole = gameComponent.getRole(viewer);
+        if (!GrandWitchRules.shouldUseCustomInstinctHighlight(GameFunctions.isPlayerPlayingAndAlive(viewer))) {
+            return null;
+        }
         if (WitchWorldComponent.KEY.get(viewer.getWorld()).isInstinctObscured()
                 && GrandWitchRules.isAffectedByWitchAreaSpell(viewerRole)) {
             return FactionInstinctPolicy.InstinctResult.skip(OBSCURE_SKIP_PRIORITY);

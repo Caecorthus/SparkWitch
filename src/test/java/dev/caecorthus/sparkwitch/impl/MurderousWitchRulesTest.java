@@ -50,6 +50,12 @@ class MurderousWitchRulesTest {
     }
 
     @Test
+    void customInstinctHighlightRequiresLivingViewer() {
+        assertTrue(MurderousWitchRules.shouldUseCustomInstinctHighlight(true));
+        assertFalse(MurderousWitchRules.shouldUseCustomInstinctHighlight(false));
+    }
+
+    @Test
     void instinctHighlightsOnlyOtherLivingPlayers() {
         assertTrue(MurderousWitchRules.shouldHighlightInstinctTarget(true, false, true, false));
         assertFalse(MurderousWitchRules.shouldHighlightInstinctTarget(false, false, true, false));
