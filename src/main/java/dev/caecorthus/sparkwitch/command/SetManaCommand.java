@@ -8,9 +8,9 @@ import dev.caecorthus.sparkwitch.util.SparkWitchPermissions;
 import dev.doctor4t.wathe.Wathe;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.entity.Entity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.Collection;
 
@@ -33,14 +33,14 @@ public final class SetManaCommand {
                                 CommandManager.argument("amount", IntegerArgumentType.integer(0))
                                         .executes(context -> execute(
                                                 context.getSource(),
-                                                ImmutableList.of(context.getSource().getEntityOrThrow()),
+                                                ImmutableList.of(context.getSource().getPlayerOrThrow()),
                                                 IntegerArgumentType.getInteger(context, "amount")
                                         ))
                                         .then(
-                                                CommandManager.argument("targets", EntityArgumentType.entities())
+                                                CommandManager.argument("targets", EntityArgumentType.players())
                                                         .executes(context -> execute(
                                                                 context.getSource(),
-                                                                EntityArgumentType.getEntities(context, "targets"),
+                                                                EntityArgumentType.getPlayers(context, "targets"),
                                                                 IntegerArgumentType.getInteger(context, "amount")
                                                         ))
                                         )
@@ -48,9 +48,9 @@ public final class SetManaCommand {
         );
     }
 
-    private static int execute(ServerCommandSource source, Collection<? extends Entity> targets, int amount) {
+    private static int execute(ServerCommandSource source, Collection<ServerPlayerEntity> targets, int amount) {
         return Wathe.executeSupporterCommand(source, () -> {
-            for (Entity target : targets) {
+            for (ServerPlayerEntity target : targets) {
                 WitchPlayerComponent.KEY.get(target).setMana(amount);
             }
         });
