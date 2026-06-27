@@ -20,6 +20,7 @@ class ItemModelResourcesTest {
     private static final Path MANA_FONT_TEXTURE = Path.of("src/main/resources/assets/sparkwitch/textures/font/mana.png");
     private static final Path DEFAULT_FONT = Path.of("src/main/resources/assets/minecraft/font/default.json");
     private static final Path FIRE_POKER_MODEL = Path.of("src/main/resources/assets/sparkwitch/models/item/fire_poker.json");
+    private static final Path FIRE_POKER_TEXTURE = Path.of("src/main/resources/assets/sparkwitch/textures/item/fire_poker.png");
 
     @Test
     void ceremonialSwordModelUsesSparkWitchTexture() throws IOException {
@@ -45,15 +46,16 @@ class ItemModelResourcesTest {
     }
 
     @Test
-    void firePokerModelUsesHandheldBlazeRodPlaceholder() throws IOException {
+    void firePokerModelUsesBundledBurnStickTexture() throws IOException {
         JsonObject model = JsonParser.parseString(Files.readString(FIRE_POKER_MODEL)).getAsJsonObject();
 
         assertEquals("minecraft:item/handheld", model.get("parent").getAsString());
-        assertEquals("minecraft:item/blaze_rod", model.getAsJsonObject("textures").get("layer0").getAsString());
+        assertEquals("sparkwitch:item/fire_poker", model.getAsJsonObject("textures").get("layer0").getAsString());
     }
 
     @Test
-    void firePokerModelResourceExists() {
+    void firePokerModelResourceExists() throws IOException {
         assertTrue(Files.isRegularFile(FIRE_POKER_MODEL));
+        assertNotNull(ImageIO.read(FIRE_POKER_TEXTURE.toFile()));
     }
 }
