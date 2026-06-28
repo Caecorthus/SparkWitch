@@ -27,12 +27,16 @@ class LocalizationResourcesTest {
             "announcement.goal.grand_witch",
             "announcement.goals.grand_witch",
             "announcement.win.grand_witch",
+            "announcement.win.sparkwitch.witch",
+            "game.win.grand_witch",
+            "game.win.sparkwitch.witch",
             "announcement.role.sparkwitch.grand_witch",
             "announcement.role.accomplice",
             "announcement.title.accomplice",
             "announcement.goal.accomplice",
             "announcement.goals.accomplice",
             "announcement.win.accomplice",
+            "game.win.accomplice",
             "announcement.role.sparkwitch.accomplice",
             "announcement.role.apprentice_witch",
             "announcement.title.apprentice_witch",
@@ -45,6 +49,7 @@ class LocalizationResourcesTest {
             "announcement.goal.murderous_witch",
             "announcement.goals.murderous_witch",
             "announcement.win.murderous_witch",
+            "game.win.murderous_witch",
             "announcement.role.sparkwitch.murderous_witch",
             "item.sparkwitch.ceremonial_sword",
             "item.sparkwitch.fire_poker",
@@ -170,6 +175,37 @@ class LocalizationResourcesTest {
         assertEquals("协助大魔女完成她的目标", chinese.get("announcement.goals.accomplice").getAsString());
         assertEquals("杀死其他所有人。", chinese.get("announcement.goal.murderous_witch").getAsString());
         assertEquals("杀死其他所有人。", chinese.get("announcement.goals.murderous_witch").getAsString());
+    }
+
+    @Test
+    void witchRoundEndTextUsesShortTitleAndEmptyReason() throws IOException {
+        JsonObject english = readLang("en_us.json");
+        JsonObject chinese = readLang("zh_cn.json");
+
+        for (String titleKey : List.of(
+                "announcement.win.grand_witch",
+                "announcement.win.accomplice",
+                "announcement.win.sparkwitch.witch",
+                "announcement.win.sparkwitch.grand_witch",
+                "announcement.win.sparkwitch.accomplice"
+        )) {
+            assertEquals("Witch Victory", english.get(titleKey).getAsString(), titleKey);
+            assertEquals("魔女胜利", chinese.get(titleKey).getAsString(), titleKey);
+        }
+
+        for (String reasonKey : List.of(
+                "game.win.grand_witch",
+                "game.win.accomplice",
+                "game.win.sparkwitch.witch"
+        )) {
+            assertEquals("", english.get(reasonKey).getAsString(), reasonKey);
+            assertEquals("", chinese.get(reasonKey).getAsString(), reasonKey);
+        }
+
+        assertEquals("Murderous Witch Victory", english.get("announcement.win.murderous_witch").getAsString());
+        assertEquals("杀意魔女胜利", chinese.get("announcement.win.murderous_witch").getAsString());
+        assertEquals("", english.get("game.win.murderous_witch").getAsString());
+        assertEquals("", chinese.get("game.win.murderous_witch").getAsString());
     }
 
     @Test
