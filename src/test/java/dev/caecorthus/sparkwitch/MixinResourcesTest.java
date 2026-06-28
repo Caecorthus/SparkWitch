@@ -41,6 +41,13 @@ class MixinResourcesTest {
         assertTrue(contains(mixins.getAsJsonArray("client"), "WitchSkillInventoryScreenMixin"));
     }
 
+    @Test
+    void clientMixinsRegisterRoleNameDisplayFallback() throws IOException {
+        JsonObject mixins = readJson(CLIENT_MIXINS);
+
+        assertTrue(contains(mixins.getAsJsonArray("client"), "WitchRoleNameDisplayMixin"));
+    }
+
     private static JsonObject readJson(Path path) throws IOException {
         return JsonParser.parseString(Files.readString(path)).getAsJsonObject();
     }

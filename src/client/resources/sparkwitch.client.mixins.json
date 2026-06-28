@@ -7,6 +7,7 @@
     "WatheClientInstinctLightMixin",
     "WitchCohortRoleNameMixin",
     "WitchManaHudMixin",
+    "WitchRoleNameDisplayMixin",
     "WitchSkillHudMixin",
     "WitchSkillInventoryScreenMixin",
     "WitchShopPriceMixin"

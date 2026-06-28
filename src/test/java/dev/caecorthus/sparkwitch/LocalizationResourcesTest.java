@@ -2,11 +2,14 @@ package dev.caecorthus.sparkwitch;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import dev.caecorthus.sparkwitch.util.RoleDisplayTextRules;
+import dev.doctor4t.wathe.api.Role;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,6 +21,7 @@ class LocalizationResourcesTest {
     private static final String MANA_GLYPH = "\uE782";
     private static final Set<String> REQUIRED_KEYS = Set.of(
             "faction.sparkwitch.witch",
+            "announcement.role.the_insane_damned_paranoid_killer",
             "announcement.role.grand_witch",
             "announcement.title.grand_witch",
             "announcement.goal.grand_witch",
@@ -114,6 +118,35 @@ class LocalizationResourcesTest {
             assertTrue(english.has(key), key);
             assertTrue(chinese.has(key), key);
         }
+    }
+
+    @Test
+    void corpseRoleKeysMatchWatheHudConvention() throws IOException {
+        JsonObject english = readLang("en_us.json");
+        JsonObject chinese = readLang("zh_cn.json");
+
+        for (Role role : List.of(
+                SparkWitchRoles.grandWitch(),
+                SparkWitchRoles.accomplice(),
+                SparkWitchRoles.apprenticeWitch(),
+                SparkWitchRoles.murderousWitch()
+        )) {
+            String key = RoleDisplayTextRules.roleTranslationKey(role);
+            assertTrue(english.has(key), key);
+            assertTrue(chinese.has(key), key);
+        }
+    }
+
+    @Test
+    void compatibilityRoleAliasCoversLongNoellesRoleInChinese() throws IOException {
+        JsonObject english = readLang("en_us.json");
+        JsonObject chinese = readLang("zh_cn.json");
+
+        assertEquals(
+                "The Insane Damned Paranoid Killer Of Doom Death Destruction And Waffles",
+                english.get("announcement.role.the_insane_damned_paranoid_killer").getAsString()
+        );
+        assertEquals("亡语杀手", chinese.get("announcement.role.the_insane_damned_paranoid_killer").getAsString());
     }
 
     @Test
