@@ -205,7 +205,7 @@ class LocalizationResourcesTest {
     }
 
     @Test
-    void witchRoundEndTextUsesShortTitleAndEmptyReason() throws IOException {
+    void witchRoundEndTextUsesShortTitleAndVengeanceReason() throws IOException {
         JsonObject english = readLang("en_us.json");
         JsonObject chinese = readLang("zh_cn.json");
 
@@ -225,8 +225,8 @@ class LocalizationResourcesTest {
                 "game.win.accomplice",
                 "game.win.sparkwitch.witch"
         )) {
-            assertEquals("", english.get(reasonKey).getAsString(), reasonKey);
-            assertEquals("", chinese.get(reasonKey).getAsString(), reasonKey);
+            assertEquals("The witch completed her revenge.", english.get(reasonKey).getAsString(), reasonKey);
+            assertEquals("魔女完成了她的复仇", chinese.get(reasonKey).getAsString(), reasonKey);
         }
 
         assertEquals("Murderous Witch Victory", english.get("announcement.win.murderous_witch").getAsString());
