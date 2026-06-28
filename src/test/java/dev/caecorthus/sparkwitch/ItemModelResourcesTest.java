@@ -21,6 +21,8 @@ class ItemModelResourcesTest {
     private static final Path DEFAULT_FONT = Path.of("src/main/resources/assets/minecraft/font/default.json");
     private static final Path FIRE_POKER_MODEL = Path.of("src/main/resources/assets/sparkwitch/models/item/fire_poker.json");
     private static final Path FIRE_POKER_TEXTURE = Path.of("src/main/resources/assets/sparkwitch/textures/item/fire_poker.png");
+    private static final Path CAPSULE_MODEL = Path.of("src/main/resources/assets/sparkwitch/models/item/capsule.json");
+    private static final Path FLASHLIGHT_MODEL = Path.of("src/main/resources/assets/sparkwitch/models/item/flashlight.json");
 
     @Test
     void ceremonialSwordModelUsesSparkWitchTexture() throws IOException {
@@ -57,5 +59,16 @@ class ItemModelResourcesTest {
     void firePokerModelResourceExists() throws IOException {
         assertTrue(Files.isRegularFile(FIRE_POKER_MODEL));
         assertNotNull(ImageIO.read(FIRE_POKER_TEXTURE.toFile()));
+    }
+
+    @Test
+    void capsuleAndFlashlightModelsUseVanillaPlaceholderTextures() throws IOException {
+        JsonObject capsule = JsonParser.parseString(Files.readString(CAPSULE_MODEL)).getAsJsonObject();
+        JsonObject flashlight = JsonParser.parseString(Files.readString(FLASHLIGHT_MODEL)).getAsJsonObject();
+
+        assertEquals("minecraft:item/generated", capsule.get("parent").getAsString());
+        assertEquals("minecraft:item/snowball", capsule.getAsJsonObject("textures").get("layer0").getAsString());
+        assertEquals("minecraft:item/generated", flashlight.get("parent").getAsString());
+        assertEquals("minecraft:item/torch", flashlight.getAsJsonObject("textures").get("layer0").getAsString());
     }
 }

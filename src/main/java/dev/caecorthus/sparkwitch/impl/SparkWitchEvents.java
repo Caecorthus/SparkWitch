@@ -29,17 +29,21 @@ public final class SparkWitchEvents {
         GrandWitchFeatureService.register();
         MurderousWitchFeatureService.register();
         CorruptCopFeatureService.register();
+        NoellesRoleEnhancementService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 WitchSkillAssignmentService.assignForRole(serverPlayer, role);
                 WitchManaService.assignForRole(serverPlayer, role);
                 GrandWitchFeatureService.assignForRole(serverPlayer, role);
                 MurderousWitchFeatureService.assignForRole(serverPlayer, role);
+                NoellesRoleEnhancementService.assignForRole(serverPlayer, role);
             }
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
+        TaskComplete.EVENT.register((player, taskType) -> NoellesRoleEnhancementService.onTaskComplete(player));
         KillPlayer.AFTER.register(WitchManaService::afterKill);
         KillPlayer.AFTER.register(WitchEconomyService::afterKill);
+        KillPlayer.AFTER.register(NoellesRoleEnhancementService::afterKill);
         KillPlayer.AFTER.register((victim, killer, deathReason) -> {
             GrandWitchFeatureService.clearPlayerRuntime(victim);
             FirePokerFallAttributionService.clearPlayer(victim);
@@ -48,6 +52,7 @@ public final class SparkWitchEvents {
             GrandWitchFeatureService.clearPlayerRuntime(player);
             FirePokerFallAttributionService.clearPlayer(player);
             WitchPlayerComponent.KEY.get(player).clear();
+            dev.caecorthus.sparkwitch.component.RoleEnhancementPlayerComponent.KEY.get(player).clearAll();
         });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
             if (world instanceof ServerWorld serverWorld) {
@@ -58,6 +63,7 @@ public final class SparkWitchEvents {
                 for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                     GrandWitchFeatureService.clearPlayerRuntime(player);
                     WitchPlayerComponent.KEY.get(player).clear();
+                    dev.caecorthus.sparkwitch.component.RoleEnhancementPlayerComponent.KEY.get(player).clearAll();
                 }
             }
         });

@@ -23,6 +23,7 @@
   "custom": {
     "cardinal-components": [
       "sparkwitch:player",
+      "sparkwitch:role_enhancements",
       "sparkwitch:world"
     ]
   },
