@@ -71,6 +71,10 @@ public final class GrandWitchShopService {
     }
 
     private static ShopPurchase.PurchaseResult beforePurchase(ServerPlayerEntity player, ShopEntry entry, int index) {
+        if (GrandWitchFearService.isPlayerFeared(player)) {
+            return ShopPurchase.PurchaseResult.deny(GrandWitchFearService.SHOP_BLOCKED_KEY);
+        }
+
         GrandWitchRules.GrandWitchSpell spell = GrandWitchRules.GrandWitchSpell.fromEntryId(entry.id());
         if (spell == null) {
             return null;

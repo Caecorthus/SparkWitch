@@ -17,6 +17,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> SparkWitchRoles.refreshAssassinGuessRoleOrder());
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            GrandWitchFearClientHooks.tick();
             if (client.player != null
                     && client.getNetworkHandler() != null
                     && WitchPlayerComponent.KEY.get(client.player).hasSkill()

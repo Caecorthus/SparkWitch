@@ -116,7 +116,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         }
 
         if (fearTicks > 0) {
-            GrandWitchSpellService.tickFear(serverWorld);
+            GrandWitchSpellService.tickFear(serverWorld, fearTicks);
             fearTicks--;
             shouldSync = shouldSync || fearTicks == 0;
         }

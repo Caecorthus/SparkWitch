@@ -57,7 +57,7 @@
   "shop.sparkwitch.blindness": "Blindness",
   "shop.sparkwitch.blindness.description": "Blinds players outside the Witch faction for 20 seconds.",
   "shop.sparkwitch.fear": "Fear",
-  "shop.sparkwitch.fear.description": "Drains sanity from real-sanity roles outside the Witch faction for 10 seconds.",
+  "shop.sparkwitch.fear.description": "For 10 seconds, blocks non-Witch players from using instinct, role skills, and shops while draining 50 sanity total.",
   "shop.sparkwitch.heaviness": "Heaviness",
   "shop.sparkwitch.heaviness.description": "Applies Slowness III to players outside the Witch faction for 10 seconds.",
   "death_reason.sparkwitch.ceremonial_blade": "Throat Sealed",
@@ -96,7 +96,10 @@
   "message.sparkwitch.spell.obscure.cast": "Obscure veils hostile instincts.",
   "message.sparkwitch.spell.obscure.actionbar": "Your instinct is obscured: %ss",
   "message.sparkwitch.spell.blindness.cast": "Blindness takes hold.",
-  "message.sparkwitch.spell.fear.cast": "Fear gnaws at real sanity.",
+  "message.sparkwitch.spell.fear.cast": "Fear grips everyone outside the Witch faction.",
   "message.sparkwitch.spell.heaviness.cast": "Heaviness slows your enemies.",
-  "shop.error.sparkwitch.not_enough_mana": "Not enough mana."
+  "message.sparkwitch.fear.skill_blocked": "Fear prevents you from using role skills.",
+  "message.sparkwitch.fear.instinct_blocked": "Fear prevents you from using instinct.",
+  "shop.error.sparkwitch.not_enough_mana": "Not enough mana.",
+  "shop.error.sparkwitch.fear": "Fear prevents you from buying items."
 }

@@ -33,6 +33,9 @@ public final class WitchSkillUseService {
             send(player, "message.sparkwitch.skill.dead");
             return false;
         }
+        if (GrandWitchFearService.denyRoleSkillIfFeared(player)) {
+            return false;
+        }
 
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         Identifier skillId = component.getActiveSkillId();

@@ -6,7 +6,8 @@
   "mixins": [
     "ForceRoleCommandMixin",
     "GameWorldComponentMixin",
-    "MurderGameModeMixin"
+    "MurderGameModeMixin",
+    "ServerPlayNetworkAddonFearMixin"
   ],
   "injectors": {
     "defaultRequire": 1

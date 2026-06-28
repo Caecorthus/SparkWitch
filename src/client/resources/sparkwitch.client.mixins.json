@@ -4,7 +4,10 @@
   "package": "dev.caecorthus.sparkwitch.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "ClientPlayNetworkingFearMixin",
+    "KeyBindingFearSkillMixin",
     "WatheClientInstinctLightMixin",
+    "WatheClientFearInstinctMixin",
     "WitchCohortRoleNameMixin",
     "WitchManaHudMixin",
     "WitchRoleNameDisplayMixin",

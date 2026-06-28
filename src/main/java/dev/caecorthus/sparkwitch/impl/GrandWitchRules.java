@@ -83,7 +83,7 @@ public final class GrandWitchRules {
     }
 
     public static boolean isAffectedByFear(Role role) {
-        return isAffectedByWitchAreaSpell(role) && role != null && role.getMoodType() == Role.MoodType.REAL;
+        return role != null && isAffectedByWitchAreaSpell(role);
     }
 
     public static OptionalInt instinctColor(Role viewerRole, Role targetRole) {

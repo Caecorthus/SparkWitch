@@ -39,13 +39,13 @@ class GrandWitchRulesTest {
     }
 
     @Test
-    void fearOnlyAffectsRealSanityRolesOutsideGrandWitchFaction() {
+    void fearAffectsEveryoneOutsideGrandWitchFaction() {
         Role fakeNeutral = SparkWitchRoles.murderousWitch();
         Role fakeGrandWitch = SparkWitchRoles.grandWitch();
 
         assertTrue(GrandWitchRules.isAffectedByFear(SparkWitchRoles.apprenticeWitch()));
         assertTrue(GrandWitchRules.isAffectedByFear(WatheRoles.CIVILIAN));
-        assertFalse(GrandWitchRules.isAffectedByFear(fakeNeutral));
+        assertTrue(GrandWitchRules.isAffectedByFear(fakeNeutral));
         assertFalse(GrandWitchRules.isAffectedByFear(fakeGrandWitch));
         assertFalse(GrandWitchRules.isAffectedByFear(SparkWitchRoles.accomplice()));
         assertFalse(GrandWitchRules.isAffectedByFear(null));

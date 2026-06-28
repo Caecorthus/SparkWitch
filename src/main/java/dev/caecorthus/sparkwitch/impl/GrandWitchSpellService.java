@@ -5,7 +5,6 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.cca.PlayerMoodComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -18,8 +17,6 @@ import net.minecraft.text.Text;
  * 执行大魔女商店法术；金币购买流程只负责触发这里。
  */
 public final class GrandWitchSpellService {
-    private static final float FEAR_TOTAL_MOOD_LOSS = 0.5f;
-
     private GrandWitchSpellService() {
     }
 
@@ -64,16 +61,17 @@ public final class GrandWitchSpellService {
         }
     }
 
-    public static void tickFear(ServerWorld world) {
+    public static void tickFear(ServerWorld world, int remainingTicks) {
+        if (!GrandWitchFearService.shouldPulseFear(remainingTicks)) {
+            return;
+        }
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(world);
-        float drainPerTick = FEAR_TOTAL_MOOD_LOSS / GrandWitchRules.GrandWitchSpell.FEAR.durationTicks();
         for (ServerPlayerEntity player : world.getPlayers()) {
             Role role = gameComponent.getRole(player);
-            if (!GameFunctions.isPlayerPlayingAndAlive(player) || !GrandWitchRules.isAffectedByFear(role)) {
+            if (!GameFunctions.isPlayerPlayingAndAlive(player) || !GrandWitchFearService.isAffectedRole(role)) {
                 continue;
             }
-            PlayerMoodComponent mood = PlayerMoodComponent.KEY.get(player);
-            mood.setMood(mood.getMood() - drainPerTick);
+            GrandWitchFearService.applyMoodPulse(player, GrandWitchRules.GrandWitchSpell.FEAR.durationTicks());
         }
     }
 

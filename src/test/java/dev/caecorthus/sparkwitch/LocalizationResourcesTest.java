@@ -110,7 +110,10 @@ class LocalizationResourcesTest {
             "message.sparkwitch.spell.blindness.cast",
             "message.sparkwitch.spell.fear.cast",
             "message.sparkwitch.spell.heaviness.cast",
-            "shop.error.sparkwitch.not_enough_mana"
+            "message.sparkwitch.fear.skill_blocked",
+            "message.sparkwitch.fear.instinct_blocked",
+            "shop.error.sparkwitch.not_enough_mana",
+            "shop.error.sparkwitch.fear"
     );
 
     @Test
