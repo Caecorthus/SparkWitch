@@ -25,8 +25,6 @@ public final class NoellesRoleEnhancementRules {
     public static final int BLUE_POISON_COLOR = 0x00BFFF;
     public static final Identifier BLUE_POISON_COMPONENT_ID = Identifier.of("sparktraits", "conscience_poisoner");
 
-    public static final double FLASHLIGHT_RANGE_BLOCKS = 30.0;
-
     private NoellesRoleEnhancementRules() {
     }
 
@@ -40,6 +38,10 @@ public final class NoellesRoleEnhancementRules {
 
     public static boolean canBuyCapsules(Role role) {
         return NoellesRoleIds.isToxicologist(role);
+    }
+
+    public static boolean startsWithFlashlight(Role role) {
+        return NoellesRoleIds.isAttendant(role);
     }
 
     public static int poisonNameColor(boolean normalPoisoned, boolean bluePoisoned) {

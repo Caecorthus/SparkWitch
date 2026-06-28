@@ -128,7 +128,6 @@ class LocalizationResourcesTest {
             "message.sparkwitch.capsule.empty",
             "message.sparkwitch.flashlight.on",
             "message.sparkwitch.flashlight.off",
-            "message.sparkwitch.flashlight.unavailable",
             "message.sparkwitch.spell.obscure.cast",
             "message.sparkwitch.spell.obscure.actionbar",
             "message.sparkwitch.spell.blindness.cast",
@@ -247,18 +246,12 @@ class LocalizationResourcesTest {
     }
 
     @Test
-    void flashlightUnavailableTextIsNotAttendantLocked() throws IOException {
+    void flashlightDoesNotDeclareUnavailableText() throws IOException {
         JsonObject english = readLang("en_us.json");
         JsonObject chinese = readLang("zh_cn.json");
 
-        assertEquals(
-                "You must be alive in the game to use the flashlight.",
-                english.get("message.sparkwitch.flashlight.unavailable").getAsString()
-        );
-        assertEquals(
-                "只有游戏中存活的玩家可以使用手电筒。",
-                chinese.get("message.sparkwitch.flashlight.unavailable").getAsString()
-        );
+        assertFalse(english.has("message.sparkwitch.flashlight.unavailable"));
+        assertFalse(chinese.has("message.sparkwitch.flashlight.unavailable"));
     }
 
     private static JsonObject readLang(String fileName) throws IOException {

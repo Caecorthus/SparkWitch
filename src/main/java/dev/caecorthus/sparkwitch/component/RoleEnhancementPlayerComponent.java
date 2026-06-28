@@ -3,7 +3,6 @@ package dev.caecorthus.sparkwitch.component;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.impl.NoellesRoleEnhancementRules;
 import dev.caecorthus.sparkwitch.impl.NoellesRoleIds;
-import dev.caecorthus.sparkwitch.item.FlashlightItem;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -11,11 +10,9 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
@@ -41,7 +38,6 @@ public final class RoleEnhancementPlayerComponent implements AutoSyncedComponent
     private @Nullable UUID criminologistTrackingTargetUuid;
     private int criminologistRevealTicks;
     private int criminologistRevealIntervalTicks;
-    private int flashlightParticleTicks;
 
     public RoleEnhancementPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -133,7 +129,6 @@ public final class RoleEnhancementPlayerComponent implements AutoSyncedComponent
         criminologistTrackingTargetUuid = null;
         criminologistRevealTicks = 0;
         criminologistRevealIntervalTicks = 0;
-        flashlightParticleTicks = 0;
         if (changed) {
             sync();
         }
@@ -163,7 +158,6 @@ public final class RoleEnhancementPlayerComponent implements AutoSyncedComponent
         }
 
         tickCriminologist(serverPlayer, gameComponent, role);
-        tickFlashlight(serverPlayer);
     }
 
     private void tickCriminologist(ServerPlayerEntity serverPlayer, GameWorldComponent gameComponent, Role role) {
@@ -201,45 +195,9 @@ public final class RoleEnhancementPlayerComponent implements AutoSyncedComponent
         }
     }
 
-    private void tickFlashlight(ServerPlayerEntity serverPlayer) {
-        if (!FlashlightItem.isHeldOn(serverPlayer) || !GameFunctions.isPlayerPlayingAndAlive(serverPlayer)) {
-            flashlightParticleTicks = 0;
-            return;
-        }
-
-        flashlightParticleTicks++;
-        if (flashlightParticleTicks < 2) {
-            return;
-        }
-        flashlightParticleTicks = 0;
-        spawnFlashlightParticles(serverPlayer);
-    }
-
     private static boolean targetIsPlayingAndAlive(ServerWorld world, UUID targetUuid) {
         ServerPlayerEntity target = world.getServer().getPlayerManager().getPlayer(targetUuid);
         return target != null && GameFunctions.isPlayerPlayingAndAlive(target);
-    }
-
-    private static void spawnFlashlightParticles(ServerPlayerEntity player) {
-        ServerWorld world = player.getServerWorld();
-        Vec3d start = player.getEyePos().add(player.getRotationVector().normalize().multiply(0.7));
-        Vec3d direction = player.getRotationVector().normalize();
-        double range = NoellesRoleEnhancementRules.FLASHLIGHT_RANGE_BLOCKS;
-        for (double distance = 2.0; distance <= range; distance += 2.0) {
-            Vec3d point = start.add(direction.multiply(distance));
-            double spread = 0.02 + distance * 0.006;
-            world.spawnParticles(
-                    ParticleTypes.END_ROD,
-                    point.x,
-                    point.y,
-                    point.z,
-                    1,
-                    spread,
-                    spread,
-                    spread,
-                    0.0
-            );
-        }
     }
 
     private boolean hasCriminologistRuntime() {
@@ -266,7 +224,6 @@ public final class RoleEnhancementPlayerComponent implements AutoSyncedComponent
         criminologistTrackingTargetUuid = readOptionalUuid(buf);
         criminologistRevealTicks = Math.max(0, buf.readVarInt());
         criminologistRevealIntervalTicks = 0;
-        flashlightParticleTicks = 0;
     }
 
     @Override
@@ -305,7 +262,6 @@ public final class RoleEnhancementPlayerComponent implements AutoSyncedComponent
         criminologistRevealIntervalTicks = tag.contains("CriminologistRevealIntervalTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("CriminologistRevealIntervalTicks"))
                 : 0;
-        flashlightParticleTicks = 0;
     }
 
     private static void writeOptionalUuid(RegistryByteBuf buf, @Nullable UUID uuid) {

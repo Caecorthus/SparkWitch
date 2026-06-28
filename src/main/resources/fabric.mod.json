@@ -16,6 +16,12 @@
     "client": [
       "dev.caecorthus.sparkwitch.client.SparkWitchClient"
     ],
+    "lambdynlights:initializer": [
+      "dev.caecorthus.sparkwitch.client.FlashlightDynamicLightsInitializer"
+    ],
+    "dynamiclights": [
+      "dev.caecorthus.sparkwitch.client.FlashlightDynamicLightsInitializer"
+    ],
     "cardinal-components": [
       "dev.caecorthus.sparkwitch.component.SparkWitchComponents"
     ]
@@ -42,6 +48,7 @@
     "wathe": "${wathe_version}",
     "noellesroles": "*",
     "sparkfactionapi": ">=${sparkfactionapi_version}",
+    "lambdynlights": ">=4.8.7+1.21.1",
     "cardinal-components-base": ">=${cca_version}",
     "cardinal-components-entity": ">=${cca_version}",
     "cardinal-components-world": ">=${cca_version}"

@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.item;
 
-import dev.doctor4t.wathe.game.GameFunctions;
+import dev.caecorthus.sparkwitch.impl.FlashlightBlackoutService;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -54,12 +54,9 @@ public final class FlashlightItem extends Item {
             return TypedActionResult.pass(stack);
         }
 
-        if (!GameFunctions.isPlayerPlayingAndAlive(serverPlayer)) {
-            serverPlayer.sendMessage(Text.translatable("message.sparkwitch.flashlight.unavailable"), true);
-            return TypedActionResult.fail(stack);
-        }
-
-        setOn(stack, !isOn(stack));
+        boolean turnedOn = !isOn(stack);
+        setOn(stack, turnedOn);
+        FlashlightBlackoutService.onFlashlightToggled(serverPlayer, turnedOn);
         serverPlayer.sendMessage(Text.translatable(
                 isOn(stack)
                         ? "message.sparkwitch.flashlight.on"

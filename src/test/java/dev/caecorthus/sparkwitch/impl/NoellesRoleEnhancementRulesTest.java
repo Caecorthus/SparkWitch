@@ -39,7 +39,17 @@ class NoellesRoleEnhancementRulesTest {
         assertTrue(NoellesRoleEnhancementRules.canBuyCapsules(TOXICOLOGIST));
         assertFalse(NoellesRoleEnhancementRules.canBuyCapsules(DETECTIVE));
         assertFalse(NoellesRoleEnhancementRules.canBuyCapsules(ATTENDANT));
-        assertEquals(30.0, NoellesRoleEnhancementRules.FLASHLIGHT_RANGE_BLOCKS);
+    }
+
+    @Test
+    void attendantStartsWithExactlyOneFlashlight() {
+        assertTrue(NoellesRoleEnhancementRules.startsWithFlashlight(ATTENDANT));
+        assertFalse(NoellesRoleEnhancementRules.startsWithFlashlight(DETECTIVE));
+        assertFalse(NoellesRoleEnhancementRules.startsWithFlashlight(TOXICOLOGIST));
+
+        assertTrue(NoellesRoleEnhancementService.shouldGiveAttendantFlashlight(ATTENDANT, false));
+        assertFalse(NoellesRoleEnhancementService.shouldGiveAttendantFlashlight(ATTENDANT, true));
+        assertFalse(NoellesRoleEnhancementService.shouldGiveAttendantFlashlight(REPORTER, false));
     }
 
     @Test

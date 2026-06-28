@@ -87,12 +87,7 @@ class ItemModelResourcesTest {
     }
 
     @Test
-    void litFlashlightHasLambDynamicLightsSource() throws IOException {
-        JsonObject lightSource = JsonParser.parseString(Files.readString(FLASHLIGHT_DYNAMIC_LIGHT)).getAsJsonObject();
-        JsonObject match = lightSource.getAsJsonObject("match");
-
-        assertEquals("sparkwitch:flashlight", match.getAsJsonArray("items").get(0).getAsString());
-        assertEquals(FlashlightItem.ON_MODEL_DATA, match.getAsJsonObject("components").get("minecraft:custom_model_data").getAsInt());
-        assertEquals(15, lightSource.get("luminance").getAsInt());
+    void litFlashlightUsesCustomLineLightInsteadOfPointLightResource() {
+        assertFalse(Files.exists(FLASHLIGHT_DYNAMIC_LIGHT));
     }
 }

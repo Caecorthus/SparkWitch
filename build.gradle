@@ -21,6 +21,15 @@ loom {
     }
 }
 
+sourceSets {
+    // LambDynamicLights publishes intermediary API jars for this version, so client sources compile against a local named-shape stub.
+    // 此版本 LambDynamicLights 发布的是 intermediary API jar，因此客户端源码使用本地 Yarn 命名接口形状编译；这些 stub 不会进入最终 jar。
+    lambdynlightsStub {
+        java.srcDir("src/lambdynlightsStub/java")
+        compileClasspath += sourceSets.main.compileClasspath
+    }
+}
+
 repositories {
     mavenCentral()
     maven {
@@ -54,6 +63,10 @@ repositories {
         name = "Lucko"
         url = "https://repo.lucko.me/"
     }
+    maven {
+        name = "Gegy"
+        url = "https://maven.gegy.dev"
+    }
 }
 
 dependencies {
@@ -75,9 +88,17 @@ dependencies {
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
     modRuntimeOnly "me.lucko:fabric-permissions-api:0.3.1"
+    // Runtime is enforced by fabric.mod.json; modRuntimeOnly fails until this project catches up to upstream Loom 1.14.4 metadata.
+    // 运行时依赖由 fabric.mod.json 强制声明；在本项目升级到上游 Loom 1.14.4 元数据前不能直接使用 modRuntimeOnly。
+    compileOnly "dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:4.8.7+1.21.1"
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+tasks.named("compileClientJava") {
+    dependsOn tasks.named("compileLambdynlightsStubJava")
+    classpath = sourceSets.lambdynlightsStub.output + classpath
 }
 
 processResources {

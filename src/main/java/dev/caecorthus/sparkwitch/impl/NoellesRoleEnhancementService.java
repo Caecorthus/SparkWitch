@@ -53,6 +53,11 @@ public final class NoellesRoleEnhancementService {
         if (NoellesRoleEnhancementRules.shouldInitializeGoodMoney(role)) {
             PlayerShopComponent.KEY.get(player).setBalance(NoellesRoleEnhancementRules.INITIAL_GOOD_ROLE_MONEY);
         }
+        // Attendants start with a flashlight, but the item itself stays role-independent.
+        // 乘务员开局获得手电筒，但手电筒本身不绑定乘务员身份。
+        if (shouldGiveAttendantFlashlight(role, hasFlashlight(player))) {
+            player.giveItemStack(new ItemStack(SparkWitchItems.flashlight()));
+        }
         if (NoellesRoleIds.isDetective(role)) {
             component.initializeCriminologist();
         } else {
@@ -210,5 +215,20 @@ public final class NoellesRoleEnhancementService {
 
     private static int seconds(int ticks) {
         return (int) Math.ceil(ticks / 20.0);
+    }
+
+    static boolean shouldGiveAttendantFlashlight(Role role, boolean alreadyHasFlashlight) {
+        return NoellesRoleEnhancementRules.startsWithFlashlight(role) && !alreadyHasFlashlight;
+    }
+
+    private static boolean hasFlashlight(ServerPlayerEntity player) {
+        // Make assignment idempotent so repeated role hooks do not duplicate the starter item.
+        // 保证重复身份分配不会刷出多个开局手电筒。
+        for (int slot = 0; slot < player.getInventory().size(); slot++) {
+            if (player.getInventory().getStack(slot).isOf(SparkWitchItems.flashlight())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
