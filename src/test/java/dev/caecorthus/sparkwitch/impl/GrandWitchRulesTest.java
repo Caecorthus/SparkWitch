@@ -136,6 +136,23 @@ class GrandWitchRulesTest {
     }
 
     @Test
+    void droppedItemInstinctColorOnlyAppliesToGrandWitchFactionMembers() {
+        assertEquals(
+                OptionalInt.of(0xDB9D00),
+                GrandWitchRules.droppedItemInstinctColor(SparkWitchRoles.grandWitch())
+        );
+        assertEquals(
+                OptionalInt.of(0xDB9D00),
+                GrandWitchRules.droppedItemInstinctColor(SparkWitchRoles.accomplice())
+        );
+
+        assertTrue(GrandWitchRules.droppedItemInstinctColor(SparkWitchRoles.apprenticeWitch()).isEmpty());
+        assertTrue(GrandWitchRules.droppedItemInstinctColor(SparkWitchRoles.murderousWitch()).isEmpty());
+        assertTrue(GrandWitchRules.droppedItemInstinctColor(WatheRoles.CIVILIAN).isEmpty());
+        assertTrue(GrandWitchRules.droppedItemInstinctColor(null).isEmpty());
+    }
+
+    @Test
     void customInstinctHighlightRequiresLivingViewer() {
         assertTrue(GrandWitchRules.shouldUseCustomInstinctHighlight(true, false));
         assertFalse(GrandWitchRules.shouldUseCustomInstinctHighlight(false, false));

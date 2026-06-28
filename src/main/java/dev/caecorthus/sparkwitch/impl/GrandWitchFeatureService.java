@@ -8,10 +8,13 @@ import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
+import dev.doctor4t.wathe.entity.FirecrackerEntity;
+import dev.doctor4t.wathe.entity.NoteEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
 import dev.doctor4t.wathe.index.tag.WatheItemTags;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -94,6 +97,17 @@ public final class GrandWitchFeatureService {
             return FactionInstinctPolicy.InstinctResult.skip(OBSCURE_SKIP_PRIORITY);
         }
 
+        if (isDefaultDroppedInstinctTarget(target)) {
+            OptionalInt droppedItemColor = GrandWitchRules.droppedItemInstinctColor(viewerRole);
+            if (droppedItemColor.isPresent()) {
+                return FactionInstinctPolicy.InstinctResult.show(
+                        droppedItemColor.getAsInt(),
+                        true,
+                        GRAND_WITCH_INSTINCT_PRIORITY
+                );
+            }
+        }
+
         if (!(target instanceof PlayerEntity targetPlayer)) {
             return null;
         }
@@ -158,6 +172,16 @@ public final class GrandWitchFeatureService {
             return false;
         }
         return isDangerousHeldItem(target.getMainHandStack()) || isDangerousHeldItem(target.getOffHandStack());
+    }
+
+    /**
+     * Mirrors Wathe's default killer item instinct targets without granting native killer powers.
+     * 同步 wathe 默认杀手物品本能目标，但不授予原生杀手能力。
+     */
+    private static boolean isDefaultDroppedInstinctTarget(Entity target) {
+        return target instanceof ItemEntity
+                || target instanceof NoteEntity
+                || target instanceof FirecrackerEntity;
     }
 
     private static boolean isDangerousHeldItem(ItemStack stack) {

@@ -24,6 +24,7 @@ public final class GrandWitchRules {
 
     public static final int OTHER_WITCH_INSTINCT_COLOR = 0x7AB8FF;
     public static final int NON_WITCH_INSTINCT_COLOR = 0x36E51B;
+    public static final int DROPPED_ITEM_INSTINCT_COLOR = 0xDB9D00;
     // Ordinary Witch instinct must stay below Wathe hard skips such as Last Stand and hidden Survival Master.
     // 普通魔女本能必须低于 wathe 硬跳过规则，例如背水一战和被遮挡的生存大师。
     public static final int INSTINCT_PRIORITY = 90;
@@ -45,6 +46,12 @@ public final class GrandWitchRules {
 
     public static boolean usesKillerStyleInstinctLight(Role role) {
         return isWitchFactionMember(role);
+    }
+
+    public static OptionalInt droppedItemInstinctColor(Role viewerRole) {
+        return isWitchFactionMember(viewerRole)
+                ? OptionalInt.of(DROPPED_ITEM_INSTINCT_COLOR)
+                : OptionalInt.empty();
     }
 
     /**
