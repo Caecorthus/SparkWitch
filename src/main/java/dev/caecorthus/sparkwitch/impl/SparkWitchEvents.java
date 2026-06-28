@@ -28,6 +28,7 @@ public final class SparkWitchEvents {
         FirePokerCombatService.register();
         GrandWitchFeatureService.register();
         MurderousWitchFeatureService.register();
+        CorruptCopFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 WitchSkillAssignmentService.assignForRole(serverPlayer, role);
