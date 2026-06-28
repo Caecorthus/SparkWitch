@@ -246,6 +246,21 @@ class LocalizationResourcesTest {
         assertManaIconText(chinese.get("gui.sparkwitch.shop.mana_price").getAsString());
     }
 
+    @Test
+    void flashlightUnavailableTextIsNotAttendantLocked() throws IOException {
+        JsonObject english = readLang("en_us.json");
+        JsonObject chinese = readLang("zh_cn.json");
+
+        assertEquals(
+                "You must be alive in the game to use the flashlight.",
+                english.get("message.sparkwitch.flashlight.unavailable").getAsString()
+        );
+        assertEquals(
+                "只有游戏中存活的玩家可以使用手电筒。",
+                chinese.get("message.sparkwitch.flashlight.unavailable").getAsString()
+        );
+    }
+
     private static JsonObject readLang(String fileName) throws IOException {
         return JsonParser.parseString(Files.readString(LANG_DIR.resolve(fileName))).getAsJsonObject();
     }

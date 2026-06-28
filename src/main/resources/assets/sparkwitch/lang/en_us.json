@@ -116,7 +116,7 @@
   "message.sparkwitch.capsule.empty": "The capsule has no food or drink inside.",
   "message.sparkwitch.flashlight.on": "Flashlight on.",
   "message.sparkwitch.flashlight.off": "Flashlight off.",
-  "message.sparkwitch.flashlight.unavailable": "Only a living Attendant can use the flashlight.",
+  "message.sparkwitch.flashlight.unavailable": "You must be alive in the game to use the flashlight.",
   "message.sparkwitch.spell.obscure.cast": "Obscure veils hostile instincts.",
   "message.sparkwitch.spell.obscure.actionbar": "Your instinct is obscured: %ss",
   "message.sparkwitch.spell.blindness.cast": "Blindness takes hold.",

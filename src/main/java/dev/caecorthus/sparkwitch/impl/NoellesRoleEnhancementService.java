@@ -5,7 +5,6 @@ import dev.caecorthus.sparkwitch.component.RoleEnhancementPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.net.OpenCriminologistScreenS2CPacket;
 import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.BuildShopEntries;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
@@ -47,7 +46,6 @@ public final class NoellesRoleEnhancementService {
 
         BuildShopEntries.EVENT.register(NoellesRoleEnhancementService::buildShopEntries);
         UseEntityCallback.EVENT.register(NoellesRoleEnhancementService::useEntity);
-        BlackoutEffect.BEFORE.register(NoellesRoleEnhancementService::beforeBlackoutEffect);
     }
 
     public static void assignForRole(ServerPlayerEntity player, Role role) {
@@ -59,11 +57,6 @@ public final class NoellesRoleEnhancementService {
             component.initializeCriminologist();
         } else {
             component.clearCriminologist();
-        }
-        if (NoellesRoleIds.isAttendant(role)) {
-            giveFlashlight(player);
-        } else {
-            component.setFlashlightOn(false);
         }
     }
 
@@ -205,16 +198,6 @@ public final class NoellesRoleEnhancementService {
         return true;
     }
 
-    private static BlackoutEffect.BlackoutResult beforeBlackoutEffect(ServerPlayerEntity player, int durationTicks) {
-        Role role = GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player);
-        if (NoellesRoleIds.isAttendant(role)
-                && RoleEnhancementPlayerComponent.KEY.get(player).isFlashlightOn()
-                && GameFunctions.isPlayerPlayingAndAlive(player)) {
-            return BlackoutEffect.BlackoutResult.cancel();
-        }
-        return null;
-    }
-
     private static ItemStack capsuleDisplayStack() {
         ItemStack stack = SparkWitchItems.capsule().getDefaultStack();
         stack.set(DataComponentTypes.ITEM_NAME, Text.translatable("shop.sparkwitch.capsule"));
@@ -223,22 +206,6 @@ public final class NoellesRoleEnhancementService {
                         .styled(style -> style.withColor(0x808080).withItalic(false))
         )));
         return stack;
-    }
-
-    private static void giveFlashlight(ServerPlayerEntity player) {
-        if (hasFlashlight(player)) {
-            return;
-        }
-        player.getInventory().insertStack(SparkWitchItems.flashlight().getDefaultStack());
-    }
-
-    private static boolean hasFlashlight(ServerPlayerEntity player) {
-        for (int slot = 0; slot < player.getInventory().size(); slot++) {
-            if (player.getInventory().getStack(slot).isOf(SparkWitchItems.flashlight())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static int seconds(int ticks) {

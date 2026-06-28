@@ -27,6 +27,7 @@ public final class SparkWitchEvents {
         MightyForceCombatService.register();
         FirePokerCombatService.register();
         GrandWitchFeatureService.register();
+        FlashlightBlackoutService.register();
         MurderousWitchFeatureService.register();
         CorruptCopFeatureService.register();
         NoellesRoleEnhancementService.register();

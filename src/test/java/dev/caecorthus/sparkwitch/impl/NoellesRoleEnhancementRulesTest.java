@@ -34,12 +34,11 @@ class NoellesRoleEnhancementRulesTest {
     }
 
     @Test
-    void capsuleAndFlashlightStayScopedToRequestedRoles() {
+    void capsuleStaysScopedToRequestedRole() {
         assertEquals(100, NoellesRoleEnhancementRules.CAPSULE_PRICE);
         assertTrue(NoellesRoleEnhancementRules.canBuyCapsules(TOXICOLOGIST));
         assertFalse(NoellesRoleEnhancementRules.canBuyCapsules(DETECTIVE));
-        assertTrue(NoellesRoleEnhancementRules.getsFlashlight(ATTENDANT));
-        assertFalse(NoellesRoleEnhancementRules.getsFlashlight(TOXICOLOGIST));
+        assertFalse(NoellesRoleEnhancementRules.canBuyCapsules(ATTENDANT));
         assertEquals(30.0, NoellesRoleEnhancementRules.FLASHLIGHT_RANGE_BLOCKS);
     }
 

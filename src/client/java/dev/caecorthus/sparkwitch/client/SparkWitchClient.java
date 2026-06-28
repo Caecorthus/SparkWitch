@@ -11,11 +11,16 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.Text;
 
 public final class SparkWitchClient implements ClientModInitializer {
+    private static final String LAMBDYNAMICLIGHTS_MOD_ID = "lambdynlights";
+
     @Override
     public void onInitializeClient() {
+        requireLambDynamicLights();
+
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> SparkWitchRoles.refreshAssassinGuessRoleOrder());
         NoellesRoleEnhancementClientHooks.register();
 
@@ -45,5 +50,14 @@ public final class SparkWitchClient implements ClientModInitializer {
 
     public static Text abilityKeyText() {
         return WitchAbilityKeyBridge.keyText();
+    }
+
+    private static void requireLambDynamicLights() {
+        if (!FabricLoader.getInstance().isModLoaded(LAMBDYNAMICLIGHTS_MOD_ID)) {
+            throw new IllegalStateException(
+                    "SparkWitch requires LambDynamicLights on the client for flashlight lighting. "
+                            + "Install LambDynamicLights for Minecraft 1.21.1."
+            );
+        }
     }
 }

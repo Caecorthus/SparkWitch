@@ -1,10 +1,8 @@
 package dev.caecorthus.sparkwitch.item;
 
-import dev.caecorthus.sparkwitch.component.RoleEnhancementPlayerComponent;
-import dev.caecorthus.sparkwitch.impl.NoellesRoleIds;
-import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -15,12 +13,35 @@ import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
 
 /**
- * Attendant flashlight toggle item.
- * 乘务员手电筒开关道具。
+ * Toggleable flashlight item.
+ * 可开关的手电筒物品。
  */
 public final class FlashlightItem extends Item {
+    public static final int ON_MODEL_DATA = 1;
+
     public FlashlightItem(Settings settings) {
         super(settings);
+    }
+
+    public static boolean isOn(ItemStack stack) {
+        return stack.getItem() instanceof FlashlightItem && hasOnModelData(stack);
+    }
+
+    public static boolean isHeldOn(PlayerEntity player) {
+        return isOn(player.getMainHandStack()) || isOn(player.getOffHandStack());
+    }
+
+    public static boolean hasOnModelData(ItemStack stack) {
+        CustomModelDataComponent component = stack.get(DataComponentTypes.CUSTOM_MODEL_DATA);
+        return component != null && component.value() == ON_MODEL_DATA;
+    }
+
+    public static void setOn(ItemStack stack, boolean on) {
+        if (on) {
+            stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(ON_MODEL_DATA));
+        } else {
+            stack.remove(DataComponentTypes.CUSTOM_MODEL_DATA);
+        }
     }
 
     @Override
@@ -33,16 +54,14 @@ public final class FlashlightItem extends Item {
             return TypedActionResult.pass(stack);
         }
 
-        Role role = GameWorldComponent.KEY.get(serverPlayer.getServerWorld()).getRole(serverPlayer);
-        if (!NoellesRoleIds.isAttendant(role) || !GameFunctions.isPlayerPlayingAndAlive(serverPlayer)) {
+        if (!GameFunctions.isPlayerPlayingAndAlive(serverPlayer)) {
             serverPlayer.sendMessage(Text.translatable("message.sparkwitch.flashlight.unavailable"), true);
             return TypedActionResult.fail(stack);
         }
 
-        RoleEnhancementPlayerComponent component = RoleEnhancementPlayerComponent.KEY.get(serverPlayer);
-        component.setFlashlightOn(!component.isFlashlightOn());
+        setOn(stack, !isOn(stack));
         serverPlayer.sendMessage(Text.translatable(
-                component.isFlashlightOn()
+                isOn(stack)
                         ? "message.sparkwitch.flashlight.on"
                         : "message.sparkwitch.flashlight.off"
         ), true);

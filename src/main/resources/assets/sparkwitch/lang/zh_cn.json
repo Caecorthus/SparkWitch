@@ -116,7 +116,7 @@
   "message.sparkwitch.capsule.empty": "胶囊里还没有食物/饮品。",
   "message.sparkwitch.flashlight.on": "手电筒已打开。",
   "message.sparkwitch.flashlight.off": "手电筒已关闭。",
-  "message.sparkwitch.flashlight.unavailable": "只有存活的乘务员可以使用手电筒。",
+  "message.sparkwitch.flashlight.unavailable": "只有游戏中存活的玩家可以使用手电筒。",
   "message.sparkwitch.spell.obscure.cast": "障眼遮蔽了敌人的本能。",
   "message.sparkwitch.spell.obscure.actionbar": "你的本能被遮蔽：%s秒",
   "message.sparkwitch.spell.blindness.cast": "失明生效。",

@@ -1,0 +1,11 @@
+{
+  "match": {
+    "items": [
+      "sparkwitch:flashlight"
+    ],
+    "components": {
+      "minecraft:custom_model_data": 1
+    }
+  },
+  "luminance": 15
+}

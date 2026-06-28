@@ -42,10 +42,6 @@ public final class NoellesRoleEnhancementRules {
         return NoellesRoleIds.isToxicologist(role);
     }
 
-    public static boolean getsFlashlight(Role role) {
-        return NoellesRoleIds.isAttendant(role);
-    }
-
     public static int poisonNameColor(boolean normalPoisoned, boolean bluePoisoned) {
         if (normalPoisoned && bluePoisoned) {
             return mixColors(NORMAL_POISON_COLOR, BLUE_POISON_COLOR);
