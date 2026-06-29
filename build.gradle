@@ -88,8 +88,8 @@ dependencies {
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
     modRuntimeOnly "me.lucko:fabric-permissions-api:0.3.1"
-    // Runtime is enforced by fabric.mod.json; modRuntimeOnly fails until this project catches up to upstream Loom 1.14.4 metadata.
-    // 运行时依赖由 fabric.mod.json 强制声明；在本项目升级到上游 Loom 1.14.4 元数据前不能直接使用 modRuntimeOnly。
+    // The client initializer enforces LambDynamicLights; keeping it out of fabric.mod.json lets dedicated servers load SparkWitch.
+    // 客户端初始化器会强制要求 LambDynamicLights；不写入 fabric.mod.json 可以让专用服务器加载 SparkWitch。
     compileOnly "dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:4.8.7+1.21.1"
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
