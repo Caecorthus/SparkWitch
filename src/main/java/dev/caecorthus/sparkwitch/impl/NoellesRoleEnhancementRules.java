@@ -28,12 +28,16 @@ public final class NoellesRoleEnhancementRules {
     private NoellesRoleEnhancementRules() {
     }
 
+    public static boolean isGoodMoneyRole(Role role) {
+        return NoellesRoleIds.isEnhancedMoneyRole(role) || PigGodRules.isPigGod(role);
+    }
+
     public static boolean shouldInitializeGoodMoney(Role role) {
-        return NoellesRoleIds.isEnhancedMoneyRole(role);
+        return isGoodMoneyRole(role);
     }
 
     public static boolean earnsTaskMoney(Role role) {
-        return NoellesRoleIds.isEnhancedMoneyRole(role);
+        return isGoodMoneyRole(role);
     }
 
     public static boolean canBuyCapsules(Role role) {

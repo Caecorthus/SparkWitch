@@ -1,8 +1,10 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.game.GameConstants;
 import net.minecraft.util.Identifier;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,6 +16,11 @@ class NoellesRoleEnhancementRulesTest {
     private static final Role TOXICOLOGIST = role("toxicologist");
     private static final Role ATTENDANT = role("attendant");
     private static final Role REPORTER = role("reporter");
+
+    @BeforeAll
+    static void registerRoles() {
+        SparkWitchRoles.register();
+    }
 
     @Test
     void criminologistUsesRequestedCostsAndCooldowns() {
@@ -28,9 +35,16 @@ class NoellesRoleEnhancementRulesTest {
     void enhancedGoodRolesStartAtZeroAndEarnTaskMoney() {
         assertEquals(0, NoellesRoleEnhancementRules.INITIAL_GOOD_ROLE_MONEY);
         assertEquals(50, NoellesRoleEnhancementRules.TASK_MONEY_REWARD);
+        assertTrue(NoellesRoleEnhancementRules.isGoodMoneyRole(DETECTIVE));
+        assertTrue(NoellesRoleEnhancementRules.isGoodMoneyRole(TOXICOLOGIST));
+        assertTrue(NoellesRoleEnhancementRules.isGoodMoneyRole(SparkWitchRoles.pigGod()));
+        assertFalse(NoellesRoleEnhancementRules.isGoodMoneyRole(REPORTER));
         assertTrue(NoellesRoleEnhancementRules.shouldInitializeGoodMoney(DETECTIVE));
         assertTrue(NoellesRoleEnhancementRules.shouldInitializeGoodMoney(TOXICOLOGIST));
+        assertTrue(NoellesRoleEnhancementRules.shouldInitializeGoodMoney(SparkWitchRoles.pigGod()));
         assertFalse(NoellesRoleEnhancementRules.shouldInitializeGoodMoney(REPORTER));
+        assertTrue(NoellesRoleEnhancementRules.earnsTaskMoney(SparkWitchRoles.pigGod()));
+        assertFalse(NoellesRoleEnhancementRules.earnsTaskMoney(REPORTER));
     }
 
     @Test
@@ -39,6 +53,7 @@ class NoellesRoleEnhancementRulesTest {
         assertTrue(NoellesRoleEnhancementRules.canBuyCapsules(TOXICOLOGIST));
         assertFalse(NoellesRoleEnhancementRules.canBuyCapsules(DETECTIVE));
         assertFalse(NoellesRoleEnhancementRules.canBuyCapsules(ATTENDANT));
+        assertFalse(NoellesRoleEnhancementRules.canBuyCapsules(SparkWitchRoles.pigGod()));
     }
 
     @Test

@@ -60,7 +60,7 @@ public final class NoellesRoleEnhancementClientHooks {
             return null;
         }
         Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        return NoellesRoleIds.isEnhancedMoneyRole(role) ? CanSeeMoney.Result.ALLOW : null;
+        return NoellesRoleEnhancementRules.isGoodMoneyRole(role) ? CanSeeMoney.Result.ALLOW : null;
     }
 
     public static String playerName(java.util.UUID uuid) {
