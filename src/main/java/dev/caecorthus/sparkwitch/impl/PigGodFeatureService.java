@@ -1,12 +1,14 @@
 package dev.caecorthus.sparkwitch.impl;
 
 import dev.caecorthus.sparkfactionapi.api.FactionInstinctPolicy;
+import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.DoorInteraction;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.entity.Entity;
@@ -15,6 +17,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Bridges Pig God's temporary chase powers through public Wathe/Fabric/SparkFactionAPI hooks.
@@ -35,6 +38,7 @@ public final class PigGodFeatureService {
         SparkFactionApi.registerInstinctPolicy(PigGodFeatureService::instinctHighlight);
         DoorInteraction.EVENT.register(PigGodFeatureService::doorInteraction);
         KillPlayer.BEFORE.register(PigGodFeatureService::beforeKill);
+        KillPlayer.AFTER.register(PigGodFeatureService::afterKill);
         ServerLivingEntityEvents.ALLOW_DAMAGE.register(PigGodFeatureService::allowDamage);
         ServerLivingEntityEvents.ALLOW_DEATH.register(PigGodFeatureService::allowDeath);
     }
@@ -94,6 +98,34 @@ public final class PigGodFeatureService {
             Identifier deathReason
     ) {
         return shouldBlockDamage(victim) ? KillPlayer.KillResult.cancel() : null;
+    }
+
+    private static void afterKill(
+            ServerPlayerEntity victim,
+            @Nullable ServerPlayerEntity killer,
+            Identifier deathReason
+    ) {
+        if (killer == null || killer.getUuid().equals(victim.getUuid())) {
+            return;
+        }
+        GameWorldComponent gameComponent = GameWorldComponent.KEY.get(victim.getServerWorld());
+        boolean victimCivilian = FactionIds.CIVILIAN.equals(SparkFactionApi.resolveEffectiveFaction(
+                victim,
+                gameComponent
+        ));
+        boolean shouldPunish = PigGodRules.shouldPunishPigChaseCivilianKill(
+                gameComponent.getRole(killer),
+                WitchPlayerComponent.KEY.get(killer).isPigChaseActive(),
+                GameFunctions.isPlayerPlayingAndAlive(killer),
+                victimCivilian
+        );
+        if (!shouldPunish) {
+            return;
+        }
+
+        // Mirrors Wathe's innocent-shot penalty for Pig God's chase-mode civilian kills.
+        // 追杀期杀死好人时，沿用 Wathe 的误杀好人惩罚让皮革噶的立刻暴毙。
+        GameFunctions.killPlayer(killer, true, null, GameConstants.DeathReasons.SHOT_INNOCENT, true);
     }
 
     private static boolean allowDamage(LivingEntity entity, DamageSource source, float amount) {

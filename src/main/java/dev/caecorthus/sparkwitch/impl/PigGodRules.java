@@ -68,6 +68,18 @@ public final class PigGodRules {
         return isPigGod(role) && freezeActive;
     }
 
+    public static boolean shouldPunishPigChaseCivilianKill(
+            Role killerRole,
+            boolean chaseActive,
+            boolean killerAlive,
+            boolean victimCivilian
+    ) {
+        return isPigGod(killerRole)
+                && chaseActive
+                && killerAlive
+                && victimCivilian;
+    }
+
     public static boolean shouldStopSoundForListener(
             double soundX,
             double soundY,

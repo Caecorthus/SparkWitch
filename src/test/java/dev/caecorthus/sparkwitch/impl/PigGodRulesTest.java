@@ -78,6 +78,20 @@ class PigGodRulesTest {
     }
 
     @Test
+    void civilianKillPunishmentOnlyAppliesToActiveLivingPigGod() {
+        assertTrue(PigGodRules.shouldPunishPigChaseCivilianKill(
+                SparkWitchRoles.pigGod(),
+                true,
+                true,
+                true
+        ));
+        assertFalse(PigGodRules.shouldPunishPigChaseCivilianKill(WatheRoles.CIVILIAN, true, true, true));
+        assertFalse(PigGodRules.shouldPunishPigChaseCivilianKill(SparkWitchRoles.pigGod(), false, true, true));
+        assertFalse(PigGodRules.shouldPunishPigChaseCivilianKill(SparkWitchRoles.pigGod(), true, false, true));
+        assertFalse(PigGodRules.shouldPunishPigChaseCivilianKill(SparkWitchRoles.pigGod(), true, true, false));
+    }
+
+    @Test
     void instinctPriorityPreservesWatheHardSkips() {
         assertTrue(PigGodRules.instinctPriorityPreservesHardSkips());
     }
