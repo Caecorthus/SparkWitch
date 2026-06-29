@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch;
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.FactionCapabilities;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.RoleSelectionContext;
 import dev.doctor4t.wathe.api.WatheRoles;
@@ -72,17 +73,19 @@ class SparkWitchRoleRegistrationTest {
     }
 
     @Test
-    void witchRoleAppearanceConditionsStartAtEighteenPlayers() {
+    void witchRoleAppearanceConditionsStartAtEighteenPlayersExceptPigGod() {
         assertFalse(shouldAppearAt(SparkWitchRoles.grandWitch(), 17));
         assertFalse(shouldAppearAt(SparkWitchRoles.accomplice(), 17));
         assertFalse(shouldAppearAt(SparkWitchRoles.apprenticeWitch(), 17));
         assertFalse(shouldAppearAt(SparkWitchRoles.murderousWitch(), 17));
+        assertTrue(shouldAppearAt(SparkWitchRoles.pigGod(), 17));
 
         assertTrue(shouldAppearAt(SparkWitchRoles.grandWitch(), 18));
         assertTrue(shouldAppearAt(SparkWitchRoles.accomplice(), 18));
         assertTrue(shouldAppearAt(SparkWitchRoles.apprenticeWitch(), 18));
         assertTrue(shouldAppearAt(SparkWitchRoles.murderousWitch(), 18));
-        assertFalse(shouldAppearAt(SparkWitchRoles.pigGod(), 18));
+        assertTrue(shouldAppearAt(SparkWitchRoles.pigGod(), 18));
+        assertTrue(shouldAppearAt(SparkWitchRoles.pigGod(), 24));
     }
 
     @Test
@@ -93,7 +96,9 @@ class SparkWitchRoleRegistrationTest {
 
     @Test
     void pigGodResolvesToCivilianFaction() {
+        assertTrue(SparkWitchRoles.pigGod().isInnocent());
         assertFalse(SparkWitchRoles.pigGod().canUseKiller());
+        assertEquals(Faction.CIVILIAN, SparkWitchRoles.pigGod().getFaction());
         assertEquals(FactionIds.CIVILIAN, SparkFactionApi.resolveBaseFaction(SparkWitchRoles.pigGod()));
     }
 

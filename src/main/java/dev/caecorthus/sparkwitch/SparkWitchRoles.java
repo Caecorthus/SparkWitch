@@ -7,6 +7,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.impl.PigGodRules;
 import dev.caecorthus.sparkwitch.impl.WitchWinConditions;
+import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.RoleAppearanceCondition;
 import dev.doctor4t.wathe.api.WatheRoles;
@@ -89,7 +90,7 @@ public final class SparkWitchRoles {
                 .moodType(Role.MoodType.REAL)
                 .maxSprintTime(GameConstants.getInTicks(0, 10))
                 .canSeeTime(false)
-                .appearanceCondition(RoleAppearanceCondition.minPlayers(24))
+                .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
 
         apprenticeWitch = WatheRoles.registerRole(new Role(
