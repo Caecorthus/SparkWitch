@@ -175,7 +175,6 @@ class GrandWitchRulesTest {
 
     @Test
     void activeSkillAndSpellTuningMatchGrandWitchPlan() {
-        assertEquals(0, GrandWitchRules.STARTING_MONEY);
         assertEquals(100, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);
         assertEquals(25, GrandWitchRules.WITCH_TEAM_KILL_MONEY_REWARD);
         assertEquals(100, GrandWitchRules.CEREMONIAL_SWORD_MANA_COST);

@@ -699,7 +699,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         }
 
         manaRegenerationTicks++;
-        if (manaRegenerationTicks >= WitchManaRules.REGENERATION_INTERVAL_TICKS) {
+        if (manaRegenerationTicks >= WitchManaRules.regenerationIntervalTicks(role)) {
             manaRegenerationTicks = 0;
             int regenerated = WitchManaRules.applyNaturalRegeneration(mana, role);
             if (regenerated != mana) {

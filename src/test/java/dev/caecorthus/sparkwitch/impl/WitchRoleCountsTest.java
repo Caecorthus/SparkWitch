@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class WitchRoleCountsTest {
     @Test
-    void keepsWitchesDisabledBelowTwentyFourPlayers() {
-        WitchRoleCounts.Counts counts = WitchRoleCounts.forPlayerCount(23);
+    void keepsWitchesDisabledBelowEighteenPlayers() {
+        WitchRoleCounts.Counts counts = WitchRoleCounts.forPlayerCount(17);
 
         assertEquals(0, counts.grandWitches());
         assertEquals(0, counts.accomplices());
@@ -16,9 +16,9 @@ class WitchRoleCountsTest {
 
     @Test
     void matchesAcceptedThresholdExamples() {
-        assertCounts(24, 1, 0, 3);
-        assertCounts(28, 1, 1, 3);
-        assertCounts(32, 1, 2, 4);
+        assertCounts(18, 1, 0, 2);
+        assertCounts(24, 1, 1, 3);
+        assertCounts(30, 1, 2, 3);
     }
 
     private static void assertCounts(int players, int grandWitches, int accomplices, int apprenticeWitches) {

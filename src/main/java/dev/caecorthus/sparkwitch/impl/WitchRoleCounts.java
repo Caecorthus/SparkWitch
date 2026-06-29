@@ -5,8 +5,8 @@ package dev.caecorthus.sparkwitch.impl;
  * SparkWitch 职业数量公式集中在这里，避免分配器和测试各写一份。
  */
 public final class WitchRoleCounts {
-    public static final int WITCH_THRESHOLD = 24;
-    public static final int ACCOMPLICE_INTERVAL = 4;
+    public static final int WITCH_THRESHOLD = 18;
+    public static final int ACCOMPLICE_INTERVAL = 6;
     public static final int APPRENTICE_DIVIDEND = 8;
 
     private WitchRoleCounts() {

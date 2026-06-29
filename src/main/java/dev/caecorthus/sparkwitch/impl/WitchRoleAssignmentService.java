@@ -53,8 +53,8 @@ public final class WitchRoleAssignmentService {
             assigned += assignRole(gameComponent, availablePlayers, accomplice, accompliceRemaining);
         }
 
-        // Apprentice Witch is a civilian role and follows the >=24 rule directly, independent of actual Grand Witch assignment.
-        // 预备魔女是好人职业，只按 >=24 的人数规则刷新，不依赖大魔女是否真的被分到。
+        // Apprentice Witch is a civilian role and follows the >=18 rule directly, independent of actual Grand Witch assignment.
+        // 预备魔女是好人职业，只按 >=18 的人数规则刷新，不依赖大魔女是否真的被分到。
         if (isEligible(gameComponent, roleContext, apprenticeWitch)) {
             int apprenticeRemaining = counts.apprenticeWitches() - countRole(gameComponent, players, apprenticeWitch);
             assigned += assignRole(gameComponent, availablePlayers, apprenticeWitch, apprenticeRemaining);

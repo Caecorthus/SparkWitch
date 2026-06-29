@@ -49,7 +49,8 @@ public final class GrandWitchFeatureService {
 
     public static void assignForRole(ServerPlayerEntity player, Role role) {
         if (GrandWitchRules.isGrandWitch(role)) {
-            PlayerShopComponent.KEY.get(player).setBalance(GrandWitchRules.STARTING_MONEY);
+            GameWorldComponent gameComponent = GameWorldComponent.KEY.get(player.getServerWorld());
+            PlayerShopComponent.KEY.get(player).setBalance(WitchEconomyService.killerStyleStartingMoney(player, gameComponent));
             player.giveItemStack(new ItemStack(WatheItems.KNIFE));
         } else if (GrandWitchRules.isAccomplice(role)) {
             GameWorldComponent gameComponent = GameWorldComponent.KEY.get(player.getServerWorld());

@@ -34,13 +34,21 @@ class WitchManaRulesTest {
     }
 
     @Test
+    void naturalRegenerationIntervalIsFasterOnlyForGrandWitch() {
+        assertEquals(20, WitchManaRules.regenerationIntervalTicks(SparkWitchRoles.grandWitch()));
+        assertEquals(40, WitchManaRules.regenerationIntervalTicks(SparkWitchRoles.murderousWitch()));
+        assertEquals(0, WitchManaRules.regenerationIntervalTicks(SparkWitchRoles.apprenticeWitch()));
+    }
+
+    @Test
     void naturalRegenerationStopsAtRoleCap() {
         assertEquals(100, WitchManaRules.naturalCap(SparkWitchRoles.murderousWitch()));
-        assertEquals(150, WitchManaRules.naturalCap(SparkWitchRoles.grandWitch()));
+        assertEquals(300, WitchManaRules.naturalCap(SparkWitchRoles.grandWitch()));
 
         assertEquals(100, WitchManaRules.applyNaturalRegeneration(99, SparkWitchRoles.murderousWitch()));
         assertEquals(100, WitchManaRules.applyNaturalRegeneration(100, SparkWitchRoles.murderousWitch()));
-        assertEquals(151, WitchManaRules.applyNaturalRegeneration(151, SparkWitchRoles.grandWitch()));
+        assertEquals(300, WitchManaRules.applyNaturalRegeneration(299, SparkWitchRoles.grandWitch()));
+        assertEquals(301, WitchManaRules.applyNaturalRegeneration(301, SparkWitchRoles.grandWitch()));
     }
 
     @Test
@@ -49,7 +57,7 @@ class WitchManaRulesTest {
                 SparkWitchRoles.murderousWitch(),
                 SparkWitchRoles.apprenticeWitch()
         ));
-        assertEquals(50, WitchManaRules.killReward(
+        assertEquals(100, WitchManaRules.killReward(
                 SparkWitchRoles.grandWitch(),
                 SparkWitchRoles.murderousWitch()
         ));
@@ -65,7 +73,7 @@ class WitchManaRulesTest {
                 SparkWitchRoles.murderousWitch(),
                 WatheRoles.CIVILIAN
         ));
-        assertEquals(25, WitchManaRules.killReward(
+        assertEquals(50, WitchManaRules.killReward(
                 SparkWitchRoles.grandWitch(),
                 WatheRoles.CIVILIAN
         ));
@@ -81,11 +89,11 @@ class WitchManaRulesTest {
 
     @Test
     void accompliceKillsCreateGrandWitchManaRewardsWithoutGivingAccompliceMana() {
-        assertEquals(25, WitchManaRules.grandWitchRewardForAccompliceKill(
+        assertEquals(50, WitchManaRules.grandWitchRewardForAccompliceKill(
                 SparkWitchRoles.accomplice(),
                 WatheRoles.CIVILIAN
         ));
-        assertEquals(50, WitchManaRules.grandWitchRewardForAccompliceKill(
+        assertEquals(100, WitchManaRules.grandWitchRewardForAccompliceKill(
                 SparkWitchRoles.accomplice(),
                 SparkWitchRoles.apprenticeWitch()
         ));

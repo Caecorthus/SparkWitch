@@ -4,6 +4,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.FactionCapabilities;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.api.RoleSelectionContext;
 import dev.doctor4t.wathe.api.WatheRoles;
 import dev.doctor4t.wathe.game.GameConstants;
 import org.junit.jupiter.api.BeforeAll;
@@ -68,6 +69,20 @@ class SparkWitchRoleRegistrationTest {
         assertEquals(GameConstants.getInTicks(0, 10), SparkWitchRoles.apprenticeWitch().getMaxSprintTime());
         assertEquals(-1, SparkWitchRoles.murderousWitch().getMaxSprintTime());
         assertEquals(GameConstants.getInTicks(0, 10), SparkWitchRoles.pigGod().getMaxSprintTime());
+    }
+
+    @Test
+    void witchRoleAppearanceConditionsStartAtEighteenPlayers() {
+        assertFalse(shouldAppearAt(SparkWitchRoles.grandWitch(), 17));
+        assertFalse(shouldAppearAt(SparkWitchRoles.accomplice(), 17));
+        assertFalse(shouldAppearAt(SparkWitchRoles.apprenticeWitch(), 17));
+        assertFalse(shouldAppearAt(SparkWitchRoles.murderousWitch(), 17));
+
+        assertTrue(shouldAppearAt(SparkWitchRoles.grandWitch(), 18));
+        assertTrue(shouldAppearAt(SparkWitchRoles.accomplice(), 18));
+        assertTrue(shouldAppearAt(SparkWitchRoles.apprenticeWitch(), 18));
+        assertTrue(shouldAppearAt(SparkWitchRoles.murderousWitch(), 18));
+        assertFalse(shouldAppearAt(SparkWitchRoles.pigGod(), 18));
     }
 
     @Test
@@ -148,5 +163,9 @@ class SparkWitchRoleRegistrationTest {
     private static List<Role> currentRoleTail() {
         List<Role> roles = WatheRoles.ROLES;
         return roles.subList(roles.size() - expectedAssassinGuessTail().size(), roles.size());
+    }
+
+    private static boolean shouldAppearAt(Role role, int totalPlayers) {
+        return role.shouldAppear(new RoleSelectionContext(null, null, List.of(), totalPlayers, 0, 0, 0));
     }
 }

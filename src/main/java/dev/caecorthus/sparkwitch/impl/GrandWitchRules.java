@@ -14,7 +14,6 @@ import java.util.OptionalInt;
  * 魔女阵营的纯规则集中在这里，事件和 UI 只读取这些判断。
  */
 public final class GrandWitchRules {
-    public static final int STARTING_MONEY = 0;
     public static final int DIRECT_KILL_MONEY_REWARD = 100;
     public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
 
