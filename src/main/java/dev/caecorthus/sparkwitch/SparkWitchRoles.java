@@ -2,8 +2,10 @@ package dev.caecorthus.sparkwitch;
 
 import dev.caecorthus.sparkfactionapi.api.FactionCapabilities;
 import dev.caecorthus.sparkfactionapi.api.FactionDefinition;
+import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.caecorthus.sparkwitch.impl.PigGodRules;
 import dev.caecorthus.sparkwitch.impl.WitchWinConditions;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.RoleAppearanceCondition;
@@ -16,11 +18,13 @@ public final class SparkWitchRoles {
     public static final Identifier ACCOMPLICE_ID = SparkWitch.id("accomplice");
     public static final Identifier APPRENTICE_WITCH_ID = SparkWitch.id("apprentice_witch");
     public static final Identifier MURDEROUS_WITCH_ID = SparkWitch.id("murderous_witch");
+    public static final Identifier PIG_GOD_ID = SparkWitch.id("pig_god");
 
     private static Role grandWitch;
     private static Role accomplice;
     private static Role apprenticeWitch;
     private static Role murderousWitch;
+    private static Role pigGod;
     private static boolean registered;
 
     private SparkWitchRoles() {
@@ -80,6 +84,13 @@ public final class SparkWitchRoles {
                 .canSeeTime(false)
                 .appearanceCondition(RoleAppearanceCondition.minPlayers(24))
                 .build());
+        pigGod = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PIG_GOD_ID, FactionIds.CIVILIAN)
+                .color(PigGodRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .appearanceCondition(RoleAppearanceCondition.minPlayers(24))
+                .build());
 
         apprenticeWitch = WatheRoles.registerRole(new Role(
                 APPRENTICE_WITCH_ID,
@@ -130,12 +141,18 @@ public final class SparkWitchRoles {
         return murderousWitch;
     }
 
+    public static Role pigGod() {
+        ensureRegistered();
+        return pigGod;
+    }
+
     public static boolean isSparkWitchRole(Role role) {
         ensureRegistered();
         return role == grandWitch
                 || role == accomplice
                 || role == apprenticeWitch
-                || role == murderousWitch;
+                || role == murderousWitch
+                || role == pigGod;
     }
 
     private static void ensureRegistered() {
@@ -149,6 +166,7 @@ public final class SparkWitchRoles {
         // 让 SparkWitch 职业稳定显示在 NoellesRoles/SparkTraits 刺客猜身份面板末尾。
         WatheRoles.ROLES.removeIf(SparkWitchRoles::isRegisteredSparkWitchRole);
         WatheRoles.ROLES.add(apprenticeWitch);
+        WatheRoles.ROLES.add(pigGod);
         WatheRoles.ROLES.add(murderousWitch);
         WatheRoles.ROLES.add(accomplice);
         WatheRoles.ROLES.add(grandWitch);
@@ -158,6 +176,7 @@ public final class SparkWitchRoles {
         return role == grandWitch
                 || role == accomplice
                 || role == apprenticeWitch
-                || role == murderousWitch;
+                || role == murderousWitch
+                || role == pigGod;
     }
 }

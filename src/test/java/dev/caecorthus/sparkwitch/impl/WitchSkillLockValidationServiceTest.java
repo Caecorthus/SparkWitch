@@ -49,6 +49,15 @@ class WitchSkillLockValidationServiceTest {
     }
 
     @Test
+    void pigChaseAllowsPigGodOnly() {
+        WitchSkillDefinition skill = WitchSkillRegistry.get(PigGodRules.PIG_CHASE_ID);
+
+        assertNull(WitchSkillLockValidationService.findRoleConflict(skill, SparkWitchRoles.pigGod()));
+        assertNotNull(WitchSkillLockValidationService.findRoleConflict(skill, SparkWitchRoles.grandWitch()));
+        assertNotNull(WitchSkillLockValidationService.findRoleConflict(skill, SparkWitchRoles.apprenticeWitch()));
+    }
+
+    @Test
     void pendingForcedSkillBlocksIncompatibleForcedRoleLater() {
         WitchSkillLockValidationService.RoleConflict conflict =
                 WitchSkillLockValidationService.findForcedSkillRoleConflict(

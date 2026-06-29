@@ -59,6 +59,19 @@ class SparkWitchBuiltInSkillsTest {
     }
 
     @Test
+    void pigGodReceivesOnlyPigChase() {
+        SparkWitchBuiltInSkills.register();
+
+        Set<String> selectedPaths = WitchSkillRegistry.values().stream()
+                .filter(skill -> skill.canSelect(new WitchSkillSelectionContext(null, null, null, SparkWitchRoles.pigGod())))
+                .map(WitchSkillDefinition::id)
+                .map(id -> id.getPath())
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+
+        assertEquals(Set.of("pig_chase"), selectedPaths);
+    }
+
+    @Test
     void apprenticeSkillDefinitionsCarryInitialCooldownAndManaCost() {
         SparkWitchBuiltInSkills.register();
 
@@ -78,5 +91,18 @@ class SparkWitchBuiltInSkillsTest {
                 WitchSkillRegistry.get(ApprenticeWitchSkillRules.HEALING_ID).manaCost());
         assertEquals(ApprenticeWitchSkillRules.CLAIRVOYANCE_MANA_COST,
                 WitchSkillRegistry.get(ApprenticeWitchSkillRules.CLAIRVOYANCE_ID).manaCost());
+    }
+
+    @Test
+    void pigChaseDefinitionCarriesCooldownCoinCostInRulesAndNoManaCost() {
+        SparkWitchBuiltInSkills.register();
+
+        WitchSkillDefinition skill = WitchSkillRegistry.get(PigGodRules.PIG_CHASE_ID);
+
+        assertEquals(PigGodRules.COLOR, skill.color());
+        assertEquals(0, skill.initialCooldownTicks());
+        assertEquals(PigGodRules.COOLDOWN_TICKS, skill.cooldownTicks());
+        assertEquals(0, skill.manaCost());
+        assertEquals(350, PigGodRules.COIN_COST);
     }
 }

@@ -80,6 +80,21 @@ class WitchSkillAssignmentServiceTest {
         assertTrue(plan.consumedForcedSkill());
     }
 
+    @Test
+    void pigGodReceivesPigChaseThroughAssignmentPlan() {
+        WitchSkillDefinition pigChase = skill("pig_chase", role -> role == SparkWitchRoles.pigGod());
+
+        WitchSkillAssignmentService.SkillAssignmentPlan plan = WitchSkillAssignmentService.selectSkillForRole(
+                SparkWitchRoles.pigGod(),
+                null,
+                List.of(pigChase),
+                context(SparkWitchRoles.pigGod()),
+                new Random(1)
+        );
+
+        assertEquals(pigChase.id(), plan.selected().orElseThrow().id());
+    }
+
     private static WitchSkillSelectionContext context(dev.doctor4t.wathe.api.Role role) {
         return new WitchSkillSelectionContext(null, null, null, role);
     }

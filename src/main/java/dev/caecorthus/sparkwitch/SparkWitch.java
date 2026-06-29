@@ -16,6 +16,7 @@ public final class SparkWitch implements ModInitializer {
     @Override
     public void onInitialize() {
         SparkWitchEntities.register();
+        SparkWitchSounds.register();
         SparkWitchItems.register();
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();

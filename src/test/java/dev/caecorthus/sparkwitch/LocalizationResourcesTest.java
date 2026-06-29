@@ -51,6 +51,14 @@ class LocalizationResourcesTest {
             "announcement.win.murderous_witch",
             "game.win.murderous_witch",
             "announcement.role.sparkwitch.murderous_witch",
+            "announcement.role.pig_god",
+            "announcement.title.pig_god",
+            "announcement.goal.pig_god",
+            "announcement.goals.pig_god",
+            "announcement.win.pig_god",
+            "announcement.role.sparkwitch.pig_god",
+            "announcement.goal.sparkwitch.pig_god",
+            "announcement.win.sparkwitch.pig_god",
             "item.sparkwitch.ceremonial_sword",
             "item.sparkwitch.fire_poker",
             "item.sparkwitch.capsule",
@@ -70,6 +78,8 @@ class LocalizationResourcesTest {
             "skill.sparkwitch.healing.description",
             "skill.sparkwitch.clairvoyance.name",
             "skill.sparkwitch.clairvoyance.description",
+            "skill.sparkwitch.pig_chase.name",
+            "skill.sparkwitch.pig_chase.description",
             "shop.sparkwitch.obscure",
             "shop.sparkwitch.obscure.description",
             "shop.sparkwitch.blindness",
@@ -86,6 +96,7 @@ class LocalizationResourcesTest {
             "replay.death.sparkwitch.ceremonial_blade.died",
             "replay.death.sparkwitch.mighty_force.killed",
             "replay.death.sparkwitch.mighty_force.died",
+            "subtitles.sparkwitch.skill.pig_chase",
             "gui.sparkwitch.skills",
             "gui.sparkwitch.mana",
             "gui.sparkwitch.shop.mana_price",
@@ -117,6 +128,10 @@ class LocalizationResourcesTest {
             "message.sparkwitch.skill.murder_sense.activated",
             "message.sparkwitch.skill.healing.activated",
             "message.sparkwitch.skill.clairvoyance.activated",
+            "message.sparkwitch.skill.pig_chase.active",
+            "message.sparkwitch.skill.pig_chase.not_enough_money",
+            "message.sparkwitch.skill.pig_chase.no_inventory_space",
+            "message.sparkwitch.skill.pig_chase.activated",
             "message.sparkwitch.criminologist.cooldown",
             "message.sparkwitch.criminologist.not_enough_money",
             "message.sparkwitch.criminologist.already_tracking",
@@ -160,7 +175,8 @@ class LocalizationResourcesTest {
                 SparkWitchRoles.grandWitch(),
                 SparkWitchRoles.accomplice(),
                 SparkWitchRoles.apprenticeWitch(),
-                SparkWitchRoles.murderousWitch()
+                SparkWitchRoles.murderousWitch(),
+                SparkWitchRoles.pigGod()
         )) {
             String key = RoleDisplayTextRules.roleTranslationKey(role);
             assertTrue(english.has(key), key);
@@ -201,6 +217,9 @@ class LocalizationResourcesTest {
         assertEquals("协助大魔女完成她的目标", chinese.get("announcement.goals.accomplice").getAsString());
         assertEquals("杀死其他所有人。", chinese.get("announcement.goal.murderous_witch").getAsString());
         assertEquals("杀死其他所有人。", chinese.get("announcement.goals.murderous_witch").getAsString());
+        assertEquals("皮革噶的", chinese.get("announcement.role.pig_god").getAsString());
+        assertEquals("帮助好人阵营，等待皮革追杀的时机。", chinese.get("announcement.goal.pig_god").getAsString());
+        assertEquals("帮助好人阵营，等待皮革追杀的时机。", chinese.get("announcement.goals.pig_god").getAsString());
     }
 
     @Test
@@ -232,6 +251,8 @@ class LocalizationResourcesTest {
         assertEquals("杀意魔女胜利", chinese.get("announcement.win.murderous_witch").getAsString());
         assertEquals("", english.get("game.win.murderous_witch").getAsString());
         assertEquals("", chinese.get("game.win.murderous_witch").getAsString());
+        assertEquals("The passengers survived.", english.get("announcement.win.pig_god").getAsString());
+        assertEquals("好人幸存了下来。", chinese.get("announcement.win.pig_god").getAsString());
     }
 
     @Test

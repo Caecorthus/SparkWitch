@@ -30,6 +30,7 @@ public final class SparkWitchEvents {
         FlashlightBlackoutService.register();
         MurderousWitchFeatureService.register();
         CorruptCopFeatureService.register();
+        PigGodFeatureService.register();
         NoellesRoleEnhancementService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
@@ -48,6 +49,7 @@ public final class SparkWitchEvents {
         KillPlayer.AFTER.register((victim, killer, deathReason) -> {
             GrandWitchFeatureService.clearPlayerRuntime(victim);
             FirePokerFallAttributionService.clearPlayer(victim);
+            WitchPlayerComponent.KEY.get(victim).clearPigChaseState();
         });
         ResetPlayer.EVENT.register(player -> {
             GrandWitchFeatureService.clearPlayerRuntime(player);

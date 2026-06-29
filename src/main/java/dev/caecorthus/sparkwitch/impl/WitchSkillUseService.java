@@ -47,6 +47,10 @@ public final class WitchSkillUseService {
             send(player, "message.sparkwitch.skill.cooldown", Math.ceil(component.getCooldownTicks() / 20.0));
             return false;
         }
+        if (component.hasDeferredCooldown()) {
+            send(player, "message.sparkwitch.skill.cooldown", Math.ceil(component.getActiveSkillWindowTicks() / 20.0));
+            return false;
+        }
 
         WitchSkillDefinition skill = WitchSkillRegistry.get(skillId);
         if (skill == null) {
@@ -71,7 +75,12 @@ public final class WitchSkillUseService {
             return false;
         }
 
-        component.setCooldownTicks(Math.max(skill.cooldownTicks(), result.cooldownTicks()));
+        int cooldownTicks = Math.max(skill.cooldownTicks(), result.cooldownTicks());
+        if (result.deferCooldownUntilActiveWindowEnds()) {
+            component.deferCooldownUntilActiveWindowEnds(cooldownTicks);
+        } else {
+            component.setCooldownTicks(cooldownTicks);
+        }
         if (result.messageKey() != null) {
             send(player, result.messageKey());
         }

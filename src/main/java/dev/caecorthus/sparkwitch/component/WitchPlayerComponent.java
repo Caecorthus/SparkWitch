@@ -3,10 +3,16 @@ package dev.caecorthus.sparkwitch.component;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.impl.ApprenticeWitchSkillService;
 import dev.caecorthus.sparkwitch.impl.GrandWitchActiveSkillService;
+import dev.caecorthus.sparkwitch.impl.PigGodRules;
+import dev.caecorthus.sparkwitch.impl.PigGodSkillService;
 import dev.caecorthus.sparkwitch.impl.WitchManaRules;
+import dev.doctor4t.wathe.api.event.PsychoType;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.cca.PlayerPsychoComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -46,6 +52,14 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     private int healingPulseTicks;
     private int clairvoyanceSelfTicks;
     private int clairvoyanceOthersTicks;
+    private int deferredCooldownTicks;
+    private int pigChaseFreezeTicks;
+    private int pigChaseQueuedTicks;
+    private int pigChaseTicks;
+    private double pigChaseFreezeX;
+    private double pigChaseFreezeY;
+    private double pigChaseFreezeZ;
+    private boolean pigChaseOwnsPsycho;
 
     public WitchPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -99,10 +113,21 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return clairvoyanceOthersTicks;
     }
 
+    public int getPigChaseFreezeTicks() {
+        return pigChaseFreezeTicks;
+    }
+
+    public int getPigChaseTicks() {
+        return pigChaseTicks;
+    }
+
     public int getActiveSkillWindowTicks() {
         return Math.max(
-                Math.max(ceremonialSwordTicks, mightyForceTicks),
-                Math.max(Math.max(murderSenseTicks, healingTicks), Math.max(clairvoyanceSelfTicks, clairvoyanceOthersTicks))
+                Math.max(
+                        Math.max(ceremonialSwordTicks, mightyForceTicks),
+                        Math.max(Math.max(murderSenseTicks, healingTicks), Math.max(clairvoyanceSelfTicks, clairvoyanceOthersTicks))
+                ),
+                pigChaseEffectiveWindowTicks()
         );
     }
 
@@ -116,6 +141,22 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     public boolean hasActiveMightyForce() {
         return mightyForceTicks > 0;
+    }
+
+    public boolean hasDeferredCooldown() {
+        return deferredCooldownTicks > 0;
+    }
+
+    public boolean hasActivePigChaseState() {
+        return pigChaseFreezeTicks > 0 || pigChaseQueuedTicks > 0 || pigChaseTicks > 0;
+    }
+
+    public boolean isPigChaseFreezeActive() {
+        return pigChaseFreezeTicks > 0;
+    }
+
+    public boolean isPigChaseActive() {
+        return pigChaseTicks > 0;
     }
 
     public void setActiveSkill(@Nullable Identifier activeSkillId) {
@@ -281,6 +322,34 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
+    public void beginPigChaseFreeze(int freezeTicks, int chaseTicks, double x, double y, double z) {
+        pigChaseFreezeTicks = Math.max(0, freezeTicks);
+        pigChaseQueuedTicks = Math.max(0, chaseTicks);
+        pigChaseTicks = 0;
+        pigChaseFreezeX = x;
+        pigChaseFreezeY = y;
+        pigChaseFreezeZ = z;
+        pigChaseOwnsPsycho = false;
+        sync();
+    }
+
+    /**
+     * Arms cooldown for effects whose visible window must finish before cooldown begins.
+     * 为“技能结束后才冷却”的效果保存待启动冷却，等有效窗口归零后再正式计时。
+     */
+    public void deferCooldownUntilActiveWindowEnds(int cooldownTicks) {
+        int normalized = Math.max(0, cooldownTicks);
+        if (normalized == 0) {
+            deferredCooldownTicks = 0;
+            return;
+        }
+        deferredCooldownTicks = normalized;
+        if (getActiveSkillWindowTicks() <= 0) {
+            startDeferredCooldown();
+        }
+        sync();
+    }
+
     public void clear() {
         if (activeSkillId == null
                 && cooldownTicks <= 0
@@ -294,9 +363,19 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 && healingTicks == 0
                 && healingPulseTicks == 0
                 && clairvoyanceSelfTicks == 0
-                && clairvoyanceOthersTicks == 0) {
+                && clairvoyanceOthersTicks == 0
+                && pigChaseFreezeTicks == 0
+                && pigChaseQueuedTicks == 0
+                && pigChaseTicks == 0
+                && !pigChaseOwnsPsycho
+                && deferredCooldownTicks == 0) {
             return;
         }
+        boolean hadPigChaseSound = hasActivePigChaseState() || pigChaseOwnsPsycho;
+        if (hadPigChaseSound) {
+            stopPigChaseSound();
+        }
+        clearPigChasePsycho();
         activeSkillId = null;
         cooldownTicks = 0;
         manaEnabled = false;
@@ -310,6 +389,11 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         healingPulseTicks = 0;
         clairvoyanceSelfTicks = 0;
         clairvoyanceOthersTicks = 0;
+        pigChaseFreezeTicks = 0;
+        pigChaseQueuedTicks = 0;
+        pigChaseTicks = 0;
+        pigChaseOwnsPsycho = false;
+        deferredCooldownTicks = 0;
         sync();
     }
 
@@ -326,6 +410,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     public void serverTick() {
         tickCeremonialSwordWindow();
         tickApprenticeSkillWindows();
+        tickPigChaseState();
         tickCooldown();
         tickManaRegeneration();
     }
@@ -413,6 +498,131 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
+    private void tickPigChaseState() {
+        if (!hasActivePigChaseState()) {
+            return;
+        }
+        if (!(player instanceof ServerPlayerEntity serverPlayer)) {
+            return;
+        }
+
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        if (!PigGodRules.isPigGod(role) || !GameFunctions.isPlayerPlayingAndAlive(serverPlayer)) {
+            clearPigChaseState();
+            return;
+        }
+
+        int activeBeforeTick = pigChaseEffectiveWindowTicks();
+        boolean shouldSync = false;
+        if (pigChaseFreezeTicks > 0) {
+            holdPigChaseFreeze(serverPlayer);
+            pigChaseFreezeTicks--;
+            if (pigChaseFreezeTicks == 0) {
+                startPigChase(serverPlayer);
+                shouldSync = true;
+            } else {
+                shouldSync |= pigChaseFreezeTicks % 20 == 0;
+            }
+        } else if (pigChaseTicks > 0) {
+            pigChaseTicks--;
+            if (pigChaseTicks == 0) {
+                stopPigChaseSound();
+                clearPigChasePsycho();
+                shouldSync = true;
+            } else {
+                shouldSync |= pigChaseTicks % 20 == 0;
+            }
+        }
+        if (activeBeforeTick > 0 && pigChaseEffectiveWindowTicks() == 0) {
+            startDeferredCooldown();
+            shouldSync = true;
+        }
+        if (shouldSync) {
+            sync();
+        }
+    }
+
+    private void holdPigChaseFreeze(ServerPlayerEntity serverPlayer) {
+        serverPlayer.teleport(pigChaseFreezeX, pigChaseFreezeY, pigChaseFreezeZ, false);
+        serverPlayer.setVelocity(0, 0, 0);
+        serverPlayer.velocityModified = true;
+    }
+
+    private void startPigChase(ServerPlayerEntity serverPlayer) {
+        pigChaseTicks = pigChaseQueuedTicks;
+        pigChaseQueuedTicks = 0;
+        if (pigChaseTicks <= 0) {
+            return;
+        }
+
+        PlayerPsychoComponent psycho = PlayerPsychoComponent.KEY.get(serverPlayer);
+        if (psycho.getPsychoTicks() <= 0) {
+            pigChaseOwnsPsycho = psycho.startPsycho(PsychoType.VISIBLE_QUIET);
+        }
+        if (!pigChaseOwnsPsycho && psycho.getPsychoTicks() <= 0) {
+            stopPigChaseSound();
+            pigChaseTicks = 0;
+            return;
+        }
+        psycho.setPsychoTicks(pigChaseTicks);
+        serverPlayer.addStatusEffect(new StatusEffectInstance(
+                StatusEffects.SPEED,
+                pigChaseTicks,
+                PigGodRules.SPEED_AMPLIFIER,
+                false,
+                false,
+                true
+        ));
+    }
+
+    public void clearPigChaseState() {
+        if (!hasActivePigChaseState() && !pigChaseOwnsPsycho) {
+            return;
+        }
+        stopPigChaseSound();
+        clearPigChasePsycho();
+        pigChaseFreezeTicks = 0;
+        pigChaseQueuedTicks = 0;
+        pigChaseTicks = 0;
+        pigChaseOwnsPsycho = false;
+        sync();
+    }
+
+    private void clearPigChasePsycho() {
+        if (!pigChaseOwnsPsycho || !(player instanceof ServerPlayerEntity serverPlayer)) {
+            pigChaseOwnsPsycho = false;
+            return;
+        }
+        PlayerPsychoComponent psycho = PlayerPsychoComponent.KEY.get(serverPlayer);
+        if (psycho.getPsychoTicks() > 0) {
+            psycho.stopPsycho();
+        }
+        pigChaseOwnsPsycho = false;
+    }
+
+    private void stopPigChaseSound() {
+        if (player instanceof ServerPlayerEntity serverPlayer) {
+            PigGodSkillService.stopChaseSound(
+                    serverPlayer.getServerWorld(),
+                    pigChaseFreezeX,
+                    pigChaseFreezeY,
+                    pigChaseFreezeZ
+            );
+        }
+    }
+
+    private int pigChaseEffectiveWindowTicks() {
+        return pigChaseFreezeTicks + pigChaseQueuedTicks + pigChaseTicks;
+    }
+
+    private void startDeferredCooldown() {
+        if (deferredCooldownTicks <= 0) {
+            return;
+        }
+        cooldownTicks = Math.max(cooldownTicks, deferredCooldownTicks);
+        deferredCooldownTicks = 0;
+    }
+
     private void tickManaRegeneration() {
         if (!manaEnabled || !(player instanceof ServerPlayerEntity serverPlayer)) {
             return;
@@ -457,6 +667,9 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         buf.writeVarInt(ownerVisible ? healingTicks : 0);
         buf.writeVarInt(ownerVisible ? clairvoyanceSelfTicks : 0);
         buf.writeVarInt(ownerVisible ? clairvoyanceOthersTicks : 0);
+        buf.writeVarInt(ownerVisible ? pigChaseFreezeTicks : 0);
+        buf.writeVarInt(ownerVisible ? pigChaseQueuedTicks : 0);
+        buf.writeVarInt(ownerVisible ? pigChaseTicks : 0);
     }
 
     @Override
@@ -477,6 +690,10 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         healingPulseTicks = 0;
         clairvoyanceSelfTicks = Math.max(0, buf.readVarInt());
         clairvoyanceOthersTicks = Math.max(0, buf.readVarInt());
+        pigChaseFreezeTicks = Math.max(0, buf.readVarInt());
+        pigChaseQueuedTicks = Math.max(0, buf.readVarInt());
+        pigChaseTicks = Math.max(0, buf.readVarInt());
+        pigChaseOwnsPsycho = false;
     }
 
     @Override
@@ -516,6 +733,20 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         }
         if (clairvoyanceOthersTicks > 0) {
             tag.putInt("ClairvoyanceOthersTicks", clairvoyanceOthersTicks);
+        }
+        if (deferredCooldownTicks > 0) {
+            tag.putInt("DeferredCooldownTicks", deferredCooldownTicks);
+        }
+        if (pigChaseFreezeTicks > 0) {
+            tag.putInt("PigChaseFreezeTicks", pigChaseFreezeTicks);
+            tag.putInt("PigChaseQueuedTicks", pigChaseQueuedTicks);
+            tag.putDouble("PigChaseFreezeX", pigChaseFreezeX);
+            tag.putDouble("PigChaseFreezeY", pigChaseFreezeY);
+            tag.putDouble("PigChaseFreezeZ", pigChaseFreezeZ);
+        }
+        if (pigChaseTicks > 0) {
+            tag.putInt("PigChaseTicks", pigChaseTicks);
+            tag.putBoolean("PigChaseOwnsPsycho", pigChaseOwnsPsycho);
         }
     }
 
@@ -559,6 +790,22 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         clairvoyanceOthersTicks = tag.contains("ClairvoyanceOthersTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("ClairvoyanceOthersTicks"))
                 : 0;
+        deferredCooldownTicks = tag.contains("DeferredCooldownTicks", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("DeferredCooldownTicks"))
+                : 0;
+        pigChaseFreezeTicks = tag.contains("PigChaseFreezeTicks", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("PigChaseFreezeTicks"))
+                : 0;
+        pigChaseQueuedTicks = tag.contains("PigChaseQueuedTicks", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("PigChaseQueuedTicks"))
+                : 0;
+        pigChaseTicks = tag.contains("PigChaseTicks", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("PigChaseTicks"))
+                : 0;
+        pigChaseFreezeX = tag.contains("PigChaseFreezeX", NbtElement.NUMBER_TYPE) ? tag.getDouble("PigChaseFreezeX") : 0.0;
+        pigChaseFreezeY = tag.contains("PigChaseFreezeY", NbtElement.NUMBER_TYPE) ? tag.getDouble("PigChaseFreezeY") : 0.0;
+        pigChaseFreezeZ = tag.contains("PigChaseFreezeZ", NbtElement.NUMBER_TYPE) ? tag.getDouble("PigChaseFreezeZ") : 0.0;
+        pigChaseOwnsPsycho = pigChaseTicks > 0 && tag.getBoolean("PigChaseOwnsPsycho");
     }
 
     private static void writeOptionalIdentifier(RegistryByteBuf buf, @Nullable Identifier id) {

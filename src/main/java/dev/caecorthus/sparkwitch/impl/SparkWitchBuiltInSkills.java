@@ -57,6 +57,16 @@ public final class SparkWitchBuiltInSkills {
                 ApprenticeWitchSkillRules.CLAIRVOYANCE_MANA_COST,
                 ApprenticeWitchSkillService::useClairvoyance
         );
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                PigGodRules.PIG_CHASE_ID,
+                PigGodRules.COLOR,
+                1,
+                0,
+                PigGodRules.COOLDOWN_TICKS,
+                0,
+                context -> context.role() == dev.caecorthus.sparkwitch.SparkWitchRoles.pigGod(),
+                PigGodSkillService::use
+        ));
     }
 
     static synchronized void resetForTests() {

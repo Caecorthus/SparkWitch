@@ -58,6 +58,7 @@ class SparkWitchRoleRegistrationTest {
         assertEquals(0x7B6AA8, SparkWitchRoles.accomplice().color());
         assertEquals(0x75EDFA, SparkWitchRoles.apprenticeWitch().color());
         assertEquals(0x7A3857, SparkWitchRoles.murderousWitch().color());
+        assertEquals(0xF2A4FC, SparkWitchRoles.pigGod().color());
     }
 
     @Test
@@ -66,12 +67,19 @@ class SparkWitchRoleRegistrationTest {
         assertEquals(-1, SparkWitchRoles.accomplice().getMaxSprintTime());
         assertEquals(GameConstants.getInTicks(0, 10), SparkWitchRoles.apprenticeWitch().getMaxSprintTime());
         assertEquals(-1, SparkWitchRoles.murderousWitch().getMaxSprintTime());
+        assertEquals(GameConstants.getInTicks(0, 10), SparkWitchRoles.pigGod().getMaxSprintTime());
     }
 
     @Test
     void apprenticeWitchIsNativeCivilianRole() {
         assertTrue(SparkWitchRoles.apprenticeWitch().isInnocent());
         assertEquals(FactionIds.CIVILIAN, SparkFactionApi.resolveBaseFaction(SparkWitchRoles.apprenticeWitch()));
+    }
+
+    @Test
+    void pigGodResolvesToCivilianFaction() {
+        assertFalse(SparkWitchRoles.pigGod().canUseKiller());
+        assertEquals(FactionIds.CIVILIAN, SparkFactionApi.resolveBaseFaction(SparkWitchRoles.pigGod()));
     }
 
     @Test
@@ -130,6 +138,7 @@ class SparkWitchRoleRegistrationTest {
     private static List<Role> expectedAssassinGuessTail() {
         return List.of(
                 SparkWitchRoles.apprenticeWitch(),
+                SparkWitchRoles.pigGod(),
                 SparkWitchRoles.murderousWitch(),
                 SparkWitchRoles.accomplice(),
                 SparkWitchRoles.grandWitch()

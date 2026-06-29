@@ -1,0 +1,8 @@
+{
+  "skill.pig_chase": {
+    "subtitle": "subtitles.sparkwitch.skill.pig_chase",
+    "sounds": [
+      "sparkwitch:skill/pig_chase"
+    ]
+  }
+}
