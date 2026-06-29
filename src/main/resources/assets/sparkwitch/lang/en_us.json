@@ -93,6 +93,7 @@
   "gui.sparkwitch.skill.empty": "No skill",
   "hud.sparkwitch.skill.cooldown": "%s cooling down: %ss",
   "hud.sparkwitch.skill.active": "%s active: %ss",
+  "hud.sparkwitch.skill.pig_chase.not_enough_money": "Requires %s coins",
   "hud.sparkwitch.skill.ready": "Press %2$s to use %1$s",
   "hud.sparkwitch.criminologist.cooldown": "Criminologist cooling down: %ss",
   "hud.sparkwitch.criminologist.ready": "Criminologist: right-click a body",

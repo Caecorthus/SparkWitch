@@ -105,6 +105,7 @@ class LocalizationResourcesTest {
             "gui.sparkwitch.skill.ready",
             "hud.sparkwitch.skill.cooldown",
             "hud.sparkwitch.skill.active",
+            "hud.sparkwitch.skill.pig_chase.not_enough_money",
             "hud.sparkwitch.skill.ready",
             "hud.sparkwitch.criminologist.cooldown",
             "hud.sparkwitch.criminologist.ready",

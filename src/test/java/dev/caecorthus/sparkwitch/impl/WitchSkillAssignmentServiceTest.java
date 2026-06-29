@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WitchSkillAssignmentServiceTest {
@@ -93,6 +94,22 @@ class WitchSkillAssignmentServiceTest {
         );
 
         assertEquals(pigChase.id(), plan.selected().orElseThrow().id());
+    }
+
+    @Test
+    void duplicateSameSkillAssignmentPreservesCurrentCooldownState() {
+        assertFalse(WitchSkillAssignmentService.shouldApplyInitialCooldown(
+                PigGodRules.PIG_CHASE_ID,
+                PigGodRules.PIG_CHASE_ID
+        ));
+        assertTrue(WitchSkillAssignmentService.shouldApplyInitialCooldown(
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_ID,
+                PigGodRules.PIG_CHASE_ID
+        ));
+        assertTrue(WitchSkillAssignmentService.shouldApplyInitialCooldown(
+                PigGodRules.PIG_CHASE_ID,
+                null
+        ));
     }
 
     private static WitchSkillSelectionContext context(dev.doctor4t.wathe.api.Role role) {

@@ -1,6 +1,9 @@
 package dev.caecorthus.sparkwitch.client;
 
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.impl.PigGodRules;
+import dev.caecorthus.sparkwitch.impl.WitchSkillHudRules;
+import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -32,13 +35,14 @@ public final class WitchSkillHudRenderer {
         }
 
         TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
-        Text line = stateText(component, skillId);
+        int balance = PlayerShopComponent.KEY.get(player).getBalance();
+        Text line = stateText(component, skillId, balance);
         int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
         int y = context.getScaledWindowHeight() - BOTTOM_PADDING - renderer.fontHeight;
         context.drawTextWithShadow(renderer, line, x, y, WitchSkillClientTexts.color(skillId));
     }
 
-    private static Text stateText(WitchPlayerComponent component, Identifier skillId) {
+    private static Text stateText(WitchPlayerComponent component, Identifier skillId, int balance) {
         int activeTicks = component.getActiveSkillWindowTicks();
         if (activeTicks > 0) {
             return Text.translatable(
@@ -52,6 +56,17 @@ public final class WitchSkillHudRenderer {
                     "hud.sparkwitch.skill.cooldown",
                     WitchSkillClientTexts.name(skillId),
                     seconds(component.getCooldownTicks())
+            );
+        }
+        if (WitchSkillHudRules.shouldShowPigChaseCoinRequirement(
+                skillId,
+                balance,
+                activeTicks,
+                component.getCooldownTicks()
+        )) {
+            return Text.translatable(
+                    "hud.sparkwitch.skill.pig_chase.not_enough_money",
+                    PigGodRules.COIN_COST
             );
         }
         return Text.translatable(

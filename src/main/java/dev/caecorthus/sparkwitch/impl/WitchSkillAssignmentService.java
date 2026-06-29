@@ -11,6 +11,7 @@ import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -49,8 +50,16 @@ public final class WitchSkillAssignmentService {
             component.clearForcedSkill();
         }
         Optional<WitchSkillDefinition> selected = plan.selected();
-        component.setActiveSkill(selected.map(WitchSkillDefinition::id).orElse(null));
-        component.setCooldownTicks(selected.map(WitchSkillDefinition::initialCooldownTicks).orElse(0));
+        Identifier previousSkillId = component.getActiveSkillId();
+        Identifier selectedSkillId = selected.map(WitchSkillDefinition::id).orElse(null);
+        component.setActiveSkill(selectedSkillId);
+        if (shouldApplyInitialCooldown(previousSkillId, selectedSkillId)) {
+            component.setCooldownTicks(selected.map(WitchSkillDefinition::initialCooldownTicks).orElse(0));
+        }
+    }
+
+    static boolean shouldApplyInitialCooldown(@Nullable Identifier previousSkillId, @Nullable Identifier selectedSkillId) {
+        return previousSkillId == null ? selectedSkillId != null : !previousSkillId.equals(selectedSkillId);
     }
 
     static SkillAssignmentPlan selectSkillForRole(
