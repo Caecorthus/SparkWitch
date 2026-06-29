@@ -31,14 +31,18 @@ public final class ApprenticeWitchSkillService {
         return useApprenticeSkill(context, ApprenticeWitchSkillRules.SWIFT_STEP_MANA_COST,
                 ApprenticeWitchSkillRules.SWIFT_STEP_COOLDOWN_TICKS,
                 "message.sparkwitch.skill.swift_step.activated",
-                () -> context.player().addStatusEffect(new StatusEffectInstance(
-                        StatusEffects.SPEED,
-                        ApprenticeWitchSkillRules.SWIFT_STEP_DURATION_TICKS,
-                        ApprenticeWitchSkillRules.SWIFT_STEP_AMPLIFIER,
-                        false,
-                        false,
-                        true
-                )));
+                () -> {
+                    WitchPlayerComponent.KEY.get(context.player())
+                            .beginSwiftStep(ApprenticeWitchSkillRules.SWIFT_STEP_DURATION_TICKS);
+                    context.player().addStatusEffect(new StatusEffectInstance(
+                            StatusEffects.SPEED,
+                            ApprenticeWitchSkillRules.SWIFT_STEP_DURATION_TICKS,
+                            ApprenticeWitchSkillRules.SWIFT_STEP_AMPLIFIER,
+                            false,
+                            false,
+                            true
+                    ));
+                });
     }
 
     public static WitchSkillUseResult useMurderSense(WitchSkillUseContext context) {
@@ -83,7 +87,7 @@ public final class ApprenticeWitchSkillService {
         }
 
         effect.run();
-        return WitchSkillUseResult.success(cooldownTicks, successMessageKey);
+        return WitchSkillUseResult.successAfterActiveWindow(cooldownTicks, successMessageKey);
     }
 
     public static void applyHealingPulse(ServerPlayerEntity caster) {

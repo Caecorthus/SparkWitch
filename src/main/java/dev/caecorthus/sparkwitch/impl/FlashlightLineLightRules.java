@@ -9,6 +9,7 @@ public final class FlashlightLineLightRules {
     public static final double LUMINANCE = 15.0;
     public static final double INNER_CONE_RADIANS = 0.5;
     public static final double OUTER_CONE_RADIANS = 0.7;
+    public static final double WALL_PADDING_BLOCKS = 0.75;
 
     private FlashlightLineLightRules() {
     }
@@ -39,6 +40,39 @@ public final class FlashlightLineLightRules {
                 OUTER_CONE_RADIANS,
                 LUMINANCE
         );
+    }
+
+    public static double lightAt(
+            double sourceX,
+            double sourceY,
+            double sourceZ,
+            double directionX,
+            double directionY,
+            double directionZ,
+            int blockX,
+            int blockY,
+            int blockZ,
+            double rangeBlocks
+    ) {
+        return lightAt(
+                sourceX,
+                sourceY,
+                sourceZ,
+                directionX,
+                directionY,
+                directionZ,
+                blockX,
+                blockY,
+                blockZ,
+                rangeBlocks,
+                INNER_CONE_RADIANS,
+                OUTER_CONE_RADIANS,
+                LUMINANCE
+        );
+    }
+
+    public static double effectiveRangeAfterHit(double hitDistanceBlocks) {
+        return Math.max(0.0, Math.min(RANGE_BLOCKS, hitDistanceBlocks + WALL_PADDING_BLOCKS));
     }
 
     static double lightAt(

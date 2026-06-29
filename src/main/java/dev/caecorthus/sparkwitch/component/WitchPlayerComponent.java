@@ -47,6 +47,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     private int ceremonialSwordTicks;
     private int ceremonialSwordSlot = -1;
     private int mightyForceTicks;
+    private int swiftStepTicks;
     private int murderSenseTicks;
     private int healingTicks;
     private int healingPulseTicks;
@@ -97,6 +98,10 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return mightyForceTicks;
     }
 
+    public int getSwiftStepTicks() {
+        return swiftStepTicks;
+    }
+
     public int getMurderSenseTicks() {
         return murderSenseTicks;
     }
@@ -123,10 +128,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     public int getActiveSkillWindowTicks() {
         return Math.max(
-                Math.max(
-                        Math.max(ceremonialSwordTicks, mightyForceTicks),
-                        Math.max(Math.max(murderSenseTicks, healingTicks), Math.max(clairvoyanceSelfTicks, clairvoyanceOthersTicks))
-                ),
+                Math.max(ceremonialSwordTicks, apprenticeEffectiveWindowTicks()),
                 pigChaseEffectiveWindowTicks()
         );
     }
@@ -289,6 +291,16 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             return;
         }
         mightyForceTicks = 0;
+        startDeferredCooldown();
+        sync();
+    }
+
+    public void beginSwiftStep(int durationTicks) {
+        int normalizedDuration = Math.max(0, durationTicks);
+        if (swiftStepTicks == normalizedDuration) {
+            return;
+        }
+        swiftStepTicks = normalizedDuration;
         sync();
     }
 
@@ -359,6 +371,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 && ceremonialSwordTicks == 0
                 && ceremonialSwordSlot < 0
                 && mightyForceTicks == 0
+                && swiftStepTicks == 0
                 && murderSenseTicks == 0
                 && healingTicks == 0
                 && healingPulseTicks == 0
@@ -384,6 +397,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         ceremonialSwordTicks = 0;
         ceremonialSwordSlot = -1;
         mightyForceTicks = 0;
+        swiftStepTicks = 0;
         murderSenseTicks = 0;
         healingTicks = 0;
         healingPulseTicks = 0;
@@ -398,7 +412,9 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     }
 
     public void sync() {
-        KEY.sync(player);
+        if (player != null) {
+            KEY.sync(player);
+        }
     }
 
     @Override
@@ -439,11 +455,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     }
 
     private void tickApprenticeSkillWindows() {
-        if (mightyForceTicks <= 0
-                && murderSenseTicks <= 0
-                && healingTicks <= 0
-                && clairvoyanceSelfTicks <= 0
-                && clairvoyanceOthersTicks <= 0) {
+        if (!hasApprenticeWindowState()) {
             return;
         }
         if (!(player instanceof ServerPlayerEntity serverPlayer)) {
@@ -451,16 +463,29 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         }
 
         Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        tickApprenticeSkillWindows(role, GameFunctions.isPlayerPlayingAndAlive(serverPlayer), serverPlayer);
+    }
+
+    void tickApprenticeSkillWindows(Role role, boolean playingAndAlive, @Nullable ServerPlayerEntity serverPlayer) {
+        if (!hasApprenticeWindowState()) {
+            return;
+        }
+
         if (role != dev.caecorthus.sparkwitch.SparkWitchRoles.apprenticeWitch()
-                || !GameFunctions.isPlayerPlayingAndAlive(serverPlayer)) {
+                || !playingAndAlive) {
             clearApprenticeSkillWindows();
             return;
         }
 
+        int activeBeforeTick = apprenticeEffectiveWindowTicks();
         boolean shouldSync = false;
         if (mightyForceTicks > 0) {
             mightyForceTicks--;
             shouldSync |= mightyForceTicks == 0 || mightyForceTicks % 20 == 0;
+        }
+        if (swiftStepTicks > 0) {
+            swiftStepTicks--;
+            shouldSync |= swiftStepTicks == 0 || swiftStepTicks % 20 == 0;
         }
         if (murderSenseTicks > 0) {
             murderSenseTicks--;
@@ -469,7 +494,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         if (healingTicks > 0) {
             healingTicks--;
             healingPulseTicks++;
-            if (healingPulseTicks >= 20) {
+            if (healingPulseTicks >= 20 && serverPlayer != null) {
                 healingPulseTicks = 0;
                 ApprenticeWitchSkillService.applyHealingPulse(serverPlayer);
             }
@@ -483,6 +508,14 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             clairvoyanceOthersTicks--;
             shouldSync |= clairvoyanceOthersTicks == 0 || clairvoyanceOthersTicks % 20 == 0;
         }
+        if (ApprenticeSkillWindowRules.shouldStartDeferredCooldown(
+                activeBeforeTick,
+                apprenticeEffectiveWindowTicks(),
+                deferredCooldownTicks
+        )) {
+            startDeferredCooldown();
+            shouldSync = true;
+        }
         if (shouldSync) {
             sync();
         }
@@ -490,12 +523,43 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     private void clearApprenticeSkillWindows() {
         mightyForceTicks = 0;
+        swiftStepTicks = 0;
         murderSenseTicks = 0;
         healingTicks = 0;
         healingPulseTicks = 0;
         clairvoyanceSelfTicks = 0;
         clairvoyanceOthersTicks = 0;
+        deferredCooldownTicks = 0;
         sync();
+    }
+
+    private boolean hasApprenticeWindowState() {
+        return mightyForceTicks > 0
+                || swiftStepTicks > 0
+                || murderSenseTicks > 0
+                || healingTicks > 0
+                || clairvoyanceSelfTicks > 0
+                || clairvoyanceOthersTicks > 0
+                || deferredCooldownTicks > 0;
+    }
+
+    private int apprenticeEffectiveWindowTicks() {
+        return ApprenticeSkillWindowRules.effectiveWindowTicks(
+                mightyForceTicks,
+                swiftStepTicks,
+                murderSenseTicks,
+                healingTicks,
+                clairvoyanceSelfTicks,
+                clairvoyanceOthersTicks
+        );
+    }
+
+    private void startDeferredCooldown() {
+        if (deferredCooldownTicks <= 0) {
+            return;
+        }
+        cooldownTicks = Math.max(cooldownTicks, deferredCooldownTicks);
+        deferredCooldownTicks = 0;
     }
 
     private void tickPigChaseState() {
@@ -615,14 +679,6 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return pigChaseFreezeTicks + pigChaseQueuedTicks + pigChaseTicks;
     }
 
-    private void startDeferredCooldown() {
-        if (deferredCooldownTicks <= 0) {
-            return;
-        }
-        cooldownTicks = Math.max(cooldownTicks, deferredCooldownTicks);
-        deferredCooldownTicks = 0;
-    }
-
     private void tickManaRegeneration() {
         if (!manaEnabled || !(player instanceof ServerPlayerEntity serverPlayer)) {
             return;
@@ -663,10 +719,12 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         buf.writeVarInt(visible && manaEnabled ? mana : 0);
         buf.writeVarInt(visible ? ceremonialSwordTicks : 0);
         buf.writeVarInt(ownerVisible ? mightyForceTicks : 0);
+        buf.writeVarInt(ownerVisible ? swiftStepTicks : 0);
         buf.writeVarInt(ownerVisible ? murderSenseTicks : 0);
         buf.writeVarInt(ownerVisible ? healingTicks : 0);
         buf.writeVarInt(ownerVisible ? clairvoyanceSelfTicks : 0);
         buf.writeVarInt(ownerVisible ? clairvoyanceOthersTicks : 0);
+        buf.writeVarInt(ownerVisible ? deferredCooldownTicks : 0);
         buf.writeVarInt(ownerVisible ? pigChaseFreezeTicks : 0);
         buf.writeVarInt(ownerVisible ? pigChaseQueuedTicks : 0);
         buf.writeVarInt(ownerVisible ? pigChaseTicks : 0);
@@ -685,11 +743,13 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             ceremonialSwordSlot = -1;
         }
         mightyForceTicks = Math.max(0, buf.readVarInt());
+        swiftStepTicks = Math.max(0, buf.readVarInt());
         murderSenseTicks = Math.max(0, buf.readVarInt());
         healingTicks = Math.max(0, buf.readVarInt());
         healingPulseTicks = 0;
         clairvoyanceSelfTicks = Math.max(0, buf.readVarInt());
         clairvoyanceOthersTicks = Math.max(0, buf.readVarInt());
+        deferredCooldownTicks = Math.max(0, buf.readVarInt());
         pigChaseFreezeTicks = Math.max(0, buf.readVarInt());
         pigChaseQueuedTicks = Math.max(0, buf.readVarInt());
         pigChaseTicks = Math.max(0, buf.readVarInt());
@@ -718,6 +778,9 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         }
         if (mightyForceTicks > 0) {
             tag.putInt("MightyForceTicks", mightyForceTicks);
+        }
+        if (swiftStepTicks > 0) {
+            tag.putInt("SwiftStepTicks", swiftStepTicks);
         }
         if (murderSenseTicks > 0) {
             tag.putInt("MurderSenseTicks", murderSenseTicks);
@@ -774,6 +837,9 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 : -1;
         mightyForceTicks = tag.contains("MightyForceTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("MightyForceTicks"))
+                : 0;
+        swiftStepTicks = tag.contains("SwiftStepTicks", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("SwiftStepTicks"))
                 : 0;
         murderSenseTicks = tag.contains("MurderSenseTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("MurderSenseTicks"))

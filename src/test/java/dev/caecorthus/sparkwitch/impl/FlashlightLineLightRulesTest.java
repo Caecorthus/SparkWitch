@@ -25,4 +25,33 @@ class FlashlightLineLightRulesTest {
         assertEquals(0.0, FlashlightLineLightRules.lightAt(sourceX, sourceY, sourceZ, 1.0, 0.0, 0.0, 40, 0, 0));
         assertEquals(0.0, FlashlightLineLightRules.lightAt(sourceX, sourceY, sourceZ, 1.0, 0.0, 0.0, 8, 12, 0));
     }
+
+    @Test
+    void cachedHitRangeStopsLightBehindWall() {
+        double sourceX = 0.5;
+        double sourceY = 0.5;
+        double sourceZ = 0.5;
+        double effectiveRange = FlashlightLineLightRules.effectiveRangeAfterHit(8.0);
+
+        assertTrue(FlashlightLineLightRules.lightAt(
+                sourceX, sourceY, sourceZ,
+                1.0, 0.0, 0.0,
+                8, 0, 0,
+                effectiveRange
+        ) > 0.0);
+        assertEquals(0.0, FlashlightLineLightRules.lightAt(
+                sourceX, sourceY, sourceZ,
+                1.0, 0.0, 0.0,
+                10, 0, 0,
+                effectiveRange
+        ));
+    }
+
+    @Test
+    void wallPaddingClampsToValidRange() {
+        assertEquals(0.0, FlashlightLineLightRules.effectiveRangeAfterHit(-2.0));
+        assertEquals(8.75, FlashlightLineLightRules.effectiveRangeAfterHit(8.0));
+        assertEquals(FlashlightLineLightRules.RANGE_BLOCKS,
+                FlashlightLineLightRules.effectiveRangeAfterHit(FlashlightLineLightRules.RANGE_BLOCKS + 4.0));
+    }
 }

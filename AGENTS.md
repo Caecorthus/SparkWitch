@@ -33,3 +33,6 @@
 - Your code should have proper annotations, including these two versions:
 	- English
 	- Chinese
+
+## Important Notice
+- 当你给予一个阵营本能透视时，记得查看触发背水一战（SparkTraits）后的好人以及生存大师（NoellesRoles）的天赋/被动技能效果！
