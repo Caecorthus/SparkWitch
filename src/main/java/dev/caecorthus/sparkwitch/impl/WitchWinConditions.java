@@ -73,6 +73,10 @@ public final class WitchWinConditions {
         return ShadowShowdownAction.TRIGGER_AND_BLOCK;
     }
 
+    static boolean countsAsShadowShowdownOther(boolean lastStandTriggeredThisRound) {
+        return !lastStandTriggeredThisRound;
+    }
+
     private static WinSnapshot snapshot(FactionWinContext context) {
         int livingPlayerCount = 0;
         int livingWitchCount = 0;
@@ -96,7 +100,11 @@ public final class WitchWinConditions {
                 shadowShowdownActive = shadowShowdownActive || ShadowJesterShowdownBridge.isShowdownActive(player);
             } else if (role != null && role.canUseKiller()) {
                 livingNativeKillerCount++;
-            } else {
+            } else if (countsAsShadowShowdownOther(
+                    SparkTraitsLastStandBridge.hasTriggeredThisRound(context.world(), player.getUuid())
+            )) {
+                // Last Stand survivors already paid a death for Shadow Jester showdown gating only.
+                // 触发过背水一战的好人只在双影谢幕门槛里视作已经死过，不改变其他结算。
                 livingOtherPlayerCount++;
             }
         }

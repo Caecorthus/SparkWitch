@@ -55,6 +55,21 @@ class WitchWinConditionsTest {
     }
 
     @Test
+    void lastStandTriggeredOtherPlayersDoNotBlockShadowShowdown() {
+        int lastStandTriggeredOtherCount = WitchWinConditions.countsAsShadowShowdownOther(true) ? 1 : 0;
+        int ordinaryOtherCount = WitchWinConditions.countsAsShadowShowdownOther(false) ? 1 : 0;
+
+        assertEquals(
+                WitchWinConditions.ShadowShowdownAction.TRIGGER_AND_BLOCK,
+                WitchWinConditions.shadowShowdownAction(1, 0, 2, lastStandTriggeredOtherCount, false)
+        );
+        assertEquals(
+                WitchWinConditions.ShadowShowdownAction.NONE,
+                WitchWinConditions.shadowShowdownAction(1, 0, 2, ordinaryOtherCount, false)
+        );
+    }
+
+    @Test
     void livingWitchesBlockNativePassengerAndKillerWins() {
         assertEquals(
                 WitchWinConditions.WinAction.BLOCK,
