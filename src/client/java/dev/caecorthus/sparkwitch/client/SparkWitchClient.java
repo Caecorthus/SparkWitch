@@ -31,6 +31,7 @@ public final class SparkWitchClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             GrandWitchFearClientHooks.tick();
+            DeathRayClientHooks.tick(client);
             if (client.player != null
                     && client.getNetworkHandler() != null
                     && WitchPlayerComponent.KEY.get(client.player).hasSkill()

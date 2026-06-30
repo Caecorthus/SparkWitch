@@ -42,6 +42,13 @@ class MixinResourcesTest {
     }
 
     @Test
+    void clientMixinsRegisterDeathRayAttackHook() throws IOException {
+        JsonObject mixins = readJson(CLIENT_MIXINS);
+
+        assertTrue(contains(mixins.getAsJsonArray("client"), "DeathRayAttackMixin"));
+    }
+
+    @Test
     void clientMixinsRegisterRoleNameDisplayFallback() throws IOException {
         JsonObject mixins = readJson(CLIENT_MIXINS);
 

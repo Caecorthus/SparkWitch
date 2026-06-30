@@ -32,6 +32,10 @@ class WitchSkillPresentationRulesTest {
                 SparkWitchRoles.apprenticeWitch(),
                 ApprenticeWitchSkillRules.MIGHTY_FORCE_ID
         ));
+        assertTrue(WitchSkillPresentationRules.shouldShowInventorySkillPanel(
+                SparkWitchRoles.murderousWitch(),
+                MurderousWitchDeathRayRules.DEATH_RAY_ID
+        ));
     }
 
     @Test

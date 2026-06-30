@@ -67,6 +67,16 @@ public final class SparkWitchBuiltInSkills {
                 context -> context.role() == dev.caecorthus.sparkwitch.SparkWitchRoles.pigGod(),
                 PigGodSkillService::use
         ));
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                MurderousWitchDeathRayRules.DEATH_RAY_ID,
+                MurderousWitchDeathRayRules.COLOR,
+                1,
+                0,
+                MurderousWitchDeathRayRules.COOLDOWN_TICKS,
+                MurderousWitchDeathRayRules.MANA_COST,
+                context -> MurderousWitchDeathRayRules.canSelect(context.role()),
+                MurderousWitchDeathRayService::use
+        ));
     }
 
     static synchronized void resetForTests() {

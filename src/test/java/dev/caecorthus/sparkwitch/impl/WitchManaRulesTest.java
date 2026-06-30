@@ -42,11 +42,12 @@ class WitchManaRulesTest {
 
     @Test
     void naturalRegenerationStopsAtRoleCap() {
-        assertEquals(100, WitchManaRules.naturalCap(SparkWitchRoles.murderousWitch()));
+        assertEquals(150, WitchManaRules.naturalCap(SparkWitchRoles.murderousWitch()));
         assertEquals(300, WitchManaRules.naturalCap(SparkWitchRoles.grandWitch()));
 
-        assertEquals(100, WitchManaRules.applyNaturalRegeneration(99, SparkWitchRoles.murderousWitch()));
-        assertEquals(100, WitchManaRules.applyNaturalRegeneration(100, SparkWitchRoles.murderousWitch()));
+        assertEquals(150, WitchManaRules.applyNaturalRegeneration(149, SparkWitchRoles.murderousWitch()));
+        assertEquals(150, WitchManaRules.applyNaturalRegeneration(150, SparkWitchRoles.murderousWitch()));
+        assertEquals(151, WitchManaRules.applyNaturalRegeneration(151, SparkWitchRoles.murderousWitch()));
         assertEquals(300, WitchManaRules.applyNaturalRegeneration(299, SparkWitchRoles.grandWitch()));
         assertEquals(301, WitchManaRules.applyNaturalRegeneration(301, SparkWitchRoles.grandWitch()));
     }

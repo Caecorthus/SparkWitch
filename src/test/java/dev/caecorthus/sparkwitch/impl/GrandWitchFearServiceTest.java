@@ -26,6 +26,7 @@ class GrandWitchFearServiceTest {
     @Test
     void blockedRoleSkillPayloadsCoverSparkWitchAndNoellesRoleAbilitiesOnly() {
         assertTrue(GrandWitchFearService.isBlockedRoleSkillPayload(SparkWitch.id("use_skill")));
+        assertTrue(GrandWitchFearService.isBlockedRoleSkillPayload(SparkWitch.id("fire_death_ray")));
         assertTrue(GrandWitchFearService.isBlockedRoleSkillPayload(Identifier.of("noellesroles", "ability")));
         assertTrue(GrandWitchFearService.isBlockedRoleSkillPayload(Identifier.of("noellesroles", "assassin_guess_role")));
         assertTrue(GrandWitchFearService.isBlockedRoleSkillPayload(Identifier.of("noellesroles", "demon_hunter_shoot")));

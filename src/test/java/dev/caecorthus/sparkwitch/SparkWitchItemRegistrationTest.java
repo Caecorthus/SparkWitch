@@ -43,4 +43,10 @@ class SparkWitchItemRegistrationTest {
         assertTrue(SparkWitchDeathReasons.CEREMONIAL_BLADE.getNamespace().equals(SparkWitch.MOD_ID));
         assertTrue(SparkWitchDeathReasons.CEREMONIAL_BLADE.getPath().equals("ceremonial_blade"));
     }
+
+    @Test
+    void deathRayUsesDedicatedDeathReason() {
+        assertEquals(SparkWitch.MOD_ID, SparkWitchDeathReasons.PIERCED_BY_RAY.getNamespace());
+        assertEquals("pierced_by_ray", SparkWitchDeathReasons.PIERCED_BY_RAY.getPath());
+    }
 }

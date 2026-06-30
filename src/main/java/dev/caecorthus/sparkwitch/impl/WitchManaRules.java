@@ -14,6 +14,7 @@ public final class WitchManaRules {
     private static final int DEFAULT_NATURAL_CAP = 100;
     private static final int GRAND_WITCH_REGENERATION_INTERVAL_TICKS = 20;
     private static final int GRAND_WITCH_NATURAL_CAP = 300;
+    private static final int MURDEROUS_WITCH_NATURAL_CAP = 150;
     private static final int APPRENTICE_TASK_REWARD = 20;
     private static final int GENERIC_KILL_REWARD = 25;
     private static final int WITCH_KILL_REWARD = 50;
@@ -39,6 +40,9 @@ public final class WitchManaRules {
     public static int naturalCap(Role role) {
         if (role == SparkWitchRoles.grandWitch()) {
             return GRAND_WITCH_NATURAL_CAP;
+        }
+        if (role == SparkWitchRoles.murderousWitch()) {
+            return MURDEROUS_WITCH_NATURAL_CAP;
         }
         return isManaRole(role) ? DEFAULT_NATURAL_CAP : 0;
     }

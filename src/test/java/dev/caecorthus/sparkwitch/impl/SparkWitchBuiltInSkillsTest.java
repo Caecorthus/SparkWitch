@@ -72,6 +72,19 @@ class SparkWitchBuiltInSkillsTest {
     }
 
     @Test
+    void murderousWitchReceivesOnlyDeathRay() {
+        SparkWitchBuiltInSkills.register();
+
+        Set<String> selectedPaths = WitchSkillRegistry.values().stream()
+                .filter(skill -> skill.canSelect(new WitchSkillSelectionContext(null, null, null, SparkWitchRoles.murderousWitch())))
+                .map(WitchSkillDefinition::id)
+                .map(id -> id.getPath())
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+
+        assertEquals(Set.of("death_ray"), selectedPaths);
+    }
+
+    @Test
     void apprenticeSkillDefinitionsCarryInitialCooldownAndManaCost() {
         SparkWitchBuiltInSkills.register();
 
@@ -104,5 +117,17 @@ class SparkWitchBuiltInSkillsTest {
         assertEquals(PigGodRules.COOLDOWN_TICKS, skill.cooldownTicks());
         assertEquals(0, skill.manaCost());
         assertEquals(150, PigGodRules.COIN_COST);
+    }
+
+    @Test
+    void deathRayDefinitionCarriesCooldownAndManaCost() {
+        SparkWitchBuiltInSkills.register();
+
+        WitchSkillDefinition skill = WitchSkillRegistry.get(MurderousWitchDeathRayRules.DEATH_RAY_ID);
+
+        assertEquals(MurderousWitchDeathRayRules.COLOR, skill.color());
+        assertEquals(0, skill.initialCooldownTicks());
+        assertEquals(MurderousWitchDeathRayRules.COOLDOWN_TICKS, skill.cooldownTicks());
+        assertEquals(MurderousWitchDeathRayRules.MANA_COST, skill.manaCost());
     }
 }

@@ -58,6 +58,15 @@ class WitchSkillLockValidationServiceTest {
     }
 
     @Test
+    void deathRayAllowsMurderousWitchOnly() {
+        WitchSkillDefinition skill = WitchSkillRegistry.get(MurderousWitchDeathRayRules.DEATH_RAY_ID);
+
+        assertNull(WitchSkillLockValidationService.findRoleConflict(skill, SparkWitchRoles.murderousWitch()));
+        assertNotNull(WitchSkillLockValidationService.findRoleConflict(skill, SparkWitchRoles.grandWitch()));
+        assertNotNull(WitchSkillLockValidationService.findRoleConflict(skill, SparkWitchRoles.apprenticeWitch()));
+    }
+
+    @Test
     void pendingForcedSkillBlocksIncompatibleForcedRoleLater() {
         WitchSkillLockValidationService.RoleConflict conflict =
                 WitchSkillLockValidationService.findForcedSkillRoleConflict(

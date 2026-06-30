@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "ClientPlayNetworkingFearMixin",
+    "DeathRayAttackMixin",
     "KeyBindingFearSkillMixin",
     "WatheClientInstinctLightMixin",
     "WatheClientFearInstinctMixin",

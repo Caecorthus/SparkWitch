@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.component;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.impl.ApprenticeWitchSkillService;
 import dev.caecorthus.sparkwitch.impl.GrandWitchActiveSkillService;
+import dev.caecorthus.sparkwitch.impl.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.impl.PigGodRules;
 import dev.caecorthus.sparkwitch.impl.PigGodSkillService;
 import dev.caecorthus.sparkwitch.impl.WitchManaRules;
@@ -61,6 +62,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     private double pigChaseFreezeY;
     private double pigChaseFreezeZ;
     private boolean pigChaseOwnsPsycho;
+    private int deathRayTicks;
+    private int deathRayCharges;
 
     public WitchPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -126,10 +129,21 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return pigChaseTicks;
     }
 
+    public int getDeathRayTicks() {
+        return deathRayTicks;
+    }
+
+    public int getDeathRayCharges() {
+        return deathRayCharges;
+    }
+
     public int getActiveSkillWindowTicks() {
         return Math.max(
-                Math.max(ceremonialSwordTicks, apprenticeEffectiveWindowTicks()),
-                pigChaseEffectiveWindowTicks()
+                Math.max(
+                        Math.max(ceremonialSwordTicks, apprenticeEffectiveWindowTicks()),
+                        pigChaseEffectiveWindowTicks()
+                ),
+                deathRayTicks
         );
     }
 
@@ -159,6 +173,10 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     public boolean isPigChaseActive() {
         return pigChaseTicks > 0;
+    }
+
+    public boolean hasActiveDeathRay() {
+        return deathRayTicks > 0 && deathRayCharges > 0;
     }
 
     public void setActiveSkill(@Nullable Identifier activeSkillId) {
@@ -345,6 +363,41 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
+    public void beginDeathRayWindow(int durationTicks, int charges) {
+        deathRayTicks = Math.max(0, durationTicks);
+        deathRayCharges = deathRayTicks > 0 ? Math.max(0, charges) : 0;
+        sync();
+    }
+
+    public void consumeDeathRayCharge(int cooldownTicks) {
+        if (!hasActiveDeathRay()) {
+            return;
+        }
+        deathRayCharges--;
+        if (deathRayCharges <= 0) {
+            finishDeathRayWindow(cooldownTicks);
+            return;
+        }
+        sync();
+    }
+
+    public void finishDeathRayWindow(int cooldownTicks) {
+        deathRayTicks = 0;
+        deathRayCharges = 0;
+        deferredCooldownTicks = Math.max(deferredCooldownTicks, Math.max(0, cooldownTicks));
+        startDeferredCooldown();
+        sync();
+    }
+
+    public void clearDeathRayWindow() {
+        if (deathRayTicks == 0 && deathRayCharges == 0) {
+            return;
+        }
+        deathRayTicks = 0;
+        deathRayCharges = 0;
+        sync();
+    }
+
     /**
      * Arms cooldown for effects whose visible window must finish before cooldown begins.
      * 为“技能结束后才冷却”的效果保存待启动冷却，等有效窗口归零后再正式计时。
@@ -381,6 +434,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 && pigChaseQueuedTicks == 0
                 && pigChaseTicks == 0
                 && !pigChaseOwnsPsycho
+                && deathRayTicks == 0
+                && deathRayCharges == 0
                 && deferredCooldownTicks == 0) {
             return;
         }
@@ -407,6 +462,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         pigChaseQueuedTicks = 0;
         pigChaseTicks = 0;
         pigChaseOwnsPsycho = false;
+        deathRayTicks = 0;
+        deathRayCharges = 0;
         deferredCooldownTicks = 0;
         sync();
     }
@@ -427,6 +484,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         tickCeremonialSwordWindow();
         tickApprenticeSkillWindows();
         tickPigChaseState();
+        tickDeathRayState();
         tickCooldown();
         tickManaRegeneration();
     }
@@ -679,6 +737,35 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return pigChaseFreezeTicks + pigChaseQueuedTicks + pigChaseTicks;
     }
 
+    private void tickDeathRayState() {
+        if (deathRayTicks <= 0 && deathRayCharges <= 0) {
+            return;
+        }
+        if (!(player instanceof ServerPlayerEntity serverPlayer)) {
+            return;
+        }
+
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        if (!MurderousWitchDeathRayRules.canSelect(role) || !GameFunctions.isPlayerPlayingAndAlive(serverPlayer)) {
+            deathRayTicks = 0;
+            deathRayCharges = 0;
+            deferredCooldownTicks = 0;
+            sync();
+            return;
+        }
+
+        if (deathRayTicks > 0) {
+            deathRayTicks--;
+        }
+        if (deathRayTicks <= 0 || deathRayCharges <= 0) {
+            finishDeathRayWindow(MurderousWitchDeathRayRules.COOLDOWN_TICKS);
+            return;
+        }
+        if (deathRayTicks % 20 == 0) {
+            sync();
+        }
+    }
+
     private void tickManaRegeneration() {
         if (!manaEnabled || !(player instanceof ServerPlayerEntity serverPlayer)) {
             return;
@@ -728,6 +815,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         buf.writeVarInt(ownerVisible ? pigChaseFreezeTicks : 0);
         buf.writeVarInt(ownerVisible ? pigChaseQueuedTicks : 0);
         buf.writeVarInt(ownerVisible ? pigChaseTicks : 0);
+        buf.writeVarInt(ownerVisible ? deathRayTicks : 0);
+        buf.writeVarInt(ownerVisible ? deathRayCharges : 0);
     }
 
     @Override
@@ -754,6 +843,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         pigChaseQueuedTicks = Math.max(0, buf.readVarInt());
         pigChaseTicks = Math.max(0, buf.readVarInt());
         pigChaseOwnsPsycho = false;
+        deathRayTicks = Math.max(0, buf.readVarInt());
+        deathRayCharges = Math.max(0, buf.readVarInt());
     }
 
     @Override
@@ -810,6 +901,10 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         if (pigChaseTicks > 0) {
             tag.putInt("PigChaseTicks", pigChaseTicks);
             tag.putBoolean("PigChaseOwnsPsycho", pigChaseOwnsPsycho);
+        }
+        if (deathRayTicks > 0) {
+            tag.putInt("DeathRayTicks", deathRayTicks);
+            tag.putInt("DeathRayCharges", deathRayCharges);
         }
     }
 
@@ -872,6 +967,12 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         pigChaseFreezeY = tag.contains("PigChaseFreezeY", NbtElement.NUMBER_TYPE) ? tag.getDouble("PigChaseFreezeY") : 0.0;
         pigChaseFreezeZ = tag.contains("PigChaseFreezeZ", NbtElement.NUMBER_TYPE) ? tag.getDouble("PigChaseFreezeZ") : 0.0;
         pigChaseOwnsPsycho = pigChaseTicks > 0 && tag.getBoolean("PigChaseOwnsPsycho");
+        deathRayTicks = tag.contains("DeathRayTicks", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("DeathRayTicks"))
+                : 0;
+        deathRayCharges = deathRayTicks > 0 && tag.contains("DeathRayCharges", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("DeathRayCharges"))
+                : 0;
     }
 
     private static void writeOptionalIdentifier(RegistryByteBuf buf, @Nullable Identifier id) {
