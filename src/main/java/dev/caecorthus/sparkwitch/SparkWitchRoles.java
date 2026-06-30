@@ -75,14 +75,14 @@ public final class SparkWitchRoles {
                 .color(0xF2DFF7)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
-                .canSeeTime(false)
+                .canSeeTime(true)
                 .appearanceCondition(RoleAppearanceCondition.minPlayers(18))
                 .build());
         accomplice = SparkFactionApi.registerRole(FactionRoleDefinition.builder(ACCOMPLICE_ID, SparkWitchFactions.WITCH)
                 .color(0x7B6AA8)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
-                .canSeeTime(false)
+                .canSeeTime(true)
                 .appearanceCondition(RoleAppearanceCondition.minPlayers(18))
                 .build());
         pigGod = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PIG_GOD_ID, FactionIds.CIVILIAN)
@@ -101,7 +101,7 @@ public final class SparkWitchRoles {
                 Role.MoodType.REAL,
                 GameConstants.getInTicks(0, 10),
                 false,
-                RoleAppearanceCondition.minPlayers(18)
+                RoleAppearanceCondition.minPlayers(24)
         ));
         murderousWitch = WatheRoles.registerRole(new Role(
                 MURDEROUS_WITCH_ID,
@@ -111,7 +111,7 @@ public final class SparkWitchRoles {
                 Role.MoodType.FAKE,
                 -1,
                 false,
-                RoleAppearanceCondition.minPlayers(18)
+                RoleAppearanceCondition.minPlayers(24)
         ));
 
         appendAssassinGuessRoles();

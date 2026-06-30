@@ -16,7 +16,8 @@ class WitchRoleCountsTest {
 
     @Test
     void matchesAcceptedThresholdExamples() {
-        assertCounts(18, 1, 0, 2);
+        assertCounts(18, 1, 0, 0);
+        assertCounts(23, 1, 0, 0);
         assertCounts(24, 1, 1, 3);
         assertCounts(30, 1, 2, 3);
     }

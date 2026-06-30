@@ -73,7 +73,13 @@ class SparkWitchRoleRegistrationTest {
     }
 
     @Test
-    void witchRoleAppearanceConditionsStartAtEighteenPlayersExceptPigGod() {
+    void grandWitchFactionCanSeeRemainingGameTime() {
+        assertTrue(SparkWitchRoles.grandWitch().canSeeTime());
+        assertTrue(SparkWitchRoles.accomplice().canSeeTime());
+    }
+
+    @Test
+    void witchRoleAppearanceConditionsUsePerRoleThresholds() {
         assertFalse(shouldAppearAt(SparkWitchRoles.grandWitch(), 17));
         assertFalse(shouldAppearAt(SparkWitchRoles.accomplice(), 17));
         assertFalse(shouldAppearAt(SparkWitchRoles.apprenticeWitch(), 17));
@@ -82,8 +88,10 @@ class SparkWitchRoleRegistrationTest {
 
         assertTrue(shouldAppearAt(SparkWitchRoles.grandWitch(), 18));
         assertTrue(shouldAppearAt(SparkWitchRoles.accomplice(), 18));
-        assertTrue(shouldAppearAt(SparkWitchRoles.apprenticeWitch(), 18));
-        assertTrue(shouldAppearAt(SparkWitchRoles.murderousWitch(), 18));
+        assertFalse(shouldAppearAt(SparkWitchRoles.apprenticeWitch(), 23));
+        assertFalse(shouldAppearAt(SparkWitchRoles.murderousWitch(), 23));
+        assertTrue(shouldAppearAt(SparkWitchRoles.apprenticeWitch(), 24));
+        assertTrue(shouldAppearAt(SparkWitchRoles.murderousWitch(), 24));
         assertTrue(shouldAppearAt(SparkWitchRoles.pigGod(), 18));
         assertTrue(shouldAppearAt(SparkWitchRoles.pigGod(), 24));
     }

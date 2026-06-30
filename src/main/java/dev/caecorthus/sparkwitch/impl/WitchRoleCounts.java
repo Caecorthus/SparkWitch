@@ -6,6 +6,7 @@ package dev.caecorthus.sparkwitch.impl;
  */
 public final class WitchRoleCounts {
     public static final int WITCH_THRESHOLD = 18;
+    public static final int APPRENTICE_WITCH_THRESHOLD = 24;
     public static final int ACCOMPLICE_INTERVAL = 6;
     public static final int APPRENTICE_DIVIDEND = 8;
 
@@ -32,7 +33,7 @@ public final class WitchRoleCounts {
     }
 
     public static int apprenticeWitches(int totalPlayers) {
-        if (totalPlayers < WITCH_THRESHOLD) {
+        if (totalPlayers < APPRENTICE_WITCH_THRESHOLD) {
             return 0;
         }
         return Math.floorDiv(totalPlayers, APPRENTICE_DIVIDEND);
