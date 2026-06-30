@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.doctor4t.wathe.index.WatheItems;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
@@ -43,6 +44,12 @@ public final class GrandWitchActiveSkillService {
         player.getInventory().setStack(knifeSlot, new ItemStack(SparkWitchItems.ceremonialSword()));
         player.getInventory().markDirty();
         component.beginCeremonialSwordWindow(knifeSlot, GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
+        if (shouldAutoSelectCeremonialSwordSlot(knifeSlot)) {
+            // Keep both server held-item logic and the client hotbar UI on the new ceremonial sword.
+            // 同步服务端手持物品逻辑和客户端快捷栏 UI，让它们都切到新的仪礼剑。
+            player.getInventory().selectedSlot = knifeSlot;
+            player.networkHandler.sendPacket(new UpdateSelectedSlotS2CPacket(knifeSlot));
+        }
         return WitchSkillUseResult.success(0, "message.sparkwitch.skill.ceremonial_sword.activated");
     }
 
@@ -68,6 +75,10 @@ public final class GrandWitchActiveSkillService {
             }
         }
         return -1;
+    }
+
+    static boolean shouldAutoSelectCeremonialSwordSlot(int slot) {
+        return PlayerInventory.isValidHotbarIndex(slot);
     }
 
     private static void restoreKnife(ServerPlayerEntity player, int preferredSlot) {
