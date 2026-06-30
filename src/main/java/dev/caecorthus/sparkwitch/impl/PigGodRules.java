@@ -14,7 +14,7 @@ import net.minecraft.util.Identifier;
 public final class PigGodRules {
     public static final Identifier PIG_CHASE_ID = SparkWitch.id("pig_chase");
     public static final int COLOR = 0xF2A4FC;
-    public static final int COIN_COST = 350;
+    public static final int COIN_COST = 150;
     public static final int COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
     public static final int FREEZE_TICKS = GameConstants.getInTicks(0, 5);
     public static final int CHASE_TICKS = GameConstants.getInTicks(0, 12);

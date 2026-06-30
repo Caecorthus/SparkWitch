@@ -103,6 +103,6 @@ class SparkWitchBuiltInSkillsTest {
         assertEquals(0, skill.initialCooldownTicks());
         assertEquals(PigGodRules.COOLDOWN_TICKS, skill.cooldownTicks());
         assertEquals(0, skill.manaCost());
-        assertEquals(350, PigGodRules.COIN_COST);
+        assertEquals(150, PigGodRules.COIN_COST);
     }
 }
