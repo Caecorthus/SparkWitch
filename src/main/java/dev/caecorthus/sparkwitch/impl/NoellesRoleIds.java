@@ -13,6 +13,7 @@ public final class NoellesRoleIds {
     public static final Identifier DETECTIVE = Identifier.of(NAMESPACE, "detective");
     public static final Identifier TOXICOLOGIST = Identifier.of(NAMESPACE, "toxicologist");
     public static final Identifier ATTENDANT = Identifier.of(NAMESPACE, "attendant");
+    public static final Identifier SHADOW_JESTER = Identifier.of(NAMESPACE, "shadow_jester");
 
     private NoellesRoleIds() {
     }
@@ -27,6 +28,10 @@ public final class NoellesRoleIds {
 
     public static boolean isAttendant(@Nullable Role role) {
         return hasId(role, ATTENDANT);
+    }
+
+    public static boolean isShadowJester(@Nullable Role role) {
+        return hasId(role, SHADOW_JESTER);
     }
 
     public static boolean isEnhancedMoneyRole(@Nullable Role role) {

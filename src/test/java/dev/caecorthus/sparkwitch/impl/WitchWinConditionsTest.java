@@ -19,6 +19,42 @@ class WitchWinConditionsTest {
     }
 
     @Test
+    void witchAndAlliedShadowJestersTriggerShowdownInsteadOfWitchWin() {
+        assertEquals(
+                WitchWinConditions.ShadowShowdownAction.TRIGGER_AND_BLOCK,
+                WitchWinConditions.shadowShowdownAction(1, 0, 2, 0, false)
+        );
+    }
+
+    @Test
+    void witchKillerAndAlliedShadowJestersDoNotLetWitchSettleFirst() {
+        assertEquals(
+                WitchWinConditions.ShadowShowdownAction.TRIGGER_AND_BLOCK,
+                WitchWinConditions.shadowShowdownAction(1, 1, 2, 0, false)
+        );
+    }
+
+    @Test
+    void activeShadowShowdownKeepsBlockingWitchSettlement() {
+        assertEquals(
+                WitchWinConditions.ShadowShowdownAction.BLOCK,
+                WitchWinConditions.shadowShowdownAction(1, 1, 2, 0, true)
+        );
+    }
+
+    @Test
+    void shadowShowdownBridgeIgnoresUnrelatedLivingPlayers() {
+        assertEquals(
+                WitchWinConditions.ShadowShowdownAction.NONE,
+                WitchWinConditions.shadowShowdownAction(1, 0, 2, 1, false)
+        );
+        assertEquals(
+                WitchWinConditions.ShadowShowdownAction.NONE,
+                WitchWinConditions.shadowShowdownAction(1, 1, 0, 0, false)
+        );
+    }
+
+    @Test
     void livingWitchesBlockNativePassengerAndKillerWins() {
         assertEquals(
                 WitchWinConditions.WinAction.BLOCK,
