@@ -9,6 +9,8 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.particle.DustParticleEffect;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Vector3f;
 
@@ -69,6 +71,16 @@ public final class MurderousWitchDeathRayService {
             return false;
         }
 
+        world.playSound(
+                null,
+                caster.getX(),
+                caster.getEyeY(),
+                caster.getZ(),
+                SoundEvents.BLOCK_BEACON_ACTIVATE,
+                SoundCategory.PLAYERS,
+                1.0f,
+                1.35f
+        );
         spawnRayParticles(world, start, direction);
         for (ServerPlayerEntity target : findTargets(caster, start, direction)) {
             if (GameFunctions.isPlayerPlayingAndAlive(target)) {
