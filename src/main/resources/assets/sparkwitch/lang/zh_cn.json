@@ -54,7 +54,7 @@
   "item.sparkwitch.capsule.tooltip": "内容物：%s",
   "item.sparkwitch.flashlight": "手电筒",
   "skill.sparkwitch.ceremonial_sword.name": "仪礼剑",
-  "skill.sparkwitch.ceremonial_sword.description": "消耗 150 点魔力值，将一把匕首临时替换为 10 秒仪礼剑，并获得速度 I。",
+  "skill.sparkwitch.ceremonial_sword.description": "消耗 150 点魔力值，将一把匕首临时替换为 15 秒仪礼剑，并获得速度 I。",
   "skill.sparkwitch.mighty_force.name": "巨力",
   "skill.sparkwitch.mighty_force.description": "消耗 80 点魔力值，10 秒内空手左键玩家可击退并发动一次致命攻击。",
   "skill.sparkwitch.swift_step.name": "滑步",

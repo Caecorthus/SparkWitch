@@ -266,7 +266,7 @@ class GrandWitchRulesTest {
         assertEquals(0, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);
         assertEquals(25, GrandWitchRules.WITCH_TEAM_KILL_MONEY_REWARD);
         assertEquals(150, GrandWitchRules.CEREMONIAL_SWORD_MANA_COST);
-        assertEquals(GameConstants.getInTicks(0, 10), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
+        assertEquals(GameConstants.getInTicks(0, 15), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(1, 30), GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
         assertEquals(GameConstants.getInTicks(1, 0), GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS);
         assertEquals(0, GrandWitchRules.CEREMONIAL_SWORD_SPEED_AMPLIFIER);

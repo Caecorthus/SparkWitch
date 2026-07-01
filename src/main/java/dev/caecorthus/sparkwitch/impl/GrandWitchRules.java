@@ -18,7 +18,7 @@ public final class GrandWitchRules {
     public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
 
     public static final int CEREMONIAL_SWORD_MANA_COST = 150;
-    public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 10);
+    public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 15);
     public static final int CEREMONIAL_SWORD_COOLDOWN_TICKS = GameConstants.getInTicks(1, 30);
     public static final int CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
     public static final int CEREMONIAL_SWORD_SPEED_AMPLIFIER = 0;

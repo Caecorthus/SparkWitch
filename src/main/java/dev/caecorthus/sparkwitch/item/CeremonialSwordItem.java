@@ -15,8 +15,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class CeremonialSwordItem extends Item {
     public static final int DASH_COOLDOWN_TICKS = 100;
-    public static final double ATTACK_SPEED = 1.6;
-    public static final float ATTACK_SPEED_MODIFIER_VALUE = -2.4f;
+    public static final double ATTACK_SPEED = 2.0;
+    public static final float ATTACK_SPEED_MODIFIER_VALUE = -2.0f;
     private static final int ATTACK_DAMAGE = 3;
 
     public static Settings createSettings() {
