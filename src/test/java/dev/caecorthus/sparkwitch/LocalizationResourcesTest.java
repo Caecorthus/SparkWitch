@@ -258,8 +258,8 @@ class LocalizationResourcesTest {
 
         assertEquals("Murderous Witch Victory", english.get("announcement.win.murderous_witch").getAsString());
         assertEquals("杀意魔女胜利", chinese.get("announcement.win.murderous_witch").getAsString());
-        assertEquals("", english.get("game.win.murderous_witch").getAsString());
-        assertEquals("", chinese.get("game.win.murderous_witch").getAsString());
+        assertEquals("The craving for blood has finally been satisfied...", english.get("game.win.murderous_witch").getAsString());
+        assertEquals("对鲜血的渴望终于得到了满足...", chinese.get("game.win.murderous_witch").getAsString());
         assertEquals("The passengers survived.", english.get("announcement.win.pig_god").getAsString());
         assertEquals("好人幸存了下来。", chinese.get("announcement.win.pig_god").getAsString());
     }
