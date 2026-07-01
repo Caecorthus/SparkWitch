@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.client;
 
+import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
+import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.impl.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.impl.PigGodRules;
@@ -65,6 +67,20 @@ public final class WitchSkillHudRenderer {
                     "hud.sparkwitch.skill.cooldown",
                     WitchSkillClientTexts.name(skillId),
                     seconds(component.getCooldownTicks())
+            );
+        }
+        WitchSkillDefinition skill = WitchSkillRegistry.get(skillId);
+        int manaCost = skill == null ? 0 : skill.manaCost();
+        if (WitchSkillHudRules.shouldShowManaRequirement(
+                skillId,
+                component.getMana(),
+                manaCost,
+                activeTicks,
+                component.getCooldownTicks()
+        )) {
+            return Text.translatable(
+                    "hud.sparkwitch.skill.not_enough_mana",
+                    manaCost
             );
         }
         if (WitchSkillHudRules.shouldShowPigChaseCoinRequirement(

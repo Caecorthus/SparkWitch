@@ -28,32 +28,32 @@ public final class ApprenticeWitchSkillRules {
 
     public static final int INITIAL_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
 
-    public static final int MIGHTY_FORCE_MANA_COST = 100;
+    public static final int MIGHTY_FORCE_MANA_COST = 80;
     public static final int MIGHTY_FORCE_WINDOW_TICKS = GameConstants.getInTicks(0, 10);
-    public static final int MIGHTY_FORCE_COOLDOWN_TICKS = GameConstants.getInTicks(5, 0);
+    public static final int MIGHTY_FORCE_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
     public static final double MIGHTY_FORCE_KNOCKBACK_STRENGTH = 10.0;
 
-    public static final int SWIFT_STEP_MANA_COST = 50;
+    public static final int SWIFT_STEP_MANA_COST = 30;
     public static final int SWIFT_STEP_DURATION_TICKS = GameConstants.getInTicks(0, 5);
-    public static final int SWIFT_STEP_COOLDOWN_TICKS = GameConstants.getInTicks(2, 0);
+    public static final int SWIFT_STEP_COOLDOWN_TICKS = GameConstants.getInTicks(0, 30);
     public static final int SWIFT_STEP_AMPLIFIER = 2;
 
-    public static final int MURDER_SENSE_MANA_COST = 80;
+    public static final int MURDER_SENSE_MANA_COST = 60;
     public static final int MURDER_SENSE_DURATION_TICKS = GameConstants.getInTicks(0, 15);
     public static final int MURDER_SENSE_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
     public static final double MURDER_SENSE_RANGE_BLOCKS = 20.0;
     public static final int MURDER_SENSE_COLOR = 0xFF3030;
 
-    public static final int HEALING_MANA_COST = 60;
+    public static final int HEALING_MANA_COST = 40;
     public static final int HEALING_DURATION_TICKS = GameConstants.getInTicks(0, 20);
     public static final int HEALING_COOLDOWN_TICKS = GameConstants.getInTicks(2, 0);
     public static final double HEALING_RANGE_BLOCKS = 8.0;
     public static final float HEALING_MOOD_PER_SECOND = 0.03f;
 
-    public static final int CLAIRVOYANCE_MANA_COST = 100;
+    public static final int CLAIRVOYANCE_MANA_COST = 80;
     public static final int CLAIRVOYANCE_SELF_TICKS = GameConstants.getInTicks(0, 30);
     public static final int CLAIRVOYANCE_OTHERS_TICKS = GameConstants.getInTicks(0, 10);
-    public static final int CLAIRVOYANCE_COOLDOWN_TICKS = GameConstants.getInTicks(3, 0);
+    public static final int CLAIRVOYANCE_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
     public static final int CLAIRVOYANCE_SELF_COLOR = 0x7EE8FF;
     public static final int CLAIRVOYANCE_TARGET_COLOR = 0xFFFFFF;
 

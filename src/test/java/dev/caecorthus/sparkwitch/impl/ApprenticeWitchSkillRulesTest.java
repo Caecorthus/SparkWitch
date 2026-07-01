@@ -27,27 +27,27 @@ class ApprenticeWitchSkillRulesTest {
     void apprenticeSkillTimingsAndManaCostsMatchDesign() {
         assertEquals(GameConstants.getInTicks(1, 0), ApprenticeWitchSkillRules.INITIAL_COOLDOWN_TICKS);
 
-        assertEquals(100, ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST);
+        assertEquals(80, ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 10), ApprenticeWitchSkillRules.MIGHTY_FORCE_WINDOW_TICKS);
-        assertEquals(GameConstants.getInTicks(5, 0), ApprenticeWitchSkillRules.MIGHTY_FORCE_COOLDOWN_TICKS);
+        assertEquals(GameConstants.getInTicks(1, 0), ApprenticeWitchSkillRules.MIGHTY_FORCE_COOLDOWN_TICKS);
 
-        assertEquals(50, ApprenticeWitchSkillRules.SWIFT_STEP_MANA_COST);
+        assertEquals(30, ApprenticeWitchSkillRules.SWIFT_STEP_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 5), ApprenticeWitchSkillRules.SWIFT_STEP_DURATION_TICKS);
-        assertEquals(GameConstants.getInTicks(2, 0), ApprenticeWitchSkillRules.SWIFT_STEP_COOLDOWN_TICKS);
+        assertEquals(GameConstants.getInTicks(0, 30), ApprenticeWitchSkillRules.SWIFT_STEP_COOLDOWN_TICKS);
 
-        assertEquals(80, ApprenticeWitchSkillRules.MURDER_SENSE_MANA_COST);
+        assertEquals(60, ApprenticeWitchSkillRules.MURDER_SENSE_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 15), ApprenticeWitchSkillRules.MURDER_SENSE_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(1, 0), ApprenticeWitchSkillRules.MURDER_SENSE_COOLDOWN_TICKS);
         assertEquals(20.0, runtimeDoubleConstant("MURDER_SENSE_RANGE_BLOCKS"));
 
-        assertEquals(60, ApprenticeWitchSkillRules.HEALING_MANA_COST);
+        assertEquals(40, ApprenticeWitchSkillRules.HEALING_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 20), ApprenticeWitchSkillRules.HEALING_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(2, 0), ApprenticeWitchSkillRules.HEALING_COOLDOWN_TICKS);
 
-        assertEquals(100, ApprenticeWitchSkillRules.CLAIRVOYANCE_MANA_COST);
+        assertEquals(80, ApprenticeWitchSkillRules.CLAIRVOYANCE_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 30), ApprenticeWitchSkillRules.CLAIRVOYANCE_SELF_TICKS);
         assertEquals(GameConstants.getInTicks(0, 10), ApprenticeWitchSkillRules.CLAIRVOYANCE_OTHERS_TICKS);
-        assertEquals(GameConstants.getInTicks(3, 0), ApprenticeWitchSkillRules.CLAIRVOYANCE_COOLDOWN_TICKS);
+        assertEquals(GameConstants.getInTicks(1, 0), ApprenticeWitchSkillRules.CLAIRVOYANCE_COOLDOWN_TICKS);
     }
 
     @Test

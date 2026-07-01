@@ -112,6 +112,7 @@ class LocalizationResourcesTest {
             "hud.sparkwitch.skill.active",
             "hud.sparkwitch.skill.death_ray.active",
             "hud.sparkwitch.skill.pig_chase.not_enough_money",
+            "hud.sparkwitch.skill.not_enough_mana",
             "hud.sparkwitch.skill.ready",
             "hud.sparkwitch.criminologist.cooldown",
             "hud.sparkwitch.criminologist.ready",

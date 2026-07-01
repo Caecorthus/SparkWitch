@@ -40,4 +40,43 @@ class WitchSkillHudRulesTest {
                 0
         ));
     }
+
+    @Test
+    void manaSkillsShowManaRequirementOnlyWhenReadyAndUnaffordable() {
+        assertTrue(WitchSkillHudRules.shouldShowManaRequirement(
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_ID,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST - 1,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST,
+                0,
+                0
+        ));
+        assertFalse(WitchSkillHudRules.shouldShowManaRequirement(
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_ID,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST,
+                0,
+                0
+        ));
+        assertFalse(WitchSkillHudRules.shouldShowManaRequirement(
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_ID,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST - 1,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST,
+                1,
+                0
+        ));
+        assertFalse(WitchSkillHudRules.shouldShowManaRequirement(
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_ID,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST - 1,
+                ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST,
+                0,
+                1
+        ));
+        assertFalse(WitchSkillHudRules.shouldShowManaRequirement(
+                SparkWitch.id("free_skill"),
+                0,
+                0,
+                0,
+                0
+        ));
+    }
 }

@@ -13,6 +13,7 @@ public final class WitchManaRules {
 
     private static final int DEFAULT_NATURAL_CAP = 100;
     private static final int GRAND_WITCH_REGENERATION_INTERVAL_TICKS = 20;
+    private static final int APPRENTICE_REGENERATION_INTERVAL_TICKS = 60;
     private static final int GRAND_WITCH_NATURAL_CAP = 300;
     private static final int MURDEROUS_WITCH_NATURAL_CAP = 150;
     private static final int APPRENTICE_TASK_REWARD = 20;
@@ -34,6 +35,7 @@ public final class WitchManaRules {
     public static boolean canRegenerateNaturally(Role role) {
         return role != null
                 && (role == SparkWitchRoles.grandWitch()
+                || role == SparkWitchRoles.apprenticeWitch()
                 || role == SparkWitchRoles.murderousWitch());
     }
 
@@ -51,9 +53,13 @@ public final class WitchManaRules {
         if (!canRegenerateNaturally(role)) {
             return 0;
         }
-        return role == SparkWitchRoles.grandWitch()
-                ? GRAND_WITCH_REGENERATION_INTERVAL_TICKS
-                : REGENERATION_INTERVAL_TICKS;
+        if (role == SparkWitchRoles.grandWitch()) {
+            return GRAND_WITCH_REGENERATION_INTERVAL_TICKS;
+        }
+        if (role == SparkWitchRoles.apprenticeWitch()) {
+            return APPRENTICE_REGENERATION_INTERVAL_TICKS;
+        }
+        return REGENERATION_INTERVAL_TICKS;
     }
 
     public static int taskReward(Role role) {
@@ -72,7 +78,7 @@ public final class WitchManaRules {
         if (isManaRole(victimRole)) {
             return WITCH_KILL_REWARD;
         }
-        return canRegenerateNaturally(killerRole) ? GENERIC_KILL_REWARD : 0;
+        return killerRole == SparkWitchRoles.murderousWitch() ? GENERIC_KILL_REWARD : 0;
     }
 
     public static int grandWitchRewardForAccompliceKill(Role killerRole, Role victimRole) {

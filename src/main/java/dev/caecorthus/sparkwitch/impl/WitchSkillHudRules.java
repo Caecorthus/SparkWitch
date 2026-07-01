@@ -22,4 +22,18 @@ public final class WitchSkillHudRules {
                 && cooldownTicks <= 0
                 && balance < PigGodRules.COIN_COST;
     }
+
+    public static boolean shouldShowManaRequirement(
+            @Nullable Identifier skillId,
+            int currentMana,
+            int requiredMana,
+            int activeTicks,
+            int cooldownTicks
+    ) {
+        return skillId != null
+                && requiredMana > 0
+                && activeTicks <= 0
+                && cooldownTicks <= 0
+                && currentMana < requiredMana;
+    }
 }

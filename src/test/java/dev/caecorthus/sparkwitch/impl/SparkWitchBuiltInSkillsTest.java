@@ -85,7 +85,7 @@ class SparkWitchBuiltInSkillsTest {
     }
 
     @Test
-    void apprenticeSkillDefinitionsCarryInitialCooldownAndManaCost() {
+    void apprenticeSkillDefinitionsCarryInitialCooldownCooldownAndManaCost() {
         SparkWitchBuiltInSkills.register();
 
         for (var id : ApprenticeWitchSkillRules.SKILL_IDS) {
@@ -96,14 +96,24 @@ class SparkWitchBuiltInSkillsTest {
 
         assertEquals(ApprenticeWitchSkillRules.MIGHTY_FORCE_MANA_COST,
                 WitchSkillRegistry.get(ApprenticeWitchSkillRules.MIGHTY_FORCE_ID).manaCost());
+        assertEquals(ApprenticeWitchSkillRules.MIGHTY_FORCE_COOLDOWN_TICKS,
+                WitchSkillRegistry.get(ApprenticeWitchSkillRules.MIGHTY_FORCE_ID).cooldownTicks());
         assertEquals(ApprenticeWitchSkillRules.SWIFT_STEP_MANA_COST,
                 WitchSkillRegistry.get(ApprenticeWitchSkillRules.SWIFT_STEP_ID).manaCost());
+        assertEquals(ApprenticeWitchSkillRules.SWIFT_STEP_COOLDOWN_TICKS,
+                WitchSkillRegistry.get(ApprenticeWitchSkillRules.SWIFT_STEP_ID).cooldownTicks());
         assertEquals(ApprenticeWitchSkillRules.MURDER_SENSE_MANA_COST,
                 WitchSkillRegistry.get(ApprenticeWitchSkillRules.MURDER_SENSE_ID).manaCost());
+        assertEquals(ApprenticeWitchSkillRules.MURDER_SENSE_COOLDOWN_TICKS,
+                WitchSkillRegistry.get(ApprenticeWitchSkillRules.MURDER_SENSE_ID).cooldownTicks());
         assertEquals(ApprenticeWitchSkillRules.HEALING_MANA_COST,
                 WitchSkillRegistry.get(ApprenticeWitchSkillRules.HEALING_ID).manaCost());
+        assertEquals(ApprenticeWitchSkillRules.HEALING_COOLDOWN_TICKS,
+                WitchSkillRegistry.get(ApprenticeWitchSkillRules.HEALING_ID).cooldownTicks());
         assertEquals(ApprenticeWitchSkillRules.CLAIRVOYANCE_MANA_COST,
                 WitchSkillRegistry.get(ApprenticeWitchSkillRules.CLAIRVOYANCE_ID).manaCost());
+        assertEquals(ApprenticeWitchSkillRules.CLAIRVOYANCE_COOLDOWN_TICKS,
+                WitchSkillRegistry.get(ApprenticeWitchSkillRules.CLAIRVOYANCE_ID).cooldownTicks());
     }
 
     @Test
