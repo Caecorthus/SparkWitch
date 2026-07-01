@@ -47,6 +47,16 @@ class MurderousWitchDeathRayRulesTest {
     }
 
     @Test
+    void rayIgnoresTargetsHiddenBehindBlockedDistance() {
+        Vec3d start = new Vec3d(0.0, 1.6, 0.0);
+        Vec3d forward = new Vec3d(1.0, 0.0, 0.0);
+        Box target = new Box(6.8, 0.0, -0.3, 7.4, 1.8, 0.3);
+
+        assertTrue(MurderousWitchDeathRayRules.intersectsRay(start, forward, target, 8.0));
+        assertFalse(MurderousWitchDeathRayRules.intersectsRay(start, forward, target, 6.0));
+    }
+
+    @Test
     void rayIgnoresTargetsBeyondEightBlocksOrBesideTheBeam() {
         Vec3d start = new Vec3d(0.0, 1.6, 0.0);
         Vec3d forward = new Vec3d(1.0, 0.0, 0.0);

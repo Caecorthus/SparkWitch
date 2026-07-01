@@ -38,11 +38,16 @@ public final class MurderousWitchDeathRayRules {
     }
 
     public static boolean intersectsRay(Vec3d start, Vec3d direction, Box targetBox) {
+        return intersectsRay(start, direction, targetBox, RANGE_BLOCKS);
+    }
+
+    public static boolean intersectsRay(Vec3d start, Vec3d direction, Box targetBox, double maxDistanceBlocks) {
         Vec3d normalizedDirection = normalize(direction);
-        if (normalizedDirection == Vec3d.ZERO) {
+        double normalizedMaxDistance = Math.max(0.0, Math.min(RANGE_BLOCKS, maxDistanceBlocks));
+        if (normalizedDirection == Vec3d.ZERO || normalizedMaxDistance <= 0.0) {
             return false;
         }
-        Vec3d end = start.add(normalizedDirection.multiply(RANGE_BLOCKS));
+        Vec3d end = start.add(normalizedDirection.multiply(normalizedMaxDistance));
         return targetBox.expand(TARGET_BOX_EXPANSION).raycast(start, end).isPresent();
     }
 

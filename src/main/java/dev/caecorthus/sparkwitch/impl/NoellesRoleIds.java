@@ -14,6 +14,7 @@ public final class NoellesRoleIds {
     public static final Identifier TOXICOLOGIST = Identifier.of(NAMESPACE, "toxicologist");
     public static final Identifier ATTENDANT = Identifier.of(NAMESPACE, "attendant");
     public static final Identifier SHADOW_JESTER = Identifier.of(NAMESPACE, "shadow_jester");
+    public static final Identifier VOODOO_CURSE_DEATH_REASON = Identifier.of(NAMESPACE, "voodoo");
 
     private NoellesRoleIds() {
     }

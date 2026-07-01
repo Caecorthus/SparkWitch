@@ -18,7 +18,7 @@ public final class GrandWitchRules {
     public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
 
     public static final int CEREMONIAL_SWORD_MANA_COST = 150;
-    public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 15);
+    public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 10);
     public static final int CEREMONIAL_SWORD_COOLDOWN_TICKS = GameConstants.getInTicks(1, 30);
     public static final int CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
     public static final int CEREMONIAL_SWORD_SPEED_AMPLIFIER = 0;
@@ -92,6 +92,14 @@ public final class GrandWitchRules {
 
     public static boolean isAffectedByFear(Role role) {
         return role != null && isAffectedByWitchAreaSpell(role);
+    }
+
+    /**
+     * Blocks only NoellesRoles' Voodoo chain-death reason for Grand Witch.
+     * 只阻止 NoellesRoles 巫毒链式死亡对大魔女生效。
+     */
+    public static boolean shouldBlockVoodooCurse(Role role, Identifier deathReason) {
+        return isGrandWitch(role) && NoellesRoleIds.VOODOO_CURSE_DEATH_REASON.equals(deathReason);
     }
 
     public static OptionalInt instinctColor(Role viewerRole, Role targetRole) {

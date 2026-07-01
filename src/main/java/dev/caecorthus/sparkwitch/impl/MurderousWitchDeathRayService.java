@@ -11,7 +11,10 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -81,8 +84,9 @@ public final class MurderousWitchDeathRayService {
                 1.0f,
                 1.35f
         );
-        spawnRayParticles(world, start, direction);
-        for (ServerPlayerEntity target : findTargets(caster, start, direction)) {
+        double visibleDistance = visibleRayDistance(world, caster, start, direction);
+        spawnRayParticles(world, start, direction, visibleDistance);
+        for (ServerPlayerEntity target : findTargets(caster, start, direction, visibleDistance)) {
             if (GameFunctions.isPlayerPlayingAndAlive(target)) {
                 GameFunctions.killPlayer(target, true, caster, SparkWitchDeathReasons.PIERCED_BY_RAY);
             }
@@ -91,7 +95,12 @@ public final class MurderousWitchDeathRayService {
         return true;
     }
 
-    static List<ServerPlayerEntity> findTargets(ServerPlayerEntity caster, Vec3d start, Vec3d direction) {
+    static List<ServerPlayerEntity> findTargets(
+            ServerPlayerEntity caster,
+            Vec3d start,
+            Vec3d direction,
+            double visibleDistance
+    ) {
         List<ServerPlayerEntity> targets = new ArrayList<>();
         for (ServerPlayerEntity target : caster.getServerWorld().getPlayers()) {
             if (caster.getUuid().equals(target.getUuid())
@@ -99,19 +108,39 @@ public final class MurderousWitchDeathRayService {
                     || GameFunctions.isPlayerSpectatingOrCreative(target)) {
                 continue;
             }
-            if (MurderousWitchDeathRayRules.intersectsRay(start, direction, target.getBoundingBox())) {
+            if (MurderousWitchDeathRayRules.intersectsRay(start, direction, target.getBoundingBox(), visibleDistance)) {
                 targets.add(target);
             }
         }
         return targets;
     }
 
-    private static void spawnRayParticles(ServerWorld world, Vec3d start, Vec3d direction) {
+    static double visibleRayDistance(ServerWorld world, ServerPlayerEntity caster, Vec3d start, Vec3d direction) {
+        Vec3d end = start.add(direction.multiply(MurderousWitchDeathRayRules.RANGE_BLOCKS));
+        BlockHitResult hitResult = world.raycast(new RaycastContext(
+                start,
+                end,
+                RaycastContext.ShapeType.COLLIDER,
+                RaycastContext.FluidHandling.NONE,
+                caster
+        ));
+        if (hitResult.getType() == HitResult.Type.MISS) {
+            return MurderousWitchDeathRayRules.RANGE_BLOCKS;
+        }
+        return Math.max(0.0, Math.min(MurderousWitchDeathRayRules.RANGE_BLOCKS, start.distanceTo(hitResult.getPos())));
+    }
+
+    private static void spawnRayParticles(ServerWorld world, Vec3d start, Vec3d direction, double visibleDistance) {
+        double maxDistance = Math.max(0.0, Math.min(MurderousWitchDeathRayRules.RANGE_BLOCKS, visibleDistance));
         double distance = 0.0;
-        while (distance <= MurderousWitchDeathRayRules.RANGE_BLOCKS) {
+        while (distance <= maxDistance) {
             Vec3d point = start.add(direction.multiply(distance));
             world.spawnParticles(PARTICLE, point.x, point.y, point.z, 1, 0.0, 0.0, 0.0, 0.0);
             distance += MurderousWitchDeathRayRules.PARTICLE_STEP_BLOCKS;
+        }
+        if (maxDistance > 0.0) {
+            Vec3d point = start.add(direction.multiply(maxDistance));
+            world.spawnParticles(PARTICLE, point.x, point.y, point.z, 1, 0.0, 0.0, 0.0, 0.0);
         }
     }
 }

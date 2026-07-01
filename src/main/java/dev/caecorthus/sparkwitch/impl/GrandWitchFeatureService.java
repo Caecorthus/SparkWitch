@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
+import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.entity.FirecrackerEntity;
@@ -19,6 +20,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 
 import java.util.OptionalInt;
 
@@ -43,6 +45,7 @@ public final class GrandWitchFeatureService {
         SparkFactionApi.registerEconomyPolicy(GrandWitchFeatureService::economyDecision);
         SparkFactionApi.registerInstinctPolicy(GrandWitchFeatureService::instinctHighlight);
         BlackoutEffect.BEFORE.register(GrandWitchFeatureService::beforeBlackoutEffect);
+        KillPlayer.BEFORE.register(GrandWitchFeatureService::beforeKillPlayer);
         GrandWitchShopService.register();
         AccompliceShopService.register();
     }
@@ -76,6 +79,15 @@ public final class GrandWitchFeatureService {
     private static BlackoutEffect.BlackoutResult beforeBlackoutEffect(ServerPlayerEntity player, int durationTicks) {
         Role role = GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player);
         return GrandWitchRules.isWitchFactionMember(role) ? BlackoutEffect.BlackoutResult.cancel() : null;
+    }
+
+    private static KillPlayer.KillResult beforeKillPlayer(
+            ServerPlayerEntity victim,
+            ServerPlayerEntity killer,
+            Identifier deathReason
+    ) {
+        Role role = GameWorldComponent.KEY.get(victim.getServerWorld()).getRole(victim);
+        return GrandWitchRules.shouldBlockVoodooCurse(role, deathReason) ? KillPlayer.KillResult.cancel() : null;
     }
 
     private static FactionInstinctPolicy.InstinctResult instinctHighlight(

@@ -6,6 +6,7 @@ import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.WatheRoles;
 import dev.doctor4t.wathe.api.event.GetInstinctHighlight;
 import dev.doctor4t.wathe.game.GameConstants;
+import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -49,6 +50,52 @@ class GrandWitchRulesTest {
         assertFalse(GrandWitchRules.isAffectedByFear(fakeGrandWitch));
         assertFalse(GrandWitchRules.isAffectedByFear(SparkWitchRoles.accomplice()));
         assertFalse(GrandWitchRules.isAffectedByFear(null));
+    }
+
+    @Test
+    void voodooCurseImmunityOnlyBlocksGrandWitchCurseDeaths() {
+        assertTrue(GrandWitchRules.shouldBlockVoodooCurse(
+                SparkWitchRoles.grandWitch(),
+                NoellesRoleIds.VOODOO_CURSE_DEATH_REASON
+        ));
+
+        assertFalse(GrandWitchRules.shouldBlockVoodooCurse(
+                SparkWitchRoles.accomplice(),
+                NoellesRoleIds.VOODOO_CURSE_DEATH_REASON
+        ));
+        assertFalse(GrandWitchRules.shouldBlockVoodooCurse(
+                SparkWitchRoles.murderousWitch(),
+                NoellesRoleIds.VOODOO_CURSE_DEATH_REASON
+        ));
+        assertFalse(GrandWitchRules.shouldBlockVoodooCurse(
+                SparkWitchRoles.apprenticeWitch(),
+                NoellesRoleIds.VOODOO_CURSE_DEATH_REASON
+        ));
+        assertFalse(GrandWitchRules.shouldBlockVoodooCurse(
+                SparkWitchRoles.pigGod(),
+                NoellesRoleIds.VOODOO_CURSE_DEATH_REASON
+        ));
+        assertFalse(GrandWitchRules.shouldBlockVoodooCurse(
+                WatheRoles.CIVILIAN,
+                NoellesRoleIds.VOODOO_CURSE_DEATH_REASON
+        ));
+
+        assertFalse(GrandWitchRules.shouldBlockVoodooCurse(
+                SparkWitchRoles.grandWitch(),
+                Identifier.of(NoellesRoleIds.NAMESPACE, "assassinated")
+        ));
+        assertFalse(GrandWitchRules.shouldBlockVoodooCurse(
+                SparkWitchRoles.grandWitch(),
+                GameConstants.DeathReasons.KNIFE
+        ));
+        assertFalse(GrandWitchRules.shouldBlockVoodooCurse(
+                SparkWitchRoles.grandWitch(),
+                GameConstants.DeathReasons.GUN
+        ));
+        assertFalse(GrandWitchRules.shouldBlockVoodooCurse(
+                SparkWitchRoles.grandWitch(),
+                null
+        ));
     }
 
     @Test
@@ -219,7 +266,7 @@ class GrandWitchRulesTest {
         assertEquals(0, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);
         assertEquals(25, GrandWitchRules.WITCH_TEAM_KILL_MONEY_REWARD);
         assertEquals(150, GrandWitchRules.CEREMONIAL_SWORD_MANA_COST);
-        assertEquals(GameConstants.getInTicks(0, 15), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
+        assertEquals(GameConstants.getInTicks(0, 10), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(1, 30), GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
         assertEquals(GameConstants.getInTicks(1, 0), GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS);
         assertEquals(0, GrandWitchRules.CEREMONIAL_SWORD_SPEED_AMPLIFIER);
