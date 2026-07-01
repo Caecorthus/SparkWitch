@@ -79,7 +79,7 @@ public final class SparkWitchRoles {
                 .appearanceCondition(RoleAppearanceCondition.minPlayers(18))
                 .build());
         accomplice = SparkFactionApi.registerRole(FactionRoleDefinition.builder(ACCOMPLICE_ID, SparkWitchFactions.WITCH)
-                .color(0x7B6AA8)
+                .color(0x6B338A)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
                 .canSeeTime(true)

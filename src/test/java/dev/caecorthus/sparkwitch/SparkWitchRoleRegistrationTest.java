@@ -57,7 +57,7 @@ class SparkWitchRoleRegistrationTest {
     @Test
     void witchRolesUseConfiguredColors() {
         assertEquals(0xF2DFF7, SparkWitchRoles.grandWitch().color());
-        assertEquals(0x7B6AA8, SparkWitchRoles.accomplice().color());
+        assertEquals(0x6B338A, SparkWitchRoles.accomplice().color());
         assertEquals(0x75EDFA, SparkWitchRoles.apprenticeWitch().color());
         assertEquals(0x7A3857, SparkWitchRoles.murderousWitch().color());
         assertEquals(0xF2A4FC, SparkWitchRoles.pigGod().color());
