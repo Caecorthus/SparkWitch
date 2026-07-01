@@ -59,14 +59,14 @@ class SparkWitchBuiltInSkillsTest {
     }
 
     @Test
-    void grandWitchCeremonialSwordStartsOnOpeningCooldown() {
+    void grandWitchCeremonialSwordStartsOnOpeningCooldownAndShowsManaCost() {
         SparkWitchBuiltInSkills.register();
 
         WitchSkillDefinition skill = WitchSkillRegistry.get(GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID);
 
         assertEquals(GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS, skill.initialCooldownTicks());
         assertEquals(0, skill.cooldownTicks());
-        assertEquals(0, skill.manaCost());
+        assertEquals(GrandWitchRules.CEREMONIAL_SWORD_MANA_COST, skill.manaCost());
     }
 
     @Test

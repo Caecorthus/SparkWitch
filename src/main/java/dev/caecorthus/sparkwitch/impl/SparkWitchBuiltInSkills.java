@@ -20,7 +20,7 @@ public final class SparkWitchBuiltInSkills {
                 1,
                 GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS,
                 0,
-                0,
+                GrandWitchRules.CEREMONIAL_SWORD_MANA_COST,
                 context -> GrandWitchRules.isGrandWitch(context.role()),
                 GrandWitchActiveSkillService::use
         ));

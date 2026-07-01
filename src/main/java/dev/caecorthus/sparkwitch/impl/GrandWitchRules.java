@@ -14,10 +14,10 @@ import java.util.OptionalInt;
  * 魔女阵营的纯规则集中在这里，事件和 UI 只读取这些判断。
  */
 public final class GrandWitchRules {
-    public static final int DIRECT_KILL_MONEY_REWARD = 100;
+    public static final int DIRECT_KILL_MONEY_REWARD = 0;
     public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
 
-    public static final int CEREMONIAL_SWORD_MANA_COST = 100;
+    public static final int CEREMONIAL_SWORD_MANA_COST = 150;
     public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 15);
     public static final int CEREMONIAL_SWORD_COOLDOWN_TICKS = GameConstants.getInTicks(1, 30);
     public static final int CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
@@ -122,7 +122,7 @@ public final class GrandWitchRules {
     public static Boolean economyDecision(Role role, FactionEconomyPolicy.RewardKind rewardKind) {
         if (isGrandWitch(role)) {
             if (rewardKind == FactionEconomyPolicy.RewardKind.DIRECT_KILL) {
-                return true;
+                return false;
             }
             if (rewardKind == FactionEconomyPolicy.RewardKind.PASSIVE) {
                 return false;
@@ -136,6 +136,22 @@ public final class GrandWitchRules {
             }
         }
         return null;
+    }
+
+    /**
+     * Grand Witch kills now pay only the living Accomplice teammate.
+     * 大魔女击杀现在只给存活的共犯队友发钱。
+     */
+    public static boolean shouldAwardWitchTeamKillMoney(
+            Role killerRole,
+            Role teammateRole,
+            boolean samePlayer,
+            boolean teammateAlive
+    ) {
+        return isGrandWitch(killerRole)
+                && isAccomplice(teammateRole)
+                && !samePlayer
+                && teammateAlive;
     }
 
     public static boolean isSparkWitchShopSpellId(String entryId) {

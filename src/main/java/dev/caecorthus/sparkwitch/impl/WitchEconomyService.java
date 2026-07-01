@@ -39,19 +39,15 @@ public final class WitchEconomyService {
 
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(victim.getServerWorld());
         Role killerRole = gameComponent.getRole(killer);
-        if (!GrandWitchRules.isWitchFactionMember(killerRole)) {
+        if (!GrandWitchRules.isGrandWitch(killerRole)) {
             return;
         }
 
         for (ServerPlayerEntity teammate : victim.getServerWorld().getPlayers()) {
-            if (teammate.getUuid().equals(killer.getUuid())) {
-                continue;
-            }
-            if (!GameFunctions.isPlayerPlayingAndAlive(teammate)) {
-                continue;
-            }
+            boolean samePlayer = teammate.getUuid().equals(killer.getUuid());
+            boolean teammateAlive = GameFunctions.isPlayerPlayingAndAlive(teammate);
             Role teammateRole = gameComponent.getRole(teammate);
-            if (GrandWitchRules.isWitchFactionMember(teammateRole)) {
+            if (GrandWitchRules.shouldAwardWitchTeamKillMoney(killerRole, teammateRole, samePlayer, teammateAlive)) {
                 PlayerShopComponent.KEY.get(teammate).addToBalance(GrandWitchRules.WITCH_TEAM_KILL_MONEY_REWARD);
             }
         }

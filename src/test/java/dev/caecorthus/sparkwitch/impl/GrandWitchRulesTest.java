@@ -52,8 +52,8 @@ class GrandWitchRulesTest {
     }
 
     @Test
-    void grandWitchEconomyAllowsDirectKillsButRejectsPassiveMoney() {
-        assertEquals(Boolean.TRUE, GrandWitchRules.economyDecision(
+    void grandWitchEconomyRejectsDirectKillsAndPassiveMoney() {
+        assertEquals(Boolean.FALSE, GrandWitchRules.economyDecision(
                 SparkWitchRoles.grandWitch(),
                 FactionEconomyPolicy.RewardKind.DIRECT_KILL
         ));
@@ -64,6 +64,47 @@ class GrandWitchRulesTest {
         assertNull(GrandWitchRules.economyDecision(
                 SparkWitchRoles.murderousWitch(),
                 FactionEconomyPolicy.RewardKind.DIRECT_KILL
+        ));
+    }
+
+    @Test
+    void grandWitchKillMoneyOnlyGoesToLivingAccompliceTeammates() {
+        assertTrue(GrandWitchRules.shouldAwardWitchTeamKillMoney(
+                SparkWitchRoles.grandWitch(),
+                SparkWitchRoles.accomplice(),
+                false,
+                true
+        ));
+
+        assertFalse(GrandWitchRules.shouldAwardWitchTeamKillMoney(
+                SparkWitchRoles.grandWitch(),
+                SparkWitchRoles.accomplice(),
+                true,
+                true
+        ));
+        assertFalse(GrandWitchRules.shouldAwardWitchTeamKillMoney(
+                SparkWitchRoles.grandWitch(),
+                SparkWitchRoles.accomplice(),
+                false,
+                false
+        ));
+        assertFalse(GrandWitchRules.shouldAwardWitchTeamKillMoney(
+                SparkWitchRoles.grandWitch(),
+                SparkWitchRoles.grandWitch(),
+                false,
+                true
+        ));
+        assertFalse(GrandWitchRules.shouldAwardWitchTeamKillMoney(
+                SparkWitchRoles.accomplice(),
+                SparkWitchRoles.grandWitch(),
+                false,
+                true
+        ));
+        assertFalse(GrandWitchRules.shouldAwardWitchTeamKillMoney(
+                SparkWitchRoles.murderousWitch(),
+                SparkWitchRoles.accomplice(),
+                false,
+                true
         ));
     }
 
@@ -175,9 +216,9 @@ class GrandWitchRulesTest {
 
     @Test
     void activeSkillAndSpellTuningMatchGrandWitchPlan() {
-        assertEquals(100, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);
+        assertEquals(0, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);
         assertEquals(25, GrandWitchRules.WITCH_TEAM_KILL_MONEY_REWARD);
-        assertEquals(100, GrandWitchRules.CEREMONIAL_SWORD_MANA_COST);
+        assertEquals(150, GrandWitchRules.CEREMONIAL_SWORD_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 15), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(1, 30), GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
         assertEquals(GameConstants.getInTicks(1, 0), GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS);
