@@ -30,7 +30,7 @@ public final class SparkWitchItems {
         ceremonialSword = Registry.register(
                 Registries.ITEM,
                 CEREMONIAL_SWORD_ID,
-                new CeremonialSwordItem(new Item.Settings().maxCount(1))
+                new CeremonialSwordItem(CeremonialSwordItem.createSettings())
         );
         firePoker = Registry.register(
                 Registries.ITEM,

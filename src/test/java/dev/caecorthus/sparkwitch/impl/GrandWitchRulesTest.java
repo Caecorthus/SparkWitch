@@ -108,13 +108,13 @@ class GrandWitchRulesTest {
     }
 
     @Test
-    void accompliceInstinctColorsGrandWitchAndEveryoneElse() {
+    void accompliceInstinctColorsGrandWitchAccompliceAndEveryoneElse() {
         assertEquals(
                 OptionalInt.of(SparkWitchRoles.grandWitch().color()),
                 GrandWitchRules.instinctColor(SparkWitchRoles.accomplice(), SparkWitchRoles.grandWitch())
         );
         assertEquals(
-                OptionalInt.of(0x36E51B),
+                OptionalInt.of(SparkWitchRoles.accomplice().color()),
                 GrandWitchRules.instinctColor(SparkWitchRoles.accomplice(), SparkWitchRoles.accomplice())
         );
         assertEquals(
@@ -178,8 +178,10 @@ class GrandWitchRulesTest {
         assertEquals(100, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);
         assertEquals(25, GrandWitchRules.WITCH_TEAM_KILL_MONEY_REWARD);
         assertEquals(100, GrandWitchRules.CEREMONIAL_SWORD_MANA_COST);
-        assertEquals(GameConstants.getInTicks(0, 10), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
+        assertEquals(GameConstants.getInTicks(0, 15), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(1, 30), GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
+        assertEquals(GameConstants.getInTicks(1, 0), GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS);
+        assertEquals(0, GrandWitchRules.CEREMONIAL_SWORD_SPEED_AMPLIFIER);
 
         assertSpell(GrandWitchRules.GrandWitchSpell.OBSCURE, "sparkwitch_obscure", 80, 30, 120);
         assertSpell(GrandWitchRules.GrandWitchSpell.BLINDNESS, "sparkwitch_blindness", 80, 20, 180);

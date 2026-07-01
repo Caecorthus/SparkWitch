@@ -39,6 +39,12 @@ class SparkWitchItemRegistrationTest {
     }
 
     @Test
+    void ceremonialSwordLeftClickUsesVanillaSwordAttackSpeed() {
+        assertEquals(1.6, CeremonialSwordItem.ATTACK_SPEED);
+        assertEquals(-2.4f, CeremonialSwordItem.ATTACK_SPEED_MODIFIER_VALUE);
+    }
+
+    @Test
     void ceremonialSwordUsesDedicatedDeathReason() {
         assertTrue(SparkWitchDeathReasons.CEREMONIAL_BLADE.getNamespace().equals(SparkWitch.MOD_ID));
         assertTrue(SparkWitchDeathReasons.CEREMONIAL_BLADE.getPath().equals("ceremonial_blade"));

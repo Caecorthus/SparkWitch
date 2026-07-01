@@ -59,6 +59,17 @@ class SparkWitchBuiltInSkillsTest {
     }
 
     @Test
+    void grandWitchCeremonialSwordStartsOnOpeningCooldown() {
+        SparkWitchBuiltInSkills.register();
+
+        WitchSkillDefinition skill = WitchSkillRegistry.get(GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID);
+
+        assertEquals(GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS, skill.initialCooldownTicks());
+        assertEquals(0, skill.cooldownTicks());
+        assertEquals(0, skill.manaCost());
+    }
+
+    @Test
     void pigGodReceivesOnlyPigChase() {
         SparkWitchBuiltInSkills.register();
 
@@ -136,7 +147,7 @@ class SparkWitchBuiltInSkillsTest {
         WitchSkillDefinition skill = WitchSkillRegistry.get(MurderousWitchDeathRayRules.DEATH_RAY_ID);
 
         assertEquals(MurderousWitchDeathRayRules.COLOR, skill.color());
-        assertEquals(0, skill.initialCooldownTicks());
+        assertEquals(MurderousWitchDeathRayRules.INITIAL_COOLDOWN_TICKS, skill.initialCooldownTicks());
         assertEquals(MurderousWitchDeathRayRules.COOLDOWN_TICKS, skill.cooldownTicks());
         assertEquals(MurderousWitchDeathRayRules.MANA_COST, skill.manaCost());
     }

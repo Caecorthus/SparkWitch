@@ -18,8 +18,10 @@ public final class GrandWitchRules {
     public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
 
     public static final int CEREMONIAL_SWORD_MANA_COST = 100;
-    public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 10);
+    public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 15);
     public static final int CEREMONIAL_SWORD_COOLDOWN_TICKS = GameConstants.getInTicks(1, 30);
+    public static final int CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
+    public static final int CEREMONIAL_SWORD_SPEED_AMPLIFIER = 0;
 
     public static final int OTHER_WITCH_INSTINCT_COLOR = 0x7AB8FF;
     public static final int NON_WITCH_INSTINCT_COLOR = 0x36E51B;
@@ -108,6 +110,9 @@ public final class GrandWitchRules {
         if (isAccomplice(viewerRole)) {
             if (targetRole == SparkWitchRoles.grandWitch()) {
                 return OptionalInt.of(SparkWitchRoles.grandWitch().color());
+            }
+            if (targetRole == SparkWitchRoles.accomplice()) {
+                return OptionalInt.of(SparkWitchRoles.accomplice().color());
             }
             return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
         }

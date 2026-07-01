@@ -6,6 +6,8 @@ import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.doctor4t.wathe.index.WatheItems;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket;
@@ -44,6 +46,14 @@ public final class GrandWitchActiveSkillService {
         player.getInventory().setStack(knifeSlot, new ItemStack(SparkWitchItems.ceremonialSword()));
         player.getInventory().markDirty();
         component.beginCeremonialSwordWindow(knifeSlot, GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
+        player.addStatusEffect(new StatusEffectInstance(
+                StatusEffects.SPEED,
+                GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS,
+                GrandWitchRules.CEREMONIAL_SWORD_SPEED_AMPLIFIER,
+                false,
+                false,
+                true
+        ));
         if (shouldAutoSelectCeremonialSwordSlot(knifeSlot)) {
             // Keep both server held-item logic and the client hotbar UI on the new ceremonial sword.
             // 同步服务端手持物品逻辑和客户端快捷栏 UI，让它们都切到新的仪礼剑。

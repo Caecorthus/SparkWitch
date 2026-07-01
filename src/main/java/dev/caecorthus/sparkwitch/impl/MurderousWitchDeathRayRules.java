@@ -17,9 +17,10 @@ public final class MurderousWitchDeathRayRules {
     public static final int COLOR = 0xC13838;
     public static final int MANA_COST = 100;
     public static final int WINDOW_TICKS = GameConstants.getInTicks(0, 10);
-    public static final int COOLDOWN_TICKS = GameConstants.getInTicks(0, 45);
-    public static final int MAX_CHARGES = 3;
-    public static final double RANGE_BLOCKS = 10.0;
+    public static final int COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
+    public static final int INITIAL_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
+    public static final int MAX_CHARGES = 1;
+    public static final double RANGE_BLOCKS = 8.0;
     public static final double PARTICLE_STEP_BLOCKS = 0.35;
     public static final float PARTICLE_SCALE = 1.2f;
 

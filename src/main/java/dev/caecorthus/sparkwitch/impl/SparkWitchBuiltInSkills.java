@@ -18,6 +18,8 @@ public final class SparkWitchBuiltInSkills {
                 GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID,
                 0xF2DFF7,
                 1,
+                GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS,
+                0,
                 0,
                 context -> GrandWitchRules.isGrandWitch(context.role()),
                 GrandWitchActiveSkillService::use
@@ -71,7 +73,7 @@ public final class SparkWitchBuiltInSkills {
                 MurderousWitchDeathRayRules.DEATH_RAY_ID,
                 MurderousWitchDeathRayRules.COLOR,
                 1,
-                0,
+                MurderousWitchDeathRayRules.INITIAL_COOLDOWN_TICKS,
                 MurderousWitchDeathRayRules.COOLDOWN_TICKS,
                 MurderousWitchDeathRayRules.MANA_COST,
                 context -> MurderousWitchDeathRayRules.canSelect(context.role()),

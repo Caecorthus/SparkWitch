@@ -22,7 +22,7 @@ class PigGodRulesTest {
         assertEquals(0xF2A4FC, PigGodRules.COLOR);
         assertEquals(150, PigGodRules.COIN_COST);
         assertEquals(GameConstants.getInTicks(1, 0), PigGodRules.COOLDOWN_TICKS);
-        assertEquals(GameConstants.getInTicks(0, 5), PigGodRules.FREEZE_TICKS);
+        assertEquals(0, PigGodRules.FREEZE_TICKS);
         assertEquals(GameConstants.getInTicks(0, 12), PigGodRules.CHASE_TICKS);
         assertEquals(4, PigGodRules.SPEED_AMPLIFIER);
         assertEquals(16.0D, PigGodRules.SOUND_STOP_RANGE_BLOCKS);
@@ -75,6 +75,14 @@ class PigGodRulesTest {
         assertTrue(PigGodRules.shouldBlockDamage(SparkWitchRoles.pigGod(), true));
         assertFalse(PigGodRules.shouldBlockDamage(SparkWitchRoles.pigGod(), false));
         assertFalse(PigGodRules.shouldBlockDamage(WatheRoles.CIVILIAN, true));
+    }
+
+    @Test
+    void zeroFreezeStartsChaseImmediatelyOnlyWhenChaseTimeExists() {
+        assertTrue(PigGodRules.shouldStartChaseImmediately(0, PigGodRules.CHASE_TICKS));
+        assertTrue(PigGodRules.shouldStartChaseImmediately(-20, PigGodRules.CHASE_TICKS));
+        assertFalse(PigGodRules.shouldStartChaseImmediately(1, PigGodRules.CHASE_TICKS));
+        assertFalse(PigGodRules.shouldStartChaseImmediately(0, 0));
     }
 
     @Test

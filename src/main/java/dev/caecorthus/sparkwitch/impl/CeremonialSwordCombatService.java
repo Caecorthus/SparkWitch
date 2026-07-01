@@ -29,17 +29,28 @@ public final class CeremonialSwordCombatService {
     }
 
     public static ActionResult tryHandleAttack(Entity attacker, World world, Hand hand, Entity target) {
-        // Non-PASS cancels vanilla attack so ceremonial sword strikes do not inherit attack cooldown.
-        // 返回非 PASS 会取消原版攻击，让仪礼剑左键不继承攻击冷却。
         if (world.isClient
                 || !(attacker instanceof ServerPlayerEntity serverAttacker)
-                || !serverAttacker.getStackInHand(hand).isOf(SparkWitchItems.ceremonialSword())
-                || !canStrike(serverAttacker, target)) {
+                || !serverAttacker.getStackInHand(hand).isOf(SparkWitchItems.ceremonialSword())) {
+            return ActionResult.PASS;
+        }
+        if (!canStrike(serverAttacker, target)) {
             return ActionResult.PASS;
         }
 
+        // Non-PASS keeps vanilla damage from bypassing the ceremonial sword's custom cooldown gate.
+        // 返回非 PASS，避免原版伤害绕过仪礼剑自定义击杀的攻击冷却门槛。
+        if (!hasFullyCooledAttack(serverAttacker)) {
+            return ActionResult.SUCCESS;
+        }
+
         killWithCeremonialSword(serverAttacker, (ServerPlayerEntity) target);
+        serverAttacker.resetLastAttackedTicks();
         return ActionResult.SUCCESS;
+    }
+
+    public static boolean hasFullyCooledAttack(ServerPlayerEntity attacker) {
+        return attacker.getAttackCooldownProgress(0.5f) >= 1.0f;
     }
 
     public static boolean canStrike(ServerPlayerEntity attacker, Entity target) {

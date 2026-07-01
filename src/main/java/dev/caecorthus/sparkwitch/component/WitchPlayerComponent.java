@@ -360,6 +360,10 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         pigChaseFreezeY = y;
         pigChaseFreezeZ = z;
         pigChaseOwnsPsycho = false;
+        if (PigGodRules.shouldStartChaseImmediately(pigChaseFreezeTicks, pigChaseQueuedTicks)
+                && player instanceof ServerPlayerEntity serverPlayer) {
+            startPigChase(serverPlayer);
+        }
         sync();
     }
 
@@ -645,6 +649,9 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             } else {
                 shouldSync |= pigChaseFreezeTicks % 20 == 0;
             }
+        } else if (pigChaseQueuedTicks > 0) {
+            startPigChase(serverPlayer);
+            shouldSync = true;
         } else if (pigChaseTicks > 0) {
             pigChaseTicks--;
             if (pigChaseTicks == 0) {
