@@ -12,8 +12,9 @@ class MurderousWitchShopRulesTest {
     void murderousWitchShopContainsOnlyPlannedToolsAndWeapons() {
         List<MurderousWitchShopRules.PlannedEntry> entries = MurderousWitchShopRules.plannedEntries();
 
-        assertEquals(5, entries.size());
+        assertEquals(6, entries.size());
         assertEntry(entries, "knife", MurderousWitchShopRules.ItemKind.KNIFE, 100, ShopEntry.Type.WEAPON, 1, 1);
+        assertEntry(entries, "revolver", MurderousWitchShopRules.ItemKind.REVOLVER, 300, ShopEntry.Type.WEAPON, 1, -1);
         assertEntry(entries, "lockpick", MurderousWitchShopRules.ItemKind.LOCKPICK, 50, ShopEntry.Type.TOOL, 1, 1);
         assertEntry(entries, "crowbar", MurderousWitchShopRules.ItemKind.CROWBAR, 25, ShopEntry.Type.TOOL, 1, 1);
         assertEntry(entries, "throwing_axe", MurderousWitchShopRules.ItemKind.THROWING_AXE, 150, ShopEntry.Type.WEAPON, 1, -1);

@@ -24,6 +24,7 @@ public final class MurderousWitchShopRules {
     public static List<PlannedEntry> plannedEntries() {
         return List.of(
                 new PlannedEntry("knife", ItemKind.KNIFE, 100, ShopEntry.Type.WEAPON, 1, 1),
+                new PlannedEntry("revolver", ItemKind.REVOLVER, 300, ShopEntry.Type.WEAPON, 1, -1),
                 new PlannedEntry("lockpick", ItemKind.LOCKPICK, 50, ShopEntry.Type.TOOL, 1, 1),
                 new PlannedEntry("crowbar", ItemKind.CROWBAR, 25, ShopEntry.Type.TOOL, 1, 1),
                 new PlannedEntry("throwing_axe", ItemKind.THROWING_AXE, 150, ShopEntry.Type.WEAPON, 1, -1),
@@ -56,6 +57,7 @@ public final class MurderousWitchShopRules {
 
     public enum ItemKind {
         KNIFE,
+        REVOLVER,
         LOCKPICK,
         CROWBAR,
         THROWING_AXE,
@@ -64,6 +66,7 @@ public final class MurderousWitchShopRules {
         public Identifier id() {
             return switch (this) {
                 case KNIFE -> Registries.ITEM.getId(WatheItems.KNIFE);
+                case REVOLVER -> Registries.ITEM.getId(WatheItems.REVOLVER);
                 case LOCKPICK -> Registries.ITEM.getId(WatheItems.LOCKPICK);
                 case CROWBAR -> Registries.ITEM.getId(WatheItems.CROWBAR);
                 case THROWING_AXE -> THROWING_AXE_ID;
@@ -74,6 +77,7 @@ public final class MurderousWitchShopRules {
         private ItemStack stack(int count) {
             return switch (this) {
                 case KNIFE -> new ItemStack(WatheItems.KNIFE, count);
+                case REVOLVER -> new ItemStack(WatheItems.REVOLVER, count);
                 case LOCKPICK -> new ItemStack(WatheItems.LOCKPICK, count);
                 case CROWBAR -> new ItemStack(WatheItems.CROWBAR, count);
                 case THROWING_AXE -> new ItemStack(Registries.ITEM.get(THROWING_AXE_ID), count);
