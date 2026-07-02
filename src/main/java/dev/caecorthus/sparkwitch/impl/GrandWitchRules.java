@@ -91,6 +91,26 @@ public final class GrandWitchRules {
                 && isAffectedByWitchAreaSpell(viewerRole);
     }
 
+    /**
+     * Suppresses every instinct outline path for affected players while preserving global final-moment reveals.
+     * 在恐惧/障眼期间压制受影响玩家的所有本能描边，但保留终局时刻这类全局揭示。
+     */
+    public static boolean shouldSuppressAffectedInstinctHighlight(
+            boolean fearActive,
+            boolean instinctObscured,
+            Role viewerRole,
+            boolean viewerAlive,
+            boolean viewerSpectatingOrCreative,
+            boolean finalMomentActive
+    ) {
+        if (finalMomentActive || !shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)) {
+            return false;
+        }
+        boolean affectedByFear = fearActive && isAffectedByFear(viewerRole);
+        boolean affectedByObscure = instinctObscured && isAffectedByWitchAreaSpell(viewerRole);
+        return affectedByFear || affectedByObscure;
+    }
+
     public static boolean isOtherWitchRole(Role role) {
         return role != null && (role == SparkWitchRoles.murderousWitch() || role == SparkWitchRoles.apprenticeWitch());
     }

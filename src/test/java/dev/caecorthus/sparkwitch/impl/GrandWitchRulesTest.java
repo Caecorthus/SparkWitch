@@ -262,6 +262,29 @@ class GrandWitchRulesTest {
     }
 
     @Test
+    void fearAndObscureSuppressAffectedInstinctHighlightsOutsideFinalMoment() {
+        assertTrue(GrandWitchRules.shouldSuppressAffectedInstinctHighlight(
+                true, false, SparkWitchRoles.murderousWitch(), true, false, false));
+        assertTrue(GrandWitchRules.shouldSuppressAffectedInstinctHighlight(
+                false, true, WatheRoles.KILLER, true, false, false));
+        assertTrue(GrandWitchRules.shouldSuppressAffectedInstinctHighlight(
+                true, true, SparkWitchRoles.apprenticeWitch(), true, false, false));
+
+        assertFalse(GrandWitchRules.shouldSuppressAffectedInstinctHighlight(
+                true, true, SparkWitchRoles.grandWitch(), true, false, false));
+        assertFalse(GrandWitchRules.shouldSuppressAffectedInstinctHighlight(
+                true, true, SparkWitchRoles.accomplice(), true, false, false));
+        assertFalse(GrandWitchRules.shouldSuppressAffectedInstinctHighlight(
+                false, false, SparkWitchRoles.murderousWitch(), true, false, false));
+        assertFalse(GrandWitchRules.shouldSuppressAffectedInstinctHighlight(
+                true, true, SparkWitchRoles.murderousWitch(), false, false, false));
+        assertFalse(GrandWitchRules.shouldSuppressAffectedInstinctHighlight(
+                true, true, SparkWitchRoles.murderousWitch(), true, true, false));
+        assertFalse(GrandWitchRules.shouldSuppressAffectedInstinctHighlight(
+                true, true, SparkWitchRoles.murderousWitch(), true, false, true));
+    }
+
+    @Test
     void activeSkillAndSpellTuningMatchGrandWitchPlan() {
         assertEquals(0, GrandWitchRules.DIRECT_KILL_MONEY_REWARD);
         assertEquals(25, GrandWitchRules.WITCH_TEAM_KILL_MONEY_REWARD);

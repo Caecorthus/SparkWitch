@@ -29,6 +29,7 @@ public final class SparkWitchClient implements ClientModInitializer {
 
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> SparkWitchRoles.refreshAssassinGuessRoleOrder());
         NoellesRoleEnhancementClientHooks.register();
+        WitchInstinctSuppressionClientHooks.register();
         registerGrandWitchCeremonialSwordBgm();
 
         ClientPlayNetworking.registerGlobalReceiver(OpenCriminologistScreenS2CPacket.ID,
