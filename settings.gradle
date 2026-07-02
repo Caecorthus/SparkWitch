@@ -10,5 +10,9 @@ pluginManagement {
 }
 
 rootProject.name = "SparkWitch"
-include "SparkFactionAPI"
-project(":SparkFactionAPI").projectDir = file("../SparkFactionAPI")
+
+def sparkFactionApiDir = file("../SparkFactionAPI")
+if (sparkFactionApiDir.isDirectory() && new File(sparkFactionApiDir, "settings.gradle").isFile()) {
+    include "SparkFactionAPI"
+    project(":SparkFactionAPI").projectDir = sparkFactionApiDir
+}

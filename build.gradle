@@ -70,13 +70,30 @@ repositories {
 }
 
 dependencies {
+    def siblingSparkFactionApi = findProject(":SparkFactionAPI")
+    def watheJar = file("../SparkFactionAPI/libs/wathe-${project.wathe_version}.jar")
+    if (!watheJar.isFile()) {
+        watheJar = file("libs/wathe-${project.wathe_version}.jar")
+    }
+    if (!watheJar.isFile()) {
+        throw new GradleException("Missing Wathe dependency jar: ${watheJar}")
+    }
+
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    modImplementation files("../SparkFactionAPI/libs/wathe-${project.wathe_version}.jar")
-    implementation project(path: ":SparkFactionAPI", configuration: "namedElements")
+    modImplementation files(watheJar)
+    if (siblingSparkFactionApi != null) {
+        implementation project(path: ":SparkFactionAPI", configuration: "namedElements")
+    } else {
+        def bundledSparkFactionApiJars = fileTree(dir: "libs", include: "sparkfactionapi-*.jar")
+        if (bundledSparkFactionApiJars.files.isEmpty()) {
+            throw new GradleException("Missing bundled SparkFactionAPI jar under libs/.")
+        }
+        modImplementation bundledSparkFactionApiJars
+    }
     modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-base:${project.cca_version}"
     modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-entity:${project.cca_version}"
     modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-world:${project.cca_version}"
