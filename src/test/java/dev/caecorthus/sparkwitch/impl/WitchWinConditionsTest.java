@@ -4,6 +4,8 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WitchWinConditionsTest {
     @Test
@@ -40,6 +42,12 @@ class WitchWinConditionsTest {
                 WitchWinConditions.ShadowShowdownAction.BLOCK,
                 WitchWinConditions.shadowShowdownAction(1, 1, 2, 0, true)
         );
+    }
+
+    @Test
+    void activeShadowShowdownNeutralWinIsBlockedByLivingWitches() {
+        assertTrue(WitchWinConditions.shouldBlockShadowJesterShowdownNeutralWin(1));
+        assertFalse(WitchWinConditions.shouldBlockShadowJesterShowdownNeutralWin(0));
     }
 
     @Test

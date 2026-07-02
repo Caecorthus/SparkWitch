@@ -35,6 +35,13 @@ class MixinResourcesTest {
     }
 
     @Test
+    void serverMixinsRegisterShadowJesterShowdownGuard() throws IOException {
+        JsonObject mixins = readJson(SERVER_MIXINS);
+
+        assertTrue(contains(mixins.getAsJsonArray("mixins"), "NoellesRolesShadowJesterWinMixin"));
+    }
+
+    @Test
     void clientMixinsDoNotRegisterServerFallAttribution() throws IOException {
         JsonObject mixins = readJson(CLIENT_MIXINS);
 

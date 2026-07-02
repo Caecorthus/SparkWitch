@@ -3,8 +3,10 @@ package dev.caecorthus.sparkwitch.impl;
 import dev.caecorthus.sparkfactionapi.api.FactionWinContext;
 import dev.caecorthus.sparkfactionapi.api.FactionWinResult;
 import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,6 +79,17 @@ public final class WitchWinConditions {
         return !lastStandTriggeredThisRound;
     }
 
+    public static boolean shouldBlockShadowJesterShowdownNeutralWin(ServerWorld world, GameWorldComponent gameComponent) {
+        if (world == null || gameComponent == null) {
+            return false;
+        }
+        return shouldBlockShadowJesterShowdownNeutralWin(livingWitchCount(world, gameComponent));
+    }
+
+    static boolean shouldBlockShadowJesterShowdownNeutralWin(int livingWitchCount) {
+        return livingWitchCount > 0;
+    }
+
     private static WinSnapshot snapshot(FactionWinContext context) {
         int livingPlayerCount = 0;
         int livingWitchCount = 0;
@@ -118,6 +131,19 @@ public final class WitchWinConditions {
                 shadowShowdownActive,
                 List.copyOf(boundShadowJesters)
         );
+    }
+
+    private static int livingWitchCount(ServerWorld world, GameWorldComponent gameComponent) {
+        int livingWitchCount = 0;
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (!GameFunctions.isPlayerPlayingAndAlive(player)) {
+                continue;
+            }
+            if (GrandWitchRules.isWitchFactionMember(gameComponent.getRole(player))) {
+                livingWitchCount++;
+            }
+        }
+        return livingWitchCount;
     }
 
     public enum WinAction {
