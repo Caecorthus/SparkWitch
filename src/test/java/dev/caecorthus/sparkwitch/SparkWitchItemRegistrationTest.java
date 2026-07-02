@@ -49,17 +49,17 @@ class SparkWitchItemRegistrationTest {
     }
 
     @Test
-    void ceremonialSwordCustomAttackUsesVanillaCooldownBeforeKillGate() {
+    void ceremonialSwordCustomAttackIgnoresVanillaCooldownForZeroSecondLeftClick() {
         CeremonialSwordCombatService.AttackDecision earlySwing =
                 CeremonialSwordCombatService.decideAttack(true, false);
         assertTrue(earlySwing.handled());
-        assertTrue(earlySwing.resetVanillaCooldown());
-        assertFalse(earlySwing.kill());
+        assertFalse(earlySwing.resetVanillaCooldown());
+        assertTrue(earlySwing.kill());
 
         CeremonialSwordCombatService.AttackDecision fullSwing =
                 CeremonialSwordCombatService.decideAttack(true, true);
         assertTrue(fullSwing.handled());
-        assertTrue(fullSwing.resetVanillaCooldown());
+        assertFalse(fullSwing.resetVanillaCooldown());
         assertTrue(fullSwing.kill());
     }
 

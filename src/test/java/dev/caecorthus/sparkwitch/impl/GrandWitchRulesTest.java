@@ -268,13 +268,26 @@ class GrandWitchRulesTest {
         assertEquals(150, GrandWitchRules.CEREMONIAL_SWORD_MANA_COST);
         assertEquals(GameConstants.getInTicks(0, 15), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(1, 30), GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
-        assertEquals(GameConstants.getInTicks(1, 0), GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS);
+        assertEquals(0, GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS);
+        assertEquals(3, GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS);
         assertEquals(1, GrandWitchRules.CEREMONIAL_SWORD_SPEED_AMPLIFIER);
 
         assertSpell(GrandWitchRules.GrandWitchSpell.OBSCURE, "sparkwitch_obscure", 80, 30, 120);
         assertSpell(GrandWitchRules.GrandWitchSpell.BLINDNESS, "sparkwitch_blindness", 80, 20, 180);
         assertSpell(GrandWitchRules.GrandWitchSpell.FEAR, "sparkwitch_fear", 50, 10, 300);
         assertSpell(GrandWitchRules.GrandWitchSpell.HEAVINESS, "sparkwitch_heaviness", 60, 10, 180);
+    }
+
+    @Test
+    void ceremonialSwordTaskUnlockRequiresThreeCompletedTasks() {
+        assertFalse(GrandWitchRules.isCeremonialSwordUnlocked(0));
+        assertFalse(GrandWitchRules.isCeremonialSwordUnlocked(2));
+        assertTrue(GrandWitchRules.isCeremonialSwordUnlocked(3));
+        assertTrue(GrandWitchRules.isCeremonialSwordUnlocked(4));
+
+        assertEquals(0, GrandWitchRules.clampCeremonialSwordTaskProgress(-1));
+        assertEquals(2, GrandWitchRules.clampCeremonialSwordTaskProgress(2));
+        assertEquals(3, GrandWitchRules.clampCeremonialSwordTaskProgress(4));
     }
 
     private static void assertSpell(

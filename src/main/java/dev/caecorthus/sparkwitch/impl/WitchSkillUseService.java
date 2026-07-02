@@ -43,6 +43,17 @@ public final class WitchSkillUseService {
             send(player, "message.sparkwitch.skill.no_skill");
             return false;
         }
+        if (GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID.equals(skillId)
+                && GrandWitchRules.isGrandWitch(role)
+                && !component.hasUnlockedGrandWitchCeremonialSword()) {
+            send(
+                    player,
+                    "message.sparkwitch.skill.ceremonial_sword.locked",
+                    component.getGrandWitchCeremonialSwordTasks(),
+                    GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS
+            );
+            return false;
+        }
         if (component.getCooldownTicks() > 0) {
             send(player, "message.sparkwitch.skill.cooldown", Math.ceil(component.getCooldownTicks() / 20.0));
             return false;

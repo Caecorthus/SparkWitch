@@ -79,4 +79,34 @@ class WitchSkillHudRulesTest {
                 0
         ));
     }
+
+    @Test
+    void ceremonialSwordShowsTaskUnlockBeforeManaRequirement() {
+        assertTrue(WitchSkillHudRules.shouldShowCeremonialSwordTaskUnlock(
+                GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID,
+                GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS - 1,
+                0,
+                0
+        ));
+        assertFalse(WitchSkillHudRules.shouldShowManaRequirement(
+                GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID,
+                GrandWitchRules.CEREMONIAL_SWORD_MANA_COST - 1,
+                GrandWitchRules.CEREMONIAL_SWORD_MANA_COST,
+                0,
+                0,
+                GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS - 1
+        ));
+        assertFalse(WitchSkillHudRules.shouldShowCeremonialSwordTaskUnlock(
+                GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID,
+                GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS,
+                0,
+                0
+        ));
+        assertFalse(WitchSkillHudRules.shouldShowCeremonialSwordTaskUnlock(
+                SparkWitch.id("mighty_force"),
+                0,
+                0,
+                0
+        ));
+    }
 }

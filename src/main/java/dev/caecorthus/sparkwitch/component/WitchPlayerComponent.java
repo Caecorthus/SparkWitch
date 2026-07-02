@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.component;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.impl.ApprenticeWitchSkillService;
 import dev.caecorthus.sparkwitch.impl.GrandWitchActiveSkillService;
+import dev.caecorthus.sparkwitch.impl.GrandWitchRules;
 import dev.caecorthus.sparkwitch.impl.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.impl.PigGodRules;
 import dev.caecorthus.sparkwitch.impl.PigGodSkillService;
@@ -47,6 +48,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     private int manaRegenerationTicks;
     private int ceremonialSwordTicks;
     private int ceremonialSwordSlot = -1;
+    private int grandWitchCeremonialSwordTasks;
     private int mightyForceTicks;
     private int swiftStepTicks;
     private int murderSenseTicks;
@@ -95,6 +97,14 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     public int getCeremonialSwordSlot() {
         return ceremonialSwordSlot;
+    }
+
+    public int getGrandWitchCeremonialSwordTasks() {
+        return grandWitchCeremonialSwordTasks;
+    }
+
+    public boolean hasUnlockedGrandWitchCeremonialSword() {
+        return GrandWitchRules.isCeremonialSwordUnlocked(grandWitchCeremonialSwordTasks);
     }
 
     public int getMightyForceTicks() {
@@ -279,6 +289,19 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
+    public void recordGrandWitchCeremonialSwordTask() {
+        setGrandWitchCeremonialSwordTasks(grandWitchCeremonialSwordTasks + 1);
+    }
+
+    private void setGrandWitchCeremonialSwordTasks(int completedTasks) {
+        int normalized = GrandWitchRules.clampCeremonialSwordTaskProgress(completedTasks);
+        if (grandWitchCeremonialSwordTasks == normalized) {
+            return;
+        }
+        grandWitchCeremonialSwordTasks = normalized;
+        sync();
+    }
+
     public void completeCeremonialSwordWindow(int cooldownTicks) {
         ceremonialSwordTicks = 0;
         ceremonialSwordSlot = -1;
@@ -427,6 +450,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 && manaRegenerationTicks == 0
                 && ceremonialSwordTicks == 0
                 && ceremonialSwordSlot < 0
+                && grandWitchCeremonialSwordTasks == 0
                 && mightyForceTicks == 0
                 && swiftStepTicks == 0
                 && murderSenseTicks == 0
@@ -455,6 +479,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         manaRegenerationTicks = 0;
         ceremonialSwordTicks = 0;
         ceremonialSwordSlot = -1;
+        grandWitchCeremonialSwordTasks = 0;
         mightyForceTicks = 0;
         swiftStepTicks = 0;
         murderSenseTicks = 0;
@@ -812,6 +837,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         buf.writeBoolean(visible && manaEnabled);
         buf.writeVarInt(visible && manaEnabled ? mana : 0);
         buf.writeVarInt(visible ? ceremonialSwordTicks : 0);
+        buf.writeVarInt(visible ? grandWitchCeremonialSwordTasks : 0);
         buf.writeVarInt(ownerVisible ? mightyForceTicks : 0);
         buf.writeVarInt(ownerVisible ? swiftStepTicks : 0);
         buf.writeVarInt(ownerVisible ? murderSenseTicks : 0);
@@ -838,6 +864,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         if (ceremonialSwordTicks == 0) {
             ceremonialSwordSlot = -1;
         }
+        grandWitchCeremonialSwordTasks = GrandWitchRules.clampCeremonialSwordTaskProgress(buf.readVarInt());
         mightyForceTicks = Math.max(0, buf.readVarInt());
         swiftStepTicks = Math.max(0, buf.readVarInt());
         murderSenseTicks = Math.max(0, buf.readVarInt());
@@ -873,6 +900,9 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         if (ceremonialSwordTicks > 0) {
             tag.putInt("CeremonialSwordTicks", ceremonialSwordTicks);
             tag.putInt("CeremonialSwordSlot", ceremonialSwordSlot);
+        }
+        if (grandWitchCeremonialSwordTasks > 0) {
+            tag.putInt("GrandWitchCeremonialSwordTasks", grandWitchCeremonialSwordTasks);
         }
         if (mightyForceTicks > 0) {
             tag.putInt("MightyForceTicks", mightyForceTicks);
@@ -937,6 +967,9 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         ceremonialSwordSlot = ceremonialSwordTicks > 0 && tag.contains("CeremonialSwordSlot", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("CeremonialSwordSlot"))
                 : -1;
+        grandWitchCeremonialSwordTasks = tag.contains("GrandWitchCeremonialSwordTasks", NbtElement.NUMBER_TYPE)
+                ? GrandWitchRules.clampCeremonialSwordTaskProgress(tag.getInt("GrandWitchCeremonialSwordTasks"))
+                : 0;
         mightyForceTicks = tag.contains("MightyForceTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("MightyForceTicks"))
                 : 0;

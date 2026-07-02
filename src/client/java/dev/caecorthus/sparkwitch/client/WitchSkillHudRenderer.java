@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client;
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.impl.GrandWitchRules;
 import dev.caecorthus.sparkwitch.impl.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.impl.PigGodRules;
 import dev.caecorthus.sparkwitch.impl.WitchSkillHudRules;
@@ -62,6 +63,18 @@ public final class WitchSkillHudRenderer {
                     seconds(activeTicks)
             );
         }
+        if (WitchSkillHudRules.shouldShowCeremonialSwordTaskUnlock(
+                skillId,
+                component.getGrandWitchCeremonialSwordTasks(),
+                activeTicks,
+                component.getCooldownTicks()
+        )) {
+            return Text.translatable(
+                    "hud.sparkwitch.skill.ceremonial_sword.locked",
+                    component.getGrandWitchCeremonialSwordTasks(),
+                    GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS
+            );
+        }
         if (component.getCooldownTicks() > 0) {
             return Text.translatable(
                     "hud.sparkwitch.skill.cooldown",
@@ -76,7 +89,8 @@ public final class WitchSkillHudRenderer {
                 component.getMana(),
                 manaCost,
                 activeTicks,
-                component.getCooldownTicks()
+                component.getCooldownTicks(),
+                component.getGrandWitchCeremonialSwordTasks()
         )) {
             return Text.translatable(
                     "hud.sparkwitch.skill.not_enough_mana",

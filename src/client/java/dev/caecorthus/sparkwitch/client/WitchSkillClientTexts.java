@@ -2,6 +2,8 @@ package dev.caecorthus.sparkwitch.client;
 
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
+import dev.caecorthus.sparkwitch.impl.GrandWitchRules;
+import dev.caecorthus.sparkwitch.impl.WitchSkillHudRules;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -32,10 +34,14 @@ public final class WitchSkillClientTexts {
     }
 
     public static List<Text> tooltip(Identifier skillId, int cooldownTicks) {
-        return tooltip(skillId, cooldownTicks, 0);
+        return tooltip(skillId, cooldownTicks, 0, 0);
     }
 
     public static List<Text> tooltip(Identifier skillId, int cooldownTicks, int activeTicks) {
+        return tooltip(skillId, cooldownTicks, activeTicks, 0);
+    }
+
+    public static List<Text> tooltip(Identifier skillId, int cooldownTicks, int activeTicks, int ceremonialSwordTasks) {
         WitchSkillDefinition skill = WitchSkillRegistry.get(skillId);
         List<Text> lines = new ArrayList<>();
         if (skill == null) {
@@ -46,6 +52,17 @@ public final class WitchSkillClientTexts {
         }
         if (activeTicks > 0) {
             lines.add(Text.translatable("gui.sparkwitch.skill.active", (int) Math.ceil(activeTicks / 20.0)));
+        } else if (WitchSkillHudRules.shouldShowCeremonialSwordTaskUnlock(
+                skillId,
+                ceremonialSwordTasks,
+                activeTicks,
+                cooldownTicks
+        )) {
+            lines.add(Text.translatable(
+                    "gui.sparkwitch.skill.ceremonial_sword.locked",
+                    ceremonialSwordTasks,
+                    GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS
+            ));
         } else if (cooldownTicks > 0) {
             lines.add(Text.translatable("gui.sparkwitch.skill.cooldown", (int) Math.ceil(cooldownTicks / 20.0)));
         } else {

@@ -2,6 +2,8 @@ package dev.caecorthus.sparkwitch.client.mixin;
 
 import dev.caecorthus.sparkwitch.client.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.impl.GrandWitchRules;
+import dev.caecorthus.sparkwitch.impl.WitchSkillHudRules;
 import dev.caecorthus.sparkwitch.impl.WitchSkillPresentationRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -66,7 +68,12 @@ public abstract class WitchSkillInventoryScreenMixin extends LimitedHandledScree
         if (mouseX >= x && mouseX <= x + hoverWidth && mouseY >= hoverTop && mouseY <= hoverBottom) {
             context.drawTooltip(
                     this.textRenderer,
-                    WitchSkillClientTexts.tooltip(skillId, component.getCooldownTicks(), component.getActiveSkillWindowTicks()),
+                    WitchSkillClientTexts.tooltip(
+                            skillId,
+                            component.getCooldownTicks(),
+                            component.getActiveSkillWindowTicks(),
+                            component.getGrandWitchCeremonialSwordTasks()
+                    ),
                     mouseX,
                     mouseY
             );
@@ -77,6 +84,18 @@ public abstract class WitchSkillInventoryScreenMixin extends LimitedHandledScree
         int activeTicks = component.getActiveSkillWindowTicks();
         if (activeTicks > 0) {
             return Text.translatable("gui.sparkwitch.skill.active", (int) Math.ceil(activeTicks / 20.0));
+        }
+        if (WitchSkillHudRules.shouldShowCeremonialSwordTaskUnlock(
+                component.getActiveSkillId(),
+                component.getGrandWitchCeremonialSwordTasks(),
+                activeTicks,
+                component.getCooldownTicks()
+        )) {
+            return Text.translatable(
+                    "gui.sparkwitch.skill.ceremonial_sword.locked",
+                    component.getGrandWitchCeremonialSwordTasks(),
+                    GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS
+            );
         }
         if (component.getCooldownTicks() > 0) {
             return Text.translatable("gui.sparkwitch.skill.cooldown", (int) Math.ceil(component.getCooldownTicks() / 20.0));

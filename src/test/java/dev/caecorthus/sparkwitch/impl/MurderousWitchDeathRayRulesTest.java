@@ -24,8 +24,8 @@ class MurderousWitchDeathRayRulesTest {
         assertEquals(GameConstants.getInTicks(0, 10), MurderousWitchDeathRayRules.WINDOW_TICKS);
         assertEquals(GameConstants.getInTicks(1, 0), MurderousWitchDeathRayRules.COOLDOWN_TICKS);
         assertEquals(GameConstants.getInTicks(1, 0), MurderousWitchDeathRayRules.INITIAL_COOLDOWN_TICKS);
-        assertEquals(1, MurderousWitchDeathRayRules.MAX_CHARGES);
-        assertEquals(8.0, MurderousWitchDeathRayRules.RANGE_BLOCKS);
+        assertEquals(3, MurderousWitchDeathRayRules.MAX_CHARGES);
+        assertEquals(12.0, MurderousWitchDeathRayRules.RANGE_BLOCKS);
     }
 
     @Test
@@ -38,10 +38,10 @@ class MurderousWitchDeathRayRulesTest {
     }
 
     @Test
-    void rayHitsExpandedTargetBoxWithinEightBlocks() {
+    void rayHitsExpandedTargetBoxWithinTwelveBlocks() {
         Vec3d start = new Vec3d(0.0, 1.6, 0.0);
         Vec3d forward = new Vec3d(1.0, 0.0, 0.0);
-        Box target = new Box(6.8, 0.0, -0.3, 7.4, 1.8, 0.3);
+        Box target = new Box(10.8, 0.0, -0.3, 11.4, 1.8, 0.3);
 
         assertTrue(MurderousWitchDeathRayRules.intersectsRay(start, forward, target));
     }
@@ -50,21 +50,21 @@ class MurderousWitchDeathRayRulesTest {
     void rayIgnoresTargetsHiddenBehindBlockedDistance() {
         Vec3d start = new Vec3d(0.0, 1.6, 0.0);
         Vec3d forward = new Vec3d(1.0, 0.0, 0.0);
-        Box target = new Box(6.8, 0.0, -0.3, 7.4, 1.8, 0.3);
+        Box target = new Box(10.8, 0.0, -0.3, 11.4, 1.8, 0.3);
 
-        assertTrue(MurderousWitchDeathRayRules.intersectsRay(start, forward, target, 8.0));
-        assertFalse(MurderousWitchDeathRayRules.intersectsRay(start, forward, target, 6.0));
+        assertTrue(MurderousWitchDeathRayRules.intersectsRay(start, forward, target, 12.0));
+        assertFalse(MurderousWitchDeathRayRules.intersectsRay(start, forward, target, 10.0));
     }
 
     @Test
-    void rayIgnoresTargetsBeyondEightBlocksOrBesideTheBeam() {
+    void rayIgnoresTargetsBeyondTwelveBlocksOrBesideTheBeam() {
         Vec3d start = new Vec3d(0.0, 1.6, 0.0);
         Vec3d forward = new Vec3d(1.0, 0.0, 0.0);
 
         assertFalse(MurderousWitchDeathRayRules.intersectsRay(
                 start,
                 forward,
-                new Box(8.5, 0.0, -0.3, 9.1, 1.8, 0.3)
+                new Box(12.5, 0.0, -0.3, 13.1, 1.8, 0.3)
         ));
         assertFalse(MurderousWitchDeathRayRules.intersectsRay(
                 start,
@@ -76,7 +76,7 @@ class MurderousWitchDeathRayRulesTest {
     @Test
     void rayDirectionIsNormalizedForHitChecks() {
         Vec3d start = new Vec3d(0.0, 1.6, 0.0);
-        Box target = new Box(6.8, 0.0, -0.3, 7.4, 1.8, 0.3);
+        Box target = new Box(10.8, 0.0, -0.3, 11.4, 1.8, 0.3);
 
         assertTrue(MurderousWitchDeathRayRules.intersectsRay(start, new Vec3d(100.0, 0.0, 0.0), target));
     }

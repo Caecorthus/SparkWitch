@@ -23,6 +23,17 @@ public final class WitchSkillHudRules {
                 && balance < PigGodRules.COIN_COST;
     }
 
+    public static boolean shouldShowCeremonialSwordTaskUnlock(
+            @Nullable Identifier skillId,
+            int completedTasks,
+            int activeTicks,
+            int cooldownTicks
+    ) {
+        return GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID.equals(skillId)
+                && activeTicks <= 0
+                && !GrandWitchRules.isCeremonialSwordUnlocked(completedTasks);
+    }
+
     public static boolean shouldShowManaRequirement(
             @Nullable Identifier skillId,
             int currentMana,
@@ -30,10 +41,22 @@ public final class WitchSkillHudRules {
             int activeTicks,
             int cooldownTicks
     ) {
+        return shouldShowManaRequirement(skillId, currentMana, requiredMana, activeTicks, cooldownTicks, 0);
+    }
+
+    public static boolean shouldShowManaRequirement(
+            @Nullable Identifier skillId,
+            int currentMana,
+            int requiredMana,
+            int activeTicks,
+            int cooldownTicks,
+            int ceremonialSwordTasks
+    ) {
         return skillId != null
                 && requiredMana > 0
                 && activeTicks <= 0
                 && cooldownTicks <= 0
+                && !shouldShowCeremonialSwordTaskUnlock(skillId, ceremonialSwordTasks, activeTicks, cooldownTicks)
                 && currentMana < requiredMana;
     }
 }

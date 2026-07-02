@@ -34,13 +34,13 @@ public final class CeremonialSwordCombatService {
                 || !serverAttacker.getStackInHand(hand).isOf(SparkWitchItems.ceremonialSword())) {
             return ActionResult.PASS;
         }
-        AttackDecision decision = decideAttack(canStrike(serverAttacker, target), hasFullyCooledAttack(serverAttacker));
+        AttackDecision decision = decideAttack(canStrike(serverAttacker, target), true);
         if (!decision.handled()) {
             return ActionResult.PASS;
         }
 
-        // SUCCESS keeps vanilla damage from bypassing the custom kill gate; the reset mirrors vanilla attack timing.
-        // 返回 SUCCESS 防止原版伤害绕过自定义击杀门槛；重置攻击间隔则沿用原版左键冷却时序。
+        // SUCCESS keeps vanilla damage from bypassing the custom kill gate without adding vanilla cooldown.
+        // 返回 SUCCESS 防止原版伤害绕过自定义击杀门槛，同时不附加原版左键冷却。
         if (decision.resetVanillaCooldown()) {
             serverAttacker.resetLastAttackedTicks();
         }
@@ -58,11 +58,7 @@ public final class CeremonialSwordCombatService {
         if (!canStrike) {
             return new AttackDecision(false, false, false);
         }
-        return new AttackDecision(true, true, fullyCooledAttack);
-    }
-
-    public static boolean hasFullyCooledAttack(ServerPlayerEntity attacker) {
-        return attacker.getAttackCooldownProgress(0.5f) >= 1.0f;
+        return new AttackDecision(true, false, true);
     }
 
     public static boolean canStrike(ServerPlayerEntity attacker, Entity target) {

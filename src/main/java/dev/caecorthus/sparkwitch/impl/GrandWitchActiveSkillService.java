@@ -6,6 +6,8 @@ import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.doctor4t.wathe.index.WatheItems;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerInventory;
@@ -61,6 +63,16 @@ public final class GrandWitchActiveSkillService {
             player.networkHandler.sendPacket(new UpdateSelectedSlotS2CPacket(knifeSlot));
         }
         return WitchSkillUseResult.success(0, "message.sparkwitch.skill.ceremonial_sword.activated");
+    }
+
+    public static void onTaskComplete(ServerPlayerEntity player) {
+        if (!GameFunctions.isPlayerPlayingAndAlive(player)) {
+            return;
+        }
+        if (!GrandWitchRules.isGrandWitch(GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player))) {
+            return;
+        }
+        WitchPlayerComponent.KEY.get(player).recordGrandWitchCeremonialSwordTask();
     }
 
     public static void finishCeremonialSwordWindow(ServerPlayerEntity player, WitchPlayerComponent component) {

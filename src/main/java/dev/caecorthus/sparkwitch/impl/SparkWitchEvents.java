@@ -42,6 +42,7 @@ public final class SparkWitchEvents {
             }
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
+        TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> NoellesRoleEnhancementService.onTaskComplete(player));
         KillPlayer.AFTER.register(WitchManaService::afterKill);
         KillPlayer.AFTER.register(WitchEconomyService::afterKill);

@@ -20,7 +20,8 @@ public final class GrandWitchRules {
     public static final int CEREMONIAL_SWORD_MANA_COST = 150;
     public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 15);
     public static final int CEREMONIAL_SWORD_COOLDOWN_TICKS = GameConstants.getInTicks(1, 30);
-    public static final int CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
+    public static final int CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS = 0;
+    public static final int CEREMONIAL_SWORD_UNLOCK_TASKS = 3;
     public static final int CEREMONIAL_SWORD_SPEED_AMPLIFIER = 1;
 
     public static final int OTHER_WITCH_INSTINCT_COLOR = 0x7AB8FF;
@@ -43,6 +44,14 @@ public final class GrandWitchRules {
 
     public static boolean isWitchFactionMember(Role role) {
         return role != null && (role == SparkWitchRoles.grandWitch() || role == SparkWitchRoles.accomplice());
+    }
+
+    public static int clampCeremonialSwordTaskProgress(int completedTasks) {
+        return Math.max(0, Math.min(CEREMONIAL_SWORD_UNLOCK_TASKS, completedTasks));
+    }
+
+    public static boolean isCeremonialSwordUnlocked(int completedTasks) {
+        return completedTasks >= CEREMONIAL_SWORD_UNLOCK_TASKS;
     }
 
     public static boolean usesKillerStyleInstinctLight(Role role) {
