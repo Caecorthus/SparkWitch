@@ -4,5 +4,14 @@
     "sounds": [
       "sparkwitch:skill/pig_chase"
     ]
+  },
+  "ambient.grand_witch_ceremonial_sword_bgm": {
+    "subtitle": "subtitles.sparkwitch.ambient.grand_witch_ceremonial_sword_bgm",
+    "sounds": [
+      {
+        "name": "sparkwitch:ambient/grand_witch_ceremonial_sword_bgm",
+        "stream": true
+      }
+    ]
   }
 }

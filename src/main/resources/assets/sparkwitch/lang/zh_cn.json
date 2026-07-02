@@ -89,6 +89,7 @@
   "replay.death.sparkwitch.pierced_by_ray.killed": "%s 被 %s 的§c死亡射线§r击穿",
   "replay.death.sparkwitch.pierced_by_ray.died": "%s 被§c死亡射线§r击穿",
   "subtitles.sparkwitch.skill.pig_chase": "皮革追杀",
+  "subtitles.sparkwitch.ambient.grand_witch_ceremonial_sword_bgm": "大魔女仪礼剑 BGM",
   "gui.sparkwitch.skills": "职业技能",
   "gui.sparkwitch.mana": "%s \uE782",
   "gui.sparkwitch.shop.mana_price": "%s \uE782",

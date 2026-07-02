@@ -89,6 +89,7 @@
   "replay.death.sparkwitch.pierced_by_ray.killed": "%s was pierced by %s's §cDeath Ray§r",
   "replay.death.sparkwitch.pierced_by_ray.died": "%s was pierced by a §cDeath Ray§r",
   "subtitles.sparkwitch.skill.pig_chase": "Pig Chase",
+  "subtitles.sparkwitch.ambient.grand_witch_ceremonial_sword_bgm": "Grand Witch Ceremonial Sword BGM",
   "gui.sparkwitch.skills": "Role Skill",
   "gui.sparkwitch.mana": "%s \uE782",
   "gui.sparkwitch.shop.mana_price": "%s \uE782",

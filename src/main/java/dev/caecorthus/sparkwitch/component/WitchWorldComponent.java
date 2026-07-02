@@ -39,9 +39,12 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     private final World world;
     private final LinkedHashSet<Identifier> disabledSkills = new LinkedHashSet<>();
     private final LinkedHashMap<UUID, UUID> criminologistKillers = new LinkedHashMap<>();
+    private final GrandWitchCeremonialSwordBgmSources grandWitchCeremonialSwordBgmSources =
+            new GrandWitchCeremonialSwordBgmSources();
     private int instinctObscureTicks;
     private int obscureActionbarTicks;
     private int fearTicks;
+    private int syncedGrandWitchCeremonialSwordBgmSources;
 
     public WitchWorldComponent(World world) {
         this.world = world;
@@ -74,6 +77,16 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         return fearTicks;
     }
 
+    public boolean hasGrandWitchCeremonialSwordBgm() {
+        return grandWitchCeremonialSwordBgmSourceCount() > 0;
+    }
+
+    public int grandWitchCeremonialSwordBgmSourceCount() {
+        return usesLocalGrandWitchCeremonialSwordBgmSources()
+                ? grandWitchCeremonialSwordBgmSources.size()
+                : syncedGrandWitchCeremonialSwordBgmSources;
+    }
+
     public void startInstinctObscure(int durationTicks) {
         instinctObscureTicks = Math.max(0, durationTicks);
         obscureActionbarTicks = 0;
@@ -82,6 +95,26 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
 
     public void startFear(int durationTicks) {
         fearTicks = Math.max(0, durationTicks);
+        sync();
+    }
+
+    /**
+     * Tracks Grand Witch skill BGM by player UUID so overlapping casts keep the ambience alive.
+     * 按玩家 UUID 记录大魔女技能 BGM 来源，多个技能窗口重叠时不会误停全场环境音。
+     */
+    public void startGrandWitchCeremonialSwordBgm(UUID playerUuid) {
+        if (!grandWitchCeremonialSwordBgmSources.start(playerUuid)) {
+            return;
+        }
+        syncedGrandWitchCeremonialSwordBgmSources = grandWitchCeremonialSwordBgmSources.size();
+        sync();
+    }
+
+    public void stopGrandWitchCeremonialSwordBgm(UUID playerUuid) {
+        if (!grandWitchCeremonialSwordBgmSources.stop(playerUuid)) {
+            return;
+        }
+        syncedGrandWitchCeremonialSwordBgmSources = grandWitchCeremonialSwordBgmSources.size();
         sync();
     }
 
@@ -100,12 +133,16 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         instinctObscureTicks = 0;
         obscureActionbarTicks = 0;
         fearTicks = 0;
+        grandWitchCeremonialSwordBgmSources.clear();
+        syncedGrandWitchCeremonialSwordBgmSources = 0;
         criminologistKillers.clear();
         sync();
     }
 
     public void sync() {
-        KEY.sync(world);
+        if (world != null) {
+            KEY.sync(world);
+        }
     }
 
     @Override
@@ -148,6 +185,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         writeIdentifierSet(buf, disabledSkills);
         buf.writeVarInt(instinctObscureTicks);
         buf.writeVarInt(fearTicks);
+        buf.writeVarInt(grandWitchCeremonialSwordBgmSources.size());
     }
 
     @Override
@@ -155,6 +193,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         readIdentifierSet(buf, disabledSkills);
         instinctObscureTicks = Math.max(0, buf.readVarInt());
         fearTicks = Math.max(0, buf.readVarInt());
+        syncedGrandWitchCeremonialSwordBgmSources = Math.max(0, buf.readVarInt());
         obscureActionbarTicks = 0;
     }
 
@@ -183,6 +222,8 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         disabledSkills.clear();
         criminologistKillers.clear();
+        grandWitchCeremonialSwordBgmSources.clear();
+        syncedGrandWitchCeremonialSwordBgmSources = 0;
         fromNbt(tag.getList("DisabledSkills", NbtElement.STRING_TYPE), disabledSkills);
         instinctObscureTicks = tag.contains("InstinctObscureTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("InstinctObscureTicks"))
@@ -233,5 +274,9 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
                 ids.add(id);
             }
         }
+    }
+
+    private boolean usesLocalGrandWitchCeremonialSwordBgmSources() {
+        return world == null || world instanceof ServerWorld;
     }
 }

@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.doctor4t.wathe.index.WatheItems;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -48,6 +49,7 @@ public final class GrandWitchActiveSkillService {
         player.getInventory().setStack(knifeSlot, new ItemStack(SparkWitchItems.ceremonialSword()));
         player.getInventory().markDirty();
         component.beginCeremonialSwordWindow(knifeSlot, GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
+        WitchWorldComponent.KEY.get(player.getServerWorld()).startGrandWitchCeremonialSwordBgm(player.getUuid());
         player.addStatusEffect(new StatusEffectInstance(
                 StatusEffects.SPEED,
                 GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS,
@@ -77,6 +79,7 @@ public final class GrandWitchActiveSkillService {
 
     public static void finishCeremonialSwordWindow(ServerPlayerEntity player, WitchPlayerComponent component) {
         restoreKnife(player, component.getCeremonialSwordSlot());
+        WitchWorldComponent.KEY.get(player.getServerWorld()).stopGrandWitchCeremonialSwordBgm(player.getUuid());
         component.completeCeremonialSwordWindow(GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
     }
 
@@ -87,6 +90,7 @@ public final class GrandWitchActiveSkillService {
         } else {
             removeCeremonialSwords(player);
         }
+        WitchWorldComponent.KEY.get(player.getServerWorld()).stopGrandWitchCeremonialSwordBgm(player.getUuid());
         component.clearCeremonialSwordWindow();
     }
 

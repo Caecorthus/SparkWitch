@@ -471,6 +471,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         if (hadPigChaseSound) {
             stopPigChaseSound();
         }
+        stopGrandWitchCeremonialSwordBgm();
         clearPigChasePsycho();
         activeSkillId = null;
         cooldownTicks = 0;
@@ -762,6 +763,13 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                     pigChaseFreezeY,
                     pigChaseFreezeZ
             );
+        }
+    }
+
+    private void stopGrandWitchCeremonialSwordBgm() {
+        if (player instanceof ServerPlayerEntity serverPlayer) {
+            WitchWorldComponent.KEY.get(serverPlayer.getServerWorld())
+                    .stopGrandWitchCeremonialSwordBgm(serverPlayer.getUuid());
         }
     }
 

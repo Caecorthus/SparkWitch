@@ -102,6 +102,7 @@ class LocalizationResourcesTest {
             "replay.death.sparkwitch.pierced_by_ray.killed",
             "replay.death.sparkwitch.pierced_by_ray.died",
             "subtitles.sparkwitch.skill.pig_chase",
+            "subtitles.sparkwitch.ambient.grand_witch_ceremonial_sword_bgm",
             "gui.sparkwitch.skills",
             "gui.sparkwitch.mana",
             "gui.sparkwitch.shop.mana_price",
