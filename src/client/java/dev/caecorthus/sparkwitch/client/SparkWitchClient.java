@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.client.screen.CriminologistScreen;
+import dev.caecorthus.sparkwitch.client.net.SparkWitchClientVersionHandshake;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.net.OpenCriminologistScreenS2CPacket;
@@ -23,6 +24,7 @@ public final class SparkWitchClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        SparkWitchClientVersionHandshake.registerClient();
         requireLambDynamicLights();
 
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> SparkWitchRoles.refreshAssassinGuessRoleOrder());
