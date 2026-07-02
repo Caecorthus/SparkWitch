@@ -266,14 +266,16 @@ class LocalizationResourcesTest {
     }
 
     @Test
-    void manaHudAndShopPriceUseIconWithoutManaWords() throws IOException {
+    void manaHudShopPriceAndSkillRequirementUseIconWithoutManaWords() throws IOException {
         JsonObject english = readLang("en_us.json");
         JsonObject chinese = readLang("zh_cn.json");
 
         assertManaIconText(english.get("gui.sparkwitch.mana").getAsString());
         assertManaIconText(english.get("gui.sparkwitch.shop.mana_price").getAsString());
+        assertManaIconText(english.get("hud.sparkwitch.skill.not_enough_mana").getAsString());
         assertManaIconText(chinese.get("gui.sparkwitch.mana").getAsString());
         assertManaIconText(chinese.get("gui.sparkwitch.shop.mana_price").getAsString());
+        assertManaIconText(chinese.get("hud.sparkwitch.skill.not_enough_mana").getAsString());
     }
 
     @Test

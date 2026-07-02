@@ -4,6 +4,7 @@
   "package": "dev.caecorthus.sparkwitch.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "CeremonialSwordCrosshairMixin",
     "ClientPlayNetworkingFearMixin",
     "DeathRayAttackMixin",
     "KeyBindingFearSkillMixin",

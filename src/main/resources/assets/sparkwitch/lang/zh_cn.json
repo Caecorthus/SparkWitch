@@ -100,7 +100,7 @@
   "hud.sparkwitch.skill.active": "%s 生效中：%s秒",
   "hud.sparkwitch.skill.death_ray.active": "%s 生效中：%s秒 / %s 次",
   "hud.sparkwitch.skill.pig_chase.not_enough_money": "需要 %s 金币",
-  "hud.sparkwitch.skill.not_enough_mana": "需要 %s 魔力值",
+  "hud.sparkwitch.skill.not_enough_mana": "需要 %s \uE782",
   "hud.sparkwitch.skill.ready": "按 %2$s 使用 %1$s",
   "hud.sparkwitch.criminologist.cooldown": "犯罪行为学家 冷却中：%s秒",
   "hud.sparkwitch.criminologist.ready": "犯罪行为学家：右键尸体",

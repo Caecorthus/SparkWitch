@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.impl;
 
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
@@ -61,13 +60,18 @@ public final class CeremonialSwordDashService {
         return horizontal.normalize();
     }
 
+    public static boolean shouldKeepDashActive(boolean playerPresent, boolean alive, boolean spectator) {
+        return playerPresent
+                && alive
+                && !spectator;
+    }
+
     private static void tickServer(MinecraftServer server) {
         Iterator<Map.Entry<UUID, DashState>> iterator = DASHES.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<UUID, DashState> entry = iterator.next();
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(entry.getKey());
-            if (player == null
-                    || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+            if (player == null || !shouldKeepDashActive(true, player.isAlive(), player.isSpectator())) {
                 iterator.remove();
                 continue;
             }

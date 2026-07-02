@@ -56,6 +56,13 @@ class MixinResourcesTest {
     }
 
     @Test
+    void clientMixinsRegisterCeremonialSwordCrosshairCooldownHook() throws IOException {
+        JsonObject mixins = readJson(CLIENT_MIXINS);
+
+        assertTrue(contains(mixins.getAsJsonArray("client"), "CeremonialSwordCrosshairMixin"));
+    }
+
+    @Test
     void clientMixinsRegisterRoleNameDisplayFallback() throws IOException {
         JsonObject mixins = readJson(CLIENT_MIXINS);
 

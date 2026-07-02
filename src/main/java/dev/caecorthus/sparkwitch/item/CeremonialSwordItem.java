@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.item;
 
 import dev.caecorthus.sparkwitch.impl.CeremonialSwordDashService;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -38,15 +37,30 @@ public class CeremonialSwordItem extends Item {
         super(settings);
     }
 
+    public static boolean shouldStartDash(
+            boolean serverPlayer,
+            boolean alive,
+            boolean spectator,
+            boolean itemCoolingDown
+    ) {
+        return serverPlayer
+                && alive
+                && !spectator
+                && !itemCoolingDown;
+    }
+
     @Override
     public TypedActionResult<ItemStack> use(@NotNull World world, @NotNull PlayerEntity user, Hand hand) {
         ItemStack stack = user.getStackInHand(hand);
         if (world.isClient) {
             return TypedActionResult.success(stack);
         }
-        if (!(user instanceof ServerPlayerEntity player)
-                || !GameFunctions.isPlayerPlayingAndAlive(player)
-                || player.getItemCooldownManager().isCoolingDown(this)) {
+        if (!(user instanceof ServerPlayerEntity player) || !shouldStartDash(
+                true,
+                player.isAlive(),
+                player.isSpectator(),
+                player.getItemCooldownManager().isCoolingDown(this)
+        )) {
             return TypedActionResult.fail(stack);
         }
 

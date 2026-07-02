@@ -34,19 +34,31 @@ public final class CeremonialSwordCombatService {
                 || !serverAttacker.getStackInHand(hand).isOf(SparkWitchItems.ceremonialSword())) {
             return ActionResult.PASS;
         }
-        if (!canStrike(serverAttacker, target)) {
+        AttackDecision decision = decideAttack(canStrike(serverAttacker, target), hasFullyCooledAttack(serverAttacker));
+        if (!decision.handled()) {
             return ActionResult.PASS;
         }
 
-        // Non-PASS keeps vanilla damage from bypassing the ceremonial sword's custom cooldown gate.
-        // 返回非 PASS，避免原版伤害绕过仪礼剑自定义击杀的攻击冷却门槛。
-        if (!hasFullyCooledAttack(serverAttacker)) {
+        // SUCCESS keeps vanilla damage from bypassing the custom kill gate; the reset mirrors vanilla attack timing.
+        // 返回 SUCCESS 防止原版伤害绕过自定义击杀门槛；重置攻击间隔则沿用原版左键冷却时序。
+        if (decision.resetVanillaCooldown()) {
+            serverAttacker.resetLastAttackedTicks();
+        }
+        if (!decision.kill()) {
             return ActionResult.SUCCESS;
         }
 
-        killWithCeremonialSword(serverAttacker, (ServerPlayerEntity) target);
-        serverAttacker.resetLastAttackedTicks();
+        if (target instanceof ServerPlayerEntity serverTarget) {
+            killWithCeremonialSword(serverAttacker, serverTarget);
+        }
         return ActionResult.SUCCESS;
+    }
+
+    public static AttackDecision decideAttack(boolean canStrike, boolean fullyCooledAttack) {
+        if (!canStrike) {
+            return new AttackDecision(false, false, false);
+        }
+        return new AttackDecision(true, true, fullyCooledAttack);
     }
 
     public static boolean hasFullyCooledAttack(ServerPlayerEntity attacker) {
@@ -72,5 +84,8 @@ public final class CeremonialSwordCombatService {
         );
         GameFunctions.killPlayer(target, true, attacker, SparkWitchDeathReasons.CEREMONIAL_BLADE);
         target.playSound(SoundEvents.ITEM_TRIDENT_HIT, 1.0f, 0.8f);
+    }
+
+    public record AttackDecision(boolean handled, boolean resetVanillaCooldown, boolean kill) {
     }
 }

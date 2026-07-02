@@ -1,10 +1,12 @@
 package dev.caecorthus.sparkwitch;
 
 import dev.caecorthus.sparkwitch.impl.CeremonialSwordDashService;
+import dev.caecorthus.sparkwitch.impl.CeremonialSwordCombatService;
 import dev.caecorthus.sparkwitch.item.CeremonialSwordItem;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SparkWitchItemRegistrationTest {
@@ -44,6 +46,38 @@ class SparkWitchItemRegistrationTest {
         assertEquals(13, CeremonialSwordItem.ATTACK_DAMAGE_BONUS_VALUE);
         assertEquals(2.0, CeremonialSwordItem.ATTACK_SPEED);
         assertEquals(-2.0f, CeremonialSwordItem.ATTACK_SPEED_MODIFIER_VALUE);
+    }
+
+    @Test
+    void ceremonialSwordCustomAttackUsesVanillaCooldownBeforeKillGate() {
+        CeremonialSwordCombatService.AttackDecision earlySwing =
+                CeremonialSwordCombatService.decideAttack(true, false);
+        assertTrue(earlySwing.handled());
+        assertTrue(earlySwing.resetVanillaCooldown());
+        assertFalse(earlySwing.kill());
+
+        CeremonialSwordCombatService.AttackDecision fullSwing =
+                CeremonialSwordCombatService.decideAttack(true, true);
+        assertTrue(fullSwing.handled());
+        assertTrue(fullSwing.resetVanillaCooldown());
+        assertTrue(fullSwing.kill());
+    }
+
+    @Test
+    void ceremonialSwordDashStartGateIsItemOnlyAndNotRoundBound() {
+        assertTrue(CeremonialSwordItem.shouldStartDash(true, true, false, false));
+        assertFalse(CeremonialSwordItem.shouldStartDash(false, true, false, false));
+        assertFalse(CeremonialSwordItem.shouldStartDash(true, false, false, false));
+        assertFalse(CeremonialSwordItem.shouldStartDash(true, true, true, false));
+        assertFalse(CeremonialSwordItem.shouldStartDash(true, true, false, true));
+    }
+
+    @Test
+    void ceremonialSwordDashKeepsMovingOutsideWatheRound() {
+        assertTrue(CeremonialSwordDashService.shouldKeepDashActive(true, true, false));
+        assertFalse(CeremonialSwordDashService.shouldKeepDashActive(false, true, false));
+        assertFalse(CeremonialSwordDashService.shouldKeepDashActive(true, false, false));
+        assertFalse(CeremonialSwordDashService.shouldKeepDashActive(true, true, true));
     }
 
     @Test
