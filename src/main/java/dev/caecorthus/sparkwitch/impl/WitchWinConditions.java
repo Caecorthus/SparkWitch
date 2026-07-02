@@ -83,11 +83,14 @@ public final class WitchWinConditions {
         if (world == null || gameComponent == null) {
             return false;
         }
-        return shouldBlockShadowJesterShowdownNeutralWin(livingWitchCount(world, gameComponent));
+        return shouldBlockShadowJesterShowdownNeutralWin(
+                livingWitchCount(world, gameComponent),
+                livingLastStandOutlawCount(world)
+        );
     }
 
-    static boolean shouldBlockShadowJesterShowdownNeutralWin(int livingWitchCount) {
-        return livingWitchCount > 0;
+    static boolean shouldBlockShadowJesterShowdownNeutralWin(int livingWitchCount, int livingLastStandOutlawCount) {
+        return livingWitchCount > 0 || livingLastStandOutlawCount > 0;
     }
 
     private static WinSnapshot snapshot(FactionWinContext context) {
@@ -144,6 +147,21 @@ public final class WitchWinConditions {
             }
         }
         return livingWitchCount;
+    }
+
+    private static int livingLastStandOutlawCount(ServerWorld world) {
+        int livingLastStandOutlawCount = 0;
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (!GameFunctions.isPlayerPlayingAndAlive(player)) {
+                continue;
+            }
+            // Last Stand outlaws must be eliminated before Shadow Jester showdown can settle.
+            // 触发过背水一战的亡命徒必须先被解决，双影谢幕才能结算。
+            if (SparkTraitsLastStandBridge.hasTriggeredThisRound(world, player.getUuid())) {
+                livingLastStandOutlawCount++;
+            }
+        }
+        return livingLastStandOutlawCount;
     }
 
     public enum WinAction {

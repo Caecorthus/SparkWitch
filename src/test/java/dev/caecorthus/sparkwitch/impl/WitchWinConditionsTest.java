@@ -46,8 +46,14 @@ class WitchWinConditionsTest {
 
     @Test
     void activeShadowShowdownNeutralWinIsBlockedByLivingWitches() {
-        assertTrue(WitchWinConditions.shouldBlockShadowJesterShowdownNeutralWin(1));
-        assertFalse(WitchWinConditions.shouldBlockShadowJesterShowdownNeutralWin(0));
+        assertTrue(WitchWinConditions.shouldBlockShadowJesterShowdownNeutralWin(1, 0));
+        assertFalse(WitchWinConditions.shouldBlockShadowJesterShowdownNeutralWin(0, 0));
+    }
+
+    @Test
+    void activeShadowShowdownNeutralWinIsBlockedByLivingLastStandOutlaws() {
+        assertTrue(WitchWinConditions.shouldBlockShadowJesterShowdownNeutralWin(0, 1));
+        assertTrue(WitchWinConditions.shouldBlockShadowJesterShowdownNeutralWin(1, 1));
     }
 
     @Test
