@@ -5,11 +5,18 @@ import dev.caecorthus.sparkwitch.impl.CeremonialSwordCombatService;
 import dev.caecorthus.sparkwitch.item.CeremonialSwordItem;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SparkWitchItemRegistrationTest {
+    private static final Path CEREMONIAL_SWORD_ITEM_SOURCE =
+            Path.of("src/main/java/dev/caecorthus/sparkwitch/item/CeremonialSwordItem.java");
+
     @Test
     void ceremonialSwordUsesSparkWitchItemId() {
         assertEquals(SparkWitch.MOD_ID, SparkWitchItems.CEREMONIAL_SWORD_ID.getNamespace());
@@ -41,11 +48,15 @@ class SparkWitchItemRegistrationTest {
     }
 
     @Test
-    void ceremonialSwordLeftClickUsesConfiguredAttackSpeed() {
+    void ceremonialSwordKeepsDamageWithoutVanillaAttackCooldown() throws IOException {
         assertEquals(16, CeremonialSwordItem.ATTACK_DAMAGE);
         assertEquals(13, CeremonialSwordItem.ATTACK_DAMAGE_BONUS_VALUE);
-        assertEquals(2.0, CeremonialSwordItem.ATTACK_SPEED);
-        assertEquals(-2.0f, CeremonialSwordItem.ATTACK_SPEED_MODIFIER_VALUE);
+
+        String source = Files.readString(CEREMONIAL_SWORD_ITEM_SOURCE);
+        assertTrue(source.contains("EntityAttributes.GENERIC_ATTACK_DAMAGE"));
+        assertTrue(source.contains("BASE_ATTACK_DAMAGE_MODIFIER_ID"));
+        assertFalse(source.contains("EntityAttributes.GENERIC_ATTACK_SPEED"));
+        assertFalse(source.contains("BASE_ATTACK_SPEED_MODIFIER_ID"));
     }
 
     @Test

@@ -23,7 +23,7 @@ class PigGodRulesTest {
         assertEquals(150, PigGodRules.COIN_COST);
         assertEquals(GameConstants.getInTicks(1, 0), PigGodRules.COOLDOWN_TICKS);
         assertEquals(0, PigGodRules.FREEZE_TICKS);
-        assertEquals(GameConstants.getInTicks(0, 12), PigGodRules.CHASE_TICKS);
+        assertEquals(GameConstants.getInTicks(0, 17), PigGodRules.CHASE_TICKS);
         assertEquals(4, PigGodRules.SPEED_AMPLIFIER);
         assertEquals(16.0D, PigGodRules.SOUND_STOP_RANGE_BLOCKS);
     }

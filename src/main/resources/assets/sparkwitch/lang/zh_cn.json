@@ -66,7 +66,7 @@
   "skill.sparkwitch.clairvoyance.name": "千里眼",
   "skill.sparkwitch.clairvoyance.description": "消耗 80 点魔力值，淡蓝色高亮自己 30 秒，并白色高亮其他存活玩家 10 秒。",
   "skill.sparkwitch.pig_chase.name": "皮革追杀",
-  "skill.sparkwitch.pig_chase.description": "消耗 150 金币，立刻进入 12 秒无音乐疯魔追杀，获得速度 V，破坏 wathe 门并高亮存活玩家。",
+  "skill.sparkwitch.pig_chase.description": "消耗 150 金币，立刻进入 17 秒无音乐疯魔追杀，获得速度 V，破坏 wathe 门并高亮存活玩家。",
   "skill.sparkwitch.death_ray.name": "死亡射线",
   "skill.sparkwitch.death_ray.description": "消耗 100 点魔力值，10 秒内左键可发射 3 次红色射线，范围 12 格，墙体会阻挡射线。",
   "shop.sparkwitch.obscure": "障眼",

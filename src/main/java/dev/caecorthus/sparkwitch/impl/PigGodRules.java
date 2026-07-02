@@ -17,7 +17,7 @@ public final class PigGodRules {
     public static final int COIN_COST = 150;
     public static final int COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
     public static final int FREEZE_TICKS = 0;
-    public static final int CHASE_TICKS = GameConstants.getInTicks(0, 12);
+    public static final int CHASE_TICKS = GameConstants.getInTicks(0, 17);
     public static final int SPEED_AMPLIFIER = 4;
     public static final int INSTINCT_PRIORITY = 90;
     public static final float SOUND_VOLUME = 1.0f;

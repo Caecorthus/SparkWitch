@@ -1,10 +1,13 @@
 package dev.caecorthus.sparkwitch.item;
 
 import dev.caecorthus.sparkwitch.impl.CeremonialSwordDashService;
+import net.minecraft.component.type.AttributeModifierSlot;
+import net.minecraft.component.type.AttributeModifiersComponent;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.SwordItem;
 import net.minecraft.item.ToolMaterials;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Hand;
@@ -20,17 +23,27 @@ public class CeremonialSwordItem extends Item {
     public static final int ATTACK_DAMAGE_BONUS_VALUE = (int) (ATTACK_DAMAGE
             - 1
             - ToolMaterials.IRON.getAttackDamage());
-    public static final double ATTACK_SPEED = 2.0;
-    public static final float ATTACK_SPEED_MODIFIER_VALUE = -2.0f;
 
     public static Settings createSettings() {
         return new Settings()
                 .maxCount(1)
-                .attributeModifiers(SwordItem.createAttributeModifiers(
-                        ToolMaterials.IRON,
-                        ATTACK_DAMAGE_BONUS_VALUE,
-                        ATTACK_SPEED_MODIFIER_VALUE
-                ));
+                .attributeModifiers(createAttributeModifiers());
+    }
+
+    public static AttributeModifiersComponent createAttributeModifiers() {
+        // Keep the 16-damage vanilla attribute, but do not add attack speed so left-click has no sword cooldown.
+        // 保留 16 点原版攻击伤害属性，但不添加攻击速度修饰器，让左键没有原版剑冷却。
+        return AttributeModifiersComponent.builder()
+                .add(
+                        EntityAttributes.GENERIC_ATTACK_DAMAGE,
+                        new EntityAttributeModifier(
+                                BASE_ATTACK_DAMAGE_MODIFIER_ID,
+                                ATTACK_DAMAGE_BONUS_VALUE,
+                                EntityAttributeModifier.Operation.ADD_VALUE
+                        ),
+                        AttributeModifierSlot.MAINHAND
+                )
+                .build();
     }
 
     public CeremonialSwordItem(Settings settings) {
