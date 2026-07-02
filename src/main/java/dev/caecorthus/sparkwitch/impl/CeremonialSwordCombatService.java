@@ -6,6 +6,7 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvents;
@@ -29,9 +30,15 @@ public final class CeremonialSwordCombatService {
     }
 
     public static ActionResult tryHandleAttack(Entity attacker, World world, Hand hand, Entity target) {
-        if (world.isClient
-                || !(attacker instanceof ServerPlayerEntity serverAttacker)
-                || !serverAttacker.getStackInHand(hand).isOf(SparkWitchItems.ceremonialSword())) {
+        boolean holdingCeremonialSword = attacker instanceof PlayerEntity player
+                && player.getStackInHand(hand).isOf(SparkWitchItems.ceremonialSword());
+        if (!holdingCeremonialSword) {
+            return ActionResult.PASS;
+        }
+        if (world.isClient) {
+            return clientAttackResult(true, target instanceof PlayerEntity);
+        }
+        if (!(attacker instanceof ServerPlayerEntity serverAttacker)) {
             return ActionResult.PASS;
         }
         AttackDecision decision = decideAttack(canStrike(serverAttacker, target), true);
@@ -52,6 +59,12 @@ public final class CeremonialSwordCombatService {
             killWithCeremonialSword(serverAttacker, serverTarget);
         }
         return ActionResult.SUCCESS;
+    }
+
+    public static ActionResult clientAttackResult(boolean holdingCeremonialSword, boolean targetPlayer) {
+        // SUCCESS keeps Fabric sending the attack packet while skipping client-side vanilla cooldown prediction.
+        // 返回 SUCCESS 继续让 Fabric 发送攻击包，同时跳过客户端原版攻击冷却预测。
+        return holdingCeremonialSword && targetPlayer ? ActionResult.SUCCESS : ActionResult.PASS;
     }
 
     public static AttackDecision decideAttack(boolean canStrike, boolean fullyCooledAttack) {

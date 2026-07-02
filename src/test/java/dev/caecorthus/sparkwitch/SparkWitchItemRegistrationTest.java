@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch;
 import dev.caecorthus.sparkwitch.impl.CeremonialSwordDashService;
 import dev.caecorthus.sparkwitch.impl.CeremonialSwordCombatService;
 import dev.caecorthus.sparkwitch.item.CeremonialSwordItem;
+import net.minecraft.util.ActionResult;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -72,6 +73,13 @@ class SparkWitchItemRegistrationTest {
         assertTrue(fullSwing.handled());
         assertFalse(fullSwing.resetVanillaCooldown());
         assertTrue(fullSwing.kill());
+    }
+
+    @Test
+    void ceremonialSwordClientAttackCancelsOnlyPlayerTargetVanillaPrediction() {
+        assertEquals(ActionResult.SUCCESS, CeremonialSwordCombatService.clientAttackResult(true, true));
+        assertEquals(ActionResult.PASS, CeremonialSwordCombatService.clientAttackResult(true, false));
+        assertEquals(ActionResult.PASS, CeremonialSwordCombatService.clientAttackResult(false, true));
     }
 
     @Test
