@@ -269,7 +269,7 @@ class GrandWitchRulesTest {
         assertEquals(GameConstants.getInTicks(0, 15), GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
         assertEquals(GameConstants.getInTicks(1, 30), GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
         assertEquals(GameConstants.getInTicks(1, 0), GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS);
-        assertEquals(0, GrandWitchRules.CEREMONIAL_SWORD_SPEED_AMPLIFIER);
+        assertEquals(1, GrandWitchRules.CEREMONIAL_SWORD_SPEED_AMPLIFIER);
 
         assertSpell(GrandWitchRules.GrandWitchSpell.OBSCURE, "sparkwitch_obscure", 80, 30, 120);
         assertSpell(GrandWitchRules.GrandWitchSpell.BLINDNESS, "sparkwitch_blindness", 80, 20, 180);

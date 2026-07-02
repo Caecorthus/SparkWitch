@@ -15,16 +15,21 @@ import org.jetbrains.annotations.NotNull;
 
 public class CeremonialSwordItem extends Item {
     public static final int DASH_COOLDOWN_TICKS = 100;
+    public static final int ATTACK_DAMAGE = 16;
+    // Player-facing vanilla damage = player base damage + material damage + item bonus.
+    // 玩家看到/实际原版伤害 = 玩家基础伤害 + 材料伤害 + 物品 bonus。
+    public static final int ATTACK_DAMAGE_BONUS_VALUE = (int) (ATTACK_DAMAGE
+            - 1
+            - ToolMaterials.IRON.getAttackDamage());
     public static final double ATTACK_SPEED = 2.0;
     public static final float ATTACK_SPEED_MODIFIER_VALUE = -2.0f;
-    private static final int ATTACK_DAMAGE = 3;
 
     public static Settings createSettings() {
         return new Settings()
                 .maxCount(1)
                 .attributeModifiers(SwordItem.createAttributeModifiers(
                         ToolMaterials.IRON,
-                        ATTACK_DAMAGE,
+                        ATTACK_DAMAGE_BONUS_VALUE,
                         ATTACK_SPEED_MODIFIER_VALUE
                 ));
     }

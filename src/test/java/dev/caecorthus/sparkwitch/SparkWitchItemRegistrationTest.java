@@ -40,6 +40,8 @@ class SparkWitchItemRegistrationTest {
 
     @Test
     void ceremonialSwordLeftClickUsesConfiguredAttackSpeed() {
+        assertEquals(16, CeremonialSwordItem.ATTACK_DAMAGE);
+        assertEquals(13, CeremonialSwordItem.ATTACK_DAMAGE_BONUS_VALUE);
         assertEquals(2.0, CeremonialSwordItem.ATTACK_SPEED);
         assertEquals(-2.0f, CeremonialSwordItem.ATTACK_SPEED_MODIFIER_VALUE);
     }
