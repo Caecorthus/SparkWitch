@@ -53,6 +53,7 @@ class MixinResourcesTest {
         JsonObject mixins = readJson(CLIENT_MIXINS);
 
         assertTrue(contains(mixins.getAsJsonArray("client"), "DeathRayAttackMixin"));
+        assertTrue(contains(mixins.getAsJsonArray("client"), "DeathRayBlockBreakingMixin"));
     }
 
     @Test
