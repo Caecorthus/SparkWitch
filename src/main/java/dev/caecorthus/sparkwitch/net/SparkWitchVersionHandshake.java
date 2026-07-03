@@ -23,9 +23,19 @@ public final class SparkWitchVersionHandshake {
             return;
         }
         serverRegistered = true;
+        SparkWitch.LOGGER.info(
+                "Registering SparkWitch login version check on channel {}.",
+                VERSION_CHECK_ID
+        );
 
         ServerLoginConnectionEvents.QUERY_START.register((handler, server, sender, synchronizer) -> {
             String serverVersion = localVersion();
+            SparkWitch.LOGGER.info(
+                    "Sending SparkWitch login version query {} to {} with server version {}.",
+                    VERSION_CHECK_ID,
+                    handler.getConnectionInfo(),
+                    serverVersion
+            );
             ServerLoginNetworking.registerReceiver(handler, VERSION_CHECK_ID,
                     (minecraftServer, networkHandler, understood, buf, loginSynchronizer, responseSender) ->
                             handleResponse(networkHandler, understood, buf, serverVersion));
@@ -61,12 +71,30 @@ public final class SparkWitchVersionHandshake {
         // Reject before witch skill packets or role components see mixed jar versions.
         // 在女巫技能封包或角色组件看到混用 jar 版本前拒绝连接。
         if (!understood) {
+            SparkWitch.LOGGER.warn(
+                    "SparkWitch login version query {} was not understood by {}. Expected client version {}.",
+                    VERSION_CHECK_ID,
+                    handler.getConnectionInfo(),
+                    serverVersion
+            );
             handler.disconnect(Text.literal(SparkWitchVersionCheck.missingClientMessage(serverVersion)));
             return;
         }
 
         String clientVersion = readVersion(buf);
+        SparkWitch.LOGGER.info(
+                "Received SparkWitch login version response from {}: client={}, server={}.",
+                handler.getConnectionInfo(),
+                clientVersion,
+                serverVersion
+        );
         if (!SparkWitchVersionCheck.isCompatible(serverVersion, clientVersion)) {
+            SparkWitch.LOGGER.warn(
+                    "Rejecting SparkWitch version mismatch for {}: client={}, server={}.",
+                    handler.getConnectionInfo(),
+                    clientVersion,
+                    serverVersion
+            );
             handler.disconnect(Text.literal(SparkWitchVersionCheck.mismatchMessage(serverVersion, clientVersion)));
         }
     }

@@ -1,7 +1,8 @@
 package dev.caecorthus.sparkwitch.client;
 
-import dev.caecorthus.sparkwitch.SparkWitchSounds;
+import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.screen.CriminologistScreen;
 import dev.caecorthus.sparkwitch.client.net.SparkWitchClientVersionHandshake;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
@@ -24,6 +25,7 @@ public final class SparkWitchClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        SparkWitch.LOGGER.info("Initializing SparkWitch client hooks.");
         SparkWitchClientVersionHandshake.registerClient();
         requireLambDynamicLights();
 
