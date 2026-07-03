@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.client.CriminologistHudRenderer;
 import dev.caecorthus.sparkwitch.client.WitchSkillHudRenderer;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import net.minecraft.client.MinecraftClient;
@@ -26,7 +25,6 @@ public abstract class WitchSkillHudMixin {
         }
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (player != null) {
-            CriminologistHudRenderer.render(context, player);
             WitchSkillHudRenderer.render(context, player);
         }
     }

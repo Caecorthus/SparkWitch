@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import dev.caecorthus.sparkwitch.item.FlashlightItem;
 import org.junit.jupiter.api.Test;
 
 import javax.imageio.ImageIO;
@@ -65,29 +64,10 @@ class ItemModelResourcesTest {
     }
 
     @Test
-    void capsuleModelUsesVanillaPlaceholderTexture() throws IOException {
-        JsonObject capsule = JsonParser.parseString(Files.readString(CAPSULE_MODEL)).getAsJsonObject();
-
-        assertEquals("minecraft:item/generated", capsule.get("parent").getAsString());
-        assertEquals("minecraft:item/snowball", capsule.getAsJsonObject("textures").get("layer0").getAsString());
-    }
-
-    @Test
-    void flashlightModelsUseLanternStates() throws IOException {
-        JsonObject flashlight = JsonParser.parseString(Files.readString(FLASHLIGHT_MODEL)).getAsJsonObject();
-        JsonObject flashlightOn = JsonParser.parseString(Files.readString(FLASHLIGHT_ON_MODEL)).getAsJsonObject();
-        JsonObject override = flashlight.getAsJsonArray("overrides").get(0).getAsJsonObject();
-
-        assertEquals("minecraft:item/generated", flashlight.get("parent").getAsString());
-        assertEquals("minecraft:item/soul_lantern", flashlight.getAsJsonObject("textures").get("layer0").getAsString());
-        assertEquals(FlashlightItem.ON_MODEL_DATA, override.getAsJsonObject("predicate").get("custom_model_data").getAsInt());
-        assertEquals("sparkwitch:item/flashlight_on", override.get("model").getAsString());
-        assertEquals("minecraft:item/generated", flashlightOn.get("parent").getAsString());
-        assertEquals("minecraft:item/lantern", flashlightOn.getAsJsonObject("textures").get("layer0").getAsString());
-    }
-
-    @Test
-    void litFlashlightUsesCustomLineLightInsteadOfPointLightResource() {
+    void migratedNoellesRoleItemModelsAreRemoved() {
+        assertFalse(Files.exists(CAPSULE_MODEL));
+        assertFalse(Files.exists(FLASHLIGHT_MODEL));
+        assertFalse(Files.exists(FLASHLIGHT_ON_MODEL));
         assertFalse(Files.exists(FLASHLIGHT_DYNAMIC_LIGHT));
     }
 }

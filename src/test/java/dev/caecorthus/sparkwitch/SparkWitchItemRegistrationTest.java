@@ -31,18 +31,6 @@ class SparkWitchItemRegistrationTest {
     }
 
     @Test
-    void capsuleUsesSparkWitchItemId() {
-        assertEquals(SparkWitch.MOD_ID, SparkWitchItems.CAPSULE_ID.getNamespace());
-        assertEquals("capsule", SparkWitchItems.CAPSULE_ID.getPath());
-    }
-
-    @Test
-    void flashlightUsesSparkWitchItemId() {
-        assertEquals(SparkWitch.MOD_ID, SparkWitchItems.FLASHLIGHT_ID.getNamespace());
-        assertEquals("flashlight", SparkWitchItems.FLASHLIGHT_ID.getPath());
-    }
-
-    @Test
     void ceremonialSwordDashUsesPlannedTuning() {
         assertEquals(100, CeremonialSwordItem.DASH_COOLDOWN_TICKS);
         assertEquals(6.0, CeremonialSwordDashService.DASH_DISTANCE_BLOCKS);

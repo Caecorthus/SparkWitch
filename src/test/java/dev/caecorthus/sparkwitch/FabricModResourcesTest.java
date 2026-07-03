@@ -13,16 +13,26 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class FabricModResourcesTest {
     private static final Path FABRIC_MOD_JSON = Path.of("src/main/resources/fabric.mod.json");
-    private static final String FLASHLIGHT_INITIALIZER = "dev.caecorthus.sparkwitch.client.FlashlightDynamicLightsInitializer";
 
     @Test
-    void declaresLambDynamicLightsEntrypointWithoutServerDependency() throws IOException {
+    void noLongerDeclaresMigratedFlashlightDynamicLightsEntrypoint() throws IOException {
         JsonObject mod = JsonParser.parseString(Files.readString(FABRIC_MOD_JSON)).getAsJsonObject();
         JsonObject entrypoints = mod.getAsJsonObject("entrypoints");
         JsonObject depends = mod.getAsJsonObject("depends");
 
-        assertEquals(FLASHLIGHT_INITIALIZER, entrypoints.getAsJsonArray("lambdynlights:initializer").get(0).getAsString());
-        assertEquals(FLASHLIGHT_INITIALIZER, entrypoints.getAsJsonArray("dynamiclights").get(0).getAsString());
+        assertFalse(entrypoints.has("lambdynlights:initializer"));
+        assertFalse(entrypoints.has("dynamiclights"));
         assertFalse(depends.has("lambdynlights"));
+    }
+
+    @Test
+    void noLongerDeclaresMigratedRoleEnhancementComponent() throws IOException {
+        JsonObject mod = JsonParser.parseString(Files.readString(FABRIC_MOD_JSON)).getAsJsonObject();
+
+        assertEquals(
+                "sparkwitch:player",
+                mod.getAsJsonObject("custom").getAsJsonArray("cardinal-components").get(0).getAsString()
+        );
+        assertFalse(Files.readString(FABRIC_MOD_JSON).contains("sparkwitch:role_enhancements"));
     }
 }

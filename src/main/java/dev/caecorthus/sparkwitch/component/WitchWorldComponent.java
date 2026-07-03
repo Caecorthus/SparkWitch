@@ -19,10 +19,7 @@ import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,7 +35,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
 
     private final World world;
     private final LinkedHashSet<Identifier> disabledSkills = new LinkedHashSet<>();
-    private final LinkedHashMap<UUID, UUID> criminologistKillers = new LinkedHashMap<>();
     private final GrandWitchCeremonialSwordBgmSources grandWitchCeremonialSwordBgmSources =
             new GrandWitchCeremonialSwordBgmSources();
     private int instinctObscureTicks;
@@ -118,24 +114,12 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         sync();
     }
 
-    public void recordCriminologistKill(UUID victimUuid, UUID killerUuid) {
-        if (victimUuid == null || killerUuid == null || victimUuid.equals(killerUuid)) {
-            return;
-        }
-        criminologistKillers.put(victimUuid, killerUuid);
-    }
-
-    public Optional<UUID> getCriminologistKiller(UUID victimUuid) {
-        return Optional.ofNullable(criminologistKillers.get(victimUuid));
-    }
-
     public void clearRoundState() {
         instinctObscureTicks = 0;
         obscureActionbarTicks = 0;
         fearTicks = 0;
         grandWitchCeremonialSwordBgmSources.clear();
         syncedGrandWitchCeremonialSwordBgmSources = 0;
-        criminologistKillers.clear();
         sync();
     }
 
@@ -206,22 +190,11 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         if (fearTicks > 0) {
             tag.putInt("FearTicks", fearTicks);
         }
-        if (!criminologistKillers.isEmpty()) {
-            NbtList records = new NbtList();
-            for (Map.Entry<UUID, UUID> entry : criminologistKillers.entrySet()) {
-                NbtCompound record = new NbtCompound();
-                record.putUuid("Victim", entry.getKey());
-                record.putUuid("Killer", entry.getValue());
-                records.add(record);
-            }
-            tag.put("CriminologistKillers", records);
-        }
     }
 
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         disabledSkills.clear();
-        criminologistKillers.clear();
         grandWitchCeremonialSwordBgmSources.clear();
         syncedGrandWitchCeremonialSwordBgmSources = 0;
         fromNbt(tag.getList("DisabledSkills", NbtElement.STRING_TYPE), disabledSkills);
@@ -231,13 +204,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         fearTicks = tag.contains("FearTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("FearTicks"))
                 : 0;
-        NbtList records = tag.getList("CriminologistKillers", NbtElement.COMPOUND_TYPE);
-        for (int i = 0; i < records.size(); i++) {
-            NbtCompound record = records.getCompound(i);
-            if (record.containsUuid("Victim") && record.containsUuid("Killer")) {
-                criminologistKillers.put(record.getUuid("Victim"), record.getUuid("Killer"));
-            }
-        }
         obscureActionbarTicks = 0;
     }
 

@@ -61,11 +61,6 @@ class LocalizationResourcesTest {
             "announcement.win.sparkwitch.pig_god",
             "item.sparkwitch.ceremonial_sword",
             "item.sparkwitch.fire_poker",
-            "item.sparkwitch.capsule",
-            "item.sparkwitch.capsule.filled",
-            "item.sparkwitch.capsule.poisoned_content",
-            "item.sparkwitch.capsule.tooltip",
-            "item.sparkwitch.flashlight",
             "skill.sparkwitch.ceremonial_sword.name",
             "skill.sparkwitch.ceremonial_sword.description",
             "skill.sparkwitch.mighty_force.name",
@@ -90,8 +85,6 @@ class LocalizationResourcesTest {
             "shop.sparkwitch.fear.description",
             "shop.sparkwitch.heaviness",
             "shop.sparkwitch.heaviness.description",
-            "shop.sparkwitch.capsule",
-            "shop.sparkwitch.capsule.description",
             "death_reason.sparkwitch.ceremonial_blade",
             "death_reason.sparkwitch.mighty_force",
             "death_reason.sparkwitch.pierced_by_ray",
@@ -117,11 +110,6 @@ class LocalizationResourcesTest {
             "hud.sparkwitch.skill.pig_chase.not_enough_money",
             "hud.sparkwitch.skill.not_enough_mana",
             "hud.sparkwitch.skill.ready",
-            "hud.sparkwitch.criminologist.cooldown",
-            "hud.sparkwitch.criminologist.ready",
-            "hud.sparkwitch.criminologist.tracking",
-            "screen.sparkwitch.criminologist.title",
-            "screen.sparkwitch.criminologist.subtitle",
             "game.tip.sparkwitch.witch_cohort",
             "key.sparkwitch.skill",
             "message.sparkwitch.skill.no_skill",
@@ -146,17 +134,6 @@ class LocalizationResourcesTest {
             "message.sparkwitch.skill.pig_chase.activated",
             "message.sparkwitch.skill.death_ray.active",
             "message.sparkwitch.skill.death_ray.activated",
-            "message.sparkwitch.criminologist.cooldown",
-            "message.sparkwitch.criminologist.not_enough_money",
-            "message.sparkwitch.criminologist.already_tracking",
-            "message.sparkwitch.criminologist.pending",
-            "message.sparkwitch.criminologist.no_pending",
-            "message.sparkwitch.criminologist.wrong",
-            "message.sparkwitch.criminologist.correct",
-            "message.sparkwitch.criminologist.killer_dead",
-            "message.sparkwitch.capsule.empty",
-            "message.sparkwitch.flashlight.on",
-            "message.sparkwitch.flashlight.off",
             "message.sparkwitch.spell.obscure.cast",
             "message.sparkwitch.spell.obscure.actionbar",
             "message.sparkwitch.spell.blindness.cast",
@@ -283,10 +260,23 @@ class LocalizationResourcesTest {
     }
 
     @Test
-    void flashlightDoesNotDeclareUnavailableText() throws IOException {
+    void migratedNoellesRoleEnhancementKeysAreRemoved() throws IOException {
         JsonObject english = readLang("en_us.json");
         JsonObject chinese = readLang("zh_cn.json");
 
+        for (String key : List.of(
+                "item.sparkwitch.capsule",
+                "item.sparkwitch.flashlight",
+                "shop.sparkwitch.capsule",
+                "hud.sparkwitch.criminologist.ready",
+                "screen.sparkwitch.criminologist.title",
+                "message.sparkwitch.criminologist.correct",
+                "message.sparkwitch.capsule.empty",
+                "message.sparkwitch.flashlight.on"
+        )) {
+            assertFalse(english.has(key), key);
+            assertFalse(chinese.has(key), key);
+        }
         assertFalse(english.has("message.sparkwitch.flashlight.unavailable"));
         assertFalse(chinese.has("message.sparkwitch.flashlight.unavailable"));
     }

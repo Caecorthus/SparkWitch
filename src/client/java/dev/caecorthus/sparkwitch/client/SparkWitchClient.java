@@ -2,11 +2,9 @@ package dev.caecorthus.sparkwitch.client;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
-import dev.caecorthus.sparkwitch.client.screen.CriminologistScreen;
 import dev.caecorthus.sparkwitch.client.net.SparkWitchClientVersionHandshake;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
-import dev.caecorthus.sparkwitch.net.OpenCriminologistScreenS2CPacket;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.net.UseWitchSkillC2SPacket;
 import dev.doctor4t.ratatouille.client.util.ambience.AmbienceUtil;
@@ -17,31 +15,18 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.Text;
 
 public final class SparkWitchClient implements ClientModInitializer {
-    private static final String LAMBDYNAMICLIGHTS_MOD_ID = "lambdynlights";
-
     @Override
     public void onInitializeClient() {
         SparkWitch.LOGGER.info("Initializing SparkWitch client hooks.");
         SparkWitchServerConnection.reset();
         SparkWitchClientVersionHandshake.registerClient();
-        requireLambDynamicLights();
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> SparkWitchServerConnection.reset());
-        NoellesRoleEnhancementClientHooks.register();
         WitchInstinctSuppressionClientHooks.register();
         registerGrandWitchCeremonialSwordBgm();
-
-        ClientPlayNetworking.registerGlobalReceiver(OpenCriminologistScreenS2CPacket.ID,
-                (payload, context) -> context.client().execute(() -> {
-                    if (SparkWitchServerConnection.isConfirmedServer()) {
-                        context.client().setScreen(new CriminologistScreen(payload.victimUuid()));
-                    }
-                }
-                ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
@@ -81,14 +66,5 @@ public final class SparkWitchClient implements ClientModInitializer {
                         && WitchWorldComponent.KEY.get(player.getWorld()).hasGrandWitchCeremonialSwordBgm(),
                 20
         ));
-    }
-
-    private static void requireLambDynamicLights() {
-        if (!FabricLoader.getInstance().isModLoaded(LAMBDYNAMICLIGHTS_MOD_ID)) {
-            throw new IllegalStateException(
-                    "SparkWitch requires LambDynamicLights on the client for flashlight lighting. "
-                            + "Install LambDynamicLights for Minecraft 1.21.1."
-            );
-        }
     }
 }

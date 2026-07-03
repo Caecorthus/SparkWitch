@@ -16,12 +16,6 @@
     "client": [
       "dev.caecorthus.sparkwitch.client.SparkWitchClient"
     ],
-    "lambdynlights:initializer": [
-      "dev.caecorthus.sparkwitch.client.FlashlightDynamicLightsInitializer"
-    ],
-    "dynamiclights": [
-      "dev.caecorthus.sparkwitch.client.FlashlightDynamicLightsInitializer"
-    ],
     "cardinal-components": [
       "dev.caecorthus.sparkwitch.component.SparkWitchComponents"
     ]
@@ -29,7 +23,6 @@
   "custom": {
     "cardinal-components": [
       "sparkwitch:player",
-      "sparkwitch:role_enhancements",
       "sparkwitch:world"
     ]
   },
