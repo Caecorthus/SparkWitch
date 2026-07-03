@@ -20,6 +20,10 @@ public abstract class WatheClientFearInstinctMixin {
             Entity target,
             CallbackInfoReturnable<Integer> cir
     ) {
+        if (WitchInstinctSuppressionClientHooks.shouldSuppressSwallowedInstinctHighlight(target)) {
+            cir.setReturnValue(-1);
+            return;
+        }
         if (WitchInstinctSuppressionClientHooks.shouldSuppressInstinctHighlight()) {
             cir.setReturnValue(-1);
         }

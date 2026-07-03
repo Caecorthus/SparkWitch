@@ -39,4 +39,16 @@ class ClientHookResourcesTest {
         assertTrue(source.contains("method = \"getInstinctHighlight\""));
         assertTrue(source.contains("WitchInstinctSuppressionClientHooks.shouldSuppressInstinctHighlight()"));
     }
+
+    @Test
+    void watheClientMixinSuppressesSwallowedInstinctHighlightsBeforeEvents() throws IOException {
+        String mixinSource = Files.readString(WATHE_FEAR_INSTINCT_MIXIN);
+        String hookSource = Files.readString(INSTINCT_SUPPRESSION_HOOK);
+
+        assertTrue(mixinSource.contains(
+                "WitchInstinctSuppressionClientHooks.shouldSuppressSwallowedInstinctHighlight(target)"
+        ));
+        assertTrue(hookSource.contains("org.agmas.noellesroles.taotie.SwallowedPlayerComponent"));
+        assertTrue(hookSource.contains("isPlayerSwallowed"));
+    }
 }

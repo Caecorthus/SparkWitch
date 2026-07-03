@@ -25,6 +25,10 @@ public final class WitchInstinctSuppressionClientHooks {
     private static final String SPARKTRAITS_MOD_ID = "sparktraits";
     private static final String TRAIT_WORLD_COMPONENT_CLASS =
             "dev.caecorthus.sparktraits.component.TraitWorldComponent";
+    private static final String SWALLOWED_PLAYER_COMPONENT_CLASS =
+            "org.agmas.noellesroles.taotie.SwallowedPlayerComponent";
+    private static Method swallowedPlayerCheckMethod;
+    private static boolean swallowedPlayerCheckUnavailable;
 
     private WitchInstinctSuppressionClientHooks() {
     }
@@ -58,6 +62,34 @@ public final class WitchInstinctSuppressionClientHooks {
                 GameFunctions.isPlayerSpectatingOrCreative(viewer),
                 isSparkTraitsFinalMomentActive(world)
         );
+    }
+
+    public static boolean shouldSuppressSwallowedInstinctHighlight(Entity target) {
+        PlayerEntity viewer = MinecraftClient.getInstance().player;
+        if (isNoellesPlayerSwallowed(viewer)) {
+            return true;
+        }
+        return target instanceof PlayerEntity targetPlayer && isNoellesPlayerSwallowed(targetPlayer);
+    }
+
+    private static boolean isNoellesPlayerSwallowed(PlayerEntity player) {
+        if (player == null || swallowedPlayerCheckUnavailable) {
+            return false;
+        }
+        try {
+            Method method = swallowedPlayerCheckMethod;
+            if (method == null) {
+                Class<?> componentClass = Class.forName(SWALLOWED_PLAYER_COMPONENT_CLASS);
+                method = componentClass.getMethod("isPlayerSwallowed", PlayerEntity.class);
+                swallowedPlayerCheckMethod = method;
+            }
+            return Boolean.TRUE.equals(method.invoke(null, player));
+        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
+            swallowedPlayerCheckUnavailable = true;
+            return false;
+        } catch (LinkageError | ReflectiveOperationException | RuntimeException ignored) {
+            return false;
+        }
     }
 
     private static boolean isSparkTraitsFinalMomentActive(World world) {
