@@ -23,6 +23,10 @@ public final class PigGodRules {
     public static final float SOUND_VOLUME = 1.0f;
     public static final float SOUND_PITCH = 1.0f;
     public static final double SOUND_STOP_RANGE_BLOCKS = 16.0D;
+    // Match Wathe's crowbar door-pry feedback when Pig Chase blasts a Wathe door.
+    // 皮革追杀破开 Wathe 门时，复用 Wathe 撬棍撬门的听觉反馈。
+    public static final float DOOR_BLAST_SOUND_VOLUME = 2.5f;
+    public static final float DOOR_BLAST_SOUND_PITCH = 1.0f;
 
     private PigGodRules() {
     }

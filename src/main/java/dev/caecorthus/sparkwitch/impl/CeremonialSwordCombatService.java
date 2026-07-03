@@ -75,13 +75,29 @@ public final class CeremonialSwordCombatService {
     }
 
     public static boolean canStrike(ServerPlayerEntity attacker, Entity target) {
-        if (!GameFunctions.isPlayerPlayingAndAlive(attacker)
-                || !(target instanceof ServerPlayerEntity serverTarget)
-                || attacker.getUuid().equals(serverTarget.getUuid())) {
+        if (!(target instanceof ServerPlayerEntity serverTarget)) {
             return false;
         }
-        return GameFunctions.isPlayerPlayingAndAlive(serverTarget)
-                && GameFunctions.isPlayerAliveAndSurvival(serverTarget);
+        return canStrikeTarget(
+                attacker.getUuid().equals(serverTarget.getUuid()),
+                GameFunctions.isPlayerPlayingAndAlive(serverTarget),
+                GameFunctions.isPlayerAliveAndSurvival(serverTarget)
+        );
+    }
+
+    /**
+     * Ceremonial sword kills are item-bound: the holder may be outside the round or creative,
+     * but the victim must still be an in-round survival player.
+     * 仪礼剑击杀只绑定物品：持有者可以不在局内或处于创造，但目标必须仍是局内生存玩家。
+     */
+    public static boolean canStrikeTarget(
+            boolean samePlayer,
+            boolean targetPlayingAndAlive,
+            boolean targetAliveAndSurvival
+    ) {
+        return !samePlayer
+                && targetPlayingAndAlive
+                && targetAliveAndSurvival;
     }
 
     public static void killWithCeremonialSword(ServerPlayerEntity attacker, ServerPlayerEntity target) {

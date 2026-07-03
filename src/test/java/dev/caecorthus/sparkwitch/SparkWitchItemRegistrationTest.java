@@ -76,6 +76,14 @@ class SparkWitchItemRegistrationTest {
     }
 
     @Test
+    void ceremonialSwordTargetGateDoesNotRequireRoundBoundOrSurvivalAttacker() {
+        assertTrue(CeremonialSwordCombatService.canStrikeTarget(false, true, true));
+        assertFalse(CeremonialSwordCombatService.canStrikeTarget(true, true, true));
+        assertFalse(CeremonialSwordCombatService.canStrikeTarget(false, false, true));
+        assertFalse(CeremonialSwordCombatService.canStrikeTarget(false, true, false));
+    }
+
+    @Test
     void ceremonialSwordClientAttackCancelsOnlyPlayerTargetVanillaPrediction() {
         assertEquals(ActionResult.SUCCESS, CeremonialSwordCombatService.clientAttackResult(true, true));
         assertEquals(ActionResult.PASS, CeremonialSwordCombatService.clientAttackResult(true, false));

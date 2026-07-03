@@ -10,12 +10,14 @@ import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
+import dev.doctor4t.wathe.index.WatheSounds;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -88,6 +90,14 @@ public final class PigGodFeatureService {
         if (!shouldBlast) {
             return DoorInteraction.DoorInteractionResult.PASS;
         }
+        context.getWorld().playSound(
+                null,
+                context.getPos(),
+                WatheSounds.ITEM_CROWBAR_PRY,
+                SoundCategory.BLOCKS,
+                PigGodRules.DOOR_BLAST_SOUND_VOLUME,
+                PigGodRules.DOOR_BLAST_SOUND_PITCH
+        );
         context.getEntity().blast();
         return DoorInteraction.DoorInteractionResult.HANDLED;
     }

@@ -7,11 +7,18 @@ import dev.doctor4t.wathe.game.GameConstants;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PigGodRulesTest {
+    private static final Path PIG_GOD_FEATURE_SOURCE =
+            Path.of("src/main/java/dev/caecorthus/sparkwitch/impl/PigGodFeatureService.java");
+
     @BeforeAll
     static void registerRoles() {
         SparkWitchRoles.register();
@@ -68,6 +75,15 @@ class PigGodRulesTest {
         assertFalse(PigGodRules.shouldUseDoorBlast(SparkWitchRoles.pigGod(), false, true, false, DoorInteraction.DoorType.SMALL_DOOR));
         assertFalse(PigGodRules.shouldUseDoorBlast(SparkWitchRoles.pigGod(), true, false, false, DoorInteraction.DoorType.SMALL_DOOR));
         assertFalse(PigGodRules.shouldUseDoorBlast(SparkWitchRoles.pigGod(), true, true, true, DoorInteraction.DoorType.SMALL_DOOR));
+    }
+
+    @Test
+    void pigChaseDoorBlastUsesWatheCrowbarPrySound() throws IOException {
+        String source = Files.readString(PIG_GOD_FEATURE_SOURCE);
+        assertTrue(source.contains("WatheSounds.ITEM_CROWBAR_PRY"));
+        assertTrue(source.contains("SoundCategory.BLOCKS"));
+        assertEquals(2.5f, PigGodRules.DOOR_BLAST_SOUND_VOLUME);
+        assertEquals(1.0f, PigGodRules.DOOR_BLAST_SOUND_PITCH);
     }
 
     @Test
