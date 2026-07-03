@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.screen;
 import com.mojang.authlib.GameProfile;
 import dev.caecorthus.sparkwitch.client.NoellesRoleEnhancementClientHooks;
 import dev.caecorthus.sparkwitch.net.SelectCriminologistTargetC2SPacket;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.client.WatheClient;
 import dev.doctor4t.wathe.util.ShopEntry;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -33,7 +34,9 @@ final class CriminologistTargetWidget extends ButtonWidget {
                 WIDGET_SIZE,
                 Text.literal(NoellesRoleEnhancementClientHooks.playerName(targetUuid)),
                 button -> {
-                    ClientPlayNetworking.send(new SelectCriminologistTargetC2SPacket(victimUuid, targetUuid));
+                    if (SparkWitchServerConnection.isConfirmedServer()) {
+                        ClientPlayNetworking.send(new SelectCriminologistTargetC2SPacket(victimUuid, targetUuid));
+                    }
                     MinecraftClient.getInstance().setScreen(null);
                 },
                 DEFAULT_NARRATION_SUPPLIER

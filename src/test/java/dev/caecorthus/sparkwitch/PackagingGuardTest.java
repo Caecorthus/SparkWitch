@@ -14,6 +14,7 @@ class PackagingGuardTest {
         String buildScript = Files.readString(Path.of("build.gradle"));
 
         assertTrue(buildScript.contains("dev/caecorthus/sparkwitch/client/SparkWitchClient.class"));
+        assertTrue(buildScript.contains("dev/caecorthus/sparkwitch/net/SparkWitchServerConnection.class"));
         assertTrue(buildScript.contains(
                 "dev/caecorthus/sparkwitch/client/net/SparkWitchClientVersionHandshake.class"
         ));

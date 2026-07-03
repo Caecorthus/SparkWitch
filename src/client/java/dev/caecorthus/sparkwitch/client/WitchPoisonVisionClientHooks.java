@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client;
 
 import dev.caecorthus.sparkwitch.impl.WitchPoisonVisionRules;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -14,7 +15,7 @@ public final class WitchPoisonVisionClientHooks {
     }
 
     public static boolean canSeeHiddenPoison(PlayerEntity viewer) {
-        if (viewer == null) {
+        if (!SparkWitchServerConnection.isConfirmedServer() || viewer == null) {
             return false;
         }
         Role role = GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer);

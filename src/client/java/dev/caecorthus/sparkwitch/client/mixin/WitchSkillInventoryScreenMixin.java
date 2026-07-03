@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.impl.GrandWitchRules;
 import dev.caecorthus.sparkwitch.impl.WitchSkillHudRules;
 import dev.caecorthus.sparkwitch.impl.WitchSkillPresentationRules;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.client.gui.screen.ingame.LimitedHandledScreen;
@@ -38,6 +39,9 @@ public abstract class WitchSkillInventoryScreenMixin extends LimitedHandledScree
 
     @Inject(method = "render", at = @At("TAIL"))
     private void sparkwitch$renderOwnerSkill(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         Identifier skillId = component.getActiveSkillId();
         if (skillId == null) {

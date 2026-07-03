@@ -15,6 +15,12 @@ class ClientHookResourcesTest {
             Path.of("src/client/java/dev/caecorthus/sparkwitch/client/WitchInstinctSuppressionClientHooks.java");
     private static final Path WATHE_FEAR_INSTINCT_MIXIN =
             Path.of("src/client/java/dev/caecorthus/sparkwitch/client/mixin/WatheClientFearInstinctMixin.java");
+    private static final Path FLASHLIGHT_DYNAMIC_LIGHTS =
+            Path.of("src/client/java/dev/caecorthus/sparkwitch/client/FlashlightDynamicLightsInitializer.java");
+    private static final Path WITCH_SKILL_HUD_MIXIN =
+            Path.of("src/client/java/dev/caecorthus/sparkwitch/client/mixin/WitchSkillHudMixin.java");
+    private static final Path WITCH_MANA_HUD_MIXIN =
+            Path.of("src/client/java/dev/caecorthus/sparkwitch/client/mixin/WitchManaHudMixin.java");
 
     @Test
     void clientRegistersWitchInstinctSuppressionHook() throws IOException {
@@ -50,5 +56,19 @@ class ClientHookResourcesTest {
         ));
         assertTrue(hookSource.contains("org.agmas.noellesroles.taotie.SwallowedPlayerComponent"));
         assertTrue(hookSource.contains("isPlayerSwallowed"));
+    }
+
+    @Test
+    void clientGameplayHooksRequireConfirmedSparkWitchServer() throws IOException {
+        String clientSource = Files.readString(SPARK_WITCH_CLIENT);
+        String flashlightSource = Files.readString(FLASHLIGHT_DYNAMIC_LIGHTS);
+        String skillHudSource = Files.readString(WITCH_SKILL_HUD_MIXIN);
+        String manaHudSource = Files.readString(WITCH_MANA_HUD_MIXIN);
+
+        assertTrue(clientSource.contains("SparkWitchServerConnection.reset();"));
+        assertTrue(clientSource.contains("SparkWitchServerConnection.isConfirmedServer()"));
+        assertTrue(flashlightSource.contains("SparkWitchServerConnection.isConfirmedServer()"));
+        assertTrue(skillHudSource.contains("SparkWitchServerConnection.isConfirmedServer()"));
+        assertTrue(manaHudSource.contains("SparkWitchServerConnection.isConfirmedServer()"));
     }
 }

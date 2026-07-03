@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.screen;
 
 import dev.caecorthus.sparkwitch.client.NoellesRoleEnhancementClientHooks;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -29,7 +30,7 @@ public final class CriminologistScreen extends Screen {
     protected void init() {
         super.init();
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        if (player == null) {
+        if (!SparkWitchServerConnection.isConfirmedServer() || player == null) {
             close();
             return;
         }
@@ -57,6 +58,10 @@ public final class CriminologistScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            close();
+            return;
+        }
         context.fill(0, 0, width, height, 0xD8000000);
         context.fill(0, 0, width, 20, 0xFF3A1111);
         context.fill(0, height - 20, width, height, 0xFF3A1111);

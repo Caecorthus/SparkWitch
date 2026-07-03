@@ -176,6 +176,7 @@ tasks.register("verifyModJarVersion") {
 
             [
                     "dev/caecorthus/sparkwitch/client/SparkWitchClient.class",
+                    "dev/caecorthus/sparkwitch/net/SparkWitchServerConnection.class",
                     "dev/caecorthus/sparkwitch/client/net/SparkWitchClientVersionHandshake.class"
             ].each { requiredEntry ->
                 // The login version gate only works if the shipped client jar can answer the server query.

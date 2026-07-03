@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client;
 
 import dev.caecorthus.sparkwitch.impl.GrandWitchFearService;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.client.WatheClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -30,6 +31,9 @@ public final class GrandWitchFearClientHooks {
     }
 
     public static boolean shouldBlockInstinct() {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return false;
+        }
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (!GrandWitchFearService.isPlayerFeared(player)) {
             return false;
@@ -41,7 +45,8 @@ public final class GrandWitchFearClientHooks {
     }
 
     public static boolean shouldBlockRoleAbilityKey(KeyBinding keyBinding, boolean originalPressed) {
-        if (!originalPressed
+        if (!SparkWitchServerConnection.isConfirmedServer()
+                || !originalPressed
                 || keyBinding == null
                 || !WitchAbilityKeyBridge.SHARED_ABILITY_TRANSLATION_KEY.equals(keyBinding.getTranslationKey())) {
             return false;
@@ -55,7 +60,7 @@ public final class GrandWitchFearClientHooks {
     }
 
     public static boolean shouldBlockRoleSkillPayload(CustomPayload payload) {
-        if (payload == null || payload.getId() == null) {
+        if (!SparkWitchServerConnection.isConfirmedServer() || payload == null || payload.getId() == null) {
             return false;
         }
         Identifier payloadId = payload.getId().id();

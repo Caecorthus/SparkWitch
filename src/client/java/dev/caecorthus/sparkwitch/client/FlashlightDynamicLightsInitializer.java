@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client;
 
 import dev.caecorthus.sparkwitch.item.FlashlightItem;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsContext;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsInitializer;
 import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehaviorManager;
@@ -52,7 +53,7 @@ public final class FlashlightDynamicLightsInitializer implements DynamicLightsIn
         if (manager == null) {
             return;
         }
-        if (client.world == null) {
+        if (!SparkWitchServerConnection.isConfirmedServer() || client.world == null) {
             clearBehaviors();
             return;
         }

@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
 import dev.caecorthus.sparkwitch.client.WitchCohortClientHooks;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.client.WatheClient;
 import dev.doctor4t.wathe.client.gui.RoleNameRenderer;
@@ -31,7 +32,9 @@ public abstract class WitchCohortRoleNameMixin {
             RenderTickCounter tickCounter,
             CallbackInfo ci
     ) {
-        if (nametagAlpha <= 0.05f || !GameWorldComponent.KEY.get(player.getWorld()).isRunning()) {
+        if (!SparkWitchServerConnection.isConfirmedServer()
+                || nametagAlpha <= 0.05f
+                || !GameWorldComponent.KEY.get(player.getWorld()).isRunning()) {
             return;
         }
 

@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
 import dev.caecorthus.sparkwitch.client.WitchManaHudRenderer;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
@@ -19,6 +20,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class WitchManaHudMixin {
     @Inject(method = "renderMainHud", at = @At("TAIL"))
     private void sparkwitch$renderManaHud(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (player != null) {
             WitchManaHudRenderer.render(context, player);
