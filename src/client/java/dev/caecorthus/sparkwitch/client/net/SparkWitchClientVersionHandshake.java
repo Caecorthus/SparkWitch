@@ -2,9 +2,13 @@ package dev.caecorthus.sparkwitch.client.net;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConfirmS2CPacket;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
+import dev.caecorthus.sparkwitch.net.SparkWitchVersionCheck;
 import dev.caecorthus.sparkwitch.net.SparkWitchVersionHandshake;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginNetworking;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.text.Text;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -25,8 +29,7 @@ public final class SparkWitchClientVersionHandshake {
                 (client, handler, buf, callbacks) -> {
                     String serverVersion = SparkWitchVersionHandshake.readVersion(buf);
                     String clientVersion = SparkWitchVersionHandshake.localVersion();
-                    SparkWitchServerConnection.confirmServer();
-                    SparkWitchRoles.refreshAssassinGuessRoleOrder();
+                    confirmSparkWitchServer(serverVersion, clientVersion, "login");
                     SparkWitch.LOGGER.info(
                             "Answering SparkWitch login version query: server={}, client={}.",
                             serverVersion,
@@ -48,5 +51,32 @@ public final class SparkWitchClientVersionHandshake {
                     SparkWitchVersionHandshake.VERSION_CHECK_ID
             );
         }
+
+        ClientPlayNetworking.registerGlobalReceiver(SparkWitchServerConfirmS2CPacket.ID, (payload, context) -> {
+            String clientVersion = SparkWitchVersionHandshake.localVersion();
+            if (!SparkWitchVersionCheck.isCompatible(payload.serverVersion(), clientVersion)) {
+                SparkWitch.LOGGER.warn(
+                        "Disconnecting from SparkWitch play confirmation mismatch: server={}, client={}.",
+                        payload.serverVersion(),
+                        clientVersion
+                );
+                context.responseSender().disconnect(Text.literal(
+                        SparkWitchVersionCheck.mismatchMessage(payload.serverVersion(), clientVersion)
+                ));
+                return;
+            }
+            confirmSparkWitchServer(payload.serverVersion(), clientVersion, "play");
+        });
+    }
+
+    private static void confirmSparkWitchServer(String serverVersion, String clientVersion, String stage) {
+        SparkWitchServerConnection.confirmServer();
+        SparkWitchRoles.refreshAssassinGuessRoleOrder();
+        SparkWitch.LOGGER.info(
+                "Confirmed SparkWitch server through {} channel: server={}, client={}.",
+                stage,
+                serverVersion,
+                clientVersion
+        );
     }
 }

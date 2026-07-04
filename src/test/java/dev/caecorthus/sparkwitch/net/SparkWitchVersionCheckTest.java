@@ -20,6 +20,11 @@ class SparkWitchVersionCheckTest {
     }
 
     @Test
+    void unansweredLoginQueriesAreAllowedForProxyTransfers() {
+        assertFalse(SparkWitchVersionCheck.shouldRejectUnansweredLoginQuery());
+    }
+
+    @Test
     void disconnectMessagesNameExpectedAndActualVersions() {
         assertEquals(
                 "SparkWitch is required on the client with version 0.1.5.1.",
