@@ -1,8 +1,8 @@
 package dev.caecorthus.sparkwitch.net;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import dev.caecorthus.sparkwitch.impl.MurderousWitchDeathRayService;
-import dev.caecorthus.sparkwitch.impl.WitchSkillUseService;
+import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
+import dev.caecorthus.sparkwitch.skill.WitchSkillUseService;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;

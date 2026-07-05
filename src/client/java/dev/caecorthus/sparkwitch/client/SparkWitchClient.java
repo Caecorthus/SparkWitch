@@ -2,7 +2,13 @@ package dev.caecorthus.sparkwitch.client;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
-import dev.caecorthus.sparkwitch.client.net.SparkWitchClientVersionHandshake;
+import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
+import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
+import dev.caecorthus.sparkwitch.client.hooks.WitchAbilityKeyBridge;
+import dev.caecorthus.sparkwitch.client.hooks.WitchCohortClientHooks;
+import dev.caecorthus.sparkwitch.client.hooks.WitchInstinctSuppressionClientHooks;
+import dev.caecorthus.sparkwitch.client.hooks.WitchPoisonVisionClientHooks;
+import dev.caecorthus.sparkwitch.client.net.version.SparkWitchClientVersionHandshake;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
@@ -12,8 +18,9 @@ import dev.doctor4t.ratatouille.client.util.ambience.BackgroundAmbience;
 import dev.doctor4t.wathe.api.event.CanSeePoison;
 import dev.doctor4t.wathe.api.event.ShouldShowCohort;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.text.Text;
 
@@ -24,6 +31,11 @@ public final class SparkWitchClient implements ClientModInitializer {
         SparkWitchServerConnection.reset();
         SparkWitchClientVersionHandshake.registerClient();
 
+        // Reset on every connection lifecycle edge so failed login attempts cannot leak confirmed state.
+        // 在每个连接生命周期节点清理状态，避免失败的登录尝试残留已确认标记。
+        ClientLoginConnectionEvents.INIT.register((handler, client) -> SparkWitchServerConnection.reset());
+        ClientLoginConnectionEvents.DISCONNECT.register((handler, client) -> SparkWitchServerConnection.reset());
+        ClientPlayConnectionEvents.INIT.register((handler, client) -> SparkWitchServerConnection.reset());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> SparkWitchServerConnection.reset());
         WitchInstinctSuppressionClientHooks.register();
         registerGrandWitchCeremonialSwordBgm();

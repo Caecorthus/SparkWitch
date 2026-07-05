@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.client.DeathRayClientHooks;
+import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
 import net.minecraft.client.MinecraftClient;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

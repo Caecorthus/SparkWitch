@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.mixin;
 
-import dev.caecorthus.sparkwitch.impl.WitchWinConditions;
+import dev.caecorthus.sparkwitch.win.WitchWinConditions;
 import dev.doctor4t.wathe.api.event.CheckWinCondition;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;

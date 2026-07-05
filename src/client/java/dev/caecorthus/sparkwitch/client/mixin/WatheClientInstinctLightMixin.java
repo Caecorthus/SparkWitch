@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.client.WitchInstinctClientHooks;
+import dev.caecorthus.sparkwitch.client.hooks.WitchInstinctClientHooks;
 import dev.doctor4t.wathe.client.WatheClient;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

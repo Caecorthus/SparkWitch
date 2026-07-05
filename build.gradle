@@ -105,8 +105,10 @@ processResources {
     inputs.property "minecraft_version", project.minecraft_version
     inputs.property "loader_version", project.loader_version
     inputs.property "wathe_version", project.wathe_version
+    inputs.property "noellesroles_version", project.noellesroles_version
     inputs.property "sparkfactionapi_version", project.sparkfactionapi_version
     inputs.property "cca_version", project.cca_version
+    inputs.property "ratatouille_version", project.ratatouille_version
 
     filteringCharset "UTF-8"
 
@@ -115,12 +117,35 @@ processResources {
                 "minecraft_version": project.minecraft_version,
                 "loader_version": project.loader_version,
                 "wathe_version": project.wathe_version,
+                "noellesroles_version": project.noellesroles_version,
                 "sparkfactionapi_version": project.sparkfactionapi_version,
-                "cca_version": project.cca_version
+                "cca_version": project.cca_version,
+                "ratatouille_version": project.ratatouille_version
     }
 }
 
 def remappedModJar = tasks.named("remapJar")
+
+// Compare Spark-style numeric versions used by SparkFactionAPI dependency floors.
+// 比较 SparkFactionAPI 依赖下限使用的 Spark 数字版本。
+def versionAtLeast = { String actualVersion, String minimumVersion ->
+    def parse = { String version ->
+        version.tokenize(".").collect { part ->
+            part ==~ /\d+/ ? part.toInteger() : 0
+        }
+    }
+    def actualParts = parse(actualVersion)
+    def minimumParts = parse(minimumVersion)
+    def length = Math.max(actualParts.size(), minimumParts.size())
+    for (int index = 0; index < length; index++) {
+        def actualPart = index < actualParts.size() ? actualParts[index] : 0
+        def minimumPart = index < minimumParts.size() ? minimumParts[index] : 0
+        if (actualPart != minimumPart) {
+            return actualPart > minimumPart
+        }
+    }
+    return true
+}
 
 tasks.register("verifyModJarVersion") {
     dependsOn remappedModJar
@@ -157,11 +182,47 @@ tasks.register("verifyModJarVersion") {
             }
 
             [
+                    "ratatouille"     : project.ratatouille_version,
+                    "noellesroles"    : project.noellesroles_version,
+                    "sparkfactionapi" : ">=${project.sparkfactionapi_version}"
+            ].each { modId, versionPredicate ->
+                def actualPredicate = metadata.depends?.get(modId)?.toString()
+                if (actualPredicate != versionPredicate) {
+                    throw new GradleException("Dependency ${modId} mismatch in ${jarFile.name}: expected ${versionPredicate}, found ${actualPredicate}")
+                }
+            }
+
+            def siblingSparkFactionApi = findProject(":SparkFactionAPI")
+            if (siblingSparkFactionApi != null) {
+                def siblingVersion = siblingSparkFactionApi.version.toString()
+                if (!versionAtLeast(siblingVersion, project.sparkfactionapi_version.toString())) {
+                    throw new GradleException("Included SparkFactionAPI ${siblingVersion} is below required ${project.sparkfactionapi_version}")
+                }
+            } else {
+                fileTree(dir: "libs", include: "sparkfactionapi-*.jar").files.each { dependencyJar ->
+                    def dependencyZip = new java.util.zip.ZipFile(dependencyJar)
+                    try {
+                        def dependencyEntry = dependencyZip.getEntry("fabric.mod.json")
+                        if (dependencyEntry == null) {
+                            throw new GradleException("Missing fabric.mod.json in ${dependencyJar.name}")
+                        }
+                        def dependencyMetadata = new groovy.json.JsonSlurper().parse(dependencyZip.getInputStream(dependencyEntry))
+                        def dependencyVersion = dependencyMetadata.version?.toString()
+                        if (!versionAtLeast(dependencyVersion, project.sparkfactionapi_version.toString())) {
+                            throw new GradleException("Bundled SparkFactionAPI ${dependencyVersion} is below required ${project.sparkfactionapi_version}")
+                        }
+                    } finally {
+                        dependencyZip.close()
+                    }
+                }
+            }
+
+            [
                     "dev/caecorthus/sparkwitch/client/SparkWitchClient.class",
                     "dev/caecorthus/sparkwitch/net/SparkWitchServerConnection.class",
                     "dev/caecorthus/sparkwitch/net/SparkWitchPackets.class",
                     "dev/caecorthus/sparkwitch/net/SparkWitchServerConfirmS2CPacket.class",
-                    "dev/caecorthus/sparkwitch/client/net/SparkWitchClientVersionHandshake.class"
+                    "dev/caecorthus/sparkwitch/client/net/version/SparkWitchClientVersionHandshake.class"
             ].each { requiredEntry ->
                 // Client display gates need both login and play-stage Spark server confirmation.
                 // 客户端显示开关需要登录阶段和 play 阶段的 Spark 服务端确认。

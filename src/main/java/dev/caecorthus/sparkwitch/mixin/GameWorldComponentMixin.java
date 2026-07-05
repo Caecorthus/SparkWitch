@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.mixin;
 
-import dev.caecorthus.sparkwitch.impl.FirePokerFallAttributionService;
+import dev.caecorthus.sparkwitch.item.firepoker.FirePokerFallAttributionService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;

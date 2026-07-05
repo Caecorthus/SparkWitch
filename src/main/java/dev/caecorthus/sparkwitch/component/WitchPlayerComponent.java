@@ -1,13 +1,14 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import dev.caecorthus.sparkwitch.impl.ApprenticeWitchSkillService;
-import dev.caecorthus.sparkwitch.impl.GrandWitchActiveSkillService;
-import dev.caecorthus.sparkwitch.impl.GrandWitchRules;
-import dev.caecorthus.sparkwitch.impl.MurderousWitchDeathRayRules;
-import dev.caecorthus.sparkwitch.impl.PigGodRules;
-import dev.caecorthus.sparkwitch.impl.PigGodSkillService;
-import dev.caecorthus.sparkwitch.impl.WitchManaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityWindowRules;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Healing.HealingAbility;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
+import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
+import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodSkillService;
+import dev.caecorthus.sparkwitch.mana.WitchManaRules;
 import dev.doctor4t.wathe.api.event.PsychoType;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -17,7 +18,6 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -39,33 +39,35 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             WitchPlayerComponent.class
     );
 
-    private final PlayerEntity player;
-    private Identifier activeSkillId;
-    private Identifier forcedSkillId;
-    private int cooldownTicks;
-    private boolean manaEnabled;
-    private int mana;
-    private int manaRegenerationTicks;
-    private int ceremonialSwordTicks;
-    private int ceremonialSwordSlot = -1;
-    private int grandWitchCeremonialSwordTasks;
-    private int mightyForceTicks;
-    private int swiftStepTicks;
-    private int murderSenseTicks;
-    private int healingTicks;
-    private int healingPulseTicks;
-    private int clairvoyanceSelfTicks;
-    private int clairvoyanceOthersTicks;
-    private int deferredCooldownTicks;
-    private int pigChaseFreezeTicks;
-    private int pigChaseQueuedTicks;
-    private int pigChaseTicks;
-    private double pigChaseFreezeX;
-    private double pigChaseFreezeY;
-    private double pigChaseFreezeZ;
-    private boolean pigChaseOwnsPsycho;
-    private int deathRayTicks;
-    private int deathRayCharges;
+    // Package-private only for component-local codec Modules that preserve sync and NBT schemas.
+    // 仅供 component 包内 codec Module 使用，用来保持同步包和 NBT schema 的 Locality。
+    final PlayerEntity player;
+    Identifier activeSkillId;
+    Identifier forcedSkillId;
+    int cooldownTicks;
+    boolean manaEnabled;
+    int mana;
+    int manaRegenerationTicks;
+    int ceremonialSwordTicks;
+    int ceremonialSwordSlot = -1;
+    int grandWitchCeremonialSwordTasks;
+    int mightyForceTicks;
+    int swiftStepTicks;
+    int murderSenseTicks;
+    int healingTicks;
+    int healingPulseTicks;
+    int clairvoyanceSelfTicks;
+    int clairvoyanceOthersTicks;
+    int deferredCooldownTicks;
+    int pigChaseFreezeTicks;
+    int pigChaseQueuedTicks;
+    int pigChaseTicks;
+    double pigChaseFreezeX;
+    double pigChaseFreezeY;
+    double pigChaseFreezeZ;
+    boolean pigChaseOwnsPsycho;
+    int deathRayTicks;
+    int deathRayCharges;
 
     public WitchPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -104,7 +106,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     }
 
     public boolean hasUnlockedGrandWitchCeremonialSword() {
-        return GrandWitchRules.isCeremonialSwordUnlocked(grandWitchCeremonialSwordTasks);
+        return WitchFactionRules.isCeremonialSwordUnlocked(grandWitchCeremonialSwordTasks);
     }
 
     public int getMightyForceTicks() {
@@ -294,7 +296,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     }
 
     private void setGrandWitchCeremonialSwordTasks(int completedTasks) {
-        int normalized = GrandWitchRules.clampCeremonialSwordTaskProgress(completedTasks);
+        int normalized = WitchFactionRules.clampCeremonialSwordTaskProgress(completedTasks);
         if (grandWitchCeremonialSwordTasks == normalized) {
             return;
         }
@@ -584,7 +586,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             healingPulseTicks++;
             if (healingPulseTicks >= 20 && serverPlayer != null) {
                 healingPulseTicks = 0;
-                ApprenticeWitchSkillService.applyHealingPulse(serverPlayer);
+                HealingAbility.applyPulse(serverPlayer);
             }
             shouldSync |= healingTicks == 0 || healingTicks % 20 == 0;
         }
@@ -596,7 +598,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             clairvoyanceOthersTicks--;
             shouldSync |= clairvoyanceOthersTicks == 0 || clairvoyanceOthersTicks % 20 == 0;
         }
-        if (ApprenticeSkillWindowRules.shouldStartDeferredCooldown(
+        if (ApprenticeAbilityWindowRules.shouldStartDeferredCooldown(
                 activeBeforeTick,
                 apprenticeEffectiveWindowTicks(),
                 deferredCooldownTicks
@@ -632,7 +634,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     }
 
     private int apprenticeEffectiveWindowTicks() {
-        return ApprenticeSkillWindowRules.effectiveWindowTicks(
+        return ApprenticeAbilityWindowRules.effectiveWindowTicks(
                 mightyForceTicks,
                 swiftStepTicks,
                 murderSenseTicks,
@@ -838,202 +840,21 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     @Override
     public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) {
-        boolean visible = recipient == player || GameFunctions.isPlayerSpectatingOrCreative(recipient);
-        boolean ownerVisible = recipient == player;
-        writeOptionalIdentifier(buf, visible ? activeSkillId : null);
-        buf.writeVarInt(visible ? cooldownTicks : 0);
-        buf.writeBoolean(visible && manaEnabled);
-        buf.writeVarInt(visible && manaEnabled ? mana : 0);
-        buf.writeVarInt(visible ? ceremonialSwordTicks : 0);
-        buf.writeVarInt(visible ? grandWitchCeremonialSwordTasks : 0);
-        buf.writeVarInt(ownerVisible ? mightyForceTicks : 0);
-        buf.writeVarInt(ownerVisible ? swiftStepTicks : 0);
-        buf.writeVarInt(ownerVisible ? murderSenseTicks : 0);
-        buf.writeVarInt(ownerVisible ? healingTicks : 0);
-        buf.writeVarInt(ownerVisible ? clairvoyanceSelfTicks : 0);
-        buf.writeVarInt(ownerVisible ? clairvoyanceOthersTicks : 0);
-        buf.writeVarInt(ownerVisible ? deferredCooldownTicks : 0);
-        buf.writeVarInt(ownerVisible ? pigChaseFreezeTicks : 0);
-        buf.writeVarInt(ownerVisible ? pigChaseQueuedTicks : 0);
-        buf.writeVarInt(ownerVisible ? pigChaseTicks : 0);
-        buf.writeVarInt(ownerVisible ? deathRayTicks : 0);
-        buf.writeVarInt(ownerVisible ? deathRayCharges : 0);
+        WitchPlayerSyncCodec.write(this, buf, recipient);
     }
 
     @Override
     public void applySyncPacket(RegistryByteBuf buf) {
-        activeSkillId = readOptionalIdentifier(buf);
-        cooldownTicks = Math.max(0, buf.readVarInt());
-        manaEnabled = buf.readBoolean();
-        int syncedMana = Math.max(0, buf.readVarInt());
-        mana = manaEnabled ? syncedMana : 0;
-        manaRegenerationTicks = 0;
-        ceremonialSwordTicks = Math.max(0, buf.readVarInt());
-        if (ceremonialSwordTicks == 0) {
-            ceremonialSwordSlot = -1;
-        }
-        grandWitchCeremonialSwordTasks = GrandWitchRules.clampCeremonialSwordTaskProgress(buf.readVarInt());
-        mightyForceTicks = Math.max(0, buf.readVarInt());
-        swiftStepTicks = Math.max(0, buf.readVarInt());
-        murderSenseTicks = Math.max(0, buf.readVarInt());
-        healingTicks = Math.max(0, buf.readVarInt());
-        healingPulseTicks = 0;
-        clairvoyanceSelfTicks = Math.max(0, buf.readVarInt());
-        clairvoyanceOthersTicks = Math.max(0, buf.readVarInt());
-        deferredCooldownTicks = Math.max(0, buf.readVarInt());
-        pigChaseFreezeTicks = Math.max(0, buf.readVarInt());
-        pigChaseQueuedTicks = Math.max(0, buf.readVarInt());
-        pigChaseTicks = Math.max(0, buf.readVarInt());
-        pigChaseOwnsPsycho = false;
-        deathRayTicks = Math.max(0, buf.readVarInt());
-        deathRayCharges = Math.max(0, buf.readVarInt());
+        WitchPlayerSyncCodec.read(this, buf);
     }
 
     @Override
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
-        if (activeSkillId != null) {
-            tag.putString("ActiveSkill", activeSkillId.toString());
-        }
-        WitchForcedSkillState.writeToNbt(tag, forcedSkillId);
-        if (cooldownTicks > 0) {
-            tag.putInt("CooldownTicks", cooldownTicks);
-        }
-        if (manaEnabled) {
-            tag.putBoolean("ManaEnabled", true);
-            tag.putInt("Mana", mana);
-            if (manaRegenerationTicks > 0) {
-                tag.putInt("ManaRegenerationTicks", manaRegenerationTicks);
-            }
-        }
-        if (ceremonialSwordTicks > 0) {
-            tag.putInt("CeremonialSwordTicks", ceremonialSwordTicks);
-            tag.putInt("CeremonialSwordSlot", ceremonialSwordSlot);
-        }
-        if (grandWitchCeremonialSwordTasks > 0) {
-            tag.putInt("GrandWitchCeremonialSwordTasks", grandWitchCeremonialSwordTasks);
-        }
-        if (mightyForceTicks > 0) {
-            tag.putInt("MightyForceTicks", mightyForceTicks);
-        }
-        if (swiftStepTicks > 0) {
-            tag.putInt("SwiftStepTicks", swiftStepTicks);
-        }
-        if (murderSenseTicks > 0) {
-            tag.putInt("MurderSenseTicks", murderSenseTicks);
-        }
-        if (healingTicks > 0) {
-            tag.putInt("HealingTicks", healingTicks);
-            if (healingPulseTicks > 0) {
-                tag.putInt("HealingPulseTicks", healingPulseTicks);
-            }
-        }
-        if (clairvoyanceSelfTicks > 0) {
-            tag.putInt("ClairvoyanceSelfTicks", clairvoyanceSelfTicks);
-        }
-        if (clairvoyanceOthersTicks > 0) {
-            tag.putInt("ClairvoyanceOthersTicks", clairvoyanceOthersTicks);
-        }
-        if (deferredCooldownTicks > 0) {
-            tag.putInt("DeferredCooldownTicks", deferredCooldownTicks);
-        }
-        if (pigChaseFreezeTicks > 0) {
-            tag.putInt("PigChaseFreezeTicks", pigChaseFreezeTicks);
-            tag.putInt("PigChaseQueuedTicks", pigChaseQueuedTicks);
-            tag.putDouble("PigChaseFreezeX", pigChaseFreezeX);
-            tag.putDouble("PigChaseFreezeY", pigChaseFreezeY);
-            tag.putDouble("PigChaseFreezeZ", pigChaseFreezeZ);
-        }
-        if (pigChaseTicks > 0) {
-            tag.putInt("PigChaseTicks", pigChaseTicks);
-            tag.putBoolean("PigChaseOwnsPsycho", pigChaseOwnsPsycho);
-        }
-        if (deathRayTicks > 0) {
-            tag.putInt("DeathRayTicks", deathRayTicks);
-            tag.putInt("DeathRayCharges", deathRayCharges);
-        }
+        WitchPlayerNbtCodec.write(this, tag);
     }
 
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
-        activeSkillId = tag.contains("ActiveSkill", NbtElement.STRING_TYPE)
-                ? Identifier.tryParse(tag.getString("ActiveSkill"))
-                : null;
-        forcedSkillId = WitchForcedSkillState.readFromNbt(tag);
-        cooldownTicks = tag.contains("CooldownTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("CooldownTicks"))
-                : 0;
-        manaEnabled = tag.getBoolean("ManaEnabled");
-        mana = manaEnabled && tag.contains("Mana", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("Mana"))
-                : 0;
-        manaRegenerationTicks = manaEnabled && tag.contains("ManaRegenerationTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("ManaRegenerationTicks"))
-                : 0;
-        ceremonialSwordTicks = tag.contains("CeremonialSwordTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("CeremonialSwordTicks"))
-                : 0;
-        ceremonialSwordSlot = ceremonialSwordTicks > 0 && tag.contains("CeremonialSwordSlot", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("CeremonialSwordSlot"))
-                : -1;
-        grandWitchCeremonialSwordTasks = tag.contains("GrandWitchCeremonialSwordTasks", NbtElement.NUMBER_TYPE)
-                ? GrandWitchRules.clampCeremonialSwordTaskProgress(tag.getInt("GrandWitchCeremonialSwordTasks"))
-                : 0;
-        mightyForceTicks = tag.contains("MightyForceTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("MightyForceTicks"))
-                : 0;
-        swiftStepTicks = tag.contains("SwiftStepTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("SwiftStepTicks"))
-                : 0;
-        murderSenseTicks = tag.contains("MurderSenseTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("MurderSenseTicks"))
-                : 0;
-        healingTicks = tag.contains("HealingTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("HealingTicks"))
-                : 0;
-        healingPulseTicks = healingTicks > 0 && tag.contains("HealingPulseTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("HealingPulseTicks"))
-                : 0;
-        clairvoyanceSelfTicks = tag.contains("ClairvoyanceSelfTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("ClairvoyanceSelfTicks"))
-                : 0;
-        clairvoyanceOthersTicks = tag.contains("ClairvoyanceOthersTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("ClairvoyanceOthersTicks"))
-                : 0;
-        deferredCooldownTicks = tag.contains("DeferredCooldownTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("DeferredCooldownTicks"))
-                : 0;
-        pigChaseFreezeTicks = tag.contains("PigChaseFreezeTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("PigChaseFreezeTicks"))
-                : 0;
-        pigChaseQueuedTicks = tag.contains("PigChaseQueuedTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("PigChaseQueuedTicks"))
-                : 0;
-        pigChaseTicks = tag.contains("PigChaseTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("PigChaseTicks"))
-                : 0;
-        pigChaseFreezeX = tag.contains("PigChaseFreezeX", NbtElement.NUMBER_TYPE) ? tag.getDouble("PigChaseFreezeX") : 0.0;
-        pigChaseFreezeY = tag.contains("PigChaseFreezeY", NbtElement.NUMBER_TYPE) ? tag.getDouble("PigChaseFreezeY") : 0.0;
-        pigChaseFreezeZ = tag.contains("PigChaseFreezeZ", NbtElement.NUMBER_TYPE) ? tag.getDouble("PigChaseFreezeZ") : 0.0;
-        pigChaseOwnsPsycho = pigChaseTicks > 0 && tag.getBoolean("PigChaseOwnsPsycho");
-        deathRayTicks = tag.contains("DeathRayTicks", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("DeathRayTicks"))
-                : 0;
-        deathRayCharges = deathRayTicks > 0 && tag.contains("DeathRayCharges", NbtElement.NUMBER_TYPE)
-                ? Math.max(0, tag.getInt("DeathRayCharges"))
-                : 0;
-    }
-
-    private static void writeOptionalIdentifier(RegistryByteBuf buf, @Nullable Identifier id) {
-        buf.writeBoolean(id != null);
-        if (id != null) {
-            buf.writeString(id.toString());
-        }
-    }
-
-    private static @Nullable Identifier readOptionalIdentifier(RegistryByteBuf buf) {
-        if (!buf.readBoolean()) {
-            return null;
-        }
-        return Identifier.tryParse(buf.readString());
+        WitchPlayerNbtCodec.read(this, tag);
     }
 }

@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.client.WitchSkillHudRenderer;
+import dev.caecorthus.sparkwitch.client.hud.WitchSkillHudRenderer;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;

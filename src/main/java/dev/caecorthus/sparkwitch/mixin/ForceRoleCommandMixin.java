@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.mixin;
 
-import dev.caecorthus.sparkwitch.impl.WitchSkillLockValidationService;
+import dev.caecorthus.sparkwitch.skill.WitchSkillLockValidationService;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.command.ForceRoleCommand;
 import net.minecraft.server.command.ServerCommandSource;

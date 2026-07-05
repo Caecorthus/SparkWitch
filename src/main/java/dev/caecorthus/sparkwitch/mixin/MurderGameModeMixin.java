@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.mixin;
 
-import dev.caecorthus.sparkwitch.impl.WitchRoleAssignmentService;
+import dev.caecorthus.sparkwitch.registry.WitchRoleAssignmentService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.gamemode.MurderGameMode;
 import net.minecraft.server.network.ServerPlayerEntity;

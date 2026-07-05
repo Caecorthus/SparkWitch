@@ -1,7 +1,7 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.client.GrandWitchFearClientHooks;
-import dev.caecorthus.sparkwitch.client.WitchInstinctSuppressionClientHooks;
+import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
+import dev.caecorthus.sparkwitch.client.hooks.WitchInstinctSuppressionClientHooks;
 import dev.doctor4t.wathe.client.WatheClient;
 import net.minecraft.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;

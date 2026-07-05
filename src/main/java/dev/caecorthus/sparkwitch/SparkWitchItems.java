@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch;
 
-import dev.caecorthus.sparkwitch.item.CeremonialSwordItem;
+import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;

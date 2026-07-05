@@ -2,7 +2,7 @@ package dev.caecorthus.sparkwitch;
 
 import dev.caecorthus.sparkwitch.command.ForceAbilityCommand;
 import dev.caecorthus.sparkwitch.command.SetManaCommand;
-import dev.caecorthus.sparkwitch.impl.SparkWitchBuiltInSkills;
+import dev.caecorthus.sparkwitch.skill.SparkWitchBuiltInSkills;
 import dev.caecorthus.sparkwitch.impl.SparkWitchEvents;
 import dev.caecorthus.sparkwitch.net.SparkWitchPackets;
 import dev.caecorthus.sparkwitch.net.SparkWitchVersionHandshake;

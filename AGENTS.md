@@ -15,6 +15,12 @@
 
 ## Coding
 
+### Architecture
+- Read `ARCHITECTURE.md` before changing code.
+- Read `ARCHITECTURE_LOGS.md` before moving, deleting, renaming, splitting, or merging existing modules.
+- `ARCHITECTURE.md` is the constitution: what to do, what not to do, and what requires approval.
+- `ARCHITECTURE_LOGS.md` is the history: approved boards, completed migrations, and watch-only notes.
+
 ### Check
 - Please read the code for all three mods (usually you don't need to read SparkWitch), and you need to consider how to ensure your changes do not affect other characters or talents that are outside the scope of the modifications.
 

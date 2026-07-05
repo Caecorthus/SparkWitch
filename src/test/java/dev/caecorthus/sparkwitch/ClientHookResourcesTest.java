@@ -13,7 +13,7 @@ class ClientHookResourcesTest {
     private static final Path SPARK_WITCH_CLIENT =
             Path.of("src/client/java/dev/caecorthus/sparkwitch/client/SparkWitchClient.java");
     private static final Path INSTINCT_SUPPRESSION_HOOK =
-            Path.of("src/client/java/dev/caecorthus/sparkwitch/client/WitchInstinctSuppressionClientHooks.java");
+            Path.of("src/client/java/dev/caecorthus/sparkwitch/client/hooks/WitchInstinctSuppressionClientHooks.java");
     private static final Path WATHE_FEAR_INSTINCT_MIXIN =
             Path.of("src/client/java/dev/caecorthus/sparkwitch/client/mixin/WatheClientFearInstinctMixin.java");
     private static final Path WITCH_SKILL_HUD_MIXIN =
@@ -25,6 +25,7 @@ class ClientHookResourcesTest {
     void clientRegistersWitchInstinctSuppressionHook() throws IOException {
         String source = Files.readString(SPARK_WITCH_CLIENT);
 
+        assertTrue(source.contains("dev.caecorthus.sparkwitch.client.hooks.WitchInstinctSuppressionClientHooks"));
         assertTrue(source.contains("WitchInstinctSuppressionClientHooks.register();"));
     }
 
@@ -64,6 +65,10 @@ class ClientHookResourcesTest {
         String manaHudSource = Files.readString(WITCH_MANA_HUD_MIXIN);
 
         assertTrue(clientSource.contains("SparkWitchServerConnection.reset();"));
+        assertTrue(clientSource.contains("ClientLoginConnectionEvents.INIT.register"));
+        assertTrue(clientSource.contains("ClientLoginConnectionEvents.DISCONNECT.register"));
+        assertTrue(clientSource.contains("ClientPlayConnectionEvents.INIT.register"));
+        assertTrue(clientSource.contains("ClientPlayConnectionEvents.DISCONNECT.register"));
         assertTrue(clientSource.contains("SparkWitchServerConnection.isConfirmedServer()"));
         assertTrue(skillHudSource.contains("SparkWitchServerConnection.isConfirmedServer()"));
         assertTrue(manaHudSource.contains("SparkWitchServerConnection.isConfirmedServer()"));

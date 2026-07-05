@@ -1,10 +1,10 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.client.WitchSkillClientTexts;
+import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
-import dev.caecorthus.sparkwitch.impl.GrandWitchRules;
-import dev.caecorthus.sparkwitch.impl.WitchSkillHudRules;
-import dev.caecorthus.sparkwitch.impl.WitchSkillPresentationRules;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.skill.WitchSkillHudRules;
+import dev.caecorthus.sparkwitch.skill.WitchSkillPresentationRules;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -98,7 +98,7 @@ public abstract class WitchSkillInventoryScreenMixin extends LimitedHandledScree
             return Text.translatable(
                     "gui.sparkwitch.skill.ceremonial_sword.locked",
                     component.getGrandWitchCeremonialSwordTasks(),
-                    GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS
+                    WitchFactionRules.CEREMONIAL_SWORD_UNLOCK_TASKS
             );
         }
         if (component.getCooldownTicks() > 0) {
