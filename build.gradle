@@ -69,20 +69,17 @@ repositories {
 }
 
 dependencies {
-    def siblingSparkFactionApi = findProject(":SparkFactionAPI")
-    def watheJar = file("../SparkFactionAPI/libs/wathe-${project.wathe_version}.jar")
-    if (!watheJar.isFile()) {
-        watheJar = file("libs/wathe-${project.wathe_version}.jar")
-    }
+    def watheJar = file("libs/wathe-${project.wathe_version}.jar")
     if (!watheJar.isFile()) {
         throw new GradleException("Missing Wathe dependency jar: ${watheJar}")
     }
     def noellesRolesJar = file("libs/noellesroles-${project.noellesroles_version}.jar")
     if (!noellesRolesJar.isFile()) {
-        noellesRolesJar = file("../SparkTraits/noellesroles-${project.noellesroles_version}.jar")
-    }
-    if (!noellesRolesJar.isFile()) {
         throw new GradleException("Missing NoellesRoles dependency jar: ${noellesRolesJar}")
+    }
+    def sparkFactionApiJar = file("libs/sparkfactionapi-${project.sparkfactionapi_version}.jar")
+    if (!sparkFactionApiJar.isFile()) {
+        throw new GradleException("Missing bundled SparkFactionAPI jar: ${sparkFactionApiJar}")
     }
 
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -92,15 +89,7 @@ dependencies {
 
     modImplementation files(watheJar)
     modImplementation files(noellesRolesJar)
-    if (siblingSparkFactionApi != null) {
-        implementation project(path: ":SparkFactionAPI", configuration: "namedElements")
-    } else {
-        def bundledSparkFactionApiJars = fileTree(dir: "libs", include: "sparkfactionapi-*.jar")
-        if (bundledSparkFactionApiJars.files.isEmpty()) {
-            throw new GradleException("Missing bundled SparkFactionAPI jar under libs/.")
-        }
-        modImplementation bundledSparkFactionApiJars
-    }
+    modImplementation files(sparkFactionApiJar)
     modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-base:${project.cca_version}"
     modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-entity:${project.cca_version}"
     modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-world:${project.cca_version}"
@@ -114,8 +103,6 @@ dependencies {
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
     modRuntimeOnly "me.lucko:fabric-permissions-api:0.3.1"
-    testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 processResources {
@@ -210,29 +197,23 @@ tasks.register("verifyModJarVersion") {
                 }
             }
 
-            def siblingSparkFactionApi = findProject(":SparkFactionAPI")
-            if (siblingSparkFactionApi != null) {
-                def siblingVersion = siblingSparkFactionApi.version.toString()
-                if (!versionAtLeast(siblingVersion, project.sparkfactionapi_version.toString())) {
-                    throw new GradleException("Included SparkFactionAPI ${siblingVersion} is below required ${project.sparkfactionapi_version}")
+            def dependencyJar = file("libs/sparkfactionapi-${project.sparkfactionapi_version}.jar")
+            if (!dependencyJar.isFile()) {
+                throw new GradleException("Missing bundled SparkFactionAPI jar: ${dependencyJar}")
+            }
+            def dependencyZip = new java.util.zip.ZipFile(dependencyJar)
+            try {
+                def dependencyEntry = dependencyZip.getEntry("fabric.mod.json")
+                if (dependencyEntry == null) {
+                    throw new GradleException("Missing fabric.mod.json in ${dependencyJar.name}")
                 }
-            } else {
-                fileTree(dir: "libs", include: "sparkfactionapi-*.jar").files.each { dependencyJar ->
-                    def dependencyZip = new java.util.zip.ZipFile(dependencyJar)
-                    try {
-                        def dependencyEntry = dependencyZip.getEntry("fabric.mod.json")
-                        if (dependencyEntry == null) {
-                            throw new GradleException("Missing fabric.mod.json in ${dependencyJar.name}")
-                        }
-                        def dependencyMetadata = new groovy.json.JsonSlurper().parse(dependencyZip.getInputStream(dependencyEntry))
-                        def dependencyVersion = dependencyMetadata.version?.toString()
-                        if (!versionAtLeast(dependencyVersion, project.sparkfactionapi_version.toString())) {
-                            throw new GradleException("Bundled SparkFactionAPI ${dependencyVersion} is below required ${project.sparkfactionapi_version}")
-                        }
-                    } finally {
-                        dependencyZip.close()
-                    }
+                def dependencyMetadata = new groovy.json.JsonSlurper().parse(dependencyZip.getInputStream(dependencyEntry))
+                def dependencyVersion = dependencyMetadata.version?.toString()
+                if (!versionAtLeast(dependencyVersion, project.sparkfactionapi_version.toString())) {
+                    throw new GradleException("Bundled SparkFactionAPI ${dependencyVersion} is below required ${project.sparkfactionapi_version}")
                 }
+            } finally {
+                dependencyZip.close()
             }
 
             [
@@ -258,26 +239,33 @@ tasks.named("build") {
     dependsOn tasks.named("verifyModJarVersion")
 }
 
+def targetJavaVersion = 21
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = "UTF-8"
-    it.options.release.set(21)
+    it.options.release.set(targetJavaVersion)
 }
 
-tasks.test {
-    useJUnitPlatform()
+tasks.named("check") {
+    setDependsOn([])
+    dependsOn tasks.matching { it.name == "validateAccessWidener" }
 }
+
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
     withSourcesJar()
 }
 
 tasks.withType(JavaExec).configureEach {
-    javaLauncher.set(javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(21)
-    })
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    if (JavaVersion.current() < javaVersion) {
+        javaLauncher.set(javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+        })
+    }
 }
