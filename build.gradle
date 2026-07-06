@@ -43,6 +43,14 @@ repositories {
         }
     }
     maven {
+        name = "Xander Maven"
+        url = "https://maven.isxander.dev/releases"
+        content {
+            includeGroup "dev.isxander"
+            includeGroup "org.quiltmc.parsers"
+        }
+    }
+    maven {
         name = "Terraformers"
         url = "https://maven.terraformersmc.com/releases/"
     }
@@ -69,6 +77,13 @@ dependencies {
     if (!watheJar.isFile()) {
         throw new GradleException("Missing Wathe dependency jar: ${watheJar}")
     }
+    def noellesRolesJar = file("libs/noellesroles-${project.noellesroles_version}.jar")
+    if (!noellesRolesJar.isFile()) {
+        noellesRolesJar = file("../SparkTraits/noellesroles-${project.noellesroles_version}.jar")
+    }
+    if (!noellesRolesJar.isFile()) {
+        throw new GradleException("Missing NoellesRoles dependency jar: ${noellesRolesJar}")
+    }
 
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
@@ -76,6 +91,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     modImplementation files(watheJar)
+    modImplementation files(noellesRolesJar)
     if (siblingSparkFactionApi != null) {
         implementation project(path: ":SparkFactionAPI", configuration: "namedElements")
     } else {
@@ -93,6 +109,8 @@ dependencies {
     modImplementation("dev.doctor4t:ratatouille:${project.ratatouille_version}") {
         exclude group: "dev.upcraft.datasync"
     }
+    modRuntimeOnly "dev.isxander:yet-another-config-lib:${project.yacl_version}"
+    modLocalRuntime "maven.modrinth:simple-voice-chat:fabric-${project.minecraft_version}-${project.voicechat_version}"
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
     modRuntimeOnly "me.lucko:fabric-permissions-api:0.3.1"

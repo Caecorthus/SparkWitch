@@ -48,4 +48,13 @@ class FabricModResourcesTest {
         assertEquals("${ratatouille_version}", depends.get("ratatouille").getAsString());
         assertTrue(depends.has("cardinal-components-base"));
     }
+
+    @Test
+    void devRuntimeWiresNoellesRolesSupportMods() throws IOException {
+        String buildScript = Files.readString(Path.of("build.gradle"));
+
+        assertTrue(buildScript.contains("noellesroles-${project.noellesroles_version}.jar"));
+        assertTrue(buildScript.contains("yet-another-config-lib:${project.yacl_version}"));
+        assertTrue(buildScript.contains("simple-voice-chat:fabric-${project.minecraft_version}-${project.voicechat_version}"));
+    }
 }
