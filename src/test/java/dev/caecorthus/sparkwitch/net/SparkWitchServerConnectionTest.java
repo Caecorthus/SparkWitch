@@ -34,7 +34,7 @@ class SparkWitchServerConnectionTest {
     void incompatibleConfirmationClearsStaleState() {
         SparkWitchServerConnection.confirmServer();
 
-        assertFalse(SparkWitchServerConnection.confirmCompatible("0.1.5.2", "0.1.5.3"));
+        assertFalse(SparkWitchServerConnection.confirmCompatible("0.1.5.3", "0.1.5.4"));
         assertFalse(SparkWitchServerConnection.isConfirmedServer());
     }
 
@@ -42,7 +42,7 @@ class SparkWitchServerConnectionTest {
     void compatibleConfirmationSetsConfirmedState() {
         SparkWitchServerConnection.reset();
 
-        assertTrue(SparkWitchServerConnection.confirmCompatible("0.1.5.3", "0.1.5.3"));
+        assertTrue(SparkWitchServerConnection.confirmCompatible("0.1.5.4", "0.1.5.4"));
         assertTrue(SparkWitchServerConnection.isConfirmedServer());
     }
 }

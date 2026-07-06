@@ -9,14 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SparkWitchVersionCheckTest {
     @Test
     void matchingVersionsAreCompatible() {
-        assertTrue(SparkWitchVersionCheck.isCompatible("0.1.5.1", "0.1.5.1"));
+        assertTrue(SparkWitchVersionCheck.isCompatible("0.1.5.4", "0.1.5.4"));
     }
 
     @Test
     void differentOrBlankVersionsAreRejected() {
-        assertFalse(SparkWitchVersionCheck.isCompatible("0.1.5.1", "0.1.5"));
-        assertFalse(SparkWitchVersionCheck.isCompatible("0.1.5.1", ""));
-        assertFalse(SparkWitchVersionCheck.isCompatible("0.1.5.1", null));
+        assertFalse(SparkWitchVersionCheck.isCompatible("0.1.5.4", "0.1.5.3"));
+        assertFalse(SparkWitchVersionCheck.isCompatible("0.1.5.4", ""));
+        assertFalse(SparkWitchVersionCheck.isCompatible("0.1.5.4", null));
     }
 
     @Test
@@ -27,13 +27,13 @@ class SparkWitchVersionCheckTest {
     @Test
     void disconnectMessagesNameExpectedAndActualVersions() {
         assertEquals(
-                "SparkWitch is required on the client with version 0.1.5.1.",
-                SparkWitchVersionCheck.missingClientMessage("0.1.5.1")
+                "SparkWitch is required on the client with version 0.1.5.4.",
+                SparkWitchVersionCheck.missingClientMessage("0.1.5.4")
         );
         assertEquals(
-                "SparkWitch version mismatch: server=0.1.5.1, client=0.1.5. "
+                "SparkWitch version mismatch: server=0.1.5.4, client=0.1.5.3. "
                         + "Please install the same SparkWitch version as the server.",
-                SparkWitchVersionCheck.mismatchMessage("0.1.5.1", "0.1.5")
+                SparkWitchVersionCheck.mismatchMessage("0.1.5.4", "0.1.5.3")
         );
     }
 }
