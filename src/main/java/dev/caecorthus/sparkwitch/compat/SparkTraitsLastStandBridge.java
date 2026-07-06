@@ -11,7 +11,7 @@ import java.util.UUID;
  */
 public final class SparkTraitsLastStandBridge {
     private static final String LAST_STAND_SERVICE_CLASS =
-            "dev.caecorthus.sparktraits.impl.traits.civilian.last_stand.LastStandService";
+            "dev.caecorthus.sparktraits.impl.traits.civilian.laststand.LastStandService";
 
     private static volatile Method hasTriggeredThisRoundMethod;
     private static volatile boolean lookupFailed;
