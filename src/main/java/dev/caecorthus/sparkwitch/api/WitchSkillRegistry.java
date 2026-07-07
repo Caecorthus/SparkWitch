@@ -28,7 +28,4 @@ public final class WitchSkillRegistry {
         return java.util.List.copyOf(SKILLS.values());
     }
 
-    public static void clearForTests() {
-        SKILLS.clear();
-    }
 }

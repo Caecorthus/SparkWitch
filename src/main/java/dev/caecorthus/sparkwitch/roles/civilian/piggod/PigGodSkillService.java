@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -28,11 +29,11 @@ public final class PigGodSkillService {
         }
 
         PlayerShopComponent shop = PlayerShopComponent.KEY.get(context.player());
-        if (context.player().getInventory().getEmptySlot() < 0) {
-            return WitchSkillUseResult.fail("message.sparkwitch.skill.pig_chase.no_inventory_space");
-        }
         if (shop.getBalance() < PigGodRules.COIN_COST) {
             return WitchSkillUseResult.fail("message.sparkwitch.skill.pig_chase.not_enough_money");
+        }
+        if (!ensurePsychoHotbarSlot(context.player())) {
+            return WitchSkillUseResult.fail("message.sparkwitch.skill.pig_chase.no_inventory_space");
         }
 
         shop.setBalance(shop.getBalance() - PigGodRules.COIN_COST);
@@ -48,6 +49,31 @@ public final class PigGodSkillService {
                 PigGodRules.COOLDOWN_TICKS,
                 "message.sparkwitch.skill.pig_chase.activated"
         );
+    }
+
+    /**
+     * Prepares a hotbar slot before Wathe's psycho mode inserts its bat.
+     * 在调用 Wathe 疯魔前准备快捷栏槽位，避免背包有空位但快捷栏满时启动失败。
+     */
+    private static boolean ensurePsychoHotbarSlot(ServerPlayerEntity player) {
+        int slot = PigGodRules.psychoBatHotbarSlot(hotbarOccupiedSlots(player), player.getInventory().selectedSlot);
+        ItemStack displaced = player.getInventory().getStack(slot);
+        if (displaced.isEmpty()) {
+            return true;
+        }
+
+        player.getInventory().setStack(slot, ItemStack.EMPTY);
+        player.getInventory().selectedSlot = slot;
+        player.dropItem(displaced.copy(), true, false);
+        return true;
+    }
+
+    private static boolean[] hotbarOccupiedSlots(ServerPlayerEntity player) {
+        boolean[] occupiedSlots = new boolean[PigGodRules.HOTBAR_SIZE];
+        for (int slot = 0; slot < occupiedSlots.length; slot++) {
+            occupiedSlots[slot] = !player.getInventory().getStack(slot).isEmpty();
+        }
+        return occupiedSlots;
     }
 
     private static void playChaseSound(WitchSkillUseContext context) {

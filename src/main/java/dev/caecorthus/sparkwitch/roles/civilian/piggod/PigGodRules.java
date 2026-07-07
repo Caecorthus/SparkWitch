@@ -23,6 +23,7 @@ public final class PigGodRules {
     public static final float SOUND_VOLUME = 1.0f;
     public static final float SOUND_PITCH = 1.0f;
     public static final double SOUND_STOP_RANGE_BLOCKS = 16.0D;
+    public static final int HOTBAR_SIZE = 9;
     // Match Wathe's crowbar door-pry feedback when Pig Chase blasts a Wathe door.
     // 皮革追杀破开 Wathe 门时，复用 Wathe 撬棍撬门的听觉反馈。
     public static final float DOOR_BLAST_SOUND_VOLUME = 2.5f;
@@ -74,6 +75,23 @@ public final class PigGodRules {
 
     public static boolean shouldStartChaseImmediately(int freezeTicks, int chaseTicks) {
         return Math.max(0, freezeTicks) == 0 && Math.max(0, chaseTicks) > 0;
+    }
+
+    /**
+     * Chooses the hotbar slot Wathe can use for its psycho bat insertion.
+     * 选择 Wathe 疯魔球棒能实际进入的快捷栏槽位；快捷栏满时复用当前槽位并由调用方丢出原物品。
+     */
+    public static int psychoBatHotbarSlot(boolean[] occupiedSlots, int selectedSlot) {
+        int inspectedSlots = Math.min(HOTBAR_SIZE, occupiedSlots.length);
+        for (int slot = 0; slot < inspectedSlots; slot++) {
+            if (!occupiedSlots[slot]) {
+                return slot;
+            }
+        }
+        if (selectedSlot >= 0 && selectedSlot < HOTBAR_SIZE) {
+            return selectedSlot;
+        }
+        return 0;
     }
 
     public static boolean shouldPunishPigChaseCivilianKill(

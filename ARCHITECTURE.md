@@ -49,7 +49,26 @@ Historical reviews, approved boards, and completed migrations belong in
    If any item is unknown, perform a read-only review before requesting approval.
    Do not fill gaps by guessing during implementation.
 
-5. Comments must be English and Chinese when they explain:
+5. Code shape must stay small and single-purpose.
+
+   - In all cases, code aesthetics, human readability, and correct functionality
+     are the highest priorities. Do not game the limits by making code cramped,
+     obscure, or harder to maintain.
+   - A class may own only one responsibility. If it has more than one reason to
+     change, split or delegate through the owning Module instead of adding more
+     behavior.
+   - A method or function should take no more than 5 parameters.
+   - A method or function should normally stay within 30-70 lines and must not
+     exceed 100 lines.
+   - A class should normally stay within 200-300 lines.
+   - Blank lines and comments do not count toward method, function, or class line
+     limits.
+   - If a proposed change would exceed these limits, stop and discuss the reason,
+     scope, impact, and verification plan with the owner before editing. Existing
+     over-limit code is not automatic permission to refactor; use the structural
+     approval process.
+
+6. Comments must be English and Chinese when they explain:
 
    - Public Interface semantics.
    - Wathe, NoellesRoles, SparkTraits, or SparkFactionAPI Seams.
@@ -60,11 +79,14 @@ Historical reviews, approved boards, and completed migrations belong in
 
    Do not add noise comments to self-explanatory code.
 
-6. Tests should cross the same Interface as callers. Prefer testing domain
-   Modules through their real Interface instead of reaching into private helper
-   details. Package-private pure rules are allowed when they preserve Locality.
+7. Committed Java test suites are forbidden.
 
-7. Do not make broad architecture changes while fixing an urgent gameplay bug.
+   Do not add `@Test` methods, JUnit dependencies, `src/test/` source files, or
+   production reset helpers that exist only for automated tests. Verify changes
+   with builds, static searches, jar inspection, integration runs, manual
+   reproduction, or one-off uncommitted diagnostic scripts instead.
+
+8. Do not make broad architecture changes while fixing an urgent gameplay bug.
    Stabilize the bug first, then propose a separate board if the bug proves the
    Module shape caused drift.
 
@@ -87,7 +109,7 @@ change and includes downstream impact plus version planning.
   - `sparkwitch:player`
   - `sparkwitch:world`
 - Packet ids and version channels:
-  - `sparkwitch:use_witch_skill`
+  - `sparkwitch:use_skill`
   - `sparkwitch:fire_death_ray`
   - `sparkwitch:server_confirm`
   - `sparkwitch:version_check`
@@ -442,12 +464,11 @@ git diff --check
 Source/resource changes:
 
 ```sh
-./gradlew test
-./gradlew build
+./gradlew clean build
 git diff --check
 ```
 
-When Gradle appears stuck around compile/test discovery, first suspect stale
+When Gradle appears stuck around compile/build task discovery, first suspect stale
 Gradle daemon/build state and rerun with Java 21 plus conservative Gradle flags
 before rewriting logic.
 

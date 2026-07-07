@@ -93,10 +93,6 @@ public final class SparkWitchBuiltInSkills {
         ));
     }
 
-    static synchronized void resetForTests() {
-        registered = false;
-    }
-
     private static void registerApprenticeAbility(
             net.minecraft.util.Identifier id,
             int color,
