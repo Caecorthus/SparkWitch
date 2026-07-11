@@ -1,7 +1,7 @@
 package dev.caecorthus.sparkwitch.skill;
 
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
-import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -34,7 +34,7 @@ public final class WitchSkillHudRules {
     ) {
         return GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID.equals(skillId)
                 && activeTicks <= 0
-                && !WitchFactionRules.isCeremonialSwordUnlocked(completedTasks);
+                && !GrandWitchRules.isCeremonialSwordUnlocked(completedTasks);
     }
 
     public static boolean shouldShowManaRequirement(

@@ -38,12 +38,11 @@ public final class PigGodSkillService {
 
         shop.setBalance(shop.getBalance() - PigGodRules.COIN_COST);
         playChaseSound(context);
-        component.beginPigChaseFreeze(
+        PigGodChaseRuntime.begin(
+                context.player(),
+                component,
                 PigGodRules.FREEZE_TICKS,
-                PigGodRules.CHASE_TICKS,
-                context.player().getX(),
-                context.player().getY(),
-                context.player().getZ()
+                PigGodRules.CHASE_TICKS
         );
         return WitchSkillUseResult.successAfterActiveWindow(
                 PigGodRules.COOLDOWN_TICKS,

@@ -20,8 +20,9 @@ import net.minecraft.util.Identifier;
 import java.util.List;
 
 /**
- * Builds the Grand Witch's mana shop without granting native killer shop access.
- * 构建大魔女专属魔力商店，不借用原生杀手商店权限。
+ * Builds the Grand Witch's exclusive shop of coin-priced items and mana spells
+ * without granting native killer shop access.
+ * 构建大魔女专属商店，包含金币定价物品和魔力法术，但不授予原生杀手商店权限。
  */
 public final class GrandWitchShopService {
     private static final int SHOP_DESCRIPTION_COLOR = 0x808080;
@@ -46,6 +47,8 @@ public final class GrandWitchShopService {
         }
 
         context.clearEntries();
+        context.addEntry(new ShopEntry.Builder("revolver", WatheItems.REVOLVER.getDefaultStack(), 300, ShopEntry.Type.WEAPON)
+                .build());
         context.addEntry(new ShopEntry.Builder("lockpick", WatheItems.LOCKPICK.getDefaultStack(), 50, ShopEntry.Type.TOOL)
                 .stock(1)
                 .build());
@@ -54,19 +57,19 @@ public final class GrandWitchShopService {
         context.addEntry(new ShopEntry.Builder("scorpion", WatheItems.SCORPION.getDefaultStack(), 100, ShopEntry.Type.POISON)
                 .build());
         context.addEntry(spellEntry(
-                WitchFactionRules.GrandWitchSpell.OBSCURE,
+                GrandWitchRules.GrandWitchSpell.OBSCURE,
                 ShopEntry.Type.TOOL
         ));
         context.addEntry(spellEntry(
-                WitchFactionRules.GrandWitchSpell.BLINDNESS,
+                GrandWitchRules.GrandWitchSpell.BLINDNESS,
                 ShopEntry.Type.TOOL
         ));
         context.addEntry(spellEntry(
-                WitchFactionRules.GrandWitchSpell.FEAR,
+                GrandWitchRules.GrandWitchSpell.FEAR,
                 ShopEntry.Type.TOOL
         ));
         context.addEntry(spellEntry(
-                WitchFactionRules.GrandWitchSpell.HEAVINESS,
+                GrandWitchRules.GrandWitchSpell.HEAVINESS,
                 ShopEntry.Type.TOOL
         ));
     }
@@ -76,7 +79,7 @@ public final class GrandWitchShopService {
             return ShopPurchase.PurchaseResult.deny(GrandWitchFearService.SHOP_BLOCKED_KEY);
         }
 
-        WitchFactionRules.GrandWitchSpell spell = WitchFactionRules.GrandWitchSpell.fromEntryId(entry.id());
+        GrandWitchRules.GrandWitchSpell spell = GrandWitchRules.GrandWitchSpell.fromEntryId(entry.id());
         if (spell == null) {
             return null;
         }
@@ -91,7 +94,7 @@ public final class GrandWitchShopService {
     }
 
     private static ShopEntry spellEntry(
-            WitchFactionRules.GrandWitchSpell spell,
+            GrandWitchRules.GrandWitchSpell spell,
             ShopEntry.Type type
     ) {
         return new ShopEntry.Builder(spell.entryId(), displayStackForSpell(spell), 0, type)
@@ -101,7 +104,7 @@ public final class GrandWitchShopService {
                 .build();
     }
 
-    static ItemStack displayStackForSpell(WitchFactionRules.GrandWitchSpell spell) {
+    static ItemStack displayStackForSpell(GrandWitchRules.GrandWitchSpell spell) {
         ItemStack stack = displayItemForSpell(spell).getDefaultStack();
         stack.set(DataComponentTypes.ITEM_NAME, Text.translatable(spell.translationKey()));
         // LimitedInventoryScreen renders display-stack lore as the lower shop description.
@@ -110,20 +113,20 @@ public final class GrandWitchShopService {
         return stack;
     }
 
-    static LoreComponent descriptionLoreForSpell(WitchFactionRules.GrandWitchSpell spell) {
+    static LoreComponent descriptionLoreForSpell(GrandWitchRules.GrandWitchSpell spell) {
         return new LoreComponent(List.of(descriptionText(spell)));
     }
 
-    private static Text descriptionText(WitchFactionRules.GrandWitchSpell spell) {
+    private static Text descriptionText(GrandWitchRules.GrandWitchSpell spell) {
         return Text.translatable(spell.descriptionTranslationKey())
                 .styled(style -> style.withItalic(false).withColor(SHOP_DESCRIPTION_COLOR));
     }
 
-    private static Item displayItemForSpell(WitchFactionRules.GrandWitchSpell spell) {
+    private static Item displayItemForSpell(GrandWitchRules.GrandWitchSpell spell) {
         return Registries.ITEM.get(displayItemIdForSpell(spell));
     }
 
-    static Identifier displayItemIdForSpell(WitchFactionRules.GrandWitchSpell spell) {
+    static Identifier displayItemIdForSpell(GrandWitchRules.GrandWitchSpell spell) {
         return switch (spell) {
             case OBSCURE -> Identifier.ofVanilla("barrier");
             case BLINDNESS -> Identifier.ofVanilla("ender_pearl");

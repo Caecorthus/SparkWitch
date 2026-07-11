@@ -43,18 +43,18 @@ public final class GrandWitchActiveSkillService {
         if (knifeSlot < 0) {
             return WitchSkillUseResult.fail("message.sparkwitch.skill.ceremonial_sword.no_knife");
         }
-        if (!component.spendMana(WitchFactionRules.CEREMONIAL_SWORD_MANA_COST)) {
+        if (!component.spendMana(GrandWitchRules.CEREMONIAL_SWORD_MANA_COST)) {
             return WitchSkillUseResult.fail("message.sparkwitch.skill.not_enough_mana");
         }
 
         player.getInventory().setStack(knifeSlot, new ItemStack(SparkWitchItems.ceremonialSword()));
         player.getInventory().markDirty();
-        component.beginCeremonialSwordWindow(knifeSlot, WitchFactionRules.CEREMONIAL_SWORD_DURATION_TICKS);
+        component.beginCeremonialSwordWindow(knifeSlot, GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS);
         WitchWorldComponent.KEY.get(player.getServerWorld()).startGrandWitchCeremonialSwordBgm(player.getUuid());
         player.addStatusEffect(new StatusEffectInstance(
                 StatusEffects.SPEED,
-                WitchFactionRules.CEREMONIAL_SWORD_DURATION_TICKS,
-                WitchFactionRules.CEREMONIAL_SWORD_SPEED_AMPLIFIER,
+                GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS,
+                GrandWitchRules.CEREMONIAL_SWORD_SPEED_AMPLIFIER,
                 false,
                 false,
                 true
@@ -81,7 +81,26 @@ public final class GrandWitchActiveSkillService {
     public static void finishCeremonialSwordWindow(ServerPlayerEntity player, WitchPlayerComponent component) {
         restoreKnife(player, component.getCeremonialSwordSlot());
         WitchWorldComponent.KEY.get(player.getServerWorld()).stopGrandWitchCeremonialSwordBgm(player.getUuid());
-        component.completeCeremonialSwordWindow(WitchFactionRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
+        component.completeCeremonialSwordWindow(GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
+    }
+
+    public static void tickCeremonialSwordWindow(ServerPlayerEntity player, WitchPlayerComponent component) {
+        if (component.getCeremonialSwordTicks() <= 0) {
+            return;
+        }
+        int remainingTicks = component.decrementCeremonialSwordTicks();
+        if (remainingTicks == 0) {
+            finishCeremonialSwordWindow(player, component);
+            return;
+        }
+        if (remainingTicks % 20 == 0) {
+            component.sync();
+        }
+    }
+
+    public static void stopCeremonialSwordBgm(ServerPlayerEntity player) {
+        WitchWorldComponent.KEY.get(player.getServerWorld())
+                .stopGrandWitchCeremonialSwordBgm(player.getUuid());
     }
 
     public static void clearCeremonialSword(ServerPlayerEntity player, boolean restoreKnife) {

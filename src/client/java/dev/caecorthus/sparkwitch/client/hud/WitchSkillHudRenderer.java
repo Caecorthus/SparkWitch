@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.skill.WitchSkillHudRules;
@@ -74,7 +75,7 @@ public final class WitchSkillHudRenderer {
             return Text.translatable(
                     "hud.sparkwitch.skill.ceremonial_sword.locked",
                     component.getGrandWitchCeremonialSwordTasks(),
-                    WitchFactionRules.CEREMONIAL_SWORD_UNLOCK_TASKS
+                    GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS
             );
         }
         if (component.getCooldownTicks() > 0) {

@@ -12,9 +12,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.world.World;
-import org.ladysnake.cca.api.v3.component.ComponentKey;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
@@ -24,8 +22,8 @@ import java.lang.reflect.Method;
 public final class WitchInstinctSuppressionClientHooks {
     public static final int SUPPRESSION_PRIORITY = GetInstinctHighlight.HighlightResult.PRIORITY_HIGH + 2;
     private static final String SPARKTRAITS_MOD_ID = "sparktraits";
-    private static final String TRAIT_WORLD_COMPONENT_CLASS =
-            "dev.caecorthus.sparktraits.component.TraitWorldComponent";
+    private static final String SPARK_TRAITS_API_CLASS =
+            "dev.caecorthus.sparktraits.api.SparkTraitsApi";
     private static final String SWALLOWED_PLAYER_COMPONENT_CLASS =
             "org.agmas.noellesroles.taotie.SwallowedPlayerComponent";
     private static Method swallowedPlayerCheckMethod;
@@ -104,12 +102,11 @@ public final class WitchInstinctSuppressionClientHooks {
             return false;
         }
         try {
-            Class<?> componentClass = Class.forName(TRAIT_WORLD_COMPONENT_CLASS);
-            Field keyField = componentClass.getField("KEY");
-            ComponentKey<?> key = (ComponentKey<?>) keyField.get(null);
-            Object component = key.get(world);
-            Method activeMethod = componentClass.getMethod("isFinalMomentActive");
-            return Boolean.TRUE.equals(activeMethod.invoke(component));
+            // Reflect only the stable public facade; missing or incompatible Traits fails closed.
+            // 只反射稳定公共门面；Traits 缺失或不兼容时按 false 安全回退。
+            Class<?> apiClass = Class.forName(SPARK_TRAITS_API_CLASS);
+            Method activeMethod = apiClass.getMethod("isFinalMomentActive", World.class);
+            return Boolean.TRUE.equals(activeMethod.invoke(null, world));
         } catch (LinkageError | ReflectiveOperationException | RuntimeException ignored) {
             return false;
         }

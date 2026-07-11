@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MurderSense.MurderSenseAbility;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.SwiftStep.SwiftStepAbility;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
@@ -30,9 +31,9 @@ public final class SparkWitchBuiltInSkills {
                 GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID,
                 0xF2DFF7,
                 1,
-                WitchFactionRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS,
+                GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS,
                 0,
-                WitchFactionRules.CEREMONIAL_SWORD_MANA_COST,
+                GrandWitchRules.CEREMONIAL_SWORD_MANA_COST,
                 context -> WitchFactionRules.isGrandWitch(context.role()),
                 GrandWitchActiveSkillService::use
         ));

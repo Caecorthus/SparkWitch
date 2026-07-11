@@ -1,21 +1,15 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityWindowRules;
-import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Healing.HealingAbility;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
-import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
-import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
-import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
-import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodSkillService;
 import dev.caecorthus.sparkwitch.mana.WitchManaRules;
-import dev.doctor4t.wathe.api.event.PsychoType;
-import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.cca.PlayerPsychoComponent;
+import dev.caecorthus.sparkwitch.mana.WitchManaService;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityWindowRules;
+import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodChaseRuntime;
+import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.doctor4t.wathe.game.GameFunctions;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.RegistryByteBuf;
@@ -93,6 +87,14 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return mana;
     }
 
+    public int incrementManaRegenerationTicks() {
+        return ++manaRegenerationTicks;
+    }
+
+    public void resetManaRegenerationTicks() {
+        manaRegenerationTicks = 0;
+    }
+
     public int getCeremonialSwordTicks() {
         return ceremonialSwordTicks;
     }
@@ -106,7 +108,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     }
 
     public boolean hasUnlockedGrandWitchCeremonialSword() {
-        return WitchFactionRules.isCeremonialSwordUnlocked(grandWitchCeremonialSwordTasks);
+        return GrandWitchRules.isCeremonialSwordUnlocked(grandWitchCeremonialSwordTasks);
     }
 
     public int getMightyForceTicks() {
@@ -146,6 +148,27 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     }
 
     public int getDeathRayCharges() {
+        return deathRayCharges;
+    }
+
+    public int decrementCeremonialSwordTicks() {
+        if (ceremonialSwordTicks > 0) {
+            ceremonialSwordTicks--;
+        }
+        return ceremonialSwordTicks;
+    }
+
+    public int decrementDeathRayTicks() {
+        if (deathRayTicks > 0) {
+            deathRayTicks--;
+        }
+        return deathRayTicks;
+    }
+
+    public int decrementDeathRayCharges() {
+        if (deathRayCharges > 0) {
+            deathRayCharges--;
+        }
         return deathRayCharges;
     }
 
@@ -189,6 +212,92 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     public boolean hasActiveDeathRay() {
         return deathRayTicks > 0 && deathRayCharges > 0;
+    }
+
+    /**
+     * Exposes only the Apprentice window state needed by its owning runtime Module.
+     * 只向预备魔女运行时 Module 暴露其窗口 tick 所需的状态快照。
+     */
+    public ApprenticeAbilityWindowRules.WindowState apprenticeWindowState() {
+        return new ApprenticeAbilityWindowRules.WindowState(
+                mightyForceTicks,
+                swiftStepTicks,
+                murderSenseTicks,
+                healingTicks,
+                healingPulseTicks,
+                clairvoyanceSelfTicks,
+                clairvoyanceOthersTicks,
+                deferredCooldownTicks
+        );
+    }
+
+    public void applyApprenticeWindowState(ApprenticeAbilityWindowRules.WindowState state) {
+        mightyForceTicks = state.mightyForceTicks();
+        swiftStepTicks = state.swiftStepTicks();
+        murderSenseTicks = state.murderSenseTicks();
+        healingTicks = state.healingTicks();
+        healingPulseTicks = state.healingPulseTicks();
+        clairvoyanceSelfTicks = state.clairvoyanceSelfTicks();
+        clairvoyanceOthersTicks = state.clairvoyanceOthersTicks();
+        deferredCooldownTicks = state.deferredCooldownTicks();
+    }
+
+    public void clearApprenticeWindowState() {
+        mightyForceTicks = 0;
+        swiftStepTicks = 0;
+        murderSenseTicks = 0;
+        healingTicks = 0;
+        healingPulseTicks = 0;
+        clairvoyanceSelfTicks = 0;
+        clairvoyanceOthersTicks = 0;
+        deferredCooldownTicks = 0;
+    }
+
+    public boolean hasApprenticeWindowState() {
+        return mightyForceTicks > 0
+                || swiftStepTicks > 0
+                || murderSenseTicks > 0
+                || healingTicks > 0
+                || clairvoyanceSelfTicks > 0
+                || clairvoyanceOthersTicks > 0
+                || deferredCooldownTicks > 0;
+    }
+
+    /**
+     * Exposes the stored Pig Chase fields without moving their packet or NBT ownership.
+     * 暴露已保存的皮革噶追杀字段，但不转移其同步包或 NBT 所有权。
+     */
+    public PigChaseState pigChaseState() {
+        return new PigChaseState(
+                pigChaseFreezeTicks,
+                pigChaseQueuedTicks,
+                pigChaseTicks,
+                pigChaseFreezeX,
+                pigChaseFreezeY,
+                pigChaseFreezeZ,
+                pigChaseOwnsPsycho
+        );
+    }
+
+    public void applyPigChaseState(PigChaseState state) {
+        pigChaseFreezeTicks = state.freezeTicks();
+        pigChaseQueuedTicks = state.queuedTicks();
+        pigChaseTicks = state.chaseTicks();
+        pigChaseFreezeX = state.freezeX();
+        pigChaseFreezeY = state.freezeY();
+        pigChaseFreezeZ = state.freezeZ();
+        pigChaseOwnsPsycho = state.ownsPsycho();
+    }
+
+    public record PigChaseState(
+            int freezeTicks,
+            int queuedTicks,
+            int chaseTicks,
+            double freezeX,
+            double freezeY,
+            double freezeZ,
+            boolean ownsPsycho
+    ) {
     }
 
     public void setActiveSkill(@Nullable Identifier activeSkillId) {
@@ -296,7 +405,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     }
 
     private void setGrandWitchCeremonialSwordTasks(int completedTasks) {
-        int normalized = WitchFactionRules.clampCeremonialSwordTaskProgress(completedTasks);
+        int normalized = GrandWitchRules.clampCeremonialSwordTaskProgress(completedTasks);
         if (grandWitchCeremonialSwordTasks == normalized) {
             return;
         }
@@ -334,7 +443,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             return;
         }
         mightyForceTicks = 0;
-        startDeferredCooldown();
+        startDeferredCooldownNow();
         sync();
     }
 
@@ -377,45 +486,26 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
-    public void beginPigChaseFreeze(int freezeTicks, int chaseTicks, double x, double y, double z) {
-        pigChaseFreezeTicks = Math.max(0, freezeTicks);
-        pigChaseQueuedTicks = Math.max(0, chaseTicks);
-        pigChaseTicks = 0;
-        pigChaseFreezeX = x;
-        pigChaseFreezeY = y;
-        pigChaseFreezeZ = z;
-        pigChaseOwnsPsycho = false;
-        if (PigGodRules.shouldStartChaseImmediately(pigChaseFreezeTicks, pigChaseQueuedTicks)
-                && player instanceof ServerPlayerEntity serverPlayer) {
-            startPigChase(serverPlayer);
-        }
-        sync();
-    }
-
     public void beginDeathRayWindow(int durationTicks, int charges) {
         deathRayTicks = Math.max(0, durationTicks);
         deathRayCharges = deathRayTicks > 0 ? Math.max(0, charges) : 0;
         sync();
     }
 
-    public void consumeDeathRayCharge(int cooldownTicks) {
-        if (!hasActiveDeathRay()) {
-            return;
-        }
-        deathRayCharges--;
-        if (deathRayCharges <= 0) {
-            finishDeathRayWindow(cooldownTicks);
-            return;
-        }
-        sync();
-    }
-
-    public void finishDeathRayWindow(int cooldownTicks) {
+    public void finishDeathRayWindowState(int cooldownTicks) {
         deathRayTicks = 0;
         deathRayCharges = 0;
         deferredCooldownTicks = Math.max(deferredCooldownTicks, Math.max(0, cooldownTicks));
-        startDeferredCooldown();
-        sync();
+        startDeferredCooldownNow();
+    }
+
+    public void resetDeathRayWindowState() {
+        deathRayTicks = 0;
+        deathRayCharges = 0;
+    }
+
+    public void clearDeferredCooldownState() {
+        deferredCooldownTicks = 0;
     }
 
     public void clearDeathRayWindow() {
@@ -439,7 +529,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         }
         deferredCooldownTicks = normalized;
         if (getActiveSkillWindowTicks() <= 0) {
-            startDeferredCooldown();
+            startDeferredCooldownNow();
         }
         sync();
     }
@@ -469,12 +559,13 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 && deferredCooldownTicks == 0) {
             return;
         }
-        boolean hadPigChaseSound = hasActivePigChaseState() || pigChaseOwnsPsycho;
-        if (hadPigChaseSound) {
-            stopPigChaseSound();
+        if (player instanceof ServerPlayerEntity serverPlayer) {
+            // Preserve reset ordering: Pig sound, Grand Witch BGM/world sync, then owned psycho state.
+            // 保持重置顺序：先停皮革噶声音，再停大魔女 BGM/世界同步，最后清理自有疯魔状态。
+            PigGodChaseRuntime.stopSoundBeforeComponentReset(serverPlayer, this);
+            GrandWitchActiveSkillService.stopCeremonialSwordBgm(serverPlayer);
+            PigGodChaseRuntime.clearPsychoBeforeComponentReset(serverPlayer, this);
         }
-        stopGrandWitchCeremonialSwordBgm();
-        clearPigChasePsycho();
         activeSkillId = null;
         cooldownTicks = 0;
         manaEnabled = false;
@@ -513,25 +604,16 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     @Override
     public void serverTick() {
-        tickCeremonialSwordWindow();
-        tickApprenticeSkillWindows();
-        tickPigChaseState();
-        tickDeathRayState();
+        ServerPlayerEntity serverPlayer = player instanceof ServerPlayerEntity current ? current : null;
+        if (serverPlayer != null) {
+            GrandWitchActiveSkillService.tickCeremonialSwordWindow(serverPlayer, this);
+            ApprenticeAbilityRuntime.tick(serverPlayer, this);
+            PigGodChaseRuntime.tick(serverPlayer, this);
+            MurderousWitchDeathRayService.tickWindow(serverPlayer, this);
+        }
         tickCooldown();
-        tickManaRegeneration();
-    }
-
-    private void tickCeremonialSwordWindow() {
-        if (ceremonialSwordTicks <= 0) {
-            return;
-        }
-        ceremonialSwordTicks--;
-        if (ceremonialSwordTicks == 0 && player instanceof ServerPlayerEntity serverPlayer) {
-            GrandWitchActiveSkillService.finishCeremonialSwordWindow(serverPlayer, this);
-            return;
-        }
-        if (ceremonialSwordTicks % 20 == 0) {
-            sync();
+        if (serverPlayer != null) {
+            WitchManaService.tickRegeneration(serverPlayer, this);
         }
     }
 
@@ -542,95 +624,6 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 sync();
             }
         }
-    }
-
-    private void tickApprenticeSkillWindows() {
-        if (!hasApprenticeWindowState()) {
-            return;
-        }
-        if (!(player instanceof ServerPlayerEntity serverPlayer)) {
-            return;
-        }
-
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        tickApprenticeSkillWindows(role, GameFunctions.isPlayerPlayingAndAlive(serverPlayer), serverPlayer);
-    }
-
-    void tickApprenticeSkillWindows(Role role, boolean playingAndAlive, @Nullable ServerPlayerEntity serverPlayer) {
-        if (!hasApprenticeWindowState()) {
-            return;
-        }
-
-        if (role != dev.caecorthus.sparkwitch.SparkWitchRoles.apprenticeWitch()
-                || !playingAndAlive) {
-            clearApprenticeSkillWindows();
-            return;
-        }
-
-        int activeBeforeTick = apprenticeEffectiveWindowTicks();
-        boolean shouldSync = false;
-        if (mightyForceTicks > 0) {
-            mightyForceTicks--;
-            shouldSync |= mightyForceTicks == 0 || mightyForceTicks % 20 == 0;
-        }
-        if (swiftStepTicks > 0) {
-            swiftStepTicks--;
-            shouldSync |= swiftStepTicks == 0 || swiftStepTicks % 20 == 0;
-        }
-        if (murderSenseTicks > 0) {
-            murderSenseTicks--;
-            shouldSync |= murderSenseTicks == 0 || murderSenseTicks % 20 == 0;
-        }
-        if (healingTicks > 0) {
-            healingTicks--;
-            healingPulseTicks++;
-            if (healingPulseTicks >= 20 && serverPlayer != null) {
-                healingPulseTicks = 0;
-                HealingAbility.applyPulse(serverPlayer);
-            }
-            shouldSync |= healingTicks == 0 || healingTicks % 20 == 0;
-        }
-        if (clairvoyanceSelfTicks > 0) {
-            clairvoyanceSelfTicks--;
-            shouldSync |= clairvoyanceSelfTicks == 0 || clairvoyanceSelfTicks % 20 == 0;
-        }
-        if (clairvoyanceOthersTicks > 0) {
-            clairvoyanceOthersTicks--;
-            shouldSync |= clairvoyanceOthersTicks == 0 || clairvoyanceOthersTicks % 20 == 0;
-        }
-        if (ApprenticeAbilityWindowRules.shouldStartDeferredCooldown(
-                activeBeforeTick,
-                apprenticeEffectiveWindowTicks(),
-                deferredCooldownTicks
-        )) {
-            startDeferredCooldown();
-            shouldSync = true;
-        }
-        if (shouldSync) {
-            sync();
-        }
-    }
-
-    private void clearApprenticeSkillWindows() {
-        mightyForceTicks = 0;
-        swiftStepTicks = 0;
-        murderSenseTicks = 0;
-        healingTicks = 0;
-        healingPulseTicks = 0;
-        clairvoyanceSelfTicks = 0;
-        clairvoyanceOthersTicks = 0;
-        deferredCooldownTicks = 0;
-        sync();
-    }
-
-    private boolean hasApprenticeWindowState() {
-        return mightyForceTicks > 0
-                || swiftStepTicks > 0
-                || murderSenseTicks > 0
-                || healingTicks > 0
-                || clairvoyanceSelfTicks > 0
-                || clairvoyanceOthersTicks > 0
-                || deferredCooldownTicks > 0;
     }
 
     private int apprenticeEffectiveWindowTicks() {
@@ -644,7 +637,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         );
     }
 
-    private void startDeferredCooldown() {
+    public void startDeferredCooldownNow() {
         if (deferredCooldownTicks <= 0) {
             return;
         }
@@ -652,190 +645,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         deferredCooldownTicks = 0;
     }
 
-    private void tickPigChaseState() {
-        if (!hasActivePigChaseState()) {
-            return;
-        }
-        if (!(player instanceof ServerPlayerEntity serverPlayer)) {
-            return;
-        }
-
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        if (!PigGodRules.isPigGod(role) || !GameFunctions.isPlayerPlayingAndAlive(serverPlayer)) {
-            clearPigChaseState();
-            return;
-        }
-
-        int activeBeforeTick = pigChaseEffectiveWindowTicks();
-        boolean shouldSync = false;
-        if (pigChaseFreezeTicks > 0) {
-            holdPigChaseFreeze(serverPlayer);
-            pigChaseFreezeTicks--;
-            if (pigChaseFreezeTicks == 0) {
-                startPigChase(serverPlayer);
-                shouldSync = true;
-            } else {
-                shouldSync |= pigChaseFreezeTicks % 20 == 0;
-            }
-        } else if (pigChaseQueuedTicks > 0) {
-            startPigChase(serverPlayer);
-            shouldSync = true;
-        } else if (pigChaseTicks > 0) {
-            pigChaseTicks--;
-            if (pigChaseTicks == 0) {
-                stopPigChaseSound();
-                clearPigChasePsycho();
-                shouldSync = true;
-            } else {
-                shouldSync |= pigChaseTicks % 20 == 0;
-            }
-        }
-        if (activeBeforeTick > 0 && pigChaseEffectiveWindowTicks() == 0) {
-            startDeferredCooldown();
-            shouldSync = true;
-        }
-        if (shouldSync) {
-            sync();
-        }
-    }
-
-    private void holdPigChaseFreeze(ServerPlayerEntity serverPlayer) {
-        serverPlayer.teleport(pigChaseFreezeX, pigChaseFreezeY, pigChaseFreezeZ, false);
-        serverPlayer.setVelocity(0, 0, 0);
-        serverPlayer.velocityModified = true;
-    }
-
-    private void startPigChase(ServerPlayerEntity serverPlayer) {
-        pigChaseTicks = pigChaseQueuedTicks;
-        pigChaseQueuedTicks = 0;
-        if (pigChaseTicks <= 0) {
-            return;
-        }
-
-        PlayerPsychoComponent psycho = PlayerPsychoComponent.KEY.get(serverPlayer);
-        if (psycho.getPsychoTicks() <= 0) {
-            pigChaseOwnsPsycho = psycho.startPsycho(PsychoType.VISIBLE_QUIET);
-        }
-        if (!pigChaseOwnsPsycho && psycho.getPsychoTicks() <= 0) {
-            stopPigChaseSound();
-            pigChaseTicks = 0;
-            return;
-        }
-        psycho.setPsychoTicks(pigChaseTicks);
-        serverPlayer.addStatusEffect(new StatusEffectInstance(
-                StatusEffects.SPEED,
-                pigChaseTicks,
-                PigGodRules.SPEED_AMPLIFIER,
-                false,
-                false,
-                true
-        ));
-    }
-
-    public void clearPigChaseState() {
-        if (!hasActivePigChaseState() && !pigChaseOwnsPsycho) {
-            return;
-        }
-        stopPigChaseSound();
-        clearPigChasePsycho();
-        pigChaseFreezeTicks = 0;
-        pigChaseQueuedTicks = 0;
-        pigChaseTicks = 0;
-        pigChaseOwnsPsycho = false;
-        sync();
-    }
-
-    private void clearPigChasePsycho() {
-        if (!pigChaseOwnsPsycho || !(player instanceof ServerPlayerEntity serverPlayer)) {
-            pigChaseOwnsPsycho = false;
-            return;
-        }
-        PlayerPsychoComponent psycho = PlayerPsychoComponent.KEY.get(serverPlayer);
-        if (psycho.getPsychoTicks() > 0) {
-            psycho.stopPsycho();
-        }
-        pigChaseOwnsPsycho = false;
-    }
-
-    private void stopPigChaseSound() {
-        if (player instanceof ServerPlayerEntity serverPlayer) {
-            PigGodSkillService.stopChaseSound(
-                    serverPlayer.getServerWorld(),
-                    pigChaseFreezeX,
-                    pigChaseFreezeY,
-                    pigChaseFreezeZ
-            );
-        }
-    }
-
-    private void stopGrandWitchCeremonialSwordBgm() {
-        if (player instanceof ServerPlayerEntity serverPlayer) {
-            WitchWorldComponent.KEY.get(serverPlayer.getServerWorld())
-                    .stopGrandWitchCeremonialSwordBgm(serverPlayer.getUuid());
-        }
-    }
-
     private int pigChaseEffectiveWindowTicks() {
         return pigChaseFreezeTicks + pigChaseQueuedTicks + pigChaseTicks;
-    }
-
-    private void tickDeathRayState() {
-        if (deathRayTicks <= 0 && deathRayCharges <= 0) {
-            return;
-        }
-        if (!(player instanceof ServerPlayerEntity serverPlayer)) {
-            return;
-        }
-
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        if (!MurderousWitchDeathRayRules.canSelect(role) || !GameFunctions.isPlayerPlayingAndAlive(serverPlayer)) {
-            deathRayTicks = 0;
-            deathRayCharges = 0;
-            deferredCooldownTicks = 0;
-            sync();
-            return;
-        }
-
-        if (deathRayTicks > 0) {
-            deathRayTicks--;
-        }
-        if (deathRayTicks <= 0 || deathRayCharges <= 0) {
-            finishDeathRayWindow(MurderousWitchDeathRayRules.COOLDOWN_TICKS);
-            return;
-        }
-        if (deathRayTicks % 20 == 0) {
-            sync();
-        }
-    }
-
-    private void tickManaRegeneration() {
-        if (!manaEnabled || !(player instanceof ServerPlayerEntity serverPlayer)) {
-            return;
-        }
-
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        if (!WitchManaRules.isManaRole(role)) {
-            clearMana();
-            return;
-        }
-        if (!GameFunctions.isPlayerPlayingAndAlive(serverPlayer) || !WitchManaRules.canRegenerateNaturally(role)) {
-            manaRegenerationTicks = 0;
-            return;
-        }
-        if (mana >= WitchManaRules.naturalCap(role)) {
-            manaRegenerationTicks = 0;
-            return;
-        }
-
-        manaRegenerationTicks++;
-        if (manaRegenerationTicks >= WitchManaRules.regenerationIntervalTicks(role)) {
-            manaRegenerationTicks = 0;
-            int regenerated = WitchManaRules.applyNaturalRegeneration(mana, role);
-            if (regenerated != mana) {
-                mana = regenerated;
-                sync();
-            }
-        }
     }
 
     @Override

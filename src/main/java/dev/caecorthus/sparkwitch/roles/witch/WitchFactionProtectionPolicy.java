@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch;
 
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -37,6 +38,6 @@ public final class WitchFactionProtectionPolicy {
             Identifier deathReason
     ) {
         Role role = GameWorldComponent.KEY.get(victim.getServerWorld()).getRole(victim);
-        return WitchFactionRules.shouldBlockVoodooCurse(role, deathReason) ? KillPlayer.KillResult.cancel() : null;
+        return GrandWitchRules.shouldBlockVoodooCurse(role, deathReason) ? KillPlayer.KillResult.cancel() : null;
     }
 }

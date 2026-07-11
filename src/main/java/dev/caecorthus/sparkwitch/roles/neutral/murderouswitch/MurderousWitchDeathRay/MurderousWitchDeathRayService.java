@@ -91,8 +91,49 @@ public final class MurderousWitchDeathRayService {
                 GameFunctions.killPlayer(target, true, caster, SparkWitchDeathReasons.PIERCED_BY_RAY);
             }
         }
-        component.consumeDeathRayCharge(MurderousWitchDeathRayRules.COOLDOWN_TICKS);
+        consumeCharge(component);
         return true;
+    }
+
+    public static void tickWindow(ServerPlayerEntity player, WitchPlayerComponent component) {
+        if (component.getDeathRayTicks() <= 0 && component.getDeathRayCharges() <= 0) {
+            return;
+        }
+        if (!MurderousWitchDeathRayRules.canSelect(
+                GameWorldComponent.KEY.get(player.getWorld()).getRole(player)
+        ) || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+            component.resetDeathRayWindowState();
+            component.clearDeferredCooldownState();
+            component.sync();
+            return;
+        }
+
+        if (component.getDeathRayTicks() > 0) {
+            component.decrementDeathRayTicks();
+        }
+        if (component.getDeathRayTicks() <= 0 || component.getDeathRayCharges() <= 0) {
+            finishWindow(component);
+            return;
+        }
+        if (component.getDeathRayTicks() % 20 == 0) {
+            component.sync();
+        }
+    }
+
+    private static void consumeCharge(WitchPlayerComponent component) {
+        if (!component.hasActiveDeathRay()) {
+            return;
+        }
+        if (component.decrementDeathRayCharges() <= 0) {
+            finishWindow(component);
+            return;
+        }
+        component.sync();
+    }
+
+    private static void finishWindow(WitchPlayerComponent component) {
+        component.finishDeathRayWindowState(MurderousWitchDeathRayRules.COOLDOWN_TICKS);
+        component.sync();
     }
 
     static List<ServerPlayerEntity> findTargets(

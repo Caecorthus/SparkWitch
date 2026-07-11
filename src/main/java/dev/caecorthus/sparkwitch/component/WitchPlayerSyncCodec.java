@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.component;
 
-import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -46,7 +46,7 @@ final class WitchPlayerSyncCodec {
             component.ceremonialSwordSlot = -1;
         }
         component.grandWitchCeremonialSwordTasks =
-                WitchFactionRules.clampCeremonialSwordTaskProgress(buf.readVarInt());
+                GrandWitchRules.clampCeremonialSwordTaskProgress(buf.readVarInt());
         component.mightyForceTicks = Math.max(0, buf.readVarInt());
         component.swiftStepTicks = Math.max(0, buf.readVarInt());
         component.murderSenseTicks = Math.max(0, buf.readVarInt());

@@ -2,7 +2,7 @@ package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchCeremonialSwordBgmSources;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchSpellService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchWorldRuntime;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -74,6 +74,27 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         return fearTicks;
     }
 
+    /**
+     * Exposes only the Grand Witch countdown state needed by its owning runtime Module.
+     * 只向大魔女运行时 Module 暴露其倒计时所需的状态快照。
+     */
+    public GrandWitchRuntimeState grandWitchRuntimeState() {
+        return new GrandWitchRuntimeState(instinctObscureTicks, obscureActionbarTicks, fearTicks);
+    }
+
+    public void applyGrandWitchRuntimeState(GrandWitchRuntimeState state) {
+        instinctObscureTicks = state.instinctObscureTicks();
+        obscureActionbarTicks = state.obscureActionbarTicks();
+        fearTicks = state.fearTicks();
+    }
+
+    public record GrandWitchRuntimeState(
+            int instinctObscureTicks,
+            int obscureActionbarTicks,
+            int fearTicks
+    ) {
+    }
+
     public boolean hasGrandWitchCeremonialSwordBgm() {
         return grandWitchCeremonialSwordBgmSourceCount() > 0;
     }
@@ -141,28 +162,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
             return;
         }
 
-        boolean shouldSync = false;
-        if (instinctObscureTicks > 0) {
-            if (obscureActionbarTicks <= 0) {
-                GrandWitchSpellService.sendObscureActionbars(serverWorld, instinctObscureTicks);
-                obscureActionbarTicks = 20;
-            }
-            instinctObscureTicks--;
-            obscureActionbarTicks--;
-            shouldSync = instinctObscureTicks == 0 || instinctObscureTicks % 20 == 0;
-        } else {
-            obscureActionbarTicks = 0;
-        }
-
-        if (fearTicks > 0) {
-            GrandWitchSpellService.tickFear(serverWorld, fearTicks);
-            fearTicks--;
-            shouldSync = shouldSync || fearTicks == 0;
-        }
-
-        if (shouldSync) {
-            sync();
-        }
+        GrandWitchWorldRuntime.tick(serverWorld, this);
     }
 
     @Override

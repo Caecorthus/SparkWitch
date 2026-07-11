@@ -21,7 +21,7 @@ public final class GrandWitchSpellService {
     private GrandWitchSpellService() {
     }
 
-    public static boolean cast(ServerPlayerEntity caster, WitchFactionRules.GrandWitchSpell spell) {
+    public static boolean cast(ServerPlayerEntity caster, GrandWitchRules.GrandWitchSpell spell) {
         ServerWorld world = caster.getServerWorld();
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(world);
         if (!WitchFactionRules.isGrandWitch(gameComponent.getRole(caster))) {
@@ -44,7 +44,7 @@ public final class GrandWitchSpellService {
         return true;
     }
 
-    public static boolean hasEnoughMana(ServerPlayerEntity player, WitchFactionRules.GrandWitchSpell spell) {
+    public static boolean hasEnoughMana(ServerPlayerEntity player, GrandWitchRules.GrandWitchSpell spell) {
         return WitchPlayerComponent.KEY.get(player).getMana() >= spell.manaCost();
     }
 
@@ -72,13 +72,13 @@ public final class GrandWitchSpellService {
             if (!GameFunctions.isPlayerPlayingAndAlive(player) || !GrandWitchFearService.isAffectedRole(role)) {
                 continue;
             }
-            GrandWitchFearService.applyMoodPulse(player, WitchFactionRules.GrandWitchSpell.FEAR.durationTicks());
+            GrandWitchFearService.applyMoodPulse(player, GrandWitchRules.GrandWitchSpell.FEAR.durationTicks());
         }
     }
 
     private static void applyStatusToAffectedPlayers(
             ServerWorld world,
-            WitchFactionRules.GrandWitchSpell spell,
+            GrandWitchRules.GrandWitchSpell spell,
             net.minecraft.registry.entry.RegistryEntry<net.minecraft.entity.effect.StatusEffect> effect,
             int amplifier
     ) {

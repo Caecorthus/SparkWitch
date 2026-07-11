@@ -103,6 +103,8 @@ dependencies {
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
     modRuntimeOnly "me.lucko:fabric-permissions-api:0.3.1"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 processResources {
@@ -239,15 +241,72 @@ tasks.named("build") {
     dependsOn tasks.named("verifyModJarVersion")
 }
 
+def requiredArchitectureDocs = [
+        "AGENTS.md",
+        "CONTEXT.md",
+        "ARCHITECTURE.md",
+        "ARCHITECTURE_LOGS.md",
+        "DOWNSTREAM_MIGRATION_NOTES.md"
+]
+def requiredArchitectureSources = [
+        "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/ApprenticeInstinctRules.java",
+        "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityRuntime.java",
+        "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/piggod/PigGodChaseRuntime.java",
+        "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRules.java",
+        "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchWorldRuntime.java",
+        "src/test/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityWindowRulesTest.java",
+        "src/test/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRulesTest.java"
+]
+
+tasks.register("verifyArchitecture") {
+    inputs.files(requiredArchitectureDocs.collect { file(it) })
+    inputs.files(requiredArchitectureSources.collect { file(it) })
+    inputs.files(fileTree("src/main/java") { include "**/*.java" })
+    inputs.files(fileTree("src/client/java") { include "**/*.java" })
+
+    doLast {
+        (requiredArchitectureDocs + requiredArchitectureSources).each { path ->
+            if (!file(path).isFile()) {
+                throw new GradleException("Missing required architecture contract file: ${path}")
+            }
+        }
+
+        // Optional SparkTraits integration may reflect its public facade, never internal implementation packages.
+        // 可选 SparkTraits 集成只能反射公共门面，不能反射内部实现包。
+        def forbiddenSparkTraitsTargets = [
+                "dev.caecorthus.sparktraits.impl",
+                "dev.caecorthus.sparktraits.component"
+        ]
+        [fileTree("src/main/java"), fileTree("src/client/java")].each { sourceTree ->
+            sourceTree.matching { include "**/*.java" }.files.each { sourceFile ->
+                def sourceText = sourceFile.getText("UTF-8")
+                forbiddenSparkTraitsTargets.each { target ->
+                    if (sourceText.contains(target)) {
+                        throw new GradleException(
+                                "Forbidden SparkTraits internal target '${target}' in ${sourceFile}"
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 def targetJavaVersion = 21
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = "UTF-8"
     it.options.release.set(targetJavaVersion)
 }
 
+tasks.test {
+    useJUnitPlatform()
+}
+
 tasks.named("check") {
     setDependsOn([])
     dependsOn tasks.matching { it.name == "validateAccessWidener" }
+    dependsOn tasks.named("test")
+    dependsOn tasks.named("verifyArchitecture")
 }
 
 

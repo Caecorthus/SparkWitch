@@ -67,6 +67,33 @@ public final class WitchManaService {
         }
     }
 
+    public static void tickRegeneration(ServerPlayerEntity player, WitchPlayerComponent component) {
+        if (!component.hasManaSystem()) {
+            return;
+        }
+
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        if (!WitchManaRules.isManaRole(role)) {
+            component.clearMana();
+            return;
+        }
+        if (!GameFunctions.isPlayerPlayingAndAlive(player) || !WitchManaRules.canRegenerateNaturally(role)) {
+            component.resetManaRegenerationTicks();
+            return;
+        }
+        if (component.getMana() >= WitchManaRules.naturalCap(role)) {
+            component.resetManaRegenerationTicks();
+            return;
+        }
+
+        if (component.incrementManaRegenerationTicks() < WitchManaRules.regenerationIntervalTicks(role)) {
+            return;
+        }
+        component.resetManaRegenerationTicks();
+        int regenerated = WitchManaRules.applyNaturalRegeneration(component.getMana(), role);
+        component.addMana(regenerated - component.getMana());
+    }
+
     private static void awardMana(ServerPlayerEntity player, int amount) {
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         if (!component.hasManaSystem()) {
