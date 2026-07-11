@@ -8,3 +8,6 @@ logs/
 *.iml
 *.log
 .DS_Store
+/ARCHITECTURE.md
+/ARCHITECTURE_LOGS.md
+/ARCHITECTURE LOGS.md

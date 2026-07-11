@@ -17,11 +17,8 @@
 
 ### Architecture
 - Read `CONTEXT.md` first for the live module map, stable contracts, and verification entry points.
-- Read `ARCHITECTURE.md` before changing code.
-- Read `ARCHITECTURE_LOGS.md` before moving, deleting, renaming, splitting, or merging existing modules.
 - `CONTEXT.md` is the current routing map and does not grant permission to refactor.
-- `ARCHITECTURE.md` is the constitution: what to do, what not to do, and what requires approval.
-- `ARCHITECTURE_LOGS.md` is the history: approved boards, completed migrations, and watch-only notes.
+- Get explicit owner approval before moving, deleting, renaming, splitting, or merging existing modules.
 
 ### Check
 - Inspect SparkWitch plus the provider/consumer repositories for the exact
@@ -32,7 +29,7 @@
   SparkAssist are checked only when code or metadata shows a relevant seam.
 - Prove that unrelated roles, factions, traits, packets, NBT fields, resources,
   gameplay values, and event order remain outside the changed path.
-- Use Java 21 and the risk-based test/build rules in `ARCHITECTURE.md`. Do not
+- Use Java 21 and the verification entry points in `CONTEXT.md`. Do not
   add production-only test hooks.
 
 ### Subagents

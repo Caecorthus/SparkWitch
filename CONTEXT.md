@@ -1,8 +1,7 @@
 # SparkWitch Context
 
-Read this file before `ARCHITECTURE.md`. It is a live routing map, not blanket
-permission to refactor. Historical decisions and board status remain in
-`ARCHITECTURE_LOGS.md`.
+This is a live routing map, not blanket permission to refactor. Structural
+changes require explicit owner approval.
 
 ## Product Boundary
 
@@ -21,9 +20,7 @@ Current build baseline:
 ## Read Order
 
 1. `CONTEXT.md`
-2. `ARCHITECTURE.md`
-3. `ARCHITECTURE_LOGS.md` for structural work
-4. The live owning Module and its direct callers
+2. The live owning Module and its direct callers
 
 ## Current Ownership
 
@@ -53,8 +50,7 @@ Current build baseline:
 6. mana regeneration
 
 Do not reorder these calls. The component ids remain `sparkwitch:player` and
-`sparkwitch:world`; packet field order and NBT keys are specified in
-`ARCHITECTURE.md`.
+`sparkwitch:world`; packet field order and NBT keys must remain stable.
 
 SparkTraits is optional and fail-closed. Reflection may target only
 `dev.caecorthus.sparktraits.api.SparkTraitsApi`, never `sparktraits.impl` or

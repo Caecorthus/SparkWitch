@@ -244,8 +244,6 @@ tasks.named("build") {
 def requiredArchitectureDocs = [
         "AGENTS.md",
         "CONTEXT.md",
-        "ARCHITECTURE.md",
-        "ARCHITECTURE_LOGS.md",
         "DOWNSTREAM_MIGRATION_NOTES.md"
 ]
 def requiredArchitectureSources = [
