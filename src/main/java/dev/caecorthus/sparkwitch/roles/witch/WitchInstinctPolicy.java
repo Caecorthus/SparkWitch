@@ -59,13 +59,21 @@ public final class WitchInstinctPolicy {
             return null;
         }
 
+        Role targetRole = gameComponent.getRole(targetPlayer);
+        if (WitchFactionRules.shouldHardSkipInvisiblePhantom(
+                viewerRole,
+                targetRole,
+                targetPlayer.isInvisible()
+        )) {
+            return FactionInstinctPolicy.InstinctResult.skip(WitchFactionRules.HIDDEN_PHANTOM_SKIP_PRIORITY);
+        }
+
         FactionInstinctPolicy.InstinctResult apprenticeOutline =
                 ApprenticeInstinctRules.highlight(viewer, targetPlayer);
         if (apprenticeOutline != null) {
             return apprenticeOutline;
         }
 
-        Role targetRole = gameComponent.getRole(targetPlayer);
         OptionalInt color = WitchFactionRules.instinctColor(viewerRole, targetRole);
         if (color.isEmpty()) {
             return null;

@@ -75,6 +75,14 @@ public final class MurderousWitchFeatureService {
         if (!MurderousWitchRules.shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)) {
             return null;
         }
+        Role targetRole = gameComponent.getRole(targetPlayer);
+        if (MurderousWitchRules.shouldHardSkipInvisiblePhantom(
+                viewerRole,
+                targetRole,
+                targetPlayer.isInvisible()
+        )) {
+            return FactionInstinctPolicy.InstinctResult.skip(MurderousWitchRules.HIDDEN_PHANTOM_SKIP_PRIORITY);
+        }
         boolean samePlayer = viewer.getUuid().equals(targetPlayer.getUuid());
         boolean shouldHighlight = MurderousWitchRules.shouldHighlightInstinctTarget(
                 viewerAlive,

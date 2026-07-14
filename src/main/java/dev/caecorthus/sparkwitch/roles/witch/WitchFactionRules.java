@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.witch;
 
 import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.doctor4t.wathe.api.Role;
 import java.util.OptionalInt;
 
@@ -19,6 +20,7 @@ public final class WitchFactionRules {
     // Ordinary Witch instinct must stay below Wathe hard skips such as Last Stand and hidden Survival Master.
     // 普通魔女本能必须低于 wathe 硬跳过规则，例如背水一战和被遮挡的生存大师。
     public static final int INSTINCT_PRIORITY = 90;
+    public static final int HIDDEN_PHANTOM_SKIP_PRIORITY = 1_000;
 
     private WitchFactionRules() {
     }
@@ -37,6 +39,16 @@ public final class WitchFactionRules {
 
     public static boolean usesKillerStyleInstinctLight(Role role) {
         return isWitchFactionMember(role);
+    }
+
+    public static boolean shouldHardSkipInvisiblePhantom(
+            Role viewerRole,
+            Role targetRole,
+            boolean targetInvisible
+    ) {
+        return isWitchFactionMember(viewerRole)
+                && targetInvisible
+                && NoellesRoleIds.isPhantom(targetRole);
     }
 
     public static OptionalInt droppedItemInstinctColor(Role viewerRole) {

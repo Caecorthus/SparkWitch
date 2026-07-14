@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class NoellesRoleIds {
     public static final String NAMESPACE = "noellesroles";
+    public static final Identifier PHANTOM = Identifier.of(NAMESPACE, "phantom");
     public static final Identifier SHADOW_JESTER = Identifier.of(NAMESPACE, "shadow_jester");
     public static final Identifier VOODOO_CURSE_DEATH_REASON = Identifier.of(NAMESPACE, "voodoo");
 
@@ -18,6 +19,10 @@ public final class NoellesRoleIds {
 
     public static boolean isShadowJester(@Nullable Role role) {
         return hasId(role, SHADOW_JESTER);
+    }
+
+    public static boolean isPhantom(@Nullable Role role) {
+        return hasId(role, PHANTOM);
     }
 
     public static boolean hasId(@Nullable Role role, Identifier id) {

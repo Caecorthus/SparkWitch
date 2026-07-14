@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchRul
 
 import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.game.GameFunctions;
 
@@ -14,6 +15,7 @@ public final class MurderousWitchRules {
     // Ordinary Murderous Witch instinct must lose to Wathe hard skips for hidden targets.
     // 普通杀意魔女本能必须让位于 wathe 对隐藏目标的硬跳过规则。
     public static final int INSTINCT_PRIORITY = 90;
+    public static final int HIDDEN_PHANTOM_SKIP_PRIORITY = 1_000;
 
     private MurderousWitchRules() {
     }
@@ -24,6 +26,16 @@ public final class MurderousWitchRules {
 
     public static boolean usesKillerStyleInstinctLight(Role role) {
         return isMurderousWitch(role);
+    }
+
+    public static boolean shouldHardSkipInvisiblePhantom(
+            Role viewerRole,
+            Role targetRole,
+            boolean targetInvisible
+    ) {
+        return isMurderousWitch(viewerRole)
+                && targetInvisible
+                && NoellesRoleIds.isPhantom(targetRole);
     }
 
     /**
