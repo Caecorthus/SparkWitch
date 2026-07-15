@@ -7,9 +7,11 @@ import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.win.WitchWinConditions;
 import dev.doctor4t.wathe.api.Faction;
@@ -34,6 +36,8 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier SAINT_ID = SaintRules.SAINT_ROLE_ID;
     public static final Identifier PERFUMER_ID = SparkWitch.id("perfumer");
     public static final Identifier NINJA_ID = NinjaRules.ROLE_ID;
+    public static final Identifier HUNTER_ID = HunterRules.ROLE_ID;
+    public static final Identifier ORTHOPEDIST_ID = OrthopedistRules.ROLE_ID;
 
     private static Role grandWitch;
     private static Role accomplice;
@@ -43,6 +47,8 @@ public final class SparkWitchRoleRegistry {
     private static Role saint;
     private static Role perfumer;
     private static Role ninja;
+    private static Role hunter;
+    private static Role orthopedist;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -106,6 +112,16 @@ public final class SparkWitchRoleRegistry {
     public static Role ninja() {
         ensureRegistered();
         return ninja;
+    }
+
+    public static Role hunter() {
+        ensureRegistered();
+        return hunter;
+    }
+
+    public static Role orthopedist() {
+        ensureRegistered();
+        return orthopedist;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -181,6 +197,13 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        orthopedist = SparkFactionApi.registerRole(FactionRoleDefinition.builder(ORTHOPEDIST_ID, FactionIds.CIVILIAN)
+                .color(OrthopedistRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         perfumer = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PERFUMER_ID, FactionIds.CIVILIAN)
                 .color(PerfumerRules.ROLE_COLOR)
                 .moodType(Role.MoodType.REAL)
@@ -197,6 +220,17 @@ public final class SparkWitchRoleRegistry {
                 .maxSprintTime(-1)
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
+                .build());
+        hunter = SparkFactionApi.registerRole(FactionRoleDefinition.builder(HUNTER_ID, FactionIds.KILLER)
+                .color(HunterRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .appearanceCondition(context -> HunterOrthopedistPairingRules.canRandomHunterAppear(
+                        context.gameComponent().isRoleEnabled(orthopedist),
+                        context.totalPlayerCount()
+                ))
                 .build());
     }
 
@@ -230,7 +264,18 @@ public final class SparkWitchRoleRegistry {
     }
 
     private static List<Role> assassinGuessRolesInOrder() {
-        return List.of(apprenticeWitch, saint, perfumer, pigGod, ninja, murderousWitch, accomplice, grandWitch);
+        return List.of(
+                apprenticeWitch,
+                orthopedist,
+                saint,
+                perfumer,
+                pigGod,
+                ninja,
+                hunter,
+                murderousWitch,
+                accomplice,
+                grandWitch
+        );
     }
 
     private static boolean isRegisteredSparkWitchRole(Role role) {

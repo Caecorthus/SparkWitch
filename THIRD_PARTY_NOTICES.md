@@ -9,6 +9,31 @@
 The upstream repository licenses this work under LGPL-3.0-or-later. A copy of that license is
 included at `licenses/NoellesRoles-LGPL-3.0-or-later.txt`.
 
+## NoellesRoles Hunter and Orthopedist
+
+The Hunter and Orthopedist role implementations, item and effect artwork, and placed-trap model
+were copied or adapted from
+[Caecorthus/NoellesRoles](https://github.com/Caecorthus/NoellesRoles) commit
+`45934af010561e22251cbfcfbc022f87ad581a36`.
+
+The adapted implementation is primarily under:
+
+- `src/main/java/dev/caecorthus/sparkwitch/roles/killer/hunter/`
+- `src/main/java/dev/caecorthus/sparkwitch/roles/civilian/orthopedist/`
+- `src/client/java/dev/caecorthus/sparkwitch/client/hunter/`
+- `src/client/java/dev/caecorthus/sparkwitch/client/hooks/HunterTrapClientHooks.java`
+- `src/client/java/dev/caecorthus/sparkwitch/client/renderer/HunterTrapEntityRenderer.java`
+
+Copied or namespace-adapted assets include the Hunter trap, double-barrel shotgun, shell, Fracture,
+and Bone Setting models, textures, and icons under `src/main/resources/assets/sparkwitch/`.
+
+SparkWitch's 2026-07-14 modifications use `sparkwitch` identifiers, integrate Wathe's native role,
+shop, death, replay, and component contracts, pair random Hunter assignment with one Orthopedist,
+and apply the project-specific balance and visibility rules documented by SparkWitch.
+
+The upstream repository licenses this work under LGPL-3.0-or-later. A copy of that license is
+included at `licenses/NoellesRoles-LGPL-3.0-or-later.txt`.
+
 ## StarRailExpress Ninja
 
 The Ninja role mechanics, shop/loadout design, weapon implementation, and item artwork were

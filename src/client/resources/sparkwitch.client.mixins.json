@@ -8,6 +8,7 @@
     "DeathRayAttackMixin",
     "DeathRayBlockBreakingMixin",
     "KeyBindingFearSkillMixin",
+    "OrthopedistHudMixin",
     "SaintHudMixin",
     "WatheClientInstinctLightMixin",
     "WatheClientFearInstinctMixin",
@@ -16,7 +17,8 @@
     "WitchRoleNameDisplayMixin",
     "WitchSkillHudMixin",
     "WitchSkillInventoryScreenMixin",
-    "WitchShopPriceMixin"
+    "WitchShopPriceMixin",
+    "hunter.DoubleBarrelShotgunCrosshairMixin"
   ],
   "injectors": {
     "defaultRequire": 1

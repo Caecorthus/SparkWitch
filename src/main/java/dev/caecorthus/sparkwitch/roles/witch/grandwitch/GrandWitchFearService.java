@@ -29,6 +29,7 @@ public final class GrandWitchFearService {
     private static final Set<Identifier> BLOCKED_ROLE_SKILL_PAYLOADS = Set.of(
             SparkWitch.id("use_skill"),
             SparkWitch.id("fire_death_ray"),
+            SparkWitch.id("use_orthopedist_skill"),
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
             Identifier.of("noellesroles", "detective_investigate"),

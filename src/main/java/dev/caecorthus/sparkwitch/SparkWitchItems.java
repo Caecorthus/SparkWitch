@@ -5,6 +5,9 @@ import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
+import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
+import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
+import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
@@ -19,12 +22,18 @@ public final class SparkWitchItems {
     public static final Identifier COLOGNE_ID = SparkWitch.id("cologne");
     public static final Identifier NINJA_KNIFE_ID = SparkWitch.id("ninja_knife");
     public static final Identifier NINJA_SHURIKEN_ID = SparkWitch.id("ninja_shuriken");
+    public static final Identifier HUNTER_TRAP_ID = HunterTrapItem.ID;
+    public static final Identifier DOUBLE_BARREL_SHOTGUN_ID = DoubleBarrelShotgunItem.ID;
+    public static final Identifier DOUBLE_BARREL_SHELL_ID = DoubleBarrelShellItem.ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
     private static Item cologne;
     private static Item ninjaKnife;
     private static Item ninjaShuriken;
+    private static Item hunterTrap;
+    private static Item doubleBarrelShotgun;
+    private static Item doubleBarrelShell;
 
     private static boolean registered;
 
@@ -64,6 +73,21 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 NINJA_SHURIKEN_ID,
                 new NinjaShurikenItem(new Item.Settings().maxCount(1))
+        );
+        hunterTrap = Registry.register(
+                Registries.ITEM,
+                HUNTER_TRAP_ID,
+                new HunterTrapItem(HunterTrapItem.createSettings())
+        );
+        doubleBarrelShotgun = Registry.register(
+                Registries.ITEM,
+                DOUBLE_BARREL_SHOTGUN_ID,
+                new DoubleBarrelShotgunItem(DoubleBarrelShotgunItem.createSettings())
+        );
+        doubleBarrelShell = Registry.register(
+                Registries.ITEM,
+                DOUBLE_BARREL_SHELL_ID,
+                new DoubleBarrelShellItem(DoubleBarrelShellItem.createSettings())
         );
         registerMeleeSuppression();
         registered = true;
@@ -109,6 +133,27 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return ninjaShuriken;
+    }
+
+    public static Item hunterTrap() {
+        if (hunterTrap == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return hunterTrap;
+    }
+
+    public static Item doubleBarrelShotgun() {
+        if (doubleBarrelShotgun == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return doubleBarrelShotgun;
+    }
+
+    public static Item doubleBarrelShell() {
+        if (doubleBarrelShell == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return doubleBarrelShell;
     }
 
     private static void registerMeleeSuppression() {

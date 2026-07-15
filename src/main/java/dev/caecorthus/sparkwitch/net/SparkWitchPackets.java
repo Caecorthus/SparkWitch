@@ -1,6 +1,8 @@
 package dev.caecorthus.sparkwitch.net;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
+import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.skill.WitchSkillUseService;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -21,6 +23,10 @@ public final class SparkWitchPackets {
         registered = true;
         PayloadTypeRegistry.playC2S().register(UseWitchSkillC2SPacket.ID, UseWitchSkillC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(FireDeathRayC2SPacket.ID, FireDeathRayC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(
+                UseOrthopedistSkillC2SPacket.ID,
+                UseOrthopedistSkillC2SPacket.CODEC
+        );
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
                 SparkWitchServerConfirmS2CPacket.CODEC
@@ -29,6 +35,8 @@ public final class SparkWitchPackets {
                 (payload, context) -> WitchSkillUseService.use(context.player(), payload.targetUuid()));
         ServerPlayNetworking.registerGlobalReceiver(FireDeathRayC2SPacket.ID,
                 (payload, context) -> MurderousWitchDeathRayService.fire(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseOrthopedistSkillC2SPacket.ID,
+                (payload, context) -> OrthopedistSkillService.use(context.player()));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {

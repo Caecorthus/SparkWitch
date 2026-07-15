@@ -11,7 +11,10 @@
     "MurderGameModeMixin",
     "NoellesRolesShadowJesterWinMixin",
     "PlayerBodyEntityEquipmentMixin",
+    "PlayerStaminaComponentOrthopedistMixin",
     "ServerPlayNetworkAddonFearMixin",
+    "hunter.HunterPlayerMoveMixin",
+    "hunter.PlayerPoisonComponentHunterSourceMixin",
     "accessor.ItemCooldownEntryAccessor",
     "accessor.ItemCooldownManagerAccessor"
   ],

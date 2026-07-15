@@ -24,6 +24,8 @@
     "cardinal-components": [
       "sparkwitch:player",
       "sparkwitch:perfumer_player",
+      "sparkwitch:hunter",
+      "sparkwitch:orthopedist",
       "sparkwitch:world"
     ]
   },

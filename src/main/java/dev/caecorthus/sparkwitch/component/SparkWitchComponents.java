@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.component;
 
+import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterPlayerComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.entity.EntityComponentFactoryRegistry;
@@ -17,6 +19,12 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, PerfumerPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(PerfumerPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, HunterPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(HunterPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, OrthopedistPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(OrthopedistPlayerComponent::new);
     }
 
     @Override
