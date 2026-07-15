@@ -18,6 +18,7 @@ public final class SaintRules {
     public static final int BOMBER_KARMA = 400;
 
     public static final Identifier SAINT_ROLE_ID = Identifier.of("sparkwitch", "saint");
+    private static final Identifier GRAND_WITCH_ROLE_ID = Identifier.of("sparkwitch", "grand_witch");
     // These ID-only seams keep Saint rules independent from NoellesRoles implementation classes.
     // 这些仅依赖 ID 的接缝让圣徒规则不依赖 NoellesRoles 的实现类。
     public static final Identifier BOMBER_ROLE_ID = Identifier.of("noellesroles", "bomber");
@@ -36,8 +37,16 @@ public final class SaintRules {
         return hasRoleId(role, BOMBER_ROLE_ID);
     }
 
+    static boolean isKarmaImmune(@Nullable Role role) {
+        return hasRoleId(role, GRAND_WITCH_ROLE_ID);
+    }
+
     public static int karmaFor(@Nullable Role role) {
         return isBomber(role) ? BOMBER_KARMA : NORMAL_KARMA;
+    }
+
+    static int effectiveKarmaTicks(@Nullable Role role, int remainingTicks) {
+        return isKarmaImmune(role) ? 0 : Math.max(0, remainingTicks);
     }
 
     public static boolean isKarmaRecordTrigger(@Nullable Identifier itemId, @Nullable String action) {

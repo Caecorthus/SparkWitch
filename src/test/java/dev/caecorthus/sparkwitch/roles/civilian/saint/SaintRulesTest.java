@@ -29,6 +29,20 @@ class SaintRulesTest {
     }
 
     @Test
+    void grandWitchAloneIsImmuneToKarma() {
+        Role grandWitch = role(Identifier.of("sparkwitch", "grand_witch"), false, true);
+        Role accomplice = role(Identifier.of("sparkwitch", "accomplice"), false, true);
+        Role bomber = role(Identifier.of("noellesroles", "bomber"), false, true);
+
+        assertTrue(SaintRules.isKarmaImmune(grandWitch));
+        assertFalse(SaintRules.isKarmaImmune(accomplice));
+        assertFalse(SaintRules.isKarmaImmune(bomber));
+        assertFalse(SaintRules.isKarmaImmune(null));
+        assertEquals(0, SaintRules.effectiveKarmaTicks(grandWitch, 400));
+        assertEquals(400, SaintRules.effectiveKarmaTicks(accomplice, 400));
+    }
+
+    @Test
     void identifiesSaintAndBomberByStableRoleIds() {
         Role saint = role(Identifier.of("sparkwitch", "saint"), true, false);
         Role bomber = role(Identifier.of("noellesroles", "bomber"), false, true);

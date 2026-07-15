@@ -22,6 +22,9 @@ public final class SaintKarmaService {
     }
 
     public static void mark(ServerPlayerEntity player) {
+        if (SaintRules.isKarmaImmune(currentRole(player))) {
+            return;
+        }
         WitchWorldComponent worldComponent = WitchWorldComponent.KEY.get(player.getServerWorld());
         worldComponent.markSaintKarma(player.getUuid());
         updatePlayerMirror(player, true, worldComponent.getSaintKarmaTicks(player.getUuid()));
@@ -38,6 +41,10 @@ public final class SaintKarmaService {
 
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(player.getServerWorld());
         Role role = gameComponent.getRole(player);
+        if (SaintRules.isKarmaImmune(role)) {
+            updatePlayerMirror(player, true, 0);
+            return;
+        }
         int remainingTicks = worldComponent.triggerSaintKarma(player.getUuid(), SaintRules.karmaFor(role));
         SaintKarmaCooldownService.apply(player, remainingTicks);
         updatePlayerMirror(player, true, remainingTicks);
@@ -61,6 +68,10 @@ public final class SaintKarmaService {
         if (SaintRules.isKarmaRecordTrigger(itemId, action)) {
             trigger(actor);
         }
+    }
+
+    private static Role currentRole(ServerPlayerEntity player) {
+        return GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player);
     }
 
     private static void sendBell(ServerPlayerEntity player, float pitch) {
