@@ -45,10 +45,6 @@ public final class SaintRules {
         return isBomber(role) ? BOMBER_KARMA : NORMAL_KARMA;
     }
 
-    static int effectiveKarmaTicks(@Nullable Role role, int remainingTicks) {
-        return isKarmaImmune(role) ? 0 : Math.max(0, remainingTicks);
-    }
-
     public static boolean isKarmaRecordTrigger(@Nullable Identifier itemId, @Nullable String action) {
         return POISON_NEEDLE_ITEM_ID.equals(itemId)
                 || TIMED_BOMB_ITEM_ID.equals(itemId) && "transfer".equals(action);

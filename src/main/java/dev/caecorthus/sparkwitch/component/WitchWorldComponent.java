@@ -155,6 +155,10 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         return saintKarmaState.trigger(playerUuid, durationTicks);
     }
 
+    public boolean clearSaintKarma(UUID playerUuid) {
+        return saintKarmaState.unmark(playerUuid);
+    }
+
     public void tickSaintKarmaState() {
         saintKarmaState.tick();
     }

@@ -23,6 +23,7 @@ public final class SaintKarmaService {
 
     public static void mark(ServerPlayerEntity player) {
         if (SaintRules.isKarmaImmune(currentRole(player))) {
+            clear(player);
             return;
         }
         WitchWorldComponent worldComponent = WitchWorldComponent.KEY.get(player.getServerWorld());
@@ -34,17 +35,17 @@ public final class SaintKarmaService {
     }
 
     public static void trigger(ServerPlayerEntity player) {
+        Role role = currentRole(player);
+        if (SaintRules.isKarmaImmune(role)) {
+            clear(player);
+            return;
+        }
+
         WitchWorldComponent worldComponent = WitchWorldComponent.KEY.get(player.getServerWorld());
         if (!worldComponent.hasSaintKarma(player.getUuid())) {
             return;
         }
 
-        GameWorldComponent gameComponent = GameWorldComponent.KEY.get(player.getServerWorld());
-        Role role = gameComponent.getRole(player);
-        if (SaintRules.isKarmaImmune(role)) {
-            updatePlayerMirror(player, true, 0);
-            return;
-        }
         int remainingTicks = worldComponent.triggerSaintKarma(player.getUuid(), SaintRules.karmaFor(role));
         SaintKarmaCooldownService.apply(player, remainingTicks);
         updatePlayerMirror(player, true, remainingTicks);
@@ -68,6 +69,12 @@ public final class SaintKarmaService {
         if (SaintRules.isKarmaRecordTrigger(itemId, action)) {
             trigger(actor);
         }
+    }
+
+    public static void clear(ServerPlayerEntity player) {
+        WitchWorldComponent worldComponent = WitchWorldComponent.KEY.get(player.getServerWorld());
+        worldComponent.clearSaintKarma(player.getUuid());
+        updatePlayerMirror(player, false, 0);
     }
 
     private static Role currentRole(ServerPlayerEntity player) {

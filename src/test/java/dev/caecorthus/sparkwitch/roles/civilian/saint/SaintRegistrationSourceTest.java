@@ -13,6 +13,10 @@ class SaintRegistrationSourceTest {
             "src/main/java/dev/caecorthus/sparkwitch/registry/SparkWitchRoleRegistry.java");
     private static final Path FEATURE_SERVICE = Path.of(
             "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/saint/SaintFeatureService.java");
+    private static final Path KARMA_SERVICE = Path.of(
+            "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/saint/SaintKarmaService.java");
+    private static final Path KARMA_RUNTIME = Path.of(
+            "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/saint/SaintKarmaRuntime.java");
     private static final Path KILL_PROTECTION_MIXIN = Path.of(
             "src/main/java/dev/caecorthus/sparkwitch/mixin/GameFunctionsSaintProtectionMixin.java");
     private static final Path MIXIN_CONFIG = Path.of("src/main/resources/sparkwitch.mixins.json");
@@ -52,5 +56,18 @@ class SaintRegistrationSourceTest {
         assertFalse(featureService.contains("KillPlayer.BEFORE.register"));
         assertTrue(featureService.contains("KillPlayer.AFTER.register"));
         assertTrue(mixinConfig.contains("\"GameFunctionsSaintProtectionMixin\""));
+    }
+
+    @Test
+    void clearsKarmaWhenGrandWitchIsAssignedOrObserved() throws IOException {
+        String featureService = Files.readString(FEATURE_SERVICE);
+        String karmaService = Files.readString(KARMA_SERVICE);
+        String karmaRuntime = Files.readString(KARMA_RUNTIME);
+
+        assertTrue(featureService.contains("SaintRules.isKarmaImmune(role)"));
+        assertTrue(featureService.contains("SaintKarmaService.clear(player)"));
+        assertTrue(karmaService.contains("worldComponent.clearSaintKarma(player.getUuid())"));
+        assertTrue(karmaRuntime.contains("SaintKarmaService.clear(player)"));
+        assertFalse(karmaRuntime.contains("effectiveKarmaTicks"));
     }
 }

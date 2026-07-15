@@ -30,6 +30,9 @@ public final class SaintFeatureService {
 
     public static void assignForRole(ServerPlayerEntity player, Role role) {
         SaintAbilityService.assignForRole(player, role);
+        if (SaintRules.isKarmaImmune(role)) {
+            SaintKarmaService.clear(player);
+        }
     }
 
     /**

@@ -18,14 +18,18 @@ public final class SaintKarmaRuntime {
     public static void tick(ServerWorld world, WitchWorldComponent worldComponent) {
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(world);
         for (ServerPlayerEntity player : world.getPlayers()) {
+            Role role = gameComponent.getRole(player);
+            if (SaintRules.isKarmaImmune(role)) {
+                SaintKarmaService.clear(player);
+                continue;
+            }
+
             boolean marked = worldComponent.hasSaintKarma(player.getUuid());
             int remainingTicks = worldComponent.getSaintKarmaTicks(player.getUuid());
-            Role role = gameComponent.getRole(player);
-            int effectiveRemainingTicks = SaintRules.effectiveKarmaTicks(role, remainingTicks);
-            if (effectiveRemainingTicks > 0) {
-                SaintKarmaCooldownService.apply(player, effectiveRemainingTicks);
+            if (remainingTicks > 0) {
+                SaintKarmaCooldownService.apply(player, remainingTicks);
             }
-            SaintKarmaService.updatePlayerMirror(player, marked, effectiveRemainingTicks);
+            SaintKarmaService.updatePlayerMirror(player, marked, remainingTicks);
         }
         worldComponent.tickSaintKarmaState();
     }

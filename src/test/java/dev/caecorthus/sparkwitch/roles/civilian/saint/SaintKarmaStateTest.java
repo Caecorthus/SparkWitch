@@ -60,4 +60,24 @@ class SaintKarmaStateTest {
         assertEquals(1, state.entries().size());
         assertEquals(PLAYER, state.entries().getFirst().playerUuid());
     }
+
+    @Test
+    void unmarkRemovesOnlyTheSelectedPlayerKarma() {
+        UUID otherPlayer = UUID.fromString("e40f1c3b-a4b9-4f96-b366-b3738d8aeae9");
+        SaintKarmaState state = new SaintKarmaState();
+        state.mark(PLAYER);
+        state.trigger(PLAYER, 400);
+        state.mark(otherPlayer);
+        state.trigger(otherPlayer, 100);
+
+        assertTrue(state.unmark(PLAYER));
+
+        assertFalse(state.isMarked(PLAYER));
+        assertEquals(0, state.remainingTicks(PLAYER));
+        assertTrue(state.isMarked(otherPlayer));
+        assertEquals(100, state.remainingTicks(otherPlayer));
+        assertFalse(state.unmark(PLAYER));
+        assertEquals(0, state.trigger(PLAYER, 400));
+        assertFalse(state.isMarked(PLAYER));
+    }
 }

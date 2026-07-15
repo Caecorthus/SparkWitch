@@ -38,8 +38,6 @@ class SaintRulesTest {
         assertFalse(SaintRules.isKarmaImmune(accomplice));
         assertFalse(SaintRules.isKarmaImmune(bomber));
         assertFalse(SaintRules.isKarmaImmune(null));
-        assertEquals(0, SaintRules.effectiveKarmaTicks(grandWitch, 400));
-        assertEquals(400, SaintRules.effectiveKarmaTicks(accomplice, 400));
     }
 
     @Test

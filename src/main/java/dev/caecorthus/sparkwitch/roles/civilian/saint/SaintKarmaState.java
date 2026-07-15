@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Stores round-scoped Karma by player UUID so death, reconnect, and role changes cannot remove the mark.
- * 按玩家 UUID 保存本局业障，死亡、重连和身份变化都不会清除标记。
+ * Stores round-scoped Karma by player UUID; Grand Witch assignment explicitly removes the entry.
+ * 按玩家 UUID 保存本局业障；成为大魔女时会显式移除对应条目。
  */
 public final class SaintKarmaState {
     private final LinkedHashMap<UUID, Integer> remainingTicks = new LinkedHashMap<>();
@@ -36,6 +36,10 @@ public final class SaintKarmaState {
         int merged = SaintRules.mergeCooldownTicks(remainingTicks(playerUuid), durationTicks);
         remainingTicks.put(playerUuid, merged);
         return merged;
+    }
+
+    public boolean unmark(UUID playerUuid) {
+        return remainingTicks.remove(playerUuid) != null;
     }
 
     public void tick() {
