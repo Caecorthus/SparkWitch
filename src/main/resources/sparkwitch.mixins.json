@@ -8,6 +8,7 @@
     "GameFunctionsSaintProtectionMixin",
     "GameRecordManagerItemUseMixin",
     "GameWorldComponentMixin",
+    "KidnapperPassengerPositionMixin",
     "MurderGameModeMixin",
     "NoellesRolesShadowJesterWinMixin",
     "PlayerBodyEntityEquipmentMixin",

@@ -12,6 +12,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.win.WitchWinConditions;
 import dev.doctor4t.wathe.api.Faction;
@@ -38,6 +39,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier NINJA_ID = NinjaRules.ROLE_ID;
     public static final Identifier HUNTER_ID = HunterRules.ROLE_ID;
     public static final Identifier ORTHOPEDIST_ID = OrthopedistRules.ROLE_ID;
+    public static final Identifier KIDNAPPER_ID = KidnapperRules.ROLE_ID;
 
     private static Role grandWitch;
     private static Role accomplice;
@@ -49,6 +51,7 @@ public final class SparkWitchRoleRegistry {
     private static Role ninja;
     private static Role hunter;
     private static Role orthopedist;
+    private static Role kidnapper;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -122,6 +125,11 @@ public final class SparkWitchRoleRegistry {
     public static Role orthopedist() {
         ensureRegistered();
         return orthopedist;
+    }
+
+    public static Role kidnapper() {
+        ensureRegistered();
+        return kidnapper;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -232,6 +240,15 @@ public final class SparkWitchRoleRegistry {
                         context.totalPlayerCount()
                 ))
                 .build());
+        // Like Ninja, the default one-player spawn group makes this a one-per-round killer candidate.
+        // 与忍者相同，默认单人分配组保证绑架者每局至多一人。
+        kidnapper = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KIDNAPPER_ID, FactionIds.KILLER)
+                .color(KidnapperRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
     }
 
     private static void registerNativeWatheRoles() {
@@ -272,6 +289,7 @@ public final class SparkWitchRoleRegistry {
                 pigGod,
                 ninja,
                 hunter,
+                kidnapper,
                 murderousWitch,
                 accomplice,
                 grandWitch
@@ -286,6 +304,7 @@ public final class SparkWitchRoleRegistry {
                 || role == pigGod
                 || role == saint
                 || role == perfumer
-                || role == ninja;
+                || role == ninja
+                || role == kidnapper;
     }
 }

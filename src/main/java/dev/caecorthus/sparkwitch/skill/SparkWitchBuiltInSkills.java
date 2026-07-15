@@ -15,6 +15,8 @@ import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeat
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragService;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaSkillService;
 
@@ -103,6 +105,16 @@ public final class SparkWitchBuiltInSkills {
                 0,
                 context -> NinjaRules.isNinja(context.role()),
                 NinjaSkillService::use
+        ));
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                KidnapperRules.DRAG_BODY_SKILL_ID,
+                KidnapperRules.COLOR,
+                1,
+                0,
+                0,
+                0,
+                context -> KidnapperRules.isKidnapper(context.role()),
+                KidnapperDragService::use
         ));
     }
 
