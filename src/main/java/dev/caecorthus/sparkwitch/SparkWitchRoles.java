@@ -11,6 +11,7 @@ public final class SparkWitchRoles {
     public static final Identifier MURDEROUS_WITCH_ID = SparkWitchRoleRegistry.MURDEROUS_WITCH_ID;
     public static final Identifier PIG_GOD_ID = SparkWitchRoleRegistry.PIG_GOD_ID;
     public static final Identifier SAINT_ID = SparkWitchRoleRegistry.SAINT_ID;
+    public static final Identifier PERFUMER_ID = SparkWitchRoleRegistry.PERFUMER_ID;
     public static final Identifier NINJA_ID = SparkWitchRoleRegistry.NINJA_ID;
 
     private SparkWitchRoles() {
@@ -46,6 +47,10 @@ public final class SparkWitchRoles {
 
     public static Role saint() {
         return SparkWitchRoleRegistry.saint();
+    }
+
+    public static Role perfumer() {
+        return SparkWitchRoleRegistry.perfumer();
     }
 
     public static Role ninja() {

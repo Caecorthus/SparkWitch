@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.economy.WitchEconomyService;
@@ -8,6 +9,10 @@ import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordDashService
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerCombatService;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerFallAttributionService;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceCombatService;
+import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerEconomyService;
+import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerFeatureService;
+import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionFeatureService;
 import dev.caecorthus.sparkwitch.mana.WitchManaService;
@@ -47,32 +52,41 @@ public final class SparkWitchEvents {
         PigGodFeatureService.register();
         PigGodEconomyService.register();
         SaintFeatureService.register();
+        PerfumerShopService.register();
+        PerfumerFeatureService.register();
+        PerfumerRuntime.register();
+        PerfumerEconomyService.register();
         NinjaFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
+                PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
                 WitchSkillAssignmentService.assignForRole(serverPlayer, role);
                 WitchManaService.assignForRole(serverPlayer, role);
                 WitchFactionFeatureService.assignForRole(serverPlayer, role);
                 MurderousWitchFeatureService.assignForRole(serverPlayer, role);
                 PigGodEconomyService.assignForRole(serverPlayer, role);
                 SaintFeatureService.assignForRole(serverPlayer, role);
+                PerfumerEconomyService.assignForRole(serverPlayer, role);
                 NinjaFeatureService.assignForRole(serverPlayer, role);
             }
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> PigGodEconomyService.onTaskComplete(player));
+        TaskComplete.EVENT.register((player, taskType) -> PerfumerEconomyService.onTaskComplete(player));
         KillPlayer.AFTER.register(WitchManaService::afterKill);
         KillPlayer.AFTER.register(WitchEconomyService::afterKill);
         KillPlayer.AFTER.register((victim, killer, deathReason) -> {
             WitchFactionFeatureService.clearPlayerRuntime(victim);
             FirePokerFallAttributionService.clearPlayer(victim);
             PigGodChaseRuntime.clear(victim, WitchPlayerComponent.KEY.get(victim));
+            PerfumerPlayerComponent.KEY.get(victim).stopCologne();
         });
         ResetPlayer.EVENT.register(player -> {
             WitchFactionFeatureService.clearPlayerRuntime(player);
             FirePokerFallAttributionService.clearPlayer(player);
             WitchPlayerComponent.KEY.get(player).clear();
+            PerfumerPlayerComponent.KEY.get(player).clear();
         });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
             if (world instanceof ServerWorld serverWorld) {
@@ -83,6 +97,7 @@ public final class SparkWitchEvents {
                 for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                     WitchFactionFeatureService.clearPlayerRuntime(player);
                     WitchPlayerComponent.KEY.get(player).clear();
+                    PerfumerPlayerComponent.KEY.get(player).clear();
                 }
             }
         });

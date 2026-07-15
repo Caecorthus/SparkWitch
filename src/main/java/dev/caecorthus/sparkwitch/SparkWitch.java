@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkfactionapi.api.compat.NoellesHiddenEquipment;
 import dev.caecorthus.sparkwitch.command.ForceAbilityCommand;
 import dev.caecorthus.sparkwitch.command.SetManaCommand;
 import dev.caecorthus.sparkwitch.skill.SparkWitchBuiltInSkills;
@@ -22,6 +23,10 @@ public final class SparkWitch implements ModInitializer {
         SparkWitchSounds.register();
         SparkWitchItems.register();
         SparkWitchEntities.register();
+        // NoellesRoles remains the packet-filter owner; FactionAPI only extends its hidden-item predicate.
+        // NoellesRoles 仍负责装备包过滤，FactionAPI 这里只扩展其隐藏物品判定。
+        NoellesHiddenEquipment.register(SparkWitchItems.perfumeEssence());
+        NoellesHiddenEquipment.register(SparkWitchItems.cologne());
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();

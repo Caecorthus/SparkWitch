@@ -14,6 +14,9 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, WitchPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(WitchPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, PerfumerPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(PerfumerPlayerComponent::new);
     }
 
     @Override

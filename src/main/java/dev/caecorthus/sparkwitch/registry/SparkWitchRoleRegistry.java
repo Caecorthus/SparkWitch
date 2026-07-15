@@ -7,6 +7,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
@@ -31,6 +32,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier MURDEROUS_WITCH_ID = SparkWitch.id("murderous_witch");
     public static final Identifier PIG_GOD_ID = SparkWitch.id("pig_god");
     public static final Identifier SAINT_ID = SaintRules.SAINT_ROLE_ID;
+    public static final Identifier PERFUMER_ID = SparkWitch.id("perfumer");
     public static final Identifier NINJA_ID = NinjaRules.ROLE_ID;
 
     private static Role grandWitch;
@@ -39,6 +41,7 @@ public final class SparkWitchRoleRegistry {
     private static Role murderousWitch;
     private static Role pigGod;
     private static Role saint;
+    private static Role perfumer;
     private static Role ninja;
     private static boolean registered;
 
@@ -93,6 +96,11 @@ public final class SparkWitchRoleRegistry {
     public static Role saint() {
         ensureRegistered();
         return saint;
+    }
+
+    public static Role perfumer() {
+        ensureRegistered();
+        return perfumer;
     }
 
     public static Role ninja() {
@@ -173,6 +181,13 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        perfumer = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PERFUMER_ID, FactionIds.CIVILIAN)
+                .color(PerfumerRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Wathe's special-killer selector consumes each registered non-vanilla role candidate once,
         // so the default spawn group of one is also Ninja's one-per-round maximum.
         // Wathe 的特殊杀手分配器每局只消费一次非原版职业候选，默认单人组即为忍者每局至多一人。
@@ -215,7 +230,7 @@ public final class SparkWitchRoleRegistry {
     }
 
     private static List<Role> assassinGuessRolesInOrder() {
-        return List.of(apprenticeWitch, saint, pigGod, ninja, murderousWitch, accomplice, grandWitch);
+        return List.of(apprenticeWitch, saint, perfumer, pigGod, ninja, murderousWitch, accomplice, grandWitch);
     }
 
     private static boolean isRegisteredSparkWitchRole(Role role) {
@@ -225,6 +240,7 @@ public final class SparkWitchRoleRegistry {
                 || role == murderousWitch
                 || role == pigGod
                 || role == saint
+                || role == perfumer
                 || role == ninja;
     }
 }

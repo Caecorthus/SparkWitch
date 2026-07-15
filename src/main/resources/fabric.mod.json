@@ -23,6 +23,7 @@
   "custom": {
     "cardinal-components": [
       "sparkwitch:player",
+      "sparkwitch:perfumer_player",
       "sparkwitch:world"
     ]
   },
