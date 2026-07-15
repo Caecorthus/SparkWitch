@@ -72,6 +72,9 @@ final class WitchPlayerNbtCodec {
             tag.putInt("DeathRayCharges", component.deathRayCharges);
         }
         component.getSaintState().writeNbt(tag);
+        if (component.ninjaParryTicks > 0) {
+            tag.putInt("NinjaParryTicks", component.ninjaParryTicks);
+        }
     }
 
     static void read(WitchPlayerComponent component, NbtCompound tag) {
@@ -156,5 +159,8 @@ final class WitchPlayerNbtCodec {
                 ? Math.max(0, tag.getInt("DeathRayCharges"))
                 : 0;
         component.getSaintState().readNbt(tag);
+        component.ninjaParryTicks = tag.contains("NinjaParryTicks", NbtElement.NUMBER_TYPE)
+                ? Math.max(0, tag.getInt("NinjaParryTicks"))
+                : 0;
     }
 }

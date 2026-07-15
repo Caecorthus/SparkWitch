@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeA
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodChaseRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintAbilityService;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintPlayerState;
+import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaParryRuntime;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
@@ -65,6 +66,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     int deathRayTicks;
     int deathRayCharges;
     private final SaintPlayerState saintState = new SaintPlayerState();
+    int ninjaParryTicks;
 
     public WitchPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -158,6 +160,14 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return saintState;
     }
 
+    public int getNinjaParryTicks() {
+        return ninjaParryTicks;
+    }
+
+    public boolean isNinjaParryActive() {
+        return ninjaParryTicks > 0;
+    }
+
     public int decrementCeremonialSwordTicks() {
         if (ceremonialSwordTicks > 0) {
             ceremonialSwordTicks--;
@@ -180,13 +190,14 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     }
 
     public int getActiveSkillWindowTicks() {
-        return Math.max(
+        int existingWindowTicks = Math.max(
                 Math.max(
                         Math.max(ceremonialSwordTicks, apprenticeEffectiveWindowTicks()),
                         pigChaseEffectiveWindowTicks()
                 ),
                 deathRayTicks
         );
+        return Math.max(existingWindowTicks, ninjaParryTicks);
     }
 
     public boolean hasSkill() {
@@ -524,6 +535,44 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
+    public void beginNinjaParryWindow(int durationTicks) {
+        int normalized = Math.max(0, durationTicks);
+        if (ninjaParryTicks == normalized) {
+            return;
+        }
+        ninjaParryTicks = normalized;
+        sync();
+    }
+
+    public int decrementNinjaParryTicks() {
+        if (ninjaParryTicks > 0) {
+            ninjaParryTicks--;
+        }
+        return ninjaParryTicks;
+    }
+
+    /**
+     * Consumes or expires the parry and starts its already-deferred shared cooldown.
+     * 消耗或结束格挡窗口，并启动已延后的共享冷却。
+     */
+    public void finishNinjaParryWindow() {
+        if (ninjaParryTicks <= 0 && deferredCooldownTicks <= 0) {
+            return;
+        }
+        ninjaParryTicks = 0;
+        startDeferredCooldownNow();
+        sync();
+    }
+
+    public void clearNinjaParryWindow() {
+        if (ninjaParryTicks <= 0) {
+            return;
+        }
+        ninjaParryTicks = 0;
+        deferredCooldownTicks = 0;
+        sync();
+    }
+
     /**
      * Arms cooldown for effects whose visible window must finish before cooldown begins.
      * 为“技能结束后才冷却”的效果保存待启动冷却，等有效窗口归零后再正式计时。
@@ -564,7 +613,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 && deathRayTicks == 0
                 && deathRayCharges == 0
                 && deferredCooldownTicks == 0
-                && saintState.isEmpty()) {
+                && saintState.isEmpty()
+                && ninjaParryTicks == 0) {
             return;
         }
         if (player instanceof ServerPlayerEntity serverPlayer) {
@@ -597,6 +647,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         deathRayCharges = 0;
         deferredCooldownTicks = 0;
         saintState.clear();
+        ninjaParryTicks = 0;
         sync();
     }
 
@@ -619,6 +670,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             ApprenticeAbilityRuntime.tick(serverPlayer, this);
             PigGodChaseRuntime.tick(serverPlayer, this);
             MurderousWitchDeathRayService.tickWindow(serverPlayer, this);
+            NinjaParryRuntime.tick(serverPlayer, this);
         }
         tickCooldown();
         if (serverPlayer != null) {

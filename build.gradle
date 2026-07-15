@@ -138,6 +138,9 @@ tasks.named("jar") {
     from("licenses/NoellesRoles-LGPL-3.0-or-later.txt") {
         into "META-INF/licenses"
     }
+    from("licenses/StarRailExpress-GPL-3.0-only.txt") {
+        into "META-INF/licenses"
+    }
 }
 
 def remappedModJar = tasks.named("remapJar")

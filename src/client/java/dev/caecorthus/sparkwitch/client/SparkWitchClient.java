@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
@@ -21,10 +22,12 @@ import dev.doctor4t.wathe.api.event.ShouldShowCohort;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.text.Text;
+import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 
 public final class SparkWitchClient implements ClientModInitializer {
     @Override
@@ -32,6 +35,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         SparkWitch.LOGGER.info("Initializing SparkWitch client hooks.");
         SparkWitchServerConnection.reset();
         SparkWitchClientVersionHandshake.registerClient();
+        registerEntityRenderers();
 
         // Reset on every connection lifecycle edge so failed login attempts cannot leak confirmed state.
         // 在每个连接生命周期节点清理状态，避免失败的登录尝试残留已确认标记。
@@ -73,6 +77,15 @@ public final class SparkWitchClient implements ClientModInitializer {
 
     public static Text abilityKeyText() {
         return WitchAbilityKeyBridge.keyText();
+    }
+
+    private static void registerEntityRenderers() {
+        // The projectile renders its synced shuriken item stack, never the upstream generic knife texture.
+        // 投射物始终渲染同步的手里剑物品模型，不复用上游通用飞刀贴图。
+        EntityRendererRegistry.register(
+                SparkWitchEntities.ninjaShuriken(),
+                context -> new FlyingItemEntityRenderer<>(context, 1.0F, true)
+        );
     }
 
     private static void registerGrandWitchCeremonialSwordBgm() {
