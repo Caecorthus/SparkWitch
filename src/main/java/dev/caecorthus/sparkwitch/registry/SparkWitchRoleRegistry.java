@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
@@ -35,6 +36,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier APPRENTICE_WITCH_ID = SparkWitch.id("apprentice_witch");
     public static final Identifier MURDEROUS_WITCH_ID = SparkWitch.id("murderous_witch");
     public static final Identifier PIG_GOD_ID = SparkWitch.id("pig_god");
+    public static final Identifier PROPHET_ID = ProphetRules.ROLE_ID;
     public static final Identifier SAINT_ID = SaintRules.SAINT_ROLE_ID;
     public static final Identifier PERFUMER_ID = SparkWitch.id("perfumer");
     public static final Identifier NINJA_ID = NinjaRules.ROLE_ID;
@@ -48,6 +50,7 @@ public final class SparkWitchRoleRegistry {
     private static Role apprenticeWitch;
     private static Role murderousWitch;
     private static Role pigGod;
+    private static Role prophet;
     private static Role saint;
     private static Role perfumer;
     private static Role ninja;
@@ -103,6 +106,11 @@ public final class SparkWitchRoleRegistry {
     public static Role pigGod() {
         ensureRegistered();
         return pigGod;
+    }
+
+    public static Role prophet() {
+        ensureRegistered();
+        return prophet;
     }
 
     public static Role saint() {
@@ -227,6 +235,13 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        prophet = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PROPHET_ID, FactionIds.CIVILIAN)
+                .color(ProphetRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         tarotReader = SparkFactionApi.registerRole(FactionRoleDefinition.builder(TAROT_READER_ID, FactionIds.CIVILIAN)
                 .color(TarotReaderRules.COLOR)
                 .moodType(Role.MoodType.REAL)
@@ -299,6 +314,7 @@ public final class SparkWitchRoleRegistry {
     private static List<Role> assassinGuessRolesInOrder() {
         return List.of(
                 apprenticeWitch,
+                prophet,
                 orthopedist,
                 saint,
                 perfumer,
@@ -317,6 +333,7 @@ public final class SparkWitchRoleRegistry {
         return role == grandWitch
                 || role == accomplice
                 || role == apprenticeWitch
+                || role == prophet
                 || role == murderousWitch
                 || role == pigGod
                 || role == saint

@@ -75,6 +75,7 @@ final class WitchPlayerNbtCodec {
         if (component.ninjaParryTicks > 0) {
             tag.putInt("NinjaParryTicks", component.ninjaParryTicks);
         }
+        component.getProphetState().writeNbt(tag);
     }
 
     static void read(WitchPlayerComponent component, NbtCompound tag) {
@@ -162,5 +163,6 @@ final class WitchPlayerNbtCodec {
         component.ninjaParryTicks = tag.contains("NinjaParryTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("NinjaParryTicks"))
                 : 0;
+        component.getProphetState().readNbt(tag);
     }
 }

@@ -34,6 +34,7 @@ final class WitchPlayerSyncCodec {
         buf.writeVarInt(ownerVisible ? component.deathRayCharges : 0);
         component.getSaintState().writeSync(buf, ownerVisible);
         buf.writeVarInt(ownerVisible ? component.ninjaParryTicks : 0);
+        component.getProphetState().writeSync(buf, ownerVisible);
     }
 
     static void read(WitchPlayerComponent component, RegistryByteBuf buf) {
@@ -65,6 +66,7 @@ final class WitchPlayerSyncCodec {
         component.deathRayCharges = Math.max(0, buf.readVarInt());
         component.getSaintState().readSync(buf);
         component.ninjaParryTicks = Math.max(0, buf.readVarInt());
+        component.getProphetState().readSync(buf);
     }
 
     private static void writeOptionalIdentifier(RegistryByteBuf buf, @Nullable Identifier id) {

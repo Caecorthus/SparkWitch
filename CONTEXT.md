@@ -6,7 +6,7 @@ changes require explicit owner approval.
 ## Product Boundary
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
-God, Saint, Perfumer, Tarot Reader, Ninja, and Kidnapper gameplay to Wathe.
+God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, and Kidnapper gameplay to Wathe.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -28,6 +28,8 @@ Current build baseline:
 - `api/`: the only public downstream SparkWitch Interface.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime.
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
+- `roles/civilian/prophet/`: Death Omen skill, role-owned state, spawn-boundary
+  corpse collection, and client outline rules.
 - `roles/civilian/saint/`: Saint protection, Hellfire, player-local state, and
   UUID-bound Karma.
 - `roles/civilian/perfumer/`: private scent marks, cologne healing, corpse mood,
@@ -57,13 +59,16 @@ Current build baseline:
 4. Murderous Witch Death Ray
 5. Ninja parry window
 6. shared cooldown
-7. mana regeneration
-8. Saint ability
+7. Prophet Death Omen window
+8. mana regeneration
+9. Saint ability
 
 Do not reorder these calls. The existing component ids remain `sparkwitch:player`
 and `sparkwitch:world`; packet field order and NBT keys must remain stable.
 Perfumer state uses the separate owner-only `sparkwitch:perfumer_player`
 component so its target lists are never added to the shared player packet.
+Prophet state remains inside the existing `sparkwitch:player` component and
+appends its owner-only ticks and body UUIDs after the live packet tail.
 
 SparkTraits is optional and fail-closed. Reflection may target only
 `dev.caecorthus.sparktraits.api.SparkTraitsApi`, never `sparktraits.impl` or

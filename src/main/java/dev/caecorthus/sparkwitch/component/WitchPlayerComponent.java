@@ -6,6 +6,8 @@ import dev.caecorthus.sparkwitch.mana.WitchManaService;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityWindowRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodChaseRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerState;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintAbilityService;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintPlayerState;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaParryRuntime;
@@ -13,6 +15,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeat
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.doctor4t.wathe.game.GameFunctions;
+import java.util.UUID;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.RegistryByteBuf;
@@ -67,6 +70,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     int deathRayCharges;
     private final SaintPlayerState saintState = new SaintPlayerState();
     int ninjaParryTicks;
+    private final ProphetPlayerState prophetState = new ProphetPlayerState();
 
     public WitchPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -160,12 +164,28 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return saintState;
     }
 
+    public ProphetPlayerState getProphetState() {
+        return prophetState;
+    }
+
     public int getNinjaParryTicks() {
         return ninjaParryTicks;
     }
 
     public boolean isNinjaParryActive() {
         return ninjaParryTicks > 0;
+    }
+
+    public int getDeathOmenTicks() {
+        return prophetState.remainingTicks();
+    }
+
+    public boolean isDeathOmenActive() {
+        return prophetState.isActive();
+    }
+
+    public boolean isDeathOmenBody(UUID bodyUuid) {
+        return prophetState.containsBody(bodyUuid);
     }
 
     public int decrementCeremonialSwordTicks() {
@@ -197,7 +217,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 ),
                 deathRayTicks
         );
-        return Math.max(existingWindowTicks, ninjaParryTicks);
+        return Math.max(Math.max(existingWindowTicks, ninjaParryTicks), prophetState.remainingTicks());
     }
 
     public boolean hasSkill() {
@@ -573,6 +593,37 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
+    public void beginDeathOmenWindow(int durationTicks) {
+        prophetState.begin(durationTicks);
+        sync();
+    }
+
+    public boolean recordDeathOmenBody(UUID bodyUuid) {
+        if (!prophetState.recordBody(bodyUuid)) {
+            return false;
+        }
+        sync();
+        return true;
+    }
+
+    public void tickDeathOmenWindow() {
+        ProphetPlayerState.TickOutcome outcome = prophetState.tick();
+        if (outcome == ProphetPlayerState.TickOutcome.FINISHED) {
+            startDeferredCooldownNow();
+            sync();
+        } else if (outcome == ProphetPlayerState.TickOutcome.SYNC) {
+            sync();
+        }
+    }
+
+    public void cancelDeathOmenWindow() {
+        if (!prophetState.cancel()) {
+            return;
+        }
+        deferredCooldownTicks = 0;
+        sync();
+    }
+
     /**
      * Arms cooldown for effects whose visible window must finish before cooldown begins.
      * 为“技能结束后才冷却”的效果保存待启动冷却，等有效窗口归零后再正式计时。
@@ -614,7 +665,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 && deathRayCharges == 0
                 && deferredCooldownTicks == 0
                 && saintState.isEmpty()
-                && ninjaParryTicks == 0) {
+                && ninjaParryTicks == 0
+                && prophetState.isEmpty()) {
             return;
         }
         if (player instanceof ServerPlayerEntity serverPlayer) {
@@ -648,6 +700,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         deferredCooldownTicks = 0;
         saintState.clear();
         ninjaParryTicks = 0;
+        prophetState.clear();
         sync();
     }
 
@@ -674,6 +727,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         }
         tickCooldown();
         if (serverPlayer != null) {
+            ProphetRuntime.tick(serverPlayer, this);
             WitchManaService.tickRegeneration(serverPlayer, this);
             SaintAbilityService.tick(serverPlayer, this);
         }
