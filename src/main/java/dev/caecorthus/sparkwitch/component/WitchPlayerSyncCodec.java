@@ -32,6 +32,7 @@ final class WitchPlayerSyncCodec {
         buf.writeVarInt(ownerVisible ? component.pigChaseTicks : 0);
         buf.writeVarInt(ownerVisible ? component.deathRayTicks : 0);
         buf.writeVarInt(ownerVisible ? component.deathRayCharges : 0);
+        component.getSaintState().writeSync(buf, ownerVisible);
     }
 
     static void read(WitchPlayerComponent component, RegistryByteBuf buf) {
@@ -61,6 +62,7 @@ final class WitchPlayerSyncCodec {
         component.pigChaseOwnsPsycho = false;
         component.deathRayTicks = Math.max(0, buf.readVarInt());
         component.deathRayCharges = Math.max(0, buf.readVarInt());
+        component.getSaintState().readSync(buf);
     }
 
     private static void writeOptionalIdentifier(RegistryByteBuf buf, @Nullable Identifier id) {

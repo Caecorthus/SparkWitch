@@ -5,11 +5,15 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "ForceRoleCommandMixin",
+    "GameFunctionsSaintProtectionMixin",
+    "GameRecordManagerItemUseMixin",
     "GameWorldComponentMixin",
     "MurderGameModeMixin",
     "NoellesRolesShadowJesterWinMixin",
     "PlayerBodyEntityEquipmentMixin",
-    "ServerPlayNetworkAddonFearMixin"
+    "ServerPlayNetworkAddonFearMixin",
+    "accessor.ItemCooldownEntryAccessor",
+    "accessor.ItemCooldownManagerAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

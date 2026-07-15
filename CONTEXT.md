@@ -5,8 +5,8 @@ changes require explicit owner approval.
 
 ## Product Boundary
 
-SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, and
-Pig God gameplay to Wathe. SparkFactionAPI owns shared faction contracts;
+SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
+God, and Saint gameplay to Wathe. SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
 
@@ -27,6 +27,8 @@ Current build baseline:
 - `api/`: the only public downstream SparkWitch Interface.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime.
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
+- `roles/civilian/saint/`: Saint protection, Hellfire, player-local state, and
+  UUID-bound Karma.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
@@ -48,6 +50,7 @@ Current build baseline:
 4. Murderous Witch Death Ray
 5. shared cooldown
 6. mana regeneration
+7. Saint ability
 
 Do not reorder these calls. The component ids remain `sparkwitch:player` and
 `sparkwitch:world`; packet field order and NBT keys must remain stable.

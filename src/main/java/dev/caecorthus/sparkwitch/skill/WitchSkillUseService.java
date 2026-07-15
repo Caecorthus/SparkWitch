@@ -6,6 +6,8 @@ import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintAbilityService;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -36,6 +38,9 @@ public final class WitchSkillUseService {
         }
         if (GrandWitchFearService.denyRoleSkillIfFeared(player)) {
             return false;
+        }
+        if (SaintRules.isSaint(role)) {
+            return SaintAbilityService.use(player);
         }
 
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);

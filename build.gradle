@@ -131,6 +131,15 @@ processResources {
     }
 }
 
+tasks.named("jar") {
+    from("THIRD_PARTY_NOTICES.md") {
+        into "META-INF"
+    }
+    from("licenses/NoellesRoles-LGPL-3.0-or-later.txt") {
+        into "META-INF/licenses"
+    }
+}
+
 def remappedModJar = tasks.named("remapJar")
 
 // Compare Spark-style numeric versions used by SparkFactionAPI dependency floors.

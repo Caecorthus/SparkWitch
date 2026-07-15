@@ -15,6 +15,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeat
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodChaseRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodFeatureService;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintFeatureService;
 import dev.caecorthus.sparkwitch.skill.WitchSkillAssignmentService;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -44,6 +45,7 @@ public final class SparkWitchEvents {
         MurderousWitchFeatureService.register();
         PigGodFeatureService.register();
         PigGodEconomyService.register();
+        SaintFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 WitchSkillAssignmentService.assignForRole(serverPlayer, role);
@@ -51,6 +53,7 @@ public final class SparkWitchEvents {
                 WitchFactionFeatureService.assignForRole(serverPlayer, role);
                 MurderousWitchFeatureService.assignForRole(serverPlayer, role);
                 PigGodEconomyService.assignForRole(serverPlayer, role);
+                SaintFeatureService.assignForRole(serverPlayer, role);
             }
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);

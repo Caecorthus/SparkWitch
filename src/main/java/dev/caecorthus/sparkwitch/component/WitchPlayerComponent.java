@@ -6,6 +6,8 @@ import dev.caecorthus.sparkwitch.mana.WitchManaService;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityWindowRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodChaseRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintAbilityService;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintPlayerState;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
@@ -62,6 +64,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
     boolean pigChaseOwnsPsycho;
     int deathRayTicks;
     int deathRayCharges;
+    private final SaintPlayerState saintState = new SaintPlayerState();
 
     public WitchPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -149,6 +152,10 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     public int getDeathRayCharges() {
         return deathRayCharges;
+    }
+
+    public SaintPlayerState getSaintState() {
+        return saintState;
     }
 
     public int decrementCeremonialSwordTicks() {
@@ -556,7 +563,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 && !pigChaseOwnsPsycho
                 && deathRayTicks == 0
                 && deathRayCharges == 0
-                && deferredCooldownTicks == 0) {
+                && deferredCooldownTicks == 0
+                && saintState.isEmpty()) {
             return;
         }
         if (player instanceof ServerPlayerEntity serverPlayer) {
@@ -588,6 +596,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         deathRayTicks = 0;
         deathRayCharges = 0;
         deferredCooldownTicks = 0;
+        saintState.clear();
         sync();
     }
 
@@ -614,6 +623,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         tickCooldown();
         if (serverPlayer != null) {
             WitchManaService.tickRegeneration(serverPlayer, this);
+            SaintAbilityService.tick(serverPlayer, this);
         }
     }
 

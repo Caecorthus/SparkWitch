@@ -1,6 +1,8 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintKarmaRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintKarmaState;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchCeremonialSwordBgmSources;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchWorldRuntime;
 import net.minecraft.nbt.NbtCompound;
@@ -25,8 +27,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Stores world-level witch skill toggles.
- * 保存世界级魔女技能配置，例如禁用列表。
+ * Stores world-level skill toggles and round-scoped shared runtime state.
+ * 保存世界级技能配置和本局共享运行态，例如禁用列表与圣徒业障。
  */
 public final class WitchWorldComponent implements AutoSyncedComponent, ServerTickingComponent {
     public static final ComponentKey<WitchWorldComponent> KEY = ComponentRegistry.getOrCreate(
@@ -38,6 +40,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     private final LinkedHashSet<Identifier> disabledSkills = new LinkedHashSet<>();
     private final GrandWitchCeremonialSwordBgmSources grandWitchCeremonialSwordBgmSources =
             new GrandWitchCeremonialSwordBgmSources();
+    private final SaintKarmaState saintKarmaState = new SaintKarmaState();
     private int instinctObscureTicks;
     private int obscureActionbarTicks;
     private int fearTicks;
@@ -136,12 +139,33 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         sync();
     }
 
+    public boolean markSaintKarma(UUID playerUuid) {
+        return saintKarmaState.mark(playerUuid);
+    }
+
+    public boolean hasSaintKarma(UUID playerUuid) {
+        return saintKarmaState.isMarked(playerUuid);
+    }
+
+    public int getSaintKarmaTicks(UUID playerUuid) {
+        return saintKarmaState.remainingTicks(playerUuid);
+    }
+
+    public int triggerSaintKarma(UUID playerUuid, int durationTicks) {
+        return saintKarmaState.trigger(playerUuid, durationTicks);
+    }
+
+    public void tickSaintKarmaState() {
+        saintKarmaState.tick();
+    }
+
     public void clearRoundState() {
         instinctObscureTicks = 0;
         obscureActionbarTicks = 0;
         fearTicks = 0;
         grandWitchCeremonialSwordBgmSources.clear();
         syncedGrandWitchCeremonialSwordBgmSources = 0;
+        saintKarmaState.clear();
         sync();
     }
 
@@ -163,6 +187,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         }
 
         GrandWitchWorldRuntime.tick(serverWorld, this);
+        SaintKarmaRuntime.tick(serverWorld, this);
     }
 
     @Override
@@ -191,6 +216,16 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         if (fearTicks > 0) {
             tag.putInt("FearTicks", fearTicks);
         }
+        NbtList saintKarma = new NbtList();
+        for (SaintKarmaState.Entry state : saintKarmaState.entries()) {
+            NbtCompound entry = new NbtCompound();
+            entry.putString("Player", state.playerUuid().toString());
+            if (state.remainingTicks() > 0) {
+                entry.putInt("RemainingTicks", state.remainingTicks());
+            }
+            saintKarma.add(entry);
+        }
+        tag.put("SaintKarma", saintKarma);
     }
 
     @Override
@@ -198,6 +233,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         disabledSkills.clear();
         grandWitchCeremonialSwordBgmSources.clear();
         syncedGrandWitchCeremonialSwordBgmSources = 0;
+        saintKarmaState.clear();
         fromNbt(tag.getList("DisabledSkills", NbtElement.STRING_TYPE), disabledSkills);
         instinctObscureTicks = tag.contains("InstinctObscureTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("InstinctObscureTicks"))
@@ -205,6 +241,17 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         fearTicks = tag.contains("FearTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("FearTicks"))
                 : 0;
+        NbtList saintKarma = tag.getList("SaintKarma", NbtElement.COMPOUND_TYPE);
+        for (int index = 0; index < saintKarma.size(); index++) {
+            NbtCompound entry = saintKarma.getCompound(index);
+            try {
+                UUID playerUuid = UUID.fromString(entry.getString("Player"));
+                saintKarmaState.restore(playerUuid, entry.getInt("RemainingTicks"));
+            } catch (IllegalArgumentException ignored) {
+                // Ignore malformed legacy/manual data while preserving all valid round entries.
+                // 忽略损坏的旧版或手工数据，同时保留本局其他有效业障条目。
+            }
+        }
         obscureActionbarTicks = 0;
     }
 

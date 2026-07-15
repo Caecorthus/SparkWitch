@@ -13,10 +13,12 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.net.UseWitchSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.doctor4t.ratatouille.client.util.ambience.AmbienceUtil;
 import dev.doctor4t.ratatouille.client.util.ambience.BackgroundAmbience;
 import dev.doctor4t.wathe.api.event.CanSeePoison;
 import dev.doctor4t.wathe.api.event.ShouldShowCohort;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
@@ -49,7 +51,9 @@ public final class SparkWitchClient implements ClientModInitializer {
             DeathRayClientHooks.tick(client);
             if (client.player != null
                     && client.getNetworkHandler() != null
-                    && WitchPlayerComponent.KEY.get(client.player).hasSkill()
+                    && (WitchPlayerComponent.KEY.get(client.player).hasSkill()
+                        || SaintRules.isSaint(
+                            GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player)))
                     && WitchAbilityKeyBridge.wasPressed()) {
                 ClientPlayNetworking.send(new UseWitchSkillC2SPacket());
             }

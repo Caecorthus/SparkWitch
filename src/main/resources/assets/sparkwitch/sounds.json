@@ -13,5 +13,11 @@
         "stream": true
       }
     ]
+  },
+  "ambient.saint_bell": {
+    "subtitle": "subtitles.sparkwitch.ambient.saint_bell",
+    "sounds": [
+      "sparkwitch:ambient/saint_bell"
+    ]
   }
 }

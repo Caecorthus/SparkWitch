@@ -8,6 +8,7 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.win.WitchWinConditions;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
@@ -28,12 +29,14 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier APPRENTICE_WITCH_ID = SparkWitch.id("apprentice_witch");
     public static final Identifier MURDEROUS_WITCH_ID = SparkWitch.id("murderous_witch");
     public static final Identifier PIG_GOD_ID = SparkWitch.id("pig_god");
+    public static final Identifier SAINT_ID = SaintRules.SAINT_ROLE_ID;
 
     private static Role grandWitch;
     private static Role accomplice;
     private static Role apprenticeWitch;
     private static Role murderousWitch;
     private static Role pigGod;
+    private static Role saint;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -82,6 +85,11 @@ public final class SparkWitchRoleRegistry {
     public static Role pigGod() {
         ensureRegistered();
         return pigGod;
+    }
+
+    public static Role saint() {
+        ensureRegistered();
+        return saint;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -150,6 +158,13 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        saint = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SAINT_ID, FactionIds.CIVILIAN)
+                .color(SaintRules.COLOR)
+                .moodType(Role.MoodType.NONE)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
     }
 
     private static void registerNativeWatheRoles() {
@@ -182,7 +197,7 @@ public final class SparkWitchRoleRegistry {
     }
 
     private static List<Role> assassinGuessRolesInOrder() {
-        return List.of(apprenticeWitch, pigGod, murderousWitch, accomplice, grandWitch);
+        return List.of(apprenticeWitch, saint, pigGod, murderousWitch, accomplice, grandWitch);
     }
 
     private static boolean isRegisteredSparkWitchRole(Role role) {
@@ -190,6 +205,7 @@ public final class SparkWitchRoleRegistry {
                 || role == accomplice
                 || role == apprenticeWitch
                 || role == murderousWitch
-                || role == pigGod;
+                || role == pigGod
+                || role == saint;
     }
 }

@@ -8,6 +8,7 @@
     "DeathRayAttackMixin",
     "DeathRayBlockBreakingMixin",
     "KeyBindingFearSkillMixin",
+    "SaintHudMixin",
     "WatheClientInstinctLightMixin",
     "WatheClientFearInstinctMixin",
     "WitchCohortRoleNameMixin",
