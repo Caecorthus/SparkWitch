@@ -6,8 +6,8 @@ changes require explicit owner approval.
 ## Product Boundary
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
-God, Saint, Perfumer, Ninja, and Kidnapper gameplay to Wathe. SparkFactionAPI owns shared
-faction contracts;
+God, Saint, Perfumer, Tarot Reader, Ninja, and Kidnapper gameplay to Wathe.
+SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
 
@@ -32,6 +32,8 @@ Current build baseline:
   UUID-bound Karma.
 - `roles/civilian/perfumer/`: private scent marks, cologne healing, corpse mood,
   outlines, shop, and economy.
+- `roles/civilian/tarotreader/`: divination shop, one-shot selection sessions,
+  faction-count snapshots, and economy.
 - `roles/killer/ninja/`: parry, dark-kill bounty, loadout, shop, and death cleanup.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,

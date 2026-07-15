@@ -20,6 +20,7 @@ public final class SparkWitchItems {
     public static final Identifier FIRE_POKER_ID = SparkWitch.id("fire_poker");
     public static final Identifier PERFUME_ESSENCE_ID = SparkWitch.id("perfume_essence");
     public static final Identifier COLOGNE_ID = SparkWitch.id("cologne");
+    public static final Identifier TAROT_CARD_ID = SparkWitch.id("tarot_card");
     public static final Identifier NINJA_KNIFE_ID = SparkWitch.id("ninja_knife");
     public static final Identifier NINJA_SHURIKEN_ID = SparkWitch.id("ninja_shuriken");
     public static final Identifier HUNTER_TRAP_ID = HunterTrapItem.ID;
@@ -29,6 +30,7 @@ public final class SparkWitchItems {
     private static Item firePoker;
     private static Item perfumeEssence;
     private static Item cologne;
+    private static Item tarotCard;
     private static Item ninjaKnife;
     private static Item ninjaShuriken;
     private static Item hunterTrap;
@@ -63,6 +65,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 COLOGNE_ID,
                 new CologneItem(new Item.Settings().maxCount(1))
+        );
+        tarotCard = Registry.register(
+                Registries.ITEM,
+                TAROT_CARD_ID,
+                new Item(new Item.Settings().maxCount(1))
         );
         ninjaKnife = Registry.register(
                 Registries.ITEM,
@@ -119,6 +126,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return cologne;
+    }
+
+    public static Item tarotCard() {
+        if (tarotCard == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return tarotCard;
     }
 
     public static Item ninjaKnife() {

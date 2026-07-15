@@ -22,6 +22,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodChaseRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintFeatureService;
+import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragLifecycle;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaFeatureService;
@@ -63,6 +64,7 @@ public final class SparkWitchEvents {
         HunterFeatureService.register();
         OrthopedistSkillService.registerReplayFormatter();
         KidnapperDragLifecycle.register();
+        TarotReaderFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();

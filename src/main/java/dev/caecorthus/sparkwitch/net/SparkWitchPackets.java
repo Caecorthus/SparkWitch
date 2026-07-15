@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.net;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderDivinationService;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.skill.WitchSkillUseService;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -27,9 +28,21 @@ public final class SparkWitchPackets {
                 UseOrthopedistSkillC2SPacket.ID,
                 UseOrthopedistSkillC2SPacket.CODEC
         );
+        PayloadTypeRegistry.playC2S().register(
+                SubmitTarotDivinationSelectionC2SPacket.ID,
+                SubmitTarotDivinationSelectionC2SPacket.CODEC
+        );
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
                 SparkWitchServerConfirmS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                TarotDivinationSnapshotS2CPacket.ID,
+                TarotDivinationSnapshotS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                OpenTarotDivinationSelectorS2CPacket.ID,
+                OpenTarotDivinationSelectorS2CPacket.CODEC
         );
         ServerPlayNetworking.registerGlobalReceiver(UseWitchSkillC2SPacket.ID,
                 (payload, context) -> WitchSkillUseService.use(context.player(), payload.targetUuid()));
@@ -37,6 +50,8 @@ public final class SparkWitchPackets {
                 (payload, context) -> MurderousWitchDeathRayService.fire(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseOrthopedistSkillC2SPacket.ID,
                 (payload, context) -> OrthopedistSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(SubmitTarotDivinationSelectionC2SPacket.ID,
+                (payload, context) -> TarotReaderDivinationService.submit(context.player(), payload));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {

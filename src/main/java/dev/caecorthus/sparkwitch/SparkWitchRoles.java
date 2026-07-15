@@ -16,6 +16,7 @@ public final class SparkWitchRoles {
     public static final Identifier HUNTER_ID = SparkWitchRoleRegistry.HUNTER_ID;
     public static final Identifier ORTHOPEDIST_ID = SparkWitchRoleRegistry.ORTHOPEDIST_ID;
     public static final Identifier KIDNAPPER_ID = SparkWitchRoleRegistry.KIDNAPPER_ID;
+    public static final Identifier TAROT_READER_ID = SparkWitchRoleRegistry.TAROT_READER_ID;
 
     private SparkWitchRoles() {
     }
@@ -70,6 +71,10 @@ public final class SparkWitchRoles {
 
     public static Role kidnapper() {
         return SparkWitchRoleRegistry.kidnapper();
+    }
+
+    public static Role tarotReader() {
+        return SparkWitchRoleRegistry.tarotReader();
     }
 
     public static boolean isSparkWitchRole(Role role) {
