@@ -72,3 +72,15 @@ LGPL-3.0. This distribution follows the stricter GPL-3.0-only declaration. The u
 portion remains covered by GPL-3.0-only; SparkWitch's AGPL-3.0-only work is combined with it under
 GPLv3 section 13. A verbatim copy of the upstream license is included at
 `licenses/StarRailExpress-GPL-3.0-only.txt`.
+
+## StarRailExpress Perception grayscale
+
+`src/client/resources/assets/minecraft/shaders/program/sparkwitch_perception.fsh` adapts the
+desaturation pass from SparkTraits commit `2f1c5adc4d1bc75e1bc6f4b8ec9d9123b2b96328`. That
+shader was itself adapted from
+[catmoon-train/StarRailExpress](https://github.com/catmoon-train/StarRailExpress) `insanity.fsh`
+at commit `f8d84137e36e08349a10542438944ef2f010ec37`.
+
+SparkWitch removes the spread and brightness transformations and fixes desaturation at 50 percent
+for Black Raven Perception. The adapted shader remains covered by GPL-3.0-only; the existing copy
+is included at `licenses/StarRailExpress-GPL-3.0-only.txt`.

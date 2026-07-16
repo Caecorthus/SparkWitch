@@ -33,6 +33,7 @@ public final class SparkWitch implements ModInitializer {
         // NoellesRoles 仍负责装备包过滤，FactionAPI 这里只扩展其隐藏物品判定。
         NoellesHiddenEquipment.register(SparkWitchItems.perfumeEssence());
         NoellesHiddenEquipment.register(SparkWitchItems.cologne());
+        NoellesHiddenEquipment.register(SparkWitchItems.blackRavenLedger());
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();

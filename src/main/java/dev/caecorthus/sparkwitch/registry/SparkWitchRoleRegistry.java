@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
@@ -40,6 +41,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier SAINT_ID = SaintRules.SAINT_ROLE_ID;
     public static final Identifier PERFUMER_ID = SparkWitch.id("perfumer");
     public static final Identifier NINJA_ID = NinjaRules.ROLE_ID;
+    public static final Identifier BLACK_RAVEN_ID = BlackRavenRules.ROLE_ID;
     public static final Identifier HUNTER_ID = HunterRules.ROLE_ID;
     public static final Identifier ORTHOPEDIST_ID = OrthopedistRules.ROLE_ID;
     public static final Identifier KIDNAPPER_ID = KidnapperRules.ROLE_ID;
@@ -54,6 +56,7 @@ public final class SparkWitchRoleRegistry {
     private static Role saint;
     private static Role perfumer;
     private static Role ninja;
+    private static Role blackRaven;
     private static Role hunter;
     private static Role orthopedist;
     private static Role kidnapper;
@@ -126,6 +129,11 @@ public final class SparkWitchRoleRegistry {
     public static Role ninja() {
         ensureRegistered();
         return ninja;
+    }
+
+    public static Role blackRaven() {
+        ensureRegistered();
+        return blackRaven;
     }
 
     public static Role hunter() {
@@ -260,6 +268,13 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
+        blackRaven = SparkFactionApi.registerRole(FactionRoleDefinition.builder(BLACK_RAVEN_ID, FactionIds.KILLER)
+                .color(BlackRavenRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
         hunter = SparkFactionApi.registerRole(FactionRoleDefinition.builder(HUNTER_ID, FactionIds.KILLER)
                 .color(HunterRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -323,6 +338,7 @@ public final class SparkWitchRoleRegistry {
                 ninja,
                 hunter,
                 kidnapper,
+                blackRaven,
                 murderousWitch,
                 accomplice,
                 grandWitch
@@ -340,6 +356,7 @@ public final class SparkWitchRoleRegistry {
                 || role == perfumer
                 || role == tarotReader
                 || role == ninja
-                || role == kidnapper;
+                || role == kidnapper
+                || role == blackRaven;
     }
 }

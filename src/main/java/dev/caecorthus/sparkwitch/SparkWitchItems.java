@@ -5,6 +5,8 @@ import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenLedgerItem;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.FeatherBladeItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
@@ -23,6 +25,8 @@ public final class SparkWitchItems {
     public static final Identifier TAROT_CARD_ID = SparkWitch.id("tarot_card");
     public static final Identifier NINJA_KNIFE_ID = SparkWitch.id("ninja_knife");
     public static final Identifier NINJA_SHURIKEN_ID = SparkWitch.id("ninja_shuriken");
+    public static final Identifier FEATHER_BLADE_ID = SparkWitch.id("feather_blade");
+    public static final Identifier BLACK_RAVEN_LEDGER_ID = SparkWitch.id("black_raven_ledger");
     public static final Identifier HUNTER_TRAP_ID = HunterTrapItem.ID;
     public static final Identifier DOUBLE_BARREL_SHOTGUN_ID = DoubleBarrelShotgunItem.ID;
     public static final Identifier DOUBLE_BARREL_SHELL_ID = DoubleBarrelShellItem.ID;
@@ -33,6 +37,8 @@ public final class SparkWitchItems {
     private static Item tarotCard;
     private static Item ninjaKnife;
     private static Item ninjaShuriken;
+    private static Item featherBlade;
+    private static Item blackRavenLedger;
     private static Item hunterTrap;
     private static Item doubleBarrelShotgun;
     private static Item doubleBarrelShell;
@@ -80,6 +86,16 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 NINJA_SHURIKEN_ID,
                 new NinjaShurikenItem(new Item.Settings().maxCount(1))
+        );
+        featherBlade = Registry.register(
+                Registries.ITEM,
+                FEATHER_BLADE_ID,
+                new FeatherBladeItem(new Item.Settings().maxCount(1))
+        );
+        blackRavenLedger = Registry.register(
+                Registries.ITEM,
+                BLACK_RAVEN_LEDGER_ID,
+                new BlackRavenLedgerItem(new Item.Settings().maxCount(1))
         );
         hunterTrap = Registry.register(
                 Registries.ITEM,
@@ -149,6 +165,20 @@ public final class SparkWitchItems {
         return ninjaShuriken;
     }
 
+    public static Item featherBlade() {
+        if (featherBlade == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return featherBlade;
+    }
+
+    public static Item blackRavenLedger() {
+        if (blackRavenLedger == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return blackRavenLedger;
+    }
+
     public static Item hunterTrap() {
         if (hunterTrap == null) {
             throw new IllegalStateException("SparkWitch items are not registered yet");
@@ -172,10 +202,10 @@ public final class SparkWitchItems {
 
     private static void registerMeleeSuppression() {
         // These weapons kill through explicit server paths and must never fall back to vanilla melee damage.
-        // 这两件武器只通过明确的服务端路径击杀，不能回退为原版近战伤害。
+        // 这些武器只通过明确的服务端路径击杀，不能回退为原版近战伤害。
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             Item heldItem = player.getStackInHand(hand).getItem();
-            return heldItem == ninjaKnife || heldItem == ninjaShuriken
+            return heldItem == ninjaKnife || heldItem == ninjaShuriken || heldItem == featherBlade
                     ? ActionResult.FAIL
                     : ActionResult.PASS;
         });

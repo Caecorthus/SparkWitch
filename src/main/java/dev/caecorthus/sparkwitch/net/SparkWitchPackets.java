@@ -44,6 +44,10 @@ public final class SparkWitchPackets {
                 OpenTarotDivinationSelectorS2CPacket.ID,
                 OpenTarotDivinationSelectorS2CPacket.CODEC
         );
+        PayloadTypeRegistry.playS2C().register(
+                OpenBlackRavenLedgerS2CPacket.ID,
+                OpenBlackRavenLedgerS2CPacket.CODEC
+        );
         ServerPlayNetworking.registerGlobalReceiver(UseWitchSkillC2SPacket.ID,
                 (payload, context) -> WitchSkillUseService.use(context.player(), payload.targetUuid()));
         ServerPlayNetworking.registerGlobalReceiver(FireDeathRayC2SPacket.ID,

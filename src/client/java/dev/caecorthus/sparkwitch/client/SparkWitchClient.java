@@ -3,6 +3,9 @@ package dev.caecorthus.sparkwitch.client;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
+import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
+import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientModule;
+import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.HunterTrapClientHooks;
@@ -18,6 +21,7 @@ import dev.caecorthus.sparkwitch.client.screen.TarotDivinationSelectorScreen;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
+import dev.caecorthus.sparkwitch.net.OpenBlackRavenLedgerS2CPacket;
 import dev.caecorthus.sparkwitch.net.OpenTarotDivinationSelectorS2CPacket;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.net.TarotDivinationSnapshotS2CPacket;
@@ -45,9 +49,13 @@ public final class SparkWitchClient implements ClientModInitializer {
     public void onInitializeClient() {
         SparkWitch.LOGGER.info("Initializing SparkWitch client hooks.");
         SparkWitchServerConnection.reset();
+        SecondaryAbilityController.registerKeyBinding();
+        BlackRavenClientModule.register();
+        SecondaryAbilityController.reset();
         SparkWitchClientVersionHandshake.registerClient();
         registerEntityRenderers();
         registerTarotDivinationNetworking();
+        registerBlackRavenNetworking();
 
         // Reset on every connection lifecycle edge so failed login attempts cannot leak confirmed state.
         // 在每个连接生命周期节点清理状态，避免失败的登录尝试残留已确认标记。
@@ -63,6 +71,7 @@ public final class SparkWitchClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             TarotDivinationClientState.tick(client);
+            SecondaryAbilityController.tick(client);
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 DeathRayClientHooks.reset();
                 return;
@@ -143,8 +152,18 @@ public final class SparkWitchClient implements ClientModInitializer {
                 }));
     }
 
+    private static void registerBlackRavenNetworking() {
+        ClientPlayNetworking.registerGlobalReceiver(OpenBlackRavenLedgerS2CPacket.ID, (payload, context) ->
+                context.client().execute(() -> {
+                    if (SparkWitchServerConnection.isConfirmedServer()) {
+                        BlackRavenLedgerScreen.open(context.client());
+                    }
+                }));
+    }
+
     private static void resetConnectionState() {
         SparkWitchServerConnection.reset();
+        SecondaryAbilityController.reset();
         TarotDivinationClientState.clear();
     }
 }

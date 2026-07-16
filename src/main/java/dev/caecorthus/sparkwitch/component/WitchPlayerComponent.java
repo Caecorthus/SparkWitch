@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.mana.WitchManaRules;
 import dev.caecorthus.sparkwitch.mana.WitchManaService;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityRuntime;
@@ -217,7 +218,11 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 ),
                 deathRayTicks
         );
-        return Math.max(Math.max(existingWindowTicks, ninjaParryTicks), prophetState.remainingTicks());
+        int registeredWindowTicks = WitchSkillRegistry.activeWindowTicks(activeSkillId, player);
+        return Math.max(
+                Math.max(Math.max(existingWindowTicks, ninjaParryTicks), prophetState.remainingTicks()),
+                registeredWindowTicks
+        );
     }
 
     public boolean hasSkill() {

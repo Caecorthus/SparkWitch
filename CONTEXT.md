@@ -6,7 +6,7 @@ changes require explicit owner approval.
 ## Product Boundary
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
-God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, and Kidnapper gameplay to Wathe.
+God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, and Black Raven gameplay to Wathe.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -38,6 +38,10 @@ Current build baseline:
   faction-count snapshots, and economy.
 - `roles/killer/ninja/`: parry, dark-kill bounty, loadout, shop, and death cleanup.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup.
+- `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
+  bound ledger, restricted shop, and lifecycle cleanup.
+- `client/ability/`: generic configurable skill-key-2 registration and role-id
+  dispatch only; concrete roles own their handlers.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
@@ -69,10 +73,17 @@ Perfumer state uses the separate owner-only `sparkwitch:perfumer_player`
 component so its target lists are never added to the shared player packet.
 Prophet state remains inside the existing `sparkwitch:player` component and
 appends its owner-only ticks and body UUIDs after the live packet tail.
+Black Raven state never enters that shared schema. Victim marks use
+`sparkwitch:black_raven_mark`; owner-only progress and completed identity
+snapshots use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
+Its role-owned active window is exposed to the shared cooldown/HUD path only
+through `WitchSkillRegistry`'s stateless active-window provider.
 
 SparkTraits is optional and fail-closed. Reflection may target only
 `dev.caecorthus.sparktraits.api.SparkTraitsApi`, never `sparktraits.impl` or
-`sparktraits.component`.
+`sparktraits.component`. Black Raven may query only the public
+`isInstinctHidden(viewer, target)` facade; an absent or older SparkTraits build
+adds no suppression and must not break the client.
 
 ## Verification
 

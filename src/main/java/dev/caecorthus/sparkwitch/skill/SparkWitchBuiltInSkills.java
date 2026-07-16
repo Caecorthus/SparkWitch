@@ -21,6 +21,9 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenSkillService;
 
 public final class SparkWitchBuiltInSkills {
     private static boolean registered;
@@ -128,6 +131,16 @@ public final class SparkWitchBuiltInSkills {
                 context -> KidnapperRules.isKidnapper(context.role()),
                 KidnapperDragService::use
         ));
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                BlackRavenRules.PERCEPTION_SKILL_ID,
+                BlackRavenRules.COLOR,
+                1,
+                BlackRavenRules.PERCEPTION_INITIAL_COOLDOWN_TICKS,
+                BlackRavenRules.PERCEPTION_COOLDOWN_TICKS,
+                0,
+                context -> BlackRavenRules.isBlackRaven(context.role()),
+                BlackRavenSkillService::use
+        ), player -> BlackRavenPerceptionPlayerComponent.KEY.get(player).activeTicks());
     }
 
     private static void registerApprenticeAbility(
