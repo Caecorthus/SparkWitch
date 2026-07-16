@@ -53,6 +53,18 @@ class ProphetComponentSchemaSourceTest {
     }
 
     @Test
+    void apprenticeRuntimeDoesNotClaimProphetDeferredCooldown() throws IOException {
+        String component = Files.readString(COMPONENT);
+        String apprenticeState = methodBody(
+                component,
+                "public boolean hasApprenticeWindowState()",
+                "public PigChaseState pigChaseState()"
+        );
+
+        assertFalse(apprenticeState.contains("deferredCooldownTicks > 0"));
+    }
+
+    @Test
     void appendsProphetCodecsAfterTheLiveNinjaTail() throws IOException {
         String sync = Files.readString(SYNC);
         String nbt = Files.readString(NBT);

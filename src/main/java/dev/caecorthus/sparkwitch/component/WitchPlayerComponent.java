@@ -302,8 +302,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
                 || murderSenseTicks > 0
                 || healingTicks > 0
                 || clairvoyanceSelfTicks > 0
-                || clairvoyanceOthersTicks > 0
-                || deferredCooldownTicks > 0;
+                || clairvoyanceOthersTicks > 0;
     }
 
     /**
