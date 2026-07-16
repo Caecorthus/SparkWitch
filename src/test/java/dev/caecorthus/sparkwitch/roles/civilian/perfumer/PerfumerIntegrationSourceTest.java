@@ -61,6 +61,10 @@ class PerfumerIntegrationSourceTest {
         assertTrue(feature.contains("SparkFactionApi.registerInstinctPolicy"));
         assertTrue(feature.contains("target instanceof PlayerEntity"));
         assertTrue(feature.contains("target instanceof PlayerBodyEntity"));
+        assertTrue(feature.contains(".isMarked("));
+        assertTrue(feature.contains("PerfumerRules.ROLE_COLOR"));
+        assertTrue(feature.contains("PerfumerRules.isWithinVisibleOutlineRange"));
+        assertTrue(feature.contains("viewer.canSee(targetPlayer)"));
         assertTrue(feature.contains("PerfumerRules.BLOODY_OUTLINE_COLOR"));
         assertTrue(feature.contains("PerfumerRules.CORPSE_OUTLINE_COLOR"));
         assertTrue(feature.contains("NoellesHiddenBodiesBridge.isHidden"));

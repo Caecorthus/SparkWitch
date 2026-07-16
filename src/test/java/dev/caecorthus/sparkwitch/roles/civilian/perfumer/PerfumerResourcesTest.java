@@ -31,10 +31,12 @@ class PerfumerResourcesTest {
         assertTrue(chinese.contains("\"item.sparkwitch.cologne\": \"古龙水\""));
         assertTrue(chinese.contains("message.sparkwitch.perfumer.marked"));
         assertTrue(chinese.contains("message.sparkwitch.cologne.received"));
+        assertTrue(chinese.contains("标记后会在12格内且视线无遮挡时以调香师身份色高亮"));
 
         assertTrue(english.contains("\"announcement.role.perfumer\": \"Perfumer\""));
         assertTrue(english.contains("\"item.sparkwitch.perfume_essence\": \"Perfume Essence\""));
         assertTrue(english.contains("\"item.sparkwitch.cologne\": \"Cologne\""));
+        assertTrue(english.contains("highlights the marked player in your role color within 12 blocks while you have direct line of sight"));
     }
 
     private static void assertItemResource(String itemId) throws IOException {

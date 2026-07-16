@@ -65,7 +65,7 @@
   "announcement.role.perfumer": "调香师",
   "announcement.title.perfumer": "调香师",
   "announcement.goal.perfumer": "追踪沾染血腥气味的玩家。",
-  "announcement.goals.perfumer": "帮助好人阵营。完成任务可获得50金币；香精能标记其他玩家，若其之后成功杀人，你便能看见其血腥气味。古龙水可令自己或近处玩家在10秒内每秒恢复5点理智。附近未被隐藏的尸体会让未完成任务造成的理智下降速度翻倍；多具尸体不会叠加。",
+  "announcement.goals.perfumer": "帮助好人阵营。完成任务可获得50金币；香精能标记其他玩家，标记后会在12格内且视线无遮挡时以调香师身份色高亮目标。若其之后成功杀人，边框会转为红色【血腥气味】，并沿用视野内12格、隔墙4格的高亮规则。古龙水可令自己或近处玩家在10秒内每秒恢复5点理智。附近未被隐藏的尸体会让未完成任务造成的理智下降速度翻倍；多具尸体不会叠加。",
   "announcement.win.perfumer": "好人幸存了下来。",
   "announcement.role.sparkwitch.perfumer": "调香师",
   "announcement.goal.sparkwitch.perfumer": "追踪沾染血腥气味的玩家。",

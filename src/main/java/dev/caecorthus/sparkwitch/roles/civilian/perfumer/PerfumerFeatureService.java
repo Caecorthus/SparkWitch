@@ -11,8 +11,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 
 /**
- * Publishes the Perfumer's private, always-on blood and corpse outlines.
- * 发布调香师私有且常亮的血腥气味与尸体轮廓。
+ * Publishes the Perfumer's private, always-on mark, blood, and corpse outlines.
+ * 发布调香师私有且常亮的标记、血腥气味与尸体轮廓。
  */
 public final class PerfumerFeatureService {
     private static final int OUTLINE_PRIORITY = 300;
@@ -43,23 +43,38 @@ public final class PerfumerFeatureService {
         int color;
         if (target instanceof PlayerEntity targetPlayer) {
             if (!GameFunctions.isPlayerPlayingAndAlive(targetPlayer)
-                    || GameFunctions.isPlayerSpectatingOrCreative(targetPlayer)
-                    || !PerfumerPlayerComponent.KEY.get(viewer).isBloody(targetPlayer.getUuid())) {
+                    || GameFunctions.isPlayerSpectatingOrCreative(targetPlayer)) {
                 return null;
             }
-            color = PerfumerRules.BLOODY_OUTLINE_COLOR;
+
+            PerfumerPlayerComponent component = PerfumerPlayerComponent.KEY.get(viewer);
+            if (component.isBloody(targetPlayer.getUuid())) {
+                color = PerfumerRules.BLOODY_OUTLINE_COLOR;
+                if (!PerfumerRules.shouldOutlinePlayer(
+                        viewer.squaredDistanceTo(targetPlayer), viewer.canSee(targetPlayer))) {
+                    return null;
+                }
+            } else if (component.isMarked(targetPlayer.getUuid())) {
+                color = PerfumerRules.ROLE_COLOR;
+                if (!viewer.canSee(targetPlayer)
+                        || !PerfumerRules.isWithinVisibleOutlineRange(viewer.squaredDistanceTo(targetPlayer))) {
+                    return null;
+                }
+            } else {
+                return null;
+            }
         } else if (target instanceof PlayerBodyEntity body) {
             if (NoellesHiddenBodiesBridge.isHidden(viewer.getWorld(), body.getPlayerUuid())) {
                 return null;
             }
             color = PerfumerRules.CORPSE_OUTLINE_COLOR;
+            if (!PerfumerRules.shouldOutlinePlayer(viewer.squaredDistanceTo(body), viewer.canSee(body))) {
+                return null;
+            }
         } else {
             return null;
         }
 
-        if (!PerfumerRules.shouldOutlinePlayer(viewer.squaredDistanceTo(target), viewer.canSee(target))) {
-            return null;
-        }
         return FactionInstinctPolicy.InstinctResult.show(color, false, OUTLINE_PRIORITY);
     }
 }

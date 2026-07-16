@@ -65,7 +65,7 @@
   "announcement.role.perfumer": "Perfumer",
   "announcement.title.perfumer": "Perfumer",
   "announcement.goal.perfumer": "Track players stained with a bloody scent.",
-  "announcement.goals.perfumer": "Help the passengers. Completing a task grants 50 coins. Perfume Essence marks another player; if they later complete a kill, their bloody scent becomes visible to you. Cologne restores 5 sanity per second for 10 seconds to you or a nearby player. An unhidden nearby body doubles the sanity drain caused by unfinished tasks; multiple bodies do not stack.",
+  "announcement.goals.perfumer": "Help the passengers. Completing a task grants 50 coins. Perfume Essence marks another player and highlights the marked player in your role color within 12 blocks while you have direct line of sight. If they later complete a kill, the outline changes to the red bloody-scent highlight, visible within 12 blocks or through walls within 4 blocks. Cologne restores 5 sanity per second for 10 seconds to you or a nearby player. An unhidden nearby body doubles the sanity drain caused by unfinished tasks; multiple bodies do not stack.",
   "announcement.win.perfumer": "The passengers survived.",
   "announcement.role.sparkwitch.perfumer": "Perfumer",
   "announcement.goal.sparkwitch.perfumer": "Track players stained with a bloody scent.",
