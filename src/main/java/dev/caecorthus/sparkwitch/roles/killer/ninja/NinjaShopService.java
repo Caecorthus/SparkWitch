@@ -46,7 +46,7 @@ public final class NinjaShopService {
                 new ItemStack(SparkWitchItems.ninjaKnife()),
                 NinjaRules.NINJA_KNIFE_PRICE,
                 ShopEntry.Type.WEAPON
-        ).build());
+        ).stock(1).build());
         context.addEntry(new ShopEntry.Builder(
                 "ninja_shuriken",
                 new ItemStack(SparkWitchItems.ninjaShuriken()),

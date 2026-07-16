@@ -42,6 +42,19 @@ class NinjaItemResourcesTest {
     }
 
     @Test
+    void documentsKunaiLeftClickKnockbackInBothTooltips() throws IOException {
+        String english = Files.readString(ASSETS.resolve("lang/en_us.json"));
+        String chinese = Files.readString(ASSETS.resolve("lang/zh_cn.json"));
+
+        assertTrue(english.contains(
+                "\"item.sparkwitch.ninja_knife.desc\": \"Right-click to silently assassinate a living player within 4 blocks; left-click to knock players back.\""
+        ));
+        assertTrue(chinese.contains(
+                "\"item.sparkwitch.ninja_knife.desc\": \"右键无声刺杀4格内的一名存活玩家；左键击退玩家。\""
+        ));
+    }
+
+    @Test
     void shipsPinnedStarRailExpressLicenseAndProvenanceInTheJar() throws IOException {
         Path copiedLicense = Path.of("licenses/StarRailExpress-GPL-3.0-only.txt");
         String notice = Files.readString(Path.of("THIRD_PARTY_NOTICES.md"));

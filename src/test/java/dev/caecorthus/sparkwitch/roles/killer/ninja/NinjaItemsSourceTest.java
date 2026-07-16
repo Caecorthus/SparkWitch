@@ -24,8 +24,11 @@ class NinjaItemsSourceTest {
         assertTrue(items.contains("NINJA_SHURIKEN_ID = SparkWitch.id(\"ninja_shuriken\")"));
         assertTrue(items.contains("Item ninjaKnife()"));
         assertTrue(items.contains("Item ninjaShuriken()"));
+        assertTrue(items.contains("AllowPlayerPunching.EVENT.register"));
+        assertTrue(items.contains("attacker.getMainHandStack().isOf(ninjaKnife)"));
         assertTrue(items.contains("AttackEntityCallback.EVENT.register"));
-        assertTrue(items.contains("heldItem == ninjaKnife || heldItem == ninjaShuriken"));
+        assertFalse(items.contains("heldItem == ninjaKnife"));
+        assertTrue(items.contains("heldItem == ninjaShuriken || heldItem == featherBlade"));
         assertTrue(items.contains("? ActionResult.FAIL"));
         assertTrue(entities.contains("NINJA_SHURIKEN_ID = SparkWitch.id(\"ninja_shuriken\")"));
         assertTrue(entities.contains(".maxTrackingRange(4)"));
@@ -46,6 +49,7 @@ class NinjaItemsSourceTest {
         assertTrue(knife.contains("SparkWitchDeathReasons.NINJA_KNIFE_KILL"));
         assertTrue(knife.contains("KNIFE_COOLDOWN_TICKS = 30 * 20"));
         assertTrue(knife.contains("return false;") && knife.contains("postHit"));
+        assertFalse(knife.contains("stack.decrement(1)"));
         assertFalse(knife.contains("NinjaRules"));
         assertFalse(knife.contains("getRole("));
     }

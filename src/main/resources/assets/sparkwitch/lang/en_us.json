@@ -101,7 +101,7 @@
   "item.sparkwitch.black_raven_ledger": "Perception Ledger",
   "item.sparkwitch.cologne": "Cologne",
   "item.sparkwitch.ninja_knife": "Kunai",
-  "item.sparkwitch.ninja_knife.desc": "Right-click to silently assassinate a living player within 4 blocks.",
+  "item.sparkwitch.ninja_knife.desc": "Right-click to silently assassinate a living player within 4 blocks; left-click to knock players back.",
   "item.sparkwitch.ninja_shuriken": "Shuriken",
   "item.sparkwitch.ninja_shuriken.desc": "Hold for at least 0.2 seconds, then release to throw silently.",
   "skill.sparkwitch.ceremonial_sword.name": "Ceremonial Sword",

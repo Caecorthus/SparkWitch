@@ -37,12 +37,12 @@ class NinjaIntegrationSourceTest {
     }
 
     @Test
-    void assignmentGivesOnlyNinjaOneWatheLockpick() throws IOException {
+    void assignmentDoesNotGiveNinjaAStartingLockpick() throws IOException {
         String source = Files.readString(FEATURE_SERVICE);
 
         assertTrue(source.contains("NinjaRules.isNinja(role)"));
-        assertTrue(source.contains("new ItemStack(WatheItems.LOCKPICK)"));
-        assertTrue(source.contains("player.giveItemStack"));
+        assertFalse(source.contains("WatheItems.LOCKPICK"));
+        assertFalse(source.contains("player.giveItemStack"));
     }
 
     @Test
@@ -54,6 +54,16 @@ class NinjaIntegrationSourceTest {
         assertTrue(source.contains("context.addEntry(blackoutEntry)"));
         assertFalse(source.contains("PlayerShopComponent::useBlackout"));
         assertFalse(source.contains("triggerBlackout"));
+    }
+
+    @Test
+    void shopLimitsTheKunaiToOnePurchase() throws IOException {
+        String source = Files.readString(SHOP_SERVICE);
+        int start = source.indexOf("\"ninja_knife\"");
+        int end = source.indexOf(".build()", start);
+
+        assertTrue(start >= 0 && end > start);
+        assertTrue(source.substring(start, end).contains(".stock(1)"));
     }
 
     @Test

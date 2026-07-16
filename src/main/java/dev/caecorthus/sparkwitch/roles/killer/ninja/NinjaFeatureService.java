@@ -8,7 +8,6 @@ import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.cca.WorldBlackoutComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
-import dev.doctor4t.wathe.index.WatheItems;
 import dev.doctor4t.wathe.index.WatheSounds;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -18,8 +17,8 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Bridges Ninja loadout, parry, dark-kill bounty, and death cleanup through public Wathe hooks.
- * 通过 Wathe 公共挂钩桥接忍者初始装备、格挡、黑暗赏金与死亡清理。
+ * Bridges Ninja parry, dark-kill bounty, and death cleanup through public Wathe hooks.
+ * 通过 Wathe 公共挂钩桥接忍者格挡、黑暗赏金与死亡清理。
  */
 public final class NinjaFeatureService {
     private static boolean registered;
@@ -41,9 +40,7 @@ public final class NinjaFeatureService {
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         if (!NinjaRules.isNinja(role)) {
             component.clearNinjaParryWindow();
-            return;
         }
-        player.giveItemStack(new ItemStack(WatheItems.LOCKPICK));
     }
 
     private static @Nullable KillPlayer.KillResult beforeKill(

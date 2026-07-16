@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.FeatherBladeItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
+import dev.doctor4t.wathe.api.event.AllowPlayerPunching;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
@@ -201,11 +202,16 @@ public final class SparkWitchItems {
     }
 
     private static void registerMeleeSuppression() {
+        // Kunai uses Wathe's player-only punching path so its left click keeps the native shove contract.
+        // 苦无通过 Wathe 的仅玩家攻击路径处理左键，从而沿用原生击退规则。
+        AllowPlayerPunching.EVENT.register((attacker, victim) ->
+                attacker.getMainHandStack().isOf(ninjaKnife)
+        );
         // These weapons kill through explicit server paths and must never fall back to vanilla melee damage.
         // 这些武器只通过明确的服务端路径击杀，不能回退为原版近战伤害。
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             Item heldItem = player.getStackInHand(hand).getItem();
-            return heldItem == ninjaKnife || heldItem == ninjaShuriken
+            return heldItem == ninjaShuriken || heldItem == featherBlade
                     ? ActionResult.FAIL
                     : ActionResult.PASS;
         });

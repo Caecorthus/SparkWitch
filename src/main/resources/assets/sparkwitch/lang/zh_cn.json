@@ -101,7 +101,7 @@
   "item.sparkwitch.black_raven_ledger": "感知册",
   "item.sparkwitch.cologne": "古龙水",
   "item.sparkwitch.ninja_knife": "苦无",
-  "item.sparkwitch.ninja_knife.desc": "右键无声刺杀4格内的一名存活玩家。",
+  "item.sparkwitch.ninja_knife.desc": "右键无声刺杀4格内的一名存活玩家；左键击退玩家。",
   "item.sparkwitch.ninja_shuriken": "手里剑",
   "item.sparkwitch.ninja_shuriken.desc": "至少蓄力0.2秒，松手后无声掷出。",
   "skill.sparkwitch.ceremonial_sword.name": "仪礼剑",

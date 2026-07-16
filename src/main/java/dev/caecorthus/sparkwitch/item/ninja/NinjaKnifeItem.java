@@ -58,7 +58,6 @@ public final class NinjaKnifeItem extends Item {
         }
 
         GameFunctions.killPlayer(victim, true, attacker, SparkWitchDeathReasons.NINJA_KNIFE_KILL);
-        stack.decrement(1);
         attacker.getItemCooldownManager().set(this, KNIFE_COOLDOWN_TICKS);
         return TypedActionResult.consume(stack);
     }

@@ -19,7 +19,7 @@ class NinjaRulesTest {
         assertEquals(50, NinjaRules.PARRY_WINDOW_TICKS);
         assertEquals(3600, NinjaRules.PARRY_COOLDOWN_TICKS);
         assertEquals(100, NinjaRules.DARK_KILL_BOUNTY);
-        assertEquals(130, NinjaRules.NINJA_KNIFE_PRICE);
+        assertEquals(100, NinjaRules.NINJA_KNIFE_PRICE);
         assertEquals(275, NinjaRules.NINJA_SHURIKEN_PRICE);
         assertEquals(75, NinjaRules.LOCKPICK_PRICE);
     }
