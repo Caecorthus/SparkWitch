@@ -22,8 +22,11 @@ public final class BlackRavenPerceptionService {
             return false;
         }
         BlackRavenPerceptionPlayerComponent component = BlackRavenPerceptionPlayerComponent.KEY.get(player);
-        if (!matchId.equals(component.matchId()) || component.isActive()) {
+        if (component.isActive()) {
             return false;
+        }
+        if (!matchId.equals(component.matchId())) {
+            component.bindMatch(matchId);
         }
         boolean ownsBlindness = !player.hasStatusEffect(StatusEffects.BLINDNESS);
         if (!component.begin(BlackRavenRules.PERCEPTION_ACTIVE_TICKS, ownsBlindness)) {

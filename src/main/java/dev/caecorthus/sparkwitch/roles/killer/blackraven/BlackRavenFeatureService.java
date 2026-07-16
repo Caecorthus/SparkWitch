@@ -21,6 +21,7 @@ public final class BlackRavenFeatureService {
             return;
         }
         registered = true;
+        FeatherBladeMeleeService.register();
         BlackRavenShopService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (!(player instanceof ServerPlayerEntity serverPlayer)) {

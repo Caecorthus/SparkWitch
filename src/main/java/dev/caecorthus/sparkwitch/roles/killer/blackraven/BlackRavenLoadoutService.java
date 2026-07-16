@@ -19,6 +19,7 @@ public final class BlackRavenLoadoutService {
         }
         removeOwnedItems(player);
         player.giveItemStack(new ItemStack(SparkWitchItems.featherBlade()));
+        player.getItemCooldownManager().set(SparkWitchItems.featherBlade(), BlackRavenRules.FEATHER_COOLDOWN_TICKS);
         player.giveItemStack(new ItemStack(SparkWitchItems.blackRavenLedger()));
         player.currentScreenHandler.sendContentUpdates();
     }

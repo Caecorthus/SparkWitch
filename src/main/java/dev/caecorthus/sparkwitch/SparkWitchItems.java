@@ -205,7 +205,7 @@ public final class SparkWitchItems {
         // 这些武器只通过明确的服务端路径击杀，不能回退为原版近战伤害。
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             Item heldItem = player.getStackInHand(hand).getItem();
-            return heldItem == ninjaKnife || heldItem == ninjaShuriken || heldItem == featherBlade
+            return heldItem == ninjaKnife || heldItem == ninjaShuriken
                     ? ActionResult.FAIL
                     : ActionResult.PASS;
         });

@@ -22,6 +22,7 @@ public final class BlackRavenRules {
     public static final double PERCEPTION_RADIUS_SQUARED = 8.0D * 8.0D;
     public static final int PERCEPTION_POINT_TICKS = 20;
     public static final int PERCEPTION_REVEAL_POINTS = 10;
+    public static final int LOCKPICK_PRICE = 50;
     public static final int SHOP_PRICE = 75;
 
     private BlackRavenRules() {

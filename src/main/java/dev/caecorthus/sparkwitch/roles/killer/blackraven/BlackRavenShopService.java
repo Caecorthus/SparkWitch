@@ -33,6 +33,12 @@ public final class BlackRavenShopService {
                 .orElse(null);
         context.clearEntries();
         context.addEntry(new ShopEntry.Builder(
+                "lockpick",
+                WatheItems.LOCKPICK.getDefaultStack(),
+                BlackRavenRules.LOCKPICK_PRICE,
+                ShopEntry.Type.TOOL
+        ).stock(1).build());
+        context.addEntry(new ShopEntry.Builder(
                 "crowbar",
                 WatheItems.CROWBAR.getDefaultStack(),
                 BlackRavenRules.SHOP_PRICE,
