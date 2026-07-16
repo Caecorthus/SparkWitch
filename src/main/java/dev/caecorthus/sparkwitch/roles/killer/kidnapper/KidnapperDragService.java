@@ -44,6 +44,7 @@ public final class KidnapperDragService {
         if (!body.startRiding(player, true)) {
             return WitchSkillUseResult.fail(NO_TARGET_MESSAGE);
         }
+        KidnapperPassengerSync.send(player);
         applySpeedModifier(player);
         return WitchSkillUseResult.success(0);
     }
@@ -68,6 +69,7 @@ public final class KidnapperDragService {
         PlayerBodyEntity body = findDraggedBody(player);
         if (body != null) {
             body.stopRiding();
+            KidnapperPassengerSync.send(player);
         }
         removeSpeedModifier(player);
     }

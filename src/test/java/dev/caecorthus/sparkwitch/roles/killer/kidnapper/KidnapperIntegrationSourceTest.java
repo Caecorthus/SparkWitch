@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,6 +54,18 @@ class KidnapperIntegrationSourceTest {
     }
 
     @Test
+    void syncsPassengerChangesBackToTheCarrierClient() throws IOException {
+        String dragging = read("roles/killer/kidnapper/KidnapperDragService.java");
+        Path passengerSyncPath = ROOT.resolve("roles/killer/kidnapper/KidnapperPassengerSync.java");
+
+        assertTrue(Files.exists(passengerSyncPath));
+        String passengerSync = Files.readString(passengerSyncPath);
+        assertTrue(passengerSync.contains("new EntityPassengersSetS2CPacket(carrier)"));
+        assertTrue(passengerSync.contains("carrier.networkHandler.sendPacket"));
+        assertEquals(2, occurrences(dragging, "KidnapperPassengerSync.send(player);"));
+    }
+
+    @Test
     void registersOneStandardKillerSkillWithoutChangingSharedStateSchemas() throws IOException {
         String registry = read("registry/SparkWitchRoleRegistry.java");
         String skills = read("skill/SparkWitchBuiltInSkills.java");
@@ -88,6 +101,10 @@ class KidnapperIntegrationSourceTest {
 
     private static boolean draggingSchemaTouched(String relativePath) throws IOException {
         return read(relativePath).toLowerCase().contains("kidnapper");
+    }
+
+    private static int occurrences(String source, String needle) {
+        return source.split(java.util.regex.Pattern.quote(needle), -1).length - 1;
     }
 
     private static String read(String relativePath) throws IOException {
