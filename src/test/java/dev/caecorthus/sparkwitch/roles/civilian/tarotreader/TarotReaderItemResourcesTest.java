@@ -67,6 +67,22 @@ class TarotReaderItemResourcesTest {
     }
 
     @Test
+    void keepsTarotCardSilhouetteAndCoreEmblemCentered() throws IOException {
+        BufferedImage texture = ImageIO.read(ASSETS.resolve("textures/item/tarot_card.png").toFile());
+
+        for (int y = 0; y < texture.getHeight(); y++) {
+            for (int x = 0; x < texture.getWidth() / 2; x++) {
+                int mirroredX = texture.getWidth() - 1 - x;
+                assertEquals(
+                        symmetryClass(texture.getRGB(x, y)),
+                        symmetryClass(texture.getRGB(mirroredX, y)),
+                        "Tarot card geometry is off-center at y=" + y + ", x=" + x
+                );
+            }
+        }
+    }
+
+    @Test
     void localizesTheTarotCardInBothLocales() throws IOException {
         String chinese = Files.readString(ASSETS.resolve("lang/zh_cn.json"));
         String english = Files.readString(ASSETS.resolve("lang/en_us.json"));
@@ -83,5 +99,15 @@ class TarotReaderItemResourcesTest {
             index += needle.length();
         }
         return count;
+    }
+
+    private static int symmetryClass(int argb) {
+        if ((argb >>> 24) == 0) {
+            return 0;
+        }
+        return switch (argb & 0xFFFFFF) {
+            case 0xA75CC8, 0x62B56B, 0x4C9BD6, 0xD94C4C -> 1;
+            default -> argb;
+        };
     }
 }
