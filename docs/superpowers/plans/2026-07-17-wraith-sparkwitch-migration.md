@@ -51,6 +51,8 @@
 - Modify: `src/main/resources/assets/sparktraits/lang/en_us.json`
 - Modify: `src/main/resources/assets/sparktraits/lang/zh_cn.json`
 - Modify: `gradle.properties`
+- Replace provider artifacts: `wathe-1.5.6-spark-1.21.1.jar` -> `wathe-1.5.7-spark-1.21.1.jar`
+- Replace provider artifacts: `noellesroles-1.7.6-h1.5.6-spark.jar` -> `noellesroles-1.7.7-h1.5.7-spark.jar`
 - Delete: Wraith-owned role, component, runtime, mixin, client, and promotion-role files listed in the approved design source inventory
 - Test: `src/test/java/dev/caecorthus/sparktraits/api/SparkTraitsWraithBridgeTest.java`
 - Test: `src/test/java/dev/caecorthus/sparktraits/component/RetiredTraitIdsTest.java`
@@ -143,7 +145,7 @@ Implement `SparkWitchWraithBridge.isWraithActive(PlayerEntity)` with cached refl
 
 Add exactly `Identifier.of("sparktraits", "wraith")` to `RetiredTraitIds`. Remove the old Wraith CCA registration, quota initialization from `TraitAssignmentService`, Wraith effective-faction resolver, Wraith event wiring, Wraith voice filtering, six role registrations, Wraith mixin entries/classes, client render integration, and only the 18 Wraith/promotion localization keys. Preserve Depression voice logic and every unrelated trait, role, mixin, resource, and event order.
 
-Set `mod_version=0.1.9.10`.
+Set `mod_version=0.1.9.10`, `wathe_version=1.5.7-spark-1.21.1`, and `noellesroles_version=1.7.7-h1.5.7-spark`. Replace only those two old tracked provider jars with byte-identical copies from the live SparkTraits checkout and verify them with `cmp -s`; do not port unrelated live dirt or its separate SparkFactionAPI integration.
 
 - [ ] **Step 6: Run focused and full SparkTraits verification**
 
