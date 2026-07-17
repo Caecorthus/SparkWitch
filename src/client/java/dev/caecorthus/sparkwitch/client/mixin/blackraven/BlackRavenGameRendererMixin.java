@@ -26,7 +26,11 @@ public abstract class BlackRavenGameRendererMixin {
             CallbackInfo ci
     ) {
         ClientPlayerEntity player = client.player;
-        if (!tick || client.world == null || player == null) {
+        if (!tick) {
+            return;
+        }
+        if (client.world == null || player == null) {
+            BlackRavenPerceptionScreenEffects.close();
             return;
         }
         BlackRavenPerceptionScreenEffects.render(player, tickCounter.getTickDelta(true));

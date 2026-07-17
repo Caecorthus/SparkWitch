@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -48,7 +49,26 @@ class WraithClientRenderingContractTest {
         assertTrue(effects.contains("shaders/post/perception.json"));
         assertTrue(effects.contains("closeProcessor()"));
         assertTrue(mixin.contains("BlackRavenPerceptionScreenEffects.render"));
+        assertTrue(mixin.contains("if (client.world == null || player == null) { BlackRavenPerceptionScreenEffects.close(); return; }"));
         assertFalse(effects.contains("depression_insanity"));
+    }
+
+    @Test
+    void allWraithClientSourcesStayBehindThePublicSparkWitchBoundary() throws IOException {
+        StringBuilder sources = new StringBuilder();
+        try (Stream<Path> paths = Files.walk(CLIENT_ROOT)) {
+            for (Path path : paths.filter(Files::isRegularFile)
+                    .filter(candidate -> candidate.getFileName().toString().contains("Wraith"))
+                    .toList()) {
+                sources.append(Files.readString(path));
+            }
+        }
+
+        String combined = sources.toString();
+        assertFalse(combined.contains("sparktraits.impl"));
+        assertFalse(combined.contains("sparktraits.component"));
+        assertFalse(combined.contains("sparktraits:wraith"));
+        assertFalse(combined.contains("WraithPlayerComponent"));
     }
 
     @Test
