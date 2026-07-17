@@ -130,6 +130,10 @@ The starting roster fixes the round quota:
 - fewer than 10 players: `0`;
 - otherwise: `1 + floor((startingPlayers - 10) / 5)`.
 
+SparkWitch initializes that canonical quota at Wathe
+`GameEvents.ON_FINISH_INITIALIZE` from `gameComponent.getAllPlayers().size()`.
+SparkTraits no longer initializes or mutates the Wraith quota.
+
 Each eligible confirmed death rolls exactly `random < 0.75`. Original civilian
 and killer players qualify. Neutral roles, `wathe:escaped`, and
 `wathe:fell_out_of_train` do not. Last Stand resolves before this decision; a
@@ -144,6 +148,7 @@ Before Wathe mutates the player, SparkWitch captures:
 - the current effective faction from SparkFactionAPI, mapped to GOOD/KILLER;
 - task progress and generation cadence;
 - the opaque optional SparkTraits trait snapshot.
+- the death game time used by Wathe's corpse record.
 
 SparkWitch records whether Last Stand had already triggered for that player,
 then defers the confirmed-death conversion to `END_SERVER_TICK`. At that point
@@ -209,6 +214,11 @@ does not resurrect.
 Curser does not receive Grand Witch or Accomplice economy, mana, shop, loadout,
 or active-skill behavior. Poison visibility also remains restricted to its
 existing explicit role allowlist.
+
+Because the Witch faction advertises generic killer-style reward capabilities,
+SparkWitch's role economy policy returns an explicit denial for Curser passive
+and direct-kill rewards. This role-level denial takes precedence over the
+faction fallback without changing Grand Witch or Accomplice rewards.
 
 ## Witch Presentation Boundary
 

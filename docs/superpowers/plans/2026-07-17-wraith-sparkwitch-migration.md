@@ -41,6 +41,7 @@
 - Modify: `src/main/java/dev/caecorthus/sparktraits/component/RetiredTraitIds.java`
 - Modify: `src/main/java/dev/caecorthus/sparktraits/component/TraitPlayerComponent.java`
 - Modify: `src/main/java/dev/caecorthus/sparktraits/component/SparkTraitsComponents.java`
+- Modify: `src/main/java/dev/caecorthus/sparktraits/impl/assignment/TraitAssignmentService.java`
 - Modify: `src/main/java/dev/caecorthus/sparktraits/impl/lifecycle/TraitGameHooks.java`
 - Modify: `src/main/java/dev/caecorthus/sparktraits/impl/compatibility/sparkfactionapi/SparkFactionApiEffectiveFactionBridge.java`
 - Modify: `src/main/java/dev/caecorthus/sparktraits/voice/SparkTraitsVoiceChatPlugin.java`
@@ -140,7 +141,7 @@ Implement `SparkWitchWraithBridge.isWraithActive(PlayerEntity)` with cached refl
 
 - [ ] **Step 5: Retire old ownership without broad cleanup**
 
-Add exactly `Identifier.of("sparktraits", "wraith")` to `RetiredTraitIds`. Remove the old Wraith CCA registration, Wraith effective-faction resolver, Wraith event wiring, Wraith voice filtering, six role registrations, Wraith mixin entries/classes, client render integration, and only the 18 Wraith/promotion localization keys. Preserve Depression voice logic and every unrelated trait, role, mixin, resource, and event order.
+Add exactly `Identifier.of("sparktraits", "wraith")` to `RetiredTraitIds`. Remove the old Wraith CCA registration, quota initialization from `TraitAssignmentService`, Wraith effective-faction resolver, Wraith event wiring, Wraith voice filtering, six role registrations, Wraith mixin entries/classes, client render integration, and only the 18 Wraith/promotion localization keys. Preserve Depression voice logic and every unrelated trait, role, mixin, resource, and event order.
 
 Set `mod_version=0.1.9.10`.
 
@@ -176,6 +177,7 @@ git commit -m "refactor: retire Wraith ownership from SparkTraits"
 - Modify: `src/main/java/dev/caecorthus/sparkwitch/registry/SparkWitchRoleRegistry.java`
 - Modify: `src/main/java/dev/caecorthus/sparkwitch/SparkWitchRoles.java`
 - Modify: `src/main/java/dev/caecorthus/sparkwitch/roles/witch/WitchFactionRules.java`
+- Modify: `src/main/java/dev/caecorthus/sparkwitch/roles/witch/WitchFactionEconomyPolicy.java`
 - Modify: `src/main/java/dev/caecorthus/sparkwitch/skill/WitchSkillPresentationRules.java`
 - Create: `src/main/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRole.java`
 - Create: `src/main/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithState.java`
@@ -206,7 +208,7 @@ In `fabric.mod.json`, keep SparkTraits optional and add:
 
 - [ ] **Step 2: Write failing role and boundary tests**
 
-Assert canonical ids, colors, non-rollable conditions, `MoodType.NONE`, correct native/effective factions, Assassin order membership for the five promotion roles only, and exact promotion pools. Assert Curser is a Witch member but remains rejected by `WitchSkillPresentationRules`, `WitchManaRules`, shop/loadout rules, and poison visibility.
+Assert canonical ids, colors, non-rollable conditions, `MoodType.NONE`, correct native/effective factions, Assassin order membership for the five promotion roles only, and exact promotion pools. Assert Curser is a Witch member but remains rejected by `WitchSkillPresentationRules`, `WitchManaRules`, shop/loadout rules, poison visibility, direct-kill rewards, and passive rewards.
 
 ```java
 assertEquals(Identifier.of("sparkwitch", "curser"), SparkWitchRoles.curser().identifier());
@@ -261,6 +263,8 @@ return role == SparkWitchRoles.murderousWitch()
 ```
 
 Tests must reject Curser with every registered skill and reject cross-role skill ids for all three allowed roles. This closes the pre-existing broad gate and is required before registering the migrated roles.
+
+In `WitchFactionRules.economyDecision`, return `Boolean.FALSE` for Curser with `RewardKind.PASSIVE` or `RewardKind.DIRECT_KILL`, and `null` for Curser reward kinds unrelated to those two. Add policy-level tests proving this explicit denial wins over the Witch faction capability fallback while Grand Witch and Accomplice results stay unchanged.
 
 - [ ] **Step 6: Verify and commit**
 
@@ -415,7 +419,7 @@ Expected: state, privacy, and exact legacy migration tests PASS.
 
 - [ ] **Step 1: Port failing server tests with canonical packages and ids**
 
-Port the current later Wraith tests from the live SparkTraits checkout, changing only package ownership, canonical ids, and the approved chat correction. Coverage must include both possible SparkTraits/SparkWitch listener registration orders, normal death cleanup before trait restoration, a newly triggered Last Stand cancelling activation without consuming quota, an earlier Last Stand not blocking a later real death, and exactly one corpse retaining the original role. Also include:
+Port the current later Wraith tests from the live SparkTraits checkout, changing only package ownership, canonical ids, and the approved chat correction. Coverage must include both possible SparkTraits/SparkWitch listener registration orders, normal death cleanup before trait restoration, a newly triggered Last Stand cancelling activation without consuming quota, an earlier Last Stand not blocking a later real death, runtime quota initialization from the fixed Wathe roster, and exactly one corpse retaining the original role even when world time advances before deferred activation. Also include:
 
 ```java
 assertFalse(WraithRules.passesChance(0.75D));
@@ -446,7 +450,7 @@ WraithDeathSnapshot snapshot = pending.remove(victim.getUuid());
 if (traitBridge.didLastStandTriggerSince(victim, snapshot.lastStandTriggeredBefore())) return false;
 if (!quota.hasCapacity(world) || !rules.passesChance(victim.getRandom().nextDouble())) return false;
 if (!quota.tryConsume(world, victim.getUuid())) return false;
-WraithBodyService.ensureDeathBody(victim, deathReason);
+WraithBodyService.ensureDeathBody(victim, deathReason, snapshot.deathGameTime());
 traitBridge.restore(victim, snapshot.traitSnapshot());
 wraithComponent.activate(snapshot.alignment());
 roleTransition.replaceAndAnnounce(victim, SparkWitchRoles.wraith());
@@ -455,7 +459,7 @@ taskService.restoreForActivation(victim, snapshot.taskSnapshot());
 victim.getInventory().clear();
 ```
 
-Last Stand must resolve first. Eligible original alignments are civilian/killer only; neutral, escaped, and fell-out roles are excluded. Quota consumption is permanent per successful UUID. Promotion queues on the third task and executes at `END_SERVER_TICK`.
+`WraithDeathSnapshot` captures `(int) victim.getServerWorld().getTime()` before death. Corpse deduplication and fallback creation use that captured value rather than the deferred tick's current time, so an existing Wathe corpse is found after time advances. Last Stand must resolve first. Eligible original alignments are civilian/killer only; neutral, escaped, and fell-out roles are excluded. Quota consumption is permanent per successful UUID. Promotion queues on the third task and executes at `END_SERVER_TICK`.
 
 Preserve restricted effects, no collision, phasing, task-only mood, bilateral affect isolation, interaction allowlist, reconnect behavior, admin Spectator authority, and terminal cleanup. Promotion removes only Slowness, Blindness, and restricted interaction; active Wraith state and other protections remain.
 
@@ -478,7 +482,7 @@ Add Simple Voice Chat as `modCompileOnly`, declare the `voicechat` entrypoint, a
 
 - [ ] **Step 6: Wire thin events, mixins, and cleanup**
 
-Register Wraith services through `SparkWitchEvents`; keep mixins as adapters. Ensure round start, pre-death capture, confirmed-death queueing, deferred activation, task completion, join/reconnect, END_SERVER_TICK promotion, fall-out, and round finish each have one owner. Register Wraith's effective-faction resolver so saved GOOD/KILLER applies only when `isRestricted()`, and player-affect denial while active.
+Register Wraith services through `SparkWitchEvents`; keep mixins as adapters. Initialize the round quota exactly once from `gameComponent.getAllPlayers().size()` in `GameEvents.ON_FINISH_INITIALIZE`. Ensure round start, pre-death capture, confirmed-death queueing, deferred activation, task completion, join/reconnect, END_SERVER_TICK promotion, fall-out, and round finish each have one owner. Register Wraith's effective-faction resolver so saved GOOD/KILLER applies only when `isRestricted()`, and player-affect denial while active.
 
 - [ ] **Step 7: Run focused verification and commit**
 
