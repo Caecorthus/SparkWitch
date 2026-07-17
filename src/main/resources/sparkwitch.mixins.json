@@ -18,6 +18,8 @@
     "PlayerStaminaComponentOrthopedistMixin",
     "ScreenHandlerBlackRavenLedgerMixin",
     "ServerPlayNetworkAddonFearMixin",
+    "WraithGameWorldNbtMixin",
+    "WraithRoleHistoryNbtMixin",
     "hunter.HunterPlayerMoveMixin",
     "hunter.PlayerPoisonComponentHunterSourceMixin",
     "accessor.ItemCooldownEntryAccessor",

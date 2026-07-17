@@ -30,7 +30,7 @@ class WraithRoleRegistrationTest {
     }
 
     @Test
-    void registersCanonicalWraithAsANonRollableSpecialRole() {
+    void registersCanonicalWraithAsANonRollablePersistentSpecialRole() {
         Role wraith = SparkWitchRoles.wraith();
 
         assertEquals(Identifier.of("sparkwitch", "wraith"), wraith.identifier());
@@ -38,7 +38,7 @@ class WraithRoleRegistrationTest {
         assertEquals(Role.MoodType.NONE, wraith.getMoodType());
         assertFalse(wraith.shouldAppear(null));
         assertTrue(WatheRoles.SPECIAL_ROLES.contains(wraith));
-        assertFalse(WatheRoles.ROLES.contains(wraith));
+        assertTrue(WatheRoles.ROLES.contains(wraith));
     }
 
     @Test

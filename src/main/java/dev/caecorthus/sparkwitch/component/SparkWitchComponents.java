@@ -33,10 +33,18 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, BlackRavenPerceptionPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(BlackRavenPerceptionPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, WraithPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(WraithPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, LegacyWraithPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(LegacyWraithPlayerComponent::new);
     }
 
     @Override
     public void registerWorldComponentFactories(@NotNull WorldComponentFactoryRegistry registry) {
         registry.register(WitchWorldComponent.KEY, WitchWorldComponent::new);
+        registry.register(WraithRoundComponent.KEY, WraithRoundComponent::new);
+        registry.register(LegacyWraithRoundComponent.KEY, LegacyWraithRoundComponent::new);
     }
 }

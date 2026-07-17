@@ -92,9 +92,6 @@ public final class SparkWitchRoleRegistry {
         registerFactionApiRoles();
         registerNativeWatheRoles();
         wraith = WatheRoles.registerSpecialRole(WraithRole.ROLE);
-        // Wathe indexes special roles through ROLES too; remove Wraith only from the roll/guess list.
-        // wathe 也会把特殊身份放进 ROLES；这里只将冤魂移出抽取/猜身份列表。
-        WatheRoles.ROLES.remove(wraith);
 
         SparkWitchAssassinGuessOrder.appendToTail(assassinGuessRolesInOrder());
     }

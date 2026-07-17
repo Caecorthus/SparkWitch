@@ -28,7 +28,11 @@
       "sparkwitch:orthopedist",
       "sparkwitch:black_raven_mark",
       "sparkwitch:black_raven_perception",
-      "sparkwitch:world"
+      "sparkwitch:world",
+      "sparkwitch:wraith_player",
+      "sparkwitch:wraith_round",
+      "sparktraits:wraith_player",
+      "sparktraits:wraith_round"
     ]
   },
   "mixins": [
