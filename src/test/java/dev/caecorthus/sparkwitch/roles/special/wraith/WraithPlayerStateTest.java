@@ -17,6 +17,8 @@ class WraithPlayerStateTest {
         assertTrue(state.isActive());
         assertTrue(state.isRestricted());
         assertEquals(1, state.recordTaskCompletion());
+        assertEquals(2, state.recordTaskCompletion());
+        assertEquals(3, state.recordTaskCompletion());
         assertTrue(state.setPromotionPending(true));
         assertTrue(state.isPromotionPending());
 

@@ -28,6 +28,9 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenFeatureServic
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragLifecycle;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaFeatureService;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithDeathService;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRoundQuotaService;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithService;
 import dev.caecorthus.sparkwitch.skill.WitchSkillAssignmentService;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -69,6 +72,7 @@ public final class SparkWitchEvents {
         KidnapperDragLifecycle.register();
         TarotReaderFeatureService.register();
         BlackRavenFeatureService.register();
+        WraithService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
@@ -88,6 +92,8 @@ public final class SparkWitchEvents {
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> PigGodEconomyService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> PerfumerEconomyService.onTaskComplete(player));
+        KillPlayer.BEFORE.register(WraithDeathService::beforeKill);
+        KillPlayer.AFTER.register(WraithDeathService::afterKill);
         KillPlayer.AFTER.register(WitchManaService::afterKill);
         KillPlayer.AFTER.register(WitchEconomyService::afterKill);
         KillPlayer.AFTER.register((victim, killer, deathReason) -> {
@@ -104,6 +110,12 @@ public final class SparkWitchEvents {
             PerfumerPlayerComponent.KEY.get(player).clear();
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 OrthopedistSkillService.clearPlayer(serverPlayer);
+                WraithService.clearPlayer(serverPlayer);
+            }
+        });
+        GameEvents.ON_FINISH_INITIALIZE.register((world, gameComponent) -> {
+            if (world instanceof ServerWorld serverWorld) {
+                WraithRoundQuotaService.beginRound(serverWorld, gameComponent.getAllPlayers().size());
             }
         });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
@@ -112,6 +124,7 @@ public final class SparkWitchEvents {
                 // 回合结束只清理 SparkWitch 运行态，身份表和其他模组状态仍由 wathe 自己管理。
                 WitchWorldComponent.KEY.get(serverWorld).clearRoundState();
                 FirePokerFallAttributionService.clearAll();
+                WraithService.clearRoundState(serverWorld);
                 for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                     WitchFactionFeatureService.clearPlayerRuntime(player);
                     WitchPlayerComponent.KEY.get(player).clear();

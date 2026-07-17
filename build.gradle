@@ -99,6 +99,7 @@ dependencies {
         exclude group: "dev.upcraft.datasync"
     }
     modRuntimeOnly "dev.isxander:yet-another-config-lib:${project.yacl_version}"
+    modCompileOnly "maven.modrinth:simple-voice-chat:fabric-${project.minecraft_version}-${project.voicechat_version}"
     modLocalRuntime "maven.modrinth:simple-voice-chat:fabric-${project.minecraft_version}-${project.voicechat_version}"
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
