@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.special.wraith;
 
+import dev.caecorthus.sparkwitch.mixin.PlayerBodyEntityWraithAccessor;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import dev.doctor4t.wathe.index.WatheEntities;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -14,7 +15,12 @@ final class WraithBodyService {
     private WraithBodyService() {
     }
 
-    static void ensureDeathBody(ServerPlayerEntity player, Identifier deathReason, int deathGameTime) {
+    static void ensureDeathBody(
+            ServerPlayerEntity player,
+            Identifier deathReason,
+            int deathGameTime,
+            Identifier originalRoleId
+    ) {
         ServerWorld world = player.getServerWorld();
         boolean bodyAlreadySpawned = world.getEntitiesByType(
                 WatheEntities.PLAYER_BODY,
@@ -29,6 +35,12 @@ final class WraithBodyService {
             return;
         }
         body.setPlayerUuid(player.getUuid());
+        // setPlayerUuid snapshots the live role, which may have changed during deferred listeners.
+        // setPlayerUuid 会快照当前身份，但延迟监听期间该身份可能已经改变。
+        body.getDataTracker().set(
+                PlayerBodyEntityWraithAccessor.sparkwitch$getDeathRole(),
+                originalRoleId.toString()
+        );
         body.setDeathReason(deathReason);
         body.setDeathGameTime(deathGameTime);
         Vec3d spawnPos = player.getPos().add(player.getRotationVector().normalize());

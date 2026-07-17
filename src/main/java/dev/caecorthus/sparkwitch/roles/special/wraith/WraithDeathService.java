@@ -4,7 +4,6 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
@@ -21,7 +20,7 @@ public final class WraithDeathService {
     private WraithDeathService() {
     }
 
-    public static KillPlayer.KillResult beforeKill(
+    public static void captureBeforeMutation(
             ServerPlayerEntity victim,
             @Nullable ServerPlayerEntity killer,
             Identifier deathReason
@@ -32,7 +31,7 @@ public final class WraithDeathService {
         Role role = game.getRole(victim);
         if (wraith.isActive() || role == null || !WraithRules.isEligibleDeath(role.getFaction(), deathReason)) {
             CAPTURED.remove(uuid);
-            return null;
+            return;
         }
 
         try {
@@ -48,7 +47,6 @@ public final class WraithDeathService {
         } catch (IllegalArgumentException ignored) {
             CAPTURED.remove(uuid);
         }
-        return null;
     }
 
     public static void afterKill(

@@ -75,7 +75,12 @@ public final class WraithDeferredActivationService {
             return false;
         }
 
-        WraithBodyService.ensureDeathBody(victim, deathReason, snapshot.deathGameTime());
+        WraithBodyService.ensureDeathBody(
+                victim,
+                deathReason,
+                snapshot.deathGameTime(),
+                snapshot.originalRoleId()
+        );
         SparkTraitsWraithBridge.restore(victim, snapshot.traitSnapshot());
         wraithComponent.activate(snapshot.alignment());
         WraithRoleTransitionService.transition(victim, SparkWitchRoles.wraith());

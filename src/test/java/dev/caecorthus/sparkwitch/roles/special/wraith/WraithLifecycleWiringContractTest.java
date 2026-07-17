@@ -10,11 +10,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WraithLifecycleWiringContractTest {
     @Test
-    void deathListenersOnlyCaptureAndQueueBeforeDeferredEndTickActivation() throws Exception {
+    void deathCapturePrecedesAllBeforeListenersAndAfterOnlyQueuesForEndTick() throws Exception {
         String events = source("impl/SparkWitchEvents.java");
+        String captureMixin = source("mixin/WraithDeathCaptureMixin.java");
         String deferred = source("roles/special/wraith/WraithDeferredActivationService.java");
-        assertTrue(events.contains("KillPlayer.BEFORE.register(WraithDeathService::beforeKill)"));
+        assertFalse(events.contains("KillPlayer.BEFORE.register(WraithDeathService"));
         assertTrue(events.contains("KillPlayer.AFTER.register(WraithDeathService::afterKill)"));
+        assertTrue(captureMixin.contains("@Mixin(GameFunctions.class)"));
+        assertFalse(captureMixin.contains("remap = false"));
+        assertTrue(captureMixin.contains("WraithDeathService.captureBeforeMutation"));
+        assertTrue(captureMixin.contains("at = @At(\"HEAD\")"));
         assertTrue(deferred.contains("ServerTickEvents.END_SERVER_TICK"));
         assertTrue(deferred.indexOf("didLastStandTriggerSince")
                 < deferred.indexOf("WraithRoundQuotaService.hasCapacity"));
@@ -43,6 +48,17 @@ class WraithLifecycleWiringContractTest {
     }
 
     @Test
+    void resetClearsTraitsWhileWraithStateIsStillActive() throws Exception {
+        String events = source("impl/SparkWitchEvents.java");
+        int reset = events.indexOf("ResetPlayer.EVENT.register");
+        int traitClear = events.indexOf("SparkTraitsWraithBridge.clear(serverPlayer, true)", reset);
+        int stateClear = events.indexOf("WraithService.clearPlayer(serverPlayer)", reset);
+
+        assertTrue(traitClear > reset);
+        assertTrue(stateClear > traitClear);
+    }
+
+    @Test
     void capturedDeathTimeOwnsCorpseDedupeAcrossDeferredTicks() throws Exception {
         String snapshot = source("roles/special/wraith/WraithDeathSnapshot.java");
         String body = source("roles/special/wraith/WraithBodyService.java");
@@ -51,6 +67,20 @@ class WraithLifecycleWiringContractTest {
         assertTrue(body.contains("body.getDeathGameTime() == deathGameTime"));
         assertTrue(deferred.contains("snapshot.deathGameTime()"));
         assertFalse(body.contains("(int) world.getTime()"));
+    }
+
+    @Test
+    void fallbackCorpseKeepsCapturedRoleAfterAnInterveningLiveRoleChange() throws Exception {
+        String body = source("roles/special/wraith/WraithBodyService.java");
+        String deferred = source("roles/special/wraith/WraithDeferredActivationService.java");
+        String accessor = source("mixin/PlayerBodyEntityWraithAccessor.java");
+
+        assertTrue(deferred.contains("snapshot.originalRoleId()"));
+        assertTrue(body.contains("Identifier originalRoleId"));
+        assertTrue(body.indexOf("body.setPlayerUuid(player.getUuid())")
+                < body.indexOf("body.getDataTracker().set"));
+        assertTrue(body.contains("originalRoleId.toString()"));
+        assertTrue(accessor.contains("@Accessor(\"DEATH_ROLE\")"));
     }
 
     private static String source(String relative) throws Exception {
