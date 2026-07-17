@@ -54,12 +54,10 @@ class WraithClientRenderingContractTest {
     }
 
     @Test
-    void allWraithClientSourcesStayBehindThePublicSparkWitchBoundary() throws IOException {
+    void everySparkWitchClientPathStaysBehindThePublicWraithBoundary() throws IOException {
         StringBuilder sources = new StringBuilder();
         try (Stream<Path> paths = Files.walk(CLIENT_ROOT)) {
-            for (Path path : paths.filter(Files::isRegularFile)
-                    .filter(candidate -> candidate.getFileName().toString().contains("Wraith"))
-                    .toList()) {
+            for (Path path : paths.filter(Files::isRegularFile).toList()) {
                 sources.append(Files.readString(path));
             }
         }
