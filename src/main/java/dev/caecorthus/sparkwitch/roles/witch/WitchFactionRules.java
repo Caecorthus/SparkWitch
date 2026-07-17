@@ -34,11 +34,17 @@ public final class WitchFactionRules {
     }
 
     public static boolean isWitchFactionMember(Role role) {
-        return role != null && (role == SparkWitchRoles.grandWitch() || role == SparkWitchRoles.accomplice());
+        return role != null && (role == SparkWitchRoles.grandWitch()
+                || role == SparkWitchRoles.accomplice()
+                || role == SparkWitchRoles.curser());
     }
 
+    /**
+     * Keeps legacy instinct visuals narrower than generic Witch-faction membership.
+     * 旧有本能视觉仅属于大魔女和共犯，不随通用魔女阵营成员关系扩展。
+     */
     public static boolean usesKillerStyleInstinctLight(Role role) {
-        return isWitchFactionMember(role);
+        return isGrandWitch(role) || isAccomplice(role);
     }
 
     public static boolean shouldHardSkipInvisiblePhantom(
@@ -46,13 +52,13 @@ public final class WitchFactionRules {
             Role targetRole,
             boolean targetInvisible
     ) {
-        return isWitchFactionMember(viewerRole)
+        return usesKillerStyleInstinctLight(viewerRole)
                 && targetInvisible
                 && NoellesRoleIds.isPhantom(targetRole);
     }
 
     public static OptionalInt droppedItemInstinctColor(Role viewerRole) {
-        return isWitchFactionMember(viewerRole)
+        return usesKillerStyleInstinctLight(viewerRole)
                 ? OptionalInt.of(DROPPED_ITEM_INSTINCT_COLOR)
                 : OptionalInt.empty();
     }
@@ -142,6 +148,13 @@ public final class WitchFactionRules {
     }
 
     public static Boolean economyDecision(Role role, FactionEconomyPolicy.RewardKind rewardKind) {
+        if (role == SparkWitchRoles.curser()) {
+            if (rewardKind == FactionEconomyPolicy.RewardKind.DIRECT_KILL
+                    || rewardKind == FactionEconomyPolicy.RewardKind.PASSIVE) {
+                return false;
+            }
+            return null;
+        }
         if (isGrandWitch(role)) {
             if (rewardKind == FactionEconomyPolicy.RewardKind.DIRECT_KILL) {
                 return true;

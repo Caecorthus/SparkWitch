@@ -50,5 +50,8 @@
     "cardinal-components-base": ">=${cca_version}",
     "cardinal-components-entity": ">=${cca_version}",
     "cardinal-components-world": ">=${cca_version}"
+  },
+  "breaks": {
+    "sparktraits": "<0.1.9.10"
   }
 }
