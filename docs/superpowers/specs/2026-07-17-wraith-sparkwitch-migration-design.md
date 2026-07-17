@@ -145,6 +145,14 @@ Before Wathe mutates the player, SparkWitch captures:
 - task progress and generation cadence;
 - the opaque optional SparkTraits trait snapshot.
 
+SparkWitch records whether Last Stand had already triggered for that player,
+then defers the confirmed-death conversion to `END_SERVER_TICK`. At that point
+all `KillPlayer.AFTER` listeners have completed. A newly triggered Last Stand
+cancels the pending conversion, while an earlier Last Stand from the same round
+does not block a later real death. This also guarantees that SparkTraits' normal
+death cleanup runs before SparkWitch restores the opaque trait snapshot,
+independent of Fabric mod initialization or listener registration order.
+
 After confirmed death and a successful chance/quota decision, SparkWitch:
 
 1. keeps ordinary drops and exactly one corpse with the original role;
@@ -233,7 +241,9 @@ ids are untouched.
 SparkWitch temporarily registers read-only legacy CCA readers for
 `sparktraits:wraith_player` and `sparktraits:wraith_round`. On load they import
 the known Wraith fields into the canonical components, then canonical
-components become the only writers. SparkTraits no longer registers those
+components become the only writers. Import is lazy after both component tags
+have been read: canonical data wins when both are present, old-only data imports
+once, and legacy writers emit no tag. SparkTraits no longer registers those
 legacy component ids, preventing duplicate ownership.
 
 The coordinated migration releases are SparkWitch `0.1.6.1`, SparkTraits
