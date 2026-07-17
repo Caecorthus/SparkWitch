@@ -92,6 +92,19 @@ class BlackRavenServerContractSourceTest {
         assertTrue(inventory.contains("SlotActionType.QUICK_MOVE"));
     }
 
+    @Test
+    void featherBladeUsesRoleOwnedWatheMeleeAdmission() throws IOException {
+        String items = source("SparkWitchItems.java");
+        String suppression = items.substring(items.indexOf("AttackEntityCallback.EVENT.register"));
+        String service = source("roles/killer/blackraven/FeatherBladeMeleeService.java");
+
+        assertFalse(suppression.contains("heldItem == featherBlade"));
+        assertTrue(service.contains("AllowPlayerPunching.EVENT.register"));
+        assertTrue(service.contains("attacker.getMainHandStack().isOf(SparkWitchItems.featherBlade())"));
+        assertTrue(source("roles/killer/blackraven/BlackRavenFeatureService.java")
+                .contains("FeatherBladeMeleeService.register()"));
+    }
+
     private static String source(String relativePath) throws IOException {
         return Files.readString(ROOT.resolve("src/main/java/dev/caecorthus/sparkwitch").resolve(relativePath));
     }

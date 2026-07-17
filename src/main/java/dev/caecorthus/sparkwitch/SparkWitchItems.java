@@ -207,11 +207,11 @@ public final class SparkWitchItems {
         AllowPlayerPunching.EVENT.register((attacker, victim) ->
                 attacker.getMainHandStack().isOf(ninjaKnife)
         );
-        // These weapons kill through explicit server paths and must never fall back to vanilla melee damage.
-        // 这些武器只通过明确的服务端路径击杀，不能回退为原版近战伤害。
+        // Shuriken kills through its explicit server path and must never fall back to vanilla melee damage.
+        // 手里剑只通过明确的服务端路径击杀，不能回退为原版近战伤害。
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             Item heldItem = player.getStackInHand(hand).getItem();
-            return heldItem == ninjaShuriken || heldItem == featherBlade
+            return heldItem == ninjaShuriken
                     ? ActionResult.FAIL
                     : ActionResult.PASS;
         });

@@ -28,7 +28,8 @@ class NinjaItemsSourceTest {
         assertTrue(items.contains("attacker.getMainHandStack().isOf(ninjaKnife)"));
         assertTrue(items.contains("AttackEntityCallback.EVENT.register"));
         assertFalse(items.contains("heldItem == ninjaKnife"));
-        assertTrue(items.contains("heldItem == ninjaShuriken || heldItem == featherBlade"));
+        assertTrue(items.contains("return heldItem == ninjaShuriken"));
+        assertFalse(items.contains("heldItem == ninjaShuriken || heldItem == featherBlade"));
         assertTrue(items.contains("? ActionResult.FAIL"));
         assertTrue(entities.contains("NINJA_SHURIKEN_ID = SparkWitch.id(\"ninja_shuriken\")"));
         assertTrue(entities.contains(".maxTrackingRange(4)"));
