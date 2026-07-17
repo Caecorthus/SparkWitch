@@ -58,7 +58,10 @@ class BlackRavenClientPresentationSourceTest {
         String shader = readResource("assets/minecraft/shaders/program/sparkwitch_perception.fsh");
 
         assertTrue(effect.contains("DESATURATE_FACTOR = 0.50f"));
-        assertTrue(effect.contains("activeProcessor.setUniforms(\"DesaturateFactor\", DESATURATE_FACTOR)"));
+        assertTrue(effect.contains("activeProcessor.setUniforms(\"DesaturateFactor\", desaturation)"));
+        assertTrue(effect.contains("WraithVisionRules.desaturation("));
+        assertTrue(effect.indexOf("WraithVisionRules.desaturation(")
+                < effect.indexOf("BlackRavenClientState.isPerceptionActive(player)"));
         assertTrue(effect.contains("closeProcessor()"));
         assertTrue(effect.contains("processorWidth != framebuffer.textureWidth"));
         assertTrue(mixin.contains("BlackRavenPerceptionScreenEffects.render"));

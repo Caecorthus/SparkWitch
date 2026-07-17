@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Runs Perception desaturation after world rendering and before the HUD. / 在世界渲染后、HUD 前运行感知去饱和。 */
+/** Runs the shared Wraith/Perception desaturation after world rendering. / 在世界渲染后运行冤魂与感知共用的去饱和效果。 */
 @Mixin(GameRenderer.class)
 public abstract class BlackRavenGameRendererMixin {
     @Shadow
