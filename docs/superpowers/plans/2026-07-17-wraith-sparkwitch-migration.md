@@ -579,24 +579,33 @@ git commit -m "feat: migrate Wraith client presentation"
 **Repository:** `/Users/kricy/Documents/Codex-Projects/.codex-worktrees/wraith/SparkAssist`
 
 **Files:**
+- Modify: `build.gradle`
 - Create: `src/client/resources/assets/sparkassist/guidebook/roles/sparkwitch/wraith.json`
 - Create: five promotion entries under the existing civilian, killer, and Witch Guidebook faction paths
 - Remove: `src/client/resources/assets/sparkassist/guidebook/roles/sparktraits/wraith.json` if present on the branch
 - Modify: Guidebook catalog/localization resources only where the current schema requires explicit registration
 - Modify: `gradle.properties`
+- Add/update provider artifact: `libs/wathe-1.5.7-spark-1.21.1.jar`
 - Create/modify: `src/test/java/dev/caecorthus/sparkassist/guidebook/GuidebookWraithResourcesTest.java`
 
 **Interfaces:**
 - Consumes: canonical role ids and exact localized names from SparkWitch.
 - Produces: Guidebook entries requiring `sparkwitch`, with no runtime dependency or Java integration.
 
-- [ ] **Step 1: Create the isolated branch and port failing resource tests**
+- [ ] **Step 1: Create the isolated branch, synchronize the live provider baseline, and port failing resource tests**
 
 ```bash
 cd /Users/kricy/Documents/Codex-Projects/SparkAssist
 git fetch origin
 git worktree add /Users/kricy/Documents/Codex-Projects/.codex-worktrees/wraith/SparkAssist \
   -b codex/wraith-sparkassist-migration origin/main
+```
+
+`origin/main` does not contain the Wathe provider jar and cannot configure Loom by itself. Before the RED test, copy the live checkout's byte-identical `wathe-1.5.7-spark-1.21.1.jar`, update `wathe_version` and the `verifyArchitecture` pin to `1.5.7-spark-1.21.1`, and preserve every other live dependency value. Verify the handoff with:
+
+```bash
+cmp -s /Users/kricy/Documents/Codex-Projects/SparkAssist/libs/wathe-1.5.7-spark-1.21.1.jar \
+  /Users/kricy/Documents/Codex-Projects/.codex-worktrees/wraith/SparkAssist/libs/wathe-1.5.7-spark-1.21.1.jar
 ```
 
 Port the existing untracked Wraith test from the live checkout, then assert the new owner/path/id/required mod, exact role names, faction placement, and normal-chat wording. Assert none of the five promotion entries claims an active ability, skill, item, shop, mana pool, or loadout.
