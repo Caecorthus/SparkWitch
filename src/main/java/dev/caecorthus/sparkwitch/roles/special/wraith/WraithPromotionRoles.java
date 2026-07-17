@@ -32,4 +32,12 @@ public final class WraithPromotionRoles {
         List<Role> pool = pool(alignment);
         return pool.get(random.nextInt(pool.size()));
     }
+
+    /**
+     * Preserves NoellesRoles' native-killer exclusion except for the promoted Saboteur identity.
+     * 保留 NoellesRoles 的原生杀手过滤，仅对晋升后的破坏者放行。
+     */
+    public static boolean shouldExcludeFromAssassinGuess(Role role) {
+        return role.canUseKiller() && !SparkWitchRoles.SABOTEUR_ID.equals(role.identifier());
+    }
 }

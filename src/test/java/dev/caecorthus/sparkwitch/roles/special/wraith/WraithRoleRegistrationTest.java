@@ -103,19 +103,43 @@ class WraithRoleRegistrationTest {
         JsonObject english = language("en_us");
         JsonObject chinese = language("zh_cn");
 
-        assertLocalization(english, "wraith", "Wraith", "Complete three tasks to earn a new identity.");
-        assertLocalization(english, "wind_spirit", "Wind Spirit", "Stay safe and survive until the end of the journey.");
-        assertLocalization(english, "guardian_angel", "Guardian Angel", "Stay safe and survive until the end of the journey.");
-        assertLocalization(english, "vendetta", "Vendetta", "Stay safe and survive until the end of the journey.");
-        assertLocalization(english, "saboteur", "Saboteur", "Eliminate a passenger to succeed, before time runs out.");
-        assertLocalization(english, "curser", "Curser", "Eliminate a passenger to succeed, before time runs out.");
+        assertLocalization(english, "wraith", "Wraith",
+                "Complete three tasks to earn a new identity.",
+                "Complete three tasks to earn a new identity.");
+        assertLocalization(english, "wind_spirit", "Wind Spirit",
+                "Stay safe and survive until the end of the journey.",
+                "Stay safe and survive until the end of the journey.");
+        assertLocalization(english, "guardian_angel", "Guardian Angel",
+                "Stay safe and survive until the end of the journey.",
+                "Stay safe and survive until the end of the journey.");
+        assertLocalization(english, "vendetta", "Vendetta",
+                "Stay safe and survive until the end of the journey.",
+                "Stay safe and survive until the end of the journey.");
+        assertLocalization(english, "saboteur", "Saboteur",
+                "Eliminate a passenger to succeed, before time runs out.",
+                "Eliminate all civilians before time runs out.");
+        assertLocalization(english, "curser", "Curser",
+                "Eliminate a passenger to succeed, before time runs out.",
+                "Eliminate all civilians before time runs out.");
 
-        assertLocalization(chinese, "wraith", "冤魂", "完成三项任务，以获得新的身份。");
-        assertLocalization(chinese, "wind_spirit", "风精灵", "注意安全，坚持到旅程结束。");
-        assertLocalization(chinese, "guardian_angel", "守护天使", "注意安全，坚持到旅程结束。");
-        assertLocalization(chinese, "vendetta", "仇杀客", "注意安全，坚持到旅程结束。");
-        assertLocalization(chinese, "saboteur", "破坏者", "在时间耗尽前击杀一名乘客以取得胜利。");
-        assertLocalization(chinese, "curser", "诅咒者", "在时间耗尽前击杀一名乘客以取得胜利。");
+        assertLocalization(chinese, "wraith", "冤魂",
+                "完成三项任务，以获得新的身份。",
+                "完成三项任务，以获得新的身份。");
+        assertLocalization(chinese, "wind_spirit", "风精灵",
+                "注意安全，坚持到旅程结束。",
+                "注意安全，坚持到旅程结束。");
+        assertLocalization(chinese, "guardian_angel", "守护天使",
+                "注意安全，坚持到旅程结束。",
+                "注意安全，坚持到旅程结束。");
+        assertLocalization(chinese, "vendetta", "仇杀客",
+                "注意安全，坚持到旅程结束。",
+                "注意安全，坚持到旅程结束。");
+        assertLocalization(chinese, "saboteur", "破坏者",
+                "在时间耗尽前击杀一名乘客以取得胜利。",
+                "在时间耗尽前消灭所有平民。");
+        assertLocalization(chinese, "curser", "诅咒者",
+                "在时间耗尽前击杀一名乘客以取得胜利。",
+                "在时间耗尽前消灭所有平民。");
     }
 
     private static JsonObject language(String locale) throws IOException {
@@ -123,8 +147,17 @@ class WraithRoleRegistrationTest {
         return JsonParser.parseString(Files.readString(path)).getAsJsonObject();
     }
 
-    private static void assertLocalization(JsonObject language, String roleId, String name, String goal) {
+    private static void assertLocalization(
+            JsonObject language,
+            String roleId,
+            String name,
+            String singularGoal,
+            String pluralGoal
+    ) {
         assertEquals(name, language.get("announcement.role.sparkwitch." + roleId).getAsString());
-        assertEquals(goal, language.get("announcement.goal.sparkwitch." + roleId).getAsString());
+        assertEquals(singularGoal, language.get("announcement.goal.sparkwitch." + roleId).getAsString());
+        assertEquals(name, language.get("announcement.role." + roleId).getAsString());
+        assertEquals(singularGoal, language.get("announcement.goal." + roleId).getAsString());
+        assertEquals(pluralGoal, language.get("announcement.goals." + roleId).getAsString());
     }
 }
