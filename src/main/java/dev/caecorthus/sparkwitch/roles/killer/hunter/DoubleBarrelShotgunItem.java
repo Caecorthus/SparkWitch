@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -176,7 +178,9 @@ public final class DoubleBarrelShotgunItem extends Item {
         return user.getWorld().getEntitiesByClass(
                         PlayerEntity.class,
                         searchBox,
-                        candidate -> candidate != user && GameFunctions.isPlayerAliveAndSurvival(candidate)
+                        candidate -> candidate != user
+                                && VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(user, candidate)
+                                && GameFunctions.isPlayerAliveAndSurvival(candidate)
                 ).stream()
                 .filter(candidate -> hasUnblockedHit(user, candidate, eyePos, end))
                 .min(Comparator.comparingDouble(candidate -> candidate.squaredDistanceTo(user)))

@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven;
 
-import dev.doctor4t.wathe.game.GameFunctions;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+
 import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.hit.EntityHitResult;
@@ -23,7 +24,7 @@ public final class BlackRavenTargeting {
                 user.getBoundingBox().stretch(look.multiply(BlackRavenRules.FEATHER_REACH)).expand(1.0D),
                 entity -> entity instanceof ServerPlayerEntity target
                         && target != user
-                        && GameFunctions.isPlayerPlayingAndAlive(target),
+                        && VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(user, target),
                 BlackRavenRules.FEATHER_REACH * BlackRavenRules.FEATHER_REACH
         );
         if (result == null || !(result.getEntity() instanceof ServerPlayerEntity target)) {

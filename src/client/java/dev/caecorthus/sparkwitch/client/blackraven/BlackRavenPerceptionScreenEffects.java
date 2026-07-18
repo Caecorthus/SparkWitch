@@ -2,6 +2,9 @@ package dev.caecorthus.sparkwitch.client.blackraven;
 
 import com.google.gson.JsonSyntaxException;
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.client.render.WraithClientState;
+import dev.caecorthus.sparkwitch.client.render.WraithVisionRules;
+import dev.caecorthus.sparkwitch.client.vendetta.VendettaClientPresentation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.PostEffectProcessor;
@@ -10,7 +13,10 @@ import net.minecraft.util.Identifier;
 
 import java.io.IOException;
 
-/** Fixed 50 percent desaturation during the server-synced Perception window. / 服务端同步感知窗口中的固定 50% 去饱和后处理。 */
+/**
+ * Owns the single SparkWitch desaturation processor; Wraith vision takes priority over Perception.
+ * 统一管理 SparkWitch 去饱和处理器；冤魂视野优先于感知效果。
+ */
 public final class BlackRavenPerceptionScreenEffects {
     private static final Identifier SHADER = SparkWitch.id("shaders/post/perception.json");
     private static final float DESATURATE_FACTOR = 0.50f;
@@ -22,7 +28,16 @@ public final class BlackRavenPerceptionScreenEffects {
     }
 
     public static void render(ClientPlayerEntity player, float delta) {
-        if (!BlackRavenClientState.isPerceptionActive(player)) {
+        float desaturation = VendettaClientPresentation.hasActiveOwnerState(player)
+                ? VendettaClientPresentation.desaturation(player)
+                : WraithVisionRules.desaturation(
+                        WraithClientState.isActive(player),
+                        WraithClientState.isRestricted(player)
+                );
+        if (desaturation <= 0.0F && BlackRavenClientState.isPerceptionActive(player)) {
+            desaturation = DESATURATE_FACTOR;
+        }
+        if (desaturation <= 0.0F) {
             closeProcessor();
             return;
         }
@@ -32,7 +47,7 @@ public final class BlackRavenPerceptionScreenEffects {
         if (activeProcessor == null) {
             return;
         }
-        activeProcessor.setUniforms("DesaturateFactor", DESATURATE_FACTOR);
+        activeProcessor.setUniforms("DesaturateFactor", desaturation);
         activeProcessor.render(delta);
         client.getFramebuffer().beginWrite(false);
     }

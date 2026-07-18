@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven;
 
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import java.util.UUID;
@@ -32,7 +34,7 @@ public final class FeatherBladeItem extends Item {
         boolean allowed = BlackRavenRules.canMark(
                 BlackRavenRules.isBlackRaven(GameWorldComponent.KEY.get(world).getRole(serverUser)),
                 GameFunctions.isPlayerPlayingAndAlive(serverUser),
-                target != null && GameFunctions.isPlayerPlayingAndAlive(target),
+                target != null && VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(serverUser, target),
                 target == serverUser,
                 mark != null && mark.hasMark(),
                 target != null && serverUser.canSee(target),

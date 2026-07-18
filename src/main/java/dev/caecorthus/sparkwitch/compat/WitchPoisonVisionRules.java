@@ -15,6 +15,7 @@ public final class WitchPoisonVisionRules {
         return role != null
                 && (role == SparkWitchRoles.murderousWitch()
                 || role == SparkWitchRoles.accomplice()
-                || role == SparkWitchRoles.grandWitch());
+                || role == SparkWitchRoles.grandWitch()
+                || role == SparkWitchRoles.guardianAngel());
     }
 }

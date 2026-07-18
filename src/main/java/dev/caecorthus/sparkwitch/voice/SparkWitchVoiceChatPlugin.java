@@ -4,13 +4,15 @@ import de.maxhenkel.voicechat.api.VoicechatPlugin;
 import de.maxhenkel.voicechat.api.events.EventRegistration;
 import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
 import dev.caecorthus.sparkwitch.SparkWitch;
-import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
+import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
- * Cancels active Wraith microphone packets while leaving incoming audio untouched.
- * 取消激活冤魂的麦克风数据包，同时不影响传入语音。
+ * Simple Voice Chat bridge for active Wraith outgoing silence only.
+ * Simple Voice Chat 桥接仅阻止激活冤魂的外发语音。
  */
 public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
     @Override
@@ -20,9 +22,11 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
 
     @Override
     public void registerEvents(EventRegistration registration) {
-        // Run before Wathe can manually relay walkie-talkie audio.
-        // 必须先于 Wathe 手动转发对讲机语音执行。
-        registration.registerEvent(MicrophonePacketEvent.class, this::blockWraithSpeaker, Integer.MAX_VALUE);
+        registration.registerEvent(
+                MicrophonePacketEvent.class,
+                this::blockWraithSpeaker,
+                Integer.MAX_VALUE
+        );
         VoicechatPlugin.super.registerEvents(registration);
     }
 
@@ -33,7 +37,8 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
             return;
         }
         ServerPlayerEntity speaker = (ServerPlayerEntity) event.getSenderConnection().getPlayer().getPlayer();
-        if (!WraithCommunicationRules.canSendVoice(WraithStateService.isActive(speaker))) {
+        Role role = GameWorldComponent.KEY.get(speaker.getServerWorld()).getRole(speaker);
+        if (GuardianAngelRules.shouldBlockWraithMicrophone(WraithStateService.isActive(speaker), role)) {
             event.cancel();
         }
     }

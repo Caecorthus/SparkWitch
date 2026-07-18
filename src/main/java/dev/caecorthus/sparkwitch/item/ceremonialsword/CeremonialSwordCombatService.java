@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.item.ceremonialsword;
 
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -80,15 +82,15 @@ public final class CeremonialSwordCombatService {
         }
         return canStrikeTarget(
                 attacker.getUuid().equals(serverTarget.getUuid()),
-                GameFunctions.isPlayerPlayingAndAlive(serverTarget),
+                VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(attacker, serverTarget),
                 GameFunctions.isPlayerAliveAndSurvival(serverTarget)
         );
     }
 
     /**
      * Ceremonial sword kills are item-bound: the holder may be outside the round or creative,
-     * but the victim must still be an in-round survival player.
-     * 仪礼剑击杀只绑定物品：持有者可以不在局内或处于创造，但目标必须仍是局内生存玩家。
+     * but the victim must be an ordinary in-round target or the holder's exact bound Vendetta.
+     * 仪礼剑击杀只绑定物品：持有者可以不在局内或处于创造，但目标必须是局内玩家或其精确绑定的仇杀客。
      */
     public static boolean canStrikeTarget(
             boolean samePlayer,

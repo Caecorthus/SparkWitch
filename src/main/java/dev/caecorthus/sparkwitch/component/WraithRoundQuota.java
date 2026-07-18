@@ -1,7 +1,5 @@
 package dev.caecorthus.sparkwitch.component;
 
-import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRules;
-
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -11,6 +9,10 @@ import java.util.UUID;
 final class WraithRoundQuota {
     private final LinkedHashSet<UUID> consumedPlayers = new LinkedHashSet<>();
     private int startingPlayerCount;
+
+    static int capForStartingPlayers(int startingPlayerCount) {
+        return startingPlayerCount < 10 ? 0 : 1 + (startingPlayerCount - 10) / 5;
+    }
 
     void beginRound(int startingPlayerCount) {
         restore(startingPlayerCount, Set.of());
@@ -27,7 +29,7 @@ final class WraithRoundQuota {
     }
 
     int getCap() {
-        return WraithRules.randomCap(startingPlayerCount);
+        return capForStartingPlayers(startingPlayerCount);
     }
 
     int getConsumedCount() {

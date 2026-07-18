@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.mixin.blackraven;
 
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientState;
+import dev.caecorthus.sparkwitch.client.vendetta.VendettaClientPresentation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.util.SkinTextures;
@@ -27,7 +28,8 @@ public abstract class BlackRavenSkinTexturesMixin {
         AbstractClientPlayerEntity player = (AbstractClientPlayerEntity) (Object) this;
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || player == client.player
-                || !BlackRavenClientState.isPerceptionActive(client.player)) {
+                || !BlackRavenClientState.isPerceptionActive(client.player)
+                || VendettaClientPresentation.isBoundKillerViewingVendetta(client.player, player)) {
             return;
         }
         cir.setReturnValue(SPARKWITCH$STEVE_SKIN);

@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.HunterTrapClientHooks;
+import dev.caecorthus.sparkwitch.client.hooks.KidnapperThrowClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.OrthopedistClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.ProphetCorpseHighlightClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.WitchAbilityKeyBridge;
@@ -16,11 +17,11 @@ import dev.caecorthus.sparkwitch.client.hooks.WitchCohortClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.WitchInstinctSuppressionClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.WitchPoisonVisionClientHooks;
 import dev.caecorthus.sparkwitch.client.net.version.SparkWitchClientVersionHandshake;
+import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.client.renderer.HunterTrapEntityRenderer;
 import dev.caecorthus.sparkwitch.client.screen.TarotDivinationSelectorScreen;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
-import dev.caecorthus.sparkwitch.client.wraith.WraithClientState;
-import dev.caecorthus.sparkwitch.client.wraith.WraithScreenEffects;
+import dev.caecorthus.sparkwitch.client.witchmaiden.WitchMaidenClientModule;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.net.OpenBlackRavenLedgerS2CPacket;
@@ -28,17 +29,23 @@ import dev.caecorthus.sparkwitch.net.OpenTarotDivinationSelectorS2CPacket;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.net.TarotDivinationSnapshotS2CPacket;
 import dev.caecorthus.sparkwitch.net.UseWitchSkillC2SPacket;
+import dev.caecorthus.sparkwitch.net.WraithRoleAnnouncementS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
+import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.UseSaboteurSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.doctor4t.ratatouille.client.util.ambience.AmbienceUtil;
 import dev.doctor4t.ratatouille.client.util.ambience.BackgroundAmbience;
 import dev.doctor4t.wathe.api.event.CanSeePoison;
 import dev.doctor4t.wathe.api.event.ShouldShowCohort;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.client.gui.RoleAnnouncementTexts;
+import dev.doctor4t.wathe.client.gui.RoundTextRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
@@ -55,11 +62,13 @@ public final class SparkWitchClient implements ClientModInitializer {
         SparkWitchServerConnection.reset();
         SecondaryAbilityController.registerKeyBinding();
         BlackRavenClientModule.register();
+        WitchMaidenClientModule.register();
         SecondaryAbilityController.reset();
         SparkWitchClientVersionHandshake.registerClient();
         registerEntityRenderers();
         registerTarotDivinationNetworking();
         registerBlackRavenNetworking();
+        registerWraithRoleAnnouncementNetworking();
 
         // Reset on every connection lifecycle edge so failed login attempts cannot leak confirmed state.
         // 在每个连接生命周期节点清理状态，避免失败的登录尝试残留已确认标记。
@@ -78,8 +87,10 @@ public final class SparkWitchClient implements ClientModInitializer {
             SecondaryAbilityController.tick(client);
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 DeathRayClientHooks.reset();
+                KidnapperThrowClientHooks.reset();
                 return;
             }
+            KidnapperThrowClientHooks.tick(client);
             GrandWitchFearClientHooks.tick();
             DeathRayClientHooks.tick(client);
             if (client.player != null
@@ -90,10 +101,13 @@ public final class SparkWitchClient implements ClientModInitializer {
                         && SaboteurRole.ID.equals(role.identifier())
                         && WraithClientState.isPromoted(client.player)) {
                     ClientPlayNetworking.send(new UseSaboteurSkillC2SPacket());
+                } else if (GuardianAngelRules.isGuardianAngel(role)) {
+                    ClientPlayNetworking.send(new UseGuardianAngelSkillC2SPacket());
                 } else if (role != null && OrthopedistRules.ROLE_ID.equals(role.identifier())) {
                     ClientPlayNetworking.send(new UseOrthopedistSkillC2SPacket());
-                } else if (WitchPlayerComponent.KEY.get(client.player).hasSkill()
-                        || SaintRules.isSaint(role)) {
+                } else if (!WitchMaidenRules.isWitchMaiden(role)
+                        && (WitchPlayerComponent.KEY.get(client.player).hasSkill()
+                        || SaintRules.isSaint(role))) {
                     ClientPlayNetworking.send(new UseWitchSkillC2SPacket());
                 }
             }
@@ -123,6 +137,18 @@ public final class SparkWitchClient implements ClientModInitializer {
                 context -> new FlyingItemEntityRenderer<>(context, 1.0F, true)
         );
         EntityRendererRegistry.register(HunterEntities.hunterTrap(), HunterTrapEntityRenderer::new);
+    }
+
+    private static void registerWraithRoleAnnouncementNetworking() {
+        ClientPlayNetworking.registerGlobalReceiver(WraithRoleAnnouncementS2CPacket.ID, (payload, context) ->
+                context.client().execute(() -> {
+                    var roleId = net.minecraft.util.Identifier.tryParse(payload.roleId());
+                    RoundTextRenderer.startWelcome(
+                            RoleAnnouncementTexts.getForRole(roleId),
+                            payload.killers(),
+                            payload.targets()
+                    );
+                }));
     }
 
     private static void registerGrandWitchCeremonialSwordBgm() {
@@ -172,7 +198,8 @@ public final class SparkWitchClient implements ClientModInitializer {
     private static void resetConnectionState() {
         SparkWitchServerConnection.reset();
         SecondaryAbilityController.reset();
+        KidnapperThrowClientHooks.reset();
+        WitchMaidenClientModule.clear();
         TarotDivinationClientState.clear();
-        WraithScreenEffects.close();
     }
 }

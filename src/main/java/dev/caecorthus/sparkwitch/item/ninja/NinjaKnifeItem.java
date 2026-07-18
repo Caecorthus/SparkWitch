@@ -6,6 +6,7 @@
 package dev.caecorthus.sparkwitch.item.ninja;
 
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
@@ -48,7 +49,7 @@ public final class NinjaKnifeItem extends Item {
                 attacker,
                 entity -> entity instanceof ServerPlayerEntity victim
                         && victim != attacker
-                        && GameFunctions.isPlayerPlayingAndAlive(victim)
+                        && VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(attacker, victim)
                         && GameFunctions.isPlayerAliveAndSurvival(victim),
                 MAX_RANGE
         );

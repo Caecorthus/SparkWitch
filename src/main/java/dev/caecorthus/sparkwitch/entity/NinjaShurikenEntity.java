@@ -8,6 +8,7 @@ package dev.caecorthus.sparkwitch.entity;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -65,7 +66,7 @@ public final class NinjaShurikenEntity extends PersistentProjectileEntity implem
         if (!(owner instanceof ServerPlayerEntity thrower)
                 || !(hitEntity instanceof ServerPlayerEntity victim)
                 || victim.getUuid().equals(thrower.getUuid())
-                || !GameFunctions.isPlayerPlayingAndAlive(victim)
+                || !VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(thrower, victim)
                 || !GameFunctions.isPlayerAliveAndSurvival(victim)) {
             return;
         }

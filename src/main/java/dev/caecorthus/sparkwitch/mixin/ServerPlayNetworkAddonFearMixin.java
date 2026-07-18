@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.mixin;
 
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaTargetingPacketGuard;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.impl.networking.server.ServerPlayNetworkAddon;
@@ -29,10 +30,14 @@ public abstract class ServerPlayNetworkAddonFearMixin {
             CustomPayload payload,
             CallbackInfo ci
     ) {
+        ServerPlayerEntity player = context.player();
+        if (VendettaTargetingPacketGuard.shouldBlock(player, payload)) {
+            ci.cancel();
+            return;
+        }
         if (payload == null || payload.getId() == null) {
             return;
         }
-        ServerPlayerEntity player = context.player();
         if (!GrandWitchFearService.shouldBlockRoleSkillPayload(player, payload.getId().id())) {
             return;
         }

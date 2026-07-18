@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
+import dev.caecorthus.sparkwitch.client.vendetta.VendettaClientPresentation;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenIdentitySnapshot;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMarkPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
@@ -30,6 +31,12 @@ public final class BlackRavenInstinctClientHooks {
 
     public static int resolveHighlight(int originalColor, Entity target) {
         ClientPlayerEntity viewer = MinecraftClient.getInstance().player;
+        if (viewer != null && target instanceof PlayerEntity targetPlayer) {
+            Integer vendettaHighlight = VendettaClientPresentation.highlight(viewer, targetPlayer);
+            if (vendettaHighlight != null) {
+                return vendettaHighlight;
+            }
+        }
         if (viewer == null || !BlackRavenClientState.isEligible(viewer)) {
             return originalColor;
         }

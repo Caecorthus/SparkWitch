@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.mixin.blackraven;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientState;
+import dev.caecorthus.sparkwitch.client.vendetta.VendettaClientPresentation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
@@ -27,6 +28,7 @@ public abstract class BlackRavenPlayerTextureMixin {
         return client.player != null
                 && player != client.player
                 && BlackRavenClientState.isPerceptionActive(client.player)
+                && !VendettaClientPresentation.isBoundKillerViewingVendetta(client.player, player)
                 ? SPARKWITCH$STEVE_TEXTURE
                 : originalTexture;
     }

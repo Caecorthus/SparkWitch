@@ -20,7 +20,8 @@ class SaintGameRecordMixinSourceTest {
         assertTrue(source.contains("method = \"recordItemUse\""));
         assertTrue(source.contains("at = @At(\"HEAD\")"));
         assertTrue(source.contains("SaintKarmaService.onRecordedItemUse"));
-        assertFalse(source.contains("cancellable = true"));
+        assertTrue(source.contains("cancellable = true"));
+        assertTrue(source.contains("VendettaReplayService.shouldSuppressItemRecord"));
         assertFalse(source.contains("require = 0"));
     }
 }

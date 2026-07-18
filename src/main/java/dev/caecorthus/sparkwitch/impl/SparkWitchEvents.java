@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
@@ -10,6 +11,12 @@ import dev.caecorthus.sparkwitch.item.firepoker.FirePokerCombatService;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerFallAttributionService;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceCombatService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
+import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
+import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaDisconnectService;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaReplayService;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaTerminalService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
@@ -30,7 +37,13 @@ import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragLifecycle;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurFeatureService;
-import dev.caecorthus.sparkwitch.roles.special.wraith.WraithService;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRuntime;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonApplePlateService;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenFeatureService;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenShopService;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithConversion;
+import dev.caecorthus.sparkwitch.roles.special.wraith.runtime.WraithLifecycle;
 import dev.caecorthus.sparkwitch.skill.WitchSkillAssignmentService;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -69,11 +82,20 @@ public final class SparkWitchEvents {
         NinjaFeatureService.register();
         HunterFeatureService.register();
         OrthopedistSkillService.registerReplayFormatter();
+        GuardianAngelFeatureService.register();
+        VendettaInteractionService.register();
+        VendettaDisconnectService.register();
+        VendettaReplayService.register();
+        VendettaTerminalService.register();
         KidnapperDragLifecycle.register();
         TarotReaderFeatureService.register();
         BlackRavenFeatureService.register();
         WindSpiritFeatureService.register();
         SaboteurFeatureService.register();
+        WitchMaidenFeatureService.register();
+        FocusedFootstepsRuntime.register();
+        WitchMaidenShopService.register();
+        WraithLifecycle.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
@@ -87,12 +109,16 @@ public final class SparkWitchEvents {
                 PerfumerEconomyService.assignForRole(serverPlayer, role);
                 NinjaFeatureService.assignForRole(serverPlayer, role);
                 OrthopedistSkillService.assignForRole(serverPlayer, role);
+                if (!GuardianAngelRules.isGuardianAngel(role)) {
+                    GuardianAngelFeatureService.detachPlayer(serverPlayer);
+                }
             }
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> PigGodEconomyService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> PerfumerEconomyService.onTaskComplete(player));
+        KillPlayer.AFTER.register(WraithConversion::afterKill);
         KillPlayer.AFTER.register(WitchManaService::afterKill);
         KillPlayer.AFTER.register(WitchEconomyService::afterKill);
         KillPlayer.AFTER.register((victim, killer, deathReason) -> {
@@ -109,6 +135,18 @@ public final class SparkWitchEvents {
             PerfumerPlayerComponent.KEY.get(player).clear();
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 OrthopedistSkillService.clearPlayer(serverPlayer);
+                GuardianAngelFeatureService.clearRoundPlayer(serverPlayer);
+                if (WraithStateService.isActive(serverPlayer)) {
+                    // SparkTraits observes active Wraith state while dispatching terminal trait removals.
+                    // SparkTraits 分发终局天赋移除事件时必须仍能观察到激活的冤魂状态。
+                    SparkTraitsWraithBridge.clear(serverPlayer, true);
+                }
+                WraithLifecycle.clearPlayer(serverPlayer);
+            }
+        });
+        GameEvents.ON_FINISH_INITIALIZE.register((world, gameComponent) -> {
+            if (world instanceof ServerWorld serverWorld) {
+                WraithConversion.beginRound(serverWorld, gameComponent.getAllPlayers().size());
             }
         });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
@@ -117,14 +155,16 @@ public final class SparkWitchEvents {
                 // 回合结束只清理 SparkWitch 运行态，身份表和其他模组状态仍由 wathe 自己管理。
                 WitchWorldComponent.KEY.get(serverWorld).clearRoundState();
                 FirePokerFallAttributionService.clearAll();
+                WraithLifecycle.clearRoundState(serverWorld);
+                PoisonApplePlateService.clearLoadedPlates();
                 for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                     WitchFactionFeatureService.clearPlayerRuntime(player);
                     WitchPlayerComponent.KEY.get(player).clear();
                     PerfumerPlayerComponent.KEY.get(player).clear();
                     OrthopedistSkillService.clearPlayer(player);
+                    GuardianAngelFeatureService.clearRoundPlayer(player);
                 }
             }
         });
-        WraithService.register();
     }
 }

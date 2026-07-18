@@ -1,158 +1,129 @@
 package dev.caecorthus.sparkwitch.compat;
 
-import net.fabricmc.loader.api.FabricLoader;
+import dev.caecorthus.sparkwitch.SparkWitch;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.world.ServerWorld;
+import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Optional Wraith integration through SparkTraits' public, generic facade only.
- * 冤魂仅通过 SparkTraits 公共通用门面进行可选集成。
+ * Optional reflection bridge to the four public SparkTraits Wraith lifecycle methods.
+ * 仅通过 SparkTraits 的四个公共冤魂生命周期方法提供可选反射桥接。
  */
 public final class SparkTraitsWraithBridge {
     private static final String API_CLASS = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
-    private static final Identifier CAUTIOUS = Identifier.of("sparktraits", "cautious");
-
-    private static volatile ApiMethods methods;
-    private static volatile boolean lookupFailed;
+    private static final AtomicBoolean WARNING_LOGGED = new AtomicBoolean();
+    private static volatile Resolution resolution;
 
     private SparkTraitsWraithBridge() {
     }
 
-    public static TraitSnapshot capture(PlayerEntity player) {
-        ApiMethods api = methods();
-        if (api == null || player == null) {
-            return TraitSnapshot.unavailable();
+    public static NbtCompound capture(@Nullable PlayerEntity player) {
+        Resolution resolved = resolve();
+        if (!resolved.available()) {
+            return new NbtCompound();
         }
-        try {
-            return new TraitSnapshot(
-                    identifiers(api.getActiveTraitIds().invoke(null, player)),
-                    identifiers(api.getRevealedTraitIds().invoke(null, player)),
-                    true
-            );
-        } catch (ReflectiveOperationException | LinkageError | ClassCastException ignored) {
-            return TraitSnapshot.unavailable();
-        }
+        Object value = invoke(resolved.capture(), player);
+        return value instanceof NbtCompound snapshot ? snapshot.copy() : new NbtCompound();
     }
 
-    public static void restoreWithCautious(ServerPlayerEntity player, TraitSnapshot snapshot) {
-        ApiMethods api = methods();
-        if (api == null || player == null || snapshot == null || !snapshot.available()) {
+    public static void restore(@Nullable PlayerEntity player, @Nullable NbtCompound snapshot) {
+        Resolution resolved = resolve();
+        if (!resolved.available() || player == null || snapshot == null) {
             return;
         }
-        LinkedHashSet<Identifier> active = new LinkedHashSet<>(snapshot.activeTraitIds());
-        LinkedHashSet<Identifier> revealed = new LinkedHashSet<>(snapshot.revealedTraitIds());
-        active.add(CAUTIOUS);
-        revealed.add(CAUTIOUS);
-        invokeRestore(api, player, active, revealed);
+        invoke(resolved.restore(), player, snapshot.copy());
     }
 
-    public static void clearRuntimeTraits(ServerPlayerEntity player) {
-        ApiMethods api = methods();
-        if (api != null && player != null) {
-            invokeRestore(api, player, List.of(), Set.of());
+    public static void clear(@Nullable PlayerEntity player, boolean gameEnd) {
+        Resolution resolved = resolve();
+        if (!resolved.available() || player == null) {
+            return;
         }
+        invoke(resolved.clear(), player, gameEnd);
     }
 
-    /**
-     * Checks whether Last Stand approved or is still processing this exact death attempt.
-     * 检查背水一战是否已批准或仍在处理本次精确死亡尝试。
-     */
-    public static boolean isLastStandDeathIntercepted(PlayerEntity player) {
-        ApiMethods api = methods();
-        if (player == null) {
+    public static boolean hasLastStandTriggered(@Nullable ServerWorld world, @Nullable UUID playerUuid) {
+        Resolution resolved = resolve();
+        if (!resolved.available() || world == null || playerUuid == null) {
             return false;
         }
-        if (api == null) {
-            return FabricLoader.getInstance().isModLoaded("sparktraits");
-        }
-        try {
-            return Boolean.TRUE.equals(api.isLastStandDeathIntercepted().invoke(null, player));
-        } catch (ReflectiveOperationException | LinkageError | ClassCastException ignored) {
-            return FabricLoader.getInstance().isModLoaded("sparktraits");
-        }
+        return Boolean.TRUE.equals(invoke(resolved.lastStand(), world, playerUuid));
     }
 
-    private static void invokeRestore(
-            ApiMethods api,
-            ServerPlayerEntity player,
-            Collection<Identifier> active,
-            Collection<Identifier> revealed
-    ) {
-        try {
-            api.restoreActiveTraitsForRuntime().invoke(null, player, active, revealed);
-        } catch (ReflectiveOperationException | LinkageError | ClassCastException ignored) {
-            // SparkTraits is optional; an incompatible build must not break Wraith gameplay.
-            // SparkTraits 是可选依赖；不兼容版本不得破坏冤魂玩法。
-        }
+    public static boolean didLastStandTriggerSince(@Nullable PlayerEntity player, boolean triggeredBefore) {
+        return player != null
+                && didLastStandTrigger(
+                        triggeredBefore,
+                        hasLastStandTriggered((ServerWorld) player.getWorld(), player.getUuid())
+                );
     }
 
-    private static List<Identifier> identifiers(Object value) {
-        if (!(value instanceof Collection<?> collection)) {
-            return List.of();
-        }
-        return collection.stream().filter(Identifier.class::isInstance).map(Identifier.class::cast).toList();
+    static boolean didLastStandTrigger(boolean triggeredBefore, boolean triggeredAfter) {
+        return !triggeredBefore && triggeredAfter;
     }
 
-    private static ApiMethods methods() {
-        if (lookupFailed) {
-            return null;
-        }
-        ApiMethods cached = methods;
-        if (cached != null) {
-            return cached;
+    private static Resolution resolve() {
+        Resolution current = resolution;
+        if (current != null) {
+            return current;
         }
         synchronized (SparkTraitsWraithBridge.class) {
-            if (methods != null || lookupFailed) {
-                return methods;
+            if (resolution != null) {
+                return resolution;
             }
             try {
                 Class<?> api = Class.forName(API_CLASS);
-                methods = new ApiMethods(
-                        api.getMethod("getActiveTraitIds", PlayerEntity.class),
-                        api.getMethod("getRevealedTraitIds", PlayerEntity.class),
-                        api.getMethod(
-                                "restoreActiveTraitsForRuntime",
-                                ServerPlayerEntity.class,
-                                Collection.class,
-                                Collection.class
-                        ),
-                        api.getMethod("isLastStandDeathIntercepted", PlayerEntity.class)
+                resolution = new Resolution(
+                        api.getMethod("captureWraithTraitSnapshot", PlayerEntity.class),
+                        api.getMethod("restoreWraithTraitSnapshot", PlayerEntity.class, NbtCompound.class),
+                        api.getMethod("clearWraithTraits", PlayerEntity.class, boolean.class),
+                        api.getMethod("hasLastStandTriggeredThisRound", ServerWorld.class, UUID.class)
                 );
-                return methods;
-            } catch (ReflectiveOperationException | LinkageError | ClassCastException ignored) {
-                lookupFailed = true;
-                return null;
+            } catch (ReflectiveOperationException | LinkageError error) {
+                warnOnce(error);
+                resolution = Resolution.UNAVAILABLE;
             }
+            return resolution;
         }
     }
 
-    private record ApiMethods(
-            Method getActiveTraitIds,
-            Method getRevealedTraitIds,
-            Method restoreActiveTraitsForRuntime,
-            Method isLastStandDeathIntercepted
-    ) {
+    private static @Nullable Object invoke(@Nullable Method method, Object... arguments) {
+        if (method == null) {
+            return null;
+        }
+        try {
+            return method.invoke(null, arguments);
+        } catch (IllegalAccessException | InvocationTargetException | LinkageError error) {
+            warnOnce(error);
+            return null;
+        }
     }
 
-    public record TraitSnapshot(
-            List<Identifier> activeTraitIds,
-            List<Identifier> revealedTraitIds,
-            boolean available
-    ) {
-        public TraitSnapshot {
-            activeTraitIds = List.copyOf(activeTraitIds);
-            revealedTraitIds = List.copyOf(revealedTraitIds);
+    private static void warnOnce(Throwable error) {
+        if (WARNING_LOGGED.compareAndSet(false, true)) {
+            SparkWitch.LOGGER.warn(
+                    "SparkTraits Wraith compatibility is unavailable; continuing without trait restoration ({})",
+                    error.getClass().getSimpleName()
+            );
         }
+    }
 
-        public static TraitSnapshot unavailable() {
-            return new TraitSnapshot(List.of(), List.of(), false);
+    private record Resolution(
+            @Nullable Method capture,
+            @Nullable Method restore,
+            @Nullable Method clear,
+            @Nullable Method lastStand
+    ) {
+        private static final Resolution UNAVAILABLE = new Resolution(null, null, null, null);
+
+        private boolean available() {
+            return capture != null && restore != null && clear != null && lastStand != null;
         }
     }
 }

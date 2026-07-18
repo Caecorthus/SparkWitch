@@ -24,6 +24,9 @@ import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRules;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 
 public final class SparkWitchBuiltInSkills {
     private static boolean registered;
@@ -141,6 +144,16 @@ public final class SparkWitchBuiltInSkills {
                 context -> BlackRavenRules.isBlackRaven(context.role()),
                 BlackRavenSkillService::use
         ), player -> BlackRavenPerceptionPlayerComponent.KEY.get(player).activeTicks());
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                FocusedFootstepsRules.SKILL_ID,
+                WitchMaidenRules.COLOR,
+                1,
+                FocusedFootstepsRules.INITIAL_COOLDOWN_TICKS,
+                FocusedFootstepsRules.COOLDOWN_TICKS,
+                0,
+                context -> WitchMaidenRules.isWitchMaiden(context.role()),
+                FocusedFootstepsSkillService::use
+        ));
     }
 
     private static void registerApprenticeAbility(

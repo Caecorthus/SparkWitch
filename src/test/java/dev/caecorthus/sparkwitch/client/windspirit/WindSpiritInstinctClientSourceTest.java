@@ -28,7 +28,7 @@ class WindSpiritInstinctClientSourceTest {
     @Test
     void mixinUsesWatheNativeHighlightGateAndPreservesPriorityVetoes() throws IOException {
         String mixin = read(CLIENT_ROOT.resolve("mixin/windspirit/WindSpiritInstinctMixin.java"));
-        String wraithHighlight = read(CLIENT_ROOT.resolve("mixin/wraith/WraithWatheHighlightMixin.java"));
+        String wraithHighlight = read(CLIENT_ROOT.resolve("mixin/WraithWatheHighlightMixin.java"));
         String fear = read(CLIENT_ROOT.resolve("mixin/WatheClientFearInstinctMixin.java"));
         String blackRaven = read(CLIENT_ROOT.resolve("mixin/blackraven/BlackRavenInstinctGateMixin.java"));
 

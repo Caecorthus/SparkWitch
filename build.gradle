@@ -208,6 +208,7 @@ tasks.register("verifyModJarVersion") {
             }
 
             [
+                    "wathe"           : project.wathe_version,
                     "ratatouille"     : project.ratatouille_version,
                     "noellesroles"    : project.noellesroles_version,
                     "sparkfactionapi" : ">=${project.sparkfactionapi_version}"

@@ -16,11 +16,12 @@ import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaRole;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
-import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
+import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserRole;
 import dev.caecorthus.sparkwitch.win.WitchWinConditions;
@@ -52,11 +53,12 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier ORTHOPEDIST_ID = OrthopedistRules.ROLE_ID;
     public static final Identifier KIDNAPPER_ID = KidnapperRules.ROLE_ID;
     public static final Identifier TAROT_READER_ID = SparkWitch.id("tarot_reader");
-    public static final Identifier WRAITH_ID = WraithRole.ID;
+    public static final Identifier WRAITH_ID = SparkWitch.id("wraith");
     public static final Identifier WIND_SPIRIT_ID = WindSpiritRole.ID;
     public static final Identifier GUARDIAN_ANGEL_ID = GuardianAngelRole.ID;
     public static final Identifier VENDETTA_ID = VendettaRole.ID;
     public static final Identifier SABOTEUR_ID = SaboteurRole.ID;
+    public static final Identifier WITCH_MAIDEN_ID = WitchMaidenRules.ROLE_ID;
     public static final Identifier CURSER_ID = CurserRole.ID;
 
     private static Role grandWitch;
@@ -74,6 +76,12 @@ public final class SparkWitchRoleRegistry {
     private static Role kidnapper;
     private static Role tarotReader;
     private static Role wraith;
+    private static Role windSpirit;
+    private static Role guardianAngel;
+    private static Role vendetta;
+    private static Role saboteur;
+    private static Role witchMaiden;
+    private static Role curser;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -90,6 +98,8 @@ public final class SparkWitchRoleRegistry {
         registerFactions();
         registerFactionApiRoles();
         registerNativeWatheRoles();
+        WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
+        wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
         SparkWitchAssassinGuessOrder.appendToTail(assassinGuessRolesInOrder());
     }
@@ -174,6 +184,36 @@ public final class SparkWitchRoleRegistry {
         return wraith;
     }
 
+    public static Role windSpirit() {
+        ensureRegistered();
+        return windSpirit;
+    }
+
+    public static Role guardianAngel() {
+        ensureRegistered();
+        return guardianAngel;
+    }
+
+    public static Role vendetta() {
+        ensureRegistered();
+        return vendetta;
+    }
+
+    public static Role saboteur() {
+        ensureRegistered();
+        return saboteur;
+    }
+
+    public static Role witchMaiden() {
+        ensureRegistered();
+        return witchMaiden;
+    }
+
+    public static Role curser() {
+        ensureRegistered();
+        return curser;
+    }
+
     public static boolean isSparkWitchRole(Role role) {
         ensureRegistered();
         return isRegisteredSparkWitchRole(role);
@@ -233,11 +273,11 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .appearanceCondition(RoleAppearanceCondition.minPlayers(18))
                 .build());
-        SparkFactionApi.registerRole(WindSpiritRole.definition());
-        SparkFactionApi.registerRole(GuardianAngelRole.definition());
-        SparkFactionApi.registerRole(VendettaRole.definition());
-        SparkFactionApi.registerRole(SaboteurRole.definition());
-        SparkFactionApi.registerRole(CurserRole.definition());
+        windSpirit = SparkFactionApi.registerRole(WindSpiritRole.DEFINITION);
+        guardianAngel = SparkFactionApi.registerRole(GuardianAngelRole.DEFINITION);
+        vendetta = SparkFactionApi.registerRole(VendettaRole.DEFINITION);
+        saboteur = SparkFactionApi.registerRole(SaboteurRole.DEFINITION);
+        curser = SparkFactionApi.registerRole(CurserRole.DEFINITION);
         pigGod = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PIG_GOD_ID, FactionIds.CIVILIAN)
                 .color(PigGodRules.COLOR)
                 .moodType(Role.MoodType.REAL)
@@ -298,6 +338,13 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
+        witchMaiden = SparkFactionApi.registerRole(FactionRoleDefinition.builder(WITCH_MAIDEN_ID, FactionIds.KILLER)
+                .color(WitchMaidenRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
         hunter = SparkFactionApi.registerRole(FactionRoleDefinition.builder(HUNTER_ID, FactionIds.KILLER)
                 .color(HunterRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -321,7 +368,6 @@ public final class SparkWitchRoleRegistry {
     }
 
     private static void registerNativeWatheRoles() {
-        wraith = WatheRoles.registerSpecialRole(WraithRole.ROLE);
         apprenticeWitch = WatheRoles.registerRole(new Role(
                 APPRENTICE_WITCH_ID,
                 0x75EDFA,
@@ -360,12 +406,18 @@ public final class SparkWitchRoleRegistry {
                 pigGod,
                 tarotReader,
                 ninja,
+                blackRaven,
+                witchMaiden,
                 hunter,
                 kidnapper,
-                blackRaven,
                 murderousWitch,
                 accomplice,
-                grandWitch
+                grandWitch,
+                windSpirit,
+                guardianAngel,
+                vendetta,
+                saboteur,
+                curser
         );
     }
 
@@ -381,6 +433,13 @@ public final class SparkWitchRoleRegistry {
                 || role == tarotReader
                 || role == ninja
                 || role == kidnapper
-                || role == blackRaven;
+                || role == blackRaven
+                || role == witchMaiden
+                || role == wraith
+                || role == windSpirit
+                || role == guardianAngel
+                || role == vendetta
+                || role == saboteur
+                || role == curser;
     }
 }

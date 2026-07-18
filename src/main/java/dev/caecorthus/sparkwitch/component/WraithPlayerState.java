@@ -35,9 +35,6 @@ final class WraithPlayerState {
     }
 
     void activate(WraithState.Alignment alignment) {
-        if (alignment == null) {
-            throw new IllegalArgumentException("Active Wraith state requires an alignment");
-        }
         restore(true, true, 0, alignment, false);
     }
 
@@ -49,16 +46,15 @@ final class WraithPlayerState {
     }
 
     boolean setPromotionPending(boolean pending) {
-        boolean normalized = active && pending;
-        if (promotionPending == normalized) {
+        if (promotionPending == pending) {
             return false;
         }
-        promotionPending = normalized;
+        promotionPending = pending;
         return true;
     }
 
     boolean promote() {
-        if (!active || !restricted) {
+        if (!active) {
             return false;
         }
         restricted = false;
@@ -82,9 +78,9 @@ final class WraithPlayerState {
             boolean promotionPending
     ) {
         this.active = active;
-        this.restricted = this.active && restricted;
-        this.completedTasks = this.active ? Math.max(0, completedTasks) : 0;
-        this.alignment = this.active ? alignment : null;
-        this.promotionPending = this.active && promotionPending;
+        this.restricted = active && restricted;
+        this.completedTasks = active ? Math.max(0, completedTasks) : 0;
+        this.alignment = active ? alignment : null;
+        this.promotionPending = active && promotionPending;
     }
 }

@@ -1,15 +1,20 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeItem;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeLoadoutService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenLedgerItem;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.FeatherBladeItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonAppleItem;
 import dev.doctor4t.wathe.api.event.AllowPlayerPunching;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.item.Item;
@@ -25,24 +30,30 @@ public final class SparkWitchItems {
     public static final Identifier COLOGNE_ID = SparkWitch.id("cologne");
     public static final Identifier TAROT_CARD_ID = SparkWitch.id("tarot_card");
     public static final Identifier NINJA_KNIFE_ID = SparkWitch.id("ninja_knife");
+    public static final Identifier VENDETTA_KNIFE_ID = SparkWitch.id("vendetta_knife");
     public static final Identifier NINJA_SHURIKEN_ID = SparkWitch.id("ninja_shuriken");
     public static final Identifier FEATHER_BLADE_ID = SparkWitch.id("feather_blade");
     public static final Identifier BLACK_RAVEN_LEDGER_ID = SparkWitch.id("black_raven_ledger");
     public static final Identifier HUNTER_TRAP_ID = HunterTrapItem.ID;
     public static final Identifier DOUBLE_BARREL_SHOTGUN_ID = DoubleBarrelShotgunItem.ID;
     public static final Identifier DOUBLE_BARREL_SHELL_ID = DoubleBarrelShellItem.ID;
+    public static final Identifier POISON_APPLE_ID = SparkWitch.id("poison_apple");
+    public static final Identifier TOFANA_ELIXIR_ID = SparkWitch.id("tofana_elixir");
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
     private static Item cologne;
     private static Item tarotCard;
     private static Item ninjaKnife;
+    private static Item vendettaKnife;
     private static Item ninjaShuriken;
     private static Item featherBlade;
     private static Item blackRavenLedger;
     private static Item hunterTrap;
     private static Item doubleBarrelShotgun;
     private static Item doubleBarrelShell;
+    private static Item poisonApple;
+    private static Item tofanaElixir;
 
     private static boolean registered;
 
@@ -83,6 +94,11 @@ public final class SparkWitchItems {
                 NINJA_KNIFE_ID,
                 new NinjaKnifeItem(new Item.Settings().maxCount(1))
         );
+        vendettaKnife = Registry.register(
+                Registries.ITEM,
+                VENDETTA_KNIFE_ID,
+                new VendettaKnifeItem(new Item.Settings().maxCount(1))
+        );
         ninjaShuriken = Registry.register(
                 Registries.ITEM,
                 NINJA_SHURIKEN_ID,
@@ -113,7 +129,18 @@ public final class SparkWitchItems {
                 DOUBLE_BARREL_SHELL_ID,
                 new DoubleBarrelShellItem(DoubleBarrelShellItem.createSettings())
         );
+        poisonApple = Registry.register(
+                Registries.ITEM,
+                POISON_APPLE_ID,
+                new PoisonAppleItem(new Item.Settings().maxCount(1))
+        );
+        tofanaElixir = Registry.register(
+                Registries.ITEM,
+                TOFANA_ELIXIR_ID,
+                new Item(new Item.Settings().maxCount(1))
+        );
         registerMeleeSuppression();
+        VendettaKnifeLoadoutService.register();
         registered = true;
     }
 
@@ -159,6 +186,13 @@ public final class SparkWitchItems {
         return ninjaKnife;
     }
 
+    public static Item vendettaKnife() {
+        if (vendettaKnife == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return vendettaKnife;
+    }
+
     public static Item ninjaShuriken() {
         if (ninjaShuriken == null) {
             throw new IllegalStateException("SparkWitch items are not registered yet");
@@ -201,11 +235,31 @@ public final class SparkWitchItems {
         return doubleBarrelShell;
     }
 
+    public static Item poisonApple() {
+        if (poisonApple == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return poisonApple;
+    }
+
+    public static Item tofanaElixir() {
+        if (tofanaElixir == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return tofanaElixir;
+    }
+
     private static void registerMeleeSuppression() {
         // Kunai uses Wathe's player-only punching path so its left click keeps the native shove contract.
         // 苦无通过 Wathe 的仅玩家攻击路径处理左键，从而沿用原生击退规则。
         AllowPlayerPunching.EVENT.register((attacker, victim) ->
                 attacker.getMainHandStack().isOf(ninjaKnife)
+        );
+        AllowPlayerPunching.EVENT.register((attacker, victim) ->
+                attacker.getMainHandStack().isOf(vendettaKnife)
+                        && (attacker == victim
+                        ? VendettaInteractionService.isActiveVendetta(attacker)
+                        : VendettaInteractionService.isExactPair(attacker, victim))
         );
         // Shuriken kills through its explicit server path and must never fall back to vanilla melee damage.
         // 手里剑只通过明确的服务端路径击杀，不能回退为原版近战伤害。

@@ -28,6 +28,20 @@ class BlackRavenServerContractSourceTest {
     }
 
     @Test
+    void perceptionActivationReconcilesCurrentMatchBeforeBeginningWindow() throws IOException {
+        String source = source("roles/killer/blackraven/BlackRavenPerceptionService.java");
+        int activeGate = source.indexOf("if (component.isActive())");
+        int matchGate = source.indexOf("if (!matchId.equals(component.matchId()))", activeGate);
+        int bind = source.indexOf("component.bindMatch(matchId);", matchGate);
+        int begin = source.indexOf("component.begin(BlackRavenRules.PERCEPTION_ACTIVE_TICKS", bind);
+
+        assertTrue(activeGate >= 0);
+        assertTrue(matchGate > activeGate);
+        assertTrue(bind > matchGate);
+        assertTrue(begin > bind);
+    }
+
+    @Test
     void inactivePerceptionReconcilesMatchRoleCooldownAndBoundLoadout() throws IOException {
         String source = source("roles/killer/blackraven/BlackRavenPerceptionService.java");
         int inactiveGate = source.indexOf("if (!component.isActive())");
@@ -103,6 +117,43 @@ class BlackRavenServerContractSourceTest {
         assertTrue(service.contains("attacker.getMainHandStack().isOf(SparkWitchItems.featherBlade())"));
         assertTrue(source("roles/killer/blackraven/BlackRavenFeatureService.java")
                 .contains("FeatherBladeMeleeService.register()"));
+    }
+
+    @Test
+    void shopAddsSingleStockFiftyCoinLockpickImmediatelyBeforeCrowbarAndPreservesBlackout() throws IOException {
+        String rules = source("roles/killer/blackraven/BlackRavenRules.java");
+        String shop = source("roles/killer/blackraven/BlackRavenShopService.java");
+        int captureBlackout = shop.indexOf("\"blackout\".equals(entry.id())");
+        int clearEntries = shop.indexOf("context.clearEntries()");
+        int lockpick = shop.indexOf("\"lockpick\"");
+        int crowbar = shop.indexOf("\"crowbar\"");
+        int restoreBlackout = shop.indexOf("context.addEntry(blackout)");
+
+        assertTrue(rules.contains("public static final int LOCKPICK_PRICE = 50;"));
+        assertTrue(captureBlackout >= 0 && clearEntries > captureBlackout);
+        assertTrue(lockpick > clearEntries && crowbar > lockpick);
+        String lockpickEntry = shop.substring(lockpick, crowbar);
+        assertTrue(lockpickEntry.contains("WatheItems.LOCKPICK.getDefaultStack()"));
+        assertTrue(lockpickEntry.contains("BlackRavenRules.LOCKPICK_PRICE"));
+        assertTrue(lockpickEntry.contains("ShopEntry.Type.TOOL"));
+        assertTrue(lockpickEntry.contains(".stock(1).build()"));
+        assertTrue(restoreBlackout > crowbar);
+    }
+
+    @Test
+    void assignmentStartsFeatherBladeOnItsOpeningCooldown() throws IOException {
+        String loadout = source("roles/killer/blackraven/BlackRavenLoadoutService.java");
+        int exactRoleGate = loadout.indexOf("BlackRavenRules.isBlackRaven(role)");
+        int grantBlade = loadout.indexOf(
+                "player.giveItemStack(new ItemStack(SparkWitchItems.featherBlade()))"
+        );
+        int startCooldown = loadout.indexOf(
+                "player.getItemCooldownManager().set("
+                        + "SparkWitchItems.featherBlade(), BlackRavenRules.FEATHER_COOLDOWN_TICKS)"
+        );
+
+        assertTrue(exactRoleGate >= 0 && grantBlade > exactRoleGate);
+        assertTrue(startCooldown > grantBlade);
     }
 
     private static String source(String relativePath) throws IOException {

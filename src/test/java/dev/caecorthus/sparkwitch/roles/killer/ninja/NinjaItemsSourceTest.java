@@ -45,7 +45,7 @@ class NinjaItemsSourceTest {
         assertTrue(knife.contains("ProjectileUtil.getCollision"));
         assertTrue(knife.contains("MAX_RANGE = 4.0"));
         assertTrue(knife.contains("GameFunctions.isPlayerPlayingAndAlive(attacker)"));
-        assertTrue(knife.contains("GameFunctions.isPlayerPlayingAndAlive(victim)"));
+        assertTrue(knife.contains("VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(attacker, victim)"));
         assertTrue(knife.contains("GameFunctions.killPlayer"));
         assertTrue(knife.contains("SparkWitchDeathReasons.NINJA_KNIFE_KILL"));
         assertTrue(knife.contains("KNIFE_COOLDOWN_TICKS = 30 * 20"));
@@ -82,7 +82,7 @@ class NinjaItemsSourceTest {
         assertTrue(projectile.contains("return 0.0"));
         assertTrue(projectile.contains("ParticleTypes.CRIT"));
         assertTrue(projectile.contains("SoundEvents.BLOCK_CHAIN_HIT"));
-        assertTrue(projectile.contains("GameFunctions.isPlayerPlayingAndAlive(victim)"));
+        assertTrue(projectile.contains("VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(thrower, victim)"));
         assertTrue(projectile.contains("GameFunctions.killPlayer"));
         assertTrue(projectile.contains("SparkWitchDeathReasons.NINJA_SHURIKEN_KILL"));
         assertTrue(projectile.contains("SparkWitchItems.ninjaShuriken().getDefaultStack()"));

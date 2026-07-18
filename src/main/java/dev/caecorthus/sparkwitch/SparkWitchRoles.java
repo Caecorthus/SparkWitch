@@ -4,6 +4,8 @@ import dev.caecorthus.sparkwitch.registry.SparkWitchRoleRegistry;
 import dev.doctor4t.wathe.api.Role;
 import net.minecraft.util.Identifier;
 
+import java.util.List;
+
 public final class SparkWitchRoles {
     public static final Identifier GRAND_WITCH_ID = SparkWitchRoleRegistry.GRAND_WITCH_ID;
     public static final Identifier ACCOMPLICE_ID = SparkWitchRoleRegistry.ACCOMPLICE_ID;
@@ -24,6 +26,7 @@ public final class SparkWitchRoles {
     public static final Identifier GUARDIAN_ANGEL_ID = SparkWitchRoleRegistry.GUARDIAN_ANGEL_ID;
     public static final Identifier VENDETTA_ID = SparkWitchRoleRegistry.VENDETTA_ID;
     public static final Identifier SABOTEUR_ID = SparkWitchRoleRegistry.SABOTEUR_ID;
+    public static final Identifier WITCH_MAIDEN_ID = SparkWitchRoleRegistry.WITCH_MAIDEN_ID;
     public static final Identifier CURSER_ID = SparkWitchRoleRegistry.CURSER_ID;
 
     private SparkWitchRoles() {
@@ -95,6 +98,34 @@ public final class SparkWitchRoles {
 
     public static Role wraith() {
         return SparkWitchRoleRegistry.wraith();
+    }
+
+    public static Role windSpirit() {
+        return SparkWitchRoleRegistry.windSpirit();
+    }
+
+    public static Role guardianAngel() {
+        return SparkWitchRoleRegistry.guardianAngel();
+    }
+
+    public static Role vendetta() {
+        return SparkWitchRoleRegistry.vendetta();
+    }
+
+    public static Role saboteur() {
+        return SparkWitchRoleRegistry.saboteur();
+    }
+
+    public static Role witchMaiden() {
+        return SparkWitchRoleRegistry.witchMaiden();
+    }
+
+    public static Role curser() {
+        return SparkWitchRoleRegistry.curser();
+    }
+
+    public static List<Role> assassinGuessRoles() {
+        return SparkWitchRoleRegistry.assassinGuessRoles();
     }
 
     public static boolean isSparkWitchRole(Role role) {

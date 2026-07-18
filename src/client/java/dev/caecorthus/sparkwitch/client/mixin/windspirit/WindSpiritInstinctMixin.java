@@ -3,7 +3,7 @@ package dev.caecorthus.sparkwitch.client.mixin.windspirit;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.caecorthus.sparkwitch.client.windspirit.WindSpiritInstinctClientRules;
-import dev.caecorthus.sparkwitch.client.wraith.WraithClientState;
+import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;

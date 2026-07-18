@@ -6,12 +6,10 @@ import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.server.network.ServerPlayerEntity;
-import org.jetbrains.annotations.Nullable;
 
 /** Owns only the passenger relation and temporary movement modifier. / 只负责乘客关系与临时移速修正。 */
 public final class KidnapperDragService {
@@ -26,7 +24,7 @@ public final class KidnapperDragService {
             return WitchSkillUseResult.fail("message.sparkwitch.skill.unavailable");
         }
         ServerPlayerEntity player = context.player();
-        PlayerBodyEntity draggedBody = findDraggedBody(player);
+        PlayerBodyEntity draggedBody = KidnapperCarryState.findCarriedBody(player);
         if (draggedBody != null) {
             release(player);
             return WitchSkillUseResult.success(0);
@@ -50,7 +48,7 @@ public final class KidnapperDragService {
     }
 
     public static void reconcile(ServerPlayerEntity player) {
-        PlayerBodyEntity body = findDraggedBody(player);
+        PlayerBodyEntity body = KidnapperCarryState.findCarriedBody(player);
         Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
         if (body == null) {
             removeSpeedModifier(player);
@@ -66,22 +64,12 @@ public final class KidnapperDragService {
     }
 
     public static void release(ServerPlayerEntity player) {
-        PlayerBodyEntity body = findDraggedBody(player);
+        PlayerBodyEntity body = KidnapperCarryState.findCarriedBody(player);
         if (body != null) {
             body.stopRiding();
             KidnapperPassengerSync.send(player);
         }
         removeSpeedModifier(player);
-    }
-
-    @Nullable
-    static PlayerBodyEntity findDraggedBody(ServerPlayerEntity player) {
-        for (Entity passenger : player.getPassengerList()) {
-            if (passenger instanceof PlayerBodyEntity body) {
-                return body;
-            }
-        }
-        return null;
     }
 
     private static void applySpeedModifier(ServerPlayerEntity player) {

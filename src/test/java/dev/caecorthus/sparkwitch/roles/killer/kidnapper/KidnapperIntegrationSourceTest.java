@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class KidnapperIntegrationSourceTest {
     private static final Path ROOT = Path.of("src/main/java/dev/caecorthus/sparkwitch");
+    private static final Path CLIENT_ROOT = Path.of("src/client/java/dev/caecorthus/sparkwitch/client");
 
     @Test
     void keepsTargetingDraggingLifecycleCompatibilityAndPositioningInSeparateClasses() throws IOException {
@@ -32,7 +33,7 @@ class KidnapperIntegrationSourceTest {
         assertTrue(dragging.contains("ADD_MULTIPLIED_TOTAL"));
         assertTrue(dragging.contains("KidnapperRules.isKidnapper(context.role())"));
         assertFalse(dragging.contains("ServerTickEvents"));
-        assertTrue(dragging.contains("PlayerBodyEntity draggedBody = findDraggedBody(player)"));
+        assertTrue(dragging.contains("PlayerBodyEntity draggedBody = KidnapperCarryState.findCarriedBody(player)"));
         assertTrue(dragging.contains("movementSpeed.hasModifier(KidnapperRules.SPEED_MODIFIER_ID)"));
         assertFalse(dragging.contains("hasDragMarker"));
 
@@ -97,6 +98,29 @@ class KidnapperIntegrationSourceTest {
         assertTrue(chinese.contains("\"announcement.role.kidnapper\": \"绑架者\""));
         assertTrue(chinese.contains("\"message.sparkwitch.kidnapper.no_target\": \"请对准两格内的一具尸体。\""));
         assertTrue(chinese.contains("\"message.sparkwitch.kidnapper.false_body\": \"TA 真的死了吗...？\""));
+    }
+
+    @Test
+    void registersTheClientOnlyKidnapperBodyPoseAtWatheRendererCalls() throws IOException {
+        String mixin = Files.readString(CLIENT_ROOT.resolve("mixin/kidnapper/KidnapperBodyPoseMixin.java"));
+        String clientMixins = Files.readString(Path.of("src/client/resources/sparkwitch.client.mixins.json"));
+
+        assertTrue(mixin.contains("@Mixin(value = PlayerBodyEntityRenderer.class, remap = false)"));
+        int setupTarget = mixin.indexOf("PlayerBodyEntityRenderer;setupTransforms");
+        int headModifier = mixin.indexOf("@ModifyArgs(", setupTarget + 1);
+        assertTrue(setupTarget >= 0 && headModifier > setupTarget);
+        String setupTransformSeam = mixin.substring(setupTarget, headModifier);
+        assertTrue(setupTransformSeam.contains("args.set(3, pose.bodyYaw());"));
+        assertTrue(mixin.contains("BipedEntityModel;setAngles"));
+        assertTrue(mixin.contains("body.getVehicle()"));
+        assertTrue(mixin.contains("KidnapperRules.isKidnapper"));
+        assertTrue(mixin.contains("KidnapperBodyPose.isEligible"));
+        assertTrue(mixin.contains("KidnapperBodyPose.fromCarrierRotation"));
+        assertTrue(mixin.contains("pose.relativeHeadYaw()"));
+        assertTrue(mixin.contains("pose.headPitch()"));
+        assertFalse(mixin.contains("body.setYaw("));
+        assertFalse(mixin.contains("body.bodyYaw"));
+        assertTrue(clientMixins.contains("kidnapper.KidnapperBodyPoseMixin"));
     }
 
     private static boolean draggingSchemaTouched(String relativePath) throws IOException {

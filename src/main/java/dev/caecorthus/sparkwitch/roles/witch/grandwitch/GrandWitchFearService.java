@@ -32,6 +32,7 @@ public final class GrandWitchFearService {
             SparkWitch.id("fire_death_ray"),
             SparkWitch.id("use_orthopedist_skill"),
             UseSaboteurSkillC2SPacket.PAYLOAD_ID,
+            SparkWitch.id("throw_kidnapper_body"),
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
             Identifier.of("noellesroles", "detective_investigate"),

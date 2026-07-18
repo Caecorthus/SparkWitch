@@ -6,24 +6,19 @@ import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.doctor4t.wathe.api.Role;
 import net.minecraft.util.Identifier;
 
-/**
- * Defines the non-rollable Witch-faction identity awarded to a promoted Wraith.
- * 定义冤魂晋升后获得且不会参与开局抽取的魔女阵营身份。
- */
+/** Non-rollable Witch identity awarded by Wraith promotion. / 冤魂晋升授予的不可随机魔女身份。 */
 public final class CurserRole {
-    public static final Identifier ID = SparkWitch.id("curser");
-    public static final int COLOR = 0xC13838;
+    public static final Identifier ROLE_ID = SparkWitch.id("curser");
+    public static final Identifier ID = ROLE_ID;
+    public static final FactionRoleDefinition DEFINITION =
+            FactionRoleDefinition.builder(ROLE_ID, SparkWitchFactions.WITCH)
+                    .color(0xC13838)
+                    .moodType(Role.MoodType.NONE)
+                    .maxSprintTime(-1)
+                    .canSeeTime(true)
+                    .appearanceCondition(context -> false)
+                    .build();
 
     private CurserRole() {
-    }
-
-    public static FactionRoleDefinition definition() {
-        return FactionRoleDefinition.builder(ID, SparkWitchFactions.WITCH)
-                .color(COLOR)
-                .moodType(Role.MoodType.NONE)
-                .maxSprintTime(-1)
-                .canSeeTime(true)
-                .appearanceCondition(context -> false)
-                .build();
     }
 }

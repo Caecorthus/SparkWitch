@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay;
 
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
@@ -87,7 +89,7 @@ public final class MurderousWitchDeathRayService {
         double visibleDistance = visibleRayDistance(world, caster, start, direction);
         spawnRayParticles(world, start, direction, visibleDistance);
         for (ServerPlayerEntity target : findTargets(caster, start, direction, visibleDistance)) {
-            if (GameFunctions.isPlayerPlayingAndAlive(target)) {
+            if (VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(caster, target)) {
                 GameFunctions.killPlayer(target, true, caster, SparkWitchDeathReasons.PIERCED_BY_RAY);
             }
         }
@@ -145,7 +147,7 @@ public final class MurderousWitchDeathRayService {
         List<ServerPlayerEntity> targets = new ArrayList<>();
         for (ServerPlayerEntity target : caster.getServerWorld().getPlayers()) {
             if (caster.getUuid().equals(target.getUuid())
-                    || !GameFunctions.isPlayerPlayingAndAlive(target)
+                    || !VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(caster, target)
                     || GameFunctions.isPlayerSpectatingOrCreative(target)) {
                 continue;
             }

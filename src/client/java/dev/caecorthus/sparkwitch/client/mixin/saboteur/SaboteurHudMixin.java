@@ -2,7 +2,7 @@ package dev.caecorthus.sparkwitch.client.mixin.saboteur;
 
 import dev.caecorthus.sparkwitch.client.saboteur.SaboteurHudRenderer;
 import dev.caecorthus.sparkwitch.client.saboteur.SaboteurHudRules;
-import dev.caecorthus.sparkwitch.client.wraith.WraithClientState;
+import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.doctor4t.wathe.api.Role;

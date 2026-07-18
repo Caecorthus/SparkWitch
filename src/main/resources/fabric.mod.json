@@ -29,12 +29,16 @@
       "sparkwitch:perfumer_player",
       "sparkwitch:hunter",
       "sparkwitch:orthopedist",
+      "sparkwitch:guardian_angel",
+      "sparkwitch:vendetta",
       "sparkwitch:black_raven_mark",
       "sparkwitch:black_raven_perception",
       "sparkwitch:world",
       "sparkwitch:wraith_player",
       "sparkwitch:saboteur_player",
-      "sparkwitch:wraith_round"
+      "sparkwitch:wraith_round",
+      "sparktraits:wraith_player",
+      "sparktraits:wraith_round"
     ]
   },
   "mixins": [
@@ -58,6 +62,9 @@
     "cardinal-components-world": ">=${cca_version}"
   },
   "suggests": {
-    "sparktraits": "*"
+    "sparktraits": ">=0.1.9.10"
+  },
+  "breaks": {
+    "sparktraits": "<0.1.9.10"
   }
 }
