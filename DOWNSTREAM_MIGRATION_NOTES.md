@@ -19,3 +19,16 @@ and no downstream migration is required.
 
 Integrations must not depend on SparkTraits `impl` or `component` classes. A
 missing or incompatible optional SparkTraits facade continues to fail closed.
+
+## 2026-07-17 Wraith Ownership
+
+The unreleased Wraith implementation moved completely from SparkTraits to
+SparkWitch. All live identities and components use `sparkwitch:*`, including
+`wraith`, `wraith_player`, `wraith_round`, `wind_spirit`, `guardian_angel`,
+`vendetta`, `saboteur`, and `curser`; there are no `sparktraits:*` aliases or
+legacy readers.
+
+Optional downstream queries must use the null-safe
+`dev.caecorthus.sparkwitch.api.SparkWitchApi` facade. SparkTraits remains an
+optional provider of generic trait and Last Stand state only and no longer owns
+Wraith lifecycle, rendering, faction, role, or component contracts.

@@ -489,6 +489,15 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
+    public void cancelMightyForceWindow() {
+        if (mightyForceTicks <= 0) {
+            return;
+        }
+        mightyForceTicks = 0;
+        deferredCooldownTicks = 0;
+        sync();
+    }
+
     public void beginSwiftStep(int durationTicks) {
         int normalizedDuration = Math.max(0, durationTicks);
         if (swiftStepTicks == normalizedDuration) {

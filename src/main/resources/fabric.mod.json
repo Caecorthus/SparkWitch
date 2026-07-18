@@ -18,6 +18,9 @@
     ],
     "cardinal-components": [
       "dev.caecorthus.sparkwitch.component.SparkWitchComponents"
+    ],
+    "voicechat": [
+      "dev.caecorthus.sparkwitch.voice.SparkWitchVoiceChatPlugin"
     ]
   },
   "custom": {
@@ -28,7 +31,10 @@
       "sparkwitch:orthopedist",
       "sparkwitch:black_raven_mark",
       "sparkwitch:black_raven_perception",
-      "sparkwitch:world"
+      "sparkwitch:world",
+      "sparkwitch:wraith_player",
+      "sparkwitch:saboteur_player",
+      "sparkwitch:wraith_round"
     ]
   },
   "mixins": [
@@ -50,5 +56,8 @@
     "cardinal-components-base": ">=${cca_version}",
     "cardinal-components-entity": ">=${cca_version}",
     "cardinal-components-world": ">=${cca_version}"
+  },
+  "suggests": {
+    "sparktraits": "*"
   }
 }

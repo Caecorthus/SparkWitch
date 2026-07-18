@@ -14,6 +14,8 @@ public final class KidnapperRules {
     public static final double TARGET_RANGE = 2.0D;
     public static final double TARGET_RANGE_SQUARED = TARGET_RANGE * TARGET_RANGE;
     public static final double FOLLOW_DISTANCE = 1.0D;
+    public static final double THROW_SPEED = 0.8D;
+    public static final double THROW_MIN_UPWARD_VELOCITY = 0.2D;
     public static final double SPEED_MULTIPLIER = 0.8D;
     public static final double SPEED_MODIFIER_AMOUNT = -0.2D;
 

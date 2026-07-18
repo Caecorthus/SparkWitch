@@ -11,6 +11,97 @@ SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
 
+## Approved Structural Change
+
+SparkWitch will become the sole owner of Wraith gameplay. The migration covers
+the complete server lifecycle, role and promotion routing, persistent and
+synced state, death and return-point policy, NoellesRoles digestion handling,
+pickup restrictions, client anonymity and peer vision, resources, tests, and
+public contracts. SparkTraits must retain no Wraith implementation after the
+migration; any legacy compatibility there is migration-only and fail-closed.
+All live Wraith role, component, packet, resource, and contract identifiers use
+the `sparkwitch` namespace; SparkWitch must not register runtime-owned
+`sparktraits:wraith*` or `sparktraits:curser` identifiers.
+The SparkTraits Wraith implementation has not shipped, so this is a clean
+pre-release ownership move: do not add legacy aliases, dual registration, or
+old-state readers for its development-only ids.
+SparkTraits remains optional. When present, SparkWitch may use only its public,
+generic facade to let Last Stand keep death priority and to snapshot/restore
+ordinary trait state plus `sparktraits:cautious`; SparkTraits must contain no
+Wraith decision or lifecycle implementation. Wraith remains fully functional
+without SparkTraits, minus those trait-owned interactions.
+Wraith fall eligibility follows Wathe's existing lower-boundary kill heuristic:
+a player-valued `lastAttacker` is treated as a pushed fall, otherwise the fall
+is voluntary. Do not add a separate impulse-attribution runtime.
+Every active Wraith, restricted or promoted, follows Wathe's living-player text
+chat restriction and cannot send text chat. The client chat guard is owned by
+SparkWitch, and Guidebook text must not claim that Wraith text chat is normal.
+Every active Wraith, restricted or promoted, also remains unable to send voice
+while retaining incoming voice. Promotion does not lift text or outgoing-voice
+restrictions.
+Every active Wraith, restricted or promoted, is blocked from collecting ground
+item entities. The restriction does not block shop delivery, skill-granted
+stacks, direct inventory insertion, or use of inventory contents.
+Wraith visibility is viewer-local presentation, never a server-side skin or
+profile mutation. An active Wraith viewer locally anonymizes every other player
+and every corpse as wide Steve; another active Wraith is additionally revealed
+through that projection with the Wraith outline. This does not change
+`GameProfile`, skin properties, or broadcast a replacement skin. An ordinary
+living in-round viewer cannot see Wraiths; dead viewers and players who did not
+join the round see the real player appearance normally. This rule does not
+branch on Spectator or Creative mode.
+
+## Wraith Contracts
+
+- The round start captures each player's own world, position, yaw, and pitch as
+  the Wraith return point. It is usable only while the world exists and the
+  player can safely stand there; it is not the map-wide spawn.
+- Last Stand keeps priority. A death it intercepts never rolls Wraith.
+- `wathe:escaped`, a voluntary `wathe:fell_out_of_train`, and terminal
+  `noellesroles:digested` never roll. A player-valued `lastAttacker` makes
+  Wathe's fall reason eligible as a pushed fall.
+- When a usable return point exists, an otherwise eligible confirmed death may
+  roll even if its death location is below `playArea.minY`, and successful
+  activation returns there.
+- Without a return point, ordinary death falls back to the actual corpse, then
+  the death snapshot. A swallowed in-round `wathe:mental_breakdown` creates no
+  body and falls back to the swallowing Taotie's live death-time location.
+- A fallback below `playArea.minY` is rejected before rolling. An accepted
+  fallback may resolve only the nearest locally safe standable point; it may
+  not cross worlds or compartments.
+- Successful activation preserves ordinary death drops, clears the remaining
+  inventory, coins, and mana once, and never synthesizes a body for a swallowed
+  death.
+
+## Saboteur Contracts
+
+- Saboteur is the non-rollable Killer identity awarded by Killer-aligned Wraith
+  promotion.
+- Its role-owned shop contains exactly one `wathe:lockpick` for 50 coins and
+  Wathe's original blackout entry. The lockpick keeps Wathe's existing name;
+  blackout pricing, activation, and shared cooldown remain owned by Wathe.
+- Sabotage and Wathe blackout are independent light-outage sources. Sabotage
+  remains usable during blackout, and an overlapping lamp may recover only
+  after both sources have ended.
+- Sabotage does not apply Wathe's global countdown, blindness, night vision, or
+  shared blackout cooldown.
+- Sabotage captures all Wathe-eligible train-light states within a 20-block sphere
+  around the player at activation time. It does not affect torches, redstone
+  lamps, held-item dynamic light, or unrelated mods' light sources.
+- Each Sabotage light lease lasts exactly 20 seconds.
+- Sabotage starts with a 60-second cooldown when Wraith promotion grants the
+  Saboteur role. Each successful use then starts a 120-second cooldown.
+- A use with no eligible lights in range still succeeds and consumes the full
+  120-second cooldown; it does not expose nearby-light presence through a
+  failure result.
+- Saboteur's bottom-right ability HUD uses only `技能冷却 X 秒` while cooling
+  down and `按【技能键】使用破坏` when ready, with the player's actual
+  NoellesRoles ability binding. It never appears in the Witch inventory skill
+  panel.
+- Each task completed after promotion while the player is the active Saboteur
+  grants 50 coins. The task that triggers Wraith promotion is not rewarded
+  retroactively.
+
 Current build baseline:
 
 - Minecraft `1.21.1`

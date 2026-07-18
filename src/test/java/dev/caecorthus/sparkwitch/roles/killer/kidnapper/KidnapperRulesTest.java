@@ -18,6 +18,8 @@ class KidnapperRulesTest {
         assertEquals(2.0D, KidnapperRules.TARGET_RANGE);
         assertEquals(4.0D, KidnapperRules.TARGET_RANGE_SQUARED);
         assertEquals(1.0D, KidnapperRules.FOLLOW_DISTANCE);
+        assertEquals(0.8D, KidnapperRules.THROW_SPEED);
+        assertEquals(0.2D, KidnapperRules.THROW_MIN_UPWARD_VELOCITY);
         assertEquals(0.8D, KidnapperRules.SPEED_MULTIPLIER);
         assertEquals(-0.2D, KidnapperRules.SPEED_MODIFIER_AMOUNT);
     }

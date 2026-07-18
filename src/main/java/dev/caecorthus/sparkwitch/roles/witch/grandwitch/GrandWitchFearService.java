@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.witch.grandwitch;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
+import dev.caecorthus.sparkwitch.roles.killer.saboteur.UseSaboteurSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -30,6 +31,7 @@ public final class GrandWitchFearService {
             SparkWitch.id("use_skill"),
             SparkWitch.id("fire_death_ray"),
             SparkWitch.id("use_orthopedist_skill"),
+            UseSaboteurSkillC2SPacket.PAYLOAD_ID,
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
             Identifier.of("noellesroles", "detective_investigate"),

@@ -25,7 +25,27 @@
     "blackraven.BlackRavenPlayerTextureMixin",
     "blackraven.BlackRavenRoleNameMixin",
     "blackraven.BlackRavenSkinTexturesMixin",
-    "hunter.DoubleBarrelShotgunCrosshairMixin"
+    "hunter.DoubleBarrelShotgunCrosshairMixin",
+    "saboteur.SaboteurHudMixin",
+    "windspirit.WindSpiritInstinctMixin",
+    "wraith.WraithCapeFeatureRendererMixin",
+    "wraith.WraithChatRestrictionMixin",
+    "wraith.WraithCorpseModelMixin",
+    "wraith.WraithCorpseSkinMixin",
+    "wraith.WraithElytraFeatureRendererMixin",
+    "wraith.WraithEntityInvisibilityMixin",
+    "wraith.WraithGameRendererMixin",
+    "wraith.WraithHeldItemFeatureRendererMixin",
+    "wraith.WraithHiddenBodiesMixin",
+    "wraith.WraithMinecraftClientMixin",
+    "wraith.WraithMoodRendererMixin",
+    "wraith.WraithNameMixin",
+    "wraith.WraithPlayerModelMixin",
+    "wraith.WraithPlayerSkinMixin",
+    "wraith.WraithPlayerSkinTexturesMixin",
+    "wraith.WraithRendererDispatchMixin",
+    "wraith.WraithRoundTextRendererMixin",
+    "wraith.WraithWatheHighlightMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -9,10 +9,6 @@
 - https://github.com/Caecorthus/SparkStrength (Spark-ver roles buff)
 - https://github.com/Caecorthus/SparkAssist (Client-side assist mod)
 
-## Skills
-- Use this skill in your and your subagents' workflow
-	- [$using-superpowers](/Users/kricy/.codex/skills/using-superpowers/SKILL.md)
-
 ## Coding
 
 ### Architecture
@@ -31,6 +27,25 @@
   gameplay values, and event order remain outside the changed path.
 - Use Java 21 and the verification entry points in `CONTEXT.md`. Do not
   add production-only test hooks.
+
+### Witch Skill Panel
+- The top-left `gui.sparkwitch.skills` panel in
+  `WitchSkillInventoryScreenMixin` is exclusively for Grand Witch
+  (`sparkwitch:grand_witch`), Apprentice Witch
+  (`sparkwitch:apprentice_witch`), and Murderous Witch
+  (`sparkwitch:murderous_witch`) and their own skills.
+- `WitchSkillInventoryScreenMixin` 的背包左上角
+  `gui.sparkwitch.skills` 技能介绍仅属于大魔女
+  (`sparkwitch:grand_witch`)、预备魔女
+  (`sparkwitch:apprentice_witch`)和杀意魔女
+  (`sparkwitch:murderous_witch`)及其自有技能。
+- Registration in `WitchSkillRegistry`, a `sparkwitch` namespace, or reuse of
+  shared dispatch, storage, packets, and cooldowns does not grant access to
+  this panel. Other roles must use role-owned presentation and must never
+  render a skill name or description here.
+- 不得根据 `WitchSkillRegistry` 注册关系、`sparkwitch` 命名空间，或共享的
+  分发、存储、数据包和冷却机制推断该面板的展示资格。其他职业必须使用
+  职业自有展示，不得在该面板显示技能名称或介绍。
 
 ### Subagents
 - You're the coordinator/leader between the subagents.

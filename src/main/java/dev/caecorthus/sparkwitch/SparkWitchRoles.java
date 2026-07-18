@@ -19,6 +19,12 @@ public final class SparkWitchRoles {
     public static final Identifier ORTHOPEDIST_ID = SparkWitchRoleRegistry.ORTHOPEDIST_ID;
     public static final Identifier KIDNAPPER_ID = SparkWitchRoleRegistry.KIDNAPPER_ID;
     public static final Identifier TAROT_READER_ID = SparkWitchRoleRegistry.TAROT_READER_ID;
+    public static final Identifier WRAITH_ID = SparkWitchRoleRegistry.WRAITH_ID;
+    public static final Identifier WIND_SPIRIT_ID = SparkWitchRoleRegistry.WIND_SPIRIT_ID;
+    public static final Identifier GUARDIAN_ANGEL_ID = SparkWitchRoleRegistry.GUARDIAN_ANGEL_ID;
+    public static final Identifier VENDETTA_ID = SparkWitchRoleRegistry.VENDETTA_ID;
+    public static final Identifier SABOTEUR_ID = SparkWitchRoleRegistry.SABOTEUR_ID;
+    public static final Identifier CURSER_ID = SparkWitchRoleRegistry.CURSER_ID;
 
     private SparkWitchRoles() {
     }
@@ -85,6 +91,10 @@ public final class SparkWitchRoles {
 
     public static Role tarotReader() {
         return SparkWitchRoleRegistry.tarotReader();
+    }
+
+    public static Role wraith() {
+        return SparkWitchRoleRegistry.wraith();
     }
 
     public static boolean isSparkWitchRole(Role role) {

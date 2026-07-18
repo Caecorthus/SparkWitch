@@ -7,16 +7,22 @@ import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRole;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaRole;
+import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
+import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
+import dev.caecorthus.sparkwitch.roles.witch.curser.CurserRole;
 import dev.caecorthus.sparkwitch.win.WitchWinConditions;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
@@ -46,6 +52,12 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier ORTHOPEDIST_ID = OrthopedistRules.ROLE_ID;
     public static final Identifier KIDNAPPER_ID = KidnapperRules.ROLE_ID;
     public static final Identifier TAROT_READER_ID = SparkWitch.id("tarot_reader");
+    public static final Identifier WRAITH_ID = WraithRole.ID;
+    public static final Identifier WIND_SPIRIT_ID = WindSpiritRole.ID;
+    public static final Identifier GUARDIAN_ANGEL_ID = GuardianAngelRole.ID;
+    public static final Identifier VENDETTA_ID = VendettaRole.ID;
+    public static final Identifier SABOTEUR_ID = SaboteurRole.ID;
+    public static final Identifier CURSER_ID = CurserRole.ID;
 
     private static Role grandWitch;
     private static Role accomplice;
@@ -61,6 +73,7 @@ public final class SparkWitchRoleRegistry {
     private static Role orthopedist;
     private static Role kidnapper;
     private static Role tarotReader;
+    private static Role wraith;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -156,6 +169,11 @@ public final class SparkWitchRoleRegistry {
         return tarotReader;
     }
 
+    public static Role wraith() {
+        ensureRegistered();
+        return wraith;
+    }
+
     public static boolean isSparkWitchRole(Role role) {
         ensureRegistered();
         return isRegisteredSparkWitchRole(role);
@@ -215,6 +233,11 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .appearanceCondition(RoleAppearanceCondition.minPlayers(18))
                 .build());
+        SparkFactionApi.registerRole(WindSpiritRole.definition());
+        SparkFactionApi.registerRole(GuardianAngelRole.definition());
+        SparkFactionApi.registerRole(VendettaRole.definition());
+        SparkFactionApi.registerRole(SaboteurRole.definition());
+        SparkFactionApi.registerRole(CurserRole.definition());
         pigGod = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PIG_GOD_ID, FactionIds.CIVILIAN)
                 .color(PigGodRules.COLOR)
                 .moodType(Role.MoodType.REAL)
@@ -298,6 +321,7 @@ public final class SparkWitchRoleRegistry {
     }
 
     private static void registerNativeWatheRoles() {
+        wraith = WatheRoles.registerSpecialRole(WraithRole.ROLE);
         apprenticeWitch = WatheRoles.registerRole(new Role(
                 APPRENTICE_WITCH_ID,
                 0x75EDFA,

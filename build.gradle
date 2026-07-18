@@ -99,6 +99,7 @@ dependencies {
         exclude group: "dev.upcraft.datasync"
     }
     modRuntimeOnly "dev.isxander:yet-another-config-lib:${project.yacl_version}"
+    modCompileOnly "maven.modrinth:simple-voice-chat:fabric-${project.minecraft_version}-${project.voicechat_version}"
     modLocalRuntime "maven.modrinth:simple-voice-chat:fabric-${project.minecraft_version}-${project.voicechat_version}"
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
@@ -200,6 +201,12 @@ tasks.register("verifyModJarVersion") {
                 throw new GradleException("Missing client entrypoint ${clientEntrypoint} in ${jarFile.name}")
             }
 
+            def voicechatEntrypoint = "dev.caecorthus.sparkwitch.voice.SparkWitchVoiceChatPlugin"
+            def voicechatEntrypoints = metadata.entrypoints?.voicechat ?: []
+            if (!voicechatEntrypoints.contains(voicechatEntrypoint)) {
+                throw new GradleException("Missing voicechat entrypoint ${voicechatEntrypoint} in ${jarFile.name}")
+            }
+
             [
                     "ratatouille"     : project.ratatouille_version,
                     "noellesroles"    : project.noellesroles_version,
@@ -259,11 +266,15 @@ def requiredArchitectureDocs = [
         "DOWNSTREAM_MIGRATION_NOTES.md"
 ]
 def requiredArchitectureSources = [
+        "src/main/java/dev/caecorthus/sparkwitch/api/SparkWitchApi.java",
+        "src/main/java/dev/caecorthus/sparkwitch/api/WitchManaApi.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/ApprenticeInstinctRules.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityRuntime.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/piggod/PigGodChaseRuntime.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRules.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchWorldRuntime.java",
+        "src/test/java/dev/caecorthus/sparkwitch/api/SparkWitchApiTest.java",
+        "src/test/java/dev/caecorthus/sparkwitch/api/WitchManaApiTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityWindowRulesTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRulesTest.java"
 ]

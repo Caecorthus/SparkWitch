@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerCom
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMarkPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.entity.EntityComponentFactoryRegistry;
@@ -33,10 +34,17 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, BlackRavenPerceptionPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(BlackRavenPerceptionPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, WraithPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(WraithPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, SaboteurPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SaboteurPlayerComponent::new);
     }
 
     @Override
     public void registerWorldComponentFactories(@NotNull WorldComponentFactoryRegistry registry) {
         registry.register(WitchWorldComponent.KEY, WitchWorldComponent::new);
+        registry.register(WraithRoundComponent.KEY, world -> new WraithRoundComponent());
     }
 }
