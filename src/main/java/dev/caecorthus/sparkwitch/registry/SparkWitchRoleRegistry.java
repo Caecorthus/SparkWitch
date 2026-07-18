@@ -434,12 +434,6 @@ public final class SparkWitchRoleRegistry {
                 || role == ninja
                 || role == kidnapper
                 || role == blackRaven
-                || role == witchMaiden
-                || role == wraith
-                || role == windSpirit
-                || role == guardianAngel
-                || role == vendetta
-                || role == saboteur
-                || role == curser;
+                || role == witchMaiden;
     }
 }

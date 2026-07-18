@@ -17,16 +17,16 @@ class WraithProviderBoundaryTest {
         String properties = Files.readString(Path.of("gradle.properties"));
         String production = productionSource();
 
-        assertTrue(properties.contains("wathe_version=1.5.6-spark-1.21.1"));
-        assertTrue(properties.contains("noellesroles_version=1.7.6-h1.5.6-spark"));
-        assertTrue(Files.isRegularFile(Path.of("libs/wathe-1.5.6-spark-1.21.1.jar")));
-        assertTrue(Files.isRegularFile(Path.of("libs/noellesroles-1.7.6-h1.5.6-spark.jar")));
-        assertEquals("a4e0355c61def0b482c197a7ccd1f86ee91752b7af1b5bdafae8716c652f207f",
-                sha256(Path.of("libs/wathe-1.5.6-spark-1.21.1.jar")));
-        assertEquals("fcb0da6995197afff8637dd9236f96d9d07cfc0e26484ad3777e5cf3de37d8b7",
-                sha256(Path.of("libs/noellesroles-1.7.6-h1.5.6-spark.jar")));
-        assertFalse(Files.exists(Path.of("libs/wathe-1.5.7-spark-1.21.1.jar")));
-        assertFalse(Files.exists(Path.of("libs/noellesroles-1.7.7-h1.5.7-spark.jar")));
+        assertTrue(properties.contains("wathe_version=1.5.7-spark-1.21.1"));
+        assertTrue(properties.contains("noellesroles_version=1.7.7-h1.5.7-spark"));
+        assertTrue(Files.isRegularFile(Path.of("libs/wathe-1.5.7-spark-1.21.1.jar")));
+        assertTrue(Files.isRegularFile(Path.of("libs/noellesroles-1.7.7-h1.5.7-spark.jar")));
+        assertEquals("bed8c51ccdaaa9896451a23cd233b1c34c741b61a39992b8fd0d7dbd4c421eab",
+                sha256(Path.of("libs/wathe-1.5.7-spark-1.21.1.jar")));
+        assertEquals("1501afbadaab1affa86ea705cccc00a3339e641cb6adbd649970c8a71ede58b8",
+                sha256(Path.of("libs/noellesroles-1.7.7-h1.5.7-spark.jar")));
+        assertFalse(Files.exists(Path.of("libs/wathe-1.5.6-spark-1.21.1.jar")));
+        assertFalse(Files.exists(Path.of("libs/noellesroles-1.7.6-h1.5.6-spark.jar")));
         assertFalse(production.contains("dev.doctor4t.wathe.api.RoleAnnouncementApi"));
         assertFalse(production.contains("dev.doctor4t.wathe.api.event.DeadPlayerParticipation"));
         assertFalse(production.contains("WatheRoles.registerSpecialRole"));

@@ -22,8 +22,6 @@ class KidnapperRulesTest {
         assertEquals(0.2D, KidnapperRules.THROW_MIN_UPWARD_VELOCITY);
         assertEquals(0.8D, KidnapperRules.SPEED_MULTIPLIER);
         assertEquals(-0.2D, KidnapperRules.SPEED_MODIFIER_AMOUNT);
-        assertEquals(0.8D, KidnapperRules.THROW_SPEED);
-        assertEquals(0.2D, KidnapperRules.THROW_MIN_UPWARD_VELOCITY);
     }
 
     @Test

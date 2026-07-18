@@ -12,6 +12,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaDisconnectService;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaLifecycleService;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaReplayService;
+import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurFeatureService;
+import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.MapVariablesWorldComponent;
@@ -68,6 +70,7 @@ public final class WraithLifecycle {
      */
     public static void promotePlayer(ServerPlayerEntity player, Role role) {
         transitionRole(player, role);
+        SaboteurFeatureService.initializePromotion(player);
         WraithPresence.removeRestrictedEffects(player);
         GuardianAngelFeatureService.initializeForPromotion(player, role);
         VendettaLifecycleService.initializeForPromotion(player, role);
@@ -82,6 +85,7 @@ public final class WraithLifecycle {
         boolean wasActive = wraith.isActive();
         WraithConversion.clearPlayer(player);
         WraithProgression.clearPlayer(player);
+        SaboteurPlayerComponent.KEY.get(player).clear();
         wraith.clear();
         WraithPresence.clear(player);
         GuardianAngelFeatureService.detachPlayer(player);

@@ -32,7 +32,7 @@ class WraithPriorListenerCaptureContractTest {
     @Test
     void mandatoryNoellesSwallowedPathReturnsNonNullAllowWithoutBody() throws Exception {
         try (ZipFile jar = new ZipFile(Path.of(
-                "libs/noellesroles-1.7.6-h1.5.6-spark.jar").toFile())) {
+                "libs/noellesroles-1.7.7-h1.5.7-spark.jar").toFile())) {
             byte[] implementation = jar.getInputStream(jar.getEntry(
                     "org/agmas/noellesroles/Noellesroles.class")).readAllBytes();
             String constants = new String(implementation, StandardCharsets.ISO_8859_1);

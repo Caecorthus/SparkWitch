@@ -74,7 +74,6 @@ public final class SparkWitchClient implements ClientModInitializer {
         // 在每个连接生命周期节点清理状态，避免失败的登录尝试残留已确认标记。
         ClientLoginConnectionEvents.INIT.register((handler, client) -> resetConnectionState());
         ClientLoginConnectionEvents.DISCONNECT.register((handler, client) -> resetConnectionState());
-        ClientPlayConnectionEvents.INIT.register((handler, client) -> resetConnectionState());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> resetConnectionState());
         WitchInstinctSuppressionClientHooks.register();
         HunterTrapClientHooks.register();

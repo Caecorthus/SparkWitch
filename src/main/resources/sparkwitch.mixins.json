@@ -35,6 +35,7 @@
     "WraithDoorPassingMixin",
     "WraithOwnedEffectMixin",
     "WraithPlayerMoodComponentMixin",
+    "WraithPlayerShopComponentMixin",
     "WraithRoleHistoryNbtMixin",
     "WraithStatusEffectMixin",
     "hunter.HunterPlayerMoveMixin",

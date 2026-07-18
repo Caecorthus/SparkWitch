@@ -11,8 +11,9 @@ import net.minecraft.util.Identifier;
 public final class SaboteurRole {
     public static final Identifier ROLE_ID = SparkWitch.id("saboteur");
     public static final Identifier ID = ROLE_ID;
+    public static final int COLOR = 0xC13838;
     public static final FactionRoleDefinition DEFINITION = FactionRoleDefinition.builder(ROLE_ID, FactionIds.KILLER)
-            .color(0xC13838)
+            .color(COLOR)
             .moodType(Role.MoodType.NONE)
             .maxSprintTime(-1)
             .canSeeTime(true)

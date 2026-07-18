@@ -21,6 +21,11 @@ loom {
     }
 }
 
+sourceSets.test {
+    compileClasspath += sourceSets.client.output
+    runtimeClasspath += sourceSets.client.output
+}
+
 repositories {
     mavenCentral()
     maven {

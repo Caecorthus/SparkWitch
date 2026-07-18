@@ -53,6 +53,7 @@
     "saboteur.SaboteurHudMixin",
     "windspirit.WindSpiritInstinctMixin",
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleParticleMixin",
+    "witchmaiden.FocusedFootstepsClientPlayerMovementMixin",
     "witchmaiden.FocusedFootstepsKeyboardInputMixin",
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin"

@@ -64,7 +64,7 @@ class WraithAssassinGuessCompatibilityTest {
         assertTrue(WatheRoles.SPECIAL_ROLES.contains(SparkWitchRoles.wraith()));
         assertFalse(SparkWitchRoles.assassinGuessRoles().contains(SparkWitchRoles.wraith()));
 
-        try (ZipFile noelles = new ZipFile("libs/noellesroles-1.7.6-h1.5.6-spark.jar")) {
+        try (ZipFile noelles = new ZipFile("libs/noellesroles-1.7.7-h1.5.7-spark.jar")) {
             ClassNode assassinScreen = new ClassNode();
             new ClassReader(noelles.getInputStream(noelles.getEntry(
                     "org/agmas/noellesroles/client/screen/AssassinScreen.class"

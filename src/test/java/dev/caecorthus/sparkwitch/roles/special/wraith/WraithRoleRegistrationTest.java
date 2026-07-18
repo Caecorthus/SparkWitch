@@ -119,11 +119,14 @@ class WraithRoleRegistrationTest {
 
         assertLocalization(english, "wraith", "Wraith",
                 "Complete three tasks to earn a new identity.",
+                "Complete three tasks to earn a new identity.",
                 "Complete three tasks to earn a new identity.");
         assertLocalization(english, "wind_spirit", "Wind Spirit",
                 "Stay safe and survive until the end of the journey.",
-                "Stay safe and survive until the end of the journey.");
+                english.get("announcement.goal.wind_spirit").getAsString(),
+                english.get("announcement.goals.wind_spirit").getAsString());
         assertLocalization(english, "guardian_angel", "Guardian Angel",
+                "Listen to the dead. Protect the living.",
                 "Listen to the dead. Protect the living.",
                 "Help the Civilian faction. You have unlimited stamina, are immune to blackouts, and can "
                         + "identify poisoned food, drinks, and beds; you can communicate by voice only with the dead. "
@@ -134,32 +137,41 @@ class WraithRoleRegistrationTest {
                         + "does not know they are protected.");
         assertLocalization(english, "vendetta", "Vendetta",
                 "Hunt the killer bound to your first death.",
+                "Hunt the killer bound to your first death.",
                 english.get("announcement.goals.vendetta").getAsString());
         assertLocalization(english, "saboteur", "Saboteur",
                 "Eliminate a passenger to succeed, before time runs out.",
-                "Eliminate all civilians before time runs out.");
+                "Eliminate the passengers through sabotage.",
+                english.get("announcement.goals.saboteur").getAsString());
         assertLocalization(english, "curser", "Curser",
+                "Eliminate a passenger to succeed, before time runs out.",
                 "Eliminate a passenger to succeed, before time runs out.",
                 "Eliminate all civilians before time runs out.");
 
         assertLocalization(chinese, "wraith", "冤魂",
                 "完成三项任务，以获得新的身份。",
+                "完成三项任务，以获得新的身份。",
                 "完成三项任务，以获得新的身份。");
         assertLocalization(chinese, "wind_spirit", "风精灵",
                 "注意安全，坚持到旅程结束。",
-                "注意安全，坚持到旅程结束。");
+                chinese.get("announcement.goal.wind_spirit").getAsString(),
+                chinese.get("announcement.goals.wind_spirit").getAsString());
         assertLocalization(chinese, "guardian_angel", "守护天使",
+                "倾听亡者，守护生者。",
                 "倾听亡者，守护生者。",
                 "帮助好人阵营。你拥有无限体力、免疫熄灯，并能识别被下毒的食物、饮品和床；你只能与死者进行语音交流。"
                         + "晋升60秒后，瞄准三格内一名存活玩家并按下技能键，可秘密施加一层持续10秒、判定与铁人药剂相同的守护护盾；成功施放后冷却90秒。"
                         + "护盾生效期间，目标会以你的身份色隔墙高亮且仅你可见；目标不会知道自己受到保护。");
         assertLocalization(chinese, "vendetta", "仇杀客",
                 "追杀首次死亡时与你绑定的凶手。",
+                "追杀首次死亡时与你绑定的凶手。",
                 chinese.get("announcement.goals.vendetta").getAsString());
         assertLocalization(chinese, "saboteur", "破坏者",
                 "在时间耗尽前击杀一名乘客以取得胜利。",
-                "在时间耗尽前消灭所有平民。");
+                "通过破坏行动消灭好人阵营。",
+                chinese.get("announcement.goals.saboteur").getAsString());
         assertLocalization(chinese, "curser", "诅咒者",
+                "在时间耗尽前击杀一名乘客以取得胜利。",
                 "在时间耗尽前击杀一名乘客以取得胜利。",
                 "在时间耗尽前消灭所有平民。");
     }
@@ -173,11 +185,12 @@ class WraithRoleRegistrationTest {
             JsonObject language,
             String roleId,
             String name,
+            String namespacedGoal,
             String singularGoal,
             String pluralGoal
     ) {
         assertEquals(name, language.get("announcement.role.sparkwitch." + roleId).getAsString());
-        assertEquals(singularGoal, language.get("announcement.goal.sparkwitch." + roleId).getAsString());
+        assertEquals(namespacedGoal, language.get("announcement.goal.sparkwitch." + roleId).getAsString());
         assertEquals(name, language.get("announcement.role." + roleId).getAsString());
         assertEquals(singularGoal, language.get("announcement.goal." + roleId).getAsString());
         assertEquals(pluralGoal, language.get("announcement.goals." + roleId).getAsString());

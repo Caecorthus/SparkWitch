@@ -36,8 +36,8 @@ class SaboteurServerIntegrationSourceTest {
 
     @Test
     void promotionInitializesDedicatedStateAfterRoleTransition() throws IOException {
-        String promotion = source("roles/special/wraith/WraithPromotionService.java");
-        int transition = promotion.indexOf("WraithRoleTransitionService.transition(player, role)");
+        String promotion = source("roles/special/wraith/runtime/WraithLifecycle.java");
+        int transition = promotion.indexOf("transitionRole(player, role)");
         int initialization = promotion.indexOf("SaboteurFeatureService.initializePromotion(player)");
         assertTrue(transition >= 0 && initialization > transition);
 
@@ -46,7 +46,7 @@ class SaboteurServerIntegrationSourceTest {
         assertTrue(feature.contains("SaboteurRules.INITIAL_COOLDOWN_TICKS"));
         assertTrue(feature.contains("SaboteurShopService.initializePromotionStock(player)"));
 
-        String cleanup = source("roles/special/wraith/WraithSessionService.java");
+        String cleanup = source("roles/special/wraith/runtime/WraithLifecycle.java");
         assertTrue(cleanup.contains("SaboteurPlayerComponent.KEY.get(player).clear()"));
     }
 
@@ -95,7 +95,7 @@ class SaboteurServerIntegrationSourceTest {
         assertTrue(feature.contains("SaboteurRules.isActivePromotedSaboteur(player)"));
         assertTrue(feature.contains("addToBalance(SaboteurRules.TASK_REWARD)"));
 
-        String mixin = source("mixin/wraith/WraithPlayerShopComponentMixin.java");
+        String mixin = source("mixin/WraithPlayerShopComponentMixin.java");
         int wind = mixin.indexOf("WindSpiritRules.canPassShopAliveGate");
         int saboteur = mixin.indexOf("SaboteurRules.canPassShopAliveGate");
         assertTrue(wind >= 0 && saboteur > wind);
