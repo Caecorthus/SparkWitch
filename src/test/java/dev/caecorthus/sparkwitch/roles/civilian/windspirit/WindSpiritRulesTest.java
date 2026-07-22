@@ -31,4 +31,64 @@ class WindSpiritRulesTest {
         assertTrue(WindSpiritRules.shouldMaintainBlackoutVision(true, true));
         assertFalse(WindSpiritRules.shouldMaintainBlackoutVision(true, false));
     }
+
+    @Test
+    void promotedWindSpiritChargeRestoresAnOrdinaryParticipatingPlayerHit() {
+        assertTrue(resolve(false, true, true, false, true, true, true, false, false));
+        assertTrue(resolve(true, true, true, false, true, true, true, false, false));
+    }
+
+    @Test
+    void everyActiveWraithStageRemainsExcludedEvenWhenVanillaWouldAllowTheHit() {
+        for (String stage : new String[]{
+                "base", "wind_spirit", "guardian_angel", "vendetta", "saboteur", "curser"
+        }) {
+            assertFalse(resolve(false, true, true, false, true, true, true, false, true), stage);
+            assertFalse(resolve(true, true, true, false, true, true, true, false, true), stage);
+        }
+    }
+
+    @Test
+    void ownerSpectatorDeadRemovedAndNonParticipatingPlayersRemainExcluded() {
+        for (boolean vanillaCanHit : new boolean[]{false, true}) {
+            assertFalse(resolve(vanillaCanHit, true, true, true, true, true, true, false, false));
+            assertFalse(resolve(vanillaCanHit, true, true, false, true, true, true, true, false));
+            assertFalse(resolve(vanillaCanHit, true, true, false, true, false, true, false, false));
+            assertFalse(resolve(vanillaCanHit, true, true, false, true, true, false, false, false));
+        }
+    }
+
+    @Test
+    void breezeOrdinaryPlayerAndNonPlayerEligibilityRemainVanillaOwned() {
+        assertFalse(resolve(false, false, true, false, true, true, true, false, false));
+        assertTrue(resolve(true, false, true, false, true, true, true, false, false));
+        assertFalse(resolve(false, true, false, false, true, true, true, false, false));
+        assertTrue(resolve(true, true, false, false, true, true, true, false, false));
+        assertFalse(resolve(false, true, true, false, false, true, true, false, false));
+        assertTrue(resolve(true, true, true, false, false, true, true, false, false));
+    }
+
+    private static boolean resolve(
+            boolean vanillaCanHit,
+            boolean playerWindCharge,
+            boolean activePromotedWindSpiritOwner,
+            boolean targetIsOwner,
+            boolean playerTarget,
+            boolean targetAlive,
+            boolean targetParticipating,
+            boolean targetSpectator,
+            boolean targetActiveWraith
+    ) {
+        return WindSpiritRules.resolveWindChargeHit(
+                vanillaCanHit,
+                playerWindCharge,
+                activePromotedWindSpiritOwner,
+                targetIsOwner,
+                playerTarget,
+                targetAlive,
+                targetParticipating,
+                targetSpectator,
+                targetActiveWraith
+        );
+    }
 }

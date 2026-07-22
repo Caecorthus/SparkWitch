@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WraithNormalUiContractTest {
     private static final Path CLIENT_MIXINS = Path.of(
@@ -15,7 +16,7 @@ class WraithNormalUiContractTest {
     );
 
     @Test
-    void activeWraithKeepsNormalTextChatAndInventoryOpening() throws IOException {
+    void activeWraithKeepsNativeTextChatAndNormalInventoryOpening() throws IOException {
         String config = Files.readString(Path.of("src/client/resources/sparkwitch.client.mixins.json"));
         String sources;
         try (Stream<Path> paths = Files.walk(Path.of("src/client/java"))) {
@@ -26,12 +27,16 @@ class WraithNormalUiContractTest {
             sources = joined.toString();
         }
 
-        assertFalse(Files.exists(CLIENT_MIXINS.resolve("WraithChatRestrictionMixin.java")));
+        assertFalse(
+                Files.exists(CLIENT_MIXINS.resolve("WraithChatRestrictionMixin.java"))
+        );
+        assertFalse(Files.exists(CLIENT_MIXINS.resolve("WraithChatScreenMixin.java")));
         assertFalse(Files.exists(CLIENT_MIXINS.resolve("WraithInventoryKeyMixin.java")));
         assertFalse(config.contains("WraithChatRestrictionMixin"));
+        assertFalse(config.contains("WraithChatScreenMixin"));
         assertFalse(config.contains("WraithInventoryKeyMixin"));
         assertFalse(sources.contains("setChatAllowed(false)"));
-        assertFalse(sources.contains("sparkwitch$keepWraithChatClosed"));
+        assertFalse(sources.contains("shouldDisableChat()Z"));
         assertFalse(sources.contains("sparkwitch$openWraithInventory"));
     }
 

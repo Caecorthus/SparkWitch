@@ -1,6 +1,9 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRoundSettingsSnapshot;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithSettings;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithSettingsNbtCodec;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -31,6 +34,8 @@ public final class WraithRoundComponent implements Component {
 
     private final @Nullable Object provider;
     private final WraithRoundQuota quota = new WraithRoundQuota();
+    private WraithRoundSettingsSnapshot settingsSnapshot = new WraithRoundSettingsSnapshot(
+            0, WraithSettings.DEFAULT_CHANCE, WraithSettings.DEFAULT_MINIMUM, WraithSettings.DEFAULT_DIVIDEND);
     private boolean canonicalDataPresent;
     private boolean legacyImportCompleted;
 
@@ -39,9 +44,20 @@ public final class WraithRoundComponent implements Component {
     }
 
     public void beginRound(int startingPlayerCount) {
+        beginRound(startingPlayerCount, WraithSettings.DEFAULT);
+    }
+
+    public void beginRound(int startingPlayerCount, WraithSettings settings) {
         canonicalDataPresent = true;
         legacyImportCompleted = true;
-        quota.beginRound(startingPlayerCount);
+        settingsSnapshot = new WraithRoundSettingsSnapshot(
+                startingPlayerCount, settings.chance(), settings.minimum(), settings.dividend());
+        quota.beginRound(settingsSnapshot.startingPlayers(), settingsSnapshot.minimum(), settingsSnapshot.dividend());
+    }
+
+    public WraithRoundSettingsSnapshot getSettingsSnapshot() {
+        ensureLegacyImported();
+        return settingsSnapshot;
     }
 
     public int getStartingPlayerCount() {
@@ -75,6 +91,8 @@ public final class WraithRoundComponent implements Component {
     }
 
     public void clearRound() {
+        settingsSnapshot = new WraithRoundSettingsSnapshot(
+                0, WraithSettings.DEFAULT_CHANCE, WraithSettings.DEFAULT_MINIMUM, WraithSettings.DEFAULT_DIVIDEND);
         quota.clearRound();
         LegacyWraithRoundComponent.KEY.maybeGet(provider).ifPresent(LegacyWraithRoundComponent::clear);
         canonicalDataPresent = false;
@@ -84,7 +102,8 @@ public final class WraithRoundComponent implements Component {
     @Override
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         ensureLegacyImported();
-        tag.putInt(STARTING_PLAYER_COUNT_KEY, quota.getStartingPlayerCount());
+        tag.putInt(STARTING_PLAYER_COUNT_KEY, settingsSnapshot.startingPlayers());
+        WraithSettingsNbtCodec.writeRound(tag, settingsSnapshot);
         NbtList consumed = new NbtList();
         for (UUID playerUuid : quota.getConsumedPlayers()) {
             consumed.add(NbtString.of(playerUuid.toString()));
@@ -94,7 +113,9 @@ public final class WraithRoundComponent implements Component {
 
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
-        quota.restore(tag.getInt(STARTING_PLAYER_COUNT_KEY), readConsumedPlayers(tag));
+        settingsSnapshot = WraithSettingsNbtCodec.readRound(tag, tag.getInt(STARTING_PLAYER_COUNT_KEY));
+        quota.restore(settingsSnapshot.startingPlayers(), settingsSnapshot.minimum(), settingsSnapshot.dividend(),
+                readConsumedPlayers(tag));
         canonicalDataPresent = true;
         legacyImportCompleted = true;
     }
@@ -110,7 +131,11 @@ public final class WraithRoundComponent implements Component {
         }
         LegacyWraithRoundComponent.KEY.maybeGet(provider).ifPresent(legacy -> {
             if (legacy.hasData()) {
-                quota.restore(legacy.getStartingPlayerCount(), legacy.getConsumedPlayers());
+                settingsSnapshot = new WraithRoundSettingsSnapshot(
+                        legacy.getStartingPlayerCount(), WraithSettings.DEFAULT_CHANCE,
+                        WraithSettings.DEFAULT_MINIMUM, WraithSettings.DEFAULT_DIVIDEND);
+                quota.restore(settingsSnapshot.startingPlayers(), settingsSnapshot.minimum(), settingsSnapshot.dividend(),
+                        legacy.getConsumedPlayers());
             }
         });
         legacyImportCompleted = true;

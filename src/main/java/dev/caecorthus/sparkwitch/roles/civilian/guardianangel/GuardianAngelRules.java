@@ -1,14 +1,16 @@
 package dev.caecorthus.sparkwitch.roles.civilian.guardianangel;
 
 import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 
 /** Pure Guardian Angel tuning and server-validation decisions. / 守护天使的纯数值与服务端校验决策。 */
 public final class GuardianAngelRules {
     public static final Identifier ROLE_ID = Identifier.of("sparkwitch", "guardian_angel");
     public static final Identifier SKILL_ID = Identifier.of("sparkwitch", "guardian");
-    public static final int COLOR = 0x36E51B;
+    public static final int COLOR = 0xF0D77A;
     public static final int INITIAL_COOLDOWN_TICKS = 20 * 60;
     public static final int POST_USE_COOLDOWN_TICKS = 20 * 90;
     public static final int SHIELD_DURATION_TICKS = 20 * 10;
@@ -23,6 +25,13 @@ public final class GuardianAngelRules {
 
     public static boolean isGuardianAngel(Role role) {
         return role != null && ROLE_ID.equals(role.identifier());
+    }
+
+    public static boolean isGuardianAngel(PlayerEntity player) {
+        if (player == null) {
+            return false;
+        }
+        return isGuardianAngel(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
     }
 
     public static boolean canUse(

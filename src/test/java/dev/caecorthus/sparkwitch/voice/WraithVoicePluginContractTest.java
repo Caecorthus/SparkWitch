@@ -17,9 +17,11 @@ class WraithVoicePluginContractTest {
         assertTrue(source.contains("MicrophonePacketEvent.class, this::blockWraithSpeaker, Integer.MAX_VALUE"));
         assertTrue(source.contains("WraithStateService.isActive(speaker)"));
         assertTrue(source.contains("GuardianAngelRules.shouldBlockWraithMicrophone"));
-        assertFalse(source.contains("EntitySoundPacketEvent"));
-        assertFalse(source.contains("LocationalSoundPacketEvent"));
-        assertFalse(source.contains("Depression"));
-        assertFalse(source.contains("getReceiverConnection"));
+        assertTrue(source.contains("EntitySoundPacketEvent.class, this::blockSaboteurRecipient"));
+        assertTrue(source.contains("LocationalSoundPacketEvent.class, this::blockSaboteurRecipient"));
+        assertTrue(source.contains("StaticSoundPacketEvent.class, this::blockSaboteurRecipient"));
+        assertTrue(Files.readString(Path.of(
+                "src/main/java/dev/caecorthus/sparkwitch/voice/SaboteurVoiceRules.java"))
+                .contains("getReceiverConnection"));
     }
 }

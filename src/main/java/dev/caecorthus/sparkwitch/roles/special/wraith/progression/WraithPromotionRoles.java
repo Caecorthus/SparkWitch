@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.special.wraith.progression;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import dev.doctor4t.wathe.api.Role;
+import net.minecraft.util.Identifier;
 
 import java.util.List;
 import java.util.random.RandomGenerator;
@@ -27,11 +28,28 @@ final class WraithPromotionRoles {
                             SparkWitchRoles.windSpirit(),
                             SparkWitchRoles.guardianAngel()
                     );
-            case KILLER -> List.of(
-                    SparkWitchRoles.saboteur(),
-                    SparkWitchRoles.curser()
-            );
+            case KILLER -> List.of(SparkWitchRoles.saboteur());
+            case WITCH -> List.of(SparkWitchRoles.curser());
         };
+    }
+
+    static Role find(Identifier roleId) {
+        if (SparkWitchRoles.WIND_SPIRIT_ID.equals(roleId)) {
+            return SparkWitchRoles.windSpirit();
+        }
+        if (SparkWitchRoles.GUARDIAN_ANGEL_ID.equals(roleId)) {
+            return SparkWitchRoles.guardianAngel();
+        }
+        if (SparkWitchRoles.VENDETTA_ID.equals(roleId)) {
+            return SparkWitchRoles.vendetta();
+        }
+        if (SparkWitchRoles.SABOTEUR_ID.equals(roleId)) {
+            return SparkWitchRoles.saboteur();
+        }
+        if (SparkWitchRoles.CURSER_ID.equals(roleId)) {
+            return SparkWitchRoles.curser();
+        }
+        return null;
     }
 
     static Role pick(WraithState.Alignment alignment, RandomGenerator random) {

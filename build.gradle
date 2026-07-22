@@ -150,6 +150,317 @@ tasks.named("jar") {
 }
 
 def remappedModJar = tasks.named("remapJar")
+def compatibilityReleaseVersion = "0.1.6.2"
+def compatibilityBaselines = [
+        wathe: [
+                property: "wathe_version",
+                version: "1.5.6-spark-1.21.1",
+                sha256: "a4e0355c61def0b482c197a7ccd1f86ee91752b7af1b5bdafae8716c652f207f",
+                depends: [:]
+        ],
+        noellesroles: [
+                property: "noellesroles_version",
+                version: "1.7.6-h1.5.6-spark",
+                sha256: "fcb0da6995197afff8637dd9236f96d9d07cfc0e26484ad3777e5cf3de37d8b7",
+                depends: [wathe: "1.5.6-spark-1.21.1"]
+        ],
+        sparkfactionapi: [
+                property: "sparkfactionapi_version",
+                version: "0.1.6.0",
+                sha256: "fce2a6c5e96e95ecb2eef2458de4fdfdcb5765af80be86b3f6d8b0fa7fb73f25",
+                depends: [wathe: ">=1.5.6-spark-1.21.1"]
+        ]
+]
+def compatibilityProviderFiles = fileTree("libs") {
+    compatibilityBaselines.keySet().each { modId ->
+        include "${modId}-*.jar"
+    }
+}
+def sparkTraitsCompatibilityFloor = "0.1.9.11"
+
+def sha256 = { File input ->
+    java.security.MessageDigest.getInstance("SHA-256")
+            .digest(input.bytes)
+            .encodeHex()
+            .toString()
+}
+
+def watheClientMixinContracts = [
+        [
+                configName: "WitchSkillInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WitchSkillInventoryScreenMixin.class",
+                handler: "sparkwitch\$renderOwnerSkill",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25394",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                configName: "WitchShopPriceMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WitchShopPriceMixin.class",
+                handler: "sparkwitch\$renderManaPrice",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Redirect;",
+                selector: "method_48579(Lnet/minecraft/class_332;IIF)V",
+                atTarget: "Lnet/minecraft/class_2561;method_43470(Ljava/lang/String;)Lnet/minecraft/class_5250;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen\$StoreItemWidget.class",
+                providerMethod: "method_48579",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                configName: "witchmaiden.WitchMaidenInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/witchmaiden/WitchMaidenInventoryScreenMixin.class",
+                handler: "sparkwitch\$attachWitchMaidenUi",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25426()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25426",
+                providerDescriptor: "()V"
+        ],
+        [
+                configName: "witchmaiden.WitchMaidenInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/witchmaiden/WitchMaidenInventoryScreenMixin.class",
+                handler: "sparkwitch\$renderWitchMaidenEmptyState",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25394",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ]
+]
+
+def readClassNode = { java.util.zip.ZipFile archive, String entryName ->
+    def entry = archive.getEntry(entryName)
+    if (entry == null) {
+        throw new GradleException("Missing class ${entryName} in ${archive.name}")
+    }
+    def node = new org.objectweb.asm.tree.ClassNode()
+    archive.getInputStream(entry).withCloseable { input ->
+        new org.objectweb.asm.ClassReader(input).accept(
+                node,
+                org.objectweb.asm.ClassReader.SKIP_DEBUG | org.objectweb.asm.ClassReader.SKIP_FRAMES
+        )
+    }
+    node
+}
+
+def annotationValue = { annotation, String key ->
+    def values = annotation?.values ?: []
+    for (int index = 0; index < values.size(); index += 2) {
+        if (values[index] == key) {
+            return values[index + 1]
+        }
+    }
+    null
+}
+
+def verifyClientMixinSelectors = tasks.register("verifyClientMixinSelectors") {
+    dependsOn remappedModJar
+    inputs.file(remappedModJar.flatMap { it.archiveFile })
+    inputs.file("libs/wathe-${project.wathe_version}.jar")
+    inputs.file("src/client/resources/sparkwitch.client.mixins.json")
+
+    doLast {
+        def jarFile = remappedModJar.get().archiveFile.get().asFile
+        def watheJar = file("libs/wathe-${project.wathe_version}.jar")
+        def modZip = new java.util.zip.ZipFile(jarFile)
+        def watheZip = new java.util.zip.ZipFile(watheJar)
+        try {
+            def configEntry = modZip.getEntry("sparkwitch.client.mixins.json")
+            if (configEntry == null) {
+                throw new GradleException("Missing sparkwitch.client.mixins.json in ${jarFile.name}")
+            }
+            def config = new groovy.json.JsonSlurper().parse(modZip.getInputStream(configEntry))
+            if (config.required != true) {
+                throw new GradleException("Client mixin config must remain required in ${jarFile.name}")
+            }
+            if (config.injectors?.defaultRequire?.toString() != "1") {
+                throw new GradleException(
+                        "Client mixin defaultRequire drift: expected 1, found ${config.injectors?.defaultRequire}"
+                )
+            }
+            def configuredMixins = config.client ?: []
+            def providerNodes = [:]
+
+            watheClientMixinContracts.each { contract ->
+                if (!configuredMixins.contains(contract.configName)) {
+                    throw new GradleException(
+                            "Missing client mixin ${contract.configName} from sparkwitch.client.mixins.json"
+                    )
+                }
+
+                def mixinNode = readClassNode(modZip, contract.mixinEntry)
+                def handler = mixinNode.methods.find { it.name == contract.handler }
+                if (handler == null) {
+                    throw new GradleException("Missing handler ${contract.handler} in ${contract.mixinEntry}")
+                }
+                def annotations = []
+                annotations.addAll(handler.visibleAnnotations ?: [])
+                annotations.addAll(handler.invisibleAnnotations ?: [])
+                def injection = annotations.find { it.desc == contract.annotationDesc }
+                if (injection == null) {
+                    throw new GradleException(
+                            "Missing ${contract.annotationDesc} on ${contract.mixinEntry}#${contract.handler}"
+                    )
+                }
+                def selectorValue = annotationValue(injection, "method")
+                def selectors = selectorValue instanceof Collection
+                        ? selectorValue.collect { it.toString() }
+                        : [selectorValue?.toString()].findAll { it != null }
+                if (selectors != [contract.selector]) {
+                    throw new GradleException(
+                            "Packaged selector drift for ${contract.mixinEntry}#${contract.handler}: "
+                                    + "expected ${contract.selector}, found ${selectors}"
+                    )
+                }
+                if (annotationValue(injection, "require")?.toString() == "0") {
+                    throw new GradleException(
+                            "Required client injection was weakened with require=0: "
+                                    + "${contract.mixinEntry}#${contract.handler}"
+                    )
+                }
+
+                if (contract.atTarget != null) {
+                    def atValue = annotationValue(injection, "at")
+                    def atAnnotations = atValue instanceof Collection ? atValue : [atValue]
+                    def atTargets = atAnnotations.collect { annotationValue(it, "target") }
+                            .findAll { it != null }
+                            .collect { it.toString() }
+                    if (atTargets != [contract.atTarget]) {
+                        throw new GradleException(
+                                "Packaged @At target drift for ${contract.mixinEntry}#${contract.handler}: "
+                                        + "expected ${contract.atTarget}, found ${atTargets}"
+                        )
+                    }
+                }
+
+                def providerNode = providerNodes.computeIfAbsent(contract.providerEntry) {
+                    readClassNode(watheZip, contract.providerEntry)
+                }
+                def providerMethod = providerNode.methods.find {
+                    it.name == contract.providerMethod && it.desc == contract.providerDescriptor
+                }
+                if (providerMethod == null) {
+                    throw new GradleException(
+                            "Wathe ${project.wathe_version} is missing ${contract.providerEntry}#"
+                                    + "${contract.providerMethod}${contract.providerDescriptor}"
+                    )
+                }
+            }
+        } finally {
+            watheZip.close()
+            modZip.close()
+        }
+    }
+}
+
+tasks.register("verifyCompatibilityBaselines") {
+    inputs.file("gradle.properties")
+    inputs.file("src/main/resources/fabric.mod.json")
+    inputs.files(compatibilityBaselines.collect { modId, baseline ->
+        file("libs/${modId}-${baseline.version}.jar")
+    })
+    inputs.files(compatibilityProviderFiles)
+
+    doLast {
+        if (project.mod_version.toString() != compatibilityReleaseVersion) {
+            throw new GradleException(
+                    "Compatibility release drift: expected ${compatibilityReleaseVersion}, found ${project.mod_version}"
+            )
+        }
+
+        def expectedProviderNames = compatibilityBaselines.collect { modId, baseline ->
+            "${modId}-${baseline.version}.jar"
+        }.sort()
+        def actualProviderNames = compatibilityProviderFiles.files.collect { it.name }.sort()
+        if (actualProviderNames != expectedProviderNames) {
+            throw new GradleException(
+                    "Provider jar set drift: expected ${expectedProviderNames}, found ${actualProviderNames}"
+            )
+        }
+
+        compatibilityBaselines.each { modId, baseline ->
+            def actualVersion = project.property(baseline.property).toString()
+            if (actualVersion != baseline.version) {
+                throw new GradleException(
+                        "Provider baseline drift for ${modId}: expected ${baseline.version}, found ${actualVersion}"
+                )
+            }
+
+            def providerJar = file("libs/${modId}-${baseline.version}.jar")
+            if (!providerJar.isFile()) {
+                throw new GradleException("Missing provider baseline jar: ${providerJar}")
+            }
+            def actualHash = sha256(providerJar)
+            if (actualHash != baseline.sha256) {
+                throw new GradleException(
+                        "Provider baseline checksum drift for ${providerJar.name}: expected ${baseline.sha256}, found ${actualHash}"
+                )
+            }
+
+            def providerZip = new java.util.zip.ZipFile(providerJar)
+            try {
+                def metadataEntry = providerZip.getEntry("fabric.mod.json")
+                if (metadataEntry == null) {
+                    throw new GradleException("Missing fabric.mod.json in ${providerJar.name}")
+                }
+                def providerMetadata = new groovy.json.JsonSlurper().parse(providerZip.getInputStream(metadataEntry))
+                if (providerMetadata.id?.toString() != modId) {
+                    throw new GradleException(
+                            "Provider id drift in ${providerJar.name}: expected ${modId}, found ${providerMetadata.id}"
+                    )
+                }
+                if (providerMetadata.version?.toString() != baseline.version) {
+                    throw new GradleException(
+                            "Provider metadata version drift in ${providerJar.name}: expected ${baseline.version}, found ${providerMetadata.version}"
+                    )
+                }
+                baseline.depends.each { dependencyId, expectedPredicate ->
+                    def actualPredicate = providerMetadata.depends?.get(dependencyId)?.toString()
+                    if (actualPredicate != expectedPredicate) {
+                        throw new GradleException(
+                                "Provider dependency drift in ${providerJar.name}: ${dependencyId} expected ${expectedPredicate}, found ${actualPredicate}"
+                        )
+                    }
+                }
+            } finally {
+                providerZip.close()
+            }
+        }
+
+        def metadata = new groovy.json.JsonSlurper().parse(file("src/main/resources/fabric.mod.json"))
+        if (metadata.version?.toString() != '${version}') {
+            throw new GradleException(
+                    "Source metadata version placeholder drift: expected \${version}, found ${metadata.version}"
+            )
+        }
+        [
+                wathe: '${wathe_version}',
+                noellesroles: '${noellesroles_version}',
+                sparkfactionapi: '>=${sparkfactionapi_version}'
+        ].each { modId, expectedPredicate ->
+            def actualPredicate = metadata.depends?.get(modId)?.toString()
+            if (actualPredicate != expectedPredicate) {
+                throw new GradleException(
+                        "Source metadata dependency drift for ${modId}: expected ${expectedPredicate}, found ${actualPredicate}"
+                )
+            }
+        }
+
+        def expectedSuggests = ">=${sparkTraitsCompatibilityFloor}"
+        def expectedBreaks = "<${sparkTraitsCompatibilityFloor}"
+        if (metadata.suggests?.sparktraits?.toString() != expectedSuggests) {
+            throw new GradleException(
+                    "SparkTraits suggested floor drift: expected ${expectedSuggests}, found ${metadata.suggests?.sparktraits}"
+            )
+        }
+        if (metadata.breaks?.sparktraits?.toString() != expectedBreaks) {
+            throw new GradleException(
+                    "SparkTraits break floor drift: expected ${expectedBreaks}, found ${metadata.breaks?.sparktraits}"
+            )
+        }
+    }
+}
 
 // Compare Spark-style numeric versions used by SparkFactionAPI dependency floors.
 // 比较 SparkFactionAPI 依赖下限使用的 Spark 数字版本。
@@ -224,6 +535,19 @@ tasks.register("verifyModJarVersion") {
                 }
             }
 
+            def expectedSparkTraitsSuggests = ">=${sparkTraitsCompatibilityFloor}"
+            def expectedSparkTraitsBreaks = "<${sparkTraitsCompatibilityFloor}"
+            if (metadata.suggests?.sparktraits?.toString() != expectedSparkTraitsSuggests) {
+                throw new GradleException(
+                        "SparkTraits suggestion mismatch in ${jarFile.name}: expected ${expectedSparkTraitsSuggests}, found ${metadata.suggests?.sparktraits}"
+                )
+            }
+            if (metadata.breaks?.sparktraits?.toString() != expectedSparkTraitsBreaks) {
+                throw new GradleException(
+                        "SparkTraits break mismatch in ${jarFile.name}: expected ${expectedSparkTraitsBreaks}, found ${metadata.breaks?.sparktraits}"
+                )
+            }
+
             def dependencyJar = file("libs/sparkfactionapi-${project.sparkfactionapi_version}.jar")
             if (!dependencyJar.isFile()) {
                 throw new GradleException("Missing bundled SparkFactionAPI jar: ${dependencyJar}")
@@ -263,7 +587,9 @@ tasks.register("verifyModJarVersion") {
 }
 
 tasks.named("build") {
+    dependsOn tasks.named("verifyCompatibilityBaselines")
     dependsOn tasks.named("verifyModJarVersion")
+    dependsOn verifyClientMixinSelectors
 }
 
 def requiredArchitectureDocs = [
@@ -334,6 +660,8 @@ tasks.named("check") {
     dependsOn tasks.matching { it.name == "validateAccessWidener" }
     dependsOn tasks.named("test")
     dependsOn tasks.named("verifyArchitecture")
+    dependsOn tasks.named("verifyCompatibilityBaselines")
+    dependsOn verifyClientMixinSelectors
 }
 
 

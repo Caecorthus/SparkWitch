@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRules;
 import dev.caecorthus.sparkwitch.skill.WitchSkillHudRules;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
@@ -113,6 +114,16 @@ public final class WitchSkillHudRenderer {
             return Text.translatable(
                     "hud.sparkwitch.skill.pig_chase.not_enough_money",
                     PigGodRules.COIN_COST
+            );
+        }
+        if (WitchSkillHudRules.shouldShowProphetCoinCost(
+                skillId,
+                activeTicks,
+                component.getCooldownTicks()
+        )) {
+            return Text.translatable(
+                    "hud.sparkwitch.skill.death_omen.coin_cost",
+                    ProphetRules.COIN_COST
             );
         }
         return Text.translatable(

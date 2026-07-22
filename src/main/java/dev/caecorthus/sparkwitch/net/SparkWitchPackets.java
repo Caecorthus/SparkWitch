@@ -12,6 +12,8 @@ import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurNetworking;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperThrowService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRequestService;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
+import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
+import dev.caecorthus.sparkwitch.roles.witch.curser.UseCurserAbilityC2SPacket;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -31,6 +33,7 @@ public final class SparkWitchPackets {
         SaboteurNetworking.register();
         PayloadTypeRegistry.playC2S().register(UseWitchSkillC2SPacket.ID, UseWitchSkillC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(FireDeathRayC2SPacket.ID, FireDeathRayC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(UseCurserAbilityC2SPacket.ID, UseCurserAbilityC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(
                 UseOrthopedistSkillC2SPacket.ID,
                 UseOrthopedistSkillC2SPacket.CODEC
@@ -80,6 +83,8 @@ public final class SparkWitchPackets {
                         context.player(), payload.targetUuid()));
         ServerPlayNetworking.registerGlobalReceiver(FireDeathRayC2SPacket.ID,
                 (payload, context) -> MurderousWitchDeathRayService.fire(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseCurserAbilityC2SPacket.ID,
+                (payload, context) -> CurserFeatureService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseOrthopedistSkillC2SPacket.ID,
                 (payload, context) -> OrthopedistSkillService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(ThrowKidnapperBodyC2SPacket.ID,

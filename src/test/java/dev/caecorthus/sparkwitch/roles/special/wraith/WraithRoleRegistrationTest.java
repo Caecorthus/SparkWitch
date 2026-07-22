@@ -53,7 +53,7 @@ class WraithRoleRegistrationTest {
         for (Role role : goodRoles) {
             assertEquals(FactionIds.CIVILIAN, SparkFactionApi.resolveBaseFaction(role));
             assertEquals(Faction.CIVILIAN, role.getFaction());
-            assertEquals(0x36E51B, role.color());
+            assertEquals(0x59D8E6, role.color());
             assertEquals(Role.MoodType.NONE, role.getMoodType());
             assertEquals(GameConstants.getInTicks(0, 10), role.getMaxSprintTime());
             assertFalse(role.canSeeTime());
@@ -63,7 +63,7 @@ class WraithRoleRegistrationTest {
         Role vendetta = SparkWitchRoles.vendetta();
         assertEquals(FactionIds.CIVILIAN, SparkFactionApi.resolveBaseFaction(vendetta));
         assertEquals(Faction.CIVILIAN, vendetta.getFaction());
-        assertEquals(0x36E51B, vendetta.color());
+        assertEquals(0xE34B5F, vendetta.color());
         assertEquals(Role.MoodType.NONE, vendetta.getMoodType());
         assertEquals(-1, vendetta.getMaxSprintTime());
         assertFalse(vendetta.canSeeTime());
@@ -72,7 +72,7 @@ class WraithRoleRegistrationTest {
         Role guardianAngel = SparkWitchRoles.guardianAngel();
         assertEquals(FactionIds.CIVILIAN, SparkFactionApi.resolveBaseFaction(guardianAngel));
         assertEquals(Faction.CIVILIAN, guardianAngel.getFaction());
-        assertEquals(0x36E51B, guardianAngel.color());
+        assertEquals(0xF0D77A, guardianAngel.color());
         assertEquals(Role.MoodType.NONE, guardianAngel.getMoodType());
         assertEquals(-1, guardianAngel.getMaxSprintTime());
         assertFalse(guardianAngel.canSeeTime());
@@ -81,7 +81,7 @@ class WraithRoleRegistrationTest {
         Role saboteur = SparkWitchRoles.saboteur();
         assertEquals(FactionIds.KILLER, SparkFactionApi.resolveBaseFaction(saboteur));
         assertEquals(Faction.KILLER, saboteur.getFaction());
-        assertEquals(0xC13838, saboteur.color());
+        assertEquals(0xE28743, saboteur.color());
         assertEquals(Role.MoodType.NONE, saboteur.getMoodType());
         assertEquals(-1, saboteur.getMaxSprintTime());
         assertTrue(saboteur.canSeeTime());
@@ -90,7 +90,7 @@ class WraithRoleRegistrationTest {
         Role curser = SparkWitchRoles.curser();
         assertEquals(SparkWitchFactions.WITCH, SparkFactionApi.resolveBaseFaction(curser));
         assertEquals(Faction.NEUTRAL, curser.getFaction());
-        assertEquals(0xC13838, curser.color());
+        assertEquals(0xA968D5, curser.color());
         assertEquals(Role.MoodType.NONE, curser.getMoodType());
         assertEquals(-1, curser.getMaxSprintTime());
         assertTrue(curser.canSeeTime());
@@ -146,7 +146,7 @@ class WraithRoleRegistrationTest {
         assertLocalization(english, "curser", "Curser",
                 "Eliminate a passenger to succeed, before time runs out.",
                 "Eliminate a passenger to succeed, before time runs out.",
-                "Eliminate all civilians before time runs out.");
+                english.get("announcement.goals.curser").getAsString());
 
         assertLocalization(chinese, "wraith", "冤魂",
                 "完成三项任务，以获得新的身份。",
@@ -173,7 +173,7 @@ class WraithRoleRegistrationTest {
         assertLocalization(chinese, "curser", "诅咒者",
                 "在时间耗尽前击杀一名乘客以取得胜利。",
                 "在时间耗尽前击杀一名乘客以取得胜利。",
-                "在时间耗尽前消灭所有平民。");
+                chinese.get("announcement.goals.curser").getAsString());
     }
 
     private static JsonObject language(String locale) throws IOException {

@@ -33,8 +33,16 @@ class KidnapperThrowIntegrationSourceTest {
         assertTrue(throwing.contains("KidnapperCarryState.findCarriedBody(player)"));
         assertTrue(throwing.contains("KidnapperDragService.release(player);"));
         assertTrue(throwing.contains("body.setVelocity(velocity);"));
+        assertTrue(throwing.contains("body.setYaw(throwYaw);"));
+        assertTrue(throwing.contains("body.setBodyYaw(throwYaw);"));
+        assertTrue(throwing.contains("body.setHeadYaw(throwYaw);"));
+        assertTrue(throwing.contains("body.prevYaw = throwYaw;"));
+        assertTrue(throwing.contains("body.prevBodyYaw = throwYaw;"));
+        assertTrue(throwing.contains("body.prevHeadYaw = throwYaw;"));
         assertTrue(throwing.contains("body.velocityModified = true;"));
         assertTrue(throwing.indexOf("KidnapperDragService.release(player);")
+                < throwing.indexOf("body.setYaw(throwYaw);"));
+        assertTrue(throwing.indexOf("body.prevHeadYaw = throwYaw;")
                 < throwing.indexOf("body.setVelocity(velocity);"));
 
         assertTrue(dragging.contains("release(player);\n            return WitchSkillUseResult.success(0);"));
@@ -76,10 +84,10 @@ class KidnapperThrowIntegrationSourceTest {
 
     @Test
     void ownsTheRawUseGestureOncePerHeldPressBeforeVanillaItemUse() throws IOException {
-        String hook = Files.readString(CLIENT_ROOT.resolve("hooks/KidnapperThrowClientHooks.java"));
-        String mixin = Files.readString(CLIENT_ROOT.resolve("mixin/kidnapper/KidnapperThrowUseMixin.java"));
-        String client = Files.readString(CLIENT_ROOT.resolve("SparkWitchClient.java"));
-        String clientMixins = Files.readString(Path.of("src/client/resources/sparkwitch.client.mixins.json"));
+        String hook = readClient("hooks/KidnapperThrowClientHooks.java");
+        String mixin = readClient("mixin/kidnapper/KidnapperThrowUseMixin.java");
+        String client = readClient("SparkWitchClient.java");
+        String clientMixins = readText(Path.of("src/client/resources/sparkwitch.client.mixins.json"));
 
         assertTrue(hook.contains("SparkWitchServerConnection.isConfirmedServer()"));
         assertTrue(hook.contains("ClientPlayNetworking.canSend(ThrowKidnapperBodyC2SPacket.ID)"));
@@ -136,6 +144,14 @@ class KidnapperThrowIntegrationSourceTest {
     }
 
     private static String read(String relativePath) throws IOException {
-        return Files.readString(ROOT.resolve(relativePath));
+        return readText(ROOT.resolve(relativePath));
+    }
+
+    private static String readClient(String relativePath) throws IOException {
+        return readText(CLIENT_ROOT.resolve(relativePath));
+    }
+
+    private static String readText(Path path) throws IOException {
+        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
     }
 }

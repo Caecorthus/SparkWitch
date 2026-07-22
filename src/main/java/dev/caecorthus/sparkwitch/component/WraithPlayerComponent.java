@@ -4,7 +4,6 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -197,14 +196,9 @@ public final class WraithPlayerComponent implements AutoSyncedComponent {
 
     private void readState(NbtCompound tag) {
         boolean active = tag.getBoolean("WraithActive");
-        WraithState.Alignment alignment = null;
-        if (active && tag.contains("WraithAlignment", NbtElement.STRING_TYPE)) {
-            try {
-                alignment = WraithState.Alignment.valueOf(tag.getString("WraithAlignment"));
-            } catch (IllegalArgumentException ignored) {
-                alignment = null;
-            }
-        }
+        WraithState.Alignment alignment = active
+                ? WraithState.Alignment.fromSerializedName(tag.getString("WraithAlignment"))
+                : null;
         state.restore(
                 active,
                 tag.getBoolean("WraithRestricted"),

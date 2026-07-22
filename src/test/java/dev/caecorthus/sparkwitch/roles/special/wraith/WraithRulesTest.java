@@ -15,6 +15,9 @@ class WraithRulesTest {
     void conversionUsesTheExactChanceAndEligibleNativeOrigins() {
         assertFalse(WraithRules.passesChance(0.75D));
         assertTrue(WraithRules.passesChance(Math.nextDown(0.75D)));
+        assertFalse(WraithRules.passesChance(0.0D, 0));
+        assertTrue(WraithRules.passesChance(Math.nextDown(1.0D), 100));
+        assertFalse(WraithRules.passesChance(1.0D, 100));
         assertTrue(WraithRules.isEligibleDeath(Faction.CIVILIAN, GameConstants.DeathReasons.GENERIC));
         assertTrue(WraithRules.isEligibleDeath(Faction.KILLER, GameConstants.DeathReasons.GENERIC));
         assertFalse(WraithRules.isEligibleDeath(Faction.NEUTRAL, GameConstants.DeathReasons.GENERIC));
@@ -25,9 +28,15 @@ class WraithRulesTest {
     }
 
     @Test
-    void effectiveFactionSnapshotMapsOnlyGoodAndKiller() {
+    void effectiveFactionSnapshotMapsGoodKillerAndWitch() {
         assertEquals(WraithState.Alignment.GOOD, WraithRules.alignmentFor(FactionIds.CIVILIAN));
         assertEquals(WraithState.Alignment.KILLER, WraithRules.alignmentFor(FactionIds.KILLER));
+        assertEquals(WraithState.Alignment.WITCH,
+                WraithRules.alignmentFor(net.minecraft.util.Identifier.of("sparkwitch", "witch")));
+        assertTrue(WraithRules.isEligibleDeath(
+                WraithState.Alignment.WITCH, GameConstants.DeathReasons.GENERIC, false));
+        assertFalse(WraithRules.isEligibleDeath(
+                WraithState.Alignment.WITCH, GameConstants.DeathReasons.ESCAPED, false));
         assertThrows(IllegalArgumentException.class, () -> WraithRules.alignmentFor(FactionIds.NEUTRAL));
     }
 }

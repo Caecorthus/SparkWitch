@@ -11,8 +11,9 @@ import net.minecraft.util.Identifier;
 public final class VendettaRole {
     public static final Identifier ROLE_ID = SparkWitch.id("vendetta");
     public static final Identifier ID = ROLE_ID;
+    public static final int COLOR = 0xE34B5F;
     public static final FactionRoleDefinition DEFINITION = FactionRoleDefinition.builder(ROLE_ID, FactionIds.CIVILIAN)
-            .color(0x36E51B)
+            .color(COLOR)
             .moodType(Role.MoodType.NONE)
             .maxSprintTime(-1)
             .canSeeTime(false)

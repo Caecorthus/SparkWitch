@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,6 +27,21 @@ class WindSpiritInstinctClientSourceTest {
     }
 
     @Test
+    void nativePlayerTargetsUseTheWindSpiritRoleColor() {
+        assertEquals(0x59D8E6, WindSpiritInstinctClientRules.resolveNativePlayerHighlightColor(
+                0x990000, dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole.ID,
+                true, false, true));
+        assertEquals(0x59D8E6, WindSpiritInstinctClientRules.resolveNativePlayerHighlightColor(
+                0x4EDD35, dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole.ID,
+                true, false, true));
+        assertEquals(0x990000, WindSpiritInstinctClientRules.resolveNativePlayerHighlightColor(
+                0x990000, null, true, true, false));
+        assertEquals(0x4EDD35, WindSpiritInstinctClientRules.resolveNativePlayerHighlightColor(
+                0x4EDD35, dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole.ID,
+                false, false, true));
+    }
+
+    @Test
     void mixinUsesWatheNativeHighlightGateAndPreservesPriorityVetoes() throws IOException {
         String mixin = read(CLIENT_ROOT.resolve("mixin/windspirit/WindSpiritInstinctMixin.java"));
         String wraithHighlight = read(CLIENT_ROOT.resolve("mixin/WraithWatheHighlightMixin.java"));
@@ -34,6 +50,9 @@ class WindSpiritInstinctClientSourceTest {
 
         assertTrue(mixin.contains("method = \"getInstinctHighlight\""));
         assertTrue(mixin.contains("WatheClient;isKiller()Z"));
+        assertTrue(mixin.contains("MathHelper;hsvToRgb(FFF)I"));
+        assertTrue(mixin.contains("intValue = 5168437"));
+        assertTrue(mixin.contains("resolveNativePlayerHighlightColor"));
         assertTrue(mixin.contains("method = \"isInstinctEnabledAndIsKiller\""));
         assertTrue(mixin.contains("WraithClientState.isPromoted(player)"));
         assertTrue(mixin.contains("priority = 1000"));

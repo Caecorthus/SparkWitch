@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(targets = "org.agmas.noellesroles.Noellesroles", remap = false)
 public abstract class NoellesAssassinVendettaTargetMixin {
     @Redirect(
-            method = {"lambda$registerPackets$6", "lambda$registerPackets$37"},
+            method = "lambda$registerPackets$6",
             at = @At(
                     value = "INVOKE",
                     target = "Ldev/doctor4t/wathe/game/GameFunctions;isPlayerPlayingAndAlive(Lnet/minecraft/entity/player/PlayerEntity;)Z",

@@ -39,6 +39,32 @@ public final class WindSpiritRules {
         return promotedWindSpirit;
     }
 
+    /**
+     * Preserves vanilla eligibility except for Wind Spirit charges: active Wraiths are denied, while
+     * another living, participating ordinary player may regain a hit filtered by Wraith collision.
+     * 保留原版命中资格；风精灵风弹排除 active Wraith，并可恢复对其他存活参赛玩家的命中。
+     */
+    public static boolean resolveWindChargeHit(
+            boolean vanillaCanHit,
+            boolean playerWindCharge,
+            boolean activePromotedWindSpiritOwner,
+            boolean targetIsOwner,
+            boolean playerTarget,
+            boolean targetAlive,
+            boolean targetParticipating,
+            boolean targetSpectator,
+            boolean targetActiveWraith
+    ) {
+        if (!playerWindCharge || !activePromotedWindSpiritOwner || !playerTarget) {
+            return vanillaCanHit;
+        }
+        return !targetIsOwner
+                && targetAlive
+                && targetParticipating
+                && !targetSpectator
+                && !targetActiveWraith;
+    }
+
     public static boolean isWindSpirit(Role role) {
         return role != null && WindSpiritRole.ID.equals(role.identifier());
     }

@@ -7,13 +7,16 @@ import net.minecraft.util.Identifier;
 
 /** Pure death-conversion rules for Wraith. */
 public final class WraithRules {
-    private static final double CONVERSION_CHANCE = 0.75D;
-
     private WraithRules() {
     }
 
     public static boolean passesChance(double randomRoll) {
-        return randomRoll < CONVERSION_CHANCE;
+        return passesChance(randomRoll, WraithSettings.DEFAULT_CHANCE);
+    }
+
+    public static boolean passesChance(double randomRoll, int chancePercent) {
+        int normalizedChance = Math.max(0, Math.min(100, chancePercent));
+        return randomRoll < normalizedChance / 100.0D;
     }
 
     public static boolean isEligibleDeath(Faction originalFaction, Identifier deathReason) {
@@ -26,7 +29,20 @@ public final class WraithRules {
             boolean attributedFall
     ) {
         return (originalFaction == Faction.CIVILIAN || originalFaction == Faction.KILLER)
-                && deathReason != null
+                && isEligibleDeathReason(deathReason, attributedFall);
+    }
+
+    /** Custom factions are validated from the effective-faction alignment snapshot. */
+    public static boolean isEligibleDeath(
+            WraithState.Alignment alignment,
+            Identifier deathReason,
+            boolean attributedFall
+    ) {
+        return alignment != null && isEligibleDeathReason(deathReason, attributedFall);
+    }
+
+    private static boolean isEligibleDeathReason(Identifier deathReason, boolean attributedFall) {
+        return deathReason != null
                 && !GameConstants.DeathReasons.ESCAPED.equals(deathReason)
                 && (attributedFall || !GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason));
     }
@@ -38,6 +54,9 @@ public final class WraithRules {
         if (FactionIds.CIVILIAN.equals(effectiveFaction)) {
             return WraithState.Alignment.GOOD;
         }
-        throw new IllegalArgumentException("Wraith requires an effective GOOD or KILLER alignment");
+        if (Identifier.of("sparkwitch", "witch").equals(effectiveFaction)) {
+            return WraithState.Alignment.WITCH;
+        }
+        throw new IllegalArgumentException("Wraith requires an effective GOOD, KILLER, or WITCH alignment");
     }
 }

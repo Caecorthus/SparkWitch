@@ -18,7 +18,7 @@ class ProphetComponentSchemaSourceTest {
 
     @Test
     void delegatesProphetStateWithoutOwningItsFields() throws IOException {
-        String component = Files.readString(COMPONENT);
+        String component = readText(COMPONENT);
         assertTrue(component.contains("private final ProphetPlayerState prophetState = new ProphetPlayerState();"));
         assertTrue(component.contains("return prophetState.remainingTicks();"));
         assertTrue(component.contains("return prophetState.isActive();"));
@@ -35,7 +35,7 @@ class ProphetComponentSchemaSourceTest {
 
     @Test
     void normalFinishStartsDeferredCooldownButCancellationOnlyClearsIt() throws IOException {
-        String component = Files.readString(COMPONENT);
+        String component = readText(COMPONENT);
         String tick = methodBody(component, "public void tickDeathOmenWindow()", "public void cancelDeathOmenWindow()");
         assertTrue(tick.contains("ProphetPlayerState.TickOutcome.FINISHED"));
         assertTrue(tick.contains("startDeferredCooldownNow();"));
@@ -54,7 +54,7 @@ class ProphetComponentSchemaSourceTest {
 
     @Test
     void apprenticeRuntimeDoesNotClaimProphetDeferredCooldown() throws IOException {
-        String component = Files.readString(COMPONENT);
+        String component = readText(COMPONENT);
         String apprenticeState = methodBody(
                 component,
                 "public boolean hasApprenticeWindowState()",
@@ -66,8 +66,8 @@ class ProphetComponentSchemaSourceTest {
 
     @Test
     void appendsProphetCodecsAfterTheLiveNinjaTail() throws IOException {
-        String sync = Files.readString(SYNC);
-        String nbt = Files.readString(NBT);
+        String sync = readText(SYNC);
+        String nbt = readText(NBT);
         int syncWriteNinja = sync.indexOf("buf.writeVarInt(ownerVisible ? component.ninjaParryTicks : 0);");
         int syncWriteProphet = sync.indexOf("component.getProphetState().writeSync(buf, ownerVisible);", syncWriteNinja);
         int syncReadNinja = sync.indexOf("component.ninjaParryTicks =", syncWriteProphet);
@@ -81,6 +81,10 @@ class ProphetComponentSchemaSourceTest {
         int nbtReadProphet = nbt.indexOf("component.getProphetState().readNbt(tag);", nbtReadNinja);
         assertTrue(nbtWriteNinja >= 0 && nbtWriteProphet > nbtWriteNinja);
         assertTrue(nbtReadNinja > nbtWriteProphet && nbtReadProphet > nbtReadNinja);
+    }
+
+    private static String readText(Path path) throws IOException {
+        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
     }
 
     private static String methodBody(String source, String start, String end) {

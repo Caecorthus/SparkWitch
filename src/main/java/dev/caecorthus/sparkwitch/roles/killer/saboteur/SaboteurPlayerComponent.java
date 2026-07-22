@@ -26,6 +26,8 @@ public final class SaboteurPlayerComponent
 
     private final PlayerEntity player;
     private final SaboteurCooldownState state = new SaboteurCooldownState();
+    // This records the promotion grant, not item possession: dropped, consumed, or moved radios never re-grant.
+    private boolean promotionWalkieGranted;
 
     public SaboteurPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -47,6 +49,17 @@ public final class SaboteurPlayerComponent
 
     public void clear() {
         setCooldownTicks(0);
+        promotionWalkieGranted = false;
+    }
+
+    /** Returns true exactly once per active promotion lifecycle. */
+    public boolean claimPromotionWalkieGrant() {
+        if (promotionWalkieGranted) {
+            return false;
+        }
+        promotionWalkieGranted = true;
+        syncOwner();
+        return true;
     }
 
     @Override
@@ -91,10 +104,12 @@ public final class SaboteurPlayerComponent
     @Override
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         tag.putInt("CooldownTicks", state.cooldownTicks());
+        tag.putBoolean("PromotionWalkieGranted", promotionWalkieGranted);
     }
 
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         state.setCooldownTicks(tag.getInt("CooldownTicks"));
+        promotionWalkieGranted = tag.getBoolean("PromotionWalkieGranted");
     }
 }

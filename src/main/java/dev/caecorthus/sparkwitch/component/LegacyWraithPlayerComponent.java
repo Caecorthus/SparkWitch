@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
@@ -49,14 +48,9 @@ public final class LegacyWraithPlayerComponent implements Component {
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         dataPresent = true;
         boolean active = tag.getBoolean("WraithActive");
-        WraithState.Alignment alignment = null;
-        if (active && tag.contains("WraithAlignment", NbtElement.STRING_TYPE)) {
-            try {
-                alignment = WraithState.Alignment.valueOf(tag.getString("WraithAlignment"));
-            } catch (IllegalArgumentException ignored) {
-                alignment = null;
-            }
-        }
+        WraithState.Alignment alignment = active
+                ? WraithState.Alignment.fromSerializedName(tag.getString("WraithAlignment"))
+                : null;
         state.restore(
                 active,
                 tag.getBoolean("WraithRestricted"),

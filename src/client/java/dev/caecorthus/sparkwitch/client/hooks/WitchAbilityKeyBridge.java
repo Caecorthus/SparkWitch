@@ -2,8 +2,7 @@ package dev.caecorthus.sparkwitch.client.hooks;
 
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
-
-import java.lang.reflect.Field;
+import org.agmas.noellesroles.client.NoellesrolesClient;
 
 /**
  * Reuses the shared Wathe-role ability key instead of registering a SparkWitch-only keybind.
@@ -11,25 +10,30 @@ import java.lang.reflect.Field;
  */
 public final class WitchAbilityKeyBridge {
     static final String SHARED_ABILITY_TRANSLATION_KEY = "key.noellesroles.ability";
-    private static final String NOELLES_CLIENT_CLASS = "org.agmas.noellesroles.client.NoellesrolesClient";
-    private static final String ABILITY_FIELD = "abilityBind";
 
-    private static boolean wasDown;
+    private static final SharedAbilityPressState PRESS_STATE = new SharedAbilityPressState();
 
     private WitchAbilityKeyBridge() {
     }
 
+    /**
+     * Consumes a press observed from NoellesRoles' own {@link KeyBinding#wasPressed()} call.
+     * This preserves short taps even after NoellesRoles consumes the shared key's press counter.
+     */
     public static boolean wasPressed() {
-        KeyBinding keyBinding = sharedAbilityKeyBinding();
-        if (keyBinding == null) {
-            wasDown = false;
-            return false;
-        }
+        return PRESS_STATE.consume();
+    }
 
-        boolean down = keyBinding.isPressed();
-        boolean pressed = down && !wasDown;
-        wasDown = down;
-        return pressed;
+    public static void captureSharedAbilityPress(KeyBinding keyBinding, boolean pressed) {
+        if (pressed
+                && keyBinding != null
+                && keyBinding == NoellesrolesClient.abilityBind) {
+            PRESS_STATE.record();
+        }
+    }
+
+    public static void reset() {
+        PRESS_STATE.reset();
     }
 
     public static Text keyText() {
@@ -40,21 +44,6 @@ public final class WitchAbilityKeyBridge {
     }
 
     private static KeyBinding sharedAbilityKeyBinding() {
-        return noellesRolesAbilityKeyBinding();
-    }
-
-    private static KeyBinding noellesRolesAbilityKeyBinding() {
-        try {
-            Class<?> clientClass = Class.forName(
-                    NOELLES_CLIENT_CLASS,
-                    false,
-                    WitchAbilityKeyBridge.class.getClassLoader()
-            );
-            Field field = clientClass.getField(ABILITY_FIELD);
-            Object value = field.get(null);
-            return value instanceof KeyBinding keyBinding ? keyBinding : null;
-        } catch (ReflectiveOperationException | LinkageError ignored) {
-            return null;
-        }
+        return NoellesrolesClient.abilityBind;
     }
 }

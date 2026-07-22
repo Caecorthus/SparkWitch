@@ -78,15 +78,19 @@ class WitchMaidenSharedIntegrationSourceTest {
     }
 
     private static String main(String relativePath) throws IOException {
-        return Files.readString(ROOT.resolve("main/java/dev/caecorthus/sparkwitch").resolve(relativePath));
+        return readText(ROOT.resolve("main/java/dev/caecorthus/sparkwitch").resolve(relativePath));
     }
 
     private static String client(String relativePath) throws IOException {
-        return Files.readString(ROOT.resolve("client/java/dev/caecorthus/sparkwitch").resolve(relativePath));
+        return readText(ROOT.resolve("client/java/dev/caecorthus/sparkwitch").resolve(relativePath));
     }
 
     private static JsonObject config(String relativePath) throws IOException {
-        return JsonParser.parseString(Files.readString(ROOT.resolve(relativePath))).getAsJsonObject();
+        return JsonParser.parseString(readText(ROOT.resolve(relativePath))).getAsJsonObject();
+    }
+
+    private static String readText(Path path) throws IOException {
+        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
     }
 
     private static void assertContains(JsonArray values, String expected) {

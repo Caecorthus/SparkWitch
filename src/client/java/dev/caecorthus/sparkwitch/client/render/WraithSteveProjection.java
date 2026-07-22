@@ -38,7 +38,8 @@ public final class WraithSteveProjection {
         ClientPlayerEntity viewer = MinecraftClient.getInstance().player;
         boolean localWraithProjection = viewer != null
                 && target != null
-                && WraithClientState.isActive(viewer)
+                && (WraithClientState.isRestricted(viewer)
+                        || VendettaClientPresentation.isActiveVendetta(viewer))
                 && !viewer.getUuid().equals(target.getUuid());
         // A true spectator may see the invisible Vendetta, but never the bound killer's real-skin view.
         // 真旁观者可以看见隐身仇杀客，但不能获得绑定凶手专属的真实皮肤视角。
@@ -47,6 +48,8 @@ public final class WraithSteveProjection {
     }
 
     public static boolean shouldAnonymizeCorpses() {
-        return WraithClientState.isActive(MinecraftClient.getInstance().player);
+        ClientPlayerEntity viewer = MinecraftClient.getInstance().player;
+        return WraithClientState.isRestricted(viewer)
+                || VendettaClientPresentation.isActiveVendetta(viewer);
     }
 }

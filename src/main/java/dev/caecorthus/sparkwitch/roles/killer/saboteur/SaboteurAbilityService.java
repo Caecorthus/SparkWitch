@@ -10,18 +10,13 @@ public final class SaboteurAbilityService {
 
     public static boolean use(ServerPlayerEntity player) {
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
-        if (!game.isRunning() || !SaboteurRules.isActivePromotedSaboteur(player)) {
-            return false;
-        }
         SaboteurPlayerComponent component = SaboteurPlayerComponent.KEY.get(player);
-        if (!component.isReady()) {
-            return false;
-        }
-
-        // An empty capture is deliberately indistinguishable from one containing eligible lamps.
-        // 空范围也必须与存在合格灯具时一样成功，不能泄露附近灯具信息。
-        SaboteurLightOutageService.activate(player);
-        component.setCooldownTicks(SaboteurRules.COOLDOWN_TICKS);
-        return true;
+        return SaboteurAbilityRuntime.use(
+                game.isRunning(),
+                SaboteurRules.isActivePromotedSaboteur(player),
+                component.isReady(),
+                () -> SaboteurLightOutageService.activate(player),
+                component::setCooldownTicks
+        );
     }
 }

@@ -53,14 +53,10 @@ class SaboteurClientResourcesTest {
         JsonObject chinese = language("zh_cn");
         JsonObject english = language("en_us");
 
-        assertEquals(
-                "消灭好人阵营。晋升后每完成一项任务获得 50 金币。专属商店只出售一个 50 金币的开锁器，以及保持原价的熄灯。破坏在晋升时先冷却 60 秒；使用后立刻令 20 格内所有可熄灭列车灯熄灭 20 秒，之后冷却 120 秒。",
-                value(chinese, "announcement.goals.saboteur")
-        );
-        assertEquals(
-                "Eliminate the passengers. Each task completed after promotion grants 50 coins. Your private shop contains only one lockpick for 50 coins and the standard blackout at its original price. Sabotage starts with a 60-second cooldown; use it to black out all eligible train lights within 20 blocks for 20 seconds, then it cools down for 120 seconds.",
-                value(english, "announcement.goals.saboteur")
-        );
+        assertTrue(value(chinese, "announcement.goals.saboteur").contains("对讲机"));
+        assertTrue(value(chinese, "announcement.goals.saboteur").contains("杀手阵营"));
+        assertTrue(value(english, "announcement.goals.saboteur").contains("walkie-talkie"));
+        assertTrue(value(english, "announcement.goals.saboteur").contains("living killer-faction"));
 
         String combined = value(chinese, "announcement.goals.saboteur")
                 + value(english, "announcement.goals.saboteur");

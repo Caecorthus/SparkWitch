@@ -25,6 +25,7 @@ class SaboteurServerIntegrationSourceTest {
         assertTrue(lockpickEntry.contains("SaboteurRules.LOCKPICK_PRICE"));
         assertTrue(lockpickEntry.contains(".stock(1)"));
         assertTrue(shop.contains("SaboteurShopStockAccess"));
+        assertTrue(shop.contains("sparkwitch$initializePromotionLockpickStock"));
         assertFalse(shop.contains("shop.initializeShop("));
         assertFalse(shop.contains("PlayerShopComponent::useBlackout"));
 
@@ -65,8 +66,11 @@ class SaboteurServerIntegrationSourceTest {
 
         String ability = saboteurSource("SaboteurAbilityService.java");
         assertTrue(ability.contains("SaboteurRules.isActivePromotedSaboteur(player)"));
-        assertTrue(ability.contains("SaboteurLightOutageService.activate(player)"));
-        assertTrue(ability.contains("SaboteurRules.COOLDOWN_TICKS"));
+        assertTrue(ability.contains("SaboteurAbilityRuntime.use"));
+
+        String runtime = saboteurSource("SaboteurAbilityRuntime.java");
+        assertTrue(runtime.contains("activateOutage.run()"));
+        assertTrue(runtime.contains("startCooldown.accept(SaboteurRules.COOLDOWN_TICKS)"));
 
         assertFalse(source("skill/SparkWitchBuiltInSkills.java").contains("Saboteur"));
         assertFalse(source("skill/WitchSkillAssignmentService.java").contains("Saboteur"));

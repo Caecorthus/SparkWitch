@@ -13,9 +13,11 @@ class WraithRoundQuotaTest {
     @Test
     void fixesTheCapFromTheStartingRoster() {
         assertEquals(0, WraithRoundQuota.capForStartingPlayers(9));
-        assertEquals(1, WraithRoundQuota.capForStartingPlayers(10));
-        assertEquals(1, WraithRoundQuota.capForStartingPlayers(14));
-        assertEquals(2, WraithRoundQuota.capForStartingPlayers(15));
+        assertEquals(2, WraithRoundQuota.capForStartingPlayers(10));
+        assertEquals(2, WraithRoundQuota.capForStartingPlayers(14));
+        assertEquals(3, WraithRoundQuota.capForStartingPlayers(15));
+        assertEquals(0, WraithRoundQuota.capForStartingPlayers(19, 20, 4));
+        assertEquals(5, WraithRoundQuota.capForStartingPlayers(20, 20, 4));
     }
 
     @Test
@@ -26,11 +28,12 @@ class WraithRoundQuotaTest {
 
         quota.beginRound(10);
 
-        assertEquals(1, quota.getCap());
+        assertEquals(2, quota.getCap());
         assertTrue(quota.tryConsume(first));
         assertFalse(quota.tryConsume(first));
-        assertFalse(quota.tryConsume(second));
-        assertEquals(1, quota.getConsumedCount());
+        assertTrue(quota.tryConsume(second));
+        assertFalse(quota.tryConsume(UUID.randomUUID()));
+        assertEquals(2, quota.getConsumedCount());
     }
 
     @Test
@@ -41,7 +44,7 @@ class WraithRoundQuotaTest {
         quota.restore(15, Set.of(first));
 
         assertEquals(15, quota.getStartingPlayerCount());
-        assertEquals(2, quota.getCap());
+        assertEquals(3, quota.getCap());
         assertEquals(1, quota.getConsumedCount());
         assertFalse(quota.tryConsume(first));
         assertTrue(quota.tryConsume(UUID.randomUUID()));

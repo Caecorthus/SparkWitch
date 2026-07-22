@@ -138,8 +138,8 @@ class VendettaServerContractSourceTest {
         String axe = source("mixin/NoellesThrowingAxeVendettaTargetMixin.java");
         String mixins = Files.readString(Path.of("src/main/resources/sparkwitch.mixins.json"));
 
-        assertTrue(assassin.contains("lambda$registerPackets$6"));
-        assertTrue(assassin.contains("lambda$registerPackets$37"));
+        assertTrue(assassin.contains("method = \"lambda$registerPackets$6\""));
+        assertFalse(assassin.contains("lambda$registerPackets$37"));
         assertTrue(assassin.contains("ordinal = 1"));
         assertTrue(assassin.contains("isBoundKillerTargetingVendetta(context.player(), target)"));
         assertTrue(axe.contains("method = \"onEntityHit\""));

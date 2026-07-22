@@ -16,8 +16,9 @@ import java.util.UUID;
 /** Adds only the killer's privately synced Vendetta target to NoellesRoles' native screen list. */
 @Mixin(AssassinScreen.class)
 public abstract class AssassinVendettaTargetMixin {
+    // NoellesRoles 1.7.6 ships this inherited Screen#init override under its intermediary name.
     @Redirect(
-            method = "init",
+            method = "method_25426",
             at = @At(
                     value = "INVOKE",
                     target = "Ldev/doctor4t/wathe/cca/GameWorldComponent;getAllAlivePlayers()Ljava/util/List;"

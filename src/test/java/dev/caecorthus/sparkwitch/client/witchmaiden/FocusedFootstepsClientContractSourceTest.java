@@ -72,6 +72,12 @@ class FocusedFootstepsClientContractSourceTest {
         assertTrue(controller.contains("FocusedFootstepsInputRules.shouldSprint("));
         assertTrue(controller.contains("player.setSprinting("));
         assertTrue(mixin.contains("@Mixin(ClientPlayerEntity.class)"));
+        assertTrue(controller.contains("public static void applyConsumedMovement("));
+        assertTrue(controller.contains("player.forwardSpeed = decision.movementForward()"));
+        assertTrue(controller.contains("player.sidewaysSpeed = decision.movementSideways()"));
+        assertTrue(mixin.contains("method = \"tickNewAi\""));
+        assertTrue(mixin.contains("at = @At(\"TAIL\")"));
+        assertTrue(mixin.contains("FocusedFootstepsInputController.applyConsumedMovement(player)"));
         assertTrue(mixin.contains("method = \"tickMovement\""));
         assertTrue(mixin.contains("Lnet/minecraft/client/input/Input;tick(ZF)V"));
         assertTrue(mixin.contains("FocusedFootstepsInputController.applyPlanarInput("));

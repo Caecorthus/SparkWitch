@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.mixin;
 
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
+import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -34,9 +35,10 @@ public abstract class WraithPlayerShopComponentMixin {
                 WraithStateService.isActive(player),
                 WraithStateService.isRestricted(player)
         );
-        return SaboteurRules.canPassShopAliveGate(
+        boolean saboteurAllowed = SaboteurRules.canPassShopAliveGate(
                 windSpiritAllowed,
                 SaboteurRules.isActivePromotedSaboteur(player)
         );
+        return saboteurAllowed || CurserFeatureService.isActivePromotedCurser(player);
     }
 }

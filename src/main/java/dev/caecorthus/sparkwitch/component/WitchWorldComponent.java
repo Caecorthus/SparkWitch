@@ -3,6 +3,8 @@ package dev.caecorthus.sparkwitch.component;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintKarmaRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintKarmaState;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithSettings;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithSettingsNbtCodec;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchCeremonialSwordBgmSources;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchWorldRuntime;
 import net.minecraft.nbt.NbtCompound;
@@ -23,6 +25,7 @@ import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,9 +41,11 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
 
     private final World world;
     private final LinkedHashSet<Identifier> disabledSkills = new LinkedHashSet<>();
+    private final ForcedWraithPromotionLocks forcedWraithPromotions = new ForcedWraithPromotionLocks();
     private final GrandWitchCeremonialSwordBgmSources grandWitchCeremonialSwordBgmSources =
             new GrandWitchCeremonialSwordBgmSources();
     private final SaintKarmaState saintKarmaState = new SaintKarmaState();
+    private WraithSettings wraithSettings = WraithSettings.DEFAULT;
     private int instinctObscureTicks;
     private int obscureActionbarTicks;
     private int fearTicks;
@@ -63,6 +68,38 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
 
     public Set<Identifier> getDisabledSkillIds() {
         return Set.copyOf(disabledSkills);
+    }
+
+    public boolean setForcedWraithPromotion(UUID playerUuid, Identifier roleId) {
+        return forcedWraithPromotions.set(playerUuid, roleId);
+    }
+
+    public Identifier getForcedWraithPromotion(UUID playerUuid) {
+        return forcedWraithPromotions.get(playerUuid);
+    }
+
+    public boolean clearForcedWraithPromotion(UUID playerUuid) {
+        return forcedWraithPromotions.clear(playerUuid);
+    }
+
+    public Map<UUID, Identifier> getForcedWraithPromotions() {
+        return forcedWraithPromotions.snapshot();
+    }
+
+    public WraithSettings getWraithSettings() {
+        return wraithSettings;
+    }
+
+    public void setWraithChance(int chance) {
+        wraithSettings = new WraithSettings(chance, wraithSettings.minimum(), wraithSettings.dividend());
+    }
+
+    public void setWraithMinimum(int minimum) {
+        wraithSettings = new WraithSettings(wraithSettings.chance(), minimum, wraithSettings.dividend());
+    }
+
+    public void setWraithDividend(int dividend) {
+        wraithSettings = new WraithSettings(wraithSettings.chance(), wraithSettings.minimum(), dividend);
     }
 
     public boolean isInstinctObscured() {
@@ -170,6 +207,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         grandWitchCeremonialSwordBgmSources.clear();
         syncedGrandWitchCeremonialSwordBgmSources = 0;
         saintKarmaState.clear();
+        forcedWraithPromotions.clearAll();
         sync();
     }
 
@@ -214,6 +252,8 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     @Override
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         tag.put("DisabledSkills", toNbt(disabledSkills));
+        tag.put("ForcedWraithPromotions", forcedWraithPromotions.toNbt());
+        WraithSettingsNbtCodec.writeWorld(tag, wraithSettings);
         if (instinctObscureTicks > 0) {
             tag.putInt("InstinctObscureTicks", instinctObscureTicks);
         }
@@ -235,10 +275,13 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         disabledSkills.clear();
+        forcedWraithPromotions.clearAll();
         grandWitchCeremonialSwordBgmSources.clear();
         syncedGrandWitchCeremonialSwordBgmSources = 0;
         saintKarmaState.clear();
         fromNbt(tag.getList("DisabledSkills", NbtElement.STRING_TYPE), disabledSkills);
+        forcedWraithPromotions.readFromNbt(tag, "ForcedWraithPromotions");
+        wraithSettings = WraithSettingsNbtCodec.readWorld(tag);
         instinctObscureTicks = tag.contains("InstinctObscureTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("InstinctObscureTicks"))
                 : 0;

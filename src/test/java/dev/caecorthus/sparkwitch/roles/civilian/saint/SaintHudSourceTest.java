@@ -15,13 +15,17 @@ class SaintHudSourceTest {
 
     @Test
     void stacksHellfireAndKarmaWhenAFormerKillerBecomesSaint() throws IOException {
-        String renderer = Files.readString(RENDERER);
-        String mixin = Files.readString(MIXIN);
+        String renderer = readText(RENDERER);
+        String mixin = readText(MIXIN);
 
         assertTrue(renderer.contains("List<Text> getHudLines"));
         assertTrue(renderer.contains("lines.add(hellfireLine"));
         assertTrue(renderer.contains("lines.add(Text.translatable(\n                    \"hud.sparkwitch.saint.karma.active\""));
         assertTrue(mixin.contains("List<Text> lines = SaintHudRenderer.getHudLines(player)"));
         assertTrue(mixin.contains("for (Text line : lines)"));
+    }
+
+    private static String readText(Path path) throws IOException {
+        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
     }
 }

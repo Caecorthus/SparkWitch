@@ -24,7 +24,9 @@ class WraithFactionBoundaryTest {
         String participation = source("runtime/WraithParticipation.java");
 
         assertTrue(participation.contains("if (!restricted || alignment == null)"));
-        assertTrue(participation.contains("alignment == WraithState.Alignment.GOOD ? FactionIds.CIVILIAN : FactionIds.KILLER"));
+        assertTrue(participation.contains("case GOOD -> FactionIds.CIVILIAN"));
+        assertTrue(participation.contains("case KILLER -> FactionIds.KILLER"));
+        assertTrue(participation.contains("case WITCH -> SparkWitchFactions.WITCH"));
         assertTrue(participation.contains("restrictedFaction(wraith.isRestricted(), wraith.getAlignment())"));
         assertEquals(SparkWitchFactions.WITCH,
                 SparkFactionApi.resolveBaseFaction(SparkWitchRoles.curser()));
@@ -33,12 +35,16 @@ class WraithFactionBoundaryTest {
     @Test
     void promotionNeverResurrectsCurserOrRemovesWatheDeadMembership() throws Exception {
         String promotion = source("progression/WraithPromotionQueue.java");
+        String promotionService = source("progression/WraithPromotionService.java");
         String lifecycle = source("runtime/WraithLifecycle.java");
-        assertTrue(promotion.contains("wraith.promote()"));
-        assertTrue(promotion.contains("WraithLifecycle.promotePlayer(player, role)"));
+        assertTrue(promotion.contains("WraithPromotionService.promote(player"));
+        assertTrue(promotionService.contains("wraith.promote()"));
+        assertTrue(promotionService.contains("WraithLifecycle.promotePlayer(player, role)"));
         assertTrue(lifecycle.contains("transitionRole(player, role)"));
         assertFalse(promotion.contains("removeDeadPlayer"));
         assertFalse(promotion.contains("setPlayerAlive"));
+        assertFalse(promotionService.contains("removeDeadPlayer"));
+        assertFalse(promotionService.contains("setPlayerAlive"));
         assertFalse(lifecycle.contains("removeDeadPlayer"));
         assertFalse(lifecycle.contains("setPlayerAlive"));
     }

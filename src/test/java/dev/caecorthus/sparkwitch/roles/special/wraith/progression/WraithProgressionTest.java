@@ -32,25 +32,44 @@ class WraithProgressionTest {
     }
 
     @Test
+    void forcedVendettaRetriesOnlyWhileItsEligibilityCanChange() {
+        assertTrue(WraithPromotionQueue.shouldRetryForcedPromotion(
+                true,
+                WraithPromotionService.Failure.VENDETTA_INELIGIBLE
+        ));
+        assertFalse(WraithPromotionQueue.shouldRetryForcedPromotion(
+                false,
+                WraithPromotionService.Failure.VENDETTA_INELIGIBLE
+        ));
+        assertFalse(WraithPromotionQueue.shouldRetryForcedPromotion(
+                true,
+                WraithPromotionService.Failure.INACTIVE
+        ));
+        assertFalse(WraithPromotionQueue.shouldRetryForcedPromotion(true, null));
+    }
+
+    @Test
     void promotionPoolsAndSelectionKeepTheirStableIdentityOrder() {
         assertEquals(List.of(
                 SparkWitchRoles.windSpirit(),
                 SparkWitchRoles.guardianAngel(),
                 SparkWitchRoles.vendetta()
         ), WraithPromotionRoles.pool(WraithState.Alignment.GOOD));
-        assertEquals(List.of(
-                SparkWitchRoles.saboteur(),
-                SparkWitchRoles.curser()
-        ), WraithPromotionRoles.pool(WraithState.Alignment.KILLER));
+        assertEquals(List.of(SparkWitchRoles.saboteur()),
+                WraithPromotionRoles.pool(WraithState.Alignment.KILLER));
+        assertEquals(List.of(SparkWitchRoles.curser()),
+                WraithPromotionRoles.pool(WraithState.Alignment.WITCH));
         assertEquals(List.of(
                 SparkWitchRoles.windSpirit(),
                 SparkWitchRoles.guardianAngel()
         ), WraithPromotionRoles.pool(WraithState.Alignment.GOOD, false));
 
         Role goodPick = WraithPromotionRoles.pick(WraithState.Alignment.GOOD, new FixedIndexRandom(2));
-        Role killerPick = WraithPromotionRoles.pick(WraithState.Alignment.KILLER, new FixedIndexRandom(1));
+        Role killerPick = WraithPromotionRoles.pick(WraithState.Alignment.KILLER, new FixedIndexRandom(0));
+        Role witchPick = WraithPromotionRoles.pick(WraithState.Alignment.WITCH, new FixedIndexRandom(0));
         assertEquals(SparkWitchRoles.vendetta(), goodPick);
-        assertEquals(SparkWitchRoles.curser(), killerPick);
+        assertEquals(SparkWitchRoles.saboteur(), killerPick);
+        assertEquals(SparkWitchRoles.curser(), witchPick);
     }
 
     @Test

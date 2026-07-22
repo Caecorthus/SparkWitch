@@ -18,7 +18,7 @@ public abstract class WitchShopPriceMixin {
     public ShopEntry entry;
 
     @Redirect(
-            method = "renderWidget",
+            method = "method_48579(Lnet/minecraft/class_332;IIF)V",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/text/Text;literal(Ljava/lang/String;)Lnet/minecraft/text/MutableText;"

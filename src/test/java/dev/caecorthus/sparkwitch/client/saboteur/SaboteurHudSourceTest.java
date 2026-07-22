@@ -41,6 +41,8 @@ class SaboteurHudSourceTest {
     void actualNoellesAbilityBindingDispatchesTheDedicatedPacketFirst() throws IOException {
         String client = read(CLIENT_ROOT.resolve("SparkWitchClient.java"));
         String bridge = read(CLIENT_ROOT.resolve("hooks/WitchAbilityKeyBridge.java"));
+        String keyMixin = read(CLIENT_ROOT.resolve("mixin/KeyBindingFearSkillMixin.java"));
+        String renderer = read(CLIENT_ROOT.resolve("saboteur/SaboteurHudRenderer.java"));
 
         assertTrue(client.contains("WitchAbilityKeyBridge.wasPressed()"));
         assertTrue(client.contains("SaboteurRole.ID.equals(role.identifier())"));
@@ -48,8 +50,13 @@ class SaboteurHudSourceTest {
         assertTrue(client.contains("ClientPlayNetworking.send(new UseSaboteurSkillC2SPacket())"));
         assertTrue(client.indexOf("new UseSaboteurSkillC2SPacket()")
                 < client.indexOf("WitchPlayerComponent.KEY.get(client.player).hasSkill()"));
-        assertTrue(bridge.contains("ABILITY_FIELD = \"abilityBind\""));
+        assertTrue(bridge.contains("keyBinding == NoellesrolesClient.abilityBind"));
+        assertTrue(bridge.contains("return NoellesrolesClient.abilityBind"));
         assertTrue(bridge.contains("keyBinding.getBoundKeyLocalizedText()"));
+        assertFalse(bridge.contains("SecondaryAbilityController"));
+        assertFalse(renderer.contains("SecondaryAbilityController"));
+        assertTrue(keyMixin.indexOf("GrandWitchFearClientHooks.shouldBlockRoleAbilityKey")
+                < keyMixin.indexOf("WitchAbilityKeyBridge.captureSharedAbilityPress"));
     }
 
     @Test
