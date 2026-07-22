@@ -206,6 +206,46 @@ public class WraithLegacyPersistenceTest {
     }
 
     @Test
+    void historicalCivilianAlignmentMigratesToGood() {
+        TestProvider provider = new TestProvider(true);
+        provider.container.fromTag(legacyContainerTag("CIVILIAN", 3, 15, UUID.randomUUID()), null);
+
+        assertTrue(provider.player().isActive());
+        assertTrue(provider.player().isPromotionPending());
+        assertEquals(WraithState.Alignment.GOOD, provider.player().getAlignment());
+    }
+
+    @Test
+    void activeRecordWithoutAlignmentUsesTheLegacyKillerDefault() {
+        TestProvider provider = new TestProvider(true);
+        provider.container.fromTag(legacyContainerTag((String) null, 3, 15, UUID.randomUUID()), null);
+
+        assertTrue(provider.player().isActive());
+        assertTrue(provider.player().isPromotionPending());
+        assertEquals(WraithState.Alignment.KILLER, provider.player().getAlignment());
+    }
+
+    @Test
+    void canonicalActiveRecordWithoutAlignmentUsesTheLegacyKillerDefault() {
+        TestProvider provider = new TestProvider(true);
+        NbtCompound components = new NbtCompound();
+        NbtCompound player = new NbtCompound();
+        player.putBoolean("WraithActive", true);
+        player.putBoolean("WraithRestricted", true);
+        player.putInt("WraithCompletedTasks", 3);
+        player.putBoolean("WraithPromotionPending", true);
+        components.put("sparkwitch:wraith_player", player);
+        NbtCompound root = new NbtCompound();
+        root.put(COMPONENTS, components);
+
+        provider.container.fromTag(root, null);
+
+        assertTrue(provider.player().isActive());
+        assertTrue(provider.player().isPromotionPending());
+        assertEquals(WraithState.Alignment.KILLER, provider.player().getAlignment());
+    }
+
+    @Test
     void canonicalWinsWhenBothTagsExistInEitherContainerOrder() {
         for (boolean canonicalFirst : new boolean[]{true, false}) {
             TestProvider provider = new TestProvider(canonicalFirst);
@@ -262,11 +302,22 @@ public class WraithLegacyPersistenceTest {
             int startingPlayers,
             UUID consumed
     ) {
+        return legacyContainerTag(alignment == null ? null : alignment.name(), completedTasks, startingPlayers, consumed);
+    }
+
+    private static NbtCompound legacyContainerTag(
+            String alignmentName,
+            int completedTasks,
+            int startingPlayers,
+            UUID consumed
+    ) {
         NbtCompound player = new NbtCompound();
         player.putBoolean("WraithActive", true);
         player.putBoolean("WraithRestricted", true);
         player.putInt("WraithCompletedTasks", completedTasks);
-        player.putString("WraithAlignment", alignment.name());
+        if (alignmentName != null) {
+            player.putString("WraithAlignment", alignmentName);
+        }
         player.putBoolean("WraithPromotionPending", true);
         NbtCompound round = new NbtCompound();
         round.putInt("StartingPlayerCount", startingPlayers);

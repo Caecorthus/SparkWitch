@@ -18,4 +18,9 @@ public final class WraithStateService {
         return player != null && WraithPlayerComponent.KEY.maybeGet(player)
                 .map(WraithPlayerComponent::isRestricted).orElse(false);
     }
+
+    public static boolean isPromoted(@Nullable PlayerEntity player) {
+        return player != null && WraithPlayerComponent.KEY.maybeGet(player)
+                .map(WraithPlayerComponent::isPromoted).orElse(false);
+    }
 }

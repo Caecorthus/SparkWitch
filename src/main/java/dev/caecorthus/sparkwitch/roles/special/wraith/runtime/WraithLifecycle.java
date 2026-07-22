@@ -14,6 +14,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaLifecycleServic
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaReplayService;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
+import dev.caecorthus.sparkwitch.roles.witch.curser.CurserPlayerComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.MapVariablesWorldComponent;
@@ -55,6 +57,7 @@ public final class WraithLifecycle {
      * 按固定顺序完成已确认转化的身份、运行态与任务步骤。
      */
     public static void activateConvertedPlayer(ServerPlayerEntity player, WraithTaskSnapshot taskSnapshot) {
+        wakeIfSleeping(player);
         transitionRole(player, SparkWitchRoles.wraith());
         if (player.isSpectator()) {
             player.changeGameMode(GameMode.ADVENTURE);
@@ -69,8 +72,14 @@ public final class WraithLifecycle {
      * 在组件状态已经晋升后应用身份与效果变化，本方法不修改组件状态。
      */
     public static void promotePlayer(ServerPlayerEntity player, Role role) {
+        wakeIfSleeping(player);
         transitionRole(player, role);
         SaboteurFeatureService.initializePromotion(player);
+        if (role == SparkWitchRoles.curser()) {
+            CurserFeatureService.initializeForPromotion(player);
+        } else {
+            CurserPlayerComponent.KEY.get(player).clear();
+        }
         WraithPresence.removeRestrictedEffects(player);
         GuardianAngelFeatureService.initializeForPromotion(player, role);
         VendettaLifecycleService.initializeForPromotion(player, role);
@@ -83,9 +92,13 @@ public final class WraithLifecycle {
     public static void clearPlayer(ServerPlayerEntity player) {
         WraithPlayerComponent wraith = WraithPlayerComponent.KEY.get(player);
         boolean wasActive = wraith.isActive();
+        if (wasActive) {
+            wakeIfSleeping(player);
+        }
         WraithConversion.clearPlayer(player);
         WraithProgression.clearPlayer(player);
         SaboteurPlayerComponent.KEY.get(player).clear();
+        CurserFeatureService.clearPlayer(player);
         wraith.clear();
         WraithPresence.clear(player);
         GuardianAngelFeatureService.detachPlayer(player);
@@ -130,6 +143,7 @@ public final class WraithLifecycle {
         if (!wraith.isActive()) {
             return;
         }
+        wakeIfSleeping(player);
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
         UUID uuid = player.getUuid();
         if (!shouldResume(true, game.isRunning(), game.hasAnyRole(uuid), game.isPlayerDead(uuid))) {
@@ -167,6 +181,14 @@ public final class WraithLifecycle {
                 continue;
             }
             WraithPresence.apply(player, wraith.isRestricted());
+        }
+    }
+
+    private static void wakeIfSleeping(ServerPlayerEntity player) {
+        if (player.isSleeping()) {
+            // Use vanilla wake-up so the bed occupancy and world sleep counters are released together.
+            // 使用原版唤醒流程，同时释放床位并更新世界睡眠计数。
+            player.wakeUp(true, true);
         }
     }
 

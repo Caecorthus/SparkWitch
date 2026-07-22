@@ -13,7 +13,7 @@ class GuardianAngelRulesTest {
     void exposesApprovedIdsColorCooldownRangeAndDuration() {
         assertEquals(Identifier.of("sparkwitch", "guardian_angel"), GuardianAngelRules.ROLE_ID);
         assertEquals(Identifier.of("sparkwitch", "guardian"), GuardianAngelRules.SKILL_ID);
-        assertEquals(0x36E51B, GuardianAngelRules.COLOR);
+        assertEquals(0xF0D77A, GuardianAngelRules.COLOR);
         assertEquals(1_200, GuardianAngelRules.INITIAL_COOLDOWN_TICKS);
         assertEquals(1_800, GuardianAngelRules.POST_USE_COOLDOWN_TICKS);
         assertEquals(200, GuardianAngelRules.SHIELD_DURATION_TICKS);

@@ -50,6 +50,11 @@ public final class BlackRavenPerceptionScreenEffects {
         activeProcessor.setUniforms("DesaturateFactor", desaturation);
         activeProcessor.render(delta);
         client.getFramebuffer().beginWrite(false);
+        // Entity outlines were part of the desaturated world image. Composite the resolved
+        // outline framebuffer again afterwards so Vendetta's exact-pair red remains true red.
+        // This deliberately reuses Wathe's final outline resolution, preserving Guardian and
+        // Black Raven priority without treating arbitrary red world pixels as a shader key.
+        client.worldRenderer.drawEntityOutlinesFramebuffer();
     }
 
     public static void close() {

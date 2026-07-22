@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.special.wraith.runtime;
 
+import dev.caecorthus.sparkfactionapi.api.FactionGunPunishmentPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +19,45 @@ class WraithRuntimeRulesTest {
     }
 
     @Test
+    void windSpiritProjectilePolicyAllowsOnlyOtherOrdinaryLivingParticipants() {
+        assertTrue(WraithParticipation.canWindSpiritProjectileAffect(
+                true, false, true, true, false, false));
+        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
+                false, false, true, true, false, false));
+        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
+                true, true, true, true, false, false));
+        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
+                true, false, false, true, false, false));
+        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
+                true, false, true, false, false, false));
+        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
+                true, false, true, true, true, false));
+        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
+                true, false, true, true, false, true));
+    }
+
+    @Test
+    void goodPromotionsNeverReceiveInnocentGunPunishment() {
+        assertTrue(WraithParticipation.shouldCancelGunPunishment(
+                true,
+                true,
+                WraithState.Alignment.GOOD,
+                FactionGunPunishmentPolicy.Subject.SHOOTER
+        ));
+
+        assertFalse(WraithParticipation.shouldCancelGunPunishment(
+                true, false, WraithState.Alignment.GOOD, FactionGunPunishmentPolicy.Subject.SHOOTER));
+        assertFalse(WraithParticipation.shouldCancelGunPunishment(
+                false, true, WraithState.Alignment.GOOD, FactionGunPunishmentPolicy.Subject.SHOOTER));
+        assertFalse(WraithParticipation.shouldCancelGunPunishment(
+                true, true, WraithState.Alignment.KILLER, FactionGunPunishmentPolicy.Subject.SHOOTER));
+        assertFalse(WraithParticipation.shouldCancelGunPunishment(
+                true, true, WraithState.Alignment.WITCH, FactionGunPunishmentPolicy.Subject.SHOOTER));
+        assertFalse(WraithParticipation.shouldCancelGunPunishment(
+                true, true, WraithState.Alignment.GOOD, FactionGunPunishmentPolicy.Subject.VICTIM));
+    }
+
+    @Test
     void restrictedFactionUsesOnlyTheSavedAlignment() {
         assertEquals(
                 dev.caecorthus.sparkfactionapi.api.FactionIds.CIVILIAN,
@@ -26,6 +66,10 @@ class WraithRuntimeRulesTest {
         assertEquals(
                 dev.caecorthus.sparkfactionapi.api.FactionIds.KILLER,
                 WraithParticipation.restrictedFaction(true, WraithState.Alignment.KILLER)
+        );
+        assertEquals(
+                dev.caecorthus.sparkwitch.SparkWitchFactions.WITCH,
+                WraithParticipation.restrictedFaction(true, WraithState.Alignment.WITCH)
         );
         assertNull(WraithParticipation.restrictedFaction(false, WraithState.Alignment.KILLER));
     }

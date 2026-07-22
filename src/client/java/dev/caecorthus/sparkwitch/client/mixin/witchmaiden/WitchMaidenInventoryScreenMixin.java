@@ -27,7 +27,7 @@ public abstract class WitchMaidenInventoryScreenMixin extends LimitedHandledScre
         super(handler, inventory, title);
     }
 
-    @Inject(method = "init", at = @At("TAIL"))
+    @Inject(method = "method_25426()V", at = @At("TAIL"))
     private void sparkwitch$attachWitchMaidenUi(CallbackInfo ci) {
         sparkwitch$witchMaidenUi = WitchMaidenInventoryUi.attach(
                 (LimitedInventoryScreen) (Object) this,
@@ -35,7 +35,10 @@ public abstract class WitchMaidenInventoryScreenMixin extends LimitedHandledScre
         );
     }
 
-    @Inject(method = "render", at = @At("TAIL"))
+    @Inject(
+            method = "method_25394(Lnet/minecraft/class_332;IIF)V",
+            at = @At("TAIL")
+    )
     private void sparkwitch$renderWitchMaidenEmptyState(
             DrawContext context,
             int mouseX,

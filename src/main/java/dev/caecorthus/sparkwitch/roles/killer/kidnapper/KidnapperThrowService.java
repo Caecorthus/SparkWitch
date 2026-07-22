@@ -26,6 +26,13 @@ public final class KidnapperThrowService {
 
         Vec3d velocity = throwVelocity(player.getRotationVec(1.0F));
         KidnapperDragService.release(player);
+        float throwYaw = player.getYaw();
+        body.setYaw(throwYaw);
+        body.setBodyYaw(throwYaw);
+        body.setHeadYaw(throwYaw);
+        body.prevYaw = throwYaw;
+        body.prevBodyYaw = throwYaw;
+        body.prevHeadYaw = throwYaw;
         body.setVelocity(velocity);
         body.velocityModified = true;
     }

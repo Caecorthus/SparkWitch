@@ -14,12 +14,14 @@ class WraithServerRuntimeContractTest {
         String presence = source("roles/special/wraith/runtime/WraithPresence.java");
         String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
         String promotion = source("roles/special/wraith/progression/WraithPromotionQueue.java");
+        String promotionService = source("roles/special/wraith/progression/WraithPromotionService.java");
         String ownedMixin = source("mixin/WraithOwnedEffectMixin.java");
         assertTrue(presence.contains("StatusEffectInstance.INFINITE"));
         assertTrue(presence.contains("current.isInfinite()"));
         assertTrue(presence.contains("StatusEffects.INVISIBILITY"));
         assertTrue(presence.contains("NO_COLLISION"));
-        assertTrue(promotion.contains("WraithLifecycle.promotePlayer(player, role)"));
+        assertTrue(promotion.contains("WraithPromotionService.promote(player"));
+        assertTrue(promotionService.contains("WraithLifecycle.promotePlayer(player, role)"));
         assertTrue(lifecycle.contains("WraithPresence.removeRestrictedEffects(player)"));
         assertFalse(between(lifecycle, "public static void promotePlayer", "public static void clearPlayer")
                 .contains("WraithPresence.clear"));
@@ -57,10 +59,44 @@ class WraithServerRuntimeContractTest {
     }
 
     @Test
+    void lifecycleTransitionsReleaseSleepingStateThroughVanillaWakeUp() throws Exception {
+        String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
+        assertTrue(lifecycle.contains("private static void wakeIfSleeping(ServerPlayerEntity player)"));
+        assertTrue(lifecycle.contains("if (player.isSleeping())"));
+        assertTrue(lifecycle.contains("player.wakeUp(true, true)"));
+        assertTrue(between(lifecycle, "public static void activateConvertedPlayer", "public static void promotePlayer")
+                .indexOf("wakeIfSleeping(player)")
+                < between(lifecycle, "public static void activateConvertedPlayer", "public static void promotePlayer")
+                .indexOf("transitionRole(player"));
+        assertTrue(between(lifecycle, "public static void promotePlayer", "public static void clearPlayer")
+                .indexOf("wakeIfSleeping(player)")
+                < between(lifecycle, "public static void promotePlayer", "public static void clearPlayer")
+                .indexOf("transitionRole(player"));
+        String clearPlayer = between(lifecycle, "public static void clearPlayer", "public static void clearRoundState");
+        assertTrue(clearPlayer.contains("if (wasActive)"));
+        assertTrue(clearPlayer.contains("wakeIfSleeping(player)"));
+        assertTrue(between(lifecycle, "private static void onJoin", "private static void tickWorld")
+                .contains("wakeIfSleeping(player)"));
+        assertFalse(lifecycle.contains("setPose(EntityPose.STANDING)"));
+    }
+
+    @Test
     void activeIsolationAndCleanupHaveOneOwnerWithoutChatOrInventoryLocks() throws Exception {
         String participation = source("roles/special/wraith/runtime/WraithParticipation.java");
         String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
         assertTrue(participation.contains("SparkFactionApi.registerPlayerAffectPolicy"));
+        assertTrue(participation.contains("SparkFactionApi.registerEntityCollisionExemption"));
+        assertTrue(participation.contains("entity instanceof PlayerEntity player"));
+        assertTrue(participation.contains("WraithStateService.isActive(player)"));
+        assertTrue(participation.contains("isWindSpiritProjectile(actionId, actor)"));
+        assertTrue(participation.contains("Identifier.of(\"sparkfactionapi\", \"projectile\")"));
+        assertTrue(participation.contains("WindSpiritRules.isActivePromotedWindSpirit(actor)"));
+        assertTrue(participation.contains("actor.getUuid().equals(target.getUuid())"));
+        assertTrue(participation.contains("target.isAlive()"));
+        assertTrue(participation.contains("GameFunctions.isPlayerPlayingAndAlive(target)"));
+        assertTrue(participation.contains("target.isSpectator()"));
+        assertTrue(participation.contains("WraithStateService.isActive(target)"));
+        assertTrue(participation.contains("&& !targetActiveWraith"));
         assertTrue(lifecycle.contains("SparkTraitsWraithBridge.clear(player, false)"));
         assertTrue(lifecycle.contains("SparkTraitsWraithBridge.clear(player, true)"));
         assertFalse(Files.exists(Path.of("src/main/java/dev/caecorthus/sparkwitch/mixin/WraithChatRestrictionMixin.java")));

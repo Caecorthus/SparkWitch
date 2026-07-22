@@ -1,0 +1,1230 @@
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/api/SparkWitchApiTest.java b/src/test/java/dev/caecorthus/sparkwitch/api/SparkWitchApiTest.java
+index 5e6d512..1ff8eeb 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/api/SparkWitchApiTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/api/SparkWitchApiTest.java
+@@ -1,4 +1,5 @@
+ package dev.caecorthus.sparkwitch.api;
+ 
++import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
+ import net.minecraft.entity.player.PlayerEntity;
+ import org.junit.jupiter.api.Test;
+@@ -16,8 +17,19 @@ class SparkWitchApiTest {
+         assertQuery("isWraithRestricted");
+         assertQuery("isWraithPromoted");
++        assertQuery("isKillerAlignedWraith");
+ 
+         assertFalse(SparkWitchApi.isWraithActive(null));
+         assertFalse(SparkWitchApi.isWraithRestricted(null));
+         assertFalse(SparkWitchApi.isWraithPromoted(null));
++        assertFalse(SparkWitchApi.isKillerAlignedWraith(null));
++    }
++
++    @Test
++    void killerAlignmentQueryFailsClosedForRedactedAndNonKillerState() {
++        assertTrue(SparkWitchApi.isKillerAlignedWraith(true, WraithState.Alignment.KILLER));
++        assertFalse(SparkWitchApi.isKillerAlignedWraith(false, WraithState.Alignment.KILLER));
++        assertFalse(SparkWitchApi.isKillerAlignedWraith(true, WraithState.Alignment.GOOD));
++        assertFalse(SparkWitchApi.isKillerAlignedWraith(true, WraithState.Alignment.WITCH));
++        assertFalse(SparkWitchApi.isKillerAlignedWraith(true, null));
+     }
+ 
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/client/blackraven/BlackRavenClientPresentationSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/client/blackraven/BlackRavenClientPresentationSourceTest.java
+index df16d71..04dfbd8 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/client/blackraven/BlackRavenClientPresentationSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/client/blackraven/BlackRavenClientPresentationSourceTest.java
+@@ -22,8 +22,10 @@ class BlackRavenClientPresentationSourceTest {
+         assertTrue(controller.contains("GLFW.GLFW_KEY_N"));
+         assertTrue(controller.contains("KeyBindingHelper.registerKeyBinding"));
++        assertTrue(controller.contains("while (keyBinding.wasPressed())"));
+         assertTrue(controller.contains("GameWorldComponent.KEY.get"));
+         assertTrue(registry.contains("Map<Identifier, SecondaryAbilityHandler>"));
+         assertTrue(registry.contains("throw new IllegalStateException"));
+         assertFalse(controller.contains("BlackRaven"));
++        assertFalse(controller.contains("WitchAbilityKeyBridge"));
+         assertTrue(client.contains("SecondaryAbilityController.registerKeyBinding()"));
+         assertTrue(client.contains("SecondaryAbilityController.tick(client)"));
+@@ -158,5 +160,5 @@ class BlackRavenClientPresentationSourceTest {
+     @Test
+     void allBlackRavenAdaptersAreClientMixins() throws IOException {
+-        String mixins = Files.readString(CLIENT_RESOURCES.resolve("sparkwitch.client.mixins.json"));
++        String mixins = readText(CLIENT_RESOURCES.resolve("sparkwitch.client.mixins.json"));
+ 
+         assertTrue(mixins.contains("blackraven.BlackRavenGameRendererMixin"));
+@@ -172,5 +174,5 @@ class BlackRavenClientPresentationSourceTest {
+         Path path = CLIENT_ROOT.resolve(relativePath);
+         assertTrue(Files.exists(path), () -> "Missing client source " + path);
+-        return Files.readString(path);
++        return readText(path);
+     }
+ 
+@@ -178,5 +180,9 @@ class BlackRavenClientPresentationSourceTest {
+         Path path = CLIENT_RESOURCES.resolve(relativePath);
+         assertTrue(Files.exists(path), () -> "Missing client resource " + path);
+-        return Files.readString(path);
++        return readText(path);
++    }
++
++    private static String readText(Path path) throws IOException {
++        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
+     }
+ }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/client/saboteur/SaboteurHudSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/client/saboteur/SaboteurHudSourceTest.java
+index 44e5e7f..c13d334 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/client/saboteur/SaboteurHudSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/client/saboteur/SaboteurHudSourceTest.java
+@@ -42,4 +42,6 @@ class SaboteurHudSourceTest {
+         String client = read(CLIENT_ROOT.resolve("SparkWitchClient.java"));
+         String bridge = read(CLIENT_ROOT.resolve("hooks/WitchAbilityKeyBridge.java"));
++        String keyMixin = read(CLIENT_ROOT.resolve("mixin/KeyBindingFearSkillMixin.java"));
++        String renderer = read(CLIENT_ROOT.resolve("saboteur/SaboteurHudRenderer.java"));
+ 
+         assertTrue(client.contains("WitchAbilityKeyBridge.wasPressed()"));
+@@ -49,6 +51,11 @@ class SaboteurHudSourceTest {
+         assertTrue(client.indexOf("new UseSaboteurSkillC2SPacket()")
+                 < client.indexOf("WitchPlayerComponent.KEY.get(client.player).hasSkill()"));
+-        assertTrue(bridge.contains("ABILITY_FIELD = \"abilityBind\""));
++        assertTrue(bridge.contains("keyBinding == NoellesrolesClient.abilityBind"));
++        assertTrue(bridge.contains("return NoellesrolesClient.abilityBind"));
+         assertTrue(bridge.contains("keyBinding.getBoundKeyLocalizedText()"));
++        assertFalse(bridge.contains("SecondaryAbilityController"));
++        assertFalse(renderer.contains("SecondaryAbilityController"));
++        assertTrue(keyMixin.indexOf("GrandWitchFearClientHooks.shouldBlockRoleAbilityKey")
++                < keyMixin.indexOf("WitchAbilityKeyBridge.captureSharedAbilityPress"));
+     }
+ 
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/client/windspirit/WindSpiritInstinctClientSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/client/windspirit/WindSpiritInstinctClientSourceTest.java
+index 3891402..7550666 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/client/windspirit/WindSpiritInstinctClientSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/client/windspirit/WindSpiritInstinctClientSourceTest.java
+@@ -7,4 +7,5 @@ import java.nio.file.Files;
+ import java.nio.file.Path;
+ 
++import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertFalse;
+ import static org.junit.jupiter.api.Assertions.assertTrue;
+@@ -26,4 +27,19 @@ class WindSpiritInstinctClientSourceTest {
+     }
+ 
++    @Test
++    void nativePlayerTargetsUseTheWindSpiritRoleColor() {
++        assertEquals(0x59D8E6, WindSpiritInstinctClientRules.resolveNativePlayerHighlightColor(
++                0x990000, dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole.ID,
++                true, false, true));
++        assertEquals(0x59D8E6, WindSpiritInstinctClientRules.resolveNativePlayerHighlightColor(
++                0x4EDD35, dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole.ID,
++                true, false, true));
++        assertEquals(0x990000, WindSpiritInstinctClientRules.resolveNativePlayerHighlightColor(
++                0x990000, null, true, true, false));
++        assertEquals(0x4EDD35, WindSpiritInstinctClientRules.resolveNativePlayerHighlightColor(
++                0x4EDD35, dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole.ID,
++                false, false, true));
++    }
++
+     @Test
+     void mixinUsesWatheNativeHighlightGateAndPreservesPriorityVetoes() throws IOException {
+@@ -35,4 +51,7 @@ class WindSpiritInstinctClientSourceTest {
+         assertTrue(mixin.contains("method = \"getInstinctHighlight\""));
+         assertTrue(mixin.contains("WatheClient;isKiller()Z"));
++        assertTrue(mixin.contains("MathHelper;hsvToRgb(FFF)I"));
++        assertTrue(mixin.contains("intValue = 5168437"));
++        assertTrue(mixin.contains("resolveNativePlayerHighlightColor"));
+         assertTrue(mixin.contains("method = \"isInstinctEnabledAndIsKiller\""));
+         assertTrue(mixin.contains("WraithClientState.isPromoted(player)"));
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/client/witchmaiden/FocusedFootstepsClientContractSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/client/witchmaiden/FocusedFootstepsClientContractSourceTest.java
+index 5109e9e..41b633d 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/client/witchmaiden/FocusedFootstepsClientContractSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/client/witchmaiden/FocusedFootstepsClientContractSourceTest.java
+@@ -73,4 +73,10 @@ class FocusedFootstepsClientContractSourceTest {
+         assertTrue(controller.contains("player.setSprinting("));
+         assertTrue(mixin.contains("@Mixin(ClientPlayerEntity.class)"));
++        assertTrue(controller.contains("public static void applyConsumedMovement("));
++        assertTrue(controller.contains("player.forwardSpeed = decision.movementForward()"));
++        assertTrue(controller.contains("player.sidewaysSpeed = decision.movementSideways()"));
++        assertTrue(mixin.contains("method = \"tickNewAi\""));
++        assertTrue(mixin.contains("at = @At(\"TAIL\")"));
++        assertTrue(mixin.contains("FocusedFootstepsInputController.applyConsumedMovement(player)"));
+         assertTrue(mixin.contains("method = \"tickMovement\""));
+         assertTrue(mixin.contains("Lnet/minecraft/client/input/Input;tick(ZF)V"));
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/client/wraith/WraithNormalUiContractTest.java b/src/test/java/dev/caecorthus/sparkwitch/client/wraith/WraithNormalUiContractTest.java
+index 4ac66e8..66471cf 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/client/wraith/WraithNormalUiContractTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/client/wraith/WraithNormalUiContractTest.java
+@@ -9,4 +9,5 @@ import java.util.stream.Stream;
+ 
+ import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ class WraithNormalUiContractTest {
+@@ -16,5 +17,5 @@ class WraithNormalUiContractTest {
+ 
+     @Test
+-    void activeWraithKeepsNormalTextChatAndInventoryOpening() throws IOException {
++    void activeWraithKeepsNativeTextChatAndNormalInventoryOpening() throws IOException {
+         String config = Files.readString(Path.of("src/client/resources/sparkwitch.client.mixins.json"));
+         String sources;
+@@ -27,10 +28,14 @@ class WraithNormalUiContractTest {
+         }
+ 
+-        assertFalse(Files.exists(CLIENT_MIXINS.resolve("WraithChatRestrictionMixin.java")));
++        assertFalse(
++                Files.exists(CLIENT_MIXINS.resolve("WraithChatRestrictionMixin.java"))
++        );
++        assertFalse(Files.exists(CLIENT_MIXINS.resolve("WraithChatScreenMixin.java")));
+         assertFalse(Files.exists(CLIENT_MIXINS.resolve("WraithInventoryKeyMixin.java")));
+         assertFalse(config.contains("WraithChatRestrictionMixin"));
++        assertFalse(config.contains("WraithChatScreenMixin"));
+         assertFalse(config.contains("WraithInventoryKeyMixin"));
+         assertFalse(sources.contains("setChatAllowed(false)"));
+-        assertFalse(sources.contains("sparkwitch$keepWraithChatClosed"));
++        assertFalse(sources.contains("shouldDisableChat()Z"));
+         assertFalse(sources.contains("sparkwitch$openWraithInventory"));
+     }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/guardianangel/GuardianAngelRulesTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/guardianangel/GuardianAngelRulesTest.java
+index 6e682a9..e8448e3 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/guardianangel/GuardianAngelRulesTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/guardianangel/GuardianAngelRulesTest.java
+@@ -14,5 +14,5 @@ class GuardianAngelRulesTest {
+         assertEquals(Identifier.of("sparkwitch", "guardian_angel"), GuardianAngelRules.ROLE_ID);
+         assertEquals(Identifier.of("sparkwitch", "guardian"), GuardianAngelRules.SKILL_ID);
+-        assertEquals(0x36E51B, GuardianAngelRules.COLOR);
++        assertEquals(0xF0D77A, GuardianAngelRules.COLOR);
+         assertEquals(1_200, GuardianAngelRules.INITIAL_COOLDOWN_TICKS);
+         assertEquals(1_800, GuardianAngelRules.POST_USE_COOLDOWN_TICKS);
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/prophet/ProphetComponentSchemaSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/prophet/ProphetComponentSchemaSourceTest.java
+index b2bea77..8d3c439 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/prophet/ProphetComponentSchemaSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/prophet/ProphetComponentSchemaSourceTest.java
+@@ -19,5 +19,5 @@ class ProphetComponentSchemaSourceTest {
+     @Test
+     void delegatesProphetStateWithoutOwningItsFields() throws IOException {
+-        String component = Files.readString(COMPONENT);
++        String component = readText(COMPONENT);
+         assertTrue(component.contains("private final ProphetPlayerState prophetState = new ProphetPlayerState();"));
+         assertTrue(component.contains("return prophetState.remainingTicks();"));
+@@ -36,5 +36,5 @@ class ProphetComponentSchemaSourceTest {
+     @Test
+     void normalFinishStartsDeferredCooldownButCancellationOnlyClearsIt() throws IOException {
+-        String component = Files.readString(COMPONENT);
++        String component = readText(COMPONENT);
+         String tick = methodBody(component, "public void tickDeathOmenWindow()", "public void cancelDeathOmenWindow()");
+         assertTrue(tick.contains("ProphetPlayerState.TickOutcome.FINISHED"));
+@@ -55,5 +55,5 @@ class ProphetComponentSchemaSourceTest {
+     @Test
+     void apprenticeRuntimeDoesNotClaimProphetDeferredCooldown() throws IOException {
+-        String component = Files.readString(COMPONENT);
++        String component = readText(COMPONENT);
+         String apprenticeState = methodBody(
+                 component,
+@@ -67,6 +67,6 @@ class ProphetComponentSchemaSourceTest {
+     @Test
+     void appendsProphetCodecsAfterTheLiveNinjaTail() throws IOException {
+-        String sync = Files.readString(SYNC);
+-        String nbt = Files.readString(NBT);
++        String sync = readText(SYNC);
++        String nbt = readText(NBT);
+         int syncWriteNinja = sync.indexOf("buf.writeVarInt(ownerVisible ? component.ninjaParryTicks : 0);");
+         int syncWriteProphet = sync.indexOf("component.getProphetState().writeSync(buf, ownerVisible);", syncWriteNinja);
+@@ -84,4 +84,8 @@ class ProphetComponentSchemaSourceTest {
+     }
+ 
++    private static String readText(Path path) throws IOException {
++        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
++    }
++
+     private static String methodBody(String source, String start, String end) {
+         int startIndex = source.indexOf(start);
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/prophet/ProphetRulesTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/prophet/ProphetRulesTest.java
+index 0b9c82e..9550143 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/prophet/ProphetRulesTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/prophet/ProphetRulesTest.java
+@@ -20,4 +20,5 @@ class ProphetRulesTest {
+         assertEquals(400, ProphetRules.ACTIVE_TICKS);
+         assertEquals(1800, ProphetRules.POST_COOLDOWN_TICKS);
++        assertEquals(150, ProphetRules.COIN_COST);
+     }
+ 
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/saint/SaintHudSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/saint/SaintHudSourceTest.java
+index 488e08b..2d56de2 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/saint/SaintHudSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/saint/SaintHudSourceTest.java
+@@ -16,6 +16,6 @@ class SaintHudSourceTest {
+     @Test
+     void stacksHellfireAndKarmaWhenAFormerKillerBecomesSaint() throws IOException {
+-        String renderer = Files.readString(RENDERER);
+-        String mixin = Files.readString(MIXIN);
++        String renderer = readText(RENDERER);
++        String mixin = readText(MIXIN);
+ 
+         assertTrue(renderer.contains("List<Text> getHudLines"));
+@@ -25,3 +25,7 @@ class SaintHudSourceTest {
+         assertTrue(mixin.contains("for (Text line : lines)"));
+     }
++
++    private static String readText(Path path) throws IOException {
++        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
++    }
+ }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/vendetta/VendettaServerContractSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/vendetta/VendettaServerContractSourceTest.java
+index 6d8d8e5..2db609c 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/vendetta/VendettaServerContractSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/vendetta/VendettaServerContractSourceTest.java
+@@ -139,6 +139,6 @@ class VendettaServerContractSourceTest {
+         String mixins = Files.readString(Path.of("src/main/resources/sparkwitch.mixins.json"));
+ 
+-        assertTrue(assassin.contains("lambda$registerPackets$6"));
+-        assertTrue(assassin.contains("lambda$registerPackets$37"));
++        assertTrue(assassin.contains("method = \"lambda$registerPackets$6\""));
++        assertFalse(assassin.contains("lambda$registerPackets$37"));
+         assertTrue(assassin.contains("ordinal = 1"));
+         assertTrue(assassin.contains("isBoundKillerTargetingVendetta(context.player(), target)"));
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/windspirit/WindSpiritRulesTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/windspirit/WindSpiritRulesTest.java
+index 399fab0..d5b3c66 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/windspirit/WindSpiritRulesTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/civilian/windspirit/WindSpiritRulesTest.java
+@@ -32,3 +32,63 @@ class WindSpiritRulesTest {
+         assertFalse(WindSpiritRules.shouldMaintainBlackoutVision(true, false));
+     }
++
++    @Test
++    void promotedWindSpiritChargeRestoresAnOrdinaryParticipatingPlayerHit() {
++        assertTrue(resolve(false, true, true, false, true, true, true, false, false));
++        assertTrue(resolve(true, true, true, false, true, true, true, false, false));
++    }
++
++    @Test
++    void everyActiveWraithStageRemainsExcludedEvenWhenVanillaWouldAllowTheHit() {
++        for (String stage : new String[]{
++                "base", "wind_spirit", "guardian_angel", "vendetta", "saboteur", "curser"
++        }) {
++            assertFalse(resolve(false, true, true, false, true, true, true, false, true), stage);
++            assertFalse(resolve(true, true, true, false, true, true, true, false, true), stage);
++        }
++    }
++
++    @Test
++    void ownerSpectatorDeadRemovedAndNonParticipatingPlayersRemainExcluded() {
++        for (boolean vanillaCanHit : new boolean[]{false, true}) {
++            assertFalse(resolve(vanillaCanHit, true, true, true, true, true, true, false, false));
++            assertFalse(resolve(vanillaCanHit, true, true, false, true, true, true, true, false));
++            assertFalse(resolve(vanillaCanHit, true, true, false, true, false, true, false, false));
++            assertFalse(resolve(vanillaCanHit, true, true, false, true, true, false, false, false));
++        }
++    }
++
++    @Test
++    void breezeOrdinaryPlayerAndNonPlayerEligibilityRemainVanillaOwned() {
++        assertFalse(resolve(false, false, true, false, true, true, true, false, false));
++        assertTrue(resolve(true, false, true, false, true, true, true, false, false));
++        assertFalse(resolve(false, true, false, false, true, true, true, false, false));
++        assertTrue(resolve(true, true, false, false, true, true, true, false, false));
++        assertFalse(resolve(false, true, true, false, false, true, true, false, false));
++        assertTrue(resolve(true, true, true, false, false, true, true, false, false));
++    }
++
++    private static boolean resolve(
++            boolean vanillaCanHit,
++            boolean playerWindCharge,
++            boolean activePromotedWindSpiritOwner,
++            boolean targetIsOwner,
++            boolean playerTarget,
++            boolean targetAlive,
++            boolean targetParticipating,
++            boolean targetSpectator,
++            boolean targetActiveWraith
++    ) {
++        return WindSpiritRules.resolveWindChargeHit(
++                vanillaCanHit,
++                playerWindCharge,
++                activePromotedWindSpiritOwner,
++                targetIsOwner,
++                playerTarget,
++                targetAlive,
++                targetParticipating,
++                targetSpectator,
++                targetActiveWraith
++        );
++    }
+ }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/kidnapper/KidnapperThrowIntegrationSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/kidnapper/KidnapperThrowIntegrationSourceTest.java
+index 6a1d33b..b668b1d 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/kidnapper/KidnapperThrowIntegrationSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/kidnapper/KidnapperThrowIntegrationSourceTest.java
+@@ -34,6 +34,14 @@ class KidnapperThrowIntegrationSourceTest {
+         assertTrue(throwing.contains("KidnapperDragService.release(player);"));
+         assertTrue(throwing.contains("body.setVelocity(velocity);"));
++        assertTrue(throwing.contains("body.setYaw(throwYaw);"));
++        assertTrue(throwing.contains("body.setBodyYaw(throwYaw);"));
++        assertTrue(throwing.contains("body.setHeadYaw(throwYaw);"));
++        assertTrue(throwing.contains("body.prevYaw = throwYaw;"));
++        assertTrue(throwing.contains("body.prevBodyYaw = throwYaw;"));
++        assertTrue(throwing.contains("body.prevHeadYaw = throwYaw;"));
+         assertTrue(throwing.contains("body.velocityModified = true;"));
+         assertTrue(throwing.indexOf("KidnapperDragService.release(player);")
++                < throwing.indexOf("body.setYaw(throwYaw);"));
++        assertTrue(throwing.indexOf("body.prevHeadYaw = throwYaw;")
+                 < throwing.indexOf("body.setVelocity(velocity);"));
+ 
+@@ -77,8 +85,8 @@ class KidnapperThrowIntegrationSourceTest {
+     @Test
+     void ownsTheRawUseGestureOncePerHeldPressBeforeVanillaItemUse() throws IOException {
+-        String hook = Files.readString(CLIENT_ROOT.resolve("hooks/KidnapperThrowClientHooks.java"));
+-        String mixin = Files.readString(CLIENT_ROOT.resolve("mixin/kidnapper/KidnapperThrowUseMixin.java"));
+-        String client = Files.readString(CLIENT_ROOT.resolve("SparkWitchClient.java"));
+-        String clientMixins = Files.readString(Path.of("src/client/resources/sparkwitch.client.mixins.json"));
++        String hook = readClient("hooks/KidnapperThrowClientHooks.java");
++        String mixin = readClient("mixin/kidnapper/KidnapperThrowUseMixin.java");
++        String client = readClient("SparkWitchClient.java");
++        String clientMixins = readText(Path.of("src/client/resources/sparkwitch.client.mixins.json"));
+ 
+         assertTrue(hook.contains("SparkWitchServerConnection.isConfirmedServer()"));
+@@ -137,5 +145,13 @@ class KidnapperThrowIntegrationSourceTest {
+ 
+     private static String read(String relativePath) throws IOException {
+-        return Files.readString(ROOT.resolve(relativePath));
++        return readText(ROOT.resolve(relativePath));
++    }
++
++    private static String readClient(String relativePath) throws IOException {
++        return readText(CLIENT_ROOT.resolve(relativePath));
++    }
++
++    private static String readText(Path path) throws IOException {
++        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
+     }
+ }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/ninja/NinjaItemResourcesTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/ninja/NinjaItemResourcesTest.java
+index 185f586..3381967 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/ninja/NinjaItemResourcesTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/ninja/NinjaItemResourcesTest.java
+@@ -6,4 +6,5 @@ import javax.imageio.ImageIO;
+ import java.awt.image.BufferedImage;
+ import java.io.IOException;
++import java.nio.charset.StandardCharsets;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+@@ -73,5 +74,9 @@ class NinjaItemResourcesTest {
+     private static String sha256(Path path) throws IOException {
+         try {
+-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(path)));
++            String normalized = Files.readString(path, StandardCharsets.UTF_8)
++                    .replace("\r\n", "\n")
++                    .replace('\r', '\n');
++            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
++                    .digest(normalized.getBytes(StandardCharsets.UTF_8)));
+         } catch (NoSuchAlgorithmException exception) {
+             throw new AssertionError("SHA-256 must be available", exception);
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/saboteur/SaboteurClientResourcesTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/saboteur/SaboteurClientResourcesTest.java
+index 2360907..d2cc9ce 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/saboteur/SaboteurClientResourcesTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/saboteur/SaboteurClientResourcesTest.java
+@@ -54,12 +54,8 @@ class SaboteurClientResourcesTest {
+         JsonObject english = language("en_us");
+ 
+-        assertEquals(
+-                "消灭好人阵营。晋升后每完成一项任务获得 50 金币。专属商店只出售一个 50 金币的开锁器，以及保持原价的熄灯。破坏在晋升时先冷却 60 秒；使用后立刻令 20 格内所有可熄灭列车灯熄灭 20 秒，之后冷却 120 秒。",
+-                value(chinese, "announcement.goals.saboteur")
+-        );
+-        assertEquals(
+-                "Eliminate the passengers. Each task completed after promotion grants 50 coins. Your private shop contains only one lockpick for 50 coins and the standard blackout at its original price. Sabotage starts with a 60-second cooldown; use it to black out all eligible train lights within 20 blocks for 20 seconds, then it cools down for 120 seconds.",
+-                value(english, "announcement.goals.saboteur")
+-        );
++        assertTrue(value(chinese, "announcement.goals.saboteur").contains("对讲机"));
++        assertTrue(value(chinese, "announcement.goals.saboteur").contains("杀手阵营"));
++        assertTrue(value(english, "announcement.goals.saboteur").contains("walkie-talkie"));
++        assertTrue(value(english, "announcement.goals.saboteur").contains("living killer-faction"));
+ 
+         String combined = value(chinese, "announcement.goals.saboteur")
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/saboteur/SaboteurServerIntegrationSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/saboteur/SaboteurServerIntegrationSourceTest.java
+index 0b53f6a..52ea2fd 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/saboteur/SaboteurServerIntegrationSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/saboteur/SaboteurServerIntegrationSourceTest.java
+@@ -26,4 +26,5 @@ class SaboteurServerIntegrationSourceTest {
+         assertTrue(lockpickEntry.contains(".stock(1)"));
+         assertTrue(shop.contains("SaboteurShopStockAccess"));
++        assertTrue(shop.contains("sparkwitch$initializePromotionLockpickStock"));
+         assertFalse(shop.contains("shop.initializeShop("));
+         assertFalse(shop.contains("PlayerShopComponent::useBlackout"));
+@@ -66,6 +67,9 @@ class SaboteurServerIntegrationSourceTest {
+         String ability = saboteurSource("SaboteurAbilityService.java");
+         assertTrue(ability.contains("SaboteurRules.isActivePromotedSaboteur(player)"));
+-        assertTrue(ability.contains("SaboteurLightOutageService.activate(player)"));
+-        assertTrue(ability.contains("SaboteurRules.COOLDOWN_TICKS"));
++        assertTrue(ability.contains("SaboteurAbilityRuntime.use"));
++
++        String runtime = saboteurSource("SaboteurAbilityRuntime.java");
++        assertTrue(runtime.contains("activateOutage.run()"));
++        assertTrue(runtime.contains("startCooldown.accept(SaboteurRules.COOLDOWN_TICKS)"));
+ 
+         assertFalse(source("skill/SparkWitchBuiltInSkills.java").contains("Saboteur"));
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/witchmaiden/WitchMaidenSharedIntegrationSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/witchmaiden/WitchMaidenSharedIntegrationSourceTest.java
+index a879549..9e34e25 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/killer/witchmaiden/WitchMaidenSharedIntegrationSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/killer/witchmaiden/WitchMaidenSharedIntegrationSourceTest.java
+@@ -79,13 +79,17 @@ class WitchMaidenSharedIntegrationSourceTest {
+ 
+     private static String main(String relativePath) throws IOException {
+-        return Files.readString(ROOT.resolve("main/java/dev/caecorthus/sparkwitch").resolve(relativePath));
++        return readText(ROOT.resolve("main/java/dev/caecorthus/sparkwitch").resolve(relativePath));
+     }
+ 
+     private static String client(String relativePath) throws IOException {
+-        return Files.readString(ROOT.resolve("client/java/dev/caecorthus/sparkwitch").resolve(relativePath));
++        return readText(ROOT.resolve("client/java/dev/caecorthus/sparkwitch").resolve(relativePath));
+     }
+ 
+     private static JsonObject config(String relativePath) throws IOException {
+-        return JsonParser.parseString(Files.readString(ROOT.resolve(relativePath))).getAsJsonObject();
++        return JsonParser.parseString(readText(ROOT.resolve(relativePath))).getAsJsonObject();
++    }
++
++    private static String readText(Path path) throws IOException {
++        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
+     }
+ 
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithAssassinGuessCompatibilityTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithAssassinGuessCompatibilityTest.java
+index 68914ea..be62b2e 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithAssassinGuessCompatibilityTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithAssassinGuessCompatibilityTest.java
+@@ -17,6 +17,8 @@ import org.objectweb.asm.tree.MethodNode;
+ 
+ import java.io.IOException;
++import java.io.InputStream;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
++import java.util.Properties;
+ import java.util.zip.ZipFile;
+ 
+@@ -65,5 +67,5 @@ class WraithAssassinGuessCompatibilityTest {
+         assertFalse(SparkWitchRoles.assassinGuessRoles().contains(SparkWitchRoles.wraith()));
+ 
+-        try (ZipFile noelles = new ZipFile("libs/noellesroles-1.7.7-h1.5.7-spark.jar")) {
++        try (ZipFile noelles = new ZipFile(noellesRolesJar().toFile())) {
+             ClassNode assassinScreen = new ClassNode();
+             new ClassReader(noelles.getInputStream(noelles.getEntry(
+@@ -96,3 +98,11 @@ class WraithAssassinGuessCompatibilityTest {
+         }
+     }
++
++    private static Path noellesRolesJar() throws IOException {
++        Properties properties = new Properties();
++        try (InputStream input = Files.newInputStream(Path.of("gradle.properties"))) {
++            properties.load(input);
++        }
++        return Path.of("libs", "noellesroles-" + properties.getProperty("noellesroles_version") + ".jar");
++    }
+ }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithComponentSchemaSourceTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithComponentSchemaSourceTest.java
+index 8d9b918..c71a674 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithComponentSchemaSourceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithComponentSchemaSourceTest.java
+@@ -41,4 +41,5 @@ class WraithComponentSchemaSourceTest {
+     void canonicalRoundAndLegacyReadersUseExactIdsAndCanonicalOnlyWrites() throws IOException {
+         String canonical = read("component/WraithRoundComponent.java");
++        String settingsCodec = read("roles/special/wraith/WraithSettingsNbtCodec.java");
+         String legacyPlayer = compact(read("component/LegacyWraithPlayerComponent.java"));
+         String legacyRound = compact(read("component/LegacyWraithRoundComponent.java"));
+@@ -47,4 +48,7 @@ class WraithComponentSchemaSourceTest {
+         assertTrue(canonical.contains("SparkWitch.id(\"wraith_round\")"));
+         assertTrue(canonical.contains("\"StartingPlayerCount\""));
++        assertTrue(settingsCodec.contains("\"Chance\""));
++        assertTrue(settingsCodec.contains("\"Minimum\""));
++        assertTrue(settingsCodec.contains("\"Dividend\""));
+         assertTrue(canonical.contains("\"ConsumedPlayers\""));
+         assertFalse(canonical.contains("sparktraits:wraith_round"));
+@@ -70,4 +74,7 @@ class WraithComponentSchemaSourceTest {
+         assertTrue(api.contains("player != null"));
+         assertTrue(api.contains("WraithPlayerComponent.KEY.maybeGet(player)"));
++        assertTrue(api.contains("isKillerAlignedWraith(wraith.isActive(), wraith.getAlignment())"));
++        assertTrue(api.contains("alignment == WraithState.Alignment.KILLER"));
++        assertFalse(api.contains("alignment == null"));
+         assertTrue(gameWorldMixin.contains("method = \"readFromNbt\""));
+         assertTrue(gameWorldMixin.contains("at = @At(\"HEAD\")"));
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithFactionBoundaryTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithFactionBoundaryTest.java
+index 93b7ae6..5592320 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithFactionBoundaryTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithFactionBoundaryTest.java
+@@ -25,5 +25,7 @@ class WraithFactionBoundaryTest {
+ 
+         assertTrue(participation.contains("if (!restricted || alignment == null)"));
+-        assertTrue(participation.contains("alignment == WraithState.Alignment.GOOD ? FactionIds.CIVILIAN : FactionIds.KILLER"));
++        assertTrue(participation.contains("case GOOD -> FactionIds.CIVILIAN"));
++        assertTrue(participation.contains("case KILLER -> FactionIds.KILLER"));
++        assertTrue(participation.contains("case WITCH -> SparkWitchFactions.WITCH"));
+         assertTrue(participation.contains("restrictedFaction(wraith.isRestricted(), wraith.getAlignment())"));
+         assertEquals(SparkWitchFactions.WITCH,
+@@ -34,10 +36,14 @@ class WraithFactionBoundaryTest {
+     void promotionNeverResurrectsCurserOrRemovesWatheDeadMembership() throws Exception {
+         String promotion = source("progression/WraithPromotionQueue.java");
++        String promotionService = source("progression/WraithPromotionService.java");
+         String lifecycle = source("runtime/WraithLifecycle.java");
+-        assertTrue(promotion.contains("wraith.promote()"));
+-        assertTrue(promotion.contains("WraithLifecycle.promotePlayer(player, role)"));
++        assertTrue(promotion.contains("WraithPromotionService.promote(player"));
++        assertTrue(promotionService.contains("wraith.promote()"));
++        assertTrue(promotionService.contains("WraithLifecycle.promotePlayer(player, role)"));
+         assertTrue(lifecycle.contains("transitionRole(player, role)"));
+         assertFalse(promotion.contains("removeDeadPlayer"));
+         assertFalse(promotion.contains("setPlayerAlive"));
++        assertFalse(promotionService.contains("removeDeadPlayer"));
++        assertFalse(promotionService.contains("setPlayerAlive"));
+         assertFalse(lifecycle.contains("removeDeadPlayer"));
+         assertFalse(lifecycle.contains("setPlayerAlive"));
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithLegacyPersistenceTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithLegacyPersistenceTest.java
+index 5f857a0..c2dd056 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithLegacyPersistenceTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithLegacyPersistenceTest.java
+@@ -206,4 +206,44 @@ public class WraithLegacyPersistenceTest {
+     }
+ 
++    @Test
++    void historicalCivilianAlignmentMigratesToGood() {
++        TestProvider provider = new TestProvider(true);
++        provider.container.fromTag(legacyContainerTag("CIVILIAN", 3, 15, UUID.randomUUID()), null);
++
++        assertTrue(provider.player().isActive());
++        assertTrue(provider.player().isPromotionPending());
++        assertEquals(WraithState.Alignment.GOOD, provider.player().getAlignment());
++    }
++
++    @Test
++    void activeRecordWithoutAlignmentUsesTheLegacyKillerDefault() {
++        TestProvider provider = new TestProvider(true);
++        provider.container.fromTag(legacyContainerTag((String) null, 3, 15, UUID.randomUUID()), null);
++
++        assertTrue(provider.player().isActive());
++        assertTrue(provider.player().isPromotionPending());
++        assertEquals(WraithState.Alignment.KILLER, provider.player().getAlignment());
++    }
++
++    @Test
++    void canonicalActiveRecordWithoutAlignmentUsesTheLegacyKillerDefault() {
++        TestProvider provider = new TestProvider(true);
++        NbtCompound components = new NbtCompound();
++        NbtCompound player = new NbtCompound();
++        player.putBoolean("WraithActive", true);
++        player.putBoolean("WraithRestricted", true);
++        player.putInt("WraithCompletedTasks", 3);
++        player.putBoolean("WraithPromotionPending", true);
++        components.put("sparkwitch:wraith_player", player);
++        NbtCompound root = new NbtCompound();
++        root.put(COMPONENTS, components);
++
++        provider.container.fromTag(root, null);
++
++        assertTrue(provider.player().isActive());
++        assertTrue(provider.player().isPromotionPending());
++        assertEquals(WraithState.Alignment.KILLER, provider.player().getAlignment());
++    }
++
+     @Test
+     void canonicalWinsWhenBothTagsExistInEitherContainerOrder() {
+@@ -262,4 +302,13 @@ public class WraithLegacyPersistenceTest {
+             int startingPlayers,
+             UUID consumed
++    ) {
++        return legacyContainerTag(alignment == null ? null : alignment.name(), completedTasks, startingPlayers, consumed);
++    }
++
++    private static NbtCompound legacyContainerTag(
++            String alignmentName,
++            int completedTasks,
++            int startingPlayers,
++            UUID consumed
+     ) {
+         NbtCompound player = new NbtCompound();
+@@ -267,5 +316,7 @@ public class WraithLegacyPersistenceTest {
+         player.putBoolean("WraithRestricted", true);
+         player.putInt("WraithCompletedTasks", completedTasks);
+-        player.putString("WraithAlignment", alignment.name());
++        if (alignmentName != null) {
++            player.putString("WraithAlignment", alignmentName);
++        }
+         player.putBoolean("WraithPromotionPending", true);
+         NbtCompound round = new NbtCompound();
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithPriorListenerCaptureContractTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithPriorListenerCaptureContractTest.java
+index 2f0ab2d..66b9e77 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithPriorListenerCaptureContractTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithPriorListenerCaptureContractTest.java
+@@ -4,6 +4,9 @@ import dev.doctor4t.wathe.api.event.KillPlayer;
+ import org.junit.jupiter.api.Test;
+ 
++import java.io.InputStream;
+ import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
+ import java.nio.file.Path;
++import java.util.Properties;
+ import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.zip.ZipFile;
+@@ -32,6 +35,5 @@ class WraithPriorListenerCaptureContractTest {
+     @Test
+     void mandatoryNoellesSwallowedPathReturnsNonNullAllowWithoutBody() throws Exception {
+-        try (ZipFile jar = new ZipFile(Path.of(
+-                "libs/noellesroles-1.7.7-h1.5.7-spark.jar").toFile())) {
++        try (ZipFile jar = new ZipFile(noellesRolesJar().toFile())) {
+             byte[] implementation = jar.getInputStream(jar.getEntry(
+                     "org/agmas/noellesroles/Noellesroles.class")).readAllBytes();
+@@ -42,3 +44,11 @@ class WraithPriorListenerCaptureContractTest {
+         }
+     }
++
++    private static Path noellesRolesJar() throws Exception {
++        Properties properties = new Properties();
++        try (InputStream input = Files.newInputStream(Path.of("gradle.properties"))) {
++            properties.load(input);
++        }
++        return Path.of("libs", "noellesroles-" + properties.getProperty("noellesroles_version") + ".jar");
++    }
+ }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithProviderBoundaryTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithProviderBoundaryTest.java
+index fd4aa1c..51910b8 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithProviderBoundaryTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithProviderBoundaryTest.java
+@@ -1,5 +1,12 @@
+ package dev.caecorthus.sparkwitch.roles.special.wraith;
+ 
++import com.google.gson.JsonObject;
++import com.google.gson.JsonParser;
+ import org.junit.jupiter.api.Test;
++import org.objectweb.asm.ClassReader;
++import org.objectweb.asm.tree.AbstractInsnNode;
++import org.objectweb.asm.tree.ClassNode;
++import org.objectweb.asm.tree.MethodInsnNode;
++import org.objectweb.asm.tree.MethodNode;
+ 
+ import java.nio.file.Files;
+@@ -7,25 +14,50 @@ import java.nio.file.Path;
+ import java.security.MessageDigest;
+ import java.util.HexFormat;
++import java.util.Map;
++import java.util.zip.ZipFile;
+ 
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertNotNull;
+ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ class WraithProviderBoundaryTest {
+     @Test
+-    void keepsWatheAndNoellesOnTheirUnmodifiedBaselines() throws Exception {
++    void keepsConfiguredProvidersOnTheirHistoricalBaselines() throws Exception {
+         String properties = Files.readString(Path.of("gradle.properties"));
+         String production = productionSource();
++        Path watheJar = Path.of("libs/wathe-1.5.6-spark-1.21.1.jar");
++        Path noellesRolesJar = Path.of("libs/noellesroles-1.7.6-h1.5.6-spark.jar");
++        Path sparkFactionApiJar = Path.of("libs/sparkfactionapi-0.1.6.0.jar");
++
++        assertTrue(properties.contains("mod_version=0.1.6.2"));
++        assertTrue(properties.contains("wathe_version=1.5.6-spark-1.21.1"));
++        assertTrue(properties.contains("noellesroles_version=1.7.6-h1.5.6-spark"));
++        assertTrue(properties.contains("sparkfactionapi_version=0.1.6.0"));
++        assertTrue(Files.isRegularFile(watheJar));
++        assertTrue(Files.isRegularFile(noellesRolesJar));
++        assertTrue(Files.isRegularFile(sparkFactionApiJar));
++        assertEquals("a4e0355c61def0b482c197a7ccd1f86ee91752b7af1b5bdafae8716c652f207f",
++                sha256(watheJar));
++        assertEquals("fcb0da6995197afff8637dd9236f96d9d07cfc0e26484ad3777e5cf3de37d8b7",
++                sha256(noellesRolesJar));
++        assertEquals("434a3eceb1fa01fec2ce72d90bc0dcbcb6f1a8fb5e80f02c0294ecec92360f98",
++                sha256(sparkFactionApiJar));
++        assertFalse(Files.exists(Path.of("libs/wathe-1.5.7-spark-1.21.1.jar")));
++        assertFalse(Files.exists(Path.of("libs/noellesroles-1.7.7-h1.5.7-spark.jar")));
++
++        assertProviderMetadata(watheJar, "wathe", "1.5.6-spark-1.21.1", Map.of());
++        assertProviderMetadata(noellesRolesJar, "noellesroles", "1.7.6-h1.5.6-spark",
++                Map.of("wathe", "1.5.6-spark-1.21.1"));
++        assertProviderMetadata(sparkFactionApiJar, "sparkfactionapi", "0.1.6.0",
++                Map.of("wathe", ">=1.5.6-spark-1.21.1"));
++
++        JsonObject sourceMetadata = JsonParser.parseString(Files.readString(Path.of(
++                "src/main/resources/fabric.mod.json"))).getAsJsonObject();
++        assertEquals(">=0.1.9.11", sourceMetadata.getAsJsonObject("suggests")
++                .get("sparktraits").getAsString());
++        assertEquals("<0.1.9.11", sourceMetadata.getAsJsonObject("breaks")
++                .get("sparktraits").getAsString());
+ 
+-        assertTrue(properties.contains("wathe_version=1.5.7-spark-1.21.1"));
+-        assertTrue(properties.contains("noellesroles_version=1.7.7-h1.5.7-spark"));
+-        assertTrue(Files.isRegularFile(Path.of("libs/wathe-1.5.7-spark-1.21.1.jar")));
+-        assertTrue(Files.isRegularFile(Path.of("libs/noellesroles-1.7.7-h1.5.7-spark.jar")));
+-        assertEquals("bed8c51ccdaaa9896451a23cd233b1c34c741b61a39992b8fd0d7dbd4c421eab",
+-                sha256(Path.of("libs/wathe-1.5.7-spark-1.21.1.jar")));
+-        assertEquals("1501afbadaab1affa86ea705cccc00a3339e641cb6adbd649970c8a71ede58b8",
+-                sha256(Path.of("libs/noellesroles-1.7.7-h1.5.7-spark.jar")));
+-        assertFalse(Files.exists(Path.of("libs/wathe-1.5.6-spark-1.21.1.jar")));
+-        assertFalse(Files.exists(Path.of("libs/noellesroles-1.7.6-h1.5.6-spark.jar")));
+         assertFalse(production.contains("dev.doctor4t.wathe.api.RoleAnnouncementApi"));
+         assertFalse(production.contains("dev.doctor4t.wathe.api.event.DeadPlayerParticipation"));
+@@ -52,4 +84,121 @@ class WraithProviderBoundaryTest {
+     }
+ 
++    @Test
++    void baselineNoellesSelectorsMatchEveryConsumerOwnedMixin() throws Exception {
++        String assassinServerMixin = source("mixin/NoellesAssassinVendettaTargetMixin.java");
++        String hiddenEquipmentMixin = source("mixin/NoellesHiddenEquipmentBlackRavenLedgerMixin.java");
++        String shadowJesterMixin = source("mixin/NoellesRolesShadowJesterWinMixin.java");
++        String throwingAxeMixin = source("mixin/NoellesThrowingAxeVendettaTargetMixin.java");
++        String assassinGuessMixin = clientSource("AssassinSaboteurGuessMixin.java");
++        String assassinTargetMixin = clientSource("AssassinVendettaTargetMixin.java");
++        String hiddenBodiesMixin = clientSource("WraithHiddenBodiesMixin.java");
++
++        assertTrue(assassinServerMixin.contains("method = \"lambda$registerPackets$6\""));
++        assertFalse(assassinServerMixin.contains("lambda$registerPackets$37"));
++        assertTrue(assassinServerMixin.contains("ordinal = 1"));
++        assertTrue(assassinServerMixin.contains("GameFunctions;isPlayerPlayingAndAlive"));
++        assertTrue(hiddenEquipmentMixin.contains("@Mixin(HiddenEquipmentHelper.class)"));
++        assertTrue(hiddenEquipmentMixin.contains("method = \"filterPacket\""));
++        assertTrue(shadowJesterMixin.contains("method = \"lambda$registerEvents$14\""));
++        assertTrue(shadowJesterMixin.contains("CheckWinCondition$WinResult;neutralWin"));
++        assertTrue(throwingAxeMixin.contains("@Mixin(ThrowingAxeEntity.class)"));
++        assertTrue(throwingAxeMixin.contains("method = \"onEntityHit\""));
++        assertTrue(throwingAxeMixin.contains("GameFunctions;isPlayerAliveAndSurvival"));
++        assertTrue(assassinGuessMixin.contains("@Mixin(AssassinScreen.class)"));
++        assertTrue(assassinGuessMixin.contains("method = \"getAllGuessableRoles\""));
++        assertTrue(assassinGuessMixin.contains("Role;canUseKiller()Z"));
++        assertTrue(assassinTargetMixin.contains("@Mixin(AssassinScreen.class)"));
++        assertTrue(assassinTargetMixin.contains("method = \"method_25426\""));
++        assertTrue(assassinTargetMixin.contains("GameWorldComponent;getAllAlivePlayers()Ljava/util/List;"));
++        assertTrue(hiddenBodiesMixin.contains("@Mixin(value = HiddenBodiesWorldComponent.class"));
++        assertTrue(hiddenBodiesMixin.contains("method = \"isHidden\""));
++
++        try (ZipFile noelles = new ZipFile(Path.of(
++                "libs/noellesroles-1.7.6-h1.5.6-spark.jar").toFile())) {
++            ClassNode noellesroles = classNode(noelles, "org/agmas/noellesroles/Noellesroles.class");
++            MethodNode shadowJesterWin = method(noellesroles, "lambda$registerEvents$14",
++                    "(Lnet/minecraft/class_3218;Ldev/doctor4t/wathe/cca/GameWorldComponent;"
++                            + "Ldev/doctor4t/wathe/game/GameFunctions$WinStatus;)"
++                            + "Ldev/doctor4t/wathe/api/event/CheckWinCondition$WinResult;");
++            assertNotNull(shadowJesterWin);
++            assertEquals(1, invocationCount(shadowJesterWin,
++                    "dev/doctor4t/wathe/api/event/CheckWinCondition$WinResult",
++                    "neutralWin",
++                    "(Lnet/minecraft/class_3222;Ljava/util/List;)"
++                            + "Ldev/doctor4t/wathe/api/event/CheckWinCondition$WinResult;"));
++
++            MethodNode assassinPacket = method(noellesroles, "lambda$registerPackets$6",
++                    "(Lorg/agmas/noellesroles/packet/AssassinGuessRoleC2SPacket;"
++                            + "Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking$Context;)V");
++            assertNotNull(assassinPacket);
++            assertEquals(2, invocationCount(assassinPacket,
++                    "dev/doctor4t/wathe/game/GameFunctions",
++                    "isPlayerPlayingAndAlive",
++                    "(Lnet/minecraft/class_1657;)Z"));
++
++            ClassNode hiddenEquipment = classNode(noelles,
++                    "org/agmas/noellesroles/util/HiddenEquipmentHelper.class");
++            assertNotNull(method(hiddenEquipment, "filterPacket",
++                    "(Lnet/minecraft/class_2744;Lnet/minecraft/class_1657;Lnet/minecraft/class_3222;)"
++                            + "Lnet/minecraft/class_2744;"));
++
++            ClassNode throwingAxe = classNode(noelles,
++                    "org/agmas/noellesroles/entity/ThrowingAxeEntity.class");
++            MethodNode entityHit = method(throwingAxe, "method_7454",
++                    "(Lnet/minecraft/class_3966;)V");
++            assertNotNull(entityHit);
++            assertEquals(1, invocationCount(entityHit,
++                    "dev/doctor4t/wathe/game/GameFunctions",
++                    "isPlayerAliveAndSurvival",
++                    "(Lnet/minecraft/class_1657;)Z"));
++
++            ClassNode assassinScreen = classNode(noelles,
++                    "org/agmas/noellesroles/client/screen/AssassinScreen.class");
++            MethodNode guessRoles = method(assassinScreen, "getAllGuessableRoles", "()Ljava/util/List;");
++            assertNotNull(guessRoles);
++            assertEquals(1, invocationCount(guessRoles,
++                    "dev/doctor4t/wathe/api/Role", "canUseKiller", "()Z"));
++            MethodNode init = method(assassinScreen, "method_25426", "()V");
++            assertNotNull(init);
++            assertEquals(1, invocationCount(init,
++                    "dev/doctor4t/wathe/cca/GameWorldComponent",
++                    "getAllAlivePlayers",
++                    "()Ljava/util/List;"));
++
++            ClassNode hiddenBodies = classNode(noelles,
++                    "org/agmas/noellesroles/scavenger/HiddenBodiesWorldComponent.class");
++            assertNotNull(method(hiddenBodies, "isHidden", "(Ljava/util/UUID;)Z"));
++        }
++    }
++
++    private static ClassNode classNode(ZipFile jar, String entryName) throws Exception {
++        var entry = jar.getEntry(entryName);
++        assertNotNull(entry, entryName);
++        ClassNode node = new ClassNode();
++        new ClassReader(jar.getInputStream(entry)).accept(
++                node, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
++        return node;
++    }
++
++    private static MethodNode method(ClassNode owner, String name, String descriptor) {
++        return owner.methods.stream()
++                .filter(method -> method.name.equals(name) && method.desc.equals(descriptor))
++                .findFirst()
++                .orElse(null);
++    }
++
++    private static int invocationCount(MethodNode method, String owner, String name, String descriptor) {
++        int count = 0;
++        for (AbstractInsnNode instruction : method.instructions) {
++            if (instruction instanceof MethodInsnNode call
++                    && call.owner.equals(owner)
++                    && call.name.equals(name)
++                    && call.desc.equals(descriptor)) {
++                count++;
++            }
++        }
++        return count;
++    }
++
+     private static String productionSource() throws Exception {
+         StringBuilder source = new StringBuilder();
+@@ -69,4 +218,28 @@ class WraithProviderBoundaryTest {
+     }
+ 
++    private static String clientSource(String relative) throws Exception {
++        return Files.readString(Path.of(
++                "src/client/java/dev/caecorthus/sparkwitch/client/mixin", relative));
++    }
++
++    private static void assertProviderMetadata(
++            Path jarPath,
++            String expectedId,
++            String expectedVersion,
++            Map<String, String> expectedDependencies
++    ) throws Exception {
++        try (ZipFile jar = new ZipFile(jarPath.toFile())) {
++            var entry = jar.getEntry("fabric.mod.json");
++            assertNotNull(entry, jarPath.toString());
++            JsonObject metadata = JsonParser.parseReader(
++                    new java.io.InputStreamReader(jar.getInputStream(entry))).getAsJsonObject();
++            assertEquals(expectedId, metadata.get("id").getAsString());
++            assertEquals(expectedVersion, metadata.get("version").getAsString());
++            JsonObject dependencies = metadata.getAsJsonObject("depends");
++            expectedDependencies.forEach((modId, predicate) ->
++                    assertEquals(predicate, dependencies.get(modId).getAsString(), modId));
++        }
++    }
++
+     private static String sha256(Path path) throws Exception {
+         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithResponsibilitySplitContractTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithResponsibilitySplitContractTest.java
+index 5fdb94a..91b6e6d 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithResponsibilitySplitContractTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithResponsibilitySplitContractTest.java
+@@ -84,4 +84,5 @@ class WraithResponsibilitySplitContractTest {
+         assertOccurrences(source, "SparkFactionApi.registerEffectiveFactionResolver", 1);
+         assertOccurrences(source, "SparkFactionApi.registerPlayerAffectPolicy", 1);
++        assertOccurrences(source, "SparkFactionApi.registerGunPunishmentPolicy", 1);
+         assertOccurrences(source, "ServerTickEvents.END_SERVER_TICK.register", 3);
+     }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRoleRegistrationTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRoleRegistrationTest.java
+index e688adf..011d3d8 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRoleRegistrationTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRoleRegistrationTest.java
+@@ -54,5 +54,5 @@ class WraithRoleRegistrationTest {
+             assertEquals(FactionIds.CIVILIAN, SparkFactionApi.resolveBaseFaction(role));
+             assertEquals(Faction.CIVILIAN, role.getFaction());
+-            assertEquals(0x36E51B, role.color());
++            assertEquals(0x59D8E6, role.color());
+             assertEquals(Role.MoodType.NONE, role.getMoodType());
+             assertEquals(GameConstants.getInTicks(0, 10), role.getMaxSprintTime());
+@@ -64,5 +64,5 @@ class WraithRoleRegistrationTest {
+         assertEquals(FactionIds.CIVILIAN, SparkFactionApi.resolveBaseFaction(vendetta));
+         assertEquals(Faction.CIVILIAN, vendetta.getFaction());
+-        assertEquals(0x36E51B, vendetta.color());
++        assertEquals(0xE34B5F, vendetta.color());
+         assertEquals(Role.MoodType.NONE, vendetta.getMoodType());
+         assertEquals(-1, vendetta.getMaxSprintTime());
+@@ -73,5 +73,5 @@ class WraithRoleRegistrationTest {
+         assertEquals(FactionIds.CIVILIAN, SparkFactionApi.resolveBaseFaction(guardianAngel));
+         assertEquals(Faction.CIVILIAN, guardianAngel.getFaction());
+-        assertEquals(0x36E51B, guardianAngel.color());
++        assertEquals(0xF0D77A, guardianAngel.color());
+         assertEquals(Role.MoodType.NONE, guardianAngel.getMoodType());
+         assertEquals(-1, guardianAngel.getMaxSprintTime());
+@@ -82,5 +82,5 @@ class WraithRoleRegistrationTest {
+         assertEquals(FactionIds.KILLER, SparkFactionApi.resolveBaseFaction(saboteur));
+         assertEquals(Faction.KILLER, saboteur.getFaction());
+-        assertEquals(0xC13838, saboteur.color());
++        assertEquals(0xE28743, saboteur.color());
+         assertEquals(Role.MoodType.NONE, saboteur.getMoodType());
+         assertEquals(-1, saboteur.getMaxSprintTime());
+@@ -91,5 +91,5 @@ class WraithRoleRegistrationTest {
+         assertEquals(SparkWitchFactions.WITCH, SparkFactionApi.resolveBaseFaction(curser));
+         assertEquals(Faction.NEUTRAL, curser.getFaction());
+-        assertEquals(0xC13838, curser.color());
++        assertEquals(0xA968D5, curser.color());
+         assertEquals(Role.MoodType.NONE, curser.getMoodType());
+         assertEquals(-1, curser.getMaxSprintTime());
+@@ -147,5 +147,5 @@ class WraithRoleRegistrationTest {
+                 "Eliminate a passenger to succeed, before time runs out.",
+                 "Eliminate a passenger to succeed, before time runs out.",
+-                "Eliminate all civilians before time runs out.");
++                english.get("announcement.goals.curser").getAsString());
+ 
+         assertLocalization(chinese, "wraith", "冤魂",
+@@ -174,5 +174,5 @@ class WraithRoleRegistrationTest {
+                 "在时间耗尽前击杀一名乘客以取得胜利。",
+                 "在时间耗尽前击杀一名乘客以取得胜利。",
+-                "在时间耗尽前消灭所有平民。");
++                chinese.get("announcement.goals.curser").getAsString());
+     }
+ 
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRoundQuotaTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRoundQuotaTest.java
+index 8489e69..8e0cb25 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRoundQuotaTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRoundQuotaTest.java
+@@ -14,7 +14,9 @@ class WraithRoundQuotaTest {
+     void fixesTheCapFromTheStartingRoster() {
+         assertEquals(0, WraithRoundQuota.capForStartingPlayers(9));
+-        assertEquals(1, WraithRoundQuota.capForStartingPlayers(10));
+-        assertEquals(1, WraithRoundQuota.capForStartingPlayers(14));
+-        assertEquals(2, WraithRoundQuota.capForStartingPlayers(15));
++        assertEquals(2, WraithRoundQuota.capForStartingPlayers(10));
++        assertEquals(2, WraithRoundQuota.capForStartingPlayers(14));
++        assertEquals(3, WraithRoundQuota.capForStartingPlayers(15));
++        assertEquals(0, WraithRoundQuota.capForStartingPlayers(19, 20, 4));
++        assertEquals(5, WraithRoundQuota.capForStartingPlayers(20, 20, 4));
+     }
+ 
+@@ -27,9 +29,10 @@ class WraithRoundQuotaTest {
+         quota.beginRound(10);
+ 
+-        assertEquals(1, quota.getCap());
++        assertEquals(2, quota.getCap());
+         assertTrue(quota.tryConsume(first));
+         assertFalse(quota.tryConsume(first));
+-        assertFalse(quota.tryConsume(second));
+-        assertEquals(1, quota.getConsumedCount());
++        assertTrue(quota.tryConsume(second));
++        assertFalse(quota.tryConsume(UUID.randomUUID()));
++        assertEquals(2, quota.getConsumedCount());
+     }
+ 
+@@ -42,5 +45,5 @@ class WraithRoundQuotaTest {
+ 
+         assertEquals(15, quota.getStartingPlayerCount());
+-        assertEquals(2, quota.getCap());
++        assertEquals(3, quota.getCap());
+         assertEquals(1, quota.getConsumedCount());
+         assertFalse(quota.tryConsume(first));
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRulesTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRulesTest.java
+index e0611e0..f4e902f 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRulesTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithRulesTest.java
+@@ -16,4 +16,7 @@ class WraithRulesTest {
+         assertFalse(WraithRules.passesChance(0.75D));
+         assertTrue(WraithRules.passesChance(Math.nextDown(0.75D)));
++        assertFalse(WraithRules.passesChance(0.0D, 0));
++        assertTrue(WraithRules.passesChance(Math.nextDown(1.0D), 100));
++        assertFalse(WraithRules.passesChance(1.0D, 100));
+         assertTrue(WraithRules.isEligibleDeath(Faction.CIVILIAN, GameConstants.DeathReasons.GENERIC));
+         assertTrue(WraithRules.isEligibleDeath(Faction.KILLER, GameConstants.DeathReasons.GENERIC));
+@@ -26,7 +29,13 @@ class WraithRulesTest {
+ 
+     @Test
+-    void effectiveFactionSnapshotMapsOnlyGoodAndKiller() {
++    void effectiveFactionSnapshotMapsGoodKillerAndWitch() {
+         assertEquals(WraithState.Alignment.GOOD, WraithRules.alignmentFor(FactionIds.CIVILIAN));
+         assertEquals(WraithState.Alignment.KILLER, WraithRules.alignmentFor(FactionIds.KILLER));
++        assertEquals(WraithState.Alignment.WITCH,
++                WraithRules.alignmentFor(net.minecraft.util.Identifier.of("sparkwitch", "witch")));
++        assertTrue(WraithRules.isEligibleDeath(
++                WraithState.Alignment.WITCH, GameConstants.DeathReasons.GENERIC, false));
++        assertFalse(WraithRules.isEligibleDeath(
++                WraithState.Alignment.WITCH, GameConstants.DeathReasons.ESCAPED, false));
+         assertThrows(IllegalArgumentException.class, () -> WraithRules.alignmentFor(FactionIds.NEUTRAL));
+     }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithServerRuntimeContractTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithServerRuntimeContractTest.java
+index d359892..823536f 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithServerRuntimeContractTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/WraithServerRuntimeContractTest.java
+@@ -15,4 +15,5 @@ class WraithServerRuntimeContractTest {
+         String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
+         String promotion = source("roles/special/wraith/progression/WraithPromotionQueue.java");
++        String promotionService = source("roles/special/wraith/progression/WraithPromotionService.java");
+         String ownedMixin = source("mixin/WraithOwnedEffectMixin.java");
+         assertTrue(presence.contains("StatusEffectInstance.INFINITE"));
+@@ -20,5 +21,6 @@ class WraithServerRuntimeContractTest {
+         assertTrue(presence.contains("StatusEffects.INVISIBILITY"));
+         assertTrue(presence.contains("NO_COLLISION"));
+-        assertTrue(promotion.contains("WraithLifecycle.promotePlayer(player, role)"));
++        assertTrue(promotion.contains("WraithPromotionService.promote(player"));
++        assertTrue(promotionService.contains("WraithLifecycle.promotePlayer(player, role)"));
+         assertTrue(lifecycle.contains("WraithPresence.removeRestrictedEffects(player)"));
+         assertFalse(between(lifecycle, "public static void promotePlayer", "public static void clearPlayer")
+@@ -57,4 +59,26 @@ class WraithServerRuntimeContractTest {
+     }
+ 
++    @Test
++    void lifecycleTransitionsReleaseSleepingStateThroughVanillaWakeUp() throws Exception {
++        String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
++        assertTrue(lifecycle.contains("private static void wakeIfSleeping(ServerPlayerEntity player)"));
++        assertTrue(lifecycle.contains("if (player.isSleeping())"));
++        assertTrue(lifecycle.contains("player.wakeUp(true, true)"));
++        assertTrue(between(lifecycle, "public static void activateConvertedPlayer", "public static void promotePlayer")
++                .indexOf("wakeIfSleeping(player)")
++                < between(lifecycle, "public static void activateConvertedPlayer", "public static void promotePlayer")
++                .indexOf("transitionRole(player"));
++        assertTrue(between(lifecycle, "public static void promotePlayer", "public static void clearPlayer")
++                .indexOf("wakeIfSleeping(player)")
++                < between(lifecycle, "public static void promotePlayer", "public static void clearPlayer")
++                .indexOf("transitionRole(player"));
++        String clearPlayer = between(lifecycle, "public static void clearPlayer", "public static void clearRoundState");
++        assertTrue(clearPlayer.contains("if (wasActive)"));
++        assertTrue(clearPlayer.contains("wakeIfSleeping(player)"));
++        assertTrue(between(lifecycle, "private static void onJoin", "private static void tickWorld")
++                .contains("wakeIfSleeping(player)"));
++        assertFalse(lifecycle.contains("setPose(EntityPose.STANDING)"));
++    }
++
+     @Test
+     void activeIsolationAndCleanupHaveOneOwnerWithoutChatOrInventoryLocks() throws Exception {
+@@ -62,4 +86,16 @@ class WraithServerRuntimeContractTest {
+         String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
+         assertTrue(participation.contains("SparkFactionApi.registerPlayerAffectPolicy"));
++        assertTrue(participation.contains("SparkFactionApi.registerEntityCollisionExemption"));
++        assertTrue(participation.contains("entity instanceof PlayerEntity player"));
++        assertTrue(participation.contains("WraithStateService.isActive(player)"));
++        assertTrue(participation.contains("isWindSpiritProjectile(actionId, actor)"));
++        assertTrue(participation.contains("Identifier.of(\"sparkfactionapi\", \"projectile\")"));
++        assertTrue(participation.contains("WindSpiritRules.isActivePromotedWindSpirit(actor)"));
++        assertTrue(participation.contains("actor.getUuid().equals(target.getUuid())"));
++        assertTrue(participation.contains("target.isAlive()"));
++        assertTrue(participation.contains("GameFunctions.isPlayerPlayingAndAlive(target)"));
++        assertTrue(participation.contains("target.isSpectator()"));
++        assertTrue(participation.contains("WraithStateService.isActive(target)"));
++        assertTrue(participation.contains("&& !targetActiveWraith"));
+         assertTrue(lifecycle.contains("SparkTraitsWraithBridge.clear(player, false)"));
+         assertTrue(lifecycle.contains("SparkTraitsWraithBridge.clear(player, true)"));
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/progression/WraithProgressionTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/progression/WraithProgressionTest.java
+index a51de5b..330c901 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/progression/WraithProgressionTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/progression/WraithProgressionTest.java
+@@ -32,4 +32,21 @@ class WraithProgressionTest {
+     }
+ 
++    @Test
++    void forcedVendettaRetriesOnlyWhileItsEligibilityCanChange() {
++        assertTrue(WraithPromotionQueue.shouldRetryForcedPromotion(
++                true,
++                WraithPromotionService.Failure.VENDETTA_INELIGIBLE
++        ));
++        assertFalse(WraithPromotionQueue.shouldRetryForcedPromotion(
++                false,
++                WraithPromotionService.Failure.VENDETTA_INELIGIBLE
++        ));
++        assertFalse(WraithPromotionQueue.shouldRetryForcedPromotion(
++                true,
++                WraithPromotionService.Failure.INACTIVE
++        ));
++        assertFalse(WraithPromotionQueue.shouldRetryForcedPromotion(true, null));
++    }
++
+     @Test
+     void promotionPoolsAndSelectionKeepTheirStableIdentityOrder() {
+@@ -39,8 +56,8 @@ class WraithProgressionTest {
+                 SparkWitchRoles.vendetta()
+         ), WraithPromotionRoles.pool(WraithState.Alignment.GOOD));
+-        assertEquals(List.of(
+-                SparkWitchRoles.saboteur(),
+-                SparkWitchRoles.curser()
+-        ), WraithPromotionRoles.pool(WraithState.Alignment.KILLER));
++        assertEquals(List.of(SparkWitchRoles.saboteur()),
++                WraithPromotionRoles.pool(WraithState.Alignment.KILLER));
++        assertEquals(List.of(SparkWitchRoles.curser()),
++                WraithPromotionRoles.pool(WraithState.Alignment.WITCH));
+         assertEquals(List.of(
+                 SparkWitchRoles.windSpirit(),
+@@ -49,7 +66,9 @@ class WraithProgressionTest {
+ 
+         Role goodPick = WraithPromotionRoles.pick(WraithState.Alignment.GOOD, new FixedIndexRandom(2));
+-        Role killerPick = WraithPromotionRoles.pick(WraithState.Alignment.KILLER, new FixedIndexRandom(1));
++        Role killerPick = WraithPromotionRoles.pick(WraithState.Alignment.KILLER, new FixedIndexRandom(0));
++        Role witchPick = WraithPromotionRoles.pick(WraithState.Alignment.WITCH, new FixedIndexRandom(0));
+         assertEquals(SparkWitchRoles.vendetta(), goodPick);
+-        assertEquals(SparkWitchRoles.curser(), killerPick);
++        assertEquals(SparkWitchRoles.saboteur(), killerPick);
++        assertEquals(SparkWitchRoles.curser(), witchPick);
+     }
+ 
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/runtime/WraithRuntimeRulesTest.java b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/runtime/WraithRuntimeRulesTest.java
+index 77bea41..7d5fa3b 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/runtime/WraithRuntimeRulesTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/roles/special/wraith/runtime/WraithRuntimeRulesTest.java
+@@ -1,4 +1,5 @@
+ package dev.caecorthus.sparkwitch.roles.special.wraith.runtime;
+ 
++import dev.caecorthus.sparkfactionapi.api.FactionGunPunishmentPolicy;
+ import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
+ import org.junit.jupiter.api.Test;
+@@ -18,4 +19,43 @@ class WraithRuntimeRulesTest {
+     }
+ 
++    @Test
++    void windSpiritProjectilePolicyAllowsOnlyOtherOrdinaryLivingParticipants() {
++        assertTrue(WraithParticipation.canWindSpiritProjectileAffect(
++                true, false, true, true, false, false));
++        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
++                false, false, true, true, false, false));
++        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
++                true, true, true, true, false, false));
++        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
++                true, false, false, true, false, false));
++        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
++                true, false, true, false, false, false));
++        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
++                true, false, true, true, true, false));
++        assertFalse(WraithParticipation.canWindSpiritProjectileAffect(
++                true, false, true, true, false, true));
++    }
++
++    @Test
++    void goodPromotionsNeverReceiveInnocentGunPunishment() {
++        assertTrue(WraithParticipation.shouldCancelGunPunishment(
++                true,
++                true,
++                WraithState.Alignment.GOOD,
++                FactionGunPunishmentPolicy.Subject.SHOOTER
++        ));
++
++        assertFalse(WraithParticipation.shouldCancelGunPunishment(
++                true, false, WraithState.Alignment.GOOD, FactionGunPunishmentPolicy.Subject.SHOOTER));
++        assertFalse(WraithParticipation.shouldCancelGunPunishment(
++                false, true, WraithState.Alignment.GOOD, FactionGunPunishmentPolicy.Subject.SHOOTER));
++        assertFalse(WraithParticipation.shouldCancelGunPunishment(
++                true, true, WraithState.Alignment.KILLER, FactionGunPunishmentPolicy.Subject.SHOOTER));
++        assertFalse(WraithParticipation.shouldCancelGunPunishment(
++                true, true, WraithState.Alignment.WITCH, FactionGunPunishmentPolicy.Subject.SHOOTER));
++        assertFalse(WraithParticipation.shouldCancelGunPunishment(
++                true, true, WraithState.Alignment.GOOD, FactionGunPunishmentPolicy.Subject.VICTIM));
++    }
++
+     @Test
+     void restrictedFactionUsesOnlyTheSavedAlignment() {
+@@ -28,4 +68,8 @@ class WraithRuntimeRulesTest {
+                 WraithParticipation.restrictedFaction(true, WraithState.Alignment.KILLER)
+         );
++        assertEquals(
++                dev.caecorthus.sparkwitch.SparkWitchFactions.WITCH,
++                WraithParticipation.restrictedFaction(true, WraithState.Alignment.WITCH)
++        );
+         assertNull(WraithParticipation.restrictedFaction(false, WraithState.Alignment.KILLER));
+     }
+diff --git a/src/test/java/dev/caecorthus/sparkwitch/voice/WraithVoicePluginContractTest.java b/src/test/java/dev/caecorthus/sparkwitch/voice/WraithVoicePluginContractTest.java
+index b0c0d4a..37b3360 100644
+--- a/src/test/java/dev/caecorthus/sparkwitch/voice/WraithVoicePluginContractTest.java
++++ b/src/test/java/dev/caecorthus/sparkwitch/voice/WraithVoicePluginContractTest.java
+@@ -18,8 +18,10 @@ class WraithVoicePluginContractTest {
+         assertTrue(source.contains("WraithStateService.isActive(speaker)"));
+         assertTrue(source.contains("GuardianAngelRules.shouldBlockWraithMicrophone"));
+-        assertFalse(source.contains("EntitySoundPacketEvent"));
+-        assertFalse(source.contains("LocationalSoundPacketEvent"));
+-        assertFalse(source.contains("Depression"));
+-        assertFalse(source.contains("getReceiverConnection"));
++        assertTrue(source.contains("EntitySoundPacketEvent.class, this::blockSaboteurRecipient"));
++        assertTrue(source.contains("LocationalSoundPacketEvent.class, this::blockSaboteurRecipient"));
++        assertTrue(source.contains("StaticSoundPacketEvent.class, this::blockSaboteurRecipient"));
++        assertTrue(Files.readString(Path.of(
++                "src/main/java/dev/caecorthus/sparkwitch/voice/SaboteurVoiceRules.java"))
++                .contains("getReceiverConnection"));
+     }
+ }

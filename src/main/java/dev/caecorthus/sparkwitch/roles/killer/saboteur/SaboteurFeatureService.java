@@ -4,6 +4,8 @@ import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.TaskComplete;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
+import dev.doctor4t.wathe.index.WatheItems;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
@@ -35,8 +37,12 @@ public final class SaboteurFeatureService {
         if (!SaboteurRules.isSaboteur(role) || !SaboteurRules.isActivePromotedSaboteur(player)) {
             return;
         }
-        SaboteurPlayerComponent.KEY.get(player).setCooldownTicks(SaboteurRules.INITIAL_COOLDOWN_TICKS);
+        SaboteurPlayerComponent component = SaboteurPlayerComponent.KEY.get(player);
+        component.setCooldownTicks(SaboteurRules.INITIAL_COOLDOWN_TICKS);
         SaboteurShopService.initializePromotionStock(player);
+        if (component.claimPromotionWalkieGrant()) {
+            player.giveItemStack(new ItemStack(WatheItems.WALKIE_TALKIE));
+        }
     }
 
     private static void rewardTask(ServerPlayerEntity player) {

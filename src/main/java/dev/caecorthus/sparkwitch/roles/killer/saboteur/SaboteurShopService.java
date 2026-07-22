@@ -28,7 +28,7 @@ final class SaboteurShopService {
         PlayerShopComponent shop = PlayerShopComponent.KEY.get(player);
         // Do not call initializeShop(): it would erase a surviving team blackout cooldown.
         // 不调用 initializeShop()，否则会清除晋升前仍在生效的全队熄灯冷却。
-        ((SaboteurShopStockAccess) shop).sparkwitch$initializeSaboteurLockpickStock();
+        ((SaboteurShopStockAccess) shop).sparkwitch$initializePromotionLockpickStock();
         shop.sync();
     }
 

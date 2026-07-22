@@ -14,6 +14,7 @@ public final class ProphetRules {
     public static final int INITIAL_COOLDOWN_TICKS = 1200;
     public static final int ACTIVE_TICKS = 400;
     public static final int POST_COOLDOWN_TICKS = 1800;
+    public static final int COIN_COST = 150;
 
     private ProphetRules() {
     }

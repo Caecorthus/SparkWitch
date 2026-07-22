@@ -135,7 +135,7 @@ public final class WitchFactionRules {
             }
             return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
         }
-        if (isAccomplice(viewerRole)) {
+        if (isAccomplice(viewerRole) || viewerRole == SparkWitchRoles.curser()) {
             if (targetRole == SparkWitchRoles.grandWitch()) {
                 return OptionalInt.of(SparkWitchRoles.grandWitch().color());
             }

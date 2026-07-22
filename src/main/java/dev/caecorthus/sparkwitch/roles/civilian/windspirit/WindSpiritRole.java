@@ -12,8 +12,9 @@ import net.minecraft.util.Identifier;
 public final class WindSpiritRole {
     public static final Identifier ROLE_ID = SparkWitch.id("wind_spirit");
     public static final Identifier ID = ROLE_ID;
+    public static final int COLOR = 0x59D8E6;
     public static final FactionRoleDefinition DEFINITION = FactionRoleDefinition.builder(ROLE_ID, FactionIds.CIVILIAN)
-            .color(0x36E51B)
+            .color(COLOR)
             .moodType(Role.MoodType.NONE)
             .maxSprintTime(GameConstants.getInTicks(0, 10))
             .canSeeTime(false)

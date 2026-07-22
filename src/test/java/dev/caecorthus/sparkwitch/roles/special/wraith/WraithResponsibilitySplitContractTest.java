@@ -83,6 +83,7 @@ class WraithResponsibilitySplitContractTest {
         assertTrue(deadParticipation.contains("WraithStateService.isActive(player)"));
         assertOccurrences(source, "SparkFactionApi.registerEffectiveFactionResolver", 1);
         assertOccurrences(source, "SparkFactionApi.registerPlayerAffectPolicy", 1);
+        assertOccurrences(source, "SparkFactionApi.registerGunPunishmentPolicy", 1);
         assertOccurrences(source, "ServerTickEvents.END_SERVER_TICK.register", 3);
     }
 

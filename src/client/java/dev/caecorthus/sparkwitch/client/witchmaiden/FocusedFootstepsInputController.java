@@ -36,6 +36,19 @@ public final class FocusedFootstepsInputController {
         input.sneaking = decision.sneaking();
     }
 
+    public static void applyConsumedMovement(ClientPlayerEntity player) {
+        if (player == null
+                || player.getStatusEffect(FocusedFootstepsEffects.focusedFootsteps()) == null
+                || isMovementLocked(player)) {
+            return;
+        }
+
+        FocusedFootstepsInputRules.PlanarInput decision =
+                FocusedFootstepsInputRules.forcedPlanarInput();
+        player.forwardSpeed = decision.movementForward();
+        player.sidewaysSpeed = decision.movementSideways();
+    }
+
     public static void applySprintPhase(ClientPlayerEntity player) {
         StatusEffectInstance effect = player.getStatusEffect(FocusedFootstepsEffects.focusedFootsteps());
         if (effect == null) {

@@ -38,7 +38,10 @@ public abstract class WitchSkillInventoryScreenMixin extends LimitedHandledScree
         super(handler, inventory, title);
     }
 
-    @Inject(method = "render", at = @At("TAIL"))
+    @Inject(
+            method = "method_25394(Lnet/minecraft/class_332;IIF)V",
+            at = @At("TAIL")
+    )
     private void sparkwitch$renderOwnerSkill(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!SparkWitchServerConnection.isConfirmedServer()) {
             return;

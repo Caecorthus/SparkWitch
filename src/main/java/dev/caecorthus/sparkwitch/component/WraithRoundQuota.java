@@ -10,16 +10,35 @@ final class WraithRoundQuota {
     private final LinkedHashSet<UUID> consumedPlayers = new LinkedHashSet<>();
     private int startingPlayerCount;
 
+    private int minimum = 10;
+    private int dividend = 5;
+
     static int capForStartingPlayers(int startingPlayerCount) {
-        return startingPlayerCount < 10 ? 0 : 1 + (startingPlayerCount - 10) / 5;
+        return capForStartingPlayers(startingPlayerCount, 10, 5);
+    }
+
+    static int capForStartingPlayers(int startingPlayerCount, int minimum, int dividend) {
+        return startingPlayerCount < Math.max(0, minimum)
+                ? 0
+                : Math.max(0, startingPlayerCount) / Math.max(1, dividend);
     }
 
     void beginRound(int startingPlayerCount) {
-        restore(startingPlayerCount, Set.of());
+        beginRound(startingPlayerCount, 10, 5);
+    }
+
+    void beginRound(int startingPlayerCount, int minimum, int dividend) {
+        restore(startingPlayerCount, minimum, dividend, Set.of());
     }
 
     void restore(int startingPlayerCount, Collection<UUID> consumedPlayers) {
+        restore(startingPlayerCount, 10, 5, consumedPlayers);
+    }
+
+    void restore(int startingPlayerCount, int minimum, int dividend, Collection<UUID> consumedPlayers) {
         this.startingPlayerCount = Math.max(0, startingPlayerCount);
+        this.minimum = Math.max(0, minimum);
+        this.dividend = Math.max(1, dividend);
         this.consumedPlayers.clear();
         this.consumedPlayers.addAll(consumedPlayers);
     }
@@ -29,7 +48,7 @@ final class WraithRoundQuota {
     }
 
     int getCap() {
-        return capForStartingPlayers(startingPlayerCount);
+        return capForStartingPlayers(startingPlayerCount, minimum, dividend);
     }
 
     int getConsumedCount() {
@@ -52,6 +71,6 @@ final class WraithRoundQuota {
     }
 
     void clearRound() {
-        restore(0, Set.of());
+        restore(0, 10, 5, Set.of());
     }
 }

@@ -21,10 +21,12 @@ class BlackRavenClientPresentationSourceTest {
 
         assertTrue(controller.contains("GLFW.GLFW_KEY_N"));
         assertTrue(controller.contains("KeyBindingHelper.registerKeyBinding"));
+        assertTrue(controller.contains("while (keyBinding.wasPressed())"));
         assertTrue(controller.contains("GameWorldComponent.KEY.get"));
         assertTrue(registry.contains("Map<Identifier, SecondaryAbilityHandler>"));
         assertTrue(registry.contains("throw new IllegalStateException"));
         assertFalse(controller.contains("BlackRaven"));
+        assertFalse(controller.contains("WitchAbilityKeyBridge"));
         assertTrue(client.contains("SecondaryAbilityController.registerKeyBinding()"));
         assertTrue(client.contains("SecondaryAbilityController.tick(client)"));
         assertTrue(client.contains("SecondaryAbilityController.reset()"));
@@ -157,7 +159,7 @@ class BlackRavenClientPresentationSourceTest {
 
     @Test
     void allBlackRavenAdaptersAreClientMixins() throws IOException {
-        String mixins = Files.readString(CLIENT_RESOURCES.resolve("sparkwitch.client.mixins.json"));
+        String mixins = readText(CLIENT_RESOURCES.resolve("sparkwitch.client.mixins.json"));
 
         assertTrue(mixins.contains("blackraven.BlackRavenGameRendererMixin"));
         assertTrue(mixins.contains("blackraven.BlackRavenHudMixin"));
@@ -171,12 +173,16 @@ class BlackRavenClientPresentationSourceTest {
     private static String readClient(String relativePath) throws IOException {
         Path path = CLIENT_ROOT.resolve(relativePath);
         assertTrue(Files.exists(path), () -> "Missing client source " + path);
-        return Files.readString(path);
+        return readText(path);
     }
 
     private static String readResource(String relativePath) throws IOException {
         Path path = CLIENT_RESOURCES.resolve(relativePath);
         assertTrue(Files.exists(path), () -> "Missing client resource " + path);
-        return Files.readString(path);
+        return readText(path);
+    }
+
+    private static String readText(Path path) throws IOException {
+        return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
     }
 }

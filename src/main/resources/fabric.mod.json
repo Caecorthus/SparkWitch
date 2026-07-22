@@ -27,6 +27,7 @@
     "cardinal-components": [
       "sparkwitch:player",
       "sparkwitch:perfumer_player",
+      "sparkwitch:curser_player",
       "sparkwitch:hunter",
       "sparkwitch:orthopedist",
       "sparkwitch:guardian_angel",
@@ -62,9 +63,9 @@
     "cardinal-components-world": ">=${cca_version}"
   },
   "suggests": {
-    "sparktraits": ">=0.1.9.10"
+    "sparktraits": ">=0.1.9.11"
   },
   "breaks": {
-    "sparktraits": "<0.1.9.10"
+    "sparktraits": "<0.1.9.11"
   }
 }

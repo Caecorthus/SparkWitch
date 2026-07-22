@@ -2,8 +2,11 @@ package dev.caecorthus.sparkwitch.client.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import dev.caecorthus.sparkwitch.client.guardianangel.GuardianAngelClientHooks;
+import dev.caecorthus.sparkwitch.client.render.CreativeWraithInstinctRules;
 import dev.caecorthus.sparkwitch.client.render.WraithViewerRules;
 import dev.caecorthus.sparkwitch.client.vendetta.VendettaClientPresentation;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithBodyRoleResolver;
 import dev.doctor4t.wathe.api.Role;
@@ -37,6 +40,24 @@ public abstract class WraithWatheHighlightMixin {
                 : currentRole;
     }
 
+    @ModifyExpressionValue(
+            method = "getInstinctHighlight",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Ldev/doctor4t/wathe/client/WatheClient;isInstinctEnabledAndIsKiller()Z"
+            )
+    )
+    private static boolean sparkwitch$allowCreativeWraithInstinct(
+            boolean original,
+            Entity target
+    ) {
+        return original || target instanceof PlayerEntity playerTarget
+                && CreativeWraithInstinctRules.shouldReveal(
+                        MinecraftClient.getInstance().player,
+                        playerTarget
+                );
+    }
+
     @Inject(method = "getInstinctHighlight", at = @At("HEAD"), cancellable = true)
     private static void sparkwitch$resolveWraithHighlight(
             Entity target,
@@ -67,6 +88,14 @@ public abstract class WraithWatheHighlightMixin {
             return;
         }
 
+        if (CurserFeatureService.isActivePromotedCurser(playerTarget)) {
+            GameWorldComponent game = GameWorldComponent.KEY.get(viewer.getWorld());
+            if (WitchFactionRules.isWitchFactionMember(game.getRole(viewer))) {
+                cir.setReturnValue(Objects.requireNonNullElse(game.getRole(playerTarget), WatheRoles.CIVILIAN).color());
+                return;
+            }
+        }
+
         if (WraithViewerRules.shouldRevealToSpectator(viewer, playerTarget)) {
             GameWorldComponent game = GameWorldComponent.KEY.get(viewer.getWorld());
             int highlight = WatheClient.isInstinctEnabled()
@@ -75,7 +104,8 @@ public abstract class WraithWatheHighlightMixin {
             cir.setReturnValue(highlight);
             return;
         }
-        if (WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, playerTarget)) {
+        if (WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, playerTarget)
+                && !CreativeWraithInstinctRules.shouldReveal(viewer, playerTarget)) {
             cir.setReturnValue(-1);
         }
     }

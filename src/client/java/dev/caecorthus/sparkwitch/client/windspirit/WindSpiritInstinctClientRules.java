@@ -26,6 +26,20 @@ public final class WindSpiritInstinctClientRules {
                 && instinctKeyPressed;
     }
 
+    public static int resolveNativePlayerHighlightColor(
+            int originalColor,
+            @Nullable Identifier roleId,
+            boolean confirmedServer,
+            boolean viewerPlayingAndAlive,
+            boolean promotedWraith
+    ) {
+        return confirmedServer
+                && hasNativeInstinctVisuals(roleId)
+                && (viewerPlayingAndAlive || promotedWraith)
+                ? WindSpiritRole.COLOR
+                : originalColor;
+    }
+
     public static boolean shouldUseNativeKillerHighlight(
             boolean ordinarilyKiller,
             @Nullable Identifier roleId,

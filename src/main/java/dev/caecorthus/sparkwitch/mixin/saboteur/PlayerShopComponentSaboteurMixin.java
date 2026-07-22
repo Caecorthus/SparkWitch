@@ -19,7 +19,7 @@ public abstract class PlayerShopComponentSaboteurMixin implements SaboteurShopSt
     private Map<String, Integer> maxStockCache;
 
     @Override
-    public void sparkwitch$initializeSaboteurLockpickStock() {
+    public void sparkwitch$initializePromotionLockpickStock() {
         stock.put("lockpick", 1);
         maxStockCache.put("lockpick", 1);
     }

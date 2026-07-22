@@ -2,6 +2,9 @@ package dev.caecorthus.sparkwitch.voice;
 
 import de.maxhenkel.voicechat.api.VoicechatPlugin;
 import de.maxhenkel.voicechat.api.events.EventRegistration;
+import de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent;
+import de.maxhenkel.voicechat.api.events.LocationalSoundPacketEvent;
+import de.maxhenkel.voicechat.api.events.StaticSoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
@@ -27,7 +30,18 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
                 this::blockWraithSpeaker,
                 Integer.MAX_VALUE
         );
+        // Filter every server-to-client sound packet after Wathe's walkie relay has materialized it.
+        // This covers native proximity/entity packets and TrainVoicePlugin's locational radio packets.
+        registration.registerEvent(EntitySoundPacketEvent.class, this::blockSaboteurRecipient, Integer.MAX_VALUE);
+        registration.registerEvent(LocationalSoundPacketEvent.class, this::blockSaboteurRecipient, Integer.MAX_VALUE);
+        registration.registerEvent(StaticSoundPacketEvent.class, this::blockSaboteurRecipient, Integer.MAX_VALUE);
         VoicechatPlugin.super.registerEvents(registration);
+    }
+
+    private void blockSaboteurRecipient(de.maxhenkel.voicechat.api.events.PacketEvent<?> event) {
+        if (SaboteurVoiceRules.shouldBlockPacket(event)) {
+            event.cancel();
+        }
     }
 
     private void blockWraithSpeaker(MicrophonePacketEvent event) {

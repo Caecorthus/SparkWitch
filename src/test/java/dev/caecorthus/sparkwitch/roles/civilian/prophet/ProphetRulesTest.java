@@ -19,6 +19,7 @@ class ProphetRulesTest {
         assertEquals(1200, ProphetRules.INITIAL_COOLDOWN_TICKS);
         assertEquals(400, ProphetRules.ACTIVE_TICKS);
         assertEquals(1800, ProphetRules.POST_COOLDOWN_TICKS);
+        assertEquals(150, ProphetRules.COIN_COST);
     }
 
     @Test

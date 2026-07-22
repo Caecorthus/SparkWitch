@@ -40,12 +40,16 @@ class WraithComponentSchemaSourceTest {
     @Test
     void canonicalRoundAndLegacyReadersUseExactIdsAndCanonicalOnlyWrites() throws IOException {
         String canonical = read("component/WraithRoundComponent.java");
+        String settingsCodec = read("roles/special/wraith/WraithSettingsNbtCodec.java");
         String legacyPlayer = compact(read("component/LegacyWraithPlayerComponent.java"));
         String legacyRound = compact(read("component/LegacyWraithRoundComponent.java"));
         String metadata = Files.readString(Path.of("src/main/resources/fabric.mod.json"));
 
         assertTrue(canonical.contains("SparkWitch.id(\"wraith_round\")"));
         assertTrue(canonical.contains("\"StartingPlayerCount\""));
+        assertTrue(settingsCodec.contains("\"Chance\""));
+        assertTrue(settingsCodec.contains("\"Minimum\""));
+        assertTrue(settingsCodec.contains("\"Dividend\""));
         assertTrue(canonical.contains("\"ConsumedPlayers\""));
         assertFalse(canonical.contains("sparktraits:wraith_round"));
         assertTrue(legacyPlayer.contains("Identifier.of(\"sparktraits\", \"wraith_player\")"));
@@ -69,6 +73,9 @@ class WraithComponentSchemaSourceTest {
 
         assertTrue(api.contains("player != null"));
         assertTrue(api.contains("WraithPlayerComponent.KEY.maybeGet(player)"));
+        assertTrue(api.contains("isKillerAlignedWraith(wraith.isActive(), wraith.getAlignment())"));
+        assertTrue(api.contains("alignment == WraithState.Alignment.KILLER"));
+        assertFalse(api.contains("alignment == null"));
         assertTrue(gameWorldMixin.contains("method = \"readFromNbt\""));
         assertTrue(gameWorldMixin.contains("at = @At(\"HEAD\")"));
         assertTrue(roleHistoryMixin.contains("method = \"readFromNbt\""));

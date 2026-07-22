@@ -16,8 +16,10 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Properties;
 import java.util.zip.ZipFile;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -64,7 +66,7 @@ class WraithAssassinGuessCompatibilityTest {
         assertTrue(WatheRoles.SPECIAL_ROLES.contains(SparkWitchRoles.wraith()));
         assertFalse(SparkWitchRoles.assassinGuessRoles().contains(SparkWitchRoles.wraith()));
 
-        try (ZipFile noelles = new ZipFile("libs/noellesroles-1.7.7-h1.5.7-spark.jar")) {
+        try (ZipFile noelles = new ZipFile(noellesRolesJar().toFile())) {
             ClassNode assassinScreen = new ClassNode();
             new ClassReader(noelles.getInputStream(noelles.getEntry(
                     "org/agmas/noellesroles/client/screen/AssassinScreen.class"
@@ -94,5 +96,13 @@ class WraithAssassinGuessCompatibilityTest {
             assertTrue(specialRoleFilter >= 0);
             assertTrue(nativeKillerFilter > specialRoleFilter);
         }
+    }
+
+    private static Path noellesRolesJar() throws IOException {
+        Properties properties = new Properties();
+        try (InputStream input = Files.newInputStream(Path.of("gradle.properties"))) {
+            properties.load(input);
+        }
+        return Path.of("libs", "noellesroles-" + properties.getProperty("noellesroles_version") + ".jar");
     }
 }
