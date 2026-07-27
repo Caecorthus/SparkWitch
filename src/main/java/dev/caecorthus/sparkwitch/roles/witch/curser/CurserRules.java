@@ -10,6 +10,20 @@ public final class CurserRules {
     private CurserRules() {
     }
 
+    public static boolean canParticipateInPlayerOutlines(
+            boolean confirmedServer,
+            boolean curserRole,
+            boolean activeWraith,
+            boolean promotedWraith,
+            boolean viewerSpectatingOrCreative
+    ) {
+        return confirmedServer
+                && curserRole
+                && activeWraith
+                && promotedWraith
+                && !viewerSpectatingOrCreative;
+    }
+
     public static boolean canUse(boolean running, boolean activeWraith, boolean promoted, boolean curserRole, int cooldownTicks) {
         return running && activeWraith && promoted && curserRole && cooldownTicks <= 0;
     }

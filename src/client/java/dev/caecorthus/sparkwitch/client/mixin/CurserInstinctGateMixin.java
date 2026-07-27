@@ -17,7 +17,7 @@ public abstract class CurserInstinctGateMixin {
         }
     }
 
-    @Inject(method = "isInstinctEnabledAndIsKiller", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "isInstinctEnabledAndIsKiller()Z", at = @At("HEAD"), cancellable = true)
     private static void sparkwitch$blockConfusedKillerInstinct(CallbackInfoReturnable<Boolean> cir) {
         if (CurserClientHooks.isLocallyConfused()) {
             cir.setReturnValue(false);
