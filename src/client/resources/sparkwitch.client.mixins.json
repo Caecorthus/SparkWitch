@@ -55,6 +55,7 @@
     "kidnapper.KidnapperThrowUseMixin",
     "hunter.DoubleBarrelShotgunCrosshairMixin",
     "saboteur.SaboteurHudMixin",
+    "saboteur.SaboteurInstinctMixin",
     "windspirit.WindSpiritInstinctMixin",
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleParticleMixin",
     "witchmaiden.FocusedFootstepsClientPlayerMovementMixin",

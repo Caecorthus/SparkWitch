@@ -36,7 +36,7 @@ public abstract class WatheClientFearInstinctMixin {
         }
     }
 
-    @Inject(method = "isInstinctEnabledAndIsKiller", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "isInstinctEnabledAndIsKiller()Z", at = @At("HEAD"), cancellable = true)
     private static void sparkwitch$disableKillerInstinctWhenFeared(CallbackInfoReturnable<Boolean> cir) {
         if (GrandWitchFearClientHooks.shouldBlockInstinct()) {
             cir.setReturnValue(false);

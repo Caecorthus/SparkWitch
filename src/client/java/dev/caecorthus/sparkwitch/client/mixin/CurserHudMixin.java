@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.mixin;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.client.curser.CurserHudRenderer;
+import dev.caecorthus.sparkwitch.client.curser.CurserHudRules;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -21,11 +22,17 @@ public abstract class CurserHudMixin {
     @Inject(method = "render", at = @At("TAIL"))
     private void sparkwitch$renderCurserHud(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        if (player != null
-                && SparkWitchServerConnection.isConfirmedServer()
-                && WraithClientState.isPromoted(player)
-                && GameWorldComponent.KEY.get(player.getWorld()).getRole(player) == SparkWitchRoles.curser()) {
-            CurserHudRenderer.render(context, player);
+        if (player != null) {
+            boolean exactCurserRole = GameWorldComponent.KEY.get(player.getWorld()).getRole(player)
+                    == SparkWitchRoles.curser();
+            if (CurserHudRules.shouldRender(
+                    SparkWitchServerConnection.isConfirmedServer(),
+                    exactCurserRole,
+                    WraithClientState.isActive(player),
+                    WraithClientState.isPromoted(player)
+            )) {
+                CurserHudRenderer.render(context, player);
+            }
         }
     }
 }

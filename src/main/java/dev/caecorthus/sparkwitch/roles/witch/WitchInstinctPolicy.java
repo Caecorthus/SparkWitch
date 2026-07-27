@@ -1,8 +1,11 @@
 package dev.caecorthus.sparkwitch.roles.witch;
 
 import dev.caecorthus.sparkfactionapi.api.FactionInstinctPolicy;
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeInstinctRules;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.roles.witch.curser.CurserRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.FirecrackerEntity;
@@ -27,12 +30,24 @@ public final class WitchInstinctPolicy {
     static FactionInstinctPolicy.InstinctResult instinctHighlight(
             PlayerEntity viewer,
             Entity target,
-            GameWorldComponent gameComponent
+            GameWorldComponent gameComponent,
+            boolean confirmedServer
     ) {
         Role viewerRole = gameComponent.getRole(viewer);
         boolean viewerAlive = GameFunctions.isPlayerPlayingAndAlive(viewer);
         boolean viewerSpectatingOrCreative = GameFunctions.isPlayerSpectatingOrCreative(viewer);
-        if (!WitchFactionRules.shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)) {
+        boolean curserViewer = viewerRole == SparkWitchRoles.curser();
+        boolean curserOutlineEligible = CurserRules.canParticipateInPlayerOutlines(
+                confirmedServer,
+                curserViewer,
+                WraithStateService.isActive(viewer),
+                WraithStateService.isPromoted(viewer),
+                viewerSpectatingOrCreative
+        );
+        if (curserViewer ? !curserOutlineEligible : !WitchFactionRules.shouldUseCustomInstinctHighlight(
+                viewerAlive,
+                viewerSpectatingOrCreative
+        )) {
             return null;
         }
         if (WitchFactionRules.shouldObscureInstinct(
