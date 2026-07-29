@@ -29,6 +29,7 @@
     "VendettaApplyDamageMixin",
     "VendettaTerminalKillMixin",
     "WraithGameWorldNbtMixin",
+    "WraithGroundPickupMixin",
     "WraithGroundParticleMixin",
     "WraithJumpRestrictionMixin",
     "WraithLandingParticleMixin",

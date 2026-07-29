@@ -20,4 +20,8 @@ public final class WraithParticipationRules {
     public static boolean mayGenerateGroundParticles(boolean activeWraith) {
         return !activeWraith;
     }
+
+    public static boolean mayPickUpGroundItems(boolean activeWraith) {
+        return !activeWraith;
+    }
 }

@@ -29,4 +29,10 @@ class WraithParticipationRulesTest {
         assertFalse(WraithParticipationRules.mayGenerateGroundParticles(true));
         assertTrue(WraithParticipationRules.mayGenerateGroundParticles(false));
     }
+
+    @Test
+    void onlyActiveWraithStateBlocksGroundPickup() {
+        assertFalse(WraithParticipationRules.mayPickUpGroundItems(true));
+        assertTrue(WraithParticipationRules.mayPickUpGroundItems(false));
+    }
 }

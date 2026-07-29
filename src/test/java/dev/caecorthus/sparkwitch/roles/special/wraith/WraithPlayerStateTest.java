@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.component;
 
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithParticipationRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import org.junit.jupiter.api.Test;
 
@@ -49,5 +50,23 @@ class WraithPlayerStateTest {
         assertEquals(0, state.getCompletedTasks());
         assertNull(state.getAlignment());
         assertFalse(state.isPromotionPending());
+    }
+
+    @Test
+    void groundPickupRestrictionSurvivesEveryPromotionAlignmentUntilCleanup() {
+        for (WraithState.Alignment alignment : WraithState.Alignment.values()) {
+            WraithPlayerState state = new WraithPlayerState();
+            assertTrue(WraithParticipationRules.mayPickUpGroundItems(state.isActive()));
+
+            state.activate(alignment);
+            assertFalse(WraithParticipationRules.mayPickUpGroundItems(state.isActive()));
+
+            assertTrue(state.promote());
+            assertTrue(state.isPromoted());
+            assertFalse(WraithParticipationRules.mayPickUpGroundItems(state.isActive()));
+
+            assertTrue(state.clear());
+            assertTrue(WraithParticipationRules.mayPickUpGroundItems(state.isActive()));
+        }
     }
 }
