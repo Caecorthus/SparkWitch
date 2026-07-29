@@ -86,6 +86,29 @@ class WraithLifecycleWiringContractTest {
         assertFalse(bodyMixin.contains("@Accessor(\"DEATH_ROLE\")"));
     }
 
+    @Test
+    void activeWorldMaintenanceWakesPlayersBeforeFallAndPresenceUpdates() throws Exception {
+        String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
+        String tickWorld = between(lifecycle, "private static void tickWorld", "private static void wakeIfSleeping");
+
+        int activeGuard = tickWorld.indexOf("if (!wraith.isActive())");
+        int wake = tickWorld.indexOf("wakeIfSleeping(player)");
+        int fall = tickWorld.indexOf("shouldTerminateForFall");
+        int presence = tickWorld.indexOf("WraithPresence.apply");
+        assertTrue(activeGuard >= 0);
+        assertTrue(wake > activeGuard);
+        assertTrue(fall > wake);
+        assertTrue(presence > fall);
+    }
+
+    private static String between(String source, String start, String end) {
+        int startIndex = source.indexOf(start);
+        int endIndex = source.indexOf(end, startIndex);
+        assertTrue(startIndex >= 0, start);
+        assertTrue(endIndex > startIndex, end);
+        return source.substring(startIndex, endIndex);
+    }
+
     private static String source(String relative) throws Exception {
         return Files.readString(Path.of("src/main/java/dev/caecorthus/sparkwitch", relative));
     }

@@ -28,11 +28,6 @@ public final class CreativeWraithInstinctRules {
             boolean activeWraithTarget,
             boolean instinctKeyPressed
     ) {
-        return confirmedServer
-                && creativeViewer
-                && !spectatorViewer
-                && !samePlayer
-                && activeWraithTarget
-                && instinctKeyPressed;
+        return false;
     }
 }

@@ -245,6 +245,7 @@
   "hud.sparkwitch.skill.sabotage.ready": "按【%s】使用破坏",
   "hud.sparkwitch.curser.cooldown": "诅咒冷却中：%s 秒",
   "hud.sparkwitch.curser.ready": "按 %s 施放诅咒",
+  "message.sparkwitch.curser.no_target": "八码内没有存活玩家",
   "hud.sparkwitch.black_raven.instinct.normal": "本能：普通 [%s]",
   "hud.sparkwitch.black_raven.instinct.sensed": "本能：感知 [%s]",
   "hud.sparkwitch.saint.hellfire.cooldown": "业火冷却中：%s秒",

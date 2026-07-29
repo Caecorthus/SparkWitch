@@ -16,9 +16,15 @@ import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEffects;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsEffects;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
+import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithParticipationRules;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +54,13 @@ public final class SparkWitch implements ModInitializer {
         CurserFeatureService.register();
         SparkWitchVersionHandshake.registerServer();
         SparkWitchEvents.register();
+        ServerMessageEvents.ALLOW_CHAT_MESSAGE.register(
+                (message, sender, params) -> mayUseTextChat(sender)
+        );
+        ServerMessageEvents.ALLOW_COMMAND_MESSAGE.register((message, source, params) -> {
+            ServerPlayerEntity sender = source.getPlayer();
+            return sender == null || mayUseTextChat(sender);
+        });
         ServerLifecycleEvents.SERVER_STARTED.register(server -> SparkWitchRoles.refreshAssassinGuessRoleOrder());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             SetManaCommand.register(dispatcher);
@@ -56,6 +69,18 @@ public final class SparkWitch implements ModInitializer {
             GhostSettingsCommand.register(dispatcher);
             WatheGhostDividendCommand.register(dispatcher);
         });
+    }
+
+    private static boolean mayUseTextChat(ServerPlayerEntity sender) {
+        if (!WraithStateService.isActive(sender)) {
+            return true;
+        }
+        var role = GameWorldComponent.KEY.get(sender.getWorld()).getRole(sender);
+        return WraithParticipationRules.mayUseTextChat(
+                true,
+                GuardianAngelRules.isGuardianAngel(role),
+                sender.isCreative()
+        );
     }
 
     public static Identifier id(String path) {

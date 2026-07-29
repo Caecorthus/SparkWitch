@@ -3,9 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.windspirit;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.BuildShopEntries;
-import dev.doctor4t.wathe.api.event.TaskComplete;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.cca.PlayerStaminaComponent;
 import dev.doctor4t.wathe.cca.WorldBlackoutComponent;
 import dev.doctor4t.wathe.util.ShopEntry;
@@ -25,7 +23,6 @@ import net.minecraft.util.Identifier;
 public final class WindSpiritFeatureService {
     public static final Identifier WIND_CHARGE_SHOP_ID = SparkWitch.id("wind_spirit_wind_charge");
     public static final int WIND_CHARGE_PRICE = 50;
-    public static final int TASK_REWARD = 50;
     private static final int NIGHT_VISION_REFRESH_TICKS = 40;
     private static final int NIGHT_VISION_REFRESH_THRESHOLD_TICKS = 20;
     private static boolean registered;
@@ -44,7 +41,6 @@ public final class WindSpiritFeatureService {
         registered = true;
 
         BuildShopEntries.EVENT.register(WindSpiritFeatureService::addWindCharge);
-        TaskComplete.EVENT.register((player, taskType) -> rewardTask(player));
         BlackoutEffect.BEFORE.register(WindSpiritFeatureService::beforeBlackoutEffect);
         ServerTickEvents.END_WORLD_TICK.register(WindSpiritFeatureService::tickWorld);
     }
@@ -62,12 +58,6 @@ public final class WindSpiritFeatureService {
                 WIND_CHARGE_PRICE,
                 ShopEntry.Type.WEAPON
         ).build());
-    }
-
-    private static void rewardTask(ServerPlayerEntity player) {
-        if (WindSpiritRules.shouldRewardTask(WindSpiritRules.isActivePromotedWindSpirit(player))) {
-            PlayerShopComponent.KEY.get(player).addToBalance(TASK_REWARD);
-        }
     }
 
     private static BlackoutEffect.BlackoutResult beforeBlackoutEffect(

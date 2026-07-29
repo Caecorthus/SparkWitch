@@ -72,10 +72,12 @@ class GuardianAngelServerContractSourceTest {
         String voice = source("voice/SparkWitchVoiceChatPlugin.java");
 
         assertTrue(lifecycle.contains("GuardianAngelFeatureService.initializeForPromotion(player, role)"));
-        assertTrue(lifecycle.contains("GuardianAngelFeatureService.resumePlayer(player)"));
+        assertFalse(lifecycle.contains("GuardianAngelFeatureService.resumePlayer(player)"));
+        assertTrue(lifecycle.contains("WraithReconnectPolicy.shouldTerminateOnJoin"));
         assertTrue(lifecycle.contains("GuardianAngelFeatureService.detachPlayer(player)"));
         assertTrue(lifecycle.contains("TrainVoicePlugin.addPlayer(player.getUuid())"));
-        assertTrue(voice.contains("GuardianAngelRules.shouldBlockWraithMicrophone"));
+        assertTrue(voice.contains("GuardianAngelRules.isGuardianAngel(role)"));
+        assertTrue(voice.contains("WraithCommunicationPolicy.shouldBlockCommunication"));
     }
 
     private static String source(String relative) throws Exception {

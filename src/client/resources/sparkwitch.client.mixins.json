@@ -29,6 +29,7 @@
     "WitchShopPriceMixin",
     "WraithCapeFeatureRendererMixin",
     "WraithBodyRoleNameMixin",
+    "WraithChatHudMixin",
     "WraithCorpseModelMixin",
     "WraithCorpseSkinMixin",
     "WraithElytraFeatureRendererMixin",

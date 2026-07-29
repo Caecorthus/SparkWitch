@@ -76,9 +76,17 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerTarotDivinationNetworking();
         registerBlackRavenNetworking();
         registerWraithRoleAnnouncementNetworking();
-        AllowPlayerChat.EVENT.register(player ->
-                SparkWitchServerConnection.isConfirmedServer()
-                        && WraithParticipationRules.mayUseTextChat(WraithClientState.isActive(player)));
+        AllowPlayerChat.EVENT.register(player -> {
+            if (!SparkWitchServerConnection.isConfirmedServer()) {
+                return false;
+            }
+            var role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+            return WraithParticipationRules.mayUseTextChat(
+                    WraithClientState.isActive(player),
+                    GuardianAngelRules.isGuardianAngel(role),
+                    player.isCreative()
+            );
+        });
 
         // Reset on every connection lifecycle edge so failed login attempts cannot leak confirmed state.
         // 在每个连接生命周期节点清理状态，避免失败的登录尝试残留已确认标记。
@@ -119,8 +127,7 @@ public final class SparkWitchClient implements ClientModInitializer {
                         ClientPlayNetworking.send(new UseSaboteurSkillC2SPacket());
                     }
                 } else if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.CURSER_ID)) {
-                    if (CurserClientHooks.canUse(client.player)
-                            && ClientPlayNetworking.canSend(UseCurserAbilityC2SPacket.ID)) {
+                    if (CurserClientHooks.canUse(client.player)) {
                         CurserClientHooks.use();
                     }
                 } else if (GuardianAngelRules.isGuardianAngel(role)) {

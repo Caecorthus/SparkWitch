@@ -10,6 +10,7 @@ import java.util.List;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 
 /** Server authority for Curser promotion and the eight-block confusion burst. / 诅咒师晋升与八码混乱爆发的服务端权威。 */
 public final class CurserFeatureService {
@@ -42,7 +43,8 @@ public final class CurserFeatureService {
                 game.isRunning(),
                 wraith.isActive(),
                 wraith.isPromoted(),
-                game.getRole(caster) == SparkWitchRoles.curser(),
+                game.getRole(caster) != null
+                        && SparkWitchRoles.CURSER_ID.equals(game.getRole(caster).identifier()),
                 state.getCooldownTicks())) {
             return;
         }
@@ -52,7 +54,11 @@ public final class CurserFeatureService {
                         && GameFunctions.isPlayerPlayingAndAlive(player)
                         && caster.squaredDistanceTo(player) <= CurserRules.RANGE * CurserRules.RANGE
         );
-        if (targets.isEmpty() || !state.startCooldown()) {
+        if (targets.isEmpty()) {
+            caster.sendMessage(Text.translatable("message.sparkwitch.curser.no_target"), true);
+            return;
+        }
+        if (!state.startCooldown()) {
             return;
         }
         for (ServerPlayerEntity target : targets) {
@@ -68,6 +74,8 @@ public final class CurserFeatureService {
         return player != null
                 && WraithStateService.isActive(player)
                 && WraithStateService.isPromoted(player)
-                && GameWorldComponent.KEY.get(player.getWorld()).getRole(player) == SparkWitchRoles.curser();
+                && GameWorldComponent.KEY.get(player.getWorld()).getRole(player) != null
+                && SparkWitchRoles.CURSER_ID.equals(
+                        GameWorldComponent.KEY.get(player.getWorld()).getRole(player).identifier());
     }
 }

@@ -42,7 +42,6 @@ final class WraithParticipation {
         }
         registered = true;
         registerPlayerIsolation();
-        registerCollisionExemption();
         registerGunPunishmentProtection();
         registerInteractions();
         SparkFactionApi.registerEffectiveFactionResolver(WraithParticipation::resolveFaction);
@@ -64,12 +63,6 @@ final class WraithParticipation {
             case KILLER -> FactionIds.KILLER;
             case WITCH -> SparkWitchFactions.WITCH;
         };
-    }
-
-    private static void registerCollisionExemption() {
-        SparkFactionApi.registerEntityCollisionExemption(entity ->
-                entity instanceof PlayerEntity player
-                        && WraithStateService.isActive(player));
     }
 
     private static void registerPlayerIsolation() {

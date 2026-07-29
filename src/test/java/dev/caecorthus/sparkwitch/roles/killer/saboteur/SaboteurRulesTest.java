@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SaboteurRulesTest {
@@ -24,6 +25,15 @@ class SaboteurRulesTest {
         assertFalse(SaboteurRules.isActivePromotedSaboteur(false, true, true));
         assertFalse(SaboteurRules.isActivePromotedSaboteur(true, false, true));
         assertFalse(SaboteurRules.isActivePromotedSaboteur(true, true, false));
+    }
+
+    @Test
+    void instinctHighlightRequiresEligibleLivingKillerAndActivePromotion() {
+        assertEquals(SaboteurRole.COLOR, SaboteurRules.instinctHighlight(true, true, true));
+        assertEquals(-1, SaboteurRules.instinctHighlight(false, true, true));
+        assertNull(SaboteurRules.instinctHighlight(true, false, true));
+        assertNull(SaboteurRules.instinctHighlight(false, false, true));
+        assertNull(SaboteurRules.instinctHighlight(true, true, false));
     }
 
     @Test

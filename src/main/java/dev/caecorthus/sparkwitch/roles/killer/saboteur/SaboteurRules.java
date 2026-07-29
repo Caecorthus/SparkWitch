@@ -48,6 +48,18 @@ public final class SaboteurRules {
         return saboteur && activeWraith && promotedWraith;
     }
 
+    /** Null preserves the provider result; -1 explicitly suppresses an eligible Saboteur outline. */
+    public static @Nullable Integer instinctHighlight(
+            boolean instinctEnabled,
+            boolean livingKillerViewer,
+            boolean activePromotedSaboteur
+    ) {
+        if (!livingKillerViewer || !activePromotedSaboteur) {
+            return null;
+        }
+        return instinctEnabled ? SaboteurRole.COLOR : -1;
+    }
+
     public static boolean canPassShopAliveGate(boolean ordinarilyAllowed, boolean activePromotedSaboteur) {
         return ordinarilyAllowed || activePromotedSaboteur;
     }

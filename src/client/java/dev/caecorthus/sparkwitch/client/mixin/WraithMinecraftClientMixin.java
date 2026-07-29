@@ -1,8 +1,6 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.client.render.CreativeWraithInstinctRules;
 import dev.caecorthus.sparkwitch.client.render.WraithViewerRules;
-import dev.doctor4t.wathe.client.WatheClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -18,9 +16,7 @@ public abstract class WraithMinecraftClientMixin {
     private void sparkwitch$vetoWraithOutline(Entity entity, CallbackInfoReturnable<Boolean> cir) {
         PlayerEntity viewer = MinecraftClient.getInstance().player;
         if (entity instanceof PlayerEntity target
-                && WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, target)
-                && !(CreativeWraithInstinctRules.shouldReveal(viewer, target)
-                        && WatheClient.getInstinctHighlight(target) != -1)) {
+                && WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, target)) {
             cir.setReturnValue(false);
         }
     }

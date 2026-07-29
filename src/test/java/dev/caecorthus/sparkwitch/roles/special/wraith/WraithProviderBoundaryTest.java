@@ -28,12 +28,12 @@ class WraithProviderBoundaryTest {
         String production = productionSource();
         Path watheJar = Path.of("libs/wathe-1.5.6-spark-1.21.1.jar");
         Path noellesRolesJar = Path.of("libs/noellesroles-1.7.6-h1.5.6-spark.jar");
-        Path sparkFactionApiJar = Path.of("libs/sparkfactionapi-0.1.6.0.jar");
+        Path sparkFactionApiJar = Path.of("libs/sparkfactionapi-0.1.6.1.jar");
 
         assertTrue(properties.contains("mod_version=0.1.6.2"));
         assertTrue(properties.contains("wathe_version=1.5.6-spark-1.21.1"));
         assertTrue(properties.contains("noellesroles_version=1.7.6-h1.5.6-spark"));
-        assertTrue(properties.contains("sparkfactionapi_version=0.1.6.0"));
+        assertTrue(properties.contains("sparkfactionapi_version=0.1.6.1"));
         assertTrue(Files.isRegularFile(watheJar));
         assertTrue(Files.isRegularFile(noellesRolesJar));
         assertTrue(Files.isRegularFile(sparkFactionApiJar));
@@ -41,7 +41,7 @@ class WraithProviderBoundaryTest {
                 sha256(watheJar));
         assertEquals("fcb0da6995197afff8637dd9236f96d9d07cfc0e26484ad3777e5cf3de37d8b7",
                 sha256(noellesRolesJar));
-        assertEquals("fce2a6c5e96e95ecb2eef2458de4fdfdcb5765af80be86b3f6d8b0fa7fb73f25",
+        assertEquals("8df04724740b753bbca0c1fb9d33dd8b5a710c103fd9061b13424fa0f71cbd2d",
                 sha256(sparkFactionApiJar));
         assertFalse(Files.exists(Path.of("libs/wathe-1.5.7-spark-1.21.1.jar")));
         assertFalse(Files.exists(Path.of("libs/noellesroles-1.7.7-h1.5.7-spark.jar")));
@@ -49,7 +49,7 @@ class WraithProviderBoundaryTest {
         assertProviderMetadata(watheJar, "wathe", "1.5.6-spark-1.21.1", Map.of());
         assertProviderMetadata(noellesRolesJar, "noellesroles", "1.7.6-h1.5.6-spark",
                 Map.of("wathe", "1.5.6-spark-1.21.1"));
-        assertProviderMetadata(sparkFactionApiJar, "sparkfactionapi", "0.1.6.0",
+        assertProviderMetadata(sparkFactionApiJar, "sparkfactionapi", "0.1.6.1",
                 Map.of("wathe", ">=1.5.6-spark-1.21.1"));
 
         JsonObject sourceMetadata = JsonParser.parseString(Files.readString(Path.of(

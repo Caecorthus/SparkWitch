@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 
-import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -77,7 +76,7 @@ public final class VendettaKnifeLoadoutService {
             }
         }
         if (entitled && !found) {
-            ItemStack knife = new ItemStack(SparkWitchItems.vendettaKnife());
+            ItemStack knife = VendettaKnifeStackFactory.create(player);
             if (!player.giveItemStack(knife)) {
                 // Guarantee the role-owned knife without deleting a full-inventory player's selected item.
                 // 背包已满时仍保证发刀，同时把被占用的当前物品正常丢回世界而不是删除。

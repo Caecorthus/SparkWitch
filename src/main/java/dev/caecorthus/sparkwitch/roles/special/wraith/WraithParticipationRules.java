@@ -5,8 +5,12 @@ public final class WraithParticipationRules {
     private WraithParticipationRules() {
     }
 
-    public static boolean mayUseTextChat(boolean activeWraith) {
-        return activeWraith;
+    public static boolean mayUseTextChat(
+            boolean activeWraith,
+            boolean guardianAngel,
+            boolean creative
+    ) {
+        return activeWraith && WraithCommunicationPolicy.mayCommunicate(true, guardianAngel, creative);
     }
 
     public static boolean mayJump(boolean activeWraith, boolean mapAllowsJump) {

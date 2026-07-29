@@ -14,11 +14,13 @@ class WraithCommonRestrictionsSourceTest {
     private static final Path ROOT = Path.of("src");
 
     @Test
-    void chatRemainsNativeWhileJumpAndParticlesDelegateToCentralPolicy() throws Exception {
+    void activeWraithChatUsesWatheFinalPolicyWithoutChangingDeathState() throws Exception {
         String initializer = Files.readString(ROOT.resolve(
                 "main/java/dev/caecorthus/sparkwitch/SparkWitch.java"));
         String clientInitializer = Files.readString(ROOT.resolve(
                 "client/java/dev/caecorthus/sparkwitch/client/SparkWitchClient.java"));
+        String chat = Files.readString(ROOT.resolve(
+                "client/java/dev/caecorthus/sparkwitch/client/mixin/WraithChatHudMixin.java"));
         String jump = Files.readString(ROOT.resolve(
                 "main/java/dev/caecorthus/sparkwitch/mixin/WraithJumpRestrictionMixin.java"));
         String jumpKey = Files.readString(ROOT.resolve(
@@ -28,11 +30,33 @@ class WraithCommonRestrictionsSourceTest {
         String landing = Files.readString(ROOT.resolve(
                 "main/java/dev/caecorthus/sparkwitch/mixin/WraithLandingParticleMixin.java"));
 
-        assertFalse(initializer.contains("ServerMessageEvents.ALLOW_CHAT_MESSAGE"));
+        assertTrue(initializer.contains("ServerMessageEvents.ALLOW_CHAT_MESSAGE.register"));
+        assertTrue(initializer.contains("ServerMessageEvents.ALLOW_COMMAND_MESSAGE.register"));
+        assertTrue(initializer.contains("source.getPlayer()"));
+        assertTrue(initializer.contains("WraithStateService.isActive(sender)"));
+        assertTrue(initializer.contains("GameWorldComponent.KEY.get(sender.getWorld()).getRole(sender)"));
+        assertTrue(initializer.contains("GuardianAngelRules.isGuardianAngel(role)"));
+        assertTrue(initializer.contains("sender.isCreative()"));
+        assertTrue(initializer.contains("WraithParticipationRules.mayUseTextChat("));
         assertTrue(clientInitializer.contains("AllowPlayerChat.EVENT.register"));
         assertTrue(clientInitializer.contains("SparkWitchServerConnection.isConfirmedServer()"));
         assertTrue(clientInitializer.contains("WraithParticipationRules.mayUseTextChat("));
         assertTrue(clientInitializer.contains("WraithClientState.isActive(player)"));
+        assertTrue(clientInitializer.contains("GameWorldComponent.KEY.get(player.getWorld()).getRole(player)"));
+        assertTrue(clientInitializer.contains("GuardianAngelRules.isGuardianAngel(role)"));
+        assertTrue(clientInitializer.contains("player.isCreative()"));
+        assertFalse(clientInitializer.contains("player.isSpectator()"));
+        assertTrue(chat.contains("@Mixin(value = WatheClient.class, remap = false)"));
+        assertTrue(chat.contains("method = \"shouldDisableChat()Z\""));
+        assertTrue(chat.contains("@At(\"HEAD\")"));
+        assertTrue(chat.contains("cancellable = true"));
+        assertTrue(chat.contains("WraithClientState.isActive(player)"));
+        assertTrue(chat.contains("WraithParticipationRules.mayUseTextChat("));
+        assertTrue(chat.contains("cir.setReturnValue(!"));
+        assertFalse(chat.contains("setDead("));
+        assertFalse(chat.contains("setHealth("));
+        assertFalse(chat.contains("requestRespawn("));
+        assertFalse(chat.contains("setGameMode("));
         assertFalse(Files.exists(ROOT.resolve(
                 "client/java/dev/caecorthus/sparkwitch/client/mixin/WraithChatRestrictionMixin.java")));
         assertFalse(Files.exists(ROOT.resolve(
@@ -67,6 +91,8 @@ class WraithCommonRestrictionsSourceTest {
                 .anyMatch(value -> value.getAsString().equals("WraithLandingParticleMixin")));
         assertTrue(client.getAsJsonArray("client").asList().stream()
                 .anyMatch(value -> value.getAsString().equals("WraithJumpKeyBindingMixin")));
+        assertTrue(client.getAsJsonArray("client").asList().stream()
+                .anyMatch(value -> value.getAsString().equals("WraithChatHudMixin")));
         assertFalse(client.getAsJsonArray("client").asList().stream()
                 .anyMatch(value -> value.getAsString().equals("WraithChatRestrictionMixin")));
         assertFalse(client.getAsJsonArray("client").asList().stream()

@@ -16,7 +16,7 @@ class WraithNormalUiContractTest {
     );
 
     @Test
-    void activeWraithKeepsNativeTextChatAndNormalInventoryOpening() throws IOException {
+    void activeWraithUsesCentralChatPolicyAndKeepsNormalInventoryOpening() throws IOException {
         String config = Files.readString(Path.of("src/client/resources/sparkwitch.client.mixins.json"));
         String sources;
         try (Stream<Path> paths = Files.walk(Path.of("src/client/java"))) {
@@ -34,9 +34,10 @@ class WraithNormalUiContractTest {
         assertFalse(Files.exists(CLIENT_MIXINS.resolve("WraithInventoryKeyMixin.java")));
         assertFalse(config.contains("WraithChatRestrictionMixin"));
         assertFalse(config.contains("WraithChatScreenMixin"));
+        assertTrue(config.contains("WraithChatHudMixin"));
         assertFalse(config.contains("WraithInventoryKeyMixin"));
         assertFalse(sources.contains("setChatAllowed(false)"));
-        assertFalse(sources.contains("shouldDisableChat()Z"));
+        assertTrue(sources.contains("shouldDisableChat()Z"));
         assertFalse(sources.contains("sparkwitch$openWraithInventory"));
     }
 

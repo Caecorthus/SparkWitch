@@ -189,8 +189,14 @@ public final class GuardianAngelFeatureService {
             ServerPlayerEntity player,
             int durationTicks
     ) {
-        Role role = GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player);
-        return GuardianAngelRules.isGuardianAngel(role) ? BlackoutEffect.BlackoutResult.cancel() : null;
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getServerWorld());
+        WraithPlayerComponent wraith = WraithPlayerComponent.KEY.get(player);
+        return GuardianAngelRules.blocksBlackout(
+                game.isRunning(),
+                wraith.isActive(),
+                wraith.isPromoted(),
+                GuardianAngelRules.isGuardianAngel(game.getRole(player))
+        ) ? BlackoutEffect.BlackoutResult.cancel() : null;
     }
 
     private static @Nullable KillPlayer.KillResult beforeKill(

@@ -37,6 +37,19 @@ class FocusedFootstepsRuntimeSourceTest {
     }
 
     @Test
+    void effectUsesVanillaTravelOnlyForPlayersWithoutClientMovement() throws IOException {
+        String effect = read("FocusedFootstepsEffect.java");
+
+        assertTrue(effect.contains("ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)"));
+        assertTrue(effect.contains("HunterPlayerComponent.KEY.get(player).isRooted()"));
+        assertTrue(effect.contains("WitchPlayerComponent.KEY.get(player).isPigChaseFreezeActive()"));
+        assertTrue(effect.contains("FocusedFootstepsMovementRules.shouldUseServerFallback"));
+        assertTrue(effect.contains("player.travel(new Vec3d(0.0, 0.0, 1.0))"));
+        assertFalse(effect.contains("player.teleport("));
+        assertFalse(effect.contains("player.setPosition("));
+    }
+
+    @Test
     void lifecycleClearsOnlyTheAffectedTargetAtEveryTerminalBoundary() throws IOException {
         String runtime = read("FocusedFootstepsRuntime.java");
 

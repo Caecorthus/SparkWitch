@@ -5,11 +5,11 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class CreativeWraithInstinctWiringSourceTest {
     @Test
-    void eligibilityAndFinalVetoBothUseNarrowCreativeRule() throws Exception {
+    void creativeModeDoesNotBypassWraithInstinctPrivacy() throws Exception {
         String wathe = Files.readString(Path.of(
                 "src/client/java/dev/caecorthus/sparkwitch/client/mixin/WraithWatheHighlightMixin.java"
         ));
@@ -17,10 +17,8 @@ class CreativeWraithInstinctWiringSourceTest {
                 "src/client/java/dev/caecorthus/sparkwitch/client/mixin/WraithMinecraftClientMixin.java"
         ));
 
-        assertTrue(wathe.contains("isInstinctEnabledAndIsKiller()Z"));
-        assertTrue(wathe.contains("sparkwitch$allowCreativeWraithInstinct"));
-        assertTrue(wathe.contains("CreativeWraithInstinctRules.shouldReveal"));
-        assertTrue(minecraft.contains("CreativeWraithInstinctRules.shouldReveal"));
-        assertTrue(minecraft.contains("WatheClient.getInstinctHighlight(target) != -1"));
+        assertFalse(wathe.contains("sparkwitch$allowCreativeWraithInstinct"));
+        assertFalse(wathe.contains("CreativeWraithInstinctRules.shouldReveal"));
+        assertFalse(minecraft.contains("CreativeWraithInstinctRules.shouldReveal"));
     }
 }

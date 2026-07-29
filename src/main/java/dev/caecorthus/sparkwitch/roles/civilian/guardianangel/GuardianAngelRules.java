@@ -48,6 +48,15 @@ public final class GuardianAngelRules {
                 && cooldownTicks <= 0;
     }
 
+    public static boolean blocksBlackout(
+            boolean gameRunning,
+            boolean activeWraith,
+            boolean promotedWraith,
+            boolean guardianAngel
+    ) {
+        return gameRunning && activeWraith && promotedWraith && guardianAngel;
+    }
+
     public static boolean canTarget(
             boolean self,
             boolean targetAlive,

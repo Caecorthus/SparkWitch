@@ -83,7 +83,8 @@ class VendettaServerContractSourceTest {
 
         assertTrue(interaction.contains("BlackoutEffect.BEFORE.register"));
         assertTrue(lifecycle.contains("VendettaLifecycleService.initializeForPromotion(player, role)"));
-        assertTrue(lifecycle.contains("VendettaLifecycleService.resumePlayer(player)"));
+        assertFalse(lifecycle.contains("VendettaLifecycleService.resumePlayer(player)"));
+        assertTrue(lifecycle.contains("WraithReconnectPolicy.shouldTerminateOnJoin"));
         assertTrue(participation.contains("VendettaInteractionService.isExactPair(actor, target)"));
         assertTrue(statusEffects.contains("!VendettaInteractionService.isExactPair(actor, targetPlayer)"));
     }
@@ -105,6 +106,8 @@ class VendettaServerContractSourceTest {
         assertTrue(knife.contains("attacker.canSee(target)"));
         assertTrue(knife.contains("confirmedDeath(deadBefore, deadAfter)"));
         assertTrue(loadout.contains("component.isKnifeAvailable()"));
+        assertTrue(loadout.contains("VendettaKnifeStackFactory.create(player)"));
+        assertFalse(loadout.contains("new ItemStack(SparkWitchItems.vendettaKnife())"));
         assertTrue(loadout.contains("player.getInventory().selectedSlot"));
         assertTrue(filter.contains("canSeeKnifeEquipment"));
         assertTrue(packet.contains("targetEntityId"));

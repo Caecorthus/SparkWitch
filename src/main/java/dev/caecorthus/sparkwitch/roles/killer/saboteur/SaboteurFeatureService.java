@@ -1,9 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.saboteur;
 
 import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.api.event.TaskComplete;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.index.WatheItems;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -25,7 +23,6 @@ public final class SaboteurFeatureService {
         registered = true;
         SaboteurLightOutageService.register();
         SaboteurShopService.register();
-        TaskComplete.EVENT.register((player, taskType) -> rewardTask(player));
     }
 
     /**
@@ -45,12 +42,4 @@ public final class SaboteurFeatureService {
         }
     }
 
-    private static void rewardTask(ServerPlayerEntity player) {
-        // Promotion is deferred until the task event finishes, so the third task cannot be paid retroactively.
-        // 晋升会延迟到任务事件结束后，因此触发晋升的第三个任务不会被追溯发钱。
-        boolean activePromotedSaboteur = SaboteurRules.isActivePromotedSaboteur(player);
-        if (SaboteurRules.shouldRewardTask(activePromotedSaboteur)) {
-            PlayerShopComponent.KEY.get(player).addToBalance(SaboteurRules.TASK_REWARD);
-        }
-    }
 }

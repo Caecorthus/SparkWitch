@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.Faction;
+import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 
 /**
@@ -21,7 +22,9 @@ public final class WraithViewerRules {
             return false;
         }
         Role viewerRole = GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer);
-        return viewerRole != null && viewerRole.getFaction() == Faction.KILLER;
+        return GameFunctions.isPlayerPlayingAndAlive(viewer)
+                && viewerRole != null
+                && viewerRole.getFaction() == Faction.KILLER;
     }
 
     public static boolean shouldHideFromOrdinaryViewer(PlayerEntity viewer, PlayerEntity target) {

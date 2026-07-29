@@ -32,6 +32,15 @@ class GuardianAngelRulesTest {
     }
 
     @Test
+    void blackoutImmunityRequiresRunningActivePromotedGuardian() {
+        assertTrue(GuardianAngelRules.blocksBlackout(true, true, true, true));
+        assertFalse(GuardianAngelRules.blocksBlackout(false, true, true, true));
+        assertFalse(GuardianAngelRules.blocksBlackout(true, false, true, true));
+        assertFalse(GuardianAngelRules.blocksBlackout(true, true, false, true));
+        assertFalse(GuardianAngelRules.blocksBlackout(true, true, true, false));
+    }
+
+    @Test
     void deathProtectionMatchesIronManAndExplicitFallExclusions() {
         assertFalse(GuardianAngelRules.shouldBlockDeath(GameConstants.DeathReasons.SHOT_INNOCENT));
         assertFalse(GuardianAngelRules.shouldBlockDeath(GameConstants.DeathReasons.FELL_OUT_OF_TRAIN));

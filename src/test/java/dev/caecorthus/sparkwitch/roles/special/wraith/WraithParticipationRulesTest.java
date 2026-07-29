@@ -7,9 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WraithParticipationRulesTest {
     @Test
-    void onlyActiveWraithsOptIntoWatheChatAllowance() {
-        assertTrue(WraithParticipationRules.mayUseTextChat(true));
-        assertFalse(WraithParticipationRules.mayUseTextChat(false));
+    void onlyActiveGuardianAngelOrCreativeWraithUsesTextChat() {
+        assertFalse(WraithParticipationRules.mayUseTextChat(true, false, false));
+        assertTrue(WraithParticipationRules.mayUseTextChat(true, true, false));
+        assertTrue(WraithParticipationRules.mayUseTextChat(true, false, true));
+        assertFalse(WraithParticipationRules.mayUseTextChat(false, false, false));
+        assertFalse(WraithParticipationRules.mayUseTextChat(false, true, false));
+        assertFalse(WraithParticipationRules.mayUseTextChat(false, false, true));
     }
 
     @Test

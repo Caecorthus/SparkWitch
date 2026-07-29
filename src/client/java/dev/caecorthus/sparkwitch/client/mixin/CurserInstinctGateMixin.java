@@ -21,6 +21,8 @@ public abstract class CurserInstinctGateMixin {
     private static void sparkwitch$blockConfusedKillerInstinct(CallbackInfoReturnable<Boolean> cir) {
         if (CurserClientHooks.isLocallyConfused()) {
             cir.setReturnValue(false);
+        } else if (CurserClientHooks.canUseInstinct()) {
+            cir.setReturnValue(WatheClient.instinctKeybind != null && WatheClient.instinctKeybind.isPressed());
         }
     }
 }

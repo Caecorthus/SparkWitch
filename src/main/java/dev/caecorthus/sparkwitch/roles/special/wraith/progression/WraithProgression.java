@@ -3,7 +3,9 @@ package dev.caecorthus.sparkwitch.roles.special.wraith.progression;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.TaskComplete;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
+import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.player.PlayerEntity;
@@ -71,6 +73,15 @@ public final class WraithProgression {
         WraithPlayerComponent wraith = WraithPlayerComponent.KEY.get(player);
         if (!wraith.isActive()) {
             return;
+        }
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        int taskReward = WraithPromotionEconomyPolicy.taskReward(
+                true,
+                wraith.isPromoted(),
+                role == null ? null : role.identifier()
+        );
+        if (taskReward > 0) {
+            PlayerShopComponent.KEY.get(player).addToBalance(taskReward);
         }
         int completions = wraith.recordTaskCompletion();
         WraithPromotionQueue.queueIfReady(player, completions);

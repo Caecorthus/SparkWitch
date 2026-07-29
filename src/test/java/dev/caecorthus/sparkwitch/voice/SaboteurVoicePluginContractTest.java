@@ -12,16 +12,18 @@ class SaboteurVoicePluginContractTest {
     void filtersAllOutboundSoundPacketTypesAfterWatheRelay() throws Exception {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/caecorthus/sparkwitch/voice/SparkWitchVoiceChatPlugin.java"));
-        assertTrue(source.contains("EntitySoundPacketEvent.class, this::blockSaboteurRecipient"));
-        assertTrue(source.contains("LocationalSoundPacketEvent.class, this::blockSaboteurRecipient"));
-        assertTrue(source.contains("StaticSoundPacketEvent.class, this::blockSaboteurRecipient"));
+        assertTrue(source.contains("EntitySoundPacketEvent.class, this::blockRestrictedRecipient"));
+        assertTrue(source.contains("LocationalSoundPacketEvent.class, this::blockRestrictedRecipient"));
+        assertTrue(source.contains("StaticSoundPacketEvent.class, this::blockRestrictedRecipient"));
         assertTrue(source.contains("SaboteurVoiceRules.shouldBlockPacket(event)"));
     }
 
     @Test
-    void preservesGuardianWraithMicrophoneGate() throws Exception {
+    void preservesGuardianAndCreativeWraithMicrophoneExceptions() throws Exception {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/caecorthus/sparkwitch/voice/SparkWitchVoiceChatPlugin.java"));
-        assertTrue(source.contains("GuardianAngelRules.shouldBlockWraithMicrophone"));
+        assertTrue(source.contains("WraithCommunicationPolicy.shouldBlockCommunication"));
+        assertTrue(source.contains("GuardianAngelRules.isGuardianAngel(role)"));
+        assertTrue(source.contains("speaker.isCreative()"));
     }
 }

@@ -95,9 +95,11 @@ class SaboteurServerIntegrationSourceTest {
     @Test
     void taskRewardChecksPromotionAtEventTimeAndShopGatePreservesWindSpirit() throws IOException {
         String feature = saboteurSource("SaboteurFeatureService.java");
-        assertTrue(feature.contains("TaskComplete.EVENT.register"));
-        assertTrue(feature.contains("SaboteurRules.isActivePromotedSaboteur(player)"));
-        assertTrue(feature.contains("addToBalance(SaboteurRules.TASK_REWARD)"));
+        String progression = source("roles/special/wraith/progression/WraithProgression.java");
+        assertFalse(feature.contains("TaskComplete.EVENT.register"));
+        assertTrue(progression.contains("TaskComplete.EVENT.register(WraithProgression::onTaskComplete)"));
+        assertTrue(progression.contains("WraithPromotionEconomyPolicy.taskReward"));
+        assertTrue(progression.contains("addToBalance(taskReward)"));
 
         String mixin = source("mixin/WraithPlayerShopComponentMixin.java");
         int wind = mixin.indexOf("WindSpiritRules.canPassShopAliveGate");

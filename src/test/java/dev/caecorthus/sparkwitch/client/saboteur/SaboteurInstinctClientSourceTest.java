@@ -42,7 +42,7 @@ class SaboteurInstinctClientSourceTest {
                 1600,
                 "dev/caecorthus/sparkwitch/client/curser/CurserClientHooks",
                 "isLocallyConfused",
-                List.of(0)
+                List.of(0, 0)
         );
         assertKillerGateMixin(
                 "dev/caecorthus/sparkwitch/client/mixin/WatheClientFearInstinctMixin",

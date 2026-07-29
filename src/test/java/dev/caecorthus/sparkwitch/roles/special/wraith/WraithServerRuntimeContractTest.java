@@ -43,19 +43,18 @@ class WraithServerRuntimeContractTest {
     }
 
     @Test
-    void reconnectPreservesCadenceAndAdminSpectatorAuthority() throws Exception {
+    void reconnectTerminatesWraithStateAndBecomesOrdinarySpectator() throws Exception {
         String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
         String progression = source("roles/special/wraith/progression/WraithProgression.java");
-        String tasks = source("roles/special/wraith/progression/WraithTaskRuntime.java");
         String presence = source("roles/special/wraith/runtime/WraithPresence.java");
-        assertTrue(lifecycle.contains("game.isRunning()"));
-        assertTrue(lifecycle.contains("game.hasAnyRole(uuid)"));
-        assertTrue(lifecycle.contains("game.isPlayerDead(uuid)"));
+        String onJoin = between(lifecycle, "private static void onJoin", "private static void tickWorld");
+        assertTrue(onJoin.contains("WraithReconnectPolicy.shouldTerminateOnJoin"));
+        assertTrue(onJoin.contains("terminatePlayer(player)"));
+        assertFalse(onJoin.contains("resumePlayer"));
+        assertTrue(lifecycle.contains("WraithProgression.clearPlayer(player)"));
+        assertTrue(lifecycle.contains("player.changeGameMode(GameMode.SPECTATOR)"));
         assertTrue(progression.contains("ServerPlayConnectionEvents.DISCONNECT"));
-        assertTrue(tasks.contains("WraithTaskSnapshot.capture(player)"));
         assertFalse(presence.contains("changeGameMode"));
-        assertTrue(lifecycle.contains("if (player.isSpectator())"));
-        assertTrue(lifecycle.contains("GameMode.ADVENTURE"));
     }
 
     @Test
@@ -75,8 +74,8 @@ class WraithServerRuntimeContractTest {
         String clearPlayer = between(lifecycle, "public static void clearPlayer", "public static void clearRoundState");
         assertTrue(clearPlayer.contains("if (wasActive)"));
         assertTrue(clearPlayer.contains("wakeIfSleeping(player)"));
-        assertTrue(between(lifecycle, "private static void onJoin", "private static void tickWorld")
-                .contains("wakeIfSleeping(player)"));
+        assertFalse(between(lifecycle, "private static void onJoin", "private static void tickWorld")
+                .contains("resumePlayer"));
         assertFalse(lifecycle.contains("setPose(EntityPose.STANDING)"));
     }
 
@@ -85,9 +84,8 @@ class WraithServerRuntimeContractTest {
         String participation = source("roles/special/wraith/runtime/WraithParticipation.java");
         String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
         assertTrue(participation.contains("SparkFactionApi.registerPlayerAffectPolicy"));
-        assertTrue(participation.contains("SparkFactionApi.registerEntityCollisionExemption"));
-        assertTrue(participation.contains("entity instanceof PlayerEntity player"));
-        assertTrue(participation.contains("WraithStateService.isActive(player)"));
+        assertFalse(participation.contains("SparkFactionApi.registerEntityCollisionExemption"));
+        assertFalse(participation.contains("registerCollisionExemption()"));
         assertTrue(participation.contains("isWindSpiritProjectile(actionId, actor)"));
         assertTrue(participation.contains("Identifier.of(\"sparkfactionapi\", \"projectile\")"));
         assertTrue(participation.contains("WindSpiritRules.isActivePromotedWindSpirit(actor)"));

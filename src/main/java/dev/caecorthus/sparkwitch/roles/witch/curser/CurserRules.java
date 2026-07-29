@@ -12,16 +12,40 @@ public final class CurserRules {
 
     public static boolean canParticipateInPlayerOutlines(
             boolean confirmedServer,
+            boolean running,
             boolean curserRole,
             boolean activeWraith,
             boolean promotedWraith,
+            boolean confused,
             boolean viewerSpectatingOrCreative
     ) {
         return confirmedServer
-                && curserRole
-                && activeWraith
-                && promotedWraith
+                && canUseInstinct(running, activeWraith, promotedWraith, curserRole, confused)
                 && !viewerSpectatingOrCreative;
+    }
+
+    public static boolean canUseInstinct(
+            boolean running,
+            boolean activeWraith,
+            boolean promoted,
+            boolean curserRole,
+            boolean confused
+    ) {
+        return running && activeWraith && promoted && curserRole && !confused;
+    }
+
+    public static boolean canSend(
+            boolean confirmedServer,
+            boolean running,
+            boolean activeWraith,
+            boolean promoted,
+            boolean curserRole,
+            int cooldownTicks,
+            boolean channelAvailable
+    ) {
+        return confirmedServer
+                && canUse(running, activeWraith, promoted, curserRole, cooldownTicks)
+                && channelAvailable;
     }
 
     public static boolean canUse(boolean running, boolean activeWraith, boolean promoted, boolean curserRole, int cooldownTicks) {

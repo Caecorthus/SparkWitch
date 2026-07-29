@@ -3,9 +3,12 @@ package dev.caecorthus.sparkwitch.roles.special.wraith.runtime;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithReconnectPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithConversion;
 import dev.caecorthus.sparkwitch.roles.special.wraith.progression.WraithProgression;
+import dev.caecorthus.sparkwitch.roles.special.wraith.progression.WraithPromotionEconomyPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.progression.WraithTaskSnapshot;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
@@ -20,6 +23,7 @@ import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.MapVariablesWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
+import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.compat.TrainVoicePlugin;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -28,7 +32,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
 import net.minecraft.world.GameMode;
 
-import java.util.UUID;
 
 /**
  * Owns Wraith activation, reconnect, world maintenance, role transitions, and terminal cleanup.
@@ -86,6 +89,12 @@ public final class WraithLifecycle {
         if (!WraithStateService.isActive(player)) {
             return;
         }
+        PlayerShopComponent shop = PlayerShopComponent.KEY.get(player);
+        shop.setBalance(WraithPromotionEconomyPolicy.balanceAfterPromotion(
+                shop.getBalance(),
+                true,
+                true
+        ));
         applyPromotedVoiceGroup(player, role);
     }
 
@@ -125,12 +134,8 @@ public final class WraithLifecycle {
         return active && playerY < minimumY;
     }
 
-    static boolean shouldResume(boolean active, boolean running, boolean hasRole, boolean markedDead) {
-        return active && running && hasRole && markedDead;
-    }
-
-    /** Ends promoted participation without dispatching Wathe's ordinary death pipeline. */
-    public static void terminatePromotedPlayer(ServerPlayerEntity player) {
+    /** Ends active Wraith participation without dispatching Wathe's ordinary death pipeline. */
+    public static void terminatePlayer(ServerPlayerEntity player) {
         clearPlayer(player);
         SparkTraitsWraithBridge.clear(player, false);
         PlayerMoodComponent.KEY.get(player).reset();
@@ -138,33 +143,17 @@ public final class WraithLifecycle {
         TrainVoicePlugin.addPlayer(player.getUuid());
     }
 
+    /** Compatibility entry point for existing promoted-role callers. */
+    public static void terminatePromotedPlayer(ServerPlayerEntity player) {
+        terminatePlayer(player);
+    }
+
     private static void onJoin(ServerPlayerEntity player) {
-        WraithPlayerComponent wraith = WraithPlayerComponent.KEY.get(player);
-        if (!wraith.isActive()) {
-            return;
+        if (WraithReconnectPolicy.shouldTerminateOnJoin(
+                WraithPlayerComponent.KEY.get(player).isActive()
+        )) {
+            terminatePlayer(player);
         }
-        wakeIfSleeping(player);
-        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
-        UUID uuid = player.getUuid();
-        if (!shouldResume(true, game.isRunning(), game.hasAnyRole(uuid), game.isPlayerDead(uuid))) {
-            clearPlayer(player);
-            SparkTraitsWraithBridge.clear(player, true);
-            if (player.isSpectator()) {
-                TrainVoicePlugin.addPlayer(player.getUuid());
-            }
-            return;
-        }
-        if (wraith.isRestricted() && !game.isRole(player, SparkWitchRoles.wraith())) {
-            transitionRole(player, SparkWitchRoles.wraith());
-        }
-        if (!VendettaLifecycleService.resumePlayer(player)) {
-            return;
-        }
-        WraithPresence.apply(player, wraith.isRestricted());
-        Role role = game.getRole(player);
-        GuardianAngelFeatureService.resumePlayer(player);
-        applyPromotedVoiceGroup(player, role);
-        WraithProgression.resumePlayer(player);
     }
 
     private static void tickWorld(ServerWorld world) {
@@ -174,6 +163,7 @@ public final class WraithLifecycle {
             if (!wraith.isActive()) {
                 continue;
             }
+            wakeIfSleeping(player);
             if (playArea != null && shouldTerminateForFall(true, player.getY(), playArea.minY)) {
                 // Falling ends Wraith participation, while target-owned effects finish independently.
                 // 坠落会终止冤魂参与，但目标持有的效果仍独立结束。
@@ -204,7 +194,10 @@ public final class WraithLifecycle {
     }
 
     private static void applyPromotedVoiceGroup(ServerPlayerEntity player, Role role) {
-        if (GuardianAngelRules.isGuardianAngel(role)) {
+        if (WraithCommunicationPolicy.usesDeadVoiceGroup(
+                WraithStateService.isActive(player),
+                GuardianAngelRules.isGuardianAngel(role)
+        )) {
             // Guardian Angel speaks inside Wathe's hidden dead/spectator group instead of proximity voice.
             // 守护天使只在 Wathe 的隐藏死者/旁观者语音组内发言，不进入生者近距离语音。
             TrainVoicePlugin.addPlayer(player.getUuid());

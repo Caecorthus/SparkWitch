@@ -245,6 +245,7 @@
   "hud.sparkwitch.skill.sabotage.ready": "Press [%s] to use Sabotage",
   "hud.sparkwitch.curser.cooldown": "Curse cooling down: %s seconds",
   "hud.sparkwitch.curser.ready": "Press %s to cast Curse",
+  "message.sparkwitch.curser.no_target": "No living players are within 8 blocks",
   "hud.sparkwitch.black_raven.instinct.normal": "Instinct: Normal [%s]",
   "hud.sparkwitch.black_raven.instinct.sensed": "Instinct: Sensed [%s]",
   "hud.sparkwitch.saint.hellfire.cooldown": "Hellfire cooling down: %ss",

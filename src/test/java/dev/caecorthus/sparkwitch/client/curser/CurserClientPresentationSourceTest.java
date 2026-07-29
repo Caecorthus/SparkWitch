@@ -9,6 +9,18 @@ import org.junit.jupiter.api.Test;
 
 class CurserClientPresentationSourceTest {
     @Test
+    void serverRejectsEmptyTargetSetBeforeCooldownWithFeedback() throws Exception {
+        String service = Files.readString(Path.of(
+                "src/main/java/dev/caecorthus/sparkwitch/roles/witch/curser/CurserFeatureService.java"));
+        int emptyTargets = service.indexOf("if (targets.isEmpty())");
+        int feedback = service.indexOf("message.sparkwitch.curser.no_target");
+        int cooldown = service.indexOf("state.startCooldown()", emptyTargets);
+        assertTrue(emptyTargets >= 0);
+        assertTrue(feedback > emptyTargets);
+        assertTrue(cooldown > feedback);
+    }
+
+    @Test
     void confusionIsPrivateAndDoesNotMutateWathePsychoState() throws Exception {
         String component = Files.readString(Path.of("src/main/java/dev/caecorthus/sparkwitch/roles/witch/curser/CurserPlayerComponent.java"));
         String skin = Files.readString(Path.of("src/client/java/dev/caecorthus/sparkwitch/client/mixin/CurserConfusionSkinMixin.java"));
@@ -20,6 +32,13 @@ class CurserClientPresentationSourceTest {
         assertTrue(!skin.contains("PlayerPsychoComponent"));
         assertTrue(instinct.contains("isInstinctEnabled"));
         assertTrue(instinct.contains("isLocallyConfused"));
+        assertTrue(instinct.contains("CurserClientHooks.canUseInstinct()"));
+        assertTrue(instinct.contains("WatheClient.instinctKeybind"));
+        String rules = Files.readString(Path.of("src/main/java/dev/caecorthus/sparkwitch/roles/witch/curser/CurserRules.java"));
+        String policy = Files.readString(Path.of("src/main/java/dev/caecorthus/sparkwitch/roles/witch/WitchInstinctPolicy.java"));
+        assertTrue(rules.contains("running && activeWraith && promoted && curserRole && !confused"));
+        assertTrue(policy.contains("CurserRules.canParticipateInPlayerOutlines("));
+        assertTrue(policy.contains("if (curserViewer ? !curserOutlineEligible"));
     }
 
     @Test
@@ -71,7 +90,9 @@ class CurserClientPresentationSourceTest {
         assertTrue(packets.contains("PayloadTypeRegistry.playC2S().register(UseCurserAbilityC2SPacket.ID, UseCurserAbilityC2SPacket.CODEC)"));
         assertTrue(packets.contains("ServerPlayNetworking.registerGlobalReceiver(UseCurserAbilityC2SPacket.ID,"));
         assertTrue(packets.contains("CurserFeatureService.use(context.player())"));
-        assertTrue(client.contains("ClientPlayNetworking.canSend(UseCurserAbilityC2SPacket.ID)"));
+        String hooks = source("src/client/java/dev/caecorthus/sparkwitch/client/curser/CurserClientHooks.java");
+        assertTrue(hooks.contains("ClientPlayNetworking.canSend(UseCurserAbilityC2SPacket.ID)"));
+        assertTrue(client.contains("CurserClientHooks.canUse(client.player)"));
         assertTrue(client.contains("CurserClientHooks.use()"));
     }
 
@@ -83,9 +104,9 @@ class CurserClientPresentationSourceTest {
         int cooldownStart = feature.indexOf("state.startCooldown()");
         assertTrue(emptyTargetGate >= 0);
         assertTrue(cooldownStart > emptyTargetGate);
-        assertTrue(feature.substring(emptyTargetGate, cooldownStart).contains("||"));
-        assertTrue(feature.substring(emptyTargetGate, feature.indexOf("for (ServerPlayerEntity target", cooldownStart))
-                .contains("return;"));
+        String betweenGateAndCooldown = feature.substring(emptyTargetGate, cooldownStart);
+        assertTrue(betweenGateAndCooldown.contains("message.sparkwitch.curser.no_target"));
+        assertTrue(betweenGateAndCooldown.contains("return;"));
     }
 
     private static String source(String path) throws Exception {

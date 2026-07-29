@@ -10,16 +10,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WraithVoicePluginContractTest {
     @Test
-    void onlyOutgoingActiveWraithMicrophonePacketsAreCancelledAtMaximumPriority() throws Exception {
+    void activeWraithCommunicationPolicyFiltersSendAndReceiveAtMaximumPriority() throws Exception {
         String source = Files.readString(Path.of(
                 "src/main/java/dev/caecorthus/sparkwitch/voice/SparkWitchVoiceChatPlugin.java"))
                 .replaceAll("\\s+", " ");
         assertTrue(source.contains("MicrophonePacketEvent.class, this::blockWraithSpeaker, Integer.MAX_VALUE"));
-        assertTrue(source.contains("WraithStateService.isActive(speaker)"));
-        assertTrue(source.contains("GuardianAngelRules.shouldBlockWraithMicrophone"));
-        assertTrue(source.contains("EntitySoundPacketEvent.class, this::blockSaboteurRecipient"));
-        assertTrue(source.contains("LocationalSoundPacketEvent.class, this::blockSaboteurRecipient"));
-        assertTrue(source.contains("StaticSoundPacketEvent.class, this::blockSaboteurRecipient"));
+        assertTrue(source.contains("WraithCommunicationPolicy.shouldBlockCommunication"));
+        assertTrue(source.contains("speaker.isCreative()"));
+        assertTrue(source.contains("recipient.isCreative()"));
+        assertTrue(source.contains("EntitySoundPacketEvent.class, this::blockRestrictedRecipient"));
+        assertTrue(source.contains("LocationalSoundPacketEvent.class, this::blockRestrictedRecipient"));
+        assertTrue(source.contains("StaticSoundPacketEvent.class, this::blockRestrictedRecipient"));
+        assertTrue(source.contains("SaboteurVoiceRules.shouldBlockPacket(event) || shouldBlockWraithRecipient(event)"));
         assertTrue(Files.readString(Path.of(
                 "src/main/java/dev/caecorthus/sparkwitch/voice/SaboteurVoiceRules.java"))
                 .contains("getReceiverConnection"));
