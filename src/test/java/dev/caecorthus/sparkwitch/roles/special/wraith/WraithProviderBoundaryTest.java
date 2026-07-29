@@ -41,7 +41,7 @@ class WraithProviderBoundaryTest {
                 sha256(watheJar));
         assertEquals("fcb0da6995197afff8637dd9236f96d9d07cfc0e26484ad3777e5cf3de37d8b7",
                 sha256(noellesRolesJar));
-        assertEquals("8df04724740b753bbca0c1fb9d33dd8b5a710c103fd9061b13424fa0f71cbd2d",
+        assertEquals("ceb811f55e63faa56426affe507dd1ada5db6f13c7c0d3cc90de5267f40eb3ee",
                 sha256(sparkFactionApiJar));
         assertFalse(Files.exists(Path.of("libs/wathe-1.5.7-spark-1.21.1.jar")));
         assertFalse(Files.exists(Path.of("libs/noellesroles-1.7.7-h1.5.7-spark.jar")));
