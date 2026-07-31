@@ -63,9 +63,9 @@
     "cardinal-components-world": ">=${cca_version}"
   },
   "suggests": {
-    "sparktraits": ">=0.1.9.11"
+    "sparktraits": ">=0.1.9.9"
   },
   "breaks": {
-    "sparktraits": "<0.1.9.11"
+    "sparktraits": "<0.1.9.9"
   }
 }
