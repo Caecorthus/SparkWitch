@@ -163,7 +163,6 @@ public final class WraithLifecycle {
             if (!wraith.isActive()) {
                 continue;
             }
-            wakeIfSleeping(player);
             if (playArea != null && shouldTerminateForFall(true, player.getY(), playArea.minY)) {
                 // Falling ends Wraith participation, while target-owned effects finish independently.
                 // 坠落会终止冤魂参与，但目标持有的效果仍独立结束。

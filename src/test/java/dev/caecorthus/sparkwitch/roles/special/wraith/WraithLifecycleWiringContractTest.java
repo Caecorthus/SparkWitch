@@ -1,10 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.special.wraith;
 
+import dev.doctor4t.wathe.game.GameConstants;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -87,17 +89,21 @@ class WraithLifecycleWiringContractTest {
     }
 
     @Test
-    void activeWorldMaintenanceWakesPlayersBeforeFallAndPresenceUpdates() throws Exception {
+    void activeWorldMaintenancePreservesWatheEightSecondSleepTaskProgress() throws Exception {
         String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
         String tickWorld = between(lifecycle, "private static void tickWorld", "private static void wakeIfSleeping");
+        String taskRuntime = source("roles/special/wraith/progression/WraithTaskRuntime.java");
 
         int activeGuard = tickWorld.indexOf("if (!wraith.isActive())");
-        int wake = tickWorld.indexOf("wakeIfSleeping(player)");
         int fall = tickWorld.indexOf("shouldTerminateForFall");
         int presence = tickWorld.indexOf("WraithPresence.apply");
+        assertEquals(160, GameConstants.SLEEP_TASK_DURATION);
+        assertTrue(taskRuntime.contains("task.tick(player)"));
+        assertTrue(taskRuntime.contains("task.isFulfilled(player)"));
         assertTrue(activeGuard >= 0);
-        assertTrue(wake > activeGuard);
-        assertTrue(fall > wake);
+        assertFalse(tickWorld.contains("wakeIfSleeping(player)"));
+        assertFalse(tickWorld.contains("wakeUp("));
+        assertTrue(fall > activeGuard);
         assertTrue(presence > fall);
     }
 
