@@ -49,21 +49,14 @@ class SaboteurClientResourcesTest {
     }
 
     @Test
-    void announcementStatesOnlyTheApprovedSaboteurEconomyShopAndSkill() throws IOException {
+    void announcementUsesTheConciseSaboteurObjective() throws IOException {
         JsonObject chinese = language("zh_cn");
         JsonObject english = language("en_us");
 
-        assertTrue(value(chinese, "announcement.goals.saboteur").contains("对讲机"));
-        assertTrue(value(chinese, "announcement.goals.saboteur").contains("杀手阵营"));
-        assertTrue(value(english, "announcement.goals.saboteur").contains("walkie-talkie"));
-        assertTrue(value(english, "announcement.goals.saboteur").contains("living killer-faction"));
-
-        String combined = value(chinese, "announcement.goals.saboteur")
-                + value(english, "announcement.goals.saboteur");
-        assertFalse(combined.contains("无限体力"));
-        assertFalse(combined.contains("熄灯免疫"));
-        assertFalse(combined.contains("unlimited stamina"));
-        assertFalse(combined.contains("blackout immunity"));
+        assertEquals("熄灭列车灯光，协助杀手消灭好人阵营。",
+                value(chinese, "announcement.goals.saboteur"));
+        assertEquals("Black out the train and aid the killers.",
+                value(english, "announcement.goals.saboteur"));
     }
 
     @Test

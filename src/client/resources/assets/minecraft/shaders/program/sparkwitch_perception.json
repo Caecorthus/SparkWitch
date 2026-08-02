@@ -54,6 +54,38 @@
       "values": [
         0
       ]
+    },
+    {
+      "name": "LuminanceScale",
+      "type": "float",
+      "count": 1,
+      "values": [
+        1
+      ]
+    },
+    {
+      "name": "LumaRed",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0.299
+      ]
+    },
+    {
+      "name": "LumaGreen",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0.587
+      ]
+    },
+    {
+      "name": "LumaBlue",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0.114
+      ]
     }
   ]
 }

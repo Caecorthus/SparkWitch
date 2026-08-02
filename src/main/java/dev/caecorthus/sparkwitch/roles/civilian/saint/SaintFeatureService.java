@@ -25,11 +25,13 @@ public final class SaintFeatureService {
             return;
         }
         registered = true;
+        SaintEconomyService.register();
         KillPlayer.AFTER.register(SaintFeatureService::afterKill);
     }
 
     public static void assignForRole(ServerPlayerEntity player, Role role) {
         SaintAbilityService.assignForRole(player, role);
+        SaintEconomyService.assignForRole(player, role);
         if (SaintRules.isKarmaImmune(role)) {
             SaintKarmaService.clear(player);
         }

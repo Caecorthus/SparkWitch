@@ -19,7 +19,14 @@ import java.io.IOException;
  */
 public final class BlackRavenPerceptionScreenEffects {
     private static final Identifier SHADER = SparkWitch.id("shaders/post/perception.json");
-    private static final float DESATURATE_FACTOR = 0.50f;
+    private static final float PERCEPTION_DESATURATION = 1.0f;
+    private static final float PERCEPTION_LUMINANCE = 0.85f;
+    private static final float LEGACY_LUMA_RED = 0.299f;
+    private static final float LEGACY_LUMA_GREEN = 0.587f;
+    private static final float LEGACY_LUMA_BLUE = 0.114f;
+    private static final float PERCEPTION_LUMA_RED = 0.2126f;
+    private static final float PERCEPTION_LUMA_GREEN = 0.7152f;
+    private static final float PERCEPTION_LUMA_BLUE = 0.0722f;
     private static PostEffectProcessor processor;
     private static int processorWidth = -1;
     private static int processorHeight = -1;
@@ -34,8 +41,16 @@ public final class BlackRavenPerceptionScreenEffects {
                         WraithClientState.isActive(player),
                         WraithClientState.isRestricted(player)
                 );
+        float luminanceScale = 1.0F;
+        float lumaRed = LEGACY_LUMA_RED;
+        float lumaGreen = LEGACY_LUMA_GREEN;
+        float lumaBlue = LEGACY_LUMA_BLUE;
         if (desaturation <= 0.0F && BlackRavenClientState.isPerceptionActive(player)) {
-            desaturation = DESATURATE_FACTOR;
+            desaturation = PERCEPTION_DESATURATION;
+            luminanceScale = PERCEPTION_LUMINANCE;
+            lumaRed = PERCEPTION_LUMA_RED;
+            lumaGreen = PERCEPTION_LUMA_GREEN;
+            lumaBlue = PERCEPTION_LUMA_BLUE;
         }
         if (desaturation <= 0.0F) {
             closeProcessor();
@@ -48,6 +63,10 @@ public final class BlackRavenPerceptionScreenEffects {
             return;
         }
         activeProcessor.setUniforms("DesaturateFactor", desaturation);
+        activeProcessor.setUniforms("LuminanceScale", luminanceScale);
+        activeProcessor.setUniforms("LumaRed", lumaRed);
+        activeProcessor.setUniforms("LumaGreen", lumaGreen);
+        activeProcessor.setUniforms("LumaBlue", lumaBlue);
         activeProcessor.render(delta);
         client.getFramebuffer().beginWrite(false);
         // Entity outlines were part of the desaturated world image. Composite the resolved

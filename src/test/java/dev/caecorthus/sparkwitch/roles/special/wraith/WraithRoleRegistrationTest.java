@@ -118,62 +118,30 @@ class WraithRoleRegistrationTest {
         JsonObject chinese = language("zh_cn");
 
         assertLocalization(english, "wraith", "Wraith",
-                "Complete three tasks to earn a new identity.",
-                "Complete three tasks to earn a new identity.",
-                "Complete three tasks to earn a new identity.");
+                "Complete three tasks and earn a new identity.");
         assertLocalization(english, "wind_spirit", "Wind Spirit",
-                "Stay safe and survive until the end of the journey.",
-                english.get("announcement.goal.wind_spirit").getAsString(),
-                english.get("announcement.goals.wind_spirit").getAsString());
+                "Stay swift, complete tasks, and survive the journey.");
         assertLocalization(english, "guardian_angel", "Guardian Angel",
-                "Listen to the dead. Protect the living.",
-                "Listen to the dead. Protect the living.",
-                "Help the Civilian faction. You have unlimited stamina, are immune to blackouts, and can "
-                        + "identify poisoned food, drinks, and beds; you can communicate by voice only with the dead. "
-                        + "60 seconds after promotion, aim at a living player within 3 blocks and press the ability key "
-                        + "to secretly apply one Guardian Shield for 10 seconds, using the same protection rules as the "
-                        + "Iron Man potion; a successful cast starts a 90-second cooldown. While the shield is active, "
-                        + "the target is highlighted through walls in your role color and visible only to you; the target "
-                        + "does not know they are protected.");
+                "Protect your companions.");
         assertLocalization(english, "vendetta", "Vendetta",
-                "Hunt the killer bound to your first death.",
-                "Hunt the killer bound to your first death.",
-                english.get("announcement.goals.vendetta").getAsString());
+                "Find the killer bound to your death and take revenge.");
         assertLocalization(english, "saboteur", "Saboteur",
-                "Eliminate a passenger to succeed, before time runs out.",
-                "Eliminate the passengers through sabotage.",
-                english.get("announcement.goals.saboteur").getAsString());
+                "Black out the train and aid the killers.");
         assertLocalization(english, "curser", "Curser",
-                "Eliminate a passenger to succeed, before time runs out.",
-                "Eliminate a passenger to succeed, before time runs out.",
-                english.get("announcement.goals.curser").getAsString());
+                "Curse the living before time runs out.");
 
         assertLocalization(chinese, "wraith", "冤魂",
-                "完成三项任务，以获得新的身份。",
-                "完成三项任务，以获得新的身份。",
-                "完成三项任务，以获得新的身份。");
+                "完成三项任务，获得新的身份。");
         assertLocalization(chinese, "wind_spirit", "风精灵",
-                "注意安全，坚持到旅程结束。",
-                chinese.get("announcement.goal.wind_spirit").getAsString(),
-                chinese.get("announcement.goals.wind_spirit").getAsString());
+                "保持迅捷、完成任务并活到旅程结束。");
         assertLocalization(chinese, "guardian_angel", "守护天使",
-                "倾听亡者，守护生者。",
-                "倾听亡者，守护生者。",
-                "帮助好人阵营。你拥有无限体力、免疫熄灯，并能识别被下毒的食物、饮品和床；你只能与死者进行语音交流。"
-                        + "晋升60秒后，瞄准三格内一名存活玩家并按下技能键，可秘密施加一层持续10秒、判定与铁人药剂相同的守护护盾；成功施放后冷却90秒。"
-                        + "护盾生效期间，目标会以你的身份色隔墙高亮且仅你可见；目标不会知道自己受到保护。");
+                "守护你的同伴。");
         assertLocalization(chinese, "vendetta", "仇杀客",
-                "追杀首次死亡时与你绑定的凶手。",
-                "追杀首次死亡时与你绑定的凶手。",
-                chinese.get("announcement.goals.vendetta").getAsString());
+                "找到与你死亡绑定的凶手并完成复仇。");
         assertLocalization(chinese, "saboteur", "破坏者",
-                "在时间耗尽前击杀一名乘客以取得胜利。",
-                "通过破坏行动消灭好人阵营。",
-                chinese.get("announcement.goals.saboteur").getAsString());
+                "熄灭列车灯光，协助杀手消灭好人阵营。");
         assertLocalization(chinese, "curser", "诅咒者",
-                "在时间耗尽前击杀一名乘客以取得胜利。",
-                "在时间耗尽前击杀一名乘客以取得胜利。",
-                chinese.get("announcement.goals.curser").getAsString());
+                "诅咒附近玩家，并在时间耗尽前消灭平民。");
     }
 
     private static JsonObject language(String locale) throws IOException {
@@ -185,14 +153,12 @@ class WraithRoleRegistrationTest {
             JsonObject language,
             String roleId,
             String name,
-            String namespacedGoal,
-            String singularGoal,
-            String pluralGoal
+            String goal
     ) {
         assertEquals(name, language.get("announcement.role.sparkwitch." + roleId).getAsString());
-        assertEquals(namespacedGoal, language.get("announcement.goal.sparkwitch." + roleId).getAsString());
+        assertEquals(goal, language.get("announcement.goal.sparkwitch." + roleId).getAsString());
         assertEquals(name, language.get("announcement.role." + roleId).getAsString());
-        assertEquals(singularGoal, language.get("announcement.goal." + roleId).getAsString());
-        assertEquals(pluralGoal, language.get("announcement.goals." + roleId).getAsString());
+        assertEquals(goal, language.get("announcement.goal." + roleId).getAsString());
+        assertEquals(goal, language.get("announcement.goals." + roleId).getAsString());
     }
 }

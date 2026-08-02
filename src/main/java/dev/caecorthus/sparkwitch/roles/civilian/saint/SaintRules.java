@@ -14,6 +14,7 @@ public final class SaintRules {
     public static final int HELLFIRE_INITIAL_COOLDOWN_TICKS = 1200;
     public static final int HELLFIRE_ACTIVE_TICKS = 300;
     public static final int HELLFIRE_POST_COOLDOWN_TICKS = 1200;
+    public static final int HELLFIRE_REQUIRED_COINS = 175;
     public static final int NORMAL_KARMA = 100;
     public static final int BOMBER_KARMA = 400;
 
@@ -43,6 +44,10 @@ public final class SaintRules {
 
     public static int karmaFor(@Nullable Role role) {
         return isBomber(role) ? BOMBER_KARMA : NORMAL_KARMA;
+    }
+
+    public static boolean hasHellfireCoinRequirement(int balance) {
+        return balance >= HELLFIRE_REQUIRED_COINS;
     }
 
     public static boolean isKarmaRecordTrigger(@Nullable Identifier itemId, @Nullable String action) {

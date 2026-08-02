@@ -27,6 +27,23 @@ class ProphetEconomyIntegrationSourceTest {
     }
 
     @Test
+    void economyUsesProphetRoleAssignmentVisibilityAndTaskLifecycle() throws Exception {
+        String economy = Files.readString(Path.of(
+                "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/prophet/ProphetEconomyService.java"
+        ));
+        String events = Files.readString(Path.of(
+                "src/main/java/dev/caecorthus/sparkwitch/impl/SparkWitchEvents.java"
+        ));
+
+        assertTrue(economy.contains("CanSeeMoney.EVENT.register(ProphetEconomyService::canSeeMoney)"));
+        assertTrue(economy.contains("setBalance(INITIAL_MONEY)"));
+        assertTrue(economy.contains("addToBalance(TASK_MONEY_REWARD)"));
+        assertTrue(events.contains("ProphetEconomyService.register()"));
+        assertTrue(events.contains("ProphetEconomyService.assignForRole(serverPlayer, role)"));
+        assertTrue(events.contains("ProphetEconomyService.onTaskComplete(player)"));
+    }
+
+    @Test
     void hudAndFailureMessagesAreLocalizedExactly() throws Exception {
         JsonObject zh = language("zh_cn");
         JsonObject en = language("en_us");

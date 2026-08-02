@@ -52,13 +52,11 @@ class CurserShopIntegrationSourceTest {
     }
 
     @Test
-    void promotionAnnouncementDescribesThePrivateLockpick() throws IOException {
+    void promotionAnnouncementUsesTheConciseCurserObjective() throws IOException {
         String english = Files.readString(ROOT.resolve("src/main/resources/assets/sparkwitch/lang/en_us.json"));
         String chinese = Files.readString(ROOT.resolve("src/main/resources/assets/sparkwitch/lang/zh_cn.json"));
-        assertTrue(english.contains("\"announcement.goals.curser\""));
-        assertTrue(english.contains("only one lockpick for 50 coins"));
-        assertTrue(chinese.contains("\"announcement.goals.curser\""));
-        assertTrue(chinese.contains("只出售一个 50 金币的开锁器"));
+        assertTrue(english.contains("\"announcement.goals.curser\": \"Curse the living before time runs out.\""));
+        assertTrue(chinese.contains("\"announcement.goals.curser\": \"诅咒附近玩家，并在时间耗尽前消灭平民。\""));
     }
 
     private static String source(String relativePath) throws IOException {

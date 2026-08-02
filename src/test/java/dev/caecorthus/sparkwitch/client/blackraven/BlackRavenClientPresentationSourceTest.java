@@ -54,20 +54,32 @@ class BlackRavenClientPresentationSourceTest {
     }
 
     @Test
-    void perceptionEffectUsesExactHalfDesaturationAndOwnsItsLifecycle() throws IOException {
+    void perceptionEffectMatchesSpiritualistFullGrayscaleAndLuminance() throws IOException {
         String effect = readClient("blackraven/BlackRavenPerceptionScreenEffects.java");
         String mixin = readClient("mixin/blackraven/BlackRavenGameRendererMixin.java");
         String shader = readResource("assets/minecraft/shaders/program/sparkwitch_perception.fsh");
 
-        assertTrue(effect.contains("DESATURATE_FACTOR = 0.50f"));
+        assertTrue(effect.contains("PERCEPTION_DESATURATION = 1.0f"));
+        assertTrue(effect.contains("PERCEPTION_LUMINANCE = 0.85f"));
+        assertTrue(effect.contains("LEGACY_LUMA_RED = 0.299f"));
+        assertTrue(effect.contains("PERCEPTION_LUMA_RED = 0.2126f"));
         assertTrue(effect.contains("activeProcessor.setUniforms(\"DesaturateFactor\", desaturation)"));
+        assertTrue(effect.contains("activeProcessor.setUniforms(\"LumaRed\", lumaRed)"));
+        assertTrue(effect.contains("activeProcessor.setUniforms(\"LumaGreen\", lumaGreen)"));
+        assertTrue(effect.contains("activeProcessor.setUniforms(\"LumaBlue\", lumaBlue)"));
+        assertTrue(effect.contains("activeProcessor.setUniforms(\"LuminanceScale\", luminanceScale)"));
         assertTrue(effect.contains("WraithVisionRules.desaturation("));
         assertTrue(effect.indexOf("WraithVisionRules.desaturation(")
                 < effect.indexOf("BlackRavenClientState.isPerceptionActive(player)"));
         assertTrue(effect.contains("closeProcessor()"));
         assertTrue(effect.contains("processorWidth != framebuffer.textureWidth"));
         assertTrue(mixin.contains("BlackRavenPerceptionScreenEffects.render"));
+        assertTrue(shader.contains("uniform float LumaRed"));
+        assertTrue(shader.contains("float luminance = dot(color, vec3(LumaRed, LumaGreen, LumaBlue)) * LuminanceScale"));
         assertTrue(shader.contains("mix(color, gray, factor)"));
+        assertTrue(effect.contains("client.worldRenderer.drawEntityOutlinesFramebuffer()"));
+        assertFalse(effect.contains("spiritualist"));
+        assertFalse(effect.contains("SpiritCamera"));
         assertFalse(effect.contains("sparktraits.client"));
         assertFalse(effect.contains("TraitPlayerComponent"));
     }
@@ -151,6 +163,8 @@ class BlackRavenClientPresentationSourceTest {
         assertTrue(screen.contains("completedSnapshots()"));
         assertTrue(screen.contains("new BookScreen.Contents"));
         assertTrue(screen.contains("snapshot.playerName()"));
+        assertTrue(screen.contains("formatted(Formatting.BLACK)"));
+        assertFalse(screen.contains("formatted(Formatting.GRAY)"));
         assertTrue(screen.contains("snapshot.roleTranslationKey()"));
         assertTrue(screen.contains("snapshot.roleColor()"));
         assertFalse(screen.contains("points"));

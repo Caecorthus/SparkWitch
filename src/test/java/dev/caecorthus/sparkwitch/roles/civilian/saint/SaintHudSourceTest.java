@@ -25,6 +25,21 @@ class SaintHudSourceTest {
         assertTrue(mixin.contains("for (Text line : lines)"));
     }
 
+    @Test
+    void showsLocalizedCoinRequirementBeforeSaintCanInvokeHellfire() throws IOException {
+        String renderer = readText(RENDERER);
+        String english = readText(Path.of("src/main/resources/assets/sparkwitch/lang/en_us.json"));
+        String chinese = readText(Path.of("src/main/resources/assets/sparkwitch/lang/zh_cn.json"));
+
+        assertTrue(renderer.contains("PlayerShopComponent.KEY.get(player).getBalance()"));
+        int cooldown = renderer.indexOf("if (state.hellfireCooldownTicks() > 0)");
+        int coinRequirement = renderer.indexOf("if (!SaintRules.hasHellfireCoinRequirement(balance))");
+        assertTrue(cooldown >= 0 && coinRequirement > cooldown);
+        assertTrue(renderer.contains("hud.sparkwitch.saint.hellfire.not_enough_money"));
+        assertTrue(english.contains("\"hud.sparkwitch.saint.hellfire.not_enough_money\": \"Requires 175 coins\""));
+        assertTrue(chinese.contains("\"hud.sparkwitch.saint.hellfire.not_enough_money\": \"需要 175 金币\""));
+    }
+
     private static String readText(Path path) throws IOException {
         return Files.readString(path).replace("\r\n", "\n").replace('\r', '\n');
     }

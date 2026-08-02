@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.saint;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
@@ -42,6 +43,12 @@ public final class SaintAbilityService {
             );
             return false;
         }
+        PlayerShopComponent shop = PlayerShopComponent.KEY.get(player);
+        if (!SaintRules.hasHellfireCoinRequirement(shop.getBalance())) {
+            send(player, "message.sparkwitch.saint.hellfire.not_enough_money");
+            return false;
+        }
+        shop.setBalance(shop.getBalance() - SaintRules.HELLFIRE_REQUIRED_COINS);
         state.activateHellfire();
         component.sync();
         send(player, "message.sparkwitch.saint.hellfire.activated");

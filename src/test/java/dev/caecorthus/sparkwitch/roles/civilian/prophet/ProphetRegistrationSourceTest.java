@@ -52,7 +52,7 @@ class ProphetRegistrationSourceTest {
         JsonObject chinese = parse("zh_cn");
         JsonObject english = parse("en_us");
         assertEquals("先知", chinese.get("announcement.role.prophet").getAsString());
-        assertEquals("帮助好人阵营，预见死亡留下的痕迹。",
+        assertEquals("追寻死亡痕迹，帮助好人阵营。",
                 chinese.get("announcement.goal.prophet").getAsString());
         assertEquals("Prophet", english.get("announcement.role.prophet").getAsString());
     }

@@ -16,6 +16,14 @@ class SaintRulesTest {
         assertEquals(1200, SaintRules.HELLFIRE_INITIAL_COOLDOWN_TICKS);
         assertEquals(300, SaintRules.HELLFIRE_ACTIVE_TICKS);
         assertEquals(1200, SaintRules.HELLFIRE_POST_COOLDOWN_TICKS);
+        assertEquals(175, SaintRules.HELLFIRE_REQUIRED_COINS);
+    }
+
+    @Test
+    void hellfireCostsOneHundredSeventyFiveCoins() {
+        assertFalse(SaintRules.hasHellfireCoinRequirement(174));
+        assertTrue(SaintRules.hasHellfireCoinRequirement(175));
+        assertTrue(SaintRules.hasHellfireCoinRequirement(250));
     }
 
     @Test

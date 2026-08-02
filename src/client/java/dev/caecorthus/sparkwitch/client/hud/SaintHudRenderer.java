@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintPlayerState;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -23,7 +24,8 @@ public final class SaintHudRenderer {
         SaintPlayerState state = component.getSaintState();
         List<Text> lines = new ArrayList<>(2);
         if (SaintRules.isSaint(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
-            Text hellfireLine = hellfireLine(state);
+            int balance = PlayerShopComponent.KEY.get(player).getBalance();
+            Text hellfireLine = hellfireLine(state, balance);
             lines.add(hellfireLine);
         }
 
@@ -36,7 +38,7 @@ public final class SaintHudRenderer {
         return List.copyOf(lines);
     }
 
-    private static Text hellfireLine(SaintPlayerState state) {
+    private static Text hellfireLine(SaintPlayerState state, int balance) {
         if (state.isHellfireActive()) {
             return Text.translatable(
                     "hud.sparkwitch.saint.hellfire.active",
@@ -48,6 +50,9 @@ public final class SaintHudRenderer {
                     "hud.sparkwitch.saint.hellfire.cooldown",
                     seconds(state.hellfireCooldownTicks())
             );
+        }
+        if (!SaintRules.hasHellfireCoinRequirement(balance)) {
+            return Text.translatable("hud.sparkwitch.saint.hellfire.not_enough_money");
         }
         return Text.translatable(
                 "hud.sparkwitch.saint.hellfire.ready",

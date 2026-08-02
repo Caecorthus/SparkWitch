@@ -28,12 +28,12 @@ class WraithProviderBoundaryTest {
         String production = productionSource();
         Path watheJar = Path.of("libs/wathe-1.5.6-spark-1.21.1.jar");
         Path noellesRolesJar = Path.of("libs/noellesroles-1.7.6-h1.5.6-spark.jar");
-        Path sparkFactionApiJar = Path.of("libs/sparkfactionapi-0.1.6.1.jar");
+        Path sparkFactionApiJar = Path.of("libs/sparkfactionapi-0.1.5.8.jar");
 
-        assertTrue(properties.contains("mod_version=0.1.6.2"));
+        assertTrue(properties.contains("mod_version=0.1.5.8"));
         assertTrue(properties.contains("wathe_version=1.5.6-spark-1.21.1"));
         assertTrue(properties.contains("noellesroles_version=1.7.6-h1.5.6-spark"));
-        assertTrue(properties.contains("sparkfactionapi_version=0.1.6.1"));
+        assertTrue(properties.contains("sparkfactionapi_version=0.1.5.8"));
         assertTrue(Files.isRegularFile(watheJar));
         assertTrue(Files.isRegularFile(noellesRolesJar));
         assertTrue(Files.isRegularFile(sparkFactionApiJar));
@@ -41,7 +41,7 @@ class WraithProviderBoundaryTest {
                 sha256(watheJar));
         assertEquals("fcb0da6995197afff8637dd9236f96d9d07cfc0e26484ad3777e5cf3de37d8b7",
                 sha256(noellesRolesJar));
-        assertEquals("ceb811f55e63faa56426affe507dd1ada5db6f13c7c0d3cc90de5267f40eb3ee",
+        assertEquals("3ad789bf35bcec52a5e5142a6129af0dbcd084e32942dd1c56b437cbedeed926",
                 sha256(sparkFactionApiJar));
         assertFalse(Files.exists(Path.of("libs/wathe-1.5.7-spark-1.21.1.jar")));
         assertFalse(Files.exists(Path.of("libs/noellesroles-1.7.7-h1.5.7-spark.jar")));
@@ -49,14 +49,14 @@ class WraithProviderBoundaryTest {
         assertProviderMetadata(watheJar, "wathe", "1.5.6-spark-1.21.1", Map.of());
         assertProviderMetadata(noellesRolesJar, "noellesroles", "1.7.6-h1.5.6-spark",
                 Map.of("wathe", "1.5.6-spark-1.21.1"));
-        assertProviderMetadata(sparkFactionApiJar, "sparkfactionapi", "0.1.6.1",
+        assertProviderMetadata(sparkFactionApiJar, "sparkfactionapi", "0.1.5.8",
                 Map.of("wathe", ">=1.5.6-spark-1.21.1"));
 
         JsonObject sourceMetadata = JsonParser.parseString(Files.readString(Path.of(
                 "src/main/resources/fabric.mod.json"))).getAsJsonObject();
-        assertEquals(">=0.1.9.9", sourceMetadata.getAsJsonObject("suggests")
+        assertEquals(">=0.1.9.8", sourceMetadata.getAsJsonObject("suggests")
                 .get("sparktraits").getAsString());
-        assertEquals("<0.1.9.9", sourceMetadata.getAsJsonObject("breaks")
+        assertEquals("<0.1.9.8", sourceMetadata.getAsJsonObject("breaks")
                 .get("sparktraits").getAsString());
 
         assertFalse(production.contains("dev.doctor4t.wathe.api.RoleAnnouncementApi"));

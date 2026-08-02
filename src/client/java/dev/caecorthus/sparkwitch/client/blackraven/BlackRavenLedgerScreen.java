@@ -44,7 +44,7 @@ public final class BlackRavenLedgerScreen {
                 BlackRavenIdentitySnapshot snapshot = snapshots.get(index);
                 MutableText role = WitchRoleDisplayTexts.roleName(snapshot.roleTranslationKey())
                         .styled(style -> style.withColor(snapshot.roleColor()));
-                page.append(Text.literal(snapshot.playerName() + " - ").formatted(Formatting.WHITE));
+                page.append(Text.literal(snapshot.playerName() + " - ").formatted(Formatting.BLACK));
                 page.append(role);
             }
             pages.add(page);

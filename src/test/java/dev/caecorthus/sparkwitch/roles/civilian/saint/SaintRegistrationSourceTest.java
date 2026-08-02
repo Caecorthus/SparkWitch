@@ -31,7 +31,7 @@ class SaintRegistrationSourceTest {
 
         assertTrue(saintRegistration.contains("builder(SAINT_ID, FactionIds.CIVILIAN)"));
         assertTrue(saintRegistration.contains(".color(SaintRules.COLOR)"));
-        assertTrue(saintRegistration.contains(".moodType(Role.MoodType.NONE)"));
+        assertTrue(saintRegistration.contains(".moodType(Role.MoodType.REAL)"));
         assertTrue(saintRegistration.contains(".maxSprintTime(GameConstants.getInTicks(0, 10))"));
         assertTrue(saintRegistration.contains(".canSeeTime(false)"));
         assertTrue(saintRegistration.contains(".nativeWatheFaction(Faction.CIVILIAN)"));

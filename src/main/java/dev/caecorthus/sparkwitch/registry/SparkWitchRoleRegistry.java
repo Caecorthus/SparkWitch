@@ -287,7 +287,7 @@ public final class SparkWitchRoleRegistry {
                 .build());
         saint = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SAINT_ID, FactionIds.CIVILIAN)
                 .color(SaintRules.COLOR)
-                .moodType(Role.MoodType.NONE)
+                .moodType(Role.MoodType.REAL)
                 .maxSprintTime(GameConstants.getInTicks(0, 10))
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)

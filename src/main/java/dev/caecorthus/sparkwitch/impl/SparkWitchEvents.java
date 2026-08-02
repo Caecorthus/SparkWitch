@@ -28,7 +28,9 @@ import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeat
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodChaseRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodFeatureService;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritFeatureService;
@@ -74,6 +76,7 @@ public final class SparkWitchEvents {
         PigGodFeatureService.register();
         PigGodEconomyService.register();
         ProphetRuntime.register();
+        ProphetEconomyService.register();
         SaintFeatureService.register();
         PerfumerShopService.register();
         PerfumerFeatureService.register();
@@ -100,6 +103,7 @@ public final class SparkWitchEvents {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
                 ProphetRuntime.assignForRole(serverPlayer, role);
+                ProphetEconomyService.assignForRole(serverPlayer, role);
                 WitchSkillAssignmentService.assignForRole(serverPlayer, role);
                 WitchManaService.assignForRole(serverPlayer, role);
                 WitchFactionFeatureService.assignForRole(serverPlayer, role);
@@ -117,6 +121,8 @@ public final class SparkWitchEvents {
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> PigGodEconomyService.onTaskComplete(player));
+        TaskComplete.EVENT.register((player, taskType) -> ProphetEconomyService.onTaskComplete(player));
+        TaskComplete.EVENT.register((player, taskType) -> SaintEconomyService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> PerfumerEconomyService.onTaskComplete(player));
         KillPlayer.AFTER.register(WraithConversion::afterKill);
         KillPlayer.AFTER.register(WitchManaService::afterKill);

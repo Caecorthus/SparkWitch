@@ -81,6 +81,8 @@ shader was itself adapted from
 [catmoon-train/StarRailExpress](https://github.com/catmoon-train/StarRailExpress) `insanity.fsh`
 at commit `f8d84137e36e08349a10542438944ef2f010ec37`.
 
-SparkWitch removes the spread and brightness transformations and fixes desaturation at 50 percent
-for Black Raven Perception. The adapted shader remains covered by GPL-3.0-only; the existing copy
-is included at `licenses/StarRailExpress-GPL-3.0-only.txt`.
+SparkWitch removes the spread transformation and keeps a configurable grayscale pass. Black Raven
+Perception uses full BT.709 grayscale at 0.85 luminance, matching NoellesRoles Spiritualist's visual
+treatment while retaining SparkWitch's processor lifecycle and final outline recomposition. The adapted
+shader remains covered by GPL-3.0-only; the existing copy is included at
+`licenses/StarRailExpress-GPL-3.0-only.txt`.
