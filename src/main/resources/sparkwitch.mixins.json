@@ -47,6 +47,7 @@
     "hunter.PlayerPoisonComponentHunterSourceMixin",
     "saboteur.PlayerShopComponentSaboteurMixin",
     "saboteur.WorldBlackoutDetailsSaboteurMixin",
+    "tofana.GameFunctionsTofanaProtectionMixin",
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleMixin",
     "witchmaiden.BlockEntityPoisonAppleLifecycleMixin",
     "witchmaiden.FoodPlatterBlockPoisonAppleMixin",

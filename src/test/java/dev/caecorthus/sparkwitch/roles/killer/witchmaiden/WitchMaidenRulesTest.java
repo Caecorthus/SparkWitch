@@ -14,7 +14,6 @@ class WitchMaidenRulesTest {
         assertEquals("sparkwitch:witch_maiden", WitchMaidenRules.ROLE_ID.toString());
         assertEquals("sparkwitch:focused_footsteps", WitchMaidenRules.FOCUSED_FOOTSTEPS_SKILL_ID.toString());
         assertEquals("noellesroles:voodoo", WitchMaidenRules.VOODOO_DEATH_REASON_ID.toString());
-        assertEquals("sparkwitch:tofana_elixir", WitchMaidenRules.TOFANA_DEATH_REASON_ID.toString());
         assertEquals(0xB04A8B, WitchMaidenRules.COLOR);
         assertEquals(1200, WitchMaidenRules.FOCUSED_FOOTSTEPS_INITIAL_COOLDOWN_TICKS);
         assertEquals(600, WitchMaidenRules.FOCUSED_FOOTSTEPS_DURATION_TICKS);
@@ -47,15 +46,6 @@ class WitchMaidenRulesTest {
                 Identifier.of("noellesroles", "voodoo")
         ));
         assertFalse(WitchMaidenRules.blocksVoodooDeath(null, Identifier.of("noellesroles", "voodoo")));
-    }
-
-    @Test
-    void tofanaRequiresEveryApprovedRetaliationCondition() {
-        assertTrue(WitchMaidenRules.shouldTriggerTofana(true, true, true, true));
-        assertFalse(WitchMaidenRules.shouldTriggerTofana(false, true, true, true));
-        assertFalse(WitchMaidenRules.shouldTriggerTofana(true, false, true, true));
-        assertFalse(WitchMaidenRules.shouldTriggerTofana(true, true, false, true));
-        assertFalse(WitchMaidenRules.shouldTriggerTofana(true, true, true, false));
     }
 
     private static Role role(Identifier id) {

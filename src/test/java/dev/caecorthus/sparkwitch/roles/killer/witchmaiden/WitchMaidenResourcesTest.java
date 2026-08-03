@@ -33,10 +33,8 @@ class WitchMaidenResourcesTest {
         assertEquals("Focused Footsteps", value(english, "skill.sparkwitch.focused_footsteps.name"));
         assertEquals("毒苹果", value(chinese, "item.sparkwitch.poison_apple"));
         assertEquals("托法娜仙液", value(chinese, "item.sparkwitch.tofana_elixir"));
-        assertEquals(
-                "我们的怒火永无止境，自由永远不会被束缚",
-                value(chinese, "death_reason.sparkwitch.tofana_elixir")
-        );
+        assertEquals("仙液反噬", value(chinese, "death_reason.sparkwitch.tofana_elixir"));
+        assertEquals("Elixir Backlash", value(english, "death_reason.sparkwitch.tofana_elixir"));
     }
 
     private static void assertItemResources(String id) throws IOException {

@@ -85,6 +85,13 @@ SparkTraits is optional and fail-closed. Reflection may target only
 `isInstinctHidden(viewer, target)` facade; an absent or older SparkTraits build
 adds no suppression and must not break the client.
 
+## Tofana Elixir Vocabulary
+
+- **Tofana protection**: A single-use protection granted by possessing Tofana Elixir. It cancels one otherwise valid, non-forced Wathe kill by another active player and consumes one elixir.
+- **Tofana retaliation**: The follow-up kill attempt against the player whose Wathe kill was cancelled by Tofana protection. It is a normal, non-forced Wathe kill attributed to the protected holder.
+- **Tofana chain**: A finite sequence in which Tofana retaliation is itself cancelled by another Tofana protection, consuming one elixir at each link.
+- **Holder**: Any player carrying Tofana Elixir in their main inventory, hotbar, or offhand. Tofana protection is not restricted by role.
+
 ## Verification
 
 Use the Java 21 runtime explicitly:
