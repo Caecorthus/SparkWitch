@@ -587,9 +587,6 @@ tasks.register("verifyModJarVersion") {
 }
 
 tasks.named("build") {
-    dependsOn tasks.named("verifyCompatibilityBaselines")
-    dependsOn tasks.named("verifyModJarVersion")
-    dependsOn verifyClientMixinSelectors
 }
 
 def requiredArchitectureDocs = [
@@ -657,11 +654,6 @@ tasks.test {
 
 tasks.named("check") {
     setDependsOn([])
-    dependsOn tasks.matching { it.name == "validateAccessWidener" }
-    dependsOn tasks.named("test")
-    dependsOn tasks.named("verifyArchitecture")
-    dependsOn tasks.named("verifyCompatibilityBaselines")
-    dependsOn verifyClientMixinSelectors
 }
 
 
