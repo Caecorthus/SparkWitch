@@ -38,6 +38,19 @@ class PerfumerIntegrationSourceTest {
     }
 
     @Test
+    void preservesSparkTraitsShopEntriesWhenRebuildingPerfumerShop() throws IOException {
+        String shop = read("roles/civilian/perfumer/PerfumerShopService.java");
+        int capture = shop.indexOf("SparkTraitsShopEntryPreserver.capture(context)");
+        int clear = shop.indexOf("context.clearEntries()");
+        int restore = shop.indexOf("SparkTraitsShopEntryPreserver.restore(context, preservedTraitEntries)");
+
+        assertTrue(shop.contains("sparktraits:*"));
+        assertTrue(capture >= 0, "Perfumer shop must capture SparkTraits entries before clearing its own shop");
+        assertTrue(clear > capture, "Perfumer shop must clear only after capturing SparkTraits entries");
+        assertTrue(restore > clear, "Perfumer shop must restore SparkTraits entries after rebuilding its own entries");
+    }
+
+    @Test
     void usesServerAuthorityForKillPromotionHealingAndRoundCleanup() throws IOException {
         String runtime = read("roles/civilian/perfumer/PerfumerRuntime.java");
         String hiddenBodiesBridge = read("compat/NoellesHiddenBodiesBridge.java");

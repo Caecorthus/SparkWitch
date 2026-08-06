@@ -1,11 +1,14 @@
 package dev.caecorthus.sparkwitch.roles.civilian.perfumer;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsShopEntryPreserver;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BuildShopEntries;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.util.ShopEntry;
 import net.minecraft.entity.player.PlayerEntity;
+
+import java.util.List;
 
 /**
  * Replaces the Perfumer's shop with its two unlimited consumables.
@@ -31,6 +34,9 @@ public final class PerfumerShopService {
             return;
         }
 
+        // SparkTraits 的词条商店监听可能先于 SparkWitch 执行；先保存 sparktraits:* 条目，
+        // 避免下面重建调香师专属商店时误删内鬼左轮等词条追加商品。
+        List<ShopEntry> preservedTraitEntries = SparkTraitsShopEntryPreserver.capture(context);
         context.clearEntries();
         context.addEntry(new ShopEntry.Builder(
                 "perfume_essence",
@@ -44,5 +50,6 @@ public final class PerfumerShopService {
                 PerfumerRules.COLOGNE_PRICE,
                 ShopEntry.Type.TOOL
         ).build());
+        SparkTraitsShopEntryPreserver.restore(context, preservedTraitEntries);
     }
 }

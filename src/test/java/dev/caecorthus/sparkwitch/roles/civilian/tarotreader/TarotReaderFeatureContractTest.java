@@ -68,8 +68,16 @@ class TarotReaderFeatureContractTest {
     void exclusiveShopContainsOnlyTheApprovedPrices() throws Exception {
         assertTrue(Files.exists(SHOP_SERVICE));
         String shop = Files.readString(SHOP_SERVICE);
+        int capture = shop.indexOf("SparkTraitsShopEntryPreserver.capture(context)");
+        int clear = shop.indexOf("context.clearEntries()");
+        int restore = shop.indexOf("SparkTraitsShopEntryPreserver.restore(context, preservedTraitEntries)");
 
         assertTrue(shop.contains("context.clearEntries()"));
+        assertTrue(shop.contains("SparkTraitsShopEntryPreserver.capture(context)"));
+        assertTrue(shop.contains("SparkTraitsShopEntryPreserver.restore(context, preservedTraitEntries)"));
+        assertTrue(capture >= 0, "Tarot Reader shop must capture SparkTraits entries before clearing its own shop");
+        assertTrue(clear > capture, "Tarot Reader shop must clear only after capturing SparkTraits entries");
+        assertTrue(restore > clear, "Tarot Reader shop must restore SparkTraits entries after rebuilding its own entries");
         assertTrue(shop.contains("TarotReaderRules.REGULAR_PRICE"));
         assertTrue(shop.contains("TarotReaderRules.IDENTITY_PRICE"));
         assertTrue(shop.contains("TarotReaderRules.SURVIVAL_PRICE"));
