@@ -176,7 +176,7 @@ def compatibilityProviderFiles = fileTree("libs") {
         include "${modId}-*.jar"
     }
 }
-def sparkTraitsCompatibilityFloor = "0.1.9.8"
+def sparkTraitsCompatibilityFloor = "0.1.9.9"
 
 def sha256 = { File input ->
     java.security.MessageDigest.getInstance("SHA-256")

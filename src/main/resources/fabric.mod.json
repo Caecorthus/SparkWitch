@@ -28,6 +28,7 @@
       "sparkwitch:player",
       "sparkwitch:perfumer_player",
       "sparkwitch:curser_player",
+      "sparkwitch:kidnapper_control",
       "sparkwitch:hunter",
       "sparkwitch:orthopedist",
       "sparkwitch:guardian_angel",
@@ -63,9 +64,10 @@
     "cardinal-components-world": ">=${cca_version}"
   },
   "suggests": {
-    "sparktraits": ">=0.1.9.8"
+    "sparktraits": ">=0.1.9.9",
+    "sparkstrength": "*"
   },
   "breaks": {
-    "sparktraits": "<0.1.9.8"
+    "sparktraits": "<0.1.9.9"
   }
 }

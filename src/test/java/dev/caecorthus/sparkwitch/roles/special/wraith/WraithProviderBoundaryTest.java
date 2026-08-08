@@ -54,9 +54,9 @@ class WraithProviderBoundaryTest {
 
         JsonObject sourceMetadata = JsonParser.parseString(Files.readString(Path.of(
                 "src/main/resources/fabric.mod.json"))).getAsJsonObject();
-        assertEquals(">=0.1.9.8", sourceMetadata.getAsJsonObject("suggests")
+        assertEquals(">=0.1.9.9", sourceMetadata.getAsJsonObject("suggests")
                 .get("sparktraits").getAsString());
-        assertEquals("<0.1.9.8", sourceMetadata.getAsJsonObject("breaks")
+        assertEquals("<0.1.9.9", sourceMetadata.getAsJsonObject("breaks")
                 .get("sparktraits").getAsString());
 
         assertFalse(production.contains("dev.doctor4t.wathe.api.RoleAnnouncementApi"));

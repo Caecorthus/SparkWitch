@@ -14,6 +14,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.FeatherBladeItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KnockoutDrugItem;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonAppleItem;
 import dev.doctor4t.wathe.api.event.AllowPlayerPunching;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
@@ -39,6 +40,7 @@ public final class SparkWitchItems {
     public static final Identifier DOUBLE_BARREL_SHELL_ID = DoubleBarrelShellItem.ID;
     public static final Identifier POISON_APPLE_ID = SparkWitch.id("poison_apple");
     public static final Identifier TOFANA_ELIXIR_ID = SparkWitch.id("tofana_elixir");
+    public static final Identifier KNOCKOUT_DRUG_ID = SparkWitch.id("knockout_drug");
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -54,6 +56,7 @@ public final class SparkWitchItems {
     private static Item doubleBarrelShell;
     private static Item poisonApple;
     private static Item tofanaElixir;
+    private static Item knockoutDrug;
 
     private static boolean registered;
 
@@ -138,6 +141,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 TOFANA_ELIXIR_ID,
                 new Item(new Item.Settings().maxCount(1))
+        );
+        knockoutDrug = Registry.register(
+                Registries.ITEM,
+                KNOCKOUT_DRUG_ID,
+                new KnockoutDrugItem(new Item.Settings().maxCount(4))
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -247,6 +255,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return tofanaElixir;
+    }
+
+    public static Item knockoutDrug() {
+        if (knockoutDrug == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return knockoutDrug;
     }
 
     private static void registerMeleeSuppression() {

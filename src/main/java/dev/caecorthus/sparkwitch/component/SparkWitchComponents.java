@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerCom
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMarkPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
@@ -28,6 +29,9 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, HunterPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HunterPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, KidnapperControlComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(KidnapperControlComponent::new);
         registry.beginRegistration(PlayerEntity.class, OrthopedistPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(OrthopedistPlayerComponent::new);
