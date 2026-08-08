@@ -61,7 +61,16 @@ class WraithCommonRestrictionsSourceTest {
                 "client/java/dev/caecorthus/sparkwitch/client/mixin/WraithChatRestrictionMixin.java")));
         assertFalse(Files.exists(ROOT.resolve(
                 "client/java/dev/caecorthus/sparkwitch/client/mixin/WraithChatScreenMixin.java")));
-        assertTrue(jump.contains("getJumpConfig().allowed()"));
+        assertTrue(clientInitializer.contains("ShouldAllowSuppressedKey.EVENT.register"));
+        assertTrue(clientInitializer.contains("keyBinding != client.options.jumpKey"));
+        assertTrue(clientInitializer.contains("WraithClientState.isActive(client.player)"));
+        assertTrue(clientInitializer.contains("activeWraith && WraithParticipationRules.mayJump(true, false)"));
+        assertFalse(jump.contains("method = \"wathe$restrictJump\""));
+        assertTrue(jump.contains("priority = 1200"));
+        assertTrue(jump.contains("sparkwitch$jumpAsWraith(player)"));
+        assertTrue(jump.contains("ci.cancel()"));
+        assertTrue(jump.contains("WRAITH_JUMP_REENABLE_MODIFIER"));
+        assertTrue(jump.contains("Wathe.id(\"disable_jump_modifier\")"));
         assertTrue(jump.contains("method = \"jump\""));
         assertTrue(jumpKey.contains("options.jumpKey"));
         assertTrue(jumpKey.contains("getJumpConfig().allowed()"));

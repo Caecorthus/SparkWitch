@@ -9,7 +9,6 @@ import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.WatheRoles;
-import dev.doctor4t.wathe.game.GameConstants;
 import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -55,7 +54,7 @@ class WraithRoleRegistrationTest {
             assertEquals(Faction.CIVILIAN, role.getFaction());
             assertEquals(0x59D8E6, role.color());
             assertEquals(Role.MoodType.NONE, role.getMoodType());
-            assertEquals(GameConstants.getInTicks(0, 10), role.getMaxSprintTime());
+            assertEquals(-1, role.getMaxSprintTime());
             assertFalse(role.canSeeTime());
             assertFalse(role.shouldAppear(null));
         }

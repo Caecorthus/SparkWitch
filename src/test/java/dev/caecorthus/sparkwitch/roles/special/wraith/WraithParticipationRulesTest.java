@@ -17,8 +17,8 @@ class WraithParticipationRulesTest {
     }
 
     @Test
-    void activeWraithCannotBypassMapJumpRestriction() {
-        assertFalse(WraithParticipationRules.mayJump(true, false));
+    void activeWraithBypassesMapJumpRestriction() {
+        assertTrue(WraithParticipationRules.mayJump(true, false));
         assertTrue(WraithParticipationRules.mayJump(true, true));
         assertTrue(WraithParticipationRules.mayJump(false, false));
         assertTrue(WraithParticipationRules.mayJump(false, true));

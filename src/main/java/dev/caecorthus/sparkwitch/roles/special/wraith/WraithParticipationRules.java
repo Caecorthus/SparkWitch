@@ -14,7 +14,9 @@ public final class WraithParticipationRules {
     }
 
     public static boolean mayJump(boolean activeWraith, boolean mapAllowsJump) {
-        return !activeWraith || mapAllowsJump;
+        // 冤魂是死亡后的特殊参与形态，跳跃需要完全绕过 Wathe 地图禁跳配置；
+        // 非冤魂玩家不由 SparkWitch 的冤魂规则限制，仍交给 Wathe 自己处理。
+        return true;
     }
 
     public static boolean mayGenerateGroundParticles(boolean activeWraith) {

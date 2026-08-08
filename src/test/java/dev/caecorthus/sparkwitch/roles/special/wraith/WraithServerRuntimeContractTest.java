@@ -76,7 +76,11 @@ class WraithServerRuntimeContractTest {
         assertTrue(clearPlayer.contains("wakeIfSleeping(player)"));
         assertFalse(between(lifecycle, "private static void onJoin", "private static void tickWorld")
                 .contains("resumePlayer"));
-        assertFalse(lifecycle.contains("setPose(EntityPose.STANDING)"));
+        assertTrue(lifecycle.contains("private static void normalizeConvertedPose(ServerPlayerEntity player)"));
+        assertTrue(lifecycle.contains("player.setSneaking(false)"));
+        assertTrue(lifecycle.contains("player.setPose(EntityPose.STANDING)"));
+        assertTrue(lifecycle.contains("player.calculateDimensions()"));
+        assertTrue(lifecycle.contains("WraithStaminaService.ensureInfiniteStamina(player)"));
     }
 
     @Test

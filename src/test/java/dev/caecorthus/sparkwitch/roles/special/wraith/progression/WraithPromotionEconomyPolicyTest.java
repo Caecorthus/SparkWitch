@@ -14,8 +14,8 @@ class WraithPromotionEconomyPolicyTest {
     }
 
     @Test
-    void onlyActiveNonGoodPromotionsEarnPostPromotionTaskIncome() {
-        assertEquals(0, WraithPromotionEconomyPolicy.taskReward(true, true, SparkWitchRoles.WIND_SPIRIT_ID));
+    void onlyActiveApprovedPromotionsEarnPostPromotionTaskIncome() {
+        assertEquals(50, WraithPromotionEconomyPolicy.taskReward(true, true, SparkWitchRoles.WIND_SPIRIT_ID));
         assertEquals(0, WraithPromotionEconomyPolicy.taskReward(true, true, SparkWitchRoles.GUARDIAN_ANGEL_ID));
         assertEquals(0, WraithPromotionEconomyPolicy.taskReward(true, true, SparkWitchRoles.VENDETTA_ID));
         assertEquals(50, WraithPromotionEconomyPolicy.taskReward(true, true, SparkWitchRoles.SABOTEUR_ID));
