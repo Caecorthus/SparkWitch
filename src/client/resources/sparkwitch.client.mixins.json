@@ -48,6 +48,7 @@
     "blackraven.BlackRavenGameRendererMixin",
     "blackraven.BlackRavenHudMixin",
     "blackraven.BlackRavenInstinctGateMixin",
+    "blackraven.BlackRavenInstinctPriorityMixin",
     "blackraven.BlackRavenInstinctResolverMixin",
     "blackraven.BlackRavenPlayerTextureMixin",
     "blackraven.BlackRavenRoleNameMixin",

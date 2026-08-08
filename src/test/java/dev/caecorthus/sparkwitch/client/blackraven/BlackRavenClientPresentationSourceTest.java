@@ -104,6 +104,7 @@ class BlackRavenClientPresentationSourceTest {
     @Test
     void sensedOutlineIsTerminalWhileFeatherMarkRemainsIndependent() throws IOException {
         String gate = readClient("mixin/blackraven/BlackRavenInstinctGateMixin.java");
+        String priority = readClient("mixin/blackraven/BlackRavenInstinctPriorityMixin.java");
         String resolver = readClient("mixin/blackraven/BlackRavenInstinctResolverMixin.java");
         String hooks = readClient("blackraven/BlackRavenInstinctClientHooks.java");
         String traits = readClient("blackraven/SparkTraitsInstinctVisibilityBridge.java");
@@ -111,6 +112,10 @@ class BlackRavenClientPresentationSourceTest {
         assertTrue(gate.contains("method = \"isInstinctEnabled\""));
         assertTrue(gate.contains("method = \"isInstinctEnabledAndIsKiller\""));
         assertTrue(gate.contains("at = @At(\"HEAD\")"));
+        assertTrue(priority.contains("method = \"getInstinctHighlight\""));
+        assertTrue(priority.contains("priority = 2000"));
+        assertTrue(priority.contains("@Inject"));
+        assertTrue(priority.contains("resolvePrioritySensedHighlight"));
         assertTrue(resolver.contains("@ModifyReturnValue"));
         assertTrue(resolver.contains("method = \"getInstinctHighlight\""));
         assertTrue(resolver.contains("priority = 400"));
@@ -119,7 +124,9 @@ class BlackRavenClientPresentationSourceTest {
         assertTrue(hooks.contains("return null"));
         assertTrue(hooks.contains("isMarkedForLocalRaven()"));
         assertTrue(hooks.contains("WatheClient.isInstinctEnabled()"));
-        assertTrue(hooks.contains("originalColor < 0"));
+        assertFalse(hooks.contains("originalColor < 0"));
+        assertTrue(hooks.contains("感知模式仍然尊重其它模组显式给出的 skip"));
+        assertTrue(hooks.contains("善良词条会把“黑羽鸦本体”改造成有效好人"));
         assertTrue(traits.contains("dev.caecorthus.sparktraits.api.SparkTraitsApi"));
         assertTrue(traits.contains("isInstinctHidden"));
         assertFalse(traits.contains("sparktraits.component"));
@@ -178,6 +185,7 @@ class BlackRavenClientPresentationSourceTest {
         assertTrue(mixins.contains("blackraven.BlackRavenGameRendererMixin"));
         assertTrue(mixins.contains("blackraven.BlackRavenHudMixin"));
         assertTrue(mixins.contains("blackraven.BlackRavenInstinctGateMixin"));
+        assertTrue(mixins.contains("blackraven.BlackRavenInstinctPriorityMixin"));
         assertTrue(mixins.contains("blackraven.BlackRavenInstinctResolverMixin"));
         assertTrue(mixins.contains("blackraven.BlackRavenPlayerTextureMixin"));
         assertTrue(mixins.contains("blackraven.BlackRavenRoleNameMixin"));
