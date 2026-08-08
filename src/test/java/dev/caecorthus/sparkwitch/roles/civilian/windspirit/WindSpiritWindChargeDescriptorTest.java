@@ -50,7 +50,7 @@ class WindSpiritWindChargeDescriptorTest {
 
     @Test
     void bundledFactionApiFiltersProjectileCandidatesThroughRegisteredPolicies() throws Exception {
-        Path archive = Path.of("libs/sparkfactionapi-0.1.5.8.jar");
+        Path archive = Path.of("libs/sparkfactionapi-0.1.5.9.jar");
         try (ZipFile zip = new ZipFile(archive.toFile())) {
             var entry = zip.getEntry(
                     "dev/caecorthus/sparkfactionapi/mixin/WorldProjectileAffectMixin.class");

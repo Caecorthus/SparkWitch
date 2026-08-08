@@ -16,6 +16,7 @@ class NinjaRulesTest {
         assertEquals(Identifier.of("sparkwitch", "ninja_parry"), NinjaRules.PARRY_SKILL_ID);
         assertEquals(0x2C2C2C, NinjaRules.COLOR);
         assertEquals(1200, NinjaRules.PARRY_INITIAL_COOLDOWN_TICKS);
+        assertEquals(60 * 20, NinjaRules.NINJA_KNIFE_INITIAL_COOLDOWN_TICKS);
         assertEquals(50, NinjaRules.PARRY_WINDOW_TICKS);
         assertEquals(3600, NinjaRules.PARRY_COOLDOWN_TICKS);
         assertEquals(100, NinjaRules.DARK_KILL_BOUNTY);

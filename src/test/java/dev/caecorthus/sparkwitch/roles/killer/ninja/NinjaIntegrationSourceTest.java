@@ -46,6 +46,17 @@ class NinjaIntegrationSourceTest {
     }
 
     @Test
+    void assignmentStartsTheKnifeOnA60SecondOpeningCooldown() throws IOException {
+        String source = Files.readString(FEATURE_SERVICE);
+        int ninjaGate = source.indexOf("NinjaRules.isNinja(role)");
+        int cooldown = source.indexOf("player.getItemCooldownManager().set(", ninjaGate);
+
+        assertTrue(ninjaGate >= 0 && cooldown > ninjaGate);
+        assertTrue(source.contains("SparkWitchItems.ninjaKnife()"));
+        assertTrue(source.contains("NinjaRules.NINJA_KNIFE_INITIAL_COOLDOWN_TICKS"));
+    }
+
+    @Test
     void shopPreservesTheExactWatheBlackoutEntryAndReplacesEverythingElse() throws IOException {
         String source = Files.readString(SHOP_SERVICE);
 

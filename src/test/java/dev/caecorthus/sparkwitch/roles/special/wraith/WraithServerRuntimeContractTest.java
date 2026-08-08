@@ -84,8 +84,9 @@ class WraithServerRuntimeContractTest {
         String participation = source("roles/special/wraith/runtime/WraithParticipation.java");
         String lifecycle = source("roles/special/wraith/runtime/WraithLifecycle.java");
         assertTrue(participation.contains("SparkFactionApi.registerPlayerAffectPolicy"));
-        assertFalse(participation.contains("SparkFactionApi.registerEntityCollisionExemption"));
-        assertFalse(participation.contains("registerCollisionExemption()"));
+        assertTrue(participation.contains("registerCollisionExemption();"));
+        assertTrue(participation.contains("SparkFactionApi.registerEntityCollisionExemption"));
+        assertTrue(participation.contains("WraithCollisionRules.isCollisionTransparent(entity)"));
         assertTrue(participation.contains("isWindSpiritProjectile(actionId, actor)"));
         assertTrue(participation.contains("Identifier.of(\"sparkfactionapi\", \"projectile\")"));
         assertTrue(participation.contains("WindSpiritRules.isActivePromotedWindSpirit(actor)"));

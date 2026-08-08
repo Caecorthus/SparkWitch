@@ -40,7 +40,13 @@ public final class NinjaFeatureService {
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         if (!NinjaRules.isNinja(role)) {
             component.clearNinjaParryWindow();
+            return;
         }
+        // 忍者开局先锁住苦无 60 秒，直接按物品类型设置即可覆盖不同的发放顺序。
+        player.getItemCooldownManager().set(
+                SparkWitchItems.ninjaKnife(),
+                NinjaRules.NINJA_KNIFE_INITIAL_COOLDOWN_TICKS
+        );
     }
 
     private static @Nullable KillPlayer.KillResult beforeKill(
