@@ -13,9 +13,9 @@ public final class HunterRules {
     public static final Identifier ROLE_ID = Identifier.of("sparkwitch", "hunter");
     public static final int COLOR = 0x5C4C34;
 
-    public static final int SHOTGUN_PRICE = 100;
-    public static final int SHELL_PRICE = 125;
-    public static final int TRAP_PRICE = 75;
+    public static final int SHOTGUN_PRICE = 75;
+    public static final int SHELL_PRICE = 50;
+    public static final int TRAP_PRICE = 25;
     public static final int SHOTGUN_STOCK = 1;
 
     public static final int MAX_SHELLS = 2;

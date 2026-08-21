@@ -18,6 +18,10 @@ class WraithVoicePluginContractTest {
         assertTrue(source.contains("WraithCommunicationPolicy.shouldBlockCommunication"));
         assertTrue(source.contains("speaker.isCreative()"));
         assertTrue(source.contains("recipient.isCreative()"));
+        assertTrue(source.contains("CurserFeatureService.isActivePromotedCurser(speaker)"));
+        assertTrue(source.contains("WitchFactionRules.isGrandWitch(role)"));
+        assertTrue(source.contains("WitchFactionRules.isAccomplice(role)"));
+        assertTrue(source.contains("shouldAllowPromotedCurserVoiceToLivingWitchFaction"));
         assertTrue(source.contains("EntitySoundPacketEvent.class, this::blockRestrictedRecipient"));
         assertTrue(source.contains("LocationalSoundPacketEvent.class, this::blockRestrictedRecipient"));
         assertTrue(source.contains("StaticSoundPacketEvent.class, this::blockRestrictedRecipient"));
