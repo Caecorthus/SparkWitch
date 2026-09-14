@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeInstinctRul
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserRules;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.FirecrackerEntity;
@@ -106,7 +107,10 @@ public final class WitchInstinctPolicy {
                 || GameFunctions.isPlayerSpectatingOrCreative(targetPlayer)) {
             return FactionInstinctPolicy.InstinctResult.skip(GRAND_WITCH_INSTINCT_PRIORITY);
         }
-        return FactionInstinctPolicy.InstinctResult.show(color.getAsInt(), true, GRAND_WITCH_INSTINCT_PRIORITY);
+        // Recolor an already-eligible outline, never override hiding or raise its priority.
+        // 仅重着色已有合法轮廓，不突破隐藏规则，也不提升优先级。
+        int outlineColor = WitchFactorService.isVisibleTo(viewer, targetPlayer) ? 0xFF0000 : color.getAsInt();
+        return FactionInstinctPolicy.InstinctResult.show(outlineColor, true, GRAND_WITCH_INSTINCT_PRIORITY);
     }
 
     static FactionInstinctPolicy.InstinctResult restrictedWraithHighlight(boolean restricted) {

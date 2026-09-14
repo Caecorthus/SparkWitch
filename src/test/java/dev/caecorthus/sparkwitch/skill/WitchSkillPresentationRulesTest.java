@@ -4,7 +4,7 @@ import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceAbility;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
 import dev.doctor4t.wathe.api.Role;
 import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,7 +27,7 @@ class WitchSkillPresentationRulesTest {
     void approvedWitchRoleSkillsShowInventorySkillPanel() {
         assertTrue(WitchSkillPresentationRules.shouldShowInventorySkillPanel(
                 SparkWitchRoles.grandWitch(),
-                GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID
+                WitchFactorService.SKILL_ID
         ));
         assertTrue(WitchSkillPresentationRules.shouldShowInventorySkillPanel(
                 SparkWitchRoles.apprenticeWitch(),

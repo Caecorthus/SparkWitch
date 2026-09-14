@@ -13,6 +13,8 @@
     "DeathRayAttackMixin",
     "DeathRayBlockBreakingMixin",
     "GuardianAngelHudMixin",
+    "GrandWitchSwordCooldownMixin",
+    "GrandWitchSwordCrosshairMixin",
     "KeyBindingFearSkillMixin",
     "OrthopedistHudMixin",
     "SaintHudMixin",

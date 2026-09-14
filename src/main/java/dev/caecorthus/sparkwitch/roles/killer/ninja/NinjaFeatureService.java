@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.ninja;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordProtectionPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.doctor4t.wathe.api.Role;
@@ -48,6 +50,9 @@ public final class NinjaFeatureService {
             @Nullable ServerPlayerEntity killer,
             Identifier deathReason
     ) {
+        if (SparkTraitsKillerBridge.isLastEscapeActive(victim)) {
+            return null;
+        }
         // Current forced/admin/scripted call sites pass no killer; only a real, distinct player killer may be parried.
         // 当前强制、管理和脚本死亡调用不传 killer；格挡只接受真实且非自身的玩家击杀者。
         if (killer == null || !GameFunctions.isPlayerPlayingAndAlive(victim)) {
@@ -68,7 +73,7 @@ public final class NinjaFeatureService {
         component.finishNinjaParryWindow();
         victim.playSoundToPlayer(WatheSounds.ITEM_PSYCHO_ARMOUR, SoundCategory.PLAYERS, 1.0F, 0.8F);
         victim.sendMessage(Text.translatable("message.sparkwitch.skill.ninja_parry.blocked"), true);
-        return KillPlayer.KillResult.cancel();
+        return CeremonialSwordProtectionPolicy.afterProtection(deathReason);
     }
 
     private static void afterKill(

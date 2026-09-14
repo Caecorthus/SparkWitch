@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.mixin;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordProtectionPolicy;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintFeatureService;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -29,7 +31,13 @@ public abstract class GameFunctionsSaintProtectionMixin {
             boolean force,
             CallbackInfo ci
     ) {
-        if (SaintFeatureService.blocksKill(victim, killer, deathReason)) {
+        // Traits owns active-phase immunity and its train/lifecycle exceptions before protection costs.
+        // Traits 在消耗保护前裁定脱险无敌及列车/生命周期例外。
+        if (SparkTraitsKillerBridge.isLastEscapeActive(victim)) {
+            return;
+        }
+        if (CeremonialSwordProtectionPolicy.cancelsDeath(
+                SaintFeatureService.blocksKill(victim, killer, deathReason), deathReason)) {
             ci.cancel();
         }
     }
