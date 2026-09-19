@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.component;
 
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRoundComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaPlayerComponent;
@@ -25,6 +27,9 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, WitchPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(WitchPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, EmmaPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(EmmaPlayerComponent::new);
         registry.beginRegistration(PlayerEntity.class, GrandWitchRuntimeComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(GrandWitchRuntimeComponent::new);
@@ -67,6 +72,7 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
     public void registerWorldComponentFactories(@NotNull WorldComponentFactoryRegistry registry) {
         registry.register(WitchWorldComponent.KEY, WitchWorldComponent::new);
         registry.register(WitchFactorWorldComponent.KEY, WitchFactorWorldComponent::new);
+        registry.register(EmmaRoundComponent.KEY, EmmaRoundComponent::new);
         registry.register(GrandWitchRecruitmentRoundComponent.KEY, GrandWitchRecruitmentRoundComponent::new);
         registry.register(WraithRoundComponent.KEY, WraithRoundComponent::new);
         registry.register(LegacyWraithRoundComponent.KEY, LegacyWraithRoundComponent::new);

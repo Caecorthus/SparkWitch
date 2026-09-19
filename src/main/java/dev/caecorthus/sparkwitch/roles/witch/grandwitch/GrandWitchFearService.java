@@ -29,6 +29,7 @@ public final class GrandWitchFearService {
 
     private static final Set<Identifier> BLOCKED_ROLE_SKILL_PAYLOADS = Set.of(
             SparkWitch.id("use_skill"),
+            SparkWitch.id("emma_factor"),
             SparkWitch.id("fire_death_ray"),
             SparkWitch.id("use_orthopedist_skill"),
             UseSaboteurSkillC2SPacket.PAYLOAD_ID,

@@ -7,6 +7,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRole;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
@@ -39,6 +40,7 @@ import java.util.List;
  * SparkWitch 职业与阵营注册的内部归属；SparkWitchRoles 继续作为兼容门面。
  */
 public final class SparkWitchRoleRegistry {
+    public static final Identifier EMMA_ID = EmmaRules.ROLE_ID;
     public static final Identifier GRAND_WITCH_ID = SparkWitch.id("grand_witch");
     public static final Identifier ACCOMPLICE_ID = SparkWitch.id("accomplice");
     public static final Identifier APPRENTICE_WITCH_ID = SparkWitch.id("apprentice_witch");
@@ -61,6 +63,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier WITCH_MAIDEN_ID = WitchMaidenRules.ROLE_ID;
     public static final Identifier CURSER_ID = CurserRole.ID;
 
+    private static Role emma;
     private static Role grandWitch;
     private static Role accomplice;
     private static Role apprenticeWitch;
@@ -107,6 +110,11 @@ public final class SparkWitchRoleRegistry {
     public static synchronized void refreshAssassinGuessRoleOrder() {
         ensureRegistered();
         SparkWitchAssassinGuessOrder.appendToTail(assassinGuessRolesInOrder());
+    }
+
+    public static Role emma() {
+        ensureRegistered();
+        return emma;
     }
 
     public static Role grandWitch() {
@@ -259,6 +267,13 @@ public final class SparkWitchRoleRegistry {
     }
 
     private static void registerFactionApiRoles() {
+        emma = SparkFactionApi.registerRole(FactionRoleDefinition.builder(EMMA_ID, FactionIds.CIVILIAN)
+                .color(EmmaRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         grandWitch = SparkFactionApi.registerRole(FactionRoleDefinition.builder(GRAND_WITCH_ID, SparkWitchFactions.WITCH)
                 .color(0xF2DFF7)
                 .moodType(Role.MoodType.FAKE)
@@ -413,6 +428,7 @@ public final class SparkWitchRoleRegistry {
                 murderousWitch,
                 accomplice,
                 grandWitch,
+                emma,
                 windSpirit,
                 guardianAngel,
                 vendetta,
@@ -422,7 +438,8 @@ public final class SparkWitchRoleRegistry {
     }
 
     private static boolean isRegisteredSparkWitchRole(Role role) {
-        return role == grandWitch
+        return role == emma
+                || role == grandWitch
                 || role == accomplice
                 || role == apprenticeWitch
                 || role == prophet
