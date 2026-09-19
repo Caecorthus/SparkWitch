@@ -150,7 +150,7 @@ tasks.named("jar") {
 }
 
 def remappedModJar = tasks.named("remapJar")
-def compatibilityReleaseVersion = "0.1.5.8"
+def compatibilityReleaseVersion = "0.1.5.9"
 def compatibilityBaselines = [
         wathe: [
                 property: "wathe_version",
@@ -176,7 +176,7 @@ def compatibilityProviderFiles = fileTree("libs") {
         include "${modId}-*.jar"
     }
 }
-def sparkTraitsCompatibilityFloor = "0.1.9.8"
+def sparkTraitsCompatibilityFloor = "0.1.9.10"
 
 def sha256 = { File input ->
     java.security.MessageDigest.getInstance("SHA-256")

@@ -405,10 +405,10 @@
   "item.sparkwitch.ceremonial_sword.tooltip.dash": "Right-click dash: 5s; usable during kill cooldown without killing.",
   "item.sparkwitch.ceremonial_sword.tooltip.protection": "Pierces shields; protection consumption and retaliation still apply. Trait-based protections, including Last Stand and Last Escape, are not bypassed.",
   "skill.sparkwitch.witch_factor.name": "Witch Factor",
-  "skill.sparkwitch.witch_factor.description": "Primary ability (default G): freely spread a factor to the living player under your crosshair within 8 unobstructed blocks. Success starts a 20-second cooldown. Capacity is floor(round participants / 5); one factor per player.",
-  "skill.sparkwitch.witch_factor.income": "Each factor grants 25 mana every 30 seconds, or 40 from an Apprentice Witch and 60 from a Murderous Witch.",
-  "skill.sparkwitch.witch_factor.sanity": "Every 60 seconds, holders with sanity lose 10 sanity; an Apprentice Witch loses 30. Factor holders appear red in Grand Witch and Accomplice instinct, without bypassing instinct hiding.",
-  "skill.sparkwitch.witch_factor.transfer": "On a player kill, the factor transfers to the killer and retains its timer. Grand Witch/Accomplice kills, environmental deaths, invalid or already marked killers, and recruiting the holder reclaim it without bonus mana.",
+  "skill.sparkwitch.witch_factor.description": "Primary ability (default G): spend 50 mana to spread a factor to a living player within 8 unobstructed blocks; 20s cooldown. Both casters share a cumulative first-spread quota, default floor(opening players / 3). One factor per player; removal never refunds quota.",
+  "skill.sparkwitch.witch_factor.income": "Factors from either caster grant each living Grand Witch 25 mana every 30s, or 40 from an Apprentice Witch and 60 from a Murderous Witch. Factors survive their source's death.",
+  "skill.sparkwitch.witch_factor.sanity": "After 20s, new or inheriting holders receive a warning and join the blue-purple outline network. All instinct outlines and hiding rules take precedence. Holders with real sanity lose 10 sanity every 60s, or 30 for an Apprentice Witch.",
+  "skill.sparkwitch.witch_factor.transfer": "On a player kill, transfer to an eligible killer, preserving income/sanity clocks but restarting the 20s admission delay. Grand Witch, Accomplice, Witch Maiden, Voodoo and Emma cannot carry factors. Environmental deaths, invalid or already marked killers remove the factor without refunding quota.",
   "skill.sparkwitch.recruit_accomplice.name": "Recruit Accomplice",
   "skill.sparkwitch.recruit_accomplice.description": "After 2 tasks, use ability key 2 (default N) on a living player within 8 unobstructed blocks to force them into Accomplice. Free, no cooldown. Cannot recruit yourself or an existing Accomplice. Quota: max(0, floor((round participants - 18) / 6)); successful recruits consume it permanently, even if they die. Accomplices are no longer assigned naturally.",
   "skill.sparkwitch.recruit_accomplice.inventory": "Only keys, master keys, revolvers and letters remain. Other items, including food and drinks, convert to coins at shop value, or 25 each if unpriced. Existing coins are preserved; the new role's shop purchase limits reset.",
@@ -427,5 +427,7 @@
   "message.sparkwitch.recruitment.no_capacity": "No recruitment slots remain this round.",
   "message.sparkwitch.recruitment.balance_overflow": "The conversion would exceed the coin limit. No recruitment was performed.",
   "message.sparkwitch.recruitment.success": "An Accomplice has been recruited.",
-  "message.sparkwitch.recruitment.converted": "You have been recruited as an Accomplice. You now have %s coins after item conversion; shop purchase limits have reset."
+  "message.sparkwitch.recruitment.converted": "You have been recruited as an Accomplice. You now have %s coins after item conversion; shop purchase limits have reset.",
+  "message.sparkwitch.factor.awakened": "You feel a surge of energy churning within you...",
+  "command.sparkwitch.witch_factor.updated": "Factor settings saved for the next round: Rule=%s, DivideMode=%s, MaxCarrierMode=%s."
 }

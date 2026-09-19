@@ -22,6 +22,7 @@
     "VendettaKnifeItemMixin",
     "VendettaPlayerLabelMixin",
     "WatheClientInstinctLightMixin",
+    "WatheClientFactorFallbackMixin",
     "WatheClientFearInstinctMixin",
     "WitchCohortRoleNameMixin",
     "WitchManaHudMixin",

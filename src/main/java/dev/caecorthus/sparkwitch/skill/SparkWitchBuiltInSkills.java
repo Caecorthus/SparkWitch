@@ -44,7 +44,7 @@ public final class SparkWitchBuiltInSkills {
                 1,
                 0,
                 WitchFactorService.COOLDOWN_TICKS,
-                0,
+                WitchFactorService.MANA_COST,
                 context -> WitchFactionRules.isGrandWitch(context.role()),
                 WitchFactorService::use
         ));

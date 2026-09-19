@@ -16,20 +16,24 @@ import java.util.UUID;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
-/** Authoritative factor lifecycle. Call death BEFORE role-clearing/Wraith conversion.
- * 权威因子生命周期：死亡回调必须先于身份清理和怨灵转换。 */
+/** Shared factor authority, invoked before role-clearing death callbacks.
+ * 共通因子的服务端权威；死亡结算早于身份清理。 */
 public final class WitchFactorService {
     public static final Identifier SKILL_ID = SparkWitch.id("witch_factor");
+    public static final Identifier EMMA_ROLE_ID = SparkWitch.id("emma");
+    public static final Identifier VOODOO_ROLE_ID = Identifier.of("noellesroles", "voodoo");
     public static final int COOLDOWN_TICKS = 400;
+    public static final int MANA_COST = 50;
 
     private WitchFactorService() { }
 
-    public static void beginRound(ServerWorld world, int openingParticipants) {
+    public static void beginRound(ServerWorld world, int participants) {
         WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
-        component.state().begin(openingParticipants);
+        component.state().begin(participants, component.settings().limit(participants));
         component.sync();
     }
 
@@ -39,12 +43,21 @@ public final class WitchFactorService {
         component.sync();
     }
 
-    /** Call after any role conversion, including the owner's, to revoke private client views immediately.
-     * 任何身份转换（包括拥有者）之后调用，立即撤销客户端私密视图。 */
+    public static boolean isEmma(Role role) {
+        return role != null && EMMA_ROLE_ID.equals(role.identifier());
+    }
+
+    public static boolean isEligibleCarrier(PlayerEntity player) {
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        return role != null && role != SparkWitchRoles.grandWitch() && role != SparkWitchRoles.accomplice()
+                && role != SparkWitchRoles.witchMaiden() && !isEmma(role)
+                && !VOODOO_ROLE_ID.equals(role.identifier());
+    }
+
     public static void onRoleChanged(ServerPlayerEntity player) {
         for (ServerWorld world : player.getServer().getWorlds()) {
             WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
-            removeInvalidOwners(world, component.state());
+            if (!isEligibleCarrier(player)) component.state().recover(player.getUuid());
             component.sync();
         }
     }
@@ -52,163 +65,136 @@ public final class WitchFactorService {
     public static void onRecruited(ServerPlayerEntity player) {
         for (ServerWorld world : player.getServer().getWorlds()) {
             WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
-            // Recruitment may also remove an owning Grand Witch's role.
-            // 招募也可能撤销因子拥有者的大魔女身份。
-            component.state().recoverForRecruitment(player.getUuid());
+            component.state().recover(player.getUuid());
             component.sync();
         }
     }
 
     public static WitchSkillUseResult use(WitchSkillUseContext context) {
-        ServerPlayerEntity owner = context.player();
-        ServerWorld world = owner.getServerWorld();
-        GameWorldComponent game = GameWorldComponent.KEY.get(world);
-        if (!game.isRunning() || game.getRole(owner) != SparkWitchRoles.grandWitch() || !alive(owner)) {
+        ServerPlayerEntity source = context.player();
+        if (context.role() != SparkWitchRoles.grandWitch()
+                || WitchPlayerComponent.KEY.get(source).getMana() < MANA_COST) {
             return WitchSkillUseResult.fail(null);
         }
-        ServerPlayerEntity target = GrandWitchTargeting.findTarget(owner,
+        ServerPlayerEntity target = GrandWitchTargeting.findTarget(source,
                 context.target() == null ? null : context.target().getUuid());
-        if (target == null || target == owner || target.getServerWorld() != world || !alive(target)) {
-            return WitchSkillUseResult.fail(null);
-        }
-        WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
-        removeInvalidOwners(world, component.state());
-        // Search all dimensions: changing worlds must never permit a second factor on one player.
-        // 检查所有维度，禁止换世界后在同一玩家身上重复施放。
-        for (ServerWorld other : owner.getServer().getWorlds()) {
-            if (WitchFactorWorldComponent.KEY.get(other).isFactorHolder(target.getUuid())) {
-                return WitchSkillUseResult.fail(null);
-            }
-        }
-        if (!component.state().spread(owner.getUuid(), target.getUuid())) {
-            return WitchSkillUseResult.fail(null);
-        }
-        component.sync();
+        if (target == null || !trySpread(source, target)) return WitchSkillUseResult.fail(null);
+        WitchPlayerComponent mana = WitchPlayerComponent.KEY.get(source);
+        mana.setMana(mana.getMana() - MANA_COST);
         return WitchSkillUseResult.success(COOLDOWN_TICKS, "message.sparkwitch.skill.witch_factor.spread");
     }
 
-    /** Confirmed Wathe AFTER only; canceled lethal attempts must never call this method.
-     * 仅由 Wathe 确认死亡的 AFTER 调用；被取消的致死尝试不得调用。 */
-    public static void afterKill(ServerPlayerEntity victim, @Nullable ServerPlayerEntity killer,
-                                 Identifier deathReason) {
+    /** The caller owns costs and targeting; successful insertion alone spends the common quota.
+     * 调用方负责消耗与选人；只有成功插入因子才扣除共用额度。 */
+    public static boolean trySpread(ServerPlayerEntity source, ServerPlayerEntity target) {
+        ServerWorld world = source.getServerWorld();
+        GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        Role role = game.getRole(source);
+        if (!game.isRunning() || (role != SparkWitchRoles.grandWitch() && !isEmma(role))
+                || target == source || target.getServerWorld() != world || !alive(source) || !alive(target)
+                || !isEligibleCarrier(target) || isFactorHolder(target)
+                || !dev.caecorthus.sparkfactionapi.api.SparkFactionApi.canAffectPlayer(source, target, SKILL_ID, game)) return false;
+        WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
+        if (!component.state().spread(source.getUuid(), target.getUuid())) return false;
+        // Dormant identities never leave the server, even to their own recipient.
+        // 潜伏因子的身份不离开服务端，包括其持有者本人。
+        component.sync();
+        return true;
+    }
+
+    public static void afterKill(ServerPlayerEntity victim, @Nullable ServerPlayerEntity killer, Identifier reason) {
+        if (WitchFactorTraitsBridge.isDeathIntercepted(victim)) return;
+        boolean killerMarked = killer != null && isFactorHolder(killer);
         for (ServerWorld world : victim.getServer().getWorlds()) {
             WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
-            WitchFactorState state = component.state();
-            if (!state.active()) {
-                continue;
-            }
-            boolean valid = killer != null && killer.getServerWorld() == world && alive(killer)
-                    && GameWorldComponent.KEY.get(world).isRunning();
-            if (valid) {
-                for (ServerWorld other : victim.getServer().getWorlds()) {
-                    if (other != world && WitchFactorWorldComponent.KEY.get(other).isFactorHolder(killer.getUuid())) {
-                        valid = false;
-                        break;
-                    }
-                }
-            }
-            Role killerRole = killer == null ? null
-                    : GameWorldComponent.KEY.get(killer.getServerWorld()).getRole(killer);
-            boolean recovered = killerRole == SparkWitchRoles.accomplice()
-                    || killerRole == SparkWitchRoles.grandWitch();
-            boolean changed = state.afterDeath(victim.getUuid(), killer == null ? null : killer.getUuid(), valid, recovered);
-            changed |= removeInvalidOwners(world, state);
-            if (changed) {
+            boolean valid = killer != null && !killerMarked && killer.getServerWorld() == world
+                    && alive(killer) && isEligibleCarrier(killer) && GameWorldComponent.KEY.get(world).isRunning();
+            if (component.state().afterDeath(victim.getUuid(), killer == null ? null : killer.getUuid(), valid)) {
                 component.sync();
             }
         }
     }
 
-    /** On clients this reads only the recipient's private, sanitized CCA view.
-     * 客户端仅读取当前接收者经过过滤的私密 CCA 视图。 */
+    /** Client queries read only this recipient's mature, sanitized view. / 客户端只读取当前接收者获准的成熟因子。 */
     public static boolean isFactorHolder(PlayerEntity player) {
         if (player.getWorld().isClient) {
             return WitchFactorWorldComponent.KEY.get(player.getWorld()).isFactorHolder(player.getUuid());
         }
         if (player instanceof ServerPlayerEntity serverPlayer) {
             for (ServerWorld world : serverPlayer.getServer().getWorlds()) {
-                if (WitchFactorWorldComponent.KEY.get(world).isFactorHolder(player.getUuid())) {
-                    return true;
-                }
+                if (WitchFactorWorldComponent.KEY.get(world).isFactorHolder(player.getUuid())) return true;
             }
         }
         return false;
     }
 
-    public static boolean isVisibleTo(PlayerEntity viewer, PlayerEntity target) {
-        if (viewer.getWorld() != target.getWorld()) {
-            return false;
-        }
-        GameWorldComponent game = GameWorldComponent.KEY.get(viewer.getWorld());
-        Role role = game.getRole(viewer);
-        if (!game.isRunning() || (role != SparkWitchRoles.grandWitch() && role != SparkWitchRoles.accomplice())
-                || !GameFunctions.isPlayerPlayingAndAlive(viewer)
-                || GameFunctions.isPlayerSpectatingOrCreative(viewer)) {
-            return false;
-        }
+    public static boolean isNetworkViewer(PlayerEntity viewer) {
+        if (!alive(viewer) || !GameWorldComponent.KEY.get(viewer.getWorld()).isRunning()) return false;
         WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(viewer.getWorld());
-        if (viewer.getWorld().isClient) {
-            return component.isFactorHolder(target.getUuid());
-        }
-        WitchFactorState.Factor factor = component.state().factors().get(target.getUuid());
-        return factor != null && (role == SparkWitchRoles.accomplice() || factor.owner().equals(viewer.getUuid()));
+        if (viewer.getWorld().isClient) return component.hasNetworkView();
+        Role role = GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer);
+        return component.state().active() && (role == SparkWitchRoles.grandWitch()
+                || role == SparkWitchRoles.accomplice() || isEmma(role) || component.state().mature(viewer.getUuid()));
+    }
+
+    public static boolean isVisibleTo(PlayerEntity viewer, PlayerEntity target) {
+        if (viewer.getWorld() != target.getWorld() || !alive(target) || !isNetworkViewer(viewer)) return false;
+        WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(viewer.getWorld());
+        return viewer.getWorld().isClient ? component.isFactorHolder(target.getUuid())
+                : component.state().mature(target.getUuid());
+    }
+
+    public static int getRemaining(ServerWorld world) { return WitchFactorWorldComponent.KEY.get(world).state().remaining(); }
+    public static int getLimit(ServerWorld world) { return WitchFactorWorldComponent.KEY.get(world).state().limit(); }
+    public static boolean hasReachedSpeedThreshold(ServerWorld world) {
+        return WitchFactorWorldComponent.KEY.get(world).state().speedUnlocked();
     }
 
     static void tick(ServerWorld world, WitchFactorWorldComponent component) {
         WitchFactorState state = component.state();
-        if (!state.active()) {
-            return;
-        }
+        if (!state.active()) return;
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
-        if (!game.isRunning()) {
-            clearRound(world);
-            return;
-        }
-        boolean changed = removeInvalidOwners(world, state);
+        if (!game.isRunning()) { clearRound(world); return; }
         Iterator<Map.Entry<UUID, WitchFactorState.Factor>> iterator = state.factors().entrySet().iterator();
+        int matureCount = 0;
         while (iterator.hasNext()) {
             Map.Entry<UUID, WitchFactorState.Factor> entry = iterator.next();
-            UUID holderId = entry.getKey();
-            WitchFactorState.Factor factor = entry.getValue();
-            if (game.isPlayerDead(holderId) || !game.hasAnyRole(holderId)) {
+            ServerPlayerEntity holder = world.getServer().getPlayerManager().getPlayer(entry.getKey());
+            if (holder != null && WitchFactorTraitsBridge.isDeathIntercepted(holder)) continue;
+            if (game.isPlayerDead(entry.getKey()) || !game.hasAnyRole(entry.getKey())
+                    || (holder != null && !isEligibleCarrier(holder))) {
                 iterator.remove();
-                changed = true;
                 continue;
             }
-            ServerPlayerEntity holder = world.getServer().getPlayerManager().getPlayer(holderId);
-            ServerPlayerEntity owner = world.getServer().getPlayerManager().getPlayer(factor.owner());
-            // Pause while either endpoint is offline/off-world. Never catch up missed rewards.
-            // 任意一端离线或离开原世界时暂停，不追补离线收益。
-            if (holder == null || owner == null || holder.getServerWorld() != world
-                    || owner.getServerWorld() != world || !alive(holder) || !alive(owner)) {
-                continue;
+            // Offline/off-world holders pause; source presence is irrelevant.
+            // 持有者离线或离开原世界时暂停，与来源是否存活无关。
+            if (holder == null || holder.getServerWorld() != world || !alive(holder)) continue;
+            WitchFactorState.Factor previous = entry.getValue();
+            WitchFactorState.Factor factor = previous.advance();
+            entry.setValue(factor);
+            if (!previous.mature() && factor.mature()) {
+                holder.sendMessage(Text.translatable("message.sparkwitch.factor.awakened"), false);
             }
-            WitchFactorState.Factor advanced = factor.advance();
-            entry.setValue(advanced);
+            if (factor.mature()) matureCount++;
             Role role = game.getRole(holder);
             boolean apprentice = role == SparkWitchRoles.apprenticeWitch();
-            if (advanced.manaTicks() == 0) {
-                WitchPlayerComponent mana = WitchPlayerComponent.KEY.get(owner);
-                mana.addMana(WitchFactorState.manaReward(apprentice, role == SparkWitchRoles.murderousWitch()));
+            if (factor.manaTicks() == 0) {
+                int reward = WitchFactorState.manaReward(apprentice, role == SparkWitchRoles.murderousWitch());
+                for (ServerPlayerEntity recipient : world.getPlayers()) {
+                    if (alive(recipient) && game.getRole(recipient) == SparkWitchRoles.grandWitch()) {
+                        WitchPlayerComponent.KEY.get(recipient).addMana(reward);
+                    }
+                }
             }
-            if (advanced.moodTicks() == 0 && role != null && role.getMoodType() == Role.MoodType.REAL) {
+            if (factor.moodTicks() == 0 && role != null && role.getMoodType() == Role.MoodType.REAL) {
                 PlayerMoodComponent mood = PlayerMoodComponent.KEY.get(holder);
                 mood.setMood(mood.getMood() - WitchFactorState.moodLoss(apprentice));
             }
         }
-        if (changed) {
-            component.sync();
-        }
+        state.observeMatureCarriers(matureCount);
     }
 
-    private static boolean removeInvalidOwners(ServerWorld world, WitchFactorState state) {
-        GameWorldComponent game = GameWorldComponent.KEY.get(world);
-        return state.factors().entrySet().removeIf(e -> game.isPlayerDead(e.getValue().owner())
-                || game.getRole(e.getValue().owner()) != SparkWitchRoles.grandWitch());
-    }
-
-    private static boolean alive(ServerPlayerEntity player) {
-        return GameFunctions.isPlayerPlayingAndAlive(player)
-                && !GameFunctions.isPlayerSpectatingOrCreative(player);
+    static boolean alive(PlayerEntity player) {
+        return GameFunctions.isPlayerPlayingAndAlive(player) && !GameFunctions.isPlayerSpectatingOrCreative(player);
     }
 }

@@ -15,7 +15,7 @@ Current build baseline:
 
 - Minecraft `1.21.1`
 - Java `21`
-- SparkWitch `0.1.5.8`
+- SparkWitch `0.1.5.9` (shared-factor branch)
 - SparkFactionAPI floor `0.1.5.8`
 
 ## Read Order
@@ -46,7 +46,8 @@ Current build baseline:
   and win rules.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
-  factor ownership/timers/private views, and recruitment transactions.
+  and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
+  quota, delayed private network views, source-independent income, and persistent provenance.
 - `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
   `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters.
 - `mana/`: mana economy and natural-regeneration runtime.
