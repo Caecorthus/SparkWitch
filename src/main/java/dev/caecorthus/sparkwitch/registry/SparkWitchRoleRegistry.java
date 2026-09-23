@@ -271,7 +271,9 @@ public final class SparkWitchRoleRegistry {
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
                 .canSeeTime(true)
-                .appearanceCondition(RoleAppearanceCondition.minPlayers(18))
+                // Exclude natural selection; explicit recruitment still assigns this registered role.
+                // 排除自然抽选；主动招募仍可直接赋予这个已注册职业。
+                .appearanceCondition(context -> false)
                 .build());
         windSpirit = SparkFactionApi.registerRole(WindSpiritRole.DEFINITION);
         guardianAngel = SparkFactionApi.registerRole(GuardianAngelRole.DEFINITION);
