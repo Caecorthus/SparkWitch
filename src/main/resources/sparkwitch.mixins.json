@@ -27,6 +27,8 @@
     "PlayerMoodComponentAccessor",
     "ScreenHandlerBlackRavenLedgerMixin",
     "ScreenHandlerVendettaKnifeMixin",
+    "ScreenHandlerWraithConsumableDropMixin",
+    "ServerPlayerEntityWraithConsumableDropMixin",
     "ServerPlayNetworkAddonFearMixin",
     "VendettaApplyDamageMixin",
     "VendettaTerminalKillMixin",
