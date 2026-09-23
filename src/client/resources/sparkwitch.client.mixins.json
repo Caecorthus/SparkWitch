@@ -23,6 +23,7 @@
     "VendettaPlayerLabelMixin",
     "WatheClientInstinctLightMixin",
     "WatheClientFactorFallbackMixin",
+    "WatheClientJudgeOutlineMixin",
     "WatheClientFearInstinctMixin",
     "WitchCohortRoleNameMixin",
     "WitchManaHudMixin",

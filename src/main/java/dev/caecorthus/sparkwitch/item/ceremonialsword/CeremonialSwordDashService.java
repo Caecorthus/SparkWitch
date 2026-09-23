@@ -1,5 +1,8 @@
 package dev.caecorthus.sparkwitch.item.ceremonialsword;
 
+import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import net.minecraft.item.ItemStack;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
@@ -34,6 +37,9 @@ public final class CeremonialSwordDashService {
     }
 
     public static void start(ServerPlayerEntity player) {
+        if (SparkTraitsKillerBridge.blocksWeaponAction(player, new ItemStack(SparkWitchItems.ceremonialSword()))) {
+            return;
+        }
         Vec3d direction = horizontalDirection(player);
         if (direction.lengthSquared() < 1.0E-6) {
             return;
@@ -71,7 +77,8 @@ public final class CeremonialSwordDashService {
         while (iterator.hasNext()) {
             Map.Entry<UUID, DashState> entry = iterator.next();
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(entry.getKey());
-            if (player == null || !shouldKeepDashActive(true, player.isAlive(), player.isSpectator())) {
+            if (player == null || !shouldKeepDashActive(true, player.isAlive(), player.isSpectator())
+                    || SparkTraitsKillerBridge.blocksWeaponAction(player, new ItemStack(SparkWitchItems.ceremonialSword()))) {
                 iterator.remove();
                 continue;
             }

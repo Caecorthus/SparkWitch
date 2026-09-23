@@ -17,6 +17,9 @@ import java.util.UUID;
  */
 public final class FirePokerFallAttributionService {
     private static final Map<UUID, Attribution> ATTRIBUTIONS = new HashMap<>();
+    // Responsibility outlives entity cleanup, but uses the same original push window and one-shot consumption.
+    // 责任 UUID 不随实体清理消失，但沿用原推力窗口与单次消费，不改变 killer 奖励归属。
+    private static final Map<UUID, Attribution> JUDGE_ATTRIBUTIONS = new HashMap<>();
 
     private FirePokerFallAttributionService() {
     }
@@ -30,7 +33,25 @@ public final class FirePokerFallAttributionService {
             return;
         }
         clearExpired(currentTime);
-        ATTRIBUTIONS.put(targetUuid, new Attribution(pusherUuid, currentTime + FirePokerRules.FALL_ATTRIBUTION_WINDOW_TICKS));
+        Attribution attribution = new Attribution(pusherUuid, currentTime + FirePokerRules.FALL_ATTRIBUTION_WINDOW_TICKS);
+        ATTRIBUTIONS.put(targetUuid, attribution);
+        JUDGE_ATTRIBUTIONS.put(targetUuid, attribution);
+    }
+
+    public static void resolveFallKill(
+            ServerPlayerEntity victim,
+            boolean spawnBody,
+            @Nullable ServerPlayerEntity fallbackKiller,
+            Identifier deathReason
+    ) {
+        Attribution saved = JUDGE_ATTRIBUTIONS.remove(victim.getUuid());
+        UUID source = saved != null && victim.getServerWorld().getTime() <= saved.expiresAtTicks()
+                ? saved.pusherUuid() : null;
+        UUID responsible = dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeTrainFallAttribution.resolve(victim, source);
+        ServerPlayerEntity resolved = resolveFallKiller(victim, fallbackKiller, deathReason);
+        dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution.runWith(
+                victim.getServerWorld(), responsible,
+                () -> GameFunctions.killPlayer(victim, spawnBody, resolved, deathReason));
     }
 
     public static @Nullable ServerPlayerEntity resolveFallKiller(
@@ -70,13 +91,16 @@ public final class FirePokerFallAttributionService {
     static void clearPlayer(UUID playerUuid) {
         ATTRIBUTIONS.remove(playerUuid);
         ATTRIBUTIONS.entrySet().removeIf(entry -> entry.getValue().pusherUuid().equals(playerUuid));
+        JUDGE_ATTRIBUTIONS.remove(playerUuid);
     }
 
     public static void clearAll() {
         ATTRIBUTIONS.clear();
+        JUDGE_ATTRIBUTIONS.clear();
     }
 
     private static void clearExpired(long currentTime) {
+        JUDGE_ATTRIBUTIONS.entrySet().removeIf(entry -> currentTime > entry.getValue().expiresAtTicks());
         Iterator<Map.Entry<UUID, Attribution>> iterator = ATTRIBUTIONS.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<UUID, Attribution> entry = iterator.next();

@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.hooks;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.net.FireDeathRayC2SPacket;
@@ -35,6 +36,10 @@ public final class DeathRayClientHooks {
                 || client.getNetworkHandler() == null
                 || !hasActiveDeathRay(player)) {
             return false;
+        }
+        if (SparkTraitsKillerBridge.isKillerInteractionBlocked(player)) {
+            attackHeld = true;
+            return true;
         }
         if (attackHeld) {
             return true;

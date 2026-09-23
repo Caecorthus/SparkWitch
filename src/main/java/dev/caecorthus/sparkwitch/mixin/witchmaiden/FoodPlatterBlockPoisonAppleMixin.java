@@ -4,11 +4,16 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonApplePlateAccess;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonApplePlateService;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithConsumableInventoryRules;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.block.FoodPlatterBlock;
 import dev.doctor4t.wathe.block_entity.BeveragePlateBlockEntity;
+import dev.doctor4t.wathe.index.WatheItems;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -47,11 +52,19 @@ public abstract class FoodPlatterBlockPoisonAppleMixin {
             return ActionResult.SUCCESS;
         }
 
-        boolean handWasEmpty = player.getMainHandStack().isEmpty();
         boolean antidoteWasReady = PoisonApplePlateService.isReadyAntidote(player);
         boolean hadNativePoison = plate.getPoisoner() != null;
         boolean hadPoisonApple = poisonApple.sparkwitch$isPoisonAppleArmed();
-        ActionResult result = original.call(state, world, pos, player, hit);
+        PlatterCall call = sparkwitch$callPlatter(
+                state,
+                world,
+                pos,
+                player,
+                hit,
+                plate,
+                antidoteWasReady,
+                original
+        );
 
         if (hadPoisonApple && PoisonApplePlateService.cureWithAntidote(
                 world,
@@ -64,9 +77,97 @@ public abstract class FoodPlatterBlockPoisonAppleMixin {
         )) {
             return ActionResult.SUCCESS;
         }
-        if (handWasEmpty && !player.getMainHandStack().isEmpty()) {
-            PoisonApplePlateService.recordSuccessfulTake(player, poisonApple);
+        if (!call.acquired().isEmpty()) {
+            PoisonApplePlateService.recordSuccessfulTake(call.acquired(), poisonApple);
         }
-        return result;
+        return call.result();
+    }
+
+    private PlatterCall sparkwitch$callPlatter(
+            BlockState state,
+            World world,
+            BlockPos pos,
+            PlayerEntity player,
+            BlockHitResult hit,
+            BeveragePlateBlockEntity plate,
+            boolean antidoteWasReady,
+            Operation<ActionResult> original
+    ) {
+        ItemStack heldStack = player.getMainHandStack();
+        if (!sparkwitch$mayRelocateHeldConsumable(player, plate, heldStack, antidoteWasReady)) {
+            boolean handWasEmpty = heldStack.isEmpty();
+            ActionResult result = original.call(state, world, pos, player, hit);
+            ItemStack acquired = handWasEmpty ? player.getMainHandStack() : ItemStack.EMPTY;
+            return new PlatterCall(result, acquired);
+        }
+
+        PlayerInventory inventory = player.getInventory();
+        int selectedSlot = inventory.selectedSlot;
+        int temporarySlot = inventory.getEmptySlot();
+        if (!PlayerInventory.isValidHotbarIndex(selectedSlot) || temporarySlot == PlayerInventory.NOT_FOUND) {
+            return new PlatterCall(original.call(state, world, pos, player, hit), ItemStack.EMPTY);
+        }
+
+        inventory.setStack(temporarySlot, heldStack);
+        inventory.setStack(selectedSlot, ItemStack.EMPTY);
+        try {
+            ActionResult result = original.call(state, world, pos, player, hit);
+            ItemStack acquired = inventory.getStack(selectedSlot);
+            sparkwitch$finishRelocation(inventory, selectedSlot, temporarySlot, heldStack, acquired);
+            return new PlatterCall(result, acquired);
+        } catch (RuntimeException | Error failure) {
+            sparkwitch$rollbackRelocation(inventory, selectedSlot, temporarySlot, heldStack, failure);
+            throw failure;
+        }
+    }
+
+    private boolean sparkwitch$mayRelocateHeldConsumable(
+            PlayerEntity player,
+            BeveragePlateBlockEntity plate,
+            ItemStack heldStack,
+            boolean antidoteWasReady
+    ) {
+        return WraithStateService.isRestricted(player)
+                && !player.isCreative()
+                && !antidoteWasReady
+                && !heldStack.isOf(WatheItems.POISON_VIAL)
+                && WraithConsumableInventoryRules.isConsumable(heldStack)
+                && !plate.getStoredItems().isEmpty()
+                && plate.getStoredItems().stream().allMatch(WraithConsumableInventoryRules::isConsumable);
+    }
+
+    private void sparkwitch$finishRelocation(
+            PlayerInventory inventory,
+            int selectedSlot,
+            int temporarySlot,
+            ItemStack displaced,
+            ItemStack acquired
+    ) {
+        if (inventory.getStack(temporarySlot) != displaced) {
+            throw new IllegalStateException("Wraith platter relocation slot changed during interaction");
+        }
+        inventory.setStack(selectedSlot, displaced);
+        inventory.setStack(temporarySlot, acquired);
+        inventory.markDirty();
+    }
+
+    private void sparkwitch$rollbackRelocation(
+            PlayerInventory inventory,
+            int selectedSlot,
+            int temporarySlot,
+            ItemStack displaced,
+            Throwable failure
+    ) {
+        if (inventory.getStack(temporarySlot) != displaced || !inventory.getStack(selectedSlot).isEmpty()) {
+            failure.addSuppressed(new IllegalStateException("Unable to restore Wraith platter inventory safely"));
+            inventory.markDirty();
+            return;
+        }
+        inventory.setStack(selectedSlot, displaced);
+        inventory.setStack(temporarySlot, ItemStack.EMPTY);
+        inventory.markDirty();
+    }
+
+    private record PlatterCall(ActionResult result, ItemStack acquired) {
     }
 }
