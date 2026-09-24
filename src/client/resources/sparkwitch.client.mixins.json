@@ -49,6 +49,7 @@
     "WraithPlayerSkinTexturesMixin",
     "WraithRendererDispatchMixin",
     "WraithWatheHighlightMixin",
+    "bellringer.MoodRendererTaskRendererBellEchoMixin",
     "blackraven.BlackRavenGameRendererMixin",
     "blackraven.BlackRavenHudMixin",
     "blackraven.BlackRavenInstinctGateMixin",

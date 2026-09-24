@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientModule;
+import dev.caecorthus.sparkwitch.client.bellringer.BellRingerClient;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientModule;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
@@ -77,6 +78,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         GrandWitchClientModule.register();
         EmmaClientModule.register();
         WitchMaidenClientModule.register();
+        BellRingerClient.init();
         VendettaKnifeModelLoadingPlugin.register();
         SecondaryAbilityController.reset();
         SparkWitchClientVersionHandshake.registerClient();

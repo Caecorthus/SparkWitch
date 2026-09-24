@@ -29,6 +29,7 @@ public final class SparkWitchRoles {
     public static final Identifier SABOTEUR_ID = SparkWitchRoleRegistry.SABOTEUR_ID;
     public static final Identifier WITCH_MAIDEN_ID = SparkWitchRoleRegistry.WITCH_MAIDEN_ID;
     public static final Identifier CURSER_ID = SparkWitchRoleRegistry.CURSER_ID;
+    public static final Identifier BELL_RINGER_ID = SparkWitchRoleRegistry.BELL_RINGER_ID;
     public static final Identifier JUDGE_ID = SparkWitchRoleRegistry.JUDGE_ID;
 
     private SparkWitchRoles() {
@@ -128,6 +129,10 @@ public final class SparkWitchRoles {
 
     public static Role curser() {
         return SparkWitchRoleRegistry.curser();
+    }
+
+    public static Role bellRinger() {
+        return SparkWitchRoleRegistry.bellRinger();
     }
 
     public static Role judge() {
