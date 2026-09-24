@@ -586,9 +586,6 @@ tasks.register("verifyModJarVersion") {
     }
 }
 
-tasks.named("build") {
-}
-
 def requiredArchitectureDocs = [
         "AGENTS.md",
         "CONTEXT.md",
