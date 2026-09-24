@@ -12,12 +12,17 @@ import net.minecraft.util.Identifier;
  * 仅由大魔女角色拥有的纯规则，包括仪礼剑、法术和巫毒保护。
  */
 public final class GrandWitchRules {
-    public static final int CEREMONIAL_SWORD_MANA_COST = 150;
-    public static final int CEREMONIAL_SWORD_DURATION_TICKS = GameConstants.getInTicks(0, 15);
-    public static final int CEREMONIAL_SWORD_COOLDOWN_TICKS = GameConstants.getInTicks(1, 30);
+    // Legacy spell constants remain linkable, but the temporary spell is no longer gameplay.
+    // 保留旧法术常量的链接兼容性；临时大招不再参与玩法。
+    public static final int CEREMONIAL_SWORD_MANA_COST = 0;
+    public static final int CEREMONIAL_SWORD_DURATION_TICKS = 0;
+    public static final int CEREMONIAL_SWORD_COOLDOWN_TICKS = 0;
     public static final int CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS = 0;
     public static final int CEREMONIAL_SWORD_UNLOCK_TASKS = 2;
     public static final int CEREMONIAL_SWORD_SPEED_AMPLIFIER = 1;
+    public static final int CEREMONIAL_SWORD_KILL_COOLDOWN_TICKS = GameConstants.getInTicks(0, 30);
+    public static final double CEREMONIAL_SWORD_ATTACK_SPEED = 2.0;
+    public static final double CEREMONIAL_SWORD_MOVEMENT_SPEED_BONUS = 0.4;
 
     private GrandWitchRules() {
     }
@@ -28,6 +33,14 @@ public final class GrandWitchRules {
 
     public static boolean isCeremonialSwordUnlocked(int completedTasks) {
         return completedTasks >= CEREMONIAL_SWORD_UNLOCK_TASKS;
+    }
+
+    public static boolean shouldGrantCeremonialSword(int previousTasks, int completedTasks) {
+        return !isCeremonialSwordUnlocked(previousTasks) && isCeremonialSwordUnlocked(completedTasks);
+    }
+
+    public static boolean canAttemptCeremonialSwordKill(int cooldownTicks, boolean strikeInProgress) {
+        return cooldownTicks <= 0 && !strikeInProgress;
     }
 
     /**

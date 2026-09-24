@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.mixin;
 
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerFallAttributionService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,11 +36,6 @@ public abstract class GameWorldComponentMixin {
     ) {
         // Keep Wathe's fall death reason while replacing only the direct killer when a fresh Fire Poker push exists.
         // 保留 wathe 的坠车死因，只在有新鲜烧火棍推人记录时替换直接击杀者。
-        GameFunctions.killPlayer(
-                victim,
-                spawnBody,
-                FirePokerFallAttributionService.resolveFallKiller(victim, killer, deathReason),
-                deathReason
-        );
+        FirePokerFallAttributionService.resolveFallKill(victim, spawnBody, killer, deathReason);
     }
 }

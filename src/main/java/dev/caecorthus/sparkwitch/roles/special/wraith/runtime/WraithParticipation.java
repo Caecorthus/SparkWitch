@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRules;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithConsumableInventoryRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCollisionRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
@@ -14,12 +15,10 @@ import dev.doctor4t.wathe.block.DrinkTrayBlock;
 import dev.doctor4t.wathe.block.FoodPlatterBlock;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
-import dev.doctor4t.wathe.item.CocktailItem;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.block.BedBlock;
-import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
@@ -164,7 +163,7 @@ final class WraithParticipation {
                 WraithStateService.isRestricted(player) ? ActionResult.FAIL : ActionResult.PASS);
         UseItemCallback.EVENT.register((player, world, hand) -> {
             var stack = player.getStackInHand(hand);
-            boolean allowed = stack.contains(DataComponentTypes.FOOD) || stack.getItem() instanceof CocktailItem;
+            boolean allowed = WraithConsumableInventoryRules.isConsumable(stack);
             return WraithStateService.isRestricted(player) && !allowed
                     ? TypedActionResult.fail(stack) : TypedActionResult.pass(stack);
         });

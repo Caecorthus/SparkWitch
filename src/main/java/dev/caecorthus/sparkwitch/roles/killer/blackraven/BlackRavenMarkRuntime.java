@@ -29,6 +29,9 @@ public final class BlackRavenMarkRuntime {
         ServerPlayerEntity killer = markerUuid == null || victim.getServer() == null
                 ? null
                 : victim.getServer().getPlayerManager().getPlayer(markerUuid);
-        GameFunctions.killPlayer(victim, true, killer, GameConstants.DeathReasons.KNIFE);
+        // Retain the marker UUID even when the online entity lookup fails. / 离线也保留清标前的责任 UUID。
+        dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution.runWith(
+                victim.getServerWorld(), markerUuid,
+                () -> GameFunctions.killPlayer(victim, true, killer, GameConstants.DeathReasons.KNIFE));
     }
 }

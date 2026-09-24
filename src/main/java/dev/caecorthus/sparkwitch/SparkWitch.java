@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.command.ForcePromotionCommand;
 import dev.caecorthus.sparkwitch.command.GhostSettingsCommand;
 import dev.caecorthus.sparkwitch.command.SetManaCommand;
 import dev.caecorthus.sparkwitch.command.WatheGhostDividendCommand;
+import dev.caecorthus.sparkwitch.command.WitchFactorCommand;
 import dev.caecorthus.sparkwitch.skill.SparkWitchBuiltInSkills;
 import dev.caecorthus.sparkwitch.impl.SparkWitchEvents;
 import dev.caecorthus.sparkwitch.net.SparkWitchPackets;
@@ -48,6 +49,7 @@ public final class SparkWitch implements ModInitializer {
         NoellesHiddenEquipment.register(SparkWitchItems.perfumeEssence());
         NoellesHiddenEquipment.register(SparkWitchItems.cologne());
         NoellesHiddenEquipment.register(SparkWitchItems.blackRavenLedger());
+        NoellesHiddenEquipment.register(SparkWitchItems.tollBell());
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();
@@ -68,6 +70,7 @@ public final class SparkWitch implements ModInitializer {
             ForcePromotionCommand.register(dispatcher);
             GhostSettingsCommand.register(dispatcher);
             WatheGhostDividendCommand.register(dispatcher);
+            WitchFactorCommand.register(dispatcher);
         });
     }
 

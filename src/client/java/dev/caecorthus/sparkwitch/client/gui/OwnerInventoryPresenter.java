@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.gui;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
+import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
 import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.mana.WitchManaRules;
@@ -17,6 +18,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableTextContent;
@@ -225,8 +227,31 @@ public final class OwnerInventoryPresenter {
         }
         var entry = new InventoryInfoCard.Entry(List.of(WitchSkillClientTexts.name(skillId), label), tooltip,
                 WitchSkillClientTexts.color(skillId), status);
-        return new InventoryInfoCard.Section(Text.translatable("gui.sparkwitch.skills"), List.of(entry), manaTail,
+        List<InventoryInfoCard.Entry> entries = new ArrayList<>(List.of(entry));
+        if (GrandWitchClientPresentation.isGrandWitch(client.player)) entries.addAll(grandWitchEntries(client.player));
+        return new InventoryInfoCard.Section(Text.translatable("gui.sparkwitch.skills"), entries, manaTail,
                 manaTail == null ? null : Text.literal("888 \uE782"), Text.translatable("gui.sparkwitch.skills.short"));
+    }
+
+    /**
+     * Grand Witch's Recruit and Ceremonial Sword are her own abilities but not the panel's active skill (Witch Factor);
+     * they are listed as plain entries only after the same three-role panel gate passed.
+     * 大魔女的招募与仪礼剑属于其自有能力但不是面板主技能（魔女因子）；仅在同一三职业面板资格通过后作为普通条目列出。
+     */
+    private static List<InventoryInfoCard.Entry> grandWitchEntries(ClientPlayerEntity player) {
+        int color = GrandWitchClientPresentation.COLOR & 0xFFFFFF;
+        List<Text> recruit = List.of(Text.translatable("skill.sparkwitch.recruit_accomplice.name").withColor(color),
+                GrandWitchClientPresentation.recruitmentState(player));
+        List<Text> sword = new ArrayList<>();
+        sword.add(Text.translatable("skill.sparkwitch.ceremonial_sword.name").withColor(color));
+        sword.addAll(GrandWitchClientPresentation.swordStates(player));
+        return List.of(
+                new InventoryInfoCard.Entry(recruit, List.of(
+                        Text.translatable("skill.sparkwitch.recruit_accomplice.description"),
+                        Text.translatable("skill.sparkwitch.recruit_accomplice.inventory"))),
+                new InventoryInfoCard.Entry(sword, List.of(
+                        Text.translatable("skill.sparkwitch.ceremonial_sword.description"),
+                        Text.translatable("skill.sparkwitch.ceremonial_sword.protection"))));
     }
 
     /**

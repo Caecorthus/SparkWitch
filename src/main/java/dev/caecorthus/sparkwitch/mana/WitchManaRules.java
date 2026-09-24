@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.mana;
 
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.doctor4t.wathe.api.Role;
 
@@ -26,6 +27,10 @@ public final class WitchManaRules {
     }
 
     public static boolean isManaRole(Role role) {
+        return isWitchManaRole(role) || EmmaRules.isEmma(role);
+    }
+
+    private static boolean isWitchManaRole(Role role) {
         return role != null
                 && (role == SparkWitchRoles.grandWitch()
                 || role == SparkWitchRoles.apprenticeWitch()
@@ -33,10 +38,7 @@ public final class WitchManaRules {
     }
 
     public static boolean canRegenerateNaturally(Role role) {
-        return role != null
-                && (role == SparkWitchRoles.grandWitch()
-                || role == SparkWitchRoles.apprenticeWitch()
-                || role == SparkWitchRoles.murderousWitch());
+        return isManaRole(role);
     }
 
     public static int naturalCap(Role role) {
@@ -53,7 +55,7 @@ public final class WitchManaRules {
         if (!canRegenerateNaturally(role)) {
             return 0;
         }
-        if (role == SparkWitchRoles.grandWitch()) {
+        if (role == SparkWitchRoles.grandWitch() || EmmaRules.isEmma(role)) {
             return GRAND_WITCH_REGENERATION_INTERVAL_TICKS;
         }
         if (role == SparkWitchRoles.apprenticeWitch()) {
@@ -63,19 +65,19 @@ public final class WitchManaRules {
     }
 
     public static int taskReward(Role role) {
-        return role == SparkWitchRoles.apprenticeWitch() ? APPRENTICE_TASK_REWARD : 0;
+        return role == SparkWitchRoles.apprenticeWitch() || EmmaRules.isEmma(role) ? APPRENTICE_TASK_REWARD : 0;
     }
 
     public static int killReward(Role killerRole, Role victimRole) {
-        if (!isManaRole(killerRole)) {
+        if (!isWitchManaRole(killerRole)) {
             return 0;
         }
         if (killerRole == SparkWitchRoles.grandWitch()) {
-            return isManaRole(victimRole)
+            return isWitchManaRole(victimRole)
                     ? GRAND_WITCH_WITCH_KILL_REWARD
                     : GRAND_WITCH_GENERIC_KILL_REWARD;
         }
-        if (isManaRole(victimRole)) {
+        if (isWitchManaRole(victimRole)) {
             return WITCH_KILL_REWARD;
         }
         return killerRole == SparkWitchRoles.murderousWitch() ? GENERIC_KILL_REWARD : 0;

@@ -3,7 +3,12 @@ package dev.caecorthus.sparkwitch.client;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
+import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
+import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
+import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
+import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientModule;
+import dev.caecorthus.sparkwitch.client.bellringer.BellRingerClient;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientModule;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
@@ -70,7 +75,10 @@ public final class SparkWitchClient implements ClientModInitializer {
         SparkWitchServerConnection.reset();
         SecondaryAbilityController.registerKeyBinding();
         BlackRavenClientModule.register();
+        GrandWitchClientModule.register();
+        EmmaClientModule.register();
         WitchMaidenClientModule.register();
+        BellRingerClient.init();
         VendettaKnifeModelLoadingPlugin.register();
         SecondaryAbilityController.reset();
         SparkWitchClientVersionHandshake.registerClient();
@@ -78,6 +86,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerTarotDivinationNetworking();
         registerBlackRavenNetworking();
         registerWraithRoleAnnouncementNetworking();
+        JudgeClientModule.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
@@ -114,6 +123,7 @@ public final class SparkWitchClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             TarotDivinationClientState.tick(client);
+            JudgeClientModule.tick(client);
             SecondaryAbilityController.tick(client);
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 WitchAbilityKeyBridge.reset();
@@ -131,7 +141,11 @@ public final class SparkWitchClient implements ClientModInitializer {
                 var role = GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player);
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
-                if (exactSaboteurRole) {
+                if (JudgeRules.isJudge(role)) {
+                    JudgeClientModule.requestSelection(client);
+                } else if (EmmaClientModule.isEmma(client.player)) {
+                    EmmaClientModule.use(client.player);
+                } else if (exactSaboteurRole) {
                     if (SaboteurClientAbilityRules.shouldSend(
                             true,
                             true,
@@ -246,5 +260,6 @@ public final class SparkWitchClient implements ClientModInitializer {
         KidnapperThrowClientHooks.reset();
         WitchMaidenClientModule.clear();
         TarotDivinationClientState.clear();
+        JudgeClientModule.clear();
     }
 }

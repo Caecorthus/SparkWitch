@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.skill;
 
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityCatalog;
@@ -8,8 +10,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Healing.Hea
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceAbility;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MurderSense.MurderSenseAbility;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.SwiftStep.SwiftStepAbility;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
@@ -21,6 +22,8 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerEchoService;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenSkillService;
@@ -40,14 +43,18 @@ public final class SparkWitchBuiltInSkills {
         }
         registered = true;
         WitchSkillRegistry.register(new WitchSkillDefinition(
-                GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID,
+                WitchFactorService.SKILL_ID,
                 0xF2DFF7,
                 1,
-                GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS,
                 0,
-                GrandWitchRules.CEREMONIAL_SWORD_MANA_COST,
+                WitchFactorService.COOLDOWN_TICKS,
+                WitchFactorService.MANA_COST,
                 context -> WitchFactionRules.isGrandWitch(context.role()),
-                GrandWitchActiveSkillService::use
+                WitchFactorService::use
+        ));
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                EmmaRules.SKILL_ID, EmmaRules.COLOR, 1, 0, EmmaRules.COOLDOWN_TICKS,
+                EmmaRules.MANA_COST, context -> EmmaRules.isEmma(context.role()), EmmaSkillService::useSkill
         ));
         registerApprenticeAbility(
                 MightyForceAbility.ID,
@@ -153,6 +160,20 @@ public final class SparkWitchBuiltInSkills {
                 0,
                 context -> WitchMaidenRules.isWitchMaiden(context.role()),
                 FocusedFootstepsSkillService::use
+        ));
+        // Exact-role selector: the Bell Ringer is on the shared-skill whitelist, so any looser selector would
+        // leak other skills onto it. Presented only by the bottom-right skill HUD, never the witch panel.
+        // 精确职业选择器：敲钟人位于共享技能白名单中，更宽松的选择器会把其他技能漏给它；
+        // 仅由右下角技能 HUD 展示，绝不进入魔女技能面板。
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                BellRingerRules.ECHO_SKILL_ID,
+                BellRingerRules.COLOR,
+                1,
+                BellRingerRules.ECHO_INITIAL_COOLDOWN_TICKS,
+                BellRingerRules.ECHO_COOLDOWN_TICKS,
+                0,
+                context -> BellRingerRules.isBellRinger(context.role()),
+                BellRingerEchoService::use
         ));
     }
 

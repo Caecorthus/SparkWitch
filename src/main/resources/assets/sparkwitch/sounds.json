@@ -19,5 +19,12 @@
     "sounds": [
       "sparkwitch:ambient/saint_bell"
     ]
+  },
+  "ambient.bell_ringer_toll": {
+    "subtitle": "subtitles.sparkwitch.ambient.bell_ringer_toll",
+    "sounds": [
+      "minecraft:block/bell/bell_use01",
+      "minecraft:block/bell/bell_use02"
+    ]
   }
 }

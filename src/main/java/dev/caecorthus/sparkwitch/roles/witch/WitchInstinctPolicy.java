@@ -106,6 +106,8 @@ public final class WitchInstinctPolicy {
                 || GameFunctions.isPlayerSpectatingOrCreative(targetPlayer)) {
             return FactionInstinctPolicy.InstinctResult.skip(GRAND_WITCH_INSTINCT_PRIORITY);
         }
+        // Ordinary instinct owns its color; factor knowledge is a client-only last fallback.
+        // 普通本能保留自身颜色；因子知识仅由客户端最后补缺。
         return FactionInstinctPolicy.InstinctResult.show(color.getAsInt(), true, GRAND_WITCH_INSTINCT_PRIORITY);
     }
 

@@ -1,6 +1,9 @@
 package dev.caecorthus.sparkwitch.mixin;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordProtectionPolicy;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintFeatureService;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
@@ -29,7 +32,21 @@ public abstract class GameFunctionsSaintProtectionMixin {
             boolean force,
             CallbackInfo ci
     ) {
-        if (SaintFeatureService.blocksKill(victim, killer, deathReason)) {
+        // This HEAD guard ignores force, so the owner-approved forced bell toll must opt out explicitly.
+        // 此 HEAD 拦截不看 force，因此所有者批准的强制丧钟击杀需在此显式放行。
+        if (BellRingerRules.piercesProtection(deathReason, force)) {
+            return;
+        }
+        if (killer == null && dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaTerminalService.isBacklash(deathReason)) {
+            return;
+        }
+        // Traits owns active-phase immunity and its train/lifecycle exceptions before protection costs.
+        // Traits 在消耗保护前裁定脱险无敌及列车/生命周期例外。
+        if (SparkTraitsKillerBridge.isLastEscapeActive(victim)) {
+            return;
+        }
+        if (CeremonialSwordProtectionPolicy.cancelsDeath(
+                SaintFeatureService.blocksKill(victim, killer, deathReason), deathReason)) {
             ci.cancel();
         }
     }

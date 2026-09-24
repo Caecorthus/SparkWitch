@@ -1,6 +1,8 @@
 package dev.caecorthus.sparkwitch.net;
 
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
@@ -14,6 +16,7 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsReques
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.curser.UseCurserAbilityC2SPacket;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFeatureService;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -31,7 +34,16 @@ public final class SparkWitchPackets {
         }
         registered = true;
         SaboteurNetworking.register();
+        PayloadTypeRegistry.playC2S().register(OpenJudgeSelectionC2SPacket.ID, OpenJudgeSelectionC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(ConfirmJudgeSelectionC2SPacket.ID, ConfirmJudgeSelectionC2SPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(OpenJudgeSelectionS2CPacket.ID, OpenJudgeSelectionS2CPacket.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(OpenJudgeSelectionC2SPacket.ID,
+                (payload, context) -> JudgeRuntime.openSelection(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmJudgeSelectionC2SPacket.ID,
+                (payload, context) -> JudgeRuntime.confirmSelection(context.player(), payload.sessionId(), payload.targetId()));
         PayloadTypeRegistry.playC2S().register(UseWitchSkillC2SPacket.ID, UseWitchSkillC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(GrandWitchRecruitC2SPacket.ID, GrandWitchRecruitC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(EmmaFactorC2SPacket.ID, EmmaFactorC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(FireDeathRayC2SPacket.ID, FireDeathRayC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(UseCurserAbilityC2SPacket.ID, UseCurserAbilityC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(
@@ -81,6 +93,10 @@ public final class SparkWitchPackets {
         ServerPlayNetworking.registerGlobalReceiver(UseWitchSkillC2SPacket.ID,
                 (payload, context) -> FocusedFootstepsRequestService.use(
                         context.player(), payload.targetUuid()));
+        ServerPlayNetworking.registerGlobalReceiver(EmmaFactorC2SPacket.ID,
+                (payload, context) -> EmmaSkillService.use(context.player(), payload.targetId()));
+        ServerPlayNetworking.registerGlobalReceiver(GrandWitchRecruitC2SPacket.ID,
+                (payload, context) -> GrandWitchFeatureService.recruit(context.player(), payload.targetId()));
         ServerPlayNetworking.registerGlobalReceiver(FireDeathRayC2SPacket.ID,
                 (payload, context) -> MurderousWitchDeathRayService.fire(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseCurserAbilityC2SPacket.ID,

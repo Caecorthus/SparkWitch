@@ -7,6 +7,7 @@ import net.minecraft.util.Identifier;
 import java.util.List;
 
 public final class SparkWitchRoles {
+    public static final Identifier EMMA_ID = SparkWitchRoleRegistry.EMMA_ID;
     public static final Identifier GRAND_WITCH_ID = SparkWitchRoleRegistry.GRAND_WITCH_ID;
     public static final Identifier ACCOMPLICE_ID = SparkWitchRoleRegistry.ACCOMPLICE_ID;
     public static final Identifier APPRENTICE_WITCH_ID = SparkWitchRoleRegistry.APPRENTICE_WITCH_ID;
@@ -28,6 +29,8 @@ public final class SparkWitchRoles {
     public static final Identifier SABOTEUR_ID = SparkWitchRoleRegistry.SABOTEUR_ID;
     public static final Identifier WITCH_MAIDEN_ID = SparkWitchRoleRegistry.WITCH_MAIDEN_ID;
     public static final Identifier CURSER_ID = SparkWitchRoleRegistry.CURSER_ID;
+    public static final Identifier BELL_RINGER_ID = SparkWitchRoleRegistry.BELL_RINGER_ID;
+    public static final Identifier JUDGE_ID = SparkWitchRoleRegistry.JUDGE_ID;
 
     private SparkWitchRoles() {
     }
@@ -38,6 +41,10 @@ public final class SparkWitchRoles {
 
     public static synchronized void refreshAssassinGuessRoleOrder() {
         SparkWitchRoleRegistry.refreshAssassinGuessRoleOrder();
+    }
+
+    public static Role emma() {
+        return SparkWitchRoleRegistry.emma();
     }
 
     public static Role grandWitch() {
@@ -122,6 +129,14 @@ public final class SparkWitchRoles {
 
     public static Role curser() {
         return SparkWitchRoleRegistry.curser();
+    }
+
+    public static Role bellRinger() {
+        return SparkWitchRoleRegistry.bellRinger();
+    }
+
+    public static Role judge() {
+        return SparkWitchRoleRegistry.judge();
     }
 
     public static List<Role> assassinGuessRoles() {
