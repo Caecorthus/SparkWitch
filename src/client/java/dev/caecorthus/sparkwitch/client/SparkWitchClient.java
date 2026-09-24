@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientModule;
+import dev.caecorthus.sparkwitch.client.bellringer.BellRingerClient;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientModule;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
@@ -71,6 +72,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         BlackRavenClientModule.register();
         GrandWitchClientModule.register();
         WitchMaidenClientModule.register();
+        BellRingerClient.init();
         VendettaKnifeModelLoadingPlugin.register();
         SecondaryAbilityController.reset();
         SparkWitchClientVersionHandshake.registerClient();

@@ -6,7 +6,7 @@ changes require explicit owner approval.
 ## Product Boundary
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
-God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, and Black Raven gameplay to Wathe.
+God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, and Bell Ringer gameplay to Wathe.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -40,6 +40,11 @@ Current build baseline:
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup.
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
   bound ledger, restricted shop, and lifecycle cleanup.
+- `roles/killer/bellringer/`: Echo skill (game-time cost, forced Echo tasks,
+  deadline penalty), owner-private Echo/hint/toll state, bound bell and toll kill,
+  restricted native shop, and lifecycle cleanup; its mixins live in
+  `mixin/bellringer/` and `client/mixin/bellringer/`, client presentation in
+  `client/bellringer/`.
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
@@ -82,6 +87,28 @@ snapshots use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
 Its role-owned active window is exposed to the shared cooldown/HUD path only
 through `WitchSkillRegistry`'s stateless active-window provider.
 
+Bell Ringer state never enters that shared schema either. `sparkwitch:bell_echo`
+(`NEVER_COPY`, owner-only sync, match-id bound) holds the forced Echo task
+marker and deadline, the red heard-hint window, and the ringer's server-computed
+toll-target flag; the owner's client receives the Echo task type, the toll flag,
+and remaining-tick counters, never absolute server ticks. A silent Echo drop
+(role change, death, non-participation, lost real sanity) removes the marked
+Wathe task with the marker, so it can never pay out as an ordinary task. Echo reaches
+Wathe's mood loop through `mixin/bellringer/PlayerMoodComponentBellEchoMixin`
+(`remap = false`, no `@Redirect`): it holds normal task generation, keeps the
+Echo completion out of `TaskComplete.EVENT` (Wathe's +0.5 mood and completion
+arrow remain), and scales `MOOD_DRAIN` while the marker is active. The task
+line is restyled only through `client/mixin/bellringer/` on
+`MoodRenderer$TaskRenderer`. Owner-approved exception: the bell toll
+(`sparkwitch:bell_toll`) is a forced, terminal kill that pierces every role,
+item, and trait protection (registered as SparkTraits-terminal); only
+SparkFactionAPI's structural `canAffectPlayer` veto still applies. Guards that
+ignore Wathe's `force` flag (currently only the Saint HEAD guard) opt out through
+`BellRingerRules.piercesProtection`. As with sword piercing, protections that
+run as `KillPlayer.BEFORE` listeners still pay their normal costs before the
+forced kill proceeds. The Bell Ringer never renders in the
+`gui.sparkwitch.skills` panel.
+
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
 components; the existing shared packet and NBT layouts remain unchanged. Sword
@@ -94,7 +121,10 @@ SparkTraits is optional and fail-closed. Reflection may target only
 `dev.caecorthus.sparktraits.api.SparkTraitsApi`, never `sparktraits.impl` or
 `sparktraits.component`. Black Raven may query only the public
 `isInstinctHidden(viewer, target)` facade; an absent or older SparkTraits build
-adds no suppression and must not break the client.
+adds no suppression and must not break the client. Bell Ringer may query only
+`isRoleSkillBlocked`, `registerTerminalDeathReason`, and
+`setExactItemCooldownRemaining` beyond the shared weapon-action gate; an absent
+or older build means no block, no terminal registration, and a vanilla cooldown.
 
 ## Tofana Elixir Vocabulary
 

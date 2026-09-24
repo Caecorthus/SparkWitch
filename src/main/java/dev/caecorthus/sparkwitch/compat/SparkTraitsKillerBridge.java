@@ -1,8 +1,10 @@
 package dev.caecorthus.sparkwitch.compat;
 
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 
 import java.lang.reflect.Method;
 
@@ -16,6 +18,10 @@ public final class SparkTraitsKillerBridge {
     private static final Method MELEE = resolve("shouldCancelMeleeAttack", ServerPlayerEntity.class,
             ServerPlayerEntity.class, ItemStack.class);
     private static final Method DESATURATION = resolve("getLastEscapeDesaturation", PlayerEntity.class);
+    private static final Method ROLE_SKILL = resolve("isRoleSkillBlocked", PlayerEntity.class);
+    private static final Method TERMINAL = resolve("registerTerminalDeathReason", Identifier.class);
+    private static final Method EXACT_COOLDOWN = resolve("setExactItemCooldownRemaining", ServerPlayerEntity.class,
+            Item.class, int.class);
 
     private SparkTraitsKillerBridge() {
     }
@@ -52,12 +58,43 @@ public final class SparkTraitsKillerBridge {
                 ? Math.clamp(factor, 0.0F, 1.0F) : 0.0F;
     }
 
+    /** Last Escape or silenced effective killer; SparkWitch packets must ask themselves.
+     * 脱险或被沉默的有效杀手；SparkWitch 自有数据包必须自行查询。 */
+    public static boolean isRoleSkillBlocked(PlayerEntity player) {
+        return player != null && Boolean.TRUE.equals(invoke(ROLE_SKILL, player));
+    }
+
+    /** Makes a reason skip Traits revive/counter hooks; returns false when Traits is absent or older.
+     * 使该死亡原因跳过 Traits 复活/反击钩子；Traits 缺失或过旧时返回 false。 */
+    public static boolean registerTerminalDeathReason(Identifier reason) {
+        return reason != null && invokeVoid(TERMINAL, reason);
+    }
+
+    /** Writes an exact cooldown past Traits modifiers, performing the vanilla set itself; on false the
+     * caller must fall back to {@code ItemCooldownManager.set}.
+     * 越过 Traits 冷却倍率写入精确冷却（其内部自行完成原版写入）；返回 false 时调用方需回退到原版冷却写入。 */
+    public static boolean setExactItemCooldownRemaining(ServerPlayerEntity player, Item item, int ticks) {
+        return player != null && item != null && invokeVoid(EXACT_COOLDOWN, player, item, Math.max(0, ticks));
+    }
+
     private static Method resolve(String name, Class<?>... parameters) {
         try {
             return Class.forName(API, false, SparkTraitsKillerBridge.class.getClassLoader())
                     .getMethod(name, parameters);
         } catch (ReflectiveOperationException | LinkageError | SecurityException ignored) {
             return null;
+        }
+    }
+
+    private static boolean invokeVoid(Method method, Object... args) {
+        if (method == null) {
+            return false;
+        }
+        try {
+            method.invoke(null, args);
+            return true;
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            return false;
         }
     }
 

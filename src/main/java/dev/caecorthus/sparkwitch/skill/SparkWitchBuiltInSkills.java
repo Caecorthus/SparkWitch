@@ -20,6 +20,8 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerEchoService;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenSkillService;
@@ -152,6 +154,20 @@ public final class SparkWitchBuiltInSkills {
                 0,
                 context -> WitchMaidenRules.isWitchMaiden(context.role()),
                 FocusedFootstepsSkillService::use
+        ));
+        // Exact-role selector: the Bell Ringer is on the shared-skill whitelist, so any looser selector would
+        // leak other skills onto it. Presented only by the bottom-right skill HUD, never the witch panel.
+        // 精确职业选择器：敲钟人位于共享技能白名单中，更宽松的选择器会把其他技能漏给它；
+        // 仅由右下角技能 HUD 展示，绝不进入魔女技能面板。
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                BellRingerRules.ECHO_SKILL_ID,
+                BellRingerRules.COLOR,
+                1,
+                BellRingerRules.ECHO_INITIAL_COOLDOWN_TICKS,
+                BellRingerRules.ECHO_COOLDOWN_TICKS,
+                0,
+                context -> BellRingerRules.isBellRinger(context.role()),
+                BellRingerEchoService::use
         ));
     }
 

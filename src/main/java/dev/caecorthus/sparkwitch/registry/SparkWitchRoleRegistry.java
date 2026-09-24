@@ -16,6 +16,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaRole;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
@@ -60,6 +61,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier SABOTEUR_ID = SaboteurRole.ID;
     public static final Identifier WITCH_MAIDEN_ID = WitchMaidenRules.ROLE_ID;
     public static final Identifier CURSER_ID = CurserRole.ID;
+    public static final Identifier BELL_RINGER_ID = BellRingerRules.ROLE_ID;
 
     private static Role grandWitch;
     private static Role accomplice;
@@ -82,6 +84,7 @@ public final class SparkWitchRoleRegistry {
     private static Role saboteur;
     private static Role witchMaiden;
     private static Role curser;
+    private static Role bellRinger;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -212,6 +215,11 @@ public final class SparkWitchRoleRegistry {
     public static Role curser() {
         ensureRegistered();
         return curser;
+    }
+
+    public static Role bellRinger() {
+        ensureRegistered();
+        return bellRinger;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -365,6 +373,16 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
+        // Appended last so existing role registration order stays unchanged; the default one-player spawn
+        // group keeps the Bell Ringer to at most one per round, like Ninja and Kidnapper.
+        // 追加在最后以保持既有职业注册顺序不变；与忍者、绑架者相同，默认单人分配组保证敲钟人每局至多一人。
+        bellRinger = SparkFactionApi.registerRole(FactionRoleDefinition.builder(BELL_RINGER_ID, FactionIds.KILLER)
+                .color(BellRingerRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
     }
 
     private static void registerNativeWatheRoles() {
@@ -410,6 +428,7 @@ public final class SparkWitchRoleRegistry {
                 witchMaiden,
                 hunter,
                 kidnapper,
+                bellRinger,
                 murderousWitch,
                 accomplice,
                 grandWitch,
@@ -434,6 +453,7 @@ public final class SparkWitchRoleRegistry {
                 || role == ninja
                 || role == kidnapper
                 || role == blackRaven
-                || role == witchMaiden;
+                || role == witchMaiden
+                || role == bellRinger;
     }
 }

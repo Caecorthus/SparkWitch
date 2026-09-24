@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeLoadoutService;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.TollBellItem;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenLedgerItem;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.FeatherBladeItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
@@ -39,6 +40,7 @@ public final class SparkWitchItems {
     public static final Identifier DOUBLE_BARREL_SHELL_ID = DoubleBarrelShellItem.ID;
     public static final Identifier POISON_APPLE_ID = SparkWitch.id("poison_apple");
     public static final Identifier TOFANA_ELIXIR_ID = SparkWitch.id("tofana_elixir");
+    public static final Identifier TOLL_BELL_ID = SparkWitch.id("toll_bell");
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -54,6 +56,7 @@ public final class SparkWitchItems {
     private static Item doubleBarrelShell;
     private static Item poisonApple;
     private static Item tofanaElixir;
+    private static Item tollBell;
 
     private static boolean registered;
 
@@ -138,6 +141,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 TOFANA_ELIXIR_ID,
                 new Item(new Item.Settings().maxCount(1))
+        );
+        tollBell = Registry.register(
+                Registries.ITEM,
+                TOLL_BELL_ID,
+                new TollBellItem(TollBellItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -247,6 +255,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return tofanaElixir;
+    }
+
+    public static Item tollBell() {
+        if (tollBell == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return tollBell;
     }
 
     private static void registerMeleeSuppression() {
