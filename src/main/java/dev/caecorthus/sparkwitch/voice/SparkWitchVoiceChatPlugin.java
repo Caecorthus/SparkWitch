@@ -7,11 +7,13 @@ import de.maxhenkel.voicechat.api.events.LocationalSoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.StaticSoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
@@ -65,6 +67,12 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
             return;
         }
         ServerPlayerEntity speaker = (ServerPlayerEntity) event.getSenderConnection().getPlayer().getPlayer();
+        if (KidnapperControlComponent.KEY.get(speaker).isControlled()
+                && GameFunctions.isPlayerAliveAndSurvival(speaker)) {
+            // 迷药控制期间目标黑屏且无法主动行动；语音也必须在同一入口静音，避免报点破坏劫持效果。
+            event.cancel();
+            return;
+        }
         Role role = GameWorldComponent.KEY.get(speaker.getServerWorld()).getRole(speaker);
         if (WraithCommunicationPolicy.shouldBlockCommunication(
                 WraithStateService.isActive(speaker),
