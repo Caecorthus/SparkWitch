@@ -33,25 +33,18 @@ public final class WitchRoleAssignmentService {
         Collections.shuffle(availablePlayers, new java.util.Random(world.getRandom().nextLong()));
 
         Role grandWitch = SparkWitchRoles.grandWitch();
-        Role accomplice = SparkWitchRoles.accomplice();
         Role apprenticeWitch = SparkWitchRoles.apprenticeWitch();
         RoleSelectionContext roleContext = roleSelectionContext(world, gameComponent, players);
 
         int assigned = 0;
-        boolean grandPresent = countRole(gameComponent, players, grandWitch) > 0;
 
         int grandRemaining = counts.grandWitches() - countRole(gameComponent, players, grandWitch);
         if (grandRemaining > 0 && isEligible(gameComponent, roleContext, grandWitch)) {
             assigned += assignRole(gameComponent, availablePlayers, grandWitch, grandRemaining);
-            grandPresent = grandPresent || countRole(gameComponent, players, grandWitch) > 0;
         }
 
-        // Accomplices belong to the custom witch faction, so they only auto-fill when the Grand Witch exists.
-        // 共犯属于魔女阵营；只有大魔女已存在或本轮成功生成时，才自动补入共犯。
-        if (grandPresent && isEligible(gameComponent, roleContext, accomplice)) {
-            int accompliceRemaining = counts.accomplices() - countRole(gameComponent, players, accomplice);
-            assigned += assignRole(gameComponent, availablePlayers, accomplice, accompliceRemaining);
-        }
+        // Accomplices are recruited during play, never naturally allocated.
+        // 共犯仅在对局中招募，不再自然分配；旧人数公式仅决定招募名额。
 
         // Apprentice Witch is a civilian role and follows the >=24 rule directly, independent of actual Grand Witch assignment.
         // 预备魔女是好人职业，只按 >=24 的人数规则刷新，不依赖大魔女是否真的被分到。

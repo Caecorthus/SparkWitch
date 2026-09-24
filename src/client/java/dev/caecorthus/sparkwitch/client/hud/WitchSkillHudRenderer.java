@@ -5,7 +5,7 @@ import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
-import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
@@ -37,6 +37,10 @@ public final class WitchSkillHudRenderer {
             return;
         }
 
+        if (GrandWitchClientPresentation.isGrandWitch(player)) {
+            GrandWitchClientPresentation.renderHud(context, MinecraftClient.getInstance().textRenderer, player);
+            return;
+        }
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         Identifier skillId = component.getActiveSkillId();
         if (skillId == null) {

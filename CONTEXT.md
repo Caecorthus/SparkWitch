@@ -15,7 +15,7 @@ Current build baseline:
 
 - Minecraft `1.21.1`
 - Java `21`
-- SparkWitch `0.1.5.8`
+- SparkWitch `0.1.5.9` (shared-factor branch)
 - SparkFactionAPI floor `0.1.5.8`
 
 ## Read Order
@@ -45,8 +45,11 @@ Current build baseline:
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
-- `roles/witch/grandwitch/`: Grand-Witch-private sword, spell, fear, Voodoo,
-  active-skill, and world runtime.
+- `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
+  and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
+  quota, delayed private network views, source-independent income, and persistent provenance.
+- `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
+  `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters.
 - `mana/`: mana economy and natural-regeneration runtime.
 - `component/`: CCA ids, stored fields, sync/NBT codecs, and narrow state
   operations used by the owning runtime Modules.
@@ -78,6 +81,14 @@ Black Raven state never enters that shared schema. Victim marks use
 snapshots use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
 Its role-owned active window is exposed to the shared cooldown/HUD path only
 through `WitchSkillRegistry`'s stateless active-window provider.
+
+Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
+`sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
+components; the existing shared packet and NBT layouts remain unchanged. Sword
+kill readiness (30s) is independent of the item dash cooldown (5s). Recruitment
+uses a cumulative world quota, never a living-teammate count. Sword piercing
+applies to role/item shields, not trait protections such as Last Stand or Last
+Escape; protection costs and retaliation keep their normal side effects.
 
 SparkTraits is optional and fail-closed. Reflection may target only
 `dev.caecorthus.sparktraits.api.SparkTraitsApi`, never `sparktraits.impl` or
