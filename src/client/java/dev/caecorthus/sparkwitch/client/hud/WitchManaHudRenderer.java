@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.hud;
 
+import dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -25,8 +26,15 @@ public final class WitchManaHudRenderer {
         if (!component.hasManaSystem()) {
             return;
         }
+        MinecraftClient client = MinecraftClient.getInstance();
+        // The owner inventory card's header tail replaces this row while it shows the same mana (last frame's
+        // state; the HUD draws before the screen), so the value is never shown twice.
+        // 背包卡片标题尾注显示魔力时由其取代此行（取上一帧状态，HUD 先于界面绘制），避免同一数值显示两次。
+        if (OwnerInventoryPresenter.showsManaTail(client.currentScreen)) {
+            return;
+        }
 
-        TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+        TextRenderer renderer = client.textRenderer;
         Text text = Text.translatable("gui.sparkwitch.mana", component.getMana());
         int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(text);
         int y = TOP_PADDING + renderer.fontHeight + ROW_GAP;

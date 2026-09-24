@@ -189,6 +189,16 @@ def watheClientMixinContracts = [
         [
                 configName: "WitchSkillInventoryScreenMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WitchSkillInventoryScreenMixin.class",
+                handler: "sparkwitch\$scopeOwnerInventory",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25394",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                configName: "WitchSkillInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WitchSkillInventoryScreenMixin.class",
                 handler: "sparkwitch\$renderOwnerSkill",
                 annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
                 selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
