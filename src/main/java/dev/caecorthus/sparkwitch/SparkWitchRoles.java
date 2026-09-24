@@ -7,6 +7,7 @@ import net.minecraft.util.Identifier;
 import java.util.List;
 
 public final class SparkWitchRoles {
+    public static final Identifier EMMA_ID = SparkWitchRoleRegistry.EMMA_ID;
     public static final Identifier GRAND_WITCH_ID = SparkWitchRoleRegistry.GRAND_WITCH_ID;
     public static final Identifier ACCOMPLICE_ID = SparkWitchRoleRegistry.ACCOMPLICE_ID;
     public static final Identifier APPRENTICE_WITCH_ID = SparkWitchRoleRegistry.APPRENTICE_WITCH_ID;
@@ -39,6 +40,10 @@ public final class SparkWitchRoles {
 
     public static synchronized void refreshAssassinGuessRoleOrder() {
         SparkWitchRoleRegistry.refreshAssassinGuessRoleOrder();
+    }
+
+    public static Role emma() {
+        return SparkWitchRoleRegistry.emma();
     }
 
     public static Role grandWitch() {

@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
+import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientModule;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientModule;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
@@ -51,6 +52,7 @@ import dev.doctor4t.ratatouille.client.util.ambience.AmbienceUtil;
 import dev.doctor4t.ratatouille.client.util.ambience.BackgroundAmbience;
 import dev.doctor4t.wathe.api.event.AllowPlayerChat;
 import dev.doctor4t.wathe.api.event.CanSeePoison;
+import dev.doctor4t.wathe.api.event.ShouldAllowSuppressedKey;
 import dev.doctor4t.wathe.api.event.ShouldShowCohort;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.client.gui.RoleAnnouncementTexts;
@@ -61,6 +63,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 
@@ -72,6 +75,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         SecondaryAbilityController.registerKeyBinding();
         BlackRavenClientModule.register();
         GrandWitchClientModule.register();
+        EmmaClientModule.register();
         WitchMaidenClientModule.register();
         VendettaKnifeModelLoadingPlugin.register();
         SecondaryAbilityController.reset();
@@ -91,6 +95,17 @@ public final class SparkWitchClient implements ClientModInitializer {
                     GuardianAngelRules.isGuardianAngel(role),
                     player.isCreative()
             );
+        });
+        ShouldAllowSuppressedKey.EVENT.register(keyBinding -> {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (!SparkWitchServerConnection.isConfirmedServer()
+                    || client.player == null
+                    || keyBinding != client.options.jumpKey) {
+                return false;
+            }
+            // Wathe 会先询问该事件再压制跳跃键；活跃冤魂必须无视地图禁跳和跳跃体力检查。
+            boolean activeWraith = WraithClientState.isActive(client.player);
+            return activeWraith && WraithParticipationRules.mayJump(true, false);
         });
 
         // Reset on every connection lifecycle edge so failed login attempts cannot leak confirmed state.
@@ -125,6 +140,8 @@ public final class SparkWitchClient implements ClientModInitializer {
                         && SaboteurRole.ID.equals(role.identifier());
                 if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
+                } else if (EmmaClientModule.isEmma(client.player)) {
+                    EmmaClientModule.use(client.player);
                 } else if (exactSaboteurRole) {
                     if (SaboteurClientAbilityRules.shouldSend(
                             true,

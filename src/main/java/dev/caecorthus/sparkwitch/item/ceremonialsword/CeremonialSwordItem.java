@@ -22,6 +22,8 @@ public class CeremonialSwordItem extends Item {
     public static final int ATTACK_DAMAGE = 16;
     private static final net.minecraft.util.Identifier MOVEMENT_SPEED_MODIFIER_ID =
             SparkWitch.id("ceremonial_sword_movement_speed");
+    private static final net.minecraft.util.Identifier ATTACK_RANGE_MODIFIER_ID =
+            SparkWitch.id("ceremonial_sword_attack_range");
     // Player-facing vanilla damage = player base damage + material damage + item bonus.
     // 玩家看到/实际原版伤害 = 玩家基础伤害 + 材料伤害 + 物品 bonus。
     public static final int ATTACK_DAMAGE_BONUS_VALUE = (int) (ATTACK_DAMAGE
@@ -37,6 +39,8 @@ public class CeremonialSwordItem extends Item {
     public static AttributeModifiersComponent createAttributeModifiers() {
         // Combat attributes apply only to main-hand attacks; movement is reconciled across both hands.
         // 战斗属性仅用于主手攻击；移速单独汇总主副手持有状态。
+        // Entity reach is shared by client targeting and server validation; block reach stays unchanged.
+        // 实体距离同时用于客户端选中与服务端校验；方块交互距离保持不变。
         return AttributeModifiersComponent.builder()
                 .add(
                         EntityAttributes.GENERIC_ATTACK_DAMAGE,
@@ -52,6 +56,15 @@ public class CeremonialSwordItem extends Item {
                         new EntityAttributeModifier(
                                 BASE_ATTACK_SPEED_MODIFIER_ID,
                                 GrandWitchRules.CEREMONIAL_SWORD_ATTACK_SPEED - 4.0,
+                                EntityAttributeModifier.Operation.ADD_VALUE
+                        ),
+                        AttributeModifierSlot.MAINHAND
+                )
+                .add(
+                        EntityAttributes.PLAYER_ENTITY_INTERACTION_RANGE,
+                        new EntityAttributeModifier(
+                                ATTACK_RANGE_MODIFIER_ID,
+                                2.0,
                                 EntityAttributeModifier.Operation.ADD_VALUE
                         ),
                         AttributeModifierSlot.MAINHAND

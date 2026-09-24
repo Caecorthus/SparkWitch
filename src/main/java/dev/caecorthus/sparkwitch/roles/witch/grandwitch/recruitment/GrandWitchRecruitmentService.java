@@ -56,6 +56,10 @@ public final class GrandWitchRecruitmentService {
             return WitchSkillUseResult.fail("message.sparkwitch.recruitment.no_capacity");
         }
         try {
+            if (dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules.isEmma(game.getRole(target))) {
+                dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent.KEY.get(target).reveal(recruiter.getUuid());
+                return WitchSkillUseResult.fail("message.sparkwitch.recruitment.emma_resisted");
+            }
             PlayerShopComponent shop = PlayerShopComponent.KEY.get(target);
             RecruitmentInventorySnapshot inventory;
             try {

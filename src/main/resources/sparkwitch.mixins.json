@@ -23,6 +23,14 @@
     "JudgeNetworkTeleportRecoveryMixin",
     "PoliceSlotAssignmentMixin",
     "PoliceRoleHistoryMixin",
+    "EmmaBacklashDeathMixin",
+    "EmmaCopSlotMixin",
+    "EmmaRoleClaimMixin",
+    "EmmaRoleHistoryMixin",
+    "EmmaRoundStartMixin",
+    "EmmaPoliceGunMixin",
+    "EmmaNativeGunFallbackMixin",
+    "EmmaExactCooldownMixin",
     "ForceRoleCommandMixin",
     "GameFunctionsBlackRavenDropMixin",
     "GameFunctionsCeremonialSwordProtectionMixin",
@@ -60,6 +68,8 @@
     "WraithDeadParticipationMixin",
     "WraithDeathCaptureMixin",
     "WraithDoorPassingMixin",
+    "WraithEntityCollisionMixin",
+    "WraithLivingEntityCollisionMixin",
     "WraithOwnedEffectMixin",
     "WraithPlayerMoodComponentMixin",
     "WraithPlayerShopComponentMixin",
@@ -81,5 +91,6 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "plugin": "dev.caecorthus.sparkwitch.mixin.EmmaMixinPlugin"
 }

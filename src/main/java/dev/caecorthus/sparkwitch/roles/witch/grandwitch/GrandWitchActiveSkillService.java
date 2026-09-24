@@ -7,12 +7,11 @@ import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
-import dev.doctor4t.wathe.index.WatheItems;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
+import dev.doctor4t.wathe.util.ShopEntry;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
@@ -53,17 +52,12 @@ public final class GrandWitchActiveSkillService {
                 return;
             }
         }
-        int knifeSlot = findFirstKnifeSlot(inventory);
         ItemStack sword = new ItemStack(SparkWitchItems.ceremonialSword());
-        if (knifeSlot >= 0) {
-            inventory.setStack(knifeSlot, sword);
-            if (shouldAutoSelectCeremonialSwordSlot(knifeSlot)) {
-                inventory.selectedSlot = knifeSlot;
-                player.networkHandler.sendPacket(new UpdateSelectedSlotS2CPacket(knifeSlot));
-            }
-        } else if (!inventory.insertStack(sword)) {
-            // Never overwrite unrelated inventory or silently lose a full-inventory reward.
-            // 背包已满时掉落奖励，不能覆盖无关物品或静默丢失奖励。
+        // Wathe exposes only the hotbar; add the reward without replacing knives in either hand.
+        // Wathe 仅展示快捷栏；额外发放奖励，不替换主副手匕首。
+        if (!ShopEntry.insertStackInFreeSlot(player, sword)) {
+            // Drop the reward when the hotbar is full; never overwrite existing items.
+            // 快捷栏已满时掉落奖励，不能覆盖已有物品。
             player.dropItem(sword, false);
         }
         inventory.markDirty();
@@ -98,19 +92,6 @@ public final class GrandWitchActiveSkillService {
         removeCeremonialSwords(player);
         stopCeremonialSwordBgm(player);
         WitchPlayerComponent.KEY.get(player).clearCeremonialSwordWindow();
-    }
-
-    private static int findFirstKnifeSlot(PlayerInventory inventory) {
-        for (int slot = 0; slot < inventory.size(); slot++) {
-            if (inventory.getStack(slot).isOf(WatheItems.KNIFE)) {
-                return slot;
-            }
-        }
-        return -1;
-    }
-
-    static boolean shouldAutoSelectCeremonialSwordSlot(int slot) {
-        return PlayerInventory.isValidHotbarIndex(slot);
     }
 
     private static void removeCeremonialSwords(ServerPlayerEntity player) {

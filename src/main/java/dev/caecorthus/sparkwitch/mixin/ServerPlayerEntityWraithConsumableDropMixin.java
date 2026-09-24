@@ -10,6 +10,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ServerPlayerEntity.class)
 public abstract class ServerPlayerEntityWraithConsumableDropMixin {
+    // Cover the server hotbar-drop path as well as inventory clicks.
+    // 同时覆盖服务端快捷栏丢弃路径与背包点击路径。
     @Inject(method = "dropSelectedItem(Z)Z", at = @At("HEAD"), cancellable = true)
     private void sparkwitch$blockRestrictedWraithSelectedDrop(
             boolean entireStack,

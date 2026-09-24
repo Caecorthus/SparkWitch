@@ -18,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ScreenHandler.class)
 public abstract class ScreenHandlerWraithConsumableDropMixin {
+    // Match Minecraft's exact field descriptor so the packaged shadow can be remapped.
+    // 必须匹配 Minecraft 的精确字段类型，发布包中的 Shadow 才能正确映射。
     @Shadow
     @Final
     public DefaultedList<Slot> slots;
@@ -40,6 +42,8 @@ public abstract class ScreenHandlerWraithConsumableDropMixin {
             PlayerEntity player,
             CallbackInfo ci
     ) {
+        // Only the server enforces the restriction and resynchronizes rejected drops.
+        // 仅服务端执行限制，并在拒绝丢弃后重新同步背包。
         if (!(player instanceof ServerPlayerEntity serverPlayer)) {
             return;
         }
