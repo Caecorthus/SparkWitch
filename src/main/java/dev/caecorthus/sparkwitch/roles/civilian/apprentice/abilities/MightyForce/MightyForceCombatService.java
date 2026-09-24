@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
@@ -46,6 +47,11 @@ public final class MightyForceCombatService {
             return ActionResult.PASS;
         }
 
+        if (SparkTraitsKillerBridge.isKillerInteractionBlocked(serverAttacker)
+                || SparkTraitsKillerBridge.shouldCancelMeleeAttack(
+                        serverAttacker, (ServerPlayerEntity) target, serverAttacker.getStackInHand(hand))) {
+            return ActionResult.FAIL;
+        }
         strike(serverAttacker, (ServerPlayerEntity) target);
         return ActionResult.SUCCESS;
     }

@@ -25,6 +25,7 @@
   },
   "custom": {
     "cardinal-components": [
+      "sparkwitch:judge_round",
       "sparkwitch:player",
       "sparkwitch:perfumer_player",
       "sparkwitch:curser_player",
@@ -69,10 +70,10 @@
     "cardinal-components-world": ">=${cca_version}"
   },
   "suggests": {
-    "sparktraits": ">=0.1.9.10",
+    "sparktraits": ">=0.1.9.11",
     "sparkstrength": "*"
   },
   "breaks": {
-    "sparktraits": "<0.1.9.10"
+    "sparktraits": "<0.1.9.11"
   }
 }

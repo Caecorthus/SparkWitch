@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.item.firepoker;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
@@ -42,6 +43,11 @@ public final class FirePokerCombatService {
             return ActionResult.PASS;
         }
 
+        // This item only pushes/debuffs: reject new actions, but never count the push as a damage parry.
+        // 此物品只击退/施加减益：拒绝新动作，但不把推搡视为伤害格挡。
+        if (SparkTraitsKillerBridge.blocksWeaponAction(serverAttacker, serverAttacker.getStackInHand(hand))) {
+            return ActionResult.FAIL;
+        }
         if (serverAttacker.getItemCooldownManager().isCoolingDown(SparkWitchItems.firePoker())
                 || !canStrike(serverAttacker, serverTarget)) {
             return ActionResult.SUCCESS;

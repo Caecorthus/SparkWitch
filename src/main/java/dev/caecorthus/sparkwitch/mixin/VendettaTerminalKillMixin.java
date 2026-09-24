@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.mixin;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaTerminalService;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaDisconnectService;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -26,6 +27,9 @@ public abstract class VendettaTerminalKillMixin {
             boolean force,
             CallbackInfo ci
     ) {
+        if (SparkTraitsKillerBridge.isLastEscapeActive(victim)) {
+            return;
+        }
         if (VendettaDisconnectService.shouldPauseOfflineBoundKillerEscape(
                 victim, killer, deathReason, force)) {
             ci.cancel();
