@@ -24,4 +24,8 @@ public final class WraithParticipationRules {
     public static boolean mayPickUpGroundItems(boolean activeWraith) {
         return !activeWraith;
     }
+
+    public static boolean mayDropConsumable(boolean restrictedWraith, boolean consumable) {
+        return !restrictedWraith || !consumable;
+    }
 }

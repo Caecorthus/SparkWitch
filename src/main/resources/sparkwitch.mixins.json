@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "dev.caecorthus.sparkwitch.mixin",
   "compatibilityLevel": "JAVA_21",
+  "plugin": "dev.caecorthus.sparkwitch.mixin.EmmaMixinPlugin",
   "mixins": [
     "EmmaBacklashDeathMixin",
     "EmmaCopSlotMixin",
@@ -35,7 +36,9 @@
     "PlayerMoodComponentAccessor",
     "ScreenHandlerBlackRavenLedgerMixin",
     "ScreenHandlerVendettaKnifeMixin",
+    "ScreenHandlerWraithConsumableDropMixin",
     "ServerPlayNetworkAddonFearMixin",
+    "ServerPlayerEntityWraithConsumableDropMixin",
     "VendettaApplyDamageMixin",
     "VendettaTerminalKillMixin",
     "WraithGameWorldNbtMixin",
@@ -55,8 +58,8 @@
     "WindSpiritWindChargeMixin",
     "hunter.HunterPlayerMoveMixin",
     "hunter.PlayerPoisonComponentHunterSourceMixin",
-    "saboteur.PlayerShopComponentSaboteurMixin",
     "recruitment.RecruitmentShopEntryMixin",
+    "saboteur.PlayerShopComponentSaboteurMixin",
     "saboteur.WorldBlackoutDetailsSaboteurMixin",
     "tofana.GameFunctionsTofanaProtectionMixin",
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleMixin",
@@ -68,6 +71,5 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  },
-  "plugin": "dev.caecorthus.sparkwitch.mixin.EmmaMixinPlugin"
+  }
 }

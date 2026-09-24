@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
@@ -49,6 +50,9 @@ public final class DoubleBarrelShotgunItem extends Item {
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
         ItemStack shotgun = user.getStackInHand(hand);
+        if (SparkTraitsKillerBridge.blocksWeaponAction(user, shotgun)) {
+            return TypedActionResult.fail(shotgun);
+        }
         if (user.getItemCooldownManager().isCoolingDown(this)) {
             return TypedActionResult.pass(shotgun);
         }
@@ -128,6 +132,9 @@ public final class DoubleBarrelShotgunItem extends Item {
      * 背包右键与弹药直接使用统一走这里，避免冷却、装填窗口与创造模式规则分叉。
      */
     public static boolean tryReload(PlayerEntity player, ItemStack shotgun, ItemStack shells) {
+        if (SparkTraitsKillerBridge.isKillerInteractionBlocked(player)) {
+            return false;
+        }
         if (!(shotgun.getItem() instanceof DoubleBarrelShotgunItem shotgunItem)
                 || !(shells.getItem() instanceof DoubleBarrelShellItem)) {
             return false;
