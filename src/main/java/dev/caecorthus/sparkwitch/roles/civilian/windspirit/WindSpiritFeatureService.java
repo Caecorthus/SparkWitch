@@ -4,7 +4,6 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.BuildShopEntries;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.cca.PlayerStaminaComponent;
 import dev.doctor4t.wathe.cca.WorldBlackoutComponent;
 import dev.doctor4t.wathe.util.ShopEntry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -17,8 +16,8 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 
 /**
- * Owns Wind Spirit movement, blackout vision, shop access, and task income.
- * 统一持有风精灵的移动、熄灯视野、商店与任务收入。
+ * Owns Wind Spirit movement, blackout vision, and shop access.
+ * 统一持有风精灵的移动、熄灯视野与商店入口；任务金币由冤魂晋升经济策略补发。
  */
 public final class WindSpiritFeatureService {
     public static final Identifier WIND_CHARGE_SHOP_ID = SparkWitch.id("wind_spirit_wind_charge");
@@ -83,7 +82,6 @@ public final class WindSpiritFeatureService {
                 continue;
             }
             maintainSpeed(player);
-            maintainInfiniteStamina(player);
             if (WindSpiritRules.shouldMaintainBlackoutVision(true, blackoutActive)) {
                 maintainNightVision(player);
             }
@@ -107,22 +105,6 @@ public final class WindSpiritFeatureService {
                 false,
                 true
         ));
-    }
-
-    private static void maintainInfiniteStamina(ServerPlayerEntity player) {
-        PlayerStaminaComponent stamina = PlayerStaminaComponent.KEY.get(player);
-        boolean changed = false;
-        if (stamina.getMaxSprintTime() != -1) {
-            stamina.setMaxSprintTime(-1);
-            changed = true;
-        }
-        if (stamina.isExhausted()) {
-            stamina.setExhausted(false);
-            changed = true;
-        }
-        if (changed) {
-            stamina.sync();
-        }
     }
 
     private static void maintainNightVision(ServerPlayerEntity player) {

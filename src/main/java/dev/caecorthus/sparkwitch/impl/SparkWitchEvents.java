@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaGunService;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaLifecycle;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
@@ -11,6 +13,7 @@ import dev.caecorthus.sparkwitch.item.firepoker.FirePokerCombatService;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerFallAttributionService;
 import dev.caecorthus.sparkwitch.item.tofana.TofanaProtectionService;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceCombatService;
+import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
@@ -40,6 +43,7 @@ import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerFeatureServic
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragLifecycle;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperKnockoutService;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRuntime;
@@ -70,9 +74,12 @@ public final class SparkWitchEvents {
         }
         registered = true;
 
+        JudgeRuntime.register();
         CeremonialSwordCombatService.register();
         CeremonialSwordDashService.register();
         GrandWitchFeatureService.register();
+        EmmaLifecycle.register();
+        EmmaGunService.register();
         MightyForceCombatService.register();
         FirePokerCombatService.register();
         TofanaProtectionService.register();
@@ -95,6 +102,7 @@ public final class SparkWitchEvents {
         VendettaDisconnectService.register();
         VendettaReplayService.register();
         VendettaTerminalService.register();
+        KidnapperKnockoutService.register();
         KidnapperDragLifecycle.register();
         TarotReaderFeatureService.register();
         BlackRavenFeatureService.register();

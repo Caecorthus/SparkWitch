@@ -37,6 +37,9 @@ public abstract class GameFunctionsSaintProtectionMixin {
         if (BellRingerRules.piercesProtection(deathReason, force)) {
             return;
         }
+        if (killer == null && dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaTerminalService.isBacklash(deathReason)) {
+            return;
+        }
         // Traits owns active-phase immunity and its train/lifecycle exceptions before protection costs.
         // Traits 在消耗保护前裁定脱险无敌及列车/生命周期例外。
         if (SparkTraitsKillerBridge.isLastEscapeActive(victim)) {

@@ -7,18 +7,18 @@ import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRules;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithConsumableInventoryRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCollisionRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.block.DrinkTrayBlock;
 import dev.doctor4t.wathe.block.FoodPlatterBlock;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
-import dev.doctor4t.wathe.item.CocktailItem;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.block.BedBlock;
-import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
@@ -42,6 +42,7 @@ final class WraithParticipation {
         }
         registered = true;
         registerPlayerIsolation();
+        registerCollisionExemption();
         registerGunPunishmentProtection();
         registerInteractions();
         SparkFactionApi.registerEffectiveFactionResolver(WraithParticipation::resolveFaction);
@@ -84,6 +85,19 @@ final class WraithParticipation {
                             actor.getUuid().equals(target.getUuid())
                     );
         });
+    }
+
+    /**
+     * Registers active Wraith players into SparkFactionAPI's bilateral entity-collision exemption.
+     * 将冤魂透明态玩家登记到 SparkFactionAPI 的双向实体碰撞豁免表。
+     *
+     * <p>这里统一沿用 {@link WraithCollisionRules#isCollisionTransparent(net.minecraft.entity.Entity)}：
+     * active 冤魂是玩法态，{@code noellesroles:no_collision} 是同步态。碰撞判断会同时接受两者，
+     * 这样其他玩家客户端也能用已经同步过来的状态效果正确识别冤魂透明态。</p>
+     */
+    private static void registerCollisionExemption() {
+        SparkFactionApi.registerEntityCollisionExemption(entity ->
+                WraithCollisionRules.isCollisionTransparent(entity));
     }
 
     static boolean shouldCancelGunPunishment(
@@ -149,7 +163,7 @@ final class WraithParticipation {
                 WraithStateService.isRestricted(player) ? ActionResult.FAIL : ActionResult.PASS);
         UseItemCallback.EVENT.register((player, world, hand) -> {
             var stack = player.getStackInHand(hand);
-            boolean allowed = stack.contains(DataComponentTypes.FOOD) || stack.getItem() instanceof CocktailItem;
+            boolean allowed = WraithConsumableInventoryRules.isConsumable(stack);
             return WraithStateService.isRestricted(player) && !allowed
                     ? TypedActionResult.fail(stack) : TypedActionResult.pass(stack);
         });

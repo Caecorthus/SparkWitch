@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithReconnectPolicy;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStaminaService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithConversion;
 import dev.caecorthus.sparkwitch.roles.special.wraith.progression.WraithProgression;
@@ -25,11 +26,13 @@ import dev.doctor4t.wathe.cca.MapVariablesWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.compat.TrainVoicePlugin;
+import net.minecraft.entity.EntityPose;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 
 
@@ -38,6 +41,7 @@ import net.minecraft.world.GameMode;
  * 负责冤魂激活、重连、世界维护、身份切换与终止清理。
  */
 public final class WraithLifecycle {
+    private static final double CROUCH_RELEASE_UPWARD_VELOCITY = 0.08D;
     private static boolean registered;
 
     private WraithLifecycle() {
@@ -65,6 +69,8 @@ public final class WraithLifecycle {
         if (player.isSpectator()) {
             player.changeGameMode(GameMode.ADVENTURE);
         }
+        normalizeConvertedPose(player);
+        WraithStaminaService.ensureInfiniteStamina(player);
         WraithPresence.apply(player, true);
         restoreLivingVoice(player);
         WraithProgression.restoreForActivation(player, taskSnapshot);
@@ -77,6 +83,7 @@ public final class WraithLifecycle {
     public static void promotePlayer(ServerPlayerEntity player, Role role) {
         wakeIfSleeping(player);
         transitionRole(player, role);
+        WraithStaminaService.ensureInfiniteStamina(player);
         SaboteurFeatureService.initializePromotion(player);
         if (role == SparkWitchRoles.curser()) {
             CurserFeatureService.initializeForPromotion(player);
@@ -163,6 +170,7 @@ public final class WraithLifecycle {
             if (!wraith.isActive()) {
                 continue;
             }
+            WraithStaminaService.ensureInfiniteStamina(player);
             if (playArea != null && shouldTerminateForFall(true, player.getY(), playArea.minY)) {
                 // Falling ends Wraith participation, while target-owned effects finish independently.
                 // 坠落会终止冤魂参与，但目标持有的效果仍独立结束。
@@ -170,6 +178,23 @@ public final class WraithLifecycle {
                 continue;
             }
             WraithPresence.apply(player, wraith.isRestricted());
+        }
+    }
+
+    private static void normalizeConvertedPose(ServerPlayerEntity player) {
+        boolean wasCrouching = player.isSneaking() || player.getPose() == EntityPose.CROUCHING;
+        player.setSneaking(false);
+        player.setPose(EntityPose.STANDING);
+        player.calculateDimensions();
+        if (!wasCrouching) {
+            return;
+        }
+        Vec3d velocity = player.getVelocity();
+        if (velocity.y < CROUCH_RELEASE_UPWARD_VELOCITY) {
+            // 死亡转冤魂时如果玩家仍保持 Shift 矮碰撞箱，可能被刷新到方块内；
+            // 切回站立碰撞箱后给一个很小的向上速度，帮助玩家脱离地面边缘。
+            player.setVelocity(velocity.x, CROUCH_RELEASE_UPWARD_VELOCITY, velocity.z);
+            player.velocityModified = true;
         }
     }
 

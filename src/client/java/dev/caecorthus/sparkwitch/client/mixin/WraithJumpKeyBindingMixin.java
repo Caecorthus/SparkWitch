@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Rejects the local jump key before prediction when Wathe's map disables jumping. */
+/** Routes the local jump key through Wraith policy before client prediction. */
 @Mixin(KeyBinding.class)
 public abstract class WraithJumpKeyBindingMixin {
     @Inject(method = "isPressed", at = @At("HEAD"), cancellable = true)

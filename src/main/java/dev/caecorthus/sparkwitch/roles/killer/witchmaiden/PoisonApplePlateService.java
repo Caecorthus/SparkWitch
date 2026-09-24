@@ -45,7 +45,7 @@ public final class PoisonApplePlateService {
         return true;
     }
 
-    public static void recordSuccessfulTake(PlayerEntity player, PoisonApplePlateAccess plate) {
+    public static void recordSuccessfulTake(ItemStack takenStack, PoisonApplePlateAccess plate) {
         UUID matchUuid = activeMatchId();
         plate.sparkwitch$clearIfMatchChanged(matchUuid);
         if (matchUuid == null) {
@@ -55,7 +55,6 @@ public final class PoisonApplePlateService {
         if (poisonerUuid == null) {
             return;
         }
-        ItemStack takenStack = player.getMainHandStack();
         takenStack.set(WatheDataComponentTypes.POISONER, poisonerUuid.toString());
         PoisonAppleDrinkMarker.mark(takenStack);
     }

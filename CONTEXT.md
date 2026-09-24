@@ -15,7 +15,7 @@ Current build baseline:
 
 - Minecraft `1.21.1`
 - Java `21`
-- SparkWitch `0.1.5.9` (shared-factor branch)
+- SparkWitch `0.1.6.0` (Emma branch)
 - SparkFactionAPI floor `0.1.5.8`
 
 ## Read Order
@@ -53,6 +53,10 @@ Current build baseline:
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
+- `roles/civilian/emma/`: unique cop claim, role-owned mana skill, delayed backlash,
+  owner-private failed-recruitment evidence, speed latch, and one reward per gun cycle.
+- `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
+- `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
   `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters.
 - `mana/`: mana economy and natural-regeneration runtime.
