@@ -41,6 +41,8 @@
     "WraithDeadParticipationMixin",
     "WraithDeathCaptureMixin",
     "WraithDoorPassingMixin",
+    "WraithEntityCollisionMixin",
+    "WraithLivingEntityCollisionMixin",
     "WraithOwnedEffectMixin",
     "WraithPlayerMoodComponentMixin",
     "WraithPlayerShopComponentMixin",

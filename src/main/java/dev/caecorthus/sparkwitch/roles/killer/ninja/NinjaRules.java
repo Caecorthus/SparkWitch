@@ -15,6 +15,8 @@ public final class NinjaRules {
     public static final Identifier PARRY_SKILL_ID = Identifier.of("sparkwitch", "ninja_parry");
     public static final int COLOR = 0x2C2C2C;
     public static final int PARRY_INITIAL_COOLDOWN_TICKS = 1200;
+    // 忍者开局苦无先锁 60 秒，和出刀后的 30 秒使用冷却分开管理。
+    public static final int NINJA_KNIFE_INITIAL_COOLDOWN_TICKS = 60 * 20;
     public static final int PARRY_WINDOW_TICKS = 50;
     public static final int PARRY_COOLDOWN_TICKS = 3600;
     public static final int DARK_KILL_BOUNTY = 100;
