@@ -124,6 +124,7 @@ public final class SparkWitchClient implements ClientModInitializer {
             KidnapperThrowClientHooks.tick(client);
             GrandWitchFearClientHooks.tick();
             DeathRayClientHooks.tick(client);
+            dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter.tick(client);
             if (client.player != null
                     && client.getNetworkHandler() != null
                     && WitchAbilityKeyBridge.wasPressed()) {
@@ -238,6 +239,7 @@ public final class SparkWitchClient implements ClientModInitializer {
     }
 
     private static void resetConnectionState() {
+        dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter.reset();
         SparkWitchServerConnection.reset();
         WitchAbilityKeyBridge.reset();
         SecondaryAbilityController.reset();
