@@ -150,7 +150,7 @@ tasks.named("jar") {
 }
 
 def remappedModJar = tasks.named("remapJar")
-def compatibilityReleaseVersion = "0.1.5.9"
+def compatibilityReleaseVersion = "0.1.6.0"
 def compatibilityBaselines = [
         wathe: [
                 property: "wathe_version",

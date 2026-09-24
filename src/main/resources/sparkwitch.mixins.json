@@ -4,6 +4,14 @@
   "package": "dev.caecorthus.sparkwitch.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "EmmaBacklashDeathMixin",
+    "EmmaCopSlotMixin",
+    "EmmaRoleClaimMixin",
+    "EmmaRoleHistoryMixin",
+    "EmmaRoundStartMixin",
+    "EmmaPoliceGunMixin",
+    "EmmaNativeGunFallbackMixin",
+    "EmmaExactCooldownMixin",
     "ForceRoleCommandMixin",
     "GameFunctionsBlackRavenDropMixin",
     "GameFunctionsCeremonialSwordProtectionMixin",
@@ -64,5 +72,6 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "plugin": "dev.caecorthus.sparkwitch.mixin.EmmaMixinPlugin"
 }

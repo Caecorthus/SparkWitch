@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaGunService;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaLifecycle;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
@@ -73,6 +75,8 @@ public final class SparkWitchEvents {
         CeremonialSwordCombatService.register();
         CeremonialSwordDashService.register();
         GrandWitchFeatureService.register();
+        EmmaLifecycle.register();
+        EmmaGunService.register();
         MightyForceCombatService.register();
         FirePokerCombatService.register();
         TofanaProtectionService.register();
