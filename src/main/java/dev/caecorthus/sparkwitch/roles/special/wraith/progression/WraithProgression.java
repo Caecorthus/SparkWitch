@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.special.wraith.progression;
 
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.CanSeeMoney;
 import dev.doctor4t.wathe.api.event.TaskComplete;
@@ -75,7 +76,8 @@ public final class WraithProgression {
             return;
         }
         boolean canSeeMoney = CanSeeMoney.EVENT.invoker().canSee(player) == CanSeeMoney.Result.ALLOW;
-        int taskReward = WraithPromotionEconomyPolicy.taskReward(true, canSeeMoney);
+        boolean promotedWindSpirit = wraith.isPromoted() && WindSpiritRules.isWindSpirit(player);
+        int taskReward = WraithPromotionEconomyPolicy.taskReward(true, canSeeMoney, promotedWindSpirit);
         if (taskReward > 0) {
             PlayerShopComponent.KEY.maybeGet(player)
                     .ifPresent(shop -> shop.addToBalance(taskReward));

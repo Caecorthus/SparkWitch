@@ -14,5 +14,6 @@
 
 # Local test sources
 /src/test/
+/test-review.diff
 
 /docs/

@@ -5,7 +5,6 @@ import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.game.GameConstants;
 import net.minecraft.util.Identifier;
 
 /** Non-rollable civilian identity awarded by Wraith promotion. / 冤魂晋升授予的不可随机平民身份。 */
@@ -16,7 +15,8 @@ public final class WindSpiritRole {
     public static final FactionRoleDefinition DEFINITION = FactionRoleDefinition.builder(ROLE_ID, FactionIds.CIVILIAN)
             .color(COLOR)
             .moodType(Role.MoodType.NONE)
-            .maxSprintTime(GameConstants.getInTicks(0, 10))
+            // 风精灵只通过冤魂晋升获得，职业定义本身也保持无限体力，避免 Wathe 重新套用好人体力条。
+            .maxSprintTime(-1)
             .canSeeTime(false)
             .appearanceCondition(context -> false)
             .nativeWatheFaction(Faction.CIVILIAN)

@@ -4,9 +4,12 @@ import dev.caecorthus.sparkfactionapi.api.FactionCapabilities;
 import dev.caecorthus.sparkfactionapi.api.FactionDefinition;
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
+import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
+import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRole;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
@@ -17,6 +20,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaRole;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
@@ -62,6 +66,8 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier SABOTEUR_ID = SaboteurRole.ID;
     public static final Identifier WITCH_MAIDEN_ID = WitchMaidenRules.ROLE_ID;
     public static final Identifier CURSER_ID = CurserRole.ID;
+    public static final Identifier BELL_RINGER_ID = BellRingerRules.ROLE_ID;
+    public static final Identifier JUDGE_ID = JudgeRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -85,6 +91,8 @@ public final class SparkWitchRoleRegistry {
     private static Role saboteur;
     private static Role witchMaiden;
     private static Role curser;
+    private static Role bellRinger;
+    private static Role judge;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -101,6 +109,8 @@ public final class SparkWitchRoleRegistry {
         registerFactions();
         registerFactionApiRoles();
         registerNativeWatheRoles();
+        PoliceRoles.register(JUDGE_ID);
+        PoliceRoles.register(PoliceSlotAssignmentService.EMMA_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
@@ -222,6 +232,16 @@ public final class SparkWitchRoleRegistry {
         return curser;
     }
 
+    public static Role bellRinger() {
+        ensureRegistered();
+        return bellRinger;
+    }
+
+    public static Role judge() {
+        ensureRegistered();
+        return judge;
+    }
+
     public static boolean isSparkWitchRole(Role role) {
         ensureRegistered();
         return isRegisteredSparkWitchRole(role);
@@ -286,7 +306,9 @@ public final class SparkWitchRoleRegistry {
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
                 .canSeeTime(true)
-                .appearanceCondition(RoleAppearanceCondition.minPlayers(18))
+                // Exclude natural selection; explicit recruitment still assigns this registered role.
+                // 排除自然抽选；主动招募仍可直接赋予这个已注册职业。
+                .appearanceCondition(context -> false)
                 .build());
         windSpirit = SparkFactionApi.registerRole(WindSpiritRole.DEFINITION);
         guardianAngel = SparkFactionApi.registerRole(GuardianAngelRole.DEFINITION);
@@ -336,6 +358,13 @@ public final class SparkWitchRoleRegistry {
                 .appearanceCondition(RoleAppearanceCondition.ALWAYS)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        judge = SparkFactionApi.registerRole(FactionRoleDefinition.builder(JUDGE_ID, FactionIds.CIVILIAN)
+                .color(JudgeRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Wathe's special-killer selector consumes each registered non-vanilla role candidate once,
         // so the default spawn group of one is also Ninja's one-per-round maximum.
         // Wathe 的特殊杀手分配器每局只消费一次非原版职业候选，默认单人组即为忍者每局至多一人。
@@ -375,6 +404,16 @@ public final class SparkWitchRoleRegistry {
         // 与忍者相同，默认单人分配组保证绑架者每局至多一人。
         kidnapper = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KIDNAPPER_ID, FactionIds.KILLER)
                 .color(KidnapperRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
+        // Appended last so existing role registration order stays unchanged; the default one-player spawn
+        // group keeps the Bell Ringer to at most one per round, like Ninja and Kidnapper.
+        // 追加在最后以保持既有职业注册顺序不变；与忍者、绑架者相同，默认单人分配组保证敲钟人每局至多一人。
+        bellRinger = SparkFactionApi.registerRole(FactionRoleDefinition.builder(BELL_RINGER_ID, FactionIds.KILLER)
+                .color(BellRingerRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
                 .canSeeTime(true)
@@ -420,11 +459,13 @@ public final class SparkWitchRoleRegistry {
                 perfumer,
                 pigGod,
                 tarotReader,
+                judge,
                 ninja,
                 blackRaven,
                 witchMaiden,
                 hunter,
                 kidnapper,
+                bellRinger,
                 murderousWitch,
                 accomplice,
                 grandWitch,
@@ -451,6 +492,7 @@ public final class SparkWitchRoleRegistry {
                 || role == ninja
                 || role == kidnapper
                 || role == blackRaven
-                || role == witchMaiden;
+                || role == witchMaiden
+                || role == bellRinger;
     }
 }

@@ -1,10 +1,14 @@
 package dev.caecorthus.sparkwitch.api;
 
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 
-/** Public read-only facade for downstream Wraith compatibility. / 面向下游冤魂兼容的只读公共门面。 */
+import java.util.UUID;
+
+/** Public facade for narrowly scoped downstream compatibility. / 面向下游精确兼容用途的公共门面。 */
 public final class SparkWitchApi {
     private static LastEscapeVisionRenderer lastEscapeVisionRenderer;
 
@@ -38,6 +42,12 @@ public final class SparkWitchApi {
     }
 
     private SparkWitchApi() {
+    }
+
+    /** Preserves the responsible UUID for one synchronous lethal action, including offline owners.
+     * 为一次同步致死操作保留责任 UUID，包含离线责任人；嵌套调用和异常会恢复原上下文。 */
+    public static void runWithKillAttribution(ServerWorld world, UUID responsiblePlayer, Runnable action) {
+        JudgeKillAttribution.runWith(world, responsiblePlayer, action);
     }
 
     public static boolean isWraithActive(PlayerEntity player) {
