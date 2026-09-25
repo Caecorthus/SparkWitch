@@ -1,4 +1,6 @@
 {
+  "modmenu.summaryTranslation.sparkwitch": "Witch faction roles and active skill framework for Spark Wathe.",
+  "modmenu.descriptionTranslation.sparkwitch": "Witch faction roles and active skill framework for Spark Wathe.\nDLC textures made by Claude, GPT-Image & I_siya.",
   "faction.sparkwitch.witch": "Witches",
   "command.sparkwitch.force_promotion.unknown_role": "Unknown Wraith promotion role: %s",
   "command.sparkwitch.force_promotion.success": "Locked the future Wraith promotion for %s player(s) to %s.",
