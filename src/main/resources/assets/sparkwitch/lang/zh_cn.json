@@ -1,4 +1,6 @@
 {
+  "modmenu.summaryTranslation.sparkwitch": "为 Spark Wathe 提供魔女阵营职业与主动技能框架。",
+  "modmenu.descriptionTranslation.sparkwitch": "为 Spark Wathe 提供魔女阵营职业与主动技能框架。\nDLC 材质由 Claude、GPT-Image 与 I_siya 制作。",
   "faction.sparkwitch.witch": "魔女",
   "command.sparkwitch.force_promotion.unknown_role": "未知的冤魂晋升职业：%s",
   "command.sparkwitch.force_promotion.success": "已为 %s 名玩家锁定未来的冤魂晋升职业：%s。",
