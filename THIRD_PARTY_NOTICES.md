@@ -36,7 +36,7 @@ included at `licenses/NoellesRoles-LGPL-3.0-or-later.txt`.
 
 ## StarRailExpress Ninja
 
-The Ninja role mechanics, shop/loadout design, weapon implementation, and item artwork were
+The Ninja role mechanics, shop/loadout design, weapon implementation, and item models were
 adapted or copied from
 [catmoon-train/StarRailExpress](https://github.com/catmoon-train/StarRailExpress) at commit
 `220d03ede335fc7971fcffbc302bc68bb91b0209`, credited upstream to the Catmoon Train Team
@@ -55,12 +55,14 @@ The following files contain adapted code:
 - `src/main/java/dev/caecorthus/sparkwitch/entity/NinjaShurikenEntity.java`, from
   `src/main/java/org/agmas/noellesroles/content/entity/ThrowingKnifeEntity.java`
 
-The following files are copied artwork with namespace-only model changes:
+The following files are copied item models with namespace-only changes:
 
-- `src/main/resources/assets/sparkwitch/textures/item/ninja_knife.png`
-- `src/main/resources/assets/sparkwitch/textures/item/ninja_shuriken.png`
 - `src/main/resources/assets/sparkwitch/models/item/ninja_knife.json`
 - `src/main/resources/assets/sparkwitch/models/item/ninja_shuriken.json`
+
+On 2026-09-25, SparkWitch replaced the upstream `ninja_knife.png` and `ninja_shuriken.png` item
+textures with new 16x16 artwork. The upstream item textures are no longer included in SparkWitch
+builds from that change onward.
 
 SparkWitch's 2026-07-14 modifications port the code to Minecraft 1.21.1 Yarn/Fabric APIs,
 replace the upstream custom throw packet with server-authoritative vanilla item release,
