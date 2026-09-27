@@ -130,6 +130,20 @@ adds no suppression and must not break the client. Bell Ringer may query only
 `setExactItemCooldownRemaining` beyond the shared weapon-action gate; an absent
 or older build means no block, no terminal registration, and a vanilla cooldown.
 
+Active Wraiths do not absorb another player's aimed action in the client
+selectors listed below. `client/render/WraithAimPassThrough` owns the rule: a player whose synced
+Wraith state is active is skipped as an aim or crosshair target, except by the
+local bound killer of that active Vendetta. Invisibility and
+`noellesroles:no_collision` are never Wraith signals. The Wathe revolver,
+derringer, and knife selectors and the NoellesRoles Demon Hunter selector open a
+thread-local shooter scope through `@WrapMethod` (so SparkTraits Marksman HEAD
+replacements stay covered); only that shooter's
+`ProjectileUtil.getCollision(Entity, Predicate, double)` is filtered. The vanilla
+crosshair is filtered for the local non-spectator player, and Wathe's bed-hit
+fallback drops a sleeping Wraith on the client. Server authority is unchanged:
+SparkFactionAPI's affect policy still cancels any Wraith target that slips
+through.
+
 ## Tofana Elixir Vocabulary
 
 - **Tofana protection**: A single-use protection granted by possessing Tofana Elixir. It cancels one otherwise valid, non-forced Wathe kill by another active player and consumes one elixir.
