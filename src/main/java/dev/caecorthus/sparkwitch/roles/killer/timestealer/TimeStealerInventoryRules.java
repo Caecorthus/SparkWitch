@@ -56,18 +56,25 @@ public final class TimeStealerInventoryRules {
                 validSlot,
                 clicked != null && isBound(clicked.getStack()),
                 clicked != null && clicked.inventory == inventory,
-                swapSourceBound));
+                swapSourceBound,
+                // The offhand is also reachable as a handler slot (PlayerScreenHandler index 45 → inventory index 40).
+                // 副手也可作为界面栏位被直接点击（PlayerScreenHandler 下标 45 → 背包下标 40）。
+                clicked != null && clicked.inventory == inventory
+                        && clicked.getIndex() == PlayerInventory.OFF_HAND_SLOT));
     }
 
     /**
      * Pure decision, checked in order. Beyond the Bell Ringer rules it adds two tightenings: QUICK_MOVE of a bound
      * stack is always refused (in the holder's own screen it can only push a hotbar stack into the hidden main slots
      * 9-35, and Wathe's limited screen never sends it), and SWAP with button 40 involving a bound stack is refused (the
-     * offhand is invisible in Wathe's UI). Still allowed: PICKUP (left, or right-click half-split) within the holder's
+     * offhand is invisible in Wathe's UI). The offhand rule covers both routes into the offhand: the button-40 swap and
+     * a click on the offhand handler slot itself (a number-key SWAP there, or a PICKUP placing a bound cursor there).
+     * Taking a bound stack out of the offhand with PICKUP stays allowed. Still allowed: PICKUP (left, or right-click half-split) within the holder's
      * own slots, PICKUP_ALL on an own slot, and hotbar number-key SWAP between own slots.
      * 纯函数判定，按顺序检查。在敲钟人规则之上增加两条收紧：绑定物品的 QUICK_MOVE 一律拒绝（在自身界面中它只会把快捷栏
      * 物品推入隐藏的主背包 9-35 格，而 Wathe 的受限界面从不发送它）；涉及绑定物品的副手 SWAP（button 40）拒绝
-     * （副手在 Wathe 界面中不可见）。仍然允许：在自身栏位内的 PICKUP（左键或右键半分）、在自身栏位上的 PICKUP_ALL，
+     * （副手在 Wathe 界面中不可见）。副手规则覆盖进入副手的两条途径：button 40 交换，以及直接点击副手界面栏位
+     * （在该栏位上的数字键 SWAP，或以 PICKUP 把绑定光标放入该栏位）。用 PICKUP 从副手取出绑定物品仍然允许。仍然允许：在自身栏位内的 PICKUP（左键或右键半分）、在自身栏位上的 PICKUP_ALL，
      * 以及自身栏位之间的快捷栏数字键 SWAP。
      */
     static boolean blocksSlotClick(SlotClick click) {
@@ -77,7 +84,8 @@ public final class TimeStealerInventoryRules {
             return true;
         }
         // (b) Offhand swap involving a bound item, even between own slots. / 涉及绑定物品的副手交换，即使在自身栏位之间。
-        if (action == SlotActionType.SWAP && click.button() == PlayerInventory.OFF_HAND_SLOT
+        if (action == SlotActionType.SWAP
+                && (click.button() == PlayerInventory.OFF_HAND_SLOT || click.offhandSlot())
                 && (click.slotBound() || click.swapSourceBound())) {
             return true;
         }
@@ -95,6 +103,10 @@ public final class TimeStealerInventoryRules {
         }
         // (f) Drag distribution with a bound cursor. / 光标持有绑定物品时的拖拽分配。
         if (action == SlotActionType.QUICK_CRAFT && click.cursorBound()) {
+            return true;
+        }
+        // (f2) Placing a bound cursor onto the offhand slot (tightening). / 把绑定光标放入副手栏位（收紧）。
+        if (action == SlotActionType.PICKUP && click.cursorBound() && click.offhandSlot()) {
             return true;
         }
         // (g) Anything else must stay inside the holder's own inventory slots (Bell). / 其余操作必须留在持有者自身背包栏位（敲钟人）。
@@ -116,8 +128,9 @@ public final class TimeStealerInventoryRules {
      * @param slotBound       the clicked slot holds a bound stack
      * @param playerSlot      the clicked slot belongs to the clicker's own PlayerInventory
      * @param swapSourceBound for SWAP, the PlayerInventory stack at {@code button} is bound
+     * @param offhandSlot     the clicked slot is the clicker's own offhand (PlayerInventory index 40)
      */
     record SlotClick(SlotActionType action, int button, boolean cursorBound, boolean validSlot, boolean slotBound,
-                     boolean playerSlot, boolean swapSourceBound) {
+                     boolean playerSlot, boolean swapSourceBound, boolean offhandSlot) {
     }
 }
