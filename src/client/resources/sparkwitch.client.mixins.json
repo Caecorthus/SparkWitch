@@ -16,6 +16,7 @@
     "GrandWitchSwordCooldownMixin",
     "GrandWitchSwordCrosshairMixin",
     "KeyBindingFearSkillMixin",
+    "ModelElementRotationAngleMixin",
     "OrthopedistHudMixin",
     "SaintHudMixin",
     "VendettaHudMixin",
