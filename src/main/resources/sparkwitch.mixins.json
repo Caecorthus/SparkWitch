@@ -24,7 +24,6 @@
     "PoliceSlotAssignmentMixin",
     "PoliceRoleHistoryMixin",
     "EmmaBacklashDeathMixin",
-    "EmmaCopSlotMixin",
     "EmmaRoleClaimMixin",
     "EmmaRoleHistoryMixin",
     "EmmaRoundStartMixin",
