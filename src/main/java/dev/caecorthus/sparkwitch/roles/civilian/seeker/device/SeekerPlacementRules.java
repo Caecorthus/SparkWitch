@@ -41,6 +41,8 @@ public final class SeekerPlacementRules {
     public static final int BODY_PUSH_INTERVAL_TICKS = 5;
     /** Ticks between camera mount checks. / 摄像头依附面的检查间隔。 */
     public static final int CAMERA_SUPPORT_CHECK_INTERVAL_TICKS = 10;
+    /** The camera sight probe runs this far past the reported hit. / 摄像头视线探测越过命中点的距离。 */
+    public static final double SIGHT_PROBE_OVERSHOOT = 0.05;
     private static final double HORIZONTAL_EPSILON = 1.0E-3;
 
     private SeekerPlacementRules() {
@@ -165,6 +167,29 @@ public final class SeekerPlacementRules {
         Vec3d centre = position.add(0.0, half, 0.0);
         Vec3d inward = Vec3d.of(facing.getVector()).multiply(-(half + 0.05));
         return BlockPos.ofFloored(centre.add(inward));
+    }
+
+    /**
+     * Anti-cheat for the client-reported block hit: the eye must be on the outward side of the clicked face plane.
+     * 针对客户端上报的方块命中的反作弊：眼睛必须位于所点击面平面的外侧。
+     */
+    public static boolean isOutwardOf(Vec3d eye, BlockPos support, Direction face) {
+        Direction.Axis axis = face.getAxis();
+        double plane = support.getComponentAlongAxis(axis)
+                + (face.getDirection() == Direction.AxisDirection.POSITIVE ? 1.0 : 0.0);
+        double offset = eye.getComponentAlongAxis(axis) - plane;
+        return face.getDirection() == Direction.AxisDirection.POSITIVE ? offset > 0.0 : offset < 0.0;
+    }
+
+    /**
+     * End of the server line-of-sight probe that replays the client crosshair: the eye-to-hit ray extended by
+     * {@link #SIGHT_PROBE_OVERSHOOT} so float rounding still reaches the surface. The first block the probe hits must
+     * be the clicked support on the clicked face; a modified client can therefore not claim the far side of a wall.
+     * 复现客户端准星的服务端视线探测终点：眼睛到命中点的射线再延长一小段以抵消浮点误差。探测命中的第一个方块必须
+     * 是被点击方块的被点击面，因此改过的客户端无法声称点中了墙的另一侧。
+     */
+    public static Vec3d sightProbeEnd(Vec3d eye, Vec3d hit) {
+        return hit.add(hit.subtract(eye).normalize().multiply(SIGHT_PROBE_OVERSHOOT));
     }
 
     /** Scan area for forbidden neighbours around the camera's own block. / 禁放邻居的扫描范围。 */

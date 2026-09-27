@@ -16,6 +16,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -36,7 +37,12 @@ import java.util.List;
 public class SeekerCarEntity extends SeekerDeviceEntity {
     private static final int INTERPOLATION_STEPS = 3;
 
+    /** Squared displacement below which a driven move counts as standing still. / 视为静止的平方位移阈值。 */
+    private static final double MOTOR_MIN_MOVE_SQUARED = 1.0E-4;
+
     private int lastMotorSoundAge = Integer.MIN_VALUE / 2;
+    @Nullable
+    private Vec3d lastDrivenPosition;
     private int lerpTicks;
     private double lerpX;
     private double lerpY;
@@ -66,7 +72,13 @@ public class SeekerCarEntity extends SeekerDeviceEntity {
         if (getWorld().isClient() || isRemoved()) {
             return;
         }
-        if (age - lastMotorSoundAge >= SeekerRules.MOTOR_SOUND_INTERVAL_TICKS) {
+        // A driven car that stands still (accepted zero-length moves) stays silent too (S2).
+        // 被驾驶但静止不动的小车（被接受的零位移移动）同样保持安静（S2）。
+        Vec3d position = getPos();
+        boolean moved = lastDrivenPosition == null
+                || lastDrivenPosition.squaredDistanceTo(position) > MOTOR_MIN_MOVE_SQUARED;
+        lastDrivenPosition = position;
+        if (moved && age - lastMotorSoundAge >= SeekerRules.MOTOR_SOUND_INTERVAL_TICKS) {
             lastMotorSoundAge = age;
             SeekerDeviceSounds.playMotor(this);
         }

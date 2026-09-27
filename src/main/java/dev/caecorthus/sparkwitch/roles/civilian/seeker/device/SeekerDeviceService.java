@@ -283,7 +283,10 @@ public final class SeekerDeviceService {
 
     private static boolean isValidCameraSpot(ServerWorld world, ServerPlayerEntity owner, Vec3d hit, BlockPos support,
                                              Direction face, Vec3d position) {
-        if (!SeekerPlacementRules.withinReach(owner.getEyePos(), hit, SeekerRules.CAMERA_PLACE_REACH)) {
+        Vec3d eye = owner.getEyePos();
+        if (!SeekerPlacementRules.withinReach(eye, hit, SeekerRules.CAMERA_PLACE_REACH)
+                || !SeekerPlacementRules.isOutwardOf(eye, support, face)
+                || !seesFace(world, owner, eye, hit, support, face)) {
             return false;
         }
         if (!Block.isFaceFullSquare(world.getBlockState(support).getCollisionShape(world, support), face)) {
@@ -302,6 +305,21 @@ public final class SeekerDeviceService {
             }
         }
         return true;
+    }
+
+    /**
+     * Server replay of the client crosshair (vanilla only checks reach, not which face is visible): an OUTLINE ray
+     * from the eye through the reported hit must first meet {@code support} on {@code face}. This stops a modified
+     * client from mounting a camera on the far side of a wall.
+     * 服务端复现客户端准星（原版只校验距离，不校验可见面）：从眼睛穿过上报命中点的 OUTLINE 射线必须首先命中
+     * {@code support} 的 {@code face} 面，防止改过的客户端把摄像头装到墙的另一侧。
+     */
+    private static boolean seesFace(ServerWorld world, ServerPlayerEntity owner, Vec3d eye, Vec3d hit,
+                                    BlockPos support, Direction face) {
+        BlockHitResult sight = world.raycast(new RaycastContext(eye, SeekerPlacementRules.sightProbeEnd(eye, hit),
+                RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, owner));
+        return sight.getType() == HitResult.Type.BLOCK && sight.getBlockPos().equals(support)
+                && sight.getSide() == face;
     }
 
     // ---- Break ----
