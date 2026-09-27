@@ -35,6 +35,14 @@ public final class TimeTheftRuntime {
     private static final float RETURNED_PITCH = 1.2F;
     private static boolean warnedPurge;
     private static boolean warnedSteal;
+    /**
+     * The latest Timekeeper purge (match id and world tick), so a victim who was offline during it and reconnects in
+     * the same match is lifted on their first tick back instead of dying to a curse the Timekeeper already undid (Q5).
+     * Server thread only; forgotten at initialize and finalize, and a different match never matches it anyway.
+     * 最近一次计时员清除（对局 id 与世界 tick），使清除时离线、同局重连的受害者在回来的第一 tick 被解除，而不是死于
+     * 计时员已经解除的诅咒（Q5）。仅服务器线程访问；在初始化与局末时遗忘，且不同对局本来就不会匹配。
+     */
+    private static @Nullable PurgeMark lastTimekeeperPurge;
 
     private TimeTheftRuntime() {
     }
@@ -71,10 +79,12 @@ public final class TimeTheftRuntime {
 
     /**
      * Called only while {@code state.isStolen()}. A stale match, a round that is no longer ACTIVE, or a victim who is
-     * no longer playing and alive clears the curse (and only our Slowness). Each newly due stage is applied exactly
+     * no longer playing and alive clears the curse (and only our Slowness); so does a Timekeeper purge that ran while
+     * the victim was offline. Each newly due stage is applied exactly
      * once; at the lethal stage the final chime plays, the component and our Slowness are cleared first, and the kill
      * is settled once with no retry.
-     * 仅在 {@code state.isStolen()} 时调用。对局失配、对局不再 ACTIVE，或受害者不再存活参与时清除诅咒（且只移除我们的缓慢）。
+     * 仅在 {@code state.isStolen()} 时调用。对局失配、对局不再 ACTIVE，或受害者不再存活参与时清除诅咒（且只移除我们的缓慢）；
+     * 受害者离线期间发生的计时员清除同样会解除诅咒。
      * 每个新到期阶段恰好施加一次；到达致死阶段时先响终钟，先清除组件与我们的缓慢，再结算一次击杀，不重试。
      */
     public static void tick(ServerPlayerEntity victim, TimeTheftPlayerComponent state) {
@@ -88,6 +98,15 @@ public final class TimeTheftRuntime {
                 || game.getGameStatus() != GameWorldComponent.GameStatus.ACTIVE
                 || !GameFunctions.isPlayerPlayingAndAlive(victim)) {
             clear(victim, state);
+            return;
+        }
+        PurgeMark purge = lastTimekeeperPurge;
+        if (purge != null && liftedByPurge(state.matchId(), state.stolenAt(), purge.matchId(), purge.tick())) {
+            boolean heardChime = state.stage() >= 1;
+            clear(victim, state);
+            if (heardChime) {
+                announceTimeReturned(victim);
+            }
             return;
         }
         TimeTheftSchedule.Step step = TimeTheftSchedule.step(state.stage(), elapsed(world, state));
@@ -105,27 +124,35 @@ public final class TimeTheftRuntime {
         if (!step.hasStages()) {
             return;
         }
+        boolean owned = false;
         for (int stage = step.firstStage(); stage <= step.lastStage(); stage++) {
-            TimeTheftSlowness.apply(victim, stage);
+            owned = TimeTheftSlowness.apply(victim, stage);
             playPrivately(victim, SparkWitchSounds.TIME_STEALER_CHIME, CHIME_VOLUME, TimeTheftSchedule.chimePitch(stage));
         }
+        // Only the last applied stage's node can still be ours. / 只有最近施加阶段的节点仍可能属于我们。
         state.setStage(step.lastStage());
+        state.setSlownessOwned(owned);
     }
 
     /**
      * Lifts every curse in {@code world}, grace period included and whoever cast it (alive, dead, offline, or no longer
      * the Time Stealer). Idempotent and fault tolerant per player; changes no cooldown, stamp, or round time. For a
      * Timekeeper purge, victims who already heard a chime get a private actionbar line and a soft sound, grace-period
-     * victims are cleared silently, and each affected online stealer is told once. A reset purge is silent.
+     * victims are cleared silently, and each affected online stealer is told once; the purge is also remembered so a
+     * victim who was offline is lifted when they return in the same match. A reset purge is silent.
      * 解除 {@code world} 内所有诅咒，含静默期，无论施咒者是谁（存活、死亡、离线或已不是窃时者）。幂等，且逐个玩家容错；
      * 不改变任何冷却、邮票或对局时间。计时员清除时，已听过钟声的受害者收到私有 actionbar 提示与一声轻音，静默期受害者静默解除，
-     * 每名受影响的在线窃时者只收到一次通知。重置清除不发任何提示。
+     * 每名受影响的在线窃时者只收到一次通知；清除还会被记住，使离线受害者在同局返回时被解除。重置清除不发任何提示。
      */
     public static int purgeAll(ServerWorld world, PurgeCause cause) {
         if (world == null) {
             return 0;
         }
         boolean notify = cause == PurgeCause.TIMEKEEPER;
+        if (notify) {
+            UUID match = TimeStealerMatch.currentId();
+            lastTimekeeperPurge = match == null ? null : new PurgeMark(match, world.getTime());
+        }
         int lifted = 0;
         Set<UUID> stealers = new LinkedHashSet<>();
         for (ServerPlayerEntity player : List.copyOf(world.getPlayers())) {
@@ -142,8 +169,7 @@ public final class TimeTheftRuntime {
                     stealers.add(stealerUuid);
                 }
                 if (notify && heardChime) {
-                    player.sendMessage(Text.translatable("message.sparkwitch.time_theft.time_returned"), true);
-                    playPrivately(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, RETURNED_VOLUME, RETURNED_PITCH);
+                    announceTimeReturned(player);
                 }
             } catch (RuntimeException exception) {
                 warnPurge(exception);
@@ -153,6 +179,21 @@ public final class TimeTheftRuntime {
             notifyStealers(world.getServer(), stealers);
         }
         return lifted;
+    }
+
+    /**
+     * Whether a curse predates the latest Timekeeper purge of its own match. Strictly earlier: a theft committed later in
+     * the purge's own tick was cast after the rescue (every curse cast earlier on that tick was lifted directly).
+     * 诅咒是否早于其所属对局最近一次计时员清除。严格早于：在清除同一 tick 稍后提交的窃取发生在解救之后
+     * （该 tick 更早施下的诅咒已被直接解除）。
+     */
+    static boolean liftedByPurge(@Nullable UUID curseMatch, long stolenAt, @Nullable UUID purgeMatch, long purgeTick) {
+        return purgeMatch != null && purgeMatch.equals(curseMatch) && stolenAt < purgeTick;
+    }
+
+    /** Forgets the latest Timekeeper purge (initialize, finalize). / 遗忘最近一次计时员清除（初始化、局末）。 */
+    public static void forgetTimekeeperPurge() {
+        lastTimekeeperPurge = null;
     }
 
     /** Drops only the dead player's own curse; curses they cast keep running (Q7). / 只清除死者自身的诅咒；其施下的诅咒继续（Q7）。 */
@@ -172,20 +213,27 @@ public final class TimeTheftRuntime {
     }
 
     /**
-     * Removes only our Slowness node (computed from the stage and elapsed time before they are cleared), then clears
-     * the component. / 先按清除前的阶段与经过时间只移除我们的缓慢节点，再清空组件。
+     * Removes only our Slowness node (computed from the stage, elapsed time and ownership before they are cleared),
+     * then clears the component. / 先按清除前的阶段、经过时间与归属只移除我们的缓慢节点，再清空组件。
      */
     private static void clear(ServerPlayerEntity victim, TimeTheftPlayerComponent state) {
         int stage = state.stage();
         long elapsed = elapsed(victim.getServerWorld(), state);
+        boolean owned = state.slownessOwned();
         state.clear();
         if (stage >= 1) {
-            TimeTheftSlowness.removeOwned(victim, stage, elapsed);
+            TimeTheftSlowness.removeOwned(victim, stage, elapsed, owned);
         }
     }
 
     private static long elapsed(ServerWorld world, TimeTheftPlayerComponent state) {
         return Math.max(0L, world.getTime() - state.stolenAt());
+    }
+
+    /** Private "time returned" line and soft sound. / 私有的“时间归还”提示与一声轻音。 */
+    private static void announceTimeReturned(ServerPlayerEntity player) {
+        player.sendMessage(Text.translatable("message.sparkwitch.time_theft.time_returned"), true);
+        playPrivately(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, RETURNED_VOLUME, RETURNED_PITCH);
     }
 
     /**
@@ -222,9 +270,11 @@ public final class TimeTheftRuntime {
         }
     }
 
+    private record PurgeMark(UUID matchId, long tick) {
+    }
+
     /** Why curses are being lifted. / 解除诅咒的原因。 */
     public enum PurgeCause {
-        TIMEKEEPER,
-        RESET
+        TIMEKEEPER
     }
 }

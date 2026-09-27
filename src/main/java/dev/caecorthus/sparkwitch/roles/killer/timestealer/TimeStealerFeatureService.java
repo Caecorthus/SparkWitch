@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.timestealer;
 
+import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
@@ -10,17 +11,27 @@ import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.api.event.ShopPurchase;
 import java.util.Objects;
 import java.util.UUID;
+import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 
 /**
  * Registers every Time Stealer lifecycle hook and dispatches to the role's services, keeping the global event owner
- * declarative. This dispatch is frozen at G0: later work packages change the called services, never this class.
- * 注册窃时者的全部生命周期钩子并分发给各职业服务，保持全局事件聚合器仅做声明式注册。该分发在 G0 冻结：
- * 后续工作包只修改被调用的服务，从不修改本类。
+ * declarative. Gameplay rules live in the called services; this class only decides which hook reaches which service.
+ * 注册窃时者的全部生命周期钩子并分发给各职业服务，保持全局事件聚合器仅做声明式注册。玩法规则位于被调用的服务中；
+ * 本类只决定哪个钩子分发到哪个服务。
  */
 public final class TimeStealerFeatureService {
+    /**
+     * Wathe's ON_FINISH_INITIALIZE phase for the match binding, ordered after the default phase so Wathe's own
+     * listener has already started the replay match (the id bound here), as the Seeker does.
+     * 对局绑定使用的 Wathe ON_FINISH_INITIALIZE 阶段，排在默认阶段之后，确保 Wathe 自身的监听器已开始回放对局
+     * （此处绑定的 id），与搜寻者相同。
+     */
+    static final Identifier FINISH_INITIALIZE_PHASE = SparkWitch.id("time_stealer_finish_initialize");
+
     private static boolean registered;
 
     private TimeStealerFeatureService() {
@@ -43,12 +54,16 @@ public final class TimeStealerFeatureService {
             TimeStealerLoadoutService.onRoleAssigned(serverPlayer, role);
             TimeStealerStampService.onRoleAssigned(serverPlayer, role);
         });
-        // Wathe starts the match record inside its own ON_FINISH_INITIALIZE listener, so the id is bound here.
-        // Wathe 在自身的 ON_FINISH_INITIALIZE 监听器中才开始对局记录，因此在此绑定对局 id。
-        GameEvents.ON_FINISH_INITIALIZE.register((world, game) -> {
+        // Wathe starts the match record inside its own default-phase ON_FINISH_INITIALIZE listener, so the id is bound
+        // in a later phase; the owner tick re-binds a holder who missed this (TimeStealerStampService.tickOwner).
+        // Wathe 在自身默认阶段的 ON_FINISH_INITIALIZE 监听器中才开始对局记录，因此在更晚的阶段绑定对局 id；
+        // 错过此处的持有者由持有者 tick 重新绑定（TimeStealerStampService.tickOwner）。
+        GameEvents.ON_FINISH_INITIALIZE.addPhaseOrdering(Event.DEFAULT_PHASE, FINISH_INITIALIZE_PHASE);
+        GameEvents.ON_FINISH_INITIALIZE.register(FINISH_INITIALIZE_PHASE, (world, game) -> {
             if (!(world instanceof ServerWorld serverWorld)) {
                 return;
             }
+            TimeTheftRuntime.forgetTimekeeperPurge();
             UUID matchId = TimeStealerMatch.currentId();
             for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                 TimeTheftPlayerComponent theft = TimeTheftPlayerComponent.KEY.get(player);
@@ -75,6 +90,7 @@ public final class TimeStealerFeatureService {
             if (!(world instanceof ServerWorld serverWorld)) {
                 return;
             }
+            TimeTheftRuntime.forgetTimekeeperPurge();
             for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                 clearPlayer(player);
             }

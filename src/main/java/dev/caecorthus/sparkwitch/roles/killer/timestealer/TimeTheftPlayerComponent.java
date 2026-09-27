@@ -35,6 +35,14 @@ public final class TimeTheftPlayerComponent implements ServerTickingComponent {
     private long stolenAt;
     /** Last applied non-lethal stage (0-4). / 最近已施加的非致死阶段（0-4）。 */
     private int stage;
+    /**
+     * Whether the last applied stage established the curse's own Slowness node ({@code TimeTheftSlowness.apply}).
+     * Deliberately not persisted (the NBT keys stay frozen): after a reload it is false, so the removal conservatively
+     * leaves a bounded curse node to expire rather than risk a foreign one.
+     * 最近施加的阶段是否确立了诅咒自己的缓慢节点（{@code TimeTheftSlowness.apply}）。刻意不持久化（NBT 键保持冻结）：
+     * 重新加载后为 false，移除时保守地任有界的诅咒节点自然到期，而不冒险删除外来节点。
+     */
+    private boolean slownessOwned;
 
     public TimeTheftPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -60,6 +68,14 @@ public final class TimeTheftPlayerComponent implements ServerTickingComponent {
         return stage;
     }
 
+    public boolean slownessOwned() {
+        return slownessOwned;
+    }
+
+    public void setSlownessOwned(boolean owned) {
+        slownessOwned = owned;
+    }
+
     /** Server: starts a curse; refuses an already stolen victim (no re-steal). / 服务端：开始诅咒；已被窃者拒绝（不可重复窃取）。 */
     public boolean start(UUID stealer, @Nullable UUID match, long stolenAtTick) {
         if (isStolen() || stealer == null) {
@@ -69,6 +85,7 @@ public final class TimeTheftPlayerComponent implements ServerTickingComponent {
         matchId = match;
         stolenAt = Math.max(0L, stolenAtTick);
         stage = 0;
+        slownessOwned = false;
         return true;
     }
 
@@ -82,6 +99,7 @@ public final class TimeTheftPlayerComponent implements ServerTickingComponent {
         matchId = null;
         stolenAt = 0L;
         stage = 0;
+        slownessOwned = false;
         return changed;
     }
 

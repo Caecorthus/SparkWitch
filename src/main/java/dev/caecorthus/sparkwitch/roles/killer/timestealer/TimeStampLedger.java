@@ -79,10 +79,6 @@ final class TimeStampLedger {
             moves = List.copyOf(moves);
             undelivered = Math.max(0, undelivered);
         }
-
-        boolean isEmpty() {
-            return moves.isEmpty() && undelivered == 0;
-        }
     }
 
     /** Stamps in all 41 indices plus the cursor; never counts undelivered stamps. / 41 格加光标中的邮票数；不含未送达邮票。 */
@@ -208,15 +204,6 @@ final class TimeStampLedger {
         }
         int undelivered = sim.deliver(leftover + reserved.undelivered(), limit);
         return new Plan(sim.moves, undelivered);
-    }
-
-    static boolean hasEmptyHotbar(Holdings holdings) {
-        for (int index = 0; index < HOTBAR_END; index++) {
-            if (holdings.inventory().get(index).kind() == Kind.EMPTY) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /** Whether any positive move lands in the hotbar. / 是否有正向移动落在快捷栏。 */

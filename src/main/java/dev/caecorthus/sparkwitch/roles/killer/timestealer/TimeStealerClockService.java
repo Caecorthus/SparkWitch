@@ -21,12 +21,13 @@ import net.minecraft.util.TypedActionResult;
  *
  * <p>Only two owner-only outcomes exist, "stolen" and one generic "no target", so a free miss cannot be used to probe
  * hidden states (invisibility, Last Escape, faction vetoes, an existing theft). A refusal costs nothing; the cooldown is
- * written only after {@link TimeTheftRuntime#steal} committed, or when a nearer Seeker device absorbed the Clock
- * (owner decision Q9 default, Taser parity). The authoritative deadline is {@code ClockReadyAt}; the item cooldown is
+ * written only after {@link TimeTheftRuntime#steal} committed, or when a nearer Seeker device shielding an eligible
+ * target absorbed the Clock (owner decision Q9; unlike the Taser and the Feather Blade, a miss never breaks a device).
+ * The authoritative deadline is {@code ClockReadyAt}; the item cooldown is
  * display only, written exactly through SparkTraits with a vanilla fallback.
  * 只有两种仅所有者可见的结果：“已窃取”与一条通用的“无目标”，因此免费的未命中无法用来探测隐藏状态（隐身、最后逃脱、
  * 阵营否决、已被窃）。被拒绝不付出任何代价；只有在 {@link TimeTheftRuntime#steal} 提交之后，或更近的搜寻者设备吸收了
- * 时钟时（所有者决定 Q9 默认，与电击枪一致）才写入冷却。权威截止为 {@code ClockReadyAt}；物品冷却只作显示，
+ * 时钟时（所有者决定 Q9；与电击枪和羽刃不同，未命中绝不打坏设备）才写入冷却。权威截止为 {@code ClockReadyAt}；物品冷却只作显示，
  * 经 SparkTraits 精确写入，缺失时回退到原版。
  */
 public final class TimeStealerClockService {

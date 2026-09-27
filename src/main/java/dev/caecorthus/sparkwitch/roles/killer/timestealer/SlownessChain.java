@@ -14,21 +14,29 @@ import java.util.List;
  *   <li>a stronger foreign node on top: strip our node from the hidden chain and keep the top untouched;</li>
  *   <li>our node absent (merged away or already expired): leave everything as it is.</li>
  * </ul>
- * Known limitations: vanilla keeps no provenance on an effect, so ownership is inferred (see {@link #isOurs}).
- * A same-or-weaker, same-or-shorter effect that ours fully covered is discarded by vanilla, and a same-level foreign
- * effect whose remainder is within one tick of ours and carries the same flags merges into a node that cannot be told
- * apart from ours; such a node is removed together with ours, losing at most the time ours had left. A same-level
- * effect that outlasts ours by more than a tick, or one with different flags, makes the node foreign: it is left alone
- * and our share simply runs out (every curse node lasts at most {@link TimeStealerRules#SLOWNESS_DURATION_TICKS}).
+ * Known limitations: vanilla keeps no provenance on an effect, so ownership is inferred in two steps. At application
+ * time {@link #ownsApplication} compares the chain before and after the curse's {@code addStatusEffect}; a stage whose
+ * application left an existing same-level foreign node untouched (it already lasted as long or longer) or was
+ * swallowed by a stronger, longer node owns nothing, so a Control Expert stun that simply outlasted the chime is never
+ * removed. At removal time {@link #isOurs} matches the owned node by level, remaining time and flags. A
+ * same-or-weaker, same-or-shorter effect that ours fully covered is discarded by vanilla, and a same-level foreign
+ * effect applied after the chime whose remainder is within one tick of ours and carries the same flags merges into a
+ * node that cannot be told apart from ours; such a node is removed together with ours, losing at most one tick more
+ * than ours had left. A later same-level effect that outlasts ours by more than a tick, or one with different flags,
+ * makes the node foreign: it is left alone and our share simply runs out (every curse node lasts at most
+ * {@link TimeStealerRules#SLOWNESS_DURATION_TICKS}).
  * 诅咒缓慢“链手术”的纯模型（计划 D5 / §3.8）。原版每个实体只保留一个缓慢实例，新效果会原地合并进去；较弱但更持久的效果
  * 作为隐藏实例留在下面，因此实时效果是一条自顶向下的链，放大器严格递减、时长严格递增。直接 {@code removeStatusEffect}
  * 会删掉整条链，连同控场专家的眩晕或其他职业的缓慢。这里把链建模为 {@link Node} 列表，只取出诅咒自己的那一节：
  * 顶层是我们的 → 移除它，下面的隐藏链成为实时效果；顶层是更强的外来效果 → 从隐藏链中剔除我们的那一节，顶层不动；
  * 找不到我们的（已被合并或已到期）→ 一律不动。
- * 已知限制：原版效果不记录来源，因此归属只能推断（见 {@link #isOurs}）。被我们完全覆盖的同级或更弱、同样短或更短的效果
- * 会被原版丢弃；剩余时长与我们相差不超过一 tick 且标志相同的同级外来效果会合并成无法与我们区分的一节，
- * 这样的节点会随我们的一起移除，损失至多为我们剩余的时间。比我们多持续一 tick 以上、或标志不同的同级效果会使该节点
- * 成为外来节点：保持不动，我们的份额自然到期（诅咒的每一节最多持续 {@link TimeStealerRules#SLOWNESS_DURATION_TICKS}）。
+ * 已知限制：原版效果不记录来源，因此归属分两步推断。施加时由 {@link #ownsApplication} 比较诅咒 {@code addStatusEffect}
+ * 前后的效果链：若本次施加未改动已有的同级外来节点（其持续已不短于我们）或被更强且更久的节点吞没，该阶段不拥有任何节点，
+ * 因此单纯比钟声更持久的控场专家眩晕永远不会被移除。移除时由 {@link #isOurs} 按等级、剩余时长与标志匹配所拥有的节点。
+ * 被我们完全覆盖的同级或更弱、同样短或更短的效果会被原版丢弃；钟声之后施加、剩余时长与我们相差不超过一 tick
+ * 且标志相同的同级外来效果会合并成无法与我们区分的一节，这样的节点会随我们的一起移除，损失至多比我们剩余的时间多一 tick。
+ * 之后施加、比我们多持续一 tick 以上或标志不同的同级效果会使该节点成为外来节点：保持不动，我们的份额自然到期
+ * （诅咒的每一节最多持续 {@link TimeStealerRules#SLOWNESS_DURATION_TICKS}）。
  */
 final class SlownessChain {
     /**
@@ -69,6 +77,32 @@ final class SlownessChain {
     }
 
     /**
+     * Whether the curse's application of ({@code ourAmplifier}, {@code ourDuration}) established its own node, given the
+     * chain read just before and just after the {@code addStatusEffect} call (top first). Vanilla only sets a node to
+     * exactly our duration when it creates it or lengthens it, and never lengthens a same-level node that already lasts
+     * at least as long (or is infinite). So the application owns a node only when no same-level node lasted that long
+     * before, and a node of our level, exactly our duration and the curse's flags exists after. False means the stage
+     * owns nothing and its removal must leave the chain alone.
+     * 给定 {@code addStatusEffect} 调用前后读取的效果链（自顶向下），判断诅咒施加（{@code ourAmplifier}、{@code ourDuration}）
+     * 是否确立了自己的节点。原版只在创建或延长节点时把时长设为恰好等于我们的时长，且从不延长已不短于我们（或无限）的同级节点。
+     * 因此只有施加前没有这样持久的同级节点、且施加后存在我们等级、恰好我们时长且带诅咒标志的节点时，本次施加才拥有节点。
+     * false 表示该阶段不拥有任何节点，移除时必须保持效果链不动。
+     */
+    static boolean ownsApplication(List<Observed> before, List<Observed> after, int ourAmplifier, int ourDuration) {
+        for (Observed node : before) {
+            if (node.amplifier() == ourAmplifier && (node.duration() < 0 || node.duration() >= ourDuration)) {
+                return false;
+            }
+        }
+        for (Observed node : after) {
+            if (node.amplifier() == ourAmplifier && node.duration() == ourDuration && node.curseFlags()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * The flags {@code TimeTheftSlowness.apply} gives the curse's Slowness: ambient off, particles off, icon on.
      * {@code TimeTheftSlowness.apply} 赋予诅咒缓慢的标志：非环境、无粒子、有图标。
      */
@@ -91,6 +125,13 @@ final class SlownessChain {
                     List.copyOf(remaining));
         }
         return new Result(Surgery.UNCHANGED, -1, List.copyOf(chain));
+    }
+
+    /**
+     * One Slowness instance as read around an application: level, remaining duration (-1 = infinite), and whether it
+     * carries the curse's flags. / 施加前后读取到的一个缓慢实例：等级、剩余时长（-1 表示无限）以及是否带诅咒标志。
+     */
+    record Observed(int amplifier, int duration, boolean curseFlags) {
     }
 
     /** One Slowness instance of the chain. / 链中的一个缓慢实例。 */

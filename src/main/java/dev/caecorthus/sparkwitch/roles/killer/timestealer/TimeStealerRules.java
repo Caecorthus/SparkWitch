@@ -8,10 +8,10 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Stable gameplay values and pure gates owned by the Time Stealer. Every value here is a frozen cross-work-package
- * contract; nothing reads Minecraft registries, so the class stays safe to load in unit tests.
- * 窃时者拥有的稳定玩法数值与纯规则判断。这里的每个值都是跨工作包冻结的契约；不读取任何 Minecraft 注册表，
- * 因此可以安全地在单元测试中加载。
+ * Stable gameplay values and pure gates owned by the Time Stealer. Every value here is a stable contract shared by the
+ * role's services, replay and client; nothing reads Minecraft registries, so the class stays safe to load in unit tests.
+ * 窃时者拥有的稳定玩法数值与纯规则判断。这里的每个值都是该职业服务、回放与客户端共享的稳定契约；不读取任何 Minecraft
+ * 注册表，因此可以安全地在单元测试中加载。
  */
 public final class TimeStealerRules {
     public static final Identifier ROLE_ID = SparkWitch.id("time_stealer");
@@ -20,10 +20,11 @@ public final class TimeStealerRules {
     /** Item-use replay record id for a stamp purchase. / 邮票购买的物品使用回放记录 id。 */
     public static final Identifier STAMP_PURCHASE_RECORD_ID = SparkWitch.id("time_stamp_purchase");
     /**
-     * Frozen payload of a {@link #STAMP_PURCHASE_RECORD_ID} item-use record (WP-05 writes, WP-03a formats): the
-     * Wathe {@code ShopEntry.id()} String under this key. The formatter maps it to a display name through the Time
-     * Stealer shop entry ids; unknown ids fall back to the raw String, never to an {@code Identifier} parse.
-     * 冻结的邮票购买回放载荷（WP-05 写入，WP-03a 格式化）：该键下是 Wathe {@code ShopEntry.id()} 字符串。
+     * Frozen payload of a {@link #STAMP_PURCHASE_RECORD_ID} item-use record (the stamp purchase writes it, the replay
+     * formatter reads it): the Wathe {@code ShopEntry.id()} String under this key. The formatter maps it to a display
+     * name through the Time Stealer shop entry ids; unknown ids fall back to the raw String, never to an
+     * {@code Identifier} parse.
+     * 冻结的邮票购买回放载荷（邮票购买写入，回放格式化器读取）：该键下是 Wathe {@code ShopEntry.id()} 字符串。
      * 格式化器按窃时者商店商品 id 映射显示名；未知 id 直接显示原字符串，绝不按 {@code Identifier} 解析。
      */
     public static final String REPLAY_ENTRY_KEY = "entry";

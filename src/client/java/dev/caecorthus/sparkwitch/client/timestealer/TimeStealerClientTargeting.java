@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.timestealer;
 
+import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.ClockGeometry;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerClockItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
@@ -36,8 +37,15 @@ public final class TimeStealerClientTargeting {
                 candidate -> candidate != player && isVisibleCandidate(candidate)) != null;
     }
 
-    /** Same public filter as Wathe's own gun crosshair. / 与 Wathe 自身枪械准星相同的公开过滤。 */
+    /**
+     * Same public filter as Wathe's own gun crosshair, plus the synced Wraith state: the server treats an active Wraith
+     * as transparent to the Clock, and CONTEXT's Wraith rule skips it as an aim or crosshair target, so the hint never
+     * lights on (and never locates) a Wraith hidden from this viewer.
+     * 与 Wathe 自身枪械准星相同的公开过滤，外加已同步的冤魂状态：服务端对时钟而言视激活冤魂为透明，CONTEXT 的冤魂规则
+     * 也把它跳过为瞄准或准星目标，因此提示绝不会在对本观察者隐藏的冤魂上亮起（也不会暴露其位置）。
+     */
     static boolean isVisibleCandidate(PlayerEntity candidate) {
-        return candidate.isAlive() && GameFunctions.isPlayerAliveAndSurvival(candidate) && !candidate.isInvisible();
+        return candidate.isAlive() && GameFunctions.isPlayerAliveAndSurvival(candidate) && !candidate.isInvisible()
+                && !WraithClientState.isActive(candidate);
     }
 }

@@ -29,9 +29,16 @@ public final class TimeStealerStampService {
     private TimeStealerStampService() {
     }
 
-    /** Only a living, playing, exact Time Stealer may hold stamps. / 只有存活、参与中的精确窃时者能持有邮票。 */
+    /**
+     * Only a living, playing, exact Time Stealer may hold stamps (plan D10). Spectator mode is deliberately not a
+     * condition: a Time Stealer swallowed by the NoellesRoles Taotie (or in any other alive-spectator state) is still
+     * playing and alive, so the 20-tick sweep never destroys their stamps and a Clock kill that settles meanwhile still
+     * pays. Clock use refuses spectators on its own.
+     * 只有存活、参与中的精确窃时者能持有邮票（计划 D10）。刻意不以旁观模式为条件：被 NoellesRoles 饕餮吞下（或处于其他
+     * 存活旁观状态）的窃时者仍在参与且存活，因此 20 tick 清理不会销毁其邮票，期间结算的时钟击杀照常发放。时钟使用自身会拒绝旁观者。
+     */
     public static boolean mayHold(ServerPlayerEntity player) {
-        if (player == null || player.isSpectator()) {
+        if (player == null) {
             return false;
         }
         Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
@@ -113,15 +120,17 @@ public final class TimeStealerStampService {
     }
 
     /**
-     * Owner upkeep every tick: merge stamps into one stack when more than one exists (a no-write scan otherwise) and
-     * retry {@code UndeliveredStamps} every 20 ticks. Never moves stamps into a freed hotbar slot.
-     * 持有者每 tick 维护：存在多个邮票堆时合并为一堆（否则只扫描、不写入），每 20 tick 重试 {@code UndeliveredStamps}。
-     * 从不把邮票移入刚空出的快捷栏格。
+     * Owner upkeep every tick: bind a holder who missed the round-start binding to the current match, merge stamps into
+     * one stack when more than one exists (a no-write scan otherwise) and retry {@code UndeliveredStamps} every 20
+     * ticks. Never moves stamps into a freed hotbar slot.
+     * 持有者每 tick 维护：为错过开局绑定的持有者绑定当前对局；存在多个邮票堆时合并为一堆（否则只扫描、不写入），
+     * 每 20 tick 重试 {@code UndeliveredStamps}。从不把邮票移入刚空出的快捷栏格。
      */
     public static void tickOwner(ServerPlayerEntity player) {
         if (!mayHold(player)) {
             return;
         }
+        bindCurrentMatch(player);
         TimeStampLedger.Holdings holdings = TimeStampInventory.read(player);
         if (TimeStampLedger.stampStacks(holdings) > 1) {
             Plan merge = TimeStampLedger.consolidate(holdings, TimeStealerRules.STAMP_MAX_STACK);
@@ -166,6 +175,21 @@ public final class TimeStealerStampService {
         }
         TimeStampInventory.stripAll(player);
         TimeStealerPlayerComponent.KEY.get(player).setUndeliveredStamps(0);
+    }
+
+    /**
+     * Self-heal for the one-shot round-start binding (a player absent at initialization and assigned later, or a
+     * changed listener order): a holder in an ACTIVE round with a current match is bound to it, as the Bell Ringer
+     * re-binds in its tick. A no-op once bound; binding a new match drops only the stale retry counter.
+     * 为一次性开局绑定兜底（初始化时不在场、之后才被分配的玩家，或监听器顺序变化）：ACTIVE 对局中有当前对局时，
+     * 持有者会被绑定到该对局，与敲钟人在 tick 中重新绑定一致。已绑定时无操作；绑定新对局只丢弃过期的重试计数。
+     */
+    private static void bindCurrentMatch(ServerPlayerEntity player) {
+        UUID current = TimeStealerMatch.currentId();
+        if (current != null && GameWorldComponent.KEY.get(player.getWorld()).getGameStatus()
+                == GameWorldComponent.GameStatus.ACTIVE) {
+            TimeStealerPlayerComponent.KEY.get(player).bindMatch(current);
+        }
     }
 
     private static boolean isActiveCurrentMatch(ServerPlayerEntity player) {
