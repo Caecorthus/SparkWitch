@@ -11,6 +11,7 @@ import dev.caecorthus.sparkwitch.skill.SparkWitchBuiltInSkills;
 import dev.caecorthus.sparkwitch.impl.SparkWitchEvents;
 import dev.caecorthus.sparkwitch.net.SparkWitchPackets;
 import dev.caecorthus.sparkwitch.net.SparkWitchVersionHandshake;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistEffects;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelEffects;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEffects;
@@ -42,6 +43,7 @@ public final class SparkWitch implements ModInitializer {
         GuardianAngelEffects.register();
         FocusedFootstepsEffects.register();
         HunterEntities.register();
+        ControlExpertEntities.register();
         SparkWitchItems.register();
         SparkWitchEntities.register();
         // NoellesRoles remains the packet-filter owner; FactionAPI only extends its hidden-item predicate.
