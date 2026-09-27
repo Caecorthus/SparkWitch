@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthTabletCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsCharismaBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsShopEntryPreserver;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraItem;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceService;
 import dev.doctor4t.wathe.api.Role;
@@ -115,10 +116,22 @@ public final class SeekerShopService {
                 && player.currentScreenHandler.getCursorStack().getItem() instanceof SeekerCameraItem;
     }
 
+    /**
+     * A placed camera counts only while a live camera entity backs it. The recorded id alone is not trusted: an id
+     * left behind by a camera removed outside {@code destroyCamera} (discard, reload) would otherwise block re-buying
+     * for the rest of the round. Placement still enforces one camera per owner, so a miss here cannot yield two.
+     * 只有存在存活的摄像头实体时才算已放置。不单独信任记录的 id：若摄像头在 {@code destroyCamera} 之外被移除
+     * （丢弃、重载），残留的 id 会让本局剩余时间都无法再次购买。放置时仍强制每名拥有者一台，因此此处漏判也不会出现两台。
+     */
     private static boolean hasPlacedCamera(ServerPlayerEntity player) {
-        boolean recorded = SeekerStatusComponent.KEY.maybeGet(player)
-                .map(component -> component.cameraEntityId() >= 0)
-                .orElse(false);
-        return recorded || SeekerDeviceService.findCamera(player) != null;
+        if (SeekerDeviceService.findCamera(player) != null) {
+            return true;
+        }
+        int recordedId = SeekerStatusComponent.KEY.maybeGet(player)
+                .map(SeekerStatusComponent::cameraEntityId)
+                .orElse(-1);
+        return recordedId >= 0
+                && player.getServerWorld().getEntityById(recordedId) instanceof SeekerCameraEntity camera
+                && camera.isAlive();
     }
 }
