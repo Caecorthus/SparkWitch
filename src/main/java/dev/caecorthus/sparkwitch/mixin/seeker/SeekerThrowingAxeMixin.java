@@ -5,11 +5,11 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceRaycast;
+import java.util.List;
 import java.util.Optional;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import org.agmas.noellesroles.entity.ThrowingAxeEntity;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,6 +37,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ThrowingAxeEntity.class)
 public abstract class SeekerThrowingAxeMixin {
     /**
+     * Search padding around the segment; covers every device box the segment can touch (margins stay below 0.2).
+     * 线段搜索外扩量；覆盖线段可能触及的所有设备箱体（瞄准余量均小于 0.2）。
+     */
+    @Unique
+    private static final double SPARKWITCH$SEARCH_PADDING = 1.0D;
+
+    /**
      * Squared distance from this tick's start to the absorbing device; infinite when none. Server-only, per tick.
      * 本刻起点到吸收命中的设备的平方距离；没有时为无穷大。仅服务端、逐刻重置。
      */
@@ -44,8 +51,13 @@ public abstract class SeekerThrowingAxeMixin {
     private double sparkwitch$deviceCutSquared = Double.POSITIVE_INFINITY;
 
     /**
-     * Before the pierce loop: resolve and break a Seeker device on this tick's segment.
-     * 贯穿循环之前：判定并打坏本刻路径上的搜寻者设备。
+     * Before the pierce loop: resolve and break a Seeker device on this tick's segment. The live devices around the
+     * segment are captured first; {@code breakDevice} discards exactly the device the entry chose, so the removed one
+     * marks the cut even when a nearer device on the segment was transparent to this thrower (their own, or one they
+     * may not break). No device near the segment: the entry cannot hit anything and is skipped.
+     * 贯穿循环之前：判定并打坏本刻路径上的搜寻者设备。先记录线段附近的存活设备；{@code breakDevice} 只会移除入口选中的
+     * 那台设备，因此即使线段上更近的设备对该投掷者透明（其自己的设备或无权打坏的设备），被移除的那台仍能准确标出截断点。
+     * 线段附近没有设备时入口不可能命中，直接跳过。
      */
     @Inject(method = "tick", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/World;getOtherEntities(Lnet/minecraft/entity/Entity;Lnet/minecraft/util/math/Box;)Ljava/util/List;"))
@@ -53,11 +65,11 @@ public abstract class SeekerThrowingAxeMixin {
         ThrowingAxeEntity axe = (ThrowingAxeEntity) (Object) this;
         Vec3d from = axe.getPos();
         Vec3d to = from.add(axe.getVelocity());
-        // Capture the candidate first: a broken device is discarded, but its last box still marks the cut point.
-        // 先记录候选设备：设备被打坏后会被移除，但其最后的碰撞箱仍可标出截断点。
-        SeekerDeviceEntity candidate = SeekerDeviceRaycast.projectileSweep(axe, from, to);
-        sparkwitch$deviceCutSquared = SeekerDeviceHits.onThrowingAxeSweep(axe, axe.getOwner(), from, to)
-                ? from.squaredDistanceTo(sparkwitch$impact(candidate, from, to))
+        List<SeekerDeviceEntity> nearby = axe.getWorld().getEntitiesByClass(SeekerDeviceEntity.class,
+                new Box(from, to).expand(SPARKWITCH$SEARCH_PADDING), device -> device.isAlive() && !device.isRemoved());
+        sparkwitch$deviceCutSquared = !nearby.isEmpty()
+                && SeekerDeviceHits.onThrowingAxeSweep(axe, axe.getOwner(), from, to)
+                ? sparkwitch$cutSquared(nearby, from, to)
                 : Double.POSITIVE_INFINITY;
     }
 
@@ -89,12 +101,39 @@ public abstract class SeekerThrowingAxeMixin {
         ci.cancel();
     }
 
-    /** Segment entry point into the device box; the segment start when unknown. / 线段进入设备箱体的点；未知时取线段起点。 */
+    /**
+     * Squared distance from the segment start to where it enters the device the entry broke (the one now removed);
+     * falls back to the nearest device on the segment, then to the start (the device absorbed everything this tick).
+     * 线段起点到其进入被入口打坏（即已被移除）的设备处的平方距离；找不到时退回线段上最近的设备，再退回起点
+     * （本刻一切都被设备挡下）。
+     */
     @Unique
-    private static Vec3d sparkwitch$impact(@Nullable SeekerDeviceEntity device, Vec3d from, Vec3d to) {
-        if (device == null) {
-            return from;
+    private static double sparkwitch$cutSquared(List<SeekerDeviceEntity> nearby, Vec3d from, Vec3d to) {
+        double broken = Double.POSITIVE_INFINITY;
+        double any = Double.POSITIVE_INFINITY;
+        for (SeekerDeviceEntity device : nearby) {
+            double distance = sparkwitch$entrySquared(device, from, to);
+            if (distance < 0.0) {
+                continue;
+            }
+            any = Math.min(any, distance);
+            if (device.isRemoved()) {
+                broken = Math.min(broken, distance);
+            }
         }
-        return device.getBoundingBox().expand(device.targetingMargin()).raycast(from, to).orElse(from);
+        if (broken != Double.POSITIVE_INFINITY) {
+            return broken;
+        }
+        return any != Double.POSITIVE_INFINITY ? any : 0.0D;
+    }
+
+    /** Segment entry into the margin-grown device box; 0 inside it, -1 on a miss. / 线段进入设备扩展箱体的平方距离。 */
+    @Unique
+    private static double sparkwitch$entrySquared(SeekerDeviceEntity device, Vec3d from, Vec3d to) {
+        Box box = device.getBoundingBox().expand(Math.max(0.0D, device.targetingMargin()));
+        if (box.contains(from)) {
+            return 0.0D;
+        }
+        return box.raycast(from, to).map(from::squaredDistanceTo).orElse(-1.0D);
     }
 }
