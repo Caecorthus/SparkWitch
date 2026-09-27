@@ -38,6 +38,10 @@ import org.jetbrains.annotations.Nullable;
  * 或未连接到已确认的 SparkWitch 服务器时，不干预 NoellesRoles。
  */
 public final class SeekerTaotieClient {
+    /** {@link #claimPress}: leave the press to NoellesRoles. / 把按键留给 NoellesRoles。 */
+    public static final int NO_CLAIM = -1;
+    /** {@link #claimPress}: suppress the press but send nothing. / 压制按键但不发送。 */
+    public static final int CLAIM_WITHOUT_SWALLOW = -2;
     private static final int NO_CAR = -1;
     /** Hint offset below the crosshair, clear of NoellesRoles' bottom-right stack. / 提示在准星下方的偏移。 */
     private static final int HINT_OFFSET_Y = 14;
@@ -75,27 +79,37 @@ public final class SeekerTaotieClient {
     }
 
     /**
-     * Called from {@code SeekerTaotieAbilityKeyMixin} with the original {@code wasPressed} result. Returns the claimed
-     * car's entity id, or {@code -1} to leave the press to NoellesRoles. The key identity is checked first so every
-     * other binding's per-tick poll stays free.
-     * 由 {@code SeekerTaotieAbilityKeyMixin} 以原始 {@code wasPressed} 结果调用。返回被认领小车的实体 id，返回
-     * {@code -1} 则把按键留给 NoellesRoles。先检查按键身份，其他按键的每刻轮询因此没有开销。
+     * Called from {@code SeekerTaotieAbilityKeyMixin} with the original {@code wasPressed} result. Returns
+     * {@link #NO_CLAIM} to leave the press to NoellesRoles; otherwise the press is claimed (NoellesRoles sees false) and
+     * the result is either the car's entity id to queue, or {@link #CLAIM_WITHOUT_SWALLOW} when the car shields the press
+     * but is outside the server's feet-to-feet reach (nothing is sent, and nothing behind the car is swallowed). Cheap
+     * gates run first: key identity, then connection, then readiness, and only then the crosshair.
+     * 由 {@code SeekerTaotieAbilityKeyMixin} 以原始 {@code wasPressed} 结果调用。返回 {@link #NO_CLAIM} 表示把按键
+     * 留给 NoellesRoles；否则按键被认领（NoellesRoles 读到 false），结果为待排队的小车实体 id，或在小车遮挡按键但
+     * 超出服务端脚到脚距离时返回 {@link #CLAIM_WITHOUT_SWALLOW}（不发送任何包，车后目标也不会被吞）。廉价判定
+     * 优先：按键身份、连接、就绪状态，最后才读准星。
      */
     public static int claimPress(KeyBinding keyBinding, boolean pressed) {
         if (!pressed || keyBinding == null || keyBinding != NoellesrolesClient.abilityBind) {
-            return NO_CAR;
+            return NO_CLAIM;
         }
         MinecraftClient client = MinecraftClient.getInstance();
         ClientPlayerEntity player = client.player;
         if (player == null || client.getNetworkHandler() == null) {
-            return NO_CAR;
+            return NO_CLAIM;
         }
-        SeekerCarEntity car = aimedCar(client, player);
+        SeekerCarEntity[] shielding = new SeekerCarEntity[1];
         boolean claimed = SeekerTaotieRules.claimsPress(true, true,
                 SparkWitchServerConnection.isConfirmedServer() && ClientPlayNetworking.canSend(SeekerCarSwallowC2SPacket.ID),
                 () -> isTaotieReady(player),
-                () -> car != null);
-        return claimed ? car.getId() : NO_CAR;
+                () -> (shielding[0] = shieldingCar(client, player)) != null);
+        if (!claimed) {
+            return NO_CLAIM;
+        }
+        SeekerCarEntity car = shielding[0];
+        return SeekerTaotieRules.withinReach(player.squaredDistanceTo(car), NoellesTaotieSeekerBridge.swallowDistanceSquared())
+                ? car.getId()
+                : CLAIM_WITHOUT_SWALLOW;
     }
 
     static void flush(MinecraftClient client) {
@@ -124,7 +138,7 @@ public final class SeekerTaotieClient {
         if (WatheClient.trainComponent == null || !WatheClient.trainComponent.hasHud()) {
             return;
         }
-        if (!isTaotieReady(player) || aimedCar(client, player) == null) {
+        if (!isTaotieReady(player) || swallowableCar(client, player) == null) {
             return;
         }
         TextRenderer renderer = client.textRenderer;
@@ -146,21 +160,28 @@ public final class SeekerTaotieClient {
 
     /**
      * The Search Car under vanilla's crosshair (which also hits players, so it is the nearest thing on the ray) within
-     * swallow reach. / 原版准星上的搜寻小车（准星也会命中玩家，因此它是射线上最近的目标），且在吞噬距离内。
+     * NoellesRoles' eye-to-hit reach. / 原版准星上的搜寻小车（准星也会命中玩家，因此它是射线上最近的目标），且在
+     * NoellesRoles 的眼到命中点距离内。
      */
     @Nullable
-    private static SeekerCarEntity aimedCar(MinecraftClient client, ClientPlayerEntity player) {
+    private static SeekerCarEntity shieldingCar(MinecraftClient client, ClientPlayerEntity player) {
         HitResult hit = client.crosshairTarget;
         if (!(hit instanceof EntityHitResult entityHit)
                 || !(entityHit.getEntity() instanceof SeekerCarEntity car)
                 || !car.isAlive()) {
             return null;
         }
-        boolean inReach = SeekerTaotieRules.withinClientReach(
-                player.getEyePos().distanceTo(entityHit.getPos()),
-                player.squaredDistanceTo(car),
-                NoellesTaotieSeekerBridge.swallowDistanceSquared());
-        return inReach ? car : null;
+        return SeekerTaotieRules.shieldsPress(player.getEyePos().distanceTo(entityHit.getPos())) ? car : null;
+    }
+
+    /** A shielding car that the server would also accept on reach (hint only). / 服务端距离也会接受的遮挡小车（仅提示）。 */
+    @Nullable
+    private static SeekerCarEntity swallowableCar(MinecraftClient client, ClientPlayerEntity player) {
+        SeekerCarEntity car = shieldingCar(client, player);
+        return car != null
+                && SeekerTaotieRules.withinReach(player.squaredDistanceTo(car), NoellesTaotieSeekerBridge.swallowDistanceSquared())
+                ? car
+                : null;
     }
 
     private static int taotieColor() {

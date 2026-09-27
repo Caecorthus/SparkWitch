@@ -155,21 +155,35 @@ public final class SeekerTaotieRules {
     }
 
     /**
-     * Client reach: NoellesRoles' crosshair distance and the server's feet-to-feet check, so the client never claims a
-     * press the server would refuse. / 客户端距离：同时满足 NoellesRoles 的准星距离与服务端的脚到脚判定，
-     * 客户端因此不会认领服务端必然拒绝的按键。
+     * Whether a Search Car under the vanilla crosshair shields the press: within NoellesRoles' own eye-to-hit reach
+     * (3.0), so anything NoellesRoles could target behind it is farther away. A shielded press is always claimed, even
+     * when the server's feet-to-feet reach would refuse the swallow (car on a step or table), so a player behind the
+     * car is never swallowed through it. / 原版准星上的搜寻小车是否遮挡本次按键：处于 NoellesRoles 自己的眼到命中点
+     * 距离（3.0）内，其后的任何目标都更远。被遮挡的按键总会被认领，即使服务端脚到脚距离会拒绝吞车（小车在台阶或
+     * 桌上），车后的玩家因此不会被隔车吞掉。
+     */
+    public static boolean shieldsPress(double eyeToHitDistance) {
+        return eyeToHitDistance >= 0.0 && eyeToHitDistance <= CLIENT_REACH;
+    }
+
+    /**
+     * Client reach for sending {@code seeker_car_swallow} and for the hint: the crosshair shield distance and the
+     * server's feet-to-feet check, so the client never sends a request the server must refuse on reach.
+     * 发送 {@code seeker_car_swallow} 与显示提示的客户端距离：同时满足准星遮挡距离与服务端脚到脚判定，
+     * 客户端因此不会发送必然因距离被拒绝的请求。
      */
     public static boolean withinClientReach(double eyeToHitDistance, double squaredDistance, int reachSquared) {
-        return eyeToHitDistance >= 0.0 && eyeToHitDistance <= CLIENT_REACH && withinReach(squaredDistance, reachSquared);
+        return shieldsPress(eyeToHitDistance) && withinReach(squaredDistance, reachSquared);
     }
 
     /**
      * Client claim of one shared-key press. Cheap gates first: only a real press of the shared ability key on a
      * confirmed SparkWitch server that accepts {@code seeker_car_swallow}; then the local Taotie must be ready and the
-     * vanilla crosshair must be on a Search Car in reach. Claimed means NoellesRoles sees no press this call.
+     * vanilla crosshair must be on a Search Car that {@linkplain #shieldsPress shields} the press. Claimed means
+     * NoellesRoles sees no press this call.
      * 客户端对一次共享键按下的认领。先做廉价判定：只有在已确认、能接收 {@code seeker_car_swallow} 的 SparkWitch
-     * 服务器上真实按下共享技能键；之后本地饕餮必须就绪，且原版准星落在距离内的搜寻小车上。认领后 NoellesRoles
-     * 在这次调用中看不到按键。
+     * 服务器上真实按下共享技能键；之后本地饕餮必须就绪，且原版准星落在遮挡本次按键的搜寻小车上。认领后
+     * NoellesRoles 在这次调用中看不到按键。
      */
     public static boolean claimsPress(boolean pressed, boolean sharedAbilityKey, boolean connectionReady,
                                       BooleanSupplier taotieReady, BooleanSupplier carInReach) {

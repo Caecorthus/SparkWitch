@@ -22,6 +22,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -97,14 +98,22 @@ public final class SeekerTaotieService {
         if (server == null || !GameWorldComponent.KEY.get(victim.getWorld()).isRunning()) {
             return;
         }
-        boolean intercepted = WitchFactorTraitsBridge.isDeathIntercepted(victim);
         UUID victimId = victim.getUuid();
-        for (ServerPlayerEntity owner : List.copyOf(server.getPlayerManager().getPlayerList())) {
+        List<ServerPlayerEntity> holders = new ArrayList<>();
+        for (ServerPlayerEntity owner : server.getPlayerManager().getPlayerList()) {
             SeekerStatusComponent component = SeekerStatusComponent.KEY.getNullable(owner);
             if (component != null && SeekerTaotieRules.killReturnsCar(component.carState(), component.carLostTo(),
-                    victimId, intercepted)) {
-                SeekerDeviceService.returnSwallowedCar(owner);
+                    victimId, false)) {
+                holders.add(owner);
             }
+        }
+        // The SparkTraits reflective query runs only when this victim actually holds a car.
+        // 只有受害者确实吞着小车时才执行 SparkTraits 反射查询。
+        if (holders.isEmpty() || WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
+            return;
+        }
+        for (ServerPlayerEntity owner : holders) {
+            SeekerDeviceService.returnSwallowedCar(owner);
         }
     }
 
