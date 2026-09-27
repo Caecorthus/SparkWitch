@@ -45,6 +45,11 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.cologne(),
                                     SparkWitchItems.tarotCard(),
                                     SparkWitchItems.vendettaKnife(),
+                                    SparkWitchItems.disruptor(),
+                                    SparkWitchItems.taser(),
+                                    SparkWitchItems.shockDevice(),
+                                    SparkWitchItems.seekerCar(),
+                                    SparkWitchItems.seekerCamera(),
                                     // Killer / 杀手
                                     SparkWitchItems.ninjaKnife(),
                                     SparkWitchItems.ninjaShuriken(),
