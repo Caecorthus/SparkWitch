@@ -65,6 +65,11 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "open_judge_selection"),
             Identifier.of("sparkwitch", "confirm_judge_selection"),
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
+            // Seeker actions (open, swallow, remote recall); close and car moves stay allowed because a stun ends the
+            // session anyway. / 搜寻者行为（打开、吞车、远程回收）；关闭与小车移动放行，因为眩晕本身就会结束会话。
+            Identifier.of("sparkwitch", "seeker_remote_open"),
+            Identifier.of("sparkwitch", "seeker_car_swallow"),
+            Identifier.of("sparkwitch", "seeker_car_recall"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),

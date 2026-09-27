@@ -7,10 +7,13 @@ changes require explicit owner approval.
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
 God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, and Bell Ringer gameplay to Wathe.
-It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots.
+It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
+and the Seeker, a police variant with a remote car and a wall camera that shares the same slots.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
+Seeker availability requires the SparkStrength tablet item (`sparkstrength:tablet`), resolved by
+registry id only; SparkStrength owns no Seeker gameplay.
 
 Current build baseline:
 
@@ -61,9 +64,21 @@ Current build baseline:
   with owned-effect tracking, and lifecycle cleanup; its mixins live in `mixin/controlexpert/`
   and `client/mixin/controlexpert/`, client presentation (status HUD, stun input lock, Taser
   crosshair) in `client/controlexpert/`.
+- `roles/civilian/seeker/`: Seeker (`sparkwitch:seeker`) role rules, loadout, economy, shop,
+  owner-private `SeekerStatusComponent`, targeting predicates (`SeekerTargeting`), and lifecycle
+  cleanup. Subpackages: `device/` (car and camera entities, placement, battery, cooldowns, shared
+  car physics, sounds), `remote/` (server-authoritative remote-view sessions and the owner-simulated
+  car move validator), `hit/` (every device-break source, the single `SeekerDamageRules.mayBreak`
+  gate, nearest-wins raycasts, the breaker mark), `net/` (payloads), `console/` (tablet console
+  service), and `taotie/` (NoellesRoles Taotie swallow seam). Its mixins live in `mixin/seeker/`
+  and `client/mixin/seeker/`; client presentation (console screen, remote view and car driver,
+  device renderers) in `client/seeker/`. Cross-mod seams go through `compat/SparkTraitsSeekerBridge`,
+  `compat/SeekerControlExpertBridge`, `compat/NoellesTaotieSeekerBridge`,
+  `compat/SparkStrengthTabletCompat`, and `compat/SparkStrengthM67Compat`.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
-  and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, and the Control Expert
-  share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate slot mixin.
+  and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, and
+  the Seeker share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate
+  slot mixin.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
@@ -138,6 +153,51 @@ keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGat
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
 
+Seeker state never enters that shared schema either. `sparkwitch:seeker_status` (`NEVER_COPY`,
+owner-only sync) holds the Seeker's car, camera, session, battery, cooldown-reason, and mark state
+bound to the current Wathe match id; remote-session bookkeeping stays server-only and is never
+synced or saved, and other players never see the battery or the mark. The remote view is a
+client-only camera switch (`MinecraftClient#setCameraEntity` on the owner's client); the server
+never calls `ServerPlayerEntity#setCameraEntity`, so server camera writers (Taotie, Last Stand,
+Depression) keep working and the body stays in place. The possession filter is a private
+`PostEffectProcessor`, never `GameRenderer.postProcessor`. Sessions are server-authoritative: the
+client never predicts entry, and every exit except the owner's own Shift is detected on the server.
+The owner's client only simulates the car it drives, and every move is validated against the shared
+`SeekerCarPhysics` (speed budget, replay, a server-side fall model that never trusts the client's
+velocity, radius and play-area clamps). The session lock (`LOCK_SCOPE = SESSION`) applies only while
+the Seeker drives the car or views the camera: `mixin/seeker/SeekerSprintLockMixin` clears sprint on
+both sides, `SeekerInteractionGuards` fail the Fabric player callbacks in the `seeker_session_lock`
+phase, `mixin/seeker/SeekerSessionPayloadGuardMixin` drops the blocked C2S payloads on the server
+thread, and inventory clicks and drops are denied. Device entities never save to disk and cannot be
+summoned; every device is swept at game start and at finalize. Role change, final death, and reset
+end the session and clean up devices and state; disconnect only ends the session. A deployed car
+starts at 100% battery and drains 1% every 10 ticks while driven and 1% every 60 ticks otherwise;
+the drain runs on the server tick and the client only displays the synced value. At 0% the car shuts
+down (`BATTERY_DEPLETED`) with the broken-car cooldown and no mark. Car cooldowns are exact + max
+writes on the `seeker_car` item: 60 s at round start, 180 s after a break, a recall (physical or
+remote), or depletion, and 60 s after a Taotie return. Any other round participant may break a
+device: the break gate `SeekerDamageRules.mayBreak` uses the role-agnostic
+`SeekerTargeting.isRoundParticipant` (never the Seeker-only `isActiveParticipant`), with the owner
+as SparkFactionAPI proxy target and Vendetta isolation. Break sources are bare hands and every
+left-click melee (`AttackEntityCallback`, server reach and line-of-sight re-check), the Wathe
+revolver and derringer, the SparkWitch double-barrel shotgun, the NoellesRoles Demon Hunter pistol,
+the Control Expert Taser and Shock Device, the knife stab (every `KnifeItem.getKnifeTarget` caller),
+the NoellesRoles throwing axe, the thrown Ninja shuriken, the Black Raven feather blade, the
+Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
+the SparkStrength M67. Rays and projectiles are nearest-wins (a nearer device takes the hit, the
+player behind is not hit); blasts (Wathe grenade, SparkStrength M67) break every device in a sphere
+with line of sight and still kill players as before. Sources with no hit or damage geometry never
+break a device: the firecracker (sound only), the Bomber timed bomb (kills only its holder), and the
+poison gas cloud (status effect). A breaker other than the owner is marked for the owner only (10 s,
+newest replaces oldest) when the owner holds the tablet; recalls, depletion, and Taotie swallows
+never mark. The Taotie path goes only through `compat/NoellesTaotieSeekerBridge` (pinned
+NoellesRoles `b58fa5f`) and `roles/civilian/seeker/taotie/`: the client predicts the Taotie's
+swallow key on a car in its crosshair (`client/mixin/seeker/SeekerTaotieAbilityKeyMixin`) and sends
+`seeker_car_swallow`, which the server re-validates; a swallow consumes the Taotie's swallow
+cooldown, removes the car without a mark or the 180 s cooldown, and tells the owner without naming
+the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role. The
+Seeker never renders in the `gui.sparkwitch.skills` panel.
+
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
 components; the existing shared packet and NBT layouts remain unchanged. Sword
@@ -164,6 +224,19 @@ build whose facade lacks or fails a method falls back per method to a 1.0 multip
 money (Judge semantics), a vanilla cooldown, or an intercepted death: the `KillPlayer.AFTER`
 cleanup is skipped, the stun counters still drop once the victim stops participating, and
 owned effects are removed at reset, finalize, or disconnect.
+The Seeker may query only `isLastStandPending` and `hasActiveTrait` (Impostor) through
+`compat/SparkTraitsSeekerBridge`, `isInstinctHidden` through its own client
+`SeekerInstinctVisibilityBridge`, `discountShopEntryForCharisma` through
+`SparkTraitsCharismaBridge`, and `isLastStandDeathIntercepted` through the existing
+`WitchFactorTraitsBridge`, beyond the existing `SparkTraitsKillerBridge` seams
+(`isRoleSkillBlocked`, `blocksWeaponAction` with its `getForcedMeleeCooldownTicks` read,
+`isKillerInteractionBlocked`, `setExactItemCooldownRemaining`). An absent SparkTraits means not
+pending, not Impostor (devices and task money allowed), nothing instinct-hidden, full shop prices,
+no skill or weapon block, a vanilla car cooldown, and cleanup on every death. A present build whose
+facade lacks or fails a method falls back per method to not pending, Impostor-or-unknown (devices
+and task money denied, `DENY_IMPOSTOR_DEVICES`), not hidden, full prices, no block, a vanilla
+cooldown, or an intercepted death: the `KillPlayer.AFTER` cleanup is skipped and the component
+tick's final-death fallback cleans up once the Seeker is dead and not Last Stand pending.
 
 ## Tofana Elixir Vocabulary
 
