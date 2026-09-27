@@ -14,9 +14,10 @@ import net.minecraft.util.TypedActionResult;
 
 /**
  * Server-side Clock use flow: gates, target, theft, authoritative cooldown, feedback and replay. Returns CONSUME on a
- * committed theft and FAIL otherwise, never SUCCESS (a success would broadcast an arm swing).
- * 服务端时钟使用流程：判定、目标、窃取、权威冷却、反馈与回放。成功窃取返回 CONSUME，其余返回 FAIL，
- * 绝不返回 SUCCESS（SUCCESS 会广播挥手动作）。
+ * committed theft or a Seeker device absorb (Q9), FAIL otherwise, never SUCCESS (a success would broadcast an arm
+ * swing).
+ * 服务端时钟使用流程：判定、目标、窃取、权威冷却、反馈与回放。成功窃取或被搜寻者设备吸收（Q9）时返回 CONSUME，
+ * 其余返回 FAIL，绝不返回 SUCCESS（SUCCESS 会广播挥手动作）。
  *
  * <p>Only two owner-only outcomes exist, "stolen" and one generic "no target", so a free miss cannot be used to probe
  * hidden states (invisibility, Last Escape, faction vetoes, an existing theft). A refusal costs nothing; the cooldown is
@@ -57,7 +58,10 @@ public final class TimeStealerClockService {
             return refuse(user, stack);
         }
         // Seeker seam (Q9): a nearer Seeker device absorbs the Clock and breaks; nothing is stolen, cooldown applies.
-        // 搜寻者接缝（Q9）：更近的搜寻者设备吸收时钟并被打坏；不窃取任何人，但照常进入冷却。
+        // Called only with a picked target: a Clock miss is free, so a device with nobody eligible behind it is left
+        // intact rather than becoming a free device breaker.
+        // 搜寻者接缝（Q9）：更近的搜寻者设备吸收时钟并被打坏；不窃取任何人，但照常进入冷却。仅在已选中目标时调用：
+        // 时钟未命中是免费的，因此其后没有合格目标的设备保持完好，而不会变成免费的拆设备手段。
         ServerPlayerEntity target = SeekerDeviceHits.onClockFired(user, aimed, TimeStealerRules.CLOCK_RANGE);
         if (target == null) {
             startCooldown(user, clock, state);

@@ -39,15 +39,17 @@ public final class ClockGeometry {
      * Frozen contract (mirrors {@code ControlExpertTaserTargeting.findTarget}): the nearest eligible player along
      * {@code user}'s eye ray of length {@code range}, truncated at the first collider block, where eligibility is
      * decided before any geometry so ineligible players are transparent, and the pick uses hitboxes expanded by
-     * {@link TimeStealerRules#CLOCK_BOX_EXPANSION} for aim tolerance only. Two hard checks then apply to the picked
-     * player: the eye-to-real-(unexpanded)-hitbox distance must be at most {@code range}, and the line of sight from
-     * the eye to the unexpanded hitbox must be unobstructed by collider blocks (a door is thinner than the expansion).
+     * {@link TimeStealerRules#CLOCK_BOX_EXPANSION} for aim tolerance only. Two hard checks apply to each ray-hit
+     * candidate before the nearest pick: the eye-to-real-(unexpanded)-hitbox distance must be at most {@code range},
+     * and the line of sight from the eye to the unexpanded hitbox must be unobstructed by collider blocks (a door is
+     * thinner than the expansion), so an out-of-range or hidden player never shields a reachable one behind it.
      * Callers pass {@link TimeStealerRules#CLOCK_RANGE}. Returns {@code null} when nothing qualifies.
      * 冻结契约（对应 {@code ControlExpertTaserTargeting.findTarget}）：沿 {@code user} 视线、长度为 {@code range}
      * 且在第一个碰撞方块处截断的射线上最近的合格玩家；资格判定先于任何几何计算，因此不合格者是透明的；选取时命中盒
-     * 按 {@link TimeStealerRules#CLOCK_BOX_EXPANSION} 扩展，仅用于瞄准容差。随后对选中者施加两道硬校验：
-     * 眼睛到真实（未扩展）命中盒的距离不超过 {@code range}，且眼睛到未扩展命中盒的视线不被碰撞方块遮挡
-     * （门的厚度小于扩展量）。调用方传入 {@link TimeStealerRules#CLOCK_RANGE}。无人合格时返回 {@code null}。
+     * 按 {@link TimeStealerRules#CLOCK_BOX_EXPANSION} 扩展，仅用于瞄准容差。选取最近者之前，对每个被射线触及的候选者
+     * 施加两道硬校验：眼睛到真实（未扩展）命中盒的距离不超过 {@code range}，且眼睛到未扩展命中盒的视线不被碰撞方块
+     * 遮挡（门的厚度小于扩展量），因此超出距离或被遮住的玩家绝不会挡住其后可命中的玩家。
+     * 调用方传入 {@link TimeStealerRules#CLOCK_RANGE}。无人合格时返回 {@code null}。
      */
     public static <T extends PlayerEntity> @Nullable T findTarget(PlayerEntity user, double range,
                                                                   Iterable<? extends T> candidates,
@@ -70,17 +72,20 @@ public final class ClockGeometry {
     }
 
     /**
-     * Pure core over the block-truncated segment {@code start..end}: eligible-first nearest pick on expanded boxes,
-     * then the two hard checks on the picked candidate only (a failed pick is a miss, never a fallback to a farther
-     * player). {@code segmentClear} answers whether no collider block lies between two points.
-     * 在已按方块截断的线段 {@code start..end} 上的纯核心：先判定资格，再在扩展命中盒上选最近者，随后只对选中者施加
-     * 两道硬校验（选中者未通过即视为未命中，绝不退而选择更远的玩家）。{@code segmentClear} 回答两点之间是否没有碰撞方块。
+     * Pure core over the block-truncated segment {@code start..end}: eligibility first, then the expanded-box ray hit,
+     * then the two hard checks as a per-candidate filter, and the nearest survivor (by expanded-box entry) wins. The
+     * hard checks run only for a candidate nearer than the current best, so sight rays stay rare. A candidate failing
+     * a hard check is skipped exactly like an ineligible one: it can neither be stolen from nor shield anyone.
+     * {@code segmentClear} answers whether no collider block lies between two points.
+     * 在已按方块截断的线段 {@code start..end} 上的纯核心：先判定资格，再做扩展盒射线命中，随后把两道硬校验作为逐个
+     * 候选者的过滤条件，最终由（按扩展盒进入距离）最近的幸存者胜出。只对比当前最佳者更近的候选者执行硬校验，使视线射线
+     * 保持稀少。未通过硬校验的候选者与不合格者一样被跳过：既不会被窃取，也不会挡住其他人。
+     * {@code segmentClear} 回答两点之间是否没有碰撞方块。
      */
     static <T> @Nullable T pick(Vec3d start, Vec3d end, double range, Iterable<? extends T> candidates,
                                 Predicate<? super T> eligible, Function<? super T, Box> boxOf,
                                 BiPredicate<Vec3d, Vec3d> segmentClear) {
         T selected = null;
-        Box selectedBox = null;
         double closest = Double.POSITIVE_INFINITY;
         for (T candidate : candidates) {
             if (!eligible.test(candidate)) {
@@ -93,16 +98,13 @@ public final class ClockGeometry {
                 continue;
             }
             double distance = start.squaredDistanceTo(hit);
-            if (distance < closest) {
-                closest = distance;
-                selected = candidate;
-                selectedBox = box;
+            if (distance >= closest
+                    || squaredDistanceToBox(start, box) > range * range
+                    || !hasLineOfSight(start, end, box, segmentClear)) {
+                continue;
             }
-        }
-        if (selected == null
-                || squaredDistanceToBox(start, selectedBox) > range * range
-                || !hasLineOfSight(start, end, selectedBox, segmentClear)) {
-            return null;
+            closest = distance;
+            selected = candidate;
         }
         return selected;
     }
