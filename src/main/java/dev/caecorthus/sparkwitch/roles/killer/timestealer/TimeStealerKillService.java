@@ -79,8 +79,10 @@ public final class TimeStealerKillService {
         // Owner decision Q8: max(0, t - 600); a drain to 0 lets the civilians win on TIME.
         // 所有者决定 Q8：max(0, t - 600)；扣到 0 时平民按 TIME 获胜。
         time.setTime(TimeStealerRules.timeAfterClockKill(time.getTime()));
-        // Self-gated: only a living, exact Time Stealer in the current match receives it (N32).
-        // 自带门槛：只有当前对局中存活的精确窃时者才能收到（N32）。
+        // Self-gated by the frozen StampService contract (implemented in WP-05): only a living, exact Time Stealer in
+        // the current match receives it, so a dead but online attributed stealer gets nothing (N32).
+        // 由冻结的 StampService 契约自带门槛（在 WP-05 实现）：只有当前对局中存活的精确窃时者才能收到，
+        // 因此已死亡但在线的被归因窃时者得不到邮票（N32）。
         TimeStealerStampService.grant(killer, 1);
     }
 }

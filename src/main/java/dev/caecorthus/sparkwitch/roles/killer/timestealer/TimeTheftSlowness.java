@@ -19,11 +19,21 @@ import org.jetbrains.annotations.Nullable;
  * decide which node is ours, and writes the rest back with {@code setStatusEffect}, so foreign Slowness (a Control
  * Expert stun, Grand Witch Heaviness, other roles) keeps its level and duration. Any decode failure leaves the effect
  * untouched: the curse's node is bounded to {@link TimeStealerRules#SLOWNESS_DURATION_TICKS} and simply runs out.
+ * Known limitation (cross-role): a changed chain is written back as a new {@link StatusEffectInstance}, because the
+ * in-place setters ({@code copyFrom}, the hidden chain) are not public and this role adds no mixin or access widener.
+ * Levels and durations are kept, but the object identity is not, so a role that remembers the live instance by identity
+ * (Control Expert's owned-effect record) no longer recognises it and leaves that Slowness to expire at its own cleanup
+ * (death or disconnect; {@code resetPlayer} clears every effect anyway). The leftover is bounded by that role's own
+ * duration.
  * 诅咒缓慢的仅服务端 Minecraft 适配器（计划 D5 / §3.8）。施加是普通的 {@code addStatusEffect}；移除时经
  * {@link StatusEffectInstance#CODEC} 读取实时效果链（隐藏链是私有字段，带注册表上下文的 NBT 往返是唯一的公开视图），
  * 由 {@link SlownessChain} 判定哪一节属于我们，再用 {@code setStatusEffect} 写回其余部分，
  * 因此外来缓慢（控场专家眩晕、大魔女沉重、其他职业）保持原有等级与时长。任何解码失败都不改动效果：
  * 诅咒那一节最长只有 {@link TimeStealerRules#SLOWNESS_DURATION_TICKS}，会自然到期。
+ * 已知限制（跨职业）：效果链被改动时会以新的 {@link StatusEffectInstance} 写回，因为原地修改的入口（{@code copyFrom}、
+ * 隐藏链）都不是公开的，本职业也不添加 mixin 或访问加宽器。等级与时长保持不变，但对象身份改变，
+ * 因此按身份记住实时实例的职业（控场专家的归属记录）将不再认出它，并在其自身清理时（死亡或断线；
+ * {@code resetPlayer} 本来就会清除所有效果）任该缓慢自然到期。残留时长以该职业自身的时长为上限。
  */
 final class TimeTheftSlowness {
     /** {@code StatusEffectInstance.Parameters} codec field names (1.21.1). / {@code StatusEffectInstance.Parameters} 编解码字段名（1.21.1）。 */
@@ -87,8 +97,9 @@ final class TimeTheftSlowness {
                 if (decoded == null) {
                     return SlownessChain.Surgery.UNCHANGED;
                 }
-                boolean ours = !found && SlownessChain.isOurs(
-                        decoded.getAmplifier(), decoded.getDuration(), ourAmplifier, expected);
+                boolean ours = !found && SlownessChain.isOurs(decoded.getAmplifier(), decoded.getDuration(),
+                        decoded.isAmbient(), decoded.shouldShowParticles(), decoded.shouldShowIcon(), ourAmplifier,
+                        expected);
                 found |= ours;
                 layers.add(layer);
                 nodes.add(new SlownessChain.Node(decoded.getAmplifier(), decoded.getDuration(), ours));
