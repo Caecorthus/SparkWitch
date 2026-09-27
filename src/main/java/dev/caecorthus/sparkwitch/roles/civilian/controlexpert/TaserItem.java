@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.controlexpert;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsControlExpertBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import java.util.List;
 import net.minecraft.entity.player.PlayerEntity;
@@ -61,6 +62,9 @@ public final class TaserItem extends Item {
         // 控场专家无法影响的玩家在选取最近者之前就被过滤，因此对射线透明。
         ServerPlayerEntity target = ControlExpertTaserTargeting.findTarget(ce, range, serverWorld.getPlayers(),
                 candidate -> ControlExpertTargeting.canAffect(ce, candidate, ControlExpertRules.TASER_ACTION));
+        // Seeker seam: a nearer Seeker device absorbs the dart and breaks; nobody is stunned (replay hit:false).
+        // 搜寻者接缝：更近的搜寻者设备吸收电击镖并被打坏；不眩晕任何人（回放 hit:false）。
+        target = SeekerDeviceHits.onTaserFired(ce, target, range);
         if (target != null) {
             ControlExpertStun.apply(ce, target, ControlExpertRules.TASER_TAIL_TICKS);
         }
