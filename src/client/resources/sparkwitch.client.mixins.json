@@ -50,6 +50,7 @@
     "WraithRendererDispatchMixin",
     "WraithWatheHighlightMixin",
     "bellringer.MoodRendererTaskRendererBellEchoMixin",
+    "timestealer.TimeStealerClockCrosshairMixin",
     "blackraven.BlackRavenGameRendererMixin",
     "blackraven.BlackRavenHudMixin",
     "blackraven.BlackRavenInstinctGateMixin",
