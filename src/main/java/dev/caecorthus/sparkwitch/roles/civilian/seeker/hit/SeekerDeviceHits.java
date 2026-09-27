@@ -7,7 +7,6 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceServic
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
-import dev.doctor4t.wathe.item.KnifeItem;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -141,10 +140,10 @@ public final class SeekerDeviceHits {
     }
 
     /**
-     * Wathe knife right-click charged stab receiver. Validates a knife in either hand, no knife cooldown, the SparkTraits
+     * Wathe knife right-click charged stab receiver. Validates the Wathe knife in either hand, no knife cooldown, the SparkTraits
      * weapon-action gate, reach (3 + 0.5 latency), line of sight and {@link SeekerDamageRules#mayBreak}. A device stab
      * costs nothing, like Wathe's miss (no cooldown, no Veteran stab use); returns true when a device broke.
-     * Wathe 刀右键蓄力刺击接收器。校验任一手持刀、刀未冷却、SparkTraits 武器动作门槛、距离（3 + 0.5 延迟）、视线与
+     * Wathe 刀右键蓄力刺击接收器。校验任一手持 Wathe 刀、刀未冷却、SparkTraits 武器动作门槛、距离（3 + 0.5 延迟）、视线与
      * {@link SeekerDamageRules#mayBreak}。刺中设备与 Wathe 未刺中一样不产生代价（无冷却、不消耗老兵次数）；打坏设备时返回 true。
      */
     public static boolean onKnifeStabPayload(ServerPlayerEntity attacker, @Nullable Entity target) {
@@ -339,6 +338,12 @@ public final class SeekerDeviceHits {
                 || !GameWorldComponent.KEY.get(projectile.getWorld()).isRunning()) {
             return false;
         }
+        // Runs every projectile tick: skip the block raycast and player scan when no device is near the segment.
+        // 每个投射物每刻都会执行：线段附近没有设备时跳过方块射线与玩家扫描。
+        if (projectile.getWorld().getEntitiesByClass(SeekerDeviceEntity.class, new Box(from, to).expand(1.0),
+                SeekerDeviceHits::isLive).isEmpty()) {
+            return false;
+        }
         Vec3d end = SeekerDeviceRaycast.clipToBlocks(projectile.getWorld(), from, to, projectile);
         double beat = playersBlock ? nearestPlayerDistanceSquared(projectile, breaker, from, end)
                 : Double.POSITIVE_INFINITY;
@@ -381,13 +386,19 @@ public final class SeekerDeviceHits {
         return device != null && device.isAlive() && !device.isRemoved();
     }
 
+    /**
+     * The Wathe knife itself, never a {@code KnifeItem} subclass: the Vendetta knife has its own payload and never sends
+     * a stab, so a forged stab while holding it must not break devices (matches the SparkTraits knife-packet gate).
+     * 仅限 Wathe 刀本身，不含 {@code KnifeItem} 子类：复仇者之刀走自己的数据包、从不发送刺击，持有它时伪造的刺击不得打坏设备
+     * （与 SparkTraits 刀数据包门槛一致）。
+     */
     private static ItemStack heldKnife(PlayerEntity player) {
         ItemStack main = player.getMainHandStack();
-        if (main.getItem() instanceof KnifeItem) {
+        if (main.isOf(WatheItems.KNIFE)) {
             return main;
         }
         ItemStack off = player.getOffHandStack();
-        return off.getItem() instanceof KnifeItem ? off : ItemStack.EMPTY;
+        return off.isOf(WatheItems.KNIFE) ? off : ItemStack.EMPTY;
     }
 
     private static int demonHunterBullets(ItemStack pistol) {
