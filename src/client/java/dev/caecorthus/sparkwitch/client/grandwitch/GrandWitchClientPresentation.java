@@ -51,12 +51,39 @@ public final class GrandWitchClientPresentation {
         if (!component.hasUnlockedGrandWitchCeremonialSword()) {
             return Text.translatable("hud.sparkwitch.grand_witch.recruit.locked", component.getGrandWitchCeremonialSwordTasks());
         }
+        RecruitQuota quota = recruitQuota(player);
+        return Text.translatable("hud.sparkwitch.grand_witch.recruit.ready",
+                quota.remaining(), quota.capacity(), SecondaryAbilityController.secondaryKeyText());
+    }
+
+    /**
+     * Recruit quota left / total this round, shared by the HUD line and the inventory card.
+     * 本局剩余 / 总招募名额，HUD 与背包卡片共用。
+     */
+    public record RecruitQuota(int remaining, int capacity) {
+    }
+
+    public static RecruitQuota recruitQuota(ClientPlayerEntity player) {
         GrandWitchRuntimeComponent runtime = GrandWitchRuntimeComponent.KEY.get(player);
         // Quota is cumulative and based on the round snapshot, never the current living count. / 名额按开局人口及累计招募计算，不按当前存活人数。
         int capacity = Math.max(0, (runtime.getRoundParticipants() - 18) / 6);
         int remaining = Math.max(0, capacity - runtime.getRecruitmentCount());
-        return Text.translatable("hud.sparkwitch.grand_witch.recruit.ready",
-                remaining, capacity, SecondaryAbilityController.secondaryKeyText());
+        return new RecruitQuota(remaining, capacity);
+    }
+
+    /** Remaining sword kill cooldown in ticks (server timer, ticked locally between syncs). 仪礼剑剩余击杀冷却刻数。 */
+    public static int swordKillTicks(ClientPlayerEntity player) {
+        return GrandWitchRuntimeComponent.KEY.get(player).getSwordKillCooldownTicks();
+    }
+
+    /** Remaining dash cooldown in ticks: the sword's own item cooldown. 冲刺剩余冷却刻数，即仪礼剑物品冷却。 */
+    public static int swordDashTicks(ClientPlayerEntity player) {
+        // Read the actual item timer, including any external extension; never infer it from kill cooldown.
+        // 读取实际物品计时（包括外部延长），绝不从击杀冷却推算冲刺冷却。
+        ItemCooldownManagerAccessor manager = (ItemCooldownManagerAccessor) player.getItemCooldownManager();
+        Object entry = manager.sparkwitch$getEntries().get(SparkWitchItems.ceremonialSword());
+        return entry instanceof ItemCooldownEntryAccessor cooldown
+                ? Math.max(0, cooldown.sparkwitch$getEndTick() - manager.sparkwitch$getTick()) : 0;
     }
 
     public static List<Text> swordStates(ClientPlayerEntity player) {
@@ -64,16 +91,9 @@ public final class GrandWitchClientPresentation {
         if (!component.hasUnlockedGrandWitchCeremonialSword()) {
             return List.of(Text.translatable("hud.sparkwitch.grand_witch.sword.locked", component.getGrandWitchCeremonialSwordTasks()));
         }
-        int killTicks = GrandWitchRuntimeComponent.KEY.get(player).getSwordKillCooldownTicks();
-        // Read the actual item timer, including any external extension; never infer it from kill cooldown.
-        // 读取实际物品计时（包括外部延长），绝不从击杀冷却推算冲刺冷却。
-        ItemCooldownManagerAccessor manager = (ItemCooldownManagerAccessor) player.getItemCooldownManager();
-        Object entry = manager.sparkwitch$getEntries().get(SparkWitchItems.ceremonialSword());
-        int dashTicks = entry instanceof ItemCooldownEntryAccessor cooldown
-                ? Math.max(0, cooldown.sparkwitch$getEndTick() - manager.sparkwitch$getTick()) : 0;
         return List.of(
-                Text.translatable("hud.sparkwitch.grand_witch.sword.kill", timer(killTicks)),
-                Text.translatable("hud.sparkwitch.grand_witch.sword.dash", timer(dashTicks))
+                Text.translatable("hud.sparkwitch.grand_witch.sword.kill", timer(swordKillTicks(player))),
+                Text.translatable("hud.sparkwitch.grand_witch.sword.dash", timer(swordDashTicks(player)))
         );
     }
 

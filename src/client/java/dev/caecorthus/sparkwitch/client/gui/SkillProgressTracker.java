@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.SwiftStep.S
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.util.Identifier;
@@ -88,11 +89,12 @@ public final class SkillProgressTracker {
     }
 
     /**
-     * Known phase totals. Cooldown: the definition's cooldown and initial cooldown, plus the sword's real
-     * cooldown (its registry value is 0 because the use handler defers it). Active: the window each panel skill
-     * opens (the registry only exposes live windows, not totals).
-     * 已知阶段总量：冷却取定义的冷却与初始冷却，另加仪礼剑的真实冷却（注册值为 0，由使用处理延后设置）；
-     * 生效取各面板技能开启的窗口长度（注册表只提供实时窗口，不提供总量）。
+     * Known phase totals. Cooldown: the definition's cooldown and initial cooldown; Witch Factor's 400-tick cooldown
+     * (also without the registry); and, keyed by the Ceremonial Sword's id, the sword's 600-tick kill cooldown (a
+     * Grand Witch timer beside the panel skill; the legacy sword skill constants are 0). Active: the window each panel
+     * skill opens (the registry only exposes live windows, not totals).
+     * 已知阶段总量：冷却取定义的冷却与初始冷却，魔女因子的 400 刻冷却（无注册表时也可知），以及以仪礼剑 id 为键的 600 刻击杀冷却
+     * （面板主技能之外的大魔女计时；旧仪礼剑技能常量已为 0）；生效取各面板技能开启的窗口长度（注册表只提供实时窗口，不提供总量）。
      */
     static IntList candidates(Identifier skill, @Nullable WitchSkillDefinition definition, boolean active) {
         IntList totals = new IntArrayList(3);
@@ -104,8 +106,9 @@ public final class SkillProgressTracker {
             add(totals, definition.cooldownTicks());
             add(totals, definition.initialCooldownTicks());
         }
+        if (WitchFactorService.SKILL_ID.equals(skill)) add(totals, WitchFactorService.COOLDOWN_TICKS);
         if (GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID.equals(skill)) {
-            add(totals, GrandWitchRules.CEREMONIAL_SWORD_COOLDOWN_TICKS);
+            add(totals, GrandWitchRules.CEREMONIAL_SWORD_KILL_COOLDOWN_TICKS);
         }
         return totals;
     }
@@ -128,9 +131,11 @@ public final class SkillProgressTracker {
         return (int) Math.ceil(widest / 20.0);
     }
 
-    /** The windows opened by the three Witch-skill roles' own skills (the only skills the panel shows). */
+    /**
+     * The windows opened by the three Witch-skill roles' own skills (the only skills the panel shows). Witch Factor
+     * and the permanent Ceremonial Sword open none. 三个魔女技能职业自有技能开启的窗口；魔女因子与常驻仪礼剑没有窗口。
+     */
     private static int activeWindowTicks(Identifier skill) {
-        if (GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID.equals(skill)) return GrandWitchRules.CEREMONIAL_SWORD_DURATION_TICKS;
         if (MurderousWitchDeathRayRules.isDeathRaySkill(skill)) return MurderousWitchDeathRayRules.WINDOW_TICKS;
         if (MightyForceAbility.ID.equals(skill)) return MightyForceAbility.WINDOW_TICKS;
         if (SwiftStepAbility.ID.equals(skill)) return SwiftStepAbility.DURATION_TICKS;
