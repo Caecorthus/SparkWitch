@@ -121,6 +121,17 @@ uses a cumulative world quota, never a living-teammate count. Sword piercing
 applies to role/item shields, not trait protections such as Last Stand or Last
 Escape; protection costs and retaliation keep their normal side effects.
 
+Active Wraiths do not absorb name-tag raycasts they are hidden from.
+`client/render/WraithNameTagPassThrough` owns the presentation rule: a player
+whose synced Wraith state is active is skipped when
+`WraithViewerRules.shouldHideFromOrdinaryViewer` hides it, except for the
+promoted Curser viewed by the witch faction. Spectators, killers viewing the
+promoted Saboteur, and the bound killer viewing its Vendetta keep selecting it.
+`client/mixin/WraithNameTagRaycastMixin` narrows only the predicate of the first
+(player) `ProjectileUtil.getCollision` in Wathe's `RoleNameRenderer.renderHud`;
+`WitchCohortRoleNameMixin` and `BlackRavenRoleNameRenderer` apply the same filter
+to their own raycasts so their labels follow the tagged player.
+
 SparkTraits is optional and fail-closed. Reflection may target only
 `dev.caecorthus.sparktraits.api.SparkTraitsApi`, never `sparktraits.impl` or
 `sparktraits.component`. Black Raven may query only the public
