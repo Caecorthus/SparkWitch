@@ -36,6 +36,15 @@ public final class SeekerHudRules {
     public static final int SEPARATOR_COLOR = 0xFF777777;
     public static final int RIGHT_PADDING = 5;
     public static final int BOTTOM_PADDING = 5;
+    /** Half the vanilla hotbar width (182 / 2). / 原版快捷栏宽度的一半（182 / 2）。 */
+    public static final int HOTBAR_HALF_WIDTH = 91;
+    /** Horizontal gap kept from the hotbar. / 与快捷栏保持的水平间距。 */
+    public static final int HOTBAR_GAP = 4;
+    /**
+     * Bottom offset of the lifted line: above Wathe's stamina row (top at height - 39) and its cooldown number, + 2px.
+     * 抬升后状态行的底部偏移：位于 Wathe 体力行（顶端为 height - 39）及其冷却数字之上，再留 2 像素。
+     */
+    public static final int LIFTED_BOTTOM_OFFSET = 41;
 
     private SeekerHudRules() {
     }
@@ -127,13 +136,30 @@ public final class SeekerHudRules {
         return List.copyOf(segments);
     }
 
-    /** Left x of a right-aligned line. / 右对齐文本的左侧 x。 */
+    /**
+     * Left x of the right-aligned line; never negative so the car segment stays readable on very narrow screens.
+     * 右对齐文本的左侧 x；不为负，使极窄屏幕上小车片段仍可读。
+     */
     public static int lineX(int screenWidth, int textWidth) {
-        return screenWidth - RIGHT_PADDING - textWidth;
+        return Math.max(0, screenWidth - RIGHT_PADDING - textWidth);
     }
 
-    /** Top y of the bottom-anchored line. / 底部对齐文本的顶部 y。 */
-    public static int lineY(int screenHeight, int fontHeight) {
-        return screenHeight - BOTTOM_PADDING - fontHeight;
+    /**
+     * Whether a line starting at {@code lineX} would reach into the centred hotbar column.
+     * 从 {@code lineX} 开始的状态行是否会伸入居中的快捷栏列。
+     */
+    public static boolean overlapsHotbar(int screenWidth, int lineX) {
+        return lineX < screenWidth / 2 + HOTBAR_HALF_WIDTH + HOTBAR_GAP;
+    }
+
+    /**
+     * Top y of the bottom-anchored line. A line wide enough to reach the hotbar column is lifted above the hotbar,
+     * Wathe's stamina row and its cooldown number instead of being drawn over the hotbar items.
+     * 底部对齐文本的顶部 y。宽到会伸入快捷栏列的状态行会被抬升到快捷栏、Wathe 体力行及其冷却数字之上，
+     * 而不是覆盖在快捷栏物品上。
+     */
+    public static int lineY(int screenWidth, int screenHeight, int lineX, int fontHeight) {
+        int bottomOffset = overlapsHotbar(screenWidth, lineX) ? LIFTED_BOTTOM_OFFSET : BOTTOM_PADDING;
+        return screenHeight - bottomOffset - fontHeight;
     }
 }

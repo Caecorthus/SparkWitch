@@ -70,10 +70,10 @@ public final class SeekerStatusHud {
         }
         Text line = compose(segments);
         TextRenderer renderer = client.textRenderer;
-        context.drawTextWithShadow(renderer, line,
-                SeekerHudRules.lineX(context.getScaledWindowWidth(), renderer.getWidth(line)),
-                SeekerHudRules.lineY(context.getScaledWindowHeight(), renderer.fontHeight),
-                SeekerHudRules.BASE_COLOR);
+        int width = context.getScaledWindowWidth();
+        int x = SeekerHudRules.lineX(width, renderer.getWidth(line));
+        int y = SeekerHudRules.lineY(width, context.getScaledWindowHeight(), x, renderer.fontHeight);
+        context.drawTextWithShadow(renderer, line, x, y, SeekerHudRules.BASE_COLOR);
     }
 
     static Text compose(List<SeekerHudRules.Segment> segments) {

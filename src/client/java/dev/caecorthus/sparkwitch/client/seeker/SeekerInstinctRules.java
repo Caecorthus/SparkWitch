@@ -77,17 +77,20 @@ public final class SeekerInstinctRules {
 
     /**
      * Whether the owner's breaker-mark outline shows on this player. Hidden while the target is a spectator or
-     * swallowed (a swallowed outline would reveal the Taotie), when SparkTraits hides the target from the viewer, or
-     * while the viewer is swallowed.
-     * 损坏者标记描边是否显示在该玩家上。目标为旁观者或被吞噬（否则会暴露饕餮位置）、SparkTraits 对观察者隐藏
-     * 目标，或观察者自己被吞噬时均不显示。
+     * swallowed (a swallowed outline would reveal the Taotie), while the target is invisible to the viewer (vanilla
+     * still draws an outline silhouette for invisible entities, so an always-on mark would expose e.g. a Phantom;
+     * SparkWitch's other always-on player outlines skip invisible targets too), when SparkTraits hides the target from
+     * the viewer, or while the viewer is swallowed.
+     * 损坏者标记描边是否显示在该玩家上。目标为旁观者或被吞噬（否则会暴露饕餮位置）、目标对观察者隐身（原版仍会为隐身
+     * 实体绘制描边轮廓，常亮标记会暴露如幽灵等隐身者；SparkWitch 其他常亮玩家描边同样跳过隐身目标）、SparkTraits
+     * 对观察者隐藏目标，或观察者自己被吞噬时均不显示。
      */
     public static boolean showsMark(@Nullable UUID markTarget, int markRemainingTicks, @Nullable UUID targetUuid,
-                                    boolean targetSpectating, boolean targetSwallowed, boolean targetInstinctHidden,
-                                    boolean viewerSwallowed) {
+                                    boolean targetSpectating, boolean targetInvisible, boolean targetSwallowed,
+                                    boolean targetInstinctHidden, boolean viewerSwallowed) {
         if (markTarget == null || markRemainingTicks <= 0 || !markTarget.equals(targetUuid)) {
             return false;
         }
-        return !targetSpectating && !targetSwallowed && !targetInstinctHidden && !viewerSwallowed;
+        return !targetSpectating && !targetInvisible && !targetSwallowed && !targetInstinctHidden && !viewerSwallowed;
     }
 }
