@@ -67,6 +67,34 @@ public final class SeekerTargeting {
     }
 
     /**
+     * Role-agnostic round participant for actions taken AGAINST a Seeker (the device-break gate): an online server
+     * player, alive in Wathe, not spectating or creative, not an active Wraith, holding any role. Unlike
+     * {@link #isActiveParticipant} it never requires the Seeker role or a bound match id, so killers, civilians, police
+     * and neutrals all qualify ("other players", owner decision Q4). Mirrors {@code ControlExpertTargeting.isParticipant}
+     * without importing it.
+     * 与职业无关的对局参与者，用于针对搜寻者的行动（设备损坏门槛）：在线的服务端玩家，在 Wathe 中存活、非旁观/创造、
+     * 非激活冤魂，且拥有任意职业。与 {@link #isActiveParticipant} 不同，它从不要求搜寻者职业或绑定的对局 id，
+     * 因此杀手、平民、警察与中立都满足（所有者决定 Q4 的“其他玩家”）。复制控场专家 {@code isParticipant} 语义但不引用它。
+     */
+    public static boolean isRoundParticipant(@Nullable PlayerEntity player) {
+        if (!(player instanceof ServerPlayerEntity serverPlayer) || serverPlayer.isDisconnected()) {
+            return false;
+        }
+        return roundParticipant(
+                GameFunctions.isPlayerPlayingAndAlive(serverPlayer),
+                serverPlayer.isSpectator(),
+                serverPlayer.isCreative(),
+                WraithStateService.isActive(serverPlayer),
+                GameWorldComponent.KEY.get(serverPlayer.getWorld()).getRole(serverPlayer) != null);
+    }
+
+    /** Pure role-agnostic participant rule. / 与职业无关的纯参与者规则。 */
+    static boolean roundParticipant(boolean playingAndAlive, boolean spectator, boolean creative,
+                                    boolean wraithActive, boolean hasRole) {
+        return playingAndAlive && !spectator && !creative && !wraithActive && hasRole;
+    }
+
+    /**
      * Deploy/place gate: the common gate (incl. the Q5-b impostor rule), an available body, no open session, and no
      * SparkTraits weapon-action block for this stack.
      * 部署与放置门槛：公共门槛（含 Q5-b 内鬼规则）、本体可用、没有打开的会话，且该物品未被 SparkTraits 武器动作封锁。

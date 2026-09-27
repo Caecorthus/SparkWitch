@@ -51,9 +51,12 @@ public final class SeekerCarClientDriver {
 
     /**
      * Server correction for the car this client drives. Stale sessions and cars are ignored; the position snaps
-     * (no interpolation) and the local heading is kept, because the heading is the driver's own mouse look.
+     * (no interpolation) and the local heading is kept, because the heading is the driver's own mouse look. The fall
+     * speed is kept too (there is no horizontal momentum to keep): the server's fall model never restarts on a
+     * correction, so an owner that restarted from rest would fall slower than the model and be corrected again.
      * 对本客户端所驾驶小车的服务端纠正。过期会话与车辆直接忽略；位置瞬间对齐（不插值），
-     * 并保留本地车头朝向，因为朝向就是驾驶者自己的鼠标视角。
+     * 并保留本地车头朝向，因为朝向就是驾驶者自己的鼠标视角。下落速度同样保留（没有水平惯性可保留）：服务端下落模型
+     * 从不因纠正而重启，若拥有者从静止重新开始，就会比模型下落得慢而再次被纠正。
      */
     public static void onCorrection(SeekerCarCorrectS2CPacket packet) {
         SeekerCarEntity driven = car;
@@ -65,7 +68,7 @@ public final class SeekerCarClientDriver {
         }
         Vec3d corrected = new Vec3d(packet.x(), packet.y(), packet.z());
         snap(driven, corrected);
-        velocity = Vec3d.ZERO;
+        velocity = new Vec3d(0.0, Math.min(velocity.y, 0.0), 0.0);
         lastSentPosition = corrected;
         lastSentYaw = driven.getYaw();
     }

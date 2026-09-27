@@ -28,17 +28,28 @@ import java.util.function.BooleanSupplier;
  * Frozen contract: who may break a Seeker device, plus the pure blast / line-of-sight / aim helpers every hit entry
  * validates with. The gate deliberately mirrors the Control Expert's {@code canAffect} chain with the device OWNER as
  * the proxy target, because SparkFactionAPI never vetoes non-player targets and the Vendetta packet guard ignores
- * them: the attacker must be an active participant other than the owner, not in a Seeker session, not stunned, not
+ * them: the attacker must be a role-agnostic round participant ({@link SeekerTargeting#isRoundParticipant}: alive, not
+ * spectator/creative, not an active Wraith, any role; never the Seeker-only {@code isActiveParticipant}) other than
+ * the owner, not in a Seeker session, not stunned, not
  * Last-Escape blocked, allowed by {@code SparkFactionApi.canAffectPlayer(attacker, owner, BREAK_ACTION_ID, game)}, and
  * inside Vendetta isolation. Police and teammates may break devices ("other players"). A device whose owner is
  * offline has no proxy target and fails closed. A device the attacker may not break is transparent to that attacker's
- * rays: it neither breaks nor shields the player behind it.
+ * server-side rays and sweeps (shotgun, taser, feather blade, death ray, throwing axe, shuriken, Shock Device): it
+ * neither breaks nor shields the player behind it. Client-targeted weapons (revolver, derringer, Demon Hunter pistol,
+ * knife stab) are the documented exception: the client cannot evaluate the faction veto, Vendetta isolation or
+ * Last Escape, so it names the nearer device in the payload, and when the server refuses the break the shot or stab
+ * resolves as a miss (the device shields the player behind it). The server does not re-resolve a player target,
+ * because it cannot know the per-gun client range (derringer 7 blocks, SparkTraits Marksman extension).
  * 冻结契约：谁可以损坏搜寻者设备，以及各命中入口用于校验的纯爆炸/视线/瞄准辅助方法。该门槛刻意复制控场专家
  * {@code canAffect} 判定链，并以设备拥有者作为代理目标，因为 SparkFactionAPI 从不否决非玩家目标、复仇者数据包拦截也会忽略
- * 它们：攻击者必须是拥有者以外的可行动参与者，不在搜寻者会话中、未被眩晕、未被最后逃脱阻止，通过
+ * 它们：攻击者必须是拥有者以外、与职业无关的对局参与者（{@link SeekerTargeting#isRoundParticipant}：存活、非旁观/创造、
+ * 非激活冤魂、任意职业；绝不是仅限搜寻者的 {@code isActiveParticipant}），不在搜寻者会话中、未被眩晕、未被最后逃脱阻止，通过
  * {@code SparkFactionApi.canAffectPlayer(attacker, owner, BREAK_ACTION_ID, game)}，并满足复仇者隔离。警察与队友也能
- * 打坏设备（规格写的是“其他玩家”）。拥有者离线的设备没有代理目标，失败即关闭。攻击者不能打坏的设备对其射线透明：
- * 既不会损坏，也不会替身后的玩家挡枪。
+ * 打坏设备（规格写的是“其他玩家”）。拥有者离线的设备没有代理目标，失败即关闭。攻击者不能打坏的设备对其服务端射线与
+ * 扫掠（猎枪、电击枪、羽刃、死光、飞斧、手里剑、电击装置）透明：既不会损坏，也不会替身后的玩家挡枪。由客户端选择目标的
+ * 武器（左轮、德林加、猎魔枪、刀刺）是有文档说明的例外：客户端无法判断阵营否决、复仇者隔离与最后逃脱，会在数据包中指定
+ * 更近的设备；服务端拒绝损坏时这一枪/一刺按未命中处理（设备替身后的玩家挡下）。服务端不会重新解析玩家目标，
+ * 因为它无法得知各枪械的客户端射程（德林加 7 格、SparkTraits 神射手延长）。
  */
 public final class SeekerDamageRules {
     /** Wathe's server cap for gun targets ({@code GunShootPayload$Receiver}). / Wathe 服务端枪械目标距离上限。 */
@@ -71,7 +82,7 @@ public final class SeekerDamageRules {
         return breaks(
                 game.isRunning(),
                 isSamePlayer(attacker, owner),
-                () -> SeekerTargeting.isActiveParticipant(attacker),
+                () -> SeekerTargeting.isRoundParticipant(attacker),
                 () -> isInSeekerSession(attacker),
                 () -> SeekerControlExpertBridge.isStunned(attacker),
                 () -> SparkTraitsKillerBridge.isKillerInteractionBlocked(attacker),

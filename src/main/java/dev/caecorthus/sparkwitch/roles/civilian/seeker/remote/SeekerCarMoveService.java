@@ -96,8 +96,10 @@ public final class SeekerCarMoveService {
                                SeekerCarEntity car, Vec3d server, Vec3d claimed, SeekerCarMoveRules.Decision decision,
                                float yaw, SeekerCarPhysics.Collider collider, long now) {
         Vec3d position = decision.position();
-        session.airTicks = SeekerCarPhysics.isSupported(collider, server) ? 0 : session.airTicks + 1;
-        session.budget.consume(now, claimed.subtract(server).horizontalLength());
+        double horizontal = claimed.subtract(server).horizontalLength();
+        session.airTicks = SeekerCarMoveRules.nextAirTicks(SeekerCarPhysics.isSupported(collider, server),
+                session.airTicks, horizontal);
+        session.budget.consume(now, horizontal);
         Vec3d delta = position.subtract(server);
         car.setPosition(position);
         car.setYaw(MathHelper.wrapDegrees(yaw));

@@ -32,19 +32,27 @@ import java.util.function.Predicate;
  * the hit, do not hit the player". A device hit costs ammo/cooldown like a Wathe miss, with no innocent-shot penalty.
  * Every entry is a server-side no-op on the client and returns its input unchanged when no device is involved.
  * Every entry validates with {@link SeekerDamageRules#mayBreak} (owner as proxy target); a device the attacker may
- * not break is transparent to that attacker (it neither breaks nor shields). Blasts are area effects, never blocking.
+ * not break is transparent to that attacker's server rays and sweeps (it neither breaks nor shields). Client-targeted
+ * entries (revolver, derringer, Demon Hunter pistol, knife stab) receive the device id from the client, so a refused
+ * break there resolves as a miss (see {@link SeekerDamageRules}). Blasts are area effects, never blocking.
  * 冻结契约：每个伤害来源一个入口（所有者决定 Q4）；每次被接受的命中都汇入 {@code SeekerDeviceService.breakDevice}，
  * 由它独自结束会话、记录回放并调用 {@code SeekerMarkService}（本类入口从不直接标记）。
  * 射线与投射物入口实现“最近者命中”：返回 {@code T target} 表示“照常命中玩家”，返回 {@code null} 表示
  * “更近的设备吸收了命中，不得命中玩家”。命中设备与 Wathe 未命中一样消耗弹药与冷却，但不会有误伤惩罚。
  * 客户端调用时均为空操作；不涉及设备时原样返回输入。所有入口都以 {@link SeekerDamageRules#mayBreak}（拥有者为代理目标）
- * 校验；攻击者不能打坏的设备对其透明（既不损坏也不挡枪）。爆炸属于范围效果，从不遮挡。
+ * 校验；攻击者不能打坏的设备对其服务端射线与扫掠透明（既不损坏也不挡枪）。由客户端选择目标的入口（左轮、德林加、猎魔枪、
+ * 刀刺）从客户端收到设备 id，被拒绝时按未命中处理（见 {@link SeekerDamageRules}）。爆炸属于范围效果，从不遮挡。
  */
 public final class SeekerDeviceHits {
     /** NoellesRoles Demon Hunter pistol, matched by registry id only. / 仅按注册 id 匹配的 NoellesRoles 猎魔枪。 */
     static final Identifier DEMON_HUNTER_PISTOL_ID = Identifier.of("noellesroles", "demon_hunter_pistol");
     /** NoellesRoles pistol bullet data component, by registry id. / NoellesRoles 猎魔枪子弹数据组件（注册 id）。 */
     static final Identifier DEMON_HUNTER_BULLETS_ID = Identifier.of("noellesroles", "bullets");
+    /**
+     * Server melee reach: vanilla entity interaction range 3 plus its own 1-block attack allowance.
+     * 服务端近战距离：原版实体交互距离 3 加上其自身 1 格的攻击余量。
+     */
+    static final double MELEE_REACH = 4.0;
 
     private SeekerDeviceHits() {
     }
@@ -52,9 +60,12 @@ public final class SeekerDeviceHits {
     /**
      * Bare hands and any left-click melee (AttackEntityCallback, phase seeker_device). Spectators PASS (vanilla
      * spectate), the owner and every other refused attacker FAIL (nothing happens), an allowed attacker breaks the
-     * device (SUCCESS). Reach was already checked by vanilla ({@code canInteractWithEntityIn}).
+     * device (SUCCESS). Vanilla ({@code canInteractWithEntityIn}) checks reach only, never line of sight, so the server
+     * re-checks reach (3 + 1, vanilla's own allowance) and COLLIDER line of sight to any sample point, like every other
+     * client-trusted entry: a forged ATTACK packet through a wall breaks nothing.
      * 空手与任意左键近战。旁观者返回 PASS（原版观战），拥有者及其他被拒绝者返回 FAIL（无事发生），
-     * 允许的攻击者打坏设备（SUCCESS）。距离已由原版检查。
+     * 允许的攻击者打坏设备（SUCCESS）。原版只检查距离、不检查视线，因此服务端与其他信任客户端选择的入口一样，
+     * 再次校验距离（3 + 1，原版自身的余量）与到任一采样点的 COLLIDER 视线：隔墙伪造的攻击包打不坏设备。
      */
     public static ActionResult onMelee(ServerPlayerEntity attacker, SeekerDeviceEntity device) {
         if (attacker == null || device == null || attacker.getWorld().isClient()) {
@@ -64,6 +75,13 @@ public final class SeekerDeviceHits {
             return ActionResult.PASS;
         }
         if (!isLive(device) || SeekerDeviceRaycast.isOwnDevice(attacker, device)) {
+            return ActionResult.FAIL;
+        }
+        Vec3d eye = attacker.getEyePos();
+        if (device.getWorld() != attacker.getWorld()
+                || SeekerDamageRules.squaredDistanceToBox(eye, SeekerDeviceRaycast.targetBox(device))
+                > MELEE_REACH * MELEE_REACH
+                || !SeekerDamageRules.hasLineOfSight(attacker.getWorld(), eye, device.getBoundingBox(), attacker)) {
             return ActionResult.FAIL;
         }
         if (!mayBreak(attacker, device)) {

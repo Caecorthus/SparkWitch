@@ -7,7 +7,8 @@ changes require explicit owner approval.
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
 God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, and Bell Ringer gameplay to Wathe.
-It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots.
+It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
+and the Seeker, a police variant with a remote car and a wall camera that shares the same slots.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -61,9 +62,21 @@ Current build baseline:
   with owned-effect tracking, and lifecycle cleanup; its mixins live in `mixin/controlexpert/`
   and `client/mixin/controlexpert/`, client presentation (status HUD, stun input lock, Taser
   crosshair) in `client/controlexpert/`.
+- `roles/civilian/seeker/`: Seeker (`sparkwitch:seeker`) role rules, loadout, economy, shop,
+  owner-private `SeekerStatusComponent`, targeting predicates (`SeekerTargeting`), and lifecycle
+  cleanup. Subpackages: `device/` (car and camera entities, placement, battery, cooldowns, shared
+  car physics, sounds), `remote/` (server-authoritative remote-view sessions and the owner-simulated
+  car move validator), `hit/` (every device-break source, the single `SeekerDamageRules.mayBreak`
+  gate, nearest-wins raycasts, the breaker mark), `net/` (payloads), `console/` (tablet console
+  service), and `taotie/` (NoellesRoles Taotie swallow seam). Its mixins live in `mixin/seeker/`
+  and `client/mixin/seeker/`; client presentation (console screen, remote view and car driver,
+  device renderers) in `client/seeker/`. Cross-mod seams go through `compat/SparkTraitsSeekerBridge`,
+  `compat/SeekerControlExpertBridge`, `compat/NoellesTaotieSeekerBridge`, and
+  `compat/SparkStrengthM67Compat`.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
-  and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, and the Control Expert
-  share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate slot mixin.
+  and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, and
+  the Seeker share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate
+  slot mixin.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
@@ -137,6 +150,20 @@ payloads (`ControlExpertStunGuards`, `ControlExpertStunPayloadGuardMixin`). The 
 keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
+
+Seeker state never enters that shared schema either. `sparkwitch:seeker_status` (`NEVER_COPY`,
+owner-only sync) holds the Seeker's car, camera, session, battery, and mark state; remote-session
+bookkeeping stays server-only and is never synced or saved. Sessions are server-authoritative: the
+owner's client only simulates the car it drives, and every move is validated against the shared
+`SeekerCarPhysics` (speed budget, replay, a server-side fall model that never trusts the client's
+velocity, radius and play-area clamps). Any other round participant may break a device: the
+break gate `SeekerDamageRules.mayBreak` uses the role-agnostic `SeekerTargeting.isRoundParticipant`
+(never the Seeker-only `isActiveParticipant`), with the owner as SparkFactionAPI proxy target and
+Vendetta isolation. Rays and projectiles are nearest-wins (a nearer device takes the hit, the player
+behind is not hit); blasts (Wathe grenade, SparkStrength M67) break every device in a sphere with
+line of sight. Sources with no hit or damage geometry never break a device: the firecracker (sound
+only), the Bomber timed bomb (kills only its holder), and the poison gas cloud (status effect). The
+Seeker never renders in the `gui.sparkwitch.skills` panel.
 
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`

@@ -2,8 +2,12 @@ package dev.caecorthus.sparkwitch.roles.civilian.seeker.device;
 
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerDeviceKind;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSounds;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerStatusComponent;
 import net.minecraft.entity.Entity;
+import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
@@ -55,11 +59,32 @@ public final class SeekerDeviceSounds {
      * 这是唯一的电量警告音；客户端叠加层从不播放。
      */
     public static void playBatteryLow(ServerPlayerEntity owner) {
-        if (owner == null || SeekerSounds.BATTERY_LOW == null) {
+        if (owner == null || owner.getWorld().isClient() || SeekerSounds.BATTERY_LOW == null) {
             return;
         }
-        owner.playSoundToPlayer(SeekerSounds.BATTERY_LOW, SoundCategory.PLAYERS, BATTERY_LOW_VOLUME,
-                BATTERY_LOW_PITCH);
+        // The sound is positional: while a session moves the owner's camera (and so the sound listener) to the car or
+        // camera, play it there, or a far-away owner would never hear it. Sent to the owner only.
+        // 该声音是定位音：会话把拥有者的镜头（也就是声音监听点）移到小车或摄像头时，就在那里播放，否则远处的拥有者听不到。
+        // 只发送给拥有者。
+        Entity listener = sessionListener(owner);
+        owner.networkHandler.sendPacket(new PlaySoundS2CPacket(Registries.SOUND_EVENT.getEntry(SeekerSounds.BATTERY_LOW),
+                SoundCategory.PLAYERS, listener.getX(), listener.getY(), listener.getZ(), BATTERY_LOW_VOLUME,
+                BATTERY_LOW_PITCH, owner.getRandom().nextLong()));
+    }
+
+    /**
+     * Where the owner's client listens from: the focused car or camera during a matching session, else the body.
+     * 拥有者客户端的收听位置：会话中为聚焦的小车或摄像头，否则为本体。
+     */
+    static Entity sessionListener(ServerPlayerEntity owner) {
+        SeekerStatusComponent status = SeekerStatusComponent.KEY.getNullable(owner);
+        SeekerSessionMode mode = status == null ? SeekerSessionMode.NONE : status.sessionMode();
+        Entity focus = switch (mode) {
+            case CAR -> SeekerDeviceService.findCar(owner);
+            case CAMERA -> SeekerDeviceService.findCamera(owner);
+            default -> null;
+        };
+        return focus != null && !focus.isRemoved() && focus.getWorld() == owner.getWorld() ? focus : owner;
     }
 
     private static void play(Entity source, SoundEvent sound, float volume, float pitch) {

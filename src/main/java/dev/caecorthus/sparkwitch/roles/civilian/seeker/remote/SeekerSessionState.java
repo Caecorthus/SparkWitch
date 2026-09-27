@@ -23,6 +23,11 @@ public final class SeekerSessionState {
     long lastMoveTick;
     int lastSeq = -1;
     final SeekerCarMoveRules.Budget budget;
+    /**
+     * Physics ticks charged to the car's current unsupported stretch; reset only by a move that starts supported (never
+     * by a correction, so rejections cannot be farmed to restart the fall model).
+     * 小车本段无支撑已计费的物理刻数；只由从有支撑处开始的移动清零（纠正从不清零，因此无法靠刷拒绝来重启下落模型）。
+     */
     int airTicks;
     final SeekerCarMoveRules.RejectWindow rejects = new SeekerCarMoveRules.RejectWindow();
     long packetTick = Long.MIN_VALUE;
