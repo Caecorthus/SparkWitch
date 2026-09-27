@@ -254,6 +254,20 @@ and task money denied, `DENY_IMPOSTOR_DEVICES`), not hidden, full prices, no blo
 cooldown, or an intercepted death: the `KillPlayer.AFTER` cleanup is skipped and the component
 tick's final-death fallback cleans up once the Seeker is dead and not Last Stand pending.
 
+Active Wraiths do not absorb another player's aimed action in the client
+selectors listed below. `client/render/WraithAimPassThrough` owns the rule: a player whose synced
+Wraith state is active is skipped as an aim or crosshair target, except by the
+local bound killer of that active Vendetta. Invisibility and
+`noellesroles:no_collision` are never Wraith signals. The Wathe revolver,
+derringer, and knife selectors and the NoellesRoles Demon Hunter selector open a
+thread-local shooter scope through `@WrapMethod` (so SparkTraits Marksman HEAD
+replacements stay covered); only that shooter's
+`ProjectileUtil.getCollision(Entity, Predicate, double)` is filtered. The vanilla
+crosshair is filtered for the local non-spectator player, and Wathe's bed-hit
+fallback drops a sleeping Wraith on the client. Server authority is unchanged:
+SparkFactionAPI's affect policy still cancels any Wraith target that slips
+through.
+
 ## Tofana Elixir Vocabulary
 
 - **Tofana protection**: A single-use protection granted by possessing Tofana Elixir. It cancels one otherwise valid, non-forced Wathe kill by another active player and consumes one elixir.

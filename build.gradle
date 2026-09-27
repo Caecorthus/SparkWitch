@@ -247,6 +247,46 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
                 providerMethod: "method_25394",
                 providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                configName: "WraithRevolverAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithRevolverAimMixin.class",
+                handler: "sparkwitch\$aimThroughWraiths",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/RevolverItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "WraithRevolverAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithRevolverAimMixin.class",
+                handler: "sparkwitch\$skipSleepingWraith",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;",
+                selector: "findSleepingPlayerOnBed(Lnet/minecraft/class_1937;Lnet/minecraft/class_3965;)Ljava/util/Optional;",
+                providerEntry: "dev/doctor4t/wathe/item/RevolverItem.class",
+                providerMethod: "findSleepingPlayerOnBed",
+                providerDescriptor: "(Lnet/minecraft/class_1937;Lnet/minecraft/class_3965;)Ljava/util/Optional;"
+        ],
+        [
+                configName: "WraithDerringerAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithDerringerAimMixin.class",
+                handler: "sparkwitch\$aimThroughWraiths",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/DerringerItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "WraithKnifeAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithKnifeAimMixin.class",
+                handler: "sparkwitch\$aimThroughWraiths",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getKnifeTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/KnifeItem.class",
+                providerMethod: "getKnifeTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
         ]
 ]
 
