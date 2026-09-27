@@ -388,8 +388,13 @@ public class SeekerConsoleScreen extends Screen {
         return Text.translatable(labelKey).append(": ").append(value);
     }
 
+    /**
+     * Horizontal distance, the same measure as the range check, so the row never contradicts the button suffix.
+     * 水平距离，与范围判定一致，状态行不会与按钮后缀矛盾。
+     */
     private static String distanceText(ClientPlayerEntity player, @Nullable Entity device) {
-        return device == null ? "?" : Integer.toString(Math.round(player.distanceTo(device)));
+        double squared = horizontalDistanceSquared(player, device);
+        return squared < 0.0 ? "?" : Long.toString(Math.round(Math.sqrt(squared)));
     }
 
     private static double horizontalDistanceSquared(@Nullable ClientPlayerEntity player, @Nullable Entity device) {

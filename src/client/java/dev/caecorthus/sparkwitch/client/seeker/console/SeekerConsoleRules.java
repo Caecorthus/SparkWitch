@@ -50,16 +50,34 @@ public final class SeekerConsoleRules {
         return lastTick < 0 || nowTick < lastTick || nowTick - lastTick >= intervalTicks;
     }
 
+    /** What the tablet intercept does with one use. / 拦截器对一次使用的处理方式。 */
+    public enum InterceptAction {
+        /** Not ours: vanilla (and SparkStrength) handle the use. / 不归我们处理：交给原版（及 SparkStrength）。 */
+        PASS,
+        /** Open the console and CONSUME. / 打开控制台并返回 CONSUME。 */
+        OPEN,
+        /**
+         * A console use inside the throttle window: CONSUME without opening, so it never falls through to
+         * SparkStrength's own tablet.
+         * 节流窗口内的控制台使用：返回 CONSUME 但不打开，避免落到 SparkStrength 自己的平板。
+         */
+        SWALLOW
+    }
+
     /**
      * The full intercept gate of §3.10.3. Sneaking is deliberately not an input (toggle-sneak and Niko players must
-     * still reach the console).
-     * §3.10.3 的完整拦截门槛。刻意不把潜行作为输入（切换式潜行与 Niko 玩家也必须能进入控制台）。
+     * still reach the console). The throttle only decides between opening and swallowing: a throttled console use is
+     * still consumed, because passing it would send the use packet and SparkStrength would open its own tablet.
+     * §3.10.3 的完整拦截门槛。刻意不把潜行作为输入（切换式潜行与 Niko 玩家也必须能进入控制台）。节流只决定打开还是
+     * 吞掉：被节流的控制台使用仍返回 CONSUME，否则会发出使用包，由 SparkStrength 打开它自己的平板。
      */
-    public static boolean shouldIntercept(boolean confirmedServer, boolean liveSeeker, boolean inSession,
-                                          boolean screenOpen, boolean consoleDevice, boolean bypassMatches,
-                                          boolean throttleElapsed) {
-        return confirmedServer && liveSeeker && !inSession && !screenOpen && consoleDevice && !bypassMatches
-                && throttleElapsed;
+    public static InterceptAction interceptAction(boolean confirmedServer, boolean liveSeeker, boolean inSession,
+                                                  boolean screenOpen, boolean consoleDevice, boolean bypassMatches,
+                                                  boolean throttleElapsed) {
+        if (!confirmedServer || !liveSeeker || inSession || screenOpen || !consoleDevice || bypassMatches) {
+            return InterceptAction.PASS;
+        }
+        return throttleElapsed ? InterceptAction.OPEN : InterceptAction.SWALLOW;
     }
 
     public static CarStatus carStatus(SeekerCarState carState, int cooldownTicks) {

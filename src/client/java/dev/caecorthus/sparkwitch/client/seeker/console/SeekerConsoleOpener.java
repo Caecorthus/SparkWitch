@@ -81,7 +81,7 @@ public final class SeekerConsoleOpener {
         }
         boolean bypassMatches = consumeBypass(hand);
         long now = clientTicks;
-        boolean intercept = SeekerConsoleRules.shouldIntercept(
+        SeekerConsoleRules.InterceptAction action = SeekerConsoleRules.interceptAction(
                 SparkWitchServerConnection.isConfirmedServer(),
                 isLiveSeeker(player),
                 isInSession(),
@@ -89,12 +89,16 @@ public final class SeekerConsoleOpener {
                 SeekerConsoleDevices.isConsoleDevice(player, stack),
                 bypassMatches,
                 SeekerConsoleRules.throttleElapsed(now, lastInterceptTick, SeekerConsoleRules.INTERCEPT_THROTTLE_TICKS));
-        if (!intercept) {
+        if (action == SeekerConsoleRules.InterceptAction.PASS) {
             return TypedActionResult.pass(stack);
         }
-        lastInterceptTick = now;
-        client.setScreen(new SeekerConsoleScreen(hand));
-        // CONSUME, never SUCCESS: only SUCCESS makes Fabric send the use packet. / 只有 SUCCESS 才会发包，所以用 CONSUME。
+        if (action == SeekerConsoleRules.InterceptAction.OPEN) {
+            lastInterceptTick = now;
+            client.setScreen(new SeekerConsoleScreen(hand));
+        }
+        // CONSUME, never SUCCESS: only SUCCESS makes Fabric send the use packet, so a throttled console use is swallowed
+        // here instead of reaching SparkStrength's own tablet.
+        // 只有 SUCCESS 才会发包，所以用 CONSUME；被节流的控制台使用也在此吞掉，不会落到 SparkStrength 自己的平板。
         return TypedActionResult.consume(stack);
     }
 
