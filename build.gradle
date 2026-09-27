@@ -218,6 +218,17 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
         ],
         [
+                configName: "WraithNameTagRaycastMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithNameTagRaycastMixin.class",
+                handler: "sparkwitch\$nameTagThroughHiddenWraiths",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/ModifyArg;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_1675;method_49998(Lnet/minecraft/class_1297;Ljava/util/function/Predicate;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
                 configName: "witchmaiden.WitchMaidenInventoryScreenMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/witchmaiden/WitchMaidenInventoryScreenMixin.class",
                 handler: "sparkwitch\$attachWitchMaidenUi",

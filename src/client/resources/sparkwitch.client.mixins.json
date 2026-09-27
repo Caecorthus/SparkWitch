@@ -45,6 +45,7 @@
     "WraithMinecraftClientMixin",
     "WraithMoodRendererMixin",
     "WraithNameMixin",
+    "WraithNameTagRaycastMixin",
     "WraithPlayerModelMixin",
     "WraithPlayerSkinMixin",
     "WraithPlayerSkinTexturesMixin",
