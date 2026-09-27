@@ -27,7 +27,9 @@ public abstract class WitchMaidenInventoryScreenMixin extends LimitedHandledScre
         super(handler, inventory, title);
     }
 
-    @Inject(method = "method_25426()V", at = @At("TAIL"))
+    // Keep Yarn: intermediary selectors crash runClient; remapJar emits the intermediary form verifyClientMixinSelectors checks.
+    // 保持 Yarn：intermediary 选择器会使 runClient 崩溃；remapJar 生成的 intermediary 形式由 verifyClientMixinSelectors 校验。
+    @Inject(method = "init()V", at = @At("TAIL"))
     private void sparkwitch$attachWitchMaidenUi(CallbackInfo ci) {
         sparkwitch$witchMaidenUi = WitchMaidenInventoryUi.attach(
                 (LimitedInventoryScreen) (Object) this,
@@ -36,7 +38,7 @@ public abstract class WitchMaidenInventoryScreenMixin extends LimitedHandledScre
     }
 
     @Inject(
-            method = "method_25394(Lnet/minecraft/class_332;IIF)V",
+            method = "render(Lnet/minecraft/client/gui/DrawContext;IIF)V",
             at = @At("TAIL")
     )
     private void sparkwitch$renderWitchMaidenEmptyState(
