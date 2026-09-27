@@ -299,6 +299,27 @@ public final class SeekerDeviceHits {
         }
     }
 
+    /**
+     * Time Stealer Clock (owner decision Q9 default, Taser parity): nearest-wins along the user's Clock aim. A nearer
+     * breakable device absorbs the Clock and breaks, and {@code null} is returned: the caller steals nothing but still
+     * starts the Clock cooldown. Unlike the Taser, a {@code null} target breaks nothing, because a Clock miss is free
+     * and must never become a free device breaker. The break is recorded under {@code FEATHER_BLADE}, the other killer
+     * server hitscan, because the frozen source set has no Clock entry (the source is recorded, never rendered).
+     * One-line hook in {@code TimeStealerClockService#use}:
+     * {@code ServerPlayerEntity target = SeekerDeviceHits.onClockFired(user, aimed, TimeStealerRules.CLOCK_RANGE);}
+     * 窃时者时钟（所有者决定 Q9 默认，与电击枪一致）：沿使用者的时钟瞄准执行最近者命中。更近且可打坏的设备吸收时钟并被打坏，
+     * 返回 {@code null}：调用方不窃取任何人，但照常开始时钟冷却。与电击枪不同，目标为 {@code null} 时不打坏任何设备，
+     * 因为时钟未命中是免费的，绝不能变成免费的拆设备手段。冻结的来源集合没有时钟条目，因此以另一个杀手服务端即时射线
+     * {@code FEATHER_BLADE} 记录（来源只记录、不渲染）。
+     */
+    @Nullable
+    public static <T extends PlayerEntity> T onClockFired(ServerPlayerEntity user, @Nullable T target, double range) {
+        if (user == null || target == null || user.getWorld().isClient()) {
+            return target;
+        }
+        return rayBlocks(user, target, range, SeekerBreakSource.FEATHER_BLADE) ? null : target;
+    }
+
     // ---- Internal ----
 
     /**

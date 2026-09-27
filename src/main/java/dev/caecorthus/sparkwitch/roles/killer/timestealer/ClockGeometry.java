@@ -1,7 +1,17 @@
 package dev.caecorthus.sparkwitch.roles.killer.timestealer;
 
+import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -12,6 +22,16 @@ import org.jetbrains.annotations.Nullable;
  * （服务端传入完整的目标否决，客户端只传入公开状态），因此本类不读取任何职业、词条或阵营数据。
  */
 public final class ClockGeometry {
+    /**
+     * Line-of-sight sample points sit this far inside the real hitbox, so a point never lies on a face shared with a
+     * floor, wall or door (vanilla extends a raycast by 1e-7 past its end and would report that surface as a hit).
+     * 视线采样点位于真实命中盒内侧的该距离处，使采样点永远不落在与地板、墙或门共用的面上
+     * （原版射线会越过终点 1e-7，会把该表面判为命中）。
+     */
+    static final double SAMPLE_INSET = 0.1D;
+    /** Tolerance for "the block hit is at (or past) the sample point". / “方块命中点位于采样点处（或之后）”的容差。 */
+    private static final double LOS_EPSILON = 1.0E-4D;
+
     private ClockGeometry() {
     }
 
@@ -32,7 +52,129 @@ public final class ClockGeometry {
     public static <T extends PlayerEntity> @Nullable T findTarget(PlayerEntity user, double range,
                                                                   Iterable<? extends T> candidates,
                                                                   Predicate<? super T> eligible) {
-        // TODO(WP-03a): ray, block truncation, eligible-first nearest pick, hard distance, unexpanded line of sight.
-        return null;
+        if (user == null || candidates == null || eligible == null || !(range > 0.0D)) {
+            return null;
+        }
+        World world = user.getWorld();
+        // On the server vanilla has already applied the use packet's yaw and pitch, so this is the user's real aim.
+        // 服务端调用时原版已应用使用物品数据包中的朝向，因此这就是使用者真实的瞄准方向。
+        Vec3d start = user.getEyePos();
+        Vec3d end = start.add(user.getRotationVec(1.0F).multiply(range));
+        BlockHitResult block = world.raycast(new RaycastContext(
+                start, end, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, user));
+        if (block.getType() != HitResult.Type.MISS) {
+            end = block.getPos();
+        }
+        return pick(start, end, range, candidates, candidate -> candidate != user && eligible.test(candidate),
+                Entity::getBoundingBox, (from, to) -> segmentClear(world, from, to, user));
+    }
+
+    /**
+     * Pure core over the block-truncated segment {@code start..end}: eligible-first nearest pick on expanded boxes,
+     * then the two hard checks on the picked candidate only (a failed pick is a miss, never a fallback to a farther
+     * player). {@code segmentClear} answers whether no collider block lies between two points.
+     * 在已按方块截断的线段 {@code start..end} 上的纯核心：先判定资格，再在扩展命中盒上选最近者，随后只对选中者施加
+     * 两道硬校验（选中者未通过即视为未命中，绝不退而选择更远的玩家）。{@code segmentClear} 回答两点之间是否没有碰撞方块。
+     */
+    static <T> @Nullable T pick(Vec3d start, Vec3d end, double range, Iterable<? extends T> candidates,
+                                Predicate<? super T> eligible, Function<? super T, Box> boxOf,
+                                BiPredicate<Vec3d, Vec3d> segmentClear) {
+        T selected = null;
+        Box selectedBox = null;
+        double closest = Double.POSITIVE_INFINITY;
+        for (T candidate : candidates) {
+            if (!eligible.test(candidate)) {
+                continue;
+            }
+            Box box = boxOf.apply(candidate);
+            Box aimBox = box.expand(TimeStealerRules.CLOCK_BOX_EXPANSION);
+            Vec3d hit = aimBox.contains(start) ? start : aimBox.raycast(start, end).orElse(null);
+            if (hit == null) {
+                continue;
+            }
+            double distance = start.squaredDistanceTo(hit);
+            if (distance < closest) {
+                closest = distance;
+                selected = candidate;
+                selectedBox = box;
+            }
+        }
+        if (selected == null
+                || squaredDistanceToBox(start, selectedBox) > range * range
+                || !hasLineOfSight(start, end, selectedBox, segmentClear)) {
+            return null;
+        }
+        return selected;
+    }
+
+    /** Squared distance from {@code point} to the closest point of {@code box} (0 inside). / 点到盒最近点距离的平方（在盒内为 0）。 */
+    static double squaredDistanceToBox(Vec3d point, Box box) {
+        double dx = Math.max(Math.max(box.minX - point.x, 0.0D), point.x - box.maxX);
+        double dy = Math.max(Math.max(box.minY - point.y, 0.0D), point.y - box.maxY);
+        double dz = Math.max(Math.max(box.minZ - point.z, 0.0D), point.z - box.maxZ);
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    /**
+     * Whether any part of the real {@code box} is visible from {@code start}. The aim segment already stops at the
+     * first collider block, so an aim ray that reaches the real box proves sight on its own; otherwise at least one
+     * inset sample point must be reachable through collider shapes. A player flush behind a closed door is picked only
+     * through the 0.2 expansion, and every sample point lies behind the door, so it is rejected.
+     * 真实的 {@code box} 是否有任一部分能从 {@code start} 看到。瞄准线段已在第一个碰撞方块处截止，因此瞄准射线本身
+     * 触及真实命中盒即足以证明可见；否则至少要有一个内缩采样点能穿过碰撞形状到达。紧贴关着的门背后的玩家只会经 0.2
+     * 扩展被选中，而其所有采样点都在门后，因此会被拒绝。
+     */
+    static boolean hasLineOfSight(Vec3d start, Vec3d end, Box box, BiPredicate<Vec3d, Vec3d> segmentClear) {
+        if (box.contains(start) || box.raycast(start, end).isPresent()) {
+            return true;
+        }
+        for (Vec3d point : samplePoints(box)) {
+            if (segmentClear.test(start, point)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Centre column and the four inset corners, each at the upper-body and mid-body height of the real box.
+     * 真实命中盒的中轴与四个内缩角，各取上身与中部两个高度。
+     */
+    static List<Vec3d> samplePoints(Box box) {
+        double inset = Math.min(SAMPLE_INSET,
+                Math.min(box.getLengthX(), Math.min(box.getLengthY(), box.getLengthZ())) / 2.0D);
+        double minX = box.minX + inset;
+        double maxX = box.maxX - inset;
+        double minZ = box.minZ + inset;
+        double maxZ = box.maxZ - inset;
+        Vec3d center = box.getCenter();
+        double top = box.maxY - inset;
+        double mid = center.y;
+        return List.of(
+                new Vec3d(center.x, top, center.z),
+                new Vec3d(minX, top, minZ),
+                new Vec3d(maxX, top, minZ),
+                new Vec3d(minX, top, maxZ),
+                new Vec3d(maxX, top, maxZ),
+                center,
+                new Vec3d(minX, mid, minZ),
+                new Vec3d(maxX, mid, minZ),
+                new Vec3d(minX, mid, maxZ),
+                new Vec3d(maxX, mid, maxZ));
+    }
+
+    /** No collider block between {@code from} and {@code to}. / 两点之间没有碰撞方块。 */
+    private static boolean segmentClear(World world, Vec3d from, Vec3d to, Entity context) {
+        double length = from.squaredDistanceTo(to);
+        if (length < LOS_EPSILON * LOS_EPSILON) {
+            return true;
+        }
+        BlockHitResult hit = world.raycast(new RaycastContext(
+                from, to, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, context));
+        if (hit.getType() == HitResult.Type.MISS) {
+            return true;
+        }
+        double blocked = Math.sqrt(from.squaredDistanceTo(hit.getPos()));
+        return blocked >= Math.sqrt(length) - LOS_EPSILON;
     }
 }
