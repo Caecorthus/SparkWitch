@@ -6,6 +6,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /** Optional public-facade queries; older/absent Traits adds no restrictions.
@@ -22,6 +23,10 @@ public final class SparkTraitsKillerBridge {
     private static final Method TERMINAL = resolve("registerTerminalDeathReason", Identifier.class);
     private static final Method EXACT_COOLDOWN = resolve("setExactItemCooldownRemaining", ServerPlayerEntity.class,
             Item.class, int.class);
+    private static final Method NON_FINAL_KILL = resolve("isNonFinalKillPending", ServerPlayerEntity.class,
+            ServerPlayerEntity.class);
+    private static final Method NON_FINAL_COOLDOWN = resolve("getNonFinalKillCooldownTicks", int.class);
+    private static final Method NON_FINAL_WEAPON = resolve("runWithNonFinalKillWeapon", Item.class, Runnable.class);
 
     private SparkTraitsKillerBridge() {
     }
@@ -75,6 +80,58 @@ public final class SparkTraitsKillerBridge {
      * 越过 Traits 冷却倍率写入精确冷却（其内部自行完成原版写入）；返回 false 时调用方需回退到原版冷却写入。 */
     public static boolean setExactItemCooldownRemaining(ServerPlayerEntity player, Item item, int ticks) {
         return player != null && item != null && invokeVoid(EXACT_COOLDOWN, player, item, Math.max(0, ticks));
+    }
+
+    /** Whether Traits turned this attacker's hit into a non-final kill (e.g. a Depression fake death);
+     * older/absent Traits never does.
+     * Traits 是否把该攻击者的这一击变为非最终击杀（如抑郁假死）；旧版或缺失 Traits 时恒为 false。 */
+    public static boolean isNonFinalKillPending(ServerPlayerEntity victim, ServerPlayerEntity attacker) {
+        return victim != null && attacker != null && Boolean.TRUE.equals(invoke(NON_FINAL_KILL, victim, attacker));
+    }
+
+    /** Cooldown a weapon keeps after a non-final kill; never longer than the original, which is also the
+     * fallback when Traits is absent or older.
+     * 非最终击杀后武器保留的冷却；不会超过原冷却，Traits 缺失或过旧时即为原冷却。 */
+    public static int nonFinalKillCooldownTicks(int originalTicks) {
+        int original = Math.max(0, originalTicks);
+        return invoke(NON_FINAL_COOLDOWN, original) instanceof Integer ticks
+                ? Math.min(original, Math.max(0, ticks)) : original;
+    }
+
+    /** Runs a kill that happens away from the attacker's hands, naming the weapon Traits should discount if the
+     * kill turns non-final. The kill always runs exactly once, whatever Traits does.
+     * 执行不在攻击者手中发生的击杀，并告知 Traits 若成为非最终击杀应缩短哪件武器的冷却；无论 Traits 如何，击杀恰好执行一次。 */
+    public static void runWithNonFinalKillWeapon(Item weapon, Runnable kill) {
+        if (NON_FINAL_WEAPON == null || weapon == null) {
+            kill.run();
+            return;
+        }
+        boolean[] ran = {false};
+        Runnable once = () -> {
+            ran[0] = true;
+            kill.run();
+        };
+        try {
+            NON_FINAL_WEAPON.invoke(null, weapon, once);
+            if (!ran[0]) {
+                kill.run();
+            }
+        } catch (InvocationTargetException exception) {
+            if (!ran[0]) {
+                kill.run();
+                return;
+            }
+            // The kill itself failed: surface it exactly as a direct call would.
+            // 击杀本身抛出异常：与直接调用一样原样抛出。
+            Throwable cause = exception.getCause();
+            if (cause instanceof RuntimeException runtime) throw runtime;
+            if (cause instanceof Error error) throw error;
+            throw new IllegalStateException(cause);
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            if (!ran[0]) {
+                kill.run();
+            }
+        }
     }
 
     private static Method resolve(String name, Class<?>... parameters) {

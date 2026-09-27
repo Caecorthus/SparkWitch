@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.item.firepoker;
 
+import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -48,10 +50,15 @@ public final class FirePokerFallAttributionService {
         UUID source = saved != null && victim.getServerWorld().getTime() <= saved.expiresAtTicks()
                 ? saved.pusherUuid() : null;
         UUID responsible = dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeTrainFallAttribution.resolve(victim, source);
-        ServerPlayerEntity resolved = resolveFallKiller(victim, fallbackKiller, deathReason);
+        ServerPlayerEntity pusher = consumePusher(victim, deathReason);
+        ServerPlayerEntity resolved = pusher != null ? pusher : fallbackKiller;
+        Runnable kill = () -> GameFunctions.killPlayer(victim, spawnBody, resolved, deathReason);
+        // Only a credited poker push makes the poker the weapon; Traits discounts it if the fall turns non-final.
+        // 只有被记为推人者的烧火棍推击才算凶器；若坠车成为非最终击杀，由 Traits 缩短其冷却。
         dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution.runWith(
                 victim.getServerWorld(), responsible,
-                () -> GameFunctions.killPlayer(victim, spawnBody, resolved, deathReason));
+                pusher == null ? kill
+                        : () -> SparkTraitsKillerBridge.runWithNonFinalKillWeapon(SparkWitchItems.firePoker(), kill));
     }
 
     public static @Nullable ServerPlayerEntity resolveFallKiller(
@@ -59,16 +66,16 @@ public final class FirePokerFallAttributionService {
             @Nullable ServerPlayerEntity fallbackKiller,
             Identifier deathReason
     ) {
+        ServerPlayerEntity pusher = consumePusher(victim, deathReason);
+        return pusher != null ? pusher : fallbackKiller;
+    }
+
+    private static @Nullable ServerPlayerEntity consumePusher(ServerPlayerEntity victim, Identifier deathReason) {
         UUID pusherUuid = consumePusherUuid(victim.getUuid(), deathReason, victim.getServerWorld().getTime());
         if (pusherUuid == null || victim.getServer() == null) {
-            return fallbackKiller;
+            return null;
         }
-
-        ServerPlayerEntity pusher = victim.getServer().getPlayerManager().getPlayer(pusherUuid);
-        if (pusher == null) {
-            return fallbackKiller;
-        }
-        return pusher;
+        return victim.getServer().getPlayerManager().getPlayer(pusherUuid);
     }
 
     static @Nullable UUID consumePusherUuid(UUID targetUuid, Identifier deathReason, long currentTime) {
