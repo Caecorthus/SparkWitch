@@ -1,0 +1,26 @@
+{
+  "targets": [
+    "swap"
+  ],
+  "passes": [
+    {
+      "name": "sparkwitch_seeker_cctv",
+      "intarget": "minecraft:main",
+      "outtarget": "swap",
+      "uniforms": [
+        { "name": "Tint", "values": [0.78, 1.12, 0.72] },
+        { "name": "Saturation", "values": [0.45] },
+        { "name": "Contrast", "values": [1.08] },
+        { "name": "Brightness", "values": [1.18] },
+        { "name": "ScanlineStrength", "values": [0.12] },
+        { "name": "VignetteStrength", "values": [0.55] },
+        { "name": "GrainStrength", "values": [0.06] }
+      ]
+    },
+    {
+      "name": "blit",
+      "intarget": "swap",
+      "outtarget": "minecraft:main"
+    }
+  ]
+}

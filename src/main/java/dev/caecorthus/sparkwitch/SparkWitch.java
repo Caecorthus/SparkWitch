@@ -11,6 +11,9 @@ import dev.caecorthus.sparkwitch.skill.SparkWitchBuiltInSkills;
 import dev.caecorthus.sparkwitch.impl.SparkWitchEvents;
 import dev.caecorthus.sparkwitch.net.SparkWitchPackets;
 import dev.caecorthus.sparkwitch.net.SparkWitchVersionHandshake;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntities;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSounds;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistEffects;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelEffects;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEffects;
@@ -37,11 +40,14 @@ public final class SparkWitch implements ModInitializer {
     @Override
     public void onInitialize() {
         SparkWitchSounds.register();
+        SeekerSounds.register();
         HunterEffects.register();
         OrthopedistEffects.register();
         GuardianAngelEffects.register();
         FocusedFootstepsEffects.register();
         HunterEntities.register();
+        ControlExpertEntities.register();
+        SeekerEntities.register();
         SparkWitchItems.register();
         SparkWitchItemGroups.register();
         SparkWitchEntities.register();
@@ -51,6 +57,8 @@ public final class SparkWitch implements ModInitializer {
         NoellesHiddenEquipment.register(SparkWitchItems.cologne());
         NoellesHiddenEquipment.register(SparkWitchItems.blackRavenLedger());
         NoellesHiddenEquipment.register(SparkWitchItems.tollBell());
+        NoellesHiddenEquipment.register(SparkWitchItems.seekerCar());
+        NoellesHiddenEquipment.register(SparkWitchItems.seekerCamera());
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();

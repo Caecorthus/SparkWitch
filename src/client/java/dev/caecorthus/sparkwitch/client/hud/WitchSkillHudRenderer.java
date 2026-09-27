@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
+import dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter;
 import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
@@ -40,6 +41,14 @@ public final class WitchSkillHudRenderer {
 
         if (EmmaClientModule.isEmma(player)) {
             EmmaClientModule.renderHud(context, player);
+            return;
+        }
+        // While the owner inventory card lays out the whole skill section it shows these same states (last frame's
+        // state; the HUD draws before the screen), so the bottom-right lines would only duplicate it and, for the
+        // Grand Witch's four lines, draw under the card and poke out around it. Emma's HUD above is never hidden.
+        // 背包卡片完整显示技能分节时已包含相同状态（取上一帧状态，HUD 先于界面绘制），右下角文字只会重复，且大魔女的四行会压在卡片下方
+        // 并从四周露出，因此跳过；上方艾玛的 HUD 从不隐藏。
+        if (OwnerInventoryPresenter.showsSkillSection(MinecraftClient.getInstance().currentScreen)) {
             return;
         }
         if (GrandWitchClientPresentation.isGrandWitch(player)) {

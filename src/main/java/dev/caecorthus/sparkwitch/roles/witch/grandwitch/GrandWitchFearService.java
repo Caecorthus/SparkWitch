@@ -46,7 +46,12 @@ public final class GrandWitchFearService {
             Identifier.of("noellesroles", "swapper"),
             Identifier.of("noellesroles", "taotie_swallow"),
             Identifier.of("noellesroles", "vulture"),
-            Identifier.of("noellesroles", "demon_hunter_shoot")
+            Identifier.of("noellesroles", "demon_hunter_shoot"),
+            // Seeker actions; close and car moves stay allowed so a feared Seeker can always leave the view.
+            // 搜寻者行为；关闭与小车移动放行，使被恐惧的搜寻者总能退出视角。
+            Identifier.of("sparkwitch", "seeker_remote_open"),
+            Identifier.of("sparkwitch", "seeker_car_swallow"),
+            Identifier.of("sparkwitch", "seeker_car_recall")
     );
 
     private GrandWitchFearService() {

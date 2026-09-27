@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRole;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
@@ -17,6 +18,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaRole;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
@@ -68,6 +70,8 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier CURSER_ID = CurserRole.ID;
     public static final Identifier BELL_RINGER_ID = BellRingerRules.ROLE_ID;
     public static final Identifier JUDGE_ID = JudgeRules.ROLE_ID;
+    public static final Identifier CONTROL_EXPERT_ID = ControlExpertRules.ROLE_ID;
+    public static final Identifier SEEKER_ID = SeekerRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -93,6 +97,8 @@ public final class SparkWitchRoleRegistry {
     private static Role curser;
     private static Role bellRinger;
     private static Role judge;
+    private static Role controlExpert;
+    private static Role seeker;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -111,6 +117,12 @@ public final class SparkWitchRoleRegistry {
         registerNativeWatheRoles();
         PoliceRoles.register(JUDGE_ID);
         PoliceRoles.register(PoliceSlotAssignmentService.EMMA_ID);
+        // Police classification only: SparkStrength appends its tablet, cop slots come from PoliceSlotAssignmentService.
+        // 仅作警察分类：SparkStrength 据此追加平板，警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(CONTROL_EXPERT_ID);
+        // Police classification only, like the Control Expert; cop slots come from PoliceSlotAssignmentService.
+        // 与控场专家相同，仅作警察分类；警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(SEEKER_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
@@ -240,6 +252,16 @@ public final class SparkWitchRoleRegistry {
     public static Role judge() {
         ensureRegistered();
         return judge;
+    }
+
+    public static Role controlExpert() {
+        ensureRegistered();
+        return controlExpert;
+    }
+
+    public static Role seeker() {
+        ensureRegistered();
+        return seeker;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -419,6 +441,27 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
+        // Appended last so existing registration order stays unchanged; Vigilante-equivalent civilian parameters.
+        // 追加在最后以保持既有注册顺序不变；参数与义警等同的平民职业。
+        controlExpert = SparkFactionApi.registerRole(FactionRoleDefinition.builder(CONTROL_EXPERT_ID, FactionIds.CIVILIAN)
+                .color(ControlExpertRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // Appended last so existing registration order stays unchanged; Vigilante-equivalent civilian parameters.
+        // Drawn only when the SparkStrength tablet item exists (Q7); a forced Seeker still works without it.
+        // 追加在最后以保持既有注册顺序不变；参数与义警等同的平民职业。仅当 SparkStrength 平板物品存在时
+        // 才会被抽到（Q7）；被强制指定时即使没有平板也能运作。
+        seeker = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SEEKER_ID, FactionIds.CIVILIAN)
+                .color(SeekerRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .appearanceCondition(context -> SeekerRules.shouldAppear())
+                .build());
     }
 
     private static void registerNativeWatheRoles() {
@@ -470,6 +513,8 @@ public final class SparkWitchRoleRegistry {
                 accomplice,
                 grandWitch,
                 emma,
+                controlExpert,
+                seeker,
                 windSpirit,
                 guardianAngel,
                 vendetta,
