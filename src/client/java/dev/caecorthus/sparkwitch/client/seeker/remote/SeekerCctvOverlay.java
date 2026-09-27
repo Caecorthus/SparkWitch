@@ -127,7 +127,10 @@ public final class SeekerCctvOverlay {
 
     private static void trackSession(ClientPlayerEntity player) {
         int current = SeekerClientState.sessionId();
-        if (current != sessionId) {
+        // A new session id, or a respawned/reconnected player whose age restarted, restarts the clock (no player
+        // reference is kept, so an old world is never retained).
+        // 新的会话 id，或重生/重连后 age 重新计数，都会重置计时（不持有玩家引用，避免旧世界无法释放）。
+        if (current != sessionId || player.age < sessionStartAge) {
             sessionId = current;
             sessionStartAge = player.age;
         }

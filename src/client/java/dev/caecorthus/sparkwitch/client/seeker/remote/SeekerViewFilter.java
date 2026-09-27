@@ -69,8 +69,18 @@ public final class SeekerViewFilter {
                 });
     }
 
-    /** Releases the processor on disconnect or resource reload and allows a fresh load. / 断线或资源重载时释放处理器，并允许重新加载。 */
+    /**
+     * Releases the processor on disconnect or resource reload and allows a fresh load. Connection events may fire off
+     * the render thread (e.g. the login INIT on the connector thread), and closing GL targets there throws, so the
+     * reset is then deferred to the render thread.
+     * 断线或资源重载时释放处理器，并允许重新加载。连接事件可能不在渲染线程触发（例如连接线程上的登录 INIT），
+     * 在那里关闭 GL 目标会抛异常，因此此时把重置推迟到渲染线程执行。
+     */
     public static void reset() {
+        if (!RenderSystem.isOnRenderThread()) {
+            RenderSystem.recordRenderCall(SeekerViewFilter::reset);
+            return;
+        }
         release();
         FAILED.clear();
     }
