@@ -25,19 +25,24 @@ public final class TimeStealerHudRules {
 
     /**
      * Whether the local owner's stamp row is drawn this frame. Every input is local-client state: the F1 flag, the
-     * local player's playing/alive state, Wathe's train HUD, the exact local role and the balance computed from the
-     * owner's own synced inventory. Nothing about any other player is read, so the row can never leak.
-     * 本帧是否绘制本地拥有者的邮票行。所有输入都是本地客户端状态：F1 标记、本地玩家的参与/存活状态、Wathe 列车 HUD、
-     * 本地精确职业，以及由拥有者自身已同步背包算出的余额。不读取任何其他玩家的信息，因此该行绝不会泄露信息。
+     * synced game status (ACTIVE only; STOPPING still counts as playing but is covered by Wathe's round-end fade,
+     * which this TAIL-drawn row would otherwise sit on top of), the local player's playing/alive state, Wathe's train
+     * HUD, the exact local role and the balance computed from the owner's own synced inventory. Nothing about any
+     * other player is read, so the row can never leak.
+     * 本帧是否绘制本地拥有者的邮票行。所有输入都是本地客户端状态：F1 标记、已同步的对局状态（仅 ACTIVE；STOPPING
+     * 仍算作参与中，但已被 Wathe 的回合结束黑幕覆盖，而该行在 TAIL 绘制，否则会浮在黑幕之上）、本地玩家的参与/存活
+     * 状态、Wathe 列车 HUD、本地精确职业，以及由拥有者自身已同步背包算出的余额。不读取任何其他玩家的信息，因此该行
+     * 绝不会泄露信息。
      */
     public static boolean showsStampRow(
             boolean hudHidden,
+            boolean gameActive,
             boolean playingAndAlive,
             boolean trainHudActive,
             boolean exactTimeStealer,
             int balance
     ) {
-        return !hudHidden && playingAndAlive && trainHudActive && exactTimeStealer && balance > 0;
+        return !hudHidden && gameActive && playingAndAlive && trainHudActive && exactTimeStealer && balance > 0;
     }
 
     /** Left x of the right-aligned row. / 右对齐行的左侧 x。 */

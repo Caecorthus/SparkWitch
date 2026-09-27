@@ -53,11 +53,17 @@ public final class TimeStealerClient {
         // HudRenderCallback fires even with F1, unlike Wathe's main HUD layer; the row follows Wathe's train HUD.
         // HudRenderCallback 在 F1 下仍会触发，与 Wathe 主 HUD 层不同；该行跟随 Wathe 列车 HUD 的显示状态。
         boolean trainHudActive = WatheClient.trainComponent != null && WatheClient.trainComponent.hasHud();
+        // HudRenderCallback runs at InGameHud.render TAIL, above Wathe's game fade; isPlayerPlayingAndAlive is still
+        // true during STOPPING, so gate on ACTIVE to avoid drawing over the round-end fade to black.
+        // HudRenderCallback 在 InGameHud.render TAIL 执行，位于 Wathe 黑幕之上；STOPPING 期间 isPlayerPlayingAndAlive
+        // 仍为 true，因此仅在 ACTIVE 时显示，避免浮在回合结束黑幕之上。
+        GameWorldComponent game = GameWorldComponent.KEY.get(client.world);
+        boolean gameActive = game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE;
         boolean playingAndAlive = GameFunctions.isPlayerPlayingAndAlive(player);
-        boolean exactTimeStealer = playingAndAlive
-                && TimeStealerRules.isTimeStealer(GameWorldComponent.KEY.get(client.world).getRole(player));
+        boolean exactTimeStealer = gameActive && playingAndAlive
+                && TimeStealerRules.isTimeStealer(game.getRole(player));
         int balance = exactTimeStealer ? TimeStampInventory.balance(player) : 0;
-        if (!TimeStealerHudRules.showsStampRow(client.options.hudHidden, playingAndAlive, trainHudActive,
+        if (!TimeStealerHudRules.showsStampRow(client.options.hudHidden, gameActive, playingAndAlive, trainHudActive,
                 exactTimeStealer, balance)) {
             return;
         }
