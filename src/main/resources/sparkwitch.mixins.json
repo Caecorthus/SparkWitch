@@ -80,6 +80,7 @@
     "bellringer.PlayerEntityTollBellMixin",
     "bellringer.PlayerMoodComponentBellEchoMixin",
     "bellringer.ScreenHandlerTollBellMixin",
+    "hunter.GunShootPayloadShotgunGuardMixin",
     "hunter.HunterPlayerMoveMixin",
     "hunter.PlayerPoisonComponentHunterSourceMixin",
     "recruitment.RecruitmentShopEntryMixin",
