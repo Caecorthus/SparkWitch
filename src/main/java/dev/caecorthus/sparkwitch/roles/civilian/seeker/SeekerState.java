@@ -204,11 +204,13 @@ public final class SeekerState {
     }
 
     /**
-     * SWALLOWED (or an owed PendingReturn) → READY (+RETURNED 60 s); clears LostTo and PendingReturn.
-     * SWALLOWED（或仍欠归还的 PendingReturn）→ READY（+RETURNED 60 秒）；清除 LostTo 与 PendingReturn。
+     * SWALLOWED → READY (+RETURNED 60 s); clears LostTo and PendingReturn. Any other state is a no-op, so a stray
+     * return can never reset a deployed car (orphaning its entity) or write a bogus RETURNED cooldown.
+     * SWALLOWED → READY（+RETURNED 60 秒）；清除 LostTo 与 PendingReturn。其他状态为空操作，
+     * 因此误发的归还永远不会重置已部署的小车（使其实体成为孤儿）或写入错误的 RETURNED 冷却。
      */
     public Delta returnCar() {
-        if (carState != SeekerCarState.SWALLOWED && !pendingReturn) {
+        if (carState != SeekerCarState.SWALLOWED) {
             return Delta.NONE;
         }
         resetCar(SeekerCarState.READY);
@@ -219,11 +221,14 @@ public final class SeekerState {
 
     /**
      * Server-only retry flag owned by the Taotie return path; the car stays SWALLOWED until {@link #returnCar()}.
-     * Not synced, so the delta is never dirty.
-     * 由饕餮归还路径使用的仅服务端重试标记；在 {@link #returnCar()} 之前小车保持 SWALLOWED。不同步，因此 delta 从不为 dirty。
+     * Setting it outside SWALLOWED is ignored (clearing is always allowed). Not synced, so the delta is never dirty.
+     * 由饕餮归还路径使用的仅服务端重试标记；在 {@link #returnCar()} 之前小车保持 SWALLOWED。
+     * 非 SWALLOWED 状态下的置位会被忽略（清除始终允许）。不同步，因此 delta 从不为 dirty。
      */
     public Delta setPendingReturn(boolean pending) {
-        pendingReturn = pending;
+        if (!pending || carState == SeekerCarState.SWALLOWED) {
+            pendingReturn = pending;
+        }
         return Delta.NONE;
     }
 

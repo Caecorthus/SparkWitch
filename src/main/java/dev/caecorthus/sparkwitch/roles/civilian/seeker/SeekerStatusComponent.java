@@ -192,6 +192,12 @@ public final class SeekerStatusComponent
             SeekerLifecycleService.cleanUp(owner, SeekerExitReason.DIED);
             return;
         }
+        // Round over (STOPPING fade): no view survives it, also in modes or /stop paths without ON_WIN_DETERMINED.
+        // 回合已结束（STOPPING 淡出）：任何视角都不保留，包括不触发 ON_WIN_DETERMINED 的模式或 /stop 路径。
+        if (game.getGameStatus() != GameWorldComponent.GameStatus.ACTIVE
+                && state.sessionMode() != SeekerSessionMode.NONE) {
+            SeekerRemoteSessionService.end(owner, SeekerExitReason.ROUND_END);
+        }
         // 3. Session checks (WP-09 owns every per-tick exit reason and stale SeekerSessionState).
         // 3. 会话检查（WP-09 负责每刻的所有退出原因以及过期的会话状态）。
         SeekerRemoteSessionService.tick(owner, this);
