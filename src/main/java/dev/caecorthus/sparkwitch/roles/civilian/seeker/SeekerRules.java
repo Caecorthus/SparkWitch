@@ -52,6 +52,20 @@ public final class SeekerRules {
     public static final Identifier REPLAY_CAR_SWALLOWED_EVENT = SparkWitch.id("seeker_car_swallowed");
     public static final Identifier REPLAY_CAR_RETURNED_EVENT = SparkWitch.id("seeker_car_returned");
     public static final Identifier REPLAY_CAR_DEPLETED_EVENT = SparkWitch.id("seeker_car_depleted");
+    /**
+     * Replay NBT keys shared by the writer ({@code SeekerDeviceService}, WP-03) and the reader
+     * ({@code SeekerReplayFormatters}, WP-08). Item uses: {@code recordItemUse(owner, CAR_ITEM_ID|CAMERA_ITEM_ID, null,
+     * {action})}. Globals: {@code recordGlobalEvent(world, event, source, data)} with data {@code owner} (always),
+     * {@code device} ({@link SeekerDeviceKind#id()}), {@code source} ({@link SeekerBreakSource#id()}), {@code breaker}
+     * (only when attributable), {@code taotie} (swallow only).
+     * 回放 NBT 键，由写入方（WP-03）与读取方（WP-08）共用。物品使用只带 {@code action}；全局事件的数据见上。
+     */
+    public static final String REPLAY_ACTION_KEY = "action";
+    public static final String REPLAY_OWNER_KEY = "owner";
+    public static final String REPLAY_DEVICE_KEY = "device";
+    public static final String REPLAY_SOURCE_KEY = "source";
+    public static final String REPLAY_BREAKER_KEY = "breaker";
+    public static final String REPLAY_TAOTIE_KEY = "taotie";
 
     // ---- Shop and economy ----
     public static final String CAMERA_ENTRY_ID = "seeker_camera";

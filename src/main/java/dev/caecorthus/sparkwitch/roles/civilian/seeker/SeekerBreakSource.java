@@ -16,10 +16,12 @@ public enum SeekerBreakSource {
     DEMON_HUNTER_PISTOL(Kind.RAY),
     TASER(Kind.RAY),
     KNIFE_STAB(Kind.RAY),
+    /** Piercing: the ray is cut at the nearest device. / 穿透射线：在最近的设备处截断。 */
     DEATH_RAY(Kind.RAY),
+    /** Black Raven's right-click "throw" is a server hitscan (no projectile entity). / 黑鸦右键“投掷”是服务端即时射线（无投射物实体）。 */
+    FEATHER_BLADE(Kind.RAY),
     THROWING_AXE(Kind.PROJECTILE),
     SHURIKEN(Kind.PROJECTILE),
-    FEATHER_BLADE(Kind.PROJECTILE),
     SHOCK_DEVICE(Kind.PROJECTILE),
     GRENADE(Kind.BLAST),
     M67(Kind.BLAST),

@@ -58,7 +58,16 @@ public final class SeekerDeviceService {
         return ActionResult.PASS;
     }
 
-    /** The single break sink for every source. / 所有损坏来源的唯一收口。 */
+    /**
+     * The single break sink for every source, in order: {@code SeekerRemoteSessionService.end(owner, CAR_BROKEN |
+     * CAMERA_BROKEN)} → discard + {@code SeekerDeviceSounds.playBreak} → {@code component.apply(breakCar() |
+     * destroyCamera())} (180 s BROKEN written by apply) → replay {@code seeker_device_broken} (keys in
+     * {@code SeekerRules.REPLAY_*_KEY}; breaker only when {@code source.attributable()}) →
+     * {@code SeekerMarkService.onDeviceBroken(owner, breaker, kind)} when attributable → owner message
+     * {@code car.broken}/{@code camera.broken} (never names the breaker). Idempotent for an already-removed device.
+     * 所有损坏来源的唯一收口，顺序：结束会话 → 移除并播放损坏音 → 应用状态转移（apply 写入 180 秒）→ 记录回放 →
+     * 可归属时调用标记服务 → 通知拥有者（不说出损坏者）。对已移除的设备幂等。
+     */
     public static void breakDevice(SeekerDeviceEntity device, SeekerBreakSource source,
                                    @Nullable ServerPlayerEntity breaker) {
     }

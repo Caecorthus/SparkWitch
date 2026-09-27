@@ -19,9 +19,9 @@ public final class SeekerDeviceRaycast {
     }
 
     /**
-     * Client target wrappers (revolver, derringer, knife, Demon Hunter, taser crosshair): returns {@code original}
-     * unless a Seeker device lies nearer on the look ray within {@code range}, then that device's EntityHitResult.
-     * 客户端目标包装（左轮、德林加、刀、猎魔枪、电击枪准星）：除非视线上 {@code range} 内有更近的搜寻者设备，
+     * Client target wrappers (revolver, derringer, knife, Demon Hunter): returns {@code original} unless a Seeker
+     * device lies nearer on the look ray within {@code range}, then that device's EntityHitResult. Side-neutral.
+     * 客户端目标包装（左轮、德林加、刀、猎魔枪）：除非视线上 {@code range} 内有更近的搜寻者设备，
      * 否则原样返回 {@code original}；有则返回该设备的 EntityHitResult。
      */
     public static HitResult preferNearerDevice(Entity shooter, HitResult original, double range) {
@@ -29,10 +29,11 @@ public final class SeekerDeviceRaycast {
     }
 
     /**
-     * Server ray check: the nearest live device on {@code start → end} that is nearer than {@code playerTarget}
-     * (or any device when the target is null); null when the player (or nothing) is nearer.
-     * 服务端射线检查：在 {@code start → end} 上比 {@code playerTarget} 更近（目标为空时任意）的最近存活设备；
-     * 玩家更近或没有设备时返回 null。
+     * Ray check (side-neutral; server hooks and the optional CE taser crosshair hint): the nearest live device on
+     * {@code start → end} that is nearer than {@code playerTarget} (or any device when the target is null); null when
+     * the player (or nothing) is nearer.
+     * 射线检查（两端通用；服务端钩子与可选的控场专家电击枪准星提示）：在 {@code start → end} 上比
+     * {@code playerTarget} 更近（目标为空时任意）的最近存活设备；玩家更近或没有设备时返回 null。
      */
     @Nullable
     public static SeekerDeviceEntity blockingDevice(Entity shooter, Vec3d start, Vec3d end,

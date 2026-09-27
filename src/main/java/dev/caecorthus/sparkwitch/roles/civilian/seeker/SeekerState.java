@@ -16,10 +16,14 @@ import java.util.UUID;
  */
 public final class SeekerState {
     /**
-     * Result of one transition. {@code cooldownTicks}/{@code cooldownReason} ask the caller for one
-     * {@code SeekerCooldowns.writeFloorExact}; {@code batteryDepleted} asks for {@code SeekerDeviceService.depleteCar}.
-     * 单次状态转移的结果。冷却字段要求调用方执行一次 {@code SeekerCooldowns.writeFloorExact}；
-     * {@code batteryDepleted} 要求调用 {@code SeekerDeviceService.depleteCar}。
+     * Result of one transition, always passed to {@code SeekerStatusComponent#apply}, which performs the one
+     * {@code SeekerCooldowns.writeFloorExact} for {@code cooldownTicks}/{@code cooldownReason}. {@code batteryDepleted}
+     * asks the component tick for {@code SeekerDeviceService.depleteCar}. {@code sessionClosed} is informational: a
+     * transition closes a still-open session only as an idempotent safety net, because services call
+     * {@code SeekerRemoteSessionService.end(owner, reason)} before the transition.
+     * 单次状态转移的结果，始终交给 {@code SeekerStatusComponent#apply}，由其按冷却字段执行唯一一次
+     * {@code SeekerCooldowns.writeFloorExact}。{@code batteryDepleted} 要求组件刻调用 {@code SeekerDeviceService.depleteCar}。
+     * {@code sessionClosed} 仅供参考：各服务会先调用 {@code SeekerRemoteSessionService.end}，状态转移只作为幂等兜底关闭仍打开的会话。
      */
     public record Delta(boolean dirty, int cooldownTicks, SeekerCooldownReason cooldownReason, boolean sessionClosed,
                         @Nullable SeekerExitReason exitReason, boolean batteryDepleted) {

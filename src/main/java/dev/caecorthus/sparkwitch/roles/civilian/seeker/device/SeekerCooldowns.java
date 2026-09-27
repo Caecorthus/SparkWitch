@@ -20,7 +20,11 @@ public final class SeekerCooldowns {
         return false;
     }
 
-    /** Remaining ticks on the car item cooldown; 0 when none. / 小车物品冷却的剩余刻数；无冷却时为 0。 */
+    /**
+     * Remaining ticks on the car item cooldown; 0 when none. Side-neutral: the client reads its synced vanilla cooldown
+     * (HUD, console), the server its authoritative one.
+     * 小车物品冷却的剩余刻数；无冷却时为 0。两端通用：客户端读取已同步的原版冷却（HUD、控制台），服务端读取权威冷却。
+     */
     public static int remainingTicks(PlayerEntity player) {
         return 0;
     }

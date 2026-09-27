@@ -108,7 +108,17 @@ public final class SeekerStatusComponent
         this.sessionState = sessionState;
     }
 
-    /** Server only: syncs the owner when the delta is dirty. / 仅服务端：delta 有变化时同步给拥有者。 */
+    /**
+     * Server only, the single sink of every transition result: writes {@code delta.cooldownTicks()} with
+     * {@code SeekerCooldowns.writeFloorExact(owner, ticks, reason)} when positive (callers never write car cooldowns
+     * themselves) and syncs the owner when dirty. It never ends sessions, sends messages or calls device services:
+     * session endings go through {@code SeekerRemoteSessionService.end} first, and {@code batteryDepleted} is handled by
+     * the component's own tick ({@code SeekerDeviceService.depleteCar}).
+     * 仅服务端，所有状态转移结果的唯一收口：{@code delta.cooldownTicks()} 为正时经
+     * {@code SeekerCooldowns.writeFloorExact} 写入（调用方从不自行写小车冷却），delta 有变化时同步给拥有者。
+     * 它从不结束会话、发送消息或调用设备服务：会话结束先经 {@code SeekerRemoteSessionService.end}，
+     * {@code batteryDepleted} 由组件自己的刻处理（{@code SeekerDeviceService.depleteCar}）。
+     */
     public void apply(SeekerState.Delta delta) {
         // TODO(WP-02) / 待 WP-02 实现
     }
@@ -125,6 +135,17 @@ public final class SeekerStatusComponent
         // TODO(WP-02) / 待 WP-02 实现
     }
 
+    /**
+     * Server tick order (WP-02): owner-of-record self-heal → final-death fallback →
+     * {@code SeekerRemoteSessionService.tick} (drop a stale {@code SeekerSessionState} when the mode is NONE is WP-09's)
+     * → device existence ({@code loseCar}) → battery ({@code tickBattery}; on {@code batteryDepleted} call
+     * {@code SeekerDeviceService.depleteCar}; on first crossing ≤20% / ≤10% send
+     * {@code message.sparkwitch.seeker.car.battery_low} and {@code SeekerDeviceSounds.playBatteryLow}) →
+     * every 20 ticks while SWALLOWED or PendingReturn: {@code SeekerTaotieService.tick} → mark decay → sync if dirty.
+     * 服务端刻顺序（WP-02）：记录拥有者自愈 → 最终死亡兜底 → 会话刻 → 设备存在性 → 电量（耗尽时调用 depleteCar；
+     * 首次降至 ≤20% / ≤10% 时发送电量不足提示并播放警告音）→ SWALLOWED 或 PendingReturn 时每 20 刻调用饕餮刻 →
+     * 标记衰减 → 有变化时同步。
+     */
     @Override
     public void serverTick() {
         // TODO(WP-02) / 待 WP-02 实现

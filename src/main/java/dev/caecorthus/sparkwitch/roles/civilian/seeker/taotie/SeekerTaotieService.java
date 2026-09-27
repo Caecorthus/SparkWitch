@@ -21,11 +21,20 @@ public final class SeekerTaotieService {
     public static void handleSwallow(ServerPlayerEntity taotie, SeekerCarSwallowC2SPacket packet) {
     }
 
-    /** KillPlayer.AFTER for a Taotie victim (not intercepted). / 饕餮受害者的 KillPlayer.AFTER（未被拦截）。 */
+    /**
+     * KillPlayer.AFTER for a Taotie victim (not intercepted); registered by this service's own {@link #register()}.
+     * 饕餮受害者的 KillPlayer.AFTER（未被拦截）；由本服务自己的 {@link #register()} 注册。
+     */
     public static void onKill(ServerPlayerEntity victim) {
     }
 
-    /** Owner-side polling every 20 ticks and PendingReturn retry. / 拥有者侧每 20 刻轮询并重试 PendingReturn。 */
+    /**
+     * Called by the owner's component tick every 20 ticks while the car is SWALLOWED or PendingReturn is set. Sole
+     * owner of both the return poll (that Taotie dead or no longer a Taotie) and the PendingReturn retry; the return
+     * itself is {@code SeekerDeviceService.returnSwallowedCar}.
+     * 当小车处于 SWALLOWED 或设置了 PendingReturn 时，由拥有者组件刻每 20 刻调用一次。独自负责归还轮询
+     * （该饕餮死亡或不再是饕餮）与 PendingReturn 重试；归还本身由 {@code SeekerDeviceService.returnSwallowedCar} 执行。
+     */
     public static void tick(ServerPlayerEntity owner, SeekerStatusComponent component) {
     }
 }

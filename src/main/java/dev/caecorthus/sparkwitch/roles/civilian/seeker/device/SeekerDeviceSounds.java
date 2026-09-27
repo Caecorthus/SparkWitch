@@ -23,7 +23,12 @@ public final class SeekerDeviceSounds {
     public static void playBatteryDead(SeekerCarEntity car) {
     }
 
-    /** Owner-only warning at the battery thresholds. / 电量阈值时仅向拥有者播放的警告。 */
+    /**
+     * Owner-only warning, called by the component's battery step (WP-02) once when the battery first reaches 20% and
+     * once at 10% per deploy. This is the only battery warning sound; the client overlay never plays one.
+     * 仅向拥有者播放的警告，由组件电量步骤（WP-02）在每次部署中电量首次降至 20% 与 10% 时各调用一次。
+     * 这是唯一的电量警告音；客户端叠加层从不播放。
+     */
     public static void playBatteryLow(ServerPlayerEntity owner) {
     }
 }

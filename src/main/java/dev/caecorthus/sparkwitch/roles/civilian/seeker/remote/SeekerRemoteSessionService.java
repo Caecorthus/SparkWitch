@@ -18,6 +18,11 @@ public final class SeekerRemoteSessionService {
     private SeekerRemoteSessionService() {
     }
 
+    /**
+     * Also registers the Q17 body push exemption ({@code SparkFactionApi.registerEntityCollisionExemption}: a player
+     * in a Seeker session is not pushed).
+     * 同时注册 Q17 本体推挤豁免（处于搜寻者会话中的玩家不被推挤）。
+     */
     public static void register() {
         // TODO(WP-09) / 待 WP-09 实现
     }
@@ -29,7 +34,14 @@ public final class SeekerRemoteSessionService {
     public static void handleClose(ServerPlayerEntity player, SeekerRemoteCloseC2SPacket packet) {
     }
 
-    /** Idempotent. / 幂等。 */
+    /**
+     * The one way any service ends a session, called BEFORE its own state transition: clears WP-09's
+     * {@code SeekerSessionState}, applies {@code state.closeSession(reason)}, returns the car to idle, syncs, and sends
+     * {@code reason.translationKey()} to the owner's action bar only when {@code reason.notifiesOwner()}. Idempotent; a
+     * no-op when no session is open.
+     * 任何服务结束会话的唯一途径，须在其自身状态转移之前调用：清除 WP-09 的会话状态、执行 closeSession、
+     * 让小车回到空闲、同步，并仅在 {@code notifiesOwner()} 为真时向拥有者动作栏发送提示。幂等；无会话时为空操作。
+     */
     public static void end(ServerPlayerEntity player, SeekerExitReason reason) {
     }
 
