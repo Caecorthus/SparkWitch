@@ -287,6 +287,18 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/item/KnifeItem.class",
                 providerMethod: "getKnifeTarget",
                 providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "AssassinVendettaTargetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/AssassinVendettaTargetMixin.class",
+                handler: "sparkwitch\$appendBoundVendetta",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Redirect;",
+                selector: "method_25426()V",
+                atTarget: "Ldev/doctor4t/wathe/cca/GameWorldComponent;getAllAlivePlayers()Ljava/util/List;",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/client/screen/AssassinScreen.class",
+                providerMethod: "method_25426",
+                providerDescriptor: "()V"
         ]
 ]
 
@@ -319,13 +331,22 @@ def verifyClientMixinSelectors = tasks.register("verifyClientMixinSelectors") {
     dependsOn remappedModJar
     inputs.file(remappedModJar.flatMap { it.archiveFile })
     inputs.file("libs/wathe-${project.wathe_version}.jar")
+    inputs.file("libs/noellesroles-${project.noellesroles_version}.jar")
     inputs.file("src/client/resources/sparkwitch.client.mixins.json")
 
     doLast {
         def jarFile = remappedModJar.get().archiveFile.get().asFile
         def watheJar = file("libs/wathe-${project.wathe_version}.jar")
+        def noellesRolesJar = file("libs/noellesroles-${project.noellesroles_version}.jar")
         def modZip = new java.util.zip.ZipFile(jarFile)
         def watheZip = new java.util.zip.ZipFile(watheJar)
+        def noellesRolesZip = new java.util.zip.ZipFile(noellesRolesJar)
+        // Source selectors are Yarn; this checks what remapJar actually ships against the intermediary provider jars.
+        // 源码选择器为 Yarn；此处校验 remapJar 实际产出的选择器与 intermediary 提供方 jar 一致。
+        def providerZips = [
+                wathe: [zip: watheZip, label: "Wathe ${project.wathe_version}"],
+                noellesroles: [zip: noellesRolesZip, label: "NoellesRoles ${project.noellesroles_version}"]
+        ]
         try {
             def configEntry = modZip.getEntry("sparkwitch.client.mixins.json")
             if (configEntry == null) {
@@ -395,20 +416,22 @@ def verifyClientMixinSelectors = tasks.register("verifyClientMixinSelectors") {
                     }
                 }
 
+                def provider = providerZips[contract.provider ?: "wathe"]
                 def providerNode = providerNodes.computeIfAbsent(contract.providerEntry) {
-                    readClassNode(watheZip, contract.providerEntry)
+                    readClassNode(provider.zip, contract.providerEntry)
                 }
                 def providerMethod = providerNode.methods.find {
                     it.name == contract.providerMethod && it.desc == contract.providerDescriptor
                 }
                 if (providerMethod == null) {
                     throw new GradleException(
-                            "Wathe ${project.wathe_version} is missing ${contract.providerEntry}#"
+                            "${provider.label} is missing ${contract.providerEntry}#"
                                     + "${contract.providerMethod}${contract.providerDescriptor}"
                     )
                 }
             }
         } finally {
+            noellesRolesZip.close()
             watheZip.close()
             modZip.close()
         }
