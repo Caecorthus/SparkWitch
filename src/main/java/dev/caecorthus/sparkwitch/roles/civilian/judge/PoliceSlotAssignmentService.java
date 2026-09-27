@@ -15,8 +15,9 @@ import java.util.Set;
  * 这里只共享义警变体的警位预算，警类商店资格不改变其他身份的分配。 */
 public final class PoliceSlotAssignmentService {
     public static final Identifier EMMA_ID = Identifier.of("sparkwitch", "emma");
+    public static final Identifier CONTROL_EXPERT_ID = Identifier.of("sparkwitch", "control_expert");
     private static final Identifier VIGILANTE_ID = Identifier.of("wathe", "vigilante");
-    private static final List<Identifier> VARIANT_IDS = List.of(JudgeRules.ROLE_ID, EMMA_ID);
+    private static final List<Identifier> VARIANT_IDS = List.of(JudgeRules.ROLE_ID, EMMA_ID, CONTROL_EXPERT_ID);
 
     private PoliceSlotAssignmentService() {
     }

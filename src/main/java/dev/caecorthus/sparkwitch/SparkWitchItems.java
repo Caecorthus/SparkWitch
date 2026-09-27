@@ -5,6 +5,10 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionServ
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.DisruptorItem;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ShockDeviceItem;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.TaserItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeItem;
@@ -43,6 +47,9 @@ public final class SparkWitchItems {
     public static final Identifier TOFANA_ELIXIR_ID = SparkWitch.id("tofana_elixir");
     public static final Identifier TOLL_BELL_ID = SparkWitch.id("toll_bell");
     public static final Identifier KNOCKOUT_DRUG_ID = SparkWitch.id("knockout_drug");
+    public static final Identifier DISRUPTOR_ID = ControlExpertRules.DISRUPTOR_ID;
+    public static final Identifier TASER_ID = ControlExpertRules.TASER_ID;
+    public static final Identifier SHOCK_DEVICE_ID = ControlExpertRules.SHOCK_DEVICE_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -60,6 +67,9 @@ public final class SparkWitchItems {
     private static Item tofanaElixir;
     private static Item tollBell;
     private static Item knockoutDrug;
+    private static Item disruptor;
+    private static Item taser;
+    private static Item shockDevice;
 
     private static boolean registered;
 
@@ -154,6 +164,21 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 KNOCKOUT_DRUG_ID,
                 new KnockoutDrugItem(new Item.Settings().maxCount(4))
+        );
+        disruptor = Registry.register(
+                Registries.ITEM,
+                DISRUPTOR_ID,
+                new DisruptorItem(DisruptorItem.createSettings())
+        );
+        taser = Registry.register(
+                Registries.ITEM,
+                TASER_ID,
+                new TaserItem(TaserItem.createSettings())
+        );
+        shockDevice = Registry.register(
+                Registries.ITEM,
+                SHOCK_DEVICE_ID,
+                new ShockDeviceItem(ShockDeviceItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -277,6 +302,27 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return knockoutDrug;
+    }
+
+    public static Item disruptor() {
+        if (disruptor == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return disruptor;
+    }
+
+    public static Item taser() {
+        if (taser == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return taser;
+    }
+
+    public static Item shockDevice() {
+        if (shockDevice == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return shockDevice;
     }
 
     private static void registerMeleeSuppression() {

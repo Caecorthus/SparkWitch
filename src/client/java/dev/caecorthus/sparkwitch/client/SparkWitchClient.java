@@ -11,6 +11,8 @@ import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientModule;
 import dev.caecorthus.sparkwitch.client.bellringer.BellRingerClient;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientModule;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
+import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStatusHud;
+import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStunClient;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.HunterTrapClientHooks;
@@ -37,6 +39,7 @@ import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.net.TarotDivinationSnapshotS2CPacket;
 import dev.caecorthus.sparkwitch.net.UseWitchSkillC2SPacket;
 import dev.caecorthus.sparkwitch.net.WraithRoleAnnouncementS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
@@ -87,6 +90,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerBlackRavenNetworking();
         registerWraithRoleAnnouncementNetworking();
         JudgeClientModule.register();
+        ControlExpertStunClient.register();
+        ControlExpertStatusHud.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
@@ -194,6 +199,9 @@ public final class SparkWitchClient implements ClientModInitializer {
                 context -> new FlyingItemEntityRenderer<>(context, 1.0F, true)
         );
         EntityRendererRegistry.register(HunterEntities.hunterTrap(), HunterTrapEntityRenderer::new);
+        // The thrown Shock Device renders its synced item stack like vanilla thrown items.
+        // 投出的电击装置与原版投掷物一样渲染其同步的物品。
+        EntityRendererRegistry.register(ControlExpertEntities.shockDevice(), FlyingItemEntityRenderer::new);
     }
 
     private static void registerWraithRoleAnnouncementNetworking() {
