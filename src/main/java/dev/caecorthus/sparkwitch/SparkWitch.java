@@ -49,6 +49,7 @@ public final class SparkWitch implements ModInitializer {
         ControlExpertEntities.register();
         SeekerEntities.register();
         SparkWitchItems.register();
+        SparkWitchItemGroups.register();
         SparkWitchEntities.register();
         // NoellesRoles remains the packet-filter owner; FactionAPI only extends its hidden-item predicate.
         // NoellesRoles 仍负责装备包过滤，FactionAPI 这里只扩展其隐藏物品判定。
