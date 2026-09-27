@@ -1,12 +1,20 @@
 package dev.caecorthus.sparkwitch.roles.civilian.seeker;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCooldowns;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceService;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceSounds;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerSessionState;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.taotie.SeekerTaotieService;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
@@ -21,7 +29,6 @@ import java.util.UUID;
  * Stable CCA contract {@code sparkwitch:seeker_status} (NEVER_COPY): the Seeker's own car, camera, session, battery
  * and mark state. Server-authoritative; synced only to the owner as remaining ticks, never absolute server ticks. It
  * never enters the shared {@code sparkwitch:player} schema.
- * TODO(WP-02): implement the server tick order, battery drain, owner sync and NBT. / 待 WP-02 实现服务端刻顺序、电量消耗、拥有者同步与 NBT。
  * 稳定 CCA 契约 {@code sparkwitch:seeker_status}（NEVER_COPY）：搜寻者自己的小车、摄像头、会话、电量与标记状态。
  * 由服务端权威决定，仅以剩余刻数同步给拥有者，从不发送绝对服务端刻；从不进入共享的 {@code sparkwitch:player} 结构。
  */
@@ -29,6 +36,10 @@ public final class SeekerStatusComponent
         implements AutoSyncedComponent, ServerTickingComponent, ClientTickingComponent {
     public static final ComponentKey<SeekerStatusComponent> KEY = ComponentRegistry.getOrCreate(
             SparkWitch.id("seeker_status"), SeekerStatusComponent.class);
+    static final String BATTERY_LOW_MESSAGE_KEY = "message.sparkwitch.seeker.car.battery_low";
+    /** Taotie return poll / retry period and device-existence check period. / 饕餮归还轮询与设备存在性检查周期。 */
+    static final int SLOW_POLL_TICKS = 20;
+    private static final int EXISTENCE_POLL_OFFSET = 10;
 
     private final PlayerEntity player;
     private final SeekerState state = new SeekerState();
@@ -120,19 +131,31 @@ public final class SeekerStatusComponent
      * {@code batteryDepleted} 由组件自己的刻处理（{@code SeekerDeviceService.depleteCar}）。
      */
     public void apply(SeekerState.Delta delta) {
-        // TODO(WP-02) / 待 WP-02 实现
+        if (applyQuietly(delta)) {
+            syncOwner();
+        }
     }
 
+    /** Server-only match binding (never synced). / 仅服务端的对局绑定（从不同步）。 */
     public void bindMatch(String matchId) {
-        // TODO(WP-02) / 待 WP-02 实现
+        apply(state.bindMatch(matchId));
     }
 
+    /**
+     * Drops every Seeker field (WP-09's session data too) and syncs. Devices and session endings are the caller's:
+     * the lifecycle ends the session and discards the devices first.
+     * 清除所有搜寻者字段（含 WP-09 的会话数据）并同步。设备与会话结束由调用方负责：生命周期会先结束会话并移除设备。
+     */
     public void clearAll() {
-        // TODO(WP-02) / 待 WP-02 实现
+        sessionState = null;
+        apply(state.clear());
     }
 
+    /** Server only; the owner is the only recipient. / 仅服务端；拥有者是唯一接收者。 */
     public void syncOwner() {
-        // TODO(WP-02) / 待 WP-02 实现
+        if (!player.getWorld().isClient()) {
+            KEY.sync(player);
+        }
     }
 
     /**
@@ -148,7 +171,69 @@ public final class SeekerStatusComponent
      */
     @Override
     public void serverTick() {
-        // TODO(WP-02) / 待 WP-02 实现
+        // Ticks for every player: non-Seekers hold no state and leave here after a few field reads.
+        // 每位玩家都会执行：非搜寻者不持有状态，仅读取几个字段后即在此返回。
+        if (sessionState == null && state.isIdle()) {
+            return;
+        }
+        if (!(player instanceof ServerPlayerEntity owner)) {
+            return;
+        }
+        // 1. Owner-of-record self-heal: role lost, round over or a stale match drops everything.
+        // 1. 记录拥有者自愈：失去职业、对局结束或对局过期时清除一切。
+        if (!SeekerTargeting.isOwnerOfRecord(owner)) {
+            SeekerLifecycleService.cleanUp(owner, selfHealReason(owner));
+            return;
+        }
+        // 2. Final-death fallback; a Last Stand pending death is an alive-spectator state, not a final death.
+        // 2. 最终死亡兜底；背水一战待定属于活着的旁观状态，而非最终死亡。
+        GameWorldComponent game = GameWorldComponent.KEY.get(owner.getWorld());
+        if (game.isPlayerDead(owner.getUuid()) && !SparkTraitsSeekerBridge.isLastStandPending(owner)) {
+            SeekerLifecycleService.cleanUp(owner, SeekerExitReason.DIED);
+            return;
+        }
+        // 3. Session checks (WP-09 owns every per-tick exit reason and stale SeekerSessionState).
+        // 3. 会话检查（WP-09 负责每刻的所有退出原因以及过期的会话状态）。
+        SeekerRemoteSessionService.tick(owner, this);
+        long time = owner.getServerWorld().getTime();
+        boolean dirty = false;
+        // 4. Device existence: a vanished car is never a free reset (RECALL cooldown); a vanished camera is dropped.
+        // 4. 设备存在性：丢失的小车绝不免费重置（RECALL 冷却）；丢失的摄像头引用被移除。
+        if (time % SLOW_POLL_TICKS == EXISTENCE_POLL_OFFSET) {
+            dirty |= checkDevicesExist(owner);
+        }
+        // 5. Battery (server-authoritative; the client only displays the synced percent).
+        // 5. 电量（服务端权威；客户端只显示同步的百分比）。
+        if (state.carState() == SeekerCarState.DEPLOYED) {
+            SeekerState.Delta battery = state.tickBattery();
+            dirty |= applyQuietly(battery);
+            if (battery.batteryDepleted()) {
+                if (dirty) {
+                    syncOwner();
+                    dirty = false;
+                }
+                SeekerDeviceService.depleteCar(owner);
+            } else {
+                int warning = state.pollBatteryWarning();
+                if (warning >= 0) {
+                    owner.sendMessage(Text.translatable(BATTERY_LOW_MESSAGE_KEY, warning), true);
+                    SeekerDeviceSounds.playBatteryLow(owner);
+                }
+            }
+        }
+        // 6. Taotie return poll and PendingReturn retry, both owned by WP-06.
+        // 6. 饕餮归还轮询与 PendingReturn 重试，均由 WP-06 负责。
+        if ((state.carState() == SeekerCarState.SWALLOWED || state.pendingReturn()) && time % SLOW_POLL_TICKS == 0) {
+            SeekerTaotieService.tick(owner, this);
+        }
+        // 7. Mark decay.
+        // 7. 标记衰减。
+        dirty |= applyQuietly(state.tickMark());
+        // 8. Sync once when anything this tick changed a synced field.
+        // 8. 本刻有同步字段变化时统一同步一次。
+        if (dirty) {
+            syncOwner();
+        }
     }
 
     @Override
@@ -176,8 +261,50 @@ public final class SeekerStatusComponent
         state.writeNbt(tag);
     }
 
+    /** Resets every transient field, including WP-09's session data. / 重置所有瞬态字段，包括 WP-09 的会话数据。 */
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         state.readNbt(tag);
+        sessionState = null;
+    }
+
+    /**
+     * Writes the delta's cooldown (the single cooldown writer) and reports whether a synced field changed.
+     * 写入 delta 的冷却（唯一的冷却写入方），并返回同步字段是否有变化。
+     */
+    private boolean applyQuietly(SeekerState.Delta delta) {
+        if (delta == null || player.getWorld().isClient()) {
+            return false;
+        }
+        if (delta.cooldownTicks() > 0 && player instanceof ServerPlayerEntity owner) {
+            SeekerCooldowns.writeFloorExact(owner, delta.cooldownTicks(), delta.cooldownReason());
+        }
+        return delta.dirty();
+    }
+
+    private boolean checkDevicesExist(ServerPlayerEntity owner) {
+        boolean dirty = false;
+        if (state.carState() == SeekerCarState.DEPLOYED && SeekerDeviceService.findCar(owner) == null) {
+            SparkWitch.LOGGER.warn("Seeker car of {} vanished while deployed; applying the recall cooldown",
+                    owner.getGameProfile().getName());
+            if (state.sessionMode() == SeekerSessionMode.CAR) {
+                SeekerRemoteSessionService.end(owner, SeekerExitReason.FOCUS_LOST);
+            }
+            dirty |= applyQuietly(state.loseCar());
+        }
+        if (state.cameraEntityId() >= 0 && SeekerDeviceService.findCamera(owner) == null) {
+            if (state.sessionMode() == SeekerSessionMode.CAMERA) {
+                SeekerRemoteSessionService.end(owner, SeekerExitReason.FOCUS_LOST);
+            }
+            dirty |= applyQuietly(state.destroyCamera());
+        }
+        return dirty;
+    }
+
+    private static SeekerExitReason selfHealReason(ServerPlayerEntity owner) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(owner.getWorld());
+        return game.isRunning() && !SeekerRules.isSeeker(game.getRole(owner))
+                ? SeekerExitReason.ROLE_CHANGED
+                : SeekerExitReason.ROUND_END;
     }
 }
