@@ -10,6 +10,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.DisruptorItem;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ShockDeviceItem;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.TaserItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraItem;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCarItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeLoadoutService;
@@ -55,6 +58,8 @@ public final class SparkWitchItems {
     public static final Identifier DISRUPTOR_ID = ControlExpertRules.DISRUPTOR_ID;
     public static final Identifier TASER_ID = ControlExpertRules.TASER_ID;
     public static final Identifier SHOCK_DEVICE_ID = ControlExpertRules.SHOCK_DEVICE_ID;
+    public static final Identifier SEEKER_CAR_ID = SeekerRules.CAR_ITEM_ID;
+    public static final Identifier SEEKER_CAMERA_ID = SeekerRules.CAMERA_ITEM_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -77,6 +82,8 @@ public final class SparkWitchItems {
     private static Item disruptor;
     private static Item taser;
     private static Item shockDevice;
+    private static Item seekerCar;
+    private static Item seekerCamera;
 
     private static boolean registered;
 
@@ -196,6 +203,16 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 SHOCK_DEVICE_ID,
                 new ShockDeviceItem(ShockDeviceItem.createSettings())
+        );
+        seekerCar = Registry.register(
+                Registries.ITEM,
+                SEEKER_CAR_ID,
+                new SeekerCarItem(SeekerCarItem.createSettings())
+        );
+        seekerCamera = Registry.register(
+                Registries.ITEM,
+                SEEKER_CAMERA_ID,
+                new SeekerCameraItem(SeekerCameraItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -354,6 +371,20 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return shockDevice;
+    }
+
+    public static Item seekerCar() {
+        if (seekerCar == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return seekerCar;
+    }
+
+    public static Item seekerCamera() {
+        if (seekerCamera == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return seekerCamera;
     }
 
     private static void registerMeleeSuppression() {

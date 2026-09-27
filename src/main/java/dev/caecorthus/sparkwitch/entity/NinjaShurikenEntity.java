@@ -8,6 +8,7 @@ package dev.caecorthus.sparkwitch.entity;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
@@ -45,6 +46,13 @@ public final class NinjaShurikenEntity extends PersistentProjectileEntity implem
 
     @Override
     public void tick() {
+        // Seeker seam (server, in flight): a Seeker device in this tick's path breaks and stops the shuriken.
+        // 搜寻者接缝（服务端、飞行中）：本刻路径上的搜寻者设备被打坏，手里剑随之停下。
+        if (!getWorld().isClient() && !inGround
+                && SeekerDeviceHits.onShurikenSweep(this, getOwner(), getPos(), getPos().add(getVelocity()))) {
+            discard();
+            return;
+        }
         super.tick();
         if (getWorld().isClient() && random.nextFloat() < 0.2F) {
             getWorld().addParticle(ParticleTypes.CRIT, getX(), getY(), getZ(), 0.0, 0.0, 0.0);

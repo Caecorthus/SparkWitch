@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -32,7 +33,9 @@ public final class FeatherBladeItem extends Item {
         if (!(user instanceof ServerPlayerEntity serverUser)) {
             return TypedActionResult.fail(stack);
         }
-        ServerPlayerEntity target = BlackRavenTargeting.findAimedPlayer(serverUser);
+        // Seeker seam: a nearer Seeker device within reach absorbs the blade and breaks; nobody is marked.
+        // 搜寻者接缝：射程内更近的搜寻者设备吸收羽刃并被打坏；不标记任何人。
+        ServerPlayerEntity target = SeekerDeviceHits.onFeatherBladeFired(serverUser, BlackRavenTargeting.findAimedPlayer(serverUser), BlackRavenRules.FEATHER_REACH);
         UUID matchId = BlackRavenMatch.currentId();
         BlackRavenMarkPlayerComponent mark = target == null ? null : BlackRavenMarkPlayerComponent.KEY.get(target);
         boolean allowed = BlackRavenRules.canMark(

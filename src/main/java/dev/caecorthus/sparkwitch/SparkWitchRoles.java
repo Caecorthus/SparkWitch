@@ -33,6 +33,7 @@ public final class SparkWitchRoles {
     public static final Identifier TIME_STEALER_ID = SparkWitchRoleRegistry.TIME_STEALER_ID;
     public static final Identifier JUDGE_ID = SparkWitchRoleRegistry.JUDGE_ID;
     public static final Identifier CONTROL_EXPERT_ID = SparkWitchRoleRegistry.CONTROL_EXPERT_ID;
+    public static final Identifier SEEKER_ID = SparkWitchRoleRegistry.SEEKER_ID;
 
     private SparkWitchRoles() {
     }
@@ -147,6 +148,10 @@ public final class SparkWitchRoles {
 
     public static Role controlExpert() {
         return SparkWitchRoleRegistry.controlExpert();
+    }
+
+    public static Role seeker() {
+        return SparkWitchRoleRegistry.seeker();
     }
 
     public static List<Role> assassinGuessRoles() {

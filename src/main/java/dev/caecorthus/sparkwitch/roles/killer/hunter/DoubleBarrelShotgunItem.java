@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
@@ -81,7 +82,8 @@ public final class DoubleBarrelShotgunItem extends Item {
         setLoadedShells(shotgun, remainingShells);
         clearReloadWindow(shotgun);
 
-        PlayerEntity target = findTarget(user);
+        // Nearest-wins: a nearer Seeker device absorbs the shot (null target). / 最近者命中：更近的搜寻者设备吸收这一枪。
+        PlayerEntity target = SeekerDeviceHits.onShotgunFired(user, findTarget(user), HunterRules.SHOTGUN_RANGE);
         if (user instanceof ServerPlayerEntity shooter && target instanceof ServerPlayerEntity serverTarget) {
             GameFunctions.killPlayer(serverTarget, true, shooter, GameConstants.DeathReasons.GUN);
         }

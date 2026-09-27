@@ -218,6 +218,17 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
         ],
         [
+                configName: "WraithNameTagRaycastMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithNameTagRaycastMixin.class",
+                handler: "sparkwitch\$nameTagThroughHiddenWraiths",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/ModifyArg;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_1675;method_49998(Lnet/minecraft/class_1297;Ljava/util/function/Predicate;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
                 configName: "witchmaiden.WitchMaidenInventoryScreenMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/witchmaiden/WitchMaidenInventoryScreenMixin.class",
                 handler: "sparkwitch\$attachWitchMaidenUi",
@@ -236,6 +247,58 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
                 providerMethod: "method_25394",
                 providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                configName: "WraithRevolverAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithRevolverAimMixin.class",
+                handler: "sparkwitch\$aimThroughWraiths",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/RevolverItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "WraithRevolverAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithRevolverAimMixin.class",
+                handler: "sparkwitch\$skipSleepingWraith",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;",
+                selector: "findSleepingPlayerOnBed(Lnet/minecraft/class_1937;Lnet/minecraft/class_3965;)Ljava/util/Optional;",
+                providerEntry: "dev/doctor4t/wathe/item/RevolverItem.class",
+                providerMethod: "findSleepingPlayerOnBed",
+                providerDescriptor: "(Lnet/minecraft/class_1937;Lnet/minecraft/class_3965;)Ljava/util/Optional;"
+        ],
+        [
+                configName: "WraithDerringerAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithDerringerAimMixin.class",
+                handler: "sparkwitch\$aimThroughWraiths",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/DerringerItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "WraithKnifeAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithKnifeAimMixin.class",
+                handler: "sparkwitch\$aimThroughWraiths",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getKnifeTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/KnifeItem.class",
+                providerMethod: "getKnifeTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "AssassinVendettaTargetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/AssassinVendettaTargetMixin.class",
+                handler: "sparkwitch\$appendBoundVendetta",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Redirect;",
+                selector: "method_25426()V",
+                atTarget: "Ldev/doctor4t/wathe/cca/GameWorldComponent;getAllAlivePlayers()Ljava/util/List;",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/client/screen/AssassinScreen.class",
+                providerMethod: "method_25426",
+                providerDescriptor: "()V"
         ]
 ]
 
@@ -268,13 +331,22 @@ def verifyClientMixinSelectors = tasks.register("verifyClientMixinSelectors") {
     dependsOn remappedModJar
     inputs.file(remappedModJar.flatMap { it.archiveFile })
     inputs.file("libs/wathe-${project.wathe_version}.jar")
+    inputs.file("libs/noellesroles-${project.noellesroles_version}.jar")
     inputs.file("src/client/resources/sparkwitch.client.mixins.json")
 
     doLast {
         def jarFile = remappedModJar.get().archiveFile.get().asFile
         def watheJar = file("libs/wathe-${project.wathe_version}.jar")
+        def noellesRolesJar = file("libs/noellesroles-${project.noellesroles_version}.jar")
         def modZip = new java.util.zip.ZipFile(jarFile)
         def watheZip = new java.util.zip.ZipFile(watheJar)
+        def noellesRolesZip = new java.util.zip.ZipFile(noellesRolesJar)
+        // Source selectors are Yarn; this checks what remapJar actually ships against the intermediary provider jars.
+        // 源码选择器为 Yarn；此处校验 remapJar 实际产出的选择器与 intermediary 提供方 jar 一致。
+        def providerZips = [
+                wathe: [zip: watheZip, label: "Wathe ${project.wathe_version}"],
+                noellesroles: [zip: noellesRolesZip, label: "NoellesRoles ${project.noellesroles_version}"]
+        ]
         try {
             def configEntry = modZip.getEntry("sparkwitch.client.mixins.json")
             if (configEntry == null) {
@@ -344,20 +416,22 @@ def verifyClientMixinSelectors = tasks.register("verifyClientMixinSelectors") {
                     }
                 }
 
+                def provider = providerZips[contract.provider ?: "wathe"]
                 def providerNode = providerNodes.computeIfAbsent(contract.providerEntry) {
-                    readClassNode(watheZip, contract.providerEntry)
+                    readClassNode(provider.zip, contract.providerEntry)
                 }
                 def providerMethod = providerNode.methods.find {
                     it.name == contract.providerMethod && it.desc == contract.providerDescriptor
                 }
                 if (providerMethod == null) {
                     throw new GradleException(
-                            "Wathe ${project.wathe_version} is missing ${contract.providerEntry}#"
+                            "${provider.label} is missing ${contract.providerEntry}#"
                                     + "${contract.providerMethod}${contract.providerDescriptor}"
                     )
                 }
             }
         } finally {
+            noellesRolesZip.close()
             watheZip.close()
             modZip.close()
         }

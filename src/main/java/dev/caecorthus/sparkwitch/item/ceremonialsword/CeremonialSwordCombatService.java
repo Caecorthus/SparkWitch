@@ -147,7 +147,15 @@ public final class CeremonialSwordCombatService {
             );
             boolean boundVendetta = VendettaInteractionService.isActiveVendetta(target)
                     && VendettaInteractionService.isExactPair(attacker, target);
+            boolean alreadyNonFinal = SparkTraitsKillerBridge.isNonFinalKillPending(target, attacker);
             GameFunctions.killPlayer(target, true, attacker, SparkWitchDeathReasons.CEREMONIAL_BLADE);
+            // A non-final kill (e.g. a Depression fake death) never reaches AFTER, which would leave the sword
+            // with no kill cooldown; it keeps Traits' reduced share of the kill cooldown instead.
+            // 非最终击杀（如抑郁假死）不会派发 AFTER，否则仪礼剑不会进入击杀冷却；改为保留 Traits 规定的缩短冷却。
+            if (!alreadyNonFinal && SparkTraitsKillerBridge.isNonFinalKillPending(target, attacker)) {
+                runtime.setSwordKillCooldownTicks(SparkTraitsKillerBridge.nonFinalKillCooldownTicks(
+                        GrandWitchRules.CEREMONIAL_SWORD_KILL_COOLDOWN_TICKS));
+            }
             // Vendetta terminal removal has no ordinary AFTER event; its cleared bond confirms that outcome.
             // 仇杀客的终止移除不派发普通 AFTER；其他旁观切换不能作为确认击杀的依据。
             if (boundVendetta && !VendettaInteractionService.isActiveVendetta(target) && target.isSpectator()) {

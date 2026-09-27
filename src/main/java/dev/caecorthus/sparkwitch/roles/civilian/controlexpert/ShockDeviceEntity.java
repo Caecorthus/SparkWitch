@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.controlexpert;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -15,7 +16,9 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
@@ -52,6 +55,13 @@ public final class ShockDeviceEntity extends ThrownItemEntity {
         // 对局停止时仍在飞行的装置立即移除；未被 tick 的装置由收尾清理处理。
         if (!getWorld().isClient() && !GameWorldComponent.KEY.get(getWorld()).isRunning()) {
             discard();
+            return;
+        }
+        // Seeker seam (server): a Seeker device in this tick's path breaks and the device lands here as on a collision.
+        // 搜寻者接缝（服务端）：本刻路径上的搜寻者设备被打坏，装置按普通碰撞在此处落地。
+        if (!getWorld().isClient()
+                && SeekerDeviceHits.onShockDeviceSweep(this, getOwner(), getPos(), getPos().add(getVelocity()))) {
+            onCollision(BlockHitResult.createMissed(getPos(), Direction.UP, getBlockPos()));
             return;
         }
         super.tick();
