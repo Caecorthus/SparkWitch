@@ -123,6 +123,14 @@ public final class HunterRules {
         return hasLineOfSight && roleId != null && DISMANTLERS.contains(roleId);
     }
 
+    /**
+     * Active Wraiths stay outside living players' traps; only the bound killer's own trap may catch its Vendetta.
+     * 激活冤魂不会触发生者的捕兽夹；仅绑定凶手自己放置的捕兽夹可以夹住其仇杀客。
+     */
+    public static boolean canTrapCatch(boolean aliveAndSurvival, boolean activeWraith, boolean ownerIsBoundKiller) {
+        return aliveAndSurvival && (!activeWraith || ownerIsBoundKiller);
+    }
+
     static boolean isExtraDismantleCooldownItem(Identifier itemId) {
         return EXTRA_DISMANTLE_COOLDOWN_ITEMS.contains(itemId);
     }

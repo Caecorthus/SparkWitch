@@ -1,6 +1,8 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.cca.PlayerPoisonComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
@@ -153,11 +155,28 @@ public final class HunterTrapEntity extends Entity {
         for (PlayerEntity player : getWorld().getEntitiesByClass(
                 PlayerEntity.class,
                 triggerBox,
-                GameFunctions::isPlayerAliveAndSurvival
+                this::canCatch
         )) {
             trigger(player);
             break;
         }
+    }
+
+    private boolean canCatch(PlayerEntity player) {
+        boolean activeWraith = WraithStateService.isActive(player);
+        return HunterRules.canTrapCatch(
+                GameFunctions.isPlayerAliveAndSurvival(player),
+                activeWraith,
+                activeWraith && isOwnerBoundKillerOf(player)
+        );
+    }
+
+    /** Resolves the owner only for Wraith candidates. / 仅在候选者为冤魂时才解析放置者。 */
+    private boolean isOwnerBoundKillerOf(PlayerEntity vendetta) {
+        UUID owner = getOwnerUuid();
+        PlayerEntity ownerPlayer = owner == null ? null : getWorld().getPlayerByUuid(owner);
+        return ownerPlayer != null
+                && VendettaInteractionService.isBoundKillerTargetingVendetta(ownerPlayer, vendetta);
     }
 
     private void trigger(PlayerEntity player) {
