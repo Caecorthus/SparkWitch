@@ -1,0 +1,59 @@
+{
+  "credit": "Made with Blockbench",
+  "texture_size": [16, 16],
+  "textures": {
+    "0": "sparkwitch:item/seeker_camera_placed",
+    "particle": "sparkwitch:item/seeker_camera_placed"
+  },
+  "elements": [
+    {
+      "from": [6, 0, 6],
+      "to": [10, 1, 10],
+      "faces": {
+        "north": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "east": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "south": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "west": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "up": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "down": {"uv": [0, 12, 16, 16], "texture": "#0"}
+      }
+    },
+    {
+      "from": [7.5, 1, 7.5],
+      "to": [8.5, 3, 8.5],
+      "faces": {
+        "north": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "east": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "south": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "west": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "up": {"uv": [0, 12, 16, 16], "texture": "#0"},
+        "down": {"uv": [0, 12, 16, 16], "texture": "#0"}
+      }
+    },
+    {
+      "from": [5.5, 3, 5],
+      "to": [10.5, 6, 11],
+      "faces": {
+        "north": {"uv": [0, 0, 16, 6], "texture": "#0"},
+        "east": {"uv": [0, 0, 16, 6], "texture": "#0"},
+        "south": {"uv": [0, 0, 16, 6], "texture": "#0"},
+        "west": {"uv": [0, 0, 16, 6], "texture": "#0"},
+        "up": {"uv": [0, 0, 16, 6], "texture": "#0"},
+        "down": {"uv": [0, 0, 16, 6], "texture": "#0"}
+      }
+    },
+    {
+      "from": [6.5, 3.5, 4],
+      "to": [9.5, 5.5, 5],
+      "faces": {
+        "north": {"uv": [0, 10, 16, 12], "texture": "#0"},
+        "east": {"uv": [0, 10, 16, 12], "texture": "#0"},
+        "south": {"uv": [0, 10, 16, 12], "texture": "#0"},
+        "west": {"uv": [0, 10, 16, 12], "texture": "#0"},
+        "up": {"uv": [0, 10, 16, 12], "texture": "#0"},
+        "down": {"uv": [0, 10, 16, 12], "texture": "#0"}
+      }
+    }
+  ],
+  "display": {"fixed": {"scale": [1, 1, 1]}}
+}

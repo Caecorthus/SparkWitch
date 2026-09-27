@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientModule;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStatusHud;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStunClient;
+import dev.caecorthus.sparkwitch.client.seeker.SeekerClientModule;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.HunterTrapClientHooks;
@@ -92,6 +93,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         JudgeClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
+        SeekerClientModule.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
@@ -202,6 +204,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         // The thrown Shock Device renders its synced item stack like vanilla thrown items.
         // 投出的电击装置与原版投掷物一样渲染其同步的物品。
         EntityRendererRegistry.register(ControlExpertEntities.shockDevice(), FlyingItemEntityRenderer::new);
+        SeekerClientModule.registerEntityRenderers();
     }
 
     private static void registerWraithRoleAnnouncementNetworking() {
@@ -269,5 +272,6 @@ public final class SparkWitchClient implements ClientModInitializer {
         WitchMaidenClientModule.clear();
         TarotDivinationClientState.clear();
         JudgeClientModule.clear();
+        SeekerClientModule.reset();
     }
 }
