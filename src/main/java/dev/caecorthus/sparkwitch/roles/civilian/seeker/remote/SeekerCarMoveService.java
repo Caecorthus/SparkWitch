@@ -143,9 +143,14 @@ public final class SeekerCarMoveService {
                 return SeekerCarPhysics.isSupported(collider, position);
             }
 
+            /**
+             * Blocks only, exactly what the shared collider (and so the owner's simulation) sees: entity shapes such
+             * as boats would reject moves the client can never predict. / 只看方块，与共享碰撞（即拥有者模拟）一致：
+             * 船等实体形状会拒绝客户端无法预测的移动。
+             */
             @Override
             public boolean isSpaceEmpty(Vec3d position) {
-                return world.isSpaceEmpty(SeekerCarPhysics.traversalBox(position)
+                return world.isBlockSpaceEmpty(null, SeekerCarPhysics.traversalBox(position)
                         .contract(SeekerCarMoveRules.SPACE_CONTRACTION));
             }
         };

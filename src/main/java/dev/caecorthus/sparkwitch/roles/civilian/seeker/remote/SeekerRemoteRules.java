@@ -17,10 +17,10 @@ import java.util.Set;
  * WP-09 may extend but never shrink the list. The helpers below are the side-neutral distance, area, anchor and
  * timeout rules shared by session open, the per-tick exit checks and the move validator. Distances are horizontal
  * because vanilla entity tracking (the engine limit behind the effective radius) measures only x/z from the body.
- * 名单只增不减。下列辅助方法是会话打开、逐刻退出检查与移动校验共用的两端通用距离、区域、锚点与超时规则。
- * 距离按水平计算，因为原版实体追踪（有效半径背后的引擎限制）只以本体的 x/z 计算距离。
  * 纯遥控视角规则。{@link #BLOCKED_WHILE_VIEWING} 是搜寻者自有的字面量拦截名单（与控场专家名单解耦，仅由测试关联）：
  * Wathe 致命行为、商店、会经冻结本体泄漏的界面操作，以及所有已知职业技能包。它是黑名单，语音握手等照常通过。
+ * 名单只增不减。下列辅助方法是会话打开、逐刻退出检查与移动校验共用的两端通用距离、区域、锚点与超时规则。
+ * 距离按水平计算，因为原版实体追踪（有效半径背后的引擎限制）只以本体的 x/z 计算距离。
  */
 public final class SeekerRemoteRules {
     public static final Set<Identifier> BLOCKED_WHILE_VIEWING = Set.copyOf(List.of(
@@ -131,9 +131,14 @@ public final class SeekerRemoteRules {
         return anchor.squaredDistanceTo(body) > SeekerRules.BODY_MOVE_TOLERANCE_SQUARED;
     }
 
-    /** Open throttle (not a cooldown): at least 10 ticks between opens. / 打开节流（非冷却）：两次打开至少间隔 10 刻。 */
+    /**
+     * Open throttle (not a cooldown): at least 10 ticks between opens. A last open "in the future" (a restarted tick
+     * counter, e.g. a new integrated-server world in the same JVM) never throttles.
+     * 打开节流（非冷却）：两次打开至少间隔 10 刻。记录的上次打开若在“未来”（刻计数器重启，例如同一 JVM 中新开的内置服务端世界），
+     * 则不节流。
+     */
     public static boolean isOpenThrottled(long lastOpenTick, long now) {
-        return lastOpenTick >= 0 && now - lastOpenTick < SeekerRules.OPEN_THROTTLE_TICKS;
+        return lastOpenTick >= 0 && now >= lastOpenTick && now - lastOpenTick < SeekerRules.OPEN_THROTTLE_TICKS;
     }
 
     /**

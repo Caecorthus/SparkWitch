@@ -207,19 +207,22 @@ public final class SeekerRemoteSessionService {
 
     private static void open(ServerPlayerEntity player, SeekerStatusComponent status, SeekerSessionMode mode,
                              SeekerDeviceEntity device, int radius, long now) {
-        if (SeekerRemoteOpenRules.isSwitch(status.sessionMode(), mode)) {
-            // Atomic switch: openSession closes and reopens in one transition, so the owner never sees NONE between.
-            // 原子切换：openSession 在一次转移中关闭并重开，拥有者之间不会看到 NONE。
-            status.setSessionState(null);
-        }
+        // Atomic switch: openSession closes and reopens in one transition, so the owner never sees NONE between.
+        // A switch keeps the previous anchor, so repeated switches cannot walk the frozen body away step by step.
+        // The old bookkeeping is replaced only after the transition succeeded; a refused switch keeps the old session.
+        // 原子切换：openSession 在一次转移中关闭并重开，拥有者之间不会看到 NONE。切换沿用原锚点，反复切换无法让冻结的本体
+        // 逐步走远。只有转移成功后才替换旧记录；被拒绝的切换保留原会话。
+        SeekerSessionState previous = status.sessionState();
+        Vec3d anchor = SeekerRemoteOpenRules.isSwitch(status.sessionMode(), mode) && previous != null
+                && previous.sessionId == status.sessionId() && previous.mode == status.sessionMode()
+                ? previous.anchor : player.getPos();
         status.apply(status.state().openSession(mode, device.getId(), radius));
         if (status.sessionMode() != mode) {
-            status.setSessionState(null);
             player.sendMessage(Text.translatable(DENIED_KEY_PREFIX + SeekerRemoteOpenRules.DENY_BLOCKED), true);
             return;
         }
         status.setSessionState(new SeekerSessionState(status.sessionId(), mode, device.getId(), radius,
-                player.getPos(), now, now + SeekerRules.ATTACH_TIMEOUT_TICKS));
+                anchor, now, now + SeekerRules.ATTACH_TIMEOUT_TICKS));
         LAST_OPEN_TICK.put(player, now);
         player.setSprinting(false);
         if (player.isUsingItem()) {
@@ -236,7 +239,10 @@ public final class SeekerRemoteSessionService {
     private static SeekerExitReason exitReason(ServerPlayerEntity player, SeekerStatusComponent status,
                                                SeekerSessionState session, long now) {
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
-        if (!game.isRunning()) {
+        // STOPPING (the post-win fade) still counts as "running" for Wathe but fails the common gate; report it as the
+        // silent ROUND_END rather than the notifying BLOCKED. / STOPPING（胜负后的淡出）对 Wathe 仍算“进行中”，
+        // 但无法通过公共门槛；按静默的 ROUND_END 结束，而不是会提示的 BLOCKED。
+        if (game.getGameStatus() != GameWorldComponent.GameStatus.ACTIVE) {
             return SeekerExitReason.ROUND_END;
         }
         if (!SeekerRules.isSeeker(game.getRole(player))) {
