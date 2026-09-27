@@ -14,13 +14,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Server camera writes and player replacement. Every hook sits right AFTER
  * {@code NetworkThreadUtils.forceMainThread}, never at HEAD: at HEAD the handler first runs on the Netty thread and
  * would race the render thread. {@code onSetCameraEntity}: a server camera writer (Taotie, Last Stand, Depression)
- * takes the camera, so the view yields without restoring it before vanilla applies the new camera.
+ * takes the camera, so the view yields without restoring it before vanilla applies the new camera (an unloaded target
+ * entity, which vanilla ignores, hands the camera back to the body instead).
  * {@code onPlayerRespawn} / {@code onGameJoin} (respawn, dimension or proxy server change): reset before vanilla
  * replaces the player. Each handler starts with the isActive() gate.
  * 服务端相机写入与玩家对象替换。每个钩子都位于 {@code NetworkThreadUtils.forceMainThread} 之后，绝不在 HEAD：
  * 在 HEAD 时处理器会先在 Netty 线程上执行一次，与渲染线程竞争。{@code onSetCameraEntity}：服务端相机写入方
- * （饕餮、最后一搏、抑郁）接管相机，视角在原版应用新相机之前让出且不归还。{@code onPlayerRespawn} / {@code onGameJoin}
- * （重生、切换维度或代理切服）：在原版替换玩家之前重置。每个处理器都以 isActive() 门槛开头。
+ * （饕餮、最后一搏、抑郁）接管相机，视角在原版应用新相机之前让出且不归还（若目标实体未加载、原版会忽略该包，
+ * 则改为把相机归还本体）。{@code onPlayerRespawn} / {@code onGameJoin}（重生、切换维度或代理切服）：
+ * 在原版替换玩家之前重置。每个处理器都以 isActive() 门槛开头。
  */
 @Mixin(ClientPlayNetworkHandler.class)
 public abstract class SeekerRemoteNetworkHandlerMixin {
@@ -33,7 +35,9 @@ public abstract class SeekerRemoteNetworkHandlerMixin {
         if (!SeekerRemoteViewClient.isActive()) {
             return;
         }
-        SeekerRemoteViewClient.yieldCamera();
+        // Resolve like vanilla does right after this point; null means vanilla will not move the camera.
+        // 与原版随后的解析方式一致；为 null 表示原版不会移动相机。
+        SeekerRemoteViewClient.yieldCamera(packet.getEntity(((ClientPlayNetworkHandler) (Object) this).getWorld()));
     }
 
     @Inject(method = "onPlayerRespawn", at = @At(value = "INVOKE", target = FORCE_MAIN_THREAD, shift = At.Shift.AFTER))

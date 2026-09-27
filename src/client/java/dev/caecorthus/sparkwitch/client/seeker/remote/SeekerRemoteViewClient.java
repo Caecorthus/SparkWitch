@@ -172,17 +172,21 @@ public final class SeekerRemoteViewClient {
 
     /**
      * {@code onSetCameraEntity} after the main-thread hop: a server camera writer takes over, so the view ends
-     * without restoring the camera, and the server is told to close the session.
+     * without restoring the camera, and the server is told to close the session. When the packet's entity is not
+     * loaded on this client ({@code next == null}), vanilla ignores the packet and would leave the render camera on
+     * our device forever, so the camera is handed back to the body instead (still only while it is ours).
      * 在切到主线程之后的 {@code onSetCameraEntity}：服务端相机写入方接管，视角结束且不归还相机，并通知服务端关闭会话。
+     * 若数据包指向的实体在本客户端尚未加载（{@code next == null}），原版会忽略该包，渲染相机将永远停留在我们的设备上，
+     * 因此此时改为把相机归还本体（仍仅当相机属于我们时）。
      */
-    public static void yieldCamera() {
+    public static void yieldCamera(@Nullable Entity next) {
         if (!active) {
             return;
         }
         MinecraftClient client = MinecraftClient.getInstance();
         int session = activeSessionId;
         ClientPlayerEntity player = boundPlayer;
-        end(client, false);
+        end(client, next == null);
         sendClose(session);
         markHandled(player, session);
     }
