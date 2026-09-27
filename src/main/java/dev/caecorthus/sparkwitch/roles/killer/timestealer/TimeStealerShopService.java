@@ -37,12 +37,12 @@ import org.jetbrains.annotations.Nullable;
  * <p>Kidnapper-style deny-list: only poison vial and scorpion are removed; grenade and psycho_mode are replaced in place
  * by 0-coin stamp entries and "+1 minute" is inserted after psycho, so every other entry (blackout, SparkTraits
  * entries, SparkStrength's final appends) keeps its exact coin price, stock, cooldown and callback. The stamp grenade
- * shows the normal Wathe grenade, so SparkStrength still appends its 100-coin M67 (owner decision Q6). Stamp entries
- * cost 0 coins, so SparkTraits Charisma never wraps them and they are identified by id alone.
+ * shows the normal Wathe grenade, so SparkStrength still appends its own coin-priced M67 entry (owner decision Q6).
+ * Stamp entries cost 0 coins, so SparkTraits Charisma never wraps them and they are identified by id alone.
  * 绑架者式黑名单：只删除毒药瓶与蝎子；手雷与 psycho_mode 原位替换为 0 金币邮票商品，并在疯魔后插入“+1 分钟”，
  * 因此其余商品（停电、SparkTraits 商品、SparkStrength 的末尾追加）保持原有金币价格、库存、冷却与回调。邮票手雷显示
- * 普通 Wathe 手雷，因此 SparkStrength 照常追加 100 金币的 M67（所有者决定 Q6）。邮票商品为 0 金币，SparkTraits 魅力
- * 从不包装它们，因此仅按 id 识别。
+ * 普通 Wathe 手雷，因此 SparkStrength 照常追加其自有金币定价的 M67 商品（所有者决定 Q6）。
+ * 邮票商品为 0 金币，SparkTraits 魅力从不包装它们，因此仅按 id 识别。
  *
  * <p>Authority: the list is built on both sides from the synced role only; the server alone charges stamps, inside
  * each entry's {@code onBuy} via {@link TimeStealerStampService#purchase}. BEFORE only explains refusals and never

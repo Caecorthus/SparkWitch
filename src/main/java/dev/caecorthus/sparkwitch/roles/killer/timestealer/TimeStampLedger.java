@@ -265,11 +265,14 @@ final class TimeStampLedger {
                 if (cursorOther) {
                     return 0;
                 }
-                // The cursor had these stamps a moment ago; restoring them never exceeds what was there.
-                // 光标片刻前持有这些邮票；原样放回不会超过原数量。
-                cursorCount += amount;
-                moves.add(new Move(CURSOR, amount));
-                return amount;
+                // Same "stamps with room" cap as every slot; the caller re-delivers whatever does not fit.
+                // 与其他槽位相同的“有空间的邮票堆”上限；放不下的部分由调用方重新发放。
+                int placed = Math.min(Math.max(0, amount), Math.max(0, max - cursorCount));
+                if (placed > 0) {
+                    cursorCount += placed;
+                    moves.add(new Move(CURSOR, placed));
+                }
+                return placed;
             }
             if (index < 0 || index >= INVENTORY_SIZE) {
                 return 0;
