@@ -7,6 +7,7 @@ changes require explicit owner approval.
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
 God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, and Bell Ringer gameplay to Wathe.
+It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -16,7 +17,7 @@ Current build baseline:
 - Minecraft `1.21.1`
 - Java `21`
 - SparkWitch `0.1.6.0` (Emma branch)
-- SparkFactionAPI floor `0.1.5.8`
+- SparkFactionAPI floor `0.1.5.10`
 
 ## Read Order
 
@@ -55,6 +56,14 @@ Current build baseline:
   quota, delayed private network views, source-independent income, and persistent provenance.
 - `roles/civilian/emma/`: unique cop claim, role-owned mana skill, delayed backlash,
   owner-private failed-recruitment evidence, speed latch, and one reward per gun cycle.
+- `roles/civilian/controlexpert/`: Control Expert round-start loadout, task-money economy,
+  restricted shop, Disruptor, Taser, thrown Shock Device, owner-only status, stun application
+  with owned-effect tracking, and lifecycle cleanup; its mixins live in `mixin/controlexpert/`
+  and `client/mixin/controlexpert/`, client presentation (status HUD, stun input lock, Taser
+  crosshair) in `client/controlexpert/`.
+- `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
+  and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, and the Control Expert
+  share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate slot mixin.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
@@ -113,6 +122,22 @@ run as `KillPlayer.BEFORE` listeners still pay their normal costs before the
 forced kill proceeds. The Bell Ringer never renders in the
 `gui.sparkwitch.skills` panel.
 
+Control Expert state never enters that shared schema either.
+`sparkwitch:control_expert_status` (`NEVER_COPY`, owner-only sync) holds only the Disruptor
+and stun countdowns; the stun counter is never persisted, and the owner's client never unlocks
+before the server's zero sync. Stun effects are attributed to the Control Expert, and only
+effects the stun itself introduced are removed on a terminal (not Last Stand-intercepted) death,
+reset, finalize, or disconnect. The Control Expert is non-lethal: no item calls `killPlayer`,
+the Taser never joins `wathe:guns` or `GunShootPayload`, and the Shock Device is a role-owned
+entity, never Wathe's grenade. Wathe's
+gun packet sees the Control Expert as its native Vigilante only through
+`mixin/controlexpert/ControlExpertPoliceGunMixin` (OR-wrapped `isRole`, no `@Redirect`). The
+stun's input lock is client-side; the server denies item use, interactions, and the listed C2S
+payloads (`ControlExpertStunGuards`, `ControlExpertStunPayloadGuardMixin`). The Disruptor gates
+keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
+(`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
+`gui.sparkwitch.skills` panel.
+
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
 components; the existing shared packet and NBT layouts remain unchanged. Sword
@@ -129,6 +154,16 @@ adds no suppression and must not break the client. Bell Ringer may query only
 `isRoleSkillBlocked`, `registerTerminalDeathReason`, and
 `setExactItemCooldownRemaining` beyond the shared weapon-action gate; an absent
 or older build means no block, no terminal registration, and a vanilla cooldown.
+Control Expert may query only `getMarksmanRangeMultiplier` and `hasActiveTrait` (Impostor) through
+`compat/SparkTraitsControlExpertBridge`, and `isLastStandDeathIntercepted` through the existing
+`WitchFactorTraitsBridge`, beyond the existing `SparkTraitsKillerBridge` seams
+(`isRoleSkillBlocked`, `blocksWeaponAction`, `isLastEscapeActive`,
+`setExactItemCooldownRemaining`). An absent SparkTraits means a 1.0 Taser range multiplier,
+normal task money, a vanilla round-start cooldown, and death cleanup on every death; a present
+build whose facade lacks or fails a method falls back per method to a 1.0 multiplier, no task
+money (Judge semantics), a vanilla cooldown, or an intercepted death: the `KillPlayer.AFTER`
+cleanup is skipped, the stun counters still drop once the victim stops participating, and
+owned effects are removed at reset, finalize, or disconnect.
 
 ## Tofana Elixir Vocabulary
 
