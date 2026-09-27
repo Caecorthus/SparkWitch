@@ -129,6 +129,11 @@ adds no suppression and must not break the client. Bell Ringer may query only
 `isRoleSkillBlocked`, `registerTerminalDeathReason`, and
 `setExactItemCooldownRemaining` beyond the shared weapon-action gate; an absent
 or older build means no block, no terminal registration, and a vanilla cooldown.
+The Ceremonial Sword and a credited Fire Poker fall may query only
+`isNonFinalKillPending`, `getNonFinalKillCooldownTicks`, and
+`runWithNonFinalKillWeapon` through `SparkTraitsKillerBridge` for non-final
+(Depression fake death) kills; an absent or older build means no non-final
+kill, the original cooldown, and the kill running directly exactly once.
 
 ## Tofana Elixir Vocabulary
 
