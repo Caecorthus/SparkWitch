@@ -13,10 +13,10 @@ import java.util.Set;
 
 /**
  * Pure client rules of the remote view (WP-10a internal): the key allowlist, look clamps for the car and the camera
- * cone, the owner-client bounds clamp for the car, move-send cadence, and the per-tick local exit decision. Nothing
- * here touches the client instance, so every rule is unit-tested without a game.
+ * cone, the owner-client bounds clamp for the car, move-send cadence, camera-cycle press edges and spacing, and the
+ * per-tick local exit decision. Nothing here touches the client instance, so every rule is unit-tested without a game.
  * 遥控视角的纯客户端规则（WP-10a 内部）：按键白名单、小车与摄像头锥角的视角钳制、小车在拥有者客户端的范围钳制、
- * 移动包发送节奏，以及每刻的本地退出判定。这里不触碰客户端实例，因此每条规则都可以脱离游戏做单元测试。
+ * 移动包发送节奏、摄像头切换的按下沿与间隔，以及每刻的本地退出判定。这里不触碰客户端实例，因此每条规则都可以脱离游戏做单元测试。
  */
 public final class SeekerRemoteViewRules {
     /** Simple Voice Chat's key category (push-to-talk, whisper, mute). / Simple Voice Chat 的按键分类。 */
@@ -51,6 +51,14 @@ public final class SeekerRemoteViewRules {
      * 停着的小车也按此间隔发送位置，避免只转视角的会话被服务端的移动超时结束。
      */
     public static final int MOVE_KEEPALIVE_TICKS = 20;
+    /**
+     * Client spacing of camera-cycle requests: the server's open throttle ({@link SeekerRules#OPEN_THROTTLE_TICKS},
+     * shared by the console, quick connect and cycling) plus a two-tick margin for tick jitter, counted from the last
+     * cycle request or the last session start or switch, whichever is later.
+     * 摄像头切换请求的客户端间隔：服务端打开节流（{@link SeekerRules#OPEN_THROTTLE_TICKS}，由控制台、快速连接与切换共用）
+     * 加上两刻的抖动余量，从上次切换请求或上次会话开始/切换（取较晚者）算起。
+     */
+    public static final int CAMERA_CYCLE_THROTTLE_TICKS = SeekerRules.OPEN_THROTTLE_TICKS + 2;
     private static final double MOVE_EPSILON = 1.0E-4;
     private static final float YAW_EPSILON = 0.01F;
     private static final double BOUNDS_EPSILON = 1.0E-6;
@@ -66,6 +74,19 @@ public final class SeekerRemoteViewRules {
     /** Raw input axis from two opposing keys (vanilla Input convention). / 由一对相反按键得到的原始输入轴。 */
     public static float axis(boolean positive, boolean negative) {
         return positive == negative ? 0.0F : positive ? 1.0F : -1.0F;
+    }
+
+    /**
+     * A camera-cycle press counts only on a fresh key-down: the key read released on the previous tick
+     * ({@code wasDown} false) and is down now or has a press queued since (a tap shorter than a tick). OS key repeat
+     * queues presses only while the key stays down, so a held key cycles once. The caller treats the key as down when
+     * a viewpoint is bound, so a key held through a session start or switch must be released before it cycles.
+     * 摄像头切换只认新的按下沿：该键上一刻读取为松开（{@code wasDown} 为 false），且现在按下或其间积压了按下（短于一刻的轻点）。
+     * 系统按键重复只会在按住期间积压按下次数，因此按住只切换一次。调用方在绑定视点时把按键视为按下，因此在会话开始或切换时
+     * 一直按住的键必须先松开才能再切换。
+     */
+    public static boolean freshPress(boolean wasDown, boolean down, boolean queued) {
+        return !wasDown && (down || queued);
     }
 
     /** Car view pitch: view-only, within +-60 degrees. / 小车视角俯仰：只影响画面，限制在 ±60°。 */
@@ -234,7 +255,10 @@ public final class SeekerRemoteViewRules {
         SERVER_ENDED(true, false),
         /** A server camera writer owns the camera now. / 服务端相机写入方已接管相机。 */
         CAMERA_TAKEN(false, true),
-        /** Atomic mode switch (new session id). / 原子模式切换（新的会话 id）。 */
+        /**
+         * Atomic switch (new session id): car to camera, camera to car, or one camera to another.
+         * 原子切换（新的会话 id）：小车切到摄像头、摄像头切到小车，或从一台摄像头切到另一台。
+         */
         SWITCHED(true, false),
         /** The device entity was removed or untracked. / 设备实体被移除或不再追踪。 */
         FOCUS_LOST(true, true),

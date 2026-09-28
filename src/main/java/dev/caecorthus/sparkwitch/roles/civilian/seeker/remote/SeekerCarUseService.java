@@ -53,8 +53,9 @@ import java.util.WeakHashMap;
  * Fabric use/attack callback of the locked body, and this service deliberately bypasses {@code UseBlockCallback}
  * because the car acts, not the body. Admission mirrors the car move validator (CAR session, matching and attached
  * session id, the sender's own live deployed car as the focus) plus the Seeker's common gate and body availability,
- * a per-player throttle, finite values, a loaded and modifiable block, vanilla's hit tolerance, reach from the car's
- * eye with a latency slack, and line of sight from that eye onto the same block (or the other half of the same door).
+ * a per-player throttle, finite values, a loaded and modifiable block, vanilla's hit tolerance, the hit inside the
+ * car's forward cone ({@link SeekerCarUseRules#withinForwardCone}), reach from the car's eye with a latency slack, and
+ * line of sight from that eye onto the same block (or the other half of the same door).
  * The car has no hands, so the body's held item is never read or used and its inventory is never touched: Wathe doors
  * re-run Wathe's empty-hand path through its public API with the body as the acting player
  * ({@code DoorInteraction.EVENT} listeners such as the Pig God still apply; blasted, jammed and locked doors keep
@@ -67,7 +68,8 @@ import java.util.WeakHashMap;
  * 本体的会话锁不变：{@code SeekerInteractionGuards} 仍让被锁定本体的每个 Fabric 使用/攻击回调失败；本服务有意绕过
  * {@code UseBlockCallback}，因为行动的是小车而不是本体。准入与小车移动校验一致（CAR 会话、会话 id 匹配且已挂接、
  * 焦点是发送者自己仍存活且已部署的小车），另加搜寻者公共门槛与本体可用、按玩家节流、数值有限、方块已加载且可修改、
- * 原版命中容差、从小车眼睛算起带延迟余量的触及距离，以及从该眼睛到同一方块（或同一扇门的另一半）的视线。
+ * 原版命中容差、命中点位于小车前方锥角内（{@link SeekerCarUseRules#withinForwardCone}）、从小车眼睛算起带延迟余量的
+ * 触及距离，以及从该眼睛到同一方块（或同一扇门的另一半）的视线。
  * 小车没有手，因此从不读取或使用本体的手持物品，也从不改动其物品栏：Wathe 门通过其公开 API 重走 Wathe 的空手路径，
  * 以本体作为行动玩家（猪神等 {@code DoorInteraction.EVENT} 监听器依然生效；被炸开、被卡住与上锁的门保留 Wathe
  * 自己的反馈）；可徒手开启的原版门、活板门以及栅栏门（按小车朝向转动）以小车为源切换，按钮在没有行动玩家的情况下
@@ -158,6 +160,11 @@ public final class SeekerCarUseService {
         }
         VoxelShape outline = state.getOutlineShape(world, pos, ShapeContext.of(car));
         Vec3d eye = car.getEyePos();
+        // The car only uses what is ahead of its nose, never a block beside or behind it.
+        // 小车只能交互车头前方的方块，绝不包括侧面或后方的方块。
+        if (!SeekerCarUseRules.withinForwardCone(eye, car.getYaw(), point)) {
+            return null;
+        }
         if (outline.isEmpty()
                 || !SeekerCarUseRules.withinServerReach(outline.getBoundingBox().offset(pos).squaredMagnitude(eye))
                 || !SeekerCarUseRules.withinServerReach(eye.squaredDistanceTo(point))) {

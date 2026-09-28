@@ -307,8 +307,9 @@ public final class SeekerRemoteViewClient {
     }
 
     /**
-     * Atomic mode switch: point the view at the new focus in place, without a full end/start cycle.
-     * 原子模式切换：原地把视角指向新焦点，不走完整的结束/开始流程。
+     * Atomic switch (car to camera, camera to car, or camera to camera): point the view at the new focus in place,
+     * without a full end/start cycle.
+     * 原子切换（小车切到摄像头、摄像头切到小车，或摄像头切到另一台摄像头）：原地把视角指向新焦点，不走完整的结束/开始流程。
      */
     private static boolean retarget(MinecraftClient client, ClientPlayerEntity player, SeekerSessionMode mode,
                                     int sessionId) {
@@ -325,7 +326,13 @@ public final class SeekerRemoteViewClient {
         return true;
     }
 
+    /**
+     * Binds the focus for a session start or an atomic switch; the camera cycler restarts its key edges and spacing
+     * here, so a strafe key held through the bind never cycles.
+     * 为会话开始或原子切换绑定焦点；摄像头切换器在此重置按键沿与发送间隔，因此绑定时一直按住的左右键不会触发切换。
+     */
     private static void bind(MinecraftClient client, SeekerSessionMode mode, int sessionId, SeekerDeviceEntity target) {
+        SeekerCameraCycler.rebind(client, boundPlayer);
         activeMode = mode;
         activeSessionId = sessionId;
         device = target;

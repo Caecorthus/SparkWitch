@@ -22,12 +22,12 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Side-neutral rules of the driven car's own right-click ({@code seeker_car_use}): the supported-block whitelist, the
- * hint text, vanilla's hit tolerance, reach with a latency slack, the throttle, the line-of-sight ray end, the halves of
- * two-block doors, and the empty-hand Wathe door decision. The owner's client uses them to aim, hint and send; the
- * server re-checks every one of them. The car has no hands: nothing here ever looks at a held item.
+ * hint text, vanilla's hit tolerance, reach with a latency slack, the forward cone, the throttle, the line-of-sight ray
+ * end, the halves of two-block doors, and the empty-hand Wathe door decision. The owner's client uses them to aim, hint
+ * and send; the server re-checks every one of them. The car has no hands: nothing here ever looks at a held item.
  * 被驾驶小车自身右键交互（{@code seeker_car_use}）的两端通用规则：支持方块白名单、提示文本、原版命中容差、
- * 带延迟余量的触及距离、节流、视线射线终点、两格高门的上下半、以及空手的 Wathe 门判定。拥有者客户端用它们瞄准、
- * 提示与发送；服务端会逐条重新校验。小车没有手：这里从不查看任何手持物品。
+ * 带延迟余量的触及距离、前方锥角、节流、视线射线终点、两格高门的上下半、以及空手的 Wathe 门判定。
+ * 拥有者客户端用它们瞄准、提示与发送；服务端会逐条重新校验。小车没有手：这里从不查看任何手持物品。
  */
 public final class SeekerCarUseRules {
     /** Vanilla's per-axis hit-to-block-centre limit ({@code onPlayerInteractBlock}). / 原版命中点到方块中心的逐轴上限。 */
@@ -46,6 +46,21 @@ public final class SeekerCarUseRules {
      * 正常的先开后关；仍能限制刷包。
      */
     public static final int SERVER_THROTTLE_TICKS = SeekerRules.CAR_USE_INTERVAL_TICKS - 2;
+    /**
+     * Half-angle of the car's forward cone, in degrees: the horizontal direction from the car's eye to the claimed hit
+     * must lie within this angle of the car's yaw. Wide enough for a server car whose heading trails the driven one by
+     * a few ticks; a block beside or behind the car never qualifies.
+     * 小车前方锥角的半角（度）：从小车眼睛到声明命中点的水平方向必须位于小车朝向的此角度内。足够宽，可容忍服务端小车的
+     * 朝向落后被驾驶小车几刻；位于小车侧面或后方的方块永远不符合。
+     */
+    public static final double FORWARD_CONE_DEGREES = 80.0;
+    /**
+     * Below this horizontal distance from the eye the hit lies (nearly) straight above or below the nose, where the
+     * horizontal direction means nothing, so the cone check is skipped.
+     * 命中点与眼睛的水平距离小于此值时，它（几乎）位于车头正上方或正下方，水平方向没有意义，因此跳过锥角检查。
+     */
+    public static final double FORWARD_CONE_MIN_HORIZONTAL = 0.3;
+    private static final double FORWARD_CONE_COS = Math.cos(Math.toRadians(FORWARD_CONE_DEGREES));
     static final String HINT_OPEN = "hud.sparkwitch.seeker.view.use_open";
     static final String HINT_CLOSE = "hud.sparkwitch.seeker.view.use_close";
     static final String HINT_PRESS = "hud.sparkwitch.seeker.view.use_press";
@@ -131,6 +146,29 @@ public final class SeekerCarUseRules {
     public static boolean withinServerReach(double squaredDistance) {
         double limit = SeekerRules.CAR_USE_REACH + REACH_SLACK;
         return squaredDistance >= 0.0 && squaredDistance <= limit * limit;
+    }
+
+    /**
+     * Forward cone: true when the horizontal direction from {@code eye} to {@code hit} is within
+     * {@link #FORWARD_CONE_DEGREES} of {@code yawDegrees} (vanilla yaw: 0 faces +Z, 90 faces -X), or when the hit is
+     * within {@link #FORWARD_CONE_MIN_HORIZONTAL} horizontally (straight above or below the nose). False for any
+     * non-finite input. The server checks it against its own car; the owner's client mirrors it for the hint and outline.
+     * 前方锥角：从 {@code eye} 到 {@code hit} 的水平方向与 {@code yawDegrees}（原版朝向：0 朝 +Z，90 朝 -X）的夹角不超过
+     * {@link #FORWARD_CONE_DEGREES} 时为 true；命中点水平距离小于 {@link #FORWARD_CONE_MIN_HORIZONTAL}（车头正上方或正下方）
+     * 时也为 true。任一输入非有限值时为 false。服务端以自己的小车校验；拥有者客户端为提示与描边做同样的判定。
+     */
+    public static boolean withinForwardCone(@Nullable Vec3d eye, float yawDegrees, @Nullable Vec3d hit) {
+        if (!isFinite(eye) || !isFinite(hit) || !Float.isFinite(yawDegrees)) {
+            return false;
+        }
+        double dx = hit.x - eye.x;
+        double dz = hit.z - eye.z;
+        double horizontal = Math.sqrt(dx * dx + dz * dz);
+        if (horizontal < FORWARD_CONE_MIN_HORIZONTAL) {
+            return true;
+        }
+        double yaw = Math.toRadians(yawDegrees);
+        return (dx * -Math.sin(yaw) + dz * Math.cos(yaw)) / horizontal >= FORWARD_CONE_COS;
     }
 
     /** End of the server's sight ray: just past the claimed hit, seen from the car's eye. / 服务端视线射线终点。 */

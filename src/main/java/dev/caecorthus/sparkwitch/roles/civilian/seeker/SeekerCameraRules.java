@@ -7,10 +7,10 @@ import java.util.function.IntPredicate;
 
 /**
  * Pure multi-camera selection rules, shared by the server (which camera an open request without a target views) and
- * the owner's client (which camera the A/D keys cycle to, and the "2/3" position). The predicates carry every world
+ * the owner's client (which camera the A/D keys cycle to, and the "2/3" position among the cameras they can reach). The predicates carry every world
  * fact, so the order and wrap-around are testable without a game. The server still validates every chosen id.
  * 纯多摄像头选择规则，由服务端（未指定目标的打开请求观看哪台摄像头）与拥有者客户端（A/D 键切换到哪台，以及“2/3”位置）
- * 共用。所有世界事实都由谓词提供，因此顺序与循环可在无游戏环境下测试。服务端仍会校验每个选中的 id。
+ * 共用（位置只在按键可到达的摄像头中计算）。所有世界事实都由谓词提供，因此顺序与循环可在无游戏环境下测试。服务端仍会校验每个选中的 id。
  */
 public final class SeekerCameraRules {
     public static final int NO_CAMERA = -1;
@@ -67,6 +67,24 @@ public final class SeekerCameraRules {
             }
         }
         return NO_CAMERA;
+    }
+
+    /**
+     * The cameras the A/D keys can reach from {@code currentId}, by label: the current camera plus every other
+     * selectable one (the same skip rule as {@link #cycle}). The "2/3" hint counts this list, so cameras the keys would
+     * skip are never counted.
+     * 从 {@code currentId} 出发 A/D 键可到达的摄像头（按编号）：当前摄像头加上其余所有可选摄像头（与 {@link #cycle}
+     * 相同的跳过规则）。“2/3”提示按此列表计数，因此按键会跳过的摄像头不计入。
+     */
+    public static List<SeekerState.Camera> cycleRing(List<SeekerState.Camera> cameras, int currentId,
+                                                     IntPredicate selectable) {
+        List<SeekerState.Camera> ring = new ArrayList<>();
+        for (SeekerState.Camera camera : byLabel(cameras)) {
+            if (camera.entityId() == currentId || selectable.test(camera.entityId())) {
+                ring.add(camera);
+            }
+        }
+        return ring;
     }
 
     /** 1-based position by label ("2" of "2/3"); 0 when the id is not one of the cameras. / 按编号的 1 起位置。 */

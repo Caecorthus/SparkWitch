@@ -137,8 +137,9 @@ public final class SeekerCctvRules {
     }
 
     /**
-     * Camera cycling is only offered while viewing a camera and another one exists.
-     * 仅在观看摄像头且还有其他摄像头时提示可切换摄像头。
+     * Camera cycling is only offered while viewing a camera and another one is reachable; {@code cameraCount} counts
+     * the viewed camera plus the ones the strafe keys could select.
+     * 仅在观看摄像头且还有其他可到达的摄像头时提示可切换；{@code cameraCount} 为正在观看的摄像头加上左右键可选的摄像头数量。
      */
     public static boolean showsCameraCycleHint(SeekerSessionMode mode, int cameraCount) {
         return mode == SeekerSessionMode.CAMERA && cameraCount > 1;

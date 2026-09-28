@@ -178,13 +178,16 @@ both sides, `SeekerInteractionGuards` fail the Fabric player callbacks in the `s
 phase, `mixin/seeker/SeekerSessionPayloadGuardMixin` drops the blocked C2S payloads on the server
 thread, and inventory clicks and drops are denied. The body stays locked, but the driven car itself
 may right-click whitelisted doors, trapdoors, fence gates, buttons, and levers through
-`seeker_car_use`: `remote/SeekerCarUseService` bypasses the body's use callbacks by design,
-re-validates the session, reach, and line of sight from the car's eye, and acts with an empty hand,
+`seeker_car_use`: the owner's client takes the use-key presses via
+`SeekerRemoteKeyDrain#sparkwitch$takePresses` while the body's use stays locked, and
+`remote/SeekerCarUseService` bypasses the body's use callbacks by design, re-validates the session,
+reach, the car's forward cone, and line of sight from the car's eye, and acts with an empty hand,
 so the body's held item is never used from the car. Device entities never save to disk and cannot be
 summoned; every device is swept at game start and at finalize. The Seeker may own any number of
 cameras (150 each, no cap); each keeps a per-match label, the synced session focus names the viewed
 camera, an untargeted camera open views the last-viewed usable camera (else the lowest label), and
-while viewing, the strafe keys request the previous or next camera by label as an atomic switch.
+while viewing, a fresh strafe-key press requests the previous or next camera by label as an atomic
+switch (a held key cycles once and must be released after every session start or switch).
 Role change, final death, and reset
 end the session and clean up devices and state; disconnect only ends the session. A deployed car
 starts at 100% battery and drains 1% every 10 ticks while driven and 1% every 60 ticks otherwise;
@@ -200,9 +203,13 @@ revolver and derringer, the SparkWitch double-barrel shotgun, the NoellesRoles D
 the Control Expert Taser and Shock Device, the knife stab (every `KnifeItem.getKnifeTarget` caller),
 the NoellesRoles throwing axe, the thrown Ninja shuriken, the Black Raven feather blade, the
 Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
-the SparkStrength M67. Rays and projectiles are nearest-wins (a nearer device takes the hit, the
-player behind is not hit); blasts (Wathe grenade, SparkStrength M67) break every device in a sphere
-with line of sight and still kill players as before. Sources with no hit or damage geometry never
+the SparkStrength M67. A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol) is
+accepted when the shooter's look ray meets the device box grown by its client targeting margin with
+a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
+(`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
+nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
+SparkStrength M67) break every device in a sphere with line of sight and still kill players as
+before. Sources with no hit or damage geometry never
 break a device: the firecracker (sound only), the Bomber timed bomb (kills only its holder), and the
 poison gas cloud (status effect). A breaker other than the owner is marked for the owner only (10 s,
 newest replaces oldest) when the owner holds the tablet; recalls, depletion, and Taotie swallows

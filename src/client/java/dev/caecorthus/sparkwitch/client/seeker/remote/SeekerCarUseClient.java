@@ -36,12 +36,12 @@ import org.jetbrains.annotations.Nullable;
  * cancelled and the crosshair stays a forced MISS), so this class takes the use key's real queued presses itself and
  * turns at most one per {@link SeekerRules#CAR_USE_INTERVAL_TICKS} into a request. The ray starts at the car's eye with
  * the car's heading and the view pitch, reaches {@link SeekerRules#CAR_USE_REACH} blocks against block outlines (no
- * fluids), and only whitelisted blocks count. It also draws a vanilla-style outline and a CCTV hint for that block.
+ * fluids), and only whitelisted blocks inside the server's forward cone count. It also draws a vanilla-style outline and a CCTV hint for that block.
  * Everything here is a prediction: the server re-validates every request.
  * 小车自身右键交互（{@code seeker_car_use}）的拥有者客户端部分，仅 CAR 模式。附身锁让本体的一切交互保持关闭（使用键
  * 仍视为未按下，{@code doItemUse} 与 {@code interactBlock} 仍被取消，准星仍被强制为 MISS），因此本类自行取走使用键
  * 真实的积压按键，每 {@link SeekerRules#CAR_USE_INTERVAL_TICKS} 刻最多转换为一次请求。射线从小车眼睛出发，
- * 使用车头朝向与画面俯仰，对方块轮廓检测 {@link SeekerRules#CAR_USE_REACH} 格（忽略流体），只认白名单方块。
+ * 使用车头朝向与画面俯仰，对方块轮廓检测 {@link SeekerRules#CAR_USE_REACH} 格（忽略流体），只认位于服务端前方锥角内的白名单方块。
  * 它还为该方块绘制原版风格的描边与 CCTV 提示。这里的一切都只是预测：服务端会重新校验每个请求。
  */
 public final class SeekerCarUseClient {
@@ -164,7 +164,10 @@ public final class SeekerCarUseClient {
             return null;
         }
         BlockHitResult attributed = SeekerCarUseRules.attributeHit(world, hit);
-        if (attributed == null || SeekerCarUseRules.target(world.getBlockState(attributed.getBlockPos())) == null) {
+        // Mirror the server's forward cone, so no hint or outline promises a use the server would refuse.
+        // 与服务端的前方锥角一致，避免提示或描边承诺一个会被服务端拒绝的交互。
+        if (attributed == null || SeekerCarUseRules.target(world.getBlockState(attributed.getBlockPos())) == null
+                || !SeekerCarUseRules.withinForwardCone(eye, car.getYaw(tickDelta), attributed.getPos())) {
             return null;
         }
         return attributed;
