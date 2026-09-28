@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.seeker.remote;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.client.seeker.SeekerClientState;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCameraRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
 import dev.doctor4t.wathe.client.WatheClient;
@@ -27,11 +28,15 @@ import net.minecraft.util.math.random.Random;
  * Decorations follow the usual SparkWitch HUD gates (confirmed server, not F1, Wathe HUD on). The opaque SIGNAL LOST
  * panel (body blind or in darkness, NoellesRoles Gin immunity respected) is a gameplay mask, so it ignores F1 and
  * the Wathe HUD toggle. It reads only the local owner's own synced state and never renders in the witch skill panel.
+ * In camera mode the label carries the viewed camera's zero-padded number ("CAM 02"), and while more than one camera
+ * exists a camera-switch hint with the strafe keys and the "2/3" position sits one line above the exit hint.
  * 搜寻者遥控视角的纯客户端 CCTV 叠加层（{@code HudRenderCallback}）：四角框、闪烁 REC、模式标签、会话计时、
  * 距离条“12 / 32 米”、小车的大号电量条（≤20% 与 ≤10% 时视觉警告；唯一的警告音在服务端播放，这里绝不播放）、
  * 退出/切换提示与渲染距离过低警告。装饰元素遵循 SparkWitch HUD 的常规门槛（已确认服务器、未按 F1、Wathe HUD 开启）。
  * 不透明的“信号丢失”面板（本体失明或处于黑暗，尊重 NoellesRoles 金酒免疫）属于玩法遮罩，因此不受 F1 与 Wathe HUD
  * 开关影响。只读取本地拥有者自己的同步状态，从不在魔女技能面板中渲染。
+ * 摄像头模式下标签带有所看摄像头的补零编号（“摄像头 02”）；存在多于一台摄像头时，退出提示上方一行显示带左右移动键与
+ * “2/3”位置的摄像头切换提示。
  */
 public final class SeekerCctvOverlay {
     /** NoellesRoles Gin immunity, looked up by registry id only (optional dependency). / 仅按注册 id 查找的 NR 金酒免疫（可选依赖）。 */
@@ -164,8 +169,9 @@ public final class SeekerCctvOverlay {
         context.drawTextWithShadow(text, clock, x + text.getWidth(Text.translatable("hud.sparkwitch.seeker.view.rec")) + 6,
                 y, frame);
         y += line;
-        Text label = Text.translatable(mode == SeekerSessionMode.CAR
-                ? "hud.sparkwitch.seeker.view.car" : "hud.sparkwitch.seeker.view.camera");
+        int cameraLabel = SeekerCameraRules.label(SeekerClientState.cameras(), SeekerClientState.sessionFocusEntityId());
+        Text label = mode == SeekerSessionMode.CAR ? Text.translatable("hud.sparkwitch.seeker.view.car")
+                : Text.translatable("hud.sparkwitch.seeker.view.camera", SeekerCctvRules.cameraNumber(cameraLabel));
         context.drawTextWithShadow(text, label, x, y, frame);
         y += line;
         int radius = SeekerClientState.effectiveRadius();
@@ -212,7 +218,8 @@ public final class SeekerCctvOverlay {
         int y = height - HOTBAR_CLEARANCE - text.fontHeight - 14;
         Text exit = Text.translatable("hud.sparkwitch.seeker.view.exit_hint", client.options.sneakKey.getBoundKeyLocalizedText());
         context.drawCenteredTextWithShadow(text, exit, width / 2, y, frame);
-        if (SeekerCctvRules.showsSwitchHint(SeekerClientState.carState(), SeekerClientState.cameraEntityId())) {
+        renderCameraCycleHint(context, text, client, mode, width, y, frame);
+        if (SeekerCctvRules.showsSwitchHint(SeekerClientState.carState(), SeekerClientState.cameraCount())) {
             Text change = Text.translatable("hud.sparkwitch.seeker.view.switch_hint",
                     SecondaryAbilityController.secondaryKeyText());
             context.drawCenteredTextWithShadow(text, change, width / 2, y + text.fontHeight + 3, frame);
@@ -223,6 +230,27 @@ public final class SeekerCctvOverlay {
                     Text.translatable("hud.sparkwitch.seeker.view.low_render_distance", radius), width / 2,
                     INSET + 22, SeekerCctvRules.WARNING_COLOR);
         }
+    }
+
+    /**
+     * One line above the exit hint while viewing a camera and another exists: the strafe keys and the "2/3" position
+     * by label from the synced cameras and session focus. The keys only mirror the client cycler; the server
+     * validates every switch.
+     * 观看摄像头且还有其他摄像头时，在退出提示上方一行显示：左右移动键与按编号的“2/3”位置（来自同步的摄像头列表与
+     * 会话焦点）。按键提示只对应客户端切换器；每次切换都由服务端校验。
+     */
+    private static void renderCameraCycleHint(DrawContext context, TextRenderer text, MinecraftClient client,
+                                              SeekerSessionMode mode, int width, int exitY, int frame) {
+        int count = SeekerClientState.cameraCount();
+        if (!SeekerCctvRules.showsCameraCycleHint(mode, count)) {
+            return;
+        }
+        int position = SeekerCameraRules.position(SeekerClientState.cameras(),
+                SeekerClientState.sessionFocusEntityId());
+        Text cycle = Text.translatable("hud.sparkwitch.seeker.view.camera_cycle_hint",
+                client.options.leftKey.getBoundKeyLocalizedText(), client.options.rightKey.getBoundKeyLocalizedText(),
+                position > 0 ? Integer.toString(position) : "?", count);
+        context.drawCenteredTextWithShadow(text, cycle, width / 2, exitY - text.fontHeight - 3, frame);
     }
 
     private static void renderSignalLost(DrawContext context, TextRenderer text, long ticks) {

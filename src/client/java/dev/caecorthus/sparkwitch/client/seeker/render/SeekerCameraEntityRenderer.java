@@ -74,7 +74,7 @@ public class SeekerCameraEntityRenderer extends EntityRenderer<SeekerCameraEntit
 
     private static boolean isViewedLocally(SeekerCameraEntity entity) {
         return SeekerClientState.sessionMode() == SeekerSessionMode.CAMERA
-                && SeekerClientState.cameraEntityId() == entity.getId();
+                && SeekerClientState.sessionFocusEntityId() == entity.getId();
     }
 
     @Override

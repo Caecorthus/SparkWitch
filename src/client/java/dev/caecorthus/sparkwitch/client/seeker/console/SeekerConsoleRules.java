@@ -111,13 +111,19 @@ public final class SeekerConsoleRules {
         return deviceAvailability(resolvable, horizontalDistanceSquared, radius, blocked);
     }
 
-    /** "View camera": placed, then the same checks as the car. / “查看摄像头”：已放置，其余与小车相同。 */
-    public static Availability cameraAvailability(boolean cameraPlaced, boolean resolvable,
-                                                  double horizontalDistanceSquared, int radius, boolean blocked) {
-        if (!cameraPlaced) {
+    /**
+     * "View camera": at least one camera placed, then the car's checks against the NEAREST resolvable camera, so the
+     * button is enabled while any camera is usable (the server picks which one).
+     * “查看摄像头”：至少放置了一台，其余按最近的可解析摄像头执行与小车相同的检查，因此只要有任一摄像头可用按钮即可用
+     * （具体哪台由服务端选择）。
+     */
+    public static Availability cameraAvailability(int cameraCount, boolean anyResolvable,
+                                                  double nearestHorizontalDistanceSquared, int radius,
+                                                  boolean blocked) {
+        if (cameraCount <= 0) {
             return Availability.ABSENT;
         }
-        return deviceAvailability(resolvable, horizontalDistanceSquared, radius, blocked);
+        return deviceAvailability(anyResolvable, nearestHorizontalDistanceSquared, radius, blocked);
     }
 
     /**
@@ -151,15 +157,21 @@ public final class SeekerConsoleRules {
     }
 
     /**
-     * Quick connect target: outside a session the car if deployed, otherwise the camera; inside a session the other
-     * mode (the server treats it as an atomic switch).
-     * 快速连接目标：会话外小车已部署则连小车，否则连摄像头；会话内切换到另一模式（服务端视为原子切换）。
+     * Quick connect target. Inside a session it toggles to the other mode (the server treats it as an atomic switch;
+     * a CAMERA request is the server's default camera). Outside a session it opens the car when the car is deployed
+     * and either usable or no camera is usable (so the refusal names the car), otherwise the default camera.
+     * {@code carUsable}/{@code cameraUsable} are client predictions; the server re-validates.
+     * 快速连接目标。会话内切换到另一模式（服务端视为原子切换；摄像头请求由服务端选择默认摄像头）。会话外：小车已部署且
+     * 可用、或没有任何可用摄像头时连小车（拒绝提示会针对小车），否则连默认摄像头。{@code carUsable}/{@code cameraUsable}
+     * 只是客户端预测，服务端会重新校验。
      */
-    public static SeekerSessionMode quickConnectTarget(SeekerSessionMode current, SeekerCarState carState) {
+    public static SeekerSessionMode quickConnectTarget(SeekerSessionMode current, SeekerCarState carState,
+                                                       boolean carUsable, boolean cameraUsable) {
         return switch (current) {
             case CAR -> SeekerSessionMode.CAMERA;
             case CAMERA -> SeekerSessionMode.CAR;
-            case NONE -> carState == SeekerCarState.DEPLOYED ? SeekerSessionMode.CAR : SeekerSessionMode.CAMERA;
+            case NONE -> carState == SeekerCarState.DEPLOYED && (carUsable || !cameraUsable)
+                    ? SeekerSessionMode.CAR : SeekerSessionMode.CAMERA;
         };
     }
 

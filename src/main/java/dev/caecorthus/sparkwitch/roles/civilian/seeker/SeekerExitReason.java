@@ -15,7 +15,10 @@ import java.util.Locale;
  */
 public enum SeekerExitReason {
     PLAYER_EXIT(false),
-    /** Atomic CAR/CAMERA switch; a new session opens at once. / 原子模式切换，新会话立即打开。 */
+    /**
+     * Atomic switch (CAR/CAMERA or another camera); a new session opens at once.
+     * 原子切换（小车/摄像头之间或换到另一台摄像头），新会话立即打开。
+     */
     SWITCHED(false),
     CAR_BROKEN(false),
     CAMERA_BROKEN(false),
