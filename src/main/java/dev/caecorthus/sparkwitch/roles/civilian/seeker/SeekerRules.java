@@ -103,6 +103,12 @@ public final class SeekerRules {
     public static final int MARK_OUTLINE_PRIORITY = 95;
     public static final int OWN_DEVICE_COLOR = 0x3A5F99;
     public static final int CAR_INSTINCT_COLOR = 0xFFB02E;
+    /**
+     * The owner's own body while viewing the car or camera, owner's client only. Bright cyan: outlines are composited
+     * again untinted after the view filter, so it must stand out against the green car and grey camera pictures.
+     * 遥控/观看时拥有者本体的描边色，仅拥有者客户端可见。亮青色：描边会在滤镜之后以原色重新合成，需在小车绿色与摄像头灰色画面上都醒目。
+     */
+    public static final int OWN_BODY_COLOR = 0x5CE1FF;
 
     // ---- Remote view ----
     public static final int CAR_MAX_RADIUS = 32;

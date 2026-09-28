@@ -159,7 +159,10 @@ bound to the current Wathe match id; remote-session bookkeeping stays server-onl
 synced or saved, and other players never see the battery or the mark. The remote view is a
 client-only camera switch (`MinecraftClient#setCameraEntity` on the owner's client); the server
 never calls `ServerPlayerEntity#setCameraEntity`, so server camera writers (Taotie, Last Stand,
-Depression) keep working and the body stays in place. The possession filter is a private
+Depression) keep working and the body stays in place. While the owner views the car or camera,
+their own body is outlined through walls on the owner's client only
+(`client/seeker/SeekerBodyClientHooks`, `SeekerRules.OWN_BODY_COLOR`), and the outline ends with
+the view. The possession filter is a private
 `PostEffectProcessor`, never `GameRenderer.postProcessor`. Sessions are server-authoritative: the
 client never predicts entry, and every exit except the owner's own Shift is detected on the server.
 The owner's client only simulates the car it drives, and every move is validated against the shared
