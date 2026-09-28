@@ -30,22 +30,24 @@ import org.joml.Vector3f;
  * Client only: renders the placed camera in three baked parts. The static mount (plate and arm) is oriented by the
  * synced FACING and MOUNT_YAW: it is authored as a wall camera whose plate sits against a wall at model south (+Z, 0.15
  * from the cube centre), rotated so the plate lies on the mount face and floor/ceiling mounts turn toward MOUNT_YAW. The
- * head (housing, visor, lens, lens looking model north) pivots at the arm end and points in world space along the
- * synced look, smoothed per tick and lerped per frame, so every player sees it follow the Seeker's view. The LED rides
- * on the head: full-bright red while the camera is VIEWING, dim otherwise. The local owner does not see the camera it
- * is currently viewing through.
+ * head (housing, visor, lens, lens looking model north) pivots at its centre on the arm and points in world space
+ * along the synced look, smoothed per tick and lerped per frame, so every player sees it follow the Seeker's view. The
+ * LED rides on the head: full-bright red while the camera is VIEWING, dim otherwise. The local owner does not see the
+ * camera it is currently viewing through.
  * 仅客户端：分三个烘焙部件渲染放置的摄像头。静态底座（安装板与支臂）按同步的 FACING 与 MOUNT_YAW 定向：它以墙面摄像头为基准，
  * 安装板贴在模型南侧（+Z，距立方体中心 0.15）的墙上，渲染时旋转使安装板贴合依附面，地面与天花板底座转向 MOUNT_YAW。
- * 机头（外壳、遮光罩、镜头，镜头朝模型北侧）以支臂末端为轴，在世界空间中沿同步视角指向（逐刻平滑、逐帧插值），
+ * 机头（外壳、遮光罩、镜头，镜头朝模型北侧）以其位于支臂上的中心为轴，在世界空间中沿同步视角指向（逐刻平滑、逐帧插值），
  * 因此所有玩家都能看到它跟随搜寻者的视角转动。指示灯随机头一起转动：摄像头处于 VIEWING 时全亮红色，否则变暗。
  * 本地拥有者正在通过该摄像头观看时不渲染它。
  */
 public class SeekerCameraEntityRenderer extends EntityRenderer<SeekerCameraEntity> {
     /**
-     * Head pivot, the arm end at model (8, 8.25, 9), relative to the model centre in blocks.
-     * 机头转轴：支臂末端（模型坐标 (8, 8.25, 9)），以方块为单位、相对模型中心。
+     * Head pivot at the housing centre, model (8, 8.125, 7.5), where the arm ends inside the housing; relative to the
+     * model centre in blocks. Turning about the middle keeps the head off the plate and wall at the cone edges.
+     * 机头转轴位于外壳中心（模型坐标 (8, 8.125, 7.5)），支臂在外壳内部止于此处；以方块为单位、相对模型中心。
+     * 绕中心转动可使机头在锥角边缘也不会穿进安装板与墙面。
      */
-    private static final Vector3f HEAD_PIVOT = new Vector3f(0.0F, 0.25F / 16.0F, 1.0F / 16.0F);
+    private static final Vector3f HEAD_PIVOT = new Vector3f(0.0F, 0.125F / 16.0F, -0.5F / 16.0F);
     /** LED colour multiplier while nobody views the camera. / 无人观看时指示灯的颜色系数。 */
     private static final float LED_DIM = 0.3F;
     private static final Direction[] QUAD_SIDES = {Direction.DOWN, Direction.UP, Direction.NORTH, Direction.SOUTH,

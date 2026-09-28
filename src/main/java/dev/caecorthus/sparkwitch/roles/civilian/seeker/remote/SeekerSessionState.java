@@ -33,8 +33,6 @@ public final class SeekerSessionState {
     long packetTick = Long.MIN_VALUE;
     int packetsThisTick;
     int ungroundedTicks;
-    /** Server tick of the last accepted {@code seeker_camera_look}. / 最近一次被接受的摄像头视角包所在的服务端刻。 */
-    long lastLookTick = Long.MIN_VALUE;
 
     SeekerSessionState(int sessionId, SeekerSessionMode mode, int focusEntityId, int effectiveRadius, Vec3d anchor,
                        long openedTick, long attachDeadline) {

@@ -20,9 +20,9 @@ public final class SeekerCameraLookRules {
     /** ...and only after the look moved at least this far (degrees). / 且仅当视角变化至少此角度（度）时发送。 */
     public static final float SEND_THRESHOLD_DEGREES = 0.5F;
     /**
-     * After this many ticks without a send, the client re-sends when the server's tracked look still disagrees
-     * (the server drops extra packets that land in the same tick).
-     * 距上次发送满此刻数后，若服务端同步回来的视角仍不一致，客户端补发一次（服务端会丢弃同一刻内多余的包）。
+     * After this many ticks without a send, the client re-sends when the server's tracked look still disagrees (for
+     * example a look the server dropped as stale during a session switch).
+     * 距上次发送满此刻数后，若服务端同步回来的视角仍不一致，客户端补发一次（例如会话切换期间被服务端当作过期而丢弃的视角）。
      */
     public static final int RESYNC_TICKS = 20;
     /** Fraction of the remaining angle the rendered head closes each client tick. / 渲染机头每个客户端刻追上剩余角度的比例。 */

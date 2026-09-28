@@ -9,10 +9,10 @@ import net.minecraft.network.packet.CustomPayload;
 /**
  * Stable packet contract {@code sparkwitch:seeker_camera_look} (C2S): {@code sessionId:varint, yaw:float,
  * pitch:float}, the owner's camera view direction while viewing. Values are untrusted: the server drops non-finite
- * values, stale sessions and extra packets in one tick, and wraps and clamps the rest into the viewed camera's cone.
+ * values and stale sessions, and wraps and clamps the rest into the viewed camera's cone (the latest packet wins).
  * Never blocked while viewing; like car moves it passes the stun and Fear lists because those end the session anyway.
  * 稳定数据包契约 {@code sparkwitch:seeker_camera_look}（C2S）：{@code sessionId:varint, yaw:float, pitch:float}，
- * 即拥有者观看时的摄像头视角。数值不可信：服务端丢弃非有限值、过期会话以及同一刻内多余的包，其余的规范并钳制到所观看摄像头的锥角内。
+ * 即拥有者观看时的摄像头视角。数值不可信：服务端丢弃非有限值与过期会话，其余的规范并钳制到所观看摄像头的锥角内（以最新的包为准）。
  * 观看期间从不拦截；与小车移动相同，它不在眩晕与恐惧名单内，因为这两者本身就会结束会话。
  */
 public record SeekerCameraLookC2SPacket(int sessionId, float yaw, float pitch) implements CustomPayload {
