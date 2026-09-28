@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.seeker.remote;
 
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraLookRules;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
@@ -72,12 +73,15 @@ public final class SeekerRemoteViewRules {
         return MathHelper.clamp(pitch, -SeekerRules.CAR_PITCH_LIMIT, SeekerRules.CAR_PITCH_LIMIT);
     }
 
+    // The camera cone delegates to the common SeekerCameraLookRules, which the server also clamps look packets with.
+    // 摄像头锥角委托给两端通用的 SeekerCameraLookRules，服务端钳制视角包时使用同一套规则。
+
     /**
      * Horizontal centre of the camera cone: the wall normal, or the mount yaw for floor and ceiling cameras.
      * 摄像头锥角的水平中心：墙面取法线方向，地面与天花板取安装朝向。
      */
     public static float coneYawCenter(Direction facing, float mountYaw) {
-        return facing.getAxis().isHorizontal() ? facing.asRotation() : MathHelper.wrapDegrees(mountYaw);
+        return SeekerCameraLookRules.coneYawCenter(facing, mountYaw);
     }
 
     /**
@@ -85,11 +89,7 @@ public final class SeekerRemoteViewRules {
      * 摄像头锥角的垂直中心：墙面水平，地面朝上看，天花板朝下看。
      */
     public static float conePitchCenter(Direction facing) {
-        return switch (facing) {
-            case UP -> SeekerRules.CAMERA_FLOOR_PITCH_CENTER;
-            case DOWN -> SeekerRules.CAMERA_CEILING_PITCH_CENTER;
-            default -> 0.0F;
-        };
+        return SeekerCameraLookRules.conePitchCenter(facing);
     }
 
     /**
@@ -97,15 +97,12 @@ public final class SeekerRemoteViewRules {
      * 将 yaw 钳制到中心 ±70° 内，并保留其圈数，插值时不会整圈旋转。
      */
     public static float clampConeYaw(float yaw, float center) {
-        float offset = MathHelper.wrapDegrees(yaw - center);
-        float clamped = MathHelper.clamp(offset, -SeekerRules.CAMERA_YAW_CONE, SeekerRules.CAMERA_YAW_CONE);
-        return yaw + (clamped - offset);
+        return SeekerCameraLookRules.clampConeYaw(yaw, center);
     }
 
     /** Pitch within centre +-45 degrees and the vanilla +-90 limit. / pitch 限制在中心 ±45° 与原版 ±90° 之内。 */
     public static float clampConePitch(float pitch, float center) {
-        float cone = MathHelper.clamp(pitch, center - SeekerRules.CAMERA_PITCH_CONE, center + SeekerRules.CAMERA_PITCH_CONE);
-        return MathHelper.clamp(cone, -90.0F, 90.0F);
+        return SeekerCameraLookRules.clampConePitch(pitch, center);
     }
 
     /**

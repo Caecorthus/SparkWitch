@@ -160,7 +160,12 @@ synced or saved, and other players never see the battery or the mark. The remote
 client-only camera switch (`MinecraftClient#setCameraEntity` on the owner's client); the server
 never calls `ServerPlayerEntity#setCameraEntity`, so server camera writers (Taotie, Last Stand,
 Depression) keep working and the body stays in place. The possession filter is a private
-`PostEffectProcessor`, never `GameRenderer.postProcessor`. Sessions are server-authoritative: the
+`PostEffectProcessor`, never `GameRenderer.postProcessor`. A placed camera's look (`LOOK_YAW`,
+`LOOK_PITCH`) and `VIEWING` flag are public DataTracker state that every tracking client renders
+(the head follows the view, the LED glows while viewed, and an idle head holds its last look); only
+the owner's client sends `seeker_camera_look` while viewing, and the server accepts it once per tick
+for the owner's own CAMERA session and clamps it into that camera's cone
+(`SeekerCameraLookRules`). Sessions are server-authoritative: the
 client never predicts entry, and every exit except the owner's own Shift is detected on the server.
 The owner's client only simulates the car it drives, and every move is validated against the shared
 `SeekerCarPhysics` (speed budget, replay, a server-side fall model that never trusts the client's

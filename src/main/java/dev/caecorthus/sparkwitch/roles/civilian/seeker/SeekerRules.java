@@ -26,6 +26,13 @@ public final class SeekerRules {
     /** Placed-model ids loaded through ModelLoadingPlugin. / 通过 ModelLoadingPlugin 加载的放置模型 id。 */
     public static final Identifier CAR_PLACED_MODEL_ID = SparkWitch.id("item/seeker_car_placed");
     public static final Identifier CAMERA_PLACED_MODEL_ID = SparkWitch.id("item/seeker_camera_placed");
+    /**
+     * The placed camera is drawn in three parts: the static mount above, a head that turns with the synced look, and
+     * an LED that glows only while the owner views that camera.
+     * 放置的摄像头分三部分绘制：上面的静态底座、随同步视角转动的机头，以及仅在拥有者观看该摄像头时发光的指示灯。
+     */
+    public static final Identifier CAMERA_HEAD_MODEL_ID = SparkWitch.id("item/seeker_camera_placed_head");
+    public static final Identifier CAMERA_LED_MODEL_ID = SparkWitch.id("item/seeker_camera_placed_led");
 
     // ---- Payload ids (literal; the payload records alias these) ----
     public static final Identifier REMOTE_OPEN_PAYLOAD_ID = SparkWitch.id("seeker_remote_open");
@@ -34,6 +41,7 @@ public final class SeekerRules {
     public static final Identifier CAR_CORRECT_PAYLOAD_ID = SparkWitch.id("seeker_car_correct");
     public static final Identifier CAR_SWALLOW_PAYLOAD_ID = SparkWitch.id("seeker_car_swallow");
     public static final Identifier CAR_RECALL_PAYLOAD_ID = SparkWitch.id("seeker_car_recall");
+    public static final Identifier CAMERA_LOOK_PAYLOAD_ID = SparkWitch.id("seeker_camera_look");
 
     // ---- Sound ids (sounds.json keys are the paths) ----
     public static final Identifier CAR_MOTOR_SOUND_ID = SparkWitch.id("seeker_car_motor");
