@@ -62,7 +62,7 @@ public final class HunterFeatureService {
         ShouldDropOnDeath.EVENT.register((stack, victim) -> stack.getItem() instanceof HunterTrapItem);
         ShouldPunishGunShooter.EVENT.register(HunterFeatureService::gunPunishment);
         ResetPlayer.EVENT.register(player -> HunterPlayerComponent.KEY.get(player).reset());
-        RoleAssigned.EVENT.register((player, role) -> HunterPlayerComponent.KEY.get(player).reset());
+        RoleAssigned.EVENT.register(HunterFeatureService::assignForRole);
         GameEvents.ON_WIN_DETERMINED.register((world, component, status, neutralWinner) -> cleanupRound(world));
         GameEvents.ON_FINISH_FINALIZE.register((world, component) -> {
             if (world instanceof ServerWorld serverWorld) {
@@ -70,6 +70,21 @@ public final class HunterFeatureService {
             }
         });
         registerReplayFormatters();
+    }
+
+    private static void assignForRole(PlayerEntity player, Role role) {
+        HunterPlayerComponent.KEY.get(player).reset();
+        // Server-side round-start lock keyed by item type (Ninja knife pattern), so a shotgun bought inside the
+        // window stays locked; the vanilla cooldown sync drives the client overlay and crosshair.
+        // 服务端按物品类型设置开局锁定（同忍者苦无），窗口内购买的猎枪同样受限；原版冷却同步驱动客户端显示与准星。
+        if (player instanceof ServerPlayerEntity serverPlayer
+                && role != null
+                && HunterRules.ROLE_ID.equals(role.identifier())) {
+            serverPlayer.getItemCooldownManager().set(
+                    Registries.ITEM.get(DoubleBarrelShotgunItem.ID),
+                    HunterRules.SHOTGUN_INITIAL_COOLDOWN_TICKS
+            );
+        }
     }
 
     private static ActionResult interactWithTrap(
