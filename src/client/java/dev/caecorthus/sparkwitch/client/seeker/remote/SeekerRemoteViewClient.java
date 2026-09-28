@@ -84,6 +84,7 @@ public final class SeekerRemoteViewClient {
         SeekerCarMovement.installClientDriveHook(SeekerCarClientDriver::isLocallyDriven);
         // START_CLIENT_TICK runs before handleInputEvents in the same tick. / START_CLIENT_TICK 在同一刻的 handleInputEvents 之前运行。
         ClientTickEvents.START_CLIENT_TICK.register(SeekerRemoteViewClient::tick);
+        SeekerCarUseClient.register();
         // END_CLIENT_TICK runs after the world tick reset the car's prev* fields. / END_CLIENT_TICK 在世界 tick 重置小车 prev* 之后运行。
         ClientTickEvents.END_CLIENT_TICK.register(SeekerCarClientDriver::endTick);
     }

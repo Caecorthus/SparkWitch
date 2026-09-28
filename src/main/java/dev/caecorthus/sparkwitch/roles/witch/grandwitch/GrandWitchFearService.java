@@ -51,7 +51,8 @@ public final class GrandWitchFearService {
             // 搜寻者行为；关闭与小车移动放行，使被恐惧的搜寻者总能退出视角。
             Identifier.of("sparkwitch", "seeker_remote_open"),
             Identifier.of("sparkwitch", "seeker_car_swallow"),
-            Identifier.of("sparkwitch", "seeker_car_recall")
+            Identifier.of("sparkwitch", "seeker_car_recall"),
+            Identifier.of("sparkwitch", "seeker_car_use")
     );
 
     private GrandWitchFearService() {
