@@ -218,7 +218,7 @@ public final class SeekerDeviceRaycast {
         }
         int id = device.getId();
         return SeekerStatusComponent.KEY.maybeGet(player)
-                .map(component -> id == component.carEntityId() || id == component.cameraEntityId())
+                .map(component -> id == component.carEntityId() || component.hasCamera(id))
                 .orElse(false);
     }
 

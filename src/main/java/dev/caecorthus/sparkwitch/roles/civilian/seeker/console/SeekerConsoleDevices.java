@@ -38,7 +38,7 @@ public final class SeekerConsoleDevices {
         boolean carReady = status.carState() == SeekerCarState.READY
                 && !player.getItemCooldownManager().isCoolingDown(stack.getItem());
         return carFallbackActsAsConsole(carReady, status.carState() == SeekerCarState.DEPLOYED,
-                status.cameraEntityId() >= 0);
+                status.cameraCount() > 0);
     }
 
     /**

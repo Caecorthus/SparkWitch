@@ -23,6 +23,7 @@ import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -67,8 +68,17 @@ public final class SeekerStatusComponent
         return state.carEntityId();
     }
 
-    public int cameraEntityId() {
-        return state.cameraEntityId();
+    /** The owner's cameras in label order. / 按编号排列的拥有者摄像头。 */
+    public List<SeekerState.Camera> cameras() {
+        return state.cameras();
+    }
+
+    public int cameraCount() {
+        return state.cameraCount();
+    }
+
+    public boolean hasCamera(int entityId) {
+        return state.hasCamera(entityId);
     }
 
     public SeekerSessionMode sessionMode() {
@@ -203,8 +213,8 @@ public final class SeekerStatusComponent
         SeekerRemoteSessionService.tick(owner, this);
         long time = owner.getServerWorld().getTime();
         boolean dirty = false;
-        // 4. Device existence: a vanished car is never a free reset (RECALL cooldown); a vanished camera is dropped.
-        // 4. 设备存在性：丢失的小车绝不免费重置（RECALL 冷却）；丢失的摄像头引用被移除。
+        // 4. Device existence: a vanished car is never a free reset (RECALL cooldown); each vanished camera is dropped.
+        // 4. 设备存在性：丢失的小车绝不免费重置（RECALL 冷却）；每个丢失的摄像头引用都被移除。
         if (time % SLOW_POLL_TICKS == EXISTENCE_POLL_OFFSET) {
             dirty |= checkDevicesExist(owner);
         }
@@ -298,11 +308,16 @@ public final class SeekerStatusComponent
             }
             dirty |= applyQuietly(state.loseCar());
         }
-        if (state.cameraEntityId() >= 0 && SeekerDeviceService.findCamera(owner) == null) {
-            if (state.sessionMode() == SeekerSessionMode.CAMERA) {
+        // Copy first: destroyCamera mutates the list. / 先复制：destroyCamera 会修改列表。
+        for (SeekerState.Camera camera : List.copyOf(state.cameras())) {
+            if (SeekerDeviceService.findCamera(owner, camera.entityId()) != null) {
+                continue;
+            }
+            if (state.sessionMode() == SeekerSessionMode.CAMERA
+                    && state.sessionFocusEntityId() == camera.entityId()) {
                 SeekerRemoteSessionService.end(owner, SeekerExitReason.FOCUS_LOST);
             }
-            dirty |= applyQuietly(state.destroyCamera());
+            dirty |= applyQuietly(state.destroyCamera(camera.entityId()));
         }
         return dirty;
     }

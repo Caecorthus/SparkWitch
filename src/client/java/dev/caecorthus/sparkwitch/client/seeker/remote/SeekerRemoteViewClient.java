@@ -223,6 +223,7 @@ public final class SeekerRemoteViewClient {
         switch (exit) {
             case NONE -> {
                 maintain(client, player);
+                SeekerCameraCycler.tick(client, player, activeMode);
                 return false;
             }
             case SWITCHED -> {
@@ -386,9 +387,11 @@ public final class SeekerRemoteViewClient {
                 || world.getEntityById(current.getId()) != current) {
             return true;
         }
+        // CAMERA: the synced focus names the exact camera (several may exist) and it must still be listed.
+        // 摄像头：同步的焦点指明具体哪台（可能有多台），且该摄像头必须仍在列表中。
         int expectedId = activeMode == SeekerSessionMode.CAR
                 ? SeekerClientState.carEntityId()
-                : SeekerClientState.cameraEntityId();
+                : SeekerClientState.hasCamera(current.getId()) ? SeekerClientState.sessionFocusEntityId() : -1;
         return expectedId != current.getId();
     }
 
@@ -399,7 +402,9 @@ public final class SeekerRemoteViewClient {
         }
         int id = switch (mode) {
             case CAR -> SeekerClientState.carEntityId();
-            case CAMERA -> SeekerClientState.cameraEntityId();
+            // The synced session focus is the one camera the server opened. / 同步的会话焦点就是服务端打开的那台摄像头。
+            case CAMERA -> SeekerClientState.hasCamera(SeekerClientState.sessionFocusEntityId())
+                    ? SeekerClientState.sessionFocusEntityId() : -1;
             case NONE -> -1;
         };
         if (id < 0) {

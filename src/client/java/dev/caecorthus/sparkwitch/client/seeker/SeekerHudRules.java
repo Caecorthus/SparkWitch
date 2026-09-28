@@ -9,9 +9,9 @@ import java.util.List;
 
 /**
  * Pure presentation rules for the owner-only Seeker status line (plan §3.18): car state, cooldown and its reason,
- * battery, camera and mark countdown, joined by the separator key. It never carries a player name. Colours are
+ * battery, camera count and mark countdown, joined by the separator key. It never carries a player name. Colours are
  * opaque ARGB. Visibility follows the Control Expert HUD gates plus "hidden while the CCTV/possession overlay shows".
- * 仅拥有者可见的搜寻者状态行的纯展示规则（计划 §3.18）：小车状态、冷却及其原因、电量、摄像头与标记倒计时，
+ * 仅拥有者可见的搜寻者状态行的纯展示规则（计划 §3.18）：小车状态、冷却及其原因、电量、摄像头数量与标记倒计时，
  * 以分隔符键连接。从不包含任何玩家名字。颜色为不透明 ARGB。可见性沿用控场专家 HUD 的门槛，另加
  * “CCTV/附身叠加层显示时隐藏”。
  */
@@ -20,7 +20,7 @@ public final class SeekerHudRules {
     public static final String CAR_DEPLOYED_KEY = "hud.sparkwitch.seeker.car.deployed";
     public static final String CAR_COOLDOWN_KEY = "hud.sparkwitch.seeker.car.cooldown";
     public static final String CAR_SWALLOWED_KEY = "hud.sparkwitch.seeker.car.swallowed";
-    public static final String CAMERA_PLACED_KEY = "hud.sparkwitch.seeker.camera.placed";
+    public static final String CAMERA_COUNT_KEY = "hud.sparkwitch.seeker.camera.count";
     public static final String CAMERA_NONE_KEY = "hud.sparkwitch.seeker.camera.none";
     public static final String MARK_KEY = "hud.sparkwitch.seeker.mark";
     public static final String SEPARATOR_KEY = "hud.sparkwitch.seeker.separator";
@@ -53,7 +53,7 @@ public final class SeekerHudRules {
      * Owner-only snapshot of the synced status and the car item cooldown. / 同步状态与小车物品冷却的拥有者快照。
      */
     public record Snapshot(SeekerCarState carState, int cooldownTicks, SeekerCooldownReason cooldownReason,
-                           int battery, boolean cameraPlaced, int markTicks) {
+                           int battery, int cameraCount, int markTicks) {
     }
 
     /** A translated argument nested inside a segment (the cooldown reason). / 片段中嵌套的翻译参数（冷却原因）。 */
@@ -124,11 +124,12 @@ public final class SeekerHudRules {
             }
         }
         boolean hasMark = snapshot.markTicks() > 0;
-        if (segments.isEmpty() && !snapshot.cameraPlaced() && !hasMark) {
+        boolean hasCamera = snapshot.cameraCount() > 0;
+        if (segments.isEmpty() && !hasCamera && !hasMark) {
             return List.of();
         }
-        segments.add(snapshot.cameraPlaced()
-                ? new Segment(CAMERA_PLACED_KEY, List.of(), BASE_COLOR)
+        segments.add(hasCamera
+                ? new Segment(CAMERA_COUNT_KEY, List.of(snapshot.cameraCount()), BASE_COLOR)
                 : new Segment(CAMERA_NONE_KEY, List.of(), COOLDOWN_COLOR));
         if (hasMark) {
             segments.add(new Segment(MARK_KEY, List.of(seconds(snapshot.markTicks())), MARK_COLOR));

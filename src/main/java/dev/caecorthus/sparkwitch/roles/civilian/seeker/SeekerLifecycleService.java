@@ -155,10 +155,11 @@ public final class SeekerLifecycleService {
     }
 
     /**
-     * Terminal cleanup for one player, in order: end the session (WP-09), discard both devices (WP-03), clear the
-     * component. A no-op for players holding no Seeker state. Also the component tick's self-heal and final-death path.
-     * 单名玩家的终局清理，顺序：结束会话（WP-09）、移除两个设备（WP-03）、清空组件。对不持有搜寻者状态的玩家为空操作。
-     * 同时也是组件刻自愈与最终死亡路径。
+     * Terminal cleanup for one player, in order: end the session (WP-09), discard every device (the car and all
+     * cameras, WP-03), clear the component. A no-op for players holding no Seeker state. Also the component tick's
+     * self-heal and final-death path.
+     * 单名玩家的终局清理，顺序：结束会话（WP-09）、移除所有设备（小车与全部摄像头，WP-03）、清空组件。
+     * 对不持有搜寻者状态的玩家为空操作。同时也是组件刻自愈与最终死亡路径。
      */
     static void cleanUp(ServerPlayerEntity player, SeekerExitReason reason) {
         if (!holdsState(player)) {
