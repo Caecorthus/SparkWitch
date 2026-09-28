@@ -168,7 +168,11 @@ velocity, radius and play-area clamps). The session lock (`LOCK_SCOPE = SESSION`
 the Seeker drives the car or views the camera: `mixin/seeker/SeekerSprintLockMixin` clears sprint on
 both sides, `SeekerInteractionGuards` fail the Fabric player callbacks in the `seeker_session_lock`
 phase, `mixin/seeker/SeekerSessionPayloadGuardMixin` drops the blocked C2S payloads on the server
-thread, and inventory clicks and drops are denied. Device entities never save to disk and cannot be
+thread, and inventory clicks and drops are denied. The body stays locked, but the driven car itself
+may right-click whitelisted doors, trapdoors, fence gates, buttons, and levers through
+`seeker_car_use`: `remote/SeekerCarUseService` bypasses the body's use callbacks by design,
+re-validates the session, reach, and line of sight from the car's eye, and acts with an empty hand,
+so the body's held item is never used from the car. Device entities never save to disk and cannot be
 summoned; every device is swept at game start and at finalize. Role change, final death, and reset
 end the session and clean up devices and state; disconnect only ends the session. A deployed car
 starts at 100% battery and drains 1% every 10 ticks while driven and 1% every 60 ticks otherwise;

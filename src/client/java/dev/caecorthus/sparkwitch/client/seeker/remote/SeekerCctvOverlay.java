@@ -85,6 +85,7 @@ public final class SeekerCctvOverlay {
         renderStatusBlock(context, text, player, mode, height, frame, ticks);
         if (mode == SeekerSessionMode.CAR) {
             renderBattery(context, text, width, height, ticks);
+            SeekerCarUseClient.renderHint(context, text, tickCounter, width, height, frame);
         }
         renderHints(context, text, client, mode, width, height, frame);
     }

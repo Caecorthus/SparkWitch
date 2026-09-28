@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.seeker.net;
 
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerCarMoveService;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerCarUseService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.taotie.SeekerTaotieService;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -25,7 +26,8 @@ public final class SeekerNetworking {
             SeekerRemoteCloseC2SPacket.ID.id(),
             SeekerCarMoveC2SPacket.ID.id(),
             SeekerCarSwallowC2SPacket.ID.id(),
-            SeekerCarRecallC2SPacket.ID.id());
+            SeekerCarRecallC2SPacket.ID.id(),
+            SeekerCarUseC2SPacket.ID.id());
     /** Every Seeker S2C payload id. / 所有搜寻者 S2C 数据包 id。 */
     public static final List<Identifier> S2C_IDS = List.of(SeekerCarCorrectS2CPacket.ID.id());
 
@@ -44,6 +46,7 @@ public final class SeekerNetworking {
         PayloadTypeRegistry.playC2S().register(SeekerCarMoveC2SPacket.ID, SeekerCarMoveC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(SeekerCarSwallowC2SPacket.ID, SeekerCarSwallowC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(SeekerCarRecallC2SPacket.ID, SeekerCarRecallC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(SeekerCarUseC2SPacket.ID, SeekerCarUseC2SPacket.CODEC);
         PayloadTypeRegistry.playS2C().register(SeekerCarCorrectS2CPacket.ID, SeekerCarCorrectS2CPacket.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(SeekerRemoteOpenC2SPacket.ID,
@@ -56,6 +59,8 @@ public final class SeekerNetworking {
                 (payload, context) -> SeekerTaotieService.handleSwallow(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(SeekerCarRecallC2SPacket.ID,
                 (payload, context) -> SeekerDeviceService.remoteRecallCar(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(SeekerCarUseC2SPacket.ID,
+                (payload, context) -> SeekerCarUseService.handleUse(context.player(), payload));
     }
 
     /** Owner-only correction; skipped when the client cannot receive it. / 仅发给拥有者的纠正；客户端无法接收时跳过。 */
