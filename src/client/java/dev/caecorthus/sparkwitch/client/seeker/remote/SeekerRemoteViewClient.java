@@ -345,6 +345,7 @@ public final class SeekerRemoteViewClient {
         client.gameRenderer.setRenderHand(false);
         if (focus instanceof SeekerCameraViewpoint viewpoint) {
             viewpoint.followMount();
+            SeekerCameraLookSender.tick(viewpoint, activeSessionId);
         }
     }
 
