@@ -108,7 +108,11 @@
     "witchmaiden.FoodPlatterBlockPoisonAppleMixin",
     "witchmaiden.ItemStackPoisonAppleDrinkMixin",
     "accessor.ItemCooldownEntryAccessor",
-    "accessor.ItemCooldownManagerAccessor"
+    "accessor.ItemCooldownManagerAccessor",
+    "fiend.GameFunctionsFiendImmunityMixin",
+    "fiend.KnifeStabPayloadFiendStabScopeMixin",
+    "fiend.BomberPlayerComponentFiendLedgerMixin",
+    "fiend.TaotiePlayerComponentFiendSwallowMixin"
   ],
   "injectors": {
     "defaultRequire": 1

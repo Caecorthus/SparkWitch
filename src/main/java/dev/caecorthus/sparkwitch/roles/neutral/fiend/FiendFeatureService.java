@@ -16,5 +16,6 @@ public final class FiendFeatureService {
             return;
         }
         registered = true;
+        FiendReactionService.register();
     }
 }
