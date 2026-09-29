@@ -39,7 +39,9 @@ Current build baseline:
 - `roles/civilian/perfumer/`: private scent marks, cologne healing, corpse mood,
   outlines, shop, and economy.
 - `roles/civilian/tarotreader/`: divination shop, one-shot selection sessions,
-  faction-count snapshots, and economy.
+  faction-count snapshots, purchaser-only reading results, and economy. Client
+  presentation (faction-count HUD, reading slip, reading log, selector ledger)
+  lives in `client/tarot/`, `client/hud/Tarot*`, and `client/screen/`.
 - `roles/killer/ninja/`: parry, dark-kill bounty, shop, and death cleanup.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup.
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,

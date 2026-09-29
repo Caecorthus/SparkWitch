@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationHudLayout;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationSnapshotState;
 import java.util.List;
+import java.util.Optional;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -56,39 +57,21 @@ public final class TarotDivinationHudRenderer {
     }
 
     public static void render(DrawContext context) {
-        TarotDivinationSnapshotState state = TarotDivinationClientState.snapshotState();
-        TarotDivinationSnapshotState.Snapshot snapshot = state.snapshot().orElse(null);
-        if (snapshot == null) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        TextRenderer renderer = client.textRenderer;
+        Table table = measure(renderer, context.getScaledWindowWidth()).orElse(null);
+        if (table == null) {
             return;
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        TextRenderer renderer = client.textRenderer;
-        List<TarotDivinationHudLayout.Row> rows = TarotDivinationHudLayout.rows(snapshot, state.previous().orElse(null));
-        String title = fit(renderer, Text.translatable("hud.sparkwitch.tarot.title").getString(),
-                TarotDivinationHudLayout.TITLE_MAX_WIDTH);
+        String title = table.title();
+        List<TarotDivinationHudLayout.Row> rows = table.rows();
+        String[] names = table.names();
+        Text[] counts = table.counts();
+        int[] countWidths = table.countWidths();
+        int[] colors = table.colors();
         int size = rows.size();
-        String[] names = new String[size];
-        Text[] counts = new Text[size];
-        int[] countWidths = new int[size];
-        int[] colors = new int[size];
-        int nameWidth = 0;
-        int countWidth = 0;
-        for (int i = 0; i < size; i++) {
-            TarotDivinationHudLayout.Row row = rows.get(i);
-            names[i] = fit(renderer, Text.translatable(nameKey(row.faction())).getString(),
-                    TarotDivinationHudLayout.NAME_MAX_WIDTH);
-            nameWidth = Math.max(nameWidth, renderer.getWidth(names[i]));
-            MutableText count = Text.literal(TarotDivinationHudLayout.displayCount(row.count()));
-            counts[i] = TarotDivinationHudLayout.boldCount(row.count()) ? count.formatted(Formatting.BOLD) : count;
-            countWidths[i] = renderer.getWidth(counts[i]);
-            countWidth = Math.max(countWidth, countWidths[i]);
-            colors[i] = 0xFF000000 | factionColor(factionId(row.faction()));
-        }
-        int countReserveWidth = renderer.getWidth(
-                Text.literal(TarotDivinationHudLayout.COUNT_RESERVE_TEXT).formatted(Formatting.BOLD));
-        TarotDivinationHudLayout.Geometry g = TarotDivinationHudLayout.geometry(
-                context.getScaledWindowWidth(), renderer.getWidth(title), nameWidth, countWidth, countReserveWidth);
+        TarotDivinationHudLayout.Geometry g = table.geometry();
         int left = g.left();
         int right = g.right();
         int backing = client.options.getTextBackgroundColor(BACKING_OPACITY);
@@ -100,11 +83,7 @@ public final class TarotDivinationHudRenderer {
                 InventoryCardPaint.roundedFill(context, g.backingLeft(), g.backingTop(),
                         g.backingRight() - g.backingLeft(), g.backingBottom() - g.backingTop(), backing);
             }
-            int iconY = TarotDivinationHudLayout.ICON_Y;
-            InventoryCardPaint.bitmap(context, left, iconY, InventoryCardPaint.POLISHED, ICON_GOLD);
-            InventoryCardPaint.bitmap(context, left, iconY, InventoryCardPaint.BRASS_LO, ICON_CORNERS);
-            InventoryCardPaint.bitmap(context, left, iconY, ICON_FACE, ICON_FACE_ROWS);
-            InventoryCardPaint.bitmap(context, left, iconY, InventoryCardPaint.TEXT_HI, ICON_IRIS);
+            drawIcon(context, left, TarotDivinationHudLayout.ICON_Y);
             int separatorY = g.separatorY();
             context.fill(left + 1, separatorY + 1, right, separatorY + 2, shadow(SEPARATOR));
             context.fill(left, separatorY, right - 1, separatorY + 1, SEPARATOR);
@@ -147,10 +126,73 @@ public final class TarotDivinationHudRenderer {
     }
 
     /**
-     * House ellipsis, minus the space a word-boundary cut leaves before "…" (e.g. "Divination Result…").
-     * 使用共享省略号截断，并去掉在词边界截断时留在 "…" 前的空格。
+     * Where {@link #render} draws the table's backing on a screen this wide, or empty when there is no snapshot.
+     * It shares {@link #render}'s measuring path, so the two cannot drift.
+     * 在此屏幕宽度下 {@link #render} 绘制表格底板的位置；没有快照时为空。与 {@link #render} 共用同一测量流程，二者不会偏离。
      */
-    private static String fit(TextRenderer renderer, String text, int maxWidth) {
+    public static Optional<TarotDivinationHudLayout.Geometry> backingBounds(int screenWidth) {
+        return measure(MinecraftClient.getInstance().textRenderer, screenWidth).map(Table::geometry);
+    }
+
+    /**
+     * The HUD's 7x9 eye-card mark, fills only (callers batch it). Shared so the HUD, the selector and the result slip
+     * carry one mark.
+     * HUD 的 7x9 眼睛卡牌图标，仅含填充（由调用方批量提交）。HUD、选择界面与结果条共用同一图标。
+     */
+    public static void drawIcon(DrawContext context, int x, int y) {
+        drawIcon(context, x, y, 0xFF);
+    }
+
+    /** The icon at {@code alpha}; every icon colour is an opaque token. 以 {@code alpha} 绘制图标；图标颜色均为不透明令牌。 */
+    static void drawIcon(DrawContext context, int x, int y, int alpha) {
+        int a = alpha << 24;
+        InventoryCardPaint.bitmap(context, x, y, a | (InventoryCardPaint.POLISHED & 0xFFFFFF), ICON_GOLD);
+        InventoryCardPaint.bitmap(context, x, y, a | (InventoryCardPaint.BRASS_LO & 0xFFFFFF), ICON_CORNERS);
+        InventoryCardPaint.bitmap(context, x, y, a | (ICON_FACE & 0xFFFFFF), ICON_FACE_ROWS);
+        InventoryCardPaint.bitmap(context, x, y, a | (InventoryCardPaint.TEXT_HI & 0xFFFFFF), ICON_IRIS);
+    }
+
+    private static Optional<Table> measure(TextRenderer renderer, int screenWidth) {
+        TarotDivinationSnapshotState state = TarotDivinationClientState.snapshotState();
+        TarotDivinationSnapshotState.Snapshot snapshot = state.snapshot().orElse(null);
+        if (snapshot == null) {
+            return Optional.empty();
+        }
+
+        List<TarotDivinationHudLayout.Row> rows = TarotDivinationHudLayout.rows(snapshot, state.previous().orElse(null));
+        String title = fit(renderer, Text.translatable("hud.sparkwitch.tarot.title").getString(),
+                TarotDivinationHudLayout.TITLE_MAX_WIDTH);
+        int size = rows.size();
+        String[] names = new String[size];
+        Text[] counts = new Text[size];
+        int[] countWidths = new int[size];
+        int[] colors = new int[size];
+        int nameWidth = 0;
+        int countWidth = 0;
+        for (int i = 0; i < size; i++) {
+            TarotDivinationHudLayout.Row row = rows.get(i);
+            names[i] = fit(renderer, Text.translatable(nameKey(row.faction())).getString(),
+                    TarotDivinationHudLayout.NAME_MAX_WIDTH);
+            nameWidth = Math.max(nameWidth, renderer.getWidth(names[i]));
+            MutableText count = Text.literal(TarotDivinationHudLayout.displayCount(row.count()));
+            counts[i] = TarotDivinationHudLayout.boldCount(row.count()) ? count.formatted(Formatting.BOLD) : count;
+            countWidths[i] = renderer.getWidth(counts[i]);
+            countWidth = Math.max(countWidth, countWidths[i]);
+            colors[i] = 0xFF000000 | factionColor(factionId(row.faction()));
+        }
+        int countReserveWidth = renderer.getWidth(
+                Text.literal(TarotDivinationHudLayout.COUNT_RESERVE_TEXT).formatted(Formatting.BOLD));
+        TarotDivinationHudLayout.Geometry geometry = TarotDivinationHudLayout.geometry(
+                screenWidth, renderer.getWidth(title), nameWidth, countWidth, countReserveWidth);
+        return Optional.of(new Table(title, rows, names, counts, countWidths, colors, geometry));
+    }
+
+    /**
+     * House ellipsis, minus the space a word-boundary cut leaves before "…" (e.g. "Divination Result…"). Shared by
+     * the HUD, the result slip and the selector so all three cut text alike.
+     * 使用共享省略号截断，并去掉在词边界截断时留在 "…" 前的空格。HUD、结果条与选择界面共用，截断方式一致。
+     */
+    public static String fit(TextRenderer renderer, String text, int maxWidth) {
         String fitted = InventoryCardPaint.ellipsize(renderer, text, maxWidth);
         if (fitted.equals(text) || !fitted.endsWith(ELLIPSIS)) {
             return fitted;
@@ -181,9 +223,26 @@ public final class TarotDivinationHudRenderer {
         };
     }
 
-    private static int factionColor(Identifier factionId) {
+    /**
+     * A faction's RGB from SparkFactionAPI (white when unregistered), no alpha. The HUD pips and the selector's
+     * section marks share it so a faction reads the same everywhere.
+     * 来自 SparkFactionAPI 的阵营 RGB（未注册时为白色），不含透明度。HUD 圆点与选择界面分区标记共用，同一阵营处处同色。
+     */
+    public static int factionColor(Identifier factionId) {
         return SparkFactionApi.getFaction(factionId)
                 .map(FactionDefinition::color)
                 .orElse(WHITE) & 0xFFFFFF;
+    }
+
+    /** One measured table: what {@link #render} draws and where. 一次测量得到的表格：绘制内容与位置。 */
+    private record Table(
+            String title,
+            List<TarotDivinationHudLayout.Row> rows,
+            String[] names,
+            Text[] counts,
+            int[] countWidths,
+            int[] colors,
+            TarotDivinationHudLayout.Geometry geometry
+    ) {
     }
 }
