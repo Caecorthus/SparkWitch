@@ -10,8 +10,10 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.player.ItemCooldownManager;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -25,12 +27,15 @@ import java.util.function.IntPredicate;
  * shooter's own post-shot cooldown, so that write cannot undercut the floor. Every other playing, alive, non-spectator
  * participant within {@link FiendRules#AURA_RADIUS} of the Fiend (the shooter included) gets every distinct carried item
  * (main, offhand, armor) raised to at least {@link FiendRules#AURA_COOLDOWN_TICKS}; nothing is ever shortened.
- * Role-skill counters are untouched. Server only.
+ * NoellesRoles' timed bomb is skipped (C15): its item cooldown is the Bomber pass gate, and a 20 s floor would outlast
+ * the 15 s beep and always kill the holder. Role-skill counters are untouched. Server only.
  * 枪击冷却光环（C4）。在受击时入队，于 {@code END_SERVER_TICK} 结算，此时枪械处理器已写入开枪者自己的射击冷却，不会压低
  * 下限。魔人 {@link FiendRules#AURA_RADIUS} 格内其他在局、存活、非旁观的参与者（含开枪者）身上每种物品（主背包、副手、
- * 盔甲）的冷却提升至至少 {@link FiendRules#AURA_COOLDOWN_TICKS}，绝不缩短；职业技能计数不受影响。仅服务端。
+ * 盔甲）的冷却提升至至少 {@link FiendRules#AURA_COOLDOWN_TICKS}，绝不缩短。NoellesRoles 定时炸弹除外（C15）：其物品冷却
+ * 是炸弹客的转手门槛，20 秒下限会超过 15 秒的蜂鸣期，必然炸死持有者。职业技能计数不受影响。仅服务端。
  */
 public final class FiendCooldownAura {
+    static final Identifier TIMED_BOMB_ID = Identifier.of("noellesroles", "timed_bomb");
     private static final Set<UUID> PENDING = new LinkedHashSet<>();
     private static boolean registered;
 
@@ -111,9 +116,14 @@ public final class FiendCooldownAura {
         return true;
     }
 
+    /** Pure item filter: every carried item except the timed bomb. / 纯物品过滤：除定时炸弹外的所有携带物品。 */
+    static boolean isRaised(Identifier itemId) {
+        return !TIMED_BOMB_ID.equals(itemId);
+    }
+
     private static void collect(Iterable<ItemStack> stacks, Set<Item> items) {
         for (ItemStack stack : stacks) {
-            if (!stack.isEmpty()) {
+            if (!stack.isEmpty() && isRaised(Registries.ITEM.getId(stack.getItem()))) {
                 items.add(stack.getItem());
             }
         }

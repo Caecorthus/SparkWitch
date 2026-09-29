@@ -121,10 +121,24 @@ public final class FiendMomentRules {
 
     /**
      * A death on or after the deadline is not announced: the Fiend has already won or the win listener settles it.
-     * 截止当刻或之后的死亡不公布：魔人已获胜，或由胜负监听器结算。
+     * A disconnect ({@code wathe:escaped}) is not a kill: it ends the moment as "ended", never "slain" (C15).
+     * 截止当刻或之后的死亡不公布：魔人已获胜，或由胜负监听器结算。断线（{@code wathe:escaped}）不是击杀：时刻以
+     * 「已结束」而非「已被击杀」结束（C15）。
      */
-    public static EndReason deathEnd(boolean complete) {
-        return complete ? EndReason.SILENT : EndReason.DIED;
+    public static EndReason deathEnd(boolean complete, boolean escaped) {
+        if (complete) {
+            return EndReason.SILENT;
+        }
+        return escaped ? EndReason.ENDED : EndReason.DIED;
+    }
+
+    /**
+     * The granted crowbar is taken back on every end except the win: a completed moment closed silently at the round
+     * end (a death after the deadline shares that path, where the crowbar is irrelevant) (C15).
+     * 除获胜外，每种结束都会收回授予的撬棍；获胜即已完成的时刻在回合结束时被静默关闭（截止后的死亡也走此路径，撬棍已无关紧要）（C15）。
+     */
+    public static boolean takesCrowbarBack(EndReason reason, boolean complete) {
+        return !(complete && reason == EndReason.SILENT);
     }
 
     /** Any new role other than the Fiend ends the moment. / 任何非魔人的新职业都会结束时刻。 */

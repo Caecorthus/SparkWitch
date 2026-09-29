@@ -7,6 +7,7 @@ import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.game.GameConstants;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
@@ -17,14 +18,15 @@ import net.minecraft.world.World;
 
 /**
  * Fiend Moment lifecycle, server only. Ends the moment on the moment Fiend's final death (a SparkTraits Last Stand
- * interception keeps the Fiend in play, and the win listener catches any later death) or on a role change away from
- * the Fiend; clears it and the spent-Fiend ledger silently at round start (player reset outside ACTIVE, then
- * finish-initialize), at finalize and at server stop, so neither ever leaks across rounds (the ledger is also bound to
- * the match id). A Taotie swallow is detected by the win listener. Every other player, role and event is untouched.
- * 魔人时刻生命周期，仅服务端。时刻中的魔人最终死亡（SparkTraits 背水一战的拦截会让魔人留在对局中，之后的死亡由胜负监听器兜底）
- * 或职业变为非魔人时结束时刻；在开局（非 ACTIVE 时的玩家重置、随后的初始化完成）、结算与服务器停止时静默清除时刻与
- * 「已耗尽魔人」登记表，因此二者绝不会跨回合残留（登记表同时绑定对局 id）。饕餮吞噬由胜负监听器检测。
- * 其他玩家、职业与事件均不受影响。
+ * interception keeps the Fiend in play, and the win listener catches any later death; a disconnect,
+ * {@code wathe:escaped}, ends it as "ended", not "slain") or on a role change away from the Fiend; clears it and the
+ * spent-Fiend ledger silently at round start (player reset outside ACTIVE, then finish-initialize), at finalize and at
+ * server stop, so neither ever leaks across rounds (the ledger is also bound to the match id). A Taotie swallow is
+ * detected by the win listener. Every other player, role and event is untouched.
+ * 魔人时刻生命周期，仅服务端。时刻中的魔人最终死亡（SparkTraits 背水一战的拦截会让魔人留在对局中，之后的死亡由胜负监听器兜底；
+ * 断线 {@code wathe:escaped} 以「已结束」而非「已被击杀」结束）或职业变为非魔人时结束时刻；在开局（非 ACTIVE 时的玩家重置、
+ * 随后的初始化完成）、结算与服务器停止时静默清除时刻与「已耗尽魔人」登记表，因此二者绝不会跨回合残留（登记表同时绑定
+ * 对局 id）。饕餮吞噬由胜负监听器检测。其他玩家、职业与事件均不受影响。
  */
 final class FiendLifecycleService {
     private static boolean registered;
@@ -55,7 +57,8 @@ final class FiendLifecycleService {
             return;
         }
         if (FiendMomentRules.endsOnDeath(momentFiend, WitchFactorTraitsBridge.isDeathIntercepted(victim))) {
-            FiendMomentService.end(victim.getServerWorld(), FiendMomentRules.deathEnd(moment.isComplete()));
+            FiendMomentService.end(victim.getServerWorld(), FiendMomentRules.deathEnd(moment.isComplete(),
+                    GameConstants.DeathReasons.ESCAPED.equals(deathReason)));
         }
     }
 

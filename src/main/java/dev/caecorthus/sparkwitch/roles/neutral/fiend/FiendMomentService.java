@@ -2,11 +2,9 @@ package dev.caecorthus.sparkwitch.roles.neutral.fiend;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.index.WatheItems;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.ClearTitleS2CPacket;
 import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
@@ -78,7 +76,7 @@ public final class FiendMomentService {
         }
 
         moment.start(fiend.getUuid(), FiendRules.MOMENT_DURATION_TICKS, matchId);
-        fiend.getInventory().offerOrDrop(new ItemStack(WatheItems.CROWBAR));
+        fiend.getInventory().offerOrDrop(FiendMomentCrowbar.create());
         FiendMomentEffects.grant(fiend);
         announceStart(world);
 
@@ -91,10 +89,11 @@ public final class FiendMomentService {
 
     /**
      * The single end path: clears the synced moment, marks the Fiend spent for the moment's match when the reason says
-     * so (Taotie swallow), removes the Speed IV and shield the moment still owns, and, per the reason, records the
-     * replay line and tells every player while the round is ACTIVE. A no-op without a moment.
+     * so (Taotie swallow), removes the Speed IV and shield the moment still owns, takes the marked crowbar back unless
+     * the moment was won, and, per the reason, records the replay line and tells every player while the round is
+     * ACTIVE. A no-op without a moment.
      * 唯一的结束路径：清除已同步的时刻，按原因（饕餮吞噬）将魔人登记为该时刻所属对局中已耗尽，移除时刻仍拥有的速度 IV 与护盾，
-     * 并按原因记录回放、在对局 ACTIVE 时告知所有玩家。无时刻时为空操作。
+     * 除获胜外收回带标记的撬棍，并按原因记录回放、在对局 ACTIVE 时告知所有玩家。无时刻时为空操作。
      */
     static void end(ServerWorld world, FiendMomentRules.EndReason reason) {
         FiendMomentWorldComponent moment = FiendMomentWorldComponent.get(world);
@@ -103,6 +102,7 @@ public final class FiendMomentService {
             return;
         }
         UUID momentMatch = moment.matchId();
+        boolean takesCrowbarBack = FiendMomentRules.takesCrowbarBack(reason, moment.isComplete());
         moment.clear();
         if (reason.marksSpent()) {
             moment.markSpent(fiendId, momentMatch);
@@ -110,6 +110,9 @@ public final class FiendMomentService {
         ServerPlayerEntity fiend = world.getServer().getPlayerManager().getPlayer(fiendId);
         if (fiend != null) {
             FiendMomentEffects.release(fiend);
+            if (takesCrowbarBack) {
+                FiendMomentCrowbar.takeBack(fiend);
+            }
         } else {
             FiendMomentEffects.forget(fiendId);
         }

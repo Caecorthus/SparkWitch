@@ -4,7 +4,6 @@ import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraits
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -63,10 +62,6 @@ public final class FiendBombLedger {
         return passerByHolder.remove(holder);
     }
 
-    @Nullable UUID passerOf(UUID holder) {
-        return passerByHolder.get(holder);
-    }
-
     void drop(UUID holder) {
         passerByHolder.remove(holder);
     }
@@ -81,18 +76,16 @@ public final class FiendBombLedger {
         passerByHolder.clear();
     }
 
-    int size() {
-        return passerByHolder.size();
-    }
-
     /**
      * Pays only when the bomb killed its own holder (not the Taotie that swallowed it), the death is final, and the
-     * recorded passer is still a Fiend who is playing and alive (dormant or in the moment).
-     * 仅当炸弹炸死其持有者本人（而非吞下持有者的饕餮）、死亡为最终死亡，且记录的转手者仍是在局存活的魔人（休眠或时刻中）时发放。
+     * recorded passer is still a dormant Fiend: reactions stop once the moment is bought or the Fiend is spent
+     * (C3, C12, C15).
+     * 仅当炸弹炸死其持有者本人（而非吞下持有者的饕餮）、死亡为最终死亡，且记录的转手者仍是休眠魔人时发放：购买时刻后或
+     * 魔人耗尽后不再有反应（C3、C12、C15）。
      */
     static boolean shouldPay(boolean hasPasser, boolean victimIsHolder, boolean victimFinallyDead,
-                             boolean passerIsLivingFiend) {
-        return hasPasser && victimIsHolder && victimFinallyDead && passerIsLivingFiend;
+                             boolean passerIsDormantFiend) {
+        return hasPasser && victimIsHolder && victimFinallyDead && passerIsDormantFiend;
     }
 
     // ---- Mixin entry points (server only) / Mixin 入口（仅服务端） ----
@@ -123,9 +116,8 @@ public final class FiendBombLedger {
         boolean finallyDead = GameWorldComponent.KEY.get(victim.getWorld()).isPlayerDead(victim.getUuid())
                 && !WitchFactorTraitsBridge.isDeathIntercepted(victim);
         ServerPlayerEntity fiend = victim.getServer().getPlayerManager().getPlayer(passer);
-        boolean livingFiend = fiend != null && FiendParticipation.isFiend(fiend)
-                && GameFunctions.isPlayerPlayingAndAlive(fiend);
-        if (shouldPay(true, victim == holder, finallyDead, livingFiend)) {
+        boolean dormantFiend = fiend != null && FiendParticipation.isDormantFiend(fiend);
+        if (shouldPay(true, victim == holder, finallyDead, dormantFiend)) {
             FiendReactionService.rewardBombPass(fiend);
         }
     }

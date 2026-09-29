@@ -18,11 +18,12 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Dormant Fiend hit reactions (gold, notes, Speed III, cooldown aura) and the bomb-pass payout. Server only. Reactions
  * run only for a kill the immunity actually cancelled (C3), once per attack: same-tick repeats are collapsed by
- * {@link FiendHitLedger}, and a gun kill whose Wathe gun is already cooling down is a synthetic follow-up of a shot that
- * already paid (SparkTraits Niko burst repeats fire 2 and 4 ticks later without firing the gun again).
+ * {@link FiendHitLedger}, and a gun kill while every gun the attacker holds (main and off hand) is already cooling down
+ * is a synthetic follow-up of a shot that already paid (SparkTraits Niko burst repeats fire 2 and 4 ticks later without
+ * firing a gun again); any held gun still ready means this is a real shot.
  * 休眠魔人的受击反应（金币、便条、速度 III、冷却光环）与炸弹转手奖励。仅服务端。只对免疫实际取消的击杀触发（C3），
- * 且每次攻击只触发一次：同一刻的重复由 {@link FiendHitLedger} 合并；若击杀时手中 Wathe 枪已在冷却，则视为已结算射击的
- * 合成补射（SparkTraits Niko 连射在 2、4 刻后补射，不会再次开枪）。
+ * 且每次攻击只触发一次：同一刻的重复由 {@link FiendHitLedger} 合并；若击杀时攻击者手持的每把枪（主手与副手）都已在冷却，
+ * 则视为已结算射击的合成补射（SparkTraits Niko 连射在 2、4 刻后补射，不会再次开枪）；只要有一把手持枪未冷却即为真实射击。
  */
 public final class FiendReactionService {
     static final String GUN_MESSAGE = "message.sparkwitch.fiend.reward.gun";
@@ -65,9 +66,14 @@ public final class FiendReactionService {
         };
     }
 
-    /** A Wathe gun that is already cooling down cannot be firing a fresh shot. / 已在冷却的 Wathe 枪不可能正在开新的一枪。 */
-    static boolean isFollowUpGunResolution(boolean heldWatheGun, boolean heldGunCoolingDown) {
-        return heldWatheGun && heldGunCoolingDown;
+    /**
+     * A follow-up only when the attacker holds at least one gun and every held gun is cooling down: a gun that is
+     * still ready (e.g. an off-hand shotgun) may be firing this shot.
+     * 仅当攻击者至少手持一把枪且所有手持枪都在冷却时才是补射：仍可开火的枪（如副手霰弹枪）可能正在开这一枪。
+     */
+    static boolean isFollowUpGunResolution(boolean mainGun, boolean mainCoolingDown, boolean offGun,
+                                           boolean offCoolingDown) {
+        return (mainGun || offGun) && (!mainGun || mainCoolingDown) && (!offGun || offCoolingDown);
     }
 
     /** Only {@link FiendImmunityService} calls this, after deciding to cancel. / 仅由 {@link FiendImmunityService} 在决定取消后调用。 */
@@ -96,10 +102,16 @@ public final class FiendReactionService {
     }
 
     private static boolean isFollowUpGunResolution(ServerPlayerEntity attacker) {
-        ItemStack held = attacker.getMainHandStack();
-        boolean watheGun = held.isIn(WatheItemTags.GUNS);
-        return isFollowUpGunResolution(watheGun,
-                watheGun && attacker.getItemCooldownManager().isCoolingDown(held.getItem()));
+        ItemStack main = attacker.getMainHandStack();
+        ItemStack off = attacker.getOffHandStack();
+        boolean mainGun = main.isIn(WatheItemTags.GUNS);
+        boolean offGun = off.isIn(WatheItemTags.GUNS);
+        return isFollowUpGunResolution(mainGun, mainGun && isCoolingDown(attacker, main), offGun,
+                offGun && isCoolingDown(attacker, off));
+    }
+
+    private static boolean isCoolingDown(ServerPlayerEntity attacker, ItemStack gun) {
+        return attacker.getItemCooldownManager().isCoolingDown(gun.getItem());
     }
 
     private static void grant(ServerPlayerEntity fiend, Reward reward) {

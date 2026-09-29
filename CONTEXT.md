@@ -217,16 +217,21 @@ the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:esca
 kills (bell toll, time curse) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
 per attack: `wathe:gun_shot` (every gun) +50 gold, Speed III 5 s and a 20 s cooldown floor, applied at
 END_SERVER_TICK through SparkTraits' exact write with a vanilla fallback, on every other participant within
-8 blocks (never shortened); a hand-held stab, recognised only by `FiendStabScope` around Wathe's
-`KnifeStabPayload` receiver, +50 gold and 4 notes; `wathe:bat_hit` and `sparkwitch:ceremonial_blade` +100 gold. A
-bomb the Fiend passed that kills its direct recipient pays +50 (server-only `FiendBombLedger`). The Taotie cannot
+8 blocks (never shortened; NoellesRoles `timed_bomb` is skipped, its cooldown is the Bomber pass gate); a hand-held
+stab, recognised only by `FiendStabScope` around Wathe's `KnifeStabPayload` receiver, +50 gold and 4 notes;
+`wathe:bat_hit` and `sparkwitch:ceremonial_blade` +100 gold. A bomb the Fiend passed that kills its direct
+recipient pays +50 only while the Fiend is still dormant (server-only `FiendBombLedger`). The Taotie cannot
 swallow a dormant Fiend (SparkWitch guard on NoellesRoles `TaotiePlayerComponent.swallowPlayer`; SparkFactionAPI's
-NoellesRoles packet guards do not match the pinned 1.7.6 jar). A dormant Fiend counts as not alive in every
-last-one-standing count: `WitchWinConditions` and Murderous Witch `checkWin` skip it directly, and NoellesRoles'
+NoellesRoles packet guards do not match the pinned 1.7.6 jar), and a dormant Fiend is never a Serial Killer target
+(`SerialKillerPlayerComponentFiendTargetMixin` filters `getEligibleTargets` and `isTargetValid`; the Bodyguard
+copies that target). A dormant Fiend counts as not alive in every last-one-standing count: `WitchWinConditions`
+and Murderous Witch `checkWin` skip it directly, and NoellesRoles'
 Jester-moment and Corrupt Cop loops (`lambda$registerEvents$14` alive-check ordinals 6 and 9),
 `countAliveAndNotSwallowed` and Taotie `hasSwallowedEveryone` reach `FiendWinExclusion` through additive
 `@WrapOperation`s pinned to b58fa5f. The Fiend Moment is a 200-gold, stock-1 shop entry whose all-or-nothing
-`onBuy` starts it (crowbar, Speed IV and one whiskey-shield layer, all for 2400 ticks). `FiendWinService` runs in
+`onBuy` starts it (crowbar, Speed IV and one whiskey-shield layer, all for 2400 ticks); the crowbar carries the
+`sparkwitch:fiend_moment_crowbar` custom-data marker and every marked stack is taken back when the moment ends
+without a win, and a disconnect (`wathe:escaped`) ends it as "ended", not "slain". `FiendWinService` runs in
 phase `sparkwitch:fiend_moment_win`, ordered before `Event.DEFAULT_PHASE` on `CheckWinCondition`: no moment →
 abstain; the moment Fiend offline, dead, swallowed, re-roled or the match changed → end the moment (a swallow
 also marks it spent) and abstain; complete → `neutralWin`; otherwise `block()`, so every other win, `TIME`
