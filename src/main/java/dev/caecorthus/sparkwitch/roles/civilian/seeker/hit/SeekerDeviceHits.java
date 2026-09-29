@@ -1,6 +1,8 @@
 package dev.caecorthus.sparkwitch.roles.civilian.seeker.hit;
 
+import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerBreakSource;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceService;
@@ -185,6 +187,37 @@ public final class SeekerDeviceHits {
         }
         SeekerDeviceService.breakDevice(device, SeekerBreakSource.KNIFE_STAB, attacker);
         attacker.swingHand(attacker.getMainHandStack() == knife ? Hand.MAIN_HAND : Hand.OFF_HAND, true);
+        return true;
+    }
+
+    /**
+     * Swordfish's own receiver validates a main-hand release first. This seam repeats item/cooldown/weapon gates,
+     * the knife's device reach (3 + 0.5 latency), line of sight and the owner-proxy break gate. True means accepted:
+     * the caller consumes the captured Swordfish once and never hits a player behind the device.
+     * 剑鱼自有接收器先校验主手松手记录；本入口重查物品/冷却/武器门槛、刀的设备距离（3 + 0.5 延迟）、视线与
+     * 拥有者代理损坏门槛。true 表示接纳：调用方消耗已捕获的剑鱼一次，绝不击中设备后方玩家。
+     */
+    public static boolean onSwordfishStab(ServerPlayerEntity attacker, @Nullable Entity target) {
+        if (attacker == null || attacker.getWorld().isClient() || attacker.isSpectator()
+                || !(target instanceof SeekerDeviceEntity device) || device.getWorld() != attacker.getWorld()) {
+            return false;
+        }
+        ItemStack swordfish = attacker.getMainHandStack();
+        if (swordfish.isEmpty() || !swordfish.isOf(SparkWitchItems.swordfish())
+                || attacker.getItemCooldownManager().isCoolingDown(swordfish.getItem())
+                || SparkTraitsKillerBridge.blocksWeaponAction(attacker, swordfish)) {
+            return false;
+        }
+        double reach = FisherRules.SWORDFISH_REACH + SeekerDamageRules.KNIFE_REACH_TOLERANCE;
+        if (!isLive(device) || SeekerDeviceRaycast.isOwnDevice(attacker, device)
+                || SeekerDamageRules.squaredDistanceToBox(attacker.getEyePos(), SeekerDeviceRaycast.targetBox(device))
+                > reach * reach
+                || !SeekerDamageRules.hasLineOfSight(attacker.getWorld(), attacker.getEyePos(),
+                device.getBoundingBox(), attacker)
+                || !mayBreak(attacker, device)) {
+            return false;
+        }
+        SeekerDeviceService.breakDevice(device, SeekerBreakSource.SWORDFISH, attacker);
         return true;
     }
 
