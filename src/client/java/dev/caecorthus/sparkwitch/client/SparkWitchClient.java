@@ -30,6 +30,7 @@ import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.client.renderer.HunterTrapEntityRenderer;
 import dev.caecorthus.sparkwitch.client.screen.TarotDivinationSelectorScreen;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
+import dev.caecorthus.sparkwitch.client.tarot.TarotReadingLog;
 import dev.caecorthus.sparkwitch.client.vendetta.VendettaKnifeModelLoadingPlugin;
 import dev.caecorthus.sparkwitch.client.witchmaiden.WitchMaidenClientModule;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
@@ -37,6 +38,7 @@ import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.net.OpenBlackRavenLedgerS2CPacket;
 import dev.caecorthus.sparkwitch.net.OpenTarotDivinationSelectorS2CPacket;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
+import dev.caecorthus.sparkwitch.net.TarotDivinationReadingS2CPacket;
 import dev.caecorthus.sparkwitch.net.TarotDivinationSnapshotS2CPacket;
 import dev.caecorthus.sparkwitch.net.UseWitchSkillC2SPacket;
 import dev.caecorthus.sparkwitch.net.WraithRoleAnnouncementS2CPacket;
@@ -71,6 +73,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
+import net.minecraft.util.Util;
 
 public final class SparkWitchClient implements ClientModInitializer {
     @Override
@@ -250,6 +253,21 @@ public final class SparkWitchClient implements ClientModInitializer {
                             payload.mode(),
                             payload.playerIds(),
                             payload.playerNames()
+                    ));
+                }));
+        // Purchaser-only result; stored so the slip and the selector's stamps repeat what the server already said.
+        // 仅购买者可见的结果；保存下来，供结果条与选择界面的印记重复展示服务端已给出的结论。
+        ClientPlayNetworking.registerGlobalReceiver(TarotDivinationReadingS2CPacket.ID, (payload, context) ->
+                context.client().execute(() -> {
+                    if (!SparkWitchServerConnection.isConfirmedServer()) {
+                        return;
+                    }
+                    TarotDivinationClientState.readingLog().record(new TarotReadingLog.Reading(
+                            payload.mode(),
+                            payload.target(),
+                            payload.displayName(),
+                            payload.positive(),
+                            Util.getMeasuringTimeMs()
                     ));
                 }));
     }

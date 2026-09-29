@@ -81,6 +81,10 @@ public final class SparkWitchPackets {
                 OpenTarotDivinationSelectorS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
+                TarotDivinationReadingS2CPacket.ID,
+                TarotDivinationReadingS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
                 OpenBlackRavenLedgerS2CPacket.ID,
                 OpenBlackRavenLedgerS2CPacket.CODEC
         );
