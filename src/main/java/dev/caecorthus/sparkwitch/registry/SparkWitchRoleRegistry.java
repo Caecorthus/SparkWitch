@@ -29,6 +29,7 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
+import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserRole;
 import dev.caecorthus.sparkwitch.win.WitchWinConditions;
@@ -72,6 +73,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier JUDGE_ID = JudgeRules.ROLE_ID;
     public static final Identifier CONTROL_EXPERT_ID = ControlExpertRules.ROLE_ID;
     public static final Identifier SEEKER_ID = SeekerRules.ROLE_ID;
+    public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -99,6 +101,7 @@ public final class SparkWitchRoleRegistry {
     private static Role judge;
     private static Role controlExpert;
     private static Role seeker;
+    private static Role fiend;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -262,6 +265,11 @@ public final class SparkWitchRoleRegistry {
     public static Role seeker() {
         ensureRegistered();
         return seeker;
+    }
+
+    public static Role fiend() {
+        ensureRegistered();
+        return fiend;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -462,6 +470,19 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .appearanceCondition(context -> SeekerRules.shouldAppear())
                 .build());
+        // Appended last so existing registration order stays unchanged; a Wathe-native neutral (FAKE mood, no tasks),
+        // drawn only in rounds with 18+ players (the same population test as Wathe's own player-count condition).
+        // Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // 追加在最后以保持既有注册顺序不变；Wathe 原生中立（伪装情绪、无任务），仅在 18 人及以上对局中抽取
+        // （与 Wathe 自带人数条件的判断相同）。不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        fiend = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FIEND_ID, FactionIds.NEUTRAL)
+                .color(FiendRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> context.getTotalPlayerCount() >= FiendRules.MIN_PLAYERS)
+                .build());
     }
 
     private static void registerNativeWatheRoles() {
@@ -515,6 +536,7 @@ public final class SparkWitchRoleRegistry {
                 emma,
                 controlExpert,
                 seeker,
+                fiend,
                 windSpirit,
                 guardianAngel,
                 vendetta,
