@@ -9,6 +9,8 @@ SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
 God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, and Bell Ringer gameplay to Wathe.
 It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
 and the Seeker, a police variant with a remote car and a wall camera that shares the same slots.
+It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
+train fall can kill and that may buy a timed Fiend Moment.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -53,6 +55,11 @@ Current build baseline:
   `client/bellringer/`.
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers.
+- `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
+  `sparkwitch:fiend_moment` world component and its pure state, dormant immunity and hit reactions, cooldown
+  aura, bomb-pass ledger, swallow block, last-one-standing exclusion (`FiendWinExclusion`), the Fiend Moment
+  shop, economy, win listener, lifecycle and owned effects. Its mixins live in `mixin/fiend/` and
+  `client/mixin/fiend/`; client presentation (countdown HUD, outline decision) in `client/fiend/`.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
@@ -199,6 +206,37 @@ swallow key on a car in its crosshair (`client/mixin/seeker/SeekerTaotieAbilityK
 cooldown, removes the car without a mark or the 180 s cooldown, and tells the owner without naming
 the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role. The
 Seeker never renders in the `gui.sparkwitch.skills` panel.
+
+Fiend state never enters that shared schema either. `sparkwitch:fiend_moment` is a world component synced to
+every player; its packet carries only a presence flag, the moment Fiend's UUID and remaining ticks (never absolute
+server time or the match id), clients count down only for display, and it is never persisted. It also keeps a
+server-only, never-synced spent ledger bound to the match id. A dormant Fiend (Fiend role, playing and alive, not
+the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:escaped` and `wathe:vanilla_death`:
+`mixin/fiend/GameFunctionsFiendImmunityMixin` is a cancellable HEAD guard on Wathe's 5-arg `killPlayer`
+(priority 1100, so SparkFactionAPI's affect veto runs first) that ignores `force`, so the owner-approved piercing
+kills (bell toll, time curse) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
+per attack: `wathe:gun_shot` (every gun) +50 gold, Speed III 5 s and a 20 s cooldown floor, applied at
+END_SERVER_TICK through SparkTraits' exact write with a vanilla fallback, on every other participant within
+8 blocks (never shortened); a hand-held stab, recognised only by `FiendStabScope` around Wathe's
+`KnifeStabPayload` receiver, +50 gold and 4 notes; `wathe:bat_hit` and `sparkwitch:ceremonial_blade` +100 gold. A
+bomb the Fiend passed that kills its direct recipient pays +50 (server-only `FiendBombLedger`). The Taotie cannot
+swallow a dormant Fiend (SparkWitch guard on NoellesRoles `TaotiePlayerComponent.swallowPlayer`; SparkFactionAPI's
+NoellesRoles packet guards do not match the pinned 1.7.6 jar). A dormant Fiend counts as not alive in every
+last-one-standing count: `WitchWinConditions` and Murderous Witch `checkWin` skip it directly, and NoellesRoles'
+Jester-moment and Corrupt Cop loops (`lambda$registerEvents$14` alive-check ordinals 6 and 9),
+`countAliveAndNotSwallowed` and Taotie `hasSwallowedEveryone` reach `FiendWinExclusion` through additive
+`@WrapOperation`s pinned to b58fa5f. The Fiend Moment is a 200-gold, stock-1 shop entry whose all-or-nothing
+`onBuy` starts it (crowbar, Speed IV and one whiskey-shield layer, all for 2400 ticks). `FiendWinService` runs in
+phase `sparkwitch:fiend_moment_win`, ordered before `Event.DEFAULT_PHASE` on `CheckWinCondition`: no moment →
+abstain; the moment Fiend offline, dead, swallowed, re-roled or the match changed → end the moment (a swallow
+also marks it spent) and abstain; complete → `neutralWin`; otherwise `block()`, so every other win, `TIME`
+included, waits. The moment Fiend's crowbar cooldown is written as exactly 5 s after a door pry or vent-hatch use,
+without a second redirect. The client outline is a cancellable HEAD on `WatheClient.getInstinctHighlight`
+(`remap = false`, priority 500; lower-priority HEADs run first, so it precedes SparkTraits, fear, Wraith and Black
+Raven): while a moment is active the moment Fiend sees every other playing, living, non-spectator player and every
+other viewer sees the moment Fiend, both in `FiendRules.COLOR`; other pairs fall through. The countdown HUD is a
+`HudRenderCallback` line for every player, never the action bar. The Fiend is absent from
+`isRegisteredSparkWitchRole` and `WitchSkillRegistry` and never renders in the `gui.sparkwitch.skills` panel.
 
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
