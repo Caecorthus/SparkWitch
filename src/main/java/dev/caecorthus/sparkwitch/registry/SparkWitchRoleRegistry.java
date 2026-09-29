@@ -18,6 +18,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaRole;
@@ -72,6 +73,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier JUDGE_ID = JudgeRules.ROLE_ID;
     public static final Identifier CONTROL_EXPERT_ID = ControlExpertRules.ROLE_ID;
     public static final Identifier SEEKER_ID = SeekerRules.ROLE_ID;
+    public static final Identifier FISHER_ID = FisherRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -99,6 +101,7 @@ public final class SparkWitchRoleRegistry {
     private static Role judge;
     private static Role controlExpert;
     private static Role seeker;
+    private static Role fisher;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -262,6 +265,11 @@ public final class SparkWitchRoleRegistry {
     public static Role seeker() {
         ensureRegistered();
         return seeker;
+    }
+
+    public static Role fisher() {
+        ensureRegistered();
+        return fisher;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -462,6 +470,15 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .appearanceCondition(context -> SeekerRules.shouldAppear())
                 .build());
+        // Appended last so existing registration order stays unchanged; an ordinary task-funded civilian.
+        // 追加在最后以保持既有注册顺序不变；依靠任务赚钱的普通平民职业。
+        fisher = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FISHER_ID, FactionIds.CIVILIAN)
+                .color(FisherRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
     }
 
     private static void registerNativeWatheRoles() {
@@ -502,6 +519,7 @@ public final class SparkWitchRoleRegistry {
                 perfumer,
                 pigGod,
                 tarotReader,
+                fisher,
                 judge,
                 ninja,
                 blackRaven,

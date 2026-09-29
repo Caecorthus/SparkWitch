@@ -13,6 +13,8 @@ public final class SparkWitchDeathReasons {
      * 所有者批准的例外：穿透所有护盾的强制击杀，并注册为 SparkTraits 终结死亡原因。
      */
     public static final Identifier BELL_TOLL = SparkWitch.id("bell_toll");
+    /** Ordinary, non-forced Swordfish stab kill. / 普通、非强制的剑鱼刺杀。 */
+    public static final Identifier SWORDFISH_STAB = SparkWitch.id("swordfish_stab");
 
     private SparkWitchDeathReasons() {
     }
