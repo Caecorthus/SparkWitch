@@ -72,6 +72,8 @@
     "controlexpert.ControlExpertStunMinecraftClientMixin",
     "controlexpert.ControlExpertStunMouseMixin",
     "controlexpert.TaserCrosshairMixin",
+    "fisher.FisherHeldItemFeatureRendererMixin",
+    "fisher.SwordfishCrosshairMixin",
     "kidnapper.KidnapperBodyPoseMixin",
     "kidnapper.KidnapperControlledHudMixin",
     "kidnapper.KidnapperControlledKeyMixin",
