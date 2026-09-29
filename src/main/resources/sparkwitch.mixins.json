@@ -83,7 +83,13 @@
     "controlexpert.ControlExpertPoliceGunMixin",
     "controlexpert.ControlExpertStunPayloadGuardMixin",
     "controlexpert.ScreenHandlerControlExpertItemMixin",
+    "fiend.BomberPlayerComponentFiendLedgerMixin",
     "fiend.CrowbarItemFiendCooldownMixin",
+    "fiend.GameFunctionsFiendImmunityMixin",
+    "fiend.KnifeStabPayloadFiendStabScopeMixin",
+    "fiend.NoellesRolesFiendAliveCountMixin",
+    "fiend.TaotiePlayerComponentFiendMixin",
+    "fiend.TaotiePlayerComponentFiendSwallowMixin",
     "fiend.VentHatchBlockFiendCooldownMixin",
     "hunter.GunShootPayloadShotgunGuardMixin",
     "hunter.HunterPlayerMoveMixin",
@@ -110,11 +116,7 @@
     "witchmaiden.FoodPlatterBlockPoisonAppleMixin",
     "witchmaiden.ItemStackPoisonAppleDrinkMixin",
     "accessor.ItemCooldownEntryAccessor",
-    "accessor.ItemCooldownManagerAccessor",
-    "fiend.GameFunctionsFiendImmunityMixin",
-    "fiend.KnifeStabPayloadFiendStabScopeMixin",
-    "fiend.BomberPlayerComponentFiendLedgerMixin",
-    "fiend.TaotiePlayerComponentFiendSwallowMixin"
+    "accessor.ItemCooldownManagerAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
