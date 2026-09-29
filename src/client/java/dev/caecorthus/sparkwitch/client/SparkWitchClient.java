@@ -97,6 +97,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
         SeekerClientModule.register();
+        dev.caecorthus.sparkwitch.client.fiend.FiendClient.init();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
