@@ -74,6 +74,7 @@
     "controlexpert.TaserCrosshairMixin",
     "fisher.FisherHeldItemFeatureRendererMixin",
     "fisher.SwordfishCrosshairMixin",
+    "fisher.SwordfishItemMixin",
     "kidnapper.KidnapperBodyPoseMixin",
     "kidnapper.KidnapperControlledHudMixin",
     "kidnapper.KidnapperControlledKeyMixin",

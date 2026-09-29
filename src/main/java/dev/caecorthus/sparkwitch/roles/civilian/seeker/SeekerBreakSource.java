@@ -26,7 +26,9 @@ public enum SeekerBreakSource {
     GRENADE(Kind.BLAST),
     M67(Kind.BLAST),
     /** Fell out of the train or left the play area: 180 s, never marks. / 掉出列车或离开游戏区域：180 秒，不标记。 */
-    VOID(Kind.ENVIRONMENT);
+    VOID(Kind.ENVIRONMENT),
+    /** Independent single-use Fisher weapon; keeps its own item/payload identity. / 钓鱼佬独立的一次性武器与数据包。 */
+    SWORDFISH(Kind.RAY);
 
     /** Geometry family; rays and projectiles use nearest-wins blocking, blasts do not. / 几何类别。 */
     public enum Kind {
