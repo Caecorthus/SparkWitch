@@ -25,13 +25,17 @@ public final class FiendParticipation {
     }
 
     /**
-     * Fiend role, playing and alive in Wathe, and not the moment Fiend: the immune, outcome-neutral state.
-     * 拥有魔人职业、在 Wathe 中参与且存活，且不是时刻中的魔人：即免疫且不影响胜负的状态。
+     * Fiend role, playing and alive in Wathe, not the moment Fiend, and not spent (its moment ended by a Taotie
+     * swallow): the immune, outcome-neutral state. The spent check is server-only; on the client the ledger is empty,
+     * so no client code may rely on this predicate.
+     * 拥有魔人职业、在 Wathe 中参与且存活、不是时刻中的魔人，且未耗尽（其时刻未因饕餮吞噬而结束）：即免疫且不影响胜负的状态。
+     * 耗尽检查仅在服务端有效；客户端登记表为空，因此客户端代码不得依赖此判断。
      */
     public static boolean isDormantFiend(@Nullable PlayerEntity player) {
         return isFiend(player)
                 && GameFunctions.isPlayerPlayingAndAlive(player)
-                && !FiendMomentWorldComponent.isMomentFiend(player);
+                && !FiendMomentWorldComponent.isMomentFiend(player)
+                && !FiendMomentWorldComponent.isSpentFiend(player);
     }
 
     /** Fiend role and owner of the active moment. / 拥有魔人职业且为当前时刻的拥有者。 */

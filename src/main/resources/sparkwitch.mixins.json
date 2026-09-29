@@ -83,6 +83,8 @@
     "controlexpert.ControlExpertPoliceGunMixin",
     "controlexpert.ControlExpertStunPayloadGuardMixin",
     "controlexpert.ScreenHandlerControlExpertItemMixin",
+    "fiend.CrowbarItemFiendCooldownMixin",
+    "fiend.VentHatchBlockFiendCooldownMixin",
     "hunter.GunShootPayloadShotgunGuardMixin",
     "hunter.HunterPlayerMoveMixin",
     "hunter.PlayerPoisonComponentHunterSourceMixin",
