@@ -801,7 +801,7 @@
   "message.sparkwitch.fisher.skunk": "Nothing bit…",
   "message.sparkwitch.fisher.pufferfish": "You hooked a pufferfish! It is puffing up on the tray…",
   "message.sparkwitch.fisher.no_bait": "You are out of Bait.",
-  "message.sparkwitch.fisher.inventory_full": "Your inventory is full; there is no room for a fish.",
+  "message.sparkwitch.fisher.inventory_full": "Your hotbar is full; there is no room for a fish.",
   "message.sparkwitch.fisher.pufferfish_sting": "A pufferfish pricked you!",
   "message.sparkwitch.fisher.glimmer_start": "A glimmer of insight!",
   "message.sparkwitch.fisher.glimmer_end": "The glimmer fades.",

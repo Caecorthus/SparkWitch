@@ -219,7 +219,8 @@ vanilla `DoorBlock` doors (never trapdoors or gates) only for a glimmering playe
 so client prediction and server validation agree; SparkFactionAPI's entity-collision exemption
 reads the same flag on both sides (`noellesroles:no_collision` alone is one-sided). Glimmerfish
 claims only the invisibility instance it created in an empty slot; any foreign merge gives up its
-removal right. Expiry inside a door moves the player to a validated safe spot before clearing.
+removal right. Expiry inside a door first tries to move the player to a validated safe spot (door
+sides, lateral offsets, then the last safe position); if none validates it only logs and clears.
 The rod, bait and edible fish are hidden in hand through `NoellesHiddenEquipment`; the Key Fish and
 Swordfish stay visible. Fishing is a Fabric `UseBlockCallback` in its own phase after the existing
 interaction guards, for a main-hand rod on `wathe:drink_tray` only: the client answers SUCCESS (the

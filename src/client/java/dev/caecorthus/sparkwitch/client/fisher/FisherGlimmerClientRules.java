@@ -15,11 +15,13 @@ import java.util.Locale;
 public final class FisherGlimmerClientRules {
     public static final int OUTLINE_COLOR = FisherRules.COLOR;
     /**
-     * Above ordinary role highlights, below Wathe/SparkWitch suppressors such as fear and obscure
-     * ({@code PRIORITY_HIGH + 2}), so a suppressed viewer still sees nothing.
-     * 高于普通职业高亮，低于恐惧、障眼等压制（{@code PRIORITY_HIGH + 2}），被压制的观察者依旧什么都看不到。
+     * Above every ordinary role highlight (NoellesRoles' keyed Undercover highlight sits at {@code PRIORITY_HIGH}),
+     * so the window stays keyless and uniform; still below the fear / obscure / Final Moment suppressors
+     * ({@code PRIORITY_HIGH + 2}), so a suppressed viewer sees nothing.
+     * 高于所有普通职业高亮（NoellesRoles 需按键的卧底高亮位于 {@code PRIORITY_HIGH}），窗口因此保持免按键、单一颜色；
+     * 仍低于恐惧 / 障眼 / 最终时刻压制（{@code PRIORITY_HIGH + 2}），被压制的观察者依旧什么都看不到。
      */
-    public static final int OUTLINE_PRIORITY = GetInstinctHighlight.HighlightResult.PRIORITY_HIGH - 10;
+    public static final int OUTLINE_PRIORITY = GetInstinctHighlight.HighlightResult.PRIORITY_HIGH + 1;
     /** Beats every role highlight of an invisible glimmering target (SparkStrength's serum uses 300 too). / 覆盖所有职业高亮。 */
     public static final int HIDE_PRIORITY = 300;
     public static final String HUD_KEY = "hud.sparkwitch.fisher.glimmer";
