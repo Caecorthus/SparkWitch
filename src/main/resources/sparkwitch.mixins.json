@@ -102,6 +102,7 @@
     "seeker.SeekerSprintLockMixin",
     "seeker.SeekerTaotieCooldownAccessor",
     "seeker.SeekerThrowingAxeMixin",
+    "fisher.FisherDoorPassingMixin",
     "tofana.GameFunctionsTofanaProtectionMixin",
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleMixin",
     "witchmaiden.BlockEntityPoisonAppleLifecycleMixin",
