@@ -108,7 +108,9 @@
     "witchmaiden.FoodPlatterBlockPoisonAppleMixin",
     "witchmaiden.ItemStackPoisonAppleDrinkMixin",
     "accessor.ItemCooldownEntryAccessor",
-    "accessor.ItemCooldownManagerAccessor"
+    "accessor.ItemCooldownManagerAccessor",
+    "fiend.NoellesRolesFiendAliveCountMixin",
+    "fiend.TaotiePlayerComponentFiendMixin"
   ],
   "injectors": {
     "defaultRequire": 1
