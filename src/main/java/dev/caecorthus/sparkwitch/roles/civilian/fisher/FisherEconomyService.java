@@ -22,7 +22,7 @@ public final class FisherEconomyService {
         }
         registered = true;
         CanSeeMoney.EVENT.register(player -> player != null
-                ? moneyVisibility(FisherTargeting.isLivingParticipant(player),
+                ? moneyVisibility(FisherParticipants.isLivingParticipant(player),
                         GameWorldComponent.KEY.get(player.getWorld()).getRole(player)) : null);
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer && FisherRules.isFisher(role)) {

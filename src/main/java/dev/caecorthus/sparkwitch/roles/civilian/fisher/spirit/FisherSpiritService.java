@@ -1,12 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherParticipants;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.player.PlayerEntity;
@@ -58,7 +58,7 @@ public final class FisherSpiritService {
     /** Server only. Starts (or restarts) the 156-tick window; returns whether it started. / 仅服务端。 */
     public static boolean start(ServerPlayerEntity player) {
         String matchId = currentMatchId();
-        if (!isLivingParticipant(player) || matchId == null) {
+        if (!canStart(player, matchId)) {
             return false;
         }
         FisherSpiritComponent component = FisherSpiritComponent.KEY.get(player);
@@ -79,7 +79,7 @@ public final class FisherSpiritService {
     }
 
     static void tick(ServerPlayerEntity player, FisherSpiritComponent component) {
-        if (!isLivingParticipant(player) || component.startedWorld != player.getServerWorld()
+        if (!FisherParticipants.isLivingParticipant(player) || component.startedWorld != player.getServerWorld()
                 || !Objects.equals(component.matchId, currentMatchId())) {
             end(player, false);
             return;
@@ -108,9 +108,13 @@ public final class FisherSpiritService {
         }
     }
 
-    private static boolean isLivingParticipant(ServerPlayerEntity player) {
-        return player != null && !player.isDisconnected() && player.isAlive() && !player.isSpectator()
-                && GameFunctions.isPlayerPlayingAndAlive(player);
+    /** Side-effect-free preflight; a transferred fish never requires the Angler role. / 无副作用预检，不限制职业。 */
+    public static boolean canStart(ServerPlayerEntity player) {
+        return canStart(player, currentMatchId());
+    }
+
+    private static boolean canStart(ServerPlayerEntity player, @Nullable String matchId) {
+        return FisherParticipants.isLivingParticipant(player) && matchId != null;
     }
 
     private static @Nullable String currentMatchId() {

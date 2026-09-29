@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
@@ -29,8 +30,13 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -43,7 +49,7 @@ public final class SwordfishStabService {
     private SwordfishStabService() {
     }
 
-    public static void register() {
+    public static synchronized void register() {
         if (registered) {
             return;
         }
@@ -67,7 +73,7 @@ public final class SwordfishStabService {
         }
         clearPlayer(player);
         ItemStack stack = player.getMainHandStack();
-        if (!SwordfishRules.qualifiedHold(heldTicks) || !player.isUsingItem()
+        if (!SwordfishRules.qualifiedServerHold(heldTicks) || !player.isUsingItem()
                 || player.getActiveHand() != Hand.MAIN_HAND || player.getActiveItem() != stack
                 || !canUse(player, stack)) {
             return;
@@ -92,20 +98,8 @@ public final class SwordfishStabService {
             return;
         }
 
-        Entity entity = attacker.getServerWorld().getEntityById(targetEntityId);
-        if (entity instanceof ServerPlayerEntity target) {
-            if (!validPlayerGeometry(attacker, target)) {
-                return;
-            }
-            // Recheck the nearer-device seam on the server; a forged player id cannot stab through a device.
-            // 服务端重查更近设备；伪造玩家 id 不能穿过设备刺人。
-            Vec3d eye = attacker.getEyePos();
-            SeekerDeviceEntity blocker = SeekerDeviceRaycast.blockingDevice(attacker, eye,
-                    eye.add(attacker.getRotationVec(0.0F).multiply(FisherRules.SWORDFISH_REACH)), target);
-            if (blocker != null) {
-                entity = blocker;
-            }
-        }
+        Entity submitted = attacker.getServerWorld().getEntityById(targetEntityId);
+        Entity entity = resolveAimedTarget(attacker, submitted);
         if (entity instanceof SeekerDeviceEntity device) {
             if (SeekerDeviceHits.onSwordfishStab(attacker, device)) {
                 consume(attacker, stack);
@@ -156,15 +150,59 @@ public final class SwordfishStabService {
     }
 
     private static boolean isParticipant(ServerPlayerEntity player) {
-        return player != null && !player.isDisconnected() && player.isAlive()
+        return FisherParticipants.isLivingParticipant(player)
                 && GameWorldComponent.KEY.get(player.getWorld()).getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
-                && GameFunctions.isPlayerPlayingAndAlive(player) && GameFunctions.isPlayerAliveAndSurvival(player)
                 && !WraithStateService.isActive(player);
     }
 
     private static boolean validPlayerGeometry(ServerPlayerEntity attacker, ServerPlayerEntity target) {
         return SwordfishRules.acceptsPlayerHit(isParticipant(target), attacker.getUuid().equals(target.getUuid()),
                 attacker.squaredDistanceTo(target), attacker.canSee(target));
+    }
+
+    private static @Nullable Entity resolveAimedTarget(ServerPlayerEntity attacker, @Nullable Entity submitted) {
+        if (!isAimCandidate(attacker, submitted)) {
+            return null;
+        }
+        Vec3d start = attacker.getEyePos();
+        Vec3d end = start.add(attacker.getRotationVec(1.0F).multiply(FisherRules.SWORDFISH_REACH));
+        HitResult block = attacker.getWorld().raycast(new RaycastContext(start, end,
+                RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, attacker));
+        if (block.getType() != HitResult.Type.MISS) {
+            end = block.getPos();
+        }
+        if (SwordfishRules.entryDistanceSquared(start, end, aimBox(submitted)) < 0.0) {
+            return null;
+        }
+
+        // Compare all eligible players and foreign devices on THIS ray, never on a ray toward the submitted id.
+        // 在这一条射线上比较所有合格玩家与他人设备；绝不向数据包所报目标另发一条射线。
+        Box search = new Box(start, end).expand(1.0);
+        var candidates = new ArrayList<Entity>();
+        candidates.addAll(attacker.getServerWorld().getEntitiesByClass(ServerPlayerEntity.class, search,
+                target -> isAimCandidate(attacker, target)));
+        candidates.addAll(attacker.getServerWorld().getEntitiesByClass(SeekerDeviceEntity.class, search,
+                device -> isAimCandidate(attacker, device)));
+        Entity nearest = SwordfishRules.nearestOnRay(start, end, candidates, SwordfishStabService::aimBox);
+        // A nearer device intercepts; a different nearer player rejects the request instead of changing the victim.
+        // 更近设备拦截；若另一个玩家更近则拒绝请求，不擅自更换受害者。
+        return nearest == submitted || nearest instanceof SeekerDeviceEntity ? nearest : null;
+    }
+
+    private static boolean isAimCandidate(ServerPlayerEntity attacker, @Nullable Entity entity) {
+        if (entity == null || entity.getWorld() != attacker.getWorld()) {
+            return false;
+        }
+        if (entity instanceof ServerPlayerEntity target) {
+            return validPlayerGeometry(attacker, target);
+        }
+        return entity instanceof SeekerDeviceEntity device && device.isAlive() && !device.isRemoved()
+                && !SeekerDeviceRaycast.isOwnDevice(attacker, device);
+    }
+
+    private static Box aimBox(Entity entity) {
+        double margin = entity instanceof SeekerDeviceEntity device ? Math.max(0.0, device.targetingMargin()) : 0.0;
+        return entity.getBoundingBox().expand(margin + SwordfishRules.AIM_TOLERANCE);
     }
 
     private static void consume(ServerPlayerEntity attacker, ItemStack stack) {

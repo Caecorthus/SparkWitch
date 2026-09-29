@@ -75,6 +75,7 @@ public final class SwordfishItem extends Item {
 
     @Override
     public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
+        super.appendTooltip(stack, context, tooltip, type);
         FisherItemTooltips.append(tooltip, FisherRules.SWORDFISH_ID, TOOLTIP_LINES);
     }
 }

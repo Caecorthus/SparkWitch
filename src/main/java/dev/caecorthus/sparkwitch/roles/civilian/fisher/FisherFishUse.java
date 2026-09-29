@@ -22,9 +22,15 @@ public final class FisherFishUse {
     }
 
     public static boolean use(ServerPlayerEntity player, ItemStack stack, FisherFishKind kind) {
-        if (!FisherTargeting.isLivingParticipant(player) || stack.isEmpty()
+        if (!FisherParticipants.isLivingParticipant(player) || stack.isEmpty()
                 || !(stack.getItem() instanceof FisherFishItem fish) || fish.kind() != kind
                 || fishItems().stream().anyMatch(player.getItemCooldownManager()::isCoolingDown)) {
+            return false;
+        }
+        // Complete the fallible window start before any cost or mood reward; both calls share the same gate.
+        // 先完成可能拒绝的窗口启动，再扣鱼或恢复理智；预检与启动使用同一门槛。
+        if (kind == FisherFishKind.GLIMMERFISH
+                && (!FisherSpiritService.canStart(player) || !FisherSpiritService.start(player))) {
             return false;
         }
         stack.decrement(1);
@@ -34,7 +40,6 @@ public final class FisherFishUse {
             case CLOWNFISH -> player.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED,
                     FisherRules.CLOWNFISH_SPEED_TICKS, FisherRules.CLOWNFISH_SPEED_AMPLIFIER, false, false, true));
             case GOLDFISH -> PlayerShopComponent.KEY.get(player).addToBalance(FisherRules.GOLDFISH_COINS);
-            case GLIMMERFISH -> FisherSpiritService.start(player);
             default -> { }
         }
         for (Item item : fishItems()) {

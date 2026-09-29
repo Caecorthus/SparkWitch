@@ -61,7 +61,7 @@ public final class FisherFishingService {
 
     private static void fish(ServerPlayerEntity fisher, BlockHitResult hit) {
         GameWorldComponent game = GameWorldComponent.KEY.get(fisher.getWorld());
-        if (!FisherTargeting.isLivingParticipant(fisher) || !FisherRules.isFisher(game.getRole(fisher))
+        if (!FisherParticipants.isLivingParticipant(fisher) || !FisherRules.isFisher(game.getRole(fisher))
                 || fisher.getItemCooldownManager().isCoolingDown(SparkWitchItems.fishingRod())) {
             return;
         }
@@ -71,18 +71,18 @@ public final class FisherFishingService {
             return;
         }
 
-        // Draw once to know which visible slot is needed, then commit only after capacity passes.
-        // 只抽一次以确定所需可见槽位，通过容量校验后才提交消耗与奖励。
-        FisherCatch caught = FisherCatchTable.roll(fisher.getServerWorld().random);
-        ItemStack catchStack = catchStack(caught);
-        int slot = caught.givesItem() ? FisherInventory.catchSlot(fisher.getInventory().main, catchStack) : -1;
-        if (caught.givesItem() && slot < 0) {
+        // Capacity must not depend on the catch, or a full hotbar can filter the random outcomes for free.
+        // 容量不得依赖渔获种类，否则满快捷栏可以免费筛选随机结果。
+        int slot = FisherInventory.catchSlot(fisher.getInventory().main, bait);
+        if (slot < 0) {
+            fisher.getItemCooldownManager().set(SparkWitchItems.fishingRod(), FisherRules.ROD_COOLDOWN_TICKS);
             fisher.sendMessage(Text.translatable("message.sparkwitch.fisher.inventory_full"), true);
             return;
         }
+        FisherCatch caught = FisherCatchTable.roll(fisher.getServerWorld().random);
         bait.decrement(1);
         if (caught.givesItem()) {
-            FisherInventory.deliver(fisher.getInventory().main, slot, catchStack);
+            FisherInventory.deliver(fisher.getInventory().main, slot, catchStack(caught));
         } else if (caught == FisherCatch.PUFFERFISH) {
             FisherPufferfishService.spawnAt(fisher.getServerWorld(), hit.getBlockPos(), fisher);
         }

@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.mixin.fisher;
 
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherDoorPassingRules;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherRaycastScope;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.BlockState;
@@ -18,8 +19,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * The same synced capability gates client movement prediction and server collision validation. Absent entity
- * contexts retain ordinary shapes for safe-exit probes; door state, raycasts and other entities are untouched.
- * 同一同步能力控制客户端移动预测与服务端碰撞校验。无实体上下文保留普通形状供安全退出探测；不修改门状态、射线或其他实体。
+ * contexts retain ordinary shapes for safe-exit probes. RaycastContext queries explicitly bypass this exemption.
+ * 同一同步能力控制客户端移动预测与服务端碰撞校验。无实体上下文保留安全退出探测形状；射线查询显式跳过穿门豁免。
  */
 @Mixin(AbstractBlock.AbstractBlockState.class)
 public abstract class FisherDoorPassingMixin {
@@ -28,7 +29,7 @@ public abstract class FisherDoorPassingMixin {
             at = @At("HEAD"), cancellable = true)
     private void sparkwitch$fisherPassesDoors(BlockView world, BlockPos pos, ShapeContext context,
                                              CallbackInfoReturnable<VoxelShape> cir) {
-        if (context instanceof EntityShapeContext entityContext
+        if (!FisherRaycastScope.isRaycast() && context instanceof EntityShapeContext entityContext
                 && entityContext.getEntity() instanceof PlayerEntity player
                 && FisherDoorPassingRules.isDoor((BlockState) (Object) this)
                 && FisherSpiritComponent.KEY.get(player).isActive()) {

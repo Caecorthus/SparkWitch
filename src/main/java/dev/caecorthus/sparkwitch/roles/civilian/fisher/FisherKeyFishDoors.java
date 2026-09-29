@@ -47,14 +47,11 @@ public final class FisherKeyFishDoors {
             return HANDLED;
         }
 
-        // Never toggle an already-open neighbor shut, or touch it after a same-tick primary no-op.
-        // 绝不把已打开的另一扇门关上；本扇门同 tick 切换失败时也不触碰另一扇。
+        // Wathe's toggleOpen already toggles the paired leaf; a second same-tick toggle is ignored.
+        // Wathe 的 toggleOpen 已联动另一扇门，同 tick 的再次切换会被忽略。
         door.toggle(false);
         if (!door.isOpen()) {
             return HANDLED;
-        }
-        if (neighbor != null && !neighbor.isOpen()) {
-            neighbor.toggle(true);
         }
         if (neighbor == null || neighbor.isOpen()) {
             // Context handItem is a copy; consume the actual held stack only after the whole doorway opens.

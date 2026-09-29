@@ -19,7 +19,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
-/** Round-start rod and Angler cleanup. Glimmer state belongs to WP4. / 开局鱼竿与钓鱼佬清理；灵光状态归 WP4。 */
+/** Round-start rod and Angler cleanup; the spirit service owns Glimmerfish state. / 开局鱼竿与钓鱼佬清理；灵光状态归灵光服务。 */
 public final class FisherLifecycleService {
     private static final Identifier FINISH_INITIALIZE_PHASE = SparkWitch.id("fisher_finish_initialize");
     private static boolean registered;
@@ -36,7 +36,7 @@ public final class FisherLifecycleService {
         ServerLifecycleEvents.SERVER_STARTED.register(started -> server = started);
         ServerLifecycleEvents.SERVER_STOPPING.register(FisherPufferfishService::sweepAll);
         ServerLifecycleEvents.SERVER_STOPPED.register(stopped -> {
-            FisherPufferfishService.sweepAll(stopped);
+            FisherPufferfishService.clearTracking();
             server = null;
         });
         GameEvents.ON_GAME_START.register(mode -> {

@@ -91,13 +91,13 @@ public final class FisherPufferfishService {
             ServerPlayerEntity fisher = server.getPlayerManager().getPlayer(tracked.fisher());
             for (ServerPlayerEntity target : ((ServerWorld) fish.getWorld()).getPlayers()) {
                 Role role = game.getRole(target);
-                if (!FisherTargeting.isLivingParticipant(target) || role == null || role.getMoodType() != Role.MoodType.REAL
+                if (!FisherParticipants.isLivingParticipant(target) || role == null || role.getMoodType() != Role.MoodType.REAL
                         || !fish.getBoundingBox().intersects(target.getBoundingBox())
                         || !stingReady(now, LAST_STING.get(target.getUuid()))) {
                     continue;
                 }
-                if (!target.getUuid().equals(tracked.fisher()) && fisher != null
-                        && !SparkFactionApi.canAffectPlayer(fisher, target, STING_ACTION, game)) {
+                if (!target.getUuid().equals(tracked.fisher())
+                        && (fisher == null || !SparkFactionApi.canAffectPlayer(fisher, target, STING_ACTION, game))) {
                     continue;
                 }
                 // One shared per-player cooldown prevents several fish from stacking stings within two seconds.
@@ -133,8 +133,7 @@ public final class FisherPufferfishService {
         for (TrackedFish tracked : FISH.values()) {
             tracked.fish().discard();
         }
-        FISH.clear();
-        LAST_STING.clear();
+        clearTracking();
         for (ServerWorld world : server.getWorlds()) {
             var tagged = new ArrayList<Entity>();
             for (Entity entity : world.iterateEntities()) {
@@ -144,6 +143,12 @@ public final class FisherPufferfishService {
             }
             tagged.forEach(Entity::discard);
         }
+    }
+
+    /** After SERVER_STOPPED, release references without touching closed worlds. / 服务端停止后只释放引用，不访问已关闭世界。 */
+    static void clearTracking() {
+        FISH.clear();
+        LAST_STING.clear();
     }
 
     private static boolean isTagged(Entity entity) {

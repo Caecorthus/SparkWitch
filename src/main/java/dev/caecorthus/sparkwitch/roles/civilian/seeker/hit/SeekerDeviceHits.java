@@ -177,24 +177,18 @@ public final class SeekerDeviceHits {
             return false;
         }
         double reach = SeekerDamageRules.KNIFE_REACH + SeekerDamageRules.KNIFE_REACH_TOLERANCE;
-        if (!isLive(device) || SeekerDeviceRaycast.isOwnDevice(attacker, device)
-                || SeekerDamageRules.squaredDistanceToBox(attacker.getEyePos(), SeekerDeviceRaycast.targetBox(device))
-                > reach * reach
-                || !SeekerDamageRules.hasLineOfSight(attacker.getWorld(), attacker.getEyePos(),
-                device.getBoundingBox(), attacker)
-                || !mayBreak(attacker, device)) {
+        if (!breakStabbedDevice(attacker, device, reach, SeekerBreakSource.KNIFE_STAB)) {
             return false;
         }
-        SeekerDeviceService.breakDevice(device, SeekerBreakSource.KNIFE_STAB, attacker);
         attacker.swingHand(attacker.getMainHandStack() == knife ? Hand.MAIN_HAND : Hand.OFF_HAND, true);
         return true;
     }
 
     /**
-     * Swordfish's own receiver validates a main-hand release first. This seam repeats item/cooldown/weapon gates,
+     * Swordfish's own receiver validates a main-hand release and nearest aim-ray hit first. This seam repeats item/cooldown/weapon gates,
      * the knife's device reach (3 + 0.5 latency), line of sight and the owner-proxy break gate. True means accepted:
      * the caller consumes the captured Swordfish once and never hits a player behind the device.
-     * 剑鱼自有接收器先校验主手松手记录；本入口重查物品/冷却/武器门槛、刀的设备距离（3 + 0.5 延迟）、视线与
+     * 剑鱼自有接收器先校验主手松手记录与瞄准射线最近命中；本入口重查物品/冷却/武器门槛、刀的设备距离（3 + 0.5 延迟）、视线与
      * 拥有者代理损坏门槛。true 表示接纳：调用方消耗已捕获的剑鱼一次，绝不击中设备后方玩家。
      */
     public static boolean onSwordfishStab(ServerPlayerEntity attacker, @Nullable Entity target) {
@@ -209,16 +203,7 @@ public final class SeekerDeviceHits {
             return false;
         }
         double reach = FisherRules.SWORDFISH_REACH + SeekerDamageRules.KNIFE_REACH_TOLERANCE;
-        if (!isLive(device) || SeekerDeviceRaycast.isOwnDevice(attacker, device)
-                || SeekerDamageRules.squaredDistanceToBox(attacker.getEyePos(), SeekerDeviceRaycast.targetBox(device))
-                > reach * reach
-                || !SeekerDamageRules.hasLineOfSight(attacker.getWorld(), attacker.getEyePos(),
-                device.getBoundingBox(), attacker)
-                || !mayBreak(attacker, device)) {
-            return false;
-        }
-        SeekerDeviceService.breakDevice(device, SeekerBreakSource.SWORDFISH, attacker);
-        return true;
+        return breakStabbedDevice(attacker, device, reach, SeekerBreakSource.SWORDFISH);
     }
 
     /** Control Expert taser server targeting; a device hit stuns nobody. / 控场专家电击枪；命中设备时不眩晕任何人。 */
@@ -333,6 +318,20 @@ public final class SeekerDeviceHits {
     }
 
     // ---- Internal ----
+
+    private static boolean breakStabbedDevice(ServerPlayerEntity attacker, SeekerDeviceEntity device,
+                                             double reach, SeekerBreakSource source) {
+        if (!isLive(device) || SeekerDeviceRaycast.isOwnDevice(attacker, device)
+                || SeekerDamageRules.squaredDistanceToBox(attacker.getEyePos(), SeekerDeviceRaycast.targetBox(device))
+                > reach * reach
+                || !SeekerDamageRules.hasLineOfSight(attacker.getWorld(), attacker.getEyePos(),
+                device.getBoundingBox(), attacker)
+                || !mayBreak(attacker, device)) {
+            return false;
+        }
+        SeekerDeviceService.breakDevice(device, source, attacker);
+        return true;
+    }
 
     /**
      * Validated targeted break for a trusted client pick (Wathe gun / Demon Hunter): distance, multi-point line of
