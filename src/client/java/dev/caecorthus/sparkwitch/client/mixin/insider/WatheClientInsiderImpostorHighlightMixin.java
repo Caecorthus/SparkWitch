@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.Mixin;
  * Insider disguise for SparkTraits Impostor viewers (D3). SparkTraits' HEAD on {@code getInstinctHighlight} answers
  * its civilian green {@code 0x4EDD35} for an Insider when the viewer has the Impostor trait, before any Wathe event
  * listener runs, so the Insider listener never gets a say. This wrapper always calls the original and rewrites only
- * that exact green to the Impostor blue, and only for a living local Impostor looking at another living, visible
- * Insider; every other answer passes through untouched.
+ * that exact green to the Impostor blue, and only for a living local Impostor looking at another living Insider,
+ * visible or not (SparkTraits paints an invisible real Impostor blue too); every other answer passes through untouched.
  * <p>Ordering on {@code WatheClient.getInstinctHighlight} (Wathe 1.5.6): HEAD callbacks run in ascending mixin
  * priority (Fiend moment 500 on its unmerged branch, SparkTraits {@code WatheClientMixin} 1000,
  * {@code WatheClientFearInstinctMixin} 1500, {@code WraithWatheHighlightMixin} and
@@ -24,7 +24,8 @@ import org.spongepowered.asm.mixin.Mixin;
  * (SparkWitch PR #23) commutes with this one because it only ever returns {@code -1}.
  * 面向 SparkTraits 内鬼观察者的内应伪装（D3）。当观察者拥有内鬼词条时，SparkTraits 在 {@code getInstinctHighlight}
  * 的 HEAD 会在任何 Wathe 事件监听器之前为内应给出平民绿 {@code 0x4EDD35}，内应监听器因此没有机会作答。本包装器始终调用
- * 原方法，只把这一确切的绿色改为内鬼蓝，且仅限存活的本地内鬼观察其他存活且可见的内应；其他结果原样通过。
+ * 原方法，只把这一确切的绿色改为内鬼蓝，且仅限存活的本地内鬼观察其他存活的内应，无论其是否隐身（SparkTraits
+ * 同样把隐身的真实内鬼描成蓝色）；其他结果原样通过。
  * <p>{@code WatheClient.getInstinctHighlight}（Wathe 1.5.6）上的顺序：HEAD 回调按 mixin 优先级升序执行（未合并分支上的
  * 魔人时刻 500、SparkTraits {@code WatheClientMixin} 1000、{@code WatheClientFearInstinctMixin} 1500、
  * {@code WraithWatheHighlightMixin} 与 {@code BlackRavenInstinctPriorityMixin} 2000），随后是

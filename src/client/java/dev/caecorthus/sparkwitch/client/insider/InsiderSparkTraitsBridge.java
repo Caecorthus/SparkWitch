@@ -53,10 +53,23 @@ public final class InsiderSparkTraitsBridge {
     }
 
     private static boolean isLoaded() {
-        try {
-            return FabricLoader.getInstance().isModLoaded(MOD_ID);
-        } catch (LinkageError | RuntimeException ignored) {
-            return false;
+        return Loaded.VALUE;
+    }
+
+    /**
+     * The mod set is fixed once the game runs, so the loader is asked once, on first use (holder idiom), instead of on
+     * every outline query.
+     * 游戏运行后模组集合固定，因此只在首次使用时询问一次加载器（持有者惯用法），而不是每次描边查询都询问。
+     */
+    private static final class Loaded {
+        private static final boolean VALUE = detect();
+
+        private static boolean detect() {
+            try {
+                return FabricLoader.getInstance().isModLoaded(MOD_ID);
+            } catch (LinkageError | RuntimeException ignored) {
+                return false;
+            }
         }
     }
 
