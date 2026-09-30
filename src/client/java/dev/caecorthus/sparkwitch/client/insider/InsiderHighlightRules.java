@@ -20,7 +20,8 @@ import java.util.function.BooleanSupplier;
  * </ul>
  * Every answer is always-style ({@code requiresKeybind = false}) and is only given while its own condition holds, so a
  * key-up frame answers nothing and never hides lower-priority always-on outlines. While the Insider holds the key its
- * own view stays below SparkStrength's tablet marks (70/80), so those keep their colors.
+ * own view stays below SparkStrength's tablet marks (70/80), so those keep their colors, except on the Corrupt Cop,
+ * which always stays navy.
  * 内应本能描边的纯规则（D3、D8、C7、C8）。钩子只传入已同步的事实，这里不接触客户端或世界。
  * <ul>
  *     <li>存活内应按住本能键：黑警显示黑警深蓝，其他可见目标显示薄荷青，优先级 {@link #INSIDER_VIEW_PRIORITY}。</li>
@@ -29,7 +30,8 @@ import java.util.function.BooleanSupplier;
  *     无论是否隐身，都与 SparkTraits 描绘隐身的真实内鬼一致。</li>
  * </ul>
  * 所有答复均为常亮样式（{@code requiresKeybind = false}），且只在各自条件成立时给出；松开按键的帧不作答，
- * 因此不会遮住更低优先级的常亮描边。内应按住按键时，其自身视角低于 SparkStrength 平板标记（70/80），平板标记保持原色。
+ * 因此不会遮住更低优先级的常亮描边。内应按住按键时，其自身视角低于 SparkStrength 平板标记（70/80），平板标记保持原色；
+ * 但黑警始终显示深蓝。
  */
 public final class InsiderHighlightRules {
     /**
@@ -158,12 +160,16 @@ public final class InsiderHighlightRules {
     }
 
     /**
-     * Listener priority for a viewer's answer: {@link #INSIDER_VIEW_PRIORITY} for the Insider's own view,
-     * {@link #PRIORITY} for the Corrupt Cop and killer views.
-     * 各视角答复的监听器优先级：内应自身视角为 {@link #INSIDER_VIEW_PRIORITY}，黑警与杀手视角为 {@link #PRIORITY}。
+     * Listener priority for a viewer's answer: {@link #PRIORITY} for the Corrupt Cop and killer views, and for the
+     * Corrupt Cop as seen by the Insider (the owner's "except the Corrupt Cop": its partner stays navy even when it
+     * carries a tablet mark); {@link #INSIDER_VIEW_PRIORITY} for every other target of the Insider's own view.
+     * 各视角答复的监听器优先级：黑警视角、杀手视角，以及内应看黑警时为 {@link #PRIORITY}（所有者要求的「黑警除外」：
+     * 即使黑警带有平板标记，搭档仍显示深蓝）；内应自身视角的其他目标为 {@link #INSIDER_VIEW_PRIORITY}。
      */
-    public static int priority(Viewer viewer) {
-        return viewer == Viewer.INSIDER ? INSIDER_VIEW_PRIORITY : PRIORITY;
+    public static int priority(Viewer viewer, @Nullable Role targetRole) {
+        return viewer == Viewer.INSIDER && !InsiderParticipation.isCorruptCopRole(targetRole)
+                ? INSIDER_VIEW_PRIORITY
+                : PRIORITY;
     }
 
     /**

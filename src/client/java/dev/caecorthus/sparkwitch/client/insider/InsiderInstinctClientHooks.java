@@ -71,7 +71,7 @@ public final class InsiderInstinctClientHooks {
         if (color == null || InsiderSparkTraitsBridge.isInstinctHidden(viewer, playerTarget)) {
             return null;
         }
-        return GetInstinctHighlight.HighlightResult.always(color, InsiderHighlightRules.priority(kind));
+        return GetInstinctHighlight.HighlightResult.always(color, InsiderHighlightRules.priority(kind, targetRole));
     }
 
     /**
