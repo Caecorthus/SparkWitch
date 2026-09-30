@@ -299,6 +299,26 @@ def watheClientMixinContracts = [
                 providerEntry: "org/agmas/noellesroles/client/screen/AssassinScreen.class",
                 providerMethod: "method_25426",
                 providerDescriptor: "()V"
+        ],
+        [
+                configName: "insider.WatheClientInsiderImpostorHighlightMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/insider/WatheClientInsiderImpostorHighlightMixin.class",
+                handler: "sparkwitch\$insiderImpostorDisguise",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
+                configName: "insider.InsiderCohortRoleNameMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/insider/InsiderCohortRoleNameMixin.class",
+                handler: "sparkwitch\$renderJiahaoCohort",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ]
 ]
 
