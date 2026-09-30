@@ -59,7 +59,9 @@ Current build baseline:
   and win rules.
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
   pairing with a drawn Corrupt Cop, task-money economy, shop, neutral master key doors, gun-punishment
-  exemption, and Team Jiahao win seams.
+  exemption, and Team Jiahao win seams. Its mixins live in `mixin/insider/`; client presentation
+  (instinct outlines, the Impostor-viewer recolor, the killer cohort line, the "嘉豪同伙" label) lives in
+  `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
@@ -205,6 +207,49 @@ cooldown, removes the car without a mark or the 180 s cooldown, and tells the ow
 the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role. The
 Seeker never renders in the `gui.sparkwitch.skills` panel.
 
+The Insider (`sparkwitch:insider`) has no component; every rule reads synced roles. Wathe never draws it
+(`appearanceCondition(context -> false)`). `MurderGameModeMixin` calls, in order, the Hunter→Orthopedist
+pairing, the Witch assignment, then `InsiderAssignmentService`, all before Wathe's civilian pass: when a
+Corrupt Cop (exact id `noellesroles:corrupt_cop`) was drawn, no Insider exists, the role is enabled, and at
+least `InsiderRules.MIN_KILLERS` killer-team roles were assigned (`canUseKiller`, forced killers included,
+later SparkTraits Conscience compensation not counted), one uniformly random unassigned player becomes the
+Insider, taking a civilian seat rather than a neutral slot. A forced Insider is never demoted or re-paired.
+At `ON_FINISH_INITIALIZE` each living Insider receives one NoellesRoles neutral master key, never removed;
+SparkWitch's own `DoorInteraction` listener lets an Insider holding it open train doors and key-locked doors
+(ALLOW, then a 200-tick key cooldown; DENY while cooling; blasted, jammed and open doors PASS), agreeing with
+NoellesRoles' and SparkStrength's key listeners, so SparkStrength is not required. A `ShouldPunishGunShooter`
+listener cancels the innocent-shot revolver punishment for an Insider, as NoellesRoles does for the Corrupt Cop.
+SparkWitch owns all Insider money: 0 at `RoleAssigned`, +50 per task while ACTIVE and alive, never an Impostor
+skip. Its `CanSeeMoney` answers ALLOW for any Insider that has a role and is not dead, with no running-state
+gate, because SparkTraits rolls traits while STARTING and offers Task Master to this FAKE-mood role only
+through that answer. The shop is rebuilt on both sides, gated on the exact role only: capture `sparktraits:*`,
+clear, revolver 150, crowbar 50, and (only when the SparkStrength tablet item is registered) the tablet at 100
+under SparkStrength's own entry id `sparkstrength_tablet`, each stock 1, then restore. The Insider is in SFA
+`PoliceRoles` only so the tablet joins the police channel.
+Team Jiahao (every Corrupt Cop and every Insider, by current role) wins inside NoellesRoles' Corrupt Cop win
+branch, so NoellesRoles' win order stays Vulture > Survival Master > Pathogen > Jester > Taotie > Team Jiahao >
+Shadow Jester. `mixin/insider/NoellesRolesJiahaoTeamWinMixin` wraps three calls in `lambda$registerEvents$14`
+(pinned NoellesRoles `b58fa5f`, ordinals fixed by `JiahaoTeamWinContractTest`): `getAllWithRole` ordinal 6 so the
+living-cop lookup sees the whole team and any living member blocks killer and passenger wins;
+`isPlayerPlayingAndAlive` ordinal 9 so the living team counts once; and the single-argument `neutralWin`
+ordinal 5 so every online member co-wins, dead or alive, with an Insider as primary when the round has one.
+Decisions live in `JiahaoTeamWinRules`, world reads in `JiahaoTeamWinSeam`; the Corrupt Cop Moment count stays
+NoellesRoles' own. Wathe titles a neutral win by the first winning round-end row in role-map order, so
+`mixin/insider/GameRoundEndComponentJiahaoTitleMixin` moves a winning Insider row first before the winner sync
+and the end screen reads "嘉豪阵营胜利！".
+Insider presentation is client-only. One `GetInstinctHighlight` listener at priority 93 (above SparkStrength's
+Corrupt Cop x-ray at 90, below the Seeker mark 95, `skip()` 100 and suppression 102) answers `always` only while
+its condition holds: a living Insider holding instinct sees the Corrupt Cop in `0x193264` and every other living,
+visible player in `0x00FFD0`; a living Corrupt Cop sees the Insider in `0x00FFD0` while holding instinct or during
+its Moment vision window; a living killer holding instinct sees the Insider in the Impostor blue `0x0013FF`.
+`client/mixin/insider/WatheClientInsiderImpostorHighlightMixin` is a `@WrapMethod` on
+`WatheClient.getInstinctHighlight` that encloses every other injection and rewrites only SparkTraits' exact
+civilian green `0x4EDD35` to `0x0013FF` for a living local Impostor looking at a living Insider. SparkTraits
+effective killers get Wathe's red cohort line on a living Insider through `ShouldShowCohort.show(105)`, and
+`InsiderCohortRoleNameMixin` draws the mint `game.tip.sparkwitch.jiahao_cohort` label between an Insider and any
+Team Jiahao member, both ways, with the witch cohort trigger. The Insider shares killer-style instinct light
+through `WitchInstinctClientHooks`. The Insider never renders in the `gui.sparkwitch.skills` panel.
+
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
 components; the existing shared packet and NBT layouts remain unchanged. Sword
@@ -260,6 +305,13 @@ facade lacks or fails a method falls back per method to not pending, Impostor-or
 and task money denied, `DENY_IMPOSTOR_DEVICES`), not hidden, full prices, no block, a vanilla
 cooldown, or an intercepted death: the `KillPlayer.AFTER` cleanup is skipped and the component
 tick's final-death fallback cleans up once the Seeker is dead and not Last Stand pending.
+The Insider may query only `isInstinctHidden` and `hasActiveTrait` (Impostor, Conscience, local player only)
+through its own client `client/insider/InsiderSparkTraitsBridge`; an absent, older or failing build means
+nothing hidden and no trait, so Impostor viewers then see the Insider in SparkTraits' green. SparkTraits
+`feat/insider-support` hard-codes `sparkwitch:insider` in `GoingDarkRules.PROTECTED_VIEWER_ROLE_IDS` (Going Dark
+Veterans hidden from the Insider) and `isBlockingTeamWinNeutral` (a living Insider defers SparkTraits'
+KILLERS/PASSENGERS verdicts like the Corrupt Cop); an older SparkTraits leaves the Veteran visible and may end
+the round for killers or passengers while a lone Insider lives.
 
 Active Wraiths do not absorb another player's aimed action in the client
 selectors listed below. `client/render/WraithAimPassThrough` owns the rule: a player whose synced
