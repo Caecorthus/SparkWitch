@@ -9,6 +9,8 @@ SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
 God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, and Bell Ringer gameplay to Wathe.
 It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
 and the Seeker, a police variant with a remote car and a wall camera that shares the same slots.
+It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
+the two form Team Jiahao and win together.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -55,6 +57,9 @@ Current build baseline:
   dispatch only; concrete roles own their handlers.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
+- `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
+  pairing with a drawn Corrupt Cop, task-money economy, shop, neutral master key doors, gun-punishment
+  exemption, and Team Jiahao win seams.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
