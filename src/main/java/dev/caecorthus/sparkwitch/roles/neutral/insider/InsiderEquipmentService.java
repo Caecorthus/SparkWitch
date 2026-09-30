@@ -50,7 +50,9 @@ public final class InsiderEquipmentService {
             PlayerInventory inventory = player.getInventory();
             if (receivesMasterKey(game.hasAnyRole(player), game.isPlayerDead(player.getUuid()), game.getRole(player),
                     inventory.contains(stack -> stack.isOf(ModItems.NEUTRAL_MASTER_KEY)))) {
-                inventory.insertStack(new ItemStack(ModItems.NEUTRAL_MASTER_KEY));
+                // Drops at the player's feet when the inventory is full, so the key is never lost.
+                // 背包已满时掉落在玩家脚下，钥匙绝不会丢失。
+                inventory.offerOrDrop(new ItemStack(ModItems.NEUTRAL_MASTER_KEY));
                 inventory.markDirty();
                 player.currentScreenHandler.sendContentUpdates();
             }

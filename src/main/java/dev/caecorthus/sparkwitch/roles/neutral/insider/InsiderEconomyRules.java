@@ -31,15 +31,21 @@ public final class InsiderEconomyRules {
     }
 
     /**
-     * Stable contract: ALLOW for an Insider that holds a round role and is not dead, deliberately without the
+     * Stable contract: for the exact Insider role, DENY once it is dead, else ALLOW, deliberately without the
      * running-state clause of {@code GameFunctions.isPlayerPlayingAndAlive}. SparkTraits rolls traits while the round
      * is still STARTING and offers Task Master (+25 per task) to a FAKE-mood role only when this event answers ALLOW,
-     * so a running-state gate would silently rule the trait out for the Insider.
-     * 稳定契约：对拥有局内身份且未死亡的内应返回 ALLOW，刻意不含 {@code GameFunctions.isPlayerPlayingAndAlive}
+     * so a running-state gate would silently rule the trait out for the Insider. The explicit DENY matters: with no
+     * answer Wathe falls back to {@code ShopUtils.canAccessShop}, which stays true for a dead Insider because its shop
+     * is built from the role alone. Other roles get no answer ({@code null}).
+     * 稳定契约：对精确的内应职业，死亡后返回 DENY，否则返回 ALLOW，刻意不含 {@code GameFunctions.isPlayerPlayingAndAlive}
      * 的运行状态条件。SparkTraits 在对局仍处于 STARTING 时抽取词条，且只有此事件返回 ALLOW 时才会为假理智职业提供
-     * 任务大师（每任务 +25），依赖运行状态会让内应永远抽不到该词条。
+     * 任务大师（每任务 +25），依赖运行状态会让内应永远抽不到该词条。显式 DENY 是必要的：不作答时 Wathe 退回
+     * {@code ShopUtils.canAccessShop}，而内应商店只按职业构建，死亡后仍为真。其他职业不作答（{@code null}）。
      */
-    public static @Nullable CanSeeMoney.Result moneyVisibility(@Nullable Role role, boolean hasAnyRole, boolean dead) {
-        return InsiderParticipation.isInsiderRole(role) && hasAnyRole && !dead ? CanSeeMoney.Result.ALLOW : null;
+    public static @Nullable CanSeeMoney.Result moneyVisibility(@Nullable Role role, boolean dead) {
+        if (!InsiderParticipation.isInsiderRole(role)) {
+            return null;
+        }
+        return dead ? CanSeeMoney.Result.DENY : CanSeeMoney.Result.ALLOW;
     }
 }

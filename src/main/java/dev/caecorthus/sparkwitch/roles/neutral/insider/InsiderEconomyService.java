@@ -58,17 +58,16 @@ public final class InsiderEconomyService {
     }
 
     /**
-     * Reads only synced role and death facts, so it answers the same on both sides and already while STARTING
-     * (see {@link InsiderEconomyRules#moneyVisibility}).
-     * 只读取已同步的身份与死亡信息，因此两端结果一致，并且在 STARTING 阶段即可作答（见
-     * {@link InsiderEconomyRules#moneyVisibility}）。
+     * Reads only synced role and death facts, so it answers the same on both sides and already while STARTING: a living
+     * Insider sees the coin counter, a dead one does not (see {@link InsiderEconomyRules#moneyVisibility}).
+     * 只读取已同步的身份与死亡信息，因此两端结果一致，并且在 STARTING 阶段即可作答：存活内应能看到金币，死亡内应看不到
+     * （见 {@link InsiderEconomyRules#moneyVisibility}）。
      */
     private static @Nullable CanSeeMoney.Result canSeeMoney(@Nullable PlayerEntity player) {
         if (player == null) {
             return null;
         }
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
-        return InsiderEconomyRules.moneyVisibility(game.getRole(player), game.hasAnyRole(player),
-                game.isPlayerDead(player.getUuid()));
+        return InsiderEconomyRules.moneyVisibility(game.getRole(player), game.isPlayerDead(player.getUuid()));
     }
 }
