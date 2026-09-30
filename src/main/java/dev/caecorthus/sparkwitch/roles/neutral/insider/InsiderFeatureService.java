@@ -16,5 +16,6 @@ public final class InsiderFeatureService {
             return;
         }
         registered = true;
+        InsiderEconomyService.register();
     }
 }
