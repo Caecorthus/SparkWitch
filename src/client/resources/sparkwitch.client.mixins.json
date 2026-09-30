@@ -78,6 +78,8 @@
     "kidnapper.KidnapperControlledMouseMixin",
     "kidnapper.KidnapperThrowUseMixin",
     "hunter.DoubleBarrelShotgunCrosshairMixin",
+    "insider.InsiderCohortRoleNameMixin",
+    "insider.WatheClientInsiderImpostorHighlightMixin",
     "saboteur.SaboteurHudMixin",
     "saboteur.SaboteurInstinctMixin",
     "seeker.SeekerDemonHunterTargetMixin",
