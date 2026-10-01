@@ -8,7 +8,6 @@ import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
-import dev.doctor4t.wathe.api.event.ShouldDropOnDeath;
 import dev.doctor4t.wathe.api.event.ShouldPunishGunShooter;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerPoisonComponent;
@@ -59,7 +58,6 @@ public final class HunterFeatureService {
         HunterShopService.register();
         UseBlockCallback.EVENT.register(HunterFeatureService::interactWithTrap);
         KillPlayer.AFTER.register(HunterFeatureService::afterConfirmedDeath);
-        ShouldDropOnDeath.EVENT.register((stack, victim) -> stack.getItem() instanceof HunterTrapItem);
         ShouldPunishGunShooter.EVENT.register(HunterFeatureService::gunPunishment);
         ResetPlayer.EVENT.register(player -> HunterPlayerComponent.KEY.get(player).reset());
         RoleAssigned.EVENT.register(HunterFeatureService::assignForRole);
@@ -221,11 +219,11 @@ public final class HunterFeatureService {
             ServerPlayerEntity killer,
             Identifier deathReason
     ) {
-        GameWorldComponent game = GameWorldComponent.KEY.get(victim.getServerWorld());
-        Role victimRole = game.getRole(victim);
-        if (victimRole != null && HunterRules.ROLE_ID.equals(victimRole.identifier())) {
-            removeHunterWeapons(victim);
-        }
+        // Not gated on the victim's current role: a Hunter recruited into another role keeps the loadout,
+        // and GameFunctionsHunterDropMixin has already kept every copy out of Wathe's death drops.
+        // 不按死者当前身份判断：被招募为其他身份的猎人仍持有装备，且 GameFunctionsHunterDropMixin
+        // 已将所有副本排除在 Wathe 死亡掉落之外。
+        removeHunterLoadout(victim);
 
         HunterPlayerComponent component = HunterPlayerComponent.KEY.get(victim);
         if (GameConstants.DeathReasons.POISON.equals(deathReason)) {
@@ -237,11 +235,9 @@ public final class HunterFeatureService {
         component.clearPoisonAttribution();
     }
 
-    private static void removeHunterWeapons(ServerPlayerEntity victim) {
+    private static void removeHunterLoadout(ServerPlayerEntity victim) {
         for (int slot = 0; slot < victim.getInventory().size(); slot++) {
-            ItemStack stack = victim.getInventory().getStack(slot);
-            if (stack.getItem() instanceof DoubleBarrelShotgunItem
-                    || stack.getItem() instanceof DoubleBarrelShellItem) {
+            if (HunterInventoryRules.isHunterLoadout(victim.getInventory().getStack(slot))) {
                 victim.getInventory().setStack(slot, ItemStack.EMPTY);
             }
         }
