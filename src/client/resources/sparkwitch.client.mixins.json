@@ -106,7 +106,9 @@
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin",
     "fiend.WatheClientFiendHighlightMixin",
-    "abysslistener.ShriekGunCrosshairMixin"
+    "abysslistener.ShriekGunCrosshairMixin",
+    "abysslistener.MoodRendererAbyssZoneExposureMixin",
+    "abysslistener.MoodRendererTaskRowAbyssAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

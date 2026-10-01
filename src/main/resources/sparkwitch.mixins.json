@@ -144,7 +144,8 @@
     "abysslistener.PlayerEntityAbyssListenerGunMixin",
     "abysslistener.ServerPlayerEntityAbyssListenerGunDropMixin",
     "abysslistener.ScreenHandlerAbyssListenerGunMixin",
-    "abysslistener.GameFunctionsAbyssListenerGunDropMixin"
+    "abysslistener.GameFunctionsAbyssListenerGunDropMixin",
+    "abysslistener.PlayerMoodComponentAbyssZoneDrainMixin"
   ],
   "injectors": {
     "defaultRequire": 1
