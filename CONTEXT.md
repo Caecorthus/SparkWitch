@@ -8,7 +8,7 @@ changes require explicit owner approval.
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
 God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, and Bell Ringer gameplay to Wathe.
 It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
-and the Seeker, a police variant with a remote car and a wall camera that shares the same slots.
+and the Seeker, a police variant with a remote car and wall cameras that shares the same slots.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -165,22 +165,41 @@ keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGat
 `gui.sparkwitch.skills` panel.
 
 Seeker state never enters that shared schema either. `sparkwitch:seeker_status` (`NEVER_COPY`,
-owner-only sync) holds the Seeker's car, camera, session, battery, cooldown-reason, and mark state
+owner-only sync) holds the Seeker's car, cameras, session, battery, cooldown-reason, and mark state
 bound to the current Wathe match id; remote-session bookkeeping stays server-only and is never
 synced or saved, and other players never see the battery or the mark. The remote view is a
 client-only camera switch (`MinecraftClient#setCameraEntity` on the owner's client); the server
 never calls `ServerPlayerEntity#setCameraEntity`, so server camera writers (Taotie, Last Stand,
-Depression) keep working and the body stays in place. The possession filter is a private
-`PostEffectProcessor`, never `GameRenderer.postProcessor`. Sessions are server-authoritative: the
+Depression) keep working and the body stays in place. While the owner views the car or camera,
+their own body is outlined through walls on the owner's client only
+(`client/seeker/SeekerBodyClientHooks`, `SeekerRules.OWN_BODY_COLOR`), and the outline ends with
+the view. The possession filter is a private
+`PostEffectProcessor`, never `GameRenderer.postProcessor`. A placed camera's look (`LOOK_YAW`,
+`LOOK_PITCH`) and `VIEWING` flag are public DataTracker state that every tracking client renders
+(the head follows the view, the LED glows while viewed, and an idle head holds its last look); only
+the owner's client sends `seeker_camera_look` while viewing, and the server accepts it only for the
+owner's own CAMERA session and clamps it into that camera's cone (`SeekerCameraLookRules`; the
+latest look wins). Sessions are server-authoritative: the
 client never predicts entry, and every exit except the owner's own Shift is detected on the server.
 The owner's client only simulates the car it drives, and every move is validated against the shared
 `SeekerCarPhysics` (speed budget, replay, a server-side fall model that never trusts the client's
 velocity, radius and play-area clamps). The session lock (`LOCK_SCOPE = SESSION`) applies only while
-the Seeker drives the car or views the camera: `mixin/seeker/SeekerSprintLockMixin` clears sprint on
+the Seeker drives the car or views a camera: `mixin/seeker/SeekerSprintLockMixin` clears sprint on
 both sides, `SeekerInteractionGuards` fail the Fabric player callbacks in the `seeker_session_lock`
 phase, `mixin/seeker/SeekerSessionPayloadGuardMixin` drops the blocked C2S payloads on the server
-thread, and inventory clicks and drops are denied. Device entities never save to disk and cannot be
-summoned; every device is swept at game start and at finalize. Role change, final death, and reset
+thread, and inventory clicks and drops are denied. The body stays locked, but the driven car itself
+may right-click whitelisted doors, trapdoors, fence gates, buttons, and levers through
+`seeker_car_use`: the owner's client takes the use-key presses via
+`SeekerRemoteKeyDrain#sparkwitch$takePresses` while the body's use stays locked, and
+`remote/SeekerCarUseService` bypasses the body's use callbacks by design, re-validates the session,
+reach, the car's forward cone, and line of sight from the car's eye, and acts with an empty hand,
+so the body's held item is never used from the car. Device entities never save to disk and cannot be
+summoned; every device is swept at game start and at finalize. The Seeker may own any number of
+cameras (150 each, no cap); each keeps a per-match label, the synced session focus names the viewed
+camera, an untargeted camera open views the last-viewed usable camera (else the lowest label), and
+while viewing, a fresh strafe-key press requests the previous or next camera by label as an atomic
+switch (a held key cycles once and must be released after every session start or switch).
+Role change, final death, and reset
 end the session and clean up devices and state; disconnect only ends the session. A deployed car
 starts at 100% battery and drains 1% every 10 ticks while driven and 1% every 60 ticks otherwise;
 the drain runs on the server tick and the client only displays the synced value. At 0% the car shuts
@@ -195,9 +214,13 @@ revolver and derringer, the SparkWitch double-barrel shotgun, the NoellesRoles D
 the Control Expert Taser and Shock Device, the knife stab (every `KnifeItem.getKnifeTarget` caller),
 the NoellesRoles throwing axe, the thrown Ninja shuriken, the Black Raven feather blade, the
 Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
-the SparkStrength M67. Rays and projectiles are nearest-wins (a nearer device takes the hit, the
-player behind is not hit); blasts (Wathe grenade, SparkStrength M67) break every device in a sphere
-with line of sight and still kill players as before. Sources with no hit or damage geometry never
+the SparkStrength M67. A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol) is
+accepted when the shooter's look ray meets the device box grown by its client targeting margin with
+a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
+(`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
+nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
+SparkStrength M67) break every device in a sphere with line of sight and still kill players as
+before. Sources with no hit or damage geometry never
 break a device: the firecracker (sound only), the Bomber timed bomb (kills only its holder), and the
 poison gas cloud (status effect). A breaker other than the owner is marked for the owner only (10 s,
 newest replaces oldest) when the owner holds the tablet; recalls, depletion, and Taotie swallows

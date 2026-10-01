@@ -95,12 +95,15 @@ public final class SeekerDeviceHits {
      * Wathe revolver/derringer receiver (called at its {@code recordItemUse} anchor, after Wathe's gun-tag, cooldown and
      * spent-derringer checks). Trusts the client's nearest-wins pick like Wathe does, but validates: revolver or
      * derringer in the main hand (a forged shotgun/Demon Hunter {@code gunshoot} never counts), live foreign device,
-     * distance below Wathe's 65 cap, line of sight to any sample point, aim within 25°, {@link SeekerDamageRules#mayBreak}.
+     * distance below Wathe's 65 cap, aim and line of sight ({@link SeekerDamageRules#gunAimedAndVisible}: the look ray
+     * meets the margin-grown box with a clear segment to the device, or the 25° sample-cone fallback),
+     * {@link SeekerDamageRules#mayBreak}.
      * Wathe then resolves the shot as a miss (target not a player): sound, ammo and cooldown, no punishment, no mood.
      * Returns true when a device broke.
      * Wathe 左轮/德林加接收器（在其 {@code recordItemUse} 锚点调用，位于 Wathe 的枪械标签、冷却与德林加已用检查之后）。
      * 与 Wathe 一样信任客户端的最近者选择，但会校验：主手为左轮或德林加（伪造的猎枪/猎魔枪 {@code gunshoot} 不算）、
-     * 存活的他人设备、距离低于 65、对任一采样点有视线、瞄准夹角 ≤25°、{@link SeekerDamageRules#mayBreak}。
+     * 存活的他人设备、距离低于 65、瞄准与视线（{@link SeekerDamageRules#gunAimedAndVisible}：视线射线与扩大余量后的箱体相交
+     * 且到设备的线段无遮挡，或 25° 采样锥兜底）、{@link SeekerDamageRules#mayBreak}。
      * 随后 Wathe 按未命中处理（目标不是玩家）：有声音、耗弹与冷却，没有惩罚也不扣理智。打坏设备时返回 true。
      */
     public static boolean onGunPayload(ServerPlayerEntity shooter, @Nullable Entity target, ItemStack gun) {
@@ -135,11 +138,12 @@ public final class SeekerDeviceHits {
 
     /**
      * NoellesRoles Demon Hunter pistol receiver. Validates everything itself (pistol in the main hand, not cooling
-     * down, at least one bullet, live foreign device within the receiver's 65 cap, line of sight, 25° aim,
-     * {@link SeekerDamageRules#mayBreak}) so it is correct at the receiver HEAD as well as at its {@code recordItemUse}
-     * anchor. The caller lets NoellesRoles continue so the shot costs a bullet and cooldown as a miss. True = broke.
-     * NoellesRoles 猎魔枪接收器。所有条件自行校验（主手猎魔枪、未冷却、至少一发子弹、65 以内的存活他人设备、视线、
-     * 25° 瞄准、{@link SeekerDamageRules#mayBreak}），因此在接收器 HEAD 或 {@code recordItemUse} 锚点调用都正确。
+     * down, at least one bullet, live foreign device within the receiver's 65 cap, the same aim and line-of-sight rule
+     * as the Wathe guns, {@link SeekerDamageRules#mayBreak}) so it is correct at the receiver HEAD as well as at its
+     * {@code recordItemUse} anchor. The caller lets NoellesRoles continue so the shot costs a bullet and cooldown as a
+     * miss. True = broke.
+     * NoellesRoles 猎魔枪接收器。所有条件自行校验（主手猎魔枪、未冷却、至少一发子弹、65 以内的存活他人设备、与 Wathe 枪械
+     * 相同的瞄准与视线规则、{@link SeekerDamageRules#mayBreak}），因此在接收器 HEAD 或 {@code recordItemUse} 锚点调用都正确。
      * 调用方应让 NoellesRoles 继续执行，使这一枪按未命中消耗子弹与冷却。返回 true 表示已打坏。
      */
     public static boolean onDemonHunterPayload(ServerPlayerEntity shooter, @Nullable Entity target) {
@@ -302,8 +306,11 @@ public final class SeekerDeviceHits {
     // ---- Internal ----
 
     /**
-     * Validated targeted break for a trusted client pick (Wathe gun / Demon Hunter): distance, multi-point line of
-     * sight, aim cone, then {@link SeekerDamageRules#mayBreak}. / 对客户端选择的目标做校验后再打坏。
+     * Validated targeted break for a trusted client pick (Wathe gun / Demon Hunter): distance, then aim and line of
+     * sight via {@link SeekerDamageRules#gunAimedAndVisible} (the look ray against the same margin-grown box the client
+     * pick uses, with the sample cone as latency fallback), then {@link SeekerDamageRules#mayBreak}.
+     * 对客户端选择的目标做校验后再打坏：距离，再经 {@link SeekerDamageRules#gunAimedAndVisible} 校验瞄准与视线
+     * （视线射线对照客户端选择所用的同一扩大箱体，采样锥作为延迟兜底），最后 {@link SeekerDamageRules#mayBreak}。
      */
     private static boolean breakTargeted(ServerPlayerEntity shooter, SeekerDeviceEntity device,
                                          SeekerBreakSource source, double maxDistance) {
@@ -314,9 +321,8 @@ public final class SeekerDeviceHits {
         Vec3d eye = shooter.getEyePos();
         Box box = device.getBoundingBox();
         if (shooter.distanceTo(device) >= maxDistance
-                || !SeekerDamageRules.aimedAt(eye, shooter.getRotationVec(1.0F), box,
-                SeekerDamageRules.GUN_MAX_ANGLE_DEGREES)
-                || !SeekerDamageRules.hasLineOfSight(shooter.getWorld(), eye, box, shooter)
+                || !SeekerDamageRules.gunAimedAndVisible(shooter.getWorld(), eye, shooter.getRotationVec(1.0F),
+                maxDistance, box, SeekerDeviceRaycast.targetBox(device), shooter)
                 || !mayBreak(shooter, device)) {
             return false;
         }

@@ -91,9 +91,10 @@ public abstract class SeekerDeviceEntity extends Entity {
 
     /**
      * Server self-check: round running, owner online and still the owner of record, same match binding, and the
-     * owner's component still references this entity (otherwise it is an orphan). Silent: state bookkeeping for a
-     * lost car is WP-02's device-existence step.
-     * 服务端自检：对局进行中、拥有者在线且仍为记录中的拥有者、对局绑定一致、拥有者组件仍引用本实体（否则为孤儿）。
+     * owner's component still references this entity (the deployed car, or any one of the owner's cameras; otherwise
+     * it is an orphan). Silent: state bookkeeping for a lost car is WP-02's device-existence step.
+     * 服务端自检：对局进行中、拥有者在线且仍为记录中的拥有者、对局绑定一致、拥有者组件仍引用本实体
+     * （已部署的小车，或拥有者任意一台摄像头；否则为孤儿）。
      * 静默执行：丢失小车的状态处理属于 WP-02 的设备存在性步骤。
      */
     private boolean passesServerSelfCheck(ServerWorld world) {

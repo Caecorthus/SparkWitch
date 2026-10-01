@@ -45,6 +45,7 @@ public final class SeekerClientModule {
         SeekerStatusHud.register();
         SeekerInstinctClientHooks.register();
         SeekerMarkClientHooks.register();
+        SeekerBodyClientHooks.register();
         SeekerTaotieClient.register();
         SeekerConsoleOpener.register();
         SeekerQuickConnectHandler.register();

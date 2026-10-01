@@ -63,7 +63,7 @@ public final class SeekerStatusHud {
         int markTicks = SeekerClientState.markTarget() == null ? 0 : SeekerClientState.markRemainingTicks();
         SeekerHudRules.Snapshot snapshot = new SeekerHudRules.Snapshot(SeekerClientState.carState(),
                 SeekerCooldowns.remainingTicks(player), SeekerClientState.cooldownReason(),
-                SeekerClientState.carBattery(), SeekerClientState.cameraEntityId() >= 0, markTicks);
+                SeekerClientState.carBattery(), SeekerClientState.cameraCount(), markTicks);
         List<SeekerHudRules.Segment> segments = SeekerHudRules.segments(snapshot);
         if (segments.isEmpty()) {
             return;

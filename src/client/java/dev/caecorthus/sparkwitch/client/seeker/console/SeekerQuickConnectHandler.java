@@ -13,14 +13,15 @@ import net.minecraft.client.MinecraftClient;
 
 /**
  * Quick connect on SparkWitch's generic secondary-ability key, dispatched by role id through
- * {@code SecondaryAbilityRegistry.register(SeekerRules.ROLE_ID, ...)}. Outside a session it opens the car when deployed,
- * otherwise the camera; inside a session it switches CAR ↔ CAMERA (the server treats a second open as an atomic
- * switch). It only sends {@code seeker_remote_open}; the server still requires a console device and every other open
- * check and answers a refusal with its own message.
+ * {@code SecondaryAbilityRegistry.register(SeekerRules.ROLE_ID, ...)}. Outside a session it opens the car if usable,
+ * otherwise the default camera; inside a session it toggles car ↔ camera (the camera is the server's default choice;
+ * the server treats a second open as an atomic switch). Usability comes from {@link SeekerDeviceAvailability}, the
+ * console's own prediction. It only sends {@code seeker_remote_open} without a target; the server still requires a
+ * console device and every other open check and answers a refusal with its own message.
  * SparkWitch 通用第二技能键上的快速连接，经 {@code SecondaryAbilityRegistry.register(SeekerRules.ROLE_ID, ...)}
- * 按职业 id 分发。会话外：小车已部署则连小车，否则连摄像头；会话内：在小车与摄像头之间切换（服务端把第二次打开
- * 视为原子切换）。它只发送 {@code seeker_remote_open}；服务端仍要求持有控制台设备并执行其余打开检查，
- * 拒绝时由服务端发送提示。
+ * 按职业 id 分发。会话外：小车可用则连小车，否则连默认摄像头；会话内：在小车与摄像头之间切换（摄像头由服务端选择
+ * 默认那台；服务端把第二次打开视为原子切换）。可用性来自 {@link SeekerDeviceAvailability}，即控制台自身的预测。
+ * 它只发送不指定目标的 {@code seeker_remote_open}；服务端仍要求持有控制台设备并执行其余打开检查，拒绝时由服务端发送提示。
  */
 public final class SeekerQuickConnectHandler {
     private static boolean registered;
@@ -65,7 +66,10 @@ public final class SeekerQuickConnectHandler {
         if (current == SeekerSessionMode.NONE && SeekerRemoteViewClient.isActive()) {
             current = SeekerRemoteViewClient.mode();
         }
-        SeekerSessionMode target = SeekerConsoleRules.quickConnectTarget(current, SeekerClientState.carState());
+        boolean carUsable = SeekerDeviceAvailability.car(client) == SeekerConsoleRules.Availability.AVAILABLE;
+        boolean cameraUsable = SeekerDeviceAvailability.camera(client) == SeekerConsoleRules.Availability.AVAILABLE;
+        SeekerSessionMode target = SeekerConsoleRules.quickConnectTarget(current, SeekerClientState.carState(),
+                carUsable, cameraUsable);
         lastSendTick = ticks;
         ClientPlayNetworking.send(SeekerRemoteOpenC2SPacket.of(target));
     }

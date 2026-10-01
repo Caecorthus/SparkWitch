@@ -46,12 +46,14 @@ import java.util.UUID;
 
 /**
  * Frozen contract: the only place where Seeker device state transitions happen (deploy, recall, remote recall,
- * battery depletion, place, break, swallow, return, sweep). Server only. Every transition that can close a session
- * first calls {@code SeekerRemoteSessionService.end} (only for the session that shows the affected device), then
- * changes the world, then hands the pure transition to {@code SeekerStatusComponent#apply} (the only cooldown writer),
- * then records replay and messages the owner. Owner messages never name a breaker or a Taotie.
+ * battery depletion, place, break, swallow, return, sweep). Server only. Cameras are unlimited; each is tracked by its
+ * own entity id. Every transition that can close a session first calls {@code SeekerRemoteSessionService.end} (only
+ * for the session that shows the affected device, for a camera that very camera), then changes the world, then hands
+ * the pure transition to {@code SeekerStatusComponent#apply} (the only cooldown writer), then records replay and
+ * messages the owner. Owner messages never name a breaker or a Taotie.
  * 冻结契约：搜寻者设备状态转移的唯一入口（部署、回收、远程回收、电量耗尽、放置、损坏、吞噬、归还、清扫）。仅服务端。
- * 每个可能结束会话的转移都先调用 {@code SeekerRemoteSessionService.end}（仅针对正在显示该设备的会话），
+ * 摄像头数量不限，每台按自身实体 id 追踪。每个可能结束会话的转移都先调用 {@code SeekerRemoteSessionService.end}
+ * （仅针对正在显示该设备的会话，摄像头即正在显示那一台的会话），
  * 再改动世界，再把纯状态转移交给 {@code SeekerStatusComponent#apply}（唯一的冷却写入方），最后记录回放并通知拥有者。
  * 给拥有者的消息从不说出损坏者或饕餮的名字。
  */
@@ -68,7 +70,6 @@ public final class SeekerDeviceService {
     static final String CAR_INVENTORY_FULL = "message.sparkwitch.seeker.car.inventory_full";
     static final String CAR_NOT_DEPLOYED = "message.sparkwitch.seeker.car.not_deployed";
     static final String CAMERA_PLACED = "message.sparkwitch.seeker.camera.placed";
-    static final String CAMERA_ALREADY_PLACED = "message.sparkwitch.seeker.camera.already_placed";
     static final String CAMERA_INVALID_SPOT = "message.sparkwitch.seeker.camera.invalid_spot";
     static final String CAMERA_BROKEN = "message.sparkwitch.seeker.camera.broken";
     static final String TAOTIE_CAR_SWALLOWED = "message.sparkwitch.seeker.taotie.car_swallowed";
@@ -199,7 +200,7 @@ public final class SeekerDeviceService {
 
     private static void recall(ServerPlayerEntity owner, SeekerStatusComponent status, @Nullable SeekerCarEntity car,
                                String replayAction) {
-        endSessionShowing(owner, status, SeekerDeviceKind.CAR, SeekerExitReason.CAR_RECALLED);
+        endSessionShowing(owner, status, SeekerDeviceKind.CAR, status.carEntityId(), SeekerExitReason.CAR_RECALLED);
         if (car != null) {
             car.discard();
         }
@@ -219,7 +220,7 @@ public final class SeekerDeviceService {
             return false;
         }
         SeekerCarEntity car = findCar(owner);
-        endSessionShowing(owner, status, SeekerDeviceKind.CAR, SeekerExitReason.BATTERY_DEPLETED);
+        endSessionShowing(owner, status, SeekerDeviceKind.CAR, status.carEntityId(), SeekerExitReason.BATTERY_DEPLETED);
         if (car != null) {
             SeekerDeviceSounds.playBatteryDead(car);
             car.discard();
@@ -242,10 +243,6 @@ public final class SeekerDeviceService {
         if (status == null || status.sessionMode() != SeekerSessionMode.NONE
                 || !SeekerTargeting.canUseDevice(owner, stack)) {
             actionBar(owner, DEVICE_BLOCKED);
-            return ActionResult.FAIL;
-        }
-        if (status.cameraEntityId() >= 0 || findCamera(owner) != null) {
-            actionBar(owner, CAMERA_ALREADY_PLACED);
             return ActionResult.FAIL;
         }
         ServerWorld world = owner.getServerWorld();
@@ -326,14 +323,15 @@ public final class SeekerDeviceService {
 
     /**
      * The single break sink for every source, in order: {@code SeekerRemoteSessionService.end(owner, CAR_BROKEN |
-     * CAMERA_BROKEN)} → discard + {@code SeekerDeviceSounds.playBreak} → {@code component.apply(breakCar() |
-     * destroyCamera())} (180 s BROKEN written by apply) → replay {@code seeker_device_broken} (keys in
+     * CAMERA_BROKEN)} (a camera session only when it shows this camera) → discard +
+     * {@code SeekerDeviceSounds.playBreak} → {@code component.apply(breakCar() | destroyCamera(id))} (180 s BROKEN
+     * written by apply) → replay {@code seeker_device_broken} (keys in
      * {@code SeekerRules.REPLAY_*_KEY}; breaker only when {@code source.attributable()}) →
      * {@code SeekerMarkService.onDeviceBroken(owner, breaker, kind)} when attributable → owner message
      * {@code car.broken}/{@code camera.broken} (never names the breaker). Idempotent for an already-removed device;
      * a device its owner no longer references (orphan) is only removed.
-     * 所有损坏来源的唯一收口，顺序：结束会话 → 移除并播放损坏音 → 应用状态转移（apply 写入 180 秒）→ 记录回放 →
-     * 可归属时调用标记服务 → 通知拥有者（不说出损坏者）。对已移除的设备幂等；拥有者不再引用的孤儿设备只会被移除。
+     * 所有损坏来源的唯一收口，顺序：结束会话（摄像头会话仅在显示这台摄像头时）→ 移除并播放损坏音 →
+     * 应用状态转移（apply 写入 180 秒）→ 记录回放 → 可归属时调用标记服务 → 通知拥有者（不说出损坏者）。对已移除的设备幂等；拥有者不再引用的孤儿设备只会被移除。
      */
     public static void breakDevice(SeekerDeviceEntity device, SeekerBreakSource source,
                                    @Nullable ServerPlayerEntity breaker) {
@@ -346,14 +344,16 @@ public final class SeekerDeviceService {
         SeekerStatusComponent status = owner == null ? null : SeekerStatusComponent.KEY.getNullable(owner);
         boolean referenced = status != null && isReferenced(status, device);
         if (referenced) {
-            endSessionShowing(owner, status, kind, breakExitReason(kind));
+            endSessionShowing(owner, status, kind, device.getId(), breakExitReason(kind));
         }
         SeekerDeviceSounds.playBreak(device);
         device.discard();
         if (!referenced) {
             return;
         }
-        status.apply(kind == SeekerDeviceKind.CAR ? status.state().breakCar() : status.state().destroyCamera());
+        status.apply(kind == SeekerDeviceKind.CAR
+                ? status.state().breakCar()
+                : status.state().destroyCamera(device.getId()));
         ServerPlayerEntity recordedBreaker = source.attributable() ? breaker : null;
         GameRecordManager.recordGlobalEvent(world, SeekerRules.REPLAY_DEVICE_BROKEN_EVENT, recordedBreaker,
                 brokenReplayData(owner.getUuid(), kind, source,
@@ -376,7 +376,7 @@ public final class SeekerDeviceService {
         if (status == null || !isReferenced(status, car)) {
             return false;
         }
-        endSessionShowing(owner, status, SeekerDeviceKind.CAR, SeekerExitReason.CAR_SWALLOWED);
+        endSessionShowing(owner, status, SeekerDeviceKind.CAR, car.getId(), SeekerExitReason.CAR_SWALLOWED);
         SeekerDeviceSounds.playSwallow(car);
         car.discard();
         int slot = removeCarItems(owner);
@@ -509,13 +509,18 @@ public final class SeekerDeviceService {
         return findOwned(owner, status.carEntityId(), SeekerCarEntity.class);
     }
 
+    /**
+     * One of the owner's cameras by entity id: it must be listed in the owner's component and be a live owned
+     * camera entity; otherwise null.
+     * 按实体 id 查找拥有者的某台摄像头：必须登记在拥有者组件中且为存活的本人摄像头实体，否则为 null。
+     */
     @Nullable
-    public static SeekerCameraEntity findCamera(ServerPlayerEntity owner) {
+    public static SeekerCameraEntity findCamera(ServerPlayerEntity owner, int entityId) {
         SeekerStatusComponent status = owner == null ? null : SeekerStatusComponent.KEY.getNullable(owner);
-        if (status == null || status.cameraEntityId() < 0) {
+        if (status == null || entityId < 0 || !status.hasCamera(entityId)) {
             return null;
         }
-        return findOwned(owner, status.cameraEntityId(), SeekerCameraEntity.class);
+        return findOwned(owner, entityId, SeekerCameraEntity.class);
     }
 
     @Nullable
@@ -527,13 +532,14 @@ public final class SeekerDeviceService {
     }
 
     /**
-     * Whether the owner's component still points at this device (car: DEPLOYED with this id; camera: this id).
-     * 拥有者组件是否仍指向该设备（小车：DEPLOYED 且 id 一致；摄像头：id 一致）。
+     * Whether the owner's component still points at this device (car: DEPLOYED with this id; camera: this id is one
+     * of the owner's cameras).
+     * 拥有者组件是否仍指向该设备（小车：DEPLOYED 且 id 一致；摄像头：该 id 属于拥有者的摄像头之一）。
      */
     public static boolean isReferenced(SeekerStatusComponent status, SeekerDeviceEntity device) {
         return switch (device.kind()) {
             case CAR -> status.carState() == SeekerCarState.DEPLOYED && status.carEntityId() == device.getId();
-            case CAMERA -> status.cameraEntityId() == device.getId();
+            case CAMERA -> status.hasCamera(device.getId());
         };
     }
 
@@ -605,11 +611,15 @@ public final class SeekerDeviceService {
 
     // ---- Pure helpers (tested) ----
 
-    /** Only the session that shows the affected device ends. / 只结束正在显示该设备的会话。 */
-    static boolean sessionShows(SeekerSessionMode mode, SeekerDeviceKind kind) {
+    /**
+     * Only the session that shows the affected device ends: any CAR session for the single car, and a CAMERA session
+     * only when its focus is that very camera (breaking another camera leaves the view alone).
+     * 只结束正在显示该设备的会话：唯一的小车对应任意小车会话；摄像头会话仅当焦点正是这台摄像头时结束（打坏另一台不影响画面）。
+     */
+    static boolean sessionShows(SeekerSessionMode mode, int focusEntityId, SeekerDeviceKind kind, int deviceId) {
         return switch (kind) {
             case CAR -> mode == SeekerSessionMode.CAR;
-            case CAMERA -> mode == SeekerSessionMode.CAMERA;
+            case CAMERA -> mode == SeekerSessionMode.CAMERA && deviceId >= 0 && focusEntityId == deviceId;
         };
     }
 
@@ -659,8 +669,8 @@ public final class SeekerDeviceService {
     // ---- Side effects ----
 
     private static void endSessionShowing(ServerPlayerEntity owner, SeekerStatusComponent status,
-                                          SeekerDeviceKind kind, SeekerExitReason reason) {
-        if (sessionShows(status.sessionMode(), kind)) {
+                                          SeekerDeviceKind kind, int deviceId, SeekerExitReason reason) {
+        if (sessionShows(status.sessionMode(), status.state().sessionFocusEntityId(), kind, deviceId)) {
             SeekerRemoteSessionService.end(owner, reason);
         }
     }

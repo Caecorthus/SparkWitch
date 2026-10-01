@@ -70,6 +70,7 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "seeker_remote_open"),
             Identifier.of("sparkwitch", "seeker_car_swallow"),
             Identifier.of("sparkwitch", "seeker_car_recall"),
+            Identifier.of("sparkwitch", "seeker_car_use"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
