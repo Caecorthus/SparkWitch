@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.compat.cooldown;
 
+import java.util.Optional;
+
 /**
  * Pure arithmetic and predicates behind the SparkWitch forced-cooldown stores; no game state.
  * SparkWitch 强制冷却存储背后的纯算术与判定，不读取任何游戏状态。
@@ -30,12 +32,25 @@ public final class ForcedCooldownMath {
     }
 
     /**
-     * Floors for a raise: both the shared and a pending deferred cooldown are floored at {@code ticks}.
-     * 抬高时的下限：共享冷却与待启动的延后冷却都以 {@code ticks} 为下限。
+     * Floors for a raise, or empty when {@link #witchSkillRemaining} already reaches {@code ticks} (no write, no sync).
+     * Only the shared cooldown is floored: it keeps counting down through an active window, so with
+     * {@code ticks > window + deferred} it ends exactly at {@code ticks}, and the pending deferred cooldown stays
+     * untouched ({@code startDeferredCooldownNow} keeps the max). Flooring the deferred one too would add the window
+     * on top of the penalty.
+     * 抬高时的下限；若 witchSkillRemaining 已不小于 {@code ticks} 则为空（不写入、不同步）。只抬高共享冷却：它在主动窗口
+     * 期间照常递减，因此当 {@code ticks > 窗口 + 延后} 时恰好在 {@code ticks} 结束；待启动的延后冷却保持不变
+     * （startDeferredCooldownNow 取较大值）。若同时抬高延后冷却，惩罚会被额外叠加一段窗口时长。
      */
-    public static WitchSkillFloors raiseWitchSkill(int ticks) {
-        int floor = Math.max(0, ticks);
-        return new WitchSkillFloors(floor, floor);
+    public static Optional<WitchSkillFloors> raiseWitchSkill(
+            int cooldownTicks,
+            int deferredCooldownTicks,
+            int activeWindowTicks,
+            int ticks
+    ) {
+        if (ticks <= witchSkillRemaining(cooldownTicks, deferredCooldownTicks, activeWindowTicks)) {
+            return Optional.empty();
+        }
+        return Optional.of(new WitchSkillFloors(ticks, 0));
     }
 
     /**
@@ -79,6 +94,16 @@ public final class ForcedCooldownMath {
     /** Hellfire's end writes its own post cooldown, so a burning Hellfire is never forced. / 业火燃烧期间不强制。 */
     public static boolean mayForceSaintHellfire(boolean hellfireActive) {
         return !hellfireActive;
+    }
+
+    /**
+     * NoellesRoles' Spirit Walker overwrites the shared ability counter with a flat 1-minute cooldown when its projection
+     * ends (return press or cancel), dropping anything forced meanwhile, so a projecting Spirit Walker is never forced.
+     * NoellesRoles 灵行者结束灵魂出窍（按键返回或被取消）时会用固定 1 分钟覆盖共享技能计数，期间被强制的冷却会丢失，
+     * 因此出窍中的灵行者绝不强制。
+     */
+    public static boolean mayForceNoellesAbility(boolean spiritualist, boolean projecting) {
+        return !(spiritualist && projecting);
     }
 
     /** Absolute floors for the shared and deferred witch-skill counters. / 共享与延后魔女技能计数的绝对下限。 */

@@ -10,14 +10,16 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
+import java.util.Optional;
 import java.util.OptionalInt;
 
 /**
  * The shared {@link WitchPlayerComponent} skill cooldown, used by every role that holds a registered witch skill
  * (Saint's Hellfire lives in its own store). Remaining time includes a deferred cooldown that waits for an active
- * window; raises and extensions also floor that deferred cooldown so a penalty is not lost at the window end.
+ * window. A raise floors only the shared cooldown (it counts down through the window); an extension also grows that
+ * deferred cooldown so the extra time is not lost at the window end.
  * 共享的 WitchPlayerComponent 技能冷却，适用于所有持有已注册魔女技能的职业（圣徒业火另有存储）。剩余时间包含等待主动
- * 窗口结束的延后冷却；抬高与延长也会同时抬高该延后冷却，使惩罚不会在窗口结束时丢失。
+ * 窗口结束的延后冷却。抬高只抬高共享冷却（它在窗口期间照常递减）；延长同时增加该延后冷却，使额外时长不会在窗口结束时丢失。
  */
 final class WitchSkillCooldownStore implements RoleSkillCooldownStore {
     static final Identifier ID = SparkWitch.id("witch_skill");
@@ -50,9 +52,9 @@ final class WitchSkillCooldownStore implements RoleSkillCooldownStore {
     }
 
     /**
-     * Exact writes cannot be expressed while a deferred cooldown is pending, so this floors both counters; the
-     * registry never asks for less than the current remaining time.
-     * 延后冷却待启动时无法表达精确写入，因此这里对两个计数都取下限；注册表不会请求低于当前剩余值的数。
+     * Exact writes cannot be expressed while a deferred cooldown is pending, so this is a raise; the registry never
+     * asks for less than the current remaining time.
+     * 延后冷却待启动时无法表达精确写入，因此这里按抬高处理；注册表不会请求低于当前剩余值的数。
      */
     @Override
     public void setRemainingTicks(ServerPlayerEntity player, int ticks) {
@@ -73,9 +75,18 @@ final class WitchSkillCooldownStore implements RoleSkillCooldownStore {
         if (ticks <= 0) {
             return false;
         }
-        ForcedCooldownMath.WitchSkillFloors floors = ForcedCooldownMath.raiseWitchSkill(ticks);
-        return WitchPlayerComponent.KEY.get(player)
-                .raiseForcedCooldownFloors(floors.cooldownTicks(), floors.deferredCooldownTicks());
+        WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
+        Optional<ForcedCooldownMath.WitchSkillFloors> floors = ForcedCooldownMath.raiseWitchSkill(
+                component.getCooldownTicks(),
+                component.getDeferredCooldownTicks(),
+                component.getActiveSkillWindowTicks(),
+                ticks
+        );
+        if (floors.isEmpty()) {
+            return false;
+        }
+        ForcedCooldownMath.WitchSkillFloors floor = floors.get();
+        return component.raiseForcedCooldownFloors(floor.cooldownTicks(), floor.deferredCooldownTicks());
     }
 
     @Override

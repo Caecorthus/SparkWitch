@@ -4,10 +4,12 @@ import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.doctor4t.wathe.api.Role;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Registry of special accomplices ("accomplice variants"). Each registered role is a witch-faction accomplice that
@@ -20,7 +22,14 @@ import java.util.Objects;
  * {@code WitchFactionRules.isAccompliceLike}。请在各特殊共犯自己的功能服务中于模组初始化时注册；注册顺序即抽取候选顺序。
  */
 public final class AccompliceVariants {
-    private static final List<Role> ROLES = new ArrayList<>();
+    /**
+     * Lock-free reads: {@link #isVariant} and {@link #variants} run per frame on the client, so they read one immutable
+     * snapshot that the synchronized {@link #register} replaces wholesale (the volatile write publishes it).
+     * 无锁读取：isVariant 与 variants 在客户端每帧运行，因此读取同一个不可变快照，由同步的 register 整体替换
+     * （volatile 写入负责发布）。
+     */
+    private static volatile Snapshot snapshot = new Snapshot(List.of(), Set.of());
+    /** Guarded by the class lock. / 由类锁保护。 */
     private static final Map<Role, AccompliceVariantHooks> HOOKS = new IdentityHashMap<>();
 
     private AccompliceVariants() {
@@ -39,23 +48,31 @@ public final class AccompliceVariants {
         if (HOOKS.containsKey(role)) {
             throw new IllegalArgumentException("Duplicate accomplice variant: " + role.identifier());
         }
-        ROLES.add(role);
+        List<Role> roles = new ArrayList<>(snapshot.roles());
+        roles.add(role);
+        Set<Role> members = Collections.newSetFromMap(new IdentityHashMap<>());
+        members.addAll(roles);
         HOOKS.put(role, hooks);
+        snapshot = new Snapshot(List.copyOf(roles), Collections.unmodifiableSet(members));
     }
 
     /** True when the role is a registered special accomplice. / 是否为已注册的特殊共犯。 */
-    public static synchronized boolean isVariant(Role role) {
-        return role != null && HOOKS.containsKey(role);
+    public static boolean isVariant(Role role) {
+        return role != null && snapshot.members().contains(role);
     }
 
-    /** Registered variants in registration order. / 按注册顺序列出的特殊共犯。 */
-    public static synchronized List<Role> variants() {
-        return List.copyOf(ROLES);
+    /** Registered variants in registration order, as an immutable list. / 按注册顺序列出的特殊共犯（不可变列表）。 */
+    public static List<Role> variants() {
+        return snapshot.roles();
     }
 
     /** The variant's hooks, or {@link AccompliceVariantHooks#NONE}. / 该特殊共犯的回调，未注册时为 NONE。 */
     public static synchronized AccompliceVariantHooks hooks(Role role) {
         AccompliceVariantHooks hooks = role == null ? null : HOOKS.get(role);
         return hooks == null ? AccompliceVariantHooks.NONE : hooks;
+    }
+
+    /** Registered roles in order plus an identity set of them. / 按顺序的已注册职业及其身份集合。 */
+    private record Snapshot(List<Role> roles, Set<Role> members) {
     }
 }
