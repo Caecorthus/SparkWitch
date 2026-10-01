@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
@@ -99,9 +100,14 @@ public final class PotionBlastResolver {
         return !(gunnerVendetta || targetVendetta) || exactPair;
     }
 
-    /** Living, playing, survival/adventure; Wathe-dead or role-less players are never caught. / 存活参与者。 */
+    /**
+     * Living, playing, survival/adventure; Wathe-dead or role-less players are never caught. A SparkTraits Last Escape
+     * player is untouchable, as for the Shock Device and the Time Stealer.
+     * 存活参与者；Wathe 判定死亡或无职业的玩家永不被波及。处于 SparkTraits 最后逃脱的玩家不可被影响，与电击装置、窃时者一致。
+     */
     private static boolean isCandidate(PlayerEntity player) {
-        return GameFunctions.isPlayerAliveAndSurvival(player) && GameFunctions.isPlayerPlayingAndAlive(player);
+        return GameFunctions.isPlayerAliveAndSurvival(player) && GameFunctions.isPlayerPlayingAndAlive(player)
+                && !SparkTraitsKillerBridge.isLastEscapeActive(player);
     }
 
     private static boolean hasLineOfSight(ServerWorld world, Vec3d center, PlayerEntity target) {

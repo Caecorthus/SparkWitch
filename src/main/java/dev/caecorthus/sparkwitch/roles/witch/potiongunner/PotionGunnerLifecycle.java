@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellEntity;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -56,6 +57,8 @@ public final class PotionGunnerLifecycle {
             for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                 PotionGunnerLoadoutService.stripAll(player);
             }
+            // Shells still in flight never outlive the round. / 仍在飞行的炮弹不会延续到对局之外。
+            PotionShellEntity.discardAll(serverWorld);
         });
         ServerTickEvents.END_WORLD_TICK.register(PotionGunnerLifecycle::sweep);
     }

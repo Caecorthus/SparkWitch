@@ -79,6 +79,11 @@ public final class PotionBackblastRules {
 
     /** The nearest candidate with a clear line; ties keep list order. / 视线畅通的最近候选者；距离相同保留列表顺序。 */
     public static <T> Optional<T> nearest(List<Hit<T>> hits) {
+        return nearestHit(hits).map(Hit::target);
+    }
+
+    /** Like {@link #nearest} but keeps the lane distance. / 同 {@link #nearest}，但保留通道距离。 */
+    public static <T> Optional<Hit<T>> nearestHit(List<Hit<T>> hits) {
         Hit<T> best = null;
         for (Hit<T> hit : hits) {
             if (hit.distance() < 0.0 || !hit.clear()) {
@@ -88,6 +93,6 @@ public final class PotionBackblastRules {
                 best = hit;
             }
         }
-        return best == null ? Optional.empty() : Optional.of(best.target());
+        return Optional.ofNullable(best);
     }
 }

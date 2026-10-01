@@ -1,9 +1,11 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -43,14 +45,18 @@ public final class PotionBackblastService {
         Vec3d origin = gunner.getEyePos();
         Vec3d backwards = PotionBackblastRules.backwards(fireYaw, firePitch);
         double length = PotionBackblastRules.laneLength(blockDistance(world, gunner, origin, backwards));
-        // Seeker hook (coordinator, at integration): a nearer Seeker device on the lane absorbs the backblast here —
-        // break it through SeekerDeviceHits and shorten `length` to it, so nobody behind it is hit.
-        // 搜寻者接入点（协调者在整合时补上）：通道上更近的搜寻者设备在此吸收尾焰——经 SeekerDeviceHits 打坏它并把
-        // `length` 截短到该处，使其后方的人不受影响。
         present(world, gunner, origin, backwards, length);
-        Optional<ServerPlayerEntity> victim = PotionBackblastRules.nearest(lane(world, gunner, origin, backwards, length));
-        victim.ifPresent(target -> JudgeKillAttribution.runWith(world, gunner.getUuid(),
-                () -> GameFunctions.killPlayer(target, true, gunner, SparkWitchDeathReasons.POTION_BACKBLAST)));
+        Optional<PotionBackblastRules.Hit<ServerPlayerEntity>> victim =
+                PotionBackblastRules.nearestHit(lane(world, gunner, origin, backwards, length));
+        // Seeker seam, nearest wins: a breakable device on the lane strictly nearer than the first player absorbs the
+        // backblast and breaks; nobody behind it is hit. / 搜寻者接缝，最近者命中：通道上比第一名玩家更近的可破坏设备
+        // 吸收尾焰并被打坏，其后方的人不受影响。
+        double reach = victim.map(PotionBackblastRules.Hit::distance).orElse(length);
+        if (SeekerDeviceHits.onPotionBackblast(gunner, origin, backwards, reach)) {
+            return;
+        }
+        victim.ifPresent(hit -> JudgeKillAttribution.runWith(world, gunner.getUuid(),
+                () -> GameFunctions.killPlayer(hit.target(), true, gunner, SparkWitchDeathReasons.POTION_BACKBLAST)));
     }
 
     /** Distance to the first COLLIDER block (closed doors included) on the full lane, or -1. / 完整通道上第一个方块的距离，否则 -1。 */
@@ -69,7 +75,8 @@ public final class PotionBackblastService {
         for (ServerPlayerEntity target : world.getPlayers()) {
             if (target == gunner
                     || !GameFunctions.isPlayerPlayingAndAlive(target)
-                    || !GameFunctions.isPlayerAliveAndSurvival(target)) {
+                    || !GameFunctions.isPlayerAliveAndSurvival(target)
+                    || SparkTraitsKillerBridge.isLastEscapeActive(target)) {
                 continue;
             }
             Box box = target.getBoundingBox();

@@ -32,9 +32,10 @@ public enum SeekerBreakSource {
     /** Independent single-use Fisher weapon; keeps its own item/payload identity. / 钓鱼佬独立的一次性武器与数据包。 */
     SWORDFISH(Kind.RAY),
     /**
-     * Potion Gunner shell, recorded for both its impact blast (sphere, never blocking) and its in-flight sweep (a
-     * device in the path breaks and the shell bursts there).
-     * 药炮手炮弹：命中爆炸（球形，不遮挡）与飞行扫掠（路径上的设备被打坏，炮弹在该处爆炸）都记录为此来源。
+     * Potion Gunner shell, recorded for its impact blast (sphere, never blocking), its in-flight sweep (a device in
+     * the path breaks and the shell bursts there), and the launcher backblast lane (nearest wins).
+     * 药炮手炮弹：命中爆炸（球形，不遮挡）、飞行扫掠（路径上的设备被打坏，炮弹在该处爆炸）以及炮筒尾焰通道（最近者命中）
+     * 都记录为此来源。
      */
     POTION_SHELL(Kind.BLAST);
 

@@ -359,6 +359,29 @@ public final class SeekerDeviceHits {
         return hit == null ? null : hit.point();
     }
 
+    /**
+     * Potion Gunner launcher backblast (a short server lane behind the launcher, not a projectile). Nearest wins: the
+     * caller passes the distance to the first player it would hit (or the full lane), so only a device strictly nearer
+     * breaks (recorded as {@code POTION_SHELL}) and absorbs the backblast; true means absorbed, hit nobody.
+     * 药炮手炮筒尾焰（炮筒后方的一段服务端短通道，并非投射物）。最近者命中：调用方传入到第一名将被命中玩家的距离（或整条通道），
+     * 因此只有严格更近的设备会被打坏（记录为 {@code POTION_SHELL}）并吸收尾焰；返回 true 表示已被吸收，不再命中任何人。
+     */
+    public static boolean onPotionBackblast(ServerPlayerEntity gunner, Vec3d start, Vec3d direction, double reach) {
+        if (gunner == null || gunner.getWorld().isClient() || start == null || direction == null
+                || !(reach > 0.0) || direction.lengthSquared() == 0.0
+                || !GameWorldComponent.KEY.get(gunner.getWorld()).isRunning()) {
+            return false;
+        }
+        Vec3d end = start.add(direction.normalize().multiply(reach));
+        SeekerDeviceRaycast.DeviceHit hit = SeekerDeviceRaycast.nearestDevice(gunner.getWorld(), start, end,
+                Double.POSITIVE_INFINITY, breakableBy(gunner));
+        if (hit == null) {
+            return false;
+        }
+        SeekerDeviceService.breakDevice(hit.device(), SeekerBreakSource.POTION_SHELL, gunner);
+        return true;
+    }
+
     // ---- Internal ----
 
     private static boolean breakStabbedDevice(ServerPlayerEntity attacker, SeekerDeviceEntity device,
