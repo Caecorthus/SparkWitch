@@ -46,7 +46,7 @@ public final class TimeStealerClockItem extends Item {
     @Override
     public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
         for (int line = 1; line <= TOOLTIP_LINES; line++) {
-            tooltip.add(Text.translatable("item.sparkwitch.time_stealer_clock.tooltip.line" + line)
+            tooltip.add(Text.translatable("item.sparkwitch.time_stealer_pocket_watch.tooltip.line" + line)
                     .formatted(Formatting.GRAY));
         }
         super.appendTooltip(stack, context, tooltip, type);

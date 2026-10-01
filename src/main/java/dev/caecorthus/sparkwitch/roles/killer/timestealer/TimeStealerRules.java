@@ -15,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class TimeStealerRules {
     public static final Identifier ROLE_ID = SparkWitch.id("time_stealer");
-    public static final Identifier CLOCK_ID = SparkWitch.id("time_stealer_clock");
+    public static final Identifier CLOCK_ID = SparkWitch.id("time_stealer_pocket_watch");
     public static final Identifier STAMP_ID = SparkWitch.id("time_stamp");
     /** Item-use replay record id for a stamp purchase. / 邮票购买的物品使用回放记录 id。 */
     public static final Identifier STAMP_PURCHASE_RECORD_ID = SparkWitch.id("time_stamp_purchase");

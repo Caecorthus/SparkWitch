@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
  * 字符串与 {@link TimeStealerRules#REPLAY_COST_KEY} 整数。数据不完整的记录返回 {@code null}，Wathe 会跳过该行。
  */
 public final class TimeStealerReplay {
-    static final String CLOCK_KEY = "replay.item_use.sparkwitch.time_stealer_clock";
+    static final String CLOCK_KEY = "replay.item_use.sparkwitch.time_stealer_pocket_watch";
     static final String PURCHASE_KEY = "replay.item_use.sparkwitch.time_stamp_purchase";
     /** Wathe's own keys for the recording player and the target ({@code GameRecordManager#addEvent}). / Wathe 自身写入的记录玩家与目标键。 */
     static final String WATHE_ACTOR_KEY = "actor";

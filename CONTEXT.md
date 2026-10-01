@@ -58,7 +58,10 @@ Current build baseline:
   label, Clock crosshair) in `client/timestealer/`. Cross-mod seams go through
   `compat/NoellesTimekeeperPurchase` (the NoellesRoles reduce-time item identity),
   `compat/NoellesSilenceBridge` (NoellesRoles silence), and the `noellesroles:time_keeper` id
-  (`TIMEKEEPER`) in `compat/NoellesRoleIds`.
+  (`TIMEKEEPER`) in `compat/NoellesRoleIds`. Naming: the item is 时间怀表 / Time Pocket Watch
+  (`sparkwitch:time_stealer_pocket_watch`, own texture and own pocket-watch curse sounds, kept apart
+  from the Bell Ringer's bell); "Clock" stays only as the Java code name (`ClockReadyAt`, class and
+  constant names).
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
