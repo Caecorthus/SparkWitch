@@ -25,12 +25,7 @@ public final class PotionGunnerShopRules {
     }
 
     public static List<ShopEntry> entries() {
-        List<ShopEntry> entries = new ArrayList<>();
-        for (ShopEntry entry : AccompliceShopRules.entries()) {
-            if (!REMOVED_ACCOMPLICE_ENTRY.equals(entry.id())) {
-                entries.add(entry);
-            }
-        }
+        List<ShopEntry> entries = new ArrayList<>(AccompliceShopRules.entriesWithout(REMOVED_ACCOMPLICE_ENTRY));
         for (PotionShellType type : PotionShellType.values()) {
             entries.add(new ShopEntry.Builder(
                     type.shopEntryId(),

@@ -998,5 +998,7 @@
   "replay.item_use.sparkwitch.potion_launcher_fire": "%s fired %s from the §dAnti-Tank Launcher§r",
   "death_reason.sparkwitch.potion_backblast": "Burned by a launcher backblast",
   "replay.death.sparkwitch.potion_backblast.killed": "%s was burned by %s's §dlauncher backblast§r",
-  "replay.death.sparkwitch.potion_backblast.died": "%s was burned by a §dlauncher backblast§r"
+  "replay.death.sparkwitch.potion_backblast.died": "%s was burned by a §dlauncher backblast§r",
+  "message.sparkwitch.potion_gunner.ac_jammed": "A potion shell jammed your skill and item cooldowns",
+  "message.sparkwitch.potion_gunner.mr_burned": "A potion shell burned %s of your coins"
 }

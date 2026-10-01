@@ -998,5 +998,7 @@
   "replay.item_use.sparkwitch.potion_launcher_fire": "%s 用§d反坦克炮筒§r发射了 %s",
   "death_reason.sparkwitch.potion_backblast": "被炮筒尾焰烧死",
   "replay.death.sparkwitch.potion_backblast.killed": "%s 被 %s 的§d炮筒尾焰§r烧死",
-  "replay.death.sparkwitch.potion_backblast.died": "%s 被§d炮筒尾焰§r烧死"
+  "replay.death.sparkwitch.potion_backblast.died": "%s 被§d炮筒尾焰§r烧死",
+  "message.sparkwitch.potion_gunner.ac_jammed": "你的技能和道具冷却被药炮干扰了",
+  "message.sparkwitch.potion_gunner.mr_burned": "你被药炮炸掉了 %s 金币"
 }
