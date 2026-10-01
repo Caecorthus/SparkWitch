@@ -1000,5 +1000,8 @@
   "replay.death.sparkwitch.potion_backblast.killed": "%s was burned by %s's §dlauncher backblast§r",
   "replay.death.sparkwitch.potion_backblast.died": "%s was burned by a §dlauncher backblast§r",
   "message.sparkwitch.potion_gunner.ac_jammed": "A potion shell jammed your skill and item cooldowns",
-  "message.sparkwitch.potion_gunner.mr_burned": "A potion shell burned %s of your coins"
+  "message.sparkwitch.potion_gunner.mr_burned": "A potion shell burned %s of your coins",
+  "message.sparkwitch.potion_gunner.already_loaded": "The launcher is already loaded. Right-click it with an empty cursor to unload first.",
+  "message.sparkwitch.potion_gunner.not_loaded": "The launcher is not loaded.",
+  "message.sparkwitch.potion_gunner.hit_reward": "Shell hit %1$s: +%2$s coins"
 }
