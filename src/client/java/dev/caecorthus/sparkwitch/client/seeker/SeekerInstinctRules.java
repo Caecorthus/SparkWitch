@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.seeker;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerDeviceKind;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,10 +13,12 @@ import java.util.UUID;
  * Pure client outline policy for Seeker devices and the owner's breaker mark (plan §3.14, §3.15, owner decision
  * Q12/Q13). Instinct viewers are killers (Wathe's {@code isKiller()}, which SparkTraits extends to Impostors),
  * spectators with spectator information, and the Grand Witch, Accomplice and Murderous Witch. The owner always sees
- * their own car dimly; cameras are never outlined. The hooks feed plain facts in; nothing here touches the client.
+ * their own car dimly; cameras are never outlined. During a car or camera view the owner also sees their own body.
+ * The hooks feed plain facts in; nothing here touches the client.
  * 搜寻者设备与拥有者损坏者标记的纯客户端描边规则（计划 §3.14、§3.15，所有者决定 Q12/Q13）。有本能的观察者为
  * 杀手（Wathe 的 {@code isKiller()}，SparkTraits 会把内鬼也算进去）、可见旁观信息的旁观者，以及大魔女、共犯和
- * 杀意魔女。拥有者始终以暗色看到自己的小车；摄像头从不描边。钩子只传入事实，这里不接触客户端。
+ * 杀意魔女。拥有者始终以暗色看到自己的小车；摄像头从不描边。小车或摄像头视角期间，拥有者还会看到自己的本体描边。
+ * 钩子只传入事实，这里不接触客户端。
  */
 public final class SeekerInstinctRules {
     public static final Identifier GRAND_WITCH_ID = SparkWitch.id("grand_witch");
@@ -92,5 +95,18 @@ public final class SeekerInstinctRules {
             return false;
         }
         return !targetSpectating && !targetInvisible && !targetSwallowed && !targetInstinctHidden && !viewerSwallowed;
+    }
+
+    /**
+     * Whether the viewer's own body gets the always-on remote-view outline: only while the local remote view is in the
+     * car or camera, only on the viewer itself, and never for a spectator. It never outlines another player, so it
+     * reveals nothing to anyone but the owner.
+     * 观察者自己的本体是否获得遥控视角常亮描边：仅当本地遥控视角处于小车或摄像头、目标就是观察者本人、且观察者不是旁观者时。
+     * 它从不描边其他玩家，因此除拥有者本人外不向任何人透露信息。
+     */
+    public static boolean outlinesOwnBody(@Nullable SeekerSessionMode remoteMode, boolean targetIsViewer,
+                                          boolean viewerSpectator) {
+        boolean viewing = remoteMode == SeekerSessionMode.CAR || remoteMode == SeekerSessionMode.CAMERA;
+        return viewing && targetIsViewer && !viewerSpectator;
     }
 }

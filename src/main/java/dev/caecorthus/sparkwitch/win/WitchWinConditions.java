@@ -5,6 +5,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionWinResult;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.caecorthus.sparkwitch.compat.ShadowJesterShowdownBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsLastStandBridge;
+import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendParticipation;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -105,7 +106,9 @@ public final class WitchWinConditions {
         List<ServerPlayerEntity> boundShadowJesters = new ArrayList<>();
 
         for (ServerPlayerEntity player : context.world().getPlayers()) {
-            if (!GameFunctions.isPlayerPlayingAndAlive(player)) {
+            // D1: a dormant Fiend counts as not alive for the Witch win and the showdown gate.
+            // D1：休眠魔人在魔女胜利与双影谢幕门槛中视为不存活。
+            if (!GameFunctions.isPlayerPlayingAndAlive(player) || FiendParticipation.isDormantFiend(player)) {
                 continue;
             }
             livingPlayerCount++;

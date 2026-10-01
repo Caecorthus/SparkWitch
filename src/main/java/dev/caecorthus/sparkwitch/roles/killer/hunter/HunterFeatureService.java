@@ -9,7 +9,6 @@ import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
-import dev.doctor4t.wathe.api.event.ShouldDropOnDeath;
 import dev.doctor4t.wathe.api.event.ShouldPunishGunShooter;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerPoisonComponent;
@@ -60,10 +59,9 @@ public final class HunterFeatureService {
         HunterShopService.register();
         UseBlockCallback.EVENT.register(HunterFeatureService::interactWithTrap);
         KillPlayer.AFTER.register(HunterFeatureService::afterConfirmedDeath);
-        ShouldDropOnDeath.EVENT.register((stack, victim) -> stack.getItem() instanceof HunterTrapItem);
         ShouldPunishGunShooter.EVENT.register(HunterFeatureService::gunPunishment);
         ResetPlayer.EVENT.register(player -> HunterPlayerComponent.KEY.get(player).reset());
-        RoleAssigned.EVENT.register((player, role) -> HunterPlayerComponent.KEY.get(player).reset());
+        RoleAssigned.EVENT.register(HunterFeatureService::assignForRole);
         GameEvents.ON_WIN_DETERMINED.register((world, component, status, neutralWinner) -> cleanupRound(world));
         GameEvents.ON_FINISH_FINALIZE.register((world, component) -> {
             if (world instanceof ServerWorld serverWorld) {
@@ -71,6 +69,21 @@ public final class HunterFeatureService {
             }
         });
         registerReplayFormatters();
+    }
+
+    private static void assignForRole(PlayerEntity player, Role role) {
+        HunterPlayerComponent.KEY.get(player).reset();
+        // Server-side round-start lock keyed by item type (Ninja knife pattern), so a shotgun bought inside the
+        // window stays locked; the vanilla cooldown sync drives the client overlay and crosshair.
+        // 服务端按物品类型设置开局锁定（同忍者苦无），窗口内购买的猎枪同样受限；原版冷却同步驱动客户端显示与准星。
+        if (player instanceof ServerPlayerEntity serverPlayer
+                && role != null
+                && HunterRules.ROLE_ID.equals(role.identifier())) {
+            serverPlayer.getItemCooldownManager().set(
+                    Registries.ITEM.get(DoubleBarrelShotgunItem.ID),
+                    HunterRules.SHOTGUN_INITIAL_COOLDOWN_TICKS
+            );
+        }
     }
 
     private static ActionResult interactWithTrap(
@@ -207,11 +220,11 @@ public final class HunterFeatureService {
             ServerPlayerEntity killer,
             Identifier deathReason
     ) {
-        GameWorldComponent game = GameWorldComponent.KEY.get(victim.getServerWorld());
-        Role victimRole = game.getRole(victim);
-        if (victimRole != null && HunterRules.ROLE_ID.equals(victimRole.identifier())) {
-            removeHunterWeapons(victim);
-        }
+        // Not gated on the victim's current role: a Hunter recruited into another role keeps the loadout,
+        // and GameFunctionsHunterDropMixin has already kept every copy out of Wathe's death drops.
+        // 不按死者当前身份判断：被招募为其他身份的猎人仍持有装备，且 GameFunctionsHunterDropMixin
+        // 已将所有副本排除在 Wathe 死亡掉落之外。
+        removeHunterLoadout(victim);
 
         HunterPlayerComponent component = HunterPlayerComponent.KEY.get(victim);
         if (GameConstants.DeathReasons.POISON.equals(deathReason)) {
@@ -223,11 +236,9 @@ public final class HunterFeatureService {
         component.clearPoisonAttribution();
     }
 
-    private static void removeHunterWeapons(ServerPlayerEntity victim) {
+    private static void removeHunterLoadout(ServerPlayerEntity victim) {
         for (int slot = 0; slot < victim.getInventory().size(); slot++) {
-            ItemStack stack = victim.getInventory().getStack(slot);
-            if (stack.getItem() instanceof DoubleBarrelShotgunItem
-                    || stack.getItem() instanceof DoubleBarrelShellItem) {
+            if (HunterInventoryRules.isHunterLoadout(victim.getInventory().getStack(slot))) {
                 victim.getInventory().setStack(slot, ItemStack.EMPTY);
             }
         }

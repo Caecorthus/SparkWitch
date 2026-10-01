@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.mixin;
 
 import dev.caecorthus.sparkwitch.registry.HunterOrthopedistPairingService;
 import dev.caecorthus.sparkwitch.registry.WitchRoleAssignmentService;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderAssignmentService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.gamemode.MurderGameMode;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -31,5 +32,6 @@ public abstract class MurderGameModeMixin {
     ) {
         HunterOrthopedistPairingService.ensurePairBeforeCivilians(world, gameComponent, players);
         WitchRoleAssignmentService.assignAfterNeutralsBeforeCivilians(world, gameComponent, players);
+        InsiderAssignmentService.assignAfterNeutralsBeforeCivilians(world, gameComponent, players);
     }
 }

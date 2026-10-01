@@ -70,6 +70,7 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "seeker_remote_open"),
             Identifier.of("sparkwitch", "seeker_car_swallow"),
             Identifier.of("sparkwitch", "seeker_car_recall"),
+            Identifier.of("sparkwitch", "seeker_car_use"),
             // Black Raven transform selection (SelectBlackRavenDisguiseC2SPacket). / 黑羽鸦变身选择。
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
 

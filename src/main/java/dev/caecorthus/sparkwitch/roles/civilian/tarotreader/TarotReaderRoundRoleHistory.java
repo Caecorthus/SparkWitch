@@ -1,8 +1,10 @@
 package dev.caecorthus.sparkwitch.roles.civilian.tarotreader;
 
 import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.api.WatheRoles;
 import net.minecraft.util.Identifier;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,6 +21,15 @@ final class TarotReaderRoundRoleHistory {
     static synchronized void record(Role role) {
         if (role != null) {
             ASSIGNED_ROLE_IDS.add(role.identifier());
+        }
+    }
+
+    static synchronized void resetTo(Collection<Role> roles) {
+        ASSIGNED_ROLE_IDS.clear();
+        for (Role role : roles) {
+            if (role != null && role != WatheRoles.NO_ROLE) {
+                ASSIGNED_ROLE_IDS.add(role.identifier());
+            }
         }
     }
 

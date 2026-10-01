@@ -5,6 +5,7 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.net.OpenTarotDivinationSelectorS2CPacket;
 import dev.caecorthus.sparkwitch.net.SubmitTarotDivinationSelectionC2SPacket;
+import dev.caecorthus.sparkwitch.net.TarotDivinationReadingS2CPacket;
 import dev.caecorthus.sparkwitch.net.TarotDivinationSnapshotS2CPacket;
 import dev.caecorthus.sparkwitch.util.RoleDisplayTextRules;
 import dev.doctor4t.wathe.api.Role;
@@ -177,8 +178,12 @@ public final class TarotReaderDivinationService {
                 TarotReaderRoundRoleHistory.wasAssigned(role),
                 gameComponent.getAllWithRole(role).size()
         );
-        sendActionbar(
+        sendReading(
                 player,
+                OpenTarotDivinationSelectorS2CPacket.MODE_IDENTITY,
+                role.identifier().toString(),
+                "",
+                assigned,
                 assigned
                         ? "message.sparkwitch.tarot.identity.present"
                         : "message.sparkwitch.tarot.identity.absent",
@@ -204,13 +209,17 @@ public final class TarotReaderDivinationService {
         }
 
         boolean alive = TarotReaderRules.isTargetAlive(true, gameComponent.isPlayerDead(targetUuid));
-        Text playerName = Text.literal(playerName(player.getServerWorld(), gameComponent, targetUuid));
-        sendActionbar(
+        String playerName = playerName(player.getServerWorld(), gameComponent, targetUuid);
+        sendReading(
                 player,
+                OpenTarotDivinationSelectorS2CPacket.MODE_SURVIVAL,
+                targetUuid.toString(),
+                playerName,
+                alive,
                 alive
                         ? "message.sparkwitch.tarot.survival.alive"
                         : "message.sparkwitch.tarot.survival.dead",
-                playerName
+                Text.literal(playerName)
         );
     }
 
@@ -241,6 +250,42 @@ public final class TarotReaderDivinationService {
                 && !GameFunctions.isPlayerSpectatingOrCreative(player)
                 // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
                 && gameComponent.isRole(player, SparkWitchRoles.tarotReader());
+    }
+
+    /**
+     * Sends a resolved reading as the purchaser-only result payload, which the client shows as a slip that actionbar
+     * countdowns cannot overwrite. Falls back to today's actionbar line when the client cannot receive the payload.
+     * 以仅购买者可见的结果数据包发送已判定的占卜，客户端将其显示为不会被动作栏倒计时覆盖的结果条；
+     * 客户端无法接收该数据包时，回退为原有的动作栏消息。
+     */
+    private static void sendReading(
+            ServerPlayerEntity player,
+            int mode,
+            String target,
+            String displayName,
+            boolean positive,
+            String fallbackKey,
+            Text fallbackArgument
+    ) {
+        if (ServerPlayNetworking.canSend(player, TarotDivinationReadingS2CPacket.ID)) {
+            try {
+                ServerPlayNetworking.send(player, new TarotDivinationReadingS2CPacket(
+                        mode,
+                        truncate(target, TarotDivinationReadingS2CPacket.MAX_TARGET_LENGTH),
+                        truncate(displayName, TarotDivinationReadingS2CPacket.MAX_DISPLAY_NAME_LENGTH),
+                        positive
+                ));
+                return;
+            } catch (RuntimeException ignored) {
+                // Fall through: the purchaser still gets the result on the actionbar.
+                // 继续执行：购买者仍会在动作栏收到结果。
+            }
+        }
+        sendActionbar(player, fallbackKey, fallbackArgument);
+    }
+
+    private static String truncate(String value, int maxLength) {
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
     private static void sendActionbar(ServerPlayerEntity player, String translationKey, Object... args) {

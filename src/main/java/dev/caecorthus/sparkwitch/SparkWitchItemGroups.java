@@ -50,6 +50,15 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.shockDevice(),
                                     SparkWitchItems.seekerCar(),
                                     SparkWitchItems.seekerCamera(),
+                                    SparkWitchItems.fishingRod(),
+                                    SparkWitchItems.fishBait(),
+                                    SparkWitchItems.salmon(),
+                                    SparkWitchItems.cod(),
+                                    SparkWitchItems.clownfish(),
+                                    SparkWitchItems.goldfish(),
+                                    SparkWitchItems.keyFish(),
+                                    SparkWitchItems.swordfish(),
+                                    SparkWitchItems.glimmerfish(),
                                     // Killer / 杀手
                                     SparkWitchItems.ninjaKnife(),
                                     SparkWitchItems.ninjaShuriken(),
@@ -62,7 +71,9 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.doubleBarrelShotgun(),
                                     SparkWitchItems.doubleBarrelShell(),
                                     SparkWitchItems.knockoutDrug(),
-                                    SparkWitchItems.tollBell()
+                                    SparkWitchItems.tollBell(),
+                                    SparkWitchItems.timeStealerClock(),
+                                    SparkWitchItems.timeStamp()
                             );
                             factionOrder.forEach(entries::add);
                             // Any other item in our namespace follows in registration order, so new items join automatically.

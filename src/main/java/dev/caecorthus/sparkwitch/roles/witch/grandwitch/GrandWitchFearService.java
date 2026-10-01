@@ -53,8 +53,9 @@ public final class GrandWitchFearService {
             Identifier.of("sparkwitch", "seeker_remote_open"),
             Identifier.of("sparkwitch", "seeker_car_swallow"),
             Identifier.of("sparkwitch", "seeker_car_recall"),
+            Identifier.of("sparkwitch", "seeker_car_use"),
             // Black Raven transform selection; the server also re-checks fear on select.
-            // 黑羽鸦变身选择；服务端在选择时也会再次检查恐惧。
+            // é»ç¾½é¸¦åèº«éæ©ï¼æå¡ç«¯å¨éæ©æ¶ä¹ä¼åæ¬¡æ£æ¥ææ§ã
             SelectBlackRavenDisguiseC2SPacket.PAYLOAD_ID
     );
 

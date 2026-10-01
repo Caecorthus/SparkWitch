@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.net;
 
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabC2SPayload;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
@@ -69,6 +71,10 @@ public final class SparkWitchPackets {
                 SubmitTarotDivinationSelectionC2SPacket.ID,
                 SubmitTarotDivinationSelectionC2SPacket.CODEC
         );
+        PayloadTypeRegistry.playC2S().register(
+                SwordfishStabC2SPayload.ID,
+                SwordfishStabC2SPayload.CODEC
+        );
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
                 SparkWitchServerConfirmS2CPacket.CODEC
@@ -80,6 +86,10 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playS2C().register(
                 OpenTarotDivinationSelectorS2CPacket.ID,
                 OpenTarotDivinationSelectorS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                TarotDivinationReadingS2CPacket.ID,
+                TarotDivinationReadingS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 OpenBlackRavenLedgerS2CPacket.ID,
@@ -109,7 +119,7 @@ public final class SparkWitchPackets {
         ServerPlayNetworking.registerGlobalReceiver(GrandWitchRecruitC2SPacket.ID,
                 (payload, context) -> GrandWitchFeatureService.recruit(context.player(), payload.targetId()));
         ServerPlayNetworking.registerGlobalReceiver(FireDeathRayC2SPacket.ID,
-                (payload, context) -> MurderousWitchDeathRayService.fire(context.player()));
+                (payload, context) -> MurderousWitchDeathRayService.fire(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(UseCurserAbilityC2SPacket.ID,
                 (payload, context) -> CurserFeatureService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseOrthopedistSkillC2SPacket.ID,
@@ -123,6 +133,8 @@ public final class SparkWitchPackets {
                         context.player(), payload.targetEntityId()));
         ServerPlayNetworking.registerGlobalReceiver(SubmitTarotDivinationSelectionC2SPacket.ID,
                 (payload, context) -> TarotReaderDivinationService.submit(context.player(), payload));
+        ServerPlayNetworking.registerGlobalReceiver(SwordfishStabC2SPayload.ID,
+                (payload, context) -> SwordfishStabService.use(context.player(), payload.targetEntityId()));
         ServerPlayNetworking.registerGlobalReceiver(SelectBlackRavenDisguiseC2SPacket.ID,
                 (payload, context) -> BlackRavenDisguiseService.requestSwitch(
                         context.player(), payload.session(), payload.target()));
