@@ -15,11 +15,14 @@ import net.minecraft.world.World;
  * never ticked, tracked, saved or rendered) and borrows the zero-size marker type, whose eye height is 0, so the
  * render camera sits exactly at {@link #getPos()}: the camera box centre plus facing x
  * {@link SeekerRules#CAMERA_VIEW_OFFSET}. Mouse look is clamped to the mount cone; {@code prev*} fields are set by
- * hand every tick because nothing else ticks this entity. Purely cosmetic: the server never sees its rotation.
+ * hand every tick because nothing else ticks this entity. It starts from the camera's synced look, so re-entering
+ * resumes where the head points; {@link SeekerCameraLookSender} reports the look so the server can turn the head that
+ * every player sees (the server clamps it again; the view itself stays client-side).
  * CAMERA 模式下作为渲染相机的纯客户端摄像头视点。它从不加入世界（因此不会被 tick、追踪、保存或渲染），
  * 借用零尺寸的标记实体类型（眼高为 0），渲染相机恰好位于 {@link #getPos()}：摄像头碰撞箱中心加朝向 ×
  * {@link SeekerRules#CAMERA_VIEW_OFFSET}。鼠标视角被钳制在安装锥角内；由于没有其他逻辑 tick 该实体，
- * {@code prev*} 字段每刻手动设置。纯外观：服务端从不知道其朝向。
+ * {@code prev*} 字段每刻手动设置。它从摄像头同步的视角开始，因此重新进入时延续机头当前的朝向；
+ * {@link SeekerCameraLookSender} 上报视角，服务端据此转动所有玩家都能看到的机头（服务端会再次钳制；画面本身仍只在客户端）。
  */
 public final class SeekerCameraViewpoint extends Entity {
     private final SeekerCameraEntity mount;
@@ -33,6 +36,7 @@ public final class SeekerCameraViewpoint extends Entity {
         this.facing = mount.facing();
         this.mountYaw = mount.mountYaw();
         recenter();
+        resumeLook();
         followMount();
     }
 
@@ -86,6 +90,14 @@ public final class SeekerCameraViewpoint extends Entity {
         setPitch(pitch);
         prevYaw += yaw - oldYaw;
         prevPitch += pitch - oldPitch;
+    }
+
+    /** Starts from the head's synced look, clamped into the cone. / 从机头同步的视角开始，并钳制到锥角内。 */
+    private void resumeLook() {
+        setYaw(SeekerRemoteViewRules.clampConeYaw(mount.lookYaw(), SeekerRemoteViewRules.coneYawCenter(facing, mountYaw)));
+        setPitch(SeekerRemoteViewRules.clampConePitch(mount.lookPitch(), SeekerRemoteViewRules.conePitchCenter(facing)));
+        prevYaw = getYaw();
+        prevPitch = getPitch();
     }
 
     private void recenter() {

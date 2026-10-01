@@ -20,6 +20,8 @@ public enum SeekerBreakSource {
     DEATH_RAY(Kind.RAY),
     /** Black Raven's right-click "throw" is a server hitscan (no projectile entity). / 黑鸦右键“投掷”是服务端即时射线（无投射物实体）。 */
     FEATHER_BLADE(Kind.RAY),
+    /** Time Stealer Clock: a server hitscan (no projectile entity). / 窃时者时钟：服务端即时射线（无投射物实体）。 */
+    CLOCK(Kind.RAY),
     THROWING_AXE(Kind.PROJECTILE),
     SHURIKEN(Kind.PROJECTILE),
     SHOCK_DEVICE(Kind.PROJECTILE),

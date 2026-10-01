@@ -128,9 +128,29 @@ public final class SeekerCctvRules {
         return max > 0 && effectiveRadius > 0 && effectiveRadius < max;
     }
 
-    /** Switching is only offered while both devices exist. / 只有两个设备都存在时才提示可切换。 */
-    public static boolean showsSwitchHint(SeekerCarState carState, int cameraEntityId) {
-        return carState == SeekerCarState.DEPLOYED && cameraEntityId >= 0;
+    /**
+     * Car ↔ camera switching is only offered while the car and at least one camera exist.
+     * 只有小车与至少一台摄像头都存在时才提示可切换。
+     */
+    public static boolean showsSwitchHint(SeekerCarState carState, int cameraCount) {
+        return carState == SeekerCarState.DEPLOYED && cameraCount > 0;
+    }
+
+    /**
+     * Camera cycling is only offered while viewing a camera and another one is reachable; {@code cameraCount} counts
+     * the viewed camera plus the ones the strafe keys could select.
+     * 仅在观看摄像头且还有其他可到达的摄像头时提示可切换；{@code cameraCount} 为正在观看的摄像头加上左右键可选的摄像头数量。
+     */
+    public static boolean showsCameraCycleHint(SeekerSessionMode mode, int cameraCount) {
+        return mode == SeekerSessionMode.CAMERA && cameraCount > 1;
+    }
+
+    /**
+     * Zero-padded camera number ("01"), or "--" for an unknown label; translations only take %s, never %02d.
+     * 补零的摄像头编号（“01”），未知编号为“--”；翻译只支持 %s，不支持 %02d。
+     */
+    public static String cameraNumber(int label) {
+        return label > 0 ? String.format(java.util.Locale.ROOT, "%02d", label) : "--";
     }
 
     public static int frameColor(SeekerSessionMode mode) {

@@ -289,6 +289,16 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
         ],
         [
+                configName: "WatheClientFearInstinctMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WatheClientFearInstinctMixin.class",
+                handler: "sparkwitch\$suppressInstinctHighlightDuringAreaSpell",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
                 configName: "AssassinVendettaTargetMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/AssassinVendettaTargetMixin.class",
                 handler: "sparkwitch\$appendBoundVendetta",

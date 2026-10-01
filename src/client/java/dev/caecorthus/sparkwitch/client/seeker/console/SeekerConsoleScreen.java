@@ -1,14 +1,12 @@
 package dev.caecorthus.sparkwitch.client.seeker.console;
 
 import dev.caecorthus.sparkwitch.client.seeker.SeekerClientState;
-import dev.caecorthus.sparkwitch.compat.SeekerControlExpertBridge;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthTabletCompat;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCarState;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.console.SeekerConsoleDevices;
-import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCarEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCooldowns;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
@@ -19,7 +17,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.Entity;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
@@ -32,18 +29,19 @@ import java.util.List;
 
 /**
  * Role-owned Seeker Console (keys {@code screen.sparkwitch.seeker_console.*}; never the witch skill panel). Client
- * presentation only: status rows (car, battery, camera, mark), "Control car" and "View camera" (send
- * {@code seeker_remote_open} and close; the server opens the possession session and the remote view takes over),
- * "Recall car" (remote, after a confirm step; {@code seeker_car_recall}, 180 s), and "Police network" (only for the
- * SparkStrength tablet: one-shot bypass and vanilla re-use so SparkStrength opens its own tablet). Every enablement is a
- * client prediction; the server validates each packet. The console never pauses and closes itself when the device
- * leaves the inventory, the role changes, the player dies, or a session starts.
+ * presentation only: status rows (car, battery, camera count and nearest distance, mark), "Control car" and "View
+ * camera" (send {@code seeker_remote_open} and close; "View camera" lets the server pick the default camera; the server
+ * opens the possession session and the remote view takes over), "Recall car" (remote, after a confirm step;
+ * {@code seeker_car_recall}, 180 s), and "Police network" (only for the SparkStrength tablet: one-shot bypass and
+ * vanilla re-use so SparkStrength opens its own tablet). Every enablement is a client prediction shared with quick
+ * connect through {@link SeekerDeviceAvailability}; the server validates each packet. The console never pauses and
+ * closes itself when the device leaves the inventory, the role changes, the player dies, or a session starts.
  * 职业自有的搜寻者控制台（键名 {@code screen.sparkwitch.seeker_console.*}；绝不使用魔女技能面板）。仅客户端展示：
- * 状态行（小车、电量、摄像头、标记）；“操控小车”“查看摄像头”（发送 {@code seeker_remote_open} 并关闭，
- * 由服务端开启附身会话、遥控视角接管）；“回收小车”（远程，二次确认后发送 {@code seeker_car_recall}，180 秒）；
- * “警察网络”（仅限 SparkStrength 平板：一次性旁路后重发原版使用，由 SparkStrength 打开自己的平板）。
- * 所有启用状态都只是客户端预测，服务端校验每个数据包。控制台不暂停游戏，并在设备离开背包、职业变化、
- * 死亡或会话开始时自动关闭。
+ * 状态行（小车、电量、摄像头数量与最近距离、标记）；“操控小车”“查看摄像头”（发送 {@code seeker_remote_open} 并关闭，
+ * “查看摄像头”由服务端选择默认摄像头；由服务端开启附身会话、遥控视角接管）；“回收小车”（远程，二次确认后发送
+ * {@code seeker_car_recall}，180 秒）；“警察网络”（仅限 SparkStrength 平板：一次性旁路后重发原版使用，由 SparkStrength
+ * 打开自己的平板）。所有启用状态都只是客户端预测，经 {@link SeekerDeviceAvailability} 与快速连接共用，
+ * 服务端校验每个数据包。控制台不暂停游戏，并在设备离开背包、职业变化、死亡或会话开始时自动关闭。
  */
 public class SeekerConsoleScreen extends Screen {
     private static final int MAX_PANEL_WIDTH = 260;
@@ -291,36 +289,15 @@ public class SeekerConsoleScreen extends Screen {
     }
 
     private SeekerConsoleRules.Availability carAvailability() {
-        ClientPlayerEntity player = client == null ? null : client.player;
-        SeekerDeviceEntity car = resolve(SeekerClientState.carEntityId(), SeekerCarEntity.class);
-        return SeekerConsoleRules.carAvailability(SeekerClientState.carState(), car != null,
-                horizontalDistanceSquared(player, car), radius(SeekerSessionMode.CAR), blocked(player));
+        return SeekerDeviceAvailability.car(client);
     }
 
     private SeekerConsoleRules.Availability cameraAvailability() {
-        ClientPlayerEntity player = client == null ? null : client.player;
-        SeekerDeviceEntity camera = resolve(SeekerClientState.cameraEntityId(), SeekerCameraEntity.class);
-        return SeekerConsoleRules.cameraAvailability(SeekerClientState.cameraEntityId() >= 0, camera != null,
-                horizontalDistanceSquared(player, camera), radius(SeekerSessionMode.CAMERA), blocked(player));
+        return SeekerDeviceAvailability.camera(client);
     }
 
     private SeekerConsoleRules.Availability recallAvailability() {
-        ClientPlayerEntity player = client == null ? null : client.player;
-        return SeekerConsoleRules.recallAvailability(SeekerClientState.carState(), blocked(player));
-    }
-
-    /** A stunned body cannot use the console (server: {@code remote.denied.stunned}). / 眩晕时不能使用控制台。 */
-    private static boolean blocked(@Nullable ClientPlayerEntity player) {
-        return player == null || SeekerControlExpertBridge.isStunned(player);
-    }
-
-    /**
-     * Client estimate of the server's effective radius: the mode's maximum clamped to the negotiated view distance.
-     * 服务端有效半径的客户端估计：模式上限，按协商后的视距钳制。
-     */
-    private int radius(SeekerSessionMode mode) {
-        int viewDistance = client == null ? 0 : client.options.getClampedViewDistance();
-        return SeekerRules.effectiveRadius(SeekerRules.maxRadius(mode), viewDistance);
+        return SeekerDeviceAvailability.recall(client);
     }
 
     private boolean networkVisible() {
@@ -348,7 +325,8 @@ public class SeekerConsoleScreen extends Screen {
         List<StatusRow> rows = new ArrayList<>(4);
         SeekerCarState carState = SeekerClientState.carState();
         int cooldown = SeekerCooldowns.remainingTicks(player);
-        SeekerDeviceEntity car = resolve(SeekerClientState.carEntityId(), SeekerCarEntity.class);
+        SeekerDeviceEntity car = SeekerDeviceAvailability.resolve(client, SeekerClientState.carEntityId(),
+                SeekerCarEntity.class);
         Text carValue = switch (SeekerConsoleRules.carStatus(carState, cooldown)) {
             case NONE -> Text.translatable("screen.sparkwitch.seeker_console.car.none");
             case READY -> Text.translatable("screen.sparkwitch.seeker_console.car.ready");
@@ -356,7 +334,7 @@ public class SeekerConsoleScreen extends Screen {
                     SeekerConsoleRules.secondsCeil(cooldown),
                     Text.translatable(SeekerClientState.cooldownReason().translationKey()));
             case DEPLOYED -> Text.translatable("screen.sparkwitch.seeker_console.car.deployed",
-                    distanceText(player, car));
+                    distanceText(SeekerDeviceAvailability.horizontalDistanceSquared(player, car)));
             case SWALLOWED -> Text.translatable("screen.sparkwitch.seeker_console.car.swallowed");
         };
         rows.add(new StatusRow(labelled("screen.sparkwitch.seeker_console.car", carValue), TEXT_COLOR));
@@ -366,10 +344,10 @@ public class SeekerConsoleScreen extends Screen {
                     : SeekerRules.isBatteryWarning(battery) ? WARNING_COLOR : TEXT_COLOR;
             rows.add(new StatusRow(Text.translatable("screen.sparkwitch.seeker_console.battery", battery), color));
         }
-        boolean cameraPlaced = SeekerClientState.cameraEntityId() >= 0;
-        Text cameraValue = cameraPlaced
-                ? Text.translatable("screen.sparkwitch.seeker_console.camera.placed", distanceText(player,
-                        resolve(SeekerClientState.cameraEntityId(), SeekerCameraEntity.class)))
+        SeekerDeviceAvailability.CameraSummary cameras = SeekerDeviceAvailability.cameraSummary(client);
+        Text cameraValue = cameras.count() > 0
+                ? Text.translatable("screen.sparkwitch.seeker_console.camera.placed", cameras.count(),
+                        distanceText(cameras.nearestHorizontalDistanceSquared()))
                 : Text.translatable("screen.sparkwitch.seeker_console.camera.none");
         rows.add(new StatusRow(labelled("screen.sparkwitch.seeker_console.camera", cameraValue), TEXT_COLOR));
         int markTicks = SeekerClientState.markRemainingTicks();
@@ -389,30 +367,13 @@ public class SeekerConsoleScreen extends Screen {
     }
 
     /**
-     * Horizontal distance, the same measure as the range check, so the row never contradicts the button suffix.
-     * 水平距离，与范围判定一致，状态行不会与按钮后缀矛盾。
+     * Whole metres of a horizontal distance squared ({@code "?"} when unknown), the same measure as the range check, so
+     * the row never contradicts the button suffix.
+     * 水平距离平方换算的整米数（未知时为 {@code "?"}），与范围判定一致，状态行不会与按钮后缀矛盾。
      */
-    private static String distanceText(ClientPlayerEntity player, @Nullable Entity device) {
-        double squared = horizontalDistanceSquared(player, device);
-        return squared < 0.0 ? "?" : Long.toString(Math.round(Math.sqrt(squared)));
-    }
-
-    private static double horizontalDistanceSquared(@Nullable ClientPlayerEntity player, @Nullable Entity device) {
-        if (player == null || device == null) {
-            return -1.0;
-        }
-        double dx = device.getX() - player.getX();
-        double dz = device.getZ() - player.getZ();
-        return dx * dx + dz * dz;
-    }
-
-    @Nullable
-    private SeekerDeviceEntity resolve(int entityId, Class<? extends SeekerDeviceEntity> type) {
-        if (entityId < 0 || client == null || client.world == null) {
-            return null;
-        }
-        Entity entity = client.world.getEntityById(entityId);
-        return type.isInstance(entity) && entity.isAlive() ? type.cast(entity) : null;
+    private static String distanceText(double horizontalDistanceSquared) {
+        return horizontalDistanceSquared < 0.0 ? "?"
+                : Long.toString(Math.round(Math.sqrt(horizontalDistanceSquared)));
     }
 
     private record StatusRow(Text text, int color) {
