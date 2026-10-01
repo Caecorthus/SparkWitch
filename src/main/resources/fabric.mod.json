@@ -54,7 +54,8 @@
       "sparkwitch:saboteur_player",
       "sparkwitch:wraith_round",
       "sparktraits:wraith_player",
-      "sparktraits:wraith_round"
+      "sparktraits:wraith_round",
+      "sparkwitch:accomplice_variant_round"
     ]
   },
   "mixins": [
