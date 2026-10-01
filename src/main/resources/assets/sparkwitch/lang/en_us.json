@@ -1003,5 +1003,7 @@
   "message.sparkwitch.potion_gunner.mr_burned": "A potion shell burned %s of your coins",
   "message.sparkwitch.potion_gunner.already_loaded": "The launcher is already loaded. Right-click it with an empty cursor to unload first.",
   "message.sparkwitch.potion_gunner.not_loaded": "The launcher is not loaded.",
-  "message.sparkwitch.potion_gunner.hit_reward": "Shell hit %1$s: +%2$s coins"
+  "message.sparkwitch.potion_gunner.hit_reward": "Shell hit %1$s: +%2$s coins",
+  "hud.sparkwitch.potion_gunner.loaded": "Loaded: %s",
+  "hud.sparkwitch.potion_gunner.empty": "Not loaded"
 }

@@ -1003,5 +1003,7 @@
   "message.sparkwitch.potion_gunner.mr_burned": "你被药炮炸掉了 %s 金币",
   "message.sparkwitch.potion_gunner.already_loaded": "炮筒已装填。先用空光标右键炮筒退弹。",
   "message.sparkwitch.potion_gunner.not_loaded": "炮筒未装填。",
-  "message.sparkwitch.potion_gunner.hit_reward": "炮弹命中 %1$s 人：+%2$s 金币"
+  "message.sparkwitch.potion_gunner.hit_reward": "炮弹命中 %1$s 人：+%2$s 金币",
+  "hud.sparkwitch.potion_gunner.loaded": "已装填：%s",
+  "hud.sparkwitch.potion_gunner.empty": "未装填"
 }

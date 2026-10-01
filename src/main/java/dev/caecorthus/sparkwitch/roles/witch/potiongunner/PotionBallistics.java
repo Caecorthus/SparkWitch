@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellFlight;
+
 /**
  * Pure, side-safe model of a fired shell's flight, used by the client scope's range ticks and by tests. It mirrors the
  * shell entity on top of vanilla {@code ThrownEntity}: the shell spawns {@link #LAUNCH_BELOW_EYE} below the eye with
@@ -24,12 +26,12 @@ public final class PotionBallistics {
     }
 
     /**
-     * The single flat-flight predicate of this model, on the start-of-tick path length (delegates to the shared rule;
-     * the entity's own helper may replace it at integration).
-     * 本模型唯一的平飞判定，参数为某刻开始时的路径长度（委托共用规则；整合时可换成实体自身的辅助方法）。
+     * The single flat-flight predicate of this model, on the start-of-tick path length. It is the shell entity's own
+     * predicate, so the scope ticks and the flying shell can never disagree.
+     * 本模型唯一的平飞判定，参数为某刻开始时的路径长度。它就是炮弹实体自身的判定，因此刻度与飞行中的炮弹永不不一致。
      */
     public static boolean isFlatTick(double pathLengthBeforeTick) {
-        return PotionGunnerRules.isFlatTick(pathLengthBeforeTick);
+        return PotionShellFlight.isFlatTick(pathLengthBeforeTick);
     }
 
     /**

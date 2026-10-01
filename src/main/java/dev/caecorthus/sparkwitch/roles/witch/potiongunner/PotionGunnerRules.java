@@ -74,9 +74,11 @@ public final class PotionGunnerRules {
     /**
      * The single flat-flight rule shared by the shell entity and the client scope ticks: a tick moves straight, with no
      * gravity and no drag, when the distance from the launch point at the START of that tick is below
-     * {@link #FLAT_RANGE_BLOCKS}. At 2.5 blocks/tick that is 21 straight moves (to 52.5 blocks), then vanilla physics.
+     * {@link #FLAT_RANGE_BLOCKS}. At 2.5 blocks/tick that is 20 straight moves (to exactly 50 blocks); the 21st tick
+     * still moves with the launch velocity, then drag and gravity apply (vanilla move-then-update).
      * 炮弹实体与客户端刻度共用的唯一直飞规则：某一刻开始时与发射点的距离小于 {@link #FLAT_RANGE_BLOCKS}，则该刻直线飞行，
-     * 不受重力与阻力影响。以每刻 2.5 格计即直飞 21 刻（至 52.5 格），之后按原版物理。
+     * 不受重力与阻力影响。以每刻 2.5 格计即直飞 20 刻（恰至 50 格）；第 21 刻仍按发射速度
+     * 移动，之后才施加阻力与重力（原版先移动后更新）。
      */
     public static boolean isFlatTick(double travelledBeforeTick) {
         return travelledBeforeTick < FLAT_RANGE_BLOCKS;
