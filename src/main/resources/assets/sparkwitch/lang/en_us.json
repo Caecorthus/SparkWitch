@@ -379,7 +379,7 @@
   "item.sparkwitch.double_barrel_shotgun.tooltip.line2": "- Right-click the shotgun with a shell in your inventory, or use shells from the other hand.",
   "item.sparkwitch.double_barrel_shotgun.tooltip.line3": "- Straight shot with an effective range of 8 blocks.",
   "item.sparkwitch.double_barrel_shotgun.tooltip.line4": "- Load the second shell within 10 seconds of the first, or fire before reloading again.",
-  "item.sparkwitch.double_barrel_shotgun.tooltip.line5": "- Firing cools down for 0.2 seconds with a shell left, or 30 seconds when empty.",
+  "item.sparkwitch.double_barrel_shotgun.tooltip.line5": "- Firing cools down for 0.2 seconds with a shell left, or 30 seconds when empty; cannot fire or load during the first 60 seconds of a round.",
   "item.sparkwitch.double_barrel_shell": "Shotgun Shell",
   "item.sparkwitch.double_barrel_shell.tooltip": "Loads the Double-Barrel Shotgun; purchased separately.",
   "effect.sparkwitch.fracture": "Fracture",

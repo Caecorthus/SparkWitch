@@ -379,7 +379,7 @@
   "item.sparkwitch.double_barrel_shotgun.tooltip.line2": "- 在背包中用弹药右键猎枪，或在另一只手持枪时直接使用弹药进行装填。",
   "item.sparkwitch.double_barrel_shotgun.tooltip.line3": "- 直射判定，有效射程8格。",
   "item.sparkwitch.double_barrel_shotgun.tooltip.line4": "- 第一发装填后需在10秒内补上第二发；超时后必须先开火才能继续装填。",
-  "item.sparkwitch.double_barrel_shotgun.tooltip.line5": "- 射击后若仍有弹药则冷却0.2秒，弹仓清空则冷却30秒。",
+  "item.sparkwitch.double_barrel_shotgun.tooltip.line5": "- 射击后若仍有弹药则冷却0.2秒，弹仓清空则冷却30秒；开局60秒内无法开火或装填。",
   "item.sparkwitch.double_barrel_shell": "双管猎枪弹药",
   "item.sparkwitch.double_barrel_shell.tooltip": "用于装填双管猎枪，需要在商店中单独购买。",
   "effect.sparkwitch.fracture": "骨折",
