@@ -664,10 +664,12 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
     slots) and never displaces another item.
 - **Scope and fire.** Holding use scopes, client-side only: zoom ×0.25, mouse look ×0.25, a hidden hand, and the
   reticle with range ticks drawn by a priority-1100 `InGameHud#renderCrosshair` wrapper. Left-click sends
-  `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec), one shot per fresh press: the press
-  must be seen while the launcher is in the main hand, so a key held through a slot switch or past the end of a stun,
-  Seeker or Kidnapper key lock never fires (`client/potiongunner/PotionFireInput`, `PotionFireLatch`). The client's
-  aim is trusted for direction only (Death Ray precedent); there is no server aim cone.
+  `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec), one shot per fresh press. Only an
+  attack press edge drained in `MinecraftClient#handleInputEvents` while the launcher is in the main hand fires,
+  scoped or not; `doAttack` and held-attack block breaking are only swallowed, and keyboard auto-repeat is ignored
+  until the key is physically released. So a key held through a slot switch or past the end of a stun, Seeker or
+  Kidnapper key lock never fires (`client/potiongunner/PotionFireInput`, `PotionFireLatch`). The client's aim is
+  trusted for direction only (Death Ray precedent); there is no server aim cone.
   - The server re-checks, in order: the round is exactly `ACTIVE` (never `STOPPING`, once the winner is decided),
     alive and playing, the exact role, launcher in the main hand, not a spectator, not stunned, no Seeker session,
     no SparkTraits weapon block, the 20-tick launcher cooldown, and a loaded shell.
@@ -678,7 +680,7 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   - After that, vanilla thrown physics apply.
   - The scope ticks use the same predicate (`PotionBallistics`).
   - The shell bursts on the first block, closed door, or player its blast could catch, on a Seeker device in its
-    path, or after 100 ticks. It passes through Wathe corpses (`PlayerBodyEntity`), spectators, creative and
+    path, or after 100 ticks (99 moves). It passes through Wathe corpses (`PlayerBodyEntity`), spectators, creative and
     Wathe-dead players (Wraiths) on both sides, and SparkTraits Last Escape players on the server only.
   - Once the round leaves `ACTIVE`, a shell still in flight is discarded without exploding, and detonation also
     requires `ACTIVE`, so no kill, gold or bounty lands after the result. Finalize discards any shell left.
