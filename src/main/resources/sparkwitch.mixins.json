@@ -101,6 +101,8 @@
     "hunter.GunShootPayloadShotgunGuardMixin",
     "hunter.HunterPlayerMoveMixin",
     "hunter.PlayerPoisonComponentHunterSourceMixin",
+    "insider.GameRoundEndComponentJiahaoTitleMixin",
+    "insider.NoellesRolesJiahaoTeamWinMixin",
     "recruitment.RecruitmentShopEntryMixin",
     "saboteur.PlayerShopComponentSaboteurMixin",
     "saboteur.WorldBlackoutDetailsSaboteurMixin",

@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.hooks;
 
 import dev.caecorthus.sparkwitch.client.curser.CurserInstinctClientRules;
+import dev.caecorthus.sparkwitch.client.insider.InsiderHighlightRules;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchRules.MurderousWitchRules;
@@ -13,8 +14,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 
 /**
- * Grants only the visual instinct lightmap bridge for Grand Witch faction members.
- * 只给大魔女阵营成员接入本能亮度过渡，不授予 wathe 原生杀手能力。
+ * Grants only the visual instinct lightmap bridge for Grand Witch faction members, the Murderous Witch and the
+ * Insider (owner-approved A3).
+ * 只给大魔女阵营成员、杀意魔女与内应（所有者批准的 A3）接入本能亮度过渡，不授予 wathe 原生杀手能力。
  */
 public final class WitchInstinctClientHooks {
     private WitchInstinctClientHooks() {
@@ -46,6 +48,7 @@ public final class WitchInstinctClientHooks {
         }
 
         return WitchFactionRules.usesKillerStyleInstinctLight(role)
-                || MurderousWitchRules.usesKillerStyleInstinctLight(role);
+                || MurderousWitchRules.usesKillerStyleInstinctLight(role)
+                || InsiderHighlightRules.usesKillerStyleInstinctLight(role);
     }
 }
