@@ -303,6 +303,28 @@ public final class SeekerDeviceHits {
         }
     }
 
+    /**
+     * Time Stealer Clock (owner decision Q9): nearest-wins along the user's Clock aim. A nearer breakable device that
+     * shields an eligible target absorbs the Clock and breaks, and {@code null} is returned: the caller steals nothing
+     * but still starts the Clock cooldown (as a Taser absorb costs its cooldown). Unlike the Taser and the Black Raven
+     * Feather Blade, whose misses still break the nearest device in reach, a {@code null} target breaks nothing,
+     * because a Clock miss is free and must never become a free device breaker. The break is recorded under
+     * {@code CLOCK}.
+     * One-line hook in {@code TimeStealerClockService#use}:
+     * {@code ServerPlayerEntity target = SeekerDeviceHits.onClockFired(user, aimed, TimeStealerRules.CLOCK_RANGE);}
+     * 窃时者时钟（所有者决定 Q9）：沿使用者的时钟瞄准执行最近者命中。挡在合格目标前、更近且可打坏的设备吸收时钟并被打坏，
+     * 返回 {@code null}：调用方不窃取任何人，但照常开始时钟冷却（如同电击枪被吸收时照样进入冷却）。电击枪与黑鸦羽刃未命中时
+     * 仍会打坏射程内最近的设备，时钟则不同：目标为 {@code null} 时不打坏任何设备，因为时钟未命中是免费的，
+     * 绝不能变成免费的拆设备手段。损坏来源记录为 {@code CLOCK}。
+     */
+    @Nullable
+    public static <T extends PlayerEntity> T onClockFired(ServerPlayerEntity user, @Nullable T target, double range) {
+        if (user == null || target == null || user.getWorld().isClient()) {
+            return target;
+        }
+        return rayBlocks(user, target, range, SeekerBreakSource.CLOCK) ? null : target;
+    }
+
     // ---- Internal ----
 
     /**

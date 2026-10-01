@@ -8,6 +8,15 @@
       "chars": [
         "\uE782"
       ]
+    },
+    {
+      "type": "bitmap",
+      "file": "sparkwitch:font/time_stamp.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uE783"
+      ]
     }
   ]
 }

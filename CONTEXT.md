@@ -6,7 +6,8 @@ changes require explicit owner approval.
 ## Product Boundary
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
-God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, and Bell Ringer gameplay to Wathe.
+God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, Bell Ringer,
+and Time Stealer gameplay to Wathe.
 It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
 and the Seeker, a police variant with a remote car and wall cameras that shares the same slots.
 SparkFactionAPI owns shared faction contracts;
@@ -51,6 +52,18 @@ Current build baseline:
   restricted native shop, and lifecycle cleanup; its mixins live in
   `mixin/bellringer/` and `client/mixin/bellringer/`, client presentation in
   `client/bellringer/`.
+- `roles/killer/timestealer/`: Time Stealer (`sparkwitch:time_stealer`) Clock use gates and server
+  ray targeting, the victim-side Time Theft curse and its piercing settle, physical Time Stamps
+  (binding, grants, balance, purchases), the restricted native shop, the Timekeeper counter policy
+  (`TimekeeperCounter`, AFTER-only), replay formatters, and lifecycle cleanup; its mixins live in
+  `mixin/timestealer/` and `client/mixin/timestealer/`, client presentation (stamp HUD, stamp price
+  label, Clock crosshair) in `client/timestealer/`. Cross-mod seams go through
+  `compat/NoellesTimekeeperPurchase` (the NoellesRoles reduce-time item identity),
+  `compat/NoellesSilenceBridge` (NoellesRoles silence), and the `noellesroles:time_keeper` id
+  (`TIMEKEEPER`) in `compat/NoellesRoleIds`. Naming: the item is 时间怀表 / Time Pocket Watch
+  (`sparkwitch:time_stealer_pocket_watch`, own texture and own pocket-watch curse sounds, kept apart
+  from the Bell Ringer's bell); "Clock" stays only as the Java code name (`ClockReadyAt`, class and
+  constant names).
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
@@ -148,6 +161,97 @@ run as `KillPlayer.BEFORE` listeners still pay their normal costs before the
 forced kill proceeds. The Bell Ringer never renders in the
 `gui.sparkwitch.skills` panel.
 
+Time Stealer state never enters that shared schema either. The victim-owned `sparkwitch:time_theft`
+(stealer UUID, match id, theft tick, last applied stage) and the stealer-owned
+`sparkwitch:time_stealer` (authoritative `ClockReadyAt` tick, match id, and the `UndeliveredStamps`
+retry counter) are both `NEVER_COPY`, never synced, and bound to the current Wathe match id (bound
+in a SparkWitch `ON_FINISH_INITIALIZE` phase ordered after Wathe's default phase, and re-bound by a
+holder's own tick if that was missed); a stale match clears a curse. The Clock is a plain `Item#use`
+with a server-side ray (7.0 blocks, unexpanded-hitbox line of sight, ineligible players transparent)
+and no custom packet; the 45 s cooldown (also at round start) is an authoritative server tick
+written only after a committed theft (or a Seeker device absorb, below), so a refusal costs nothing.
+The curse advances only from the victim's own component tick on absolute world ticks: silent for 15
+s, then Slowness I-IV (no particles) and a chime sent to the victim alone at 15/20/25/30 s, and the
+lethal fifth chime at 35 s. Second owner-approved exception: the Clock curse kill
+(`sparkwitch:time_stolen`) is a forced, terminal kill (registered as SparkTraits-terminal when the
+server starts) that settles exactly once, after the curse and its Slowness are cleared, and pierces
+every role, item, and trait protection. Only a Timekeeper purchase lifts a curse before it settles;
+curses keep running after the Time Stealer dies, changes role, or disconnects.
+`TimeStealerRules.settleActor` picks the outcome: ATTRIBUTED when the stealer is online, still
+exactly the Time Stealer, and SparkFactionAPI's structural `canAffectPlayer` allows the kill;
+UNATTRIBUTED when the stealer is offline or no longer the Time Stealer, so the curse still kills
+with no killer; VETOED when that structural veto refuses the attributed kill, so the curse is spent
+and never turned into an unattributed kill. The kill always runs inside
+`JudgeKillAttribution.runWith` for the Time Stealer's UUID, so a Judge sentence on that UUID still
+blocks it. A vetoed or blocked curse is spent, never retried, and changes neither the round time nor
+the stamps. The Saint HEAD guard ignores Wathe's `force` flag and opts out through
+`TimeStealerRules.piercesProtection`. As with the bell toll, protections that run as
+`KillPlayer.BEFORE` listeners still pay their normal costs before the forced kill proceeds. Wathe's
+civilian-death time bonus (+30 s) is suppressed only for `sparkwitch:time_stolen` through
+`mixin/timestealer/GameFunctionsTimeStolenClockMixin` (`@WrapOperation` on the single
+`GameTimeComponent.addTime` call in the five-argument `killPlayer`, `require = 1`, `allow = 1`, no
+`@Redirect`); every other death reason keeps it. Only a confirmed death in the same `ACTIVE` match
+that SparkTraits did not intercept then sets the round time to exactly `max(0, t - 600)` (it may
+drain to 0, and then the civilians win on time) and grants one stamp to a living exact Time Stealer.
+Removing the curse's Slowness is chain surgery (`SlownessChain`, `TimeTheftSlowness`): the live
+effect is read through `StatusEffectInstance.CODEC`, only the curse's own node is taken out, and
+foreign Slowness (a Control Expert stun, Grand Witch Heaviness) keeps its level and duration. Known
+limitations: vanilla already discards a same-or-weaker, same-or-shorter effect that the curse fully
+covered; a stage whose application left an existing same-level foreign node untouched (it already
+lasted as long or longer) owns nothing and removes nothing, but a same-level foreign Slowness
+applied after the chime that is indistinguishable from the curse's node (same flags, remainder
+within one tick) is removed with it, and after a reload the curse conservatively owns no node (the
+ownership flag is not persisted); and a changed chain is written back as a new effect instance, so a
+role that tracks its own effect by identity (the Control Expert's owned-effect record) may not
+recognise a restored foreign instance, which is harmless because Wathe clears every effect on reset.
+The only rescue is the NoellesRoles Timekeeper counter: a committed `ShopPurchase.AFTER` purchase
+whose display item is `noellesroles:timekeeper_reduce_time`, in an `ACTIVE` round, by a living
+player whose current Wathe role is exactly `noellesroles:time_keeper` and whose SparkFactionAPI
+effective faction is known and not `wathe:killer`, lifts every curse in the world, grace period
+included, with no immunity window and no change to cooldowns, stamps, or time beyond the purchase
+itself; a victim who was offline during the purge is lifted on their first tick back in the same
+match. An Impostor Timekeeper (killer faction) and a SparkStrength Coroner disguised as a Timekeeper
+(still the Coroner role) never count. The policy lives in
+`TimeStealerRules.countsAsTimekeeperRescue` and `TimekeeperCounter`; SparkWitch never mixes into
+`TimekeeperShopHandler$1` or its `addTime` call, registers no `ShopPurchase.BEFORE` listener for the
+counter, and never measures the time change, and the AFTER listener catches its own exceptions so it
+never throws back into `PlayerShopComponent.tryBuy`. Time Stamps (`sparkwitch:time_stamp`, stack of
+64) are the role's physical currency; no component holds a stamp count. The balance is the stamps in
+the holder's own `PlayerInventory` plus the open handler's cursor: the server computes it for
+purchases, and the owner's client computes the same value from its synced inventory for the price
+label and HUD. The Clock and stamps are bound items: they share `TimeStealerInventoryRules` and the
+three item-generic mixins in `mixin/timestealer/`, never become item entities, never leave the
+holder's own inventory slots, never death-drop, and are hidden from other living players' held-item
+view through `NoellesHiddenEquipment`; beyond the Bell Ringer's rules they also refuse shift-click
+moves and offhand swaps, and a living holder keeps exactly one Clock in the hotbar. A stamp stack
+caught by the `dropItem` guard is emptied in place (move semantics) and re-delivered only to a
+living holder, so no drop path duplicates stamps. Only a living, playing, exact Time Stealer may
+hold stamps (spectator mode does not count against it, so a Time Stealer swallowed by the
+NoellesRoles Taotie keeps the Clock and stamps and still receives grants); everyone else is stripped
+on role change, terminal death, reset, finalize, and a staggered 20-tick sweep. Grants go
+hotbar-first (an existing stack, then an empty hotbar slot), then into hidden main slots or the
+offhand, and only then into the server-only `UndeliveredStamps` counter, which purchases cannot
+spend; stamps are merged into one stack each tick but never moved into a freed hotbar slot. Stamp
+purchases run inside the 0-gold entry's `onBuy` on the server thread: they reserve (remove) the
+cost, run the native effect, and undo the reservation into the exact slots if the effect fails, so
+paying can free the hotbar slot a grenade or Psycho bat needs. There are no posthumous stamps: a
+Clock kill that lands after the stealer's death, role change, or disconnect grants nothing. A
+same-match re-assignment of the Time Stealer role keeps stamps and the cooldown without knowing the
+previous role (a stray holder is swept within 20 ticks anyway). Grand Witch recruitment refunds each
+stamp, like the Clock, at the unknown-item price of 25 gold; the recruitment module is unchanged. A
+nearer Seeker device absorbs the Clock and breaks only when an eligible target stands behind it: the
+break is recorded as `SeekerBreakSource.CLOCK`, nobody is stolen from, and the Clock goes on
+cooldown; unlike the Taser and the Feather Blade, a Clock miss stays free and never breaks a device.
+The shop is a role-gated deny-list rewrite of the native killer shop (`TimeStealerShopRules`, built
+on both sides from the synced role): `poison_vial` and `scorpion` are removed, the native `grenade`
+is replaced in place by the 3-stamp `sparkwitch_time_stealer_grenade` with the normal Wathe grenade
+display (so SparkStrength still appends its own coin-priced M67), `psycho_mode` is replaced in place
+under the same id (3 stamps, native cooldown kept), and the 1-stamp
+`sparkwitch_time_stealer_add_time` (+60 s) follows it; every other entry keeps its price, stock,
+cooldown, and callback, and the list is never cleared. The role's `ShopPurchase.BEFORE` listener
+checks the exact role first and only ever denies, never `allow`s. The Time Stealer never renders in
+the `gui.sparkwitch.skills` panel.
+
 Control Expert state never enters that shared schema either.
 `sparkwitch:control_expert_status` (`NEVER_COPY`, owner-only sync) holds only the Disruptor
 and stun countdowns; the stun counter is never persisted, and the owner's client never unlocks
@@ -213,7 +317,7 @@ left-click melee (`AttackEntityCallback`, server reach and line-of-sight re-chec
 revolver and derringer, the SparkWitch double-barrel shotgun, the NoellesRoles Demon Hunter pistol,
 the Control Expert Taser and Shock Device, the knife stab (every `KnifeItem.getKnifeTarget` caller),
 the NoellesRoles throwing axe, the thrown Ninja shuriken, the Black Raven feather blade, the
-Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
+Time Stealer Pocket Watch, the Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
 the SparkStrength M67. A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol) is
 accepted when the shooter's look ray meets the device box grown by its client targeting margin with
 a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
@@ -259,6 +363,16 @@ adds no suppression and must not break the client. Bell Ringer may query only
 `isRoleSkillBlocked`, `registerTerminalDeathReason`, and
 `setExactItemCooldownRemaining` beyond the shared weapon-action gate; an absent
 or older build means no block, no terminal registration, and a vanilla cooldown.
+The Time Stealer may query only `isRoleSkillBlocked`, `blocksWeaponAction` (with its
+`isKillerInteractionBlocked` and `getForcedMeleeCooldownTicks` reads), `isLastEscapeActive`,
+`registerTerminalDeathReason`, and `setExactItemCooldownRemaining` through
+`SparkTraitsKillerBridge`, and `isLastStandDeathIntercepted` through the existing
+`WitchFactorTraitsBridge`; an absent or older build means no skill or weapon block, no Last Escape
+refusal, no terminal registration (the Clock kill is then only forced), and a vanilla Clock
+cooldown, while a present build whose facade lacks or fails `isLastStandDeathIntercepted` counts
+every death as intercepted: the `KillPlayer.AFTER` cleanup is skipped and no Clock death moves the
+round time or grants a stamp; the curse tick clears a victim who stops playing, and the 20-tick
+non-holder sweep removes a dead Time Stealer's Clock and stamps.
 The Ceremonial Sword and a credited Fire Poker fall may query only
 `isNonFinalKillPending`, `getNonFinalKillCooldownTicks`, and
 `runWithNonFinalKillWeapon` through `SparkTraitsKillerBridge` for non-final
