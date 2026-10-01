@@ -45,7 +45,7 @@ public final class DeathRayClientHooks {
             return true;
         }
         attackHeld = true;
-        ClientPlayNetworking.send(new FireDeathRayC2SPacket());
+        ClientPlayNetworking.send(new FireDeathRayC2SPacket(player.getYaw(), player.getPitch()));
         return true;
     }
 

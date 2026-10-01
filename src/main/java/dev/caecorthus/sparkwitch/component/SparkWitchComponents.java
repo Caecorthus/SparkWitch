@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerStatusComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeWorldComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent;
@@ -14,6 +15,9 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponen
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMarkPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeTheftPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendMomentWorldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRuntimeComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorWorldComponent;
@@ -77,12 +81,21 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, BellEchoPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(BellEchoPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, TimeStealerPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(TimeStealerPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, TimeTheftPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(TimeTheftPlayerComponent::new);
         registry.beginRegistration(PlayerEntity.class, ControlExpertStatusComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(ControlExpertStatusComponent::new);
         registry.beginRegistration(PlayerEntity.class, SeekerStatusComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(SeekerStatusComponent::new);
+        registry.beginRegistration(PlayerEntity.class, FisherSpiritComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FisherSpiritComponent::new);
     }
 
     @Override
@@ -94,5 +107,6 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.register(GrandWitchRecruitmentRoundComponent.KEY, GrandWitchRecruitmentRoundComponent::new);
         registry.register(WraithRoundComponent.KEY, WraithRoundComponent::new);
         registry.register(LegacyWraithRoundComponent.KEY, LegacyWraithRoundComponent::new);
+        registry.register(FiendMomentWorldComponent.KEY, FiendMomentWorldComponent::new);
     }
 }

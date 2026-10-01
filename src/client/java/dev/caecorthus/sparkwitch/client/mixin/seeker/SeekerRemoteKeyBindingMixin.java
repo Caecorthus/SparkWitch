@@ -50,4 +50,11 @@ public abstract class SeekerRemoteKeyBindingMixin implements SeekerRemoteKeyDrai
     public void sparkwitch$drainPresses() {
         timesPressed = 0;
     }
+
+    @Override
+    public int sparkwitch$takePresses() {
+        int presses = timesPressed;
+        timesPressed = 0;
+        return presses;
+    }
 }

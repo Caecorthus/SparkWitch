@@ -67,14 +67,19 @@ public final class JudgeSelectionScreen extends Screen {
         }
     }
 
+    /**
+     * Vanilla {@code Screen.render} calls this exactly once, before the buttons, so the panel is drawn here: above
+     * the scrim, below the buttons. Calling it again from {@code render} would dim the panel with a second scrim.
+     * 原版 {@code Screen.render} 在绘制按钮前只调用本方法一次，因此面板在此绘制：位于遮罩之上、按钮之下。
+     * 若在 {@code render} 中再次调用，第二层遮罩会压暗面板。
+     */
     @Override
     public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
         context.fill(0, 0, width, height, 0x90000000);
+        renderPanel(context, mouseX, mouseY);
     }
 
-    @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context, mouseX, mouseY, delta);
+    private void renderPanel(DrawContext context, int mouseX, int mouseY) {
         int right = panelX + panelWidth;
         context.fill(panelX - 1, panelY - 1, right + 1, panelY + panelHeight + 1, 0xFFDFA94F);
         context.fill(panelX, panelY, right, panelY + panelHeight, 0xF0181818);
@@ -115,7 +120,6 @@ public final class JudgeSelectionScreen extends Screen {
                 : Text.translatable("gui.sparkwitch.judge.selected", playerNames.get(selected));
         context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(selection.getString(), Math.max(1, panelWidth - 16)),
                 panelX + 8, listY + listHeight + 8, 0xFFFFFF);
-        super.render(context, mouseX, mouseY, delta);
     }
 
     @Override

@@ -4,6 +4,7 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SeekerControlExpertBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCameraRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCarState;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerExitReason;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
@@ -73,9 +74,12 @@ public final class SeekerRemoteSessionService {
 
     /**
      * Validates {@code seeker_remote_open} in the plan §3.6 order ({@link SeekerRemoteOpenRules}); on success opens a
-     * new session (fresh sessionId, anchor = body position, attach deadline now + 40) or atomically switches mode.
+     * new session (fresh sessionId, anchor = body position, attach deadline now + 40) or atomically switches mode or
+     * camera. A CAMERA request without a target views {@link #defaultCamera}; an explicit target must be one of the
+     * owner's cameras (never trusted beyond that: ownership, liveness, world, radius and play area are re-checked).
      * 按计划 §3.6 的顺序校验 {@code seeker_remote_open}；成功时打开新会话（新 sessionId、锚点为本体位置、挂接截止为当前 + 40 刻），
-     * 或原子地切换模式。
+     * 或原子地切换模式或摄像头。未指定目标的摄像头请求观看 {@link #defaultCamera}；指定的目标必须是拥有者的摄像头之一
+     * （除此之外不信任客户端：归属、存活、世界、半径与游戏区域都会重新校验）。
      */
     public static void handleOpen(ServerPlayerEntity player, SeekerRemoteOpenC2SPacket packet) {
         if (player == null || packet == null) {
@@ -88,14 +92,17 @@ public final class SeekerRemoteSessionService {
         long now = serverTick(player);
         SeekerSessionMode requested = packet.sessionMode();
         String commonDeny = SeekerTargeting.commonDenyReason(player);
-        SeekerDeviceEntity device = commonDeny == null ? usableDevice(player, status, requested) : null;
         int radius = SeekerRules.effectiveRadius(SeekerRules.maxRadius(requested), engineViewDistance(player));
         Box playArea = playArea(player);
+        SeekerDeviceEntity device = commonDeny == null
+                ? usableDevice(player, status, requested, packet.targetEntityId(), radius, playArea) : null;
         Long lastOpen = LAST_OPEN_TICK.get(player);
         SeekerRemoteOpenRules.Facts facts = new SeekerRemoteOpenRules.Facts(
                 commonDeny,
                 requested,
                 status.sessionMode(),
+                device != null && status.sessionMode() == requested
+                        && status.state().sessionFocusEntityId() == device.getId(),
                 NoellesTaotieSeekerBridge.isSwallowed(player),
                 SparkTraitsSeekerBridge.isLastStandPending(player),
                 SeekerRemoteRules.isBodyGrounded(player.isOnGround(), player.hasVehicle(), player.isTouchingWater()),
@@ -207,17 +214,20 @@ public final class SeekerRemoteSessionService {
 
     private static void open(ServerPlayerEntity player, SeekerStatusComponent status, SeekerSessionMode mode,
                              SeekerDeviceEntity device, int radius, long now) {
-        // Atomic switch: openSession closes and reopens in one transition, so the owner never sees NONE between.
-        // A switch keeps the previous anchor, so repeated switches cannot walk the frozen body away step by step.
-        // The old bookkeeping is replaced only after the transition succeeded; a refused switch keeps the old session.
-        // 原子切换：openSession 在一次转移中关闭并重开，拥有者之间不会看到 NONE。切换沿用原锚点，反复切换无法让冻结的本体
-        // 逐步走远。只有转移成功后才替换旧记录；被拒绝的切换保留原会话。
+        // Atomic switch (mode or camera): openSession closes and reopens in one transition, so the owner never sees
+        // NONE between. A switch keeps the previous anchor, so repeated switches cannot walk the frozen body away step
+        // by step. The old bookkeeping is replaced only after the transition succeeded (a new sessionId); a refused
+        // switch keeps the old session.
+        // 原子切换（模式或摄像头）：openSession 在一次转移中关闭并重开，拥有者之间不会看到 NONE。切换沿用原锚点，
+        // 反复切换无法让冻结的本体逐步走远。只有转移成功（产生新的 sessionId）后才替换旧记录；被拒绝的切换保留原会话。
         SeekerSessionState previous = status.sessionState();
-        Vec3d anchor = SeekerRemoteOpenRules.isSwitch(status.sessionMode(), mode) && previous != null
+        Vec3d anchor = SeekerRemoteOpenRules.isSwitch(status.sessionMode(), mode,
+                status.state().sessionFocusEntityId(), device.getId()) && previous != null
                 && previous.sessionId == status.sessionId() && previous.mode == status.sessionMode()
                 ? previous.anchor : player.getPos();
+        int previousSessionId = status.sessionId();
         status.apply(status.state().openSession(mode, device.getId(), radius));
-        if (status.sessionMode() != mode) {
+        if (status.sessionMode() != mode || status.sessionId() == previousSessionId) {
             player.sendMessage(Text.translatable(DENIED_KEY_PREFIX + SeekerRemoteOpenRules.DENY_BLOCKED), true);
             return;
         }
@@ -307,17 +317,22 @@ public final class SeekerRemoteSessionService {
         SeekerDeviceEntity device = switch (session.mode) {
             case CAR -> status.carState() == SeekerCarState.DEPLOYED && status.carEntityId() == session.focusEntityId
                     ? SeekerDeviceService.findCar(player) : null;
-            case CAMERA -> status.cameraEntityId() == session.focusEntityId ? SeekerDeviceService.findCamera(player) : null;
+            case CAMERA -> SeekerDeviceService.findCamera(player, session.focusEntityId);
             case NONE -> null;
         };
         return device != null && device.getId() == session.focusEntityId && isOwnedAndAlive(player, device)
                 ? device : null;
     }
 
-    /** Open target: exists, owned, alive, in the body's world and matching the synced id. / 打开目标的有效性。 */
+    /**
+     * Open target: exists, owned, alive, in the body's world and matching the synced id (CAMERA: the explicit target,
+     * or {@link #defaultCamera}; the target id is ignored for CAR).
+     * 打开目标的有效性（摄像头：指定的目标或 {@link #defaultCamera}；小车忽略目标 id）。
+     */
     @Nullable
     private static SeekerDeviceEntity usableDevice(ServerPlayerEntity player, SeekerStatusComponent status,
-                                                   SeekerSessionMode mode) {
+                                                   SeekerSessionMode mode, int targetEntityId, int radius,
+                                                   @Nullable Box playArea) {
         SeekerDeviceEntity device = switch (mode) {
             case CAR -> {
                 if (status.carState() != SeekerCarState.DEPLOYED) {
@@ -326,13 +341,36 @@ public final class SeekerRemoteSessionService {
                 SeekerCarEntity car = SeekerDeviceService.findCar(player);
                 yield car != null && car.getId() == status.carEntityId() ? car : null;
             }
-            case CAMERA -> {
-                SeekerCameraEntity camera = SeekerDeviceService.findCamera(player);
-                yield camera != null && camera.getId() == status.cameraEntityId() ? camera : null;
-            }
+            case CAMERA -> SeekerDeviceService.findCamera(player,
+                    targetEntityId >= 0 ? targetEntityId : defaultCamera(player, status, radius, playArea));
             case NONE -> null;
         };
         return device != null && isOwnedAndAlive(player, device) ? device : null;
+    }
+
+    /**
+     * The camera an untargeted CAMERA open views: the last-viewed camera if it is still usable (alive, in the body's
+     * world, within the radius and the play area), otherwise the lowest-label usable one. With none usable it falls
+     * back to the same order over merely live cameras, so the owner is told "out of range" rather than "no device".
+     * 未指定目标的摄像头打开所观看的摄像头：最近观看的那台若仍可用（存活、与本体同世界、位于半径与游戏区域内）则选它，
+     * 否则选编号最小的可用那台。都不可用时按同样顺序退回到仅存活的摄像头，使拥有者收到“超出范围”而非“设备不可用”。
+     */
+    private static int defaultCamera(ServerPlayerEntity player, SeekerStatusComponent status, int radius,
+                                     @Nullable Box playArea) {
+        int lastViewed = status.state().lastViewedCameraId();
+        int reachable = SeekerCameraRules.defaultCamera(status.cameras(), lastViewed, id -> {
+            SeekerCameraEntity camera = SeekerDeviceService.findCamera(player, id);
+            return camera != null && isOwnedAndAlive(player, camera)
+                    && SeekerRemoteRules.withinEffectiveRadius(player.getPos(), camera.getPos(), radius)
+                    && SeekerRemoteRules.insidePlayArea(playArea, camera.getPos());
+        });
+        if (reachable >= 0) {
+            return reachable;
+        }
+        return SeekerCameraRules.defaultCamera(status.cameras(), lastViewed, id -> {
+            SeekerCameraEntity camera = SeekerDeviceService.findCamera(player, id);
+            return camera != null && isOwnedAndAlive(player, camera);
+        });
     }
 
     private static boolean isOwnedAndAlive(ServerPlayerEntity player, SeekerDeviceEntity device) {

@@ -30,9 +30,12 @@ public final class SparkWitchRoles {
     public static final Identifier WITCH_MAIDEN_ID = SparkWitchRoleRegistry.WITCH_MAIDEN_ID;
     public static final Identifier CURSER_ID = SparkWitchRoleRegistry.CURSER_ID;
     public static final Identifier BELL_RINGER_ID = SparkWitchRoleRegistry.BELL_RINGER_ID;
+    public static final Identifier TIME_STEALER_ID = SparkWitchRoleRegistry.TIME_STEALER_ID;
     public static final Identifier JUDGE_ID = SparkWitchRoleRegistry.JUDGE_ID;
     public static final Identifier CONTROL_EXPERT_ID = SparkWitchRoleRegistry.CONTROL_EXPERT_ID;
     public static final Identifier SEEKER_ID = SparkWitchRoleRegistry.SEEKER_ID;
+    public static final Identifier FISHER_ID = SparkWitchRoleRegistry.FISHER_ID;
+    public static final Identifier FIEND_ID = SparkWitchRoleRegistry.FIEND_ID;
     public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
 
     private SparkWitchRoles() {
@@ -138,6 +141,10 @@ public final class SparkWitchRoles {
         return SparkWitchRoleRegistry.bellRinger();
     }
 
+    public static Role timeStealer() {
+        return SparkWitchRoleRegistry.timeStealer();
+    }
+
     public static Role judge() {
         return SparkWitchRoleRegistry.judge();
     }
@@ -148,6 +155,14 @@ public final class SparkWitchRoles {
 
     public static Role seeker() {
         return SparkWitchRoleRegistry.seeker();
+    }
+
+    public static Role fisher() {
+        return SparkWitchRoleRegistry.fisher();
+    }
+
+    public static Role fiend() {
+        return SparkWitchRoleRegistry.fiend();
     }
 
     public static Role insider() {

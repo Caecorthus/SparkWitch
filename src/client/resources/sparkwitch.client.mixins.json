@@ -58,6 +58,7 @@
     "WraithRevolverAimMixin",
     "WraithWatheHighlightMixin",
     "bellringer.MoodRendererTaskRendererBellEchoMixin",
+    "timestealer.TimeStealerClockCrosshairMixin",
     "blackraven.BlackRavenGameRendererMixin",
     "blackraven.BlackRavenHudMixin",
     "blackraven.BlackRavenInstinctGateMixin",
@@ -72,6 +73,9 @@
     "controlexpert.ControlExpertStunMinecraftClientMixin",
     "controlexpert.ControlExpertStunMouseMixin",
     "controlexpert.TaserCrosshairMixin",
+    "fisher.FisherHeldItemFeatureRendererMixin",
+    "fisher.SwordfishCrosshairMixin",
+    "fisher.SwordfishItemMixin",
     "kidnapper.KidnapperBodyPoseMixin",
     "kidnapper.KidnapperControlledHudMixin",
     "kidnapper.KidnapperControlledKeyMixin",
@@ -100,7 +104,8 @@
     "witchmaiden.FocusedFootstepsClientPlayerMovementMixin",
     "witchmaiden.FocusedFootstepsKeyboardInputMixin",
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
-    "witchmaiden.WitchMaidenInventoryScreenMixin"
+    "witchmaiden.WitchMaidenInventoryScreenMixin",
+    "fiend.WatheClientFiendHighlightMixin"
   ],
   "injectors": {
     "defaultRequire": 1

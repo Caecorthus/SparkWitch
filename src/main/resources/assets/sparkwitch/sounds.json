@@ -20,6 +20,18 @@
       "sparkwitch:ambient/saint_bell"
     ]
   },
+  "ambient.time_stealer_chime": {
+    "subtitle": "subtitles.sparkwitch.ambient.time_stealer_chime",
+    "sounds": [
+      "sparkwitch:ambient/time_stealer_chime"
+    ]
+  },
+  "ambient.time_stealer_final": {
+    "subtitle": "subtitles.sparkwitch.ambient.time_stealer_final",
+    "sounds": [
+      "sparkwitch:ambient/time_stealer_final"
+    ]
+  },
   "ambient.bell_ringer_toll": {
     "subtitle": "subtitles.sparkwitch.ambient.bell_ringer_toll",
     "sounds": [

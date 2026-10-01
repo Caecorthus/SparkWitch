@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.mixin;
 
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.util.RaycastShapeScope;
 import dev.doctor4t.wathe.block.DoorPartBlock;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.BlockState;
@@ -27,6 +28,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <p>这里故意只改碰撞形状，不改门的开关状态、交互、射线检测或渲染：
  * 冤魂可以直接穿过已经关闭的 Wathe 门、原版门、活板门和栅栏门，
  * 但其他玩家看到/使用这些门的行为仍保持原样。</p>
+ *
+ * <p>Movement only: COLLIDER rays reuse the Wraith's shape context, so queries inside {@link RaycastShapeScope}
+ * keep the door and the Wraith's sight and aim ({@code canSee}, {@code ProjectileUtil.getCollision}) stop at it.
+ * 仅限移动：COLLIDER 射线沿用冤魂的形状上下文，因此 {@link RaycastShapeScope} 内的查询保留门的形状，
+ * 冤魂的视线与瞄准（canSee、ProjectileUtil.getCollision）仍会被门挡住。</p>
  */
 @Mixin(AbstractBlock.AbstractBlockState.class)
 public abstract class WraithDoorPassingMixin {
@@ -47,7 +53,8 @@ public abstract class WraithDoorPassingMixin {
             BlockState state = (BlockState) (Object) this;
             if (entity instanceof PlayerEntity player
                     && WraithStateService.isActive(player)
-                    && isDoorFamilyBlock(state)) {
+                    && isDoorFamilyBlock(state)
+                    && !RaycastShapeScope.isRaycast()) {
                 // 只对正在查询碰撞的冤魂本人返回空形状；非冤魂仍使用目标方块原本的碰撞体积。
                 cir.setReturnValue(VoxelShapes.empty());
             }

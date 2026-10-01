@@ -22,6 +22,9 @@ public final class HunterRules {
     public static final double SHOTGUN_RANGE = 8.0D;
     public static final int FOLLOW_UP_COOLDOWN_TICKS = 4;
     public static final int EMPTY_COOLDOWN_TICKS = 20 * 30;
+    // Round-start shotgun lock, matching Wathe's 60 s revolver lock and the Ninja knife lock.
+    // 猎枪开局锁定 60 秒，与 Wathe 左轮及忍者苦无的开局锁定一致。
+    public static final int SHOTGUN_INITIAL_COOLDOWN_TICKS = 60 * 20;
     public static final int SECOND_SHELL_WINDOW_TICKS = 20 * 10;
 
     public static final int MAX_OWNED_TRAPS = 2;

@@ -6,9 +6,12 @@ changes require explicit owner approval.
 ## Product Boundary
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
-God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, and Bell Ringer gameplay to Wathe.
+God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, Bell Ringer,
+Time Stealer, and Angler (`sparkwitch:fisher`) gameplay to Wathe.
 It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
-and the Seeker, a police variant with a remote car and a wall camera that shares the same slots.
+and the Seeker, a police variant with a remote car and wall cameras that shares the same slots.
+It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
+train fall can kill and that may buy a timed Fiend Moment.
 It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao and win together.
 SparkFactionAPI owns shared faction contracts;
@@ -53,8 +56,25 @@ Current build baseline:
   restricted native shop, and lifecycle cleanup; its mixins live in
   `mixin/bellringer/` and `client/mixin/bellringer/`, client presentation in
   `client/bellringer/`.
+- `roles/killer/timestealer/`: Time Stealer (`sparkwitch:time_stealer`) Clock use gates and server
+  ray targeting, the victim-side Time Theft curse and its piercing settle, physical Time Stamps
+  (binding, grants, balance, purchases), the restricted native shop, the Timekeeper counter policy
+  (`TimekeeperCounter`, AFTER-only), replay formatters, and lifecycle cleanup; its mixins live in
+  `mixin/timestealer/` and `client/mixin/timestealer/`, client presentation (stamp HUD, stamp price
+  label, Clock crosshair) in `client/timestealer/`. Cross-mod seams go through
+  `compat/NoellesTimekeeperPurchase` (the NoellesRoles reduce-time item identity),
+  `compat/NoellesSilenceBridge` (NoellesRoles silence), and the `noellesroles:time_keeper` id
+  (`TIMEKEEPER`) in `compat/NoellesRoleIds`. Naming: the item is 时间怀表 / Time Pocket Watch
+  (`sparkwitch:time_stealer_pocket_watch`, own texture and own pocket-watch curse sounds, kept apart
+  from the Bell Ringer's bell); "Clock" stays only as the Java code name (`ClockReadyAt`, class and
+  constant names).
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers.
+- `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
+  `sparkwitch:fiend_moment` world component and its pure state, dormant immunity and hit reactions, cooldown
+  aura, bomb-pass ledger, swallow block, last-one-standing exclusion (`FiendWinExclusion`), the Fiend Moment
+  shop, economy, win listener, lifecycle and owned effects. Its mixins live in `mixin/fiend/` and
+  `client/mixin/fiend/`; client presentation (countdown HUD, outline decision) in `client/fiend/`.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
@@ -84,6 +104,15 @@ Current build baseline:
   device renderers) in `client/seeker/`. Cross-mod seams go through `compat/SparkTraitsSeekerBridge`,
   `compat/SeekerControlExpertBridge`, `compat/NoellesTaotieSeekerBridge`,
   `compat/SparkStrengthTabletCompat`, and `compat/SparkStrengthM67Compat`.
+- `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
+  bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
+  Key Fish doors, tracked pufferfish, replay formatting, and lifecycle cleanup. Subpackages:
+  `item/` (rod, bait, edible fish, Key Fish), `swordfish/` (the single-use Swordfish, its payload,
+  server release pairing, consumption, and friendly-fire death), and `spirit/` (the Glimmerfish
+  window, its `sparkwitch:fisher_spirit` component, door passing, collision exemption, owned
+  invisibility, and safe door exit). Its mixins live in `mixin/fisher/` and
+  `client/mixin/fisher/`; client presentation (Glimmerfish outlines and HUD, hidden hands,
+  Swordfish crosshair and stab dispatch) in `client/fisher/`.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, and
   the Seeker share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate
@@ -97,6 +126,12 @@ Current build baseline:
   operations used by the owning runtime Modules.
 - `compat/`: optional or version-sensitive cross-mod Adapters.
 - `impl/SparkWitchEvents`: watch-only registration/lifecycle aggregator.
+- `util/hitscan/`: server-side lag compensation for hitscan weapons. `PlayerHitboxHistory` keeps a
+  one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
+  `HitscanLagRules` owns the ping-based rewind window and swept volumes. Used by the Hunter
+  double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, and the Black Raven
+  Feather Blade (whose sight and feet-distance reach are taken at the rewound hit); client crosshair
+  hints keep current boxes.
 
 ## Runtime Invariants
 
@@ -114,6 +149,9 @@ Current build baseline:
 
 Do not reorder these calls. The existing component ids remain `sparkwitch:player`
 and `sparkwitch:world`; packet field order and NBT keys must remain stable.
+`sparkwitch:fire_death_ray` carries the caster's yaw and pitch at key press (the attack key
+is handled before that tick's rotation packet); a payload without them still decodes and
+falls back to the server rotation. The server still decides every Death Ray and shotgun hit.
 Perfumer state uses the separate owner-only `sparkwitch:perfumer_player`
 component so its target lists are never added to the shared player packet.
 Prophet state remains inside the existing `sparkwitch:player` component and
@@ -146,6 +184,97 @@ run as `KillPlayer.BEFORE` listeners still pay their normal costs before the
 forced kill proceeds. The Bell Ringer never renders in the
 `gui.sparkwitch.skills` panel.
 
+Time Stealer state never enters that shared schema either. The victim-owned `sparkwitch:time_theft`
+(stealer UUID, match id, theft tick, last applied stage) and the stealer-owned
+`sparkwitch:time_stealer` (authoritative `ClockReadyAt` tick, match id, and the `UndeliveredStamps`
+retry counter) are both `NEVER_COPY`, never synced, and bound to the current Wathe match id (bound
+in a SparkWitch `ON_FINISH_INITIALIZE` phase ordered after Wathe's default phase, and re-bound by a
+holder's own tick if that was missed); a stale match clears a curse. The Clock is a plain `Item#use`
+with a server-side ray (7.0 blocks, unexpanded-hitbox line of sight, ineligible players transparent)
+and no custom packet; the 45 s cooldown (also at round start) is an authoritative server tick
+written only after a committed theft (or a Seeker device absorb, below), so a refusal costs nothing.
+The curse advances only from the victim's own component tick on absolute world ticks: silent for 15
+s, then Slowness I-IV (no particles) and a chime sent to the victim alone at 15/20/25/30 s, and the
+lethal fifth chime at 35 s. Second owner-approved exception: the Clock curse kill
+(`sparkwitch:time_stolen`) is a forced, terminal kill (registered as SparkTraits-terminal when the
+server starts) that settles exactly once, after the curse and its Slowness are cleared, and pierces
+every role, item, and trait protection. Only a Timekeeper purchase lifts a curse before it settles;
+curses keep running after the Time Stealer dies, changes role, or disconnects.
+`TimeStealerRules.settleActor` picks the outcome: ATTRIBUTED when the stealer is online, still
+exactly the Time Stealer, and SparkFactionAPI's structural `canAffectPlayer` allows the kill;
+UNATTRIBUTED when the stealer is offline or no longer the Time Stealer, so the curse still kills
+with no killer; VETOED when that structural veto refuses the attributed kill, so the curse is spent
+and never turned into an unattributed kill. The kill always runs inside
+`JudgeKillAttribution.runWith` for the Time Stealer's UUID, so a Judge sentence on that UUID still
+blocks it. A vetoed or blocked curse is spent, never retried, and changes neither the round time nor
+the stamps. The Saint HEAD guard ignores Wathe's `force` flag and opts out through
+`TimeStealerRules.piercesProtection`. As with the bell toll, protections that run as
+`KillPlayer.BEFORE` listeners still pay their normal costs before the forced kill proceeds. Wathe's
+civilian-death time bonus (+30 s) is suppressed only for `sparkwitch:time_stolen` through
+`mixin/timestealer/GameFunctionsTimeStolenClockMixin` (`@WrapOperation` on the single
+`GameTimeComponent.addTime` call in the five-argument `killPlayer`, `require = 1`, `allow = 1`, no
+`@Redirect`); every other death reason keeps it. Only a confirmed death in the same `ACTIVE` match
+that SparkTraits did not intercept then sets the round time to exactly `max(0, t - 600)` (it may
+drain to 0, and then the civilians win on time) and grants one stamp to a living exact Time Stealer.
+Removing the curse's Slowness is chain surgery (`SlownessChain`, `TimeTheftSlowness`): the live
+effect is read through `StatusEffectInstance.CODEC`, only the curse's own node is taken out, and
+foreign Slowness (a Control Expert stun, Grand Witch Heaviness) keeps its level and duration. Known
+limitations: vanilla already discards a same-or-weaker, same-or-shorter effect that the curse fully
+covered; a stage whose application left an existing same-level foreign node untouched (it already
+lasted as long or longer) owns nothing and removes nothing, but a same-level foreign Slowness
+applied after the chime that is indistinguishable from the curse's node (same flags, remainder
+within one tick) is removed with it, and after a reload the curse conservatively owns no node (the
+ownership flag is not persisted); and a changed chain is written back as a new effect instance, so a
+role that tracks its own effect by identity (the Control Expert's owned-effect record) may not
+recognise a restored foreign instance, which is harmless because Wathe clears every effect on reset.
+The only rescue is the NoellesRoles Timekeeper counter: a committed `ShopPurchase.AFTER` purchase
+whose display item is `noellesroles:timekeeper_reduce_time`, in an `ACTIVE` round, by a living
+player whose current Wathe role is exactly `noellesroles:time_keeper` and whose SparkFactionAPI
+effective faction is known and not `wathe:killer`, lifts every curse in the world, grace period
+included, with no immunity window and no change to cooldowns, stamps, or time beyond the purchase
+itself; a victim who was offline during the purge is lifted on their first tick back in the same
+match. An Impostor Timekeeper (killer faction) and a SparkStrength Coroner disguised as a Timekeeper
+(still the Coroner role) never count. The policy lives in
+`TimeStealerRules.countsAsTimekeeperRescue` and `TimekeeperCounter`; SparkWitch never mixes into
+`TimekeeperShopHandler$1` or its `addTime` call, registers no `ShopPurchase.BEFORE` listener for the
+counter, and never measures the time change, and the AFTER listener catches its own exceptions so it
+never throws back into `PlayerShopComponent.tryBuy`. Time Stamps (`sparkwitch:time_stamp`, stack of
+64) are the role's physical currency; no component holds a stamp count. The balance is the stamps in
+the holder's own `PlayerInventory` plus the open handler's cursor: the server computes it for
+purchases, and the owner's client computes the same value from its synced inventory for the price
+label and HUD. The Clock and stamps are bound items: they share `TimeStealerInventoryRules` and the
+three item-generic mixins in `mixin/timestealer/`, never become item entities, never leave the
+holder's own inventory slots, never death-drop, and are hidden from other living players' held-item
+view through `NoellesHiddenEquipment`; beyond the Bell Ringer's rules they also refuse shift-click
+moves and offhand swaps, and a living holder keeps exactly one Clock in the hotbar. A stamp stack
+caught by the `dropItem` guard is emptied in place (move semantics) and re-delivered only to a
+living holder, so no drop path duplicates stamps. Only a living, playing, exact Time Stealer may
+hold stamps (spectator mode does not count against it, so a Time Stealer swallowed by the
+NoellesRoles Taotie keeps the Clock and stamps and still receives grants); everyone else is stripped
+on role change, terminal death, reset, finalize, and a staggered 20-tick sweep. Grants go
+hotbar-first (an existing stack, then an empty hotbar slot), then into hidden main slots or the
+offhand, and only then into the server-only `UndeliveredStamps` counter, which purchases cannot
+spend; stamps are merged into one stack each tick but never moved into a freed hotbar slot. Stamp
+purchases run inside the 0-gold entry's `onBuy` on the server thread: they reserve (remove) the
+cost, run the native effect, and undo the reservation into the exact slots if the effect fails, so
+paying can free the hotbar slot a grenade or Psycho bat needs. There are no posthumous stamps: a
+Clock kill that lands after the stealer's death, role change, or disconnect grants nothing. A
+same-match re-assignment of the Time Stealer role keeps stamps and the cooldown without knowing the
+previous role (a stray holder is swept within 20 ticks anyway). Grand Witch recruitment refunds each
+stamp, like the Clock, at the unknown-item price of 25 gold; the recruitment module is unchanged. A
+nearer Seeker device absorbs the Clock and breaks only when an eligible target stands behind it: the
+break is recorded as `SeekerBreakSource.CLOCK`, nobody is stolen from, and the Clock goes on
+cooldown; unlike the Taser and the Feather Blade, a Clock miss stays free and never breaks a device.
+The shop is a role-gated deny-list rewrite of the native killer shop (`TimeStealerShopRules`, built
+on both sides from the synced role): `poison_vial` and `scorpion` are removed, the native `grenade`
+is replaced in place by the 3-stamp `sparkwitch_time_stealer_grenade` with the normal Wathe grenade
+display (so SparkStrength still appends its own coin-priced M67), `psycho_mode` is replaced in place
+under the same id (3 stamps, native cooldown kept), and the 1-stamp
+`sparkwitch_time_stealer_add_time` (+60 s) follows it; every other entry keeps its price, stock,
+cooldown, and callback, and the list is never cleared. The role's `ShopPurchase.BEFORE` listener
+checks the exact role first and only ever denies, never `allow`s. The Time Stealer never renders in
+the `gui.sparkwitch.skills` panel.
+
 Control Expert state never enters that shared schema either.
 `sparkwitch:control_expert_status` (`NEVER_COPY`, owner-only sync) holds only the Disruptor
 and stun countdowns; the stun counter is never persisted, and the owner's client never unlocks
@@ -163,22 +292,41 @@ keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGat
 `gui.sparkwitch.skills` panel.
 
 Seeker state never enters that shared schema either. `sparkwitch:seeker_status` (`NEVER_COPY`,
-owner-only sync) holds the Seeker's car, camera, session, battery, cooldown-reason, and mark state
+owner-only sync) holds the Seeker's car, cameras, session, battery, cooldown-reason, and mark state
 bound to the current Wathe match id; remote-session bookkeeping stays server-only and is never
 synced or saved, and other players never see the battery or the mark. The remote view is a
 client-only camera switch (`MinecraftClient#setCameraEntity` on the owner's client); the server
 never calls `ServerPlayerEntity#setCameraEntity`, so server camera writers (Taotie, Last Stand,
-Depression) keep working and the body stays in place. The possession filter is a private
-`PostEffectProcessor`, never `GameRenderer.postProcessor`. Sessions are server-authoritative: the
+Depression) keep working and the body stays in place. While the owner views the car or camera,
+their own body is outlined through walls on the owner's client only
+(`client/seeker/SeekerBodyClientHooks`, `SeekerRules.OWN_BODY_COLOR`), and the outline ends with
+the view. The possession filter is a private
+`PostEffectProcessor`, never `GameRenderer.postProcessor`. A placed camera's look (`LOOK_YAW`,
+`LOOK_PITCH`) and `VIEWING` flag are public DataTracker state that every tracking client renders
+(the head follows the view, the LED glows while viewed, and an idle head holds its last look); only
+the owner's client sends `seeker_camera_look` while viewing, and the server accepts it only for the
+owner's own CAMERA session and clamps it into that camera's cone (`SeekerCameraLookRules`; the
+latest look wins). Sessions are server-authoritative: the
 client never predicts entry, and every exit except the owner's own Shift is detected on the server.
 The owner's client only simulates the car it drives, and every move is validated against the shared
 `SeekerCarPhysics` (speed budget, replay, a server-side fall model that never trusts the client's
 velocity, radius and play-area clamps). The session lock (`LOCK_SCOPE = SESSION`) applies only while
-the Seeker drives the car or views the camera: `mixin/seeker/SeekerSprintLockMixin` clears sprint on
+the Seeker drives the car or views a camera: `mixin/seeker/SeekerSprintLockMixin` clears sprint on
 both sides, `SeekerInteractionGuards` fail the Fabric player callbacks in the `seeker_session_lock`
 phase, `mixin/seeker/SeekerSessionPayloadGuardMixin` drops the blocked C2S payloads on the server
-thread, and inventory clicks and drops are denied. Device entities never save to disk and cannot be
-summoned; every device is swept at game start and at finalize. Role change, final death, and reset
+thread, and inventory clicks and drops are denied. The body stays locked, but the driven car itself
+may right-click whitelisted doors, trapdoors, fence gates, buttons, and levers through
+`seeker_car_use`: the owner's client takes the use-key presses via
+`SeekerRemoteKeyDrain#sparkwitch$takePresses` while the body's use stays locked, and
+`remote/SeekerCarUseService` bypasses the body's use callbacks by design, re-validates the session,
+reach, the car's forward cone, and line of sight from the car's eye, and acts with an empty hand,
+so the body's held item is never used from the car. Device entities never save to disk and cannot be
+summoned; every device is swept at game start and at finalize. The Seeker may own any number of
+cameras (150 each, no cap); each keeps a per-match label, the synced session focus names the viewed
+camera, an untargeted camera open views the last-viewed usable camera (else the lowest label), and
+while viewing, a fresh strafe-key press requests the previous or next camera by label as an atomic
+switch (a held key cycles once and must be released after every session start or switch).
+Role change, final death, and reset
 end the session and clean up devices and state; disconnect only ends the session. A deployed car
 starts at 100% battery and drains 1% every 10 ticks while driven and 1% every 60 ticks otherwise;
 the drain runs on the server tick and the client only displays the synced value. At 0% the car shuts
@@ -191,11 +339,16 @@ as SparkFactionAPI proxy target and Vendetta isolation. Break sources are bare h
 left-click melee (`AttackEntityCallback`, server reach and line-of-sight re-check), the Wathe
 revolver and derringer, the SparkWitch double-barrel shotgun, the NoellesRoles Demon Hunter pistol,
 the Control Expert Taser and Shock Device, the knife stab (every `KnifeItem.getKnifeTarget` caller),
+the Angler Swordfish stab (`SWORDFISH`, its own payload and `SeekerDeviceHits.onSwordfishStab`),
 the NoellesRoles throwing axe, the thrown Ninja shuriken, the Black Raven feather blade, the
-Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
-the SparkStrength M67. Rays and projectiles are nearest-wins (a nearer device takes the hit, the
-player behind is not hit); blasts (Wathe grenade, SparkStrength M67) break every device in a sphere
-with line of sight and still kill players as before. Sources with no hit or damage geometry never
+Time Stealer Pocket Watch, the Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
+the SparkStrength M67. A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol) is
+accepted when the shooter's look ray meets the device box grown by its client targeting margin with
+a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
+(`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
+nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
+SparkStrength M67) break every device in a sphere with line of sight and still kill players as
+before. Sources with no hit or damage geometry never
 break a device: the firecracker (sound only), the Bomber timed bomb (kills only its holder), and the
 poison gas cloud (status effect). A breaker other than the owner is marked for the owner only (10 s,
 newest replaces oldest) when the owner holds the tablet; recalls, depletion, and Taotie swallows
@@ -207,6 +360,86 @@ cooldown, removes the car without a mark or the 180 s cooldown, and tells the ow
 the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role. The
 Seeker never renders in the `gui.sparkwitch.skills` panel.
 
+Angler state never enters that shared schema either. `sparkwitch:fisher_spirit` (`NEVER_COPY`,
+never saved) holds only the Glimmerfish window; its sync packet is one VarInt: 0 inactive, 1 for
+every observer while active, remaining ticks + 1 for the owner. Every client needs the flag
+(two-sided collision exemption, hidden hands, instinct skip); the client countdown never clears it.
+The window is 156 ticks, server-authoritative, restarted by another Glimmerfish, kept across role
+changes, and ended on expiry, terminal death, reset, finalize, disconnect, or loss of participation.
+`mixin/fisher/FisherDoorPassingMixin` empties the collision shape of Wathe `DoorPartBlock` and
+vanilla `DoorBlock` doors (never trapdoors or gates) only for a glimmering player's entity context,
+so client prediction and server validation agree; it skips the exemption inside the shared
+`util/RaycastShapeScope`, so rays (sight, aiming, weapons) still see the door;
+SparkFactionAPI's entity-collision exemption
+reads the same flag on both sides (`noellesroles:no_collision` alone is one-sided). Glimmerfish
+claims only the invisibility instance it created in an empty slot; any foreign merge gives up its
+removal right. Expiry inside a door first tries to move the player to a validated safe spot (door
+sides, lateral offsets, then the last safe position); if none validates it only logs and clears.
+The rod, bait and edible fish are hidden in hand through `NoellesHiddenEquipment`; the Key Fish and
+Swordfish stay visible. Fishing is a Fabric `UseBlockCallback` in its own phase after the existing
+interaction guards, for a main-hand rod on `wathe:drink_tray` only: the client answers SUCCESS (the
+ordinary tray swing, identical to taking a drink), the server answers CONSUME on every handled
+path, and before rolling reserves an empty hotbar slot (or the single-Bait slot this cast empties);
+a no-room refusal only sets the 20-tick rod cooldown, never rolls or spends bait. Catches go only
+into the hotbar, tray contents and poison are never touched, and feedback and sounds are private. Fish use never calls vanilla food
+completion, so Wathe's EAT and DRINK tasks never complete from a fish; fish use and the Glimmerfish
+start share one living-participant check (`FisherParticipants`), and a Glimmerfish is consumed only
+after its window really starts. The Key Fish opens a closed
+locked cabin door or train door on Wathe's `DoorInteraction.EVENT`, never a jammed one, and is
+consumed only after a real closed-to-open transition; locks and auto-close are unchanged. Pufferfish
+are vanilla entities tagged and tracked by the Angler: while puffed they drain 0.1 sanity from any
+living REAL-mood participant they touch (one shared two-second cooldown per player, SparkFactionAPI
+veto for anyone but the Angler, and no one but the Angler while the Angler is offline), carry an
+empty loot table, and are discarded after ten seconds or
+at lifecycle sweeps. The Swordfish is an independent `Item` (never a `KnifeItem`, never the Wathe
+knife payload, identity, tags, or cooldown): SPEAR charge, release after at least 11 held ticks
+on the client (the server accepts 9 for packet timing), 3 blocks, its own `sparkwitch:swordfish_stab`
+payload paired once with a five-tick server release bound to the exact main-hand stack. The server
+validates the submitted target against its own block-clipped 3-block ray along the attacker's current
+rotation (player boxes expanded by 0.25, device boxes by their targeting margin plus 0.25): a nearer
+Seeker device intercepts, a different nearer player rejects the request. It also re-checks
+participation, stun, Seeker session lock, Last Escape, and the SparkFactionAPI veto; an accepted hit
+consumes the stack even when parried or protected; both effective factions are captured before the
+non-forced `sparkwitch:swordfish_stab` kill, and only a confirmed terminal civilian-on-civilian
+death (not Last Stand, not a fake death) also kills the attacker with `SHOT_INNOCENT` (an Impostor
+attacker is exempt). The Angler never renders in the `gui.sparkwitch.skills` panel.
+Fiend state never enters that shared schema either. `sparkwitch:fiend_moment` is a world component synced to
+every player; its packet carries only a presence flag, the moment Fiend's UUID and remaining ticks (never absolute
+server time or the match id), clients count down only for display, and it is never persisted. It also keeps a
+server-only, never-synced spent ledger bound to the match id. A dormant Fiend (Fiend role, playing and alive, not
+the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:escaped` and `wathe:vanilla_death`:
+`mixin/fiend/GameFunctionsFiendImmunityMixin` is a cancellable HEAD guard on Wathe's 5-arg `killPlayer`
+(priority 1100, so SparkFactionAPI's affect veto runs first) that ignores `force`, so the owner-approved piercing
+kills (bell toll, time curse) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
+per attack: `wathe:gun_shot` (every gun) +50 gold, Speed III 5 s and a 20 s cooldown floor, applied at
+END_SERVER_TICK through SparkTraits' exact write with a vanilla fallback, on every other participant within
+8 blocks (never shortened; NoellesRoles `timed_bomb` is skipped, its cooldown is the Bomber pass gate); a hand-held
+stab, recognised only by `FiendStabScope` around Wathe's `KnifeStabPayload` receiver, +50 gold and 4 notes;
+`wathe:bat_hit` and `sparkwitch:ceremonial_blade` +100 gold. A bomb the Fiend passed that kills its direct
+recipient pays +50 only while the Fiend is still dormant (server-only `FiendBombLedger`). The Taotie cannot
+swallow a dormant Fiend (SparkWitch guard on NoellesRoles `TaotiePlayerComponent.swallowPlayer`; SparkFactionAPI's
+NoellesRoles packet guards do not match the pinned 1.7.6 jar), and a dormant Fiend is never a Serial Killer target
+(`SerialKillerPlayerComponentFiendTargetMixin` filters `getEligibleTargets` and `isTargetValid`; the Bodyguard
+copies that target). A dormant Fiend counts as not alive in every last-one-standing count: `WitchWinConditions`
+and Murderous Witch `checkWin` skip it directly, and NoellesRoles'
+Jester-moment and Corrupt Cop loops (`lambda$registerEvents$14` alive-check ordinals 6 and 9),
+`countAliveAndNotSwallowed` and Taotie `hasSwallowedEveryone` reach `FiendWinExclusion` through additive
+`@WrapOperation`s pinned to b58fa5f. The Fiend Moment is a 200-gold, stock-1 shop entry whose all-or-nothing
+`onBuy` starts it (crowbar, Speed IV and one whiskey-shield layer, all for 2400 ticks); the crowbar carries the
+`sparkwitch:fiend_moment_crowbar` custom-data marker and every marked stack is taken back when the moment ends
+without a win, and a disconnect (`wathe:escaped`) ends it as "ended", not "slain". `FiendWinService` runs in
+phase `sparkwitch:fiend_moment_win`, ordered before `Event.DEFAULT_PHASE` on `CheckWinCondition`: no moment →
+abstain; the moment Fiend offline, dead, swallowed, re-roled or the match changed → end the moment (a swallow
+also marks it spent) and abstain; complete → `neutralWin`; otherwise `block()`, so every other win, `TIME`
+included, waits. The moment Fiend's crowbar cooldown is written as exactly 5 s after a door pry or vent-hatch use,
+without a second redirect. The client outline is a cancellable HEAD on `WatheClient.getInstinctHighlight`
+(`remap = false`, priority 500; lower-priority HEADs run first, so it precedes SparkTraits, Wraith and Black
+Raven): while a moment is active the moment Fiend sees every other playing, living, non-spectator player and every
+other viewer sees the moment Fiend, both in `FiendRules.COLOR`; other pairs fall through. The Grand Witch
+Obscure/Fear `@WrapMethod` veto (`WatheClientFearInstinctMixin`) exempts those moment pairs, like the Final Moment
+(owner decision, 2026-09-30); its swallow veto still applies. The countdown HUD is a
+`HudRenderCallback` line for every player, never the action bar. The Fiend is absent from
+`isRegisteredSparkWitchRole` and `WitchSkillRegistry` and never renders in the `gui.sparkwitch.skills` panel.
 The Insider (`sparkwitch:insider`) has no component; every rule reads synced roles. Wathe never draws it
 (`appearanceCondition(context -> false)`). `MurderGameModeMixin` calls, in order, the Hunter→Orthopedist
 pairing, the Witch assignment, then `InsiderAssignmentService`, all before Wathe's civilian pass: when a
@@ -294,6 +527,16 @@ adds no suppression and must not break the client. Bell Ringer may query only
 `isRoleSkillBlocked`, `registerTerminalDeathReason`, and
 `setExactItemCooldownRemaining` beyond the shared weapon-action gate; an absent
 or older build means no block, no terminal registration, and a vanilla cooldown.
+The Time Stealer may query only `isRoleSkillBlocked`, `blocksWeaponAction` (with its
+`isKillerInteractionBlocked` and `getForcedMeleeCooldownTicks` reads), `isLastEscapeActive`,
+`registerTerminalDeathReason`, and `setExactItemCooldownRemaining` through
+`SparkTraitsKillerBridge`, and `isLastStandDeathIntercepted` through the existing
+`WitchFactorTraitsBridge`; an absent or older build means no skill or weapon block, no Last Escape
+refusal, no terminal registration (the Clock kill is then only forced), and a vanilla Clock
+cooldown, while a present build whose facade lacks or fails `isLastStandDeathIntercepted` counts
+every death as intercepted: the `KillPlayer.AFTER` cleanup is skipped and no Clock death moves the
+round time or grants a stamp; the curse tick clears a victim who stops playing, and the 20-tick
+non-holder sweep removes a dead Time Stealer's Clock and stamps.
 The Ceremonial Sword and a credited Fire Poker fall may query only
 `isNonFinalKillPending`, `getNonFinalKillCooldownTicks`, and
 `runWithNonFinalKillWeapon` through `SparkTraitsKillerBridge` for non-final
@@ -322,6 +565,14 @@ facade lacks or fails a method falls back per method to not pending, Impostor-or
 and task money denied, `DENY_IMPOSTOR_DEVICES`), not hidden, full prices, no block, a vanilla
 cooldown, or an intercepted death: the `KillPlayer.AFTER` cleanup is skipped and the component
 tick's final-death fallback cleans up once the Seeker is dead and not Last Stand pending.
+The Angler may query only `isInstinctHidden` through its own client
+`FisherInstinctVisibilityBridge` and `isLastStandDeathIntercepted` through the existing
+`WitchFactorTraitsBridge`, beyond the existing `SparkTraitsKillerBridge` seams
+(`blocksWeaponAction`, `isLastEscapeActive`, `shouldCancelMeleeAttack`, `isNonFinalKillPending`)
+and `SparkTraitsShopEntryPreserver`. An absent SparkTraits means nothing hidden, no weapon block, no
+Last Escape, no parry, no pending fake death, and cleanup on every death; a present build whose
+facade lacks or fails a method falls back per method as those bridges already define (an
+intercepted death skips the Angler's `KillPlayer.AFTER` cleanup, which then runs at reset or finalize).
 The Insider may query only `isInstinctHidden` and `hasActiveTrait` (Impostor, Conscience, local player only)
 through its own client `client/insider/InsiderSparkTraitsBridge`; an absent, older or failing build means
 nothing hidden and no trait: Impostor viewers then see the Insider in SparkTraits' green, and Conscience killers are
@@ -345,6 +596,16 @@ crosshair is filtered for the local non-spectator player, and Wathe's bed-hit
 fallback drops a sleeping Wraith on the client. Server authority is unchanged:
 SparkFactionAPI's affect policy still cancels any Wraith target that slips
 through.
+
+Active Wraiths pass closed Wathe doors, vanilla doors, trapdoors, and fence
+gates for movement only. `mixin/WraithDoorPassingMixin` empties their collision
+shape for the Wraith's own entity shape context, except inside
+`util/RaycastShapeScope`. `mixin/RaycastShapeScopeMixin` is the one
+`@WrapMethod` on `RaycastContext#getBlockShape` (both sides, entity context kept),
+so a Wraith's COLLIDER rays (`canSee`, `ProjectileUtil.getCollision`, explosion
+exposure) still stop at doors: the Vendetta knife and the Guardian Angel shield
+need real sight. Every SparkWitch door-passing exemption must honour this scope
+instead of adding its own ray wrapper.
 
 ## Tofana Elixir Vocabulary
 

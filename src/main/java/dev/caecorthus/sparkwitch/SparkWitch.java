@@ -23,6 +23,7 @@ import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithParticipationRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -56,12 +57,24 @@ public final class SparkWitch implements ModInitializer {
         NoellesHiddenEquipment.register(SparkWitchItems.perfumeEssence());
         NoellesHiddenEquipment.register(SparkWitchItems.cologne());
         NoellesHiddenEquipment.register(SparkWitchItems.blackRavenLedger());
+        NoellesHiddenEquipment.register(SparkWitchItems.timeStealerClock());
+        NoellesHiddenEquipment.register(SparkWitchItems.timeStamp());
         NoellesHiddenEquipment.register(SparkWitchItems.tollBell());
         NoellesHiddenEquipment.register(SparkWitchItems.seekerCar());
         NoellesHiddenEquipment.register(SparkWitchItems.seekerCamera());
+        // Angler: the rod, bait and every non-weapon fish; the Key Fish and Swordfish stay visible on purpose.
+        // 钓鱼佬：鱼竿、鱼饵与所有非武器类的鱼；钥匙鱼与剑鱼刻意保持可见。
+        NoellesHiddenEquipment.register(SparkWitchItems.fishingRod());
+        NoellesHiddenEquipment.register(SparkWitchItems.fishBait());
+        NoellesHiddenEquipment.register(SparkWitchItems.salmon());
+        NoellesHiddenEquipment.register(SparkWitchItems.cod());
+        NoellesHiddenEquipment.register(SparkWitchItems.clownfish());
+        NoellesHiddenEquipment.register(SparkWitchItems.goldfish());
+        NoellesHiddenEquipment.register(SparkWitchItems.glimmerfish());
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();
+        PlayerHitboxHistory.register();
         CurserFeatureService.register();
         SparkWitchVersionHandshake.registerServer();
         SparkWitchEvents.register();

@@ -4,12 +4,14 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCarState;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCooldownReason;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerState;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerStatusComponent;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -63,9 +65,29 @@ public final class SeekerClientState {
         return status == null ? -1 : status.carEntityId();
     }
 
-    public static int cameraEntityId() {
+    /** The local owner's cameras in label order (synced). / 本地拥有者按编号排列的摄像头（同步值）。 */
+    public static List<SeekerState.Camera> cameras() {
         SeekerStatusComponent status = own();
-        return status == null ? -1 : status.cameraEntityId();
+        return status == null ? List.of() : status.cameras();
+    }
+
+    public static int cameraCount() {
+        SeekerStatusComponent status = own();
+        return status == null ? 0 : status.cameraCount();
+    }
+
+    public static boolean hasCamera(int entityId) {
+        SeekerStatusComponent status = own();
+        return status != null && status.hasCamera(entityId);
+    }
+
+    /**
+     * The synced session focus: the car or the exact camera being viewed; -1 without a session.
+     * 同步的会话焦点：小车或正在观看的那台摄像头；无会话时为 -1。
+     */
+    public static int sessionFocusEntityId() {
+        SeekerStatusComponent status = own();
+        return status == null ? -1 : status.state().sessionFocusEntityId();
     }
 
     public static int effectiveRadius() {

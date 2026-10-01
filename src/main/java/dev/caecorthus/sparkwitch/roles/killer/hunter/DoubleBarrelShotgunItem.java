@@ -5,11 +5,13 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.util.hitscan.HitscanLagRules;
+import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
-import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -39,6 +41,7 @@ public final class DoubleBarrelShotgunItem extends Item {
     public static final Identifier ID = SparkWitch.id("double_barrel_shotgun");
     private static final String LOADED_SHELLS_KEY = "LoadedShells";
     private static final String RELOAD_WINDOW_UNTIL_KEY = "ReloadWindowUntil";
+    private static final double TARGET_BOX_EXPANSION = 0.1D;
 
     public DoubleBarrelShotgunItem(Settings settings) {
         super(settings);
@@ -82,8 +85,14 @@ public final class DoubleBarrelShotgunItem extends Item {
         setLoadedShells(shotgun, remainingShells);
         clearReloadWindow(shotgun);
 
+        // The shooter aimed at its delayed client view of others, so the server tests their rewound volumes.
+        // 射手瞄准的是客户端延迟画面中的其他玩家，因此服务端改为检测其回溯后的命中体积。
+        PlayerEntity aimed = user instanceof ServerPlayerEntity serverUser
+                ? findTarget(user,
+                        candidate -> PlayerHitboxHistory.hitVolumes(serverUser, candidate, TARGET_BOX_EXPANSION))
+                : findTarget(user);
         // Nearest-wins: a nearer Seeker device absorbs the shot (null target). / 最近者命中：更近的搜寻者设备吸收这一枪。
-        PlayerEntity target = SeekerDeviceHits.onShotgunFired(user, findTarget(user), HunterRules.SHOTGUN_RANGE);
+        PlayerEntity target = SeekerDeviceHits.onShotgunFired(user, aimed, HunterRules.SHOTGUN_RANGE);
         if (user instanceof ServerPlayerEntity shooter && target instanceof ServerPlayerEntity serverTarget) {
             GameFunctions.killPlayer(serverTarget, true, shooter, GameConstants.DeathReasons.GUN);
         }
@@ -179,38 +188,45 @@ public final class DoubleBarrelShotgunItem extends Item {
     }
 
     public static PlayerEntity findTarget(PlayerEntity user) {
-        Vec3d eyePos = user.getEyePos();
-        Vec3d look = user.getRotationVec(1.0F);
-        Vec3d end = eyePos.add(look.multiply(HunterRules.SHOTGUN_RANGE));
-        Box searchBox = user.getBoundingBox().stretch(look.multiply(HunterRules.SHOTGUN_RANGE)).expand(0.5D);
-
-        return user.getWorld().getEntitiesByClass(
-                        PlayerEntity.class,
-                        searchBox,
-                        candidate -> candidate != user
-                                && VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(user, candidate)
-                                && GameFunctions.isPlayerAliveAndSurvival(candidate)
-                ).stream()
-                .filter(candidate -> hasUnblockedHit(user, candidate, eyePos, end))
-                .min(Comparator.comparingDouble(candidate -> candidate.squaredDistanceTo(user)))
-                .orElse(null);
+        return findTarget(user, candidate -> List.of(candidate.getBoundingBox().expand(TARGET_BOX_EXPANSION)));
     }
 
-    private static boolean hasUnblockedHit(PlayerEntity user, PlayerEntity candidate, Vec3d eyePos, Vec3d end) {
-        return candidate.getBoundingBox().expand(0.1D).raycast(eyePos, end)
-                .filter(hitPos -> {
-                    HitResult blockHit = user.getWorld().raycast(new RaycastContext(
-                            eyePos,
-                            hitPos,
-                            RaycastContext.ShapeType.COLLIDER,
-                            RaycastContext.FluidHandling.NONE,
-                            user
-                    ));
-                    return blockHit.getType() == HitResult.Type.MISS
-                            || blockHit.getPos().squaredDistanceTo(eyePos) + 1.0E-4D
-                            >= eyePos.squaredDistanceTo(hitPos);
-                })
-                .isPresent();
+    /**
+     * Side-neutral pick: the client crosshair passes current boxes (already the delayed view), the server passes
+     * {@link PlayerHitboxHistory} volumes. Eligibility is checked before geometry, so ineligible players stay
+     * transparent. / 与端无关的目标选择：客户端准星传入当前箱体（本就是延迟画面），服务端传入
+     * {@link PlayerHitboxHistory} 命中体积。先判定资格再算几何，不合格的玩家保持“透明”。
+     */
+    static PlayerEntity findTarget(PlayerEntity user, Function<PlayerEntity, List<Box>> hitVolumes) {
+        Vec3d eye = user.getEyePos();
+        Vec3d look = user.getRotationVec(1.0F);
+        Vec3d end = eye.add(look.multiply(HunterRules.SHOTGUN_RANGE));
+        HitResult blockHit = user.getWorld().raycast(new RaycastContext(
+                eye,
+                end,
+                RaycastContext.ShapeType.COLLIDER,
+                RaycastContext.FluidHandling.NONE,
+                user
+        ));
+        if (blockHit.getType() != HitResult.Type.MISS) {
+            end = blockHit.getPos();
+        }
+
+        PlayerEntity nearest = null;
+        double nearestDistance = Double.POSITIVE_INFINITY;
+        for (PlayerEntity candidate : user.getWorld().getPlayers()) {
+            if (candidate == user
+                    || !VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(user, candidate)
+                    || !GameFunctions.isPlayerAliveAndSurvival(candidate)) {
+                continue;
+            }
+            double distance = HitscanLagRules.entryDistanceSquared(eye, end, hitVolumes.apply(candidate));
+            if (distance >= 0.0D && distance < nearestDistance) {
+                nearest = candidate;
+                nearestDistance = distance;
+            }
+        }
+        return nearest;
     }
 
     @Override
