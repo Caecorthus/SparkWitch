@@ -20,13 +20,17 @@ public enum SeekerBreakSource {
     DEATH_RAY(Kind.RAY),
     /** Black Raven's right-click "throw" is a server hitscan (no projectile entity). / 黑鸦右键“投掷”是服务端即时射线（无投射物实体）。 */
     FEATHER_BLADE(Kind.RAY),
+    /** Time Stealer Clock: a server hitscan (no projectile entity). / 窃时者时钟：服务端即时射线（无投射物实体）。 */
+    CLOCK(Kind.RAY),
     THROWING_AXE(Kind.PROJECTILE),
     SHURIKEN(Kind.PROJECTILE),
     SHOCK_DEVICE(Kind.PROJECTILE),
     GRENADE(Kind.BLAST),
     M67(Kind.BLAST),
     /** Fell out of the train or left the play area: 180 s, never marks. / 掉出列车或离开游戏区域：180 秒，不标记。 */
-    VOID(Kind.ENVIRONMENT);
+    VOID(Kind.ENVIRONMENT),
+    /** Independent single-use Fisher weapon; keeps its own item/payload identity. / 钓鱼佬独立的一次性武器与数据包。 */
+    SWORDFISH(Kind.RAY);
 
     /** Geometry family; rays and projectiles use nearest-wins blocking, blasts do not. / 几何类别。 */
     public enum Kind {

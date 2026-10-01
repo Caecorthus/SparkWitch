@@ -14,6 +14,7 @@ import dev.caecorthus.sparkwitch.item.firepoker.FirePokerFallAttributionService;
 import dev.caecorthus.sparkwitch.item.tofana.TofanaProtectionService;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceCombatService;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertFeatureService;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
@@ -49,6 +50,7 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragLifecycle;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperKnockoutService;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurFeatureService;
+import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRuntime;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonApplePlateService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenFeatureService;
@@ -110,6 +112,7 @@ public final class SparkWitchEvents {
         TarotReaderFeatureService.register();
         BlackRavenFeatureService.register();
         BellRingerFeatureService.register();
+        TimeStealerFeatureService.register();
         WindSpiritFeatureService.register();
         SaboteurFeatureService.register();
         WitchMaidenFeatureService.register();
@@ -118,6 +121,7 @@ public final class SparkWitchEvents {
         WraithLifecycle.register();
         ControlExpertFeatureService.register();
         SeekerFeatureService.register();
+        FisherFeatureService.register();
         FiendFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {

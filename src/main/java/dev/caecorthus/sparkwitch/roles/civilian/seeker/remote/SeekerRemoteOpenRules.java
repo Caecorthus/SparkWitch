@@ -31,6 +31,8 @@ public final class SeekerRemoteOpenRules {
      * @param commonDeny     {@code SeekerTargeting.commonDenyReason} (null = passed) / 公共门槛结果
      * @param requested      decoded mode; NONE for an unknown byte / 解码后的模式，未知字节为 NONE
      * @param current        current session mode / 当前会话模式
+     * @param sameDevice     the resolved target is the device the open session already shows
+     *                       / 解析出的目标正是当前会话显示的设备
      * @param swallowed      body swallowed by a Taotie / 本体被饕餮吞噬
      * @param lastStand      SparkTraits Last Stand pending / 最后一搏待定
      * @param grounded       {@link SeekerRemoteRules#isBodyGrounded} / 本体立足
@@ -41,7 +43,7 @@ public final class SeekerRemoteOpenRules {
      * @param inPlayArea     inside the Wathe play area / 在 Wathe 游戏区域内
      */
     public record Facts(@Nullable String commonDeny, SeekerSessionMode requested, SeekerSessionMode current,
-                        boolean swallowed, boolean lastStand, boolean grounded, boolean throttled,
+                        boolean sameDevice, boolean swallowed, boolean lastStand, boolean grounded, boolean throttled,
                         boolean consoleDevice, boolean deviceUsable, boolean inRange, boolean inPlayArea) {
     }
 
@@ -62,7 +64,7 @@ public final class SeekerRemoteOpenRules {
         if (!facts.grounded()) {
             return DENY_NOT_GROUNDED;
         }
-        if (facts.current() == facts.requested()) {
+        if (isBusy(facts.current(), facts.requested(), facts.sameDevice())) {
             return DENY_BUSY;
         }
         if (facts.throttled()) {
@@ -80,8 +82,22 @@ public final class SeekerRemoteOpenRules {
         return null;
     }
 
-    /** A different mode while a session is open: an atomic switch. / 会话中请求另一模式：原子切换。 */
-    public static boolean isSwitch(SeekerSessionMode current, SeekerSessionMode requested) {
-        return current != SeekerSessionMode.NONE && requested != SeekerSessionMode.NONE && current != requested;
+    /**
+     * Already showing what was asked: the same CAR session, or a CAMERA session on the same camera. Another camera
+     * while viewing one is not busy but an atomic switch.
+     * 已在显示所请求的内容：同一小车会话，或同一台摄像头的摄像头会话。观看一台摄像头时请求另一台不算忙碌，而是原子切换。
+     */
+    public static boolean isBusy(SeekerSessionMode current, SeekerSessionMode requested, boolean sameDevice) {
+        return current == requested && (requested != SeekerSessionMode.CAMERA || sameDevice);
+    }
+
+    /**
+     * A different mode, or another camera, while a session is open: an atomic switch.
+     * 会话中请求另一模式或另一台摄像头：原子切换。
+     */
+    public static boolean isSwitch(SeekerSessionMode current, SeekerSessionMode requested, int currentFocusEntityId,
+                                   int targetEntityId) {
+        return current != SeekerSessionMode.NONE && requested != SeekerSessionMode.NONE
+                && (current != requested || currentFocusEntityId != targetEntityId);
     }
 }
