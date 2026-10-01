@@ -8,12 +8,13 @@ import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellFligh
  * the exact launch velocity, and every tick first moves by its velocity; on the first {@link #flatTicks()} ticks the
  * velocity then stays unchanged (flat flight, 20 moves to exactly 50.0 blocks), on every later tick it is multiplied by
  * {@link PotionGunnerRules#DRAG} and loses {@link PotionGunnerRules#GRAVITY} vertically, as in vanilla (which moves
- * before it applies drag and gravity, so the 21st move still uses the launch velocity). No wind, no divergence.
+ * before it applies drag and gravity, so the 21st move still uses the launch velocity). No wind, no divergence. A
+ * shell that hits nothing bursts after {@link #MOVES_BEFORE_BURST} moves.
  * 炮弹飞行的纯计算模型（两端安全），供客户端瞄准镜射程刻度与测试使用。它与建立在原版 {@code ThrownEntity} 之上的炮弹
  * 实体一致：炮弹以精确的发射速度在眼睛下方 {@link #LAUNCH_BELOW_EYE} 处生成，每刻先按速度移动；前
  * {@link #flatTicks()} 刻速度保持不变（平飞，20 次移动恰好到 50.0 格），之后每刻速度乘以
  * {@link PotionGunnerRules#DRAG} 并在竖直方向减去 {@link PotionGunnerRules#GRAVITY}，与原版相同（原版先移动再施加
- * 阻力与重力，因此第 21 次移动仍使用发射速度）。无风、无散布。
+ * 阻力与重力，因此第 21 次移动仍使用发射速度）。无风、无散布。未命中的炮弹在 {@link #MOVES_BEFORE_BURST} 次移动后空爆。
  */
 public final class PotionBallistics {
     /**
@@ -21,6 +22,14 @@ public final class PotionBallistics {
      * 原版 {@code ThrownEntity(type, owner, world)} 在拥有者眼睛高度减 {@code 0.1F} 处生成。
      */
     public static final double LAUNCH_BELOW_EYE = 0.1F;
+    /**
+     * Moves a shell makes before its mid-air burst. {@code ServerWorld.tickEntity} increments {@code age} before it
+     * calls {@code tick()}, and the shell bursts once {@code age >= SHELL_LIFETIME_TICKS} before it moves, so it moves
+     * on ages 1 to 99 and bursts in place on its 100th tick: one move fewer than the lifetime.
+     * 炮弹空爆前的移动次数。{@code ServerWorld.tickEntity} 先递增 {@code age} 再调用 {@code tick()}，而炮弹在移动之前
+     * 一旦 {@code age >= SHELL_LIFETIME_TICKS} 就爆炸，因此它在 age 1 到 99 时移动，并在第 100 刻原地爆炸：比寿命少一次移动。
+     */
+    public static final int MOVES_BEFORE_BURST = PotionGunnerRules.SHELL_LIFETIME_TICKS - 1;
 
     private PotionBallistics() {
     }
@@ -42,8 +51,7 @@ public final class PotionBallistics {
      */
     public static int flatTicks() {
         int ticks = 0;
-        while (ticks < PotionGunnerRules.SHELL_LIFETIME_TICKS
-                && isFlatTick(ticks * (double) PotionGunnerRules.MUZZLE_SPEED)) {
+        while (ticks < MOVES_BEFORE_BURST && isFlatTick(ticks * (double) PotionGunnerRules.MUZZLE_SPEED)) {
             ticks++;
         }
         return ticks;
@@ -53,10 +61,10 @@ public final class PotionBallistics {
      * Height of the shell relative to the shooter's eye when it has travelled {@code horizontalDistance} blocks
      * horizontally, fired along Minecraft {@code pitchDegrees} (positive looks down). Positions between two ticks
      * are joined by a straight segment, as the entity's own per-tick collision ray is. Returns NaN when the shell
-     * never gets that far before it bursts ({@link PotionGunnerRules#SHELL_LIFETIME_TICKS}).
+     * never gets that far in its {@link #MOVES_BEFORE_BURST} moves before the mid-air burst.
      * 以 Minecraft 俯仰角 {@code pitchDegrees}（正值朝下）发射后，炮弹水平飞行 {@code horizontalDistance} 格时相对于
-     * 射手眼睛的高度。两刻之间的位置按直线段连接，与实体每刻的碰撞射线一致。若炮弹在空爆
-     * （{@link PotionGunnerRules#SHELL_LIFETIME_TICKS}）前飞不到该距离，则返回 NaN。
+     * 射手眼睛的高度。两刻之间的位置按直线段连接，与实体每刻的碰撞射线一致。若炮弹在空爆前的
+     * {@link #MOVES_BEFORE_BURST} 次移动内飞不到该距离，则返回 NaN。
      */
     public static double heightAt(double pitchDegrees, double horizontalDistance) {
         if (!(horizontalDistance >= 0.0) || !Double.isFinite(pitchDegrees)) {
@@ -71,7 +79,7 @@ public final class PotionBallistics {
             return y;
         }
         int flatTicks = flatTicks();
-        for (int tick = 0; tick < PotionGunnerRules.SHELL_LIFETIME_TICKS; tick++) {
+        for (int tick = 0; tick < MOVES_BEFORE_BURST; tick++) {
             boolean flat = tick < flatTicks;
             double nextX = x + vx;
             double nextY = y + vy;

@@ -28,9 +28,18 @@ public final class PotionScopeRules {
     public static final List<Integer> RANGE_TICKS = List.of(60, 70, 80, 90, 100);
     /** Label of the crosshair centre: the flat-flight range. / 准星中心的标签：平飞距离。 */
     public static final String CENTER_LABEL = "0-" + (int) PotionGunnerRules.FLAT_RANGE_BLOCKS;
-    /** WP5 mask: 256x256, transparent inside a centred circle of radius 120 px. / WP5 遮罩：256x256，中心半径 120 像素圆内透明。 */
+    /**
+     * WP5 mask, 256x256 and drawn with blur: fully clear inside a radius of about 108 px, then a faint dark ring (alpha
+     * up to about 72/255) out to about 119 px, then a soft edge that is opaque from about 122 px.
+     * WP5 遮罩，256x256，以模糊方式绘制：半径约 108 像素内完全透明，向外是一圈淡暗环（透明度最高约 72/255）至约
+     * 119 像素，随后是柔和边缘，约 122 像素起完全不透明。
+     */
     public static final Identifier MASK_TEXTURE = SparkWitch.id("textures/gui/potion_scope_mask.png");
-    /** Clear circle radius as a fraction of the drawn mask side. / 透明圆半径占遮罩边长的比例。 */
+    /**
+     * Radius of the mask's soft edge at half opacity (about 120 px) as a fraction of the drawn mask side; the crosshair
+     * arms reach it and the range ticks stay inside it.
+     * 遮罩柔和边缘半不透明处的半径（约 120 像素）占遮罩边长的比例；十字线延伸到此处，射程刻度保持在其以内。
+     */
     public static final double MASK_CLEAR_RADIUS = 120.0 / 256.0;
 
     public static final String HUD_LOADED_KEY = "hud.sparkwitch.potion_gunner.loaded";
@@ -57,10 +66,10 @@ public final class PotionScopeRules {
     }
 
     /**
-     * Whether a press already taken by the latch becomes a fire request. A press refused here is still swallowed, so
+     * Whether a press edge the latch let through becomes a fire request. A press refused here is still swallowed, so
      * the launcher never attacks, mines or swings. Skipping during the launcher's synced item cooldown only saves a
      * packet; the server re-checks every condition.
-     * 已被闩锁取走的按键是否变成发射请求。此处拒绝的按键仍会被吞掉，因此炮筒永远不会攻击、挖掘或挥动。在已同步的
+     * 闩锁放行的按下沿是否变成发射请求。此处拒绝的按键仍会被吞掉，因此炮筒永远不会攻击、挖掘或挥动。在已同步的
      * 炮筒物品冷却期间跳过只是为了省一个数据包；服务端会复核所有条件。
      */
     public static boolean sendsFire(boolean screenOpen, boolean spectator, boolean cameraIsPlayer,
@@ -116,9 +125,9 @@ public final class PotionScopeRules {
     /**
      * Pixels below the screen centre at which the {@code distance}-block tick sits for the current {@code pitch} and
      * the effective vertical FOV of this frame; NaN when the shell cannot reach that distance or the tick would leave
-     * the clear circle of radius {@code clearRadius}.
+     * the circle of radius {@code clearRadius}.
      * 在当前俯仰角与本帧实际竖直视场角下，{@code distance} 格刻度位于屏幕中心下方的像素数；炮弹无法到达该距离或刻度
-     * 超出半径为 {@code clearRadius} 的透明圆时返回 NaN。
+     * 超出半径为 {@code clearRadius} 的圆时返回 NaN。
      */
     public static double tickOffset(double pitchDegrees, double distance, double verticalFovDegrees,
                                     double halfHeight, double clearRadius) {
