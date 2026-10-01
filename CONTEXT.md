@@ -10,6 +10,8 @@ God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, Bell
 Time Stealer, and Angler (`sparkwitch:fisher`) gameplay to Wathe.
 It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
 and the Seeker, a police variant with a remote car and wall cameras that shares the same slots.
+It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
+train fall can kill and that may buy a timed Fiend Moment.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -66,6 +68,11 @@ Current build baseline:
   constant names).
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers.
+- `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
+  `sparkwitch:fiend_moment` world component and its pure state, dormant immunity and hit reactions, cooldown
+  aura, bomb-pass ledger, swallow block, last-one-standing exclusion (`FiendWinExclusion`), the Fiend Moment
+  shop, economy, win listener, lifecycle and owned effects. Its mixins live in `mixin/fiend/` and
+  `client/mixin/fiend/`; client presentation (countdown HUD, outline decision) in `client/fiend/`.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
@@ -389,6 +396,43 @@ consumes the stack even when parried or protected; both effective factions are c
 non-forced `sparkwitch:swordfish_stab` kill, and only a confirmed terminal civilian-on-civilian
 death (not Last Stand, not a fake death) also kills the attacker with `SHOT_INNOCENT` (an Impostor
 attacker is exempt). The Angler never renders in the `gui.sparkwitch.skills` panel.
+Fiend state never enters that shared schema either. `sparkwitch:fiend_moment` is a world component synced to
+every player; its packet carries only a presence flag, the moment Fiend's UUID and remaining ticks (never absolute
+server time or the match id), clients count down only for display, and it is never persisted. It also keeps a
+server-only, never-synced spent ledger bound to the match id. A dormant Fiend (Fiend role, playing and alive, not
+the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:escaped` and `wathe:vanilla_death`:
+`mixin/fiend/GameFunctionsFiendImmunityMixin` is a cancellable HEAD guard on Wathe's 5-arg `killPlayer`
+(priority 1100, so SparkFactionAPI's affect veto runs first) that ignores `force`, so the owner-approved piercing
+kills (bell toll, time curse) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
+per attack: `wathe:gun_shot` (every gun) +50 gold, Speed III 5 s and a 20 s cooldown floor, applied at
+END_SERVER_TICK through SparkTraits' exact write with a vanilla fallback, on every other participant within
+8 blocks (never shortened; NoellesRoles `timed_bomb` is skipped, its cooldown is the Bomber pass gate); a hand-held
+stab, recognised only by `FiendStabScope` around Wathe's `KnifeStabPayload` receiver, +50 gold and 4 notes;
+`wathe:bat_hit` and `sparkwitch:ceremonial_blade` +100 gold. A bomb the Fiend passed that kills its direct
+recipient pays +50 only while the Fiend is still dormant (server-only `FiendBombLedger`). The Taotie cannot
+swallow a dormant Fiend (SparkWitch guard on NoellesRoles `TaotiePlayerComponent.swallowPlayer`; SparkFactionAPI's
+NoellesRoles packet guards do not match the pinned 1.7.6 jar), and a dormant Fiend is never a Serial Killer target
+(`SerialKillerPlayerComponentFiendTargetMixin` filters `getEligibleTargets` and `isTargetValid`; the Bodyguard
+copies that target). A dormant Fiend counts as not alive in every last-one-standing count: `WitchWinConditions`
+and Murderous Witch `checkWin` skip it directly, and NoellesRoles'
+Jester-moment and Corrupt Cop loops (`lambda$registerEvents$14` alive-check ordinals 6 and 9),
+`countAliveAndNotSwallowed` and Taotie `hasSwallowedEveryone` reach `FiendWinExclusion` through additive
+`@WrapOperation`s pinned to b58fa5f. The Fiend Moment is a 200-gold, stock-1 shop entry whose all-or-nothing
+`onBuy` starts it (crowbar, Speed IV and one whiskey-shield layer, all for 2400 ticks); the crowbar carries the
+`sparkwitch:fiend_moment_crowbar` custom-data marker and every marked stack is taken back when the moment ends
+without a win, and a disconnect (`wathe:escaped`) ends it as "ended", not "slain". `FiendWinService` runs in
+phase `sparkwitch:fiend_moment_win`, ordered before `Event.DEFAULT_PHASE` on `CheckWinCondition`: no moment →
+abstain; the moment Fiend offline, dead, swallowed, re-roled or the match changed → end the moment (a swallow
+also marks it spent) and abstain; complete → `neutralWin`; otherwise `block()`, so every other win, `TIME`
+included, waits. The moment Fiend's crowbar cooldown is written as exactly 5 s after a door pry or vent-hatch use,
+without a second redirect. The client outline is a cancellable HEAD on `WatheClient.getInstinctHighlight`
+(`remap = false`, priority 500; lower-priority HEADs run first, so it precedes SparkTraits, Wraith and Black
+Raven): while a moment is active the moment Fiend sees every other playing, living, non-spectator player and every
+other viewer sees the moment Fiend, both in `FiendRules.COLOR`; other pairs fall through. The Grand Witch
+Obscure/Fear `@WrapMethod` veto (`WatheClientFearInstinctMixin`) exempts those moment pairs, like the Final Moment
+(owner decision, 2026-09-30); its swallow veto still applies. The countdown HUD is a
+`HudRenderCallback` line for every player, never the action bar. The Fiend is absent from
+`isRegisteredSparkWitchRole` and `WitchSkillRegistry` and never renders in the `gui.sparkwitch.skills` panel.
 
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
