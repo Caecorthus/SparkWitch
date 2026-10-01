@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch;
 import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
+import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariants;
 import dev.doctor4t.wathe.api.Role;
 import java.util.OptionalInt;
 
@@ -31,6 +32,15 @@ public final class WitchFactionRules {
 
     public static boolean isAccomplice(Role role) {
         return role != null && role == SparkWitchRoles.accomplice();
+    }
+
+    /**
+     * The plain Accomplice or any registered special accomplice. Use it for "basic accomplice" rules; keep
+     * {@link #isAccomplice} exact for rules owned by the plain Accomplice itself (such as its shop).
+     * 普通共犯或任一已注册的特殊共犯。"共犯基础功能"规则用它；普通共犯自有的规则（如其商店）仍用精确的 isAccomplice。
+     */
+    public static boolean isAccompliceLike(Role role) {
+        return isAccomplice(role) || AccompliceVariants.isVariant(role);
     }
 
     public static boolean isWitchFactionMember(Role role) {

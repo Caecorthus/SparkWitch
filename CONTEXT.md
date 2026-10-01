@@ -25,7 +25,7 @@ Current build baseline:
 - Minecraft `1.21.1`
 - Java `21`
 - SparkWitch `0.1.6.0` (Emma branch)
-- SparkFactionAPI floor `0.1.5.10`
+- SparkFactionAPI floor `0.1.5.11`
 
 ## Read Order
 
