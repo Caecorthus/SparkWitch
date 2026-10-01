@@ -1,10 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -75,8 +77,7 @@ public class PotionShellEntity extends ThrownItemEntity {
      */
     public static boolean launch(ServerPlayerEntity gunner, PotionShellType type, float yaw, float pitch) {
         if (gunner == null || type == null || !Float.isFinite(yaw) || !Float.isFinite(pitch)
-                || !(gunner.getWorld() instanceof ServerWorld world)
-                || !GameWorldComponent.KEY.get(world).isRunning()) {
+                || !(gunner.getWorld() instanceof ServerWorld world) || !isRoundActive(world)) {
             return false;
         }
         // The ThrownEntity owner constructor starts the shell at the eye minus 0.1, like the Wathe grenade.
@@ -100,9 +101,11 @@ public class PotionShellEntity extends ThrownItemEntity {
     @Override
     public void tick() {
         if (!getWorld().isClient()) {
-            // A shell still flying when the round stops is dropped at once; the finalize sweep covers unticked ones.
-            // 对局停止时仍在飞行的炮弹立即移除；未被 tick 的炮弹由收尾清理处理。
-            if (!GameWorldComponent.KEY.get(getWorld()).isRunning()) {
+            // D-R1: once the round leaves ACTIVE (STOPPING: the winner is decided) a shell still in flight is
+            // discarded without exploding, so no kill, gold or bounty lands after the result; the finalize sweep covers
+            // unticked ones. / D-R1：对局一旦离开 ACTIVE（STOPPING：胜负已定），仍在飞行的炮弹直接移除、不爆炸，
+            // 结果确定后不会再有击杀、金币或赏金；未被 tick 的炮弹由收尾清理处理。
+            if (!isRoundActive(getWorld())) {
                 discard();
                 return;
             }
@@ -178,16 +181,38 @@ public class PotionShellEntity extends ThrownItemEntity {
     }
 
     /**
-     * Spectators, creative players and dead players are transparent; every other player body stops the shell, allies
-     * included (it is a physical shell). SparkFactionAPI already removes vetoed players (Wraiths) from player-owned
-     * projectile collision queries on the server; doors stop it through the shared {@code RaycastShapeScope}.
-     * 旁观、创造与死亡玩家对炮弹透明；其余玩家的身体都会挡下炮弹，包括己方（这是实体炮弹）。SparkFactionAPI 已在服务端把被
-     * 否决的玩家（冤魂）从玩家投射物的碰撞查询中移除；门通过共享的 {@code RaycastShapeScope} 挡住炮弹。
+     * D-R4: the shell passes through everything its blast could never catch. Wathe corpses ({@link PlayerBodyEntity},
+     * a {@code LivingEntity}) are transparent, and so are players who are spectators, creative, or not
+     * {@code isPlayerPlayingAndAlive} (Wathe-dead, e.g. Wraiths); both sides decide these from synced state, so client
+     * prediction matches. SparkTraits Last Escape is server-only (like {@code ShockDeviceEntity}): the client keeps
+     * flying through until the server's position corrects it. Every other living player stops the shell, allies
+     * included (it is a physical shell); doors stop it through the shared {@code RaycastShapeScope}.
+     * D-R4：炮弹穿过所有其爆炸永远波及不到的对象。Wathe 尸体（{@link PlayerBodyEntity}，属于 {@code LivingEntity}）
+     * 对炮弹透明；旁观、创造模式以及不满足 {@code isPlayerPlayingAndAlive}（Wathe 判定死亡，如冤魂）的玩家同样透明；
+     * 两端都依据同步状态判定，客户端预测一致。SparkTraits 最后逃脱只在服务端判定（与 {@code ShockDeviceEntity} 相同）：
+     * 客户端继续飞行，直到服务端位置纠正。其余存活玩家都会挡下炮弹，包括己方（这是实体炮弹）；门通过共享的
+     * {@code RaycastShapeScope} 挡住炮弹。
      */
     @Override
     protected boolean canHit(Entity entity) {
-        return super.canHit(entity)
-                && (!(entity instanceof PlayerEntity player) || GameFunctions.isPlayerAliveAndSurvival(player));
+        if (!super.canHit(entity) || entity instanceof PlayerBodyEntity) {
+            return false;
+        }
+        if (!(entity instanceof PlayerEntity player)) {
+            return true;
+        }
+        return PotionShellFlight.playerStopsShell(
+                GameFunctions.isPlayerAliveAndSurvival(player),
+                GameFunctions.isPlayerPlayingAndAlive(player),
+                !getWorld().isClient() && SparkTraitsKillerBridge.isLastEscapeActive(player));
+    }
+
+    /**
+     * D-R1: shells launch, fly and burst only while Wathe's round is exactly {@code ACTIVE}.
+     * D-R1：炮弹只在 Wathe 对局恰为 {@code ACTIVE} 时发射、飞行与爆炸。
+     */
+    static boolean isRoundActive(World world) {
+        return GameWorldComponent.KEY.get(world).getGameStatus() == GameWorldComponent.GameStatus.ACTIVE;
     }
 
     @Override

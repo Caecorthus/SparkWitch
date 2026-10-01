@@ -19,12 +19,13 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 
 /**
- * Server-authoritative launcher fire. The client only states intent and aim; this service validates the shooter,
- * the held and loaded launcher, cooldown, stun/session locks, and SparkTraits weapon blocks before spawning a shell.
+ * Server-authoritative launcher fire. The client only states intent and aim; this service validates the round
+ * (exactly {@code ACTIVE}: nothing fires once the winner is decided), the shooter, the held and loaded launcher,
+ * cooldown, stun/session locks, and SparkTraits weapon blocks before spawning a shell.
  * Fabric runs play-payload receivers on the server thread ({@code ServerPlayNetworkAddon} hands them to
  * {@code MinecraftServer#execute}, which the stun and Seeker payload guards wrap), so no extra hand-off is needed.
- * 服务端权威的炮筒发射。客户端只表达意图与朝向；本服务复核射手、手持且已装填的炮筒、冷却、眩晕/遥控锁定与
- * SparkTraits 武器封锁后才生成炮弹。Fabric 在服务端线程上执行游戏数据包接收器（{@code ServerPlayNetworkAddon} 把它们交给
+ * 服务端权威的炮筒发射。客户端只表达意图与朝向；本服务复核对局（必须恰为 {@code ACTIVE}：胜负已定后不再发射）、
+ * 射手、手持且已装填的炮筒、冷却、眩晕/遥控锁定与 SparkTraits 武器封锁后才生成炮弹。Fabric 在服务端线程上执行游戏数据包接收器（{@code ServerPlayNetworkAddon} 把它们交给
  * 眩晕与搜寻者拦截所包装的 {@code MinecraftServer#execute}），因此无需额外切换线程。
  */
 public final class PotionLauncherFireService {
@@ -41,7 +42,7 @@ public final class PotionLauncherFireService {
         ItemStack launcher = player.getMainHandStack();
         boolean holdingLauncher = launcher.getItem() instanceof PotionLauncherItem;
         PotionLauncherFireRules.Decision decision = PotionLauncherFireRules.decide(new PotionLauncherFireRules.Facts(
-                game.isRunning(),
+                game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE,
                 GameFunctions.isPlayerPlayingAndAlive(player),
                 PotionGunnerRules.isPotionGunner(game.getRole(player)),
                 holdingLauncher,
@@ -86,9 +87,10 @@ public final class PotionLauncherFireService {
                 SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.7F, 1.6F);
         GameRecordManager.recordItemUse(player, PotionGunnerRules.FIRE_REPLAY_ID, null,
                 PotionGunnerReplay.fireData(type));
-        // Owner rule: every launched shell vents a backblast behind the launcher (after the shot's replay line).
-        // 所有者规则：每颗射出的炮弹都会在炮筒后方喷出尾焰（在该次发射的回放行之后）。
-        PotionBackblastService.fire(player, aim.yaw(), aim.pitch());
+        // Owner rule: every launched shell vents a backblast straight behind the gunner (after the shot's replay
+        // line); D-R2: the lane follows the yaw only. / 所有者规则：每颗射出的炮弹都会在药炮手正后方喷出尾焰
+        // （在该次发射的回放行之后）；D-R2：通道只跟随偏航角。
+        PotionBackblastService.fire(player, aim.yaw());
     }
 
     /** Empty launcher: a dry click only the shooter hears, plus an action-bar hint. / 未装填：仅射手可闻的空响与动作栏提示。 */

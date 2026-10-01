@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell;
 
-import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.effect.AcShellEffect;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.effect.DkShellEffect;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.effect.MrShellEffect;
@@ -21,9 +20,5 @@ public final class PotionShellEffects {
             case MR -> MrShellEffect.apply(context);
             case TR -> TrShellEffect.apply(context);
         }
-    }
-
-    public static boolean isKnown(PotionShellType type) {
-        return type != null;
     }
 }

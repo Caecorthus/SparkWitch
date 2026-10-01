@@ -12,6 +12,8 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.IntPredicate;
 
 /**
@@ -45,44 +47,27 @@ public final class PotionGunnerLoadoutService {
 
     /**
      * Keeps exactly one launcher: the first one found in hotbar, cursor, hidden main slots, offhand, armor order is
-     * kept; every other copy (and any copy in a crafting grid or open foreign container) is removed, handing its shell
-     * to the kept launcher when that one is empty. A kept launcher outside the hotbar moves into an empty hotbar slot
-     * (Wathe's screen shows only the hotbar). A missing launcher is created in the leftmost empty hotbar slot, else
-     * the first empty hidden main slot; with no room nothing is moved or destroyed and the next sweep retries. Cheap
-     * when nothing is wrong: a slot scan with no writes.
-     * 保持恰好一个炮筒：按快捷栏、光标、隐藏主背包、副手、盔甲的顺序保留找到的第一个；移除其他所有副本（含合成格或已打开的
-     * 外部容器中的副本），若保留的炮筒为空则把被移除副本的炮弹交给它。位于快捷栏之外的保留炮筒会移入空快捷栏位（Wathe
-     * 界面只显示快捷栏）。缺失时在最左侧空快捷栏位创建，否则放入第一个空的隐藏主背包栏位；完全没有空间时不移动也不销毁
-     * 任何物品，由下一次清扫重试。一切正常时开销很低：只扫描栏位而不写入。
+     * kept and moved into an empty hotbar slot when it sits elsewhere (Wathe's screen shows only the hotbar); a missing
+     * launcher is created in the leftmost empty hotbar slot, else the first empty hidden main slot. Every other copy
+     * (inventory, cursor, or a crafting grid / open foreign container) is removed, and its loaded shell is never lost:
+     * it loads the kept launcher when that one is empty, else returns as a shell item hotbar-first (a hidden slot
+     * when the hotbar is full, the emptied cursor as a last resort); a foreign copy whose shell finds no room at all,
+     * or that no kept launcher could replace, stays where it is until the next sweep. Finally, shells sitting in hidden
+     * main slots 9-35 are moved into hotbar room (same-type stacks first, then empty slots) without displacing
+     * anything. Cheap when nothing is wrong: a slot scan with no writes.
+     * 保持恰好一个炮筒：按快捷栏、光标、隐藏主背包、副手、盔甲的顺序保留找到的第一个，若不在快捷栏则移入空快捷栏位
+     * （Wathe 界面只显示快捷栏）；缺失时在最左侧空快捷栏位创建，否则放入第一个空的隐藏主背包栏位。其他所有副本（背包、
+     * 光标，或合成格/已打开的外部容器中）都会被移除，且其已装填的炮弹绝不丢失：保留的炮筒为空时装入其中，否则作为炮弹物品
+     * 优先放回快捷栏（快捷栏已满时放入隐藏栏位，最后才放到已清空的光标上）；外部副本的炮弹完全无处安放、或没有可保留的
+     * 炮筒能替代它时，该副本原地保留，等待下一次清扫。最后，把位于隐藏主背包 9-35 格的炮弹移入快捷栏空余处（先并入同种
+     * 炮弹堆，再放入空栏位），绝不挤占其他物品。一切正常时开销很低：只扫描栏位而不写入。
      */
     public static void ensureLauncher(ServerPlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
         ScreenHandler handler = player.currentScreenHandler;
         int keeper = keeperSlot(slot -> PotionGunnerInventoryRules.isLauncher(inventory.getStack(slot)),
                 PotionGunnerInventoryRules.isLauncher(handler.getCursorStack()));
-        PotionShellType rescued = null;
         boolean changed = false;
-        for (int slot = 0; slot < inventory.size(); slot++) {
-            ItemStack stack = inventory.getStack(slot);
-            if (slot == keeper || !PotionGunnerInventoryRules.isLauncher(stack)) {
-                continue;
-            }
-            rescued = firstLoad(rescued, stack);
-            inventory.setStack(slot, ItemStack.EMPTY);
-            changed = true;
-        }
-        if (keeper != CURSOR && PotionGunnerInventoryRules.isLauncher(handler.getCursorStack())) {
-            rescued = firstLoad(rescued, handler.getCursorStack());
-            handler.setCursorStack(ItemStack.EMPTY);
-            changed = true;
-        }
-        for (Slot slot : handler.slots) {
-            if (slot.inventory != inventory && PotionGunnerInventoryRules.isLauncher(slot.getStack())) {
-                rescued = firstLoad(rescued, slot.getStack());
-                slot.setStack(ItemStack.EMPTY);
-                changed = true;
-            }
-        }
         ItemStack kept;
         if (keeper == CURSOR) {
             kept = handler.getCursorStack();
@@ -98,22 +83,55 @@ public final class PotionGunnerLoadoutService {
             if (hotbar != NO_SLOT) {
                 inventory.setStack(keeper, ItemStack.EMPTY);
                 inventory.setStack(hotbar, kept);
+                keeper = hotbar;
                 changed = true;
             }
         } else {
             int target = placementSlot(slot -> inventory.getStack(slot).isEmpty());
-            if (target == NO_SLOT) {
-                finish(player, changed);
-                return;
+            kept = target == NO_SLOT ? null : new ItemStack(SparkWitchItems.potionLauncher());
+            if (kept != null) {
+                inventory.setStack(target, kept);
+                keeper = target;
+                changed = true;
             }
-            kept = new ItemStack(SparkWitchItems.potionLauncher());
-            inventory.setStack(target, kept);
-            changed = true;
         }
-        if (rescued != null && !PotionLauncherLoad.isLoaded(kept)) {
-            PotionLauncherLoad.setLoaded(kept, rescued);
-            changed = true;
+        // Inventory copies free their own slot first, so their shell always finds room.
+        // 背包中的副本先腾出自己的栏位，因此其炮弹总能找到位置。
+        for (int slot = 0; slot < inventory.size(); slot++) {
+            ItemStack copy = inventory.getStack(slot);
+            if (slot == keeper || !PotionGunnerInventoryRules.isLauncher(copy)) {
+                continue;
+            }
+            inventory.setStack(slot, ItemStack.EMPTY);
+            if (rehomeShell(inventory, handler, kept, copy)) {
+                changed = true;
+            } else {
+                inventory.setStack(slot, copy);
+            }
         }
+        if (keeper != CURSOR && PotionGunnerInventoryRules.isLauncher(handler.getCursorStack())) {
+            ItemStack copy = handler.getCursorStack();
+            handler.setCursorStack(ItemStack.EMPTY);
+            if (rehomeShell(inventory, handler, kept, copy)) {
+                changed = true;
+            } else {
+                handler.setCursorStack(copy);
+            }
+        }
+        for (Slot slot : handler.slots) {
+            if (kept == null || slot.inventory == inventory
+                    || !PotionGunnerInventoryRules.isLauncher(slot.getStack())) {
+                continue;
+            }
+            ItemStack copy = slot.getStack();
+            slot.setStack(ItemStack.EMPTY);
+            if (rehomeShell(inventory, handler, kept, copy)) {
+                changed = true;
+            } else {
+                slot.setStack(copy);
+            }
+        }
+        changed |= surfaceHiddenShells(inventory);
         finish(player, changed);
     }
 
@@ -164,9 +182,12 @@ public final class PotionGunnerLoadoutService {
             ItemStack copy = stack.copy();
             stack.setCount(0);
             if (serverPlayer.isAlive() && mayHold(serverPlayer)) {
-                // Hotbar first, then hidden main slots; a remainder with a completely full inventory is lost.
-                // 先快捷栏，后隐藏主背包；背包完全满时剩余部分丢失。
-                serverPlayer.getInventory().insertStack(copy);
+                // Hotbar first, then hidden main slots; whatever still does not fit goes back into the passed stack, so
+                // a caller that still holds it in a slot keeps it there instead of losing it.
+                // 先快捷栏，后隐藏主背包；仍放不下的部分放回传入的物品堆，仍在栏位中引用它的调用方因此原样保留，而不会丢失。
+                if (!returnToInventory(serverPlayer.getInventory(), copy, false)) {
+                    stack.setCount(copy.getCount());
+                }
                 serverPlayer.getInventory().markDirty();
             }
         }
@@ -218,8 +239,113 @@ public final class PotionGunnerLoadoutService {
         return NO_SLOT;
     }
 
-    private static @Nullable PotionShellType firstLoad(@Nullable PotionShellType rescued, ItemStack removed) {
-        return rescued != null ? rescued : PotionLauncherLoad.loaded(removed).orElse(null);
+    /**
+     * Return order for a bound stack, never the offhand or armor and never a slot holding anything else: same-type
+     * hotbar stacks with room, empty hotbar slots, then (unless {@code hotbarOnly}) same-type hidden main stacks with
+     * room and empty hidden main slots 9-35.
+     * 绑定物品堆的放回顺序，从不使用副手或盔甲栏，也从不占用放着其他物品的栏位：有空余的同种快捷栏物品堆、空快捷栏位，
+     * 然后（{@code hotbarOnly} 为 false 时）有空余的同种隐藏主背包物品堆与空的隐藏主背包栏位 9-35。
+     */
+    static List<Integer> returnSlots(IntPredicate sameTypeWithRoom, IntPredicate empty, boolean hotbarOnly) {
+        int hotbar = PlayerInventory.getHotbarSize();
+        List<Integer> slots = new ArrayList<>();
+        collect(slots, 0, hotbar, sameTypeWithRoom);
+        collect(slots, 0, hotbar, empty);
+        if (!hotbarOnly) {
+            collect(slots, hotbar, PlayerInventory.MAIN_SIZE, sameTypeWithRoom);
+            collect(slots, hotbar, PlayerInventory.MAIN_SIZE, empty);
+        }
+        return slots;
+    }
+
+    /**
+     * Moves as much of {@code stack} as fits into {@link #returnSlots} order; true when all of it was placed.
+     * 按 {@link #returnSlots} 的顺序尽量放入 {@code stack}；全部放入时返回 true。
+     */
+    static boolean returnToInventory(PlayerInventory inventory, ItemStack stack, boolean hotbarOnly) {
+        for (int slot : returnSlots(index -> canMerge(inventory, inventory.getStack(index), stack),
+                index -> inventory.getStack(index).isEmpty(), hotbarOnly)) {
+            if (stack.isEmpty()) {
+                break;
+            }
+            ItemStack target = inventory.getStack(slot);
+            if (target.isEmpty()) {
+                inventory.setStack(slot, stack.split(Math.min(stack.getCount(), inventory.getMaxCount(stack))));
+            } else if (canMerge(inventory, target, stack)) {
+                int moved = Math.min(stack.getCount(), maxCount(inventory, target) - target.getCount());
+                target.increment(moved);
+                stack.decrement(moved);
+            }
+        }
+        return stack.isEmpty();
+    }
+
+    /**
+     * Gives a removed duplicate launcher's shell a home: the kept launcher when it is empty, else a shell item
+     * hotbar-first, else the empty cursor. False (nothing changed) when it has nowhere to go, so the caller puts the
+     * duplicate back instead of deleting the shell.
+     * 为被移除的重复炮筒中的炮弹安置去处：保留的炮筒为空时装入其中，否则作为炮弹物品优先放回快捷栏，再否则放到空光标上。
+     * 无处可去时返回 false（不做任何改动），由调用方放回该副本，而不是删除炮弹。
+     */
+    private static boolean rehomeShell(PlayerInventory inventory, ScreenHandler handler, @Nullable ItemStack kept,
+                                       ItemStack duplicate) {
+        PotionShellType shell = PotionLauncherLoad.loaded(duplicate).orElse(null);
+        if (shell == null) {
+            return true;
+        }
+        if (kept != null && !PotionLauncherLoad.isLoaded(kept)) {
+            PotionLauncherLoad.setLoaded(kept, shell);
+            return true;
+        }
+        ItemStack item = new ItemStack(SparkWitchItems.potionShell(shell));
+        if (returnToInventory(inventory, item, false)) {
+            return true;
+        }
+        if (handler.getCursorStack().isEmpty()) {
+            handler.setCursorStack(item);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Moves shells out of hidden main slots 9-35 into hotbar room; true when anything moved.
+     * 把隐藏主背包 9-35 格中的炮弹移入快捷栏空余处；有移动时返回 true。
+     */
+    private static boolean surfaceHiddenShells(PlayerInventory inventory) {
+        boolean changed = false;
+        for (int slot = PlayerInventory.getHotbarSize(); slot < PlayerInventory.MAIN_SIZE; slot++) {
+            ItemStack stack = inventory.getStack(slot);
+            if (!PotionGunnerInventoryRules.isShell(stack)) {
+                continue;
+            }
+            int before = stack.getCount();
+            returnToInventory(inventory, stack, true);
+            if (stack.getCount() != before) {
+                changed = true;
+                if (stack.isEmpty()) {
+                    inventory.setStack(slot, ItemStack.EMPTY);
+                }
+            }
+        }
+        return changed;
+    }
+
+    private static boolean canMerge(PlayerInventory inventory, ItemStack target, ItemStack stack) {
+        return !target.isEmpty() && target != stack && ItemStack.areItemsAndComponentsEqual(target, stack)
+                && target.getCount() < maxCount(inventory, target);
+    }
+
+    private static int maxCount(PlayerInventory inventory, ItemStack stack) {
+        return Math.min(stack.getMaxCount(), inventory.getMaxCount(stack));
+    }
+
+    private static void collect(List<Integer> slots, int from, int to, IntPredicate include) {
+        for (int slot = from; slot < to; slot++) {
+            if (include.test(slot)) {
+                slots.add(slot);
+            }
+        }
     }
 
     private static void finish(ServerPlayerEntity player, boolean changed) {

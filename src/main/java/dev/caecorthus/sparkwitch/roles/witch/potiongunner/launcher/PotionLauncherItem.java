@@ -137,6 +137,11 @@ public class PotionLauncherItem extends Item {
                         0.8F, 1.0F);
             }
             case UNLOAD -> {
+                // Cursor semantics (D9): the shell lands on the empty cursor, the one place the player can always
+                // reach while the screen is open. On close vanilla returns the cursor hotbar-first; a shell that still
+                // ends up in a hidden slot is surfaced by the lifecycle sweep (PotionGunnerLoadoutService).
+                // 光标语义（D9）：炮弹落在空光标上，界面打开时玩家总能触及。关闭界面时原版优先把光标物品放回快捷栏；
+                // 仍落入隐藏栏位的炮弹由生命周期清扫移回快捷栏（PotionGunnerLoadoutService）。
                 PotionLauncherLoad.setLoaded(launcher, null);
                 cursorStackReference.set(new ItemStack(SparkWitchItems.potionShell(loaded)));
                 player.playSoundToPlayer(SoundEvents.ITEM_CROSSBOW_LOADING_START.value(), SoundCategory.PLAYERS,

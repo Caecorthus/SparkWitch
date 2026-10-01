@@ -360,11 +360,15 @@ public final class SeekerDeviceHits {
     }
 
     /**
-     * Potion Gunner launcher backblast (a short server lane behind the launcher, not a projectile). Nearest wins: the
-     * caller passes the distance to the first player it would hit (or the full lane), so only a device strictly nearer
-     * breaks (recorded as {@code POTION_SHELL}) and absorbs the backblast; true means absorbed, hit nobody.
-     * 药炮手炮筒尾焰（炮筒后方的一段服务端短通道，并非投射物）。最近者命中：调用方传入到第一名将被命中玩家的距离（或整条通道），
-     * 因此只有严格更近的设备会被打坏（记录为 {@code POTION_SHELL}）并吸收尾焰；返回 true 表示已被吸收，不再命中任何人。
+     * Potion Gunner launcher backblast (a short horizontal server lane behind the gunner, not a projectile). Nearest
+     * wins with one measure for both sides: the caller passes the distance at which the lane reaches the first player
+     * it would hit, measured on that player's real (unexpanded) box (or the full lane when nobody is in it), and a
+     * device breaks (recorded as {@code POTION_SHELL}) and absorbs the backblast only when its ray entry is STRICTLY
+     * nearer ({@link SeekerDeviceRaycast#deviceWins}); a tie goes to the player. True means absorbed, hit nobody.
+     * 药炮手炮筒尾焰（药炮手身后的一段水平服务端短通道，并非投射物）。最近者命中，双方使用同一量法：调用方传入通道到达
+     * 第一名将被命中玩家的距离（按该玩家真实、未扩大的碰撞箱量取；通道内无人时为整条通道长度），只有射线入射距离
+     * 严格更近（{@link SeekerDeviceRaycast#deviceWins}）的设备才会被打坏（记录为 {@code POTION_SHELL}）并吸收尾焰；
+     * 距离相同时命中玩家。返回 true 表示已被吸收，不再命中任何人。
      */
     public static boolean onPotionBackblast(ServerPlayerEntity gunner, Vec3d start, Vec3d direction, double reach) {
         if (gunner == null || gunner.getWorld().isClient() || start == null || direction == null
@@ -374,7 +378,7 @@ public final class SeekerDeviceHits {
         }
         Vec3d end = start.add(direction.normalize().multiply(reach));
         SeekerDeviceRaycast.DeviceHit hit = SeekerDeviceRaycast.nearestDevice(gunner.getWorld(), start, end,
-                Double.POSITIVE_INFINITY, breakableBy(gunner));
+                reach * reach, breakableBy(gunner));
         if (hit == null) {
             return false;
         }

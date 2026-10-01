@@ -3,7 +3,6 @@ package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariantHooks;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariants;
-import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastService;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.effect.PotionShellBurn;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -28,7 +27,6 @@ public final class PotionGunnerFeatureService {
         registered = true;
         PotionGunnerShopService.register();
         PotionGunnerLifecycle.register();
-        PotionBlastService.register();
         PotionShellBurn.register();
         AccompliceVariants.register(SparkWitchRoles.potionGunner(), new AccompliceVariantHooks() {
             @Override

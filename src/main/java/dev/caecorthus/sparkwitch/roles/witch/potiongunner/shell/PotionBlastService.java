@@ -37,30 +37,21 @@ public final class PotionBlastService {
     private static final double DEBRIS_SPEED = 1.0;
     public static final String HIT_REWARD_KEY = "message.sparkwitch.potion_gunner.hit_reward";
 
-    private static boolean registered;
-
     private PotionBlastService() {
     }
 
-    /** Nothing to hook: blasts are driven by the shell entity itself. / 无需注册：爆炸由炮弹实体自身驱动。 */
-    public static synchronized void register() {
-        if (registered) {
-            return;
-        }
-        registered = true;
-    }
-
     /**
-     * Server only and only while the round runs; the shell entity calls it once and discards itself afterwards.
+     * Server only and only while the round is exactly {@code ACTIVE} (D-R1: no kills, gold or bounties after the
+     * winner is decided); the shell entity calls it once and discards itself afterwards.
      * The order is fixed: presentation, Seeker devices (never the gunner's own, {@code mayBreak}-gated while the
      * gunner is online), targets, the effect, then the reward checked against the gunner's state after the effect
      * (a gunner whose own TR killed them is paid nothing).
-     * 仅服务端、仅在对局进行中；由炮弹实体调用一次，之后自行移除。顺序固定：表现、搜寻者设备（从不打坏药炮手自己的设备，
+     * 仅服务端、仅在对局恰为 {@code ACTIVE} 时（D-R1：胜负已定后不再有击杀、金币或赏金）；由炮弹实体调用一次，之后自行移除。顺序固定：表现、搜寻者设备（从不打坏药炮手自己的设备，
      * 药炮手在线时经 {@code mayBreak} 校验）、目标、效果，最后按效果之后的药炮手状态结算奖励（被自己 TR 炸死的药炮手不得钱）。
      */
     public static void detonate(PotionShellEntity shell, Vec3d center) {
         if (shell == null || center == null || !(shell.getWorld() instanceof ServerWorld world)
-                || !GameWorldComponent.KEY.get(world).isRunning()) {
+                || !PotionShellEntity.isRoundActive(world)) {
             return;
         }
         PotionShellType type = shell.shellTypeOrNull();

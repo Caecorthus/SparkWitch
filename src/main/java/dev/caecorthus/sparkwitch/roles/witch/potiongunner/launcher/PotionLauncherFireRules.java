@@ -16,7 +16,7 @@ public final class PotionLauncherFireRules {
 
     /** Outcome, in check order. / 判定结果，按检查顺序排列。 */
     public enum Decision {
-        NOT_RUNNING,
+        NOT_ACTIVE,
         NOT_PLAYING,
         NOT_POTION_GUNNER,
         NOT_HOLDING,
@@ -32,7 +32,8 @@ public final class PotionLauncherFireRules {
     /**
      * Side-effect-free facts about one fire request. / 单次发射请求的无副作用事实。
      *
-     * @param gameRunning      Wathe's round is running
+     * @param roundActive      Wathe's round status is exactly {@code ACTIVE}; {@code STOPPING} (winner decided)
+     *                         never fires (coordinator decision D-R1)
      * @param playingAndAlive  Wathe {@code isPlayerPlayingAndAlive}
      * @param potionGunner     the shooter's raw role is exactly the Potion Gunner
      * @param holdingLauncher  the main hand holds a launcher
@@ -43,14 +44,14 @@ public final class PotionLauncherFireRules {
      * @param coolingDown      the launcher's item cooldown is active
      * @param loaded           the held launcher carries a shell
      */
-    public record Facts(boolean gameRunning, boolean playingAndAlive, boolean potionGunner, boolean holdingLauncher,
+    public record Facts(boolean roundActive, boolean playingAndAlive, boolean potionGunner, boolean holdingLauncher,
                         boolean spectator, boolean stunned, boolean sessionLocked, boolean weaponBlocked,
                         boolean coolingDown, boolean loaded) {
     }
 
     public static Decision decide(Facts facts) {
-        if (!facts.gameRunning()) {
-            return Decision.NOT_RUNNING;
+        if (!facts.roundActive()) {
+            return Decision.NOT_ACTIVE;
         }
         if (!facts.playingAndAlive()) {
             return Decision.NOT_PLAYING;
