@@ -51,6 +51,7 @@
     "PlayerManagerVendettaAccessor",
     "PlayerStaminaComponentOrthopedistMixin",
     "PlayerMoodComponentAccessor",
+    "RaycastShapeScopeMixin",
     "ScreenHandlerBlackRavenLedgerMixin",
     "ScreenHandlerVendettaKnifeMixin",
     "ScreenHandlerWraithConsumableDropMixin",
