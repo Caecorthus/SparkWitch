@@ -268,6 +268,16 @@ fallback drops a sleeping Wraith on the client. Server authority is unchanged:
 SparkFactionAPI's affect policy still cancels any Wraith target that slips
 through.
 
+Active Wraiths pass closed Wathe doors, vanilla doors, trapdoors, and fence
+gates for movement only. `mixin/WraithDoorPassingMixin` empties their collision
+shape for the Wraith's own entity shape context, except inside
+`util/RaycastShapeScope`. `mixin/RaycastShapeScopeMixin` is the one
+`@WrapMethod` on `RaycastContext#getBlockShape` (both sides, entity context kept),
+so a Wraith's COLLIDER rays (`canSee`, `ProjectileUtil.getCollision`, explosion
+exposure) still stop at doors: the Vendetta knife and the Guardian Angel shield
+need real sight. Every SparkWitch door-passing exemption must honour this scope
+instead of adding its own ray wrapper.
+
 ## Tofana Elixir Vocabulary
 
 - **Tofana protection**: A single-use protection granted by possessing Tofana Elixir. It cancels one otherwise valid, non-forced Wathe kill by another active player and consumes one elixir.
