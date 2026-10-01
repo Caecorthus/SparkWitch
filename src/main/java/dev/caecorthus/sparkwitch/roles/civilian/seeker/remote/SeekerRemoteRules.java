@@ -60,6 +60,7 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
             Identifier.of("sparkwitch", "seeker_car_swallow"),
             Identifier.of("sparkwitch", "seeker_car_recall"),
+            Identifier.of("sparkwitch", "select_black_raven_disguise"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
