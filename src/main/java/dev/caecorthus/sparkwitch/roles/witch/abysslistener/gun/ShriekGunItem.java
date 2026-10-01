@@ -1,10 +1,13 @@
 package dev.caecorthus.sparkwitch.roles.witch.abysslistener.gun;
 
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import java.util.List;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.tooltip.TooltipType;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
@@ -20,6 +23,8 @@ import net.minecraft.world.World;
  */
 public final class ShriekGunItem extends Item {
     private static final int TOOLTIP_LINES = 3;
+    /** Local-only recoil, applied after vanilla captured the aim for the use packet. / 仅本地的后坐，在原版为使用数据包记录瞄准方向之后施加。 */
+    private static final float RECOIL_PITCH = 3.0F;
 
     public ShriekGunItem(Settings settings) {
         super(settings);
@@ -31,9 +36,21 @@ public final class ShriekGunItem extends Item {
 
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-        // L2 implements: server ray, knockback, debuffs and the vanilla item cooldown.
-        // L2 实现：服务端射线、击退、减益与原版物品冷却。
-        return super.use(world, user, hand);
+        ItemStack stack = user.getStackInHand(hand);
+        if (world.isClient()) {
+            // Presentation only (swing + recoil); the server decides everything. / 仅表现（挥手与后坐）；一切由服务端决定。
+            user.setPitch(user.getPitch() - RECOIL_PITCH);
+            return TypedActionResult.success(stack);
+        }
+        if (!(user instanceof ServerPlayerEntity shooter) || !(world instanceof ServerWorld serverWorld)
+                || !ShriekGunService.canFire(shooter, stack)) {
+            return TypedActionResult.fail(stack);
+        }
+        ShriekGunService.fire(shooter, serverWorld, this);
+        // A miss costs the same as a hit. Plain vanilla cooldown so SparkTraits Fast Hands may shorten it.
+        // 未命中与命中代价相同。普通原版冷却，SparkTraits 快手可缩短。
+        shooter.getItemCooldownManager().set(this, AbyssListenerRules.GUN_COOLDOWN_TICKS);
+        return TypedActionResult.consume(stack);
     }
 
     @Override

@@ -68,7 +68,7 @@ public final class FirePokerCombatService {
 
     private static void strike(ServerPlayerEntity attacker, ServerPlayerEntity target) {
         knockback(attacker, target);
-        FirePokerFallAttributionService.recordPush(attacker, target);
+        FirePokerFallAttributionService.recordPush(attacker, target, SparkWitchItems.firePoker());
         applyMagicEffects(attacker, target);
         attacker.getItemCooldownManager().set(SparkWitchItems.firePoker(), FirePokerRules.COOLDOWN_TICKS);
         GameRecordManager.recordItemUse(

@@ -105,7 +105,8 @@
     "witchmaiden.FocusedFootstepsKeyboardInputMixin",
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin",
-    "fiend.WatheClientFiendHighlightMixin"
+    "fiend.WatheClientFiendHighlightMixin",
+    "abysslistener.ShriekGunCrosshairMixin"
   ],
   "injectors": {
     "defaultRequire": 1
