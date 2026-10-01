@@ -974,7 +974,7 @@
   "announcement.win.sparkwitch.potion_gunner": "魔女胜利",
   "tip.letter.potion_gunner.tooltip1": "你是大魔女招募来的特殊共犯，拥有共犯的全部能力：本能透视、阵营同伙、可买平板电脑。",
   "tip.letter.potion_gunner.tooltip2": "你的【反坦克炮筒】在背包里装填：左键拿起炮弹，右键点炮筒塞入，一次一发；空手右键炮筒可退弹。",
-  "tip.letter.potion_gunner.tooltip3": "按住右键开镜（带射程刻度），左键开火。炮弹命中即爆，范围内每炸到一名敌方玩家 +15 金币。",
+  "tip.letter.potion_gunner.tooltip3": "按住右键开镜（带射程刻度），左键开火。炮弹 50 格内直线飞行，之后才下坠；命中即爆，范围内每炸到一名敌方玩家 +15 金币。小心尾焰：开火时身后 4 格内最近的一名玩家会被烧死（可被护盾挡下）。",
   "tip.letter.potion_gunner.tooltip4": "GW-DK 致盲减速、GW-AC 追加冷却、GW-MR 炸掉金币，只打敌方；TR 炸死范围内所有人，包括你自己和队友。",
   "item.sparkwitch.potion_launcher": "反坦克炮筒",
   "item.sparkwitch.potion_launcher.tooltip.loaded": "已装填：%s",
@@ -993,5 +993,8 @@
   "death_reason.sparkwitch.potion_shell": "被药炮炸死",
   "replay.death.sparkwitch.potion_shell.killed": "%s 被 %s 用§dTR 弹§r炸死",
   "replay.death.sparkwitch.potion_shell.died": "%s 被§dTR 弹§r炸死",
-  "replay.item_use.sparkwitch.potion_launcher_fire": "%s 用§d反坦克炮筒§r发射了 %s"
+  "replay.item_use.sparkwitch.potion_launcher_fire": "%s 用§d反坦克炮筒§r发射了 %s",
+  "death_reason.sparkwitch.potion_backblast": "被炮筒尾焰烧死",
+  "replay.death.sparkwitch.potion_backblast.killed": "%s 被 %s 的§d炮筒尾焰§r烧死",
+  "replay.death.sparkwitch.potion_backblast.died": "%s 被§d炮筒尾焰§r烧死"
 }

@@ -24,6 +24,8 @@ public final class SparkWitchDeathReasons {
     public static final Identifier SWORDFISH_STAB = SparkWitch.id("swordfish_stab");
     /** Ordinary, non-forced Potion Gunner TR shell kill. / 普通、非强制的药炮手 TR 炮弹击杀。 */
     public static final Identifier POTION_SHELL = SparkWitch.id("potion_shell");
+    /** Ordinary, non-forced Potion Gunner launcher backblast kill. / 普通、非强制的药炮筒尾焰击杀。 */
+    public static final Identifier POTION_BACKBLAST = SparkWitch.id("potion_backblast");
 
     private SparkWitchDeathReasons() {
     }

@@ -974,7 +974,7 @@
   "announcement.win.sparkwitch.potion_gunner": "Witch Victory",
   "tip.letter.potion_gunner.tooltip1": "You are a special Accomplice recruited by the Grand Witch, with every Accomplice power: instinct, the witch cohort, and the tablet in the shop.",
   "tip.letter.potion_gunner.tooltip2": "Load your Anti-Tank Launcher in the inventory: left-click a shell, then right-click the launcher. One shell at a time; right-click it with an empty cursor to unload.",
-  "tip.letter.potion_gunner.tooltip3": "Hold right-click to aim down the scope (with range marks) and left-click to fire. Shells burst on impact; each enemy caught pays +15 coins.",
+  "tip.letter.potion_gunner.tooltip3": "Hold right-click to aim down the scope (with range marks) and left-click to fire. Shells fly straight for 50 blocks, then drop; they burst on impact and each enemy caught pays +15 coins. Mind the backblast: the nearest player within 4 blocks behind you is burned to death (a shield can stop it).",
   "tip.letter.potion_gunner.tooltip4": "GW-DK blinds and slows, GW-AC adds cooldown, GW-MR burns coins, all enemies only. TR kills everyone in range, you and your allies included.",
   "item.sparkwitch.potion_launcher": "Anti-Tank Launcher",
   "item.sparkwitch.potion_launcher.tooltip.loaded": "Loaded: %s",
@@ -993,5 +993,8 @@
   "death_reason.sparkwitch.potion_shell": "Blown up by a potion shell",
   "replay.death.sparkwitch.potion_shell.killed": "%s was blown up by %s's §dTR shell§r",
   "replay.death.sparkwitch.potion_shell.died": "%s was blown up by a §dTR shell§r",
-  "replay.item_use.sparkwitch.potion_launcher_fire": "%s fired %s from the §dAnti-Tank Launcher§r"
+  "replay.item_use.sparkwitch.potion_launcher_fire": "%s fired %s from the §dAnti-Tank Launcher§r",
+  "death_reason.sparkwitch.potion_backblast": "Burned by a launcher backblast",
+  "replay.death.sparkwitch.potion_backblast.killed": "%s was burned by %s's §dlauncher backblast§r",
+  "replay.death.sparkwitch.potion_backblast.died": "%s was burned by a §dlauncher backblast§r"
 }

@@ -29,8 +29,15 @@ public final class PotionGunnerRules {
     /** Minimum gap between two shots, against double clicks. / 两次发射的最小间隔，防止连点。 */
     public static final int FIRE_COOLDOWN_TICKS = 20;
 
-    /** Shell ballistics; the client scope ticks are computed from the same values. / 炮弹弹道；客户端刻度由同一组数值算出。 */
+    /**
+     * Shell ballistics; the client scope ticks are computed from the same values. The shell flies dead straight at a
+     * constant {@link #MUZZLE_SPEED} for its first {@link #FLAT_RANGE_BLOCKS} blocks of travel (owner rule: no drop
+     * within 50 blocks); only after that do {@link #GRAVITY} and {@link #DRAG} apply.
+     * 炮弹弹道；客户端刻度由同一组数值算出。炮弹在飞行的前 {@link #FLAT_RANGE_BLOCKS} 格内以恒定的
+     * {@link #MUZZLE_SPEED} 笔直飞行（所有者规则：50 格内无下坠）；此后才受 {@link #GRAVITY} 与 {@link #DRAG} 影响。
+     */
     public static final float MUZZLE_SPEED = 2.5F;
+    public static final double FLAT_RANGE_BLOCKS = 50.0;
     public static final double GRAVITY = 0.03;
     public static final double DRAG = 0.99;
     /** A shell that hits nothing bursts in mid-air after this many ticks. / 未命中的炮弹在这么多刻后空爆。 */
@@ -48,6 +55,18 @@ public final class PotionGunnerRules {
     public static final int MR_MAX_DEDUCTION = 150;
     /** TR fallback (Blindness, Slowness II, harmless burning) for a survivor. / TR 幸存者的失明、缓慢 II 与无伤燃烧时长。 */
     public static final int TR_FALLBACK_TICKS = 60;
+
+    /**
+     * Backblast: on every shot, the nearest player within this many blocks straight behind the launcher (line of sight,
+     * any faction, never the gunner) takes one ordinary kill attempt — killed, or stopped by a shield.
+     * 尾焰：每次发射时，炮筒正后方这么多格内、视线可达的最近一名玩家（不分阵营，不含药炮手本人）受到一次普通击杀判定——
+     * 直接死亡，或被护盾挡下。
+     */
+    public static final double BACKBLAST_LENGTH = 4.0;
+    /** Half-width of the backblast lane around its axis. / 尾焰判定通道相对轴线的半宽。 */
+    public static final double BACKBLAST_HALF_WIDTH = 0.5;
+    /** Ordinary, non-forced backblast kill. / 普通、非强制的尾焰击杀。 */
+    public static final Identifier BACKBLAST_DEATH_REASON_ID = SparkWitch.id("potion_backblast");
 
     private PotionGunnerRules() {
     }
