@@ -343,6 +343,22 @@ public final class SeekerDeviceHits {
         return rayBlocks(user, target, range, SeekerBreakSource.CLOCK) ? null : target;
     }
 
+    /**
+     * Abyss Listener Shriek Gun server targeting, mirroring the Taser: a nearer breakable device absorbs the beam and
+     * breaks, so nobody is pushed; like the Taser (and unlike the free Clock) a miss still breaks the nearest device in
+     * reach, because every shot costs the gun's cooldown. One-line hook in {@code ShriekGunService}.
+     * 聆渊者啸音铳的服务端目标选择，与电击枪一致：更近且可打坏的设备吸收射线并被打坏，不推动任何人；与电击枪相同
+     * （与免费的时钟不同），未命中时仍会打坏射程内最近的设备，因为每一发都要付出枪械冷却。{@code ShriekGunService} 中的一行钩子。
+     */
+    @Nullable
+    public static <T extends PlayerEntity> T onShriekGunFired(ServerPlayerEntity user, @Nullable T target,
+                                                              double range) {
+        if (user == null || user.getWorld().isClient()) {
+            return target;
+        }
+        return rayBlocks(user, target, range, SeekerBreakSource.SHRIEK_GUN) ? null : target;
+    }
+
     // ---- Internal ----
 
     private static boolean breakStabbedDevice(ServerPlayerEntity attacker, SeekerDeviceEntity device,
