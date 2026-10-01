@@ -82,16 +82,18 @@ public final class GrandWitchRecruitmentService {
                 return WitchSkillUseResult.fail("message.sparkwitch.recruitment.balance_overflow");
             }
 
+            // Roll once, after every refusal and before any destructive step: a refused recruitment never spends a
+            // special accomplice, and a throwing roll never leaves the target stripped. "Used" is marked only at commit.
+            // 在所有拒绝分支之后、任何破坏性步骤之前只抽取一次：被拒绝的招募不会消耗特殊共犯，抽取抛异常也不会让目标
+            // 被清空。"已使用"仅在提交时标记。
+            Role recruitRole = rollRecruitRole(world, game);
+            boolean variant = AccompliceVariants.isVariant(recruitRole);
             inventory.detachScreenInputs();
             exitOldRole(target);
             // Assignment grants must have free slots so discarded starter items cannot spill into the world.
             // 分配初始物品时保留空槽，避免应清除的职业初始物品掉落到世界中。
             target.clearActiveItem();
             target.getInventory().clear();
-            // Roll once, after every refusal, so a refused recruitment never spends a special accomplice.
-            // 在所有拒绝分支之后只抽取一次，被拒绝的招募不会消耗特殊共犯。
-            Role recruitRole = rollRecruitRole(world, game);
-            boolean variant = AccompliceVariants.isVariant(recruitRole);
             game.addRole(target, recruitRole);
             // Commit the durable quota at the role-map mutation, before downstream callbacks can reenter.
             // 在身份映射变更时提交持久化名额，早于可能重入的下游回调。
