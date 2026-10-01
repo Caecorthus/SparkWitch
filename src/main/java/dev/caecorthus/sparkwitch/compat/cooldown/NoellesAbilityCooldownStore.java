@@ -15,11 +15,13 @@ import java.util.OptionalInt;
  * NoellesRoles' shared {@code AbilityPlayerComponent.cooldown} (pinned 1.7.6). Every player has the component, so
  * {@code appliesTo} lists only the roles whose ability packet reads or writes it on the server (the Swapper only
  * writes it; its gate is client-side, which the synced value still drives). Writes always go through
- * {@code setCooldown}, the only path that syncs. The nominal is known only where NoellesRoles exposes it (the
- * Pathogen's {@code getBaseCooldownTicks}); the other roles use private literals.
+ * {@code setCooldown}, the only path that syncs. The nominal is the full post-use value the holder's current role
+ * (raw, or a disguised Black Raven's acting role) writes: the Pathogen's public {@code getBaseCooldownTicks}, else the
+ * mirrored literal in {@link NoellesAbilityNominals}; the Morphling has none.
  * NoellesRoles 共享的 AbilityPlayerComponent.cooldown（锁定 1.7.6）。每个玩家都有此组件，因此 appliesTo 只列出其技能数据包
- * 在服务端读写它的职业（交换者只写入，门控在客户端，同步值仍会生效）。写入一律经由唯一会同步的 setCooldown。标准冷却仅在
- * NoellesRoles 公开时可知（病原体的 getBaseCooldownTicks），其余职业使用私有字面量。
+ * 在服务端读写它的职业（交换者只写入，门控在客户端，同步值仍会生效）。写入一律经由唯一会同步的 setCooldown。标准冷却是
+ * 持有者当前职业（真实职业，或伪装中黑羽鸦的扮演职业）使用后写入的完整值：病原体取公开的 getBaseCooldownTicks，其余取
+ * NoellesAbilityNominals 中镜像的字面量；变形者没有标准冷却。
  */
 final class NoellesAbilityCooldownStore implements RoleSkillCooldownStore {
     static final Identifier ID = Identifier.of(NoellesRoleIds.NAMESPACE, "ability");
@@ -60,11 +62,12 @@ final class NoellesAbilityCooldownStore implements RoleSkillCooldownStore {
 
     @Override
     public OptionalInt nominalTicks(ServerPlayerEntity player) {
-        if (!PATHOGEN.equals(roleOf(player))) {
-            return OptionalInt.empty();
+        Identifier role = roleOf(player);
+        if (PATHOGEN.equals(role)) {
+            int base = PathogenPlayerComponent.KEY.get(player).getBaseCooldownTicks();
+            return base > 0 ? OptionalInt.of(base) : OptionalInt.empty();
         }
-        int base = PathogenPlayerComponent.KEY.get(player).getBaseCooldownTicks();
-        return base > 0 ? OptionalInt.of(base) : OptionalInt.empty();
+        return role == null ? OptionalInt.empty() : NoellesAbilityNominals.fixedTicks(role);
     }
 
     @Override
