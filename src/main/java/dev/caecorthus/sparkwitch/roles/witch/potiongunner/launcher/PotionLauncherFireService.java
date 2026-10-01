@@ -61,10 +61,11 @@ public final class PotionLauncherFireService {
 
     /**
      * Spawns the shell first; only a spawned shell clears the load, starts the anti-double-click cooldown, plays the
-     * loud launch sound to everyone nearby (counterplay information), and records one replay line. A failed launch
-     * keeps the shell loaded. The cooldown is a plain vanilla write: it is the gunner's own launcher.
-     * 先生成炮弹；只有成功生成才清除装填、开始防连点冷却、向附近所有人播放响亮的发射声（给对手的反制信息），并记录一条回放。
-     * 发射失败则保留已装填的炮弹。冷却直接用原版写入：这是药炮手自己的炮筒。
+     * loud launch sound to everyone nearby (counterplay information), records one replay line, and vents the
+     * backblast. A failed launch keeps the shell loaded. The cooldown is a plain vanilla write: it is the gunner's own
+     * launcher.
+     * 先生成炮弹；只有成功生成才清除装填、开始防连点冷却、向附近所有人播放响亮的发射声（给对手的反制信息）、记录一条回放
+     * 并喷出尾焰。发射失败则保留已装填的炮弹。冷却直接用原版写入：这是药炮手自己的炮筒。
      */
     private static void launch(ServerPlayerEntity player, ItemStack launcher, FirePotionLauncherC2SPacket payload) {
         PotionShellType type = PotionLauncherLoad.loaded(launcher).orElse(null);
@@ -85,6 +86,9 @@ public final class PotionLauncherFireService {
                 SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.7F, 1.6F);
         GameRecordManager.recordItemUse(player, PotionGunnerRules.FIRE_REPLAY_ID, null,
                 PotionGunnerReplay.fireData(type));
+        // Owner rule: every launched shell vents a backblast behind the launcher (after the shot's replay line).
+        // 所有者规则：每颗射出的炮弹都会在炮筒后方喷出尾焰（在该次发射的回放行之后）。
+        PotionBackblastService.fire(player, aim.yaw(), aim.pitch());
     }
 
     /** Empty launcher: a dry click only the shooter hears, plus an action-bar hint. / 未装填：仅射手可闻的空响与动作栏提示。 */
