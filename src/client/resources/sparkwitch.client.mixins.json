@@ -105,7 +105,14 @@
     "witchmaiden.FocusedFootstepsKeyboardInputMixin",
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin",
-    "fiend.WatheClientFiendHighlightMixin"
+    "fiend.WatheClientFiendHighlightMixin",
+    "potiongunner.PotionLauncherArmPoseMixin",
+    "potiongunner.PotionLauncherInputMixin",
+    "potiongunner.PotionScopeFovMixin",
+    "potiongunner.PotionScopeGameRendererInvoker",
+    "potiongunner.PotionScopeGameRendererMixin",
+    "potiongunner.PotionScopeInGameHudMixin",
+    "potiongunner.PotionScopeMouseMixin"
   ],
   "injectors": {
     "defaultRequire": 1
