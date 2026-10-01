@@ -88,6 +88,12 @@ Current build baseline:
   operations used by the owning runtime Modules.
 - `compat/`: optional or version-sensitive cross-mod Adapters.
 - `impl/SparkWitchEvents`: watch-only registration/lifecycle aggregator.
+- `util/hitscan/`: server-side lag compensation for hitscan weapons. `PlayerHitboxHistory` keeps a
+  one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
+  `HitscanLagRules` owns the ping-based rewind window and swept volumes. Used by the Hunter
+  double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, and the Black Raven
+  Feather Blade (whose sight and feet-distance reach are taken at the rewound hit); client crosshair
+  hints keep current boxes.
 
 ## Runtime Invariants
 
@@ -105,6 +111,9 @@ Current build baseline:
 
 Do not reorder these calls. The existing component ids remain `sparkwitch:player`
 and `sparkwitch:world`; packet field order and NBT keys must remain stable.
+`sparkwitch:fire_death_ray` carries the caster's yaw and pitch at key press (the attack key
+is handled before that tick's rotation packet); a payload without them still decodes and
+falls back to the server rotation. The server still decides every Death Ray and shotgun hit.
 Perfumer state uses the separate owner-only `sparkwitch:perfumer_player`
 component so its target lists are never added to the shared player packet.
 Prophet state remains inside the existing `sparkwitch:player` component and
