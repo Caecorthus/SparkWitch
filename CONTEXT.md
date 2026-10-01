@@ -426,9 +426,11 @@ abstain; the moment Fiend offline, dead, swallowed, re-roled or the match change
 also marks it spent) and abstain; complete → `neutralWin`; otherwise `block()`, so every other win, `TIME`
 included, waits. The moment Fiend's crowbar cooldown is written as exactly 5 s after a door pry or vent-hatch use,
 without a second redirect. The client outline is a cancellable HEAD on `WatheClient.getInstinctHighlight`
-(`remap = false`, priority 500; lower-priority HEADs run first, so it precedes SparkTraits, fear, Wraith and Black
+(`remap = false`, priority 500; lower-priority HEADs run first, so it precedes SparkTraits, Wraith and Black
 Raven): while a moment is active the moment Fiend sees every other playing, living, non-spectator player and every
-other viewer sees the moment Fiend, both in `FiendRules.COLOR`; other pairs fall through. The countdown HUD is a
+other viewer sees the moment Fiend, both in `FiendRules.COLOR`; other pairs fall through. The Grand Witch
+Obscure/Fear `@WrapMethod` veto (`WatheClientFearInstinctMixin`) exempts those moment pairs, like the Final Moment
+(owner decision, 2026-09-30); its swallow veto still applies. The countdown HUD is a
 `HudRenderCallback` line for every player, never the action bar. The Fiend is absent from
 `isRegisteredSparkWitchRole` and `WitchSkillRegistry` and never renders in the `gui.sparkwitch.skills` panel.
 
