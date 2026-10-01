@@ -1,16 +1,17 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 
 /**
- * Pure, side-safe model of a fired shell's flight, used by the client scope's range ticks and by tests. It mirrors
- * vanilla {@code ThrownEntity}: the shell spawns {@link #LAUNCH_BELOW_EYE} below the eye and every tick first moves by
- * its velocity; then, unless the tick is flat ({@link PotionGunnerRules#isFlatTick}, judged on the distance before
- * the move, the same predicate the shell entity uses), the velocity is multiplied by {@link PotionGunnerRules#DRAG}
- * and {@link PotionGunnerRules#GRAVITY} is subtracted from its vertical part. No wind, no divergence and a still
- * shooter are assumed (a real shell also inherits the shooter's motion).
- * 炮弹飞行的纯计算模型（两端安全），供客户端瞄准镜射程刻度与测试使用。它复刻原版 {@code ThrownEntity}：炮弹在眼睛
- * 下方 {@link #LAUNCH_BELOW_EYE} 处生成，每刻先按速度移动；随后除非该刻为平飞刻（{@link PotionGunnerRules#isFlatTick}，
- * 按移动前的距离判定，与炮弹实体使用同一判定），速度乘以 {@link PotionGunnerRules#DRAG} 并从竖直分量中减去
- * {@link PotionGunnerRules#GRAVITY}。假设无风、无散布、射手静止（真实炮弹还会继承射手自身的运动）。
+ * Pure, side-safe model of a fired shell's flight, used by the client scope's range ticks and by tests. It mirrors the
+ * shell entity on top of vanilla {@code ThrownEntity}: the shell spawns {@link #LAUNCH_BELOW_EYE} below the eye with
+ * the exact launch velocity, and every tick first moves by its velocity; on the first {@link #flatTicks()} ticks the
+ * velocity then stays unchanged (flat flight, 20 moves to exactly 50.0 blocks), on every later tick it is multiplied by
+ * {@link PotionGunnerRules#DRAG} and loses {@link PotionGunnerRules#GRAVITY} vertically, as in vanilla (which moves
+ * before it applies drag and gravity, so the 21st move still uses the launch velocity). No wind, no divergence.
+ * 炮弹飞行的纯计算模型（两端安全），供客户端瞄准镜射程刻度与测试使用。它与建立在原版 {@code ThrownEntity} 之上的炮弹
+ * 实体一致：炮弹以精确的发射速度在眼睛下方 {@link #LAUNCH_BELOW_EYE} 处生成，每刻先按速度移动；前
+ * {@link #flatTicks()} 刻速度保持不变（平飞，20 次移动恰好到 50.0 格），之后每刻速度乘以
+ * {@link PotionGunnerRules#DRAG} 并在竖直方向减去 {@link PotionGunnerRules#GRAVITY}，与原版相同（原版先移动再施加
+ * 阻力与重力，因此第 21 次移动仍使用发射速度）。无风、无散布。
  */
 public final class PotionBallistics {
     /**
@@ -20,6 +21,30 @@ public final class PotionBallistics {
     public static final double LAUNCH_BELOW_EYE = 0.1F;
 
     private PotionBallistics() {
+    }
+
+    /**
+     * The single flat-flight predicate of this model, on the start-of-tick path length (delegates to the shared rule;
+     * the entity's own helper may replace it at integration).
+     * 本模型唯一的平飞判定，参数为某刻开始时的路径长度（委托共用规则；整合时可换成实体自身的辅助方法）。
+     */
+    public static boolean isFlatTick(double pathLengthBeforeTick) {
+        return PotionGunnerRules.isFlatTick(pathLengthBeforeTick);
+    }
+
+    /**
+     * Leading flat ticks. The launch velocity is exact and constant while flat, so the start-of-tick path length is
+     * snapped to {@code tick x MUZZLE_SPEED}, as the entity does: 20 at 2.5 blocks per tick.
+     * 开头的平飞刻数。平飞期间发射速度精确且恒定，因此与实体一样把某刻开始时的路径长度对齐为
+     * {@code 刻数 x MUZZLE_SPEED}：每刻 2.5 格时为 20。
+     */
+    public static int flatTicks() {
+        int ticks = 0;
+        while (ticks < PotionGunnerRules.SHELL_LIFETIME_TICKS
+                && isFlatTick(ticks * (double) PotionGunnerRules.MUZZLE_SPEED)) {
+            ticks++;
+        }
+        return ticks;
     }
 
     /**
@@ -43,10 +68,9 @@ public final class PotionBallistics {
         if (horizontalDistance == 0.0) {
             return y;
         }
+        int flatTicks = flatTicks();
         for (int tick = 0; tick < PotionGunnerRules.SHELL_LIFETIME_TICKS; tick++) {
-            // Straight-line distance from the launch point before this tick's move, as the entity measures it.
-            // 本刻移动前距发射点的直线距离，与实体的度量方式一致。
-            boolean flat = PotionGunnerRules.isFlatTick(Math.hypot(x, y + LAUNCH_BELOW_EYE));
+            boolean flat = tick < flatTicks;
             double nextX = x + vx;
             double nextY = y + vy;
             if (nextX >= horizontalDistance) {
