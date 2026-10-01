@@ -354,8 +354,8 @@ The window is 156 ticks, server-authoritative, restarted by another Glimmerfish,
 changes, and ended on expiry, terminal death, reset, finalize, disconnect, or loss of participation.
 `mixin/fisher/FisherDoorPassingMixin` empties the collision shape of Wathe `DoorPartBlock` and
 vanilla `DoorBlock` doors (never trapdoors or gates) only for a glimmering player's entity context,
-so client prediction and server validation agree; `mixin/fisher/FisherRaycastContextMixin` scopes
-`RaycastContext#getBlockShape` on both sides so rays (sight, aiming, weapons) still see the door;
+so client prediction and server validation agree; it skips the exemption inside the shared
+`util/RaycastShapeScope`, so rays (sight, aiming, weapons) still see the door;
 SparkFactionAPI's entity-collision exemption
 reads the same flag on both sides (`noellesroles:no_collision` alone is one-sided). Glimmerfish
 claims only the invisibility instance it created in an empty slot; any foreign merge gives up its

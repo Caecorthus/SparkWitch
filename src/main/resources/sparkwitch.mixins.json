@@ -111,7 +111,6 @@
     "seeker.SeekerThrowingAxeMixin",
     "seeker.SeekerTrapdoorBlockAccessor",
     "fisher.FisherDoorPassingMixin",
-    "fisher.FisherRaycastContextMixin",
     "tofana.GameFunctionsTofanaProtectionMixin",
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleMixin",
     "witchmaiden.BlockEntityPoisonAppleLifecycleMixin",
