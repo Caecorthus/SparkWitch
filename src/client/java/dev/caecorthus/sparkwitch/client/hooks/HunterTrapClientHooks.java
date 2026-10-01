@@ -65,8 +65,11 @@ public final class HunterTrapClientHooks {
                     HIGHLIGHT_PRIORITY
             );
         }
+        // Every accomplice, special ones included, shares the Grand Witch trap color.
+        // 所有共犯（含特殊共犯）与大魔女使用同一捕兽夹颜色。
         if (HunterRules.GRAND_WITCH_ROLE_ID.equals(roleId)
-                || HunterRules.ACCOMPLICE_ROLE_ID.equals(roleId)) {
+                || HunterRules.ACCOMPLICE_ROLE_ID.equals(roleId)
+                || WitchFactionRules.isAccompliceVariantId(roleId)) {
             return GetInstinctHighlight.HighlightResult.withKeybind(
                     WitchFactionRules.NON_WITCH_INSTINCT_COLOR,
                     HIGHLIGHT_PRIORITY
