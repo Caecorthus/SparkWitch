@@ -1,5 +1,8 @@
 package dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone;
 
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
+
 /**
  * Deep Dark Zone runtime: client-only fake sculk blocks (the server world never changes), standing effects, the
  * exposure mark and lifecycle cleanup. Server-authoritative.
@@ -9,6 +12,20 @@ package dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone;
  */
 public final class DeepDarkZoneService {
     private DeepDarkZoneService() {
+    }
+
+    /**
+     * True while the cell is converted by a live zone (convert tick <= now < restore tick). Frozen query for the
+     * standing check (L3b); L3a implements it.
+     * 当该格被存活领域转换时（转换 tick <= 当前 < 恢复 tick）为 true。供站立判定使用的冻结查询（L3b），由 L3a 实现。
+     */
+    public static boolean isConverted(ServerWorld world, BlockPos pos) {
+        return false;
+    }
+
+    /** True while the world has at least one live zone. Frozen query (L3b); L3a implements it. / 世界内是否有存活领域。 */
+    public static boolean hasActiveZones(ServerWorld world) {
+        return false;
     }
 
     public static void register() {
