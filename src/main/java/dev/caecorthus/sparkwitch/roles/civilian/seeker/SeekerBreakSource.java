@@ -30,7 +30,13 @@ public enum SeekerBreakSource {
     /** Fell out of the train or left the play area: 180 s, never marks. / 掉出列车或离开游戏区域：180 秒，不标记。 */
     VOID(Kind.ENVIRONMENT),
     /** Independent single-use Fisher weapon; keeps its own item/payload identity. / 钓鱼佬独立的一次性武器与数据包。 */
-    SWORDFISH(Kind.RAY);
+    SWORDFISH(Kind.RAY),
+    /**
+     * Potion Gunner shell, recorded for both its impact blast (sphere, never blocking) and its in-flight sweep (a
+     * device in the path breaks and the shell bursts there).
+     * 药炮手炮弹：命中爆炸（球形，不遮挡）与飞行扫掠（路径上的设备被打坏，炮弹在该处爆炸）都记录为此来源。
+     */
+    POTION_SHELL(Kind.BLAST);
 
     /** Geometry family; rays and projectiles use nearest-wins blocking, blasts do not. / 几何类别。 */
     public enum Kind {
