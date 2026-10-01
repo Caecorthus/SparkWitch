@@ -606,6 +606,8 @@
   "message.sparkwitch.recruitment.balance_overflow": "物品折算金额超出金币范围，未进行招募。",
   "message.sparkwitch.recruitment.success": "已招募一名共犯。",
   "message.sparkwitch.recruitment.converted": "你已被招募为共犯。物品折算后共有%s金币，商店限购已重置。",
+  "message.sparkwitch.recruitment.success_as": "已招募一名%s。",
+  "message.sparkwitch.recruitment.converted_as": "你已被招募为%s。物品折算后共有%s金币，商店限购已重置。",
   "message.sparkwitch.factor.awakened": "你感到你体内有一股翻涌的能量...",
   "command.sparkwitch.witch_factor.updated": "因子规则已保存，下局生效：Rule=%s，DivideMode=%s，MaxCarrierMode=%s。",
   "announcement.role.emma": "樱羽艾玛",

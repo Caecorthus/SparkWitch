@@ -6,6 +6,8 @@ import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariants;
 import dev.doctor4t.wathe.api.Role;
 import java.util.OptionalInt;
+import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -43,18 +45,44 @@ public final class WitchFactionRules {
         return isAccomplice(role) || AccompliceVariants.isVariant(role);
     }
 
+    /**
+     * Id form of the variant half of {@link #isAccompliceLike}, for rules keyed on role ids whose id sets are built
+     * at class initialization, before any variant registers. It reads the live registry on every call.
+     * {@link #isAccompliceLike} 中特殊共犯部分的职业 ID 形式，供以职业 ID 为键的规则使用（这些 ID 集合在类初始化时建立，
+     * 早于任何特殊共犯注册）。每次调用都读取实时注册表。
+     */
+    public static boolean isAccompliceVariantId(@Nullable Identifier roleId) {
+        if (roleId == null) {
+            return false;
+        }
+        for (Role variant : AccompliceVariants.variants()) {
+            if (roleId.equals(variant.identifier())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Grand Witch, any accomplice (plain or special) and the promoted Curser. Win counts, blackout, Fear/Obscure
+     * immunity, the cohort label and Curser visibility all read this.
+     * 大魔女、任一共犯（普通或特殊）与晋升的诅咒者。胜利计数、停电、恐惧/遮蔽免疫、同伙标签和诅咒者可见性都读取它。
+     */
     public static boolean isWitchFactionMember(Role role) {
         return role != null && (role == SparkWitchRoles.grandWitch()
-                || role == SparkWitchRoles.accomplice()
+                || isAccompliceLike(role)
                 || role == SparkWitchRoles.curser());
     }
 
     /**
-     * Keeps legacy instinct visuals narrower than generic Witch-faction membership.
-     * 旧有本能视觉仅属于大魔女和共犯，不随通用魔女阵营成员关系扩展。
+     * Killer-style instinct visuals (lightmap, dropped-item outline, hidden-Phantom hard skip) for the Grand Witch and
+     * every accomplice, special accomplices included (owner-approved parity). Still narrower than generic Witch-faction
+     * membership: the Curser keeps its own rules.
+     * 杀手式本能视觉（亮度过渡、掉落物描边、隐身幽灵硬跳过）属于大魔女和所有共犯，包括特殊共犯（所有者批准对齐）。
+     * 仍窄于通用魔女阵营成员关系：诅咒者沿用自己的规则。
      */
     public static boolean usesKillerStyleInstinctLight(Role role) {
-        return isGrandWitch(role) || isAccomplice(role);
+        return isGrandWitch(role) || isAccompliceLike(role);
     }
 
     public static boolean shouldHardSkipInvisiblePhantom(
@@ -128,25 +156,30 @@ public final class WitchFactionRules {
         return role != null && isAffectedByWitchAreaSpell(role);
     }
 
+    /**
+     * Witch instinct colors. The Grand Witch and every accomplice see each accomplice (plain or special) in that
+     * target's own role color, so the Grand Witch can tell which special accomplice she recruited.
+     * 魔女本能颜色。大魔女和所有共犯都以目标自身的职业颜色看到每个共犯（普通或特殊），因此大魔女能分辨招到的是哪种特殊共犯。
+     */
     public static OptionalInt instinctColor(Role viewerRole, Role targetRole) {
         if (isGrandWitch(viewerRole)) {
             if (targetRole == SparkWitchRoles.grandWitch()) {
                 return OptionalInt.of(SparkWitchRoles.grandWitch().color());
             }
-            if (targetRole == SparkWitchRoles.accomplice()) {
-                return OptionalInt.of(SparkWitchRoles.accomplice().color());
+            if (isAccompliceLike(targetRole)) {
+                return OptionalInt.of(targetRole.color());
             }
             if (isOtherWitchRole(targetRole)) {
                 return OptionalInt.of(OTHER_WITCH_INSTINCT_COLOR);
             }
             return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
         }
-        if (isAccomplice(viewerRole) || viewerRole == SparkWitchRoles.curser()) {
+        if (isAccompliceLike(viewerRole) || viewerRole == SparkWitchRoles.curser()) {
             if (targetRole == SparkWitchRoles.grandWitch()) {
                 return OptionalInt.of(SparkWitchRoles.grandWitch().color());
             }
-            if (targetRole == SparkWitchRoles.accomplice()) {
-                return OptionalInt.of(SparkWitchRoles.accomplice().color());
+            if (isAccompliceLike(targetRole)) {
+                return OptionalInt.of(targetRole.color());
             }
             return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
         }
@@ -170,7 +203,7 @@ public final class WitchFactionRules {
             }
             return null;
         }
-        if (isAccomplice(role)) {
+        if (isAccompliceLike(role)) {
             if (rewardKind == FactionEconomyPolicy.RewardKind.DIRECT_KILL
                     || rewardKind == FactionEconomyPolicy.RewardKind.PASSIVE) {
                 return true;
@@ -180,8 +213,8 @@ public final class WitchFactionRules {
     }
 
     /**
-     * Grand Witch direct kills grant the living Accomplice an additional teammate reward.
-     * 大魔女直接击杀会给存活的共犯队友额外发放一份队友奖励。
+     * Grand Witch direct kills grant every living accomplice teammate (plain or special) an additional reward.
+     * 大魔女直接击杀会给每个存活的共犯队友（普通或特殊）额外发放一份队友奖励。
      */
     public static boolean shouldAwardWitchTeamKillMoney(
             Role killerRole,
@@ -190,7 +223,7 @@ public final class WitchFactionRules {
             boolean teammateAlive
     ) {
         return isGrandWitch(killerRole)
-                && isAccomplice(teammateRole)
+                && isAccompliceLike(teammateRole)
                 && !samePlayer
                 && teammateAlive;
     }

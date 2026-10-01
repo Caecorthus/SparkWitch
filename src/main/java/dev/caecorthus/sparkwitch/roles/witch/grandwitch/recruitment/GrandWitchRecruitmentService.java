@@ -9,8 +9,13 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisg
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.runtime.WraithLifecycle;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionFeatureService;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariantRoll;
+import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariantRoundComponent;
+import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariants;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRuntimeComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchTargeting;
+import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
@@ -23,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Random;
 import java.util.UUID;
 
 /** Server-authoritative, zero-cost and zero-cooldown recruitment transaction.
@@ -49,7 +55,7 @@ public final class GrandWitchRecruitmentService {
         ServerPlayerEntity target = GrandWitchTargeting.findTarget(recruiter, targetId);
         if (target == null || target == recruiter || target.getServerWorld() != world
                 || !GameFunctions.isPlayerPlayingAndAlive(target)
-                || game.isRole(target, SparkWitchRoles.accomplice())) {
+                || WitchFactionRules.isAccompliceLike(game.getRole(target))) {
             return WitchSkillUseResult.fail("message.sparkwitch.recruitment.invalid_target");
         }
         GrandWitchRecruitmentRoundComponent round = GrandWitchRecruitmentRoundComponent.KEY.get(world);
@@ -82,10 +88,17 @@ public final class GrandWitchRecruitmentService {
             // 分配初始物品时保留空槽，避免应清除的职业初始物品掉落到世界中。
             target.clearActiveItem();
             target.getInventory().clear();
-            game.addRole(target, SparkWitchRoles.accomplice());
+            // Roll once, after every refusal, so a refused recruitment never spends a special accomplice.
+            // 在所有拒绝分支之后只抽取一次，被拒绝的招募不会消耗特殊共犯。
+            Role recruitRole = rollRecruitRole(world, game);
+            boolean variant = AccompliceVariants.isVariant(recruitRole);
+            game.addRole(target, recruitRole);
             // Commit the durable quota at the role-map mutation, before downstream callbacks can reenter.
             // 在身份映射变更时提交持久化名额，早于可能重入的下游回调。
             round.recordSuccess(target.getUuid());
+            if (variant) {
+                AccompliceVariantRoundComponent.KEY.get(world).markUsed(recruitRole);
+            }
             BlackRavenDisguiseService.discardStashesForRecruitment(target);
             for (ServerPlayerEntity player : world.getPlayers()) {
                 syncRuntime(player);
@@ -93,7 +106,7 @@ public final class GrandWitchRecruitmentService {
             try {
                 // Standard assignment handles SparkStrength cleanup and SparkWitch mana/skill initialization.
                 // 标准分配事件处理 SparkStrength 清理及 SparkWitch 魔力、技能初始化，不重置 Traits。
-                RoleAssigned.EVENT.invoker().assignRole(target, SparkWitchRoles.accomplice());
+                RoleAssigned.EVENT.invoker().assignRole(target, recruitRole);
             } catch (RuntimeException exception) {
                 // Conversion already committed: do not report a retriable failure or lose factor recovery.
                 // 转换已提交：不能返回可重试失败或跳过调用方的因子回收；记录扩展回调故障。
@@ -105,6 +118,16 @@ public final class GrandWitchRecruitmentService {
                 game.sync();
                 shop.sync();
             }
+            if (variant) {
+                runVariantHook(recruitRole, target, recruiter);
+                // WitchSkillUseResult carries no message arguments, so the named success line is sent here.
+                // WitchSkillUseResult 不支持消息参数，因此在此直接发送带职业名的成功提示。
+                Text roleName = Text.translatable("announcement.role." + recruitRole.identifier().getPath());
+                target.sendMessage(Text.translatable("message.sparkwitch.recruitment.converted_as",
+                        roleName, inventory.finalBalance()), false);
+                recruiter.sendMessage(Text.translatable("message.sparkwitch.recruitment.success_as", roleName), true);
+                return WitchSkillUseResult.success(0);
+            }
             target.sendMessage(Text.translatable("message.sparkwitch.recruitment.converted", inventory.finalBalance()), false);
             return WitchSkillUseResult.success(0, "message.sparkwitch.recruitment.success");
         } finally {
@@ -114,6 +137,13 @@ public final class GrandWitchRecruitmentService {
 
     public static void beginRound(ServerWorld world, int openingParticipants) {
         GrandWitchRecruitmentRoundComponent.KEY.get(world).beginRound(openingParticipants);
+        // Roles are assigned before ON_FINISH_INITIALIZE, so a forced variant stays used even after its role-map
+        // entry is later replaced (death into Wraith, then Curser).
+        // 身份在 ON_FINISH_INITIALIZE 之前已分配；被强制指定的特殊共犯即使之后身份表条目被替换（死亡转亡灵再转诅咒者）仍视为已使用。
+        GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        AccompliceVariantRoundComponent.KEY.get(world).beginRound(AccompliceVariants.variants().stream()
+                .filter(role -> !game.getAllWithRole(role).isEmpty())
+                .toList());
         for (ServerPlayerEntity player : world.getPlayers()) {
             GrandWitchRuntimeComponent runtime = GrandWitchRuntimeComponent.KEY.get(player);
             runtime.clear();
@@ -123,6 +153,7 @@ public final class GrandWitchRecruitmentService {
 
     public static void clearRound(ServerWorld world) {
         GrandWitchRecruitmentRoundComponent.KEY.get(world).clearRound();
+        AccompliceVariantRoundComponent.KEY.get(world).clearRound();
     }
 
     public static void syncRuntime(ServerPlayerEntity player) {
@@ -138,6 +169,30 @@ public final class GrandWitchRecruitmentService {
 
     public static int getLimit(ServerPlayerEntity recruiter) {
         return GrandWitchRecruitmentRoundComponent.KEY.get(recruiter.getServerWorld()).getLimit();
+    }
+
+    /**
+     * Special-accomplice pool: a uniform pick among enabled variants not used this round, else the plain Accomplice.
+     * "Used" is the round ledger OR a live role-map entry, so a round-start forced variant also blocks the pool.
+     * 特殊共犯池：在已启用且本局未使用的特殊共犯中均匀抽取，否则为普通共犯。
+     * "已使用"为本局账本或身份表中仍存在该职业，因此开局被强制指定的特殊共犯同样占用名额。
+     */
+    private static Role rollRecruitRole(ServerWorld world, GameWorldComponent game) {
+        AccompliceVariantRoundComponent used = AccompliceVariantRoundComponent.KEY.get(world);
+        return AccompliceVariantRoll.pick(AccompliceVariants.variants(), game::isRoleEnabled,
+                role -> used.isUsed(role) || !game.getAllWithRole(role).isEmpty(),
+                new Random(world.getRandom().nextLong()));
+    }
+
+    private static void runVariantHook(Role variant, ServerPlayerEntity recruit, ServerPlayerEntity recruiter) {
+        try {
+            AccompliceVariants.hooks(variant).afterRecruitCommitted(recruit, recruiter);
+        } catch (RuntimeException exception) {
+            // Conversion already committed: a variant hook failure never turns into a retriable failure.
+            // 转换已提交：特殊共犯回调失败不会变成可重试的失败，只记录日志。
+            LOGGER.error("Recruitment committed but the {} post-recruit hook failed for {}",
+                    variant.identifier(), recruit.getUuid(), exception);
+        }
     }
 
     private static void exitOldRole(ServerPlayerEntity target) {

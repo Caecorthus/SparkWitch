@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.seeker;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerDeviceKind;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,13 +13,13 @@ import java.util.UUID;
 /**
  * Pure client outline policy for Seeker devices and the owner's breaker mark (plan §3.14, §3.15, owner decision
  * Q12/Q13). Instinct viewers are killers (Wathe's {@code isKiller()}, which SparkTraits extends to Impostors),
- * spectators with spectator information, and the Grand Witch, Accomplice and Murderous Witch. The owner always sees
- * their own car dimly; cameras are never outlined. During a car or camera view the owner also sees their own body.
- * The hooks feed plain facts in; nothing here touches the client.
+ * spectators with spectator information, and the Grand Witch, every accomplice (plain or special) and the Murderous
+ * Witch. The owner always sees their own car dimly; cameras are never outlined. During a car or camera view the owner
+ * also sees their own body. The hooks feed plain facts in; nothing here touches the client.
  * 搜寻者设备与拥有者损坏者标记的纯客户端描边规则（计划 §3.14、§3.15，所有者决定 Q12/Q13）。有本能的观察者为
- * 杀手（Wathe 的 {@code isKiller()}，SparkTraits 会把内鬼也算进去）、可见旁观信息的旁观者，以及大魔女、共犯和
- * 杀意魔女。拥有者始终以暗色看到自己的小车；摄像头从不描边。小车或摄像头视角期间，拥有者还会看到自己的本体描边。
- * 钩子只传入事实，这里不接触客户端。
+ * 杀手（Wathe 的 {@code isKiller()}，SparkTraits 会把内鬼也算进去）、可见旁观信息的旁观者，以及大魔女、所有共犯
+ * （普通或特殊）和杀意魔女。拥有者始终以暗色看到自己的小车；摄像头从不描边。小车或摄像头视角期间，拥有者还会看到
+ * 自己的本体描边。钩子只传入事实，这里不接触客户端。
  */
 public final class SeekerInstinctRules {
     public static final Identifier GRAND_WITCH_ID = SparkWitch.id("grand_witch");
@@ -41,9 +42,13 @@ public final class SeekerInstinctRules {
     private SeekerInstinctRules() {
     }
 
-    /** Grand Witch, Accomplice or Murderous Witch. / 大魔女、共犯或杀意魔女。 */
+    /**
+     * Grand Witch, any accomplice (plain or special, read from the live registry) or Murderous Witch.
+     * 大魔女、任一共犯（普通或特殊，读取实时注册表）或杀意魔女。
+     */
     public static boolean isWitchInstinctRole(@Nullable Identifier roleId) {
-        return roleId != null && WITCH_INSTINCT_ROLES.contains(roleId);
+        return roleId != null
+                && (WITCH_INSTINCT_ROLES.contains(roleId) || WitchFactionRules.isAccompliceVariantId(roleId));
     }
 
     /**
