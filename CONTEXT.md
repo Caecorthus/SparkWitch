@@ -613,13 +613,18 @@ Features that force a cooldown on another player (penalties, auras) go through S
 5. `noellesroles:ability` (`AbilityPlayerComponent`, always through `setCooldown`, the only syncing write), for the
    13 roles whose ability packet reads or writes it on the server: Voodoo, Morphling (gated only), Vulture, Swapper
    (write-only; its gate is client-side), Recaller, Phantom, Pathogen, Noisemaker, Reporter, Detective, Silencer,
-   Party Animal and Spirit Walker (`noellesroles:spiritualist`). Only the Pathogen has a nominal
-   (`PathogenPlayerComponent.getBaseCooldownTicks`); the others use private literals.
-   6. `noellesroles:taotie_swallow` (`setSwallowCooldown`; nominal unknown, because the real value is the private
-   per-round `calculatedSwallowCooldown`), 7. `noellesroles:assassin` (`setCooldown`; nominal
-   `AssassinPlayerComponent.COOLDOWN_TICKS`). NoellesRoles gates use `isRole`, so these stores also match the acting
-   role of a disguised Black Raven (`ForcedCooldownRoles`). All members are checked against the pinned NoellesRoles
-   1.7.6 jar.
+   Party Animal and Spirit Walker (`noellesroles:spiritualist`). The nominal is the full post-use value the holder's
+   current role writes: the Pathogen's dynamic `PathogenPlayerComponent.getBaseCooldownTicks`, else the literal
+   mirrored in `NoellesAbilityNominals` (ticks: Voodoo 600, Vulture 100, Swapper 1200, Recaller 600 = the recall,
+   placing the mark writes 200, Phantom 1800, Noisemaker 3600, Reporter 600, Detective 1800, Silencer 900, Party
+   Animal 1200, Spirit Walker 1200); the Morphling, which only gates on the counter, has none. A contract test reads
+   the pinned jar's bytecode, so a NoellesRoles bump that changes any write fails it.
+   6. `noellesroles:taotie_swallow` (`setSwallowCooldown`; nominal = the private per-round
+   `calculatedSwallowCooldown` every swallow writes, read through the cooldown-owned
+   `NoellesTaotieForcedCooldownAccessor`; non-positive means unknown), 7. `noellesroles:assassin` (`setCooldown`;
+   nominal `AssassinPlayerComponent.COOLDOWN_TICKS`). NoellesRoles gates use `isRole`, so these stores (and the
+   nominal lookup) also match the acting role of a disguised Black Raven (`ForcedCooldownRoles`). All members are
+   checked against the pinned NoellesRoles 1.7.6 jar.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Ninja shuriken
 and knife, Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker) and of NoellesRoles items with a public
