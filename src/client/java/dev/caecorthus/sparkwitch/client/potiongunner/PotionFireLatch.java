@@ -1,41 +1,48 @@
 package dev.caecorthus.sparkwitch.client.potiongunner;
 
 /**
- * One attack press = at most one fire request. The latch closes when a press is consumed (sent or swallowed) and
- * reopens only once the attack key is seen released, so a held key, the same press reaching several input hooks in
- * one tick, or vanilla's held-attack block breaking never fires twice.
- * 一次攻击按键最多产生一次发射请求。按键被消耗（发送或吞掉）时闭锁，只有观察到攻击键松开后才重新打开；因此按住不放、
- * 同一次按键在同一刻经过多个输入钩子，或原版按住攻击的挖掘逻辑，都不会重复发射。
+ * Fire gate of the launcher's left click (D-R3). A shot needs a fresh attack press edge, meaning one press that
+ * vanilla takes from {@code KeyBinding.wasPressed()} in {@code handleInputEvents}, seen while the launcher is in the
+ * main hand. A held mouse button makes no edges, so holding left-click while switching to the launcher or while a
+ * stun, Seeker or Kidnapper key lock ends never fires. A held keyboard key does: auto-repeat queues a new press for
+ * every repeat event. For a keyboard-bound attack key the gate therefore re-arms only at a tick end that sees the key
+ * physically up, which no key lock, screen or {@code setPressed(false)} can fake. Each fired edge disarms the gate
+ * until the next tick end, so a double click inside one tick sends one packet.
+ * 炮筒左键的发射闸门（D-R3）。一次发射需要在主手持炮筒时观察到一次新的攻击按下沿，即原版在
+ * {@code handleInputEvents} 中经 {@code KeyBinding.wasPressed()} 取出的一次按键。按住鼠标键不会产生按下沿，因此按住
+ * 左键切换到炮筒，或眩晕、搜寻者、绑匪按键锁结束时仍按住，都永远不会发射。按住键盘键则会：自动重复为每次重复事件排入
+ * 新按键。因此攻击键绑定在键盘上时，只有在某个刻末尾观察到该键物理松开才会重新解除闸门，任何按键锁、界面或
+ * {@code setPressed(false)} 都无法伪造这一点。每次发射的按下沿都会关闭闸门直到下一个刻末尾，所以同一刻内的双击只发
+ * 一个数据包。
  */
 public final class PotionFireLatch {
-    private boolean closed;
+    private boolean armed;
 
-    /** True once per press: the caller may fire now; the latch is then closed. / 每次按键只返回一次 true：调用方可以发射，随后闭锁。 */
-    public boolean tryConsume() {
-        if (closed) {
+    /**
+     * One drained attack press edge. True when it becomes a fire request: the launcher is in the main hand at the edge
+     * and the gate is armed; the gate is then disarmed.
+     * 一次被取出的攻击按下沿。按下沿时主手持炮筒且闸门已解除时返回 true，即成为发射请求；随后关闭闸门。
+     */
+    public boolean onPressEdge(boolean launcherInMainHand) {
+        if (!launcherInMainHand || !armed) {
             return false;
         }
-        closed = true;
+        armed = false;
         return true;
     }
 
-    /** Closes the latch without firing (a swallowed press). / 不发射而闭锁（被吞掉的按键）。 */
-    public void close() {
-        closed = true;
+    /**
+     * End of every client tick. {@code repeatingKeyHeld}: the attack key is a keyboard key and is physically down
+     * (mouse buttons never repeat and always pass false). Arms the next edge unless such a key is held.
+     * 每个客户端刻末尾。{@code repeatingKeyHeld}：攻击键是键盘键且物理按下（鼠标键从不重复，始终传 false）。
+     * 除非这样的键仍被按住，否则为下一次按下沿解除闸门。
+     */
+    public void endTick(boolean repeatingKeyHeld) {
+        armed = !repeatingKeyHeld;
     }
 
-    /** Called every client tick with the raw held state of the attack key. / 每个客户端刻以攻击键的原始按住状态调用。 */
-    public void onTick(boolean attackHeld) {
-        if (!attackHeld) {
-            closed = false;
-        }
-    }
-
+    /** Fails closed until the next tick end. / 失败即关闭，直到下一个刻末尾。 */
     public void reset() {
-        closed = false;
-    }
-
-    public boolean isClosed() {
-        return closed;
+        armed = false;
     }
 }

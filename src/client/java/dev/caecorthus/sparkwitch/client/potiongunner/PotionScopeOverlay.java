@@ -15,13 +15,14 @@ import java.util.Optional;
 
 /**
  * Scope picture drawn by {@code PotionScopeInGameHudMixin} instead of the crosshair while scoped: the WP5 mask scaled
- * to the shorter screen side, black bars, a thin crosshair, the 10/20/30/40-block range ticks and the loaded shell.
- * Tick placement uses the vertical FOV the world was projected with this frame and the exact shell ballistics at the
- * current pitch ({@link PotionScopeRules#tickOffset}); everything is drawn around the exact framebuffer centre.
- * Presentation only; the server decides every shot.
- * 开镜时由 {@code PotionScopeInGameHudMixin} 代替准星绘制的瞄准镜画面：按屏幕短边缩放的 WP5 遮罩、黑边、细十字线、
- * 10/20/30/40 格射程刻度与已装填弹种。刻度位置使用本帧世界投影的竖直视场角与当前俯仰角下的精确弹道
- * （{@link PotionScopeRules#tickOffset}）；全部内容围绕帧缓冲的精确中心绘制。仅负责展示，每次发射都由服务端决定。
+ * to the shorter screen side, black bars, a thin crosshair whose centre is labelled 0-50 (flat flight), the
+ * 60/70/80/90/100-block drop ticks below it, and the loaded shell. Tick placement uses the vertical FOV the world was
+ * projected with this frame and the exact shell ballistics at the current pitch ({@link PotionScopeRules#tickOffset});
+ * everything is drawn around the exact framebuffer centre. Presentation only; the server decides every shot.
+ * 开镜时由 {@code PotionScopeInGameHudMixin} 代替准星绘制的瞄准镜画面：按屏幕短边缩放的 WP5 遮罩、黑边、中心标注
+ * 0-50（平飞）的细十字线、其下方的 60/70/80/90/100 格下坠刻度，以及已装填弹种。刻度位置使用本帧世界投影的竖直视场角
+ * 与当前俯仰角下的精确弹道（{@link PotionScopeRules#tickOffset}）；全部内容围绕帧缓冲的精确中心绘制。仅负责展示，
+ * 每次发射都由服务端决定。
  */
 public final class PotionScopeOverlay {
     private static final int LINE = 0xE6F2F2F2;
@@ -31,7 +32,7 @@ public final class PotionScopeOverlay {
     private static final int TICK_HALF_WIDTH = 4;
     private static final float LABEL_SCALE = 0.75F;
     private static final int CORNER_INSET = 8;
-    /** Ticks stay a little inside the clear circle. / 刻度略微保持在透明圆以内。 */
+    /** Ticks stay a little inside the mask's soft edge. / 刻度略微保持在遮罩柔和边缘以内。 */
     private static final double TICK_RADIUS_SHARE = 0.92;
 
     private PotionScopeOverlay() {
