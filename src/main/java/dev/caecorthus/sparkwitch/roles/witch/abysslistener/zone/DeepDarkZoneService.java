@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone;
 
+import java.util.List;
+import java.util.UUID;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 
@@ -26,6 +28,15 @@ public final class DeepDarkZoneService {
     /** True while the world has at least one live zone. Frozen query (L3b); L3a implements it. / 世界内是否有存活领域。 */
     public static boolean hasActiveZones(ServerWorld world) {
         return false;
+    }
+
+    /**
+     * Throwers of the live zones converting the cell (online or not), in throw order. Frozen query (L3b); L3a
+     * implements it.
+     * 当前转换该格的存活领域的投掷者（无论是否在线），按投掷顺序。冻结查询（L3b），由 L3a 实现。
+     */
+    public static List<UUID> ownersAt(ServerWorld world, BlockPos pos) {
+        return List.of();
     }
 
     public static void register() {

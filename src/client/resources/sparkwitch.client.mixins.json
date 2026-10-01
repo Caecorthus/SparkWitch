@@ -105,7 +105,9 @@
     "witchmaiden.FocusedFootstepsKeyboardInputMixin",
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin",
-    "fiend.WatheClientFiendHighlightMixin"
+    "fiend.WatheClientFiendHighlightMixin",
+    "abysslistener.MoodRendererAbyssZoneExposureMixin",
+    "abysslistener.MoodRendererTaskRowAbyssAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
