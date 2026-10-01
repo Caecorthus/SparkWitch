@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsGunBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchTargeting;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
@@ -44,7 +45,9 @@ public final class EmmaSkillService {
             return WitchSkillUseResult.fail("message.sparkwitch.emma.no_capacity");
         }
         Role role = context.gameComponent().getRole(target);
-        boolean fatal = role == SparkWitchRoles.grandWitch() || role == SparkWitchRoles.accomplice()
+        // Every accomplice, special ones included, backlashes fatally like the plain Accomplice.
+        // 所有共犯（含特殊共犯）都与普通共犯一样触发致命反噬。
+        boolean fatal = role == SparkWitchRoles.grandWitch() || WitchFactionRules.isAccompliceLike(role)
                 || role == SparkWitchRoles.witchMaiden();
         boolean voodoo = role != null && WitchFactorService.VOODOO_ROLE_ID.equals(role.identifier());
         if (fatal || voodoo) {

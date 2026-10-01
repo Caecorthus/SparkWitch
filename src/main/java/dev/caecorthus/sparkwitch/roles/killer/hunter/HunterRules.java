@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,6 +53,8 @@ public final class HunterRules {
             CORRUPT_COP_ROLE_ID,
             ENGINEER_ROLE_ID
     );
+    // Fixed instinct viewers; special accomplices join through isInstinctTrapViewer, which reads the live registry.
+    // 固定的本能观察者；特殊共犯经 isInstinctTrapViewer 读取实时注册表加入。
     private static final Set<Identifier> INSTINCT_VIEWERS = Set.of(
             GRAND_WITCH_ROLE_ID,
             ACCOMPLICE_ROLE_ID,
@@ -106,7 +109,7 @@ public final class HunterRules {
         if (nativeKiller || deadSpectator) {
             return TrapVisibility.THROUGH_WALL;
         }
-        if (roleId != null && INSTINCT_VIEWERS.contains(roleId)) {
+        if (isInstinctTrapViewer(roleId)) {
             if (instinctActive) {
                 return TrapVisibility.THROUGH_WALL;
             }
@@ -118,8 +121,13 @@ public final class HunterRules {
         return TrapVisibility.HIDDEN;
     }
 
+    /**
+     * Grand Witch, every accomplice (plain or special) and the Murderous Witch see traps through walls with instinct.
+     * 大魔女、所有共犯（普通或特殊）和杀意魔女在开启本能时可隔墙看到捕兽夹。
+     */
     public static boolean isInstinctTrapViewer(@Nullable Identifier roleId) {
-        return roleId != null && INSTINCT_VIEWERS.contains(roleId);
+        return roleId != null
+                && (INSTINCT_VIEWERS.contains(roleId) || WitchFactionRules.isAccompliceVariantId(roleId));
     }
 
     public static boolean canDismantle(@Nullable Identifier roleId, boolean hasLineOfSight) {
