@@ -14,6 +14,8 @@ It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with
 train fall can kill and that may buy a timed Fiend Moment.
 It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao and win together.
+It also adds the Potion Gunner (`sparkwitch:potion_gunner`), a witch-faction special accomplice that only the Grand
+Witch recruitment pool assigns; it fires four potion shells from a bound anti-tank launcher.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -106,6 +108,13 @@ Current build baseline:
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the recruitment roll
   `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the post-recruit hooks).
+- `roles/witch/potiongunner/`: Potion Gunner (`sparkwitch:potion_gunner`) rules and constants (`PotionGunnerRules`,
+  `PotionShellType`, `PotionBallistics`), pool registration, shop, loadout, bound-item rules and lifecycle.
+  Subpackages: `launcher/` (the launcher item, inventory loading, the server-authoritative fire service, the backblast)
+  and `shell/` (the shell items and entity, flat flight, blast targeting and falloff, rewards) with `shell/effect/`
+  (GW-DK, GW-AC, GW-MR, TR, harmless burning). Its mixins live in `mixin/potiongunner/` and
+  `client/mixin/potiongunner/`; client presentation (scope zoom and reticle, fire input, HUD, two-handed pose) in
+  `client/potiongunner/`. Its packet is `net/FirePotionLauncherC2SPacket`.
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
@@ -368,13 +377,14 @@ revolver and derringer, the SparkWitch double-barrel shotgun, the NoellesRoles D
 the Control Expert Taser and Shock Device, the knife stab (every `KnifeItem.getKnifeTarget` caller),
 the Angler Swordfish stab (`SWORDFISH`, its own payload and `SeekerDeviceHits.onSwordfishStab`),
 the NoellesRoles throwing axe, the thrown Ninja shuriken, the Black Raven feather blade, the
-Time Stealer Pocket Watch, the Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
-the SparkStrength M67. A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol) is
+Time Stealer Pocket Watch, the Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade),
+the SparkStrength M67, and the Potion Gunner (`POTION_SHELL`: the shell's in-flight sweep, its impact blast, and the
+launcher backblast lane). A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol) is
 accepted when the shooter's look ray meets the device box grown by its client targeting margin with
 a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
 (`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
 nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
-SparkStrength M67) break every device in a sphere with line of sight and still kill players as
+SparkStrength M67, Potion Gunner shell) break every device in a sphere with line of sight and still kill players as
 before. Sources with no hit or damage geometry never
 break a device: the firecracker (sound only), the Bomber timed bomb (kills only its holder), and the
 poison gas cloud (status effect). A breaker other than the owner is marked for the owner only (10 s,
@@ -628,6 +638,61 @@ nominals, and Wathe items fall through to Wathe's own table.
 The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
 "max + exact" writer and offers no write path to other features. Not registered (out of scope): Wathe shop-entry
 cooldowns, the Black Raven disguise switch, the Curser and Guardian Angel, and SparkStrength components.
+
+Potion Gunner state never enters the shared `sparkwitch:player` schema, and the role has no component. It joins the
+special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit hook grants the launcher
+(`PotionGunnerLoadoutService.ensureLauncher`, idempotent). It never renders in the `gui.sparkwitch.skills` panel.
+- **Loaded shell.** The single loaded shell is the stable CUSTOM_DATA key `LoadedShell` on the launcher
+  (`PotionLauncherLoad`). Loading is inventory-only: `PotionLauncherItem.onClicked` takes one shell from the cursor
+  on a right-click, refuses a second shell, and unloads onto an empty cursor. Wathe's inventory exposes only the
+  hotbar, so both items must sit there.
+- **Bound items.** The launcher and shells follow the Time Stealer bound-item rules (`PotionGunnerInventoryRules`
+  plus the four `mixin/potiongunner/` HEAD injects, with no creative exemption). They are never dropped, never an
+  item entity, never in a container or the offhand, and never a death drop. Only a living, playing, exact Potion
+  Gunner holds them; everyone else is stripped on role change, terminal death (not a SparkTraits-intercepted one),
+  reset, and finalize. A staggered 20-tick sweep also re-grants a living gunner exactly one launcher. Both items
+  stay visible in hand; the launcher is outside `wathe:guns`.
+- **Scope and fire.** Holding use scopes, client-side only: zoom ×0.25, mouse look ×0.25, a hidden hand, and the
+  reticle with range ticks drawn by a priority-1100 `InGameHud#renderCrosshair` wrapper. Left-click sends
+  `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec), one shot per press. While scoped,
+  vanilla drains the attack key, so the press is caught in `handleBlockBreaking` and the raw key path.
+  - The server re-checks, in order: round running, alive and playing, the exact role, launcher in the main hand,
+    not a spectator, not stunned, no Seeker session, no SparkTraits weapon block, the 20-tick launcher cooldown,
+    and a loaded shell.
+  - The payload is also on the stun and Seeker-session deny lists.
+- **Flight.** The shell is a role-owned `ThrownItemEntity`, never Wathe's grenade, and it is never saved. While the
+  path length from its synced launch point at the start of a tick is below 50 blocks, it moves straight at
+  2.5 blocks/tick with no drag or gravity (`PotionShellFlight.isFlatTick`, snapped to the 2.5-block step).
+  - After that, vanilla thrown physics apply.
+  - The scope ticks use the same predicate (`PotionBallistics`).
+  - The shell bursts on the first block, closed door or living body, on a Seeker device in its path, or after
+    100 ticks.
+  - Shells still in flight are discarded at finalize.
+- **Blast.** It uses the grenade presentation. The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
+  body overlapping vertically, plus line of sight. It does not catch spectators, Wathe-dead players, or SparkTraits
+  Last Escape players. Falloff comes in rings by horizontal Chebyshev distance (`PotionBlastRings`: 5 → 100/67/33%,
+  7 → 100/75/50/25%, 3 → 100/50%).
+  - GW-DK, GW-AC and GW-MR skip the witch faction (effective faction, unknown fails closed), the gunner, and anyone
+    `canAffectPlayer`, Vendetta isolation or the exact-pair rule vetoes.
+  - TR keeps everyone, the gunner and witch allies included, minus non-self vetoed players.
+  - Effects run inside `JudgeKillAttribution.runWith` for the gunner.
+  - +15 gold goes to a living, still-exact gunner for each caught player who is neither an ally nor the gunner.
+- **Effects.**
+  - GW-DK: Blindness + Slowness II for up to 7 s.
+  - GW-MR: up to 150 coins taken and destroyed, never below 0.
+  - GW-AC: every `ForcedCooldowns.slots` entry with a known nominal is extended by `ceil(nominal × 20% × falloff)`.
+  - TR: an ordinary, non-forced `killPlayer` with `sparkwitch:potion_shell` (the gunner's own death has no killer and
+    comes last). A survivor gets Blindness, Slowness II and 3 s of harmless burning.
+  - The harmless burn is a global `ServerLivingEntityEvents.ALLOW_DAMAGE` listener that vetoes fire damage only
+    while a player holds an owned burn window (`PotionShellBurn`, server-only, never saved).
+  - Kill bounties follow the normal faction rules; an ally kill still pays the SparkFactionAPI direct-kill reward
+    (owner decision).
+- **Backblast.** Every launched shot also makes one ordinary, non-forced kill attempt with `sparkwitch:potion_backblast`
+  on the nearest player in a 4-block lane straight behind the eye (half-width 0.5, clipped at the first block or door,
+  line of sight). Any faction is hit, never the gunner, and never a vetoed or Last Escape player.
+  - It is nearest-wins against Seeker devices: a device strictly nearer than that player absorbs it
+    (`SeekerDeviceHits.onPotionBackblast`).
+  - It has no fallback effects and no reward.
 
 Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player
