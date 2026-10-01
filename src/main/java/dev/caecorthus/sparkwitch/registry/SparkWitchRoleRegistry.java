@@ -8,6 +8,7 @@ import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
@@ -80,6 +81,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier FISHER_ID = FisherRules.ROLE_ID;
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
+    public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -111,6 +113,7 @@ public final class SparkWitchRoleRegistry {
     private static Role fisher;
     private static Role fiend;
     private static Role insider;
+    private static Role potionGunner;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -164,6 +167,11 @@ public final class SparkWitchRoleRegistry {
     public static Role accomplice() {
         ensureRegistered();
         return accomplice;
+    }
+
+    public static Role potionGunner() {
+        ensureRegistered();
+        return potionGunner;
     }
 
     public static Role apprenticeWitch() {
@@ -367,6 +375,15 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 // Exclude natural selection; explicit recruitment still assigns this registered role.
                 // 排除自然抽选；主动招募仍可直接赋予这个已注册职业。
+                .appearanceCondition(context -> false)
+                .build());
+        // Special accomplice: never drawn naturally; only the Grand Witch recruitment pool assigns it.
+        // 特殊共犯：从不自然抽选；只由大魔女招募池赋予。
+        potionGunner = SparkFactionApi.registerRole(FactionRoleDefinition.builder(POTION_GUNNER_ID, SparkWitchFactions.WITCH)
+                .color(PotionGunnerRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
                 .appearanceCondition(context -> false)
                 .build());
         windSpirit = SparkFactionApi.registerRole(WindSpiritRole.DEFINITION);
@@ -595,6 +612,7 @@ public final class SparkWitchRoleRegistry {
                 timeStealer,
                 murderousWitch,
                 accomplice,
+                potionGunner,
                 grandWitch,
                 emma,
                 controlExpert,

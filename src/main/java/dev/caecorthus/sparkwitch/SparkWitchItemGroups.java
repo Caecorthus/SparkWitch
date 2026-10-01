@@ -38,6 +38,12 @@ public final class SparkWitchItemGroups {
                             List<Item> factionOrder = List.of(
                                     // Witch / 魔女
                                     SparkWitchItems.ceremonialSword(),
+                                    // Potion Gunner (witch) / 药炮手（魔女）
+                                    SparkWitchItems.potionLauncher(),
+                                    SparkWitchItems.gwDkShell(),
+                                    SparkWitchItems.gwAcShell(),
+                                    SparkWitchItems.gwMrShell(),
+                                    SparkWitchItems.trShell(),
                                     // Neutral / 中立
                                     SparkWitchItems.firePoker(),
                                     // Civilian / 平民

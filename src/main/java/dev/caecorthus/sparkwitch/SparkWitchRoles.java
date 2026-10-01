@@ -37,6 +37,7 @@ public final class SparkWitchRoles {
     public static final Identifier FISHER_ID = SparkWitchRoleRegistry.FISHER_ID;
     public static final Identifier FIEND_ID = SparkWitchRoleRegistry.FIEND_ID;
     public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
+    public static final Identifier POTION_GUNNER_ID = SparkWitchRoleRegistry.POTION_GUNNER_ID;
 
     private SparkWitchRoles() {
     }
@@ -59,6 +60,10 @@ public final class SparkWitchRoles {
 
     public static Role accomplice() {
         return SparkWitchRoleRegistry.accomplice();
+    }
+
+    public static Role potionGunner() {
+        return SparkWitchRoleRegistry.potionGunner();
     }
 
     public static Role apprenticeWitch() {

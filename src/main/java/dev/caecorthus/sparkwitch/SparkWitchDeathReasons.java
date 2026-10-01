@@ -22,6 +22,8 @@ public final class SparkWitchDeathReasons {
     public static final Identifier TIME_STOLEN = SparkWitch.id("time_stolen");
     /** Ordinary, non-forced Swordfish stab kill. / 普通、非强制的剑鱼刺杀。 */
     public static final Identifier SWORDFISH_STAB = SparkWitch.id("swordfish_stab");
+    /** Ordinary, non-forced Potion Gunner TR shell kill. / 普通、非强制的药炮手 TR 炮弹击杀。 */
+    public static final Identifier POTION_SHELL = SparkWitch.id("potion_shell");
 
     private SparkWitchDeathReasons() {
     }

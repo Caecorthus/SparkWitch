@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.client;
 
+import dev.caecorthus.sparkwitch.client.potiongunner.PotionGunnerClient;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionGunnerEntities;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
@@ -100,6 +102,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
         InsiderClient.init();
+        PotionGunnerClient.init();
         SeekerClientModule.register();
         FisherClient.register();
         dev.caecorthus.sparkwitch.client.fiend.FiendClient.init();
@@ -215,6 +218,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         // The thrown Shock Device renders its synced item stack like vanilla thrown items.
         // 投出的电击装置与原版投掷物一样渲染其同步的物品。
         EntityRendererRegistry.register(ControlExpertEntities.shockDevice(), FlyingItemEntityRenderer::new);
+        EntityRendererRegistry.register(PotionGunnerEntities.potionShell(), FlyingItemEntityRenderer::new);
         SeekerClientModule.registerEntityRenderers();
     }
 
