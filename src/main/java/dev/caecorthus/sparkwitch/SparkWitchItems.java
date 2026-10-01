@@ -36,6 +36,9 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStampItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerClockItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonAppleItem;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.gun.ShriekGunItem;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.DeepDarkSporeFlaskItem;
 import dev.doctor4t.wathe.api.event.AllowPlayerPunching;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.item.Item;
@@ -79,6 +82,8 @@ public final class SparkWitchItems {
     public static final Identifier KEY_FISH_ID = FisherRules.KEY_FISH_ID;
     public static final Identifier SWORDFISH_ID = FisherRules.SWORDFISH_ID;
     public static final Identifier GLIMMERFISH_ID = FisherRules.GLIMMERFISH_ID;
+    public static final Identifier SHRIEK_GUN_ID = AbyssListenerRules.GUN_ITEM_ID;
+    public static final Identifier DEEP_DARK_SPORE_FLASK_ID = AbyssListenerRules.FLASK_ITEM_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -113,6 +118,8 @@ public final class SparkWitchItems {
     private static Item keyFish;
     private static Item swordfish;
     private static Item glimmerfish;
+    private static Item shriekGun;
+    private static Item deepDarkSporeFlask;
 
     private static boolean registered;
 
@@ -292,6 +299,16 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 GLIMMERFISH_ID,
                 new FisherFishItem(FisherFishItem.createSettings(), FisherFishKind.GLIMMERFISH)
+        );
+        shriekGun = Registry.register(
+                Registries.ITEM,
+                SHRIEK_GUN_ID,
+                new ShriekGunItem(ShriekGunItem.createSettings())
+        );
+        deepDarkSporeFlask = Registry.register(
+                Registries.ITEM,
+                DEEP_DARK_SPORE_FLASK_ID,
+                new DeepDarkSporeFlaskItem(DeepDarkSporeFlaskItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -556,5 +573,19 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return glimmerfish;
+    }
+
+    public static Item shriekGun() {
+        if (shriekGun == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return shriekGun;
+    }
+
+    public static Item deepDarkSporeFlask() {
+        if (deepDarkSporeFlask == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return deepDarkSporeFlask;
     }
 }

@@ -20,6 +20,11 @@ public final class AbyssListenerRules {
     public static final Identifier SHRIEK_ACTION_ID = SparkWitch.id("abyss_listener_shriek");
     public static final int SHRIEK_INITIAL_COOLDOWN_TICKS = 90 * 20;
     public static final int SHRIEK_COOLDOWN_TICKS = 60 * 20;
+    /**
+     * Mana per cast; the Abyss Listener gains mana like the Grand Witch. The skill definition only displays it; the
+     * use handler spends it. / 每次施放消耗的魔力；聆渊者与大魔女一样获得魔力。技能定义只用于显示，由使用处理器实际扣除。
+     */
+    public static final int SHRIEK_MANA_COST = 75;
     public static final double SHRIEK_RADIUS = 8.0;
     public static final int SHRIEK_SLOWNESS_TICKS = 5 * 20;
     /** Slowness II. / 缓慢 II。 */
