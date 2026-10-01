@@ -225,7 +225,7 @@ public final class SeekerDeviceHits {
     /**
      * Black Raven feather blade right-click (a server hitscan mark, not a projectile). One-line hook in
      * {@code FeatherBladeItem#use}: {@code ServerPlayerEntity target = SeekerDeviceHits.onFeatherBladeFired(serverUser,
-     * BlackRavenTargeting.findAimedPlayer(serverUser), BlackRavenRules.FEATHER_REACH);}
+     * aim == null ? null : aim.player(), BlackRavenRules.FEATHER_REACH);}
      * 黑鸦羽刃右键（服务端即时射线标记，并非投射物）。{@code FeatherBladeItem#use} 中的一行钩子。
      */
     @Nullable
