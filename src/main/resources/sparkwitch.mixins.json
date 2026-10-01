@@ -110,6 +110,7 @@
     "seeker.SeekerTaotieCooldownAccessor",
     "seeker.SeekerThrowingAxeMixin",
     "seeker.SeekerTrapdoorBlockAccessor",
+    "fisher.FisherDoorPassingMixin",
     "tofana.GameFunctionsTofanaProtectionMixin",
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleMixin",
     "witchmaiden.BlockEntityPoisonAppleLifecycleMixin",

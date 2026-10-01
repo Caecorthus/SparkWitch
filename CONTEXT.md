@@ -7,7 +7,7 @@ changes require explicit owner approval.
 
 SparkWitch adds Grand Witch, Accomplice, Apprentice Witch, Murderous Witch, Pig
 God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, Bell Ringer,
-and Time Stealer gameplay to Wathe.
+Time Stealer, and Angler (`sparkwitch:fisher`) gameplay to Wathe.
 It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
 and the Seeker, a police variant with a remote car and wall cameras that shares the same slots.
 SparkFactionAPI owns shared faction contracts;
@@ -90,6 +90,15 @@ Current build baseline:
   device renderers) in `client/seeker/`. Cross-mod seams go through `compat/SparkTraitsSeekerBridge`,
   `compat/SeekerControlExpertBridge`, `compat/NoellesTaotieSeekerBridge`,
   `compat/SparkStrengthTabletCompat`, and `compat/SparkStrengthM67Compat`.
+- `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
+  bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
+  Key Fish doors, tracked pufferfish, replay formatting, and lifecycle cleanup. Subpackages:
+  `item/` (rod, bait, edible fish, Key Fish), `swordfish/` (the single-use Swordfish, its payload,
+  server release pairing, consumption, and friendly-fire death), and `spirit/` (the Glimmerfish
+  window, its `sparkwitch:fisher_spirit` component, door passing, collision exemption, owned
+  invisibility, and safe door exit). Its mixins live in `mixin/fisher/` and
+  `client/mixin/fisher/`; client presentation (Glimmerfish outlines and HUD, hidden hands,
+  Swordfish crosshair and stab dispatch) in `client/fisher/`.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, and
   the Seeker share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate
@@ -316,6 +325,7 @@ as SparkFactionAPI proxy target and Vendetta isolation. Break sources are bare h
 left-click melee (`AttackEntityCallback`, server reach and line-of-sight re-check), the Wathe
 revolver and derringer, the SparkWitch double-barrel shotgun, the NoellesRoles Demon Hunter pistol,
 the Control Expert Taser and Shock Device, the knife stab (every `KnifeItem.getKnifeTarget` caller),
+the Angler Swordfish stab (`SWORDFISH`, its own payload and `SeekerDeviceHits.onSwordfishStab`),
 the NoellesRoles throwing axe, the thrown Ninja shuriken, the Black Raven feather blade, the
 Time Stealer Pocket Watch, the Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
 the SparkStrength M67. A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol) is
@@ -335,6 +345,50 @@ swallow key on a car in its crosshair (`client/mixin/seeker/SeekerTaotieAbilityK
 cooldown, removes the car without a mark or the 180 s cooldown, and tells the owner without naming
 the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role. The
 Seeker never renders in the `gui.sparkwitch.skills` panel.
+
+Angler state never enters that shared schema either. `sparkwitch:fisher_spirit` (`NEVER_COPY`,
+never saved) holds only the Glimmerfish window; its sync packet is one VarInt: 0 inactive, 1 for
+every observer while active, remaining ticks + 1 for the owner. Every client needs the flag
+(two-sided collision exemption, hidden hands, instinct skip); the client countdown never clears it.
+The window is 156 ticks, server-authoritative, restarted by another Glimmerfish, kept across role
+changes, and ended on expiry, terminal death, reset, finalize, disconnect, or loss of participation.
+`mixin/fisher/FisherDoorPassingMixin` empties the collision shape of Wathe `DoorPartBlock` and
+vanilla `DoorBlock` doors (never trapdoors or gates) only for a glimmering player's entity context,
+so client prediction and server validation agree; it skips the exemption inside the shared
+`util/RaycastShapeScope`, so rays (sight, aiming, weapons) still see the door;
+SparkFactionAPI's entity-collision exemption
+reads the same flag on both sides (`noellesroles:no_collision` alone is one-sided). Glimmerfish
+claims only the invisibility instance it created in an empty slot; any foreign merge gives up its
+removal right. Expiry inside a door first tries to move the player to a validated safe spot (door
+sides, lateral offsets, then the last safe position); if none validates it only logs and clears.
+The rod, bait and edible fish are hidden in hand through `NoellesHiddenEquipment`; the Key Fish and
+Swordfish stay visible. Fishing is a Fabric `UseBlockCallback` in its own phase after the existing
+interaction guards, for a main-hand rod on `wathe:drink_tray` only: the client answers SUCCESS (the
+ordinary tray swing, identical to taking a drink), the server answers CONSUME on every handled
+path, and before rolling reserves an empty hotbar slot (or the single-Bait slot this cast empties);
+a no-room refusal only sets the 20-tick rod cooldown, never rolls or spends bait. Catches go only
+into the hotbar, tray contents and poison are never touched, and feedback and sounds are private. Fish use never calls vanilla food
+completion, so Wathe's EAT and DRINK tasks never complete from a fish; fish use and the Glimmerfish
+start share one living-participant check (`FisherParticipants`), and a Glimmerfish is consumed only
+after its window really starts. The Key Fish opens a closed
+locked cabin door or train door on Wathe's `DoorInteraction.EVENT`, never a jammed one, and is
+consumed only after a real closed-to-open transition; locks and auto-close are unchanged. Pufferfish
+are vanilla entities tagged and tracked by the Angler: while puffed they drain 0.1 sanity from any
+living REAL-mood participant they touch (one shared two-second cooldown per player, SparkFactionAPI
+veto for anyone but the Angler, and no one but the Angler while the Angler is offline), carry an
+empty loot table, and are discarded after ten seconds or
+at lifecycle sweeps. The Swordfish is an independent `Item` (never a `KnifeItem`, never the Wathe
+knife payload, identity, tags, or cooldown): SPEAR charge, release after at least 11 held ticks
+on the client (the server accepts 9 for packet timing), 3 blocks, its own `sparkwitch:swordfish_stab`
+payload paired once with a five-tick server release bound to the exact main-hand stack. The server
+validates the submitted target against its own block-clipped 3-block ray along the attacker's current
+rotation (player boxes expanded by 0.25, device boxes by their targeting margin plus 0.25): a nearer
+Seeker device intercepts, a different nearer player rejects the request. It also re-checks
+participation, stun, Seeker session lock, Last Escape, and the SparkFactionAPI veto; an accepted hit
+consumes the stack even when parried or protected; both effective factions are captured before the
+non-forced `sparkwitch:swordfish_stab` kill, and only a confirmed terminal civilian-on-civilian
+death (not Last Stand, not a fake death) also kills the attacker with `SHOT_INNOCENT` (an Impostor
+attacker is exempt). The Angler never renders in the `gui.sparkwitch.skills` panel.
 
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
@@ -401,6 +455,14 @@ facade lacks or fails a method falls back per method to not pending, Impostor-or
 and task money denied, `DENY_IMPOSTOR_DEVICES`), not hidden, full prices, no block, a vanilla
 cooldown, or an intercepted death: the `KillPlayer.AFTER` cleanup is skipped and the component
 tick's final-death fallback cleans up once the Seeker is dead and not Last Stand pending.
+The Angler may query only `isInstinctHidden` through its own client
+`FisherInstinctVisibilityBridge` and `isLastStandDeathIntercepted` through the existing
+`WitchFactorTraitsBridge`, beyond the existing `SparkTraitsKillerBridge` seams
+(`blocksWeaponAction`, `isLastEscapeActive`, `shouldCancelMeleeAttack`, `isNonFinalKillPending`)
+and `SparkTraitsShopEntryPreserver`. An absent SparkTraits means nothing hidden, no weapon block, no
+Last Escape, no parry, no pending fake death, and cleanup on every death; a present build whose
+facade lacks or fails a method falls back per method as those bridges already define (an
+intercepted death skips the Angler's `KillPlayer.AFTER` cleanup, which then runs at reset or finalize).
 
 Active Wraiths do not absorb another player's aimed action in the client
 selectors listed below. `client/render/WraithAimPassThrough` owns the rule: a player whose synced

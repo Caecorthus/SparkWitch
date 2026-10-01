@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.net;
 
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabC2SPayload;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
@@ -68,6 +70,10 @@ public final class SparkWitchPackets {
                 SubmitTarotDivinationSelectionC2SPacket.ID,
                 SubmitTarotDivinationSelectionC2SPacket.CODEC
         );
+        PayloadTypeRegistry.playC2S().register(
+                SwordfishStabC2SPayload.ID,
+                SwordfishStabC2SPayload.CODEC
+        );
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
                 SparkWitchServerConfirmS2CPacket.CODEC
@@ -118,6 +124,8 @@ public final class SparkWitchPackets {
                         context.player(), payload.targetEntityId()));
         ServerPlayNetworking.registerGlobalReceiver(SubmitTarotDivinationSelectionC2SPacket.ID,
                 (payload, context) -> TarotReaderDivinationService.submit(context.player(), payload));
+        ServerPlayNetworking.registerGlobalReceiver(SwordfishStabC2SPayload.ID,
+                (payload, context) -> SwordfishStabService.use(context.player(), payload.targetEntityId()));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {

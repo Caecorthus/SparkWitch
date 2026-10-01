@@ -62,6 +62,15 @@ public final class SparkWitch implements ModInitializer {
         NoellesHiddenEquipment.register(SparkWitchItems.tollBell());
         NoellesHiddenEquipment.register(SparkWitchItems.seekerCar());
         NoellesHiddenEquipment.register(SparkWitchItems.seekerCamera());
+        // Angler: the rod, bait and every non-weapon fish; the Key Fish and Swordfish stay visible on purpose.
+        // 钓鱼佬：鱼竿、鱼饵与所有非武器类的鱼；钥匙鱼与剑鱼刻意保持可见。
+        NoellesHiddenEquipment.register(SparkWitchItems.fishingRod());
+        NoellesHiddenEquipment.register(SparkWitchItems.fishBait());
+        NoellesHiddenEquipment.register(SparkWitchItems.salmon());
+        NoellesHiddenEquipment.register(SparkWitchItems.cod());
+        NoellesHiddenEquipment.register(SparkWitchItems.clownfish());
+        NoellesHiddenEquipment.register(SparkWitchItems.goldfish());
+        NoellesHiddenEquipment.register(SparkWitchItems.glimmerfish());
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();

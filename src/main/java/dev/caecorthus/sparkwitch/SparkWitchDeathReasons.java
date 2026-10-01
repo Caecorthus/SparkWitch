@@ -20,6 +20,8 @@ public final class SparkWitchDeathReasons {
      * 仅计时员购买可在结算前解除诅咒。
      */
     public static final Identifier TIME_STOLEN = SparkWitch.id("time_stolen");
+    /** Ordinary, non-forced Swordfish stab kill. / 普通、非强制的剑鱼刺杀。 */
+    public static final Identifier SWORDFISH_STAB = SparkWitch.id("swordfish_stab");
 
     private SparkWitchDeathReasons() {
     }

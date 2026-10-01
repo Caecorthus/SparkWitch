@@ -9,6 +9,13 @@ import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.DisruptorItem;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ShockDeviceItem;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.TaserItem;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FishBaitItem;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FisherFishItem;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FisherFishKind;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FishingRodItem;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.KeyFishItem;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraItem;
@@ -60,6 +67,15 @@ public final class SparkWitchItems {
     public static final Identifier SHOCK_DEVICE_ID = ControlExpertRules.SHOCK_DEVICE_ID;
     public static final Identifier SEEKER_CAR_ID = SeekerRules.CAR_ITEM_ID;
     public static final Identifier SEEKER_CAMERA_ID = SeekerRules.CAMERA_ITEM_ID;
+    public static final Identifier FISHING_ROD_ID = FisherRules.FISHING_ROD_ID;
+    public static final Identifier FISH_BAIT_ID = FisherRules.BAIT_ID;
+    public static final Identifier SALMON_ID = FisherRules.SALMON_ID;
+    public static final Identifier COD_ID = FisherRules.COD_ID;
+    public static final Identifier CLOWNFISH_ID = FisherRules.CLOWNFISH_ID;
+    public static final Identifier GOLDFISH_ID = FisherRules.GOLDFISH_ID;
+    public static final Identifier KEY_FISH_ID = FisherRules.KEY_FISH_ID;
+    public static final Identifier SWORDFISH_ID = FisherRules.SWORDFISH_ID;
+    public static final Identifier GLIMMERFISH_ID = FisherRules.GLIMMERFISH_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -84,6 +100,15 @@ public final class SparkWitchItems {
     private static Item shockDevice;
     private static Item seekerCar;
     private static Item seekerCamera;
+    private static Item fishingRod;
+    private static Item fishBait;
+    private static Item salmon;
+    private static Item cod;
+    private static Item clownfish;
+    private static Item goldfish;
+    private static Item keyFish;
+    private static Item swordfish;
+    private static Item glimmerfish;
 
     private static boolean registered;
 
@@ -213,6 +238,51 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 SEEKER_CAMERA_ID,
                 new SeekerCameraItem(SeekerCameraItem.createSettings())
+        );
+        fishingRod = Registry.register(
+                Registries.ITEM,
+                FISHING_ROD_ID,
+                new FishingRodItem(FishingRodItem.createSettings())
+        );
+        fishBait = Registry.register(
+                Registries.ITEM,
+                FISH_BAIT_ID,
+                new FishBaitItem(FishBaitItem.createSettings())
+        );
+        salmon = Registry.register(
+                Registries.ITEM,
+                SALMON_ID,
+                new FisherFishItem(FisherFishItem.createSettings(), FisherFishKind.SALMON)
+        );
+        cod = Registry.register(
+                Registries.ITEM,
+                COD_ID,
+                new FisherFishItem(FisherFishItem.createSettings(), FisherFishKind.COD)
+        );
+        clownfish = Registry.register(
+                Registries.ITEM,
+                CLOWNFISH_ID,
+                new FisherFishItem(FisherFishItem.createSettings(), FisherFishKind.CLOWNFISH)
+        );
+        goldfish = Registry.register(
+                Registries.ITEM,
+                GOLDFISH_ID,
+                new FisherFishItem(FisherFishItem.createSettings(), FisherFishKind.GOLDFISH)
+        );
+        keyFish = Registry.register(
+                Registries.ITEM,
+                KEY_FISH_ID,
+                new KeyFishItem(KeyFishItem.createSettings())
+        );
+        swordfish = Registry.register(
+                Registries.ITEM,
+                SWORDFISH_ID,
+                new SwordfishItem(SwordfishItem.createSettings())
+        );
+        glimmerfish = Registry.register(
+                Registries.ITEM,
+                GLIMMERFISH_ID,
+                new FisherFishItem(FisherFishItem.createSettings(), FisherFishKind.GLIMMERFISH)
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -407,5 +477,68 @@ public final class SparkWitchItems {
                     ? ActionResult.FAIL
                     : ActionResult.PASS;
         });
+    }
+
+    public static Item fishingRod() {
+        if (fishingRod == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return fishingRod;
+    }
+
+    public static Item fishBait() {
+        if (fishBait == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return fishBait;
+    }
+
+    public static Item salmon() {
+        if (salmon == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return salmon;
+    }
+
+    public static Item cod() {
+        if (cod == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return cod;
+    }
+
+    public static Item clownfish() {
+        if (clownfish == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return clownfish;
+    }
+
+    public static Item goldfish() {
+        if (goldfish == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return goldfish;
+    }
+
+    public static Item keyFish() {
+        if (keyFish == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return keyFish;
+    }
+
+    public static Item swordfish() {
+        if (swordfish == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return swordfish;
+    }
+
+    public static Item glimmerfish() {
+        if (glimmerfish == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return glimmerfish;
     }
 }
