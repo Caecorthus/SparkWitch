@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseEconomy;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -253,17 +254,28 @@ public final class HunterFeatureService {
         }
         UUID poisonerUuid = attribution.effectivePoisonerUuid();
         if (poisonerUuid != null) {
-            addBalance(world, poisonerUuid, HunterRules.POISONER_REWARD);
+            addKillerReward(world, poisonerUuid, HunterRules.POISONER_REWARD);
         }
         if (attribution.placerUuid() != null) {
-            addBalance(world, attribution.placerUuid(), HunterRules.PLACER_REWARD);
+            addKillerReward(world, attribution.placerUuid(), HunterRules.PLACER_REWARD);
         }
     }
 
-    private static void addBalance(ServerWorld world, UUID playerUuid, int amount) {
+    /**
+     * Poisoner and placer rewards are killer income: a disguised Black Raven receives them in its stashed Raven
+     * wallet (amendment W, reported to the SparkStrength purse like any action reward), everyone else in the live
+     * wallet.
+     * 投毒与布置奖励属于杀手收入：伪装中的黑羽鸦记入其存档中的黑羽鸦钱包（修订 W，与其他行动奖励一样上报
+     * SparkStrength 团队资金），其他玩家记入当前钱包。
+     */
+    private static void addKillerReward(ServerWorld world, UUID playerUuid, int amount) {
         PlayerEntity player = world.getPlayerByUuid(playerUuid);
-        if (player != null) {
-            PlayerShopComponent.KEY.get(player).addToBalance(amount);
+        if (player == null) {
+            return;
+        }
+        PlayerShopComponent shop = PlayerShopComponent.KEY.get(player);
+        if (!BlackRavenDisguiseEconomy.creditKillerIncome(shop, amount, true)) {
+            shop.addToBalance(amount);
         }
     }
 

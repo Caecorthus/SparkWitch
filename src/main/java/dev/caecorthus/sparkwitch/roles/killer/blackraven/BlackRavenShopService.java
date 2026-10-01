@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven;
 
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenActingRole;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BuildShopEntries;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -24,7 +25,9 @@ public final class BlackRavenShopService {
 
     private static void buildEntries(PlayerEntity player, BuildShopEntries.ShopContext context) {
         Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        if (!BlackRavenRules.isBlackRaven(role)) {
+        // A disguised Raven gets only the disguise whitelist (both sides, so entry indexes match).
+        // 伪装中的黑羽鸦只获得伪装白名单（双端一致，保证条目索引相同）。
+        if (!BlackRavenRules.isBlackRaven(role) || BlackRavenActingRole.isDisguised(player)) {
             return;
         }
         ShopEntry blackout = context.getEntries().stream()

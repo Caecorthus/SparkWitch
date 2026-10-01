@@ -1,9 +1,9 @@
 package dev.caecorthus.sparkwitch.client.hooks;
 
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
-import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GetInstinctHighlight;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -45,7 +45,7 @@ public final class OrthopedistClientHooks {
     }
 
     private static boolean isOrthopedist(PlayerEntity player) {
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        return role != null && OrthopedistRules.ROLE_ID.equals(role.identifier());
+        // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
+        return GameWorldComponent.KEY.get(player.getWorld()).isRole(player, SparkWitchRoles.orthopedist());
     }
 }

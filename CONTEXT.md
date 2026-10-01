@@ -51,6 +51,27 @@ Current build baseline:
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup.
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
   bound ledger, restricted shop, and lifecycle cleanup.
+  - `disguise/`: the Black Raven disguise. It owns the acting-role overlay
+    (`BlackRavenActingRole`), the owner-only `BlackRavenDisguiseComponent` and its sync codec, the
+    Tab B pool snapshot, the bound Raven Mask (`sparkwitch:black_raven_mask`), one-shot open
+    sessions, the server-authoritative switch transaction with per-identity inventory and wallet
+    stashes (`BlackRavenDisguiseService`, `BlackRavenInventorySwap`), the disguise shop
+    whitelist, and disguise task income and killer-income routing (`BlackRavenDisguiseEconomy`).
+  - `disguise/adapter/`: one adapter per shipped disguise role, holding its kit, shop spec, task
+    reward policy, first-entry cooldowns, and enter/exit hooks. Batch 1 ships Conductor,
+    Attendant, Awesome Binglus, Mermaid, Time Keeper, Waiter, Reporter, Tarot Reader, and
+    Orthopedist. Every other allowed role is listed as unsupported.
+  - Its mixins live in `mixin/blackraven/`: M1 `GameWorldComponentActingRoleMixin`, M2
+    `ShopUtilsBlackRavenDisguiseMixin`, M3 `KillerShopBuilderBlackRavenDisguiseMixin`, M4
+    `PlayerShopComponentBlackRavenDisguiseMixin`, the death-index, swap-guard, swap-remainder and
+    wallet mixins, and the optional SparkStrength seams.
+  - Its client presentation lives in `client/blackraven/`: `BlackRavenLedgerBookScreen` (Tab A
+    Perception pages and Tab B disguise list), `BlackRavenDisguiseClientState` (synced view,
+    acting-role change cleanup, mask tooltip, `CanSeeMoney` phase), `BlackRavenDisguiseClientRules`,
+    `BlackRavenDisguiseInstinctClientHooks`, and the disguise HUD line in `BlackRavenHudRenderer`.
+  - Its packets are `net/OpenBlackRavenDisguiseS2CPacket` and `net/SelectBlackRavenDisguiseC2SPacket`.
+  - Its cross-mod seams go through `compat/SparkTraitsBlackRavenBridge` and
+    `compat/SparkStrengthDisguiseCompat`.
 - `roles/killer/bellringer/`: Echo skill (game-time cost, forced Echo tasks,
   deadline penalty), owner-private Echo/hint/toll state, bound bell and toll kill,
   restricted native shop, and lifecycle cleanup; its mixins live in
@@ -523,7 +544,20 @@ SparkTraits is optional and fail-closed. Reflection may target only
 `dev.caecorthus.sparktraits.api.SparkTraitsApi`, never `sparktraits.impl` or
 `sparktraits.component`. Black Raven may query only the public
 `isInstinctHidden(viewer, target)` facade; an absent or older SparkTraits build
-adds no suppression and must not break the client. Bell Ringer may query only
+adds no suppression and must not break the client.
+
+For the Black Raven disguise, the allowlist grows by two queries:
+- `isRoleSkillBlocked`, through the existing `SparkTraitsKillerBridge`, gates mask use and every
+  switch;
+- `hasActiveTrait`, through `compat/SparkTraitsBlackRavenBridge`, reads Conscience and Impostor
+  only, to decide disguise task money.
+
+When SparkTraits is absent, nothing is blocked and both traits count as inactive. When a present
+build's facade lacks or fails a method, the result is "not blocked" for the first query, and "no
+disguise task money" (Judge semantics) for the Noelles-native and SparkStrength good-role
+policies. SparkWitch-policy task money is paid either way.
+
+Bell Ringer may query only
 `isRoleSkillBlocked`, `registerTerminalDeathReason`, and
 `setExactItemCooldownRemaining` beyond the shared weapon-action gate; an absent
 or older build means no block, no terminal registration, and a vanilla cooldown.
@@ -583,6 +617,117 @@ Veterans hidden from the Insider) and `isBlockingTeamWinNeutral` (a living Insid
 KILLERS/PASSENGERS verdicts like the Corrupt Cop); an older SparkTraits leaves the Veteran visible and may end
 the round for killers or passengers while a lone Insider lives.
 
+Black Raven disguise state never enters `sparkwitch:player`, `sparkwitch:black_raven_perception`,
+or `sparkwitch:black_raven_mark`. `sparkwitch:black_raven_disguise` (`NEVER_COPY`, owner-only
+sync, match-id bound) holds the acting role, round clock, unlock and switch times, visited
+identities, the Tab B pool snapshot, the Raven wallet shown to the owner, and one stash per
+identity. Each stash holds that identity's inventory, overflow, scalars, and wallet. Nothing in
+it is ever synced to another player.
+- **Role authority.** A disguise never mutates Wathe's role map and never fires `RoleAssigned`.
+  The only acting seam is M1: a `@WrapMethod` on `GameWorldComponent#isRole(UUID, Role)` that
+  adds exactly one case, a living disguised Raven checked against its exact acting role. It uses
+  a server index on the server and only the local player on the client.
+- **What stays raw.** `getRole`, `getAllWithRole`, faction, win checks, weapon legality,
+  inspections of the Raven by others, and serialization all keep the real Black Raven role.
+- **Self-gates only.** SparkWitch migrates only self, recipient, or local-viewer gates to `isRole`,
+  and marks each one with the "Widened by the Black Raven acting overlay" comment. Target and
+  inspection reads stay raw: Tarot identity resolution and counts, divination candidates,
+  `countActiveFactions`, the Professor serum, and the Judge, Prophet, Wraith, and Emma
+  inspections.
+- **Shops.** The Wathe killer shop (M3) and the Black Raven shop never reach a disguised Raven.
+  Perception is refused while disguised, the ledger stays in the Raven stash, and killer instinct
+  and Feather marks keep working.
+- **Per-identity inventories and wallets.**
+  - Each switch is a server transaction that never drops an item. It captures the cursor and the
+    crafting inputs before the screen closes, keeps keys, letters, and the mask pinned in place,
+    ignores `ClickSlot` for 20 ticks after the switch, and routes `offerOrDrop` remainders into
+    the stash overflow.
+  - The live Wathe balance always belongs to the live identity. A disguise's first entry starts
+    at 0.
+  - Killer income earned while disguised goes to the stashed Black Raven wallet, not the
+    disguise wallet. The routed sources are:
+    - Wathe passive income (both the cap check and the credit) in
+      `MurderGameModeBlackRavenWalletMixin`;
+    - the kill reward, teammate share, and civilian-death pool in
+      `GameFunctionsBlackRavenWalletMixin`;
+    - the SparkWitch Hunter poisoner and placer rewards (`HunterFeatureService`);
+    - the optional SparkStrength seams below.
+  - Known limitation: these SparkTraits killer receipts still land in the live disguise wallet:
+    - the killer-trait rewards (Showman, Plunderer, Cornered, and Conscience's kill reward and
+      dividend);
+    - the Depression fake-death payouts from `DepressionTraitService.rewardFakeDeathKill`: half of
+      Wathe's kill reward to the killer, and half of the killer-teammate share, which also reaches a
+      disguised Raven when a teammate triggers the fake death. The fake death cancels the kill in
+      `KillPlayer.BEFORE`, so `GameFunctionsBlackRavenWalletMixin` never sees it.
+
+    While disguised, none of these receipts adds to the SparkStrength killer-team purse either,
+    because `KillerTeamEconomyBlackRavenWalletMixin` rejects income that was not routed to the Raven
+    wallet. Routing them would need a SparkTraits public-facade seam (for example a kill-income
+    recipient hook on `SparkTraitsApi`) used through `compat/SparkTraitsBlackRavenBridge` and failing
+    closed. A mixin into `sparktraits.impl` is not allowed.
+- **Death and exits.** At death every stash (inventory and wallet) vanishes. The live set goes
+  through Wathe's drop rules, except the mask, which never drops. Role loss discards the stashes
+  and keeps the live set. Grand Witch recruitment reverts to the Raven set and wallet before its
+  snapshot but keeps the other stashes and visited set; it discards them only after the conversion
+  commits, so a refused recruitment (balance overflow) leaves the Raven's disguises intact. A
+  `RoleAssigned(black_raven)` for a Raven that is still disguised (a forced role mid-round) reverts to
+  the Raven set first, so the kit re-grant leaves exactly one blade, ledger, and mask.
+- **Round binding.** The Raven round binding (disguise `beginRound`, Perception `bindCurrentMatch`,
+  and `restoreLedgerIfNeeded`) runs in the `sparkwitch:black_raven_finish_initialize` phase of
+  `GameEvents.ON_FINISH_INITIALIZE`, ordered after `Event.DEFAULT_PHASE`, so Wathe's
+  `GameRecordManager.startMatch` (the binding id) has run whatever the mod initializer order.
+- **Skills panel.** The Raven and every disguise never render in the `gui.sparkwitch.skills`
+  panel.
+
+Black Raven disguise client seams. The client never predicts a switch; it reads only the
+owner-only sync. `client/blackraven/` adds no client mixin and registers these listeners:
+- **Open packet.** `BlackRavenClientModule` registers the `OpenBlackRavenDisguiseS2CPacket`
+  receiver, which opens Tab B with the server's session id. Registering it is also what lets the
+  server's `canSend` check pass for the mask. A client disconnect clears the local acting entry.
+  The client never learns the server's open tick, so the book counts ticks since the packet arrived
+  and stops offering Tab B rows 20 ticks before the 60 s session TTL, showing "use the mask again".
+  A select that still reaches the server on a dead session is refused with the `session_expired`
+  actionbar message, never silently.
+- **Acting-role changes.** `BlackRavenDisguiseClientState` installs the acting-role change
+  listener. On any enter, exit, or switch it:
+  - closes `LimitedInventoryScreen` and `TarotDivinationSelectorScreen`;
+  - resets the instinct mode to normal and clears the Tarot client state;
+  - clears Orthopedist observer data when leaving the Orthopedist identity.
+- **Money visibility.** The `CanSeeMoney` phase `sparkwitch:black_raven_disguise_money` is ordered
+  before `Event.DEFAULT_PHASE`. It answers only for the confirmed, disguised local Raven on the
+  client world.
+- **Killer-teammate highlight.** `BlackRavenDisguiseInstinctClientHooks` restates Wathe 1.5.6's
+  killer-teammate highlight at `PRIORITY_DEFAULT + 50`. That sits above the disguise role's
+  `GetInstinctHighlight.EVENT` results (NoellesRoles and SparkTraits event listeners) and below explicit
+  skips (`PRIORITY_HIGH`) and the Feather mark (`PRIORITY_HIGH + 1`). It does not outrank SparkTraits'
+  HEAD-cancel mixin `client/mixin/WatheClientMixin#getInstinctHighlight`, whose Toxicologist, Serial
+  Killer, Morphling, and trait branches return before the event runs. No batch-1 role reaches those
+  branches.
+  - Batch-2 gate: before `noellesroles:toxicologist` becomes selectable, put the disguised-Raven
+    teammate color ahead of that HEAD path (a higher-priority SparkWitch HEAD inject on
+    `WatheClient.getInstinctHighlight`, or a SparkTraits public-facade check) and add a test.
+
+Black Raven disguise shop and wallet seams (SparkStrength is optional and fail-closed):
+- **M2.** `mixin/blackraven/ShopUtilsBlackRavenDisguiseMixin` is the outermost wrap of
+  `ShopUtils.getShopEntriesForPlayer`, so every cross-player reader of a disguised Raven's shop
+  sees only the disguise whitelist. SparkStrength `DemonHunterSniffRules` is such a consumer: it
+  reads the target's entries for `psycho_mode`, which no disguise spec or fallback may emit.
+- **Killer-team purse.** The optional `@Pseudo` `mixin/blackraven/KillerTeamEconomyBlackRavenWalletMixin`
+  (every injector `require = 0`) targets SparkStrength `KillerTeamEconomyService` by name.
+  `BlackRavenDisguiseEconomy` reflects only its `recordIncome(PlayerEntity, long)`, to report
+  routed kill rewards. Without the seam, disguise purchases can draw on the killer-team purse
+  (degraded, but no money is lost).
+- **Engineer share.** The optional `@Pseudo` `mixin/blackraven/EngineerPowerRestorationBlackRavenWalletMixin`
+  (`remap = false`, `require = 0`) wraps the `addToBalance` call in SparkStrength
+  `EngineerPowerRestorationService#distributeRestorationCost`. It routes a disguised Raven's
+  restoration share to the Raven wallet. Without it, the share stays in the live disguise wallet.
+- **Where the disguise names SparkStrength.** It names SparkStrength implementation classes in
+  only these two mixins and in the reflected purse class in `BlackRavenDisguiseEconomy`.
+  `compat/SparkStrengthDisguiseCompat` touches only the `sparkstrength:flashlight` registry id.
+- **Rest of SparkWitch.** Elsewhere, SparkStrength implementation classes are named by
+  `compat/SparkStrengthM67Compat`, `compat/SparkStrengthCoronerCompat`, and the client
+  `client/emma/EmmaVisibleName`.
+
 Active Wraiths do not absorb another player's aimed action in the client
 selectors listed below. `client/render/WraithAimPassThrough` owns the rule: a player whose synced
 Wraith state is active is skipped as an aim or crosshair target, except by the
@@ -628,3 +773,34 @@ git diff --check
 Run a full sequential `build` for a release or after packet, NBT, resource,
 metadata, mixin, or cross-module changes. Do not overlap SparkWitch and sibling
 SparkFactionAPI clean/build tasks.
+
+`verifyArchitecture` first runs `verifyBlackRavenActingRoleSeams`, which you can also run on its
+own.
+- **What it does.** It scans the pinned Wathe and NoellesRoles jars for every `isRole`,
+  `getAllWithRole`, role-equality, and role-id-equality read of the roles a Black Raven can
+  disguise as. Each site must match the classified list in
+  `src/test/resources/blackraven/acting_role_seams.txt`, with the same kind, role, owner method,
+  tag, and count.
+- **When it fails.** It fails on an unclassified site, on count drift, and on any dynamic `isRole`
+  whose role argument is not an immediately preceding `GETSTATIC` of a `Role` field.
+- **Local-only input.** The list lives under the gitignored `src/test/` tree, so a checkout
+  without the local test tree fails `verifyArchitecture`.
+
+Provider bump checklist for the Black Raven disguise. The seam audit covers only the pinned Wathe
+and NoellesRoles jars, so a SparkStrength or SparkTraits compatibility-floor bump needs these
+manual checks:
+- **Wathe or NoellesRoles pin bump:** re-run `verifyBlackRavenActingRoleSeams` and re-classify
+  every reported site. Re-check the `addToBalance` counts pinned by
+  `GameFunctionsBlackRavenWalletMixin` (`require = 3`, `allow = 3`) and
+  `MurderGameModeBlackRavenWalletMixin`.
+- **SparkStrength or SparkTraits floor bump:** re-grep that provider's `isRole` call sites,
+  including calls whose role argument is not a constant, and every `getRole` equality on an
+  allowed disguise role. Classify each one as a self gate (widened) or an inspection (raw).
+- **SparkStrength floor bump:**
+  - Re-check the `sparkstrength:flashlight` id used by `SparkStrengthDisguiseCompat`.
+  - Re-check the `@Pseudo` targets `KillerTeamEconomyService` (`recordIncome`,
+    `availableForPurchase`, `personalBalanceAfterPurchase`) and
+    `EngineerPowerRestorationService#distributeRestorationCost` (its `addToBalance` call).
+  - Both seams use `require = 0`, so a rename silently degrades to the live wallet.
+  - Re-check `DemonHunterSniffRules`, which reads the shop through M2 and must never see
+    `psycho_mode`.

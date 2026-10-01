@@ -10,7 +10,7 @@ import net.minecraft.network.packet.s2c.play.EntityEquipmentUpdateS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
-/** Hides only the bound ledger from every non-owner equipment observer. */
+/** Hides only the bound ledger and Raven Mask from every non-owner equipment observer. */
 public final class BlackRavenLedgerEquipmentFilter {
     private BlackRavenLedgerEquipmentFilter() {
     }
@@ -29,7 +29,7 @@ public final class BlackRavenLedgerEquipmentFilter {
             EquipmentSlot slot = pair.getFirst();
             ItemStack stack = pair.getSecond();
             if ((slot == EquipmentSlot.MAINHAND || slot == EquipmentSlot.OFFHAND)
-                    && BlackRavenInventoryRules.isLedger(stack)) {
+                    && BlackRavenInventoryRules.isBound(stack)) {
                 equipment.add(Pair.of(slot, ItemStack.EMPTY));
                 changed = true;
             } else {

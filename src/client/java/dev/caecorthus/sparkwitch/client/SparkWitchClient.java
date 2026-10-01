@@ -48,7 +48,6 @@ import dev.caecorthus.sparkwitch.net.WraithRoleAnnouncementS2CPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
-import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
@@ -177,7 +176,9 @@ public final class SparkWitchClient implements ClientModInitializer {
                     }
                 } else if (GuardianAngelRules.isGuardianAngel(role)) {
                     ClientPlayNetworking.send(new UseGuardianAngelSkillC2SPacket());
-                } else if (role != null && OrthopedistRules.ROLE_ID.equals(role.identifier())) {
+                } else if (GameWorldComponent.KEY.get(client.player.getWorld())
+                        .isRole(client.player, dev.caecorthus.sparkwitch.SparkWitchRoles.orthopedist())) {
+                    // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
                     ClientPlayNetworking.send(new UseOrthopedistSkillC2SPacket());
                 } else if (!WitchMaidenRules.isWitchMaiden(role)
                         && (WitchPlayerComponent.KEY.get(client.player).hasSkill()

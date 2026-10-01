@@ -1,9 +1,8 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.client.hud.OrthopedistHudRenderer;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
-import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
-import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
@@ -32,8 +31,8 @@ public abstract class OrthopedistHudMixin {
         if (player == null || !GameFunctions.isPlayerPlayingAndAlive(player)) {
             return;
         }
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        if (role != null && OrthopedistRules.ROLE_ID.equals(role.identifier())) {
+        // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
+        if (GameWorldComponent.KEY.get(player.getWorld()).isRole(player, SparkWitchRoles.orthopedist())) {
             OrthopedistHudRenderer.render(context, player);
         }
     }

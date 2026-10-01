@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.tarotreader;
 
 import com.mojang.authlib.GameProfile;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.net.OpenTarotDivinationSelectorS2CPacket;
 import dev.caecorthus.sparkwitch.net.SubmitTarotDivinationSelectionC2SPacket;
 import dev.caecorthus.sparkwitch.net.TarotDivinationReadingS2CPacket;
@@ -247,7 +248,8 @@ public final class TarotReaderDivinationService {
                 && gameComponent.hasAnyRole(uuid)
                 && !gameComponent.isPlayerDead(uuid)
                 && !GameFunctions.isPlayerSpectatingOrCreative(player)
-                && TarotReaderRules.isTarotReader(gameComponent.getRole(player));
+                // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
+                && gameComponent.isRole(player, SparkWitchRoles.tarotReader());
     }
 
     /**

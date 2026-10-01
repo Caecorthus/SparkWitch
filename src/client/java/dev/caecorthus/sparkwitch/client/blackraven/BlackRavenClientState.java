@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenIdentitySnapshot;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenActingRole;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
@@ -40,6 +41,12 @@ public final class BlackRavenClientState {
             reset();
             return;
         }
+        // Sensed-only mode is a Perception product and hides disguise outlines, so a disguise stays NORMAL and N does nothing.
+        // 感知模式来自感知技能且会隐藏伪装职业的外框，因此伪装期间保持普通模式，N 键无效。
+        if (BlackRavenActingRole.isDisguised(player)) {
+            reset();
+            return;
+        }
         if (isPerceptionActive(player)) {
             return;
         }
@@ -47,7 +54,9 @@ public final class BlackRavenClientState {
     }
 
     public static void tick(MinecraftClient client) {
-        if (client.player == null || !isEligible(client.player)) {
+        if (client.player == null
+                || !isEligible(client.player)
+                || BlackRavenActingRole.isDisguised(client.player)) {
             reset();
         }
     }

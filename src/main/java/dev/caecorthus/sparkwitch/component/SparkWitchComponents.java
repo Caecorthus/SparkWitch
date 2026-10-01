@@ -14,6 +14,7 @@ import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMarkPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeTheftPlayerComponent;
@@ -66,6 +67,9 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, BlackRavenPerceptionPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(BlackRavenPerceptionPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, BlackRavenDisguiseComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(BlackRavenDisguiseComponent::new);
         registry.beginRegistration(PlayerEntity.class, WraithPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(WraithPlayerComponent::new);

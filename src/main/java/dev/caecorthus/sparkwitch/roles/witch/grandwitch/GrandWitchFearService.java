@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.witch.grandwitch;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
+import dev.caecorthus.sparkwitch.net.SelectBlackRavenDisguiseC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.UseSaboteurSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.doctor4t.wathe.api.Role;
@@ -52,7 +53,10 @@ public final class GrandWitchFearService {
             Identifier.of("sparkwitch", "seeker_remote_open"),
             Identifier.of("sparkwitch", "seeker_car_swallow"),
             Identifier.of("sparkwitch", "seeker_car_recall"),
-            Identifier.of("sparkwitch", "seeker_car_use")
+            Identifier.of("sparkwitch", "seeker_car_use"),
+            // Black Raven transform selection; the server also re-checks fear on select.
+            // é»ç¾½é¸¦åèº«éæ©ï¼æå¡ç«¯å¨éæ©æ¶ä¹ä¼åæ¬¡æ£æ¥ææ§ã
+            SelectBlackRavenDisguiseC2SPacket.PAYLOAD_ID
     );
 
     private GrandWitchFearService() {

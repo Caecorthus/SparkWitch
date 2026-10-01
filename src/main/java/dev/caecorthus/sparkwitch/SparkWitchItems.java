@@ -26,6 +26,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeLoadoutSer
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.TollBellItem;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenLedgerItem;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.FeatherBladeItem;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseRules;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenMaskItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
@@ -53,6 +55,7 @@ public final class SparkWitchItems {
     public static final Identifier NINJA_SHURIKEN_ID = SparkWitch.id("ninja_shuriken");
     public static final Identifier FEATHER_BLADE_ID = SparkWitch.id("feather_blade");
     public static final Identifier BLACK_RAVEN_LEDGER_ID = SparkWitch.id("black_raven_ledger");
+    public static final Identifier BLACK_RAVEN_MASK_ID = BlackRavenDisguiseRules.MASK_ITEM_ID;
     public static final Identifier HUNTER_TRAP_ID = HunterTrapItem.ID;
     public static final Identifier DOUBLE_BARREL_SHOTGUN_ID = DoubleBarrelShotgunItem.ID;
     public static final Identifier DOUBLE_BARREL_SHELL_ID = DoubleBarrelShellItem.ID;
@@ -86,6 +89,7 @@ public final class SparkWitchItems {
     private static Item ninjaShuriken;
     private static Item featherBlade;
     private static Item blackRavenLedger;
+    private static Item blackRavenMask;
     private static Item hunterTrap;
     private static Item doubleBarrelShotgun;
     private static Item doubleBarrelShell;
@@ -168,6 +172,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 BLACK_RAVEN_LEDGER_ID,
                 new BlackRavenLedgerItem(new Item.Settings().maxCount(1))
+        );
+        blackRavenMask = Registry.register(
+                Registries.ITEM,
+                BLACK_RAVEN_MASK_ID,
+                new BlackRavenMaskItem(new Item.Settings().maxCount(1))
         );
         hunterTrap = Registry.register(
                 Registries.ITEM,
@@ -357,6 +366,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return blackRavenLedger;
+    }
+
+    public static Item blackRavenMask() {
+        if (blackRavenMask == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return blackRavenMask;
     }
 
     public static Item hunterTrap() {

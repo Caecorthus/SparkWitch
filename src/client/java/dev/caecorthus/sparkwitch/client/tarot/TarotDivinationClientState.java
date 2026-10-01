@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.client.tarot;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
-import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.client.MinecraftClient;
 
@@ -28,9 +27,8 @@ public final class TarotDivinationClientState {
         }
 
         GameWorldComponent game = GameWorldComponent.KEY.get(client.player.getWorld());
-        Role role = game.getRole(client.player);
-        boolean exactTarotReader = role != null
-                && SparkWitchRoles.TAROT_READER_ID.equals(role.identifier());
+        // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
+        boolean exactTarotReader = game.isRole(client.player, SparkWitchRoles.tarotReader());
         boolean runningRound = game.isRunning();
         SNAPSHOT.retainFor(true, runningRound, exactTarotReader);
         if (!runningRound || !exactTarotReader) {
