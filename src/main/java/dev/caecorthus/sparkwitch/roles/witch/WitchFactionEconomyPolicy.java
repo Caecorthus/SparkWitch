@@ -27,8 +27,9 @@ public final class WitchFactionEconomyPolicy {
     }
 
     /**
-     * Applies role-start money and items without owning non-economy cleanup.
-     * 应用身份开局金钱和物品，但不接管非经济清理逻辑。
+     * Applies role-start money and items without owning non-economy cleanup. Every accomplice (plain or special) gets
+     * the accomplice starting money; a recruitment later overwrites it with the retained balance.
+     * 应用身份开局金钱和物品，但不接管非经济清理逻辑。所有共犯（普通或特殊）获得共犯开局金币；招募随后会用保留余额覆盖它。
      */
     static void assignStartingLoadout(ServerPlayerEntity player, Role role) {
         if (WitchFactionRules.isGrandWitch(role)) {
@@ -39,7 +40,7 @@ public final class WitchFactionEconomyPolicy {
             player.giveItemStack(new ItemStack(WatheItems.KNIFE));
             return;
         }
-        if (WitchFactionRules.isAccomplice(role)) {
+        if (WitchFactionRules.isAccompliceLike(role)) {
             GameWorldComponent gameComponent = GameWorldComponent.KEY.get(player.getServerWorld());
             PlayerShopComponent.KEY.get(player).setBalance(
                     WitchEconomyService.accompliceStartingMoney(player, gameComponent)

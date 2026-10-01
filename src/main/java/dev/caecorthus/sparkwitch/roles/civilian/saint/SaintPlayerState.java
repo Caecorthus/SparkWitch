@@ -65,6 +65,25 @@ public final class SaintPlayerState {
     }
 
     /**
+     * Forced-cooldown floor for the SparkFactionAPI {@code sparkwitch:saint_hellfire} store: raises the Hellfire
+     * cooldown, never shortens it, and refuses while Hellfire burns (its end writes the post cooldown). Returns true
+     * when it changed; the owning component syncs.
+     * SparkFactionAPI sparkwitch:saint_hellfire 存储的强制冷却下限：只抬高业火冷却、绝不缩短；业火燃烧期间拒绝
+     * （燃烧结束会写入其后冷却）。有变更时返回 true，由所属组件同步。
+     */
+    public boolean raiseHellfireCooldown(int ticks) {
+        if (hellfireActiveTicks > 0) {
+            return false;
+        }
+        int normalized = Math.max(0, ticks);
+        if (normalized <= hellfireCooldownTicks) {
+            return false;
+        }
+        hellfireCooldownTicks = normalized;
+        return true;
+    }
+
+    /**
      * Advances Hellfire and reports whether the owner component should sync this tick.
      * 推进业火计时，并返回本 tick 是否需要由所属组件同步。
      */

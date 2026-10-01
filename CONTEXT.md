@@ -25,7 +25,7 @@ Current build baseline:
 - Minecraft `1.21.1`
 - Java `21`
 - SparkWitch `0.1.6.0` (Emma branch)
-- SparkFactionAPI floor `0.1.5.10`
+- SparkFactionAPI floor `0.1.5.11`
 
 ## Read Order
 
@@ -104,6 +104,8 @@ Current build baseline:
   (instinct outlines, the Impostor-viewer recolor, the killer cohort line, the "嘉豪同伙" label) lives in
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
+- `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the recruitment roll
+  `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the post-recruit hooks).
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
@@ -146,6 +148,10 @@ Current build baseline:
 - `component/`: CCA ids, stored fields, sync/NBT codecs, and narrow state
   operations used by the owning runtime Modules.
 - `compat/`: optional or version-sensitive cross-mod Adapters.
+- `compat/cooldown/`: SparkWitch's registrations with the SparkFactionAPI forced-cooldown contract
+  (`api.cooldown.ForcedCooldowns`): role-skill stores for SparkWitch and NoellesRoles counters, the SparkWitch item
+  nominal-cooldown provider, and the Seeker car item exemption. `SparkWitchForcedCooldowns.register()` runs once from
+  `SparkWitch.onInitialize`, right after `SparkWitchEvents.register()`.
 - `impl/SparkWitchEvents`: watch-only registration/lifecycle aggregator.
 - `util/hitscan/`: server-side lag compensation for hitscan weapons. `PlayerHitboxHistory` keeps a
   one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
@@ -528,6 +534,100 @@ kill readiness (30s) is independent of the item dash cooldown (5s). Recruitment
 uses a cumulative world quota, never a living-teammate count. Sword piercing
 applies to role/item shields, not trait protections such as Last Stand or Last
 Escape; protection costs and retaliation keep their normal side effects.
+
+Special accomplices (`roles/witch/accomplice/variant/AccompliceVariants`) inherit every basic Accomplice rule through
+`WitchFactionRules.isAccompliceLike`, which is true for the plain Accomplice or a registered variant. Rules that use it:
+- witch-faction membership (`isWitchFactionMember`): win counts, blackout, Fear and Obscure immunity, the cohort
+  label, and Curser visibility;
+- killer-style instinct light, the dropped-item outline, and the hidden-Phantom skip;
+- instinct colors: the Grand Witch and every accomplice see each accomplice in that role's own color;
+- passive and direct-kill money, accomplice starting money, and the Grand Witch's +25 team-kill share;
+- Grand Witch mana for accomplice kills, and hidden poison vision;
+- the witch factor: accomplices are never carriers and always see the network;
+- Emma's fatal backlash.
+
+Rules keyed on role ids keep their fixed id sets and also check `WitchFactionRules.isAccompliceVariantId`. That
+method reads the live registry on every call. These rules are `HunterRules.isInstinctTrapViewer`,
+`HunterTrapClientHooks`, and `SeekerInstinctRules.isWitchInstinctRole`.
+
+`isAccomplice` stays exact, so the plain Accomplice shop (`AccompliceShopService`) never touches a variant. These
+never include variants: `WitchManaRules.isManaRole`, `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`, and the
+`gui.sparkwitch.skills` panel whitelist (`WitchSkillPresentationRules`).
+
+A variant must register during common mod initialization, because client rules read the same registry. Hard-coded
+`sparkwitch:accomplice` lists in other repos still need each variant, for example SparkTraits
+`isBlockingTeamWinNeutral`.
+
+Grand Witch recruitment rolls a special-accomplice pool. Recruitment refuses an accomplice-like target
+(`WitchFactionRules.isAccompliceLike`), so nobody can recruit a variant again. `GrandWitchRecruitmentService.use`
+picks the recruit's role once. The roll happens after every refusal (Emma resist, balance overflow) and right
+before `game.addRole`. The same role goes to `game.addRole` and to `RoleAssigned`. The pure
+`AccompliceVariantRoll.pick` makes a uniform choice among the registered variants
+(`AccompliceVariants.variants()`, in registration order) that are enabled (`game.isRoleEnabled`) and not used this
+round. Its `java.util.Random` is seeded from `world.getRandom().nextLong()`. When no variant is left, the recruit
+becomes the plain Accomplice. A variant counts as used when the round ledger records it or when the role map holds it
+(`!game.getAllWithRole(role).isEmpty()`). Variants never appear naturally.
+
+The round ledger is `sparkwitch:accomplice_variant_round` (`AccompliceVariantRoundComponent`, with its state in
+`AccompliceVariantRoundState`). It is a world component that is never synced, appended last in
+`custom.cardinal-components`. Its only NBT key is `UsedVariants`, a list of role id strings. Its lifecycle follows
+`grand_witch_recruitment_round`:
+- **Round start.** `GrandWitchRecruitmentService.beginRound` runs at `ON_FINISH_INITIALIZE`. It resets the ledger and
+  seeds it with every variant already in the role map, so a forced round-start variant stays used after it dies and
+  becomes a Curser.
+- **Recruitment.** A recruited variant is recorded right after `round.recordSuccess`.
+- **Round end.** `clearRound` empties the ledger at `ON_FINISH_FINALIZE`.
+
+After a variant recruitment commits, the shared transaction calls `AccompliceVariants.hooks(role)
+.afterRecruitCommitted(recruit, recruiter)` once. The call comes after the `finally` block that restores the
+retained inventory, overwrites the balance, rebuilds the shop, and syncs. It comes before the messages and before
+`round.finishConversion()`. A `RuntimeException` from the hook is logged and never undoes the recruitment. Starting
+items must come from this hook, because the inventory restore wipes anything granted from `RoleAssigned`.
+
+A plain Accomplice recruitment keeps its original lines (`message.sparkwitch.recruitment.converted` / `.success`). A
+variant recruitment names the role, using `announcement.role.<path>`:
+- the recruit gets the `message.sparkwitch.recruitment.converted_as` chat line (role name, balance);
+- the Grand Witch gets the `message.sparkwitch.recruitment.success_as` actionbar line (role name). The service sends
+  it directly, because `WitchSkillUseResult` carries no message arguments. The result is still
+  `success(0)` with no key.
+
+`AccompliceShopRules.entriesWithout(ids...)` returns the plain Accomplice entries minus the given `PlannedEntry.id()`
+values, in their original order. Variants call it from their own `BuildShopEntries` listeners. An unknown id throws.
+The plain `AccompliceShopService` stays exact.
+
+Features that force a cooldown on another player (penalties, auras) go through SparkFactionAPI `ForcedCooldowns`
+(floor 0.1.5.11), never through a counter directly; affect vetoes stay the caller's job (`canAffectPlayer`).
+`compat/cooldown/SparkWitchForcedCooldowns` registers these role-skill stores, in this observable order (it is the
+`slots` order):
+1. `sparkwitch:witch_skill`: the shared `WitchPlayerComponent` cooldown, for any player with a skill (`hasSkill()`;
+   Saint has none). Remaining time includes a pending deferred cooldown (`max(cooldown, window + deferred)`); the
+   nominal is the active `WitchSkillDefinition.cooldownTicks`. Raises and extensions go through the additive
+   `WitchPlayerComponent.raiseForcedCooldownFloors`, which floors the shared cooldown and, only while a deferred
+   cooldown is already pending, that too, so a penalty during an active window survives the window end; it never
+   shortens, never creates a deferred cooldown, and syncs once. Never forced while the Kidnapper's drag skill carries a
+   body (the same counter gates the release press).
+2. `sparkwitch:saint_hellfire`: `SaintPlayerState.raiseHellfireCooldown` plus `component.sync()`; never forced while
+   Hellfire burns (its end writes the post cooldown). Nominal 1200.
+3. `sparkwitch:orthopedist` and 4. `sparkwitch:saboteur`: their exact, syncing public setters. The Orthopedist gate is
+   the widened `isRole` self gate, as in `OrthopedistSkillService.use`.
+5. `noellesroles:ability` (`AbilityPlayerComponent`, always through `setCooldown`, the only syncing write), for the
+   13 roles whose ability packet reads or writes it on the server: Voodoo, Morphling (gated only), Vulture, Swapper
+   (write-only; its gate is client-side), Recaller, Phantom, Pathogen, Noisemaker, Reporter, Detective, Silencer,
+   Party Animal and Spirit Walker (`noellesroles:spiritualist`). Only the Pathogen has a nominal
+   (`PathogenPlayerComponent.getBaseCooldownTicks`); the others use private literals.
+   6. `noellesroles:taotie_swallow` (`setSwallowCooldown`; nominal unknown, because the real value is the private
+   per-round `calculatedSwallowCooldown`), 7. `noellesroles:assassin` (`setCooldown`; nominal
+   `AssassinPlayerComponent.COOLDOWN_TICKS`). NoellesRoles gates use `isRole`, so these stores also match the acting
+   role of a disguised Black Raven (`ForcedCooldownRoles`). All members are checked against the pinned NoellesRoles
+   1.7.6 jar.
+`SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
+Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Ninja shuriken
+and knife, Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker) and of NoellesRoles items with a public
+constant (Antidote, Repair Tool, Poison Needle) plus the 200-tick neutral master key; round-start cooldowns are not
+nominals, and Wathe items fall through to Wathe's own table.
+The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
+"max + exact" writer and offers no write path to other features. Not registered (out of scope): Wathe shop-entry
+cooldowns, the Black Raven disguise switch, the Curser and Guardian Angel, and SparkStrength components.
 
 Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player
