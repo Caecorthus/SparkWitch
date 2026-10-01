@@ -1,8 +1,8 @@
 package dev.caecorthus.sparkwitch.roles.civilian.tarotreader;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsShopEntryPreserver;
-import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BuildShopEntries;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.util.ShopEntry;
@@ -32,8 +32,8 @@ public final class TarotReaderShopService {
     }
 
     private static void buildEntries(PlayerEntity player, BuildShopEntries.ShopContext context) {
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        if (!TarotReaderRules.isTarotReader(role)) {
+        // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
+        if (!GameWorldComponent.KEY.get(player.getWorld()).isRole(player, SparkWitchRoles.tarotReader())) {
             return;
         }
 

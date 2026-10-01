@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.orthopedist;
 
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -62,6 +63,19 @@ public final class OrthopedistPlayerComponent
         sync();
     }
 
+    /**
+     * Client-only: forgets observer data synced while the local player acted as an Orthopedist. No sync and no
+     * status-effect change; the server copy is untouched and a later sync overwrites this again.
+     * 仅客户端：清除本地玩家扮演骨科大夫期间同步来的观察数据。不触发同步、不改动状态效果；服务端数据不受影响，后续同步会再次覆盖。
+     */
+    public void clearObserverViewOnClient() {
+        if (!player.getWorld().isClient) {
+            return;
+        }
+        cooldownTicks = 0;
+        boneSettingActive = false;
+    }
+
     @Override
     public void serverTick() {
         if (cooldownTicks > 0) {
@@ -85,8 +99,8 @@ public final class OrthopedistPlayerComponent
         if (recipient == player) {
             return true;
         }
-        Role recipientRole = GameWorldComponent.KEY.get(recipient.getWorld()).getRole(recipient);
-        return isOrthopedist(recipientRole);
+        // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
+        return GameWorldComponent.KEY.get(recipient.getWorld()).isRole(recipient, SparkWitchRoles.orthopedist());
     }
 
     /**

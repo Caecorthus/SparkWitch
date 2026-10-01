@@ -56,6 +56,7 @@ public final class SparkWitch implements ModInitializer {
         NoellesHiddenEquipment.register(SparkWitchItems.perfumeEssence());
         NoellesHiddenEquipment.register(SparkWitchItems.cologne());
         NoellesHiddenEquipment.register(SparkWitchItems.blackRavenLedger());
+        NoellesHiddenEquipment.register(SparkWitchItems.blackRavenMask());
         NoellesHiddenEquipment.register(SparkWitchItems.tollBell());
         NoellesHiddenEquipment.register(SparkWitchItems.seekerCar());
         NoellesHiddenEquipment.register(SparkWitchItems.seekerCamera());

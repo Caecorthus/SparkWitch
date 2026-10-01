@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.compat.recruitment.NoellesRecruitmentCleanup;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.runtime.WraithLifecycle;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionFeatureService;
@@ -60,6 +61,11 @@ public final class GrandWitchRecruitmentService {
                 dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent.KEY.get(target).reveal(recruiter.getUuid());
                 return WitchSkillUseResult.fail("message.sparkwitch.recruitment.emma_resisted");
             }
+            // A disguised Black Raven reverts first, so refund and retention value its real Raven set and wallet.
+            // The revert keeps the other stashes; they are discarded only once the conversion commits below.
+            // 伪装中的黑羽鸦先恢复原身份，使退款与保留按其真实黑羽鸦物品和钱包计算。
+            // 恢复时保留其他存档，仅在下方转换提交后才丢弃。
+            BlackRavenDisguiseService.revertForRecruitment(target);
             PlayerShopComponent shop = PlayerShopComponent.KEY.get(target);
             RecruitmentInventorySnapshot inventory;
             try {
@@ -80,6 +86,7 @@ public final class GrandWitchRecruitmentService {
             // Commit the durable quota at the role-map mutation, before downstream callbacks can reenter.
             // 在身份映射变更时提交持久化名额，早于可能重入的下游回调。
             round.recordSuccess(target.getUuid());
+            BlackRavenDisguiseService.discardStashesForRecruitment(target);
             for (ServerPlayerEntity player : world.getPlayers()) {
                 syncRuntime(player);
             }

@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSk
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeService;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderDivinationService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseService;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurNetworking;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.net.SeekerNetworking;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperThrowService;
@@ -85,6 +86,14 @@ public final class SparkWitchPackets {
                 OpenBlackRavenLedgerS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
+                OpenBlackRavenDisguiseS2CPacket.ID,
+                OpenBlackRavenDisguiseS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
+                SelectBlackRavenDisguiseC2SPacket.ID,
+                SelectBlackRavenDisguiseC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
                 WraithRoleAnnouncementS2CPacket.ID,
                 WraithRoleAnnouncementS2CPacket.CODEC
         );
@@ -114,6 +123,9 @@ public final class SparkWitchPackets {
                         context.player(), payload.targetEntityId()));
         ServerPlayNetworking.registerGlobalReceiver(SubmitTarotDivinationSelectionC2SPacket.ID,
                 (payload, context) -> TarotReaderDivinationService.submit(context.player(), payload));
+        ServerPlayNetworking.registerGlobalReceiver(SelectBlackRavenDisguiseC2SPacket.ID,
+                (payload, context) -> BlackRavenDisguiseService.requestSwitch(
+                        context.player(), payload.session(), payload.target()));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {
