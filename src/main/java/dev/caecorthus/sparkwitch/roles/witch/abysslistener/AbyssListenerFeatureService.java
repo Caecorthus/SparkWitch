@@ -36,6 +36,7 @@ public final class AbyssListenerFeatureService {
         registered = true;
         AccompliceVariants.register(SparkWitchRoles.abyssListener(), HOOKS);
         AbyssListenerShopService.register();
+        AbyssListenerReplayFormatters.register();
         AbyssListenerLoadout.register();
         DeepDarkZoneService.register();
         DeepDarkZoneStandingService.register();
