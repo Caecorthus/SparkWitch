@@ -26,6 +26,13 @@ public final class SeekerRules {
     /** Placed-model ids loaded through ModelLoadingPlugin. / 通过 ModelLoadingPlugin 加载的放置模型 id。 */
     public static final Identifier CAR_PLACED_MODEL_ID = SparkWitch.id("item/seeker_car_placed");
     public static final Identifier CAMERA_PLACED_MODEL_ID = SparkWitch.id("item/seeker_camera_placed");
+    /**
+     * The placed camera is drawn in three parts: the static mount above, a head that turns with the synced look, and
+     * an LED that glows only while the owner views that camera.
+     * 放置的摄像头分三部分绘制：上面的静态底座、随同步视角转动的机头，以及仅在拥有者观看该摄像头时发光的指示灯。
+     */
+    public static final Identifier CAMERA_HEAD_MODEL_ID = SparkWitch.id("item/seeker_camera_placed_head");
+    public static final Identifier CAMERA_LED_MODEL_ID = SparkWitch.id("item/seeker_camera_placed_led");
 
     // ---- Payload ids (literal; the payload records alias these) ----
     public static final Identifier REMOTE_OPEN_PAYLOAD_ID = SparkWitch.id("seeker_remote_open");
@@ -34,6 +41,7 @@ public final class SeekerRules {
     public static final Identifier CAR_CORRECT_PAYLOAD_ID = SparkWitch.id("seeker_car_correct");
     public static final Identifier CAR_SWALLOW_PAYLOAD_ID = SparkWitch.id("seeker_car_swallow");
     public static final Identifier CAR_RECALL_PAYLOAD_ID = SparkWitch.id("seeker_car_recall");
+    public static final Identifier CAMERA_LOOK_PAYLOAD_ID = SparkWitch.id("seeker_camera_look");
 
     // ---- Sound ids (sounds.json keys are the paths) ----
     public static final Identifier CAR_MOTOR_SOUND_ID = SparkWitch.id("seeker_car_motor");
@@ -103,6 +111,12 @@ public final class SeekerRules {
     public static final int MARK_OUTLINE_PRIORITY = 95;
     public static final int OWN_DEVICE_COLOR = 0x3A5F99;
     public static final int CAR_INSTINCT_COLOR = 0xFFB02E;
+    /**
+     * The owner's own body while viewing the car or camera, owner's client only. Bright cyan: outlines are composited
+     * again untinted after the view filter, so it must stand out against the green car and grey camera pictures.
+     * 遥控/观看时拥有者本体的描边色，仅拥有者客户端可见。亮青色：描边会在滤镜之后以原色重新合成，需在小车绿色与摄像头灰色画面上都醒目。
+     */
+    public static final int OWN_BODY_COLOR = 0x5CE1FF;
 
     // ---- Remote view ----
     public static final int CAR_MAX_RADIUS = 32;
@@ -145,6 +159,17 @@ public final class SeekerRules {
     public static final int CAR_TRACKING_INTERVAL = 2;
     /** Render distance for device outlines (squared). / 设备及其描边的渲染距离（平方）。 */
     public static final double DEVICE_RENDER_DISTANCE_SQUARED = 64.0 * 64.0;
+
+    // ---- Car use: the driven car's own right-click on doors, gates, buttons and levers ----
+    /**
+     * Stable C2S payload id sent while driving; it is the in-session action, so the session guard never blocks it.
+     * 驾驶期间发送的稳定 C2S 数据包 id；它是会话内的行为，因此会话拦截从不阻止它。
+     */
+    public static final Identifier CAR_USE_PAYLOAD_ID = SparkWitch.id("seeker_car_use");
+    /** Eye-to-hit reach of the car's use ray in blocks. / 小车交互射线从眼到命中点的距离（格）。 */
+    public static final double CAR_USE_REACH = 2.5;
+    /** Minimum ticks between two car uses (vanilla's item-use delay). / 两次小车交互的最小间隔（原版物品使用间隔）。 */
+    public static final int CAR_USE_INTERVAL_TICKS = 4;
 
     // ---- Camera body and view cone ----
     public static final float CAMERA_SIZE = 0.3F;

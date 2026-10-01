@@ -9,9 +9,10 @@ import net.minecraft.util.Identifier;
 
 /**
  * Client only: loads the placed car/camera Blockbench models ({@link SeekerRules#CAR_PLACED_MODEL_ID},
- * {@link SeekerRules#CAMERA_PLACED_MODEL_ID}) through Fabric's ModelLoadingPlugin, as the Hunter trap does, so the
+ * {@link SeekerRules#CAMERA_PLACED_MODEL_ID} plus the camera's {@link SeekerRules#CAMERA_HEAD_MODEL_ID} and
+ * {@link SeekerRules#CAMERA_LED_MODEL_ID}) through Fabric's ModelLoadingPlugin, as the Hunter trap does, so the
  * entity renderers can draw them with the item renderer.
- * 仅客户端：通过 Fabric ModelLoadingPlugin 加载小车与摄像头的放置模型（与猎人捕兽夹相同），
+ * 仅客户端：通过 Fabric ModelLoadingPlugin 加载小车与摄像头的放置模型（含摄像头的机头与指示灯模型，与猎人捕兽夹相同），
  * 供实体渲染器用物品渲染器绘制。
  */
 public final class SeekerModels {
@@ -26,7 +27,8 @@ public final class SeekerModels {
         }
         registered = true;
         ModelLoadingPlugin.register(context -> context.addModels(
-                SeekerRules.CAR_PLACED_MODEL_ID, SeekerRules.CAMERA_PLACED_MODEL_ID));
+                SeekerRules.CAR_PLACED_MODEL_ID, SeekerRules.CAMERA_PLACED_MODEL_ID,
+                SeekerRules.CAMERA_HEAD_MODEL_ID, SeekerRules.CAMERA_LED_MODEL_ID));
     }
 
     static BakedModel model(Identifier id) {

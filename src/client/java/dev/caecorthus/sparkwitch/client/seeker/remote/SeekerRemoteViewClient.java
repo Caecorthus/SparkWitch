@@ -84,6 +84,7 @@ public final class SeekerRemoteViewClient {
         SeekerCarMovement.installClientDriveHook(SeekerCarClientDriver::isLocallyDriven);
         // START_CLIENT_TICK runs before handleInputEvents in the same tick. / START_CLIENT_TICK 在同一刻的 handleInputEvents 之前运行。
         ClientTickEvents.START_CLIENT_TICK.register(SeekerRemoteViewClient::tick);
+        SeekerCarUseClient.register();
         // END_CLIENT_TICK runs after the world tick reset the car's prev* fields. / END_CLIENT_TICK 在世界 tick 重置小车 prev* 之后运行。
         ClientTickEvents.END_CLIENT_TICK.register(SeekerCarClientDriver::endTick);
     }
@@ -223,6 +224,7 @@ public final class SeekerRemoteViewClient {
         switch (exit) {
             case NONE -> {
                 maintain(client, player);
+                SeekerCameraCycler.tick(client, player, activeMode);
                 return false;
             }
             case SWITCHED -> {
@@ -305,8 +307,9 @@ public final class SeekerRemoteViewClient {
     }
 
     /**
-     * Atomic mode switch: point the view at the new focus in place, without a full end/start cycle.
-     * 原子模式切换：原地把视角指向新焦点，不走完整的结束/开始流程。
+     * Atomic switch (car to camera, camera to car, or camera to camera): point the view at the new focus in place,
+     * without a full end/start cycle.
+     * 原子切换（小车切到摄像头、摄像头切到小车，或摄像头切到另一台摄像头）：原地把视角指向新焦点，不走完整的结束/开始流程。
      */
     private static boolean retarget(MinecraftClient client, ClientPlayerEntity player, SeekerSessionMode mode,
                                     int sessionId) {
@@ -323,7 +326,13 @@ public final class SeekerRemoteViewClient {
         return true;
     }
 
+    /**
+     * Binds the focus for a session start or an atomic switch; the camera cycler restarts its key edges and spacing
+     * here, so a strafe key held through the bind never cycles.
+     * 为会话开始或原子切换绑定焦点；摄像头切换器在此重置按键沿与发送间隔，因此绑定时一直按住的左右键不会触发切换。
+     */
     private static void bind(MinecraftClient client, SeekerSessionMode mode, int sessionId, SeekerDeviceEntity target) {
+        SeekerCameraCycler.rebind(client, boundPlayer);
         activeMode = mode;
         activeSessionId = sessionId;
         device = target;
@@ -344,6 +353,7 @@ public final class SeekerRemoteViewClient {
         client.gameRenderer.setRenderHand(false);
         if (focus instanceof SeekerCameraViewpoint viewpoint) {
             viewpoint.followMount();
+            SeekerCameraLookSender.tick(viewpoint, activeSessionId);
         }
     }
 
@@ -386,9 +396,11 @@ public final class SeekerRemoteViewClient {
                 || world.getEntityById(current.getId()) != current) {
             return true;
         }
+        // CAMERA: the synced focus names the exact camera (several may exist) and it must still be listed.
+        // 摄像头：同步的焦点指明具体哪台（可能有多台），且该摄像头必须仍在列表中。
         int expectedId = activeMode == SeekerSessionMode.CAR
                 ? SeekerClientState.carEntityId()
-                : SeekerClientState.cameraEntityId();
+                : SeekerClientState.hasCamera(current.getId()) ? SeekerClientState.sessionFocusEntityId() : -1;
         return expectedId != current.getId();
     }
 
@@ -399,7 +411,9 @@ public final class SeekerRemoteViewClient {
         }
         int id = switch (mode) {
             case CAR -> SeekerClientState.carEntityId();
-            case CAMERA -> SeekerClientState.cameraEntityId();
+            // The synced session focus is the one camera the server opened. / 同步的会话焦点就是服务端打开的那台摄像头。
+            case CAMERA -> SeekerClientState.hasCamera(SeekerClientState.sessionFocusEntityId())
+                    ? SeekerClientState.sessionFocusEntityId() : -1;
             case NONE -> -1;
         };
         if (id < 0) {

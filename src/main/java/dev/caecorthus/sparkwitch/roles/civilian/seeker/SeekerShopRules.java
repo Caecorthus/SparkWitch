@@ -8,12 +8,13 @@ import java.util.List;
 /**
  * Stable contract: the pure Seeker shop specification. Wathe builds the list on both sides and buys by index with no
  * version handshake, so the shape depends only on the role and on whether the SparkStrength tablet item is registered
- * (the same mod set on client and server) — never on a runtime API probe. Order: camera (150, no stock limit; a
- * duplicate is denied at purchase time), then the SparkStrength tablet (50, stock 1) under SparkStrength's own entry
- * id, so SparkStrength's final append skips its 150 tablet and its "already owned" deny still applies.
+ * (the same mod set on client and server) — never on a runtime API probe. Order: camera (150, no stock limit and
+ * re-buyable any time; the owner may own any number, only money limits it), then the SparkStrength tablet (50,
+ * stock 1) under SparkStrength's own entry id, so SparkStrength's final append skips its 150 tablet and its
+ * "already owned" deny still applies.
  * 稳定契约：纯搜寻者商店规格。Wathe 在两端各自构建列表并按下标购买，没有版本握手，因此列表形状只取决于职业
- * 以及 SparkStrength 平板物品是否已注册（两端模组集合相同），绝不取决于运行时 API 探测。顺序：摄像头（150，不限库存；
- * 重复购买在购买时拒绝），然后是 SparkStrength 平板（50，库存 1），使用 SparkStrength 自己的条目 id，
+ * 以及 SparkStrength 平板物品是否已注册（两端模组集合相同），绝不取决于运行时 API 探测。顺序：摄像头（150，不限库存，
+ * 随时可再买；拥有者可拥有任意数量，只受金钱限制），然后是 SparkStrength 平板（50，库存 1），使用 SparkStrength 自己的条目 id，
  * 这样 SparkStrength 的末尾追加会跳过其 150 的平板条目，而其“已拥有”拒绝仍然生效。
  */
 public final class SeekerShopRules {
@@ -22,8 +23,6 @@ public final class SeekerShopRules {
     public static final int TABLET_STOCK = 1;
     /** Shop description colour, the same grey as other SparkWitch shop lore. / 商店描述颜色，与其他 SparkWitch 商店一致的灰色。 */
     public static final int DESCRIPTION_COLOR = 0x808080;
-    /** Purchase-deny reason shown by Wathe (translation key). / Wathe 显示的拒绝原因（翻译键）。 */
-    public static final String CAMERA_ALREADY_OWNED_KEY = "message.sparkwitch.seeker.camera.already_owned";
     public static final String TABLET_DESCRIPTION_KEY = "shop.sparkwitch.seeker_tablet.description";
 
     public static final EntrySpec CAMERA = new EntrySpec(EntryKind.CAMERA, SeekerRules.CAMERA_ENTRY_ID,
@@ -56,15 +55,6 @@ public final class SeekerShopRules {
 
     public static boolean isCameraEntry(@Nullable String entryId) {
         return CAMERA.id().equals(entryId);
-    }
-
-    /**
-     * At most one camera per owner (Q8): deny while one is held (anywhere, including the cursor) or placed; it is
-     * re-buyable once the placed camera is destroyed.
-     * 每名拥有者最多一台摄像头（Q8）：持有（任意位置，含光标）或已放置时拒绝；已放置的摄像头被毁后可再次购买。
-     */
-    public static boolean deniesCameraPurchase(@Nullable String entryId, boolean holdsCamera, boolean cameraPlaced) {
-        return isCameraEntry(entryId) && (holdsCamera || cameraPlaced);
     }
 
     /** Which item an entry sells. / 条目出售的物品。 */

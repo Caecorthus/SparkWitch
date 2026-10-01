@@ -5,21 +5,31 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.RegistryByteBuf;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Frozen contract: the pure Seeker state machine (car, camera, session, battery, mark). Transitions mutate this object
+ * Frozen contract: the pure Seeker state machine (car, cameras, session, battery, mark). Transitions mutate this object
  * and return a {@link Delta}; the owning service applies cooldowns and side effects, the component syncs. A transition
  * that does not apply to the current state is a no-op returning {@link Delta#NONE}, so every caller may retry safely.
+ * The owner may own any number of cameras; each gets a per-match label (1, 2, 3, ... in placement order, never reused
+ * until {@link #clear()}, {@link #readNbt} or a new match in {@link #bindMatch}).
  * 冻结契约：纯搜寻者状态机（小车、摄像头、会话、电量、标记）。状态转移会修改本对象并返回 {@link Delta}；
  * 由负责的服务执行冷却与副作用，由组件同步。不适用于当前状态的转移为空操作并返回 {@link Delta#NONE}，调用方可安全重试。
+ * 拥有者可以拥有任意数量的摄像头；每个摄像头按放置顺序获得本局编号（1、2、3……，在 {@link #clear()}、{@link #readNbt}
+ * 或 {@link #bindMatch} 进入新对局之前从不复用）。
  *
  * <p>Owner sync (fixed write order, remaining ticks only, pinned by {@code SeekerComponentSchemaSourceTest}): carState
- * byte, carEntityId varint, cameraEntityId varint, sessionMode byte, sessionId varint, effectiveRadius byte,
+ * byte, carEntityId varint, cameraCount varint + (entityId varint, label varint) per camera in label order,
+ * sessionMode byte, sessionId varint, sessionFocusEntityId varint (-1 without a session), effectiveRadius byte,
  * cooldownReason byte, markTarget boolean + UUID, markRemainingTicks varint, carBattery byte. NBT keeps only
- * {@code Match}, {@code LostTo} and {@code PendingReturn}.
- * 拥有者同步（固定写入顺序，仅发送剩余刻数）见上；NBT 只保存 {@code Match}、{@code LostTo} 与 {@code PendingReturn}。
+ * {@code Match}, {@code LostTo} and {@code PendingReturn}; cameras never persist.
+ * 拥有者同步（固定写入顺序，仅发送剩余刻数）见上：摄像头按编号顺序写入数量及每个摄像头的实体 id 与编号，
+ * 并同步会话焦点实体 id（无会话时为 -1），使拥有者客户端准确知道自己正在观看哪台设备。
+ * NBT 只保存 {@code Match}、{@code LostTo} 与 {@code PendingReturn}；摄像头从不持久化。
  */
 public final class SeekerState {
     static final String MATCH_NBT_KEY = "Match";
@@ -28,6 +38,19 @@ public final class SeekerState {
     private static final int NO_ENTITY = -1;
     private static final int NO_WARNING = -1;
     private static final int MAX_RADIUS_BYTE = 255;
+    private static final int FIRST_CAMERA_LABEL = 1;
+    /**
+     * Client-side guard against a corrupt camera count; far above any affordable number of cameras.
+     * 客户端对异常摄像头数量的防护；远高于任何可负担的摄像头数量。
+     */
+    private static final int MAX_SYNCED_CAMERAS = 1024;
+
+    /**
+     * One placed camera of the owner: its entity id and its per-match label (shown as "CAM 01").
+     * 拥有者的一台已放置摄像头：实体 id 与本局编号（显示为“摄像头 01”）。
+     */
+    public record Camera(int entityId, int label) {
+    }
 
     /**
      * Result of one transition, always passed to {@code SeekerStatusComponent#apply}, which performs the one
@@ -47,9 +70,11 @@ public final class SeekerState {
     // ---- Owner-synced ----
     private SeekerCarState carState = SeekerCarState.NONE;
     private int carEntityId = NO_ENTITY;
-    private int cameraEntityId = NO_ENTITY;
+    /** Ordered by label (placement order). / 按编号（放置顺序）排列。 */
+    private final List<Camera> cameras = new ArrayList<>();
     private SeekerSessionMode sessionMode = SeekerSessionMode.NONE;
     private int sessionId;
+    private int sessionFocusEntityId = NO_ENTITY;
     private int effectiveRadius;
     private SeekerCooldownReason cooldownReason = SeekerCooldownReason.NONE;
     private @Nullable UUID markTarget;
@@ -62,7 +87,8 @@ public final class SeekerState {
     private @Nullable String matchId;
 
     // ---- Server-only, transient ----
-    private int sessionFocusEntityId = NO_ENTITY;
+    private int nextCameraLabel = FIRST_CAMERA_LABEL;
+    private int lastViewedCameraId = NO_ENTITY;
     private int batteryTicks;
     private boolean warnedLow;
     private boolean warnedCritical;
@@ -75,8 +101,39 @@ public final class SeekerState {
         return carEntityId;
     }
 
-    public int cameraEntityId() {
-        return cameraEntityId;
+    /** The owner's cameras in label order (read-only view). / 按编号排列的拥有者摄像头（只读视图）。 */
+    public List<Camera> cameras() {
+        return Collections.unmodifiableList(cameras);
+    }
+
+    public int cameraCount() {
+        return cameras.size();
+    }
+
+    public boolean hasCamera(int entityId) {
+        return cameraLabel(entityId) > 0;
+    }
+
+    /** The camera's label, or -1 when it is not one of the owner's cameras. / 摄像头编号；不属于拥有者时为 -1。 */
+    public int cameraLabel(int entityId) {
+        if (entityId < 0) {
+            return NO_ENTITY;
+        }
+        for (Camera camera : cameras) {
+            if (camera.entityId() == entityId) {
+                return camera.label();
+            }
+        }
+        return NO_ENTITY;
+    }
+
+    /**
+     * Server-only: the camera the owner viewed last (kept after the session ends), the default for an open request
+     * without an explicit target; -1 when none. Never synced.
+     * 仅服务端：拥有者最近观看的摄像头（会话结束后仍保留），是未指定目标的打开请求的默认选择；没有时为 -1。从不同步。
+     */
+    public int lastViewedCameraId() {
+        return lastViewedCameraId;
     }
 
     public SeekerSessionMode sessionMode() {
@@ -124,8 +181,10 @@ public final class SeekerState {
     }
 
     /**
-     * Server-only focus entity id recorded by {@link #openSession}; -1 without a session. Never synced.
-     * 由 {@link #openSession} 记录的仅服务端焦点实体 id；无会话时为 -1，从不同步。
+     * Focus entity id recorded by {@link #openSession} (the car or the exact camera being viewed); -1 without a
+     * session. Owner-synced so the owner's client knows which device it views.
+     * 由 {@link #openSession} 记录的焦点实体 id（小车或正在观看的那台摄像头）；无会话时为 -1。
+     * 同步给拥有者，使其客户端知道自己正在观看哪台设备。
      */
     public int sessionFocusEntityId() {
         return sessionFocusEntityId;
@@ -137,7 +196,7 @@ public final class SeekerState {
      */
     public boolean isIdle() {
         return carState == SeekerCarState.NONE
-                && cameraEntityId == NO_ENTITY
+                && cameras.isEmpty()
                 && sessionMode == SeekerSessionMode.NONE
                 && markTarget == null
                 && markRemainingTicks <= 0
@@ -232,39 +291,54 @@ public final class SeekerState {
         return Delta.NONE;
     }
 
-    /** At most one camera per owner. / 每名拥有者最多一个摄像头。 */
+    /**
+     * Adds a new camera with the next label; no cap (only money limits it). A known or negative id is a no-op.
+     * 以下一个编号加入新摄像头；不设上限（只受金钱限制）。已登记或为负的 id 为空操作。
+     */
     public Delta placeCamera(int cameraEntityId) {
-        if (this.cameraEntityId != NO_ENTITY || cameraEntityId < 0) {
+        if (cameraEntityId < 0 || hasCamera(cameraEntityId)) {
             return Delta.NONE;
         }
-        this.cameraEntityId = cameraEntityId;
+        cameras.add(new Camera(cameraEntityId, nextCameraLabel++));
         return new Delta(true, 0, SeekerCooldownReason.NONE, false, null, false);
     }
 
-    /** Closes a CAMERA session with CAMERA_BROKEN. / 结束摄像头会话。 */
-    public Delta destroyCamera() {
-        if (cameraEntityId == NO_ENTITY) {
+    /**
+     * Removes only that camera; closes the session with CAMERA_BROKEN only when it is showing that very camera.
+     * 只移除该摄像头；仅当会话正显示这台摄像头时才以 CAMERA_BROKEN 结束会话。
+     */
+    public Delta destroyCamera(int cameraEntityId) {
+        if (!hasCamera(cameraEntityId)) {
             return Delta.NONE;
         }
-        boolean closed = closeIf(SeekerSessionMode.CAMERA);
-        cameraEntityId = NO_ENTITY;
+        boolean closed = sessionMode == SeekerSessionMode.CAMERA && sessionFocusEntityId == cameraEntityId
+                && closeIf(SeekerSessionMode.CAMERA);
+        cameras.removeIf(camera -> camera.entityId() == cameraEntityId);
+        if (lastViewedCameraId == cameraEntityId) {
+            lastViewedCameraId = NO_ENTITY;
+        }
         return new Delta(true, 0, SeekerCooldownReason.NONE, closed, closed ? SeekerExitReason.CAMERA_BROKEN : null,
                 false);
     }
 
     /**
-     * Requires no session or a mode switch, and the viewed device present (CAR: DEPLOYED; CAMERA: placed); increments
-     * sessionId. A switch reports the previous session as closed with SWITCHED. The radius is clamped to one byte.
-     * 要求当前无会话或为模式切换，且目标设备存在（CAR 需 DEPLOYED，CAMERA 需已放置）；sessionId 递增。
-     * 模式切换会把上一个会话报告为以 SWITCHED 关闭。半径被限制在一个字节内。
+     * Requires no session, a mode switch, or (CAMERA only) a different camera, and the viewed device present (CAR:
+     * DEPLOYED; CAMERA: {@code focusEntityId} is one of the owner's cameras); increments sessionId. A switch reports
+     * the previous session as closed with SWITCHED. The radius is clamped to one byte.
+     * 要求当前无会话、为模式切换，或（仅 CAMERA）换到另一台摄像头，且目标设备存在（CAR 需 DEPLOYED，
+     * CAMERA 需 {@code focusEntityId} 是拥有者的摄像头之一）；sessionId 递增。切换会把上一个会话报告为以 SWITCHED 关闭。
+     * 半径被限制在一个字节内。
      */
     public Delta openSession(SeekerSessionMode mode, int focusEntityId, int effectiveRadius) {
-        if (mode == null || mode == SeekerSessionMode.NONE || mode == sessionMode) {
+        if (mode == null || mode == SeekerSessionMode.NONE) {
+            return Delta.NONE;
+        }
+        if (mode == sessionMode && (mode != SeekerSessionMode.CAMERA || focusEntityId == sessionFocusEntityId)) {
             return Delta.NONE;
         }
         boolean deviceReady = mode == SeekerSessionMode.CAR
                 ? carState == SeekerCarState.DEPLOYED
-                : cameraEntityId != NO_ENTITY;
+                : hasCamera(focusEntityId);
         if (!deviceReady) {
             return Delta.NONE;
         }
@@ -272,6 +346,9 @@ public final class SeekerState {
         sessionMode = mode;
         sessionId++;
         sessionFocusEntityId = focusEntityId;
+        if (mode == SeekerSessionMode.CAMERA) {
+            lastViewedCameraId = focusEntityId;
+        }
         this.effectiveRadius = Math.max(0, Math.min(MAX_RADIUS_BYTE, effectiveRadius));
         return new Delta(true, 0, SeekerCooldownReason.NONE, switched, switched ? SeekerExitReason.SWITCHED : null,
                 false);
@@ -372,6 +449,10 @@ public final class SeekerState {
      * 任意 → NONE：最终死亡、职业变更、重置、结算。保留对局绑定与单调递增的 sessionId。
      */
     public Delta clear() {
+        // Labels restart even for an idle state (never synced, so resetting them alone is not dirty).
+        // 即使状态空闲也重新开始编号（编号不同步，因此单独重置不算 dirty）。
+        nextCameraLabel = FIRST_CAMERA_LABEL;
+        lastViewedCameraId = NO_ENTITY;
         if (isIdle() && cooldownReason == SeekerCooldownReason.NONE && carEntityId == NO_ENTITY
                 && effectiveRadius == 0 && carBattery == 0) {
             return Delta.NONE;
@@ -379,7 +460,7 @@ public final class SeekerState {
         boolean closed = sessionMode != SeekerSessionMode.NONE;
         closeSessionFields();
         resetCar(SeekerCarState.NONE);
-        cameraEntityId = NO_ENTITY;
+        resetCameras();
         cooldownReason = SeekerCooldownReason.NONE;
         markTarget = null;
         markRemainingTicks = 0;
@@ -388,8 +469,16 @@ public final class SeekerState {
         return new Delta(true, 0, SeekerCooldownReason.NONE, closed, null, false);
     }
 
-    /** Server-only binding; never synced. / 仅服务端绑定，从不同步。 */
+    /**
+     * Server-only binding; never synced. A new match with no cameras left restarts the camera labels, so they stay
+     * per-match even for a state that was never cleared.
+     * 仅服务端绑定，从不同步。进入新对局且没有剩余摄像头时重新开始摄像头编号，即使状态从未被清除，编号也按对局计算。
+     */
     public Delta bindMatch(String matchId) {
+        if (!Objects.equals(this.matchId, matchId) && cameras.isEmpty()) {
+            nextCameraLabel = FIRST_CAMERA_LABEL;
+            lastViewedCameraId = NO_ENTITY;
+        }
         this.matchId = matchId;
         return Delta.NONE;
     }
@@ -407,9 +496,14 @@ public final class SeekerState {
     public void writeSync(RegistryByteBuf buf) {
         buf.writeByte(carState.id());
         buf.writeVarInt(carEntityId);
-        buf.writeVarInt(cameraEntityId);
+        buf.writeVarInt(cameras.size());
+        for (Camera camera : cameras) {
+            buf.writeVarInt(camera.entityId());
+            buf.writeVarInt(camera.label());
+        }
         buf.writeByte(sessionMode.id());
         buf.writeVarInt(sessionId);
+        buf.writeVarInt(sessionFocusEntityId);
         buf.writeByte(effectiveRadius);
         buf.writeByte(cooldownReason.id());
         boolean marked = markTarget != null && markRemainingTicks > 0;
@@ -424,9 +518,17 @@ public final class SeekerState {
     public void readSync(RegistryByteBuf buf) {
         carState = SeekerCarState.fromId(buf.readUnsignedByte());
         carEntityId = buf.readVarInt();
-        cameraEntityId = buf.readVarInt();
+        int cameraCount = buf.readVarInt();
+        if (cameraCount < 0 || cameraCount > MAX_SYNCED_CAMERAS) {
+            throw new IllegalStateException("Invalid Seeker camera count " + cameraCount);
+        }
+        cameras.clear();
+        for (int index = 0; index < cameraCount; index++) {
+            cameras.add(new Camera(buf.readVarInt(), buf.readVarInt()));
+        }
         sessionMode = SeekerSessionMode.fromId(buf.readUnsignedByte());
         sessionId = buf.readVarInt();
+        sessionFocusEntityId = buf.readVarInt();
         effectiveRadius = buf.readUnsignedByte();
         cooldownReason = SeekerCooldownReason.fromId(buf.readUnsignedByte());
         markTarget = buf.readBoolean() ? buf.readUuid() : null;
@@ -453,7 +555,7 @@ public final class SeekerState {
     public void readNbt(NbtCompound nbt) {
         closeSessionFields();
         resetCar(SeekerCarState.NONE);
-        cameraEntityId = NO_ENTITY;
+        resetCameras();
         cooldownReason = SeekerCooldownReason.NONE;
         markTarget = null;
         markRemainingTicks = 0;
@@ -467,8 +569,8 @@ public final class SeekerState {
 
     @Override
     public String toString() {
-        return "SeekerState{car=" + carState + ", carId=" + carEntityId + ", cameraId=" + cameraEntityId
-                + ", session=" + sessionMode + "#" + sessionId + ", battery=" + carBattery
+        return "SeekerState{car=" + carState + ", carId=" + carEntityId + ", cameras=" + cameras
+                + ", session=" + sessionMode + "#" + sessionId + "@" + sessionFocusEntityId + ", battery=" + carBattery
                 + ", lostTo=" + Objects.toString(carLostTo) + ", pendingReturn=" + pendingReturn + '}';
     }
 
@@ -498,6 +600,12 @@ public final class SeekerState {
         sessionMode = SeekerSessionMode.NONE;
         sessionFocusEntityId = NO_ENTITY;
         effectiveRadius = 0;
+    }
+
+    private void resetCameras() {
+        cameras.clear();
+        nextCameraLabel = FIRST_CAMERA_LABEL;
+        lastViewedCameraId = NO_ENTITY;
     }
 
     private void resetCar(SeekerCarState next) {

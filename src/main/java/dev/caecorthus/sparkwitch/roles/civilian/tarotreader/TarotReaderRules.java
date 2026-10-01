@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.tarotreader;
 
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.doctor4t.wathe.api.Faction;
@@ -21,6 +22,16 @@ public final class TarotReaderRules {
 
     public static boolean isTarotReader(@Nullable Role role) {
         return role == SparkWitchRoles.tarotReader();
+    }
+
+    /**
+     * Static registry bucket of a role, for grouping the identity selector. It reads only the role's registered base
+     * faction, never any player's live alignment, so it reveals nothing about the round. Null means no HUD bucket.
+     * 职业的静态注册阵营桶，用于身份占卜界面分组。只读取职业注册的基础阵营，从不读取任何玩家的实时阵营，
+     * 因此不会泄露本局信息。返回 null 表示不属于 HUD 的任一阵营桶。
+     */
+    public static @Nullable FactionBucket staticBucket(Role role) {
+        return classifyFaction(SparkFactionApi.resolveBaseFaction(role), role.getFaction());
     }
 
     static FactionBucket classifyFaction(Identifier effectiveFaction, Faction nativeFaction) {
@@ -62,7 +73,7 @@ public final class TarotReaderRules {
         return assigned && !dead;
     }
 
-    enum FactionBucket {
+    public enum FactionBucket {
         CIVILIAN,
         KILLER,
         NEUTRAL,
