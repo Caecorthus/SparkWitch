@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch.riftwalker;
 
+import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterPlayerComponent;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
@@ -11,6 +12,7 @@ import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Riftwalker-shared "held in place" probes (C10): a player rooted by a Hunter trap or held by the SparkStrength
@@ -24,7 +26,7 @@ public final class RiftwalkerStatusProbes {
     static final Identifier CAPTURE_STUN_COMPONENT_ID = Identifier.of(SPARK_STRENGTH_MOD_ID, "engineer_stunned");
     static final String STUNNED_GETTER = "isStunned";
 
-    private static volatile boolean captureStunDisabled;
+    private static final AtomicBoolean CAPTURE_STUN_DISABLED = new AtomicBoolean();
     private static volatile @Nullable Accessor accessor;
 
     private RiftwalkerStatusProbes() {
@@ -50,14 +52,15 @@ public final class RiftwalkerStatusProbes {
      * (pattern of {@code compat/SparkStrengthM67Compat}). Absent SparkStrength or a not-yet-registered component reads
      * as "not stunned"; a changed shape (missing or non-boolean getter, a throwing call) disables the seam for the
      * session and also reads as "not stunned" — the worst case is an entry or pull SparkStrength undoes, never a crash.
-     * Server and client safe.
+     * Disabling logs one warning (N-4), so a SparkStrength change does not fail open unnoticed. Server and client safe.
      * 外部接缝（可选 SparkStrength，无编译期依赖）：按 CCA 组件 id {@code sparkstrength:engineer_stunned} 查找组件，并以反射调用其
      * public 无参 {@code boolean isStunned()}（沿用 {@code compat/SparkStrengthM67Compat} 的模式）。未安装 SparkStrength 或组件尚未
      * 注册时视为「未眩晕」；形状变化（getter 缺失或非 boolean、调用抛出异常）会在本次会话中关闭该接缝，同样视为「未眩晕」——
-     * 最坏情况只是一次被 SparkStrength 抵消的进门或召集，绝不会崩溃。服务端与客户端均安全。
+     * 最坏情况只是一次被 SparkStrength 抵消的进门或召集，绝不会崩溃。关闭时记录一次警告（N-4），SparkStrength 改动后不会悄无声息地
+     * 失效放行。服务端与客户端均安全。
      */
     public static boolean isCaptureStunned(@Nullable PlayerEntity player) {
-        if (player == null || captureStunDisabled || !sparkStrengthLoaded()) {
+        if (player == null || CAPTURE_STUN_DISABLED.get() || !sparkStrengthLoaded()) {
             return false;
         }
         Component component;
@@ -65,7 +68,7 @@ public final class RiftwalkerStatusProbes {
             ComponentKey<?> key = ComponentRegistry.get(CAPTURE_STUN_COMPONENT_ID);
             component = key == null ? null : key.getNullable(player);
         } catch (RuntimeException | LinkageError failure) {
-            captureStunDisabled = true;
+            disableCaptureStun("component lookup failed", failure);
             return false;
         }
         if (component == null) {
@@ -78,8 +81,18 @@ public final class RiftwalkerStatusProbes {
         try {
             return Boolean.TRUE.equals(resolved.stunned().invoke(component));
         } catch (ReflectiveOperationException | RuntimeException | LinkageError failure) {
-            captureStunDisabled = true;
+            disableCaptureStun(STUNNED_GETTER + "() call failed", failure);
             return false;
+        }
+    }
+
+    /**
+     * Turns the seam off for the session; only the first caller logs. / 在本次会话中关闭该接缝；只有第一次调用记录日志。
+     */
+    private static void disableCaptureStun(String why, @Nullable Throwable failure) {
+        if (CAPTURE_STUN_DISABLED.compareAndSet(false, true)) {
+            SparkWitch.LOGGER.warn("SparkStrength capture-stun probe ({}) disabled: {}; Rift Gate entry and Witches' "
+                    + "Sabbath now treat every player as not capture-stunned", CAPTURE_STUN_COMPONENT_ID, why, failure);
         }
     }
 
@@ -99,14 +112,14 @@ public final class RiftwalkerStatusProbes {
         try {
             Method stunned = type.getMethod(STUNNED_GETTER);
             if (stunned.getReturnType() != boolean.class || Modifier.isStatic(stunned.getModifiers())) {
-                captureStunDisabled = true;
+                disableCaptureStun(STUNNED_GETTER + "() is not a boolean instance getter", null);
                 return null;
             }
             Accessor resolved = new Accessor(type, stunned);
             accessor = resolved;
             return resolved;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError failure) {
-            captureStunDisabled = true;
+            disableCaptureStun(STUNNED_GETTER + "() lookup failed", failure);
             return null;
         }
     }
