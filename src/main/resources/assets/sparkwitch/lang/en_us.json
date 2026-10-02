@@ -982,7 +982,7 @@
   "hud.sparkwitch.blind.attune.name": "Attune",
   "shop.sparkwitch.comtac_viii": "ComTac VIII",
   "shop.sparkwitch.comtac_viii.description": "A headset worn on the head: triples your hearing range. One per round.",
-  "hud.sparkwitch.blind.view_unavailable": "The Blind's view needs shader packs off",
+  "hud.sparkwitch.blind.view_unavailable": "The Blind's view is unavailable (shader packs must be off)",
   "hud.sparkwitch.blind.attune.ready": "%1$s ready: press %2$s",
   "hud.sparkwitch.blind.attune.active": "%1$s: %2$ss",
   "hud.sparkwitch.blind.attune.cooldown": "%1$s cooling down: %2$ss",
@@ -995,6 +995,6 @@
   "item.sparkwitch.white_cane.tooltip.line2": "10 s cooldown after the tap ends. Others hear the tap.",
   "item.sparkwitch.comtac_viii.tooltip.line1": "Wear it on your head: hearing range ×3.",
   "item.sparkwitch.comtac_viii.tooltip.line2": "Right-click to put it on. It cannot be dropped.",
-  "shop.error.sparkwitch.comtac_owned": "You already own a ComTac VIII.",
+  "shop.error.sparkwitch.comtac_owned": "Only one ComTac VIII per round.",
   "subtitles.sparkwitch.blind.cane_tap": "Cane taps"
 }

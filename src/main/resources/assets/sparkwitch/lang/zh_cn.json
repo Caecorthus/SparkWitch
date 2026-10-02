@@ -982,12 +982,12 @@
   "hud.sparkwitch.blind.attune.name": "凝神",
   "shop.sparkwitch.comtac_viii": "ComTac VIII",
   "shop.sparkwitch.comtac_viii.description": "戴在头上的耳机：听觉范围×3。每局限购一件。",
-  "hud.sparkwitch.blind.view_unavailable": "盲人视野需要关闭光影包",
+  "hud.sparkwitch.blind.view_unavailable": "盲人视野不可用（需关闭光影包）",
   "hud.sparkwitch.blind.attune.ready": "%1$s就绪：按 %2$s",
   "hud.sparkwitch.blind.attune.active": "%1$s中：%2$s秒",
   "hud.sparkwitch.blind.attune.cooldown": "%1$s冷却中：%2$s秒",
   "hud.sparkwitch.blind.cane.ready": "%s就绪：右键敲击",
-  "hud.sparkwitch.blind.cane.active": "%1$s感知中：%2$s秒",
+  "hud.sparkwitch.blind.cane.active": "%1$s敲击中：%2$s秒",
   "hud.sparkwitch.blind.cane.cooldown": "%1$s冷却中：%2$s秒",
   "hud.sparkwitch.blind.comtac.worn": "ComTac VIII 已佩戴：听觉范围×3",
   "hud.sparkwitch.blind.comtac.not_worn": "ComTac VIII 未佩戴",
@@ -995,6 +995,6 @@
   "item.sparkwitch.white_cane.tooltip.line2": "敲击结束后冷却10秒。别人也听得见敲击声。",
   "item.sparkwitch.comtac_viii.tooltip.line1": "戴在头上：听觉范围×3。",
   "item.sparkwitch.comtac_viii.tooltip.line2": "右键戴上。无法丢弃。",
-  "shop.error.sparkwitch.comtac_owned": "你已经有一副 ComTac VIII 了。",
+  "shop.error.sparkwitch.comtac_owned": "每局只能购买一副 ComTac VIII。",
   "subtitles.sparkwitch.blind.cane_tap": "盲杖敲击"
 }
