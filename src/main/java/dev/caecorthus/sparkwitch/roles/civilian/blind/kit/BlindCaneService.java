@@ -44,9 +44,10 @@ public final class BlindCaneService {
     }
 
     /**
-     * A cane tap from {@code WhiteCaneItem#use} on the server. A refusal costs nothing; vanilla has already refused the
-     * use while the item cooldown runs.
-     * 来自服务端 {@code WhiteCaneItem#use} 的盲杖敲击。拒绝时不消耗任何东西；物品冷却期间原版已拒绝使用。
+     * A cane tap from {@code WhiteCaneItem#use} on the server. A refusal (swallowed, psycho mode, stunned, not ready)
+     * costs nothing; vanilla has already refused the use while the item cooldown runs.
+     * 来自服务端 {@code WhiteCaneItem#use} 的盲杖敲击。拒绝（被吞下、疯魔模式、眩晕、未就绪）时不消耗任何东西；物品冷却
+     * 期间原版已拒绝使用。
      */
     public static TypedActionResult<ItemStack> use(ServerPlayerEntity blind, ItemStack stack) {
         ServerWorld world = blind.getServerWorld();
@@ -54,7 +55,8 @@ public final class BlindCaneService {
         BlindComponent state = BlindComponent.KEY.get(blind);
         boolean roundActive = GameWorldComponent.KEY.get(world).getGameStatus() == GameWorldComponent.GameStatus.ACTIVE;
         if (!BlindKitRules.canUseCane(BlindParticipants.isActiveBlind(blind), roundActive,
-                BlindLoadoutService.isGranted(blind), ControlExpertStun.isStunned(blind), state.caneReady(now))) {
+                BlindLoadoutService.isGranted(blind), NoellesTaotieSeekerBridge.isSwallowed(blind),
+                BlindParticipants.isInPsychoMode(blind), ControlExpertStun.isStunned(blind), state.caneReady(now))) {
             return TypedActionResult.fail(stack);
         }
         BlindKitRules.Window window = BlindKitRules.caneUse(now);
@@ -83,7 +85,9 @@ public final class BlindCaneService {
             REVEALED.remove(blind.getUuid());
             return;
         }
-        if (!BlindKitRules.caneRescanDue(now, activeUntil)) {
+        // A swallowed Blind receives no pulses (C7); the window's memory waits for the release.
+        // 被吞下的盲人收不到脉冲（C7）；窗口记录保留到被放出。
+        if (!BlindKitRules.caneRescanDue(now, activeUntil) || NoellesTaotieSeekerBridge.isSwallowed(blind)) {
             return;
         }
         IntOpenHashSet revealed = REVEALED.computeIfAbsent(blind.getUuid(), ignored -> new IntOpenHashSet());

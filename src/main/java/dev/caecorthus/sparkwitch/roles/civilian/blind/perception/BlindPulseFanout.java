@@ -6,11 +6,13 @@ import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseS2CPayload;
 /**
  * Pure fan-out of one attributed sound or voice frame to every listening Blind in the same world whose own range
  * ({@link BlindPerceiver#perceptionRange}, halved for whispers) reaches the source. Sounds are throttled per (emitter,
- * Blind) unless one-shot; voice is already limited per speaker by {@link BlindVoiceInbox}. A Blind that is itself the
+ * Blind) unless one-shot; voice is already limited per speaker by {@link BlindVoiceInbox} and skips a Blind who cannot
+ * hear voice ({@link BlindPerceiver#hearsVoice}). A Blind that is itself the
  * emitter gets an environment-only SELF pulse; an unattributed source is an OBJECT pulse with no emitter (D3). Every
  * pulse lights {@link BlindRules#SOUND_REVEAL_RADIUS} blocks for {@link BlindRules#SOUND_PULSE_TICKS} (C3, C4).
  * 将一次已归属的声音或语音帧纯扇出给同一世界中、自身感知距离（{@link BlindPerceiver#perceptionRange}，悄悄话减半）能覆盖
- * 声源的每个聆听盲人。声音按（发声者，盲人）节流，一次性声音除外；语音已由 {@link BlindVoiceInbox} 按说话者限流。盲人
+ * 声源的每个聆听盲人。声音按（发声者，盲人）节流，一次性声音除外；语音已由 {@link BlindVoiceInbox} 按说话者限流，
+ * 并跳过听不到语音的盲人（{@link BlindPerceiver#hearsVoice}）。盲人
  * 自己就是发声者时收到只照亮环境的 SELF 脉冲；未归属的声源为不带发声者的 OBJECT 脉冲（D3）。每个脉冲照亮
  * {@link BlindRules#SOUND_REVEAL_RADIUS} 格，持续 {@link BlindRules#SOUND_PULSE_TICKS} 刻（C3、C4）。
  */
@@ -50,7 +52,7 @@ public final class BlindPulseFanout {
         for (BlindPerceiver perceiver : perceivers) {
             if (!inRange(perceiver, world, source.x(), source.y(), source.z(), source.whispering())
                     || !perceiver.isActive()
-                    || (!source.voice() && !acquire(perceiver, source))) {
+                    || (source.voice() ? !perceiver.hearsVoice() : !acquire(perceiver, source))) {
                 continue;
             }
             perceiver.send(payload(source, perceiver.entityId()));

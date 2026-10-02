@@ -18,8 +18,14 @@ public interface BlindPerceiver {
     /** Current maximum range in blocks (10 / 30 / 50 / 150). / 当前最大感知距离（格）。 */
     int perceptionRange();
 
-    /** Re-checks the real role, life and round right before sending. / 发送前重新确认真实职业、存活与对局状态。 */
+    /**
+     * Re-checks the real role, life and round right before sending; a swallowed Blind perceives nothing (C7).
+     * 发送前重新确认真实职业、存活与对局状态；被吞下的盲人什么也感知不到（C7）。
+     */
     boolean isActive();
+
+    /** False while this Blind cannot hear voice chat (silenced, psycho mode). / 该盲人听不到语音（被沉默、疯魔模式）时为 false。 */
+    boolean hearsVoice();
 
     /** The Blind's world time, the throttle clock. / 盲人所在世界的时间，即节流时钟。 */
     long time();

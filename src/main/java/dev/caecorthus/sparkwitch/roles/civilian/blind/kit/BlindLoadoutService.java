@@ -1,10 +1,10 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.kit;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -74,24 +74,25 @@ public final class BlindLoadoutService {
     /**
      * Sweep test for a player who is not an active Blind ({@link BlindKitRules#keepsKit}): a real Blind in a running
      * round keeps the kit while alive or inside a SparkTraits-intercepted (Last Stand) death; the intercept query runs
-     * only for such a dead Blind.
+     * only for such a dead Blind and fails closed (an absent, older or failing SparkTraits means not intercepted).
      * 对非激活盲人的玩家的清理判定（{@link BlindKitRules#keepsKit}）：运行中对局里的真实盲人在存活或处于 SparkTraits
-     * 拦截的（背水一战）死亡期间保留道具；仅对这样的已死盲人查询拦截状态。
+     * 拦截的（背水一战）死亡期间保留道具；仅对这样的已死盲人查询拦截状态，且保守失败（SparkTraits 缺失、过旧或出错时视为
+     * 未拦截）。
      */
     public static boolean keepsKit(ServerPlayerEntity player) {
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
         boolean running = game.isRunning();
         boolean realBlind = BlindRules.isBlind(game.getRole(player));
         boolean playingAndAlive = GameFunctions.isPlayerPlayingAndAlive(player);
-        return BlindKitRules.keepsKit(running, realBlind, playingAndAlive,
-                running && realBlind && !playingAndAlive && WitchFactorTraitsBridge.isDeathIntercepted(player));
+        return BlindKitRules.keepsKit(running, realBlind, playingAndAlive, running && realBlind && !playingAndAlive
+                && SparkTraitsKillerBridge.isLastStandDeathIntercepted(player));
     }
 
     /**
      * Per-tick upkeep for an active Blind: self-heals a missing or stale grant (bound to another match), then keeps
-     * exactly one cane in the hotbar. Cheap when nothing is wrong: a slot scan with no writes.
-     * 激活盲人的每 tick 维护：自愈缺失或过期（属于其他对局）的发放，然后保证快捷栏恰好有一根盲杖。一切正常时开销很低：
-     * 只扫描栏位而不写入。
+     * exactly one cane in the hotbar, except in psycho mode. Cheap when nothing is wrong: a slot scan with no writes.
+     * 激活盲人的每 tick 维护：自愈缺失或过期（属于其他对局）的发放，然后保证快捷栏恰好有一根盲杖（疯魔模式除外）。
+     * 一切正常时开销很低：只扫描栏位而不写入。
      */
     public static void tickHolder(ServerPlayerEntity player) {
         // STOPPING still counts as running, but the match record may already be closed: never re-grant then.
@@ -153,14 +154,26 @@ public final class BlindLoadoutService {
             grantFresh(player, BlindParticipants.currentMatchId());
             return;
         }
-        ensureCaneInHotbar(player);
+        placeCaneUnlessPsycho(player);
+    }
+
+    /**
+     * SparkTraits keeps a psycho-mode player's inventory bat-only every tick, so the cane waits until psycho mode ends
+     * instead of being re-granted against it each tick.
+     * SparkTraits 每 tick 都让疯魔模式玩家的背包只剩球棒，因此盲杖等到疯魔模式结束后再放回，而不是每 tick 与之反复争夺。
+     */
+    private static void placeCaneUnlessPsycho(ServerPlayerEntity player) {
+        if (!BlindParticipants.isInPsychoMode(player)) {
+            ensureCaneInHotbar(player);
+        }
     }
 
     /**
      * Fresh grant (new Blind or state from another match): forget any old window, bind the match, write the initial
-     * cane and Attune cooldowns (C2/C11) and the matching hotbar cooldown, and make sure one cane is in the hotbar.
+     * cane and Attune cooldowns (C2/C11) and the matching hotbar cooldown, and make sure one cane is in the hotbar
+     * (after psycho mode, if it runs).
      * 全新发放（新盲人或其他对局的状态）：忘记旧窗口，绑定对局，写入盲杖与凝神的初始冷却（C2/C11）及对应的快捷栏冷却，
-     * 并确保快捷栏中有一根盲杖。
+     * 并确保快捷栏中有一根盲杖（若处于疯魔模式则在其结束后）。
      */
     private static void grantFresh(ServerPlayerEntity player, @Nullable UUID match) {
         long now = player.getServerWorld().getTime();
@@ -172,7 +185,7 @@ public final class BlindLoadoutService {
         state.setCane(0L, BlindKitRules.initialCaneReadyTick(now));
         state.setAttune(0L, BlindKitRules.initialAttuneReadyTick(now));
         BlindCaneService.writeItemCooldown(player, BlindRules.CANE_ROUND_START_COOLDOWN_TICKS);
-        ensureCaneInHotbar(player);
+        placeCaneUnlessPsycho(player);
     }
 
     /**

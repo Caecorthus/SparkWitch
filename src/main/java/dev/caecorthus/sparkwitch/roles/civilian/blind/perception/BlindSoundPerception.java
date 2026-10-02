@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.blind.perception;
 
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.doctor4t.wathe.cca.WorldBlackoutComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -53,8 +54,9 @@ public final class BlindSoundPerception {
 
     /**
      * HEAD of {@code ServerWorld.createExplosion}: wind-charge bursts and explosions reach clients as explosion packets,
-     * not sound packets. Always a one-shot.
-     * {@code ServerWorld.createExplosion} 的 HEAD：风弹爆发与爆炸以爆炸数据包而非声音数据包到达客户端。始终为一次性声音。
+     * not sound packets. Always a one-shot; an explosion of a non-player entity (grenade, charge) is an object.
+     * {@code ServerWorld.createExplosion} 的 HEAD：风弹爆发与爆炸以爆炸数据包而非声音数据包到达客户端。始终为一次性声音；
+     * 非玩家实体（手雷、风弹）的爆炸是物体声。
      */
     public static void onExplosion(ServerWorld world, @Nullable Entity entity, double x, double y, double z) {
         if (!BlindPerceptionTargets.anyActive()) {
@@ -66,7 +68,7 @@ public final class BlindSoundPerception {
         }
         PlayerEntity sourcePlayer = entity instanceof PlayerEntity player ? player : null;
         Entity sourceObject = sourcePlayer == null ? entity : null;
-        fanOut(world, null, sourcePlayer, sourceObject, x, y, z, true);
+        fanOut(world, null, sourcePlayer, sourceObject, sourceObject != null, x, y, z, true);
     }
 
     /** Voice drain, server thread: one proximity voice frame from a speaker. / 语音取出，服务端线程。 */
@@ -97,18 +99,23 @@ public final class BlindSoundPerception {
             return;
         }
         Identifier soundId = sound.value().getId();
-        if (BlindSoundRules.isIgnoredSound(soundId, except != null)) {
-            return;
-        }
         PlayerEntity sourcePlayer = entity instanceof PlayerEntity player ? player : null;
         Entity sourceObject = sourcePlayer == null ? entity : null;
-        fanOut(world, except, sourcePlayer, sourceObject, x, y, z, BlindSoundRules.isOneShot(soundId));
+        BlindSoundRules.Handling handling = BlindSoundRules.handling(soundId, except != null, sourceObject != null,
+                () -> WorldBlackoutComponent.KEY.get(world).isBlackoutActive());
+        if (handling == BlindSoundRules.Handling.IGNORE) {
+            return;
+        }
+        fanOut(world, except, sourcePlayer, sourceObject, handling == BlindSoundRules.Handling.OBJECT, x, y, z,
+                BlindSoundRules.isOneShot(soundId));
     }
 
     private static void fanOut(ServerWorld world, @Nullable PlayerEntity except, @Nullable PlayerEntity sourcePlayer,
-                               @Nullable Entity sourceObject, double x, double y, double z, boolean oneShot) {
-        BlindSoundAttribution.Result<PlayerEntity> result =
-                BlindSoundAttribution.attribute(except, sourcePlayer, world.getPlayers(), x, y, z, PROBE);
+                               @Nullable Entity sourceObject, boolean objectSound, double x, double y, double z,
+                               boolean oneShot) {
+        BlindSoundAttribution.Result<PlayerEntity> result = objectSound
+                ? BlindSoundAttribution.object()
+                : BlindSoundAttribution.attribute(except, sourcePlayer, world.getPlayers(), x, y, z, PROBE);
         if (result.outcome() == BlindSoundAttribution.Outcome.DROP) {
             return;
         }
@@ -134,11 +141,6 @@ public final class BlindSoundPerception {
             return !player.isSpectator() && GameFunctions.isPlayerPlayingAndAlive(player)
                     ? BlindSoundAttribution.Status.EMITTER
                     : BlindSoundAttribution.Status.NONE;
-        }
-
-        @Override
-        public boolean isSpectator(PlayerEntity player) {
-            return player.isSpectator();
         }
 
         @Override

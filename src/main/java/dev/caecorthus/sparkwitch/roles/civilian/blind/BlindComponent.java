@@ -15,12 +15,13 @@ import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 
 /**
  * Stable CCA contract {@code sparkwitch:blind} (NEVER_COPY): the Blind's cane and Attune windows as absolute world
- * ticks plus the bound match id. Server-authoritative; synced only to the owner, as remaining ticks (see
- * {@link BlindTimers}), never absolute ticks; the match id is never synced. Nothing is persisted: a restart or relog
- * starts clean. It never enters the shared {@code sparkwitch:player} schema and holds no game logic.
- * 稳定 CCA 契约 {@code sparkwitch:blind}（NEVER_COPY）：盲人盲杖与凝神窗口（绝对世界刻）及绑定的对局 id。
- * 由服务端权威决定，仅以剩余刻数同步给本人（见 {@link BlindTimers}），从不同步绝对刻；对局 id 从不同步。
- * 不做任何持久化：重启或重新登录后从空状态开始。从不进入共享的 {@code sparkwitch:player} 结构，也不含游戏逻辑。
+ * ticks plus the bound match id and the match of the last ComTac purchase. Server-authoritative; synced only to the
+ * owner, as remaining ticks (see {@link BlindTimers}), never absolute ticks; neither match id is ever synced. Nothing
+ * is persisted: a restart or relog starts clean. It never enters the shared {@code sparkwitch:player} schema and holds
+ * no game logic.
+ * 稳定 CCA 契约 {@code sparkwitch:blind}（NEVER_COPY）：盲人盲杖与凝神窗口（绝对世界刻）、绑定的对局 id 以及最近一次购买
+ * ComTac 的对局。由服务端权威决定，仅以剩余刻数同步给本人（见 {@link BlindTimers}），从不同步绝对刻；两个对局 id 都从不
+ * 同步。不做任何持久化：重启或重新登录后从空状态开始。从不进入共享的 {@code sparkwitch:player} 结构，也不含游戏逻辑。
  */
 public final class BlindComponent implements AutoSyncedComponent {
     public static final ComponentKey<BlindComponent> KEY = ComponentRegistry.getOrCreate(
@@ -29,6 +30,7 @@ public final class BlindComponent implements AutoSyncedComponent {
     private final PlayerEntity player;
     private final BlindTimers timers = new BlindTimers();
     private @Nullable UUID matchId;
+    private @Nullable UUID comTacPurchaseMatch;
 
     public BlindComponent(PlayerEntity player) {
         this.player = player;
@@ -95,27 +97,11 @@ public final class BlindComponent implements AutoSyncedComponent {
         }
     }
 
-    public void setCaneReadyTick(long readyTick) {
-        setCane(timers.caneActiveUntilTick(), readyTick);
-    }
-
-    public void setCaneActiveUntilTick(long activeUntilTick) {
-        setCane(activeUntilTick, timers.caneReadyTick());
-    }
-
     /** Server only; syncs the owner on change. / 仅服务端；有变化时同步给本人。 */
     public void setAttune(long activeUntilTick, long readyTick) {
         if (timers.setAttune(activeUntilTick, readyTick)) {
             syncOwner();
         }
-    }
-
-    public void setAttuneReadyTick(long readyTick) {
-        setAttune(timers.attuneActiveUntilTick(), readyTick);
-    }
-
-    public void setAttuneActiveUntilTick(long activeUntilTick) {
-        setAttune(activeUntilTick, timers.attuneReadyTick());
     }
 
     /**
@@ -130,7 +116,26 @@ public final class BlindComponent implements AutoSyncedComponent {
         return true;
     }
 
-    /** Drops every window and the match binding; syncs the owner when a window changed. / 清空所有窗口与对局绑定。 */
+    /**
+     * Server only, never synced or saved (C14): the match of this player's last ComTac purchase, or null; the
+     * one-per-round rule lives in {@code BlindKitRules.refusesComTacPurchase}.
+     * 仅服务端，从不同步或保存（C14）：该玩家最近一次购买 ComTac 的对局，或 null；每局一件的规则见
+     * {@code BlindKitRules.refusesComTacPurchase}。
+     */
+    public @Nullable UUID comTacPurchaseMatch() {
+        return comTacPurchaseMatch;
+    }
+
+    /** Server only: records a ComTac purchase in {@code match}. / 仅服务端：记录在 {@code match} 中的一次 ComTac 购买。 */
+    public void markComTacBought(@Nullable UUID match) {
+        comTacPurchaseMatch = match;
+    }
+
+    /**
+     * Drops every window and the match binding; syncs the owner when a window changed. The ComTac purchase survives,
+     * so losing and regaining the role in the same match never allows a second purchase (C14).
+     * 清空所有窗口与对局绑定；有窗口变化时同步给本人。ComTac 购买记录保留，因此同一对局内失去又重获职业也不能再次购买（C14）。
+     */
     public void clear() {
         matchId = null;
         if (timers.clear()) {
@@ -162,6 +167,7 @@ public final class BlindComponent implements AutoSyncedComponent {
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         timers.clear();
         matchId = null;
+        comTacPurchaseMatch = null;
     }
 
     private void syncOwner() {

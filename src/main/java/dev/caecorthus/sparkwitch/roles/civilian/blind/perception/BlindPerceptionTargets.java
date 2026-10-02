@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.perception;
 
+import dev.caecorthus.sparkwitch.compat.NoellesSilenceBridge;
+import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseS2CPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseSender;
@@ -15,10 +17,12 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * The listening Blinds, rebuilt on the server thread when marked dirty (role assignment, death, reset, disconnect) and
  * by a sweep every {@link #SWEEP_INTERVAL_TICKS} ticks. {@link #anyActive()} is a volatile flag any thread may read:
  * the sound hooks and the voice listener return on it at once while no Blind is active, allocating nothing. Membership
- * is a hint; every send re-checks the real role ({@link BlindParticipants#isActiveBlind}). Server only.
+ * is a hint; every send re-checks the real role ({@link BlindParticipants#isActiveBlind}) and skips a swallowed Blind
+ * (C7), whose kit stays active. Server only.
  * 正在聆听的盲人名单，在被标记为脏（分配职业、死亡、重置、断线）时以及每 {@link #SWEEP_INTERVAL_TICKS} 刻的巡检中于服务端线程
  * 重建。{@link #anyActive()} 是任意线程都可读取的 volatile 标记：没有激活的盲人时，声音钩子与语音监听立即返回，不分配内存。
- * 名单只是提示；每次发送前都会重新确认真实职业（{@link BlindParticipants#isActiveBlind}）。仅服务端。
+ * 名单只是提示；每次发送前都会重新确认真实职业（{@link BlindParticipants#isActiveBlind}），并跳过被吞下的盲人（C7），
+ * 其道具仍保持激活。仅服务端。
  */
 public final class BlindPerceptionTargets {
     static final int SWEEP_INTERVAL_TICKS = 20;
@@ -109,7 +113,12 @@ public final class BlindPerceptionTargets {
 
         @Override
         public boolean isActive() {
-            return BlindParticipants.isActiveBlind(player);
+            return BlindParticipants.isActiveBlind(player) && !NoellesTaotieSeekerBridge.isSwallowed(player);
+        }
+
+        @Override
+        public boolean hearsVoice() {
+            return !NoellesSilenceBridge.isSilenced(player) && !BlindParticipants.isInPsychoMode(player);
         }
 
         @Override
