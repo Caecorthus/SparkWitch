@@ -106,7 +106,7 @@ public final class RiftSessionClient {
             return null;
         }
         return new View(session.gateNumber(), session.ringIndex(), session.ringSize(), session.stayRemainingTicks(),
-                selectedSlot);
+                session.stayLimitTicks(), selectedSlot);
     }
 
     /**
@@ -300,6 +300,13 @@ public final class RiftSessionClient {
         KeyBinding.untoggleStickyKeys();
         // Presses queued while input was locked must not replay. / 锁定期间积压的按键不得重放。
         drainQueuedPresses(client);
+        // Right-click is the in-gate hop button: a forced exit while it is held must not use the held item next tick
+        // (a Wathe revolver fires on the client at once); the player clicks again. Attack likewise.
+        // 右键是门内的跳门键：按住右键时被强制出门，下一刻不得使用手中物品（Wathe 左轮会在客户端立即开火）；需重新点击。攻击键同理。
+        if (client.options != null) {
+            client.options.useKey.setPressed(false);
+            client.options.attackKey.setPressed(false);
+        }
         boundPlayer = null;
         activeSessionId = 0;
         selectedSlot = RiftSessionInputRules.DEFAULT_SLOT;
@@ -338,7 +345,8 @@ public final class RiftSessionClient {
     }
 
     /** HUD snapshot. / HUD 快照。 */
-    public record View(int gateNumber, int ringIndex, int ringSize, int stayRemainingTicks, int selectedSlot) {
+    public record View(int gateNumber, int ringIndex, int ringSize, int stayRemainingTicks, int stayLimitTicks,
+                       int selectedSlot) {
     }
 
     /** Raw key access through the duck interface. / 通过鸭子接口的原始按键读取。 */

@@ -27,15 +27,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *   <li>{@code render} HEAD: the grey tint + vignette fallback, under every HUD layer, only when the post shader cannot
  *   run (Iris shader pack or load failure).</li>
  * </ul>
- * Priority 1100: each {@code @WrapMethod} wraps whatever body exists when it is applied (ascending priority), so the
- * higher-priority wrapper is outermost — the {@code SeekerRemoteInGameHudMixin} reasoning; Wathe only re-textures the
- * hotbar inside it at the default 1000.
+ * Priority 1100 is defensive: each {@code @WrapMethod} wraps whatever body exists when it is applied (ascending
+ * priority), so a higher priority stays outermost should another mod ever wrap {@code renderHotbar}; today Wathe only
+ * wraps two {@code drawGuiTexture} calls inside it at the default 1000.
  * 门内的纯客户端 HUD（第一步判断 {@link RiftSessionClient#isActive()}）；真实背包从不改动（plan §6.4）：{@code renderMainHud} 中原版对
  * 旁观者绘制 {@code SpectatorHud#renderSpectatorMenu} 而非快捷栏，此调用被包装为绘制 ⬅️ ➡️ 箭头栏，并跳过
  * {@code SpectatorHud#render}（旁观者命令提示）；{@code renderHotbar} 用 {@code @WrapMethod} 同样绘制箭头栏，覆盖「门内标志先于旁观者
  * 游戏模式到达」的帧；{@code render} HEAD 在所有 HUD 层之下绘制灰色叠层与暗角回退，仅在后处理着色器无法运行时（Iris 光影包或加载
- * 失败）。优先级 1100：每个 {@code @WrapMethod} 包装其被应用时已存在的方法体（按优先级升序），因此优先级更高者位于最外层——与
- * {@code SeekerRemoteInGameHudMixin} 的理由相同；Wathe 只在其内部以默认 1000 替换快捷栏贴图。
+ * 失败）。优先级 1100 属于防御性设置：每个 {@code @WrapMethod} 包装其被应用时已存在的方法体（按优先级升序），因此若将来有其他
+ * 模组包装 {@code renderHotbar}，更高优先级仍位于最外层；目前 Wathe 只以默认 1000 包装其中两次 {@code drawGuiTexture} 调用。
  */
 @Mixin(value = InGameHud.class, priority = 1100)
 public abstract class RiftSessionInGameHudMixin {

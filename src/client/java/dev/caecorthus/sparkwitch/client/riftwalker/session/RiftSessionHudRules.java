@@ -77,6 +77,20 @@ public final class RiftSessionHudRules {
         return barY + (BAR_HEIGHT - 8) / 2;
     }
 
+    /**
+     * Key-hint row: two text lines above the bar, so it never collides with Wathe's item-cooldown line, which sits one
+     * line above the hotbar.
+     * 按键提示所在行：位于栏上方两行，避免与 Wathe 位于快捷栏上方一行的物品冷却文字重叠。
+     */
+    public static int hintY(int barY, int fontHeight) {
+        return barY - 2 * (fontHeight + 4);
+    }
+
+    /** The countdown appears once the server synced a stay limit (never a bogus "0s"). / 服务端同步停留上限后才显示倒计时。 */
+    public static boolean showsTimer(int stayLimitTicks) {
+        return stayLimitTicks > 0;
+    }
+
     /** Arrows are live only when another gate exists. / 只有存在其他门时箭头才可用。 */
     public static boolean arrowsEnabled(int ringSize) {
         return ringSize > 1;

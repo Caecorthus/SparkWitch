@@ -62,10 +62,14 @@ public final class RiftSessionHud {
                 : Text.translatable("hud.sparkwitch.riftwalker.gate_number", view.gateNumber());
         context.drawTextWithShadow(font, gate, barX - RiftSessionHudRules.LABEL_GAP - font.getWidth(gate), labelY,
                 RiftSessionHudRules.TEXT_COLOR);
-        int remaining = view.stayRemainingTicks();
-        Text timer = Text.translatable("hud.sparkwitch.riftwalker.stay_seconds", RiftSessionHudRules.seconds(remaining));
-        context.drawTextWithShadow(font, timer, barX + RiftSessionHudRules.BAR_WIDTH + RiftSessionHudRules.LABEL_GAP,
-                labelY, RiftSessionHudRules.timerColor(remaining));
+        if (RiftSessionHudRules.showsTimer(view.stayLimitTicks())) {
+            int remaining = view.stayRemainingTicks();
+            Text timer = Text.translatable("hud.sparkwitch.riftwalker.stay_seconds",
+                    RiftSessionHudRules.seconds(remaining));
+            context.drawTextWithShadow(font, timer,
+                    barX + RiftSessionHudRules.BAR_WIDTH + RiftSessionHudRules.LABEL_GAP, labelY,
+                    RiftSessionHudRules.timerColor(remaining));
+        }
 
         GameOptions options = client.options;
         Text hint = enabled
@@ -73,7 +77,7 @@ public final class RiftSessionHud {
                 options.rightKey.getBoundKeyLocalizedText(), options.sneakKey.getBoundKeyLocalizedText())
                 : Text.translatable("hud.sparkwitch.riftwalker.hint_alone", options.sneakKey.getBoundKeyLocalizedText());
         context.drawTextWithShadow(font, hint, context.getScaledWindowWidth() / 2 - font.getWidth(hint) / 2,
-                barY - font.fontHeight - 4, RiftSessionHudRules.HINT_COLOR);
+                RiftSessionHudRules.hintY(barY, font.fontHeight), RiftSessionHudRules.HINT_COLOR);
     }
 
     /**

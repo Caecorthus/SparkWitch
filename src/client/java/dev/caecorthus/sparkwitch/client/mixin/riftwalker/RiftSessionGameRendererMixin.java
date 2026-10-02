@@ -22,14 +22,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * <ul>
  *   <li>{@code render} before the single {@code Framebuffer#beginWrite(Z)} (after world rendering, outlines and the
  *   vanilla post pass, before the GUI — the Black Raven / Seeker point): run the private {@link RiftGrayscaleFilter}
- *   (D10); release it on inactive frames; skip frames that do not render the world.</li>
+ *   (D10); release it on inactive frames. That call only runs on frames that render the world.</li>
  *   <li>{@code renderHand} HEAD: cancel (Iris can bypass {@code setRenderHand(false)}).</li>
  *   <li>{@code updateCrosshairTarget} RETURN (every exit): force a MISS and clear {@code targetedEntity}, so nothing
  *   (the spectator crosshair, vanilla or mod keys) acts on what the occupant looks at.</li>
  * </ul>
  * 门内的纯客户端渲染策略（每个处理器第一步都判断 {@link RiftSessionClient#isActive()}）：{@code render} 在唯一一次
  * {@code Framebuffer#beginWrite(Z)} 之前（世界、描边与原版后处理之后，GUI 之前——与黑羽鸦/Seeker 相同的位置）运行私有的
- * {@link RiftGrayscaleFilter}（D10），非激活帧释放，不渲染世界的帧跳过；{@code renderHand} 在 HEAD 取消（Iris 可能绕过
+ * {@link RiftGrayscaleFilter}（D10），非激活帧释放（该调用只在渲染世界的帧执行）；{@code renderHand} 在 HEAD 取消（Iris 可能绕过
  * {@code setRenderHand(false)}）；{@code updateCrosshairTarget} 在所有返回点强制为 MISS 并清空 {@code targetedEntity}，
  * 使任何东西（旁观者准星、原版或模组按键）都不会作用于门内的人注视的目标。
  */
@@ -44,9 +44,6 @@ public abstract class RiftSessionGameRendererMixin {
     private void sparkwitch$renderRiftGrayscale(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
         if (!RiftSessionClient.isActive()) {
             RiftGrayscaleFilter.release();
-            return;
-        }
-        if (!tick) {
             return;
         }
         RiftGrayscaleFilter.render(tickCounter.getLastFrameDuration());
