@@ -52,6 +52,15 @@ public final class RiftGatePresentationRules {
      * 本地玩家在门内时镜头位于门锚点；该门的粒子会直冲镜头，因此门内者附近这一范围内的门不生成粒子（其他人照常可见）。
      */
     public static final double OCCUPANT_QUIET_RADIUS = 2.5;
+    /**
+     * While the local player is inside a gate, the gate whose model encloses the camera is not drawn (the occupant's
+     * eye sits inside the frame, ~0.6 from this core): core = base centre + {@code OWN_GATE_CORE_UP}, radius
+     * {@code OWN_GATE_HIDE_RADIUS}. Every other gate, and every gate for everyone else, is still drawn.
+     * 本地玩家在门内时，不绘制把镜头包在模型里的那扇门（门内者的眼睛位于门框内，距此核心约 0.6）：核心 = 底部中心 +
+     * {@code OWN_GATE_CORE_UP}，半径 {@code OWN_GATE_HIDE_RADIUS}。其他门、以及其他所有人看到的门照常绘制。
+     */
+    public static final double OWN_GATE_CORE_UP = 1.0;
+    public static final double OWN_GATE_HIDE_RADIUS = 1.0;
     /** Per-tick spawn chances at the ALL particle setting (~10 portal, ~5 dust per second, a spark every ~2 s). */
     public static final double PORTAL_CHANCE = 0.5;
     public static final double DUST_CHANCE = 0.25;
@@ -136,6 +145,15 @@ public final class RiftGatePresentationRules {
     /** An occupant's own (nearby) gate stays quiet. / 门内者身边的门不生成粒子。 */
     public static boolean quietForOccupant(boolean viewerInsideGate, double cameraDistanceSquared) {
         return viewerInsideGate && cameraDistanceSquared < OCCUPANT_QUIET_RADIUS * OCCUPANT_QUIET_RADIUS;
+    }
+
+    /**
+     * Whether the renderer skips this gate: only for a viewer inside a gate whose camera is within
+     * {@link #OWN_GATE_HIDE_RADIUS} of the gate core (squared distance in).
+     * 渲染器是否跳过这扇门：仅当观察者在门内、且镜头距门核心不超过 {@link #OWN_GATE_HIDE_RADIUS} 时（传入距离平方）。
+     */
+    public static boolean hidesOwnGate(boolean viewerInsideGate, double cameraToCoreDistanceSquared) {
+        return viewerInsideGate && cameraToCoreDistanceSquared <= OWN_GATE_HIDE_RADIUS * OWN_GATE_HIDE_RADIUS;
     }
 
     /** Role colour as dust RGB (0..1). / 职业色的尘粒 RGB（0..1）。 */
