@@ -722,10 +722,13 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
 - **Witches' Sabbath** (`sabbath/WitchesSabbathService.use`; 150 mana, instant, no cooldown, D6). A free,
   non-capture-stunned Riftwalker outside a gate pulls each living teammate whose effective faction is exactly
   `sparkwitch:witch` (C6) to a safe spot (`WitchesSabbathLandingPlan`, never on a live Hunter trap), skipping those
-  inside a gate, swallowed, in Last Stand/Last Escape, Kidnapper-controlled, Hunter-rooted, capture-stunned or Control
-  Expert-stunned (C10, M-2, `RiftwalkerStatusProbes`), or SFA-vetoed (`sparkwitch:riftwalker_sabbath`). A pulled Grand
-  Witch's ceremonial-sword dash is cancelled. No target or no space costs nothing, the mana is refunded when nobody
-  moved, and a caster in a doorway gets its own refusal (N-5).
+  inside a gate, swallowed, in Last Stand/Last Escape, Kidnapper-controlled, or SFA-vetoed
+  (`sparkwitch:riftwalker_sabbath`). Control-Expert-stunned, Hunter-rooted and SparkStrength capture-stunned teammates
+  are pulled and stay held at the landing spot (D19, superseding C10's Sabbath half and M-2): the stun and the root
+  anchor no position, and `RiftwalkerStatusProbes.relockCaptureStun` calls SparkStrength's `stun(1)` (keeps the
+  remaining ticks, re-locks at the current position) right after the teleport. A captured teammate whose lock cannot
+  move (`isCaptureStunPinned`) is skipped. A pulled Grand Witch's ceremonial-sword dash is cancelled. No target or no
+  space costs nothing, the mana is refunded when nobody moved, and a caster in a doorway gets its own refusal (N-5).
 - **Presentation** (`client/riftwalker/gate/`). `RiftGateEntityRenderer` draws model B (`RiftGateModels`) full-bright
   for everyone, skipping the gate around an occupant's camera; `RiftGateClientEffects` adds sparse particles;
   `RiftGateInstinctHooks` (D9) outlines every gate through walls for living Grand Witch and accomplice-like viewers on

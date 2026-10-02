@@ -4,7 +4,6 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
-import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerInventoryRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
@@ -28,14 +27,16 @@ import java.util.List;
  * RAW ({@code GameWorldComponent#getRole}) and the faction is SparkFactionAPI's effective faction through
  * {@link RiftGateUsers#isWitchFaction}, so a disguised Black Raven, an active Wraith or the promoted Curser is never
  * pulled. Other modules are only read through their public queries or SparkWitch's fail-safe compat bridges; the
- * per-tick position holders (Taotie stomach, Last Stand, Knockout control, Hunter trap root, capture stun) are
- * skipped because they would undo — or, for Knockout control, break — the pull (C10 for the last two); a Control Expert
- * stun is skipped too, so a stunned teammate is never rescued (C10: same rule as gate entry).
+ * per-tick position holders (Taotie stomach, Last Stand, Knockout control) are skipped because they would undo — or,
+ * for Knockout control, break — the pull. Control-Expert-stunned, Hunter-rooted and capture-stunned teammates are pulled
+ * and stay held at the landing spot (D19): the stun and the root never anchor a position, and the capture stun's lock
+ * point is moved there after the teleport; a capture stun whose lock cannot move is skipped (fail closed).
  * 以实时状态为 {@link WitchesSabbathRules} 的探针提供输入的服务端适配器（research/04 §1.2–§1.3）。职业取原始职业
  * （{@code GameWorldComponent#getRole}），阵营取经 {@link RiftGateUsers#isWitchFaction} 的 SparkFactionAPI 有效阵营，
  * 因此伪装中的黑羽鸦、激活冤魂与晋升诅咒者永远不会被召集。其他模块只通过其公共查询或 SparkWitch 的安全兼容桥读取；
- * 每 tick 固定位置的状态（饕餮胃、背水一战、迷药控制、捕兽夹定身、捕捉定身）会被跳过，因为它们会抵消召集——迷药控制甚至会被
- * 召集打断（后两项见 C10）；被控场专家眩晕的队友同样跳过，不会被救走（C10：与进门规则一致）。
+ * 每 tick 固定位置的状态（饕餮胃、背水一战、迷药控制）会被跳过，因为它们会抵消召集——迷药控制甚至会被召集打断。
+ * 被控场专家眩晕、被捕兽夹定住或被捕捉装置眩晕的队友会被召集，并在落点保持原状态（D19）：眩晕与定身从不锚定位置，
+ * 捕捉眩晕的锁定点会在传送后移到落点；锁定点无法移动的捕捉眩晕会被跳过（失败即关闭）。
  */
 final class WitchesSabbathTargets {
     private WitchesSabbathTargets() {
@@ -163,20 +164,9 @@ final class WitchesSabbathTargets {
             }
 
             @Override
-            public boolean hunterRooted() {
-                // C10: the trap root would hold the body; same probe as gate entry. / C10：捕兽夹会定住本体；与进门共用探针。
-                return RiftwalkerStatusProbes.isHunterRooted(player);
-            }
-
-            @Override
-            public boolean captureStunned() {
-                return RiftwalkerStatusProbes.isCaptureStunned(player);
-            }
-
-            @Override
-            public boolean controlExpertStunned() {
-                // Same predicate as gate entry (RiftSessionService.isControlled). / 与进门相同的判定。
-                return ControlExpertStun.isStunned(player);
+            public boolean captureStunPinned() {
+                // D19: pulled unless the lock point cannot follow (the pull re-locks it). / D19：锁定点无法跟随时才跳过。
+                return RiftwalkerStatusProbes.isCaptureStunPinned(player);
             }
 
             @Override

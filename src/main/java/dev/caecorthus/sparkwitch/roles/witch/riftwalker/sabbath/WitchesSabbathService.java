@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordDashService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerStatusProbes;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.record.GameRecordEvent;
 import dev.doctor4t.wathe.record.GameRecordManager;
@@ -111,12 +112,13 @@ public final class WitchesSabbathService {
 
     /**
      * Teleports each planned teammate with the 7-arg {@code ServerPlayerEntity.teleport} (it dismounts and wakes the
-     * player; the 6-arg overload would reset the camera holder), then clears velocity and fall distance and faces the
-     * caster. Each arrival is appended to {@code pulled} as soon as it happens, so the caller's refund sees exactly who
-     * moved even if a later teleport throws.
-     * 以 7 参数的 {@code ServerPlayerEntity.teleport} 传送每名已规划的队友（会先下坐骑、叫醒；6 参数重载会重置镜头持有者），
-     * 随后清除速度与摔落距离，并面向施放者。每名到达者立即加入 {@code pulled}，即使之后的传送抛出异常，调用方的退还判断
-     * 也能准确知道谁已移动。
+     * player and moves the body at once; the 6-arg overload would reset the camera holder), re-locks a capture stun at
+     * the landing spot (D19), then clears velocity and fall distance and faces the caster. Each arrival is appended to
+     * {@code pulled} as soon as it happens, so the caller's refund sees exactly who moved even if a later teleport
+     * throws.
+     * 以 7 参数的 {@code ServerPlayerEntity.teleport} 传送每名已规划的队友（会先下坐骑、叫醒，并立即移动本体；6 参数重载会
+     * 重置镜头持有者），在落点重新锁定捕捉眩晕（D19），随后清除速度与摔落距离，并面向施放者。每名到达者立即加入
+     * {@code pulled}，即使之后的传送抛出异常，调用方的退还判断也能准确知道谁已移动。
      */
     private static void pull(ServerWorld world, ServerPlayerEntity caster,
                              List<WitchesSabbathLandingPlan.Landing<ServerPlayerEntity>> landings,
@@ -131,6 +133,9 @@ public final class WitchesSabbathService {
                 continue;
             }
             pulled.add(target);
+            // D19: a capture-stunned teammate stays held, now at the landing spot (a free one is untouched).
+            // D19：被捕捉眩晕的队友保持定身，锁定点移到落点（未眩晕的队友不受影响）。
+            RiftwalkerStatusProbes.relockCaptureStun(target);
             // A Grand Witch pulled mid-dash must not keep dashing from the landing spot. / 被召集的大魔女不得从落点继续冲刺。
             CeremonialSwordDashService.cancel(target);
             target.setVelocity(Vec3d.ZERO);
