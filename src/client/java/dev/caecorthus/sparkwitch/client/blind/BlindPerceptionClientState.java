@@ -12,11 +12,14 @@ import java.util.List;
  * every call takes the current time in nanoseconds (use {@code Util.getMeasuringTimeNano()}) so tests can drive it.
  * Holds a ring buffer of the latest {@link #CAPACITY} pulses (the oldest is overwritten) and the perceived players
  * ({@code entityId → expiry}). The emitter of a SOUND/VOICE pulse is perceived for {@code PLAYER_PULSE_TICKS}; every id
- * of a CANE pulse for {@code CANE_ACTIVE_TICKS}; the local player itself never is. Render-thread only.
+ * of a CANE pulse for its duration, at most {@code CANE_ACTIVE_TICKS} (the server's in-window re-scan sends late
+ * entrants as a zero-radius CANE pulse lasting the rest of the window, which is not stored as a pulse); the local
+ * player itself never is. Render-thread only.
  * 稳定客户端契约：本地盲人的感知记忆。纯状态、无副作用（不访问 Minecraft 客户端）：所有调用都传入当前纳秒时间
  * （使用 {@code Util.getMeasuringTimeNano()}），便于测试驱动。保存最近 {@link #CAPACITY} 个脉冲的环形缓冲（覆盖最旧的）
  * 以及被感知的玩家（{@code 实体 id → 到期时间}）。SOUND/VOICE 脉冲的发声者被感知 {@code PLAYER_PULSE_TICKS}；
- * CANE 脉冲列出的每个 id 被感知 {@code CANE_ACTIVE_TICKS}；本地玩家自己永远不会。仅限渲染线程。
+ * CANE 脉冲列出的每个 id 被感知该脉冲的时长，至多 {@code CANE_ACTIVE_TICKS}（服务端在窗口内补扫时，以持续到窗口结束的
+ * 零半径 CANE 脉冲发送新进入者，该脉冲不作为脉冲保存）；本地玩家自己永远不会。仅限渲染线程。
  */
 public final class BlindPerceptionClientState {
     public static final int CAPACITY = 16;
@@ -67,13 +70,15 @@ public final class BlindPerceptionClientState {
             return;
         }
         float seconds = ticksToSeconds(payload.durationTicks());
-        push(new Pulse(payload.x(), payload.y(), payload.z(), payload.radius(), nowNanos, seconds, payload.kind()));
+        if (payload.radius() > 0.0f) {
+            push(new Pulse(payload.x(), payload.y(), payload.z(), payload.radius(), nowNanos, seconds, payload.kind()));
+        }
         byte kind = payload.kind();
         if ((kind == BlindPulseS2CPayload.SOUND || kind == BlindPulseS2CPayload.VOICE) && payload.hasEmitter()) {
             perceiveIfOther(payload.emitterEntityId(), ticksToSeconds(BlindRules.PLAYER_PULSE_TICKS), nowNanos,
                     localPlayerEntityId);
         } else if (kind == BlindPulseS2CPayload.CANE) {
-            float caneSeconds = ticksToSeconds(BlindRules.CANE_ACTIVE_TICKS);
+            float caneSeconds = ticksToSeconds(Math.min(BlindRules.CANE_ACTIVE_TICKS, payload.durationTicks()));
             for (int id : payload.playerEntityIds()) {
                 perceiveIfOther(id, caneSeconds, nowNanos, localPlayerEntityId);
             }
