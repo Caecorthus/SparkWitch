@@ -1,7 +1,10 @@
 package dev.caecorthus.sparkwitch.client.abysslistener;
 
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.AbyssListenerEntities;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 
 /**
@@ -25,5 +28,11 @@ public final class AbyssListenerClient {
         // The thrown flask renders its synced item stack like vanilla thrown items.
         // 投出的孢瓶与原版投掷物一样渲染其同步的物品。
         EntityRendererRegistry.register(AbyssListenerEntities.deepDarkSporeFlask(), FlyingItemEntityRenderer::new);
+        // The pseudo task line's fade is static: settled every HUD frame, dropped on every disconnect and join.
+        // 临时任务行的淡入淡出是静态状态：每个 HUD 帧结算一次，每次断开或加入连接时丢弃。
+        HudRenderCallback.EVENT.register((context, tickCounter) ->
+                AbyssZoneExposureTaskLine.settleFrame(MinecraftClient.getInstance().player));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> AbyssZoneExposureTaskLine.reset());
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> AbyssZoneExposureTaskLine.reset());
     }
 }

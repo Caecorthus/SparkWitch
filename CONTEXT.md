@@ -729,12 +729,13 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It nev
     hit. A nearer Seeker device absorbs the beam exactly like the Taser, and a miss also breaks the nearest breakable
     device in reach.
   - A hit sets an absolute velocity, the beam's horizontal unit × 2.0 with vertical `max(vy, 0.45)` for a non-ally or
-    × 3.0 with `max(vy, 0.2)` for an ally, every axis capped at the ±3.9 sync limit (`velocityModified = true`), and
-    records the push for fall credit. A non-ally with real sanity also loses 0.60 sanity and gets Slowness II and
-    Blindness for 2 s and `AbyssSuppression.forceCooldowns(40)`; a non-ally without real sanity is only pushed; an
+    × 3.0 with `max(vy, 0.2)` for an ally, every axis capped at the ±3.9 sync limit (`velocityModified = true`); only a
+    non-ally push is recorded for fall credit. A non-ally with real sanity also loses 0.60 sanity and gets Slowness II
+    and Blindness for 2 s and `AbyssSuppression.forceCooldowns(40)`; a non-ally without real sanity is only pushed; an
     ally (`AbyssSuppression.isAlly`) gets Speed III for 2 s.
   - The gun never kills, never sends `GunShootPayload`, and never uses `wathe:gun_shot`. The server draws
-    `ParticleTypes.SONIC_BOOM` every block up to the cut point (block, hit player, or absorbing device), plays
+    `ParticleTypes.SONIC_BOOM` every block up to the cut point (block, hit player, or the absorbing device, found by
+    `SeekerDeviceHits.shriekGunAbsorber` with the break's own ray and `SeekerDamageRules.mayBreak` filter), plays
     `ENTITY_WARDEN_SONIC_BOOM` at the shooter, and records
     `GameRecordManager.recordItemUse(shooter, sparkwitch:shriek_gun, target, {hit, ally})` (`ally` only on a hit).
   - The client crosshair chains one more `@ModifyExpressionValue` on Wathe `CrosshairRenderer.CROSSHAIR`: a ready gun
@@ -745,9 +746,10 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It nev
   ticks), and the latest push wins regardless of weapon. `GameWorldComponentMixin` still redirects only Wathe's
   fall-death `killPlayer`: a `wathe:fell_out_of_train` death inside the window is credited to the online pusher and
   runs inside `SparkTraitsKillerBridge.runWithNonFinalKillWeapon(recordedWeapon, kill)`, with Judge responsibility read
-  first as before. The Fire Poker records itself as before; the Shriek Gun records every push, ally or enemy, with
-  itself, so a Shriek Gun push off the train is the Abyss Listener's kill (kill money, replay, attributed death for
-  Wraith conversion; a dormant Fiend can die this way).
+  first as before. The Fire Poker records itself as before; the Shriek Gun records only non-ally (enemy) pushes, with
+  itself, so an enemy pushed off the train is the Abyss Listener's kill (kill money, replay, attributed death for
+  Wraith conversion; a dormant Fiend can die this way). An ally launch adds no record (coordinator default), so a
+  teammate knocked off the train never pays the Abyss Listener kill coins or mana.
 - **Bound gun.** The gun is never granted from `RoleAssigned`, because the recruitment transaction restores the
   retained inventory after that event. It is granted by the variant hook `afterRecruitCommitted` (after the restore)
   and, for a forced round-start Abyss Listener that has no gun yet, in the post-default `ON_FINISH_INITIALIZE` phase
@@ -773,18 +775,20 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It nev
 - **Deep Dark Zone terrain.** The zone is a client-only overlay: the server world is never written.
   - A Deep Dark Spore Flask (item and thrown entity) is thrown only in an ACTIVE round by a living, non-creative,
     non-Wraith participant who passes `SparkTraitsKillerBridge.blocksWeaponAction`; it has no cooldown, and any holder
-    may throw it. It breaks on a block or on any entity a projectile can hit except its thrower; among players only a
-    living, survival, non-Wraith one stops it. It opens a zone at the cell in front of the struck face (an entity hit
-    uses the hit-point cell).
+    may throw it. On the server it breaks on a block or on a living, survival, non-Wraith player other than its
+    thrower; every non-player entity (e.g. Wathe `PlayerBodyEntity` corpses) is transparent. It opens a zone at the
+    cell in front of the struck face (a player hit uses the hit-point cell). A landing that converts no block plays
+    only the shatter cue and opens no zone (no heartbeat, no standing check).
   - One snapshot at landing flood-fills 6-neighbour steps through cells whose entity-less collision shape is empty (open
     doors pass; closed doors and walls stop it) up to Euclidean `ZONE_RADIUS` from the landing cell, and every
     neighbouring block that passes `DeepDarkZoneEligibility` converts: inside the map `playArea`, outside the reset
     template source box, an opaque full cube with a full collision cube, no block entity, MODEL render, luminance 0, no
     redstone power, no properties or only `axis`, not a `FallingBlock`, vanilla slipperiness, velocity, and jump
     multipliers, namespace `minecraft` or `wathe` (never ban `wathe:`: the Harpy floors are Wathe blocks), not in the
-    datapack tag `sparkwitch:sculk_conversion_immune` (seeded with `minecraft:magma_block`), and not already sculk or
-    deepslate. Floors look like sculk; other faces hash their position (60 % sculk, the rest deepslate tiles, bricks, or
-    cobbled).
+    datapack tag `sparkwitch:sculk_conversion_immune` (seeded with `minecraft:magma_block`), and not already deep-dark
+    palette (`DeepDarkZoneEligibility.isDeepDarkPalette`: sculk or any block whose id path contains `deepslate`, so
+    every deepslate ore, infested and reinforced deepslate included; such blocks are never zone cells). Floors look like
+    sculk; other faces hash their position (60 % sculk, the rest deepslate tiles, bricks, or cobbled).
   - Each block converts at `round(ZONE_SPREAD_TICKS × d / R)` after landing and restores at
     `ZONE_SPREAD_TICKS + ZONE_HOLD_TICKS + round(ZONE_RESTORE_TICKS × (1 − d / R))`, so near blocks convert first and
     outer blocks restore first (distance clamped to the radius).
@@ -798,7 +802,8 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It nev
     so a crash needs no cleanup.
   - The zone restores instantly (real states resent, registry dropped) at `ON_FINISH_INITIALIZE` (stale),
     `ON_WIN_DETERMINED`, `ON_FINISH_FINALIZE` (which also discards flasks in flight), `SERVER_STOPPING`, and on any
-    tick whose round is no longer ACTIVE (covers `/stop`); `ServerWorldEvents.UNLOAD` only forgets the registry.
+    tick whose round is no longer ACTIVE (covers `/stop`); every such restore also clears the exposure of that world's
+    players in the same tick. `ServerWorldEvents.UNLOAD` only forgets the registry.
   - Known cosmetic limits: other players' footsteps use the real block's sound (server-played), and a right-click on a
     converted block shows the real block to that player for up to one heal interval.
 - **Standing and exposure.** Standing is checked every `ZONE_CHECK_INTERVAL_TICKS` (5) ticks, only in worlds where
@@ -814,8 +819,9 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It nev
   - `sparkwitch:abyss_zone_exposure` (player, `NEVER_COPY`, appended last in `custom.cardinal-components`, never
     persisted) holds the remaining exposure ticks. It syncs to its owner only, and only when exposure starts (0 to
     positive) or ends (back to 0); the client prediction stops at one tick, so only the server's zero sync ends it on
-    the client. Exposure is cleared at once on `KillPlayer.AFTER`, `ResetPlayer`, and `ON_FINISH_FINALIZE`, and
-    otherwise runs out within 10 ticks of leaving.
+    the client. Exposure is cleared at once (zero synced to the owner) on `KillPlayer.AFTER`, `ResetPlayer`,
+    `ON_FINISH_FINALIZE`, and every instant zone restore (including `ON_WIN_DETERMINED`), so the ×15 drain and the
+    pseudo task stop with the blocks; otherwise it runs out within 10 ticks of leaving.
 - **Exposed drain.** While exposed (owner-synced, so both sides agree),
   `mixin/abysslistener/PlayerMoodComponentAbyssZoneDrainMixin` turns Wathe's per-tick drain
   `if (!tasks.isEmpty()) setMood(mood - tasks.size() * MOOD_DRAIN)` into `(real tasks + 1) × MOOD_DRAIN × 15`
@@ -834,7 +840,10 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It nev
   gate counts the line). It is never in Wathe's task map, so it cannot be completed, fires no `TaskComplete`, pays
   nothing, and never affects the Bell Ringer task hold. It is pinned to Wathe 1.5.6 `renderHud`: one `Map.isEmpty()`
   (the bar gate) and two `PUTSTATIC moodTextWidth` (one per branch, after the psycho return and every row draw, before
-  the icon and bar).
+  the icon and bar). Its fade is static client state: `AbyssListenerClient` settles it every `HudRenderCallback`
+  frame, dropping it when Wathe's layout skipped the line since the previous frame (death, round over, psycho, train
+  HUD off) while the local player is not exposed, and resets it on every `ClientPlayConnectionEvents` disconnect and
+  join, so a stale fade never flashes the line in a new round or on another server.
 - **Replay.** `AbyssListenerReplayFormatters`, registered once from `AbyssListenerFeatureService.register()`, formats
   the Shriek Gun record as a hit, an ally launch, or a miss (`replay.item_use.sparkwitch.shriek_gun.hit` / `.ally` /
   `.miss`; the target is named only on a hit) and the flask record with the thrower only

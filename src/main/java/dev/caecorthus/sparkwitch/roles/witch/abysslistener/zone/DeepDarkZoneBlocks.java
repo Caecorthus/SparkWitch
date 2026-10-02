@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import java.util.Set;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
@@ -13,6 +12,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.property.Properties;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -31,20 +31,6 @@ final class DeepDarkZoneBlocks {
      */
     static final TagKey<Block> CONVERSION_IMMUNE = TagKey.of(RegistryKeys.BLOCK,
             SparkWitch.id("sculk_conversion_immune"));
-    /** Already deep dark: never converted again and never counted as zone blocks. / 已是深暗外观：不再转换。 */
-    private static final Set<Block> DEEP_DARK_LOOKS = Set.of(
-            Blocks.SCULK,
-            Blocks.DEEPSLATE,
-            Blocks.COBBLED_DEEPSLATE,
-            Blocks.POLISHED_DEEPSLATE,
-            Blocks.DEEPSLATE_BRICKS,
-            Blocks.CRACKED_DEEPSLATE_BRICKS,
-            Blocks.DEEPSLATE_TILES,
-            Blocks.CRACKED_DEEPSLATE_TILES,
-            Blocks.CHISELED_DEEPSLATE,
-            Blocks.REINFORCED_DEEPSLATE
-    );
-
     private DeepDarkZoneBlocks() {
     }
 
@@ -77,6 +63,7 @@ final class DeepDarkZoneBlocks {
                                                Box resetTemplateArea) {
         Vec3d center = Vec3d.ofCenter(pos);
         Block block = state.getBlock();
+        Identifier id = Registries.BLOCK.getId(block);
         return new DeepDarkZoneEligibility.Facts(
                 playArea.contains(center),
                 resetTemplateArea.contains(center),
@@ -94,9 +81,9 @@ final class DeepDarkZoneBlocks {
                 block.getSlipperiness(),
                 block.getVelocityMultiplier(),
                 block.getJumpVelocityMultiplier(),
-                Registries.BLOCK.getId(block).getNamespace(),
+                id.getNamespace(),
                 state.isIn(CONVERSION_IMMUNE),
-                DEEP_DARK_LOOKS.contains(block)
+                DeepDarkZoneEligibility.isDeepDarkPalette(id.getPath())
         );
     }
 

@@ -82,10 +82,10 @@ public final class DeepDarkZoneStandingRules {
 
     /**
      * The acting thrower: the first owner, in throw order, that {@code livingOnline} resolves (online and still a
-     * living participant), else {@code null}. Owner D19: a zone outlives its thrower, so a dead or departed thrower
-     * neither switches it off nor lends it an SFA veto or a Wraith-isolated effect source.
+     * living participant), else {@code null}. Plan default N19: a zone outlives its thrower, so a dead or departed
+     * thrower neither switches it off nor lends it an SFA veto or a Wraith-isolated effect source.
      * 施加者：按投掷顺序第一个能被 {@code livingOnline} 解析的投掷者（在线且仍为存活参与者），否则为 {@code null}。
-     * 所有者 D19：领域比投掷者活得久，已死亡或离开的投掷者既不会关闭领域，也不会为其带来 SFA 否决或受冤魂隔离的效果来源。
+     * 方案默认 N19：领域比投掷者活得久，已死亡或离开的投掷者既不会关闭领域，也不会为其带来 SFA 否决或受冤魂隔离的效果来源。
      */
     public static @Nullable <P> P actingOwner(List<UUID> owners, Function<UUID, P> livingOnline) {
         for (UUID owner : owners) {

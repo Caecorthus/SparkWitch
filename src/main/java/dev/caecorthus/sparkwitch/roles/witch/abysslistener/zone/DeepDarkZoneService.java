@@ -118,6 +118,12 @@ public final class DeepDarkZoneService {
                         return DeepDarkZoneBlocks.convertible(world, pos, playArea, resetTemplateArea);
                     }
                 });
+        // A landing that converts nothing opens no zone: only the shatter cue, so no heartbeat and no standing scan.
+        // 未转换任何方块的落点不展开领域：只播放碎裂表现，因此没有心跳，也没有站立检查。
+        if (targets.isEmpty()) {
+            DeepDarkZoneCues.landing(world, landing);
+            return;
+        }
         List<DeepDarkZoneState.Claim<BlockState>> claims = new ArrayList<>(targets.size());
         for (DeepDarkZoneShape.Target target : targets) {
             BlockPos pos = target.pos();
@@ -168,12 +174,19 @@ public final class DeepDarkZoneService {
         }
     }
 
-    /** Instant restore: real states go back to every tracker, then the registry is dropped. / 立即恢复。 */
+    /**
+     * Instant restore: real states go back to every tracker, the registry is dropped, and the world's players lose
+     * their exposure in the same tick (zero synced to each owner), so the boosted drain and the pseudo task end with
+     * the blocks.
+     * 立即恢复：真实状态发回所有追踪者，丢弃登记表，并在同一刻清除该世界玩家的暴露（向各拥有者同步零值），
+     * 使加速的理智下降与临时任务随方块一同结束。
+     */
     private static void clear(ServerWorld world) {
         Runtime runtime = RUNTIMES.remove(world);
         if (runtime != null) {
             DeepDarkZoneSync.sendReal(world, runtime.state.clear());
         }
+        DeepDarkZoneStandingService.clearAllExposure(world);
     }
 
     private static boolean isRoundActive(ServerWorld world) {

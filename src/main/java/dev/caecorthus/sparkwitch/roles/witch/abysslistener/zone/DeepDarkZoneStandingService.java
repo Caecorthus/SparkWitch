@@ -44,11 +44,21 @@ public final class DeepDarkZoneStandingService {
         ResetPlayer.EVENT.register(DeepDarkZoneStandingService::clearExposure);
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> {
             if (world instanceof ServerWorld serverWorld) {
-                for (ServerPlayerEntity player : List.copyOf(serverWorld.getPlayers())) {
-                    clearExposure(player);
-                }
+                clearAllExposure(serverWorld);
             }
         });
+    }
+
+    /**
+     * Ends every exposure in {@code world} at once; each changed component syncs its zero to its owner. Also called by
+     * every instant zone restore in {@link DeepDarkZoneService}.
+     * 立即结束 {@code world} 中的所有暴露；每个发生变化的组件都会把零值同步给其拥有者。{@link DeepDarkZoneService}
+     * 的每次立即恢复也会调用。
+     */
+    static void clearAllExposure(ServerWorld world) {
+        for (ServerPlayerEntity player : List.copyOf(world.getPlayers())) {
+            clearExposure(player);
+        }
     }
 
     private static void tick(ServerWorld world) {
@@ -73,8 +83,8 @@ public final class DeepDarkZoneStandingService {
     }
 
     private static void suppress(ServerWorld world, ServerPlayerEntity player, BlockPos stepping) {
-        // No living thrower online: no actor, so only the participant rules apply (owner D19).
-        // 没有在线且存活的投掷者：不设施加者，只按参与者规则判定（所有者 D19）。
+        // No living thrower online: no actor, so only the participant rules apply (plan default N19).
+        // 没有在线且存活的投掷者：不设施加者，只按参与者规则判定（方案默认 N19）。
         ServerPlayerEntity actor = actingOwner(world, stepping);
         if (!AbyssSuppression.canAffect(actor, player, AbyssListenerRules.ZONE_ACTION_ID)) {
             return;

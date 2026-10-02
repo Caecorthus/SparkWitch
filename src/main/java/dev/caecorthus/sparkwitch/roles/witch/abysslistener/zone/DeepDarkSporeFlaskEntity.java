@@ -21,9 +21,10 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Thrown Deep Dark Spore Flask (Shock Device template). Server-authoritative: only the server resolves the landing
  * and opens the Deep Dark Zone; the client merely predicts the flight. It breaks on any block or on any living
- * participant but its thrower, never outlives the round and is never saved with the world.
+ * participant player but its thrower (every non-player entity is transparent), never outlives the round and is never
+ * saved with the world.
  * 投出的深暗孢瓶（以电击装置为模板）。由服务端权威决定：只有服务端结算落点并展开深暗领域，客户端只预测飞行轨迹。
- * 它碰到任何方块或投掷者以外的存活参与者就会碎裂，永不跨出本局，也从不随世界保存。
+ * 它碰到任何方块或投掷者以外的存活参与者玩家就会碎裂（所有非玩家实体都对其透明），永不跨出本局，也从不随世界保存。
  */
 public final class DeepDarkSporeFlaskEntity extends ThrownItemEntity {
     private static final float TRAIL_CHANCE = 0.3F;
@@ -54,18 +55,20 @@ public final class DeepDarkSporeFlaskEntity extends ThrownItemEntity {
     }
 
     /**
-     * Its own thrower never stops the flask. On the server only living participants do: an active Wraith (an
-     * ADVENTURE-mode dead player) or a creative player is transparent, so a landing never reveals them. The client's
-     * flight prediction keeps vanilla hits and the server's removal settles the landing.
-     * 投掷者本人永远不会挡下孢瓶。服务端只有存活的参与者会挡下它：激活的冤魂（冒险模式的死亡玩家）或创造模式玩家是透明的，
-     * 因此落点永远不会暴露他们。客户端的飞行预测保留原版命中，落点以服务端移除实体为准。
+     * Its own thrower never stops the flask. On the server only living participant players do: an active Wraith (an
+     * ADVENTURE-mode dead player) or a creative player is transparent, so a landing never reveals them, and every
+     * non-player entity (e.g. Wathe {@code PlayerBodyEntity} corpses) is transparent, so blocks alone stop it otherwise.
+     * The client's flight prediction keeps vanilla hits and the server's removal settles the landing.
+     * 投掷者本人永远不会挡下孢瓶。服务端只有存活的参与者玩家会挡下它：激活的冤魂（冒险模式的死亡玩家）或创造模式玩家是透明的，
+     * 因此落点永远不会暴露他们；所有非玩家实体（例如 Wathe 的 {@code PlayerBodyEntity} 尸体）同样透明，除此之外只有方块能挡下它。
+     * 客户端的飞行预测保留原版命中，落点以服务端移除实体为准。
      */
     @Override
     protected boolean canHit(Entity entity) {
         if (!super.canHit(entity) || isOwner(entity)) {
             return false;
         }
-        return getWorld().isClient() || !(entity instanceof PlayerEntity player) || stopsFlask(player);
+        return getWorld().isClient() || entity instanceof PlayerEntity player && stopsFlask(player);
     }
 
     private static boolean stopsFlask(PlayerEntity player) {

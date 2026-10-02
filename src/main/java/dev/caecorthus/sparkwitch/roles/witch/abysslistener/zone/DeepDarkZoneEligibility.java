@@ -18,6 +18,8 @@ public final class DeepDarkZoneEligibility {
     static final float DEFAULT_JUMP_VELOCITY_MULTIPLIER = 1.0F;
     private static final String MINECRAFT_NAMESPACE = "minecraft";
     private static final String WATHE_NAMESPACE = "wathe";
+    private static final String SCULK_PATH = "sculk";
+    private static final String DEEPSLATE_PATH_PART = "deepslate";
     /** 9 of 15 buckets (60 %) are sculk; the other three looks get 2 each. / 15 个桶中 9 个（60%）为幽匿块。 */
     private static final int LOOK_BUCKETS = 15;
     private static final int SCULK_BUCKETS = 9;
@@ -33,7 +35,7 @@ public final class DeepDarkZoneEligibility {
      * @param propertyCount   number of block-state properties / 方块状态属性数量
      * @param hasAxisProperty the state has {@code Properties.AXIS} (pillars) / 是否带朝向轴属性（柱子）
      * @param immune          in the {@code sparkwitch:sculk_conversion_immune} block tag / 在免疫方块标签内
-     * @param deepDarkLook    already a sculk or deepslate block / 本身已经是幽匿或深板岩方块
+     * @param deepDarkLook    already deep-dark palette, see {@link #isDeepDarkPalette} / 本身已是深暗调色板方块
      */
     public record Facts(
             boolean insidePlayArea,
@@ -98,6 +100,19 @@ public final class DeepDarkZoneEligibility {
             return false;
         }
         return !facts.immune() && !facts.deepDarkLook();
+    }
+
+    /**
+     * Already deep-dark palette, by block id path: sculk, or any deepslate-family block (every id containing
+     * {@code deepslate}: the stone, its cobbled/polished/brick/tile/chiseled/cracked forms, every
+     * {@code deepslate_*_ore}, {@code infested_deepslate}, {@code reinforced_deepslate}). Such a block is never converted
+     * and never counted as a zone cell. The id match covers every variant without a hand-kept list.
+     * 按方块 id 路径判断是否已属深暗调色板：幽匿块，或任何深板岩家族方块（所有 id 含 {@code deepslate} 的方块：深板岩本身、
+     * 其圆石/磨制/砖/瓦/雕纹/裂纹形式、所有 {@code deepslate_*_ore}、{@code infested_deepslate}、{@code reinforced_deepslate}）。
+     * 这类方块从不转换，也从不计为领域格子。按 id 匹配可覆盖所有变种，无需手工维护列表。
+     */
+    public static boolean isDeepDarkPalette(String path) {
+        return SCULK_PATH.equals(path) || path.contains(DEEPSLATE_PATH_PART);
     }
 
     /**

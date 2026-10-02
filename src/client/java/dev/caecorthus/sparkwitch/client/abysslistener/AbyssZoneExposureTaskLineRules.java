@@ -34,6 +34,15 @@ public final class AbyssZoneExposureTaskLineRules {
         return lerp(delta / 16.0F, alpha, visible ? 1.0F : 0.0F);
     }
 
+    /**
+     * A fade is stale, and dropped at once, when Wathe's layout path skipped the line since the previous frame and the
+     * local player is not exposed; an exposed player keeps it (the line resumes when the layout runs again).
+     * 当自上一帧以来 Wathe 布局跳过了本行且本地玩家未暴露时，淡入淡出即为过期并立即丢弃；暴露中的玩家保留它（布局恢复后本行继续显示）。
+     */
+    public static boolean dropsStaleFade(boolean laidOutSinceLastFrame, boolean visible) {
+        return !laidOutSinceLastFrame && !visible;
+    }
+
     /** Same cutoff Wathe uses to drop a fading row. / 与 Wathe 移除淡出行相同的阈值。 */
     public static boolean inLayout(float alpha) {
         return alpha >= ALPHA_CUTOFF && ((((int) (alpha * 255.0F)) << 24) & 0xFC000000) != 0;

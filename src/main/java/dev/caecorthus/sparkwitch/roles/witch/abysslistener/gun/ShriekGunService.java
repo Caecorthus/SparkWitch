@@ -4,7 +4,6 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerFallAttributionService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
-import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceRaycast;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
@@ -79,8 +78,9 @@ public final class ShriekGunService {
                 world.getPlayers(), candidate -> isEligible(shooter, candidate),
                 candidate -> PlayerHitboxHistory.hitVolumes(shooter, candidate, ShriekGunTargeting.BOX_EXPANSION));
         ServerPlayerEntity picked = hit == null ? null : hit.target();
-        // Read-only snapshot so the beam particles can stop where a device absorbed it. / 只读快照，使粒子停在吸收射线的设备处。
-        SeekerDeviceEntity blocker = SeekerDeviceRaycast.blockingDevice(shooter, start, end, picked);
+        // Read-only snapshot with the break's own ray and breakability filter, so the beam particles stop exactly where
+        // a device absorbed it. / 只读快照，使用与打坏相同的射线与可打坏过滤，使粒子恰好停在吸收射线的设备处。
+        SeekerDeviceEntity blocker = SeekerDeviceHits.shriekGunAbsorber(shooter, picked, AbyssListenerRules.GUN_RANGE);
         // Seeker seam: a nearer Seeker device absorbs the beam and breaks; nobody is pushed (replay hit:false).
         // 搜寻者接缝：更近的搜寻者设备吸收射线并被打坏；不推动任何人（回放 hit:false）。
         ServerPlayerEntity target = SeekerDeviceHits.onShriekGunFired(shooter, picked, AbyssListenerRules.GUN_RANGE);
@@ -120,8 +120,11 @@ public final class ShriekGunService {
     }
 
     /**
-     * Pushes {@code target} and applies its branch; every push (ally or enemy) is recorded for train-fall credit.
-     * Returns whether the target was an ally. / 推动目标并施加其分支效果；每次推人（队友或敌人）都记录用于坠车归因。
+     * Pushes {@code target} and applies its branch. Only a non-ally push is recorded for train-fall credit (coordinator
+     * default), so a teammate launched off the train never pays the Abyss Listener kill coins or mana.
+     * Returns whether the target was an ally.
+     * 推动目标并施加其分支效果。只有对非队友的推击才记录用于坠车归因（协调者默认），因此把队友推下火车永远不会让
+     * 聆渊者获得击杀金币或魔力。返回目标是否为队友。
      */
     private static boolean applyHit(ServerPlayerEntity shooter, ServerPlayerEntity target, Vec3d direction, Item gun) {
         boolean ally = AbyssSuppression.isAlly(target);
@@ -132,7 +135,9 @@ public final class ShriekGunService {
         // 绝对速度，在本刻末尾同步给目标及其追踪者（每轴受同步上限约束）。
         target.setVelocity(velocity);
         target.velocityModified = true;
-        FirePokerFallAttributionService.recordPush(shooter, target, gun);
+        if (!plan.ally()) {
+            FirePokerFallAttributionService.recordPush(shooter, target, gun);
+        }
         if (plan.suppress()) {
             AbyssSuppression.drainSanity(target, AbyssListenerRules.GUN_SANITY_LOSS);
             AbyssSuppression.addEffect(target, StatusEffects.SLOWNESS, AbyssListenerRules.GUN_DEBUFF_TICKS,
