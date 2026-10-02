@@ -31,18 +31,6 @@ public record BlindClientStatus(int caneCooldownTicks, int caneActiveTicks,
                 component.attuneActiveRemaining(now));
     }
 
-    public boolean caneReady() {
-        return caneCooldownTicks == 0;
-    }
-
-    public boolean caneActive() {
-        return caneActiveTicks > 0;
-    }
-
-    public boolean attuneReady() {
-        return attuneCooldownTicks == 0;
-    }
-
     public boolean attuneActive() {
         return attuneActiveTicks > 0;
     }

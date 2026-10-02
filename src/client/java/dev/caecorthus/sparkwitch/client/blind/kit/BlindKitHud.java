@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClientStatus;
 import dev.caecorthus.sparkwitch.client.blind.BlindView;
+import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
@@ -57,10 +58,10 @@ final class BlindKitHud {
         // HudRenderCallback fires even with F1, unlike Wathe's own HUD layer; follow Wathe's train HUD.
         // HudRenderCallback 在 F1 下仍会触发，与 Wathe 自身 HUD 层不同；跟随 Wathe 列车 HUD 的显示状态。
         boolean trainHudActive = WatheClient.trainComponent != null && WatheClient.trainComponent.hasHud();
-        boolean gameActive = GameWorldComponent.KEY.get(client.world).getGameStatus()
-                == GameWorldComponent.GameStatus.ACTIVE;
-        if (!BlindKitHudRules.showsHud(client.options.hudHidden, gameActive, trainHudActive,
-                BlindView.isActive(client))) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(client.world);
+        boolean gameActive = game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE;
+        if (!BlindKitHudRules.showsHud(client.options.hudHidden, gameActive, game.getFade(), trainHudActive,
+                BlindView.isActive(client), NoellesTaotieSeekerBridge.isSwallowed(player))) {
             return;
         }
         BlindClientStatus status = BlindClientStatus.of(player);
@@ -74,17 +75,23 @@ final class BlindKitHud {
         // 防御性处理：共享右下角技能行只在存在魔女技能 id 时绘制，而盲人没有。
         boolean sharedLineOccupied = WitchPlayerComponent.KEY.get(player).getActiveSkillId() != null;
         TextRenderer renderer = client.textRenderer;
+        int width = context.getScaledWindowWidth();
+        int widest = 0;
+        for (BlindKitHudRules.Line line : lines) {
+            widest = Math.max(widest, renderer.getWidth(text(line, BlindKitHudRules.measuredSeconds(line.seconds()))));
+        }
+        int bottomOffset = BlindKitHudRules.bottomOffset(width, widest, renderer.fontHeight, sharedLineOccupied);
         for (int index = 0; index < lines.size(); index++) {
             BlindKitHudRules.Line line = lines.get(index);
-            Text text = text(line);
-            int x = BlindKitHudRules.rowX(context.getScaledWindowWidth(), renderer.getWidth(text));
+            Text text = text(line, line.seconds());
+            int x = BlindKitHudRules.rowX(width, renderer.getWidth(text));
             int y = BlindKitHudRules.rowY(context.getScaledWindowHeight(), renderer.fontHeight, index, lines.size(),
-                    sharedLineOccupied);
+                    bottomOffset);
             context.drawTextWithShadow(renderer, text, x, y, line.color());
         }
     }
 
-    private static Text text(BlindKitHudRules.Line line) {
+    private static Text text(BlindKitHudRules.Line line, int seconds) {
         List<Object> args = new ArrayList<>(3);
         if (line.nameKey() != null) {
             args.add(Text.translatable(line.nameKey()));
@@ -93,7 +100,7 @@ final class BlindKitHud {
             args.add(SparkWitchClient.abilityKeyText());
         }
         if (line.hasSeconds()) {
-            args.add(line.seconds());
+            args.add(seconds);
         }
         return Text.translatable(line.key(), args.toArray());
     }

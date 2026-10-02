@@ -12,14 +12,20 @@ import org.jetbrains.annotations.Nullable;
  * {@code PlayerScreenHandler} 的护甲槽 5..8，这里只决定它们在屏幕上的位置。
  */
 public final class LimitedInventoryArmorLayout {
-    /** {@code PlayerScreenHandler.EQUIPMENT_START}: head, chest, legs, feet follow in this order. */
+    /**
+     * {@code PlayerScreenHandler.EQUIPMENT_START}: head, chest, legs, feet follow in this order.
+     * {@code PlayerScreenHandler.EQUIPMENT_START}：其后依次为头、胸、腿、脚。
+     */
     public static final int FIRST_ARMOR_SLOT_ID = 5;
     public static final int ARMOR_SLOT_COUNT = 4;
-    /** {@code PlayerScreenHandler.HOTBAR_START} / {@code HOTBAR_END} (exclusive). */
+    /** {@code PlayerScreenHandler.HOTBAR_START} / {@code HOTBAR_END} (exclusive). / 快捷栏起止槽位（终点不含）。 */
     public static final int HOTBAR_START = 36;
     public static final int HOTBAR_END = 45;
     public static final int COLUMNS = 2;
-    /** Wathe's strip: 8 px frame, 16 px cells on an 18 px pitch (176 = 8 + 9 * 18 - 2 + 8, 32 = 8 + 16 + 8). */
+    /**
+     * Wathe's strip: 8 px frame, 16 px cells on an 18 px pitch (176 = 8 + 9 * 18 - 2 + 8, 32 = 8 + 16 + 8).
+     * Wathe 热栏条：8 像素边框，16 像素格子，间距 18 像素（176 = 8 + 9 * 18 - 2 + 8，32 = 8 + 16 + 8）。
+     */
     public static final int FRAME = 8;
     public static final int SLOT_SIZE = 16;
     public static final int SLOT_PITCH = 18;
@@ -27,7 +33,7 @@ public final class LimitedInventoryArmorLayout {
     public static final int STRIP_HEIGHT = 32;
     public static final int PANEL_WIDTH = FRAME + COLUMNS * SLOT_PITCH - (SLOT_PITCH - SLOT_SIZE) + FRAME;
     public static final int PANEL_HEIGHT = PANEL_WIDTH;
-    /** Gap between the armor block and the hotbar strip. */
+    /** Gap between the armor block and the hotbar strip. / 护甲块与热栏条之间的间距。 */
     public static final int GAP = 4;
     /**
      * Where the frame is cut from Wathe's own {@code limited_inventory.png}: the strip's left part through its second
@@ -90,7 +96,10 @@ public final class LimitedInventoryArmorLayout {
         return -1;
     }
 
-    /** One vanilla {@code SWAP} click: {@code slotId} swapped with hotbar {@code button} (0..8). */
+    /**
+     * One vanilla {@code SWAP} click: {@code slotId} swapped with hotbar {@code button} (0..8).
+     * 一次原版 {@code SWAP} 点击：{@code slotId} 与快捷栏第 {@code button} 格（0..8）互换。
+     */
     public record Swap(int slotId, int button) {
     }
 
@@ -137,6 +146,20 @@ public final class LimitedInventoryArmorLayout {
     public static boolean mayPickUpArmor(int slotId, boolean slotHasStack, boolean cursorEmpty,
                                          int firstEmptyHotbarButton) {
         return !isArmorSlotId(slotId) || !slotHasStack || !cursorEmpty || firstEmptyHotbarButton >= 0;
+    }
+
+    /**
+     * Armor slot id a cursor piece is put back into just before the screen closes, or -1. With every hotbar slot taken,
+     * closing would offer the cursor stack to the first free inventory slot, which is in the main inventory Wathe
+     * hides; a piece whose own armor slot is empty goes back there instead. With a free hotbar slot vanilla's offer
+     * already lands in the hotbar.
+     * 关闭界面前光标上的护甲应放回的护甲槽 id，没有则为 -1。快捷栏已满时，关闭界面会把光标物品放进第一个空背包格，
+     * 而那会是 Wathe 隐藏的主背包；其自身护甲槽为空的护甲改为放回该槽。有空快捷栏格时原版的放回本就落在快捷栏。
+     */
+    public static int cursorReturnArmorSlotId(boolean cursorHasStack, int preferredArmorSlotId,
+                                              boolean preferredArmorSlotEmpty, int firstEmptyHotbarButton) {
+        return cursorHasStack && firstEmptyHotbarButton < 0 && isArmorSlotId(preferredArmorSlotId)
+                && preferredArmorSlotEmpty ? preferredArmorSlotId : -1;
     }
 
     /**

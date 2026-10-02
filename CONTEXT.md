@@ -166,7 +166,7 @@ Current build baseline:
   `BlindSilhouettePass`, the Iris check `BlindShaderPackCheck`), `gate/` (`BlindClientGates` and the
   pure `BlindGateRules` behind the `BlindGate*` vetoes, client-only bumps, the plain
   `BlindCrosshair`, and the Attune ducking in `BlindAttuneDucking`) and `kit/` (the owner-only HUD
-  and the Attune key handler). Its client mixins live in `client/mixin/blind/`: the seven
+  and the Attune key handler). Its client mixins live in `client/mixin/blind/`: the eleven
   `BlindGate*` vetoes, `BlindGameRendererMixin` (the end-of-frame pass), `BlindEchoSilhouetteMixin`,
   `BlindAttuneSoundSystemMixin`, and `BlindComTacHeadRenderMixin`.
 - `client/armor/`: the four vanilla armor slots (`PlayerScreenHandler` 5..8) on Wathe's
@@ -174,12 +174,14 @@ Current build baseline:
   `LimitedInventoryArmorLayout` (pure geometry, the shift-click plan and the full-hotbar rule),
   `LimitedInventoryArmorSlots` (gate, frame, empty icons, hit test, shift-click and pick-up adapters)
   and `LimitedInventoryArmorPanel` (the block as a visible, inactive `ClickableWidget`). Its one
-  mixin, `client/mixin/armor/LimitedInventoryArmorSlotsMixin`, has five seams on Wathe's
+  mixin, `client/mixin/armor/LimitedInventoryArmorSlotsMixin`, has seven seams on Wathe's
   `LimitedHandledScreen`, each pinned in `watheClientMixinContracts`: `init` TAIL adds the panel,
   `render` TAIL hands an unset `focusedSlot` to a hovered armor slot, `getSlotAt` RETURN answers
   armor slots where no hotbar slot hit, `isClickOutsideBounds` RETURN keeps a Touchscreen tap on the
-  block inside, and a `@WrapOperation` on the `onMouseClick` call in `mouseClicked` turns an eligible
-  shift + left press into one vanilla `SWAP`. Rules:
+  block inside, a `@WrapOperation` on the `onMouseClick` call in `mouseClicked` turns an eligible
+  shift + left press into one vanilla `SWAP`, and `close` HEAD plus the `tick` INVOKE before
+  `closeHandledScreen` (Wathe's forced close during a fade or after death) run the close-time
+  return below before the close packet. Rules:
   - **Gate.** The panel is added at `init` only for `LimitedInventoryScreen` on a
     `PlayerScreenHandler` and a confirmed SparkWitch server; every other seam acts only while that
     panel exists. Elsewhere Wathe's hotbar-only screen is untouched.
@@ -190,8 +192,11 @@ Current build baseline:
     empty (as vanilla quick-move would); worn piece → first empty hotbar slot (Wathe hides the main
     inventory vanilla would fill). Anything else stays Wathe's PICKUP.
   - **Full hotbar** (mouse mode). A worn piece cannot be picked onto an empty cursor while every
-    hotbar slot is taken (closing would return it into the hidden main inventory); the press sends
+    hotbar slot is taken (a vanilla close puts it in the hidden main inventory); the press sends
     nothing, and number-key swaps still exchange it. Touchscreen release pick-ups are not guarded.
+    In either mode, while every hotbar slot is taken a close first clicks a cursor armor piece back
+    into its own empty armor slot (one vanilla PICKUP); with a free hotbar slot vanilla's close
+    offer already lands in the hotbar.
   - **Layout.** A 50x50 2x2 block (head, chest / legs, feet) at `[X-54, X-4) x [Y-9, Y+41)` beside
     Wathe's 176x32 strip, clear of the shop row, role head rows, logo and the right-hand info card at
     every scaled size the layout test covers (320 px wide and up). Its frame is cut at draw time from
@@ -640,19 +645,33 @@ fails closed to black, never to the plain world: an Iris shader pack in use (ref
 error counts as in use), a load failure (kept until reconnect or resource reload), or 20 consecutive
 missed depth captures paint black and show `hud.sparkwitch.blind.view_unavailable`, and a swallowed
 or off-camera Blind sees black with no line art. The `BlindGate*` vetoes:
-`WorldRenderer#renderEntity` (priority 2000) skips every unperceived other player;
+`WorldRenderer#renderEntity` (priority 2000) skips every other player who is unperceived or a
+spectator, and a fishing bobber whose owner is so hidden (its line is drawn to the owner's hand);
 `LivingEntityRenderer` (priority 2000) skips features and name labels on every other player and
-forces a perceived one visible unless it is a spectator or an active Wraith;
+forces a perceived one visible unless it is a spectator or an active Wraith, and for that forced
+player calls `getRenderLayer` (opaque layer) and the model's `render` (full alpha) directly, so
+inner wraps there (today SparkTraits' Chameleon fade) do not apply to it;
 `ArmorFeatureRenderer#renderArmor` is HEAD-cancelled for armor drawn outside the feature loop;
+`PlayerEntityRenderer#getArmPose` (priority 2000, `EMPTY` for other players) and
+`BipedEntityModel#positionRightArm` / `#positionLeftArm` (priority 2000, vanilla `EMPTY` branch
+only, removing Wathe's gun hold) keep weapon stances out of the line art;
 `MinecraftClient#hasOutline` (priority 2000) answers false, so no instinct, glow or role outline
 reaches the Blind; `GameRenderer#renderHand` and `#shouldRenderBlockOutline` (priority 2000) hide
-the hand and the block outline; and the `@WrapMethod`s on Wathe's `RoleNameRenderer.renderHud`
-(priority 2100, so it encloses every other injection there, the Wraith name-tag and cohort-label
-seams included) and `CrosshairRenderer.renderCrosshair` (priority 2100, Wathe's plain 3x3 reticle
-only, so no target pip, name, corpse info or note text) are pinned in `watheClientMixinContracts`.
-Non-player entities (corpses, dropped items, Seeker devices) are environment and are never gated.
-Bumps are client-only (no packet, no public sound): a hard wall or head bump adds a local SELF pulse
-and briefly perceives a bumped player. Attune ducking (`BlindAttuneSoundSystemMixin`,
+the hand and the block outline; `DebugHud#shouldShowDebugHud` (priority 2000) answers false (F3
+blocked); `InGameHud#renderCrosshair` (priority 2100, above Wathe's 1000 and the Seeker's 1100)
+draws the same plain reticle on the vanilla path; and the `@WrapMethod`s on Wathe's
+`RoleNameRenderer.renderHud` (priority 2100, so it encloses every other injection there, the Wraith
+name-tag and cohort-label seams included) and `CrosshairRenderer.renderCrosshair` (priority 2100,
+Wathe's plain 3x3 reticle only, so no target pip, name, corpse info or note text) are pinned in
+`watheClientMixinContracts`. Non-player entities (corpses, dropped items, Seeker devices) are
+environment and are never gated, except a hidden player's fishing bobber. Bumps are client-only (no
+packet, no public sound): a hard wall bump, or a head bump with the space just above the head
+blocked, adds a local SELF pulse and briefly perceives a bumped player with no block in the gap
+between the two boxes; the 8-tick throttle is per contact (blocks, or one player), so a bump on a
+different player is never dropped. The owner-only kit HUD hides during Wathe's round-start fade
+(`GameWorldComponent.getFade() > 0`) and while swallowed, and lifts above the hotbar and stamina
+row when its widest line would reach the hotbar column (`SeekerHudRules` precedent).
+Attune ducking (`BlindAttuneSoundSystemMixin`,
 `@ModifyExpressionValue` on the inner `getAdjustedVolume(F, SoundCategory)` call in
 `SoundSystem#play` and `#getAdjustedVolume(SoundInstance)`) multiplies AMBIENT, MUSIC, RECORDS and
 WEATHER sounds and every `wathe:ambient.*` id by 0.25 while the local Blind's Attune is active; it

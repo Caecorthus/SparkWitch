@@ -102,16 +102,32 @@ public final class LimitedInventoryArmorSlots {
     public static LimitedInventoryArmorLayout.@Nullable Swap planShiftClick(PlayerEntity player, ScreenHandler handler,
                                                                            Slot slot) {
         ItemStack stack = slot.getStack();
-        int preferred = -1;
-        boolean preferredEmpty = false;
-        if (!stack.isEmpty()) {
-            EquipmentSlot equipment = player.getPreferredEquipmentSlot(stack);
-            preferred = LimitedInventoryArmorLayout.armorSlotIdForEntitySlot(
-                    equipment.getType() == EquipmentSlot.Type.HUMANOID_ARMOR, equipment.getEntitySlotId());
-            preferredEmpty = preferred >= 0 && !handler.getSlot(preferred).hasStack();
-        }
+        int preferred = preferredArmorSlotId(player, stack);
+        boolean preferredEmpty = preferred >= 0 && !handler.getSlot(preferred).hasStack();
         return LimitedInventoryArmorLayout.planShiftClick(
                 slot.id, !stack.isEmpty(), preferred, preferredEmpty, firstEmptyHotbarButton(handler));
+    }
+
+    /**
+     * The armor slot the cursor piece is put back into before the screen closes (see
+     * {@link LimitedInventoryArmorLayout#cursorReturnArmorSlotId}), or -1.
+     * 关闭界面前光标上的护甲应放回的护甲槽，没有则为 -1。
+     */
+    public static int cursorReturnSlotId(PlayerEntity player, ScreenHandler handler) {
+        ItemStack cursor = handler.getCursorStack();
+        int preferred = preferredArmorSlotId(player, cursor);
+        boolean preferredEmpty = preferred >= 0 && !handler.getSlot(preferred).hasStack();
+        return LimitedInventoryArmorLayout.cursorReturnArmorSlotId(
+                !cursor.isEmpty(), preferred, preferredEmpty, firstEmptyHotbarButton(handler));
+    }
+
+    private static int preferredArmorSlotId(PlayerEntity player, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return -1;
+        }
+        EquipmentSlot equipment = player.getPreferredEquipmentSlot(stack);
+        return LimitedInventoryArmorLayout.armorSlotIdForEntitySlot(
+                equipment.getType() == EquipmentSlot.Type.HUMANOID_ARMOR, equipment.getEntitySlotId());
     }
 
     /**

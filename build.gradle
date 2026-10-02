@@ -400,6 +400,27 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
                 providerMethod: "method_25402",
                 providerDescriptor: "(DDI)Z"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$returnCursorArmorOnClose",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25419()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25419",
+                providerDescriptor: "()V"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$returnCursorArmorOnForcedClose",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25393()V",
+                atTarget: "Lnet/minecraft/class_746;method_7346()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25393",
+                providerDescriptor: "()V"
         ]
 ]
 
