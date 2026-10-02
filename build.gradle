@@ -329,6 +329,26 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
                 providerMethod: "renderHud",
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "blind.BlindGateRoleNameRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blind/BlindGateRoleNameRendererMixin.class",
+                handler: "sparkwitch\$blindHidesRoleNames",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "blind.BlindGateCrosshairRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blind/BlindGateCrosshairRendererMixin.class",
+                handler: "sparkwitch\$blindPlainCrosshair",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ]
 ]
 
