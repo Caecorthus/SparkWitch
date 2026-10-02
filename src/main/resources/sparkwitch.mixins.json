@@ -145,7 +145,8 @@
     "riftwalker.RiftThrowingAxeMixin",
     "riftwalker.RiftSwapperCrushMixin",
     "riftwalker.RiftSessionNetworkHandlerMixin",
-    "riftwalker.RiftSessionPlayerMixin"
+    "riftwalker.RiftSessionPlayerMixin",
+    "riftwalker.RiftProjectileDeflectionMixin"
   ],
   "injectors": {
     "defaultRequire": 1

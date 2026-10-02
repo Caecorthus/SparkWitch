@@ -30,23 +30,34 @@ import java.util.Optional;
  * {@link RiftGateEntity#getProjectileDeflection} returns {@link #DEFLECTION}, which runs inside
  * {@code ProjectileEntity.deflect} before any explosion or hit (owner kept). It teleports the projectile to the front of
  * a random other gate (rotated velocity, in place, never re-spawned, max {@code PROJECTILE_MAX_GATE_PASSES} passes) or
- * reflects it at full speed when no other gate qualifies (D8: ender pearls included, every faction). Hitscan weapons
- * ignore gates. Owned by P4 (including the NoellesRoles throwing-axe mixin and the M67 sweep).
+ * reflects it at full speed when no other gate qualifies (D8: ender pearls included, every faction; C14). A gate
+ * qualifies only when its exit passes {@link RiftProjectileExitRules} (exit box clear of blocks, so nothing lands or
+ * starts inside a wall). Hitscan weapons ignore gates. Accepted edges: thrown and explosive projectiles run
+ * {@code checkBlockCollision} at the compensated same-tick start (behind the destination) before moving, so a pressure
+ * plate or tripwire exactly there could fire; a thrower standing inside a gate's expanded volume throws straight
+ * through it (a segment that starts inside a box never hits it). Owned by P4 (including the NoellesRoles throwing-axe
+ * mixin and the M67 sweep).
  * 投掷物穿越裂隙门（plan §9，调研 02 §4.3–4.4），仅服务端。门使用原版 1.21.1 偏转接缝：
  * {@link RiftGateEntity#canBeHitByProjectile} 询问 {@link #isProjectileTarget}，{@link RiftGateEntity#getProjectileDeflection}
  * 返回 {@link #DEFLECTION}，它在 {@code ProjectileEntity.deflect} 中、任何爆炸或命中之前执行（保留原主人）。
  * 投掷物被原地传送到另一扇随机门的正面（速度随朝向旋转、不重新生成、最多穿门 {@code PROJECTILE_MAX_GATE_PASSES} 次），
- * 没有可用的门时原速反弹（D8：含末影珍珠，所有阵营）。射线武器不受门影响。归属 P4（含 NoellesRoles 飞斧 mixin 与 M67 扫描）。
+ * 没有可用的门时原速反弹（D8：含末影珍珠，所有阵营；C14）。只有出口通过 {@link RiftProjectileExitRules}（出口碰撞箱不与方块
+ * 重叠，不会落在或起步于墙内）的门才可用。射线武器不受门影响。已接受的边角情况：投掷类与爆炸类投掷物在移动前会在同刻补偿起点
+ * （位于目标门之后）执行 {@code checkBlockCollision}，恰好位于此处的压力板或绊线可能被触发；站在门扩展体积内的投掷者会把投掷物
+ * 直接扔穿此门（起点位于箱体内的线段不会命中该箱体）。归属 P4（含 NoellesRoles 飞斧 mixin 与 M67 扫描）。
  */
 public final class RiftGateProjectileService {
     /**
      * Frozen deflection instance returned by every gate. Arguments: projectile, the gate (as hit entity), server random.
-     * Vanilla calls it only on the server ({@code deflect} returns early on clients), then re-sets the same owner and
-     * remembers the gate as {@code lastDeflectedEntity}; {@code hitOrDeflect} never calls {@code onCollision} for a
-     * non-NONE deflection, so nothing explodes or hits at the gate, and a capped projectile simply passes through.
+     * Vanilla calls it only on the server ({@code deflect} returns early on clients), then re-sets the same owner;
+     * {@code hitOrDeflect} never calls {@code onCollision} for a non-NONE deflection, so nothing explodes or hits at the
+     * gate, and a capped projectile simply passes through. {@code MX.RiftProjectileDeflectionMixin} keeps the pickup
+     * permission across that owner re-set and never lets vanilla remember a gate as {@code lastDeflectedEntity}, so
+     * every contact with a gate reaches this deflection (and the pass cap).
      * 每扇门返回的冻结偏转实例。参数：投掷物、门（命中实体）、服务端随机数。原版只在服务端调用它（客户端的 {@code deflect}
-     * 直接返回），随后重设同一主人并把门记为 {@code lastDeflectedEntity}；对非 NONE 偏转，{@code hitOrDeflect} 从不调用
-     * {@code onCollision}，因此门处不会爆炸或命中，达到上限的投掷物直接穿过。
+     * 直接返回），随后重设同一主人；对非 NONE 偏转，{@code hitOrDeflect} 从不调用 {@code onCollision}，因此门处不会爆炸或命中，
+     * 达到上限的投掷物直接穿过。{@code MX.RiftProjectileDeflectionMixin} 在重设主人时保留拾取权限，并且从不让原版把门记为
+     * {@code lastDeflectedEntity}，因此每次接触门都会到达此偏转（及穿门上限）。
      */
     public static final ProjectileDeflection DEFLECTION = RiftGateProjectileService::deflect;
 
@@ -106,11 +117,13 @@ public final class RiftGateProjectileService {
             }
             return;
         }
-        Optional<RiftGateEntity> destination = pickDestination(world, gate, projectile, random);
-        if (destination.isPresent()) {
-            Exit exit = exitThrough(projectile, gate, destination.get(), velocity);
-            place(projectile, sameTickStart(world, exit.position(), exit.velocity()), exit.velocity());
-            passEffects(world, from, exit.position());
+        Optional<Exit> exit = pickExit(world, gate, projectile, velocity, random, true);
+        if (exit.isPresent()) {
+            // pickExit guaranteed the compensated start ticks. / pickExit 已保证补偿起点处于 tick 范围。
+            Exit chosen = exit.get();
+            place(projectile, RiftProjectileMath.sameTickMoveStart(chosen.position(), chosen.velocity()),
+                    chosen.velocity());
+            passEffects(world, from, chosen.position());
         } else {
             Vec3d reflected = RiftProjectileMath.reflect(velocity);
             place(projectile, sameTickStart(world, from, reflected), reflected);
@@ -119,11 +132,13 @@ public final class RiftGateProjectileService {
     }
 
     /**
-     * Start of the vanilla same-tick move that ends on {@code end}; falls back to {@code end} itself when that start
-     * lies in a chunk that is not entity-ticking (a far gate at a chunk border), so the projectile never hops through
-     * a non-ticking section.
-     * 原版同刻移动的起点，使其恰好结束在 {@code end}；若起点所在区块不处于实体 tick 范围（远处、位于区块边界的门），
-     * 则退回 {@code end} 本身，避免投掷物途经不 tick 的区段。
+     * Start of the vanilla same-tick move that ends on {@code end}, for a reflection or a capped pass at the source gate
+     * (a teleport's start is checked by {@link #pickExit}); falls back to {@code end} itself when that start lies in a
+     * chunk that is not entity-ticking, so the projectile never hops through a non-ticking section (rare: the start is
+     * within one move of the projectile's own ticking position).
+     * 反弹或在源门处达到上限穿过时，原版同刻移动的起点，使其恰好结束在 {@code end}（传送的起点由 {@link #pickExit} 检查）；
+     * 若起点所在区块不处于实体 tick 范围，则退回 {@code end} 本身，避免投掷物途经不 tick 的区段（罕见：起点距投掷物自身
+     * 所在的 tick 位置不超过一次移动）。
      */
     private static Vec3d sameTickStart(ServerWorld world, Vec3d end, Vec3d velocity) {
         Vec3d start = RiftProjectileMath.sameTickMoveStart(end, velocity);
@@ -179,11 +194,10 @@ public final class RiftGateProjectileService {
         }
         Vec3d from = axe.getPos();
         Vec3d velocity = axe.getVelocity();
-        Optional<RiftGateEntity> destination = pickDestination(world, gate, axe, axe.getRandom());
-        if (destination.isPresent()) {
-            Exit exit = exitThrough(axe, gate, destination.get(), velocity);
-            place(axe, exit.position(), exit.velocity());
-            passEffects(world, from, exit.position());
+        Optional<Exit> exit = pickExit(world, gate, axe, velocity, axe.getRandom(), false);
+        if (exit.isPresent()) {
+            place(axe, exit.get().position(), exit.get().velocity());
+            passEffects(world, from, exit.get().position());
         } else {
             Vec3d reflected = RiftProjectileMath.reflect(velocity);
             place(axe, from, reflected);
@@ -216,23 +230,35 @@ public final class RiftGateProjectileService {
     }
 
     /**
-     * Uniform pick among the OTHER registered gates of this world whose entity is loaded and whose gate and exit point
-     * are entity-ticking (moving a projectile into a non-ticking section would freeze it); empty means reflect.
-     * 在本世界其他已登记、实体已加载、门与出口点都处于实体 tick 范围内的门中均匀随机选择（把投掷物移入不 tick 的区段会使其
-     * 冻结）；为空表示反弹。
+     * Uniform pick among the exits of the OTHER registered gates of this world whose entity is loaded and entity-ticking
+     * and whose exit passes {@link RiftProjectileExitRules} for this projectile (exit and, for seam projectiles, the
+     * compensated start entity-ticking; box clear of blocks; clear line from the gate). Empty means reflect.
+     * 在本世界其他已登记、实体已加载且处于实体 tick 范围、并且出口对该投掷物通过 {@link RiftProjectileExitRules}（出口及接缝
+     * 投掷物的补偿起点处于实体 tick 范围、碰撞箱不与方块重叠、门到出口连线畅通）的门的出口中均匀随机选择。为空表示反弹。
+     *
+     * @param movesAgainThisTick true for the deflection seam (vanilla still moves the projectile this tick); false for
+     *                           the throwing axe and the M67, which are placed exactly at the exit
+     *                           / 偏转接缝为 true（原版本刻还会移动投掷物）；飞斧与 M67 直接放在出口，为 false
      */
-    static Optional<RiftGateEntity> pickDestination(ServerWorld world, RiftGateEntity source,
-                                                    ProjectileEntity projectile, Random random) {
-        List<RiftGateEntity> candidates = new ArrayList<>();
+    static Optional<Exit> pickExit(ServerWorld world, RiftGateEntity source, ProjectileEntity projectile,
+                                   Vec3d velocity, Random random, boolean movesAgainThisTick) {
+        List<Exit> candidates = new ArrayList<>();
+        RiftProjectileExitRules.Probe probe = probe(world, projectile);
         int sourceNumber = source.gateNumber();
         for (RiftGateRecord record : RiftGateRegistry.gates(world)) {
             if (record.number() == sourceNumber) {
                 continue;
             }
-            RiftGateRegistry.entity(world, record.number())
-                    .filter(gate -> gate != source && world.shouldTickEntity(gate.getBlockPos())
-                            && world.shouldTickEntity(BlockPos.ofFloored(exitPosition(projectile, gate))))
-                    .ifPresent(candidates::add);
+            Optional<RiftGateEntity> entity = RiftGateRegistry.entity(world, record.number());
+            if (entity.isEmpty() || entity.get() == source || !world.shouldTickEntity(entity.get().getBlockPos())) {
+                continue;
+            }
+            RiftGateEntity destination = entity.get();
+            Exit exit = exitThrough(projectile, source, destination, velocity);
+            if (RiftProjectileExitRules.usable(probe, destination.getPos(), exit.position(), exit.velocity(),
+                    projectile.getWidth(), projectile.getHeight(), movesAgainThisTick)) {
+                candidates.add(exit);
+            }
         }
         if (candidates.isEmpty()) {
             return Optional.empty();
@@ -240,15 +266,32 @@ public final class RiftGateProjectileService {
         return Optional.of(candidates.get(random.nextInt(candidates.size())));
     }
 
-    static Exit exitThrough(ProjectileEntity projectile, RiftGateEntity source, RiftGateEntity destination,
-                            Vec3d velocity) {
-        return new Exit(exitPosition(projectile, destination),
-                RiftProjectileMath.exitVelocity(velocity, source.facing(), destination.facing()));
+    /** {@link RiftProjectileExitRules} over the server world, seen by this projectile. / 以该投掷物视角查询服务端世界。 */
+    private static RiftProjectileExitRules.Probe probe(ServerWorld world, ProjectileEntity projectile) {
+        return new RiftProjectileExitRules.Probe() {
+            @Override
+            public boolean entityTicking(Vec3d point) {
+                return world.shouldTickEntity(BlockPos.ofFloored(point));
+            }
+
+            @Override
+            public boolean spaceEmpty(Box box) {
+                return world.isSpaceEmpty(projectile, box);
+            }
+
+            @Override
+            public boolean clearLine(Vec3d from, Vec3d to) {
+                return world.raycast(new RaycastContext(from, to, RaycastContext.ShapeType.COLLIDER,
+                        RaycastContext.FluidHandling.NONE, projectile)).getType() == HitResult.Type.MISS;
+            }
+        };
     }
 
-    private static Vec3d exitPosition(ProjectileEntity projectile, RiftGateEntity destination) {
-        return RiftProjectileMath.exitPosition(destination.getPos(), destination.facing(), projectile.getWidth(),
-                projectile.getHeight());
+    static Exit exitThrough(ProjectileEntity projectile, RiftGateEntity source, RiftGateEntity destination,
+                            Vec3d velocity) {
+        return new Exit(RiftProjectileMath.exitPosition(destination.getPos(), destination.facing(),
+                projectile.getWidth(), projectile.getHeight()),
+                RiftProjectileMath.exitVelocity(velocity, source.facing(), destination.facing()));
     }
 
     static void place(ProjectileEntity projectile, Vec3d position, Vec3d velocity) {

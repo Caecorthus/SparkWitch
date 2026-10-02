@@ -24,16 +24,19 @@ import java.util.Optional;
  * behind it are shielded; after the loop the axe is teleported to another gate's front (or reflected) and ends this
  * tick there, so vanilla movement is skipped once and the next tick's pierce loop starts at the exit. With no gate on the
  * segment the cut stays infinite and NoellesRoles' behaviour is unchanged. When a Seeker device stops the axe first,
- * Seeker's cancel wins (the accepted plan §9 edge). Default remap: {@code tick} and every {@code @At} target are
- * vanilla members.
+ * Seeker's cancel wins (the accepted plan §9 edge): priority 1100 applies this mixin after the default-1000
+ * {@code SeekerThrowingAxeMixin}, so at each shared anchor Seeker's callback runs first (the device is broken before
+ * the gate lookup, and Seeker's cancel stops the tick before this pass), whatever the mixin-JSON order. Default remap:
+ * {@code tick} and every {@code @At} target are vanilla members.
  * NoellesRoles 飞斧穿越裂隙门。飞斧的实体查找返回 null，并在 {@code super.tick} 之前用自己的服务端贯穿循环击杀玩家，
  * 原版偏转接缝因此看不到门。与 {@code SeekerThrowingAxeMixin} 一样遵循“最近者命中”（叠加在相同的三个锚点上，只用
  * inject/wrap）：循环前解析线段在碰到方块之前进入的最近门；比门更近的玩家照常被命中，门后的玩家被挡住；循环后飞斧被传送到
  * 另一扇门正面（或反弹），本刻即停在那里，因此跳过一次原版移动，下一刻的贯穿循环从出口开始。线段上没有门时截断距离保持
- * 无穷大，NoellesRoles 行为不变。若搜寻者设备先拦下飞斧，以搜寻者的取消为准（plan §9 已接受的边角情况）。默认 remap：
- * {@code tick} 与所有 {@code @At} 目标均为原版成员。
+ * 无穷大，NoellesRoles 行为不变。若搜寻者设备先拦下飞斧，以搜寻者的取消为准（plan §9 已接受的边角情况）：优先级 1100 使本
+ * mixin 在默认 1000 的 {@code SeekerThrowingAxeMixin} 之后应用，因此在每个共享锚点上搜寻者的回调先执行（先打坏设备再查找门，
+ * 搜寻者的取消会在本次穿门前结束本刻），与 mixin JSON 的顺序无关。默认 remap：{@code tick} 与所有 {@code @At} 目标均为原版成员。
  */
-@Mixin(ThrowingAxeEntity.class)
+@Mixin(value = ThrowingAxeEntity.class, priority = 1100)
 public abstract class RiftThrowingAxeMixin {
     /** Gate the axe meets this tick; server-only, cleared every tick. / 飞斧本刻遇到的门；仅服务端，逐刻清空。 */
     @Unique

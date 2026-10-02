@@ -25,6 +25,8 @@ import java.util.Optional;
  * 位移（上一位置到当前位置）检测自身体积；线段上最近的门负责处理，按共享的穿门上限把手雷原地传送到另一扇门正面或反弹。
  * 仅以注册 id（{@code sparkstrength:m67}）解析类型，缺少 SparkStrength 或该 id 时不生效；不引用任何 SparkStrength 类。
  * 无论门和手雷谁先 tick，每段位移都恰好检测一次；被移动的手雷其线段随即收缩（上一位置 = 当前位置）。
+ * Accepted edge: SparkStrength interpolates the M67 on clients, so a long jump is drawn as a short slide.
+ * 已接受的边角情况：SparkStrength 在客户端对 M67 做插值，长距离跳转会显示为一段短暂滑动。
  */
 final class RiftGateM67Sweep {
     /** Covers one M67 movement segment past the gate volume (launch speed 2.25 plus gravity). / 覆盖越过门体积的一段 M67 位移。 */
@@ -72,13 +74,11 @@ final class RiftGateM67Sweep {
      */
     private static void pass(ServerWorld world, RiftGateEntity gate, ProjectileEntity grenade, Vec3d from) {
         Vec3d velocity = grenade.getVelocity();
-        Optional<RiftGateEntity> destination = RiftGateProjectileService.pickDestination(world, gate, grenade,
-                grenade.getRandom());
-        if (destination.isPresent()) {
-            RiftGateProjectileService.Exit exit = RiftGateProjectileService.exitThrough(grenade, gate,
-                    destination.get(), velocity);
-            RiftGateProjectileService.place(grenade, exit.position(), exit.velocity());
-            RiftGateProjectileService.passEffects(world, from, exit.position());
+        Optional<RiftGateProjectileService.Exit> exit = RiftGateProjectileService.pickExit(world, gate, grenade,
+                velocity, grenade.getRandom(), false);
+        if (exit.isPresent()) {
+            RiftGateProjectileService.place(grenade, exit.get().position(), exit.get().velocity());
+            RiftGateProjectileService.passEffects(world, from, exit.get().position());
         } else {
             RiftGateProjectileService.place(grenade, from, RiftProjectileMath.reflect(velocity));
             RiftGateProjectileService.reflectEffects(world, from);

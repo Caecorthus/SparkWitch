@@ -64,6 +64,16 @@ public final class RiftProjectileMath {
     }
 
     /**
+     * Box of a projectile of the given size at an entity position, as vanilla {@code EntityDimensions.getBoxAt} builds it.
+     * 给定尺寸的投掷物位于某实体位置时的碰撞箱，与原版 {@code EntityDimensions.getBoxAt} 一致。
+     */
+    public static Box boxAt(Vec3d position, double width, double height) {
+        double half = Math.max(0.0, width) / 2.0;
+        return new Box(position.x - half, position.y, position.z - half,
+                position.x + half, position.y + Math.max(0.0, height), position.z + half);
+    }
+
+    /**
      * Direction of travel through the source slab: the facing when moving out of the front side, otherwise its
      * opposite (front entries and moves parallel to the slab).
      * 穿过源门板的行进方向：从正面一侧向外运动时为朝向本身，否则（正面进入或与门板平行）为其反方向。
