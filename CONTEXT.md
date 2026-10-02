@@ -669,8 +669,11 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `sparkwitch:rift_gates` (world, server-only). C2S `rift_hop`, `rift_exit`, `rift_gate_close`,
   `rift_gate_console_request` and S2C `rift_gate_console` are registered by `net/RiftwalkerNetworking`; the Control
   Expert stun and Seeker session guards also drop `rift_hop` and `rift_gate_close`, never `rift_exit`.
-- **Gates** (`gate/`). `RiftGatePlacementService.tryPlace` (living RAW Riftwalker, ACTIVE round) floor-snaps at the feet
-  facing the yaw, ≥ 3.0 from other gates, clear of Seeker devices and `RiftGateNeighbourRules`; a refusal is free.
+- **Gates** (`gate/`). `RiftGatePlacementService.tryPlace` (living RAW Riftwalker, ACTIVE round, not
+  Kidnapper-controlled, C16) floor-snaps at the feet facing the yaw; the 1×2 standing cell in front
+  (`RiftGatePlacementRules.frontCell`) must be block-free and inside the play area, so no gate faces a wall as a dead
+  exit (C15); ≥ 3.0 from other gates, clear of Seeker devices and `RiftGateNeighbourRules`. A refusal is free; a
+  placement starts a 1 s item cooldown (N-2). Bought gates merge into the first hotbar gate stack (F-5).
   `RiftGateEntity` is an unsaved, indestructible, facing-rotated 1×2×0.25 slab; gates are unlimited (D4).
   `RiftGateRegistry` is the only writer: per-round numbers never reused (C9), number order = hop ring, a level-31 chunk
   ticket per gate, `repair` respawns a lost entity, `close` ends in `RiftSessionService.onGateRemoved`.
@@ -686,32 +689,43 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `changeGameMode(SPECTATOR)`; every exit restores the mode before syncing `inside=false`. Only a living release
   restores the recorded ADVENTURE/SURVIVAL mode (`RiftSessionRules.mayRestoreMode`); DIED, INTERCEPTED, DISCONNECTED and
   ROUND_END only clear state. The tick snaps drift back, ends as BODY_MOVED only after a foreign teleport beyond √2, and
-  force-exits at the CURRENT gate on stay expiry (C2) or gate close (C3). Hops wrap (`RiftHopRing`, 10-tick throttle,
-  D11).
+  force-exits at the CURRENT gate on stay expiry (C2) or gate close (C3). A "moved too quickly" reset issued during the
+  occupant's own move packet is snapped back to the anchor, never BODY_MOVED (B-1, `RiftSessionNetworkHandlerMixin`).
+  Exit cells must be reachable from the gate by a block-free sweep of the standing body (B-2,
+  `RiftExitSearch.sweptBody`; the pre-entry position is exempt). Hops wrap (`RiftHopRing`, 10-tick throttle, D11).
 - **Session guards.** `mixin/riftwalker/RiftSessionPayloadGuardMixin` drops `RiftSessionRules.BLOCKED_WHILE_INSIDE`;
   `RiftSessionGuards` fails use/attack callbacks and the shop; `RiftSessionNetworkHandlerMixin` and
   `RiftSessionPlayerMixin` close spectator teleport and possession; `voice/SparkWitchVoiceChatPlugin` mutes occupants.
   `session/RiftSessionAffectPolicy` (SFA `PlayerAffectPolicy`, fails closed) denies every action on an occupant except
-  `RiftSessionRules.AFFECT_ALLOWED_ON_OCCUPANT`: `noellesroles:swapper` (the crush below) and `wathe:poison` (D3).
+  `RiftSessionRules.AFFECT_ALLOWED_ON_OCCUPANT`: `noellesroles:swapper` (the crush below), `wathe:poison` (D3), and the
+  piercing terminal kills `sparkwitch:bell_toll` and `sparkwitch:time_stolen` (C13). `BellTollService.isTarget` admits
+  occupants next to participants (C16); the kill drops the body at the gate and ends the session as DIED.
 - **Session client.** `client/riftwalker/session/RiftSessionClient` sends only `rift_hop`/`rift_exit` and never predicts
   entry or exit; `client/mixin/riftwalker/RiftSession*Mixin` pass only `RiftSessionInputRules.ALLOWED_KEYS` (sneak, A/D,
   player list, screenshot, fullscreen, voice chat, instinct), hide the hand and force a crosshair MISS; A/D, scroll or
   1/2 + use hop, a fresh Shift exits. `RiftGrayscaleFilter` (private `PostEffectProcessor`) re-composites outlines so
   instinct colours stay (D10); `RiftSessionHud` draws ←/→, `#gate · n/m` and the stay seconds (red from 5 s, C2).
 - **Melee.** A gate keeps `canHit()` only for the right-click entry and never shields a player behind it (client only;
-  the server never re-raycasts melee): `client/mixin/riftwalker/RiftGateCrosshairMixin` ANDs the crosshair predicate
-  in `findCrosshairTarget` so non-users (and foreign cameras) ignore gates, and `RiftGateAttackMixin` (WrapOperation on
-  `doAttack`'s `attackEntity`) re-picks a gate user's left-click on a gate without gates and hits what is behind it, or
-  sends nothing. Classification and rules: `client/riftwalker/gate/RiftGateCrosshairClient` / `RiftGateCrosshairRules`.
+  the server never re-raycasts melee). The client `RiftGateEntity.interact` returns PASS unless the local player could
+  enter now (B-6, `RiftSessionService.claimsRightClick`), so a held item still fires.
+  `client/mixin/riftwalker/RiftGateCrosshairMixin` ANDs the crosshair predicate in `findCrosshairTarget` so non-users
+  (and foreign cameras) ignore gates, and `RiftGateAttackMixin` (WrapOperation on `doAttack`'s `attackEntity`) re-picks
+  a gate user's left-click on a gate without gates and hits what is behind it, or sends nothing. Classification and
+  rules: `client/riftwalker/gate/RiftGateCrosshairClient` / `RiftGateCrosshairRules`.
 - **Projectiles** (`projectile/RiftGateProjectileService`, vanilla deflection seam). Any projectile, pearls included
   (D8, C5), moves to the front of a random other gate with rotated velocity, else reflects at full speed; at most 3
   passes. The NR throwing axe uses `mixin/riftwalker/RiftThrowingAxeMixin`, the SparkStrength M67 `RiftGateM67Sweep`
   (registry id only). Hitscan ignores gates; a custom player-only `canHit` must accept gates via `isProjectileTarget`.
-- **Witches' Sabbath** (`sabbath/WitchesSabbathService.use`; 150 mana, instant, no cooldown, D6). A free Riftwalker
-  outside a gate pulls each living teammate whose effective faction is exactly `sparkwitch:witch` (C6) to a safe spot
-  (`WitchesSabbathLandingPlan`), skipping those inside a gate, swallowed, in Last Stand/Last Escape,
-  Kidnapper-controlled, Hunter-rooted or capture-stunned (C10, `RiftwalkerStatusProbes`), or SFA-vetoed
-  (`sparkwitch:riftwalker_sabbath`). No target or no space costs nothing.
+  `mixin/riftwalker/RiftProjectileDeflectionMixin` keeps a gate deflection from flipping pickup to ALLOWED and from
+  being remembered as `lastDeflectedEntity`; destinations must pass `RiftProjectileExitRules` (ticking exit/start, box
+  clear of blocks, clear line), else another gate or reflect.
+- **Witches' Sabbath** (`sabbath/WitchesSabbathService.use`; 150 mana, instant, no cooldown, D6). A free,
+  non-capture-stunned Riftwalker outside a gate pulls each living teammate whose effective faction is exactly
+  `sparkwitch:witch` (C6) to a safe spot (`WitchesSabbathLandingPlan`, never on a live Hunter trap), skipping those
+  inside a gate, swallowed, in Last Stand/Last Escape, Kidnapper-controlled, Hunter-rooted, capture-stunned or Control
+  Expert-stunned (C10, M-2, `RiftwalkerStatusProbes`), or SFA-vetoed (`sparkwitch:riftwalker_sabbath`). A pulled Grand
+  Witch's ceremonial-sword dash is cancelled. No target or no space costs nothing, the mana is refunded when nobody
+  moved, and a caster in a doorway gets its own refusal (N-5).
 - **Presentation** (`client/riftwalker/gate/`). `RiftGateEntityRenderer` draws model B (`RiftGateModels`) full-bright
   for everyone, skipping the gate around an occupant's camera; `RiftGateClientEffects` adds sparse particles;
   `RiftGateInstinctHooks` (D9) outlines every gate through walls for living Grand Witch and accomplice-like viewers on
@@ -723,7 +737,8 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
 - **Swapper crush** (D13, C4, C7, C8). `mixin/riftwalker/RiftSwapperCrushMixin` (HEAD on NR's Swapper handler,
   `require = 1`, priority 1100 so SFA and SparkTraits guards decide first) calls `swapper/RiftSwapperCrushService`: if
   either target is inside a gate the swap is cancelled and the Swapper is killed on a safe cell in front of the gate
-  (`RiftSwapperBodyCell`, one block out first); other living spectators cancel silently.
+  (`RiftSwapperBodyCell`, one block out first, in sight of the gate by a COLLIDER ray, M-4); any other spectator
+  target, dead or alive, cancels silently (M-3).
   `client/mixin/riftwalker/RiftSwapperWidgetMixin` (C7, pinned in `verifyClientMixinSelectors`) lets the Swapper pick an
   untracked, Wathe-alive spectator. Third owner-approved exception: `sparkwitch:portal_crushed` is a forced, terminal,
   killer-less environmental kill, registered as SparkTraits-terminal on `SERVER_STARTING` like `bell_toll` (the Swapper
