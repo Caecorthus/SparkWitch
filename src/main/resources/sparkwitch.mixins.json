@@ -143,7 +143,9 @@
     "accessor.ItemCooldownManagerAccessor",
     "riftwalker.RiftSessionPayloadGuardMixin",
     "riftwalker.RiftThrowingAxeMixin",
-    "riftwalker.RiftSwapperCrushMixin"
+    "riftwalker.RiftSwapperCrushMixin",
+    "riftwalker.RiftSessionNetworkHandlerMixin",
+    "riftwalker.RiftSessionPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
