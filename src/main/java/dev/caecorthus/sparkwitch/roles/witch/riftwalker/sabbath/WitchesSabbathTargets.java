@@ -4,6 +4,7 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerInventoryRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
@@ -28,12 +29,13 @@ import java.util.List;
  * {@link RiftGateUsers#isWitchFaction}, so a disguised Black Raven, an active Wraith or the promoted Curser is never
  * pulled. Other modules are only read through their public queries or SparkWitch's fail-safe compat bridges; the
  * per-tick position holders (Taotie stomach, Last Stand, Knockout control, Hunter trap root, capture stun) are
- * skipped because they would undo — or, for Knockout control, break — the pull (C10 for the last two).
+ * skipped because they would undo — or, for Knockout control, break — the pull (C10 for the last two); a Control Expert
+ * stun is skipped too, so a stunned teammate is never rescued (C10: same rule as gate entry).
  * 以实时状态为 {@link WitchesSabbathRules} 的探针提供输入的服务端适配器（research/04 §1.2–§1.3）。职业取原始职业
  * （{@code GameWorldComponent#getRole}），阵营取经 {@link RiftGateUsers#isWitchFaction} 的 SparkFactionAPI 有效阵营，
  * 因此伪装中的黑羽鸦、激活冤魂与晋升诅咒者永远不会被召集。其他模块只通过其公共查询或 SparkWitch 的安全兼容桥读取；
  * 每 tick 固定位置的状态（饕餮胃、背水一战、迷药控制、捕兽夹定身、捕捉定身）会被跳过，因为它们会抵消召集——迷药控制甚至会被
- * 召集打断（后两项见 C10）。
+ * 召集打断（后两项见 C10）；被控场专家眩晕的队友同样跳过，不会被救走（C10：与进门规则一致）。
  */
 final class WitchesSabbathTargets {
     private WitchesSabbathTargets() {
@@ -65,11 +67,6 @@ final class WitchesSabbathTargets {
             }
 
             @Override
-            public boolean insideGate() {
-                return RiftSessionService.isInside(caster);
-            }
-
-            @Override
             public boolean participant() {
                 return isRoundParticipant(caster, game);
             }
@@ -98,6 +95,12 @@ final class WitchesSabbathTargets {
             public boolean kidnapperControlled() {
                 // A controlled caster would summon the whole team to the Kidnapper. / 被控制的施放者会把全队召到绑架者身边。
                 return isKidnapperControlled(caster);
+            }
+
+            @Override
+            public boolean captureStunned() {
+                // SparkStrength locks the stunned player's input client-side only. / SparkStrength 只在客户端锁定输入。
+                return RiftwalkerStatusProbes.isCaptureStunned(caster);
             }
 
             @Override
@@ -168,6 +171,12 @@ final class WitchesSabbathTargets {
             @Override
             public boolean captureStunned() {
                 return RiftwalkerStatusProbes.isCaptureStunned(player);
+            }
+
+            @Override
+            public boolean controlExpertStunned() {
+                // Same predicate as gate entry (RiftSessionService.isControlled). / 与进门相同的判定。
+                return ControlExpertStun.isStunned(player);
             }
 
             @Override

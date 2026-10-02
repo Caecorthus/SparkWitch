@@ -16,9 +16,13 @@ public final class WitchesSabbathRules {
     // --- Message keys (actionbar) / 消息键（动作栏） ---
     public static final String UNAVAILABLE = "message.sparkwitch.skill.unavailable";
     public static final String NOT_ENOUGH_MANA = "message.sparkwitch.skill.not_enough_mana";
-    public static final String INSIDE_GATE = "message.sparkwitch.riftwalker.sabbath.inside_gate";
     public static final String NO_TARGETS = "message.sparkwitch.riftwalker.sabbath.no_targets";
     public static final String NO_SPACE = "message.sparkwitch.riftwalker.sabbath.no_space";
+    /**
+     * No spot because the caster stands in a door cell: every sight ray would cross it (N-5).
+     * 施放者站在门格里导致没有落点：每条视线射线都会穿过该门格（N-5）。
+     */
+    public static final String IN_DOORWAY = "message.sparkwitch.riftwalker.sabbath.in_doorway";
     /** Caster feedback: {@code %s} = teammates pulled. / 施放者反馈：{@code %s} = 召集人数。 */
     public static final String CAST = "message.sparkwitch.riftwalker.sabbath.cast";
     /** Caster feedback: pulled, then left behind for lack of room. / 施放者反馈：召集人数与因空位不足未召集的人数。 */
@@ -49,6 +53,15 @@ public final class WitchesSabbathRules {
      * carpets, slabs and beds. / 施放者→落点碰撞射线距两端脚底的高度：低于一格高的墙或柜台顶，高于地毯、台阶与床。
      */
     public static final double SIGHT_RAY_HEIGHT = 0.9;
+    /**
+     * A spot is refused when the standing box grown by these margins overlaps a placed Hunter trap: the same growth
+     * as the trap's own trigger box ({@code HunterTrapEntity} TRIGGER_EXPAND_XZ / _Y), so a pulled teammate is never
+     * dropped where the trap would catch them on its next tick.
+     * 站立碰撞箱按以下余量扩大后与已放置的猎人捕兽夹重叠时拒绝该落点：与捕兽夹自身触发箱的扩展量相同
+     * （{@code HunterTrapEntity} 的 TRIGGER_EXPAND_XZ / _Y），被召集的队友不会落在捕兽夹下一 tick 就能夹住的位置。
+     */
+    public static final double HUNTER_TRAP_MARGIN_XZ = 0.35;
+    public static final double HUNTER_TRAP_MARGIN_Y = 0.15;
 
     private WitchesSabbathRules() {
     }
@@ -57,13 +70,13 @@ public final class WitchesSabbathRules {
     public enum CasterRefusal {
         NOT_RIFTWALKER(UNAVAILABLE),
         ROUND_NOT_ACTIVE(UNAVAILABLE),
-        INSIDE_GATE(WitchesSabbathRules.INSIDE_GATE),
         NOT_PARTICIPANT(UNAVAILABLE),
         CAMERA_ELSEWHERE(UNAVAILABLE),
         SWALLOWED(UNAVAILABLE),
         LAST_STAND_PENDING(UNAVAILABLE),
         LAST_ESCAPE(UNAVAILABLE),
         KIDNAPPER_CONTROLLED(UNAVAILABLE),
+        CAPTURE_STUNNED(UNAVAILABLE),
         ROLE_SKILL_BLOCKED(UNAVAILABLE),
         GLIMMERING(UNAVAILABLE);
 
@@ -90,6 +103,7 @@ public final class WitchesSabbathRules {
         KIDNAPPER_CONTROLLED,
         HUNTER_ROOTED,
         CAPTURE_STUNNED,
+        CONTROL_EXPERT_STUNNED,
         SEEKER_SESSION,
         INSIDE_GATE,
         FACTION_VETO
@@ -105,8 +119,6 @@ public final class WitchesSabbathRules {
 
         boolean roundActive();
 
-        boolean insideGate();
-
         boolean participant();
 
         boolean ownCamera();
@@ -118,6 +130,12 @@ public final class WitchesSabbathRules {
         boolean lastEscape();
 
         boolean kidnapperControlled();
+
+        /**
+         * SparkStrength capture stun: SparkStrength only locks the input on the client, so the server refuses too.
+         * SparkStrength 捕捉眩晕：SparkStrength 只在客户端锁定输入，因此服务端同样拒绝。
+         */
+        boolean captureStunned();
 
         boolean roleSkillBlocked();
 
@@ -148,6 +166,9 @@ public final class WitchesSabbathRules {
 
         boolean captureStunned();
 
+        /** Control Expert taser/shock stun (C10's "same rule as gate entry"). / 控场专家电击眩晕（C10：与进门规则一致）。 */
+        boolean controlExpertStunned();
+
         boolean seekerSession();
 
         boolean insideGate();
@@ -157,10 +178,11 @@ public final class WitchesSabbathRules {
     }
 
     /**
-     * First refusal in a fixed order, or null when the caster may proceed. "Inside a gate" is reported before the
-     * participant test so the caster gets the specific message even though the in-gate body is a spectator.
-     * 按固定顺序返回第一个拒绝原因；可继续时返回 null。「在门内」排在参与者检查之前，使门内（旁观者本体）的施放者
-     * 也能收到专门提示。
+     * First refusal in a fixed order, or null when the caster may proceed. There is no separate "inside a gate"
+     * refusal: the occupant's {@code sparkwitch:use_skill} payload is already dropped by the in-gate payload guard, and
+     * the in-gate body is a living spectator, so it would fail {@code participant} anyway.
+     * 按固定顺序返回第一个拒绝原因；可继续时返回 null。没有单独的「在门内」拒绝：门内玩家的 {@code sparkwitch:use_skill}
+     * 数据包已被门内数据包守卫丢弃，且门内本体是活着的旁观者，本就无法通过 {@code participant}。
      */
     public static @Nullable CasterRefusal casterRefusal(CasterProbe caster) {
         if (!caster.exactRiftwalker()) {
@@ -168,9 +190,6 @@ public final class WitchesSabbathRules {
         }
         if (!caster.roundActive()) {
             return CasterRefusal.ROUND_NOT_ACTIVE;
-        }
-        if (caster.insideGate()) {
-            return CasterRefusal.INSIDE_GATE;
         }
         if (!caster.participant()) {
             return CasterRefusal.NOT_PARTICIPANT;
@@ -190,6 +209,9 @@ public final class WitchesSabbathRules {
         if (caster.kidnapperControlled()) {
             return CasterRefusal.KIDNAPPER_CONTROLLED;
         }
+        if (caster.captureStunned()) {
+            return CasterRefusal.CAPTURE_STUNNED;
+        }
         if (caster.roleSkillBlocked()) {
             return CasterRefusal.ROLE_SKILL_BLOCKED;
         }
@@ -201,10 +223,10 @@ public final class WitchesSabbathRules {
 
     /**
      * First reason this teammate is skipped, or null when they are pulled. Apprentice and Murderous Witches fail
-     * {@code witchFaction} (C6); teammates inside a gate are skipped (D6), never ejected; Hunter-rooted and
-     * capture-stunned teammates are skipped like a refused gate entry (C10).
+     * {@code witchFaction} (C6); teammates inside a gate are skipped (D6), never ejected; Hunter-rooted,
+     * capture-stunned and Control-Expert-stunned teammates are skipped like a refused gate entry (C10).
      * 返回该队友被跳过的第一个原因；会被召集时返回 null。预备魔女与杀意魔女在 {@code witchFaction} 处被排除（C6）；
-     * 门内的队友被跳过（D6），不会被拉出；被捕兽夹定住或被捕捉装置眩晕的队友与进门规则一致地被跳过（C10）。
+     * 门内的队友被跳过（D6），不会被拉出；被捕兽夹定住、被捕捉装置眩晕或被控场专家眩晕的队友与进门规则一致地被跳过（C10）。
      */
     public static @Nullable TargetSkip targetSkip(TargetProbe target) {
         if (target.isCaster()) {
@@ -236,6 +258,9 @@ public final class WitchesSabbathRules {
         }
         if (target.captureStunned()) {
             return TargetSkip.CAPTURE_STUNNED;
+        }
+        if (target.controlExpertStunned()) {
+            return TargetSkip.CONTROL_EXPERT_STUNNED;
         }
         if (target.seekerSession()) {
             return TargetSkip.SEEKER_SESSION;

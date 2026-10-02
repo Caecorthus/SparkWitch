@@ -80,15 +80,26 @@ public final class WitchesSabbathService {
         List<WitchesSabbathLandingPlan.Landing<ServerPlayerEntity>> landings =
                 WitchesSabbathLanding.plan(world, caster, targets);
         if (landings.isEmpty()) {
-            return WitchSkillUseResult.fail(WitchesSabbathRules.NO_SPACE);
+            return WitchSkillUseResult.fail(WitchesSabbathLanding.castsFromDoorway(world, caster)
+                    ? WitchesSabbathRules.IN_DOORWAY
+                    : WitchesSabbathRules.NO_SPACE);
         }
         if (!mana.spendMana(RiftwalkerRules.SABBATH_MANA_COST)) {
             return WitchSkillUseResult.fail(WitchesSabbathRules.NOT_ENOUGH_MANA);
         }
-        List<ServerPlayerEntity> pulled = pull(world, caster, landings);
+        List<ServerPlayerEntity> pulled = new ArrayList<>();
+        try {
+            pull(world, caster, landings, pulled);
+        } finally {
+            if (pulled.isEmpty()) {
+                // Nobody actually moved (no spot held, or a third-party teleport hook threw before anyone arrived):
+                // refund, as if no spot had been found. An exception still propagates after the refund.
+                // 实际无人移动（落点失效，或第三方传送钩子在任何人到达前抛出异常）：退还魔力，等同于没有落点。
+                // 异常在退还后照常抛出。
+                mana.addMana(RiftwalkerRules.SABBATH_MANA_COST);
+            }
+        }
         if (pulled.isEmpty()) {
-            // Nobody actually moved: refund, as if no spot had been found. / 实际无人移动：退还魔力，等同于没有落点。
-            mana.addMana(RiftwalkerRules.SABBATH_MANA_COST);
             return WitchSkillUseResult.fail(WitchesSabbathRules.NO_SPACE);
         }
         WitchesSabbathCues.circle(world, caster.getPos());
@@ -100,14 +111,16 @@ public final class WitchesSabbathService {
     /**
      * Teleports each planned teammate with the 7-arg {@code ServerPlayerEntity.teleport} (it dismounts and wakes the
      * player; the 6-arg overload would reset the camera holder), then clears velocity and fall distance and faces the
-     * caster.
+     * caster. Each arrival is appended to {@code pulled} as soon as it happens, so the caller's refund sees exactly who
+     * moved even if a later teleport throws.
      * 以 7 参数的 {@code ServerPlayerEntity.teleport} 传送每名已规划的队友（会先下坐骑、叫醒；6 参数重载会重置镜头持有者），
-     * 随后清除速度与摔落距离，并面向施放者。
+     * 随后清除速度与摔落距离，并面向施放者。每名到达者立即加入 {@code pulled}，即使之后的传送抛出异常，调用方的退还判断
+     * 也能准确知道谁已移动。
      */
-    private static List<ServerPlayerEntity> pull(ServerWorld world, ServerPlayerEntity caster,
-                                                 List<WitchesSabbathLandingPlan.Landing<ServerPlayerEntity>> landings) {
+    private static void pull(ServerWorld world, ServerPlayerEntity caster,
+                             List<WitchesSabbathLandingPlan.Landing<ServerPlayerEntity>> landings,
+                             List<ServerPlayerEntity> pulled) {
         Vec3d casterPos = caster.getPos();
-        List<ServerPlayerEntity> pulled = new ArrayList<>();
         for (WitchesSabbathLandingPlan.Landing<ServerPlayerEntity> landing : landings) {
             ServerPlayerEntity target = landing.target();
             Box departure = target.getBoundingBox();
@@ -116,15 +129,14 @@ public final class WitchesSabbathService {
             if (!target.teleport(world, feet.x, feet.y, feet.z, Set.of(), yaw, 0.0F)) {
                 continue;
             }
+            pulled.add(target);
             target.setVelocity(Vec3d.ZERO);
             target.velocityModified = true;
             target.fallDistance = 0.0F;
             WitchesSabbathCues.departure(world, departure);
             WitchesSabbathCues.arrival(world, landing.body());
             WitchesSabbathCues.notifySummoned(target, caster);
-            pulled.add(target);
         }
-        return pulled;
     }
 
     /** One replay line per cast with the pulled names; never a global announcement. / 每次施放一行回放，含被召集者名单；从不全局公告。 */

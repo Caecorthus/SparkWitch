@@ -39,6 +39,16 @@ public final class RiftSwapperCrushRules {
 
     /** Half the width of a standing player (vanilla 0.6). / 站立玩家宽度的一半（原版 0.6）。 */
     static final double PLAYER_HALF_WIDTH = 0.3;
+    /**
+     * Heights of the reachability ray: from the gate's centre ({@code GATE_HEIGHT / 2} above its base) to the middle of
+     * the candidate's standing body, so a wall, pane or closed door between the gate opening and the cell rejects it.
+     * 可达射线的高度：从门的中心（门底以上 {@code GATE_HEIGHT / 2}）到候选站立身体的中部；门口与该格之间有墙、
+     * 玻璃板或关着的门时拒绝该格。
+     */
+    public static final double GATE_RAY_HEIGHT = RiftwalkerRules.GATE_HEIGHT / 2.0;
+    public static final double BODY_RAY_HEIGHT = 0.9;
+    /** Body point checked for fluid besides the eyes (Sabbath landing precedent). / 除眼睛外检查流体的身体高度。 */
+    public static final double WAIST_HEIGHT = 0.5;
 
     private static final List<BodyOffset> BODY_OFFSETS = buildBodyOffsets();
 
@@ -49,7 +59,10 @@ public final class RiftSwapperCrushRules {
     public enum Outcome {
         /** Not ours: NoellesRoles runs (and performs its own early returns). / 与门无关：交给 NR（含其自身的提前返回）。 */
         PASS,
-        /** A target is an alive spectator outside any gate: silent no-op (stock unreachability). / 门外的活着旁观者：静默取消。 */
+        /**
+         * A target is a spectator outside any gate, dead or alive: silent no-op (C7; never NR's swap to a ghost camera).
+         * 目标是门外的旁观者（无论死活）：静默取消（C7；绝不让 NR 把人换到幽灵视角的位置）。
+         */
         CANCEL,
         /** The payload's first target is inside a gate: crush at that target's gate. / 第一个目标在门内：在其门前夹死。 */
         CRUSH_AT_FIRST,
@@ -68,12 +81,15 @@ public final class RiftSwapperCrushRules {
     /**
      * {@code swapWouldRun} = NoellesRoles' own gate (actor is a Swapper, alive, not swallowed; both targets present and
      * not swallowed). C4: either target inside → crush (the first inside target in payload order hosts the body);
-     * otherwise an alive spectator target → silent cancel; otherwise NR's swap runs untouched.
+     * otherwise any spectator target, dead or alive → silent cancel (the patched widget can send a just-killed player
+     * while the client's Wathe alive list lags, and NR would move the living pick to that ghost's camera); otherwise
+     * NR's swap runs untouched.
      * {@code swapWouldRun} 即 NoellesRoles 自身的前置条件（执行者是交换者、存活、未被吞；两个目标都在且未被吞）。C4：任一目标
-     * 在门内 → 夹死（按数据包顺序第一个门内目标所在的门放尸体）；否则任一目标是活着的旁观者 → 静默取消；否则 NR 照常交换。
+     * 在门内 → 夹死（按数据包顺序第一个门内目标所在的门放尸体）；否则任一目标是旁观者（无论死活）→ 静默取消（客户端 Wathe
+     * 存活列表滞后时，打过补丁的界面可能发送刚死亡的玩家，NR 会把活着的目标换到该幽灵视角的位置）；否则 NR 照常交换。
      */
     public static Outcome decide(boolean swapWouldRun, boolean firstInside, boolean secondInside,
-                                 boolean firstAliveSpectator, boolean secondAliveSpectator) {
+                                 boolean firstSpectator, boolean secondSpectator) {
         if (!swapWouldRun) {
             return Outcome.PASS;
         }
@@ -83,7 +99,7 @@ public final class RiftSwapperCrushRules {
         if (secondInside) {
             return Outcome.CRUSH_AT_SECOND;
         }
-        if (firstAliveSpectator || secondAliveSpectator) {
+        if (firstSpectator || secondSpectator) {
             return Outcome.CANCEL;
         }
         return Outcome.PASS;
@@ -91,18 +107,26 @@ public final class RiftSwapperCrushRules {
 
     /**
      * Gate-local feet offsets tried in order for the Swapper's body: one block straight in front first, then the
-     * diagonal front cells, then two blocks out; the same at one block up, then one block down. Every candidate keeps
-     * a standing player's box clear of the gate slab so the body never eats the right-click that enters the gate.
-     * 交换者尸体按顺序尝试的门本地脚底偏移：先正前方一格，再前方斜格，再前方两格；然后同样的位置上移一格、下移一格。
-     * 每个候选都让站立玩家的碰撞箱避开门板，尸体不会挡住进门的右键。
+     * diagonal front cells, then right beside the gate (a gate placed facing a wall has no free front cell), and only
+     * then two blocks out; the same at one block up, then one block down. Every candidate keeps a standing player's box
+     * clear of the gate slab so the body never eats the right-click that enters the gate. The server additionally
+     * requires a clear collider ray from the gate opening ({@code RiftSwapperBodyCell}), so no cell behind a wall wins.
+     * 交换者尸体按顺序尝试的门本地脚底偏移：先正前方一格，再前方斜格，再紧贴门的两侧（面朝墙放置的门前方没有空格），
+     * 最后才是前方两格；然后同样的位置上移一格、下移一格。每个候选都让站立玩家的碰撞箱避开门板，尸体不会挡住进门的右键。
+     * 服务端还要求从门口到该格的碰撞射线畅通（{@code RiftSwapperBodyCell}），因此墙后的格子永远不会被选中。
      */
     public static List<BodyOffset> bodyOffsets() {
         return BODY_OFFSETS;
     }
 
-    /** Clearance between a standing player at {@code offset} and the gate slab (blocks). / 候选位置与门板的间隙（格）。 */
+    /**
+     * Clearance between a standing player at {@code offset} and the gate slab (blocks): the larger of the gap in front
+     * of the slab and the gap beside it. / 候选位置与门板的间隙（格）：取门板前方间隙与侧方间隙中较大者。
+     */
     static double slabClearance(BodyOffset offset) {
-        return offset.forward() - PLAYER_HALF_WIDTH - RiftwalkerRules.GATE_DEPTH / 2.0;
+        double front = offset.forward() - PLAYER_HALF_WIDTH - RiftwalkerRules.GATE_DEPTH / 2.0;
+        double side = Math.abs(offset.lateral()) - PLAYER_HALF_WIDTH - RiftwalkerRules.GATE_WIDTH / 2.0;
+        return Math.max(front, side);
     }
 
     /**
@@ -120,7 +144,8 @@ public final class RiftSwapperCrushRules {
     }
 
     private static List<BodyOffset> buildBodyOffsets() {
-        double[][] horizontal = {{1.0, 0.0}, {1.0, 1.0}, {1.0, -1.0}, {2.0, 0.0}, {2.0, 1.0}, {2.0, -1.0}};
+        double[][] horizontal = {{1.0, 0.0}, {1.0, 1.0}, {1.0, -1.0}, {0.0, 1.0}, {0.0, -1.0},
+                {2.0, 0.0}, {2.0, 1.0}, {2.0, -1.0}};
         double[] vertical = {0.0, 1.0, -1.0};
         BodyOffset[] offsets = new BodyOffset[horizontal.length * vertical.length];
         int index = 0;

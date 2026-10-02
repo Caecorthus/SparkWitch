@@ -70,12 +70,15 @@ public final class RiftSwapperCrushService {
      * Called from {@code RiftSwapperCrushMixin} at the HEAD of NoellesRoles' Swapper handler, on the server thread,
      * after the SparkFactionAPI and SparkTraits HEAD guards let the payload through. Mirrors NoellesRoles' own early
      * returns exactly (same world lookups, {@code isRole} so an acting overlay is followed), then applies
-     * {@link RiftSwapperCrushRules#decide}. Deliberately no cooldown check: NR has none server-side, so skipping the
-     * crush on cooldown would let a crafted packet pull an occupant out. Returns whether NR's handler must be cancelled.
+     * {@link RiftSwapperCrushRules#decide}. Any spectator target that is not an occupant — alive (Last Stand, Depression
+     * fake death) or dead (the client's alive list lags up to 1 s behind a death) — only cancels the swap (C7).
+     * Deliberately no cooldown check: NR has none server-side, so skipping the crush on cooldown would let a crafted
+     * packet pull an occupant out. Returns whether NR's handler must be cancelled.
      * 由 {@code RiftSwapperCrushMixin} 在 NoellesRoles 交换处理器开头（服务端线程）调用，此时 SparkFactionAPI 与
      * SparkTraits 的 HEAD 守卫已放行。逐条复刻 NR 自身的提前返回（相同的世界查询；用 {@code isRole} 以跟随扮演覆盖），再按
-     * {@link RiftSwapperCrushRules#decide} 处理。刻意不检查冷却：NR 服务端也不检查，否则伪造数据包可把门内的人拉出来。
-     * 返回是否必须取消 NR 处理器。
+     * {@link RiftSwapperCrushRules#decide} 处理。不在门内的旁观者目标——无论活着（背水一战、抑郁假死）还是已死亡（客户端
+     * 存活列表比死亡最多滞后 1 秒）——只会取消交换（C7）。刻意不检查冷却：NR 服务端也不检查，否则伪造数据包可把门内的人
+     * 拉出来。返回是否必须取消 NR 处理器。
      */
     public static boolean intercept(ServerPlayerEntity actor, @Nullable UUID firstId, @Nullable UUID secondId) {
         if (actor == null) {
@@ -94,8 +97,8 @@ public final class RiftSwapperCrushService {
         RiftSwapperCrushRules.Outcome outcome = RiftSwapperCrushRules.decide(swapWouldRun,
                 swapWouldRun && RiftSessionService.isInside(first),
                 swapWouldRun && RiftSessionService.isInside(second),
-                swapWouldRun && isAliveSpectator(first),
-                swapWouldRun && isAliveSpectator(second));
+                swapWouldRun && first.isSpectator(),
+                swapWouldRun && second.isSpectator());
         if (outcome.crushes()) {
             PlayerEntity host = outcome == RiftSwapperCrushRules.Outcome.CRUSH_AT_FIRST ? first : second;
             PlayerEntity other = host == first ? second : first;
@@ -104,11 +107,6 @@ public final class RiftSwapperCrushService {
             }
         }
         return outcome.cancelsSwap();
-    }
-
-    /** Swallowed, Last Stand and Depression fake death all leave the player alive in SPECTATOR. / 活着的旁观者。 */
-    private static boolean isAliveSpectator(PlayerEntity player) {
-        return player.isSpectator() && GameFunctions.isPlayerPlayingAndAlive(player);
     }
 
     /**
