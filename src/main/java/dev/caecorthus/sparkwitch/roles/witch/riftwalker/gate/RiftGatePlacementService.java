@@ -1,9 +1,40 @@
 package dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerMatch;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.cca.MapVariablesWorldComponent;
+import dev.doctor4t.wathe.game.GameFunctions;
+import dev.doctor4t.wathe.record.GameRecordManager;
+import net.minecraft.entity.Entity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalDouble;
 
 /**
  * Server placement transaction behind {@link RiftGateItem#use} (plan §5.1): validate (round, alive Riftwalker, not
@@ -13,9 +44,18 @@ import net.minecraft.util.Hand;
  * {@link RiftGateItem#use} 背后的服务端放置事务（plan §5.1）：校验（对局、存活的隙行者、不在门内、未眩晕、SparkTraits
  * 交互封锁、地面、play area、间距、邻居），分配门编号，生成并登记实体，消耗一个物品，播放提示并记录回放。失败时不扣任何东西。
  * 归属 P1。
+ *
+ * <p>Server authority: the client only sends vanilla's use-item packet (it predicts nothing but CONSUME); every check
+ * below reads server state. The user is classified by the RAW Wathe role, never the Black Raven acting role.
+ * 服务端权威：客户端只发送原版使用物品数据包（除 CONSUME 外不做任何预测）；以下每项检查都读取服务端状态。
+ * 使用者按 Wathe 原始职业判定，从不使用黑羽鸦伪装职业。
  */
 public final class RiftGatePlacementService {
-    static final String NOT_READY_MESSAGE_KEY = "message.sparkwitch.riftwalker.not_ready";
+    /** Placement cue: a quiet charge, audible nearby (counterplay). / 放置提示音：较轻的充能声，附近可闻（反制线索）。 */
+    static final float PLACE_SOUND_VOLUME = 0.6F;
+    static final float PLACE_SOUND_PITCH = 1.3F;
+    static final int PLACE_PORTAL_PARTICLES = 24;
+    static final int PLACE_WITCH_PARTICLES = 6;
 
     private RiftGatePlacementService() {
     }
@@ -26,8 +66,141 @@ public final class RiftGatePlacementService {
      * 冻结入口；返回该手的物品使用结果（放置成功为 {@code SUCCESS}/{@code CONSUME}，否则为 {@code FAIL}）。仅服务端线程。
      */
     public static ActionResult tryPlace(ServerPlayerEntity player, Hand hand) {
-        // TODO(P1): the placement transaction. G0 stub: inert refusal. / TODO(P1)：放置事务。G0 存根：无效果地拒绝。
-        player.sendMessage(Text.translatable(NOT_READY_MESSAGE_KEY), true);
+        ItemStack stack = player.getStackInHand(hand);
+        if (!(stack.getItem() instanceof RiftGateItem)) {
+            return ActionResult.PASS;
+        }
+        ServerWorld world = player.getServerWorld();
+        RiftGatePlacementFailure userFailure = userFailure(world, player);
+        if (userFailure != null) {
+            return refuse(player, userFailure);
+        }
+        // A null binding never matches, so the gate would discard itself at once. / null 绑定永不匹配，门会立即自删。
+        String matchId = RiftwalkerMatch.currentMatchId(world);
+        if (matchId == null) {
+            return refuse(player, RiftGatePlacementFailure.UNAVAILABLE);
+        }
+
+        Direction facing = RiftGatePlacementRules.facingFromYaw(player.getYaw());
+        OptionalDouble floorY = findFloorY(world, player);
+        if (floorY.isEmpty()) {
+            return refuse(player, RiftGatePlacementFailure.NO_FLOOR);
+        }
+        Vec3d pos = RiftGatePlacementRules.gatePosition(player.getPos(), facing, floorY.getAsDouble());
+        RiftGatePlacementFailure spotFailure = spotFailure(world, pos, facing);
+        if (spotFailure != null) {
+            return refuse(player, spotFailure);
+        }
+
+        Optional<RiftGateEntity> spawned = RiftGateRegistry.spawn(world, pos, facing, player.getUuid(), matchId);
+        if (spawned.isEmpty()) {
+            return refuse(player, RiftGatePlacementFailure.BLOCKED);
+        }
+        int number = spawned.get().gateNumber();
+        stack.decrementUnlessCreative(1, player);
+        playPlacementCue(world, pos);
+        NbtCompound extra = new NbtCompound();
+        extra.putString(RiftGateReplayFormatters.ACTION_KEY, RiftGateReplayFormatters.PLACE_ACTION);
+        extra.putInt(RiftGateReplayFormatters.GATE_NUMBER_KEY, number);
+        GameRecordManager.recordItemUse(player, RiftwalkerRules.GATE_ITEM_ID, null, extra);
+        player.sendMessage(Text.translatable(RiftGatePlacementFailure.PLACED_MESSAGE_KEY, number), true);
+        return ActionResult.CONSUME;
+    }
+
+    /**
+     * Who may place: an ACTIVE round; a living, playing, survival participant who is not an active Wraith; RAW role
+     * Riftwalker; not inside a gate; not Control-Expert-stunned; not under the SparkTraits killer-interaction lock
+     * (Hunter trap precedent; an absent Traits adds no lock).
+     * 谁可以放置：对局处于 ACTIVE；存活、参与中、生存模式且不是激活冤魂的参与者；原始职业为隙行者；不在门内；
+     * 未被控制专家眩晕；未处于 SparkTraits 杀手交互封锁（与猎人陷阱相同；未安装 Traits 时不附加封锁）。
+     */
+    @Nullable
+    private static RiftGatePlacementFailure userFailure(ServerWorld world, ServerPlayerEntity player) {
+        // Inside first: an occupant is an alive spectator, so the liveness checks below would hide the reason.
+        // 先判断门内：门内玩家是活着的旁观者，下面的存活检查会掩盖真正原因。
+        if (RiftSessionService.isInside(player)) {
+            return RiftGatePlacementFailure.INSIDE_GATE;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        if (game.getGameStatus() != GameWorldComponent.GameStatus.ACTIVE
+                || !GameFunctions.isPlayerPlayingAndAlive(player)
+                || !GameFunctions.isPlayerAliveAndSurvival(player)
+                || WraithStateService.isActive(player)
+                || !RiftwalkerRules.isRiftwalker(game.getRole(player))
+                || ControlExpertStun.isStunned(player)
+                || SparkTraitsKillerBridge.isKillerInteractionBlocked(player)) {
+            return RiftGatePlacementFailure.UNAVAILABLE;
+        }
+        return null;
+    }
+
+    /**
+     * Snaps the feet to the floor: the top face a short downward ray hits, else the feet while on the ground.
+     * 把脚下位置贴到地面：短距离向下射线命中的顶面，否则在站地时取脚下高度。
+     */
+    private static OptionalDouble findFloorY(ServerWorld world, ServerPlayerEntity player) {
+        Vec3d feet = player.getPos();
+        Vec3d[] probe = RiftGatePlacementRules.floorProbe(feet);
+        BlockHitResult ground = world.raycast(new RaycastContext(probe[0], probe[1],
+                RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, player));
+        boolean topFace = ground.getType() == HitResult.Type.BLOCK && ground.getSide() == Direction.UP;
+        return RiftGatePlacementRules.snapFloorY(topFace, ground.getPos().y, player.isOnGround(), feet.y);
+    }
+
+    /**
+     * Spot checks in order: support under the footprint, play area and cull height, empty slab, no fluid, gate
+     * spacing, Seeker device clearance, forbidden neighbours.
+     * 按顺序检查位置：脚印下的支撑、play area 与剔除高度、薄板无方块、无流体、门间距、搜寻者设备间隙、禁放邻居。
+     */
+    @Nullable
+    private static RiftGatePlacementFailure spotFailure(ServerWorld world, Vec3d pos, Direction facing) {
+        if (world.isSpaceEmpty(RiftGatePlacementRules.supportProbe(pos, facing))) {
+            return RiftGatePlacementFailure.NO_FLOOR;
+        }
+        Box playArea = MapVariablesWorldComponent.KEY.get(world).getPlayArea();
+        if (!RiftGatePlacementRules.withinPlayArea(playArea, pos) || !RiftGatePlacementRules.belowCullHeight(pos)) {
+            return RiftGatePlacementFailure.OUT_OF_BOUNDS;
+        }
+        Box clearance = RiftGatePlacementRules.clearanceBox(pos, facing);
+        if (!world.isSpaceEmpty(clearance)) {
+            return RiftGatePlacementFailure.BLOCKED;
+        }
+        if (world.containsFluid(clearance)) {
+            return RiftGatePlacementFailure.IN_FLUID;
+        }
+        List<Vec3d> otherCentres = new ArrayList<>();
+        for (RiftGateRecord record : RiftGateRegistry.gates(world)) {
+            otherCentres.add(RiftGatePlacementRules.centre(record.pos()));
+        }
+        if (!RiftGatePlacementRules.respectsSpacing(RiftGatePlacementRules.centre(pos), otherCentres)
+                || !world.getEntitiesByClass(SeekerDeviceEntity.class,
+                        RiftGatePlacementRules.deviceClearanceBox(pos, facing), Entity::isAlive).isEmpty()) {
+            return RiftGatePlacementFailure.TOO_CLOSE;
+        }
+        for (BlockPos near : RiftGatePlacementRules.neighbourScan(pos, facing)) {
+            if (RiftGateNeighbourRules.isForbiddenNeighbour(world.getBlockState(near))) {
+                return RiftGatePlacementFailure.NEAR_INTERACTIVE;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Audible and visible to everyone nearby (a counterplay cue); the client adds the steady swirl particles (P6).
+     * 附近所有人都能听到、看到（反制线索）；持续的旋涡粒子由客户端添加（P6）。
+     */
+    private static void playPlacementCue(ServerWorld world, Vec3d pos) {
+        Vec3d centre = RiftGatePlacementRules.centre(pos);
+        world.playSound(null, centre.x, centre.y, centre.z, SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE,
+                SoundCategory.PLAYERS, PLACE_SOUND_VOLUME, PLACE_SOUND_PITCH);
+        world.spawnParticles(ParticleTypes.PORTAL, centre.x, centre.y, centre.z, PLACE_PORTAL_PARTICLES,
+                0.3, 0.7, 0.3, 0.4);
+        world.spawnParticles(ParticleTypes.WITCH, centre.x, centre.y, centre.z, PLACE_WITCH_PARTICLES,
+                0.3, 0.6, 0.3, 0.0);
+    }
+
+    private static ActionResult refuse(ServerPlayerEntity player, RiftGatePlacementFailure failure) {
+        player.sendMessage(Text.translatable(failure.messageKey()), true);
         return ActionResult.FAIL;
     }
 }

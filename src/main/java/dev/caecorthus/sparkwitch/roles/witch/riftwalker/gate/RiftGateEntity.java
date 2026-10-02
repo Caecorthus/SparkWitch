@@ -20,6 +20,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.explosion.Explosion;
 import org.jetbrains.annotations.Nullable;
@@ -115,6 +116,8 @@ public class RiftGateEntity extends Entity {
                 discard();
                 return;
             }
+            // Static: never drifts, whatever pushed it. / 静止：无论受到什么推动都不漂移。
+            setVelocity(Vec3d.ZERO);
             // P4: catch projectiles that skip entity collision (SparkStrength M67). / P4：捕获不走实体碰撞的投掷物。
             if (!isRemoved()) {
                 RiftGateProjectileService.sweepUncollidable(this);
@@ -210,13 +213,30 @@ public class RiftGateEntity extends Entity {
 
     // ---- Box and rendering / 碰撞箱与渲染 ----
 
-    // TODO(P1): override calculateBoundingBox() to the facing-rotated GATE_WIDTH x GATE_HEIGHT x GATE_DEPTH slab and
-    //  refresh it in onTrackedDataSet(FACING). / 按朝向旋转的薄板碰撞箱，并在 FACING 变化时刷新。
+    /**
+     * Thin hit box: {@code GATE_WIDTH × GATE_HEIGHT × GATE_DEPTH}, thin along the facing axis, so a right-click or a
+     * projectile must meet the gate's face, not the air beside it. Both sides derive it from the tracked facing.
+     * 薄命中箱：{@code GATE_WIDTH × GATE_HEIGHT × GATE_DEPTH}，沿朝向轴为薄边，右键或投掷物必须碰到门面而不是旁边的空气。
+     * 双端都由同步的朝向推导。
+     */
+    @Override
+    protected Box calculateBoundingBox() {
+        return RiftGatePlacementRules.gateBox(getPos(), facing());
+    }
+
+    /** A new facing (server set, or the client's tracked update) re-rotates the box. / 朝向变化（服务端设置或客户端同步）时重算命中箱。 */
+    @Override
+    public void onTrackedDataSet(TrackedData<?> data) {
+        super.onTrackedDataSet(data);
+        if (FACING.equals(data)) {
+            setBoundingBox(calculateBoundingBox());
+        }
+    }
 
     /** Covers model B (2.25 tall, 1×1 floor circle) so the renderer is never culled early. / 覆盖模型 B，避免过早剔除。 */
     @Override
     public Box getVisibilityBoundingBox() {
-        return new Box(getX() - 0.75, getY() - 0.25, getZ() - 0.75, getX() + 0.75, getY() + 2.5, getZ() + 0.75);
+        return RiftGatePlacementRules.visibilityBox(getPos());
     }
 
     @Override
