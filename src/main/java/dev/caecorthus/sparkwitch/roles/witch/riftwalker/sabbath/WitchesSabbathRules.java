@@ -88,6 +88,7 @@ public final class WitchesSabbathRules {
         LAST_STAND_PENDING,
         LAST_ESCAPE,
         KIDNAPPER_CONTROLLED,
+        HUNTER_ROOTED,
         CAPTURE_STUNNED,
         SEEKER_SESSION,
         INSIDE_GATE,
@@ -141,6 +142,9 @@ public final class WitchesSabbathRules {
         boolean lastEscape();
 
         boolean kidnapperControlled();
+
+        /** C10: rooted by a Hunter trap (same rule as gate entry). / C10：被猎人捕兽夹定住（与进门规则一致）。 */
+        boolean hunterRooted();
 
         boolean captureStunned();
 
@@ -197,9 +201,10 @@ public final class WitchesSabbathRules {
 
     /**
      * First reason this teammate is skipped, or null when they are pulled. Apprentice and Murderous Witches fail
-     * {@code witchFaction} (C6); teammates inside a gate are skipped (D6), never ejected.
+     * {@code witchFaction} (C6); teammates inside a gate are skipped (D6), never ejected; Hunter-rooted and
+     * capture-stunned teammates are skipped like a refused gate entry (C10).
      * 返回该队友被跳过的第一个原因；会被召集时返回 null。预备魔女与杀意魔女在 {@code witchFaction} 处被排除（C6）；
-     * 门内的队友被跳过（D6），不会被拉出。
+     * 门内的队友被跳过（D6），不会被拉出；被捕兽夹定住或被捕捉装置眩晕的队友与进门规则一致地被跳过（C10）。
      */
     public static @Nullable TargetSkip targetSkip(TargetProbe target) {
         if (target.isCaster()) {
@@ -225,6 +230,9 @@ public final class WitchesSabbathRules {
         }
         if (target.kidnapperControlled()) {
             return TargetSkip.KIDNAPPER_CONTROLLED;
+        }
+        if (target.hunterRooted()) {
+            return TargetSkip.HUNTER_ROOTED;
         }
         if (target.captureStunned()) {
             return TargetSkip.CAPTURE_STUNNED;

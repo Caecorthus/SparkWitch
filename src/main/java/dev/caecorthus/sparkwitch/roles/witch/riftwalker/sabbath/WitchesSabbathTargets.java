@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponen
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftGateUsers;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerStatusProbes;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -26,12 +27,13 @@ import java.util.List;
  * RAW ({@code GameWorldComponent#getRole}) and the faction is SparkFactionAPI's effective faction through
  * {@link RiftGateUsers#isWitchFaction}, so a disguised Black Raven, an active Wraith or the promoted Curser is never
  * pulled. Other modules are only read through their public queries or SparkWitch's fail-safe compat bridges; the
- * per-tick position holders (Taotie stomach, Last Stand, Knockout control, capture stun) are skipped because they
- * would undo — or, for Knockout control, break — the pull.
+ * per-tick position holders (Taotie stomach, Last Stand, Knockout control, Hunter trap root, capture stun) are
+ * skipped because they would undo — or, for Knockout control, break — the pull (C10 for the last two).
  * 以实时状态为 {@link WitchesSabbathRules} 的探针提供输入的服务端适配器（research/04 §1.2–§1.3）。职业取原始职业
  * （{@code GameWorldComponent#getRole}），阵营取经 {@link RiftGateUsers#isWitchFaction} 的 SparkFactionAPI 有效阵营，
  * 因此伪装中的黑羽鸦、激活冤魂与晋升诅咒者永远不会被召集。其他模块只通过其公共查询或 SparkWitch 的安全兼容桥读取；
- * 每 tick 固定位置的状态（饕餮胃、背水一战、迷药控制、捕捉定身）会被跳过，因为它们会抵消召集——迷药控制甚至会被召集打断。
+ * 每 tick 固定位置的状态（饕餮胃、背水一战、迷药控制、捕兽夹定身、捕捉定身）会被跳过，因为它们会抵消召集——迷药控制甚至会被
+ * 召集打断（后两项见 C10）。
  */
 final class WitchesSabbathTargets {
     private WitchesSabbathTargets() {
@@ -158,8 +160,14 @@ final class WitchesSabbathTargets {
             }
 
             @Override
+            public boolean hunterRooted() {
+                // C10: the trap root would hold the body; same probe as gate entry. / C10：捕兽夹会定住本体；与进门共用探针。
+                return RiftwalkerStatusProbes.isHunterRooted(player);
+            }
+
+            @Override
             public boolean captureStunned() {
-                return SabbathCaptureStunProbe.isStunned(player);
+                return RiftwalkerStatusProbes.isCaptureStunned(player);
             }
 
             @Override

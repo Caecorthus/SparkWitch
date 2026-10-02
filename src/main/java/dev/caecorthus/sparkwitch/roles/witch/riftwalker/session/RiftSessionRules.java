@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Pure rules of the "inside a Rift Gate" session (plan §6–§7; D3, D5, D5b, D11, D14, C1–C3): entry refusal order,
+ * Pure rules of the "inside a Rift Gate" session (plan §6–§7; D3, D5, D5b, D11, D14, C1–C3, C10): entry refusal order,
  * per-exit-reason body handling, the game-mode ownership rule of the alive-spectator body model, the re-entry
  * cooldown, the occupant payload deny-list and the SparkFactionAPI actions an occupant still receives. Tuning numbers
  * that are not frozen in {@code RiftwalkerRules} live here.
- * 「在裂隙门内」会话的纯规则（plan §6–§7；D3、D5、D5b、D11、D14、C1–C3）：进门拒绝顺序、各出门原因的本体处理、活着的旁观者
+ * 「在裂隙门内」会话的纯规则（plan §6–§7；D3、D5、D5b、D11、D14、C1–C3、C10）：进门拒绝顺序、各出门原因的本体处理、活着的旁观者
  * 模型的游戏模式归属规则、再次进门冷却、门内玩家的数据包拦截名单，以及门内玩家仍会受到的 SparkFactionAPI 行为。
  * 未在 {@code RiftwalkerRules} 中冻结的调参数值放在这里。
  */
@@ -42,6 +42,9 @@ public final class RiftSessionRules {
     public static final String STAY_EXPIRED_KEY = MESSAGE_PREFIX + "stay_expired";
     public static final String GATE_CLOSED_KEY = MESSAGE_PREFIX + "gate_closed";
     public static final String INELIGIBLE_KEY = MESSAGE_PREFIX + "ineligible";
+    /** C10 entry refusals: held by a Hunter trap / a SparkStrength capture device. / C10 进门拒绝：被捕兽夹 / 捕捉装置定住。 */
+    public static final String ROOTED_KEY = MESSAGE_PREFIX + "rooted";
+    public static final String CAPTURE_STUNNED_KEY = MESSAGE_PREFIX + "capture_stunned";
     /** Shop denial reason shown by Wathe's shop screen. / Wathe 商店界面显示的拒绝原因。 */
     public static final String SHOP_BLOCKED_KEY = MESSAGE_PREFIX + "shop_blocked";
 
@@ -155,19 +158,25 @@ public final class RiftSessionRules {
     /**
      * Live facts for one entry request, gathered by the service. {@code participant} = playing and alive, not
      * spectator, not creative, not an active Wraith; {@code controlled} = Taotie-swallowed, Last Stand pending, Last
-     * Escape, Kidnapper control, Control Expert stun, a Seeker session or a foreign camera.
+     * Escape, Kidnapper control, Control Expert stun, a Seeker session or a foreign camera; {@code hunterRooted} /
+     * {@code captureStunned} = held by a Hunter trap / the SparkStrength capture device (C10: entering would be a free
+     * escape).
      * 一次进门请求的实时事实，由服务收集。{@code participant} = 正在参赛且存活、非旁观、非创造、非激活冤魂；
-     * {@code controlled} = 被饕餮吞下、背水一战待决、最后逃亡、被绑架者控制、被控场专家眩晕、处于搜寻者会话或镜头被他人占用。
+     * {@code controlled} = 被饕餮吞下、背水一战待决、最后逃亡、被绑架者控制、被控场专家眩晕、处于搜寻者会话或镜头被他人占用；
+     * {@code hunterRooted} / {@code captureStunned} = 被猎人捕兽夹 / SparkStrength 捕捉装置定住（C10：否则进门等于挣脱）。
      */
     public record EntryFacts(RiftGateUser user, boolean roundActive, boolean participant, boolean alreadyInside,
-                             boolean controlled, @Nullable GameMode currentMode, boolean gateRegistered,
-                             boolean withinReach, int cooldownRemainingTicks, boolean hasManaSystem, int mana) {
+                             boolean controlled, boolean hunterRooted, boolean captureStunned,
+                             @Nullable GameMode currentMode, boolean gateRegistered, boolean withinReach,
+                             int cooldownRemainingTicks, boolean hasManaSystem, int mana) {
     }
 
     /** Why an entry is refused; {@link #SILENT} sends nothing. / 进门被拒原因；SILENT 不发送任何提示。 */
     public enum EntryDenial {
         SILENT(null),
         UNAVAILABLE(UNAVAILABLE_KEY),
+        ROOTED(ROOTED_KEY),
+        CAPTURE_STUNNED(CAPTURE_STUNNED_KEY),
         TOO_FAR(TOO_FAR_KEY),
         COOLDOWN(COOLDOWN_KEY),
         NOT_ENOUGH_MANA(NOT_ENOUGH_MANA_KEY);
@@ -199,6 +208,14 @@ public final class RiftSessionRules {
         if (!facts.roundActive() || !facts.participant() || facts.controlled()
                 || !isRestorableMode(facts.currentMode()) || !facts.gateRegistered()) {
             return EntryDenial.UNAVAILABLE;
+        }
+        // C10: held players are told why (after the generic refusals, before reach/cooldown/fee).
+        // C10：被定住的玩家会收到具体原因（排在通用拒绝之后、距离/冷却/费用之前）。
+        if (facts.hunterRooted()) {
+            return EntryDenial.ROOTED;
+        }
+        if (facts.captureStunned()) {
+            return EntryDenial.CAPTURE_STUNNED;
         }
         if (!facts.withinReach()) {
             return EntryDenial.TOO_FAR;
