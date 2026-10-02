@@ -14,6 +14,8 @@ It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with
 train fall can kill and that may buy a timed Fiend Moment.
 It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao and win together.
+It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
+the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -134,6 +136,17 @@ Current build baseline:
   invisibility, and safe door exit). Its mixins live in `mixin/fisher/` and
   `client/mixin/fisher/`; client presentation (Glimmerfish outlines and HUD, hidden hands,
   Swordfish crosshair and stab dispatch) in `client/fisher/`.
+- `roles/civilian/blind/`: the Blind (`sparkwitch:blind`, 盲人): `BlindRules` (ids and numbers),
+  the owner-only `sparkwitch:blind` component (`BlindComponent` over the pure `BlindTimers`),
+  `BlindParticipants` (shared real-role, ComTac and perception-range predicates), and
+  `BlindFeatureService` (the single server wiring entry). Subpackages: `item/` (White Cane, ComTac
+  VIII), `net/` (the `sparkwitch:blind_pulse` and `sparkwitch:use_blind_attune` payloads and the
+  single `BlindPulseSender`), `perception/` (server sound and voice perception, planned), and
+  `kit/` (cane, Attune, ComTac, economy, shop and lifecycle, planned). Client presentation lives in
+  `client/blind/`: `BlindClient` (module and pulse receiver), `BlindView` (the one activity
+  predicate), `BlindPerceptionClientState` (pure pulse and perceived-player memory),
+  `BlindClientStatus` (HUD remaining-tick view), and the planned `render/` (black screen and line
+  art), `gate/` (presentation vetoes) and `kit/` (Attune key and HUD) areas.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, and
   the Seeker share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate
@@ -520,6 +533,18 @@ effective killers get Wathe's red cohort line on a living Insider through `Shoul
 `InsiderCohortRoleNameMixin` draws the mint `game.tip.sparkwitch.jiahao_cohort` label between an Insider and any
 Team Jiahao member, both ways, with the witch cohort trigger. The Insider shares killer-style instinct light
 through `WitchInstinctClientHooks`. The Insider never renders in the `gui.sparkwitch.skills` panel.
+
+Blind state never enters that shared schema either. `sparkwitch:blind` (`NEVER_COPY`, never saved)
+holds the cane and Attune windows as absolute server world ticks plus a server-only match id; its
+owner-only sync packet is four VarInts of remaining ticks (cane cooldown, cane active, Attune
+cooldown, Attune active), never absolute ticks, and the client rebuilds them against its own world
+time. Every Blind gate reads Wathe's real role (`getRole`), never the Black Raven acting overlay;
+the Blind is on the Black Raven `DENYLIST`, is not police, and is not in
+`isRegisteredSparkWitchRole` or `WitchSkillRegistry`. `sparkwitch:blind_pulse` goes only to a
+living Blind and carries a position, radius, duration, kind, an optional emitter entity id and an
+optional list of entity ids, never a UUID, name or role. `sparkwitch:use_blind_attune` is empty and
+sits on the Control Expert stun, Seeker session and Grand Witch Fear deny-lists. The black screen
+never uses vanilla Blindness. The Blind never renders in the `gui.sparkwitch.skills` panel.
 
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`

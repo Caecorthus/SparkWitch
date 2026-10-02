@@ -5,6 +5,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionServ
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.item.ComTacItem;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.item.WhiteCaneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.DisruptorItem;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ShockDeviceItem;
@@ -79,6 +82,8 @@ public final class SparkWitchItems {
     public static final Identifier KEY_FISH_ID = FisherRules.KEY_FISH_ID;
     public static final Identifier SWORDFISH_ID = FisherRules.SWORDFISH_ID;
     public static final Identifier GLIMMERFISH_ID = FisherRules.GLIMMERFISH_ID;
+    public static final Identifier WHITE_CANE_ID = BlindRules.WHITE_CANE_ID;
+    public static final Identifier COMTAC_ID = BlindRules.COMTAC_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -113,6 +118,8 @@ public final class SparkWitchItems {
     private static Item keyFish;
     private static Item swordfish;
     private static Item glimmerfish;
+    private static Item whiteCane;
+    private static Item comTac;
 
     private static boolean registered;
 
@@ -292,6 +299,16 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 GLIMMERFISH_ID,
                 new FisherFishItem(FisherFishItem.createSettings(), FisherFishKind.GLIMMERFISH)
+        );
+        whiteCane = Registry.register(
+                Registries.ITEM,
+                WHITE_CANE_ID,
+                new WhiteCaneItem(WhiteCaneItem.createSettings())
+        );
+        comTac = Registry.register(
+                Registries.ITEM,
+                COMTAC_ID,
+                new ComTacItem(ComTacItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -556,5 +573,19 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return glimmerfish;
+    }
+
+    public static Item whiteCane() {
+        if (whiteCane == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return whiteCane;
+    }
+
+    public static Item comTac() {
+        if (comTac == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return comTac;
     }
 }

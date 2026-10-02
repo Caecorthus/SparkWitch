@@ -59,6 +59,8 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.keyFish(),
                                     SparkWitchItems.swordfish(),
                                     SparkWitchItems.glimmerfish(),
+                                    SparkWitchItems.whiteCane(),
+                                    SparkWitchItems.comTac(),
                                     // Killer / 杀手
                                     SparkWitchItems.ninjaKnife(),
                                     SparkWitchItems.ninjaShuriken(),

@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.item.firepoker.FirePokerCombatService;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerFallAttributionService;
 import dev.caecorthus.sparkwitch.item.tofana.TofanaProtectionService;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceCombatService;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerFeatureService;
@@ -125,6 +126,7 @@ public final class SparkWitchEvents {
         FisherFeatureService.register();
         FiendFeatureService.register();
         InsiderFeatureService.register();
+        BlindFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
