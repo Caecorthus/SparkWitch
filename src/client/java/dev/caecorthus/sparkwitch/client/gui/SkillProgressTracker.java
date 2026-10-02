@@ -132,8 +132,9 @@ public final class SkillProgressTracker {
     }
 
     /**
-     * The windows opened by the three Witch-skill roles' own skills (the only skills the panel shows). Witch Factor
-     * and the permanent Ceremonial Sword open none. 三个魔女技能职业自有技能开启的窗口；魔女因子与常驻仪礼剑没有窗口。
+     * The windows opened by the three witch roles' own skills. Witch Factor and the permanent Ceremonial Sword open
+     * none; any other panel skill (an accomplice's) falls back to the first observed value.
+     * 三个魔女职业自有技能开启的窗口；魔女因子与常驻仪礼剑没有窗口；其他面板技能（共犯的）退回首次观测值。
      */
     private static int activeWindowTicks(Identifier skill) {
         if (MurderousWitchDeathRayRules.isDeathRaySkill(skill)) return MurderousWitchDeathRayRules.WINDOW_TICKS;
