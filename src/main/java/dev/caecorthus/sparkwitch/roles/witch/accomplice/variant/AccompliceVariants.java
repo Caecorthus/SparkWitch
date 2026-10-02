@@ -23,14 +23,13 @@ import java.util.Set;
  */
 public final class AccompliceVariants {
     /**
-     * Lock-free reads: {@link #isVariant} and {@link #variants} run per frame on the client, so they read one immutable
-     * snapshot that the synchronized {@link #register} replaces wholesale (the volatile write publishes it).
-     * 无锁读取：isVariant 与 variants 在客户端每帧运行，因此读取同一个不可变快照，由同步的 register 整体替换
-     * （volatile 写入负责发布）。
+     * Lock-free reads: {@link #isVariant}, {@link #variants} and {@link #hooks} run per frame on the client (the skills
+     * panel gate reads the hooks), so they read one immutable snapshot that the synchronized {@link #register} replaces
+     * wholesale (the volatile write publishes it).
+     * 无锁读取：isVariant、variants 与 hooks 在客户端每帧运行（技能面板门禁读取 hooks），因此读取同一个不可变快照，
+     * 由同步的 register 整体替换（volatile 写入负责发布）。
      */
-    private static volatile Snapshot snapshot = new Snapshot(List.of(), Set.of());
-    /** Guarded by the class lock. / 由类锁保护。 */
-    private static final Map<Role, AccompliceVariantHooks> HOOKS = new IdentityHashMap<>();
+    private static volatile Snapshot snapshot = new Snapshot(List.of(), Set.of(), Map.of());
 
     private AccompliceVariants() {
     }
@@ -45,15 +44,17 @@ public final class AccompliceVariants {
         if (role == SparkWitchRoles.accomplice()) {
             throw new IllegalArgumentException("The plain Accomplice is not a variant");
         }
-        if (HOOKS.containsKey(role)) {
+        if (snapshot.members().contains(role)) {
             throw new IllegalArgumentException("Duplicate accomplice variant: " + role.identifier());
         }
         List<Role> roles = new ArrayList<>(snapshot.roles());
         roles.add(role);
         Set<Role> members = Collections.newSetFromMap(new IdentityHashMap<>());
         members.addAll(roles);
-        HOOKS.put(role, hooks);
-        snapshot = new Snapshot(List.copyOf(roles), Collections.unmodifiableSet(members));
+        Map<Role, AccompliceVariantHooks> hooksByRole = new IdentityHashMap<>(snapshot.hooks());
+        hooksByRole.put(role, hooks);
+        snapshot = new Snapshot(List.copyOf(roles), Collections.unmodifiableSet(members),
+                Collections.unmodifiableMap(hooksByRole));
     }
 
     /** True when the role is a registered special accomplice. / 是否为已注册的特殊共犯。 */
@@ -67,12 +68,15 @@ public final class AccompliceVariants {
     }
 
     /** The variant's hooks, or {@link AccompliceVariantHooks#NONE}. / 该特殊共犯的回调，未注册时为 NONE。 */
-    public static synchronized AccompliceVariantHooks hooks(Role role) {
-        AccompliceVariantHooks hooks = role == null ? null : HOOKS.get(role);
+    public static AccompliceVariantHooks hooks(Role role) {
+        AccompliceVariantHooks hooks = role == null ? null : snapshot.hooks().get(role);
         return hooks == null ? AccompliceVariantHooks.NONE : hooks;
     }
 
-    /** Registered roles in order plus an identity set of them. / 按顺序的已注册职业及其身份集合。 */
-    private record Snapshot(List<Role> roles, Set<Role> members) {
+    /**
+     * Registered roles in order, an identity set of them, and their hooks by identity.
+     * 按顺序的已注册职业、其身份集合，以及按身份索引的回调。
+     */
+    private record Snapshot(List<Role> roles, Set<Role> members, Map<Role, AccompliceVariantHooks> hooks) {
     }
 }

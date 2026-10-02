@@ -107,7 +107,8 @@ Current build baseline:
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the recruitment roll
-  `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the post-recruit hooks).
+  `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the per-variant hooks: the
+  post-recruit callback and the variant's own skills for the `gui.sparkwitch.skills` panel).
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
@@ -585,8 +586,18 @@ method reads the live registry on every call. These rules are `HunterRules.isIns
 
 `isAccomplice` stays exact, so the plain Accomplice shop (`AccompliceShopService`) never touches a variant. These
 never include variants merely for being variants: `WitchManaRules.isManaRole` (the Abyss Listener is added by exact
-role), `SparkWitchRoleRegistry.isRegisteredSparkWitchRole` (the Abyss Listener is added by exact role for its shared
-skill), and the `gui.sparkwitch.skills` panel whitelist (`WitchSkillPresentationRules`, never).
+role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole` (the Abyss Listener is added by exact role for its shared
+skill).
+
+The `gui.sparkwitch.skills` panel (`WitchSkillPresentationRules.shouldShowInventorySkillPanel`) belongs to the Grand
+Witch, Apprentice Witch and Murderous Witch, plus accomplices (owner decision D13: plain and special, via
+`WitchFactionRules.isAccompliceLike`); each shows only its own skills. An accomplice's own skills are exactly
+`AccompliceVariants.hooks(role).ownSkillIds()` (`AccompliceVariantHooks`, default empty). The plain Accomplice has
+`NONE` hooks, so it never shows the panel; a variant that owns no skill does not either. Registration in
+`WitchSkillRegistry`, the `sparkwitch` namespace, or shared dispatch, storage, packets and cooldowns grants no access,
+and every other role stays excluded. The gate runs every client frame, so `AccompliceVariants.hooks` reads the same
+lock-free snapshot as `isVariant` and `variants`. Mana in the panel (header tail, cost line, "not enough mana" pill)
+stays gated by `WitchManaRules.isManaRole`.
 
 A variant must register during common mod initialization, because client rules read the same registry. Hard-coded
 `sparkwitch:accomplice` lists in other repos still need each variant, for example SparkTraits
