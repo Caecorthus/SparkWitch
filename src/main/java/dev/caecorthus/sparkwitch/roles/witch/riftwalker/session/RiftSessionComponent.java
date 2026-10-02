@@ -1,13 +1,17 @@
 package dev.caecorthus.sparkwitch.roles.witch.riftwalker.session;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftGateUser;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.RegistryByteBuf;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
@@ -51,6 +55,17 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
     private GameMode previousMode;
     @Nullable
     private String matchId;
+    // P2 server-only session bookkeeping (never synced). / P2 仅服务端会话记录（从不同步）。
+    @Nullable
+    private RiftGateUser sessionUser;
+    @Nullable
+    private Vec3d anchor;
+    @Nullable
+    private Direction anchorFacing;
+    @Nullable
+    private RegistryKey<World> sessionWorld;
+    private boolean foreignMove;
+    private int lastSyncedStaySeconds;
 
     // Client mirrors, counted down locally between syncs. / 客户端镜像，两次同步之间本地倒计时。
     private int clientStayRemainingTicks;
@@ -143,14 +158,133 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
         return matchId;
     }
 
-    // TODO(P2): session transitions (begin, hop, end, cooldown, match binding), each followed by syncOwner().
-    // TODO(P2)：会话状态转移（开始、跳门、结束、冷却、对局绑定），每次之后调用 syncOwner()。
+    /** Server only: the user class the session started with (D5b stay, D14 cooldown). / 仅服务端：进门时的使用者类别。 */
+    @Nullable
+    public RiftGateUser sessionUser() {
+        return sessionUser;
+    }
+
+    /** Server only: feet position held while inside (current gate base centre). / 仅服务端：门内锚点（当前门底部中心）。 */
+    @Nullable
+    public Vec3d anchor() {
+        return anchor;
+    }
+
+    /** Server only: front of the current gate. / 仅服务端：当前门的正面朝向。 */
+    @Nullable
+    public Direction anchorFacing() {
+        return anchorFacing;
+    }
+
+    /** Server only: world the session lives in. / 仅服务端：会话所在世界。 */
+    @Nullable
+    public RegistryKey<World> sessionWorld() {
+        return sessionWorld;
+    }
+
+    /** Server only: a foreign server teleport touched the body since the last tick. / 仅服务端：上次逐刻后是否有外部传送。 */
+    public boolean foreignMove() {
+        return foreignMove;
+    }
+
+    // ---- P2 transitions (server only; each syncs the owner when the synced view changed) ----
+    // ---- P2 状态转移（仅服务端；同步视图变化时同步给拥有者） ----
+
+    /**
+     * Server: opens a session at a gate. Clears any running cooldown (it already allowed entry) and binds the match.
+     * 服务端：在某扇门处开启会话。清除仍在计时的冷却（它已允许进门）并绑定对局。
+     */
+    public void beginSession(int sessionId, RiftGateUser user, int gateNumber, int ringIndex, int ringSize,
+                             Vec3d anchor, Direction facing, RegistryKey<World> world, Vec3d entryOrigin,
+                             GameMode previousMode, long stayDeadlineTick, int stayLimitTicks, String matchId) {
+        this.inside = true;
+        this.sessionId = sessionId;
+        this.sessionUser = user;
+        this.gateNumber = gateNumber;
+        this.ringIndex = ringIndex;
+        this.ringSize = ringSize;
+        this.anchor = anchor;
+        this.anchorFacing = facing;
+        this.sessionWorld = world;
+        this.entryOrigin = entryOrigin;
+        this.previousMode = previousMode;
+        this.stayDeadlineTick = stayDeadlineTick;
+        this.stayLimitTicks = stayLimitTicks;
+        this.readyAtTick = 0L;
+        this.nextHopTick = 0L;
+        this.matchId = matchId;
+        this.foreignMove = false;
+        this.lastSyncedStaySeconds = RiftSessionRules.secondsCeil(stayRemainingTicks());
+        syncOwner();
+    }
+
+    /** Server: the anchor moved to another gate (a hop). / 服务端：锚点移到另一扇门（跳门）。 */
+    public void moveToGate(int gateNumber, int ringIndex, int ringSize, Vec3d anchor, Direction facing,
+                           long nextHopTick) {
+        this.gateNumber = gateNumber;
+        this.ringIndex = ringIndex;
+        this.ringSize = ringSize;
+        this.anchor = anchor;
+        this.anchorFacing = facing;
+        this.nextHopTick = nextHopTick;
+        this.foreignMove = false;
+        syncOwner();
+    }
+
+    /** Server: refreshes the "n/m" ring view; syncs only on change. / 服务端：刷新「n/m」；仅在变化时同步。 */
+    public boolean updateRing(int ringIndex, int ringSize) {
+        if (this.ringIndex == ringIndex && this.ringSize == ringSize) {
+            return false;
+        }
+        this.ringIndex = ringIndex;
+        this.ringSize = ringSize;
+        syncOwner();
+        return true;
+    }
+
+    /** Server: records a foreign server teleport of the body (read by the next tick). / 服务端：记录外部传送。 */
+    public void markForeignMove() {
+        this.foreignMove = true;
+    }
+
+    /** Server: forgets a foreign teleport that stayed within tolerance. / 服务端：忘记容差内的外部传送。 */
+    public void clearForeignMove() {
+        this.foreignMove = false;
+    }
+
+    /**
+     * Server: resyncs the stay countdown once per displayed second, not every tick. / 服务端：每个显示秒同步一次停留倒计时。
+     */
+    public boolean syncStaySecondsIfChanged() {
+        int seconds = RiftSessionRules.secondsCeil(stayRemainingTicks());
+        if (!inside || seconds == lastSyncedStaySeconds) {
+            return false;
+        }
+        lastSyncedStaySeconds = seconds;
+        syncOwner();
+        return true;
+    }
+
+    /**
+     * Server: ends the session; {@code readyAtTick} is the next allowed entry (0 = no cooldown). The match binding stays
+     * so the cooldown is dropped if another match starts.
+     * 服务端：结束会话；{@code readyAtTick} 为下次允许进门的时间（0 表示无冷却）。保留对局绑定，以便新对局开始时丢弃该冷却。
+     */
+    public void endSession(long readyAtTick) {
+        String keptMatch = matchId;
+        resetFields();
+        this.readyAtTick = Math.max(0L, readyAtTick);
+        this.matchId = readyAtTick > 0L ? keptMatch : null;
+        syncOwner();
+    }
 
     /** Server: drops every field (session and cooldown) and syncs when anything changed. / 服务端：清空所有字段并在有变化时同步。 */
     public boolean clear() {
         boolean changed = inside || sessionId != 0 || gateNumber != 0 || ringIndex != 0 || ringSize != 0
                 || stayLimitTicks != 0 || stayDeadlineTick != 0L || readyAtTick != 0L || entryOrigin != null
                 || nextHopTick != 0L || previousMode != null || matchId != null
+                || sessionUser != null || anchor != null || anchorFacing != null || sessionWorld != null
+                || foreignMove || lastSyncedStaySeconds != 0
                 || clientStayRemainingTicks != 0 || clientCooldownRemainingTicks != 0;
         resetFields();
         if (changed) {
@@ -178,6 +312,12 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
         nextHopTick = 0L;
         previousMode = null;
         matchId = null;
+        sessionUser = null;
+        anchor = null;
+        anchorFacing = null;
+        sessionWorld = null;
+        foreignMove = false;
+        lastSyncedStaySeconds = 0;
         clientStayRemainingTicks = 0;
         clientCooldownRemainingTicks = 0;
     }

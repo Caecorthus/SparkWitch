@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -70,6 +71,13 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         if (KidnapperControlComponent.KEY.get(speaker).isControlled()
                 && GameFunctions.isPlayerAliveAndSurvival(speaker)) {
             // 迷药控制期间目标黑屏且无法主动行动；语音也必须在同一入口静音，避免报点破坏劫持效果。
+            event.cancel();
+            return;
+        }
+        if (RiftSessionService.isInside(speaker)) {
+            // Rift Gate occupants are muted but still hear (plan §6.6): no voice may leak from a gate, and the NR
+            // Paranoid would otherwise hear them as non-swallowed spectators.
+            // 裂隙门内的玩家被静音但仍能听见（plan §6.6）：门口不得传出人声，否则 NR 偏执杀手会把他们当作未被吞的旁观者听到。
             event.cancel();
             return;
         }
