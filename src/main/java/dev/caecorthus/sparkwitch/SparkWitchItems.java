@@ -36,6 +36,8 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStampItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerClockItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonAppleItem;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateItem;
 import dev.doctor4t.wathe.api.event.AllowPlayerPunching;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.item.Item;
@@ -79,6 +81,7 @@ public final class SparkWitchItems {
     public static final Identifier KEY_FISH_ID = FisherRules.KEY_FISH_ID;
     public static final Identifier SWORDFISH_ID = FisherRules.SWORDFISH_ID;
     public static final Identifier GLIMMERFISH_ID = FisherRules.GLIMMERFISH_ID;
+    public static final Identifier RIFT_GATE_ID = RiftwalkerRules.GATE_ITEM_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -113,6 +116,7 @@ public final class SparkWitchItems {
     private static Item keyFish;
     private static Item swordfish;
     private static Item glimmerfish;
+    private static Item riftGate;
 
     private static boolean registered;
 
@@ -292,6 +296,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 GLIMMERFISH_ID,
                 new FisherFishItem(FisherFishItem.createSettings(), FisherFishKind.GLIMMERFISH)
+        );
+        riftGate = Registry.register(
+                Registries.ITEM,
+                RIFT_GATE_ID,
+                new RiftGateItem(RiftGateItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -556,5 +565,12 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return glimmerfish;
+    }
+
+    public static Item riftGate() {
+        if (riftGate == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return riftGate;
     }
 }

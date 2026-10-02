@@ -15,6 +15,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderDivinatio
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseService;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurNetworking;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.net.SeekerNetworking;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.net.RiftwalkerNetworking;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperThrowService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRequestService;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
@@ -39,6 +40,8 @@ public final class SparkWitchPackets {
         registered = true;
         SaboteurNetworking.register();
         SeekerNetworking.register();
+        // Riftwalker payloads register in their own role-owned class, like the Seeker. / 隙行者数据包与搜寻者一样在自有类中注册。
+        RiftwalkerNetworking.register();
         PayloadTypeRegistry.playC2S().register(OpenJudgeSelectionC2SPacket.ID, OpenJudgeSelectionC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(ConfirmJudgeSelectionC2SPacket.ID, ConfirmJudgeSelectionC2SPacket.CODEC);
         PayloadTypeRegistry.playS2C().register(OpenJudgeSelectionS2CPacket.ID, OpenJudgeSelectionS2CPacket.CODEC);

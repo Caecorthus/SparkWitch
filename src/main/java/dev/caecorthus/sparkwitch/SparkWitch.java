@@ -14,6 +14,7 @@ import dev.caecorthus.sparkwitch.net.SparkWitchVersionHandshake;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSounds;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerEntities;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistEffects;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelEffects;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEffects;
@@ -48,6 +49,7 @@ public final class SparkWitch implements ModInitializer {
         FocusedFootstepsEffects.register();
         HunterEntities.register();
         ControlExpertEntities.register();
+        RiftGateEntities.register();
         SeekerEntities.register();
         SparkWitchItems.register();
         SparkWitchItemGroups.register();
@@ -72,6 +74,9 @@ public final class SparkWitch implements ModInitializer {
         NoellesHiddenEquipment.register(SparkWitchItems.clownfish());
         NoellesHiddenEquipment.register(SparkWitchItems.goldfish());
         NoellesHiddenEquipment.register(SparkWitchItems.glimmerfish());
+        // Riftwalker: the Rift Gate stack is hidden in hand, like the Seeker devices.
+        // 隙行者：裂隙门手持时对他人隐藏，与搜寻者设备相同。
+        NoellesHiddenEquipment.register(SparkWitchItems.riftGate());
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();

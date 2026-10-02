@@ -73,6 +73,11 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "seeker_car_use"),
             // Black Raven transform selection (SelectBlackRavenDisguiseC2SPacket). / 黑羽鸦变身选择。
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
+            // Riftwalker gate hop and console close; the occupant's own exit and the console snapshot request stay
+            // allowed (leaving must always pass; the request is UI-only). / 隙行者跳门与控制台关门；门内玩家自己的
+            // 出门与控制台快照请求放行（出门必须始终放行；快照请求仅为界面用途）。
+            Identifier.of("sparkwitch", "rift_hop"),
+            Identifier.of("sparkwitch", "rift_gate_close"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),

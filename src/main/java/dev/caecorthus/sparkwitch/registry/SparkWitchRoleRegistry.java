@@ -35,6 +35,8 @@ import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserRole;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRole;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.caecorthus.sparkwitch.win.WitchWinConditions;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
@@ -80,6 +82,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier FISHER_ID = FisherRules.ROLE_ID;
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
+    public static final Identifier RIFTWALKER_ID = RiftwalkerRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -111,6 +114,7 @@ public final class SparkWitchRoleRegistry {
     private static Role fisher;
     private static Role fiend;
     private static Role insider;
+    private static Role riftwalker;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -301,6 +305,11 @@ public final class SparkWitchRoleRegistry {
         return insider;
     }
 
+    public static Role riftwalker() {
+        ensureRegistered();
+        return riftwalker;
+    }
+
     public static boolean isSparkWitchRole(Role role) {
         ensureRegistered();
         return isRegisteredSparkWitchRole(role);
@@ -369,6 +378,13 @@ public final class SparkWitchRoleRegistry {
                 // 排除自然抽选；主动招募仍可直接赋予这个已注册职业。
                 .appearanceCondition(context -> false)
                 .build());
+        // Special accomplice (accomplice-variant pool), registered right after the Accomplice rather than appended:
+        // nothing may be registered after the Insider (InsiderRegistrationContractTest), so, like the Curser, it sits
+        // mid-list. The SparkWitch assassin-guess tail is re-sorted, so the shifted Wathe role index is harmless.
+        // 特殊共犯（共犯变体池），紧接在共犯之后注册而非追加到末尾：内应之后禁止再注册职业
+        // （InsiderRegistrationContractTest），因此与诅咒者一样插在中间。SparkWitch 刺客猜测尾部会重新排序，
+        // 因此 Wathe 职业下标的偏移无害。
+        riftwalker = SparkFactionApi.registerRole(RiftwalkerRole.DEFINITION);
         windSpirit = SparkFactionApi.registerRole(WindSpiritRole.DEFINITION);
         guardianAngel = SparkFactionApi.registerRole(GuardianAngelRole.DEFINITION);
         vendetta = SparkFactionApi.registerRole(VendettaRole.DEFINITION);
@@ -595,6 +611,7 @@ public final class SparkWitchRoleRegistry {
                 timeStealer,
                 murderousWitch,
                 accomplice,
+                riftwalker,
                 grandWitch,
                 emma,
                 controlExpert,
@@ -624,6 +641,10 @@ public final class SparkWitchRoleRegistry {
                 || role == kidnapper
                 || role == blackRaven
                 || role == witchMaiden
-                || role == bellRinger;
+                || role == bellRinger
+                // Shared skill path (Witches' Sabbath) only; grants no witch skill panel access (the panel reads the
+                // role's accomplice-variant hooks, D13). 仅用于共享技能路径（魔女集会）；不授予魔女技能面板资格
+                // （面板读取本职业的特殊共犯回调，D13）。
+                || role == riftwalker;
     }
 }

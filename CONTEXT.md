@@ -14,6 +14,8 @@ It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with
 train fall can kill and that may buy a timed Fiend Moment.
 It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao and win together.
+It also adds the Riftwalker (`sparkwitch:riftwalker`, 隙行者), a witch-faction special accomplice that only Grand Witch
+recruitment or an admin force assigns; its Rift Gates let the witches hide and travel between gates.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -110,6 +112,12 @@ Current build baseline:
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
+- `roles/witch/riftwalker/`: Riftwalker (`sparkwitch:riftwalker`, 隙行者) role definition, rules, special-accomplice
+  pool entry, feature wiring, and shop (skeleton — expanded at integration). Subpackages: `gate/` (Rift Gate item,
+  entity, placement, and the gate registry), `session/` (in-gate sessions), `projectile/` (projectiles through gates),
+  `sabbath/` (Witches' Sabbath), `tablet/` (the tablet gate console), `swapper/` (the NoellesRoles Swapper crush), and
+  `net/` (payloads and `RiftwalkerNetworking`). Its mixins live in `mixin/riftwalker/` and `client/mixin/riftwalker/`;
+  client presentation lives in `client/riftwalker/` (`gate/`, `session/`, `tablet/`, `swapper/`).
 - `roles/civilian/emma/`: unique cop claim, role-owned mana skill, delayed backlash,
   owner-private failed-recruitment evidence, speed latch, and one reward per gun cycle.
 - `roles/civilian/controlexpert/`: Control Expert round-start loadout, task-money economy,
@@ -552,7 +560,8 @@ method reads the live registry on every call. These rules are `HunterRules.isIns
 `HunterTrapClientHooks`, and `SeekerInstinctRules.isWitchInstinctRole`.
 
 `isAccomplice` stays exact, so the plain Accomplice shop (`AccompliceShopService`) never touches a variant. These
-never include variants: `WitchManaRules.isManaRole` and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`.
+never include variants merely for being variants: `WitchManaRules.isManaRole` (the Riftwalker is added by exact role)
+and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole` (the Riftwalker is added by exact role for its shared skill).
 
 The `gui.sparkwitch.skills` panel (`WitchSkillPresentationRules.shouldShowInventorySkillPanel`) belongs to the Grand
 Witch, Apprentice Witch and Murderous Witch, plus accomplices (owner decision D13: plain and special, via
@@ -643,6 +652,28 @@ nominals, and Wathe items fall through to Wathe's own table.
 The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
 "max + exact" writer and offers no write path to other features. Not registered (out of scope): Wathe shop-entry
 cooldowns, the Black Raven disguise switch, the Curser and Guardian Angel, and SparkStrength components.
+
+The Riftwalker (`sparkwitch:riftwalker`, 隙行者) is a special accomplice (skeleton — expanded at integration). Its own
+Witches' Sabbath renders in the `gui.sparkwitch.skills` panel (owner decision D13): its
+`AccompliceVariantHooks.ownSkillIds()` is exactly `sparkwitch:witches_sabbath`, and no other skill ever shows there
+for it.
+- **Registration.** It is in the shared special-accomplice pool, registered right after `accomplice` in
+  `SparkWitchRoleRegistry` with the Accomplice's profile and `appearanceCondition(context -> false)`, so it is never
+  drawn naturally.
+- **Exact-role gates.** It is in `isRegisteredSparkWitchRole`, `WitchManaRules.isManaRole`, and
+  `WitchManaRules.usesGrandWitchManaEconomy` (the Grand Witch economy: 1 mana every 20 ticks up to the natural cap of
+  300, 50 mana for a kill and 100 for a witch-mana-role victim). It starts at 0 mana.
+- **Shop.** Every plain Accomplice entry, then `sparkwitch_rift_gate`: 0 coins, with 50 mana charged in `onBuy`, a
+  deny-only `ShopPurchase.BEFORE`, and a mana price label in `WitchShopClientTexts`.
+- **Gate.** Item and entity `sparkwitch:rift_gate`; the entity is never saved and is not summonable.
+- **Components.** `sparkwitch:rift_session` (player, `NEVER_COPY`, owner-only sync, never persisted) and
+  `sparkwitch:rift_gates` (world, server-only, never synced or persisted).
+- **Packets.** C2S `sparkwitch:rift_hop`, `sparkwitch:rift_exit`, `sparkwitch:rift_gate_close`, and
+  `sparkwitch:rift_gate_console_request`; S2C `sparkwitch:rift_gate_console`. `RiftwalkerNetworking` registers all
+  of them.
+- **Death reason.** `sparkwitch:portal_crushed`.
+- **Authority.** The server decides every gate, session, projectile, and Sabbath outcome. The client never decides
+  gameplay: it only renders and sends requests.
 
 Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player

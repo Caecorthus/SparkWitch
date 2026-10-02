@@ -140,7 +140,10 @@
     "witchmaiden.FoodPlatterBlockPoisonAppleMixin",
     "witchmaiden.ItemStackPoisonAppleDrinkMixin",
     "accessor.ItemCooldownEntryAccessor",
-    "accessor.ItemCooldownManagerAccessor"
+    "accessor.ItemCooldownManagerAccessor",
+    "riftwalker.RiftSessionPayloadGuardMixin",
+    "riftwalker.RiftThrowingAxeMixin",
+    "riftwalker.RiftSwapperCrushMixin"
   ],
   "injectors": {
     "defaultRequire": 1
