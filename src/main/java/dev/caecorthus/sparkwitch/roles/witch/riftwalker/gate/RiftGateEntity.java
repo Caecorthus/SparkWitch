@@ -129,11 +129,20 @@ public class RiftGateEntity extends Entity {
 
     // ---- Entry (right-click) / 进门（右键） ----
 
+    /**
+     * Client authority split (B-6): vanilla sends the interact packet before this runs, and an accepted result stops
+     * {@code doItemUse} before the held item. So the client claims the click ({@code CONSUME}) only for a local gate
+     * user who could enter now ({@link RiftSessionService#claimsRightClick}); everyone else gets {@code PASS} and their
+     * gun, grenade or knife still works through the gate. The server alone decides entry.
+     * 客户端/服务端权威划分（B-6）：原版在调用此方法前已发送交互包，而被接受的结果会让 {@code doItemUse} 在使用手中物品前停止。
+     * 因此客户端只为此刻能进门的本地门使用者占用这次点击（{@code CONSUME}，见 {@link RiftSessionService#claimsRightClick}）；
+     * 其他所有人得到 {@code PASS}，手中的枪、手雷或刀隔着门照常使用。是否进门只由服务端决定。
+     */
     @Override
     public ActionResult interact(PlayerEntity player, Hand hand) {
         if (getWorld().isClient()) {
             // The interact packet is already sent; never predict entry. / 交互包已发送；客户端从不预测进门。
-            return ActionResult.CONSUME;
+            return RiftSessionService.claimsRightClick(player) ? ActionResult.CONSUME : ActionResult.PASS;
         }
         return player instanceof ServerPlayerEntity serverPlayer
                 ? RiftSessionService.tryEnter(serverPlayer, this)

@@ -48,11 +48,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>Body model (D3): an occupant is an ALIVE spectator held at the gate anchor (NR Taotie pattern). Wathe's weapons
  * skip spectators, so knife, gun, grenade and bat cannot reach it; the SparkFactionAPI policy denies every other
- * player-affect action except the Swapper (P9's crush) and poison (D3). Game-mode ownership: SPECTATOR is handed back
+ * player-affect action except the Swapper (P9's crush), poison (D3) and the bell toll / time-stolen terminal deaths
+ * (C13). Game-mode ownership: SPECTATOR is handed back
  * only on a living release (see {@link RiftSessionRules#mayRestoreMode}); death, Last Stand, Depression, disconnect
  * and round reset never touch the mode, so a corpse is never revived.
  * 本体模型（D3）：门内玩家是被固定在门锚点的「活着的旁观者」（NR 饕餮模式）。Wathe 的武器跳过旁观者，刀、枪、手雷、
- * 球棒都打不到；SparkFactionAPI 策略拒绝其他所有玩家影响行为，只放行交换者（P9 的夹死）与毒（D3）。游戏模式归属：
+ * 球棒都打不到；SparkFactionAPI 策略拒绝其他所有玩家影响行为，只放行交换者（P9 的夹死）、毒（D3）以及敲钟与窃时两种终结死亡
+ * （C13）。游戏模式归属：
  * 只有存活释放时才交还旁观模式（见 {@link RiftSessionRules#mayRestoreMode}）；死亡、背水一战、抑郁、断线与对局重置
  * 从不改动模式，因此绝不会复活尸体。
  */
@@ -260,6 +262,32 @@ public final class RiftSessionService {
         return session != null && session.inside();
     }
 
+    /**
+     * Client prediction for {@code RiftGateEntity#interact} (B-6): whether the local player's right-click on a gate is
+     * an entry attempt ({@link RiftSessionRules#claimsRightClick}) from synced state (RAW role, Wathe liveness, own
+     * session, mana). Any failure reads as "no", so the held item is used instead. Never decides an entry.
+     * {@code RiftGateEntity#interact} 的客户端预测（B-6）：依据同步状态（原始职业、Wathe 存活、自己的会话、魔力）判断本地玩家
+     * 对门的右键是否为进门尝试（{@link RiftSessionRules#claimsRightClick}）。任何失败都视为「否」，此时改用手中物品。从不决定进门。
+     */
+    public static boolean claimsRightClick(PlayerEntity player) {
+        if (player == null) {
+            return false;
+        }
+        try {
+            RiftSessionComponent session = RiftSessionComponent.KEY.getNullable(player);
+            WitchPlayerComponent witch = WitchPlayerComponent.KEY.getNullable(player);
+            boolean participant = GameFunctions.isPlayerPlayingAndAlive(player)
+                    && GameFunctions.isPlayerAliveAndSurvival(player)
+                    && !WraithStateService.isActive(player);
+            return RiftSessionRules.claimsRightClick(RiftGateUsers.classify(player), participant,
+                    session != null && session.inside(),
+                    session == null ? 0 : session.cooldownRemainingTicks(),
+                    witch != null && witch.hasManaSystem(), witch == null ? 0 : witch.getMana());
+        } catch (RuntimeException | LinkageError failure) {
+            return false;
+        }
+    }
+
     /** Server: the gate number the player is inside, if any. / 服务端：玩家所在门的编号（若在门内）。 */
     public static OptionalInt currentGate(ServerPlayerEntity player) {
         RiftSessionComponent session = player == null ? null : RiftSessionComponent.KEY.getNullable(player);
@@ -285,15 +313,19 @@ public final class RiftSessionService {
 
     /**
      * External seam for {@code RiftSessionNetworkHandlerMixin} (server thread): every network teleport of an occupant
-     * that is not our own anchor move is remembered; the next tick ends the session as BODY_MOVED if the body landed
-     * beyond the tolerance, otherwise snaps it back. Client-side drift (spectator flight) never sets this, so a
-     * modified client can never "move itself out" of a gate.
-     * 供 {@code RiftSessionNetworkHandlerMixin} 调用的外部接缝（服务端线程）：门内玩家的每次网络传送，只要不是我们自己的
-     * 锚点移动，都会被记下；下一刻若本体落在容差之外则以 BODY_MOVED 结束会话，否则拉回锚点。客户端漂移（旁观飞行）从不
-     * 设置此标记，因此修改过的客户端永远无法「自己飞出」门。
+     * that is a foreign move ({@link RiftSessionRules#isForeignTeleport}) is remembered; the next tick ends the session
+     * as BODY_MOVED if the body landed beyond the tolerance, otherwise snaps it back. Neither client-side drift
+     * (spectator flight) nor a reset vanilla issues while handling that player's own move packet
+     * ({@code duringOwnMovePacket}, B-1) sets this, so a modified client is always snapped back to the anchor and can
+     * never "move itself out" of a gate.
+     * 供 {@code RiftSessionNetworkHandlerMixin} 调用的外部接缝（服务端线程）：门内玩家的每次属于外部移动的网络传送
+     * （{@link RiftSessionRules#isForeignTeleport}）都会被记下；下一刻若本体落在容差之外则以 BODY_MOVED 结束会话，否则拉回锚点。
+     * 客户端漂移（旁观飞行）与原版在处理该玩家自己的移动包时发出的重置（{@code duringOwnMovePacket}，B-1）都不会设置此标记，
+     * 因此修改过的客户端总会被拉回锚点，永远无法「自己飞出」门。
      */
-    public static void onTeleportRequested(ServerPlayerEntity player) {
-        if (player == null || RiftSessionBody.isOwnTeleport()) {
+    public static void onTeleportRequested(ServerPlayerEntity player, boolean duringOwnMovePacket) {
+        if (player == null
+                || !RiftSessionRules.isForeignTeleport(RiftSessionBody.isOwnTeleport(), duringOwnMovePacket)) {
             return;
         }
         RiftSessionComponent session = RiftSessionComponent.KEY.getNullable(player);
@@ -414,9 +446,13 @@ public final class RiftSessionService {
                                   RiftExitReason reason, Vec3d gatePos, @Nullable Direction facing) {
         Vec3d origin = world.getRegistryKey().equals(session.sessionWorld()) ? session.entryOrigin() : null;
         List<Vec3d> candidates = RiftExitSearch.candidates(gatePos, facing == null ? Direction.NORTH : facing, origin);
-        Vec3d spot = RiftExitSearch.select(candidates, feet -> RiftExitSafety.isSafe(player, world, feet, false));
+        // B-2: ring cells must be reachable from the gate opening; the pre-entry position is exempt.
+        // B-2：圈内格必须能从门口到达；进门前位置不受此限。
+        Vec3d spot = RiftExitSearch.select(candidates, feet -> RiftExitSafety.isSafe(player, world, feet,
+                RiftExitSearch.sweepStart(gatePos, feet, origin), false));
         if (spot == null && RiftSessionRules.mayRelaxEntityOverlap(reason)) {
-            spot = RiftExitSearch.select(candidates, feet -> RiftExitSafety.isSafe(player, world, feet, true));
+            spot = RiftExitSearch.select(candidates, feet -> RiftExitSafety.isSafe(player, world, feet,
+                    RiftExitSearch.sweepStart(gatePos, feet, origin), true));
         }
         return spot;
     }
