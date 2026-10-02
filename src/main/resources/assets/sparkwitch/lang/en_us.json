@@ -423,7 +423,6 @@
   "message.sparkwitch.riftwalker.shop.not_enough_mana": "Not enough mana: a Rift Gate costs %s mana.",
   "message.sparkwitch.riftwalker.shop.hotbar_full": "Your hotbar is full; there is no room for a Rift Gate.",
   "message.sparkwitch.riftwalker.shop.unavailable": "You can't buy a Rift Gate right now.",
-  "message.sparkwitch.riftwalker.not_ready": "This Riftwalker feature is not available yet.",
   "shop.error.sparkwitch.not_enough_mana": "Not enough mana.",
   "shop.error.sparkwitch.fear": "Fear prevents you from buying items.",
   "announcement.role.orthopedist": "Orthopedist",
@@ -1000,7 +999,6 @@
   "message.sparkwitch.riftwalker.place.near_interactive": "Too close to a door, vent, seat, bed or something people use.",
   "message.sparkwitch.riftwalker.place.success": "Rift Gate #%s placed.",
   "replay.item_use.sparkwitch.rift_gate.place": "%s placed §bRift Gate #%s§r",
-  "message.sparkwitch.riftwalker.sabbath.inside_gate": "You cannot call a Witches' Sabbath from inside a Rift Gate",
   "message.sparkwitch.riftwalker.sabbath.no_targets": "No companions can be summoned",
   "message.sparkwitch.riftwalker.sabbath.no_space": "There is no room around you to summon your companions",
   "message.sparkwitch.riftwalker.sabbath.cast": "Witches' Sabbath: summoned %s companion(s)",
@@ -1049,5 +1047,6 @@
   "hud.sparkwitch.riftwalker.hint": "%1$s/%2$s switch gate · %3$s leave",
   "hud.sparkwitch.riftwalker.hint_alone": "No other gate · %s leave",
   "message.sparkwitch.riftwalker.session.rooted": "You can't enter a Rift Gate while caught in a trap",
-  "message.sparkwitch.riftwalker.session.capture_stunned": "You can't enter a Rift Gate while held by a capture device"
+  "message.sparkwitch.riftwalker.session.capture_stunned": "You can't enter a Rift Gate while held by a capture device",
+  "message.sparkwitch.riftwalker.sabbath.in_doorway": "Step out of the doorway to summon your companions"
 }

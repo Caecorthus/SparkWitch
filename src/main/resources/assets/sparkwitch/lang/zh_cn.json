@@ -423,7 +423,6 @@
   "message.sparkwitch.riftwalker.shop.not_enough_mana": "魔力不足：裂隙门需要 %s 魔力",
   "message.sparkwitch.riftwalker.shop.hotbar_full": "快捷栏已满，放不下裂隙门",
   "message.sparkwitch.riftwalker.shop.unavailable": "现在无法购买裂隙门",
-  "message.sparkwitch.riftwalker.not_ready": "该隙行者功能尚未开放",
   "shop.error.sparkwitch.not_enough_mana": "魔力值不足。",
   "shop.error.sparkwitch.fear": "你被恐惧，无法购买物品。",
   "announcement.role.orthopedist": "骨科大夫",
@@ -1000,7 +999,6 @@
   "message.sparkwitch.riftwalker.place.near_interactive": "离门、通风口、座位、床或可交互的东西太近了",
   "message.sparkwitch.riftwalker.place.success": "已放置 %s 号裂隙门",
   "replay.item_use.sparkwitch.rift_gate.place": "%s 放置了 §b%s 号裂隙门§r",
-  "message.sparkwitch.riftwalker.sabbath.inside_gate": "在裂隙门内无法发动魔女集会",
   "message.sparkwitch.riftwalker.sabbath.no_targets": "没有可以召集的同伴",
   "message.sparkwitch.riftwalker.sabbath.no_space": "身边没有足够的空位召集同伴",
   "message.sparkwitch.riftwalker.sabbath.cast": "魔女集会：召集了 %s 名同伴",
@@ -1049,5 +1047,6 @@
   "hud.sparkwitch.riftwalker.hint": "%1$s/%2$s 切换传送门 · %3$s 离开",
   "hud.sparkwitch.riftwalker.hint_alone": "没有其他传送门 · %s 离开",
   "message.sparkwitch.riftwalker.session.rooted": "被捕兽夹夹住时无法进入裂隙门",
-  "message.sparkwitch.riftwalker.session.capture_stunned": "被捕捉装置定住时无法进入裂隙门"
+  "message.sparkwitch.riftwalker.session.capture_stunned": "被捕捉装置定住时无法进入裂隙门",
+  "message.sparkwitch.riftwalker.sabbath.in_doorway": "离开门口才能召集同伴"
 }
