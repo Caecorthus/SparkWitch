@@ -679,8 +679,9 @@ The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `Se
 "max + exact" writer and offers no write path to other features. Not registered (out of scope): Wathe shop-entry
 cooldowns, the Black Raven disguise switch, the Curser and Guardian Angel, and SparkStrength components.
 
-The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It never renders in the
-`gui.sparkwitch.skills` panel.
+The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its own Warden's Shriek renders in the
+`gui.sparkwitch.skills` panel (owner decision D13): its `AccompliceVariantHooks.ownSkillIds()` is exactly
+`sparkwitch:wardens_shriek`, and no other skill ever shows there for it.
 - **Registration.** It is registered right after the Accomplice in `registerFactionApiRoles` (nothing may follow the
   Insider, so like the Curser it sits mid-list), with the Accomplice's profile (`MoodType.FAKE`, unlimited sprint,
   `canSeeTime(true)`) and `appearanceCondition(context -> false)`, and it follows the Accomplice in the assassin-guess
@@ -690,15 +691,18 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It nev
   stock limit and no purchase cooldown.
 - **Skill and mana.** Warden's Shriek (`sparkwitch:wardens_shriek`) is a `WitchSkillDefinition` with an exact-role
   selector, registered right after the Bell Ringer's Echo. The role is in `isRegisteredSparkWitchRole` only for that
-  shared skill path and is never in `WitchSkillPresentationRules`. It uses the Grand Witch's mana economy through
-  `WitchManaRules.usesGrandWitchManaEconomy` (Grand Witch or exact Abyss Listener): it is a mana role (`isManaRole`),
-  starts at 0 on every assignment (recruitment included), regenerates 1 mana every 20 ticks up to the natural cap of
-  300, and earns 50 mana for a generic kill and 100 for a witch-mana-role victim. The Abyss Listener itself never counts
-  as a witch-mana-role victim, so every other role's rewards are unchanged. The Grand-Witch-only bonus for an
-  accomplice's kill pays living Grand Witches only, and the Abyss Listener's kills feed it. Its mana shows in the
-  generic top-right `WitchManaHudRenderer` row (gated by `hasManaSystem`, not by the skills panel) and in the
-  bottom-right skill line's "not enough mana" state; the inventory card's mana tail stays behind the three-role
-  `gui.sparkwitch.skills` gate. A Fire Poker in its hand spends its mana like any mana holder's.
+  shared skill path; the skills panel reaches it only through its variant hooks (D13). It uses the Grand Witch's mana
+  economy through `WitchManaRules.usesGrandWitchManaEconomy` (Grand Witch or exact Abyss Listener): it is a mana role
+  (`isManaRole`), starts at 0 on every assignment (recruitment included), regenerates 1 mana every 20 ticks up to the
+  natural cap of 300, and earns 50 mana for a generic kill and 100 for a witch-mana-role victim. The Abyss Listener
+  itself never counts as a witch-mana-role victim, so every other role's rewards are unchanged. The Grand-Witch-only
+  bonus for an accomplice's kill pays living Grand Witches only, and the Abyss Listener's kills feed it. Its mana
+  shows in the generic top-right `WitchManaHudRenderer` row (gated by `hasManaSystem`, not by the skills panel) and in
+  the bottom-right skill line's "not enough mana" state. While the inventory is open, the skills panel card shows the
+  Shriek with its 75-mana cost line, the "not enough mana" pill below 75, the cooldown gauge (60 s, or the 90 s
+  initial cooldown), and the NoellesRoles ability key; the card's header mana tail then replaces the top-right mana
+  row and the card replaces the bottom-right skill line, as for every panel mana role. A Fire Poker in its hand spends
+  its mana like any mana holder's.
 - **Suppression.** `AbyssSuppression` (server only) is shared by the shriek, the gun, and the zone:
   - `isParticipantTarget`: playing and alive, not spectating, not creative, not an active Wraith, has a role, not
     SparkTraits Last Stand pending, and not in SparkTraits Last Escape;

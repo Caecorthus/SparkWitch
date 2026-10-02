@@ -642,8 +642,9 @@ public final class SparkWitchRoleRegistry {
                 || role == blackRaven
                 || role == witchMaiden
                 || role == bellRinger
-                // Shared skill path (Warden's Shriek) only; never the witch skill panel.
-                // 仅用于共享技能路径（监守之啸）；绝不进入魔女技能面板。
+                // Shared skill path (Warden's Shriek) only; grants no witch skill panel access (the panel reads the
+                // role's accomplice-variant hooks, D13). 仅用于共享技能路径（监守之啸）；不授予魔女技能面板资格
+                // （面板读取本职业的特殊共犯回调，D13）。
                 || role == abyssListener;
     }
 }
