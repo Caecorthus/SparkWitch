@@ -82,10 +82,15 @@ public final class BlindKitRules {
         return running && realBlind && (playingAndAlive || deathIntercepted);
     }
 
-    /** Gate of a cane tap; the vanilla item cooldown is checked by vanilla before {@code use}. / 敲击盲杖的门槛。 */
-    public static boolean canUseCane(boolean activeBlind, boolean roundActive, boolean granted, boolean stunned,
-                                     boolean caneReady) {
-        return activeBlind && roundActive && granted && !stunned && caneReady;
+    /**
+     * Gate of a cane tap; the vanilla item cooldown is checked by vanilla before {@code use}. A swallowed Blind
+     * perceives nothing (C7) and a Blind in psycho mode holds only the bat, so both are refused for free.
+     * 敲击盲杖的门槛；原版物品冷却在 {@code use} 之前由原版检查。被吞下的盲人什么也感知不到（C7），疯魔模式中的盲人只持有
+     * 球棒，因此二者都被免费拒绝。
+     */
+    public static boolean canUseCane(boolean activeBlind, boolean roundActive, boolean granted, boolean swallowed,
+                                     boolean psycho, boolean stunned, boolean caneReady) {
+        return activeBlind && roundActive && granted && !swallowed && !psycho && !stunned && caneReady;
     }
 
     /** Outcome of an Attune request. / 凝神请求的结果。 */
@@ -189,6 +194,18 @@ public final class BlindKitRules {
      */
     public static int comTacLanding(boolean headEmpty, IntPredicate emptyHotbarSlot) {
         return headEmpty ? HEAD_SLOT : firstEmptyHotbarSlot(emptyHotbarSlot);
+    }
+
+    /**
+     * C14, one per round: a ComTac purchase is refused while the buyer holds one anywhere or already bought one in the
+     * current match (a role gained mid-round has no Wathe stock limit, and a stripped ComTac must not be bought again).
+     * Without a match record ({@code currentMatch} null) only ownership counts, so no mark outlives its round.
+     * C14 每局一件：买家任意位置已持有 ComTac，或在当前对局已买过一件时拒绝购买（回合中途获得的职业不受 Wathe 库存限制，
+     * 被清除的 ComTac 也不能再次购买）。没有对局记录（{@code currentMatch} 为 null）时只看是否持有，因此记录不会跨局残留。
+     */
+    public static boolean refusesComTacPurchase(boolean ownsComTac, @Nullable UUID purchaseMatch,
+                                                @Nullable UUID currentMatch) {
+        return ownsComTac || (currentMatch != null && currentMatch.equals(purchaseMatch));
     }
 
     /**

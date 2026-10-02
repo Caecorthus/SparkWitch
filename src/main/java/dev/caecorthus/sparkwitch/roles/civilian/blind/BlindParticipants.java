@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.blind;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.cca.PlayerPsychoComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import java.util.UUID;
@@ -32,6 +33,16 @@ public final class BlindParticipants {
         return game.isRunning()
                 && BlindRules.isBlind(game.getRole(player))
                 && GameFunctions.isPlayerPlayingAndAlive(player);
+    }
+
+    /**
+     * Wathe psycho mode, which SparkTraits' Depression psycho also starts: the player holds only the bat and hears no
+     * voice (SparkTraits mutes a Depression-psycho listener), so the cane and VOICE pulses pause. Server read.
+     * Wathe 疯魔模式（SparkTraits 抑郁发疯也会开启）：玩家只持有球棒且听不到语音（SparkTraits 会屏蔽抑郁发疯者收听），
+     * 因此盲杖与 VOICE 脉冲暂停。服务端读取。
+     */
+    public static boolean isInPsychoMode(@Nullable PlayerEntity player) {
+        return player != null && PlayerPsychoComponent.KEY.get(player).getPsychoTicks() > 0;
     }
 
     /** Side-neutral: the head equipment slot holds the ComTac VIII. / 两端通用：头部装备槽是 ComTac VIII。 */

@@ -135,6 +135,7 @@
     "seeker.SeekerTrapdoorBlockAccessor",
     "fisher.FisherDoorPassingMixin",
     "blind.BlindKitDeathDropMixin",
+    "blind.BlindKitDecoratedPotMixin",
     "blind.BlindKitPlayerDropMixin",
     "blind.BlindKitScreenHandlerMixin",
     "tofana.GameFunctionsTofanaProtectionMixin",

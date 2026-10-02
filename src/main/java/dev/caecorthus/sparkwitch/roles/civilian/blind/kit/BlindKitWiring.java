@@ -1,8 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.kit;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -11,10 +12,8 @@ import java.util.List;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.block.DecoratedPotBlock;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.server.MinecraftServer;
@@ -22,14 +21,15 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Server wiring of the Blind's kit, economy, shop and lifecycle. Round start grants in an own
+ * Server wiring of the Blind's kit, economy, shop, blackout exemption and lifecycle. Round start grants in an own
  * {@code ON_FINISH_INITIALIZE} phase after Wathe's default phase, where SparkTraits' Conscience compensation has settled
  * final roles and Wathe has started the match record (the id bound here). The kit and the {@code sparkwitch:blind}
  * state are stripped on role loss, terminal death (not a SparkTraits-intercepted one), reset, finalize and disconnect,
  * and by a staggered sweep for anyone who is not a living, playing, exact Blind.
- * 盲人道具、经济、商店与生命周期的服务端接线。开局发放位于 Wathe 默认阶段之后的自有 {@code ON_FINISH_INITIALIZE}
+ * 盲人道具、经济、商店、停电豁免与生命周期的服务端接线。开局发放位于 Wathe 默认阶段之后的自有 {@code ON_FINISH_INITIALIZE}
  * 阶段：此时 SparkTraits 良知补偿已确定最终身份，Wathe 也已开始对局记录（此处绑定其 id）。失去职业、终结死亡
  * （非 SparkTraits 拦截的死亡）、重置、局末与断线时清除道具与 {@code sparkwitch:blind} 状态，并对所有不是存活、
  * 在局的精确盲人的玩家错峰清理。
@@ -63,9 +63,10 @@ public final class BlindKitWiring {
                 BlindLoadoutService.onRoleAssigned(serverPlayer, role);
             }
         });
-        // A SparkTraits-intercepted death keeps the player in play, so the kit stays. / 被 SparkTraits 拦截的死亡仍在局，保留道具。
+        // A SparkTraits-intercepted death keeps the player in play, so the kit stays; an unknown answer strips.
+        // 被 SparkTraits 拦截的死亡仍在局，保留道具；无法确认时清除。
         KillPlayer.AFTER.register((victim, killer, reason) -> {
-            if (victim != null && !WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
+            if (victim != null && !SparkTraitsKillerBridge.isLastStandDeathIntercepted(victim)) {
                 BlindLoadoutService.strip(victim);
             }
         });
@@ -85,17 +86,25 @@ public final class BlindKitWiring {
         });
         ServerTickEvents.END_SERVER_TICK.register(BlindKitWiring::tick);
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> BlindCaneService.forgetAll());
-        // Item frames, armor stands and decorated pots would take a held bound item out of the inventory; every other
-        // block or entity use (doors included) stays untouched.
-        // 物品展示框、盔甲架与饰纹陶罐会拿走手持的绑定物品；其他方块或实体交互（包括门）不受影响。
+        // Item frames and armor stands would take a held bound item out of the inventory; every other entity use stays
+        // untouched. Decorated pots are handled by mixin/blind/BlindKitDecoratedPotMixin, so the item use still runs.
+        // 物品展示框与盔甲架会拿走手持的绑定物品；其他实体交互不受影响。饰纹陶罐由 BlindKitDecoratedPotMixin 处理，物品使用照常进行。
         UseEntityCallback.EVENT.register((player, world, hand, entity, hit) ->
                 (entity instanceof ItemFrameEntity || entity instanceof ArmorStandEntity)
                         && BlindInventoryRules.isBound(player.getStackInHand(hand))
                         ? ActionResult.FAIL : ActionResult.PASS);
-        UseBlockCallback.EVENT.register((player, world, hand, hit) ->
-                BlindInventoryRules.isBound(player.getStackInHand(hand))
-                        && world.getBlockState(hit.getBlockPos()).getBlock() instanceof DecoratedPotBlock
-                        ? ActionResult.FAIL : ActionResult.PASS);
+        BlackoutEffect.BEFORE.register(BlindKitWiring::beforeBlackoutEffect);
+    }
+
+    /**
+     * External seam (Wathe blackout, server, C7): the Blind's black screen is its own view, so Wathe's blackout
+     * Blindness never reaches a living, real Blind; every other player is left to the other listeners.
+     * 外部接缝（Wathe 停电，服务端，C7）：盲人的黑屏是其自身视野，因此 Wathe 停电的失明效果从不施加给存活的真实盲人；
+     * 其他玩家交由其他监听器决定。
+     */
+    private static @Nullable BlackoutEffect.BlackoutResult beforeBlackoutEffect(ServerPlayerEntity player,
+                                                                               int durationTicks) {
+        return BlindParticipants.isActiveBlind(player) ? BlackoutEffect.BlackoutResult.cancel() : null;
     }
 
     /**
