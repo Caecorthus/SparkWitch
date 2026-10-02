@@ -112,7 +112,9 @@
     "riftwalker.RiftSessionKeyBindingMixin",
     "riftwalker.RiftSessionMinecraftClientMixin",
     "riftwalker.RiftSessionMouseMixin",
-    "riftwalker.RiftSessionSpectatorHudMixin"
+    "riftwalker.RiftSessionSpectatorHudMixin",
+    "riftwalker.RiftGateAttackMixin",
+    "riftwalker.RiftGateCrosshairMixin"
   ],
   "injectors": {
     "defaultRequire": 1
