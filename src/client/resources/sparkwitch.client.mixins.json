@@ -108,7 +108,15 @@
     "witchmaiden.FocusedFootstepsKeyboardInputMixin",
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin",
-    "fiend.WatheClientFiendHighlightMixin"
+    "fiend.WatheClientFiendHighlightMixin",
+    "blind.BlindAttuneSoundSystemMixin",
+    "blind.BlindGateArmorFeatureRendererMixin",
+    "blind.BlindGateCrosshairRendererMixin",
+    "blind.BlindGateGameRendererMixin",
+    "blind.BlindGateLivingEntityRendererMixin",
+    "blind.BlindGateMinecraftClientMixin",
+    "blind.BlindGateRoleNameRendererMixin",
+    "blind.BlindGateWorldRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
