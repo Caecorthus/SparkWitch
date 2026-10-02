@@ -58,6 +58,8 @@
     "WraithRendererDispatchMixin",
     "WraithRevolverAimMixin",
     "WraithWatheHighlightMixin",
+    "armor.LimitedInventoryArmorSlotsMixin",
+    "blind.BlindComTacHeadRenderMixin",
     "bellringer.MoodRendererTaskRendererBellEchoMixin",
     "timestealer.TimeStealerClockCrosshairMixin",
     "blind.BlindEchoSilhouetteMixin",
