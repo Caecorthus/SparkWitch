@@ -1010,5 +1010,15 @@
   "death_reason.sparkwitch.portal_crushed": "被传送门夹死",
   "replay.death.sparkwitch.portal_crushed.died": "%s 被§5传送门§r夹死",
   "replay.global.sparkwitch.portal_crush": "%s 试图交换门内的 %s，被§5传送门§r夹死",
-  "message.sparkwitch.riftwalker.swapper.crushed": "有人想把你换出灰隙，被传送门夹死了"
+  "message.sparkwitch.riftwalker.swapper.crushed": "有人想把你换出灰隙，被传送门夹死了",
+  "message.sparkwitch.riftwalker.session.cooldown": "裂隙门尚未平复：%s 秒后才能再进",
+  "message.sparkwitch.riftwalker.session.not_enough_mana": "魔力不足：进门需要 %s 魔力",
+  "message.sparkwitch.riftwalker.session.unavailable": "现在无法进入裂隙门",
+  "message.sparkwitch.riftwalker.session.too_far": "离裂隙门太远了",
+  "message.sparkwitch.riftwalker.session.no_other_gate": "没有其他传送门",
+  "message.sparkwitch.riftwalker.session.exit_blocked": "出口被堵住了，暂时出不去",
+  "message.sparkwitch.riftwalker.session.stay_expired": "停留时间到了，灰隙把你推了出来",
+  "message.sparkwitch.riftwalker.session.gate_closed": "你所在的裂隙门被关闭了",
+  "message.sparkwitch.riftwalker.session.ineligible": "你已无法停留在灰隙中",
+  "message.sparkwitch.riftwalker.session.shop_blocked": "身处灰隙时无法购物"
 }

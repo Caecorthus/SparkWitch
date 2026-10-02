@@ -1010,5 +1010,15 @@
   "death_reason.sparkwitch.portal_crushed": "Crushed by a Portal",
   "replay.death.sparkwitch.portal_crushed.died": "%s was §5crushed by a portal§r",
   "replay.global.sparkwitch.portal_crush": "%s tried to swap %s out of a Rift Gate and was §5crushed by the portal§r",
-  "message.sparkwitch.riftwalker.swapper.crushed": "Someone tried to swap you out of the Grey Rift and was crushed by the portal"
+  "message.sparkwitch.riftwalker.swapper.crushed": "Someone tried to swap you out of the Grey Rift and was crushed by the portal",
+  "message.sparkwitch.riftwalker.session.cooldown": "The Rift Gate is still settling: %s s",
+  "message.sparkwitch.riftwalker.session.not_enough_mana": "Not enough mana: entering costs %s mana",
+  "message.sparkwitch.riftwalker.session.unavailable": "You can't enter the Rift Gate right now",
+  "message.sparkwitch.riftwalker.session.too_far": "You're too far from the Rift Gate",
+  "message.sparkwitch.riftwalker.session.no_other_gate": "There is no other Rift Gate",
+  "message.sparkwitch.riftwalker.session.exit_blocked": "The way out is blocked",
+  "message.sparkwitch.riftwalker.session.stay_expired": "Time's up: the Grey Rift pushed you out",
+  "message.sparkwitch.riftwalker.session.gate_closed": "Your Rift Gate was closed",
+  "message.sparkwitch.riftwalker.session.ineligible": "You can no longer stay in the Grey Rift",
+  "message.sparkwitch.riftwalker.session.shop_blocked": "You can't shop from inside the Grey Rift"
 }
