@@ -120,11 +120,11 @@ public final class ShriekGunService {
     }
 
     /**
-     * Pushes {@code target} and applies its branch. Only a non-ally push is recorded for train-fall credit (coordinator
-     * default), so a teammate launched off the train never pays the Abyss Listener kill coins or mana.
+     * Pushes {@code target} and applies its branch. Every push, ally or enemy, is recorded for train-fall credit
+     * (owner D12): a teammate launched off the train is the Abyss Listener's kill too, with its coins and mana.
      * Returns whether the target was an ally.
-     * 推动目标并施加其分支效果。只有对非队友的推击才记录用于坠车归因（协调者默认），因此把队友推下火车永远不会让
-     * 聆渊者获得击杀金币或魔力。返回目标是否为队友。
+     * 推动目标并施加其分支效果。每次推击（队友或敌人）都记录用于坠车归因（作者决定 D12）：把队友推下火车同样算作
+     * 聆渊者的击杀，照常获得金币与魔力。返回目标是否为队友。
      */
     private static boolean applyHit(ServerPlayerEntity shooter, ServerPlayerEntity target, Vec3d direction, Item gun) {
         boolean ally = AbyssSuppression.isAlly(target);
@@ -135,9 +135,7 @@ public final class ShriekGunService {
         // 绝对速度，在本刻末尾同步给目标及其追踪者（每轴受同步上限约束）。
         target.setVelocity(velocity);
         target.velocityModified = true;
-        if (!plan.ally()) {
-            FirePokerFallAttributionService.recordPush(shooter, target, gun);
-        }
+        FirePokerFallAttributionService.recordPush(shooter, target, gun);
         if (plan.suppress()) {
             AbyssSuppression.drainSanity(target, AbyssListenerRules.GUN_SANITY_LOSS);
             AbyssSuppression.addEffect(target, StatusEffects.SLOWNESS, AbyssListenerRules.GUN_DEBUFF_TICKS,

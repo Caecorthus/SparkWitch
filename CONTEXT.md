@@ -729,8 +729,8 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It nev
     hit. A nearer Seeker device absorbs the beam exactly like the Taser, and a miss also breaks the nearest breakable
     device in reach.
   - A hit sets an absolute velocity, the beam's horizontal unit × 2.0 with vertical `max(vy, 0.45)` for a non-ally or
-    × 3.0 with `max(vy, 0.2)` for an ally, every axis capped at the ±3.9 sync limit (`velocityModified = true`); only a
-    non-ally push is recorded for fall credit. A non-ally with real sanity also loses 0.60 sanity and gets Slowness II
+    × 3.0 with `max(vy, 0.2)` for an ally, every axis capped at the ±3.9 sync limit (`velocityModified = true`); every
+    push, ally or enemy, is recorded for fall credit. A non-ally with real sanity also loses 0.60 sanity and gets Slowness II
     and Blindness for 2 s and `AbyssSuppression.forceCooldowns(40)`; a non-ally without real sanity is only pushed; an
     ally (`AbyssSuppression.isAlly`) gets Speed III for 2 s.
   - The gun never kills, never sends `GunShootPayload`, and never uses `wathe:gun_shot`. The server draws
@@ -746,10 +746,10 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. It nev
   ticks), and the latest push wins regardless of weapon. `GameWorldComponentMixin` still redirects only Wathe's
   fall-death `killPlayer`: a `wathe:fell_out_of_train` death inside the window is credited to the online pusher and
   runs inside `SparkTraitsKillerBridge.runWithNonFinalKillWeapon(recordedWeapon, kill)`, with Judge responsibility read
-  first as before. The Fire Poker records itself as before; the Shriek Gun records only non-ally (enemy) pushes, with
-  itself, so an enemy pushed off the train is the Abyss Listener's kill (kill money, replay, attributed death for
-  Wraith conversion; a dormant Fiend can die this way). An ally launch adds no record (coordinator default), so a
-  teammate knocked off the train never pays the Abyss Listener kill coins or mana.
+  first as before. The Fire Poker records itself as before; the Shriek Gun records every push, ally or enemy, with
+  itself, so anyone it pushes off the train is the Abyss Listener's kill (kill money, mana, replay, attributed death
+  for Wraith conversion; a dormant Fiend can die this way). Owner decision D12: a teammate knocked off the train is
+  credited too, with its coins and mana.
 - **Bound gun.** The gun is never granted from `RoleAssigned`, because the recruitment transaction restores the
   retained inventory after that event. It is granted by the variant hook `afterRecruitCommitted` (after the restore)
   and, for a forced round-start Abyss Listener that has no gun yet, in the post-default `ON_FINISH_INITIALIZE` phase
