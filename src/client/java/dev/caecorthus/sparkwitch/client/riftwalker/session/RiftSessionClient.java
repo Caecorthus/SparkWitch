@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.roles.witch.riftwalker.net.RiftHopC2SPacket;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionComponent;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
@@ -18,8 +19,10 @@ import net.minecraft.client.input.KeyboardInput;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * Client side of the "inside a Rift Gate" session (plan §6.3–6.5, D10/D11, C2). Presentation and requests only: it
@@ -184,8 +187,27 @@ public final class RiftSessionClient {
         }
         if (active) {
             maintain(player);
-            handleInput(client.options);
+            handleInput(client, client.options);
         }
+    }
+
+    /**
+     * The physical state of a binding's key from GLFW (keyboard key or mouse button), independent of the binding's
+     * held flag that sticky-key untoggling clears. An unbound or scancode-only key reads as up, so the flag decides.
+     * 从 GLFW 读取按键绑定对应物理按键（键盘键或鼠标键）的状态，不受取消切换式按键时被清除的按住标记影响。未绑定或仅有扫描码的
+     * 按键视为松开，由标记决定。
+     */
+    private static boolean physicallyHeld(MinecraftClient client, KeyBinding binding) {
+        InputUtil.Key key = KeyBindingHelper.getBoundKeyOf(binding);
+        if (key == null || key.equals(InputUtil.UNKNOWN_KEY) || key.getCode() < 0 || client.getWindow() == null) {
+            return false;
+        }
+        long window = client.getWindow().getHandle();
+        return switch (key.getCategory()) {
+            case KEYSYM -> InputUtil.isKeyPressed(window, key.getCode());
+            case MOUSE -> GLFW.glfwGetMouseButton(window, key.getCode()) == GLFW.GLFW_PRESS;
+            case SCANCODE -> false;
+        };
     }
 
     private static void start(MinecraftClient client, ClientPlayerEntity player, int sessionId) {
@@ -228,16 +250,19 @@ public final class RiftSessionClient {
         player.setSprinting(false);
     }
 
-    private static void handleInput(GameOptions options) {
-        // Shift: armed once seen released after the edge; then every queued press asks to leave.
-        // Shift：边沿后看到松开一次即上膛；之后每次积压的按下都请求出门。
+    private static void handleInput(MinecraftClient client, GameOptions options) {
+        // Shift: armed once seen released (flag AND physical key, B-5) after the edge; then every queued press asks to
+        // leave. Presses queued while unarmed (OS key repeat of a Shift held through entry) are taken and dropped.
+        // Shift：边沿后看到松开一次（标记与物理按键都松开，B-5）即上膛；之后每次积压的按下都请求出门。未上膛期间积压的按下
+        // （进门时一直按住的 Shift 的系统按键重复）被取走并丢弃。
         KeyAccess sneak = KeyAccess.of(options.sneakKey);
         int sneakPresses = sneak.take();
         boolean sneakDown = sneak.down();
         if (RiftSessionInputRules.exitRequested(exitArmed, sneakPresses)) {
             requestExit();
         }
-        exitArmed = RiftSessionInputRules.armAfter(exitArmed, sneakDown);
+        exitArmed = RiftSessionInputRules.armAfter(exitArmed, sneakDown,
+                !exitArmed && physicallyHeld(client, options.sneakKey));
 
         KeyAccess previous = KeyAccess.of(options.leftKey);
         KeyAccess next = KeyAccess.of(options.rightKey);

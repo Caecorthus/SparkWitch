@@ -112,14 +112,21 @@ public final class RiftSessionRules {
      * SparkFactionAPI actions that may still target an occupant. {@code noellesroles:swapper} must pass so the D13
      * portal crush (P9) runs; {@code wathe:poison} is the poisoner-attributed poison death (Wathe
      * {@code PlayerPoisonComponent}, routed through SFA's {@code killPlayer} veto with the death reason as the action),
-     * which D3 keeps lethal inside. Everything else targeting an occupant is denied.
+     * which D3 keeps lethal inside. C13 adds the two piercing forced-terminal deaths, {@code sparkwitch:bell_toll} and
+     * {@code sparkwitch:time_stolen}: their services ask {@code SparkFactionApi.canAffectPlayer} with the death reason
+     * as the action and then call a ringer/stealer-attributed {@code killPlayer} with the same id, so both checks pass
+     * here. Everything else targeting an occupant is denied.
      * 仍可作用于门内玩家的 SparkFactionAPI 行为。必须放行 {@code noellesroles:swapper}，D13 的传送门夹死（P9）才能运行；
      * {@code wathe:poison} 是可归因到下毒者的毒杀（Wathe {@code PlayerPoisonComponent}，经 SFA 的 {@code killPlayer} 否决，
-     * 以死因作为行为 id），D3 规定门内仍会被毒死。其余作用于门内玩家的行为一律拒绝。
+     * 以死因作为行为 id），D3 规定门内仍会被毒死。C13 再放行两种穿透一切的强制终结死亡 {@code sparkwitch:bell_toll} 与
+     * {@code sparkwitch:time_stolen}：它们的服务先以死因为行为 id 询问 {@code SparkFactionApi.canAffectPlayer}，再以同一 id
+     * 调用归因到敲钟人/窃时者的 {@code killPlayer}，两处检查都在这里放行。其余作用于门内玩家的行为一律拒绝。
      */
     public static final Set<Identifier> AFFECT_ALLOWED_ON_OCCUPANT = Set.of(
             Identifier.of("noellesroles", "swapper"),
-            Identifier.of("wathe", "poison"));
+            Identifier.of("wathe", "poison"),
+            Identifier.of("sparkwitch", "bell_toll"),
+            Identifier.of("sparkwitch", "time_stolen"));
 
     private RiftSessionRules() {
     }
@@ -141,6 +148,34 @@ public final class RiftSessionRules {
      */
     public static boolean occupantPolicyAllows(boolean targetInside, boolean selfAction, @Nullable Identifier actionId) {
         return !targetInside || selfAction || mayAffectOccupant(actionId);
+    }
+
+    /**
+     * B-1: whether a server teleport of an occupant counts as a foreign move. Our own anchor moves never do, and
+     * neither does any teleport vanilla issues while it handles that player's own move packets (the "moved too
+     * quickly" / "moved wrongly" resets and the pending-teleport resend sit at a client-chosen position): those are
+     * snapped back to the anchor instead, so a modified client can never leave a gate through them.
+     * B-1：门内玩家的一次服务端传送是否算作外部移动。我们自己的锚点移动从不算；原版在处理该玩家自己的移动包时发出的传送
+     * （「移动过快」/「移动异常」重置与待确认传送重发，位置由客户端决定）也不算：它们会被拉回锚点，因此修改过的客户端无法借此出门。
+     */
+    public static boolean isForeignTeleport(boolean ownTeleport, boolean duringOwnMovePacket) {
+        return !ownTeleport && !duringOwnMovePacket;
+    }
+
+    /**
+     * B-6: whether the local client treats a right-click on a gate as an entry attempt ({@code CONSUME}, so no held
+     * item fires). Only a gate user (RAW role, {@link RiftGateUser#mayUse()}) who is a living participant outside any
+     * gate, off the re-entry cooldown and, for paying users, holding the fee claims it; everyone else gets
+     * {@code PASS} and the held item (gun, grenade, knife) works as if the gate were not there. Prediction only: the
+     * interact packet is still sent and the server re-validates every entry.
+     * B-6：本地客户端是否把对门的右键视为进门尝试（{@code CONSUME}，手中物品不触发）。只有门使用者（原始职业，
+     * {@link RiftGateUser#mayUse()}）、且为不在门内的存活参与者、不在再次进门冷却中、需付费者魔力足够时才占用右键；其余所有人
+     * 得到 {@code PASS}，手中物品（枪、手雷、刀）照常使用，如同门不存在。仅为预测：交互包照常发送，每次进门都由服务端重新校验。
+     */
+    public static boolean claimsRightClick(@Nullable RiftGateUser user, boolean participant, boolean inside,
+                                           int cooldownRemainingTicks, boolean hasManaSystem, int mana) {
+        return user != null && user.mayUse() && participant && !inside && cooldownRemainingTicks <= 0
+                && (!user.paysMana() || hasManaSystem && mana >= user.entryFee());
     }
 
     /** Whole seconds shown to players, rounded up (1..20 ticks → 1 s). / 向玩家显示的整秒，向上取整。 */

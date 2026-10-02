@@ -85,9 +85,17 @@ public final class RiftSessionInputRules {
         return armed && queuedPresses > 0;
     }
 
-    /** Arming state after this tick. / 本刻之后的上膛状态。 */
-    public static boolean armAfter(boolean armed, boolean down) {
-        return armed || !down;
+    /**
+     * Arming state after this tick (B-5): Shift counts as released only when BOTH the binding's held flag and the
+     * physical key are up. The entry edge untoggles sticky keys, which clears the held flag of a hold-mode Shift that
+     * is still physically down; arming on that flag alone let the first OS key repeat (a queued press) eject the
+     * player. Requiring the physical release means only a real new press after letting go can exit.
+     * 本刻之后的上膛状态（B-5）：只有按键绑定的按住标记与物理按键都已松开，Shift 才算松开。进门边沿会取消切换式按键，这会清除
+     * 仍被物理按住的按住式 Shift 的标记；只凭该标记上膛时，第一次系统按键重复（积压的按下）就会把玩家弹出。要求物理松开后，
+     * 只有松手后真正的新一次按下才能出门。
+     */
+    public static boolean armAfter(boolean armed, boolean heldFlag, boolean physicallyHeld) {
+        return armed || !heldFlag && !physicallyHeld;
     }
 
     /** Hop direction of a slot: ⬅️ previous (−1), ➡️ next (+1). / 格子对应的跳门方向。 */
