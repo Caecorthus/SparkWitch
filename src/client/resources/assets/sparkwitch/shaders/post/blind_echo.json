@@ -1,0 +1,69 @@
+{
+  "targets": [
+    "blind_depth",
+    "blind_sil",
+    "blind_mask",
+    "blind_blur_a",
+    "blind_blur_b"
+  ],
+  "passes": [
+    {
+      "name": "sparkwitch_blind_silmask",
+      "intarget": "blind_sil",
+      "outtarget": "blind_mask",
+      "auxtargets": [
+        {
+          "name": "WorldDepthSampler",
+          "id": "blind_depth:depth"
+        },
+        {
+          "name": "SilDepthSampler",
+          "id": "blind_sil:depth"
+        }
+      ]
+    },
+    {
+      "name": "sparkwitch_blind_blur",
+      "intarget": "blind_mask",
+      "outtarget": "blind_blur_a",
+      "uniforms": [
+        {
+          "name": "BlurDir",
+          "values": [
+            1.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sparkwitch_blind_blur",
+      "intarget": "blind_blur_a",
+      "outtarget": "blind_blur_b",
+      "uniforms": [
+        {
+          "name": "BlurDir",
+          "values": [
+            0.0,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sparkwitch_blind_echo",
+      "intarget": "blind_mask",
+      "outtarget": "minecraft:main",
+      "auxtargets": [
+        {
+          "name": "WorldDepthSampler",
+          "id": "blind_depth:depth"
+        },
+        {
+          "name": "SilBlurSampler",
+          "id": "blind_blur_b"
+        }
+      ]
+    }
+  ]
+}
