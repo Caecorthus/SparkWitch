@@ -1047,5 +1047,7 @@
   "hud.sparkwitch.riftwalker.gate_number": "#%s",
   "hud.sparkwitch.riftwalker.stay_seconds": "%s秒",
   "hud.sparkwitch.riftwalker.hint": "%1$s/%2$s 切换传送门 · %3$s 离开",
-  "hud.sparkwitch.riftwalker.hint_alone": "没有其他传送门 · %s 离开"
+  "hud.sparkwitch.riftwalker.hint_alone": "没有其他传送门 · %s 离开",
+  "message.sparkwitch.riftwalker.session.rooted": "被捕兽夹夹住时无法进入裂隙门",
+  "message.sparkwitch.riftwalker.session.capture_stunned": "被捕捉装置定住时无法进入裂隙门"
 }

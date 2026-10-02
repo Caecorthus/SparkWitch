@@ -1047,5 +1047,7 @@
   "hud.sparkwitch.riftwalker.gate_number": "#%s",
   "hud.sparkwitch.riftwalker.stay_seconds": "%ss",
   "hud.sparkwitch.riftwalker.hint": "%1$s/%2$s switch gate · %3$s leave",
-  "hud.sparkwitch.riftwalker.hint_alone": "No other gate · %s leave"
+  "hud.sparkwitch.riftwalker.hint_alone": "No other gate · %s leave",
+  "message.sparkwitch.riftwalker.session.rooted": "You can't enter a Rift Gate while caught in a trap",
+  "message.sparkwitch.riftwalker.session.capture_stunned": "You can't enter a Rift Gate while held by a capture device"
 }
