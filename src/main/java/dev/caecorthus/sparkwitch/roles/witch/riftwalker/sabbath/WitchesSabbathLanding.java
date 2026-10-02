@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch.riftwalker.sabbath;
 
+import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapEntity;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntity;
 import dev.doctor4t.wathe.block.DoorPartBlock;
 import dev.doctor4t.wathe.cca.MapVariablesWorldComponent;
@@ -30,15 +31,16 @@ import java.util.stream.DoubleStream;
  * is shorter than a standing teammate) and a {@code null} entity / absent shape context, so no door-passing exemption
  * (Angler, Wraith, providers) can hide a solid. A spot must be inside the world height, Wathe's play area (below its
  * {@code minY} Wathe kills) and the world border; in loaded chunks (a chunk is never loaded to find a spot); free of
- * block collision, fluid (Wathe drowning), door cells and the open-door drop column, Rift Gate boxes and collidable
- * entities or living players; on a real floor; and reachable by a clear collider ray from the caster that crosses no
- * door cell (no pulling through a wall or a doorway into the next cabin, or onto the roof).
+ * block collision, fluid (Wathe drowning), door cells and the open-door drop column, Rift Gate boxes, placed Hunter
+ * traps (their trigger reach) and collidable entities or living players; on a real floor; and reachable by a clear
+ * collider ray from the caster that crosses no door cell (no pulling through a wall or a doorway into the next cabin,
+ * or onto the roof). Control Expert shock devices need no check: they only stun where they land and then vanish.
  * 魔女集会的服务端落点校验（research/04 §2、04b §2–§6），是钓鱼佬出口检查的职业自有副本，外加传送特有的规则。所有检查都
  * 使用目标的站立碰撞箱（蹲下的施放者比站立的队友矮），并使用 {@code null} 实体 / 空形状上下文，因此任何穿门豁免
  * （钓鱼佬、冤魂、提供方）都无法隐藏实体方块。落点必须位于世界高度、Wathe 游戏区域（低于其 {@code minY} 会被 Wathe 判死）
  * 与世界边界之内；处于已加载区块（绝不为找落点加载区块）；没有方块碰撞、流体（Wathe 溺亡）、门格及开门掉落列、裂隙门碰撞箱、
- * 可碰撞实体或活着的玩家；脚下有真实地面；并且从施放者出发的碰撞射线畅通且不穿过门格（不会穿墙或穿门拉进隔壁车厢，
- * 也不会拉上车顶）。
+ * 已放置的猎人捕兽夹（含其触发范围）、可碰撞实体或活着的玩家；脚下有真实地面；并且从施放者出发的碰撞射线畅通且不穿过门格
+ * （不会穿墙或穿门拉进隔壁车厢，也不会拉上车顶）。控场专家的电击装置无需检查：它只在落地处电击一次随即消失。
  */
 final class WitchesSabbathLanding {
     private static final double EPSILON = 1.0E-4;
@@ -76,6 +78,17 @@ final class WitchesSabbathLanding {
         Box column = new Box(box.minX, feet.y - depth - EPSILON, box.minZ, box.maxX, feet.y, box.maxZ);
         OptionalDouble floor = WitchesSabbathLandingPlan.floorBelow(feet.y, collisionTops(world, column), depth);
         return floor.isPresent() ? new Vec3d(feet.x, floor.getAsDouble(), feet.z) : feet;
+    }
+
+    /**
+     * Whether the caster's sight rays start inside a door cell (Wathe door part or vanilla door), which makes every
+     * candidate fail the door-crossing test; lets the handler say "step out of the doorway" instead of "no room".
+     * 施放者的视线射线是否从门格（Wathe 门部件或原版门）内出发——此时所有候选都会因穿门检查失败；处理器据此提示
+     * 「离开门口」，而不是「没有空位」。
+     */
+    static boolean castsFromDoorway(ServerWorld world, ServerPlayerEntity caster) {
+        Vec3d from = groundedOrigin(world, caster).add(0.0, WitchesSabbathRules.SIGHT_RAY_HEIGHT, 0.0);
+        return isDoor(world.getBlockState(BlockPos.ofFloored(from)).getBlock());
     }
 
     static Box standingBoxAt(PlayerEntity target, Vec3d feet) {
@@ -145,6 +158,13 @@ final class WitchesSabbathLanding {
         }
         if (!world.getEntitiesByClass(RiftGateEntity.class, body.expand(WitchesSabbathRules.GATE_MARGIN),
                 gate -> !gate.isRemoved()).isEmpty()) {
+            return false;
+        }
+        // Never onto a Hunter trap (armed or arming): it would root and injure the teammate on arrival.
+        // 绝不落在猎人捕兽夹上（已布设或布设中）：到达时会被定身并受伤。
+        if (!world.getEntitiesByClass(HunterTrapEntity.class, body.expand(WitchesSabbathRules.HUNTER_TRAP_MARGIN_XZ,
+                WitchesSabbathRules.HUNTER_TRAP_MARGIN_Y, WitchesSabbathRules.HUNTER_TRAP_MARGIN_XZ),
+                trap -> !trap.isRemoved()).isEmpty()) {
             return false;
         }
         // Players are solid in Wathe; spectators (dead, in-gate bodies) are not obstacles. / Wathe 中玩家是实体障碍；旁观者不是。
