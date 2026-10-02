@@ -106,7 +106,13 @@
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin",
     "fiend.WatheClientFiendHighlightMixin",
-    "riftwalker.RiftSwapperWidgetMixin"
+    "riftwalker.RiftSwapperWidgetMixin",
+    "riftwalker.RiftSessionGameRendererMixin",
+    "riftwalker.RiftSessionInGameHudMixin",
+    "riftwalker.RiftSessionKeyBindingMixin",
+    "riftwalker.RiftSessionMinecraftClientMixin",
+    "riftwalker.RiftSessionMouseMixin",
+    "riftwalker.RiftSessionSpectatorHudMixin"
   ],
   "injectors": {
     "defaultRequire": 1
