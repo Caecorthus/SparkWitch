@@ -11,12 +11,13 @@ uniform sampler2D WorldDepthSampler; // captured opaque world depth / 捕获的�
 uniform sampler2D SilBlurSampler;    // blind_blur_b: distance-blurred hidden bodies / 随距离模糊后的遮挡身体
 
 uniform mat4 InvViewProj; // inverse(projection * view rotation): camera-relative positions / 相机相对坐标
-uniform mat4 ViewProj;
 uniform vec2 InSize;
 uniform float PulseCount;
 uniform float PulseData[128];  // 16 x {x, y, z, radius, age s, duration s, expand s, kind}, camera-relative
 uniform float PlayerCount;
 uniform float PlayerData[64];  // 16 x {x, y, z, strength}: perceived body centres, camera-relative
+uniform float PlayerHidden[16]; // 0..1 per body: its centre is behind a block (CPU line of sight) / 身体中心被方块挡住的程度
+uniform float BlurRange;       // 0 = the blur passes were skipped this frame / 0 表示本帧跳过了模糊 pass
 uniform float EchoTime;        // seconds, wraps / 秒，循环
 
 in vec2 texCoord;
@@ -114,11 +115,20 @@ float playerReveal(vec3 p) {
     return reveal;
 }
 
-// Identity-free ripple: expanding spherical shells at each perceived body, drawn only when its centre is hidden.
-// 无身份信息的涟漪：在每个被感知身体处扩张的球壳，只在其中心被遮挡时绘制。
+// Identity-free ripple: expanding spherical shells at each perceived body whose centre is hidden; Java decides
+// "hidden" once per body (line of sight), so no pixel re-projects or samples depth per body.
+// 无身份信息的涟漪：在每个中心被遮挡的被感知身体处扩张的球壳；“被遮挡”由 Java 对每个身体判定一次（视线），
+// 因此像素无需逐身体重新投影或采样深度。
 float ripples(vec2 uv) {
     int count = int(PlayerCount + 0.5);
-    if (count <= 0) {
+    bool anyHidden = false;
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        if (i >= count) {
+            break;
+        }
+        anyHidden = anyHidden || PlayerHidden[i] > 0.0;
+    }
+    if (!anyHidden) {
         return 0.0;
     }
     vec3 dir = normalize(viewPos(uv, 1.0));
@@ -129,6 +139,10 @@ float ripples(vec2 uv) {
         if (i >= count) {
             break;
         }
+        float hidden = PlayerHidden[i];
+        if (hidden <= 0.0) {
+            continue;
+        }
         int o = i * PLAYER_STRIDE;
         vec3 center = vec3(PlayerData[o], PlayerData[o + 1], PlayerData[o + 2]);
         float centerDistance = length(center);
@@ -137,19 +151,6 @@ float ripples(vec2 uv) {
         }
         float cosAngle = dot(dir, center / centerDistance);
         if (cosAngle <= 0.0) {
-            continue;
-        }
-        float hidden = 1.0;
-        vec4 clip = ViewProj * vec4(center, 1.0);
-        if (clip.w > 0.0) {
-            vec2 centerUv = clip.xy / clip.w * 0.5 + 0.5;
-            if (centerUv.x > 0.0 && centerUv.x < 1.0 && centerUv.y > 0.0 && centerUv.y < 1.0) {
-                float depth = texture(WorldDepthSampler, centerUv).r;
-                float worldDistance = depth >= 1.0 ? 1.0e6 : length(viewPos(centerUv, depth));
-                hidden = smoothstep(0.4, 1.0, centerDistance - worldDistance);
-            }
-        }
-        if (hidden <= 0.0) {
             continue;
         }
         float angle = acos(clamp(cosAngle, -1.0, 1.0));
@@ -172,7 +173,8 @@ float silhouettes(vec2 uv) {
         return 0.0;
     }
     vec4 mask = texture(DiffuseSampler, uv);
-    vec4 blurred = texture(SilBlurSampler, uv);
+    // A skipped blur leaves last frame's halo in the target: ignore it. / 跳过模糊时目标里是上一帧的光晕：忽略。
+    vec4 blurred = BlurRange > 0.0 ? texture(SilBlurSampler, uv) : vec4(0.0);
     if (mask.r <= 0.0 && blurred.r <= 0.0) {
         return 0.0;
     }
