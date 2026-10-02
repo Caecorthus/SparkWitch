@@ -163,12 +163,13 @@ Current build baseline:
   perceived-player memory), `BlindClientStatus` (HUD remaining-tick view),
   `BlindComTacHeadVisibility` (the in-round ComTac head hide), `render/` (the private echo post
   processor `BlindEchoView`, depth capture and fail-closed hint in `BlindRenderWiring`,
-  `BlindSilhouettePass`, the Iris check `BlindShaderPackCheck`), `gate/` (`BlindClientGates` and the
+  `BlindSilhouettePass`, the Iris check `BlindShaderPackCheck`, the fog-culling guard
+  `BlindTerrainFog`), `gate/` (`BlindClientGates` and the
   pure `BlindGateRules` behind the `BlindGate*` vetoes, client-only bumps, the plain
   `BlindCrosshair`, and the Attune ducking in `BlindAttuneDucking`) and `kit/` (the owner-only HUD
   and the Attune key handler). Its client mixins live in `client/mixin/blind/`: the seven
   `BlindGate*` vetoes, `BlindGameRendererMixin` (the end-of-frame pass), `BlindEchoSilhouetteMixin`,
-  `BlindAttuneSoundSystemMixin`, and `BlindComTacHeadRenderMixin`.
+  `BlindTerrainFogMixin`, `BlindAttuneSoundSystemMixin`, and `BlindComTacHeadRenderMixin`.
 - `client/armor/`: the four vanilla armor slots (`PlayerScreenHandler` 5..8) on Wathe's
   `LimitedInventoryScreen` for every player (D10), client presentation only.
   `LimitedInventoryArmorLayout` (pure geometry, the shift-click plan and the full-hotbar rule),
@@ -627,19 +628,25 @@ the speaker's own microphone frames count (a relayed copy never pulses at the re
 without Simple Voice Chat there are no voice pulses.
 
 Blind presentation is client-only. `BlindView.isActive` holds on a confirmed SparkWitch server while
-a round runs for a real Blind (`getRole`) who is swallowed, or playing, alive and viewing through
-their own camera; every gate re-reads it per call. `client/blind/render/BlindEchoView` is a private
+a round runs for a real Blind (`getRole`) who is playing and alive in Wathe's sense (not marked
+dead) or swallowed; the camera is not part of it, so a SparkTraits Last Stand or Depression fake
+death keeps the view and every gate on (black) and only a real Wathe death ends it. Every gate
+re-reads it per call. `client/blind/render/BlindEchoView` is a private
 `PostEffectProcessor` (`sparkwitch:shaders/post/blind_echo.json`, programs
 `sparkwitch_blind_silmask`, `sparkwitch_blind_blur` and `sparkwitch_blind_echo`): the world depth is
-captured at `WorldRenderEvents.BEFORE_DEBUG_RENDER`, where `BlindSilhouettePass` also re-renders the
+captured at `WorldRenderEvents.BEFORE_DEBUG_RENDER` (after flushing the pending block-entity layer and
+the Fast/Fancy dropped-item layer), where `BlindSilhouettePass` also re-renders the
 perceived players into a private silhouette target (their features and labels stripped by
 `BlindEchoSilhouetteMixin`), and `client/mixin/blind/BlindGameRendererMixin` runs the pass after
 `GameRenderer#render`'s `Framebuffer#beginWrite(Z)` with `shift = AFTER`, so it draws over the
 Seeker and Black Raven filters injected at the same call, and the HUD is drawn on top. The view
 fails closed to black, never to the plain world: an Iris shader pack in use (reflective check; an
 error counts as in use), a load failure (kept until reconnect or resource reload), or 20 consecutive
-missed depth captures paint black and show `hud.sparkwitch.blind.view_unavailable`, and a swallowed
-or off-camera Blind sees black with no line art. The `BlindGate*` vetoes:
+missed depth captures paint black and show `hud.sparkwitch.blind.view_unavailable`, and a swallowed,
+off-camera or fake-death spectator Blind sees black with no line art. While the view is active,
+`BlindTerrainFogMixin` lifts the terrain fog end to the render distance right before
+`WorldRenderer#setupTerrain`, so Sodium's fog occlusion never culls sections, entities or block
+entities out of the captured depth (Blindness, Darkness, Wathe train fog). The `BlindGate*` vetoes:
 `WorldRenderer#renderEntity` (priority 2000) skips every unperceived other player;
 `LivingEntityRenderer` (priority 2000) skips features and name labels on every other player and
 forces a perceived one visible unless it is a spectator or an active Wraith;

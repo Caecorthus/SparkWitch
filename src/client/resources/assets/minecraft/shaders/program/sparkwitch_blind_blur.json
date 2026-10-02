@@ -59,6 +59,14 @@
         1,
         0
       ]
+    },
+    {
+      "name": "BlurRange",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0
+      ]
     }
   ]
 }

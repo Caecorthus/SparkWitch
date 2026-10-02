@@ -81,29 +81,6 @@
       ]
     },
     {
-      "name": "ViewProj",
-      "type": "matrix4x4",
-      "count": 16,
-      "values": [
-        1,
-        0,
-        0,
-        0,
-        0,
-        1,
-        0,
-        0,
-        0,
-        0,
-        1,
-        0,
-        0,
-        0,
-        0,
-        1
-      ]
-    },
-    {
       "name": "PulseCount",
       "type": "float",
       "count": 1,
@@ -131,6 +108,22 @@
       "name": "PlayerData",
       "type": "float",
       "count": 64,
+      "values": [
+        0
+      ]
+    },
+    {
+      "name": "PlayerHidden",
+      "type": "float",
+      "count": 16,
+      "values": [
+        0
+      ]
+    },
+    {
+      "name": "BlurRange",
+      "type": "float",
+      "count": 1,
       "values": [
         0
       ]

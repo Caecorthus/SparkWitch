@@ -9,11 +9,15 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+
+import java.util.List;
 
 /**
  * Client wiring of the Blind's black screen and line-art pipeline: the depth capture at
@@ -59,8 +63,15 @@ public final class BlindRenderWiring {
         if (!BlindEchoView.isFallbackHintVisible()) {
             return;
         }
-        MinecraftClient client = MinecraftClient.getInstance();
-        context.drawCenteredTextWithShadow(client.textRenderer, Text.translatable(FALLBACK_HINT_KEY),
-                context.getScaledWindowWidth() / 2, context.getScaledWindowHeight() / 2 - 24, BlindRules.COLOR);
+        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        int width = context.getScaledWindowWidth();
+        // Wrapped so the hint stays on screen at narrow GUI widths. / 自动换行，窄 GUI 宽度下提示仍在屏幕内。
+        List<OrderedText> lines = textRenderer.wrapLines(Text.translatable(FALLBACK_HINT_KEY),
+                Math.max(64, width - 32));
+        int y = context.getScaledWindowHeight() / 2 - 24 - (lines.size() - 1) * (textRenderer.fontHeight + 1);
+        for (OrderedText line : lines) {
+            context.drawCenteredTextWithShadow(textRenderer, line, width / 2, y, BlindRules.COLOR);
+            y += textRenderer.fontHeight + 1;
+        }
     }
 }

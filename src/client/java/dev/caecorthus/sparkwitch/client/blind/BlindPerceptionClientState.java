@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.client.blind;
 
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseS2CPayload;
-import it.unimi.dsi.fastutil.ints.Int2LongMap;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,14 +40,6 @@ public final class BlindPerceptionClientState {
 
         public float ageSeconds(long nowNanos) {
             return (float) (Math.max(0L, nowNanos - startNanos) / NANOS_PER_SECOND);
-        }
-
-        /** 0 at start, 1 at expiry (clamped). / 开始为 0，到期为 1（夹取）。 */
-        public float progress(long nowNanos) {
-            if (durationSeconds <= 0.0f) {
-                return 1.0f;
-            }
-            return Math.min(1.0f, ageSeconds(nowNanos) / durationSeconds);
         }
     }
 
@@ -128,16 +119,6 @@ public final class BlindPerceptionClientState {
     public void prune(long nowNanos) {
         perceivedUntil.int2LongEntrySet().removeIf(entry -> nowNanos >= entry.getLongValue());
         activePulses(nowNanos);
-    }
-
-    public int perceivedCount(long nowNanos) {
-        int count = 0;
-        for (Int2LongMap.Entry entry : perceivedUntil.int2LongEntrySet()) {
-            if (nowNanos < entry.getLongValue()) {
-                count++;
-            }
-        }
-        return count;
     }
 
     public void reset() {

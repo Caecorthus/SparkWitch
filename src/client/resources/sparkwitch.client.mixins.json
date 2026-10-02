@@ -64,6 +64,7 @@
     "timestealer.TimeStealerClockCrosshairMixin",
     "blind.BlindEchoSilhouetteMixin",
     "blind.BlindGameRendererMixin",
+    "blind.BlindTerrainFogMixin",
     "blackraven.BlackRavenGameRendererMixin",
     "blackraven.BlackRavenHudMixin",
     "blackraven.BlackRavenInstinctGateMixin",
