@@ -643,8 +643,8 @@ public final class SparkWitchRoleRegistry {
                 || role == witchMaiden
                 || role == bellRinger
                 // Shared skill path (Witches' Sabbath) only; grants no witch skill panel access (the panel reads the
-                // role's accomplice-variant hooks, D13). 仅用于共享技能路径（魔女集会）；不授予魔女技能面板资格
-                // （面板读取本职业的特殊共犯回调，D13）。
+                // role's accomplice-variant hooks, AGENTS.md panel rule). 仅用于共享技能路径（魔女集会）；不授予魔女技能
+                // 面板资格（面板读取本职业的特殊共犯回调，AGENTS.md 面板规则）。
                 || role == riftwalker;
     }
 }

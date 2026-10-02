@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.riftwalker.sabbath;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordDashService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.record.GameRecordEvent;
@@ -130,6 +131,8 @@ public final class WitchesSabbathService {
                 continue;
             }
             pulled.add(target);
+            // A Grand Witch pulled mid-dash must not keep dashing from the landing spot. / 被召集的大魔女不得从落点继续冲刺。
+            CeremonialSwordDashService.cancel(target);
             target.setVelocity(Vec3d.ZERO);
             target.velocityModified = true;
             target.fallDistance = 0.0F;

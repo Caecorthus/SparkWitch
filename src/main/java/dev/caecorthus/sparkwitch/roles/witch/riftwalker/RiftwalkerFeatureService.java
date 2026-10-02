@@ -25,8 +25,8 @@ import java.util.Set;
 public final class RiftwalkerFeatureService {
     private static final Set<Identifier> OWN_SKILL_IDS = Set.of(RiftwalkerRules.SABBATH_SKILL_ID);
     private static final AccompliceVariantHooks HOOKS = new AccompliceVariantHooks() {
-        // D13 panel rule: Witches' Sabbath is the role's own witch skill, so it shows in the gui.sparkwitch.skills panel.
-        // D13 面板规则：魔女集会是本职业自有的魔女技能，因此显示在 gui.sparkwitch.skills 技能面板中。
+        // AGENTS.md witch-skill-panel rule: Witches' Sabbath is the role's own witch skill, so it shows in the panel.
+        // AGENTS.md 魔女技能面板规则：魔女集会是本职业自有的魔女技能，因此显示在 gui.sparkwitch.skills 技能面板中。
         @Override
         public Set<Identifier> ownSkillIds() {
             return OWN_SKILL_IDS;
