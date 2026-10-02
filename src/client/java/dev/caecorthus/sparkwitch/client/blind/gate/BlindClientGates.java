@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.FishingBobberEntity;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,13 +25,17 @@ public final class BlindClientGates {
         return BlindView.isActive(MinecraftClient.getInstance());
     }
 
-    /** D2: an unperceived other player is not drawn at all. / D2：未被感知的其他玩家完全不画。 */
+    /**
+     * D2: an unperceived other player, or a spectator, is not drawn at all; neither is a fishing bobber whose owner is
+     * hidden, because its line is drawn to the owner's hand.
+     * D2：未被感知的其他玩家或旁观者完全不画；主人被隐藏的浮漂也不画，因为钓线会连到主人手上。
+     */
     public static boolean hidesEntity(@Nullable Entity entity) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (!isOtherPlayer(client, entity) || !BlindView.isActive(client)) {
-            return false;
+        if (entity instanceof FishingBobberEntity bobber) {
+            return hidesPlayer(client, bobber.getPlayerOwner());
         }
-        return BlindGateRules.hidesEntity(true, true, isPerceived(entity));
+        return hidesPlayer(client, entity);
     }
 
     /**
@@ -48,13 +53,24 @@ public final class BlindClientGates {
                 WraithClientState.isActive((PlayerEntity) entity));
     }
 
-    /** No held item, armor, cape or mod feature on other players. / 其他玩家不画手持物、护甲、披风与模组附加层。 */
+    /**
+     * No held item, armor, cape or mod feature on other players, and only the empty arm pose (no gun, bat or knife
+     * stance).
+     * 其他玩家不画手持物、护甲、披风与模组附加层，手臂只用空手姿势（无持枪、持棒或持刀姿势）。
+     */
     public static boolean suppressesFeatures(@Nullable Entity entity) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (!isOtherPlayer(client, entity)) {
             return false;
         }
         return BlindGateRules.suppressesFeatures(BlindView.isActive(client), true);
+    }
+
+    private static boolean hidesPlayer(MinecraftClient client, @Nullable Entity entity) {
+        if (!isOtherPlayer(client, entity) || !BlindView.isActive(client)) {
+            return false;
+        }
+        return BlindGateRules.hidesEntity(true, true, isPerceived(entity), entity.isSpectator());
     }
 
     private static boolean isOtherPlayer(MinecraftClient client, @Nullable Entity entity) {

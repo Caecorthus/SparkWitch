@@ -29,15 +29,16 @@ import java.util.Set;
 /**
  * Shows the vanilla armor slots 5..8 on Wathe's player inventory for every player (D10). Wathe's screen draws and
  * hit-tests only hotbar slots 36..44 and never sends a shift-click; these seams add the armor block as an inactive
- * widget, let Wathe's own click, drag, release and hover code find the armor slots, and turn an eligible shift-click
- * into one vanilla {@code SWAP}. Client presentation only: every move is a vanilla slot click the server validates with
+ * widget, let Wathe's own click, drag, release and hover code find the armor slots, turn an eligible shift-click into
+ * one vanilla {@code SWAP}, and put a cursor armor piece back into its empty armor slot before a close would offer it to
+ * the hidden main inventory. Client presentation only: every move is a vanilla slot click the server validates with
  * the vanilla armor-slot rules; no packet, NBT or server rule changes. The slots are live exactly while the panel added
  * at {@code init} (gated by {@link LimitedInventoryArmorSlots#applies}) is shown.
  * 为所有玩家在 Wathe 玩家背包显示原版护甲槽 5..8（D10）。Wathe 界面只绘制并命中检测快捷栏槽 36..44，且从不发送
- * Shift 点击；这些接缝把护甲块作为不可交互控件加入，让 Wathe 自己的点击、拖动、松开与悬停代码能找到护甲槽，并把
- * 符合条件的 Shift 点击转为一次原版 {@code SWAP}。仅为客户端展示：每次移动都是服务器按原版护甲槽规则校验的原版
- * 槽位点击；不改数据包、NBT 或服务器规则。护甲槽仅在 {@code init} 时加入的面板（由
- * {@link LimitedInventoryArmorSlots#applies} 控制）显示期间生效。
+ * Shift 点击；这些接缝把护甲块作为不可交互控件加入，让 Wathe 自己的点击、拖动、松开与悬停代码能找到护甲槽，把
+ * 符合条件的 Shift 点击转为一次原版 {@code SWAP}，并在关闭界面会把光标上的护甲放进隐藏主背包之前，将其放回自身的
+ * 空护甲槽。仅为客户端展示：每次移动都是服务器按原版护甲槽规则校验的原版槽位点击；不改数据包、NBT 或服务器规则。
+ * 护甲槽仅在 {@code init} 时加入的面板（由 {@link LimitedInventoryArmorSlots#applies} 控制）显示期间生效。
  */
 @Mixin(LimitedHandledScreen.class)
 public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
@@ -66,6 +67,9 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
 
     @Shadow
     protected abstract void drawSlot(DrawContext context, Slot slot);
+
+    @Shadow
+    protected abstract void onMouseClick(Slot slot, int slotId, int button, SlotActionType actionType);
 
     // Keep Yarn: intermediary selectors crash runClient; remapJar emits the intermediary form verifyClientMixinSelectors checks.
     // 保持 Yarn：intermediary 选择器会使 runClient 崩溃；remapJar 生成的 intermediary 形式由 verifyClientMixinSelectors 校验。
@@ -147,6 +151,45 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
             }
         }
         original.call(screen, slot, slotId, button, action);
+    }
+
+    /**
+     * Esc, the inventory key and a Touchscreen tap outside all close through {@code close()}, which sends the close
+     * packet first; on that packet the server offers the cursor stack to the first free inventory slot. With a full
+     * hotbar that slot is in the hidden main inventory, so a cursor armor piece is clicked back into its own empty
+     * armor slot before the close packet leaves.
+     * Esc、物品栏键与触屏点到外部都经由 {@code close()} 关闭，它会先发送关闭数据包；服务器收到后把光标物品放进第一个空
+     * 背包格。快捷栏已满时那会是隐藏的主背包，因此在关闭数据包发出前先把光标上的护甲点回其自身的空护甲槽。
+     */
+    @Inject(method = "close()V", at = @At("HEAD"))
+    private void sparkwitch$returnCursorArmorOnClose(CallbackInfo ci) {
+        sparkwitch$returnCursorArmor();
+    }
+
+    /**
+     * Wathe's {@code tick} also closes the screen during a fade or once the player is dead; same return as
+     * {@link #sparkwitch$returnCursorArmorOnClose} (the server refuses the click from a dead spectator).
+     * Wathe 的 {@code tick} 在淡入淡出期间或玩家死亡后也会关闭界面；处理同上（服务器会拒绝已死亡旁观者的点击）。
+     */
+    @Inject(
+            method = "tick()V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;closeHandledScreen()V")
+    )
+    private void sparkwitch$returnCursorArmorOnForcedClose(CallbackInfo ci) {
+        sparkwitch$returnCursorArmor();
+    }
+
+    @Unique
+    private void sparkwitch$returnCursorArmor() {
+        if (sparkwitch$armorPanel == null || client == null || client.player == null) {
+            return;
+        }
+        int slotId = LimitedInventoryArmorSlots.cursorReturnSlotId(client.player, handler);
+        if (slotId >= 0) {
+            // The click is predicted locally, so a second close path in the same frame sees an empty cursor.
+            // 点击会在本地预测执行，因此同一帧内的第二条关闭路径看到的光标为空。
+            onMouseClick(handler.getSlot(slotId), slotId, 0, SlotActionType.PICKUP);
+        }
     }
 
     @Unique
