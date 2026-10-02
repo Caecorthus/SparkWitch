@@ -107,7 +107,8 @@ Current build baseline:
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the recruitment roll
-  `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the post-recruit hooks).
+  `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the per-variant hooks: the
+  post-recruit callback and the variant's own skills for the `gui.sparkwitch.skills` panel).
 - `roles/witch/potiongunner/`: Potion Gunner (`sparkwitch:potion_gunner`) rules and constants (`PotionGunnerRules`,
   `PotionShellType`, `PotionBallistics`), pool registration, shop, loadout, bound-item rules and lifecycle.
   Subpackages: `launcher/` (the launcher item, inventory loading, the server-authoritative fire service, the backblast)
@@ -561,8 +562,17 @@ method reads the live registry on every call. These rules are `HunterRules.isIns
 `HunterTrapClientHooks`, and `SeekerInstinctRules.isWitchInstinctRole`.
 
 `isAccomplice` stays exact, so the plain Accomplice shop (`AccompliceShopService`) never touches a variant. These
-never include variants: `WitchManaRules.isManaRole`, `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`, and the
-`gui.sparkwitch.skills` panel whitelist (`WitchSkillPresentationRules`).
+never include variants: `WitchManaRules.isManaRole` and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`.
+
+The `gui.sparkwitch.skills` panel (`WitchSkillPresentationRules.shouldShowInventorySkillPanel`) belongs to the Grand
+Witch, Apprentice Witch and Murderous Witch, plus accomplices (owner decision D13: plain and special, via
+`WitchFactionRules.isAccompliceLike`); each shows only its own skills. An accomplice's own skills are exactly
+`AccompliceVariants.hooks(role).ownSkillIds()` (`AccompliceVariantHooks`, default empty). The plain Accomplice has
+`NONE` hooks, so it never shows the panel; a variant that owns no skill does not either. Registration in
+`WitchSkillRegistry`, the `sparkwitch` namespace, or shared dispatch, storage, packets and cooldowns grants no access,
+and every other role stays excluded. The gate runs every client frame, so `AccompliceVariants.hooks` reads the same
+lock-free snapshot as `isVariant` and `variants`. Mana in the panel (header tail, cost line, "not enough mana" pill)
+stays gated by `WitchManaRules.isManaRole`.
 
 A variant must register during common mod initialization, because client rules read the same registry. Hard-coded
 `sparkwitch:accomplice` lists in other repos still need each variant, for example SparkTraits
@@ -646,7 +656,8 @@ cooldowns, the Black Raven disguise switch, the Curser and Guardian Angel, and S
 
 Potion Gunner state never enters the shared `sparkwitch:player` schema, and the role has no component. It joins the
 special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit hook grants the launcher
-(`PotionGunnerLoadoutService.ensureLauncher`, idempotent). It never renders in the `gui.sparkwitch.skills` panel.
+(`PotionGunnerLoadoutService.ensureLauncher`, idempotent). It has no witch skill and declares no panel skills (`ownSkillIds()` stays empty), so it renders nothing in the
+`gui.sparkwitch.skills` panel; its kit is explained by the launcher and shell tooltips.
 - **Loaded shell.** The single loaded shell is the stable CUSTOM_DATA key `LoadedShell` on the launcher
   (`PotionLauncherLoad`). Loading is inventory-only: `PotionLauncherItem.onClicked` takes one shell from the cursor
   on a right-click, refuses a second shell, and unloads onto an empty cursor. Wathe's inventory exposes only the
