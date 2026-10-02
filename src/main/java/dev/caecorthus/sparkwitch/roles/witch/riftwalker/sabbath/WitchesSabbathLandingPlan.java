@@ -63,10 +63,21 @@ public final class WitchesSabbathLandingPlan {
      * {@code [feetY − step, feetY + step]} 内最高的碰撞顶面，即玩家在该列可踏上的地面；没有时为空（施放者高度附近无地面）。
      */
     public static OptionalDouble snapFloor(double feetY, double[] collisionTops, double step) {
+        return highestTop(collisionTops, feetY - step, feetY + step);
+    }
+
+    /**
+     * The floor under an airborne caster: the highest collision top within {@code [feetY − depth, feetY]}; empty when
+     * none. / 空中施放者脚下的地面：{@code [feetY − depth, feetY]} 内最高的碰撞顶面；没有时为空。
+     */
+    public static OptionalDouble floorBelow(double feetY, double[] collisionTops, double depth) {
+        return highestTop(collisionTops, feetY - depth, feetY);
+    }
+
+    private static OptionalDouble highestTop(double[] collisionTops, double min, double max) {
         double best = Double.NaN;
         for (double top : collisionTops) {
-            if (Double.isFinite(top) && top >= feetY - step && top <= feetY + step
-                    && (Double.isNaN(best) || top > best)) {
+            if (Double.isFinite(top) && top >= min && top <= max && (Double.isNaN(best) || top > best)) {
                 best = top;
             }
         }

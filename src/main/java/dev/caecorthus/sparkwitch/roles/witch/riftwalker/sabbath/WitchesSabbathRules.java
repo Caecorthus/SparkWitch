@@ -33,6 +33,11 @@ public final class WitchesSabbathRules {
     public static final double[] RING_RADII = {1.0, 1.5, 2.0};
     /** A candidate may step up or down this far onto the real floor (carpets, slabs). / 候选点可上下吸附到实际地面的高度。 */
     public static final double FLOOR_STEP = 0.5;
+    /**
+     * How far below an airborne (falling) caster the rings look for the floor they are anchored on.
+     * 施放者在空中（下落）时，圆环向下寻找锚定地面的深度。
+     */
+    public static final double AIRBORNE_FLOOR_DEPTH = 1.5;
     /** Floor probe depth under the whole footprint (Angler exit precedent). / 整个脚底下的地面探测深度（钓鱼佬出口先例）。 */
     public static final double SUPPORT_DEPTH = 0.0625;
     /** Door cells this far below the feet also reject a spot (open-door drop column). / 脚下这么深内的门格也拒绝（开门掉落列）。 */
