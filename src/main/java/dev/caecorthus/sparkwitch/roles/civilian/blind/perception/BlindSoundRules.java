@@ -51,6 +51,13 @@ public final class BlindSoundRules {
             Identifier.of("wathe", "block.light.toggle"),
             Identifier.of("wathe", "block.button.toggle_no_power"));
 
+    /**
+     * Silent placeholder sounds: vanilla broadcasts {@code minecraft:intentionally_empty} for silent equips (the ComTac
+     * VIII) with a null actor, which must not reveal the wearer.
+     * 静音占位声音：原版对静音穿戴（ComTac VIII）会以无行动者方式广播 {@code minecraft:intentionally_empty}，不能借此暴露佩戴者。
+     */
+    static final Identifier INTENTIONALLY_EMPTY = Identifier.ofVanilla("intentionally_empty");
+
     private static final String AMBIENT_PATH_PREFIX = "ambient.";
 
     private BlindSoundRules() {
@@ -65,14 +72,16 @@ public final class BlindSoundRules {
     }
 
     /**
-     * Ambience by id: any {@code ambient.*} path, and Wathe's light sounds when no player is the named actor.
-     * 按 id 判断的氛围音：任何 {@code ambient.*} 路径，以及未指明玩家行动者时的 Wathe 灯光声。
+     * Ignored by id: the silent placeholder, any {@code ambient.*} path, and Wathe's light sounds when no player is the
+     * named actor.
+     * 按 id 忽略的声音：静音占位、任何 {@code ambient.*} 路径，以及未指明玩家行动者时的 Wathe 灯光声。
      */
     public static boolean isIgnoredSound(@Nullable Identifier soundId, boolean namedActor) {
         if (soundId == null) {
             return true;
         }
-        return soundId.getPath().startsWith(AMBIENT_PATH_PREFIX)
+        return INTENTIONALLY_EMPTY.equals(soundId)
+                || soundId.getPath().startsWith(AMBIENT_PATH_PREFIX)
                 || (!namedActor && ACTORLESS_LIGHT_SOUNDS.contains(soundId));
     }
 
