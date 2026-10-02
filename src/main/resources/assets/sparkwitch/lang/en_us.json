@@ -995,6 +995,7 @@
   "message.sparkwitch.riftwalker.place.out_of_bounds": "A Rift Gate can't be placed out here.",
   "message.sparkwitch.riftwalker.place.blocked": "There isn't enough room here for a Rift Gate.",
   "message.sparkwitch.riftwalker.place.in_fluid": "A Rift Gate can't be placed in water.",
+  "message.sparkwitch.riftwalker.place.front_blocked": "A Rift Gate needs a free space in front of it. Don't face a wall.",
   "message.sparkwitch.riftwalker.place.too_close": "Too close to another Rift Gate or a device.",
   "message.sparkwitch.riftwalker.place.near_interactive": "Too close to a door, vent, seat, bed or something people use.",
   "message.sparkwitch.riftwalker.place.success": "Rift Gate #%s placed.",

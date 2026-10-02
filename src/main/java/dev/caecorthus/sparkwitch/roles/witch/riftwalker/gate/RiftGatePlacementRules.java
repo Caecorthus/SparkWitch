@@ -52,6 +52,8 @@ public final class RiftGatePlacementRules {
     public static final double DEVICE_CLEARANCE = 1.0;
     /** Forbidden neighbours are searched this many blocks around the gate box. / 禁放邻居的搜索半径（格）。 */
     public static final double NEIGHBOUR_RADIUS = 1.0;
+    /** Depth of the standing cell that must stay clear in front of the gate (C15). / 门正前方须保持空旷的站立格深度（C15）。 */
+    public static final double FRONT_CLEARANCE_DEPTH = 1.0;
 
     private RiftGatePlacementRules() {
     }
@@ -118,6 +120,42 @@ public final class RiftGatePlacementRules {
     public static Box visibilityBox(Vec3d pos) {
         return new Box(pos.x - VISIBILITY_HALF_WIDTH, pos.y - VISIBILITY_BELOW, pos.z - VISIBILITY_HALF_WIDTH,
                 pos.x + VISIBILITY_HALF_WIDTH, pos.y + VISIBILITY_ABOVE, pos.z + VISIBILITY_HALF_WIDTH);
+    }
+
+    /**
+     * C15: the 1 × 2 standing cell directly in front of the gate (its exit side): the gate's width and height,
+     * {@link #FRONT_CLEARANCE_DEPTH} deep from the slab's front face. Players leave one block out in front first
+     * ({@code RiftExitSearch}) and projectiles always leave just in front ({@code RiftProjectileMath}), so a gate whose
+     * front cell holds a block would be a dead exit.
+     * C15：门正前方（出口一侧）的 1 × 2 站立格：宽、高与门相同，从薄板正面向前 {@link #FRONT_CLEARANCE_DEPTH} 深。
+     * 玩家先从正前方一格出门（{@code RiftExitSearch}），投掷物总是从正前方出来（{@code RiftProjectileMath}），
+     * 因此正前方这一格有方块的门就是死门。
+     */
+    public static Box frontCell(Vec3d pos, Direction facing) {
+        Direction front = horizontal(facing);
+        double near = RiftwalkerRules.GATE_DEPTH / 2.0;
+        double far = near + FRONT_CLEARANCE_DEPTH;
+        double half = RiftwalkerRules.GATE_WIDTH / 2.0;
+        if (front.getAxis() == Direction.Axis.Z) {
+            int sign = front.getOffsetZ();
+            return new Box(pos.x - half, pos.y, pos.z + sign * near,
+                    pos.x + half, pos.y + RiftwalkerRules.GATE_HEIGHT, pos.z + sign * far);
+        }
+        int sign = front.getOffsetX();
+        return new Box(pos.x + sign * near, pos.y, pos.z - half,
+                pos.x + sign * far, pos.y + RiftwalkerRules.GATE_HEIGHT, pos.z + half);
+    }
+
+    /** The front cell shrunk for the emptiness check (touching faces never count). / 用于空间检查的收缩正前方格。 */
+    public static Box frontClearanceBox(Vec3d pos, Direction facing) {
+        return frontCell(pos, facing).contract(CONTACT_EPSILON);
+    }
+
+    /** True when {@code inner} lies inside {@code outer} (faces inclusive). / {@code inner} 位于 {@code outer} 内（含边界）。 */
+    public static boolean boxWithin(Box outer, Box inner) {
+        return inner.minX >= outer.minX && inner.maxX <= outer.maxX
+                && inner.minY >= outer.minY && inner.maxY <= outer.maxY
+                && inner.minZ >= outer.minZ && inner.maxZ <= outer.maxZ;
     }
 
     // ---- Floor snap and position / 贴地与位置 ----

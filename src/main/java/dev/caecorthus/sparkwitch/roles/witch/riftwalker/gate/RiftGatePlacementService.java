@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerMatch;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
@@ -38,12 +39,12 @@ import java.util.OptionalDouble;
 
 /**
  * Server placement transaction behind {@link RiftGateItem#use} (plan §5.1): validate (round, alive Riftwalker, not
- * inside a gate, not stunned, SparkTraits interaction lock, floor, play area, spacing, neighbours), allocate the gate
- * number, spawn and register the entity, consume one item, play the cue and record the replay item use. Never charges
- * anything on failure. Owned by P1.
- * {@link RiftGateItem#use} 背后的服务端放置事务（plan §5.1）：校验（对局、存活的隙行者、不在门内、未眩晕、SparkTraits
- * 交互封锁、地面、play area、间距、邻居），分配门编号，生成并登记实体，消耗一个物品，播放提示并记录回放。失败时不扣任何东西。
- * 归属 P1。
+ * inside a gate, not stunned or Kidnapper-controlled, SparkTraits interaction lock, floor, play area, room in front,
+ * spacing, neighbours), allocate the gate number, spawn and register the entity, consume one item, start the short
+ * placement cooldown, play the cue and record the replay item use. Never charges anything on failure. Owned by P1.
+ * {@link RiftGateItem#use} 背后的服务端放置事务（plan §5.1）：校验（对局、存活的隙行者、不在门内、未眩晕且未被绑架者控制、
+ * SparkTraits 交互封锁、地面、play area、正前方空间、间距、邻居），分配门编号，生成并登记实体，消耗一个物品，开始短暂的放置冷却，
+ * 播放提示并记录回放。失败时不扣任何东西。归属 P1。
  *
  * <p>Server authority: the client only sends vanilla's use-item packet (it predicts nothing but CONSUME); every check
  * below reads server state. The user is classified by the RAW Wathe role, never the Black Raven acting role.
@@ -56,6 +57,13 @@ public final class RiftGatePlacementService {
     static final float PLACE_SOUND_PITCH = 1.3F;
     static final int PLACE_PORTAL_PARTICLES = 24;
     static final int PLACE_WITCH_PARTICLES = 6;
+    /**
+     * N-2: item cooldown after a successful placement. Holding use repeats it every 4 ticks, which would replace the
+     * "placed #n" line with "too close" at once; the cooldown (also checked by the server) gives the line a second.
+     * N-2：成功放置后的物品冷却。按住使用键时原版每 4 刻重复一次，会立刻把「已放置 #n」换成「太近」；冷却（服务端也会检查）
+     * 让这行提示停留一秒。
+     */
+    static final int PLACE_COOLDOWN_TICKS = 20;
 
     private RiftGatePlacementService() {
     }
@@ -67,7 +75,7 @@ public final class RiftGatePlacementService {
      */
     public static ActionResult tryPlace(ServerPlayerEntity player, Hand hand) {
         ItemStack stack = player.getStackInHand(hand);
-        if (!(stack.getItem() instanceof RiftGateItem)) {
+        if (!(stack.getItem() instanceof RiftGateItem gateItem)) {
             return ActionResult.PASS;
         }
         ServerWorld world = player.getServerWorld();
@@ -98,6 +106,7 @@ public final class RiftGatePlacementService {
         }
         int number = spawned.get().gateNumber();
         stack.decrementUnlessCreative(1, player);
+        player.getItemCooldownManager().set(gateItem, PLACE_COOLDOWN_TICKS);
         playPlacementCue(world, pos);
         NbtCompound extra = new NbtCompound();
         extra.putString(RiftGateReplayFormatters.ACTION_KEY, RiftGateReplayFormatters.PLACE_ACTION);
@@ -109,10 +118,12 @@ public final class RiftGatePlacementService {
 
     /**
      * Who may place: an ACTIVE round; a living, playing, survival participant who is not an active Wraith; RAW role
-     * Riftwalker; not inside a gate; not Control-Expert-stunned; not under the SparkTraits killer-interaction lock
-     * (Hunter trap precedent; an absent Traits adds no lock).
+     * Riftwalker; not inside a gate; not Control-Expert-stunned; not Kidnapper-controlled (M-7, C16: the client input
+     * lock is not authority, and entry and console close refuse a dragged player too); not under the SparkTraits
+     * killer-interaction lock (Hunter trap precedent; an absent Traits adds no lock).
      * 谁可以放置：对局处于 ACTIVE；存活、参与中、生存模式且不是激活冤魂的参与者；原始职业为隙行者；不在门内；
-     * 未被控制专家眩晕；未处于 SparkTraits 杀手交互封锁（与猎人陷阱相同；未安装 Traits 时不附加封锁）。
+     * 未被控制专家眩晕；未被绑架者控制（M-7、C16：客户端输入锁不是权威，进门与控制台关门同样拒绝被拖行的玩家）；
+     * 未处于 SparkTraits 杀手交互封锁（与猎人陷阱相同；未安装 Traits 时不附加封锁）。
      */
     @Nullable
     private static RiftGatePlacementFailure userFailure(ServerWorld world, ServerPlayerEntity player) {
@@ -128,10 +139,16 @@ public final class RiftGatePlacementService {
                 || WraithStateService.isActive(player)
                 || !RiftwalkerRules.isRiftwalker(game.getRole(player))
                 || ControlExpertStun.isStunned(player)
+                || isKidnapperControlled(player)
                 || SparkTraitsKillerBridge.isKillerInteractionBlocked(player)) {
             return RiftGatePlacementFailure.UNAVAILABLE;
         }
         return null;
+    }
+
+    private static boolean isKidnapperControlled(ServerPlayerEntity player) {
+        KidnapperControlComponent control = KidnapperControlComponent.KEY.getNullable(player);
+        return control != null && control.isControlled();
     }
 
     /**
@@ -148,9 +165,10 @@ public final class RiftGatePlacementService {
     }
 
     /**
-     * Spot checks in order: support under the footprint, play area and cull height, empty slab, no fluid, gate
-     * spacing, Seeker device clearance, forbidden neighbours.
-     * 按顺序检查位置：脚印下的支撑、play area 与剔除高度、薄板无方块、无流体、门间距、搜寻者设备间隙、禁放邻居。
+     * Spot checks in order: support under the footprint, play area and cull height (the front cell included), empty
+     * slab, no fluid, room in front (C15), gate spacing, Seeker device clearance, forbidden neighbours.
+     * 按顺序检查位置：脚印下的支撑、play area（含正前方一格）与剔除高度、薄板无方块、无流体、正前方有空间（C15）、门间距、
+     * 搜寻者设备间隙、禁放邻居。
      */
     @Nullable
     private static RiftGatePlacementFailure spotFailure(ServerWorld world, Vec3d pos, Direction facing) {
@@ -158,7 +176,9 @@ public final class RiftGatePlacementService {
             return RiftGatePlacementFailure.NO_FLOOR;
         }
         Box playArea = MapVariablesWorldComponent.KEY.get(world).getPlayArea();
-        if (!RiftGatePlacementRules.withinPlayArea(playArea, pos) || !RiftGatePlacementRules.belowCullHeight(pos)) {
+        Box front = RiftGatePlacementRules.frontClearanceBox(pos, facing);
+        if (!RiftGatePlacementRules.withinPlayArea(playArea, pos) || !RiftGatePlacementRules.belowCullHeight(pos)
+                || !RiftGatePlacementRules.boxWithin(playArea, front)) {
             return RiftGatePlacementFailure.OUT_OF_BOUNDS;
         }
         Box clearance = RiftGatePlacementRules.clearanceBox(pos, facing);
@@ -167,6 +187,12 @@ public final class RiftGatePlacementService {
         }
         if (world.containsFluid(clearance)) {
             return RiftGatePlacementFailure.IN_FLUID;
+        }
+        // C15: players and projectiles leave through the front, so a gate facing a wall would be a dead exit. Blocks
+        // only, probed with no entity context (door exemptions cannot hide a solid), like the exit search.
+        // C15：人和投掷物都从正面出门，对着墙的门是死门。只查方块，且不带实体上下文（穿门豁免无法掩盖实心方块），与出门搜索一致。
+        if (world.getBlockCollisions(null, front).iterator().hasNext()) {
+            return RiftGatePlacementFailure.FRONT_BLOCKED;
         }
         List<Vec3d> otherCentres = new ArrayList<>();
         for (RiftGateRecord record : RiftGateRegistry.gates(world)) {

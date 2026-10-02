@@ -995,6 +995,7 @@
   "message.sparkwitch.riftwalker.place.out_of_bounds": "这里超出了可放置裂隙门的范围",
   "message.sparkwitch.riftwalker.place.blocked": "这里空间不够，放不下裂隙门",
   "message.sparkwitch.riftwalker.place.in_fluid": "不能在水中放置裂隙门",
+  "message.sparkwitch.riftwalker.place.front_blocked": "裂隙门正前方要留出一格空位，不能对着墙放",
   "message.sparkwitch.riftwalker.place.too_close": "离其他裂隙门或装置太近了",
   "message.sparkwitch.riftwalker.place.near_interactive": "离门、通风口、座位、床或可交互的东西太近了",
   "message.sparkwitch.riftwalker.place.success": "已放置 %s 号裂隙门",
