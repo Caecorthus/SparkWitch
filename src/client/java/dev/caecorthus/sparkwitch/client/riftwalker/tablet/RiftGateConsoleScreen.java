@@ -67,6 +67,9 @@ public class RiftGateConsoleScreen extends Screen {
     private List<RiftGateConsoleS2CPacket.Entry> entries;
     private long lastSnapshotTick;
     private long lastPollTick;
+    private long lastCloseSentTick = -1L;
+    /** Layout-affecting state captured at the last init. / 上次 init 时记录的影响布局的状态。 */
+    private int layoutKey;
     private int scroll;
     private int panelX;
     private int panelY;
@@ -107,16 +110,24 @@ public class RiftGateConsoleScreen extends Screen {
         if (snapshot.consoleSessionId() != sessionId) {
             return;
         }
-        int previousVisible = visibleRowsFor(entries.size());
         entries = snapshot.entries();
         lastSnapshotTick = RiftGateConsoleOpener.clientTicks();
         confirm.retain(this::isListed);
         scroll = RiftGateConsoleClientRules.clampScroll(scroll, entries.size(), visibleRows);
-        if (visibleRowsFor(entries.size()) != previousVisible) {
+        if (currentLayoutKey() != layoutKey) {
             clearAndInit();
         } else {
             refreshRows();
         }
+    }
+
+    /**
+     * Moves this console to a newer session the client asked for (two open requests crossed under lag).
+     * 让本控制台切换到客户端请求的更新会话（延迟下两个打开请求交错）。
+     */
+    void adoptSession(RiftGateConsoleS2CPacket snapshot) {
+        sessionId = snapshot.consoleSessionId();
+        applySnapshot(snapshot);
     }
 
     @Override
@@ -133,6 +144,7 @@ public class RiftGateConsoleScreen extends Screen {
         panelY = Math.max(0, (height - panelHeight) / 2);
         rowsTop = panelY + header;
         scroll = RiftGateConsoleClientRules.clampScroll(scroll, entries.size(), visibleRows);
+        layoutKey = currentLayoutKey();
 
         rowButtonWidth = Math.min(innerWidth / 2, 12 + max(
                 textRenderer.getWidth(Text.translatable("gui.sparkwitch.riftwalker.console.close_gate")),
@@ -185,6 +197,10 @@ public class RiftGateConsoleScreen extends Screen {
             ClientPlayNetworking.send(new RiftGateConsoleRequestC2SPacket(sessionId));
         }
         confirm.tick(now);
+        if (currentLayoutKey() != layoutKey) {
+            clearAndInit();
+            return;
+        }
         refreshRows();
     }
 
@@ -269,8 +285,16 @@ public class RiftGateConsoleScreen extends Screen {
         }
         int gate = entries.get(index).number();
         long now = RiftGateConsoleOpener.clientTicks();
+        if (confirm.state(gate, now) == RiftGateCloseConfirm.RowState.ARMED
+                && !RiftGateConsoleClientRules.throttleElapsed(now, lastCloseSentTick,
+                RiftGateConsoleClientRules.CLOSE_SEND_INTERVAL_TICKS)) {
+            // Too soon after the previous close: keep the row armed rather than let the server drop it.
+            // 距上次关门太近：保持待确认，而不是让服务端丢弃。
+            return;
+        }
         if (confirm.click(gate, now) == RiftGateCloseConfirm.Click.CONFIRMED) {
             if (ClientPlayNetworking.canSend(RiftGateCloseC2SPacket.ID)) {
+                lastCloseSentTick = now;
                 ClientPlayNetworking.send(new RiftGateCloseC2SPacket(sessionId, gate));
             } else {
                 confirm.clear();
@@ -346,6 +370,15 @@ public class RiftGateConsoleScreen extends Screen {
     }
 
     /**
+     * Row count, scrollbar (it moves the row buttons) and the 「魔女网络」 button; a change re-runs {@link #init()}.
+     * 行数、滚动条（会移动行按钮）与「魔女网络」按钮；任一变化都会重新执行 {@link #init()}。
+     */
+    private int currentLayoutKey() {
+        int rows = visibleRowsFor(entries.size());
+        return rows << 2 | (entries.size() > rows ? 1 : 0) | (networkVisible() ? 2 : 0);
+    }
+
+    /**
      * Rows that fit the screen (at most {@link #MAX_VISIBLE_ROWS}), but never more than the gates listed (at least 1
      * for the empty state).
      * 屏幕能容纳的行数（最多 {@link #MAX_VISIBLE_ROWS}），但不超过门的数量（空列表至少 1 行）。
@@ -368,8 +401,8 @@ public class RiftGateConsoleScreen extends Screen {
 
     /** {@code #n  12 格 ↗}: number in the role colour, distance and live arrow. / 编号（职业色）、距离与实时箭头。 */
     private Text locationLine(RiftGateConsoleS2CPacket.Entry entry, @Nullable ClientPlayerEntity player) {
-        MutableText line = Text.translatable("gui.sparkwitch.riftwalker.console.gate", entry.number())
-                .styled(style -> style.withColor(ROLE_COLOR).withBold(true));
+        MutableText line = Text.empty().append(Text.translatable("gui.sparkwitch.riftwalker.console.gate",
+                entry.number()).styled(style -> style.withColor(ROLE_COLOR).withBold(true)));
         if (player == null) {
             return line;
         }

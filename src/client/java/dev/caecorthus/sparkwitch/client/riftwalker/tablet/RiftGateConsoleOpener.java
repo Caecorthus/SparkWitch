@@ -142,16 +142,19 @@ public final class RiftGateConsoleOpener {
     }
 
     /**
-     * Client view of "live Riftwalker": in a running round, alive, not spectator/creative, and the RAW role (never the
-     * Black Raven acting role) is exactly the Riftwalker. Presentation only; the server re-checks every request.
-     * 客户端视角的“存活隙行者”：对局进行中、存活、非旁观/创造，且原始职业（绝非黑羽鸦扮演职业）恰为隙行者。
-     * 仅用于展示；每个请求都由服务端重新校验。
+     * Client view of "live Riftwalker": the round is ACTIVE (not the STOPPING fade, which the server denies), alive, not
+     * spectator/creative, and the RAW role (never the Black Raven acting role) is exactly the Riftwalker. Presentation
+     * only; the server re-checks every request.
+     * 客户端视角的“存活隙行者”：对局处于 ACTIVE（不含服务端会拒绝的 STOPPING 淡出阶段）、存活、非旁观/创造，且原始职业
+     * （绝非黑羽鸦扮演职业）恰为隙行者。仅用于展示；每个请求都由服务端重新校验。
      */
     public static boolean isLiveRiftwalker(@Nullable PlayerEntity player) {
         if (player == null || !player.isAlive() || !GameFunctions.isPlayerAliveAndSurvival(player)
                 || !GameFunctions.isPlayerPlayingAndAlive(player)) {
             return false;
         }
-        return RiftwalkerRules.isRiftwalker(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
+        return game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
+                && RiftwalkerRules.isRiftwalker(game.getRole(player));
     }
 }

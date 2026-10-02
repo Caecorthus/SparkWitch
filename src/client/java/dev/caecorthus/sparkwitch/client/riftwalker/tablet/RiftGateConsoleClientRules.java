@@ -32,6 +32,12 @@ public final class RiftGateConsoleClientRules {
      * 待确认后过早的第二次点击会被忽略，避免双击误关门。
      */
     public static final int CONFIRM_MIN_DELAY_TICKS = 5;
+    /**
+     * Minimum spacing of two close packets from this console: twice the server's close throttle, so a quick second
+     * confirm waits (the row stays armed) instead of being dropped by the server.
+     * 本控制台两次关门包的最小间隔：服务端关门节流的两倍，过快的第二次确认会等待（该行保持待确认），而不是被服务端丢弃。
+     */
+    public static final int CLOSE_SEND_INTERVAL_TICKS = 2 * RiftGateConsoleRules.CLOSE_THROTTLE_TICKS;
     /** A confirmed row stays greyed until the snapshot drops it or this passes. / 已确认的行保持灰色，直到快照移除或超时。 */
     public static final int CLOSING_TIMEOUT_TICKS = 40;
     /** Eight-way arrows, clockwise from "ahead"; plain BMP glyphs (emoji render as boxes). / 八方向箭头，从“正前方”顺时针。 */
@@ -79,6 +85,11 @@ public final class RiftGateConsoleClientRules {
         OPEN,
         /** Update the open console of the same session. / 刷新同一会话的已打开控制台。 */
         REFRESH,
+        /**
+         * The open console switches to a newer session it asked for (two open requests crossed under lag).
+         * 已打开的控制台切换到它请求的更新会话（延迟下两个打开请求交错）。
+         */
+        ADOPT,
         /** CLOSED while the console is open. / 控制台打开时收到 CLOSED。 */
         CLOSE,
         /** The outstanding open request was answered without opening. / 未完成的打开请求已获应答但不打开。 */
@@ -88,24 +99,34 @@ public final class RiftGateConsoleClientRules {
     }
 
     /**
-     * Snapshot dispatch. The server only answers requests, so a console opens only for an outstanding open request and
-     * only for a session newer than every session seen ({@code sessionFloor}), never on top of another screen; an open
-     * console only accepts its own session; CLOSED closes the console or answers the open request.
-     * 快照分派。服务端只应答请求，因此控制台只会为未完成的打开请求、且只为比已见过的所有会话都新的会话
-     * （{@code sessionFloor}）打开，绝不盖在其他界面之上；已打开的控制台只接受自己的会话；CLOSED 关闭控制台或应答打开请求。
+     * Snapshot dispatch. Only an open request makes the server issue a session id, and ids strictly increase, so a
+     * snapshot whose id is above every id seen ({@code sessionFloor}) within {@code requestRecent} (the window after the
+     * last open request, not cleared by CLOSED) is the answer to our request: it opens the console (never on top of
+     * another screen) or moves an open console to it. An open console otherwise accepts only its own session. CLOSED
+     * closes an open console, or ends the swallow window of an outstanding request ({@code openPending}) without
+     * forgetting the request, so a late CLOSED of an old console cannot cancel a newer open.
+     * 快照分派。只有打开请求会让服务端发放会话 id，且 id 严格递增，因此在 {@code requestRecent}（最近一次打开请求后的窗口，
+     * 不会被 CLOSED 清除）内、id 高于所有已见 id（{@code sessionFloor}）的快照就是对我们请求的应答：它打开控制台（绝不盖在
+     * 其他界面之上），或让已打开的控制台切换过去。除此之外，已打开的控制台只接受自己的会话。CLOSED 关闭已打开的控制台，
+     * 或结束未完成请求的吞键窗口（{@code openPending}）但不遗忘该请求，因此旧控制台迟到的 CLOSED 不会取消更新的打开。
      */
     public static SnapshotAction snapshotAction(int snapshotSession, boolean consoleOpen, int consoleSession,
-                                                boolean openPending, boolean otherScreenOpen, int sessionFloor) {
+                                                boolean openPending, boolean requestRecent, boolean otherScreenOpen,
+                                                int sessionFloor) {
         if (snapshotSession == RiftGateConsoleS2CPacket.CLOSED) {
             if (consoleOpen) {
                 return SnapshotAction.CLOSE;
             }
             return openPending ? SnapshotAction.DROP_PENDING : SnapshotAction.IGNORE;
         }
+        boolean fresh = requestRecent && snapshotSession > sessionFloor;
         if (consoleOpen) {
-            return snapshotSession == consoleSession ? SnapshotAction.REFRESH : SnapshotAction.IGNORE;
+            if (snapshotSession == consoleSession) {
+                return SnapshotAction.REFRESH;
+            }
+            return fresh && snapshotSession > consoleSession ? SnapshotAction.ADOPT : SnapshotAction.IGNORE;
         }
-        if (!openPending || snapshotSession <= sessionFloor) {
+        if (!fresh) {
             return SnapshotAction.IGNORE;
         }
         return otherScreenOpen ? SnapshotAction.DROP_PENDING : SnapshotAction.OPEN;
@@ -131,7 +152,11 @@ public final class RiftGateConsoleClientRules {
         return lastTick < 0 || nowTick < lastTick || nowTick - lastTick >= intervalTicks;
     }
 
-    /** An open request still counts as outstanding. / 打开请求仍视为未完成。 */
+    /**
+     * The open request at {@code requestTick} is still within its window (used both for the swallow window and for
+     * accepting its answer).
+     * {@code requestTick} 的打开请求仍在其窗口内（既用于吞键窗口，也用于接受其应答）。
+     */
     public static boolean openPending(long nowTick, long requestTick) {
         return requestTick >= 0 && nowTick >= requestTick && nowTick - requestTick < PENDING_OPEN_TIMEOUT_TICKS;
     }

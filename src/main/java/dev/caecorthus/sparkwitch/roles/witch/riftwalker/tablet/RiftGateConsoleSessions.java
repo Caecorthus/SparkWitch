@@ -35,8 +35,18 @@ public final class RiftGateConsoleSessions {
     /** Session/throttle part of a close request. / 关门请求的会话与节流判定。 */
     public enum CloseCheck {
         ALLOWED,
-        /** Not the current live session. / 不是当前有效会话。 */
+        /**
+         * The player has no live session (it expired, ended or never existed): the console that sent this is dead, so
+         * tell it to close.
+         * 玩家没有有效会话（已过期、已结束或从未存在）：发送该请求的控制台已失效，应通知其关闭。
+         */
         STALE,
+        /**
+         * Another live session is current: an old console's late request; ignore it without CLOSED so the newer console
+         * stays open.
+         * 当前另有有效会话：旧控制台迟到的请求；忽略且不回复 CLOSED，让更新的控制台保持打开。
+         */
+        SUPERSEDED,
         THROTTLED
     }
 
@@ -52,7 +62,7 @@ public final class RiftGateConsoleSessions {
      */
     public int open(UUID player, long now) {
         State state = states.computeIfAbsent(player, ignored -> new State());
-        if (!elapsed(now, state.lastOpenTick, RiftGateConsoleRules.SNAPSHOT_THROTTLE_TICKS)) {
+        if (!elapsed(now, state.lastOpenTick, RiftGateConsoleRules.OPEN_THROTTLE_TICKS)) {
             return NONE;
         }
         state.sessionId = allocate();
@@ -85,8 +95,16 @@ public final class RiftGateConsoleSessions {
      */
     public CloseCheck checkClose(UUID player, int sessionId, long now) {
         State state = states.get(player);
-        if (state == null || state.sessionId == NONE || sessionId != state.sessionId || expired(state, now)) {
+        if (state != null && state.sessionId != NONE && expired(state, now)) {
+            // The current session died: end it so its late polls are ignored rather than answered again.
+            // 当前会话已失效：结束它，使其迟到的轮询被忽略而不是再次应答。
+            state.sessionId = NONE;
+        }
+        if (state == null || state.sessionId == NONE) {
             return CloseCheck.STALE;
+        }
+        if (sessionId != state.sessionId) {
+            return CloseCheck.SUPERSEDED;
         }
         if (!elapsed(now, state.lastCloseTick, RiftGateConsoleRules.CLOSE_THROTTLE_TICKS)) {
             return CloseCheck.THROTTLED;

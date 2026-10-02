@@ -29,10 +29,16 @@ public final class RiftGateConsoleRules {
      * 普通延迟不会让打开中的控制台失效）。
      */
     public static final int SESSION_TIMEOUT_TICKS = 100;
-    /** Minimum spacing of two answered snapshots or two open requests. / 两次应答快照或两次打开请求的最小间隔。 */
+    /** Minimum spacing of two answered polls. / 两次应答轮询的最小间隔。 */
     public static final int SNAPSHOT_THROTTLE_TICKS = 10;
-    /** Minimum spacing of two close actions by one player. / 同一玩家两次关门的最小间隔。 */
-    public static final int CLOSE_THROTTLE_TICKS = 10;
+    /**
+     * Minimum spacing of two open requests / two close actions by one player. Half the client's own spacing (10 ticks),
+     * so clock jitter between client and server never drops a legitimate request.
+     * 同一玩家两次打开请求 / 两次关门的最小间隔。只有客户端自身间隔（10 刻）的一半，客户端与服务端的时钟抖动不会丢弃
+     * 正常请求。
+     */
+    public static final int OPEN_THROTTLE_TICKS = 5;
+    public static final int CLOSE_THROTTLE_TICKS = 5;
     /** Hotbar slots 0–8: SparkStrength opens its tablet only from these. / 快捷栏 0–8：SparkStrength 只从这些格打开平板。 */
     public static final int HOTBAR_SIZE = 9;
 
@@ -53,6 +59,7 @@ public final class RiftGateConsoleRules {
     public static final String DENY_NO_TABLET = "no_tablet";
     public static final String DENY_INSIDE = "inside";
     public static final String DENY_STUNNED = "stunned";
+    public static final String DENY_CONTROLLED = "controlled";
 
     private RiftGateConsoleRules() {
     }
@@ -86,9 +93,10 @@ public final class RiftGateConsoleRules {
 
     /**
      * Ordered gate for closing a gate: the view gate, then not Control-Expert-stunned, then not Kidnapper-controlled.
-     * (The stun payload guard already drops {@code rift_gate_close}; this is the handler's own re-check.)
+     * (The stun payload guard already drops {@code rift_gate_close}; this is the handler's own re-check.) Stun and
+     * control only block the action: the console stays open.
      * 关门门槛：查看门槛，然后未被控场专家眩晕，然后未被绑架者控制。（眩晕数据包守卫已拦截 {@code rift_gate_close}；
-     * 这里是处理器自身的复查。）
+     * 这里是处理器自身的复查。）眩晕与控制只阻止关门，控制台保持打开。
      */
     @Nullable
     public static String closeDenyReason(@Nullable String viewDenyReason, BooleanSupplier stunned,
@@ -100,9 +108,14 @@ public final class RiftGateConsoleRules {
             return DENY_STUNNED;
         }
         if (kidnapped.getAsBoolean()) {
-            return DENY_BLOCKED;
+            return DENY_CONTROLLED;
         }
         return null;
+    }
+
+    /** Whether a close denial leaves the console session open. / 关门被拒后是否保留控制台会话。 */
+    public static boolean keepsConsole(String closeDenyReason) {
+        return DENY_STUNNED.equals(closeDenyReason) || DENY_CONTROLLED.equals(closeDenyReason);
     }
 
     /**

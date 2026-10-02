@@ -102,9 +102,10 @@ public final class RiftGateConsoleService {
 
     /**
      * Validates and opens a console session, sending the first snapshot; returns whether it opened. A denial explains
-     * itself on the action bar and answers CLOSED; a request inside the open throttle is dropped.
+     * itself on the action bar and answers CLOSED; a request inside the open throttle gets a silent CLOSED unless a live
+     * console exists (that console must not be closed by it).
      * 校验并打开控制台会话，发送第一份快照；返回是否打开。被拒绝时在动作栏说明原因并回复 CLOSED；处于打开节流窗口内的
-     * 请求被丢弃。
+     * 请求静默回复 CLOSED，除非存在有效控制台（不能因此关掉它）。
      */
     public static boolean tryOpen(ServerPlayerEntity player) {
         if (player == null) {
@@ -118,8 +119,14 @@ public final class RiftGateConsoleService {
             sendClosed(player);
             return false;
         }
-        int session = SESSIONS.open(id, now(player));
+        long now = now(player);
+        int session = SESSIONS.open(id, now);
         if (session == RiftGateConsoleSessions.NONE) {
+            // Throttled: answer CLOSED silently so the client's pending request clears and the next use works.
+            // 被节流：静默回复 CLOSED，让客户端的待处理请求结束，下一次使用即可生效。
+            if (SESSIONS.current(id, now) == RiftGateConsoleSessions.NONE) {
+                sendClosed(player);
+            }
             return false;
         }
         sendSnapshot(player, session);
@@ -144,7 +151,7 @@ public final class RiftGateConsoleService {
                 () -> isStunned(player), () -> isKidnapped(player));
         if (denied != null) {
             actionBar(player, Text.translatable(DENIED_PREFIX + denied));
-            if (!RiftGateConsoleRules.DENY_STUNNED.equals(denied)) {
+            if (!RiftGateConsoleRules.keepsConsole(denied)) {
                 SESSIONS.end(id);
                 sendClosed(player);
             }
@@ -156,7 +163,9 @@ public final class RiftGateConsoleService {
                 sendClosed(player);
                 return;
             }
-            case THROTTLED -> {
+            case SUPERSEDED, THROTTLED -> {
+                // The client spaces closes wider than the server throttle; a superseded console is already gone.
+                // 客户端的关门间隔大于服务端节流；被取代的控制台已不存在。
                 return;
             }
             case ALLOWED -> {

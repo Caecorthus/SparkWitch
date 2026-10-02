@@ -23,8 +23,17 @@ import net.minecraft.util.Hand;
  */
 public final class RiftGateConsoleClient {
     private static boolean initialized;
-    /** Client tick of the outstanding open request, or -1. / 未完成打开请求的客户端刻，或 -1。 */
+    /**
+     * Client tick of the outstanding open request while uses are swallowed, or -1 (cleared by its CLOSED answer).
+     * 未完成打开请求的客户端刻（吞键窗口），或 -1（收到 CLOSED 应答即清除）。
+     */
     private static volatile long openRequestTick = -1L;
+    /**
+     * Client tick of the last open request, cleared only when a console opens or adopts its answer; a stray CLOSED never
+     * clears it.
+     * 最近一次打开请求的客户端刻，只在控制台打开或采用其应答时清除；零散的 CLOSED 不会清除它。
+     */
+    private static volatile long lastRequestTick = -1L;
     private static volatile Hand openRequestHand = Hand.MAIN_HAND;
     /**
      * Highest console session id seen on this connection; server ids strictly increase, so a console opens at most once
@@ -64,18 +73,25 @@ public final class RiftGateConsoleClient {
         int session = snapshot.consoleSessionId();
         RiftGateConsoleClientRules.SnapshotAction action = RiftGateConsoleClientRules.snapshotAction(session,
                 console != null, console == null ? RiftGateConsoleS2CPacket.CLOSED : console.sessionId(),
-                isOpenPending(now), current != null && console == null, sessionFloor);
+                isOpenPending(now), RiftGateConsoleClientRules.openPending(now, lastRequestTick),
+                current != null && console == null, sessionFloor);
         if (session != RiftGateConsoleS2CPacket.CLOSED) {
             sessionFloor = Math.max(sessionFloor, session);
         }
         switch (action) {
             case OPEN -> {
                 openRequestTick = -1L;
+                lastRequestTick = -1L;
                 if (client.player != null) {
                     client.setScreen(new RiftGateConsoleScreen(openRequestHand, snapshot));
                 }
             }
             case REFRESH -> console.applySnapshot(snapshot);
+            case ADOPT -> {
+                openRequestTick = -1L;
+                lastRequestTick = -1L;
+                console.adoptSession(snapshot);
+            }
             case CLOSE -> {
                 openRequestTick = -1L;
                 console.close();
@@ -96,6 +112,7 @@ public final class RiftGateConsoleClient {
         }
         openRequestHand = hand;
         openRequestTick = now;
+        lastRequestTick = now;
         ClientPlayNetworking.send(new RiftGateConsoleRequestC2SPacket(RiftGateConsoleRequestC2SPacket.OPEN));
     }
 
@@ -106,6 +123,7 @@ public final class RiftGateConsoleClient {
     /** Connection edges; may run off the client thread, so it only clears fields. / 连接节点；只清字段。 */
     static void reset() {
         openRequestTick = -1L;
+        lastRequestTick = -1L;
         openRequestHand = Hand.MAIN_HAND;
         sessionFloor = 0;
         RiftGateConsoleOpener.reset();
