@@ -271,11 +271,21 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
      * 服务端：结束会话；{@code readyAtTick} 为下次允许进门的时间（0 表示无冷却）。保留对局绑定，以便新对局开始时丢弃该冷却。
      */
     public void endSession(long readyAtTick) {
+        endSessionWithoutSync(readyAtTick);
+        syncOwner();
+    }
+
+    /**
+     * Server: {@link #endSession} without the owner sync. The caller MUST call {@link #syncOwner()} right after
+     * restoring the game mode: the client must never see {@code inside=false} while it is still a spectator.
+     * 服务端：不同步拥有者的 {@link #endSession}。调用方必须在恢复游戏模式后立即调用 {@link #syncOwner()}：客户端绝不能在
+     * 仍是旁观者时看到 {@code inside=false}。
+     */
+    public void endSessionWithoutSync(long readyAtTick) {
         String keptMatch = matchId;
         resetFields();
         this.readyAtTick = Math.max(0L, readyAtTick);
         this.matchId = readyAtTick > 0L ? keptMatch : null;
-        syncOwner();
     }
 
     /** Server: drops every field (session and cooldown) and syncs when anything changed. / 服务端：清空所有字段并在有变化时同步。 */

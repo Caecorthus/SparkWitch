@@ -318,15 +318,21 @@ public final class RiftSessionService {
             player.wakeUp();
         }
         player.stopRiding();
-        if (!player.changeGameMode(GameMode.SPECTATOR)) {
-            return false;
-        }
         List<Integer> ring = numbers(RiftGateRegistry.gates(world));
-        // The session flag goes up before the teleport, so the move is never mistaken for a foreign one and every guard
-        // already applies. / 会话标记先于传送设置，传送不会被误判为外部移动，所有防护也已生效。
+        // Client authority order: the owner sync (inside=true) is sent BEFORE the SPECTATOR switch, so the client's input
+        // lock is up before it can ever act as a spectator (noclip, spectator menu, fly-speed scroll). The flag also goes
+        // up before the teleport, so the move is never mistaken for a foreign one and every guard already applies.
+        // 客户端权威顺序：拥有者同步（inside=true）先于切换旁观模式发出，客户端在能以旁观者身份行动（穿墙、旁观菜单、滚轮调飞行速度）
+        // 之前就已锁定输入。标记也先于传送设置，传送不会被误判为外部移动，所有防护也已生效。
         session.beginSession(NEXT_SESSION_ID.updateAndGet(id -> id == Integer.MAX_VALUE ? 1 : id + 1), user,
                 gate.number(), RiftHopRing.ringIndex(ring, gate.number()), ring.size(), gate.pos(), gate.facing(),
                 world.getRegistryKey(), origin, previous, now + user.stayTicks(), user.stayTicks(), matchId);
+        if (!player.changeGameMode(GameMode.SPECTATOR)) {
+            // Nothing moved yet: drop the session again (no cooldown; the caller refunds the fee).
+            // 尚未移动任何东西：撤销会话（不上冷却；调用方退还费用）。
+            session.clear();
+            return false;
+        }
         RiftSessionBody.teleport(player, world, gate.pos(), gate.facing().asRotation(), 0.0F, false);
         RiftSessionBody.refreshTracking(player, world);
         RiftSessionBody.cue(world, gate.pos(), true);
@@ -376,12 +382,16 @@ public final class RiftSessionService {
                 ? world.getTime() + Math.max(0, RiftSessionRules.reentryCooldownTicks(session.sessionUser(),
                 RiftGateUsers.classify(player)))
                 : 0L;
-        // The session ends before the mode changes, so no guard or policy still treats the released body as inside.
-        // 会话先于模式切换结束，任何防护或策略都不会再把已释放的本体当作门内玩家。
-        session.endSession(readyAt);
+        // Server state ends before the mode changes, so no guard or policy still treats the released body as inside; the
+        // owner sync (inside=false) goes out only AFTER the mode is restored, so the client never drops its input lock
+        // while it is still a spectator.
+        // 服务端状态先于模式切换结束，任何防护或策略都不会再把已释放的本体当作门内玩家；拥有者同步（inside=false）在模式恢复
+        // 之后才发出，客户端在仍是旁观者时绝不会解除输入锁。
+        session.endSessionWithoutSync(readyAt);
         if (restore && previous != null) {
             player.changeGameMode(previous);
         }
+        session.syncOwner();
         if (action != RiftSessionRules.BodyAction.CLEAR_ONLY) {
             RiftSessionBody.settle(player);
             RiftSessionBody.refreshTracking(player, world);
