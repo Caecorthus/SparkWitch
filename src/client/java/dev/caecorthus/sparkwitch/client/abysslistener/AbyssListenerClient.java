@@ -9,10 +9,10 @@ import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 
 /**
  * Abyss Listener client registration: one idempotent {@link #init()} called once from {@code SparkWitchClient}.
- * Presentation only; every gameplay decision stays on the server. The role never uses the top-left
- * {@code gui.sparkwitch.skills} panel.
+ * Presentation only; every gameplay decision stays on the server. The role's own panel skill (Warden's Shriek, D13)
+ * is drawn by the shared {@code gui.sparkwitch.skills} panel, not here.
  * 聆渊者客户端注册：由 {@code SparkWitchClient} 调用一次的幂等 {@link #init()}。仅负责表现，所有玩法判定都在服务端。
- * 本职业从不使用左上角的 {@code gui.sparkwitch.skills} 面板。
+ * 本职业自有的面板技能（监守之啸，D13）由共享的 {@code gui.sparkwitch.skills} 面板绘制，不在此处。
  */
 public final class AbyssListenerClient {
     private static boolean initialized;

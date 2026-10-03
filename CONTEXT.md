@@ -939,7 +939,8 @@ becomes the plain Accomplice. A variant counts as used when the round ledger rec
 
 The round ledger is `sparkwitch:accomplice_variant_round` (`AccompliceVariantRoundComponent`, with its state in
 `AccompliceVariantRoundState`). It is a world component that is never synced, appended to
-`custom.cardinal-components` after every earlier entry (only `sparkwitch:abyss_zone_exposure` follows it). Its only
+`custom.cardinal-components` after every earlier entry (only the special accomplices' own components follow it:
+`sparkwitch:abyss_zone_exposure`, `sparkwitch:rift_session`, `sparkwitch:rift_gates`). Its only
 NBT key is `UsedVariants`, a list of role id strings. Its lifecycle follows `grand_witch_recruitment_round`:
 - **Round start.** `GrandWitchRecruitmentService.beginRound` runs at `ON_FINISH_INITIALIZE`. It resets the ledger and
   seeds it with every variant already in the role map, so a forced round-start variant stays used after it dies and
@@ -1017,7 +1018,8 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
 - **Skill and mana.** Warden's Shriek (`sparkwitch:wardens_shriek`) is a `WitchSkillDefinition` with an exact-role
   selector, registered right after the Bell Ringer's Echo. The role is in `isRegisteredSparkWitchRole` only for that
   shared skill path; the skills panel reaches it only through its variant hooks (D13). It uses the Grand Witch's mana
-  economy through `WitchManaRules.usesGrandWitchManaEconomy` (Grand Witch or exact Abyss Listener): it is a mana role
+  economy through `WitchManaRules.usesGrandWitchManaEconomy` (Grand Witch, exact Abyss Listener, or exact Riftwalker):
+  it is a mana role
   (`isManaRole`), starts at 0 on every assignment (recruitment included), regenerates 1 mana every 20 ticks up to the
   natural cap of 300, and earns 50 mana for a generic kill and 100 for a witch-mana-role victim. The Abyss Listener
   itself never counts as a witch-mana-role victim, so every other role's rewards are unchanged. The Grand-Witch-only
@@ -1159,7 +1161,8 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
   `AbyssZoneExposureComponent.expose(ZONE_EXPOSURE_TICKS)`. Both effects last `ZONE_EFFECT_REFRESH_TICKS` (2 s) and are
   re-applied only when missing, weaker, or at most half remaining, so they never lapse while standing and end at most
   2 s after stepping off. The standing check never changes blocks, mood, cooldowns, or Wathe's task map.
-  - `sparkwitch:abyss_zone_exposure` (player, `NEVER_COPY`, appended last in `custom.cardinal-components`, never
+  - `sparkwitch:abyss_zone_exposure` (player, `NEVER_COPY`, appended right after `sparkwitch:accomplice_variant_round`
+    in `custom.cardinal-components`, never
     persisted) holds the remaining exposure ticks. It syncs to its owner only, and only when exposure starts (0 to
     positive) or ends (back to 0); the client prediction stops at one tick, so only the server's zero sync ends it on
     the client. Exposure is cleared at once (zero synced to the owner) on `KillPlayer.AFTER`, `ResetPlayer`,
@@ -1283,7 +1286,8 @@ witches hide in a gate and hop between gates (Dn/Cn: owner decisions, 2026-10-02
 witch faction (effective `sparkwitch:witch`), Murderous Witch, Apprentice Witch. The server decides every outcome; the
 client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only `sparkwitch:witches_sabbath`
 (`ownSkillIds()`).
-- **Registration and shop.** Pool entry right after `accomplice` in `SparkWitchRoleRegistry`, never drawn; exact-role
+- **Registration and shop.** Pool entry after `accomplice` in `SparkWitchRoleRegistry` (behind the Abyss Listener and
+  the Potion Gunner, before the Wind Spirit; the assassin-guess order is the same), never drawn; exact-role
   gates `isRegisteredSparkWitchRole`, `WitchManaRules.isManaRole` and `usesGrandWitchManaEconomy` (the Grand Witch
   economy, starting at 0, D7). `RiftwalkerShopService` appends `sparkwitch_rift_gate` (50 mana, charged in `onBuy`;
   label in `WitchShopClientTexts`) to the plain Accomplice entries.

@@ -32,8 +32,9 @@ public enum SeekerBreakSource {
     /** Independent single-use Fisher weapon; keeps its own item/payload identity. / 钓鱼佬独立的一次性武器与数据包。 */
     SWORDFISH(Kind.RAY),
     /**
-     * Abyss Listener Shriek Gun: a server hitscan through vanilla's use-item packet, appended after the pre-existing sources so every earlier
-     * replay id keeps its value. / 聆渊者啸音铳：经原版使用物品数据包的服务端即时射线，追加在既有来源之后，既有回放 id 不变。
+     * Abyss Listener Shriek Gun: a server hitscan through vanilla's use-item packet, appended after the pre-existing
+     * sources so every earlier replay id keeps its value.
+     * 聆渊者啸音铳：经原版使用物品数据包的服务端即时射线，追加在既有来源之后，既有回放 id 不变。
      */
     SHRIEK_GUN(Kind.RAY),
     /**
