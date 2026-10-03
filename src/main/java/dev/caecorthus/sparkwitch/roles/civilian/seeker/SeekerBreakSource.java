@@ -30,7 +30,19 @@ public enum SeekerBreakSource {
     /** Fell out of the train or left the play area: 180 s, never marks. / 掉出列车或离开游戏区域：180 秒，不标记。 */
     VOID(Kind.ENVIRONMENT),
     /** Independent single-use Fisher weapon; keeps its own item/payload identity. / 钓鱼佬独立的一次性武器与数据包。 */
-    SWORDFISH(Kind.RAY);
+    SWORDFISH(Kind.RAY),
+    /**
+     * Abyss Listener Shriek Gun: a server hitscan through vanilla's use-item packet, appended after the pre-existing sources so every earlier
+     * replay id keeps its value. / 聆渊者啸音铳：经原版使用物品数据包的服务端即时射线，追加在既有来源之后，既有回放 id 不变。
+     */
+    SHRIEK_GUN(Kind.RAY),
+    /**
+     * Potion Gunner shell, recorded for its impact blast (sphere, never blocking), its in-flight sweep (a device in
+     * the path breaks and the shell bursts there), and the launcher backblast lane (nearest wins).
+     * 药炮手炮弹：命中爆炸（球形，不遮挡）、飞行扫掠（路径上的设备被打坏，炮弹在该处爆炸）以及炮筒尾焰通道（最近者命中）
+     * 都记录为此来源。
+     */
+    POTION_SHELL(Kind.BLAST);
 
     /** Geometry family; rays and projectiles use nearest-wins blocking, blasts do not. / 几何类别。 */
     public enum Kind {

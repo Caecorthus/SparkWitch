@@ -28,6 +28,7 @@
       "sparkwitch:judge_round",
       "sparkwitch:player",
       "sparkwitch:perfumer_player",
+      "sparkwitch:prophet_player",
       "sparkwitch:curser_player",
       "sparkwitch:kidnapper_control",
       "sparkwitch:hunter",
@@ -41,8 +42,10 @@
       "sparkwitch:time_stealer",
       "sparkwitch:time_theft",
       "sparkwitch:control_expert_status",
+      "sparkwitch:holy_flash",
       "sparkwitch:seeker_status",
       "sparkwitch:fisher_spirit",
+      "sparkwitch:blind",
       "sparkwitch:fiend_moment",
       "sparkwitch:grand_witch_runtime",
       "sparkwitch:witch_factor_world",
@@ -56,6 +59,7 @@
       "sparktraits:wraith_player",
       "sparktraits:wraith_round",
       "sparkwitch:accomplice_variant_round",
+      "sparkwitch:abyss_zone_exposure",
       "sparkwitch:rift_session",
       "sparkwitch:rift_gates"
     ]

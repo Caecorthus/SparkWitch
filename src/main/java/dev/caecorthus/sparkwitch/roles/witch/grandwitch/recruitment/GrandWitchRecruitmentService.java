@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment;
 
+import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.compat.recruitment.NoellesRecruitmentCleanup;
@@ -7,6 +8,7 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragService;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderParticipation;
 import dev.caecorthus.sparkwitch.roles.special.wraith.runtime.WraithLifecycle;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
@@ -63,9 +65,19 @@ public final class GrandWitchRecruitmentService {
             return WitchSkillUseResult.fail("message.sparkwitch.recruitment.no_capacity");
         }
         try {
-            if (dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules.isEmma(game.getRole(target))) {
-                dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent.KEY.get(target).reveal(recruiter.getUuid());
-                return WitchSkillUseResult.fail("message.sparkwitch.recruitment.emma_resisted");
+            // Real role, never a Black Raven acting overlay. / 读取真实身份，不读黑羽鸦伪装覆盖层。
+            var targetRole = game.getRole(target);
+            boolean emma = dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules.isEmma(targetRole);
+            var refusal = GrandWitchRecruitmentRules.refusal(InsiderParticipation.isCorruptCopRole(targetRole),
+                    emma || PoliceRoles.contains(targetRole), InsiderParticipation.isInsiderRole(targetRole));
+            if (refusal != GrandWitchRecruitmentRules.Refusal.NONE) {
+                // Emma still records the failed recruitment, but answers with the same police line as every cop.
+                // 艾玛仍记录招募未遂证据，但与其他警职显示同样的台词，拒绝提示不会暴露其身份。
+                if (emma) {
+                    dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent.KEY.get(target).reveal(recruiter.getUuid());
+                }
+                var lines = GrandWitchRecruitmentRules.refusalMessages(refusal);
+                return WitchSkillUseResult.fail(lines.get(world.getRandom().nextInt(lines.size())));
             }
             // A disguised Black Raven reverts first, so refund and retention value its real Raven set and wallet.
             // The revert keeps the other stashes; they are discarded only once the conversion commits below.

@@ -95,6 +95,10 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "seeker_car_swallow"),
             Identifier.of("sparkwitch", "seeker_car_recall"),
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
+            Identifier.of("sparkwitch", "fire_potion_launcher"),
+            Identifier.of("sparkwitch", "request_prophecy"),
+            Identifier.of("sparkwitch", "confirm_prophecy"),
+            Identifier.of("sparkwitch", "use_blind_attune"),
             Identifier.of("sparkwitch", "rift_gate_close"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),

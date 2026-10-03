@@ -55,6 +55,7 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "use_skill"),
             Identifier.of("sparkwitch", "emma_factor"),
             Identifier.of("sparkwitch", "fire_death_ray"),
+            Identifier.of("sparkwitch", "fire_potion_launcher"),
             Identifier.of("sparkwitch", "use_curser_ability"),
             Identifier.of("sparkwitch", "use_orthopedist_skill"),
             Identifier.of("sparkwitch", "use_saboteur_skill"),
@@ -64,6 +65,10 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "recruit_accomplice"),
             Identifier.of("sparkwitch", "open_judge_selection"),
             Identifier.of("sparkwitch", "confirm_judge_selection"),
+            // Prophet Prophecy request and priced confirmation, classified like the Judge's pair.
+            // 先知预言的请求与付费确认，与法官的两个包同样归类。
+            Identifier.of("sparkwitch", "request_prophecy"),
+            Identifier.of("sparkwitch", "confirm_prophecy"),
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
             // Seeker actions (open, swallow, remote recall); close and car moves stay allowed because a stun ends the
             // session anyway. / 搜寻者行为（打开、吞车、远程回收）；关闭与小车移动放行，因为眩晕本身就会结束会话。
@@ -73,6 +78,8 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "seeker_car_use"),
             // Black Raven transform selection (SelectBlackRavenDisguiseC2SPacket). / 黑羽鸦变身选择。
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
+            // Blind Attune (UseBlindAttuneC2SPayload). / 盲人凝神。
+            Identifier.of("sparkwitch", "use_blind_attune"),
             // Riftwalker gate hop and console close; the occupant's own exit and the console snapshot request stay
             // allowed (leaving must always pass; the request is UI-only). / 隙行者跳门与控制台关门；门内玩家自己的
             // 出门与控制台快照请求放行（出门必须始终放行；快照请求仅为界面用途）。
