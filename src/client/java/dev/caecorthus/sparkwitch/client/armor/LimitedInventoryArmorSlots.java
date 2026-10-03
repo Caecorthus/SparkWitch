@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.armor;
 
 import com.mojang.datafixers.util.Pair;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.client.gui.screen.ingame.LimitedInventoryScreen;
 import net.minecraft.client.MinecraftClient;
@@ -22,6 +23,8 @@ import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.FRAME;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.HOTBAR_END;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.HOTBAR_START;
+import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.SECOND_ROW_END;
+import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.SECOND_ROW_START;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.SLOT_SIZE;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.STRIP_HEIGHT;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.STRIP_LEFT_WIDTH;
@@ -55,6 +58,16 @@ public final class LimitedInventoryArmorSlots {
         return handler.getSlot(FIRST_ARMOR_SLOT_ID + index);
     }
 
+    /**
+     * The layout anchor for Wathe's strip top {@code stripY}: the armor block centres on the inventory block, which
+     * includes SparkFactionAPI's second row when that is shown.
+     * Wathe 热栏顶边 {@code stripY} 对应的布局锚点：护甲块以物品栏块为中心，显示第二行时物品栏块包括 SparkFactionAPI 的第二行。
+     */
+    public static int anchorY(int stripY) {
+        return LimitedInventoryArmorLayout.anchorY(stripY, SparkFactionSecondRowCompat.isShown());
+    }
+
+    /** {@code screenY} is the layout anchor ({@link #anchorY}). / {@code screenY} 为布局锚点。 */
     public static @Nullable Slot slotAt(ScreenHandler handler, int screenX, int screenY, double mouseX, double mouseY) {
         int index = LimitedInventoryArmorLayout.armorIndexAt(screenX, screenY, mouseX, mouseY);
         return index < 0 ? null : armorSlot(handler, index);
@@ -118,7 +131,7 @@ public final class LimitedInventoryArmorSlots {
         int preferred = preferredArmorSlotId(player, cursor);
         boolean preferredEmpty = preferred >= 0 && !handler.getSlot(preferred).hasStack();
         return LimitedInventoryArmorLayout.cursorReturnArmorSlotId(
-                !cursor.isEmpty(), preferred, preferredEmpty, firstEmptyHotbarButton(handler));
+                !cursor.isEmpty(), preferred, preferredEmpty, shownSlotFree(handler));
     }
 
     private static int preferredArmorSlotId(PlayerEntity player, ItemStack stack) {
@@ -131,13 +144,34 @@ public final class LimitedInventoryArmorSlots {
     }
 
     /**
-     * A plain press on a worn piece with an empty cursor is allowed only while a hotbar slot is free (see
+     * A plain press on a worn piece with an empty cursor is allowed only while a shown slot is free (see
      * {@link LimitedInventoryArmorLayout#mayPickUpArmor}); every other press is Wathe's.
-     * 空光标点击已穿护甲仅在有空快捷栏格时允许；其他按下交给 Wathe。
+     * 空光标点击已穿护甲仅在有空的显示栏位时允许；其他按下交给 Wathe。
      */
     public static boolean mayPickUp(ScreenHandler handler, Slot slot) {
         return LimitedInventoryArmorLayout.mayPickUpArmor(slot.id, slot.hasStack(), handler.getCursorStack().isEmpty(),
-                firstEmptyHotbarButton(handler));
+                shownSlotFree(handler));
+    }
+
+    /**
+     * A hotbar slot is free, or, with SparkFactionAPI 0.1.5.13+ (client and server versions always match), a
+     * second-row slot: where the server's close offer of a cursor stack lands before any hidden slot.
+     * 有空快捷栏格，或在 SparkFactionAPI 0.1.5.13+ 下（客户端与服务端版本总是一致）有空的第二行格：服务器在关闭界面时
+     * 放回光标物品会先落在这些位置，而不是隐藏栏位。
+     */
+    private static boolean shownSlotFree(ScreenHandler handler) {
+        if (firstEmptyHotbarButton(handler) >= 0) {
+            return true;
+        }
+        if (!SparkFactionSecondRowCompat.isShown()) {
+            return false;
+        }
+        for (int id = SECOND_ROW_START; id < SECOND_ROW_END; id++) {
+            if (!handler.getSlot(id).hasStack()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static int firstEmptyHotbarButton(ScreenHandler handler) {

@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.kit;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
@@ -189,11 +190,14 @@ public final class BlindLoadoutService {
     }
 
     /**
-     * Keeps exactly one cane and forces it into the hotbar: the leftmost hotbar cane is kept, every other copy (hidden
-     * main slots 9-35, armor, offhand, cursor, crafting grid or open container) is removed, and a missing hotbar cane is
-     * recreated there.
-     * 保持恰好一根盲杖并强制其位于快捷栏：保留最左侧的快捷栏盲杖，移除其他所有副本（隐藏主背包 9-35、盔甲、副手、光标、
-     * 合成格或已打开的容器），并在快捷栏缺失时重新创建。
+     * Keeps exactly one cane and forces it into the hotbar: the leftmost hotbar cane is kept, every other copy (main
+     * slots 9-35, including the second row 27-35 that SparkFactionAPI 0.1.5.13+ shows, armor, offhand, cursor, crafting
+     * grid or open container) is removed, and a missing hotbar cane is recreated there. A cane parked in the second row
+     * therefore returns to the hotbar; the cane has no per-stack data and its cooldowns live on the component and the
+     * per-Item cooldown, so nothing is lost.
+     * 保持恰好一根盲杖并强制其位于快捷栏：保留最左侧的快捷栏盲杖，移除其他所有副本（主背包 9-35，包括 SparkFactionAPI
+     * 0.1.5.13+ 显示的第二行 27-35、盔甲、副手、光标、合成格或已打开的容器），并在快捷栏缺失时重新创建。因此放进第二行的
+     * 盲杖会回到快捷栏；盲杖没有逐堆数据，冷却记录在组件与按物品类型的冷却中，不会丢失任何东西。
      */
     private static void ensureCaneInHotbar(ServerPlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
@@ -215,7 +219,7 @@ public final class BlindLoadoutService {
                 continue;
             }
             inventory.setStack(slot, ItemStack.EMPTY);
-            if (vacated == BlindKitRules.NO_SLOT && isHiddenStorageSlot(slot)) {
+            if (vacated == BlindKitRules.NO_SLOT && isStorageSlot(slot)) {
                 vacated = slot;
             }
             changed = true;
@@ -240,17 +244,18 @@ public final class BlindLoadoutService {
     }
 
     /**
-     * Puts a fresh cane into the hotbar. With a full hotbar the displaced item moves into the slot a misplaced cane just
-     * vacated, else the first empty hidden main slot, else an empty offhand; with no room nothing is moved or destroyed
-     * and the next tick retries.
-     * 把新盲杖放入快捷栏。快捷栏已满时，被移出的物品放入刚被错放盲杖腾出的栏位，否则放入第一个空的隐藏主背包栏位，
-     * 否则放入空副手；完全没有空间时不移动也不销毁任何物品，由下一 tick 重试。
+     * Puts a fresh cane into the hotbar. With a full hotbar the displaced item moves to
+     * {@link BlindKitRules#displacementSlot}: the slot a misplaced cane just vacated, kept visible in the shown second
+     * row when possible; with no room nothing is moved or destroyed and the next tick retries.
+     * 把新盲杖放入快捷栏。快捷栏已满时，被移出的物品移到 {@link BlindKitRules#displacementSlot}：刚被错放盲杖腾出的
+     * 栏位，并尽可能留在显示中的第二行使其可见；完全没有空间时不移动也不销毁任何物品，由下一 tick 重试。
      */
     private static boolean placeCaneInHotbar(PlayerInventory inventory, int vacated) {
         int target = BlindKitRules.hotbarTarget(inventory.selectedSlot, slot -> inventory.getStack(slot).isEmpty());
         if (target == BlindKitRules.NO_SLOT) {
             target = BlindKitRules.displacedHotbarSlot(inventory.selectedSlot);
-            int destination = vacated != BlindKitRules.NO_SLOT ? vacated : emptyHiddenStorageSlot(inventory);
+            int destination = BlindKitRules.displacementSlot(SparkFactionSecondRowCompat.isShown(), vacated,
+                    slot -> inventory.getStack(slot).isEmpty());
             if (destination == BlindKitRules.NO_SLOT) {
                 return false;
             }
@@ -260,18 +265,8 @@ public final class BlindLoadoutService {
         return true;
     }
 
-    private static int emptyHiddenStorageSlot(PlayerInventory inventory) {
-        for (int slot = PlayerInventory.getHotbarSize(); slot < PlayerInventory.MAIN_SIZE; slot++) {
-            if (inventory.getStack(slot).isEmpty()) {
-                return slot;
-            }
-        }
-        return inventory.getStack(PlayerInventory.OFF_HAND_SLOT).isEmpty()
-                ? PlayerInventory.OFF_HAND_SLOT : BlindKitRules.NO_SLOT;
-    }
-
-    /** Hidden main slots 9-35 or the offhand; armor slots never receive a displaced item. / 隐藏主背包 9-35 或副手。 */
-    private static boolean isHiddenStorageSlot(int slot) {
+    /** Main slots 9-35 or the offhand; armor slots never receive a displaced item. / 主背包 9-35 或副手。 */
+    private static boolean isStorageSlot(int slot) {
         return (slot >= PlayerInventory.getHotbarSize() && slot < PlayerInventory.MAIN_SIZE)
                 || slot == PlayerInventory.OFF_HAND_SLOT;
     }

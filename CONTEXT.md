@@ -35,7 +35,8 @@ Current build baseline:
 - Minecraft `1.21.1`
 - Java `21`
 - SparkWitch `0.1.6.0` (Emma branch)
-- SparkFactionAPI floor `0.1.5.12`
+- SparkFactionAPI floor `0.1.5.12` (SparkFactionAPI `0.1.5.13`+ adds the two-row limited inventory; see
+  `compat/SparkFactionSecondRowCompat`)
 
 ## Read Order
 
@@ -288,16 +289,19 @@ Current build baseline:
   - **Shift-click** (mouse mode, one `SWAP` either way). Hotbar item → its preferred armor slot when
     empty (as vanilla quick-move would); worn piece → first empty hotbar slot (Wathe hides the main
     inventory vanilla would fill). Anything else stays Wathe's PICKUP.
-  - **Full hotbar** (mouse mode). A worn piece cannot be picked onto an empty cursor while every
-    hotbar slot is taken (a vanilla close puts it in the hidden main inventory); the press sends
-    nothing, and number-key swaps still exchange it. Touchscreen release pick-ups are not guarded.
-    In either mode, while every hotbar slot is taken a close first clicks a cursor armor piece back
-    into its own empty armor slot (one vanilla PICKUP); with a free hotbar slot vanilla's close
-    offer already lands in the hotbar.
+  - **No shown room** (mouse mode). Shown slots are the hotbar, plus the second row (inventory
+    27-35) with SparkFactionAPI 0.1.5.13+, whose `getEmptySlot` fills that row before hidden 9-26.
+    A worn piece cannot be picked onto an empty cursor while every shown slot is taken (a vanilla
+    close puts it in the hidden main inventory); the press sends nothing, and number-key swaps
+    still exchange it. Touchscreen release pick-ups are not guarded. In either mode, while every
+    shown slot is taken a close first clicks a cursor armor piece back into its own empty armor slot
+    (one vanilla PICKUP); with a free shown slot vanilla's close offer already lands there.
   - **Layout.** A 50x50 2x2 block (head, chest / legs, feet) at `[X-54, X-4) x [Y-9, Y+41)` beside
-    Wathe's 176x32 strip, clear of the shop row, role head rows, logo and the right-hand info card at
-    every scaled size the layout test covers (320 px wide and up). Its frame is cut at draw time from
-    Wathe's own `limited_inventory.png`; no copied art.
+    Wathe's 176x32 strip, or at `[X-54, X-4) x [Y-20, Y+30)` centred on the 176x54 two-row block
+    `(X, Y-22)` with SparkFactionAPI 0.1.5.13+ (`LimitedInventoryArmorLayout.anchorY`), clear of the
+    shop row, role head rows, logo and the right-hand info card at every scaled size the layout test
+    covers (320 px wide and up). Its frame is cut at draw time from Wathe's own
+    `limited_inventory.png`; no copied art.
   - **Neighbours.** The SparkWitch/SparkTraits info card and SparkAssist's guidebook route around
     the panel because it is a visible `ClickableWidget` child; being inactive, it never consumes a
     click.
@@ -313,6 +317,17 @@ Current build baseline:
 - `component/`: CCA ids, stored fields, sync/NBT codecs, and narrow state
   operations used by the owning runtime Modules.
 - `compat/`: optional or version-sensitive cross-mod Adapters.
+- `compat/SparkFactionSecondRowCompat`: the two-row limited inventory gate. With SparkFactionAPI
+  0.1.5.13+ (read once from the local mod version; SparkFactionAPI requires client and server to
+  match exactly; unknown versions fail closed), Wathe's in-round inventory also shows main slots
+  27-35 directly above the hotbar, and `getEmptySlot` fills 0-8, 27-35, then 9-26. With the bundled
+  floor every caller keeps its old behavior (the Abyss Listener's vacated-slot reuse below is new on
+  either version). Callers: bound-item displacement (Blind cane, Time Stealer Clock, Abyss Listener
+  gun: a full-hotbar re-grant moves the displaced item into the slot a removed stray vacated, but
+  never into hidden storage while the shown row has room), Potion Gunner launcher placement and
+  keeper move, shell returns and surfacing, the Seeker's swallowed-car return, the armor block, and
+  the info card's reserved inventory block. Hotbar-only rules are unchanged: a bound item in 27-35
+  is still a stray.
 - `compat/cooldown/`: SparkWitch's registrations with the SparkFactionAPI forced-cooldown contract
   (`api.cooldown.ForcedCooldowns`): role-skill stores for SparkWitch and NoellesRoles counters, the SparkWitch item
   nominal-cooldown provider, and the Seeker car item exemption. `SparkWitchForcedCooldowns.register()` runs once from
@@ -591,8 +606,9 @@ NoellesRoles `b58fa5f`) and `roles/civilian/seeker/taotie/`: the client predicts
 swallow key on a car in its crosshair (`client/mixin/seeker/SeekerTaotieAbilityKeyMixin`) and sends
 `seeker_car_swallow`, which the server re-validates; a swallow consumes the Taotie's swallow
 cooldown, removes the car without a mark or the 180 s cooldown, and tells the owner without naming
-the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role. The
-Seeker never renders in the `gui.sparkwitch.skills` panel.
+the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role, into its
+original slot, else the first empty hotbar slot, else the shown second row (SparkFactionAPI
+0.1.5.13+), else a main slot. The Seeker never renders in the `gui.sparkwitch.skills` panel.
 
 Angler state never enters that shared schema either. `sparkwitch:fisher_spirit` (`NEVER_COPY`,
 never saved) holds only the Glimmerfish window; its sync packet is one VarInt: 0 inactive, 1 for
@@ -850,8 +866,9 @@ compensation has settled final roles and Wathe has started the match record), an
 `RoleAssigned` to a playing, alive Blind while ACTIVE (C11): one White Cane in the hotbar, a 30 s
 cane and 90 s Attune initial cooldown, and the bound match id. The cane takes the selected hotbar
 slot when empty, else the first empty one; with a full hotbar it displaces the last hotbar item (the
-one before it when the last slot is selected) into a hidden main slot or the offhand, and with no
-room at all nothing moves and the placement retries every tick. A same-match re-assignment keeps its
+one before it when the last slot is selected) into the slot a misplaced cane vacated, else a main slot
+or the offhand, preferring the shown second row (SparkFactionAPI 0.1.5.13+) over hidden storage, and
+with no room at all nothing moves and the placement retries every tick. A same-match re-assignment keeps its
 cooldowns; the per-tick upkeep (only while ACTIVE) re-grants a state bound to another match and
 keeps exactly one cane in a living Blind's hotbar, except in Wathe psycho mode (SparkTraits'
 Depression psycho keeps the inventory bat-only), where the cane waits until psycho mode ends.
@@ -1129,8 +1146,9 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
   directly). Both write `GUN_INITIAL_COOLDOWN_TICKS` (1200) through the vanilla `ItemCooldownManager.set`, so
   SparkTraits Fast Hands applies.
   - Placement is Wathe's `ShopEntry.insertStackInFreeSlot`. With a full hotbar the rightmost non-selected hotbar item
-    moves to an empty hidden slot, else to an empty offhand; with no room at all nothing is placed and the next sweep
-    retries.
+    moves into the slot a removed stray gun vacated (Time Stealer rule; a gun parked in SparkFactionAPI 0.1.5.13+'s
+    visible row 27-35 is a stray), else an empty main slot, else an empty offhand, preferring the shown second row
+    over hidden storage; with no room at all nothing is placed and the next sweep retries.
   - The holder entitlement is playing, alive, and exactly the Abyss Listener. A staggered 20-tick sweep keeps exactly
     one gun for an entitled holder (the first hotbar copy, else a gun mid-move on the cursor, else a fresh hotbar grant
     that leaves the per-Item cooldown untouched), removes duplicates and strays (hidden slots, offhand, crafting grid,
@@ -1256,10 +1274,13 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   reset, and finalize. A staggered 20-tick sweep also re-grants a living gunner exactly one launcher. Both items
   stay visible in hand; the launcher is outside `wathe:guns`.
   - A holder's shell is never deleted. A removed duplicate launcher's shell loads the kept launcher or returns
-    hotbar-first (a hidden slot, else the empty cursor, when the hotbar is full); a copy whose shell has nowhere to go
-    stays put. A re-inserted drop keeps any remainder in its original stack.
-  - The sweep also moves shells from hidden main slots 9-35 into hotbar room (same-type stacks first, then empty
-    slots) and never displaces another item.
+    hotbar-first (the shown second row with SparkFactionAPI 0.1.5.13+, then a hidden slot, else the empty cursor, when
+    the hotbar is full); a copy whose shell has nowhere to go stays put. A re-inserted drop keeps any remainder in its
+    original stack. With a full hotbar a new launcher, or a kept one in hidden storage, the offhand or armor, goes to
+    the shown second row before hidden slots; a launcher in that row still moves into a free hotbar slot.
+  - The sweep also moves shells from hidden main slots into shown room (same-type stacks first, then empty slots) and
+    never displaces another item. Hidden means 9-35, or 9-26 when SparkFactionAPI 0.1.5.13+ shows 27-35: shells the
+    player parks in that row stay there, and surfaced shells fill that row before an empty hotbar slot.
 - **Scope and fire.** Holding use scopes, client-side only: zoom ×0.25, mouse look ×0.25, a hidden hand, and the
   reticle with range ticks drawn by a priority-1100 `InGameHud#renderCrosshair` wrapper. Left-click sends
   `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec), one shot per fresh press. Only an
