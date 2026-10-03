@@ -39,15 +39,14 @@ public final class MurderousWitchRules {
     }
 
     /**
-     * Murderous Witch's custom instinct is active-only; dead spectators use Wathe defaults.
-     * 杀意魔女的自定义本能只在存活时生效；死亡旁观者使用 wathe 默认逻辑。
+     * Murderous Witch's custom instinct follows Wathe's alive state, not the game mode: a living Rift Gate occupant
+     * (alive spectator) keeps it, so it never reaches SparkFactionAPI's role-revealing faction-colour fallback; only
+     * dead spectators use Wathe defaults.
+     * 杀意魔女的自定义本能取决于 wathe 存活状态而非游戏模式：存活的裂隙门内玩家（存活旁观者）保留该本能，
+     * 因而不会落入暴露身份的 SparkFactionAPI 阵营色兜底；只有死亡旁观者使用 wathe 默认逻辑。
      */
-    public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive, boolean viewerSpectatingOrCreative) {
-        return viewerAlive && !viewerSpectatingOrCreative;
-    }
-
     public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive) {
-        return shouldUseCustomInstinctHighlight(viewerAlive, false);
+        return viewerAlive;
     }
 
     public static Boolean economyDecision(Role role, FactionEconomyPolicy.RewardKind rewardKind) {
@@ -63,24 +62,14 @@ public final class MurderousWitchRules {
 
     public static boolean shouldHighlightInstinctTarget(
             boolean viewerAlive,
-            boolean viewerSpectatingOrCreative,
             boolean samePlayer,
             boolean targetAlive,
             boolean targetSpectatingOrCreative
     ) {
-        return shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)
+        return shouldUseCustomInstinctHighlight(viewerAlive)
                 && !samePlayer
                 && targetAlive
                 && !targetSpectatingOrCreative;
-    }
-
-    public static boolean shouldHighlightInstinctTarget(
-            boolean viewerAlive,
-            boolean samePlayer,
-            boolean targetAlive,
-            boolean targetSpectatingOrCreative
-    ) {
-        return shouldHighlightInstinctTarget(viewerAlive, false, samePlayer, targetAlive, targetSpectatingOrCreative);
     }
 
     public static WinAction winAction(
