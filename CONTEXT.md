@@ -501,6 +501,10 @@ black held to 40% and eased out — above every HUD overlay, including the Seeke
 `client/mixin/saint/HolyFlashSoundSystemMixin`, which multiplies every other sound by a factor floored
 at 0.1 (composes with SparkAssist); `voice/HolyFlashVoiceClientBridge` loads `HolyFlashVoiceReceiver`
 on the physical client only to scale incoming Simple Voice Chat PCM by the same factor.
+The Blind takes only the audio side (owner decision Q12): the server flashes a Blind like any other
+participant (same radius, sight, facing and duration rules, no role check), and the mask alone is skipped
+while `BlindView.isActive` holds on that client, so nothing is layered over the echo view or its
+fail-closed black; the tinnitus, the muffle and the voice muffle are not gated on the Blind view.
 
 Seeker state never enters that shared schema either. `sparkwitch:seeker_status` (`NEVER_COPY`,
 owner-only sync) holds the Seeker's car, cameras, session, battery, cooldown-reason, and mark state
@@ -816,7 +820,12 @@ Attune ducking (`BlindAttuneSoundSystemMixin`,
 `@ModifyExpressionValue` on the inner `getAdjustedVolume(F, SoundCategory)` call in
 `SoundSystem#play` and `#getAdjustedVolume(SoundInstance)`) multiplies AMBIENT, MUSIC, RECORDS and
 WEATHER sounds and every `wathe:ambient.*` id by 0.25 while the local Blind's Attune is active; it
-composes with SparkAssist's volume seams on the same two methods and never writes options. While a
+composes with SparkAssist's volume seams on the same two methods and never writes options. A Blind hit
+by a Holy Flash gets only its audio side (owner decision Q12): `HolyFlashOverlayRenderer` draws no mask
+while `BlindView.isActive`, the client-only tinnitus loop (PLAYERS, never ducked by Attune) and the
+Holy Flash muffle still apply, `HolyFlashSoundSystemMixin` and `BlindAttuneSoundSystemMixin` wrap the
+same two calls and their factors multiply (0.1 x 0.25 at the lowest, never 0), and server perception
+never reads `sparkwitch:holy_flash`, so a flashed Blind's pulses are unchanged. While a
 Wathe round runs on a confirmed SparkWitch server, `BlindComTacHeadRenderMixin` (HEAD cancel on the
 typed `HeadFeatureRenderer.render`, which draws only the head-slot item) skips a worn ComTac VIII on
 every head for every viewer (D5/C15); other head items and all armor render normally, the ComTac

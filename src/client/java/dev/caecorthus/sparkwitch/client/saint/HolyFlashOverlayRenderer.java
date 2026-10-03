@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.saint;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.client.blind.BlindView;
 import dev.caecorthus.sparkwitch.client.saint.HolyFlashOverlayMath.Anchor;
 import dev.caecorthus.sparkwitch.client.saint.HolyFlashOverlayMath.Projection;
 import dev.caecorthus.sparkwitch.client.seeker.remote.SeekerRemoteViewClient;
@@ -29,11 +30,15 @@ import org.joml.Vector3f;
  * black mask from {@link HolyFlashRules#blackness(float, int)} with a short white residue and a faint retinal
  * afterimage. Draws only on a confirmed SparkWitch server, in an ACTIVE game, for the playing, alive local player
  * whose synced {@code sparkwitch:holy_flash} is active; F1 does not hide it. The server owns every timer.
+ * Never drawn while the local player is shown the Blind view ({@link BlindView#isActive}, owner decision Q12): the
+ * Blind takes only the audio side, which {@code HolyFlashAudioClient} drives from the same synced state.
  * 纯客户端圣光弹屏幕遮罩（所有者选择方案 B），由 {@code HolyFlashHudMixin} 在 {@code InGameHud.render} TAIL 绘制，
  * 位于整个 HUD、聊天、HudRenderCallback 叠加层（包括搜寻者 CCTV 边框）以及世界中名字标签与本能描边之上。
  * 阶段：在 {@link HolyFlashRules#SPOT_TICKS} 内迅速扩散的亮点，然后是 {@link HolyFlashRules#blackness(float, int)}
  * 决定的黑色遮罩，并带有短暂的白色残留和淡淡的视网膜残像。仅在确认的 SparkWitch 服务器、对局 ACTIVE、本地玩家
  * 存活参与且已同步的 {@code sparkwitch:holy_flash} 激活时绘制；F1 不会隐藏它。所有计时均由服务端负责。
+ * 本地玩家正在看盲人视图时（{@link BlindView#isActive}，所有者决定 Q12）绝不绘制：盲人只受音频部分影响，
+ * 该部分由 {@code HolyFlashAudioClient} 依据同一份同步状态驱动。
  */
 public final class HolyFlashOverlayRenderer {
     public static final Identifier GLOW_TEXTURE = SparkWitch.id("textures/gui/holy_flash_glow.png");
@@ -74,6 +79,13 @@ public final class HolyFlashOverlayRenderer {
         // The Kidnapper's opaque control screen (drawn just before) already hides everything and its text must
         // stay readable. / 绑匪控制黑屏（在此之前绘制）已遮住一切，其提示文字必须保持可读。
         if (KidnapperControlComponent.KEY.get(player).isControlled()) {
+            return;
+        }
+        // Q12 (owner, 2026-10-03): the Blind takes only the tinnitus. While the Blind view is on (echo line art or
+        // its fail-closed black) no white or black mask is layered over it; a non-Blind leaves at the role lookup.
+        // Q12（所有者 2026-10-03）：盲人只受耳鸣。盲人视图开启期间（回声线稿或失败关闭的全黑）不在其上叠加
+        // 白色或黑色遮罩；非盲人在职业查询处即返回。
+        if (BlindView.isActive(client)) {
             return;
         }
 

@@ -88,6 +88,12 @@ public final class HolyFlashAudioClient {
         }
     }
 
+    /**
+     * Deliberately not gated on the Blind view: a flashed Blind keeps the ring, the muffle and the voice muffle, and
+     * only {@code HolyFlashOverlayRenderer} skips for it (owner decision Q12).
+     * 刻意不按盲人视图设门槛：被闪的盲人保留耳鸣、压音与语音压低，只有 {@code HolyFlashOverlayRenderer}
+     * 为其跳过（所有者决定 Q12）。
+     */
     @Nullable
     private static HolyFlashComponent activeFlash(MinecraftClient client) {
         ClientPlayerEntity player = client.player;
