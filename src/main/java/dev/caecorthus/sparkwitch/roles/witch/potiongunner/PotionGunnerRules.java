@@ -15,7 +15,13 @@ public final class PotionGunnerRules {
     /** Potion violet, kept apart from the Accomplice's 0x6B338A. / 药水紫，与共犯的 0x6B338A 区分。 */
     public static final int COLOR = 0xB45CFF;
 
-    public static final Identifier LAUNCHER_ID = SparkWitch.id("potion_launcher");
+    /**
+     * Anti-Tank Launcher item id, renamed from {@code potion_launcher} with no registry alias: old saved stacks drop
+     * on load and the loadout sweep re-grants the launcher. The fire packet and replay ids keep their old names.
+     * 反坦克炮筒物品 id，由 {@code potion_launcher} 改名且未注册别名：旧存档中的物品在加载时丢弃，由装备巡检重新发放。
+     * 发射数据包与回放 id 保留旧名。
+     */
+    public static final Identifier LAUNCHER_ID = SparkWitch.id("anti_tank_launcher");
     public static final Identifier SHELL_ENTITY_ID = SparkWitch.id("potion_shell");
     /** Ordinary, non-forced TR shell kill. / 普通、非强制的 TR 炮弹击杀。 */
     public static final Identifier DEATH_REASON_ID = SparkWitch.id("potion_shell");
