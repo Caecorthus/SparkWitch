@@ -105,12 +105,4 @@ public final class FiendRules {
             case NONE -> 0;
         };
     }
-
-    /**
-     * Cooldown-aura floor (C4): an item cooldown is raised to 20 s and never shortened.
-     * 冷却光环下限（C4）：道具冷却提升至 20 秒，绝不缩短。
-     */
-    public static int raisedCooldown(int remainingTicks) {
-        return Math.max(remainingTicks, AURA_COOLDOWN_TICKS);
-    }
 }
