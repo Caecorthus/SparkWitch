@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.witch.abysslistener.loadout;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -157,6 +158,9 @@ public final class AbyssListenerLoadout {
         List<AbyssListenerGunSweep.Location> locations = new ArrayList<>(2);
         List<Runnable> removers = new ArrayList<>(2);
         List<ItemStack> stacks = new ArrayList<>(2);
+        // Inventory index of each copy; NO_SLOT for the cursor and foreign handler slots.
+        // 每份副本所在的背包下标；光标与外部界面栏位为 NO_SLOT。
+        List<Integer> inventorySlots = new ArrayList<>(2);
         for (int slot = 0; slot < inventory.size(); slot++) {
             ItemStack stack = inventory.getStack(slot);
             if (AbyssListenerInventoryRules.isGun(stack)) {
@@ -166,6 +170,7 @@ public final class AbyssListenerLoadout {
                         : AbyssListenerGunSweep.Location.STRAY);
                 removers.add(() -> inventory.setStack(index, ItemStack.EMPTY));
                 stacks.add(stack);
+                inventorySlots.add(slot);
             }
         }
         ItemStack cursor = handler.getCursorStack();
@@ -173,12 +178,14 @@ public final class AbyssListenerLoadout {
             locations.add(AbyssListenerGunSweep.Location.CURSOR);
             removers.add(() -> handler.setCursorStack(ItemStack.EMPTY));
             stacks.add(cursor);
+            inventorySlots.add(AbyssListenerGunSweep.NO_SLOT);
         }
         for (Slot slot : handler.slots) {
             if (slot.inventory != inventory && AbyssListenerInventoryRules.isGun(slot.getStack())) {
                 locations.add(AbyssListenerGunSweep.Location.STRAY);
                 removers.add(() -> slot.setStack(ItemStack.EMPTY));
                 stacks.add(slot.getStack());
+                inventorySlots.add(AbyssListenerGunSweep.NO_SLOT);
             }
         }
         if (locations.isEmpty() && !entitled) {
@@ -186,6 +193,7 @@ public final class AbyssListenerLoadout {
         }
         AbyssListenerGunSweep.Decision decision = AbyssListenerGunSweep.decide(entitled, locations);
         boolean changed = false;
+        int vacated = AbyssListenerGunSweep.NO_SLOT;
         for (int copy = 0; copy < locations.size(); copy++) {
             if (copy == decision.keep()) {
                 ItemStack kept = stacks.get(copy);
@@ -196,10 +204,14 @@ public final class AbyssListenerLoadout {
                 continue;
             }
             removers.get(copy).run();
+            int slot = inventorySlots.get(copy);
+            if (vacated == AbyssListenerGunSweep.NO_SLOT && AbyssListenerGunSweep.isStorageSlot(slot)) {
+                vacated = slot;
+            }
             changed = true;
         }
         if (decision.grant()) {
-            changed |= placeGun(player);
+            changed |= placeGun(player, vacated);
         }
         if (changed) {
             inventory.markDirty();
@@ -209,18 +221,24 @@ public final class AbyssListenerLoadout {
 
     /**
      * Puts a fresh gun into the first empty hotbar slot (Wathe's shop insert). With a full hotbar the rightmost
-     * non-selected hotbar item moves into the first empty hidden main slot (else an empty offhand) to make room; with
-     * no room at all nothing is moved or destroyed and the next sweep retries.
-     * 把新枪放入第一个空快捷栏位（Wathe 商店的插入方式）。快捷栏已满时，最右侧非选中快捷栏物品移入第一个空的隐藏主背包栏位
-     * （否则移入空副手）以腾出位置；完全没有空间时不移动也不销毁任何物品，由下一次清理重试。
+     * non-selected hotbar item moves to {@link AbyssListenerGunSweep#displacementSlot}: the slot a stray gun just
+     * vacated (Time Stealer rule), kept visible in the shown second row when possible; with no room at all nothing is
+     * moved or destroyed and the next sweep retries. Reusing the vacated slot matters since SparkFactionAPI 0.1.5.13
+     * lets a player park the gun in the visible row 27-35: the displaced item takes the gun's place there instead of
+     * disappearing into hidden storage.
+     * 把新枪放入第一个空快捷栏位（Wathe 商店的插入方式）。快捷栏已满时，最右侧非选中快捷栏物品移到
+     * {@link AbyssListenerGunSweep#displacementSlot}：错放的枪刚腾出的栏位（窃时者规则），并尽可能留在显示中的第二行
+     * 使其可见；完全没有空间时不移动也不销毁任何物品，由下一次清理重试。SparkFactionAPI 0.1.5.13 起玩家可把枪放进可见的
+     * 27-35 行，复用腾出的栏位能让被移出的物品留在那里，而不是消失进隐藏栏位。
      */
-    private static boolean placeGun(ServerPlayerEntity player) {
+    private static boolean placeGun(ServerPlayerEntity player, int vacated) {
         ItemStack gun = new ItemStack(SparkWitchItems.shriekGun());
         if (ShopEntry.insertStackInFreeSlot(player, gun)) {
             return true;
         }
         PlayerInventory inventory = player.getInventory();
-        int destination = emptyHiddenStorageSlot(inventory);
+        int destination = AbyssListenerGunSweep.displacementSlot(SparkFactionSecondRowCompat.isShown(), vacated,
+                slot -> inventory.getStack(slot).isEmpty());
         if (destination == AbyssListenerGunSweep.NO_SLOT) {
             return false;
         }
@@ -228,17 +246,6 @@ public final class AbyssListenerLoadout {
         inventory.setStack(destination, inventory.getStack(target));
         inventory.setStack(target, gun);
         return true;
-    }
-
-    private static int emptyHiddenStorageSlot(PlayerInventory inventory) {
-        for (int slot = PlayerInventory.getHotbarSize(); slot < PlayerInventory.MAIN_SIZE; slot++) {
-            if (inventory.getStack(slot).isEmpty()) {
-                return slot;
-            }
-        }
-        return inventory.getStack(PlayerInventory.OFF_HAND_SLOT).isEmpty()
-                ? PlayerInventory.OFF_HAND_SLOT
-                : AbyssListenerGunSweep.NO_SLOT;
     }
 
     private static boolean holdsGun(ServerPlayerEntity player) {
