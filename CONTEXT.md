@@ -1119,6 +1119,9 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     thrower; every non-player entity (e.g. Wathe `PlayerBodyEntity` corpses) is transparent. It opens a zone at the
     cell in front of the struck face (a player hit uses the hit-point cell). A landing that converts no block plays
     only the shatter cue and opens no zone (no heartbeat, no standing check).
+  - A Riftwalker Rift Gate is the one non-player entity `canHit` accepts (Riftwalker D18,
+    `RiftGateProjectileService.isProjectileTarget`): the gate's deflection moves the flask to another gate or reflects
+    it, and nothing lands at the gate.
   - One snapshot at landing flood-fills 6-neighbour steps through cells whose entity-less collision shape is empty (open
     doors pass; closed doors and walls stop it) up to Euclidean `ZONE_RADIUS` from the landing cell, and every
     neighbouring block that passes `DeepDarkZoneEligibility` converts: inside the map `playArea`, outside the reset
@@ -1238,6 +1241,10 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   - The shell bursts on the first block, closed door, or player its blast could catch, on a Seeker device in its
     path, or after 100 ticks (99 moves). It passes through Wathe corpses (`PlayerBodyEntity`), spectators, creative and
     Wathe-dead players (Wraiths) on both sides, and SparkTraits Last Escape players on the server only.
+  - A Riftwalker Rift Gate never bursts it (Riftwalker D18): the gate's deflection moves it to another gate or reflects
+    it. On a flat tick the shell keeps the gate's exit velocity (`onDeflected`) and re-bases its launch point behind the
+    new position (`PotionShellFlight.flatPathAfterTick`), so the path length carries over the jump: still 20 flat ticks
+    in total, and the lifetime is unchanged. A Seeker device in the same tick's path still bursts it first.
   - Once the round leaves `ACTIVE`, a shell still in flight is discarded without exploding, and detonation also
     requires `ACTIVE`, so no kill, gold or bounty lands after the result. Finalize discards any shell left.
 - **Blast.** It uses the grenade presentation. The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
@@ -1331,6 +1338,9 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   (D8, C5), moves to the front of a random other gate with rotated velocity, else reflects at full speed; at most 3
   passes. The NR throwing axe uses `mixin/riftwalker/RiftThrowingAxeMixin`, the SparkStrength M67 `RiftGateM67Sweep`
   (registry id only). Hitscan ignores gates; a custom player-only `canHit` must accept gates via `isProjectileTarget`.
+  D18: the Abyss Listener flask does so (`DeepDarkSporeFlaskEntity.canHit`), and the Potion Gunner shell, which every
+  non-player entity already stops, keeps the gate's exit velocity and its flat-range path length across a pass
+  (`PotionShellEntity.onDeflected`).
   `mixin/riftwalker/RiftProjectileDeflectionMixin` keeps a gate deflection from flipping pickup to ALLOWED and from
   being remembered as `lastDeflectedEntity`; destinations must pass `RiftProjectileExitRules` (ticking exit/start, box
   clear of blocks, clear line), else another gate or reflect.
