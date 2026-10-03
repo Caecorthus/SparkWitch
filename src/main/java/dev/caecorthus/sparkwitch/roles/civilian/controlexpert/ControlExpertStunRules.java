@@ -77,6 +77,8 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "seeker_car_use"),
             // Black Raven transform selection (SelectBlackRavenDisguiseC2SPacket). / 黑羽鸦变身选择。
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
+            // Blind Attune (UseBlindAttuneC2SPayload). / 盲人凝神。
+            Identifier.of("sparkwitch", "use_blind_attune"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),

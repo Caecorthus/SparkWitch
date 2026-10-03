@@ -329,6 +329,98 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
                 providerMethod: "renderHud",
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "blind.BlindGateRoleNameRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blind/BlindGateRoleNameRendererMixin.class",
+                handler: "sparkwitch\$blindHidesRoleNames",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "blind.BlindGateCrosshairRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blind/BlindGateCrosshairRendererMixin.class",
+                handler: "sparkwitch\$blindPlainCrosshair",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$addArmorPanel",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25426()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25426",
+                providerDescriptor: "()V"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$focusArmorSlot",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25394",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$armorSlotAt",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;",
+                selector: "getSlotAt(DD)Lnet/minecraft/class_1735;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "getSlotAt",
+                providerDescriptor: "(DD)Lnet/minecraft/class_1735;"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$armorBlockIsInside",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;",
+                selector: "isClickOutsideBounds(DDIII)Z",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "isClickOutsideBounds",
+                providerDescriptor: "(DDIII)Z"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$shiftClickArmor",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "method_25402(DDI)Z",
+                atTarget: "Ldev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen;onMouseClick(Lnet/minecraft/class_1735;IILnet/minecraft/class_1713;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25402",
+                providerDescriptor: "(DDI)Z"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$returnCursorArmorOnClose",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25419()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25419",
+                providerDescriptor: "()V"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$returnCursorArmorOnForcedClose",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25393()V",
+                atTarget: "Lnet/minecraft/class_746;method_7346()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25393",
+                providerDescriptor: "()V"
         ]
 ]
 

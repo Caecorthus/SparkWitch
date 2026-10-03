@@ -1,5 +1,8 @@
 package dev.caecorthus.sparkwitch.net;
 
+import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindAttuneService;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseS2CPayload;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.net.UseBlindAttuneC2SPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabC2SPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
@@ -126,6 +129,16 @@ public final class SparkWitchPackets {
                 FocusedFootstepsUseResultS2CPacket.ID,
                 FocusedFootstepsUseResultS2CPacket.CODEC
         );
+        // Blind: the Attune request (stun, Seeker and Fear guarded) and the owner-only perception pulse.
+        // 盲人：凝神请求（受眩晕、搜寻者与恐惧拦截）与只发给本人的感知脉冲。
+        PayloadTypeRegistry.playC2S().register(
+                UseBlindAttuneC2SPayload.ID,
+                UseBlindAttuneC2SPayload.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                BlindPulseS2CPayload.ID,
+                BlindPulseS2CPayload.CODEC
+        );
         ServerPlayNetworking.registerGlobalReceiver(UseWitchSkillC2SPacket.ID,
                 (payload, context) -> FocusedFootstepsRequestService.use(
                         context.player(), payload.targetUuid()));
@@ -153,6 +166,8 @@ public final class SparkWitchPackets {
         ServerPlayNetworking.registerGlobalReceiver(SelectBlackRavenDisguiseC2SPacket.ID,
                 (payload, context) -> BlackRavenDisguiseService.requestSwitch(
                         context.player(), payload.session(), payload.target()));
+        ServerPlayNetworking.registerGlobalReceiver(UseBlindAttuneC2SPayload.ID,
+                (payload, context) -> BlindAttuneService.tryUse(context.player()));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {

@@ -76,6 +76,7 @@ public final class BlackRavenDisguiseRules {
             sparkwitch("guardian_angel"),
             sparkwitch("vendetta"),
             sparkwitch("pig_god"),
+            sparkwitch("blind"),
             noelles("demon_hunter"),
             noelles("undercover"),
             wathe("civilian"),
