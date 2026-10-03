@@ -575,9 +575,11 @@ the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:esca
 `mixin/fiend/GameFunctionsFiendImmunityMixin` is a cancellable HEAD guard on Wathe's 5-arg `killPlayer`
 (priority 1100, so SparkFactionAPI's affect veto runs first) that ignores `force`, so the owner-approved piercing
 kills (bell toll, time curse) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
-per attack: `wathe:gun_shot` (every gun) +50 gold, Speed III 5 s and a 20 s cooldown floor, applied at
-END_SERVER_TICK through SparkTraits' exact write with a vanilla fallback, on every other participant within
-8 blocks (never shortened; NoellesRoles `timed_bomb` is skipped, its cooldown is the Bomber pass gate); a hand-held
+per attack: `wathe:gun_shot` (every gun) gives the Fiend +50 gold and Speed III 5 s, and puts a 20 s item-cooldown
+floor on every other participant within 8 blocks, queued at the hit and applied at END_SERVER_TICK through
+SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, …)` (exact, never shortened; role-skill counters
+untouched; the registry's exemptions skip the Seeker car and NoellesRoles `timed_bomb`, whose cooldown is the Bomber
+pass gate); a hand-held
 stab, recognised only by `FiendStabScope` around Wathe's `KnifeStabPayload` receiver, +50 gold and 4 notes;
 `wathe:bat_hit` and `sparkwitch:ceremonial_blade` +100 gold. A bomb the Fiend passed that kills its direct
 recipient pays +50 only while the Fiend is still dormant (server-only `FiendBombLedger`). The Taotie cannot
@@ -934,8 +936,9 @@ and knife, Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker) and 
 constant (Antidote, Repair Tool, Poison Needle) plus the 200-tick neutral master key; round-start cooldowns are not
 nominals, and Wathe items fall through to Wathe's own table.
 The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
-"max + exact" writer and offers no write path to other features. Not registered (out of scope): Wathe shop-entry
-cooldowns, the Black Raven disguise switch, the Curser and Guardian Angel, and SparkStrength components.
+"max + exact" writer and offers no write path to other features, so the Fiend gun-hit aura skips it too (owner
+decision, 2026-10-02). Not registered (out of scope): Wathe shop-entry cooldowns, the Black Raven disguise switch,
+the Curser and Guardian Angel, and SparkStrength components.
 
 Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player
