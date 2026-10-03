@@ -20,6 +20,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FishingRodItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.KeyFishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashItem;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraItem;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCarItem;
@@ -74,6 +76,7 @@ public final class SparkWitchItems {
     public static final Identifier DISRUPTOR_ID = ControlExpertRules.DISRUPTOR_ID;
     public static final Identifier TASER_ID = ControlExpertRules.TASER_ID;
     public static final Identifier SHOCK_DEVICE_ID = ControlExpertRules.SHOCK_DEVICE_ID;
+    public static final Identifier HOLY_FLASH_ID = HolyFlashRules.ITEM_ID;
     public static final Identifier SEEKER_CAR_ID = SeekerRules.CAR_ITEM_ID;
     public static final Identifier SEEKER_CAMERA_ID = SeekerRules.CAMERA_ITEM_ID;
     public static final Identifier FISHING_ROD_ID = FisherRules.FISHING_ROD_ID;
@@ -111,6 +114,7 @@ public final class SparkWitchItems {
     private static Item disruptor;
     private static Item taser;
     private static Item shockDevice;
+    private static Item holyFlash;
     private static Item seekerCar;
     private static Item seekerCamera;
     private static Item fishingRod;
@@ -253,6 +257,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 SHOCK_DEVICE_ID,
                 new ShockDeviceItem(ShockDeviceItem.createSettings())
+        );
+        holyFlash = Registry.register(
+                Registries.ITEM,
+                HOLY_FLASH_ID,
+                new HolyFlashItem(HolyFlashItem.createSettings())
         );
         seekerCar = Registry.register(
                 Registries.ITEM,
@@ -490,6 +499,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return shockDevice;
+    }
+
+    public static Item holyFlash() {
+        if (holyFlash == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return holyFlash;
     }
 
     public static Item seekerCar() {

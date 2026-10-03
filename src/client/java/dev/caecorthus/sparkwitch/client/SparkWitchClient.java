@@ -56,6 +56,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashEntities;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.caecorthus.sparkwitch.client.saboteur.SaboteurClientAbilityRules;
@@ -112,6 +113,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         FisherClient.register();
         dev.caecorthus.sparkwitch.client.fiend.FiendClient.init();
         BlindClient.register();
+        dev.caecorthus.sparkwitch.client.saint.HolyFlashAudioClient.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
@@ -232,6 +234,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         // The thrown Shock Device renders its synced item stack like vanilla thrown items.
         // 投出的电击装置与原版投掷物一样渲染其同步的物品。
         EntityRendererRegistry.register(ControlExpertEntities.shockDevice(), FlyingItemEntityRenderer::new);
+        // The thrown Holy Flash renders its synced item stack. / 投出的圣光弹渲染其同步的物品。
+        EntityRendererRegistry.register(HolyFlashEntities.holyFlash(), FlyingItemEntityRenderer::new);
         SeekerClientModule.registerEntityRenderers();
     }
 

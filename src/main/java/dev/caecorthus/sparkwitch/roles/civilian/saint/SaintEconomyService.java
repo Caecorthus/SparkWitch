@@ -54,10 +54,27 @@ public final class SaintEconomyService {
         return SaintRules.isSaint(role) ? CanSeeMoney.Result.ALLOW : null;
     }
 
+    /**
+     * Outside a running game or once dead, the Saint answers DENY instead of no answer. Since the Saint has a shop,
+     * Wathe's fallback {@code ShopUtils.canAccessShop} is true for it, which would show coins to a dead Saint and
+     * answer ALLOW while the round is STARTING (when SparkTraits rolls money-only traits). DENY keeps both answers
+     * exactly as they were before the shop existed.
+     * 不在进行中的对局或已死亡时，圣徒返回 DENY 而不是不作答。圣徒有了商店后，Wathe 的回退
+     * {@code ShopUtils.canAccessShop} 对其为真，会让死亡的圣徒看到金币，并在 STARTING 阶段（SparkTraits 抽取金币词条时）
+     * 返回 ALLOW。DENY 让这两种结果与商店出现之前完全一致。
+     */
+    static CanSeeMoney.Result moneyVisibility(@Nullable Role role, boolean playingAndAlive) {
+        if (!playingAndAlive) {
+            return SaintRules.isSaint(role) ? CanSeeMoney.Result.DENY : null;
+        }
+        return moneyVisibilityResult(role);
+    }
+
     private static CanSeeMoney.Result canSeeMoney(PlayerEntity player) {
-        if (player == null || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+        if (player == null) {
             return null;
         }
-        return moneyVisibilityResult(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
+        return moneyVisibility(GameWorldComponent.KEY.get(player.getWorld()).getRole(player),
+                GameFunctions.isPlayerPlayingAndAlive(player));
     }
 }

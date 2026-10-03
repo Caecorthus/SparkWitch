@@ -19,6 +19,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 /**
  * Simple Voice Chat bridge for active Wraith outgoing silence, plus the Blind's lowest-priority voice perception.
  * Simple Voice Chat 桥接：阻止激活冤魂的外发语音，并以最低优先级提供盲人的语音感知。
+ * On the physical client it also wires the Holy Flash incoming-voice muffle via {@link HolyFlashVoiceClientBridge}.
+ * 在物理客户端上还会通过 {@link HolyFlashVoiceClientBridge} 接入圣光弹的传入语音压低。
  */
 public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
     @Override
@@ -44,6 +46,9 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
                 BlindVoicePerceptionListener::onMicrophonePacket,
                 Integer.MIN_VALUE
         );
+        // Physical client only: Holy Flash muffles incoming voice; a no-op on dedicated servers.
+        // 仅物理客户端：圣光弹压低传入语音；专用服务器上不做任何事。
+        HolyFlashVoiceClientBridge.register(registration);
         VoicechatPlugin.super.registerEvents(registration);
     }
 
