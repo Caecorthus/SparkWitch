@@ -61,7 +61,6 @@ public final class WitchInstinctSuppressionClientHooks {
                 witchWorld.isInstinctObscured(),
                 viewerRole,
                 GameFunctions.isPlayerPlayingAndAlive(viewer),
-                GameFunctions.isPlayerSpectatingOrCreative(viewer),
                 isSparkTraitsFinalMomentActive(world)
         );
     }

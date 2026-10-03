@@ -1362,6 +1362,11 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   player list, screenshot, fullscreen, voice chat, instinct), hide the hand and force a crosshair MISS; A/D, scroll or
   1/2 + use hop, a fresh Shift exits. `RiftGrayscaleFilter` (private `PostEffectProcessor`) re-composites outlines so
   instinct colours stay (D10); `RiftSessionHud` draws ←/→, `#gate · n/m` and the stay seconds (red from 5 s, C2).
+  An occupant keeps its own living-role instinct outlines: `WitchFactionRules` / `MurderousWitchRules`
+  `shouldUseCustomInstinctHighlight` key on Wathe-alive only (a null answer would reach SparkFactionAPI's
+  role-revealing faction-colour fallback), Obscure/Fear still apply, and the Wraith reveal (`WraithViewerRules`) and
+  the glimmering-Fisher outline exemption (`FisherGlimmerInstinctHooks`) belong to Wathe-dead spectators only. The
+  factor fallback (`WitchFactorClientHooks`) still stays off for any spectator.
 - **Melee.** A gate keeps `canHit()` only for the right-click entry and never shields a player behind it (client only;
   the server never re-raycasts melee). The client `RiftGateEntity.interact` returns PASS unless the local player could
   enter now (B-6, `RiftSessionService.claimsRightClick`), so a held item still fires.
@@ -1419,8 +1424,9 @@ Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player
 whose synced Wraith state is active is skipped when
 `WraithViewerRules.shouldHideFromOrdinaryViewer` hides it, except for the
-promoted Curser viewed by the witch faction. Spectators, killers viewing the
-promoted Saboteur, and the bound killer viewing its Vendetta keep selecting it.
+promoted Curser viewed by the witch faction. Wathe-dead spectators (not a living
+Rift Gate occupant), killers viewing the promoted Saboteur, and the bound killer
+viewing its Vendetta keep selecting it.
 `client/mixin/WraithNameTagRaycastMixin` narrows only the predicate of the first
 (player) `ProjectileUtil.getCollision` in Wathe's `RoleNameRenderer.renderHud`;
 `WitchCohortRoleNameMixin`, `InsiderCohortRoleNameMixin` and `BlackRavenRoleNameRenderer` apply the same filter
