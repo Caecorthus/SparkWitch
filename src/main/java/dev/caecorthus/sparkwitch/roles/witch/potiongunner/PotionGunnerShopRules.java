@@ -12,10 +12,10 @@ import java.util.List;
 
 /**
  * Potion Gunner shop: the plain Accomplice list without the revolver, then the four shells. Shell display stacks are
- * our own items, never {@code wathe:grenade}, so SparkStrength never appends its M67 here; the SparkStrength tablet is
- * still appended for the witch faction.
+ * our own items, never {@code wathe:grenade}, so SparkStrength never appends its M67 here. The SparkStrength tablet is
+ * never sold; SparkStrength issues it free to the witch faction.
  * 药炮手商店：普通共犯条目去掉左轮，再追加四种炮弹。炮弹展示物品是本模组物品，从不是 {@code wathe:grenade}，因此
- * SparkStrength 不会在这里追加 M67；SparkStrength 平板仍按魔女阵营追加。
+ * SparkStrength 不会在这里追加 M67。SparkStrength 平板从不出售，由 SparkStrength 免费发放给魔女阵营。
  */
 public final class PotionGunnerShopRules {
     /** Accomplice entry the Potion Gunner never sells. / 药炮手不出售的共犯条目。 */

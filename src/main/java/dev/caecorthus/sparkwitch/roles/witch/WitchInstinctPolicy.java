@@ -53,17 +53,15 @@ public final class WitchInstinctPolicy {
                 CurserPlayerComponent.KEY.get(viewer).isConfused(),
                 viewerSpectatingOrCreative
         );
-        if (curserViewer ? !curserOutlineEligible : !WitchFactionRules.shouldUseCustomInstinctHighlight(
-                viewerAlive,
-                viewerSpectatingOrCreative
-        )) {
+        // A living Rift Gate occupant is a spectator but keeps this instinct; see shouldUseCustomInstinctHighlight.
+        // 存活的裂隙门内玩家虽是旁观者，仍保留此本能；见 shouldUseCustomInstinctHighlight。
+        if (curserViewer ? !curserOutlineEligible : !WitchFactionRules.shouldUseCustomInstinctHighlight(viewerAlive)) {
             return null;
         }
         if (WitchFactionRules.shouldObscureInstinct(
                 WitchWorldComponent.KEY.get(viewer.getWorld()).isInstinctObscured(),
                 viewerRole,
-                viewerAlive,
-                viewerSpectatingOrCreative
+                viewerAlive
         )) {
             return FactionInstinctPolicy.InstinctResult.skip(OBSCURE_SKIP_PRIORITY);
         }

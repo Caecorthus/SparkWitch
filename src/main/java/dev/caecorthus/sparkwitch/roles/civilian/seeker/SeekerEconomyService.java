@@ -13,12 +13,13 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Seeker economy (Q9): starting balance 50 (written by {@link SeekerLoadoutService#grant}), +50 per completed task,
- * money always visible. SparkStrength pays nothing to new police roles, so SparkWitch owns all of the Seeker's income.
+ * Seeker economy (Q9): starting balance 0 (written by {@link SeekerLoadoutService#grant}; the tablet the old 50 paid for
+ * is now issued free by SparkStrength), +50 per completed task, money always visible. SparkStrength pays nothing to new police roles, so SparkWitch owns all of the Seeker's income.
  * No task pay for a SparkTraits Impostor or an unknown answer ({@link SparkTraitsSeekerBridge#isImpostorOrUnknown}:
  * absent SparkTraits reads as "not impostor", a present build that cannot answer reads as "unknown"), following the
  * Control Expert's fail-closed precedent; SparkTraits pays an Impostor's task income itself.
- * 搜寻者经济（Q9）：开局余额 50（由 {@link SeekerLoadoutService#grant} 写入），每完成一个任务 +50，金钱始终可见。
+ * 搜寻者经济（Q9）：开局余额 0（由 {@link SeekerLoadoutService#grant} 写入；原先 50 所购买的平板现由 SparkStrength 免费发放），
+ * 每完成一个任务 +50，金钱始终可见。
  * SparkStrength 不给新警察职业发钱，因此搜寻者的全部收入由 SparkWitch 负责。SparkTraits 内鬼或无法判定时
  * 不发任务钱（未安装视为非内鬼，已安装但无法回答视为未知），沿用控场专家“未知即拒绝”的先例；内鬼的任务收入由 SparkTraits 自行支付。
  */

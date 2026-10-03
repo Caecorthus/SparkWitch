@@ -26,7 +26,9 @@ SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
 Seeker availability requires the SparkStrength tablet item (`sparkstrength:tablet`), resolved by
-registry id only; SparkStrength owns no Seeker gameplay.
+registry id only; SparkStrength owns no Seeker gameplay. SparkWitch never sells or grants the tablet: SparkStrength
+issues it free at round start to every tablet-eligible player (SparkWitch's `PoliceRoles` members and the witch
+faction included) and, through a mid-round reconciliation pass, to players who become eligible later.
 
 Current build baseline:
 
@@ -710,11 +712,9 @@ skip. Its `CanSeeMoney` answers ALLOW for a living Insider and DENY for a dead o
 `canAccessShop` fallback would keep the counter, because the shop is built from the role alone), with no
 running-state gate, because SparkTraits rolls traits while STARTING and offers Task Master to this FAKE-mood role only
 through that answer. The shop is rebuilt on both sides, gated on the exact role only: capture `sparktraits:*`,
-clear, revolver 150, crowbar 50, and (only when the SparkStrength tablet item is registered) the tablet at 100
-under SparkStrength's own entry id `sparkstrength_tablet`, each stock 1, then restore. The Insider is in SFA `PoliceRoles`, so its tablet joins the police channel. That also makes it a SparkStrength
-police elector for meetings and votes (`TabletChannelResolver.isPoliceElector`) and makes
-`TabletShopRules.canBuyTabletRole` true; SparkStrength's final shop append skips its own 150-price tablet only because
-the Insider entry reuses the id `sparkstrength_tablet`, so the shared entry id is load-bearing.
+clear, revolver 150 and crowbar 50, each stock 1, then restore. The tablet is not sold: the Insider is in SFA
+`PoliceRoles`, so SparkStrength issues it a free tablet at round start on the police channel. That also makes it a
+SparkStrength police elector for meetings and votes (`TabletChannelResolver.isPoliceElector`).
 Team Jiahao (every Corrupt Cop and every Insider, by current role) applies only in a round that has an Insider
 (any role-map entry with the Insider role, online or not, dead or alive); without one, all three wraps below
 return NoellesRoles' own value, so several forced Corrupt Cops behave exactly as in NoellesRoles and the title
@@ -733,11 +733,12 @@ Jiahao win (a winning team row in a round with an Insider): it marks every other
 screen reads "嘉豪阵营胜利！", and Wathe's `didWin` and `GameRecordManager.endMatch` read the same rows. Every
 other win keeps Wathe's rows.
 Insider presentation is client-only. One `GetInstinctHighlight` listener answers `always` only while its condition
-holds. At priority 65 (below SparkStrength's tablet member and suspect marks at 70/80, which keep their colors), a
-living Insider holding instinct sees every other living, visible player in `0x00FFD0`; the Corrupt Cop is answered
-at 93 in `0x193264`, so the partner stays navy even under a tablet mark. At priority 93 (above SparkStrength's
-Corrupt Cop x-ray at 90, below the Seeker mark 95, `skip()` 100 and suppression 102), a living Corrupt Cop sees the
-living, visible Insider in `0x00FFD0` while holding instinct or during its Moment vision window, and a killer-instinct
+holds. At priority 65 (below SparkStrength's tablet suspect mark at 80, which keeps its color; SparkStrength no
+longer outlines police-network members), a living Insider holding instinct sees every other living, visible player in
+`0x00FFD0`; the Corrupt Cop is answered at 93 in `0x193264`, so the partner stays navy even under a tablet suspect
+mark. At priority 93 (above SparkStrength's Corrupt Cop x-ray at 90, below the Seeker mark 95, `skip()` 100 and
+suppression 102), a living Corrupt Cop sees the living, visible Insider in `0x00FFD0` while holding instinct or
+during its Moment vision window, and a killer-instinct
 viewer (`isInstinctEnabledAndIsKiller() && !canSeeSpectatorInformation() && isKiller()`, exactly when Wathe's default
 would paint the target red or green, a promoted Saboteur Wraith included) holding instinct sees the living Insider in
 the Impostor blue `0x0013FF`, invisible or not, as SparkTraits paints an invisible real Impostor. Targets hidden by
@@ -913,10 +914,14 @@ Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 components; the existing shared packet and NBT layouts remain unchanged. Sword
 kill readiness (30s) is independent of the item dash cooldown (5s). Recruitment
 uses a cumulative world quota, never a living-teammate count. It keeps only keys, both NoellesRoles master
-keys and letters (the revolver is refunded like any other item), re-initializes the new role's Wathe shop
-stock and cooldowns, and refuses, on the real role and before any destructive step, every SparkFactionAPI
-`PoliceRoles` member (Emma included, the Insider exempt) and the NoellesRoles Corrupt Cop with a random
-flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the failed recruitment.
+keys, letters and the SparkStrength tablet (registry id only; the revolver is refunded like any other item, and
+kept stacks are never refunded). The tablet is a free identity device, not a shop item: SparkStrength issues it at
+most once per player per round and re-resolves a kept tablet's channel to the witch network, and a recruit holding
+none gets one from SparkStrength's mid-round reconciliation pass; SparkWitch never grants it. Recruitment
+re-initializes the new role's Wathe shop stock and cooldowns, and refuses, on the real role and before any
+destructive step, every SparkFactionAPI `PoliceRoles` member (Emma included, the Insider exempt) and the
+NoellesRoles Corrupt Cop with a random flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the
+failed recruitment.
 A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so a recruited
 ex-Hunter gets no trap back (the trap itself stays armed until it expires or the round ends).
 Sword piercing
@@ -1383,6 +1388,11 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   player list, screenshot, fullscreen, voice chat, instinct), hide the hand and force a crosshair MISS; A/D, scroll or
   1/2 + use hop, a fresh Shift exits. `RiftGrayscaleFilter` (private `PostEffectProcessor`) re-composites outlines so
   instinct colours stay (D10); `RiftSessionHud` draws ←/→, `#gate · n/m` and the stay seconds (red from 5 s, C2).
+  An occupant keeps its own living-role instinct outlines: `WitchFactionRules` / `MurderousWitchRules`
+  `shouldUseCustomInstinctHighlight` key on Wathe-alive only (a null answer would reach SparkFactionAPI's
+  role-revealing faction-colour fallback), Obscure/Fear still apply, and the Wraith reveal (`WraithViewerRules`) and
+  the glimmering-Fisher outline exemption (`FisherGlimmerInstinctHooks`) belong to Wathe-dead spectators only. The
+  factor fallback (`WitchFactorClientHooks`) still stays off for any spectator.
 - **Melee.** A gate keeps `canHit()` only for the right-click entry and never shields a player behind it (client only;
   the server never re-raycasts melee). The client `RiftGateEntity.interact` returns PASS unless the local player could
   enter now (B-6, `RiftSessionService.claimsRightClick`), so a held item still fires.
@@ -1440,8 +1450,9 @@ Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player
 whose synced Wraith state is active is skipped when
 `WraithViewerRules.shouldHideFromOrdinaryViewer` hides it, except for the
-promoted Curser viewed by the witch faction. Spectators, killers viewing the
-promoted Saboteur, and the bound killer viewing its Vendetta keep selecting it.
+promoted Curser viewed by the witch faction. Wathe-dead spectators (not a living
+Rift Gate occupant), killers viewing the promoted Saboteur, and the bound killer
+viewing its Vendetta keep selecting it.
 `client/mixin/WraithNameTagRaycastMixin` narrows only the predicate of the first
 (player) `ProjectileUtil.getCollision` in Wathe's `RoleNameRenderer.renderHud`;
 `WitchCohortRoleNameMixin`, `InsiderCohortRoleNameMixin` and `BlackRavenRoleNameRenderer` apply the same filter
