@@ -37,8 +37,10 @@ Current build baseline:
 - `api/`: the only public downstream SparkWitch Interface.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime.
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
-- `roles/civilian/prophet/`: Death Omen skill, role-owned state, spawn-boundary
-  corpse collection, and client outline rules.
+- `roles/civilian/prophet/`: passive Death Sense (world-wide corpse pulse every 60 s), the
+  owner-only `sparkwitch:prophet_player` component (permanent highlight set, necrology,
+  Prophecy records), the Prophecy skill registration, and economy. The client outline
+  lives in `client/hooks/ProphetCorpseHighlightClientHooks`.
 - `roles/civilian/saint/`: Saint protection, Hellfire, player-local state, and
   UUID-bound Karma.
 - `roles/civilian/perfumer/`: private scent marks, cologne healing, corpse mood,
@@ -164,9 +166,10 @@ Current build baseline:
 4. Murderous Witch Death Ray
 5. Ninja parry window
 6. shared cooldown
-7. Prophet Death Omen window
-8. mana regeneration
-9. Saint ability
+7. mana regeneration
+8. Saint ability
+
+The Prophet no longer ticks here; `sparkwitch:prophet_player` ticks itself.
 
 Do not reorder these calls. The existing component ids remain `sparkwitch:player`
 and `sparkwitch:world`; packet field order and NBT keys must remain stable.
@@ -175,8 +178,11 @@ is handled before that tick's rotation packet); a payload without them still dec
 falls back to the server rotation. The server still decides every Death Ray and shotgun hit.
 Perfumer state uses the separate owner-only `sparkwitch:perfumer_player`
 component so its target lists are never added to the shared player packet.
-Prophet state remains inside the existing `sparkwitch:player` component and
-appends its owner-only ticks and body UUIDs after the live packet tail.
+Prophet state lives in the separate owner-only `sparkwitch:prophet_player`
+component (`NEVER_COPY`, match-id bound), never in the shared player packet. It
+holds the Death Sense countdown, an only-growing set of highlighted body entity
+UUIDs, the necrology, and Prophecy records. The old `DeathOmenTicks` and
+`DeathOmenBodyUuids` NBT keys are no longer read or written.
 Black Raven state never enters that shared schema. Victim marks use
 `sparkwitch:black_raven_mark`; owner-only progress and completed identity
 snapshots use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
