@@ -44,7 +44,9 @@ public final class SparkWitchForcedCooldowns {
                 new SaboteurCooldownStore(),
                 new NoellesAbilityCooldownStore(),
                 new NoellesTaotieSwallowCooldownStore(),
-                new NoellesAssassinCooldownStore()
+                new NoellesAssassinCooldownStore(),
+                // Appended last: earlier slots keep their positions. / 追加在末尾：之前各槽位置不变。
+                new BlindAttuneCooldownStore()
         );
     }
 

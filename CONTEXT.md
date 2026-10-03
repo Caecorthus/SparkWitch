@@ -856,7 +856,9 @@ costs nothing, and a swallowed Blind gets no re-scan pulse. Attune (the
 shared NoellesRoles ability key sends `sparkwitch:use_blind_attune` while the view is active) is
 refused silently while a Taotie has swallowed the Blind (C7), while stunned, skill-blocked or
 cooling down, and with the Grand Witch Fear skill-blocked message while Feared; a refusal costs
-nothing. The White Cane and the ComTac VIII are bound: never an item entity (drop, death drop),
+nothing. Forced cooldowns reach Attune only through the `sparkwitch:blind_attune` store. The cane,
+like every carried non-exempt item, is floored by `raiseAll`; its item nominal only sizes nominal-based
+extensions such as GW-AC (see the SparkFactionAPI `ForcedCooldowns` registrations). The White Cane and the ComTac VIII are bound: never an item entity (drop, death drop),
 never outside the holder's own inventory slots (head slot included; QUICK_MOVE only for the ComTac
 quick-equip from the hotbar into an empty head slot; never the offhand (Wathe's server already
 refuses the swap-hands action in a round), a container, the crafting grid, an item frame, an armor
@@ -995,11 +997,23 @@ Features that force a cooldown on another player (penalties, auras) go through S
    nominal `AssassinPlayerComponent.COOLDOWN_TICKS`). NoellesRoles gates use `isRole`, so these stores (and the
    nominal lookup) also match the acting role of a disguised Black Raven (`ForcedCooldownRoles`). All members are
    checked against the pinned NoellesRoles 1.7.6 jar.
+8. `sparkwitch:blind_attune` (owner decision 2026-10-03, appended last so earlier slots keep their positions): the
+   Blind's Attune, for a real, active Blind with a granted kit in an ACTIVE round (`BlindAttuneService`'s gate; the
+   Blind is never a disguise target). Remaining time counts to the absolute ready tick, so it includes a running 10 s window, as the HUD
+   shows; the nominal is the 45 s post-window cooldown (`BlindRules.ATTUNE_COOLDOWN_TICKS`, 900), as the witch-skill
+   nominal leaves its window out. Every write only moves the ready tick later (`ForcedCooldownMath.raiseReadyTick`)
+   through the owner-syncing `BlindComponent.setAttune`; it never touches the window and never shortens. Raise and
+   extend are the SparkFactionAPI defaults.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
-Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Ninja shuriken
-and knife, Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun) and of NoellesRoles items with
-a public constant (Antidote, Repair Tool, Poison Needle) plus the 200-tick neutral master key; round-start cooldowns are
-not nominals, and Wathe items fall through to Wathe's own table.
+Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
+White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken and knife, Feather Blade, Knockout
+Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun, and the 1 s anti-repeat writes of the potion launcher and the Rift
+Gate, which no current consumer reaches) and of NoellesRoles items with a public constant (Antidote, Repair Tool, Poison
+Needle) plus the 200-tick neutral master key; round-start cooldowns are not nominals, and Wathe items fall through to
+Wathe's own table. The local `SparkWitchItemCooldownNominalsTest` scans every main source file for item cooldown
+writes (direct, through a local `ItemCooldownManager`, or through a ticks-parameter helper) and requires each written
+constant, by its qualified name, to be in the provider, unless it is listed as round-start, non-nominal, or a
+variable write with its reason.
 The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
 "max + exact" writer and offers no write path to other features, so the Fiend gun-hit aura skips it too (owner
 decision, 2026-10-02). Not registered (out of scope): Wathe shop-entry cooldowns, the Black Raven disguise switch,
