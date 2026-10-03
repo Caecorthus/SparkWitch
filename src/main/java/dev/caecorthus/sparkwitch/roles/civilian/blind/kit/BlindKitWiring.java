@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
+import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -86,11 +87,14 @@ public final class BlindKitWiring {
         });
         ServerTickEvents.END_SERVER_TICK.register(BlindKitWiring::tick);
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> BlindCaneService.forgetAll());
-        // Item frames and armor stands would take a held bound item out of the inventory; every other entity use stays
-        // untouched. Decorated pots are handled by mixin/blind/BlindKitDecoratedPotMixin, so the item use still runs.
-        // 物品展示框与盔甲架会拿走手持的绑定物品；其他实体交互不受影响。饰纹陶罐由 BlindKitDecoratedPotMixin 处理，物品使用照常进行。
+        // Item frames, armor stands and allays would take a held bound item out of the inventory; every other entity
+        // use stays untouched. Decorated pots are handled by mixin/blind/BlindKitDecoratedPotMixin, so the item use
+        // still runs.
+        // 物品展示框、盔甲架与悦灵会拿走手持的绑定物品；其他实体交互不受影响。饰纹陶罐由 BlindKitDecoratedPotMixin 处理，
+        // 物品使用照常进行。
         UseEntityCallback.EVENT.register((player, world, hand, entity, hit) ->
-                (entity instanceof ItemFrameEntity || entity instanceof ArmorStandEntity)
+                (entity instanceof ItemFrameEntity || entity instanceof ArmorStandEntity
+                        || entity instanceof AllayEntity)
                         && BlindInventoryRules.isBound(player.getStackInHand(hand))
                         ? ActionResult.FAIL : ActionResult.PASS);
         BlackoutEffect.BEFORE.register(BlindKitWiring::beforeBlackoutEffect);

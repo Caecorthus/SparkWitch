@@ -53,9 +53,11 @@ Current build baseline:
   - The bound Necrology (`sparkwitch:prophet_necrology`): `ProphetNecrologyItem`, the binding rules
     `ProphetNecrologyRules`, and the lifecycle `ProphetNecrologyLoadoutService` (grant on assignment,
     one-copy restore from `ProphetRuntime.tick`, deletion on death, role loss, reset, round end, and stale
-    match). Its mixins live in `mixin/prophet/` (death drop, item drop, slot click), parallel to the Black
-    Raven ledger's; Fabric use callbacks refuse handing it to item frames, armor stands, allays and decorated
-    pots; hand hiding is the NoellesHiddenEquipment registration. The empty
+    match). Its mixins live in `mixin/prophet/` (death drop, item drop, slot click, decorated pot), parallel to
+    the Black Raven ledger's; a Fabric `UseEntityCallback` refuses handing it to item frames, armor stands and
+    allays, and `DecoratedPotBlockProphetNecrologyMixin` makes a decorated pot answer
+    `SKIP_DEFAULT_BLOCK_INTERACTION` so the pot never takes it and the book still opens; hand hiding is the
+    NoellesHiddenEquipment registration. The empty
     `net/OpenProphetNecrologyS2CPacket` opens the read-only two-tab book
     `client/prophet/ProphetNecrologyBookScreen`, which reads only `sparkwitch:prophet_player`.
   - Prophecy flow: the ability key's Prophet branch (`client/prophet/ProphetClientModule`, before the
@@ -83,8 +85,10 @@ Current build baseline:
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
   bound ledger, restricted shop, and lifecycle cleanup. The bound ledger and Raven Mask
   (`BlackRavenInventoryRules`) never drop, never leave their owner's inventory slots, and are
-  refused by `UseEntityCallback`/`UseBlockCallback` vetoes for item frames, armor stands, allays,
-  and decorated pots.
+  refused by a `UseEntityCallback` veto for item frames, armor stands and allays; a decorated pot
+  answers `SKIP_DEFAULT_BLOCK_INTERACTION` for them through
+  `mixin/blackraven/DecoratedPotBlockBlackRavenItemMixin`, so it never takes them (not even through a
+  Wathe ornament hung on it) and the ledger or mask still opens there.
   - `disguise/`: the Black Raven disguise. It owns the acting-role overlay
     (`BlackRavenActingRole`), the owner-only `BlackRavenDisguiseComponent` and its sync codec, the
     Tab B pool snapshot, the bound Raven Mask (`sparkwitch:black_raven_mask`), one-shot open
@@ -113,7 +117,10 @@ Current build baseline:
   deadline penalty), owner-private Echo/hint/toll state, bound bell and toll kill,
   restricted native shop, and lifecycle cleanup; its mixins live in
   `mixin/bellringer/` and `client/mixin/bellringer/`, client presentation in
-  `client/bellringer/`.
+  `client/bellringer/`. The bell cannot be handed to a world target: a `UseEntityCallback` veto in
+  `BellRingerFeatureService` refuses item frames, armor stands and allays, and
+  `mixin/bellringer/DecoratedPotBlockTollBellMixin` makes a decorated pot answer
+  `SKIP_DEFAULT_BLOCK_INTERACTION`, so the per-tick restore never mints a second bell.
 - `roles/killer/timestealer/`: Time Stealer (`sparkwitch:time_stealer`) Clock use gates and server
   ray targeting, the victim-side Time Theft curse and its piercing settle, physical Time Stamps
   (binding, grants, balance, purchases), the restricted native shop, the Timekeeper counter policy
@@ -125,7 +132,11 @@ Current build baseline:
   (`TIMEKEEPER`) in `compat/NoellesRoleIds`. Naming: the item is 时间怀表 / Time Pocket Watch
   (`sparkwitch:time_stealer_pocket_watch`, own texture and own pocket-watch curse sounds, kept apart
   from the Bell Ringer's bell); "Clock" stays only as the Java code name (`ClockReadyAt`, class and
-  constant names).
+  constant names). The Clock and stamps cannot be handed to a world target: a `UseEntityCallback` veto in
+  `TimeStealerFeatureService` refuses item frames, armor stands and allays, and
+  `mixin/timestealer/DecoratedPotBlockTimeStealerItemMixin` makes a decorated pot answer
+  `SKIP_DEFAULT_BLOCK_INTERACTION`, so the per-tick restore never mints a second Clock and the Clock's own
+  use still runs at a pot.
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers.
 - `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
@@ -175,7 +186,7 @@ Current build baseline:
     (`DeepDarkZoneSync`), sampled vanilla cues (`DeepDarkZoneCues`), and the runtime with its lifecycle
     (`DeepDarkZoneService`); standing effects, exposure, and drain operands (`DeepDarkZoneStandingRules`,
     `DeepDarkZoneStandingService`, `DeepDarkZoneStandingDrain`); and the owner-only `AbyssZoneExposureComponent`.
-  - Its mixins live in `mixin/abysslistener/` (the four Shriek Gun guards and the zone mood drain) and
+  - Its mixins live in `mixin/abysslistener/` (the five Shriek Gun guards and the zone mood drain) and
     `client/mixin/abysslistener/` (`ShriekGunCrosshairMixin`, `MoodRendererAbyssZoneExposureMixin`, and the read-only
     row accessor `MoodRendererTaskRowAbyssAccessor`).
   - Its client presentation lives in `client/abysslistener/`, registered once by `AbyssListenerClient.init()`: the
@@ -862,7 +873,7 @@ extensions such as GW-AC (see the SparkFactionAPI `ForcedCooldowns` registration
 never outside the holder's own inventory slots (head slot included; QUICK_MOVE only for the ComTac
 quick-equip from the hotbar into an empty head slot; never the offhand (Wathe's server already
 refuses the swap-hands action in a round), a container, the crafting grid, an item frame, an armor
-stand or a decorated pot, where `BlindKitDecoratedPotMixin` answers `SKIP_DEFAULT_BLOCK_INTERACTION`
+stand, an allay or a decorated pot, where `BlindKitDecoratedPotMixin` answers `SKIP_DEFAULT_BLOCK_INTERACTION`
 on both sides so the pot never takes it and the cane tap or ComTac equip still runs), hidden in hand
 from other players through `NoellesHiddenEquipment` (D9),
 and stripped from inventory, head slot, cursor and open screens of anyone who is not a living,
@@ -1122,10 +1133,13 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     removes the gun unless `WitchFactorTraitsBridge.isDeathIntercepted`; `ResetPlayer` and `ON_FINISH_FINALIZE` remove
     it. There is no creative exemption.
   - The binding matrix (`AbyssListenerInventoryRules`) is copied from, never shared with, the Time Stealer rules. Its
-    four guards in `mixin/abysslistener/` are HEAD, cancellable, and delegation-only:
+    five guards in `mixin/abysslistener/` are HEAD, cancellable, and delegation-only:
     `PlayerEntityAbyssListenerGunMixin` (`dropItem(ItemStack,ZZ)`), `ServerPlayerEntityAbyssListenerGunDropMixin`
-    (`dropSelectedItem(Z)Z`), `ScreenHandlerAbyssListenerGunMixin` (`internalOnSlotClick`), and
-    `GameFunctionsAbyssListenerGunDropMixin` (`shouldDropOnDeath` → false). A drop path that removed the stack before
+    (`dropSelectedItem(Z)Z`), `ScreenHandlerAbyssListenerGunMixin` (`internalOnSlotClick`),
+    `GameFunctionsAbyssListenerGunDropMixin` (`shouldDropOnDeath` → false), and
+    `DecoratedPotBlockAbyssListenerGunMixin` (`onUseWithItem` → `SKIP_DEFAULT_BLOCK_INTERACTION`, so a pot never
+    takes the gun and the gun still fires). A `UseEntityCallback` veto in `AbyssListenerLoadout` refuses item frames,
+    armor stands and allays, which would otherwise take the gun and let the sweep mint another. A drop path that removed the stack before
     `dropItem` (cursor drop on close, full-inventory offer) loses it, and the next sweep restores it with its cooldown
     intact.
 - **Deep Dark Zone terrain.** The zone is a client-only overlay: the server world is never written.
@@ -1228,8 +1242,11 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   on a right-click, refuses a second shell, and unloads onto an empty cursor. Wathe's inventory exposes only the
   hotbar, so both items must sit there.
 - **Bound items.** The launcher and shells follow the Time Stealer bound-item rules (`PotionGunnerInventoryRules`
-  plus the four `mixin/potiongunner/` HEAD injects, with no creative exemption). They are never dropped, never an
-  item entity, never in a container or the offhand, and never a death drop. Only a living, playing, exact Potion
+  plus the five `mixin/potiongunner/` HEAD injects, with no creative exemption). They are never dropped, never an
+  item entity, never in a container or the offhand, never handed to a world target, and never a death drop: a
+  `UseEntityCallback` veto in `PotionGunnerLifecycle` refuses item frames, armor stands and allays, and
+  `DecoratedPotBlockPotionGunnerItemMixin` makes a decorated pot answer `SKIP_DEFAULT_BLOCK_INTERACTION`, so the
+  sweep never mints a second launcher. Only a living, playing, exact Potion
   Gunner holds them; everyone else is stripped on role change, terminal death (not a SparkTraits-intercepted one),
   reset, and finalize. A staggered 20-tick sweep also re-grants a living gunner exactly one launcher. Both items
   stay visible in hand; the launcher is outside `wathe:guns`.

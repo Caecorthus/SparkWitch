@@ -14,23 +14,25 @@ import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Abyss Listener bound kit: grants the Shriek Gun after a committed recruitment and at round start for a forced Abyss
  * Listener, and keeps it reconciled every {@link AbyssListenerGunSweep#INTERVAL_TICKS} ticks (restore a missing gun
- * without touching its cooldown, remove duplicates, revoke it from every non-holder). Server-only; it never creates
- * item entities. The gun is never granted from {@code RoleAssigned}: the recruitment transaction restores the retained
- * inventory after that event and would wipe it.
+ * without touching its cooldown, remove duplicates, revoke it from every non-holder). Server-only except the
+ * world-use veto, which also answers on the client; it never creates item entities. The gun is never granted from
+ * {@code RoleAssigned}: the recruitment transaction restores the retained inventory after that event and would wipe it.
  * 聆渊者绑定装备：招募提交后、以及被强制指定的聆渊者开局时发放啸音铳，并每 {@link AbyssListenerGunSweep#INTERVAL_TICKS}
- * tick 校正一次（补发缺失的枪但不改动冷却、移除重复、从所有非持有者身上收回）。仅服务端；从不生成物品实体。
+ * tick 校正一次（补发缺失的枪但不改动冷却、移除重复、从所有非持有者身上收回）。除世界交互否决在双端生效外仅服务端；从不生成物品实体。
  * 永不在 {@code RoleAssigned} 中发枪：招募事务会在该事件之后恢复保留背包，从而抹掉它。
  */
 public final class AbyssListenerLoadout {
@@ -66,6 +68,14 @@ public final class AbyssListenerLoadout {
                 }
             }
         });
+        // The gun cannot be handed to item frames, armor stands or allays. Both sides: the client stops before
+        // sending, the server refuses a forged packet. Decorated pots are handled by
+        // mixin/abysslistener/DecoratedPotBlockAbyssListenerGunMixin instead, so the gun still fires there.
+        // 枪无法交给物品展示框、盔甲架或悦灵。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
+        // 饰纹陶罐改由 DecoratedPotBlockAbyssListenerGunMixin 处理，因此在陶罐前枪照常开火。
+        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) ->
+                AbyssListenerInventoryRules.blocksEntityUse(player.getStackInHand(hand), entity)
+                        ? ActionResult.FAIL : ActionResult.PASS);
         // A SparkTraits-intercepted death (Last Stand etc.) leaves the player in play, so the gun stays.
         // 被 SparkTraits 拦截的死亡（背水一战等）使玩家仍留在对局中，因此保留枪。
         KillPlayer.AFTER.register((victim, killer, deathReason) -> {
