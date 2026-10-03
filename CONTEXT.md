@@ -68,8 +68,11 @@ Current build baseline:
     `ShopUtilsBlackRavenDisguiseMixin`, M3 `KillerShopBuilderBlackRavenDisguiseMixin`, M4
     `PlayerShopComponentBlackRavenDisguiseMixin`, the death-index, swap-guard, swap-remainder and
     wallet mixins, and the optional SparkStrength seams.
-  - Its client presentation lives in `client/blackraven/`: `BlackRavenLedgerBookScreen` (Tab A
-    Perception pages and Tab B disguise list), `BlackRavenDisguiseClientState` (synced view,
+  - Its client presentation lives in `client/blackraven/`: `BlackRavenLedgerBookScreen` (the
+    code-drawn ledger panel: Tab A is a ruled perceived-identity grid with player faces, Tab B a
+    sectioned, scrolling disguise list with a footer revert button), `BlackRavenLedgerLayout`
+    (its pure geometry and hit-testing), `BlackRavenLedgerPaint` (its role-local "raven noir"
+    palette and fill primitives), `BlackRavenDisguiseClientState` (synced view,
     acting-role change cleanup, mask tooltip, `CanSeeMoney` phase), `BlackRavenDisguiseClientRules`,
     `BlackRavenDisguiseInstinctClientHooks`, and the disguise HUD line in `BlackRavenHudRenderer`.
   - Its packets are `net/OpenBlackRavenDisguiseS2CPacket` and `net/SelectBlackRavenDisguiseC2SPacket`.
