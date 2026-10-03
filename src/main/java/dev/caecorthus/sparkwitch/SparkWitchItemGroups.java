@@ -48,6 +48,7 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.disruptor(),
                                     SparkWitchItems.taser(),
                                     SparkWitchItems.shockDevice(),
+                                    SparkWitchItems.holyFlash(),
                                     SparkWitchItems.seekerCar(),
                                     SparkWitchItems.seekerCamera(),
                                     SparkWitchItems.fishingRod(),

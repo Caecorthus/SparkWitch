@@ -39,8 +39,11 @@ Current build baseline:
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
 - `roles/civilian/prophet/`: Death Omen skill, role-owned state, spawn-boundary
   corpse collection, and client outline rules.
-- `roles/civilian/saint/`: Saint protection, Hellfire, player-local state, and
-  UUID-bound Karma.
+- `roles/civilian/saint/`: Saint protection, Hellfire, player-local state,
+  UUID-bound Karma, and the Saint shop (`SaintShopService`).
+  - `flash/`: the Holy Flash (`sparkwitch:holy_flash`) item, thrown entity,
+    owner-only component, victim targeting, inventory rules, and lifecycle;
+    its no-drop mixin lives in `mixin/saint/`.
 - `roles/civilian/perfumer/`: private scent marks, cologne healing, corpse mood,
   outlines, shop, and economy.
 - `roles/civilian/tarotreader/`: divination shop, one-shot selection sessions,
@@ -311,6 +314,34 @@ payloads (`ControlExpertStunGuards`, `ControlExpertStunPayloadGuardMixin`). The 
 keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
+
+Holy Flash state never enters that shared schema either. `sparkwitch:holy_flash` (`NEVER_COPY`,
+owner-only sync, never saved) holds the flashed player's total and remaining ticks, the burst
+position, and whether they faced it; it uses no vanilla Blindness, so Blindness cleanups never touch
+it, and the client only draws the mask and plays the ringing. The Saint's only shop entry is the
+re-buyable 75-coin Holy Flash (role-only gate, default buy handler, which needs a free hotbar slot
+and never merges stacks). A deny-only `ShopPurchase.BEFORE` listener refuses a purchase when the buyer
+already carries 3 or more (main, hotbar, offhand, crafting grid and cursor stack). Because the shop makes
+`ShopUtils.canAccessShop` true for the Saint, `SaintEconomyService` answers `CanSeeMoney` DENY for a Saint that
+is not playing and alive, keeping dead and STARTING-phase coin visibility (and SparkTraits money-trait
+eligibility) unchanged. Throws, bursts and flashes exist only while Wathe's status is ACTIVE
+(`HolyFlashRules.isActivePhase`), so the ringing never spills into STOPPING. Any participant may throw one. The role-owned `HolyFlashEntity` (never Wathe's
+grenade, so no grenade hook fires) bursts on its first block or entity hit with sound and particles
+but no damage. It flashes every participant whose eyes are within 4 blocks of the burst and have line
+of sight to it. The thrower is included and needs only participation; everyone else must also pass
+SparkFactionAPI's `sparkwitch:holy_flash` veto, Last Escape, and Vendetta isolation. If the thrower
+died or left mid-flight, the burst still blinds without an actor: no faction veto, Last Escape still
+honoured, active Vendetta endpoints untouched. `mixin/saint/GameFunctionsHolyFlashDropMixin` (HEAD guard on
+`shouldDropOnDeath`) keeps flashes out of death drops, and a confirmed (not Last Stand-intercepted)
+death removes them. Reset and finalize clear every flash and discard flashes still in flight. The
+Holy Flash never renders in the `gui.sparkwitch.skills` panel and never triggers Saint Karma.
+Client side lives in `client/saint/`: `HolyFlashOverlayRenderer` (via `client/mixin/saint/HolyFlashHudMixin`,
+`InGameHud.render` TAIL, priority 1100) draws owner pick B — a bright spot at the projected burst, then
+black held to 40% and eased out — above every HUD overlay, including the Seeker remote view;
+`HolyFlashAudioClient` plays the `sparkwitch:skill.holy_flash_tinnitus` loop and drives
+`client/mixin/saint/HolyFlashSoundSystemMixin`, which multiplies every other sound by a factor floored
+at 0.1 (composes with SparkAssist); `voice/HolyFlashVoiceClientBridge` loads `HolyFlashVoiceReceiver`
+on the physical client only to scale incoming Simple Voice Chat PCM by the same factor.
 
 Seeker state never enters that shared schema either. `sparkwitch:seeker_status` (`NEVER_COPY`,
 owner-only sync) holds the Seeker's car, cameras, session, battery, cooldown-reason, and mark state

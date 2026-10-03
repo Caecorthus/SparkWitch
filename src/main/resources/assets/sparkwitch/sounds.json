@@ -26,6 +26,15 @@
       "sparkwitch:ambient/time_stealer_chime"
     ]
   },
+  "skill.holy_flash_tinnitus": {
+    "subtitle": "subtitles.sparkwitch.skill.holy_flash_tinnitus",
+    "sounds": [
+      {
+        "name": "sparkwitch:skill/holy_flash_tinnitus",
+        "stream": false
+      }
+    ]
+  },
   "ambient.time_stealer_final": {
     "subtitle": "subtitles.sparkwitch.ambient.time_stealer_final",
     "sounds": [

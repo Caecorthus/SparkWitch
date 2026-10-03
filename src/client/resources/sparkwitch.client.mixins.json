@@ -86,6 +86,8 @@
     "insider.WatheClientInsiderImpostorHighlightMixin",
     "saboteur.SaboteurHudMixin",
     "saboteur.SaboteurInstinctMixin",
+    "saint.HolyFlashHudMixin",
+    "saint.HolyFlashSoundSystemMixin",
     "seeker.SeekerDemonHunterTargetMixin",
     "seeker.SeekerRemoteCameraMixin",
     "seeker.SeekerRemoteFogMixin",
