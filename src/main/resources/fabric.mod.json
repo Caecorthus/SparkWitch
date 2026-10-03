@@ -28,6 +28,7 @@
       "sparkwitch:judge_round",
       "sparkwitch:player",
       "sparkwitch:perfumer_player",
+      "sparkwitch:prophet_player",
       "sparkwitch:curser_player",
       "sparkwitch:kidnapper_control",
       "sparkwitch:hunter",

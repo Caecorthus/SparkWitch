@@ -11,6 +11,7 @@ import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRules;
 import dev.caecorthus.sparkwitch.skill.WitchSkillHudRules;
@@ -30,6 +31,7 @@ import net.minecraft.util.Identifier;
 public final class WitchSkillHudRenderer {
     private static final int RIGHT_PADDING = 5;
     private static final int BOTTOM_PADDING = 5;
+    private static final int LINE_GAP = 2;
 
     private WitchSkillHudRenderer() {
     }
@@ -57,6 +59,10 @@ public final class WitchSkillHudRenderer {
         }
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         Identifier skillId = component.getActiveSkillId();
+        TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+        int y = context.getScaledWindowHeight() - BOTTOM_PADDING - renderer.fontHeight;
+        boolean hasSkillLine = skillId != null && !FocusedFootstepsRules.SKILL_ID.equals(skillId);
+        renderProphetSenseLine(context, renderer, player, hasSkillLine ? y - renderer.fontHeight - LINE_GAP : y);
         if (skillId == null) {
             return;
         }
@@ -64,12 +70,25 @@ public final class WitchSkillHudRenderer {
             return;
         }
 
-        TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
         int balance = PlayerShopComponent.KEY.get(player).getBalance();
         Text line = stateText(component, skillId, balance);
         int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
-        int y = context.getScaledWindowHeight() - BOTTOM_PADDING - renderer.fontHeight;
         context.drawTextWithShadow(renderer, line, x, y, WitchSkillClientTexts.color(skillId));
+    }
+
+    /**
+     * Draws the passive Death Sense countdown just above the skill line. The owner-only component is cleared by the
+     * server whenever its holder is not a Prophet, so its running flag is the only gate needed.
+     * 在技能行上方绘制被动死亡感知倒计时。服务端会在持有者不是先知时清空这个仅所有者组件，因此只需检查其运行标记。
+     */
+    private static void renderProphetSenseLine(DrawContext context, TextRenderer renderer, ClientPlayerEntity player, int y) {
+        ProphetPlayerComponent prophet = ProphetPlayerComponent.KEY.get(player);
+        if (!prophet.isSenseRunning()) {
+            return;
+        }
+        Text line = Text.translatable("hud.sparkwitch.prophet.sense.countdown", seconds(prophet.senseRemainingTicks()));
+        int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
+        context.drawTextWithShadow(renderer, line, x, y, ProphetRules.CORPSE_HIGHLIGHT_COLOR);
     }
 
     private static Text stateText(WitchPlayerComponent component, Identifier skillId, int balance) {
@@ -140,8 +159,8 @@ public final class WitchSkillHudRenderer {
                 component.getCooldownTicks()
         )) {
             return Text.translatable(
-                    "hud.sparkwitch.skill.death_omen.coin_cost",
-                    ProphetRules.COIN_COST
+                    "hud.sparkwitch.skill.prophecy.coin_cost",
+                    ProphetRules.PROPHECY_COIN_COST
             );
         }
         return Text.translatable(
