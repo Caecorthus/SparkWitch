@@ -7,8 +7,10 @@ import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerRules;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindKitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashRules;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
@@ -16,6 +18,8 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGatePlacementService;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
@@ -78,6 +82,11 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             entries.put(SparkWitchItems.CLOWNFISH_ID, FisherRules.FISH_USE_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.GOLDFISH_ID, FisherRules.FISH_USE_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.GLIMMERFISH_ID, FisherRules.FISH_USE_COOLDOWN_TICKS);
+            // Saint's Holy Flash; the Blind's White Cane write covers its 5 s window plus the 10 s cooldown, not the
+            // round-start one.
+            // 圣徒圣光弹；盲人盲杖的写入值为 5 秒窗口加 10 秒冷却，而非开局冷却。
+            entries.put(SparkWitchItems.HOLY_FLASH_ID, HolyFlashRules.USE_COOLDOWN_TICKS);
+            entries.put(SparkWitchItems.WHITE_CANE_ID, BlindKitRules.CANE_USE_ITEM_COOLDOWN_TICKS);
             // Ninja, Black Raven, Kidnapper. / 忍者、黑羽鸦、绑架者。
             entries.put(SparkWitchItems.NINJA_SHURIKEN_ID, NinjaShurikenItem.SHURIKEN_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.NINJA_KNIFE_ID, NinjaKnifeItem.KNIFE_COOLDOWN_TICKS);
@@ -88,6 +97,10 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             entries.put(SparkWitchItems.FIRE_POKER_ID, FirePokerRules.COOLDOWN_TICKS);
             // Abyss Listener Shriek Gun: the post-shot cooldown, not the 60 s initial one. / 聆渊者啸音铳：开火后冷却，而非首次 60 秒。
             entries.put(SparkWitchItems.SHRIEK_GUN_ID, AbyssListenerRules.GUN_COOLDOWN_TICKS);
+            // Potion launcher and Rift Gate: 1 s anti-repeat writes, listed so every SparkWitch item write has a nominal.
+            // 药炮筒与裂隙门：1 秒防连按写入，列入以保证每个 SparkWitch 物品写入都有标准冷却。
+            entries.put(SparkWitchItems.POTION_LAUNCHER_ID, PotionGunnerRules.FIRE_COOLDOWN_TICKS);
+            entries.put(SparkWitchItems.RIFT_GATE_ID, RiftGatePlacementService.PLACE_COOLDOWN_TICKS);
             // NoellesRoles items: public constants of the pinned 1.7.6 jar, plus the master key, which both
             // NoellesRoles (literal) and the Insider door path write as 200 ticks. The timed bomb stays exempt in
             // SparkFactionAPI itself (Bomber pass gate).

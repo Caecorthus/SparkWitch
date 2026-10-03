@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.compat.cooldown;
 
 import java.util.Optional;
+import java.util.OptionalLong;
 
 /**
  * Pure arithmetic and predicates behind the SparkWitch forced-cooldown stores; no game state.
@@ -104,6 +105,21 @@ public final class ForcedCooldownMath {
      */
     public static boolean mayForceNoellesAbility(boolean spiritualist, boolean projecting) {
         return !(spiritualist && projecting);
+    }
+
+    /**
+     * Raise of a skill kept as an absolute ready tick (the Blind's Attune): {@code now + ticks}, or empty when that is
+     * not later than {@code readyTick} or {@code ticks <= 0} (no write, no sync). Only the ready tick moves, so a
+     * cooldown is never shortened and a running active window is never touched.
+     * 以绝对就绪刻保存的技能（盲人凝神）的抬高：结果为 {@code now + ticks}；若其不晚于 {@code readyTick} 或
+     * {@code ticks <= 0} 则为空（不写入、不同步）。只移动就绪刻，因此绝不缩短冷却，也不改动进行中的持续窗口。
+     */
+    public static OptionalLong raiseReadyTick(long readyTick, long now, int ticks) {
+        if (ticks <= 0) {
+            return OptionalLong.empty();
+        }
+        long raised = now + ticks;
+        return raised > readyTick ? OptionalLong.of(raised) : OptionalLong.empty();
     }
 
     /** Absolute floors for the shared and deferred witch-skill counters. / 共享与延后魔女技能计数的绝对下限。 */
