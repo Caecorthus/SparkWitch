@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.client.bellringer.BellRingerClient;
 import dev.caecorthus.sparkwitch.client.timestealer.TimeStealerClient;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientModule;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
+import dev.caecorthus.sparkwitch.client.prophet.ProphetNecrologyBookScreen;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStatusHud;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStunClient;
 import dev.caecorthus.sparkwitch.client.insider.InsiderClient;
@@ -39,6 +40,7 @@ import dev.caecorthus.sparkwitch.client.witchmaiden.WitchMaidenClientModule;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.net.OpenBlackRavenLedgerS2CPacket;
+import dev.caecorthus.sparkwitch.net.OpenProphetNecrologyS2CPacket;
 import dev.caecorthus.sparkwitch.net.OpenTarotDivinationSelectorS2CPacket;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.net.TarotDivinationReadingS2CPacket;
@@ -95,6 +97,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerEntityRenderers();
         registerTarotDivinationNetworking();
         registerBlackRavenNetworking();
+        registerProphetNecrologyNetworking();
         registerWraithRoleAnnouncementNetworking();
         JudgeClientModule.register();
         ControlExpertStunClient.register();
@@ -285,6 +288,19 @@ public final class SparkWitchClient implements ClientModInitializer {
                 context.client().execute(() -> {
                     if (SparkWitchServerConnection.isConfirmedServer()) {
                         BlackRavenLedgerScreen.open(context.client());
+                    }
+                }));
+    }
+
+    /**
+     * The Necrology opens only on the server's empty authorization; its pages come from the owner-synced component.
+     * 亡者名录只在收到服务端的空授权包后打开；书页内容来自仅同步给所有者的组件。
+     */
+    private static void registerProphetNecrologyNetworking() {
+        ClientPlayNetworking.registerGlobalReceiver(OpenProphetNecrologyS2CPacket.ID, (payload, context) ->
+                context.client().execute(() -> {
+                    if (SparkWitchServerConnection.isConfirmedServer()) {
+                        ProphetNecrologyBookScreen.open(context.client());
                     }
                 }));
     }

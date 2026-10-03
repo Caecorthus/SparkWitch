@@ -45,6 +45,7 @@ public final class ProphetRuntime {
             return;
         }
         registered = true;
+        ProphetNecrologyLoadoutService.register();
         ResetPlayer.EVENT.register(player -> ProphetPlayerComponent.KEY.get(player).clear());
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
             if (world instanceof ServerWorld serverWorld) {
@@ -79,12 +80,18 @@ public final class ProphetRuntime {
         ServerWorld world = player.getServerWorld();
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         if (!ProphetRules.isProphet(game.getRole(player))) {
+            if (component.hasState()) {
+                // Role lost without a RoleAssigned callback: the bound book goes with the state.
+                // 未经 RoleAssigned 回调失去职业：绑定的名录随状态一同删除。
+                ProphetNecrologyLoadoutService.removeNecrology(player);
+            }
             component.clear();
             return;
         }
         UUID currentMatch = currentMatchId();
         if (ProphetPlayerState.isStale(component.matchId(), currentMatch)) {
             component.clear();
+            ProphetNecrologyLoadoutService.removeNecrology(player);
         }
         if (!component.isSenseArmed()) {
             // Self-heal for an assignment path that skipped RoleAssigned. / 为未触发 RoleAssigned 的分配路径兜底。
@@ -95,6 +102,10 @@ public final class ProphetRuntime {
         }
         boolean eligible = GameFunctions.isPlayerPlayingAndAlive(player)
                 && !GameFunctions.isPlayerSpectatingOrCreative(player);
+        if (eligible) {
+            // Exactly one bound Necrology while alive and playing. / 存活且参与对局时始终恰好持有一本名录。
+            ProphetNecrologyLoadoutService.restoreIfNeeded(player);
+        }
         if (component.tickSense(eligible) == ProphetPlayerState.TickOutcome.PULSE) {
             pulse(player, world, component);
         }
