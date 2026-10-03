@@ -89,10 +89,10 @@ public final class FiendMomentService {
 
     /**
      * The single end path: clears the synced moment, marks the Fiend spent for the moment's match when the reason says
-     * so (Taotie swallow), removes the Speed IV and shield the moment still owns, takes the marked crowbar back unless
+     * so (Taotie swallow), removes the Speed I the moment still owns, takes the marked crowbar back unless
      * the moment was won, and, per the reason, records the replay line and tells every player while the round is
      * ACTIVE. A no-op without a moment.
-     * 唯一的结束路径：清除已同步的时刻，按原因（饕餮吞噬）将魔人登记为该时刻所属对局中已耗尽，移除时刻仍拥有的速度 IV 与护盾，
+     * 唯一的结束路径：清除已同步的时刻，按原因（饕餮吞噬）将魔人登记为该时刻所属对局中已耗尽，移除时刻仍拥有的速度 I，
      * 除获胜外收回带标记的撬棍，并按原因记录回放、在对局 ACTIVE 时告知所有玩家。无时刻时为空操作。
      */
     static void end(ServerWorld world, FiendMomentRules.EndReason reason) {

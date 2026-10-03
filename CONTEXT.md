@@ -659,7 +659,7 @@ and Murderous Witch `checkWin` skip it directly, and NoellesRoles'
 Jester-moment and Corrupt Cop loops (`lambda$registerEvents$14` alive-check ordinals 6 and 9),
 `countAliveAndNotSwallowed` and Taotie `hasSwallowedEveryone` reach `FiendWinExclusion` through additive
 `@WrapOperation`s pinned to b58fa5f. The Fiend Moment is a 200-gold, stock-1 shop entry whose all-or-nothing
-`onBuy` starts it (crowbar, Speed IV and one whiskey-shield layer, all for 2400 ticks); the crowbar carries the
+`onBuy` starts it (crowbar and Speed I for 2400 ticks, no shield); the crowbar carries the
 `sparkwitch:fiend_moment_crowbar` custom-data marker and every marked stack is taken back when the moment ends
 without a win, and a disconnect (`wathe:escaped`) ends it as "ended", not "slain". `FiendWinService` runs in
 phase `sparkwitch:fiend_moment_win`, ordered before `Event.DEFAULT_PHASE` on `CheckWinCondition`: no moment →

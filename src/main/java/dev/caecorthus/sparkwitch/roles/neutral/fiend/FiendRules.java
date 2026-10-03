@@ -30,8 +30,8 @@ public final class FiendRules {
 
     public static final int MOMENT_PRICE = 200;
     public static final int MOMENT_DURATION_TICKS = 2400;
-    public static final int MOMENT_SPEED_AMPLIFIER = 3;
-    public static final int MOMENT_SHIELD_LAYERS = 1;
+    /** Speed I for the whole moment, and no shield (owner tuning, 2026-10-03). / 整个时刻获得速度 I，且无护盾（所有者调整，2026-10-03）。 */
+    public static final int MOMENT_SPEED_AMPLIFIER = 0;
     public static final int MOMENT_CROWBAR_COOLDOWN_TICKS = 100;
     public static final String MOMENT_SHOP_ENTRY_ID = "sparkwitch_fiend_moment";
 
