@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment;
 
+import dev.caecorthus.sparkwitch.compat.SparkStrengthTabletCompat;
 import dev.caecorthus.sparkwitch.compat.recruitment.RecruitmentShopOutputs;
 import dev.doctor4t.wathe.index.WatheItems;
 import net.minecraft.item.Item;
@@ -89,11 +90,24 @@ final class RecruitmentInventorySnapshot {
         if (!stack.isEmpty() && !retained(stack)) removed.merge(stack.getItem(), stack.getCount(), Math::addExact);
     }
 
-    /** Only keys, both NoellesRoles master keys and letters survive recruitment; every other stack, the revolver
-     * included, is cleared and refunded at shop value.
-     * 招募只保留钥匙、NoellesRoles 两种万能钥匙和信件；其余物品（含左轮手枪）全部清除并按商店售价折算。 */
+    /** Only keys, both NoellesRoles master keys, letters and the SparkStrength tablet survive recruitment; every other
+     * stack, the revolver included, is cleared and refunded at shop value. Retained stacks are never refunded
+     * ({@link #countRemoved}).
+     * Cross-mod contract: the tablet is a free identity device SparkStrength issues at round start, not a shop item, so
+     * it is kept in place (registry id only, {@link SparkStrengthTabletCompat#isTablet}) and SparkStrength re-resolves
+     * its channel to the recruit's new network. SparkStrength grants each eligible player at most one tablet per round
+     * and never re-grants a lost one, so wiping it would leave an already-issued recruit without a tablet. A recruit who
+     * holds none gets one from SparkStrength's mid-round reconciliation pass after the recruitment; SparkWitch never
+     * grants one.
+     * 招募只保留钥匙、NoellesRoles 两种万能钥匙、信件和 SparkStrength 平板；其余物品（含左轮手枪）全部清除并按商店售价
+     * 折算。被保留的物品从不退款（{@link #countRemoved}）。
+     * 跨模组契约：平板是 SparkStrength 开局免费发放的身份设备而非商店商品，因此原地保留（只按注册 id，
+     * {@link SparkStrengthTabletCompat#isTablet}），由 SparkStrength 将其频道重新解析到新阵营的网络。SparkStrength
+     * 每局最多给每名符合条件的玩家发放一台且不补发丢失的平板，清除会让已领过平板的被招募者失去平板。身上没有平板的
+     * 被招募者在招募完成后由 SparkStrength 的局中对账补发；SparkWitch 从不发放平板。 */
     static boolean retained(ItemStack stack) {
         return !stack.isEmpty() && (stack.isOf(WatheItems.KEY) || stack.isOf(ModItems.MASTER_KEY)
-                || stack.isOf(ModItems.NEUTRAL_MASTER_KEY) || stack.isOf(WatheItems.LETTER));
+                || stack.isOf(ModItems.NEUTRAL_MASTER_KEY) || stack.isOf(WatheItems.LETTER)
+                || SparkStrengthTabletCompat.isTablet(stack));
     }
 }

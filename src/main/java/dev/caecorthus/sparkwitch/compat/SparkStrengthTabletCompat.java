@@ -12,16 +12,15 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 
 /**
- * External seam: the Seeker touches the optional SparkStrength tablet by registry id and entry-id string only. No
- * SparkStrength class is imported, loaded or reflected here; a missing mod or item simply means "no tablet".
- * 外部接缝：搜寻者只通过注册 id 与条目 id 字符串接触可选的 SparkStrength 平板。
- * 此处不导入、不加载、不反射任何 SparkStrength 类；模组或物品缺失即视为“没有平板”。
+ * External seam: SparkWitch touches the optional SparkStrength tablet by registry id only. No SparkStrength class is
+ * imported, loaded or reflected here; a missing mod or item simply means "no tablet". SparkWitch never sells or grants
+ * the tablet: SparkStrength issues it free at round start (and to players who become eligible mid-round).
+ * 外部接缝：SparkWitch 只通过注册 id 接触可选的 SparkStrength 平板。此处不导入、不加载、不反射任何 SparkStrength 类；
+ * 模组或物品缺失即视为“没有平板”。SparkWitch 从不出售或发放平板：SparkStrength 在开局（以及对局中途获得资格时）免费发放。
  */
 public final class SparkStrengthTabletCompat {
     public static final String MOD_ID = "sparkstrength";
     public static final Identifier TABLET_ID = Identifier.of(MOD_ID, "tablet");
-    /** SparkStrength's tablet shop-entry id; pinned by a source test. / SparkStrength 平板商店条目 id，由源码测试固定。 */
-    public static final String SS_TABLET_ENTRY_ID = "sparkstrength_tablet";
 
     private static volatile Item cachedTablet;
 

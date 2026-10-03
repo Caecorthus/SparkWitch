@@ -143,16 +143,17 @@ public final class SparkWitchRoleRegistry {
         registerNativeWatheRoles();
         PoliceRoles.register(JUDGE_ID);
         PoliceRoles.register(PoliceSlotAssignmentService.EMMA_ID);
-        // Police classification only: SparkStrength appends its tablet, cop slots come from PoliceSlotAssignmentService.
-        // 仅作警察分类：SparkStrength 据此追加平板，警位由 PoliceSlotAssignmentService 分配。
+        // Police classification only: SparkStrength issues its tablet at round start from this list; cop slots come
+        // from PoliceSlotAssignmentService.
+        // 仅作警察分类：SparkStrength 据此在开局发放平板；警位由 PoliceSlotAssignmentService 分配。
         PoliceRoles.register(CONTROL_EXPERT_ID);
         // Police classification only, like the Control Expert; cop slots come from PoliceSlotAssignmentService.
         // 与控场专家相同，仅作警察分类；警位由 PoliceSlotAssignmentService 分配。
         PoliceRoles.register(SEEKER_ID);
-        // Police classification only, for the SparkStrength tablet's police channel (D4), as SparkStrength does for the
-        // Corrupt Cop; the Insider stays a Wathe neutral and never takes a cop slot.
-        // 仅作警察分类，用于 SparkStrength 平板的警察频道（D4），与 SparkStrength 对黑警的处理相同；内应仍是 Wathe 中立，
-        // 从不占用警位。
+        // Police classification only, so SparkStrength issues the Insider a tablet at round start on its police channel
+        // (D4), as SparkStrength does for the Corrupt Cop; the Insider stays a Wathe neutral and never takes a cop slot.
+        // 仅作警察分类，使 SparkStrength 开局为内应发放接入警察频道的平板（D4），与 SparkStrength 对黑警的处理相同；
+        // 内应仍是 Wathe 中立，从不占用警位。
         PoliceRoles.register(INSIDER_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);

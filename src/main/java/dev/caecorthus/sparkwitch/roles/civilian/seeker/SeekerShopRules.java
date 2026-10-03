@@ -7,50 +7,38 @@ import java.util.List;
 
 /**
  * Stable contract: the pure Seeker shop specification. Wathe builds the list on both sides and buys by index with no
- * version handshake, so the shape depends only on the role and on whether the SparkStrength tablet item is registered
- * (the same mod set on client and server) — never on a runtime API probe. Order: camera (150, no stock limit and
- * re-buyable any time; the owner may own any number, only money limits it), then the SparkStrength tablet (50,
- * stock 1) under SparkStrength's own entry id, so SparkStrength's final append skips its 150 tablet and its
- * "already owned" deny still applies.
- * 稳定契约：纯搜寻者商店规格。Wathe 在两端各自构建列表并按下标购买，没有版本握手，因此列表形状只取决于职业
- * 以及 SparkStrength 平板物品是否已注册（两端模组集合相同），绝不取决于运行时 API 探测。顺序：摄像头（150，不限库存，
- * 随时可再买；拥有者可拥有任意数量，只受金钱限制），然后是 SparkStrength 平板（50，库存 1），使用 SparkStrength 自己的条目 id，
- * 这样 SparkStrength 的末尾追加会跳过其 150 的平板条目，而其“已拥有”拒绝仍然生效。
+ * version handshake, so the shape is a constant that depends only on the role — never on a runtime API probe. It holds
+ * one entry: the camera (150, no stock limit and re-buyable any time; the owner may own any number, only money limits
+ * it). The SparkStrength tablet is not sold: SparkStrength issues it free at round start to every police-network role
+ * (the Seeker included), so this shop never lists it.
+ * 稳定契约：纯搜寻者商店规格。Wathe 在两端各自构建列表并按下标购买，没有版本握手，因此列表形状是只取决于职业的常量，
+ * 绝不取决于运行时 API 探测。只有一个条目：摄像头（150，不限库存，随时可再买；拥有者可拥有任意数量，只受金钱限制）。
+ * 不出售 SparkStrength 平板：SparkStrength 在开局免费发放给所有警察网络职业（含搜寻者），因此本商店从不列出平板。
  */
 public final class SeekerShopRules {
     /** Wathe's "no stock limit" (the builder's stock is left unset). / Wathe 的“不限库存”（不调用 stock）。 */
     public static final int NO_STOCK_LIMIT = -1;
-    public static final int TABLET_STOCK = 1;
-    /** Shop description colour, the same grey as other SparkWitch shop lore. / 商店描述颜色，与其他 SparkWitch 商店一致的灰色。 */
-    public static final int DESCRIPTION_COLOR = 0x808080;
-    public static final String TABLET_DESCRIPTION_KEY = "shop.sparkwitch.seeker_tablet.description";
 
     public static final EntrySpec CAMERA = new EntrySpec(EntryKind.CAMERA, SeekerRules.CAMERA_ENTRY_ID,
             SeekerRules.CAMERA_PRICE, NO_STOCK_LIMIT);
-    public static final EntrySpec TABLET = new EntrySpec(EntryKind.TABLET, SeekerRules.TABLET_ENTRY_ID,
-            SeekerRules.TABLET_PRICE, TABLET_STOCK);
 
-    private static final List<EntrySpec> WITH_TABLET = List.of(CAMERA, TABLET);
-    private static final List<EntrySpec> WITHOUT_TABLET = List.of(CAMERA);
+    private static final List<EntrySpec> ENTRIES = List.of(CAMERA);
 
     private SeekerShopRules() {
     }
 
     /**
-     * Role alone decides: Wathe caches stock limits while the round is still STARTING, so a running-state gate would
-     * turn the tablet's stock(1) into an unlimited entry.
-     * 只按职业判定：Wathe 在对局仍处于 STARTING 时缓存库存上限，依赖运行状态会让平板的 stock(1) 变成不限量。
+     * Role alone decides, never running state: Wathe builds the list on both sides, including while the round is still
+     * STARTING.
+     * 只按职业判定，绝不依赖运行状态：Wathe 在两端构建列表，包括对局仍处于 STARTING 时。
      */
     public static boolean rebuildsShopFor(@Nullable Role role) {
         return SeekerRules.isSeeker(role);
     }
 
-    /**
-     * Entries in shop order. Without SparkStrength (forced Seeker, Q7) there is no tablet entry.
-     * 按商店顺序排列的条目。没有 SparkStrength（强制指定的搜寻者，Q7）时没有平板条目。
-     */
-    public static List<EntrySpec> entries(boolean tabletItemPresent) {
-        return tabletItemPresent ? WITH_TABLET : WITHOUT_TABLET;
+    /** Entries in shop order. / 按商店顺序排列的条目。 */
+    public static List<EntrySpec> entries() {
+        return ENTRIES;
     }
 
     public static boolean isCameraEntry(@Nullable String entryId) {
@@ -59,8 +47,7 @@ public final class SeekerShopRules {
 
     /** Which item an entry sells. / 条目出售的物品。 */
     public enum EntryKind {
-        CAMERA,
-        TABLET
+        CAMERA
     }
 
     /**
