@@ -2,7 +2,7 @@
   "credit": "SparkWitch Potion Gunner launcher (placeholder art, generated)",
   "texture_size": [64, 64],
   "gui_light": "side",
-  "textures": {"0": "sparkwitch:item/potion_launcher", "particle": "sparkwitch:item/potion_launcher"},
+  "textures": {"0": "sparkwitch:item/anti_tank_launcher", "particle": "sparkwitch:item/anti_tank_launcher"},
   "elements": [
     {
       "name": "tube",

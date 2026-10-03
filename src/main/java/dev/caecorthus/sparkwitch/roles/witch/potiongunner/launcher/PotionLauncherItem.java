@@ -41,8 +41,8 @@ import java.util.Optional;
 public class PotionLauncherItem extends Item {
     /** Scope hold length: effectively endless, use ends on release. / 开镜持续时间：近乎无限，松开即结束。 */
     public static final int MAX_USE_TICKS = 72_000;
-    static final String LOADED_TOOLTIP_KEY = "item.sparkwitch.potion_launcher.tooltip.loaded";
-    static final String EMPTY_TOOLTIP_KEY = "item.sparkwitch.potion_launcher.tooltip.empty";
+    static final String LOADED_TOOLTIP_KEY = "item.sparkwitch.anti_tank_launcher.tooltip.loaded";
+    static final String EMPTY_TOOLTIP_KEY = "item.sparkwitch.anti_tank_launcher.tooltip.empty";
     static final String ALREADY_LOADED_KEY = "message.sparkwitch.potion_gunner.already_loaded";
     private static final int TOOLTIP_LINES = 2;
 
@@ -163,7 +163,7 @@ public class PotionLauncherItem extends Item {
                 .orElseGet(() -> Text.translatable(EMPTY_TOOLTIP_KEY))
                 .formatted(Formatting.GRAY));
         for (int line = 1; line <= TOOLTIP_LINES; line++) {
-            tooltip.add(Text.translatable("item.sparkwitch.potion_launcher.tooltip.line" + line)
+            tooltip.add(Text.translatable("item.sparkwitch.anti_tank_launcher.tooltip.line" + line)
                     .formatted(Formatting.GRAY));
         }
         super.appendTooltip(stack, context, tooltip, type);
