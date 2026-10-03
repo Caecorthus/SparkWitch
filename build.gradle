@@ -421,6 +421,20 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
                 providerMethod: "method_25393",
                 providerDescriptor: "()V"
+        ],
+        [
+                // Riftwalker C7: NR Swapper head-click lambda; the occupant pick falls back to a listed alive spectator.
+                // 隙行者 C7：NR 交换者头像点击 lambda；查询落空时放行列表中存活的旁观者。
+                configName: "riftwalker.RiftSwapperWidgetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/riftwalker/RiftSwapperWidgetMixin.class",
+                handler: "sparkwitch\$allowListedAliveSpectator",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "lambda\$new\$0(Ljava/util/UUID;Lnet/minecraft/class_4185;)V",
+                atTarget: "Lnet/minecraft/class_1937;method_18470(Ljava/util/UUID;)Lnet/minecraft/class_1657;",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/client/SwapperPlayerWidget.class",
+                providerMethod: "lambda\$new\$0",
+                providerDescriptor: "(Ljava/util/UUID;Lnet/minecraft/class_4185;)V"
         ]
 ]
 

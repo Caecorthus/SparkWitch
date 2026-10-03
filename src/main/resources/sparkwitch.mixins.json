@@ -158,7 +158,13 @@
     "abysslistener.ServerPlayerEntityAbyssListenerGunDropMixin",
     "abysslistener.ScreenHandlerAbyssListenerGunMixin",
     "abysslistener.GameFunctionsAbyssListenerGunDropMixin",
-    "abysslistener.PlayerMoodComponentAbyssZoneDrainMixin"
+    "abysslistener.PlayerMoodComponentAbyssZoneDrainMixin",
+    "riftwalker.RiftSessionPayloadGuardMixin",
+    "riftwalker.RiftThrowingAxeMixin",
+    "riftwalker.RiftSwapperCrushMixin",
+    "riftwalker.RiftSessionNetworkHandlerMixin",
+    "riftwalker.RiftSessionPlayerMixin",
+    "riftwalker.RiftProjectileDeflectionMixin"
   ],
   "injectors": {
     "defaultRequire": 1

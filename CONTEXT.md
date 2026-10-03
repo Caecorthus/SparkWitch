@@ -20,6 +20,8 @@ It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witc
 Grand Witch recruitment (through the special-accomplice pool) or an admin force assigns; it is never drawn naturally.
 It also adds the Potion Gunner (`sparkwitch:potion_gunner`), a witch-faction special accomplice that only the Grand
 Witch recruitment pool assigns; it fires four kinds of potion shell from a bound anti-tank launcher.
+It also adds the Riftwalker (`sparkwitch:riftwalker`, 隙行者), a witch-faction special accomplice that only Grand Witch
+recruitment or an admin force assigns; its Rift Gates let the witches hide and travel between gates.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -181,6 +183,14 @@ Current build baseline:
     `AbyssZoneExposureTaskLineRules`).
 - `item/firepoker/FirePokerFallAttributionService` (historical name kept): the shared train-fall push ledger for every
   pushing weapon (Fire Poker and Shriek Gun), not only the Fire Poker.
+- `roles/witch/riftwalker/`: Riftwalker (`sparkwitch:riftwalker`, 隙行者) role definition, rules, gate-user
+  classification (`RiftGateUser`, `RiftGateUsers`), shared status probes (`RiftwalkerStatusProbes`), special-accomplice
+  pool entry, feature wiring, and shop. Subpackages: `gate/` (Rift Gate item, entity, placement, lifecycle, and the
+  gate registry), `session/` (server-authoritative in-gate sessions, guards, and the occupant affect policy),
+  `projectile/` (projectiles through gates), `sabbath/` (Witches' Sabbath), `tablet/` (the tablet gate console),
+  `swapper/` (the NoellesRoles Swapper crush), and `net/` (payloads and `RiftwalkerNetworking`). Its mixins live in
+  `mixin/riftwalker/` and `client/mixin/riftwalker/`; client presentation (gate renderer and outline, in-gate input
+  lock, grey view and HUD, console screen) lives in `client/riftwalker/` (`gate/`, `session/`, `tablet/`, `swapper/`).
 - `roles/civilian/emma/`: unique cop claim, role-owned mana skill, delayed backlash,
   owner-private failed-recruitment evidence, speed latch, and one reward per gun cycle.
 - `roles/civilian/controlexpert/`: Control Expert round-start loadout, task-money economy,
@@ -617,7 +627,7 @@ server-only, never-synced spent ledger bound to the match id. A dormant Fiend (F
 the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:escaped` and `wathe:vanilla_death`:
 `mixin/fiend/GameFunctionsFiendImmunityMixin` is a cancellable HEAD guard on Wathe's 5-arg `killPlayer`
 (priority 1100, so SparkFactionAPI's affect veto runs first) that ignores `force`, so the owner-approved piercing
-kills (bell toll, time curse) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
+kills (bell toll, time curse, portal crush) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
 per attack: `wathe:gun_shot` (every gun) gives the Fiend +50 gold and Speed III 5 s, and puts a 20 s item-cooldown
 floor on every other participant within 8 blocks, queued at the hit and applied at END_SERVER_TICK through
 SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, …)` (exact, never shortened; role-skill counters
@@ -890,9 +900,9 @@ method reads the live registry on every call. These rules are `HunterRules.isIns
 `HunterTrapClientHooks`, and `SeekerInstinctRules.isWitchInstinctRole`.
 
 `isAccomplice` stays exact, so the plain Accomplice shop (`AccompliceShopService`) never touches a variant. These
-never include variants merely for being variants: `WitchManaRules.isManaRole` (the Abyss Listener is added by exact
-role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole` (the Abyss Listener is added by exact role for its shared
-skill).
+never include variants merely for being variants: `WitchManaRules.isManaRole` (the Abyss Listener and the
+Riftwalker are added by exact role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole` (the Abyss Listener and
+the Riftwalker are added by exact role, each for its shared skill).
 
 The `gui.sparkwitch.skills` panel (`WitchSkillPresentationRules.shouldShowInventorySkillPanel`) belongs to the Grand
 Witch, Apprentice Witch and Murderous Witch, plus accomplices (owner decision D13: plain and special, via
@@ -1251,6 +1261,106 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
     only a device strictly nearer absorbs it; a tie goes to the player (`SeekerDeviceHits.onPotionBackblast`).
   - It has no fallback effects and no reward.
 
+The Riftwalker (`sparkwitch:riftwalker`, 隙行者) is a special accomplice whose Rift Gates (`sparkwitch:rift_gate`) let
+witches hide in a gate and hop between gates (Dn/Cn: owner decisions, 2026-10-02). Numbers live in `RiftwalkerRules`;
+`RiftGateUser`/`RiftGateUsers` classify gate users by RAW role (never the Black Raven acting role): Riftwalker, then
+witch faction (effective `sparkwitch:witch`), Murderous Witch, Apprentice Witch. The server decides every outcome; the
+client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only `sparkwitch:witches_sabbath`
+(`ownSkillIds()`).
+- **Registration and shop.** Pool entry right after `accomplice` in `SparkWitchRoleRegistry`, never drawn; exact-role
+  gates `isRegisteredSparkWitchRole`, `WitchManaRules.isManaRole` and `usesGrandWitchManaEconomy` (the Grand Witch
+  economy, starting at 0, D7). `RiftwalkerShopService` appends `sparkwitch_rift_gate` (50 mana, charged in `onBuy`;
+  label in `WitchShopClientTexts`) to the plain Accomplice entries.
+- **State and packets.** `sparkwitch:rift_session` (player, `NEVER_COPY`, owner-only sync, never persisted) and
+  `sparkwitch:rift_gates` (world, server-only). C2S `rift_hop`, `rift_exit`, `rift_gate_close`,
+  `rift_gate_console_request` and S2C `rift_gate_console` are registered by `net/RiftwalkerNetworking`; the Control
+  Expert stun and Seeker session guards also drop `rift_hop` and `rift_gate_close`, never `rift_exit`.
+- **Gates** (`gate/`). `RiftGatePlacementService.tryPlace` (living RAW Riftwalker, ACTIVE round, not
+  Kidnapper-controlled, C16) floor-snaps at the feet facing the yaw; the 1×2 standing cell in front
+  (`RiftGatePlacementRules.frontCell`) must be block-free and inside the play area, so no gate faces a wall as a dead
+  exit (C15); ≥ 3.0 from other gates, clear of Seeker devices and `RiftGateNeighbourRules`. A refusal is free; a
+  placement starts a 1 s item cooldown (N-2). Bought gates merge into the first hotbar gate stack (F-5).
+  `RiftGateEntity` is an unsaved, indestructible, facing-rotated 1×2×0.25 slab; gates are unlimited (D4).
+  `RiftGateRegistry` is the only writer: per-round numbers never reused (C9), number order = hop ring, a level-31 chunk
+  ticket per gate, `repair` respawns a lost entity, `close` ends in `RiftSessionService.onGateRemoved`.
+  `RiftGateLifecycle` sweeps silently at round edges and has no death or role listener, so gates outlive their placer.
+- **Session entry** (`session/RiftSessionService.tryEnter`, right-click, D2; order in `RiftSessionRules.entryDenial`).
+  Non-users are refused silently; held players are refused (Taotie, Last Stand, Last Escape, Kidnapper, Control Expert
+  stun, Seeker session, foreign camera, and per C10 a Hunter-trap root or SparkStrength capture stun, read by
+  `RiftwalkerStatusProbes`, where an absent or changed SparkStrength reads as not stunned and never throws); then reach
+  3.0, cooldown, and the fee last (Apprentice and Murderous Witches pay 100 mana per entry, hops free, C1). Stay
+  30/20/15/10 s (Riftwalker/faction/Murderous/Apprentice, D5b); re-entry cooldown 30 s Riftwalker, 45 s others, after
+  any exit but round end (D14), a session server tick untouched by `ForcedCooldowns` and auras (C3).
+- **Session body.** An occupant is an ALIVE SPECTATOR held at the gate anchor (D3). Entry syncs `inside` before
+  `changeGameMode(SPECTATOR)`; every exit restores the mode before syncing `inside=false`. Only a living release
+  restores the recorded ADVENTURE/SURVIVAL mode (`RiftSessionRules.mayRestoreMode`); DIED, INTERCEPTED, DISCONNECTED and
+  ROUND_END only clear state. The tick snaps drift back, ends as BODY_MOVED only after a foreign teleport beyond √2, and
+  force-exits at the CURRENT gate on stay expiry (C2) or gate close (C3). A "moved too quickly" reset issued during the
+  occupant's own move packet is snapped back to the anchor, never BODY_MOVED (B-1, `RiftSessionNetworkHandlerMixin`).
+  Exit cells must be reachable from the gate by a block-free sweep of the standing body (B-2,
+  `RiftExitSearch.sweptBody`; the pre-entry position is exempt). Hops wrap (`RiftHopRing`, 10-tick throttle, D11).
+- **Session guards.** `mixin/riftwalker/RiftSessionPayloadGuardMixin` drops `RiftSessionRules.BLOCKED_WHILE_INSIDE`;
+  `RiftSessionGuards` fails use/attack callbacks and the shop; `RiftSessionNetworkHandlerMixin` and
+  `RiftSessionPlayerMixin` close spectator teleport and possession; `voice/SparkWitchVoiceChatPlugin` mutes occupants.
+  `session/RiftSessionAffectPolicy` (SFA `PlayerAffectPolicy`, fails closed) denies every action on an occupant except
+  `RiftSessionRules.AFFECT_ALLOWED_ON_OCCUPANT`: `noellesroles:swapper` (the crush below), `wathe:poison` (D3), and the
+  piercing terminal kills `sparkwitch:bell_toll` and `sparkwitch:time_stolen` (C13). `BellTollService.isTarget` admits
+  occupants next to participants (C16); the kill drops the body at the gate and ends the session as DIED.
+- **Session client.** `client/riftwalker/session/RiftSessionClient` sends only `rift_hop`/`rift_exit` and never predicts
+  entry or exit; `client/mixin/riftwalker/RiftSession*Mixin` pass only `RiftSessionInputRules.ALLOWED_KEYS` (sneak, A/D,
+  player list, screenshot, fullscreen, voice chat, instinct), hide the hand and force a crosshair MISS; A/D, scroll or
+  1/2 + use hop, a fresh Shift exits. `RiftGrayscaleFilter` (private `PostEffectProcessor`) re-composites outlines so
+  instinct colours stay (D10); `RiftSessionHud` draws ←/→, `#gate · n/m` and the stay seconds (red from 5 s, C2).
+- **Melee.** A gate keeps `canHit()` only for the right-click entry and never shields a player behind it (client only;
+  the server never re-raycasts melee). The client `RiftGateEntity.interact` returns PASS unless the local player could
+  enter now (B-6, `RiftSessionService.claimsRightClick`), so a held item still fires.
+  `client/mixin/riftwalker/RiftGateCrosshairMixin` ANDs the crosshair predicate in `findCrosshairTarget` so non-users
+  (and foreign cameras) ignore gates, and `RiftGateAttackMixin` (WrapOperation on `doAttack`'s `attackEntity`) re-picks
+  a gate user's left-click on a gate without gates and hits what is behind it, or sends nothing. Classification and
+  rules: `client/riftwalker/gate/RiftGateCrosshairClient` / `RiftGateCrosshairRules`.
+- **Projectiles** (`projectile/RiftGateProjectileService`, vanilla deflection seam). Any projectile, pearls included
+  (D8, C5), moves to the front of a random other gate with rotated velocity, else reflects at full speed; at most 3
+  passes. The NR throwing axe uses `mixin/riftwalker/RiftThrowingAxeMixin`, the SparkStrength M67 `RiftGateM67Sweep`
+  (registry id only). Hitscan ignores gates; a custom player-only `canHit` must accept gates via `isProjectileTarget`.
+  `mixin/riftwalker/RiftProjectileDeflectionMixin` keeps a gate deflection from flipping pickup to ALLOWED and from
+  being remembered as `lastDeflectedEntity`; destinations must pass `RiftProjectileExitRules` (ticking exit/start, box
+  clear of blocks, clear line), else another gate or reflect.
+- **Witches' Sabbath** (`sabbath/WitchesSabbathService.use`; 150 mana, instant, no cooldown, D6). A free,
+  non-capture-stunned Riftwalker outside a gate pulls each living teammate whose effective faction is exactly
+  `sparkwitch:witch` (C6) to a safe spot (`WitchesSabbathLandingPlan`, never on a live Hunter trap), skipping those
+  inside a gate, swallowed, in Last Stand/Last Escape, Kidnapper-controlled, or SFA-vetoed
+  (`sparkwitch:riftwalker_sabbath`). Control-Expert-stunned, Hunter-rooted and SparkStrength capture-stunned teammates
+  are pulled and stay held at the landing spot (D19, superseding C10's Sabbath half and M-2): the stun and the root
+  anchor no position, and `RiftwalkerStatusProbes.relockCaptureStun` calls SparkStrength's `stun(1)` (keeps the
+  remaining ticks, re-locks at the current position) right after the teleport. A captured teammate whose lock cannot
+  move (`isCaptureStunPinned`) is skipped. A pulled Grand Witch's ceremonial-sword dash is cancelled. No target or no
+  space costs nothing, the mana is refunded when nobody moved, and a caster in a doorway gets its own refusal (N-5).
+- **Presentation** (`client/riftwalker/gate/`). `RiftGateEntityRenderer` draws model B (`RiftGateModels`) full-bright
+  for everyone, skipping the gate around an occupant's camera; `RiftGateClientEffects` adds sparse particles;
+  `RiftGateInstinctHooks` (D9) outlines every gate through walls for living Grand Witch and accomplice-like viewers on
+  instinct.
+- **Tablet console** (D12, D16, C9). A living Riftwalker using `sparkstrength:tablet` (registry id only) from the hotbar
+  gets `client/riftwalker/tablet/RiftGateConsoleOpener` (a Seeker-opener copy; 「魔女网络」 returns to SparkStrength).
+  `tablet/RiftGateConsoleService` re-validates every request, lists fixed `#n`, distance, direction and occupant names
+  (D16), and closes through `RiftGateRegistry.close(CONSOLE)` after two clicks (`RiftGateCloseConfirm`); no close-all.
+- **Swapper crush** (D13, C4, C7, C8). `mixin/riftwalker/RiftSwapperCrushMixin` (HEAD on NR's Swapper handler,
+  `require = 1`, priority 1100 so SFA and SparkTraits guards decide first) calls `swapper/RiftSwapperCrushService`: if
+  either target is inside a gate the swap is cancelled and the Swapper is killed on a safe cell in front of the gate
+  (`RiftSwapperBodyCell`, one block out first, in sight of the gate by a COLLIDER ray, M-4); any other spectator
+  target, dead or alive, cancels silently (M-3).
+  `client/mixin/riftwalker/RiftSwapperWidgetMixin` (C7, pinned in `verifyClientMixinSelectors`) lets the Swapper pick an
+  untracked, Wathe-alive spectator. Third owner-approved exception: `sparkwitch:portal_crushed` is a forced, terminal,
+  killer-less environmental kill, registered as SparkTraits-terminal on `SERVER_STARTING` like `bell_toll` (the Swapper
+  may still become a Wraith, D17). Its victim is always the Swapper, so the Saint and dormant-Fiend guards need no
+  opt-out; a vetoed kill (older SparkTraits) moves the Swapper back with NR's 60 s cooldown.
+- **Cross-mod seams.** SparkTraits only through existing bridges, failing closed: `isKillerInteractionBlocked`,
+  `isRoleSkillBlocked`, `isLastEscapeActive`, `registerTerminalDeathReason` (`SparkTraitsKillerBridge`),
+  `isLastStandPending` (`SparkTraitsSeekerBridge`), `isLastStandDeathIntercepted` (`WitchFactorTraitsBridge`).
+  SparkStrength only by id (tablet, M67, `sparkstrength:engineer_stunned`). SparkTraits
+  `feat/accomplice-riftwalker-support` adds the Riftwalker to its five hard-coded accomplice id sets.
+- **Gaps and tests.** C11 (owner open): the NR Pathogen can still infect an occupant within 3 blocks (non-lethal). Local
+  tests: `roles/witch/riftwalker/` and `client/riftwalker/` under `src/test/java/dev/caecorthus/sparkwitch/`.
+
 Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player
 whose synced Wraith state is active is skipped when
@@ -1293,6 +1403,10 @@ cooldown, while a present build whose facade lacks or fails `isLastStandDeathInt
 every death as intercepted: the `KillPlayer.AFTER` cleanup is skipped and no Clock death moves the
 round time or grants a stamp; the curse tick clears a victim who stops playing, and the 20-tick
 non-holder sweep removes a dead Time Stealer's Clock and stamps.
+The Riftwalker may query only `isKillerInteractionBlocked`, `isRoleSkillBlocked`, `isLastEscapeActive` and
+`registerTerminalDeathReason` through `SparkTraitsKillerBridge`, `isLastStandPending` through
+`SparkTraitsSeekerBridge`, and the Last Stand interception read through `WitchFactorTraitsBridge` (details in its
+section); an absent or older build means no block and no terminal registration for `sparkwitch:portal_crushed`.
 The Ceremonial Sword and a credited Fire Poker fall may query only
 `isNonFinalKillPending`, `getNonFinalKillCooldownTicks`, and
 `runWithNonFinalKillWeapon` through `SparkTraitsKillerBridge` for non-final

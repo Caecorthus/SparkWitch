@@ -4,12 +4,14 @@ import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.doctor4t.wathe.api.Role;
 
 /**
- * Pure mana economy rules for the mana-bearing roles: the three witches, Emma, and the Abyss Listener (which uses the
- * Grand Witch's economy, owner D11).
- * 魔力角色的纯规则集中在这里（三位魔女、艾玛，以及沿用大魔女魔力机制的聆渊者，所有者 D11），避免事件、组件和 HUD 各写一份判断。
+ * Pure mana economy rules for the mana-bearing roles: the three witches, Emma, and the Abyss Listener and the
+ * Riftwalker (which use the Grand Witch's economy, Abyss Listener D11 and Riftwalker D7).
+ * 魔力角色的纯规则集中在这里（三位魔女、艾玛，以及沿用大魔女魔力机制的聆渊者与隙行者，聆渊者 D11、隙行者 D7），
+ * 避免事件、组件和 HUD 各写一份判断。
  */
 public final class WitchManaRules {
     public static final int INITIAL_MANA = 0;
@@ -30,19 +32,23 @@ public final class WitchManaRules {
     }
 
     public static boolean isManaRole(Role role) {
-        return isWitchManaRole(role) || EmmaRules.isEmma(role) || AbyssListenerRules.isAbyssListener(role);
+        return isWitchManaRole(role) || EmmaRules.isEmma(role) || AbyssListenerRules.isAbyssListener(role)
+                || RiftwalkerRules.isRiftwalker(role);
     }
 
     /**
      * Roles on the Grand Witch's own economy: 20-tick regeneration, natural cap 300, and kill rewards of 50 (generic)
-     * or 100 (a witch-mana-role victim). The Abyss Listener joins it (D11) but never as a victim class and never for
-     * the Grand-Witch-only accomplice-kill bonus (C6); the Apprentice, Murderous Witch and Emma keep their own numbers.
+     * or 100 (a witch-mana-role victim). The Abyss Listener (D11) and the Riftwalker (D7) join it, but never as a
+     * victim class and never for the Grand-Witch-only accomplice-kill bonus (C6); the Apprentice, Murderous Witch and
+     * Emma keep their own numbers.
      * 沿用大魔女魔力机制的职业：每 20 tick 自然恢复、自然上限 300、击杀奖励 50（普通）或 100（魔女魔力职业受害者）。
-     * 聆渊者加入其中（D11），但既不作为受害者类别，也不获得仅属于大魔女的共犯击杀奖励（C6）；预备魔女、杀意魔女与艾玛保持各自数值。
+     * 聆渊者（D11）与隙行者（D7）加入其中，但既不作为受害者类别，也不获得仅属于大魔女的共犯击杀奖励（C6）；
+     * 预备魔女、杀意魔女与艾玛保持各自数值。
      */
     public static boolean usesGrandWitchManaEconomy(Role role) {
         return role != null
-                && (role == SparkWitchRoles.grandWitch() || AbyssListenerRules.isAbyssListener(role));
+                && (role == SparkWitchRoles.grandWitch() || AbyssListenerRules.isAbyssListener(role)
+                || RiftwalkerRules.isRiftwalker(role));
     }
 
     private static boolean isWitchManaRole(Role role) {
@@ -100,8 +106,8 @@ public final class WitchManaRules {
 
     /**
      * Mana every living Grand Witch gains when any accomplice (plain or special) kills. Only Grand Witches receive it;
-     * an accomplice with its own mana (the Abyss Listener) is paid separately through {@link #killReward}.
-     * 任一共犯（普通或特殊）击杀时，每个存活的大魔女获得的魔力。仅大魔女获得；自身拥有魔力的共犯（聆渊者）另经
+     * an accomplice with its own mana (the Abyss Listener, the Riftwalker) is paid separately through {@link #killReward}.
+     * 任一共犯（普通或特殊）击杀时，每个存活的大魔女获得的魔力。仅大魔女获得；自身拥有魔力的共犯（聆渊者、隙行者）另经
      * {@link #killReward} 结算。
      */
     public static int grandWitchRewardForAccompliceKill(Role killerRole, Role victimRole) {

@@ -135,7 +135,16 @@
     "potiongunner.PotionScopeGameRendererInvoker",
     "potiongunner.PotionScopeGameRendererMixin",
     "potiongunner.PotionScopeInGameHudMixin",
-    "potiongunner.PotionScopeMouseMixin"
+    "potiongunner.PotionScopeMouseMixin",
+    "riftwalker.RiftSwapperWidgetMixin",
+    "riftwalker.RiftSessionGameRendererMixin",
+    "riftwalker.RiftSessionInGameHudMixin",
+    "riftwalker.RiftSessionKeyBindingMixin",
+    "riftwalker.RiftSessionMinecraftClientMixin",
+    "riftwalker.RiftSessionMouseMixin",
+    "riftwalker.RiftSessionSpectatorHudMixin",
+    "riftwalker.RiftGateAttackMixin",
+    "riftwalker.RiftGateCrosshairMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -40,6 +40,7 @@ public final class SparkWitchRoles {
     public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
     public static final Identifier ABYSS_LISTENER_ID = SparkWitchRoleRegistry.ABYSS_LISTENER_ID;
     public static final Identifier POTION_GUNNER_ID = SparkWitchRoleRegistry.POTION_GUNNER_ID;
+    public static final Identifier RIFTWALKER_ID = SparkWitchRoleRegistry.RIFTWALKER_ID;
 
     private SparkWitchRoles() {
     }
@@ -182,6 +183,10 @@ public final class SparkWitchRoles {
 
     public static Role abyssListener() {
         return SparkWitchRoleRegistry.abyssListener();
+    }
+
+    public static Role riftwalker() {
+        return SparkWitchRoleRegistry.riftwalker();
     }
 
     public static List<Role> assassinGuessRoles() {

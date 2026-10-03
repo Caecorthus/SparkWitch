@@ -46,6 +46,7 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.gwAcShell(),
                                     SparkWitchItems.gwMrShell(),
                                     SparkWitchItems.trShell(),
+                                    SparkWitchItems.riftGate(),
                                     // Neutral / 中立
                                     SparkWitchItems.firePoker(),
                                     // Civilian / 平民

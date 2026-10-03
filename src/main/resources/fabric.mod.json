@@ -59,7 +59,9 @@
       "sparktraits:wraith_player",
       "sparktraits:wraith_round",
       "sparkwitch:accomplice_variant_round",
-      "sparkwitch:abyss_zone_exposure"
+      "sparkwitch:abyss_zone_exposure",
+      "sparkwitch:rift_session",
+      "sparkwitch:rift_gates"
     ]
   },
   "mixins": [

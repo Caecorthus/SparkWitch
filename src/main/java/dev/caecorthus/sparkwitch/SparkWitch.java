@@ -17,6 +17,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashEntities;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.AbyssListenerEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSounds;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerEntities;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistEffects;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelEffects;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEffects;
@@ -52,6 +53,7 @@ public final class SparkWitch implements ModInitializer {
         HunterEntities.register();
         ControlExpertEntities.register();
         AbyssListenerEntities.register();
+        RiftGateEntities.register();
         SeekerEntities.register();
         HolyFlashEntities.register();
         PotionGunnerEntities.register();
@@ -86,6 +88,9 @@ public final class SparkWitch implements ModInitializer {
         // Abyss Listener: the bound Shriek Gun is hidden in hand (owner default N11); the flask stays visible.
         // 聆渊者：绑定的啸音铳手持时对他人隐藏（所有者默认 N11）；孢瓶保持可见。
         NoellesHiddenEquipment.register(SparkWitchItems.shriekGun());
+        // Riftwalker: the Rift Gate stack is hidden in hand, like the Seeker devices.
+        // 隙行者：裂隙门手持时对他人隐藏，与搜寻者设备相同。
+        NoellesHiddenEquipment.register(SparkWitchItems.riftGate());
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();

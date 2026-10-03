@@ -39,6 +39,8 @@ import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserRole;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRole;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.caecorthus.sparkwitch.win.WitchWinConditions;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
@@ -87,6 +89,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
     public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
     public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
+    public static final Identifier RIFTWALKER_ID = RiftwalkerRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -121,6 +124,7 @@ public final class SparkWitchRoleRegistry {
     private static Role insider;
     private static Role abyssListener;
     private static Role potionGunner;
+    private static Role riftwalker;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -326,6 +330,11 @@ public final class SparkWitchRoleRegistry {
         return abyssListener;
     }
 
+    public static Role riftwalker() {
+        ensureRegistered();
+        return riftwalker;
+    }
+
     public static boolean isSparkWitchRole(Role role) {
         ensureRegistered();
         return isRegisteredSparkWitchRole(role);
@@ -410,6 +419,7 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .appearanceCondition(context -> false)
                 .build());
+        riftwalker = SparkFactionApi.registerRole(RiftwalkerRole.DEFINITION);
         windSpirit = SparkFactionApi.registerRole(WindSpiritRole.DEFINITION);
         guardianAngel = SparkFactionApi.registerRole(GuardianAngelRole.DEFINITION);
         vendetta = SparkFactionApi.registerRole(VendettaRole.DEFINITION);
@@ -650,6 +660,7 @@ public final class SparkWitchRoleRegistry {
                 accomplice,
                 abyssListener,
                 potionGunner,
+                riftwalker,
                 grandWitch,
                 emma,
                 controlExpert,
@@ -683,6 +694,10 @@ public final class SparkWitchRoleRegistry {
                 // Shared skill path (Warden's Shriek) only; grants no witch skill panel access (the panel reads the
                 // role's accomplice-variant hooks, D13). 仅用于共享技能路径（监守之啸）；不授予魔女技能面板资格
                 // （面板读取本职业的特殊共犯回调，D13）。
-                || role == abyssListener;
+                || role == abyssListener
+                // Shared skill path (Witches' Sabbath) only; grants no witch skill panel access (the panel reads the
+                // role's accomplice-variant hooks, AGENTS.md panel rule). 仅用于共享技能路径（魔女集会）；不授予魔女技能
+                // 面板资格（面板读取本职业的特殊共犯回调，AGENTS.md 面板规则）。
+                || role == riftwalker;
     }
 }
