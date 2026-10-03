@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.special.wraith.runtime;
 
+import dev.caecorthus.sparkfactionapi.api.replay.SparkReplayApi;
+import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
@@ -31,10 +33,12 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 
+import java.util.UUID;
 
 /**
  * Owns Wraith activation, reconnect, world maintenance, role transitions, and terminal cleanup.
@@ -42,6 +46,10 @@ import net.minecraft.world.GameMode;
  */
 public final class WraithLifecycle {
     private static final double CROUCH_RELEASE_UPWARD_VELOCITY = 0.08D;
+    // SparkFactionAPI replay causes for the shared transitionRole addRole; neither has a source player.
+    // 共用 transitionRole 中 addRole 的 SparkFactionAPI 回放原因；两者都没有来源玩家。
+    private static final Identifier CONVERSION_REPLAY_CAUSE = SparkWitch.id("wraith_conversion");
+    private static final Identifier PROMOTION_REPLAY_CAUSE = SparkWitch.id("wraith_promotion");
     private static boolean registered;
 
     private WraithLifecycle() {
@@ -65,7 +73,8 @@ public final class WraithLifecycle {
      */
     public static void activateConvertedPlayer(ServerPlayerEntity player, WraithTaskSnapshot taskSnapshot) {
         wakeIfSleeping(player);
-        transitionRole(player, SparkWitchRoles.wraith());
+        SparkReplayApi.withRoleChangeCause(CONVERSION_REPLAY_CAUSE, (UUID) null,
+                () -> transitionRole(player, SparkWitchRoles.wraith()));
         if (player.isSpectator()) {
             player.changeGameMode(GameMode.ADVENTURE);
         }
@@ -82,7 +91,8 @@ public final class WraithLifecycle {
      */
     public static void promotePlayer(ServerPlayerEntity player, Role role) {
         wakeIfSleeping(player);
-        transitionRole(player, role);
+        SparkReplayApi.withRoleChangeCause(PROMOTION_REPLAY_CAUSE, (UUID) null,
+                () -> transitionRole(player, role));
         WraithStaminaService.ensureInfiniteStamina(player);
         SaboteurFeatureService.initializePromotion(player);
         if (role == SparkWitchRoles.curser()) {

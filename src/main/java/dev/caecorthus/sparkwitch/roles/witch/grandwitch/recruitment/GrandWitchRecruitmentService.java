@@ -106,7 +106,11 @@ public final class GrandWitchRecruitmentService {
             // 分配初始物品时保留空槽，避免应清除的职业初始物品掉落到世界中。
             target.clearActiveItem();
             target.getInventory().clear();
-            game.addRole(target, recruitRole);
+            // The SparkFactionAPI replay records this addRole as recruited by the Grand Witch; only replay is affected.
+            // SparkFactionAPI 回放将此次 addRole 记为被大魔女招募；仅影响回放。
+            dev.caecorthus.sparkfactionapi.api.replay.SparkReplayApi.withRoleChangeCause(
+                    dev.caecorthus.sparkwitch.SparkWitch.id("grand_witch_recruitment"), recruiter,
+                    () -> game.addRole(target, recruitRole));
             // Commit the durable quota at the role-map mutation, before downstream callbacks can reenter.
             // 在身份映射变更时提交持久化名额，早于可能重入的下游回调。
             round.recordSuccess(target.getUuid());

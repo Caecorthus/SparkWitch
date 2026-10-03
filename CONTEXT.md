@@ -33,7 +33,7 @@ Current build baseline:
 - Minecraft `1.21.1`
 - Java `21`
 - SparkWitch `0.1.6.0` (Emma branch)
-- SparkFactionAPI floor `0.1.5.11`
+- SparkFactionAPI floor `0.1.5.12`
 
 ## Read Order
 
@@ -637,7 +637,7 @@ stab, recognised only by `FiendStabScope` around Wathe's `KnifeStabPayload` rece
 `wathe:bat_hit` and `sparkwitch:ceremonial_blade` +100 gold. A bomb the Fiend passed that kills its direct
 recipient pays +50 only while the Fiend is still dormant (server-only `FiendBombLedger`). The Taotie cannot
 swallow a dormant Fiend (SparkWitch guard on NoellesRoles `TaotiePlayerComponent.swallowPlayer`; SparkFactionAPI's
-NoellesRoles packet guards do not match the pinned 1.7.6 jar), and a dormant Fiend is never a Serial Killer target
+Taotie packet guard is live but runs only affect policies), and a dormant Fiend is never a Serial Killer target
 (`SerialKillerPlayerComponentFiendTargetMixin` filters `getEligibleTargets` and `isTargetValid`; the Bodyguard
 copies that target). A dormant Fiend counts as not alive in every last-one-standing count: `WitchWinConditions`
 and Murderous Witch `checkWin` skip it directly, and NoellesRoles'
