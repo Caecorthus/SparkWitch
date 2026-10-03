@@ -7,17 +7,20 @@ import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.ActionResult;
 
 /**
  * Bound-item lifecycle: strips the launcher and shells from anyone who is not a living Potion Gunner (role change,
  * terminal death, reset, finalize, staggered sweep), and the same sweep re-grants a launcher to a living gunner who
  * has none (covering recruitment's inventory rewrite). Shells still in flight are discarded by the shell entity itself
- * once the round stops. Also registers the fire replay formatter.
+ * once the round stops. Because the sweep re-grants, a bound item must never be handed to a world target that keeps
+ * it (the entity-use veto here, the decorated-pot mixin). Also registers the fire replay formatter.
  * 绑定物品生命周期：从任何不是存活药炮手的玩家身上收走炮筒与炮弹（换职业、最终死亡、重置、收尾、错峰清扫），同一次
  * 清扫也会给没有炮筒的存活药炮手补发（覆盖招募对背包的重写）。仍在飞行的炮弹在对局停止后由炮弹实体自行移除。
- * 同时注册发射回放格式化器。
+ * 由于清扫会补发，绑定物品绝不能交给会留下它的世界目标（此处的实体交互否决与饰纹陶罐 mixin）。同时注册发射回放格式化器。
  */
 public final class PotionGunnerLifecycle {
     /** Cadence of the staggered bound-item sweep. / 绑定物品错峰清扫的间隔。 */
@@ -49,6 +52,15 @@ public final class PotionGunnerLifecycle {
             }
             PotionGunnerLoadoutService.stripAll(victim);
         });
+        // The launcher and shells cannot be handed to item frames, armor stands or allays. Both sides: the client stops
+        // before sending, the server refuses a forged packet. Decorated pots are handled by
+        // mixin/potiongunner/DecoratedPotBlockPotionGunnerItemMixin instead, so the launcher's own use still runs
+        // there.
+        // 炮筒与炮弹无法交给物品展示框、盔甲架或悦灵。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
+        // 饰纹陶罐改由 DecoratedPotBlockPotionGunnerItemMixin 处理，因此在陶罐前炮筒自身的使用照常进行。
+        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) ->
+                PotionGunnerInventoryRules.blocksEntityUse(player.getStackInHand(hand), entity)
+                        ? ActionResult.FAIL : ActionResult.PASS);
         ResetPlayer.EVENT.register(PotionGunnerLoadoutService::stripAll);
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> {
             if (!(world instanceof ServerWorld serverWorld)) {

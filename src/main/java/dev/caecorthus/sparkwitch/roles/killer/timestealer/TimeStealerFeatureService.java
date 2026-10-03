@@ -13,8 +13,10 @@ import java.util.Objects;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 
 /**
@@ -85,6 +87,14 @@ public final class TimeStealerFeatureService {
             TimeTheftRuntime.onDeath(victim);
             TimeStealerLoadoutService.onDeath(victim);
         });
+        // The Clock and stamps cannot be handed to item frames, armor stands or allays. Both sides: the client stops
+        // before sending, the server refuses a forged packet. Decorated pots are handled by
+        // mixin/timestealer/DecoratedPotBlockTimeStealerItemMixin instead, so the Clock's own use still runs there.
+        // 时钟与邮票无法交给物品展示框、盔甲架或悦灵。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
+        // 饰纹陶罐改由 DecoratedPotBlockTimeStealerItemMixin 处理，因此在陶罐前时钟自身的使用照常进行。
+        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) ->
+                TimeStealerInventoryRules.blocksEntityUse(player.getStackInHand(hand), entity)
+                        ? ActionResult.FAIL : ActionResult.PASS);
         ResetPlayer.EVENT.register(TimeStealerFeatureService::clearPlayer);
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> {
             if (!(world instanceof ServerWorld serverWorld)) {
