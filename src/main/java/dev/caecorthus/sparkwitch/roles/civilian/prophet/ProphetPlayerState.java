@@ -182,14 +182,15 @@ public final class ProphetPlayerState {
      * Adds one excluded cause group to a pending Prophecy record; a resolved record is locked.
      * 为未猜中的预言记录添加一个已排除的死因分组；已猜中的记录被锁定。
      */
-    public boolean recordWrongGuess(UUID victim, String victimName, ProphetDeathCauseGroup group) {
+    public boolean recordWrongGuess(UUID victim, String victimName, ProphetDeathCauseGroup group, long deathSerial) {
         if (victim == null || group == null) {
             return false;
         }
-        ProphecyRecord existing = prophecies.get(victim);
-        if (existing == null && prophecies.size() >= MAX_ENTRIES) {
+        ProphecyRecord stored = prophecies.get(victim);
+        if (stored == null && prophecies.size() >= MAX_ENTRIES) {
             return false;
         }
+        ProphecyRecord existing = sameDeath(stored, deathSerial);
         if (existing != null && existing.outcome() != ProphecyRecord.Outcome.PENDING) {
             return false;
         }
@@ -199,7 +200,7 @@ public final class ProphetPlayerState {
         }
         excluded.add(group);
         prophecies.put(victim, new ProphecyRecord(
-                safeName(victimName, existing), excluded, ProphecyRecord.Outcome.PENDING, null));
+                safeName(victimName, stored), excluded, ProphecyRecord.Outcome.PENDING, null, deathSerial));
         return true;
     }
 
@@ -207,26 +208,48 @@ public final class ProphetPlayerState {
      * Locks a Prophecy record as solved; a {@code null} killer means nobody was responsible.
      * 将预言记录锁定为已猜中；{@code null} 凶手表示无人行凶。
      */
-    public boolean recordCorrectGuess(UUID victim, String victimName, @Nullable String killerName) {
+    public boolean recordCorrectGuess(UUID victim, String victimName, @Nullable String killerName, long deathSerial) {
         if (victim == null) {
             return false;
         }
-        ProphecyRecord existing = prophecies.get(victim);
-        if (existing == null && prophecies.size() >= MAX_ENTRIES) {
+        ProphecyRecord stored = prophecies.get(victim);
+        if (stored == null && prophecies.size() >= MAX_ENTRIES) {
             return false;
         }
+        ProphecyRecord existing = sameDeath(stored, deathSerial);
         if (existing != null && existing.outcome() != ProphecyRecord.Outcome.PENDING) {
             return false;
         }
         Set<ProphetDeathCauseGroup> excluded = existing == null ? Set.of() : existing.excluded();
         String killer = killerName == null ? null : truncate(killerName);
         prophecies.put(victim, new ProphecyRecord(
-                safeName(victimName, existing),
+                safeName(victimName, stored),
                 excluded,
                 killer == null ? ProphecyRecord.Outcome.NO_KILLER : ProphecyRecord.Outcome.REVEALED_KILLER,
-                killer
+                killer,
+                deathSerial
         ));
         return true;
+    }
+
+    /**
+     * Removes every record whose victim appears in {@code currentDeathSerials} with a different serial (the victim was
+     * revived and died again). Victims absent from the map are left untouched. Returns whether anything was removed.
+     * 删除所有在 {@code currentDeathSerials} 中序号不同的记录（死者被复活后再次死亡）；不在映射中的死者保持不变。返回是否有删除。
+     */
+    public boolean forgetStaleProphecies(Map<UUID, Long> currentDeathSerials) {
+        if (currentDeathSerials == null || currentDeathSerials.isEmpty()) {
+            return false;
+        }
+        return prophecies.entrySet().removeIf(entry -> {
+            Long current = currentDeathSerials.get(entry.getKey());
+            return current != null && current != entry.getValue().deathSerial();
+        });
+    }
+
+    /** The stored record only when it was made against this same death. / 仅当已存记录针对同一次死亡时才返回它。 */
+    private static @Nullable ProphecyRecord sameDeath(@Nullable ProphecyRecord stored, long deathSerial) {
+        return stored != null && stored.deathSerial() == deathSerial ? stored : null;
     }
 
     public void clear() {
@@ -268,6 +291,7 @@ public final class ProphetPlayerState {
             if (record.killerName() != null) {
                 entry.putString("KillerName", record.killerName());
             }
+            entry.putLong("DeathSerial", record.deathSerial());
             records.add(entry);
         });
         tag.put("Prophecies", records);
@@ -314,16 +338,20 @@ public final class ProphetPlayerState {
                     truncate(entry.getString("VictimName")),
                     excluded,
                     readOutcome(entry.getString("Outcome"), killer),
-                    killer
+                    killer,
+                    // Missing in older saves → 0, which never matches a ledger serial, so the record reads as stale.
+                    // 旧存档缺失时为 0，永不匹配账本序号，因此该记录视为过期。
+                    entry.getLong("DeathSerial")
             ));
         }
     }
 
     /**
      * Owner-only sync layout: armed, running, remaining ticks, body UUIDs, necrology (UUID, name), then Prophecy
-     * records (victim, name, outcome ordinal, excluded group ids, optional killer name). The match id stays server-side.
+     * records (victim, name, outcome ordinal, excluded group ids, optional killer name, death serial). The match id
+     * stays server-side; the serial carries no cause or killer.
      * 仅所有者同步布局：armed、running、剩余 tick、尸体 UUID、名录（UUID、名字），再到预言记录（受害者、名字、结果序号、
-     * 已排除分组 id、可选凶手名）。对局 id 只保留在服务端。
+     * 已排除分组 id、可选凶手名、死亡序号）。对局 id 只保留在服务端；序号不含死因或凶手。
      */
     public void writeSync(RegistryByteBuf buf) {
         buf.writeBoolean(senseArmed);
@@ -357,6 +385,7 @@ public final class ProphetPlayerState {
             if (record.killerName() != null) {
                 buf.writeString(record.killerName(), MAX_NAME_LENGTH);
             }
+            buf.writeVarLong(record.deathSerial());
         }
     }
 
@@ -388,10 +417,11 @@ public final class ProphetPlayerState {
                 ProphetDeathCauseGroup.byId(buf.readString(MAX_GROUP_ID_LENGTH)).ifPresent(excluded::add);
             }
             String killer = buf.readBoolean() ? buf.readString(MAX_NAME_LENGTH) : null;
+            long deathSerial = buf.readVarLong();
             ProphecyRecord.Outcome outcome = outcomeIndex >= 0 && outcomeIndex < outcomes.length
                     ? outcomes[outcomeIndex]
                     : ProphecyRecord.Outcome.PENDING;
-            prophecies.put(victim, new ProphecyRecord(victimName, excluded, outcome, killer));
+            prophecies.put(victim, new ProphecyRecord(victimName, excluded, outcome, killer, deathSerial));
         }
     }
 

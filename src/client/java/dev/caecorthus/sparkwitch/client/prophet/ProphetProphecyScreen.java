@@ -57,15 +57,14 @@ public final class ProphetProphecyScreen extends Screen {
     private static final int BUTTON_HOVER = 0xFF453066;
     private static final int BUTTON_OFF = 0xFF1E1529;
 
-    private static final int PAD = 6;
-    private static final int GAP = 6;
+    private static final int PAD = ProphetProphecyClientRules.PANEL_PAD;
     private static final int BAND_H = 18;
     private static final int ROW_H = 22;
     private static final int HEAD = 16;
-    private static final int CELL_GAP = 3;
+    private static final int CELL_GAP = ProphetProphecyClientRules.CELL_GAP;
     private static final int CELL_ROWS = (ProphetDeathCauseGroup.values().length + 1) / 2;
     private static final int BUTTON_H = 16;
-    private static final int SCROLLBAR_W = 3;
+    private static final int SCROLLBAR_W = ProphetProphecyClientRules.SCROLLBAR_W;
     private static final String ELLIPSIS = "…";
 
     private final UUID sessionId;
@@ -114,7 +113,7 @@ public final class ProphetProphecyScreen extends Screen {
         panelX = (width - panelW) / 2;
         panelY = (height - panelH) / 2;
         int innerX = panelX + PAD;
-        int innerW = Math.max(1, panelW - PAD * 2);
+        int innerW = ProphetProphecyClientRules.innerWidth(panelW);
 
         headerY = panelY + BAND_H + 6;
         int bodyTop = headerY + textRenderer.fontHeight + 3;
@@ -123,16 +122,18 @@ public final class ProphetProphecyScreen extends Screen {
         int bodyBottom = hintY - 4;
         int bodyH = Math.max(0, bodyBottom - bodyTop);
 
-        listW = MathHelper.clamp(innerW * 5 / 12, Math.min(84, innerW / 2), 168);
+        listW = ProphetProphecyClientRules.listWidth(innerW);
         listX = innerX;
         listY = bodyTop;
         listH = bodyH;
-        gridX = listX + listW + GAP;
+        gridW = ProphetProphecyClientRules.gridWidth(innerW);
+        gridX = innerX + innerW - gridW;
         gridY = bodyTop;
-        gridW = Math.max(1, innerX + innerW - gridX);
         gridH = bodyH;
-        cellW = Math.max(1, (gridW - SCROLLBAR_W - 1 - CELL_GAP) / 2);
         cellH = MathHelper.clamp((gridH - (CELL_ROWS - 1) * CELL_GAP) / CELL_ROWS, 12, 20);
+        // Whether the grid scrolls depends only on cellH and gridH, so cellW can follow it.
+        // 死因区是否滚动只取决于 cellH 与 gridH，因此 cellW 可据此计算。
+        cellW = ProphetProphecyClientRules.causeCellWidth(gridW, maxGridScroll() > 0);
 
         cancelW = Math.max(44, textRenderer.getWidth(Text.translatable("gui.sparkwitch.prophecy.cancel")) + 16);
         confirmW = Math.max(72, textRenderer.getWidth(confirmLabel()) + 16);
@@ -233,7 +234,7 @@ public final class ProphetProphecyScreen extends Screen {
             context.drawText(textRenderer, empty, listX + 4, listY + 4, FAINT, false);
             return;
         }
-        int rowW = listW - 2 - (maxListScroll() > 0 ? SCROLLBAR_W + 1 : 0);
+        int rowW = rowWidth();
         context.enableScissor(listX + 1, listY + 1, listX + listW - 1, listY + listH - 1);
         for (int index = 0; index < candidates.size(); index++) {
             int y = listY + 1 + index * ROW_H - listScroll;
@@ -305,7 +306,8 @@ public final class ProphetProphecyScreen extends Screen {
             context.fill(x, y, x + cellW, y + cellH, border);
             context.fill(x + 1, y + 1, x + cellW - 1, y + cellH - 1, fill);
 
-            String label = fit(Text.translatable(group.translationKey()).getString(), cellW - 6);
+            String label = fit(Text.translatable(group.translationKey()).getString(),
+                    ProphetProphecyClientRules.causeLabelWidth(cellW));
             Text text = excluded
                     ? Text.literal(label).formatted(Formatting.STRIKETHROUGH)
                     : Text.literal(label);
@@ -392,7 +394,8 @@ public final class ProphetProphecyScreen extends Screen {
             close();
             return true;
         }
-        if (inside(mouseX, mouseY, listX + 1, listY + 1, listW - 2, listH - 2)) {
+        // Same row width as drawing, so a click on the scrollbar never selects a row. 与绘制同宽，点滚动条不会选中行。
+        if (inside(mouseX, mouseY, listX + 1, listY + 1, rowWidth(), listH - 2)) {
             int index = ((int) mouseY - listY - 1 + listScroll) / ROW_H;
             if (index >= 0 && index < candidates.size()) {
                 UUID victim = candidates.get(index).player();
@@ -569,8 +572,12 @@ public final class ProphetProphecyScreen extends Screen {
 
     // ================================================================ layout
 
+    private int rowWidth() {
+        return ProphetProphecyClientRules.listRowWidth(listW, maxListScroll() > 0);
+    }
+
     private int cellX(int index) {
-        return gridX + 2 + (index % 2) * (cellW + CELL_GAP);
+        return gridX + ProphetProphecyClientRules.GRID_INSET + (index % 2) * (cellW + CELL_GAP);
     }
 
     private int cellY(int index) {

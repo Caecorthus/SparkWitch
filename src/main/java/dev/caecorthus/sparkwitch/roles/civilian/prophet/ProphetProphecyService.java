@@ -12,7 +12,9 @@ import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -101,6 +103,12 @@ public final class ProphetProphecyService {
         if (session.isEmpty()) {
             return;
         }
+        // Drop records made against an earlier death of a now re-dead victim before the screen opens: the owner sync
+        // is sent ahead of the session packet, so the screen never shows stale exclusions. Only serials are compared.
+        // 在界面打开前删除针对已复活又再次死亡者旧死亡的记录：所有者同步先于会话包发出，界面不会显示过期的排除项。只比较序号。
+        Map<UUID, Long> serials = new HashMap<>();
+        dead.forEach(record -> serials.put(record.victim(), record.serial()));
+        ProphetPlayerComponent.KEY.get(player).forgetStaleProphecies(serials);
         // Names only: the cause group and killer stay in the server ledger. / 只发送名字：死因分组与凶手留在服务端账本。
         List<OpenProphecyS2CPacket.Candidate> candidates = dead.stream()
                 .map(record -> new OpenProphecyS2CPacket.Candidate(record.victim(), packetName(record)))
@@ -114,11 +122,11 @@ public final class ProphetProphecyService {
     }
 
     /**
-     * Consumes the session nonce, re-checks everything the request checked plus the guess itself, then charges 50
-     * coins, records the outcome on the owner-synced component and starts the shared 30 s cooldown. Any refusal
-     * charges nothing and starts no cooldown.
-     * 消费会话标识，重新检查请求时的全部条件以及猜测本身，然后扣除 50 金币、把结果写入仅同步给拥有者的组件，
-     * 并启动共享的 30 秒冷却。任何拒绝都不扣费、不进入冷却。
+     * Consumes the session nonce, re-checks everything the request checked plus the guess itself, records the outcome
+     * on the owner-synced component, then charges 50 coins and starts the shared 30 s cooldown. Any refusal, including
+     * a write the component rejects, charges nothing and starts no cooldown.
+     * 消费会话标识，重新检查请求时的全部条件以及猜测本身，把结果写入仅同步给拥有者的组件，然后扣除 50 金币并启动共享的
+     * 30 秒冷却。任何拒绝（包括组件拒绝写入）都不扣费、不进入冷却。
      */
     public static void confirmGuess(ServerPlayerEntity player, UUID nonce, UUID victim, String groupId) {
         Optional<ProphetProphecySessions.Session> session = SESSIONS.consume(
@@ -162,19 +170,27 @@ public final class ProphetProphecyService {
             return;
         }
 
-        shop.addToBalance(-ProphetRules.PROPHECY_COIN_COST);
+        // Record first (a stale record for an earlier death is replaced inside the write); charge and cool down only
+        // when the record was actually written, e.g. not when the record cap is full.
+        // 先记录（针对更早死亡的过期记录在写入时被替换）；只有确实写入后才扣费并进入冷却，例如记录数已达上限时不扣费。
         Text cause = Text.translatable(guess.translationKey());
         Text result;
+        boolean recorded;
         if (verdict == Verdict.WRONG) {
-            component.recordWrongGuess(victim, death.victimName(), guess);
+            recorded = component.recordWrongGuess(victim, death.victimName(), guess, death.serial());
             result = Text.translatable(verdict.messageKey(), death.victimName(), cause);
         } else {
             String killer = ProphetProphecyRules.revealedKiller(death);
-            component.recordCorrectGuess(victim, death.victimName(), killer);
+            recorded = component.recordCorrectGuess(victim, death.victimName(), killer, death.serial());
             result = killer == null
                     ? Text.translatable(verdict.messageKey(), death.victimName(), cause)
                     : Text.translatable(verdict.messageKey(), death.victimName(), cause, killer);
         }
+        if (!recorded) {
+            actionBar(player, "unavailable");
+            return;
+        }
+        shop.addToBalance(-ProphetRules.PROPHECY_COIN_COST);
         WitchSkillUseService.startDedicatedSkillCooldown(player, ProphetRules.PROPHECY_ID);
         // Private chat line and sound: nobody else learns that a Prophecy happened. / 私有聊天与音效：其他人不会得知发生了预言。
         player.sendMessage(result, false);

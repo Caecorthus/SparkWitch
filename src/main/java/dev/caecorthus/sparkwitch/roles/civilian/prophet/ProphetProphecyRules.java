@@ -51,7 +51,8 @@ public final class ProphetProphecyRules {
      * @param prophet   the guessing Prophet / 进行猜测的先知
      * @param death     the victim's ledger record, or {@code null} when the victim is no longer a dead participant
      *                  / 死者的账本记录；死者不再处于死亡状态时为 {@code null}
-     * @param existing  the Prophet's own record for that victim / 先知对该死者已有的预言记录
+     * @param existing  the Prophet's own record for that victim; ignored when it was made against an earlier death
+     *                  (see {@link #recordForDeath}) / 先知对该死者已有的预言记录；若针对的是更早的一次死亡则忽略
      * @param guess     the parsed cause group, or {@code null} for an unknown id / 解析出的死因分组，未知 id 为 {@code null}
      * @param balance   the Prophet's current coins / 先知当前金币
      */
@@ -65,6 +66,7 @@ public final class ProphetProphecyRules {
         if (death == null || death.victim().equals(prophet)) {
             return Verdict.INVALID_TARGET;
         }
+        existing = recordForDeath(existing, death);
         if (existing != null && existing.outcome() != ProphecyRecord.Outcome.PENDING) {
             return Verdict.ALREADY_SOLVED;
         }
@@ -81,6 +83,16 @@ public final class ProphetProphecyRules {
             return Verdict.WRONG;
         }
         return death.responsible() == null ? Verdict.CORRECT_NO_KILLER : Verdict.CORRECT_KILLER;
+    }
+
+    /**
+     * The Prophet's record only when it was made against this exact death; a revived-then-killed-again victim has a new
+     * ledger serial, so the old exclusions and outcome no longer apply and the record counts as fresh.
+     * 仅当先知的记录针对的正是这一次死亡时才返回它；被复活后再次死亡的受害者拥有新的账本序号，
+     * 旧的排除项与结果不再适用，记录视为全新。
+     */
+    public static @Nullable ProphecyRecord recordForDeath(@Nullable ProphecyRecord existing, @Nullable ProphetDeathRecord death) {
+        return existing != null && death != null && existing.deathSerial() == death.serial() ? existing : null;
     }
 
     /**

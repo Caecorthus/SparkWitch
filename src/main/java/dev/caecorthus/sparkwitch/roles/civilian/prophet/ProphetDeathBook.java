@@ -24,6 +24,9 @@ final class ProphetDeathBook<W> {
             .thenComparing(ProphetDeathRecord::victim);
 
     private final Map<W, Page> pages = new IdentityHashMap<>();
+    // Never reset, not even by clearAll: a serial identifies one death for the server's lifetime.
+    // 永不重置（clearAll 也不重置）：序号在服务端生命周期内唯一标识一次死亡。
+    private long lastSerial;
 
     /** Responsibility first, then the direct killer; a self-kill means no killer. / 先取归因责任人，再取直接凶手；自杀视为无人行凶。 */
     static @Nullable UUID resolveResponsible(UUID victim, @Nullable UUID attributed, @Nullable UUID killer) {
@@ -31,15 +34,20 @@ final class ProphetDeathBook<W> {
         return victim.equals(responsible) ? null : responsible;
     }
 
-    /** Same victim again overwrites: the last death wins. / 同一受害者再次写入覆盖旧记录：以最后一次死亡为准。 */
-    void record(W world, String match, ProphetDeathRecord record) {
+    /**
+     * Same victim again overwrites: the last death wins. Every write gets a fresh serial, returned with the stored record.
+     * 同一受害者再次写入覆盖旧记录：以最后一次死亡为准。每次写入都分配新序号，并返回已存储的记录。
+     */
+    ProphetDeathRecord record(W world, String match, ProphetDeathRecord record) {
         Objects.requireNonNull(match);
         Page page = pages.get(world);
         if (page == null || !page.match.equals(match)) {
             page = new Page(match);
             pages.put(world, page);
         }
-        page.records.put(record.victim(), record);
+        ProphetDeathRecord numbered = record.withSerial(++lastSerial);
+        page.records.put(numbered.victim(), numbered);
+        return numbered;
     }
 
     Optional<ProphetDeathRecord> get(W world, @Nullable String match, @Nullable UUID victim) {

@@ -1,6 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.civilian.prophet;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.DecoratedPotBlock;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.entity.decoration.ItemFrameEntity;
+import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
@@ -36,6 +42,32 @@ public final class ProphetNecrologyRules {
     /** Excluded from Wathe's death-drop loop; the death cleanup deletes it afterwards. / 排除出 Wathe 死亡掉落流程，随后由死亡清理删除。 */
     public static boolean blocksDeathDrop(ItemStack stack) {
         return isNecrology(stack);
+    }
+
+    /**
+     * World-interaction veto for the stack in the used hand: vanilla 1.21.1 item frames (glow included), armor stands
+     * and allays take the held stack, and a decorated pot inserts any held item. Without this the book would leave the
+     * inventory and the per-tick restore would mint a fresh copy each time. Chiseled bookshelves and lecterns accept
+     * only their book tags, so they never take the Necrology.
+     * 针对所用手中物品的世界交互否决：原版 1.21.1 中物品展示框（含荧光）、盔甲架与悦灵会拿走手持物品，饰纹陶罐会放入任意手持物品。
+     * 否则书本会离开背包，而逐刻补发会每次生成新的副本。雕纹书架与讲台只接受各自的书籍标签，不会拿走名录。
+     */
+    public static boolean blocksEntityUse(ItemStack held, Entity target) {
+        return isNecrology(held) && target != null && takesHeldStack(target.getClass());
+    }
+
+    /** Block counterpart of {@link #blocksEntityUse}. / {@link #blocksEntityUse} 的方块版本。 */
+    public static boolean blocksBlockUse(ItemStack held, BlockState target) {
+        return isNecrology(held) && target != null && takesHeldStack(target.getBlock().getClass());
+    }
+
+    /** Pure class check, testable without a bootstrapped registry. / 纯类判断，无需引导注册表即可测试。 */
+    static boolean takesHeldStack(Class<?> targetType) {
+        return targetType != null
+                && (ItemFrameEntity.class.isAssignableFrom(targetType)
+                || ArmorStandEntity.class.isAssignableFrom(targetType)
+                || AllayEntity.class.isAssignableFrom(targetType)
+                || DecoratedPotBlock.class.isAssignableFrom(targetType));
     }
 
     /**

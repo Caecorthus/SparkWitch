@@ -86,7 +86,12 @@ public final class WitchSkillHudRenderer {
         if (!prophet.isSenseRunning()) {
             return;
         }
-        Text line = Text.translatable("hud.sparkwitch.prophet.sense.countdown", seconds(prophet.senseRemainingTicks()));
+        // Below 20 TPS the client countdown can reach zero before the server pulse; show "imminent", never "0s".
+        // 服务端低于 20 TPS 时客户端倒计时可能先归零；此时显示“即将发动”，而不是“0 秒”。
+        int senseSeconds = seconds(prophet.senseRemainingTicks());
+        Text line = senseSeconds > 0
+                ? Text.translatable("hud.sparkwitch.prophet.sense.countdown", senseSeconds)
+                : Text.translatable("hud.sparkwitch.prophet.sense.imminent");
         int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
         context.drawTextWithShadow(renderer, line, x, y, ProphetRules.CORPSE_HIGHLIGHT_COLOR);
     }

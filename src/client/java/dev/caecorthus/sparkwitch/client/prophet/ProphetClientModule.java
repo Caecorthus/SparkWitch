@@ -41,7 +41,12 @@ public final class ProphetClientModule {
                         return;
                     }
                     if (client.currentScreen != null) {
+                        // Never replace another screen; tell the player why nothing opened.
+                        // 绝不替换其他界面；提示玩家为何没有打开。
                         SELECTION.clear();
+                        if (client.player != null) {
+                            client.player.sendMessage(Text.translatable("message.sparkwitch.prophecy.dropped"), true);
+                        }
                         return;
                     }
                     if (SELECTION.accept(payload.sessionId(),

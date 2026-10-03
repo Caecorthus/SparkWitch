@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -76,13 +77,23 @@ public final class ProphetDeathLedger {
         // AFTER 在法官已提交的尝试内执行，此时归因作用域已屏蔽，故读取该尝试的责任人。
         UUID responsible = ProphetDeathBook.resolveResponsible(victim.getUuid(),
                 JudgeKillAttribution.committedResponsible(victim), killer == null ? null : killer.getUuid());
-        BOOK.record(world, match, new ProphetDeathRecord(
+        ProphetDeathRecord stored = BOOK.record(world, match, new ProphetDeathRecord(
                 victim.getUuid(),
                 victim.getGameProfile().getName(),
                 reason,
                 ProphetDeathCauseGroup.classify(reason),
                 responsible,
                 responsible == null ? null : nameOf(world.getServer(), responsible)));
+        // A revived victim died again: Prophets' records for the earlier death no longer apply (the request path
+        // re-checks this too). Only the new serial is compared; no ledger data reaches the client.
+        // 被复活的受害者再次死亡：先知针对上一次死亡的记录不再适用（请求流程也会再次检查）。只比较新序号，账本数据不会发往客户端。
+        Map<UUID, Long> serial = Map.of(stored.victim(), stored.serial());
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            ProphetPlayerComponent component = ProphetPlayerComponent.KEY.get(player);
+            if (component.prophecy(stored.victim()).isPresent()) {
+                component.forgetStaleProphecies(serial);
+            }
+        }
     }
 
     /** Captured now so an offline poisoner or bomber still has a name later. / 立即抓取，离线的下毒者或炸弹客之后仍有名字。 */

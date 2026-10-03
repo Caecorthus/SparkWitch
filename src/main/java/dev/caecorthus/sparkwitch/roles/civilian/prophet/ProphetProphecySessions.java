@@ -15,7 +15,13 @@ import java.util.UUID;
  * 因此过期或重放的确认既不能消费替换后的会话，也不能跨越到另一局。打开操作有节流。
  */
 public final class ProphetProphecySessions {
-    /** Generous: the Prophet may read the necrology before choosing. / 较宽裕：先知可以先翻阅名录再做选择。 */
+    /**
+     * Generous: the Prophet may deliberate on the open Prophecy screen before choosing. The screen is exclusive: a
+     * session arriving over another screen (e.g. the Necrology) is dropped by the client, and leaving the screen
+     * abandons it client-side; the next request replaces it here.
+     * 较宽裕：先知可以在已打开的预言界面上从容斟酌。该界面独占：其他界面（如名录）打开时到达的会话会被客户端丢弃，
+     * 离开预言界面也会在客户端放弃该会话；下一次请求会在此处替换它。
+     */
     public static final int SESSION_TICKS = 60 * 20;
     public static final int OPEN_INTERVAL_TICKS = 5;
 

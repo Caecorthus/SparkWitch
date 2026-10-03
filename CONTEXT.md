@@ -45,15 +45,18 @@ Current build baseline:
     `ProphetNecrologyRules`, and the lifecycle `ProphetNecrologyLoadoutService` (grant on assignment,
     one-copy restore from `ProphetRuntime.tick`, deletion on death, role loss, reset, round end, and stale
     match). Its mixins live in `mixin/prophet/` (death drop, item drop, slot click), parallel to the Black
-    Raven ledger's; hand hiding is the NoellesHiddenEquipment registration. The empty
+    Raven ledger's; Fabric use callbacks refuse handing it to item frames, armor stands, allays and decorated
+    pots; hand hiding is the NoellesHiddenEquipment registration. The empty
     `net/OpenProphetNecrologyS2CPacket` opens the read-only two-tab book
     `client/prophet/ProphetNecrologyBookScreen`, which reads only `sparkwitch:prophet_player`.
   - Prophecy flow: the ability key's Prophet branch (`client/prophet/ProphetClientModule`, before the
     generic fallback) sends `net/RequestProphecyC2SPacket`; `ProphetProphecyService` checks role, life,
     Fear and the shared skill cooldown, opens a nonce/match-bound `ProphetProphecySessions` entry and
     sends `net/OpenProphecyS2CPacket` (dead names only); `client/prophet/ProphetProphecyScreen` answers
-    with `net/ConfirmProphecyC2SPacket`, which the server re-validates (`ProphetProphecyRules`), charges
-    50 coins, records on the owner-only component and cools down 30 s. Never in the Witch skill panel;
+    with `net/ConfirmProphecyC2SPacket`, which the server re-validates (`ProphetProphecyRules`), records on
+    the owner-only component, then charges 50 coins and cools down 30 s. Each ledger death carries a serial;
+    a Prophecy record made against an earlier death of the same victim (revived, then killed again) is
+    treated as fresh. Never in the Witch skill panel;
     both C2S ids are in the Control Expert stun and Seeker remote-view deny-lists.
 - `roles/civilian/saint/`: Saint protection, Hellfire, player-local state, and
   UUID-bound Karma.

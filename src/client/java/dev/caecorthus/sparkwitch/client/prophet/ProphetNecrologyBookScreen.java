@@ -88,13 +88,15 @@ public final class ProphetNecrologyBookScreen extends Screen {
         client.setScreen(new ProphetNecrologyBookScreen(Tab.NAMES));
     }
 
-    /** Living, playing, non-spectating Prophet in a running round on a confirmed server. / 已确认服务器上、进行中的对局里存活且非旁观的先知。 */
+    /** Living, playing, non-spectating Prophet in an active round on a confirmed server. / 已确认服务器上、进行中的对局里存活且非旁观的先知。 */
     public static boolean isEligible(@Nullable PlayerEntity player) {
         if (!SparkWitchServerConnection.isConfirmedServer() || player == null) {
             return false;
         }
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
-        return game.isRunning()
+        // ACTIVE only, like the Prophecy gate: STOPPING already ends the round for the Prophet.
+        // 与预言门禁一致只认 ACTIVE：STOPPING 时本局对先知而言已结束。
+        return game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
                 && GameFunctions.isPlayerPlayingAndAlive(player)
                 && !GameFunctions.isPlayerSpectatingOrCreative(player)
                 && ProphetRules.isProphet(game.getRole(player));

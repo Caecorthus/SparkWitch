@@ -46,14 +46,18 @@ public final class ProphetPlayerComponent
     }
 
     /**
-     * One victim's Prophecy history: excluded cause groups and, once solved, the locked outcome.
-     * 某名死者的预言记录：已排除的死因分组，以及猜中后锁定的结果。
+     * One victim's Prophecy history: excluded cause groups and, once solved, the locked outcome. {@code deathSerial}
+     * is the ledger serial of the death these guesses were made against ({@link ProphetDeathRecord#serial()}); when the
+     * victim's current death has a different serial, the record is stale and the server treats it as fresh.
+     * 某名死者的预言记录：已排除的死因分组，以及猜中后锁定的结果。{@code deathSerial} 是这些猜测所针对那次死亡的账本序号
+     * （{@link ProphetDeathRecord#serial()}）；死者当前死亡的序号不同时，该记录已过期，服务端将其视为全新记录。
      */
     public record ProphecyRecord(
             String victimName,
             Set<ProphetDeathCauseGroup> excluded,
             Outcome outcome,
-            @Nullable String killerName
+            @Nullable String killerName,
+            long deathSerial
     ) {
         public ProphecyRecord {
             victimName = ProphetPlayerState.truncate(victimName);
@@ -63,6 +67,12 @@ public final class ProphetPlayerComponent
             }
             excluded = Collections.unmodifiableSet(copy);
             outcome = outcome == null ? Outcome.PENDING : outcome;
+        }
+
+        /** A record not yet tied to a ledger death (serial 0). / 尚未关联账本死亡的记录（序号 0）。 */
+        public ProphecyRecord(String victimName, Set<ProphetDeathCauseGroup> excluded, Outcome outcome,
+                              @Nullable String killerName) {
+            this(victimName, excluded, outcome, killerName, 0L);
         }
 
         public enum Outcome {
@@ -118,9 +128,13 @@ public final class ProphetPlayerComponent
         return !state.isEmpty();
     }
 
-    /** Server write API for the Prophecy flow; syncs the owner when changed. / 预言流程的服务端写入接口；变化时同步给拥有者。 */
-    public boolean recordWrongGuess(UUID victim, String victimName, ProphetDeathCauseGroup group) {
-        boolean changed = state.recordWrongGuess(victim, victimName, group);
+    /**
+     * Server write API for the Prophecy flow; syncs the owner when changed. {@code deathSerial} is the victim's current
+     * ledger serial: a record made against another death is replaced, not extended.
+     * 预言流程的服务端写入接口；变化时同步给拥有者。{@code deathSerial} 为死者当前的账本序号：针对其他死亡的记录会被替换而非累加。
+     */
+    public boolean recordWrongGuess(UUID victim, String victimName, ProphetDeathCauseGroup group, long deathSerial) {
+        boolean changed = state.recordWrongGuess(victim, victimName, group, deathSerial);
         if (changed) {
             syncOwner();
         }
@@ -128,8 +142,21 @@ public final class ProphetPlayerComponent
     }
 
     /** Server write API; {@code killerName == null} records "no killer". / 服务端写入接口；{@code killerName == null} 表示无人行凶。 */
-    public boolean recordCorrectGuess(UUID victim, String victimName, @Nullable String killerName) {
-        boolean changed = state.recordCorrectGuess(victim, victimName, killerName);
+    public boolean recordCorrectGuess(UUID victim, String victimName, @Nullable String killerName, long deathSerial) {
+        boolean changed = state.recordCorrectGuess(victim, victimName, killerName, deathSerial);
+        if (changed) {
+            syncOwner();
+        }
+        return changed;
+    }
+
+    /**
+     * Server only: drops records whose victim has died again since (serial changed), then syncs once, so the client
+     * never shows exclusions or a solved outcome for a fresh death.
+     * 仅服务端：删除死者此后再次死亡（序号变化）的记录，并只同步一次，确保客户端不会为新的死亡显示旧的排除项或已猜中结果。
+     */
+    public boolean forgetStaleProphecies(Map<UUID, Long> currentDeathSerials) {
+        boolean changed = state.forgetStaleProphecies(currentDeathSerials);
         if (changed) {
             syncOwner();
         }

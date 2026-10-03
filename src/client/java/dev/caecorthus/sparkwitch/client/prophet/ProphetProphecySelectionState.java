@@ -13,10 +13,23 @@ import java.util.UUID;
  * （留少量余量），会话过期时直接关闭界面，而不是让一次点击换来拒绝提示。扣费、随机标识与猜测校验仍由服务端负责。
  */
 public final class ProphetProphecySelectionState {
-    public static final int REQUEST_TIMEOUT_TICKS = 100;
+    /**
+     * Short on purpose: refusals (cooldown, no dead, the silent server open throttle) send no session, so this is how
+     * long the key stays locked after one. It must stay above {@code ProphetProphecySessions.OPEN_INTERVAL_TICKS}.
+     * 有意设短：拒绝（冷却、无死者、服务端静默的打开节流）不会回传会话，按键会被锁住这么久。必须大于
+     * {@code ProphetProphecySessions.OPEN_INTERVAL_TICKS}。
+     */
+    public static final int REQUEST_TIMEOUT_TICKS = 15;
+    /**
+     * How long an answer to the last request is still accepted, independent of the short key lock, so a high-latency
+     * reply still opens the screen instead of being dropped silently.
+     * 上一次请求的回复仍被接受的时长，与较短的按键锁无关，确保高延迟时的回复仍能打开界面而不是被静默丢弃。
+     */
+    public static final int ACCEPT_WINDOW_TICKS = 100;
     public static final int EXPIRY_MARGIN_TICKS = 20;
 
     private int requestTicks;
+    private int acceptTicks;
     private int sessionTicks;
     private UUID sessionId;
     private Set<UUID> victims = Set.of();
@@ -26,17 +39,19 @@ public final class ProphetProphecySelectionState {
             return false;
         }
         requestTicks = REQUEST_TIMEOUT_TICKS;
+        acceptTicks = ACCEPT_WINDOW_TICKS;
         return true;
     }
 
     public boolean accept(UUID sessionId, Collection<UUID> victims, int lifetimeTicks) {
-        if (requestTicks <= 0 || this.sessionId != null) {
+        if (acceptTicks <= 0 || this.sessionId != null) {
             return false;
         }
         this.sessionId = Objects.requireNonNull(sessionId);
         this.victims = Set.copyOf(victims);
         this.sessionTicks = Math.max(1, lifetimeTicks - EXPIRY_MARGIN_TICKS);
         requestTicks = 0;
+        acceptTicks = 0;
         return true;
     }
 
@@ -61,6 +76,9 @@ public final class ProphetProphecySelectionState {
         if (requestTicks > 0) {
             requestTicks--;
         }
+        if (acceptTicks > 0) {
+            acceptTicks--;
+        }
         if (sessionId != null && --sessionTicks <= 0) {
             clear();
             return true;
@@ -70,6 +88,7 @@ public final class ProphetProphecySelectionState {
 
     public void clear() {
         requestTicks = 0;
+        acceptTicks = 0;
         sessionTicks = 0;
         sessionId = null;
         victims = Set.of();
