@@ -128,7 +128,14 @@
     "blind.BlindGateWorldRendererMixin",
     "abysslistener.ShriekGunCrosshairMixin",
     "abysslistener.MoodRendererAbyssZoneExposureMixin",
-    "abysslistener.MoodRendererTaskRowAbyssAccessor"
+    "abysslistener.MoodRendererTaskRowAbyssAccessor",
+    "potiongunner.PotionLauncherArmPoseMixin",
+    "potiongunner.PotionLauncherInputMixin",
+    "potiongunner.PotionScopeFovMixin",
+    "potiongunner.PotionScopeGameRendererInvoker",
+    "potiongunner.PotionScopeGameRendererMixin",
+    "potiongunner.PotionScopeInGameHudMixin",
+    "potiongunner.PotionScopeMouseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

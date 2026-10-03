@@ -290,10 +290,11 @@ public final class SeekerDeviceHits {
     }
 
     /**
-     * Area weapons (Wathe grenade incl. Bomb Maniac, SparkStrength M67): break every device in the sphere with line of
-     * sight to the centre; players are still killed as before (no blocking). With an online thrower each device is
-     * gated by {@link SeekerDamageRules#mayBreak} (never the thrower's own); without one the break is unattributed.
-     * 范围武器（Wathe 手雷含炸弹狂人、SparkStrength M67）：打坏球内与爆心有视线的所有设备；玩家照常死亡（不遮挡）。
+     * Area weapons (Wathe grenade incl. Bomb Maniac, SparkStrength M67, Potion Gunner shell): break every device in
+     * the sphere with line of sight to the centre; players are still killed as before (no blocking). With an online
+     * thrower each device is gated by {@link SeekerDamageRules#mayBreak} (never the thrower's own); without one the
+     * break is unattributed.
+     * 范围武器（Wathe 手雷含炸弹狂人、SparkStrength M67、药炮手炮弹）：打坏球内与爆心有视线的所有设备；玩家照常死亡（不遮挡）。
      * 有在线投掷者时每个设备都经 {@link SeekerDamageRules#mayBreak} 校验（从不打坏投掷者自己的设备）；没有投掷者时损坏不归属任何人。
      */
     public static void onBlast(ServerWorld world, Vec3d center, double radius, @Nullable ServerPlayerEntity owner,
@@ -382,6 +383,48 @@ public final class SeekerDeviceHits {
         return hit == null ? null : hit.device();
     }
 
+    /**
+     * Potion Gunner shell in flight, checked at the top of {@code PotionShellEntity#tick} like the Shock Device. A
+     * device in this tick's path breaks (recorded as {@code POTION_SHELL}) and its entry point is returned so the
+     * caller detonates the shell there; {@code null} when nothing broke. A nearer living player keeps the collision.
+     * The impact blast itself goes through {@link #onBlast}.
+     * 飞行中的药炮手炮弹，与电击装置一样在 {@code PotionShellEntity#tick} 开头检查。本刻路径上的设备被打坏（记录为
+     * {@code POTION_SHELL}），并返回其入射点，由调用方在该处引爆炮弹；未打坏任何设备时返回 {@code null}。
+     * 更近的存活玩家保留这次碰撞。命中后的爆炸本身走 {@link #onBlast}。
+     */
+    @Nullable
+    public static Vec3d onPotionShellSweep(Entity shell, @Nullable Entity thrower, Vec3d from, Vec3d to) {
+        SeekerDeviceRaycast.DeviceHit hit = sweepHit(shell, thrower, from, to, true, SeekerBreakSource.POTION_SHELL);
+        return hit == null ? null : hit.point();
+    }
+
+    /**
+     * Potion Gunner launcher backblast (a short horizontal server lane behind the gunner, not a projectile). Nearest
+     * wins with one measure for both sides: the caller passes the distance at which the lane reaches the first player
+     * it would hit, measured on that player's real (unexpanded) box (or the full lane when nobody is in it), and a
+     * device breaks (recorded as {@code POTION_SHELL}) and absorbs the backblast only when its ray entry is STRICTLY
+     * nearer ({@link SeekerDeviceRaycast#deviceWins}); a tie goes to the player. True means absorbed, hit nobody.
+     * 药炮手炮筒尾焰（药炮手身后的一段水平服务端短通道，并非投射物）。最近者命中，双方使用同一量法：调用方传入通道到达
+     * 第一名将被命中玩家的距离（按该玩家真实、未扩大的碰撞箱量取；通道内无人时为整条通道长度），只有射线入射距离
+     * 严格更近（{@link SeekerDeviceRaycast#deviceWins}）的设备才会被打坏（记录为 {@code POTION_SHELL}）并吸收尾焰；
+     * 距离相同时命中玩家。返回 true 表示已被吸收，不再命中任何人。
+     */
+    public static boolean onPotionBackblast(ServerPlayerEntity gunner, Vec3d start, Vec3d direction, double reach) {
+        if (gunner == null || gunner.getWorld().isClient() || start == null || direction == null
+                || !(reach > 0.0) || direction.lengthSquared() == 0.0
+                || !GameWorldComponent.KEY.get(gunner.getWorld()).isRunning()) {
+            return false;
+        }
+        Vec3d end = start.add(direction.normalize().multiply(reach));
+        SeekerDeviceRaycast.DeviceHit hit = SeekerDeviceRaycast.nearestDevice(gunner.getWorld(), start, end,
+                reach * reach, breakableBy(gunner));
+        if (hit == null) {
+            return false;
+        }
+        SeekerDeviceService.breakDevice(hit.device(), SeekerBreakSource.POTION_SHELL, gunner);
+        return true;
+    }
+
     // ---- Internal ----
 
     private static boolean breakStabbedDevice(ServerPlayerEntity attacker, SeekerDeviceEntity device,
@@ -450,16 +493,23 @@ public final class SeekerDeviceHits {
      */
     private static boolean sweep(Entity projectile, @Nullable Entity thrower, Vec3d from, Vec3d to,
                                  boolean playersBlock, SeekerBreakSource source) {
+        return sweepHit(projectile, thrower, from, to, playersBlock, source) != null;
+    }
+
+    /** {@link #sweep} that also reports the broken device's entry point. / 同时返回被打坏设备入射点的扫掠。 */
+    @Nullable
+    private static SeekerDeviceRaycast.DeviceHit sweepHit(Entity projectile, @Nullable Entity thrower, Vec3d from,
+                                                          Vec3d to, boolean playersBlock, SeekerBreakSource source) {
         if (projectile == null || from == null || to == null || projectile.getWorld().isClient()
                 || !(thrower instanceof ServerPlayerEntity breaker)
                 || !GameWorldComponent.KEY.get(projectile.getWorld()).isRunning()) {
-            return false;
+            return null;
         }
         // Runs every projectile tick: skip the block raycast and player scan when no device is near the segment.
         // 每个投射物每刻都会执行：线段附近没有设备时跳过方块射线与玩家扫描。
         if (projectile.getWorld().getEntitiesByClass(SeekerDeviceEntity.class, new Box(from, to).expand(1.0),
                 SeekerDeviceHits::isLive).isEmpty()) {
-            return false;
+            return null;
         }
         Vec3d end = SeekerDeviceRaycast.clipToBlocks(projectile.getWorld(), from, to, projectile);
         double beat = playersBlock ? nearestPlayerDistanceSquared(projectile, breaker, from, end)
@@ -467,10 +517,10 @@ public final class SeekerDeviceHits {
         SeekerDeviceRaycast.DeviceHit hit = SeekerDeviceRaycast.nearestDevice(projectile.getWorld(), from, end,
                 beat, breakableBy(breaker));
         if (hit == null) {
-            return false;
+            return null;
         }
         SeekerDeviceService.breakDevice(hit.device(), source, breaker);
-        return true;
+        return hit;
     }
 
     private static double nearestPlayerDistanceSquared(Entity projectile, ServerPlayerEntity thrower, Vec3d from,

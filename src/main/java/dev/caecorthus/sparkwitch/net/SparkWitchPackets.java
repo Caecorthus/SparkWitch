@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.net;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindAttuneService;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseS2CPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.UseBlindAttuneC2SPayload;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher.PotionLauncherFireService;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabC2SPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
@@ -64,6 +65,7 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playC2S().register(GrandWitchRecruitC2SPacket.ID, GrandWitchRecruitC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(EmmaFactorC2SPacket.ID, EmmaFactorC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(FireDeathRayC2SPacket.ID, FireDeathRayC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(FirePotionLauncherC2SPacket.ID, FirePotionLauncherC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(UseCurserAbilityC2SPacket.ID, UseCurserAbilityC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(
                 UseOrthopedistSkillC2SPacket.ID,
@@ -148,6 +150,8 @@ public final class SparkWitchPackets {
                 (payload, context) -> GrandWitchFeatureService.recruit(context.player(), payload.targetId()));
         ServerPlayNetworking.registerGlobalReceiver(FireDeathRayC2SPacket.ID,
                 (payload, context) -> MurderousWitchDeathRayService.fire(context.player(), payload));
+        ServerPlayNetworking.registerGlobalReceiver(FirePotionLauncherC2SPacket.ID,
+                (payload, context) -> PotionLauncherFireService.fire(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(UseCurserAbilityC2SPacket.ID,
                 (payload, context) -> CurserFeatureService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseOrthopedistSkillC2SPacket.ID,

@@ -46,6 +46,10 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonAppleItem;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.gun.ShriekGunItem;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.DeepDarkSporeFlaskItem;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher.PotionLauncherItem;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellItem;
 import dev.doctor4t.wathe.api.event.AllowPlayerPunching;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.item.Item;
@@ -95,6 +99,7 @@ public final class SparkWitchItems {
     public static final Identifier COMTAC_ID = BlindRules.COMTAC_ID;
     public static final Identifier SHRIEK_GUN_ID = AbyssListenerRules.GUN_ITEM_ID;
     public static final Identifier DEEP_DARK_SPORE_FLASK_ID = AbyssListenerRules.FLASK_ITEM_ID;
+    public static final Identifier POTION_LAUNCHER_ID = PotionGunnerRules.LAUNCHER_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -135,6 +140,11 @@ public final class SparkWitchItems {
     private static Item comTac;
     private static Item shriekGun;
     private static Item deepDarkSporeFlask;
+    private static Item potionLauncher;
+    private static Item gwDkShell;
+    private static Item gwAcShell;
+    private static Item gwMrShell;
+    private static Item trShell;
 
     private static boolean registered;
 
@@ -344,6 +354,31 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 DEEP_DARK_SPORE_FLASK_ID,
                 new DeepDarkSporeFlaskItem(DeepDarkSporeFlaskItem.createSettings())
+        );
+        potionLauncher = Registry.register(
+                Registries.ITEM,
+                POTION_LAUNCHER_ID,
+                new PotionLauncherItem(PotionLauncherItem.createSettings())
+        );
+        gwDkShell = Registry.register(
+                Registries.ITEM,
+                PotionShellType.DK.itemId(),
+                new PotionShellItem(PotionShellType.DK, PotionShellItem.createSettings())
+        );
+        gwAcShell = Registry.register(
+                Registries.ITEM,
+                PotionShellType.AC.itemId(),
+                new PotionShellItem(PotionShellType.AC, PotionShellItem.createSettings())
+        );
+        gwMrShell = Registry.register(
+                Registries.ITEM,
+                PotionShellType.MR.itemId(),
+                new PotionShellItem(PotionShellType.MR, PotionShellItem.createSettings())
+        );
+        trShell = Registry.register(
+                Registries.ITEM,
+                PotionShellType.TR.itemId(),
+                new PotionShellItem(PotionShellType.TR, PotionShellItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -650,5 +685,49 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return deepDarkSporeFlask;
+    }
+
+    public static Item potionLauncher() {
+        if (potionLauncher == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return potionLauncher;
+    }
+
+    public static Item gwDkShell() {
+        if (gwDkShell == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return gwDkShell;
+    }
+
+    public static Item gwAcShell() {
+        if (gwAcShell == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return gwAcShell;
+    }
+
+    public static Item gwMrShell() {
+        if (gwMrShell == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return gwMrShell;
+    }
+
+    public static Item trShell() {
+        if (trShell == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return trShell;
+    }
+
+    public static Item potionShell(PotionShellType type) {
+        return switch (type) {
+            case DK -> gwDkShell();
+            case AC -> gwAcShell();
+            case MR -> gwMrShell();
+            case TR -> trShell();
+        };
     }
 }

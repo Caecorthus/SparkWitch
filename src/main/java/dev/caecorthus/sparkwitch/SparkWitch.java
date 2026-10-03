@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionGunnerEntities;
 import dev.caecorthus.sparkfactionapi.api.compat.NoellesHiddenEquipment;
 import dev.caecorthus.sparkwitch.command.ForceAbilityCommand;
 import dev.caecorthus.sparkwitch.command.ForcePromotionCommand;
@@ -53,6 +54,7 @@ public final class SparkWitch implements ModInitializer {
         AbyssListenerEntities.register();
         SeekerEntities.register();
         HolyFlashEntities.register();
+        PotionGunnerEntities.register();
         SparkWitchItems.register();
         SparkWitchItemGroups.register();
         SparkWitchEntities.register();

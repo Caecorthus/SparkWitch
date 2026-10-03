@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaGunService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaLifecycle;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
@@ -133,6 +134,7 @@ public final class SparkWitchEvents {
         InsiderFeatureService.register();
         BlindFeatureService.register();
         AbyssListenerFeatureService.register();
+        PotionGunnerFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();

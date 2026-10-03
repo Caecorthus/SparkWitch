@@ -40,6 +40,12 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.ceremonialSword(),
                                     SparkWitchItems.shriekGun(),
                                     SparkWitchItems.deepDarkSporeFlask(),
+                                    // Potion Gunner (witch) / 药炮手（魔女）
+                                    SparkWitchItems.potionLauncher(),
+                                    SparkWitchItems.gwDkShell(),
+                                    SparkWitchItems.gwAcShell(),
+                                    SparkWitchItems.gwMrShell(),
+                                    SparkWitchItems.trShell(),
                                     // Neutral / 中立
                                     SparkWitchItems.firePoker(),
                                     // Civilian / 平民

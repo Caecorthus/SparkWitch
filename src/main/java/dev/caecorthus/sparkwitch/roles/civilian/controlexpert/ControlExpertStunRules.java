@@ -55,6 +55,7 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "use_skill"),
             Identifier.of("sparkwitch", "emma_factor"),
             Identifier.of("sparkwitch", "fire_death_ray"),
+            Identifier.of("sparkwitch", "fire_potion_launcher"),
             Identifier.of("sparkwitch", "use_curser_ability"),
             Identifier.of("sparkwitch", "use_orthopedist_skill"),
             Identifier.of("sparkwitch", "use_saboteur_skill"),
