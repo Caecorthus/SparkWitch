@@ -36,7 +36,6 @@ public final class InsiderRules {
 
     public static final int REVOLVER_PRICE = 150;
     public static final int CROWBAR_PRICE = 50;
-    public static final int TABLET_PRICE = 100;
     public static final String REVOLVER_ENTRY_ID = "sparkwitch_insider_revolver";
     public static final String CROWBAR_ENTRY_ID = "sparkwitch_insider_crowbar";
 

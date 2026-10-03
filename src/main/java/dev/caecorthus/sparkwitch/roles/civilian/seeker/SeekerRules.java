@@ -77,14 +77,12 @@ public final class SeekerRules {
 
     // ---- Shop and economy ----
     public static final String CAMERA_ENTRY_ID = "seeker_camera";
-    /**
-     * SparkStrength's own tablet entry id, reused on purpose so SparkStrength skips its 150 entry for the Seeker.
-     * 刻意复用 SparkStrength 自己的平板条目 id，使其不再为搜寻者追加 150 的条目。
-     */
-    public static final String TABLET_ENTRY_ID = SparkStrengthTabletCompat.SS_TABLET_ENTRY_ID;
     public static final int CAMERA_PRICE = 150;
-    public static final int TABLET_PRICE = 50;
-    public static final int INITIAL_MONEY = 50;
+    /**
+     * Owner decision: 0. The old 50 only paid for the 50-coin tablet, which SparkStrength now issues free at round start.
+     * 所有者决定：0。原先的 50 只用于购买 50 金币的平板，而 SparkStrength 现已在开局免费发放平板。
+     */
+    public static final int INITIAL_MONEY = 0;
     public static final int TASK_MONEY_REWARD = 50;
 
     // ---- Cooldowns on the seeker_car item (exact + max writes) ----
