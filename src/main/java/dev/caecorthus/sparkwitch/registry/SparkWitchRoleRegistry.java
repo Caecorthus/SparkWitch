@@ -8,6 +8,7 @@ import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
@@ -80,6 +81,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier CONTROL_EXPERT_ID = ControlExpertRules.ROLE_ID;
     public static final Identifier SEEKER_ID = SeekerRules.ROLE_ID;
     public static final Identifier FISHER_ID = FisherRules.ROLE_ID;
+    public static final Identifier BLIND_ID = BlindRules.ROLE_ID;
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
     public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
@@ -112,6 +114,7 @@ public final class SparkWitchRoleRegistry {
     private static Role controlExpert;
     private static Role seeker;
     private static Role fisher;
+    private static Role blind;
     private static Role fiend;
     private static Role insider;
     private static Role abyssListener;
@@ -293,6 +296,11 @@ public final class SparkWitchRoleRegistry {
     public static Role fisher() {
         ensureRegistered();
         return fisher;
+    }
+
+    public static Role blind() {
+        ensureRegistered();
+        return blind;
     }
 
     public static Role fiend() {
@@ -534,6 +542,17 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Registered between the Angler and the Fiend (nothing may follow the Insider); an ordinary task-funded
+        // civilian drawn like the Angler, with no appearance condition (D7). Not police, never a Witch-skill role.
+        // 注册在钓鱼佬与魔人之间（内应之后不得再注册）；与钓鱼佬一样按普通平民抽取、依靠任务赚钱，无出现条件（D7）。
+        // 不是警察，也不是魔女技能职业。
+        blind = SparkFactionApi.registerRole(FactionRoleDefinition.builder(BLIND_ID, FactionIds.CIVILIAN)
+                .color(BlindRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Appended last so existing registration order stays unchanged; a Wathe-native neutral (FAKE mood, no tasks),
         // drawn only in rounds with 18+ players (the same population test as Wathe's own player-count condition).
         // Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
@@ -602,6 +621,7 @@ public final class SparkWitchRoleRegistry {
                 tarotReader,
                 fisher,
                 judge,
+                blind,
                 ninja,
                 blackRaven,
                 witchMaiden,

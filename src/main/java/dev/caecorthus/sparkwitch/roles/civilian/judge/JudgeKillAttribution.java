@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.judge;
 
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -43,6 +44,20 @@ public final class JudgeKillAttribution {
         attempt.committed = true;
         JudgeRuntime.recordKill(attempt.world, attempt.actor, attempt.victim);
         JudgeTrainFallAttribution.superseded(victim);
+    }
+
+    /**
+     * Read-only: the responsible UUID (cause, else killer) of this victim's committed kill still on the stack, e.g.
+     * inside {@code KillPlayer.AFTER}; null otherwise. The cause scope itself is masked during the kill, so callers
+     * must read this instead. Never changes Judge state.
+     * 只读：该受害者仍在调用栈中、且已提交的击杀的责任人（归因优先，否则凶手），例如在
+     * {@code KillPlayer.AFTER} 内；否则为 null。击杀期间归因作用域已被屏蔽，因此调用方须读此方法。不改变法官状态。
+     */
+    public static @Nullable UUID committedResponsible(ServerPlayerEntity victim) {
+        Attempt attempt = ATTEMPTS.get();
+        if (attempt == null || !attempt.committed || attempt.world != victim.getServerWorld()
+                || !attempt.victim.equals(victim.getUuid())) return null;
+        return attempt.actor;
     }
 
     private static final class Attempt {

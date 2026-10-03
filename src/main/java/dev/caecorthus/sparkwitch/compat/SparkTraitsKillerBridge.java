@@ -27,6 +27,7 @@ public final class SparkTraitsKillerBridge {
             ServerPlayerEntity.class);
     private static final Method NON_FINAL_COOLDOWN = resolve("getNonFinalKillCooldownTicks", int.class);
     private static final Method NON_FINAL_WEAPON = resolve("runWithNonFinalKillWeapon", Item.class, Runnable.class);
+    private static final Method LAST_STAND_INTERCEPTED = resolve("isLastStandDeathIntercepted", PlayerEntity.class);
 
     private SparkTraitsKillerBridge() {
     }
@@ -67,6 +68,14 @@ public final class SparkTraitsKillerBridge {
      * 脱险或被沉默的有效杀手；SparkWitch 自有数据包必须自行查询。 */
     public static boolean isRoleSkillBlocked(PlayerEntity player) {
         return player != null && Boolean.TRUE.equals(invoke(ROLE_SKILL, player));
+    }
+
+    /** Whether Traits' Last Stand intercepted this death; absent, older or failing Traits answers false (not
+     * intercepted), so a caller that keeps state through an intercepted death fails closed.
+     * Traits 背水一战是否拦截了这次死亡；Traits 缺失、过旧或出错时返回 false（未拦截），使在被拦截死亡期间保留状态的调用方
+     * 保守失败。 */
+    public static boolean isLastStandDeathIntercepted(PlayerEntity player) {
+        return player != null && Boolean.TRUE.equals(invoke(LAST_STAND_INTERCEPTED, player));
     }
 
     /** Makes a reason skip Traits revive/counter hooks; returns false when Traits is absent or older.

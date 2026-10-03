@@ -5,6 +5,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionServ
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.item.ComTacItem;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.item.WhiteCaneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.DisruptorItem;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ShockDeviceItem;
@@ -17,10 +20,14 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FishingRodItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.KeyFishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashItem;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraItem;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCarItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetNecrologyItem;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetNecrologyRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeLoadoutService;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.TollBellItem;
@@ -59,6 +66,7 @@ public final class SparkWitchItems {
     public static final Identifier FEATHER_BLADE_ID = SparkWitch.id("feather_blade");
     public static final Identifier BLACK_RAVEN_LEDGER_ID = SparkWitch.id("black_raven_ledger");
     public static final Identifier BLACK_RAVEN_MASK_ID = BlackRavenDisguiseRules.MASK_ITEM_ID;
+    public static final Identifier PROPHET_NECROLOGY_ID = ProphetNecrologyRules.ITEM_ID;
     public static final Identifier HUNTER_TRAP_ID = HunterTrapItem.ID;
     public static final Identifier DOUBLE_BARREL_SHOTGUN_ID = DoubleBarrelShotgunItem.ID;
     public static final Identifier DOUBLE_BARREL_SHELL_ID = DoubleBarrelShellItem.ID;
@@ -71,6 +79,7 @@ public final class SparkWitchItems {
     public static final Identifier DISRUPTOR_ID = ControlExpertRules.DISRUPTOR_ID;
     public static final Identifier TASER_ID = ControlExpertRules.TASER_ID;
     public static final Identifier SHOCK_DEVICE_ID = ControlExpertRules.SHOCK_DEVICE_ID;
+    public static final Identifier HOLY_FLASH_ID = HolyFlashRules.ITEM_ID;
     public static final Identifier SEEKER_CAR_ID = SeekerRules.CAR_ITEM_ID;
     public static final Identifier SEEKER_CAMERA_ID = SeekerRules.CAMERA_ITEM_ID;
     public static final Identifier FISHING_ROD_ID = FisherRules.FISHING_ROD_ID;
@@ -82,6 +91,8 @@ public final class SparkWitchItems {
     public static final Identifier KEY_FISH_ID = FisherRules.KEY_FISH_ID;
     public static final Identifier SWORDFISH_ID = FisherRules.SWORDFISH_ID;
     public static final Identifier GLIMMERFISH_ID = FisherRules.GLIMMERFISH_ID;
+    public static final Identifier WHITE_CANE_ID = BlindRules.WHITE_CANE_ID;
+    public static final Identifier COMTAC_ID = BlindRules.COMTAC_ID;
     public static final Identifier SHRIEK_GUN_ID = AbyssListenerRules.GUN_ITEM_ID;
     public static final Identifier DEEP_DARK_SPORE_FLASK_ID = AbyssListenerRules.FLASK_ITEM_ID;
     private static Item ceremonialSword;
@@ -95,6 +106,7 @@ public final class SparkWitchItems {
     private static Item featherBlade;
     private static Item blackRavenLedger;
     private static Item blackRavenMask;
+    private static Item prophetNecrology;
     private static Item hunterTrap;
     private static Item doubleBarrelShotgun;
     private static Item doubleBarrelShell;
@@ -107,6 +119,7 @@ public final class SparkWitchItems {
     private static Item disruptor;
     private static Item taser;
     private static Item shockDevice;
+    private static Item holyFlash;
     private static Item seekerCar;
     private static Item seekerCamera;
     private static Item fishingRod;
@@ -118,6 +131,8 @@ public final class SparkWitchItems {
     private static Item keyFish;
     private static Item swordfish;
     private static Item glimmerfish;
+    private static Item whiteCane;
+    private static Item comTac;
     private static Item shriekGun;
     private static Item deepDarkSporeFlask;
 
@@ -185,6 +200,11 @@ public final class SparkWitchItems {
                 BLACK_RAVEN_MASK_ID,
                 new BlackRavenMaskItem(new Item.Settings().maxCount(1))
         );
+        prophetNecrology = Registry.register(
+                Registries.ITEM,
+                PROPHET_NECROLOGY_ID,
+                new ProphetNecrologyItem(new Item.Settings().maxCount(1))
+        );
         hunterTrap = Registry.register(
                 Registries.ITEM,
                 HUNTER_TRAP_ID,
@@ -245,6 +265,11 @@ public final class SparkWitchItems {
                 SHOCK_DEVICE_ID,
                 new ShockDeviceItem(ShockDeviceItem.createSettings())
         );
+        holyFlash = Registry.register(
+                Registries.ITEM,
+                HOLY_FLASH_ID,
+                new HolyFlashItem(HolyFlashItem.createSettings())
+        );
         seekerCar = Registry.register(
                 Registries.ITEM,
                 SEEKER_CAR_ID,
@@ -299,6 +324,16 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 GLIMMERFISH_ID,
                 new FisherFishItem(FisherFishItem.createSettings(), FisherFishKind.GLIMMERFISH)
+        );
+        whiteCane = Registry.register(
+                Registries.ITEM,
+                WHITE_CANE_ID,
+                new WhiteCaneItem(WhiteCaneItem.createSettings())
+        );
+        comTac = Registry.register(
+                Registries.ITEM,
+                COMTAC_ID,
+                new ComTacItem(ComTacItem.createSettings())
         );
         shriekGun = Registry.register(
                 Registries.ITEM,
@@ -392,6 +427,13 @@ public final class SparkWitchItems {
         return blackRavenMask;
     }
 
+    public static Item prophetNecrology() {
+        if (prophetNecrology == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return prophetNecrology;
+    }
+
     public static Item hunterTrap() {
         if (hunterTrap == null) {
             throw new IllegalStateException("SparkWitch items are not registered yet");
@@ -474,6 +516,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return shockDevice;
+    }
+
+    public static Item holyFlash() {
+        if (holyFlash == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return holyFlash;
     }
 
     public static Item seekerCar() {
@@ -573,6 +622,20 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return glimmerfish;
+    }
+
+    public static Item whiteCane() {
+        if (whiteCane == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return whiteCane;
+    }
+
+    public static Item comTac() {
+        if (comTac == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return comTac;
     }
 
     public static Item shriekGun() {

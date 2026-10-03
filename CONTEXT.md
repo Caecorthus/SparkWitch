@@ -14,6 +14,8 @@ It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with
 train fall can kill and that may buy a timed Fiend Moment.
 It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao and win together.
+It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
+the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
 It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only
 Grand Witch recruitment (through the special-accomplice pool) or an admin force assigns; it is never drawn naturally.
 SparkFactionAPI owns shared faction contracts;
@@ -39,10 +41,33 @@ Current build baseline:
 - `api/`: the only public downstream SparkWitch Interface.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime.
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
-- `roles/civilian/prophet/`: Death Omen skill, role-owned state, spawn-boundary
-  corpse collection, and client outline rules.
-- `roles/civilian/saint/`: Saint protection, Hellfire, player-local state, and
-  UUID-bound Karma.
+- `roles/civilian/prophet/`: passive Death Sense (world-wide corpse pulse every 60 s; skips Scavenger-hidden bodies and,
+  per owner decision, SparkTraits Depression fake-death bodies via `compat/SparkTraitsBodyDragBridge`), the
+  owner-only `sparkwitch:prophet_player` component (permanent highlight set, necrology,
+  Prophecy records), the Prophecy skill registration, and economy. The client outline
+  lives in `client/hooks/ProphetCorpseHighlightClientHooks`.
+  - The bound Necrology (`sparkwitch:prophet_necrology`): `ProphetNecrologyItem`, the binding rules
+    `ProphetNecrologyRules`, and the lifecycle `ProphetNecrologyLoadoutService` (grant on assignment,
+    one-copy restore from `ProphetRuntime.tick`, deletion on death, role loss, reset, round end, and stale
+    match). Its mixins live in `mixin/prophet/` (death drop, item drop, slot click), parallel to the Black
+    Raven ledger's; Fabric use callbacks refuse handing it to item frames, armor stands, allays and decorated
+    pots; hand hiding is the NoellesHiddenEquipment registration. The empty
+    `net/OpenProphetNecrologyS2CPacket` opens the read-only two-tab book
+    `client/prophet/ProphetNecrologyBookScreen`, which reads only `sparkwitch:prophet_player`.
+  - Prophecy flow: the ability key's Prophet branch (`client/prophet/ProphetClientModule`, before the
+    generic fallback) sends `net/RequestProphecyC2SPacket`; `ProphetProphecyService` checks role, life,
+    Fear and the shared skill cooldown, opens a nonce/match-bound `ProphetProphecySessions` entry and
+    sends `net/OpenProphecyS2CPacket` (dead names only); `client/prophet/ProphetProphecyScreen` answers
+    with `net/ConfirmProphecyC2SPacket`, which the server re-validates (`ProphetProphecyRules`), records on
+    the owner-only component, then charges 50 coins and cools down 30 s. Each ledger death carries a serial;
+    a Prophecy record made against an earlier death of the same victim (revived, then killed again) is
+    treated as fresh. Never in the Witch skill panel;
+    both C2S ids are in the Control Expert stun and Seeker remote-view deny-lists.
+- `roles/civilian/saint/`: Saint protection, Hellfire, player-local state,
+  UUID-bound Karma, and the Saint shop (`SaintShopService`).
+  - `flash/`: the Holy Flash (`sparkwitch:holy_flash`) item, thrown entity,
+    owner-only component, victim targeting, inventory rules, and lifecycle;
+    its no-drop mixin lives in `mixin/saint/`.
 - `roles/civilian/perfumer/`: private scent marks, cologne healing, corpse mood,
   outlines, shop, and economy.
 - `roles/civilian/tarotreader/`: divination shop, one-shot selection sessions,
@@ -52,7 +77,10 @@ Current build baseline:
 - `roles/killer/ninja/`: parry, dark-kill bounty, shop, and death cleanup.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup.
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
-  bound ledger, restricted shop, and lifecycle cleanup.
+  bound ledger, restricted shop, and lifecycle cleanup. The bound ledger and Raven Mask
+  (`BlackRavenInventoryRules`) never drop, never leave their owner's inventory slots, and are
+  refused by `UseEntityCallback`/`UseBlockCallback` vetoes for item frames, armor stands, allays,
+  and decorated pots.
   - `disguise/`: the Black Raven disguise. It owns the acting-role overlay
     (`BlackRavenActingRole`), the owner-only `BlackRavenDisguiseComponent` and its sync codec, the
     Tab B pool snapshot, the bound Raven Mask (`sparkwitch:black_raven_mask`), one-shot open
@@ -67,8 +95,11 @@ Current build baseline:
     `ShopUtilsBlackRavenDisguiseMixin`, M3 `KillerShopBuilderBlackRavenDisguiseMixin`, M4
     `PlayerShopComponentBlackRavenDisguiseMixin`, the death-index, swap-guard, swap-remainder and
     wallet mixins, and the optional SparkStrength seams.
-  - Its client presentation lives in `client/blackraven/`: `BlackRavenLedgerBookScreen` (Tab A
-    Perception pages and Tab B disguise list), `BlackRavenDisguiseClientState` (synced view,
+  - Its client presentation lives in `client/blackraven/`: `BlackRavenLedgerBookScreen` (the
+    code-drawn ledger panel: Tab A is a ruled perceived-identity grid with player faces, Tab B a
+    sectioned, scrolling disguise list with a footer revert button), `BlackRavenLedgerLayout`
+    (its pure geometry and hit-testing), `BlackRavenLedgerPaint` (its role-local "raven noir"
+    palette and fill primitives), `BlackRavenDisguiseClientState` (synced view,
     acting-role change cleanup, mask tooltip, `CanSeeMoney` phase), `BlackRavenDisguiseClientRules`,
     `BlackRavenDisguiseInstinctClientHooks`, and the disguise HUD line in `BlackRavenHudRenderer`.
   - Its packets are `net/OpenBlackRavenDisguiseS2CPacket` and `net/SelectBlackRavenDisguiseC2SPacket`.
@@ -168,6 +199,76 @@ Current build baseline:
   invisibility, and safe door exit). Its mixins live in `mixin/fisher/` and
   `client/mixin/fisher/`; client presentation (Glimmerfish outlines and HUD, hidden hands,
   Swordfish crosshair and stab dispatch) in `client/fisher/`.
+- `roles/civilian/blind/`: the Blind (`sparkwitch:blind`, 盲人): `BlindRules` (ids and numbers), the
+  owner-only `sparkwitch:blind` component (`BlindComponent` over the pure `BlindTimers`),
+  `BlindParticipants` (shared real-role, ComTac and perception-range predicates), and
+  `BlindFeatureService` (the single server wiring entry). Subpackages: `item/` (White Cane, ComTac
+  VIII), `net/` (the `sparkwitch:blind_pulse` and `sparkwitch:use_blind_attune` payloads and the
+  single `BlindPulseSender`), `perception/` (server sound and voice perception:
+  `BlindPerceptionWiring` (events, the per-tick pass and cleanup), `BlindSoundPerception` (the mixin
+  and voice entry points), the pure `BlindSoundRules` (filters, one-shots, radii) and
+  `BlindSoundAttribution`, `BlindPulseFanout` (one source to every Blind in range),
+  `BlindPerceptionTargets` (the listening Blinds), `BlindEmitterThrottle`, and `BlindVoiceInbox`
+  (the voice-thread hand-off)), and `kit/` (cane, Attune, ComTac, economy, shop and lifecycle:
+  `BlindKitWiring` (the kit's single server wiring: its own `sparkwitch:blind_finish_initialize`
+  phase, `RoleAssigned`, `KillPlayer.AFTER`, `ResetPlayer`, `ON_FINISH_FINALIZE`, disconnect,
+  `END_SERVER_TICK`, server stop, the item-frame and armor-stand use guards, and the blackout
+  Blindness exemption),
+  `BlindKitRules` (pure timing, gates, slots and money rules), `BlindLoadoutService` (grant,
+  per-tick upkeep, strip), `BlindCaneService` (server-validated `Item#use` tap, public
+  `sparkwitch:blind.cane_tap` sound, CANE pulse and in-window re-scan), `BlindAttuneService`
+  (`sparkwitch:use_blind_attune`), `BlindShopService`, `BlindEconomyService`, `BlindInventoryRules`
+  and `BlindItemDrops` (bound items), and `BlindSounds`). Its server mixins live in `mixin/blind/`
+  (`ServerWorldBlindPerceptionMixin` and the bound-item `BlindKitDeathDropMixin`,
+  `BlindKitDecoratedPotMixin`, `BlindKitPlayerDropMixin` and `BlindKitScreenHandlerMixin`); the
+  optional Simple Voice Chat listener is `voice/BlindVoicePerceptionListener`, registered by `voice/SparkWitchVoiceChatPlugin`.
+  Client presentation lives in `client/blind/`: `BlindClient` (module and pulse receiver),
+  `BlindView` (the one activity predicate), `BlindPerceptionClientState` (pure pulse and
+  perceived-player memory), `BlindClientStatus` (HUD remaining-tick view),
+  `BlindComTacHeadVisibility` (the in-round ComTac head hide), `render/` (the private echo post
+  processor `BlindEchoView`, depth capture and fail-closed hint in `BlindRenderWiring`,
+  `BlindSilhouettePass`, the Iris check `BlindShaderPackCheck`, the fog-culling guard
+  `BlindTerrainFog`), `gate/` (`BlindClientGates` and the
+  pure `BlindGateRules` behind the `BlindGate*` vetoes, client-only bumps, the plain
+  `BlindCrosshair`, and the Attune ducking in `BlindAttuneDucking`) and `kit/` (the owner-only HUD
+  and the Attune key handler). Its client mixins live in `client/mixin/blind/`: the eleven
+  `BlindGate*` vetoes, `BlindGameRendererMixin` (the end-of-frame pass), `BlindEchoSilhouetteMixin`,
+  `BlindTerrainFogMixin`, `BlindAttuneSoundSystemMixin`, and `BlindComTacHeadRenderMixin`.
+- `client/armor/`: the four vanilla armor slots (`PlayerScreenHandler` 5..8) on Wathe's
+  `LimitedInventoryScreen` for every player (D10), client presentation only.
+  `LimitedInventoryArmorLayout` (pure geometry, the shift-click plan and the full-hotbar rule),
+  `LimitedInventoryArmorSlots` (gate, frame, empty icons, hit test, shift-click and pick-up adapters)
+  and `LimitedInventoryArmorPanel` (the block as a visible, inactive `ClickableWidget`). Its one
+  mixin, `client/mixin/armor/LimitedInventoryArmorSlotsMixin`, has seven seams on Wathe's
+  `LimitedHandledScreen`, each pinned in `watheClientMixinContracts`: `init` TAIL adds the panel,
+  `render` TAIL hands an unset `focusedSlot` to a hovered armor slot, `getSlotAt` RETURN answers
+  armor slots where no hotbar slot hit, `isClickOutsideBounds` RETURN keeps a Touchscreen tap on the
+  block inside, a `@WrapOperation` on the `onMouseClick` call in `mouseClicked` turns an eligible
+  shift + left press into one vanilla `SWAP`, and `close` HEAD plus the `tick` INVOKE before
+  `closeHandledScreen` (Wathe's forced close during a fade or after death) run the close-time
+  return below before the close packet. Rules:
+  - **Gate.** The panel is added at `init` only for `LimitedInventoryScreen` on a
+    `PlayerScreenHandler` and a confirmed SparkWitch server; every other seam acts only while that
+    panel exists. Elsewhere Wathe's hotbar-only screen is untouched.
+  - **Server.** Unchanged. Every move is a vanilla click (PICKUP, QUICK_CRAFT drag, PICKUP_ALL,
+    number-key or shift `SWAP`) that the server checks with `ArmorSlot.canInsert` /
+    `canTakeItems`. No packet, NBT or server mixin.
+  - **Shift-click** (mouse mode, one `SWAP` either way). Hotbar item → its preferred armor slot when
+    empty (as vanilla quick-move would); worn piece → first empty hotbar slot (Wathe hides the main
+    inventory vanilla would fill). Anything else stays Wathe's PICKUP.
+  - **Full hotbar** (mouse mode). A worn piece cannot be picked onto an empty cursor while every
+    hotbar slot is taken (a vanilla close puts it in the hidden main inventory); the press sends
+    nothing, and number-key swaps still exchange it. Touchscreen release pick-ups are not guarded.
+    In either mode, while every hotbar slot is taken a close first clicks a cursor armor piece back
+    into its own empty armor slot (one vanilla PICKUP); with a free hotbar slot vanilla's close
+    offer already lands in the hotbar.
+  - **Layout.** A 50x50 2x2 block (head, chest / legs, feet) at `[X-54, X-4) x [Y-9, Y+41)` beside
+    Wathe's 176x32 strip, clear of the shop row, role head rows, logo and the right-hand info card at
+    every scaled size the layout test covers (320 px wide and up). Its frame is cut at draw time from
+    Wathe's own `limited_inventory.png`; no copied art.
+  - **Neighbours.** The SparkWitch/SparkTraits info card and SparkAssist's guidebook route around
+    the panel because it is a visible `ClickableWidget` child; being inactive, it never consumes a
+    click.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, and
   the Seeker share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate
@@ -202,9 +303,10 @@ Current build baseline:
 4. Murderous Witch Death Ray
 5. Ninja parry window
 6. shared cooldown
-7. Prophet Death Omen window
-8. mana regeneration
-9. Saint ability
+7. mana regeneration
+8. Saint ability
+
+The Prophet no longer ticks here; `sparkwitch:prophet_player` ticks itself.
 
 Do not reorder these calls. The existing component ids remain `sparkwitch:player`
 and `sparkwitch:world`; packet field order and NBT keys must remain stable.
@@ -213,8 +315,11 @@ is handled before that tick's rotation packet); a payload without them still dec
 falls back to the server rotation. The server still decides every Death Ray and shotgun hit.
 Perfumer state uses the separate owner-only `sparkwitch:perfumer_player`
 component so its target lists are never added to the shared player packet.
-Prophet state remains inside the existing `sparkwitch:player` component and
-appends its owner-only ticks and body UUIDs after the live packet tail.
+Prophet state lives in the separate owner-only `sparkwitch:prophet_player`
+component (`NEVER_COPY`, match-id bound), never in the shared player packet. It
+holds the Death Sense countdown, an only-growing set of highlighted body entity
+UUIDs, the necrology, and Prophecy records. The old `DeathOmenTicks` and
+`DeathOmenBodyUuids` NBT keys are no longer read or written.
 Black Raven state never enters that shared schema. Victim marks use
 `sparkwitch:black_raven_mark`; owner-only progress and completed identity
 snapshots use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
@@ -350,6 +455,34 @@ keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGat
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
 
+Holy Flash state never enters that shared schema either. `sparkwitch:holy_flash` (`NEVER_COPY`,
+owner-only sync, never saved) holds the flashed player's total and remaining ticks, the burst
+position, and whether they faced it; it uses no vanilla Blindness, so Blindness cleanups never touch
+it, and the client only draws the mask and plays the ringing. The Saint's only shop entry is the
+re-buyable 75-coin Holy Flash (role-only gate, default buy handler, which needs a free hotbar slot
+and never merges stacks). A deny-only `ShopPurchase.BEFORE` listener refuses a purchase when the buyer
+already carries 3 or more (main, hotbar, offhand, crafting grid and cursor stack). Because the shop makes
+`ShopUtils.canAccessShop` true for the Saint, `SaintEconomyService` answers `CanSeeMoney` DENY for a Saint that
+is not playing and alive, keeping dead and STARTING-phase coin visibility (and SparkTraits money-trait
+eligibility) unchanged. Throws, bursts and flashes exist only while Wathe's status is ACTIVE
+(`HolyFlashRules.isActivePhase`), so the ringing never spills into STOPPING. Any participant may throw one. The role-owned `HolyFlashEntity` (never Wathe's
+grenade, so no grenade hook fires) bursts on its first block or entity hit with sound and particles
+but no damage. It flashes every participant whose eyes are within 4 blocks of the burst and have line
+of sight to it. The thrower is included and needs only participation; everyone else must also pass
+SparkFactionAPI's `sparkwitch:holy_flash` veto, Last Escape, and Vendetta isolation. If the thrower
+died or left mid-flight, the burst still blinds without an actor: no faction veto, Last Escape still
+honoured, active Vendetta endpoints untouched. `mixin/saint/GameFunctionsHolyFlashDropMixin` (HEAD guard on
+`shouldDropOnDeath`) keeps flashes out of death drops, and a confirmed (not Last Stand-intercepted)
+death removes them. Reset and finalize clear every flash and discard flashes still in flight. The
+Holy Flash never renders in the `gui.sparkwitch.skills` panel and never triggers Saint Karma.
+Client side lives in `client/saint/`: `HolyFlashOverlayRenderer` (via `client/mixin/saint/HolyFlashHudMixin`,
+`InGameHud.render` TAIL, priority 1100) draws owner pick B — a bright spot at the projected burst, then
+black held to 40% and eased out — above every HUD overlay, including the Seeker remote view;
+`HolyFlashAudioClient` plays the `sparkwitch:skill.holy_flash_tinnitus` loop and drives
+`client/mixin/saint/HolyFlashSoundSystemMixin`, which multiplies every other sound by a factor floored
+at 0.1 (composes with SparkAssist); `voice/HolyFlashVoiceClientBridge` loads `HolyFlashVoiceReceiver`
+on the physical client only to scale incoming Simple Voice Chat PCM by the same factor.
+
 Seeker state never enters that shared schema either. `sparkwitch:seeker_status` (`NEVER_COPY`,
 owner-only sync) holds the Seeker's car, cameras, session, battery, cooldown-reason, and mark state
 bound to the current Wathe match id; remote-session bookkeeping stays server-only and is never
@@ -360,7 +493,10 @@ Depression) keep working and the body stays in place. While the owner views the 
 their own body is outlined through walls on the owner's client only
 (`client/seeker/SeekerBodyClientHooks`, `SeekerRules.OWN_BODY_COLOR`), and the outline ends with
 the view. The possession filter is a private
-`PostEffectProcessor`, never `GameRenderer.postProcessor`. A placed camera's look (`LOOK_YAW`,
+`PostEffectProcessor`, never `GameRenderer.postProcessor`. The Blind echo view is another private
+processor; the shared `client/mixin/PostEffectProcessorAccessor` only reads a private processor's
+pass list (for per-pass matrix and array uniforms, never adding or removing passes) and is used only
+by `client/blind/render/BlindEchoView`. A placed camera's look (`LOOK_YAW`,
 `LOOK_PITCH`) and `VIEWING` flag are public DataTracker state that every tracking client renders
 (the head follows the view, the LED glows while viewed, and an idle head holds its last look); only
 the owner's client sends `seeker_camera_look` while viewing, and the server accepts it only for the
@@ -472,9 +608,11 @@ the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:esca
 `mixin/fiend/GameFunctionsFiendImmunityMixin` is a cancellable HEAD guard on Wathe's 5-arg `killPlayer`
 (priority 1100, so SparkFactionAPI's affect veto runs first) that ignores `force`, so the owner-approved piercing
 kills (bell toll, time curse) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
-per attack: `wathe:gun_shot` (every gun) +50 gold, Speed III 5 s and a 20 s cooldown floor, applied at
-END_SERVER_TICK through SparkTraits' exact write with a vanilla fallback, on every other participant within
-8 blocks (never shortened; NoellesRoles `timed_bomb` is skipped, its cooldown is the Bomber pass gate); a hand-held
+per attack: `wathe:gun_shot` (every gun) gives the Fiend +50 gold and Speed III 5 s, and puts a 20 s item-cooldown
+floor on every other participant within 8 blocks, queued at the hit and applied at END_SERVER_TICK through
+SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, …)` (exact, never shortened; role-skill counters
+untouched; the registry's exemptions skip the Seeker car and NoellesRoles `timed_bomb`, whose cooldown is the Bomber
+pass gate); a hand-held
 stab, recognised only by `FiendStabScope` around Wathe's `KnifeStabPayload` receiver, +50 gold and 4 notes;
 `wathe:bat_hit` and `sparkwitch:ceremonial_blade` +100 gold. A bomb the Fiend passed that kills its direct
 recipient pays +50 only while the Fiend is still dormant (server-only `FiendBombLedger`). The Taotie cannot
@@ -561,11 +699,168 @@ effective killers get Wathe's red cohort line on a living Insider through `Shoul
 Team Jiahao member, both ways, with the witch cohort trigger. The Insider shares killer-style instinct light
 through `WitchInstinctClientHooks`. The Insider never renders in the `gui.sparkwitch.skills` panel.
 
+Blind state never enters that shared schema either. `sparkwitch:blind` (`NEVER_COPY`, never saved)
+holds the cane and Attune windows as absolute server world ticks plus a server-only match id and the
+server-only match of the last ComTac purchase; its owner-only sync packet is four VarInts of remaining ticks (cane cooldown, cane active, Attune
+cooldown, Attune active), never absolute ticks, and the client rebuilds them against its own world
+time. Every Blind gate reads Wathe's real role (`getRole`), never the Black Raven acting overlay;
+the Blind is on the Black Raven `DENYLIST`, is not police, and is not in
+`isRegisteredSparkWitchRole` or `WitchSkillRegistry`. `sparkwitch:blind_pulse` goes only to a
+living Blind and carries a position, radius, duration, kind, an optional emitter entity id and an
+optional list of entity ids, never a UUID, name or role. `sparkwitch:use_blind_attune` is empty and
+sits on the Control Expert stun, Seeker session and Grand Witch Fear deny-lists. The black screen
+never uses vanilla Blindness, and Wathe's blackout Blindness skips a living, real Blind (C7: a
+`BlackoutEffect.BEFORE` cancel that leaves every other player to the other listeners).
+The Blind never renders in the `gui.sparkwitch.skills` panel.
+
+Blind perception is server-side and read-only. `mixin/blind/ServerWorldBlindPerceptionMixin`
+observes `ServerWorld#playSound`, `#playSoundFromEntity` and `#createExplosion` through
+non-cancellable HEAD injects that never change the call; private sounds (`playSoundToPlayer`, raw
+sound packets, `syncWorldEvent`) are never perceived, so a sound a Blind must perceive has to go
+through one of those three public calls. `BlindSoundRules` drops the AMBIENT, MUSIC and RECORDS
+categories, every `*:ambient.*` id and `minecraft:intentionally_empty`; explosions skip these
+filters. Objects light the environment only (an OBJECT pulse, never a player): Wathe's
+`block.door.toggle` (always actorless, auto-close included), anything played from or exploded by a
+non-player entity, and the Wathe light and no-power button toggles when no actor is named, which
+are dropped instead while a Wathe blackout runs (its flicker is the same call).
+`BlindSoundAttribution` credits any other sound to the named actor within 8 blocks, else to a player
+source entity, else to the nearest playing, living player whose hitbox contains the sound or lies
+within 0.3 blocks of it (an eye-level gunshot, a stab at the victim), else to an object (so
+firecracker decoys and Seeker devices are objects). An active Wraith or a player swallowed by the
+NoellesRoles Taotie is silent: its own sounds (named actor or source) are dropped, but it never wins
+the hitbox search and never drops a sound merely near it; invisible players are perceived.
+`BlindPulseFanout` sends one pulse (4-block reveal) to every living, playing, real, unswallowed
+Blind in the same world within that Blind's range (10 blocks, x3 with a worn ComTac, x5 during Attune: 30/50/150): SOUND or VOICE with the emitter's
+entity id for another player, SELF for the Blind's own sounds, OBJECT otherwise. Each Blind
+throttles each sound emitter to one pulse per 10 ticks; the one-shot sounds (the Wathe revolver,
+grenade and door, the SparkStrength M67, the NoellesRoles bomb, the generic explosion, every vanilla
+door, trapdoor and fence-gate open or close, and every `createExplosion`) bypass that throttle.
+Voice needs the optional Simple Voice Chat (compile-only, never a dependency):
+`voice/BlindVoicePerceptionListener` handles `MicrophonePacketEvent` at `Integer.MIN_VALUE`, after
+SparkWitch's Wraith and Kidnapper speaker mute at `Integer.MAX_VALUE`, skips cancelled and empty
+packets, and on the voice thread only records the speaker's UUID and whisper flag into
+`BlindVoiceInbox`; the `END_SERVER_TICK` drain sends at most one VOICE pulse per speaker every 10
+ticks, at half range for a whisper. Only proximity voice counts (no group, or an OPEN group), only
+the speaker's own microphone frames count (a relayed copy never pulses at the relay point), a Blind
+who cannot hear voice (NoellesRoles silenced, or Wathe psycho mode, which SparkTraits' Depression
+psycho uses and mutes for its listener) gets none, and without Simple Voice Chat there are no voice
+pulses.
+
+Blind presentation is client-only. `BlindView.isActive` holds on a confirmed SparkWitch server while
+a round runs for a real Blind (`getRole`) who is playing and alive in Wathe's sense (not marked
+dead) or swallowed; the camera is not part of it, so a SparkTraits Last Stand or Depression fake
+death keeps the view and every gate on (black) and only a real Wathe death ends it. Every gate
+re-reads it per call. `client/blind/render/BlindEchoView` is a private
+`PostEffectProcessor` (`sparkwitch:shaders/post/blind_echo.json`, programs
+`sparkwitch_blind_silmask`, `sparkwitch_blind_blur` and `sparkwitch_blind_echo`): the world depth is
+captured at `WorldRenderEvents.BEFORE_DEBUG_RENDER` (after flushing the pending block-entity layer and
+the Fast/Fancy dropped-item layer), where `BlindSilhouettePass` also re-renders the
+perceived players into a private silhouette target (their features and labels stripped by
+`BlindEchoSilhouetteMixin`), and `client/mixin/blind/BlindGameRendererMixin` runs the pass after
+`GameRenderer#render`'s `Framebuffer#beginWrite(Z)` with `shift = AFTER`, so it draws over the
+Seeker and Black Raven filters injected at the same call, and the HUD is drawn on top. The view
+fails closed to black, never to the plain world: an Iris shader pack in use (reflective check; an
+error counts as in use), a load failure (kept until reconnect or resource reload), or 20 consecutive
+missed depth captures paint black and show `hud.sparkwitch.blind.view_unavailable`, and a swallowed,
+off-camera or fake-death spectator Blind sees black with no line art. While the view is active,
+`BlindTerrainFogMixin` lifts the terrain fog end to the render distance right before
+`WorldRenderer#setupTerrain`, so Sodium's fog occlusion never culls sections, entities or block
+entities out of the captured depth (Blindness, Darkness, Wathe train fog). The `BlindGate*` vetoes:
+`WorldRenderer#renderEntity` (priority 2000) skips every other player who is unperceived or a
+spectator, and a fishing bobber whose owner is so hidden (its line is drawn to the owner's hand);
+`LivingEntityRenderer` (priority 2000) skips features and name labels on every other player and
+forces a perceived one visible unless it is a spectator or an active Wraith, and for that forced
+player calls `getRenderLayer` (opaque layer) and the model's `render` (full alpha) directly, so
+inner wraps there (today SparkTraits' Chameleon fade) do not apply to it;
+`ArmorFeatureRenderer#renderArmor` is HEAD-cancelled for armor drawn outside the feature loop;
+`PlayerEntityRenderer#getArmPose` (priority 2000, `EMPTY` for other players) and
+`BipedEntityModel#positionRightArm` / `#positionLeftArm` (priority 2000, vanilla `EMPTY` branch
+only, removing Wathe's gun hold) keep weapon stances out of the line art;
+`MinecraftClient#hasOutline` (priority 2000) answers false, so no instinct, glow or role outline
+reaches the Blind; `GameRenderer#renderHand` and `#shouldRenderBlockOutline` (priority 2000) hide
+the hand and the block outline; `DebugHud#shouldShowDebugHud` (priority 2000) answers false (F3
+blocked); `InGameHud#renderCrosshair` (priority 2100, above Wathe's 1000 and the Seeker's 1100)
+draws the same plain reticle on the vanilla path; and the `@WrapMethod`s on Wathe's
+`RoleNameRenderer.renderHud` (priority 2100, so it encloses every other injection there, the Wraith
+name-tag and cohort-label seams included) and `CrosshairRenderer.renderCrosshair` (priority 2100,
+Wathe's plain 3x3 reticle only, so no target pip, name, corpse info or note text) are pinned in
+`watheClientMixinContracts`. Non-player entities (corpses, dropped items, Seeker devices) are
+environment and are never gated, except a hidden player's fishing bobber. Bumps are client-only (no
+packet, no public sound): a hard wall bump, or a head bump with the space just above the head
+blocked, adds a local SELF pulse and briefly perceives a bumped player with no block in the gap
+between the two boxes; the 8-tick throttle is per contact (blocks, or one player), so a bump on a
+different player is never dropped. The owner-only kit HUD hides during Wathe's round-start fade
+(`GameWorldComponent.getFade() > 0`) and while swallowed, and lifts above the hotbar and stamina
+row when its widest line would reach the hotbar column (`SeekerHudRules` precedent).
+Attune ducking (`BlindAttuneSoundSystemMixin`,
+`@ModifyExpressionValue` on the inner `getAdjustedVolume(F, SoundCategory)` call in
+`SoundSystem#play` and `#getAdjustedVolume(SoundInstance)`) multiplies AMBIENT, MUSIC, RECORDS and
+WEATHER sounds and every `wathe:ambient.*` id by 0.25 while the local Blind's Attune is active; it
+composes with SparkAssist's volume seams on the same two methods and never writes options. While a
+Wathe round runs on a confirmed SparkWitch server, `BlindComTacHeadRenderMixin` (HEAD cancel on the
+typed `HeadFeatureRenderer.render`, which draws only the head-slot item) skips a worn ComTac VIII on
+every head for every viewer (D5/C15); other head items and all armor render normally, the ComTac
+renders outside rounds, and the HEAD slot still syncs, so `BlindParticipants.wearsComTac` is
+unchanged.
+
+The Blind kit is granted at round start in the `sparkwitch:blind_finish_initialize` phase of
+`GameEvents.ON_FINISH_INITIALIZE`, ordered after `Event.DEFAULT_PHASE` (so SparkTraits' Conscience
+compensation has settled final roles and Wathe has started the match record), and on a mid-round
+`RoleAssigned` to a playing, alive Blind while ACTIVE (C11): one White Cane in the hotbar, a 30 s
+cane and 90 s Attune initial cooldown, and the bound match id. The cane takes the selected hotbar
+slot when empty, else the first empty one; with a full hotbar it displaces the last hotbar item (the
+one before it when the last slot is selected) into a hidden main slot or the offhand, and with no
+room at all nothing moves and the placement retries every tick. A same-match re-assignment keeps its
+cooldowns; the per-tick upkeep (only while ACTIVE) re-grants a state bound to another match and
+keeps exactly one cane in a living Blind's hotbar, except in Wathe psycho mode (SparkTraits'
+Depression psycho keeps the inventory bat-only), where the cane waits until psycho mode ends.
+The cane window lasts 5 s and Attune's 10 s;
+their 10 s and 45 s cooldowns count from the end of the window (C2). The cane's hotbar cooldown is
+raise-only and written through SparkTraits' exact facade (Fast Hands never shortens it) with a
+vanilla fallback. The cane tap is public (`world.playSound` with the Blind as `except`, plus a
+private copy for the Blind), and the CANE pulse (15-block environment radius) lists every other
+playing, alive, non-spectator, non-Wraith, unswallowed player within 5 blocks, invisible ones
+included; every 10 ticks inside the window, late entrants are sent as a zero-radius CANE pulse
+lasting the rest of the window, which the client perceives for that duration only and does not store
+as a pulse. A refused tap (swallowed, in psycho mode, stunned, cooling down, not an active Blind)
+costs nothing, and a swallowed Blind gets no re-scan pulse. Attune (the
+shared NoellesRoles ability key sends `sparkwitch:use_blind_attune` while the view is active) is
+refused silently while a Taotie has swallowed the Blind (C7), while stunned, skill-blocked or
+cooling down, and with the Grand Witch Fear skill-blocked message while Feared; a refusal costs
+nothing. The White Cane and the ComTac VIII are bound: never an item entity (drop, death drop),
+never outside the holder's own inventory slots (head slot included; QUICK_MOVE only for the ComTac
+quick-equip from the hotbar into an empty head slot; never the offhand (Wathe's server already
+refuses the swap-hands action in a round), a container, the crafting grid, an item frame, an armor
+stand or a decorated pot, where `BlindKitDecoratedPotMixin` answers `SKIP_DEFAULT_BLOCK_INTERACTION`
+on both sides so the pot never takes it and the cane tap or ComTac equip still runs), hidden in hand
+from other players through `NoellesHiddenEquipment` (D9),
+and stripped from inventory, head slot, cursor and open screens of anyone who is not a living,
+playing, exact Blind (role change, terminal death, reset, finalize, disconnect and a staggered
+20-tick sweep that spares a real Blind inside a SparkTraits-intercepted Last Stand death). The
+ComTac equips silently (`minecraft:intentionally_empty` equip sound) and neither item's `use` ever
+returns SUCCESS, so no arm swing is broadcast. The Blind's shop is role-gated (rebuilt for the exact
+role, `sparktraits:*` entries preserved) and sells one ComTac VIII for 100 coins, stock 1, shown with
+the `shop.sparkwitch.comtac_viii` name and its "one per round" description (Fiend shop precedent),
+refused with `shop.error.sparkwitch.comtac_owned` when the buyer already owns one or already bought
+one in this match (also after a strip or for a role gained mid-round); it lands on the head when
+the head slot is empty, else in the first empty hotbar slot, and with no room the purchase fails
+without charging. Money follows the Angler: visible to a living Blind, 0 on assignment, +50 per
+task, no Impostor check. Grand Witch recruitment is unchanged: the cane and the ComTac (custom buy
+handler, no physical shop output) are refunded at `UNKNOWN_ITEM_PRICE` (25 each) and nothing of the
+kit survives on an Accomplice.
+
 Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
 components; the existing shared packet and NBT layouts remain unchanged. Sword
 kill readiness (30s) is independent of the item dash cooldown (5s). Recruitment
-uses a cumulative world quota, never a living-teammate count. Sword piercing
+uses a cumulative world quota, never a living-teammate count. It keeps only keys, both NoellesRoles master
+keys and letters (the revolver is refunded like any other item), re-initializes the new role's Wathe shop
+stock and cooldowns, and refuses, on the real role and before any destructive step, every SparkFactionAPI
+`PoliceRoles` member (Emma included, the Insider exempt) and the NoellesRoles Corrupt Cop with a random
+flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the failed recruitment.
+A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so a recruited
+ex-Hunter gets no trap back (the trap itself stays armed until it expires or the round ends).
+Sword piercing
 applies to role/item shields, not trait protections such as Last Stand or Last
 Escape; protection costs and retaliation keep their normal side effects.
 
@@ -676,8 +971,9 @@ and knife, Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker, Shri
 a public constant (Antidote, Repair Tool, Poison Needle) plus the 200-tick neutral master key; round-start cooldowns are
 not nominals, and Wathe items fall through to Wathe's own table.
 The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
-"max + exact" writer and offers no write path to other features. Not registered (out of scope): Wathe shop-entry
-cooldowns, the Black Raven disguise switch, the Curser and Guardian Angel, and SparkStrength components.
+"max + exact" writer and offers no write path to other features, so the Fiend gun-hit aura skips it too (owner
+decision, 2026-10-02). Not registered (out of scope): Wathe shop-entry cooldowns, the Black Raven disguise switch,
+the Curser and Guardian Angel, and SparkStrength components.
 
 The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its own Warden's Shriek renders in the
 `gui.sparkwitch.skills` panel (owner decision D13): its `AccompliceVariantHooks.ownSkillIds()` is exactly
@@ -962,6 +1258,12 @@ not filtered from the killer cohort line (`show(105)` beats SparkTraits' Conscie
 Veterans hidden from the Insider) and `isBlockingTeamWinNeutral` (a living Insider defers SparkTraits'
 KILLERS/PASSENGERS verdicts like the Corrupt Cop); an older SparkTraits leaves the Veteran visible and may end
 the round for killers or passengers while a lone Insider lives.
+The Blind may query only `isRoleSkillBlocked` (Attune), `setExactItemCooldownRemaining` (the cane)
+and `isLastStandDeathIntercepted` (the kit strip) through `SparkTraitsKillerBridge`, beyond
+`SparkTraitsShopEntryPreserver` (its shop rebuild keeps the `sparktraits:*` entries). An absent,
+older or failing SparkTraits falls back per method to no skill block, a vanilla cane cooldown, and a
+death that is not intercepted (fail closed): the `KillPlayer.AFTER` strip runs and the 20-tick
+sweep spares no dead Blind.
 The Abyss Listener may query only `isLastStandPending` and `hasActiveTrait` (Conscience and Impostor) through
 `compat/SparkTraitsAbyssListenerBridge`; `isLastEscapeActive`, `isRoleSkillBlocked` (the shriek), and
 `blocksWeaponAction` (the gun and the flask throw, with its `isKillerInteractionBlocked` and
@@ -1131,6 +1433,12 @@ git diff --check
 Run a full sequential `build` for a release or after packet, NBT, resource,
 metadata, mixin, or cross-module changes. Do not overlap SparkWitch and sibling
 SparkFactionAPI clean/build tasks.
+
+Client mixin changes also need `verifyClientMixinSelectors`, a standalone task that no other task
+(`build`, `check`, `verifyArchitecture`) runs: for every entry in `watheClientMixinContracts`
+(`build.gradle`) it checks the selector and `@At` target the remapped jar actually ships against the
+pinned Wathe and NoellesRoles jars, and fails on a missing handler or provider method, selector
+drift, or an injection weakened to `require = 0`.
 
 `verifyArchitecture` first runs `verifyBlackRavenActingRoleSeams`, which you can also run on its
 own.
