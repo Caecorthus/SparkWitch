@@ -218,6 +218,10 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return deferredCooldownTicks > 0;
     }
 
+    public int getDeferredCooldownTicks() {
+        return deferredCooldownTicks;
+    }
+
     public boolean hasActivePigChaseState() {
         return pigChaseFreezeTicks > 0 || pigChaseQueuedTicks > 0 || pigChaseTicks > 0;
     }
@@ -598,6 +602,31 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
             startDeferredCooldownNow();
         }
         sync();
+    }
+
+    /**
+     * Forced-cooldown write used only by the SparkFactionAPI {@code sparkwitch:witch_skill} store
+     * ({@code compat/cooldown}). Floors the shared cooldown and, only while a deferred cooldown is already pending,
+     * the deferred cooldown to the given floor. A raise passes the current deferred value (only the shared cooldown,
+     * which keeps counting through an active window, is floored); an extension also lifts the deferred cooldown so the
+     * added time survives the window end ({@link #startDeferredCooldownNow} keeps the max). Never shortens, never
+     * creates a deferred cooldown (no window would start it), and syncs once on change.
+     * 仅供 SparkFactionAPI 的 sparkwitch:witch_skill 存储使用的强制冷却写入：抬高共享冷却；仅当已有待启动的延后冷却时，
+     * 才把它抬到给定下限。抬高时传入当前延后值（只抬高在主动窗口期间仍在倒数的共享冷却）；延长时一并抬高延后冷却，
+     * 使增加的时间在窗口结束后仍然生效。绝不缩短、绝不新建延后冷却，变更时同步一次。
+     */
+    public boolean raiseForcedCooldownFloors(int cooldownFloorTicks, int deferredFloorTicks) {
+        int cooldown = Math.max(cooldownTicks, cooldownFloorTicks);
+        int deferred = deferredCooldownTicks > 0
+                ? Math.max(deferredCooldownTicks, deferredFloorTicks)
+                : deferredCooldownTicks;
+        if (cooldown == cooldownTicks && deferred == deferredCooldownTicks) {
+            return false;
+        }
+        cooldownTicks = cooldown;
+        deferredCooldownTicks = deferred;
+        sync();
+        return true;
     }
 
     public void clear() {

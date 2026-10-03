@@ -43,6 +43,7 @@
     "NoellesCeremonialSwordProtectionMixin",
     "NoellesHiddenEquipmentBlackRavenLedgerMixin",
     "NoellesRolesShadowJesterWinMixin",
+    "NoellesTaotieForcedCooldownAccessor",
     "NoellesThrowingAxeVendettaTargetMixin",
     "PlayerBodyEntityEquipmentMixin",
     "PlayerBodyEntityWraithRoleMixin",

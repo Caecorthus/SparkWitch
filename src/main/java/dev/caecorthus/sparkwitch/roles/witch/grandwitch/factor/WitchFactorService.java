@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchTargeting;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -47,9 +48,10 @@ public final class WitchFactorService {
         return role != null && EMMA_ROLE_ID.equals(role.identifier());
     }
 
+    /** Every accomplice (plain or special) is never a carrier. / 任一共犯（普通或特殊）都不能携带因子。 */
     public static boolean isEligibleCarrier(PlayerEntity player) {
         Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        return role != null && role != SparkWitchRoles.grandWitch() && role != SparkWitchRoles.accomplice()
+        return role != null && role != SparkWitchRoles.grandWitch() && !WitchFactionRules.isAccompliceLike(role)
                 && role != SparkWitchRoles.witchMaiden() && !isEmma(role)
                 && !VOODOO_ROLE_ID.equals(role.identifier());
     }
@@ -128,13 +130,15 @@ public final class WitchFactorService {
         return false;
     }
 
+    /** The server decides the network view (every accomplice sees it); the client reads the synced flag.
+     * 因子网络视图由服务端判定（所有共犯都可见），客户端只读取同步结果。 */
     public static boolean isNetworkViewer(PlayerEntity viewer) {
         if (!alive(viewer) || !GameWorldComponent.KEY.get(viewer.getWorld()).isRunning()) return false;
         WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(viewer.getWorld());
         if (viewer.getWorld().isClient) return component.hasNetworkView();
         Role role = GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer);
         return component.state().active() && (role == SparkWitchRoles.grandWitch()
-                || role == SparkWitchRoles.accomplice() || isEmma(role) || component.state().mature(viewer.getUuid()));
+                || WitchFactionRules.isAccompliceLike(role) || isEmma(role) || component.state().mature(viewer.getUuid()));
     }
 
     public static boolean isVisibleTo(PlayerEntity viewer, PlayerEntity target) {
