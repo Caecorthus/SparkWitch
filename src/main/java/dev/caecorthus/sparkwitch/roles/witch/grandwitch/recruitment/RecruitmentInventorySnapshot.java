@@ -89,9 +89,11 @@ final class RecruitmentInventorySnapshot {
         if (!stack.isEmpty() && !retained(stack)) removed.merge(stack.getItem(), stack.getCount(), Math::addExact);
     }
 
+    /** Only keys, both NoellesRoles master keys and letters survive recruitment; every other stack, the revolver
+     * included, is cleared and refunded at shop value.
+     * 招募只保留钥匙、NoellesRoles 两种万能钥匙和信件；其余物品（含左轮手枪）全部清除并按商店售价折算。 */
     static boolean retained(ItemStack stack) {
         return !stack.isEmpty() && (stack.isOf(WatheItems.KEY) || stack.isOf(ModItems.MASTER_KEY)
-                || stack.isOf(ModItems.NEUTRAL_MASTER_KEY) || stack.isOf(WatheItems.REVOLVER)
-                || stack.isOf(WatheItems.LETTER));
+                || stack.isOf(ModItems.NEUTRAL_MASTER_KEY) || stack.isOf(WatheItems.LETTER));
     }
 }

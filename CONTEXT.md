@@ -528,7 +528,14 @@ Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 `sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
 components; the existing shared packet and NBT layouts remain unchanged. Sword
 kill readiness (30s) is independent of the item dash cooldown (5s). Recruitment
-uses a cumulative world quota, never a living-teammate count. Sword piercing
+uses a cumulative world quota, never a living-teammate count. It keeps only keys, both NoellesRoles master
+keys and letters (the revolver is refunded like any other item), re-initializes the new role's Wathe shop
+stock and cooldowns, and refuses, on the real role and before any destructive step, every SparkFactionAPI
+`PoliceRoles` member (Emma included, the Insider exempt) and the NoellesRoles Corrupt Cop with a random
+flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the failed recruitment.
+A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so a recruited
+ex-Hunter gets no trap back (the trap itself stays armed until it expires or the round ends).
+Sword piercing
 applies to role/item shields, not trait protections such as Last Stand or Last
 Escape; protection costs and retaliation keep their normal side effects.
 
