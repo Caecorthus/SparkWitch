@@ -138,6 +138,9 @@ processResources {
 }
 
 tasks.named("jar") {
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
     from("THIRD_PARTY_NOTICES.md") {
         into "META-INF"
     }
