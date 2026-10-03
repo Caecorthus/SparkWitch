@@ -48,6 +48,13 @@ Current build baseline:
     Raven ledger's; hand hiding is the NoellesHiddenEquipment registration. The empty
     `net/OpenProphetNecrologyS2CPacket` opens the read-only two-tab book
     `client/prophet/ProphetNecrologyBookScreen`, which reads only `sparkwitch:prophet_player`.
+  - Prophecy flow: the ability key's Prophet branch (`client/prophet/ProphetClientModule`, before the
+    generic fallback) sends `net/RequestProphecyC2SPacket`; `ProphetProphecyService` checks role, life,
+    Fear and the shared skill cooldown, opens a nonce/match-bound `ProphetProphecySessions` entry and
+    sends `net/OpenProphecyS2CPacket` (dead names only); `client/prophet/ProphetProphecyScreen` answers
+    with `net/ConfirmProphecyC2SPacket`, which the server re-validates (`ProphetProphecyRules`), charges
+    50 coins, records on the owner-only component and cools down 30 s. Never in the Witch skill panel;
+    both C2S ids are in the Control Expert stun and Seeker remote-view deny-lists.
 - `roles/civilian/saint/`: Saint protection, Hellfire, player-local state, and
   UUID-bound Karma.
 - `roles/civilian/perfumer/`: private scent marks, cologne healing, corpse mood,
