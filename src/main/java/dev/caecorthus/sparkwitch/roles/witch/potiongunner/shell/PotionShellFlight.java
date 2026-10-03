@@ -43,6 +43,19 @@ public final class PotionShellFlight {
         return PotionGunnerRules.isFlatTick(flatPathTravelled(straightDistance));
     }
 
+    /**
+     * Path length at the end of the flat tick that starts {@code straightDistance} blocks from the launch point: the
+     * snapped start-of-tick length plus one muzzle-speed step. A Riftwalker Rift Gate pass (owner decision D18) re-bases
+     * the launch point this far behind the shell's new position, so the flat range is counted along the whole path,
+     * gate jumps included, and stays on the step grid: still {@link #flatTicks()} flat ticks in total.
+     * 从距发射点 {@code straightDistance} 格处开始的平直刻结束时的路径长度：对齐后的刻初长度加一个初速步长。穿过隙行者的
+     * 裂隙门（所有者决定 D18）时，发射点被重设到炮弹新位置后方这么远处，因此平直射程沿整条路径（含穿门跳转）累计，
+     * 并保持在步长网格上：总共仍是 {@link #flatTicks()} 个平直刻。
+     */
+    public static double flatPathAfterTick(double straightDistance) {
+        return flatPathTravelled(straightDistance) + PotionGunnerRules.MUZZLE_SPEED;
+    }
+
     /** Number of flat ticks after launch. / 发射后的平直刻数。 */
     public static int flatTicks() {
         int ticks = 0;

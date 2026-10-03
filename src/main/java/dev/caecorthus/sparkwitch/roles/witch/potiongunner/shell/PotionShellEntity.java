@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntity;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -60,6 +61,12 @@ public class PotionShellEntity extends ThrownItemEntity {
     private boolean detonated;
     /** Both sides: latched on the first non-flat tick. / 两端：在第一个非平直刻锁定。 */
     private boolean ballistic;
+    /**
+     * Server only: the velocity a Rift Gate left the shell with during this tick's move ({@link #onDeflected}); null on
+     * every other tick. / 仅服务端：本刻移动中裂隙门留给炮弹的速度（见 {@link #onDeflected}）；其余各刻为 null。
+     */
+    @Nullable
+    private Vec3d riftGateVelocity;
 
     public PotionShellEntity(EntityType<? extends PotionShellEntity> type, World world) {
         super(type, world);
@@ -136,8 +143,19 @@ public class PotionShellEntity extends ThrownItemEntity {
         // 位移本身不变。两端都基于同步的发射点执行，预测与服务端一致。
         boolean flat = isFlatTick();
         Vec3d stepVelocity = getVelocity();
+        Vec3d stepStart = getPos();
+        riftGateVelocity = null;
         super.tick();
         if (flat && !isRemoved()) {
+            if (riftGateVelocity != null) {
+                // Rift Gate seam (D18, server): the gate moved the shell inside super.tick(), which then applied drag
+                // and gravity to the gate's exit velocity. A flat tick restores that exit velocity, never the pre-gate
+                // one, and the flat range carries over the jump.
+                // 裂隙门接缝（D18，服务端）：门在 super.tick() 中移动了炮弹，随后原版对门给出的出口速度施加了阻力与重力。
+                // 平直刻恢复的是这个出口速度而不是进门前的速度，平直射程也随这次跳转延续。
+                stepVelocity = riftGateVelocity;
+                carryFlatRangeThroughRiftGate(stepStart, stepVelocity);
+            }
             setVelocity(stepVelocity);
         }
         if (getWorld().isClient() && !isRemoved()) {
@@ -181,6 +199,24 @@ public class PotionShellEntity extends ThrownItemEntity {
     }
 
     /**
+     * Rift Gate seam (owner decision D18), server only: after a gate moved the shell on a flat tick, the synced launch
+     * origin is re-based straight behind the shell's new position along its new velocity, as far back as the path flown
+     * so far ({@link PotionShellFlight#flatPathAfterTick}). {@link #isFlatTick} then keeps counting the same path on
+     * both sides, so a gate neither restarts the 50-block flat range nor ends it early: 20 flat ticks in total.
+     * 裂隙门接缝（所有者决定 D18），仅服务端：门在平直刻移动炮弹后，把同步的发射点重设到炮弹新位置沿新速度方向的正后方，
+     * 距离等于已飞过的路径长度（{@link PotionShellFlight#flatPathAfterTick}）。此后 {@link #isFlatTick} 在两端继续累计同一条
+     * 路径，因此穿门既不会重新开始 50 格平直射程，也不会让它提前结束：总共仍是 20 个平直刻。
+     */
+    private void carryFlatRangeThroughRiftGate(Vec3d stepStart, Vec3d exitVelocity) {
+        Vec3d origin = launchOrigin();
+        if (origin == null) {
+            return;
+        }
+        double path = PotionShellFlight.flatPathAfterTick(stepStart.distanceTo(origin));
+        setLaunchOrigin(getPos().subtract(exitVelocity.normalize().multiply(path)));
+    }
+
+    /**
      * D-R4: the shell passes through everything its blast could never catch. Wathe corpses ({@link PlayerBodyEntity},
      * a {@code LivingEntity}) are transparent, and so are players who are spectators, creative, or not
      * {@code isPlayerPlayingAndAlive} (Wathe-dead, e.g. Wraiths); both sides decide these from synced state, so client
@@ -205,6 +241,25 @@ public class PotionShellEntity extends ThrownItemEntity {
                 GameFunctions.isPlayerAliveAndSurvival(player),
                 GameFunctions.isPlayerPlayingAndAlive(player),
                 !getWorld().isClient() && SparkTraitsKillerBridge.isLastEscapeActive(player));
+    }
+
+    /**
+     * Rift Gate seam (Riftwalker owner decision D18). {@link #canHit} needs no gate clause: every non-player entity
+     * already stops the shell, and a gate answers that hit with its deflection (a jump to another gate, a reflection
+     * when there is none, or a capped pass) in place of {@link #onCollision}, so nothing bursts at the gate. Vanilla
+     * calls this on the server only, inside {@code super.tick()} and after the gate set the new position and velocity;
+     * it only records that velocity for {@link #tick}. Every other deflector keeps vanilla behaviour.
+     * 裂隙门接缝（隙行者所有者决定 D18）。{@link #canHit} 无需为门单独处理：所有非玩家实体本来就会挡下炮弹，而门用自己的偏转
+     * （跳到另一扇门、没有其他门时反弹，或达到上限后穿过）取代 {@link #onCollision} 处理这次命中，因此炮弹不会在门处爆炸。
+     * 原版只在服务端、于 {@code super.tick()} 之内且门已写入新位置与速度之后调用本方法；这里只记下该速度供 {@link #tick} 使用。
+     * 其他偏转者保持原版行为。
+     */
+    @Override
+    protected void onDeflected(@Nullable Entity deflector, boolean fromAttack) {
+        super.onDeflected(deflector, fromAttack);
+        if (deflector instanceof RiftGateEntity) {
+            riftGateVelocity = getVelocity();
+        }
     }
 
     /**
