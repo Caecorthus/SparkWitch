@@ -142,5 +142,22 @@
         "pitch": 1.4
       }
     ]
+  },
+  "blind.cane_tap": {
+    "subtitle": "subtitles.sparkwitch.blind.cane_tap",
+    "sounds": [
+      {
+        "name": "minecraft:random/wood_click",
+        "pitch": 1.5
+      },
+      {
+        "name": "minecraft:block/bamboo/step1",
+        "pitch": 1.6
+      },
+      {
+        "name": "minecraft:block/bamboo/step2",
+        "pitch": 1.6
+      }
+    ]
   }
 }

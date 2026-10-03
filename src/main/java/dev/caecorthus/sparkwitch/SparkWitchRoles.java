@@ -35,6 +35,7 @@ public final class SparkWitchRoles {
     public static final Identifier CONTROL_EXPERT_ID = SparkWitchRoleRegistry.CONTROL_EXPERT_ID;
     public static final Identifier SEEKER_ID = SparkWitchRoleRegistry.SEEKER_ID;
     public static final Identifier FISHER_ID = SparkWitchRoleRegistry.FISHER_ID;
+    public static final Identifier BLIND_ID = SparkWitchRoleRegistry.BLIND_ID;
     public static final Identifier FIEND_ID = SparkWitchRoleRegistry.FIEND_ID;
     public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
 
@@ -159,6 +160,10 @@ public final class SparkWitchRoles {
 
     public static Role fisher() {
         return SparkWitchRoleRegistry.fisher();
+    }
+
+    public static Role blind() {
+        return SparkWitchRoleRegistry.blind();
     }
 
     public static Role fiend() {

@@ -57,10 +57,13 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "recruit_accomplice"),
             Identifier.of("sparkwitch", "open_judge_selection"),
             Identifier.of("sparkwitch", "confirm_judge_selection"),
+            Identifier.of("sparkwitch", "request_prophecy"),
+            Identifier.of("sparkwitch", "confirm_prophecy"),
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
             Identifier.of("sparkwitch", "seeker_car_swallow"),
             Identifier.of("sparkwitch", "seeker_car_recall"),
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
+            Identifier.of("sparkwitch", "use_blind_attune"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),

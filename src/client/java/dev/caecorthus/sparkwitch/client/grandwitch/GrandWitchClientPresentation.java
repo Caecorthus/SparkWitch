@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRuntimeComponent;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.GrandWitchRecruitmentRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.client.font.TextRenderer;
@@ -66,7 +67,7 @@ public final class GrandWitchClientPresentation {
     public static RecruitQuota recruitQuota(ClientPlayerEntity player) {
         GrandWitchRuntimeComponent runtime = GrandWitchRuntimeComponent.KEY.get(player);
         // Quota is cumulative and based on the round snapshot, never the current living count. / 名额按开局人口及累计招募计算，不按当前存活人数。
-        int capacity = Math.max(0, (runtime.getRoundParticipants() - 18) / 6);
+        int capacity = GrandWitchRecruitmentRules.limit(runtime.getRoundParticipants());
         int remaining = Math.max(0, capacity - runtime.getRecruitmentCount());
         return new RecruitQuota(remaining, capacity);
     }

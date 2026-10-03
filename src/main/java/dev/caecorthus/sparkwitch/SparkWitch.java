@@ -62,6 +62,7 @@ public final class SparkWitch implements ModInitializer {
         NoellesHiddenEquipment.register(SparkWitchItems.timeStealerClock());
         NoellesHiddenEquipment.register(SparkWitchItems.timeStamp());
         NoellesHiddenEquipment.register(SparkWitchItems.blackRavenMask());
+        NoellesHiddenEquipment.register(SparkWitchItems.prophetNecrology());
         NoellesHiddenEquipment.register(SparkWitchItems.tollBell());
         NoellesHiddenEquipment.register(SparkWitchItems.seekerCar());
         NoellesHiddenEquipment.register(SparkWitchItems.seekerCamera());
@@ -74,6 +75,10 @@ public final class SparkWitch implements ModInitializer {
         NoellesHiddenEquipment.register(SparkWitchItems.clownfish());
         NoellesHiddenEquipment.register(SparkWitchItems.goldfish());
         NoellesHiddenEquipment.register(SparkWitchItems.glimmerfish());
+        // Blind: the cane is hidden in round (D9); a held ComTac would expose the role the same way.
+        // 盲人：盲杖局内隐藏（D9）；手持的 ComTac 同样会暴露身份。
+        NoellesHiddenEquipment.register(SparkWitchItems.whiteCane());
+        NoellesHiddenEquipment.register(SparkWitchItems.comTac());
         SparkWitchRoles.register();
         SparkWitchBuiltInSkills.register();
         SparkWitchPackets.register();

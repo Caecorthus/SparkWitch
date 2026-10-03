@@ -100,7 +100,11 @@ public final class HunterFeatureService {
             return ActionResult.PASS;
         }
 
-        if (player.isSneaking() && player.getUuid().equals(trap.getOwnerUuid())) {
+        Role role = GameWorldComponent.KEY.get(world).getRole(player);
+        // Owner reclaim needs the placer to still be the real Hunter, so a recruited ex-Hunter gets no trap back.
+        // 放置者回收要求其当前真实身份仍为猎人，被招募的前猎人无法取回捕兽夹。
+        if (player.isSneaking() && player.getUuid().equals(trap.getOwnerUuid())
+                && role != null && HunterRules.ROLE_ID.equals(role.identifier())) {
             if (!world.isClient) {
                 ItemStack returnedTrap = new ItemStack(Registries.ITEM.get(HunterTrapItem.ID));
                 if (!player.giveItemStack(returnedTrap)) {
@@ -120,9 +124,8 @@ public final class HunterFeatureService {
             return ActionResult.SUCCESS;
         }
 
-        Role role = GameWorldComponent.KEY.get(world).getRole(player);
-        // Dismantlers have direct-view access only; owner reclaim above intentionally remains unrestricted.
-        // 拆除者只能直视操作；上方放置者回收路径有意不受此限制。
+        // Dismantlers have direct-view access only; owner reclaim above intentionally needs no line of sight.
+        // 拆除者只能直视操作；上方放置者回收路径有意不要求视线。
         if (player.isSneaking() && role != null
                 && HunterRules.canDismantle(role.identifier(), player.canSee(trap))) {
             if (!world.isClient) {

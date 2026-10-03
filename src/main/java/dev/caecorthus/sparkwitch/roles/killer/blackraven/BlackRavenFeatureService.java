@@ -9,9 +9,12 @@ import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 
 /** Registers Black Raven lifecycle hooks while keeping the global event owner declarative. */
@@ -61,6 +64,16 @@ public final class BlackRavenFeatureService {
             BlackRavenLoadoutService.assignForRole(serverPlayer, role);
         });
         KillPlayer.AFTER.register((victim, killer, deathReason) -> clearDeadPlayer(victim));
+        // The bound ledger and mask cannot be handed to world targets. Both sides: the client stops before sending,
+        // the server refuses a forged packet.
+        // 绑定的账本与假面无法交给世界中的目标。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
+        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) ->
+                BlackRavenInventoryRules.blocksEntityUse(player.getStackInHand(hand), entity)
+                        ? ActionResult.FAIL : ActionResult.PASS);
+        UseBlockCallback.EVENT.register((player, world, hand, hitResult) ->
+                BlackRavenInventoryRules.blocksBlockUse(player.getStackInHand(hand),
+                        world.getBlockState(hitResult.getBlockPos()))
+                        ? ActionResult.FAIL : ActionResult.PASS);
         ResetPlayer.EVENT.register(player -> {
             BlackRavenDisguiseService.clearForReset(player);
             clearRoundItems(player);

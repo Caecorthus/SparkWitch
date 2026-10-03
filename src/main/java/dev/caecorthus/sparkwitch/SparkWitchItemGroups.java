@@ -44,6 +44,7 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.perfumeEssence(),
                                     SparkWitchItems.cologne(),
                                     SparkWitchItems.tarotCard(),
+                                    SparkWitchItems.prophetNecrology(),
                                     SparkWitchItems.vendettaKnife(),
                                     SparkWitchItems.disruptor(),
                                     SparkWitchItems.taser(),
@@ -60,6 +61,8 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.keyFish(),
                                     SparkWitchItems.swordfish(),
                                     SparkWitchItems.glimmerfish(),
+                                    SparkWitchItems.whiteCane(),
+                                    SparkWitchItems.comTac(),
                                     // Killer / 杀手
                                     SparkWitchItems.ninjaKnife(),
                                     SparkWitchItems.ninjaShuriken(),
