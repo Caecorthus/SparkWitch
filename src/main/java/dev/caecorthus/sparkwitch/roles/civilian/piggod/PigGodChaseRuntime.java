@@ -138,6 +138,13 @@ public final class PigGodChaseRuntime {
             return;
         }
         component.applyPigChaseState(withPsychoOwnership(state, ownsPsycho));
+        if (ownsPsycho) {
+            // Strip the shield Wathe's startPsycho grants, so the chase psycho cannot absorb a kill.
+            // A psycho started by another source keeps its own shield.
+            // 移除 Wathe startPsycho 默认给的疯魔护盾，使追杀期无法抵挡击杀；
+            // 其他来源已开启的疯魔保留其自身护盾。
+            psycho.setArmour(PigGodRules.CHASE_PSYCHO_ARMOUR);
+        }
         psycho.setPsychoTicks(chaseTicks);
         player.addStatusEffect(new StatusEffectInstance(
                 StatusEffects.SPEED,

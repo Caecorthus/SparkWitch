@@ -20,9 +20,6 @@ import java.util.Objects;
  * 服务端始终权威；可点击行只是提示，每次选择都由服务端重新校验。
  */
 public final class BlackRavenDisguiseClientRules {
-    /** Tab B rows per book page (two book lines each). / Tab B 每页行数（每行占两行书页文字）。 */
-    public static final int ROWS_PER_PAGE = 5;
-
     private BlackRavenDisguiseClientRules() {
     }
 
@@ -124,13 +121,15 @@ public final class BlackRavenDisguiseClientRules {
         return !row.greyed() && !row.current();
     }
 
-    public static int pageCount(int rowCount) {
-        return Math.max(1, (rowCount + ROWS_PER_PAGE - 1) / ROWS_PER_PAGE);
-    }
-
-    public static <T> List<T> page(List<T> rows, int pageIndex) {
-        int start = Math.clamp((long) pageIndex * ROWS_PER_PAGE, 0, rows.size());
-        int end = Math.min(rows.size(), start + ROWS_PER_PAGE);
+    /**
+     * One ledger page: {@code perPage} entries starting at page {@code pageIndex}. A page past the end is empty; a
+     * negative index reads the first page.
+     * 感知册的一页：自第 pageIndex 页起的 perPage 项。超出末尾的页为空；负数页码读取第一页。
+     */
+    public static <T> List<T> page(List<T> rows, int pageIndex, int perPage) {
+        int size = Math.max(1, perPage);
+        int start = Math.clamp((long) pageIndex * size, 0, rows.size());
+        int end = Math.min(rows.size(), start + size);
         return rows.subList(start, end);
     }
 

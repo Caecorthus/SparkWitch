@@ -43,8 +43,8 @@ public final class WitchRoleAssignmentService {
             assigned += assignRole(gameComponent, availablePlayers, grandWitch, grandRemaining);
         }
 
-        // Accomplices are recruited during play, never naturally allocated.
-        // 共犯仅在对局中招募，不再自然分配；旧人数公式仅决定招募名额。
+        // Accomplices are recruited during play, never naturally allocated; quota lives in GrandWitchRecruitmentRules.
+        // 共犯仅在对局中招募，不再自然分配；招募名额由 GrandWitchRecruitmentRules 决定。
 
         // Apprentice Witch is a civilian role and follows the >=24 rule directly, independent of actual Grand Witch assignment.
         // 预备魔女是好人职业，只按 >=24 的人数规则刷新，不依赖大魔女是否真的被分到。

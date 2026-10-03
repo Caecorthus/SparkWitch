@@ -34,8 +34,9 @@ public abstract class GameWorldComponentMixin {
             ServerPlayerEntity killer,
             Identifier deathReason
     ) {
-        // Keep Wathe's fall death reason while replacing only the direct killer when a fresh Fire Poker push exists.
-        // 保留 wathe 的坠车死因，只在有新鲜烧火棍推人记录时替换直接击杀者。
+        // Keep Wathe's fall death reason while replacing only the direct killer when a fresh recorded push exists
+        // (Fire Poker or Shriek Gun; the ledger keeps the pushing weapon).
+        // 保留 wathe 的坠车死因，只在有新鲜推人记录（烧火棍或啸音铳；账本保存推人武器）时替换直接击杀者。
         FirePokerFallAttributionService.resolveFallKill(victim, spawnBody, killer, deathReason);
     }
 }

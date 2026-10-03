@@ -38,6 +38,8 @@ public final class SparkWitchItemGroups {
                             List<Item> factionOrder = List.of(
                                     // Witch / 魔女
                                     SparkWitchItems.ceremonialSword(),
+                                    SparkWitchItems.shriekGun(),
+                                    SparkWitchItems.deepDarkSporeFlask(),
                                     // Potion Gunner (witch) / 药炮手（魔女）
                                     SparkWitchItems.potionLauncher(),
                                     SparkWitchItems.gwDkShell(),
@@ -50,10 +52,12 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.perfumeEssence(),
                                     SparkWitchItems.cologne(),
                                     SparkWitchItems.tarotCard(),
+                                    SparkWitchItems.prophetNecrology(),
                                     SparkWitchItems.vendettaKnife(),
                                     SparkWitchItems.disruptor(),
                                     SparkWitchItems.taser(),
                                     SparkWitchItems.shockDevice(),
+                                    SparkWitchItems.holyFlash(),
                                     SparkWitchItems.seekerCar(),
                                     SparkWitchItems.seekerCamera(),
                                     SparkWitchItems.fishingRod(),
@@ -65,6 +69,8 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.keyFish(),
                                     SparkWitchItems.swordfish(),
                                     SparkWitchItems.glimmerfish(),
+                                    SparkWitchItems.whiteCane(),
+                                    SparkWitchItems.comTac(),
                                     // Killer / 杀手
                                     SparkWitchItems.ninjaKnife(),
                                     SparkWitchItems.ninjaShuriken(),
