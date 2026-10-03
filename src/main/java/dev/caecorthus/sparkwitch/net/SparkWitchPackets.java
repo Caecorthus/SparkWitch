@@ -96,6 +96,10 @@ public final class SparkWitchPackets {
                 OpenBlackRavenLedgerS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
+                OpenProphetNecrologyS2CPacket.ID,
+                OpenProphetNecrologyS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
                 OpenBlackRavenDisguiseS2CPacket.ID,
                 OpenBlackRavenDisguiseS2CPacket.CODEC
         );

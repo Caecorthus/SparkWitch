@@ -21,6 +21,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraItem;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCarItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetNecrologyItem;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetNecrologyRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeLoadoutService;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.TollBellItem;
@@ -56,6 +58,7 @@ public final class SparkWitchItems {
     public static final Identifier FEATHER_BLADE_ID = SparkWitch.id("feather_blade");
     public static final Identifier BLACK_RAVEN_LEDGER_ID = SparkWitch.id("black_raven_ledger");
     public static final Identifier BLACK_RAVEN_MASK_ID = BlackRavenDisguiseRules.MASK_ITEM_ID;
+    public static final Identifier PROPHET_NECROLOGY_ID = ProphetNecrologyRules.ITEM_ID;
     public static final Identifier HUNTER_TRAP_ID = HunterTrapItem.ID;
     public static final Identifier DOUBLE_BARREL_SHOTGUN_ID = DoubleBarrelShotgunItem.ID;
     public static final Identifier DOUBLE_BARREL_SHELL_ID = DoubleBarrelShellItem.ID;
@@ -90,6 +93,7 @@ public final class SparkWitchItems {
     private static Item featherBlade;
     private static Item blackRavenLedger;
     private static Item blackRavenMask;
+    private static Item prophetNecrology;
     private static Item hunterTrap;
     private static Item doubleBarrelShotgun;
     private static Item doubleBarrelShell;
@@ -177,6 +181,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 BLACK_RAVEN_MASK_ID,
                 new BlackRavenMaskItem(new Item.Settings().maxCount(1))
+        );
+        prophetNecrology = Registry.register(
+                Registries.ITEM,
+                PROPHET_NECROLOGY_ID,
+                new ProphetNecrologyItem(new Item.Settings().maxCount(1))
         );
         hunterTrap = Registry.register(
                 Registries.ITEM,
@@ -373,6 +382,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return blackRavenMask;
+    }
+
+    public static Item prophetNecrology() {
+        if (prophetNecrology == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return prophetNecrology;
     }
 
     public static Item hunterTrap() {

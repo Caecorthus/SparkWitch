@@ -41,6 +41,13 @@ Current build baseline:
   owner-only `sparkwitch:prophet_player` component (permanent highlight set, necrology,
   Prophecy records), the Prophecy skill registration, and economy. The client outline
   lives in `client/hooks/ProphetCorpseHighlightClientHooks`.
+  - The bound Necrology (`sparkwitch:prophet_necrology`): `ProphetNecrologyItem`, the binding rules
+    `ProphetNecrologyRules`, and the lifecycle `ProphetNecrologyLoadoutService` (grant on assignment,
+    one-copy restore from `ProphetRuntime.tick`, deletion on death, role loss, reset, round end, and stale
+    match). Its mixins live in `mixin/prophet/` (death drop, item drop, slot click), parallel to the Black
+    Raven ledger's; hand hiding is the NoellesHiddenEquipment registration. The empty
+    `net/OpenProphetNecrologyS2CPacket` opens the read-only two-tab book
+    `client/prophet/ProphetNecrologyBookScreen`, which reads only `sparkwitch:prophet_player`.
 - `roles/civilian/saint/`: Saint protection, Hellfire, player-local state, and
   UUID-bound Karma.
 - `roles/civilian/perfumer/`: private scent marks, cologne healing, corpse mood,
