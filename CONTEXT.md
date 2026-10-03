@@ -53,9 +53,11 @@ Current build baseline:
   - The bound Necrology (`sparkwitch:prophet_necrology`): `ProphetNecrologyItem`, the binding rules
     `ProphetNecrologyRules`, and the lifecycle `ProphetNecrologyLoadoutService` (grant on assignment,
     one-copy restore from `ProphetRuntime.tick`, deletion on death, role loss, reset, round end, and stale
-    match). Its mixins live in `mixin/prophet/` (death drop, item drop, slot click), parallel to the Black
-    Raven ledger's; Fabric use callbacks refuse handing it to item frames, armor stands, allays and decorated
-    pots; hand hiding is the NoellesHiddenEquipment registration. The empty
+    match). Its mixins live in `mixin/prophet/` (death drop, item drop, slot click, decorated pot), parallel to
+    the Black Raven ledger's; a Fabric `UseEntityCallback` refuses handing it to item frames, armor stands and
+    allays, and `DecoratedPotBlockProphetNecrologyMixin` makes a decorated pot answer
+    `SKIP_DEFAULT_BLOCK_INTERACTION` so the pot never takes it and the book still opens; hand hiding is the
+    NoellesHiddenEquipment registration. The empty
     `net/OpenProphetNecrologyS2CPacket` opens the read-only two-tab book
     `client/prophet/ProphetNecrologyBookScreen`, which reads only `sparkwitch:prophet_player`.
   - Prophecy flow: the ability key's Prophet branch (`client/prophet/ProphetClientModule`, before the
@@ -83,8 +85,10 @@ Current build baseline:
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
   bound ledger, restricted shop, and lifecycle cleanup. The bound ledger and Raven Mask
   (`BlackRavenInventoryRules`) never drop, never leave their owner's inventory slots, and are
-  refused by `UseEntityCallback`/`UseBlockCallback` vetoes for item frames, armor stands, allays,
-  and decorated pots.
+  refused by a `UseEntityCallback` veto for item frames, armor stands and allays; a decorated pot
+  answers `SKIP_DEFAULT_BLOCK_INTERACTION` for them through
+  `mixin/blackraven/DecoratedPotBlockBlackRavenItemMixin`, so it never takes them (not even through a
+  Wathe ornament hung on it) and the ledger or mask still opens there.
   - `disguise/`: the Black Raven disguise. It owns the acting-role overlay
     (`BlackRavenActingRole`), the owner-only `BlackRavenDisguiseComponent` and its sync codec, the
     Tab B pool snapshot, the bound Raven Mask (`sparkwitch:black_raven_mask`), one-shot open

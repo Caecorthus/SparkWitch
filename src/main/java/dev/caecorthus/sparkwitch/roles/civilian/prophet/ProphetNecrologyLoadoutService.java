@@ -12,7 +12,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.Event;
-import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.slot.Slot;
@@ -56,14 +55,13 @@ public final class ProphetNecrologyLoadoutService {
             }
         });
         KillPlayer.AFTER.register((victim, killer, deathReason) -> removeNecrology(victim));
-        // Both sides: the client stops before sending, the server refuses a forged packet.
-        // 双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
+        // The book cannot be handed to item frames, armor stands or allays. Both sides: the client stops before
+        // sending, the server refuses a forged packet. Decorated pots are handled by
+        // mixin/prophet/DecoratedPotBlockProphetNecrologyMixin instead, so the Necrology still opens there.
+        // 书本无法交给物品展示框、盔甲架或悦灵。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
+        // 饰纹陶罐改由 DecoratedPotBlockProphetNecrologyMixin 处理，因此对着陶罐时亡者名录仍可打开。
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) ->
                 ProphetNecrologyRules.blocksEntityUse(player.getStackInHand(hand), entity)
-                        ? ActionResult.FAIL : ActionResult.PASS);
-        UseBlockCallback.EVENT.register((player, world, hand, hitResult) ->
-                ProphetNecrologyRules.blocksBlockUse(player.getStackInHand(hand),
-                        world.getBlockState(hitResult.getBlockPos()))
                         ? ActionResult.FAIL : ActionResult.PASS);
         ResetPlayer.EVENT.register(ProphetNecrologyLoadoutService::removeNecrology);
         GameEvents.ON_FINISH_INITIALIZE.addPhaseOrdering(Event.DEFAULT_PHASE, FINISH_INITIALIZE_PHASE);

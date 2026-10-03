@@ -52,7 +52,10 @@ public final class BlackRavenInventoryRules {
         return isBound(held) && target != null && takesHeldStack(target.getClass());
     }
 
-    /** Block counterpart of {@link #blocksEntityUse}. / {@link #blocksEntityUse} 的方块版本。 */
+    /**
+     * Block counterpart of {@link #blocksEntityUse}, asked by {@code DecoratedPotBlockBlackRavenItemMixin}.
+     * {@link #blocksEntityUse} 的方块版本，由 {@code DecoratedPotBlockBlackRavenItemMixin} 调用。
+     */
     public static boolean blocksBlockUse(ItemStack held, BlockState target) {
         return isBound(held) && target != null && takesHeldStack(target.getBlock().getClass());
     }
