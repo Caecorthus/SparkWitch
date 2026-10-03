@@ -64,6 +64,10 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "recruit_accomplice"),
             Identifier.of("sparkwitch", "open_judge_selection"),
             Identifier.of("sparkwitch", "confirm_judge_selection"),
+            // Prophet Prophecy request and priced confirmation, classified like the Judge's pair.
+            // 先知预言的请求与付费确认，与法官的两个包同样归类。
+            Identifier.of("sparkwitch", "request_prophecy"),
+            Identifier.of("sparkwitch", "confirm_prophecy"),
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
             // Seeker actions (open, swallow, remote recall); close and car moves stay allowed because a stun ends the
             // session anyway. / 搜寻者行为（打开、吞车、远程回收）；关闭与小车移动放行，因为眩晕本身就会结束会话。

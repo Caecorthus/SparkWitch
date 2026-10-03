@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.fisher.FisherClient;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
+import dev.caecorthus.sparkwitch.client.prophet.ProphetClientModule;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
@@ -97,6 +98,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerBlackRavenNetworking();
         registerWraithRoleAnnouncementNetworking();
         JudgeClientModule.register();
+        ProphetClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
         InsiderClient.init();
@@ -140,6 +142,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             TarotDivinationClientState.tick(client);
             JudgeClientModule.tick(client);
+            ProphetClientModule.tick(client);
             SecondaryAbilityController.tick(client);
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 WitchAbilityKeyBridge.reset();
@@ -159,6 +162,10 @@ public final class SparkWitchClient implements ClientModInitializer {
                         && SaboteurRole.ID.equals(role.identifier());
                 if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
+                } else if (ProphetClientModule.ownsAbilityKey(client.player, role)) {
+                    // Prophecy opens its own session instead of sending the generic skill packet.
+                    // 预言打开自有会话，而不是发送通用技能包。
+                    ProphetClientModule.requestProphecy(client);
                 } else if (EmmaClientModule.isEmma(client.player)) {
                     EmmaClientModule.use(client.player);
                 } else if (exactSaboteurRole) {
@@ -298,6 +305,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         WitchMaidenClientModule.clear();
         TarotDivinationClientState.clear();
         JudgeClientModule.clear();
+        ProphetClientModule.clear();
         SeekerClientModule.reset();
     }
 }
