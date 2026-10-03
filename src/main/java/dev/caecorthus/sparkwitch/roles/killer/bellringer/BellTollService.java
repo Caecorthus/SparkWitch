@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.killer.bellringer;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -100,13 +101,18 @@ public final class BellTollService {
     /**
      * Raw {@code getMood() < 0}: Wathe answers 1 for FAKE/NONE mood and SparkTraits already resolves the
      * effective mood type there; the {@code isLowerThan*} helpers are avoided because Well Trained overrides them.
+     * A Rift Gate occupant is a living SPECTATOR, which {@code isParticipant} rejects, so it is admitted explicitly:
+     * the toll pierces a gate like poison (owner decision C13/C16); the Riftwalker's occupant policy allows
+     * {@code sparkwitch:bell_toll}, and the kill's {@code KillPlayer.AFTER} ends the session as DIED.
      * 直接使用 {@code getMood() < 0}：FAKE/NONE 情绪在 Wathe 中返回 1，SparkTraits 已在该处解析有效情绪类型；
-     * 不使用 {@code isLowerThan*}，因为“训练有素”会覆盖它们。
+     * 不使用 {@code isLowerThan*}，因为“训练有素”会覆盖它们。裂隙门内的玩家是存活的旁观者，{@code isParticipant} 会拒绝，
+     * 因此单独放行：钟声与毒一样穿透裂隙门（所有者决定 C13/C16）；隙行者的门内策略放行 {@code sparkwitch:bell_toll}，
+     * 击杀后的 {@code KillPlayer.AFTER} 以 DIED 结束会话。
      */
     private static boolean isTarget(ServerPlayerEntity ringer, ServerPlayerEntity candidate, GameWorldComponent game) {
         return !candidate.getUuid().equals(ringer.getUuid())
                 && PlayerMoodComponent.KEY.get(candidate).getMood() < 0.0F
-                && BellRingerEchoTargeting.isParticipant(candidate)
+                && (BellRingerEchoTargeting.isParticipant(candidate) || RiftSessionService.isInside(candidate))
                 && SparkFactionApi.canAffectPlayer(ringer, candidate, SparkWitchDeathReasons.BELL_TOLL, game);
     }
 

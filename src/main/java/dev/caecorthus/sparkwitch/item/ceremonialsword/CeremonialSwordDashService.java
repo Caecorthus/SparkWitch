@@ -57,6 +57,15 @@ public final class CeremonialSwordDashService {
         );
     }
 
+    /**
+     * Server only: drops a dash in progress, e.g. when Witches' Sabbath teleports the dasher, so the dash never
+     * continues from the landing spot (R1 review F-7).
+     * 仅服务端：取消进行中的冲刺，例如魔女集会传送了冲刺者时，冲刺不会从落点继续（R1 审查 F-7）。
+     */
+    public static void cancel(ServerPlayerEntity player) {
+        DASHES.remove(player.getUuid());
+    }
+
     static Vec3d horizontalDirection(Entity entity) {
         Vec3d look = entity.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(look.x, 0.0, look.z);

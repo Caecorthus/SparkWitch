@@ -1,16 +1,49 @@
 package dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /** Pure, conservative recruitment arithmetic. / 纯规则：保守折算、累计名额。 */
 public final class GrandWitchRecruitmentRules {
     public static final int UNKNOWN_ITEM_PRICE = 25;
 
+    private static final List<String> POLICE_REFUSALS = List.of(
+            "message.sparkwitch.recruitment.police_refused.buddha",
+            "message.sparkwitch.recruitment.police_refused.jesus",
+            "message.sparkwitch.recruitment.police_refused.silver_bullet");
+    private static final List<String> CORRUPT_COP_REFUSALS = List.of(
+            "message.sparkwitch.recruitment.corrupt_cop_refused.too_hao",
+            "message.sparkwitch.recruitment.corrupt_cop_refused.dislike");
+
     private GrandWitchRecruitmentRules() { }
 
+    /** Roles the Grand Witch may never recruit (owner rule, 2026-10-02).
+     * 大魔女永远不能招募的身份（所有者规则，2026-10-02）。 */
+    public enum Refusal { NONE, POLICE, CORRUPT_COP }
+
+    /** The Corrupt Cop wins over any police registration. The Insider is registered as police only for the
+     * tablet channel and stays recruitable.
+     * 黑警优先于任何警职登记；内应仅为平板警察频道登记为警职，仍可被招募。 */
+    public static Refusal refusal(boolean corruptCop, boolean police, boolean insider) {
+        if (corruptCop) return Refusal.CORRUPT_COP;
+        return police && !insider ? Refusal.POLICE : Refusal.NONE;
+    }
+
+    /** Flavor lines for a refusal; the caller picks one uniformly per attempt.
+     * 拒绝时的台词候选；由调用方每次尝试均匀随机选取一句。 */
+    public static List<String> refusalMessages(Refusal refusal) {
+        return switch (refusal) {
+            case POLICE -> POLICE_REFUSALS;
+            case CORRUPT_COP -> CORRUPT_COP_REFUSALS;
+            case NONE -> List.of();
+        };
+    }
+
+    /** 18-23 opening participants grant 1 recruit, then +1 per further 6 (24-29 → 2, ...).
+     * 开局 18-23 人提供 1 个名额，此后每多 6 人加 1 个（24-29 人为 2 个，依此类推）。 */
     public static int limit(int openingParticipants) {
-        return openingParticipants < 18 ? 0 : (openingParticipants - 18) / 6;
+        return openingParticipants < 18 ? 0 : (openingParticipants - 18) / 6 + 1;
     }
 
     public static int remaining(int openingParticipants, int recruited) {

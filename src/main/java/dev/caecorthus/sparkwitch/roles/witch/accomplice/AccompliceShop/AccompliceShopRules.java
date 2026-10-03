@@ -4,7 +4,9 @@ import dev.doctor4t.wathe.index.WatheItems;
 import dev.doctor4t.wathe.util.ShopEntry;
 import net.minecraft.item.ItemStack;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Accomplice shop entries kept separate from Wathe's native killer shop.
@@ -28,6 +30,32 @@ public final class AccompliceShopRules {
     public static List<ShopEntry> entries() {
         return plannedEntries().stream()
                 .map(PlannedEntry::toShopEntry)
+                .toList();
+    }
+
+    /**
+     * Shop-building helper for special accomplices: the plain Accomplice entries, in order, minus the given
+     * {@link PlannedEntry#id()} values. Variants call it from their own {@code BuildShopEntries} listener; the plain
+     * Accomplice shop itself stays exact. An unknown id throws {@link IllegalArgumentException}.
+     * 供特殊共犯构建商店：按原顺序返回普通共犯商品，去掉给定的 {@link PlannedEntry#id()}。特殊共犯在自己的
+     * {@code BuildShopEntries} 监听器中调用；普通共犯商店本身保持不变。未知 id 抛出 {@link IllegalArgumentException}。
+     */
+    public static List<ShopEntry> entriesWithout(String... entryIds) {
+        return plannedEntriesWithout(entryIds).stream()
+                .map(PlannedEntry::toShopEntry)
+                .toList();
+    }
+
+    public static List<PlannedEntry> plannedEntriesWithout(String... entryIds) {
+        List<PlannedEntry> planned = plannedEntries();
+        Set<String> excluded = new HashSet<>(List.of(entryIds));
+        for (String id : excluded) {
+            if (planned.stream().noneMatch(entry -> entry.id().equals(id))) {
+                throw new IllegalArgumentException("Unknown Accomplice shop entry id: " + id);
+            }
+        }
+        return planned.stream()
+                .filter(entry -> !excluded.contains(entry.id()))
                 .toList();
     }
 

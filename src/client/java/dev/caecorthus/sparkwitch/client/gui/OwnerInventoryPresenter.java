@@ -205,10 +205,10 @@ public final class OwnerInventoryPresenter {
     /**
      * END_CLIENT_TICK hook (confirmed server only): records the local owner's panel-skill countdowns every tick,
      * also while the inventory is closed, so the gauge knows each phase's total when the card opens mid-phase.
-     * Eligibility is the same three-role panel rule; any other role only clears the tracker. The Grand Witch's sword
-     * kill cooldown is recorded only after that gate too.
+     * Eligibility is the same panel rule (WitchSkillPresentationRules); any other role only clears the tracker. The
+     * Grand Witch's sword kill cooldown is recorded only after that gate too.
      * 客户端每刻记录本地玩家面板技能的倒计时（背包关闭时也记录），中途打开背包时进度条仍知道阶段总量；
-     * 资格与面板相同（仅三个魔女技能职业），其他职业只会清空记录；大魔女的仪礼剑击杀冷却同样只在通过该资格后记录。
+     * 资格与面板相同（WitchSkillPresentationRules），其他职业只会清空记录；大魔女的仪礼剑击杀冷却同样只在通过该资格后记录。
      */
     public static void tick(MinecraftClient client) {
         // Drop a closed screen so it is not retained. 界面关闭后释放引用。
@@ -270,8 +270,8 @@ public final class OwnerInventoryPresenter {
         var role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
         // Do not gate on usability: active, locked, and cooling-down skills are still owned skills.
         if (skillId == null || !WitchSkillPresentationRules.shouldShowInventorySkillPanel(role, skillId)) return null;
-        // Grand Witch rows (Recruit, Ceremonial Sword) are read only after the three-role gate above passed; the
-        // mixin never checks roles. 大魔女的招募与仪礼剑行只在上方三职业资格通过后读取；混入类从不判断职业。
+        // Grand Witch rows (Recruit, Ceremonial Sword) are read only after the panel gate above passed; the
+        // mixin never checks roles. 大魔女的招募与仪礼剑行只在上方面板资格通过后读取；混入类从不判断职业。
         GrandWitchRows grandWitch = GrandWitchClientPresentation.isGrandWitch(client.player) ? GrandWitchRows.read(client.player) : null;
         SkillKey key = new SkillKey(Language.getInstance(), role, skillId,
                 component.hasManaSystem() && WitchManaRules.isManaRole(role), component.getMana(),
@@ -426,11 +426,11 @@ public final class OwnerInventoryPresenter {
     /**
      * Grand Witch's Recruit Accomplice and Ceremonial Sword (spec-v2-grand-witch §1): her own abilities beside the
      * panel skill, as status-bearing hero rows sharing the section's status column. Built only for a Grand Witch that
-     * passed the three-role panel gate in skillSection. Recruit: LOCKED "未解锁" (short "锁定") before 2 tasks (the task
+     * passed the panel gate in skillSection. Recruit: LOCKED "未解锁" (short "锁定") before 2 tasks (the task
      * pips live on the sword row only), then READY "剩余 n/m", LOCKED with the same label once the quota is used up, or
      * LOCKED "无名额" when the round has no quota at all. Sword: LOCKED "x/2" with task pips, then READY "可击杀" or
      * COOLDOWN on the 30 s kill cooldown; the 5 s dash cooldown is a tooltip fact, not a second pill.
-     * 大魔女的招募同伙与仪礼剑：面板主技能之外的自有能力，作为带状态的技能行，与分节共用状态列；仅在 skillSection 的三职业资格通过后构建。
+     * 大魔女的招募同伙与仪礼剑：面板主技能之外的自有能力，作为带状态的技能行，与分节共用状态列；仅在 skillSection 的面板资格通过后构建。
      * 招募：2 个任务前为“未解锁”（短标签“锁定”，任务点只画在仪礼剑行），之后为“剩余 n/m”，名额用尽时以同一文本显示为锁定，
      * 本局无名额时显示为锁定的“无名额”。仪礼剑：锁定时显示 x/2 与任务点，解锁后为“可击杀”或 30 秒击杀冷却；5 秒冲刺冷却只写在提示中，不另设状态牌。
      */

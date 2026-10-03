@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.saint;
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashFeatureService;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -11,8 +12,9 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Owns Saint kill protection at Wathe's kill entry point and post-kill Karma through its public event.
- * 在 Wathe 击杀入口执行圣徒保护，并通过公开事件处理击杀后的业障逻辑。
+ * Owns Saint kill protection at Wathe's kill entry point and post-kill Karma through its public event, and wires the
+ * Saint shop and the Holy Flash lifecycle.
+ * 在 Wathe 击杀入口执行圣徒保护，并通过公开事件处理击杀后的业障逻辑；同时注册圣徒商店与圣光弹生命周期。
  */
 public final class SaintFeatureService {
     private static boolean registered;
@@ -26,6 +28,8 @@ public final class SaintFeatureService {
         }
         registered = true;
         SaintEconomyService.register();
+        SaintShopService.register();
+        HolyFlashFeatureService.register();
         KillPlayer.AFTER.register(SaintFeatureService::afterKill);
     }
 

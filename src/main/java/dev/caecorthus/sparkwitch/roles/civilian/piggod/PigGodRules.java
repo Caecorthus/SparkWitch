@@ -19,6 +19,9 @@ public final class PigGodRules {
     public static final int FREEZE_TICKS = 0;
     public static final int CHASE_TICKS = GameConstants.getInTicks(0, 17);
     public static final int SPEED_AMPLIFIER = 4;
+    // Pig Chase psycho carries no Wathe psycho shield; overrides GameConstants.PSYCHO_MODE_ARMOUR.
+    // 皮革追杀的疯魔不带 Wathe 疯魔护盾，覆盖 GameConstants.PSYCHO_MODE_ARMOUR。
+    public static final int CHASE_PSYCHO_ARMOUR = 0;
     public static final int INSTINCT_PRIORITY = 90;
     public static final float SOUND_VOLUME = 1.0f;
     public static final float SOUND_PITCH = 1.0f;
