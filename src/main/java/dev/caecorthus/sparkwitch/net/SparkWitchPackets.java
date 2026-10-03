@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabSe
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetProphecyService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
@@ -46,6 +47,16 @@ public final class SparkWitchPackets {
                 (payload, context) -> JudgeRuntime.openSelection(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(ConfirmJudgeSelectionC2SPacket.ID,
                 (payload, context) -> JudgeRuntime.confirmSelection(context.player(), payload.sessionId(), payload.targetId()));
+        // Prophecy uses its own session packets; the generic skill packet is refused for it.
+        // 预言使用自有会话数据包；通用技能包对其一律拒绝。
+        PayloadTypeRegistry.playC2S().register(RequestProphecyC2SPacket.ID, RequestProphecyC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(ConfirmProphecyC2SPacket.ID, ConfirmProphecyC2SPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(OpenProphecyS2CPacket.ID, OpenProphecyS2CPacket.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(RequestProphecyC2SPacket.ID,
+                (payload, context) -> ProphetProphecyService.requestSession(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmProphecyC2SPacket.ID,
+                (payload, context) -> ProphetProphecyService.confirmGuess(
+                        context.player(), payload.sessionId(), payload.victim(), payload.groupId()));
         PayloadTypeRegistry.playC2S().register(UseWitchSkillC2SPacket.ID, UseWitchSkillC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(GrandWitchRecruitC2SPacket.ID, GrandWitchRecruitC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(EmmaFactorC2SPacket.ID, EmmaFactorC2SPacket.CODEC);
@@ -94,6 +105,10 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playS2C().register(
                 OpenBlackRavenLedgerS2CPacket.ID,
                 OpenBlackRavenLedgerS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                OpenProphetNecrologyS2CPacket.ID,
+                OpenProphetNecrologyS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 OpenBlackRavenDisguiseS2CPacket.ID,

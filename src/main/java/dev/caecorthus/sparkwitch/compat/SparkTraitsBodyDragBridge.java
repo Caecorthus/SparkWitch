@@ -38,6 +38,26 @@ public final class SparkTraitsBodyDragBridge {
         }
     }
 
+    /**
+     * True only when SparkTraits positively reports a Depression fake-death body; absent or broken API reads as real,
+     * so Death Sense keeps working without SparkTraits.
+     * 仅当 SparkTraits 明确报告为抑郁假死尸体时返回 true；API 缺失或异常视为真尸体，保证无 SparkTraits 时死亡感知照常工作。
+     */
+    public static boolean isConfirmedFakeDeathBody(Entity body) {
+        if (!FabricLoader.getInstance().isModLoaded(MOD_ID)) {
+            return false;
+        }
+        Method method = isFakeDeathBodyMethod();
+        if (method == null) {
+            return false;
+        }
+        try {
+            return Boolean.TRUE.equals(method.invoke(null, body));
+        } catch (ReflectiveOperationException | LinkageError | ClassCastException ignored) {
+            return false;
+        }
+    }
+
     static boolean canDragFromQuery(boolean loaded, @Nullable Boolean fakeDeathBody) {
         return !loaded || Boolean.FALSE.equals(fakeDeathBody);
     }

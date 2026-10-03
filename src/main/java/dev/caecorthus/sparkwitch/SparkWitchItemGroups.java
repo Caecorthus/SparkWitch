@@ -44,6 +44,7 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.perfumeEssence(),
                                     SparkWitchItems.cologne(),
                                     SparkWitchItems.tarotCard(),
+                                    SparkWitchItems.prophetNecrology(),
                                     SparkWitchItems.vendettaKnife(),
                                     SparkWitchItems.disruptor(),
                                     SparkWitchItems.taser(),

@@ -32,7 +32,7 @@ public final class WitchSkillHudRules {
             int activeTicks,
             int cooldownTicks
     ) {
-        return ProphetRules.DEATH_OMEN_ID.equals(skillId)
+        return ProphetRules.PROPHECY_ID.equals(skillId)
                 && activeTicks <= 0
                 && cooldownTicks <= 0;
     }
