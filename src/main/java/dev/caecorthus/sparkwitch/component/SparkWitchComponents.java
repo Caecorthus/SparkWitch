@@ -22,6 +22,7 @@ import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeTheftPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendMomentWorldComponent;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.AbyssZoneExposureComponent;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariantRoundComponent;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRuntimeComponent;
@@ -113,6 +114,9 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, BlindComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(BlindComponent::new);
+        registry.beginRegistration(PlayerEntity.class, AbyssZoneExposureComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(AbyssZoneExposureComponent::new);
     }
 
     @Override

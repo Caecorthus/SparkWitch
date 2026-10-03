@@ -343,6 +343,45 @@ public final class SeekerDeviceHits {
         return rayBlocks(user, target, range, SeekerBreakSource.CLOCK) ? null : target;
     }
 
+    /**
+     * Abyss Listener Shriek Gun server targeting, mirroring the Taser: a nearer breakable device absorbs the beam and
+     * breaks, so nobody is pushed; like the Taser (and unlike the free Clock) a miss still breaks the nearest device in
+     * reach, because every shot costs the gun's cooldown. One-line hook in {@code ShriekGunService}.
+     * 聆渊者啸音铳的服务端目标选择，与电击枪一致：更近且可打坏的设备吸收射线并被打坏，不推动任何人；与电击枪相同
+     * （与免费的时钟不同），未命中时仍会打坏射程内最近的设备，因为每一发都要付出枪械冷却。{@code ShriekGunService} 中的一行钩子。
+     */
+    @Nullable
+    public static <T extends PlayerEntity> T onShriekGunFired(ServerPlayerEntity user, @Nullable T target,
+                                                              double range) {
+        if (user == null || user.getWorld().isClient()) {
+            return target;
+        }
+        return rayBlocks(user, target, range, SeekerBreakSource.SHRIEK_GUN) ? null : target;
+    }
+
+    /**
+     * Read-only preview of {@link #onShriekGunFired} for the beam particles: the device that call would absorb and
+     * break for the same arguments (the same ray and the same {@link SeekerDamageRules#mayBreak} filter as
+     * {@code rayBlocks}), else null. Breaks, marks and records nothing; call it before {@link #onShriekGunFired},
+     * whose break removes the device.
+     * {@link #onShriekGunFired} 的只读预览，供射线粒子使用：对相同参数该调用会吸收并打坏的设备（与 {@code rayBlocks}
+     * 相同的射线与相同的 {@link SeekerDamageRules#mayBreak} 过滤），否则为 null。不打坏、不标记、不记录任何内容；
+     * 须在 {@link #onShriekGunFired} 之前调用，因为其打坏会移除该设备。
+     */
+    @Nullable
+    public static SeekerDeviceEntity shriekGunAbsorber(ServerPlayerEntity user, @Nullable PlayerEntity target,
+                                                       double range) {
+        if (user == null || user.getWorld().isClient() || !(range > 0.0)
+                || !GameWorldComponent.KEY.get(user.getWorld()).isRunning()) {
+            return null;
+        }
+        Vec3d start = user.getEyePos();
+        Vec3d end = start.add(user.getRotationVec(1.0F).multiply(range));
+        SeekerDeviceRaycast.DeviceHit hit = SeekerDeviceRaycast.blockingHit(user, start, end, target,
+                breakableBy(user));
+        return hit == null ? null : hit.device();
+    }
+
     // ---- Internal ----
 
     private static boolean breakStabbedDevice(ServerPlayerEntity attacker, SeekerDeviceEntity device,

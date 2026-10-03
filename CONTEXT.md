@@ -16,6 +16,8 @@ It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop
 the two form Team Jiahao and win together.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
 the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
+It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only
+Grand Witch recruitment (through the special-accomplice pool) or an admin force assigns; it is never drawn naturally.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -141,6 +143,35 @@ Current build baseline:
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
+- `roles/witch/abysslistener/`: Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者) frozen tuning constants and pure
+  predicates (`AbyssListenerRules`), the role definition (`AbyssListenerRole`), its special-accomplice pool entry and
+  feature wiring (`AbyssListenerFeatureService`), the role-owned shop (`AbyssListenerShopService`), replay formatters
+  (`AbyssListenerReplayFormatters`), and `AbyssSuppression`, the only place the skill, the gun, and the zone decide
+  eligibility and write suppression state. Its optional SparkTraits reads live in
+  `compat/SparkTraitsAbyssListenerBridge`.
+  - `shriek/`: `WardensShriekService`, the Warden's Shriek handler on the shared Witch-skill path.
+  - `gun/`: the Shriek Gun: `ShriekGunItem` (the `Item#use` entry), `ShriekGunService` (server gate, beam, hit,
+    presentation, record), `ShriekGunRules` (pure fire gate, ally/enemy hit plan, sync-capped knockback vector, particle
+    spacing, Vendetta rule), and `ShriekGunTargeting` (side-neutral beam geometry shared by the server hit and the
+    client crosshair).
+  - `loadout/`: the bound gun: `AbyssListenerInventoryRules` (pure binding matrix, holder entitlement, round-start
+    gate), `AbyssListenerGunSweep` (pure reconcile decisions, staggered cadence, full-hotbar displacement slot), and
+    `AbyssListenerLoadout` (grants, entitlement sweep, death/reset/finalize removal).
+  - `zone/`: the Deep Dark Spore Flask (item, thrown entity, and its registration in `AbyssListenerEntities`); the Deep
+    Dark Zone terrain: flood-fill shape and landing cell (`DeepDarkZoneShape`), eligibility and palette
+    (`DeepDarkZoneEligibility`), timeline (`DeepDarkZoneSchedule`), in-memory registry (`DeepDarkZoneState`), section
+    grouping (`DeepDarkZoneSections`), read-only world adapter (`DeepDarkZoneBlocks`), chunk-delta sender
+    (`DeepDarkZoneSync`), sampled vanilla cues (`DeepDarkZoneCues`), and the runtime with its lifecycle
+    (`DeepDarkZoneService`); standing effects, exposure, and drain operands (`DeepDarkZoneStandingRules`,
+    `DeepDarkZoneStandingService`, `DeepDarkZoneStandingDrain`); and the owner-only `AbyssZoneExposureComponent`.
+  - Its mixins live in `mixin/abysslistener/` (the four Shriek Gun guards and the zone mood drain) and
+    `client/mixin/abysslistener/` (`ShriekGunCrosshairMixin`, `MoodRendererAbyssZoneExposureMixin`, and the read-only
+    row accessor `MoodRendererTaskRowAbyssAccessor`).
+  - Its client presentation lives in `client/abysslistener/`, registered once by `AbyssListenerClient.init()`: the
+    crosshair hint `ShriekGunClientTargeting` and the pseudo task line `AbyssZoneExposureTaskLine` (with its
+    `AbyssZoneExposureTaskLineRules`).
+- `item/firepoker/FirePokerFallAttributionService` (historical name kept): the shared train-fall push ledger for every
+  pushing weapon (Fire Poker and Shriek Gun), not only the Fire Poker.
 - `roles/civilian/emma/`: unique cop claim, role-owned mana skill, delayed backlash,
   owner-private failed-recruitment evidence, speed latch, and one reward per gun cycle.
 - `roles/civilian/controlexpert/`: Control Expert round-start loadout, task-money economy,
@@ -258,9 +289,9 @@ Current build baseline:
 - `util/hitscan/`: server-side lag compensation for hitscan weapons. `PlayerHitboxHistory` keeps a
   one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
   `HitscanLagRules` owns the ping-based rewind window and swept volumes. Used by the Hunter
-  double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, and the Black Raven
-  Feather Blade (whose sight and feet-distance reach are taken at the rewound hit); client crosshair
-  hints keep current boxes.
+  double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, the Abyss Listener Shriek
+  Gun, and the Black Raven Feather Blade (whose sight and feet-distance reach are taken at the rewound hit);
+  client crosshair hints keep current boxes.
 
 ## Runtime Invariants
 
@@ -505,9 +536,11 @@ revolver and derringer, the SparkWitch double-barrel shotgun, the NoellesRoles D
 the Control Expert Taser and Shock Device, the knife stab (every `KnifeItem.getKnifeTarget` caller),
 the Angler Swordfish stab (`SWORDFISH`, its own payload and `SeekerDeviceHits.onSwordfishStab`),
 the NoellesRoles throwing axe, the thrown Ninja shuriken, the Black Raven feather blade, the
-Time Stealer Pocket Watch, the Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac grenade), and
-the SparkStrength M67. A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol) is
-accepted when the shooter's look ray meets the device box grown by its client targeting margin with
+Time Stealer Pocket Watch, the Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac
+grenade), the SparkStrength M67, and the Abyss Listener Shriek Gun (`SHRIEK_GUN`, appended last in `SeekerBreakSource`
+so earlier replay ids keep their values; a server ray through `SeekerDeviceHits.onShriekGunFired`). A client-picked
+gun hit (Wathe revolver and derringer, Demon Hunter pistol) is accepted when the shooter's look ray meets the device
+box grown by its client targeting margin with
 a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
 (`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
 nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
@@ -847,7 +880,9 @@ method reads the live registry on every call. These rules are `HunterRules.isIns
 `HunterTrapClientHooks`, and `SeekerInstinctRules.isWitchInstinctRole`.
 
 `isAccomplice` stays exact, so the plain Accomplice shop (`AccompliceShopService`) never touches a variant. These
-never include variants: `WitchManaRules.isManaRole` and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`.
+never include variants merely for being variants: `WitchManaRules.isManaRole` (the Abyss Listener is added by exact
+role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole` (the Abyss Listener is added by exact role for its shared
+skill).
 
 The `gui.sparkwitch.skills` panel (`WitchSkillPresentationRules.shouldShowInventorySkillPanel`) belongs to the Grand
 Witch, Apprentice Witch and Murderous Witch, plus accomplices (owner decision D13: plain and special, via
@@ -874,9 +909,9 @@ becomes the plain Accomplice. A variant counts as used when the round ledger rec
 (`!game.getAllWithRole(role).isEmpty()`). Variants never appear naturally.
 
 The round ledger is `sparkwitch:accomplice_variant_round` (`AccompliceVariantRoundComponent`, with its state in
-`AccompliceVariantRoundState`). It is a world component that is never synced, appended last in
-`custom.cardinal-components`. Its only NBT key is `UsedVariants`, a list of role id strings. Its lifecycle follows
-`grand_witch_recruitment_round`:
+`AccompliceVariantRoundState`). It is a world component that is never synced, appended to
+`custom.cardinal-components` after every earlier entry (only `sparkwitch:abyss_zone_exposure` follows it). Its only
+NBT key is `UsedVariants`, a list of role id strings. Its lifecycle follows `grand_witch_recruitment_round`:
 - **Round start.** `GrandWitchRecruitmentService.beginRound` runs at `ON_FINISH_INITIALIZE`. It resets the ledger and
   seeds it with every variant already in the role map, so a forced round-start variant stays used after it dies and
   becomes a Curser.
@@ -932,13 +967,208 @@ Features that force a cooldown on another player (penalties, auras) go through S
    checked against the pinned NoellesRoles 1.7.6 jar.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Ninja shuriken
-and knife, Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker) and of NoellesRoles items with a public
-constant (Antidote, Repair Tool, Poison Needle) plus the 200-tick neutral master key; round-start cooldowns are not
-nominals, and Wathe items fall through to Wathe's own table.
+and knife, Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun) and of NoellesRoles items with
+a public constant (Antidote, Repair Tool, Poison Needle) plus the 200-tick neutral master key; round-start cooldowns are
+not nominals, and Wathe items fall through to Wathe's own table.
 The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
 "max + exact" writer and offers no write path to other features, so the Fiend gun-hit aura skips it too (owner
 decision, 2026-10-02). Not registered (out of scope): Wathe shop-entry cooldowns, the Black Raven disguise switch,
 the Curser and Guardian Angel, and SparkStrength components.
+
+The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its own Warden's Shriek renders in the
+`gui.sparkwitch.skills` panel (owner decision D13): its `AccompliceVariantHooks.ownSkillIds()` is exactly
+`sparkwitch:wardens_shriek`, and no other skill ever shows there for it.
+- **Registration.** It is registered right after the Accomplice in `registerFactionApiRoles` (nothing may follow the
+  Insider, so like the Curser it sits mid-list), with the Accomplice's profile (`MoodType.FAKE`, unlimited sprint,
+  `canSeeTime(true)`) and `appearanceCondition(context -> false)`, and it follows the Accomplice in the assassin-guess
+  order. As a registered `AccompliceVariants` entry it reaches every basic Accomplice rule through
+  `WitchFactionRules.isAccompliceLike`; `isAccomplice` stays exact. Its own shop (`AbyssListenerShopService`) is every
+  plain Accomplice entry, then the Deep Dark Spore Flask (`sparkwitch:deep_dark_spore_flask`) at 75 coins with no
+  stock limit and no purchase cooldown.
+- **Skill and mana.** Warden's Shriek (`sparkwitch:wardens_shriek`) is a `WitchSkillDefinition` with an exact-role
+  selector, registered right after the Bell Ringer's Echo. The role is in `isRegisteredSparkWitchRole` only for that
+  shared skill path; the skills panel reaches it only through its variant hooks (D13). It uses the Grand Witch's mana
+  economy through `WitchManaRules.usesGrandWitchManaEconomy` (Grand Witch or exact Abyss Listener): it is a mana role
+  (`isManaRole`), starts at 0 on every assignment (recruitment included), regenerates 1 mana every 20 ticks up to the
+  natural cap of 300, and earns 50 mana for a generic kill and 100 for a witch-mana-role victim. The Abyss Listener
+  itself never counts as a witch-mana-role victim, so every other role's rewards are unchanged. The Grand-Witch-only
+  bonus for an accomplice's kill pays living Grand Witches only, and the Abyss Listener's kills feed it. Its mana
+  shows in the generic top-right `WitchManaHudRenderer` row (gated by `hasManaSystem`, not by the skills panel) and in
+  the bottom-right skill line's "not enough mana" state. While the inventory is open, the skills panel card shows the
+  Shriek with its 75-mana cost line, the "not enough mana" pill below 75, the cooldown gauge (60 s, or the 90 s
+  initial cooldown), and the NoellesRoles ability key; the card's header mana tail then replaces the top-right mana
+  row and the card replaces the bottom-right skill line, as for every panel mana role. A Fire Poker in its hand spends
+  its mana like any mana holder's.
+- **Suppression.** `AbyssSuppression` (server only) is shared by the shriek, the gun, and the zone:
+  - `isParticipantTarget`: playing and alive, not spectating, not creative, not an active Wraith, has a role, not
+    SparkTraits Last Stand pending, and not in SparkTraits Last Escape;
+  - `isAlly`: the SparkFactionAPI effective faction is `sparkwitch:witch`;
+  - `canAffect(actor, target, actionId)`: `isParticipantTarget(target)`, plus `SparkFactionApi.canAffectPlayer` when
+    an actor is known. It excludes neither allies nor the actor and has no Vendetta rule, so each caller applies its
+    own (only the gun adds Vendetta exact-pair isolation);
+  - `hasRealSanity`: mirrors SparkTraits' effective mood type. An active Wraith never has real sanity; otherwise
+    Conscience makes it REAL, or else a REAL base role proven not Impostor does. An unknown trait answer never grants
+    it;
+  - `drainSanity`: Wathe's `setMood(getMood() - amount)`, with no check of its own: Wathe's `setMood` already ignores
+    non-REAL targets. A breakdown at −1 is allowed and unattributed;
+  - `forceCooldowns`: only SparkFactionAPI `ForcedCooldowns.raiseAll` (exact and monotonic, role skills plus carried
+    items), never a cooldown store directly;
+  - `addEffect`: not ambient, no particles, icon shown, with the Abyss Listener as `source` so the Wraith
+    status-effect rule applies.
+- **Warden's Shriek.** Skill assignment applies the initial cooldown `SHRIEK_INITIAL_COOLDOWN_TICKS` (90 s). The shared
+  `WitchSkillUseService` gate checks neither the exact role nor the skill block and never spends
+  `WitchSkillDefinition.manaCost`. `shriek/WardensShriekService` therefore re-checks the exact role, a running game with
+  a living non-spectator caster, and SparkTraits `isRoleSkillBlocked` (any failure refuses with
+  `message.sparkwitch.skill.unavailable`), then spends `SHRIEK_MANA_COST` (75) itself; too little mana refuses with
+  `message.sparkwitch.skill.not_enough_mana` and costs nothing, like the Death Ray. A paid cast hits every player in the
+  caster's world within `SHRIEK_RADIUS` (8 blocks, feet-to-feet 3D distance, inclusive), except the caster, that passes
+  `canAffect(caster, target, sparkwitch:abyss_listener_shriek)` and is not an ally; no line of sight is needed. Each
+  target gets Slowness II for 5 s, −0.40 sanity, and forced cooldowns of at least 5 s. The cast syncs world event
+  `SCULK_SHRIEKS` (3007) at the caster's block, plays a low `ENTITY_WARDEN_ROAR`, records
+  `GameRecordManager.recordSkillUse(caster, sparkwitch:wardens_shriek, null, {targets})`, and always returns
+  `WitchSkillUseResult.success(SHRIEK_COOLDOWN_TICKS)` (60 s), so the shared cooldown starts even with nobody in range.
+  The caster is never told how many were hit.
+- **Shriek Gun.** `sparkwitch:shriek_gun` is a plain `Item#use` hitscan on the Taser template, hidden in hand through
+  `NoellesHiddenEquipment` and never in `wathe:guns`. The client only swings and recoils. The server fires only in a
+  running game for a living, non-spectator, non-Wraith holder whose role is exactly the Abyss Listener, while the gun
+  is off cooldown and SparkTraits `blocksWeaponAction` is false; it then writes the vanilla
+  `ItemCooldownManager.set(gun, 600)` whether or not anything was hit (Fast Hands applies).
+  - The beam is one COLLIDER `world.raycast` from the eye over 12 blocks (closed doors stay solid through
+    `RaycastShapeScope`). Candidates are filtered before geometry by
+    `AbyssSuppression.canAffect(shooter, c, sparkwitch:abyss_listener_gun)` plus Vendetta exact-pair isolation (allies
+    stay eligible), tested against `PlayerHitboxHistory.hitVolumes(…, 0.2)`, and only the first player on the beam is
+    hit. A nearer Seeker device absorbs the beam exactly like the Taser, and a miss also breaks the nearest breakable
+    device in reach.
+  - A hit sets an absolute velocity, the beam's horizontal unit × 2.0 with vertical `max(vy, 0.45)` for a non-ally or
+    × 3.0 with `max(vy, 0.2)` for an ally, every axis capped at the ±3.9 sync limit (`velocityModified = true`); every
+    push, ally or enemy, is recorded for fall credit. A non-ally with real sanity also loses 0.60 sanity and gets Slowness II
+    and Blindness for 2 s and `AbyssSuppression.forceCooldowns(40)`; a non-ally without real sanity is only pushed; an
+    ally (`AbyssSuppression.isAlly`) gets Speed III for 2 s.
+  - The gun never kills, never sends `GunShootPayload`, and never uses `wathe:gun_shot`. The server draws
+    `ParticleTypes.SONIC_BOOM` every block up to the cut point (block, hit player, or the absorbing device, found by
+    `SeekerDeviceHits.shriekGunAbsorber` with the break's own ray and `SeekerDamageRules.mayBreak` filter), plays
+    `ENTITY_WARDEN_SONIC_BOOM` at the shooter, and records
+    `GameRecordManager.recordItemUse(shooter, sparkwitch:shriek_gun, target, {hit, ally})` (`ally` only on a hit).
+  - The client crosshair chains one more `@ModifyExpressionValue` on Wathe `CrosshairRenderer.CROSSHAIR`: a ready gun
+    in the local Abyss Listener's main hand lights Wathe's target crosshair for any alive, survival, visible player on
+    the beam (current boxes), the same for allies and enemies.
+- **Fall credit.** `FirePokerFallAttributionService` is one train-fall push ledger for every pushing weapon: each record
+  stores the pusher, the pushing `Item`, and the window end (`FirePokerRules.FALL_ATTRIBUTION_WINDOW_TICKS`, 200
+  ticks), and the latest push wins regardless of weapon. `GameWorldComponentMixin` still redirects only Wathe's
+  fall-death `killPlayer`: a `wathe:fell_out_of_train` death inside the window is credited to the online pusher and
+  runs inside `SparkTraitsKillerBridge.runWithNonFinalKillWeapon(recordedWeapon, kill)`, with Judge responsibility read
+  first as before. The Fire Poker records itself as before; the Shriek Gun records every push, ally or enemy, with
+  itself, so anyone it pushes off the train is the Abyss Listener's kill (kill money, mana, replay, attributed death
+  for Wraith conversion; a dormant Fiend can die this way). Owner decision D12: a teammate knocked off the train is
+  credited too, with its coins and mana.
+- **Bound gun.** The gun is never granted from `RoleAssigned`, because the recruitment transaction restores the
+  retained inventory after that event. It is granted by the variant hook `afterRecruitCommitted` (after the restore)
+  and, for a forced round-start Abyss Listener that has no gun yet, in the post-default `ON_FINISH_INITIALIZE` phase
+  `sparkwitch:abyss_listener_finish_initialize` (the round is still STARTING, so it reads the role map and dead set
+  directly). Both write `GUN_INITIAL_COOLDOWN_TICKS` (1200) through the vanilla `ItemCooldownManager.set`, so
+  SparkTraits Fast Hands applies.
+  - Placement is Wathe's `ShopEntry.insertStackInFreeSlot`. With a full hotbar the rightmost non-selected hotbar item
+    moves to an empty hidden slot, else to an empty offhand; with no room at all nothing is placed and the next sweep
+    retries.
+  - The holder entitlement is playing, alive, and exactly the Abyss Listener. A staggered 20-tick sweep keeps exactly
+    one gun for an entitled holder (the first hotbar copy, else a gun mid-move on the cursor, else a fresh hotbar grant
+    that leaves the per-Item cooldown untouched), removes duplicates and strays (hidden slots, offhand, crafting grid,
+    containers), and strips every non-entitled holder (role change, Wraith transition, death). `KillPlayer.AFTER`
+    removes the gun unless `WitchFactorTraitsBridge.isDeathIntercepted`; `ResetPlayer` and `ON_FINISH_FINALIZE` remove
+    it. There is no creative exemption.
+  - The binding matrix (`AbyssListenerInventoryRules`) is copied from, never shared with, the Time Stealer rules. Its
+    four guards in `mixin/abysslistener/` are HEAD, cancellable, and delegation-only:
+    `PlayerEntityAbyssListenerGunMixin` (`dropItem(ItemStack,ZZ)`), `ServerPlayerEntityAbyssListenerGunDropMixin`
+    (`dropSelectedItem(Z)Z`), `ScreenHandlerAbyssListenerGunMixin` (`internalOnSlotClick`), and
+    `GameFunctionsAbyssListenerGunDropMixin` (`shouldDropOnDeath` → false). A drop path that removed the stack before
+    `dropItem` (cursor drop on close, full-inventory offer) loses it, and the next sweep restores it with its cooldown
+    intact.
+- **Deep Dark Zone terrain.** The zone is a client-only overlay: the server world is never written.
+  - A Deep Dark Spore Flask (item and thrown entity) is thrown only in an ACTIVE round by a living, non-creative,
+    non-Wraith participant who passes `SparkTraitsKillerBridge.blocksWeaponAction`; it has no cooldown, and any holder
+    may throw it. On the server it breaks on a block or on a living, survival, non-Wraith player other than its
+    thrower; every non-player entity (e.g. Wathe `PlayerBodyEntity` corpses) is transparent. It opens a zone at the
+    cell in front of the struck face (a player hit uses the hit-point cell). A landing that converts no block plays
+    only the shatter cue and opens no zone (no heartbeat, no standing check).
+  - One snapshot at landing flood-fills 6-neighbour steps through cells whose entity-less collision shape is empty (open
+    doors pass; closed doors and walls stop it) up to Euclidean `ZONE_RADIUS` from the landing cell, and every
+    neighbouring block that passes `DeepDarkZoneEligibility` converts: inside the map `playArea`, outside the reset
+    template source box, an opaque full cube with a full collision cube, no block entity, MODEL render, luminance 0, no
+    redstone power, no properties or only `axis`, not a `FallingBlock`, vanilla slipperiness, velocity, and jump
+    multipliers, namespace `minecraft` or `wathe` (never ban `wathe:`: the Harpy floors are Wathe blocks), not in the
+    datapack tag `sparkwitch:sculk_conversion_immune` (seeded with `minecraft:magma_block`), and not already deep-dark
+    palette (`DeepDarkZoneEligibility.isDeepDarkPalette`: sculk or any block whose id path contains `deepslate`, so
+    every deepslate ore, infested and reinforced deepslate included; such blocks are never zone cells). Floors look like
+    sculk; other faces hash their position (60 % sculk, the rest deepslate tiles, bricks, or cobbled).
+  - Each block converts at `round(ZONE_SPREAD_TICKS × d / R)` after landing and restores at
+    `ZONE_SPREAD_TICKS + ZONE_HOLD_TICKS + round(ZONE_RESTORE_TICKS × (1 − d / R))`, so near blocks convert first and
+    outer blocks restore first (distance clamped to the radius).
+    `DeepDarkZoneService.isConverted(ServerWorld, BlockPos)` (convert ≤ now < restore in any live zone),
+    `hasActiveZones(ServerWorld)`, and `ownersAt(ServerWorld, BlockPos)` read only the in-memory per-world registry.
+    Overlapping zones keep one window per zone on a cell whose landing snapshot matches (a union, so the cell restores
+    at its last owner's end); a cell whose snapshot differs is replaced, and its stale fake is resent as real.
+  - Fake and real states reach only the chunk's trackers as vanilla `ChunkDeltaUpdateS2CPacket`s grouped per section.
+    Every 20 ticks a heal sweep resends live fakes, and a cell whose real block no longer equals its landing snapshot is
+    dropped (compare-and-swap, which stops its look and effect). Nothing is persisted (no NBT, `shouldSave() = false`),
+    so a crash needs no cleanup.
+  - The zone restores instantly (real states resent, registry dropped) at `ON_FINISH_INITIALIZE` (stale),
+    `ON_WIN_DETERMINED`, `ON_FINISH_FINALIZE` (which also discards flasks in flight), `SERVER_STOPPING`, and on any
+    tick whose round is no longer ACTIVE (covers `/stop`); every such restore also clears the exposure of that world's
+    players in the same tick. `ServerWorldEvents.UNLOAD` only forgets the registry.
+  - Known cosmetic limits: other players' footsteps use the real block's sound (server-played), and a right-click on a
+    converted block shows the real block to that player for up to one heal interval.
+- **Standing and exposure.** Standing is checked every `ZONE_CHECK_INTERVAL_TICKS` (5) ticks, only in worlds where
+  `DeepDarkZoneService.hasActiveZones`. A player stands on the zone when `AbyssSuppression.isParticipantTarget`,
+  `isOnGround()`, and `DeepDarkZoneService.isConverted(world, getSteppingPos())` (the block vanilla uses for the step
+  sound). The acting owner is the first thrower from `ownersAt` that is online and still a living participant;
+  otherwise there is no actor, so a dead or departed thrower neither stops the zone nor lends it a SparkFactionAPI veto
+  or a Wraith-isolated effect source. An ally (`AbyssSuppression.isAlly`) gets Speed III; anyone else that passes
+  `AbyssSuppression.canAffect(actor, player, sparkwitch:abyss_listener_zone)` gets Slowness III and
+  `AbyssZoneExposureComponent.expose(ZONE_EXPOSURE_TICKS)`. Both effects last `ZONE_EFFECT_REFRESH_TICKS` (2 s) and are
+  re-applied only when missing, weaker, or at most half remaining, so they never lapse while standing and end at most
+  2 s after stepping off. The standing check never changes blocks, mood, cooldowns, or Wathe's task map.
+  - `sparkwitch:abyss_zone_exposure` (player, `NEVER_COPY`, appended last in `custom.cardinal-components`, never
+    persisted) holds the remaining exposure ticks. It syncs to its owner only, and only when exposure starts (0 to
+    positive) or ends (back to 0); the client prediction stops at one tick, so only the server's zero sync ends it on
+    the client. Exposure is cleared at once (zero synced to the owner) on `KillPlayer.AFTER`, `ResetPlayer`,
+    `ON_FINISH_FINALIZE`, and every instant zone restore (including `ON_WIN_DETERMINED`), so the ×15 drain and the
+    pseudo task stop with the blocks; otherwise it runs out within 10 ticks of leaving.
+- **Exposed drain.** While exposed (owner-synced, so both sides agree),
+  `mixin/abysslistener/PlayerMoodComponentAbyssZoneDrainMixin` turns Wathe's per-tick drain
+  `if (!tasks.isEmpty()) setMood(mood - tasks.size() * MOOD_DRAIN)` into `(real tasks + 1) × MOOD_DRAIN × 15`
+  (operands in `DeepDarkZoneStandingDrain`), also with zero real tasks. It has three `@ModifyExpressionValue` handlers
+  on `serverTick` and `clientTick`, each `require = 2`, `allow = 2`, `remap = false`, never `@Redirect`: the ordinal-0
+  `Map.isEmpty()` gate, the ordinal-0 `Map.size()` drain operand (`serverTick`'s second `size()` is the next-task timer
+  and stays untouched), and the `MOOD_DRAIN` read. The ×15 multiplies with the Bell Ringer Echo ×1.5 on the same
+  `MOOD_DRAIN` read (the Bell Ringer mixin is unchanged). No `setMood` call is added, so the SparkTraits and
+  SparkStrength `setMood` argument adjusters (SparkStrength pins ordinal 0) still apply. Wathe's REAL gate and
+  `setMood` pinning still exempt non-REAL players, and the Wraith HEAD cancel still skips the loop.
+- **Pseudo task line.** The exposure task (`task.sparkwitch.abyss_zone_exposure`, 「快离开这里！！！」) is display-only:
+  while the local player's synced exposure is set on a confirmed SparkWitch server,
+  `client/mixin/abysslistener/MoodRendererAbyssZoneExposureMixin` draws it as the last row of Wathe's top-left task
+  list, blinking between `PSEUDO_TASK_COLOR` and `PSEUDO_TASK_DIM_COLOR` every 10 ticks, and re-targets Wathe's public
+  `moodOffset` / `moodTextWidth` so the mood bar sits under it (also with zero real tasks; its `renderers.isEmpty()` bar
+  gate counts the line). It is never in Wathe's task map, so it cannot be completed, fires no `TaskComplete`, pays
+  nothing, and never affects the Bell Ringer task hold. It is pinned to Wathe 1.5.6 `renderHud`: one `Map.isEmpty()`
+  (the bar gate) and two `PUTSTATIC moodTextWidth` (one per branch, after the psycho return and every row draw, before
+  the icon and bar). Its fade is static client state: `AbyssListenerClient` settles it every `HudRenderCallback`
+  frame, dropping it when Wathe's layout skipped the line since the previous frame (death, round over, psycho, train
+  HUD off) while the local player is not exposed, and resets it on every `ClientPlayConnectionEvents` disconnect and
+  join, so a stale fade never flashes the line in a new round or on another server.
+- **Replay.** `AbyssListenerReplayFormatters`, registered once from `AbyssListenerFeatureService.register()`, formats
+  the Shriek Gun record as a hit, an ally launch, or a miss (`replay.item_use.sparkwitch.shriek_gun.hit` / `.ally` /
+  `.miss`; the target is named only on a hit) and the flask record with the thrower only
+  (`replay.item_use.sparkwitch.deep_dark_spore_flask`). The shriek uses Wathe's default skill line
+  `replay.skill.sparkwitch.wardens_shriek`.
+- **Item art.** The gun is not a Wathe gun, so its arm keeps the vanilla item pose, and `models/item/shriek_gun.json`
+  copies the Taser's whole `display` block, which was solved for that pose. The block holds only while the sprite
+  keeps the Taser's geometry: the muzzle points up-left with the barrel at θ = 135°, and grip rows 9–14 cover exactly
+  the Taser's grip texels. A redraw with another barrel angle or grip must re-solve the third-person rotation
+  (rz = 112 − θ, ry = ±90, mirrored left-hand entries) and move the grip texel to the hand at arm-local
+  (−1, 8.5, −0.5). `models/item/deep_dark_spore_flask.json` is a plain `item/generated` icon, which the thrown flask
+  also draws through `FlyingItemEntityRenderer`. Both 16×16 placeholder sprites use the role colour `0x0B5E78` and the
+  sculk cyan `0x29DFEB`; their generator script `docs/plans/accomplice-sculk/art/L4-item-textures.py` is local and
+  ignored.
 
 Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player
@@ -986,7 +1216,8 @@ The Ceremonial Sword and a credited Fire Poker fall may query only
 `isNonFinalKillPending`, `getNonFinalKillCooldownTicks`, and
 `runWithNonFinalKillWeapon` through `SparkTraitsKillerBridge` for non-final
 (Depression fake death) kills; an absent or older build means no non-final
-kill, the original cooldown, and the kill running directly exactly once.
+kill, the original cooldown, and the kill running directly exactly once. A credited Shriek Gun push fall takes the
+same fall path (`runWithNonFinalKillWeapon` with the gun as the weapon) and the same fallbacks.
 Control Expert may query only `getMarksmanRangeMultiplier` and `hasActiveTrait` (Impostor) through
 `compat/SparkTraitsControlExpertBridge`, and `isLastStandDeathIntercepted` through the existing
 `WitchFactorTraitsBridge`, beyond the existing `SparkTraitsKillerBridge` seams
@@ -1033,6 +1264,18 @@ and `isLastStandDeathIntercepted` (the kit strip) through `SparkTraitsKillerBrid
 older or failing SparkTraits falls back per method to no skill block, a vanilla cane cooldown, and a
 death that is not intercepted (fail closed): the `KillPlayer.AFTER` strip runs and the 20-tick
 sweep spares no dead Blind.
+The Abyss Listener may query only `isLastStandPending` and `hasActiveTrait` (Conscience and Impostor) through
+`compat/SparkTraitsAbyssListenerBridge`; `isLastEscapeActive`, `isRoleSkillBlocked` (the shriek), and
+`blocksWeaponAction` (the gun and the flask throw, with its `isKillerInteractionBlocked` and
+`getForcedMeleeCooldownTicks` reads) through the existing `SparkTraitsKillerBridge`; `isLastStandDeathIntercepted`
+(gun removal at death) through the existing `WitchFactorTraitsBridge`; and the push-fall queries above. Its Wraith
+check uses SparkWitch's own `WraithStateService.isActive`, which SparkTraits `isWraithActive` delegates to, so it never
+queries `isWraithActive`; Fast Hands reaches the gun through the vanilla cooldown write, with no SparkWitch call. An
+absent SparkTraits means not pending, no Last Escape, no skill or weapon block, both traits inactive (real sanity
+follows the base role), and gun removal on every death. A present build whose facade lacks or fails a method falls
+back per method: not pending (the spectator gate still excludes a pending Last Stand player), no Last Escape and no
+block (as `SparkTraitsKillerBridge` defines), traits unknown (which `hasRealSanity` never counts as real sanity), or an
+intercepted death (the `KillPlayer.AFTER` removal is skipped, and the 20-tick sweep strips the dead holder).
 
 Black Raven disguise state never enters `sparkwitch:player`, `sparkwitch:black_raven_perception`,
 or `sparkwitch:black_raven_mark`. `sparkwitch:black_raven_disguise` (`NEVER_COPY`, owner-only

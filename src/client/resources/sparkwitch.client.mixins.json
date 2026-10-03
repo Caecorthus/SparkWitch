@@ -125,7 +125,10 @@
     "blind.BlindGateMinecraftClientMixin",
     "blind.BlindGatePlayerEntityRendererMixin",
     "blind.BlindGateRoleNameRendererMixin",
-    "blind.BlindGateWorldRendererMixin"
+    "blind.BlindGateWorldRendererMixin",
+    "abysslistener.ShriekGunCrosshairMixin",
+    "abysslistener.MoodRendererAbyssZoneExposureMixin",
+    "abysslistener.MoodRendererTaskRowAbyssAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

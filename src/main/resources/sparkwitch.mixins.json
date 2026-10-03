@@ -149,7 +149,12 @@
     "witchmaiden.FoodPlatterBlockPoisonAppleMixin",
     "witchmaiden.ItemStackPoisonAppleDrinkMixin",
     "accessor.ItemCooldownEntryAccessor",
-    "accessor.ItemCooldownManagerAccessor"
+    "accessor.ItemCooldownManagerAccessor",
+    "abysslistener.PlayerEntityAbyssListenerGunMixin",
+    "abysslistener.ServerPlayerEntityAbyssListenerGunDropMixin",
+    "abysslistener.ScreenHandlerAbyssListenerGunMixin",
+    "abysslistener.GameFunctionsAbyssListenerGunDropMixin",
+    "abysslistener.PlayerMoodComponentAbyssZoneDrainMixin"
   ],
   "injectors": {
     "defaultRequire": 1

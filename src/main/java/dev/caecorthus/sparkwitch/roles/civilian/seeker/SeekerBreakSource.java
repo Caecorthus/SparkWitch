@@ -30,7 +30,12 @@ public enum SeekerBreakSource {
     /** Fell out of the train or left the play area: 180 s, never marks. / 掉出列车或离开游戏区域：180 秒，不标记。 */
     VOID(Kind.ENVIRONMENT),
     /** Independent single-use Fisher weapon; keeps its own item/payload identity. / 钓鱼佬独立的一次性武器与数据包。 */
-    SWORDFISH(Kind.RAY);
+    SWORDFISH(Kind.RAY),
+    /**
+     * Abyss Listener Shriek Gun: a server hitscan through vanilla's use-item packet, appended last so every earlier
+     * replay id keeps its value. / 聆渊者啸音铳：经原版使用物品数据包的服务端即时射线，追加在最后，既有回放 id 不变。
+     */
+    SHRIEK_GUN(Kind.RAY);
 
     /** Geometry family; rays and projectiles use nearest-wins blocking, blasts do not. / 几何类别。 */
     public enum Kind {

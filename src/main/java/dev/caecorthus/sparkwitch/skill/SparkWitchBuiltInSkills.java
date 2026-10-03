@@ -30,6 +30,8 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.shriek.WardensShriekService;
 
 public final class SparkWitchBuiltInSkills {
     private static boolean registered;
@@ -176,6 +178,21 @@ public final class SparkWitchBuiltInSkills {
                 0,
                 context -> BellRingerRules.isBellRinger(context.role()),
                 BellRingerEchoService::use
+        ));
+        // Exact-role selector, like the Bell Ringer: the Abyss Listener is on the shared-skill whitelist, so a looser
+        // selector would leak other skills onto it. Presented by the bottom-right skill HUD and, as the role's own
+        // skill (D13, via its accomplice-variant hooks), by the witch skills panel.
+        // 与敲钟人相同的精确职业选择器：聆渊者位于共享技能白名单中，更宽松的选择器会把其他技能漏给它；
+        // 由右下角技能 HUD 展示，并作为本职业自有技能（D13，经由其特殊共犯回调）进入魔女技能面板。
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                AbyssListenerRules.SHRIEK_SKILL_ID,
+                AbyssListenerRules.COLOR,
+                1,
+                AbyssListenerRules.SHRIEK_INITIAL_COOLDOWN_TICKS,
+                AbyssListenerRules.SHRIEK_COOLDOWN_TICKS,
+                AbyssListenerRules.SHRIEK_MANA_COST,
+                context -> AbyssListenerRules.isAbyssListener(context.role()),
+                WardensShriekService::use
         ));
     }
 

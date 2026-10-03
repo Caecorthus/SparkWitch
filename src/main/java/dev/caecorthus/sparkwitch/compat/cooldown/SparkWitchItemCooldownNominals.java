@@ -15,6 +15,7 @@ import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
@@ -85,6 +86,8 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             // Grand Witch sword dash and the Murderous Witch Fire Poker. / 大魔女仪式剑冲刺与杀意魔女火钳。
             entries.put(SparkWitchItems.CEREMONIAL_SWORD_ID, CeremonialSwordItem.DASH_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.FIRE_POKER_ID, FirePokerRules.COOLDOWN_TICKS);
+            // Abyss Listener Shriek Gun: the post-shot cooldown, not the 60 s initial one. / 聆渊者啸音铳：开火后冷却，而非首次 60 秒。
+            entries.put(SparkWitchItems.SHRIEK_GUN_ID, AbyssListenerRules.GUN_COOLDOWN_TICKS);
             // NoellesRoles items: public constants of the pinned 1.7.6 jar, plus the master key, which both
             // NoellesRoles (literal) and the Insider door path write as 200 ticks. The timed bomb stays exempt in
             // SparkFactionAPI itself (Bomber pass gate).

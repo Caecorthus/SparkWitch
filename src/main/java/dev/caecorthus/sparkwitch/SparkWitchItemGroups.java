@@ -38,6 +38,8 @@ public final class SparkWitchItemGroups {
                             List<Item> factionOrder = List.of(
                                     // Witch / 魔女
                                     SparkWitchItems.ceremonialSword(),
+                                    SparkWitchItems.shriekGun(),
+                                    SparkWitchItems.deepDarkSporeFlask(),
                                     // Neutral / 中立
                                     SparkWitchItems.firePoker(),
                                     // Civilian / 平民
