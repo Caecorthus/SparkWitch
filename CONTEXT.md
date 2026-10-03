@@ -50,7 +50,10 @@ Current build baseline:
 - `roles/killer/ninja/`: parry, dark-kill bounty, shop, and death cleanup.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup.
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
-  bound ledger, restricted shop, and lifecycle cleanup.
+  bound ledger, restricted shop, and lifecycle cleanup. The bound ledger and Raven Mask
+  (`BlackRavenInventoryRules`) never drop, never leave their owner's inventory slots, and are
+  refused by `UseEntityCallback`/`UseBlockCallback` vetoes for item frames, armor stands, allays,
+  and decorated pots.
   - `disguise/`: the Black Raven disguise. It owns the acting-role overlay
     (`BlackRavenActingRole`), the owner-only `BlackRavenDisguiseComponent` and its sync codec, the
     Tab B pool snapshot, the bound Raven Mask (`sparkwitch:black_raven_mask`), one-shot open
