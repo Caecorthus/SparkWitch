@@ -37,7 +37,8 @@ Current build baseline:
 - `api/`: the only public downstream SparkWitch Interface.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime.
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
-- `roles/civilian/prophet/`: passive Death Sense (world-wide corpse pulse every 60 s), the
+- `roles/civilian/prophet/`: passive Death Sense (world-wide corpse pulse every 60 s; skips Scavenger-hidden bodies and,
+  per owner decision, SparkTraits Depression fake-death bodies via `compat/SparkTraitsBodyDragBridge`), the
   owner-only `sparkwitch:prophet_player` component (permanent highlight set, necrology,
   Prophecy records), the Prophecy skill registration, and economy. The client outline
   lives in `client/hooks/ProphetCorpseHighlightClientHooks`.

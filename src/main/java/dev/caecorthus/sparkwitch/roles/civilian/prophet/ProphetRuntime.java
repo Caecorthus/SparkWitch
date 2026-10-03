@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.prophet;
 
 import com.mojang.authlib.GameProfile;
 import dev.caecorthus.sparkwitch.compat.NoellesHiddenBodiesBridge;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsBodyDragBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent.NecrologyEntry;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -112,9 +113,9 @@ public final class ProphetRuntime {
     }
 
     /**
-     * Snapshots every visible body in the Prophet's world (no distance limit; Scavenger-hidden bodies excluded), then
+     * Snapshots every visible body in the Prophet's world (no distance limit; Scavenger-hidden and Depression fake-death bodies excluded), then
      * sends a private sound and action-bar count to the Prophet alone.
-     * 快照先知所在世界里所有可见尸体（不限距离，排除拾荒者隐藏的尸体），然后只向先知本人播放私有音效并发送动作栏计数。
+     * 快照先知所在世界里所有可见尸体（不限距离，排除拾荒者隐藏与抑郁假死的尸体），然后只向先知本人播放私有音效并发送动作栏计数。
      */
     private static void pulse(ServerPlayerEntity prophet, ServerWorld world, ProphetPlayerComponent component) {
         List<PlayerBodyEntity> bodies = new ArrayList<>(world.getEntitiesByType(
@@ -122,6 +123,10 @@ public final class ProphetRuntime {
                 body -> !body.isRemoved()
                         && body.getPlayerUuid() != null
                         && !NoellesHiddenBodiesBridge.isHidden(world, body.getPlayerUuid())
+                        // Owner decision: Depression fake-death bodies are skipped, so the Necrology never lists a
+                        // living player that the Prophecy list would then omit.
+                        // 所有者决定：跳过抑郁假死尸体，避免名录记下活人而预言列表缺席，从而暴露假死。
+                        && !SparkTraitsBodyDragBridge.isConfirmedFakeDeathBody(body)
         ));
         bodies.sort(Comparator.comparingInt(PlayerBodyEntity::getDeathGameTime).thenComparing(Entity::getUuid));
 
