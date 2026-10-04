@@ -26,8 +26,10 @@ public enum ProphetDeathCauseGroup {
     PENALTY,
     OTHER;
 
-    // Ids verified against wathe-1.5.6-spark-1.21.1, NoellesRoles, SparkTraits and SparkWitch kill sites.
-    // id 已对照 wathe-1.5.6-spark-1.21.1、NoellesRoles、SparkTraits 与 SparkWitch 的击杀调用核实。
+    // Ids verified against wathe-1.5.6-spark-1.21.1, NoellesRoles, SparkTraits and SparkWitch kill sites. Every
+    // sparkwitch death reason must have an entry (owner-picked group); a local test fails when one is missing.
+    // id 已对照 wathe-1.5.6-spark-1.21.1、NoellesRoles、SparkTraits 与 SparkWitch 的击杀调用核实。每个 sparkwitch
+    // 死因都必须有条目（分组由所有者决定）；缺少条目时本地测试会失败。
     private static final Map<Identifier, ProphetDeathCauseGroup> BY_REASON = Map.ofEntries(
             entry("wathe:knife_stab", BLADE),
             entry("sparkwitch:ceremonial_blade", BLADE),
@@ -41,6 +43,10 @@ public enum ProphetDeathCauseGroup {
             entry("sparkwitch:mighty_force", BLUNT),
             entry("wathe:grenade", EXPLOSION),
             entry("noellesroles:bomb", EXPLOSION),
+            // Potion Gunner TR shell and launcher backblast; the gunner is the responsible player (owner 2026-10-03).
+            // 药炮手 TR 炮弹与炮筒尾焰；药炮手为责任人（所有者 2026-10-03）。
+            entry("sparkwitch:potion_shell", EXPLOSION),
+            entry("sparkwitch:potion_backblast", EXPLOSION),
             entry("wathe:poison", POISON),
             entry("sparkwitch:tofana_elixir", POISON),
             entry("wathe:fell_out_of_train", ACCIDENT),
@@ -52,6 +58,9 @@ public enum ProphetDeathCauseGroup {
             entry("sparkwitch:bell_toll", SUPERNATURAL),
             entry("sparkwitch:time_stolen", SUPERNATURAL),
             entry("sparkwitch:factor_backlash", SUPERNATURAL),
+            // Swapper crushed by a Rift Gate: forced, terminal and killer-less, so a correct guess reveals no killer.
+            // 交换者被裂隙门夹死：强制、终结且无凶手，猜中时揭示「无人行凶」。
+            entry("sparkwitch:portal_crushed", SUPERNATURAL),
             entry("noellesroles:voodoo", SUPERNATURAL),
             entry("noellesroles:assassinated", SUPERNATURAL),
             entry("noellesroles:digested", SUPERNATURAL),

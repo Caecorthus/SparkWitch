@@ -68,7 +68,12 @@ Current build baseline:
     Fear and the shared skill cooldown, opens a nonce/match-bound `ProphetProphecySessions` entry and
     sends `net/OpenProphecyS2CPacket` (dead names only); `client/prophet/ProphetProphecyScreen` answers
     with `net/ConfirmProphecyC2SPacket`, which the server re-validates (`ProphetProphecyRules`), records on
-    the owner-only component, then charges 50 coins and cools down 30 s. Each ledger death carries a serial;
+    the owner-only component, then charges 50 coins and cools down 30 s. The answer is one of the 11 fixed
+    `ProphetDeathCauseGroup` groups; its table maps death-reason ids by string and sends unknown ids to OTHER. Every
+    `sparkwitch:` death reason needs an owner-picked entry: the local `ProphetDeathCauseGroupTest` collects them from
+    `SparkWitchDeathReasons`, the `death_reason.sparkwitch.*` lang keys and every `*DEATH_REASON*` constant, and fails
+    on a missing one. The responsible player is the Judge attribution's actor, else the killer; a self-kill counts as
+    no killer. Each ledger death carries a serial;
     a Prophecy record made against an earlier death of the same victim (revived, then killed again) is
     treated as fresh. Never in the Witch skill panel;
     both C2S ids are in the Control Expert stun and Seeker remote-view deny-lists.
@@ -1323,7 +1328,7 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   - GW-MR: up to 150 coins taken and destroyed, never below 0.
   - GW-AC: every `ForcedCooldowns.slots` entry with a known nominal is extended by `ceil(nominal × 20% × falloff)`.
   - TR: an ordinary, non-forced `killPlayer` with `sparkwitch:potion_shell` (the gunner's own death has no killer and
-    comes last). A survivor gets Blindness, Slowness II and 3 s of harmless burning.
+    comes last). A survivor gets Blindness, Slowness II and 3 s of harmless burning. Prophecy group: Explosion.
   - The harmless burn is a global `ServerLivingEntityEvents.ALLOW_DAMAGE` listener that vetoes fire damage only
     while a player holds an owned burn window (`PotionShellBurn`, server-only, never saved).
   - Kill bounties follow the normal faction rules; an ally kill still pays the SparkFactionAPI direct-kill reward
@@ -1332,7 +1337,8 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   on the nearest player in a 4-block lane straight behind the gunner. The lane follows the shot's yaw only: it runs
   horizontally from the eye whatever the pitch (half-width 0.5, clipped at the first block or door, line of sight),
   and only a player whose box centre lies behind the gunner counts. Any faction is hit, never the gunner, and never a
-  vetoed or Last Escape player. The kill runs inside `JudgeKillAttribution.runWith` for the gunner.
+  vetoed or Last Escape player. The kill runs inside `JudgeKillAttribution.runWith` for the gunner. Prophecy group:
+  Explosion, like the TR shell.
   - It is nearest-wins against Seeker devices with one measure: the player's distance is taken on the real box, and
     only a device strictly nearer absorbs it; a tie goes to the player (`SeekerDeviceHits.onPotionBackblast`).
   - It has no fallback effects and no reward.
@@ -1436,7 +1442,8 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `client/mixin/riftwalker/RiftSwapperWidgetMixin` (C7, pinned in `verifyClientMixinSelectors`) lets the Swapper pick an
   untracked, Wathe-alive spectator. Third owner-approved exception: `sparkwitch:portal_crushed` is a forced, terminal,
   killer-less environmental kill, registered as SparkTraits-terminal on `SERVER_STARTING` like `bell_toll` (the Swapper
-  may still become a Wraith, D17). Its victim is always the Swapper, so the Saint and dormant-Fiend guards need no
+  may still become a Wraith, D17). Its Prophecy group is Supernatural, and a correct guess reveals no killer. Its
+  victim is always the Swapper, so the Saint and dormant-Fiend guards need no
   opt-out; a vetoed kill (older SparkTraits) moves the Swapper back with NR's 60 s cooldown.
 - **Cross-mod seams.** SparkTraits only through existing bridges, failing closed: `isKillerInteractionBlocked`,
   `isRoleSkillBlocked`, `isLastEscapeActive`, `registerTerminalDeathReason` (`SparkTraitsKillerBridge`),
