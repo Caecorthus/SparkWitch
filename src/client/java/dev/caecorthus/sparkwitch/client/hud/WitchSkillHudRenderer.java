@@ -5,6 +5,8 @@ import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
 import dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter;
+import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
+import dev.caecorthus.sparkwitch.client.judge.JudgeHudRenderer;
 import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
@@ -43,6 +45,12 @@ public final class WitchSkillHudRenderer {
 
         if (EmmaClientModule.isEmma(player)) {
             EmmaClientModule.renderHud(context, player);
+            return;
+        }
+        // The Judge has no WitchSkillDefinition (its key opens a selector), so it draws its own line in this slot.
+        // 法官没有 WitchSkillDefinition（按键打开选择界面），因此在此位置绘制其自有技能行。
+        if (JudgeClientModule.ownsHud(player)) {
+            JudgeHudRenderer.render(context, player);
             return;
         }
         // While the owner inventory card lays out the whole skill section it shows these same states (last frame's
