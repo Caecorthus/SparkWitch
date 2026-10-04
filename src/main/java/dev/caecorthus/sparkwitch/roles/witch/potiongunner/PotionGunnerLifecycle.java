@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellEntity;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -15,12 +16,16 @@ import net.minecraft.util.ActionResult;
 /**
  * Bound-item lifecycle: strips the launcher and shells from anyone who is not a living Potion Gunner (role change,
  * terminal death, reset, finalize, staggered sweep), and the same sweep re-grants a launcher to a living gunner who
- * has none (covering recruitment's inventory rewrite). Shells still in flight are discarded by the shell entity itself
- * once the round stops. Because the sweep re-grants, a bound item must never be handed to a world target that keeps
- * it (the entity-use veto here, the decorated-pot mixin). Also registers the fire replay formatter.
+ * has none (covering recruitment's inventory rewrite). The sweep binds only match participants
+ * ({@link OffMatchUse#isMatchParticipant}, owner rule 2026-10-04): a free holder's copies are never stripped, granted,
+ * deduplicated or surfaced. Match shells still in flight are discarded by the shell entity itself once the round
+ * stops; finalize discards every shell. Because the sweep re-grants, a bound item must never be handed to a world
+ * target that keeps it (the entity-use veto here, the decorated-pot mixin). Also registers the fire replay formatter.
  * 绑定物品生命周期：从任何不是存活药炮手的玩家身上收走炮筒与炮弹（换职业、最终死亡、重置、收尾、错峰清扫），同一次
- * 清扫也会给没有炮筒的存活药炮手补发（覆盖招募对背包的重写）。仍在飞行的炮弹在对局停止后由炮弹实体自行移除。
- * 由于清扫会补发，绑定物品绝不能交给会留下它的世界目标（此处的实体交互否决与饰纹陶罐 mixin）。同时注册发射回放格式化器。
+ * 清扫也会给没有炮筒的存活药炮手补发（覆盖招募对背包的重写）。清扫只约束对局参与者（{@link OffMatchUse#isMatchParticipant}，
+ * 所有者规则 2026-10-04）：自由持有者的物品从不被收走、补发、去重或移出。仍在飞行的对局炮弹在对局停止后由炮弹实体自行
+ * 移除；收尾清理移除所有炮弹。由于清扫会补发，绑定物品绝不能交给会留下它的世界目标（此处的实体交互否决与饰纹陶罐 mixin）。
+ * 同时注册发射回放格式化器。
  */
 public final class PotionGunnerLifecycle {
     /** Cadence of the staggered bound-item sweep. / 绑定物品错峰清扫的间隔。 */
@@ -83,7 +88,7 @@ public final class PotionGunnerLifecycle {
     private static void sweep(ServerWorld world) {
         long time = world.getTime();
         for (ServerPlayerEntity player : world.getPlayers()) {
-            if (!isSweepTick(time, player.getId())) {
+            if (!isSweepTick(time, player.getId()) || !OffMatchUse.isMatchParticipant(player)) {
                 continue;
             }
             if (PotionGunnerLoadoutService.mayHold(player)) {

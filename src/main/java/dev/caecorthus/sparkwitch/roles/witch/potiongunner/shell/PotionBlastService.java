@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -42,17 +43,19 @@ public final class PotionBlastService {
     }
 
     /**
-     * Server only and only while the round is exactly {@code ACTIVE} (D-R1: no kills, gold or bounties after the
-     * winner is decided); the shell entity calls it once and discards itself afterwards.
+     * Server only; a match shell only while the round is exactly {@code ACTIVE} (D-R1: no kills, gold or bounties after
+     * the winner is decided); the shell entity calls it once and discards itself afterwards.
      * The order is fixed: presentation, Seeker devices (never the gunner's own, {@code mayBreak}-gated while the
      * gunner is online), targets, the effect, then the reward checked against the gunner's state after the effect
-     * (a gunner whose own TR killed them is paid nothing).
-     * 仅服务端、仅在对局恰为 {@code ACTIVE} 时（D-R1：胜负已定后不再有击杀、金币或赏金）；由炮弹实体调用一次，之后自行移除。顺序固定：表现、搜寻者设备（从不打坏药炮手自己的设备，
+     * (a gunner whose own TR killed them is paid nothing). An off-match presentation shell ({@code OffMatchUse}) stops
+     * after the presentation, in any round state.
+     * 仅服务端；对局炮弹仅在对局恰为 {@code ACTIVE} 时（D-R1：胜负已定后不再有击杀、金币或赏金）；由炮弹实体调用一次，之后自行移除。顺序固定：表现、搜寻者设备（从不打坏药炮手自己的设备，
      * 药炮手在线时经 {@code mayBreak} 校验）、目标、效果，最后按效果之后的药炮手状态结算奖励（被自己 TR 炸死的药炮手不得钱）。
+     * 场外仅表现的炮弹（{@code OffMatchUse}）在任何对局状态下都只执行表现。
      */
     public static void detonate(PotionShellEntity shell, Vec3d center) {
         if (shell == null || center == null || !(shell.getWorld() instanceof ServerWorld world)
-                || !PotionShellEntity.isRoundActive(world)) {
+                || !shell.isPresentation() && !PotionShellEntity.isRoundActive(world)) {
             return;
         }
         PotionShellType type = shell.shellTypeOrNull();
@@ -63,6 +66,11 @@ public final class PotionBlastService {
         ServerPlayerEntity gunner = shell.getOwner() instanceof ServerPlayerEntity player ? player : null;
 
         present(world, shell, center);
+        // Off-match shot: sound and particles only, so no Seeker device, target, effect, Judge attribution or reward.
+        // 场外射击：只有声音与粒子，因此没有搜寻者设备、目标、效果、审判官归因或奖励。
+        if (shell.isPresentation()) {
+            return;
+        }
         SeekerDeviceHits.onBlast(world, center, PotionBlastRings.half(type.size()), gunner,
                 SeekerBreakSource.POTION_SHELL);
 
@@ -83,9 +91,13 @@ public final class PotionBlastService {
         world.playSound(null, center.x, center.y, center.z, WatheSounds.ITEM_GRENADE_EXPLODE, SoundCategory.PLAYERS,
                 EXPLODE_VOLUME, 1.0F + shell.getRandom().nextFloat() * EXPLODE_PITCH_SPREAD - EXPLODE_PITCH_SPREAD / 2.0F);
         // The flash is forced to every player (long range), so a distant gunner sees the impact; smoke and debris
-        // keep vanilla's normal range like the grenade. / 闪光强制发送给所有玩家（远距离），远处的药炮手也能看到落点。
+        // keep vanilla's normal range like the grenade. A presentation shell never forces it on a match participant,
+        // so an off-match shot stays invisible to a live match beyond normal range.
+        // 闪光强制发送给所有玩家（远距离），远处的药炮手也能看到落点；烟雾与碎屑与手雷一样保持原版正常范围。仅表现的炮弹
+        // 从不对对局参与者强制发送，因此场外射击在正常范围之外不会被进行中的对局看到。
         for (ServerPlayerEntity viewer : world.getPlayers()) {
-            world.spawnParticles(viewer, WatheParticles.BIG_EXPLOSION, true, center.x, y, center.z, 1, 0.0, 0.0, 0.0,
+            boolean force = !shell.isPresentation() || !OffMatchUse.isMatchParticipant(viewer);
+            world.spawnParticles(viewer, WatheParticles.BIG_EXPLOSION, force, center.x, y, center.z, 1, 0.0, 0.0, 0.0,
                     0.0);
         }
         world.spawnParticles(ParticleTypes.SMOKE, center.x, y, center.z, DEBRIS_COUNT, 0.0, 0.0, 0.0, SMOKE_SPEED);

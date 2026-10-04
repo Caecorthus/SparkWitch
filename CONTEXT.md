@@ -347,6 +347,9 @@ Current build baseline:
   double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, the Abyss Listener Shriek
   Gun, and the Black Raven Feather Blade (whose sight and feet-distance reach are taken at the rewound hit);
   client crosshair hints keep current boxes.
+- `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
+  Shriek Gun, SparkStrength M67). `mode` gives a living participant of an `ACTIVE` round a match shot, refuses a dead
+  one, and gives anyone else a presentation-only shot; `isMatchParticipant` scopes the bound-item rules.
 
 ## Runtime Invariants
 
@@ -1325,16 +1328,21 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
 - **Loaded shell.** The single loaded shell is the stable CUSTOM_DATA key `LoadedShell` on the launcher
   (`PotionLauncherLoad`). Loading is inventory-only: `PotionLauncherItem.onClicked` takes one shell from the cursor
   on a right-click, refuses a second shell, and unloads onto an empty cursor. Wathe's inventory exposes only the
-  hotbar, so both items must sit there.
+  hotbar, so both items must sit there. Any free holder or living participant may load, whatever the role; a dead
+  participant may not (`PotionGunnerLoadoutService.mayLoad`, synced state on both sides).
 - **Bound items.** The launcher and shells follow the Time Stealer bound-item rules (`PotionGunnerInventoryRules`
   plus the five `mixin/potiongunner/` HEAD injects, with no creative exemption). They are never dropped, never an
   item entity, never in a container or the offhand, never handed to a world target, and never a death drop: a
   `UseEntityCallback` veto in `PotionGunnerLifecycle` refuses item frames, armor stands and allays, and
   `DecoratedPotBlockPotionGunnerItemMixin` makes a decorated pot answer `SKIP_DEFAULT_BLOCK_INTERACTION`, so the
-  sweep never mints a second launcher. Only a living, playing, exact Potion
-  Gunner holds them; everyone else is stripped on role change, terminal death (not a SparkTraits-intercepted one),
-  reset, and finalize. A staggered 20-tick sweep also re-grants a living gunner exactly one launcher. Both items
+  sweep never mints a second launcher. In a running match only a living, playing, exact Potion Gunner holds them;
+  every other participant is stripped on role change, terminal death (not a SparkTraits-intercepted one), reset,
+  finalize, and by a staggered 20-tick sweep, which also re-grants a living gunner exactly one launcher. Both items
   stay visible in hand; the launcher is outside `wathe:guns`.
+  - Free holders (owner rule 2026-10-04): the sweep binds only match participants
+    (`OffMatchUse.isMatchParticipant`), so it never strips, grants, deduplicates or surfaces anyone else's copies,
+    and a living free holder's refused drop goes back into the inventory like the gunner's. The role-change, reset
+    and finalize strips still apply to everyone (Wathe's finalize clears every inventory anyway).
   - A holder's shell is never deleted. A removed duplicate launcher's shell loads the kept launcher or returns
     hotbar-first (the shown second row with SparkFactionAPI 0.1.5.13+, then a hidden slot, else the empty cursor, when
     the hotbar is full); a copy whose shell has nowhere to go stays put. A re-inserted drop keeps any remainder in its
@@ -1351,9 +1359,14 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   until the key is physically released. So a key held through a slot switch or past the end of a stun, Seeker or
   Kidnapper key lock never fires (`client/potiongunner/PotionFireInput`, `PotionFireLatch`). The client's aim is
   trusted for direction only (Death Ray precedent); there is no server aim cone.
-  - The server re-checks, in order: the round is exactly `ACTIVE` (never `STOPPING`, once the winner is decided),
-    alive and playing, the exact role, launcher in the main hand, not a spectator, not stunned, no Seeker session,
-    no SparkTraits weapon block, the 20-tick launcher cooldown, and a loaded shell.
+  - Use never checks the role (owner rule 2026-10-04, `util/OffMatchUse`). The server re-checks, in order: the
+    shot's mode (a dead participant of an `ACTIVE` round is refused), launcher in the main hand, not a spectator, not
+    stunned, no Seeker session, no SparkTraits weapon block, the 20-tick launcher cooldown, and a loaded shell.
+  - A living participant of a round that is exactly `ACTIVE` fires a match shot, whatever its role (the sweep strips
+    a non-gunner's launcher). Anyone else (no match, `STARTING`, `STOPPING` once the winner is decided, or a lobby
+    player during an `ACTIVE` match) fires a presentation shot: it consumes the shell, cools down and sounds like
+    any shot, but its backblast and burst play only sound and particles, it breaks no Seeker device, and it records
+    no replay line.
   - The payload is also on the stun and Seeker-session deny lists.
 - **Flight.** The shell is a role-owned `ThrownItemEntity`, never Wathe's grenade, and it is never saved. While the
   path length from its synced launch point at the start of a tick is below 50 blocks, it moves straight at
@@ -1367,9 +1380,11 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
     it. On a flat tick the shell keeps the gate's exit velocity (`onDeflected`) and re-bases its launch point behind the
     new position (`PotionShellFlight.flatPathAfterTick`), so the path length carries over the jump: still 20 flat ticks
     in total, and the lifetime is unchanged. A Seeker device in the same tick's path still bursts it first.
-  - Once the round leaves `ACTIVE`, a shell still in flight is discarded without exploding, and detonation also
-    requires `ACTIVE`, so no kill, gold or bounty lands after the result. Finalize discards any shell left.
-- **Blast.** It uses the grenade presentation. The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
+  - Once the round leaves `ACTIVE`, a match shell still in flight is discarded without exploding, and its
+    detonation also requires `ACTIVE`, so no kill, gold or bounty lands after the result. A presentation shell flies
+    the same, ignores the round status and skips the Seeker sweep. Finalize discards any shell left.
+- **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect,
+  Judge attribution or reward). The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
   body overlapping vertically, plus line of sight. It does not catch spectators, Wathe-dead players, or SparkTraits
   Last Escape players. Falloff comes in rings by horizontal Chebyshev distance (`PotionBlastRings`: 5 → 100/67/33%,
   7 → 100/75/50/25%, 3 → 100/50%).
@@ -1391,8 +1406,9 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
     while a player holds an owned burn window (`PotionShellBurn`, server-only, never saved).
   - Kill bounties follow the normal faction rules; an ally kill still pays the SparkFactionAPI direct-kill reward
     (owner decision).
-- **Backblast.** Every launched shot also makes one ordinary, non-forced kill attempt with `sparkwitch:potion_backblast`
-  on the nearest player in a 4-block lane straight behind the gunner. The lane follows the shot's yaw only: it runs
+- **Backblast.** Every launched match shot also makes one ordinary, non-forced kill attempt with
+  `sparkwitch:potion_backblast` on the nearest player in a 4-block lane straight behind the gunner; a presentation
+  shot vents only the flame and sound. The lane follows the shot's yaw only: it runs
   horizontally from the eye whatever the pitch (half-width 0.5, clipped at the first block or door, line of sight),
   and only a player whose box centre lies behind the gunner counts. Any faction is hit, never the gunner, and never a
   vetoed or Last Escape player. The kill runs inside `JudgeKillAttribution.runWith` for the gunner. Prophecy group:

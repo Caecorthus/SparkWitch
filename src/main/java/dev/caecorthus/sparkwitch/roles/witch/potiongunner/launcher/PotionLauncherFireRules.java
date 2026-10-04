@@ -1,12 +1,16 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher;
 
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import net.minecraft.util.math.MathHelper;
 
 /**
  * Pure server-side fire decision and aim. Checks run in a fixed order and the first failing one wins; only
- * {@link Decision#NOT_LOADED} gives feedback (a dry click to the shooter), every other refusal is silent.
+ * {@link Decision#NOT_LOADED} gives feedback (a dry click to the shooter), every other refusal is silent. Use never
+ * checks the role or the round (owner rule 2026-10-04, {@link OffMatchUse}): {@link Decision#FIRE} fires in the facts'
+ * mode, a full match shot or a presentation-only one.
  * 纯服务端发射判定与朝向。按固定顺序检查，第一个不满足的条件即为结果；只有 {@link Decision#NOT_LOADED} 给出反馈
- * （仅射手可闻的空响），其余拒绝均为静默。
+ * （仅射手可闻的空响），其余拒绝均为静默。使用从不检查职业或对局（所有者规则 2026-10-04，{@link OffMatchUse}）：
+ * {@link Decision#FIRE} 按事实中的模式发射，即完整的对局射击或仅表现的射击。
  */
 public final class PotionLauncherFireRules {
     private static final float MAX_PITCH = 90.0F;
@@ -16,9 +20,8 @@ public final class PotionLauncherFireRules {
 
     /** Outcome, in check order. / 判定结果，按检查顺序排列。 */
     public enum Decision {
-        NOT_ACTIVE,
-        NOT_PLAYING,
-        NOT_POTION_GUNNER,
+        /** {@link OffMatchUse.Mode#REFUSED}: a dead participant of an ACTIVE match. / ACTIVE 对局中已死亡的参与者。 */
+        DEAD_PARTICIPANT,
         NOT_HOLDING,
         SPECTATOR,
         STUNNED,
@@ -32,32 +35,25 @@ public final class PotionLauncherFireRules {
     /**
      * Side-effect-free facts about one fire request. / 单次发射请求的无副作用事实。
      *
-     * @param roundActive      Wathe's round status is exactly {@code ACTIVE}; {@code STOPPING} (winner decided)
-     *                         never fires (coordinator decision D-R1)
-     * @param playingAndAlive  Wathe {@code isPlayerPlayingAndAlive}
-     * @param potionGunner     the shooter's raw role is exactly the Potion Gunner
-     * @param holdingLauncher  the main hand holds a launcher
-     * @param spectator        the shooter is in spectator mode (e.g. swallowed by the Taotie)
-     * @param stunned          stunned by a Control Expert
-     * @param sessionLocked    locked in a Seeker remote session
-     * @param weaponBlocked    SparkTraits blocks a weapon action with the held launcher
-     * @param coolingDown      the launcher's item cooldown is active
-     * @param loaded           the held launcher carries a shell
+     * @param mode            {@link OffMatchUse#mode(net.minecraft.entity.player.PlayerEntity)}: MATCH for a living
+     *                        participant of an exactly {@code ACTIVE} round, PRESENTATION when the round is not
+     *                        {@code ACTIVE} (none, {@code STARTING}, {@code STOPPING}) or the shooter has no role;
+     *                        REFUSED (or null) never fires
+     * @param holdingLauncher the main hand holds a launcher
+     * @param spectator       the shooter is in spectator mode (e.g. swallowed by the Taotie)
+     * @param stunned         stunned by a Control Expert
+     * @param sessionLocked   locked in a Seeker remote session
+     * @param weaponBlocked   SparkTraits blocks a weapon action with the held launcher
+     * @param coolingDown     the launcher's item cooldown is active
+     * @param loaded          the held launcher carries a shell
      */
-    public record Facts(boolean roundActive, boolean playingAndAlive, boolean potionGunner, boolean holdingLauncher,
-                        boolean spectator, boolean stunned, boolean sessionLocked, boolean weaponBlocked,
-                        boolean coolingDown, boolean loaded) {
+    public record Facts(OffMatchUse.Mode mode, boolean holdingLauncher, boolean spectator, boolean stunned,
+                        boolean sessionLocked, boolean weaponBlocked, boolean coolingDown, boolean loaded) {
     }
 
     public static Decision decide(Facts facts) {
-        if (!facts.roundActive()) {
-            return Decision.NOT_ACTIVE;
-        }
-        if (!facts.playingAndAlive()) {
-            return Decision.NOT_PLAYING;
-        }
-        if (!facts.potionGunner()) {
-            return Decision.NOT_POTION_GUNNER;
+        if (facts.mode() == null || facts.mode() == OffMatchUse.Mode.REFUSED) {
+            return Decision.DEAD_PARTICIPANT;
         }
         if (!facts.holdingLauncher()) {
             return Decision.NOT_HOLDING;
