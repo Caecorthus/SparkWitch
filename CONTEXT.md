@@ -1482,8 +1482,6 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
       Orthopedist's aim (`OrthopedistTargeting`) and the Guardian Angel's aim (`GuardianAngelTargeting`). Each also
       reveals that someone is inside.
     - A pending Emma backlash, a forced kill with no killer, still kills an occupant.
-    - An occupant viewer's instinct falls through to SFA's faction-colour fallback, because `WitchInstinctPolicy` and
-      the Murderous Witch policy skip spectating viewers. This is not play-tested.
 
   Local tests: `roles/witch/riftwalker/` and `client/riftwalker/` under `src/test/java/dev/caecorthus/sparkwitch/`. The
   audit guards above are pinned by `session/RiftOccupantTargeterGuardsContractTest`.
