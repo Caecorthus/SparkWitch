@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.saint.flash;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertTargeting;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.RegistryByteBuf;
@@ -78,9 +79,13 @@ public final class HolyFlashComponent implements AutoSyncedComponent, ServerTick
         if (!state.isActive()) {
             return;
         }
-        // Death, spectating, creative, active Wraith, or any phase other than ACTIVE ends the flash at once.
-        // 死亡、旁观、创造、激活冤魂，或不处于 ACTIVE 阶段时立即结束闪光。
-        if (!HolyFlashRules.isActivePhase(player.getWorld()) || !ControlExpertTargeting.isParticipant(player)) {
+        // Death, spectating, creative, active Wraith, or any phase other than ACTIVE ends the flash at once. A Rift
+        // Gate occupant is the exception: an ALIVE spectator (Riftwalker D3), not a dead one, so entering a gate never
+        // cleanses the flash; it keeps counting down inside.
+        // 死亡、旁观、创造、激活冤魂，或不处于 ACTIVE 阶段时立即结束闪光。裂隙门内的玩家例外：它是存活旁观者
+        // （隙行者 D3）而非死者，因此进门不会清除闪光，闪光在门内照常倒计时。
+        if (!HolyFlashRules.isActivePhase(player.getWorld())
+                || !(ControlExpertTargeting.isParticipant(player) || RiftSessionService.isInside(player))) {
             clear();
             return;
         }

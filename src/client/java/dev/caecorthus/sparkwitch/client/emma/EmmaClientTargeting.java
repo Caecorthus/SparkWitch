@@ -26,9 +26,10 @@ public final class EmmaClientTargeting {
         double closest = start.squaredDistanceTo(end);
         PlayerEntity selected = null;
         for (PlayerEntity candidate : viewer.getWorld().getPlayers()) {
-            // Invisible and secretly forbidden roles remain candidates; rejection belongs to the server.
-            // 隐身及秘密禁用职业仍是候选者，是否拒绝由服务端裁决。
-            if (candidate == viewer || !GameFunctions.isPlayerPlayingAndAlive(candidate)) {
+            // Invisible and secretly forbidden roles remain candidates; rejection belongs to the server. Spectators
+            // (a Rift Gate occupant) are skipped exactly as on the server; game modes are public.
+            // 隐身及秘密禁用职业仍是候选者，是否拒绝由服务端裁决。旁观者（裂隙门内的玩家）与服务端一样被跳过；游戏模式本就公开。
+            if (candidate == viewer || candidate.isSpectator() || !GameFunctions.isPlayerPlayingAndAlive(candidate)) {
                 continue;
             }
             Box box = candidate.getBoundingBox();
