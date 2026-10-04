@@ -380,6 +380,10 @@ Black Raven state never enters that shared schema. Victim marks use
 snapshots use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
 Its role-owned active window is exposed to the shared cooldown/HUD path only
 through `WitchSkillRegistry`'s stateless active-window provider.
+The Feather Blade aim (`BlackRavenTargeting.findAimedPlayer`) treats spectators as transparent:
+a Rift Gate occupant (an alive spectator, Riftwalker D3) is never marked, never starts the blade
+cooldown, and never shields the player behind its gate. An active Vendetta is an adventure-mode
+Wraith and stays a target of its bound killer.
 
 Bell Ringer state never enters that shared schema either. `sparkwitch:bell_echo`
 (`NEVER_COPY`, owner-only sync, match-id bound) holds the forced Echo task
@@ -528,7 +532,12 @@ SparkFactionAPI's `sparkwitch:holy_flash` veto, Last Escape, and Vendetta isolat
 died or left mid-flight, the burst still blinds without an actor: no faction veto, Last Escape still
 honoured, active Vendetta endpoints untouched. `mixin/saint/GameFunctionsHolyFlashDropMixin` (HEAD guard on
 `shouldDropOnDeath`) keeps flashes out of death drops, and a confirmed (not Last Stand-intercepted)
-death removes them. Reset and finalize clear every flash and discard flashes still in flight. The
+death removes them. Reset and finalize clear every flash and discard flashes still in flight.
+The server tick ends a flash as soon as its holder stops being a participant (death, spectating,
+creative, active Wraith). A Rift Gate occupant is the exception: it is an alive spectator
+(Riftwalker D3), so entering a gate never cleanses a flash, which keeps counting down inside.
+No new flash reaches an occupant, with or without a thrower: the victim filter requires a
+participant first, and the `sparkwitch:holy_flash` veto denies occupants as well. The
 Holy Flash never renders in the `gui.sparkwitch.skills` panel and never triggers Saint Karma.
 Client side lives in `client/saint/`: `HolyFlashOverlayRenderer` (via `client/mixin/saint/HolyFlashHudMixin`,
 `InGameHud.render` TAIL, priority 1100) draws owner pick B — a bright spot at the projected burst, then
@@ -1392,6 +1401,14 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `RiftSessionRules.AFFECT_ALLOWED_ON_OCCUPANT`: `noellesroles:swapper` (the crush below), `wathe:poison` (D3), and the
   piercing terminal kills `sparkwitch:bell_toll` and `sparkwitch:time_stolen` (C13). `BellTollService.isTarget` admits
   occupants next to participants (C16); the kill drops the body at the gate and ends the session as DIED.
+  Wathe's `isPlayerPlayingAndAlive` ignores the game mode, so a targeter that never asks SFA must skip spectators
+  itself. Spectators are transparent (never a target, never a shield) to:
+  - the Black Raven Feather Blade aim (`BlackRavenTargeting.findAimedPlayer`);
+  - the shared aim `GrandWitchTargeting.findTarget`, used by recruitment, Witch Factor and Emma;
+  - its client hint mirrors, `client/grandwitch/GrandWitchClientTargeting` and `client/emma/EmmaClientTargeting`.
+
+  So an occupant is never marked or recruited, and an occupied gate no longer fails an aim at the player behind it.
+  `HolyFlashComponent` keeps a flash while `isInside`, so entering a gate never cleanses it (audit fixes, 2026-10-03).
 - **Session client.** `client/riftwalker/session/RiftSessionClient` sends only `rift_hop`/`rift_exit` and never predicts
   entry or exit; `client/mixin/riftwalker/RiftSession*Mixin` pass only `RiftSessionInputRules.ALLOWED_KEYS` (sneak, A/D,
   player list, screenshot, fullscreen, voice chat, instinct), hide the hand and force a crosshair MISS; A/D, scroll or
@@ -1453,8 +1470,21 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `isLastStandPending` (`SparkTraitsSeekerBridge`), `isLastStandDeathIntercepted` (`WitchFactorTraitsBridge`).
   SparkStrength only by id (tablet, M67, `sparkstrength:engineer_stunned`). SparkTraits
   `feat/accomplice-riftwalker-support` adds the Riftwalker to its five hard-coded accomplice id sets.
-- **Gaps and tests.** C11 (owner open): the NR Pathogen can still infect an occupant within 3 blocks (non-lethal). Local
-  tests: `roles/witch/riftwalker/` and `client/riftwalker/` under `src/test/java/dev/caecorthus/sparkwitch/`.
+- **Gaps and tests.** Open owner calls:
+  - C11: the NR Pathogen can still infect an occupant within 3 blocks (non-lethal).
+  - From the 2026-10-03 audit, still unchanged:
+    - A Potion Gunner that is inside a gate when its shell lands keeps the kill credit but loses the +15 coins per hit
+      (`PotionBlastService.payReward`).
+    - Grand Witch Fear pulses, Blindness and Heaviness (`GrandWitchSpellService`) still reach Apprentice and Murderous
+      Witch occupants.
+    - Deep Dark exposure carries into a gate for at most 10 ticks.
+    - Three alive-only filters still reach occupants: the Curser's 8-block confusion (`CurserFeatureService.use`), the
+      Orthopedist's aim (`OrthopedistTargeting`) and the Guardian Angel's aim (`GuardianAngelTargeting`). Each also
+      reveals that someone is inside.
+    - A pending Emma backlash, a forced kill with no killer, still kills an occupant.
+
+  Local tests: `roles/witch/riftwalker/` and `client/riftwalker/` under `src/test/java/dev/caecorthus/sparkwitch/`. The
+  audit guards above are pinned by `session/RiftOccupantTargeterGuardsContractTest`.
 
 Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player

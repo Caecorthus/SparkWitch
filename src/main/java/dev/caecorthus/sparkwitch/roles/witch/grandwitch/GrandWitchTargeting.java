@@ -28,7 +28,11 @@ public final class GrandWitchTargeting {
         double closest = start.squaredDistanceTo(end);
         ServerPlayerEntity selected = null;
         for (ServerPlayerEntity candidate : caster.getServerWorld().getPlayers()) {
-            if (candidate == caster || !GameFunctions.isPlayerPlayingAndAlive(candidate)) {
+            // Spectators are neither targets nor shields: a Rift Gate occupant is an ALIVE spectator (Riftwalker D3)
+            // that recruitment, Witch Factor and Emma must never pick, nor let it block the player behind its gate.
+            // 旁观者既不是目标也不会挡住射线：裂隙门内的玩家是存活旁观者（隙行者 D3），招募、魔女因子与艾玛都不能选中它，
+            // 也不能让它挡住门后的玩家。
+            if (candidate == caster || candidate.isSpectator() || !GameFunctions.isPlayerPlayingAndAlive(candidate)) {
                 continue;
             }
             Box box = candidate.getBoundingBox();

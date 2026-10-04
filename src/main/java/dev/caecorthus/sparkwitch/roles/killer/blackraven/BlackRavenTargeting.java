@@ -52,8 +52,12 @@ public final class BlackRavenTargeting {
         if (block.getType() != HitResult.Type.MISS) {
             end = block.getPos();
         }
+        // Spectators are transparent: a Rift Gate occupant is an ALIVE spectator that no mark may reach (Riftwalker
+        // D3), and Wathe's liveness check ignores the game mode. An active Vendetta is an adventure-mode Wraith.
+        // 旁观者是透明的：裂隙门内的玩家是任何标记都不能触及的存活旁观者（隙行者 D3），而 Wathe 的存活检查不看游戏模式。
+        // 激活的复仇者是冒险模式的冤魂，不受影响。
         return nearest(eye, end, user.getPos(), candidates,
-                candidate -> candidate != user
+                candidate -> candidate != user && !candidate.isSpectator()
                         && VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(user, candidate),
                 hitVolumes, PlayerEntity::getBoundingBox);
     }
