@@ -18,6 +18,9 @@ public interface BlindPerceiver {
     /** Current maximum range in blocks (10 / 30 / 50 / 150). / 当前最大感知距离（格）。 */
     int perceptionRange();
 
+    /** D14: a worn ComTac widens this Blind's own footstep pulse. / D14：佩戴 ComTac 时放大该盲人自身的脚步脉冲。 */
+    boolean wearsComTac();
+
     /**
      * Re-checks the real role, life and round right before sending; a swallowed Blind perceives nothing (C7).
      * 发送前重新确认真实职业、存活与对局状态；被吞下的盲人什么也感知不到（C7）。

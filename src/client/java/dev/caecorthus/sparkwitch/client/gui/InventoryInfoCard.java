@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.gui;
 
 import dev.caecorthus.sparkwitch.client.compat.SparkStrengthHudBridge;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.doctor4t.wathe.client.gui.screen.ingame.LimitedInventoryScreen;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -302,10 +303,16 @@ public final class InventoryInfoCard {
             }
         }
         // Mirrors Wathe 1.5.6: the HUD band (see hudBandBottom), LimitedHandledScreen's 176x32 hotbar strip, and
-        // LimitedInventoryScreen.drawBackground's logo transform (0.28 scale).
+        // LimitedInventoryScreen.drawBackground's logo transform (0.28 scale). SparkFactionAPI 0.1.5.13+ draws a 22 px
+        // second row above the strip (its inactive widget there is already scanned above); count it here too, so the
+        // block stays reserved without relying on that widget.
         // 对应 Wathe 1.5.6：HUD 顶带（见 hudBandBottom）、LimitedHandledScreen 的 176x32 热栏框、drawBackground 的标志变换。
+        // SparkFactionAPI 0.1.5.13+ 会在热栏上方绘制 22 像素高的第二行（其非激活控件已在上面的扫描中避开）；这里也计入，
+        // 使物品栏块的预留不依赖该控件。
         controls.add(new InventoryCardLayout.Rect(0, 0, screen.width, hudBottom));
-        controls.add(new InventoryCardLayout.Rect((screen.width - 176) / 2, (screen.height - 32) / 2, 176, 32));
+        int secondRow = SparkFactionSecondRowCompat.isShown() ? 22 : 0;
+        controls.add(new InventoryCardLayout.Rect((screen.width - 176) / 2, (screen.height - 32) / 2 - secondRow, 176,
+                32 + secondRow));
         controls.add(new InventoryCardLayout.Rect((int) Math.floor(screen.width / 2.0 - 69.4),
                 (int) Math.floor(screen.height - 99.96), 140, 72));
         List<Section> nonempty = sections.stream().filter(s -> !s.entries().isEmpty()).toList();

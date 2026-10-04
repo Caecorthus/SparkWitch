@@ -62,8 +62,9 @@ public final class RiftGatePlacementService {
      * "placed #n" line with "too close" at once; the cooldown (also checked by the server) gives the line a second.
      * N-2：成功放置后的物品冷却。按住使用键时原版每 4 刻重复一次，会立刻把「已放置 #n」换成「太近」；冷却（服务端也会检查）
      * 让这行提示停留一秒。
+     * Public for the forced-cooldown nominal table ({@code compat/cooldown}). / 公开供强制冷却标准表（compat/cooldown）读取。
      */
-    static final int PLACE_COOLDOWN_TICKS = 20;
+    public static final int PLACE_COOLDOWN_TICKS = 20;
 
     private RiftGatePlacementService() {
     }

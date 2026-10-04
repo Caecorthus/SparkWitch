@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.seeker.device;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthTabletCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerBreakSource;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCarState;
@@ -397,9 +398,10 @@ public final class SeekerDeviceService {
 
     /**
      * Returns a swallowed car item (60 s RETURNED cooldown): original slot → first empty hotbar slot → first empty
-     * main slot; never dropped. With no room the car stays swallowed with PendingReturn (one message) and WP-06's tick
-     * retries.
-     * 归还被吞的小车物品（60 秒 RETURNED 冷却）：原槽位 → 快捷栏首个空位 → 主背包首个空位；从不掉落。
+     * shown second-row slot → first empty main slot ({@link #chooseReturnSlot}); never dropped. With no room the car
+     * stays swallowed with PendingReturn (one message) and WP-06's tick retries.
+     * 归还被吞的小车物品（60 秒 RETURNED 冷却）：原槽位 → 快捷栏首个空位 → 显示中的第二行首个空位 → 主背包首个空位
+     * （{@link #chooseReturnSlot}）；从不掉落。
      * 没有空位时保持被吞并设置 PendingReturn（只提示一次），由 WP-06 的刻重试。
      */
     public static boolean returnSwallowedCar(ServerPlayerEntity owner) {
@@ -417,7 +419,8 @@ public final class SeekerDeviceService {
             for (int index = 0; index < mainEmpty.length; index++) {
                 mainEmpty[index] = inventory.main.get(index).isEmpty();
             }
-            int slot = chooseReturnSlot(originalSlot, originalEmpty, mainEmpty, PlayerInventory.getHotbarSize());
+            int slot = chooseReturnSlot(originalSlot, originalEmpty, mainEmpty, PlayerInventory.getHotbarSize(),
+                    SparkFactionSecondRowCompat.isShown());
             if (slot < 0) {
                 if (!status.pendingReturn()) {
                     status.apply(status.state().setPendingReturn(true));
@@ -644,11 +647,14 @@ public final class SeekerDeviceService {
     }
 
     /**
-     * Return slot: the original index when still empty, else the first empty hotbar slot, else the first empty main
-     * slot; -1 when the inventory is full.
-     * 归还槽位：原索引仍为空时优先；否则快捷栏首个空位；否则主背包首个空位；背包已满时返回 -1。
+     * Return slot: the original index when still empty, else the first empty hotbar slot, else (when SparkFactionAPI
+     * 0.1.5.13+ shows it) the first empty slot of the second row 27-35, so the car stays reachable, else the first
+     * empty main slot; -1 when the inventory is full.
+     * 归还槽位：原索引仍为空时优先；否则快捷栏首个空位；否则（SparkFactionAPI 0.1.5.13+ 显示时）第二行 27-35 的首个
+     * 空位，使小车仍可取用；否则主背包首个空位；背包已满时返回 -1。
      */
-    static int chooseReturnSlot(int originalSlot, boolean originalEmpty, boolean[] mainEmpty, int hotbarSize) {
+    static int chooseReturnSlot(int originalSlot, boolean originalEmpty, boolean[] mainEmpty, int hotbarSize,
+                                boolean secondRowShown) {
         if (originalSlot >= 0 && originalEmpty) {
             return originalSlot;
         }
@@ -656,6 +662,14 @@ public final class SeekerDeviceService {
         for (int index = 0; index < hotbar; index++) {
             if (mainEmpty[index]) {
                 return index;
+            }
+        }
+        if (secondRowShown) {
+            int end = Math.min(SparkFactionSecondRowCompat.SECOND_ROW_END, mainEmpty.length);
+            for (int index = SparkFactionSecondRowCompat.SECOND_ROW_START; index < end; index++) {
+                if (mainEmpty[index]) {
+                    return index;
+                }
             }
         }
         for (int index = hotbar; index < mainEmpty.length; index++) {

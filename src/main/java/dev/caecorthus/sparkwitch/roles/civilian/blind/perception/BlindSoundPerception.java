@@ -68,7 +68,7 @@ public final class BlindSoundPerception {
         }
         PlayerEntity sourcePlayer = entity instanceof PlayerEntity player ? player : null;
         Entity sourceObject = sourcePlayer == null ? entity : null;
-        fanOut(world, null, sourcePlayer, sourceObject, sourceObject != null, x, y, z, true);
+        fanOut(world, null, sourcePlayer, sourceObject, sourceObject != null, x, y, z, true, false);
     }
 
     /** Voice drain, server thread: one proximity voice frame from a speaker. / 语音取出，服务端线程。 */
@@ -85,7 +85,7 @@ public final class BlindSoundPerception {
             return;
         }
         BlindPulseFanout.fanOut(perceivers, world, new BlindPulseFanout.Source(x, y, z, speaker.getId(), true,
-                whispering, speaker.getId(), 0L, false));
+                whispering, speaker.getId(), 0L, false, false));
     }
 
     private static void perceive(ServerWorld world, @Nullable PlayerEntity except, @Nullable Entity entity,
@@ -107,12 +107,12 @@ public final class BlindSoundPerception {
             return;
         }
         fanOut(world, except, sourcePlayer, sourceObject, handling == BlindSoundRules.Handling.OBJECT, x, y, z,
-                BlindSoundRules.isOneShot(soundId));
+                BlindSoundRules.isOneShot(soundId), BlindSoundRules.isFootstep(soundId));
     }
 
     private static void fanOut(ServerWorld world, @Nullable PlayerEntity except, @Nullable PlayerEntity sourcePlayer,
                                @Nullable Entity sourceObject, boolean objectSound, double x, double y, double z,
-                               boolean oneShot) {
+                               boolean oneShot, boolean footstep) {
         BlindSoundAttribution.Result<PlayerEntity> result = objectSound
                 ? BlindSoundAttribution.object()
                 : BlindSoundAttribution.attribute(except, sourcePlayer, world.getPlayers(), x, y, z, PROBE);
@@ -124,7 +124,7 @@ public final class BlindSoundPerception {
                 : sourceObject != null ? sourceObject.getId() : BlindPulseFanout.NO_ENTITY;
         long block = BlockPos.asLong(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z));
         BlindPulseFanout.fanOut(BlindPerceptionTargets.perceivers(), world,
-                new BlindPulseFanout.Source(x, y, z, emitter, false, false, key, block, oneShot));
+                new BlindPulseFanout.Source(x, y, z, emitter, false, false, key, block, oneShot, footstep));
     }
 
     /**

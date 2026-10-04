@@ -112,6 +112,11 @@ public final class BlindPerceptionTargets {
         }
 
         @Override
+        public boolean wearsComTac() {
+            return BlindParticipants.wearsComTac(player);
+        }
+
+        @Override
         public boolean isActive() {
             return BlindParticipants.isActiveBlind(player) && !NoellesTaotieSeekerBridge.isSwallowed(player);
         }

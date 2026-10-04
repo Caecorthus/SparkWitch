@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.timestealer;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.doctor4t.wathe.api.Role;
 import java.util.Objects;
@@ -122,11 +123,45 @@ public final class TimeStealerLoadoutService {
     }
 
     /**
-     * Keeps exactly one Clock and forces it into the hotbar: the leftmost hotbar Clock is kept, every other copy (hidden
-     * main slots 9-35, armor, offhand, cursor, crafting grid or open container) is removed, and a missing hotbar Clock is
-     * recreated in the hotbar. Cheap when nothing is wrong: a slot scan with no writes.
-     * 保持恰好一个时钟并强制其位于快捷栏：保留最左侧的快捷栏时钟，移除其他所有副本（隐藏主背包 9-35、盔甲、副手、光标、
-     * 合成格或已打开的容器），并在快捷栏缺失时重新创建。一切正常时开销很低：只扫描栏位而不写入。
+     * Where the displaced hotbar item goes, given the slot a removed misplaced Clock {@code vacated} (or
+     * {@link #NO_SLOT}): with the second row shown, the vacated slot when it is in that row, else its first empty slot,
+     * so the item stays visible; then the vacated slot; then main slots 9-35; then an empty offhand; {@link #NO_SLOT}
+     * with no room. Without the second row this is the old order (vacated slot, 9-35, offhand).
+     * 被移出的快捷栏物品的去处（{@code vacated} 为被移除的错放时钟腾出的栏位，或 {@link #NO_SLOT}）：
+     * 显示第二行时，若腾出的栏位在该行则用它，否则用该行第一个空栏位，使物品仍可见；然后是腾出的栏位；然后是主背包 9-35；
+     * 然后是空副手；没有空间时为 {@link #NO_SLOT}。没有第二行时即旧顺序（腾出的栏位、9-35、副手）。
+     */
+    static int displacementSlot(boolean secondRowShown, int vacated, IntPredicate emptySlot) {
+        if (secondRowShown) {
+            if (SparkFactionSecondRowCompat.isSecondRowSlot(vacated)) {
+                return vacated;
+            }
+            for (int slot = SparkFactionSecondRowCompat.SECOND_ROW_START;
+                 slot < SparkFactionSecondRowCompat.SECOND_ROW_END; slot++) {
+                if (emptySlot.test(slot)) {
+                    return slot;
+                }
+            }
+        }
+        if (vacated != NO_SLOT) {
+            return vacated;
+        }
+        for (int slot = PlayerInventory.getHotbarSize(); slot < PlayerInventory.MAIN_SIZE; slot++) {
+            if (emptySlot.test(slot)) {
+                return slot;
+            }
+        }
+        return emptySlot.test(PlayerInventory.OFF_HAND_SLOT) ? PlayerInventory.OFF_HAND_SLOT : NO_SLOT;
+    }
+
+    /**
+     * Keeps exactly one Clock and forces it into the hotbar: the leftmost hotbar Clock is kept, every other copy (main
+     * slots 9-35, including the second row 27-35 that SparkFactionAPI 0.1.5.13+ shows, armor, offhand, cursor, crafting
+     * grid or open container) is removed, and a missing hotbar Clock is recreated in the hotbar. Cheap when nothing is
+     * wrong: a slot scan with no writes.
+     * 保持恰好一个时钟并强制其位于快捷栏：保留最左侧的快捷栏时钟，移除其他所有副本（主背包 9-35，包括 SparkFactionAPI
+     * 0.1.5.13+ 显示的第二行 27-35、盔甲、副手、光标、合成格或已打开的容器），并在快捷栏缺失时重新创建。一切正常时开销
+     * 很低：只扫描栏位而不写入。
      */
     private static void ensureClockInHotbar(ServerPlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
@@ -148,7 +183,7 @@ public final class TimeStealerLoadoutService {
                 continue;
             }
             inventory.setStack(slot, ItemStack.EMPTY);
-            if (vacated == NO_SLOT && isHiddenStorageSlot(slot)) {
+            if (vacated == NO_SLOT && isStorageSlot(slot)) {
                 vacated = slot;
             }
             changed = true;
@@ -173,18 +208,19 @@ public final class TimeStealerLoadoutService {
     }
 
     /**
-     * Puts a fresh Clock into the hotbar. With a full hotbar the displaced item moves into the slot a misplaced Clock
-     * just vacated, else the first empty hidden main slot, else an empty offhand; with no room at all nothing is moved
-     * or destroyed and the next tick retries.
-     * 把新的时钟放入快捷栏。快捷栏已满时，被移出的物品放入刚被错放时钟腾出的栏位，否则放入第一个空的隐藏主背包栏位，
-     * 否则放入空副手；完全没有空间时不移动也不销毁任何物品，由下一 tick 重试。
+     * Puts a fresh Clock into the hotbar. With a full hotbar the displaced item moves to {@link #displacementSlot}: the
+     * slot a misplaced Clock just vacated, kept visible in the shown second row when possible; with no room at all
+     * nothing is moved or destroyed and the next tick retries.
+     * 把新的时钟放入快捷栏。快捷栏已满时，被移出的物品移到 {@link #displacementSlot}：刚被错放时钟腾出的栏位，并尽可能
+     * 留在显示中的第二行使其可见；完全没有空间时不移动也不销毁任何物品，由下一 tick 重试。
      */
     private static boolean placeClockInHotbar(PlayerInventory inventory, int vacated) {
         Item clock = SparkWitchItems.timeStealerClock();
         int target = hotbarTarget(inventory.selectedSlot, slot -> inventory.getStack(slot).isEmpty());
         if (target == NO_SLOT) {
             target = displacedHotbarSlot(inventory.selectedSlot);
-            int destination = vacated != NO_SLOT ? vacated : emptyHiddenStorageSlot(inventory);
+            int destination = displacementSlot(SparkFactionSecondRowCompat.isShown(), vacated,
+                    slot -> inventory.getStack(slot).isEmpty());
             if (destination == NO_SLOT) {
                 return false;
             }
@@ -194,17 +230,8 @@ public final class TimeStealerLoadoutService {
         return true;
     }
 
-    private static int emptyHiddenStorageSlot(PlayerInventory inventory) {
-        for (int slot = PlayerInventory.getHotbarSize(); slot < PlayerInventory.MAIN_SIZE; slot++) {
-            if (inventory.getStack(slot).isEmpty()) {
-                return slot;
-            }
-        }
-        return inventory.getStack(PlayerInventory.OFF_HAND_SLOT).isEmpty() ? PlayerInventory.OFF_HAND_SLOT : NO_SLOT;
-    }
-
-    /** Hidden main slots 9-35 or the offhand; armor slots never receive a displaced item. / 隐藏主背包 9-35 或副手；盔甲栏不接收被移出的物品。 */
-    private static boolean isHiddenStorageSlot(int slot) {
+    /** Main slots 9-35 or the offhand; armor slots never receive a displaced item. / 主背包 9-35 或副手；盔甲栏不接收被移出的物品。 */
+    private static boolean isStorageSlot(int slot) {
         return (slot >= PlayerInventory.getHotbarSize() && slot < PlayerInventory.MAIN_SIZE)
                 || slot == PlayerInventory.OFF_HAND_SLOT;
     }

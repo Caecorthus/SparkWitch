@@ -2,6 +2,12 @@ package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher.PotionLauncherItem;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellItem;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.DecoratedPotBlock;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.entity.decoration.ItemFrameEntity;
+import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
@@ -32,6 +38,36 @@ public final class PotionGunnerInventoryRules {
 
     public static boolean isBound(@Nullable ItemStack stack) {
         return isLauncher(stack) || isShell(stack);
+    }
+
+    /**
+     * World-interaction veto for the stack in the used hand: vanilla 1.21.1 item frames (glow included), armor stands
+     * and allays take the held stack, and a decorated pot inserts any held item. Without this a launcher would leave
+     * the inventory and the 20-tick sweep would mint a fresh one each time, and shells would leave the holder's own
+     * slots, breaking their never-in-a-container rule. Copied from, never shared with, the Time Stealer rules.
+     * 针对所用手中物品的世界交互否决：原版 1.21.1 中物品展示框（含荧光）、盔甲架与悦灵会拿走手持物品，饰纹陶罐会放入任意手持物品。
+     * 否则炮筒会离开背包，而 20 刻清扫会每次补发新的炮筒；炮弹也会离开持有者自身栏位，违反“绝不进入容器”的规则。
+     * 复制而非共享窃时者的规则。
+     */
+    public static boolean blocksEntityUse(@Nullable ItemStack held, @Nullable Entity target) {
+        return isBound(held) && target != null && takesHeldStack(target.getClass());
+    }
+
+    /**
+     * Block counterpart of {@link #blocksEntityUse}, asked by {@code DecoratedPotBlockPotionGunnerItemMixin}.
+     * {@link #blocksEntityUse} 的方块版本，由 {@code DecoratedPotBlockPotionGunnerItemMixin} 调用。
+     */
+    public static boolean blocksBlockUse(@Nullable ItemStack held, @Nullable BlockState target) {
+        return isBound(held) && target != null && takesHeldStack(target.getBlock().getClass());
+    }
+
+    /** Pure class check, testable without a bootstrapped registry. / 纯类判断，无需引导注册表即可测试。 */
+    static boolean takesHeldStack(@Nullable Class<?> targetType) {
+        return targetType != null
+                && (ItemFrameEntity.class.isAssignableFrom(targetType)
+                || ArmorStandEntity.class.isAssignableFrom(targetType)
+                || AllayEntity.class.isAssignableFrom(targetType)
+                || DecoratedPotBlock.class.isAssignableFrom(targetType));
     }
 
     /** Excludes bound items from Wathe's death-drop loop. / 将绑定物品排除出 Wathe 死亡掉落流程。 */

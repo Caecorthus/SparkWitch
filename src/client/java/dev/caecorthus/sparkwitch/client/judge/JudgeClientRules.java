@@ -9,6 +9,11 @@ public final class JudgeClientRules {
         return confirmedServer && channelAvailable && activeJudge;
     }
 
+    /** HUD hint only; the server re-checks the balance on confirm. / 仅用于 HUD 提示；确认时服务端会重新检查余额。 */
+    public static boolean canAffordJudgment(int balance, int cost) {
+        return balance >= cost;
+    }
+
     public static int resolveOutline(int originalColor, boolean activePair, boolean hardHidden,
                                      boolean eventSkipped, boolean sentenced, int sentenceColor) {
         return originalColor == -1 && activePair && !hardHidden && !eventSkipped && sentenced

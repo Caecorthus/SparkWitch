@@ -56,7 +56,10 @@ public final class ProphetNecrologyRules {
         return isNecrology(held) && target != null && takesHeldStack(target.getClass());
     }
 
-    /** Block counterpart of {@link #blocksEntityUse}. / {@link #blocksEntityUse} 的方块版本。 */
+    /**
+     * Block counterpart of {@link #blocksEntityUse}, asked by {@code DecoratedPotBlockProphetNecrologyMixin}.
+     * {@link #blocksEntityUse} 的方块版本，由 {@code DecoratedPotBlockProphetNecrologyMixin} 调用。
+     */
     public static boolean blocksBlockUse(ItemStack held, BlockState target) {
         return isNecrology(held) && target != null && takesHeldStack(target.getBlock().getClass());
     }

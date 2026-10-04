@@ -13,9 +13,9 @@ import org.spongepowered.asm.mixin.Mixin;
 
 /**
  * Replaces a disguised Raven's shop with its adapter whitelist on both sides (outermost @WrapMethod, so it
- * also filters return-value appenders such as SparkStrength's M67/tablet). Both sides read the same acting
+ * also filters return-value appenders such as SparkStrength's M67). Both sides read the same acting
  * index answer for the owner, so purchase indexes match; a missing adapter yields an empty shop.
- * 在双端将伪装黑羽鸦的商店替换为适配器白名单（最外层 @WrapMethod，也会过滤 SparkStrength M67/平板等返回值追加）。
+ * 在双端将伪装黑羽鸦的商店替换为适配器白名单（最外层 @WrapMethod，也会过滤 SparkStrength M67 等返回值追加）。
  * 双端对拥有者读取相同的扮演索引结果，因此购买下标一致；缺少适配器时商店为空。
  */
 @Mixin(value = ShopUtils.class, remap = false)

@@ -1,5 +1,11 @@
 package dev.caecorthus.sparkwitch.roles.killer.timestealer;
 
+import net.minecraft.block.BlockState;
+import net.minecraft.block.DecoratedPotBlock;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.entity.decoration.ItemFrameEntity;
+import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
@@ -27,6 +33,35 @@ public final class TimeStealerInventoryRules {
 
     public static boolean isBound(ItemStack stack) {
         return isClock(stack) || isStamp(stack);
+    }
+
+    /**
+     * World-interaction veto for the stack in the used hand: vanilla 1.21.1 item frames (glow included), armor stands
+     * and allays take the held stack, and a decorated pot inserts any held item. Without this a Clock would leave the
+     * inventory and the per-tick restore would mint a fresh copy each time, and stamps would leave the holder's own
+     * slots. Copied from, never shared with, the Prophet Necrology rules.
+     * 针对所用手中物品的世界交互否决：原版 1.21.1 中物品展示框（含荧光）、盔甲架与悦灵会拿走手持物品，饰纹陶罐会放入任意手持物品。
+     * 否则时钟会离开背包，而逐刻补发会每次生成新的副本；邮票也会离开持有者自身栏位。复制而非共享先知名录的规则。
+     */
+    public static boolean blocksEntityUse(ItemStack held, Entity target) {
+        return isBound(held) && target != null && takesHeldStack(target.getClass());
+    }
+
+    /**
+     * Block counterpart of {@link #blocksEntityUse}, asked by {@code DecoratedPotBlockTimeStealerItemMixin}.
+     * {@link #blocksEntityUse} 的方块版本，由 {@code DecoratedPotBlockTimeStealerItemMixin} 调用。
+     */
+    public static boolean blocksBlockUse(ItemStack held, BlockState target) {
+        return isBound(held) && target != null && takesHeldStack(target.getBlock().getClass());
+    }
+
+    /** Pure class check, testable without a bootstrapped registry. / 纯类判断，无需引导注册表即可测试。 */
+    static boolean takesHeldStack(Class<?> targetType) {
+        return targetType != null
+                && (ItemFrameEntity.class.isAssignableFrom(targetType)
+                || ArmorStandEntity.class.isAssignableFrom(targetType)
+                || AllayEntity.class.isAssignableFrom(targetType)
+                || DecoratedPotBlock.class.isAssignableFrom(targetType));
     }
 
     /**

@@ -9,8 +9,10 @@ import dev.doctor4t.wathe.api.event.RoleAssigned;
 import java.util.Objects;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.ActionResult;
 
 /**
  * Registers Bell Ringer lifecycle hooks while keeping the global event owner declarative.
@@ -63,6 +65,14 @@ public final class BellRingerFeatureService {
             BellRingerEchoRuntime.clearPlayer(victim);
             BellRingerLoadoutService.removeBells(victim);
         });
+        // The bell cannot be handed to item frames, armor stands or allays. Both sides: the client stops before
+        // sending, the server refuses a forged packet. Decorated pots are handled by
+        // mixin/bellringer/DecoratedPotBlockTollBellMixin instead, so the bell's own use still runs there.
+        // 钟无法交给物品展示框、盔甲架或悦灵。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
+        // 饰纹陶罐改由 DecoratedPotBlockTollBellMixin 处理，因此在陶罐前钟自身的使用照常进行。
+        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) ->
+                BellRingerInventoryRules.blocksEntityUse(player.getStackInHand(hand), entity)
+                        ? ActionResult.FAIL : ActionResult.PASS);
         ResetPlayer.EVENT.register(BellRingerFeatureService::clearPlayer);
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> {
             if (!(world instanceof ServerWorld serverWorld)) {

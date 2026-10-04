@@ -36,9 +36,12 @@ public final class FisherGlimmerClientRules {
                 && !targetGlimmering && !targetHidden;
     }
 
-    /** Spectators keep seeing everything; everyone else loses a glimmering target. / 旁观者照常可见，其他人看不到灵光目标。 */
-    public static boolean hidesTarget(boolean targetGlimmering, boolean viewerSpectating, boolean targetIsViewer) {
-        return targetGlimmering && !viewerSpectating && !targetIsViewer;
+    /**
+     * Wathe-dead spectators keep the outline; everyone else, a living spectator included, loses a glimmering target.
+     * 已死亡的旁观者保留描边；其他人（包括存活的旁观者）看不到灵光目标。
+     */
+    public static boolean hidesTarget(boolean targetGlimmering, boolean viewerDeadSpectator, boolean targetIsViewer) {
+        return targetGlimmering && !viewerDeadSpectator && !targetIsViewer;
     }
 
     /** Held items vanish with the body for every non-spectator viewer. / 对所有非旁观者，手持物随身体一起消失。 */

@@ -26,14 +26,17 @@ SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
 Seeker availability requires the SparkStrength tablet item (`sparkstrength:tablet`), resolved by
-registry id only; SparkStrength owns no Seeker gameplay.
+registry id only; SparkStrength owns no Seeker gameplay. SparkWitch never sells or grants the tablet: SparkStrength
+issues it free at round start to every tablet-eligible player (SparkWitch's `PoliceRoles` members and the witch
+faction included) and, through a mid-round reconciliation pass, to players who become eligible later.
 
 Current build baseline:
 
 - Minecraft `1.21.1`
 - Java `21`
 - SparkWitch `0.1.6.0` (Emma branch)
-- SparkFactionAPI floor `0.1.5.12`
+- SparkFactionAPI floor `0.1.5.12` (SparkFactionAPI `0.1.5.13`+ adds the two-row limited inventory; see
+  `compat/SparkFactionSecondRowCompat`)
 
 ## Read Order
 
@@ -53,9 +56,11 @@ Current build baseline:
   - The bound Necrology (`sparkwitch:prophet_necrology`): `ProphetNecrologyItem`, the binding rules
     `ProphetNecrologyRules`, and the lifecycle `ProphetNecrologyLoadoutService` (grant on assignment,
     one-copy restore from `ProphetRuntime.tick`, deletion on death, role loss, reset, round end, and stale
-    match). Its mixins live in `mixin/prophet/` (death drop, item drop, slot click), parallel to the Black
-    Raven ledger's; Fabric use callbacks refuse handing it to item frames, armor stands, allays and decorated
-    pots; hand hiding is the NoellesHiddenEquipment registration. The empty
+    match). Its mixins live in `mixin/prophet/` (death drop, item drop, slot click, decorated pot), parallel to
+    the Black Raven ledger's; a Fabric `UseEntityCallback` refuses handing it to item frames, armor stands and
+    allays, and `DecoratedPotBlockProphetNecrologyMixin` makes a decorated pot answer
+    `SKIP_DEFAULT_BLOCK_INTERACTION` so the pot never takes it and the book still opens; hand hiding is the
+    NoellesHiddenEquipment registration. The empty
     `net/OpenProphetNecrologyS2CPacket` opens the read-only two-tab book
     `client/prophet/ProphetNecrologyBookScreen`, which reads only `sparkwitch:prophet_player`.
   - Prophecy flow: the ability key's Prophet branch (`client/prophet/ProphetClientModule`, before the
@@ -63,7 +68,12 @@ Current build baseline:
     Fear and the shared skill cooldown, opens a nonce/match-bound `ProphetProphecySessions` entry and
     sends `net/OpenProphecyS2CPacket` (dead names only); `client/prophet/ProphetProphecyScreen` answers
     with `net/ConfirmProphecyC2SPacket`, which the server re-validates (`ProphetProphecyRules`), records on
-    the owner-only component, then charges 50 coins and cools down 30 s. Each ledger death carries a serial;
+    the owner-only component, then charges 50 coins and cools down 30 s. The answer is one of the 11 fixed
+    `ProphetDeathCauseGroup` groups; its table maps death-reason ids by string and sends unknown ids to OTHER. Every
+    `sparkwitch:` death reason needs an owner-picked entry: the local `ProphetDeathCauseGroupTest` collects them from
+    `SparkWitchDeathReasons`, the `death_reason.sparkwitch.*` lang keys and every `*DEATH_REASON*` constant, and fails
+    on a missing one. The responsible player is the Judge attribution's actor, else the killer; a self-kill counts as
+    no killer. Each ledger death carries a serial;
     a Prophecy record made against an earlier death of the same victim (revived, then killed again) is
     treated as fresh. Never in the Witch skill panel;
     both C2S ids are in the Control Expert stun and Seeker remote-view deny-lists.
@@ -83,8 +93,10 @@ Current build baseline:
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
   bound ledger, restricted shop, and lifecycle cleanup. The bound ledger and Raven Mask
   (`BlackRavenInventoryRules`) never drop, never leave their owner's inventory slots, and are
-  refused by `UseEntityCallback`/`UseBlockCallback` vetoes for item frames, armor stands, allays,
-  and decorated pots.
+  refused by a `UseEntityCallback` veto for item frames, armor stands and allays; a decorated pot
+  answers `SKIP_DEFAULT_BLOCK_INTERACTION` for them through
+  `mixin/blackraven/DecoratedPotBlockBlackRavenItemMixin`, so it never takes them (not even through a
+  Wathe ornament hung on it) and the ledger or mask still opens there.
   - `disguise/`: the Black Raven disguise. It owns the acting-role overlay
     (`BlackRavenActingRole`), the owner-only `BlackRavenDisguiseComponent` and its sync codec, the
     Tab B pool snapshot, the bound Raven Mask (`sparkwitch:black_raven_mask`), one-shot open
@@ -113,7 +125,10 @@ Current build baseline:
   deadline penalty), owner-private Echo/hint/toll state, bound bell and toll kill,
   restricted native shop, and lifecycle cleanup; its mixins live in
   `mixin/bellringer/` and `client/mixin/bellringer/`, client presentation in
-  `client/bellringer/`.
+  `client/bellringer/`. The bell cannot be handed to a world target: a `UseEntityCallback` veto in
+  `BellRingerFeatureService` refuses item frames, armor stands and allays, and
+  `mixin/bellringer/DecoratedPotBlockTollBellMixin` makes a decorated pot answer
+  `SKIP_DEFAULT_BLOCK_INTERACTION`, so the per-tick restore never mints a second bell.
 - `roles/killer/timestealer/`: Time Stealer (`sparkwitch:time_stealer`) Clock use gates and server
   ray targeting, the victim-side Time Theft curse and its piercing settle, physical Time Stamps
   (binding, grants, balance, purchases), the restricted native shop, the Timekeeper counter policy
@@ -125,7 +140,11 @@ Current build baseline:
   (`TIMEKEEPER`) in `compat/NoellesRoleIds`. Naming: the item is 时间怀表 / Time Pocket Watch
   (`sparkwitch:time_stealer_pocket_watch`, own texture and own pocket-watch curse sounds, kept apart
   from the Bell Ringer's bell); "Clock" stays only as the Java code name (`ClockReadyAt`, class and
-  constant names).
+  constant names). The Clock and stamps cannot be handed to a world target: a `UseEntityCallback` veto in
+  `TimeStealerFeatureService` refuses item frames, armor stands and allays, and
+  `mixin/timestealer/DecoratedPotBlockTimeStealerItemMixin` makes a decorated pot answer
+  `SKIP_DEFAULT_BLOCK_INTERACTION`, so the per-tick restore never mints a second Clock and the Clock's own
+  use still runs at a pot.
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers.
 - `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
@@ -175,7 +194,7 @@ Current build baseline:
     (`DeepDarkZoneSync`), sampled vanilla cues (`DeepDarkZoneCues`), and the runtime with its lifecycle
     (`DeepDarkZoneService`); standing effects, exposure, and drain operands (`DeepDarkZoneStandingRules`,
     `DeepDarkZoneStandingService`, `DeepDarkZoneStandingDrain`); and the owner-only `AbyssZoneExposureComponent`.
-  - Its mixins live in `mixin/abysslistener/` (the four Shriek Gun guards and the zone mood drain) and
+  - Its mixins live in `mixin/abysslistener/` (the five Shriek Gun guards and the zone mood drain) and
     `client/mixin/abysslistener/` (`ShriekGunCrosshairMixin`, `MoodRendererAbyssZoneExposureMixin`, and the read-only
     row accessor `MoodRendererTaskRowAbyssAccessor`).
   - Its client presentation lives in `client/abysslistener/`, registered once by `AbyssListenerClient.init()`: the
@@ -275,16 +294,19 @@ Current build baseline:
   - **Shift-click** (mouse mode, one `SWAP` either way). Hotbar item → its preferred armor slot when
     empty (as vanilla quick-move would); worn piece → first empty hotbar slot (Wathe hides the main
     inventory vanilla would fill). Anything else stays Wathe's PICKUP.
-  - **Full hotbar** (mouse mode). A worn piece cannot be picked onto an empty cursor while every
-    hotbar slot is taken (a vanilla close puts it in the hidden main inventory); the press sends
-    nothing, and number-key swaps still exchange it. Touchscreen release pick-ups are not guarded.
-    In either mode, while every hotbar slot is taken a close first clicks a cursor armor piece back
-    into its own empty armor slot (one vanilla PICKUP); with a free hotbar slot vanilla's close
-    offer already lands in the hotbar.
+  - **No shown room** (mouse mode). Shown slots are the hotbar, plus the second row (inventory
+    27-35) with SparkFactionAPI 0.1.5.13+, whose `getEmptySlot` fills that row before hidden 9-26.
+    A worn piece cannot be picked onto an empty cursor while every shown slot is taken (a vanilla
+    close puts it in the hidden main inventory); the press sends nothing, and number-key swaps
+    still exchange it. Touchscreen release pick-ups are not guarded. In either mode, while every
+    shown slot is taken a close first clicks a cursor armor piece back into its own empty armor slot
+    (one vanilla PICKUP); with a free shown slot vanilla's close offer already lands there.
   - **Layout.** A 50x50 2x2 block (head, chest / legs, feet) at `[X-54, X-4) x [Y-9, Y+41)` beside
-    Wathe's 176x32 strip, clear of the shop row, role head rows, logo and the right-hand info card at
-    every scaled size the layout test covers (320 px wide and up). Its frame is cut at draw time from
-    Wathe's own `limited_inventory.png`; no copied art.
+    Wathe's 176x32 strip, or at `[X-54, X-4) x [Y-20, Y+30)` centred on the 176x54 two-row block
+    `(X, Y-22)` with SparkFactionAPI 0.1.5.13+ (`LimitedInventoryArmorLayout.anchorY`), clear of the
+    shop row, role head rows, logo and the right-hand info card at every scaled size the layout test
+    covers (320 px wide and up). Its frame is cut at draw time from Wathe's own
+    `limited_inventory.png`; no copied art.
   - **Neighbours.** The SparkWitch/SparkTraits info card and SparkAssist's guidebook route around
     the panel because it is a visible `ClickableWidget` child; being inactive, it never consumes a
     click.
@@ -294,12 +316,26 @@ Current build baseline:
   slot mixin.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
+- `client/judge/`: primary-key selector and the role-owned bottom-right line (`JudgeHudRenderer`: "press key to
+  judge, 200 coins" or the coin requirement below 200). `WitchSkillHudRenderer` dispatches it right after Emma,
+  gated by `JudgeClientModule.ownsHud` (the selector gate minus Grand Witch Fear); no witch inventory panel.
 - `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
   `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters.
 - `mana/`: mana economy and natural-regeneration runtime.
 - `component/`: CCA ids, stored fields, sync/NBT codecs, and narrow state
   operations used by the owning runtime Modules.
 - `compat/`: optional or version-sensitive cross-mod Adapters.
+- `compat/SparkFactionSecondRowCompat`: the two-row limited inventory gate. With SparkFactionAPI
+  0.1.5.13+ (read once from the local mod version; SparkFactionAPI requires client and server to
+  match exactly; unknown versions fail closed), Wathe's in-round inventory also shows main slots
+  27-35 directly above the hotbar, and `getEmptySlot` fills 0-8, 27-35, then 9-26. With the bundled
+  floor every caller keeps its old behavior (the Abyss Listener's vacated-slot reuse below is new on
+  either version). Callers: bound-item displacement (Blind cane, Time Stealer Clock, Abyss Listener
+  gun: a full-hotbar re-grant moves the displaced item into the slot a removed stray vacated, but
+  never into hidden storage while the shown row has room), Potion Gunner launcher placement and
+  keeper move, shell returns and surfacing, the Seeker's swallowed-car return, the armor block, and
+  the info card's reserved inventory block. Hotbar-only rules are unchanged: a bound item in 27-35
+  is still a stray.
 - `compat/cooldown/`: SparkWitch's registrations with the SparkFactionAPI forced-cooldown contract
   (`api.cooldown.ForcedCooldowns`): role-skill stores for SparkWitch and NoellesRoles counters, the SparkWitch item
   nominal-cooldown provider, and the Seeker car item exemption. `SparkWitchForcedCooldowns.register()` runs once from
@@ -587,8 +623,9 @@ NoellesRoles `b58fa5f`) and `roles/civilian/seeker/taotie/`: the client predicts
 swallow key on a car in its crosshair (`client/mixin/seeker/SeekerTaotieAbilityKeyMixin`) and sends
 `seeker_car_swallow`, which the server re-validates; a swallow consumes the Taotie's swallow
 cooldown, removes the car without a mark or the 180 s cooldown, and tells the owner without naming
-the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role. The
-Seeker never renders in the `gui.sparkwitch.skills` panel.
+the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role, into its
+original slot, else the first empty hotbar slot, else the shown second row (SparkFactionAPI
+0.1.5.13+), else a main slot. The Seeker never renders in the `gui.sparkwitch.skills` panel.
 
 Angler state never enters that shared schema either. `sparkwitch:fisher_spirit` (`NEVER_COPY`,
 never saved) holds only the Glimmerfish window; its sync packet is one VarInt: 0 inactive, 1 for
@@ -657,7 +694,7 @@ and Murderous Witch `checkWin` skip it directly, and NoellesRoles'
 Jester-moment and Corrupt Cop loops (`lambda$registerEvents$14` alive-check ordinals 6 and 9),
 `countAliveAndNotSwallowed` and Taotie `hasSwallowedEveryone` reach `FiendWinExclusion` through additive
 `@WrapOperation`s pinned to b58fa5f. The Fiend Moment is a 200-gold, stock-1 shop entry whose all-or-nothing
-`onBuy` starts it (crowbar, Speed IV and one whiskey-shield layer, all for 2400 ticks); the crowbar carries the
+`onBuy` starts it (crowbar and Speed I for 2400 ticks, no shield); the crowbar carries the
 `sparkwitch:fiend_moment_crowbar` custom-data marker and every marked stack is taken back when the moment ends
 without a win, and a disconnect (`wathe:escaped`) ends it as "ended", not "slain". `FiendWinService` runs in
 phase `sparkwitch:fiend_moment_win`, ordered before `Event.DEFAULT_PHASE` on `CheckWinCondition`: no moment →
@@ -692,11 +729,9 @@ skip. Its `CanSeeMoney` answers ALLOW for a living Insider and DENY for a dead o
 `canAccessShop` fallback would keep the counter, because the shop is built from the role alone), with no
 running-state gate, because SparkTraits rolls traits while STARTING and offers Task Master to this FAKE-mood role only
 through that answer. The shop is rebuilt on both sides, gated on the exact role only: capture `sparktraits:*`,
-clear, revolver 150, crowbar 50, and (only when the SparkStrength tablet item is registered) the tablet at 100
-under SparkStrength's own entry id `sparkstrength_tablet`, each stock 1, then restore. The Insider is in SFA `PoliceRoles`, so its tablet joins the police channel. That also makes it a SparkStrength
-police elector for meetings and votes (`TabletChannelResolver.isPoliceElector`) and makes
-`TabletShopRules.canBuyTabletRole` true; SparkStrength's final shop append skips its own 150-price tablet only because
-the Insider entry reuses the id `sparkstrength_tablet`, so the shared entry id is load-bearing.
+clear, revolver 150 and crowbar 50, each stock 1, then restore. The tablet is not sold: the Insider is in SFA
+`PoliceRoles`, so SparkStrength issues it a free tablet at round start on the police channel. That also makes it a
+SparkStrength police elector for meetings and votes (`TabletChannelResolver.isPoliceElector`).
 Team Jiahao (every Corrupt Cop and every Insider, by current role) applies only in a round that has an Insider
 (any role-map entry with the Insider role, online or not, dead or alive); without one, all three wraps below
 return NoellesRoles' own value, so several forced Corrupt Cops behave exactly as in NoellesRoles and the title
@@ -715,11 +750,12 @@ Jiahao win (a winning team row in a round with an Insider): it marks every other
 screen reads "嘉豪阵营胜利！", and Wathe's `didWin` and `GameRecordManager.endMatch` read the same rows. Every
 other win keeps Wathe's rows.
 Insider presentation is client-only. One `GetInstinctHighlight` listener answers `always` only while its condition
-holds. At priority 65 (below SparkStrength's tablet member and suspect marks at 70/80, which keep their colors), a
-living Insider holding instinct sees every other living, visible player in `0x00FFD0`; the Corrupt Cop is answered
-at 93 in `0x193264`, so the partner stays navy even under a tablet mark. At priority 93 (above SparkStrength's
-Corrupt Cop x-ray at 90, below the Seeker mark 95, `skip()` 100 and suppression 102), a living Corrupt Cop sees the
-living, visible Insider in `0x00FFD0` while holding instinct or during its Moment vision window, and a killer-instinct
+holds. At priority 65 (below SparkStrength's tablet suspect mark at 80, which keeps its color; SparkStrength no
+longer outlines police-network members), a living Insider holding instinct sees every other living, visible player in
+`0x00FFD0`; the Corrupt Cop is answered at 93 in `0x193264`, so the partner stays navy even under a tablet suspect
+mark. At priority 93 (above SparkStrength's Corrupt Cop x-ray at 90, below the Seeker mark 95, `skip()` 100 and
+suppression 102), a living Corrupt Cop sees the living, visible Insider in `0x00FFD0` while holding instinct or
+during its Moment vision window, and a killer-instinct
 viewer (`isInstinctEnabledAndIsKiller() && !canSeeSpectatorInformation() && isKiller()`, exactly when Wathe's default
 would paint the target red or green, a promoted Saboteur Wraith included) holding instinct sees the living Insider in
 the Impostor blue `0x0013FF`, invisible or not, as SparkTraits paints an invisible real Impostor. Targets hidden by
@@ -847,8 +883,9 @@ compensation has settled final roles and Wathe has started the match record), an
 `RoleAssigned` to a playing, alive Blind while ACTIVE (C11): one White Cane in the hotbar, a 30 s
 cane and 90 s Attune initial cooldown, and the bound match id. The cane takes the selected hotbar
 slot when empty, else the first empty one; with a full hotbar it displaces the last hotbar item (the
-one before it when the last slot is selected) into a hidden main slot or the offhand, and with no
-room at all nothing moves and the placement retries every tick. A same-match re-assignment keeps its
+one before it when the last slot is selected) into the slot a misplaced cane vacated, else a main slot
+or the offhand, preferring the shown second row (SparkFactionAPI 0.1.5.13+) over hidden storage, and
+with no room at all nothing moves and the placement retries every tick. A same-match re-assignment keeps its
 cooldowns; the per-tick upkeep (only while ACTIVE) re-grants a state bound to another match and
 keeps exactly one cane in a living Blind's hotbar, except in Wathe psycho mode (SparkTraits'
 Depression psycho keeps the inventory bat-only), where the cane waits until psycho mode ends.
@@ -865,11 +902,13 @@ costs nothing, and a swallowed Blind gets no re-scan pulse. Attune (the
 shared NoellesRoles ability key sends `sparkwitch:use_blind_attune` while the view is active) is
 refused silently while a Taotie has swallowed the Blind (C7), while stunned, skill-blocked or
 cooling down, and with the Grand Witch Fear skill-blocked message while Feared; a refusal costs
-nothing. The White Cane and the ComTac VIII are bound: never an item entity (drop, death drop),
+nothing. Forced cooldowns reach Attune only through the `sparkwitch:blind_attune` store. The cane,
+like every carried non-exempt item, is floored by `raiseAll`; its item nominal only sizes nominal-based
+extensions such as GW-AC (see the SparkFactionAPI `ForcedCooldowns` registrations). The White Cane and the ComTac VIII are bound: never an item entity (drop, death drop),
 never outside the holder's own inventory slots (head slot included; QUICK_MOVE only for the ComTac
 quick-equip from the hotbar into an empty head slot; never the offhand (Wathe's server already
 refuses the swap-hands action in a round), a container, the crafting grid, an item frame, an armor
-stand or a decorated pot, where `BlindKitDecoratedPotMixin` answers `SKIP_DEFAULT_BLOCK_INTERACTION`
+stand, an allay or a decorated pot, where `BlindKitDecoratedPotMixin` answers `SKIP_DEFAULT_BLOCK_INTERACTION`
 on both sides so the pot never takes it and the cane tap or ComTac equip still runs), hidden in hand
 from other players through `NoellesHiddenEquipment` (D9),
 and stripped from inventory, head slot, cursor and open screens of anyone who is not a living,
@@ -892,10 +931,14 @@ Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
 components; the existing shared packet and NBT layouts remain unchanged. Sword
 kill readiness (30s) is independent of the item dash cooldown (5s). Recruitment
 uses a cumulative world quota, never a living-teammate count. It keeps only keys, both NoellesRoles master
-keys and letters (the revolver is refunded like any other item), re-initializes the new role's Wathe shop
-stock and cooldowns, and refuses, on the real role and before any destructive step, every SparkFactionAPI
-`PoliceRoles` member (Emma included, the Insider exempt) and the NoellesRoles Corrupt Cop with a random
-flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the failed recruitment.
+keys, letters and the SparkStrength tablet (registry id only; the revolver is refunded like any other item, and
+kept stacks are never refunded). The tablet is a free identity device, not a shop item: SparkStrength issues it at
+most once per player per round and re-resolves a kept tablet's channel to the witch network, and a recruit holding
+none gets one from SparkStrength's mid-round reconciliation pass; SparkWitch never grants it. Recruitment
+re-initializes the new role's Wathe shop stock and cooldowns, and refuses, on the real role and before any
+destructive step, every SparkFactionAPI `PoliceRoles` member (Emma included, the Insider exempt) and the
+NoellesRoles Corrupt Cop with a random flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the
+failed recruitment.
 A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so a recruited
 ex-Hunter gets no trap back (the trap itself stays armed until it expires or the round ends).
 Sword piercing
@@ -1004,11 +1047,23 @@ Features that force a cooldown on another player (penalties, auras) go through S
    nominal `AssassinPlayerComponent.COOLDOWN_TICKS`). NoellesRoles gates use `isRole`, so these stores (and the
    nominal lookup) also match the acting role of a disguised Black Raven (`ForcedCooldownRoles`). All members are
    checked against the pinned NoellesRoles 1.7.6 jar.
+8. `sparkwitch:blind_attune` (owner decision 2026-10-03, appended last so earlier slots keep their positions): the
+   Blind's Attune, for a real, active Blind with a granted kit in an ACTIVE round (`BlindAttuneService`'s gate; the
+   Blind is never a disguise target). Remaining time counts to the absolute ready tick, so it includes a running 10 s window, as the HUD
+   shows; the nominal is the 45 s post-window cooldown (`BlindRules.ATTUNE_COOLDOWN_TICKS`, 900), as the witch-skill
+   nominal leaves its window out. Every write only moves the ready tick later (`ForcedCooldownMath.raiseReadyTick`)
+   through the owner-syncing `BlindComponent.setAttune`; it never touches the window and never shortens. Raise and
+   extend are the SparkFactionAPI defaults.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
-Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Ninja shuriken
-and knife, Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun) and of NoellesRoles items with
-a public constant (Antidote, Repair Tool, Poison Needle) plus the 200-tick neutral master key; round-start cooldowns are
-not nominals, and Wathe items fall through to Wathe's own table.
+Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
+White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken and knife, Feather Blade, Knockout
+Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun, and the 1 s anti-repeat writes of the potion launcher and the Rift
+Gate, which no current consumer reaches) and of NoellesRoles items with a public constant (Antidote, Repair Tool, Poison
+Needle) plus the 200-tick neutral master key; round-start cooldowns are not nominals, and Wathe items fall through to
+Wathe's own table. The local `SparkWitchItemCooldownNominalsTest` scans every main source file for item cooldown
+writes (direct, through a local `ItemCooldownManager`, or through a ticks-parameter helper) and requires each written
+constant, by its qualified name, to be in the provider, unless it is listed as round-start, non-nominal, or a
+variable write with its reason.
 The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
 "max + exact" writer and offers no write path to other features, so the Fiend gun-hit aura skips it too (owner
 decision, 2026-10-02). Not registered (out of scope): Wathe shop-entry cooldowns, the Black Raven disguise switch,
@@ -1108,8 +1163,9 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
   directly). Both write `GUN_INITIAL_COOLDOWN_TICKS` (1200) through the vanilla `ItemCooldownManager.set`, so
   SparkTraits Fast Hands applies.
   - Placement is Wathe's `ShopEntry.insertStackInFreeSlot`. With a full hotbar the rightmost non-selected hotbar item
-    moves to an empty hidden slot, else to an empty offhand; with no room at all nothing is placed and the next sweep
-    retries.
+    moves into the slot a removed stray gun vacated (Time Stealer rule; a gun parked in SparkFactionAPI 0.1.5.13+'s
+    visible row 27-35 is a stray), else an empty main slot, else an empty offhand, preferring the shown second row
+    over hidden storage; with no room at all nothing is placed and the next sweep retries.
   - The holder entitlement is playing, alive, and exactly the Abyss Listener. A staggered 20-tick sweep keeps exactly
     one gun for an entitled holder (the first hotbar copy, else a gun mid-move on the cursor, else a fresh hotbar grant
     that leaves the per-Item cooldown untouched), removes duplicates and strays (hidden slots, offhand, crafting grid,
@@ -1117,10 +1173,13 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     removes the gun unless `WitchFactorTraitsBridge.isDeathIntercepted`; `ResetPlayer` and `ON_FINISH_FINALIZE` remove
     it. There is no creative exemption.
   - The binding matrix (`AbyssListenerInventoryRules`) is copied from, never shared with, the Time Stealer rules. Its
-    four guards in `mixin/abysslistener/` are HEAD, cancellable, and delegation-only:
+    five guards in `mixin/abysslistener/` are HEAD, cancellable, and delegation-only:
     `PlayerEntityAbyssListenerGunMixin` (`dropItem(ItemStack,ZZ)`), `ServerPlayerEntityAbyssListenerGunDropMixin`
-    (`dropSelectedItem(Z)Z`), `ScreenHandlerAbyssListenerGunMixin` (`internalOnSlotClick`), and
-    `GameFunctionsAbyssListenerGunDropMixin` (`shouldDropOnDeath` → false). A drop path that removed the stack before
+    (`dropSelectedItem(Z)Z`), `ScreenHandlerAbyssListenerGunMixin` (`internalOnSlotClick`),
+    `GameFunctionsAbyssListenerGunDropMixin` (`shouldDropOnDeath` → false), and
+    `DecoratedPotBlockAbyssListenerGunMixin` (`onUseWithItem` → `SKIP_DEFAULT_BLOCK_INTERACTION`, so a pot never
+    takes the gun and the gun still fires). A `UseEntityCallback` veto in `AbyssListenerLoadout` refuses item frames,
+    armor stands and allays, which would otherwise take the gun and let the sweep mint another. A drop path that removed the stack before
     `dropItem` (cursor drop on close, full-inventory offer) loses it, and the next sweep restores it with its cooldown
     intact.
 - **Deep Dark Zone terrain.** The zone is a client-only overlay: the server world is never written.
@@ -1223,16 +1282,22 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   on a right-click, refuses a second shell, and unloads onto an empty cursor. Wathe's inventory exposes only the
   hotbar, so both items must sit there.
 - **Bound items.** The launcher and shells follow the Time Stealer bound-item rules (`PotionGunnerInventoryRules`
-  plus the four `mixin/potiongunner/` HEAD injects, with no creative exemption). They are never dropped, never an
-  item entity, never in a container or the offhand, and never a death drop. Only a living, playing, exact Potion
+  plus the five `mixin/potiongunner/` HEAD injects, with no creative exemption). They are never dropped, never an
+  item entity, never in a container or the offhand, never handed to a world target, and never a death drop: a
+  `UseEntityCallback` veto in `PotionGunnerLifecycle` refuses item frames, armor stands and allays, and
+  `DecoratedPotBlockPotionGunnerItemMixin` makes a decorated pot answer `SKIP_DEFAULT_BLOCK_INTERACTION`, so the
+  sweep never mints a second launcher. Only a living, playing, exact Potion
   Gunner holds them; everyone else is stripped on role change, terminal death (not a SparkTraits-intercepted one),
   reset, and finalize. A staggered 20-tick sweep also re-grants a living gunner exactly one launcher. Both items
   stay visible in hand; the launcher is outside `wathe:guns`.
   - A holder's shell is never deleted. A removed duplicate launcher's shell loads the kept launcher or returns
-    hotbar-first (a hidden slot, else the empty cursor, when the hotbar is full); a copy whose shell has nowhere to go
-    stays put. A re-inserted drop keeps any remainder in its original stack.
-  - The sweep also moves shells from hidden main slots 9-35 into hotbar room (same-type stacks first, then empty
-    slots) and never displaces another item.
+    hotbar-first (the shown second row with SparkFactionAPI 0.1.5.13+, then a hidden slot, else the empty cursor, when
+    the hotbar is full); a copy whose shell has nowhere to go stays put. A re-inserted drop keeps any remainder in its
+    original stack. With a full hotbar a new launcher, or a kept one in hidden storage, the offhand or armor, goes to
+    the shown second row before hidden slots; a launcher in that row still moves into a free hotbar slot.
+  - The sweep also moves shells from hidden main slots into shown room (same-type stacks first, then empty slots) and
+    never displaces another item. Hidden means 9-35, or 9-26 when SparkFactionAPI 0.1.5.13+ shows 27-35: shells the
+    player parks in that row stay there, and surfaced shells fill that row before an empty hotbar slot.
 - **Scope and fire.** Holding use scopes, client-side only: zoom ×0.25, mouse look ×0.25, a hidden hand, and the
   reticle with range ticks drawn by a priority-1100 `InGameHud#renderCrosshair` wrapper. Left-click sends
   `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec), one shot per fresh press. Only an
@@ -1275,7 +1340,7 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   - GW-MR: up to 150 coins taken and destroyed, never below 0.
   - GW-AC: every `ForcedCooldowns.slots` entry with a known nominal is extended by `ceil(nominal × 20% × falloff)`.
   - TR: an ordinary, non-forced `killPlayer` with `sparkwitch:potion_shell` (the gunner's own death has no killer and
-    comes last). A survivor gets Blindness, Slowness II and 3 s of harmless burning.
+    comes last). A survivor gets Blindness, Slowness II and 3 s of harmless burning. Prophecy group: Explosion.
   - The harmless burn is a global `ServerLivingEntityEvents.ALLOW_DAMAGE` listener that vetoes fire damage only
     while a player holds an owned burn window (`PotionShellBurn`, server-only, never saved).
   - Kill bounties follow the normal faction rules; an ally kill still pays the SparkFactionAPI direct-kill reward
@@ -1284,7 +1349,8 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   on the nearest player in a 4-block lane straight behind the gunner. The lane follows the shot's yaw only: it runs
   horizontally from the eye whatever the pitch (half-width 0.5, clipped at the first block or door, line of sight),
   and only a player whose box centre lies behind the gunner counts. Any faction is hit, never the gunner, and never a
-  vetoed or Last Escape player. The kill runs inside `JudgeKillAttribution.runWith` for the gunner.
+  vetoed or Last Escape player. The kill runs inside `JudgeKillAttribution.runWith` for the gunner. Prophecy group:
+  Explosion, like the TR shell.
   - It is nearest-wins against Seeker devices with one measure: the player's distance is taken on the real box, and
     only a device strictly nearer absorbs it; a tie goes to the player (`SeekerDeviceHits.onPotionBackblast`).
   - It has no fallback effects and no reward.
@@ -1348,6 +1414,11 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   player list, screenshot, fullscreen, voice chat, instinct), hide the hand and force a crosshair MISS; A/D, scroll or
   1/2 + use hop, a fresh Shift exits. `RiftGrayscaleFilter` (private `PostEffectProcessor`) re-composites outlines so
   instinct colours stay (D10); `RiftSessionHud` draws ←/→, `#gate · n/m` and the stay seconds (red from 5 s, C2).
+  An occupant keeps its own living-role instinct outlines: `WitchFactionRules` / `MurderousWitchRules`
+  `shouldUseCustomInstinctHighlight` key on Wathe-alive only (a null answer would reach SparkFactionAPI's
+  role-revealing faction-colour fallback), Obscure/Fear still apply, and the Wraith reveal (`WraithViewerRules`) and
+  the glimmering-Fisher outline exemption (`FisherGlimmerInstinctHooks`) belong to Wathe-dead spectators only. The
+  factor fallback (`WitchFactorClientHooks`) still stays off for any spectator.
 - **Melee.** A gate keeps `canHit()` only for the right-click entry and never shields a player behind it (client only;
   the server never re-raycasts melee). The client `RiftGateEntity.interact` returns PASS unless the local player could
   enter now (B-6, `RiftSessionService.claimsRightClick`), so a held item still fires.
@@ -1391,7 +1462,8 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `client/mixin/riftwalker/RiftSwapperWidgetMixin` (C7, pinned in `verifyClientMixinSelectors`) lets the Swapper pick an
   untracked, Wathe-alive spectator. Third owner-approved exception: `sparkwitch:portal_crushed` is a forced, terminal,
   killer-less environmental kill, registered as SparkTraits-terminal on `SERVER_STARTING` like `bell_toll` (the Swapper
-  may still become a Wraith, D17). Its victim is always the Swapper, so the Saint and dormant-Fiend guards need no
+  may still become a Wraith, D17). Its Prophecy group is Supernatural, and a correct guess reveals no killer. Its
+  victim is always the Swapper, so the Saint and dormant-Fiend guards need no
   opt-out; a vetoed kill (older SparkTraits) moves the Swapper back with NR's 60 s cooldown.
 - **Cross-mod seams.** SparkTraits only through existing bridges, failing closed: `isKillerInteractionBlocked`,
   `isRoleSkillBlocked`, `isLastEscapeActive`, `registerTerminalDeathReason` (`SparkTraitsKillerBridge`),
@@ -1420,8 +1492,9 @@ Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player
 whose synced Wraith state is active is skipped when
 `WraithViewerRules.shouldHideFromOrdinaryViewer` hides it, except for the
-promoted Curser viewed by the witch faction. Spectators, killers viewing the
-promoted Saboteur, and the bound killer viewing its Vendetta keep selecting it.
+promoted Curser viewed by the witch faction. Wathe-dead spectators (not a living
+Rift Gate occupant), killers viewing the promoted Saboteur, and the bound killer
+viewing its Vendetta keep selecting it.
 `client/mixin/WraithNameTagRaycastMixin` narrows only the predicate of the first
 (player) `ProjectileUtil.getCollision` in Wathe's `RoleNameRenderer.renderHud`;
 `WitchCohortRoleNameMixin`, `InsiderCohortRoleNameMixin` and `BlackRavenRoleNameRenderer` apply the same filter

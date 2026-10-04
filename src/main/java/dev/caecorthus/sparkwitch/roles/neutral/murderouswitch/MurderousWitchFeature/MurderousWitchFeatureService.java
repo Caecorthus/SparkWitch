@@ -72,8 +72,9 @@ public final class MurderousWitchFeatureService {
             return null;
         }
         boolean viewerAlive = GameFunctions.isPlayerPlayingAndAlive(viewer);
-        boolean viewerSpectatingOrCreative = GameFunctions.isPlayerSpectatingOrCreative(viewer);
-        if (!MurderousWitchRules.shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)) {
+        // A living Rift Gate occupant is a spectator but keeps this instinct; see shouldUseCustomInstinctHighlight.
+        // 存活的裂隙门内玩家虽是旁观者，仍保留此本能；见 shouldUseCustomInstinctHighlight。
+        if (!MurderousWitchRules.shouldUseCustomInstinctHighlight(viewerAlive)) {
             return null;
         }
         Role targetRole = gameComponent.getRole(targetPlayer);
@@ -87,7 +88,6 @@ public final class MurderousWitchFeatureService {
         boolean samePlayer = viewer.getUuid().equals(targetPlayer.getUuid());
         boolean shouldHighlight = MurderousWitchRules.shouldHighlightInstinctTarget(
                 viewerAlive,
-                viewerSpectatingOrCreative,
                 samePlayer,
                 GameFunctions.isPlayerPlayingAndAlive(targetPlayer),
                 GameFunctions.isPlayerSpectatingOrCreative(targetPlayer)

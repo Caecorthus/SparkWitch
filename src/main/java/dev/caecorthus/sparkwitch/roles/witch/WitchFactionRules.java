@@ -101,25 +101,27 @@ public final class WitchFactionRules {
                 : OptionalInt.empty();
     }
 
-    public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive, boolean viewerSpectatingOrCreative) {
-        return viewerAlive && !viewerSpectatingOrCreative;
-    }
-
+    /**
+     * A Wathe-alive viewer keeps its own role instinct in every game mode; only a Wathe-dead spectator falls through to
+     * Wathe's spectator information colours. A Rift Gate occupant is an alive spectator whose instinct colours stay
+     * (D10), and a null answer for it would hand it SparkFactionAPI's faction-colour fallback, which reveals roles.
+     * 存活（wathe 判定）的观察者在任何游戏模式下都保留自身职业本能；只有已死亡的旁观者回落到 wathe 旁观信息颜色。
+     * 裂隙门内的玩家是存活的旁观者，本能颜色保留（D10）；若对其返回 null，会落入 SparkFactionAPI 的阵营色兜底而暴露身份。
+     */
     public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive) {
-        return shouldUseCustomInstinctHighlight(viewerAlive, false);
+        return viewerAlive;
     }
 
     /**
-     * Obscure blocks only active non-Witch instinct users; spectators keep Wathe information vision.
-     * 障眼只遮蔽正在游玩的非魔女本能使用者；旁观者保留 wathe 信息透视。
+     * Obscure blocks only living non-Witch instinct users; dead spectators keep Wathe information vision.
+     * 障眼只遮蔽存活的非魔女本能使用者；已死亡的旁观者保留 wathe 信息透视。
      */
     public static boolean shouldObscureInstinct(
             boolean instinctObscured,
             Role viewerRole,
-            boolean viewerAlive,
-            boolean viewerSpectatingOrCreative
+            boolean viewerAlive
     ) {
-        return shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)
+        return shouldUseCustomInstinctHighlight(viewerAlive)
                 && instinctObscured
                 && isAffectedByWitchAreaSpell(viewerRole);
     }
@@ -133,10 +135,9 @@ public final class WitchFactionRules {
             boolean instinctObscured,
             Role viewerRole,
             boolean viewerAlive,
-            boolean viewerSpectatingOrCreative,
             boolean finalMomentActive
     ) {
-        if (finalMomentActive || !shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)) {
+        if (finalMomentActive || !shouldUseCustomInstinctHighlight(viewerAlive)) {
             return false;
         }
         boolean affectedByFear = fearActive && isAffectedByFear(viewerRole);

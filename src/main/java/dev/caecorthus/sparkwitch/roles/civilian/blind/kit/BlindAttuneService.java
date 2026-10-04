@@ -12,9 +12,11 @@ import net.minecraft.server.network.ServerPlayerEntity;
 /**
  * Server handler of {@code sparkwitch:use_blind_attune} (G key). Attune is a role-owned skill: it never enters the
  * witch skill registry, the shared witch-skill cooldowns or the witch skill panel; its window and cooldown live in the
- * owner-only {@code sparkwitch:blind} component, and perception reads the window from there.
+ * owner-only {@code sparkwitch:blind} component, and perception reads the window from there. Forced cooldowns from other
+ * features reach it only through {@code compat/cooldown/BlindAttuneCooldownStore}, which only moves the ready tick later.
  * {@code sparkwitch:use_blind_attune} 的服务端处理（G 键）。凝神是职业自有技能：从不进入魔女技能注册表、共享的魔女
  * 技能冷却或魔女技能面板；其窗口与冷却保存在仅本人同步的 {@code sparkwitch:blind} 组件中，感知从那里读取窗口。
+ * 其他功能的强制冷却只经 {@code compat/cooldown/BlindAttuneCooldownStore} 作用于它，且只会把就绪刻推后。
  */
 public final class BlindAttuneService {
     private BlindAttuneService() {
