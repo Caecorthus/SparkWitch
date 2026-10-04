@@ -96,10 +96,8 @@ public final class PotionBlastService {
     private static void payReward(ServerWorld world, @Nullable ServerPlayerEntity gunner, int rewardedHits) {
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         boolean online = gunner != null && !gunner.isRemoved();
-        // A gunner inside a Rift Gate is an alive spectator (Riftwalker D3), so it keeps the +15 per hit as well as the
-        // kill credit (owner 2026-10-04); a Wathe-dead or ordinary spectator still gets nothing.
-        // 位于裂隙门内的药炮手是存活旁观者（隙行者 D3），因此在保留击杀归属的同时照常领取每人 +15（所有者 2026-10-04）；
-        // Wathe 判定死亡的旁观者或普通旁观者仍然一无所获。
+        // An in-gate gunner is an alive spectator (Riftwalker D3) and is still paid; see PotionBlastRewards.notSpectating.
+        // 门内的药炮手是存活旁观者（隙行者 D3），照常领取奖励；见 PotionBlastRewards.notSpectating。
         int amount = PotionBlastRewards.amount(
                 online,
                 online && GameFunctions.isPlayerPlayingAndAlive(gunner)

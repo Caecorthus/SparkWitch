@@ -21,8 +21,8 @@ public final class GuardianAngelTargetingPreview {
             return null;
         }
         // Same rule as the server, spectator test included, so a Rift Gate occupant never reads as "ready". Game
-        // modes are public (tab list). / 与服务端同一规则（含旁观者判断），裂隙门内的玩家不会显示为“可用”。
-        // 游戏模式本就公开（玩家列表）。
+        // modes are public (tab list).
+        // 与服务端同一规则（含旁观者判断），裂隙门内的玩家不会显示为“可用”。游戏模式本就公开（玩家列表）。
         return GuardianAngelRules.canTarget(
                 target == player,
                 GameFunctions.isPlayerPlayingAndAlive(target),

@@ -41,7 +41,7 @@ public final class OrthopedistTargeting {
         return isValidDirectTarget(caster, target) ? target : null;
     }
 
-    /** The last server check before Bone Setting; rejects spectators too. / 正骨前最后的服务端校验，同样拒绝旁观者。 */
+    /** Validates the raycast hit; rejects spectators too. / 校验射线命中的目标，同样拒绝旁观者。 */
     public static boolean isValidDirectTarget(ServerPlayerEntity caster, ServerPlayerEntity target) {
         return target != caster
                 && !target.isSpectator()
