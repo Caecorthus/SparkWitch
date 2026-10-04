@@ -8,9 +8,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionServ
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssSuppression;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.caecorthus.sparkwitch.util.hitscan.HitscanLagRules;
 import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import net.minecraft.entity.effect.StatusEffects;
@@ -29,11 +29,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * Server half of the Shriek Gun: the fire gate, the beam, the Seeker seam, the ally/enemy hit, the fall-credit record,
- * presentation and the replay record. Non-lethal: it never kills, never sends {@code GunShootPayload} and never uses
- * {@code wathe:gun_shot}; a push that drops someone off the train is credited later by the shared fall ledger.
- * 啸音铳的服务端部分：开火门槛、射线、搜寻者接缝、队友/敌人命中、坠车归因记录、表现与回放记录。非致命：从不击杀、
- * 从不发送 {@code GunShootPayload}、从不使用 {@code wathe:gun_shot}；把人推下火车的击杀由共享坠车账本事后归属。
+ * Server half of the Shriek Gun: the fire decision, the match beam, the Seeker seam, the ally/enemy hit, the
+ * fall-credit record, presentation and the replay record, plus the off-match presentation-only shot. Non-lethal: it
+ * never kills, never sends {@code GunShootPayload} and never uses {@code wathe:gun_shot}; a push that drops someone off
+ * the train is credited later by the shared fall ledger.
+ * 啸音铳的服务端部分：开火判定、对局射线、搜寻者接缝、队友/敌人命中、坠车归因记录、表现与回放记录，以及对局外仅表现的
+ * 射击。非致命：从不击杀、从不发送 {@code GunShootPayload}、从不使用 {@code wathe:gun_shot}；把人推下火车的击杀由
+ * 共享坠车账本事后归属。
  */
 public final class ShriekGunService {
     private static final SoundEvent FIRE_SOUND = SoundEvents.ENTITY_WARDEN_SONIC_BOOM;
@@ -46,26 +48,40 @@ public final class ShriekGunService {
     }
 
     /**
-     * Server gate: running game, exact Abyss Listener role, living non-spectator non-Wraith holder, the gun not on
-     * cooldown, and no SparkTraits weapon-action block. A refused use costs nothing.
-     * 服务端门槛：对局进行中、职业精确为聆渊者、持有者存活且非旁观、非激活冤魂、枪未冷却、未被 SparkTraits 封锁武器动作。
-     * 被拒绝的使用不产生任何代价。
+     * Server fire decision; any holder may fire (owner rule 2026-10-04, {@link OffMatchUse}). The live test is a
+     * playing, living, non-spectator, non-Wraith participant; the spectator, cooldown and SparkTraits weapon-action
+     * checks apply to every mode. A refused use costs nothing.
+     * 服务端开火判定；任何持有者都可开火（所有者 2026-10-04 规则，{@link OffMatchUse}）。存活判定为在局、存活、非旁观、
+     * 非激活冤魂的参与者；旁观、冷却与 SparkTraits 武器动作检查对每种模式都生效。被拒绝的使用不产生任何代价。
      */
-    static boolean canFire(ServerPlayerEntity shooter, ItemStack gun) {
-        GameWorldComponent game = GameWorldComponent.KEY.get(shooter.getWorld());
-        return ShriekGunRules.canFire(
-                game.isRunning(),
-                AbyssListenerRules.isAbyssListener(game.getRole(shooter)),
-                () -> GameFunctions.isPlayerPlayingAndAlive(shooter) && !shooter.isSpectator()
-                        && !WraithStateService.isActive(shooter),
+    static OffMatchUse.Mode fireMode(ServerPlayerEntity shooter, ItemStack gun) {
+        return ShriekGunRules.fireMode(
+                shooter.isSpectator(),
+                OffMatchUse.mode(shooter, GameFunctions.isPlayerPlayingAndAlive(shooter) && !shooter.isSpectator()
+                        && !WraithStateService.isActive(shooter)),
                 () -> shooter.getItemCooldownManager().isCoolingDown(gun.getItem()),
                 () -> SparkTraitsKillerBridge.blocksWeaponAction(shooter, gun));
     }
 
     /**
-     * Fires one beam after {@link #canFire} passed; the caller then writes the vanilla cooldown, hit or miss.
-     * Returns the player that was hit, or null.
-     * 在 {@link #canFire} 通过后发射一次射线；随后由调用方写入原版冷却（无论是否命中）。返回被命中的玩家或 null。
+     * Off-match shot ({@link OffMatchUse.Mode#PRESENTATION}): the fire sound and the beam particles up to the block cut
+     * of {@link ShriekGunTargeting#beamEnd}. It picks no target and touches no player, Seeker device, fall ledger or
+     * replay; the caller still writes the cooldown.
+     * 对局外射击（{@link OffMatchUse.Mode#PRESENTATION}）：开火音效与延伸到 {@link ShriekGunTargeting#beamEnd} 方块截断点的
+     * 射线粒子。不选取目标，不触碰任何玩家、搜寻者设备、坠车账本或回放；冷却仍由调用方写入。
+     */
+    static void firePresentation(ServerPlayerEntity shooter, ServerWorld world) {
+        Vec3d start = shooter.getEyePos();
+        Vec3d end = ShriekGunTargeting.beamEnd(shooter, AbyssListenerRules.GUN_RANGE);
+        spawnBeam(world, start, shooter.getRotationVec(1.0F), start.distanceTo(end));
+        playFireSound(world, shooter);
+    }
+
+    /**
+     * Match shot ({@link OffMatchUse.Mode#MATCH}): fires one beam; the caller then writes the vanilla cooldown, hit or
+     * miss. Returns the player that was hit, or null.
+     * 对局射击（{@link OffMatchUse.Mode#MATCH}）：发射一次射线；随后由调用方写入原版冷却（无论是否命中）。返回被命中的
+     * 玩家或 null。
      */
     static @Nullable ServerPlayerEntity fire(ServerPlayerEntity shooter, ServerWorld world, Item gun) {
         Vec3d start = shooter.getEyePos();
@@ -94,8 +110,7 @@ public final class ShriekGunService {
             cut = Math.min(cut, deviceDistance(start, end, blocker));
         }
         spawnBeam(world, start, direction, cut);
-        world.playSound(null, shooter.getX(), shooter.getY(), shooter.getZ(), FIRE_SOUND, SoundCategory.PLAYERS,
-                FIRE_VOLUME, FIRE_PITCH);
+        playFireSound(world, shooter);
         NbtCompound extra = new NbtCompound();
         extra.putBoolean("hit", target != null);
         if (target != null) {
@@ -157,6 +172,11 @@ public final class ShriekGunService {
             Vec3d point = start.add(unit.multiply(distance));
             world.spawnParticles(ParticleTypes.SONIC_BOOM, point.x, point.y, point.z, 1, 0.0, 0.0, 0.0, 0.0);
         }
+    }
+
+    private static void playFireSound(ServerWorld world, ServerPlayerEntity shooter) {
+        world.playSound(null, shooter.getX(), shooter.getY(), shooter.getZ(), FIRE_SOUND, SoundCategory.PLAYERS,
+                FIRE_VOLUME, FIRE_PITCH);
     }
 
     private static double deviceDistance(Vec3d start, Vec3d end, SeekerDeviceEntity device) {

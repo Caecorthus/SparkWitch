@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.mixin.abysslistener;
 
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.loadout.AbyssListenerInventoryRules;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.loadout.AbyssListenerLoadout;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -11,10 +12,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Keeps the Shriek Gun from ever becoming an item entity. {@code ServerPlayerEntity} delegates here via {@code super},
- * so every server drop path is covered; a caller that already removed the stack (a cursor drop on close, a full
- * inventory offer) loses it, and the loadout sweep restores the single gun without touching its cooldown.
- * 阻止啸音铳变成物品实体。{@code ServerPlayerEntity} 通过 {@code super} 调用此方法，因此覆盖所有服务端丢弃路径；
- * 已先把物品堆移出的调用方（关闭界面时丢弃光标、背包已满时的放入）会失去它，再由装备清理补回唯一的枪且不改动冷却。
+ * so every server drop path is covered. A caller that already removed the stack (a cursor drop on close, a full
+ * inventory offer) would lose it: for a match participant the loadout sweep restores the Abyss Listener's single gun
+ * without touching its cooldown; a living free holder, whom no sweep touches, gets a gun returned from a closing
+ * screen's cursor straight back through {@code AbyssListenerLoadout.keepRefusedDrop} (server-only, see
+ * {@code util/OffMatchUse}).
+ * 阻止啸音铳变成物品实体。{@code ServerPlayerEntity} 通过 {@code super} 调用此方法，因此覆盖所有服务端丢弃路径。
+ * 已先把物品堆移出的调用方（关闭界面时丢弃光标、背包已满时的放入）会失去它：对局参与者由装备清理为聆渊者补回唯一的枪且
+ * 不改动冷却；任何清扫都不触碰的存活自由持有者，其关闭界面时从光标退回的枪会通过
+ * {@code AbyssListenerLoadout.keepRefusedDrop} 立即还给他（仅服务端，见 {@code util/OffMatchUse}）。
  */
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityAbyssListenerGunMixin {
@@ -26,6 +32,7 @@ public abstract class PlayerEntityAbyssListenerGunMixin {
             CallbackInfoReturnable<ItemEntity> cir
     ) {
         if (AbyssListenerInventoryRules.blocksDrop(stack)) {
+            AbyssListenerLoadout.keepRefusedDrop((PlayerEntity) (Object) this, stack);
             cir.setReturnValue(null);
         }
     }

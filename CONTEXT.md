@@ -180,13 +180,14 @@ Current build baseline:
   eligibility and write suppression state. Its optional SparkTraits reads live in
   `compat/SparkTraitsAbyssListenerBridge`.
   - `shriek/`: `WardensShriekService`, the Warden's Shriek handler on the shared Witch-skill path.
-  - `gun/`: the Shriek Gun: `ShriekGunItem` (the `Item#use` entry), `ShriekGunService` (server gate, beam, hit,
-    presentation, record), `ShriekGunRules` (pure fire gate, ally/enemy hit plan, sync-capped knockback vector, particle
-    spacing, Vendetta rule), and `ShriekGunTargeting` (side-neutral beam geometry shared by the server hit and the
-    client crosshair).
-  - `loadout/`: the bound gun: `AbyssListenerInventoryRules` (pure binding matrix, holder entitlement, round-start
-    gate), `AbyssListenerGunSweep` (pure reconcile decisions, staggered cadence, full-hotbar displacement slot), and
-    `AbyssListenerLoadout` (grants, entitlement sweep, death/reset/finalize removal).
+  - `gun/`: the Shriek Gun: `ShriekGunItem` (the `Item#use` entry), `ShriekGunService` (server fire mode, match
+    beam, hit, presentation, record, and the off-match presentation shot), `ShriekGunRules` (pure fire mode, ally/enemy
+    hit plan, sync-capped knockback vector, particle spacing, Vendetta rule), and `ShriekGunTargeting` (side-neutral
+    beam geometry shared by the server hit and the client crosshair).
+  - `loadout/`: the bound gun: `AbyssListenerInventoryRules` (pure binding matrix, holder entitlement, free-holder
+    drop return, round-start gate), `AbyssListenerGunSweep` (participant-only sweep gate, pure reconcile decisions,
+    staggered cadence, full-hotbar displacement slot), and `AbyssListenerLoadout` (grants, entitlement sweep,
+    free-holder drop return, death/reset/finalize removal).
   - `zone/`: the Deep Dark Spore Flask (item, thrown entity, and its registration in `AbyssListenerEntities`); the Deep
     Dark Zone terrain: flood-fill shape and landing cell (`DeepDarkZoneShape`), eligibility and palette
     (`DeepDarkZoneEligibility`), timeline (`DeepDarkZoneSchedule`), in-memory registry (`DeepDarkZoneState`), section
@@ -620,7 +621,9 @@ a clear line to a point of the device, else only through the 25° / 15-point-sam
 (`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
 nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
 SparkStrength M67, Potion Gunner shell) break every device in a sphere with line of sight and still kill players as
-before. Sources with no hit or damage geometry never
+before. An M67 breaks devices only when the round is ACTIVE and its thrower holds a match role
+(`compat/SparkStrengthM67Compat`, the `util/OffMatchUse` rule); SparkStrength's presentation-only M67s
+(non-participants, or thrown during STARTING or STOPPING) break nothing. Sources with no hit or damage geometry never
 break a device: the firecracker (sound only), the Bomber timed bomb (kills only its holder), and the
 poison gas cloud (status effect). A breaker other than the owner is marked for the owner only (10 s,
 newest replaces oldest) when the owner holds the tablet; recalls, depletion, and Taotie swallows
@@ -1166,10 +1169,13 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
   `WitchSkillUseResult.success(SHRIEK_COOLDOWN_TICKS)` (60 s), so the shared cooldown starts even with nobody in range.
   The caster is never told how many were hit.
 - **Shriek Gun.** `sparkwitch:shriek_gun` is a plain `Item#use` hitscan on the Taser template, hidden in hand through
-  `NoellesHiddenEquipment` and never in `wathe:guns`. The client only swings and recoils. The server fires only in a
-  running game for a living, non-spectator, non-Wraith holder whose role is exactly the Abyss Listener, while the gun
-  is off cooldown and SparkTraits `blocksWeaponAction` is false; it then writes the vanilla
-  `ItemCooldownManager.set(gun, 600)` whether or not anything was hit (Fast Hands applies).
+  `NoellesHiddenEquipment` and never in `wathe:guns`. The client only swings and recoils. Any holder may fire and the
+  role is never read (owner rule 2026-10-04, `util/OffMatchUse`). In every mode a spectator, a gun on cooldown, or a
+  SparkTraits `blocksWeaponAction` holder is refused. A living, non-spectator, non-Wraith participant of an ACTIVE
+  round fires the match shot below; a dead participant or active Wraith is refused. Everyone else (no match,
+  STARTING/STOPPING, a lobby player during an ACTIVE match) fires a presentation shot: the `SONIC_BOOM` beam cut only
+  at blocks, plus the fire sound; there is no target pick, Seeker seam, push, effect, fall record, or replay line.
+  Every fired shot then writes the vanilla `ItemCooldownManager.set(gun, 600)`, hit or miss (Fast Hands applies).
   - The beam is one COLLIDER `world.raycast` from the eye over 12 blocks (closed doors stay solid through
     `RaycastShapeScope`). Candidates are filtered before geometry by
     `AbyssSuppression.canAffect(shooter, c, sparkwitch:abyss_listener_gun)` plus Vendetta exact-pair isolation (allies
@@ -1208,10 +1214,12 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     moves into the slot a removed stray gun vacated (Time Stealer rule; a gun parked in SparkFactionAPI 0.1.5.13+'s
     visible row 27-35 is a stray), else an empty main slot, else an empty offhand, preferring the shown second row
     over hidden storage; with no room at all nothing is placed and the next sweep retries.
-  - The holder entitlement is playing, alive, and exactly the Abyss Listener. A staggered 20-tick sweep keeps exactly
-    one gun for an entitled holder (the first hotbar copy, else a gun mid-move on the cursor, else a fresh hotbar grant
-    that leaves the per-Item cooldown untouched), removes duplicates and strays (hidden slots, offhand, crafting grid,
-    containers), and strips every non-entitled holder (role change, Wraith transition, death). `KillPlayer.AFTER`
+  - The holder entitlement (`mayHold`) is playing, alive, and exactly the Abyss Listener. A staggered 20-tick sweep
+    reconciles only match participants (`OffMatchUse.isMatchParticipant`: a role in a running ACTIVE/STOPPING match).
+    It keeps exactly one gun for an entitled holder (the first hotbar copy, else a gun mid-move on the cursor, else a
+    fresh hotbar grant that leaves the per-Item cooldown untouched), removes duplicates and strays (hidden slots,
+    offhand, crafting grid, containers), and strips every other participant (role change, Wraith transition, death).
+    Everyone else is a free holder whose copy the sweep never strips, grants, or deduplicates. `KillPlayer.AFTER`
     removes the gun unless `WitchFactorTraitsBridge.isDeathIntercepted`; `ResetPlayer` and `ON_FINISH_FINALIZE` remove
     it. There is no creative exemption.
   - The binding matrix (`AbyssListenerInventoryRules`) is copied from, never shared with, the Time Stealer rules. Its
@@ -1221,9 +1229,12 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     `GameFunctionsAbyssListenerGunDropMixin` (`shouldDropOnDeath` → false), and
     `DecoratedPotBlockAbyssListenerGunMixin` (`onUseWithItem` → `SKIP_DEFAULT_BLOCK_INTERACTION`, so a pot never
     takes the gun and the gun still fires). A `UseEntityCallback` veto in `AbyssListenerLoadout` refuses item frames,
-    armor stands and allays, which would otherwise take the gun and let the sweep mint another. A drop path that removed the stack before
-    `dropItem` (cursor drop on close, full-inventory offer) loses it, and the next sweep restores it with its cooldown
-    intact.
+    armor stands and allays, which would otherwise take the gun and let the sweep mint another. These guards hold for
+    every holder. A drop path that removed the stack before `dropItem` (cursor drop on close, full-inventory offer)
+    loses it; for a participant the next sweep restores the Abyss Listener's gun with its cooldown intact. A living free
+    holder gets a closing screen's cursor gun straight back (`AbyssListenerLoadout.keepRefusedDrop`, placed like a sweep
+    grant; with every slot full the displaced hotbar item drops instead), and no other refused drop is handed back, so
+    `/give`'s pickup-animation copy never duplicates the gun.
 - **Deep Dark Zone terrain.** The zone is a client-only overlay: the server world is never written.
   - A Deep Dark Spore Flask (item and thrown entity) is thrown only in an ACTIVE round by a living, non-creative,
     non-Wraith participant who passes `SparkTraitsKillerBridge.blocksWeaponAction`; it has no cooldown, and any holder

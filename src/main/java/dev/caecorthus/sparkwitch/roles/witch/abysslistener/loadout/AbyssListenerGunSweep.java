@@ -1,14 +1,17 @@
 package dev.caecorthus.sparkwitch.roles.witch.abysslistener.loadout;
 
 import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.IntPredicate;
 import net.minecraft.entity.player.PlayerInventory;
 
 /**
- * Pure decisions of the Shriek Gun reconcile: which copy (if any) survives, whether a fresh gun is placed, the sweep
- * cadence, and where a gun goes when the hotbar is full. The server executor lives in {@link AbyssListenerLoadout}.
- * 啸音铳校正的纯判定：保留哪一份（如有）、是否放入新枪、清理节奏，以及快捷栏已满时枪放在哪里。
+ * Pure decisions of the Shriek Gun reconcile: who is swept, which copy (if any) survives, whether a fresh gun is
+ * placed, the sweep cadence, and where a gun goes when the hotbar is full. The server executor lives in
+ * {@link AbyssListenerLoadout}.
+ * 啸音铳校正的纯判定：校正谁、保留哪一份（如有）、是否放入新枪、清理节奏，以及快捷栏已满时枪放在哪里。
  * 服务端执行位于 {@link AbyssListenerLoadout}。
  */
 final class AbyssListenerGunSweep {
@@ -64,6 +67,17 @@ final class AbyssListenerGunSweep {
     /** Every player is swept exactly once per {@link #INTERVAL_TICKS}. / 每名玩家每个间隔恰好清理一次。 */
     static boolean isSweepTick(long worldTime, int entityId) {
         return Math.floorMod(worldTime + entityId, INTERVAL_TICKS) == 0;
+    }
+
+    /**
+     * Whether this tick reconciles the player: its staggered sweep tick, and only a match participant
+     * ({@link OffMatchUse#isMatchParticipant}, read only on that tick). A free holder is skipped entirely: no strip, no
+     * grant, no dedupe (owner rule 2026-10-04).
+     * 本刻是否校正该玩家：仅在其错峰清理刻，且只校正对局参与者（{@link OffMatchUse#isMatchParticipant}，只在该刻读取）。
+     * 自由持有者完全跳过：不收走、不补发、不去重（所有者 2026-10-04 规则）。
+     */
+    static boolean sweeps(long worldTime, int entityId, BooleanSupplier matchParticipant) {
+        return isSweepTick(worldTime, entityId) && matchParticipant.getAsBoolean();
     }
 
     /**
