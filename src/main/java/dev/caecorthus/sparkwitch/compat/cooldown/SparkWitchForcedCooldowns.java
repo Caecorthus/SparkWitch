@@ -46,7 +46,10 @@ public final class SparkWitchForcedCooldowns {
                 new NoellesTaotieSwallowCooldownStore(),
                 new NoellesAssassinCooldownStore(),
                 // Appended last: earlier slots keep their positions. / 追加在末尾：之前各槽位置不变。
-                new BlindAttuneCooldownStore()
+                new BlindAttuneCooldownStore(),
+                // Fiend Dash (owner decision 2026-10-04), appended after the Blind.
+                // 魔人疾驰（所有者 2026-10-04 决定），追加在盲人之后。
+                new FiendDashCooldownStore()
         );
     }
 

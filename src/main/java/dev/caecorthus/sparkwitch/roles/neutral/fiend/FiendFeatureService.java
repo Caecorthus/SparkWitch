@@ -18,5 +18,6 @@ public final class FiendFeatureService {
         registered = true;
         FiendReactionService.register();
         FiendMomentService.register();
+        FiendNetworking.register();
     }
 }
