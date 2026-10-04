@@ -20,17 +20,22 @@ import java.util.UUID;
  * External seam: SparkStrength M67 blasts break Seeker devices via {@code ServerEntityEvents.ENTITY_UNLOAD} and two
  * cached, fail-closed reflective public getters; inert when SparkStrength is absent. SparkStrength exposes no blast
  * event, so a detonation is recognised heuristically: an {@code sparkstrength:m67} entity unloaded with reason
- * DISCARDED, in a running round, whose {@code getDetonateAt()} is set and already reached, and whose
- * {@code getThrowerUuid()} player is online (M67 kills players first, then discards itself). The blast then breaks
- * devices in a 3.5-block sphere with line of sight to the grenade centre, attributed to the thrower. Only this class
- * may name SparkStrength implementation classes, and only those two getters (pinned by a source test); any lookup
- * failure disables the seam for the session, never throwing into entity unloading.
+ * DISCARDED whose {@code getDetonateAt()} is set and already reached, and whose {@code getThrowerUuid()} player is
+ * online (M67 kills players first, then discards itself). Only a match grenade breaks devices
+ * ({@link #breaksDevices}, the {@link dev.caecorthus.sparkwitch.util.OffMatchUse} rule): the Wathe status is exactly
+ * ACTIVE and the thrower holds a match role. SparkStrength discards every in-flight M67 on a phase change, so a
+ * detonation during STOPPING was thrown during STOPPING; that grenade, like a non-participant's, is presentation-only.
+ * The blast then breaks devices in a 3.5-block sphere with line of sight to the grenade centre, attributed to the
+ * thrower. Only this class may name SparkStrength implementation classes, and only those two getters (pinned by a
+ * source test); any lookup failure disables the seam for the session, never throwing into entity unloading.
  * 外部接缝：SparkStrength M67 爆炸经 {@code ServerEntityEvents.ENTITY_UNLOAD} 与两个带缓存、失败即关闭的反射 public getter
  * 打坏搜寻者设备；未安装 SparkStrength 时不生效。SparkStrength 没有爆炸事件，因此以启发式识别引爆：
- * {@code sparkstrength:m67} 实体以 DISCARDED 原因卸载、对局进行中、{@code getDetonateAt()} 已设置且已到时、
- * {@code getThrowerUuid()} 对应玩家在线（M67 先击杀玩家再移除自身）。随后打坏以手雷中心为球心、半径 3.5、
- * 有视线的设备，归属于投掷者。只有本类可以提及 SparkStrength 实现类且只限这两个 getter（由源码测试固定）；
- * 任何查找失败都会在本次会话中关闭该接缝，绝不向实体卸载流程抛出异常。
+ * {@code sparkstrength:m67} 实体以 DISCARDED 原因卸载、{@code getDetonateAt()} 已设置且已到时、
+ * {@code getThrowerUuid()} 对应玩家在线（M67 先击杀玩家再移除自身）。只有对局手雷会打坏设备
+ * （{@link #breaksDevices}，即 {@code OffMatchUse} 规则）：Wathe 状态恰为 ACTIVE 且投掷者持有对局职业。SparkStrength
+ * 在阶段切换时会移除所有飞行中的 M67，因此 STOPPING 期间的引爆必定是 STOPPING 期间投出的；它与非参与者的手雷一样
+ * 仅作表现。随后打坏以手雷中心为球心、半径 3.5、有视线的设备，归属于投掷者。只有本类可以提及 SparkStrength 实现类且
+ * 只限这两个 getter（由源码测试固定）；任何查找失败都会在本次会话中关闭该接缝，绝不向实体卸载流程抛出异常。
  */
 public final class SparkStrengthM67Compat {
     public static final String MOD_ID = "sparkstrength";
@@ -63,8 +68,12 @@ public final class SparkStrengthM67Compat {
     private static void onUnload(Entity entity, ServerWorld world) {
         if (disabled || entity == null || world == null
                 || entity.getRemovalReason() != Entity.RemovalReason.DISCARDED
-                || !M67_ENTITY_ID.equals(Registries.ENTITY_TYPE.getId(entity.getType()))
-                || !GameWorldComponent.KEY.get(world).isRunning()) {
+                || !M67_ENTITY_ID.equals(Registries.ENTITY_TYPE.getId(entity.getType()))) {
+            return;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        boolean roundActive = game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE;
+        if (!roundActive) {
             return;
         }
         Accessors resolved = accessorsFor(entity.getClass());
@@ -85,7 +94,7 @@ public final class SparkStrengthM67Compat {
             disabled = true;
             return;
         }
-        if (!detonated(detonateAt, world.getTime())) {
+        if (!breaksDevices(roundActive, game.hasAnyRole(throwerUuid), detonateAt, world.getTime())) {
             return;
         }
         ServerPlayerEntity thrower = world.getServer().getPlayerManager().getPlayer(throwerUuid);
@@ -94,6 +103,14 @@ public final class SparkStrengthM67Compat {
         }
         SeekerDeviceHits.onBlast(world, entity.getBoundingBox().getCenter(), SeekerDamageRules.M67_RADIUS, thrower,
                 SeekerBreakSource.M67);
+    }
+
+    /**
+     * A match grenade whose fuse ran out: an ACTIVE round and a thrower with a match role.
+     * 引信已到时的对局手雷：对局 ACTIVE 且投掷者持有对局职业。
+     */
+    static boolean breaksDevices(boolean roundActive, boolean throwerIsParticipant, long detonateAt, long worldTime) {
+        return roundActive && throwerIsParticipant && detonated(detonateAt, worldTime);
     }
 
     /** A set fuse that has already run out. / 引信已设置且已到时。 */

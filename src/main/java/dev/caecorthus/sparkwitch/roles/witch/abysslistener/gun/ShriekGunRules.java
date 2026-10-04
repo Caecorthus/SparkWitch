@@ -1,14 +1,15 @@
 package dev.caecorthus.sparkwitch.roles.witch.abysslistener.gun;
 
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.function.BooleanSupplier;
 
 /**
- * Pure Shriek Gun decisions: the fire gate, the ally/enemy hit plan, the knockback vector and the beam particle
+ * Pure Shriek Gun decisions: the fire mode, the ally/enemy hit plan, the knockback vector and the beam particle
  * spacing. Every tuning number comes from {@link AbyssListenerRules}; only vanilla protocol facts live here.
- * 啸音铳的纯判定：开火门槛、队友/敌人命中方案、击退向量与射线粒子间距。所有调参数值都来自
+ * 啸音铳的纯判定：开火模式、队友/敌人命中方案、击退向量与射线粒子间距。所有调参数值都来自
  * {@link AbyssListenerRules}；这里只放原版协议事实。
  */
 public final class ShriekGunRules {
@@ -34,16 +35,24 @@ public final class ShriekGunRules {
     }
 
     /**
-     * Pure fire gate; later seams are consulted only after every earlier one passed. A refusal costs nothing.
-     * 纯开火门槛；前序条件全部通过后才查询后续接缝。被拒绝时不产生任何代价。
+     * Pure fire decision (owner rule 2026-10-04, {@link OffMatchUse}): use never checks the role. A spectator is always
+     * refused; otherwise {@code useMode} decides (MATCH for a live participant of an ACTIVE round, PRESENTATION for a
+     * non-participant or the STARTING/STOPPING transitions, REFUSED for a dead participant or Wraith), and the cooldown
+     * and the SparkTraits weapon-action block apply to every mode. Later seams are consulted only after every earlier
+     * one passed. A refusal costs nothing.
+     * 纯开火判定（所有者 2026-10-04 规则，{@link OffMatchUse}）：使用从不检查职业。旁观者一律拒绝；否则由
+     * {@code useMode} 决定（ACTIVE 对局的存活参与者为 MATCH，非参与者或 STARTING/STOPPING 过渡阶段为 PRESENTATION，
+     * 已死亡的参与者或冤魂为 REFUSED），冷却与 SparkTraits 武器动作封锁对每种模式都生效。前序条件全部通过后才查询后续
+     * 接缝。被拒绝时不产生任何代价。
      */
-    public static boolean canFire(boolean running, boolean abyssListener, BooleanSupplier aliveParticipant,
-                                  BooleanSupplier coolingDown, BooleanSupplier weaponActionBlocked) {
-        return running
-                && abyssListener
-                && aliveParticipant.getAsBoolean()
-                && !coolingDown.getAsBoolean()
-                && !weaponActionBlocked.getAsBoolean();
+    public static OffMatchUse.Mode fireMode(boolean spectator, OffMatchUse.Mode useMode,
+                                            BooleanSupplier coolingDown, BooleanSupplier weaponActionBlocked) {
+        if (spectator || useMode == OffMatchUse.Mode.REFUSED
+                || coolingDown.getAsBoolean()
+                || weaponActionBlocked.getAsBoolean()) {
+            return OffMatchUse.Mode.REFUSED;
+        }
+        return useMode;
     }
 
     /**
