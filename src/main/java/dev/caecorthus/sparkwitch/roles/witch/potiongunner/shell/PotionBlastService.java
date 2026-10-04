@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerBreakSource;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -95,9 +96,14 @@ public final class PotionBlastService {
     private static void payReward(ServerWorld world, @Nullable ServerPlayerEntity gunner, int rewardedHits) {
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         boolean online = gunner != null && !gunner.isRemoved();
+        // A gunner inside a Rift Gate is an alive spectator (Riftwalker D3), so it keeps the +15 per hit as well as the
+        // kill credit (owner 2026-10-04); a Wathe-dead or ordinary spectator still gets nothing.
+        // 位于裂隙门内的药炮手是存活旁观者（隙行者 D3），因此在保留击杀归属的同时照常领取每人 +15（所有者 2026-10-04）；
+        // Wathe 判定死亡的旁观者或普通旁观者仍然一无所获。
         int amount = PotionBlastRewards.amount(
                 online,
-                online && GameFunctions.isPlayerPlayingAndAlive(gunner) && !gunner.isSpectator(),
+                online && GameFunctions.isPlayerPlayingAndAlive(gunner)
+                        && PotionBlastRewards.notSpectating(gunner.isSpectator(), RiftSessionService.isInside(gunner)),
                 online && PotionGunnerRules.isPotionGunner(game.getRole(gunner)),
                 rewardedHits);
         if (amount <= 0) {
