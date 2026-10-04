@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.DeepDarkZoneStandingService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftGateUser;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftGateUsers;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerMatch;
@@ -368,6 +369,11 @@ public final class RiftSessionService {
             session.clear();
             return false;
         }
+        // Committed entry only (never a refusal or the rollback above): Deep Dark Zone exposure never carries into a gate
+        // (owner 2026-10-04), so the ×15 drain and the pseudo task end now, with the zero synced to the owner.
+        // 仅在进门已提交时（从不在拒绝或上面的回滚时）：深暗领域的暴露不会带进门内（所有者 2026-10-04），
+        // 因此 ×15 理智下降与临时任务此刻结束，零值同步给拥有者。
+        DeepDarkZoneStandingService.clearExposure(player);
         RiftSessionBody.teleport(player, world, gate.pos(), gate.facing().asRotation(), 0.0F, false);
         RiftSessionBody.refreshTracking(player, world);
         RiftSessionBody.cue(world, gate.pos(), true);

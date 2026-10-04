@@ -120,9 +120,22 @@ public final class DeepDarkZoneStandingService {
         }
     }
 
-    private static void clearExposure(@Nullable ServerPlayerEntity player) {
-        if (player != null) {
-            AbyssZoneExposureComponent.KEY.get(player).clear();
+    /**
+     * Server-only public seam: ends {@code player}'s exposure at once, syncing the zero to its owner only when it was
+     * exposed, so the ×15 drain and the pseudo task stop in the same tick. Safe without active zones or a component (a
+     * no-op then). Besides this class's own lifecycle hooks, Riftwalker Rift Gate entry calls it (owner decision
+     * 2026-10-04: exposure never carries into a gate; an occupant is a spectator and is never re-exposed inside).
+     * 仅服务端的公开接缝：立即结束 {@code player} 的暴露，仅在原本处于暴露时把零值同步给其拥有者，使 ×15 理智下降与临时任务
+     * 在同一刻停止。没有存活领域或组件缺失时也安全（此时不做任何事）。除本类自身的生命周期钩子外，隙行者进入裂隙门时也会调用
+     * （所有者 2026-10-04 决定：暴露不会带进门内；门内玩家是旁观者，在门内不会再次被暴露）。
+     */
+    public static void clearExposure(@Nullable ServerPlayerEntity player) {
+        if (player == null) {
+            return;
+        }
+        AbyssZoneExposureComponent exposure = AbyssZoneExposureComponent.KEY.getNullable(player);
+        if (exposure != null) {
+            exposure.clear();
         }
     }
 }
