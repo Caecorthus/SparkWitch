@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.client.seeker.console;
 
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCarState;
-import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
 
 /**
@@ -27,16 +26,19 @@ public final class SeekerConsoleRules {
         SWALLOWED
     }
 
-    /** Why a device button is disabled; drives the label suffix. / 设备按钮被禁用的原因，决定标签后缀。 */
+    /**
+     * Why a device button is disabled; drives the label suffix. There is no range state: since 2026-10-04 a device
+     * has no distance limit, and a far device is usually not tracked by this client, so entity presence never decides.
+     * 设备按钮被禁用的原因，决定标签后缀。不存在距离状态：自 2026-10-04 起设备没有距离限制，且远处的设备通常不被本客户端
+     * 追踪，因此从不以实体是否存在作判断。
+     */
     public enum Availability {
         /** Enabled. / 可用。 */
         AVAILABLE,
         /** The device is not out (not deployed / not placed); no suffix. / 设备不在场；无后缀。 */
         ABSENT,
-        /** Out, but the client cannot resolve it or the player is blocked. / 在场但无法解析或玩家受限。 */
-        UNAVAILABLE,
-        /** Resolved but beyond the effective radius. / 已解析但超出有效半径。 */
-        OUT_OF_RANGE
+        /** Out, but the player is blocked (stunned). / 在场但玩家受限（眩晕）。 */
+        UNAVAILABLE
     }
 
     private SeekerConsoleRules() {
@@ -100,35 +102,31 @@ public final class SeekerConsoleRules {
     }
 
     /**
-     * "Control car": deployed, resolvable on this client, within the effective radius, and the body not blocked.
-     * “操控小车”：已部署、客户端可解析、位于有效半径内，且本体未受限。
+     * "Control car": deployed (owner-synced state, at any distance) and the body not blocked.
+     * “操控小车”：已部署（拥有者同步状态，距离不限）且本体未受限。
      */
-    public static Availability carAvailability(SeekerCarState carState, boolean resolvable,
-                                               double horizontalDistanceSquared, int radius, boolean blocked) {
+    public static Availability carAvailability(SeekerCarState carState, boolean blocked) {
         if (carState != SeekerCarState.DEPLOYED) {
             return Availability.ABSENT;
         }
-        return deviceAvailability(resolvable, horizontalDistanceSquared, radius, blocked);
+        return blocked ? Availability.UNAVAILABLE : Availability.AVAILABLE;
     }
 
     /**
-     * "View camera": at least one camera placed, then the car's checks against the NEAREST resolvable camera, so the
-     * button is enabled while any camera is usable (the server picks which one).
-     * “查看摄像头”：至少放置了一台，其余按最近的可解析摄像头执行与小车相同的检查，因此只要有任一摄像头可用按钮即可用
-     * （具体哪台由服务端选择）。
+     * "View camera": at least one camera in the owner-synced list (at any distance) and the body not blocked; the
+     * server picks which camera.
+     * “查看摄像头”：拥有者同步列表中至少有一台摄像头（距离不限）且本体未受限；具体哪台由服务端选择。
      */
-    public static Availability cameraAvailability(int cameraCount, boolean anyResolvable,
-                                                  double nearestHorizontalDistanceSquared, int radius,
-                                                  boolean blocked) {
+    public static Availability cameraAvailability(int cameraCount, boolean blocked) {
         if (cameraCount <= 0) {
             return Availability.ABSENT;
         }
-        return deviceAvailability(anyResolvable, nearestHorizontalDistanceSquared, radius, blocked);
+        return blocked ? Availability.UNAVAILABLE : Availability.AVAILABLE;
     }
 
     /**
-     * Remote recall works from anywhere (no radius, no resolution) while the car is deployed.
-     * 远程回收在任何距离都可用（无半径、无需解析），只要求小车已部署。
+     * Remote recall works from anywhere (no entity resolution) while the car is deployed.
+     * 远程回收在任何距离都可用（无需解析实体），只要求小车已部署。
      */
     public static Availability recallAvailability(SeekerCarState carState, boolean blocked) {
         if (carState != SeekerCarState.DEPLOYED) {
@@ -173,14 +171,5 @@ public final class SeekerConsoleRules {
             case NONE -> carState == SeekerCarState.DEPLOYED && (carUsable || !cameraUsable)
                     ? SeekerSessionMode.CAR : SeekerSessionMode.CAMERA;
         };
-    }
-
-    private static Availability deviceAvailability(boolean resolvable, double horizontalDistanceSquared, int radius,
-                                                   boolean blocked) {
-        if (blocked || !resolvable) {
-            return Availability.UNAVAILABLE;
-        }
-        return SeekerRules.withinRadius(horizontalDistanceSquared, radius)
-                ? Availability.AVAILABLE : Availability.OUT_OF_RANGE;
     }
 }

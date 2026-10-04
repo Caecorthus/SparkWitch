@@ -571,9 +571,15 @@ the owner's client sends `seeker_camera_look` while viewing, and the server acce
 owner's own CAMERA session and clamps it into that camera's cone (`SeekerCameraLookRules`; the
 latest look wins). Sessions are server-authoritative: the
 client never predicts entry, and every exit except the owner's own Shift is detected on the server.
-The owner's client only simulates the car it drives, and every move is validated against the shared
-`SeekerCarPhysics` (speed budget, replay, a server-side fall model that never trusts the client's
-velocity, radius and play-area clamps). The session lock (`LOCK_SCOPE = SESSION`) applies only while
+The owner's client only simulates the car it drives (`SeekerRules.CAR_SPEED` 0.375 blocks/tick, owner
+decision 2026-10-04), and every move is validated against the shared `SeekerCarPhysics` (speed budget,
+replay, a server-side fall model that never trusts the client's velocity, play-area clamp). Neither the
+car nor a camera has a distance limit from the body (owner decision 2026-10-04): the Wathe play area is
+the only spatial bound of open, the per-tick exit (`OUT_OF_RANGE`, a stable name that now means outside
+the play area) and the car clamp; deploy and camera-place reach limit placement only. Console
+availability, quick connect and camera cycling therefore read the owner-synced car state and camera
+list, never client entity presence (a far device is usually untracked until a session views it), and
+the CCTV HUD shows the body distance without a range bar. The session lock (`LOCK_SCOPE = SESSION`) applies only while
 the Seeker drives the car or views a camera: `mixin/seeker/SeekerSprintLockMixin` clears sprint on
 both sides, `SeekerInteractionGuards` fail the Fabric player callbacks in the `seeker_session_lock`
 phase, `mixin/seeker/SeekerSessionPayloadGuardMixin` drops the blocked C2S payloads on the server
@@ -626,6 +632,42 @@ cooldown, removes the car without a mark or the 180 s cooldown, and tells the ow
 the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role, into its
 original slot, else the first empty hotbar slot, else the shown second row (SparkFactionAPI
 0.1.5.13+), else a main slot. The Seeker never renders in the `gui.sparkwitch.skills` panel.
+
+Seeker remote streaming (unlimited range, owner decision 2026-10-04) is server-only and never moves
+the body: `remote/SeekerRemoteStreaming#focusOf` names the device a live session shows (alive owner,
+not a spectator, its own server camera, server bookkeeping matching the synced focus), and the three
+`mixin/seeker/SeekerRemote*` mixins centre that owner's chunk view (`sendWatchPackets`), chunk batches
+(`sendChunkBatches`) and entity tracking (`EntityTracker#updateTrackedStatus`: the focus is always
+tracked, other entities are measured from it) on the device, chaining with SparkStrength's drone
+mixins on the same calls. Player chunk tickets stay on the body's real section, so the body's chunks
+stay loaded and ticking on the server. On `END_WORLD_TICK`, after every component tick, the service
+refreshes an expiring `sparkwitch:seeker_remote` ticket (radius min(view, 8) + 2) around the focus
+and calls `updatePosition` for the owner, then keeps re-evaluating for 40 ticks after the session
+ends; a new or switched session streams at once from `SeekerRemoteSessionService#open`. While the
+owner is the owner of record, every referenced device also holds an expiring
+`sparkwitch:seeker_device` ticket (car radius 2, entity-ticking; camera radius 0, loaded only), so an
+unsaved device never unloads under its owner; the game-start and finalize sweeps stop the refresh and
+the tickets expire on their own (40-tick lifetime, never removed explicitly).
+
+The owner's client follows that streaming without trusting entity or chunk presence.
+`client/seeker/remote/SeekerRemoteViewClient` starts a session on the server's word and re-resolves the
+focus by its synced id every tick (`SeekerRemoteViewRules#linkStep`): while the focus is missing (a
+far open, an atomic switch to an untracked camera, a device re-tracked as a new instance) the session
+stays locked, nothing is driven, looked at or cycled, and the CCTV overlay shows an opaque CONNECTING
+panel (`hud.sparkwitch.seeker.view.connecting`) until the focus and its surrounding chunks are on the
+client. A switch never ends the view; only `SeekerRules.ATTACH_TIMEOUT_TICKS` (100, shared with the
+server's CAR attach deadline) without a focus gives up as "Signal lost" and sends close. A re-tracked
+car of the same session keeps its move sequence (`SeekerCarClientDriver#retrack`), and the driven car
+holds still until the chunks it stands on and could enter are loaded. The client view centres the
+server's chunk view on the device, so the body's own chunks unload on the client:
+`client/seeker/remote/SeekerBodyHold` with `client/mixin/seeker/SeekerBodyFreezeMixin`
+(`ClientPlayerEntity#move` HEAD) freezes the body while its surroundings are missing from the
+`ClientChunkManager` (`ClientWorld#isChunkLoaded` is always true in 1.21.1), during the session and
+after it (capped at `SeekerRemoteViewRules.BODY_SETTLE_MAX_TICKS`, behind a RETURNING panel), so its
+movement packets never report a fall. `client/mixin/seeker/SeekerRemoteTerrainGridMixin` centres the
+vanilla terrain render grid on the viewed device; `client/mixin/SparkWitchClientMixinPlugin` skips it
+when Sodium is loaded, because Sodium overwrites `WorldRenderer#setupTerrain` (an injection into an
+overwritten method crashes even with `require = 0`) and already centres on the camera.
 
 Angler state never enters that shared schema either. `sparkwitch:fisher_spirit` (`NEVER_COPY`,
 never saved) holds only the Glimmerfish window; its sync packet is one VarInt: 0 inactive, 1 for

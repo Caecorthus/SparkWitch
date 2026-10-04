@@ -32,13 +32,14 @@ import java.util.UUID;
  * direction the head points, set to the cone centre at placement and afterwards only by the server from the owner's
  * clamped {@code seeker_camera_look}; the head holds it when nobody views. VIEWING is true while the owner's session
  * views this camera; the server derives it in this entity's own tick from the owner's component (like the device
- * self-check, so it assumes the camera keeps ticking while in session range) and the client only lights the LED.
+ * self-check, so it assumes the camera keeps ticking while it is viewed, at any distance from the body) and the client
+ * only lights the LED.
  * 摄像头（{@code sparkwitch:seeker_camera}）；静止、无重力，按 FACING（依附面法线）与 MOUNT_YAW（水平视野中心）定向，
  * 两者都是纯外观，因此经 DataTracker 对客户端可见。依附面不再是完整实心面时，服务端将其按环境来源损坏（从不标记）。
  * 公开的视角状态（所有追踪客户端可见，但从不透露拥有者）：LOOK_YAW 与 LOOK_PITCH 是机头朝向，放置时为锥角中心，
  * 之后仅由服务端根据拥有者经钳制的 {@code seeker_camera_look} 设置；无人观看时机头保持该朝向。VIEWING 在拥有者的会话
- * 正在观看本摄像头时为 true；由服务端在本实体自身的 tick 中根据拥有者组件推导（与设备自检相同，因此假定摄像头在会话范围内持续被
- * tick），客户端只据此点亮指示灯。
+ * 正在观看本摄像头时为 true；由服务端在本实体自身的 tick 中根据拥有者组件推导（与设备自检相同，因此假定摄像头在被观看期间
+ * 持续被 tick，无论与本体相距多远），客户端只据此点亮指示灯。
  */
 public class SeekerCameraEntity extends SeekerDeviceEntity {
     private static final TrackedData<Direction> FACING =

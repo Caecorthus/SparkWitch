@@ -15,7 +15,6 @@ public final class SeekerSessionState {
     final int sessionId;
     final SeekerSessionMode mode;
     final int focusEntityId;
-    final int effectiveRadius;
     final Vec3d anchor;
     final long attachDeadline;
 
@@ -34,12 +33,11 @@ public final class SeekerSessionState {
     int packetsThisTick;
     int ungroundedTicks;
 
-    SeekerSessionState(int sessionId, SeekerSessionMode mode, int focusEntityId, int effectiveRadius, Vec3d anchor,
-                       long openedTick, long attachDeadline) {
+    SeekerSessionState(int sessionId, SeekerSessionMode mode, int focusEntityId, Vec3d anchor, long openedTick,
+                       long attachDeadline) {
         this.sessionId = sessionId;
         this.mode = mode;
         this.focusEntityId = focusEntityId;
-        this.effectiveRadius = effectiveRadius;
         this.anchor = anchor;
         this.attachDeadline = attachDeadline;
         this.lastMoveTick = openedTick;

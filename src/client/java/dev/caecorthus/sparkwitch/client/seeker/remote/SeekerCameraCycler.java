@@ -6,7 +6,6 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCameraRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCameraEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.net.SeekerRemoteOpenC2SPacket;
-import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteRules;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -21,23 +20,25 @@ import java.util.function.IntPredicate;
  * Camera cycling while viewing a camera, called once per tick by {@link SeekerRemoteViewClient} while a session
  * continues. The left/right movement keys (A/D by default) stay allowed while viewing because they steer the car; in
  * CAMERA mode a fresh key-down here ({@link SeekerRemoteViewRules#freshPress}) asks the server for the previous/next
- * camera by label, wrapping around and skipping cameras this client cannot resolve or already knows are beyond the
- * session radius. OS key repeat never cycles again: a held key cycles once, and every bind of a viewpoint (session
+ * camera by label among the owner-synced cameras, wrapping around and skipping only cameras this client already sees
+ * dead; a camera beyond this client's entity tracking (no longer a range limit since 2026-10-04) stays selectable.
+ * OS key repeat never cycles again: a held key cycles once, and every bind of a viewpoint (session
  * start, car to camera, camera to camera) drains the queued left/right presses and treats both keys as held until they
  * are seen released, so a key held while driving or through a switch never cycles. Queued presses are also drained on
  * every tick in every mode (car steering reads only the held state). The body never moves (it runs
  * {@link SeekerFrozenInput}). Client prediction only: it sends {@code seeker_remote_open} with an explicit target,
  * spaced {@link SeekerRemoteViewRules#CAMERA_CYCLE_THROTTLE_TICKS} after the last request or bind, which stays ahead of
- * the server's shared open throttle; the server re-validates ownership, range and that throttle, and a granted switch
- * arrives as a new session id that {@link SeekerRemoteViewClient} retargets in place.
+ * the server's shared open throttle; the server re-validates ownership, play area and that throttle, and a granted
+ * switch arrives as a new session id that {@link SeekerRemoteViewClient} retargets in place.
  * 观看摄像头时的摄像头切换，由 {@link SeekerRemoteViewClient} 在会话持续期间每刻调用一次。左右移动键（默认 A/D）在观看期间
  * 仍被放行，因为它们用于驾驶小车；在摄像头模式下，这里检测到新的按下沿（{@link SeekerRemoteViewRules#freshPress}）时，
- * 按编号向服务端请求上一台/下一台摄像头，循环切换，跳过本客户端无法解析或已知超出会话半径的摄像头。系统按键重复不会再次
+ * 在拥有者同步的摄像头中按编号向服务端请求上一台/下一台摄像头，循环切换，只跳过本客户端已看到失效的摄像头；超出本客户端
+ * 实体追踪范围的摄像头仍可选（自 2026-10-04 起不再有距离限制）。系统按键重复不会再次
  * 触发切换：按住只切换一次；每次绑定视点（会话开始、小车切到摄像头、摄像头切到摄像头）都会清空左右键积压的按下次数，
  * 并把两个键视为按住，直到观察到松开，因此驾驶时或切换过程中一直按住的键不会触发切换。任何模式下每刻也都会清空积压的
  * 按下次数（小车转向只读取按住状态）。本体从不移动（使用 {@link SeekerFrozenInput}）。仅为客户端预测：它发送带明确目标的
  * {@code seeker_remote_open}，与上次请求或绑定间隔 {@link SeekerRemoteViewRules#CAMERA_CYCLE_THROTTLE_TICKS} 刻，
- * 始终晚于服务端共用的打开节流；服务端会重新校验归属、范围与该节流，获准的切换以新的会话 id 到达，由
+ * 始终晚于服务端共用的打开节流；服务端会重新校验归属、游戏区域与该节流，获准的切换以新的会话 id 到达，由
  * {@link SeekerRemoteViewClient} 原地切换视角。
  */
 public final class SeekerCameraCycler {
@@ -96,7 +97,7 @@ public final class SeekerCameraCycler {
             return;
         }
         int target = SeekerCameraRules.cycle(SeekerClientState.cameras(), SeekerClientState.sessionFocusEntityId(),
-                direction, selectable(client.world, player));
+                direction, selectable(client.world));
         if (target < 0) {
             return;
         }
@@ -110,16 +111,18 @@ public final class SeekerCameraCycler {
     }
 
     /**
-     * The cameras the strafe keys may land on: resolvable on this client and within the session radius of the body
-     * (the server's own horizontal check). Also used by the CCTV overlay's "2/3" hint.
-     * 左右键可切换到的摄像头：可在本客户端解析，且位于本体的会话半径内（与服务端相同的水平判定）。CCTV 叠加层的“2/3”提示也使用它。
+     * The cameras the strafe keys may land on, applied to the owner-synced camera list: every listed camera except one
+     * this client resolves as something other than a live camera. A far camera is usually not tracked by this client
+     * (the device only streams in once a session views it), so an absent entity stays selectable; the server
+     * re-validates. Also used by the CCTV overlay's "2/3" hint.
+     * 左右键可切换到的摄像头，作用于拥有者同步的摄像头列表：除本客户端解析为非存活摄像头者外，列表中的每台都可选。
+     * 远处的摄像头通常不被本客户端追踪（只有在会话观看它时才会流式加载），因此实体缺失时仍可选；服务端会重新校验。
+     * CCTV 叠加层的“2/3”提示也使用它。
      */
-    static IntPredicate selectable(@Nullable ClientWorld world, ClientPlayerEntity player) {
-        int radius = SeekerClientState.effectiveRadius();
+    static IntPredicate selectable(@Nullable ClientWorld world) {
         return entityId -> {
             Entity entity = world == null ? null : world.getEntityById(entityId);
-            return entity instanceof SeekerCameraEntity camera && camera.isAlive()
-                    && SeekerRemoteRules.withinEffectiveRadius(player.getPos(), camera.getPos(), radius);
+            return entity == null || entity instanceof SeekerCameraEntity camera && camera.isAlive();
         };
     }
 }

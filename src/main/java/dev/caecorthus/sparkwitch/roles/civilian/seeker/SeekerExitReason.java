@@ -37,6 +37,11 @@ public enum SeekerExitReason {
     DIED(false),
     ROLE_CHANGED(true),
     CONSOLE_LOST(true),
+    /**
+     * The focus left the Wathe play area. The name and key stay stable; since 2026-10-04 there is no distance limit
+     * from the body, so the play area is its only cause.
+     * 焦点离开了 Wathe 游戏区域。名称与键保持不变；自 2026-10-04 起与本体之间没有距离限制，游戏区域是唯一原因。
+     */
     OUT_OF_RANGE(true),
     ROUND_END(false),
     DISCONNECTED(false),
