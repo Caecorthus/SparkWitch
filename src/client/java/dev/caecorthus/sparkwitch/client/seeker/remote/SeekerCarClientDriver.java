@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.client.seeker.remote;
 
-import dev.caecorthus.sparkwitch.client.seeker.SeekerClientState;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCarEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCarPhysics;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.net.SeekerCarCorrectS2CPacket;
@@ -22,23 +21,24 @@ import org.jetbrains.annotations.Nullable;
  * movement {@code KeyBinding} states. It never ticks a second keyboard input object, because footstep hooks act on
  * every such instance. W/S and A/D become raw axes (+1 forward, +1 left, vanilla convention);
  * {@link SeekerCarPhysics#inputVelocity} turns them into CAR_SPEED motion with 0.5x strafe and gravity. No jump,
- * sprint is ignored. Mouse yaw is the heading; pitch is view-only. The target is clamped locally to the effective
- * radius and play area, then {@code seeker_car_move} carries the result to the server, which replays, validates and
- * corrects through {@code seeker_car_correct}. The server stays authoritative for the car everyone else sees.
+ * sprint is ignored. Mouse yaw is the heading; pitch is view-only. The target is clamped locally to the play area
+ * only (no distance limit from the body since 2026-10-04), then {@code seeker_car_move} carries the result to the
+ * server, which replays, validates and corrects through {@code seeker_car_correct}. The server stays authoritative for
+ * the car everyone else sees.
  * 拥有者客户端的小车模拟（L3）。本地玩家驾驶期间，该客户端是小车的逻辑移动端：小车忽略追踪包（由
  * {@link SeekerRemoteViewClient#register()} 安装的 {@code SeekerCarMovement} 客户端驾驶钩子），
  * 本驾驶器在每个 END_CLIENT_TICK 根据移动 {@code KeyBinding} 的原始状态移动小车一次。它从不 tick 第二个键盘输入对象，
  * 因为脚步声钩子会作用于每个这样的实例。W/S 与 A/D 转为原始输入轴（前为 +1、左为 +1，与原版一致），
  * 由 {@link SeekerCarPhysics#inputVelocity} 换算为 CAR_SPEED 速度（平移 0.5 倍）并加入重力。不能跳，忽略疾跑。
- * 鼠标 yaw 即车头朝向，pitch 只影响画面。目标位置先在本地钳制到有效半径与游戏区域内，再由 {@code seeker_car_move}
- * 发往服务端，服务端重放、校验并通过 {@code seeker_car_correct} 纠正。其他玩家看到的小车始终以服务端为准。
+ * 鼠标 yaw 即车头朝向，pitch 只影响画面。目标位置先在本地仅钳制进游戏区域（自 2026-10-04 起与本体之间没有距离限制），
+ * 再由 {@code seeker_car_move} 发往服务端，服务端重放、校验并通过 {@code seeker_car_correct} 纠正。其他玩家看到的小车
+ * 始终以服务端为准。
  */
 public final class SeekerCarClientDriver {
     @Nullable
     private static SeekerCarEntity car;
     private static int sessionId;
     private static int seq;
-    private static Vec3d anchor = Vec3d.ZERO;
     private static Vec3d velocity = Vec3d.ZERO;
     private static boolean onGround = true;
     @Nullable
@@ -83,12 +83,11 @@ public final class SeekerCarClientDriver {
         return candidate != null && candidate.getWorld().isClient() && SeekerRemoteViewClient.isDriving(candidate);
     }
 
-    /** Start edge of a CAR session: the body position is the anchor. / CAR 会话开始沿：本体位置作为锚点。 */
-    static void start(SeekerCarEntity driven, int session, Vec3d bodyAnchor) {
+    /** Start edge of a CAR session. / CAR 会话开始沿。 */
+    static void start(SeekerCarEntity driven, int session) {
         car = driven;
         sessionId = session;
         seq = 0;
-        anchor = bodyAnchor;
         velocity = Vec3d.ZERO;
         onGround = driven.isOnGround();
         lastSentPosition = null;
@@ -166,13 +165,12 @@ public final class SeekerCarClientDriver {
         float sideways = SeekerRemoteViewRules.axis(options.leftKey.isPressed(), options.rightKey.isPressed());
         World world = driven.getWorld();
         Box playArea = MapVariablesWorldComponent.KEY.get(world).getPlayArea();
-        int radius = SeekerClientState.effectiveRadius();
         Vec3d from = driven.getPos();
         Vec3d wanted = SeekerCarPhysics.inputVelocity(forward, sideways, driven.getYaw(), velocity, onGround);
-        Vec3d target = SeekerRemoteViewRules.clampHorizontalTarget(anchor, radius, playArea, from.add(wanted));
+        Vec3d target = SeekerRemoteViewRules.clampHorizontalTarget(playArea, from.add(wanted));
         Vec3d bounded = new Vec3d(target.x - from.x, wanted.y, target.z - from.z);
         SeekerCarPhysics.Result result = SeekerCarPhysics.move(world, from, bounded);
-        if (!SeekerRemoteViewRules.acceptsMove(anchor, radius, playArea, from, result.position())) {
+        if (!SeekerRemoteViewRules.acceptsMove(playArea, from, result.position())) {
             result = SeekerCarPhysics.move(world, from, new Vec3d(0.0, wanted.y, 0.0));
         }
         velocity = result.velocity();

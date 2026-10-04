@@ -117,8 +117,10 @@ public final class SeekerRules {
     public static final int OWN_BODY_COLOR = 0x5CE1FF;
 
     // ---- Remote view ----
-    public static final int CAR_MAX_RADIUS = 32;
-    public static final int CAMERA_MAX_RADIUS = 48;
+    // Owner decision 2026-10-04: no distance limit between the body and the car or a camera; the Wathe play area is
+    // the only spatial bound (open, per-tick exit and car clamp). DEPLOY_REACH / CAMERA_PLACE_REACH are placement only.
+    // 所有者决定 2026-10-04：本体与小车或摄像头之间不再有距离限制；Wathe 游戏区域是唯一的空间边界（打开、逐刻退出与小车钳制）。
+    // DEPLOY_REACH / CAMERA_PLACE_REACH 只限制放置距离。
     public static final int OPEN_THROTTLE_TICKS = 10;
     public static final int ATTACH_TIMEOUT_TICKS = 40;
     public static final int MOVE_TIMEOUT_TICKS = 100;
@@ -146,7 +148,13 @@ public final class SeekerRules {
     /** Movement collision box: the car cannot slip under beds or tables (Q11). / 通行箱：小车无法钻进床底或桌底。 */
     public static final double CAR_TRAVERSAL_WIDTH = 0.4;
     public static final double CAR_TRAVERSAL_HEIGHT = 0.6;
-    public static final double CAR_SPEED = 0.15;
+    /**
+     * Owner decision 2026-10-04: 0.375 blocks/tick (7.5 blocks/s, 2.5x the old 0.15). The move validator's budget and
+     * charged ticks derive from it; a full catch-up burst (BUDGET_CAPACITY + slack) stays far below MAX_DELTA (8).
+     * 所有者决定 2026-10-04：每刻 0.375 格（每秒 7.5 格，为原 0.15 的 2.5 倍）。移动校验的配额与计费刻数都由它推导；
+     * 满额追帧（BUDGET_CAPACITY + 余量）仍远低于 MAX_DELTA（8）。
+     */
+    public static final double CAR_SPEED = 0.375;
     public static final double CAR_STRAFE_FACTOR = 0.5;
     public static final double CAR_STEP_HEIGHT = 0.6;
     public static final double CAR_GRAVITY = 0.08;
@@ -229,24 +237,6 @@ public final class SeekerRules {
      */
     public static boolean countsAsNativeVigilanteForGun(@Nullable Role queried, @Nullable Role actual) {
         return queried != null && VIGILANTE_ID.equals(queried.identifier()) && isSeeker(actual);
-    }
-
-    /** Engine limit: tracking and chunks centre on the body. / 引擎限制：追踪与区块以本体为中心。 */
-    public static int effectiveRadius(int maxRadius, int viewDistance) {
-        int engineLimit = Math.max(0, 16 * (viewDistance - 1));
-        return Math.max(0, Math.min(maxRadius, engineLimit));
-    }
-
-    public static int maxRadius(SeekerSessionMode mode) {
-        return switch (mode) {
-            case CAR -> CAR_MAX_RADIUS;
-            case CAMERA -> CAMERA_MAX_RADIUS;
-            case NONE -> 0;
-        };
-    }
-
-    public static boolean withinRadius(double squaredDistance, int radius) {
-        return squaredDistance >= 0.0 && radius > 0 && squaredDistance <= (double) radius * radius;
     }
 
     /** Ticks between 1% battery steps; controlled means the owner is driving (session mode CAR). / 每掉 1% 的间隔刻数。 */

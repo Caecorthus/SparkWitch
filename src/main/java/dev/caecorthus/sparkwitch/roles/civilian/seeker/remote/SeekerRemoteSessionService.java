@@ -30,7 +30,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
@@ -76,10 +75,11 @@ public final class SeekerRemoteSessionService {
      * Validates {@code seeker_remote_open} in the plan §3.6 order ({@link SeekerRemoteOpenRules}); on success opens a
      * new session (fresh sessionId, anchor = body position, attach deadline now + 40) or atomically switches mode or
      * camera. A CAMERA request without a target views {@link #defaultCamera}; an explicit target must be one of the
-     * owner's cameras (never trusted beyond that: ownership, liveness, world, radius and play area are re-checked).
+     * owner's cameras (never trusted beyond that: ownership, liveness, world and play area are re-checked; there is no
+     * distance limit from the body, owner decision 2026-10-04).
      * 按计划 §3.6 的顺序校验 {@code seeker_remote_open}；成功时打开新会话（新 sessionId、锚点为本体位置、挂接截止为当前 + 40 刻），
      * 或原子地切换模式或摄像头。未指定目标的摄像头请求观看 {@link #defaultCamera}；指定的目标必须是拥有者的摄像头之一
-     * （除此之外不信任客户端：归属、存活、世界、半径与游戏区域都会重新校验）。
+     * （除此之外不信任客户端：归属、存活、世界与游戏区域都会重新校验；与本体之间没有距离限制，所有者决定 2026-10-04）。
      */
     public static void handleOpen(ServerPlayerEntity player, SeekerRemoteOpenC2SPacket packet) {
         if (player == null || packet == null) {
@@ -92,10 +92,9 @@ public final class SeekerRemoteSessionService {
         long now = serverTick(player);
         SeekerSessionMode requested = packet.sessionMode();
         String commonDeny = SeekerTargeting.commonDenyReason(player);
-        int radius = SeekerRules.effectiveRadius(SeekerRules.maxRadius(requested), engineViewDistance(player));
         Box playArea = playArea(player);
         SeekerDeviceEntity device = commonDeny == null
-                ? usableDevice(player, status, requested, packet.targetEntityId(), radius, playArea) : null;
+                ? usableDevice(player, status, requested, packet.targetEntityId(), playArea) : null;
         Long lastOpen = LAST_OPEN_TICK.get(player);
         SeekerRemoteOpenRules.Facts facts = new SeekerRemoteOpenRules.Facts(
                 commonDeny,
@@ -109,7 +108,6 @@ public final class SeekerRemoteSessionService {
                 SeekerRemoteRules.isOpenThrottled(lastOpen == null ? -1L : lastOpen, now),
                 SeekerConsoleDevices.hasConsoleDevice(player),
                 device != null,
-                device != null && SeekerRemoteRules.withinEffectiveRadius(player.getPos(), device.getPos(), radius),
                 device != null && SeekerRemoteRules.insidePlayArea(playArea, device.getPos()));
         String deny = SeekerRemoteOpenRules.denyReason(facts);
         if (deny != null || device == null) {
@@ -117,7 +115,7 @@ public final class SeekerRemoteSessionService {
                     + (deny == null ? SeekerRemoteOpenRules.DENY_NO_DEVICE : deny)), true);
             return;
         }
-        open(player, status, requested, device, radius, now);
+        open(player, status, requested, device, now);
     }
 
     /** Always accepted, even while stunned or feared; stale ids are ignored. / 始终接受，即使眩晕或恐惧；过期 id 忽略。 */
@@ -213,7 +211,7 @@ public final class SeekerRemoteSessionService {
     // ---- Internals ----
 
     private static void open(ServerPlayerEntity player, SeekerStatusComponent status, SeekerSessionMode mode,
-                             SeekerDeviceEntity device, int radius, long now) {
+                             SeekerDeviceEntity device, long now) {
         // Atomic switch (mode or camera): openSession closes and reopens in one transition, so the owner never sees
         // NONE between. A switch keeps the previous anchor, so repeated switches cannot walk the frozen body away step
         // by step. The old bookkeeping is replaced only after the transition succeeded (a new sessionId); a refused
@@ -226,13 +224,13 @@ public final class SeekerRemoteSessionService {
                 && previous.sessionId == status.sessionId() && previous.mode == status.sessionMode()
                 ? previous.anchor : player.getPos();
         int previousSessionId = status.sessionId();
-        status.apply(status.state().openSession(mode, device.getId(), radius));
+        status.apply(status.state().openSession(mode, device.getId()));
         if (status.sessionMode() != mode || status.sessionId() == previousSessionId) {
             player.sendMessage(Text.translatable(DENIED_KEY_PREFIX + SeekerRemoteOpenRules.DENY_BLOCKED), true);
             return;
         }
-        status.setSessionState(new SeekerSessionState(status.sessionId(), mode, device.getId(), radius,
-                anchor, now, now + SeekerRules.ATTACH_TIMEOUT_TICKS));
+        status.setSessionState(new SeekerSessionState(status.sessionId(), mode, device.getId(), anchor, now,
+                now + SeekerRules.ATTACH_TIMEOUT_TICKS));
         LAST_OPEN_TICK.put(player, now);
         player.setSprinting(false);
         if (player.isUsingItem()) {
@@ -299,8 +297,9 @@ public final class SeekerRemoteSessionService {
         } else if (++session.ungroundedTicks > SeekerRemoteRules.UNGROUNDED_GRACE_TICKS) {
             return SeekerExitReason.BODY_MOVED;
         }
-        if (!SeekerRemoteRules.withinSessionRange(player.getPos(), focus.getPos(), session.effectiveRadius)
-                || !SeekerRemoteRules.insidePlayArea(playArea(player), focus.getPos())) {
+        // No distance limit from the body (2026-10-04): OUT_OF_RANGE now means the focus left the play area.
+        // 与本体之间没有距离限制（2026-10-04）：OUT_OF_RANGE 现仅表示焦点离开了游戏区域。
+        if (!SeekerRemoteRules.insidePlayArea(playArea(player), focus.getPos())) {
             return SeekerExitReason.OUT_OF_RANGE;
         }
         if (session.mode == SeekerSessionMode.CAR
@@ -331,7 +330,7 @@ public final class SeekerRemoteSessionService {
      */
     @Nullable
     private static SeekerDeviceEntity usableDevice(ServerPlayerEntity player, SeekerStatusComponent status,
-                                                   SeekerSessionMode mode, int targetEntityId, int radius,
+                                                   SeekerSessionMode mode, int targetEntityId,
                                                    @Nullable Box playArea) {
         SeekerDeviceEntity device = switch (mode) {
             case CAR -> {
@@ -342,7 +341,7 @@ public final class SeekerRemoteSessionService {
                 yield car != null && car.getId() == status.carEntityId() ? car : null;
             }
             case CAMERA -> SeekerDeviceService.findCamera(player,
-                    targetEntityId >= 0 ? targetEntityId : defaultCamera(player, status, radius, playArea));
+                    targetEntityId >= 0 ? targetEntityId : defaultCamera(player, status, playArea));
             case NONE -> null;
         };
         return device != null && isOwnedAndAlive(player, device) ? device : null;
@@ -350,18 +349,18 @@ public final class SeekerRemoteSessionService {
 
     /**
      * The camera an untargeted CAMERA open views: the last-viewed camera if it is still usable (alive, in the body's
-     * world, within the radius and the play area), otherwise the lowest-label usable one. With none usable it falls
-     * back to the same order over merely live cameras, so the owner is told "out of range" rather than "no device".
-     * 未指定目标的摄像头打开所观看的摄像头：最近观看的那台若仍可用（存活、与本体同世界、位于半径与游戏区域内）则选它，
-     * 否则选编号最小的可用那台。都不可用时按同样顺序退回到仅存活的摄像头，使拥有者收到“超出范围”而非“设备不可用”。
+     * world and inside the play area, at any distance), otherwise the lowest-label usable one. With none usable it
+     * falls back to the same order over merely live cameras, so the owner is told "outside the play area" rather than
+     * "no device".
+     * 未指定目标的摄像头打开所观看的摄像头：最近观看的那台若仍可用（存活、与本体同世界且位于游戏区域内，距离不限）则选它，
+     * 否则选编号最小的可用那台。都不可用时按同样顺序退回到仅存活的摄像头，使拥有者收到“不在游戏区域内”而非“设备不可用”。
      */
-    private static int defaultCamera(ServerPlayerEntity player, SeekerStatusComponent status, int radius,
+    private static int defaultCamera(ServerPlayerEntity player, SeekerStatusComponent status,
                                      @Nullable Box playArea) {
         int lastViewed = status.state().lastViewedCameraId();
         int reachable = SeekerCameraRules.defaultCamera(status.cameras(), lastViewed, id -> {
             SeekerCameraEntity camera = SeekerDeviceService.findCamera(player, id);
             return camera != null && isOwnedAndAlive(player, camera)
-                    && SeekerRemoteRules.withinEffectiveRadius(player.getPos(), camera.getPos(), radius)
                     && SeekerRemoteRules.insidePlayArea(playArea, camera.getPos());
         });
         if (reachable >= 0) {
@@ -389,17 +388,6 @@ public final class SeekerRemoteSessionService {
         if (car != null && !car.isRemoved()) {
             car.setVelocity(new Vec3d(0.0, Math.min(0.0, car.getVelocity().y), 0.0));
         }
-    }
-
-    /**
-     * The engine's tracking/chunk radius for this player, exactly as {@code ServerChunkLoadingManager#getViewDistance}:
-     * the client's setting clamped to [2, server watch distance].
-     * 该玩家的引擎追踪/区块半径，与 {@code ServerChunkLoadingManager#getViewDistance} 一致：客户端设置截断到 [2, 服务端视距]。
-     */
-    static int engineViewDistance(ServerPlayerEntity player) {
-        MinecraftServer server = player.getServer();
-        int serverDistance = server == null ? 32 : MathHelper.clamp(server.getPlayerManager().getViewDistance(), 2, 32);
-        return MathHelper.clamp(player.getViewDistance(), 2, serverDistance);
     }
 
     @Nullable

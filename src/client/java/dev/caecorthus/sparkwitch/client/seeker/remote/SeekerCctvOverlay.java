@@ -26,16 +26,18 @@ import java.util.List;
 
 /**
  * Client-only CCTV overlay for the Seeker's remote view ({@code HudRenderCallback}): frame corners, blinking REC, mode
- * label, session clock, distance bar "12 / 32 m", the car's big battery bar (visual warnings at ≤20% and ≤10%; the
- * single warning SOUND is server-side and never played here), exit/switch hints and a low-render-distance warning.
+ * label, session clock, the horizontal distance from the body ("12 m"; there is no range limit, so no bar), the car's
+ * big battery bar (visual warnings at ≤20% and ≤10%; the single warning SOUND is server-side and never played here)
+ * and exit/switch hints.
  * Decorations follow the usual SparkWitch HUD gates (confirmed server, not F1, Wathe HUD on). The opaque SIGNAL LOST
  * panel (body blind or in darkness, NoellesRoles Gin immunity respected) is a gameplay mask, so it ignores F1 and
  * the Wathe HUD toggle. It reads only the local owner's own synced state and never renders in the witch skill panel.
  * In camera mode the label carries the viewed camera's zero-padded number ("CAM 02"), and while the strafe keys can
  * reach another camera a camera-switch hint with the keys and the "2/3" position sits one line above the exit hint.
  * 搜寻者遥控视角的纯客户端 CCTV 叠加层（{@code HudRenderCallback}）：四角框、闪烁 REC、模式标签、会话计时、
- * 距离条“12 / 32 米”、小车的大号电量条（≤20% 与 ≤10% 时视觉警告；唯一的警告音在服务端播放，这里绝不播放）、
- * 退出/切换提示与渲染距离过低警告。装饰元素遵循 SparkWitch HUD 的常规门槛（已确认服务器、未按 F1、Wathe HUD 开启）。
+ * 与本体的水平距离（“12米”；不再有距离上限，因此没有距离条）、小车的大号电量条（≤20% 与 ≤10% 时视觉警告；
+ * 唯一的警告音在服务端播放，这里绝不播放）以及退出/切换提示。
+ * 装饰元素遵循 SparkWitch HUD 的常规门槛（已确认服务器、未按 F1、Wathe HUD 开启）。
  * 不透明的“信号丢失”面板（本体失明或处于黑暗，尊重 NoellesRoles 金酒免疫）属于玩法遮罩，因此不受 F1 与 Wathe HUD
  * 开关影响。只读取本地拥有者自己的同步状态，从不在魔女技能面板中渲染。
  * 摄像头模式下标签带有所看摄像头的补零编号（“摄像头 02”）；左右键还能切到其他摄像头时，退出提示上方一行显示带左右
@@ -46,7 +48,6 @@ public final class SeekerCctvOverlay {
     static final Identifier GIN_IMMUNITY_ID = Identifier.of("noellesroles", "gin_immunity");
     private static final int INSET = 8;
     private static final int CORNER = 18;
-    private static final int RANGE_BAR_WIDTH = 72;
     private static final int BATTERY_BAR_WIDTH = 92;
     private static final int BATTERY_BAR_HEIGHT = 9;
     private static final int HOTBAR_CLEARANCE = 44;
@@ -108,7 +109,7 @@ public final class SeekerCctvOverlay {
                 player.hasStatusEffect(StatusEffects.DARKNESS), ginImmune);
     }
 
-    /** Horizontal body-to-focus distance, matching the server's horizontal radius clamp. / 本体到焦点的水平距离，与服务端水平半径钳制一致。 */
+    /** Horizontal body-to-focus distance, the same measure as the console rows. / 本体到焦点的水平距离，与控制台状态行的度量一致。 */
     public static double horizontalDistance(Entity body, Entity focus) {
         double dx = focus.getX() - body.getX();
         double dz = focus.getZ() - body.getZ();
@@ -164,7 +165,9 @@ public final class SeekerCctvOverlay {
                                           SeekerSessionMode mode, int height, int frame, long ticks) {
         int x = INSET + 6;
         int line = text.fontHeight + 3;
-        int y = height - HOTBAR_CLEARANCE - line * 3 - 6;
+        // Three lines; the last one ends on the battery bar's bottom edge, where the old range bar used to end.
+        // 共三行；最后一行的底边与电量条底边对齐（即原距离条的结束位置）。
+        int y = height - HOTBAR_CLEARANCE - 6 - text.fontHeight - line * 2;
         if (SeekerCctvRules.recVisible(ticks)) {
             context.drawTextWithShadow(text, Text.translatable("hud.sparkwitch.seeker.view.rec"), x, y,
                     SeekerCctvRules.REC_COLOR);
@@ -178,16 +181,10 @@ public final class SeekerCctvOverlay {
                 : Text.translatable("hud.sparkwitch.seeker.view.camera", SeekerCctvRules.cameraNumber(cameraLabel));
         context.drawTextWithShadow(text, label, x, y, frame);
         y += line;
-        int radius = SeekerClientState.effectiveRadius();
         Entity focus = SeekerRemoteViewClient.focus();
         double distance = focus == null ? 0.0 : horizontalDistance(player, focus);
-        double fraction = SeekerCctvRules.rangeFraction(distance, radius);
-        Text range = Text.translatable("hud.sparkwitch.seeker.view.range", MathHelper.floor(distance), radius);
-        context.drawTextWithShadow(text, range, x, y, frame);
-        int barY = y + text.fontHeight + 1;
-        context.fill(x, barY, x + RANGE_BAR_WIDTH, barY + 3, 0x80000000);
-        context.fill(x, barY, x + (int) Math.round(RANGE_BAR_WIDTH * fraction), barY + 3,
-                SeekerCctvRules.rangeBarColor(fraction));
+        context.drawTextWithShadow(text, Text.translatable("hud.sparkwitch.seeker.view.distance",
+                MathHelper.floor(distance)), x, y, frame);
     }
 
     private static void renderBattery(DrawContext context, TextRenderer text, int width, int height, long ticks) {
@@ -228,32 +225,22 @@ public final class SeekerCctvOverlay {
                     SecondaryAbilityController.secondaryKeyText());
             context.drawCenteredTextWithShadow(text, change, width / 2, y + text.fontHeight + 3, frame);
         }
-        int radius = SeekerClientState.effectiveRadius();
-        if (SeekerCctvRules.showsLowRenderDistance(mode, radius)) {
-            context.drawCenteredTextWithShadow(text,
-                    Text.translatable("hud.sparkwitch.seeker.view.low_render_distance", radius), width / 2,
-                    INSET + 22, SeekerCctvRules.WARNING_COLOR);
-        }
     }
 
     /**
      * One line above the exit hint while viewing a camera and the strafe keys can reach another one: the keys and the
-     * "2/3" position by label among the cameras the client cycler could select (resolvable and within the session
-     * radius, plus the viewed one), from the synced cameras and session focus. The keys only mirror the client cycler;
-     * the server validates every switch.
+     * "2/3" position by label among the cameras the client cycler could select (every synced camera this client does
+     * not see dead, at any distance, plus the viewed one), from the synced cameras and session focus. The keys only
+     * mirror the client cycler; the server validates every switch.
      * 观看摄像头且左右键还能切到其他摄像头时，在退出提示上方一行显示：左右移动键与按编号的“2/3”位置，只在客户端切换器
-     * 可选的摄像头（可解析且位于会话半径内，加上正在观看的那台）中计算，数据来自同步的摄像头列表与会话焦点。按键提示只对应
-     * 客户端切换器；每次切换都由服务端校验。
+     * 可选的摄像头（本客户端未看到失效的每台同步摄像头，距离不限，加上正在观看的那台）中计算，数据来自同步的摄像头列表与
+     * 会话焦点。按键提示只对应客户端切换器；每次切换都由服务端校验。
      */
     private static void renderCameraCycleHint(DrawContext context, TextRenderer text, MinecraftClient client,
                                               SeekerSessionMode mode, int width, int exitY, int frame) {
-        ClientPlayerEntity player = client.player;
-        if (player == null) {
-            return;
-        }
         int focusId = SeekerClientState.sessionFocusEntityId();
         List<SeekerState.Camera> ring = SeekerCameraRules.cycleRing(SeekerClientState.cameras(), focusId,
-                SeekerCameraCycler.selectable(client.world, player));
+                SeekerCameraCycler.selectable(client.world));
         int count = ring.size();
         if (!SeekerCctvRules.showsCameraCycleHint(mode, count)) {
             return;

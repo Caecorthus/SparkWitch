@@ -32,7 +32,8 @@ import java.util.ArrayDeque;
  *       {@code onVehicleMove} threshold) of the claim and the contracted box must be empty, else corrected (not
  *       counted: a door may close on the server first);</li>
  *   <li>area: feet below the play-area floor break the car at once (VOID); otherwise the horizontal position is
- *       clamped to the effective radius around the body and to the play area (accept, clamp, correct).</li>
+ *       clamped into the play area (accept, clamp, correct). There is no distance limit from the body
+ *       (owner decision 2026-10-04).</li>
  * </ol>
  * More than {@link SeekerRules#CHEAT_REJECT_LIMIT} counted rejections within {@link SeekerRules#CHEAT_REJECT_WINDOW_TICKS}
  * end the session with CHEAT_SUSPECT; nobody is ever kicked.
@@ -45,8 +46,9 @@ import java.util.ArrayDeque;
  * 下落速度从静止开始，按小车自身重力与阻力累计本段无支撑已计费的 {@code airTicks}（考虑碰撞，因此落地永不被拒）；
  * 计费只在移动从有支撑处开始时清零、纠正从不清零，因此无法靠刷拒绝重启模型；否则纠正但不计数，延迟可能导致）；
  * 重放（从服务端位置用 SeekerCarPhysics 重放，落点与声明的平方偏差不超过 0.0625（原版 onVehicleMove 阈值）且收缩后的箱体为空，
- * 否则纠正但不计数，门可能先在服务端关上）；区域（脚底低于游戏区域底面立即以 VOID 损坏；否则把水平位置钳制到本体有效半径与游戏区域内：
- * 先接受、再钳制、再纠正）。5 秒内计数超过 20 次即以 CHEAT_SUSPECT 结束会话；从不踢人。
+ * 否则纠正但不计数，门可能先在服务端关上）；区域（脚底低于游戏区域底面立即以 VOID 损坏；否则把水平位置钳制进游戏区域：
+ * 先接受、再钳制、再纠正；与本体之间没有距离限制，所有者决定 2026-10-04）。5 秒内计数超过 20 次即以 CHEAT_SUSPECT 结束会话；
+ * 从不踢人。
  */
 public final class SeekerCarMoveRules {
     public static final double MAX_DELTA = 8.0;
@@ -69,16 +71,6 @@ public final class SeekerCarMoveRules {
     /** Squared deviation, as vanilla {@code onVehicleMove}. / 平方偏差，同原版 {@code onVehicleMove}。 */
     public static final double REPLAY_DEVIATION_SQUARED = 0.0625;
     public static final double SPACE_CONTRACTION = 0.0625;
-    /** Clamped cars stop this far inside the radius. / 被钳制的小车停在半径内侧的距离。 */
-    public static final double CLAMP_INSET = 1.0E-3;
-    /**
-     * A claim at most this far outside the radius is accepted unclamped: the owner's client clamps to exactly the
-     * radius around its own copy of the body anchor, so a car held against the edge must not draw a correction every
-     * tick. The per-tick range check has sqrt(2) of slack, so this never lets a car leave the session range.
-     * 声明位置超出半径不多于此值时不钳制直接接受：拥有者客户端以自己记录的本体锚点为中心精确钳制到半径上，
-     * 贴着边缘行驶的小车不应每刻都收到纠正。逐刻距离检查带有 √2 余量，因此这不会让小车离开会话范围。
-     */
-    public static final double CLAMP_TOLERANCE = 0.01;
 
     private SeekerCarMoveRules() {
     }
@@ -140,12 +132,9 @@ public final class SeekerCarMoveRules {
      * @param budget          horizontal budget available now / 当前可用的水平配额
      * @param airTicks        physics ticks already charged to the current unsupported stretch (reset only when a
      *                        move starts supported) / 本段无支撑已计费的物理刻数（仅在移动从有支撑处开始时清零）
-     * @param body            the owner's body position (radius centre) / 拥有者本体位置（半径中心）
-     * @param effectiveRadius session radius / 会话半径
-     * @param playArea        Wathe play area, or null when unknown / Wathe 游戏区域
+     * @param playArea        Wathe play area, or null when unknown; the only area bound / Wathe 游戏区域，唯一的区域约束
      */
-    public record Move(Vec3d server, Vec3d claimed, float yaw, double budget, int airTicks, Vec3d body,
-                       int effectiveRadius, @Nullable Box playArea) {
+    public record Move(Vec3d server, Vec3d claimed, float yaw, double budget, int airTicks, @Nullable Box playArea) {
     }
 
     // ---- Admission (no physics) ----
@@ -292,25 +281,14 @@ public final class SeekerCarMoveRules {
     }
 
     /**
-     * Horizontal clamp onto the radius around {@code body} (only beyond {@link #CLAMP_TOLERANCE}; the result lies
-     * {@link #CLAMP_INSET} inside), then into the play area. The y coordinate is kept. Projection onto the (convex)
-     * area never pushes a point back out of the radius when the body is inside it.
-     * 先把水平位置钳制到以本体为中心的半径内（仅在超出 {@link #CLAMP_TOLERANCE} 时；结果位于半径内侧
-     * {@link #CLAMP_INSET} 处），再钳制进游戏区域；y 保持不变。本体位于区域内时，投影到（凸）区域不会把点重新推出半径。
+     * Horizontal clamp into the play area (null: no clamp); the y coordinate is kept, and a position already inside is
+     * returned as the same instance. No radius around the body (2026-10-04).
+     * 把水平位置钳制进游戏区域（为 null 时不钳制）；y 保持不变，已在区域内的位置原样返回同一实例。
+     * 不再有以本体为中心的半径（2026-10-04）。
      */
-    public static Vec3d clampToArea(Vec3d position, Vec3d body, int effectiveRadius, @Nullable Box playArea) {
+    public static Vec3d clampToArea(Vec3d position, @Nullable Box playArea) {
         double x = position.x;
         double z = position.z;
-        double radius = Math.max(0.0, effectiveRadius - CLAMP_INSET);
-        double limit = Math.max(0.0, effectiveRadius) + CLAMP_TOLERANCE;
-        double dx = x - body.x;
-        double dz = z - body.z;
-        double distanceSquared = dx * dx + dz * dz;
-        if (distanceSquared > limit * limit) {
-            double scale = distanceSquared <= 0.0 ? 0.0 : radius / Math.sqrt(distanceSquared);
-            x = body.x + dx * scale;
-            z = body.z + dz * scale;
-        }
         if (playArea != null) {
             x = MathHelper.clamp(x, playArea.minX, playArea.maxX);
             z = MathHelper.clamp(z, playArea.minZ, playArea.maxZ);
@@ -341,7 +319,7 @@ public final class SeekerCarMoveRules {
         if (SeekerRemoteRules.isBelowPlayArea(move.playArea(), claimed.y)) {
             return new Decision(Outcome.VOID, Check.VOID, claimed, false, false);
         }
-        Vec3d clamped = clampToArea(claimed, move.body(), move.effectiveRadius(), move.playArea());
+        Vec3d clamped = clampToArea(claimed, move.playArea());
         if (clamped != claimed) {
             if (!replay.isSpaceEmpty(clamped)) {
                 return Decision.correct(Check.AREA, server, false);

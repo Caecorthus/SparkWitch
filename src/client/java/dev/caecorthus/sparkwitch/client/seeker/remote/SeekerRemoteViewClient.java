@@ -338,7 +338,7 @@ public final class SeekerRemoteViewClient {
         device = target;
         if (target instanceof SeekerCarEntity car) {
             focus = car;
-            SeekerCarClientDriver.start(car, sessionId, boundPlayer == null ? car.getPos() : boundPlayer.getPos());
+            SeekerCarClientDriver.start(car, sessionId);
         } else {
             focus = new SeekerCameraViewpoint(client.world, (SeekerCameraEntity) target);
         }

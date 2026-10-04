@@ -13,9 +13,9 @@ import java.util.Set;
 
 /**
  * Pure client rules of the remote view (WP-10a internal): the key allowlist, look clamps for the car and the camera
- * cone, the owner-client bounds clamp for the car, move-send cadence, camera-cycle press edges and spacing, and the
+ * cone, the owner-client play-area clamp for the car, move-send cadence, camera-cycle press edges and spacing, and the
  * per-tick local exit decision. Nothing here touches the client instance, so every rule is unit-tested without a game.
- * 遥控视角的纯客户端规则（WP-10a 内部）：按键白名单、小车与摄像头锥角的视角钳制、小车在拥有者客户端的范围钳制、
+ * 遥控视角的纯客户端规则（WP-10a 内部）：按键白名单、小车与摄像头锥角的视角钳制、小车在拥有者客户端的游戏区域钳制、
  * 移动包发送节奏、摄像头切换的按下沿与间隔，以及每刻的本地退出判定。这里不触碰客户端实例，因此每条规则都可以脱离游戏做单元测试。
  */
 public final class SeekerRemoteViewRules {
@@ -127,57 +127,37 @@ public final class SeekerRemoteViewRules {
     }
 
     /**
-     * Owner-client soft wall: pulls a car target back inside the play area (minus half the traversal width) and
-     * inside {@code radius} of the body anchor. {@code radius <= 0} or a null area skips that bound. The server still
-     * clamps and corrects; this only keeps snap-backs rare.
-     * 拥有者客户端的软墙：把小车目标拉回游戏区域（扣除半个通行箱宽度）以及本体锚点的 {@code radius} 之内。
-     * {@code radius <= 0} 或区域为空时跳过对应约束。服务端仍会钳制并纠正，这里只是减少回拉。
+     * Owner-client soft wall: pulls a car target back inside the play area (minus half the traversal width); a null
+     * area skips the bound. There is no distance limit from the body (2026-10-04). The server still clamps and
+     * corrects; this only keeps snap-backs rare.
+     * 拥有者客户端的软墙：把小车目标拉回游戏区域（扣除半个通行箱宽度）之内；区域为空时跳过该约束。
+     * 与本体之间没有距离限制（2026-10-04）。服务端仍会钳制并纠正，这里只是减少回拉。
      */
-    public static Vec3d clampHorizontalTarget(Vec3d anchor, int radius, @Nullable Box playArea, Vec3d target) {
-        double x = target.x;
-        double z = target.z;
-        if (playArea != null) {
-            x = clampInto(x, playArea.minX, playArea.maxX);
-            z = clampInto(z, playArea.minZ, playArea.maxZ);
+    public static Vec3d clampHorizontalTarget(@Nullable Box playArea, Vec3d target) {
+        if (playArea == null) {
+            return target;
         }
-        if (radius > 0) {
-            double dx = x - anchor.x;
-            double dz = z - anchor.z;
-            double distance = Math.sqrt(dx * dx + dz * dz);
-            if (distance > radius) {
-                double scale = radius / distance;
-                x = anchor.x + dx * scale;
-                z = anchor.z + dz * scale;
-            }
-        }
-        return new Vec3d(x, target.y, z);
+        return new Vec3d(clampInto(target.x, playArea.minX, playArea.maxX), target.y,
+                clampInto(target.z, playArea.minZ, playArea.maxZ));
     }
 
     /**
-     * How far a position lies outside the radius and play-area bounds (0 when inside).
-     * 位置超出半径与游戏区域约束的程度（在范围内时为 0）。
+     * How far a position lies outside the play-area bounds (0 when inside or when the area is unknown).
+     * 位置超出游戏区域约束的程度（在区域内或区域未知时为 0）。
      */
-    public static double boundsExcess(Vec3d anchor, int radius, @Nullable Box playArea, Vec3d position) {
-        double excess = 0.0;
-        if (playArea != null) {
-            excess += overflow(position.x, playArea.minX, playArea.maxX);
-            excess += overflow(position.z, playArea.minZ, playArea.maxZ);
+    public static double boundsExcess(@Nullable Box playArea, Vec3d position) {
+        if (playArea == null) {
+            return 0.0;
         }
-        if (radius > 0) {
-            double dx = position.x - anchor.x;
-            double dz = position.z - anchor.z;
-            excess += Math.max(0.0, Math.sqrt(dx * dx + dz * dz) - radius);
-        }
-        return excess;
+        return overflow(position.x, playArea.minX, playArea.maxX) + overflow(position.z, playArea.minZ, playArea.maxZ);
     }
 
     /**
      * A local move is kept when it ends inside the bounds or at least never ends further outside than it started.
      * 本地移动在终点位于范围内、或至少不比起点更靠外时才保留。
      */
-    public static boolean acceptsMove(Vec3d anchor, int radius, @Nullable Box playArea, Vec3d from, Vec3d to) {
-        return boundsExcess(anchor, radius, playArea, to)
-                <= boundsExcess(anchor, radius, playArea, from) + BOUNDS_EPSILON;
+    public static boolean acceptsMove(@Nullable Box playArea, Vec3d from, Vec3d to) {
+        return boundsExcess(playArea, to) <= boundsExcess(playArea, from) + BOUNDS_EPSILON;
     }
 
     /** Position or heading changed since the last sent move. / 自上次发送后位置或朝向有变化。 */
