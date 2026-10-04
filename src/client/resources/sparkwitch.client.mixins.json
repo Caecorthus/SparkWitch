@@ -107,6 +107,8 @@
     "seeker.SeekerRemoteNetworkHandlerMixin",
     "seeker.SeekerRemoteWorldRendererMixin",
     "seeker.SeekerTaotieAbilityKeyMixin",
+    "seeker.SeekerBodyFreezeMixin",
+    "seeker.SeekerRemoteTerrainGridMixin",
     "windspirit.WindSpiritInstinctMixin",
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleParticleMixin",
     "witchmaiden.FocusedFootstepsClientPlayerMovementMixin",
@@ -148,5 +150,6 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "plugin": "dev.caecorthus.sparkwitch.client.mixin.SparkWitchClientMixinPlugin"
 }

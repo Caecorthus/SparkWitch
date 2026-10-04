@@ -122,7 +122,14 @@ public final class SeekerRules {
     // 所有者决定 2026-10-04：本体与小车或摄像头之间不再有距离限制；Wathe 游戏区域是唯一的空间边界（打开、逐刻退出与小车钳制）。
     // DEPLOY_REACH / CAMERA_PLACE_REACH 只限制放置距离。
     public static final int OPEN_THROTTLE_TICKS = 10;
-    public static final int ATTACH_TIMEOUT_TICKS = 40;
+    /**
+     * Shared by both sides: the server's CAR attach deadline and the owner client's connecting grace (session start,
+     * atomic switch, a briefly missing focus). A far device reaches the client only after its chunks stream in, so
+     * 100 ticks (5 s); the client never gives up before the server does.
+     * 两端共用：服务端 CAR 挂接截止与拥有者客户端的连接宽限（会话开始、原子切换、焦点短暂缺失）。远处设备要等区块推送后
+     * 才会到达客户端，因此为 100 刻（5 秒）；客户端不会先于服务端放弃。
+     */
+    public static final int ATTACH_TIMEOUT_TICKS = 100;
     public static final int MOVE_TIMEOUT_TICKS = 100;
     /** Body may drift at most sqrt(2) blocks from the session anchor. / 本体距锚点最多偏离 √2 格。 */
     public static final double BODY_MOVE_TOLERANCE_SQUARED = 2.0;

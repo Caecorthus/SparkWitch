@@ -21,6 +21,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -81,6 +82,10 @@ public final class SeekerCctvOverlay {
         long ticks = player.age;
         if (isSignalLost(player)) {
             renderSignalLost(context, client.textRenderer, ticks);
+            return;
+        }
+        if (SeekerRemoteViewClient.isConnecting()) {
+            renderConnecting(context, client.textRenderer, mode, ticks);
             return;
         }
         if (client.options.hudHidden || WatheClient.trainComponent == null || !WatheClient.trainComponent.hasHud()) {
@@ -253,6 +258,36 @@ public final class SeekerCctvOverlay {
     }
 
     private static void renderSignalLost(DrawContext context, TextRenderer text, long ticks) {
+        renderPanel(context, text, ticks, Text.translatable("hud.sparkwitch.seeker.view.signal_lost"),
+                SeekerCctvRules.CRITICAL_COLOR, null, true);
+    }
+
+    /**
+     * CONNECTING mask while the session's focus or its surrounding terrain has not streamed in yet (unlimited range:
+     * session start, an atomic switch to a far device, or a briefly missing focus). Opaque like SIGNAL LOST and also
+     * shown under F1, because underneath sits the last view or the body whose chunks the server is unloading; the line
+     * below names the device being reached, and the exit hint stays, since Shift still leaves.
+     * 会话焦点或其周围地形尚未推送到达时的“正在连接”遮罩（无限距离：会话开始、原子切换到远处设备、或焦点短暂缺失）。与“信号丢失”一样不透明，
+     * F1 下也显示，因为其下是上一画面或服务端正在卸载其区块的本体；下一行注明正在连接的设备，退出提示保留，因为 Shift 仍可退出。
+     */
+    private static void renderConnecting(DrawContext context, TextRenderer text, SeekerSessionMode mode, long ticks) {
+        int frame = SeekerCctvRules.frameColor(mode);
+        int cameraLabel = SeekerCameraRules.label(SeekerClientState.cameras(),
+                SeekerClientState.sessionFocusEntityId());
+        Text target = mode == SeekerSessionMode.CAR ? Text.translatable("hud.sparkwitch.seeker.view.car")
+                : Text.translatable("hud.sparkwitch.seeker.view.camera", SeekerCctvRules.cameraNumber(cameraLabel));
+        renderPanel(context, text, ticks, Text.translatable("hud.sparkwitch.seeker.view.connecting"), frame, target,
+                true);
+    }
+
+    /**
+     * Shared opaque CCTV card: dark fill, per-tick static, a blinking double-size title, an optional device line and
+     * an optional exit hint. Also drawn by {@link SeekerBodyHold} (RETURNING) after the view ends.
+     * 共用的不透明 CCTV 卡片：深色底、逐刻雪花、闪烁的双倍大小标题、可选的设备行与可选的退出提示。视角结束后
+     * {@link SeekerBodyHold}（正在返回本体）也使用它。
+     */
+    static void renderPanel(DrawContext context, TextRenderer text, long ticks, Text title, int titleColor,
+                            @Nullable Text subtitle, boolean exitHint) {
         int width = context.getScaledWindowWidth();
         int height = context.getScaledWindowHeight();
         context.fill(0, 0, width, height, SeekerCctvRules.SIGNAL_LOST_BACKGROUND);
@@ -265,16 +300,22 @@ public final class SeekerCctvOverlay {
             int grey = 0x30 + random.nextInt(0x50);
             context.fill(x, y, Math.min(width, x + length), y + 1, 0x60000000 | grey << 16 | grey << 8 | grey);
         }
-        Text lost = Text.translatable("hud.sparkwitch.seeker.view.signal_lost");
         context.getMatrices().push();
         context.getMatrices().translate(width / 2.0F, height / 2.0F - 12.0F, 0.0F);
         context.getMatrices().scale(2.0F, 2.0F, 1.0F);
         if (SeekerCctvRules.recVisible(ticks)) {
-            context.drawCenteredTextWithShadow(text, lost, 0, 0, SeekerCctvRules.CRITICAL_COLOR);
+            context.drawCenteredTextWithShadow(text, title, 0, 0, titleColor);
         }
         context.getMatrices().pop();
-        Text exit = Text.translatable("hud.sparkwitch.seeker.view.exit_hint",
-                MinecraftClient.getInstance().options.sneakKey.getBoundKeyLocalizedText());
-        context.drawCenteredTextWithShadow(text, exit, width / 2, height / 2 + 16, SeekerCctvRules.CAMERA_FRAME_COLOR);
+        int y = height / 2 + 16;
+        if (subtitle != null) {
+            context.drawCenteredTextWithShadow(text, subtitle, width / 2, y, titleColor);
+            y += text.fontHeight + 3;
+        }
+        if (exitHint) {
+            Text exit = Text.translatable("hud.sparkwitch.seeker.view.exit_hint",
+                    MinecraftClient.getInstance().options.sneakKey.getBoundKeyLocalizedText());
+            context.drawCenteredTextWithShadow(text, exit, width / 2, y, SeekerCctvRules.CAMERA_FRAME_COLOR);
+        }
     }
 }

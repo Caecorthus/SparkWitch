@@ -962,6 +962,8 @@
   "hud.sparkwitch.seeker.view.use_close": "[%s] Close",
   "hud.sparkwitch.seeker.view.use_press": "[%s] Press button",
   "hud.sparkwitch.seeker.view.use_lever": "[%s] Pull lever",
+  "hud.sparkwitch.seeker.view.connecting": "CONNECTING…",
+  "hud.sparkwitch.seeker.view.returning": "RETURNING TO BODY…",
   "hud.sparkwitch.seeker.taotie_hint": "[%s] Swallow the Search Car (takes priority over players behind it)",
   "message.sparkwitch.seeker.car.use_tablet": "Use your tablet to control the car.",
   "message.sparkwitch.seeker.car.no_space": "There is no room to deploy the car here.",

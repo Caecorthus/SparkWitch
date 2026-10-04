@@ -45,6 +45,8 @@ public final class SeekerCarClientDriver {
     private static Vec3d lastSentPosition;
     private static float lastSentYaw;
     private static int ticksSinceSend;
+    /** Horizontal margin covering one tick of car travel when probing loaded chunks. / 探测已加载区块时覆盖小车单刻位移的水平余量。 */
+    private static final double CHUNK_PROBE_MARGIN = 1.0;
 
     private SeekerCarClientDriver() {
     }
@@ -119,6 +121,24 @@ public final class SeekerCarClientDriver {
     }
 
     /**
+     * Same session, re-tracked car: the server streamed the car to this client again as a new instance with the same
+     * id (unlimited range). Drive the new instance without restarting the move sequence, because the server admits only
+     * a rising {@code seq} within a session; the first END tick re-sends its position.
+     * 同一会话中重新追踪的小车：服务端把小车以同 id 的新实例再次推送给本客户端（无限距离）。驾驶新实例且不重置移动序号，
+     * 因为服务端在一个会话内只接受递增的 {@code seq}；首个 END 刻会重新发送其位置。
+     */
+    static void retrack(SeekerCarEntity driven) {
+        car = driven;
+        velocity = Vec3d.ZERO;
+        onGround = driven.isOnGround();
+        lastSentPosition = null;
+        lastSentYaw = driven.getYaw();
+        ticksSinceSend = SeekerRemoteViewRules.MOVE_KEEPALIVE_TICKS;
+        driven.setPitch(0.0F);
+        driven.prevPitch = 0.0F;
+    }
+
+    /**
      * Mouse look while driving: yaw turns the car, pitch tilts only the view within +-60 degrees.
      * 驾驶时的鼠标视角：yaw 转动车头，pitch 只在 ±60° 内倾斜画面。
      */
@@ -142,7 +162,13 @@ public final class SeekerCarClientDriver {
                 || client.isPaused() || client.world == null || driven.getWorld() != client.world) {
             return;
         }
-        drive(client, driven);
+        // Never simulate into chunks this client does not have yet (they stream in around the car): the car holds still
+        // instead of falling through an empty chunk, and the keepalive below keeps the session alive.
+        // 绝不在本客户端尚未拥有的区块中模拟（它们会围绕小车推送到达）：小车原地保持而不是穿过空区块下落，下方的保活包维持会话。
+        if (SeekerBodyHold.chunksLoaded(driven.getWorld(),
+                driven.getBoundingBox().expand(CHUNK_PROBE_MARGIN, 0.0, CHUNK_PROBE_MARGIN))) {
+            drive(client, driven);
+        }
         ticksSinceSend++;
         Vec3d position = driven.getPos();
         float yaw = driven.getYaw();

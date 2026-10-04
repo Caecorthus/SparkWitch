@@ -962,6 +962,8 @@
   "hud.sparkwitch.seeker.view.use_close": "[%s] 关门",
   "hud.sparkwitch.seeker.view.use_press": "[%s] 按下按钮",
   "hud.sparkwitch.seeker.view.use_lever": "[%s] 拉动拉杆",
+  "hud.sparkwitch.seeker.view.connecting": "正在连接…",
+  "hud.sparkwitch.seeker.view.returning": "正在返回本体…",
   "hud.sparkwitch.seeker.taotie_hint": "[%s] 吞噬搜寻小车（优先于其身后的玩家）",
   "message.sparkwitch.seeker.car.use_tablet": "请使用平板电脑操控小车。",
   "message.sparkwitch.seeker.car.no_space": "这里没有足够的空间部署小车。",
