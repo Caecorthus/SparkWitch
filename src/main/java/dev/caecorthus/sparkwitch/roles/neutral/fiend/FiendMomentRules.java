@@ -162,4 +162,22 @@ public final class FiendMomentRules {
         return liveAmplifier == FiendRules.MOMENT_SPEED_AMPLIFIER
                 && liveDuration == FiendRules.MOMENT_DURATION_TICKS;
     }
+
+    /**
+     * A Dash owns the live Speed instance only when its own grant decided the merged result.
+     * 只有当疾驰自身的授予决定了合并结果时，疾驰才拥有当前的速度效果实例。
+     */
+    public static boolean claimsDash(int liveAmplifier, int liveDuration) {
+        return liveAmplifier == FiendRules.DASH_SPEED_AMPLIFIER
+                && liveDuration == FiendRules.DASH_DURATION_TICKS;
+    }
+
+    /**
+     * The levels an owned instance may show when the moment ends: the moment's Speed II or a running Dash's Speed IV.
+     * 时刻结束时已登记实例可呈现的等级：时刻的速度 II，或进行中疾驰的速度 IV。
+     */
+    public static boolean isOwnedSpeedLevel(int liveAmplifier) {
+        return liveAmplifier == FiendRules.MOMENT_SPEED_AMPLIFIER
+                || liveAmplifier == FiendRules.DASH_SPEED_AMPLIFIER;
+    }
 }

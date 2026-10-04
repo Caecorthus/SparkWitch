@@ -19,14 +19,16 @@ import java.util.UUID;
 /**
  * Round-scoped Fiend Moment ({@code sparkwitch:fiend_moment}), synced to every player. Server authority: only the
  * server starts or clears the moment and decides completion from its absolute deadline. The packet carries only a
- * presence flag, the Fiend UUID and the remaining ticks, never absolute server time or the match id; the server
- * resyncs on every change. Clients count the remaining ticks down locally for presentation and never decide an
- * outcome. Never persisted: a world reload drops the moment. The server also keeps the match-bound spent-Fiend
- * ledger here (Fiends taken out of their moment by a Taotie swallow); it is never synced or persisted.
+ * presence flag, the Fiend UUID, the remaining ticks and the remaining Dash cooldown (the real value only to the
+ * moment Fiend, 0 to everyone else), never absolute server time or the match id; the server resyncs on every change.
+ * Clients count both down locally for presentation and never decide an outcome or a Dash use. Never persisted: a
+ * world reload drops the moment. The server also keeps the match-bound spent-Fiend ledger here (Fiends taken out of
+ * their moment by a Taotie swallow); it is never synced or persisted.
  * 本局魔人时刻（{@code sparkwitch:fiend_moment}），同步给所有玩家。服务端权威：只有服务端开始或清除时刻，并依据其
- * 绝对截止 tick 判定完成。数据包只携带存在标记、魔人 UUID 与剩余 tick，绝不含服务端绝对时间或对局 id；每次变化由
- * 服务端重新同步。客户端仅为展示在本地倒数剩余 tick，从不决定胜负。从不持久化：世界重载后时刻丢失。服务端还在此
- * 保存绑定对局的「已耗尽魔人」登记表（因饕餮吞噬而退出时刻的魔人），它从不同步也从不持久化。
+ * 绝对截止 tick 判定完成。数据包只携带存在标记、魔人 UUID、剩余 tick 与疾驰剩余冷却（真实值只发给时刻中的魔人，
+ * 其他人为 0），绝不含服务端绝对时间或对局 id；每次变化由服务端重新同步。客户端仅为展示在本地倒数二者，从不决定
+ * 胜负或疾驰的使用。从不持久化：世界重载后时刻丢失。服务端还在此保存绑定对局的「已耗尽魔人」登记表（因饕餮吞噬
+ * 而退出时刻的魔人），它从不同步也从不持久化。
  */
 public final class FiendMomentWorldComponent implements AutoSyncedComponent, ClientTickingComponent {
     public static final ComponentKey<FiendMomentWorldComponent> KEY = ComponentRegistry.getOrCreate(
@@ -38,6 +40,7 @@ public final class FiendMomentWorldComponent implements AutoSyncedComponent, Cli
     private final FiendSpentLedger spent = new FiendSpentLedger();
     private @Nullable UUID clientFiend;
     private int clientRemainingTicks;
+    private int clientDashCooldownTicks;
 
     public FiendMomentWorldComponent(World world) {
         this.world = world;
@@ -127,6 +130,37 @@ public final class FiendMomentWorldComponent implements AutoSyncedComponent, Cli
         return !world.isClient && !spent.isEmpty() && spent.isSpent(player, FiendMatch.currentId());
     }
 
+    /**
+     * Remaining Dash cooldown: server state, or on the client the synced value counted down locally (only the moment
+     * Fiend's own client receives a non-zero value). 0 without a moment.
+     * 疾驰剩余冷却：服务端为真实状态；客户端为同步值的本地倒数（只有时刻中魔人自己的客户端会收到非零值）。无时刻时为 0。
+     */
+    public int dashCooldownTicks() {
+        return world.isClient ? clientDashCooldownTicks : state.dashCooldownRemaining(world.getTime());
+    }
+
+    /** Server-authoritative; always false on the client. / 服务端权威；客户端恒为 false。 */
+    public boolean isDashReady() {
+        return !world.isClient && state.isDashReady(world.getTime());
+    }
+
+    /** Server only; 0 on the client. / 仅服务端；客户端为 0。 */
+    public long dashReadyTick() {
+        return world.isClient ? 0L : state.dashReadyTick();
+    }
+
+    /**
+     * Server only: moves the absolute Dash ready tick and resyncs; a no-op on the client or without a moment.
+     * 仅服务端：设置疾驰的绝对就绪 tick 并重新同步；客户端或无时刻时无效果。
+     */
+    public void setDashReadyTick(long readyTick) {
+        if (world.isClient || !state.isActive()) {
+            return;
+        }
+        state.setDashReadyTick(readyTick);
+        KEY.sync(world);
+    }
+
     /** Server only: forgets every spent Fiend (round boundary). / 仅服务端：遗忘所有已耗尽魔人（回合边界）。 */
     public void clearSpent() {
         if (!world.isClient) {
@@ -138,6 +172,9 @@ public final class FiendMomentWorldComponent implements AutoSyncedComponent, Cli
     public void clientTick() {
         if (clientFiend != null && clientRemainingTicks > 0) {
             clientRemainingTicks--;
+        }
+        if (clientFiend != null && clientDashCooldownTicks > 0) {
+            clientDashCooldownTicks--;
         }
     }
 
@@ -153,6 +190,9 @@ public final class FiendMomentWorldComponent implements AutoSyncedComponent, Cli
         if (fiend != null) {
             buf.writeUuid(fiend);
             buf.writeVarInt(state.remainingTicks(world.getTime()));
+            // Dash cooldown goes only to the moment Fiend; everyone else reads 0.
+            // 疾驰冷却只发给时刻中的魔人；其他人读到 0。
+            buf.writeVarInt(fiend.equals(recipient.getUuid()) ? state.dashCooldownRemaining(world.getTime()) : 0);
         }
     }
 
@@ -161,9 +201,11 @@ public final class FiendMomentWorldComponent implements AutoSyncedComponent, Cli
         if (buf.readBoolean()) {
             clientFiend = buf.readUuid();
             clientRemainingTicks = Math.max(0, buf.readVarInt());
+            clientDashCooldownTicks = Math.max(0, buf.readVarInt());
         } else {
             clientFiend = null;
             clientRemainingTicks = 0;
+            clientDashCooldownTicks = 0;
         }
     }
 
@@ -173,6 +215,7 @@ public final class FiendMomentWorldComponent implements AutoSyncedComponent, Cli
         spent.clear();
         clientFiend = null;
         clientRemainingTicks = 0;
+        clientDashCooldownTicks = 0;
     }
 
     @Override
