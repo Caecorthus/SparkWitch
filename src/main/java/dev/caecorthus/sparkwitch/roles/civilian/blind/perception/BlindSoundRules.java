@@ -68,6 +68,7 @@ public final class BlindSoundRules {
     static final Identifier INTENTIONALLY_EMPTY = Identifier.ofVanilla("intentionally_empty");
 
     private static final String AMBIENT_PATH_PREFIX = "ambient.";
+    private static final String STEP_PATH_SUFFIX = ".step";
 
     private BlindSoundRules() {
     }
@@ -107,6 +108,16 @@ public final class BlindSoundRules {
             return blackoutActive.getAsBoolean() ? Handling.IGNORE : Handling.OBJECT;
         }
         return nonPlayerSource || OBJECT_SOUNDS.contains(soundId) ? Handling.OBJECT : Handling.ATTRIBUTE;
+    }
+
+    /**
+     * Footstep sounds are the block sound groups' step events, which all end in {@code .step} (vanilla
+     * {@code block.stone.step}, Wathe's {@code block.vent_shaft.step}). Landing ({@code .fall}) is not a footstep.
+     * 脚步声是方块声音组的踏步事件，路径都以 {@code .step} 结尾（原版 {@code block.stone.step}、Wathe 的
+     * {@code block.vent_shaft.step}）。落地声（{@code .fall}）不算脚步。
+     */
+    public static boolean isFootstep(@Nullable Identifier soundId) {
+        return soundId != null && soundId.getPath().endsWith(STEP_PATH_SUFFIX);
     }
 
     public static boolean isOneShot(@Nullable Identifier soundId) {
