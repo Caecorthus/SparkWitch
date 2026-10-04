@@ -241,6 +241,9 @@ public final class SeekerRemoteSessionService {
             SeekerNetworking.sendCorrection(player, new SeekerCarCorrectS2CPacket(status.sessionId(),
                     car.getX(), car.getY(), car.getZ(), car.getYaw()));
         }
+        // Server-side far view: stream the new focus now, right after the session sync.
+        // 服务端远程视野：紧随会话同步立即流式加载新焦点。
+        SeekerRemoteStreaming.onSessionOpened(player);
     }
 
     @Nullable

@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceServic
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceAttackHandlers;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerInteractionGuards;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteStreaming;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.taotie.SeekerTaotieService;
 
 /**
@@ -35,6 +36,7 @@ public final class SeekerFeatureService {
         SparkStrengthM67Compat.register();
         SeekerTaotieService.register();
         SeekerRemoteSessionService.register();
+        SeekerRemoteStreaming.register();
         SeekerInteractionGuards.register();
     }
 }
