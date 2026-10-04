@@ -25,8 +25,13 @@ public final class OrthopedistTargeting {
                 end,
                 caster.getBoundingBox().stretch(caster.getRotationVec(1.0F).multiply(OrthopedistRules.TARGET_RANGE))
                         .expand(1.0D),
+                // Spectators are transparent: a Rift Gate occupant is an ALIVE spectator (Riftwalker D3) that is
+                // never a target nor a shield for the player behind its gate; Wathe's liveness ignores the game mode.
+                // 旁观者是透明的：裂隙门内的玩家是存活旁观者（隙行者 D3），既不是目标，也不会挡住门后的玩家；
+                // Wathe 的存活检查不看游戏模式。
                 entity -> entity instanceof ServerPlayerEntity target
                         && target != caster
+                        && !target.isSpectator()
                         && GameFunctions.isPlayerPlayingAndAlive(target),
                 OrthopedistRules.TARGET_RANGE_SQUARED
         );
@@ -36,8 +41,10 @@ public final class OrthopedistTargeting {
         return isValidDirectTarget(caster, target) ? target : null;
     }
 
+    /** Validates the raycast hit; rejects spectators too. / 校验射线命中的目标，同样拒绝旁观者。 */
     public static boolean isValidDirectTarget(ServerPlayerEntity caster, ServerPlayerEntity target) {
         return target != caster
+                && !target.isSpectator()
                 && GameFunctions.isPlayerPlayingAndAlive(target)
                 && caster.canSee(target)
                 && caster.squaredDistanceTo(target) <= OrthopedistRules.TARGET_RANGE_SQUARED;

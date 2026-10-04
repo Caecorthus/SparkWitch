@@ -1234,8 +1234,11 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     persisted) holds the remaining exposure ticks. It syncs to its owner only, and only when exposure starts (0 to
     positive) or ends (back to 0); the client prediction stops at one tick, so only the server's zero sync ends it on
     the client. Exposure is cleared at once (zero synced to the owner) on `KillPlayer.AFTER`, `ResetPlayer`,
-    `ON_FINISH_FINALIZE`, and every instant zone restore (including `ON_WIN_DETERMINED`), so the ×15 drain and the
-    pseudo task stop with the blocks; otherwise it runs out within 10 ticks of leaving.
+    `ON_FINISH_FINALIZE`, every instant zone restore (including `ON_WIN_DETERMINED`), and a committed Rift Gate entry,
+    so the ×15 drain and the pseudo task stop with the blocks or at the gate; otherwise it runs out within 10 ticks of
+    leaving. On entry, `RiftSessionService.begin` calls the public, null-safe `DeepDarkZoneStandingService.clearExposure`
+    right after the SPECTATOR switch, never on a refusal or rollback (owner 2026-10-04). `isParticipantTarget` rejects
+    spectators, so an occupant is never re-exposed, slowed or sped inside. Zone effects already applied run out (≤ 2 s).
 - **Exposed drain.** While exposed (owner-synced, so both sides agree),
   `mixin/abysslistener/PlayerMoodComponentAbyssZoneDrainMixin` turns Wathe's per-tick drain
   `if (!tasks.isEmpty()) setMood(mood - tasks.size() * MOOD_DRAIN)` into `(real tasks + 1) × MOOD_DRAIN × 15`
@@ -1334,7 +1337,8 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
     and exact-pair approval; an offline gunner vetoes nobody, and the faction filter still applies.
   - Effects run inside `JudgeKillAttribution.runWith` for the gunner.
   - +15 gold per caught player who is neither an ally nor the gunner, paid only to an online, living, non-spectator
-    gunner who is still exactly the Potion Gunner after the effect.
+    gunner who is still exactly the Potion Gunner after the effect. A gunner inside a Rift Gate counts as a
+    non-spectator here (an alive spectator, Riftwalker D3; owner 2026-10-04, `PotionBlastRewards.notSpectating`).
 - **Effects.**
   - GW-DK: Blindness + Slowness II for up to 7 s.
   - GW-MR: up to 150 coins taken and destroyed, never below 0.
@@ -1405,10 +1409,20 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   itself. Spectators are transparent (never a target, never a shield) to:
   - the Black Raven Feather Blade aim (`BlackRavenTargeting.findAimedPlayer`);
   - the shared aim `GrandWitchTargeting.findTarget`, used by recruitment, Witch Factor and Emma;
-  - its client hint mirrors, `client/grandwitch/GrandWitchClientTargeting` and `client/emma/EmmaClientTargeting`.
+  - its client hint mirrors, `client/grandwitch/GrandWitchClientTargeting` and `client/emma/EmmaClientTargeting`;
+  - the Curser's 8-block confusion (`CurserFeatureService.use`; occupants alone read as "no target", no cooldown);
+  - the Orthopedist aim and validator (`OrthopedistTargeting`) and its HUD hint (`client/hud/OrthopedistHudRenderer`);
+  - the Guardian Angel aim and validator (`GuardianAngelTargeting`, `GuardianAngelRules.canTarget` takes a
+    `targetSpectator` flag) and its HUD preview (`client/guardianangel/GuardianAngelTargetingPreview`).
 
-  So an occupant is never marked or recruited, and an occupied gate no longer fails an aim at the player behind it.
-  `HolyFlashComponent` keeps a flash while `isInside`, so entering a gate never cleanses it (audit fixes, 2026-10-03).
+  These use a spectator test, never SFA `canAffectPlayer`: the Curser and Guardian Angel casters are active Wraiths,
+  which it denies outright. So an occupant is never marked, recruited, cursed, bone-set or newly shielded, and an
+  occupied gate no longer fails an aim at the player behind it. The test covers every Wathe-alive spectator, so
+  NoellesRoles Taotie-swallowed players and SparkTraits Last Stand / Depression holds are skipped the same way.
+  `HolyFlashComponent` keeps a flash while `isInside`, so entering a gate never cleanses it
+  (audit fixes, 2026-10-03). Deep Dark Zone exposure is the opposite: a committed entry clears it at once
+  (`DeepDarkZoneStandingService.clearExposure`). A Potion Gunner inside a gate still earns its shell's hit reward.
+  Both are owner picks from 2026-10-04.
 - **Session client.** `client/riftwalker/session/RiftSessionClient` sends only `rift_hop`/`rift_exit` and never predicts
   entry or exit; `client/mixin/riftwalker/RiftSession*Mixin` pass only `RiftSessionInputRules.ALLOWED_KEYS` (sneak, A/D,
   player list, screenshot, fullscreen, voice chat, instinct), hide the hand and force a crosshair MISS; A/D, scroll or
@@ -1472,19 +1486,29 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `feat/accomplice-riftwalker-support` adds the Riftwalker to its five hard-coded accomplice id sets.
 - **Gaps and tests.** Open owner calls:
   - C11: the NR Pathogen can still infect an occupant within 3 blocks (non-lethal).
-  - From the 2026-10-03 audit, still unchanged:
-    - A Potion Gunner that is inside a gate when its shell lands keeps the kill credit but loses the +15 coins per hit
-      (`PotionBlastService.payReward`).
+  - Found by the 2026-10-04 audit:
+    - A Potion Gunner inside a gate breaks no Seeker devices with a landing or in-flight shell
+      (`SeekerDamageRules.mayBreak` requires a non-spectator participant), while an offline gunner's landing shell
+      breaks them.
+    - A Guardian Angel shield cast before entry lasts up to 10 s inside the gate. It blocks the D3 `wathe:poison` death,
+      and its block sound plays at the gate.
+    - Witch Maiden Focused Footsteps (`FocusedFootstepsSkillService`) takes a client-sent target with no spectator or
+      SFA check, so it reaches an occupant: hidden mood drain, forced sprint and forward input for up to 30 s.
+    - Black Raven mark settlement (`BlackRavenMarkRuntime`) kills a marked occupant when the marker is offline (no
+      killer, so the SFA guard is skipped) and drops the body at the gate. With the marker online, SFA refuses the
+      kill and the mark is lost.
+    - The Apprentice Healing aura (`HealingAbility.applyPulse`) still raises an innocent occupant's mood, and an
+      Apprentice inside a gate keeps pulsing from the anchor.
+  - Left unchanged on 2026-10-04, when the owner picked only the other audit items for fixing:
     - Grand Witch Fear pulses, Blindness and Heaviness (`GrandWitchSpellService`) still reach Apprentice and Murderous
       Witch occupants.
-    - Deep Dark exposure carries into a gate for at most 10 ticks.
-    - Three alive-only filters still reach occupants: the Curser's 8-block confusion (`CurserFeatureService.use`), the
-      Orthopedist's aim (`OrthopedistTargeting`) and the Guardian Angel's aim (`GuardianAngelTargeting`). Each also
-      reveals that someone is inside.
     - A pending Emma backlash, a forced kill with no killer, still kills an occupant.
 
   Local tests: `roles/witch/riftwalker/` and `client/riftwalker/` under `src/test/java/dev/caecorthus/sparkwitch/`. The
-  audit guards above are pinned by `session/RiftOccupantTargeterGuardsContractTest`.
+  audit guards above are pinned by `session/RiftOccupantTargeterGuardsContractTest` and
+  `session/RiftOccupantWraithAimGuardsContractTest`, the in-gate Potion Gunner reward by
+  `roles/witch/potiongunner/shell/PotionGunnerRiftRewardContractTest`, and the exposure clear by
+  `roles/witch/abysslistener/zone/AbyssZoneExposureRiftEntryContractTest`.
 
 Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player

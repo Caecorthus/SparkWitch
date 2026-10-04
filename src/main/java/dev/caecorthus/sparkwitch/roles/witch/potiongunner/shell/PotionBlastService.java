@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerBreakSource;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -95,9 +96,12 @@ public final class PotionBlastService {
     private static void payReward(ServerWorld world, @Nullable ServerPlayerEntity gunner, int rewardedHits) {
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         boolean online = gunner != null && !gunner.isRemoved();
+        // An in-gate gunner is an alive spectator (Riftwalker D3) and is still paid; see PotionBlastRewards.notSpectating.
+        // 门内的药炮手是存活旁观者（隙行者 D3），照常领取奖励；见 PotionBlastRewards.notSpectating。
         int amount = PotionBlastRewards.amount(
                 online,
-                online && GameFunctions.isPlayerPlayingAndAlive(gunner) && !gunner.isSpectator(),
+                online && GameFunctions.isPlayerPlayingAndAlive(gunner)
+                        && PotionBlastRewards.notSpectating(gunner.isSpectator(), RiftSessionService.isInside(gunner)),
                 online && PotionGunnerRules.isPotionGunner(game.getRole(gunner)),
                 rewardedHits);
         if (amount <= 0) {

@@ -54,10 +54,14 @@ public final class OrthopedistHudRenderer {
         );
     }
 
+    // Mirrors OrthopedistTargeting.isValidDirectTarget, spectator test included, so a Rift Gate occupant never reads as
+    // a target. Game modes are public (tab list).
+    // 镜像 OrthopedistTargeting.isValidDirectTarget（含旁观者判断），裂隙门内的玩家不会显示为目标。游戏模式本就公开（玩家列表）。
     private static PlayerEntity aimedPlayer(ClientPlayerEntity player) {
         if (!(MinecraftClient.getInstance().crosshairTarget instanceof EntityHitResult entityHit)
                 || !(entityHit.getEntity() instanceof PlayerEntity target)
                 || target == player
+                || target.isSpectator()
                 || !GameFunctions.isPlayerPlayingAndAlive(target)
                 || !player.canSee(target)
                 || player.squaredDistanceTo(target) > OrthopedistRules.TARGET_RANGE_SQUARED) {

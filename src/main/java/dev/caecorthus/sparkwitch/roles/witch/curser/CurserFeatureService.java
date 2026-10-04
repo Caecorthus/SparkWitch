@@ -49,8 +49,15 @@ public final class CurserFeatureService {
             return;
         }
 
+        // Spectators are never cursed: a Rift Gate occupant is an ALIVE spectator (Riftwalker D3) and Wathe's liveness
+        // check ignores the game mode. Occupants alone read as "no target" (no cooldown), so nothing reveals them.
+        // SparkFactionAPI's canAffectPlayer is not used: it denies every target to an active-Wraith caster.
+        // 旁观者永远不会被诅咒：裂隙门内的玩家是存活旁观者（隙行者 D3），而 Wathe 的存活检查不看游戏模式。
+        // 只有门内玩家时按“无目标”处理（不进入冷却），因此不会暴露他们。不使用 SparkFactionAPI 的 canAffectPlayer：
+        // 它会对激活的冤魂施法者拒绝所有目标。
         List<ServerPlayerEntity> targets = caster.getServerWorld().getPlayers(player ->
                 player != caster
+                        && !player.isSpectator()
                         && GameFunctions.isPlayerPlayingAndAlive(player)
                         && caster.squaredDistanceTo(player) <= CurserRules.RANGE * CurserRules.RANGE
         );

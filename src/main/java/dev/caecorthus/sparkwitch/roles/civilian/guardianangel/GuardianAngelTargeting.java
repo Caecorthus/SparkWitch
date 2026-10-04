@@ -21,8 +21,14 @@ public final class GuardianAngelTargeting {
                 start,
                 end,
                 caster.getBoundingBox().stretch(look.multiply(GuardianAngelRules.TARGET_RANGE)).expand(1.0D),
+                // Spectators are transparent: a Rift Gate occupant (an ALIVE spectator, Riftwalker D3) never takes
+                // the aim nor shields the player behind its gate. SFA canAffectPlayer is not used: the caster is an
+                // active Wraith, which it denies outright.
+                // 旁观者是透明的：裂隙门内的玩家（存活旁观者，隙行者 D3）既不会被选中，也不会挡住门后的玩家。
+                // 不使用 SFA 的 canAffectPlayer：施法者是激活的冤魂，会被它直接拒绝。
                 entity -> entity instanceof ServerPlayerEntity target
                         && target != caster
+                        && !target.isSpectator()
                         && GameFunctions.isPlayerPlayingAndAlive(target),
                 GuardianAngelRules.TARGET_RANGE_SQUARED
         );
@@ -32,6 +38,7 @@ public final class GuardianAngelTargeting {
         return GuardianAngelRules.canTarget(
                 target == caster,
                 GameFunctions.isPlayerPlayingAndAlive(target),
+                target.isSpectator(),
                 false,
                 caster.canSee(target),
                 caster.squaredDistanceTo(target)
@@ -42,6 +49,7 @@ public final class GuardianAngelTargeting {
         return GuardianAngelRules.canTarget(
                 target == caster,
                 GameFunctions.isPlayerPlayingAndAlive(target),
+                target.isSpectator(),
                 target.hasStatusEffect(GuardianAngelEffects.guardianShield()),
                 caster.canSee(target),
                 caster.squaredDistanceTo(target)

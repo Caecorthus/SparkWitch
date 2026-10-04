@@ -57,15 +57,23 @@ public final class GuardianAngelRules {
         return gameRunning && activeWraith && promotedWraith && guardianAngel;
     }
 
+    /**
+     * Shared by the server aim, the server validator and the client HUD preview. A spectator is never a target: a Rift
+     * Gate occupant is an ALIVE spectator (Riftwalker D3), and a shield there would block the poison death D3 allows.
+     * 服务端准星、服务端校验与客户端 HUD 预览共用。旁观者永远不是目标：裂隙门内的玩家是存活旁观者（隙行者 D3），
+     * 给它护盾还会挡下 D3 允许的毒杀。
+     */
     public static boolean canTarget(
             boolean self,
             boolean targetAlive,
+            boolean targetSpectator,
             boolean targetAlreadyShielded,
             boolean hasLineOfSight,
             double squaredDistance
     ) {
         return !self
                 && targetAlive
+                && !targetSpectator
                 && !targetAlreadyShielded
                 && hasLineOfSight
                 && squaredDistance <= TARGET_RANGE_SQUARED;
