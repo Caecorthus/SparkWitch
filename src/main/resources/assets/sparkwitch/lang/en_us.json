@@ -759,6 +759,8 @@
   "gui.sparkwitch.judge.choose": "Select a player, then confirm.",
   "gui.sparkwitch.judge.selected": "Selected: %s",
   "gui.sparkwitch.judge.empty": "No players available",
+  "hud.sparkwitch.judge.ready": "Press %s to Judge (%s coins)",
+  "hud.sparkwitch.judge.not_enough_money": "Judgment requires %s coins",
   "message.sparkwitch.judge.invalid_selection": "That target is invalid or the selection has expired. No coins were spent.",
   "message.sparkwitch.judge.no_pending": "There is no pending judgment. Open the selector again.",
   "message.sparkwitch.judge.insufficient_money": "Judgment requires %s coins.",

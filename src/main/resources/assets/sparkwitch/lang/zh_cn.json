@@ -759,6 +759,8 @@
   "gui.sparkwitch.judge.choose": "请选择玩家，再点击确认。",
   "gui.sparkwitch.judge.selected": "已选：%s",
   "gui.sparkwitch.judge.empty": "没有可选择的玩家",
+  "hud.sparkwitch.judge.ready": "按 %s 审判（%s 金币）",
+  "hud.sparkwitch.judge.not_enough_money": "审判需要 %s 金币",
   "message.sparkwitch.judge.invalid_selection": "目标无效或选择已过期，未扣除金币。",
   "message.sparkwitch.judge.no_pending": "没有待确认的审判，请重新打开选择界面。",
   "message.sparkwitch.judge.insufficient_money": "审判需要%s金币。",

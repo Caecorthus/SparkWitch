@@ -12,6 +12,7 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 
 /** Judge's primary-key UI; never registers a secondary key or a Witch inventory skill. / 法官主技能界面，不注册副技能键或魔女背包技能。 */
 public final class JudgeClientModule {
@@ -89,18 +90,24 @@ public final class JudgeClientModule {
                 ClientPlayNetworking.canSend(ConfirmJudgeSelectionC2SPacket.ID), isActiveJudge(client));
     }
 
-    private static boolean isActiveJudge(MinecraftClient client) {
-        if (client.player == null || client.world == null) {
-            return false;
-        }
-        GameWorldComponent game = GameWorldComponent.KEY.get(client.world);
+    /**
+     * Bottom-right line gate: the selector gate without the temporary Fear lock, so the line does not blink.
+     * 右下角技能行门禁：与选择界面门禁相同，但不含短暂的恐惧锁定，避免提示闪烁。
+     */
+    public static boolean ownsHud(ClientPlayerEntity player) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
         // isRunning includes STOPPING; no pending selector may survive the match-ending edge.
         // isRunning 包含 STOPPING；待确认界面不能跨越对局结束边界。
         return game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
-                && JudgeRules.isJudge(game.getRole(client.player))
-                && GameFunctions.isPlayerPlayingAndAlive(client.player)
-                && !GameFunctions.isPlayerSpectatingOrCreative(client.player)
-                && !WraithClientState.isRestricted(client.player)
+                && JudgeRules.isJudge(game.getRole(player))
+                && GameFunctions.isPlayerPlayingAndAlive(player)
+                && !GameFunctions.isPlayerSpectatingOrCreative(player)
+                && !WraithClientState.isRestricted(player);
+    }
+
+    private static boolean isActiveJudge(MinecraftClient client) {
+        return client.player != null && client.world != null
+                && ownsHud(client.player)
                 && !GrandWitchFearService.isPlayerFeared(client.player);
     }
 }
