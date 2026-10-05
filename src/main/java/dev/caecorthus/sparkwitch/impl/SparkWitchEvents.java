@@ -34,6 +34,8 @@ import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillSer
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerFeatureService;
+import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedFeatureService;
+import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedPromotionService;
 import dev.caecorthus.sparkwitch.mana.WitchManaService;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeature.MurderousWitchFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeatureService;
@@ -137,6 +139,7 @@ public final class SparkWitchEvents {
         AbyssListenerFeatureService.register();
         PotionGunnerFeatureService.register();
         RiftwalkerFeatureService.register();
+        BewitchedFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
@@ -158,6 +161,9 @@ public final class SparkWitchEvents {
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
+        // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.
+        // 魔化使晋升进度（C3）：只计数与入队；身份在 END_SERVER_TICK 变更。
+        TaskComplete.EVENT.register((player, taskType) -> BewitchedPromotionService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> PigGodEconomyService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> ProphetEconomyService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> SaintEconomyService.onTaskComplete(player));

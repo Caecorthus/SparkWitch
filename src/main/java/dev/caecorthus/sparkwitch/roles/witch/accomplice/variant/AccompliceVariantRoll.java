@@ -10,10 +10,10 @@ import java.util.Random;
 import java.util.function.Predicate;
 
 /**
- * Pure special-accomplice pool roll for one successful Grand Witch recruitment: a uniform choice among the
+ * Pure special-accomplice pool roll for one Bewitched promotion: a uniform choice among the
  * candidates that are enabled and not used this round, in candidate order; the plain Accomplice once none is left.
  * The caller supplies the world-seeded {@link Random}; it is not touched when the pool is empty.
- * 大魔女单次成功招募的纯特殊共犯池抽取：按候选顺序筛出已启用且本局未使用的职业并均匀抽取；池空时返回普通共犯。
+ * 单次魔化使晋升的纯特殊共犯池抽取：按候选顺序筛出已启用且本局未使用的职业并均匀抽取；池空时返回普通共犯。
  * 调用方提供以世界随机数播种的 {@link Random}；池为空时不会消耗它。
  */
 public final class AccompliceVariantRoll {

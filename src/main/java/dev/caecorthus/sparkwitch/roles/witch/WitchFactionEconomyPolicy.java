@@ -27,9 +27,10 @@ public final class WitchFactionEconomyPolicy {
     }
 
     /**
-     * Applies role-start money and items without owning non-economy cleanup. Every accomplice (plain or special) gets
-     * the accomplice starting money.
-     * 应用身份开局金钱和物品，但不接管非经济清理逻辑。所有共犯（普通或特殊）获得共犯开局金币。
+     * Applies role-start money and items without owning non-economy cleanup. Every accomplice (plain, special or
+     * Bewitched) gets the accomplice starting money; a Bewitched promotion then restores the balance it had earned.
+     * 应用身份开局金钱和物品，但不接管非经济清理逻辑。所有共犯（普通、特殊或魔化使）获得共犯开局金币；魔化使晋升随后会
+     * 恢复其已赚取的余额。
      */
     static void assignStartingLoadout(ServerPlayerEntity player, Role role) {
         if (WitchFactionRules.isGrandWitch(role)) {

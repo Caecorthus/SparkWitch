@@ -12,12 +12,12 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Registry of special accomplices ("accomplice variants"). Each registered role is a witch-faction accomplice that
- * Grand Witch recruitment may roll instead of the plain Accomplice, at most once per round, uniformly among the
+ * Registry of special accomplices ("accomplice variants"). Each registered role is a witch-faction accomplice that a
+ * Bewitched promotion may roll instead of the plain Accomplice, at most once per round, uniformly among the
  * enabled variants not yet used; the plain Accomplice is the fallback once the pool is exhausted. Every
  * "basic accomplice" rule reads {@code WitchFactionRules.isAccompliceLike}, which includes these roles.
  * Register during mod initialization, in each variant's own feature service; registration order is the roll order.
- * 特殊共犯注册表。每个已注册职业都是魔女阵营共犯：大魔女招募时可抽到它替代普通共犯，每局至多一次，在已启用且本局未出现的
+ * 特殊共犯注册表。每个已注册职业都是魔女阵营共犯：魔化使晋升时可抽到它替代普通共犯，每局至多一次，在已启用且本局未出现的
  * 特殊共犯中均匀抽取；池子抽空后才是普通共犯。所有"共犯基础功能"规则都读取包含这些职业的
  * {@code WitchFactionRules.isAccompliceLike}。请在各特殊共犯自己的功能服务中于模组初始化时注册；注册顺序即抽取候选顺序。
  */
