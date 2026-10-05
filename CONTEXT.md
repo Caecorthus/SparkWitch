@@ -320,7 +320,7 @@ Current build baseline:
   judge, 200 coins" or the coin requirement below 200). `WitchSkillHudRenderer` dispatches it right after Emma,
   gated by `JudgeClientModule.ownsHud` (the selector gate minus Grand Witch Fear); no witch inventory panel.
 - `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
-  `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters.
+  `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters and the optional Traits seam.
 - `mana/`: mana economy and natural-regeneration runtime.
 - `component/`: CCA ids, stored fields, sync/NBT codecs, and narrow state
   operations used by the owning runtime Modules.
@@ -938,7 +938,17 @@ none gets one from SparkStrength's mid-round reconciliation pass; SparkWitch nev
 re-initializes the new role's Wathe shop stock and cooldowns, and refuses, on the real role and before any
 destructive step, every SparkFactionAPI `PoliceRoles` member (Emma included, the Insider exempt) and the
 NoellesRoles Corrupt Cop with a random flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the
-failed recruitment.
+failed recruitment. A target in SparkTraits Depression psycho (`isDepressionPsychoActive`) fails the target check
+(`invalid_target`) before the quota lock (owner decision 2026-10-04); an absent or older facade allows it, a
+failing one refuses.
+After `RoleAssigned`, the transaction writes the converted balance. Then, before the retained-inventory restore, it
+asks the SparkTraits public facade (`replaceTraitsIneligibleForCurrentRole`, through
+`compat/recruitment/RecruitmentTraits`) to drop every trait the recruit role could not have rolled (owner decision
+2026-10-04). SparkTraits redraws one trait per dropped one, hidden ones included, from the new role's pool (owner
+decision 2026-10-05). The redraw never picks Pig, Childish or a dropped trait. A redrawn Well Supplied multiplies
+the converted balance by 1.2. An absent, older or failing facade keeps every trait. The recruit alone gets one line
+(`traits_lost`, `traits_replaced` or `traits_rerolled`) naming the visible lost and redrawn traits. The converted
+lines show the final balance.
 A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so a recruited
 ex-Hunter gets no trap back (the trap itself stays armed until it expires or the round ends).
 Sword piercing
