@@ -315,6 +315,13 @@ Current build baseline:
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, and
   the Seeker share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate
   slot mixin.
+- Police gun parity: Wathe's server gun receiver gives innocent non-Vigilante shooters a 15 s
+  cooldown and -0.35 mood per hit. Each SparkWitch police role has its own additive OR-wrap of all
+  four `isRole` calls that also answers "Vigilante" for that role, so it gets the 10 s revolver
+  cooldown and no mood penalty. Innocent-shot punishment is unchanged. The wraps are
+  `mixin/JudgePoliceGunMixin`, `mixin/EmmaPoliceGunMixin`,
+  `mixin/controlexpert/ControlExpertPoliceGunMixin` and `mixin/seeker/SeekerPoliceGunMixin`. A new
+  police role needs its own wrap; registering in `PoliceRoles` is not enough.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `client/judge/`: primary-key selector and the role-owned bottom-right line (`JudgeHudRenderer`: "press key to
