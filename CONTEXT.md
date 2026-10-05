@@ -1519,7 +1519,8 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `mixin/riftwalker/RiftProjectileDeflectionMixin` keeps a gate deflection from flipping pickup to ALLOWED and from
   being remembered as `lastDeflectedEntity`; destinations must pass `RiftProjectileExitRules` (ticking exit/start, box
   clear of blocks, clear line), else another gate or reflect.
-- **Witches' Sabbath** (`sabbath/WitchesSabbathService.use`; 150 mana, instant, no cooldown, D6). A free,
+- **Witches' Sabbath** (`sabbath/WitchesSabbathService.use`; 150 mana, instant, 30 s cooldown after a
+  successful cast, none at round start; owner 2026-10-05, replacing D6's "no cooldown"). A free,
   non-capture-stunned Riftwalker outside a gate pulls each living teammate whose effective faction is exactly
   `sparkwitch:witch` (C6) to a safe spot (`WitchesSabbathLandingPlan`, never on a live Hunter trap), skipping those
   inside a gate, swallowed, in Last Stand/Last Escape, Kidnapper-controlled, or SFA-vetoed
