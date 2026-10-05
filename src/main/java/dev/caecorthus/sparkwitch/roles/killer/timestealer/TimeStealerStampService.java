@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.timestealer;
 
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStampLedger.Plan;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -63,6 +64,22 @@ public final class TimeStealerStampService {
                 ? "message.sparkwitch.time_stealer.stamp_gained"
                 : "message.sparkwitch.time_stealer.stamp_stored";
         stealer.sendMessage(Text.translatable(key).withColor(TimeStealerRules.COLOR), true);
+    }
+
+    /**
+     * {@code TaskComplete} listener: a Conscience Time Stealer earns {@link TimeStealerRules#TASK_STAMP_REWARD} per
+     * task ({@link TimeStealerRules#earnsTaskStamp}); {@link #grant} keeps its own holder and match gates.
+     * {@code TaskComplete} 监听：善良窃时者每完成一个任务获得 {@link TimeStealerRules#TASK_STAMP_REWARD} 枚邮票
+     * （{@link TimeStealerRules#earnsTaskStamp}）；{@link #grant} 保留自身的持有者与对局门槛。
+     */
+    public static void onTaskComplete(ServerPlayerEntity player) {
+        if (!mayHold(player)) {
+            return;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
+        if (TimeStealerRules.earnsTaskStamp(SparkFactionApi.resolveEffectiveFaction(player, game))) {
+            grant(player, TimeStealerRules.TASK_STAMP_REWARD);
+        }
     }
 
     /**

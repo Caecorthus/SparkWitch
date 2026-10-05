@@ -433,7 +433,11 @@ retry counter) are both `NEVER_COPY`, never synced, and bound to the current Wat
 in a SparkWitch `ON_FINISH_INITIALIZE` phase ordered after Wathe's default phase, and re-bound by a
 holder's own tick if that was missed); a stale match clears a curse. The Clock is a plain `Item#use`
 with a server-side ray (7.0 blocks, unexpanded-hitbox line of sight, ineligible players transparent)
-and no custom packet; the 45 s cooldown (also at round start) is an authoritative server tick
+and no custom packet. It ignores factions (owner decision 2026-10-05, replacing Q10): any exact Time
+Stealer may use it, Conscience included, and any living participant other than the user is a target,
+fellow killers included, so they are no longer transparent; the Last Escape, Vendetta, structural
+`canAffectPlayer` and already-stolen vetoes still apply. A Conscience Time Stealer's curse kill
+of a civilian-side player still triggers SparkTraits' own Conscience punishment. The 45 s cooldown (also at round start) is an authoritative server tick
 written only after a committed theft (or a Seeker device absorb, below), so a refusal costs nothing.
 The curse advances only from the victim's own component tick on absolute world ticks: silent for 15
 s, then Slowness I-IV (no particles) and a chime sent to the victim alone at 15/20/25/30 s, and the
@@ -458,6 +462,10 @@ civilian-death time bonus (+30 s) is suppressed only for `sparkwitch:time_stolen
 `@Redirect`); every other death reason keeps it. Only a confirmed death in the same `ACTIVE` match
 that SparkTraits did not intercept then sets the round time to exactly `max(0, t - 600)` (it may
 drain to 0, and then the civilians win on time) and grants one stamp to a living exact Time Stealer.
+A Conscience Time Stealer also earns one stamp per completed task (owner decision 2026-10-05): the
+role's own `TaskComplete` listener pays a living exact Time Stealer whose SparkFactionAPI effective
+faction is known and not `wathe:killer` (`TimeStealerRules.earnsTaskStamp`), since Wathe fires
+`TaskComplete` for a killer's fake tasks too; the grant keeps its usual holder and match gates.
 Removing the curse's Slowness is chain surgery (`SlownessChain`, `TimeTheftSlowness`): the live
 effect is read through `StatusEffectInstance.CODEC`, only the curse's own node is taken out, and
 foreign Slowness (a Control Expert stun, Grand Witch Heaviness) keeps its level and duration. Known
