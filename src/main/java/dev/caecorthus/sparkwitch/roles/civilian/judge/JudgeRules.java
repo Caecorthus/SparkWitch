@@ -10,7 +10,7 @@ public final class JudgeRules {
     public static final Identifier VIGILANTE_ID = Identifier.of("wathe", "vigilante");
     public static final int ROLE_COLOR = 0xDFA94F;
     public static final int OUTLINE_COLOR = 0xFF7043;
-    public static final int JUDGMENT_COST = 200;
+    public static final int JUDGMENT_COST = 100;
     public static final int SENTENCE_TICKS = 60 * 20;
     public static final int SELECTION_TICKS = 30 * 20;
     public static final int MAX_SELECTION_TARGETS = 512;
