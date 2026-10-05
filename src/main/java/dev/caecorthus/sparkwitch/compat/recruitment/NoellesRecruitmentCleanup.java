@@ -117,8 +117,10 @@ public final class NoellesRecruitmentCleanup {
         // The bomb item is refunded by the already captured inventory snapshot; stop its timer too.
         // 炸弹物品已纳入库存退款快照，同时停止对应计时器。
         BomberPlayerComponent.KEY.get(player).reset();
-        // Target-owned infection, silence, drink buffs and all Traits state deliberately survive.
-        // 目标持有的感染、沉默、饮品效果与全部特质状态刻意保留。
+        // Target-owned infection, silence and drink buffs deliberately survive; so do Traits the new role could roll
+        // (the transaction strips the rest after RoleAssigned, via RecruitmentTraits).
+        // 目标持有的感染、沉默与饮品效果刻意保留；新身份可抽到的特质同样保留（其余由招募事务在 RoleAssigned 之后经
+        // RecruitmentTraits 移除）。
     }
 
     /** The living Shadow Jester partner a recruited Shadow Jester leaves behind; read before {@link #exitRole} clears

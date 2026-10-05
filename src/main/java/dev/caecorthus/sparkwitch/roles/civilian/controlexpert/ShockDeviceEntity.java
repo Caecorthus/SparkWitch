@@ -37,9 +37,10 @@ public final class ShockDeviceEntity extends ThrownItemEntity {
     private static final double SPARK_SPREAD_HORIZONTAL = 0.75;
     private static final double SPARK_SPREAD_VERTICAL = 0.5;
     private static final double SPARK_SPEED = 0.1;
-    private static final SoundEvent SHOCK_SOUND = SoundEvents.ENTITY_LIGHTNING_BOLT_IMPACT;
+    /** The Taser's arc crackle without its crossbow pop. / 电击枪的电弧噼啪声，但不带弩“啪”声。 */
+    private static final SoundEvent SHOCK_SOUND = SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE;
     private static final float SHOCK_VOLUME = 1.0F;
-    private static final float SHOCK_PITCH = 1.4F;
+    private static final float SHOCK_PITCH = 1.6F;
 
     public ShockDeviceEntity(EntityType<? extends ShockDeviceEntity> type, World world) {
         super(type, world);

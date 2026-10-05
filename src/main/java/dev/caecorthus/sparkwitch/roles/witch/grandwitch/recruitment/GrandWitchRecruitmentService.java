@@ -4,6 +4,8 @@ import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.compat.recruitment.NoellesRecruitmentCleanup;
+import dev.caecorthus.sparkwitch.compat.recruitment.RecruitmentTraitChange;
+import dev.caecorthus.sparkwitch.compat.recruitment.RecruitmentTraits;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseService;
@@ -24,6 +26,7 @@ import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.util.ShopUtils;
 import net.minecraft.text.Text;
+import net.minecraft.text.Texts;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import org.jetbrains.annotations.Nullable;
@@ -57,7 +60,12 @@ public final class GrandWitchRecruitmentService {
         ServerPlayerEntity target = GrandWitchTargeting.findTarget(recruiter, targetId);
         if (target == null || target == recruiter || target.getServerWorld() != world
                 || !GameFunctions.isPlayerPlayingAndAlive(target)
-                || WitchFactionRules.isAccompliceLike(game.getRole(target))) {
+                || WitchFactionRules.isAccompliceLike(game.getRole(target))
+                // Owner decision 2026-10-04: SparkTraits stashes a Depression psycho target's real inventory, which
+                // the conversion would lose or leak; refuse before any quota, lock or refusal side effect.
+                // 所有者 2026-10-04 决定：SparkTraits 暂存了抑郁狂暴目标的真实背包，转换会使其丢失或泄漏；
+                // 因此在任何名额、锁定或拒绝副作用之前拒绝。
+                || RecruitmentTraits.isDepressionPsychoActive(target)) {
             return WitchSkillUseResult.fail("message.sparkwitch.recruitment.invalid_target");
         }
         GrandWitchRecruitmentRoundComponent round = GrandWitchRecruitmentRoundComponent.KEY.get(world);
@@ -123,21 +131,33 @@ public final class GrandWitchRecruitmentService {
             for (ServerPlayerEntity player : world.getPlayers()) {
                 syncRuntime(player);
             }
+            RecruitmentTraitChange traitChange = RecruitmentTraitChange.NONE;
             try {
-                // Standard assignment handles SparkStrength cleanup and SparkWitch mana/skill initialization.
-                // 标准分配事件处理 SparkStrength 清理及 SparkWitch 魔力、技能初始化，不重置 Traits。
+                // Standard assignment handles SparkStrength cleanup and SparkWitch mana/skill initialization; Traits
+                // the recruit role cannot roll are swapped for redraws in the finally block below, the rest survive.
+                // 标准分配事件处理 SparkStrength 清理及 SparkWitch 魔力、技能初始化；新身份无法抽到的 Traits 词条在下方
+                // finally 中替换为补抽词条，其余保留。
                 RoleAssigned.EVENT.invoker().assignRole(target, recruitRole);
             } catch (RuntimeException exception) {
                 // Conversion already committed: do not report a retriable failure or lose factor recovery.
                 // 转换已提交：不能返回可重试失败或跳过调用方的因子回收；记录扩展回调故障。
                 LOGGER.error("Recruitment committed but a role-assignment listener failed for {}", target.getUuid(), exception);
             } finally {
-                inventory.applyRetainedInventory(target);
+                // The converted balance goes first: a redrawn Well Supplied multiplies it like starting money.
+                // 先写入折算余额：补抽到物资充沛时会像起始金币一样按其加成。
                 shop.setBalance(inventory.finalBalance());
+                // Server-side swap (owner decisions 2026-10-04/05): after RoleAssigned so SparkTraits filters and
+                // redraws against the committed role; before the restore so cleanup grants are wiped and the shop
+                // sees final traits.
+                // 服务端替换词条（所有者 2026-10-04/05 决定）：位于 RoleAssigned 之后，使 SparkTraits 按已提交的新身份
+                // 筛选与补抽；位于背包恢复之前，使清理发放的物品被抹除、商店按最终词条初始化。
+                traitChange = RecruitmentTraits.replaceIneligibleTraits(target);
+                inventory.applyRetainedInventory(target);
                 shop.initializeShop(ShopUtils.getShopEntriesForPlayer(target));
                 game.sync();
                 shop.sync();
             }
+            int balance = shop.getBalance();
             if (shadowPartner != null) {
                 releaseShadowPartner(shadowPartner, target);
             }
@@ -147,11 +167,13 @@ public final class GrandWitchRecruitmentService {
                 // WitchSkillUseResult 不支持消息参数，因此在此直接发送带职业名的成功提示。
                 Text roleName = Text.translatable("announcement.role." + recruitRole.identifier().getPath());
                 target.sendMessage(Text.translatable("message.sparkwitch.recruitment.converted_as",
-                        roleName, inventory.finalBalance()), false);
+                        roleName, balance), false);
+                sendTraitChange(target, traitChange);
                 recruiter.sendMessage(Text.translatable("message.sparkwitch.recruitment.success_as", roleName), true);
                 return WitchSkillUseResult.success(0);
             }
-            target.sendMessage(Text.translatable("message.sparkwitch.recruitment.converted", inventory.finalBalance()), false);
+            target.sendMessage(Text.translatable("message.sparkwitch.recruitment.converted", balance), false);
+            sendTraitChange(target, traitChange);
             return WitchSkillUseResult.success(0, "message.sparkwitch.recruitment.success");
         } finally {
             round.finishConversion();
@@ -229,6 +251,24 @@ public final class GrandWitchRecruitmentService {
             LOGGER.error("Recruitment committed but releasing the Shadow Jester partner {} of {} failed",
                     partner.getUuid(), recruit.getUuid(), exception);
         }
+    }
+
+    /** One recruit-only line naming the visible traits the swap removed and drew; hidden ones were already left out,
+     * so a recruit who lost only hidden traits hears just the redraws.
+     * 仅向被招募者发送一行，列出替换中失去与补抽的可见词条；隐藏词条已由提供方剔除，因此只失去隐藏词条者只看到补抽结果。 */
+    private static void sendTraitChange(ServerPlayerEntity recruit, RecruitmentTraitChange change) {
+        if (change.lost().isEmpty() && change.gained().isEmpty()) return;
+        Text separator = Text.translatable("message.sparkwitch.recruitment.traits_lost.separator");
+        Text line;
+        if (change.gained().isEmpty()) {
+            line = Text.translatable("message.sparkwitch.recruitment.traits_lost", Texts.join(change.lost(), separator));
+        } else if (change.lost().isEmpty()) {
+            line = Text.translatable("message.sparkwitch.recruitment.traits_rerolled", Texts.join(change.gained(), separator));
+        } else {
+            line = Text.translatable("message.sparkwitch.recruitment.traits_replaced",
+                    Texts.join(change.lost(), separator), Texts.join(change.gained(), separator));
+        }
+        recruit.sendMessage(line, false);
     }
 
     private static void exitOldRole(ServerPlayerEntity target) {
