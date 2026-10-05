@@ -29,17 +29,17 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Abyss Listener bound kit: grants the Shriek Gun after a committed recruitment and at round start for a forced Abyss
- * Listener, and keeps it reconciled every {@link AbyssListenerGunSweep#INTERVAL_TICKS} ticks for match participants
- * (restore a missing gun without touching its cooldown, remove duplicates, revoke it from every other participant);
- * free holders ({@link OffMatchUse}) are never swept and get a refused drop back ({@link #keepRefusedDrop}).
+ * Abyss Listener bound kit: grants the Shriek Gun after a committed Bewitched promotion and at round start for a forced
+ * Abyss Listener, and keeps it reconciled every {@link AbyssListenerGunSweep#INTERVAL_TICKS} ticks for match
+ * participants (restore a missing gun without touching its cooldown, remove duplicates, revoke it from every other
+ * participant); free holders ({@link OffMatchUse}) are never swept and get a refused drop back
+ * ({@link #keepRefusedDrop}).
  * Server-only except the world-use veto, which also answers on the client; the gun never becomes an item entity. The
- * gun is never granted from {@code RoleAssigned}: the recruitment transaction restores the retained inventory after
- * that event and would wipe it.
- * 聆渊者绑定装备：招募提交后、以及被强制指定的聆渊者开局时发放啸音铳，并每 {@link AbyssListenerGunSweep#INTERVAL_TICKS}
+ * gun is never granted from {@code RoleAssigned}: the promotion hook runs once the role, skills and shop are settled.
+ * 聆渊者绑定装备：魔化使晋升提交后、以及被强制指定的聆渊者开局时发放啸音铳，并每 {@link AbyssListenerGunSweep#INTERVAL_TICKS}
  * tick 为对局参与者校正一次（补发缺失的枪但不改动冷却、移除重复、从其他所有参与者身上收回）；自由持有者
  * （{@link OffMatchUse}）从不被清扫，被拒绝的丢弃会还给他们（{@link #keepRefusedDrop}）。除世界交互否决在双端生效外
- * 仅服务端；枪从不变成物品实体。永不在 {@code RoleAssigned} 中发枪：招募事务会在该事件之后恢复保留背包，从而抹掉它。
+ * 仅服务端；枪从不变成物品实体。永不在 {@code RoleAssigned} 中发枪：晋升回调在身份、技能与商店确定后才运行。
  */
 public final class AbyssListenerLoadout {
     /**
@@ -102,14 +102,15 @@ public final class AbyssListenerLoadout {
     }
 
     /**
-     * Called by the accomplice-variant hook once the recruitment committed (inventory already restored).
-     * 招募提交后（背包已恢复）由共犯变体回调调用。
+     * Called by the accomplice-variant hook once a Bewitched promotion committed (the inventory is kept; a duplicate
+     * gun is deduplicated by the reconcile).
+     * 魔化使晋升提交后由共犯变体回调调用（背包保持不变；重复的枪会被校正去重）。
      */
-    public static void grantAfterRecruit(ServerPlayerEntity recruit) {
-        if (recruit == null || !mayHold(recruit)) {
+    public static void grantAfterPromotion(ServerPlayerEntity player) {
+        if (player == null || !mayHold(player)) {
             return;
         }
-        grantWithInitialCooldown(recruit);
+        grantWithInitialCooldown(player);
     }
 
     /** Playing, alive and exactly the Abyss Listener. / 正在对局、存活且恰好是聆渊者。 */
@@ -123,8 +124,8 @@ public final class AbyssListenerLoadout {
 
     /**
      * Forced round-start Abyss Listeners (/wathe:forceRole): the role is assigned before this phase, never through a
-     * recruitment, so each living one lacking the gun is granted it with the initial cooldown here.
-     * 开局被强制指定的聆渊者（/wathe:forceRole）：身份在此阶段之前分配，不经过招募，因此在此为每名缺枪的存活聆渊者发枪并写入首次冷却。
+     * promotion, so each living one lacking the gun is granted it with the initial cooldown here.
+     * 开局被强制指定的聆渊者（/wathe:forceRole）：身份在此阶段之前分配，不经过晋升，因此在此为每名缺枪的存活聆渊者发枪并写入首次冷却。
      */
     private static void grantRoundStart(ServerWorld world, GameWorldComponent game) {
         for (ServerPlayerEntity player : world.getPlayers()) {

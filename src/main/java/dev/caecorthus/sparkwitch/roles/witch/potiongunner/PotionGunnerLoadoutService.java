@@ -19,13 +19,13 @@ import java.util.List;
 import java.util.function.IntPredicate;
 
 /**
- * Grants the bound launcher. Idempotent: called on role assignment (forced roles) and again from the accomplice
- * pool's post-recruit hook, because recruitment rewrites the whole inventory after {@code RoleAssigned}; the
- * lifecycle sweep also calls it for every living gunner. Server-authoritative; it never creates item entities and
- * never routes the launcher through vanilla give/offer paths, so every placement is an explicit slot write.
- * 发放绑定的炮筒。幂等：在职业分配时（强制指定职业）调用，并在共犯池的招募完成钩子里再调用一次，
- * 因为招募会在 {@code RoleAssigned} 之后整体重写背包；生命周期清扫也会对每名存活药炮手调用。由服务端裁定；从不生成
- * 物品实体，也从不经由原版给予/放入路径放置炮筒，每次放置都是显式的栏位写入。
+ * Grants the bound launcher. Idempotent: called on role assignment (forced roles and Bewitched promotion) and again
+ * from the accomplice pool's post-promotion hook; the lifecycle sweep also calls it for every living gunner.
+ * Server-authoritative; it never creates item entities and never routes the launcher through vanilla give/offer paths,
+ * so every placement is an explicit slot write.
+ * 发放绑定的炮筒。幂等：在职业分配时（强制指定职业与魔化使晋升）调用，并在共犯池的晋升完成钩子里再调用一次；
+ * 生命周期清扫也会对每名存活药炮手调用。由服务端裁定；从不生成物品实体，也从不经由原版给予/放入路径放置炮筒，
+ * 每次放置都是显式的栏位写入。
  */
 public final class PotionGunnerLoadoutService {
     static final int NO_SLOT = -1;

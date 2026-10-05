@@ -236,7 +236,7 @@ public final class GrandWitchRecruitmentService {
 
     private static void runVariantHook(Role variant, ServerPlayerEntity recruit, ServerPlayerEntity recruiter) {
         try {
-            AccompliceVariants.hooks(variant).afterRecruitCommitted(recruit, recruiter);
+            AccompliceVariants.hooks(variant).afterPromotionCommitted(recruit);
         } catch (RuntimeException exception) {
             // Conversion already committed: a variant hook failure never turns into a retriable failure.
             // 转换已提交：特殊共犯回调失败不会变成可重试的失败，只记录日志。
