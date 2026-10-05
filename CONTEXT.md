@@ -173,6 +173,12 @@ Current build baseline:
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
+  Its client presentation lives in `client/grandwitch/`. The held sword's cooldowns (owner pick A2 + B2, 2026-10-05)
+  are drawn by `GrandWitchSwordHud`, with pure layout in `GrandWitchSwordHudRules`. `GrandWitchSwordCrosshairMixin`
+  draws a kill glyph left of Wathe's crosshair, dash chevrons right of it, and the attack bar under it.
+  `GrandWitchSwordCooldownMixin` draws a slot badge (kill seconds plus five dash pips) above whichever hotbar or
+  off-hand slot holds the sword. While the sword is held, the badge replaces Wathe's own cooldown number. The
+  bottom-right role lines no longer show the kill or dash timers.
 - `roles/witch/abysslistener/`: Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者) frozen tuning constants and pure
   predicates (`AbyssListenerRules`), the role definition (`AbyssListenerRole`), its special-accomplice pool entry and
   feature wiring (`AbyssListenerFeatureService`), the role-owned shop (`AbyssListenerShopService`), replay formatters
