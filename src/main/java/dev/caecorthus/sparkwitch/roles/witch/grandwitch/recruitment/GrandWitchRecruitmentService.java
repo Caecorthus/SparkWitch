@@ -100,6 +100,8 @@ public final class GrandWitchRecruitmentService {
             // 被清空。"已使用"仅在提交时标记。
             Role recruitRole = rollRecruitRole(world, game);
             boolean variant = AccompliceVariants.isVariant(recruitRole);
+            // Read before exitOldRole clears the recruit's Shadow Jester pair. / 须在 exitOldRole 清除影子小丑配对之前读取。
+            ServerPlayerEntity shadowPartner = NoellesRecruitmentCleanup.shadowPartnerLeftBehind(target);
             inventory.detachScreenInputs();
             exitOldRole(target);
             // Assignment grants must have free slots so discarded starter items cannot spill into the world.
@@ -135,6 +137,9 @@ public final class GrandWitchRecruitmentService {
                 shop.initializeShop(ShopUtils.getShopEntriesForPlayer(target));
                 game.sync();
                 shop.sync();
+            }
+            if (shadowPartner != null) {
+                releaseShadowPartner(shadowPartner, target);
             }
             if (variant) {
                 runVariantHook(recruitRole, target, recruiter);
@@ -210,6 +215,19 @@ public final class GrandWitchRecruitmentService {
             // 转换已提交：特殊共犯回调失败不会变成可重试的失败，只记录日志。
             LOGGER.error("Recruitment committed but the {} post-recruit hook failed for {}",
                     variant.identifier(), recruit.getUuid(), exception);
+        }
+    }
+
+    private static void releaseShadowPartner(ServerPlayerEntity partner, ServerPlayerEntity recruit) {
+        try {
+            // Outside the recruitment cause scope, so the replay labels it like NoellesRoles' own shadow transform.
+            // 位于招募原因作用域之外，回放因此将其标为与 NoellesRoles 自身相同的影子化身。
+            NoellesRecruitmentCleanup.releaseShadowPartner(partner);
+        } catch (RuntimeException exception) {
+            // Conversion already committed: a partner release failure never turns into a retriable failure.
+            // 转换已提交：搭档化身失败不会变成可重试的失败，只记录日志。
+            LOGGER.error("Recruitment committed but releasing the Shadow Jester partner {} of {} failed",
+                    partner.getUuid(), recruit.getUuid(), exception);
         }
     }
 

@@ -709,6 +709,7 @@
   "message.sparkwitch.recruitment.converted": "You have been recruited as an Accomplice. You now have %s coins after item conversion; shop purchase limits have reset.",
   "message.sparkwitch.recruitment.success_as": "Recruitment succeeded. New role: %s.",
   "message.sparkwitch.recruitment.converted_as": "You have been recruited. Your new role: %s. You now have %s coins after item conversion; shop purchase limits have reset.",
+  "message.sparkwitch.recruitment.shadow_partner_released": "Your partner has left the stage. You are the real Jester now! Get shot by an innocent to go berserk!",
   "message.sparkwitch.factor.awakened": "You feel a surge of energy churning within you...",
   "command.sparkwitch.witch_factor.updated": "Factor settings saved for the next round: Rule=%s, DivideMode=%s, MaxCarrierMode=%s.",
   "announcement.role.emma": "Emma Sakuraba",
