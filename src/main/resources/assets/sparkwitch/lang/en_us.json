@@ -737,6 +737,7 @@
   "message.sparkwitch.recruitment.police_refused.silver_bullet": "This person seems to be carrying silver bullets...",
   "message.sparkwitch.recruitment.corrupt_cop_refused.too_hao": "This person is way too Hao. No.",
   "message.sparkwitch.recruitment.corrupt_cop_refused.dislike": "You don't like Jiahao.",
+  "message.sparkwitch.recruitment.loose_end_refused": "The Loose End is too far gone to hear you...",
   "death_reason.sparkwitch.factor_backlash": "Factor Backlash.",
   "shop.sparkwitch.knockout_drug": "Knockout Drug",
   "shop.sparkwitch.knockout_drug.description": "Use on a living player to kidnap them for 30 seconds.",

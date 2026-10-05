@@ -1009,9 +1009,11 @@ none gets one from SparkStrength's mid-round reconciliation pass; SparkWitch nev
 re-initializes the new role's Wathe shop stock and cooldowns, and refuses, on the real role and before any
 destructive step, every SparkFactionAPI `PoliceRoles` member (Emma included, the Insider exempt) and the
 NoellesRoles Corrupt Cop with a random flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the
-failed recruitment. A target in SparkTraits Depression psycho (`isDepressionPsychoActive`) fails the target check
-(`invalid_target`) before the quota lock (owner decision 2026-10-04); an absent or older facade allows it, a
-failing one refuses.
+failed recruitment. It also refuses a SparkTraits Last Stand Loose End (Wathe `LOOSE_END` role plus a triggered Last
+Stand, `SparkTraitsLastStandBridge.isLastStandLooseEnd`), the Final Moment conversion; a revived Last Stand player
+who has not been converted stays recruitable. A target in SparkTraits Depression psycho (`isDepressionPsychoActive`)
+fails the target check (`invalid_target`) before the quota lock (owner decision 2026-10-04); an absent or older
+facade allows it, a failing one refuses.
 After `RoleAssigned`, the transaction writes the converted balance. Then, before the retained-inventory restore, it
 asks the SparkTraits public facade (`replaceTraitsIneligibleForCurrentRole`, through
 `compat/recruitment/RecruitmentTraits`) to drop every trait the recruit role could not have rolled (owner decision

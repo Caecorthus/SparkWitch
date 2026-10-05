@@ -737,6 +737,7 @@
   "message.sparkwitch.recruitment.police_refused.silver_bullet": "此人似乎带了银制子弹...",
   "message.sparkwitch.recruitment.corrupt_cop_refused.too_hao": "这个人太豪了，不行",
   "message.sparkwitch.recruitment.corrupt_cop_refused.dislike": "你不喜欢嘉豪",
+  "message.sparkwitch.recruitment.loose_end_refused": "亡命徒已经杀红了眼，听不进你的蛊惑...",
   "death_reason.sparkwitch.factor_backlash": "因子反噬。",
   "shop.sparkwitch.knockout_drug": "迷药",
   "shop.sparkwitch.knockout_drug.description": "对一名普通存活玩家使用，可将其劫持 30 秒。",

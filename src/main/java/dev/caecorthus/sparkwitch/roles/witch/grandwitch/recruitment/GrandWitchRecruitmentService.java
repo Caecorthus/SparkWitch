@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment;
 import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsLastStandBridge;
 import dev.caecorthus.sparkwitch.compat.recruitment.NoellesRecruitmentCleanup;
 import dev.caecorthus.sparkwitch.compat.recruitment.RecruitmentTraitChange;
 import dev.caecorthus.sparkwitch.compat.recruitment.RecruitmentTraits;
@@ -76,8 +77,12 @@ public final class GrandWitchRecruitmentService {
             // Real role, never a Black Raven acting overlay. / 读取真实身份，不读黑羽鸦伪装覆盖层。
             var targetRole = game.getRole(target);
             boolean emma = dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules.isEmma(targetRole);
+            // A Last Stand player turned Loose End by the Final Moment stays out of reach (owner rule, 2026-10-05).
+            // 背水一战终局时刻转成的亡命徒不能被招募（所有者规则，2026-10-05）。
+            boolean lastStandLooseEnd = SparkTraitsLastStandBridge.isLastStandLooseEnd(world, target.getUuid(), targetRole);
             var refusal = GrandWitchRecruitmentRules.refusal(InsiderParticipation.isCorruptCopRole(targetRole),
-                    emma || PoliceRoles.contains(targetRole), InsiderParticipation.isInsiderRole(targetRole));
+                    emma || PoliceRoles.contains(targetRole), InsiderParticipation.isInsiderRole(targetRole),
+                    lastStandLooseEnd);
             if (refusal != GrandWitchRecruitmentRules.Refusal.NONE) {
                 // Emma still records the failed recruitment, but answers with the same police line as every cop.
                 // 艾玛仍记录招募未遂证据，但与其他警职显示同样的台词，拒绝提示不会暴露其身份。

@@ -1,6 +1,9 @@
 package dev.caecorthus.sparkwitch.compat;
 
+import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.api.WatheRoles;
 import net.minecraft.server.world.ServerWorld;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.UUID;
@@ -33,6 +36,14 @@ public final class SparkTraitsLastStandBridge {
         } catch (ReflectiveOperationException | LinkageError | ClassCastException ignored) {
             return false;
         }
+    }
+
+    /** A Loose End made by Last Stand's Final Moment: the same role + triggered pair SparkTraits checks.
+     * 背水一战终局时刻转成的亡命徒：与 SparkTraits 相同的“亡命徒身份 + 本局已触发背水一战”判定。 */
+    public static boolean isLastStandLooseEnd(ServerWorld world, UUID playerUuid, @Nullable Role role) {
+        return role != null
+                && WatheRoles.LOOSE_END.identifier().equals(role.identifier())
+                && hasTriggeredThisRound(world, playerUuid);
     }
 
     private static Method hasTriggeredThisRoundMethod() {
