@@ -340,7 +340,9 @@ Current build baseline:
 - `compat/cooldown/`: SparkWitch's registrations with the SparkFactionAPI forced-cooldown contract
   (`api.cooldown.ForcedCooldowns`): role-skill stores for SparkWitch and NoellesRoles counters, the SparkWitch item
   nominal-cooldown provider, and the Seeker car item exemption. `SparkWitchForcedCooldowns.register()` runs once from
-  `SparkWitch.onInitialize`, right after `SparkWitchEvents.register()`.
+  `SparkWitch.onInitialize`, right after `SparkWitchEvents.register()`. `SparkWitchItemCooldownReleases` releases the
+  SparkWitch timers behind an item whose vanilla cooldown is removed (`mixin/ItemCooldownRemovalMixin`). For the
+  SparkFactionAPI admin clear alone (`mixin/SparkFactionClearCooldownMixin`), it also exempts the item from Saint Karma.
 - `impl/SparkWitchEvents`: watch-only registration/lifecycle aggregator.
 - `util/hitscan/`: server-side lag compensation for hitscan weapons. `PlayerHitboxHistory` keeps a
   one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
@@ -1116,6 +1118,29 @@ The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `Se
 "max + exact" writer and offers no write path to other features, so the Fiend gun-hit aura skips it too (owner
 decision, 2026-10-02). Not registered (out of scope): Wathe shop-entry cooldowns, the Black Raven disguise switch,
 the Curser and Guardian Angel, and SparkStrength components.
+Removing an item cooldown releases SparkWitch's own timer behind the item (2026-10-05). The removal is
+`ItemCooldownManager.remove` on the server. For these items it comes from SparkFactionAPI
+`/sparkfactionapi:clearCooldown` (main hand), Wathe's round reset, or SparkTraits dropping a parry lock once its
+holder is dead or the round ended. `ItemCooldownRemovalMixin` runs at TAIL, so a `remove` that SparkTraits cancels at
+HEAD (its forced melee floor) releases nothing, and expiry never calls `remove`. `SparkWitchItemCooldownReleases`
+then acts by item id:
+- White Cane: the `BlindComponent` cane ready tick moves to now; a running window is kept.
+- Clock: `ClockReadyAt` moves to now. Both ready ticks stay positive, since a positive tick is the "kit granted" /
+  "same round" flag.
+- Ceremonial Sword: the 30 s kill cooldown is zeroed.
+- Any of the five edible fish: every cooling fish is removed, because any cooling fish refuses all of them.
+Other items gate only on the vanilla entry, so the command already clears them fully.
+The admin command alone also beats Saint Karma (owner decision, 2026-10-05). `SparkFactionClearCooldownMixin` wraps the
+command's `remove` call (the same method body from SparkFactionAPI 0.1.5.12 through 0.1.5.15). When that call really
+cleared the item, `SaintKarmaState` exempts the item for that player until the Karma ends or is triggered again. The
+exemption is transient and never saved. Role mechanics that remove a cooldown (NoellesRoles Catalyst, the Bomber pass)
+do not come through the command, so Karma still re-covers those items. SparkTraits lifts its own forced melee floor
+for the same command, in its own `SparkFactionClearCooldownMixin`. Not released: the Black Raven disguise switch, since
+the mask never carries an item cooldown.
+Saint Karma writes are exact (SparkTraits facade, vanilla fallback), so Fast Hands or Stimulation no longer leave a
+write below the Karma that restarts the slot's bar every tick. The Time Stealer holder's tick rewrites the Clock's
+display, exactly through SparkTraits only, whenever it shows more than one tick less than `ClockReadyAt` (for example
+after Last Escape halving), so the slot never shows ready while the Clock is refused.
 
 The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its own Warden's Shriek renders in the
 `gui.sparkwitch.skills` panel (owner decision D13): its `AccompliceVariantHooks.ownSkillIds()` is exactly
@@ -1678,6 +1703,8 @@ and `isLastStandDeathIntercepted` (the kit strip) through `SparkTraitsKillerBrid
 older or failing SparkTraits falls back per method to no skill block, a vanilla cane cooldown, and a
 death that is not intercepted (fail closed): the `KillPlayer.AFTER` strip runs and the 20-tick
 sweep spares no dead Blind.
+Saint Karma may query only `setExactItemCooldownRemaining` (its per-tick raise of every carried item) through
+`SparkTraitsKillerBridge`; an absent, older or failing SparkTraits means a vanilla Karma write.
 The Abyss Listener may query only `isLastStandPending` and `hasActiveTrait` (Conscience and Impostor) through
 `compat/SparkTraitsAbyssListenerBridge`; `isLastEscapeActive`, `isRoleSkillBlocked` (the shriek), and
 `blocksWeaponAction` (the gun and the flask throw, with its `isKillerInteractionBlocked` and
