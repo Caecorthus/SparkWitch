@@ -1010,6 +1010,14 @@ re-initializes the new role's Wathe shop stock and cooldowns, and refuses, on th
 destructive step, every SparkFactionAPI `PoliceRoles` member (Emma included, the Insider exempt) and the
 NoellesRoles Corrupt Cop with a random flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the
 failed recruitment.
+Recruiting a NoellesRoles Shadow Jester breaks its pair (owner, 2026-10-05). Before `exitRole` clears the pair,
+`NoellesRecruitmentCleanup.shadowPartnerLeftBehind` reads the partner, if it is still a living Shadow Jester (real
+roles). After the retained inventory is restored, `releaseShadowPartner` makes that partner a real Jester, whether or
+not the two swore the Shadow Oath. It mirrors the pinned NoellesRoles transform for a fallen unbound partner: the
+`JESTER` role, Jester and mood resets, and `markBetrayalTrophy`, so the knife stays as a dead trophy. It also removes
+the oath derringer, sends the `shadow_partner_released` chat line (it never names the Grand Witch) and records
+`shadow_transform`. The `addRole` runs outside the recruitment cause scope, so the replay infers
+`noellesroles:shadow_transform`. A failure is logged and never undoes the recruitment.
 A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so a recruited
 ex-Hunter gets no trap back (the trap itself stays armed until it expires or the round ends).
 Sword piercing
