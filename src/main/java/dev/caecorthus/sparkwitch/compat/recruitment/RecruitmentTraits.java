@@ -14,9 +14,10 @@ public final class RecruitmentTraits {
         return SparkTraitsRecruitmentBridge.isDepressionPsychoActive(target);
     }
 
-    /** Server-only, after the recruit role is assigned and the converted balance is written (a redrawn Well Supplied
-     * multiplies it); never throws and returns the visible lost and redrawn trait names.
-     * 仅服务端、在新身份分配且写入折算余额之后调用（补抽到物资充沛时按其加成）；绝不抛出，返回可见的失去与补抽词条名。 */
+    /** Server-only, after the recruit role is assigned and the converted balance is written (Well Supplied, kept or
+     * redrawn, multiplies it again); never throws and returns the visible lost and redrawn trait names.
+     * 仅服务端、在新身份分配且写入折算余额之后调用（持有物资充沛时，无论保留还是补抽到，都会再加成一次）；绝不抛出，
+     * 返回可见的失去与补抽词条名。 */
     public static RecruitmentTraitChange replaceIneligibleTraits(ServerPlayerEntity recruit) {
         return SparkTraitsRecruitmentBridge.replaceTraitsIneligibleForRecruitRole(recruit);
     }
