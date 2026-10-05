@@ -61,6 +61,8 @@ public final class TimeStealerRules {
     public static final int STAMP_COST_ADD_TIME = 1;
     public static final int STAMP_COST_GRENADE = 3;
     public static final int STAMP_COST_PSYCHO = 3;
+    /** Stamps a Conscience Time Stealer earns per completed task (owner, 2026-10-05). / 善良窃时者每完成一个任务获得的邮票数（所有者，2026-10-05）。 */
+    public static final int TASK_STAMP_REWARD = 1;
 
     /** Hard Clock reach: ray length and the real eye-to-hitbox distance cap. / 时钟硬射程：射线长度与眼睛到真实命中盒的距离上限。 */
     public static final double CLOCK_RANGE = 7.0D;
@@ -162,6 +164,18 @@ public final class TimeStealerRules {
     ) {
         return reduceTimeItem && exactTimekeeper && buyerAlive && gameActive
                 && effectiveFaction != null && !FactionIds.KILLER.equals(effectiveFaction);
+    }
+
+    /**
+     * Owner decision 2026-10-05: a Conscience Time Stealer earns {@link #TASK_STAMP_REWARD} per completed task. Wathe
+     * also fires {@code TaskComplete} for a killer's fake tasks, so the holder's effective faction must be known and
+     * not {@code wathe:killer} (SparkTraits Conscience resolves to civilian); a plain Time Stealer earns nothing.
+     * 所有者决定 2026-10-05：善良窃时者每完成一个任务获得 {@link #TASK_STAMP_REWARD} 枚邮票。Wathe 对杀手的假任务也会
+     * 触发 {@code TaskComplete}，因此持有者的有效阵营必须已知且不是 {@code wathe:killer}（SparkTraits 善良解析为平民）；
+     * 普通窃时者不获得邮票。
+     */
+    public static boolean earnsTaskStamp(@Nullable Identifier effectiveFaction) {
+        return effectiveFaction != null && !FactionIds.KILLER.equals(effectiveFaction);
     }
 
     /** Settle attribution outcome. / 结算归属结果。 */
