@@ -59,6 +59,7 @@ public final class TimeStealerLoadoutService {
     public static void tick(ServerPlayerEntity player) {
         if (TimeStealerStampService.mayHold(player)) {
             ensureClockInHotbar(player);
+            TimeStealerClockService.keepDisplayedCooldown(player);
             TimeStealerStampService.tickOwner(player);
             return;
         }

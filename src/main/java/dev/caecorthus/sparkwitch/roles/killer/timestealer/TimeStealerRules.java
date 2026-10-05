@@ -36,6 +36,13 @@ public final class TimeStealerRules {
     public static final int CLOCK_COOLDOWN_TICKS = 45 * 20;
     /** Round-start Clock cooldown (45 s). / 开局时钟冷却（45 秒）。 */
     public static final int CLOCK_INITIAL_COOLDOWN_TICKS = 45 * 20;
+    /**
+     * Phase slack between {@code ClockReadyAt} (world time) and the display (item-cooldown tick); a matching display is
+     * never rewritten, since every rewrite restarts the slot's cooldown bar.
+     * {@code ClockReadyAt}（世界时间）与显示冷却（物品冷却 tick）之间的相位余量；一致的显示绝不重写，因为每次重写都会让
+     * 栏位冷却条从头开始。
+     */
+    static final int CLOCK_DISPLAY_SLACK_TICKS = 1;
     /** Silent period before the first chime (15 s). / 第一声钟响前的静默期（15 秒）。 */
     public static final int GRACE_TICKS = 15 * 20;
     /** Gap between chimes (5 s). / 相邻钟声的间隔（5 秒）。 */
@@ -61,6 +68,15 @@ public final class TimeStealerRules {
     public static final double CLOCK_BOX_EXPANSION = 0.2D;
 
     private TimeStealerRules() {
+    }
+
+    /**
+     * Whether the display cooldown shows less than the authoritative remaining ticks by more than the phase slack
+     * (for example after Last Escape halving).
+     * 显示冷却是否比权威剩余刻数少出相位余量以上（例如最后逃脱减半之后）。
+     */
+    static boolean clockDisplayLags(long authoritativeTicks, int displayedTicks) {
+        return authoritativeTicks > (long) Math.max(0, displayedTicks) + CLOCK_DISPLAY_SLACK_TICKS;
     }
 
     /** Exact-role gate; never inferred from faction or namespace. / 仅按精确职业判断，不从阵营或命名空间推断。 */
