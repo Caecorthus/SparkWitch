@@ -713,6 +713,7 @@
   "message.sparkwitch.recruitment.traits_lost.separator": "、",
   "message.sparkwitch.recruitment.traits_replaced": "你失去了共犯拿不到的词条：%s，重新抽到了：%s",
   "message.sparkwitch.recruitment.traits_rerolled": "你重新抽到了词条：%s",
+  "message.sparkwitch.recruitment.shadow_partner_released": "你的搭档已离开舞台——你成为了真正的小丑，被好人枪杀即可化身疯魔！",
   "message.sparkwitch.factor.awakened": "你感到你体内有一股翻涌的能量...",
   "command.sparkwitch.witch_factor.updated": "因子规则已保存，下局生效：Rule=%s，DivideMode=%s，MaxCarrierMode=%s。",
   "announcement.role.emma": "樱羽艾玛",

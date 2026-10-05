@@ -713,6 +713,7 @@
   "message.sparkwitch.recruitment.traits_lost.separator": ", ",
   "message.sparkwitch.recruitment.traits_replaced": "You lost the traits an accomplice can't have: %s. Redrawn: %s",
   "message.sparkwitch.recruitment.traits_rerolled": "You drew new traits: %s",
+  "message.sparkwitch.recruitment.shadow_partner_released": "Your partner has left the stage. You are the real Jester now! Get shot by an innocent to go berserk!",
   "message.sparkwitch.factor.awakened": "You feel a surge of energy churning within you...",
   "command.sparkwitch.witch_factor.updated": "Factor settings saved for the next round: Rule=%s, DivideMode=%s, MaxCarrierMode=%s.",
   "announcement.role.emma": "Emma Sakuraba",
