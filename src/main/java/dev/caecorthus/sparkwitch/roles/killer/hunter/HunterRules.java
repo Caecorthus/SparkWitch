@@ -45,6 +45,7 @@ public final class HunterRules {
     public static final Identifier ENGINEER_ROLE_ID = Identifier.of("noellesroles", "engineer");
     public static final Identifier GRAND_WITCH_ROLE_ID = Identifier.of("sparkwitch", "grand_witch");
     public static final Identifier ACCOMPLICE_ROLE_ID = Identifier.of("sparkwitch", "accomplice");
+    public static final Identifier BEWITCHED_ROLE_ID = Identifier.of("sparkwitch", "bewitched");
     public static final Identifier MURDEROUS_WITCH_ROLE_ID = Identifier.of("sparkwitch", "murderous_witch");
 
     private static final Set<Identifier> DIRECT_VIEWERS = Set.of(
@@ -53,11 +54,13 @@ public final class HunterRules {
             CORRUPT_COP_ROLE_ID,
             ENGINEER_ROLE_ID
     );
-    // Fixed instinct viewers; special accomplices join through isInstinctTrapViewer, which reads the live registry.
-    // 固定的本能观察者；特殊共犯经 isInstinctTrapViewer 读取实时注册表加入。
+    // Fixed instinct viewers (the Bewitched is accomplice-like, C2); special accomplices join through
+    // isInstinctTrapViewer, which reads the live registry.
+    // 固定的本能观察者（魔化使属于共犯类，C2）；特殊共犯经 isInstinctTrapViewer 读取实时注册表加入。
     private static final Set<Identifier> INSTINCT_VIEWERS = Set.of(
             GRAND_WITCH_ROLE_ID,
             ACCOMPLICE_ROLE_ID,
+            BEWITCHED_ROLE_ID,
             MURDEROUS_WITCH_ROLE_ID
     );
     private static final Set<Identifier> DISMANTLERS = Set.of(
@@ -122,8 +125,9 @@ public final class HunterRules {
     }
 
     /**
-     * Grand Witch, every accomplice (plain or special) and the Murderous Witch see traps through walls with instinct.
-     * 大魔女、所有共犯（普通或特殊）和杀意魔女在开启本能时可隔墙看到捕兽夹。
+     * Grand Witch, every accomplice (plain, special or Bewitched) and the Murderous Witch see traps through walls with
+     * instinct.
+     * 大魔女、所有共犯（普通、特殊或魔化使）和杀意魔女在开启本能时可隔墙看到捕兽夹。
      */
     public static boolean isInstinctTrapViewer(@Nullable Identifier roleId) {
         return roleId != null

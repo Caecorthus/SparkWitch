@@ -42,6 +42,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     private final World world;
     private final LinkedHashSet<Identifier> disabledSkills = new LinkedHashSet<>();
     private final ForcedWraithPromotionLocks forcedWraithPromotions = new ForcedWraithPromotionLocks();
+    private final ForcedAccompliceRoleLocks forcedAccompliceRoles = new ForcedAccompliceRoleLocks();
     private final GrandWitchCeremonialSwordBgmSources grandWitchCeremonialSwordBgmSources =
             new GrandWitchCeremonialSwordBgmSources();
     private final SaintKarmaState saintKarmaState = new SaintKarmaState();
@@ -84,6 +85,35 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
 
     public Map<UUID, Identifier> getForcedWraithPromotions() {
         return forcedWraithPromotions.snapshot();
+    }
+
+    /**
+     * Locks the role this player's Bewitched promotion yields (D4); applies to the current round if one runs, else to
+     * the next one. Server-only state, never synced. Returns whether the lock changed.
+     * 锁定该玩家魔化使晋升后的身份（D4）；对局进行中时作用于本局，否则作用于下一局。仅服务端状态、从不同步。返回锁定是否变化。
+     */
+    public boolean setForcedAccompliceRole(UUID playerUuid, Identifier roleId) {
+        return forcedAccompliceRoles.set(playerUuid, roleId);
+    }
+
+    public Identifier getForcedAccompliceRole(UUID playerUuid) {
+        return forcedAccompliceRoles.get(playerUuid);
+    }
+
+    public boolean clearForcedAccompliceRole(UUID playerUuid) {
+        return forcedAccompliceRoles.clear(playerUuid);
+    }
+
+    public Map<UUID, Identifier> getForcedAccompliceRoles() {
+        return forcedAccompliceRoles.snapshot();
+    }
+
+    /**
+     * Drops every accomplice-role lock; round end calls it on the overworld store even when the round ran elsewhere.
+     * 清除所有共犯身份锁定；局末即使对局在其他维度进行，也会对主世界存储调用。
+     */
+    public void clearForcedAccompliceRoles() {
+        forcedAccompliceRoles.clearAll();
     }
 
     public WraithSettings getWraithSettings() {
@@ -216,6 +246,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         syncedGrandWitchCeremonialSwordBgmSources = 0;
         saintKarmaState.clear();
         forcedWraithPromotions.clearAll();
+        forcedAccompliceRoles.clearAll();
         sync();
     }
 
@@ -261,6 +292,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         tag.put("DisabledSkills", toNbt(disabledSkills));
         tag.put("ForcedWraithPromotions", forcedWraithPromotions.toNbt());
+        tag.put(ForcedAccompliceRoleLocks.NBT_KEY, forcedAccompliceRoles.toNbt());
         WraithSettingsNbtCodec.writeWorld(tag, wraithSettings);
         if (instinctObscureTicks > 0) {
             tag.putInt("InstinctObscureTicks", instinctObscureTicks);
@@ -289,6 +321,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         saintKarmaState.clear();
         fromNbt(tag.getList("DisabledSkills", NbtElement.STRING_TYPE), disabledSkills);
         forcedWraithPromotions.readFromNbt(tag, "ForcedWraithPromotions");
+        forcedAccompliceRoles.readFromNbt(tag);
         wraithSettings = WraithSettingsNbtCodec.readWorld(tag);
         instinctObscureTicks = tag.contains("InstinctObscureTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("InstinctObscureTicks"))

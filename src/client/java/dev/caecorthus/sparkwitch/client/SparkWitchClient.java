@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionGunnerEnti
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
+import dev.caecorthus.sparkwitch.client.bewitched.BewitchedClientPresentation;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fisher.FisherClient;
@@ -121,6 +122,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         dev.caecorthus.sparkwitch.client.saint.HolyFlashAudioClient.register();
         AbyssListenerClient.init();
         RiftwalkerClient.init();
+        // Bewitched promotion progress line (role-owned HUD). / 魔化使晋升进度行（职业自有 HUD）。
+        BewitchedClientPresentation.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
