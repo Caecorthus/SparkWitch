@@ -6,16 +6,17 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.OptionalDouble;
 
 /**
  * Pure placement geometry and validation for a Rift Gate at the user's feet (plan §5.1): facing snapped to the four
- * horizontal directions, spacing from other gates ({@code RiftwalkerRules.MIN_GATE_SPACING}), play-area and floor
- * rules, and the Riftwalker-owned copy of the Seeker camera neighbour table. Unit-testable without Minecraft
+ * horizontal directions, spacing from other gates ({@code RiftwalkerRules.MIN_GATE_SPACING}), cull-height and floor
+ * rules (of the Wathe play area only its fall line counts, owner 2026-10-05), and the Riftwalker-owned copy of the Seeker camera neighbour table. Unit-testable without Minecraft
  * registries (records, ints, doubles, enums only). Owned by P1.
  * 在使用者脚下放置裂隙门的纯几何与校验规则（plan §5.1）：朝向吸附到四个水平方向、与其他门的间距
- * （{@code RiftwalkerRules.MIN_GATE_SPACING}）、play area 与地面规则，以及复制到本职业的搜寻者摄像头邻居表。
+ * （{@code RiftwalkerRules.MIN_GATE_SPACING}）、剔除高度与地面规则（Wathe play area 只看坠落线，所有者 2026-10-05），以及复制到本职业的搜寻者摄像头邻居表。
  * 无需 Minecraft 注册表即可单元测试（仅使用 record、int、double、enum）。归属 P1。
  *
  * <p>Geometry contract: the gate position is the bottom centre of a {@code GATE_WIDTH × GATE_HEIGHT × GATE_DEPTH}
@@ -36,8 +37,6 @@ public final class RiftGatePlacementRules {
     public static final double FLOOR_PROBE_LIFT = 0.5;
     /** The floor may lie at most this far below the feet (Seeker car fallback drop). / 地面最多低于脚下这么多。 */
     public static final double FLOOR_DROP = 1.5;
-    /** The gate base must be at least this far above {@code playArea.minY} (below it Wathe kills). / 门底高于 minY 的最小距离。 */
-    public static final double MIN_BASE_ABOVE_PLAY_AREA = 1.0;
     /**
      * Wathe's {@code AlwaysVisibleFrustum} culls every box whose centre is at y ≥ 148 while the train moves, so the
      * gate's visibility box centre must stay below it.
@@ -151,13 +150,6 @@ public final class RiftGatePlacementRules {
         return frontCell(pos, facing).contract(CONTACT_EPSILON);
     }
 
-    /** True when {@code inner} lies inside {@code outer} (faces inclusive). / {@code inner} 位于 {@code outer} 内（含边界）。 */
-    public static boolean boxWithin(Box outer, Box inner) {
-        return inner.minX >= outer.minX && inner.maxX <= outer.maxX
-                && inner.minY >= outer.minY && inner.maxY <= outer.maxY
-                && inner.minZ >= outer.minZ && inner.maxZ <= outer.maxZ;
-    }
-
     // ---- Floor snap and position / 贴地与位置 ----
 
     /** Downward floor ray: {start, end}, from just above the feet to {@link #FLOOR_DROP} below. / 向下的地面射线。 */
@@ -192,20 +184,16 @@ public final class RiftGatePlacementRules {
         return new Vec3d(feet.x, floorY, MathHelper.floor(feet.z) + 0.5);
     }
 
-    // ---- Bounds and spacing / 边界与间距 ----
+    // ---- Cull height and spacing / 剔除高度与间距 ----
 
     /**
-     * Centre inside the play area (inclusive), base at least {@link #MIN_BASE_ABOVE_PLAY_AREA} above its floor (a gate
-     * lower than that would send people to their death) and top not above its ceiling.
-     * 中心位于 play area 内（含边界），门底至少高于其底面 {@link #MIN_BASE_ABOVE_PLAY_AREA}（更低的门会把人送死），
-     * 门顶不高于其顶面。
+     * Wathe's fall line only: the base is not below {@code playArea.minY} (Wathe kills living players below it). The
+     * rest of the play area is ignored (owner 2026-10-05); a null area never refuses.
+     * 只看 Wathe 的坠落线：门底不低于 {@code playArea.minY}（低于它 Wathe 会判存活玩家死亡）。play area 的其余部分忽略
+     * （所有者 2026-10-05）；无区域时从不拒绝。
      */
-    public static boolean withinPlayArea(Box playArea, Vec3d pos) {
-        Vec3d centre = centre(pos);
-        return centre.x >= playArea.minX && centre.x <= playArea.maxX
-                && centre.z >= playArea.minZ && centre.z <= playArea.maxZ
-                && pos.y >= playArea.minY + MIN_BASE_ABOVE_PLAY_AREA
-                && pos.y + RiftwalkerRules.GATE_HEIGHT <= playArea.maxY;
+    public static boolean aboveFallLine(@Nullable Box playArea, Vec3d pos) {
+        return playArea == null || pos.y >= playArea.minY;
     }
 
     /** The visibility box centre stays below Wathe's moving-train cull line. / 可见包围盒中心低于 Wathe 行驶剔除线。 */

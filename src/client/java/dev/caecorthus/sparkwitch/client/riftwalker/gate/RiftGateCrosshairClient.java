@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.riftwalker.gate;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftGateUsers;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntity;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateRemoverItem;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -37,8 +38,12 @@ public final class RiftGateCrosshairClient {
         PlayerEntity local = MinecraftClient.getInstance().player;
         boolean cameraIsLocal = camera != null && camera == local;
         boolean ignoring = ignoringGatesDepth > 0;
-        // Classify only when it can matter (own view, not re-picking). / 仅在可能有影响时才分类。
-        boolean user = cameraIsLocal && !ignoring && isLocalGateUser(local);
+        // Classify only when it can matter (own view, not re-picking). A Rift Gate Remover ready in the clicking hand
+        // also keeps gates targetable, so an operator's right-click lands on the gate rather than on a door or block
+        // behind it.
+        // 仅在可能有影响时才分类。传送门清除工具在右键所用的手里时也保留门，使管理员的右键落在门上，而不是门后的门或方块上。
+        boolean user = cameraIsLocal && !ignoring
+                && (RiftGateRemoverItem.isReadyIn(local) || isLocalGateUser(local));
         if (RiftGateCrosshairRules.keepsGatesTargetable(cameraIsLocal, ignoring, user)) {
             return predicate;
         }

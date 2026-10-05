@@ -52,6 +52,7 @@ import dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher.PotionLaunche
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellItem;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateItem;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateRemoverItem;
 import dev.doctor4t.wathe.api.event.AllowPlayerPunching;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.item.Item;
@@ -103,6 +104,7 @@ public final class SparkWitchItems {
     public static final Identifier DEEP_DARK_SPORE_FLASK_ID = AbyssListenerRules.FLASK_ITEM_ID;
     public static final Identifier POTION_LAUNCHER_ID = PotionGunnerRules.LAUNCHER_ID;
     public static final Identifier RIFT_GATE_ID = RiftwalkerRules.GATE_ITEM_ID;
+    public static final Identifier RIFT_GATE_REMOVER_ID = RiftwalkerRules.GATE_REMOVER_ITEM_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -149,6 +151,7 @@ public final class SparkWitchItems {
     private static Item gwMrShell;
     private static Item trShell;
     private static Item riftGate;
+    private static Item riftGateRemover;
 
     private static boolean registered;
 
@@ -388,6 +391,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 RIFT_GATE_ID,
                 new RiftGateItem(RiftGateItem.createSettings())
+        );
+        riftGateRemover = Registry.register(
+                Registries.ITEM,
+                RIFT_GATE_REMOVER_ID,
+                new RiftGateRemoverItem(RiftGateRemoverItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -745,5 +753,12 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return riftGate;
+    }
+
+    public static Item riftGateRemover() {
+        if (riftGateRemover == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return riftGateRemover;
     }
 }

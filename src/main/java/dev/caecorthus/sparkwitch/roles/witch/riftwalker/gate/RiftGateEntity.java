@@ -137,9 +137,14 @@ public class RiftGateEntity extends Entity {
      * 客户端/服务端权威划分（B-6）：原版在调用此方法前已发送交互包，而被接受的结果会让 {@code doItemUse} 在使用手中物品前停止。
      * 因此客户端只为此刻能进门的本地门使用者占用这次点击（{@code CONSUME}，见 {@link RiftSessionService#claimsRightClick}）；
      * 其他所有人得到 {@code PASS}，手中的枪、手雷或刀隔着门照常使用。是否进门只由服务端决定。
+     * A hand holding the Rift Gate Remover always passes on both sides, so the click reaches the tool instead.
+     * 持有传送门清除工具的手在两端都返回 PASS，这次点击交给清除工具。
      */
     @Override
     public ActionResult interact(PlayerEntity player, Hand hand) {
+        if (player.getStackInHand(hand).getItem() instanceof RiftGateRemoverItem) {
+            return ActionResult.PASS;
+        }
         if (getWorld().isClient()) {
             // The interact packet is already sent; never predict entry. / 交互包已发送；客户端从不预测进门。
             return RiftSessionService.claimsRightClick(player) ? ActionResult.CONSUME : ActionResult.PASS;
