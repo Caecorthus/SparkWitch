@@ -317,14 +317,19 @@ def watheClientMixinContracts = [
                 providerDescriptor: "()V"
         ],
         [
-                configName: "insider.WatheClientInsiderImpostorHighlightMixin",
-                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/insider/WatheClientInsiderImpostorHighlightMixin.class",
-                handler: "sparkwitch\$insiderImpostorDisguise",
-                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
-                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
-                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
-                providerMethod: "getInstinctHighlight",
-                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+                // Team Jiahao end title: the neutral-win title's role text lookup, the only getForRole(Identifier)
+                // call in renderHud. SparkFactionAPI's @Redirect on the winText read that follows it is untouched.
+                // 嘉豪阵营结算标题：中立胜利标题的职业文本查找，即 renderHud 中唯一的 getForRole(Identifier) 调用；
+                // 其后 SparkFactionAPI 对 winText 读取的 @Redirect 不受影响。
+                configName: "insider.RoundTextRendererJiahaoTitleMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/insider/RoundTextRendererJiahaoTitleMixin.class",
+                handler: "sparkwitch\$teamJiahaoWinTitle",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;)V",
+                atTarget: "Ldev/doctor4t/wathe/client/gui/RoleAnnouncementTexts;getForRole(Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/client/gui/RoleAnnouncementTexts\$RoleAnnouncementText;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoundTextRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;)V"
         ],
         [
                 configName: "insider.InsiderCohortRoleNameMixin",
