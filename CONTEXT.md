@@ -344,7 +344,7 @@ Current build baseline:
   match exactly; unknown versions fail closed), Wathe's in-round inventory also shows main slots
   27-35 directly above the hotbar, and `getEmptySlot` fills 0-8, 27-35, then 9-26. With the bundled
   floor every caller keeps its old behavior (the Abyss Listener's vacated-slot reuse below is new on
-  either version). Callers: bound-item displacement (Blind cane, Time Stealer Clock, Abyss Listener
+  either version). Callers: bound-item displacement (Blind cane, Time Stealer Clock and Gift Watch, Abyss Listener
   gun: a full-hotbar re-grant moves the displaced item into the slot a removed stray vacated, but
   never into hidden storage while the shown row has room), Potion Gunner launcher placement and
   keeper move, shell returns and surfacing, the Seeker's swallowed-car return, the armor block, and
@@ -466,6 +466,20 @@ A Conscience Time Stealer also earns one stamp per completed task (owner decisio
 role's own `TaskComplete` listener pays a living exact Time Stealer whose SparkFactionAPI effective
 faction is known and not `wathe:killer` (`TimeStealerRules.earnsTaskStamp`), since Wathe fires
 `TaskComplete` for a killer's fake tasks too; the grant keeps its usual holder and match gates.
+The same Conscience Time Stealer also holds a second bound watch, the Gift Watch
+(`sparkwitch:time_stealer_gift_watch`, owner decision 2026-10-05), the Clock in reverse. It is
+granted lazily from the living holder's tick (`TimeGiftWatchLoadout`, because SparkTraits Conscience
+settles after RoleAssigned) and kept in the hotbar next to the Clock without ever displacing it;
+everyone else is swept like the Clock. It uses the Clock's ray and target vetoes (`canGift`), with its
+own SparkFactionAPI action id `sparkwitch:time_gift` and "already gifted" in place of "already
+stolen", and never the user; Seeker devices neither absorb nor block it. Its 45 s cooldown (also from the first grant of the round) is the
+authoritative `GiftReadyAt` in `sparkwitch:time_stealer`, independent of `ClockReadyAt`, and written
+only after a committed gift. The target-owned `sparkwitch:time_gift` (`NEVER_COPY`, never synced,
+match-bound; giver, match, gift tick, stage) runs the curse's timeline in reverse: silent for 15 s,
+Speed I-IV with a private chime at 15/20/25/30 s, and at 35 s Speed V for 5 s, full sanity
+(`setMood(1)`) and a private actionbar line, after which the gift ends and its Speed runs out. No
+effect is ever removed early, the Timekeeper never lifts a gift, a gift and a curse on the same
+player run independently, and gifts keep running after the giver dies or leaves.
 Removing the curse's Slowness is chain surgery (`SlownessChain`, `TimeTheftSlowness`): the live
 effect is read through `StatusEffectInstance.CODEC`, only the curse's own node is taken out, and
 foreign Slowness (a Control Expert stun, Grand Witch Heaviness) keeps its level and duration. Known

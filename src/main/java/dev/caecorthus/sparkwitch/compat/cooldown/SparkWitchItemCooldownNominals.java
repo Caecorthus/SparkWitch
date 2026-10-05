@@ -74,6 +74,8 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             entries.put(SparkWitchItems.DOUBLE_BARREL_SHOTGUN_ID, HunterRules.EMPTY_COOLDOWN_TICKS);
             // Time Stealer: display of the authoritative ClockReadyAt. / 窃时者：权威 ClockReadyAt 的显示冷却。
             entries.put(SparkWitchItems.TIME_STEALER_CLOCK_ID, TimeStealerRules.CLOCK_COOLDOWN_TICKS);
+            // Conscience Time Stealer: display of the authoritative GiftReadyAt. / 善良窃时者：权威 GiftReadyAt 的显示冷却。
+            entries.put(SparkWitchItems.TIME_STEALER_GIFT_WATCH_ID, TimeStealerRules.GIFT_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.TOLL_BELL_ID, BellRingerRules.TOLL_COOLDOWN_TICKS);
             // Angler: rod and the shared edible-fish use cooldown. / 钓鱼佬：鱼竿与共享的食鱼冷却。
             entries.put(SparkWitchItems.FISHING_ROD_ID, FisherRules.ROD_COOLDOWN_TICKS);

@@ -15,12 +15,14 @@ import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 /**
  * Server-only Time Stealer state ({@code sparkwitch:time_stealer}), kept outside the shared {@code sparkwitch:player}
- * schema: the authoritative Clock ready tick, the bound match id, and the stamp retry counter. It is never synced
- * (it deliberately does not implement {@code AutoSyncedComponent}); stamps themselves live only in the inventory.
- * The frozen NBT keys are exactly {@code ClockReadyAt}, {@code Match}, and {@code UndeliveredStamps}.
+ * schema: the authoritative Clock and Gift Watch ready ticks, the bound match id, and the stamp retry counter. It is
+ * never synced (it deliberately does not implement {@code AutoSyncedComponent}); stamps themselves live only in the
+ * inventory. The frozen NBT keys are exactly {@code ClockReadyAt}, {@code GiftReadyAt}, {@code Match}, and
+ * {@code UndeliveredStamps}.
  * 仅服务端的窃时者状态（{@code sparkwitch:time_stealer}），不进入共享的 {@code sparkwitch:player} 结构：
- * 权威的时钟就绪 tick、绑定的对局 id 与邮票重试计数。永不同步（刻意不实现 {@code AutoSyncedComponent}）；
- * 邮票本身只存在于背包中。冻结的 NBT 键恰为 {@code ClockReadyAt}、{@code Match} 与 {@code UndeliveredStamps}。
+ * 权威的时钟与赠时怀表就绪 tick、绑定的对局 id 与邮票重试计数。永不同步（刻意不实现 {@code AutoSyncedComponent}）；
+ * 邮票本身只存在于背包中。冻结的 NBT 键恰为 {@code ClockReadyAt}、{@code GiftReadyAt}、{@code Match} 与
+ * {@code UndeliveredStamps}。
  */
 public final class TimeStealerPlayerComponent implements ServerTickingComponent {
     public static final ComponentKey<TimeStealerPlayerComponent> KEY = ComponentRegistry.getOrCreate(
@@ -31,6 +33,11 @@ public final class TimeStealerPlayerComponent implements ServerTickingComponent 
     private final PlayerEntity player;
     /** Server world time from which the Clock may be used again. / 时钟可再次使用的服务端世界时间。 */
     private long clockReadyAt;
+    /**
+     * Server world time from which the Gift Watch may be used again; 0 until the Gift Watch is first granted this round.
+     * 赠时怀表可再次使用的服务端世界时间；本局首次发放赠时怀表之前为 0。
+     */
+    private long giftReadyAt;
     private @Nullable UUID matchId;
     /** Stamps that found no free slot; normally 0. / 找不到空位的邮票数；正常为 0。 */
     private int undeliveredStamps;
@@ -43,6 +50,10 @@ public final class TimeStealerPlayerComponent implements ServerTickingComponent 
         return clockReadyAt;
     }
 
+    public long giftReadyAt() {
+        return giftReadyAt;
+    }
+
     public @Nullable UUID matchId() {
         return matchId;
     }
@@ -53,6 +64,10 @@ public final class TimeStealerPlayerComponent implements ServerTickingComponent 
 
     public void setClockReadyAt(long tick) {
         clockReadyAt = Math.max(0L, tick);
+    }
+
+    public void setGiftReadyAt(long tick) {
+        giftReadyAt = Math.max(0L, tick);
     }
 
     public void setUndeliveredStamps(int count) {
@@ -74,8 +89,9 @@ public final class TimeStealerPlayerComponent implements ServerTickingComponent 
     }
 
     public boolean clear() {
-        boolean changed = clockReadyAt != 0L || matchId != null || undeliveredStamps != 0;
+        boolean changed = clockReadyAt != 0L || giftReadyAt != 0L || matchId != null || undeliveredStamps != 0;
         clockReadyAt = 0L;
+        giftReadyAt = 0L;
         matchId = null;
         undeliveredStamps = 0;
         return changed;
@@ -91,6 +107,7 @@ public final class TimeStealerPlayerComponent implements ServerTickingComponent 
     @Override
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         tag.putLong("ClockReadyAt", clockReadyAt);
+        tag.putLong("GiftReadyAt", giftReadyAt);
         if (matchId != null) {
             tag.putUuid("Match", matchId);
         }
@@ -100,6 +117,7 @@ public final class TimeStealerPlayerComponent implements ServerTickingComponent 
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         clockReadyAt = Math.max(0L, tag.getLong("ClockReadyAt"));
+        giftReadyAt = Math.max(0L, tag.getLong("GiftReadyAt"));
         matchId = tag.containsUuid("Match") ? tag.getUuid("Match") : null;
         undeliveredStamps = Math.max(0, tag.getInt("UndeliveredStamps"));
     }

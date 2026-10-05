@@ -62,6 +62,54 @@ public final class TimeStealerTargeting {
                 () -> TimeTheftPlayerComponent.KEY.get(target).isStolen());
     }
 
+    /**
+     * Gift Watch use gate (owner decision 2026-10-05): the Clock's gates with its own {@code GiftReadyAt} cooldown, plus
+     * a Conscience holder ({@link TimeStealerRules#holdsGiftWatch}), so a stray copy in anyone else's hands does nothing.
+     * 赠时怀表使用判定（所有者决定 2026-10-05）：时钟的各项判定，使用其独立的 {@code GiftReadyAt} 冷却，并要求持有者为
+     * 善良窃时者（{@link TimeStealerRules#holdsGiftWatch}），因此落到其他人手里的残留副本不起作用。
+     */
+    public static boolean canUseGift(ServerPlayerEntity user, ItemStack watch) {
+        return user != null && watch != null && isGiftReady(user) && canUseGiftWhenReady(user, watch);
+    }
+
+    /**
+     * Gift target veto: the Clock's veto ({@link #affects}) with the Gift Watch's own action id and "already gifted" in
+     * place of "already stolen"; a curse on the same player does not matter.
+     * 赠时目标否决：与时钟相同的否决（{@link #affects}），但使用赠时怀表自己的动作 id，并以“已在赠时中”代替“已被窃”；
+     * 同一玩家身上的诅咒不影响赠时。
+     */
+    public static boolean canGift(ServerPlayerEntity user, ServerPlayerEntity target) {
+        if (user == null || target == null) {
+            return false;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(user.getWorld());
+        return affects(
+                isSamePlayer(user, target),
+                () -> isParticipant(target, game),
+                () -> SparkTraitsKillerBridge.isLastEscapeActive(target),
+                () -> vendettaAllows(user, target),
+                () -> SparkFactionApi.canAffectPlayer(user, target, TimeStealerRules.GIFT_ACTION_ID, game),
+                () -> TimeGiftPlayerComponent.KEY.get(target).isGifted());
+    }
+
+    /** Authoritative Gift Watch cooldown gate. / 赠时怀表的权威冷却判定。 */
+    static boolean isGiftReady(ServerPlayerEntity user) {
+        return user.getWorld().getTime() >= TimeStealerPlayerComponent.KEY.get(user).giftReadyAt();
+    }
+
+    /** Every Gift Watch use condition except {@code GiftReadyAt}. / 除 {@code GiftReadyAt} 外的全部赠时怀表使用条件。 */
+    static boolean canUseGiftWhenReady(ServerPlayerEntity user, ItemStack watch) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(user.getWorld());
+        return usable(
+                game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE,
+                TimeStealerRules.holdsGiftWatch(TimeStealerRules.isTimeStealer(game.getRole(user)),
+                        SparkFactionApi.resolveEffectiveFaction(user, game)),
+                () -> GameFunctions.isPlayerPlayingAndAlive(user) && !user.isSpectator(),
+                () -> NoellesSilenceBridge.isSilenced(user),
+                () -> SparkTraitsKillerBridge.isRoleSkillBlocked(user),
+                () -> SparkTraitsKillerBridge.blocksWeaponAction(user, watch));
+    }
+
     /** Authoritative cooldown gate: world time has reached {@code ClockReadyAt}. / 权威冷却判定：世界时间已到 {@code ClockReadyAt}。 */
     static boolean isClockReady(ServerPlayerEntity user) {
         return user.getWorld().getTime() >= TimeStealerPlayerComponent.KEY.get(user).clockReadyAt();

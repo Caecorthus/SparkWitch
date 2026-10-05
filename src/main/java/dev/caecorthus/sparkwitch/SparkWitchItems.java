@@ -40,6 +40,7 @@ import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KnockoutDrugItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStampItem;
+import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftWatchItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerClockItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonAppleItem;
@@ -80,6 +81,7 @@ public final class SparkWitchItems {
     public static final Identifier TOFANA_ELIXIR_ID = SparkWitch.id("tofana_elixir");
     public static final Identifier TOLL_BELL_ID = SparkWitch.id("toll_bell");
     public static final Identifier TIME_STEALER_CLOCK_ID = TimeStealerRules.CLOCK_ID;
+    public static final Identifier TIME_STEALER_GIFT_WATCH_ID = TimeStealerRules.GIFT_WATCH_ID;
     public static final Identifier TIME_STAMP_ID = TimeStealerRules.STAMP_ID;
     public static final Identifier KNOCKOUT_DRUG_ID = SparkWitch.id("knockout_drug");
     public static final Identifier DISRUPTOR_ID = ControlExpertRules.DISRUPTOR_ID;
@@ -122,6 +124,7 @@ public final class SparkWitchItems {
     private static Item tofanaElixir;
     private static Item tollBell;
     private static Item timeStealerClock;
+    private static Item timeStealerGiftWatch;
     private static Item timeStamp;
     private static Item knockoutDrug;
     private static Item disruptor;
@@ -253,6 +256,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 TIME_STEALER_CLOCK_ID,
                 new TimeStealerClockItem(TimeStealerClockItem.createSettings())
+        );
+        timeStealerGiftWatch = Registry.register(
+                Registries.ITEM,
+                TIME_STEALER_GIFT_WATCH_ID,
+                new TimeGiftWatchItem(TimeGiftWatchItem.createSettings())
         );
         timeStamp = Registry.register(
                 Registries.ITEM,
@@ -525,6 +533,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return timeStealerClock;
+    }
+
+    public static Item timeStealerGiftWatch() {
+        if (timeStealerGiftWatch == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return timeStealerGiftWatch;
     }
 
     public static Item timeStamp() {

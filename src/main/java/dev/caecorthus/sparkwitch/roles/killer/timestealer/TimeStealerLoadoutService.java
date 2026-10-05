@@ -43,9 +43,11 @@ public final class TimeStealerLoadoutService {
         TimeStealerPlayerComponent state = TimeStealerPlayerComponent.KEY.get(player);
         if (!TimeStealerRules.isTimeStealer(role)) {
             removeClocks(player);
+            TimeGiftWatchLoadout.removeGiftWatches(player);
             TimeStampInventory.stripAll(player);
             // A later re-assignment to Time Stealer then counts as newly acquired. / 之后再次分配为窃时者即视为新获得。
             state.setClockReadyAt(0L);
+            state.setGiftReadyAt(0L);
             return;
         }
         boolean continuing = continuesRound(state.clockReadyAt(), state.matchId(), TimeStealerMatch.currentId());
@@ -60,24 +62,29 @@ public final class TimeStealerLoadoutService {
         if (TimeStealerStampService.mayHold(player)) {
             ensureClockInHotbar(player);
             TimeStealerClockService.keepDisplayedCooldown(player);
+            // Granted lazily: SparkTraits Conscience settles after RoleAssigned. / 延迟发放：SparkTraits 善良在 RoleAssigned 之后才确定。
+            TimeGiftWatchLoadout.tickHolder(player);
             TimeStealerStampService.tickOwner(player);
             return;
         }
         if (Math.floorMod(player.getServerWorld().getTime() + player.getId(), STRAY_SWEEP_INTERVAL_TICKS) == 0) {
             removeClocks(player);
+            TimeGiftWatchLoadout.removeGiftWatches(player);
             TimeStampInventory.stripAll(player);
         }
     }
 
-    /** Terminal death: removes the Clock and every stamp. / 终结死亡：移除时钟与所有邮票。 */
+    /** Terminal death: removes the Clock, the Gift Watch and every stamp. / 终结死亡：移除时钟、赠时怀表与所有邮票。 */
     public static void onDeath(ServerPlayerEntity player) {
         removeClocks(player);
+        TimeGiftWatchLoadout.removeGiftWatches(player);
         TimeStealerStampService.reset(player);
     }
 
-    /** ResetPlayer and round finalize: removes the Clock and every stamp. / 重置玩家与局末：移除时钟与所有邮票。 */
+    /** ResetPlayer and round finalize: removes the Clock, the Gift Watch and every stamp. / 重置玩家与局末：移除时钟、赠时怀表与所有邮票。 */
     public static void reset(ServerPlayerEntity player) {
         removeClocks(player);
+        TimeGiftWatchLoadout.removeGiftWatches(player);
         TimeStealerStampService.reset(player);
     }
 

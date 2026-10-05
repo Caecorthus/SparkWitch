@@ -77,6 +77,10 @@ public final class TimeStealerFeatureService {
                     TimeTheftRuntime.reset(player);
                     theft.clear();
                 }
+                TimeGiftPlayerComponent gift = TimeGiftPlayerComponent.KEY.get(player);
+                if (gift.isGifted() && !Objects.equals(gift.matchId(), matchId)) {
+                    gift.clear();
+                }
                 TimeStealerPlayerComponent.KEY.get(player).bindMatch(matchId);
             }
         });
@@ -89,12 +93,13 @@ public final class TimeStealerFeatureService {
                 return;
             }
             TimeTheftRuntime.onDeath(victim);
+            TimeGiftRuntime.onDeath(victim);
             TimeStealerLoadoutService.onDeath(victim);
         });
-        // The Clock and stamps cannot be handed to item frames, armor stands or allays. Both sides: the client stops
+        // The Clock, the Gift Watch and stamps cannot be handed to item frames, armor stands or allays. Both sides: the client stops
         // before sending, the server refuses a forged packet. Decorated pots are handled by
         // mixin/timestealer/DecoratedPotBlockTimeStealerItemMixin instead, so the Clock's own use still runs there.
-        // 时钟与邮票无法交给物品展示框、盔甲架或悦灵。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
+        // 时钟、赠时怀表与邮票无法交给物品展示框、盔甲架或悦灵。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
         // 饰纹陶罐改由 DecoratedPotBlockTimeStealerItemMixin 处理，因此在陶罐前时钟自身的使用照常进行。
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) ->
                 TimeStealerInventoryRules.blocksEntityUse(player.getStackInHand(hand), entity)
@@ -124,6 +129,7 @@ public final class TimeStealerFeatureService {
     private static void clearPlayer(ServerPlayerEntity player) {
         TimeTheftRuntime.reset(player);
         TimeTheftPlayerComponent.KEY.get(player).clear();
+        TimeGiftRuntime.reset(player);
         TimeStealerLoadoutService.reset(player);
         TimeStealerStampService.reset(player);
         TimeStealerPlayerComponent.KEY.get(player).clear();

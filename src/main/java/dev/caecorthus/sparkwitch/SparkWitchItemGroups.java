@@ -86,6 +86,7 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.knockoutDrug(),
                                     SparkWitchItems.tollBell(),
                                     SparkWitchItems.timeStealerClock(),
+                                    SparkWitchItems.timeStealerGiftWatch(),
                                     SparkWitchItems.timeStamp()
                             );
                             factionOrder.forEach(entries::add);
