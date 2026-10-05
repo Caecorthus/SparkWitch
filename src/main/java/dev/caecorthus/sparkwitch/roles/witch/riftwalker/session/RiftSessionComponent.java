@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.witch.riftwalker.session;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftGateUser;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateCloseReason;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.RegistryByteBuf;
@@ -66,6 +67,13 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
     private RegistryKey<World> sessionWorld;
     private boolean foreignMove;
     private int lastSyncedStaySeconds;
+    /**
+     * Why the current gate was closed while its release was blocked; the tick retry passes it on, so an ADMIN close
+     * never turns into a cooldown just because the first release found no safe cell.
+     * 门被关闭但放出受阻时记下的关门原因；逐刻重试会沿用它，ADMIN 关门不会因首次放出没找到安全格而变成上冷却。
+     */
+    @Nullable
+    private RiftGateCloseReason pendingCloseReason;
 
     // Client mirrors, counted down locally between syncs. / 客户端镜像，两次同步之间本地倒计时。
     private int clientStayRemainingTicks;
@@ -185,6 +193,17 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
     /** Server only: a foreign server teleport touched the body since the last tick. / 仅服务端：上次逐刻后是否有外部传送。 */
     public boolean foreignMove() {
         return foreignMove;
+    }
+
+    /** Server only: close reason of a gate whose release is still pending. / 仅服务端：放出仍待完成的门的关闭原因。 */
+    @Nullable
+    public RiftGateCloseReason pendingCloseReason() {
+        return pendingCloseReason;
+    }
+
+    /** Server only; cleared with the session. / 仅服务端；随会话一起清除。 */
+    public void setPendingCloseReason(@Nullable RiftGateCloseReason reason) {
+        this.pendingCloseReason = reason;
     }
 
     // ---- P2 transitions (server only; each syncs the owner when the synced view changed) ----
@@ -328,6 +347,7 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
         sessionWorld = null;
         foreignMove = false;
         lastSyncedStaySeconds = 0;
+        pendingCloseReason = null;
         clientStayRemainingTicks = 0;
         clientCooldownRemainingTicks = 0;
     }

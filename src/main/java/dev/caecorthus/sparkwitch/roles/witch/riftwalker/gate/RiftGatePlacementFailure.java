@@ -16,8 +16,9 @@ public enum RiftGatePlacementFailure {
     /** No floor within reach under the feet. / 脚下没有可用的地面。 */
     NO_FLOOR("message.sparkwitch.riftwalker.place.no_floor"),
     /**
-     * Outside the play area (the front cell included), too low, or above Wathe's cull line.
-     * 超出 play area（含正前方一格）、过低或高于剔除线。
+     * Below Wathe's fall line ({@code playArea.minY}) or above its moving-train cull line; the rest of the play area is
+     * ignored since 2026-10-05.
+     * 低于 Wathe 坠落线（{@code playArea.minY}）或高于行驶剔除线；自 2026-10-05 起忽略 play area 的其余部分。
      */
     OUT_OF_BOUNDS("message.sparkwitch.riftwalker.place.out_of_bounds"),
     /** The slab would intersect a block. / 薄板会与方块相交。 */
