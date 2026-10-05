@@ -1122,6 +1122,7 @@
   "shop.sparkwitch.comtac_viii": "ComTac VIII",
   "shop.sparkwitch.comtac_viii.description": "A headset worn on the head: triples your hearing range and the area your own footsteps light up. One per round.",
   "hud.sparkwitch.blind.view_unavailable": "The Blind's view is unavailable (shader packs must be off)",
+  "hud.sparkwitch.blind.view_failed": "The Blind's view failed to render; retrying automatically (not a shader pack issue; see the game log)",
   "hud.sparkwitch.blind.attune.ready": "%1$s ready: press %2$s",
   "hud.sparkwitch.blind.attune.active": "%1$s: %2$ss",
   "hud.sparkwitch.blind.attune.cooldown": "%1$s cooling down: %2$ss",

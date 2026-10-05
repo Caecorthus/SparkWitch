@@ -1122,6 +1122,7 @@
   "shop.sparkwitch.comtac_viii": "ComTac VIII",
   "shop.sparkwitch.comtac_viii.description": "戴在头上的耳机：听觉范围×3，自身脚步照亮范围×3。每局限购一件。",
   "hud.sparkwitch.blind.view_unavailable": "盲人视野不可用（需关闭光影包）",
+  "hud.sparkwitch.blind.view_failed": "盲人视野渲染失败，正在自动重试（与光影包无关，详情见游戏日志）",
   "hud.sparkwitch.blind.attune.ready": "%1$s就绪：按 %2$s",
   "hud.sparkwitch.blind.attune.active": "%1$s中：%2$s秒",
   "hud.sparkwitch.blind.attune.cooldown": "%1$s冷却中：%2$s秒",
