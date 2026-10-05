@@ -28,11 +28,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Witches' Sabbath (魔女集会, plan §10): the Riftwalker's 150-mana, instant, cooldown-free skill on the shared witch-skill
+ * Witches' Sabbath (魔女集会, plan §10): the Riftwalker's 150-mana, instant, 30 s-cooldown skill on the shared witch-skill
  * path ({@code SparkWitchBuiltInSkills}, exact-role selector). The handler validates the caster, finds free living
  * witch-faction teammates (C6; never those inside a gate, D6), spends the mana only when at least one can be pulled, and
  * places each on its own safe spot around the caster. Server only. Owned by P5.
- * 魔女集会（plan §10）：隙行者在共享魔女技能路径上的 150 魔力、瞬发、无冷却技能（{@code SparkWitchBuiltInSkills}，
+ * 魔女集会（plan §10）：隙行者在共享魔女技能路径上的 150 魔力、瞬发、冷却 30 秒的技能（{@code SparkWitchBuiltInSkills}，
  * 精确职业选择器）。处理器校验施法者，找出可召集的存活魔女阵营队友（C6；门内的除外，D6），至少能拉到一人时才扣魔力，
  * 并把每人放到施法者周围各自的安全落点。仅服务端。归属 P5。
  */
@@ -57,10 +57,10 @@ public final class WitchesSabbathService {
      * role, life, Fear and readiness, but it neither spends {@code manaCost} nor asks SparkTraits, so this handler
      * re-validates everything server-side, in this order and with no cost on any refusal: caster state → at least one
      * teammate → enough mana → at least one safe spot → spend 150 → teleport. Success returns
-     * {@code success(SABBATH_COOLDOWN_TICKS)} (0, D6).
+     * {@code success(SABBATH_COOLDOWN_TICKS)} (30 s); a refusal starts no cooldown.
      * 冻结的技能处理器（{@code WitchSkillDefinition.useHandler}）。共享路径已检查 SparkWitch 职业、存活、恐惧与就绪，但既不扣除
      * {@code manaCost} 也不询问 SparkTraits，因此本处理器在服务端按以下顺序重新校验，任何拒绝都不产生代价：施放者状态 →
-     * 至少一名队友 → 魔力足够 → 至少一个安全落点 → 扣除 150 → 传送。成功返回 {@code success(SABBATH_COOLDOWN_TICKS)}（0，D6）。
+     * 至少一名队友 → 魔力足够 → 至少一个安全落点 → 扣除 150 → 传送。成功返回 {@code success(SABBATH_COOLDOWN_TICKS)}（30 秒）；任何拒绝都不进入冷却。
      */
     public static WitchSkillUseResult use(WitchSkillUseContext context) {
         ServerPlayerEntity caster = context.player();
