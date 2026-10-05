@@ -16,12 +16,15 @@ It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop
 the two form Team Jiahao and win together.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
 the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
-It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only
-Grand Witch recruitment (through the special-accomplice pool) or an admin force assigns; it is never drawn naturally.
-It also adds the Potion Gunner (`sparkwitch:potion_gunner`), a witch-faction special accomplice that only the Grand
-Witch recruitment pool assigns; it fires four kinds of potion shell from a bound anti-tank launcher.
-It also adds the Riftwalker (`sparkwitch:riftwalker`, 隙行者), a witch-faction special accomplice that only Grand Witch
-recruitment or an admin force assigns; its Rift Gates let the witches hide and travel between gates.
+It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only a
+Bewitched promotion (through the special-accomplice pool) or an admin force assigns; it is never drawn naturally.
+It also adds the Potion Gunner (`sparkwitch:potion_gunner`), a witch-faction special accomplice that only a Bewitched
+promotion (or an admin force) assigns; it fires four kinds of potion shell from a bound anti-tank launcher.
+It also adds the Riftwalker (`sparkwitch:riftwalker`, 隙行者), a witch-faction special accomplice that only a Bewitched
+promotion or an admin force assigns; its Rift Gates let the witches hide and travel between gates.
+It also adds the Bewitched (`sparkwitch:bewitched`, 魔化使), a witch-faction member dealt at round start in a Grand
+Witch round (it replaces Grand Witch recruitment); after 2 completed tasks it is promoted to an accomplice rolled from
+the special-accomplice pool.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -160,9 +163,9 @@ Current build baseline:
   (instinct outlines, the "嘉豪同伙" label, the Team Jiahao end title) lives in
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
-- `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the recruitment roll
+- `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the promotion roll
   `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the per-variant hooks: the
-  post-recruit callback and the variant's own skills for the `gui.sparkwitch.skills` panel).
+  post-promotion callback and the variant's own skills for the `gui.sparkwitch.skills` panel).
 - `roles/witch/potiongunner/`: Potion Gunner (`sparkwitch:potion_gunner`) rules and constants (`PotionGunnerRules`,
   `PotionShellType`, `PotionBallistics`), pool registration, shop, loadout, bound-item rules and lifecycle.
   Subpackages: `launcher/` (the launcher item, inventory loading, the server-authoritative fire service, the backblast)
@@ -170,8 +173,9 @@ Current build baseline:
   (GW-DK, GW-AC, GW-MR, TR, harmless burning). Its mixins live in `mixin/potiongunner/` and
   `client/mixin/potiongunner/`; client presentation (scope zoom and reticle, fire input, HUD, two-handed pose) in
   `client/potiongunner/`. Its packet is `net/FirePotionLauncherC2SPacket`.
-- `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
-  and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
+- `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells and fear;
+  `GrandWitchFeatureService` also owns the round lifecycle of the special-accomplice ledger (seed at
+  `ON_FINISH_INITIALIZE`, clear at `ON_FINISH_FINALIZE`). Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
   Its client presentation lives in `client/grandwitch/`. The held sword's cooldowns (owner pick A2 + B2, 2026-10-05)
   are drawn by `GrandWitchSwordHud`, with pure layout in `GrandWitchSwordHudRules`. `GrandWitchSwordCrosshairMixin`
@@ -217,8 +221,17 @@ Current build baseline:
   `swapper/` (the NoellesRoles Swapper crush), and `net/` (payloads and `RiftwalkerNetworking`). Its mixins live in
   `mixin/riftwalker/` and `client/mixin/riftwalker/`; client presentation (gate renderer and outline, in-gate input
   lock, grey view and HUD, console screen) lives in `client/riftwalker/` (`gate/`, `session/`, `tablet/`, `swapper/`).
+- `roles/witch/bewitched/`: Bewitched (`sparkwitch:bewitched`, 魔化使) role definition (`BewitchedRole`), constants
+  and pure predicates (`BewitchedRules`: task threshold, money visibility, queue decision), the pure promotion role
+  choice and lock rules (`BewitchedPromotionRules`), the owner-synced task counter (`BewitchedPlayerComponent`,
+  `sparkwitch:bewitched`), the end-of-tick promotion queue (`BewitchedPromotionQueue`), the promotion transaction
+  (`BewitchedPromotionService`), the empty shop and balance visibility (`BewitchedShopService`) and the wiring
+  (`BewitchedFeatureService`). Its round-start dealing lives in `registry/WitchRoleAssignmentService` (formula
+  `WitchRoleCounts.bewitched`); the forced lock lives in `WitchWorldComponent` (`component/ForcedAccompliceRoleLocks`)
+  and `command/ForceAccompliceRoleCommand`. Client presentation (the `n/2` HUD line) lives in
+  `client/bewitched/BewitchedClientPresentation`, registered once from `SparkWitchClient`.
 - `roles/civilian/emma/`: unique cop claim, role-owned mana skill, delayed backlash,
-  owner-private failed-recruitment evidence, speed latch, and one reward per gun cycle.
+  speed latch, and one reward per gun cycle.
 - `roles/civilian/controlexpert/`: Control Expert round-start loadout, task-money economy,
   restricted shop, Disruptor, Taser, thrown Shock Device, owner-only status, stun application
   with owned-effect tracking, and lifecycle cleanup; its mixins live in `mixin/controlexpert/`
@@ -333,8 +346,6 @@ Current build baseline:
 - `client/judge/`: primary-key selector and the role-owned bottom-right line (`JudgeHudRenderer`: "press key to
   judge, 100 coins" or the coin requirement below 100). `WitchSkillHudRenderer` dispatches it right after Emma,
   gated by `JudgeClientModule.ownsHud` (the selector gate minus Grand Witch Fear); no witch inventory panel.
-- `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
-  `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters and the optional Traits seam.
 - `mana/`: mana economy and natural-regeneration runtime.
 - `component/`: CCA ids, stored fields, sync/NBT codecs, and narrow state
   operations used by the owning runtime Modules.
@@ -510,8 +521,7 @@ cost, run the native effect, and undo the reservation into the exact slots if th
 paying can free the hotbar slot a grenade or Psycho bat needs. There are no posthumous stamps: a
 Clock kill that lands after the stealer's death, role change, or disconnect grants nothing. A
 same-match re-assignment of the Time Stealer role keeps stamps and the cooldown without knowing the
-previous role (a stray holder is swept within 20 ticks anyway). Grand Witch recruitment refunds each
-stamp, like the Clock, at the unknown-item price of 25 gold; the recruitment module is unchanged. A
+previous role (a stray holder is swept within 20 ticks anyway). A
 nearer Seeker device absorbs the Clock and breaks only when an eligible target stands behind it: the
 break is recorded as `SeekerBreakSource.CLOCK`, nobody is stolen from, and the Clock goes on
 cooldown; unlike the Taser and the Feather Blade, a Clock miss stays free and never breaks a device.
@@ -993,121 +1003,171 @@ refused with `shop.error.sparkwitch.comtac_owned` when the buyer already owns on
 one in this match (also after a strip or for a role gained mid-round); it lands on the head when
 the head slot is empty, else in the first empty hotbar slot, and with no room the purchase fails
 without charging. Money follows the Angler: visible to a living Blind, 0 on assignment, +50 per
-task, no Impostor check. Grand Witch recruitment is unchanged: the cane and the ComTac (custom buy
-handler, no physical shop output) are refunded at `UNKNOWN_ITEM_PRICE` (25 each) and nothing of the
-kit survives on an Accomplice.
+task, no Impostor check. Any role change away from the Blind strips the kit at once
+(`BlindLoadoutService.onRoleAssigned`).
 
-Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime`,
-`sparkwitch:witch_factor_world`, and `sparkwitch:grand_witch_recruitment_round`
-components; the existing shared packet and NBT layouts remain unchanged. Sword
-kill readiness (30s) is independent of the item dash cooldown (5s). Recruitment
-uses a cumulative world quota, never a living-teammate count. It keeps only keys, both NoellesRoles master
-keys, letters and the SparkStrength tablet (registry id only; the revolver is refunded like any other item, and
-kept stacks are never refunded). The tablet is a free identity device, not a shop item: SparkStrength issues it at
-most once per player per round and re-resolves a kept tablet's channel to the witch network, and a recruit holding
-none gets one from SparkStrength's mid-round reconciliation pass; SparkWitch never grants it. Recruitment
-re-initializes the new role's Wathe shop stock and cooldowns, and refuses, on the real role and before any
-destructive step, every SparkFactionAPI `PoliceRoles` member (Emma included, the Insider exempt) and the
-NoellesRoles Corrupt Cop with a random flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the
-failed recruitment. It also refuses a SparkTraits Last Stand Loose End (Wathe `LOOSE_END` role plus a triggered Last
-Stand, `SparkTraitsLastStandBridge.isLastStandLooseEnd`), the Final Moment conversion; a revived Last Stand player
-who has not been converted stays recruitable. A target in SparkTraits Depression psycho (`isDepressionPsychoActive`)
-fails the target check (`invalid_target`) before the quota lock (owner decision 2026-10-04); an absent or older
-facade allows it, a failing one refuses.
-After `RoleAssigned`, the transaction writes the converted balance. Then, before the retained-inventory restore, it
-asks the SparkTraits public facade (`replaceTraitsIneligibleForCurrentRole`, through
-`compat/recruitment/RecruitmentTraits`) to drop every trait the recruit role could not have rolled (owner decision
-2026-10-04). SparkTraits redraws one trait per dropped one, hidden ones included, from the new role's pool (owner
-decision 2026-10-05). The redraw never picks Pig, Childish or a dropped trait. A recruit who then holds Well
-Supplied, kept from any former role or redrawn, gets the converted balance multiplied by 1.2 again, even when nothing
-was dropped (owner decision 2026-10-05). An absent, older or failing facade keeps every trait. The recruit alone gets one line
-(`traits_lost`, `traits_replaced` or `traits_rerolled`) naming the visible lost and redrawn traits. The converted
-lines show the final balance.
-Recruiting a NoellesRoles Shadow Jester breaks its pair (owner, 2026-10-05). Before `exitRole` clears the pair,
-`NoellesRecruitmentCleanup.shadowPartnerLeftBehind` reads the partner, if it is still a living Shadow Jester (real
-roles). After the retained inventory is restored, `releaseShadowPartner` makes that partner a real Jester, whether or
-not the two swore the Shadow Oath. It mirrors the pinned NoellesRoles transform for a fallen unbound partner: the
-`JESTER` role, Jester and mood resets, and `markBetrayalTrophy`, so the knife stays as a dead trophy. It also removes
-the oath derringer, sends the `shadow_partner_released` chat line (it never names the Grand Witch) and records
-`shadow_transform`. The `addRole` runs outside the recruitment cause scope, so the replay infers
-`noellesroles:shadow_transform`. A failure is logged and never undoes the recruitment.
-A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so a recruited
-ex-Hunter gets no trap back (the trap itself stays armed until it expires or the round ends).
+Grand Witch rework state uses separate `sparkwitch:grand_witch_runtime` and
+`sparkwitch:witch_factor_world` components; the existing shared packet and NBT layouts remain unchanged. Sword
+kill readiness (30s) is independent of the item dash cooldown (5s). `sparkwitch:grand_witch_runtime` syncs and
+saves only the sword kill cooldown (NBT `SwordKillCooldown`). Grand Witch recruitment is gone (owner, 2026-10-05; the
+Bewitched below replaces it): the `sparkwitch:grand_witch_recruitment_round` world component, the runtime's
+`RecruitmentCount` and `RoundParticipants` fields, Emma's `Revealed` list, the C2S payload
+`sparkwitch:recruit_accomplice` and the replay cause `sparkwitch:grand_witch_recruitment` are no longer registered,
+read or written. The Grand Witch has no secondary-key (key N) handler; her inventory card shows the Witch Factor and
+the Ceremonial Sword rows only.
+A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so an ex-Hunter whose role changed
+gets no trap back (the trap itself stays armed until it expires or the round ends).
 Sword piercing
 applies to role/item shields, not trait protections such as Last Stand or Last
 Escape; protection costs and retaliation keep their normal side effects.
 
-Special accomplices (`roles/witch/accomplice/variant/AccompliceVariants`) inherit every basic Accomplice rule through
-`WitchFactionRules.isAccompliceLike`, which is true for the plain Accomplice or a registered variant. Rules that use it:
+Special accomplices (`roles/witch/accomplice/variant/AccompliceVariants`) and the Bewitched inherit every basic
+Accomplice rule through `WitchFactionRules.isAccompliceLike`, which is true for the plain Accomplice, a registered
+variant, or the Bewitched (`WitchFactionRules.isBewitched`, exact). The Bewitched is never an `AccompliceVariants`
+entry, so it is never rolled. Rules that use `isAccompliceLike`:
 - witch-faction membership (`isWitchFactionMember`): win counts, blackout, Fear and Obscure immunity, the cohort
   label, and Curser visibility;
 - killer-style instinct light, the dropped-item outline, and the hidden-Phantom skip;
-- instinct colors: the Grand Witch and every accomplice see each accomplice in that role's own color;
+- instinct colors: the Grand Witch and every accomplice see each accomplice (the Bewitched included) in that role's
+  own color;
 - passive and direct-kill money, accomplice starting money, and the Grand Witch's +25 team-kill share;
 - Grand Witch mana for accomplice kills, and hidden poison vision;
 - the witch factor: accomplices are never carriers and always see the network;
-- Emma's fatal backlash.
+- Emma's fatal backlash;
+- the Rift Gate instinct outline.
 
-Rules keyed on role ids keep their fixed id sets and also check `WitchFactionRules.isAccompliceVariantId`. That
-method reads the live registry on every call. These rules are `HunterRules.isInstinctTrapViewer`,
-`HunterTrapClientHooks`, and `SeekerInstinctRules.isWitchInstinctRole`.
+Rules keyed on role ids keep their fixed id sets, which list `sparkwitch:bewitched` explicitly, and also check
+`WitchFactionRules.isAccompliceVariantId`. That method reads the live registry on every call and is false for the
+Bewitched. These rules are `HunterRules.isInstinctTrapViewer` (`BEWITCHED_ROLE_ID`), `HunterTrapClientHooks`, and
+`SeekerInstinctRules.isWitchInstinctRole` (`BEWITCHED_ID`).
 
-`isAccomplice` stays exact, so the plain Accomplice shop (`AccompliceShopService`) never touches a variant. These
-never include variants merely for being variants: `WitchManaRules.isManaRole` (the Abyss Listener and the
-Riftwalker are added by exact role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole` (the Abyss Listener and
-the Riftwalker are added by exact role, each for its shared skill).
+`isAccomplice` stays exact, so the plain Accomplice shop (`AccompliceShopService`) never touches a variant or the
+Bewitched. These never include variants merely for being variants, nor the Bewitched: `WitchManaRules.isManaRole`
+(the Abyss Listener and the Riftwalker are added by exact role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`
+(the Abyss Listener and the Riftwalker are added by exact role, each for its shared skill).
 
 The `gui.sparkwitch.skills` panel (`WitchSkillPresentationRules.shouldShowInventorySkillPanel`) belongs to the Grand
 Witch, Apprentice Witch and Murderous Witch, plus accomplices (owner decision D13: plain and special, via
 `WitchFactionRules.isAccompliceLike`); each shows only its own skills. An accomplice's own skills are exactly
-`AccompliceVariants.hooks(role).ownSkillIds()` (`AccompliceVariantHooks`, default empty). The plain Accomplice has
-`NONE` hooks, so it never shows the panel; a variant that owns no skill does not either. Registration in
-`WitchSkillRegistry`, the `sparkwitch` namespace, or shared dispatch, storage, packets and cooldowns grants no access,
-and every other role stays excluded. The gate runs every client frame, so `AccompliceVariants.hooks` reads the same
-lock-free snapshot as `isVariant` and `variants`. Mana in the panel (header tail, cost line, "not enough mana" pill)
-stays gated by `WitchManaRules.isManaRole`.
+`AccompliceVariants.hooks(role).ownSkillIds()` (`AccompliceVariantHooks`, default empty). The plain Accomplice and the
+Bewitched (accomplice-like, not a variant) get `NONE` hooks, so they never show the panel; a variant that owns no
+skill does not either. Registration in `WitchSkillRegistry`, the `sparkwitch` namespace, or shared dispatch, storage,
+packets and cooldowns grants no access, and every other role stays excluded. The gate runs every client frame, so
+`AccompliceVariants.hooks` reads the same lock-free snapshot as `isVariant` and `variants`. Mana in the panel (header
+tail, cost line, "not enough mana" pill) stays gated by `WitchManaRules.isManaRole`.
 
 A variant must register during common mod initialization, because client rules read the same registry. Hard-coded
-`sparkwitch:accomplice` lists in other repos still need each variant, for example SparkTraits
-`isBlockingTeamWinNeutral`.
+`sparkwitch:accomplice` lists in other repos still need each variant and `sparkwitch:bewitched`, for example
+SparkTraits `isBlockingTeamWinNeutral`.
 
-Grand Witch recruitment rolls a special-accomplice pool. Recruitment refuses an accomplice-like target
-(`WitchFactionRules.isAccompliceLike`), so nobody can recruit a variant again. `GrandWitchRecruitmentService.use`
-picks the recruit's role once. The roll happens after every refusal (Emma resist, balance overflow) and right
-before `game.addRole`. The same role goes to `game.addRole` and to `RoleAssigned`. The pure
-`AccompliceVariantRoll.pick` makes a uniform choice among the registered variants
-(`AccompliceVariants.variants()`, in registration order) that are enabled (`game.isRoleEnabled`) and not used this
-round. Its `java.util.Random` is seeded from `world.getRandom().nextLong()`. When no variant is left, the recruit
-becomes the plain Accomplice. A variant counts as used when the round ledger records it or when the role map holds it
-(`!game.getAllWithRole(role).isEmpty()`). Variants never appear naturally.
+Variants never appear naturally; the Bewitched promotion rolls the special-accomplice pool.
+`BewitchedPromotionService.promote` picks the role once, before any mutation (`BewitchedPromotionRules.choose`):
+1. **Lock.** The player's `/sparkwitch:forceAccompliceRole` lock wins: the plain Accomplice always; a special
+   accomplice not used this round even when it is disabled; a used one (or an id no longer registered) is ignored and
+   the roll runs.
+2. **Roll.** The pure `AccompliceVariantRoll.pick` makes a uniform choice among the registered variants
+   (`AccompliceVariants.variants()`, in registration order) that are enabled (`game.isRoleEnabled`), not used this
+   round, and not reserved by another lock. Its `java.util.Random` is seeded from `world.getRandom().nextLong()`. When
+   no variant is left, the player becomes the plain Accomplice (Bewitched D3). A variant counts as used when the round
+   ledger records it or when the role map holds it (`!game.getAllWithRole(role).isEmpty()`). A lock reserves its role
+   only while its holder is a living player (in the role map, not dead) whose real role is the Bewitched
+   (`BewitchedPromotionRules.reservedByAnother`); a holder who dies before promoting frees the seat (Bewitched D4).
 
-The round ledger is `sparkwitch:accomplice_variant_round` (`AccompliceVariantRoundComponent`, with its state in
-`AccompliceVariantRoundState`). It is a world component that is never synced, appended to
-`custom.cardinal-components` after every earlier entry (only the special accomplices' own components follow it:
-`sparkwitch:abyss_zone_exposure`, `sparkwitch:rift_session`, `sparkwitch:rift_gates`). Its only
-NBT key is `UsedVariants`, a list of role id strings. Its lifecycle follows `grand_witch_recruitment_round`:
-- **Round start.** `GrandWitchRecruitmentService.beginRound` runs at `ON_FINISH_INITIALIZE`. It resets the ledger and
-  seeds it with every variant already in the role map, so a forced round-start variant stays used after it dies and
-  becomes a Curser.
-- **Recruitment.** A recruited variant is recorded right after `round.recordSuccess`.
+The round ledger is `sparkwitch:accomplice_variant_round` (`AccompliceVariantRoundComponent`, state in
+`AccompliceVariantRoundState`), a never-synced world component whose only NBT key is `UsedVariants`, a list of role id
+strings. It is appended to `custom.cardinal-components` after every earlier entry; only later role components follow
+it (the special accomplices' `sparkwitch:abyss_zone_exposure`, `sparkwitch:rift_session` and `sparkwitch:rift_gates`,
+then `sparkwitch:bewitched`). Its round lifecycle is owned by `GrandWitchFeatureService`:
+- **Round start.** At `ON_FINISH_INITIALIZE` it resets the ledger and seeds it with every variant already in the role
+  map (`!game.getAllWithRole(role).isEmpty()`), so a forced round-start variant stays used after it dies and becomes a
+  Curser.
+- **Promotion.** A promotion into a variant marks it used right after `game.addRole` (`ledger.markUsed`).
 - **Round end.** `clearRound` empties the ledger at `ON_FINISH_FINALIZE`.
 
-After a variant recruitment commits, the shared transaction calls `AccompliceVariants.hooks(role)
-.afterRecruitCommitted(recruit, recruiter)` once. The call comes after the `finally` block that restores the
-retained inventory, overwrites the balance, rebuilds the shop, and syncs. It comes before the messages and before
-`round.finishConversion()`. A `RuntimeException` from the hook is logged and never undoes the recruitment. Starting
-items must come from this hook, because the inventory restore wipes anything granted from `RoleAssigned`.
-
-A plain Accomplice recruitment keeps its original lines (`message.sparkwitch.recruitment.converted` / `.success`). A
-variant recruitment names the role, using `announcement.role.<path>`:
-- the recruit gets the `message.sparkwitch.recruitment.converted_as` chat line (role name, balance);
-- the Grand Witch gets the `message.sparkwitch.recruitment.success_as` actionbar line (role name). The service sends
-  it directly, because `WitchSkillUseResult` carries no message arguments. The result is still
-  `success(0)` with no key.
+After a promotion into a variant commits, the shared transaction calls `AccompliceVariants.hooks(role)
+.afterPromotionCommitted(player)` once, after the `finally` block that restores the balance, rebuilds the shop and
+syncs, and before the announcement and the chat lines. A `RuntimeException` from the hook is logged and never undoes
+the promotion. The inventory is kept, so a `RoleAssigned` grant is still present: hooks must be idempotent (the Abyss
+Listener's `AbyssListenerLoadout.grantAfterPromotion` reconciles to one gun; the Potion Gunner's
+`PotionGunnerLoadoutService.ensureLauncher` is idempotent).
 
 `AccompliceShopRules.entriesWithout(ids...)` returns the plain Accomplice entries minus the given `PlannedEntry.id()`
 values, in their original order. Variants call it from their own `BuildShopEntries` listeners. An unknown id throws.
 The plain `AccompliceShopService` stays exact.
+
+The Bewitched (`sparkwitch:bewitched`, 魔化使, color `0x8A6E99`) replaces Grand Witch recruitment (owner, 2026-10-05;
+Dn/Cn below are the owner decisions in `docs/plans/bewitched/decisions.md`). It only does tasks, and after 2 completed
+tasks it is promoted to an accomplice role through the pool above.
+- **Registration.** `BewitchedRole.DEFINITION`: witch faction, the Accomplice profile (`MoodType.FAKE`, unlimited
+  sprint, `canSeeTime(true)`), `appearanceCondition(context -> false)`. It is registered right after the Riftwalker and
+  before the Wind Spirit in `registerFactionApiRoles` (the Abyss Listener stays right after the Accomplice, and
+  nothing may follow the Insider), and it follows the Riftwalker in the assassin-guess order. It is not a Wathe
+  special role, so `/wathe:forceRole` can force it. It is not in `isRegisteredSparkWitchRole` (it owns no skill),
+  never shows the witch skill panel, and stays out of the Black Raven disguise pool like the Accomplice (not
+  civilian-base).
+- **Dealing (D1).** `WitchRoleAssignmentService.assignAfterNeutralsBeforeCivilians`, right after the Grand Witch is
+  dealt: when the round then has at least one Grand Witch (dealt, neutral-drawn or forced) and the Bewitched is
+  enabled, it deals `WitchRoleCounts.bewitched(n)` minus the already forced Bewitched on the shuffled `NO_ROLE` seats,
+  where `bewitched(n) = n < 18 ? 0 : (n - 18) / 6 + 1`. There is no new mixin call: `MurderGameModeMixin` still runs
+  the Hunter/Orthopedist pairing, the witches and the Insider, in that order, before `assignCivilians`.
+- **Before promotion (D2).** A witch-faction member with teammate vision and accomplice money (starting money,
+  passive, kill rewards, the Grand Witch's +25 share), but no shop. `BewitchedShopService` empties its shop on both
+  sides from the exact synced role, in its own `BuildShopEntries` phase `sparkwitch:bewitched_shop_clear` ordered after
+  the default phase (so no default-phase listener can add entries back, whatever the mod load order), and its
+  `CanSeeMoney` listener returns `ALLOW` for a living Bewitched (an empty shop would hide the balance).
+- **Task counter (C3).** `sparkwitch:bewitched` (`BewitchedPlayerComponent`, player, `NEVER_COPY`, synced to its owner
+  only, NBT `PromotionTasks`) is the last `custom.cardinal-components` entry, after `sparkwitch:rift_gates`. The Wathe
+  `TaskComplete` listener in `SparkWitchEvents` (registered right after the Grand Witch's) counts only in an ACTIVE
+  round (never once Wathe is STOPPING), for a playing and alive player whose real role is the Bewitched. On the 2nd
+  task it enqueues the UUID and never changes the role, because Wathe is iterating the task map. Round start, round
+  end and `ResetPlayer` clear the counter and the queue.
+- **Queue.** `BewitchedPromotionQueue.finishPromotions` runs at `END_SERVER_TICK`, in enqueue order, and re-validates
+  each entry (`BewitchedRules.queueAction`): offline → keep; round not ACTIVE, not alive, real role no longer the
+  Bewitched or fewer than 2 tasks → drop; inside a Rift Gate (`RiftSessionService.isInside`), swallowed by a
+  NoellesRoles Taotie (`NoellesTaotieSeekerBridge.isSwallowed`), hijacked by a Kidnapper
+  (`KidnapperControlComponent.isControlled`) or afflicted by a Hunter trap (rooted, fractured or carrying trap-poison
+  credit in `HunterPlayerComponent`) → keep and retry next tick; else promote. The Kidnapper and Hunter `RoleAssigned`
+  listeners reset that victim-side state on any role change, so promoting then would end the hijack, heal the injury
+  and drop the Hunter's poison credit; each state ends on its own. A throwing
+  promotion is logged once and dropped; if the role never changed, the counter is rewound to 1 (`rewindForRetry`), so
+  the next task queues it again.
+- **Transaction (C4).** Choose the role (above) → capture the balance → `game.addRole` inside
+  `SparkReplayApi.withRoleChangeCause(sparkwitch:bewitched_promotion, (UUID) null, …)` → mark a variant used →
+  clear the player's lock and counter → `RoleAssigned` (try/catch: logged, never undone) → `finally`: restore the
+  balance, `shop.initializeShop(ShopUtils.getShopEntriesForPlayer(player))`, `game.sync()`, `shop.sync()` → the
+  variant hook → `WraithRoleAnnouncementService.announceCurrentRole` (public; the existing
+  `WraithRoleAnnouncementS2CPacket`) → chat lines: `message.sparkwitch.bewitched.promoted` (role name) to the
+  player and `message.sparkwitch.bewitched.promoted_grand_witch` (player name, role name) to every living Grand
+  Witch. The inventory is never cleared.
+- **Death before promotion (C6).** The normal witch death flow (Wraith → Curser); the ledger is untouched, and the
+  seat of a lock the dead player held returns to the pool.
+- **Forced lock (D4, C5).** `/sparkwitch:forceAccompliceRole <role> <players>` (`command/ForceAccompliceRoleCommand`,
+  permission `sparkwitch.command.forceaccomplicerole`, default level 2, run through `Wathe.executeSupporterCommand`; a
+  bare path resolves to the `sparkwitch` namespace; suggestions are `accomplice` plus every registered special
+  accomplice). There is no round guard: set outside a round, a lock applies to the next round; set during a round, to
+  the current one (the round is read from the world where it runs, since map voting can move it off the overworld). A
+  special accomplice is locked to one player at a time: more than one target → `special_single_target`; another
+  holder → `already_locked`, except that during a round a holder that is not a living Bewitched
+  (`BewitchedPromotionService.isLivingBewitched`, the same test as the reservation) has its stale lock dropped. The
+  plain Accomplice may be locked to many players. Locks are stored per UUID on the overworld `WitchWorldComponent`
+  (NBT `ForcedAccompliceRoles`, a list of `Player`/`Role` strings; never in the world sync packet), cleared by
+  `clearRoundState` and, explicitly on the overworld store, by `BewitchedFeatureService` at `ON_FINISH_FINALIZE`, and
+  cleared for the player when its promotion commits.
+- **Client.** `client/bewitched/BewitchedClientPresentation` draws `hud.sparkwitch.bewitched.progress` (`n/2`)
+  bottom-right for a living Bewitched on a confirmed SparkWitch server through `HudRenderCallback` (hidden under F1 or
+  without Wathe's train HUD).
+- **Lang.** `announcement.role/title/goal/goals/win.bewitched`, `game.win.bewitched`,
+  `announcement.role/goal/win.sparkwitch.bewitched`, the HUD line, the two promotion lines, the command feedback
+  (`command.sparkwitch.force_accomplice_role.*`) and
+  `replay.sparkfactionapi.role_changed.cause.sparkwitch.bewitched_promotion`. The shared texts
+  `announcement.goals.grand_witch`, `announcement.goals.riftwalker`, `tip.letter.riftwalker.tooltip1/2` and
+  `tip.letter.potion_gunner.tooltip1` describe the Bewitched promotion; these and
+  `skill.sparkwitch.emma_factor.network` no longer mention recruitment in either language.
+- **Local tests** under `src/test/java/dev/caecorthus/sparkwitch/`: `roles/witch/bewitched/` (rules, promotion rules,
+  registration, promotion source contracts, lang), `registry/BewitchedDealingContractTest`,
+  `component/ForcedAccompliceRoleLocksTest`, `command/ForceAccompliceRoleCommandTest`, the Bewitched cases in
+  `roles/witch/accomplice/variant/AccompliceLikeParityTest`, and the ledger lifecycle in
+  `roles/witch/grandwitch/GrandWitchVariantLedgerLifecycleContractTest`.
 
 Features that force a cooldown on another player (penalties, auras) go through SparkFactionAPI `ForcedCooldowns`
 (floor 0.1.5.11), never through a counter directly; affect vetoes stay the caller's job (`canAffectPlayer`).
@@ -1198,11 +1258,11 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
   selector, registered right after the Bell Ringer's Echo. The role is in `isRegisteredSparkWitchRole` only for that
   shared skill path; the skills panel reaches it only through its variant hooks (D13). It uses the Grand Witch's mana
   economy through `WitchManaRules.usesGrandWitchManaEconomy` (Grand Witch, exact Abyss Listener, or exact Riftwalker):
-  it is a mana role
-  (`isManaRole`), starts at 0 on every assignment (recruitment included), regenerates 1 mana every 20 ticks up to the
-  natural cap of 300, and earns 50 mana for a generic kill and 100 for a witch-mana-role victim. The Abyss Listener
-  itself never counts as a witch-mana-role victim, so every other role's rewards are unchanged. The Grand-Witch-only
-  bonus for an accomplice's kill pays living Grand Witches only, and the Abyss Listener's kills feed it. Its mana
+  it is a mana role (`isManaRole`), starts at 0 on every assignment (a mid-round promotion included), regenerates 1
+  mana every 20 ticks up to the natural cap of 300, and earns 50 mana for a generic kill and 100 for a witch-mana-role
+  victim. The Abyss Listener itself never counts as a witch-mana-role victim, so every other role's rewards are
+  unchanged. The Grand-Witch-only bonus for an accomplice's kill pays living Grand Witches only, and the Abyss
+  Listener's kills feed it. Its mana
   shows in the generic top-right `WitchManaHudRenderer` row (gated by `hasManaSystem`, not by the skills panel) and in
   the bottom-right skill line's "not enough mana" state. While the inventory is open, the skills panel card shows the
   Shriek with its 75-mana cost line, the "not enough mana" pill below 75, the cooldown gauge (60 s, or the 90 s
@@ -1274,12 +1334,11 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
   itself, so anyone it pushes off the train is the Abyss Listener's kill (kill money, mana, replay, attributed death
   for Wraith conversion; a dormant Fiend can die this way). Owner decision D12: a teammate knocked off the train is
   credited too, with its coins and mana.
-- **Bound gun.** The gun is never granted from `RoleAssigned`, because the recruitment transaction restores the
-  retained inventory after that event. It is granted by the variant hook `afterRecruitCommitted` (after the restore)
-  and, for a forced round-start Abyss Listener that has no gun yet, in the post-default `ON_FINISH_INITIALIZE` phase
-  `sparkwitch:abyss_listener_finish_initialize` (the round is still STARTING, so it reads the role map and dead set
-  directly). Both write `GUN_INITIAL_COOLDOWN_TICKS` (1200) through the vanilla `ItemCooldownManager.set`, so
-  SparkTraits Fast Hands applies.
+- **Bound gun.** The gun is never granted from `RoleAssigned`. It is granted by the variant hook
+  `afterPromotionCommitted` (after the promotion's shop rebuild) and, for a forced round-start Abyss Listener that has
+  no gun yet, in the post-default `ON_FINISH_INITIALIZE` phase `sparkwitch:abyss_listener_finish_initialize` (the
+  round is still STARTING, so it reads the role map and dead set directly). Both write `GUN_INITIAL_COOLDOWN_TICKS`
+  (1200) through the vanilla `ItemCooldownManager.set`, so SparkTraits Fast Hands applies.
   - Placement is Wathe's `ShopEntry.insertStackInFreeSlot`. With a full hotbar the rightmost non-selected hotbar item
     moves into the slot a removed stray gun vacated (Time Stealer rule; a gun parked in SparkFactionAPI 0.1.5.13+'s
     visible row 27-35 is a stray), else an empty main slot, else an empty offhand, preferring the shown second row
@@ -1400,7 +1459,7 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
   ignored.
 
 Potion Gunner state never enters the shared `sparkwitch:player` schema, and the role has no component. It joins the
-special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit hook grants the launcher
+special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotion hook grants the launcher
 (`PotionGunnerLoadoutService.ensureLauncher`, idempotent). It has no witch skill and declares no panel skills (`ownSkillIds()` stays empty), so it renders nothing in the
 `gui.sparkwitch.skills` panel; its kit is explained by the launcher and shell tooltips.
 - **Loaded shell.** The single loaded shell is the stable CUSTOM_DATA key `LoadedShell` on the launcher
@@ -1546,15 +1605,15 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   Wathe's `isPlayerPlayingAndAlive` ignores the game mode, so a targeter that never asks SFA must skip spectators
   itself. Spectators are transparent (never a target, never a shield) to:
   - the Black Raven Feather Blade aim (`BlackRavenTargeting.findAimedPlayer`);
-  - the shared aim `GrandWitchTargeting.findTarget`, used by recruitment, Witch Factor and Emma;
-  - its client hint mirrors, `client/grandwitch/GrandWitchClientTargeting` and `client/emma/EmmaClientTargeting`;
+  - the shared aim `GrandWitchTargeting.findTarget`, used by Witch Factor and Emma;
+  - its client hint mirror, `client/emma/EmmaClientTargeting`;
   - the Curser's 8-block confusion (`CurserFeatureService.use`; occupants alone read as "no target", no cooldown);
   - the Orthopedist aim and validator (`OrthopedistTargeting`) and its HUD hint (`client/hud/OrthopedistHudRenderer`);
   - the Guardian Angel aim and validator (`GuardianAngelTargeting`, `GuardianAngelRules.canTarget` takes a
     `targetSpectator` flag) and its HUD preview (`client/guardianangel/GuardianAngelTargetingPreview`).
 
   These use a spectator test, never SFA `canAffectPlayer`: the Curser and Guardian Angel casters are active Wraiths,
-  which it denies outright. So an occupant is never marked, recruited, cursed, bone-set or newly shielded, and an
+  which it denies outright. So an occupant is never marked, cursed, bone-set or newly shielded, and an
   occupied gate no longer fails an aim at the player behind it. The test covers every Wathe-alive spectator, so
   NoellesRoles Taotie-swallowed players and SparkTraits Last Stand / Depression holds are skipped the same way.
   `HolyFlashComponent` keeps a flash while `isInside`, so entering a gate never cleanses it
@@ -1819,11 +1878,9 @@ it is ever synced to another player.
     closed. A mixin into `sparktraits.impl` is not allowed.
 - **Death and exits.** At death every stash (inventory and wallet) vanishes. The live set goes
   through Wathe's drop rules, except the mask, which never drops. Role loss discards the stashes
-  and keeps the live set. Grand Witch recruitment reverts to the Raven set and wallet before its
-  snapshot but keeps the other stashes and visited set; it discards them only after the conversion
-  commits, so a refused recruitment (balance overflow) leaves the Raven's disguises intact. A
-  `RoleAssigned(black_raven)` for a Raven that is still disguised (a forced role mid-round) reverts to
-  the Raven set first, so the kit re-grant leaves exactly one blade, ledger, and mask.
+  and keeps the live set. A `RoleAssigned(black_raven)` for a Raven that is still disguised (a
+  forced role mid-round) reverts to the Raven set first, so the kit re-grant leaves exactly one
+  blade, ledger, and mask.
 - **Round binding.** The Raven round binding (disguise `beginRound`, Perception `bindCurrentMatch`,
   and `restoreLedgerIfNeeded`) runs in the `sparkwitch:black_raven_finish_initialize` phase of
   `GameEvents.ON_FINISH_INITIALIZE`, ordered after `Event.DEFAULT_PHASE`, so Wathe's
