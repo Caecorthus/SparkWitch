@@ -96,7 +96,6 @@ public final class SparkWitchClient implements ClientModInitializer {
         SecondaryAbilityController.registerKeyBinding();
         BlackRavenClientModule.register();
         GrandWitchClientModule.register();
-        EmmaClientModule.register();
         WitchMaidenClientModule.register();
         BellRingerClient.init();
         TimeStealerClient.init();

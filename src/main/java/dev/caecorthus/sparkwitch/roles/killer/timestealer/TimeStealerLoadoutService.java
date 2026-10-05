@@ -32,11 +32,11 @@ public final class TimeStealerLoadoutService {
     }
 
     /**
-     * Every RoleAssigned (round start, SparkTraits compensation, Grand Witch recruitment). An exact Time Stealer ends
+     * Every RoleAssigned (round start, SparkTraits compensation, a mid-round role change). An exact Time Stealer ends
      * with exactly one Clock in the hotbar; the round-start cooldown (N1) is written only when the role is newly
      * acquired or the round state belongs to another match, so a repeated assignment keeps the cooldown and stamps.
      * Anyone else loses Clocks and stamps and has the round flag cleared.
-     * 每次 RoleAssigned（开局、SparkTraits 补偿、大魔女招募）。精确窃时者最终在快捷栏恰好持有一个时钟；开局冷却（N1）
+     * 每次 RoleAssigned（开局、SparkTraits 补偿、局中职业变化）。精确窃时者最终在快捷栏恰好持有一个时钟；开局冷却（N1）
      * 只在新获得该职业或回合状态属于其他对局时写入，因此重复分配保留冷却与邮票。其他玩家失去时钟与邮票，并清除回合标记。
      */
     public static void onRoleAssigned(ServerPlayerEntity player, @Nullable Role role) {

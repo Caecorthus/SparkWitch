@@ -64,14 +64,6 @@ public final class WitchFactorService {
         }
     }
 
-    public static void onRecruited(ServerPlayerEntity player) {
-        for (ServerWorld world : player.getServer().getWorlds()) {
-            WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
-            component.state().recover(player.getUuid());
-            component.sync();
-        }
-    }
-
     public static WitchSkillUseResult use(WitchSkillUseContext context) {
         ServerPlayerEntity source = context.player();
         if (context.role() != SparkWitchRoles.grandWitch()

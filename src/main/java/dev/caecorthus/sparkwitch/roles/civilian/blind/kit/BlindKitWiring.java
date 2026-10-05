@@ -56,9 +56,8 @@ public final class BlindKitWiring {
                 BlindLoadoutService.grantRoundStart(serverWorld, game);
             }
         });
-        // Grand Witch recruitment fires RoleAssigned before it restores only its retained items (keys, master keys, the
-        // revolver and letters), so nothing of the kit survives on an Accomplice.
-        // 大魔女招募先触发 RoleAssigned，再只恢复其保留物品（钥匙、万能钥匙、左轮与信件），因此共犯身上不会留下道具。
+        // Any role change away from the Blind strips the kit at once (BlindLoadoutService.onRoleAssigned).
+        // 任何从盲人转出的职业变化都会立即收回道具（BlindLoadoutService.onRoleAssigned）。
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 BlindLoadoutService.onRoleAssigned(serverPlayer, role);

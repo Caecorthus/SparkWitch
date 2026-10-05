@@ -13,9 +13,8 @@ import java.util.List;
 /**
  * Replaces the Control Expert's shop on both sides. Wathe caches stock limits during STARTING
  * (initializeShopsForPlayers), so the gate is the role alone; a running-state gate would make stock(1) unlimited.
- * Default buy handlers are kept so Grand Witch recruitment still refunds at shop price.
  * 在两端替换控场专家的商店。Wathe 在 STARTING 阶段（initializeShopsForPlayers）缓存库存上限，因此只按职业判定；
- * 若依赖对局运行状态，stock(1) 会变成不限量。保留默认购买处理，使大魔女招募仍按商店价格退款。
+ * 若依赖对局运行状态，stock(1) 会变成不限量。
  */
 public final class ControlExpertShopService {
     private static boolean registered;

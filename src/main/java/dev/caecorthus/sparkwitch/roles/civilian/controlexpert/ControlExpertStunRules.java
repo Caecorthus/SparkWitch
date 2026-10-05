@@ -62,7 +62,6 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "throw_kidnapper_body"),
             Identifier.of("sparkwitch", "guardian"),
             Identifier.of("sparkwitch", "vendetta_knife_stab"),
-            Identifier.of("sparkwitch", "recruit_accomplice"),
             Identifier.of("sparkwitch", "open_judge_selection"),
             Identifier.of("sparkwitch", "confirm_judge_selection"),
             // Prophet Prophecy request and priced confirmation, classified like the Judge's pair.

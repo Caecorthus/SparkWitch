@@ -18,7 +18,7 @@ public final class MermaidDisguiseAdapter implements BlackRavenDisguiseAdapter {
         return ROLE_ID;
     }
 
-    /** Same cleanup as NoellesRecruitmentCleanup, on every exit reason. / 与 NoellesRecruitmentCleanup 相同，所有退出原因都清理。 */
+    /** Resets the NoellesRoles Mermaid state on every exit reason. / 所有退出原因都重置 NoellesRoles 美人鱼状态。 */
     @Override
     public void onExit(ServerPlayerEntity player, DisguiseExitReason reason) {
         MermaidPlayerComponent.KEY.get(player).reset();
