@@ -331,7 +331,7 @@ Current build baseline:
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `client/judge/`: primary-key selector and the role-owned bottom-right line (`JudgeHudRenderer`: "press key to
-  judge, 200 coins" or the coin requirement below 200). `WitchSkillHudRenderer` dispatches it right after Emma,
+  judge, 100 coins" or the coin requirement below 100). `WitchSkillHudRenderer` dispatches it right after Emma,
   gated by `JudgeClientModule.ownsHud` (the selector gate minus Grand Witch Fear); no witch inventory panel.
 - `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
   `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters.
