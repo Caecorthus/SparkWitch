@@ -900,9 +900,13 @@ perceived players into a private silhouette target (their features and labels st
 `GameRenderer#render`'s `Framebuffer#beginWrite(Z)` with `shift = AFTER`, so it draws over the
 Seeker and Black Raven filters injected at the same call, and the HUD is drawn on top. The view
 fails closed to black, never to the plain world: an Iris shader pack in use (reflective check; an
-error counts as in use), a load failure (kept until reconnect or resource reload), or 20 consecutive
-missed depth captures paint black and show `hud.sparkwitch.blind.view_unavailable`, and a swallowed,
-off-camera or fake-death spectator Blind sees black with no line art. While the view is active,
+error counts as in use) paints black and shows `hud.sparkwitch.blind.view_unavailable` (turn shader
+packs off); a load or render failure, or 20 consecutive missed depth captures, with no shader pack
+paints black and shows `hud.sparkwitch.blind.view_failed` instead, never the shader-pack hint. A
+failed pipeline is rebuilt after 2, 4, 8, 16, then every 30 s (`BlindEchoMode.retryDelaySeconds`;
+reconnect and resource reload still reset it), and the first failure logs the stack with the GPU
+renderer, vendor and OpenGL version. A swallowed, off-camera or fake-death spectator Blind sees black
+with no line art. While the view is active,
 `BlindTerrainFogMixin` lifts the terrain fog end to the render distance right before
 `WorldRenderer#setupTerrain`, so Sodium's fog occlusion never culls sections, entities or block
 entities out of the captured depth (Blindness, Darkness, Wathe train fog). The `BlindGate*` vetoes:

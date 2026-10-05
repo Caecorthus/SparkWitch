@@ -16,6 +16,7 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -27,7 +28,10 @@ import java.util.List;
  * 以及断线与资源重载时的 {@link BlindEchoView#reset()}。帧末 pass 本身由 {@code BlindGameRendererMixin} 运行。
  */
 public final class BlindRenderWiring {
-    public static final String FALLBACK_HINT_KEY = "hud.sparkwitch.blind.view_unavailable";
+    /** Iris reports a shader pack. / Iris 报告正在使用光影包。 */
+    public static final String SHADER_PACK_HINT_KEY = "hud.sparkwitch.blind.view_unavailable";
+    /** The pipeline failed or no depth was captured, with no shader pack. / 无光影包时管线失败或未捕获深度。 */
+    public static final String RENDER_FAILED_HINT_KEY = "hud.sparkwitch.blind.view_failed";
     private static final Identifier RELOAD_LISTENER_ID = SparkWitch.id("blind_echo_view");
     private static boolean registered;
 
@@ -59,15 +63,24 @@ public final class BlindRenderWiring {
                 });
     }
 
+    @Nullable
+    static String hintKey(BlindEchoMode.Hint hint) {
+        return switch (hint) {
+            case NONE -> null;
+            case SHADER_PACK -> SHADER_PACK_HINT_KEY;
+            case RENDER_FAILED -> RENDER_FAILED_HINT_KEY;
+        };
+    }
+
     private static void renderFallbackHint(DrawContext context) {
-        if (!BlindEchoView.isFallbackHintVisible()) {
+        String key = hintKey(BlindEchoView.currentHint());
+        if (key == null) {
             return;
         }
         TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
         int width = context.getScaledWindowWidth();
         // Wrapped so the hint stays on screen at narrow GUI widths. / 自动换行，窄 GUI 宽度下提示仍在屏幕内。
-        List<OrderedText> lines = textRenderer.wrapLines(Text.translatable(FALLBACK_HINT_KEY),
-                Math.max(64, width - 32));
+        List<OrderedText> lines = textRenderer.wrapLines(Text.translatable(key), Math.max(64, width - 32));
         int y = context.getScaledWindowHeight() / 2 - 24 - (lines.size() - 1) * (textRenderer.fontHeight + 1);
         for (OrderedText line : lines) {
             context.drawCenteredTextWithShadow(textRenderer, line, width / 2, y, BlindRules.COLOR);

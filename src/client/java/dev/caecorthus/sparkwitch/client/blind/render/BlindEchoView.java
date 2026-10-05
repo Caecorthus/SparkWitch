@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.blind.render;
 
 import com.mojang.blaze3d.platform.GlConst;
+import com.mojang.blaze3d.platform.GlDebugInfo;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.blind.BlindPerceptionClientState;
@@ -48,16 +49,18 @@ import java.util.List;
  *   composited again.</li>
  * </ol>
  * Fails closed: with an Iris shader pack, a failed load, a missing capture or the camera off the Blind, the world is
- * painted black (with a HUD hint for fixable cases), never shown unfiltered. Released on every inactive frame;
- * {@link #reset()} on disconnect and resource reload.
+ * painted black, never shown unfiltered; the HUD hint names the shader pack only when Iris reports one, and a failed
+ * pipeline is rebuilt after a growing backoff ({@link BlindEchoMode#retryDelaySeconds}). Released on every inactive
+ * frame; {@link #reset()} on disconnect and resource reload.
  * 盲人的画面（C4、C13、D1）：私有后处理器（搜寻者模式，从不使用 {@code GameRenderer.postProcessor}）。
  * 1）{@link #captureWorld} 于 {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}：先刷新待绘制的方块实体层（Wathe 车门）
  * 与 Fast/Fancy 下的掉落物层，把主深度拷贝到 {@code blind_depth}，重新绑定主帧缓冲，记录本帧投影、视角旋转与
  * 相机位置，并把被感知身体重新渲染到 {@code blind_sil}（{@link BlindSilhouettePass}）。2）{@link #renderFrame} 紧接在 {@code GameRenderer#render} 的
  * {@code Framebuffer#beginWrite(Z)} 之后（其他所有 SparkWitch 滤镜之后、GUI 之前）：把整个主帧缓冲写成黑底白线，
  * 吞掉之前的所有画面（天空、粒子、描边、其他滤镜），且不再合成实体描边帧缓冲。
- * 失败即全黑：开着 Iris 光影包、加载失败、缺少捕获或镜头不在盲人身上时，世界画成全黑（可自行解决的情况附 HUD 提示），
- * 绝不显示未过滤画面。非激活帧都会释放；断线与资源重载时调用 {@link #reset()}。
+ * 失败即全黑：开着 Iris 光影包、加载失败、缺少捕获或镜头不在盲人身上时，世界画成全黑，绝不显示未过滤画面；
+ * 只有 Iris 报告光影包时 HUD 提示才提到光影包，失败的管线会在逐渐变长的退避后重建
+ * （{@link BlindEchoMode#retryDelaySeconds}）。非激活帧都会释放；断线与资源重载时调用 {@link #reset()}。
  */
 public final class BlindEchoView {
     public static final Identifier EFFECT = SparkWitch.id("shaders/post/blind_echo.json");
@@ -75,8 +78,11 @@ public final class BlindEchoView {
     private static int processorWidth = -1;
     private static int processorHeight = -1;
     private static boolean failed;
+    /** Failures since the last reset; drives the rebuild backoff. / 自上次重置以来的失败次数，决定重建退避。 */
+    private static int failures;
+    private static long retryAtNanos;
     private static boolean captured;
-    private static boolean hintVisible;
+    private static BlindEchoMode.Hint hint = BlindEchoMode.Hint.NONE;
     private static int missedCaptures;
     private static double cameraX;
     private static double cameraY;
@@ -149,7 +155,7 @@ public final class BlindEchoView {
         missedCaptures = active && ownView && !shaderPack && !failed && !wasCaptured
                 ? Math.min(missedCaptures + 1, BlindEchoMode.HINT_AFTER_MISSED_CAPTURES)
                 : 0;
-        hintVisible = BlindEchoMode.showsHint(active, shaderPack, failed, missedCaptures);
+        hint = BlindEchoMode.hint(active, shaderPack, failed, missedCaptures);
         switch (BlindEchoMode.resolve(active, ownView, shaderPack, failed, wasCaptured)) {
             case OFF -> release();
             case BLACK -> {
@@ -168,9 +174,9 @@ public final class BlindEchoView {
         }
     }
 
-    /** Whether the HUD should show the "turn shader packs off" hint. / HUD 是否应显示“请关闭光影包”提示。 */
-    public static boolean isFallbackHintVisible() {
-        return hintVisible;
+    /** The HUD hint for this frame's black view. / 本帧黑屏对应的 HUD 提示。 */
+    public static BlindEchoMode.Hint currentHint() {
+        return hint;
     }
 
     /**
@@ -186,8 +192,10 @@ public final class BlindEchoView {
         release();
         BlindSilhouettePass.close();
         failed = false;
+        failures = 0;
+        retryAtNanos = 0L;
         captured = false;
-        hintVisible = false;
+        hint = BlindEchoMode.Hint.NONE;
         missedCaptures = 0;
     }
 
@@ -329,8 +337,16 @@ public final class BlindEchoView {
     @Nullable
     private static PostEffectProcessor ensureProcessor(MinecraftClient client) {
         Framebuffer framebuffer = client.getFramebuffer();
-        if (failed || framebuffer.textureWidth <= 0 || framebuffer.textureHeight <= 0) {
+        if (framebuffer.textureWidth <= 0 || framebuffer.textureHeight <= 0) {
             return null;
+        }
+        if (failed) {
+            if (Util.getMeasuringTimeNano() - retryAtNanos < 0L) {
+                return null;
+            }
+            // Backoff elapsed: rebuild from scratch; failing again stays black and waits longer (C13).
+            // 退避结束：从头重建；再次失败仍保持全黑并等待更久（C13）。
+            failed = false;
         }
         if (processor != null && processorTarget != framebuffer) {
             release();
@@ -352,16 +368,28 @@ public final class BlindEchoView {
             }
             return processor;
         } catch (IOException | RuntimeException exception) {
-            // Includes JsonSyntaxException, GL compile errors and resize failures: stay black (C13) until reset.
-            // 包括 JsonSyntaxException、GL 编译错误与尺寸重建失败：重置前保持全黑（C13）。
+            // Includes JsonSyntaxException, GL compile errors and resize failures: stay black (C13) until the retry.
+            // 包括 JsonSyntaxException、GL 编译错误与尺寸重建失败：重试前保持全黑（C13）。
             fail(exception);
             return null;
         }
     }
 
     private static void fail(Exception exception) {
-        SparkWitch.LOGGER.warn("The Blind's echo view failed; the screen stays black", exception);
+        failures++;
+        int retrySeconds = BlindEchoMode.retryDelaySeconds(failures);
+        if (failures == 1) {
+            // The stack and the driver are what a report of a black Blind view without shader packs needs.
+            // 没有光影包却黑屏的问题报告需要堆栈与显卡驱动信息。
+            SparkWitch.LOGGER.warn("The Blind's echo view failed on {} / {} / OpenGL {}; the screen stays black, "
+                            + "retrying in {} s", GlDebugInfo.getRenderer(), GlDebugInfo.getVendor(),
+                    GlDebugInfo.getVersion(), retrySeconds, exception);
+        } else {
+            SparkWitch.LOGGER.warn("The Blind's echo view failed again (#{}): {}; retrying in {} s", failures,
+                    exception.toString(), retrySeconds);
+        }
         release();
         failed = true;
+        retryAtNanos = Util.getMeasuringTimeNano() + retrySeconds * 1_000_000_000L;
     }
 }
