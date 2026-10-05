@@ -8,6 +8,7 @@
     "JudgeBomberAttributionMixin",
     "JudgeGrenadeAttributionMixin",
     "JudgeGunOutcomeMixin",
+    "JudgePoliceGunMixin",
     "JudgeKillCompletionMixin",
     "JudgeLivingLethalDamageMixin",
     "JudgePlayerLethalDamageMixin",

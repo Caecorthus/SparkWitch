@@ -26,12 +26,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.function.Predicate;
 
 /**
- * Draws the mint "嘉豪同伙" label under an Insider <-> Corrupt Cop name tag (D7, C9), a sibling of
+ * Draws the "嘉豪同伙" label in the Team Jiahao gold under an Insider <-> Corrupt Cop name tag (D7, C9), a sibling of
  * {@code WitchCohortRoleNameMixin} with the same trigger: TAIL of Wathe's {@code renderHud}, so its darkness early
  * return also hides this label; the same 2-block (8 for spectators) crosshair raycast with the Wraith name-tag
  * pass-through; the name tag's fade alpha; and Wathe's cohort offset. Wathe's red "杀手同伙" never shows for this pair
  * (neither role has killer features), and the witch and Insider pairs never overlap.
- * 在内应与黑警的名牌下绘制薄荷青“嘉豪同伙”（D7、C9），与 {@code WitchCohortRoleNameMixin} 同构、触发条件相同：注入
+ * 在内应与黑警的名牌下以嘉豪阵营金色绘制“嘉豪同伙”（D7、C9），与 {@code WitchCohortRoleNameMixin} 同构、触发条件相同：注入
  * Wathe {@code renderHud} 的 TAIL，因此黑暗提前返回同样会隐藏本标签；相同的 2 格（旁观者 8 格）准星射线与冤魂名牌穿透；
  * 名牌渐隐透明度；以及 Wathe 同伙提示的偏移。该配对不会出现 Wathe 红色“杀手同伙”（双方都没有杀手功能），
  * 魔女配对与内应配对也不会重叠。
@@ -70,7 +70,7 @@ public abstract class InsiderCohortRoleNameMixin {
 
         Text cohortText = Text.translatable(InsiderCohortRules.JIAHAO_COHORT_KEY);
         int alpha = (int) (nametagAlpha * 255.0f) << 24;
-        int color = InsiderRules.COLOR | alpha;
+        int color = InsiderRules.TEAM_JIAHAO_COLOR | alpha;
 
         context.getMatrices().push();
         context.getMatrices().translate(context.getScaledWindowWidth() / 2f, context.getScaledWindowHeight() / 2f + 6, 0);

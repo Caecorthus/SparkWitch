@@ -87,15 +87,22 @@ public final class GrandWitchClientPresentation {
                 ? Math.max(0, cooldown.sparkwitch$getEndTick() - manager.sparkwitch$getTick()) : 0;
     }
 
+    /** Full length of the running dash cooldown, 0 when none: the gauge's scale. 当前冲刺冷却的总时长，无冷却时为 0。 */
+    public static int swordDashTotalTicks(ClientPlayerEntity player) {
+        ItemCooldownManagerAccessor manager = (ItemCooldownManagerAccessor) player.getItemCooldownManager();
+        Object entry = manager.sparkwitch$getEntries().get(SparkWitchItems.ceremonialSword());
+        return entry instanceof ItemCooldownEntryAccessor cooldown
+                ? Math.max(0, cooldown.sparkwitch$getEndTick() - cooldown.sparkwitch$getStartTick()) : 0;
+    }
+
     public static List<Text> swordStates(ClientPlayerEntity player) {
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         if (!component.hasUnlockedGrandWitchCeremonialSword()) {
             return List.of(Text.translatable("hud.sparkwitch.grand_witch.sword.locked", component.getGrandWitchCeremonialSwordTasks()));
         }
-        return List.of(
-                Text.translatable("hud.sparkwitch.grand_witch.sword.kill", timer(swordKillTicks(player))),
-                Text.translatable("hud.sparkwitch.grand_witch.sword.dash", timer(swordDashTicks(player)))
-        );
+        // Kill and dash timers live on the held sword (GrandWitchSwordHud), not in this corner (owner, 2026-10-05).
+        // 击杀与冲刺计时显示在手持的剑上（GrandWitchSwordHud），不再写在右下角（所有者 2026-10-05）。
+        return List.of();
     }
 
     public static void renderHud(DrawContext context, TextRenderer renderer, ClientPlayerEntity player) {
@@ -108,11 +115,6 @@ public final class GrandWitchClientPresentation {
             context.drawTextWithShadow(renderer, line, context.getScaledWindowWidth() - 5 - renderer.getWidth(line), y, COLOR);
             y += renderer.fontHeight + 2;
         }
-    }
-
-    private static Text timer(int ticks) {
-        return ticks > 0 ? Text.translatable("hud.sparkwitch.grand_witch.timer", seconds(ticks))
-                : Text.translatable("gui.sparkwitch.skill.ready");
     }
 
     private static int seconds(int ticks) {

@@ -89,7 +89,7 @@
     "kidnapper.KidnapperThrowUseMixin",
     "hunter.DoubleBarrelShotgunCrosshairMixin",
     "insider.InsiderCohortRoleNameMixin",
-    "insider.WatheClientInsiderImpostorHighlightMixin",
+    "insider.RoundTextRendererJiahaoTitleMixin",
     "saboteur.SaboteurHudMixin",
     "saboteur.SaboteurInstinctMixin",
     "saint.HolyFlashHudMixin",
