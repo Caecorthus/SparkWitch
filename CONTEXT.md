@@ -1022,8 +1022,9 @@ After `RoleAssigned`, the transaction writes the converted balance. Then, before
 asks the SparkTraits public facade (`replaceTraitsIneligibleForCurrentRole`, through
 `compat/recruitment/RecruitmentTraits`) to drop every trait the recruit role could not have rolled (owner decision
 2026-10-04). SparkTraits redraws one trait per dropped one, hidden ones included, from the new role's pool (owner
-decision 2026-10-05). The redraw never picks Pig, Childish or a dropped trait. A redrawn Well Supplied multiplies
-the converted balance by 1.2. An absent, older or failing facade keeps every trait. The recruit alone gets one line
+decision 2026-10-05). The redraw never picks Pig, Childish or a dropped trait. A recruit who then holds Well
+Supplied, kept from any former role or redrawn, gets the converted balance multiplied by 1.2 again, even when nothing
+was dropped (owner decision 2026-10-05). An absent, older or failing facade keeps every trait. The recruit alone gets one line
 (`traits_lost`, `traits_replaced` or `traits_rerolled`) naming the visible lost and redrawn traits. The converted
 lines show the final balance.
 Recruiting a NoellesRoles Shadow Jester breaks its pair (owner, 2026-10-05). Before `exitRole` clears the pair,

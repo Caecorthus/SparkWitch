@@ -148,8 +148,8 @@ public final class GrandWitchRecruitmentService {
                 // 转换已提交：不能返回可重试失败或跳过调用方的因子回收；记录扩展回调故障。
                 LOGGER.error("Recruitment committed but a role-assignment listener failed for {}", target.getUuid(), exception);
             } finally {
-                // The converted balance goes first: a redrawn Well Supplied multiplies it like starting money.
-                // 先写入折算余额：补抽到物资充沛时会像起始金币一样按其加成。
+                // The converted balance goes first: Well Supplied, kept or redrawn, multiplies it like starting money.
+                // 先写入折算余额：持有物资充沛（保留或补抽到）时会像起始金币一样再加成一次。
                 shop.setBalance(inventory.finalBalance());
                 // Server-side swap (owner decisions 2026-10-04/05): after RoleAssigned so SparkTraits filters and
                 // redraws against the committed role; before the restore so cleanup grants are wiped and the shop
