@@ -89,10 +89,6 @@ public final class SeekerStatusComponent
         return state.sessionId();
     }
 
-    public int effectiveRadius() {
-        return state.effectiveRadius();
-    }
-
     public SeekerCooldownReason cooldownReason() {
         return state.cooldownReason();
     }

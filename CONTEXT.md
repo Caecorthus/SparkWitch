@@ -157,7 +157,7 @@ Current build baseline:
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
   pairing with a drawn Corrupt Cop, task-money economy, shop, neutral master key doors, gun-punishment
   exemption, and Team Jiahao win seams. Its mixins live in `mixin/insider/`; client presentation
-  (instinct outlines, the Impostor-viewer recolor, the killer cohort line, the "嘉豪同伙" label) lives in
+  (instinct outlines, the "嘉豪同伙" label, the Team Jiahao end title) lives in
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the recruitment roll
@@ -173,6 +173,12 @@ Current build baseline:
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells, fear,
   and recruitment transactions. Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
+  Its client presentation lives in `client/grandwitch/`. The held sword's cooldowns (owner pick A2 + B2, 2026-10-05)
+  are drawn by `GrandWitchSwordHud`, with pure layout in `GrandWitchSwordHudRules`. `GrandWitchSwordCrosshairMixin`
+  draws a kill glyph left of Wathe's crosshair, dash chevrons right of it, and the attack bar under it.
+  `GrandWitchSwordCooldownMixin` draws a slot badge (kill seconds plus five dash pips) above whichever hotbar or
+  off-hand slot holds the sword. While the sword is held, the badge replaces Wathe's own cooldown number. The
+  bottom-right role lines no longer show the kill or dash timers.
 - `roles/witch/abysslistener/`: Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者) frozen tuning constants and pure
   predicates (`AbyssListenerRules`), the role definition (`AbyssListenerRole`), its special-accomplice pool entry and
   feature wiring (`AbyssListenerFeatureService`), the role-owned shop (`AbyssListenerShopService`), replay formatters
@@ -180,13 +186,14 @@ Current build baseline:
   eligibility and write suppression state. Its optional SparkTraits reads live in
   `compat/SparkTraitsAbyssListenerBridge`.
   - `shriek/`: `WardensShriekService`, the Warden's Shriek handler on the shared Witch-skill path.
-  - `gun/`: the Shriek Gun: `ShriekGunItem` (the `Item#use` entry), `ShriekGunService` (server gate, beam, hit,
-    presentation, record), `ShriekGunRules` (pure fire gate, ally/enemy hit plan, sync-capped knockback vector, particle
-    spacing, Vendetta rule), and `ShriekGunTargeting` (side-neutral beam geometry shared by the server hit and the
-    client crosshair).
-  - `loadout/`: the bound gun: `AbyssListenerInventoryRules` (pure binding matrix, holder entitlement, round-start
-    gate), `AbyssListenerGunSweep` (pure reconcile decisions, staggered cadence, full-hotbar displacement slot), and
-    `AbyssListenerLoadout` (grants, entitlement sweep, death/reset/finalize removal).
+  - `gun/`: the Shriek Gun: `ShriekGunItem` (the `Item#use` entry), `ShriekGunService` (server fire mode, match
+    beam, hit, presentation, record, and the off-match presentation shot), `ShriekGunRules` (pure fire mode, ally/enemy
+    hit plan, sync-capped knockback vector, particle spacing, Vendetta rule), and `ShriekGunTargeting` (side-neutral
+    beam geometry shared by the server hit and the client crosshair).
+  - `loadout/`: the bound gun: `AbyssListenerInventoryRules` (pure binding matrix, holder entitlement, free-holder
+    drop return, round-start gate), `AbyssListenerGunSweep` (participant-only sweep gate, pure reconcile decisions,
+    staggered cadence, full-hotbar displacement slot), and `AbyssListenerLoadout` (grants, entitlement sweep,
+    free-holder drop return, death/reset/finalize removal).
   - `zone/`: the Deep Dark Spore Flask (item, thrown entity, and its registration in `AbyssListenerEntities`); the Deep
     Dark Zone terrain: flood-fill shape and landing cell (`DeepDarkZoneShape`), eligibility and palette
     (`DeepDarkZoneEligibility`), timeline (`DeepDarkZoneSchedule`), in-memory registry (`DeepDarkZoneState`), section
@@ -314,10 +321,17 @@ Current build baseline:
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, and
   the Seeker share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate
   slot mixin.
+- Police gun parity: Wathe's server gun receiver gives innocent non-Vigilante shooters a 15 s
+  cooldown and -0.35 mood per hit. Each SparkWitch police role has its own additive OR-wrap of all
+  four `isRole` calls that also answers "Vigilante" for that role, so it gets the 10 s revolver
+  cooldown and no mood penalty. Innocent-shot punishment is unchanged. The wraps are
+  `mixin/JudgePoliceGunMixin`, `mixin/EmmaPoliceGunMixin`,
+  `mixin/controlexpert/ControlExpertPoliceGunMixin` and `mixin/seeker/SeekerPoliceGunMixin`. A new
+  police role needs its own wrap; registering in `PoliceRoles` is not enough.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `client/judge/`: primary-key selector and the role-owned bottom-right line (`JudgeHudRenderer`: "press key to
-  judge, 200 coins" or the coin requirement below 200). `WitchSkillHudRenderer` dispatches it right after Emma,
+  judge, 100 coins" or the coin requirement below 100). `WitchSkillHudRenderer` dispatches it right after Emma,
   gated by `JudgeClientModule.ownsHud` (the selector gate minus Grand Witch Fear); no witch inventory panel.
 - `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
   `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters and the optional Traits seam.
@@ -339,7 +353,9 @@ Current build baseline:
 - `compat/cooldown/`: SparkWitch's registrations with the SparkFactionAPI forced-cooldown contract
   (`api.cooldown.ForcedCooldowns`): role-skill stores for SparkWitch and NoellesRoles counters, the SparkWitch item
   nominal-cooldown provider, and the Seeker car item exemption. `SparkWitchForcedCooldowns.register()` runs once from
-  `SparkWitch.onInitialize`, right after `SparkWitchEvents.register()`.
+  `SparkWitch.onInitialize`, right after `SparkWitchEvents.register()`. `SparkWitchItemCooldownReleases` releases the
+  SparkWitch timers behind an item whose vanilla cooldown is removed (`mixin/ItemCooldownRemovalMixin`). For the
+  SparkFactionAPI admin clear alone (`mixin/SparkFactionClearCooldownMixin`), it also exempts the item from Saint Karma.
 - `impl/SparkWitchEvents`: watch-only registration/lifecycle aggregator.
 - `util/hitscan/`: server-side lag compensation for hitscan weapons. `PlayerHitboxHistory` keeps a
   one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
@@ -347,6 +363,9 @@ Current build baseline:
   double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, the Abyss Listener Shriek
   Gun, and the Black Raven Feather Blade (whose sight and feet-distance reach are taken at the rewound hit);
   client crosshair hints keep current boxes.
+- `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
+  Shriek Gun, SparkStrength M67). `mode` gives a living participant of an `ACTIVE` round a match shot, refuses a dead
+  one, and gives anyone else a presentation-only shot; `isMatchParticipant` scopes the bound-item rules.
 
 ## Runtime Invariants
 
@@ -414,7 +433,11 @@ retry counter) are both `NEVER_COPY`, never synced, and bound to the current Wat
 in a SparkWitch `ON_FINISH_INITIALIZE` phase ordered after Wathe's default phase, and re-bound by a
 holder's own tick if that was missed); a stale match clears a curse. The Clock is a plain `Item#use`
 with a server-side ray (7.0 blocks, unexpanded-hitbox line of sight, ineligible players transparent)
-and no custom packet; the 45 s cooldown (also at round start) is an authoritative server tick
+and no custom packet. It ignores factions (owner decision 2026-10-05, replacing Q10): any exact Time
+Stealer may use it, Conscience included, and any living participant other than the user is a target,
+fellow killers included, so they are no longer transparent; the Last Escape, Vendetta, structural
+`canAffectPlayer` and already-stolen vetoes still apply. A Conscience Time Stealer's curse kill
+of a civilian-side player still triggers SparkTraits' own Conscience punishment. The 45 s cooldown (also at round start) is an authoritative server tick
 written only after a committed theft (or a Seeker device absorb, below), so a refusal costs nothing.
 The curse advances only from the victim's own component tick on absolute world ticks: silent for 15
 s, then Slowness I-IV (no particles) and a chime sent to the victim alone at 15/20/25/30 s, and the
@@ -439,6 +462,10 @@ civilian-death time bonus (+30 s) is suppressed only for `sparkwitch:time_stolen
 `@Redirect`); every other death reason keeps it. Only a confirmed death in the same `ACTIVE` match
 that SparkTraits did not intercept then sets the round time to exactly `max(0, t - 600)` (it may
 drain to 0, and then the civilians win on time) and grants one stamp to a living exact Time Stealer.
+A Conscience Time Stealer also earns one stamp per completed task (owner decision 2026-10-05): the
+role's own `TaskComplete` listener pays a living exact Time Stealer whose SparkFactionAPI effective
+faction is known and not `wathe:killer` (`TimeStealerRules.earnsTaskStamp`), since Wathe fires
+`TaskComplete` for a killer's fake tasks too; the grant keeps its usual holder and match gates.
 Removing the curse's Slowness is chain surgery (`SlownessChain`, `TimeTheftSlowness`): the live
 effect is read through `StatusEffectInstance.CODEC`, only the curse's own node is taken out, and
 foreign Slowness (a Control Expert stun, Grand Witch Heaviness) keeps its level and duration. Known
@@ -571,9 +598,15 @@ the owner's client sends `seeker_camera_look` while viewing, and the server acce
 owner's own CAMERA session and clamps it into that camera's cone (`SeekerCameraLookRules`; the
 latest look wins). Sessions are server-authoritative: the
 client never predicts entry, and every exit except the owner's own Shift is detected on the server.
-The owner's client only simulates the car it drives, and every move is validated against the shared
-`SeekerCarPhysics` (speed budget, replay, a server-side fall model that never trusts the client's
-velocity, radius and play-area clamps). The session lock (`LOCK_SCOPE = SESSION`) applies only while
+The owner's client only simulates the car it drives (`SeekerRules.CAR_SPEED` 0.375 blocks/tick, owner
+decision 2026-10-04), and every move is validated against the shared `SeekerCarPhysics` (speed budget,
+replay, a server-side fall model that never trusts the client's velocity, play-area clamp). Neither the
+car nor a camera has a distance limit from the body (owner decision 2026-10-04): the Wathe play area is
+the only spatial bound of open, the per-tick exit (`OUT_OF_RANGE`, a stable name that now means outside
+the play area) and the car clamp; deploy and camera-place reach limit placement only. Console
+availability, quick connect and camera cycling therefore read the owner-synced car state and camera
+list, never client entity presence (a far device is usually untracked until a session views it), and
+the CCTV HUD shows the body distance without a range bar. The session lock (`LOCK_SCOPE = SESSION`) applies only while
 the Seeker drives the car or views a camera: `mixin/seeker/SeekerSprintLockMixin` clears sprint on
 both sides, `SeekerInteractionGuards` fail the Fabric player callbacks in the `seeker_session_lock`
 phase, `mixin/seeker/SeekerSessionPayloadGuardMixin` drops the blocked C2S payloads on the server
@@ -614,7 +647,9 @@ a clear line to a point of the device, else only through the 25° / 15-point-sam
 (`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
 nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
 SparkStrength M67, Potion Gunner shell) break every device in a sphere with line of sight and still kill players as
-before. Sources with no hit or damage geometry never
+before. An M67 breaks devices only when the round is ACTIVE and its thrower holds a match role
+(`compat/SparkStrengthM67Compat`, the `util/OffMatchUse` rule); SparkStrength's presentation-only M67s
+(non-participants, or thrown during STARTING or STOPPING) break nothing. Sources with no hit or damage geometry never
 break a device: the firecracker (sound only), the Bomber timed bomb (kills only its holder), and the
 poison gas cloud (status effect). A breaker other than the owner is marked for the owner only (10 s,
 newest replaces oldest) when the owner holds the tablet; recalls, depletion, and Taotie swallows
@@ -626,6 +661,42 @@ cooldown, removes the car without a mark or the 180 s cooldown, and tells the ow
 the Taotie; the car returns (60 s cooldown) when that Taotie finally dies or loses the role, into its
 original slot, else the first empty hotbar slot, else the shown second row (SparkFactionAPI
 0.1.5.13+), else a main slot. The Seeker never renders in the `gui.sparkwitch.skills` panel.
+
+Seeker remote streaming (unlimited range, owner decision 2026-10-04) is server-only and never moves
+the body: `remote/SeekerRemoteStreaming#focusOf` names the device a live session shows (alive owner,
+not a spectator, its own server camera, server bookkeeping matching the synced focus), and the three
+`mixin/seeker/SeekerRemote*` mixins centre that owner's chunk view (`sendWatchPackets`), chunk batches
+(`sendChunkBatches`) and entity tracking (`EntityTracker#updateTrackedStatus`: the focus is always
+tracked, other entities are measured from it) on the device, chaining with SparkStrength's drone
+mixins on the same calls. Player chunk tickets stay on the body's real section, so the body's chunks
+stay loaded and ticking on the server. On `END_WORLD_TICK`, after every component tick, the service
+refreshes an expiring `sparkwitch:seeker_remote` ticket (radius min(view, 8) + 2) around the focus
+and calls `updatePosition` for the owner, then keeps re-evaluating for 40 ticks after the session
+ends; a new or switched session streams at once from `SeekerRemoteSessionService#open`. While the
+owner is the owner of record, every referenced device also holds an expiring
+`sparkwitch:seeker_device` ticket (car radius 2, entity-ticking; camera radius 0, loaded only), so an
+unsaved device never unloads under its owner; the game-start and finalize sweeps stop the refresh and
+the tickets expire on their own (40-tick lifetime, never removed explicitly).
+
+The owner's client follows that streaming without trusting entity or chunk presence.
+`client/seeker/remote/SeekerRemoteViewClient` starts a session on the server's word and re-resolves the
+focus by its synced id every tick (`SeekerRemoteViewRules#linkStep`): while the focus is missing (a
+far open, an atomic switch to an untracked camera, a device re-tracked as a new instance) the session
+stays locked, nothing is driven, looked at or cycled, and the CCTV overlay shows an opaque CONNECTING
+panel (`hud.sparkwitch.seeker.view.connecting`) until the focus and its surrounding chunks are on the
+client. A switch never ends the view; only `SeekerRules.ATTACH_TIMEOUT_TICKS` (100, shared with the
+server's CAR attach deadline) without a focus gives up as "Signal lost" and sends close. A re-tracked
+car of the same session keeps its move sequence (`SeekerCarClientDriver#retrack`), and the driven car
+holds still until the chunks it stands on and could enter are loaded. The client view centres the
+server's chunk view on the device, so the body's own chunks unload on the client:
+`client/seeker/remote/SeekerBodyHold` with `client/mixin/seeker/SeekerBodyFreezeMixin`
+(`ClientPlayerEntity#move` HEAD) freezes the body while its surroundings are missing from the
+`ClientChunkManager` (`ClientWorld#isChunkLoaded` is always true in 1.21.1), during the session and
+after it (capped at `SeekerRemoteViewRules.BODY_SETTLE_MAX_TICKS`, behind a RETURNING panel), so its
+movement packets never report a fall. `client/mixin/seeker/SeekerRemoteTerrainGridMixin` centres the
+vanilla terrain render grid on the viewed device; `client/mixin/SparkWitchClientMixinPlugin` skips it
+when Sodium is loaded, because Sodium overwrites `WorldRenderer#setupTerrain` (an injection into an
+overwritten method crashes even with `require = 0`) and already centres on the camera.
 
 Angler state never enters that shared schema either. `sparkwitch:fisher_spirit` (`NEVER_COPY`,
 never saved) holds only the Glimmerfish window; its sync packet is one VarInt: 0 inactive, 1 for
@@ -747,26 +818,26 @@ NoellesRoles' own. Wathe titles a neutral win by the first winning round-end row
 `mixin/insider/GameRoundEndComponentJiahaoTitleMixin`, just before the explicit-winner sync, handles a Team
 Jiahao win (a winning team row in a round with an Insider): it marks every other team row as a winner, offline
 `LEFT` / `LEFT_DEAD` rows included, then moves an Insider row first (the one the win named, else any). The end
-screen reads "嘉豪阵营胜利！", and Wathe's `didWin` and `GameRecordManager.endMatch` read the same rows. Every
-other win keeps Wathe's rows.
+screen reads "嘉豪胜利！" over "整列列车的人都被嘉豪们豪完了", and Wathe's `didWin` and `GameRecordManager.endMatch`
+read the same rows. Every other win keeps Wathe's rows. Team Jiahao has its own faction color,
+`InsiderRules.TEAM_JIAHAO_COLOR` (tuhao gold `0xFFC125`), apart from the Insider's mint and the Corrupt Cop's navy:
+`client/mixin/insider/RoundTextRendererJiahaoTitleMixin` (`@ModifyExpressionValue` on the neutral title's
+`RoleAnnouncementTexts.getForRole(Identifier)` lookup in `RoundTextRenderer.renderHud`) swaps an Insider-led title's
+role text for an unregistered twin built with the same id in that gold, so the lang keys stay
+`announcement.win.insider` / `game.win.insider` and the Insider's own role announcement stays mint. SparkFactionAPI's
+`@Redirect` on the `winText` read that follows still wins for a custom faction win.
 Insider presentation is client-only. One `GetInstinctHighlight` listener answers `always` only while its condition
 holds. At priority 65 (below SparkStrength's tablet suspect mark at 80, which keeps its color; SparkStrength no
 longer outlines police-network members), a living Insider holding instinct sees every other living, visible player in
 `0x00FFD0`; the Corrupt Cop is answered at 93 in `0x193264`, so the partner stays navy even under a tablet suspect
 mark. At priority 93 (above SparkStrength's Corrupt Cop x-ray at 90, below the Seeker mark 95, `skip()` 100 and
 suppression 102), a living Corrupt Cop sees the living, visible Insider in `0x00FFD0` while holding instinct or
-during its Moment vision window, and a killer-instinct
-viewer (`isInstinctEnabledAndIsKiller() && !canSeeSpectatorInformation() && isKiller()`, exactly when Wathe's default
-would paint the target red or green, a promoted Saboteur Wraith included) holding instinct sees the living Insider in
-the Impostor blue `0x0013FF`, invisible or not, as SparkTraits paints an invisible real Impostor. Targets hidden by
-SparkTraits' `isInstinctHidden` get no Insider answer.
-`client/mixin/insider/WatheClientInsiderImpostorHighlightMixin` is a `@WrapMethod` on
-`WatheClient.getInstinctHighlight` that encloses every other injection and rewrites only SparkTraits' exact civilian
-green `0x4EDD35` to `0x0013FF`, for a living local Impostor looking at a living Insider, visible or not. SparkTraits
-effective killers get Wathe's red cohort line on a living Insider through `ShouldShowCohort.show(105)`, and
-`InsiderCohortRoleNameMixin` draws the mint `game.tip.sparkwitch.jiahao_cohort` label between an Insider and any
-Team Jiahao member, both ways, with the witch cohort trigger. The Insider shares killer-style instinct light
-through `WitchInstinctClientHooks`. The Insider never renders in the `gui.sparkwitch.skills` panel.
+during its Moment vision window. Targets hidden by SparkTraits' `isInstinctHidden` get no Insider answer.
+Killers, SparkTraits Impostors included, get no Insider answer and no cohort line (owner 2026-10-05, replacing the
+D3 Impostor disguise): Wathe's default paints the Insider green like any passenger, with no "杀手同伙".
+`InsiderCohortRoleNameMixin` draws the `game.tip.sparkwitch.jiahao_cohort` label in the Team Jiahao gold between an
+Insider and any Team Jiahao member, both ways, with the witch cohort trigger. The Insider shares killer-style
+instinct light through `WitchInstinctClientHooks`. The Insider never renders in the `gui.sparkwitch.skills` panel.
 
 Blind state never enters that shared schema either. `sparkwitch:blind` (`NEVER_COPY`, never saved)
 holds the cane and Attune windows as absolute server world ticks plus a server-only match id and the
@@ -1078,6 +1149,29 @@ The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `Se
 "max + exact" writer and offers no write path to other features, so the Fiend gun-hit aura skips it too (owner
 decision, 2026-10-02). Not registered (out of scope): Wathe shop-entry cooldowns, the Black Raven disguise switch,
 the Curser and Guardian Angel, and SparkStrength components.
+Removing an item cooldown releases SparkWitch's own timer behind the item (2026-10-05). The removal is
+`ItemCooldownManager.remove` on the server. For these items it comes from SparkFactionAPI
+`/sparkfactionapi:clearCooldown` (main hand), Wathe's round reset, or SparkTraits dropping a parry lock once its
+holder is dead or the round ended. `ItemCooldownRemovalMixin` runs at TAIL, so a `remove` that SparkTraits cancels at
+HEAD (its forced melee floor) releases nothing, and expiry never calls `remove`. `SparkWitchItemCooldownReleases`
+then acts by item id:
+- White Cane: the `BlindComponent` cane ready tick moves to now; a running window is kept.
+- Clock: `ClockReadyAt` moves to now. Both ready ticks stay positive, since a positive tick is the "kit granted" /
+  "same round" flag.
+- Ceremonial Sword: the 30 s kill cooldown is zeroed.
+- Any of the five edible fish: every cooling fish is removed, because any cooling fish refuses all of them.
+Other items gate only on the vanilla entry, so the command already clears them fully.
+The admin command alone also beats Saint Karma (owner decision, 2026-10-05). `SparkFactionClearCooldownMixin` wraps the
+command's `remove` call (the same method body from SparkFactionAPI 0.1.5.12 through 0.1.5.15). When that call really
+cleared the item, `SaintKarmaState` exempts the item for that player until the Karma ends or is triggered again. The
+exemption is transient and never saved. Role mechanics that remove a cooldown (NoellesRoles Catalyst, the Bomber pass)
+do not come through the command, so Karma still re-covers those items. SparkTraits lifts its own forced melee floor
+for the same command, in its own `SparkFactionClearCooldownMixin`. Not released: the Black Raven disguise switch, since
+the mask never carries an item cooldown.
+Saint Karma writes are exact (SparkTraits facade, vanilla fallback), so Fast Hands or Stimulation no longer leave a
+write below the Karma that restarts the slot's bar every tick. The Time Stealer holder's tick rewrites the Clock's
+display, exactly through SparkTraits only, whenever it shows more than one tick less than `ClockReadyAt` (for example
+after Last Escape halving), so the slot never shows ready while the Clock is refused.
 
 The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its own Warden's Shriek renders in the
 `gui.sparkwitch.skills` panel (owner decision D13): its `AccompliceVariantHooks.ownSkillIds()` is exactly
@@ -1134,10 +1228,13 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
   `WitchSkillUseResult.success(SHRIEK_COOLDOWN_TICKS)` (60 s), so the shared cooldown starts even with nobody in range.
   The caster is never told how many were hit.
 - **Shriek Gun.** `sparkwitch:shriek_gun` is a plain `Item#use` hitscan on the Taser template, hidden in hand through
-  `NoellesHiddenEquipment` and never in `wathe:guns`. The client only swings and recoils. The server fires only in a
-  running game for a living, non-spectator, non-Wraith holder whose role is exactly the Abyss Listener, while the gun
-  is off cooldown and SparkTraits `blocksWeaponAction` is false; it then writes the vanilla
-  `ItemCooldownManager.set(gun, 600)` whether or not anything was hit (Fast Hands applies).
+  `NoellesHiddenEquipment` and never in `wathe:guns`. The client only swings and recoils. Any holder may fire and the
+  role is never read (owner rule 2026-10-04, `util/OffMatchUse`). In every mode a spectator, a gun on cooldown, or a
+  SparkTraits `blocksWeaponAction` holder is refused. A living, non-spectator, non-Wraith participant of an ACTIVE
+  round fires the match shot below; a dead participant or active Wraith is refused. Everyone else (no match,
+  STARTING/STOPPING, a lobby player during an ACTIVE match) fires a presentation shot: the `SONIC_BOOM` beam cut only
+  at blocks, plus the fire sound; there is no target pick, Seeker seam, push, effect, fall record, or replay line.
+  Every fired shot then writes the vanilla `ItemCooldownManager.set(gun, 600)`, hit or miss (Fast Hands applies).
   - The beam is one COLLIDER `world.raycast` from the eye over 12 blocks (closed doors stay solid through
     `RaycastShapeScope`). Candidates are filtered before geometry by
     `AbyssSuppression.canAffect(shooter, c, sparkwitch:abyss_listener_gun)` plus Vendetta exact-pair isolation (allies
@@ -1176,10 +1273,12 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     moves into the slot a removed stray gun vacated (Time Stealer rule; a gun parked in SparkFactionAPI 0.1.5.13+'s
     visible row 27-35 is a stray), else an empty main slot, else an empty offhand, preferring the shown second row
     over hidden storage; with no room at all nothing is placed and the next sweep retries.
-  - The holder entitlement is playing, alive, and exactly the Abyss Listener. A staggered 20-tick sweep keeps exactly
-    one gun for an entitled holder (the first hotbar copy, else a gun mid-move on the cursor, else a fresh hotbar grant
-    that leaves the per-Item cooldown untouched), removes duplicates and strays (hidden slots, offhand, crafting grid,
-    containers), and strips every non-entitled holder (role change, Wraith transition, death). `KillPlayer.AFTER`
+  - The holder entitlement (`mayHold`) is playing, alive, and exactly the Abyss Listener. A staggered 20-tick sweep
+    reconciles only match participants (`OffMatchUse.isMatchParticipant`: a role in a running ACTIVE/STOPPING match).
+    It keeps exactly one gun for an entitled holder (the first hotbar copy, else a gun mid-move on the cursor, else a
+    fresh hotbar grant that leaves the per-Item cooldown untouched), removes duplicates and strays (hidden slots,
+    offhand, crafting grid, containers), and strips every other participant (role change, Wraith transition, death).
+    Everyone else is a free holder whose copy the sweep never strips, grants, or deduplicates. `KillPlayer.AFTER`
     removes the gun unless `WitchFactorTraitsBridge.isDeathIntercepted`; `ResetPlayer` and `ON_FINISH_FINALIZE` remove
     it. There is no creative exemption.
   - The binding matrix (`AbyssListenerInventoryRules`) is copied from, never shared with, the Time Stealer rules. Its
@@ -1189,9 +1288,12 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     `GameFunctionsAbyssListenerGunDropMixin` (`shouldDropOnDeath` → false), and
     `DecoratedPotBlockAbyssListenerGunMixin` (`onUseWithItem` → `SKIP_DEFAULT_BLOCK_INTERACTION`, so a pot never
     takes the gun and the gun still fires). A `UseEntityCallback` veto in `AbyssListenerLoadout` refuses item frames,
-    armor stands and allays, which would otherwise take the gun and let the sweep mint another. A drop path that removed the stack before
-    `dropItem` (cursor drop on close, full-inventory offer) loses it, and the next sweep restores it with its cooldown
-    intact.
+    armor stands and allays, which would otherwise take the gun and let the sweep mint another. These guards hold for
+    every holder. A drop path that removed the stack before `dropItem` (cursor drop on close, full-inventory offer)
+    loses it; for a participant the next sweep restores the Abyss Listener's gun with its cooldown intact. A living free
+    holder gets a closing screen's cursor gun straight back (`AbyssListenerLoadout.keepRefusedDrop`, placed like a sweep
+    grant; with every slot full the displaced hotbar item drops instead), and no other refused drop is handed back, so
+    `/give`'s pickup-animation copy never duplicates the gun.
 - **Deep Dark Zone terrain.** The zone is a client-only overlay: the server world is never written.
   - A Deep Dark Spore Flask (item and thrown entity) is thrown only in an ACTIVE round by a living, non-creative,
     non-Wraith participant who passes `SparkTraitsKillerBridge.blocksWeaponAction`; it has no cooldown, and any holder
@@ -1293,16 +1395,21 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
 - **Loaded shell.** The single loaded shell is the stable CUSTOM_DATA key `LoadedShell` on the launcher
   (`PotionLauncherLoad`). Loading is inventory-only: `PotionLauncherItem.onClicked` takes one shell from the cursor
   on a right-click, refuses a second shell, and unloads onto an empty cursor. Wathe's inventory exposes only the
-  hotbar, so both items must sit there.
+  hotbar, so both items must sit there. Any free holder or living participant may load, whatever the role; a dead
+  participant may not (`PotionGunnerLoadoutService.mayLoad`, synced state on both sides).
 - **Bound items.** The launcher and shells follow the Time Stealer bound-item rules (`PotionGunnerInventoryRules`
   plus the five `mixin/potiongunner/` HEAD injects, with no creative exemption). They are never dropped, never an
   item entity, never in a container or the offhand, never handed to a world target, and never a death drop: a
   `UseEntityCallback` veto in `PotionGunnerLifecycle` refuses item frames, armor stands and allays, and
   `DecoratedPotBlockPotionGunnerItemMixin` makes a decorated pot answer `SKIP_DEFAULT_BLOCK_INTERACTION`, so the
-  sweep never mints a second launcher. Only a living, playing, exact Potion
-  Gunner holds them; everyone else is stripped on role change, terminal death (not a SparkTraits-intercepted one),
-  reset, and finalize. A staggered 20-tick sweep also re-grants a living gunner exactly one launcher. Both items
+  sweep never mints a second launcher. In a running match only a living, playing, exact Potion Gunner holds them;
+  every other participant is stripped on role change, terminal death (not a SparkTraits-intercepted one), reset,
+  finalize, and by a staggered 20-tick sweep, which also re-grants a living gunner exactly one launcher. Both items
   stay visible in hand; the launcher is outside `wathe:guns`.
+  - Free holders (owner rule 2026-10-04): the sweep binds only match participants
+    (`OffMatchUse.isMatchParticipant`), so it never strips, grants, deduplicates or surfaces anyone else's copies,
+    and a living free holder's refused drop goes back into the inventory like the gunner's. The role-change, reset
+    and finalize strips still apply to everyone (Wathe's finalize clears every inventory anyway).
   - A holder's shell is never deleted. A removed duplicate launcher's shell loads the kept launcher or returns
     hotbar-first (the shown second row with SparkFactionAPI 0.1.5.13+, then a hidden slot, else the empty cursor, when
     the hotbar is full); a copy whose shell has nowhere to go stays put. A re-inserted drop keeps any remainder in its
@@ -1319,9 +1426,14 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   until the key is physically released. So a key held through a slot switch or past the end of a stun, Seeker or
   Kidnapper key lock never fires (`client/potiongunner/PotionFireInput`, `PotionFireLatch`). The client's aim is
   trusted for direction only (Death Ray precedent); there is no server aim cone.
-  - The server re-checks, in order: the round is exactly `ACTIVE` (never `STOPPING`, once the winner is decided),
-    alive and playing, the exact role, launcher in the main hand, not a spectator, not stunned, no Seeker session,
-    no SparkTraits weapon block, the 20-tick launcher cooldown, and a loaded shell.
+  - Use never checks the role (owner rule 2026-10-04, `util/OffMatchUse`). The server re-checks, in order: the
+    shot's mode (a dead participant of an `ACTIVE` round is refused), launcher in the main hand, not a spectator, not
+    stunned, no Seeker session, no SparkTraits weapon block, the 20-tick launcher cooldown, and a loaded shell.
+  - A living participant of a round that is exactly `ACTIVE` fires a match shot, whatever its role (the sweep strips
+    a non-gunner's launcher). Anyone else (no match, `STARTING`, `STOPPING` once the winner is decided, or a lobby
+    player during an `ACTIVE` match) fires a presentation shot: it consumes the shell, cools down and sounds like
+    any shot, but its backblast and burst play only sound and particles, it breaks no Seeker device, and it records
+    no replay line.
   - The payload is also on the stun and Seeker-session deny lists.
 - **Flight.** The shell is a role-owned `ThrownItemEntity`, never Wathe's grenade, and it is never saved. While the
   path length from its synced launch point at the start of a tick is below 50 blocks, it moves straight at
@@ -1335,9 +1447,11 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
     it. On a flat tick the shell keeps the gate's exit velocity (`onDeflected`) and re-bases its launch point behind the
     new position (`PotionShellFlight.flatPathAfterTick`), so the path length carries over the jump: still 20 flat ticks
     in total, and the lifetime is unchanged. A Seeker device in the same tick's path still bursts it first.
-  - Once the round leaves `ACTIVE`, a shell still in flight is discarded without exploding, and detonation also
-    requires `ACTIVE`, so no kill, gold or bounty lands after the result. Finalize discards any shell left.
-- **Blast.** It uses the grenade presentation. The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
+  - Once the round leaves `ACTIVE`, a match shell still in flight is discarded without exploding, and its
+    detonation also requires `ACTIVE`, so no kill, gold or bounty lands after the result. A presentation shell flies
+    the same, ignores the round status and skips the Seeker sweep. Finalize discards any shell left.
+- **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect,
+  Judge attribution or reward). The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
   body overlapping vertically, plus line of sight. It does not catch spectators, Wathe-dead players, or SparkTraits
   Last Escape players. Falloff comes in rings by horizontal Chebyshev distance (`PotionBlastRings`: 5 → 100/67/33%,
   7 → 100/75/50/25%, 3 → 100/50%).
@@ -1359,8 +1473,9 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
     while a player holds an owned burn window (`PotionShellBurn`, server-only, never saved).
   - Kill bounties follow the normal faction rules; an ally kill still pays the SparkFactionAPI direct-kill reward
     (owner decision).
-- **Backblast.** Every launched shot also makes one ordinary, non-forced kill attempt with `sparkwitch:potion_backblast`
-  on the nearest player in a 4-block lane straight behind the gunner. The lane follows the shot's yaw only: it runs
+- **Backblast.** Every launched match shot also makes one ordinary, non-forced kill attempt with
+  `sparkwitch:potion_backblast` on the nearest player in a 4-block lane straight behind the gunner; a presentation
+  shot vents only the flame and sound. The lane follows the shot's yaw only: it runs
   horizontally from the eye whatever the pitch (half-width 0.5, clipped at the first block or door, line of sight),
   and only a player whose box centre lies behind the gunner counts. Any faction is hit, never the gunner, and never a
   vetoed or Last Escape player. The kill runs inside `JudgeKillAttribution.runWith` for the gunner. Prophecy group:
@@ -1460,7 +1575,8 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `mixin/riftwalker/RiftProjectileDeflectionMixin` keeps a gate deflection from flipping pickup to ALLOWED and from
   being remembered as `lastDeflectedEntity`; destinations must pass `RiftProjectileExitRules` (ticking exit/start, box
   clear of blocks, clear line), else another gate or reflect.
-- **Witches' Sabbath** (`sabbath/WitchesSabbathService.use`; 150 mana, instant, no cooldown, D6). A free,
+- **Witches' Sabbath** (`sabbath/WitchesSabbathService.use`; 150 mana, instant, 30 s cooldown after a
+  successful cast, none at round start; owner 2026-10-05, replacing D6's "no cooldown"). A free,
   non-capture-stunned Riftwalker outside a gate pulls each living teammate whose effective faction is exactly
   `sparkwitch:witch` (C6) to a safe spot (`WitchesSabbathLandingPlan`, never on a live Hunter trap), skipping those
   inside a gate, swallowed, in Last Stand/Last Escape, Kidnapper-controlled, or SFA-vetoed
@@ -1604,11 +1720,8 @@ and `SparkTraitsShopEntryPreserver`. An absent SparkTraits means nothing hidden,
 Last Escape, no parry, no pending fake death, and cleanup on every death; a present build whose
 facade lacks or fails a method falls back per method as those bridges already define (an
 intercepted death skips the Angler's `KillPlayer.AFTER` cleanup, which then runs at reset or finalize).
-The Insider may query only `isInstinctHidden` and `hasActiveTrait` (Impostor, Conscience, local player only)
-through its own client `client/insider/InsiderSparkTraitsBridge`; an absent, older or failing build means
-nothing hidden and no trait: Impostor viewers then see the Insider in SparkTraits' green, and Conscience killers are
-not filtered from the killer cohort line (`show(105)` beats SparkTraits' Conscience `hide()` at 100), so they see
-"杀手同伙" on the Insider but never on a real Impostor. SparkTraits
+The Insider may query only `isInstinctHidden` through its own client `client/insider/InsiderSparkTraitsBridge`;
+an absent, older or failing build means nothing hidden. SparkTraits
 `feat/insider-support` hard-codes `sparkwitch:insider` in `GoingDarkRules.PROTECTED_VIEWER_ROLE_IDS` (Going Dark
 Veterans hidden from the Insider) and `isBlockingTeamWinNeutral` (a living Insider defers SparkTraits'
 KILLERS/PASSENGERS verdicts like the Corrupt Cop); an older SparkTraits leaves the Veteran visible and may end
@@ -1619,6 +1732,8 @@ and `isLastStandDeathIntercepted` (the kit strip) through `SparkTraitsKillerBrid
 older or failing SparkTraits falls back per method to no skill block, a vanilla cane cooldown, and a
 death that is not intercepted (fail closed): the `KillPlayer.AFTER` strip runs and the 20-tick
 sweep spares no dead Blind.
+Saint Karma may query only `setExactItemCooldownRemaining` (its per-tick raise of every carried item) through
+`SparkTraitsKillerBridge`; an absent, older or failing SparkTraits means a vanilla Karma write.
 The Abyss Listener may query only `isLastStandPending` and `hasActiveTrait` (Conscience and Impostor) through
 `compat/SparkTraitsAbyssListenerBridge`; `isLastEscapeActive`, `isRoleSkillBlocked` (the shriek), and
 `blocksWeaponAction` (the gun and the flask throw, with its `isKillerInteractionBlocked` and

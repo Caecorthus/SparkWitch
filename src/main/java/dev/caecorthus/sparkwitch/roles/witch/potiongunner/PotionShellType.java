@@ -11,13 +11,13 @@ import java.util.Optional;
  */
 public enum PotionShellType {
     /** Blindness + Slowness II, non-allies only. / 失明 + 缓慢 II，仅非己方。 */
-    DK("dk", "gw_dk_shell", 75, 5, false, 0x4B3B8F),
+    DK("dk", "gw_dk_shell", 50, 5, false, 0x4B3B8F),
     /** Extra skill and item cooldown, non-allies only. / 额外技能与物品冷却，仅非己方。 */
-    AC("ac", "gw_ac_shell", 125, 7, false, 0x2FB8C9),
+    AC("ac", "gw_ac_shell", 100, 7, false, 0x2FB8C9),
     /** Gold deduction, non-allies only. / 扣除金币，仅非己方。 */
-    MR("mr", "gw_mr_shell", 150, 3, false, 0xE0B23A),
+    MR("mr", "gw_mr_shell", 125, 3, false, 0xE0B23A),
     /** Kills everyone, the gunner and witch teammates included. / 炸死所有人，含药炮手本人与魔女队友。 */
-    TR("tr", "tr_shell", 300, 5, true, 0xD8432F);
+    TR("tr", "tr_shell", 200, 5, true, 0xD8432F);
 
     private final String key;
     private final String path;

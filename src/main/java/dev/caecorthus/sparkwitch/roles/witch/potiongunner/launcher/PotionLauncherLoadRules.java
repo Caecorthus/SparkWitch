@@ -38,7 +38,8 @@ public final class PotionLauncherLoadRules {
      * @param cursorShell the shell type on the cursor, or null when the cursor holds anything else or nothing
      * @param cursorEmpty the cursor is empty
      * @param loaded      the launcher's loaded shell, or null when empty
-     * @param eligible    the clicker is a living, playing, exact Potion Gunner, or in creative mode
+     * @param eligible    the clicker is in creative mode, a free holder (not a match participant), or a living,
+     *                    playing participant of any role
      * @param locked      the clicker is stunned by a Control Expert or locked in a Seeker remote session
      */
     public static Action decide(boolean rightClick, @Nullable PotionShellType cursorShell, boolean cursorEmpty,

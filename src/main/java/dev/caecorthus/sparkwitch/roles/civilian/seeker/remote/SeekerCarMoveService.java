@@ -76,8 +76,8 @@ public final class SeekerCarMoveService {
         SeekerCarMoveRules.Replay replay = replay(world, collider);
         Vec3d claimed = new Vec3d(packet.x(), packet.y(), packet.z());
         SeekerCarMoveRules.Decision decision = SeekerCarMoveRules.validate(new SeekerCarMoveRules.Move(server, claimed,
-                packet.yaw(), session.budget.availableAt(now), session.airTicks, player.getPos(),
-                session.effectiveRadius, SeekerRemoteSessionService.playArea(player)), replay);
+                packet.yaw(), session.budget.availableAt(now), session.airTicks,
+                SeekerRemoteSessionService.playArea(player)), replay);
         switch (decision.outcome()) {
             case DROP -> {
             }

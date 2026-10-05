@@ -29,8 +29,6 @@ public final class SeekerCctvRules {
     public static final int WARNING_COLOR = 0xFFFFB02E;
     public static final int CRITICAL_COLOR = 0xFFFF4D4D;
     public static final int SIGNAL_LOST_BACKGROUND = 0xFF0B0D10;
-    /** Range fraction from which the feed starts to break up. / 画面开始出现干扰的距离比例。 */
-    public static final double RANGE_INTERFERENCE_START = 0.8;
     public static final int BATTERY_SEGMENTS = 10;
 
     private SeekerCctvRules() {
@@ -56,38 +54,21 @@ public final class SeekerCctvRules {
         return (blindness || darkness) && !ginImmune;
     }
 
-    /** 0..1 fraction of the effective radius used by the focus; 0 when the radius is unknown. / 焦点已用的有效半径比例。 */
-    public static double rangeFraction(double distance, int radius) {
-        if (radius <= 0 || !Double.isFinite(distance)) {
-            return 0.0;
-        }
-        return Math.max(0.0, Math.min(1.0, distance / radius));
-    }
-
     /**
-     * Shader interference strength 0..1: rises over the last fifth of the range, and in car mode when the battery is
-     * low (warning 0.25, critical 0.6). Visual only.
-     * 着色器干扰强度 0..1：在最后五分之一距离内逐渐增强；小车模式下电量低时也会出现（警告 0.25，危急 0.6）。仅视觉。
+     * Shader interference strength 0..1: only in car mode when the battery is low (warning 0.25, critical 0.6); a
+     * camera feed is always clean. Distance never adds interference since the range limit was removed (2026-10-04).
+     * Visual only.
+     * 着色器干扰强度 0..1：仅在小车模式下电量低时出现（警告 0.25，危急 0.6）；摄像头画面始终清晰。距离限制移除后
+     * （2026-10-04）距离不再带来干扰。仅视觉。
      */
-    public static float interference(SeekerSessionMode mode, int battery, double distance, int radius) {
-        double range = (rangeFraction(distance, radius) - RANGE_INTERFERENCE_START) / (1.0 - RANGE_INTERFERENCE_START);
-        float rangePart = (float) Math.max(0.0, Math.min(1.0, range)) * 0.8F;
-        float batteryPart = 0.0F;
-        if (mode == SeekerSessionMode.CAR) {
-            if (SeekerRules.isBatteryCritical(battery)) {
-                batteryPart = 0.6F;
-            } else if (SeekerRules.isBatteryWarning(battery)) {
-                batteryPart = 0.25F;
-            }
+    public static float interference(SeekerSessionMode mode, int battery) {
+        if (mode != SeekerSessionMode.CAR) {
+            return 0.0F;
         }
-        return Math.max(rangePart, batteryPart);
-    }
-
-    public static int rangeBarColor(double fraction) {
-        if (fraction >= 0.9) {
-            return CRITICAL_COLOR;
+        if (SeekerRules.isBatteryCritical(battery)) {
+            return 0.6F;
         }
-        return fraction >= 0.75 ? WARNING_COLOR : NORMAL_BAR_COLOR;
+        return SeekerRules.isBatteryWarning(battery) ? 0.25F : 0.0F;
     }
 
     public static int batteryColor(int battery) {
@@ -120,12 +101,6 @@ public final class SeekerCctvRules {
     /** REC dot blink: one second period. / REC 点每秒闪烁一次。 */
     public static boolean recVisible(long ticks) {
         return Math.floorMod(ticks, 20L) < 12;
-    }
-
-    /** Warn when the client's render distance shrank the synced radius below the mode's maximum. / 客户端渲染距离使有效半径低于上限时警告。 */
-    public static boolean showsLowRenderDistance(SeekerSessionMode mode, int effectiveRadius) {
-        int max = SeekerRules.maxRadius(mode);
-        return max > 0 && effectiveRadius > 0 && effectiveRadius < max;
     }
 
     /**

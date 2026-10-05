@@ -36,6 +36,13 @@ public final class TimeStealerRules {
     public static final int CLOCK_COOLDOWN_TICKS = 45 * 20;
     /** Round-start Clock cooldown (45 s). / 开局时钟冷却（45 秒）。 */
     public static final int CLOCK_INITIAL_COOLDOWN_TICKS = 45 * 20;
+    /**
+     * Phase slack between {@code ClockReadyAt} (world time) and the display (item-cooldown tick); a matching display is
+     * never rewritten, since every rewrite restarts the slot's cooldown bar.
+     * {@code ClockReadyAt}（世界时间）与显示冷却（物品冷却 tick）之间的相位余量；一致的显示绝不重写，因为每次重写都会让
+     * 栏位冷却条从头开始。
+     */
+    static final int CLOCK_DISPLAY_SLACK_TICKS = 1;
     /** Silent period before the first chime (15 s). / 第一声钟响前的静默期（15 秒）。 */
     public static final int GRACE_TICKS = 15 * 20;
     /** Gap between chimes (5 s). / 相邻钟声的间隔（5 秒）。 */
@@ -54,6 +61,8 @@ public final class TimeStealerRules {
     public static final int STAMP_COST_ADD_TIME = 1;
     public static final int STAMP_COST_GRENADE = 3;
     public static final int STAMP_COST_PSYCHO = 3;
+    /** Stamps a Conscience Time Stealer earns per completed task (owner, 2026-10-05). / 善良窃时者每完成一个任务获得的邮票数（所有者，2026-10-05）。 */
+    public static final int TASK_STAMP_REWARD = 1;
 
     /** Hard Clock reach: ray length and the real eye-to-hitbox distance cap. / 时钟硬射程：射线长度与眼睛到真实命中盒的距离上限。 */
     public static final double CLOCK_RANGE = 7.0D;
@@ -61,6 +70,15 @@ public final class TimeStealerRules {
     public static final double CLOCK_BOX_EXPANSION = 0.2D;
 
     private TimeStealerRules() {
+    }
+
+    /**
+     * Whether the display cooldown shows less than the authoritative remaining ticks by more than the phase slack
+     * (for example after Last Escape halving).
+     * 显示冷却是否比权威剩余刻数少出相位余量以上（例如最后逃脱减半之后）。
+     */
+    static boolean clockDisplayLags(long authoritativeTicks, int displayedTicks) {
+        return authoritativeTicks > (long) Math.max(0, displayedTicks) + CLOCK_DISPLAY_SLACK_TICKS;
     }
 
     /** Exact-role gate; never inferred from faction or namespace. / 仅按精确职业判断，不从阵营或命名空间推断。 */
@@ -146,6 +164,18 @@ public final class TimeStealerRules {
     ) {
         return reduceTimeItem && exactTimekeeper && buyerAlive && gameActive
                 && effectiveFaction != null && !FactionIds.KILLER.equals(effectiveFaction);
+    }
+
+    /**
+     * Owner decision 2026-10-05: a Conscience Time Stealer earns {@link #TASK_STAMP_REWARD} per completed task. Wathe
+     * also fires {@code TaskComplete} for a killer's fake tasks, so the holder's effective faction must be known and
+     * not {@code wathe:killer} (SparkTraits Conscience resolves to civilian); a plain Time Stealer earns nothing.
+     * 所有者决定 2026-10-05：善良窃时者每完成一个任务获得 {@link #TASK_STAMP_REWARD} 枚邮票。Wathe 对杀手的假任务也会
+     * 触发 {@code TaskComplete}，因此持有者的有效阵营必须已知且不是 {@code wathe:killer}（SparkTraits 善良解析为平民）；
+     * 普通窃时者不获得邮票。
+     */
+    public static boolean earnsTaskStamp(@Nullable Identifier effectiveFaction) {
+        return effectiveFaction != null && !FactionIds.KILLER.equals(effectiveFaction);
     }
 
     /** Settle attribution outcome. / 结算归属结果。 */

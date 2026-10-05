@@ -1,6 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.killer.timestealer;
 
+import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
+import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import net.minecraft.item.Item;
@@ -93,10 +96,12 @@ public final class TimeStealerClockService {
 
     /**
      * Vanilla refuses a cooling item before {@code Item#use}, so reaching here inside {@code ClockReadyAt} means the
-     * display cooldown was shortened elsewhere (NoellesRoles Stimulation, Last Escape halving, commands). When the
-     * refusal is due to the deadline alone, rewrite the display to the authoritative remaining ticks.
-     * 原版会在 {@code Item#use} 之前拒绝冷却中的物品，因此在 {@code ClockReadyAt} 之前到达这里说明显示冷却已被其他机制
-     * 缩短（NoellesRoles 兴奋剂、最后逃脱减半、命令）。当拒绝仅由截止 tick 造成时，把显示冷却重写为权威剩余值。
+     * display cooldown was shortened elsewhere (NoellesRoles Stimulation, Last Escape halving) since the last
+     * {@link #keepDisplayedCooldown}. When the refusal is due to the deadline alone, rewrite the display to the
+     * authoritative remaining ticks.
+     * 原版会在 {@code Item#use} 之前拒绝冷却中的物品，因此在 {@code ClockReadyAt} 之前到达这里说明显示冷却在上次
+     * {@link #keepDisplayedCooldown} 之后已被其他机制缩短（NoellesRoles 兴奋剂、最后逃脱减半）。当拒绝仅由截止 tick 造成时，
+     * 把显示冷却重写为权威剩余值。
      */
     private static void restoreDisplayedCooldown(ServerPlayerEntity user, ItemStack stack,
                                                  TimeStealerPlayerComponent state) {
@@ -107,6 +112,31 @@ public final class TimeStealerClockService {
             return;
         }
         showCooldown(user, clock, (int) Math.min(Integer.MAX_VALUE, remaining));
+    }
+
+    /**
+     * Holder's per-tick upkeep: the slot never shows less than {@code ClockReadyAt}, so it never looks ready while the
+     * Clock is refused. A removed cooldown (SparkFactionAPI {@code clearCooldown}) has already released
+     * {@code ClockReadyAt} ({@code SparkWitchItemCooldownReleases}), so it stays cleared. Exact writes only: without
+     * SparkTraits a vanilla {@code set} is shortened again (NoellesRoles Stimulation) and would be rewritten every tick,
+     * so then only the refusal-time {@link #restoreDisplayedCooldown} repairs the display.
+     * 持有者的每 tick 维护：栏位显示绝不少于 {@code ClockReadyAt}，因此时钟被拒绝时不会显示为就绪。被移除的冷却
+     * （SparkFactionAPI {@code clearCooldown}）已先释放 {@code ClockReadyAt}（{@code SparkWitchItemCooldownReleases}），
+     * 因此保持清除。仅用精确写入：缺少 SparkTraits 时原版 {@code set} 会再次被缩短（NoellesRoles 兴奋剂）并每 tick 重写，
+     * 此时只由拒绝时的 {@link #restoreDisplayedCooldown} 修复显示。
+     */
+    static void keepDisplayedCooldown(ServerPlayerEntity user) {
+        Item clock = SparkWitchItems.timeStealerClock();
+        long remaining = TimeStealerPlayerComponent.KEY.get(user).clockReadyAt() - user.getWorld().getTime();
+        if (TimeStealerRules.clockDisplayLags(remaining, displayedTicks(user, clock))) {
+            SparkTraitsKillerBridge.setExactItemCooldownRemaining(user, clock, (int) Math.min(Integer.MAX_VALUE, remaining));
+        }
+    }
+
+    private static int displayedTicks(ServerPlayerEntity user, Item clock) {
+        ItemCooldownManagerAccessor manager = (ItemCooldownManagerAccessor) user.getItemCooldownManager();
+        return manager.sparkwitch$getEntries().get(clock) instanceof ItemCooldownEntryAccessor entry
+                ? Math.max(0, entry.sparkwitch$getEndTick() - manager.sparkwitch$getTick()) : 0;
     }
 
     /**

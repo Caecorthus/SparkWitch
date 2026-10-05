@@ -90,11 +90,6 @@ public final class SeekerClientState {
         return status == null ? -1 : status.state().sessionFocusEntityId();
     }
 
-    public static int effectiveRadius() {
-        SeekerStatusComponent status = own();
-        return status == null ? 0 : status.effectiveRadius();
-    }
-
     public static int carBattery() {
         SeekerStatusComponent status = own();
         return status == null ? 0 : SeekerRules.clampBattery(status.carBattery());

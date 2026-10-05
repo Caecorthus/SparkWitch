@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.client.insider;
 
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
-import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderParticipation;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GetInstinctHighlight;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -15,21 +14,18 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Client seam: the Insider's single Wathe {@link GetInstinctHighlight} listener (the Insider's own view at
- * {@link InsiderHighlightRules#INSIDER_VIEW_PRIORITY}, the Corrupt Cop and killer views at
- * {@link InsiderHighlightRules#PRIORITY}), plus the Impostor-viewer recolor called by
- * {@code WatheClientInsiderImpostorHighlightMixin}. Roles and the Corrupt Cop Moment state are read from components
- * NoellesRoles and Wathe already sync to every client; nothing new is sent. Existing hide rules keep working:
- * HEAD vetoes (Wraith privacy, fear, Taotie, SparkTraits) answer before the event, {@code skip()} (100) and
- * suppression (102) outrank this listener, the Insider and Corrupt Cop views leave invisible targets alone, and a
- * SparkTraits {@code isInstinctHidden} target gets no Insider outline. The killer view paints an invisible Insider
- * blue, as SparkTraits does for an invisible real Impostor.
+ * {@link InsiderHighlightRules#INSIDER_VIEW_PRIORITY}, the Corrupt Cop view at {@link InsiderHighlightRules#PRIORITY}).
+ * Roles and the Corrupt Cop Moment state are read from components NoellesRoles and Wathe already sync to every client;
+ * nothing new is sent. Existing hide rules keep working: HEAD vetoes (Wraith privacy, fear, Taotie, SparkTraits)
+ * answer before the event, {@code skip()} (100) and suppression (102) outrank this listener, invisible targets are
+ * left alone, and a SparkTraits {@code isInstinctHidden} target gets no Insider outline. Killers get no answer, so
+ * Wathe's default paints the Insider like any other passenger.
  * 客户端接缝：内应唯一的 Wathe {@link GetInstinctHighlight} 监听器（内应自身视角优先级
- * {@link InsiderHighlightRules#INSIDER_VIEW_PRIORITY}，黑警与杀手视角优先级 {@link InsiderHighlightRules#PRIORITY}），
- * 以及供 {@code WatheClientInsiderImpostorHighlightMixin} 调用的内鬼观察者换色。职业与黑警时刻状态读取自
- * NoellesRoles 和 Wathe 已同步给所有客户端的组件，不发送任何新数据。现有隐藏规则继续生效：HEAD 否决（冤魂隐私、恐惧、
- * 饕餮、SparkTraits）先于事件作答，{@code skip()}（100）与压制（102）高于本监听器，内应与黑警视角不处理隐身目标，
- * SparkTraits {@code isInstinctHidden} 隐藏的目标不会得到内应描边。杀手视角会把隐身的内应描成蓝色，
- * 与 SparkTraits 对隐身真实内鬼的处理一致。
+ * {@link InsiderHighlightRules#INSIDER_VIEW_PRIORITY}，黑警视角优先级 {@link InsiderHighlightRules#PRIORITY}）。
+ * 职业与黑警时刻状态读取自 NoellesRoles 和 Wathe 已同步给所有客户端的组件，不发送任何新数据。现有隐藏规则继续生效：
+ * HEAD 否决（冤魂隐私、恐惧、饕餮、SparkTraits）先于事件作答，{@code skip()}（100）与压制（102）高于本监听器，
+ * 不处理隐身目标，SparkTraits {@code isInstinctHidden} 隐藏的目标不会得到内应描边。杀手不会得到答复，
+ * 因此 Wathe 默认逻辑会把内应与其他乘客一样描绘。
  */
 public final class InsiderInstinctClientHooks {
     private InsiderInstinctClientHooks() {
@@ -47,23 +43,18 @@ public final class InsiderInstinctClientHooks {
         GameWorldComponent game = GameWorldComponent.KEY.get(viewer.getWorld());
         Role viewerRole = game.getRole(viewer);
         Role targetRole = game.getRole(playerTarget);
-        // Roles first, then the key: the killer queries (SparkTraits' isKiller HEAD allocates) run only for an Insider
-        // target while the key is held. The killer view needs the key in color() anyway.
-        // 先比较职业，再看按键：杀手查询（SparkTraits 的 isKiller HEAD 会分配内存）只在按住按键且目标是内应时执行。
-        // 杀手视角在 color() 中本来就需要按键。
         if (!InsiderHighlightRules.mayAnswer(viewerRole, targetRole)) {
             return null;
         }
-        boolean instinctKey = WatheClient.isInstinctEnabled();
         InsiderHighlightRules.Viewer kind = InsiderHighlightRules.viewer(
                 viewerRole,
                 GameFunctions.isPlayerPlayingAndAlive(viewer),
-                GameFunctions.isPlayerSpectatingOrCreative(viewer),
-                () -> instinctKey && isKillerInstinctViewer()
+                GameFunctions.isPlayerSpectatingOrCreative(viewer)
         );
         if (!isEligibleTarget(kind, viewer, playerTarget)) {
             return null;
         }
+        boolean instinctKey = WatheClient.isInstinctEnabled();
         boolean visionWindow = kind == InsiderHighlightRules.Viewer.CORRUPT_COP
                 && !instinctKey
                 && isCorruptCopVisionWindow(viewer);
@@ -74,29 +65,6 @@ public final class InsiderInstinctClientHooks {
         return GetInstinctHighlight.HighlightResult.always(color, InsiderHighlightRules.priority(kind, targetRole));
     }
 
-    /**
-     * Final answer rewrite for the SparkTraits Impostor viewer (D3). Called with the finished Wathe result; the fast path
-     * compares one int, so ordinary frames cost nothing.
-     * SparkTraits 内鬼观察者的最终结果改写（D3）。以 Wathe 的最终结果调用；快速路径只比较一个整数，普通帧没有额外开销。
-     */
-    public static int recolorImpostorView(Entity target, int highlight) {
-        if (highlight != InsiderHighlightRules.SPARKTRAITS_CIVILIAN_INSTINCT_COLOR
-                || !(target instanceof PlayerEntity playerTarget)
-                || !SparkWitchServerConnection.isConfirmedServer()) {
-            return highlight;
-        }
-        PlayerEntity viewer = MinecraftClient.getInstance().player;
-        if (viewer == null
-                || !InsiderParticipation.isInsider(playerTarget)
-                || !isEligibleTarget(InsiderHighlightRules.Viewer.KILLER, viewer, playerTarget)) {
-            return highlight;
-        }
-        boolean livingImpostor = GameFunctions.isPlayerPlayingAndAlive(viewer)
-                && !GameFunctions.isPlayerSpectatingOrCreative(viewer)
-                && InsiderSparkTraitsBridge.hasActiveTrait(viewer, InsiderSparkTraitsBridge.IMPOSTOR);
-        return InsiderHighlightRules.recolorImpostorView(highlight, livingImpostor, true);
-    }
-
     private static boolean isEligibleTarget(InsiderHighlightRules.Viewer kind, PlayerEntity viewer, PlayerEntity target) {
         return InsiderHighlightRules.isEligibleTarget(
                 kind,
@@ -104,20 +72,6 @@ public final class InsiderInstinctClientHooks {
                 GameFunctions.isPlayerPlayingAndAlive(target),
                 GameFunctions.isPlayerSpectatingOrCreative(target),
                 target.isInvisible()
-        );
-    }
-
-    /**
-     * Wathe's own killer-instinct test for the local player, read through the public {@code WatheClient} statics so
-     * every mod's HEAD on them applies (see {@link InsiderHighlightRules#isKillerInstinctViewer}).
-     * 本地玩家的 Wathe 杀手本能判断，经由公共 {@code WatheClient} 静态方法读取，因此各模组在其上的 HEAD 都会生效
-     * （见 {@link InsiderHighlightRules#isKillerInstinctViewer}）。
-     */
-    private static boolean isKillerInstinctViewer() {
-        return InsiderHighlightRules.isKillerInstinctViewer(
-                WatheClient.isInstinctEnabledAndIsKiller(),
-                WatheClient.canSeeSpectatorInformation(),
-                WatheClient.isKiller()
         );
     }
 

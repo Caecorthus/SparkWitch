@@ -39,12 +39,12 @@ public final class SeekerRemoteOpenRules {
      * @param throttled      {@link SeekerRemoteRules#isOpenThrottled} / 打开节流中
      * @param consoleDevice  a console device anywhere in the inventory / 背包任意位置持有控制台设备
      * @param deviceUsable   target device exists, is owned and alive / 目标设备存在、归属本人且存活
-     * @param inRange        within the effective radius of the body / 在本体有效半径内
-     * @param inPlayArea     inside the Wathe play area / 在 Wathe 游戏区域内
+     * @param inPlayArea     inside the Wathe play area; the only spatial check, with no distance limit from the body
+     *                       (2026-10-04) / 在 Wathe 游戏区域内；唯一的空间检查，与本体之间没有距离限制（2026-10-04）
      */
     public record Facts(@Nullable String commonDeny, SeekerSessionMode requested, SeekerSessionMode current,
                         boolean sameDevice, boolean swallowed, boolean lastStand, boolean grounded, boolean throttled,
-                        boolean consoleDevice, boolean deviceUsable, boolean inRange, boolean inPlayArea) {
+                        boolean consoleDevice, boolean deviceUsable, boolean inPlayArea) {
     }
 
     @Nullable
@@ -76,7 +76,8 @@ public final class SeekerRemoteOpenRules {
         if (!facts.deviceUsable()) {
             return DENY_NO_DEVICE;
         }
-        if (!facts.inRange() || !facts.inPlayArea()) {
+        // The stable suffix "out_of_range" now means "outside the play area" only. / 稳定后缀现仅表示“在游戏区域外”。
+        if (!facts.inPlayArea()) {
             return DENY_OUT_OF_RANGE;
         }
         return null;

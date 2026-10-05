@@ -9,6 +9,7 @@ import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.api.event.ShopPurchase;
+import dev.doctor4t.wathe.api.event.TaskComplete;
 import java.util.Objects;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.Event;
@@ -56,6 +57,9 @@ public final class TimeStealerFeatureService {
             TimeStealerLoadoutService.onRoleAssigned(serverPlayer, role);
             TimeStealerStampService.onRoleAssigned(serverPlayer, role);
         });
+        // Owner decision 2026-10-05: a Conscience Time Stealer earns a stamp per task; the service checks who earns.
+        // 所有者决定 2026-10-05：善良窃时者每完成一个任务获得一枚邮票；由服务判断谁能获得。
+        TaskComplete.EVENT.register((player, task) -> TimeStealerStampService.onTaskComplete(player));
         // Wathe starts the match record inside its own default-phase ON_FINISH_INITIALIZE listener, so the id is bound
         // in a later phase; the owner tick re-binds a holder who missed this (TimeStealerStampService.tickOwner).
         // Wathe 在自身默认阶段的 ON_FINISH_INITIALIZE 监听器中才开始对局记录，因此在更晚的阶段绑定对局 id；

@@ -24,11 +24,13 @@ import java.util.UUID;
  *
  * <p>Owner sync (fixed write order, remaining ticks only, pinned by {@code SeekerComponentSchemaSourceTest}): carState
  * byte, carEntityId varint, cameraCount varint + (entityId varint, label varint) per camera in label order,
- * sessionMode byte, sessionId varint, sessionFocusEntityId varint (-1 without a session), effectiveRadius byte,
- * cooldownReason byte, markTarget boolean + UUID, markRemainingTicks varint, carBattery byte. NBT keeps only
- * {@code Match}, {@code LostTo} and {@code PendingReturn}; cameras never persist.
+ * sessionMode byte, sessionId varint, sessionFocusEntityId varint (-1 without a session), cooldownReason byte,
+ * markTarget boolean + UUID, markRemainingTicks varint, carBattery byte. The former effectiveRadius byte after the
+ * focus id was dropped with the session radius (2026-10-04); it was sync-only (never NBT), and both sides ship in the
+ * same jar. NBT keeps only {@code Match}, {@code LostTo} and {@code PendingReturn}; cameras never persist.
  * 拥有者同步（固定写入顺序，仅发送剩余刻数）见上：摄像头按编号顺序写入数量及每个摄像头的实体 id 与编号，
- * 并同步会话焦点实体 id（无会话时为 -1），使拥有者客户端准确知道自己正在观看哪台设备。
+ * 并同步会话焦点实体 id（无会话时为 -1），使拥有者客户端准确知道自己正在观看哪台设备。焦点 id 之后原有的
+ * effectiveRadius 字节已随会话半径一并移除（2026-10-04）；它只用于同步、从未写入 NBT，且两端来自同一个 jar。
  * NBT 只保存 {@code Match}、{@code LostTo} 与 {@code PendingReturn}；摄像头从不持久化。
  */
 public final class SeekerState {
@@ -37,7 +39,6 @@ public final class SeekerState {
     static final String PENDING_RETURN_NBT_KEY = "PendingReturn";
     private static final int NO_ENTITY = -1;
     private static final int NO_WARNING = -1;
-    private static final int MAX_RADIUS_BYTE = 255;
     private static final int FIRST_CAMERA_LABEL = 1;
     /**
      * Client-side guard against a corrupt camera count; far above any affordable number of cameras.
@@ -75,7 +76,6 @@ public final class SeekerState {
     private SeekerSessionMode sessionMode = SeekerSessionMode.NONE;
     private int sessionId;
     private int sessionFocusEntityId = NO_ENTITY;
-    private int effectiveRadius;
     private SeekerCooldownReason cooldownReason = SeekerCooldownReason.NONE;
     private @Nullable UUID markTarget;
     private int markRemainingTicks;
@@ -142,10 +142,6 @@ public final class SeekerState {
 
     public int sessionId() {
         return sessionId;
-    }
-
-    public int effectiveRadius() {
-        return effectiveRadius;
     }
 
     public SeekerCooldownReason cooldownReason() {
@@ -324,12 +320,11 @@ public final class SeekerState {
     /**
      * Requires no session, a mode switch, or (CAMERA only) a different camera, and the viewed device present (CAR:
      * DEPLOYED; CAMERA: {@code focusEntityId} is one of the owner's cameras); increments sessionId. A switch reports
-     * the previous session as closed with SWITCHED. The radius is clamped to one byte.
+     * the previous session as closed with SWITCHED.
      * 要求当前无会话、为模式切换，或（仅 CAMERA）换到另一台摄像头，且目标设备存在（CAR 需 DEPLOYED，
      * CAMERA 需 {@code focusEntityId} 是拥有者的摄像头之一）；sessionId 递增。切换会把上一个会话报告为以 SWITCHED 关闭。
-     * 半径被限制在一个字节内。
      */
-    public Delta openSession(SeekerSessionMode mode, int focusEntityId, int effectiveRadius) {
+    public Delta openSession(SeekerSessionMode mode, int focusEntityId) {
         if (mode == null || mode == SeekerSessionMode.NONE) {
             return Delta.NONE;
         }
@@ -349,7 +344,6 @@ public final class SeekerState {
         if (mode == SeekerSessionMode.CAMERA) {
             lastViewedCameraId = focusEntityId;
         }
-        this.effectiveRadius = Math.max(0, Math.min(MAX_RADIUS_BYTE, effectiveRadius));
         return new Delta(true, 0, SeekerCooldownReason.NONE, switched, switched ? SeekerExitReason.SWITCHED : null,
                 false);
     }
@@ -454,7 +448,7 @@ public final class SeekerState {
         nextCameraLabel = FIRST_CAMERA_LABEL;
         lastViewedCameraId = NO_ENTITY;
         if (isIdle() && cooldownReason == SeekerCooldownReason.NONE && carEntityId == NO_ENTITY
-                && effectiveRadius == 0 && carBattery == 0) {
+                && carBattery == 0) {
             return Delta.NONE;
         }
         boolean closed = sessionMode != SeekerSessionMode.NONE;
@@ -504,7 +498,6 @@ public final class SeekerState {
         buf.writeByte(sessionMode.id());
         buf.writeVarInt(sessionId);
         buf.writeVarInt(sessionFocusEntityId);
-        buf.writeByte(effectiveRadius);
         buf.writeByte(cooldownReason.id());
         boolean marked = markTarget != null && markRemainingTicks > 0;
         buf.writeBoolean(marked);
@@ -529,7 +522,6 @@ public final class SeekerState {
         sessionMode = SeekerSessionMode.fromId(buf.readUnsignedByte());
         sessionId = buf.readVarInt();
         sessionFocusEntityId = buf.readVarInt();
-        effectiveRadius = buf.readUnsignedByte();
         cooldownReason = SeekerCooldownReason.fromId(buf.readUnsignedByte());
         markTarget = buf.readBoolean() ? buf.readUuid() : null;
         markRemainingTicks = Math.max(0, buf.readVarInt());
@@ -599,7 +591,6 @@ public final class SeekerState {
     private void closeSessionFields() {
         sessionMode = SeekerSessionMode.NONE;
         sessionFocusEntityId = NO_ENTITY;
-        effectiveRadius = 0;
     }
 
     private void resetCameras() {
