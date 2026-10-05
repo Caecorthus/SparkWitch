@@ -2,34 +2,26 @@ package dev.caecorthus.sparkwitch.client.insider;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 /**
- * External seam (optional SparkTraits): the Insider's own client reads of the public {@code SparkTraitsApi} facade,
- * {@code isInstinctHidden(viewer, target)} and {@code hasActiveTrait(player, id)}; never SparkTraits' implementation or
- * component packages. SparkTraits syncs the owner's active traits to the owner, which is what its own
- * Impostor instinct and cohort code reads, so trait queries are only made for the local player. Fail-closed means
- * "not hidden" and "no trait": an absent SparkTraits, an older build without a method, a wrong shape or a throwing
- * call changes nothing and never breaks the client.
+ * External seam (optional SparkTraits): the Insider's own client read of the public {@code SparkTraitsApi} facade,
+ * {@code isInstinctHidden(viewer, target)}; never SparkTraits' implementation or component packages. Fail-closed means
+ * "not hidden": an absent SparkTraits, an older build without the method, a wrong shape or a throwing call changes
+ * nothing and never breaks the client.
  * 外部接缝（可选 SparkTraits）：内应自有的客户端读取，仅经由公共门面 {@code SparkTraitsApi} 的
- * {@code isInstinctHidden(viewer, target)} 与 {@code hasActiveTrait(player, id)}，从不触及 SparkTraits 的实现或组件包。
- * SparkTraits 会把本人的生效词条同步给本人，其自身的内鬼本能与同伙逻辑读取的正是这份数据，因此词条查询只针对本地玩家。失败关闭即“不隐藏”“没有词条”：SparkTraits 缺失、旧版缺少方法、形状不符或调用抛异常时
- * 都不改变任何结果，也绝不会让客户端崩溃。
+ * {@code isInstinctHidden(viewer, target)}，从不触及 SparkTraits 的实现或组件包。失败关闭即“不隐藏”：SparkTraits 缺失、
+ * 旧版缺少方法、形状不符或调用抛异常时都不改变任何结果，也绝不会让客户端崩溃。
  */
 public final class InsiderSparkTraitsBridge {
-    public static final Identifier IMPOSTOR = Identifier.of("sparktraits", "impostor");
-    public static final Identifier CONSCIENCE = Identifier.of("sparktraits", "conscience");
     private static final String MOD_ID = "sparktraits";
     private static final String API_CLASS = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
 
     private static volatile boolean hiddenResolved;
     private static volatile @Nullable Method hiddenMethod;
-    private static volatile boolean traitResolved;
-    private static volatile @Nullable Method traitMethod;
 
     private InsiderSparkTraitsBridge() {
     }
@@ -41,15 +33,6 @@ public final class InsiderSparkTraitsBridge {
         }
         Method method = hiddenMethod();
         return method != null && invoke(method, viewer, target);
-    }
-
-    /** The player owns the active SparkTraits trait. / 玩家拥有该 SparkTraits 生效词条。 */
-    public static boolean hasActiveTrait(@Nullable PlayerEntity player, Identifier traitId) {
-        if (player == null || !isLoaded()) {
-            return false;
-        }
-        Method method = traitMethod();
-        return method != null && invoke(method, player, traitId);
     }
 
     private static boolean isLoaded() {
@@ -91,18 +74,6 @@ public final class InsiderSparkTraitsBridge {
             }
         }
         return hiddenMethod;
-    }
-
-    private static @Nullable Method traitMethod() {
-        if (!traitResolved) {
-            synchronized (InsiderSparkTraitsBridge.class) {
-                if (!traitResolved) {
-                    traitMethod = resolve("hasActiveTrait", PlayerEntity.class, Identifier.class);
-                    traitResolved = true;
-                }
-            }
-        }
-        return traitMethod;
     }
 
     private static @Nullable Method resolve(String name, Class<?>... parameters) {

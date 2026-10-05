@@ -157,7 +157,7 @@ Current build baseline:
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
   pairing with a drawn Corrupt Cop, task-money economy, shop, neutral master key doors, gun-punishment
   exemption, and Team Jiahao win seams. Its mixins live in `mixin/insider/`; client presentation
-  (instinct outlines, the Impostor-viewer recolor, the killer cohort line, the "嘉豪同伙" label) lives in
+  (instinct outlines, the "嘉豪同伙" label, the Team Jiahao end title) lives in
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the recruitment roll
@@ -802,26 +802,26 @@ NoellesRoles' own. Wathe titles a neutral win by the first winning round-end row
 `mixin/insider/GameRoundEndComponentJiahaoTitleMixin`, just before the explicit-winner sync, handles a Team
 Jiahao win (a winning team row in a round with an Insider): it marks every other team row as a winner, offline
 `LEFT` / `LEFT_DEAD` rows included, then moves an Insider row first (the one the win named, else any). The end
-screen reads "嘉豪阵营胜利！", and Wathe's `didWin` and `GameRecordManager.endMatch` read the same rows. Every
-other win keeps Wathe's rows.
+screen reads "嘉豪胜利！" over "整列列车的人都被嘉豪们豪完了", and Wathe's `didWin` and `GameRecordManager.endMatch`
+read the same rows. Every other win keeps Wathe's rows. Team Jiahao has its own faction color,
+`InsiderRules.TEAM_JIAHAO_COLOR` (tuhao gold `0xFFC125`), apart from the Insider's mint and the Corrupt Cop's navy:
+`client/mixin/insider/RoundTextRendererJiahaoTitleMixin` (`@ModifyExpressionValue` on the neutral title's
+`RoleAnnouncementTexts.getForRole(Identifier)` lookup in `RoundTextRenderer.renderHud`) swaps an Insider-led title's
+role text for an unregistered twin built with the same id in that gold, so the lang keys stay
+`announcement.win.insider` / `game.win.insider` and the Insider's own role announcement stays mint. SparkFactionAPI's
+`@Redirect` on the `winText` read that follows still wins for a custom faction win.
 Insider presentation is client-only. One `GetInstinctHighlight` listener answers `always` only while its condition
 holds. At priority 65 (below SparkStrength's tablet suspect mark at 80, which keeps its color; SparkStrength no
 longer outlines police-network members), a living Insider holding instinct sees every other living, visible player in
 `0x00FFD0`; the Corrupt Cop is answered at 93 in `0x193264`, so the partner stays navy even under a tablet suspect
 mark. At priority 93 (above SparkStrength's Corrupt Cop x-ray at 90, below the Seeker mark 95, `skip()` 100 and
 suppression 102), a living Corrupt Cop sees the living, visible Insider in `0x00FFD0` while holding instinct or
-during its Moment vision window, and a killer-instinct
-viewer (`isInstinctEnabledAndIsKiller() && !canSeeSpectatorInformation() && isKiller()`, exactly when Wathe's default
-would paint the target red or green, a promoted Saboteur Wraith included) holding instinct sees the living Insider in
-the Impostor blue `0x0013FF`, invisible or not, as SparkTraits paints an invisible real Impostor. Targets hidden by
-SparkTraits' `isInstinctHidden` get no Insider answer.
-`client/mixin/insider/WatheClientInsiderImpostorHighlightMixin` is a `@WrapMethod` on
-`WatheClient.getInstinctHighlight` that encloses every other injection and rewrites only SparkTraits' exact civilian
-green `0x4EDD35` to `0x0013FF`, for a living local Impostor looking at a living Insider, visible or not. SparkTraits
-effective killers get Wathe's red cohort line on a living Insider through `ShouldShowCohort.show(105)`, and
-`InsiderCohortRoleNameMixin` draws the mint `game.tip.sparkwitch.jiahao_cohort` label between an Insider and any
-Team Jiahao member, both ways, with the witch cohort trigger. The Insider shares killer-style instinct light
-through `WitchInstinctClientHooks`. The Insider never renders in the `gui.sparkwitch.skills` panel.
+during its Moment vision window. Targets hidden by SparkTraits' `isInstinctHidden` get no Insider answer.
+Killers, SparkTraits Impostors included, get no Insider answer and no cohort line (owner 2026-10-05, replacing the
+D3 Impostor disguise): Wathe's default paints the Insider green like any passenger, with no "杀手同伙".
+`InsiderCohortRoleNameMixin` draws the `game.tip.sparkwitch.jiahao_cohort` label in the Team Jiahao gold between an
+Insider and any Team Jiahao member, both ways, with the witch cohort trigger. The Insider shares killer-style
+instinct light through `WitchInstinctClientHooks`. The Insider never renders in the `gui.sparkwitch.skills` panel.
 
 Blind state never enters that shared schema either. `sparkwitch:blind` (`NEVER_COPY`, never saved)
 holds the cane and Attune windows as absolute server world ticks plus a server-only match id and the
@@ -1671,11 +1671,8 @@ and `SparkTraitsShopEntryPreserver`. An absent SparkTraits means nothing hidden,
 Last Escape, no parry, no pending fake death, and cleanup on every death; a present build whose
 facade lacks or fails a method falls back per method as those bridges already define (an
 intercepted death skips the Angler's `KillPlayer.AFTER` cleanup, which then runs at reset or finalize).
-The Insider may query only `isInstinctHidden` and `hasActiveTrait` (Impostor, Conscience, local player only)
-through its own client `client/insider/InsiderSparkTraitsBridge`; an absent, older or failing build means
-nothing hidden and no trait: Impostor viewers then see the Insider in SparkTraits' green, and Conscience killers are
-not filtered from the killer cohort line (`show(105)` beats SparkTraits' Conscience `hide()` at 100), so they see
-"杀手同伙" on the Insider but never on a real Impostor. SparkTraits
+The Insider may query only `isInstinctHidden` through its own client `client/insider/InsiderSparkTraitsBridge`;
+an absent, older or failing build means nothing hidden. SparkTraits
 `feat/insider-support` hard-codes `sparkwitch:insider` in `GoingDarkRules.PROTECTED_VIEWER_ROLE_IDS` (Going Dark
 Veterans hidden from the Insider) and `isBlockingTeamWinNeutral` (a living Insider defers SparkTraits'
 KILLERS/PASSENGERS verdicts like the Corrupt Cop); an older SparkTraits leaves the Veteran visible and may end
