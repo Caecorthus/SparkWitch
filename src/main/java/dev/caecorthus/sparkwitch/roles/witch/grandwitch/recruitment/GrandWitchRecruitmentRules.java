@@ -15,17 +15,20 @@ public final class GrandWitchRecruitmentRules {
     private static final List<String> CORRUPT_COP_REFUSALS = List.of(
             "message.sparkwitch.recruitment.corrupt_cop_refused.too_hao",
             "message.sparkwitch.recruitment.corrupt_cop_refused.dislike");
+    private static final List<String> LAST_STAND_LOOSE_END_REFUSALS = List.of(
+            "message.sparkwitch.recruitment.loose_end_refused");
 
     private GrandWitchRecruitmentRules() { }
 
-    /** Roles the Grand Witch may never recruit (owner rule, 2026-10-02).
-     * 大魔女永远不能招募的身份（所有者规则，2026-10-02）。 */
-    public enum Refusal { NONE, POLICE, CORRUPT_COP }
+    /** Roles the Grand Witch may never recruit (owner rules, 2026-10-02; Last Stand Loose End 2026-10-05).
+     * 大魔女永远不能招募的身份（所有者规则，2026-10-02；背水一战亡命徒 2026-10-05）。 */
+    public enum Refusal { NONE, POLICE, CORRUPT_COP, LAST_STAND_LOOSE_END }
 
-    /** The Corrupt Cop wins over any police registration. The Insider is registered as police only for the
-     * tablet channel and stays recruitable.
-     * 黑警优先于任何警职登记；内应仅为平板警察频道登记为警职，仍可被招募。 */
-    public static Refusal refusal(boolean corruptCop, boolean police, boolean insider) {
+    /** A Loose End made by Last Stand's Final Moment is refused first. The Corrupt Cop wins over any police
+     * registration. The Insider is registered as police only for the tablet channel and stays recruitable.
+     * 背水一战终局时刻转成的亡命徒最先拒绝；黑警优先于任何警职登记；内应仅为平板警察频道登记为警职，仍可被招募。 */
+    public static Refusal refusal(boolean corruptCop, boolean police, boolean insider, boolean lastStandLooseEnd) {
+        if (lastStandLooseEnd) return Refusal.LAST_STAND_LOOSE_END;
         if (corruptCop) return Refusal.CORRUPT_COP;
         return police && !insider ? Refusal.POLICE : Refusal.NONE;
     }
@@ -36,6 +39,7 @@ public final class GrandWitchRecruitmentRules {
         return switch (refusal) {
             case POLICE -> POLICE_REFUSALS;
             case CORRUPT_COP -> CORRUPT_COP_REFUSALS;
+            case LAST_STAND_LOOSE_END -> LAST_STAND_LOOSE_END_REFUSALS;
             case NONE -> List.of();
         };
     }
