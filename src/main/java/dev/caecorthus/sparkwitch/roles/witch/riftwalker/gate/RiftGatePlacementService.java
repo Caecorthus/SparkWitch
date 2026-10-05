@@ -39,11 +39,12 @@ import java.util.OptionalDouble;
 
 /**
  * Server placement transaction behind {@link RiftGateItem#use} (plan §5.1): validate (round, alive Riftwalker, not
- * inside a gate, not stunned or Kidnapper-controlled, SparkTraits interaction lock, floor, play area, room in front,
- * spacing, neighbours), allocate the gate number, spawn and register the entity, consume one item, start the short
- * placement cooldown, play the cue and record the replay item use. Never charges anything on failure. Owned by P1.
+ * inside a gate, not stunned or Kidnapper-controlled, SparkTraits interaction lock, floor, fall line and cull height,
+ * room in front, spacing, neighbours), allocate the gate number, spawn and register the entity, consume one item,
+ * start the short placement cooldown, play the cue and record the replay item use. Never charges anything on failure.
+ * Owned by P1.
  * {@link RiftGateItem#use} 背后的服务端放置事务（plan §5.1）：校验（对局、存活的隙行者、不在门内、未眩晕且未被绑架者控制、
- * SparkTraits 交互封锁、地面、play area、正前方空间、间距、邻居），分配门编号，生成并登记实体，消耗一个物品，开始短暂的放置冷却，
+ * SparkTraits 交互封锁、地面、坠落线与剔除高度、正前方空间、间距、邻居），分配门编号，生成并登记实体，消耗一个物品，开始短暂的放置冷却，
  * 播放提示并记录回放。失败时不扣任何东西。归属 P1。
  *
  * <p>Server authority: the client only sends vanilla's use-item packet (it predicts nothing but CONSUME); every check
@@ -166,22 +167,24 @@ public final class RiftGatePlacementService {
     }
 
     /**
-     * Spot checks in order: support under the footprint, play area and cull height (the front cell included), empty
-     * slab, no fluid, room in front (C15), gate spacing, Seeker device clearance, forbidden neighbours.
-     * 按顺序检查位置：脚印下的支撑、play area（含正前方一格）与剔除高度、薄板无方块、无流体、正前方有空间（C15）、门间距、
-     * 搜寻者设备间隙、禁放邻居。
+     * Spot checks in order: support under the footprint, fall line and cull height, empty slab, no fluid, room in front
+     * (C15), gate spacing, Seeker device clearance, forbidden neighbours. Of the Wathe play area only its fall line
+     * ({@code minY}) counts (owner 2026-10-05: server play areas did not match the train, so every spot was refused);
+     * the same rule bounds the exits ({@code RiftExitSafety}).
+     * 按顺序检查位置：脚印下的支撑、坠落线与剔除高度、薄板无方块、无流体、正前方有空间（C15）、门间距、搜寻者设备间隙、
+     * 禁放邻居。Wathe play area 只看坠落线（{@code minY}）（所有者 2026-10-05：服务器的 play area 与列车不符，导致所有位置
+     * 都被拒绝）；出门也用同一规则（{@code RiftExitSafety}）。
      */
     @Nullable
     private static RiftGatePlacementFailure spotFailure(ServerWorld world, Vec3d pos, Direction facing) {
         if (world.isSpaceEmpty(RiftGatePlacementRules.supportProbe(pos, facing))) {
             return RiftGatePlacementFailure.NO_FLOOR;
         }
-        Box playArea = MapVariablesWorldComponent.KEY.get(world).getPlayArea();
-        Box front = RiftGatePlacementRules.frontClearanceBox(pos, facing);
-        if (!RiftGatePlacementRules.withinPlayArea(playArea, pos) || !RiftGatePlacementRules.belowCullHeight(pos)
-                || !RiftGatePlacementRules.boxWithin(playArea, front)) {
+        if (!RiftGatePlacementRules.aboveFallLine(MapVariablesWorldComponent.KEY.get(world).getPlayArea(), pos)
+                || !RiftGatePlacementRules.belowCullHeight(pos)) {
             return RiftGatePlacementFailure.OUT_OF_BOUNDS;
         }
+        Box front = RiftGatePlacementRules.frontClearanceBox(pos, facing);
         Box clearance = RiftGatePlacementRules.clearanceBox(pos, facing);
         if (!world.isSpaceEmpty(clearance)) {
             return RiftGatePlacementFailure.BLOCKED;
