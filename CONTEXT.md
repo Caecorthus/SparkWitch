@@ -180,13 +180,14 @@ Current build baseline:
   eligibility and write suppression state. Its optional SparkTraits reads live in
   `compat/SparkTraitsAbyssListenerBridge`.
   - `shriek/`: `WardensShriekService`, the Warden's Shriek handler on the shared Witch-skill path.
-  - `gun/`: the Shriek Gun: `ShriekGunItem` (the `Item#use` entry), `ShriekGunService` (server gate, beam, hit,
-    presentation, record), `ShriekGunRules` (pure fire gate, ally/enemy hit plan, sync-capped knockback vector, particle
-    spacing, Vendetta rule), and `ShriekGunTargeting` (side-neutral beam geometry shared by the server hit and the
-    client crosshair).
-  - `loadout/`: the bound gun: `AbyssListenerInventoryRules` (pure binding matrix, holder entitlement, round-start
-    gate), `AbyssListenerGunSweep` (pure reconcile decisions, staggered cadence, full-hotbar displacement slot), and
-    `AbyssListenerLoadout` (grants, entitlement sweep, death/reset/finalize removal).
+  - `gun/`: the Shriek Gun: `ShriekGunItem` (the `Item#use` entry), `ShriekGunService` (server fire mode, match
+    beam, hit, presentation, record, and the off-match presentation shot), `ShriekGunRules` (pure fire mode, ally/enemy
+    hit plan, sync-capped knockback vector, particle spacing, Vendetta rule), and `ShriekGunTargeting` (side-neutral
+    beam geometry shared by the server hit and the client crosshair).
+  - `loadout/`: the bound gun: `AbyssListenerInventoryRules` (pure binding matrix, holder entitlement, free-holder
+    drop return, round-start gate), `AbyssListenerGunSweep` (participant-only sweep gate, pure reconcile decisions,
+    staggered cadence, full-hotbar displacement slot), and `AbyssListenerLoadout` (grants, entitlement sweep,
+    free-holder drop return, death/reset/finalize removal).
   - `zone/`: the Deep Dark Spore Flask (item, thrown entity, and its registration in `AbyssListenerEntities`); the Deep
     Dark Zone terrain: flood-fill shape and landing cell (`DeepDarkZoneShape`), eligibility and palette
     (`DeepDarkZoneEligibility`), timeline (`DeepDarkZoneSchedule`), in-memory registry (`DeepDarkZoneState`), section
@@ -347,6 +348,9 @@ Current build baseline:
   double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, the Abyss Listener Shriek
   Gun, and the Black Raven Feather Blade (whose sight and feet-distance reach are taken at the rewound hit);
   client crosshair hints keep current boxes.
+- `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
+  Shriek Gun, SparkStrength M67). `mode` gives a living participant of an `ACTIVE` round a match shot, refuses a dead
+  one, and gives anyone else a presentation-only shot; `isMatchParticipant` scopes the bound-item rules.
 
 ## Runtime Invariants
 
@@ -620,7 +624,9 @@ a clear line to a point of the device, else only through the 25° / 15-point-sam
 (`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
 nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
 SparkStrength M67, Potion Gunner shell) break every device in a sphere with line of sight and still kill players as
-before. Sources with no hit or damage geometry never
+before. An M67 breaks devices only when the round is ACTIVE and its thrower holds a match role
+(`compat/SparkStrengthM67Compat`, the `util/OffMatchUse` rule); SparkStrength's presentation-only M67s
+(non-participants, or thrown during STARTING or STOPPING) break nothing. Sources with no hit or damage geometry never
 break a device: the firecracker (sound only), the Bomber timed bomb (kills only its holder), and the
 poison gas cloud (status effect). A breaker other than the owner is marked for the owner only (10 s,
 newest replaces oldest) when the owner holds the tablet; recalls, depletion, and Taotie swallows
@@ -1166,10 +1172,13 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
   `WitchSkillUseResult.success(SHRIEK_COOLDOWN_TICKS)` (60 s), so the shared cooldown starts even with nobody in range.
   The caster is never told how many were hit.
 - **Shriek Gun.** `sparkwitch:shriek_gun` is a plain `Item#use` hitscan on the Taser template, hidden in hand through
-  `NoellesHiddenEquipment` and never in `wathe:guns`. The client only swings and recoils. The server fires only in a
-  running game for a living, non-spectator, non-Wraith holder whose role is exactly the Abyss Listener, while the gun
-  is off cooldown and SparkTraits `blocksWeaponAction` is false; it then writes the vanilla
-  `ItemCooldownManager.set(gun, 600)` whether or not anything was hit (Fast Hands applies).
+  `NoellesHiddenEquipment` and never in `wathe:guns`. The client only swings and recoils. Any holder may fire and the
+  role is never read (owner rule 2026-10-04, `util/OffMatchUse`). In every mode a spectator, a gun on cooldown, or a
+  SparkTraits `blocksWeaponAction` holder is refused. A living, non-spectator, non-Wraith participant of an ACTIVE
+  round fires the match shot below; a dead participant or active Wraith is refused. Everyone else (no match,
+  STARTING/STOPPING, a lobby player during an ACTIVE match) fires a presentation shot: the `SONIC_BOOM` beam cut only
+  at blocks, plus the fire sound; there is no target pick, Seeker seam, push, effect, fall record, or replay line.
+  Every fired shot then writes the vanilla `ItemCooldownManager.set(gun, 600)`, hit or miss (Fast Hands applies).
   - The beam is one COLLIDER `world.raycast` from the eye over 12 blocks (closed doors stay solid through
     `RaycastShapeScope`). Candidates are filtered before geometry by
     `AbyssSuppression.canAffect(shooter, c, sparkwitch:abyss_listener_gun)` plus Vendetta exact-pair isolation (allies
@@ -1208,10 +1217,12 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     moves into the slot a removed stray gun vacated (Time Stealer rule; a gun parked in SparkFactionAPI 0.1.5.13+'s
     visible row 27-35 is a stray), else an empty main slot, else an empty offhand, preferring the shown second row
     over hidden storage; with no room at all nothing is placed and the next sweep retries.
-  - The holder entitlement is playing, alive, and exactly the Abyss Listener. A staggered 20-tick sweep keeps exactly
-    one gun for an entitled holder (the first hotbar copy, else a gun mid-move on the cursor, else a fresh hotbar grant
-    that leaves the per-Item cooldown untouched), removes duplicates and strays (hidden slots, offhand, crafting grid,
-    containers), and strips every non-entitled holder (role change, Wraith transition, death). `KillPlayer.AFTER`
+  - The holder entitlement (`mayHold`) is playing, alive, and exactly the Abyss Listener. A staggered 20-tick sweep
+    reconciles only match participants (`OffMatchUse.isMatchParticipant`: a role in a running ACTIVE/STOPPING match).
+    It keeps exactly one gun for an entitled holder (the first hotbar copy, else a gun mid-move on the cursor, else a
+    fresh hotbar grant that leaves the per-Item cooldown untouched), removes duplicates and strays (hidden slots,
+    offhand, crafting grid, containers), and strips every other participant (role change, Wraith transition, death).
+    Everyone else is a free holder whose copy the sweep never strips, grants, or deduplicates. `KillPlayer.AFTER`
     removes the gun unless `WitchFactorTraitsBridge.isDeathIntercepted`; `ResetPlayer` and `ON_FINISH_FINALIZE` remove
     it. There is no creative exemption.
   - The binding matrix (`AbyssListenerInventoryRules`) is copied from, never shared with, the Time Stealer rules. Its
@@ -1221,9 +1232,12 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     `GameFunctionsAbyssListenerGunDropMixin` (`shouldDropOnDeath` → false), and
     `DecoratedPotBlockAbyssListenerGunMixin` (`onUseWithItem` → `SKIP_DEFAULT_BLOCK_INTERACTION`, so a pot never
     takes the gun and the gun still fires). A `UseEntityCallback` veto in `AbyssListenerLoadout` refuses item frames,
-    armor stands and allays, which would otherwise take the gun and let the sweep mint another. A drop path that removed the stack before
-    `dropItem` (cursor drop on close, full-inventory offer) loses it, and the next sweep restores it with its cooldown
-    intact.
+    armor stands and allays, which would otherwise take the gun and let the sweep mint another. These guards hold for
+    every holder. A drop path that removed the stack before `dropItem` (cursor drop on close, full-inventory offer)
+    loses it; for a participant the next sweep restores the Abyss Listener's gun with its cooldown intact. A living free
+    holder gets a closing screen's cursor gun straight back (`AbyssListenerLoadout.keepRefusedDrop`, placed like a sweep
+    grant; with every slot full the displaced hotbar item drops instead), and no other refused drop is handed back, so
+    `/give`'s pickup-animation copy never duplicates the gun.
 - **Deep Dark Zone terrain.** The zone is a client-only overlay: the server world is never written.
   - A Deep Dark Spore Flask (item and thrown entity) is thrown only in an ACTIVE round by a living, non-creative,
     non-Wraith participant who passes `SparkTraitsKillerBridge.blocksWeaponAction`; it has no cooldown, and any holder
@@ -1325,16 +1339,21 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
 - **Loaded shell.** The single loaded shell is the stable CUSTOM_DATA key `LoadedShell` on the launcher
   (`PotionLauncherLoad`). Loading is inventory-only: `PotionLauncherItem.onClicked` takes one shell from the cursor
   on a right-click, refuses a second shell, and unloads onto an empty cursor. Wathe's inventory exposes only the
-  hotbar, so both items must sit there.
+  hotbar, so both items must sit there. Any free holder or living participant may load, whatever the role; a dead
+  participant may not (`PotionGunnerLoadoutService.mayLoad`, synced state on both sides).
 - **Bound items.** The launcher and shells follow the Time Stealer bound-item rules (`PotionGunnerInventoryRules`
   plus the five `mixin/potiongunner/` HEAD injects, with no creative exemption). They are never dropped, never an
   item entity, never in a container or the offhand, never handed to a world target, and never a death drop: a
   `UseEntityCallback` veto in `PotionGunnerLifecycle` refuses item frames, armor stands and allays, and
   `DecoratedPotBlockPotionGunnerItemMixin` makes a decorated pot answer `SKIP_DEFAULT_BLOCK_INTERACTION`, so the
-  sweep never mints a second launcher. Only a living, playing, exact Potion
-  Gunner holds them; everyone else is stripped on role change, terminal death (not a SparkTraits-intercepted one),
-  reset, and finalize. A staggered 20-tick sweep also re-grants a living gunner exactly one launcher. Both items
+  sweep never mints a second launcher. In a running match only a living, playing, exact Potion Gunner holds them;
+  every other participant is stripped on role change, terminal death (not a SparkTraits-intercepted one), reset,
+  finalize, and by a staggered 20-tick sweep, which also re-grants a living gunner exactly one launcher. Both items
   stay visible in hand; the launcher is outside `wathe:guns`.
+  - Free holders (owner rule 2026-10-04): the sweep binds only match participants
+    (`OffMatchUse.isMatchParticipant`), so it never strips, grants, deduplicates or surfaces anyone else's copies,
+    and a living free holder's refused drop goes back into the inventory like the gunner's. The role-change, reset
+    and finalize strips still apply to everyone (Wathe's finalize clears every inventory anyway).
   - A holder's shell is never deleted. A removed duplicate launcher's shell loads the kept launcher or returns
     hotbar-first (the shown second row with SparkFactionAPI 0.1.5.13+, then a hidden slot, else the empty cursor, when
     the hotbar is full); a copy whose shell has nowhere to go stays put. A re-inserted drop keeps any remainder in its
@@ -1351,9 +1370,14 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   until the key is physically released. So a key held through a slot switch or past the end of a stun, Seeker or
   Kidnapper key lock never fires (`client/potiongunner/PotionFireInput`, `PotionFireLatch`). The client's aim is
   trusted for direction only (Death Ray precedent); there is no server aim cone.
-  - The server re-checks, in order: the round is exactly `ACTIVE` (never `STOPPING`, once the winner is decided),
-    alive and playing, the exact role, launcher in the main hand, not a spectator, not stunned, no Seeker session,
-    no SparkTraits weapon block, the 20-tick launcher cooldown, and a loaded shell.
+  - Use never checks the role (owner rule 2026-10-04, `util/OffMatchUse`). The server re-checks, in order: the
+    shot's mode (a dead participant of an `ACTIVE` round is refused), launcher in the main hand, not a spectator, not
+    stunned, no Seeker session, no SparkTraits weapon block, the 20-tick launcher cooldown, and a loaded shell.
+  - A living participant of a round that is exactly `ACTIVE` fires a match shot, whatever its role (the sweep strips
+    a non-gunner's launcher). Anyone else (no match, `STARTING`, `STOPPING` once the winner is decided, or a lobby
+    player during an `ACTIVE` match) fires a presentation shot: it consumes the shell, cools down and sounds like
+    any shot, but its backblast and burst play only sound and particles, it breaks no Seeker device, and it records
+    no replay line.
   - The payload is also on the stun and Seeker-session deny lists.
 - **Flight.** The shell is a role-owned `ThrownItemEntity`, never Wathe's grenade, and it is never saved. While the
   path length from its synced launch point at the start of a tick is below 50 blocks, it moves straight at
@@ -1367,9 +1391,11 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
     it. On a flat tick the shell keeps the gate's exit velocity (`onDeflected`) and re-bases its launch point behind the
     new position (`PotionShellFlight.flatPathAfterTick`), so the path length carries over the jump: still 20 flat ticks
     in total, and the lifetime is unchanged. A Seeker device in the same tick's path still bursts it first.
-  - Once the round leaves `ACTIVE`, a shell still in flight is discarded without exploding, and detonation also
-    requires `ACTIVE`, so no kill, gold or bounty lands after the result. Finalize discards any shell left.
-- **Blast.** It uses the grenade presentation. The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
+  - Once the round leaves `ACTIVE`, a match shell still in flight is discarded without exploding, and its
+    detonation also requires `ACTIVE`, so no kill, gold or bounty lands after the result. A presentation shell flies
+    the same, ignores the round status and skips the Seeker sweep. Finalize discards any shell left.
+- **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect,
+  Judge attribution or reward). The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
   body overlapping vertically, plus line of sight. It does not catch spectators, Wathe-dead players, or SparkTraits
   Last Escape players. Falloff comes in rings by horizontal Chebyshev distance (`PotionBlastRings`: 5 → 100/67/33%,
   7 → 100/75/50/25%, 3 → 100/50%).
@@ -1391,8 +1417,9 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
     while a player holds an owned burn window (`PotionShellBurn`, server-only, never saved).
   - Kill bounties follow the normal faction rules; an ally kill still pays the SparkFactionAPI direct-kill reward
     (owner decision).
-- **Backblast.** Every launched shot also makes one ordinary, non-forced kill attempt with `sparkwitch:potion_backblast`
-  on the nearest player in a 4-block lane straight behind the gunner. The lane follows the shot's yaw only: it runs
+- **Backblast.** Every launched match shot also makes one ordinary, non-forced kill attempt with
+  `sparkwitch:potion_backblast` on the nearest player in a 4-block lane straight behind the gunner; a presentation
+  shot vents only the flame and sound. The lane follows the shot's yaw only: it runs
   horizontally from the eye whatever the pitch (half-width 0.5, clipped at the first block or door, line of sight),
   and only a player whose box centre lies behind the gunner counts. Any faction is hit, never the gunner, and never a
   vetoed or Last Escape player. The kill runs inside `JudgeKillAttribution.runWith` for the gunner. Prophecy group:

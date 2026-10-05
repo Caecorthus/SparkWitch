@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.witch.abysslistener.loadout;
 
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.gun.ShriekGunItem;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.doctor4t.wathe.api.Role;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DecoratedPotBlock;
@@ -20,10 +21,13 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Binding rules for the Shriek Gun, used by the role-owned guard mixins in {@code mixin/abysslistener/}: the gun never
  * becomes an item entity, never leaves its holder's own inventory slots, and never drops on death. The gun is
- * identified by class, so the checks stay safe before registry lookups. Copied from, never shared with, the Time
- * Stealer rules (house convention: duplicate bound-item rules per role). There is no creative exemption.
+ * identified by class, so the checks stay safe before registry lookups. These guards hold for every holder; only the
+ * entitlement sweep is limited to match participants, so a free holder keeps its copy ({@link OffMatchUse}). Copied
+ * from, never shared with, the Time Stealer rules (house convention: duplicate bound-item rules per role). There is no
+ * creative exemption.
  * 啸音铳的绑定规则，供 {@code mixin/abysslistener/} 中本职业自有的防护 mixin 使用：枪永远不会变成物品实体、
- * 不会离开持有者自身的背包栏位、死亡时也不会掉落。按物品类识别，因此不依赖注册表获取。
+ * 不会离开持有者自身的背包栏位、死亡时也不会掉落。按物品类识别，因此不依赖注册表获取。这些防护对每个持有者都生效；
+ * 只有资格清扫限于对局参与者，因此自由持有者会保留其枪（{@link OffMatchUse}）。
  * 复制而非共享窃时者的规则（约定：绑定物品规则按职业各自复制）。没有创造模式豁免。
  */
 public final class AbyssListenerInventoryRules {
@@ -37,6 +41,19 @@ public final class AbyssListenerInventoryRules {
     /** Refuses every drop of the gun into an item entity (Q, Ctrl+Q, any server drop path). / 拒绝把枪丢成掉落物。 */
     public static boolean blocksDrop(@Nullable ItemStack stack) {
         return isGun(stack);
+    }
+
+    /**
+     * Whether a refused drop is handed straight back ({@link AbyssListenerLoadout#keepRefusedDrop}): only to a living
+     * free holder (not a match participant, see {@link OffMatchUse#isMatchParticipant}) and only for the cursor stack a
+     * closing screen returns, which the caller clears afterwards. No sweep restores a free holder's copy; a
+     * participant's copy stays the sweep's job (re-granted to the Abyss Listener, stripped from everyone else).
+     * 被拒绝的丢弃是否直接放回（{@link AbyssListenerLoadout#keepRefusedDrop}）：只针对存活的自由持有者（非对局参与者，
+     * 见 {@link OffMatchUse#isMatchParticipant}），且只针对关闭界面时退回、随后会被调用方清空的光标物品。没有清扫会补回
+     * 自由持有者的枪；参与者的枪仍由清扫处理（补发给聆渊者，从其他人身上收走）。
+     */
+    public static boolean keepsRefusedDrop(boolean alive, boolean matchParticipant, boolean cursorReturn) {
+        return alive && !matchParticipant && cursorReturn;
     }
 
     /** Excludes the gun from Wathe's death-drop loop. / 将枪排除出 Wathe 死亡掉落流程。 */
@@ -74,9 +91,11 @@ public final class AbyssListenerInventoryRules {
     }
 
     /**
-     * Holder entitlement: playing (round running, has a role), alive, and exactly the Abyss Listener. Every other
-     * player, including a former Abyss Listener after a role change or Wraith transition, loses the gun.
-     * 持有资格：正在对局中（回合进行、有身份）、存活，且身份恰好是聆渊者。其他所有玩家（包括换职业或转为亡灵的前聆渊者）都会失去枪。
+     * Holder entitlement: playing (round running, has a role), alive, and exactly the Abyss Listener. Every other match
+     * participant, including a former Abyss Listener after a role change or Wraith transition, loses the gun; free
+     * holders are never swept ({@link AbyssListenerGunSweep#sweeps}).
+     * 持有资格：正在对局中（回合进行、有身份）、存活，且身份恰好是聆渊者。其他所有对局参与者（包括换职业或转为亡灵的
+     * 前聆渊者）都会失去枪；自由持有者从不被清扫（{@link AbyssListenerGunSweep#sweeps}）。
      */
     public static boolean isEntitled(boolean playingAndAlive, @Nullable Role role) {
         return playingAndAlive && AbyssListenerRules.isAbyssListener(role);

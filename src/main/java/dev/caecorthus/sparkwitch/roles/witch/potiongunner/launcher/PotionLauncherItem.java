@@ -33,10 +33,12 @@ import java.util.Optional;
 
 /**
  * The Potion Gunner's bound anti-tank launcher. Holding use aims down the scope; loading happens in the inventory.
- * Firing is a separate C2S intent handled by {@link PotionLauncherFireService}. It is deliberately outside
+ * Firing is a separate C2S intent handled by {@link PotionLauncherFireService}. Use is not bound to the role: anyone
+ * holding it may scope, load and fire (owner rule 2026-10-04, {@code OffMatchUse}). It is deliberately outside
  * {@code wathe:guns}, so Wathe gun punishment, gun pickup, and gun packets never apply.
  * 药炮手绑定的反坦克炮筒。按住使用键开镜；装填在背包中完成。发射是独立的 C2S 意图，由
- * {@link PotionLauncherFireService} 处理。刻意不加入 {@code wathe:guns}，因此 Wathe 的误杀惩罚、拾枪与开枪数据包都不适用。
+ * {@link PotionLauncherFireService} 处理。使用不绑定职业：任何持有者都能开镜、装填与发射（所有者规则 2026-10-04，
+ * {@code OffMatchUse}）。刻意不加入 {@code wathe:guns}，因此 Wathe 的误杀惩罚、拾枪与开枪数据包都不适用。
  */
 public class PotionLauncherItem extends Item {
     /** Scope hold length: effectively endless, use ends on release. / 开镜持续时间：近乎无限，松开即结束。 */
@@ -56,8 +58,8 @@ public class PotionLauncherItem extends Item {
 
     /**
      * Holding use only starts the scope (the client reads {@code isUsingItem()} for zoom); nothing else happens on
-     * either side. Non-gunners may scope harmlessly. The offhand never scopes, because only the main hand fires.
-     * 按住使用键只会开始开镜（客户端读取 {@code isUsingItem()} 进行缩放）；两端都不做其他事。非药炮手开镜无害。
+     * either side. Any holder may scope. The offhand never scopes, because only the main hand fires.
+     * 按住使用键只会开始开镜（客户端读取 {@code isUsingItem()} 进行缩放）；两端都不做其他事。任何持有者都能开镜。
      * 副手不会开镜，因为只有主手能发射。
      */
     @Override
@@ -103,8 +105,10 @@ public class PotionLauncherItem extends Item {
      * Inventory loading, modelled on the Hunter shotgun: right-click the launcher with a shell on the cursor to load
      * one, or with an empty cursor to unload. Both sides decide through {@link PotionLauncherLoadRules}; the client
      * only predicts whether the click is consumed and the server mutates, so the slot sync corrects any mismatch.
+     * Eligibility never checks the role ({@link PotionGunnerLoadoutService#mayLoad}).
      * 背包装填，参照猎人霰弹枪：光标持炮弹右键炮筒装入一发，空光标右键退弹。两端都经 {@link PotionLauncherLoadRules}
-     * 判定；客户端只预测点击是否被消耗，由服务端修改，栏位同步会纠正任何偏差。
+     * 判定；客户端只预测点击是否被消耗，由服务端修改，栏位同步会纠正任何偏差。资格判定从不检查职业
+     * （{@link PotionGunnerLoadoutService#mayLoad}）。
      */
     @Override
     public boolean onClicked(ItemStack launcher, ItemStack cursor, Slot slot, ClickType clickType,
@@ -117,7 +121,7 @@ public class PotionLauncherItem extends Item {
                 cursorShell,
                 cursor.isEmpty(),
                 loaded,
-                player.isCreative() || PotionGunnerLoadoutService.mayHold(player),
+                player.isCreative() || PotionGunnerLoadoutService.mayLoad(player),
                 ControlExpertStun.isStunned(player) || SeekerRemoteSessionService.isLocked(player));
         if (player instanceof ServerPlayerEntity serverPlayer) {
             applyOnServer(serverPlayer, action, launcher, cursor, cursorShell, loaded, cursorStackReference);
