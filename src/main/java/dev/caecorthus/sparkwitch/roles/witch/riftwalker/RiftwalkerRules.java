@@ -19,6 +19,8 @@ public final class RiftwalkerRules {
     // --- Rift Gate item, entity and shop entry / 裂隙门物品、实体与商店条目 ---
     public static final Identifier GATE_ITEM_ID = SparkWitch.id("rift_gate");
     public static final Identifier GATE_ENTITY_ID = SparkWitch.id("rift_gate");
+    /** Operator-only Rift Gate Remover (传送门清除工具, owner 2026-10-05). / 管理员专用的传送门清除工具。 */
+    public static final Identifier GATE_REMOVER_ITEM_ID = SparkWitch.id("rift_gate_remover");
     /**
      * Wathe {@code ShopEntry.id()} of the gate entry; prefixed so it never collides with a Grand Witch spell id.
      * 裂隙门商品的 Wathe {@code ShopEntry.id()}；带前缀，避免与大魔女法术 id 冲突。
