@@ -211,8 +211,8 @@ Current build baseline:
   pushing weapon (Fire Poker and Shriek Gun), not only the Fire Poker.
 - `roles/witch/riftwalker/`: Riftwalker (`sparkwitch:riftwalker`, 隙行者) role definition, rules, gate-user
   classification (`RiftGateUser`, `RiftGateUsers`), shared status probes (`RiftwalkerStatusProbes`), special-accomplice
-  pool entry, feature wiring, and shop. Subpackages: `gate/` (Rift Gate item, entity, placement, lifecycle, and the
-  gate registry), `session/` (server-authoritative in-gate sessions, guards, and the occupant affect policy),
+  pool entry, feature wiring, and shop. Subpackages: `gate/` (Rift Gate item, entity, placement, lifecycle, the
+  gate registry, and the operator-only Rift Gate Remover), `session/` (server-authoritative in-gate sessions, guards, and the occupant affect policy),
   `projectile/` (projectiles through gates), `sabbath/` (Witches' Sabbath), `tablet/` (the tablet gate console),
   `swapper/` (the NoellesRoles Swapper crush), and `net/` (payloads and `RiftwalkerNetworking`). Its mixins live in
   `mixin/riftwalker/` and `client/mixin/riftwalker/`; client presentation (gate renderer and outline, in-gate input
@@ -1483,9 +1483,10 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   Expert stun and Seeker session guards also drop `rift_hop` and `rift_gate_close`, never `rift_exit`.
 - **Gates** (`gate/`). `RiftGatePlacementService.tryPlace` (living RAW Riftwalker, ACTIVE round, not
   Kidnapper-controlled, C16) floor-snaps at the feet facing the yaw; the 1×2 standing cell in front
-  (`RiftGatePlacementRules.frontCell`) must be block-free and inside the play area, so no gate faces a wall as a dead
-  exit (C15); ≥ 3.0 from other gates, clear of Seeker devices and `RiftGateNeighbourRules`. A refusal is free; a
-  placement starts a 1 s item cooldown (N-2). Bought gates merge into the first hotbar gate stack (F-5).
+  (`RiftGatePlacementRules.frontCell`) must be block-free, so no gate faces a wall as a dead exit (C15); the gate's
+  visibility centre stays below Wathe's moving-train cull line; ≥ 3.0 from other gates, clear of Seeker devices and
+  `RiftGateNeighbourRules`. Of the Wathe play area only its fall line counts, base ≥ `playArea.minY`
+  (`RiftGatePlacementRules.aboveFallLine`; owner 2026-10-05: server play areas refused every Harpy Express spot). A refusal is free; a placement starts a 1 s item cooldown (N-2). Bought gates merge into the first hotbar gate stack (F-5).
   `RiftGateEntity` is an unsaved, indestructible, facing-rotated 1×2×0.25 slab; gates are unlimited (D4).
   `RiftGateRegistry` is the only writer: per-round numbers never reused (C9), number order = hop ring, a level-31 chunk
   ticket per gate, `repair` respawns a lost entity, `close` ends in `RiftSessionService.onGateRemoved`.
@@ -1504,7 +1505,8 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   force-exits at the CURRENT gate on stay expiry (C2) or gate close (C3). A "moved too quickly" reset issued during the
   occupant's own move packet is snapped back to the anchor, never BODY_MOVED (B-1, `RiftSessionNetworkHandlerMixin`).
   Exit cells must be reachable from the gate by a block-free sweep of the standing body (B-2,
-  `RiftExitSearch.sweptBody`; the pre-entry position is exempt). Hops wrap (`RiftHopRing`, 10-tick throttle, D11).
+  `RiftExitSearch.sweptBody`; the pre-entry position is exempt); of the play area they keep only Wathe's fall line,
+  feet ≥ `playArea.minY` (`RiftExitSafety.insideBounds`, matching the placement rule above). Hops wrap (`RiftHopRing`, 10-tick throttle, D11).
 - **Session guards.** `mixin/riftwalker/RiftSessionPayloadGuardMixin` drops `RiftSessionRules.BLOCKED_WHILE_INSIDE`;
   `RiftSessionGuards` fails use/attack callbacks and the shop; `RiftSessionNetworkHandlerMixin` and
   `RiftSessionPlayerMixin` close spectator teleport and possession; `voice/SparkWitchVoiceChatPlugin` mutes occupants.
@@ -1576,6 +1578,15 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   gets `client/riftwalker/tablet/RiftGateConsoleOpener` (a Seeker-opener copy; 「魔女网络」 returns to SparkStrength).
   `tablet/RiftGateConsoleService` re-validates every request, lists fixed `#n`, distance, direction and occupant names
   (D16), and closes through `RiftGateRegistry.close(CONSOLE)` after two clicks (`RiftGateCloseConfirm`); no close-all.
+- **Rift Gate Remover** (`sparkwitch:rift_gate_remover`, 传送门清除工具, owner 2026-10-05). An operator tool listed only
+  in vanilla's Operator Utilities tab (`SparkWitchItemGroups.operatorOnlyItems`, kept out of the SparkWitch tab).
+  `gate/RiftGateRemoverService` checks `SparkWitchPermissions.ITEM_RIFT_GATE_REMOVER` (op level 2 by default), picks
+  the gate on the look ray within 24 blocks (stopped by block outlines), and closes it through
+  `RiftGateRegistry.close(ADMIN)`: occupants are released at the gate with no re-entry cooldown, also when a blocked
+  first release is retried by the tick (`RiftSessionComponent.pendingCloseReason`, server-only). Works in any round
+  state, for any role. `RiftGateEntity.interact` passes for a hand holding it, and `RiftGateCrosshairClient` keeps gates
+  targetable while it is ready in the clicking hand (`RiftGateRemoverItem.isReadyIn`: main hand, or off-hand behind an
+  empty main hand), so the click reaches the tool, not a gate entry or a block behind the gate.
 - **Swapper crush** (D13, C4, C7, C8). `mixin/riftwalker/RiftSwapperCrushMixin` (HEAD on NR's Swapper handler,
   `require = 1`, priority 1100 so SFA and SparkTraits guards decide first) calls `swapper/RiftSwapperCrushService`: if
   either target is inside a gate the swap is cancelled and the Swapper is killed on a safe cell in front of the gate
