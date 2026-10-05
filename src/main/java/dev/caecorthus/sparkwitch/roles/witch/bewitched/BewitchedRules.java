@@ -68,20 +68,26 @@ public final class BewitchedRules {
      * Pure queue decision (C3). Offline holders stay queued. A promotion needs an ACTIVE round (never once the win is
      * decided and Wathe is STOPPING), a living participant whose real role is still the Bewitched and a full task
      * count; it is deferred while the player cannot safely change role: inside a Rift Gate (an alive spectator held by
-     * the session) or swallowed by a NoellesRoles Taotie.
+     * the session), swallowed by a NoellesRoles Taotie, hijacked by a Kidnapper, or afflicted by a Hunter trap (root,
+     * fracture or trap poison). The Kidnapper and Hunter {@code RoleAssigned} listeners reset that victim-side state
+     * for any role change, so promoting then would end the hijack or heal the injury and drop the Hunter's poison
+     * credit. Each of these states ends on its own.
      * 纯队列判定（C3）。离线者保留在队列中。晋升要求对局处于 ACTIVE（胜负已定、Wathe 进入 STOPPING 后不再晋升）、参与且存活、
-     * 真实身份仍为魔化使且任务数已满；玩家无法安全变更身份时延后：位于裂隙门内（被会话托管的存活旁观者）或被 NoellesRoles
-     * 饕餮吞下。
+     * 真实身份仍为魔化使且任务数已满；玩家无法安全变更身份时延后：位于裂隙门内（被会话托管的存活旁观者）、被 NoellesRoles
+     * 饕餮吞下、被绑架者劫持，或受猎人陷阱影响（定身、骨折或陷阱毒）。绑架者与猎人的 {@code RoleAssigned} 监听器会在任何
+     * 身份变更时重置受害者一侧的状态，此时晋升会提前结束劫持或治愈伤势并丢失猎人的毒杀归属。这些状态都会自行结束。
      */
     public static QueueAction queueAction(boolean online, boolean roundActive, boolean playingAndAlive,
                                           boolean bewitched, int promotionTasks, boolean insideRiftGate,
-                                          boolean swallowed) {
+                                          boolean swallowed, boolean kidnapperControlled, boolean hunterAfflicted) {
         if (!online) {
             return QueueAction.DEFER;
         }
         if (!roundActive || !playingAndAlive || !bewitched || promotionTasks < PROMOTION_TASKS) {
             return QueueAction.DROP;
         }
-        return insideRiftGate || swallowed ? QueueAction.DEFER : QueueAction.PROMOTE;
+        return insideRiftGate || swallowed || kidnapperControlled || hunterAfflicted
+                ? QueueAction.DEFER
+                : QueueAction.PROMOTE;
     }
 }
