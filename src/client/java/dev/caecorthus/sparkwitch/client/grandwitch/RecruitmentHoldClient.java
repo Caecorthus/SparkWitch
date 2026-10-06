@@ -1,8 +1,10 @@
 package dev.caecorthus.sparkwitch.client.grandwitch;
 
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHoldRules;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -51,11 +53,25 @@ public final class RecruitmentHoldClient {
     }
 
     /**
-     * {@link #isHiddenFrom} for the local player, the viewer of every instinct outline.
-     * 以本地玩家（所有本能描边的观察者）为观察者的 {@link #isHiddenFrom}。
+     * Whether {@code viewer} gets no outline of the held recruit {@code candidate}: as {@link #isHiddenFrom}, except that
+     * a witch-faction viewer's instinct still sees through (owner 2026-10-06). The viewer's own synced role decides.
+     * {@code viewer} 是否看不到被定身新共犯 {@code candidate} 的描边：与 {@link #isHiddenFrom} 相同，但魔女阵营观察者的
+     * 本能仍可透视（所有者 2026-10-06）。以观察者自身同步的身份判定。
      */
-    public static boolean isHiddenFromLocalViewer(@Nullable Entity candidate) {
+    public static boolean isOutlineHiddenFrom(@Nullable PlayerEntity viewer, @Nullable Entity candidate) {
+        return viewer != null && candidate instanceof PlayerEntity target
+                && SparkWitchServerConnection.isConfirmedServer()
+                && RecruitmentHoldRules.hidesOutline(RecruitmentHold.isHeld(target), target == viewer,
+                        viewer.isSpectator(),
+                        WitchFactionRules.isWitchFactionMember(GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer)));
+    }
+
+    /**
+     * {@link #isOutlineHiddenFrom} for the local player, the viewer of every instinct outline.
+     * 以本地玩家（所有本能描边的观察者）为观察者的 {@link #isOutlineHiddenFrom}。
+     */
+    public static boolean isOutlineHiddenFromLocalViewer(@Nullable Entity candidate) {
         MinecraftClient client = MinecraftClient.getInstance();
-        return client != null && isHiddenFrom(client.player, candidate);
+        return client != null && isOutlineHiddenFrom(client.player, candidate);
     }
 }
