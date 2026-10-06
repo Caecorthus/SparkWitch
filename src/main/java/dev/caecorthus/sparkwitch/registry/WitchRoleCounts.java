@@ -7,7 +7,7 @@ package dev.caecorthus.sparkwitch.registry;
 public final class WitchRoleCounts {
     public static final int WITCH_THRESHOLD = 18;
     public static final int APPRENTICE_WITCH_THRESHOLD = 24;
-    public static final int ACCOMPLICE_INTERVAL = 6;
+    public static final int BEWITCHED_INTERVAL = 6;
     public static final int APPRENTICE_DIVIDEND = 8;
 
     private WitchRoleCounts() {
@@ -16,7 +16,7 @@ public final class WitchRoleCounts {
     public static Counts forPlayerCount(int totalPlayers) {
         return new Counts(
                 grandWitches(totalPlayers),
-                accomplices(totalPlayers),
+                bewitched(totalPlayers),
                 apprenticeWitches(totalPlayers)
         );
     }
@@ -25,11 +25,14 @@ public final class WitchRoleCounts {
         return totalPlayers >= WITCH_THRESHOLD ? 1 : 0;
     }
 
-    public static int accomplices(int totalPlayers) {
-        if (totalPlayers < WITCH_THRESHOLD) {
-            return 0;
-        }
-        return Math.floorDiv(totalPlayers - WITCH_THRESHOLD, ACCOMPLICE_INTERVAL);
+    /**
+     * Bewitched dealt in a Grand Witch round (owner, 2026-10-06): fewer than 24 players give none (an 18-23 round has
+     * the Grand Witch alone), 24-29 give 1, then +1 per further 6 (30-35 → 2, 36-41 → 3, ...).
+     * 有大魔女的对局发放的魔化使数量（所有者 2026-10-06）：不足 24 人为 0（18-23 人只有大魔女），24-29 人为 1，此后每多 6 人
+     * 加 1（30-35 人为 2，36-41 人为 3，依此类推）。
+     */
+    public static int bewitched(int totalPlayers) {
+        return totalPlayers < WITCH_THRESHOLD ? 0 : (totalPlayers - WITCH_THRESHOLD) / BEWITCHED_INTERVAL;
     }
 
     public static int apprenticeWitches(int totalPlayers) {
@@ -39,6 +42,6 @@ public final class WitchRoleCounts {
         return Math.floorDiv(totalPlayers, APPRENTICE_DIVIDEND);
     }
 
-    public record Counts(int grandWitches, int accomplices, int apprenticeWitches) {
+    public record Counts(int grandWitches, int bewitched, int apprenticeWitches) {
     }
 }

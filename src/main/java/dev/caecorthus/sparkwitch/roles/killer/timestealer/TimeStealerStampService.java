@@ -166,12 +166,11 @@ public final class TimeStealerStampService {
      * start the match id is not bound yet (Wathe starts the record after RoleAssigned), so every round-start
      * assignment strips; any other role strips and zeroes the retry counter. Wathe fires RoleAssigned after the role is
      * stored and the component binds every player's match, so the previous role is not observable here; a mid-match
-     * first acquisition keeps only stamps that the non-holder sweep had not yet removed (today only round start and
-     * Grand Witch recruitment fire RoleAssigned, and neither reaches the keep branch).
+     * first acquisition keeps only stamps that the non-holder sweep had not yet removed.
      * 仅当在同一个已绑定的对局内再次分配窃时者职业时保留邮票（N1）。开局时对局 id 尚未绑定（Wathe 在 RoleAssigned
      * 之后才开始记录），因此所有开局分配都会清空；其他任何职业都会清空邮票并将重试计数归零。Wathe 在写入职业之后才
      * 触发 RoleAssigned，且组件为所有玩家绑定对局，因此此处无法得知先前职业；对局中首次获得该职业时，只会保留非持有者
-     * 清扫尚未移除的邮票（目前只有开局与大魔女招募会触发 RoleAssigned，二者都不会进入保留分支）。
+     * 清扫尚未移除的邮票。
      */
     public static void onRoleAssigned(ServerPlayerEntity player, @Nullable Role role) {
         if (player == null) {

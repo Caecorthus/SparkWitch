@@ -73,8 +73,8 @@ public final class SeekerLifecycleService {
             }
         });
 
-        // Any role change away from Seeker drops the session, devices and state; recruitment removes items only.
-        // 任何从搜寻者转出的职业变更都会清除会话、设备与状态；招募只移除物品，不移除实体。
+        // Any role change away from Seeker drops the session, devices and state.
+        // 任何从搜寻者转出的职业变更都会清除会话、设备与状态。
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer && !SeekerRules.isSeeker(role)) {
                 cleanUp(serverPlayer, SeekerExitReason.ROLE_CHANGED);

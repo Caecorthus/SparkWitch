@@ -38,12 +38,23 @@ public final class WitchFactionRules {
     }
 
     /**
-     * The plain Accomplice or any registered special accomplice. Use it for "basic accomplice" rules; keep
-     * {@link #isAccomplice} exact for rules owned by the plain Accomplice itself (such as its shop).
-     * 普通共犯或任一已注册的特殊共犯。"共犯基础功能"规则用它；普通共犯自有的规则（如其商店）仍用精确的 isAccomplice。
+     * Exactly the Bewitched (魔化使), the not-yet-promoted accomplice dealt at round start. It is accomplice-like (C2)
+     * but never an {@link AccompliceVariants} entry, so it is never rolled.
+     * 恰为魔化使，即开局发放、尚未晋升的共犯。它属于共犯类（C2），但从不是 {@link AccompliceVariants} 条目，因此永远不会被抽到。
+     */
+    public static boolean isBewitched(Role role) {
+        return role != null && role == SparkWitchRoles.bewitched();
+    }
+
+    /**
+     * The plain Accomplice, any registered special accomplice, or the Bewitched (C2: it shares every basic accomplice
+     * rule before its promotion). Use it for "basic accomplice" rules; keep {@link #isAccomplice} exact for rules owned
+     * by the plain Accomplice itself (such as its shop).
+     * 普通共犯、任一已注册的特殊共犯或魔化使（C2：晋升前即共享所有共犯基础规则）。"共犯基础功能"规则用它；普通共犯自有的
+     * 规则（如其商店）仍用精确的 isAccomplice。
      */
     public static boolean isAccompliceLike(Role role) {
-        return isAccomplice(role) || AccompliceVariants.isVariant(role);
+        return isAccomplice(role) || AccompliceVariants.isVariant(role) || isBewitched(role);
     }
 
     /**
@@ -65,9 +76,9 @@ public final class WitchFactionRules {
     }
 
     /**
-     * Grand Witch, any accomplice (plain or special) and the promoted Curser. Win counts, blackout, Fear/Obscure
-     * immunity, the cohort label and Curser visibility all read this.
-     * 大魔女、任一共犯（普通或特殊）与晋升的诅咒者。胜利计数、停电、恐惧/遮蔽免疫、同伙标签和诅咒者可见性都读取它。
+     * Grand Witch, any accomplice (plain, special or Bewitched) and the promoted Curser. Win counts, blackout,
+     * Fear/Obscure immunity, the cohort label and Curser visibility all read this.
+     * 大魔女、任一共犯（普通、特殊或魔化使）与晋升的诅咒者。胜利计数、停电、恐惧/遮蔽免疫、同伙标签和诅咒者可见性都读取它。
      */
     public static boolean isWitchFactionMember(Role role) {
         return role != null && (role == SparkWitchRoles.grandWitch()
@@ -159,9 +170,10 @@ public final class WitchFactionRules {
     }
 
     /**
-     * Witch instinct colors. The Grand Witch and every accomplice see each accomplice (plain or special) in that
-     * target's own role color, so the Grand Witch can tell which special accomplice she recruited.
-     * 魔女本能颜色。大魔女和所有共犯都以目标自身的职业颜色看到每个共犯（普通或特殊），因此大魔女能分辨招到的是哪种特殊共犯。
+     * Witch instinct colors. The Grand Witch and every accomplice see each accomplice (plain, special or Bewitched) in
+     * that target's own role color, so the Grand Witch can tell a Bewitched from each promoted special accomplice.
+     * 魔女本能颜色。大魔女和所有共犯都以目标自身的职业颜色看到每个共犯（普通、特殊或魔化使），因此大魔女能分辨魔化使与
+     * 晋升后的各种特殊共犯。
      */
     public static OptionalInt instinctColor(Role viewerRole, Role targetRole) {
         if (isGrandWitch(viewerRole)) {

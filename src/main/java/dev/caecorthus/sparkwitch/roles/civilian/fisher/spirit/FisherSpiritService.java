@@ -51,8 +51,8 @@ public final class FisherSpiritService {
             }
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> end(handler.player, false));
-        // No role-change listener: transferred fish remain valid across recruitment/other role changes.
-        // 不监听职业变化：转交的鱼在招募及其他职业变化后仍然有效。
+        // No role-change listener: transferred fish remain valid across role changes.
+        // 不监听职业变化：转交的鱼在职业变化后仍然有效。
     }
 
     /** Server only. Starts (or restarts) the 156-tick window; returns whether it started. / 仅服务端。 */
