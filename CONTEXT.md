@@ -1051,6 +1051,34 @@ After the variant hook, `relocate` runs:
 
 The Grand Witch gets the actionbar line `success_named` (recruit name, role name). The recruit's `converted` and
 `converted_as` lines mention the fake corpse.
+
+The recruitment hold lives in `roles/witch/grandwitch/recruitment/hold/`. `RecruitmentHold.apply` runs right after the
+teleport and holds the recruit for 100 ticks at the anchor pose:
+- **Effects.** Invisibility, Blindness and a speed-zeroing Slowness VII, all silent and left to expire.
+- **State.** `sparkwitch:recruitment_hold` holds the counter. It is `NEVER_COPY`, never saved, and synced to every
+  client only at start and at zero.
+- **Anchor.** A recruit who drifts more than 0.5 blocks sideways or upward is sent back with `requestTeleport`.
+- **Input.** The hold reuses the Control Expert stun lock: `ControlExpertStun.isStunned` is true while held. Code that
+  reads `ControlExpertStatusComponent` directly never sees the hold, so no stun HUD appears.
+- **Camera and held items.** `ControlExpertStunMouseMixin` also freezes mouse look, and held items are hidden from
+  non-spectators.
+- **Invulnerability.** `mixin/recruitment/` cancels every Wathe kill (HEAD, priority 1100 like the dormant Fiend,
+  `force` ignored) and all vanilla damage. The exceptions are a disconnect and `/kill`. The default-priority HEAD guards
+  (SFA veto, Saint, Vendetta terminal, Wraith capture) still run first.
+- **End.** The hold ends at zero, on `ResetPlayer`, at finalize, or when the player stops being a
+  `ControlExpertTargeting` participant.
+
+`/sparkwitch:forceAccompliceRole <role> <player> [order]` (`command/ForceAccompliceRoleCommand`, permission
+`sparkwitch.command.forceaccomplicerole`, op 2) pre-decides the Grand Witch's Nth successful recruitment of a round.
+It stores a `ForcedRecruit(player, role)` by order on the overworld `WitchWorldComponent`
+(`component/ForcedRecruitQueue`, NBT `ForcedRecruits`, server-only, never synced):
+- **Role.** `accomplice` or a registered special accomplice.
+- **Order.** Defaults to the next free one above the running round's `getRecruitedCount()`, read from the world whose
+  `GameWorldComponent.isRunning()`, or above 0 between rounds.
+- **Refusals and edits.** An explicit order that has already passed is refused. A special accomplice may be held by
+  only one pending entry. Re-setting a player moves them, and a taken order is replaced.
+- **Lifetime.** Entries survive until `ON_FINISH_FINALIZE`. It clears them through `clearRoundState()`, and also on the
+  overworld store when the round ran in another world.
 After `RoleAssigned`, the transaction writes the converted balance. Then, before the retained-inventory restore, it
 asks the SparkTraits public facade (`replaceTraitsIneligibleForCurrentRole`, through
 `compat/recruitment/RecruitmentTraits`) to drop every trait the recruit role could not have rolled (owner decision
