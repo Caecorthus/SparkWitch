@@ -109,7 +109,7 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         boolean walkieTalkiePacket = isWalkieTalkiePacket(event);
         boolean recipientPlayingAndAlive = GameFunctions.isPlayerPlayingAndAlive(recipient);
         boolean livingWitchFactionRecipient = WitchFactionRules.isGrandWitch(role)
-                || WitchFactionRules.isAccomplice(role);
+                || WitchFactionRules.isAccompliceLike(role);
 
         /*
          * 诅咒者是转身后需要继续和存活魔女阵营协作的特殊身份。
