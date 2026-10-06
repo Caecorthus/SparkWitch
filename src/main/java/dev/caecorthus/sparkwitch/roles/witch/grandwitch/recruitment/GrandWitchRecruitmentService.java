@@ -132,7 +132,8 @@ public final class GrandWitchRecruitmentService {
             // special accomplice, and a throwing roll never leaves the target stripped. "Used" is marked only at commit.
             // 在所有拒绝分支之后、任何破坏性步骤之前只确定一次：被拒绝的招募不会消耗特殊共犯，抽取抛异常也不会让目标
             // 被清空。"已使用"仅在提交时标记。
-            Role recruitRole = recruitRole(world, game, forcedPick ? forced : null);
+            Role recruitRole = recruitRole(world, game, forcedPick ? forced : null,
+                    reservedRoles(forcedStore.getForcedRecruits(), order));
             boolean variant = AccompliceVariants.isVariant(recruitRole);
             // Read before exitOldRole clears the recruit's Shadow Jester pair. / 须在 exitOldRole 清除影子小丑配对之前读取。
             ServerPlayerEntity shadowPartner = NoellesRecruitmentCleanup.shadowPartnerLeftBehind(target);
@@ -253,20 +254,43 @@ public final class GrandWitchRecruitmentService {
      * The forced role when this recruitment number has one, unless it is a special accomplice already used this round
      * (then the pool decides; a disabled forced role is still honoured, as the admin asked for it). Otherwise the
      * special-accomplice pool: a uniform pick among enabled variants not used this round, else the plain Accomplice.
-     * "Used" is the round ledger OR a live role-map entry, so a round-start forced variant also blocks the pool.
+     * "Used" is the round ledger OR a live role-map entry, so a round-start forced variant also blocks the pool. The
+     * pool also skips {@code reserved}: roles a forced entry for a LATER number still waits for.
      * 本次招募序号有强制身份时使用该身份，除非它是本局已使用的特殊共犯（此时交给抽取池；被禁用的强制身份仍照常给予，因为
      * 这是管理员的指定）。否则为特殊共犯池：在已启用且本局未使用的特殊共犯中均匀抽取，否则为普通共犯。
-     * "已使用"为本局账本或身份表中仍存在该职业，因此开局被强制指定的特殊共犯同样占用名额。
+     * "已使用"为本局账本或身份表中仍存在该职业，因此开局被强制指定的特殊共犯同样占用名额。抽取池同样跳过
+     * {@code reserved}：仍在等待更晚序号的强制条目所指定的身份。
      */
-    private static Role recruitRole(ServerWorld world, GameWorldComponent game, @Nullable ForcedRecruit forced) {
+    private static Role recruitRole(
+            ServerWorld world,
+            GameWorldComponent game,
+            @Nullable ForcedRecruit forced,
+            Set<Identifier> reserved
+    ) {
         AccompliceVariantRoundComponent used = AccompliceVariantRoundComponent.KEY.get(world);
         java.util.function.Predicate<Role> isUsed = role -> used.isUsed(role) || !game.getAllWithRole(role).isEmpty();
         Role forcedRole = forced == null ? null : forcedRole(forced.role());
         if (forcedRole != null && !(AccompliceVariants.isVariant(forcedRole) && isUsed.test(forcedRole))) {
             return forcedRole;
         }
-        return AccompliceVariantRoll.pick(AccompliceVariants.variants(), game::isRoleEnabled, isUsed,
+        return AccompliceVariantRoll.pick(AccompliceVariants.variants(), game::isRoleEnabled,
+                isUsed.or(role -> reserved.contains(role.identifier())),
                 new Random(world.getRandom().nextLong()));
+    }
+
+    /**
+     * Role ids held by forced entries for numbers after {@code order}; the probe found an earlier random roll could
+     * otherwise take a special accomplice a later forced number was promised.
+     * 晚于 {@code order} 的强制条目所指定的身份 id；否则较早的随机抽取可能拿走更晚强制序号被承诺的特殊共犯（探针发现）。
+     */
+    private static Set<Identifier> reservedRoles(Map<Integer, ForcedRecruit> entries, int order) {
+        Set<Identifier> reserved = new HashSet<>();
+        entries.forEach((entryOrder, entry) -> {
+            if (entryOrder > order) {
+                reserved.add(entry.role());
+            }
+        });
+        return reserved;
     }
 
     private static @Nullable Role forcedRole(Identifier roleId) {

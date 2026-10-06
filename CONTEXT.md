@@ -1141,7 +1141,8 @@ Grand Witch recruitment rolls a special-accomplice pool. Recruitment never picks
 picks the recruit's role once. The pick happens after every refusal (no target, busy forced target, balance overflow)
 and right before `game.addRole`. A forced entry's role wins when it resolves to the plain Accomplice or a registered
 variant. The exception is a variant already used this round: then the pool decides. A disabled forced role is still
-given. The same role goes to `game.addRole` and to `RoleAssigned`. The pure
+given. The random roll also skips every role a forced entry for a later number still holds, so an earlier random
+recruitment can't take a special accomplice promised to a later forced one. The same role goes to `game.addRole` and to `RoleAssigned`. The pure
 `AccompliceVariantRoll.pick` makes a uniform choice among the registered variants
 (`AccompliceVariants.variants()`, in registration order) that are enabled (`game.isRoleEnabled`) and not used this
 round. Its `java.util.Random` is seeded from `world.getRandom().nextLong()`. When no variant is left, the recruit
