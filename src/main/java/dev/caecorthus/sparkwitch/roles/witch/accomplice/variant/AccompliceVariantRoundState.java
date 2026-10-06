@@ -13,9 +13,9 @@ import java.util.Set;
 
 /**
  * Special accomplices already used this round, by role id, independent of component registration. Recorded when a
- * recruitment into a variant commits and seeded at round start from the role map, so a variant that later dies and
- * becomes a Curser stays used. NBT: {@code UsedVariants} = list of role id strings.
- * 本局已使用的特殊共犯（按职业 id），不依赖组件注册。招募为特殊共犯提交时记录，开局时按身份表预置，
+ * Bewitched promotion into a variant commits and seeded at round start from the role map, so a variant that later dies
+ * and becomes a Curser stays used. NBT: {@code UsedVariants} = list of role id strings.
+ * 本局已使用的特殊共犯（按职业 id），不依赖组件注册。魔化使晋升为特殊共犯提交时记录，开局时按身份表预置，
  * 因此之后死亡并转为诅咒者的特殊共犯仍视为已使用。NBT：{@code UsedVariants} 为职业 id 字符串列表。
  */
 public class AccompliceVariantRoundState {

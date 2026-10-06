@@ -13,19 +13,20 @@ import java.util.Set;
 
 /**
  * Abyss Listener server registration, called once from SparkWitchEvents. It enters the role into the shared
- * special-accomplice pool (so Grand Witch recruitment may roll it and every "basic accomplice" rule applies), then
+ * special-accomplice pool (so a Bewitched promotion may roll it and every "basic accomplice" rule applies), then
  * wires the role-owned shop, bound loadout and Deep Dark Zone runtime.
- * 聆渊者服务端注册，由 SparkWitchEvents 调用一次。先把本职业登记进共享的特殊共犯池（大魔女招募可抽到它，
+ * 聆渊者服务端注册，由 SparkWitchEvents 调用一次。先把本职业登记进共享的特殊共犯池（魔化使晋升可抽到它，
  * 所有"共犯基础功能"规则随之生效），再接入本职业自有的商店、绑定装备与深暗领域运行时。
  */
 public final class AbyssListenerFeatureService {
     private static final Set<Identifier> OWN_SKILL_IDS = Set.of(AbyssListenerRules.SHRIEK_SKILL_ID);
     private static final AccompliceVariantHooks HOOKS = new AccompliceVariantHooks() {
-        // The bound gun is granted only after the recruitment committed: a RoleAssigned grant would be wiped by the
-        // retained-inventory restore. / 绑定枪械只在招募提交后发放：在 RoleAssigned 中发放会被保留背包恢复抹掉。
+        // The bound gun is granted once the promotion committed (role, skills and shop settled), never from
+        // RoleAssigned.
+        // 绑定枪械在晋升提交后（身份、技能与商店已确定）发放，从不在 RoleAssigned 中发放。
         @Override
-        public void afterRecruitCommitted(ServerPlayerEntity recruit, ServerPlayerEntity recruiter) {
-            AbyssListenerLoadout.grantAfterRecruit(recruit);
+        public void afterPromotionCommitted(ServerPlayerEntity player) {
+            AbyssListenerLoadout.grantAfterPromotion(player);
         }
 
         // D13: Warden's Shriek is the role's own witch skill, so it shows in the gui.sparkwitch.skills panel.

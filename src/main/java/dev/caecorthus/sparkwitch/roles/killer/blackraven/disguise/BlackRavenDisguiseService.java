@@ -200,46 +200,6 @@ public final class BlackRavenDisguiseService {
     }
 
     /**
-     * Grand Witch recruitment, non-destructive half: swap back to the Raven set and wallet before the inventory
-     * snapshot. Every other identity's stash and the visited set are kept, so a recruitment refused after this
-     * (e.g. balance overflow) leaves an un-disguised Raven that can still re-enter its disguises intact.
-     * 大魔女招募的非破坏部分：在背包快照前换回黑羽鸦物品与钱包。其他身份的存档与已访问集合均保留，
-     * 因此之后被拒绝的招募（如余额溢出）只会留下未伪装的黑羽鸦，其伪装仍可完整重新进入。
-     */
-    public static void revertForRecruitment(ServerPlayerEntity player) {
-        BlackRavenDisguiseComponent component = BlackRavenDisguiseComponent.KEY.get(player);
-        BlackRavenDisguiseState state = component.state();
-        if (!state.hasRoundState()) {
-            forget(player);
-            return;
-        }
-        if (state.acting() != null) {
-            swap(player, component, RAVEN, DisguiseExitReason.RECRUITMENT, player.getServerWorld().getTime());
-        }
-        state.setActing(null);
-        forget(player);
-        component.sync();
-    }
-
-    /**
-     * Grand Witch recruitment, destructive half: called only after the conversion commits (the role map already
-     * changed), it discards every other identity's stash and the visited set.
-     * 大魔女招募的破坏部分：仅在转换已提交（身份映射已变更）后调用，丢弃所有其他身份的存档与已访问集合。
-     */
-    public static void discardStashesForRecruitment(ServerPlayerEntity player) {
-        BlackRavenDisguiseComponent component = BlackRavenDisguiseComponent.KEY.get(player);
-        BlackRavenDisguiseState state = component.state();
-        boolean hadState = state.hasRoundState();
-        state.clearStashes();
-        state.clearVisited();
-        state.setActing(null);
-        forget(player);
-        if (hadState) {
-            component.sync();
-        }
-    }
-
-    /**
      * RoleAssigned(black_raven) for a player who may already be a disguised Raven (e.g. a forced role mid-round):
      * swaps back to the Raven set and wallet before the loadout re-grants its kit, so the stashed blade and ledger
      * return to the live inventory, the kit's cleanup removes them, and exactly one blade, ledger and mask remain.

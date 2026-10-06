@@ -38,6 +38,8 @@ import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
+import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedRole;
+import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedRules;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserRole;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRole;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
@@ -90,6 +92,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
     public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
     public static final Identifier RIFTWALKER_ID = RiftwalkerRules.ROLE_ID;
+    public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -125,6 +128,7 @@ public final class SparkWitchRoleRegistry {
     private static Role abyssListener;
     private static Role potionGunner;
     private static Role riftwalker;
+    private static Role bewitched;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -336,6 +340,11 @@ public final class SparkWitchRoleRegistry {
         return riftwalker;
     }
 
+    public static Role bewitched() {
+        ensureRegistered();
+        return bewitched;
+    }
+
     public static boolean isSparkWitchRole(Role role) {
         ensureRegistered();
         return isRegisteredSparkWitchRole(role);
@@ -400,8 +409,8 @@ public final class SparkWitchRoleRegistry {
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
                 .canSeeTime(true)
-                // Exclude natural selection; explicit recruitment still assigns this registered role.
-                // 排除自然抽选；主动招募仍可直接赋予这个已注册职业。
+                // Exclude natural selection; a Bewitched promotion (or an admin force) assigns this registered role.
+                // 排除自然抽选；魔化使晋升（或管理员强制指定）直接赋予这个已注册职业。
                 .appearanceCondition(context -> false)
                 .build());
         // Special accomplice (accomplice-variant pool), registered right after the Accomplice rather than appended:
@@ -411,8 +420,8 @@ public final class SparkWitchRoleRegistry {
         // （InsiderRegistrationContractTest），因此与诅咒者一样插在中间。SparkWitch 刺客猜测尾部会重新排序，
         // 因此 Wathe 职业下标的偏移无害。
         abyssListener = SparkFactionApi.registerRole(AbyssListenerRole.DEFINITION);
-        // Special accomplice: never drawn naturally; only the Grand Witch recruitment pool assigns it.
-        // 特殊共犯：从不自然抽选；只由大魔女招募池赋予。
+        // Special accomplice: never drawn naturally; only the Bewitched promotion pool (or an admin force) assigns it.
+        // 特殊共犯：从不自然抽选；只由魔化使晋升池（或管理员强制指定）赋予。
         potionGunner = SparkFactionApi.registerRole(FactionRoleDefinition.builder(POTION_GUNNER_ID, SparkWitchFactions.WITCH)
                 .color(PotionGunnerRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -421,6 +430,12 @@ public final class SparkWitchRoleRegistry {
                 .appearanceCondition(context -> false)
                 .build());
         riftwalker = SparkFactionApi.registerRole(RiftwalkerRole.DEFINITION);
+        // Bewitched (魔化使): dealt at round start in a Grand Witch round and promoted after two tasks; it closes the
+        // witch block before the Wind Spirit (nothing may follow the Insider). Never a Witch-skill role: kept out of
+        // isRegisteredSparkWitchRole.
+        // 魔化使：在有大魔女的对局开局时发放，完成两个任务后晋升；排在魔女职业块末尾、风灵之前（内应之后不得再注册）。
+        // 不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        bewitched = SparkFactionApi.registerRole(BewitchedRole.DEFINITION);
         windSpirit = SparkFactionApi.registerRole(WindSpiritRole.DEFINITION);
         guardianAngel = SparkFactionApi.registerRole(GuardianAngelRole.DEFINITION);
         vendetta = SparkFactionApi.registerRole(VendettaRole.DEFINITION);
@@ -662,6 +677,7 @@ public final class SparkWitchRoleRegistry {
                 abyssListener,
                 potionGunner,
                 riftwalker,
+                bewitched,
                 grandWitch,
                 emma,
                 controlExpert,

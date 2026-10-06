@@ -13,10 +13,10 @@ import java.util.List;
 
 /**
  * Replaces the Insider's shop on both sides with {@link InsiderShopRules#entries}: revolver and crowbar. Every entry
- * keeps Wathe's default buy handler so Grand Witch recruitment still refunds at the listed price; there is no Charisma
- * discount. The SparkStrength tablet is issued by SparkStrength at round start, never sold here.
+ * keeps Wathe's default buy handler; there is no Charisma discount. The SparkStrength tablet is issued by
+ * SparkStrength at round start, never sold here.
  * 在两端把内应商店替换为 {@link InsiderShopRules#entries}：左轮与撬棍。所有条目保留 Wathe 默认购买处理，
- * 使大魔女招募仍按标价退款；不接入魅力折扣。SparkStrength 平板由 SparkStrength 开局发放，此处不出售。
+ * 不接入魅力折扣。SparkStrength 平板由 SparkStrength 开局发放，此处不出售。
  */
 public final class InsiderShopService {
     private static boolean registered;

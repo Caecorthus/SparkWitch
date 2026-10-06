@@ -13,11 +13,10 @@ import java.util.List;
 
 /**
  * Replaces the Seeker's shop on both sides with the camera (150, re-buyable any time with no ownership limit). The
- * entry keeps Wathe's default buy handler so Grand Witch recruitment still refunds at the listed price, and passes
- * through the optional SparkTraits Charisma discount. The SparkStrength tablet is issued by SparkStrength at round
- * start, never sold here.
- * 在两端把搜寻者商店替换为摄像头（150，随时可再买、不限拥有数量）。条目保留 Wathe 默认购买处理，使大魔女招募仍按
- * 标价退款，并经过可选的 SparkTraits 魅力折扣。SparkStrength 平板由 SparkStrength 开局发放，此处不出售。
+ * entry keeps Wathe's default buy handler and passes through the optional SparkTraits Charisma discount. The
+ * SparkStrength tablet is issued by SparkStrength at round start, never sold here.
+ * 在两端把搜寻者商店替换为摄像头（150，随时可再买、不限拥有数量）。条目保留 Wathe 默认购买处理，
+ * 并经过可选的 SparkTraits 魅力折扣。SparkStrength 平板由 SparkStrength 开局发放，此处不出售。
  */
 public final class SeekerShopService {
     private static boolean registered;

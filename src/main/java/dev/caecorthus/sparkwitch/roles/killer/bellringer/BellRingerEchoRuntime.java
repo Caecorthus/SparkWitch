@@ -77,12 +77,12 @@ public final class BellRingerEchoRuntime {
     /**
      * Silent drop (owner decision 14): clears the marker AND removes the exact Wathe task it marked, with no
      * penalty or message. A marker-less leftover would be an ordinary task whose completion fires
-     * {@code TaskComplete.EVENT} and pays out (owner decision 5), e.g. after a Taotie release, a recruitment
+     * {@code TaskComplete.EVENT} and pays out (owner decision 5), e.g. after a Taotie release, a role change
      * or a revive. While the marker exists that task is the player's only task and its own completion is
      * suppressed, so no {@code TaskComplete} listener can be iterating this map when this runs.
      * 静默清除（所有者决定 14）：清除标记并移除其所标记的那项 Wathe 任务，不施加惩罚也不提示。
      * 若只清标记，残留任务会变成普通任务，完成时触发 {@code TaskComplete.EVENT} 并发放奖励（违反所有者决定 5），
-     * 例如被饕餮释放、被招募或复活之后。标记存在期间该任务是玩家唯一的任务且其完成事件已被屏蔽，
+     * 例如被饕餮释放、职业变化或复活之后。标记存在期间该任务是玩家唯一的任务且其完成事件已被屏蔽，
      * 因此执行时不会有 {@code TaskComplete} 监听器正在遍历该任务表。
      */
     static void dropEchoSilently(ServerPlayerEntity player, BellEchoPlayerComponent component) {

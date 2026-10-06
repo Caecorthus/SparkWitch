@@ -13,11 +13,6 @@ public enum DisguiseExitReason {
     DEATH(true),
     /** Raw role changed away from Black Raven. / 真实职业不再是黑羽鸦。 */
     ROLE_LOSS(true),
-    /**
-     * Grand Witch recruitment reverts first; the other stashes are discarded only once the conversion commits.
-     * 大魔女招募先恢复；其他存档仅在转换提交后才丢弃。
-     */
-    RECRUITMENT(true),
     /** Transient cleanup only; component NBT and live inventory persist. / 仅临时清理；组件 NBT 与当前背包保留。 */
     DISCONNECT(false),
     /** ResetPlayer or round finalize. / 玩家重置或对局结算。 */

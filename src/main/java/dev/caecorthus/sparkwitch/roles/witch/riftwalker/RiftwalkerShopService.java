@@ -25,13 +25,13 @@ import java.util.function.IntPredicate;
  * explains a refusal (unavailable, hotbar full, mana) and never returns {@code allow}, so later listeners (SparkTraits
  * restrictions) still run. A bought gate stacks onto an existing Rift Gate stack first (D4: unlimited gates).
  * The entry costs 0 gold, so SparkTraits Charisma never wraps it. The SparkStrength tablet is not a shop entry: SparkStrength
- * issues it free (at round start or, for a recruit, by its mid-round reconciliation).
+ * issues it free at round start to the whole witch faction, a Bewitched included, and reconciles it mid-round.
  * 构建隙行者商店：先放入普通共犯的全部条目，再加入裂隙门（0 金币、不限库存、无购买冷却，在 {@code onBuy} 中扣除 50 魔力）。
  * 沿用窃时者模式：只按已同步的精确职业构建列表（从不依赖对局状态，因为 Wathe 在 STARTING 阶段缓存库存上限）；
  * {@code ShopPurchase.BEFORE} 只负责说明拒绝原因（不可购买、快捷栏已满、魔力不足）、从不返回允许，因此后续监听器
  * （SparkTraits 限制）仍会运行。买到的门优先叠到已有的裂隙门堆上（D4：门不限数量）。
- * 商品为 0 金币，SparkTraits 魅力从不包装它。SparkStrength 平板不是商店条目：由 SparkStrength 免费发放（开局发放，
- * 被招募者由其局中对账补发）。
+ * 商品为 0 金币，SparkTraits 魅力从不包装它。SparkStrength 平板不是商店条目：由 SparkStrength 在开局时免费发放给整个
+ * 魔女阵营（包括魔化使），并在局中对账补发。
  *
  * <p>Authority: only the server charges mana, atomically with the hotbar insert (refunded when the insert fails).
  * The client merely labels the price through {@code WitchShopClientTexts}.

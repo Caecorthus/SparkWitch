@@ -101,8 +101,8 @@ public final class HunterFeatureService {
         }
 
         Role role = GameWorldComponent.KEY.get(world).getRole(player);
-        // Owner reclaim needs the placer to still be the real Hunter, so a recruited ex-Hunter gets no trap back.
-        // 放置者回收要求其当前真实身份仍为猎人，被招募的前猎人无法取回捕兽夹。
+        // Owner reclaim needs the placer to still be the real Hunter, so an ex-Hunter whose role changed gets no trap
+        // back. 放置者回收要求其当前真实身份仍为猎人，职业已变化的前猎人无法取回捕兽夹。
         if (player.isSneaking() && player.getUuid().equals(trap.getOwnerUuid())
                 && role != null && HunterRules.ROLE_ID.equals(role.identifier())) {
             if (!world.isClient) {
@@ -223,9 +223,9 @@ public final class HunterFeatureService {
             ServerPlayerEntity killer,
             Identifier deathReason
     ) {
-        // Not gated on the victim's current role: a Hunter recruited into another role keeps the loadout,
+        // Not gated on the victim's current role: a Hunter whose role changed mid-round may keep the loadout,
         // and GameFunctionsHunterDropMixin has already kept every copy out of Wathe's death drops.
-        // 不按死者当前身份判断：被招募为其他身份的猎人仍持有装备，且 GameFunctionsHunterDropMixin
+        // 不按死者当前身份判断：局中职业已变化的猎人可能仍持有装备，且 GameFunctionsHunterDropMixin
         // 已将所有副本排除在 Wathe 死亡掉落之外。
         removeHunterLoadout(victim);
 

@@ -214,10 +214,11 @@ public final class SeekerTaotieRules {
 
     /**
      * Owner poll (every 20 ticks while SWALLOWED or PendingReturn): a pending return is always retried; a swallowed car
-     * returns when its exact Taotie finally died or no longer holds the Taotie role (e.g. recruitment). An unknown
-     * {@code lostTo} returns at once so a car can never be stranded. A Taotie swallowed by another Taotie is alive.
+     * returns when its exact Taotie finally died or no longer holds the Taotie role (e.g. a mid-round role change). An
+     * unknown {@code lostTo} returns at once so a car can never be stranded. A Taotie swallowed by another Taotie is
+     * alive.
      * 拥有者轮询（SWALLOWED 或 PendingReturn 时每 20 刻）：待归还总是重试；被吞的小车在其确切的饕餮最终死亡或不再
-     * 是饕餮（如被招募）时归还。未知的 {@code lostTo} 立即归还，小车永不丢失。被另一只饕餮吞下的饕餮仍算存活。
+     * 是饕餮（如局中职业变化）时归还。未知的 {@code lostTo} 立即归还，小车永不丢失。被另一只饕餮吞下的饕餮仍算存活。
      */
     public static boolean shouldAttemptReturn(SeekerCarState carState, boolean pendingReturn, @Nullable UUID lostTo,
                                               BooleanSupplier lostToFinallyDead, BooleanSupplier lostToStillTaotie) {

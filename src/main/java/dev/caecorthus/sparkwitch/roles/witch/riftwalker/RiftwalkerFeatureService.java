@@ -15,12 +15,12 @@ import java.util.Set;
 
 /**
  * Riftwalker server registration, called once from SparkWitchEvents. It enters the role into the shared
- * special-accomplice pool (so Grand Witch recruitment may roll it and every "basic accomplice" rule applies), then
- * wires the role-owned shop and every work package's server runtime. There is no recruit kit: gates are bought, so no
- * {@code afterRecruitCommitted} hook.
- * 隙行者服务端注册，由 SparkWitchEvents 调用一次。先把本职业登记进共享的特殊共犯池（大魔女招募可抽到它，
- * 所有「共犯基础功能」规则随之生效），再接入本职业自有的商店与各工作包的服务端运行时。没有招募装备：
- * 裂隙门靠购买获得，因此不实现 {@code afterRecruitCommitted}。
+ * special-accomplice pool (so a Bewitched promotion may roll it and every "basic accomplice" rule applies), then
+ * wires the role-owned shop and every work package's server runtime. There is no promotion kit: gates are bought, so no
+ * {@code afterPromotionCommitted} hook.
+ * 隙行者服务端注册，由 SparkWitchEvents 调用一次。先把本职业登记进共享的特殊共犯池（魔化使晋升可抽到它，
+ * 所有「共犯基础功能」规则随之生效），再接入本职业自有的商店与各工作包的服务端运行时。没有晋升装备：
+ * 裂隙门靠购买获得，因此不实现 {@code afterPromotionCommitted}。
  */
 public final class RiftwalkerFeatureService {
     private static final Set<Identifier> OWN_SKILL_IDS = Set.of(RiftwalkerRules.SABBATH_SKILL_ID);
