@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class WitchFactionRules {
     public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
+    public static final int WITCH_TASK_MONEY_REWARD = 50;
 
     public static final int OTHER_WITCH_INSTINCT_COLOR = 0x7AB8FF;
     public static final int NON_WITCH_INSTINCT_COLOR = 0x36E51B;
@@ -227,6 +228,25 @@ public final class WitchFactionRules {
                 && isAccompliceLike(teammateRole)
                 && !samePlayer
                 && teammateAlive;
+    }
+
+    /**
+     * Task pay (+{@link #WITCH_TASK_MONEY_REWARD}): an active, living, participating Grand Witch or accomplice (plain or
+     * special) that is not a spectator, creative or Wraith-restricted. No Impostor skip, as for the Insider: witch roles
+     * roll only universal SparkTraits, and SparkTraits bonuses stack on top. The Curser earns nothing here.
+     * 任务收入（+{@link #WITCH_TASK_MONEY_REWARD}）：处于 ACTIVE、存活且参与对局、非旁观/创造、未受灵体限制的大魔女或共犯
+     * （普通或特殊）。与内应一样不跳过内鬼：魔女职业只抽通用 SparkTraits 词条，其加成叠加在此之上。诅咒者不在此领钱。
+     */
+    public static boolean earnsTaskMoney(
+            boolean active,
+            boolean playingAndAlive,
+            @Nullable Role role,
+            boolean spectator,
+            boolean creative,
+            boolean wraithRestricted
+    ) {
+        return active && playingAndAlive && (isGrandWitch(role) || isAccompliceLike(role))
+                && !spectator && !creative && !wraithRestricted;
     }
 
 }

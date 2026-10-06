@@ -158,6 +158,7 @@ public final class SparkWitchEvents {
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
+        TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> PigGodEconomyService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> ProphetEconomyService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> SaintEconomyService.onTaskComplete(player));
