@@ -111,13 +111,14 @@ public final class HunterTrapEntity extends Entity {
     }
 
     public double getSupportTopY() {
-        if (supportPos == null) {
+        BlockPos effectiveSupportPos = getEffectiveSupportPos();
+        if (effectiveSupportPos == null) {
             return getY();
         }
-        VoxelShape collisionShape = getCachedSupportShape();
+        VoxelShape collisionShape = getCachedSupportShape(effectiveSupportPos);
         return collisionShape.isEmpty()
-                ? supportPos.getY()
-                : supportPos.getY() + collisionShape.getMax(Direction.Axis.Y);
+                ? effectiveSupportPos.getY()
+                : effectiveSupportPos.getY() + collisionShape.getMax(Direction.Axis.Y);
     }
 
     @Override
@@ -136,12 +137,18 @@ public final class HunterTrapEntity extends Entity {
             supportPos = getBlockPos().down().toImmutable();
         }
 
-        VoxelShape supportShape = getCachedSupportShape();
+        BlockPos effectiveSupportPos = getEffectiveSupportPos();
+        if (effectiveSupportPos == null) {
+            discardTrap();
+            return;
+        }
+
+        VoxelShape supportShape = getCachedSupportShape(effectiveSupportPos);
         if (supportShape.isEmpty()) {
             discardTrap();
             return;
         }
-        setPosition(getX(), supportPos.getY() + supportShape.getMax(Direction.Axis.Y), getZ());
+        setPosition(getX(), effectiveSupportPos.getY() + supportShape.getMax(Direction.Axis.Y), getZ());
 
         if (age >= HunterRules.TRAP_LIFESPAN_TICKS) {
             discardTrap();
@@ -224,17 +231,61 @@ public final class HunterTrapEntity extends Entity {
         discardTrap();
     }
 
-    private VoxelShape getCachedSupportShape() {
-        if (supportPos == null) {
+    /**
+     * 获取当前真正承托捕兽夹的方块。
+     *
+     * supportPos 始终保留最初放置时的基础方块，不能直接改成地毯等覆盖物；
+     * 否则覆盖物被拆除后，捕兽夹会丢失原始支撑位置并被错误删除。
+     *
+     * 基础方块上方如果出现地毯、薄雪、压力板、底半砖等高度小于一格的
+     * 薄碰撞体，就把它视为新的承托面。这样可以处理“先放夹子、后铺地毯”
+     * 的情况，同时不会把上方完整方块误判为新的支撑面。
+     */
+    @Nullable
+    private BlockPos getEffectiveSupportPos() {
+        if (supportPos == null || getCachedSupportShape(supportPos).isEmpty()) {
+            return null;
+        }
+
+        BlockPos effectiveSupportPos = supportPos;
+        // 限制扫描层数，避免异常世界数据造成无界循环；正常情况下地毯等覆盖层不会很多。
+        for (int layer = 0; layer < 8; layer++) {
+            BlockPos abovePos = effectiveSupportPos.up();
+            VoxelShape aboveShape = getWorld()
+                    .getBlockState(abovePos)
+                    .getCollisionShape(getWorld(), abovePos);
+            if (!isThinSupportShape(aboveShape)) {
+                break;
+            }
+            effectiveSupportPos = abovePos;
+        }
+        return effectiveSupportPos;
+    }
+
+    /**
+     * 判断方块碰撞形状是否属于可以覆盖在捕兽夹上方的薄支撑层。
+     *
+     * 只判断碰撞形状的 Y 范围，不依赖具体方块类，兼容原版和其他模组的
+     * 地毯、薄雪、压力板、按钮底座等薄型方块；完整方块的高度为 1.0，
+     * 会被排除，不会让捕兽夹穿过完整方块跑到它的顶部。
+     */
+    private static boolean isThinSupportShape(VoxelShape shape) {
+        return !shape.isEmpty()
+                && shape.getMin(Direction.Axis.Y) <= 1.0E-6D
+                && shape.getMax(Direction.Axis.Y) < 1.0D - 1.0E-6D;
+    }
+
+    private VoxelShape getCachedSupportShape(BlockPos supportPosition) {
+        if (supportPosition == null) {
             return net.minecraft.util.shape.VoxelShapes.empty();
         }
-        BlockState state = getWorld().getBlockState(supportPos);
+        BlockState state = getWorld().getBlockState(supportPosition);
         if (cachedSupportShape == null
-                || !supportPos.equals(cachedSupportPos)
+                || !supportPosition.equals(cachedSupportPos)
                 || state != cachedSupportState) {
-            cachedSupportPos = supportPos;
+            cachedSupportPos = supportPosition.toImmutable();
             cachedSupportState = state;
-            cachedSupportShape = state.getCollisionShape(getWorld(), supportPos);
+            cachedSupportShape = state.getCollisionShape(getWorld(), supportPosition);
         }
         return cachedSupportShape;
     }

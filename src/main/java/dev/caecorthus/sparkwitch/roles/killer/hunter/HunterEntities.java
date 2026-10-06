@@ -22,7 +22,10 @@ public final class HunterEntities {
                 Registries.ENTITY_TYPE,
                 SparkWitch.id("hunter_trap"),
                 EntityType.Builder.<HunterTrapEntity>create(HunterTrapEntity::new, SpawnGroup.MISC)
-                        .dimensions(0.6F, 0.1F)
+                        // 捕兽夹模型的实际范围约为 0.5 格宽、0.125 格高；
+                        // 包围盒略微留出高度余量，避免模型超出实体包围盒后被视锥裁剪。
+                        // The hitbox follows the placed model size with a small vertical margin.
+                        .dimensions(0.5F, 0.14F)
                         .build("hunter_trap")
         );
         registered = true;
