@@ -15,7 +15,9 @@ import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** Durable, world-owned opening population and cumulative successful recruit ledger.
@@ -29,6 +31,9 @@ public final class GrandWitchRecruitmentRoundComponent implements Component {
     // Pending offline releases outlive quota resets; JOIN checks live game participation before release.
     // 离线释放记录跨越名额重置；重连时先检查当前对局参与状态，避免复活旁观者。
     private final Map<UUID, Vec3d> pendingReleases = new HashMap<>();
+    // Entity UUIDs of the fake corpses recruits left behind this round; server-only, NBT so a restart keeps them.
+    // 本局被招募者留下的假尸体实体 UUID；仅服务端，写入 NBT 以便重启后仍可识别。
+    private final Set<UUID> decoyBodies = new HashSet<>();
     private boolean conversionInProgress;
 
     public GrandWitchRecruitmentRoundComponent(World world) { }
@@ -36,6 +41,7 @@ public final class GrandWitchRecruitmentRoundComponent implements Component {
     public void beginRound(int openingParticipants) {
         participants = Math.max(0, openingParticipants);
         recruited.clear();
+        decoyBodies.clear();
         active = true;
         conversionInProgress = false;
     }
@@ -43,6 +49,7 @@ public final class GrandWitchRecruitmentRoundComponent implements Component {
     public void clearRound() {
         participants = 0;
         recruited.clear();
+        decoyBodies.clear();
         active = false;
         conversionInProgress = false;
     }
@@ -51,6 +58,9 @@ public final class GrandWitchRecruitmentRoundComponent implements Component {
     public int getLimit() { return active ? GrandWitchRecruitmentRules.limit(participants) : 0; }
     public int getRemaining() { return Math.max(0, getLimit() - recruited.size()); }
     public boolean wasRecruited(UUID target) { return recruited.contains(target); }
+    /** Successful recruitments this round; the next one is number {@code getRecruitedCount() + 1}.
+     * 本局已成功招募的次数；下一次招募的序号为 {@code getRecruitedCount() + 1}。 */
+    public int getRecruitedCount() { return recruited.size(); }
 
     public boolean tryBeginConversion() {
         if (conversionInProgress || getRemaining() <= 0) return false;
@@ -60,6 +70,9 @@ public final class GrandWitchRecruitmentRoundComponent implements Component {
 
     public void finishConversion() { conversionInProgress = false; }
     public void recordSuccess(UUID target) { recruited.add(target); }
+
+    public void recordDecoyBody(UUID bodyEntity) { decoyBodies.add(bodyEntity); }
+    public boolean isDecoyBody(UUID bodyEntity) { return decoyBodies.contains(bodyEntity); }
 
     public void queueRelease(UUID swallowed, Vec3d position) { pendingReleases.put(swallowed, position); }
     public @Nullable Vec3d takeRelease(UUID swallowed) { return pendingReleases.remove(swallowed); }
@@ -85,6 +98,13 @@ public final class GrandWitchRecruitmentRoundComponent implements Component {
             releases.add(entry);
         });
         tag.put("PendingReleases", releases);
+        NbtList decoys = new NbtList();
+        for (UUID uuid : decoyBodies) {
+            NbtCompound entry = new NbtCompound();
+            entry.putUuid("Body", uuid);
+            decoys.add(entry);
+        }
+        tag.put("DecoyBodies", decoys);
     }
 
     @Override
@@ -103,6 +123,11 @@ public final class GrandWitchRecruitmentRoundComponent implements Component {
                 pendingReleases.put(entry.getUuid("Player"), new Vec3d(
                         entry.getDouble("X"), entry.getDouble("Y"), entry.getDouble("Z")));
             }
+        }
+        decoyBodies.clear();
+        for (NbtElement element : tag.getList("DecoyBodies", NbtElement.COMPOUND_TYPE)) {
+            NbtCompound entry = (NbtCompound) element;
+            if (entry.containsUuid("Body")) decoyBodies.add(entry.getUuid("Body"));
         }
         conversionInProgress = false;
     }

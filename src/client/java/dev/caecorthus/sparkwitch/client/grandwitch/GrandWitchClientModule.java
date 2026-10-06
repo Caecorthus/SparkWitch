@@ -10,7 +10,6 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.net.GrandWitchRecruitC2SPacket;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.player.PlayerEntity;
 
 /** Recruitment owns only key 2; Witch Factor uses the shared primary dispatch. / 招募只拥有二技能键；魔女因子沿用主技能分发。 */
 public final class GrandWitchClientModule {
@@ -30,9 +29,8 @@ public final class GrandWitchClientModule {
                         || !WitchPlayerComponent.KEY.get(client.player).hasUnlockedGrandWitchCeremonialSword()) {
                     return;
                 }
-                PlayerEntity target = GrandWitchClientTargeting.findAimedPlayer(client.player);
-                // The server resolves and validates the aim again; this UUID is only a hint. / 服务端重新校验准心；UUID 仅是提示。
-                ClientPlayNetworking.send(new GrandWitchRecruitC2SPacket(target == null ? null : target.getUuid()));
+                // No aim: the server picks the recruit (owner request 2026-10-06). / 无需瞄准：由服务端选出被招募者（所有者 2026-10-06 要求）。
+                ClientPlayNetworking.send(new GrandWitchRecruitC2SPacket());
             }
         });
         ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> {

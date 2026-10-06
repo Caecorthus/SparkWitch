@@ -17,17 +17,17 @@ public final class TimeStealerItemDrops {
     /**
      * Called at the HEAD of the player drop method on both sides. Some callers (the server's selected-slot drop, the
      * full-inventory fallback of an offer) have already removed the stack from its slot, while others still reference
-     * it from a slot; zeroing it first covers both without a duplicate. The Clock is simply refused: the loadout
-     * restores the single Clock on the next tick. On the client only the prediction is cancelled; the server decides.
+     * it from a slot; zeroing it first covers both without a duplicate. The Clock and the Gift Watch are simply
+     * refused: the loadout restores each single watch on the next tick. On the client only the prediction is cancelled; the server decides.
      * 在双端的玩家丢弃方法 HEAD 处调用。有些调用方（服务端丢弃选中栏位、放入背包失败时的回退）已把物品堆移出栏位，
-     * 另一些仍在栏位中引用它；先清零即可同时覆盖两种情况且不产生复制。时钟直接拒绝：装备服务会在下一 tick 恢复唯一的时钟。
+     * 另一些仍在栏位中引用它；先清零即可同时覆盖两种情况且不产生复制。时钟与赠时怀表直接拒绝：装备服务会在下一 tick 恢复各自唯一的怀表。
      * 客户端只取消预测，由服务端裁定。
      */
     public static boolean intercept(PlayerEntity player, ItemStack stack) {
         if (!TimeStealerInventoryRules.isBound(stack)) {
             return false;
         }
-        if (TimeStealerInventoryRules.isClock(stack)) {
+        if (TimeStealerInventoryRules.isClock(stack) || TimeStealerInventoryRules.isGiftWatch(stack)) {
             return true;
         }
         if (player instanceof ServerPlayerEntity serverPlayer) {

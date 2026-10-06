@@ -30,9 +30,17 @@ public final class FiendRules {
 
     public static final int MOMENT_PRICE = 200;
     public static final int MOMENT_DURATION_TICKS = 2400;
-    /** Speed I for the whole moment, and no shield (owner tuning, 2026-10-03). / 整个时刻获得速度 I，且无护盾（所有者调整，2026-10-03）。 */
-    public static final int MOMENT_SPEED_AMPLIFIER = 0;
+    /** Speed II for the whole moment, and no shield (owner tuning, 2026-10-04). / 整个时刻获得速度 II，且无护盾（所有者调整，2026-10-04）。 */
+    public static final int MOMENT_SPEED_AMPLIFIER = 1;
     public static final int MOMENT_CROWBAR_COOLDOWN_TICKS = 100;
+    /**
+     * Dash, the moment-only skill on the ability key (owner decision 2026-10-04): Speed IV for 10 s, ready when the
+     * moment starts, then a 30 s cooldown counted from each use.
+     * 疾驰：仅在时刻中可用的技能键技能（所有者 2026-10-04 决定）：10 秒速度 IV，时刻开始时即就绪，之后每次使用起算 30 秒冷却。
+     */
+    public static final int DASH_SPEED_AMPLIFIER = 3;
+    public static final int DASH_DURATION_TICKS = 200;
+    public static final int DASH_COOLDOWN_TICKS = 600;
     public static final String MOMENT_SHOP_ENTRY_ID = "sparkwitch_fiend_moment";
 
     /**

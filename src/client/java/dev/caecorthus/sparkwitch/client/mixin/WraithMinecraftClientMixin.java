@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
+import dev.caecorthus.sparkwitch.client.grandwitch.RecruitmentHoldClient;
 import dev.caecorthus.sparkwitch.client.render.WraithViewerRules;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -17,6 +18,13 @@ public abstract class WraithMinecraftClientMixin {
         PlayerEntity viewer = MinecraftClient.getInstance().player;
         if (entity instanceof PlayerEntity target
                 && WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, target)) {
+            cir.setReturnValue(false);
+            return;
+        }
+        if (RecruitmentHoldClient.isOutlineHiddenFrom(viewer, entity)) {
+            // A held recruit gets no outline from any source (vanilla glowing included) for a non-spectator viewer
+            // outside the witch faction (owner 2026-10-06).
+            // 被定身的新共犯对魔女阵营以外的非旁观观察者不显示任何来源的描边（包括原版发光，所有者 2026-10-06）。
             cir.setReturnValue(false);
         }
     }

@@ -3,6 +3,8 @@ package dev.caecorthus.sparkwitch.roles.civilian.prophet;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -80,6 +82,15 @@ public enum ProphetDeathCauseGroup {
 
     public String translationKey() {
         return "gui.sparkwitch.prophecy.cause." + id;
+    }
+
+    /**
+     * Every death reason this table knows, sorted by id. Grand Witch recruitment draws its fake corpse's cause from it,
+     * so a reason added here is drawable there too.
+     * 本表已知的全部死因，按 id 排序。大魔女招募从中抽取假尸体的死因，因此此处新增的死因也会进入抽取范围。
+     */
+    public static List<Identifier> knownReasons() {
+        return BY_REASON.keySet().stream().sorted(Comparator.comparing(Identifier::toString)).toList();
     }
 
     public static ProphetDeathCauseGroup classify(@Nullable Identifier deathReason) {

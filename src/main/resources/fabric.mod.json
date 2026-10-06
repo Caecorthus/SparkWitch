@@ -44,6 +44,7 @@
       "sparkwitch:bell_echo",
       "sparkwitch:time_stealer",
       "sparkwitch:time_theft",
+      "sparkwitch:time_gift",
       "sparkwitch:control_expert_status",
       "sparkwitch:holy_flash",
       "sparkwitch:seeker_status",
@@ -64,7 +65,8 @@
       "sparkwitch:accomplice_variant_round",
       "sparkwitch:abyss_zone_exposure",
       "sparkwitch:rift_session",
-      "sparkwitch:rift_gates"
+      "sparkwitch:rift_gates",
+      "sparkwitch:recruitment_hold"
     ]
   },
   "mixins": [

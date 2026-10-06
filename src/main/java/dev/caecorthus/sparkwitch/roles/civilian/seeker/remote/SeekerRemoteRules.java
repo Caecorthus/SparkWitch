@@ -14,13 +14,13 @@ import java.util.Set;
  * Pure remote-view rules. {@link #BLOCKED_WHILE_VIEWING} is the Seeker's own literal deny-list (decoupled from the
  * Control Expert list; only a test couples them): lethal Wathe actions, the shop, UI actions that would leak through the
  * frozen body, and every known role-skill payload. It is a deny-list, so voice handshakes still pass.
- * WP-09 may extend but never shrink the list. The helpers below are the side-neutral distance, area, anchor and
- * timeout rules shared by session open, the per-tick exit checks and the move validator. Distances are horizontal
- * because vanilla entity tracking (the engine limit behind the effective radius) measures only x/z from the body.
+ * WP-09 may extend but never shrink the list. The helpers below are the side-neutral area, anchor and timeout rules
+ * shared by session open, the per-tick exit checks and the move validator. There is no distance limit between the
+ * body and a device (owner decision 2026-10-04): the Wathe play area is the only spatial bound.
  * 纯遥控视角规则。{@link #BLOCKED_WHILE_VIEWING} 是搜寻者自有的字面量拦截名单（与控场专家名单解耦，仅由测试关联）：
  * Wathe 致命行为、商店、会经冻结本体泄漏的界面操作，以及所有已知职业技能包。它是黑名单，语音握手等照常通过。
- * 名单只增不减。下列辅助方法是会话打开、逐刻退出检查与移动校验共用的两端通用距离、区域、锚点与超时规则。
- * 距离按水平计算，因为原版实体追踪（有效半径背后的引擎限制）只以本体的 x/z 计算距离。
+ * 名单只增不减。下列辅助方法是会话打开、逐刻退出检查与移动校验共用的两端通用区域、锚点与超时规则。
+ * 本体与设备之间没有距离限制（所有者决定 2026-10-04）：Wathe 游戏区域是唯一的空间边界。
  */
 public final class SeekerRemoteRules {
     public static final Set<Identifier> BLOCKED_WHILE_VIEWING = Set.copyOf(List.of(
@@ -67,6 +67,7 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "use_blind_attune"),
             Identifier.of("sparkwitch", "rift_hop"),
             Identifier.of("sparkwitch", "rift_gate_close"),
+            Identifier.of("sparkwitch", "use_fiend_dash"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
@@ -81,12 +82,6 @@ public final class SeekerRemoteRules {
 
     /** Grace before an unsupported or wet body ends the session (BODY_MOVED). / 本体离地或入水多久后结束会话。 */
     public static final int UNGROUNDED_GRACE_TICKS = 10;
-    /**
-     * Extra room for the per-tick range check: the body may drift sqrt(2) from its anchor while the car stays clamped
-     * to the radius, so the check never ends a session for that drift alone.
-     * 逐刻距离检查的额外余量：本体可在锚点 √2 内漂移而小车仍被钳制在半径内，因此不会仅因这点漂移结束会话。
-     */
-    public static final double RANGE_CHECK_SLACK = Math.sqrt(SeekerRules.BODY_MOVE_TOLERANCE_SQUARED);
 
     private SeekerRemoteRules() {
     }
@@ -95,29 +90,11 @@ public final class SeekerRemoteRules {
         return payloadId != null && BLOCKED_WHILE_VIEWING.contains(payloadId);
     }
 
-    public static double horizontalDistanceSquared(Vec3d a, Vec3d b) {
-        double dx = a.x - b.x;
-        double dz = a.z - b.z;
-        return dx * dx + dz * dz;
-    }
-
-    /** Open check: device within the effective radius of the body. / 打开检查：设备在本体的有效半径内。 */
-    public static boolean withinEffectiveRadius(Vec3d body, Vec3d device, int effectiveRadius) {
-        return SeekerRules.withinRadius(horizontalDistanceSquared(body, device), effectiveRadius);
-    }
-
-    /** Tick check: as {@link #withinEffectiveRadius} plus {@link #RANGE_CHECK_SLACK}. / 逐刻检查：带余量。 */
-    public static boolean withinSessionRange(Vec3d body, Vec3d device, int effectiveRadius) {
-        if (effectiveRadius <= 0) {
-            return false;
-        }
-        double limit = effectiveRadius + RANGE_CHECK_SLACK;
-        return horizontalDistanceSquared(body, device) <= limit * limit;
-    }
-
     /**
      * Inside the Wathe play area: horizontally within the box and not below its floor (the ceiling is not a limit).
-     * 位于 Wathe 游戏区域内：水平在盒内且不低于其底面（顶面不作限制）。
+     * The only spatial check of open and the per-tick exit (OUT_OF_RANGE); a null area (unknown) never refuses.
+     * 位于 Wathe 游戏区域内：水平在盒内且不低于其底面（顶面不作限制）。这是打开与逐刻退出（OUT_OF_RANGE）唯一的
+     * 空间检查；区域为 null（未知）时从不拒绝。
      */
     public static boolean insidePlayArea(@Nullable Box playArea, Vec3d position) {
         if (playArea == null) {

@@ -197,10 +197,10 @@ public final class SparkWitchBuiltInSkills {
                 WardensShriekService::use
         ));
         // Exact-role selector, like the Bell Ringer: the Riftwalker is on the shared-skill whitelist, so a looser
-        // selector would leak other skills onto it. No cooldown (D6): 150 mana is the only limit. Presented by the
+        // selector would leak other skills onto it. 150 mana and a 30 s cooldown (owner 2026-10-05). Presented by the
         // bottom-right skill HUD and, as the role's own skill (AGENTS.md panel rule, via its variant hooks), by the panel.
-        // 与敲钟人相同的精确职业选择器：隙行者位于共享技能白名单中，更宽松的选择器会把其他技能漏给它。无冷却（D6）：
-        // 只受 150 魔力限制。由右下角技能 HUD 展示，并作为本职业自有技能（AGENTS.md 面板规则，经由其特殊共犯回调）进入魔女技能面板。
+        // 与敲钟人相同的精确职业选择器：隙行者位于共享技能白名单中，更宽松的选择器会把其他技能漏给它。消耗 150 魔力，
+        // 冷却 30 秒（所有者 2026-10-05）。由右下角技能 HUD 展示，并作为本职业自有技能（AGENTS.md 面板规则，经由其特殊共犯回调）进入魔女技能面板。
         WitchSkillRegistry.register(new WitchSkillDefinition(
                 RiftwalkerRules.SABBATH_SKILL_ID,
                 RiftwalkerRules.COLOR,

@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher.PotionLauncherLoad;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
@@ -36,14 +37,44 @@ public final class PotionGunnerLoadoutService {
 
     /**
      * Side-agnostic holder test: a living, playing, exact Potion Gunner. Spectator mode does not count against it, so
-     * a gunner swallowed by the NoellesRoles Taotie keeps the launcher and shells (Time Stealer rule).
+     * a gunner swallowed by the NoellesRoles Taotie keeps the launcher and shells (Time Stealer rule). It scopes the
+     * in-match bound-item rules only; use never checks it ({@link #mayLoad}, {@code PotionLauncherFireService}).
      * 两端通用的持有者判定：存活、在对局中且职业恰为药炮手。旁观模式不影响判定，因此被 NoellesRoles 饕餮吞下的
-     * 药炮手保留炮筒与炮弹（与窃时者规则一致）。
+     * 药炮手保留炮筒与炮弹（与窃时者规则一致）。它只界定对局内的绑定物品规则；使用从不检查它（{@link #mayLoad}、
+     * {@code PotionLauncherFireService}）。
      */
     public static boolean mayHold(@Nullable PlayerEntity player) {
         return player != null
                 && PotionGunnerRules.isPotionGunner(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))
                 && GameFunctions.isPlayerPlayingAndAlive(player);
+    }
+
+    /**
+     * Side-agnostic load/unload test (owner rule 2026-10-04, {@link OffMatchUse}): never the role. A free holder (not a
+     * match participant) or a living, playing participant may load; a dead participant (a Wraith included) may not.
+     * Reads only synced Wathe state, so the client predicts the server's answer.
+     * 两端通用的装填/退弹判定（所有者规则 2026-10-04，{@link OffMatchUse}）：从不检查职业。自由持有者（非对局参与者）或
+     * 存活且在局的参与者可以装填；已死亡的参与者（含冤魂）不行。只读取已同步的 Wathe 状态，客户端因此能预测服务端的结果。
+     */
+    public static boolean mayLoad(@Nullable PlayerEntity player) {
+        return player != null
+                && mayLoad(OffMatchUse.isMatchParticipant(player), GameFunctions.isPlayerPlayingAndAlive(player));
+    }
+
+    /** Pure core of {@link #mayLoad(PlayerEntity)}. / {@link #mayLoad(PlayerEntity)} 的纯函数核心。 */
+    static boolean mayLoad(boolean matchParticipant, boolean playingAndAlive) {
+        return !matchParticipant || playingAndAlive;
+    }
+
+    /**
+     * Whether a living player's refused drop goes back into their inventory: a holder ({@link #mayHold}), or a free
+     * holder whom the bound-item rules do not bind (owner rule 2026-10-04, {@link OffMatchUse#isMatchParticipant}).
+     * Any other participant's copy is destroyed; the sweep strips them anyway.
+     * 存活玩家被拒绝的丢弃是否放回其背包：持有者（{@link #mayHold}），或不受绑定物品规则约束的自由持有者（所有者规则
+     * 2026-10-04，{@link OffMatchUse#isMatchParticipant}）。其他参与者的副本直接销毁；清扫本来也会收走。
+     */
+    static boolean keepsRefusedDrop(boolean matchParticipant, boolean holder) {
+        return holder || !matchParticipant;
     }
 
     /**
@@ -167,12 +198,13 @@ public final class PotionGunnerLoadoutService {
     /**
      * Called at the HEAD of the player drop method on both sides; true cancels the drop, so a bound item never becomes
      * an item entity. Move semantics on the server: the passed stack is emptied first (some callers already removed it
-     * from its slot, others still reference it), then a copy is re-inserted for a living holder — a launcher keeps its
-     * loaded shell — and destroyed for anyone else, who is stripped anyway. On the client only the prediction is
-     * cancelled; the server decides.
+     * from its slot, others still reference it), then a copy is re-inserted for a living holder or a living free holder
+     * ({@link #keepsRefusedDrop}) — a launcher keeps its loaded shell — and destroyed for anyone else, who is stripped
+     * anyway. On the client only the prediction is cancelled; the server decides.
      * 在双端的玩家丢弃方法 HEAD 处调用；返回 true 即取消丢弃，因此绑定物品永不成为物品实体。服务端采用移动语义：先清空
-     * 传入的物品堆（有些调用方已把它移出栏位，另一些仍在栏位中引用它），再为存活持有者重新放回一份副本（炮筒保留已装填
-     * 的炮弹），其他人则直接销毁（他们本来就会被收走）。客户端只取消预测，由服务端裁定。
+     * 传入的物品堆（有些调用方已把它移出栏位，另一些仍在栏位中引用它），再为存活的持有者或存活的自由持有者重新放回一份副本
+     * （{@link #keepsRefusedDrop}；炮筒保留已装填的炮弹），其他人则直接销毁（他们本来就会被收走）。客户端只取消预测，
+     * 由服务端裁定。
      */
     public static boolean interceptDrop(PlayerEntity player, ItemStack stack) {
         if (!PotionGunnerInventoryRules.isBound(stack)) {
@@ -181,7 +213,8 @@ public final class PotionGunnerLoadoutService {
         if (player instanceof ServerPlayerEntity serverPlayer) {
             ItemStack copy = stack.copy();
             stack.setCount(0);
-            if (serverPlayer.isAlive() && mayHold(serverPlayer)) {
+            if (serverPlayer.isAlive()
+                    && keepsRefusedDrop(OffMatchUse.isMatchParticipant(serverPlayer), mayHold(serverPlayer))) {
                 // Hotbar first, then hidden main slots; whatever still does not fit goes back into the passed stack, so
                 // a caller that still holds it in a slot keeps it there instead of losing it.
                 // 先快捷栏，后隐藏主背包；仍放不下的部分放回传入的物品堆，仍在栏位中引用它的调用方因此原样保留，而不会丢失。

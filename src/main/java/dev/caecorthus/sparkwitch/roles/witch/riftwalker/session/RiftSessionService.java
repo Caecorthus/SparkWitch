@@ -210,9 +210,12 @@ public final class RiftSessionService {
                 continue;
             }
             if (session.gateNumber() == removed.number()) {
-                // A blocked exit keeps the session; the tick retries at the stored anchor (the gate is gone).
-                // 出口被堵时保留会话；逐刻会在保存的锚点处重试（门已不存在）。
-                end(player, session, RiftExitReason.GATE_CLOSED, reason, removed.pos(), removed.facing());
+                // A blocked exit keeps the session; the tick retries at the stored anchor (the gate is gone) with the
+                // same close reason, so an ADMIN close stays cooldown-free.
+                // 出口被堵时保留会话；逐刻会在保存的锚点处以同一关门原因重试（门已不存在），ADMIN 关门仍不上冷却。
+                if (!end(player, session, RiftExitReason.GATE_CLOSED, reason, removed.pos(), removed.facing())) {
+                    session.setPendingCloseReason(reason);
+                }
             } else {
                 session.updateRing(RiftHopRing.ringIndex(ring, session.gateNumber()), ring.size());
             }
@@ -234,7 +237,8 @@ public final class RiftSessionService {
         ServerWorld world = player.getServerWorld();
         long now = world.getTime();
         RiftExitReason reason = RiftSessionRules.tickExitReason(tickFacts(player, session, world, now));
-        if (reason != null && end(player, session, reason, null, null, null)) {
+        RiftGateCloseReason closeReason = reason == RiftExitReason.GATE_CLOSED ? session.pendingCloseReason() : null;
+        if (reason != null && end(player, session, reason, closeReason, null, null)) {
             return;
         }
         // Still inside (no reason, or a forced release found no safe cell yet and retries next tick).

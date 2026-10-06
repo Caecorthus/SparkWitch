@@ -9,6 +9,7 @@ import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.api.event.ShopPurchase;
+import dev.doctor4t.wathe.api.event.TaskComplete;
 import java.util.Objects;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.Event;
@@ -56,6 +57,9 @@ public final class TimeStealerFeatureService {
             TimeStealerLoadoutService.onRoleAssigned(serverPlayer, role);
             TimeStealerStampService.onRoleAssigned(serverPlayer, role);
         });
+        // Owner decision 2026-10-05: a Conscience Time Stealer earns a stamp per task; the service checks who earns.
+        // 所有者决定 2026-10-05：善良窃时者每完成一个任务获得一枚邮票；由服务判断谁能获得。
+        TaskComplete.EVENT.register((player, task) -> TimeStealerStampService.onTaskComplete(player));
         // Wathe starts the match record inside its own default-phase ON_FINISH_INITIALIZE listener, so the id is bound
         // in a later phase; the owner tick re-binds a holder who missed this (TimeStealerStampService.tickOwner).
         // Wathe 在自身默认阶段的 ON_FINISH_INITIALIZE 监听器中才开始对局记录，因此在更晚的阶段绑定对局 id；
@@ -73,6 +77,10 @@ public final class TimeStealerFeatureService {
                     TimeTheftRuntime.reset(player);
                     theft.clear();
                 }
+                TimeGiftPlayerComponent gift = TimeGiftPlayerComponent.KEY.get(player);
+                if (gift.isGifted() && !Objects.equals(gift.matchId(), matchId)) {
+                    gift.clear();
+                }
                 TimeStealerPlayerComponent.KEY.get(player).bindMatch(matchId);
             }
         });
@@ -85,12 +93,13 @@ public final class TimeStealerFeatureService {
                 return;
             }
             TimeTheftRuntime.onDeath(victim);
+            TimeGiftRuntime.onDeath(victim);
             TimeStealerLoadoutService.onDeath(victim);
         });
-        // The Clock and stamps cannot be handed to item frames, armor stands or allays. Both sides: the client stops
+        // The Clock, the Gift Watch and stamps cannot be handed to item frames, armor stands or allays. Both sides: the client stops
         // before sending, the server refuses a forged packet. Decorated pots are handled by
         // mixin/timestealer/DecoratedPotBlockTimeStealerItemMixin instead, so the Clock's own use still runs there.
-        // 时钟与邮票无法交给物品展示框、盔甲架或悦灵。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
+        // 时钟、赠时怀表与邮票无法交给物品展示框、盔甲架或悦灵。双端生效：客户端在发包前拦截，服务端拒绝伪造的数据包。
         // 饰纹陶罐改由 DecoratedPotBlockTimeStealerItemMixin 处理，因此在陶罐前时钟自身的使用照常进行。
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) ->
                 TimeStealerInventoryRules.blocksEntityUse(player.getStackInHand(hand), entity)
@@ -120,6 +129,7 @@ public final class TimeStealerFeatureService {
     private static void clearPlayer(ServerPlayerEntity player) {
         TimeTheftRuntime.reset(player);
         TimeTheftPlayerComponent.KEY.get(player).clear();
+        TimeGiftRuntime.reset(player);
         TimeStealerLoadoutService.reset(player);
         TimeStealerStampService.reset(player);
         TimeStealerPlayerComponent.KEY.get(player).clear();

@@ -77,6 +77,13 @@ public class PotionShellEntity extends ThrownItemEntity {
     /** Server only, set at launch; shells are never saved, so it never needs NBT. / 仅服务端，发射时写入；炮弹不存盘，无需 NBT。 */
     @Nullable
     private UUID gunnerUuid;
+    /**
+     * Server only, set at launch: an off-match presentation shot ({@code OffMatchUse}, owner rule 2026-10-04) that flies
+     * with the same physics but only bursts with sound and particles. Never saved, like the shell itself.
+     * 仅服务端，发射时写入：场外仅表现的射击（{@code OffMatchUse}，所有者规则 2026-10-04），飞行物理相同，但爆炸只有声音
+     * 与粒子。与炮弹本身一样从不存盘。
+     */
+    private boolean presentation;
     private boolean detonated;
     /** Both sides: latched on the first non-flat tick. / 两端：在第一个非平直刻锁定。 */
     private boolean ballistic;
@@ -97,18 +104,22 @@ public class PotionShellEntity extends ThrownItemEntity {
     }
 
     /**
-     * Spawns a shell of {@code type} from the gunner's eye along {@code yaw}/{@code pitch}. Returns false when nothing
+     * Spawns a shell of {@code type} from the shooter's eye along {@code yaw}/{@code pitch}. A match shell needs an
+     * {@code ACTIVE} round (D-R1); a {@code presentation} shell spawns in any round state. Returns false when nothing
      * was spawned, so the caller keeps the loaded shell.
-     * 沿 {@code yaw}/{@code pitch} 从药炮手眼部发射一颗 {@code type} 炮弹。未生成时返回 false，调用方保留已装填的炮弹。
+     * 沿 {@code yaw}/{@code pitch} 从射手眼部发射一颗 {@code type} 炮弹。对局炮弹需要 {@code ACTIVE} 对局（D-R1）；
+     * {@code presentation} 炮弹在任何对局状态下都可生成。未生成时返回 false，调用方保留已装填的炮弹。
      */
-    public static boolean launch(ServerPlayerEntity gunner, PotionShellType type, float yaw, float pitch) {
+    public static boolean launch(ServerPlayerEntity gunner, PotionShellType type, float yaw, float pitch,
+                                 boolean presentation) {
         if (gunner == null || type == null || !Float.isFinite(yaw) || !Float.isFinite(pitch)
-                || !(gunner.getWorld() instanceof ServerWorld world) || !isRoundActive(world)) {
+                || !(gunner.getWorld() instanceof ServerWorld world) || !presentation && !isRoundActive(world)) {
             return false;
         }
         // The ThrownEntity owner constructor starts the shell at the eye minus 0.1, like the Wathe grenade.
         // ThrownEntity 的拥有者构造器把炮弹放在眼部下方 0.1 处，与 Wathe 手雷一致。
         PotionShellEntity shell = new PotionShellEntity(world, gunner);
+        shell.presentation = presentation;
         shell.setItem(new ItemStack(SparkWitchItems.potionShell(type)));
         shell.setLaunchOrigin(shell.getPos());
         // Exact ballistics for the scope ticks: no divergence and, unlike setVelocity(Entity, …), no inherited
@@ -129,9 +140,11 @@ public class PotionShellEntity extends ThrownItemEntity {
         if (!getWorld().isClient()) {
             // D-R1: once the round leaves ACTIVE (STOPPING: the winner is decided) a shell still in flight is
             // discarded without exploding, so no kill, gold or bounty lands after the result; the finalize sweep covers
-            // unticked ones. / D-R1：对局一旦离开 ACTIVE（STOPPING：胜负已定），仍在飞行的炮弹直接移除、不爆炸，
-            // 结果确定后不会再有击杀、金币或赏金；未被 tick 的炮弹由收尾清理处理。
-            if (!isRoundActive(getWorld())) {
+            // unticked ones. A presentation shell can affect nothing, so it ignores the round status; finalize still
+            // discards it. / D-R1：对局一旦离开 ACTIVE（STOPPING：胜负已定），仍在飞行的炮弹直接移除、不爆炸，
+            // 结果确定后不会再有击杀、金币或赏金；未被 tick 的炮弹由收尾清理处理。仅表现的炮弹不影响任何事物，因此无视
+            // 对局状态；收尾清理仍会移除它。
+            if (!presentation && !isRoundActive(getWorld())) {
                 discard();
                 return;
             }
@@ -144,9 +157,10 @@ public class PotionShellEntity extends ThrownItemEntity {
                 detonate(getPos());
                 return;
             }
-            // Seeker seam (server): a Seeker device in this tick's path breaks and the shell bursts at it.
-            // 搜寻者接缝（服务端）：本刻路径上的搜寻者设备被打坏，炮弹在该处爆炸。
-            Vec3d device = SeekerDeviceHits.onPotionShellSweep(this, getOwner(), getPos(),
+            // Seeker seam (server): a Seeker device in this tick's path breaks and the shell bursts at it; a
+            // presentation shell never touches a device. / 搜寻者接缝（服务端）：本刻路径上的搜寻者设备被打坏，炮弹在该处
+            // 爆炸；仅表现的炮弹从不触碰设备。
+            Vec3d device = presentation ? null : SeekerDeviceHits.onPotionShellSweep(this, getOwner(), getPos(),
                     getPos().add(getVelocity()));
             if (device != null) {
                 detonate(device);
@@ -376,8 +390,8 @@ public class PotionShellEntity extends ThrownItemEntity {
     }
 
     /**
-     * D-R1: shells launch, fly and burst only while Wathe's round is exactly {@code ACTIVE}.
-     * D-R1：炮弹只在 Wathe 对局恰为 {@code ACTIVE} 时发射、飞行与爆炸。
+     * D-R1: match shells launch, fly and burst only while Wathe's round is exactly {@code ACTIVE}.
+     * D-R1：对局炮弹只在 Wathe 对局恰为 {@code ACTIVE} 时发射、飞行与爆炸。
      */
     static boolean isRoundActive(World world) {
         return GameWorldComponent.KEY.get(world).getGameStatus() == GameWorldComponent.GameStatus.ACTIVE;
@@ -447,6 +461,11 @@ public class PotionShellEntity extends ThrownItemEntity {
     @Nullable
     public UUID gunnerUuid() {
         return gunnerUuid;
+    }
+
+    /** Server only: an off-match presentation shell. / 仅服务端：场外仅表现的炮弹。 */
+    boolean isPresentation() {
+        return presentation;
     }
 
     /**

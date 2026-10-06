@@ -25,11 +25,11 @@ public final class InsiderRules {
     /** RGB of NoellesRoles' {@code new Color(25, 50, 100)}, without its alpha byte. / NoellesRoles 黑警颜色的 RGB，不含 alpha。 */
     public static final int CORRUPT_COP_COLOR = 0x193264;
     /**
-     * What killers see on the Insider: SparkTraits' Impostor instinct blue, mirrored because SparkWitch may not read
-     * SparkTraits internals (D3).
-     * 杀手看到的内应颜色：SparkTraits 的内鬼本能蓝。SparkWitch 不能读取 SparkTraits 内部代码，所以在此镜像（D3）。
+     * Team Jiahao's own faction color, tuhao gold, separate from both members' role colors: the end title of a Team
+     * Jiahao win and the "嘉豪同伙" label.
+     * 嘉豪阵营自己的阵营色（土豪金），与两名成员的职业色都不同：用于嘉豪阵营胜利的结算标题与“嘉豪同伙”标签。
      */
-    public static final int KILLER_VIEW_COLOR = 0x0013FF;
+    public static final int TEAM_JIAHAO_COLOR = 0xFFC125;
 
     public static final int TASK_MONEY_REWARD = 50;
     public static final int INITIAL_MONEY = 0;

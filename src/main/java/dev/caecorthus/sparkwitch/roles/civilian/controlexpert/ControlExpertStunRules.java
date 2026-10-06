@@ -85,6 +85,8 @@ public final class ControlExpertStunRules {
             // 出门与控制台快照请求放行（出门必须始终放行；快照请求仅为界面用途）。
             Identifier.of("sparkwitch", "rift_hop"),
             Identifier.of("sparkwitch", "rift_gate_close"),
+            // Fiend Dash (UseFiendDashC2SPayload), moment-only. / 魔人疾驰，仅限时刻中。
+            Identifier.of("sparkwitch", "use_fiend_dash"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),

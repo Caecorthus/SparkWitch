@@ -25,19 +25,22 @@ import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * Role-owned Seeker Console (keys {@code screen.sparkwitch.seeker_console.*}; never the witch skill panel). Client
- * presentation only: status rows (car, battery, camera count and nearest distance, mark), "Control car" and "View
- * camera" (send {@code seeker_remote_open} and close; "View camera" lets the server pick the default camera; the server
+ * presentation only: status rows (car, battery, camera count and nearest distance, mark; a distance is shown only while
+ * this client tracks the device, since a far device has no range limit and is usually untracked), "Control car" and
+ * "View camera" (send {@code seeker_remote_open} and close; "View camera" lets the server pick the default camera; the server
  * opens the possession session and the remote view takes over), "Recall car" (remote, after a confirm step;
  * {@code seeker_car_recall}, 180 s), and "Police network" (only for the SparkStrength tablet: one-shot bypass and
  * vanilla re-use so SparkStrength opens its own tablet). Every enablement is a client prediction shared with quick
  * connect through {@link SeekerDeviceAvailability}; the server validates each packet. The console never pauses and
  * closes itself when the device leaves the inventory, the role changes, the player dies, or a session starts.
  * 职业自有的搜寻者控制台（键名 {@code screen.sparkwitch.seeker_console.*}；绝不使用魔女技能面板）。仅客户端展示：
- * 状态行（小车、电量、摄像头数量与最近距离、标记）；“操控小车”“查看摄像头”（发送 {@code seeker_remote_open} 并关闭，
+ * 状态行（小车、电量、摄像头数量与最近距离、标记；仅当本客户端追踪到设备时才显示距离，因为远处设备没有距离限制且通常
+ * 不被追踪）；“操控小车”“查看摄像头”（发送 {@code seeker_remote_open} 并关闭，
  * “查看摄像头”由服务端选择默认摄像头；由服务端开启附身会话、遥控视角接管）；“回收小车”（远程，二次确认后发送
  * {@code seeker_car_recall}，180 秒）；“警察网络”（仅限 SparkStrength 平板：一次性旁路后重发原版使用，由 SparkStrength
  * 打开自己的平板）。所有启用状态都只是客户端预测，经 {@link SeekerDeviceAvailability} 与快速连接共用，
@@ -280,9 +283,7 @@ public class SeekerConsoleScreen extends Screen {
     private void applyAvailability(ButtonWidget button, String key, SeekerConsoleRules.Availability availability) {
         button.active = !sent && availability == SeekerConsoleRules.Availability.AVAILABLE;
         MutableText label = Text.translatable(key);
-        if (availability == SeekerConsoleRules.Availability.OUT_OF_RANGE) {
-            label.append(" (").append(Text.translatable("screen.sparkwitch.seeker_console.out_of_range")).append(")");
-        } else if (availability == SeekerConsoleRules.Availability.UNAVAILABLE) {
+        if (availability == SeekerConsoleRules.Availability.UNAVAILABLE) {
             label.append(" (").append(Text.translatable("screen.sparkwitch.seeker_console.unavailable")).append(")");
         }
         button.setMessage(label);
@@ -333,8 +334,9 @@ public class SeekerConsoleScreen extends Screen {
             case COOLDOWN -> Text.translatable("screen.sparkwitch.seeker_console.car.cooldown",
                     SeekerConsoleRules.secondsCeil(cooldown),
                     Text.translatable(SeekerClientState.cooldownReason().translationKey()));
-            case DEPLOYED -> Text.translatable("screen.sparkwitch.seeker_console.car.deployed",
-                    distanceText(SeekerDeviceAvailability.horizontalDistanceSquared(player, car)));
+            case DEPLOYED -> withDistance("screen.sparkwitch.seeker_console.car.deployed",
+                    "screen.sparkwitch.seeker_console.car.deployed.unknown_distance",
+                    SeekerDeviceAvailability.horizontalDistanceSquared(player, car));
             case SWALLOWED -> Text.translatable("screen.sparkwitch.seeker_console.car.swallowed");
         };
         rows.add(new StatusRow(labelled("screen.sparkwitch.seeker_console.car", carValue), TEXT_COLOR));
@@ -346,8 +348,9 @@ public class SeekerConsoleScreen extends Screen {
         }
         SeekerDeviceAvailability.CameraSummary cameras = SeekerDeviceAvailability.cameraSummary(client);
         Text cameraValue = cameras.count() > 0
-                ? Text.translatable("screen.sparkwitch.seeker_console.camera.placed", cameras.count(),
-                        distanceText(cameras.nearestHorizontalDistanceSquared()))
+                ? withDistance("screen.sparkwitch.seeker_console.camera.placed",
+                        "screen.sparkwitch.seeker_console.camera.placed.unknown_distance",
+                        cameras.nearestHorizontalDistanceSquared(), cameras.count())
                 : Text.translatable("screen.sparkwitch.seeker_console.camera.none");
         rows.add(new StatusRow(labelled("screen.sparkwitch.seeker_console.camera", cameraValue), TEXT_COLOR));
         int markTicks = SeekerClientState.markRemainingTicks();
@@ -367,13 +370,20 @@ public class SeekerConsoleScreen extends Screen {
     }
 
     /**
-     * Whole metres of a horizontal distance squared ({@code "?"} when unknown), the same measure as the range check, so
-     * the row never contradicts the button suffix.
-     * 水平距离平方换算的整米数（未知时为 {@code "?"}），与范围判定一致，状态行不会与按钮后缀矛盾。
+     * {@code key} with the leading arguments plus the whole metres of a horizontal distance squared as its last
+     * argument; when the distance is unknown (the device is not tracked by this client) {@code unknownKey} with the
+     * leading arguments only, so a far device never shows a made-up number.
+     * 在前置参数之后把水平距离平方换算的整米数作为最后一个参数传给 {@code key}；距离未知时（本客户端未追踪该设备）
+     * 改用只带前置参数的 {@code unknownKey}，远处设备从不显示臆测的数字。
      */
-    private static String distanceText(double horizontalDistanceSquared) {
-        return horizontalDistanceSquared < 0.0 ? "?"
-                : Long.toString(Math.round(Math.sqrt(horizontalDistanceSquared)));
+    private static Text withDistance(String key, String unknownKey, double horizontalDistanceSquared,
+                                     Object... leading) {
+        if (horizontalDistanceSquared < 0.0) {
+            return Text.translatable(unknownKey, leading);
+        }
+        Object[] arguments = Arrays.copyOf(leading, leading.length + 1);
+        arguments[leading.length] = Long.toString(Math.round(Math.sqrt(horizontalDistanceSquared)));
+        return Text.translatable(key, arguments);
     }
 
     private record StatusRow(Text text, int color) {

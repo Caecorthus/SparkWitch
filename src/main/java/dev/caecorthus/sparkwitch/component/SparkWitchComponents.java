@@ -19,6 +19,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMarkPlayerCom
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeTheftPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendMomentWorldComponent;
@@ -28,6 +29,7 @@ import dev.caecorthus.sparkwitch.roles.witch.curser.CurserPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRuntimeComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorWorldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.GrandWitchRecruitmentRoundComponent;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHoldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateRegistryComponent;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -101,6 +103,9 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, TimeTheftPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(TimeTheftPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, TimeGiftPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(TimeGiftPlayerComponent::new);
         registry.beginRegistration(PlayerEntity.class, ControlExpertStatusComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(ControlExpertStatusComponent::new);
@@ -122,6 +127,9 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, RiftSessionComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(RiftSessionComponent::new);
+        registry.beginRegistration(PlayerEntity.class, RecruitmentHoldComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(RecruitmentHoldComponent::new);
     }
 
     @Override

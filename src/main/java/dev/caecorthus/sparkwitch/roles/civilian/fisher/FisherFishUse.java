@@ -8,6 +8,7 @@ import dev.doctor4t.wathe.cca.PlayerMoodComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.player.ItemCooldownManager;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -48,6 +49,21 @@ public final class FisherFishUse {
         player.playSoundToPlayer(SoundEvents.ENTITY_GENERIC_EAT, SoundCategory.PLAYERS, 1f, 1f);
         FisherInventory.sync(player);
         return true;
+    }
+
+    /**
+     * Any cooling fish refuses every fish, so removing one fish's cooldown (SparkFactionAPI {@code clearCooldown})
+     * removes the others too. Only cooling fish are removed, so the removals this triggers stop by themselves.
+     * 任一鱼冷却中都会拒绝所有鱼，因此移除一条鱼的冷却（SparkFactionAPI {@code clearCooldown}）时一并移除其余鱼的冷却。
+     * 只移除冷却中的鱼，因此由此引发的移除会自行终止。
+     */
+    public static void releaseSharedCooldown(ServerPlayerEntity player) {
+        ItemCooldownManager manager = player.getItemCooldownManager();
+        for (Item item : fishItems()) {
+            if (manager.isCoolingDown(item)) {
+                manager.remove(item);
+            }
+        }
     }
 
     static float moodAfter(FisherFishKind kind, float mood) {

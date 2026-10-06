@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.render;
 
+import dev.caecorthus.sparkwitch.client.grandwitch.RecruitmentHoldClient;
 import dev.caecorthus.sparkwitch.client.vendetta.VendettaClientPresentation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -97,9 +98,13 @@ public final class WraithAimPassThrough {
      * 与服务端隔离策略一致：他人的激活冤魂不作为瞄准目标，绑定凶手看自己的仇杀客除外。
      */
     static boolean passesThrough(PlayerEntity viewer, Entity candidate) {
-        return candidate instanceof PlayerEntity target
+        return (candidate instanceof PlayerEntity target
                 && target != viewer
                 && WraithClientState.isActive(target)
-                && !VendettaClientPresentation.isBoundKillerViewingVendetta(viewer, target);
+                && !VendettaClientPresentation.isBoundKillerViewingVendetta(viewer, target))
+                // A held recruit stands inside the Grand Witch and cannot be harmed: aim and crosshair reach the player
+                // behind (or the Grand Witch's own target) instead of spending the action on the invisible body.
+                // 被定身的新共犯站在大魔女体内且无法被伤害：瞄准与准星越过隐身身体，命中其后的玩家（或大魔女自己的目标）。
+                || RecruitmentHoldClient.isHiddenFrom(viewer, candidate);
     }
 }

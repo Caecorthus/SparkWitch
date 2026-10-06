@@ -89,7 +89,7 @@
     "kidnapper.KidnapperThrowUseMixin",
     "hunter.DoubleBarrelShotgunCrosshairMixin",
     "insider.InsiderCohortRoleNameMixin",
-    "insider.WatheClientInsiderImpostorHighlightMixin",
+    "insider.RoundTextRendererJiahaoTitleMixin",
     "saboteur.SaboteurHudMixin",
     "saboteur.SaboteurInstinctMixin",
     "saint.HolyFlashHudMixin",
@@ -107,6 +107,8 @@
     "seeker.SeekerRemoteNetworkHandlerMixin",
     "seeker.SeekerRemoteWorldRendererMixin",
     "seeker.SeekerTaotieAbilityKeyMixin",
+    "seeker.SeekerBodyFreezeMixin",
+    "seeker.SeekerRemoteTerrainGridMixin",
     "windspirit.WindSpiritInstinctMixin",
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleParticleMixin",
     "witchmaiden.FocusedFootstepsClientPlayerMovementMixin",
@@ -144,9 +146,11 @@
     "riftwalker.RiftSessionMouseMixin",
     "riftwalker.RiftSessionSpectatorHudMixin",
     "riftwalker.RiftGateAttackMixin",
-    "riftwalker.RiftGateCrosshairMixin"
+    "riftwalker.RiftGateCrosshairMixin",
+    "recruitment.RecruitmentHoldHeldItemFeatureRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "plugin": "dev.caecorthus.sparkwitch.client.mixin.SparkWitchClientMixinPlugin"
 }

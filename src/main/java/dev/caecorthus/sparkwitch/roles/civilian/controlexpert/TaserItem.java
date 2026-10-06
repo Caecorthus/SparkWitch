@@ -34,9 +34,13 @@ public final class TaserItem extends Item {
     private static final int TOOLTIP_LINES = 3;
     /** Local-only recoil, applied after vanilla captured the aim for the use packet. / 仅本地的后坐，在原版为使用数据包记录瞄准方向之后施加。 */
     private static final float RECOIL_PITCH = 2.0F;
-    private static final SoundEvent FIRE_SOUND = SoundEvents.ENTITY_LIGHTNING_BOLT_IMPACT;
-    private static final float FIRE_VOLUME = 0.6F;
-    private static final float FIRE_PITCH = 1.8F;
+    /** A crossbow pop as the darts leave, layered with a firework crackle for the arc. / 电击镖射出的弩“啪”声，叠加烟花噼啪作电弧声。 */
+    private static final SoundEvent FIRE_SOUND = SoundEvents.ITEM_CROSSBOW_SHOOT;
+    private static final float FIRE_VOLUME = 0.5F;
+    private static final float FIRE_PITCH = 1.5F;
+    private static final SoundEvent ARC_SOUND = SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE;
+    private static final float ARC_VOLUME = 0.6F;
+    private static final float ARC_PITCH = 1.6F;
 
     public TaserItem(Settings settings) {
         super(settings);
@@ -80,6 +84,8 @@ public final class TaserItem extends Item {
         GameRecordManager.recordItemUse(ce, ControlExpertRules.TASER_ID, target, extra);
         serverWorld.playSound(null, ce.getX(), ce.getY(), ce.getZ(), FIRE_SOUND, SoundCategory.PLAYERS,
                 FIRE_VOLUME, FIRE_PITCH);
+        serverWorld.playSound(null, ce.getX(), ce.getY(), ce.getZ(), ARC_SOUND, SoundCategory.PLAYERS,
+                ARC_VOLUME, ARC_PITCH);
         return TypedActionResult.consume(stack);
     }
 

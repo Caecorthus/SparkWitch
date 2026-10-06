@@ -10,7 +10,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.PostEffectProcessor;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.Entity;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
@@ -116,7 +115,7 @@ public final class SeekerViewFilter {
             return;
         }
         boolean signalLost = SeekerCctvOverlay.isSignalLost(player);
-        active.setUniforms("Interference", interference(player, mode));
+        active.setUniforms("Interference", interference(mode));
         active.setUniforms("SignalLost", signalLost ? 1.0F : 0.0F);
         // Same state vanilla sets before its own post pass. / 与原版后处理前设置的状态一致。
         RenderSystem.disableBlend();
@@ -135,11 +134,8 @@ public final class SeekerViewFilter {
         }
     }
 
-    private static float interference(ClientPlayerEntity player, SeekerSessionMode mode) {
-        Entity focus = SeekerRemoteViewClient.focus();
-        double distance = focus == null ? 0.0 : SeekerCctvOverlay.horizontalDistance(player, focus);
-        return SeekerCctvRules.interference(mode, SeekerClientState.carBattery(), distance,
-                SeekerClientState.effectiveRadius());
+    private static float interference(SeekerSessionMode mode) {
+        return SeekerCctvRules.interference(mode, SeekerClientState.carBattery());
     }
 
     @Nullable

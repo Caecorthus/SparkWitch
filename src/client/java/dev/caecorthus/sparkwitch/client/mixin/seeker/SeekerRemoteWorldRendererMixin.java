@@ -21,7 +21,8 @@ import org.spongepowered.asm.mixin.injection.Slice;
  * check pass for the body alone. It is the first {@code getFocusedEntity()} after the only
  * {@code LivingEntity#isSleeping()} of the same condition (pinned by {@code SeekerRemoteRenderMixinTargetsTest}).
  * No {@code @Local} and no new locals: it coexists with Wathe's {@code @Local Entity} and NoellesRoles'
- * {@code CAPTURE_FAILHARD} in the same method. The focused car itself is still skipped by vanilla in first person.
+ * {@code CAPTURE_FAILHARD} in the same method. The focused car itself is still skipped by vanilla in first person, and
+ * nothing changes while the camera is still the body (connecting at session start).
  * <p>Remap / runtime: plain {@code INVOKE} selectors are remapped by Loom. The {@code INSTANCEOF} itself is NOT
  * targeted, because {@code @At("CONSTANT", args = "classValue=...")} strings are not remapped, and a MixinExtras
  * {@code @Expression} needs {@code "mixinextras": {"minVersion": "0.5.0"}} in the mixin config (it crashes the client
@@ -33,7 +34,7 @@ import org.spongepowered.asm.mixin.injection.Slice;
  * 即可只让本体通过判断。它是同一条件中唯一一次 {@code LivingEntity#isSleeping()} 之后的第一处
  * {@code getFocusedEntity()}（由 {@code SeekerRemoteRenderMixinTargetsTest} 固定）。不使用 {@code @Local}、
  * 不新增局部变量：可与同一方法中 Wathe 的 {@code @Local Entity} 及 NoellesRoles 的 {@code CAPTURE_FAILHARD} 共存。
- * 第一人称下原版仍会跳过被聚焦的小车本身。
+ * 第一人称下原版仍会跳过被聚焦的小车本身；相机仍是本体时（会话开始的连接阶段）不做任何改变。
  * 重映射/运行时：普通 {@code INVOKE} 选择器会被 Loom 重映射。不直接定位 {@code INSTANCEOF}：
  * {@code @At("CONSTANT", args = "classValue=...")} 字符串不会被重映射，而 MixinExtras {@code @Expression}
  * 需要 mixin 配置声明 {@code "mixinextras": {"minVersion": "0.5.0"}}，否则类加载时客户端直接崩溃。
@@ -55,6 +56,8 @@ public abstract class SeekerRemoteWorldRendererMixin {
             return focused;
         }
         ClientPlayerEntity player = this.client.player;
-        return player != null ? player : focused;
+        // Connecting at session start the camera is still the body, which first person must keep hidden.
+        // 会话开始的连接期间相机仍是本体，第一人称下必须继续隐藏本体。
+        return player != null && this.client.getCameraEntity() != player ? player : focused;
     }
 }

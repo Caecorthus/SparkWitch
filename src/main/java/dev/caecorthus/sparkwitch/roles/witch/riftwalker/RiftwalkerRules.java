@@ -19,6 +19,8 @@ public final class RiftwalkerRules {
     // --- Rift Gate item, entity and shop entry / 裂隙门物品、实体与商店条目 ---
     public static final Identifier GATE_ITEM_ID = SparkWitch.id("rift_gate");
     public static final Identifier GATE_ENTITY_ID = SparkWitch.id("rift_gate");
+    /** Operator-only Rift Gate Remover (传送门清除工具, owner 2026-10-05). / 管理员专用的传送门清除工具。 */
+    public static final Identifier GATE_REMOVER_ITEM_ID = SparkWitch.id("rift_gate_remover");
     /**
      * Wathe {@code ShopEntry.id()} of the gate entry; prefixed so it never collides with a Grand Witch spell id.
      * 裂隙门商品的 Wathe {@code ShopEntry.id()}；带前缀，避免与大魔女法术 id 冲突。
@@ -34,9 +36,13 @@ public final class RiftwalkerRules {
     public static final Identifier SABBATH_ACTION_ID = SparkWitch.id("riftwalker_sabbath");
     /** The definition only displays it; the use handler spends it. / 技能定义只用于显示，由使用处理器实际扣除。 */
     public static final int SABBATH_MANA_COST = 150;
-    /** D6: no cooldown at all; mana is the only limit. / D6：完全无冷却，只受魔力限制。 */
+    /**
+     * Owner 2026-10-05 (replaces D6's "no cooldown"): 30 s after each successful cast; none at round start, since the
+     * Riftwalker starts at 0 mana.
+     * 所有者 2026-10-05（取代 D6 的「无冷却」）：每次成功施放后冷却 30 秒；开局无冷却（隙行者从 0 魔力开始）。
+     */
     public static final int SABBATH_INITIAL_COOLDOWN_TICKS = 0;
-    public static final int SABBATH_COOLDOWN_TICKS = 0;
+    public static final int SABBATH_COOLDOWN_TICKS = 30 * 20;
 
     // --- Gate users (D5, C1) / 门的使用者（D5、C1） ---
     /** Apprentice and Murderous Witches pay this per ENTRY; hops inside are free. / 预备魔女、杀意魔女每次进门支付。 */
