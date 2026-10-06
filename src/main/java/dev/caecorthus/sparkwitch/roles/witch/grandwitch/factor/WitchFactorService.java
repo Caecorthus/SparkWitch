@@ -64,14 +64,6 @@ public final class WitchFactorService {
         }
     }
 
-    public static void onRecruited(ServerPlayerEntity player) {
-        for (ServerWorld world : player.getServer().getWorlds()) {
-            WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
-            component.state().recover(player.getUuid());
-            component.sync();
-        }
-    }
-
     /**
      * Apprentice Purify (owner 2026-10-06 D3): removes the holder's factor in every world, dormant or mature. Like any
      * removal it never refunds the shared quota. Returns whether a factor was removed.

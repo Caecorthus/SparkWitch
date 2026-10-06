@@ -10,8 +10,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.Nullable;
 
-/** Server-owned aim for Witch Factor and Emma; recruitment no longer aims (owner request 2026-10-06).
- * 魔女因子与艾玛共用的服务端瞄准判定；招募已不再瞄准（所有者 2026-10-06 要求）。 */
+/** Server-owned targeting shared by both Grand Witch skills. / 两个大魔女技能共用的服务端选人判定。 */
 public final class GrandWitchTargeting {
     public static final double RANGE = 8.0D;
 

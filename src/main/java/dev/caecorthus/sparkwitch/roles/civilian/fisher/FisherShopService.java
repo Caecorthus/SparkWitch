@@ -23,8 +23,7 @@ public final class FisherShopService {
     }
 
     private static void buildEntries(PlayerEntity player, BuildShopEntries.ShopContext context) {
-        // Stock is cached while STARTING; role alone gates the shop. Default buying preserves recruitment refunds.
-        // 库存在 STARTING 阶段缓存，只按职业筛选商店；保留默认购买处理器以支持招募退款。
+        // Stock is cached while STARTING; role alone gates the shop. / 库存在 STARTING 阶段缓存，只按职业筛选商店。
         if (!FisherRules.isFisher(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
             return;
         }

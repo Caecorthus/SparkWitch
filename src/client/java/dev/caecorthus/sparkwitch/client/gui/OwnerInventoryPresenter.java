@@ -182,10 +182,10 @@ public final class OwnerInventoryPresenter {
 
     /**
      * Skill HUD hook: true while {@code screen}'s owner card laid out every hero row of the skill section in its last
-     * frame. The card then shows the same states (the Grand Witch's factor, recruit, kill and dash; a panel skill's
-     * state), so WitchSkillHudRenderer skips its bottom-right lines, which would otherwise draw under the card and poke
-     * out around it. Only a panel-gated section has hero rows, so no other role's HUD is affected.
-     * 技能 HUD 钩子：该界面的卡片上一帧完整排出了技能分节的所有技能行时为真。卡片已显示相同状态（大魔女的因子、招募、击杀与冲刺；
+     * frame. The card then shows the same states (the Grand Witch's factor, kill and dash; a panel skill's state), so
+     * WitchSkillHudRenderer skips its bottom-right lines, which would otherwise draw under the card and poke out around
+     * it. Only a panel-gated section has hero rows, so no other role's HUD is affected.
+     * 技能 HUD 钩子：该界面的卡片上一帧完整排出了技能分节的所有技能行时为真。卡片已显示相同状态（大魔女的因子、击杀与冲刺；
      * 面板技能状态），因此右下角 HUD 不再绘制，避免压在卡片下方并从四周露出。只有通过面板资格的分节才有技能行，其他职业的 HUD 不受影响。
      */
     public static boolean showsSkillSection(Screen screen) { return screen != null && screen == skillSectionScreen; }
@@ -266,19 +266,17 @@ public final class OwnerInventoryPresenter {
     }
 
     /**
-     * The Grand Witch's own rows beside the panel skill (Witch Factor), read from GrandWitchClientPresentation's data
-     * accessors: unlock progress, recruit quota, sword kill and dash seconds, the second skill key.
-     * 大魔女在面板主技能（魔女因子）之外的自有能力数据：解锁进度、招募名额、仪礼剑击杀与冲刺秒数、第二技能键。
+     * The Grand Witch's own row beside the panel skill (Witch Factor), read from GrandWitchClientPresentation's data
+     * accessors: unlock progress, sword kill and dash seconds.
+     * 大魔女在面板主技能（魔女因子）之外的自有能力数据：解锁进度、仪礼剑击杀与冲刺秒数。
      */
-    record GrandWitchRows(boolean unlocked, int tasks, int remaining, int capacity, int killSeconds, int dashSeconds,
-                          Text secondaryKey) {
+    record GrandWitchRows(boolean unlocked, int tasks, int killSeconds, int dashSeconds) {
         static GrandWitchRows read(ClientPlayerEntity player) {
             WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
-            var quota = GrandWitchClientPresentation.recruitQuota(player);
             return new GrandWitchRows(component.hasUnlockedGrandWitchCeremonialSword(),
                     GrandWitchRules.clampCeremonialSwordTaskProgress(component.getGrandWitchCeremonialSwordTasks()),
-                    quota.remaining(), quota.capacity(), secs(GrandWitchClientPresentation.swordKillTicks(player)),
-                    secs(GrandWitchClientPresentation.swordDashTicks(player)), SecondaryAbilityController.secondaryKeyText());
+                    secs(GrandWitchClientPresentation.swordKillTicks(player)),
+                    secs(GrandWitchClientPresentation.swordDashTicks(player)));
         }
     }
 
@@ -291,8 +289,8 @@ public final class OwnerInventoryPresenter {
         var role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
         // Do not gate on usability: active, locked, and cooling-down skills are still owned skills.
         if (skillId == null || !WitchSkillPresentationRules.shouldShowInventorySkillPanel(role, skillId)) return null;
-        // Grand Witch rows (Recruit, Ceremonial Sword) are read only after the panel gate above passed; the
-        // mixin never checks roles. 大魔女的招募与仪礼剑行只在上方面板资格通过后读取；混入类从不判断职业。
+        // The Grand Witch's Ceremonial Sword row is read only after the panel gate above passed; the mixin never
+        // checks roles. 大魔女的仪礼剑行只在上方面板资格通过后读取；混入类从不判断职业。
         GrandWitchRows grandWitch = GrandWitchClientPresentation.isGrandWitch(client.player) ? GrandWitchRows.read(client.player) : null;
         ApprenticeRows apprentice = ApprenticeClientPresentation.isApprenticeSkill(skillId) ? ApprenticeRows.read(client.player) : null;
         SkillKey key = new SkillKey(Language.getInstance(), role, skillId,
@@ -454,61 +452,15 @@ public final class OwnerInventoryPresenter {
     }
 
     /**
-     * Grand Witch's Recruit Accomplice and Ceremonial Sword (spec-v2-grand-witch §1): her own abilities beside the
-     * panel skill, as status-bearing hero rows sharing the section's status column. Built only for a Grand Witch that
-     * passed the panel gate in skillSection. Recruit: LOCKED "未解锁" (short "锁定") before 2 tasks (the task
-     * pips live on the sword row only), then READY "剩余 n/m", LOCKED with the same label once the quota is used up, or
-     * LOCKED "无名额" when the round has no quota at all. Sword: LOCKED "x/2" with task pips, then READY "可击杀" or
-     * COOLDOWN on the 30 s kill cooldown; the 5 s dash cooldown is a tooltip fact, not a second pill.
-     * 大魔女的招募同伙与仪礼剑：面板主技能之外的自有能力，作为带状态的技能行，与分节共用状态列；仅在 skillSection 的面板资格通过后构建。
-     * 招募：2 个任务前为“未解锁”（短标签“锁定”，任务点只画在仪礼剑行），之后为“剩余 n/m”，名额用尽时以同一文本显示为锁定，
-     * 本局无名额时显示为锁定的“无名额”。仪礼剑：锁定时显示 x/2 与任务点，解锁后为“可击杀”或 30 秒击杀冷却；5 秒冲刺冷却只写在提示中，不另设状态牌。
+     * Grand Witch's Ceremonial Sword (spec-v2-grand-witch §1): her own ability beside the panel skill, as a
+     * status-bearing hero row sharing the section's status column. Built only for a Grand Witch that passed the panel
+     * gate in skillSection. LOCKED "x/2" with task pips, then READY "可击杀" or COOLDOWN on the 30 s kill cooldown; the
+     * 5 s dash cooldown is a tooltip fact, not a second pill.
+     * 大魔女的仪礼剑：面板主技能之外的自有能力，作为带状态的技能行，与分节共用状态列；仅在 skillSection 的面板资格通过后构建。
+     * 锁定时显示 x/2 与任务点，解锁后为“可击杀”或 30 秒击杀冷却；5 秒冲刺冷却只写在提示中，不另设状态牌。
      */
     private static List<InventoryInfoCard.Entry> grandWitchEntries(GrandWitchRows rows) {
-        return List.of(recruitEntry(rows), swordEntry(rows));
-    }
-
-    /**
-     * Recruit row. Short labels stay within the short column the factor and sword already need (34 px zh: "20秒" /
-     * "30秒"), so the Grand Witch section keeps step A' down to a 98 px card (427 wide): LOCKED is "锁定" there, not
-     * "未解锁" (40 px), and a round without quota (under 24 participants) reads "无名额" / "无", never "0/0". The LOCKED
-     * reserves are the unlock labels; the no-quota labels are never wider (checked for zh and en by the W test), and
-     * an exhausted quota "0/m" is as wide as the READY "m/m" reserve (same 5 px icon, digits all 6 px).
-     * 招募行。短标签不超过因子与仪礼剑已需要的短列（中文 34 像素），使大魔女分节在 98 像素宽的卡片（427 宽屏幕）上仍为 A′：
-     * 锁定时短标签为“锁定”而非“未解锁”（40 像素）；无名额的对局（参赛不足 24 人）显示“无名额”/“无”，而不是“0/0”。
-     * 锁定状态按解锁标签预留，无名额标签不会更宽（W 测试检查中英文）；名额用尽的“0/m”与 READY 预留“m/m”等宽。
-     */
-    static InventoryInfoCard.Entry recruitEntry(GrandWitchRows rows) {
-        boolean none = rows.unlocked() && rows.capacity() <= 0;
-        boolean ready = rows.unlocked() && rows.remaining() > 0;
-        var kind = ready ? InventoryInfoCard.Kind.READY : InventoryInfoCard.Kind.LOCKED;
-        Text label = !rows.unlocked() ? Text.translatable("gui.sparkwitch.skill.pill.unlock")
-                : none ? Text.translatable("gui.sparkwitch.skill.pill.recruit_none")
-                : Text.translatable("gui.sparkwitch.skill.pill.recruit", rows.remaining(), rows.capacity());
-        Text shortLabel = !rows.unlocked() ? Text.translatable("gui.sparkwitch.skill.pill.short.unlock")
-                : none ? Text.translatable("gui.sparkwitch.skill.pill.short.recruit_none")
-                : Text.translatable("gui.sparkwitch.skill.pill.short.recruit", rows.remaining(), rows.capacity());
-        // The quota total is fixed for the round, so "n/m" is reserved at "m/m". 名额总数本局固定，按“m/m”预留。
-        Map<InventoryInfoCard.Kind, Text> widest = new EnumMap<>(InventoryInfoCard.Kind.class);
-        widest.put(InventoryInfoCard.Kind.READY, Text.translatable("gui.sparkwitch.skill.pill.recruit", rows.capacity(), rows.capacity()));
-        widest.put(InventoryInfoCard.Kind.LOCKED, Text.translatable("gui.sparkwitch.skill.pill.unlock"));
-        Map<InventoryInfoCard.Kind, Text> widestShort = new EnumMap<>(InventoryInfoCard.Kind.class);
-        widestShort.put(InventoryInfoCard.Kind.READY, Text.translatable("gui.sparkwitch.skill.pill.short.recruit", rows.capacity(), rows.capacity()));
-        widestShort.put(InventoryInfoCard.Kind.LOCKED, Text.translatable("gui.sparkwitch.skill.pill.short.unlock"));
-        var status = new InventoryInfoCard.Status(kind, label, shortLabel, widest, widestShort, ready ? 1f : 0f,
-                0, 0, -1, null, false, null, 0);
-        Text statusLine = !rows.unlocked()
-                ? Text.translatable("gui.sparkwitch.skill.ceremonial_sword.locked", rows.tasks(), GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS)
-                : none ? Text.translatable("gui.sparkwitch.skill.recruit.none")
-                : Text.translatable("gui.sparkwitch.skill.recruit.quota", rows.remaining(), rows.capacity());
-        List<Text> tooltip = List.of(
-                Text.translatable("skill.sparkwitch.recruit_accomplice.name"),
-                Text.translatable("skill.sparkwitch.recruit_accomplice.description"),
-                Text.translatable("skill.sparkwitch.recruit_accomplice.inventory"),
-                keyHint("gui.sparkwitch.skill.key.secondary", rows.secondaryKey()),
-                statusLine.copy().withColor(InventoryCardPaint.kindText(kind) & 0xFFFFFF));
-        return new InventoryInfoCard.Entry(List.of(Text.translatable("skill.sparkwitch.recruit_accomplice.name"), label), tooltip,
-                GrandWitchClientPresentation.COLOR, status);
+        return List.of(swordEntry(rows));
     }
 
     static InventoryInfoCard.Entry swordEntry(GrandWitchRows rows) {

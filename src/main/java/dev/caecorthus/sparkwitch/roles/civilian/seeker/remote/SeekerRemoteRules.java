@@ -55,7 +55,6 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "throw_kidnapper_body"),
             Identifier.of("sparkwitch", "guardian"),
             Identifier.of("sparkwitch", "vendetta_knife_stab"),
-            Identifier.of("sparkwitch", "recruit_accomplice"),
             Identifier.of("sparkwitch", "open_judge_selection"),
             Identifier.of("sparkwitch", "confirm_judge_selection"),
             Identifier.of("sparkwitch", "request_prophecy"),

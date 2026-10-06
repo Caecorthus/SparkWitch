@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.client.render;
 
-import dev.caecorthus.sparkwitch.client.grandwitch.RecruitmentHoldClient;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -40,12 +39,9 @@ public final class WraithNameTagPassThrough {
     }
 
     static boolean passesThrough(PlayerEntity viewer, Entity candidate) {
-        return (candidate instanceof PlayerEntity target
+        return candidate instanceof PlayerEntity target
                 && WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, target)
-                && !isPromotedCurserShownToWitchFaction(viewer, target))
-                // A held recruit stands inside the Grand Witch: no non-spectator viewer, teammates included, tags them.
-                // 被定身的新共犯站在大魔女体内：任何非旁观观察者（包括队友）都不会选中其名牌。
-                || RecruitmentHoldClient.isHiddenFrom(viewer, candidate);
+                && !isPromotedCurserShownToWitchFaction(viewer, target);
     }
 
     /**

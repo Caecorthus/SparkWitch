@@ -14,8 +14,8 @@ import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 /**
- * Owner-only sword readiness and cumulative recruitment state, separate from skill cooldowns.
- * 仅拥有者可见的仪礼剑就绪状态与累计招募记录，不占用技能或物品冷却。
+ * Owner-only Ceremonial Sword readiness, separate from skill cooldowns.
+ * 仅拥有者可见的仪礼剑就绪状态，不占用技能或物品冷却。
  */
 public final class GrandWitchRuntimeComponent
         implements AutoSyncedComponent, ServerTickingComponent, ClientTickingComponent {
@@ -24,8 +24,6 @@ public final class GrandWitchRuntimeComponent
 
     private final PlayerEntity player;
     private int swordKillCooldownTicks;
-    private int recruitmentCount;
-    private int roundParticipants;
     private boolean swordStrikeInProgress;
 
     public GrandWitchRuntimeComponent(PlayerEntity player) {
@@ -52,45 +50,12 @@ public final class GrandWitchRuntimeComponent
         swordStrikeInProgress = inProgress;
     }
 
-    public int getRecruitmentCount() {
-        return recruitmentCount;
-    }
-
-    public void setRecruitmentCount(int count) {
-        int normalized = Math.max(0, count);
-        if (recruitmentCount != normalized) {
-            recruitmentCount = normalized;
-            sync();
-        }
-    }
-
-    public void incrementRecruitmentCount() {
-        if (recruitmentCount < Integer.MAX_VALUE) {
-            recruitmentCount++;
-            sync();
-        }
-    }
-
-    public int getRoundParticipants() {
-        return roundParticipants;
-    }
-
-    public void setRoundParticipants(int participants) {
-        int normalized = Math.max(0, participants);
-        if (roundParticipants != normalized) {
-            roundParticipants = normalized;
-            sync();
-        }
-    }
-
     public void clear() {
         swordStrikeInProgress = false;
-        if (swordKillCooldownTicks == 0 && recruitmentCount == 0 && roundParticipants == 0) {
+        if (swordKillCooldownTicks == 0) {
             return;
         }
         swordKillCooldownTicks = 0;
-        recruitmentCount = 0;
-        roundParticipants = 0;
         sync();
     }
 
@@ -124,29 +89,21 @@ public final class GrandWitchRuntimeComponent
     @Override
     public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) {
         buf.writeVarInt(swordKillCooldownTicks);
-        buf.writeVarInt(recruitmentCount);
-        buf.writeVarInt(roundParticipants);
     }
 
     @Override
     public void applySyncPacket(RegistryByteBuf buf) {
         swordKillCooldownTicks = Math.max(0, buf.readVarInt());
-        recruitmentCount = Math.max(0, buf.readVarInt());
-        roundParticipants = Math.max(0, buf.readVarInt());
     }
 
     @Override
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
         tag.putInt("SwordKillCooldown", swordKillCooldownTicks);
-        tag.putInt("RecruitmentCount", recruitmentCount);
-        tag.putInt("RoundParticipants", roundParticipants);
     }
 
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
         swordKillCooldownTicks = Math.max(0, tag.getInt("SwordKillCooldown"));
-        recruitmentCount = Math.max(0, tag.getInt("RecruitmentCount"));
-        roundParticipants = Math.max(0, tag.getInt("RoundParticipants"));
         swordStrikeInProgress = false;
     }
 }

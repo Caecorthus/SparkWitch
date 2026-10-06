@@ -26,13 +26,12 @@ import org.jetbrains.annotations.Nullable;
  * unenforced for a role gained mid-round, so the buy gate also refuses a buyer who already owns one (inventory, head
  * slot or cursor) or already bought one in this match (a server-only mark in {@link BlindComponent}). A bought ComTac
  * lands on the head when the head slot is empty, else in the first empty hotbar slot; with no room the purchase fails
- * and charges nothing. The custom handler has no physical shop output, so Grand Witch recruitment refunds a ComTac at
- * the unknown-item price.
+ * and charges nothing.
  * 盲人的职业限定商店（C14）：保留 SparkTraits 条目，自有条目只有 ComTac VIII，{@link BlindRules#COMTAC_PRICE} 金币、
  * 库存 1，以 {@code shop.sparkwitch.comtac_viii} 名称及其“每局一件”说明显示。Wathe 在 STARTING 阶段缓存库存，因此只按
  * 同步职业筛选；中途获得的职业不受库存约束，因此购买门槛还会拒绝已持有者（背包、头部槽或光标）以及本局已买过者
  * （{@link BlindComponent} 中仅服务端的记录）。购得的 ComTac 在头部槽为空时直接戴上，否则放入第一个空快捷栏位；没有空间时
- * 购买失败且不扣费。自定义处理没有实体商店产物，因此大魔女招募按未知物品价格退还 ComTac。
+ * 购买失败且不扣费。
  */
 public final class BlindShopService {
     /** Lang key of the "already owned" refusal. / “已持有”拒绝提示的语言键。 */

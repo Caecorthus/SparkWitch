@@ -18,11 +18,11 @@ import java.util.List;
 
 /**
  * The Saint's first shop, on both sides: one re-buyable Holy Flash (coins shared with Hellfire). Wathe caches stock
- * limits during STARTING (initializeShopsForPlayers), so the gate is the role alone. The default buy handler is kept
- * so Grand Witch recruitment still refunds at shop price; it needs a free hotbar slot and never merges into an
- * existing stack. A deny-only {@code ShopPurchase.BEFORE} listener enforces the carry limit.
+ * limits during STARTING (initializeShopsForPlayers), so the gate is the role alone. The default buy handler is kept;
+ * it needs a free hotbar slot and never merges into an existing stack. A deny-only {@code ShopPurchase.BEFORE}
+ * listener enforces the carry limit.
  * 圣徒的第一个商店（两端一致）：一个可重复购买的圣光弹（金币与地狱火共用）。Wathe 在 STARTING 阶段
- * （initializeShopsForPlayers）缓存库存上限，因此只按职业判定。保留默认购买处理，使大魔女招募仍按商店价格退款；
+ * （initializeShopsForPlayers）缓存库存上限，因此只按职业判定。保留默认购买处理；
  * 默认处理需要一个空的快捷栏位，且从不合并进已有堆叠。只拒绝的 {@code ShopPurchase.BEFORE} 监听器负责携带上限。
  */
 public final class SaintShopService {

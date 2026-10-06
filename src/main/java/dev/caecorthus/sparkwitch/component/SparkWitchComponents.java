@@ -26,11 +26,10 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeTheftPlayerCompone
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendMomentWorldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.AbyssZoneExposureComponent;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariantRoundComponent;
+import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRuntimeComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorWorldComponent;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.GrandWitchRecruitmentRoundComponent;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHoldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateRegistryComponent;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -128,9 +127,10 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, RiftSessionComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(RiftSessionComponent::new);
-        registry.beginRegistration(PlayerEntity.class, RecruitmentHoldComponent.KEY)
+        // Bewitched promotion task count, synced to its owner only (C3). / 魔化使晋升任务计数，只同步给本人（C3）。
+        registry.beginRegistration(PlayerEntity.class, BewitchedPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
-                .end(RecruitmentHoldComponent::new);
+                .end(BewitchedPlayerComponent::new);
         registry.beginRegistration(PlayerEntity.class, ApprenticePlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(ApprenticePlayerComponent::new);
@@ -142,7 +142,6 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.register(WitchWorldComponent.KEY, WitchWorldComponent::new);
         registry.register(WitchFactorWorldComponent.KEY, WitchFactorWorldComponent::new);
         registry.register(EmmaRoundComponent.KEY, EmmaRoundComponent::new);
-        registry.register(GrandWitchRecruitmentRoundComponent.KEY, GrandWitchRecruitmentRoundComponent::new);
         registry.register(WraithRoundComponent.KEY, WraithRoundComponent::new);
         registry.register(LegacyWraithRoundComponent.KEY, LegacyWraithRoundComponent::new);
         registry.register(FiendMomentWorldComponent.KEY, FiendMomentWorldComponent::new);

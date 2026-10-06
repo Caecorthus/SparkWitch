@@ -9,7 +9,7 @@ public final class SparkWitchPermissions {
     public static final String COMMAND_SET_MANA = "sparkwitch.command.setmana";
     public static final String COMMAND_FORCE_ABILITY = "sparkwitch.command.forceability";
     public static final String COMMAND_FORCE_PROMOTION = "sparkwitch.command.forcepromotion";
-    /** {@code /sparkwitch:forceAccompliceRole}. / 强制指定大魔女招募目标与身份的命令。 */
+    /** {@code /sparkwitch:forceAccompliceRole} (D4). / 锁定魔化使晋升身份的命令（D4）。 */
     public static final String COMMAND_FORCE_ACCOMPLICE_ROLE = "sparkwitch.command.forceaccomplicerole";
     public static final String COMMAND_GHOST_CHANCE = "sparkwitch.command.ghostchance";
     public static final String COMMAND_GHOST_MIN_REQUIREMENT = "sparkwitch.command.ghostminrequirement";

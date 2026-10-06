@@ -9,7 +9,6 @@ import dev.caecorthus.sparkwitch.client.blind.BlindView;
 import dev.caecorthus.sparkwitch.client.mixin.PostEffectProcessorAccessor;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.client.MinecraftClient;
@@ -287,12 +286,8 @@ public final class BlindEchoView {
         }
         BlindPerceptionClientState state = BlindPerceptionClientState.get();
         for (AbstractClientPlayerEntity other : world.getPlayers()) {
-            // A held recruit (Grand Witch recruitment hold) is never perceivable either, so a body perceived just
-            // before the teleport never reappears inside the Grand Witch.
-            // 被定身的新共犯同样不可被感知，因此传送前刚被感知的身体不会出现在大魔女体内。
             if (drawsBody(other != client.player, other.isSpectator(), other.isRemoved(),
-                    WraithClientState.isActive(other) || RecruitmentHold.isHeld(other),
-                    state.isPerceived(other.getId(), now))) {
+                    WraithClientState.isActive(other), state.isPerceived(other.getId(), now))) {
                 BODIES.add(other);
             }
         }

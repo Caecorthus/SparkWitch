@@ -26,7 +26,6 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsReques
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.curser.UseCurserAbilityC2SPacket;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFeatureService;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -65,7 +64,6 @@ public final class SparkWitchPackets {
                 (payload, context) -> ProphetProphecyService.confirmGuess(
                         context.player(), payload.sessionId(), payload.victim(), payload.groupId()));
         PayloadTypeRegistry.playC2S().register(UseWitchSkillC2SPacket.ID, UseWitchSkillC2SPacket.CODEC);
-        PayloadTypeRegistry.playC2S().register(GrandWitchRecruitC2SPacket.ID, GrandWitchRecruitC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(EmmaFactorC2SPacket.ID, EmmaFactorC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(FireDeathRayC2SPacket.ID, FireDeathRayC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(FirePotionLauncherC2SPacket.ID, FirePotionLauncherC2SPacket.CODEC);
@@ -149,8 +147,6 @@ public final class SparkWitchPackets {
                         context.player(), payload.targetUuid()));
         ServerPlayNetworking.registerGlobalReceiver(EmmaFactorC2SPacket.ID,
                 (payload, context) -> EmmaSkillService.use(context.player(), payload.targetId()));
-        ServerPlayNetworking.registerGlobalReceiver(GrandWitchRecruitC2SPacket.ID,
-                (payload, context) -> GrandWitchFeatureService.recruit(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(FireDeathRayC2SPacket.ID,
                 (payload, context) -> MurderousWitchDeathRayService.fire(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(FirePotionLauncherC2SPacket.ID,

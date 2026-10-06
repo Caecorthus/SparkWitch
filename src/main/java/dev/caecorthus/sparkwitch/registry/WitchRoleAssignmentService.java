@@ -43,8 +43,16 @@ public final class WitchRoleAssignmentService {
             assigned += assignRole(gameComponent, availablePlayers, grandWitch, grandRemaining);
         }
 
-        // Accomplices are recruited during play, never naturally allocated; quota lives in GrandWitchRecruitmentRules.
-        // 共犯仅在对局中招募，不再自然分配；招募名额由 GrandWitchRecruitmentRules 决定。
+        // D1: a round with a Grand Witch (dealt here, drawn as a neutral or forced) deals the Bewitched quota on the
+        // remaining civilian seats; forced Bewitched count toward it. The Bewitched never appears naturally, so only
+        // the enabled switch is checked (its appearance condition is always false).
+        // D1：有大魔女的对局（此处发放、中立抽取或强制指定）在剩余平民席位上发放魔化使名额；被强制指定的魔化使计入名额。
+        // 魔化使从不自然出现，因此只检查启用开关（其出现条件恒为 false）。
+        Role bewitched = SparkWitchRoles.bewitched();
+        if (countRole(gameComponent, players, grandWitch) > 0 && gameComponent.isRoleEnabled(bewitched)) {
+            int bewitchedRemaining = counts.bewitched() - countRole(gameComponent, players, bewitched);
+            assigned += assignRole(gameComponent, availablePlayers, bewitched, bewitchedRemaining);
+        }
 
         // Apprentice Witch is a civilian role and follows the >=24 rule directly, independent of actual Grand Witch assignment.
         // 预备魔女是好人职业，只按 >=24 的人数规则刷新，不依赖大魔女是否真的被分到。

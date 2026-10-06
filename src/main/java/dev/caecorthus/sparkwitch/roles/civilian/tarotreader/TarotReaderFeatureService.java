@@ -40,9 +40,10 @@ public final class TarotReaderFeatureService {
         // Rebuild round-start history from final roles: SparkTraits Conscience compensation
         // (TraitAssignmentService.addExtraKillersForConscience) overwrites a civilian's role after Wathe's
         // RoleAssigned loop already reported it. This snapshot also keeps original roles later overwritten by
-        // Wraith conversion, Grand Witch recruitment or Loose End, so keep it even if record() is ever status-gated.
+        // Wraith conversion, another mid-round role change or Loose End, so keep it even if record() is ever
+        // status-gated.
         // 开局历史按最终身份重建：SparkTraits 良心补偿会在 Wathe 的 RoleAssigned 循环上报之后改写某位好人的身份；
-        // 此快照同时保留之后被冤魂转化、招募或亡命徒改写的原身份，即使 record() 日后按对局状态过滤也必须保留。
+        // 此快照同时保留之后被冤魂转化、其他局中职业变化或亡命徒改写的原身份，即使 record() 日后按对局状态过滤也必须保留。
         GameEvents.ON_FINISH_INITIALIZE.register((world, game) -> {
             if (world instanceof ServerWorld) {
                 TarotReaderRoundRoleHistory.resetTo(game.getRoles().values());

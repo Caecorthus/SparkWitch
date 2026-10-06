@@ -24,8 +24,11 @@ import java.util.UUID;
 public final class SeekerInstinctRules {
     public static final Identifier GRAND_WITCH_ID = SparkWitch.id("grand_witch");
     public static final Identifier ACCOMPLICE_ID = SparkWitch.id("accomplice");
+    /** The Bewitched is accomplice-like (C2). / 魔化使属于共犯类（C2）。 */
+    public static final Identifier BEWITCHED_ID = SparkWitch.id("bewitched");
     public static final Identifier MURDEROUS_WITCH_ID = SparkWitch.id("murderous_witch");
-    private static final Set<Identifier> WITCH_INSTINCT_ROLES = Set.of(GRAND_WITCH_ID, ACCOMPLICE_ID, MURDEROUS_WITCH_ID);
+    private static final Set<Identifier> WITCH_INSTINCT_ROLES =
+            Set.of(GRAND_WITCH_ID, ACCOMPLICE_ID, BEWITCHED_ID, MURDEROUS_WITCH_ID);
 
     /** Outcome of the device outline decision. / 设备描边判定结果。 */
     public enum DeviceOutline {
@@ -43,8 +46,9 @@ public final class SeekerInstinctRules {
     }
 
     /**
-     * Grand Witch, any accomplice (plain or special, read from the live registry) or Murderous Witch.
-     * 大魔女、任一共犯（普通或特殊，读取实时注册表）或杀意魔女。
+     * Grand Witch, any accomplice (plain, Bewitched or special, the last read from the live registry) or Murderous
+     * Witch.
+     * 大魔女、任一共犯（普通、魔化使或特殊，后者读取实时注册表）或杀意魔女。
      */
     public static boolean isWitchInstinctRole(@Nullable Identifier roleId) {
         return roleId != null
