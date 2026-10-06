@@ -1155,7 +1155,8 @@ tasks it is promoted to an accomplice role through the pool above.
 - **Dealing (D1).** `WitchRoleAssignmentService.assignAfterNeutralsBeforeCivilians`, right after the Grand Witch is
   dealt: when the round then has at least one Grand Witch (dealt, neutral-drawn or forced) and the Bewitched is
   enabled, it deals `WitchRoleCounts.bewitched(n)` minus the already forced Bewitched on the shuffled `NO_ROLE` seats,
-  where `bewitched(n) = n < 18 ? 0 : (n - 18) / 6 + 1`. There is no new mixin call: `MurderGameModeMixin` still runs
+  where `bewitched(n) = n < 18 ? 0 : (n - 18) / 6` (owner, 2026-10-06: an 18-23 round has the Grand Witch alone,
+  24-29 deal 1, then +1 per further 6). There is no new mixin call: `MurderGameModeMixin` still runs
   the Hunter/Orthopedist pairing, the witches and the Insider, in that order, before `assignCivilians`.
 - **Before promotion (D2).** A witch-faction member with teammate vision and accomplice money (starting money,
   passive, kill rewards, the Grand Witch's +25 share), but no shop. `BewitchedShopService` empties its shop on both
