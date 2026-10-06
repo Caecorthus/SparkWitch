@@ -49,7 +49,8 @@ Current build baseline:
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime.
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
 - `roles/civilian/prophet/`: passive Death Sense (world-wide corpse pulse every 60 s; skips Scavenger-hidden bodies and,
-  per owner decision, SparkTraits Depression fake-death bodies via `compat/SparkTraitsBodyDragBridge`), the
+  per owner decision, SparkTraits Depression fake-death bodies via `compat/SparkTraitsBodyDragBridge`, and for the
+  same reason the fake corpses Grand Witch recruits leave behind, `RecruitmentDecoyBody.isDecoy`), the
   owner-only `sparkwitch:prophet_player` component (permanent highlight set, necrology,
   Prophecy records), the Prophecy skill registration, and economy. The client outline
   lives in `client/hooks/ProphetCorpseHighlightClientHooks`.
@@ -218,7 +219,8 @@ Current build baseline:
   `mixin/riftwalker/` and `client/mixin/riftwalker/`; client presentation (gate renderer and outline, in-gate input
   lock, grey view and HUD, console screen) lives in `client/riftwalker/` (`gate/`, `session/`, `tablet/`, `swapper/`).
 - `roles/civilian/emma/`: unique cop claim, role-owned mana skill, delayed backlash,
-  owner-private failed-recruitment evidence, speed latch, and one reward per gun cycle.
+  owner-private failed-recruitment evidence (unreachable since recruitment stopped aiming and never picks Emma,
+  2026-10-06), speed latch, and one reward per gun cycle.
 - `roles/civilian/controlexpert/`: Control Expert round-start loadout, task-money economy,
   restricted shop, Disruptor, Taser, thrown Shock Device, owner-only status, stun application
   with owned-effect tracking, and lifecycle cleanup; its mixins live in `mixin/controlexpert/`
@@ -333,7 +335,9 @@ Current build baseline:
 - `client/judge/`: primary-key selector and the role-owned bottom-right line (`JudgeHudRenderer`: "press key to
   judge, 100 coins" or the coin requirement below 100). `WitchSkillHudRenderer` dispatches it right after Emma,
   gated by `JudgeClientModule.ownsHud` (the selector gate minus Grand Witch Fear); no witch inventory panel.
-- `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion;
+- `roles/witch/grandwitch/recruitment/`: cumulative world quota and inventory/gold conversion, the random/forced target
+  choice (`RecruitmentTargetRules`), the recruit's fake corpse (`RecruitmentDecoyBody`), the admin-forced recruitment
+  numbers (`ForcedRecruit`), and `hold/` (the 5-second post-teleport hold);
   `compat/recruitment/` owns pinned-provider shop-output and role-exit adapters and the optional Traits seam.
 - `mana/`: mana economy and natural-regeneration runtime.
 - `component/`: CCA ids, stored fields, sync/NBT codecs, and narrow state
@@ -1010,14 +1014,43 @@ keys, letters and the SparkStrength tablet (registry id only; the revolver is re
 kept stacks are never refunded). The tablet is a free identity device, not a shop item: SparkStrength issues it at
 most once per player per round and re-resolves a kept tablet's channel to the witch network, and a recruit holding
 none gets one from SparkStrength's mid-round reconciliation pass; SparkWitch never grants it. Recruitment
-re-initializes the new role's Wathe shop stock and cooldowns, and refuses, on the real role and before any
-destructive step, every SparkFactionAPI `PoliceRoles` member (Emma included, the Insider exempt) and the
-NoellesRoles Corrupt Cop with a random flavor line (`GrandWitchRecruitmentRules.refusal`); Emma still records the
-failed recruitment. It also refuses a SparkTraits Last Stand Loose End (Wathe `LOOSE_END` role plus a triggered Last
-Stand, `SparkTraitsLastStandBridge.isLastStandLooseEnd`), the Final Moment conversion; a revived Last Stand player
-who has not been converted stays recruitable. A target in SparkTraits Depression psycho (`isDepressionPsychoActive`)
-fails the target check (`invalid_target`) before the quota lock (owner decision 2026-10-04); an absent or older
-facade allows it, a failing one refuses.
+re-initializes the new role's Wathe shop stock and cooldowns.
+Recruitment does not aim (owner request 2026-10-06). The second skill key sends an empty
+`GrandWitchRecruitC2SPacket` (id `sparkwitch:recruit_accomplice`, still in the Control Expert blocked list), and
+`GrandWitchRecruitmentService.use(recruiter)` picks the recruit after the quota lock. Recruitment number
+`getRecruitedCount() + 1` first checks the overworld `WitchWorldComponent` for a forced entry
+(`/sparkwitch:forceAccompliceRole`). Otherwise it makes a uniform pick among this world's pickable players, not
+counting players reserved by a forced entry for this or a later number. `GrandWitchRecruitmentService.standing`
+sorts each player on the real role (pure choice in `RecruitmentTargetRules.choose`):
+- **GONE.** Offline, another world, not Wathe playing-and-alive, the recruiter, or any Witch-faction member.
+- **BUSY.** Any spectator (a Rift Gate occupant), SparkTraits Depression psycho (owner decision 2026-10-04: its
+  stashed real inventory would be lost or leaked; an absent or older facade allows it, a failing one refuses), a
+  NoellesRoles Taotie-swallowed player, or a player controlled by a Kidnapper.
+- **REFUSED.** The old aimed-recruitment refusals, which are now simply never drawn
+  (`GrandWitchRecruitmentRules.refusal`): every SparkFactionAPI `PoliceRoles` member (Emma included, the Insider
+  exempt), the NoellesRoles Corrupt Cop, and a SparkTraits Last Stand Loose End (Wathe `LOOSE_END` role plus a
+  triggered Last Stand, `SparkTraitsLastStandBridge.isLastStandLooseEnd`). A revived Last Stand player who has not
+  been converted stays pickable.
+
+The refusal flavor lines are gone. A forced player who is PICKABLE or REFUSED is taken: the admin override beats the
+refusals. A BUSY one fails the attempt (`target_busy`) and keeps the entry. A GONE one drops the entry, and the number
+goes random. An empty pool fails with `no_target`. Every failure spends no quota.
+The pick is captured before any destructive step: the real former role and the origin (position, head yaw, look
+vector).
+After the variant hook, `relocate` runs:
+- `RecruitmentDecoyBody.spawn` drops a Wathe `PlayerBodyEntity` exactly where Wathe's `killPlayer` would: one block
+  along the look vector, at feet height.
+- The body takes the former role through the Wraith body-role seam (`WraithBodyRoleAccess`), so Wathe's body HUD and
+  instinct colors never show the accomplice role.
+- Its death reason is a uniform draw from `ProphetDeathCauseGroup.knownReasons()`, limited to loaded namespaces, so a
+  Coroner may notice that it does not fit.
+- Its entity UUID goes into `grand_witch_recruitment_round` (`DecoyBodies` NBT, reset with the round).
+- The recruit is dismounted, woken, teleported to the Grand Witch's position and yaw (pitch 0), and
+  `RecruitmentHold.apply` starts the 5-second hold.
+- A failure in `relocate` is logged and never undoes the recruitment.
+
+The Grand Witch gets the actionbar line `success_named` (recruit name, role name). The recruit's `converted` and
+`converted_as` lines mention the fake corpse.
 After `RoleAssigned`, the transaction writes the converted balance. Then, before the retained-inventory restore, it
 asks the SparkTraits public facade (`replaceTraitsIneligibleForCurrentRole`, through
 `compat/recruitment/RecruitmentTraits`) to drop every trait the recruit role could not have rolled (owner decision
@@ -1075,10 +1108,12 @@ A variant must register during common mod initialization, because client rules r
 `sparkwitch:accomplice` lists in other repos still need each variant, for example SparkTraits
 `isBlockingTeamWinNeutral`.
 
-Grand Witch recruitment rolls a special-accomplice pool. Recruitment refuses an accomplice-like target
-(`WitchFactionRules.isAccompliceLike`), so nobody can recruit a variant again. `GrandWitchRecruitmentService.use`
-picks the recruit's role once. The roll happens after every refusal (Emma resist, balance overflow) and right
-before `game.addRole`. The same role goes to `game.addRole` and to `RoleAssigned`. The pure
+Grand Witch recruitment rolls a special-accomplice pool. Recruitment never picks a Witch-faction member
+(`WitchFactionRules.isWitchFactionMember`), so nobody can recruit a variant again. `GrandWitchRecruitmentService.use`
+picks the recruit's role once. The pick happens after every refusal (no target, busy forced target, balance overflow)
+and right before `game.addRole`. A forced entry's role wins when it resolves to the plain Accomplice or a registered
+variant. The exception is a variant already used this round: then the pool decides. A disabled forced role is still
+given. The same role goes to `game.addRole` and to `RoleAssigned`. The pure
 `AccompliceVariantRoll.pick` makes a uniform choice among the registered variants
 (`AccompliceVariants.variants()`, in registration order) that are enabled (`game.isRoleEnabled`) and not used this
 round. Its `java.util.Random` is seeded from `world.getRandom().nextLong()`. When no variant is left, the recruit
@@ -1098,16 +1133,16 @@ NBT key is `UsedVariants`, a list of role id strings. Its lifecycle follows `gra
 
 After a variant recruitment commits, the shared transaction calls `AccompliceVariants.hooks(role)
 .afterRecruitCommitted(recruit, recruiter)` once. The call comes after the `finally` block that restores the
-retained inventory, overwrites the balance, rebuilds the shop, and syncs. It comes before the messages and before
-`round.finishConversion()`. A `RuntimeException` from the hook is logged and never undoes the recruitment. Starting
+retained inventory, overwrites the balance, rebuilds the shop, and syncs. It comes before `relocate` (fake corpse,
+teleport, hold), the messages and `round.finishConversion()`, so the hook still sees the recruit where they stood. A `RuntimeException` from the hook is logged and never undoes the recruitment. Starting
 items must come from this hook, because the inventory restore wipes anything granted from `RoleAssigned`.
 
-A plain Accomplice recruitment keeps its original lines (`message.sparkwitch.recruitment.converted` / `.success`). A
-variant recruitment names the role, using `announcement.role.<path>`:
-- the recruit gets the `message.sparkwitch.recruitment.converted_as` chat line (role name, balance);
-- the Grand Witch gets the `message.sparkwitch.recruitment.success_as` actionbar line (role name). The service sends
-  it directly, because `WitchSkillUseResult` carries no message arguments. The result is still
-  `success(0)` with no key.
+A plain Accomplice recruit gets the `message.sparkwitch.recruitment.converted` chat line (balance); a variant
+recruit gets `converted_as` (role name via `announcement.role.<path>`, balance). The hook and `relocate` run
+before these messages. Either way the Grand Witch gets the `message.sparkwitch.recruitment.success_named` actionbar
+line (recruit name, role name). The service sends it directly, because `WitchSkillUseResult` carries no message
+arguments. The result is `success(0)` with no key, wrapped in `GrandWitchRecruitmentService.Outcome` together with the
+recruit, so `GrandWitchFeatureService.recruit` settles the Witch Factor on that player.
 
 `AccompliceShopRules.entriesWithout(ids...)` returns the plain Accomplice entries minus the given `PlannedEntry.id()`
 values, in their original order. Variants call it from their own `BuildShopEntries` listeners. An unknown id throws.
@@ -1550,8 +1585,9 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   Wathe's `isPlayerPlayingAndAlive` ignores the game mode, so a targeter that never asks SFA must skip spectators
   itself. Spectators are transparent (never a target, never a shield) to:
   - the Black Raven Feather Blade aim (`BlackRavenTargeting.findAimedPlayer`);
-  - the shared aim `GrandWitchTargeting.findTarget`, used by recruitment, Witch Factor and Emma;
-  - its client hint mirrors, `client/grandwitch/GrandWitchClientTargeting` and `client/emma/EmmaClientTargeting`;
+  - the shared aim `GrandWitchTargeting.findTarget`, used by Witch Factor and Emma (recruitment no longer aims and
+    treats any spectator as busy, so an occupant is never picked either);
+  - its client hint mirror `client/emma/EmmaClientTargeting`;
   - the Curser's 8-block confusion (`CurserFeatureService.use`; occupants alone read as "no target", no cooldown);
   - the Orthopedist aim and validator (`OrthopedistTargeting`) and its HUD hint (`client/hud/OrthopedistHudRenderer`);
   - the Guardian Angel aim and validator (`GuardianAngelTargeting`, `GuardianAngelRules.canTarget` takes a

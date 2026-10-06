@@ -68,6 +68,12 @@ public final class NoellesRecruitmentCleanup {
         });
     }
 
+    /** A player inside a Taotie is alive but out of the world; recruitment waits until they are released.
+     * 被饕餮吞下的玩家仍存活但不在场景中；招募会等到其被释放。 */
+    public static boolean isSwallowed(ServerPlayerEntity player) {
+        return SwallowedPlayerComponent.isPlayerSwallowed(player);
+    }
+
     public static void exitRole(ServerPlayerEntity player) {
         // Release synchronously before reset: pinned reset queues a release then clears its list.
         // 必须先同步释放：锁定版本 reset 会排队释放后立即清空吞噬列表。
