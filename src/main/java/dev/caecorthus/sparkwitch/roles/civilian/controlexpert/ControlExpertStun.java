@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.controlexpert;
 
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -24,10 +25,20 @@ public final class ControlExpertStun {
      * player who stops participating (death, spectator, Wraith, round end) is released at once.
      * 两端通用：服务端读取权威计时，拥有者客户端读取同步副本。被眩晕者一旦不再参与
      * （死亡、旁观、冤魂、对局结束）立即解除。
+     *
+     * <p>Seam: the Grand Witch recruitment hold reuses this input lock, so a held recruit also reads as stunned here
+     * (interaction guards, blocked payloads, role refusals, client key lock). Readers of
+     * {@link ControlExpertStatusComponent} itself (status HUD, Seeker bridge, Rift console) never see the hold.
+     * 接缝：大魔女招募定身复用此输入锁，因此被定身的新共犯在此同样视为被眩晕（交互拦截、受限数据包、职业拒绝、
+     * 客户端按键锁）。直接读取 {@link ControlExpertStatusComponent} 的地方（状态 HUD、搜寻者桥接、裂隙控制台）
+     * 永远看不到定身。</p>
      */
     public static boolean isStunned(@Nullable PlayerEntity player) {
         if (player == null) {
             return false;
+        }
+        if (RecruitmentHold.isHeld(player)) {
+            return true;
         }
         ControlExpertStatusComponent status = ControlExpertStatusComponent.KEY.getNullable(player);
         return status != null && status.isStunned() && ControlExpertTargeting.isParticipant(player);
