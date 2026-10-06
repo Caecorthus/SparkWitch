@@ -66,7 +66,8 @@
       "sparkwitch:abyss_zone_exposure",
       "sparkwitch:rift_session",
       "sparkwitch:rift_gates",
-      "sparkwitch:recruitment_hold"
+      "sparkwitch:recruitment_hold",
+      "sparkwitch:apprentice_player"
     ]
   },
   "mixins": [

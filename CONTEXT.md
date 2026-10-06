@@ -46,7 +46,34 @@ Current build baseline:
 ## Current Ownership
 
 - `api/`: the only public downstream SparkWitch Interface.
-- `roles/civilian/apprentice/`: Apprentice instinct and ability runtime.
+- `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
+  D1–D10, numbers in each ability class):
+  - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
+    buff's state out of the frozen `sparkwitch:player` packet. Only the Clairvoyance exposure timer syncs to everyone;
+    tasks toward graduation, the Purify cooldown, the two Swift Step recharge timers, the Mighty Force forfeit flag and
+    the Healing fear ward sync to the owner only. Apprentice-only fields clear themselves once the role changes;
+    `ApprenticeFeatureService` clears everything on role assignment, `ResetPlayer` and round finalize.
+  - Graduation (D2): the second completed task as Apprentice (`TaskComplete`) raises her natural mana to cap 150 and
+    1 per 2 s through the graduated overloads of `WitchManaRules` (the role-only signatures are unchanged), widens
+    Murder Sense to 30 blocks, and unlocks Purify.
+  - Purify (D3, `abilities/Purify/PurifyAbility`): the secondary key (`client/apprentice/ApprenticeClientModule`)
+    sends the empty `sparkwitch:use_apprentice_purify` (`net/UseApprenticePurifyC2SPayload`, registered by
+    `ApprenticeFeatureService`, in the Control Expert stun, Seeker session and Rift session deny-lists, not in Fear's).
+    It is not in `WitchSkillRegistry`, so the random draw never deals it. 30 mana, 20 s own cooldown
+    (`compat/cooldown/ApprenticePurifyCooldownStore`, appended last), aim within 6 blocks
+    (`GrandWitchTargeting.findTarget(caster, requested, range)`), else herself if she carries a factor.
+    `WitchFactorService.purify` removes the factor without refunding quota; success pays her 30 mana.
+  - Spell-proof (D4/D8): `GrandWitchFearService.isPlayerFeared` = `isPlayerUnderFear` minus
+    `ApprenticeFearExemption` (the Apprentice, or anyone with a Healing fear ward); the shop keeps
+    `isPlayerUnderFear`, and Fear's sanity drain is unchanged. Client outline suppression drops Fear for exempt
+    viewers and Obscure for the Apprentice; `WitchInstinctPolicy` answers her own skill outlines before Obscure.
+  - Magic Resonance (D1, `ApprenticeResonance`): skill-use success in `WitchSkillUseService`, recruitment, shop spells,
+    Rift Gate placement, entry and exit report casts; a living witch-faction member or Murderous Witch within 24
+    blocks of a living, non-spectator Apprentice gives her a private purple ripple and resonance sound there.
+  - Mighty Force misfire (D5): pre-hit faction snapshots like the Swordfish stab; Wathe `KILL_SHOOTER` kills her with
+    `wathe:shot_innocent` (no killer), `PREVENT_GUN_PICKUP` forfeits Mighty Force for the round.
+  - Swift Step (D6) has two charges with independent 20 s recharges and registers no cooldown; the shared cooldown is
+    set only when no charge is left. Clairvoyance (D9) exposes her to every living viewer for 10 s.
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
 - `roles/civilian/prophet/`: passive Death Sense (world-wide corpse pulse every 60 s; skips Scavenger-hidden bodies and,
   per owner decision, SparkTraits Depression fake-death bodies via `compat/SparkTraitsBodyDragBridge`, and for the

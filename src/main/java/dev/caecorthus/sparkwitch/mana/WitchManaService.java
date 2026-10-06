@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.mana;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
@@ -81,16 +82,17 @@ public final class WitchManaService {
             component.resetManaRegenerationTicks();
             return;
         }
-        if (component.getMana() >= WitchManaRules.naturalCap(role)) {
+        boolean graduated = ApprenticePlayerComponent.KEY.get(player).isGraduated();
+        if (component.getMana() >= WitchManaRules.naturalCap(role, graduated)) {
             component.resetManaRegenerationTicks();
             return;
         }
 
-        if (component.incrementManaRegenerationTicks() < WitchManaRules.regenerationIntervalTicks(role)) {
+        if (component.incrementManaRegenerationTicks() < WitchManaRules.regenerationIntervalTicks(role, graduated)) {
             return;
         }
         component.resetManaRegenerationTicks();
-        int regenerated = WitchManaRules.applyNaturalRegeneration(component.getMana(), role);
+        int regenerated = WitchManaRules.applyNaturalRegeneration(component.getMana(), role, graduated);
         component.addMana(regenerated - component.getMana());
     }
 

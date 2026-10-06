@@ -68,6 +68,7 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "rift_hop"),
             Identifier.of("sparkwitch", "rift_gate_close"),
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            Identifier.of("sparkwitch", "use_apprentice_purify"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),

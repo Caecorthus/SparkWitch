@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeResonance;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
@@ -381,6 +382,7 @@ public final class RiftSessionService {
         RiftSessionBody.teleport(player, world, gate.pos(), gate.facing().asRotation(), 0.0F, false);
         RiftSessionBody.refreshTracking(player, world);
         RiftSessionBody.cue(world, gate.pos(), true);
+        ApprenticeResonance.onWitchCast(player, gate.pos());
         return true;
     }
 
@@ -443,6 +445,7 @@ public final class RiftSessionService {
         }
         if (action == RiftSessionRules.BodyAction.RELEASE_AT_GATE) {
             RiftSessionBody.cue(world, exitGate, false);
+            ApprenticeResonance.onWitchCast(player, exitGate);
         }
         String message = RiftSessionRules.exitMessageKey(reason);
         if (message != null && action != RiftSessionRules.BodyAction.CLEAR_ONLY) {

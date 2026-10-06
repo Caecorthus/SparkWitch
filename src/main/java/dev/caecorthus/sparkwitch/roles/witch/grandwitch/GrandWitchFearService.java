@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.grandwitch;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.net.SelectBlackRavenDisguiseC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeFearExemption;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.UseSaboteurSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.doctor4t.wathe.api.Role;
@@ -70,7 +71,18 @@ public final class GrandWitchFearService {
         return world != null && WitchWorldComponent.KEY.get(world).getFearTicks() > 0;
     }
 
+    /**
+     * Fear's skill and instinct block. The Apprentice Witch and players warded by her Healing aura are exempt (owner
+     * decisions 2026-10-06 D4/D8); the shop keeps the raw {@link #isPlayerUnderFear} gate.
+     * 恐惧对技能与本能的封锁。预备魔女及受其疗愈光环庇护的玩家豁免（所有者 2026-10-06 决定 D4/D8）；商店仍使用原始的
+     * {@link #isPlayerUnderFear} 判断。
+     */
     public static boolean isPlayerFeared(PlayerEntity player) {
+        return isPlayerUnderFear(player) && !ApprenticeFearExemption.isExempt(player);
+    }
+
+    /** Raw Fear state of an affected player, without the Apprentice exemptions. / 受影响玩家的原始恐惧状态，不含预备魔女豁免。 */
+    public static boolean isPlayerUnderFear(PlayerEntity player) {
         if (player == null || !isFearActive(player.getWorld()) || !GameFunctions.isPlayerPlayingAndAlive(player)) {
             return false;
         }

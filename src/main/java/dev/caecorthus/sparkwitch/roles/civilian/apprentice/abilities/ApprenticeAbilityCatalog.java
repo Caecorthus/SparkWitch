@@ -18,7 +18,8 @@ public final class ApprenticeAbilityCatalog {
             ClairvoyanceAbility.ID
     );
 
-    public static final int INITIAL_COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
+    // Opening cooldown 60 s -> 30 s (owner 2026-10-06 D10). / 开局冷却 60 秒 -> 30 秒（所有者 2026-10-06 D10）。
+    public static final int INITIAL_COOLDOWN_TICKS = GameConstants.getInTicks(0, 30);
 
     private ApprenticeAbilityCatalog() {
     }

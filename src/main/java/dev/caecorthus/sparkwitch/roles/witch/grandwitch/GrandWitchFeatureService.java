@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.witch.grandwitch;
 
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeResonance;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.GrandWitchRecruitmentService;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -59,6 +60,7 @@ public final class GrandWitchFeatureService {
         GrandWitchRecruitmentService.Outcome outcome = GrandWitchRecruitmentService.use(player);
         WitchSkillUseResult result = outcome.result();
         if (result.accepted() && outcome.recruit() != null) {
+            ApprenticeResonance.onWitchCast(player, player.getPos());
             WitchFactorService.onRecruited(outcome.recruit());
             WitchFactorService.onRoleChanged(outcome.recruit());
         }
