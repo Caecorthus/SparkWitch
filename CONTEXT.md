@@ -1670,10 +1670,11 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   Expert stun and Seeker session guards also drop `rift_hop` and `rift_gate_close`, never `rift_exit`.
 - **Gates** (`gate/`). `RiftGatePlacementService.tryPlace` (living RAW Riftwalker, ACTIVE round, not
   Kidnapper-controlled, C16) floor-snaps at the feet facing the yaw; the 1×2 standing cell in front
-  (`RiftGatePlacementRules.frontCell`) must be block-free, so no gate faces a wall as a dead exit (C15); the gate's
-  visibility centre stays below Wathe's moving-train cull line; ≥ 3.0 from other gates, clear of Seeker devices and
-  `RiftGateNeighbourRules`. Of the Wathe play area only its fall line counts, base ≥ `playArea.minY`
-  (`RiftGatePlacementRules.aboveFallLine`; owner 2026-10-05: server play areas refused every Harpy Express spot). A refusal is free; a placement starts a 1 s item cooldown (N-2). Bought gates merge into the first hotbar gate stack (F-5).
+  (`RiftGatePlacementRules.frontCell`) must be block-free, so no gate faces a wall as a dead exit (C15); ≥ 3.0 from
+  other gates, clear of Seeker devices and `RiftGateNeighbourRules`. Of the Wathe play area only its fall line
+  counts, base ≥ `playArea.minY` (`RiftGatePlacementRules.aboveFallLine`; owner 2026-10-05: server play areas
+  refused every Harpy Express spot), and there is no height cap (owner 2026-10-06: the old y 148 cull cap refused
+  every 星穹列车 spot). A refusal is free; a placement starts a 1 s item cooldown (N-2). Bought gates merge into the first hotbar gate stack (F-5).
   `RiftGateEntity` is an unsaved, indestructible, facing-rotated 1×2×0.25 slab; gates are unlimited (D4).
   `RiftGateRegistry` is the only writer: per-round numbers never reused (C9), number order = hop ring, a level-31 chunk
   ticket per gate, `repair` respawns a lost entity, `close` ends in `RiftSessionService.onGateRemoved`.
