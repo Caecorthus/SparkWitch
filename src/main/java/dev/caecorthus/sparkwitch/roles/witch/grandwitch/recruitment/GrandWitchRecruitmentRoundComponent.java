@@ -51,6 +51,9 @@ public final class GrandWitchRecruitmentRoundComponent implements Component {
     public int getLimit() { return active ? GrandWitchRecruitmentRules.limit(participants) : 0; }
     public int getRemaining() { return Math.max(0, getLimit() - recruited.size()); }
     public boolean wasRecruited(UUID target) { return recruited.contains(target); }
+    /** Successful recruitments this round; the next one is number {@code getRecruitedCount() + 1}.
+     * 本局已成功招募的次数；下一次招募的序号为 {@code getRecruitedCount() + 1}。 */
+    public int getRecruitedCount() { return recruited.size(); }
 
     public boolean tryBeginConversion() {
         if (conversionInProgress || getRemaining() <= 0) return false;
