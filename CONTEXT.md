@@ -1167,7 +1167,8 @@ Special accomplices (`roles/witch/accomplice/variant/AccompliceVariants`) inheri
   label, and Curser visibility;
 - killer-style instinct light, the dropped-item outline, and the hidden-Phantom skip;
 - instinct colors: the Grand Witch and every accomplice see each accomplice in that role's own color;
-- passive and direct-kill money, accomplice starting money, and the Grand Witch's +25 team-kill share;
+- passive, direct-kill and task money (+50 per task, see "Witch task money" below), accomplice starting money, and
+  the Grand Witch's +25 team-kill share;
 - Grand Witch mana for accomplice kills, and hidden poison vision;
 - the witch factor: accomplices are never carriers and always see the network;
 - Emma's fatal backlash.
@@ -1180,6 +1181,15 @@ method reads the live registry on every call. These rules are `HunterRules.isIns
 never include variants merely for being variants: `WitchManaRules.isManaRole` (the Abyss Listener and the
 Riftwalker are added by exact role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole` (the Abyss Listener and
 the Riftwalker are added by exact role, each for its shared skill).
+
+Witch task money (owner request 2026-10-04): `WitchEconomyService.onTaskComplete` pays
+`WitchFactionRules.WITCH_TASK_MONEY_REWARD` (+50) per completed task to the Grand Witch and every accomplice (plain or
+special) while the round is ACTIVE and the player is playing, alive, not a spectator, not creative and not
+Wraith-restricted (`WitchFactionRules.earnsTaskMoney`). It follows the Insider model: no Impostor skip, because witch
+roles roll only UNIVERSAL SparkTraits (SparkTraits `TraitRoleEligibility`), and SparkTraits task bonuses stack on top.
+Wathe, SparkStrength, NoellesRoles and SparkFactionAPI pay witch roles nothing per task (SparkFactionAPI's
+`RewardKind.TASK` is never asked). Mana per task and the Grand Witch's sword task counter are unchanged; the Curser
+(NONE mood, no tasks), the Apprentice Witch and the Murderous Witch earn nothing here.
 
 The `gui.sparkwitch.skills` panel (`WitchSkillPresentationRules.shouldShowInventorySkillPanel`) belongs to the Grand
 Witch, Apprentice Witch and Murderous Witch, plus accomplices (owner decision D13: plain and special, via
