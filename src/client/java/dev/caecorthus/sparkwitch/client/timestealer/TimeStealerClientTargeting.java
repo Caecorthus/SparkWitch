@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.timestealer;
 
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.ClockGeometry;
+import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftWatchItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerClockItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -23,13 +24,16 @@ public final class TimeStealerClientTargeting {
     private TimeStealerClientTargeting() {
     }
 
-    /** Ready Clock in the local Time Stealer's main hand with a visible player on the ray. / 本地窃时者主手持就绪时钟且射线上有可见玩家。 */
+    /**
+     * Ready Clock or Gift Watch in the local Time Stealer's main hand with a visible player on the ray.
+     * 本地窃时者主手持就绪的时钟或赠时怀表，且射线上有可见玩家。
+     */
     public static boolean showsTargetCrosshair(ClientPlayerEntity player) {
         ItemStack stack = player.getMainHandStack();
-        // Only our own item answers; any other held item leaves the chained crosshair value untouched.
+        // Only our own items answer; any other held item leaves the chained crosshair value untouched.
         // 只处理自己的道具；手持其他物品时不改动串联的准星值。
-        if (!(stack.getItem() instanceof TimeStealerClockItem clock)
-                || player.getItemCooldownManager().isCoolingDown(clock)
+        if (!(stack.getItem() instanceof TimeStealerClockItem || stack.getItem() instanceof TimeGiftWatchItem)
+                || player.getItemCooldownManager().isCoolingDown(stack.getItem())
                 || !TimeStealerRules.isTimeStealer(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
             return false;
         }

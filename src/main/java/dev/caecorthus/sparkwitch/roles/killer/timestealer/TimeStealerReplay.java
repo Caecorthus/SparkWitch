@@ -23,6 +23,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class TimeStealerReplay {
     static final String CLOCK_KEY = "replay.item_use.sparkwitch.time_stealer_pocket_watch";
+    static final String GIFT_KEY = "replay.item_use.sparkwitch.time_stealer_gift_watch";
     static final String PURCHASE_KEY = "replay.item_use.sparkwitch.time_stamp_purchase";
     /** Wathe's own keys for the recording player and the target ({@code GameRecordManager#addEvent}). / Wathe 自身写入的记录玩家与目标键。 */
     static final String WATHE_ACTOR_KEY = "actor";
@@ -36,13 +37,14 @@ public final class TimeStealerReplay {
     private TimeStealerReplay() {
     }
 
-    /** Registers both formatters once; called only from {@code TimeStealerFeatureService}. / 只注册一次；仅由功能服务调用。 */
+    /** Registers the three formatters once; called only from {@code TimeStealerFeatureService}. / 只注册一次；仅由功能服务调用。 */
     public static synchronized void register() {
         if (registered) {
             return;
         }
         registered = true;
         ReplayRegistry.registerItemUseFormatter(TimeStealerRules.CLOCK_ID, TimeStealerReplay::formatClock);
+        ReplayRegistry.registerItemUseFormatter(TimeStealerRules.GIFT_WATCH_ID, TimeStealerReplay::formatGift);
         ReplayRegistry.registerItemUseFormatter(TimeStealerRules.STAMP_PURCHASE_RECORD_ID,
                 TimeStealerReplay::formatPurchase);
     }
@@ -56,6 +58,19 @@ public final class TimeStealerReplay {
         }
         Map<UUID, ReplayGenerator.PlayerInfo> players = ReplayGenerator.getPlayerInfoCache(match);
         return Text.translatable(CLOCK_KEY,
+                ReplayGenerator.formatPlayerName(data.getUuid(WATHE_ACTOR_KEY), players),
+                ReplayGenerator.formatPlayerName(data.getUuid(WATHE_TARGET_KEY), players));
+    }
+
+    /** (actor, target) for the Gift Watch; both are required. / 赠时怀表的（使用者、目标）；两者都必须存在。 */
+    static @Nullable Text formatGift(GameRecordEvent event, GameRecordManager.MatchRecord match,
+                                     @Nullable ServerWorld world) {
+        NbtCompound data = event.data();
+        if (!data.containsUuid(WATHE_ACTOR_KEY) || !data.containsUuid(WATHE_TARGET_KEY)) {
+            return null;
+        }
+        Map<UUID, ReplayGenerator.PlayerInfo> players = ReplayGenerator.getPlayerInfoCache(match);
+        return Text.translatable(GIFT_KEY,
                 ReplayGenerator.formatPlayerName(data.getUuid(WATHE_ACTOR_KEY), players),
                 ReplayGenerator.formatPlayerName(data.getUuid(WATHE_TARGET_KEY), players));
     }

@@ -64,6 +64,29 @@ public final class TimeStealerRules {
     /** Stamps a Conscience Time Stealer earns per completed task (owner, 2026-10-05). / 善良窃时者每完成一个任务获得的邮票数（所有者，2026-10-05）。 */
     public static final int TASK_STAMP_REWARD = 1;
 
+    /**
+     * Gift Watch (owner decision 2026-10-05): a Conscience Time Stealer's second bound watch, the curse in reverse. It
+     * keeps the curse's timeline ({@link #dueStage}): Speed I-IV at 15/20/25/30 s, then at 35 s Speed V for
+     * {@link #GIFT_FINAL_SPEED_TICKS} and full sanity. Its own 45 s cooldown (also at round start) is independent of
+     * the Clock's.
+     * 赠时怀表（所有者决定 2026-10-05）：善良窃时者的第二块绑定怀表，即反向的诅咒。沿用诅咒时间轴（{@link #dueStage}）：
+     * 15/20/25/30 秒速度 I-IV，35 秒速度 V 持续 {@link #GIFT_FINAL_SPEED_TICKS} 并恢复全部理智。其 45 秒冷却（开局亦然）
+     * 与时钟的冷却相互独立。
+     */
+    public static final Identifier GIFT_WATCH_ID = SparkWitch.id("time_stealer_gift_watch");
+    /** SparkFactionAPI action id the Gift Watch asks {@code canAffectPlayer} about. / 赠时怀表向 {@code canAffectPlayer} 询问的动作 id。 */
+    public static final Identifier GIFT_ACTION_ID = SparkWitch.id("time_gift");
+    public static final int GIFT_COOLDOWN_TICKS = 45 * 20;
+    public static final int GIFT_INITIAL_COOLDOWN_TICKS = 45 * 20;
+    /** Speed I-IV per stage; one second of overlap like the curse's Slowness. / 每阶速度 I-IV；与诅咒缓慢一样重叠一秒。 */
+    public static final int GIFT_SPEED_DURATION_TICKS = SLOWNESS_DURATION_TICKS;
+    /** Speed V lasts about 5 s after the final chime, then simply runs out. / 终钟后速度 V 约持续 5 秒，随后自然结束。 */
+    public static final int GIFT_FINAL_SPEED_TICKS = 5 * 20;
+    /** Speed V. / 速度 V。 */
+    public static final int GIFT_FINAL_AMPLIFIER = 4;
+    /** Wathe's maximum sanity ({@code PlayerMoodComponent} clamps to [-1, 1]). / Wathe 的最高理智（{@code PlayerMoodComponent} 限制在 [-1, 1]）。 */
+    public static final float GIFT_RESTORED_MOOD = 1.0F;
+
     /** Hard Clock reach: ray length and the real eye-to-hitbox distance cap. / 时钟硬射程：射线长度与眼睛到真实命中盒的距离上限。 */
     public static final double CLOCK_RANGE = 7.0D;
     /** Aim tolerance only; never extends the range or the line-of-sight box. / 仅用于瞄准容差，从不延长射程或视线判定盒。 */
@@ -175,6 +198,20 @@ public final class TimeStealerRules {
      * 普通窃时者不获得邮票。
      */
     public static boolean earnsTaskStamp(@Nullable Identifier effectiveFaction) {
+        return isConscienceFaction(effectiveFaction);
+    }
+
+    /**
+     * Owner decision 2026-10-05: only a Conscience Time Stealer holds the Gift Watch, read the same way as the task
+     * stamps (effective faction known and not {@code wathe:killer}).
+     * 所有者决定 2026-10-05：只有善良窃时者持有赠时怀表，判定方式与任务邮票相同（有效阵营已知且不是 {@code wathe:killer}）。
+     */
+    public static boolean holdsGiftWatch(boolean exactTimeStealer, @Nullable Identifier effectiveFaction) {
+        return exactTimeStealer && isConscienceFaction(effectiveFaction);
+    }
+
+    /** SparkTraits Conscience resolves a killer role to a non-killer faction. / SparkTraits 善良把杀手职业解析为非杀手阵营。 */
+    static boolean isConscienceFaction(@Nullable Identifier effectiveFaction) {
         return effectiveFaction != null && !FactionIds.KILLER.equals(effectiveFaction);
     }
 

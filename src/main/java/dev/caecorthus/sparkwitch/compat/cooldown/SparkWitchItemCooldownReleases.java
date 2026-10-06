@@ -37,6 +37,8 @@ public final class SparkWitchItemCooldownReleases {
         WHITE_CANE,
         /** {@code TimeStealerPlayerComponent} {@code ClockReadyAt}. / 怀表的 ClockReadyAt。 */
         CLOCK,
+        /** {@code TimeStealerPlayerComponent} {@code GiftReadyAt}. / 赠时怀表的 GiftReadyAt。 */
+        GIFT_WATCH,
         /** {@code GrandWitchRuntimeComponent} sword kill cooldown. / 仪礼剑击杀冷却。 */
         CEREMONIAL_SWORD,
         /** The five edible fish share one cooldown. / 五种可食用鱼共用一个冷却。 */
@@ -55,6 +57,11 @@ public final class SparkWitchItemCooldownReleases {
                 TimeStealerPlayerComponent state = TimeStealerPlayerComponent.KEY.get(player);
                 releasedReadyTick(state.clockReadyAt(), player.getServerWorld().getTime())
                         .ifPresent(state::setClockReadyAt);
+            }
+            case GIFT_WATCH -> {
+                TimeStealerPlayerComponent state = TimeStealerPlayerComponent.KEY.get(player);
+                releasedReadyTick(state.giftReadyAt(), player.getServerWorld().getTime())
+                        .ifPresent(state::setGiftReadyAt);
             }
             case CEREMONIAL_SWORD -> GrandWitchRuntimeComponent.KEY.get(player).setSwordKillCooldownTicks(0);
             case FISH -> FisherFishUse.releaseSharedCooldown(player);
@@ -82,6 +89,9 @@ public final class SparkWitchItemCooldownReleases {
         if (SparkWitchItems.TIME_STEALER_CLOCK_ID.equals(itemId)) {
             return Release.CLOCK;
         }
+        if (SparkWitchItems.TIME_STEALER_GIFT_WATCH_ID.equals(itemId)) {
+            return Release.GIFT_WATCH;
+        }
         if (SparkWitchItems.CEREMONIAL_SWORD_ID.equals(itemId)) {
             return Release.CEREMONIAL_SWORD;
         }
@@ -95,8 +105,8 @@ public final class SparkWitchItemCooldownReleases {
 
     /**
      * {@code now} for a ready tick still in the future, else empty (no write, no sync). Never 0: a positive ready tick
-     * is also the "kit granted" / "same round" flag of the cane and the Clock.
-     * 就绪刻仍在未来时返回 {@code now}，否则为空（不写入、不同步）。绝不为 0：正的就绪刻同时是盲杖与怀表的
+     * is also the "kit granted" / "same round" flag of the cane, the Clock and the Gift Watch.
+     * 就绪刻仍在未来时返回 {@code now}，否则为空（不写入、不同步）。绝不为 0：正的就绪刻同时是盲杖、怀表与赠时怀表的
      * “已发放” / “同一回合”标记。
      */
     static OptionalLong releasedReadyTick(long readyTick, long now) {

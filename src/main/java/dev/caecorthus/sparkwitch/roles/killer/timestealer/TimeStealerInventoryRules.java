@@ -14,9 +14,9 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 
 /**
- * Transfer rules shared by the Clock and Time Stamps, used by the item-generic binding mixins. Items are identified by
+ * Transfer rules shared by the Clock, the Gift Watch and Time Stamps, used by the item-generic binding mixins. Items are identified by
  * class, so these checks stay safe before registry lookups. Duplicated from, never shared with, the Bell Ringer rules.
- * 时钟与时光邮票共用的转移规则，供物品通用绑定 mixin 使用。按物品类识别，因此不依赖注册表获取。
+ * 时钟、赠时怀表与时光邮票共用的转移规则，供物品通用绑定 mixin 使用。按物品类识别，因此不依赖注册表获取。
  * 复制而非共享敲钟人的规则。
  */
 public final class TimeStealerInventoryRules {
@@ -27,12 +27,16 @@ public final class TimeStealerInventoryRules {
         return stack != null && !stack.isEmpty() && stack.getItem() instanceof TimeStealerClockItem;
     }
 
+    public static boolean isGiftWatch(ItemStack stack) {
+        return stack != null && !stack.isEmpty() && stack.getItem() instanceof TimeGiftWatchItem;
+    }
+
     public static boolean isStamp(ItemStack stack) {
         return stack != null && !stack.isEmpty() && stack.getItem() instanceof TimeStampItem;
     }
 
     public static boolean isBound(ItemStack stack) {
-        return isClock(stack) || isStamp(stack);
+        return isClock(stack) || isGiftWatch(stack) || isStamp(stack);
     }
 
     /**
@@ -154,8 +158,8 @@ public final class TimeStealerInventoryRules {
     }
 
     /**
-     * Side-effect-free facts about one slot click; "bound" means a Clock or Time Stamp stack.
-     * 单次栏位点击的无副作用事实；“绑定”指时钟或时光邮票物品堆。
+     * Side-effect-free facts about one slot click; "bound" means a Clock, Gift Watch or Time Stamp stack.
+     * 单次栏位点击的无副作用事实；“绑定”指时钟、赠时怀表或时光邮票物品堆。
      *
      * @param button          the raw click button; for SWAP the other side's PlayerInventory index (40 = offhand)
      * @param cursorBound     the handler's cursor holds a bound stack
