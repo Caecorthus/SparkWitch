@@ -21,10 +21,9 @@ public abstract class WraithMinecraftClientMixin {
             cir.setReturnValue(false);
             return;
         }
-        if (RecruitmentHoldClient.isOutlineHiddenFrom(viewer, entity)) {
-            // A held recruit gets no outline from any source (vanilla glowing included) for a non-spectator viewer
-            // outside the witch faction (owner 2026-10-06).
-            // 被定身的新共犯对魔女阵营以外的非旁观观察者不显示任何来源的描边（包括原版发光，所有者 2026-10-06）。
+        if (RecruitmentHoldClient.isHiddenFrom(viewer, entity)) {
+            // A held recruit gets no outline from any source (vanilla glowing included) for a non-spectator viewer.
+            // 被定身的新共犯对非旁观观察者不显示任何来源的描边（包括原版发光）。
             cir.setReturnValue(false);
         }
     }

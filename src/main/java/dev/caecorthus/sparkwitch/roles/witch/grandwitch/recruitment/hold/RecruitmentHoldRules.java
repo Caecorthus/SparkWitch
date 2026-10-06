@@ -63,15 +63,4 @@ public final class RecruitmentHoldRules {
     public static boolean hidesPresence(boolean targetHeld, boolean viewerIsTarget, boolean viewerSpectating) {
         return targetHeld && !viewerIsTarget && !viewerSpectating;
     }
-
-    /**
-     * Owner 2026-10-06: while the recruit is invisible, only the witch faction's instinct sees through to them; every
-     * other non-spectator viewer gets no outline. Name tags, aim and collision stay hidden from witches too.
-     * 所有者 2026-10-06：新共犯隐身期间，只有魔女阵营的本能可以透视到其身体；其他非旁观观察者看不到任何描边。名牌、
-     * 瞄准与碰撞对魔女同样保持隐藏。
-     */
-    public static boolean hidesOutline(boolean targetHeld, boolean viewerIsTarget, boolean viewerSpectating,
-                                       boolean viewerWitchFaction) {
-        return hidesPresence(targetHeld, viewerIsTarget, viewerSpectating) && !viewerWitchFaction;
-    }
 }

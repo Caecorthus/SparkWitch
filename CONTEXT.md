@@ -1117,10 +1117,8 @@ teleport and holds the recruit for 100 ticks at the anchor pose:
   - `WraithNameTagPassThrough` and `WraithAimPassThrough` add `RecruitmentHoldClient.isHiddenFrom` beside the Wraith
     rule. This covers name tags, cohort labels, the Wathe knife, revolver and derringer, the Demon Hunter and the
     crosshair.
-  - The outermost `getInstinctHighlight` wrapper and the `hasOutline` veto hide them from everyone outside the witch
-    faction (`RecruitmentHoldRules.hidesOutline`, `RecruitmentHoldClient.isOutlineHiddenFrom`). Owner rule 2026-10-06:
-    only the witch faction's instinct sees through the hold, and it sees through with the normal teammate highlight.
-    Name tags, aim and collision stay hidden from witches too.
+  - The outermost `getInstinctHighlight` wrapper and the `hasOutline` veto hide them with no exemption, witch teammates
+    included.
   - The Blind cane, sound attribution (SILENT) and the echo body gates skip them.
   - Wathe's knife and gun servers trust the client's target id, so there is no server-side reselection. Role targeters
     outside the Wraith pass-through (Ninja knife, Guardian Angel, Orthopedist, Black Raven feather, the client-side
