@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.blind.gate;
 import dev.caecorthus.sparkwitch.client.blind.BlindPerceptionClientState;
 import dev.caecorthus.sparkwitch.client.blind.BlindView;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -49,8 +50,10 @@ public final class BlindClientGates {
         if (!isOtherPlayer(client, entity) || !BlindView.isActive(client)) {
             return false;
         }
+        // A held recruit (Grand Witch recruitment hold) is never forced visible, like an active Wraith.
+        // 被定身的新共犯与活跃冤魂一样，从不被强制显示。
         return BlindGateRules.forcesVisible(true, true, isPerceived(entity), entity.isSpectator(),
-                WraithClientState.isActive((PlayerEntity) entity));
+                WraithClientState.isActive((PlayerEntity) entity) || RecruitmentHold.isHeld((PlayerEntity) entity));
     }
 
     /**

@@ -8,8 +8,10 @@ import dev.caecorthus.sparkwitch.compat.recruitment.NoellesRecruitmentCleanup;
 import dev.caecorthus.sparkwitch.compat.recruitment.RecruitmentTraitChange;
 import dev.caecorthus.sparkwitch.compat.recruitment.RecruitmentTraits;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseService;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragService;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderParticipation;
 import dev.caecorthus.sparkwitch.roles.special.wraith.runtime.WraithLifecycle;
@@ -19,7 +21,7 @@ import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVarian
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariantRoundComponent;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariants;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRuntimeComponent;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchTargeting;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -30,11 +32,17 @@ import net.minecraft.text.Text;
 import net.minecraft.text.Texts;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 
 /** Server-authoritative, zero-cost and zero-cooldown recruitment transaction.
@@ -48,50 +56,66 @@ public final class GrandWitchRecruitmentService {
         NoellesRecruitmentCleanup.register();
     }
 
-    public static WitchSkillUseResult use(ServerPlayerEntity recruiter, @Nullable UUID targetId) {
+    /**
+     * The result plus the converted player, so the caller can settle the Witch Factor on the right recruit.
+     * 结果与被转换的玩家，供调用方对正确的被招募者结算魔女因子。
+     */
+    public record Outcome(WitchSkillUseResult result, @Nullable ServerPlayerEntity recruit) {
+        static Outcome fail(String messageKey) {
+            return new Outcome(WitchSkillUseResult.fail(messageKey), null);
+        }
+    }
+
+    /**
+     * Owner request 2026-10-06: no aim. Each use converts a random pickable living player, or the player forced for
+     * this recruitment number ({@code /sparkwitch:forceAccompliceRole}). The recruit leaves a fake corpse where they
+     * stood, is teleported to the Grand Witch and is held for 5 seconds ({@link RecruitmentHold}).
+     * 所有者 2026-10-06 要求：无需瞄准。每次使用转换一名随机的可选存活玩家，或本次招募序号被强制指定的玩家
+     * （{@code /sparkwitch:forceAccompliceRole}）。被招募者在原地留下假尸体，传送到大魔女身边并被定身 5 秒（{@link RecruitmentHold}）。
+     */
+    public static Outcome use(ServerPlayerEntity recruiter) {
         ServerWorld world = recruiter.getServerWorld();
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         if (!game.isRunning() || !GameFunctions.isPlayerPlayingAndAlive(recruiter)
-                || !game.isRole(recruiter, SparkWitchRoles.grandWitch())) {
-            return WitchSkillUseResult.fail("message.sparkwitch.recruitment.invalid_recruiter");
+                || !game.isRole(recruiter, SparkWitchRoles.grandWitch())
+                || !canRecruitFromHere(recruiter)) {
+            return Outcome.fail("message.sparkwitch.recruitment.invalid_recruiter");
         }
         if (WitchPlayerComponent.KEY.get(recruiter).getGrandWitchCeremonialSwordTasks() < 2) {
-            return WitchSkillUseResult.fail("message.sparkwitch.recruitment.locked");
-        }
-        ServerPlayerEntity target = GrandWitchTargeting.findTarget(recruiter, targetId);
-        if (target == null || target == recruiter || target.getServerWorld() != world
-                || !GameFunctions.isPlayerPlayingAndAlive(target)
-                || WitchFactionRules.isAccompliceLike(game.getRole(target))
-                // Owner decision 2026-10-04: SparkTraits stashes a Depression psycho target's real inventory, which
-                // the conversion would lose or leak; refuse before any quota, lock or refusal side effect.
-                // 所有者 2026-10-04 决定：SparkTraits 暂存了抑郁狂暴目标的真实背包，转换会使其丢失或泄漏；
-                // 因此在任何名额、锁定或拒绝副作用之前拒绝。
-                || RecruitmentTraits.isDepressionPsychoActive(target)) {
-            return WitchSkillUseResult.fail("message.sparkwitch.recruitment.invalid_target");
+            return Outcome.fail("message.sparkwitch.recruitment.locked");
         }
         GrandWitchRecruitmentRoundComponent round = GrandWitchRecruitmentRoundComponent.KEY.get(world);
         if (!round.tryBeginConversion()) {
-            return WitchSkillUseResult.fail("message.sparkwitch.recruitment.no_capacity");
+            return Outcome.fail("message.sparkwitch.recruitment.no_capacity");
         }
         try {
-            // Real role, never a Black Raven acting overlay. / 读取真实身份，不读黑羽鸦伪装覆盖层。
-            var targetRole = game.getRole(target);
-            boolean emma = dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules.isEmma(targetRole);
-            // A Last Stand player turned Loose End by the Final Moment stays out of reach (owner rule, 2026-10-05).
-            // 背水一战终局时刻转成的亡命徒不能被招募（所有者规则，2026-10-05）。
-            boolean lastStandLooseEnd = SparkTraitsLastStandBridge.isLastStandLooseEnd(world, target.getUuid(), targetRole);
-            var refusal = GrandWitchRecruitmentRules.refusal(InsiderParticipation.isCorruptCopRole(targetRole),
-                    emma || PoliceRoles.contains(targetRole), InsiderParticipation.isInsiderRole(targetRole),
-                    lastStandLooseEnd);
-            if (refusal != GrandWitchRecruitmentRules.Refusal.NONE) {
-                // Emma still records the failed recruitment, but answers with the same police line as every cop.
-                // 艾玛仍记录招募未遂证据，但与其他警职显示同样的台词，拒绝提示不会暴露其身份。
-                if (emma) {
-                    dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent.KEY.get(target).reveal(recruiter.getUuid());
-                }
-                var lines = GrandWitchRecruitmentRules.refusalMessages(refusal);
-                return WitchSkillUseResult.fail(lines.get(world.getRandom().nextInt(lines.size())));
+            int order = RecruitmentTargetRules.nextOrder(round.getRecruitedCount());
+            WitchWorldComponent forcedStore = WitchWorldComponent.KEY.get(world.getServer().getOverworld());
+            ForcedRecruit forced = forcedStore.getForcedRecruit(order);
+            Map<Integer, ForcedRecruit> pending = pendingForced(forcedStore.getForcedRecruits(), order,
+                    round.getLimit(), recruiter, world, game);
+            RecruitmentTargetRules.Choice<ServerPlayerEntity> choice = chooseTarget(recruiter, world, game, order,
+                    forced, pending);
+            if (choice.dropForcedEntry()) {
+                // The forced player left the round (dead, offline, already a witch): this number goes random.
+                // 强制玩家已离开对局（死亡、离线、已是魔女阵营）：本序号改为随机。
+                forcedStore.removeForcedRecruit(order);
             }
+            ServerPlayerEntity target = choice.target();
+            switch (choice.kind()) {
+                case NONE -> {
+                    return Outcome.fail("message.sparkwitch.recruitment.no_target");
+                }
+                case FORCED_BUSY -> {
+                    return Outcome.fail("message.sparkwitch.recruitment.target_busy");
+                }
+                case FORCED, RANDOM -> {
+                }
+            }
+            boolean forcedPick = choice.kind() == RecruitmentTargetRules.Kind.FORCED;
+            // Real role, never a Black Raven acting overlay; the fake corpse shows it. / 读取真实身份（不读黑羽鸦伪装），假尸体显示该身份。
+            Role formerRole = game.getRole(target);
+            RecruitmentDecoyBody.Origin origin = RecruitmentDecoyBody.Origin.capture(target);
             // A disguised Black Raven reverts first, so refund and retention value its real Raven set and wallet.
             // The revert keeps the other stashes; they are discarded only once the conversion commits below.
             // 伪装中的黑羽鸦先恢复原身份，使退款与保留按其真实黑羽鸦物品和钱包计算。
@@ -102,16 +126,21 @@ public final class GrandWitchRecruitmentService {
             try {
                 inventory = RecruitmentInventorySnapshot.capture(target, shop.getBalance());
             } catch (ArithmeticException exception) {
-                // Refuse overflow before any destructive mutation; never silently discard money.
-                // 在任何破坏性变更之前拒绝溢出，绝不静默吞掉金币。
-                return WitchSkillUseResult.fail("message.sparkwitch.recruitment.balance_overflow");
+                // Refuse overflow before any destructive mutation; never silently discard money. A forced player who
+                // overflows would block every later attempt, so their entry goes and the next attempt is random.
+                // 在任何破坏性变更之前拒绝溢出，绝不静默吞掉金币。溢出的强制玩家会挡住之后的每次尝试，因此移除其条目，
+                // 下次尝试改为随机。
+                if (forcedPick) {
+                    forcedStore.removeForcedRecruit(order);
+                }
+                return Outcome.fail("message.sparkwitch.recruitment.balance_overflow");
             }
 
-            // Roll once, after every refusal and before any destructive step: a refused recruitment never spends a
+            // Pick once, after every refusal and before any destructive step: a refused recruitment never spends a
             // special accomplice, and a throwing roll never leaves the target stripped. "Used" is marked only at commit.
-            // 在所有拒绝分支之后、任何破坏性步骤之前只抽取一次：被拒绝的招募不会消耗特殊共犯，抽取抛异常也不会让目标
+            // 在所有拒绝分支之后、任何破坏性步骤之前只确定一次：被拒绝的招募不会消耗特殊共犯，抽取抛异常也不会让目标
             // 被清空。"已使用"仅在提交时标记。
-            Role recruitRole = rollRecruitRole(world, game);
+            Role recruitRole = recruitRole(world, game, forcedPick ? forced : null, reservedRoles(pending, order));
             boolean variant = AccompliceVariants.isVariant(recruitRole);
             // Read before exitOldRole clears the recruit's Shadow Jester pair. / 须在 exitOldRole 清除影子小丑配对之前读取。
             ServerPlayerEntity shadowPartner = NoellesRecruitmentCleanup.shadowPartnerLeftBehind(target);
@@ -131,6 +160,9 @@ public final class GrandWitchRecruitmentService {
             round.recordSuccess(target.getUuid());
             if (variant) {
                 AccompliceVariantRoundComponent.KEY.get(world).markUsed(recruitRole);
+            }
+            if (forcedPick) {
+                forcedStore.removeForcedRecruit(order);
             }
             BlackRavenDisguiseService.discardStashesForRecruitment(target);
             for (ServerPlayerEntity player : world.getPlayers()) {
@@ -168,18 +200,22 @@ public final class GrandWitchRecruitmentService {
             }
             if (variant) {
                 runVariantHook(recruitRole, target, recruiter);
-                // WitchSkillUseResult carries no message arguments, so the named success line is sent here.
-                // WitchSkillUseResult 不支持消息参数，因此在此直接发送带职业名的成功提示。
-                Text roleName = Text.translatable("announcement.role." + recruitRole.identifier().getPath());
+            }
+            relocate(world, target, recruiter, origin, formerRole);
+            Text roleName = Text.translatable("announcement.role." + recruitRole.identifier().getPath());
+            if (variant) {
                 target.sendMessage(Text.translatable("message.sparkwitch.recruitment.converted_as",
                         roleName, balance), false);
-                sendTraitChange(target, traitChange);
-                recruiter.sendMessage(Text.translatable("message.sparkwitch.recruitment.success_as", roleName), true);
-                return WitchSkillUseResult.success(0);
+            } else {
+                target.sendMessage(Text.translatable("message.sparkwitch.recruitment.converted", balance), false);
             }
-            target.sendMessage(Text.translatable("message.sparkwitch.recruitment.converted", balance), false);
             sendTraitChange(target, traitChange);
-            return WitchSkillUseResult.success(0, "message.sparkwitch.recruitment.success");
+            // The Grand Witch did not choose the recruit, so she is told who it is (and the role).
+            // WitchSkillUseResult carries no message arguments, so the line is sent here.
+            // 招募对象由系统选出，因此告知大魔女是谁（及其身份）；WitchSkillUseResult 不支持消息参数，故在此直接发送。
+            recruiter.sendMessage(Text.translatable("message.sparkwitch.recruitment.success_named",
+                    target.getName(), roleName), true);
+            return new Outcome(WitchSkillUseResult.success(0), target);
         } finally {
             round.finishConversion();
         }
@@ -222,16 +258,208 @@ public final class GrandWitchRecruitmentService {
     }
 
     /**
-     * Special-accomplice pool: a uniform pick among enabled variants not used this round, else the plain Accomplice.
-     * "Used" is the round ledger OR a live role-map entry, so a round-start forced variant also blocks the pool.
-     * 特殊共犯池：在已启用且本局未使用的特殊共犯中均匀抽取，否则为普通共犯。
-     * "已使用"为本局账本或身份表中仍存在该职业，因此开局被强制指定的特殊共犯同样占用名额。
+     * The forced role when this recruitment number has one, unless it is a special accomplice already used this round
+     * (then the pool decides; a disabled forced role is still honoured, as the admin asked for it). Otherwise the
+     * special-accomplice pool: a uniform pick among enabled variants not used this round, else the plain Accomplice.
+     * "Used" is the round ledger OR a live role-map entry, so a round-start forced variant also blocks the pool. The
+     * pool also skips {@code reserved}: roles a forced entry for a LATER number still waits for.
+     * 本次招募序号有强制身份时使用该身份，除非它是本局已使用的特殊共犯（此时交给抽取池；被禁用的强制身份仍照常给予，因为
+     * 这是管理员的指定）。否则为特殊共犯池：在已启用且本局未使用的特殊共犯中均匀抽取，否则为普通共犯。
+     * "已使用"为本局账本或身份表中仍存在该职业，因此开局被强制指定的特殊共犯同样占用名额。抽取池同样跳过
+     * {@code reserved}：仍在等待更晚序号的强制条目所指定的身份。
      */
-    private static Role rollRecruitRole(ServerWorld world, GameWorldComponent game) {
+    private static Role recruitRole(
+            ServerWorld world,
+            GameWorldComponent game,
+            @Nullable ForcedRecruit forced,
+            Set<Identifier> reserved
+    ) {
         AccompliceVariantRoundComponent used = AccompliceVariantRoundComponent.KEY.get(world);
+        java.util.function.Predicate<Role> isUsed = role -> used.isUsed(role) || !game.getAllWithRole(role).isEmpty();
+        Role forcedRole = forced == null ? null : forcedRole(forced.role());
+        if (forcedRole != null && !(AccompliceVariants.isVariant(forcedRole) && isUsed.test(forcedRole))) {
+            return forcedRole;
+        }
         return AccompliceVariantRoll.pick(AccompliceVariants.variants(), game::isRoleEnabled,
-                role -> used.isUsed(role) || !game.getAllWithRole(role).isEmpty(),
+                isUsed.or(role -> reserved.contains(role.identifier())),
                 new Random(world.getRandom().nextLong()));
+    }
+
+    /**
+     * Role ids held by forced entries for numbers after {@code order}; the probe found an earlier random roll could
+     * otherwise take a special accomplice a later forced number was promised.
+     * 晚于 {@code order} 的强制条目所指定的身份 id；否则较早的随机抽取可能拿走更晚强制序号被承诺的特殊共犯（探针发现）。
+     */
+    private static Set<Identifier> reservedRoles(Map<Integer, ForcedRecruit> entries, int order) {
+        Set<Identifier> reserved = new HashSet<>();
+        entries.forEach((entryOrder, entry) -> {
+            if (entryOrder > order) {
+                reserved.add(entry.role());
+            }
+        });
+        return reserved;
+    }
+
+    private static @Nullable Role forcedRole(Identifier roleId) {
+        if (SparkWitchRoles.ACCOMPLICE_ID.equals(roleId)) {
+            return SparkWitchRoles.accomplice();
+        }
+        for (Role variant : AccompliceVariants.variants()) {
+            if (variant.identifier().equals(roleId)) {
+                return variant;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The recruit lands where the Grand Witch is, so she must stand in the world herself: not a spectator (Rift Gate,
+     * Taotie belly), not swallowed, not dragged by a Kidnapper, and looking through her own eyes (review 2026-10-06:
+     * otherwise the recruit lands on the Taotie or the Kidnapper).
+     * 被招募者会落在大魔女所在之处，因此她本人必须身处场景中：不是旁观者（裂隙门、饕餮腹中）、未被吞下、未被绑匪拖走，
+     * 且视角在自己身上（2026-10-06 评审：否则被招募者会落在饕餮或绑匪身上）。
+     */
+    private static boolean canRecruitFromHere(ServerPlayerEntity recruiter) {
+        return !recruiter.isSpectator()
+                && recruiter.getCameraEntity() == recruiter
+                && !NoellesRecruitmentCleanup.isSwallowed(recruiter)
+                && !KidnapperControlComponent.KEY.maybeGet(recruiter).map(KidnapperControlComponent::isControlled).orElse(false);
+    }
+
+    /**
+     * Forced entries that can still fire this round: this number or later, within the quota, and whose player is still a
+     * recruitable participant. Only these reserve their player and their role, so a stale entry (past the quota, dead
+     * player) never blocks anyone (review 2026-10-06).
+     * 本局仍可能生效的强制条目：本序号或更晚、在名额之内、且玩家仍是可招募的参与者。只有这些条目预留其玩家与身份，
+     * 因此失效条目（超出名额、玩家已死）不会挡住任何人（2026-10-06 评审）。
+     */
+    private static Map<Integer, ForcedRecruit> pendingForced(
+            Map<Integer, ForcedRecruit> entries,
+            int order,
+            int limit,
+            ServerPlayerEntity recruiter,
+            ServerWorld world,
+            GameWorldComponent game
+    ) {
+        Map<Integer, ForcedRecruit> pending = new java.util.TreeMap<>();
+        entries.forEach((entryOrder, entry) -> {
+            if (entryOrder < order || entryOrder > limit) {
+                return;
+            }
+            ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(entry.player());
+            if (player != null && standing(recruiter, world, game, player) != RecruitmentTargetRules.Standing.GONE) {
+                pending.put(entryOrder, entry);
+            }
+        });
+        return pending;
+    }
+
+    /**
+     * Forced player of this number first, then a uniform pick among pickable players not reserved by a forced entry.
+     * Candidates are this world's players; iteration order is the world's player list.
+     * 先看本序号的强制玩家，再在未被强制条目预留的可选玩家中均匀抽取。候选为本世界玩家，顺序为世界玩家列表顺序。
+     */
+    private static RecruitmentTargetRules.Choice<ServerPlayerEntity> chooseTarget(
+            ServerPlayerEntity recruiter,
+            ServerWorld world,
+            GameWorldComponent game,
+            int order,
+            @Nullable ForcedRecruit forced,
+            Map<Integer, ForcedRecruit> forcedEntries
+    ) {
+        Set<UUID> reserved = new HashSet<>();
+        forcedEntries.forEach((entryOrder, entry) -> {
+            if (entryOrder >= order) {
+                reserved.add(entry.player());
+            }
+        });
+        List<ServerPlayerEntity> pool = new ArrayList<>();
+        for (ServerPlayerEntity candidate : world.getPlayers()) {
+            if (!reserved.contains(candidate.getUuid())
+                    && standing(recruiter, world, game, candidate) == RecruitmentTargetRules.Standing.PICKABLE) {
+                pool.add(candidate);
+            }
+        }
+        ServerPlayerEntity forcedPlayer = forced == null ? null
+                : world.getServer().getPlayerManager().getPlayer(forced.player());
+        RecruitmentTargetRules.Standing forcedStanding = forced == null ? null
+                : forcedPlayer == null ? RecruitmentTargetRules.Standing.GONE
+                : standing(recruiter, world, game, forcedPlayer);
+        return RecruitmentTargetRules.choose(forcedPlayer, forcedStanding, pool,
+                new Random(world.getRandom().nextLong()));
+    }
+
+    /**
+     * Where one player stands for this recruitment. The refused roles are the old aimed-recruitment refusals (owner
+     * rules 2026-10-02 and 2026-10-05): with a random pick they are simply never drawn. Real roles only.
+     * 单名玩家在本次招募中的状态。拒绝的身份即旧版瞄准招募的拒绝规则（所有者 2026-10-02、2026-10-05 规则）：随机抽取时
+     * 他们永远不会被抽中。只读真实身份。
+     */
+    private static RecruitmentTargetRules.Standing standing(
+            ServerPlayerEntity recruiter,
+            ServerWorld world,
+            GameWorldComponent game,
+            ServerPlayerEntity player
+    ) {
+        Role role = game.getRole(player);
+        if (player == recruiter || player.getServerWorld() != world
+                || !GameFunctions.isPlayerPlayingAndAlive(player)
+                || WitchFactionRules.isWitchFactionMember(role)) {
+            return RecruitmentTargetRules.Standing.GONE;
+        }
+        // A Rift Gate occupant is an ALIVE spectator (Riftwalker D3) and comes back; so do the other busy states (a
+        // creative player is not a participant the hold could freeze).
+        // Owner decision 2026-10-04: SparkTraits stashes a Depression psycho player's real inventory, which the
+        // conversion would lose or leak.
+        // 裂隙门内的玩家是存活旁观者（隙行者 D3），之后会回来；其余暂不可选状态同理（创造模式玩家不是定身可作用的参与者）。所有者 2026-10-04 决定：SparkTraits
+        // 暂存了抑郁狂暴玩家的真实背包，转换会使其丢失或泄漏。
+        if (player.isSpectator() || player.isCreative()
+                || RecruitmentTraits.isDepressionPsychoActive(player)
+                || NoellesRecruitmentCleanup.isSwallowed(player)
+                || KidnapperControlComponent.KEY.maybeGet(player).map(KidnapperControlComponent::isControlled).orElse(false)) {
+            return RecruitmentTargetRules.Standing.BUSY;
+        }
+        boolean emma = dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules.isEmma(role);
+        var refusal = GrandWitchRecruitmentRules.refusal(InsiderParticipation.isCorruptCopRole(role),
+                emma || PoliceRoles.contains(role), InsiderParticipation.isInsiderRole(role),
+                SparkTraitsLastStandBridge.isLastStandLooseEnd(world, player.getUuid(), role));
+        return refusal == GrandWitchRecruitmentRules.Refusal.NONE
+                ? RecruitmentTargetRules.Standing.PICKABLE
+                : RecruitmentTargetRules.Standing.REFUSED;
+    }
+
+    /**
+     * Committed conversion, last step: the fake corpse where the recruit stood, the teleport to the Grand Witch, then
+     * the 5-second hold. Failures are logged and never undo the recruitment.
+     * 已提交的转换的最后一步：在被招募者原地生成假尸体、传送到大魔女身边，然后定身 5 秒。失败只记录日志，绝不撤销招募。
+     */
+    private static void relocate(
+            ServerWorld world,
+            ServerPlayerEntity recruit,
+            ServerPlayerEntity recruiter,
+            RecruitmentDecoyBody.Origin origin,
+            @Nullable Role formerRole
+    ) {
+        try {
+            if (formerRole != null) {
+                RecruitmentDecoyBody.spawn(world, recruit, origin, formerRole.identifier(),
+                        new Random(world.getRandom().nextLong()));
+            }
+        } catch (RuntimeException exception) {
+            LOGGER.error("Recruitment committed but the fake corpse of {} failed", recruit.getUuid(), exception);
+        }
+        try {
+            recruit.stopRiding();
+            if (recruit.isSleeping()) {
+                recruit.wakeUp();
+            }
+            recruit.teleport(recruiter.getServerWorld(), recruiter.getX(), recruiter.getY(), recruiter.getZ(),
+                    recruiter.getYaw(), 0.0F);
+            recruit.fallDistance = 0.0F;
+            RecruitmentHold.apply(recruit);
+        } catch (RuntimeException exception) {
+            LOGGER.error("Recruitment committed but moving {} to the Grand Witch failed", recruit.getUuid(), exception);
+        }
     }
 
     private static void runVariantHook(Role variant, ServerPlayerEntity recruit, ServerPlayerEntity recruiter) {
@@ -279,6 +507,14 @@ public final class GrandWitchRecruitmentService {
     private static void exitOldRole(ServerPlayerEntity target) {
         NoellesRecruitmentCleanup.exitRole(target);
         KidnapperDragService.release(target);
+        // A recruited Kidnapper lets go of a knocked-out victim, who would otherwise keep snapping onto the Grand Witch.
+        // 被招募的绑匪放开被迷晕的目标，否则目标会不断被拉到大魔女身上。
+        for (ServerPlayerEntity victim : target.getServerWorld().getPlayers()) {
+            KidnapperControlComponent control = KidnapperControlComponent.KEY.get(victim);
+            if (control.isControlledBy(target)) {
+                control.reset();
+            }
+        }
         BlackRavenPerceptionService.clearForRoleLossOrDeath(target);
         WitchFactionFeatureService.clearPlayerRuntime(target);
         WraithLifecycle.clearPlayer(target);

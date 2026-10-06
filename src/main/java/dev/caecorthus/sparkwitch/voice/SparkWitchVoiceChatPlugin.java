@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.doctor4t.wathe.api.Role;
@@ -89,6 +90,13 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
             // Rift Gate occupants are muted but still hear (plan §6.6): no voice may leak from a gate, and the NR
             // Paranoid would otherwise hear them as non-swallowed spectators.
             // 裂隙门内的玩家被静音但仍能听见（plan §6.6）：门口不得传出人声，否则 NR 偏执杀手会把他们当作未被吞的旁观者听到。
+            event.cancel();
+            return;
+        }
+        if (RecruitmentHold.isHeld(speaker)) {
+            // A held recruit is invisible inside the Grand Witch, and the stun lock leaves voice keys usable, so the
+            // hold mutes them here; they still hear. The Blind voice listener skips cancelled packets.
+            // 被定身的新共犯隐身站在大魔女体内，而眩晕锁保留语音按键，因此在此静音；仍能听见。盲人语音监听会跳过已取消的数据包。
             event.cancel();
             return;
         }

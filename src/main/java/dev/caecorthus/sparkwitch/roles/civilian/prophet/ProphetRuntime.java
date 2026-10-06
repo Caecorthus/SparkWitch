@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import dev.caecorthus.sparkwitch.compat.NoellesHiddenBodiesBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsBodyDragBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent.NecrologyEntry;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.RecruitmentDecoyBody;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -113,9 +114,9 @@ public final class ProphetRuntime {
     }
 
     /**
-     * Snapshots every visible body in the Prophet's world (no distance limit; Scavenger-hidden and Depression fake-death bodies excluded), then
+     * Snapshots every visible body in the Prophet's world (no distance limit; Scavenger-hidden, Depression fake-death and recruitment fake corpses excluded), then
      * sends a private sound and action-bar count to the Prophet alone.
-     * 快照先知所在世界里所有可见尸体（不限距离，排除拾荒者隐藏与抑郁假死的尸体），然后只向先知本人播放私有音效并发送动作栏计数。
+     * 快照先知所在世界里所有可见尸体（不限距离，排除拾荒者隐藏、抑郁假死与招募假尸体），然后只向先知本人播放私有音效并发送动作栏计数。
      */
     private static void pulse(ServerPlayerEntity prophet, ServerWorld world, ProphetPlayerComponent component) {
         List<PlayerBodyEntity> bodies = new ArrayList<>(world.getEntitiesByType(
@@ -127,6 +128,9 @@ public final class ProphetRuntime {
                         // living player that the Prophecy list would then omit.
                         // 所有者决定：跳过抑郁假死尸体，避免名录记下活人而预言列表缺席，从而暴露假死。
                         && !SparkTraitsBodyDragBridge.isConfirmedFakeDeathBody(body)
+                        // The fake corpse a Grand Witch recruit leaves behind is skipped for the same reason.
+                        // 大魔女招募留下的假尸体出于同样理由跳过。
+                        && !RecruitmentDecoyBody.isDecoy(world, body)
         ));
         bodies.sort(Comparator.comparingInt(PlayerBodyEntity::getDeathGameTime).thenComparing(Entity::getUuid));
 
