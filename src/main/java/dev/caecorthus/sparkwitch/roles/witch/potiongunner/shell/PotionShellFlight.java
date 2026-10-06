@@ -1,6 +1,11 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell;
 
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Pure, side-neutral flight helpers for the shell entity (server and client prediction). Flat flight (owner addendum
@@ -74,6 +79,53 @@ public final class PotionShellFlight {
      */
     public static boolean playerStopsShell(boolean aliveAndSurvival, boolean playingAndAlive, boolean lastEscape) {
         return aliveAndSurvival && playingAndAlive && !lastEscape;
+    }
+
+    /**
+     * Whether the server's lag-compensated player hit takes this tick: it must exist ({@code ≥ 0}) and enter strictly
+     * nearer along the path than the vanilla collision (a block, closed door, Rift Gate or current box; positive
+     * infinity on a miss). A tie leaves the tick to vanilla. Both are squared distances from the tick's start.
+     * 服务端的延迟补偿玩家命中是否接管本刻：它必须存在（{@code ≥ 0}），且沿路径的进入点严格近于原版碰撞（方块、关闭的门、
+     * 裂隙门或当前箱体；未命中为正无穷）。距离相等时交给原版处理。两者都是距本刻起点的平方距离。
+     */
+    public static boolean lagCompensatedHitFirst(double laggedEntrySquared, double vanillaEntrySquared) {
+        return laggedEntrySquared >= 0.0 && laggedEntrySquared < vanillaEntrySquared;
+    }
+
+    /**
+     * Squared distance from {@code from} to where the path {@code from → to} first enters a player's lag-compensated
+     * {@code volumes} (each grown by {@code margin}), or -1 on a miss. A path that enters a grown volume is hit as in
+     * vanilla. A path that starts inside the margin still hits when it enters the player's real (ungrown) volume,
+     * which vanilla's ray misses. A start inside the real volume counts as 0, but only once {@code startInsideCounts}
+     * (the shell has moved), so someone pressed against the gunner never stops the shell at the muzzle.
+     * 路径 {@code from → to} 首次进入玩家延迟补偿体积 {@code volumes}（各自扩大 {@code margin}）处到 {@code from} 的平方距离，
+     * 未命中为 -1。进入扩大后体积的路径与原版一样算命中。起点位于余量内的路径，只要进入玩家真实（未扩大）体积仍算命中，
+     * 原版射线会漏掉这种情况。起点位于真实体积内记为 0，但仅当 {@code startInsideCounts}（炮弹已移动过）时成立，
+     * 因此紧贴药炮手的人不会在炮口处挡下炮弹。
+     */
+    public static double laggedEntrySquared(Vec3d from, Vec3d to, List<Box> volumes, double margin,
+                                            boolean startInsideCounts) {
+        double nearest = -1.0;
+        for (Box volume : volumes) {
+            Box real = volume.contract(margin);
+            double entry;
+            if (real.contains(from)) {
+                if (!startInsideCounts) {
+                    continue;
+                }
+                entry = 0.0;
+            } else {
+                Optional<Vec3d> point = volume.contains(from) ? real.raycast(from, to) : volume.raycast(from, to);
+                if (point.isEmpty()) {
+                    continue;
+                }
+                entry = from.squaredDistanceTo(point.get());
+            }
+            if (nearest < 0.0 || entry < nearest) {
+                nearest = entry;
+            }
+        }
+        return nearest;
     }
 
     /** {@code 0xRRGGBB} as trail dust colour components. / 把 {@code 0xRRGGBB} 拆成烟迹粉尘颜色分量。 */

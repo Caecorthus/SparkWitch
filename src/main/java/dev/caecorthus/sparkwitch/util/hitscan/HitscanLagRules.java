@@ -53,6 +53,24 @@ public final class HitscanLagRules {
     }
 
     /**
+     * The newest-first boxes up to the first jump farther than {@link #MAX_SWEEP_STEP} (teleport, gate exit), so only
+     * the path the target walked to its current box is kept. Projectiles use it: their blast lands on the current box,
+     * which must therefore stay near the rewound hit.
+     * 最新在前的箱体，截止到第一次超过 {@link #MAX_SWEEP_STEP} 的跳变（传送、出门）之前，只保留目标走到当前箱体的那段路径。
+     * 投射物使用它：其爆炸落在当前箱体上，因此当前箱体必须靠近回溯命中处。
+     */
+    public static List<Box> connectedPrefix(List<Box> newestFirst) {
+        List<Box> connected = new ArrayList<>(newestFirst.size());
+        for (int index = 0; index < newestFirst.size(); index++) {
+            if (index > 0 && !sweptWithPrevious(newestFirst, index)) {
+                break;
+            }
+            connected.add(newestFirst.get(index));
+        }
+        return connected;
+    }
+
+    /**
      * Hit volumes from {@code newestFirst} boxes: each consecutive pair within {@link #MAX_SWEEP_STEP} is swept into
      * their union, a lone or jumped sample stays on its own; all grow by {@code expansion}.
      * 由最新在前的箱体生成命中体积：相距不超过 {@link #MAX_SWEEP_STEP} 的相邻两箱合并为并集，孤立或跳变的样本单独保留；

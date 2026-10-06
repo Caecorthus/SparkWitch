@@ -49,6 +49,20 @@ public final class PotionBlastGeometry {
     }
 
     /**
+     * The point {@code sqrt(distanceSquared)} along {@code from → to}, clamped to the segment; {@code from} for a
+     * zero-length segment or a non-finite distance.
+     * 沿 {@code from → to} 距起点 {@code sqrt(distanceSquared)} 的点，夹紧在线段内；线段长度为 0 或距离非有限时取 {@code from}。
+     */
+    public static Vec3d alongSegment(Vec3d from, Vec3d to, double distanceSquared) {
+        Vec3d segment = to.subtract(from);
+        double length = segment.length();
+        if (!(length > 0.0) || !Double.isFinite(distanceSquared) || distanceSquared <= 0.0) {
+            return from;
+        }
+        return from.add(segment.multiply(Math.min(1.0, Math.sqrt(distanceSquared) / length)));
+    }
+
+    /**
      * A block hit is centred {@link #FACE_OFFSET} out of the hit face (outward normal {@code nx, ny, nz}).
      * 方块命中时爆心沿受击面外法线（{@code nx, ny, nz}）离开受击面 {@link #FACE_OFFSET}。
      */
