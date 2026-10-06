@@ -1076,6 +1076,20 @@ teleport and holds the recruit for 100 ticks at the anchor pose:
   (SFA veto, Saint, Vendetta terminal, Wraith capture) still run first.
 - **End.** The hold ends at zero, on `ResetPlayer`, at finalize, or when the player stops being a
   `ControlExpertTargeting` participant.
+- **Transparency.** A held recruit is absent for every viewer except spectators and the recruit
+  (`RecruitmentHoldRules.hidesPresence`):
+  - `SparkWitchVoiceChatPlugin` mutes their microphone; they still hear.
+  - `WraithCollisionRules.isCollisionTransparent` makes them collision-transparent (both mixins and the SFA
+    exemption).
+  - `WraithNameTagPassThrough` and `WraithAimPassThrough` add `RecruitmentHoldClient.isHiddenFrom` beside the Wraith
+    rule. This covers name tags, cohort labels, the Wathe knife, revolver and derringer, the Demon Hunter and the
+    crosshair.
+  - The outermost `getInstinctHighlight` wrapper and the `hasOutline` veto hide them with no exemption, witch teammates
+    included.
+  - The Blind cane, sound attribution (SILENT) and the echo body gates skip them.
+  - Wathe's knife and gun servers trust the client's target id, so there is no server-side reselection. Role targeters
+    outside the Wraith pass-through (Ninja knife, Guardian Angel, Orthopedist, Black Raven feather, the client-side
+    Vendetta knife) can still aim at them; the hold's server guards turn those actions into no-ops.
 
 `/sparkwitch:forceAccompliceRole <role> <player> [order]` (`command/ForceAccompliceRoleCommand`, permission
 `sparkwitch.command.forceaccomplicerole`, op 2) pre-decides the Grand Witch's Nth successful recruitment of a round.
