@@ -55,10 +55,12 @@ public final class GrandWitchFearService {
             Identifier.of("sparkwitch", "seeker_car_recall"),
             Identifier.of("sparkwitch", "seeker_car_use"),
             // Black Raven transform selection; the server also re-checks fear on select.
-            // é»ç¾½é¸¦åèº«éæ©ï¼æå¡ç«¯å¨éæ©æ¶ä¹ä¼åæ¬¡æ£æ¥ææ§ã
+            // 黑羽鸦变身选择；服务端在选择时也会再次检查恐惧。
             SelectBlackRavenDisguiseC2SPacket.PAYLOAD_ID,
             // Blind Attune. / 盲人凝神。
-            Identifier.of("sparkwitch", "use_blind_attune")
+            Identifier.of("sparkwitch", "use_blind_attune"),
+            // Fiend Dash; the server also re-checks fear on use. / 魔人疾驰；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "use_fiend_dash")
     );
 
     private GrandWitchFearService() {

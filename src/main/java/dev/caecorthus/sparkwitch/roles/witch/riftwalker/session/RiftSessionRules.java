@@ -100,6 +100,7 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "confirm_prophecy"),
             Identifier.of("sparkwitch", "use_blind_attune"),
             Identifier.of("sparkwitch", "rift_gate_close"),
+            Identifier.of("sparkwitch", "use_fiend_dash"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),

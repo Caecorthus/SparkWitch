@@ -151,8 +151,9 @@ Current build baseline:
 - `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
   `sparkwitch:fiend_moment` world component and its pure state, dormant immunity and hit reactions, cooldown
   aura, bomb-pass ledger, swallow block, last-one-standing exclusion (`FiendWinExclusion`), the Fiend Moment
-  shop, economy, win listener, lifecycle and owned effects. Its mixins live in `mixin/fiend/` and
-  `client/mixin/fiend/`; client presentation (countdown HUD, outline decision) in `client/fiend/`.
+  shop, economy, win listener, lifecycle and owned effects, and the moment-only Dash (`FiendDashRules`,
+  `FiendDashService`, `FiendNetworking`, `net/UseFiendDashC2SPayload`). Its mixins live in `mixin/fiend/` and
+  `client/mixin/fiend/`; client presentation (countdown HUD, Dash HUD, outline decision) in `client/fiend/`.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
@@ -760,8 +761,9 @@ non-forced `sparkwitch:swordfish_stab` kill, and only a confirmed terminal civil
 death (not Last Stand, not a fake death) also kills the attacker with `SHOT_INNOCENT` (an Impostor
 attacker is exempt). The Angler never renders in the `gui.sparkwitch.skills` panel.
 Fiend state never enters that shared schema either. `sparkwitch:fiend_moment` is a world component synced to
-every player; its packet carries only a presence flag, the moment Fiend's UUID and remaining ticks (never absolute
-server time or the match id), clients count down only for display, and it is never persisted. It also keeps a
+every player; its packet carries only a presence flag, the moment Fiend's UUID, remaining ticks and the remaining
+Dash cooldown (the real value only to the moment Fiend, 0 to everyone else), never absolute server time or the match
+id; clients count both down only for display, and it is never persisted. It also keeps a
 server-only, never-synced spent ledger bound to the match id. A dormant Fiend (Fiend role, playing and alive, not
 the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:escaped` and `wathe:vanilla_death`:
 `mixin/fiend/GameFunctionsFiendImmunityMixin` is a cancellable HEAD guard on Wathe's 5-arg `killPlayer`
@@ -783,21 +785,36 @@ and Murderous Witch `checkWin` skip it directly, and NoellesRoles'
 Jester-moment and Corrupt Cop loops (`lambda$registerEvents$14` alive-check ordinals 6 and 9),
 `countAliveAndNotSwallowed` and Taotie `hasSwallowedEveryone` reach `FiendWinExclusion` through additive
 `@WrapOperation`s pinned to b58fa5f. The Fiend Moment is a 200-gold, stock-1 shop entry whose all-or-nothing
-`onBuy` starts it (crowbar and Speed I for 2400 ticks, no shield); the crowbar carries the
+`onBuy` starts it (crowbar and Speed II for 2400 ticks, no shield; owner tuning 2026-10-04); the crowbar carries the
 `sparkwitch:fiend_moment_crowbar` custom-data marker and every marked stack is taken back when the moment ends
 without a win, and a disconnect (`wathe:escaped`) ends it as "ended", not "slain". `FiendWinService` runs in
 phase `sparkwitch:fiend_moment_win`, ordered before `Event.DEFAULT_PHASE` on `CheckWinCondition`: no moment →
 abstain; the moment Fiend offline, dead, swallowed, re-roled or the match changed → end the moment (a swallow
 also marks it spent) and abstain; complete → `neutralWin`; otherwise `block()`, so every other win, `TIME`
 included, waits. The moment Fiend's crowbar cooldown is written as exactly 5 s after a door pry or vent-hatch use,
-without a second redirect. The client outline is a cancellable HEAD on `WatheClient.getInstinctHighlight`
+without a second redirect. During the moment only, the moment Fiend has Dash on the shared NoellesRoles ability key
+(owner decision 2026-10-04): the empty C2S `sparkwitch:use_fiend_dash` (`net/UseFiendDashC2SPayload`, registered on
+both sides by `FiendNetworking` from `FiendFeatureService`) reaches `FiendDashService`, which re-checks against server
+state, in `FiendDashRules.verdict` order, the role-gated moment Fiend, an ACTIVE round, a running moment (active and
+not complete), playing and alive, not swallowed, not stunned, not SparkTraits role-skill blocked
+(`SparkTraitsKillerBridge.isRoleSkillBlocked`; absent or failing SparkTraits means no block) and ready, with Grand
+Witch Fear last (refused with the Fear skill message); every refusal costs nothing. A use grants Speed IV for 10 s
+(`FiendMomentEffects.grantDash`; vanilla upgrades the moment's Speed II instance in place, so it falls back to
+Speed II, and the moment end removes the owned instance at either level) and moves the absolute Dash ready tick to
+30 s after the use. The ready tick lives in `sparkwitch:fiend_moment`: ready at the moment start and cleared with the
+moment, so the cooldown dies with it. The id sits on the Control Expert stun, Seeker session, Riftwalker session and
+Grand Witch Fear deny-lists, and forced cooldowns reach Dash only through the `sparkwitch:fiend_dash` store. The
+client outline is a cancellable HEAD on `WatheClient.getInstinctHighlight`
 (`remap = false`, priority 500; lower-priority HEADs run first, so it precedes SparkTraits, Wraith and Black
 Raven): while a moment is active the moment Fiend sees every other playing, living, non-spectator player and every
 other viewer sees the moment Fiend, both in `FiendRules.COLOR`; other pairs fall through. The Grand Witch
 Obscure/Fear `@WrapMethod` veto (`WatheClientFearInstinctMixin`) exempts those moment pairs, like the Final Moment
 (owner decision, 2026-09-30); its swallow veto still applies. The countdown HUD is a
-`HudRenderCallback` line for every player, never the action bar. The Fiend is absent from
-`isRegisteredSparkWitchRole` and `WitchSkillRegistry` and never renders in the `gui.sparkwitch.skills` panel.
+`HudRenderCallback` line for every player, never the action bar. The Dash HUD is a role-owned bottom-right line
+shown only to the moment Fiend (`client/fiend/FiendDashHud`, drawn from `FiendClient`'s HUD callback), and
+`SparkWitchClient`'s ability-key dispatch sends the request through `client/fiend/FiendDashClient`.
+The Fiend is absent from `isRegisteredSparkWitchRole` and `WitchSkillRegistry` and never renders in the
+`gui.sparkwitch.skills` panel.
 The Insider (`sparkwitch:insider`) has no component; every rule reads synced roles. Wathe never draws it
 (`appearanceCondition(context -> false)`). `MurderGameModeMixin` calls, in order, the Hunter→Orthopedist
 pairing, the Witch assignment, then `InsiderAssignmentService`, all before Wathe's civilian pass: when a
@@ -1254,6 +1271,14 @@ Features that force a cooldown on another player (penalties, auras) go through S
    nominal leaves its window out. Every write only moves the ready tick later (`ForcedCooldownMath.raiseReadyTick`)
    through the owner-syncing `BlindComponent.setAttune`; it never touches the window and never shortens. Raise and
    extend are the SparkFactionAPI defaults.
+9. `sparkwitch:fiend_dash` (`FiendDashCooldownStore`, coordinator default 2026-10-04 following the Blind,
+   appended after it): the Fiend's Dash, for the role-gated moment Fiend in an ACTIVE round (`FiendDashService`'s
+   role and round gates), so it exists only while a moment runs.
+   Remaining time counts to the absolute Dash ready tick in `sparkwitch:fiend_moment`; the nominal is the 30 s
+   post-use cooldown (`FiendRules.DASH_COOLDOWN_TICKS`, 600). Every write only moves the ready tick later
+   (`ForcedCooldownMath.raiseReadyTick`) through the resyncing `FiendMomentWorldComponent.setDashReadyTick`; it never
+   shortens, never touches a running Speed IV, and dies with the moment. Raise and extend are the SparkFactionAPI
+   defaults.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken and knife, Feather Blade, Knockout
