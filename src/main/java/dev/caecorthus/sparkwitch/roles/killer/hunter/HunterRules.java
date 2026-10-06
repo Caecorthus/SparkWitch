@@ -24,7 +24,7 @@ public final class HunterRules {
     public static final int EMPTY_COOLDOWN_TICKS = 20 * 30;
     public static final int SECOND_SHELL_WINDOW_TICKS = 20 * 10;
 
-    public static final int MAX_OWNED_TRAPS = 2;
+    public static final int MAX_OWNED_TRAPS = 4;
     public static final int TRAP_ARM_TICKS = 10;
     public static final int TRAP_LIFESPAN_TICKS = 20 * 60 * 10;
     public static final int TRAP_ROOT_TICKS = 20 * 3;

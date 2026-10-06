@@ -154,8 +154,7 @@ class WraithRoleRegistrationTest {
             String name,
             String goal
     ) {
-        assertEquals(name, language.get("announcement.role.sparkwitch." + roleId).getAsString());
-        assertEquals(goal, language.get("announcement.goal.sparkwitch." + roleId).getAsString());
+        // Wathe 按职业 ID 的 path 读取规范键；旧的 sparkwitch 前缀别名不参与运行时解析。
         assertEquals(name, language.get("announcement.role." + roleId).getAsString());
         assertEquals(goal, language.get("announcement.goal." + roleId).getAsString());
         assertEquals(goal, language.get("announcement.goals." + roleId).getAsString());

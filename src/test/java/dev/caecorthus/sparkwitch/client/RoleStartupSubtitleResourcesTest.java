@@ -8,6 +8,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RoleStartupSubtitleResourcesTest {
@@ -56,10 +57,9 @@ class RoleStartupSubtitleResourcesTest {
             assertEquals(subtitle, value(language, "announcement.goal." + role));
             assertEquals(subtitle, value(language, "announcement.goals." + role));
             assertTrue(subtitle.length() <= 80, role + " startup subtitle is too long");
-            String alias = "announcement.goal.sparkwitch." + role;
-            if (language.has(alias)) {
-                assertEquals(subtitle, value(language, alias));
-            }
+            // 旧别名曾把同一文本重复放在 announcement.*.sparkwitch.* 下；运行时只使用规范 path 键。
+            assertFalse(language.has("announcement.role.sparkwitch." + role));
+            assertFalse(language.has("announcement.goal.sparkwitch." + role));
         });
     }
 
