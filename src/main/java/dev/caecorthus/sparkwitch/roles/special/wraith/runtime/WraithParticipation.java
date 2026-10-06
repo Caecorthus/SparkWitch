@@ -150,6 +150,11 @@ final class WraithParticipation {
 
     private static void registerInteractions() {
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            // 晋升冤魂只被拦下门窗类方块；未晋升冤魂沿用下方的白名单。
+            // Promoted Wraiths are only kept off passage blocks; restricted ones keep the allowlist below.
+            if (WraithStateService.isPromoted(player)) {
+                return WraithPassageGuard.verdict(player, world, hand, hitResult);
+            }
             if (!WraithStateService.isRestricted(player)) {
                 return ActionResult.PASS;
             }
