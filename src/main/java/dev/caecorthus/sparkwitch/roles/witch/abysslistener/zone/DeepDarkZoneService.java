@@ -93,10 +93,11 @@ public final class DeepDarkZoneService {
     }
 
     /**
-     * Opens a zone where a flask landed: one flood-fill snapshot at the landing tick, then every block follows its own
-     * schedule. Only an ACTIVE round opens zones, so a flask landing during the end fade does nothing.
-     * 在孢瓶落点展开领域：落地时做一次泛洪快照，之后每个方块按自己的时间表变化。只有 ACTIVE 的对局会展开领域，
-     * 因此在结束淡出期间落地的孢瓶不会产生任何效果。
+     * Opens a zone where a flask landed: one flood-fill snapshot at the landing tick. Every block converts at that tick
+     * (owner D14: shown by this tick's end-of-tick advance) and restores on its own schedule. Only an ACTIVE round opens
+     * zones, so a flask landing during the end fade does nothing.
+     * 在孢瓶落点展开领域：落地时做一次泛洪快照。所有方块都在这一刻转换（D14：由本刻末尾的推进立即显示），之后按各自的
+     * 时间表恢复。只有 ACTIVE 的对局会展开领域，因此在结束淡出期间落地的孢瓶不会产生任何效果。
      */
     static void open(ServerWorld world, @Nullable UUID owner, BlockPos landing) {
         if (!isRoundActive(world)) {
@@ -128,8 +129,7 @@ public final class DeepDarkZoneService {
         for (DeepDarkZoneShape.Target target : targets) {
             BlockPos pos = target.pos();
             claims.add(new DeepDarkZoneState.Claim<>(pos.asLong(), DeepDarkZoneBlocks.fakeState(world, pos),
-                    world.getBlockState(pos), now + DeepDarkZoneSchedule.convertOffset(target.distance()),
-                    now + DeepDarkZoneSchedule.restoreOffset(target.distance())));
+                    world.getBlockState(pos), now, now + DeepDarkZoneSchedule.restoreOffset(target.distance())));
         }
         Runtime runtime = RUNTIMES.computeIfAbsent(world, ignored -> new Runtime(now));
         LongList stale = runtime.state.addZone(owner, landing.asLong(), now,

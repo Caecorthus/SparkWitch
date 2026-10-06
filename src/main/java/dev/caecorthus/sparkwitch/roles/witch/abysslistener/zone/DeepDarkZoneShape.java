@@ -20,12 +20,12 @@ import net.minecraft.util.math.Direction;
  */
 public final class DeepDarkZoneShape {
     /**
-     * Safety caps only: a radius-8 ball holds about 2,100 lattice cells and the Harpy Express converts about 200-290
-     * blocks, so these bound pathological custom maps without changing normal zones.
-     * 仅作安全上限：半径 8 的球约有 2100 个格点，Harpy 列车约转换 200-290 个方块；上限只约束异常的自定义地图。
+     * Safety caps only: a radius-10 ball holds about 4,200 lattice cells (the Harpy Express converted about 200-290
+     * blocks at radius 8), so these bound pathological custom maps without changing normal zones.
+     * 仅作安全上限：半径 10 的球约有 4200 个格点（半径 8 时 Harpy 列车约转换 200-290 个方块）；上限只约束异常的自定义地图。
      */
-    public static final int MAX_REACHED_CELLS = 4096;
-    public static final int MAX_CONVERTED_CELLS = 2048;
+    public static final int MAX_REACHED_CELLS = 8192;
+    public static final int MAX_CONVERTED_CELLS = 4096;
     private static final Direction[] STEPS = Direction.values();
 
     private DeepDarkZoneShape() {
