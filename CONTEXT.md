@@ -367,7 +367,9 @@ Current build baseline:
   `HitscanLagRules` owns the ping-based rewind window and swept volumes. Used by the Hunter
   double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, the Abyss Listener Shriek
   Gun, and the Black Raven Feather Blade (whose sight and feet-distance reach are taken at the rewound hit);
-  client crosshair hints keep current boxes.
+  client crosshair hints keep current boxes. The Potion Gunner shell's in-flight player check uses
+  `projectileHitVolumes`, which rewinds only the ping-independent view delay: the gunner's client also simulates the
+  shell, so the ping cancels.
 - `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
   Shriek Gun, SparkStrength M67). `mode` gives a living participant of an `ACTIVE` round a match shot, refuses a dead
   one, and gives anyone else a presentation-only shot; `isMatchParticipant` scopes the bound-item rules.
@@ -1587,6 +1589,20 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-recruit 
   - The shell bursts on the first block, closed door, or player its blast could catch, on a Seeker device in its
     path, or after 100 ticks (99 moves). It passes through Wathe corpses (`PlayerBodyEntity`), spectators, creative and
     Wathe-dead players (Wraiths) on both sides, and SparkTraits Last Escape players on the server only.
+  - Players are lag-compensated on the server, because the gunner sees them a view delay late. Right after the Seeker
+    sweep, each tick's path is also tested against every player's view-delayed volumes
+    (`PlayerHitboxHistory.projectileHitVolumes`, 0.3 margin like vanilla).
+    - Those volumes stop at the first jump (teleport, gate exit) and at the first spectator, creative or Last Escape
+      sample (Rift Gate occupants, swallowed or dead players).
+    - Entry follows `PotionShellFlight.laggedEntrySquared`. A path that starts inside the margin still hits on entering
+      the real box, and a start inside the real box counts once the shell has moved, never at the muzzle. Vanilla's
+      ray misses both.
+    - The gunner is never rewound. Only players that the shell's `canHit` and SparkFactionAPI's
+      `sparkfactionapi:projectile` action accept count, as for vanilla.
+    - The hit wins only when it is strictly nearer than vanilla's own collision
+      (`PotionShellFlight.lagCompensatedHitFirst`), so blocks, doors and Rift Gates still shield a player.
+    - It bursts on the player's current box (`PotionBlastGeometry.entityImpact`) when the blast's line of sight reaches
+      it from the rewound entry point, else at that entry point.
   - A Riftwalker Rift Gate never bursts it (Riftwalker D18): the gate's deflection moves it to another gate or reflects
     it. On a flat tick the shell keeps the gate's exit velocity (`onDeflected`) and re-bases its launch point behind the
     new position (`PotionShellFlight.flatPathAfterTick`), so the path length carries over the jump: still 20 flat ticks

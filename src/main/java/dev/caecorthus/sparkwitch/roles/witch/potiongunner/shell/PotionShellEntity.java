@@ -1,11 +1,15 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell;
 
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntity;
+import dev.caecorthus.sparkwitch.util.hitscan.HitscanLagRules;
+import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -16,6 +20,7 @@ import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.entity.projectile.thrown.ThrownItemEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -24,6 +29,7 @@ import net.minecraft.particle.ParticleTypes;
 import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -33,6 +39,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -54,6 +61,18 @@ public class PotionShellEntity extends ThrownItemEntity {
     private static final int TRAIL_STEPS = 4;
     private static final float TRAIL_SCALE = 1.0F;
     private static final float SMOKE_CHANCE = 0.5F;
+    /**
+     * The margin vanilla {@code ProjectileUtil.getCollision} grows every entity box by; the lag-compensated player
+     * check uses the same one. / 原版 {@code ProjectileUtil.getCollision} 为实体箱体增加的余量；延迟补偿玩家判定沿用该值。
+     */
+    private static final double PLAYER_HIT_MARGIN = 0.3;
+    /**
+     * SparkFactionAPI's action for player-owned projectiles. Its {@code WorldProjectileAffectMixin} drops denied
+     * players from vanilla's candidate query, so the lag-compensated check, which lists players itself, asks the same
+     * question. / SparkFactionAPI 对玩家发射物使用的行为 id。其 {@code WorldProjectileAffectMixin} 会从原版候选查询中移除
+     * 被禁止的玩家；延迟补偿判定自行列出玩家，因此提出同一问题。
+     */
+    private static final Identifier PROJECTILE_ACTION = Identifier.of("sparkfactionapi", "projectile");
 
     /** Server only, set at launch; shells are never saved, so it never needs NBT. / 仅服务端，发射时写入；炮弹不存盘，无需 NBT。 */
     @Nullable
@@ -145,6 +164,15 @@ public class PotionShellEntity extends ThrownItemEntity {
                     getPos().add(getVelocity()));
             if (device != null) {
                 detonate(device);
+                return;
+            }
+            // Lag compensation (server): the gunner sees other players a view delay late, so a player is also hit
+            // where the gunner saw them; a nearer block, door, Rift Gate or current box leaves the tick to vanilla.
+            // 延迟补偿（服务端）：药炮手看到的其他玩家晚一个视图滞后，因此在药炮手看到的位置也能命中玩家；
+            // 更近的方块、门、裂隙门或当前箱体则把本刻交给原版处理。
+            Vec3d player = lagCompensatedPlayerImpact();
+            if (player != null) {
+                detonate(player);
                 return;
             }
         }
@@ -255,6 +283,91 @@ public class PotionShellEntity extends ThrownItemEntity {
                 GameFunctions.isPlayerAliveAndSurvival(player),
                 GameFunctions.isPlayerPlayingAndAlive(player),
                 !getWorld().isClient() && SparkTraitsKillerBridge.isLastEscapeActive(player));
+    }
+
+    /**
+     * Server only: the blast centre of a lag-compensated player hit on this tick's path (the move from {@link #getPos}
+     * by the velocity), or null to leave the tick to vanilla collision.
+     * <ul>
+     *     <li>The path is tested against each player's view-delayed volumes
+     *     ({@link PlayerHitboxHistory#projectileHitVolumes}, entry by {@link PotionShellFlight#laggedEntrySquared}).
+     *     The gunner is never rewound: their client draws them at their real position.</li>
+     *     <li>The nearest such player counts only when {@link #canHit} accepts them and SparkFactionAPI's projectile
+     *     action lets the gunner affect them, the same filters vanilla applies.</li>
+     *     <li>The hit takes the tick only when it is strictly nearer than vanilla's own result
+     *     ({@link PotionShellFlight#lagCompensatedHitFirst}), so blocks, closed doors and Rift Gates keep shielding a
+     *     player behind them.</li>
+     *     <li>It bursts on the player's current box ({@link PotionBlastGeometry#entityImpact}) when the blast's own
+     *     line of sight reaches it from the rewound entry point, else at that entry point, so a door shut behind the
+     *     player in the meantime still shields them and the room behind it.</li>
+     * </ul>
+     * 仅服务端：本刻路径（从 {@link #getPos} 沿速度移动一次）上延迟补偿玩家命中的爆心；返回 null 时本刻交给原版碰撞。
+     * <ul>
+     *     <li>路径与每名玩家的视图滞后体积（{@link PlayerHitboxHistory#projectileHitVolumes}，进入点由
+     *     {@link PotionShellFlight#laggedEntrySquared} 计算）做检测。药炮手本人从不回溯：其客户端按真实位置绘制自己。</li>
+     *     <li>最近的这类玩家只有在被 {@link #canHit} 接受、且 SparkFactionAPI 的发射物行为允许药炮手影响时才算，
+     *     与原版的过滤相同。</li>
+     *     <li>只有严格近于原版自身结果时（{@link PotionShellFlight#lagCompensatedHitFirst}）才接管本刻，因此方块、关闭的门
+     *     与裂隙门仍会挡住其后的玩家。</li>
+     *     <li>若爆炸视线能从回溯进入点到达玩家当前箱体，则在当前箱体上爆炸（{@link PotionBlastGeometry#entityImpact}），
+     *     否则在该进入点爆炸；因此玩家身后期间关上的门仍能保护其本人及门后的房间。</li>
+     * </ul>
+     */
+    @Nullable
+    private Vec3d lagCompensatedPlayerImpact() {
+        if (!(getWorld() instanceof ServerWorld world)) {
+            return null;
+        }
+        Vec3d from = getPos();
+        Vec3d to = from.add(getVelocity());
+        Entity owner = getOwner();
+        // A start inside a player counts only once the shell has moved (age is still 0 before its first move, which
+        // super.tick() counts), never at the muzzle, wherever the gunner has stepped since firing.
+        // 起点位于玩家体内只在炮弹移动过之后才算（首次移动前 age 仍为 0，由 super.tick() 计数），炮口处从不算，
+        // 无论药炮手开火后移动到了哪里。
+        boolean startInsideCounts = age > 0;
+        GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        ServerPlayerEntity hit = null;
+        double hitEntry = Double.POSITIVE_INFINITY;
+        for (ServerPlayerEntity candidate : world.getPlayers()) {
+            if (candidate == owner || candidate.getUuid().equals(gunnerUuid)) {
+                continue;
+            }
+            double entry = PotionShellFlight.laggedEntrySquared(from, to,
+                    PlayerHitboxHistory.projectileHitVolumes(candidate, PLAYER_HIT_MARGIN), PLAYER_HIT_MARGIN,
+                    startInsideCounts);
+            if (entry < 0.0 || entry >= hitEntry || !canHit(candidate)
+                    || (owner instanceof ServerPlayerEntity gunner
+                    && !SparkFactionApi.canAffectPlayer(gunner, candidate, PROJECTILE_ACTION, game))) {
+                continue;
+            }
+            hit = candidate;
+            hitEntry = entry;
+        }
+        if (hit == null || !PotionShellFlight.lagCompensatedHitFirst(hitEntry,
+                vanillaEntrySquared(ProjectileUtil.getCollision(this, this::canHit), from, to))) {
+            return null;
+        }
+        Vec3d entryPoint = PotionBlastGeometry.alongSegment(from, to, hitEntry);
+        Vec3d onPlayer = PotionBlastGeometry.entityImpact(from, to, hit.getBoundingBox());
+        return SeekerDamageRules.segmentClear(world, entryPoint, onPlayer, null) ? onPlayer : entryPoint;
+    }
+
+    /**
+     * Squared distance from {@code from} to where vanilla's result enters: an entity on its margin-grown box (vanilla
+     * found it by that ray, so 0 only as a never-expected fallback that keeps vanilla first), a block at its hit
+     * point, and positive infinity on a miss.
+     * 从 {@code from} 到原版结果进入点的平方距离：实体取其加余量后的箱体（原版正是由该射线找到它，因此 0 只是一个不应出现、
+     * 让原版优先的兜底），方块取命中点，未命中为正无穷。
+     */
+    private static double vanillaEntrySquared(HitResult vanilla, Vec3d from, Vec3d to) {
+        if (vanilla instanceof EntityHitResult entityHit) {
+            return Math.max(0.0, HitscanLagRules.entryDistanceSquared(from, to,
+                    List.of(entityHit.getEntity().getBoundingBox().expand(PLAYER_HIT_MARGIN))));
+        }
+        return vanilla.getType() == HitResult.Type.BLOCK
+                ? from.squaredDistanceTo(vanilla.getPos())
+                : Double.POSITIVE_INFINITY;
     }
 
     /**
