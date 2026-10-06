@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.client.grandwitch.RecruitmentHoldClient;
 import dev.caecorthus.sparkwitch.client.render.WraithViewerRules;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -18,12 +17,6 @@ public abstract class WraithMinecraftClientMixin {
         PlayerEntity viewer = MinecraftClient.getInstance().player;
         if (entity instanceof PlayerEntity target
                 && WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, target)) {
-            cir.setReturnValue(false);
-            return;
-        }
-        if (RecruitmentHoldClient.isHiddenFrom(viewer, entity)) {
-            // A held recruit gets no outline from any source (vanilla glowing included) for a non-spectator viewer.
-            // 被定身的新共犯对非旁观观察者不显示任何来源的描边（包括原版发光）。
             cir.setReturnValue(false);
         }
     }

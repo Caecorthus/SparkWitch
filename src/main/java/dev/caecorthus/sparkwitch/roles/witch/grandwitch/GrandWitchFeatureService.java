@@ -7,10 +7,12 @@ import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
+import java.util.UUID;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.Nullable;
 
 /** Lifecycle and requests for the two Grand Witch abilities. / 大魔女双技能的生命周期与请求入口。 */
 public final class GrandWitchFeatureService {
@@ -52,15 +54,15 @@ public final class GrandWitchFeatureService {
         });
     }
 
-    public static void recruit(ServerPlayerEntity player) {
+    public static void recruit(ServerPlayerEntity player, @Nullable UUID targetId) {
         if (GrandWitchFearService.denyRoleSkillIfFeared(player)) {
             return;
         }
-        GrandWitchRecruitmentService.Outcome outcome = GrandWitchRecruitmentService.use(player);
-        WitchSkillUseResult result = outcome.result();
-        if (result.accepted() && outcome.recruit() != null) {
-            WitchFactorService.onRecruited(outcome.recruit());
-            WitchFactorService.onRoleChanged(outcome.recruit());
+        ServerPlayerEntity target = GrandWitchTargeting.findTarget(player, targetId);
+        WitchSkillUseResult result = GrandWitchRecruitmentService.use(player, targetId);
+        if (result.accepted() && target != null) {
+            WitchFactorService.onRecruited(target);
+            WitchFactorService.onRoleChanged(target);
         }
         if (result.messageKey() != null) {
             player.sendMessage(Text.translatable(result.messageKey()), true);

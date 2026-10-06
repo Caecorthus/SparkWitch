@@ -7,7 +7,6 @@ import dev.caecorthus.sparkwitch.roles.special.wraith.WraithSettings;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithSettingsNbtCodec;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchCeremonialSwordBgmSources;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchWorldRuntime;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.ForcedRecruit;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -19,7 +18,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
@@ -29,7 +27,6 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.UUID;
 
 /**
@@ -45,7 +42,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     private final World world;
     private final LinkedHashSet<Identifier> disabledSkills = new LinkedHashSet<>();
     private final ForcedWraithPromotionLocks forcedWraithPromotions = new ForcedWraithPromotionLocks();
-    private final ForcedRecruitQueue forcedRecruits = new ForcedRecruitQueue();
     private final GrandWitchCeremonialSwordBgmSources grandWitchCeremonialSwordBgmSources =
             new GrandWitchCeremonialSwordBgmSources();
     private final SaintKarmaState saintKarmaState = new SaintKarmaState();
@@ -88,54 +84,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
 
     public Map<UUID, Identifier> getForcedWraithPromotions() {
         return forcedWraithPromotions.snapshot();
-    }
-
-    /**
-     * The admin-forced Grand Witch recruitment number {@code order} (1 = the round's first successful recruitment), or
-     * null. Read from the OVERWORLD instance only; server-only state, never synced.
-     * 管理员强制指定的第 {@code order} 次大魔女招募（1 = 本局第一次成功招募），没有时为 null。只从主世界实例读取；
-     * 仅服务端状态，从不同步。
-     */
-    public @Nullable ForcedRecruit getForcedRecruit(int order) {
-        return forcedRecruits.get(order);
-    }
-
-    /** Removes and returns the entry for {@code order}. / 移除并返回 {@code order} 的条目。 */
-    public @Nullable ForcedRecruit removeForcedRecruit(int order) {
-        return forcedRecruits.remove(order);
-    }
-
-    /** Immutable snapshot in ascending order. / 按序号升序的不可变快照。 */
-    public SortedMap<Integer, ForcedRecruit> getForcedRecruits() {
-        return forcedRecruits.snapshot();
-    }
-
-    /**
-     * Decides a {@code /sparkwitch:forceAccompliceRole} request without storing it. {@code requestedOrder} null picks
-     * the next free pending order; {@code recruitedCount} is the running round's count, 0 when no round runs.
-     * 判定一次 {@code /sparkwitch:forceAccompliceRole} 请求但不写入。{@code requestedOrder} 为 null 时取下一个空闲的
-     * 待生效序号；{@code recruitedCount} 为正在进行对局的已招募次数，无对局时为 0。
-     */
-    public ForcedRecruitPlan planForcedRecruit(
-            ForcedRecruit recruit,
-            boolean special,
-            @Nullable Integer requestedOrder,
-            int recruitedCount
-    ) {
-        return forcedRecruits.plan(recruit, special, requestedOrder, recruitedCount);
-    }
-
-    public void applyForcedRecruit(ForcedRecruitPlan.Accepted plan) {
-        forcedRecruits.apply(plan);
-    }
-
-    /**
-     * Drops every forced recruitment. Round end calls it on the overworld store even when the round ran in another
-     * world; {@link #clearRoundState()} covers a round on the overworld itself.
-     * 清除所有强制招募。局末即使对局在其他世界进行，也会对主世界存储调用；对局在主世界时由 {@link #clearRoundState()} 清除。
-     */
-    public void clearForcedRecruits() {
-        forcedRecruits.clearAll();
     }
 
     public WraithSettings getWraithSettings() {
@@ -268,7 +216,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         syncedGrandWitchCeremonialSwordBgmSources = 0;
         saintKarmaState.clear();
         forcedWraithPromotions.clearAll();
-        forcedRecruits.clearAll();
         sync();
     }
 
@@ -314,7 +261,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         tag.put("DisabledSkills", toNbt(disabledSkills));
         tag.put("ForcedWraithPromotions", forcedWraithPromotions.toNbt());
-        tag.put(ForcedRecruitQueue.NBT_KEY, forcedRecruits.toNbt());
         WraithSettingsNbtCodec.writeWorld(tag, wraithSettings);
         if (instinctObscureTicks > 0) {
             tag.putInt("InstinctObscureTicks", instinctObscureTicks);
@@ -343,7 +289,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         saintKarmaState.clear();
         fromNbt(tag.getList("DisabledSkills", NbtElement.STRING_TYPE), disabledSkills);
         forcedWraithPromotions.readFromNbt(tag, "ForcedWraithPromotions");
-        forcedRecruits.readFromNbt(tag);
         wraithSettings = WraithSettingsNbtCodec.readWorld(tag);
         instinctObscureTicks = tag.contains("InstinctObscureTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("InstinctObscureTicks"))

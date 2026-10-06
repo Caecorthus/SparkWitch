@@ -10,8 +10,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.Nullable;
 
-/** Server-owned aim for Witch Factor and Emma; recruitment no longer aims (owner request 2026-10-06).
- * 魔女因子与艾玛共用的服务端瞄准判定；招募已不再瞄准（所有者 2026-10-06 要求）。 */
+/** Server-owned targeting shared by both Grand Witch skills. / 两个大魔女技能共用的服务端选人判定。 */
 public final class GrandWitchTargeting {
     public static final double RANGE = 8.0D;
 
@@ -30,8 +29,8 @@ public final class GrandWitchTargeting {
         ServerPlayerEntity selected = null;
         for (ServerPlayerEntity candidate : caster.getServerWorld().getPlayers()) {
             // Spectators are neither targets nor shields: a Rift Gate occupant is an ALIVE spectator (Riftwalker D3)
-            // that Witch Factor and Emma must never pick, nor let it block the player behind its gate.
-            // 旁观者既不是目标也不会挡住射线：裂隙门内的玩家是存活旁观者（隙行者 D3），魔女因子与艾玛都不能选中它，
+            // that recruitment, Witch Factor and Emma must never pick, nor let it block the player behind its gate.
+            // 旁观者既不是目标也不会挡住射线：裂隙门内的玩家是存活旁观者（隙行者 D3），招募、魔女因子与艾玛都不能选中它，
             // 也不能让它挡住门后的玩家。
             if (candidate == caster || candidate.isSpectator() || !GameFunctions.isPlayerPlayingAndAlive(candidate)) {
                 continue;

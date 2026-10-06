@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.roles.civilian.blind.perception;
 
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import dev.doctor4t.wathe.cca.WorldBlackoutComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
@@ -137,11 +136,6 @@ public final class BlindSoundPerception {
         @Override
         public BlindSoundAttribution.Status status(PlayerEntity player) {
             if (WraithStateService.isActive(player) || NoellesTaotieSeekerBridge.isSwallowed(player)) {
-                return BlindSoundAttribution.Status.SILENT;
-            }
-            if (RecruitmentHold.isHeld(player)) {
-                // A held recruit stands inside the Grand Witch: silent like a Wraith, so a sound there is hers.
-                // 被定身的新共犯站在大魔女体内：与冤魂一样静默，因此该处的声音归属大魔女。
                 return BlindSoundAttribution.Status.SILENT;
             }
             return !player.isSpectator() && GameFunctions.isPlayerPlayingAndAlive(player)

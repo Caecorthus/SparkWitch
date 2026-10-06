@@ -150,7 +150,7 @@ public final class SparkWitchPackets {
         ServerPlayNetworking.registerGlobalReceiver(EmmaFactorC2SPacket.ID,
                 (payload, context) -> EmmaSkillService.use(context.player(), payload.targetId()));
         ServerPlayNetworking.registerGlobalReceiver(GrandWitchRecruitC2SPacket.ID,
-                (payload, context) -> GrandWitchFeatureService.recruit(context.player()));
+                (payload, context) -> GrandWitchFeatureService.recruit(context.player(), payload.targetId()));
         ServerPlayNetworking.registerGlobalReceiver(FireDeathRayC2SPacket.ID,
                 (payload, context) -> MurderousWitchDeathRayService.fire(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(FirePotionLauncherC2SPacket.ID,

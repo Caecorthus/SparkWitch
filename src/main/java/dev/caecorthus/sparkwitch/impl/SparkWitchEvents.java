@@ -32,7 +32,6 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFeatureService;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerFeatureService;
 import dev.caecorthus.sparkwitch.mana.WitchManaService;
@@ -91,7 +90,6 @@ public final class SparkWitchEvents {
         CeremonialSwordCombatService.register();
         CeremonialSwordDashService.register();
         GrandWitchFeatureService.register();
-        RecruitmentHold.register();
         EmmaLifecycle.register();
         EmmaGunService.register();
         MightyForceCombatService.register();
@@ -201,9 +199,6 @@ public final class SparkWitchEvents {
                 // Round end clears only SparkWitch runtime state; role maps and other mods remain owned by wathe.
                 // 回合结束只清理 SparkWitch 运行态，身份表和其他模组状态仍由 wathe 自己管理。
                 WitchWorldComponent.KEY.get(serverWorld).clearRoundState();
-                // Forced recruits live on the overworld store; clear them even when the round ran in another world.
-                // 强制招募保存在主世界存储上；即使对局在其他世界进行也要清空。
-                WitchWorldComponent.KEY.get(serverWorld.getServer().getOverworld()).clearForcedRecruits();
                 FirePokerFallAttributionService.clearAll();
                 WraithLifecycle.clearRoundState(serverWorld);
                 PoisonApplePlateService.clearLoadedPlates();
