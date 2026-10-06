@@ -1017,13 +1017,16 @@ none gets one from SparkStrength's mid-round reconciliation pass; SparkWitch nev
 re-initializes the new role's Wathe shop stock and cooldowns.
 Recruitment does not aim (owner request 2026-10-06). The second skill key sends an empty
 `GrandWitchRecruitC2SPacket` (id `sparkwitch:recruit_accomplice`, still in the Control Expert blocked list), and
-`GrandWitchRecruitmentService.use(recruiter)` picks the recruit after the quota lock. Recruitment number
+`GrandWitchRecruitmentService.use(recruiter)` picks the recruit after the quota lock. The recruit lands on the Grand
+Witch, so `canRecruitFromHere` first refuses (`invalid_recruiter`) a Grand Witch who is a spectator, is not looking
+through her own eyes, is Taotie-swallowed, or is Kidnapper-controlled. Recruitment number
 `getRecruitedCount() + 1` first checks the overworld `WitchWorldComponent` for a forced entry
 (`/sparkwitch:forceAccompliceRole`). Otherwise it makes a uniform pick among this world's pickable players, not
-counting players reserved by a forced entry for this or a later number. `GrandWitchRecruitmentService.standing`
+counting players reserved by a forced entry for this or a later number. Only `pendingForced` entries reserve a player
+(and, for the role roll, a role): the entry must be within the quota and its player must be online and not GONE. `GrandWitchRecruitmentService.standing`
 sorts each player on the real role (pure choice in `RecruitmentTargetRules.choose`):
 - **GONE.** Offline, another world, not Wathe playing-and-alive, the recruiter, or any Witch-faction member.
-- **BUSY.** Any spectator (a Rift Gate occupant), SparkTraits Depression psycho (owner decision 2026-10-04: its
+- **BUSY.** Any spectator (a Rift Gate occupant) or creative player, SparkTraits Depression psycho (owner decision 2026-10-04: its
   stashed real inventory would be lost or leaked; an absent or older facade allows it, a failing one refuses), a
   NoellesRoles Taotie-swallowed player, or a player controlled by a Kidnapper.
 - **REFUSED.** The old aimed-recruitment refusals, which are now simply never drawn
@@ -1034,19 +1037,24 @@ sorts each player on the real role (pure choice in `RecruitmentTargetRules.choos
 
 The refusal flavor lines are gone. A forced player who is PICKABLE or REFUSED is taken: the admin override beats the
 refusals. A BUSY one fails the attempt (`target_busy`) and keeps the entry. A GONE one drops the entry, and the number
-goes random. An empty pool fails with `no_target`. Every failure spends no quota.
+goes random. An empty pool fails with `no_target`. A forced player whose conversion overflows the balance also loses
+the entry. Every failure spends no quota.
 The pick is captured before any destructive step: the real former role and the origin (position, head yaw, look
 vector).
 After the variant hook, `relocate` runs:
 - `RecruitmentDecoyBody.spawn` drops a Wathe `PlayerBodyEntity` exactly where Wathe's `killPlayer` would: one block
   along the look vector, at feet height.
 - The body takes the former role through the Wraith body-role seam (`WraithBodyRoleAccess`), so Wathe's body HUD and
-  instinct colors never show the accomplice role.
+  instinct colors never show the accomplice role. The same role is written to SparkStrength's
+  `sparkstrength:coroner_body_snapshot` (`SparkStrengthCoronerCompat.recordBodyRole`: component id plus public setter,
+  reflective, fails closed). Otherwise its Coroner would fall back to the live accomplice role.
 - Its death reason is a uniform draw from `ProphetDeathCauseGroup.knownReasons()`, limited to loaded namespaces, so a
-  Coroner may notice that it does not fit.
+  Coroner may notice that it does not fit. `RecruitmentDecoyBody.UNDRAWABLE` drops reasons the pinned providers cannot
+  display (`noellesroles:commander_suicide`); a local test reads the pinned jars.
 - Its entity UUID goes into `grand_witch_recruitment_round` (`DecoyBodies` NBT, reset with the round).
 - The recruit is dismounted, woken, teleported to the Grand Witch's position and yaw (pitch 0), and
-  `RecruitmentHold.apply` starts the 5-second hold.
+  `RecruitmentHold.apply` starts the 5-second hold. Before that, `exitOldRole` makes a recruited Kidnapper release every
+  victim they control.
 - A failure in `relocate` is logged and never undoes the recruitment.
 
 The Grand Witch gets the actionbar line `success_named` (recruit name, role name). The recruit's `converted` and
@@ -1054,7 +1062,8 @@ The Grand Witch gets the actionbar line `success_named` (recruit name, role name
 
 The recruitment hold lives in `roles/witch/grandwitch/recruitment/hold/`. `RecruitmentHold.apply` runs right after the
 teleport and holds the recruit for 100 ticks at the anchor pose:
-- **Effects.** Invisibility, Blindness and a speed-zeroing Slowness VII, all silent and left to expire.
+- **Effects.** Invisibility, Blindness and a speed-zeroing Slowness VII, all silent and left to expire. `apply` also
+  sets the invisible flag at once, so other clients never see the teleport arrive.
 - **State.** `sparkwitch:recruitment_hold` holds the counter. It is `NEVER_COPY`, never saved, and synced to every
   client only at start and at zero.
 - **Anchor.** A recruit who drifts more than 0.5 blocks sideways or upward is sent back with `requestTeleport`.
@@ -1077,7 +1086,8 @@ It stores a `ForcedRecruit(player, role)` by order on the overworld `WitchWorldC
   `GameWorldComponent.isRunning()`, or above 0 between rounds.
 - **Refusals and edits.** An explicit order that has already passed is refused. A special accomplice may be held by
   only one pending entry. Re-setting a player moves them, and a taken order is replaced.
-- **Lifetime.** Entries survive until `ON_FINISH_FINALIZE`. It clears them through `clearRoundState()`, and also on the
+- **Lifetime.** Entries survive until `ON_FINISH_FINALIZE`. Because finalize would wipe a new entry, the command is
+  refused during STOPPING (`round_ending`). It clears them through `clearRoundState()`, and also on the
   overworld store when the round ran in another world.
 After `RoleAssigned`, the transaction writes the converted balance. Then, before the retained-inventory restore, it
 asks the SparkTraits public facade (`replaceTraitsIneligibleForCurrentRole`, through

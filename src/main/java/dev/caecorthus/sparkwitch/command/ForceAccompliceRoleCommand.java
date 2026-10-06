@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import com.mojang.brigadier.exceptions.Dynamic3CommandExceptionType;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
@@ -61,6 +62,9 @@ public final class ForceAccompliceRoleCommand {
     private static final Dynamic3CommandExceptionType SPECIAL_HELD = new Dynamic3CommandExceptionType(
             (holder, role, order) -> Text.translatable(KEY_PREFIX + "special_held", holder, role, order));
 
+    private static final SimpleCommandExceptionType ROUND_ENDING = new SimpleCommandExceptionType(
+            Text.translatable(KEY_PREFIX + "round_ending"));
+
     private ForceAccompliceRoleCommand() {
     }
 
@@ -90,6 +94,14 @@ public final class ForceAccompliceRoleCommand {
         // 条目与强制冤魂晋升一样保存在主世界存储上；对局状态从其实际所在的世界读取。
         WitchWorldComponent store = WitchWorldComponent.KEY.get(server.getOverworld());
         ServerWorld gameWorld = runningGameWorld(server);
+        // The end screen still counts as running, but finalize wipes every entry right after; refuse instead of
+        // reporting "current round" for an entry that can never fire (review 2026-10-06).
+        // 结算画面仍算对局进行中，但随后的 finalize 会清空所有条目；拒绝设置，而不是对永远不会生效的条目提示"本局"
+        // （2026-10-06 评审）。
+        if (gameWorld != null
+                && GameWorldComponent.KEY.get(gameWorld).getGameStatus() == GameWorldComponent.GameStatus.STOPPING) {
+            throw ROUND_ENDING.create();
+        }
         boolean currentRound = gameWorld != null;
         int recruited = currentRound ? GrandWitchRecruitmentRoundComponent.KEY.get(gameWorld).getRecruitedCount() : 0;
         Text roleName = roleName(role.identifier());

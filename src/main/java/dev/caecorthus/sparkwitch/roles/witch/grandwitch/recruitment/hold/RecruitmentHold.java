@@ -68,6 +68,11 @@ public final class RecruitmentHold {
             return;
         }
         addHoldEffect(recruit, StatusEffects.INVISIBILITY, 0);
+        // The effect flags the entity invisible only on its next effect tick, after this tick's teleport reached other
+        // clients; set the flag now so they never see the recruit arrive. Vanilla clears it when the effect ends.
+        // 效果要到下一次效果刻才会把实体标为隐身，晚于本刻已发给其他客户端的传送；此处立即设置标志，使他们看不到被招募者
+        // 出现。效果结束时原版会清除该标志。
+        recruit.setInvisible(true);
         addHoldEffect(recruit, StatusEffects.BLINDNESS, 0);
         addHoldEffect(recruit, StatusEffects.SLOWNESS, RecruitmentHoldRules.SLOWNESS_AMPLIFIER);
         // Cancel a raised knife, bow or grenade charge without a release: a release would fire the knife stab.

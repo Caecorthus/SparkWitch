@@ -77,7 +77,8 @@ public final class GrandWitchRecruitmentService {
         ServerWorld world = recruiter.getServerWorld();
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         if (!game.isRunning() || !GameFunctions.isPlayerPlayingAndAlive(recruiter)
-                || !game.isRole(recruiter, SparkWitchRoles.grandWitch())) {
+                || !game.isRole(recruiter, SparkWitchRoles.grandWitch())
+                || !canRecruitFromHere(recruiter)) {
             return Outcome.fail("message.sparkwitch.recruitment.invalid_recruiter");
         }
         if (WitchPlayerComponent.KEY.get(recruiter).getGrandWitchCeremonialSwordTasks() < 2) {
@@ -91,8 +92,10 @@ public final class GrandWitchRecruitmentService {
             int order = RecruitmentTargetRules.nextOrder(round.getRecruitedCount());
             WitchWorldComponent forcedStore = WitchWorldComponent.KEY.get(world.getServer().getOverworld());
             ForcedRecruit forced = forcedStore.getForcedRecruit(order);
+            Map<Integer, ForcedRecruit> pending = pendingForced(forcedStore.getForcedRecruits(), order,
+                    round.getLimit(), recruiter, world, game);
             RecruitmentTargetRules.Choice<ServerPlayerEntity> choice = chooseTarget(recruiter, world, game, order,
-                    forced, forcedStore.getForcedRecruits());
+                    forced, pending);
             if (choice.dropForcedEntry()) {
                 // The forced player left the round (dead, offline, already a witch): this number goes random.
                 // 强制玩家已离开对局（死亡、离线、已是魔女阵营）：本序号改为随机。
@@ -123,8 +126,13 @@ public final class GrandWitchRecruitmentService {
             try {
                 inventory = RecruitmentInventorySnapshot.capture(target, shop.getBalance());
             } catch (ArithmeticException exception) {
-                // Refuse overflow before any destructive mutation; never silently discard money.
-                // 在任何破坏性变更之前拒绝溢出，绝不静默吞掉金币。
+                // Refuse overflow before any destructive mutation; never silently discard money. A forced player who
+                // overflows would block every later attempt, so their entry goes and the next attempt is random.
+                // 在任何破坏性变更之前拒绝溢出，绝不静默吞掉金币。溢出的强制玩家会挡住之后的每次尝试，因此移除其条目，
+                // 下次尝试改为随机。
+                if (forcedPick) {
+                    forcedStore.removeForcedRecruit(order);
+                }
                 return Outcome.fail("message.sparkwitch.recruitment.balance_overflow");
             }
 
@@ -132,8 +140,7 @@ public final class GrandWitchRecruitmentService {
             // special accomplice, and a throwing roll never leaves the target stripped. "Used" is marked only at commit.
             // 在所有拒绝分支之后、任何破坏性步骤之前只确定一次：被拒绝的招募不会消耗特殊共犯，抽取抛异常也不会让目标
             // 被清空。"已使用"仅在提交时标记。
-            Role recruitRole = recruitRole(world, game, forcedPick ? forced : null,
-                    reservedRoles(forcedStore.getForcedRecruits(), order));
+            Role recruitRole = recruitRole(world, game, forcedPick ? forced : null, reservedRoles(pending, order));
             boolean variant = AccompliceVariants.isVariant(recruitRole);
             // Read before exitOldRole clears the recruit's Shadow Jester pair. / 须在 exitOldRole 清除影子小丑配对之前读取。
             ServerPlayerEntity shadowPartner = NoellesRecruitmentCleanup.shadowPartnerLeftBehind(target);
@@ -306,6 +313,48 @@ public final class GrandWitchRecruitmentService {
     }
 
     /**
+     * The recruit lands where the Grand Witch is, so she must stand in the world herself: not a spectator (Rift Gate,
+     * Taotie belly), not swallowed, not dragged by a Kidnapper, and looking through her own eyes (review 2026-10-06:
+     * otherwise the recruit lands on the Taotie or the Kidnapper).
+     * 被招募者会落在大魔女所在之处，因此她本人必须身处场景中：不是旁观者（裂隙门、饕餮腹中）、未被吞下、未被绑匪拖走，
+     * 且视角在自己身上（2026-10-06 评审：否则被招募者会落在饕餮或绑匪身上）。
+     */
+    private static boolean canRecruitFromHere(ServerPlayerEntity recruiter) {
+        return !recruiter.isSpectator()
+                && recruiter.getCameraEntity() == recruiter
+                && !NoellesRecruitmentCleanup.isSwallowed(recruiter)
+                && !KidnapperControlComponent.KEY.maybeGet(recruiter).map(KidnapperControlComponent::isControlled).orElse(false);
+    }
+
+    /**
+     * Forced entries that can still fire this round: this number or later, within the quota, and whose player is still a
+     * recruitable participant. Only these reserve their player and their role, so a stale entry (past the quota, dead
+     * player) never blocks anyone (review 2026-10-06).
+     * 本局仍可能生效的强制条目：本序号或更晚、在名额之内、且玩家仍是可招募的参与者。只有这些条目预留其玩家与身份，
+     * 因此失效条目（超出名额、玩家已死）不会挡住任何人（2026-10-06 评审）。
+     */
+    private static Map<Integer, ForcedRecruit> pendingForced(
+            Map<Integer, ForcedRecruit> entries,
+            int order,
+            int limit,
+            ServerPlayerEntity recruiter,
+            ServerWorld world,
+            GameWorldComponent game
+    ) {
+        Map<Integer, ForcedRecruit> pending = new java.util.TreeMap<>();
+        entries.forEach((entryOrder, entry) -> {
+            if (entryOrder < order || entryOrder > limit) {
+                return;
+            }
+            ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(entry.player());
+            if (player != null && standing(recruiter, world, game, player) != RecruitmentTargetRules.Standing.GONE) {
+                pending.put(entryOrder, entry);
+            }
+        });
+        return pending;
+    }
+
+    /**
      * Forced player of this number first, then a uniform pick among pickable players not reserved by a forced entry.
      * Candidates are this world's players; iteration order is the world's player list.
      * 先看本序号的强制玩家，再在未被强制条目预留的可选玩家中均匀抽取。候选为本世界玩家，顺序为世界玩家列表顺序。
@@ -358,12 +407,13 @@ public final class GrandWitchRecruitmentService {
                 || WitchFactionRules.isWitchFactionMember(role)) {
             return RecruitmentTargetRules.Standing.GONE;
         }
-        // A Rift Gate occupant is an ALIVE spectator (Riftwalker D3) and comes back; so do the other busy states.
+        // A Rift Gate occupant is an ALIVE spectator (Riftwalker D3) and comes back; so do the other busy states (a
+        // creative player is not a participant the hold could freeze).
         // Owner decision 2026-10-04: SparkTraits stashes a Depression psycho player's real inventory, which the
         // conversion would lose or leak.
-        // 裂隙门内的玩家是存活旁观者（隙行者 D3），之后会回来；其余暂不可选状态同理。所有者 2026-10-04 决定：SparkTraits
+        // 裂隙门内的玩家是存活旁观者（隙行者 D3），之后会回来；其余暂不可选状态同理（创造模式玩家不是定身可作用的参与者）。所有者 2026-10-04 决定：SparkTraits
         // 暂存了抑郁狂暴玩家的真实背包，转换会使其丢失或泄漏。
-        if (player.isSpectator()
+        if (player.isSpectator() || player.isCreative()
                 || RecruitmentTraits.isDepressionPsychoActive(player)
                 || NoellesRecruitmentCleanup.isSwallowed(player)
                 || KidnapperControlComponent.KEY.maybeGet(player).map(KidnapperControlComponent::isControlled).orElse(false)) {
@@ -457,6 +507,14 @@ public final class GrandWitchRecruitmentService {
     private static void exitOldRole(ServerPlayerEntity target) {
         NoellesRecruitmentCleanup.exitRole(target);
         KidnapperDragService.release(target);
+        // A recruited Kidnapper lets go of a knocked-out victim, who would otherwise keep snapping onto the Grand Witch.
+        // 被招募的绑匪放开被迷晕的目标，否则目标会不断被拉到大魔女身上。
+        for (ServerPlayerEntity victim : target.getServerWorld().getPlayers()) {
+            KidnapperControlComponent control = KidnapperControlComponent.KEY.get(victim);
+            if (control.isControlledBy(target)) {
+                control.reset();
+            }
+        }
         BlackRavenPerceptionService.clearForRoleLossOrDeath(target);
         WitchFactionFeatureService.clearPlayerRuntime(target);
         WraithLifecycle.clearPlayer(target);

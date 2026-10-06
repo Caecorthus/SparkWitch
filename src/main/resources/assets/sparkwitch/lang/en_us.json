@@ -21,6 +21,7 @@
   "command.sparkwitch.force_accomplice_role.unknown_role": "Not an Accomplice role: %s",
   "command.sparkwitch.force_accomplice_role.order_passed": "Recruitment #%1$s has already happened this round (%2$s so far).",
   "command.sparkwitch.force_accomplice_role.special_held": "%1$s already holds %2$s at recruitment #%3$s; a special Accomplice can be forced on only one player.",
+  "command.sparkwitch.force_accomplice_role.round_ending": "The round is ending; set this after it ends (ending clears every forced recruitment).",
   "announcement.role.sparkwitch.wraith": "Wraith",
   "announcement.goal.sparkwitch.wraith": "Complete three tasks and earn a new identity.",
   "announcement.role.sparkwitch.wind_spirit": "Wind Spirit",

@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment;
 
+import dev.caecorthus.sparkwitch.compat.SparkStrengthCoronerCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetDeathCauseGroup;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithBodyRoleAccess;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
@@ -12,6 +13,7 @@ import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.random.RandomGenerator;
 
@@ -25,6 +27,14 @@ import java.util.random.RandomGenerator;
  * 抑郁假死尸体一样跳过它。
  */
 public final class RecruitmentDecoyBody {
+    /**
+     * Known reasons the pinned providers cannot display: NoellesRoles 1.7.6-h1.5.6-spark registers no
+     * {@code commander_suicide} translation (a local test reads the pinned jars).
+     * 锁定版本的提供方无法显示的已知死因：NoellesRoles 1.7.6-h1.5.6-spark 没有 {@code commander_suicide} 的译名
+     * （本地测试会读取锁定的 jar 核对）。
+     */
+    static final Set<Identifier> UNDRAWABLE = Set.of(Identifier.of("noellesroles", "commander_suicide"));
+
     private RecruitmentDecoyBody() { }
 
     /**
@@ -38,12 +48,14 @@ public final class RecruitmentDecoyBody {
     }
 
     /**
-     * Known reasons whose providing mod is loaded (SparkTraits is optional), so a drawn reason always has its
-     * translation. Keeps the input order.
-     * 提供方模组已加载的已知死因（SparkTraits 为可选），保证抽到的死因总有译名；保持输入顺序。
+     * Known reasons whose providing mod is loaded (SparkTraits is optional) and that it can display, so a drawn reason
+     * always has its translation. Keeps the input order.
+     * 提供方模组已加载（SparkTraits 为可选）且能够显示的已知死因，保证抽到的死因总有译名；保持输入顺序。
      */
     static List<Identifier> drawableReasons(List<Identifier> known, Predicate<String> modLoaded) {
-        return known.stream().filter(reason -> modLoaded.test(reason.getNamespace())).toList();
+        return known.stream()
+                .filter(reason -> modLoaded.test(reason.getNamespace()) && !UNDRAWABLE.contains(reason))
+                .toList();
     }
 
     static Identifier drawReason(List<Identifier> drawable, RandomGenerator random) {
@@ -68,6 +80,10 @@ public final class RecruitmentDecoyBody {
         // The live role is already the accomplice role; the corpse must show the role the recruit "died" as.
         // 当前身份已是共犯；尸体必须显示被招募者"死去"时的身份。
         ((WraithBodyRoleAccess) body).sparkwitch$setDeathRole(formerRoleId);
+        // SparkStrength's Coroner snapshots a body's role only inside Wathe's kill; without this its fallback would read
+        // the live accomplice role (review 2026-10-06).
+        // SparkStrength 验尸官只在 Wathe 击杀流程内快照尸体身份；不写入时其兜底会读到当前的共犯身份（2026-10-06 评审）。
+        SparkStrengthCoronerCompat.recordBodyRole(body, formerRoleId);
         body.setDeathReason(drawReason(drawable, random));
         body.setDeathGameTime(world.getTime());
         // Same placement as Wathe's killPlayer: one block along the look vector, at the player's feet height.

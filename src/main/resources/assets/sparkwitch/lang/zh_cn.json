@@ -21,6 +21,7 @@
   "command.sparkwitch.force_accomplice_role.unknown_role": "不是共犯职业：%s",
   "command.sparkwitch.force_accomplice_role.order_passed": "本局第 %1$s 次招募已经发生（目前已招募 %2$s 次）。",
   "command.sparkwitch.force_accomplice_role.special_held": "%1$s 已在第 %3$s 次招募中被指定为 %2$s；特殊共犯只能强制指定给一名玩家。",
+  "command.sparkwitch.force_accomplice_role.round_ending": "本局正在结算，结束后再设置（结算会清空所有强制招募）。",
   "announcement.role.sparkwitch.wraith": "冤魂",
   "announcement.goal.sparkwitch.wraith": "完成三项任务，获得新的身份。",
   "announcement.role.sparkwitch.wind_spirit": "风精灵",
