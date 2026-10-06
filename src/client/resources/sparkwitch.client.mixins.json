@@ -146,7 +146,8 @@
     "riftwalker.RiftSessionMouseMixin",
     "riftwalker.RiftSessionSpectatorHudMixin",
     "riftwalker.RiftGateAttackMixin",
-    "riftwalker.RiftGateCrosshairMixin"
+    "riftwalker.RiftGateCrosshairMixin",
+    "recruitment.RecruitmentHoldHeldItemFeatureRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
