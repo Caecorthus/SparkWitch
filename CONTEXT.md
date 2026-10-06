@@ -1757,6 +1757,35 @@ exposure) still stop at doors: the Vendetta knife and the Guardian Angel shield
 need real sight. Every SparkWitch door-passing exemption must honour this scope
 instead of adding its own ray wrapper.
 
+Wraiths cannot open or close doors or windows (owner decision 2026-10-04). A
+restricted Wraith's right-click fails on every block except food platters, drink
+trays and beds. A promoted Wraith's right-click fails only on passage blocks,
+through `runtime/WraithPassageGuard` inside the single Wraith `UseBlockCallback`
+(both sides). Passage blocks are:
+- the door family above;
+- Wathe `PrivacyBlock` train windows;
+- vent hatches;
+- any button with a door-family block in its 3x3x3 cube.
+
+A click on a Wathe ornament is judged by the block behind it, through any chain of
+ornaments. Sneaking with an item in either hand stays allowed, except with the
+Wathe crowbar: vanilla then skips the block's own use, and only the held item's
+`useOnBlock` runs. The Wathe lockpick is the other exception, because it is the
+only Saboteur and Curser shop item: on a Wathe door it may still sneak-jam, or
+unlock a closed locked door. A closed train door counts as locked; a small door
+counts as locked when it has a key name. Its plain open and close stay blocked
+(`WraithParticipationRules.mayUsePassageBlock`).
+
+A projectile thrown by an active Wraith (the Wind Spirit's wind charge) triggers
+no blocks:
+- `mixin/WraithExplosionTriggerMixin` makes `Explosion#canTriggerBlocks` false,
+  so its explosion toggles no doors, trapdoors, gates, buttons, levers, bells or
+  candles.
+- `mixin/WraithProjectileBlockHitMixin` cancels the block's `onProjectileHit`
+  (bells, target blocks, decorated pots).
+
+Knockback is unchanged.
+
 ## Tofana Elixir Vocabulary
 
 - **Tofana protection**: A single-use protection granted by possessing Tofana Elixir. It cancels one otherwise valid, non-forced Wathe kill by another active player and consumes one elixir.
