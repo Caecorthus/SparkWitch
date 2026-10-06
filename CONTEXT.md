@@ -1460,9 +1460,11 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     palette (`DeepDarkZoneEligibility.isDeepDarkPalette`: sculk or any block whose id path contains `deepslate`, so
     every deepslate ore, infested and reinforced deepslate included; such blocks are never zone cells). Floors look like
     sculk; other faces hash their position (60 % sculk, the rest deepslate tiles, bricks, or cobbled).
-  - Each block converts at `round(ZONE_SPREAD_TICKS × d / R)` after landing and restores at
-    `ZONE_SPREAD_TICKS + ZONE_HOLD_TICKS + round(ZONE_RESTORE_TICKS × (1 − d / R))`, so near blocks convert first and
-    outer blocks restore first (distance clamped to the radius).
+  - Every block converts on the landing tick (owner D14, 2026-10-04: no spread phase; the same tick's
+    `END_WORLD_TICK` advance shows the whole zone at once, with one charge burst sampled from centre to rim and one
+    spread sound; the first heartbeat follows one interval later) and restores at
+    `ZONE_HOLD_TICKS + round(ZONE_RESTORE_TICKS × (1 − d / R))`, so outer blocks restore first (distance clamped to the
+    radius; `ZONE_RADIUS` is 10 since D14, was 8).
     `DeepDarkZoneService.isConverted(ServerWorld, BlockPos)` (convert ≤ now < restore in any live zone),
     `hasActiveZones(ServerWorld)`, and `ownersAt(ServerWorld, BlockPos)` read only the in-memory per-world registry.
     Overlapping zones keep one window per zone on a cell whose landing snapshot matches (a union, so the cell restores

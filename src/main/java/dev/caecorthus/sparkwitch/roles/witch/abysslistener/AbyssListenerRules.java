@@ -61,9 +61,15 @@ public final class AbyssListenerRules {
     public static final Identifier ZONE_ACTION_ID = SparkWitch.id("abyss_listener_zone");
     public static final String FLASK_SHOP_ENTRY_ID = "deep_dark_spore_flask";
     public static final int FLASK_PRICE = 75;
-    /** Flood-fill reach through air from the landing cell, walls and closed doors block (D4). / 沿空气蔓延的最远距离。 */
-    public static final int ZONE_RADIUS = 8;
-    public static final int ZONE_SPREAD_TICKS = 5 * 20;
+    /**
+     * Flood-fill reach through air from the landing cell, walls and closed doors block (D4; owner D14: 8 → 10).
+     * 沿空气蔓延的最远距离，墙与关着的门会挡住（D4；D14 由 8 改为 10）。
+     */
+    public static final int ZONE_RADIUS = 10;
+    /**
+     * Owner D14: the whole zone converts on the landing tick (no spread phase), then holds this long.
+     * D14：整个领域在落地那一刻全部转换（没有蔓延阶段），随后保持这么久。
+     */
     public static final int ZONE_HOLD_TICKS = 15 * 20;
     public static final int ZONE_RESTORE_TICKS = 5 * 20;
     public static final int ZONE_CHECK_INTERVAL_TICKS = 5;
