@@ -42,9 +42,11 @@ public abstract class WatheClientFearInstinctMixin {
         if (WitchInstinctSuppressionClientHooks.shouldSuppressSwallowedInstinctHighlight(target)) {
             return -1;
         }
-        // A held recruit stands invisible inside the Grand Witch: no exemption, teammates included, like the swallow.
-        // 被定身的新共犯隐身站在大魔女体内：与吞噬一样没有豁免，队友同样看不到。
-        if (RecruitmentHoldClient.isHiddenFromLocalViewer(target)) {
+        // A held recruit stands invisible inside the Grand Witch: only the witch faction's instinct sees through
+        // (owner 2026-10-06); their teammate highlight then answers inside original.call().
+        // 被定身的新共犯隐身站在大魔女体内：只有魔女阵营的本能可以透视（所有者 2026-10-06），其队友描边随后在
+        // original.call() 内作答。
+        if (RecruitmentHoldClient.isOutlineHiddenFromLocalViewer(target)) {
             return -1;
         }
         if (WitchInstinctSuppressionClientHooks.shouldSuppressInstinctHighlight()
