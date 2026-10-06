@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.grandwitch;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeResonance;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -40,6 +41,7 @@ public final class GrandWitchSpellService {
             case FEAR -> WitchWorldComponent.KEY.get(world).startFear(spell.durationTicks());
             case HEAVINESS -> applyStatusToAffectedPlayers(world, spell, StatusEffects.SLOWNESS, 2);
         }
+        ApprenticeResonance.onWitchCast(caster, caster.getPos());
         send(caster, "message.sparkwitch.spell." + spell.path() + ".cast");
         return true;
     }

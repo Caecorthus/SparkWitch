@@ -17,9 +17,14 @@ public final class GrandWitchTargeting {
     private GrandWitchTargeting() {
     }
 
-    public static @Nullable ServerPlayerEntity findTarget(ServerPlayerEntity caster, @Nullable UUID requested) {
+    /** Aim with a caller-chosen reach (Apprentice Purify uses 6 blocks). / 射程由调用方决定的瞄准（净化为 6 格）。 */
+    public static @Nullable ServerPlayerEntity findTarget(
+            ServerPlayerEntity caster,
+            @Nullable UUID requested,
+            double range
+    ) {
         Vec3d start = caster.getEyePos();
-        Vec3d end = start.add(caster.getRotationVec(1.0F).multiply(RANGE));
+        Vec3d end = start.add(caster.getRotationVec(1.0F).multiply(range));
         BlockHitResult block = caster.getServerWorld().raycast(new RaycastContext(
                 start, end, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, caster));
         if (block.getType() != HitResult.Type.MISS) {
@@ -47,5 +52,9 @@ public final class GrandWitchTargeting {
             }
         }
         return selected != null && (requested == null || requested.equals(selected.getUuid())) ? selected : null;
+    }
+
+    public static @Nullable ServerPlayerEntity findTarget(ServerPlayerEntity caster, @Nullable UUID requested) {
+        return findTarget(caster, requested, RANGE);
     }
 }

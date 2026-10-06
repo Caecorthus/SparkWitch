@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.hud;
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
+import dev.caecorthus.sparkwitch.client.apprentice.ApprenticeClientPresentation;
 import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
 import dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
@@ -77,9 +78,17 @@ public final class WitchSkillHudRenderer {
         if (FocusedFootstepsRules.SKILL_ID.equals(skillId)) {
             return;
         }
+        // The Apprentice's Purify line sits where the Prophet's sense line would; the two roles never overlap.
+        // 预备魔女的净化行位于先知感知行的位置；两种职业不会同时出现。
+        if (ApprenticeClientPresentation.isApprenticeSkill(skillId)) {
+            Text purify = ApprenticeClientPresentation.purifyLine(player);
+            context.drawTextWithShadow(renderer, purify,
+                    context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(purify),
+                    y - renderer.fontHeight - LINE_GAP, ApprenticeClientPresentation.PURIFY_COLOR);
+        }
 
         int balance = PlayerShopComponent.KEY.get(player).getBalance();
-        Text line = stateText(component, skillId, balance);
+        Text line = stateText(player, component, skillId, balance);
         int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
         context.drawTextWithShadow(renderer, line, x, y, WitchSkillClientTexts.color(skillId));
     }
@@ -104,8 +113,12 @@ public final class WitchSkillHudRenderer {
         context.drawTextWithShadow(renderer, line, x, y, ProphetRules.CORPSE_HIGHLIGHT_COLOR);
     }
 
-    private static Text stateText(WitchPlayerComponent component, Identifier skillId, int balance) {
+    private static Text stateText(ClientPlayerEntity player, WitchPlayerComponent component, Identifier skillId, int balance) {
         int activeTicks = component.getActiveSkillWindowTicks();
+        Text forfeited = ApprenticeClientPresentation.forfeitedLine(player, skillId);
+        if (forfeited != null && activeTicks <= 0) {
+            return forfeited;
+        }
         if (activeTicks > 0) {
             if (MurderousWitchDeathRayRules.isDeathRaySkill(skillId) && component.hasActiveDeathRay()) {
                 return Text.translatable(
@@ -175,6 +188,10 @@ public final class WitchSkillHudRenderer {
                     "hud.sparkwitch.skill.prophecy.coin_cost",
                     ProphetRules.PROPHECY_COIN_COST
             );
+        }
+        Text apprenticeReady = ApprenticeClientPresentation.readyLine(player, skillId);
+        if (apprenticeReady != null) {
+            return apprenticeReady;
         }
         return Text.translatable(
                 "hud.sparkwitch.skill.ready",

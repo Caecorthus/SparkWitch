@@ -11,10 +11,12 @@ import net.minecraft.util.Identifier;
 
 public final class MurderSenseAbility {
     public static final Identifier ID = SparkWitch.id("murder_sense");
-    public static final int MANA_COST = 60;
+    public static final int MANA_COST = 40;
     public static final int DURATION_TICKS = GameConstants.getInTicks(0, 15);
-    public static final int COOLDOWN_TICKS = GameConstants.getInTicks(1, 0);
+    public static final int COOLDOWN_TICKS = GameConstants.getInTicks(0, 40);
     public static final double RANGE_BLOCKS = 20.0;
+    // A graduated Apprentice senses farther (owner D7). / 出师后感知范围更远（所有者 D7）。
+    public static final double GRADUATED_RANGE_BLOCKS = 30.0;
     public static final int COLOR = 0xFF3030;
 
     public static final Set<Identifier> DANGEROUS_ITEM_IDS = Set.of(
@@ -34,6 +36,10 @@ public final class MurderSenseAbility {
     );
 
     private MurderSenseAbility() {
+    }
+
+    public static double rangeBlocks(boolean graduated) {
+        return graduated ? GRADUATED_RANGE_BLOCKS : RANGE_BLOCKS;
     }
 
     public static WitchSkillUseResult use(WitchSkillUseContext context) {

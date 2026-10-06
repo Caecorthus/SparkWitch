@@ -107,6 +107,9 @@ public final class SkillProgressTracker {
             add(totals, definition.initialCooldownTicks());
         }
         if (WitchFactorService.SKILL_ID.equals(skill)) add(totals, WitchFactorService.COOLDOWN_TICKS);
+        // Swift Step registers no cooldown; its shared cooldown is the wait for the next charge (owner D6).
+        // 滑步不注册冷却；其共享冷却就是等待下一层充能的时间（所有者 D6）。
+        if (SwiftStepAbility.ID.equals(skill)) add(totals, SwiftStepAbility.RECHARGE_TICKS);
         if (GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID.equals(skill)) {
             add(totals, GrandWitchRules.CEREMONIAL_SWORD_KILL_COOLDOWN_TICKS);
         }

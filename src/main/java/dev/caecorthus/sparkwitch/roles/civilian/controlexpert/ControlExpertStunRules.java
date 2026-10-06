@@ -86,6 +86,8 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "rift_gate_close"),
             // Fiend Dash (UseFiendDashC2SPayload), moment-only. / 魔人疾驰，仅限时刻中。
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
+            Identifier.of("sparkwitch", "use_apprentice_purify"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),

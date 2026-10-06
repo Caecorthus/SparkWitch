@@ -65,7 +65,8 @@
       "sparkwitch:abyss_zone_exposure",
       "sparkwitch:rift_session",
       "sparkwitch:rift_gates",
-      "sparkwitch:bewitched"
+      "sparkwitch:bewitched",
+      "sparkwitch:apprentice_player"
     ]
   },
   "mixins": [

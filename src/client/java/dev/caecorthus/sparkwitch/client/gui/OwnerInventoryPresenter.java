@@ -4,11 +4,18 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
+import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
+import dev.caecorthus.sparkwitch.client.apprentice.ApprenticeClientPresentation;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
 import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.mana.WitchManaRules;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeRules;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceAbility;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Purify.PurifyAbility;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.SwiftStep.SwiftStepAbility;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
@@ -241,7 +248,22 @@ public final class OwnerInventoryPresenter {
      */
     private record SkillKey(Language language, @Nullable Role role, Identifier skillId, boolean manaShown, int mana,
                             int activeSeconds, int cooldownSeconds, int swordTasks, int charges, Text abilityKey,
-                            @Nullable GrandWitchRows grandWitch) {}
+                            @Nullable GrandWitchRows grandWitch, @Nullable ApprenticeRows apprentice) {}
+
+    /**
+     * The Apprentice Witch's own state beside her panel skill (owner 2026-10-06): graduation progress, the Purify
+     * cooldown, Swift Step charges and a forfeited Mighty Force, read from her owner-synced component.
+     * 预备魔女在面板主技能之外的自有状态（所有者 2026-10-06）：出师进度、净化冷却、滑步充能与失效的巨力，读取同步给本人的组件。
+     */
+    record ApprenticeRows(boolean graduated, int tasks, int purifySeconds, int swiftCharges, boolean forfeited,
+                          Text secondaryKey) {
+        static ApprenticeRows read(ClientPlayerEntity player) {
+            ApprenticePlayerComponent apprentice = ApprenticePlayerComponent.KEY.get(player);
+            return new ApprenticeRows(apprentice.isGraduated(), apprentice.getCompletedTasks(),
+                    secs(apprentice.getPurifyCooldownTicks()), apprentice.getSwiftStepCharges(),
+                    apprentice.isMightyForceForfeited(), SecondaryAbilityController.secondaryKeyText());
+        }
+    }
 
     /**
      * The Grand Witch's own row beside the panel skill (Witch Factor), read from GrandWitchClientPresentation's data
@@ -270,19 +292,22 @@ public final class OwnerInventoryPresenter {
         // The Grand Witch's Ceremonial Sword row is read only after the panel gate above passed; the mixin never
         // checks roles. 大魔女的仪礼剑行只在上方面板资格通过后读取；混入类从不判断职业。
         GrandWitchRows grandWitch = GrandWitchClientPresentation.isGrandWitch(client.player) ? GrandWitchRows.read(client.player) : null;
+        ApprenticeRows apprentice = ApprenticeClientPresentation.isApprenticeSkill(skillId) ? ApprenticeRows.read(client.player) : null;
         SkillKey key = new SkillKey(Language.getInstance(), role, skillId,
                 component.hasManaSystem() && WitchManaRules.isManaRole(role), component.getMana(),
                 secs(component.getActiveSkillWindowTicks()), secs(component.getCooldownTicks()),
-                component.getGrandWitchCeremonialSwordTasks(), component.getDeathRayCharges(), SparkWitchClient.abilityKeyText(), grandWitch);
+                component.getGrandWitchCeremonialSwordTasks(), component.getDeathRayCharges(), SparkWitchClient.abilityKeyText(), grandWitch,
+                apprentice);
         InventoryInfoCard.Section cached = skillCache;
         if (cached != null && key.equals(skillKey)) return cached;
-        cached = buildSkillSection(component, role, skillId, key.abilityKey(), grandWitch);
+        cached = buildSkillSection(component, role, skillId, key.abilityKey(), grandWitch, apprentice);
         skillKey = key;
         return skillCache = cached;
     }
 
     private static InventoryInfoCard.Section buildSkillSection(WitchPlayerComponent component, @Nullable Role role, Identifier skillId,
-                                                               Text abilityKey, @Nullable GrandWitchRows grandWitch) {
+                                                               Text abilityKey, @Nullable GrandWitchRows grandWitch,
+                                                               @Nullable ApprenticeRows apprentice) {
         WitchSkillDefinition definition = WitchSkillRegistry.get(skillId);
         int cost = definition == null ? 0 : definition.manaCost();
         int mana = component.getMana();
@@ -327,7 +352,9 @@ public final class OwnerInventoryPresenter {
         int widest = SkillProgressTracker.widestSeconds(skillId);
         // Appended facts after the status line: the mana line in NO_MANA, the charges line while charges >= 0.
         // 状态行之后的附加行：魔力不足时的魔力行、有发数时的发数行。
-        int facts = (kind == InventoryInfoCard.Kind.NO_MANA ? 1 : 0) + (charges >= 0 ? 1 : 0);
+        // Apprentice facts: Swift Step charges, or a Mighty Force lost to a misfire. / 预备魔女附加行：滑步充能或失效的巨力。
+        Text apprenticeFact = apprenticeFact(skillId, apprentice);
+        int facts = (kind == InventoryInfoCard.Kind.NO_MANA ? 1 : 0) + (charges >= 0 ? 1 : 0) + (apprenticeFact != null ? 1 : 0);
         var status = new InventoryInfoCard.Status(kind, label, shortLabel(kind, label), reserveLabels(widest, false),
                 reserveLabels(widest, true), progress, pips, kind == InventoryInfoCard.Kind.LOCKED ? tasks : 0, charges,
                 costText, costShort, gauge, facts);
@@ -357,10 +384,14 @@ public final class OwnerInventoryPresenter {
             Text chargesLine = Text.translatable("gui.sparkwitch.skill.death_ray.charges", charges).withColor(InventoryCardPaint.ACTIVE_TEXT & 0xFFFFFF);
             tooltip.add(chargesLine);
         }
+        if (apprenticeFact != null) {
+            tooltip.add(apprenticeFact);
+        }
         var entry = new InventoryInfoCard.Entry(List.of(WitchSkillClientTexts.name(skillId), label), tooltip,
                 WitchSkillClientTexts.color(skillId), status);
         List<InventoryInfoCard.Entry> entries = new ArrayList<>(List.of(entry));
         if (grandWitch != null) entries.addAll(grandWitchEntries(grandWitch));
+        if (apprentice != null) entries.add(purifyEntry(apprentice, mana, manaShown));
         return new InventoryInfoCard.Section(Text.translatable("gui.sparkwitch.skills"), entries, manaTail,
                 manaTail == null ? null : Text.literal("888 \uE782"), Text.translatable("gui.sparkwitch.skills.short"));
     }
@@ -481,6 +512,64 @@ public final class OwnerInventoryPresenter {
                 -1, null, false, gauge, rows.unlocked() ? 1 : 0);
         return new InventoryInfoCard.Entry(List.of(Text.translatable("skill.sparkwitch.ceremonial_sword.name"), label), tooltip,
                 GrandWitchClientPresentation.COLOR, status);
+    }
+
+    private static @Nullable Text apprenticeFact(Identifier skillId, @Nullable ApprenticeRows apprentice) {
+        if (apprentice == null) return null;
+        if (MightyForceAbility.ID.equals(skillId) && apprentice.forfeited()) {
+            return Text.translatable("hud.sparkwitch.skill.mighty_force.forfeited").withColor(InventoryCardPaint.ALERT_TEXT & 0xFFFFFF);
+        }
+        if (SwiftStepAbility.ID.equals(skillId)) {
+            return Text.translatable("gui.sparkwitch.skill.swift_step.charges", apprentice.swiftCharges(),
+                    ApprenticeRules.SWIFT_STEP_MAX_CHARGES).withColor(InventoryCardPaint.ACTIVE_TEXT & 0xFFFFFF);
+        }
+        return null;
+    }
+
+    /**
+     * The graduated Apprentice's Purify row (owner 2026-10-06 D3), built from the shared pill keys: LOCKED "x/2" with
+     * task pips before graduating, then COOLDOWN on its own 20 s cooldown, NO_MANA below 30 mana, or READY.
+     * 出师后预备魔女的净化行（所有者 2026-10-06 D3），使用共享状态牌键：出师前为带任务点的锁定“x/2”，之后为 20 秒独立冷却、
+     * 魔力不足 30，或可使用。
+     */
+    static InventoryInfoCard.Entry purifyEntry(ApprenticeRows rows, int mana, boolean manaShown) {
+        int unlock = ApprenticeRules.GRADUATION_TASKS;
+        int cost = PurifyAbility.MANA_COST;
+        boolean costShort = manaShown && mana < cost;
+        InventoryInfoCard.Kind kind = !rows.graduated() ? InventoryInfoCard.Kind.LOCKED
+                : rows.purifySeconds() > 0 ? InventoryInfoCard.Kind.COOLDOWN
+                : costShort ? InventoryInfoCard.Kind.NO_MANA : InventoryInfoCard.Kind.READY;
+        Text label = switch (kind) {
+            case LOCKED -> Text.translatable("gui.sparkwitch.skill.pill.locked", rows.tasks(), unlock);
+            case COOLDOWN -> Text.translatable("gui.sparkwitch.skill.pill.cooldown", rows.purifySeconds());
+            case NO_MANA -> Text.translatable("gui.sparkwitch.skill.pill.no_mana");
+            default -> Text.translatable("gui.sparkwitch.skill.ready");
+        };
+        int widestSeconds = secs(PurifyAbility.COOLDOWN_TICKS);
+        float progress = switch (kind) {
+            case LOCKED -> rows.tasks() / (float) unlock;
+            case COOLDOWN -> 1f - Math.min(1f, rows.purifySeconds() / (float) widestSeconds);
+            case NO_MANA -> cost <= 0 ? 1f : Math.max(0f, Math.min(1f, mana / (float) cost));
+            default -> 1f;
+        };
+        Text costText = manaShown ? Text.translatable("gui.sparkwitch.mana", Text.literal(String.valueOf(cost))
+                .withColor((costShort ? InventoryCardPaint.ALERT_TEXT : InventoryCardPaint.MUTED) & 0xFFFFFF)).withColor(0xFFFFFF) : null;
+        var status = new InventoryInfoCard.Status(kind, label, shortLabel(kind, label), reserveLabels(widestSeconds, false),
+                reserveLabels(widestSeconds, true), progress, kind == InventoryInfoCard.Kind.LOCKED ? unlock : 0,
+                kind == InventoryInfoCard.Kind.LOCKED ? rows.tasks() : 0, -1, costText, costShort, null, 0);
+        Text statusLine = switch (kind) {
+            case LOCKED -> Text.translatable("gui.sparkwitch.skill.ceremonial_sword.locked", rows.tasks(), unlock);
+            case COOLDOWN -> Text.translatable("hud.sparkwitch.apprentice.purify.cooldown", rows.purifySeconds());
+            case NO_MANA -> Text.translatable("hud.sparkwitch.skill.not_enough_mana", cost);
+            default -> Text.translatable("gui.sparkwitch.skill.ready");
+        };
+        List<Text> tooltip = List.of(
+                Text.translatable("skill.sparkwitch.purify.name"),
+                Text.translatable("skill.sparkwitch.purify.description"),
+                keyHint("gui.sparkwitch.skill.key.secondary", rows.secondaryKey()),
+                statusLine.copy().withColor(InventoryCardPaint.kindText(kind) & 0xFFFFFF));
+        return new InventoryInfoCard.Entry(List.of(Text.translatable("skill.sparkwitch.purify.name"), label), tooltip,
+                ApprenticeClientPresentation.PURIFY_COLOR, status);
     }
 
     /** "主技能键：G" with the bound key in brass (the key text is the binding's own localized name). 按键提示行。 */

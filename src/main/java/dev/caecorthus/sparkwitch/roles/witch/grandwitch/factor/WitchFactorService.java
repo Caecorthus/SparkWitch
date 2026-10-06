@@ -64,6 +64,24 @@ public final class WitchFactorService {
         }
     }
 
+    /**
+     * Apprentice Purify (owner 2026-10-06 D3): removes the holder's factor in every world, dormant or mature. Like any
+     * removal it never refunds the shared quota. Returns whether a factor was removed.
+     * 预备魔女的净化（所有者 2026-10-06 D3）：清除持有者在所有世界的因子（潜伏或成熟）。与其他回收一样不返还共用额度。
+     * 返回是否清除了因子。
+     */
+    public static boolean purify(ServerPlayerEntity holder) {
+        boolean removed = false;
+        for (ServerWorld world : holder.getServer().getWorlds()) {
+            WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
+            if (component.state().recover(holder.getUuid())) {
+                removed = true;
+                component.sync();
+            }
+        }
+        return removed;
+    }
+
     public static WitchSkillUseResult use(WitchSkillUseContext context) {
         ServerPlayerEntity source = context.player();
         if (context.role() != SparkWitchRoles.grandWitch()

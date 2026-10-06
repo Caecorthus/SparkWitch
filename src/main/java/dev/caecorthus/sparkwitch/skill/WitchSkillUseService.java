@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeResonance;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintAbilityService;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
@@ -72,6 +73,9 @@ public final class WitchSkillUseService {
         }
 
         WitchSkillCooldownPolicy.apply(component, WitchSkillCooldownPolicy.decide(skill, result));
+        // Apprentice Magic Resonance (owner D1); it filters the caster's role itself.
+        // 预备魔女的魔力共鸣（所有者 D1）；施法者职业由其自行过滤。
+        ApprenticeResonance.onWitchCast(player, player.getPos());
         if (result.messageKey() != null) {
             send(player, result.messageKey());
         }

@@ -1,12 +1,17 @@
 package dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce;
 
-import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
+import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheEntities;
 import dev.doctor4t.wathe.record.GameRecordManager;
@@ -19,8 +24,10 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
@@ -95,7 +102,14 @@ public final class MightyForceCombatService {
         if (!terminalVendetta) {
             GameRecordManager.recordSkillUse(attacker, MightyForceAbility.ID, target, null);
         }
+        // Pre-hit snapshots for the misfire rule, taken like the Swordfish stab's (owner D5).
+        // 误杀规则所需的命中前快照，取法与剑鱼刺杀相同（所有者 D5）。
+        GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        Identifier attackerFaction = SparkFactionApi.resolveEffectiveFaction(attacker, game);
+        Identifier victimFaction = SparkFactionApi.resolveEffectiveFaction(target, game);
+        boolean deadBefore = game.isPlayerDead(target.getUuid());
         GameFunctions.killPlayer(target, true, attacker, SparkWitchDeathReasons.MIGHTY_FORCE);
+        punishMisfire(attacker, target, game, attackerFaction, victimFaction, deadBefore);
         if (terminalVendetta) {
             // The terminal handler installs suppression before this caller-owned record is attempted.
             // 终止结算会先安装抑制标记，再尝试写入调用方自己的技能回放。
@@ -123,6 +137,44 @@ public final class MightyForceCombatService {
                 1.0f,
                 0.8f
         );
+    }
+
+    /**
+     * Killing an innocent follows Wathe's shoot-innocent punishment: KILL_SHOOTER kills her with Wathe's own
+     * {@code shot_innocent} reason, PREVENT_GUN_PICKUP takes Mighty Force away for the round (owner D5).
+     * 误杀好人沿用 Wathe 的误杀惩罚：KILL_SHOOTER 以 Wathe 自带的 {@code shot_innocent} 死因击杀她，PREVENT_GUN_PICKUP
+     * 让巨力本局失效（所有者 D5）。
+     */
+    private static void punishMisfire(
+            ServerPlayerEntity attacker,
+            ServerPlayerEntity target,
+            GameWorldComponent game,
+            Identifier attackerFaction,
+            Identifier victimFaction,
+            boolean deadBefore
+    ) {
+        ApprenticeRules.MisfireOutcome outcome = ApprenticeRules.misfireOutcome(
+                attackerFaction,
+                victimFaction,
+                deadBefore,
+                game.isPlayerDead(target.getUuid()),
+                WitchFactorTraitsBridge.isDeathIntercepted(target),
+                SparkTraitsKillerBridge.isNonFinalKillPending(target, attacker),
+                game.getShootInnocentPunishment()
+        );
+        switch (outcome) {
+            case KILL_ATTACKER -> {
+                if (GameFunctions.isPlayerPlayingAndAlive(attacker) && GameFunctions.isPlayerAliveAndSurvival(attacker)) {
+                    GameFunctions.killPlayer(attacker, true, null, GameConstants.DeathReasons.SHOT_INNOCENT);
+                }
+            }
+            case FORFEIT_MIGHTY_FORCE -> {
+                ApprenticePlayerComponent.KEY.get(attacker).forfeitMightyForce();
+                attacker.sendMessage(Text.translatable("message.sparkwitch.skill.mighty_force.forfeited"), true);
+            }
+            case NONE -> {
+            }
+        }
     }
 
     private static Vec3d knockbackImpulse(ServerPlayerEntity attacker, ServerPlayerEntity target) {

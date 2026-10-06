@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeResonance;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
@@ -110,6 +111,7 @@ public final class RiftGatePlacementService {
         stack.decrementUnlessCreative(1, player);
         player.getItemCooldownManager().set(gateItem, PLACE_COOLDOWN_TICKS);
         playPlacementCue(world, pos);
+        ApprenticeResonance.onWitchCast(player, pos);
         NbtCompound extra = new NbtCompound();
         extra.putString(RiftGateReplayFormatters.ACTION_KEY, RiftGateReplayFormatters.PLACE_ACTION);
         extra.putInt(RiftGateReplayFormatters.GATE_NUMBER_KEY, number);

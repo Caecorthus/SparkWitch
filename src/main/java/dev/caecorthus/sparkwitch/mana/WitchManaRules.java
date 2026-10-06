@@ -20,6 +20,10 @@ public final class WitchManaRules {
     private static final int DEFAULT_NATURAL_CAP = 100;
     private static final int GRAND_WITCH_REGENERATION_INTERVAL_TICKS = 20;
     private static final int APPRENTICE_REGENERATION_INTERVAL_TICKS = 60;
+    // A graduated Apprentice (2 tasks): cap 150, 1 mana per 2 s (owner 2026-10-06 D2).
+    // 出师后的预备魔女（2 个任务）：上限 150，每 2 秒 1 点（所有者 2026-10-06 D2）。
+    private static final int GRADUATED_APPRENTICE_REGENERATION_INTERVAL_TICKS = 40;
+    private static final int GRADUATED_APPRENTICE_NATURAL_CAP = 150;
     private static final int GRAND_WITCH_NATURAL_CAP = 300;
     private static final int MURDEROUS_WITCH_NATURAL_CAP = 150;
     private static final int APPRENTICE_TASK_REWARD = 20;
@@ -72,6 +76,22 @@ public final class WitchManaRules {
         return isManaRole(role) ? DEFAULT_NATURAL_CAP : 0;
     }
 
+    /** {@link #naturalCap(Role)} with the Apprentice's graduation applied. / 计入预备魔女出师状态的自然上限。 */
+    public static int naturalCap(Role role, boolean graduatedApprentice) {
+        if (graduatedApprentice && role == SparkWitchRoles.apprenticeWitch()) {
+            return GRADUATED_APPRENTICE_NATURAL_CAP;
+        }
+        return naturalCap(role);
+    }
+
+    /** {@link #regenerationIntervalTicks(Role)} with the Apprentice's graduation applied. / 计入出师状态的恢复间隔。 */
+    public static int regenerationIntervalTicks(Role role, boolean graduatedApprentice) {
+        if (graduatedApprentice && role == SparkWitchRoles.apprenticeWitch()) {
+            return GRADUATED_APPRENTICE_REGENERATION_INTERVAL_TICKS;
+        }
+        return regenerationIntervalTicks(role);
+    }
+
     public static int regenerationIntervalTicks(Role role) {
         if (!canRegenerateNaturally(role)) {
             return 0;
@@ -118,11 +138,15 @@ public final class WitchManaRules {
     }
 
     public static int applyNaturalRegeneration(int currentMana, Role role) {
+        return applyNaturalRegeneration(currentMana, role, false);
+    }
+
+    public static int applyNaturalRegeneration(int currentMana, Role role, boolean graduatedApprentice) {
         if (!canRegenerateNaturally(role)) {
             return Math.max(0, currentMana);
         }
         int current = Math.max(0, currentMana);
-        int cap = naturalCap(role);
+        int cap = naturalCap(role, graduatedApprentice);
         return current >= cap ? current : Math.min(cap, current + 1);
     }
 }

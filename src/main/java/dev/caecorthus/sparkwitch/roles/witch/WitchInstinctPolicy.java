@@ -58,6 +58,15 @@ public final class WitchInstinctPolicy {
         if (curserViewer ? !curserOutlineEligible : !WitchFactionRules.shouldUseCustomInstinctHighlight(viewerAlive)) {
             return null;
         }
+        // The Apprentice's own skill outlines are spell-immune, so they answer before Obscure (owner 2026-10-06 D4).
+        // 预备魔女自己的技能描边不受法术影响，因此在障眼之前作答（所有者 2026-10-06 D4）。
+        if (target instanceof PlayerEntity apprenticeTarget) {
+            FactionInstinctPolicy.InstinctResult apprenticeOutline =
+                    ApprenticeInstinctRules.ownSkillHighlight(viewer, apprenticeTarget);
+            if (apprenticeOutline != null) {
+                return apprenticeOutline;
+            }
+        }
         if (WitchFactionRules.shouldObscureInstinct(
                 WitchWorldComponent.KEY.get(viewer.getWorld()).isInstinctObscured(),
                 viewerRole,
@@ -90,10 +99,10 @@ public final class WitchInstinctPolicy {
             return FactionInstinctPolicy.InstinctResult.skip(WitchFactionRules.HIDDEN_PHANTOM_SKIP_PRIORITY);
         }
 
-        FactionInstinctPolicy.InstinctResult apprenticeOutline =
-                ApprenticeInstinctRules.highlight(viewer, targetPlayer);
-        if (apprenticeOutline != null) {
-            return apprenticeOutline;
+        FactionInstinctPolicy.InstinctResult exposureOutline =
+                ApprenticeInstinctRules.exposureHighlight(viewer, targetPlayer);
+        if (exposureOutline != null) {
+            return exposureOutline;
         }
 
         OptionalInt color = WitchFactionRules.instinctColor(viewerRole, targetRole);

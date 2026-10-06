@@ -49,7 +49,10 @@ public final class SparkWitchForcedCooldowns {
                 new BlindAttuneCooldownStore(),
                 // Fiend Dash (owner decision 2026-10-04), appended after the Blind.
                 // 魔人疾驰（所有者 2026-10-04 决定），追加在盲人之后。
-                new FiendDashCooldownStore()
+                new FiendDashCooldownStore(),
+                // Apprentice Purify (owner decision 2026-10-06), appended after the Fiend Dash.
+                // 预备魔女净化（所有者 2026-10-06 决定），追加在魔人疾驰之后。
+                new ApprenticePurifyCooldownStore()
         );
     }
 
