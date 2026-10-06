@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHoldRules;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,5 +33,29 @@ public final class RecruitmentHoldClient {
         PlayerEntity viewer = client == null ? null : client.player;
         return holder != null && viewer != null && SparkWitchServerConnection.isConfirmedServer()
                 && RecruitmentHoldRules.hidesHeldItems(RecruitmentHold.isHeld(holder), viewer.isSpectator());
+    }
+
+    /**
+     * Whether {@code candidate} is a held recruit that {@code viewer} must not perceive: the Wathe name-tag, aim and
+     * crosshair raycasts pass through them (next to the Wraith case in {@code WraithNameTagPassThrough} and
+     * {@code WraithAimPassThrough}) and outline hooks skip them. Reads only the synced hold.
+     * {@code candidate} 是否为 {@code viewer} 不应察觉的被定身新共犯：Wathe 名牌、瞄准与准星射线穿过其身体（与
+     * {@code WraithNameTagPassThrough}、{@code WraithAimPassThrough} 中的冤魂分支并列），描边钩子跳过其身体。
+     * 只读取同步的定身状态。
+     */
+    public static boolean isHiddenFrom(@Nullable PlayerEntity viewer, @Nullable Entity candidate) {
+        return viewer != null && candidate instanceof PlayerEntity target
+                && SparkWitchServerConnection.isConfirmedServer()
+                && RecruitmentHoldRules.hidesPresence(RecruitmentHold.isHeld(target), target == viewer,
+                        viewer.isSpectator());
+    }
+
+    /**
+     * {@link #isHiddenFrom} for the local player, the viewer of every instinct outline.
+     * 以本地玩家（所有本能描边的观察者）为观察者的 {@link #isHiddenFrom}。
+     */
+    public static boolean isHiddenFromLocalViewer(@Nullable Entity candidate) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        return client != null && isHiddenFrom(client.player, candidate);
     }
 }

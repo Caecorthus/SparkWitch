@@ -52,4 +52,15 @@ public final class RecruitmentHoldRules {
     public static boolean hidesHeldItems(boolean holderHeld, boolean viewerSpectating) {
         return holderHeld && !viewerSpectating;
     }
+
+    /**
+     * A held recruit stands inside the Grand Witch, so for every other non-spectator viewer, witch teammates included,
+     * they are absent: name-tag, aim and crosshair raycasts pass through them and no outline is drawn. Spectators keep
+     * seeing them, like the held items.
+     * 被定身的新共犯站在大魔女体内，因此对其他所有非旁观观察者（包括魔女队友）而言视同不存在：名牌、瞄准与准星射线
+     * 穿过其身体，也不绘制任何描边。旁观者仍可看见，与手持物规则一致。
+     */
+    public static boolean hidesPresence(boolean targetHeld, boolean viewerIsTarget, boolean viewerSpectating) {
+        return targetHeld && !viewerIsTarget && !viewerSpectating;
+    }
 }

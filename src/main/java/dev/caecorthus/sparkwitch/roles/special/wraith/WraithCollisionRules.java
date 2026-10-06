@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.special.wraith;
 
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -30,6 +31,13 @@ public final class WraithCollisionRules {
 
     public static boolean isCollisionTransparent(Entity entity) {
         if (entity instanceof PlayerEntity player && WraithStateService.isActive(player)) {
+            return true;
+        }
+        if (entity instanceof PlayerEntity player && RecruitmentHold.isHeld(player)) {
+            // A held recruit stands inside the Grand Witch; the synced hold makes both bodies pass through each other
+            // on every side (these mixins and the SparkFactionAPI exemption), so neither is nudged nor rubber-banded.
+            // 被定身的新共犯站在大魔女体内；同步的定身状态让双方在各端（本类的 mixin 与 SparkFactionAPI 豁免）互相穿过，
+            // 不会被推挤，也不会被锚点反复拉回。
             return true;
         }
         return hasNoCollisionEffect(entity);
