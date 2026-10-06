@@ -483,7 +483,7 @@
   "item.sparkwitch.hunter_trap.tooltip.line2": "- Victims are rooted for 3 seconds and gain one Fracture stack.",
   "item.sparkwitch.hunter_trap.tooltip.line3": "- Fracture blocks sprint and stamina recovery, slows 20% per stack, and each stack lasts 60 seconds.",
   "item.sparkwitch.hunter_trap.tooltip.line4": "- Native killers may coat a placed trap with a Poison Vial; poison lasts 40 seconds.",
-  "item.sparkwitch.hunter_trap.tooltip.line5": "- Keep up to 2 traps. Sneak-use your own trap to reclaim it.",
+  "item.sparkwitch.hunter_trap.tooltip.line5": "- Keep up to 4 traps. Sneak-use your own trap to reclaim it.",
   "item.sparkwitch.hunter_trap.poisoned": "Poisoned",
   "item.sparkwitch.double_barrel_shotgun": "Double-Barrel Shotgun",
   "item.sparkwitch.double_barrel_shotgun.tooltip.line1": "- Current load: %s / 2",
