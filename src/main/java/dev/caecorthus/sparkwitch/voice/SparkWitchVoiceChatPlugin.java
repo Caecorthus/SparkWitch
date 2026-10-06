@@ -6,21 +6,27 @@ import de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.LocationalSoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.StaticSoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
+import de.maxhenkel.voicechat.api.events.SoundPacketEvent;
+import de.maxhenkel.voicechat.api.packets.SoundPacket;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
+import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.recruitment.hold.RecruitmentHold;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.compat.TrainVoicePlugin;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
- * Simple Voice Chat bridge for active Wraith outgoing silence, plus the Blind's lowest-priority voice perception.
- * Simple Voice Chat 桥接：阻止激活冤魂的外发语音，并以最低优先级提供盲人的语音感知。
+ * Simple Voice Chat bridge for Wraith lifecycle voice rules, plus the Blind's lowest-priority voice perception.
+ * Simple Voice Chat 桥接：负责冤魂生命周期各阶段的语音规则，并以最低优先级提供盲人的语音感知。
  * On the physical client it also wires the Holy Flash incoming-voice muffle via {@link HolyFlashVoiceClientBridge}.
  * 在物理客户端上还会通过 {@link HolyFlashVoiceClientBridge} 接入圣光弹的传入语音压低。
  */
@@ -37,8 +43,14 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
                 this::blockWraithSpeaker,
                 Integer.MAX_VALUE
         );
-        // Filter every server-to-client sound packet after Wathe's walkie relay has materialized it.
-        // This covers native proximity/entity packets and TrainVoicePlugin's locational radio packets.
+        /*
+         * 必须在声音包阶段过滤，而不能在这里直接取消已晋升身份的麦克风事件：
+         * Wind Spirit、Vendetta、Curser 和 Saboteur 的对讲机功能依赖 Wathe
+         * TrainVoicePlugin 继续收到 MicrophonePacketEvent。
+         *
+         * 三类声音包都要过滤，因为原生近距离语音、实体语音和插件转发的对讲机
+         * 可能走不同的包类型。
+         */
         registration.registerEvent(EntitySoundPacketEvent.class, this::blockRestrictedRecipient, Integer.MAX_VALUE);
         registration.registerEvent(LocationalSoundPacketEvent.class, this::blockRestrictedRecipient, Integer.MAX_VALUE);
         registration.registerEvent(StaticSoundPacketEvent.class, this::blockRestrictedRecipient, Integer.MAX_VALUE);
@@ -65,11 +77,83 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         if (recipient == null) {
             return false;
         }
+
         Role role = GameWorldComponent.KEY.get(recipient.getServerWorld()).getRole(recipient);
-        return WraithCommunicationPolicy.shouldBlockCommunication(
-                WraithStateService.isActive(recipient),
-                GuardianAngelRules.isGuardianAngel(role),
+        boolean activeWraith = WraithStateService.isActive(recipient);
+        boolean promotedWraith = WraithStateService.isPromoted(recipient);
+        boolean guardianAngel = GuardianAngelRules.isGuardianAngel(role);
+
+        /*
+         * 未晋升冤魂继续保持完全静音；已晋升身份不再被普通 Wraith 接收限制
+         * 拦截。Saboteur 的阵营语音限制已经由 SaboteurVoiceRules 双向处理。
+         */
+        if (WraithCommunicationPolicy.shouldBlockCommunication(
+                activeWraith,
+                promotedWraith,
+                guardianAngel,
                 recipient.isCreative()
+        )) {
+            return true;
+        }
+
+        ServerPlayerEntity speaker = soundPacketSpeaker(event, recipient);
+        if (speaker == null) {
+            return false;
+        }
+
+        Role speakerRole = GameWorldComponent.KEY.get(speaker.getServerWorld()).getRole(speaker);
+        boolean speakerActiveWraith = WraithStateService.isActive(speaker);
+        boolean speakerPromotedWraith = WraithStateService.isPromoted(speaker);
+        boolean speakerGuardianAngel = GuardianAngelRules.isGuardianAngel(speakerRole);
+        boolean speakerSaboteur = SaboteurRules.isActivePromotedSaboteur(speaker);
+        boolean walkieTalkiePacket = isWalkieTalkiePacket(event);
+        boolean recipientPlayingAndAlive = GameFunctions.isPlayerPlayingAndAlive(recipient);
+        boolean livingWitchFactionRecipient = WitchFactionRules.isGrandWitch(role)
+                || WitchFactionRules.isAccompliceLike(role);
+
+        /*
+         * 诅咒者是转身后需要继续和存活魔女阵营协作的特殊身份。
+         * 这里只给大魔女 / 共犯补一条直通例外，其他存活玩家仍然交给下面的
+         * 通用冤魂语音规则处理。
+         */
+        if (WraithCommunicationPolicy.shouldAllowPromotedCurserVoiceToLivingWitchFaction(
+                speakerActiveWraith,
+                speakerPromotedWraith,
+                CurserFeatureService.isActivePromotedCurser(speaker),
+                speaker.isCreative(),
+                recipientPlayingAndAlive,
+                livingWitchFactionRecipient
+        )) {
+            return false;
+        }
+
+        /*
+         * 守护天使保留 Wathe 隐藏死者组。它可以向死者组说话，也可以从正常
+         * 存活玩家处接收近距离语音，但任何发往正常存活玩家的声音包都必须取消。
+         * 这里包含对讲机包，解决 Wathe 手动复制语音绕过分组的问题。
+         */
+        if (WraithCommunicationPolicy.shouldBlockGuardianAngelVoiceToLiving(
+                speakerActiveWraith,
+                speakerPromotedWraith,
+                speakerGuardianAngel,
+                recipientPlayingAndAlive
+        )) {
+            return true;
+        }
+
+        /*
+         * 风精灵、仇杀客和诅咒者可以继续使用对讲机，但普通近距离语音不能
+         * 被正常存活玩家听到。不能取消麦克风事件，否则 Wathe 的对讲机转发
+         * 也会一起失效，所以只在最终声音包阶段屏蔽。
+         */
+        return WraithCommunicationPolicy.shouldBlockPromotedCivilianVoiceToLiving(
+                speakerActiveWraith,
+                speakerPromotedWraith,
+                speakerGuardianAngel,
+                speakerSaboteur,
+                speaker.isCreative(),
+                walkieTalkiePacket,
+                recipientPlayingAndAlive
         );
     }
 
@@ -103,11 +187,49 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         Role role = GameWorldComponent.KEY.get(speaker.getServerWorld()).getRole(speaker);
         if (WraithCommunicationPolicy.shouldBlockCommunication(
                 WraithStateService.isActive(speaker),
+                WraithStateService.isPromoted(speaker),
                 GuardianAngelRules.isGuardianAngel(role),
                 speaker.isCreative()
         )) {
+            // 只有未晋升的普通冤魂在麦克风入口静音；已晋升身份必须放行，
+            // 否则 Wathe 无法收到它们的对讲机语音。
             event.cancel();
         }
+    }
+
+    private boolean isWalkieTalkiePacket(de.maxhenkel.voicechat.api.events.PacketEvent<?> event) {
+        return event instanceof SoundPacketEvent<?> soundPacketEvent
+                && TrainVoicePlugin.WALKIE_TALKIE_CATEGORY.equals(
+                soundPacket(soundPacketEvent).getCategory()
+        );
+    }
+
+    /**
+     * 优先使用事件提供的发送者连接；Wathe 通过 VoicechatServerApi 手动发送
+     * 对讲机包时，部分版本的事件可能没有 senderConnection，因此再从声音包
+     * 自带的 sender UUID 解析说话者。
+     */
+    private ServerPlayerEntity soundPacketSpeaker(
+            de.maxhenkel.voicechat.api.events.PacketEvent<?> event,
+            ServerPlayerEntity recipient
+    ) {
+        ServerPlayerEntity speaker = player(event.getSenderConnection());
+        if (speaker != null || !(event instanceof SoundPacketEvent<?> soundPacketEvent)
+                || recipient.getServer() == null
+                || soundPacket(soundPacketEvent).getSender() == null) {
+            return speaker;
+        }
+        return recipient.getServer().getPlayerManager().getPlayer(
+                soundPacket(soundPacketEvent).getSender()
+        );
+    }
+
+    private SoundPacket soundPacket(SoundPacketEvent<?> event) {
+        /*
+         * voicechat-api 的 SoundPacketEvent 泛型上界是基础 Packet；
+         * 三类服务端声音事件的运行时包统一实现 SoundPacket。
+         */
+        return (SoundPacket) event.getPacket();
     }
 
     private ServerPlayerEntity player(de.maxhenkel.voicechat.api.VoicechatConnection connection) {

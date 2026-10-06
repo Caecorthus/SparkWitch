@@ -14,9 +14,9 @@ public final class HunterRules {
     public static final Identifier ROLE_ID = Identifier.of("sparkwitch", "hunter");
     public static final int COLOR = 0x5C4C34;
 
-    public static final int SHOTGUN_PRICE = 100;
-    public static final int SHELL_PRICE = 125;
-    public static final int TRAP_PRICE = 75;
+    public static final int SHOTGUN_PRICE = 75;
+    public static final int SHELL_PRICE = 50;
+    public static final int TRAP_PRICE = 25;
     public static final int SHOTGUN_STOCK = 1;
 
     public static final int MAX_SHELLS = 2;
@@ -28,7 +28,7 @@ public final class HunterRules {
     public static final int SHOTGUN_INITIAL_COOLDOWN_TICKS = 60 * 20;
     public static final int SECOND_SHELL_WINDOW_TICKS = 20 * 10;
 
-    public static final int MAX_OWNED_TRAPS = 2;
+    public static final int MAX_OWNED_TRAPS = 4;
     public static final int TRAP_ARM_TICKS = 10;
     public static final int TRAP_LIFESPAN_TICKS = 20 * 60 * 10;
     public static final int TRAP_ROOT_TICKS = 20 * 3;
