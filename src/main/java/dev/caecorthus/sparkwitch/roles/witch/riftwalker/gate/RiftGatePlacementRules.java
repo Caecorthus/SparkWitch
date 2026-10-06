@@ -12,11 +12,13 @@ import java.util.OptionalDouble;
 
 /**
  * Pure placement geometry and validation for a Rift Gate at the user's feet (plan §5.1): facing snapped to the four
- * horizontal directions, spacing from other gates ({@code RiftwalkerRules.MIN_GATE_SPACING}), cull-height and floor
- * rules (of the Wathe play area only its fall line counts, owner 2026-10-05), and the Riftwalker-owned copy of the Seeker camera neighbour table. Unit-testable without Minecraft
+ * horizontal directions, spacing from other gates ({@code RiftwalkerRules.MIN_GATE_SPACING}), the floor rule (of the
+ * Wathe play area only its fall line counts, owner 2026-10-05; no height cap, owner 2026-10-06), and the
+ * Riftwalker-owned copy of the Seeker camera neighbour table. Unit-testable without Minecraft
  * registries (records, ints, doubles, enums only). Owned by P1.
  * 在使用者脚下放置裂隙门的纯几何与校验规则（plan §5.1）：朝向吸附到四个水平方向、与其他门的间距
- * （{@code RiftwalkerRules.MIN_GATE_SPACING}）、剔除高度与地面规则（Wathe play area 只看坠落线，所有者 2026-10-05），以及复制到本职业的搜寻者摄像头邻居表。
+ * （{@code RiftwalkerRules.MIN_GATE_SPACING}）、地面规则（Wathe play area 只看坠落线，所有者 2026-10-05；不限高度，
+ * 所有者 2026-10-06），以及复制到本职业的搜寻者摄像头邻居表。
  * 无需 Minecraft 注册表即可单元测试（仅使用 record、int、double、enum）。归属 P1。
  *
  * <p>Geometry contract: the gate position is the bottom centre of a {@code GATE_WIDTH × GATE_HEIGHT × GATE_DEPTH}
@@ -37,12 +39,6 @@ public final class RiftGatePlacementRules {
     public static final double FLOOR_PROBE_LIFT = 0.5;
     /** The floor may lie at most this far below the feet (Seeker car fallback drop). / 地面最多低于脚下这么多。 */
     public static final double FLOOR_DROP = 1.5;
-    /**
-     * Wathe's {@code AlwaysVisibleFrustum} culls every box whose centre is at y ≥ 148 while the train moves, so the
-     * gate's visibility box centre must stay below it.
-     * 列车行驶时 Wathe 的 {@code AlwaysVisibleFrustum} 会剔除中心 y ≥ 148 的包围盒，因此门的可见包围盒中心必须低于它。
-     */
-    public static final double CULL_CENTRE_Y = 148.0;
     /** Visibility box (model B: 2.25 tall plus the floor rune ring) around the position. / 可见包围盒（覆盖模型 B）。 */
     public static final double VISIBILITY_HALF_WIDTH = 0.75;
     public static final double VISIBILITY_BELOW = 0.25;
@@ -184,21 +180,18 @@ public final class RiftGatePlacementRules {
         return new Vec3d(feet.x, floorY, MathHelper.floor(feet.z) + 0.5);
     }
 
-    // ---- Cull height and spacing / 剔除高度与间距 ----
+    // ---- Fall line and spacing / 坠落线与间距 ----
 
     /**
      * Wathe's fall line only: the base is not below {@code playArea.minY} (Wathe kills living players below it). The
-     * rest of the play area is ignored (owner 2026-10-05); a null area never refuses.
+     * rest of the play area is ignored (owner 2026-10-05); a null area never refuses. There is no upper height limit
+     * (owner 2026-10-06: the old y 148 render-cull cap refused every spot on maps built higher, such as 星穹列车).
      * 只看 Wathe 的坠落线：门底不低于 {@code playArea.minY}（低于它 Wathe 会判存活玩家死亡）。play area 的其余部分忽略
-     * （所有者 2026-10-05）；无区域时从不拒绝。
+     * （所有者 2026-10-05）；无区域时从不拒绝。没有高度上限（所有者 2026-10-06：旧的 y 148 渲染剔除上限让建得更高的地图
+     * （如星穹列车）所有位置都被拒绝）。
      */
     public static boolean aboveFallLine(@Nullable Box playArea, Vec3d pos) {
         return playArea == null || pos.y >= playArea.minY;
-    }
-
-    /** The visibility box centre stays below Wathe's moving-train cull line. / 可见包围盒中心低于 Wathe 行驶剔除线。 */
-    public static boolean belowCullHeight(Vec3d pos) {
-        return visibilityBox(pos).getCenter().y < CULL_CENTRE_Y;
     }
 
     /**
