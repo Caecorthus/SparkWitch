@@ -112,6 +112,9 @@ public final class ControlExpertStunRules {
             // Vulture Super Curse (SparkStrength, key 2): a voice line only, classified like the Sniff.
             // 秃鹫超级骂（SparkStrength，技能键 2）：仅播放语音，与嗅探同样归类。
             Identifier.of("sparkstrength", "vulture_super_curse"),
+            // Spiritualist Wraith possession (SparkStrength, key 2); its exit packet stays allowed.
+            // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
+            Identifier.of("sparkstrength", "spirit_possess"),
             Identifier.of("sparkstrength", "call_tablet_meeting"),
             Identifier.of("sparkstrength", "cast_tablet_vote"),
             Identifier.of("sparkstrength", "confirm_tablet_vote"),
