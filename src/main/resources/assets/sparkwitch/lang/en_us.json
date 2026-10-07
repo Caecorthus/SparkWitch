@@ -1278,5 +1278,13 @@
   "hud.sparkwitch.usec.no_magazine": "No magazine",
   "hud.sparkwitch.usec.suppressed": "Suppressed",
   "hud.sparkwitch.usec.separator.feed": " » ",
-  "hud.sparkwitch.usec.separator": " · "
+  "hud.sparkwitch.usec.separator": " · ",
+  "replay.item_use.sparkwitch.usec_rifle_fire.miss": "%1$s fired the §6Sniper Rifle§r (%2$s) but hit no one",
+  "replay.item_use.sparkwitch.usec_rifle_fire.hit": "%1$s shot %3$s with the §6Sniper Rifle§r (%2$s)",
+  "replay.item_use.sparkwitch.usec_rifle_fire.miss_penetrated": "%1$s fired the §6Sniper Rifle§r (%2$s) through %3$s block(s) but hit no one",
+  "replay.item_use.sparkwitch.usec_rifle_fire.hit_penetrated": "%1$s shot %3$s through %4$s block(s) with the §6Sniper Rifle§r (%2$s)",
+  "replay.item_use.sparkwitch.usec_rifle_fire.punished": "%1$s was punished for shooting innocent %2$s",
+  "replay.item_use.sparkwitch.usec_rifle_fire.confiscated": "%1$s had the §6Sniper Rifle§r confiscated for shooting innocent %2$s",
+  "message.sparkwitch.usec.chamber_empty": "Chamber empty: insert a magazine or chamber a round in the attachments screen.",
+  "message.sparkwitch.usec.rifle_confiscated": "You shot an innocent: your sniper rifle was confiscated."
 }
