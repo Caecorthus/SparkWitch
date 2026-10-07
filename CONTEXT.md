@@ -1059,7 +1059,8 @@ re-reads it per call. `client/blind/render/BlindEchoView` is a private
 captured at `WorldRenderEvents.BEFORE_DEBUG_RENDER` (after flushing the pending block-entity layer and
 the Fast/Fancy dropped-item layer), where `BlindSilhouettePass` also re-renders the
 perceived players into a private silhouette target (their features and labels stripped by
-`BlindEchoSilhouetteMixin`), and `client/mixin/blind/BlindGameRendererMixin` runs the pass after
+`BlindEchoSilhouetteMixin`; its per-pass white vertex consumer drops every write once the pass ends,
+because PatPat 1.3 keeps the provider and draws through it at the next frame's `AFTER_ENTITIES`), and `client/mixin/blind/BlindGameRendererMixin` runs the pass after
 `GameRenderer#render`'s `Framebuffer#beginWrite(Z)` with `shift = AFTER`, so it draws over the
 Seeker and Black Raven filters injected at the same call, and the HUD is drawn on top. The view
 fails closed to black, never to the plain world: an Iris shader pack in use (reflective check; an
