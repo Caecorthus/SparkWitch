@@ -155,7 +155,13 @@
     "riftwalker.RiftSessionMouseMixin",
     "riftwalker.RiftSessionSpectatorHudMixin",
     "riftwalker.RiftGateAttackMixin",
-    "riftwalker.RiftGateCrosshairMixin"
+    "riftwalker.RiftGateCrosshairMixin",
+    "scope.ScopeAccessibilityOptionsMixin",
+    "scope.ScopeFovMixin",
+    "scope.ScopeGameRendererInvoker",
+    "scope.ScopeGameRendererMixin",
+    "scope.ScopeInGameHudMixin",
+    "scope.ScopeMouseMixin"
   ],
   "injectors": {
     "defaultRequire": 1
