@@ -1,6 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.killer.magician;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -23,7 +26,16 @@ public final class MagicianAbility {
         var role = game.getRole(player);
         if (role == null || !SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())
                 || !game.isRunning()
-                || !GameFunctions.isPlayerAliveAndSurvival(player)) {
+                || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+            return;
+        }
+        // Same server-side skill locks as the Fiend Dash: the payload guards drop the packet, and the inventory
+        // buttons send START_/STOP_ actions directly, so the handler re-checks the stun, a SparkTraits silence or Last
+        // Escape, and Fear itself. / 与魔人疾驰相同的服务端技能锁：数据包守卫会丢弃该包，而背包按钮直接发送开始/结束动作，
+        // 因此处理器自行再次检查眩晕、SparkTraits 沉默或绝境逃生，以及恐惧。
+        if (ControlExpertStun.isStunned(player)
+                || SparkTraitsKillerBridge.isRoleSkillBlocked(player)
+                || GrandWitchFearService.denyRoleSkillIfFeared(player)) {
             return;
         }
         long tick = player.getServerWorld().getTime();

@@ -61,7 +61,10 @@ public final class GrandWitchFearService {
             // Blind Attune. / 盲人凝神。
             Identifier.of("sparkwitch", "use_blind_attune"),
             // Fiend Dash; the server also re-checks fear on use. / 魔人疾驰；服务端在使用时也会再次检查恐惧。
-            Identifier.of("sparkwitch", "use_fiend_dash")
+            Identifier.of("sparkwitch", "use_fiend_dash"),
+            // Magician record/playback stages; the server also re-checks fear on use.
+            // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "magician_ability")
     );
 
     private GrandWitchFearService() {

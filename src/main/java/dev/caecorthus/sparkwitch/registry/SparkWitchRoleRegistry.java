@@ -688,6 +688,7 @@ public final class SparkWitchRoleRegistry {
                 kidnapper,
                 bellRinger,
                 timeStealer,
+                magician,
                 murderousWitch,
                 accomplice,
                 abyssListener,

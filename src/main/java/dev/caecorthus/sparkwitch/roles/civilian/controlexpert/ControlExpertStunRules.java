@@ -88,6 +88,10 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "use_fiend_dash"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
+            // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a
+            // stored pre-selection used only when playback starts, so it stays allowed like other UI-only payloads.
+            // 魔术师录制/播放阶段；皮套选择（magician_target）只是开始播放时才使用的预选，与其他仅界面数据包一样放行。
+            Identifier.of("sparkwitch", "magician_ability"),
 
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
