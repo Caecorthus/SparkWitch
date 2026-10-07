@@ -1,7 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.perception;
 
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import net.minecraft.sound.SoundCategory;
@@ -14,12 +16,13 @@ import org.jetbrains.annotations.Nullable;
  * played with no actor, auto-close included), Wathe's light sounds when no player is named as the actor (dropped
  * while a Wathe blackout runs, because its flicker is the same null-actor call), and anything played from a non-player
  * entity. The one-shot list is deliberately small: gunshots, explosions and door sounds bypass the per-emitter
- * throttle; explosions created through {@code ServerWorld.createExplosion} are always one-shots.
+ * throttle; explosions created through {@code ServerWorld.createExplosion} are always one-shots. A few sound ids carry a
+ * range factor (the USEC rifle shots) that scales each Blind's range for that pulse; volume is never read.
  * 盲人服务端声音感知的纯过滤规则（D3、C3、C9）。氛围音永不计入：AMBIENT、MUSIC、RECORDS 类别以及所有
  * {@code *:ambient.*} id。物体只照亮环境：Wathe 的门开关声（始终以无行动者方式播放，包括自动关门）、未指明行动玩家时的
  * Wathe 灯光声（Wathe 停电期间丢弃，因为停电闪烁是同一个无行动者调用），以及从非玩家实体处播放的任何声音。一次性声音
  * 名单刻意保持很短：枪声、爆炸与门的声音不受同一发声者节流限制；经 {@code ServerWorld.createExplosion} 的爆炸一律视为
- * 一次性声音。
+ * 一次性声音。少数声音 id 带有距离系数（USEC 步枪枪声），对该次脉冲缩放每个盲人的感知距离；从不读取音量。
  */
 public final class BlindSoundRules {
     /**
@@ -35,17 +38,44 @@ public final class BlindSoundRules {
      * 留有余量：方块交互距离为 4.5。
      */
     public static final double ACTOR_RADIUS = 8.0;
+    /** Range factor of an ordinary sound, explosion or voice frame. / 普通声音、爆炸或语音帧的距离系数。 */
+    public static final double NORMAL_RANGE_FACTOR = 1.0;
     /** C9: a whisper halves the Blind's range for that voice pulse. / C9：悄悄话使该语音脉冲的感知距离减半。 */
     public static final double WHISPER_RANGE_FACTOR = 0.5;
-    /** Largest possible perception range (ComTac and Attune), used as a cheap pre-cull. / 最大可能感知距离，用作廉价预筛。 */
-    public static final int MAX_PERCEPTION_RANGE = BlindRules.perceptionRange(true, true);
+
+    /**
+     * Stable contract: per-sound-id range factors, multiplied into each Blind's own range for that one pulse (USEC Q6,
+     * D12): the unsuppressed USEC rifle shot carries twice as far (20/60/100/300), the suppressed one half as far
+     * (5/15/25/75). Every other id, the Wathe revolver included, is {@link #NORMAL_RANGE_FACTOR}. Volume is never
+     * read: a new loud or quiet sound joins this table instead.
+     * 稳定契约：按声音 id 的距离系数，对该次脉冲乘到每个盲人自身的感知距离上（USEC Q6、D12）：未消音的 USEC 步枪枪声
+     * 传两倍远（20/60/100/300），消音枪声传一半远（5/15/25/75）。其余所有 id（包括 Wathe 左轮）都是
+     * {@link #NORMAL_RANGE_FACTOR}。从不读取音量：新的响亮或安静声音应加入此表。
+     */
+    static final Map<Identifier, Double> SOUND_RANGE_FACTORS = Map.of(
+            UsecRules.SHOOT_SOUND_ID, UsecRules.BLIND_LOUD_RANGE_FACTOR,
+            UsecRules.SHOOT_SUPPRESSED_SOUND_ID, UsecRules.BLIND_SUPPRESSED_RANGE_FACTOR);
+    /**
+     * The largest factor any source can carry (the unsuppressed USEC shot, x2).
+     * 任一声源可能携带的最大系数（未消音 USEC 枪声，x2）。
+     */
+    public static final double MAX_RANGE_FACTOR = maxRangeFactor();
+    /**
+     * Largest possible effective range, used as a cheap pre-cull: the Attuned ComTac range (150) times
+     * {@link #MAX_RANGE_FACTOR} (x2), i.e. 300.
+     * 最大可能有效感知距离，用作廉价预筛：佩戴 ComTac 且共鸣时的距离（150）乘以 {@link #MAX_RANGE_FACTOR}（x2），即 300。
+     */
+    public static final int MAX_PERCEPTION_RANGE =
+            (int) Math.ceil(BlindRules.perceptionRange(true, true) * MAX_RANGE_FACTOR);
 
     /**
      * One-shot sounds that bypass the per-(emitter, Blind) throttle: every Wathe-style gunshot (revolver, derringer,
-     * firecracker decoy, Demon Hunter, Assassin guess), grenade, M67 and bomb explosions, generic explosions (Hunter
-     * shotgun), Wathe's door toggle and every vanilla door, trapdoor and fence-gate open or close.
+     * firecracker decoy, Demon Hunter, Assassin guess), both USEC rifle shots and its bolt (played within the 10-tick
+     * throttle window after the shot), grenade, M67 and bomb explosions, generic explosions (Hunter shotgun), Wathe's
+     * door toggle and every vanilla door, trapdoor and fence-gate open or close.
      * 不受（发声者，盲人）节流限制的一次性声音：所有 Wathe 式枪声（左轮、德林杰、鞭炮诱饵、恶魔猎手、刺客猜测）、
-     * 手雷、M67 与炸弹爆炸、通用爆炸（猎人霰弹枪）、Wathe 的门开关，以及所有原版门、活板门与栅栏门的开关声。
+     * USEC 步枪的两种枪声及拉栓声（拉栓在枪声后 10 刻节流窗口内播放）、手雷、M67 与炸弹爆炸、通用爆炸（猎人霰弹枪）、
+     * Wathe 的门开关，以及所有原版门、活板门与栅栏门的开关声。
      */
     static final Set<Identifier> ONE_SHOT_SOUNDS = oneShotSounds();
 
@@ -124,9 +154,26 @@ public final class BlindSoundRules {
         return soundId != null && ONE_SHOT_SOUNDS.contains(soundId);
     }
 
-    /** The Blind's range for one pulse: whispers count half (C9). / 单个脉冲的感知距离：悄悄话按一半计算（C9）。 */
-    public static double effectiveRange(int perceptionRange, boolean whispering) {
-        return whispering ? perceptionRange * WHISPER_RANGE_FACTOR : perceptionRange;
+    /**
+     * The range factor of one public sound: its {@link #SOUND_RANGE_FACTORS} entry, else {@link #NORMAL_RANGE_FACTOR}.
+     * 单个公开声音的距离系数：取其 {@link #SOUND_RANGE_FACTORS} 条目，否则为 {@link #NORMAL_RANGE_FACTOR}。
+     */
+    public static double soundRangeFactor(@Nullable Identifier soundId) {
+        return soundId == null ? NORMAL_RANGE_FACTOR : SOUND_RANGE_FACTORS.getOrDefault(soundId, NORMAL_RANGE_FACTOR);
+    }
+
+    /** The range factor of one voice frame: whispers count half (C9). / 单个语音帧的距离系数：悄悄话按一半计算（C9）。 */
+    public static double voiceRangeFactor(boolean whispering) {
+        return whispering ? WHISPER_RANGE_FACTOR : NORMAL_RANGE_FACTOR;
+    }
+
+    /**
+     * The Blind's range for one pulse: its own range times the source's factor ({@link #soundRangeFactor},
+     * {@link #voiceRangeFactor}).
+     * 单个脉冲的感知距离：盲人自身距离乘以声源系数（{@link #soundRangeFactor}、{@link #voiceRangeFactor}）。
+     */
+    public static double effectiveRange(int perceptionRange, double rangeFactor) {
+        return perceptionRange * rangeFactor;
     }
 
     /** Inclusive squared-distance range test. / 含边界的平方距离判断。 */
@@ -134,9 +181,20 @@ public final class BlindSoundRules {
         return range > 0.0 && squaredDistance <= range * range;
     }
 
+    private static double maxRangeFactor() {
+        double max = NORMAL_RANGE_FACTOR;
+        for (double factor : SOUND_RANGE_FACTORS.values()) {
+            max = Math.max(max, factor);
+        }
+        return max;
+    }
+
     private static Set<Identifier> oneShotSounds() {
         Set<Identifier> sounds = new HashSet<>(Set.of(
                 Identifier.of("wathe", "item.revolver.shoot"),
+                UsecRules.SHOOT_SOUND_ID,
+                UsecRules.SHOOT_SUPPRESSED_SOUND_ID,
+                UsecRules.BOLT_SOUND_ID,
                 Identifier.of("wathe", "item.grenade.explode"),
                 Identifier.of("sparkstrength", "item.m67.explode"),
                 Identifier.of("noellesroles", "item.bomb.explode"),
