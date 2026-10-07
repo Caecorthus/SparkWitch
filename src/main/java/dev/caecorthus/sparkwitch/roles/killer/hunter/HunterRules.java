@@ -20,6 +20,7 @@ public final class HunterRules {
 
     public static final int MAX_SHELLS = 2;
     public static final double SHOTGUN_RANGE = 8.0D;
+    public static final int SHOTGUN_INITIAL_COOLDOWN_TICKS = 40 * 20;
     public static final int FOLLOW_UP_COOLDOWN_TICKS = 4;
     public static final int EMPTY_COOLDOWN_TICKS = 20 * 30;
     public static final int SECOND_SHELL_WINDOW_TICKS = 20 * 10;

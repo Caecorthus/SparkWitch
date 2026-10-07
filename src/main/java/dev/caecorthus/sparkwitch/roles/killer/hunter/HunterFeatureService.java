@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
+import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
 import dev.doctor4t.wathe.api.Faction;
@@ -62,7 +63,12 @@ public final class HunterFeatureService {
         ShouldDropOnDeath.EVENT.register((stack, victim) -> stack.getItem() instanceof HunterTrapItem);
         ShouldPunishGunShooter.EVENT.register(HunterFeatureService::gunPunishment);
         ResetPlayer.EVENT.register(player -> HunterPlayerComponent.KEY.get(player).reset());
-        RoleAssigned.EVENT.register((player, role) -> HunterPlayerComponent.KEY.get(player).reset());
+        RoleAssigned.EVENT.register((player, role) -> {
+            HunterPlayerComponent.KEY.get(player).reset();
+            if (player instanceof ServerPlayerEntity serverPlayer) {
+                assignForRole(serverPlayer, role);
+            }
+        });
         GameEvents.ON_WIN_DETERMINED.register((world, component, status, neutralWinner) -> cleanupRound(world));
         GameEvents.ON_FINISH_FINALIZE.register((world, component) -> {
             if (world instanceof ServerWorld serverWorld) {
@@ -70,6 +76,18 @@ public final class HunterFeatureService {
             }
         });
         registerReplayFormatters();
+    }
+
+    public static void assignForRole(ServerPlayerEntity player, Role role) {
+        if (role == null || !HunterRules.ROLE_ID.equals(role.identifier())) {
+            return;
+        }
+        // The cooldown is keyed by item type, so it also applies when the shotgun is bought after role assignment.
+        // 冷却按物品类型记录，即使猎枪在身份分配后才购买，也会继承开局冷却。
+        player.getItemCooldownManager().set(
+                SparkWitchItems.doubleBarrelShotgun(),
+                HunterRules.SHOTGUN_INITIAL_COOLDOWN_TICKS
+        );
     }
 
     private static ActionResult interactWithTrap(
