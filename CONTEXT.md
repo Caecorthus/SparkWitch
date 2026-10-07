@@ -806,13 +806,12 @@ Time Stealer Pocket Watch, the Murderous Witch Death Ray, the Wathe grenade (inc
 grenade), the SparkStrength M67, the Abyss Listener Shriek Gun (`SHRIEK_GUN`, appended after the pre-existing
 sources in `SeekerBreakSource` so earlier replay ids keep their values; a server ray through
 `SeekerDeviceHits.onShriekGunFired`), and the Potion Gunner (`POTION_SHELL`: the shell's in-flight sweep, its impact
-blast, and the launcher backblast lane), plus the SparkStrength Serial Killer pistols through
-`SparkWitchApi.hitGunWorldTarget` (recorded as `REVOLVER`). A client-picked gun hit (Wathe revolver and derringer,
-Demon Hunter pistol, Serial Killer pistols)
+blast, and the launcher backblast lane). A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol)
 is accepted when the shooter's look ray meets the device box grown by its client targeting margin with
 a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
-(`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
-nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
+(`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. The SparkStrength Serial Killer pistols
+break a device with that revolver rule (recorded as `REVOLVER`) through `SparkWitchApi.hitGunWorldTarget`. Rays and
+projectiles are nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
 SparkStrength M67, Potion Gunner shell) break every device in a sphere with line of sight and still kill players as
 before. An M67 breaks devices only when the round is ACTIVE and its thrower holds a match role
 (`compat/SparkStrengthM67Compat`, the `util/OffMatchUse` rule); SparkStrength's presentation-only M67s
