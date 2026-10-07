@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkwitch.entity.NinjaGrapplingHookEntity;
 import dev.caecorthus.sparkwitch.entity.NinjaShurikenEntity;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -12,9 +13,11 @@ import net.minecraft.util.Identifier;
 public final class SparkWitchEntities {
     public static final Identifier NINJA_SHURIKEN_ID = SparkWitch.id("ninja_shuriken");
     public static final Identifier MAGICIAN_PLAYBACK_ID = SparkWitch.id("magician_playback");
+    public static final Identifier NINJA_GRAPPLING_HOOK_ID = SparkWitch.id("ninja_grappling_hook");
 
     private static EntityType<NinjaShurikenEntity> ninjaShuriken;
     private static EntityType<MagicianPlaybackEntity> magicianPlayback;
+    private static EntityType<NinjaGrapplingHookEntity> ninjaGrapplingHook;
     private static boolean registered;
 
     private SparkWitchEntities() {
@@ -57,6 +60,21 @@ public final class SparkWitchEntities {
                 magicianPlayback,
                 MagicianPlaybackEntity.createAttributes()
         );
+        // A plain Entity, never a ProjectileEntity, so projectile-only hooks never see it; one hook cycle, never saved.
+        // 普通 Entity 而非 ProjectileEntity，只针对投射物的钩子不会处理它；只存活一次钩爪循环，从不保存。
+        ninjaGrapplingHook = Registry.register(
+                Registries.ENTITY_TYPE,
+                NINJA_GRAPPLING_HOOK_ID,
+                EntityType.Builder.<NinjaGrapplingHookEntity>create(NinjaGrapplingHookEntity::new, SpawnGroup.MISC)
+                        .dimensions(0.25F, 0.25F)
+                        .maxTrackingRange(4)
+                        .trackingTickInterval(1)
+                        .disableSaving()
+                        // Only a thrown item owns a hook; /summon would create an ownerless one.
+                        // 只有投出的物品拥有钩爪；/summon 会产生无主钩爪。
+                        .disableSummon()
+                        .build(NINJA_GRAPPLING_HOOK_ID.toString())
+        );
         registered = true;
     }
 
@@ -70,5 +88,12 @@ public final class SparkWitchEntities {
     public static EntityType<MagicianPlaybackEntity> magicianPlayback() {
         if (magicianPlayback == null) throw new IllegalStateException("SparkWitch entities are not registered yet");
         return magicianPlayback;
+    }
+
+    public static EntityType<NinjaGrapplingHookEntity> ninjaGrapplingHook() {
+        if (ninjaGrapplingHook == null) {
+            throw new IllegalStateException("SparkWitch entities are not registered yet");
+        }
+        return ninjaGrapplingHook;
     }
 }

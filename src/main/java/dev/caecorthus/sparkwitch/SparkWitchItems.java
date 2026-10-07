@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
+import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
@@ -71,6 +72,7 @@ public final class SparkWitchItems {
     public static final Identifier NINJA_KNIFE_ID = SparkWitch.id("ninja_knife");
     public static final Identifier VENDETTA_KNIFE_ID = SparkWitch.id("vendetta_knife");
     public static final Identifier NINJA_SHURIKEN_ID = SparkWitch.id("ninja_shuriken");
+    public static final Identifier NINJA_GRAPPLING_HOOK_ID = SparkWitch.id("ninja_grappling_hook");
     public static final Identifier FEATHER_BLADE_ID = SparkWitch.id("feather_blade");
     public static final Identifier BLACK_RAVEN_LEDGER_ID = SparkWitch.id("black_raven_ledger");
     public static final Identifier BLACK_RAVEN_MASK_ID = BlackRavenDisguiseRules.MASK_ITEM_ID;
@@ -115,6 +117,7 @@ public final class SparkWitchItems {
     private static Item ninjaKnife;
     private static Item vendettaKnife;
     private static Item ninjaShuriken;
+    private static Item ninjaGrapplingHook;
     private static Item featherBlade;
     private static Item blackRavenLedger;
     private static Item blackRavenMask;
@@ -204,6 +207,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 NINJA_SHURIKEN_ID,
                 new NinjaShurikenItem(new Item.Settings().maxCount(1))
+        );
+        ninjaGrapplingHook = Registry.register(
+                Registries.ITEM,
+                NINJA_GRAPPLING_HOOK_ID,
+                new NinjaGrapplingHookItem(new Item.Settings().maxCount(1))
         );
         featherBlade = Registry.register(
                 Registries.ITEM,
@@ -464,6 +472,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return ninjaShuriken;
+    }
+
+    public static Item ninjaGrapplingHook() {
+        if (ninjaGrapplingHook == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return ninjaGrapplingHook;
     }
 
     public static Item featherBlade() {

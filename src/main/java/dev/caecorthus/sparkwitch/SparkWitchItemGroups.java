@@ -77,6 +77,7 @@ public final class SparkWitchItemGroups {
                                     // Killer / 杀手
                                     SparkWitchItems.ninjaKnife(),
                                     SparkWitchItems.ninjaShuriken(),
+                                    SparkWitchItems.ninjaGrapplingHook(),
                                     SparkWitchItems.featherBlade(),
                                     SparkWitchItems.blackRavenLedger(),
                                     SparkWitchItems.blackRavenMask(),

@@ -19,8 +19,9 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Bridges Ninja parry, dark-kill bounty, and death cleanup through public Wathe hooks.
- * 通过 Wathe 公共挂钩桥接忍者格挡、黑暗赏金与死亡清理。
+ * Bridges Ninja parry, dark-kill bounty, and death cleanup (items and any active Grappling Hook) through public Wathe
+ * hooks.
+ * 通过 Wathe 公共挂钩桥接忍者格挡、黑暗赏金与死亡清理（物品与任何活动钩爪）。
  */
 public final class NinjaFeatureService {
     private static boolean registered;
@@ -34,11 +35,14 @@ public final class NinjaFeatureService {
         }
         registered = true;
         NinjaShopService.register();
+        NinjaGrappleService.register();
         KillPlayer.BEFORE.register(NinjaFeatureService::beforeKill);
         KillPlayer.AFTER.register(NinjaFeatureService::afterKill);
     }
 
     public static void assignForRole(ServerPlayerEntity player, Role role) {
+        // A (re)assigned role ends any hook still out, whoever holds the item. / 重新分配职业时结束仍在外的钩爪，无论谁持有。
+        NinjaGrappleService.discardHook(player);
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         if (!NinjaRules.isNinja(role)) {
             component.clearNinjaParryWindow();
@@ -48,6 +52,11 @@ public final class NinjaFeatureService {
         player.getItemCooldownManager().set(
                 SparkWitchItems.ninjaKnife(),
                 NinjaRules.NINJA_KNIFE_INITIAL_COOLDOWN_TICKS
+        );
+        // 忍者开局同样锁住钩爪 90 秒（所有者 2026-10-07）。/ The Grappling Hook is locked for 90 s at round start too.
+        player.getItemCooldownManager().set(
+                SparkWitchItems.ninjaGrapplingHook(),
+                NinjaRules.GRAPPLING_HOOK_INITIAL_COOLDOWN_TICKS
         );
     }
 
@@ -88,6 +97,7 @@ public final class NinjaFeatureService {
             Identifier deathReason
     ) {
         removeNinjaWeapons(victim);
+        NinjaGrappleService.discardHook(victim);
         if (killer == null || victim.getUuid().equals(killer.getUuid())) {
             return;
         }
@@ -113,7 +123,8 @@ public final class NinjaFeatureService {
         boolean changed = false;
         for (int slot = 0; slot < player.getInventory().size(); slot++) {
             ItemStack stack = player.getInventory().getStack(slot);
-            if (stack.isOf(SparkWitchItems.ninjaKnife()) || stack.isOf(SparkWitchItems.ninjaShuriken())) {
+            if (stack.isOf(SparkWitchItems.ninjaKnife()) || stack.isOf(SparkWitchItems.ninjaShuriken())
+                    || stack.isOf(SparkWitchItems.ninjaGrapplingHook())) {
                 player.getInventory().setStack(slot, ItemStack.EMPTY);
                 changed = true;
             }
@@ -123,14 +134,16 @@ public final class NinjaFeatureService {
         var personalCraftingInput = player.playerScreenHandler.getCraftingInput();
         for (int slot = 0; slot < personalCraftingInput.size(); slot++) {
             ItemStack stack = personalCraftingInput.getStack(slot);
-            if (stack.isOf(SparkWitchItems.ninjaKnife()) || stack.isOf(SparkWitchItems.ninjaShuriken())) {
+            if (stack.isOf(SparkWitchItems.ninjaKnife()) || stack.isOf(SparkWitchItems.ninjaShuriken())
+                    || stack.isOf(SparkWitchItems.ninjaGrapplingHook())) {
                 personalCraftingInput.setStack(slot, ItemStack.EMPTY);
                 changed = true;
             }
         }
         ItemStack cursorStack = player.currentScreenHandler.getCursorStack();
         if (cursorStack.isOf(SparkWitchItems.ninjaKnife())
-                || cursorStack.isOf(SparkWitchItems.ninjaShuriken())) {
+                || cursorStack.isOf(SparkWitchItems.ninjaShuriken())
+                || cursorStack.isOf(SparkWitchItems.ninjaGrapplingHook())) {
             player.currentScreenHandler.setCursorStack(ItemStack.EMPTY);
             changed = true;
         }
