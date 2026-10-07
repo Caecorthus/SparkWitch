@@ -60,6 +60,17 @@ Current build baseline:
     (秃鹫超级骂), whose C2S id `sparkstrength:vulture_super_curse` sits next to `sparkstrength:demon_hunter_sniff` on
     the Control Expert stun, Seeker session, Riftwalker session and Grand Witch Fear deny-lists (Fear blocks every
     SparkStrength role skill since the owner's 2026-10-07 decision, the Sniff included).
+  - Add-on gun world hits (2026-10-07, frozen names and signatures, reached by SparkStrength's `SparkWitchCompat`
+    through reflection for the Serial Killer pistols, which extend Wathe's `RevolverItem` but fire through
+    `sparkstrength:serial_pistol_shoot`): client `SparkWitchApi.preferNearerGunWorldTarget(PlayerEntity, HitResult,
+    double)` adds the Seeker device step that `mixin/seeker/SeekerGunTargetMixin` wraps inside `RevolverItem#use`
+    (the Wraith pass-through and Magician puppet pick already sit on `RevolverItem.getGunTarget` itself); server
+    `SparkWitchApi.hitGunWorldTarget(ServerPlayerEntity, Entity, ItemStack, double)` runs the gun's non-player
+    target where Wathe's receiver records the shot, through `MagicianPuppetHits.onAddonGunShot` and
+    `SeekerDeviceHits.onAddonGunShot` (revolver rules with the caller's range, capped at 65; a device break is
+    recorded as `REVOLVER`). The caller finishes such a shot as a miss. `SparkWitchApi.isBoundKillerTargetingVendetta(
+    PlayerEntity, PlayerEntity)` (`VendettaInteractionService`'s rule) lets the pistols' own alive check accept the
+    shooter's bound active Vendetta, so `killPlayer` resolves its terminal death as under a revolver shot.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
   D1–D10, numbers in each ability class):
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
@@ -248,7 +259,8 @@ Current build baseline:
     Hunter pistol (only when the copied player would die to it; `mixin/MagicianDemonHunterRefundMixin` pays the
     Jester refund), Death Ray (pierces), Wathe bat (`MagicianPuppetAttackHandlers`, full charge), Swordfish,
     Ceremonial Sword strike and dash, ninja shuriken, NoellesRoles throwing axe, Potion Gunner shell and backblast,
-    and the SparkStrength M67 blast. Non-lethal tools still pass through puppets.
+    and the SparkStrength M67 blast. Non-lethal tools still pass through puppets. The SparkStrength Serial Killer
+    pistols end one through `SparkWitchApi.hitGunWorldTarget` (`onAddonGunShot`, revolver rules with the caller's range).
   - Presentation (D6): `client/magician/MagicianPuppetStandIn` answers every skin, name-label and instinct-glow
     question for a puppet with a stand-in player (the copied player when loaded, else a detached client-only copy
     that is never spawned), so each viewer's existing rules apply unchanged (`MagicianPuppetAppearance`,
@@ -797,8 +809,9 @@ sources in `SeekerBreakSource` so earlier replay ids keep their values; a server
 blast, and the launcher backblast lane). A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol)
 is accepted when the shooter's look ray meets the device box grown by its client targeting margin with
 a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
-(`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
-nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
+(`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. The SparkStrength Serial Killer pistols
+break a device with that revolver rule (recorded as `REVOLVER`) through `SparkWitchApi.hitGunWorldTarget`. Rays and
+projectiles are nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
 SparkStrength M67, Potion Gunner shell) break every device in a sphere with line of sight and still kill players as
 before. An M67 breaks devices only when the round is ACTIVE and its thrower holds a match role
 (`compat/SparkStrengthM67Compat`, the `util/OffMatchUse` rule); SparkStrength's presentation-only M67s
