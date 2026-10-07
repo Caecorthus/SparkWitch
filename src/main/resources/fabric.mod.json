@@ -67,7 +67,8 @@
       "sparkwitch:rift_session",
       "sparkwitch:rift_gates",
       "sparkwitch:bewitched",
-      "sparkwitch:apprentice_player"
+      "sparkwitch:apprentice_player",
+      "sparkwitch:usec_player"
     ]
   },
   "mixins": [

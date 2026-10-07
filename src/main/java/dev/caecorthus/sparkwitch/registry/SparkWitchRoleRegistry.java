@@ -23,6 +23,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaRole;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
@@ -95,6 +96,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
     public static final Identifier RIFTWALKER_ID = RiftwalkerRules.ROLE_ID;
     public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
+    public static final Identifier USEC_ID = UsecRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -132,6 +134,7 @@ public final class SparkWitchRoleRegistry {
     private static Role potionGunner;
     private static Role riftwalker;
     private static Role bewitched;
+    private static Role usec;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -162,6 +165,10 @@ public final class SparkWitchRoleRegistry {
         // 仅作警察分类，使 SparkStrength 开局为内应发放接入警察频道的平板（D4），与 SparkStrength 对黑警的处理相同；
         // 内应仍是 Wathe 中立，从不占用警位。
         PoliceRoles.register(INSIDER_ID);
+        // Police classification, like the Control Expert and the Seeker (SparkTraits police traits, SparkStrength tablet);
+        // cop slots come from PoliceSlotAssignmentService.
+        // 与控场专家、搜寻者相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(USEC_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
@@ -348,6 +355,11 @@ public final class SparkWitchRoleRegistry {
     public static Role bewitched() {
         ensureRegistered();
         return bewitched;
+    }
+
+    public static Role usec() {
+        ensureRegistered();
+        return usec;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -625,6 +637,20 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> context.getTotalPlayerCount() >= FiendRules.MIN_PLAYERS)
                 .build());
+        // USEC (fifth police variant): registered right before the Insider, because nothing may follow the Insider
+        // (InsiderRegistrationContractTest), so only the Insider's own index shifts; the assassin-guess tail is re-sorted.
+        // Civilian police profile with a 20 s sprint cap (twice the Vigilante's) and no appearance condition (Q11): it is
+        // drawn only through the shared Vigilante slots. Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // USEC（第五个警察变体）：注册在内应之前，因为内应之后不得再注册职业（InsiderRegistrationContractTest），
+        // 因此只有内应自身的下标偏移；刺客猜测尾部会重新排序。平民警察参数，冲刺上限 20 秒（义警的两倍），
+        // 无出现条件（Q11）：只通过共享的义警槽位抽取。不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        usec = SparkFactionApi.registerRole(FactionRoleDefinition.builder(USEC_ID, FactionIds.CIVILIAN)
+                .color(UsecRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(UsecRules.MAX_SPRINT_TICKS)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
         // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
         // a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
@@ -699,6 +725,7 @@ public final class SparkWitchRoleRegistry {
                 emma,
                 controlExpert,
                 seeker,
+                usec,
                 fiend,
                 insider,
                 windSpirit,

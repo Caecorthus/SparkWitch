@@ -28,6 +28,7 @@ import dev.caecorthus.sparkwitch.client.insider.InsiderClient;
 import dev.caecorthus.sparkwitch.client.abysslistener.AbyssListenerClient;
 import dev.caecorthus.sparkwitch.client.riftwalker.RiftwalkerClient;
 import dev.caecorthus.sparkwitch.client.seeker.SeekerClientModule;
+import dev.caecorthus.sparkwitch.client.usec.UsecClientModule;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.HunterTrapClientHooks;
@@ -248,6 +249,9 @@ public final class SparkWitchClient implements ClientModInitializer {
             return null;
         });
         CanSeePoison.EVENT.register(WitchPoisonVisionClientHooks::canSeeHiddenPoison);
+        // USEC client hub, appended last: scope, HUD, attachment screen, impact cracks.
+        // USEC 客户端注册中心，追加在最后：开镜、HUD、配件界面、命中裂痕。
+        UsecClientModule.register();
     }
 
     public static Text abilityKeyText() {

@@ -20,6 +20,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderDivinatio
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseService;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurNetworking;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.net.SeekerNetworking;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.net.UsecNetworking;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.net.RiftwalkerNetworking;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperThrowService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRequestService;
@@ -213,5 +214,9 @@ public final class SparkWitchPackets {
             // 进入 play 阶段后再次确认 SparkWitch 服务端，因为代理可能吞掉登录查询。
             sender.sendPacket(new SparkWitchServerConfirmS2CPacket(SparkWitchVersionHandshake.localVersion()));
         });
+        // USEC payload types register in their own role-owned class, like the Seeker; the owning services register the
+        // receivers from SparkWitchEvents, which runs after this. / USEC 数据包类型与搜寻者一样在自有类中注册；
+        // 接收器由各自的服务在之后运行的 SparkWitchEvents 中注册。
+        UsecNetworking.register();
     }
 }

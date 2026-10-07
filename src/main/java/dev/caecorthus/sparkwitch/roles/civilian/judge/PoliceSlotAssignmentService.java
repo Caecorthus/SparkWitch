@@ -17,8 +17,11 @@ public final class PoliceSlotAssignmentService {
     public static final Identifier EMMA_ID = Identifier.of("sparkwitch", "emma");
     public static final Identifier CONTROL_EXPERT_ID = Identifier.of("sparkwitch", "control_expert");
     public static final Identifier SEEKER_ID = Identifier.of("sparkwitch", "seeker");
+    /** Literal on purpose: the judge package never imports role packages. / 刻意使用字面量：法官包从不导入职业包。 */
+    public static final Identifier USEC_ID = Identifier.of("sparkwitch", "usec");
     private static final Identifier VIGILANTE_ID = Identifier.of("wathe", "vigilante");
-    private static final List<Identifier> VARIANT_IDS = List.of(JudgeRules.ROLE_ID, EMMA_ID, CONTROL_EXPERT_ID, SEEKER_ID);
+    private static final List<Identifier> VARIANT_IDS =
+            List.of(JudgeRules.ROLE_ID, EMMA_ID, CONTROL_EXPERT_ID, SEEKER_ID, USEC_ID);
 
     private PoliceSlotAssignmentService() {
     }
