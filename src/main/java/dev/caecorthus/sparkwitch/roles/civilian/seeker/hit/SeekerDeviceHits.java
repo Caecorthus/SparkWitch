@@ -125,6 +125,28 @@ public final class SeekerDeviceHits {
     }
 
     /**
+     * Add-on gun shot routed through {@code SparkWitchApi.hitGunWorldTarget} (today SparkStrength's Serial Killer
+     * pistols, Wathe {@code RevolverItem} subclasses that fire through their own payload). The facade has already
+     * checked the gun (a {@code wathe:guns} stack in hand, not cooling down); this is the revolver entry's break with
+     * the caller's {@code maxDistance} (capped at Wathe's 65): live foreign device, aim and line of sight,
+     * {@link SeekerDamageRules#mayBreak}. Recorded as {@link SeekerBreakSource#REVOLVER}, so the break, its replay id
+     * and the owner's mark are exactly a revolver hit's. The caller finishes the shot as a miss. True = broken.
+     * 经 {@code SparkWitchApi.hitGunWorldTarget} 转入的附属模组枪械射击（目前为 SparkStrength 连环杀手手枪：Wathe
+     * {@code RevolverItem} 子类，经自有数据包开火）。门面已校验枪械（手中的 {@code wathe:guns} 物品且未冷却）；这里按左轮入口
+     * 打坏设备，距离取调用方的 {@code maxDistance}（上限为 Wathe 的 65）：存活的他人设备、瞄准与视线、
+     * {@link SeekerDamageRules#mayBreak}。记录为 {@link SeekerBreakSource#REVOLVER}，因此损坏、回放 id 与对拥有者的标记都与左轮
+     * 命中完全一致。调用方随后按未命中收尾。打坏时返回 true。
+     */
+    public static boolean onAddonGunShot(ServerPlayerEntity shooter, @Nullable Entity target, double maxDistance) {
+        if (shooter == null || shooter.getWorld().isClient() || !(target instanceof SeekerDeviceEntity device)
+                || !(maxDistance > 0.0)) {
+            return false;
+        }
+        return breakTargeted(shooter, device, SeekerBreakSource.REVOLVER,
+                Math.min(maxDistance, SeekerDamageRules.GUN_MAX_DISTANCE));
+    }
+
+    /**
      * SparkWitch double-barrel shotgun (one-line Hunter hook, server branch): nearest-wins along the shooter's 8-block
      * ray. A nearer breakable device breaks and the shot kills nobody (the Hunter's record then says {@code hit:false}).
      * SparkWitch 双管猎枪（Hunter 服务端分支中的一行钩子）：沿射手 8 格射线执行最近者命中；更近且可打坏的设备被打坏，

@@ -129,6 +129,38 @@ public final class MagicianPuppetHits {
     }
 
     /**
+     * Add-on gun shot routed through {@code SparkWitchApi.hitGunWorldTarget} (today SparkStrength's Serial Killer
+     * pistols, lethal guns under D5 that fire through their own payload). The facade has already checked the gun (a
+     * {@code wathe:guns} stack in hand, not cooling down); this is the revolver entry with the caller's
+     * {@code maxDistance} (capped at Wathe's 65): a live foreign puppet, aim and line of sight. The puppet ends
+     * ({@code GUN}, the gun's own name in the replay) and pays the Magician (D4); the caller then finishes the shot as
+     * a miss, so the hit costs what a real shot costs and never the innocent-shot punishment or mood loss (D3).
+     * True = ended.
+     * 经 {@code SparkWitchApi.hitGunWorldTarget} 转入的附属模组枪械射击（目前为 SparkStrength 连环杀手手枪：D5 下的致命枪械，
+     * 经自有数据包开火）。门面已校验枪械（手中的 {@code wathe:guns} 物品且未冷却）；这里按左轮入口处理，距离取调用方的
+     * {@code maxDistance}（上限为 Wathe 的 65）：他人的活皮套、瞄准与视线。皮套被结束（{@code GUN}，回放显示该枪自己的名称）
+     * 并向魔术师付款（D4）；调用方随后按未命中收尾，因此命中付出真实射击的代价，绝不触发误杀惩罚或理智损失（D3）。
+     * 返回 true 表示已结束。
+     */
+    public static boolean onAddonGunShot(ServerPlayerEntity shooter, @Nullable Entity target, ItemStack gun,
+                                         double maxDistance) {
+        if (shooter == null || shooter.getWorld().isClient() || shooter.isSpectator()
+                || !(target instanceof MagicianPlaybackEntity puppet) || gun == null || gun.isEmpty()
+                || !(maxDistance > 0.0) || !hittableBy(shooter, puppet)) {
+            return false;
+        }
+        double max = Math.min(maxDistance, SeekerDamageRules.GUN_MAX_DISTANCE);
+        Box box = puppet.getBoundingBox();
+        if (shooter.distanceTo(puppet) >= max
+                || !SeekerDamageRules.gunAimedAndVisible(shooter.getWorld(), shooter.getEyePos(),
+                shooter.getRotationVec(1.0F), max, box, box.expand(puppet.getTargetingMargin()), shooter)) {
+            return false;
+        }
+        return MagicianPlaybackManager.endPuppet(puppet, shooter, GameConstants.DeathReasons.GUN,
+                gun.getTranslationKey());
+    }
+
+    /**
      * Wathe knife charged-stab receiver, called at its HEAD after SparkTraits' priority-2200 guards (Last Escape, forced
      * melee cooldown, raised-knife release). Wathe returns at once for a non-player id, so the caller cancels after a
      * puppet stab. Validates the Wathe knife in either hand, no knife cooldown, the SparkTraits weapon-action gate, a
