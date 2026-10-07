@@ -1262,5 +1262,13 @@
   "subtitles.sparkwitch.item.usec_rifle.shoot_suppressed": "狙击步枪：消音射击",
   "subtitles.sparkwitch.item.usec_rifle.bolt": "狙击步枪：拉栓",
   "subtitles.sparkwitch.item.usec_rifle.magazine": "狙击步枪：更换弹匣",
-  "subtitles.sparkwitch.item.usec_rifle.load_round": "子弹：压入"
+  "subtitles.sparkwitch.item.usec_rifle.load_round": "子弹：压入",
+  "replay.item_use.sparkwitch.usec_rifle_fire.miss": "%1$s 用§6狙击步枪§r开了一枪（%2$s），没有命中",
+  "replay.item_use.sparkwitch.usec_rifle_fire.hit": "%1$s 用§6狙击步枪§r（%2$s）击中了 %3$s",
+  "replay.item_use.sparkwitch.usec_rifle_fire.miss_penetrated": "%1$s 用§6狙击步枪§r开了一枪（%2$s），穿透 %3$s 个方块，没有命中",
+  "replay.item_use.sparkwitch.usec_rifle_fire.hit_penetrated": "%1$s 用§6狙击步枪§r（%2$s）穿透 %4$s 个方块击中了 %3$s",
+  "replay.item_use.sparkwitch.usec_rifle_fire.punished": "%1$s 因误射无辜的 %2$s 受到惩罚",
+  "replay.item_use.sparkwitch.usec_rifle_fire.confiscated": "%1$s 因误射无辜的 %2$s 被没收了§6狙击步枪§r",
+  "message.sparkwitch.usec.chamber_empty": "弹膛为空：请在配件界面装上弹匣或压入一发子弹。",
+  "message.sparkwitch.usec.rifle_confiscated": "你误射了无辜者：狙击步枪已被没收。"
 }

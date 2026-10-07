@@ -94,6 +94,11 @@ public final class ControlExpertStunRules {
             // stored pre-selection used only when playback starts, so it stays allowed like other UI-only payloads.
             // 魔术师录制/播放阶段；皮套选择（magician_target）只是开始播放时才使用的预选，与其他仅界面数据包一样放行。
             Identifier.of("sparkwitch", "magician_ability"),
+            // USEC rifle fire and attachment-screen actions (the stun already denies inventory clicks); the scope
+            // state is presentation only and stays allowed. / USEC 步枪开火与配件界面操作（眩晕本就禁止背包点击）；
+            // 开镜状态仅为表现，保持放行。
+            Identifier.of("sparkwitch", "fire_usec_rifle"),
+            Identifier.of("sparkwitch", "usec_attachment"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

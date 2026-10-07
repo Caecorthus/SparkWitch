@@ -447,6 +447,60 @@ public final class SeekerDeviceHits {
         return true;
     }
 
+    /**
+     * Stable seam: USEC sniper rifle match shot (server hitscan, no projectile entity). The bullet's server path is a
+     * polyline, because AP rounds pierce blocks and sink, so nearest-wins is measured as path distance (lengths summed
+     * along {@code path} from its first point). Walking the segments in flight order, the first device the shooter may
+     * break ({@link SeekerDamageRules#mayBreak}, never its own) whose margin-grown box the path enters strictly before
+     * {@code reach} breaks (recorded as {@code USEC_RIFLE}) and absorbs the shot. Devices behind a pierced wall are on
+     * the path, so AP reaches them; FMJ paths end at their first block. Only a running round breaks anything (the
+     * caller calls this for match shots only). The caller (one call per shot, after the Magician puppet check) passes
+     * the polyline from the shooter's eye to where the bullet ended against blocks or ran out of energy (at least two
+     * points), and {@code reach}: the path distance to the first player it would hit, or the whole path length.
+     * Optional SparkStrength may {@code @Inject}/{@code @ModifyVariable} at HEAD on these three arguments to let its
+     * drones absorb the shot the same way (return or pass a shorter distance), as it does for {@link #onDeathRayFired}.
+     * 稳定接缝：USEC 狙击步枪的对局射击（服务端即时射线，无投射物实体）。AP 子弹会穿透方块并下坠，因此子弹的服务端路径是折线，
+     * 最近者命中按路径距离（沿 {@code path} 自第一个点累加的长度）量取。按飞行顺序逐段检查，路径在 {@code reach} 之前（严格早于）
+     * 进入其扩大余量箱体、且射手可打坏（{@link SeekerDamageRules#mayBreak}，从不打坏自己的设备）的第一个设备被打坏（记录为
+     * {@code USEC_RIFLE}）并吸收这一枪。被穿透墙壁后方的设备也在路径上，因此 AP 能打到；FMJ 路径止于其第一个方块。只有进行中的
+     * 对局才会打坏设备（调用方只为对局射击调用）。调用方（每发一次，在魔术师皮套检查之后）传入从射手眼睛到子弹撞上方块或能量耗尽处的
+     * 折线（至少两个点），以及 {@code reach}：到其本会命中的第一名玩家的路径距离，没有玩家时为整条路径长度。可选的 SparkStrength
+     * 可在 HEAD 对这三个参数 {@code @Inject}/{@code @ModifyVariable}，让其无人机以同样方式吸收这一枪（返回或传入更短的距离），
+     * 与其对 {@link #onDeathRayFired} 的做法相同。
+     *
+     * @param shooter the USEC shooter / 射手
+     * @param path    the bullet's polyline from the eye, in flight order / 子弹自眼睛起、按飞行顺序的折线
+     * @param reach   path distance to the player the bullet would hit, else the path length / 到本会命中玩家的路径距离，否则为路径长度
+     * @return {@code reach} unchanged when no device absorbed the shot; otherwise the broken device's path distance, which
+     *         is strictly less than {@code reach} (the caller then hits nobody) / 没有设备吸收时原样返回 {@code reach}；否则返回被
+     *         打坏设备的路径距离（严格小于 {@code reach}，调用方随后不命中任何人）
+     */
+    public static double onUsecRifleFired(ServerPlayerEntity shooter, List<Vec3d> path, double reach) {
+        if (shooter == null || shooter.getWorld().isClient() || path == null || path.size() < 2 || !(reach > 0.0)
+                || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
+            return reach;
+        }
+        double travelled = 0.0;
+        for (int i = 0; i + 1 < path.size() && travelled < reach; i++) {
+            Vec3d from = path.get(i);
+            Vec3d to = path.get(i + 1);
+            double length = from.distanceTo(to);
+            if (!(length > 0.0)) {
+                continue;
+            }
+            double cut = Math.min(length, reach - travelled);
+            Vec3d end = cut < length ? from.add(to.subtract(from).multiply(cut / length)) : to;
+            SeekerDeviceRaycast.DeviceHit hit = SeekerDeviceRaycast.nearestDevice(shooter.getWorld(), from, end,
+                    cut * cut, breakableBy(shooter));
+            if (hit != null) {
+                SeekerDeviceService.breakDevice(hit.device(), SeekerBreakSource.USEC_RIFLE, shooter);
+                return Math.min(reach, travelled + Math.sqrt(hit.distanceSquared()));
+            }
+            travelled += length;
+        }
+        return reach;
+    }
+
     // ---- Internal ----
 
     private static boolean breakStabbedDevice(ServerPlayerEntity attacker, SeekerDeviceEntity device,

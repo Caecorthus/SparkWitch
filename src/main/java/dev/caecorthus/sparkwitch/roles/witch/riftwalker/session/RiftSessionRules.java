@@ -102,6 +102,10 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "use_fiend_dash"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
+            // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.
+            // USEC 步枪开火与配件界面操作；开镜状态仅为表现，保持放行。
+            Identifier.of("sparkwitch", "fire_usec_rifle"),
+            Identifier.of("sparkwitch", "usec_attachment"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。
