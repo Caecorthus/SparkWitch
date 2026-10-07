@@ -3,12 +3,15 @@ package dev.caecorthus.sparkwitch.roles.civilian.usec;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.StackReference;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.ClickType;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import org.jetbrains.annotations.Nullable;
@@ -18,11 +21,13 @@ import java.util.List;
 /**
  * A loose USEC magazine. Its rounds live in vanilla {@code CUSTOM_DATA} under {@link #NBT_KEY} as
  * {@link UsecMagazineContents} NBT (bottom to top). The name lists the rounds in firing order, each tinted by its type
- * (Q9, after the NoellesRoles Bartender base-spirit naming), e.g. "Magazine [AP·FMJ·FMJ]". Loading rounds is owned by
- * the attachment work package, not this class.
+ * (Q9, after the NoellesRoles Bartender base-spirit naming), e.g. "Magazine [AP·FMJ·FMJ]". Rounds are loaded one at a
+ * time by right-clicking it with rounds on the cursor ({@link #onClicked}, {@link UsecAttachmentCursorLoading}) or from
+ * the attachment screen ({@link UsecAttachmentService}).
  * 散装的 USEC 弹匣。子弹以 {@link UsecMagazineContents} NBT（自下而上）存放在原版 {@code CUSTOM_DATA} 的
  * {@link #NBT_KEY} 下。名称按发射顺序列出子弹，并按弹种着色（Q9，参照 NoellesRoles 酒保基酒的命名），例如
- * 「弹匣 [AP·FMJ·FMJ]」。装弹由配件工作包负责，不在本类实现。
+ * 「弹匣 [AP·FMJ·FMJ]」。装弹每次一发：光标拿着子弹右键本物品（{@link #onClicked}、{@link UsecAttachmentCursorLoading}），
+ * 或在配件界面操作（{@link UsecAttachmentService}）。
  */
 public class UsecMagazineItem extends Item {
     /** Stable NBT key; do not rename. / 稳定的 NBT 键名，不得改名。 */
@@ -100,6 +105,17 @@ public class UsecMagazineItem extends Item {
     public boolean allowComponentsUpdateAnimation(PlayerEntity player, Hand hand, ItemStack oldStack,
                                                   ItemStack newStack) {
         return false;
+    }
+
+    /**
+     * Cursor loading: rounds on the cursor + right-click loads one round (server only; both sides claim the click so it
+     * never swaps). / 光标装填：光标拿着子弹右键装入一发（仅服务端改动；两端都认领该点击，因此不会交换）。
+     */
+    @Override
+    public boolean onClicked(ItemStack stack, ItemStack otherStack, Slot slot, ClickType clickType,
+                             PlayerEntity player, StackReference cursorStackReference) {
+        return UsecAttachmentCursorLoading.onMagazineClicked(stack, otherStack, slot, clickType, player,
+                cursorStackReference);
     }
 
     @Override

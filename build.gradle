@@ -525,6 +525,19 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
                 providerMethod: "getVisibleGunTarget",
                 providerDescriptor: "(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;"
+        ],
+        [
+                // USEC D16: an empty-cursor right press on the rifle opens the attachment screen (chains with the
+                // armor wrapper). / USEC D16：空光标右键按下步枪时打开配件界面（与护甲包装串联）。
+                configName: "usec.UsecLimitedInventoryRifleClickMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/usec/UsecLimitedInventoryRifleClickMixin.class",
+                handler: "sparkwitch\$openUsecAttachments",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "method_25402(DDI)Z",
+                atTarget: "Ldev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen;onMouseClick(Lnet/minecraft/class_1735;IILnet/minecraft/class_1713;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25402",
+                providerDescriptor: "(DDI)Z"
         ]
 ]
 

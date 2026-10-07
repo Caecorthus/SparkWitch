@@ -155,7 +155,9 @@
     "riftwalker.RiftSessionMouseMixin",
     "riftwalker.RiftSessionSpectatorHudMixin",
     "riftwalker.RiftGateAttackMixin",
-    "riftwalker.RiftGateCrosshairMixin"
+    "riftwalker.RiftGateCrosshairMixin",
+    "usec.UsecLimitedInventoryRifleClickMixin",
+    "usec.UsecInventoryScreenRifleClickMixin"
   ],
   "injectors": {
     "defaultRequire": 1
