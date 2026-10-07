@@ -84,6 +84,9 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkstrength", "drone_pilot_action"),
             Identifier.of("sparkstrength", "demon_hunter_sniff"),
             Identifier.of("sparkstrength", "vulture_super_curse"),
+            // Spiritualist Wraith possession (SparkStrength, key 2); its exit packet stays allowed.
+            // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
+            Identifier.of("sparkstrength", "spirit_possess"),
             Identifier.of("sparkstrength", "call_tablet_meeting"),
             Identifier.of("sparkstrength", "cast_tablet_vote"),
             Identifier.of("sparkstrength", "confirm_tablet_vote"),

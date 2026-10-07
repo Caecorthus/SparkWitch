@@ -83,6 +83,9 @@ public final class GrandWitchFearService {
             Identifier.of("sparkstrength", "demon_hunter_sniff"),
             // Vulture Super Curse (key 2) and Taotie head launch. / 秃鹫超级骂（技能键 2）与饕餮发射头颅。
             Identifier.of("sparkstrength", "vulture_super_curse"),
+            // Spiritualist Wraith possession (SparkStrength, key 2); its exit packet stays allowed.
+            // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
+            Identifier.of("sparkstrength", "spirit_possess"),
             Identifier.of("sparkstrength", "taotie_head_fire"),
             // Legacy Criminologist skill (older SparkStrength builds); an unregistered id never matches.
             // 旧版犯罪学家技能（较旧的 SparkStrength 构建）；未注册时该 id 永远不会命中。
