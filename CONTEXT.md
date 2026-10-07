@@ -684,8 +684,11 @@ guards cannot end read the stun through the public `SparkWitchApi.isControlExper
 (2026-10-07, name and signature frozen): SparkStrength reflects it to refuse and end a Bomber drone pilot
 session as STUNNED, since drone moves and exit stay off the deny-list. The SparkStrength Serial
 Killer's psycho-pistol shot (`sparkstrength:serial_pistol_shoot`, 2026-10-07) is classified as a gun
-shot: it sits on exactly the lists that hold `wathe:gunshoot` (stun, Seeker session, Rift occupant)
-and, like that id, not on Grand Witch Fear's. The Disruptor gates
+shot: it sits on every list that holds `wathe:gunshoot` (stun, Seeker session, Rift occupant), and
+`roles/civilian/vendetta/VendettaTargetingPacketGuard` drops it like `wathe:gunshoot` when Vendetta
+pair isolation refuses the target (target id read through the id's registered codec, no SparkStrength
+class named). Unlike `wathe:gunshoot`, it is also on Grand Witch Fear's list, like the Demon Hunter
+pistol (owner decision 2026-10-07). The Disruptor gates
 keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
