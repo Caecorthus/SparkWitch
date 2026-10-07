@@ -45,6 +45,9 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRuntim
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.PoisonApplePlateService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenShopService;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackManager;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianReplayEvents;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithConversion;
 import dev.caecorthus.sparkwitch.roles.special.wraith.runtime.WraithLifecycle;
@@ -103,9 +106,16 @@ public final class SparkWitchEvents {
         FocusedFootstepsRuntime.register();
         WitchMaidenShopService.register();
         WraithLifecycle.register();
+        MagicianPlaybackManager.init();
+        MagicianReplayEvents.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
+                if (role != null && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())) {
+                    MagicianPlayerComponent.KEY.get(serverPlayer).reset();
+                    MagicianPlayerComponent.KEY.get(serverPlayer).assignInitialCooldown();
+                    MagicianPlayerComponent.KEY.get(serverPlayer).sync();
+                }
                 ProphetRuntime.assignForRole(serverPlayer, role);
                 ProphetEconomyService.assignForRole(serverPlayer, role);
                 WitchSkillAssignmentService.assignForRole(serverPlayer, role);
@@ -142,6 +152,7 @@ public final class SparkWitchEvents {
             WitchFactionFeatureService.clearPlayerRuntime(player);
             FirePokerFallAttributionService.clearPlayer(player);
             WitchPlayerComponent.KEY.get(player).clear();
+            MagicianPlayerComponent.KEY.get(player).reset();
             PerfumerPlayerComponent.KEY.get(player).clear();
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 OrthopedistSkillService.clearPlayer(serverPlayer);
@@ -170,6 +181,7 @@ public final class SparkWitchEvents {
                 for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                     WitchFactionFeatureService.clearPlayerRuntime(player);
                     WitchPlayerComponent.KEY.get(player).clear();
+                    MagicianPlayerComponent.KEY.get(player).reset();
                     PerfumerPlayerComponent.KEY.get(player).clear();
                     OrthopedistSkillService.clearPlayer(player);
                     GuardianAngelFeatureService.clearRoundPlayer(player);

@@ -8,11 +8,13 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponen
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMarkPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserPlayerComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.entity.EntityComponentFactoryRegistry;
 import org.ladysnake.cca.api.v3.entity.EntityComponentInitializer;
+import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.entity.RespawnCopyStrategy;
 import org.ladysnake.cca.api.v3.world.WorldComponentFactoryRegistry;
 import org.ladysnake.cca.api.v3.world.WorldComponentInitializer;
@@ -56,6 +58,9 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, CurserPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(CurserPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, MagicianPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(MagicianPlayerComponent::new);
         registry.beginRegistration(PlayerEntity.class, LegacyWraithPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(LegacyWraithPlayerComponent::new);

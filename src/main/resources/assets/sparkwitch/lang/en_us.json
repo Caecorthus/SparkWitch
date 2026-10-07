@@ -81,6 +81,13 @@
   "announcement.goal.kidnapper": "Drag bodies away before anyone finds them.",
   "announcement.goals.kidnapper": "Eliminate the passengers. Use Knockout Drug to kidnap a living player for 30 seconds, sneak to release them early, and move at 80% speed while dragging bodies.",
   "announcement.win.kidnapper": "Killer Victory",
+  "announcement.role.magician": "Magician",
+  "announcement.title.magician": "Magician",
+  "announcement.goal.magician": "The show begins! Trick them with your disguise: earn money when it kills, and earn money when it is killed!",
+  "announcement.goals.magician": "The show begins! Trick them with your disguise: earn money when it kills, and earn money when it is killed!",
+  "announcement.win.magician": "Killer Victory",
+  "ui.sparkwitch.magician.pagination.previous": "Previous page",
+  "ui.sparkwitch.magician.pagination.next": "Next page",
   "item.sparkwitch.ceremonial_sword": "Ceremonial Sword",
   "item.sparkwitch.fire_poker": "Fire Poker",
   "item.sparkwitch.perfume_essence": "Perfume Essence",
@@ -341,5 +348,12 @@
   "shop.sparkwitch.tarot.survival": "Survival Divination",
   "shop.sparkwitch.tarot.survival.description": "Choose a participant and learn whether they are alive. Swallowed but undigested players still count as alive.",
   "shop.sparkwitch.knockout_drug": "Knockout Drug",
-  "shop.sparkwitch.knockout_drug.description": "Use on a living player to kidnap them for 30 seconds."
+  "shop.sparkwitch.knockout_drug.description": "Use on a living player to kidnap them for 30 seconds.",
+  "replay.global.sparkwitch.magician_recording_started": "%s started recording",
+  "replay.global.sparkwitch.magician_recording_finished": "%s's recording ended",
+  "replay.global.sparkwitch.magician_recording_stopped_early": "%s ended the recording early",
+  "replay.global.sparkwitch.magician_playback_started": "%s started playback using %s's disguise",
+  "replay.global.sparkwitch.magician_playback_finished": "%s's playback ended",
+  "replay.global.sparkwitch.magician_playback_stopped_early": "%s ended the playback early",
+  "replay.global.sparkwitch.magician_playback_forced_end": "%s's disguise playback as %s was forcibly ended by %s's %s damage"
 }

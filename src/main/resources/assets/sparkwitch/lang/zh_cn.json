@@ -81,6 +81,13 @@
   "announcement.goal.kidnapper": "在其他人发现尸体前把它拖走。",
   "announcement.goals.kidnapper": "绑架开始！使用迷药可劫持玩家30秒，按下潜行键可提前放人；拖动尸体时移速变为原本的80%。",
   "announcement.win.kidnapper": "杀手胜利",
+  "announcement.role.magician": "魔术师",
+  "announcement.title.magician": "魔术师",
+  "announcement.goal.magician": "表演开始！使用皮套捉弄他们，皮套杀人你拿钱；皮套被杀，你还能拿钱！",
+  "announcement.goals.magician": "表演开始！使用皮套捉弄他们，皮套杀人你拿钱；皮套被杀，你还能拿钱！",
+  "announcement.win.magician": "杀手胜利",
+  "ui.sparkwitch.magician.pagination.previous": "上一页",
+  "ui.sparkwitch.magician.pagination.next": "下一页",
   "item.sparkwitch.ceremonial_sword": "仪礼剑",
   "item.sparkwitch.fire_poker": "烧火棍",
   "item.sparkwitch.perfume_essence": "香精",
@@ -341,5 +348,12 @@
   "shop.sparkwitch.tarot.survival": "存活占卜",
   "shop.sparkwitch.tarot.survival.description": "选择一名本局玩家，查询其是否存活。被吞下但未消化仍算存活。",
   "shop.sparkwitch.knockout_drug": "迷药",
-  "shop.sparkwitch.knockout_drug.description": "对一名普通存活玩家使用，可将其劫持 30 秒。"
+  "shop.sparkwitch.knockout_drug.description": "对一名普通存活玩家使用，可将其劫持 30 秒。",
+  "replay.global.sparkwitch.magician_recording_started": "%s 开始进行录制操作",
+  "replay.global.sparkwitch.magician_recording_finished": "%s 的录制时间已结束",
+  "replay.global.sparkwitch.magician_recording_stopped_early": "%s 提前结束了录制",
+  "replay.global.sparkwitch.magician_playback_started": "%s 开始以 %s 的皮套进行播放",
+  "replay.global.sparkwitch.magician_playback_finished": "%s 的播放已结束",
+  "replay.global.sparkwitch.magician_playback_stopped_early": "%s 提前结束了播放",
+  "replay.global.sparkwitch.magician_playback_forced_end": "%s 的皮套 %s 因为遭受了来自 %s 的 %s 伤害而强制结束播放"
 }

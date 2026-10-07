@@ -14,6 +14,10 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsReques
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.curser.UseCurserAbilityC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.magician.UseMagicianAbilityC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.magician.SelectMagicianTargetC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianAbility;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlayerComponent;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -32,6 +36,8 @@ public final class SparkWitchPackets {
         registered = true;
         SaboteurNetworking.register();
         PayloadTypeRegistry.playC2S().register(UseWitchSkillC2SPacket.ID, UseWitchSkillC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(UseMagicianAbilityC2SPacket.ID, UseMagicianAbilityC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(SelectMagicianTargetC2SPacket.ID, SelectMagicianTargetC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(FireDeathRayC2SPacket.ID, FireDeathRayC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(UseCurserAbilityC2SPacket.ID, UseCurserAbilityC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(
@@ -81,6 +87,24 @@ public final class SparkWitchPackets {
         ServerPlayNetworking.registerGlobalReceiver(UseWitchSkillC2SPacket.ID,
                 (payload, context) -> FocusedFootstepsRequestService.use(
                         context.player(), payload.targetUuid()));
+        ServerPlayNetworking.registerGlobalReceiver(
+                UseMagicianAbilityC2SPacket.ID,
+                (payload, context) -> context.server().execute(
+                        () -> MagicianAbility.handle(context.player(), payload.action())
+                )
+        );
+        ServerPlayNetworking.registerGlobalReceiver(SelectMagicianTargetC2SPacket.ID, (payload, context) ->
+                context.server().execute(() -> {
+                    var target = context.player().getServer().getPlayerManager().getPlayer(payload.target());
+                    var game = dev.doctor4t.wathe.cca.GameWorldComponent.KEY.get(context.player().getWorld());
+                    var role = game.getRole(context.player());
+                    if (target != null && role != null
+                            && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())
+                            && game.isRunning() && dev.doctor4t.wathe.game.GameFunctions.isPlayerAliveAndSurvival(target)) {
+                        MagicianPlayerComponent.KEY.get(context.player()).setSelectedTarget(target.getUuid(), target.getName().getString());
+                    }
+                })
+        );
         ServerPlayNetworking.registerGlobalReceiver(FireDeathRayC2SPacket.ID,
                 (payload, context) -> MurderousWitchDeathRayService.fire(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseCurserAbilityC2SPacket.ID,

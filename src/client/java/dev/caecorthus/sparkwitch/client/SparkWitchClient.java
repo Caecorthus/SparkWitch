@@ -62,6 +62,8 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
+import dev.caecorthus.sparkwitch.client.magician.MagicianPlaybackEntityRenderer;
+import dev.caecorthus.sparkwitch.roles.killer.magician.UseMagicianAbilityC2SPacket;
 
 public final class SparkWitchClient implements ClientModInitializer {
     @Override
@@ -126,11 +128,18 @@ public final class SparkWitchClient implements ClientModInitializer {
             DeathRayClientHooks.tick(client);
             if (client.player != null
                     && client.getNetworkHandler() != null
-                    && WitchAbilityKeyBridge.wasPressed()) {
+                    && WitchAbilityKeyBridge.pollPressed()) {
                 var role = GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player);
+                // Server-side validation makes this request harmless for other
+                // roles and avoids losing the press while custom-role sync catches up.
+                if (ClientPlayNetworking.canSend(UseMagicianAbilityC2SPacket.ID)) {
+                    ClientPlayNetworking.send(new UseMagicianAbilityC2SPacket(UseMagicianAbilityC2SPacket.ADVANCE));
+                }
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
-                if (exactSaboteurRole) {
+                if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID)) {
+                    // Already sent above; the server performs authoritative gating.
+                } else if (exactSaboteurRole) {
                     if (SaboteurClientAbilityRules.shouldSend(
                             true,
                             true,
@@ -179,6 +188,7 @@ public final class SparkWitchClient implements ClientModInitializer {
                 context -> new FlyingItemEntityRenderer<>(context, 1.0F, true)
         );
         EntityRendererRegistry.register(HunterEntities.hunterTrap(), HunterTrapEntityRenderer::new);
+        EntityRendererRegistry.register(SparkWitchEntities.magicianPlayback(), MagicianPlaybackEntityRenderer::new);
     }
 
     private static void registerWraithRoleAnnouncementNetworking() {
