@@ -66,11 +66,13 @@ public final class GrandWitchFearService {
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),
             // SparkStrength role skills, like the NoellesRoles skills above (owner 2026-10-07). Tablet meetings, votes
-            // and chat, detective notes, drone moves and exit, and the Timekeeper's watch-mode pick stay allowed; so
-            // does the Serial Killer pistol shot (serial_pistol_shoot), a weapon use left off like wathe:gunshoot.
+            // and chat, detective notes, drone moves and exit, and the Timekeeper's watch-mode pick stay allowed.
             // SparkStrength 职业技能，与上方 NoellesRoles 技能一致（所有者 2026-10-07）。平板会议、投票与聊天、侦探笔记、
-            // 无人机移动与退出以及计时员怀表模式切换放行；连环杀手手枪射击（serial_pistol_shoot）属于武器使用，与
-            // wathe:gunshoot 一样不在列。
+            // 无人机移动与退出以及计时员怀表模式切换放行。
+            // The Serial Killer pistol shot is blocked like the Demon Hunter pistol above, although Wathe's own
+            // wathe:gunshoot stays allowed (owner decision 2026-10-07).
+            // 连环杀手手枪射击与上方猎魔人手枪一样被拦截，Wathe 自身的 wathe:gunshoot 仍放行（所有者 2026-10-07 决定）。
+            Identifier.of("sparkstrength", "serial_pistol_shoot"),
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
             Identifier.of("sparkstrength", "coroner_morph"),
