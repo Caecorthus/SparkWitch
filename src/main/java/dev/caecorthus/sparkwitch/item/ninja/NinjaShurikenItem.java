@@ -5,6 +5,7 @@
  */
 package dev.caecorthus.sparkwitch.item.ninja;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.entity.NinjaShurikenEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.LivingEntity;
@@ -36,6 +37,9 @@ public final class NinjaShurikenItem extends Item {
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
         ItemStack stack = user.getStackInHand(hand);
+        if (SparkTraitsKillerBridge.blocksWeaponAction(user, stack)) {
+            return TypedActionResult.fail(stack);
+        }
         if (user.isSpectator() || user.getItemCooldownManager().isCoolingDown(this)) {
             return TypedActionResult.pass(stack);
         }
@@ -47,6 +51,7 @@ public final class NinjaShurikenItem extends Item {
     public void onStoppedUsing(ItemStack stack, World world, LivingEntity user, int remainingUseTicks) {
         if (world.isClient()
                 || !(user instanceof ServerPlayerEntity thrower)
+                || SparkTraitsKillerBridge.blocksWeaponAction(thrower, stack)
                 || !GameFunctions.isPlayerPlayingAndAlive(thrower)
                 || !GameFunctions.isPlayerAliveAndSurvival(thrower)
                 || thrower.getItemCooldownManager().isCoolingDown(this)

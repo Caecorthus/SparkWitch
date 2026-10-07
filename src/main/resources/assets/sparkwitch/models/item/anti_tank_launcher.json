@@ -1,0 +1,151 @@
+{
+  "credit": "SparkWitch Potion Gunner launcher (placeholder art, generated)",
+  "texture_size": [64, 64],
+  "gui_light": "side",
+  "textures": {"0": "sparkwitch:item/anti_tank_launcher", "particle": "sparkwitch:item/anti_tank_launcher"},
+  "elements": [
+    {
+      "name": "tube",
+      "from": [6, 8, -5],
+      "to": [10, 12, 19],
+      "faces": {
+        "east": {"uv": [0, 8, 6, 9], "texture": "#0"},
+        "west": {"uv": [7.25, 6.25, 13.25, 7.25], "texture": "#0"},
+        "up": {"uv": [0, 0, 1, 6], "texture": "#0"},
+        "down": {"uv": [1.25, 0, 2.25, 6], "texture": "#0"}
+      }
+    },
+    {
+      "name": "muzzle",
+      "from": [5, 7, -8],
+      "to": [11, 13, -5],
+      "faces": {
+        "north": {"uv": [10.5, 0, 12, 1.5], "texture": "#0"},
+        "east": {"uv": [1, 6.25, 1.75, 7.75], "texture": "#0"},
+        "south": {"uv": [12.25, 0, 13.75, 1.5], "texture": "#0"},
+        "west": {"uv": [0, 6.25, 0.75, 7.75], "texture": "#0"},
+        "up": {"uv": [12.25, 8, 13.75, 8.75], "texture": "#0"},
+        "down": {"uv": [14, 8, 15.5, 8.75], "texture": "#0"}
+      }
+    },
+    {
+      "name": "rear_ring",
+      "from": [5, 7, 19],
+      "to": [11, 13, 21],
+      "faces": {
+        "north": {"uv": [14, 0, 15.5, 1.5], "texture": "#0"},
+        "east": {"uv": [2.75, 6.25, 3.25, 7.75], "texture": "#0"},
+        "west": {"uv": [2, 6.25, 2.5, 7.75], "texture": "#0"},
+        "up": {"uv": [7.5, 9.25, 9, 9.75], "texture": "#0"},
+        "down": {"uv": [9.25, 9.25, 10.75, 9.75], "texture": "#0"}
+      }
+    },
+    {
+      "name": "venturi",
+      "from": [4, 6, 21],
+      "to": [12, 14, 24],
+      "faces": {
+        "north": {"uv": [2.5, 0, 4.5, 2], "texture": "#0"},
+        "east": {"uv": [8, 0, 8.75, 2], "texture": "#0"},
+        "south": {"uv": [4.75, 0, 6.75, 2], "texture": "#0"},
+        "west": {"uv": [7, 0, 7.75, 2], "texture": "#0"},
+        "up": {"uv": [7.75, 8, 9.75, 8.75], "texture": "#0"},
+        "down": {"uv": [10, 8, 12, 8.75], "texture": "#0"}
+      }
+    },
+    {
+      "name": "scope_mount",
+      "from": [7, 12, 8],
+      "to": [9, 13, 12],
+      "faces": {
+        "north": {"uv": [8.25, 10.25, 8.75, 10.5], "texture": "#0"},
+        "east": {"uv": [7, 10.25, 8, 10.5], "texture": "#0"},
+        "south": {"uv": [9, 10.25, 9.5, 10.5], "texture": "#0"},
+        "west": {"uv": [5.75, 10.25, 6.75, 10.5], "texture": "#0"}
+      }
+    },
+    {
+      "name": "scope",
+      "from": [7, 13, 6],
+      "to": [9, 15, 14],
+      "faces": {
+        "north": {"uv": [12.25, 9.25, 12.75, 9.75], "texture": "#0"},
+        "east": {"uv": [5.25, 9.25, 7.25, 9.75], "texture": "#0"},
+        "south": {"uv": [13, 9.25, 13.5, 9.75], "texture": "#0"},
+        "west": {"uv": [3, 9.25, 5, 9.75], "texture": "#0"},
+        "up": {"uv": [9, 0, 9.5, 2], "texture": "#0"},
+        "down": {"uv": [9.75, 0, 10.25, 2], "texture": "#0"}
+      }
+    },
+    {
+      "name": "grip",
+      "from": [7, 3, 11],
+      "to": [9, 8, 13],
+      "rotation": {"angle": -22.5, "axis": "x", "origin": [8, 8, 12]},
+      "faces": {
+        "north": {"uv": [3.5, 6.25, 4, 7.5], "texture": "#0"},
+        "east": {"uv": [5.75, 6.25, 6.25, 7.5], "texture": "#0"},
+        "south": {"uv": [4.25, 6.25, 4.75, 7.5], "texture": "#0"},
+        "west": {"uv": [5, 6.25, 5.5, 7.5], "texture": "#0"},
+        "down": {"uv": [13.75, 9.25, 14.25, 9.75], "texture": "#0"}
+      }
+    },
+    {
+      "name": "trigger",
+      "from": [7.5, 6, 10],
+      "to": [8.5, 8, 11],
+      "faces": {
+        "north": {"uv": [0.75, 10.25, 1, 10.75], "texture": "#0"},
+        "east": {"uv": [2.25, 10.25, 2.5, 10.75], "texture": "#0"},
+        "south": {"uv": [1.25, 10.25, 1.5, 10.75], "texture": "#0"},
+        "west": {"uv": [1.75, 10.25, 2, 10.75], "texture": "#0"},
+        "down": {"uv": [11.25, 10.25, 11.5, 10.5], "texture": "#0"}
+      }
+    },
+    {
+      "name": "fore_grip",
+      "from": [7, 5, 1],
+      "to": [9, 8, 3],
+      "faces": {
+        "north": {"uv": [0, 9.25, 0.5, 10], "texture": "#0"},
+        "east": {"uv": [2.25, 9.25, 2.75, 10], "texture": "#0"},
+        "south": {"uv": [0.75, 9.25, 1.25, 10], "texture": "#0"},
+        "west": {"uv": [1.5, 9.25, 2, 10], "texture": "#0"},
+        "down": {"uv": [14.5, 9.25, 15, 9.75], "texture": "#0"}
+      }
+    },
+    {
+      "name": "shoulder_rest",
+      "from": [7, 7, 14],
+      "to": [9, 8, 19],
+      "faces": {
+        "north": {"uv": [9.75, 10.25, 10.25, 10.5], "texture": "#0"},
+        "east": {"uv": [4.25, 10.25, 5.5, 10.5], "texture": "#0"},
+        "south": {"uv": [10.5, 10.25, 11, 10.5], "texture": "#0"},
+        "west": {"uv": [2.75, 10.25, 4, 10.5], "texture": "#0"},
+        "down": {"uv": [6.5, 6.25, 7, 7.5], "texture": "#0"}
+      }
+    },
+    {
+      "name": "vial",
+      "from": [4, 9, 13],
+      "to": [6, 11, 17],
+      "faces": {
+        "north": {"uv": [15.25, 9.25, 15.75, 9.75], "texture": "#0"},
+        "south": {"uv": [0, 10.25, 0.5, 10.75], "texture": "#0"},
+        "west": {"uv": [11, 9.25, 12, 9.75], "texture": "#0"},
+        "up": {"uv": [6.25, 8, 6.75, 9], "texture": "#0"},
+        "down": {"uv": [7, 8, 7.5, 9], "texture": "#0"}
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {"rotation": [5.5, -17, 0], "translation": [2.25, 1.25, 4.5], "scale": [0.6, 0.6, 0.6]},
+    "thirdperson_lefthand": {"rotation": [5.5, -17, 0], "translation": [2.25, 1.25, 4.5], "scale": [0.6, 0.6, 0.6]},
+    "firstperson_righthand": {"rotation": [0, 0, 0], "translation": [-3, 3, 0.75], "scale": [0.55, 0.55, 0.55]},
+    "firstperson_lefthand": {"rotation": [0, 0, 0], "translation": [-3, 3, 0.75], "scale": [0.55, 0.55, 0.55]},
+    "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.4, 0.4, 0.4]},
+    "gui": {"rotation": [90, 45, -65], "translation": [-1, -0.5, 0], "scale": [0.53, 0.53, 0.53]},
+    "fixed": {"rotation": [90, -45, 115], "translation": [1.25, -0.5, 0], "scale": [0.75, 0.75, 0.75]}
+  }
+}

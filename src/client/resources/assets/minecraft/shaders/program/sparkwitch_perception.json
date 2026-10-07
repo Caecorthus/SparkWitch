@@ -56,6 +56,18 @@
       ]
     },
     {
+      "name": "SpreadFactor",
+      "type": "float",
+      "count": 1,
+      "values": [0]
+    },
+    {
+      "name": "Brightness",
+      "type": "float",
+      "count": 1,
+      "values": [1]
+    },
+    {
       "name": "LuminanceScale",
       "type": "float",
       "count": 1,

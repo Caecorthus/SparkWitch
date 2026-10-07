@@ -19,5 +19,145 @@
     "sounds": [
       "sparkwitch:ambient/saint_bell"
     ]
+  },
+  "ambient.time_stealer_chime": {
+    "subtitle": "subtitles.sparkwitch.ambient.time_stealer_chime",
+    "sounds": [
+      "sparkwitch:ambient/time_stealer_chime"
+    ]
+  },
+  "skill.holy_flash_tinnitus": {
+    "subtitle": "subtitles.sparkwitch.skill.holy_flash_tinnitus",
+    "sounds": [
+      {
+        "name": "sparkwitch:skill/holy_flash_tinnitus",
+        "stream": false
+      }
+    ]
+  },
+  "ambient.time_stealer_final": {
+    "subtitle": "subtitles.sparkwitch.ambient.time_stealer_final",
+    "sounds": [
+      "sparkwitch:ambient/time_stealer_final"
+    ]
+  },
+  "ambient.bell_ringer_toll": {
+    "subtitle": "subtitles.sparkwitch.ambient.bell_ringer_toll",
+    "sounds": [
+      "minecraft:block/bell/bell_use01",
+      "minecraft:block/bell/bell_use02"
+    ]
+  },
+  "seeker_car_motor": {
+    "subtitle": "subtitles.sparkwitch.seeker_car_motor",
+    "sounds": [
+      {
+        "name": "minecraft:mob/silverfish/step1",
+        "volume": 0.5,
+        "pitch": 1.6,
+        "attenuation_distance": 6
+      },
+      {
+        "name": "minecraft:mob/silverfish/step2",
+        "volume": 0.5,
+        "pitch": 1.6,
+        "attenuation_distance": 6
+      },
+      {
+        "name": "minecraft:mob/silverfish/step3",
+        "volume": 0.5,
+        "pitch": 1.6,
+        "attenuation_distance": 6
+      },
+      {
+        "name": "minecraft:mob/silverfish/step4",
+        "volume": 0.5,
+        "pitch": 1.6,
+        "attenuation_distance": 6
+      }
+    ]
+  },
+  "seeker_car_break": {
+    "subtitle": "subtitles.sparkwitch.seeker_car_break",
+    "sounds": [
+      {
+        "name": "minecraft:random/break",
+        "pitch": 0.8
+      }
+    ]
+  },
+  "seeker_camera_break": {
+    "subtitle": "subtitles.sparkwitch.seeker_camera_break",
+    "sounds": [
+      {
+        "name": "minecraft:random/glass1",
+        "volume": 0.7,
+        "pitch": 1.3
+      },
+      {
+        "name": "minecraft:random/glass2",
+        "volume": 0.7,
+        "pitch": 1.3
+      },
+      {
+        "name": "minecraft:random/glass3",
+        "volume": 0.7,
+        "pitch": 1.3
+      }
+    ]
+  },
+  "seeker_car_swallow": {
+    "subtitle": "subtitles.sparkwitch.seeker_car_swallow",
+    "sounds": [
+      {
+        "name": "minecraft:random/eat1",
+        "pitch": 0.7
+      },
+      {
+        "name": "minecraft:random/eat2",
+        "pitch": 0.7
+      },
+      {
+        "name": "minecraft:random/eat3",
+        "pitch": 0.7
+      }
+    ]
+  },
+  "seeker_battery_low": {
+    "subtitle": "subtitles.sparkwitch.seeker_battery_low",
+    "sounds": [
+      {
+        "name": "minecraft:note/pling",
+        "volume": 0.6,
+        "pitch": 1.8
+      }
+    ]
+  },
+  "seeker_battery_dead": {
+    "subtitle": "subtitles.sparkwitch.seeker_battery_dead",
+    "sounds": [
+      {
+        "name": "minecraft:block/beacon/deactivate",
+        "volume": 0.8,
+        "pitch": 1.4
+      }
+    ]
+  },
+  "blind.cane_tap": {
+    "subtitle": "subtitles.sparkwitch.blind.cane_tap",
+    "sounds": [
+      {
+        "name": "minecraft:random/wood_click",
+        "pitch": 1.5
+      },
+      {
+        "name": "minecraft:block/bamboo/step1",
+        "pitch": 1.6
+      },
+      {
+        "name": "minecraft:block/bamboo/step2",
+        "pitch": 1.6
+      }
+    ]
   }
 }

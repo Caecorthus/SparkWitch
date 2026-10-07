@@ -2,13 +2,13 @@ package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseEconomy;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
-import dev.doctor4t.wathe.api.event.ShouldDropOnDeath;
 import dev.doctor4t.wathe.api.event.ShouldPunishGunShooter;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerPoisonComponent;
@@ -59,10 +59,9 @@ public final class HunterFeatureService {
         HunterShopService.register();
         UseBlockCallback.EVENT.register(HunterFeatureService::interactWithTrap);
         KillPlayer.AFTER.register(HunterFeatureService::afterConfirmedDeath);
-        ShouldDropOnDeath.EVENT.register((stack, victim) -> stack.getItem() instanceof HunterTrapItem);
         ShouldPunishGunShooter.EVENT.register(HunterFeatureService::gunPunishment);
         ResetPlayer.EVENT.register(player -> HunterPlayerComponent.KEY.get(player).reset());
-        RoleAssigned.EVENT.register((player, role) -> HunterPlayerComponent.KEY.get(player).reset());
+        RoleAssigned.EVENT.register(HunterFeatureService::assignForRole);
         GameEvents.ON_WIN_DETERMINED.register((world, component, status, neutralWinner) -> cleanupRound(world));
         GameEvents.ON_FINISH_FINALIZE.register((world, component) -> {
             if (world instanceof ServerWorld serverWorld) {
@@ -70,6 +69,21 @@ public final class HunterFeatureService {
             }
         });
         registerReplayFormatters();
+    }
+
+    private static void assignForRole(PlayerEntity player, Role role) {
+        HunterPlayerComponent.KEY.get(player).reset();
+        // Server-side round-start lock keyed by item type (Ninja knife pattern), so a shotgun bought inside the
+        // window stays locked; the vanilla cooldown sync drives the client overlay and crosshair.
+        // 服务端按物品类型设置开局锁定（同忍者苦无），窗口内购买的猎枪同样受限；原版冷却同步驱动客户端显示与准星。
+        if (player instanceof ServerPlayerEntity serverPlayer
+                && role != null
+                && HunterRules.ROLE_ID.equals(role.identifier())) {
+            serverPlayer.getItemCooldownManager().set(
+                    Registries.ITEM.get(DoubleBarrelShotgunItem.ID),
+                    HunterRules.SHOTGUN_INITIAL_COOLDOWN_TICKS
+            );
+        }
     }
 
     private static ActionResult interactWithTrap(
@@ -86,7 +100,11 @@ public final class HunterFeatureService {
             return ActionResult.PASS;
         }
 
-        if (player.isSneaking() && player.getUuid().equals(trap.getOwnerUuid())) {
+        Role role = GameWorldComponent.KEY.get(world).getRole(player);
+        // Owner reclaim needs the placer to still be the real Hunter, so an ex-Hunter whose role changed gets no trap
+        // back. 放置者回收要求其当前真实身份仍为猎人，职业已变化的前猎人无法取回捕兽夹。
+        if (player.isSneaking() && player.getUuid().equals(trap.getOwnerUuid())
+                && role != null && HunterRules.ROLE_ID.equals(role.identifier())) {
             if (!world.isClient) {
                 ItemStack returnedTrap = new ItemStack(Registries.ITEM.get(HunterTrapItem.ID));
                 if (!player.giveItemStack(returnedTrap)) {
@@ -106,9 +124,8 @@ public final class HunterFeatureService {
             return ActionResult.SUCCESS;
         }
 
-        Role role = GameWorldComponent.KEY.get(world).getRole(player);
-        // Dismantlers have direct-view access only; owner reclaim above intentionally remains unrestricted.
-        // 拆除者只能直视操作；上方放置者回收路径有意不受此限制。
+        // Dismantlers have direct-view access only; owner reclaim above intentionally needs no line of sight.
+        // 拆除者只能直视操作；上方放置者回收路径有意不要求视线。
         if (player.isSneaking() && role != null
                 && HunterRules.canDismantle(role.identifier(), player.canSee(trap))) {
             if (!world.isClient) {
@@ -206,11 +223,11 @@ public final class HunterFeatureService {
             ServerPlayerEntity killer,
             Identifier deathReason
     ) {
-        GameWorldComponent game = GameWorldComponent.KEY.get(victim.getServerWorld());
-        Role victimRole = game.getRole(victim);
-        if (victimRole != null && HunterRules.ROLE_ID.equals(victimRole.identifier())) {
-            removeHunterWeapons(victim);
-        }
+        // Not gated on the victim's current role: a Hunter whose role changed mid-round may keep the loadout,
+        // and GameFunctionsHunterDropMixin has already kept every copy out of Wathe's death drops.
+        // 不按死者当前身份判断：局中职业已变化的猎人可能仍持有装备，且 GameFunctionsHunterDropMixin
+        // 已将所有副本排除在 Wathe 死亡掉落之外。
+        removeHunterLoadout(victim);
 
         HunterPlayerComponent component = HunterPlayerComponent.KEY.get(victim);
         if (GameConstants.DeathReasons.POISON.equals(deathReason)) {
@@ -222,11 +239,9 @@ public final class HunterFeatureService {
         component.clearPoisonAttribution();
     }
 
-    private static void removeHunterWeapons(ServerPlayerEntity victim) {
+    private static void removeHunterLoadout(ServerPlayerEntity victim) {
         for (int slot = 0; slot < victim.getInventory().size(); slot++) {
-            ItemStack stack = victim.getInventory().getStack(slot);
-            if (stack.getItem() instanceof DoubleBarrelShotgunItem
-                    || stack.getItem() instanceof DoubleBarrelShellItem) {
+            if (HunterInventoryRules.isHunterLoadout(victim.getInventory().getStack(slot))) {
                 victim.getInventory().setStack(slot, ItemStack.EMPTY);
             }
         }
@@ -242,17 +257,28 @@ public final class HunterFeatureService {
         }
         UUID poisonerUuid = attribution.effectivePoisonerUuid();
         if (poisonerUuid != null) {
-            addBalance(world, poisonerUuid, HunterRules.POISONER_REWARD);
+            addKillerReward(world, poisonerUuid, HunterRules.POISONER_REWARD);
         }
         if (attribution.placerUuid() != null) {
-            addBalance(world, attribution.placerUuid(), HunterRules.PLACER_REWARD);
+            addKillerReward(world, attribution.placerUuid(), HunterRules.PLACER_REWARD);
         }
     }
 
-    private static void addBalance(ServerWorld world, UUID playerUuid, int amount) {
+    /**
+     * Poisoner and placer rewards are killer income: a disguised Black Raven receives them in its stashed Raven
+     * wallet (amendment W, reported to the SparkStrength purse like any action reward), everyone else in the live
+     * wallet.
+     * 投毒与布置奖励属于杀手收入：伪装中的黑羽鸦记入其存档中的黑羽鸦钱包（修订 W，与其他行动奖励一样上报
+     * SparkStrength 团队资金），其他玩家记入当前钱包。
+     */
+    private static void addKillerReward(ServerWorld world, UUID playerUuid, int amount) {
         PlayerEntity player = world.getPlayerByUuid(playerUuid);
-        if (player != null) {
-            PlayerShopComponent.KEY.get(player).addToBalance(amount);
+        if (player == null) {
+            return;
+        }
+        PlayerShopComponent shop = PlayerShopComponent.KEY.get(player);
+        if (!BlackRavenDisguiseEconomy.creditKillerIncome(shop, amount, true)) {
+            shop.addToBalance(amount);
         }
     }
 

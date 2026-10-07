@@ -11,3 +11,9 @@
 /ARCHITECTURE.md
 /ARCHITECTURE_LOGS.md
 /ARCHITECTURE LOGS.md
+
+# Local test sources
+/src/test/
+/test-review.diff
+
+/docs/

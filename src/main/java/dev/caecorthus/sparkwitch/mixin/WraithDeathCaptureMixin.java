@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.mixin;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.doctor4t.wathe.game.GameConstants;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithConversion;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -27,6 +29,10 @@ public abstract class WraithDeathCaptureMixin {
             boolean force,
             CallbackInfo ci
     ) {
+        if (SparkTraitsKillerBridge.isLastEscapeActive(victim)
+                && !GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason)) {
+            return;
+        }
         WraithConversion.captureBeforeMutation(victim, killer, deathReason);
     }
 }

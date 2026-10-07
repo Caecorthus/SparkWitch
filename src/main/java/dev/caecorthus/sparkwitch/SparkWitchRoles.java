@@ -7,6 +7,7 @@ import net.minecraft.util.Identifier;
 import java.util.List;
 
 public final class SparkWitchRoles {
+    public static final Identifier EMMA_ID = SparkWitchRoleRegistry.EMMA_ID;
     public static final Identifier GRAND_WITCH_ID = SparkWitchRoleRegistry.GRAND_WITCH_ID;
     public static final Identifier ACCOMPLICE_ID = SparkWitchRoleRegistry.ACCOMPLICE_ID;
     public static final Identifier APPRENTICE_WITCH_ID = SparkWitchRoleRegistry.APPRENTICE_WITCH_ID;
@@ -29,6 +30,19 @@ public final class SparkWitchRoles {
     public static final Identifier SABOTEUR_ID = SparkWitchRoleRegistry.SABOTEUR_ID;
     public static final Identifier WITCH_MAIDEN_ID = SparkWitchRoleRegistry.WITCH_MAIDEN_ID;
     public static final Identifier CURSER_ID = SparkWitchRoleRegistry.CURSER_ID;
+    public static final Identifier BELL_RINGER_ID = SparkWitchRoleRegistry.BELL_RINGER_ID;
+    public static final Identifier TIME_STEALER_ID = SparkWitchRoleRegistry.TIME_STEALER_ID;
+    public static final Identifier JUDGE_ID = SparkWitchRoleRegistry.JUDGE_ID;
+    public static final Identifier CONTROL_EXPERT_ID = SparkWitchRoleRegistry.CONTROL_EXPERT_ID;
+    public static final Identifier SEEKER_ID = SparkWitchRoleRegistry.SEEKER_ID;
+    public static final Identifier FISHER_ID = SparkWitchRoleRegistry.FISHER_ID;
+    public static final Identifier BLIND_ID = SparkWitchRoleRegistry.BLIND_ID;
+    public static final Identifier FIEND_ID = SparkWitchRoleRegistry.FIEND_ID;
+    public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
+    public static final Identifier ABYSS_LISTENER_ID = SparkWitchRoleRegistry.ABYSS_LISTENER_ID;
+    public static final Identifier POTION_GUNNER_ID = SparkWitchRoleRegistry.POTION_GUNNER_ID;
+    public static final Identifier RIFTWALKER_ID = SparkWitchRoleRegistry.RIFTWALKER_ID;
+    public static final Identifier BEWITCHED_ID = SparkWitchRoleRegistry.BEWITCHED_ID;
 
     private SparkWitchRoles() {
     }
@@ -41,12 +55,20 @@ public final class SparkWitchRoles {
         SparkWitchRoleRegistry.refreshAssassinGuessRoleOrder();
     }
 
+    public static Role emma() {
+        return SparkWitchRoleRegistry.emma();
+    }
+
     public static Role grandWitch() {
         return SparkWitchRoleRegistry.grandWitch();
     }
 
     public static Role accomplice() {
         return SparkWitchRoleRegistry.accomplice();
+    }
+
+    public static Role potionGunner() {
+        return SparkWitchRoleRegistry.potionGunner();
     }
 
     public static Role apprenticeWitch() {
@@ -125,6 +147,54 @@ public final class SparkWitchRoles {
 
     public static Role curser() {
         return SparkWitchRoleRegistry.curser();
+    }
+
+    public static Role bellRinger() {
+        return SparkWitchRoleRegistry.bellRinger();
+    }
+
+    public static Role timeStealer() {
+        return SparkWitchRoleRegistry.timeStealer();
+    }
+
+    public static Role judge() {
+        return SparkWitchRoleRegistry.judge();
+    }
+
+    public static Role controlExpert() {
+        return SparkWitchRoleRegistry.controlExpert();
+    }
+
+    public static Role seeker() {
+        return SparkWitchRoleRegistry.seeker();
+    }
+
+    public static Role fisher() {
+        return SparkWitchRoleRegistry.fisher();
+    }
+
+    public static Role blind() {
+        return SparkWitchRoleRegistry.blind();
+    }
+
+    public static Role fiend() {
+        return SparkWitchRoleRegistry.fiend();
+    }
+
+    public static Role insider() {
+        return SparkWitchRoleRegistry.insider();
+    }
+
+    public static Role abyssListener() {
+        return SparkWitchRoleRegistry.abyssListener();
+    }
+
+    public static Role riftwalker() {
+        return SparkWitchRoleRegistry.riftwalker();
+    }
+
+    public static Role bewitched() {
+        return SparkWitchRoleRegistry.bewitched();
     }
 
     public static List<Role> assassinGuessRoles() {

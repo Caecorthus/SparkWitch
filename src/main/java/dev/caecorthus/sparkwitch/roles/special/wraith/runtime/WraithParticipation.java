@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRules;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithConsumableInventoryRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCollisionRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
@@ -14,12 +15,10 @@ import dev.doctor4t.wathe.block.DrinkTrayBlock;
 import dev.doctor4t.wathe.block.FoodPlatterBlock;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
-import dev.doctor4t.wathe.item.CocktailItem;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.block.BedBlock;
-import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
@@ -151,6 +150,11 @@ final class WraithParticipation {
 
     private static void registerInteractions() {
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            // 晋升冤魂只被拦下门窗类方块；未晋升冤魂沿用下方的白名单。
+            // Promoted Wraiths are only kept off passage blocks; restricted ones keep the allowlist below.
+            if (WraithStateService.isPromoted(player)) {
+                return WraithPassageGuard.verdict(player, world, hand, hitResult);
+            }
             if (!WraithStateService.isRestricted(player)) {
                 return ActionResult.PASS;
             }
@@ -164,7 +168,7 @@ final class WraithParticipation {
                 WraithStateService.isRestricted(player) ? ActionResult.FAIL : ActionResult.PASS);
         UseItemCallback.EVENT.register((player, world, hand) -> {
             var stack = player.getStackInHand(hand);
-            boolean allowed = stack.contains(DataComponentTypes.FOOD) || stack.getItem() instanceof CocktailItem;
+            boolean allowed = WraithConsumableInventoryRules.isConsumable(stack);
             return WraithStateService.isRestricted(player) && !allowed
                     ? TypedActionResult.fail(stack) : TypedActionResult.pass(stack);
         });

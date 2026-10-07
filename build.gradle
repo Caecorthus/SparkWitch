@@ -138,6 +138,12 @@ processResources {
 }
 
 tasks.named("jar") {
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+    from("LICENSE-TEXTURES.md") {
+        rename { "LICENSE-TEXTURES_${project.base.archivesName.get()}.md" }
+    }
     from("THIRD_PARTY_NOTICES.md") {
         into "META-INF"
     }
@@ -150,7 +156,7 @@ tasks.named("jar") {
 }
 
 def remappedModJar = tasks.named("remapJar")
-def compatibilityReleaseVersion = "0.1.5.8"
+def compatibilityReleaseVersion = "0.1.6.1"
 def compatibilityBaselines = [
         wathe: [
                 property: "wathe_version",
@@ -166,8 +172,8 @@ def compatibilityBaselines = [
         ],
         sparkfactionapi: [
                 property: "sparkfactionapi_version",
-                version: "0.1.5.9",
-                sha256: "01e0e4126febfc03820c661ab544860575e75e1992d333058d094ff754d13353",
+                version: "0.1.5.12",
+                sha256: "6bf1ae6072d17b990fe1cb2c1cb8f87e0cd17cbd8e343c9bd1c7cc9da2d24c86",
                 depends: [wathe: ">=1.5.6-spark-1.21.1"]
         ]
 ]
@@ -176,7 +182,7 @@ def compatibilityProviderFiles = fileTree("libs") {
         include "${modId}-*.jar"
     }
 }
-def sparkTraitsCompatibilityFloor = "0.1.9.9"
+def sparkTraitsCompatibilityFloor = "0.1.9.11"
 
 def sha256 = { File input ->
     java.security.MessageDigest.getInstance("SHA-256")
@@ -186,6 +192,16 @@ def sha256 = { File input ->
 }
 
 def watheClientMixinContracts = [
+        [
+                configName: "WitchSkillInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WitchSkillInventoryScreenMixin.class",
+                handler: "sparkwitch\$scopeOwnerInventory",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25394",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
         [
                 configName: "WitchSkillInventoryScreenMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WitchSkillInventoryScreenMixin.class",
@@ -208,6 +224,17 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
         ],
         [
+                configName: "WraithNameTagRaycastMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithNameTagRaycastMixin.class",
+                handler: "sparkwitch\$nameTagThroughHiddenWraiths",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/ModifyArg;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_1675;method_49998(Lnet/minecraft/class_1297;Ljava/util/function/Predicate;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
                 configName: "witchmaiden.WitchMaidenInventoryScreenMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/witchmaiden/WitchMaidenInventoryScreenMixin.class",
                 handler: "sparkwitch\$attachWitchMaidenUi",
@@ -226,6 +253,199 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
                 providerMethod: "method_25394",
                 providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                configName: "WraithRevolverAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithRevolverAimMixin.class",
+                handler: "sparkwitch\$aimThroughWraiths",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/RevolverItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "WraithRevolverAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithRevolverAimMixin.class",
+                handler: "sparkwitch\$skipSleepingWraith",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;",
+                selector: "findSleepingPlayerOnBed(Lnet/minecraft/class_1937;Lnet/minecraft/class_3965;)Ljava/util/Optional;",
+                providerEntry: "dev/doctor4t/wathe/item/RevolverItem.class",
+                providerMethod: "findSleepingPlayerOnBed",
+                providerDescriptor: "(Lnet/minecraft/class_1937;Lnet/minecraft/class_3965;)Ljava/util/Optional;"
+        ],
+        [
+                configName: "WraithDerringerAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithDerringerAimMixin.class",
+                handler: "sparkwitch\$aimThroughWraiths",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/DerringerItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "WraithKnifeAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithKnifeAimMixin.class",
+                handler: "sparkwitch\$aimThroughWraiths",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getKnifeTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/KnifeItem.class",
+                providerMethod: "getKnifeTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "WatheClientFearInstinctMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WatheClientFearInstinctMixin.class",
+                handler: "sparkwitch\$suppressInstinctHighlightDuringAreaSpell",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
+                configName: "AssassinVendettaTargetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/AssassinVendettaTargetMixin.class",
+                handler: "sparkwitch\$appendBoundVendetta",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Redirect;",
+                selector: "method_25426()V",
+                atTarget: "Ldev/doctor4t/wathe/cca/GameWorldComponent;getAllAlivePlayers()Ljava/util/List;",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/client/screen/AssassinScreen.class",
+                providerMethod: "method_25426",
+                providerDescriptor: "()V"
+        ],
+        [
+                // Team Jiahao end title: the neutral-win title's role text lookup, the only getForRole(Identifier)
+                // call in renderHud. SparkFactionAPI's @Redirect on the winText read that follows it is untouched.
+                // 嘉豪阵营结算标题：中立胜利标题的职业文本查找，即 renderHud 中唯一的 getForRole(Identifier) 调用；
+                // 其后 SparkFactionAPI 对 winText 读取的 @Redirect 不受影响。
+                configName: "insider.RoundTextRendererJiahaoTitleMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/insider/RoundTextRendererJiahaoTitleMixin.class",
+                handler: "sparkwitch\$teamJiahaoWinTitle",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;)V",
+                atTarget: "Ldev/doctor4t/wathe/client/gui/RoleAnnouncementTexts;getForRole(Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/client/gui/RoleAnnouncementTexts\$RoleAnnouncementText;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoundTextRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;)V"
+        ],
+        [
+                configName: "insider.InsiderCohortRoleNameMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/insider/InsiderCohortRoleNameMixin.class",
+                handler: "sparkwitch\$renderJiahaoCohort",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "blind.BlindGateRoleNameRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blind/BlindGateRoleNameRendererMixin.class",
+                handler: "sparkwitch\$blindHidesRoleNames",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "blind.BlindGateCrosshairRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blind/BlindGateCrosshairRendererMixin.class",
+                handler: "sparkwitch\$blindPlainCrosshair",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$addArmorPanel",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25426()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25426",
+                providerDescriptor: "()V"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$focusArmorSlot",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25394",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$armorSlotAt",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;",
+                selector: "getSlotAt(DD)Lnet/minecraft/class_1735;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "getSlotAt",
+                providerDescriptor: "(DD)Lnet/minecraft/class_1735;"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$armorBlockIsInside",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;",
+                selector: "isClickOutsideBounds(DDIII)Z",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "isClickOutsideBounds",
+                providerDescriptor: "(DDIII)Z"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$shiftClickArmor",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "method_25402(DDI)Z",
+                atTarget: "Ldev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen;onMouseClick(Lnet/minecraft/class_1735;IILnet/minecraft/class_1713;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25402",
+                providerDescriptor: "(DDI)Z"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$returnCursorArmorOnClose",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25419()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25419",
+                providerDescriptor: "()V"
+        ],
+        [
+                configName: "armor.LimitedInventoryArmorSlotsMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
+                handler: "sparkwitch\$returnCursorArmorOnForcedClose",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25393()V",
+                atTarget: "Lnet/minecraft/class_746;method_7346()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
+                providerMethod: "method_25393",
+                providerDescriptor: "()V"
+        ],
+        [
+                // Riftwalker C7: NR Swapper head-click lambda; the occupant pick falls back to a listed alive spectator.
+                // 隙行者 C7：NR 交换者头像点击 lambda；查询落空时放行列表中存活的旁观者。
+                configName: "riftwalker.RiftSwapperWidgetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/riftwalker/RiftSwapperWidgetMixin.class",
+                handler: "sparkwitch\$allowListedAliveSpectator",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "lambda\$new\$0(Ljava/util/UUID;Lnet/minecraft/class_4185;)V",
+                atTarget: "Lnet/minecraft/class_1937;method_18470(Ljava/util/UUID;)Lnet/minecraft/class_1657;",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/client/SwapperPlayerWidget.class",
+                providerMethod: "lambda\$new\$0",
+                providerDescriptor: "(Ljava/util/UUID;Lnet/minecraft/class_4185;)V"
         ]
 ]
 
@@ -258,13 +478,22 @@ def verifyClientMixinSelectors = tasks.register("verifyClientMixinSelectors") {
     dependsOn remappedModJar
     inputs.file(remappedModJar.flatMap { it.archiveFile })
     inputs.file("libs/wathe-${project.wathe_version}.jar")
+    inputs.file("libs/noellesroles-${project.noellesroles_version}.jar")
     inputs.file("src/client/resources/sparkwitch.client.mixins.json")
 
     doLast {
         def jarFile = remappedModJar.get().archiveFile.get().asFile
         def watheJar = file("libs/wathe-${project.wathe_version}.jar")
+        def noellesRolesJar = file("libs/noellesroles-${project.noellesroles_version}.jar")
         def modZip = new java.util.zip.ZipFile(jarFile)
         def watheZip = new java.util.zip.ZipFile(watheJar)
+        def noellesRolesZip = new java.util.zip.ZipFile(noellesRolesJar)
+        // Source selectors are Yarn; this checks what remapJar actually ships against the intermediary provider jars.
+        // 源码选择器为 Yarn；此处校验 remapJar 实际产出的选择器与 intermediary 提供方 jar 一致。
+        def providerZips = [
+                wathe: [zip: watheZip, label: "Wathe ${project.wathe_version}"],
+                noellesroles: [zip: noellesRolesZip, label: "NoellesRoles ${project.noellesroles_version}"]
+        ]
         try {
             def configEntry = modZip.getEntry("sparkwitch.client.mixins.json")
             if (configEntry == null) {
@@ -334,20 +563,22 @@ def verifyClientMixinSelectors = tasks.register("verifyClientMixinSelectors") {
                     }
                 }
 
+                def provider = providerZips[contract.provider ?: "wathe"]
                 def providerNode = providerNodes.computeIfAbsent(contract.providerEntry) {
-                    readClassNode(watheZip, contract.providerEntry)
+                    readClassNode(provider.zip, contract.providerEntry)
                 }
                 def providerMethod = providerNode.methods.find {
                     it.name == contract.providerMethod && it.desc == contract.providerDescriptor
                 }
                 if (providerMethod == null) {
                     throw new GradleException(
-                            "Wathe ${project.wathe_version} is missing ${contract.providerEntry}#"
+                            "${provider.label} is missing ${contract.providerEntry}#"
                                     + "${contract.providerMethod}${contract.providerDescriptor}"
                     )
                 }
             }
         } finally {
+            noellesRolesZip.close()
             watheZip.close()
             modZip.close()
         }
@@ -586,7 +817,272 @@ tasks.register("verifyModJarVersion") {
     }
 }
 
-tasks.named("build") {
+// Black Raven acting overlay drift guard. The overlay widens GameWorldComponent#isRole(UUID, Role) for the
+// allowed disguise roles, so every allowed-role gate in the pinned Wathe/NoellesRoles jars must be classified in
+// src/test/resources/blackraven/acting_role_seams.txt, and no isRole call may take a non-constant role.
+// 黑羽鸦扮演覆盖层漂移守卫：覆盖层会为可伪装职业放宽 GameWorldComponent#isRole(UUID, Role)，因此固定版本
+// Wathe/NoellesRoles jar 中每个可伪装职业判定点都必须在 acting_role_seams.txt 中归类，且任何 isRole 调用都不得使用非常量职业。
+def blackRavenRoleDescriptor = "Ldev/doctor4t/wathe/api/Role;"
+def blackRavenIdentifierDescriptor = "Lnet/minecraft/class_2960;"
+def blackRavenGameWorldOwner = "dev/doctor4t/wathe/cca/GameWorldComponent"
+// Allowed NoellesRoles role constants (the SparkWitch-owned allowed roles are not in the provider jars).
+// Each *_ID twin is checked too; the mapping itself is re-proven from Noellesroles.<clinit>.
+// 可伪装的 NoellesRoles 职业常量（SparkWitch 自有的可伪装职业不在提供方 jar 中）；同名 *_ID 常量一并检查，
+// 映射关系本身会从 Noellesroles.<clinit> 重新验证。
+def blackRavenActingRoleFields = [
+        "org/agmas/noellesroles/Noellesroles.CONDUCTOR"      : "noellesroles:conductor",
+        "org/agmas/noellesroles/Noellesroles.ATTENDANT"      : "noellesroles:attendant",
+        "org/agmas/noellesroles/Noellesroles.AWESOME_BINGLUS": "noellesroles:awesome_binglus",
+        "org/agmas/noellesroles/Noellesroles.MERMAID"        : "noellesroles:mermaid",
+        "org/agmas/noellesroles/Noellesroles.TIMEKEEPER"     : "noellesroles:time_keeper",
+        "org/agmas/noellesroles/Noellesroles.WAITER"         : "noellesroles:waiter",
+        "org/agmas/noellesroles/Noellesroles.REPORTER"       : "noellesroles:reporter",
+        "org/agmas/noellesroles/Noellesroles.BARTENDER"      : "noellesroles:bartender",
+        "org/agmas/noellesroles/Noellesroles.RECALLER"       : "noellesroles:recaller",
+        "org/agmas/noellesroles/Noellesroles.NOISEMAKER"     : "noellesroles:noisemaker",
+        "org/agmas/noellesroles/Noellesroles.SPIRIT_WALKER"  : "noellesroles:spiritualist",
+        "org/agmas/noellesroles/Noellesroles.TOXICOLOGIST"   : "noellesroles:toxicologist",
+        "org/agmas/noellesroles/Noellesroles.ENGINEER"       : "noellesroles:engineer",
+        "org/agmas/noellesroles/Noellesroles.DETECTIVE"      : "noellesroles:detective",
+        "org/agmas/noellesroles/Noellesroles.PROFESSOR"      : "noellesroles:professor"
+]
+// isRole sites are reached by the overlay; every other kind stays raw and is a gap an adapter must cover.
+// isRole 调用点由覆盖层覆盖；其他类型均保持真实判定，属于必须由适配器补齐的缺口。
+def blackRavenOverlayTags = ["SELF", "RECIPIENT", "LOCAL", "DEATH", "BEFORE", "TARGET_SERVER_ONLY"]
+def blackRavenGapTags = ["GAP_KIT", "GAP_TASK_MONEY", "GAP_DOOR_NOTICE"]
+def blackRavenSeamKinds = ["isRole", "getAllWithRole", "equals", "idEquals", "acmp"]
+
+def verifyBlackRavenActingRoleSeams = tasks.register("verifyBlackRavenActingRoleSeams") {
+    def seamsFile = file("src/test/resources/blackraven/acting_role_seams.txt")
+    inputs.file("libs/wathe-${project.wathe_version}.jar")
+    inputs.file("libs/noellesroles-${project.noellesroles_version}.jar")
+    inputs.file(seamsFile)
+
+    doLast {
+        if (!seamsFile.isFile()) {
+            throw new GradleException("Missing Black Raven acting-role seam list: ${seamsFile}")
+        }
+        def watheZip = new java.util.zip.ZipFile(file("libs/wathe-${project.wathe_version}.jar"))
+        def noellesRolesZip = new java.util.zip.ZipFile(file("libs/noellesroles-${project.noellesroles_version}.jar"))
+        try {
+            // 1. Re-prove field -> role id from Noellesroles.<clinit>: `ID = Identifier.of(MOD_ID, "<path>")`
+            //    and `ROLE = ...(ID, ...)`, with exactly one *_ID read between two Role stores.
+            // 1. 从 Noellesroles.<clinit> 重新验证字段与职业 id 的映射。
+            def fieldIds = [:]
+            def ownerNodes = [:]
+            blackRavenActingRoleFields.each { key, roleId ->
+                def separator = key.lastIndexOf(".")
+                def owner = key.substring(0, separator)
+                def name = key.substring(separator + 1)
+                def path = roleId.substring(roleId.indexOf(":") + 1)
+                def node = ownerNodes.computeIfAbsent(owner) { readClassNode(noellesRolesZip, "${owner}.class") }
+                if (!node.fields.any { it.name == name && it.desc == blackRavenRoleDescriptor }) {
+                    throw new GradleException("NoellesRoles is missing Role field ${key}")
+                }
+                if (!node.fields.any { it.name == "${name}_ID" && it.desc == blackRavenIdentifierDescriptor }) {
+                    throw new GradleException("NoellesRoles is missing Identifier field ${key}_ID")
+                }
+                def clinit = node.methods.find { it.name == "<clinit>" }
+                if (clinit == null) {
+                    throw new GradleException("Missing <clinit> in ${owner}")
+                }
+                def insns = clinit.instructions.toArray().findAll { it.opcode >= 0 }
+                def idStores = insns.findIndexValues {
+                    it.opcode == org.objectweb.asm.Opcodes.PUTSTATIC && it.owner == owner && it.name == "${name}_ID"
+                }
+                def roleStores = insns.findIndexValues {
+                    it.opcode == org.objectweb.asm.Opcodes.PUTSTATIC && it.owner == owner && it.name == name
+                }
+                if (idStores.size() != 1 || roleStores.size() != 1) {
+                    throw new GradleException("${key} must be stored exactly once in <clinit> (id ${idStores.size()}, role ${roleStores.size()})")
+                }
+                def ldc = insns.subList(0, idStores[0] as int).reverse().find {
+                    it instanceof org.objectweb.asm.tree.LdcInsnNode && it.cst instanceof String
+                }
+                if (ldc?.cst != path) {
+                    throw new GradleException("${key}_ID is built from '${ldc?.cst}', expected '${path}' (${roleId})")
+                }
+                int roleStore = roleStores[0] as int
+                int previousRoleStore = -1
+                for (int index = roleStore - 1; index >= 0; index--) {
+                    def candidate = insns[index]
+                    if (candidate.opcode == org.objectweb.asm.Opcodes.PUTSTATIC && candidate.desc == blackRavenRoleDescriptor) {
+                        previousRoleStore = index
+                        break
+                    }
+                }
+                def idReads = insns.subList(previousRoleStore + 1, roleStore).findAll {
+                    it.opcode == org.objectweb.asm.Opcodes.GETSTATIC && it.owner == owner
+                            && it.desc == blackRavenIdentifierDescriptor && it.name.endsWith("_ID")
+                }.collect { it.name }
+                if (idReads != ["${name}_ID".toString()]) {
+                    throw new GradleException("${key} is constructed from ${idReads}, expected [${name}_ID]")
+                }
+                fieldIds[key] = [id: roleId, desc: blackRavenRoleDescriptor]
+                fieldIds["${key}_ID".toString()] = [id: roleId, desc: blackRavenIdentifierDescriptor]
+            }
+
+            // 2. Scan every method of both jars with a source-tracking analyzer, so both operand orders and any
+            //    intervening instruction are handled.
+            // 2. 使用可追踪来源的分析器扫描两个 jar 的每个方法，因此能处理两种操作数顺序以及中间插入的指令。
+            def allowedSource = { value ->
+                if (value == null || value.insns.size() != 1) {
+                    return null
+                }
+                def source = value.insns.iterator().next()
+                if (source.opcode != org.objectweb.asm.Opcodes.GETSTATIC) {
+                    return null
+                }
+                def field = fieldIds["${source.owner}.${source.name}".toString()]
+                field != null && field.desc == source.desc ? field : null
+            }
+            def isEqualsInvoke = { insn ->
+                insn instanceof org.objectweb.asm.tree.MethodInsnNode && (
+                        (insn.opcode != org.objectweb.asm.Opcodes.INVOKESTATIC
+                                && insn.name == "equals" && insn.desc == "(Ljava/lang/Object;)Z")
+                        || (insn.opcode == org.objectweb.asm.Opcodes.INVOKESTATIC && insn.owner == "java/util/Objects"
+                                && insn.name == "equals" && insn.desc == "(Ljava/lang/Object;Ljava/lang/Object;)Z"))
+            }
+            def isAcmp = { insn ->
+                insn.opcode == org.objectweb.asm.Opcodes.IF_ACMPEQ || insn.opcode == org.objectweb.asm.Opcodes.IF_ACMPNE
+            }
+            def isGameWorldInvoke = { insn, String name ->
+                insn instanceof org.objectweb.asm.tree.MethodInsnNode && insn.owner == blackRavenGameWorldOwner && insn.name == name
+            }
+            def found = new TreeMap()
+            def dynamicIsRole = new TreeSet()
+            [watheZip, noellesRolesZip].each { archive ->
+                archive.entries().findAll { it.name.endsWith(".class") }.each { entry ->
+                    def node = readClassNode(archive, entry.name)
+                    node.methods.each { method ->
+                        def insns = method.instructions.toArray()
+                        boolean hasIsRole = insns.any { isGameWorldInvoke(it, "isRole") }
+                        boolean hasAllowedRead = insns.any {
+                            it.opcode == org.objectweb.asm.Opcodes.GETSTATIC
+                                    && fieldIds.containsKey("${it.owner}.${it.name}".toString())
+                        }
+                        if (!hasIsRole && !hasAllowedRead) {
+                            return
+                        }
+                        def frames
+                        try {
+                            frames = new org.objectweb.asm.tree.analysis.Analyzer(
+                                    new org.objectweb.asm.tree.analysis.SourceInterpreter()
+                            ).analyze(node.name, method)
+                        } catch (Exception exception) {
+                            throw new GradleException("Cannot analyze ${node.name}#${method.name}${method.desc}: ${exception.message}")
+                        }
+                        def site = "${node.name}#${method.name}".toString()
+                        def record = { String kind, field ->
+                            def key = "${kind} ${field.id} ${site}".toString()
+                            found[key] = (found[key] ?: 0) + 1
+                        }
+                        insns.eachWithIndex { insn, index ->
+                            def frame = frames[index]
+                            if (frame == null) {
+                                return
+                            }
+                            int top = frame.getStackSize() - 1
+                            if (isGameWorldInvoke(insn, "isRole")) {
+                                def roleValue = frame.getStack(top)
+                                def source = roleValue.insns.size() == 1 ? roleValue.insns.iterator().next() : null
+                                def previous = insn.previous
+                                while (previous != null && previous.opcode < 0) {
+                                    previous = previous.previous
+                                }
+                                boolean constantRole = source != null && source.is(previous)
+                                        && source.opcode == org.objectweb.asm.Opcodes.GETSTATIC
+                                        && source.desc == blackRavenRoleDescriptor
+                                // Wathe's own isRole(PlayerEntity, Role) -> isRole(UUID, Role) delegation is the
+                                // wrapped callee itself. / Wathe 自身的重载委托就是被包装的被调用方。
+                                boolean overloadDelegation = node.name == blackRavenGameWorldOwner
+                                        && method.name == "isRole"
+                                        && method.desc == "(Lnet/minecraft/class_1657;${blackRavenRoleDescriptor})Z"
+                                        && insn.desc == "(Ljava/util/UUID;${blackRavenRoleDescriptor})Z"
+                                if (!constantRole && !overloadDelegation) {
+                                    dynamicIsRole << "${site}${method.desc}".toString()
+                                }
+                                def field = allowedSource(roleValue)
+                                if (field != null) {
+                                    record("isRole", field)
+                                }
+                            } else if (isGameWorldInvoke(insn, "getAllWithRole")) {
+                                def field = allowedSource(frame.getStack(top))
+                                if (field != null) {
+                                    record("getAllWithRole", field)
+                                }
+                            } else if (isEqualsInvoke(insn) || isAcmp(insn)) {
+                                [frame.getStack(top - 1), frame.getStack(top)].each { operand ->
+                                    def field = allowedSource(operand)
+                                    if (field != null) {
+                                        def kind = isAcmp(insn) ? "acmp"
+                                                : (field.desc == blackRavenRoleDescriptor ? "equals" : "idEquals")
+                                        record(kind, field)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Compare against the checked-in classification. / 3. 与已提交的分类清单比对。
+            def expected = [:]
+            def problems = []
+            def allowedIds = blackRavenActingRoleFields.values() as Set
+            seamsFile.readLines("UTF-8").eachWithIndex { rawLine, lineIndex ->
+                def line = rawLine.trim()
+                if (line.isEmpty() || line.startsWith("#")) {
+                    return
+                }
+                def columns = line.split(/\s+/)
+                def where = "${seamsFile.name}:${lineIndex + 1}"
+                if (columns.length != 5) {
+                    problems << "${where}: expected '<TAG> <kind> <role> <owner#method> <count>', found '${line}'"
+                    return
+                }
+                def (tag, kind, roleId, site, count) = columns.toList()
+                if (!(kind in blackRavenSeamKinds)) {
+                    problems << "${where}: unknown kind ${kind}"
+                }
+                def validTags = kind == "isRole" ? blackRavenOverlayTags : blackRavenGapTags
+                if (!(tag in validTags)) {
+                    problems << "${where}: tag ${tag} is not valid for ${kind} (expected one of ${validTags})"
+                }
+                if (!(roleId in allowedIds)) {
+                    problems << "${where}: ${roleId} is not an audited allowed role"
+                }
+                if (!(count ==~ /[1-9][0-9]*/)) {
+                    problems << "${where}: count must be a positive integer, found ${count}"
+                }
+                def key = "${kind} ${roleId} ${site}".toString()
+                if (expected.containsKey(key)) {
+                    problems << "${where}: duplicate entry ${key}"
+                }
+                expected[key] = count ==~ /[1-9][0-9]*/ ? (count as int) : -1
+            }
+            found.each { key, count ->
+                if (!expected.containsKey(key)) {
+                    problems << "Unclassified acting-role seam (add '<TAG> ${key} ${count}'): ${key}"
+                } else if (expected[key] != count) {
+                    problems << "Seam count drift for ${key}: listed ${expected[key]}, found ${count}"
+                }
+            }
+            expected.keySet().findAll { !found.containsKey(it) }.each { key ->
+                problems << "Listed acting-role seam no longer exists: ${key}"
+            }
+            dynamicIsRole.each { site ->
+                problems << "isRole with a non-constant role operand (the overlay cannot be audited there): ${site}"
+            }
+            if (!problems.isEmpty()) {
+                throw new GradleException("Black Raven acting-role seam drift:\n  " + problems.join("\n  "))
+            }
+            logger.lifecycle("Black Raven acting-role seams verified: ${found.size()} classified sites, no dynamic isRole.")
+        } finally {
+            noellesRolesZip.close()
+            watheZip.close()
+        }
+    }
 }
 
 def requiredArchitectureDocs = [
@@ -609,6 +1105,7 @@ def requiredArchitectureSources = [
 ]
 
 tasks.register("verifyArchitecture") {
+    dependsOn verifyBlackRavenActingRoleSeams
     inputs.files(requiredArchitectureDocs.collect { file(it) })
     inputs.files(requiredArchitectureSources.collect { file(it) })
     inputs.files(fileTree("src/main/java") { include "**/*.java" })

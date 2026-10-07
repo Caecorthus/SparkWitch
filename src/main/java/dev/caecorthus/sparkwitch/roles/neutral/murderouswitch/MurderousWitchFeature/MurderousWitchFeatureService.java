@@ -5,6 +5,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionInstinctPolicy;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.economy.WitchEconomyService;
+import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendParticipation;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchRules.MurderousWitchRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchShop.MurderousWitchShopService;
 import dev.doctor4t.wathe.api.Role;
@@ -71,8 +72,9 @@ public final class MurderousWitchFeatureService {
             return null;
         }
         boolean viewerAlive = GameFunctions.isPlayerPlayingAndAlive(viewer);
-        boolean viewerSpectatingOrCreative = GameFunctions.isPlayerSpectatingOrCreative(viewer);
-        if (!MurderousWitchRules.shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)) {
+        // A living Rift Gate occupant is a spectator but keeps this instinct; see shouldUseCustomInstinctHighlight.
+        // 存活的裂隙门内玩家虽是旁观者，仍保留此本能；见 shouldUseCustomInstinctHighlight。
+        if (!MurderousWitchRules.shouldUseCustomInstinctHighlight(viewerAlive)) {
             return null;
         }
         Role targetRole = gameComponent.getRole(targetPlayer);
@@ -86,7 +88,6 @@ public final class MurderousWitchFeatureService {
         boolean samePlayer = viewer.getUuid().equals(targetPlayer.getUuid());
         boolean shouldHighlight = MurderousWitchRules.shouldHighlightInstinctTarget(
                 viewerAlive,
-                viewerSpectatingOrCreative,
                 samePlayer,
                 GameFunctions.isPlayerPlayingAndAlive(targetPlayer),
                 GameFunctions.isPlayerSpectatingOrCreative(targetPlayer)
@@ -111,7 +112,9 @@ public final class MurderousWitchFeatureService {
         ServerPlayerEntity livingMurderousWitch = null;
 
         for (ServerPlayerEntity player : world.getPlayers()) {
-            if (!GameFunctions.isPlayerPlayingAndAlive(player)) {
+            // D1: a dormant Fiend counts as not alive for the last-one-standing win.
+            // D1：休眠魔人在最后存活者胜利中视为不存活。
+            if (!GameFunctions.isPlayerPlayingAndAlive(player) || FiendParticipation.isDormantFiend(player)) {
                 continue;
             }
             livingPlayerCount++;

@@ -1,5 +1,8 @@
 package dev.caecorthus.sparkwitch.item.ceremonialsword;
 
+import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import net.minecraft.item.ItemStack;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
@@ -34,6 +37,9 @@ public final class CeremonialSwordDashService {
     }
 
     public static void start(ServerPlayerEntity player) {
+        if (SparkTraitsKillerBridge.blocksWeaponAction(player, new ItemStack(SparkWitchItems.ceremonialSword()))) {
+            return;
+        }
         Vec3d direction = horizontalDirection(player);
         if (direction.lengthSquared() < 1.0E-6) {
             return;
@@ -49,6 +55,15 @@ public final class CeremonialSwordDashService {
                 0.8f,
                 0.9f
         );
+    }
+
+    /**
+     * Server only: drops a dash in progress, e.g. when Witches' Sabbath teleports the dasher, so the dash never
+     * continues from the landing spot (R1 review F-7).
+     * 仅服务端：取消进行中的冲刺，例如魔女集会传送了冲刺者时，冲刺不会从落点继续（R1 审查 F-7）。
+     */
+    public static void cancel(ServerPlayerEntity player) {
+        DASHES.remove(player.getUuid());
     }
 
     static Vec3d horizontalDirection(Entity entity) {
@@ -71,7 +86,8 @@ public final class CeremonialSwordDashService {
         while (iterator.hasNext()) {
             Map.Entry<UUID, DashState> entry = iterator.next();
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(entry.getKey());
-            if (player == null || !shouldKeepDashActive(true, player.isAlive(), player.isSpectator())) {
+            if (player == null || !shouldKeepDashActive(true, player.isAlive(), player.isSpectator())
+                    || SparkTraitsKillerBridge.blocksWeaponAction(player, new ItemStack(SparkWitchItems.ceremonialSword()))) {
                 iterator.remove();
                 continue;
             }

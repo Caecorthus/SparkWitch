@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeResonance;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintAbilityService;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
@@ -72,10 +73,55 @@ public final class WitchSkillUseService {
         }
 
         WitchSkillCooldownPolicy.apply(component, WitchSkillCooldownPolicy.decide(skill, result));
+        // Apprentice Magic Resonance (owner D1); it filters the caster's role itself.
+        // 预备魔女的魔力共鸣（所有者 D1）；施法者职业由其自行过滤。
+        ApprenticeResonance.onWitchCast(player, player.getPos());
         if (result.messageKey() != null) {
             send(player, result.messageKey());
         }
         return true;
+    }
+
+    /**
+     * Readiness gate for a role skill that runs its own request/session packets instead of {@link #use}: the active
+     * skill must be {@code skillId} and the shared cooldown must have ended. Sends the same action-bar refusal as
+     * {@link #use}; role, life and Fear checks stay with the caller.
+     * 供使用自有请求/会话数据包（而非 {@link #use}）的职业技能使用的就绪检查：当前技能必须为 {@code skillId}，
+     * 且共享冷却已结束。拒绝时发送与 {@link #use} 相同的动作栏提示；职业、存活与恐惧检查由调用方负责。
+     */
+    public static boolean checkDedicatedSkillReady(ServerPlayerEntity player, Identifier skillId) {
+        WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
+        Identifier activeSkillId = component.getActiveSkillId();
+        if (skillId == null || !skillId.equals(activeSkillId)) {
+            send(player, "message.sparkwitch.skill.no_skill");
+            return false;
+        }
+        Role role = GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player);
+        WitchSkillUseReadiness.Result readiness = WitchSkillUseReadiness.check(
+                role, component, activeSkillId, WitchSkillRegistry.get(activeSkillId));
+        if (!readiness.accepted()) {
+            send(player, readiness.messageKey(), readiness.messageArgs());
+            if (readiness.clearComponent()) {
+                component.clear();
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Starts the registered post-use cooldown for a dedicated-flow skill on the shared skill cooldown, so the
+     * bottom-right HUD shows it exactly like a generic use.
+     * 在共享技能冷却上为自有流程技能启动注册的使用后冷却，右下角 HUD 的显示与通用使用完全一致。
+     */
+    public static void startDedicatedSkillCooldown(ServerPlayerEntity player, Identifier skillId) {
+        WitchSkillDefinition skill = skillId == null ? null : WitchSkillRegistry.get(skillId);
+        if (skill == null) {
+            return;
+        }
+        WitchSkillCooldownPolicy.apply(
+                WitchPlayerComponent.KEY.get(player),
+                WitchSkillCooldownPolicy.decide(skill, WitchSkillUseResult.success(0)));
     }
 
     private static void send(ServerPlayerEntity player, String translationKey, Object... args) {

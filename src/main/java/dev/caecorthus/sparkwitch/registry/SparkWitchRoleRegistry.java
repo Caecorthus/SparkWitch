@@ -4,27 +4,46 @@ import dev.caecorthus.sparkfactionapi.api.FactionCapabilities;
 import dev.caecorthus.sparkfactionapi.api.FactionDefinition;
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
+import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
+import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
+import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRole;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaRole;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianConstants;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
+import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
+import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRole;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
+import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedRole;
+import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedRules;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserRole;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRole;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.caecorthus.sparkwitch.win.WitchWinConditions;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
@@ -40,6 +59,7 @@ import java.util.List;
  * SparkWitch 职业与阵营注册的内部归属；SparkWitchRoles 继续作为兼容门面。
  */
 public final class SparkWitchRoleRegistry {
+    public static final Identifier EMMA_ID = EmmaRules.ROLE_ID;
     public static final Identifier GRAND_WITCH_ID = SparkWitch.id("grand_witch");
     public static final Identifier ACCOMPLICE_ID = SparkWitch.id("accomplice");
     public static final Identifier APPRENTICE_WITCH_ID = SparkWitch.id("apprentice_witch");
@@ -62,7 +82,21 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier SABOTEUR_ID = SaboteurRole.ID;
     public static final Identifier WITCH_MAIDEN_ID = WitchMaidenRules.ROLE_ID;
     public static final Identifier CURSER_ID = CurserRole.ID;
+    public static final Identifier BELL_RINGER_ID = BellRingerRules.ROLE_ID;
+    public static final Identifier TIME_STEALER_ID = TimeStealerRules.ROLE_ID;
+    public static final Identifier JUDGE_ID = JudgeRules.ROLE_ID;
+    public static final Identifier CONTROL_EXPERT_ID = ControlExpertRules.ROLE_ID;
+    public static final Identifier SEEKER_ID = SeekerRules.ROLE_ID;
+    public static final Identifier FISHER_ID = FisherRules.ROLE_ID;
+    public static final Identifier BLIND_ID = BlindRules.ROLE_ID;
+    public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
+    public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
+    public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
+    public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
+    public static final Identifier RIFTWALKER_ID = RiftwalkerRules.ROLE_ID;
+    public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
 
+    private static Role emma;
     private static Role grandWitch;
     private static Role accomplice;
     private static Role apprenticeWitch;
@@ -85,6 +119,19 @@ public final class SparkWitchRoleRegistry {
     private static Role saboteur;
     private static Role witchMaiden;
     private static Role curser;
+    private static Role bellRinger;
+    private static Role timeStealer;
+    private static Role judge;
+    private static Role controlExpert;
+    private static Role seeker;
+    private static Role fisher;
+    private static Role blind;
+    private static Role fiend;
+    private static Role insider;
+    private static Role abyssListener;
+    private static Role potionGunner;
+    private static Role riftwalker;
+    private static Role bewitched;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -101,6 +148,20 @@ public final class SparkWitchRoleRegistry {
         registerFactions();
         registerFactionApiRoles();
         registerNativeWatheRoles();
+        PoliceRoles.register(JUDGE_ID);
+        PoliceRoles.register(PoliceSlotAssignmentService.EMMA_ID);
+        // Police classification only: SparkStrength issues its tablet at round start from this list; cop slots come
+        // from PoliceSlotAssignmentService.
+        // 仅作警察分类：SparkStrength 据此在开局发放平板；警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(CONTROL_EXPERT_ID);
+        // Police classification only, like the Control Expert; cop slots come from PoliceSlotAssignmentService.
+        // 与控场专家相同，仅作警察分类；警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(SEEKER_ID);
+        // Police classification only, so SparkStrength issues the Insider a tablet at round start on its police channel
+        // (D4), as SparkStrength does for the Corrupt Cop; the Insider stays a Wathe neutral and never takes a cop slot.
+        // 仅作警察分类，使 SparkStrength 开局为内应发放接入警察频道的平板（D4），与 SparkStrength 对黑警的处理相同；
+        // 内应仍是 Wathe 中立，从不占用警位。
+        PoliceRoles.register(INSIDER_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
@@ -112,6 +173,11 @@ public final class SparkWitchRoleRegistry {
         SparkWitchAssassinGuessOrder.appendToTail(assassinGuessRolesInOrder());
     }
 
+    public static Role emma() {
+        ensureRegistered();
+        return emma;
+    }
+
     public static Role grandWitch() {
         ensureRegistered();
         return grandWitch;
@@ -120,6 +186,11 @@ public final class SparkWitchRoleRegistry {
     public static Role accomplice() {
         ensureRegistered();
         return accomplice;
+    }
+
+    public static Role potionGunner() {
+        ensureRegistered();
+        return potionGunner;
     }
 
     public static Role apprenticeWitch() {
@@ -219,6 +290,66 @@ public final class SparkWitchRoleRegistry {
         return curser;
     }
 
+    public static Role bellRinger() {
+        ensureRegistered();
+        return bellRinger;
+    }
+
+    public static Role timeStealer() {
+        ensureRegistered();
+        return timeStealer;
+    }
+
+    public static Role judge() {
+        ensureRegistered();
+        return judge;
+    }
+
+    public static Role controlExpert() {
+        ensureRegistered();
+        return controlExpert;
+    }
+
+    public static Role seeker() {
+        ensureRegistered();
+        return seeker;
+    }
+
+    public static Role fisher() {
+        ensureRegistered();
+        return fisher;
+    }
+
+    public static Role blind() {
+        ensureRegistered();
+        return blind;
+    }
+
+    public static Role fiend() {
+        ensureRegistered();
+        return fiend;
+    }
+
+    public static Role insider() {
+        ensureRegistered();
+        return insider;
+    }
+
+    public static Role abyssListener() {
+        ensureRegistered();
+        return abyssListener;
+    }
+
+    public static Role riftwalker() {
+        ensureRegistered();
+        return riftwalker;
+    }
+
+    public static Role bewitched() {
+        ensureRegistered();
+        return bewitched;
+    }
+
     public static boolean isSparkWitchRole(Role role) {
         ensureRegistered();
         return isRegisteredSparkWitchRole(role);
@@ -264,6 +395,13 @@ public final class SparkWitchRoleRegistry {
     }
 
     private static void registerFactionApiRoles() {
+        emma = SparkFactionApi.registerRole(FactionRoleDefinition.builder(EMMA_ID, FactionIds.CIVILIAN)
+                .color(EmmaRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         grandWitch = SparkFactionApi.registerRole(FactionRoleDefinition.builder(GRAND_WITCH_ID, SparkWitchFactions.WITCH)
                 .color(0xF2DFF7)
                 .moodType(Role.MoodType.FAKE)
@@ -276,8 +414,33 @@ public final class SparkWitchRoleRegistry {
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
                 .canSeeTime(true)
-                .appearanceCondition(RoleAppearanceCondition.minPlayers(18))
+                // Exclude natural selection; a Bewitched promotion (or an admin force) assigns this registered role.
+                // 排除自然抽选；魔化使晋升（或管理员强制指定）直接赋予这个已注册职业。
+                .appearanceCondition(context -> false)
                 .build());
+        // Special accomplice (accomplice-variant pool), registered right after the Accomplice rather than appended:
+        // nothing may be registered after the Insider (InsiderRegistrationContractTest), so, like the Curser, it sits
+        // mid-list. The SparkWitch assassin-guess tail is re-sorted, so the shifted Wathe role index is harmless.
+        // 特殊共犯（共犯变体池），紧接在共犯之后注册而非追加到末尾：内应之后禁止再注册职业
+        // （InsiderRegistrationContractTest），因此与诅咒者一样插在中间。SparkWitch 刺客猜测尾部会重新排序，
+        // 因此 Wathe 职业下标的偏移无害。
+        abyssListener = SparkFactionApi.registerRole(AbyssListenerRole.DEFINITION);
+        // Special accomplice: never drawn naturally; only the Bewitched promotion pool (or an admin force) assigns it.
+        // 特殊共犯：从不自然抽选；只由魔化使晋升池（或管理员强制指定）赋予。
+        potionGunner = SparkFactionApi.registerRole(FactionRoleDefinition.builder(POTION_GUNNER_ID, SparkWitchFactions.WITCH)
+                .color(PotionGunnerRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .appearanceCondition(context -> false)
+                .build());
+        riftwalker = SparkFactionApi.registerRole(RiftwalkerRole.DEFINITION);
+        // Bewitched (魔化使): dealt at round start in a Grand Witch round and promoted after two tasks; it closes the
+        // witch block before the Wind Spirit (nothing may follow the Insider). Never a Witch-skill role: kept out of
+        // isRegisteredSparkWitchRole.
+        // 魔化使：在有大魔女的对局开局时发放，完成两个任务后晋升；排在魔女职业块末尾、风灵之前（内应之后不得再注册）。
+        // 不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        bewitched = SparkFactionApi.registerRole(BewitchedRole.DEFINITION);
         windSpirit = SparkFactionApi.registerRole(WindSpiritRole.DEFINITION);
         guardianAngel = SparkFactionApi.registerRole(GuardianAngelRole.DEFINITION);
         vendetta = SparkFactionApi.registerRole(VendettaRole.DEFINITION);
@@ -326,6 +489,13 @@ public final class SparkWitchRoleRegistry {
                 .appearanceCondition(RoleAppearanceCondition.ALWAYS)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        judge = SparkFactionApi.registerRole(FactionRoleDefinition.builder(JUDGE_ID, FactionIds.CIVILIAN)
+                .color(JudgeRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Wathe's special-killer selector consumes each registered non-vanilla role candidate once,
         // so the default spawn group of one is also Ninja's one-per-round maximum.
         // Wathe 的特殊杀手分配器每局只消费一次非原版职业候选，默认单人组即为忍者每局至多一人。
@@ -370,12 +540,103 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
+        // Appended last so existing role registration order stays unchanged; the default one-player spawn
+        // group keeps the Bell Ringer to at most one per round, like Ninja and Kidnapper.
+        // 追加在最后以保持既有职业注册顺序不变；与忍者、绑架者相同，默认单人分配组保证敲钟人每局至多一人。
+        bellRinger = SparkFactionApi.registerRole(FactionRoleDefinition.builder(BELL_RINGER_ID, FactionIds.KILLER)
+                .color(BellRingerRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
+        // Appended last so existing registration order stays unchanged; Vigilante-equivalent civilian parameters.
+        // 追加在最后以保持既有注册顺序不变；参数与义警等同的平民职业。
+        controlExpert = SparkFactionApi.registerRole(FactionRoleDefinition.builder(CONTROL_EXPERT_ID, FactionIds.CIVILIAN)
+                .color(ControlExpertRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // Appended last so existing registration order stays unchanged; Vigilante-equivalent civilian parameters.
+        // Drawn only when the SparkStrength tablet item exists (Q7); a forced Seeker still works without it.
+        // 追加在最后以保持既有注册顺序不变；参数与义警等同的平民职业。仅当 SparkStrength 平板物品存在时
+        // 才会被抽到（Q7）；被强制指定时即使没有平板也能运作。
+        seeker = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SEEKER_ID, FactionIds.CIVILIAN)
+                .color(SeekerRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .appearanceCondition(context -> SeekerRules.shouldAppear())
+                .build());
+        // Appended last so existing registration order stays unchanged; the default one-player spawn group
+        // keeps the Time Stealer to one killer slot and at most one per round, like the Bell Ringer.
+        // 追加在最后以保持既有注册顺序不变；与敲钟人相同，默认单人分配组使窃时者只占一个杀手位且每局至多一人。
+        timeStealer = SparkFactionApi.registerRole(FactionRoleDefinition.builder(TIME_STEALER_ID, FactionIds.KILLER)
+                .color(TimeStealerRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
+        // Merged from main (Huankings): registered after the Time Stealer so the Fisher, Blind, Fiend and Insider keep
+        // their relative order (nothing may follow the Insider). An ordinary killer with the default one-player spawn group.
+        // 合并自 main（Huankings）：注册在窃时者之后，使钓鱼佬、盲人、魔人与内应的相对顺序不变（内应之后不得再注册）。
+        // 普通杀手职业，默认单人分配组。
         magician = SparkFactionApi.registerRole(FactionRoleDefinition.builder(MAGICIAN_ID, FactionIds.KILLER)
                 .color(MagicianConstants.ROLE_COLOR)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
+                .build());
+        // Appended last so existing registration order stays unchanged; an ordinary task-funded civilian.
+        // 追加在最后以保持既有注册顺序不变；依靠任务赚钱的普通平民职业。
+        fisher = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FISHER_ID, FactionIds.CIVILIAN)
+                .color(FisherRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // Registered between the Angler and the Fiend (nothing may follow the Insider); an ordinary task-funded
+        // civilian drawn like the Angler, with no appearance condition (D7). Not police, never a Witch-skill role.
+        // 注册在钓鱼佬与魔人之间（内应之后不得再注册）；与钓鱼佬一样按普通平民抽取、依靠任务赚钱，无出现条件（D7）。
+        // 不是警察，也不是魔女技能职业。
+        blind = SparkFactionApi.registerRole(FactionRoleDefinition.builder(BLIND_ID, FactionIds.CIVILIAN)
+                .color(BlindRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // Appended last so existing registration order stays unchanged; a Wathe-native neutral (FAKE mood, no tasks),
+        // drawn only in rounds with 18+ players (the same population test as Wathe's own player-count condition).
+        // Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // 追加在最后以保持既有注册顺序不变；Wathe 原生中立（伪装情绪、无任务），仅在 18 人及以上对局中抽取
+        // （与 Wathe 自带人数条件的判断相同）。不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        fiend = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FIEND_ID, FactionIds.NEUTRAL)
+                .color(FiendRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> context.getTotalPlayerCount() >= FiendRules.MIN_PLAYERS)
+                .build());
+        // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
+        // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
+        // a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // 追加在最后以保持既有注册顺序不变；Wathe 原生中立，参数与黑警相同（伪装情绪但有任务、平民体力、可见回合时间）。
+        // 从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        insider = SparkFactionApi.registerRole(FactionRoleDefinition.builder(INSIDER_ID, FactionIds.NEUTRAL)
+                .color(InsiderRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> false)
                 .build());
     }
 
@@ -417,14 +678,29 @@ public final class SparkWitchRoleRegistry {
                 perfumer,
                 pigGod,
                 tarotReader,
+                fisher,
+                judge,
+                blind,
                 ninja,
                 blackRaven,
                 witchMaiden,
                 hunter,
                 kidnapper,
+                bellRinger,
+                timeStealer,
+                magician,
                 murderousWitch,
                 accomplice,
+                abyssListener,
+                potionGunner,
+                riftwalker,
+                bewitched,
                 grandWitch,
+                emma,
+                controlExpert,
+                seeker,
+                fiend,
+                insider,
                 windSpirit,
                 guardianAngel,
                 vendetta,
@@ -434,7 +710,8 @@ public final class SparkWitchRoleRegistry {
     }
 
     private static boolean isRegisteredSparkWitchRole(Role role) {
-        return role == grandWitch
+        return role == emma
+                || role == grandWitch
                 || role == accomplice
                 || role == apprenticeWitch
                 || role == prophet
@@ -446,6 +723,15 @@ public final class SparkWitchRoleRegistry {
                 || role == ninja
                 || role == kidnapper
                 || role == blackRaven
-                || role == witchMaiden;
+                || role == witchMaiden
+                || role == bellRinger
+                // Shared skill path (Warden's Shriek) only; grants no witch skill panel access (the panel reads the
+                // role's accomplice-variant hooks, D13). 仅用于共享技能路径（监守之啸）；不授予魔女技能面板资格
+                // （面板读取本职业的特殊共犯回调，D13）。
+                || role == abyssListener
+                // Shared skill path (Witches' Sabbath) only; grants no witch skill panel access (the panel reads the
+                // role's accomplice-variant hooks, AGENTS.md panel rule). 仅用于共享技能路径（魔女集会）；不授予魔女技能
+                // 面板资格（面板读取本职业的特殊共犯回调，AGENTS.md 面板规则）。
+                || role == riftwalker;
     }
 }

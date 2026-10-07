@@ -3,11 +3,14 @@
   "id": "sparkwitch",
   "version": "${version}",
   "name": "SparkWitch",
-  "description": "Witch faction roles and active skill framework for Spark Wathe.",
+  "description": "Witch faction roles and active skill framework for Spark Wathe. DLC textures made by Claude, GPT-Image & I_siya.",
   "authors": [
     "Caecorthus"
   ],
-  "license": "AGPL-3.0-only",
+  "license": [
+    "AGPL-3.0-only",
+    "LicenseRef-Textures-ARR"
+  ],
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -25,8 +28,10 @@
   },
   "custom": {
     "cardinal-components": [
+      "sparkwitch:judge_round",
       "sparkwitch:player",
       "sparkwitch:perfumer_player",
+      "sparkwitch:prophet_player",
       "sparkwitch:curser_player",
       "sparkwitch:kidnapper_control",
       "sparkwitch:hunter",
@@ -35,13 +40,34 @@
       "sparkwitch:vendetta",
       "sparkwitch:black_raven_mark",
       "sparkwitch:black_raven_perception",
+      "sparkwitch:black_raven_disguise",
+      "sparkwitch:bell_echo",
+      "sparkwitch:time_stealer",
+      "sparkwitch:time_theft",
+      "sparkwitch:time_gift",
+      "sparkwitch:control_expert_status",
+      "sparkwitch:holy_flash",
+      "sparkwitch:seeker_status",
+      "sparkwitch:fisher_spirit",
+      "sparkwitch:blind",
+      "sparkwitch:fiend_moment",
+      "sparkwitch:grand_witch_runtime",
+      "sparkwitch:witch_factor_world",
+      "sparkwitch:emma_player",
+      "sparkwitch:emma_round",
       "sparkwitch:world",
       "sparkwitch:wraith_player",
       "sparkwitch:saboteur_player",
       "sparkwitch:magician",
       "sparkwitch:wraith_round",
       "sparktraits:wraith_player",
-      "sparktraits:wraith_round"
+      "sparktraits:wraith_round",
+      "sparkwitch:accomplice_variant_round",
+      "sparkwitch:abyss_zone_exposure",
+      "sparkwitch:rift_session",
+      "sparkwitch:rift_gates",
+      "sparkwitch:bewitched",
+      "sparkwitch:apprentice_player"
     ]
   },
   "mixins": [
@@ -65,10 +91,10 @@
     "cardinal-components-world": ">=${cca_version}"
   },
   "suggests": {
-    "sparktraits": ">=0.1.9.9",
+    "sparktraits": ">=0.1.9.11",
     "sparkstrength": "*"
   },
   "breaks": {
-    "sparktraits": "<0.1.9.9"
+    "sparktraits": "<0.1.9.11"
   }
 }

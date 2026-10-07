@@ -1,32 +1,39 @@
 package dev.caecorthus.sparkwitch.skill;
 
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
+import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilityCatalog;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Clairvoyance.ClairvoyanceAbility;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Healing.HealingAbility;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceAbility;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MurderSense.MurderSenseAbility;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.SwiftStep.SwiftStepAbility;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
-import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
-import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerEchoService;
+import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.shriek.WardensShriekService;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.sabbath.WitchesSabbathService;
 
 public final class SparkWitchBuiltInSkills {
     private static boolean registered;
@@ -40,14 +47,18 @@ public final class SparkWitchBuiltInSkills {
         }
         registered = true;
         WitchSkillRegistry.register(new WitchSkillDefinition(
-                GrandWitchActiveSkillService.CEREMONIAL_SWORD_SKILL_ID,
+                WitchFactorService.SKILL_ID,
                 0xF2DFF7,
                 1,
-                GrandWitchRules.CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS,
                 0,
-                GrandWitchRules.CEREMONIAL_SWORD_MANA_COST,
+                WitchFactorService.COOLDOWN_TICKS,
+                WitchFactorService.MANA_COST,
                 context -> WitchFactionRules.isGrandWitch(context.role()),
-                GrandWitchActiveSkillService::use
+                WitchFactorService::use
+        ));
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                EmmaRules.SKILL_ID, EmmaRules.COLOR, 1, 0, EmmaRules.COOLDOWN_TICKS,
+                EmmaRules.MANA_COST, context -> EmmaRules.isEmma(context.role()), EmmaSkillService::useSkill
         ));
         registerApprenticeAbility(
                 MightyForceAbility.ID,
@@ -95,14 +106,16 @@ public final class SparkWitchBuiltInSkills {
                 PigGodSkillService::use
         ));
         WitchSkillRegistry.register(new WitchSkillDefinition(
-                ProphetRules.DEATH_OMEN_ID,
+                ProphetRules.PROPHECY_ID,
                 ProphetRules.ROLE_COLOR,
                 1,
-                ProphetRules.INITIAL_COOLDOWN_TICKS,
-                ProphetRules.POST_COOLDOWN_TICKS,
+                ProphetRules.PROPHECY_INITIAL_COOLDOWN_TICKS,
+                ProphetRules.PROPHECY_COOLDOWN_TICKS,
                 0,
                 context -> ProphetRules.isProphet(context.role()),
-                ProphetSkillService::use
+                // Prophecy runs only through its own request/session packets; the generic skill packet is refused.
+                // 预言只走自己的请求/会话数据包；通用技能包一律拒绝。
+                context -> WitchSkillUseResult.fail("message.sparkwitch.skill.unavailable")
         ));
         WitchSkillRegistry.register(new WitchSkillDefinition(
                 MurderousWitchDeathRayRules.DEATH_RAY_ID,
@@ -153,6 +166,50 @@ public final class SparkWitchBuiltInSkills {
                 0,
                 context -> WitchMaidenRules.isWitchMaiden(context.role()),
                 FocusedFootstepsSkillService::use
+        ));
+        // Exact-role selector: the Bell Ringer is on the shared-skill whitelist, so any looser selector would
+        // leak other skills onto it. Presented only by the bottom-right skill HUD, never the witch panel.
+        // 精确职业选择器：敲钟人位于共享技能白名单中，更宽松的选择器会把其他技能漏给它；
+        // 仅由右下角技能 HUD 展示，绝不进入魔女技能面板。
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                BellRingerRules.ECHO_SKILL_ID,
+                BellRingerRules.COLOR,
+                1,
+                BellRingerRules.ECHO_INITIAL_COOLDOWN_TICKS,
+                BellRingerRules.ECHO_COOLDOWN_TICKS,
+                0,
+                context -> BellRingerRules.isBellRinger(context.role()),
+                BellRingerEchoService::use
+        ));
+        // Exact-role selector, like the Bell Ringer: the Abyss Listener is on the shared-skill whitelist, so a looser
+        // selector would leak other skills onto it. Presented by the bottom-right skill HUD and, as the role's own
+        // skill (D13, via its accomplice-variant hooks), by the witch skills panel.
+        // 与敲钟人相同的精确职业选择器：聆渊者位于共享技能白名单中，更宽松的选择器会把其他技能漏给它；
+        // 由右下角技能 HUD 展示，并作为本职业自有技能（D13，经由其特殊共犯回调）进入魔女技能面板。
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                AbyssListenerRules.SHRIEK_SKILL_ID,
+                AbyssListenerRules.COLOR,
+                1,
+                AbyssListenerRules.SHRIEK_INITIAL_COOLDOWN_TICKS,
+                AbyssListenerRules.SHRIEK_COOLDOWN_TICKS,
+                AbyssListenerRules.SHRIEK_MANA_COST,
+                context -> AbyssListenerRules.isAbyssListener(context.role()),
+                WardensShriekService::use
+        ));
+        // Exact-role selector, like the Bell Ringer: the Riftwalker is on the shared-skill whitelist, so a looser
+        // selector would leak other skills onto it. 150 mana and a 30 s cooldown (owner 2026-10-05). Presented by the
+        // bottom-right skill HUD and, as the role's own skill (AGENTS.md panel rule, via its variant hooks), by the panel.
+        // 与敲钟人相同的精确职业选择器：隙行者位于共享技能白名单中，更宽松的选择器会把其他技能漏给它。消耗 150 魔力，
+        // 冷却 30 秒（所有者 2026-10-05）。由右下角技能 HUD 展示，并作为本职业自有技能（AGENTS.md 面板规则，经由其特殊共犯回调）进入魔女技能面板。
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                RiftwalkerRules.SABBATH_SKILL_ID,
+                RiftwalkerRules.COLOR,
+                1,
+                RiftwalkerRules.SABBATH_INITIAL_COOLDOWN_TICKS,
+                RiftwalkerRules.SABBATH_COOLDOWN_TICKS,
+                RiftwalkerRules.SABBATH_MANA_COST,
+                context -> RiftwalkerRules.isRiftwalker(context.role()),
+                WitchesSabbathService::use
         ));
     }
 

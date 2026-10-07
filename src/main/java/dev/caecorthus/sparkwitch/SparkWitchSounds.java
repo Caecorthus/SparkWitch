@@ -10,9 +10,30 @@ public final class SparkWitchSounds {
     public static final Identifier GRAND_WITCH_CEREMONIAL_SWORD_BGM_ID =
             SparkWitch.id("ambient.grand_witch_ceremonial_sword_bgm");
     public static final Identifier SAINT_BELL_ID = SparkWitch.id("ambient.saint_bell");
+    /** Reuses vanilla bell audio; no new asset. / 复用原版钟声音频，不新增资源。 */
+    public static final Identifier BELL_RINGER_TOLL_ID = SparkWitch.id("ambient.bell_ringer_toll");
+    /**
+     * Victim-private Time Stealer Pocket Watch stage chime and final stop; both use bundled pocket-watch audio (never
+     * bell audio) and keep ids distinct from the Bell Ringer so players and client volume groups can tell them apart.
+     * 仅受害者可闻的窃时者怀表阶段鸣响与停摆；均使用自带的怀表音频（不用钟声），id 与敲钟人区分，便于玩家辨认与客户端音量分组。
+     */
+    public static final Identifier TIME_STEALER_CHIME_ID = SparkWitch.id("ambient.time_stealer_chime");
+    public static final Identifier TIME_STEALER_FINAL_ID = SparkWitch.id("ambient.time_stealer_final");
+    /**
+     * Holy Flash tinnitus: a seamless 3 s loop played only on the flashed player's own client (relative, no
+     * attenuation, non-streamed so OpenAL loops the buffer without a gap). The client excludes this id from the flash
+     * muffle so the ring stays on top.
+     * 圣光弹耳鸣：只在被闪玩家自己的客户端播放的 3 秒无缝循环（相对玩家、无衰减、非流式，OpenAL 直接循环缓冲区无间隙）。
+     * 客户端在闪光压音中排除此 id，保证耳鸣始终最响。
+     */
+    public static final Identifier HOLY_FLASH_TINNITUS_ID = SparkWitch.id("skill.holy_flash_tinnitus");
     public static SoundEvent PIG_CHASE;
     public static SoundEvent GRAND_WITCH_CEREMONIAL_SWORD_BGM;
     public static SoundEvent SAINT_BELL;
+    public static SoundEvent BELL_RINGER_TOLL;
+    public static SoundEvent TIME_STEALER_CHIME;
+    public static SoundEvent TIME_STEALER_FINAL;
+    public static SoundEvent HOLY_FLASH_TINNITUS;
     private static boolean registered;
 
     private SparkWitchSounds() {
@@ -30,5 +51,25 @@ public final class SparkWitchSounds {
                 SoundEvent.of(GRAND_WITCH_CEREMONIAL_SWORD_BGM_ID)
         );
         SAINT_BELL = Registry.register(Registries.SOUND_EVENT, SAINT_BELL_ID, SoundEvent.of(SAINT_BELL_ID));
+        BELL_RINGER_TOLL = Registry.register(
+                Registries.SOUND_EVENT,
+                BELL_RINGER_TOLL_ID,
+                SoundEvent.of(BELL_RINGER_TOLL_ID)
+        );
+        TIME_STEALER_CHIME = Registry.register(
+                Registries.SOUND_EVENT,
+                TIME_STEALER_CHIME_ID,
+                SoundEvent.of(TIME_STEALER_CHIME_ID)
+        );
+        TIME_STEALER_FINAL = Registry.register(
+                Registries.SOUND_EVENT,
+                TIME_STEALER_FINAL_ID,
+                SoundEvent.of(TIME_STEALER_FINAL_ID)
+        );
+        HOLY_FLASH_TINNITUS = Registry.register(
+                Registries.SOUND_EVENT,
+                HOLY_FLASH_TINNITUS_ID,
+                SoundEvent.of(HOLY_FLASH_TINNITUS_ID)
+        );
     }
 }

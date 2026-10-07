@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
@@ -28,6 +29,10 @@ public final class VendettaKnifeService {
 
     public static void use(ServerPlayerEntity attacker, int targetEntityId) {
         if (attacker == null || attacker.isSpectator()) {
+            return;
+        }
+        if (SparkTraitsKillerBridge.blocksWeaponAction(attacker, new ItemStack(SparkWitchItems.vendettaKnife()))) {
+            clearPlayer(attacker);
             return;
         }
         GameWorldComponent game = GameWorldComponent.KEY.get(attacker.getServerWorld());
@@ -61,6 +66,9 @@ public final class VendettaKnifeService {
             return;
         }
 
+        if (SparkTraitsKillerBridge.shouldCancelMeleeAttack(attacker, target, attacker.getStackInHand(heldHand))) {
+            return;
+        }
         boolean deadBefore = game.isPlayerDead(target.getUuid());
         GameFunctions.killPlayer(target, true, attacker, GameConstants.DeathReasons.KNIFE);
         boolean deadAfter = game.isPlayerDead(target.getUuid());
@@ -80,7 +88,8 @@ public final class VendettaKnifeService {
 
     /** Records the real server-side release so a custom payload cannot skip the half-second charge. */
     public static void recordServerRelease(ServerPlayerEntity player, int heldTicks) {
-        if (player == null || heldTicks < VendettaKnifeRules.MINIMUM_HOLD_TICKS) {
+        if (player == null || heldTicks < VendettaKnifeRules.MINIMUM_HOLD_TICKS
+                || SparkTraitsKillerBridge.blocksWeaponAction(player, new ItemStack(SparkWitchItems.vendettaKnife()))) {
             if (player != null) {
                 QUALIFIED_RELEASES.remove(player.getUuid());
             }

@@ -3,8 +3,11 @@ package dev.caecorthus.sparkwitch.roles.witch;
 import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
+import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariants;
 import dev.doctor4t.wathe.api.Role;
 import java.util.OptionalInt;
+import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -13,6 +16,7 @@ import java.util.OptionalInt;
  */
 public final class WitchFactionRules {
     public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
+    public static final int WITCH_TASK_MONEY_REWARD = 50;
 
     public static final int OTHER_WITCH_INSTINCT_COLOR = 0x7AB8FF;
     public static final int NON_WITCH_INSTINCT_COLOR = 0x36E51B;
@@ -33,18 +37,64 @@ public final class WitchFactionRules {
         return role != null && role == SparkWitchRoles.accomplice();
     }
 
+    /**
+     * Exactly the Bewitched (魔化使), the not-yet-promoted accomplice dealt at round start. It is accomplice-like (C2)
+     * but never an {@link AccompliceVariants} entry, so it is never rolled.
+     * 恰为魔化使，即开局发放、尚未晋升的共犯。它属于共犯类（C2），但从不是 {@link AccompliceVariants} 条目，因此永远不会被抽到。
+     */
+    public static boolean isBewitched(Role role) {
+        return role != null && role == SparkWitchRoles.bewitched();
+    }
+
+    /**
+     * The plain Accomplice, any registered special accomplice, or the Bewitched (C2: it shares every basic accomplice
+     * rule before its promotion). Use it for "basic accomplice" rules; keep {@link #isAccomplice} exact for rules owned
+     * by the plain Accomplice itself (such as its shop).
+     * 普通共犯、任一已注册的特殊共犯或魔化使（C2：晋升前即共享所有共犯基础规则）。"共犯基础功能"规则用它；普通共犯自有的
+     * 规则（如其商店）仍用精确的 isAccomplice。
+     */
+    public static boolean isAccompliceLike(Role role) {
+        return isAccomplice(role) || AccompliceVariants.isVariant(role) || isBewitched(role);
+    }
+
+    /**
+     * Id form of the variant half of {@link #isAccompliceLike}, for rules keyed on role ids whose id sets are built
+     * at class initialization, before any variant registers. It reads the live registry on every call.
+     * {@link #isAccompliceLike} 中特殊共犯部分的职业 ID 形式，供以职业 ID 为键的规则使用（这些 ID 集合在类初始化时建立，
+     * 早于任何特殊共犯注册）。每次调用都读取实时注册表。
+     */
+    public static boolean isAccompliceVariantId(@Nullable Identifier roleId) {
+        if (roleId == null) {
+            return false;
+        }
+        for (Role variant : AccompliceVariants.variants()) {
+            if (roleId.equals(variant.identifier())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Grand Witch, any accomplice (plain, special or Bewitched) and the promoted Curser. Win counts, blackout,
+     * Fear/Obscure immunity, the cohort label and Curser visibility all read this.
+     * 大魔女、任一共犯（普通、特殊或魔化使）与晋升的诅咒者。胜利计数、停电、恐惧/遮蔽免疫、同伙标签和诅咒者可见性都读取它。
+     */
     public static boolean isWitchFactionMember(Role role) {
         return role != null && (role == SparkWitchRoles.grandWitch()
-                || role == SparkWitchRoles.accomplice()
+                || isAccompliceLike(role)
                 || role == SparkWitchRoles.curser());
     }
 
     /**
-     * Keeps legacy instinct visuals narrower than generic Witch-faction membership.
-     * 旧有本能视觉仅属于大魔女和共犯，不随通用魔女阵营成员关系扩展。
+     * Killer-style instinct visuals (lightmap, dropped-item outline, hidden-Phantom hard skip) for the Grand Witch and
+     * every accomplice, special accomplices included (owner-approved parity). Still narrower than generic Witch-faction
+     * membership: the Curser keeps its own rules.
+     * 杀手式本能视觉（亮度过渡、掉落物描边、隐身幽灵硬跳过）属于大魔女和所有共犯，包括特殊共犯（所有者批准对齐）。
+     * 仍窄于通用魔女阵营成员关系：诅咒者沿用自己的规则。
      */
     public static boolean usesKillerStyleInstinctLight(Role role) {
-        return isGrandWitch(role) || isAccomplice(role);
+        return isGrandWitch(role) || isAccompliceLike(role);
     }
 
     public static boolean shouldHardSkipInvisiblePhantom(
@@ -63,25 +113,27 @@ public final class WitchFactionRules {
                 : OptionalInt.empty();
     }
 
-    public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive, boolean viewerSpectatingOrCreative) {
-        return viewerAlive && !viewerSpectatingOrCreative;
-    }
-
+    /**
+     * A Wathe-alive viewer keeps its own role instinct in every game mode; only a Wathe-dead spectator falls through to
+     * Wathe's spectator information colours. A Rift Gate occupant is an alive spectator whose instinct colours stay
+     * (D10), and a null answer for it would hand it SparkFactionAPI's faction-colour fallback, which reveals roles.
+     * 存活（wathe 判定）的观察者在任何游戏模式下都保留自身职业本能；只有已死亡的旁观者回落到 wathe 旁观信息颜色。
+     * 裂隙门内的玩家是存活的旁观者，本能颜色保留（D10）；若对其返回 null，会落入 SparkFactionAPI 的阵营色兜底而暴露身份。
+     */
     public static boolean shouldUseCustomInstinctHighlight(boolean viewerAlive) {
-        return shouldUseCustomInstinctHighlight(viewerAlive, false);
+        return viewerAlive;
     }
 
     /**
-     * Obscure blocks only active non-Witch instinct users; spectators keep Wathe information vision.
-     * 障眼只遮蔽正在游玩的非魔女本能使用者；旁观者保留 wathe 信息透视。
+     * Obscure blocks only living non-Witch instinct users; dead spectators keep Wathe information vision.
+     * 障眼只遮蔽存活的非魔女本能使用者；已死亡的旁观者保留 wathe 信息透视。
      */
     public static boolean shouldObscureInstinct(
             boolean instinctObscured,
             Role viewerRole,
-            boolean viewerAlive,
-            boolean viewerSpectatingOrCreative
+            boolean viewerAlive
     ) {
-        return shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)
+        return shouldUseCustomInstinctHighlight(viewerAlive)
                 && instinctObscured
                 && isAffectedByWitchAreaSpell(viewerRole);
     }
@@ -95,10 +147,9 @@ public final class WitchFactionRules {
             boolean instinctObscured,
             Role viewerRole,
             boolean viewerAlive,
-            boolean viewerSpectatingOrCreative,
             boolean finalMomentActive
     ) {
-        if (finalMomentActive || !shouldUseCustomInstinctHighlight(viewerAlive, viewerSpectatingOrCreative)) {
+        if (finalMomentActive || !shouldUseCustomInstinctHighlight(viewerAlive)) {
             return false;
         }
         boolean affectedByFear = fearActive && isAffectedByFear(viewerRole);
@@ -118,25 +169,31 @@ public final class WitchFactionRules {
         return role != null && isAffectedByWitchAreaSpell(role);
     }
 
+    /**
+     * Witch instinct colors. The Grand Witch and every accomplice see each accomplice (plain, special or Bewitched) in
+     * that target's own role color, so the Grand Witch can tell a Bewitched from each promoted special accomplice.
+     * 魔女本能颜色。大魔女和所有共犯都以目标自身的职业颜色看到每个共犯（普通、特殊或魔化使），因此大魔女能分辨魔化使与
+     * 晋升后的各种特殊共犯。
+     */
     public static OptionalInt instinctColor(Role viewerRole, Role targetRole) {
         if (isGrandWitch(viewerRole)) {
             if (targetRole == SparkWitchRoles.grandWitch()) {
                 return OptionalInt.of(SparkWitchRoles.grandWitch().color());
             }
-            if (targetRole == SparkWitchRoles.accomplice()) {
-                return OptionalInt.of(SparkWitchRoles.accomplice().color());
+            if (isAccompliceLike(targetRole)) {
+                return OptionalInt.of(targetRole.color());
             }
             if (isOtherWitchRole(targetRole)) {
                 return OptionalInt.of(OTHER_WITCH_INSTINCT_COLOR);
             }
             return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
         }
-        if (isAccomplice(viewerRole) || viewerRole == SparkWitchRoles.curser()) {
+        if (isAccompliceLike(viewerRole) || viewerRole == SparkWitchRoles.curser()) {
             if (targetRole == SparkWitchRoles.grandWitch()) {
                 return OptionalInt.of(SparkWitchRoles.grandWitch().color());
             }
-            if (targetRole == SparkWitchRoles.accomplice()) {
-                return OptionalInt.of(SparkWitchRoles.accomplice().color());
+            if (isAccompliceLike(targetRole)) {
+                return OptionalInt.of(targetRole.color());
             }
             return OptionalInt.of(NON_WITCH_INSTINCT_COLOR);
         }
@@ -160,7 +217,7 @@ public final class WitchFactionRules {
             }
             return null;
         }
-        if (isAccomplice(role)) {
+        if (isAccompliceLike(role)) {
             if (rewardKind == FactionEconomyPolicy.RewardKind.DIRECT_KILL
                     || rewardKind == FactionEconomyPolicy.RewardKind.PASSIVE) {
                 return true;
@@ -170,8 +227,8 @@ public final class WitchFactionRules {
     }
 
     /**
-     * Grand Witch direct kills grant the living Accomplice an additional teammate reward.
-     * 大魔女直接击杀会给存活的共犯队友额外发放一份队友奖励。
+     * Grand Witch direct kills grant every living accomplice teammate (plain or special) an additional reward.
+     * 大魔女直接击杀会给每个存活的共犯队友（普通或特殊）额外发放一份队友奖励。
      */
     public static boolean shouldAwardWitchTeamKillMoney(
             Role killerRole,
@@ -180,9 +237,28 @@ public final class WitchFactionRules {
             boolean teammateAlive
     ) {
         return isGrandWitch(killerRole)
-                && isAccomplice(teammateRole)
+                && isAccompliceLike(teammateRole)
                 && !samePlayer
                 && teammateAlive;
+    }
+
+    /**
+     * Task pay (+{@link #WITCH_TASK_MONEY_REWARD}): an active, living, participating Grand Witch or accomplice (plain or
+     * special) that is not a spectator, creative or Wraith-restricted. No Impostor skip, as for the Insider: witch roles
+     * roll only universal SparkTraits, and SparkTraits bonuses stack on top. The Curser earns nothing here.
+     * 任务收入（+{@link #WITCH_TASK_MONEY_REWARD}）：处于 ACTIVE、存活且参与对局、非旁观/创造、未受灵体限制的大魔女或共犯
+     * （普通或特殊）。与内应一样不跳过内鬼：魔女职业只抽通用 SparkTraits 词条，其加成叠加在此之上。诅咒者不在此领钱。
+     */
+    public static boolean earnsTaskMoney(
+            boolean active,
+            boolean playingAndAlive,
+            @Nullable Role role,
+            boolean spectator,
+            boolean creative,
+            boolean wraithRestricted
+    ) {
+        return active && playingAndAlive && (isGrandWitch(role) || isAccompliceLike(role))
+                && !spectator && !creative && !wraithRestricted;
     }
 
 }

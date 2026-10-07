@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.vendetta;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaPlayerComponent;
@@ -26,6 +27,7 @@ public final class VendettaKnifeClientUse {
             int maxUseTicks
     ) {
         if (!world.isClient || user.isSpectator() || !(user instanceof PlayerEntity attacker)
+                || SparkTraitsKillerBridge.blocksWeaponAction(attacker, stack)
                 || maxUseTicks - remainingUseTicks < VendettaKnifeRules.MINIMUM_HOLD_TICKS) {
             return;
         }

@@ -11,4 +11,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface ItemCooldownEntryAccessor {
     @Accessor("endTick")
     int sparkwitch$getEndTick();
+
+    @Accessor("startTick")
+    int sparkwitch$getStartTick();
 }

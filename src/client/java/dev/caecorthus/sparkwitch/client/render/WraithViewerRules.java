@@ -32,7 +32,7 @@ public final class WraithViewerRules {
                 && target != null
                 && WraithClientState.isActive(target)
                 && !viewer.getUuid().equals(target.getUuid())
-                && !viewer.isSpectator()
+                && !isDeadSpectator(viewer)
                 && !shouldRevealPromotedSaboteurToKiller(viewer, target)
                 && !VendettaClientPresentation.isBoundKillerViewingVendetta(viewer, target);
     }
@@ -40,7 +40,17 @@ public final class WraithViewerRules {
     public static boolean shouldRevealToSpectator(PlayerEntity viewer, PlayerEntity target) {
         return viewer != null
                 && target != null
-                && viewer.isSpectator()
+                && isDeadSpectator(viewer)
                 && WraithClientState.isActive(target);
+    }
+
+    /**
+     * Only a Wathe-dead spectator bypasses Wraith privacy. A living spectator (a Rift Gate occupant, a SparkTraits
+     * Depression fake death) is an ordinary viewer, so holding instinct never shows it a Wraith's real role colour.
+     * 只有已死亡（wathe 判定）的旁观者可越过冤魂隐私。存活的旁观者（裂隙门内玩家、SparkTraits 抑郁假死）属于普通
+     * 观察者，按住本能键也看不到冤魂的真实职业颜色。
+     */
+    private static boolean isDeadSpectator(PlayerEntity viewer) {
+        return viewer.isSpectator() && !GameFunctions.isPlayerPlayingAndAlive(viewer);
     }
 }

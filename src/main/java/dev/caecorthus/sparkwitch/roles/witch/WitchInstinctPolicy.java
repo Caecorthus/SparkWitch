@@ -53,17 +53,24 @@ public final class WitchInstinctPolicy {
                 CurserPlayerComponent.KEY.get(viewer).isConfused(),
                 viewerSpectatingOrCreative
         );
-        if (curserViewer ? !curserOutlineEligible : !WitchFactionRules.shouldUseCustomInstinctHighlight(
-                viewerAlive,
-                viewerSpectatingOrCreative
-        )) {
+        // A living Rift Gate occupant is a spectator but keeps this instinct; see shouldUseCustomInstinctHighlight.
+        // 存活的裂隙门内玩家虽是旁观者，仍保留此本能；见 shouldUseCustomInstinctHighlight。
+        if (curserViewer ? !curserOutlineEligible : !WitchFactionRules.shouldUseCustomInstinctHighlight(viewerAlive)) {
             return null;
+        }
+        // The Apprentice's own skill outlines are spell-immune, so they answer before Obscure (owner 2026-10-06 D4).
+        // 预备魔女自己的技能描边不受法术影响，因此在障眼之前作答（所有者 2026-10-06 D4）。
+        if (target instanceof PlayerEntity apprenticeTarget) {
+            FactionInstinctPolicy.InstinctResult apprenticeOutline =
+                    ApprenticeInstinctRules.ownSkillHighlight(viewer, apprenticeTarget);
+            if (apprenticeOutline != null) {
+                return apprenticeOutline;
+            }
         }
         if (WitchFactionRules.shouldObscureInstinct(
                 WitchWorldComponent.KEY.get(viewer.getWorld()).isInstinctObscured(),
                 viewerRole,
-                viewerAlive,
-                viewerSpectatingOrCreative
+                viewerAlive
         )) {
             return FactionInstinctPolicy.InstinctResult.skip(OBSCURE_SKIP_PRIORITY);
         }
@@ -92,10 +99,10 @@ public final class WitchInstinctPolicy {
             return FactionInstinctPolicy.InstinctResult.skip(WitchFactionRules.HIDDEN_PHANTOM_SKIP_PRIORITY);
         }
 
-        FactionInstinctPolicy.InstinctResult apprenticeOutline =
-                ApprenticeInstinctRules.highlight(viewer, targetPlayer);
-        if (apprenticeOutline != null) {
-            return apprenticeOutline;
+        FactionInstinctPolicy.InstinctResult exposureOutline =
+                ApprenticeInstinctRules.exposureHighlight(viewer, targetPlayer);
+        if (exposureOutline != null) {
+            return exposureOutline;
         }
 
         OptionalInt color = WitchFactionRules.instinctColor(viewerRole, targetRole);
@@ -106,6 +113,8 @@ public final class WitchInstinctPolicy {
                 || GameFunctions.isPlayerSpectatingOrCreative(targetPlayer)) {
             return FactionInstinctPolicy.InstinctResult.skip(GRAND_WITCH_INSTINCT_PRIORITY);
         }
+        // Ordinary instinct owns its color; factor knowledge is a client-only last fallback.
+        // 普通本能保留自身颜色；因子知识仅由客户端最后补缺。
         return FactionInstinctPolicy.InstinctResult.show(color.getAsInt(), true, GRAND_WITCH_INSTINCT_PRIORITY);
     }
 

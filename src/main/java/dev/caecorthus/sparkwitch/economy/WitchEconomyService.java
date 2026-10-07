@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.economy;
 
+import dev.caecorthus.sparkwitch.api.SparkWitchApi;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -27,6 +28,22 @@ public final class WitchEconomyService {
 
     public static int accompliceStartingMoney(ServerPlayerEntity player, GameWorldComponent gameComponent) {
         return killerStyleStartingMoney(player, gameComponent);
+    }
+
+    /**
+     * Server-side task pay for the Grand Witch and every accomplice; eligibility lives in
+     * {@link WitchFactionRules#earnsTaskMoney}. SparkWitch owns this income: Wathe, SparkStrength and NoellesRoles pay
+     * witch roles nothing per task.
+     * 大魔女与所有共犯的服务端任务收入；资格判定见 {@link WitchFactionRules#earnsTaskMoney}。该收入由 SparkWitch 负责：
+     * wathe、SparkStrength 与 NoellesRoles 都不按任务给魔女职业发钱。
+     */
+    public static void onTaskComplete(ServerPlayerEntity player) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getServerWorld());
+        if (WitchFactionRules.earnsTaskMoney(game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE,
+                GameFunctions.isPlayerPlayingAndAlive(player), game.getRole(player), player.isSpectator(),
+                player.isCreative(), SparkWitchApi.isWraithRestricted(player))) {
+            PlayerShopComponent.KEY.get(player).addToBalance(WitchFactionRules.WITCH_TASK_MONEY_REWARD);
+        }
     }
 
     public static void afterKill(

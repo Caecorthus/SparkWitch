@@ -33,24 +33,25 @@ public final class WitchRoleAssignmentService {
         Collections.shuffle(availablePlayers, new java.util.Random(world.getRandom().nextLong()));
 
         Role grandWitch = SparkWitchRoles.grandWitch();
-        Role accomplice = SparkWitchRoles.accomplice();
         Role apprenticeWitch = SparkWitchRoles.apprenticeWitch();
         RoleSelectionContext roleContext = roleSelectionContext(world, gameComponent, players);
 
         int assigned = 0;
-        boolean grandPresent = countRole(gameComponent, players, grandWitch) > 0;
 
         int grandRemaining = counts.grandWitches() - countRole(gameComponent, players, grandWitch);
         if (grandRemaining > 0 && isEligible(gameComponent, roleContext, grandWitch)) {
             assigned += assignRole(gameComponent, availablePlayers, grandWitch, grandRemaining);
-            grandPresent = grandPresent || countRole(gameComponent, players, grandWitch) > 0;
         }
 
-        // Accomplices belong to the custom witch faction, so they only auto-fill when the Grand Witch exists.
-        // 共犯属于魔女阵营；只有大魔女已存在或本轮成功生成时，才自动补入共犯。
-        if (grandPresent && isEligible(gameComponent, roleContext, accomplice)) {
-            int accompliceRemaining = counts.accomplices() - countRole(gameComponent, players, accomplice);
-            assigned += assignRole(gameComponent, availablePlayers, accomplice, accompliceRemaining);
+        // D1: a round with a Grand Witch (dealt here, drawn as a neutral or forced) deals the Bewitched quota on the
+        // remaining civilian seats; forced Bewitched count toward it. The Bewitched never appears naturally, so only
+        // the enabled switch is checked (its appearance condition is always false).
+        // D1：有大魔女的对局（此处发放、中立抽取或强制指定）在剩余平民席位上发放魔化使名额；被强制指定的魔化使计入名额。
+        // 魔化使从不自然出现，因此只检查启用开关（其出现条件恒为 false）。
+        Role bewitched = SparkWitchRoles.bewitched();
+        if (countRole(gameComponent, players, grandWitch) > 0 && gameComponent.isRoleEnabled(bewitched)) {
+            int bewitchedRemaining = counts.bewitched() - countRole(gameComponent, players, bewitched);
+            assigned += assignRole(gameComponent, availablePlayers, bewitched, bewitchedRemaining);
         }
 
         // Apprentice Witch is a civilian role and follows the >=24 rule directly, independent of actual Grand Witch assignment.

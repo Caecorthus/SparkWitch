@@ -75,7 +75,7 @@ public final class GrandWitchShopService {
     }
 
     private static ShopPurchase.PurchaseResult beforePurchase(ServerPlayerEntity player, ShopEntry entry, int index) {
-        if (GrandWitchFearService.isPlayerFeared(player)) {
+        if (GrandWitchFearService.isPlayerUnderFear(player)) {
             return ShopPurchase.PurchaseResult.deny(GrandWitchFearService.SHOP_BLOCKED_KEY);
         }
 

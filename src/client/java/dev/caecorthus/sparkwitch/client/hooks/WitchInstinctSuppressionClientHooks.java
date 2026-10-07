@@ -1,6 +1,8 @@
 package dev.caecorthus.sparkwitch.client.hooks;
 
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeFearExemption;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.api.Role;
@@ -56,12 +58,16 @@ public final class WitchInstinctSuppressionClientHooks {
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(world);
         WitchWorldComponent witchWorld = WitchWorldComponent.KEY.get(world);
         Role viewerRole = gameComponent.getRole(viewer);
+        // The Apprentice Witch is spell-immune and a Healing ward lifts Fear (owner 2026-10-06 D4/D8); her own skill
+        // outlines then answer before Obscure inside WitchInstinctPolicy.
+        // 预备魔女不受法术影响，疗愈庇护解除恐惧（所有者 2026-10-06 D4/D8）；她自己的技能描边随后在 WitchInstinctPolicy
+        // 中先于障眼作答。
+        boolean apprentice = viewerRole == SparkWitchRoles.apprenticeWitch();
         return WitchFactionRules.shouldSuppressAffectedInstinctHighlight(
-                witchWorld.getFearTicks() > 0,
-                witchWorld.isInstinctObscured(),
+                witchWorld.getFearTicks() > 0 && !ApprenticeFearExemption.isExempt(viewer),
+                witchWorld.isInstinctObscured() && !apprentice,
                 viewerRole,
                 GameFunctions.isPlayerPlayingAndAlive(viewer),
-                GameFunctions.isPlayerSpectatingOrCreative(viewer),
                 isSparkTraitsFinalMomentActive(world)
         );
     }

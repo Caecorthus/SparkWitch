@@ -1,9 +1,10 @@
 package dev.caecorthus.sparkwitch.roles.special.wraith.progression;
 
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRules;
 import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.api.event.CanSeeMoney;
 import dev.doctor4t.wathe.api.event.TaskComplete;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -74,14 +75,12 @@ public final class WraithProgression {
         if (!wraith.isActive()) {
             return;
         }
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        int taskReward = WraithPromotionEconomyPolicy.taskReward(
-                true,
-                wraith.isPromoted(),
-                role == null ? null : role.identifier()
-        );
+        boolean canSeeMoney = CanSeeMoney.EVENT.invoker().canSee(player) == CanSeeMoney.Result.ALLOW;
+        boolean promotedWindSpirit = wraith.isPromoted() && WindSpiritRules.isWindSpirit(player);
+        int taskReward = WraithPromotionEconomyPolicy.taskReward(true, canSeeMoney, promotedWindSpirit);
         if (taskReward > 0) {
-            PlayerShopComponent.KEY.get(player).addToBalance(taskReward);
+            PlayerShopComponent.KEY.maybeGet(player)
+                    .ifPresent(shop -> shop.addToBalance(taskReward));
         }
         int completions = wraith.recordTaskCompletion();
         WraithPromotionQueue.queueIfReady(player, completions);

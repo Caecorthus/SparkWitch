@@ -16,9 +16,10 @@ import java.util.UUID;
 /** Adds only the killer's privately synced Vendetta target to NoellesRoles' native screen list. */
 @Mixin(AssassinScreen.class)
 public abstract class AssassinVendettaTargetMixin {
-    // NoellesRoles 1.7.6 ships this inherited Screen#init override under its intermediary name.
+    // Keep Yarn: intermediary selectors crash runClient; remapJar emits the intermediary form verifyClientMixinSelectors checks.
+    // 保持 Yarn：intermediary 选择器会使 runClient 崩溃；remapJar 生成的 intermediary 形式由 verifyClientMixinSelectors 校验。
     @Redirect(
-            method = "method_25426",
+            method = "init()V",
             at = @At(
                     value = "INVOKE",
                     target = "Ldev/doctor4t/wathe/cca/GameWorldComponent;getAllAlivePlayers()Ljava/util/List;"

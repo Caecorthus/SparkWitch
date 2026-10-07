@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilitySupport;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
@@ -15,11 +16,14 @@ import net.minecraft.util.Identifier;
 public final class HealingAbility {
     public static final Identifier ID = SparkWitch.id("healing");
     public static final int COLOR = 0x6DF2A2;
-    public static final int MANA_COST = 40;
+    public static final int MANA_COST = 30;
     public static final int DURATION_TICKS = GameConstants.getInTicks(0, 20);
-    public static final int COOLDOWN_TICKS = GameConstants.getInTicks(2, 0);
+    public static final int COOLDOWN_TICKS = GameConstants.getInTicks(0, 30);
     public static final double RANGE_BLOCKS = 8.0;
     public static final float MOOD_PER_SECOND = 0.03f;
+    // Outlasts the 20-tick pulse so the ward holds while a player stays in the aura (owner D8).
+    // 比 20 刻的脉冲间隔更长，使玩家留在光环内时庇护不中断（所有者 D8）。
+    public static final int FEAR_WARD_TICKS = 30;
 
     private HealingAbility() {
     }
@@ -45,6 +49,7 @@ public final class HealingAbility {
             }
             PlayerMoodComponent moodComponent = PlayerMoodComponent.KEY.get(target);
             moodComponent.setMood(Math.min(1.0f, moodComponent.getMood() + MOOD_PER_SECOND));
+            ApprenticePlayerComponent.KEY.get(target).refreshFearWard(FEAR_WARD_TICKS);
         }
     }
 }

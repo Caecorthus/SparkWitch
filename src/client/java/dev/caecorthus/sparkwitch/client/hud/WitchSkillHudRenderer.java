@@ -3,12 +3,18 @@ package dev.caecorthus.sparkwitch.client.hud;
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
+import dev.caecorthus.sparkwitch.client.apprentice.ApprenticeClientPresentation;
+import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
+import dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter;
+import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
+import dev.caecorthus.sparkwitch.client.judge.JudgeHudRenderer;
 import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
-import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
+import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRules;
 import dev.caecorthus.sparkwitch.skill.WitchSkillHudRules;
@@ -28,6 +34,7 @@ import net.minecraft.util.Identifier;
 public final class WitchSkillHudRenderer {
     private static final int RIGHT_PADDING = 5;
     private static final int BOTTOM_PADDING = 5;
+    private static final int LINE_GAP = 2;
 
     private WitchSkillHudRenderer() {
     }
@@ -37,25 +44,81 @@ public final class WitchSkillHudRenderer {
             return;
         }
 
+        if (EmmaClientModule.isEmma(player)) {
+            EmmaClientModule.renderHud(context, player);
+            return;
+        }
+        // The Judge has no WitchSkillDefinition (its key opens a selector), so it draws its own line in this slot.
+        // 法官没有 WitchSkillDefinition（按键打开选择界面），因此在此位置绘制其自有技能行。
+        if (JudgeClientModule.ownsHud(player)) {
+            JudgeHudRenderer.render(context, player);
+            return;
+        }
+        // While the owner inventory card lays out the whole skill section it shows these same states (last frame's
+        // state; the HUD draws before the screen), so the bottom-right lines would only duplicate it and, for the
+        // Grand Witch's four lines, draw under the card and poke out around it. Emma's HUD above is never hidden.
+        // 背包卡片完整显示技能分节时已包含相同状态（取上一帧状态，HUD 先于界面绘制），右下角文字只会重复，且大魔女的四行会压在卡片下方
+        // 并从四周露出，因此跳过；上方艾玛的 HUD 从不隐藏。
+        if (OwnerInventoryPresenter.showsSkillSection(MinecraftClient.getInstance().currentScreen)) {
+            return;
+        }
+        if (GrandWitchClientPresentation.isGrandWitch(player)) {
+            GrandWitchClientPresentation.renderHud(context, MinecraftClient.getInstance().textRenderer, player);
+            return;
+        }
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         Identifier skillId = component.getActiveSkillId();
+        TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+        int y = context.getScaledWindowHeight() - BOTTOM_PADDING - renderer.fontHeight;
+        boolean hasSkillLine = skillId != null && !FocusedFootstepsRules.SKILL_ID.equals(skillId);
+        renderProphetSenseLine(context, renderer, player, hasSkillLine ? y - renderer.fontHeight - LINE_GAP : y);
         if (skillId == null) {
             return;
         }
         if (FocusedFootstepsRules.SKILL_ID.equals(skillId)) {
             return;
         }
+        // The Apprentice's Purify line sits where the Prophet's sense line would; the two roles never overlap.
+        // 预备魔女的净化行位于先知感知行的位置；两种职业不会同时出现。
+        if (ApprenticeClientPresentation.isApprenticeSkill(skillId)) {
+            Text purify = ApprenticeClientPresentation.purifyLine(player);
+            context.drawTextWithShadow(renderer, purify,
+                    context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(purify),
+                    y - renderer.fontHeight - LINE_GAP, ApprenticeClientPresentation.PURIFY_COLOR);
+        }
 
-        TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
         int balance = PlayerShopComponent.KEY.get(player).getBalance();
-        Text line = stateText(component, skillId, balance);
+        Text line = stateText(player, component, skillId, balance);
         int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
-        int y = context.getScaledWindowHeight() - BOTTOM_PADDING - renderer.fontHeight;
         context.drawTextWithShadow(renderer, line, x, y, WitchSkillClientTexts.color(skillId));
     }
 
-    private static Text stateText(WitchPlayerComponent component, Identifier skillId, int balance) {
+    /**
+     * Draws the passive Death Sense countdown just above the skill line. The owner-only component is cleared by the
+     * server whenever its holder is not a Prophet, so its running flag is the only gate needed.
+     * 在技能行上方绘制被动死亡感知倒计时。服务端会在持有者不是先知时清空这个仅所有者组件，因此只需检查其运行标记。
+     */
+    private static void renderProphetSenseLine(DrawContext context, TextRenderer renderer, ClientPlayerEntity player, int y) {
+        ProphetPlayerComponent prophet = ProphetPlayerComponent.KEY.get(player);
+        if (!prophet.isSenseRunning()) {
+            return;
+        }
+        // Below 20 TPS the client countdown can reach zero before the server pulse; show "imminent", never "0s".
+        // 服务端低于 20 TPS 时客户端倒计时可能先归零；此时显示“即将发动”，而不是“0 秒”。
+        int senseSeconds = seconds(prophet.senseRemainingTicks());
+        Text line = senseSeconds > 0
+                ? Text.translatable("hud.sparkwitch.prophet.sense.countdown", senseSeconds)
+                : Text.translatable("hud.sparkwitch.prophet.sense.imminent");
+        int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
+        context.drawTextWithShadow(renderer, line, x, y, ProphetRules.CORPSE_HIGHLIGHT_COLOR);
+    }
+
+    private static Text stateText(ClientPlayerEntity player, WitchPlayerComponent component, Identifier skillId, int balance) {
         int activeTicks = component.getActiveSkillWindowTicks();
+        Text forfeited = ApprenticeClientPresentation.forfeitedLine(player, skillId);
+        if (forfeited != null && activeTicks <= 0) {
+            return forfeited;
+        }
         if (activeTicks > 0) {
             if (MurderousWitchDeathRayRules.isDeathRaySkill(skillId) && component.hasActiveDeathRay()) {
                 return Text.translatable(
@@ -122,9 +185,13 @@ public final class WitchSkillHudRenderer {
                 component.getCooldownTicks()
         )) {
             return Text.translatable(
-                    "hud.sparkwitch.skill.death_omen.coin_cost",
-                    ProphetRules.COIN_COST
+                    "hud.sparkwitch.skill.prophecy.coin_cost",
+                    ProphetRules.PROPHECY_COIN_COST
             );
+        }
+        Text apprenticeReady = ApprenticeClientPresentation.readyLine(player, skillId);
+        if (apprenticeReady != null) {
+            return apprenticeReady;
         }
         return Text.translatable(
                 "hud.sparkwitch.skill.ready",

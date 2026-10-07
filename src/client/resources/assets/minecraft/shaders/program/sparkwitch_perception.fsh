@@ -10,6 +10,8 @@ uniform float LuminanceScale;
 uniform float LumaRed;
 uniform float LumaGreen;
 uniform float LumaBlue;
+uniform float SpreadFactor;
+uniform float Brightness;
 
 in vec2 texCoord;
 
@@ -25,6 +27,14 @@ vec3 desaturate(vec3 color, float factor)
 void main()
 {
     vec4 color = texture(DiffuseSampler, texCoord);
+    // Identity branches retain the original Witch path exactly when Traits is not the winner.
+    if (SpreadFactor != 0.0) {
+        float mul = 1.0 + ((color.r + color.g + color.b) * 1.0 - 1.0) * SpreadFactor;
+        color.rgb = color.rgb * mul;
+    }
     color.rgb = desaturate(color.rgb, DesaturateFactor);
+    if (Brightness != 1.0) {
+        color = color * Brightness;
+    }
     fragColor = color;
 }

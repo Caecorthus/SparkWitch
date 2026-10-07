@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.mixin.tofana;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordProtectionPolicy;
 import dev.caecorthus.sparkwitch.item.tofana.TofanaProtectionService;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -10,7 +12,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(GameFunctions.class)
+// Tofana precedes Traits' priority-900 terminal escape injection at the same invocation.
+// 同一调用点上，托法娜先于 Traits priority=900 的最终脱险判定。
+@Mixin(value = GameFunctions.class, priority = 1000)
 public abstract class GameFunctionsTofanaProtectionMixin {
     @Inject(
             method = "killPlayer(Lnet/minecraft/server/network/ServerPlayerEntity;ZLnet/minecraft/server/network/ServerPlayerEntity;Lnet/minecraft/util/Identifier;Z)V",
@@ -31,7 +35,13 @@ public abstract class GameFunctionsTofanaProtectionMixin {
             boolean force,
             CallbackInfo ci
     ) {
-        if (TofanaProtectionService.protect(victim, killer, force)) {
+        if (SparkTraitsKillerBridge.isLastEscapeActive(victim)) {
+            return;
+        }
+        // Consume and enqueue even when the blade will kill the holder; retaliation has its own death reason.
+        // 即使剑将杀死持有者，仍消耗并入队；反杀使用独立死因。
+        if (CeremonialSwordProtectionPolicy.cancelsDeath(
+                TofanaProtectionService.protect(victim, killer, force), deathReason)) {
             ci.cancel();
         }
     }

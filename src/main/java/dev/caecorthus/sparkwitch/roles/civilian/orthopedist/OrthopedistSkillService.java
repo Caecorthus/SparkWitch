@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.orthopedist;
 
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.doctor4t.wathe.api.Role;
@@ -54,10 +55,10 @@ public final class OrthopedistSkillService {
 
     public static void use(ServerPlayerEntity caster) {
         GameWorldComponent game = GameWorldComponent.KEY.get(caster.getWorld());
-        Role role = game.getRole(caster);
         OrthopedistPlayerComponent component = OrthopedistPlayerComponent.KEY.get(caster);
         if (!game.isRunning()
-                || !isOrthopedist(role)
+                // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
+                || !game.isRole(caster, SparkWitchRoles.orthopedist())
                 || !GameFunctions.isPlayerPlayingAndAlive(caster)
                 || component.getCooldownTicks() > 0) {
             return;

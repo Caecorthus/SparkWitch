@@ -2,6 +2,8 @@ package dev.caecorthus.sparkwitch.roles.witch.grandwitch;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
+import dev.caecorthus.sparkwitch.net.SelectBlackRavenDisguiseC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeFearExemption;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.UseSaboteurSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.doctor4t.wathe.api.Role;
@@ -29,6 +31,7 @@ public final class GrandWitchFearService {
 
     private static final Set<Identifier> BLOCKED_ROLE_SKILL_PAYLOADS = Set.of(
             SparkWitch.id("use_skill"),
+            SparkWitch.id("emma_factor"),
             SparkWitch.id("fire_death_ray"),
             SparkWitch.id("use_orthopedist_skill"),
             UseSaboteurSkillC2SPacket.PAYLOAD_ID,
@@ -45,7 +48,23 @@ public final class GrandWitchFearService {
             Identifier.of("noellesroles", "swapper"),
             Identifier.of("noellesroles", "taotie_swallow"),
             Identifier.of("noellesroles", "vulture"),
-            Identifier.of("noellesroles", "demon_hunter_shoot")
+            Identifier.of("noellesroles", "demon_hunter_shoot"),
+            // Seeker actions; close and car moves stay allowed so a feared Seeker can always leave the view.
+            // 搜寻者行为；关闭与小车移动放行，使被恐惧的搜寻者总能退出视角。
+            Identifier.of("sparkwitch", "seeker_remote_open"),
+            Identifier.of("sparkwitch", "seeker_car_swallow"),
+            Identifier.of("sparkwitch", "seeker_car_recall"),
+            Identifier.of("sparkwitch", "seeker_car_use"),
+            // Black Raven transform selection; the server also re-checks fear on select.
+            // 黑羽鸦变身选择；服务端在选择时也会再次检查恐惧。
+            SelectBlackRavenDisguiseC2SPacket.PAYLOAD_ID,
+            // Blind Attune. / 盲人凝神。
+            Identifier.of("sparkwitch", "use_blind_attune"),
+            // Fiend Dash; the server also re-checks fear on use. / 魔人疾驰；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "use_fiend_dash"),
+            // Magician record/playback stages; the server also re-checks fear on use.
+            // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "magician_ability")
     );
 
     private GrandWitchFearService() {
@@ -55,7 +74,18 @@ public final class GrandWitchFearService {
         return world != null && WitchWorldComponent.KEY.get(world).getFearTicks() > 0;
     }
 
+    /**
+     * Fear's skill and instinct block. The Apprentice Witch and players warded by her Healing aura are exempt (owner
+     * decisions 2026-10-06 D4/D8); the shop keeps the raw {@link #isPlayerUnderFear} gate.
+     * 恐惧对技能与本能的封锁。预备魔女及受其疗愈光环庇护的玩家豁免（所有者 2026-10-06 决定 D4/D8）；商店仍使用原始的
+     * {@link #isPlayerUnderFear} 判断。
+     */
     public static boolean isPlayerFeared(PlayerEntity player) {
+        return isPlayerUnderFear(player) && !ApprenticeFearExemption.isExempt(player);
+    }
+
+    /** Raw Fear state of an affected player, without the Apprentice exemptions. / 受影响玩家的原始恐惧状态，不含预备魔女豁免。 */
+    public static boolean isPlayerUnderFear(PlayerEntity player) {
         if (player == null || !isFearActive(player.getWorld()) || !GameFunctions.isPlayerPlayingAndAlive(player)) {
             return false;
         }

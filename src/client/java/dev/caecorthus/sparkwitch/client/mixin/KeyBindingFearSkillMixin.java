@@ -3,7 +3,6 @@ package dev.caecorthus.sparkwitch.client.mixin;
 import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.WitchAbilityKeyBridge;
 import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -15,11 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin(KeyBinding.class)
 public abstract class KeyBindingFearSkillMixin {
-    @Inject(method = "setKeyPressed", at = @At("HEAD"))
-    private static void sparkwitch$captureSharedAbilityKey(InputUtil.Key key, boolean pressed, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
-        WitchAbilityKeyBridge.captureSharedAbilityKey(key, pressed);
-    }
-
     @Inject(method = "wasPressed", at = @At("RETURN"), cancellable = true)
     private void sparkwitch$blockFearedRoleAbilityPress(CallbackInfoReturnable<Boolean> cir) {
         KeyBinding keyBinding = (KeyBinding) (Object) this;

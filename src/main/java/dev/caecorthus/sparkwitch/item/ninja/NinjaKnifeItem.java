@@ -5,6 +5,7 @@
  */
 package dev.caecorthus.sparkwitch.item.ninja;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -35,6 +36,9 @@ public final class NinjaKnifeItem extends Item {
     @Override
     public TypedActionResult<ItemStack> use(World world, net.minecraft.entity.player.PlayerEntity user, Hand hand) {
         ItemStack stack = user.getStackInHand(hand);
+        if (SparkTraitsKillerBridge.blocksWeaponAction(user, stack)) {
+            return TypedActionResult.fail(stack);
+        }
         if (world.isClient()
                 || !(user instanceof ServerPlayerEntity attacker)
                 || !GameFunctions.isPlayerPlayingAndAlive(attacker)
@@ -58,6 +62,9 @@ public final class NinjaKnifeItem extends Item {
             return TypedActionResult.pass(stack);
         }
 
+        if (SparkTraitsKillerBridge.shouldCancelMeleeAttack(attacker, victim, stack)) {
+            return TypedActionResult.fail(stack);
+        }
         GameFunctions.killPlayer(victim, true, attacker, SparkWitchDeathReasons.NINJA_KNIFE_KILL);
         attacker.getItemCooldownManager().set(this, KNIFE_COOLDOWN_TICKS);
         return TypedActionResult.consume(stack);

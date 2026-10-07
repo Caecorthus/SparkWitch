@@ -1,6 +1,10 @@
 package dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.net.FireDeathRayC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
@@ -15,6 +19,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import org.joml.Vector3f;
@@ -23,8 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Server-side activation and firing path for Murderous Witch's Death Ray.
- * 杀意魔女“死亡射线”的服务端开启与发射流程，所有命中都以服务端朝向为准。
+ * Server-side activation and firing path for Murderous Witch's Death Ray. The server still decides every hit, but along
+ * the aim captured when the key was pressed and against lag-compensated target volumes; blocks and Seeker devices
+ * still clip the ray on the server.
+ * 杀意魔女“死亡射线”的服务端开启与发射流程。命中仍全部由服务端判定，但沿按键瞬间捕获的朝向、针对延迟补偿后的目标体积；
+ * 射线仍在服务端被方块与搜寻者设备截断。
  */
 public final class MurderousWitchDeathRayService {
     private static final DustParticleEffect PARTICLE = new DustParticleEffect(
@@ -57,7 +65,12 @@ public final class MurderousWitchDeathRayService {
         );
     }
 
-    public static boolean fire(ServerPlayerEntity caster) {
+    public static boolean fire(ServerPlayerEntity caster, FireDeathRayC2SPacket payload) {
+        // Only the click-specific firing receiver is gated; the independent skill key is unchanged.
+        // 仅拦截点击触发的发射入口，不改变独立技能键。
+        if (SparkTraitsKillerBridge.isKillerInteractionBlocked(caster)) {
+            return false;
+        }
         ServerWorld world = caster.getServerWorld();
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(world);
         if (!MurderousWitchDeathRayRules.canSelect(gameComponent.getRole(caster))
@@ -71,7 +84,11 @@ public final class MurderousWitchDeathRayService {
         }
 
         Vec3d start = caster.getEyePos();
-        Vec3d direction = MurderousWitchDeathRayRules.normalize(caster.getRotationVec(1.0f));
+        // The client aim only picks the direction; payloads without aim fall back to the server rotation.
+        // 客户端朝向只决定方向；不带朝向的载荷回退到服务端朝向。
+        Vec3d direction = payload.hasAim()
+                ? MurderousWitchDeathRayRules.aimDirection(payload.yaw(), payload.pitch())
+                : MurderousWitchDeathRayRules.normalize(caster.getRotationVec(1.0f));
         if (direction == Vec3d.ZERO) {
             return false;
         }
@@ -86,7 +103,10 @@ public final class MurderousWitchDeathRayService {
                 1.0f,
                 1.35f
         );
-        double visibleDistance = visibleRayDistance(world, caster, start, direction);
+        // Seeker seam: the piercing ray stops at the nearest Seeker device on it, which breaks; players behind it are
+        // spared and the particles end there.
+        // 搜寻者接缝：穿透射线止于其上最近的搜寻者设备并将其打坏；其后的玩家不受影响，粒子也止于该处。
+        double visibleDistance = SeekerDeviceHits.onDeathRayFired(caster, start, direction, visibleRayDistance(world, caster, start, direction));
         spawnRayParticles(world, start, direction, visibleDistance);
         for (ServerPlayerEntity target : findTargets(caster, start, direction, visibleDistance)) {
             if (VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(caster, target)) {
@@ -151,7 +171,9 @@ public final class MurderousWitchDeathRayService {
                     || GameFunctions.isPlayerSpectatingOrCreative(target)) {
                 continue;
             }
-            if (MurderousWitchDeathRayRules.intersectsRay(start, direction, target.getBoundingBox(), visibleDistance)) {
+            List<Box> volumes = PlayerHitboxHistory.hitVolumes(
+                    caster, target, MurderousWitchDeathRayRules.TARGET_BOX_EXPANSION);
+            if (MurderousWitchDeathRayRules.intersectsRay(start, direction, volumes, visibleDistance)) {
                 targets.add(target);
             }
         }

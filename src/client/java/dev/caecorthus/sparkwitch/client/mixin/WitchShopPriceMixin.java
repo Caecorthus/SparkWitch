@@ -17,8 +17,10 @@ public abstract class WitchShopPriceMixin {
     @Final
     public ShopEntry entry;
 
+    // Keep Yarn: intermediary selectors crash runClient; remapJar emits the intermediary form verifyClientMixinSelectors checks.
+    // 保持 Yarn：intermediary 选择器会使 runClient 崩溃；remapJar 生成的 intermediary 形式由 verifyClientMixinSelectors 校验。
     @Redirect(
-            method = "method_48579(Lnet/minecraft/class_332;IIF)V",
+            method = "renderWidget(Lnet/minecraft/client/gui/DrawContext;IIF)V",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/text/Text;literal(Ljava/lang/String;)Lnet/minecraft/text/MutableText;"
