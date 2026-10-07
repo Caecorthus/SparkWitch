@@ -180,17 +180,16 @@ public final class SparkWitchClient implements ClientModInitializer {
             dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter.tick(client);
             if (client.player != null
                     && client.getNetworkHandler() != null
-                    && WitchAbilityKeyBridge.pollPressed()) {
+                    && WitchAbilityKeyBridge.wasPressed()) {
                 var role = GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player);
-                // Server-side validation makes this request harmless for other
-                // roles and avoids losing the press while custom-role sync catches up.
-                if (ClientPlayNetworking.canSend(UseMagicianAbilityC2SPacket.ID)) {
-                    ClientPlayNetworking.send(new UseMagicianAbilityC2SPacket(UseMagicianAbilityC2SPacket.ADVANCE));
-                }
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
                 if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID)) {
-                    // Already sent above; the server performs authoritative gating.
+                    // Real role only; the server re-checks the role and every skill lock before advancing the stage.
+                    // 仅限真实职业；服务端会再次检查职业与所有技能锁后才推进阶段。
+                    if (ClientPlayNetworking.canSend(UseMagicianAbilityC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseMagicianAbilityC2SPacket(UseMagicianAbilityC2SPacket.ADVANCE));
+                    }
                 } else if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
                 } else if (ProphetClientModule.ownsAbilityKey(client.player, role)) {
