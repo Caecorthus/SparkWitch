@@ -23,5 +23,6 @@ public final class UsecClientModule {
         UsecHudClient.register();
         UsecAttachmentClient.register();
         UsecImpactClient.register();
+        UsecRifleModels.register();
     }
 }
