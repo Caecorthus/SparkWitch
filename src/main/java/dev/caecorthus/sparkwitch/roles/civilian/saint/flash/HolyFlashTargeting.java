@@ -10,6 +10,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
@@ -86,6 +87,18 @@ public final class HolyFlashTargeting {
     public static boolean hasLineOfSight(World world, Vec3d burst, Vec3d eye) {
         Box head = new Box(eye, eye).expand(HEAD_HALF_SIZE);
         return SeekerDamageRules.hasLineOfSight(world, burst, head, null);
+    }
+
+    /**
+     * Distance from the burst to the nearest point of {@code body} (the player's hitbox); 0 when the burst is inside
+     * it. Sight and facing still use the eyes.
+     * 爆点到 {@code body}（玩家碰撞箱）最近点的距离；爆点在箱体内时为 0。视线与正对判定仍以眼睛为准。
+     */
+    public static double bodyDistance(Box body, Vec3d burst) {
+        double x = MathHelper.clamp(burst.x, body.minX, body.maxX);
+        double y = MathHelper.clamp(burst.y, body.minY, body.maxY);
+        double z = MathHelper.clamp(burst.z, body.minZ, body.maxZ);
+        return burst.distanceTo(new Vec3d(x, y, z));
     }
 
     /**
