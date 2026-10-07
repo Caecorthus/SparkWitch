@@ -1,0 +1,56 @@
+{
+  "targets": [
+    "scope_blur_a",
+    "scope_blur_b",
+    "scope_swap"
+  ],
+  "passes": [
+    {
+      "name": "sparkwitch_scope_blur",
+      "intarget": "minecraft:main",
+      "outtarget": "scope_blur_a",
+      "use_linear_filter": true,
+      "uniforms": [
+        {
+          "name": "BlurDir",
+          "values": [
+            1.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sparkwitch_scope_blur",
+      "intarget": "scope_blur_a",
+      "outtarget": "scope_blur_b",
+      "use_linear_filter": true,
+      "uniforms": [
+        {
+          "name": "BlurDir",
+          "values": [
+            0.0,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sparkwitch_scope_lens",
+      "intarget": "minecraft:main",
+      "outtarget": "scope_swap",
+      "use_linear_filter": true,
+      "auxtargets": [
+        {
+          "name": "BlurSampler",
+          "id": "scope_blur_b"
+        }
+      ]
+    },
+    {
+      "name": "blit",
+      "intarget": "scope_swap",
+      "outtarget": "minecraft:main"
+    }
+  ]
+}
