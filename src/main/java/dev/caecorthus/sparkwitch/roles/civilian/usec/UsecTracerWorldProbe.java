@@ -24,6 +24,8 @@ import org.jetbrains.annotations.Nullable;
  * 它从不加载区块：{@link #isLoaded} 先询问区块管理器，追踪器在第一个未加载线段处停止。
  */
 final class UsecTracerWorldProbe implements UsecTracer.BlockProbe {
+    /** Slack around a segment when checking loaded chunks. / 检查已加载区块时线段周围的余量。 */
+    static final double CHUNK_PADDING = 1.0E-4;
     private final ServerWorld world;
     private final Entity shooter;
 
@@ -32,12 +34,18 @@ final class UsecTracerWorldProbe implements UsecTracer.BlockProbe {
         this.shooter = shooter;
     }
 
+    /**
+     * Padded by {@link #CHUNK_PADDING}: vanilla's ray walk stretches the segment by 1e-7 of its length at both ends, so
+     * a step ending right at a chunk border may visit one cell across it.
+     * 外扩 {@link #CHUNK_PADDING}：原版射线遍历会把线段两端各延长其长度的 1e-7，因此恰好止于区块边界的步可能访问边界另一侧的
+     * 一格。
+     */
     @Override
     public boolean isLoaded(Vec3d from, Vec3d to) {
-        int minX = MathHelper.floor(Math.min(from.x, to.x)) >> 4;
-        int maxX = MathHelper.floor(Math.max(from.x, to.x)) >> 4;
-        int minZ = MathHelper.floor(Math.min(from.z, to.z)) >> 4;
-        int maxZ = MathHelper.floor(Math.max(from.z, to.z)) >> 4;
+        int minX = MathHelper.floor(Math.min(from.x, to.x) - CHUNK_PADDING) >> 4;
+        int maxX = MathHelper.floor(Math.max(from.x, to.x) + CHUNK_PADDING) >> 4;
+        int minZ = MathHelper.floor(Math.min(from.z, to.z) - CHUNK_PADDING) >> 4;
+        int maxZ = MathHelper.floor(Math.max(from.z, to.z) + CHUNK_PADDING) >> 4;
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 if (!world.getChunkManager().isChunkLoaded(x, z)) {

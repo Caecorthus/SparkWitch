@@ -83,9 +83,9 @@ public final class UsecTracer {
     public enum Stop {
         /** FMJ reached its range (or the step cap). / FMJ 达到射程（或步数上限）。 */
         RANGE,
-        /** FMJ met a block. / FMJ 撞上方块。 */
+        /** FMJ met an ordinary block. / FMJ 撞上普通方块。 */
         BLOCK,
-        /** A vanilla barrier or Wathe barrier panel. / 原版屏障或 Wathe 屏障板。 */
+        /** Any round met a vanilla barrier or Wathe barrier panel. / 任一弹种撞上原版屏障或 Wathe 屏障板。 */
         MAP_WALL,
         /** AP energy ran out, in the air or inside a block. / AP 能量耗尽（空中或方块内）。 */
         EXHAUSTED,
@@ -172,14 +172,16 @@ public final class UsecTracer {
             position = position.add(unit.multiply(stepLength * fraction));
             path.pin(position);
             double atBlock = path.length();
-            if (!piercing) {
-                blockStop = new BlockStop(hit.pos(), position, atBlock);
-                stop = Stop.BLOCK;
-                break;
-            }
+            // Map walls first, for every round, so an invisible wall is never reported as an ordinary block.
+            // 先判定地图墙（对所有弹种），使隐形墙永远不会被当作普通方块报告。
             if (probe.isImpenetrable(hit.pos())) {
                 blockStop = new BlockStop(hit.pos(), position, atBlock);
                 stop = Stop.MAP_WALL;
+                break;
+            }
+            if (!piercing) {
+                blockStop = new BlockStop(hit.pos(), position, atBlock);
+                stop = Stop.BLOCK;
                 break;
             }
             double afterPenetration = UsecBallistics.spentAfterPenetration(spent);
