@@ -56,7 +56,8 @@ Current build baseline:
     player's raw Wathe role id matches on a confirmed SparkWitch server; the caller's server validates. SparkStrength
     reaches it by reflection (FQCN and both signatures are frozen) for the NoellesRoles Vulture's Super Curse
     (秃鹫超级骂), whose C2S id `sparkstrength:vulture_super_curse` sits next to `sparkstrength:demon_hunter_sniff` on
-    the Control Expert stun, Seeker session and Riftwalker session deny-lists (not on Fear's, like the Sniff).
+    the Control Expert stun, Seeker session, Riftwalker session and Grand Witch Fear deny-lists (Fear blocks every
+    SparkStrength role skill since the owner's 2026-10-07 decision, the Sniff included).
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
   D1–D10, numbers in each ability class):
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
