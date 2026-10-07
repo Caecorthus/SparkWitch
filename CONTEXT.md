@@ -674,8 +674,9 @@ is not playing and alive, keeping dead and STARTING-phase coin visibility (and S
 eligibility) unchanged. Throws, bursts and flashes exist only while Wathe's status is ACTIVE
 (`HolyFlashRules.isActivePhase`), so the ringing never spills into STOPPING. Any participant may throw one. The role-owned `HolyFlashEntity` (never Wathe's
 grenade, so no grenade hook fires) bursts on its first block or entity hit with sound and particles
-but no damage. It flashes every participant whose eyes are within 4 blocks of the burst and have line
-of sight to it. The thrower is included and needs only participation; everyone else must also pass
+but no damage. It flashes every participant whose hitbox is within 6 blocks of the burst (nearest point
+of the body, `HolyFlashTargeting.bodyDistance`) and whose eyes have line of sight to it; facing away keeps
+3/4 of the duration (owner buff 2026-10-07, was 4 blocks to the eyes and halved). The thrower is included and needs only participation; everyone else must also pass
 SparkFactionAPI's `sparkwitch:holy_flash` veto, Last Escape, and Vendetta isolation. If the thrower
 died or left mid-flight, the burst still blinds without an actor: no faction veto, Last Escape still
 honoured, active Vendetta endpoints untouched. `mixin/saint/GameFunctionsHolyFlashDropMixin` (HEAD guard on
@@ -689,7 +690,7 @@ participant first, and the `sparkwitch:holy_flash` veto denies occupants as well
 Holy Flash never renders in the `gui.sparkwitch.skills` panel and never triggers Saint Karma.
 Client side lives in `client/saint/`: `HolyFlashOverlayRenderer` (via `client/mixin/saint/HolyFlashHudMixin`,
 `InGameHud.render` TAIL, priority 1100) draws owner pick B — a bright spot at the projected burst, then
-black held to 40% and eased out — above every HUD overlay, including the Seeker remote view;
+black held to 60% and eased out — above every HUD overlay, including the Seeker remote view;
 `HolyFlashAudioClient` plays the `sparkwitch:skill.holy_flash_tinnitus` loop and drives
 `client/mixin/saint/HolyFlashSoundSystemMixin`, which multiplies every other sound by a factor floored
 at 0.1 (composes with SparkAssist); `voice/HolyFlashVoiceClientBridge` loads `HolyFlashVoiceReceiver`

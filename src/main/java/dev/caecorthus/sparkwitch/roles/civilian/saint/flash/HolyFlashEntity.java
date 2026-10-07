@@ -113,7 +113,7 @@ public final class HolyFlashEntity extends ThrownItemEntity {
     private static void flashPlayers(ServerWorld world, @Nullable ServerPlayerEntity thrower, Vec3d center) {
         for (ServerPlayerEntity target : world.getPlayers()) {
             Vec3d eye = target.getEyePos();
-            double distance = eye.distanceTo(center);
+            double distance = HolyFlashTargeting.bodyDistance(target.getBoundingBox(), center);
             if (distance > HolyFlashRules.RADIUS
                     || !HolyFlashTargeting.canFlash(thrower, target)
                     || !HolyFlashTargeting.hasLineOfSight(world, center, eye)) {

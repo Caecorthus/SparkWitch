@@ -8,11 +8,14 @@ import net.minecraft.world.World;
 
 /**
  * Pure Holy Flash ({@code sparkwitch:holy_flash}) tuning: the Saint's re-buyable flashbang. Owner decisions
- * 2026-10-03: 75 coins, 4-block radius, 10 s at the burst falling linearly to 3 s at the edge, halved when facing
- * away, walls block, the thrower and every faction are affected, 15 s use cooldown, carry at most 3.
+ * 2026-10-03: 75 coins, 10 s at the burst falling linearly to 3 s at the edge, walls block, the thrower and every
+ * faction are affected, 15 s use cooldown, carry at most 3. Buff 2026-10-07: 6-block radius measured to the nearest
+ * point of the body (was 4 to the eyes, which put a floor burst's 10 s out of reach), ×0.75 when facing away (was
+ * halved), and the black mask holds for the first 60% (was 40%).
  * 圣光弹（{@code sparkwitch:holy_flash}）的纯数值：圣徒可重复购买的闪光弹。所有者 2026-10-03 决定：75 金币、
- * 半径 4 格、落点处 10 秒并线性降到边缘 3 秒、背对时减半、墙体阻挡、投掷者与所有阵营都会被闪、使用冷却 15 秒、
- * 最多携带 3 个。
+ * 落点处 10 秒并线性降到边缘 3 秒、墙体阻挡、投掷者与所有阵营都会被闪、使用冷却 15 秒、最多携带 3 个。
+ * 2026-10-07 增强：半径 6 格并按到身体最近点计算（原为到眼睛 4 格，落地爆开时 10 秒根本够不到）、背对时 ×0.75
+ * （原为减半）、全黑保持前 60%（原为 40%）。
  */
 public final class HolyFlashRules {
     public static final Identifier ITEM_ID = SparkWitch.id("holy_flash");
@@ -21,17 +24,18 @@ public final class HolyFlashRules {
     public static final int PRICE = 75;
     public static final int CARRY_LIMIT = 3;
     public static final int USE_COOLDOWN_TICKS = 15 * 20;
-    public static final double RADIUS = 4.0D;
+    /** Burst to the nearest point of the body's hitbox. / 爆点到身体碰撞箱最近点的距离。 */
+    public static final double RADIUS = 6.0D;
     public static final int MAX_DURATION_TICKS = 10 * 20;
     public static final int EDGE_DURATION_TICKS = 3 * 20;
-    public static final float FACING_AWAY_MULTIPLIER = 0.5F;
+    public static final float FACING_AWAY_MULTIPLIER = 0.75F;
     /** Facing means the burst lies within this half-angle of the look vector. / 爆点位于视线该半角内即视为正对。 */
     public static final double FACING_HALF_ANGLE_DEGREES = 60.0D;
 
     // Client visual timeline (owner pick B: bright spot, full black, slow recovery).
     // 客户端视觉时间线（所有者选择方案 B：亮点、全黑、缓慢恢复）。
     public static final int SPOT_TICKS = 3;
-    public static final float BLACK_HOLD_FRACTION = 0.4F;
+    public static final float BLACK_HOLD_FRACTION = 0.6F;
 
     private HolyFlashRules() {
     }
@@ -47,8 +51,9 @@ public final class HolyFlashRules {
     }
 
     /**
-     * Blind ticks for a player whose eyes are {@code distance} blocks from the burst; 0 outside the radius.
-     * 眼睛距爆点 {@code distance} 格的玩家的致盲刻数；半径外为 0。
+     * Blind ticks for a player whose body is {@code distance} blocks from the burst
+     * ({@link HolyFlashTargeting#bodyDistance}); 0 outside the radius.
+     * 身体距爆点 {@code distance} 格（{@link HolyFlashTargeting#bodyDistance}）的玩家的致盲刻数；半径外为 0。
      */
     public static int durationTicks(double distance, boolean facing) {
         if (!(distance >= 0.0D) || distance > RADIUS) {
