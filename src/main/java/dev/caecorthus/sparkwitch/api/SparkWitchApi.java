@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.api;
 
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import net.minecraft.entity.player.PlayerEntity;
@@ -80,6 +81,16 @@ public final class SparkWitchApi {
      * 为一次同步致死操作保留责任 UUID，包含离线责任人；嵌套调用和异常会恢复原上下文。 */
     public static void runWithKillAttribution(ServerWorld world, UUID responsiblePlayer, Runnable action) {
         JudgeKillAttribution.runWith(world, responsiblePlayer, action);
+    }
+
+    /**
+     * True while a Control Expert stun locks {@code player}'s input (the server copy is authoritative). For add-on
+     * sessions the payload deny-list cannot end, such as SparkStrength's drone pilot.
+     * 控场专家眩晕锁定该玩家输入时为 true（以服务端为准）。供附属模组结束数据包拦截名单无法结束的会话，例如 SparkStrength
+     * 的无人机驾驶。
+     */
+    public static boolean isControlExpertStunned(PlayerEntity player) {
+        return ControlExpertStun.isStunned(player);
     }
 
     public static boolean isWraithActive(PlayerEntity player) {

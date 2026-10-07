@@ -26,11 +26,13 @@ public final class ControlExpertStunRules {
     /**
      * Stable contract: C2S payloads dropped while the sender is stunned — lethal Wathe actions, the shop, and every
      * known role-skill payload. Kept as plain ids so no optional mod class is loaded. UI-only payloads (notes, map
-     * vote, walkie channel, grenade cancel, tablet chat/snapshot/channel, detective case notes) stay allowed.
+     * vote, walkie channel, grenade cancel, tablet chat/snapshot/channel, detective case notes, the Timekeeper's
+     * watch-mode pick, whose use is an item use the stun already denies) stay allowed.
      * A new skill payload must be classified here deliberately.
      * 稳定契约：发送者处于眩晕时丢弃的 C2S 数据包——Wathe 致命行为、商店以及所有已知职业技能包。
      * 以纯 id 保存，不加载任何可选模组的类。仅界面用途的数据包（笔记、地图投票、对讲频道、手雷取消、
-     * 平板聊天/快照/频道、侦探案件笔记）仍然放行。新增技能包必须在此有意识地归类。
+     * 平板聊天/快照/频道、侦探案件笔记、计时员怀表模式切换——其使用是眩晕已拒绝的物品使用）仍然放行。
+     * 新增技能包必须在此有意识地归类。
      */
     public static final Set<Identifier> BLOCKED_PAYLOADS = Set.copyOf(List.of(
             Identifier.of("wathe", "knifestab"),
@@ -97,6 +99,12 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
             Identifier.of("sparkstrength", "coroner_morph"),
             Identifier.of("sparkstrength", "professor_remote_feed"),
+            // Reporter connect/broadcast (ReporterCommunicationC2SPacket), cooldown-gated. / 记者接线/广播，受冷却限制。
+            Identifier.of("sparkstrength", "reporter_communication"),
+            // Bomber drone connect and FIRE (M67 drop or detonation); pilot moves and exit stay allowed (exit must always
+            // pass). / 炸弹客无人机连接与开火（投下 M67 或引爆）；驾驶移动与退出放行（退出必须始终放行）。
+            Identifier.of("sparkstrength", "drone_pilot_start"),
+            Identifier.of("sparkstrength", "drone_pilot_action"),
             Identifier.of("sparkstrength", "demon_hunter_sniff"),
             // Vulture Super Curse (SparkStrength, key 2): a voice line only, classified like the Sniff.
             // 秃鹫超级骂（SparkStrength，技能键 2）：仅播放语音，与嗅探同样归类。
