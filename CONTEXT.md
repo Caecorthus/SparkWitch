@@ -49,6 +49,14 @@ Current build baseline:
 ## Current Ownership
 
 - `api/`: the only public downstream SparkWitch Interface.
+  - `api/client/SecondarySkillKeyApi` (client source set, 2026-10-07) is the stable cross-mod seam onto Role Skill 2
+    (key N): `static boolean register(Identifier roleId, Runnable onPressed)` (false, no throw, when the role already
+    has a handler; null arguments throw NPE) and `static Text boundKeyText()`. It adapts the Runnable into
+    `client/ability/SecondaryAbilityRegistry.tryRegister`, so a press fires on the client thread only while the local
+    player's raw Wathe role id matches on a confirmed SparkWitch server; the caller's server validates. SparkStrength
+    reaches it by reflection (FQCN and both signatures are frozen) for the NoellesRoles Vulture's Super Curse
+    (秃鹫超级骂), whose C2S id `sparkstrength:vulture_super_curse` sits next to `sparkstrength:demon_hunter_sniff` on
+    the Control Expert stun, Seeker session and Riftwalker session deny-lists (not on Fear's, like the Sniff).
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
   D1–D10, numbers in each ability class):
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
@@ -176,7 +184,8 @@ Current build baseline:
   `SKIP_DEFAULT_BLOCK_INTERACTION`, so the per-tick restore never mints a second Clock and the Clock's own
   use still runs at a pot.
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
-  dispatch only; concrete roles own their handlers.
+  dispatch only; concrete roles own their handlers. `register` throws on a duplicate role; `tryRegister` (used only
+  by `api/client/SecondarySkillKeyApi`) returns false and keeps the first handler.
 - `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
   `sparkwitch:fiend_moment` world component and its pure state, dormant immunity and hit reactions, cooldown
   aura, bomb-pass ledger, swallow block, last-one-standing exclusion (`FiendWinExclusion`), the Fiend Moment
