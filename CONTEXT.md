@@ -590,7 +590,10 @@ entity, never Wathe's grenade. Wathe's
 gun packet sees the Control Expert as its native Vigilante only through
 `mixin/controlexpert/ControlExpertPoliceGunMixin` (OR-wrapped `isRole`, no `@Redirect`). The
 stun's input lock is client-side; the server denies item use, interactions, and the listed C2S
-payloads (`ControlExpertStunGuards`, `ControlExpertStunPayloadGuardMixin`). The Disruptor gates
+payloads (`ControlExpertStunGuards`, `ControlExpertStunPayloadGuardMixin`). Add-on sessions those
+guards cannot end read the stun through the public `SparkWitchApi.isControlExpertStunned(PlayerEntity)`
+(2026-10-07, name and signature frozen): SparkStrength reflects it to refuse and end a Bomber drone pilot
+session as STUNNED, since drone moves and exit stay off the deny-list. The Disruptor gates
 keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.

@@ -64,7 +64,22 @@ public final class GrandWitchFearService {
             Identifier.of("sparkwitch", "use_fiend_dash"),
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
-            Identifier.of("sparkwitch", "magician_ability")
+            Identifier.of("sparkwitch", "magician_ability"),
+            // SparkStrength role skills, like the NoellesRoles skills above (owner 2026-10-07). Tablet meetings, votes
+            // and chat, detective notes, drone moves and exit, and the Timekeeper's watch-mode pick stay allowed.
+            // SparkStrength 职业技能，与上方 NoellesRoles 技能一致（所有者 2026-10-07）。平板会议、投票与聊天、侦探笔记、
+            // 无人机移动与退出以及计时员怀表模式切换放行。
+            Identifier.of("sparkstrength", "noisemaker_glow"),
+            Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
+            Identifier.of("sparkstrength", "coroner_morph"),
+            Identifier.of("sparkstrength", "professor_remote_feed"),
+            Identifier.of("sparkstrength", "reporter_communication"),
+            Identifier.of("sparkstrength", "drone_pilot_start"),
+            Identifier.of("sparkstrength", "drone_pilot_action"),
+            Identifier.of("sparkstrength", "demon_hunter_sniff"),
+            // Legacy Criminologist skill (older SparkStrength builds); an unregistered id never matches.
+            // 旧版犯罪学家技能（较旧的 SparkStrength 构建）；未注册时该 id 永远不会命中。
+            Identifier.of("sparkstrength", "select_criminologist_target")
     );
 
     private GrandWitchFearService() {

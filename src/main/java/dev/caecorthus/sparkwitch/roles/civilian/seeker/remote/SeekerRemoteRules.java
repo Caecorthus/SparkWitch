@@ -74,6 +74,11 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
             Identifier.of("sparkstrength", "coroner_morph"),
             Identifier.of("sparkstrength", "professor_remote_feed"),
+            // Reporter connect/broadcast; Bomber drone connect and FIRE (pilot moves and exit stay allowed).
+            // 记者接线/广播；炸弹客无人机连接与开火（驾驶移动与退出放行）。
+            Identifier.of("sparkstrength", "reporter_communication"),
+            Identifier.of("sparkstrength", "drone_pilot_start"),
+            Identifier.of("sparkstrength", "drone_pilot_action"),
             Identifier.of("sparkstrength", "demon_hunter_sniff"),
             Identifier.of("sparkstrength", "call_tablet_meeting"),
             Identifier.of("sparkstrength", "cast_tablet_vote"),
