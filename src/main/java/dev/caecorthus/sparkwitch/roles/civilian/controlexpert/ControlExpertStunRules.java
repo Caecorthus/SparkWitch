@@ -105,6 +105,8 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkstrength", "cast_tablet_vote"),
             Identifier.of("sparkstrength", "confirm_tablet_vote"),
             Identifier.of("sparkstrength", "approve_suspect_removal"),
+            // SparkStrength Taotie head launch (TaotieHeadFireC2SPacket). / SparkStrength 饕餮发射头颅。
+            Identifier.of("sparkstrength", "taotie_head_fire"),
             // Legacy Criminologist skill: still registered by SparkStrength main-line and pre-b17ab75 1.0.7 builds,
             // which "suggests: *" allows to load; an unregistered id never matches.
             // 旧版犯罪学家技能：SparkStrength main 线及 b17ab75 之前的 1.0.7 仍注册此包，"suggests: *" 允许其同时加载；
