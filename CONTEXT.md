@@ -131,6 +131,31 @@ Current build baseline:
   presentation (faction-count HUD, reading slip, reading log, selector ledger)
   lives in `client/tarot/`, `client/hud/Tarot*`, and `client/screen/`.
 - `roles/killer/ninja/`: parry, dark-kill bounty, shop, and death cleanup.
+  - Grappling Hook (`sparkwitch:ninja_grappling_hook`, 钩爪, owner 2026-10-07): a 100-coin, stock-1 shop TOOL,
+    role-agnostic like the Kunai and removed on death with the other Ninja items. `NinjaGrappleService` (server only)
+    keeps one active hook per player, throws it (Wathe playing+alive and alive+survival; refused for Fabric fake
+    players such as Magician replay stand-ins, and during SparkTraits Last Escape through `isKillerInteractionBlocked`,
+    never the weapon gate) and discards it silently on death, ResetPlayer, role assignment and round finalize.
+    `entity/NinjaGrapplingHookEntity` is a plain `Entity` (never a `ProjectileEntity`, so projectile hooks never see it;
+    not saved, not summonable): the server flies it 24 blocks on a block-only COLLIDER ray (it passes through every
+    entity), latches on the first block (vanilla barriers and Wathe barrier panels / light barriers are a miss),
+    auto-retracts after 5 s or when the latched block stops holding the hook point (a door opens, a block goes), and
+    breaks the chain when the owner is over 32 blocks away, stops holding it in either hand, is no longer playing, alive
+    and survival, or is held (`NinjaGrappleService.isHeld`: the Rift session's private list, deliberately copied —
+    Taotie swallow, Last Stand, Last Escape, Kidnapper control, Control Expert stun, Seeker session, foreign camera —
+    plus a Hunter root; a held player can neither throw nor pull). A second right-click on a latched hook starts the
+    pull: the server syncs the feet target (`NinjaRules.grappleFeetTarget`, floor/wall/ceiling) as tracked data and the
+    owner's client (`client/ninja/NinjaGrappleClientPull`, START_CLIENT_TICK) sets its own velocity toward it, so walls
+    and doors stop it through client physics and latency cannot overshoot; the server keeps fall distance at zero and
+    ends the pull on arrival, stall or a 2 s timeout by zeroing the velocity. The item has no cooldown while a hook is
+    out (holding right-click therefore throws and then reels in on its own); every cycle end writes the 10 s cooldown
+    unless a longer forced cooldown is already running (`ForcedCooldowns.itemRemainingTicks`), and Ninja assignment
+    locks it for 90 s. Vanilla chain sounds only, never a `.step` id. The state (FLYING, LATCHED, PULLING) is tracked
+    data and the owner id rides the spawn packet for the client `client/renderer/NinjaGrapplingHookEntityRenderer`: a
+    camera-facing head sprite (`textures/entity/ninja_grappling_hook.png`, hidden for its first ticks next to the
+    camera) and a leash-style steel chain to the hand holding the hook (vanilla bobber hand anchor; geometry in
+    `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible to the viewer.
+    `BlindClientGates.hidesEntity` hides a hook whose owner is hidden, like the fishing bobber.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
   SparkTraits fake bodies, camera-bound bodies and Magician decoys; a deliberate drag on a decoy tells the Kidnapper.
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
@@ -1366,14 +1391,14 @@ Features that force a cooldown on another player (penalties, auras) go through S
    defaults.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
-White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken and knife, Feather Blade, Knockout
-Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun, and the 1 s anti-repeat writes of the potion launcher and the Rift
-Gate, which no current consumer reaches) and of NoellesRoles items with a public constant (Antidote, Repair Tool, Poison
-Needle) plus the 200-tick neutral master key; round-start cooldowns are not nominals, and Wathe items fall through to
-Wathe's own table. The local `SparkWitchItemCooldownNominalsTest` scans every main source file for item cooldown
-writes (direct, through a local `ItemCooldownManager`, or through a ticks-parameter helper) and requires each written
-constant, by its qualified name, to be in the provider, unless it is listed as round-start, non-nominal, or a
-variable write with its reason.
+White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
+written when a hook cycle ends), Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun, and the
+1 s anti-repeat writes of the potion launcher and the Rift Gate, which no current consumer reaches) and of NoellesRoles
+items with a public constant (Antidote, Repair Tool, Poison Needle) plus the 200-tick neutral master key; round-start
+cooldowns are not nominals, and Wathe items fall through to Wathe's own table. The local
+`SparkWitchItemCooldownNominalsTest` scans every main source file for item cooldown writes (direct, through a local
+`ItemCooldownManager`, or through a ticks-parameter helper) and requires each written constant, by its qualified name,
+to be in the provider, unless it is listed as round-start, non-nominal, or a variable write with its reason.
 The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
 "max + exact" writer and offers no write path to other features, so the Fiend gun-hit aura skips it too (owner
 decision, 2026-10-02). Not registered (out of scope): Wathe shop-entry cooldowns, the Black Raven disguise switch,

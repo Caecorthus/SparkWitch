@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.client.blind.BlindPerceptionClientState;
 import dev.caecorthus.sparkwitch.client.blind.BlindView;
 import dev.caecorthus.sparkwitch.client.blind.render.BlindSilhouettePass;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
+import dev.caecorthus.sparkwitch.entity.NinjaGrapplingHookEntity;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -28,9 +29,9 @@ public final class BlindClientGates {
     }
 
     /**
-     * D2: an unperceived other player, or a spectator, is not drawn at all; neither is a fishing bobber whose owner is
-     * hidden, because its line is drawn to the owner's hand.
-     * D2：未被感知的其他玩家或旁观者完全不画；主人被隐藏的浮漂也不画，因为钓线会连到主人手上。
+     * D2: an unperceived other player, or a spectator, is not drawn at all; neither is a fishing bobber or Ninja
+     * grappling hook whose owner is hidden, because its line or chain is drawn to the owner's hand.
+     * D2：未被感知的其他玩家或旁观者完全不画；主人被隐藏的浮漂或忍者钩爪也不画，因为钓线或锁链会连到主人手上。
      */
     public static boolean hidesEntity(@Nullable Entity entity) {
         MinecraftClient client = MinecraftClient.getInstance();
@@ -43,6 +44,9 @@ public final class BlindClientGates {
         }
         if (entity instanceof FishingBobberEntity bobber) {
             return hidesPlayer(client, bobber.getPlayerOwner());
+        }
+        if (entity instanceof NinjaGrapplingHookEntity hook) {
+            return hidesPlayer(client, hook.getOwnerPlayer());
         }
         return hidesPlayer(client, entity);
     }

@@ -15,6 +15,7 @@ import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
+import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
@@ -92,6 +93,8 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             // Ninja, Black Raven, Kidnapper. / 忍者、黑羽鸦、绑架者。
             entries.put(SparkWitchItems.NINJA_SHURIKEN_ID, NinjaShurikenItem.SHURIKEN_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.NINJA_KNIFE_ID, NinjaKnifeItem.KNIFE_COOLDOWN_TICKS);
+            // Grappling Hook: written when a hook cycle ends, not the 90 s round-start lock. / 钩爪：循环结束时写入，而非开局 90 秒锁定。
+            entries.put(SparkWitchItems.NINJA_GRAPPLING_HOOK_ID, NinjaRules.GRAPPLING_HOOK_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.FEATHER_BLADE_ID, BlackRavenRules.FEATHER_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.KNOCKOUT_DRUG_ID, KidnapperRules.KNOCKOUT_DRUG_COOLDOWN_TICKS);
             // Grand Witch sword dash and the Murderous Witch Fire Poker. / 大魔女仪式剑冲刺与杀意魔女火钳。
