@@ -164,7 +164,9 @@
     "scope.ScopeMouseMixin",
     "usec.UsecRifleArmPoseMixin",
     "usec.UsecRifleInputMixin",
-    "usec.UsecRecoilCameraMixin"
+    "usec.UsecRecoilCameraMixin",
+    "usec.UsecLimitedInventoryRifleClickMixin",
+    "usec.UsecInventoryScreenRifleClickMixin"
   ],
   "injectors": {
     "defaultRequire": 1

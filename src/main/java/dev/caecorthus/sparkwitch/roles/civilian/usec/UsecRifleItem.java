@@ -3,11 +3,14 @@ package dev.caecorthus.sparkwitch.roles.civilian.usec;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.StackReference;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.tooltip.TooltipType;
+import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.ClickType;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
@@ -86,6 +89,20 @@ public class UsecRifleItem extends Item {
     @Override
     public boolean canMine(BlockState state, World world, BlockPos pos, PlayerEntity miner) {
         return false;
+    }
+
+    /**
+     * Cursor loading onto the rifle: rounds on the cursor + right-click loads one round into the inserted magazine, or
+     * chambers it when there is no magazine and the chamber is empty (server only; both sides claim the click). An
+     * empty-cursor right-click in the inventory opens the attachment screen instead (client mixins).
+     * 光标装填到步枪：光标拿着子弹右键，装入已装弹匣一发；未装弹匣且弹膛为空时压入弹膛（仅服务端改动；两端都认领该点击）。
+     * 空光标在背包中右键则改为打开配件界面（客户端 mixin）。
+     */
+    @Override
+    public boolean onClicked(ItemStack stack, ItemStack otherStack, Slot slot, ClickType clickType,
+                             PlayerEntity player, StackReference cursorStackReference) {
+        return UsecAttachmentCursorLoading.onRifleClicked(stack, otherStack, slot, clickType, player,
+                cursorStackReference);
     }
 
     @Override
