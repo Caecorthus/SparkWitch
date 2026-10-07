@@ -11,6 +11,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindKitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashRules;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
@@ -106,6 +107,10 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             // 药炮筒与裂隙门：1 秒防连按写入，列入以保证每个 SparkWitch 物品写入都有标准冷却。
             entries.put(SparkWitchItems.POTION_LAUNCHER_ID, PotionGunnerRules.FIRE_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.RIFT_GATE_ID, RiftGatePlacementService.PLACE_COOLDOWN_TICKS);
+            // USEC rifle: the 2 s bolt (Fast Reload x0.7 is per player), not the 60 s round-start lock; UsecCooldowns is
+            // its only writer.
+            // USEC 步枪：2 秒拉栓（快速装填 x0.7 因人而异），而非开局 60 秒锁定；UsecCooldowns 是唯一写入方。
+            entries.put(SparkWitchItems.USEC_RIFLE_ID, UsecRules.BOLT_TICKS);
             // NoellesRoles items: public constants of the pinned 1.7.6 jar, plus the master key, which both
             // NoellesRoles (literal) and the Insider door path write as 200 ticks. The timed bomb stays exempt in
             // SparkFactionAPI itself (Bomber pass gate).
