@@ -112,6 +112,8 @@ public final class RiftSessionRules {
             Identifier.of("sparkstrength", "cast_tablet_vote"),
             Identifier.of("sparkstrength", "confirm_tablet_vote"),
             Identifier.of("sparkstrength", "approve_suspect_removal"),
+            // SparkStrength Taotie head launch (TaotieHeadFireC2SPacket). / SparkStrength 饕餮发射头颅。
+            Identifier.of("sparkstrength", "taotie_head_fire"),
             Identifier.of("sparkstrength", "select_criminologist_target")));
 
     /**
