@@ -80,10 +80,13 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkstrength", "drone_pilot_start"),
             Identifier.of("sparkstrength", "drone_pilot_action"),
             Identifier.of("sparkstrength", "demon_hunter_sniff"),
+            Identifier.of("sparkstrength", "vulture_super_curse"),
             Identifier.of("sparkstrength", "call_tablet_meeting"),
             Identifier.of("sparkstrength", "cast_tablet_vote"),
             Identifier.of("sparkstrength", "confirm_tablet_vote"),
             Identifier.of("sparkstrength", "approve_suspect_removal"),
+            // SparkStrength Taotie head launch (TaotieHeadFireC2SPacket). / SparkStrength 饕餮发射头颅。
+            Identifier.of("sparkstrength", "taotie_head_fire"),
             Identifier.of("sparkstrength", "select_criminologist_target")));
 
     /** Grace before an unsupported or wet body ends the session (BODY_MOVED). / 本体离地或入水多久后结束会话。 */
