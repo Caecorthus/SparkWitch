@@ -161,7 +161,10 @@
     "scope.ScopeGameRendererInvoker",
     "scope.ScopeGameRendererMixin",
     "scope.ScopeInGameHudMixin",
-    "scope.ScopeMouseMixin"
+    "scope.ScopeMouseMixin",
+    "usec.UsecRifleArmPoseMixin",
+    "usec.UsecRifleInputMixin",
+    "usec.UsecRecoilCameraMixin"
   ],
   "injectors": {
     "defaultRequire": 1

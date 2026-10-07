@@ -1270,5 +1270,13 @@
   "option.sparkwitch.scope_mode.picture_in_picture.tooltip": "Experimental. The view around the lens stays sharp at 1x and the lens shows a second, magnified render. Costs FPS. Shader packs always use Full-Screen Zoom.",
   "option.sparkwitch.scope_mode.picture_in_picture.pending": "Not available in this version yet: it currently looks the same as Full-Screen Zoom.",
   "option.sparkwitch.scope_sensitivity": "Scoped Sensitivity",
-  "option.sparkwitch.scope_sensitivity.tooltip": "Mouse sensitivity while looking through a scope, on top of the weapon's own scope setting. 100% keeps the weapon's default."
+  "option.sparkwitch.scope_sensitivity.tooltip": "Mouse sensitivity while looking through a scope, on top of the weapon's own scope setting. 100% keeps the weapon's default.",
+  "hud.sparkwitch.usec.zoom": "%s×",
+  "hud.sparkwitch.usec.chamber_empty": "Empty",
+  "hud.sparkwitch.usec.cycling": "Cycling",
+  "hud.sparkwitch.usec.magazine": "[%s]",
+  "hud.sparkwitch.usec.no_magazine": "No magazine",
+  "hud.sparkwitch.usec.suppressed": "Suppressed",
+  "hud.sparkwitch.usec.separator.feed": " » ",
+  "hud.sparkwitch.usec.separator": " · "
 }

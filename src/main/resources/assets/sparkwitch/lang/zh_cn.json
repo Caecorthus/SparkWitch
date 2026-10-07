@@ -1270,5 +1270,13 @@
   "option.sparkwitch.scope_mode.picture_in_picture.tooltip": "实验功能。镜外保持清晰的 1 倍画面，镜内再渲染一次放大画面。会降低帧率。使用光影包时始终采用全画面放大。",
   "option.sparkwitch.scope_mode.picture_in_picture.pending": "当前版本尚未开放：画面暂时与全画面放大相同。",
   "option.sparkwitch.scope_sensitivity": "开镜灵敏度",
-  "option.sparkwitch.scope_sensitivity.tooltip": "通过瞄准镜观看时的鼠标灵敏度，在武器自身的开镜灵敏度之上再乘以此值。100% 即武器默认值。"
+  "option.sparkwitch.scope_sensitivity.tooltip": "通过瞄准镜观看时的鼠标灵敏度，在武器自身的开镜灵敏度之上再乘以此值。100% 即武器默认值。",
+  "hud.sparkwitch.usec.zoom": "%s×",
+  "hud.sparkwitch.usec.chamber_empty": "空膛",
+  "hud.sparkwitch.usec.cycling": "拉栓中",
+  "hud.sparkwitch.usec.magazine": "[%s]",
+  "hud.sparkwitch.usec.no_magazine": "无弹匣",
+  "hud.sparkwitch.usec.suppressed": "消音",
+  "hud.sparkwitch.usec.separator.feed": " » ",
+  "hud.sparkwitch.usec.separator": " · "
 }
