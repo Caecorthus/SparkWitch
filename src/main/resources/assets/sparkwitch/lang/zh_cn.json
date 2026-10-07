@@ -1262,5 +1262,13 @@
   "subtitles.sparkwitch.item.usec_rifle.shoot_suppressed": "狙击步枪：消音射击",
   "subtitles.sparkwitch.item.usec_rifle.bolt": "狙击步枪：拉栓",
   "subtitles.sparkwitch.item.usec_rifle.magazine": "狙击步枪：更换弹匣",
-  "subtitles.sparkwitch.item.usec_rifle.load_round": "子弹：压入"
+  "subtitles.sparkwitch.item.usec_rifle.load_round": "子弹：压入",
+  "hud.sparkwitch.usec.zoom": "%s×",
+  "hud.sparkwitch.usec.chamber_empty": "空膛",
+  "hud.sparkwitch.usec.cycling": "拉栓中",
+  "hud.sparkwitch.usec.magazine": "[%s]",
+  "hud.sparkwitch.usec.no_magazine": "无弹匣",
+  "hud.sparkwitch.usec.suppressed": "消音",
+  "hud.sparkwitch.usec.separator.feed": " » ",
+  "hud.sparkwitch.usec.separator": " · "
 }

@@ -1262,5 +1262,13 @@
   "subtitles.sparkwitch.item.usec_rifle.shoot_suppressed": "Suppressed rifle shot",
   "subtitles.sparkwitch.item.usec_rifle.bolt": "Rifle bolt cycles",
   "subtitles.sparkwitch.item.usec_rifle.magazine": "Magazine swapped",
-  "subtitles.sparkwitch.item.usec_rifle.load_round": "Round loaded"
+  "subtitles.sparkwitch.item.usec_rifle.load_round": "Round loaded",
+  "hud.sparkwitch.usec.zoom": "%s×",
+  "hud.sparkwitch.usec.chamber_empty": "Empty",
+  "hud.sparkwitch.usec.cycling": "Cycling",
+  "hud.sparkwitch.usec.magazine": "[%s]",
+  "hud.sparkwitch.usec.no_magazine": "No magazine",
+  "hud.sparkwitch.usec.suppressed": "Suppressed",
+  "hud.sparkwitch.usec.separator.feed": " » ",
+  "hud.sparkwitch.usec.separator": " · "
 }
