@@ -189,7 +189,8 @@
     "riftwalker.RiftSwapperCrushMixin",
     "riftwalker.RiftSessionNetworkHandlerMixin",
     "riftwalker.RiftSessionPlayerMixin",
-    "riftwalker.RiftProjectileDeflectionMixin"
+    "riftwalker.RiftProjectileDeflectionMixin",
+    "usec.UsecStaminaRegenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
