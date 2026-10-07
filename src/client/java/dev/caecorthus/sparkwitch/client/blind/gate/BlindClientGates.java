@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.blind.gate;
 import dev.caecorthus.sparkwitch.client.blind.BlindPerceptionClientState;
 import dev.caecorthus.sparkwitch.client.blind.BlindView;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -32,6 +33,13 @@ public final class BlindClientGates {
      */
     public static boolean hidesEntity(@Nullable Entity entity) {
         MinecraftClient client = MinecraftClient.getInstance();
+        if (entity instanceof MagicianPlaybackEntity) {
+            // A Magician puppet passes for another player (owner decision D6) and is never perceived: server perception
+            // credits sounds to players only, so it is hidden like an unperceived player.
+            // 魔术师皮套冒充其他玩家（所有者决定 D6）且永远不会被感知：服务端感知只把声音归于玩家，因此与未被感知的玩家
+            // 一样隐藏。
+            return BlindGateRules.hidesEntity(BlindView.isActive(client), true, false, false);
+        }
         if (entity instanceof FishingBobberEntity bobber) {
             return hidesPlayer(client, bobber.getPlayerOwner());
         }

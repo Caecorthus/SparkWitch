@@ -92,6 +92,7 @@ import net.minecraft.text.Text;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import net.minecraft.util.Util;
 import dev.caecorthus.sparkwitch.client.magician.MagicianPlaybackEntityRenderer;
+import dev.caecorthus.sparkwitch.client.magician.MagicianKeyRepeatGuard;
 import dev.caecorthus.sparkwitch.roles.killer.magician.UseMagicianAbilityC2SPacket;
 
 public final class SparkWitchClient implements ClientModInitializer {
@@ -178,6 +179,7 @@ public final class SparkWitchClient implements ClientModInitializer {
             GrandWitchFearClientHooks.tick();
             DeathRayClientHooks.tick(client);
             dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter.tick(client);
+            MagicianKeyRepeatGuard.observe(WitchAbilityKeyBridge.isHeld());
             if (client.player != null
                     && client.getNetworkHandler() != null
                     && WitchAbilityKeyBridge.wasPressed()) {
@@ -186,8 +188,9 @@ public final class SparkWitchClient implements ClientModInitializer {
                         && SaboteurRole.ID.equals(role.identifier());
                 if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID)) {
                     // Real role only; the server re-checks the role and every skill lock before advancing the stage.
-                    // 仅限真实职业；服务端会再次检查职业与所有技能锁后才推进阶段。
-                    if (ClientPlayNetworking.canSend(UseMagicianAbilityC2SPacket.ID)) {
+                    // Key-repeat presses while the key stays held are dropped (one stage step per physical press).
+                    // 仅限真实职业；服务端会再次检查职业与所有技能锁后才推进阶段。按住不放时的重复按下被丢弃（每次物理按键只推进一步）。
+                    if (MagicianKeyRepeatGuard.accept() && ClientPlayNetworking.canSend(UseMagicianAbilityC2SPacket.ID)) {
                         ClientPlayNetworking.send(new UseMagicianAbilityC2SPacket(UseMagicianAbilityC2SPacket.ADVANCE));
                     }
                 } else if (JudgeRules.isJudge(role)) {

@@ -1,80 +1,57 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.client.render.WraithNameTagPassThrough;
-import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
-import dev.doctor4t.wathe.client.WatheClient;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import dev.caecorthus.sparkwitch.client.magician.MagicianPuppetNameTags;
 import dev.doctor4t.wathe.client.gui.RoleNameRenderer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.text.Text;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.LightType;
+import net.minecraft.util.hit.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 import java.util.function.Predicate;
 
 /**
- * 将魔术师皮套接入 Wathe 的屏幕中央准心名字显示。
- *
- * <p>Wathe 原版 RoleNameRenderer 的射线过滤器只接受 PlayerEntity，
- * 而皮套是自定义 LivingEntity，所以不能只依赖 Wathe 原逻辑；这里沿用
- * 相同的距离、光照、缩放和淡入淡出规则，读取皮套同步的伪装玩家名称。</p>
+ * Labels a Magician puppet through Wathe's own player name tag (owner decision D6). Wathe's first {@code renderHud}
+ * raycast accepts only players, so it used to pass through a puppet and label the player behind it. {@code @ModifyArg}
+ * widens that predicate so a live puppet stops the ray (it composes with {@code WraithNameTagRaycastMixin}, which only
+ * narrows players), and {@code @ModifyExpressionValue} reports a puppet hit as its stand-in player, so Wathe draws the
+ * copied player's label with its own darkness, range, fade, psycho, spectator and cohort rules, and every injection on
+ * the name ({@code WraithNameMixin} blanking included) sees that player. The body and note raycasts are untouched.
+ * 通过 Wathe 自己的玩家名牌显示魔术师皮套（所有者决定 D6）。Wathe {@code renderHud} 的第一条射线只接受玩家，因此过去会穿过
+ * 皮套给身后的玩家贴名牌。{@code @ModifyArg} 放宽该判定，使存活皮套挡住射线（与只收窄玩家的
+ * {@code WraithNameTagRaycastMixin} 可共存）；{@code @ModifyExpressionValue} 将皮套命中改报为其替身玩家，于是 Wathe 以自身的
+ * 黑暗、距离、淡入淡出、疯魔、旁观与同伙规则绘制被复制玩家的名牌，名字上的所有注入（包括 {@code WraithNameMixin} 的隐藏）
+ * 看到的也是该玩家。尸体与纸条射线不受影响。
  */
 @Mixin(RoleNameRenderer.class)
 public abstract class MagicianPlaybackRoleNameMixin {
-    private static float sparkwitch$playbackNameAlpha;
-
-    @Inject(method = "renderHud", at = @At("TAIL"))
-    private static void sparkwitch$renderPlaybackName(
-            TextRenderer renderer,
-            ClientPlayerEntity player,
-            DrawContext context,
-            RenderTickCounter tickCounter,
-            CallbackInfo ci
+    @ModifyArg(
+            method = "renderHud",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/entity/projectile/ProjectileUtil;getCollision(Lnet/minecraft/entity/Entity;Ljava/util/function/Predicate;D)Lnet/minecraft/util/hit/HitResult;",
+                    ordinal = 0
+            ),
+            index = 1
+    )
+    private static Predicate<Entity> sparkwitch$nameTagStopsAtPuppets(
+            Entity viewer,
+            Predicate<Entity> predicate,
+            double range
     ) {
-        BlockPos eyeBlock = BlockPos.ofFloored(player.getEyePos());
-        boolean dark = player.getWorld().getLightLevel(LightType.BLOCK, eyeBlock) < 3
-                && player.getWorld().getLightLevel(LightType.SKY, eyeBlock) < 10;
-        float range = WatheClient.canSeeSpectatorInformation() ? 8.0F : 2.0F;
-        MagicianPlaybackEntity target = null;
-        // Raycast players and puppets together so a real player in front hides the puppet label, as Wathe's own
-        // name tag picks the nearest player; the Wraith pass-through keeps hidden Wraiths from blocking it.
-        // 玩家与皮套一起参与射线，身前的真实玩家会遮住皮套名字（与 Wathe 名牌只选最近玩家一致）；
-        // 冤魂穿透规则让隐藏的冤魂不会挡住它。
-        Predicate<Entity> nameTarget = WraithNameTagPassThrough.filterNameTarget(
-                player, entity -> entity instanceof PlayerEntity || entity instanceof MagicianPlaybackEntity);
-        if (!dark
-                && ProjectileUtil.getCollision(player, nameTarget, range)
-                instanceof EntityHitResult hit
-                && hit.getEntity() instanceof MagicianPlaybackEntity playback
-                && playback.disguiseName() != null
-                && !playback.disguiseName().isBlank()) {
-            target = playback;
-        }
+        return MagicianPuppetNameTags.stopAtPuppets(predicate);
+    }
 
-        float delta = tickCounter.getTickDelta(true) / 4.0F;
-        sparkwitch$playbackNameAlpha = MathHelper.lerp(delta, sparkwitch$playbackNameAlpha, target == null ? 0.0F : 1.0F);
-        if (sparkwitch$playbackNameAlpha <= 0.05F || target == null) return;
-
-        Text name = Text.literal(target.disguiseName());
-        int alpha = (int) (sparkwitch$playbackNameAlpha * 255.0F) << 24;
-        int color = MathHelper.packRgb(1.0F, 1.0F, 1.0F) | alpha;
-        context.getMatrices().push();
-        context.getMatrices().translate(context.getScaledWindowWidth() / 2.0F,
-                context.getScaledWindowHeight() / 2.0F + 6.0F, 0.0F);
-        context.getMatrices().scale(0.6F, 0.6F, 1.0F);
-        context.drawTextWithShadow(renderer, name, -renderer.getWidth(name) / 2, 16, color);
-        context.getMatrices().pop();
+    @ModifyExpressionValue(
+            method = "renderHud",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/entity/projectile/ProjectileUtil;getCollision(Lnet/minecraft/entity/Entity;Ljava/util/function/Predicate;D)Lnet/minecraft/util/hit/HitResult;",
+                    ordinal = 0
+            )
+    )
+    private static HitResult sparkwitch$labelPuppetAsCopiedPlayer(HitResult hit) {
+        return MagicianPuppetNameTags.asCopiedPlayer(hit);
     }
 }

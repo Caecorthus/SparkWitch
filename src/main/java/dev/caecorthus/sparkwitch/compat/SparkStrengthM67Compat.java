@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.compat;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerBreakSource;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -26,7 +27,8 @@ import java.util.UUID;
  * ACTIVE and the thrower holds a match role. SparkStrength discards every in-flight M67 on a phase change, so a
  * detonation during STOPPING was thrown during STOPPING; that grenade, like a non-participant's, is presentation-only.
  * The blast then breaks devices in a 3.5-block sphere with line of sight to the grenade centre, attributed to the
- * thrower. Only this class may name SparkStrength implementation classes, and only those two getters (pinned by a
+ * thrower; the same blast ends Magician puppets in the M67's own kill radius ({@code MagicianPuppetHits.onM67Blast}).
+ * Only this class may name SparkStrength implementation classes, and only those two getters (pinned by a
  * source test); any lookup failure disables the seam for the session, never throwing into entity unloading.
  * 外部接缝：SparkStrength M67 爆炸经 {@code ServerEntityEvents.ENTITY_UNLOAD} 与两个带缓存、失败即关闭的反射 public getter
  * 打坏搜寻者设备；未安装 SparkStrength 时不生效。SparkStrength 没有爆炸事件，因此以启发式识别引爆：
@@ -34,7 +36,8 @@ import java.util.UUID;
  * {@code getThrowerUuid()} 对应玩家在线（M67 先击杀玩家再移除自身）。只有对局手雷会打坏设备
  * （{@link #breaksDevices}，即 {@code OffMatchUse} 规则）：Wathe 状态恰为 ACTIVE 且投掷者持有对局职业。SparkStrength
  * 在阶段切换时会移除所有飞行中的 M67，因此 STOPPING 期间的引爆必定是 STOPPING 期间投出的；它与非参与者的手雷一样
- * 仅作表现。随后打坏以手雷中心为球心、半径 3.5、有视线的设备，归属于投掷者。只有本类可以提及 SparkStrength 实现类且
+ * 仅作表现。随后打坏以手雷中心为球心、半径 3.5、有视线的设备，归属于投掷者；同一次爆炸按 M67 自身的击杀半径结束魔术师皮套
+ * （{@code MagicianPuppetHits.onM67Blast}）。只有本类可以提及 SparkStrength 实现类且
  * 只限这两个 getter（由源码测试固定）；任何查找失败都会在本次会话中关闭该接缝，绝不向实体卸载流程抛出异常。
  */
 public final class SparkStrengthM67Compat {
@@ -103,6 +106,9 @@ public final class SparkStrengthM67Compat {
         }
         SeekerDeviceHits.onBlast(world, entity.getBoundingBox().getCenter(), SeekerDamageRules.M67_RADIUS, thrower,
                 SeekerBreakSource.M67);
+        // Magician seam: the same match blast ends puppets in the M67's own kill radius.
+        // 魔术师接缝：同一次对局爆炸按 M67 自身的击杀半径结束皮套。
+        MagicianPuppetHits.onM67Blast(world, entity.getBoundingBox().getCenter(), thrower);
     }
 
     /**

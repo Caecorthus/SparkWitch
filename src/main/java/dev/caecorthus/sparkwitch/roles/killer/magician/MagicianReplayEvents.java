@@ -85,7 +85,7 @@ public final class MagicianReplayEvents {
         Text attacker = playerFromUuidOrName(event, match, "attacker_player", "attacker_name");
         Text weapon = event.data().contains("weapon_name")
                 ? weaponNameText(event.data().getString("weapon_name"))
-                : Text.translatable("replay.item.unknown");
+                : Text.translatable("replay.sparkwitch.magician.unknown_weapon");
         if (actor == null || disguise == null || attacker == null) {
             return null;
         }

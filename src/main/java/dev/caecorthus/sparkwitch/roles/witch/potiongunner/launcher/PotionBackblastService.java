@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -68,6 +69,11 @@ public final class PotionBackblastService {
         // goes to the player. / 搜寻者接缝，最近者命中：受害者距离按其真实碰撞箱量取（与设备射线同一量法），只有严格
         // 更近的可破坏设备才会吸收尾焰并被打坏，其后方的人不受影响；距离相同时命中玩家。
         double reach = victim.map(PotionBackblastRules.Hit::distance).orElse(length);
+        // Magician seam: a puppet strictly nearer than the victim and than any device takes the backblast instead.
+        // 魔术师接缝：严格近于受害者且近于任何设备的皮套改为承受尾焰。
+        if (MagicianPuppetHits.onPotionBackblast(gunner, origin, backwards, length, reach)) {
+            return;
+        }
         if (SeekerDeviceHits.onPotionBackblast(gunner, origin, backwards, reach)) {
             return;
         }

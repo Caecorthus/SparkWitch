@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WraithRoundComponent;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianDecoyBodies;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import dev.caecorthus.sparkwitch.roles.special.wraith.progression.WraithProgression;
@@ -210,7 +211,10 @@ public final class WraithConversion {
     }
 
     private static boolean isDeathBody(PlayerBodyEntity body, UUID playerUuid, int deathGameTime) {
-        return playerUuid.equals(body.getPlayerUuid()) && body.getDeathGameTime() == deathGameTime;
+        // A Magician decoy of this player that ended on the same tick is never the real body.
+        // 同一刻结束的该玩家的魔术师诱饵尸体绝不是真尸体。
+        return playerUuid.equals(body.getPlayerUuid()) && body.getDeathGameTime() == deathGameTime
+                && !MagicianDecoyBodies.isDecoy(body);
     }
 
     private static @Nullable UUID resolveCreditedKiller(

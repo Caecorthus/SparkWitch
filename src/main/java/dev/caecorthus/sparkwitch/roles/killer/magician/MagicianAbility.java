@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.magician;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.compat.NoellesSilenceBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
@@ -33,12 +34,17 @@ public final class MagicianAbility {
         // buttons send START_/STOP_ actions directly, so the handler re-checks the stun, a SparkTraits silence or Last
         // Escape, and Fear itself. / 与魔人疾驰相同的服务端技能锁：数据包守卫会丢弃该包，而背包按钮直接发送开始/结束动作，
         // 因此处理器自行再次检查眩晕、SparkTraits 沉默或绝境逃生，以及恐惧。
+        // The NoellesRoles silence is checked directly too, so it holds without SparkTraits (as for the Time Stealer).
+        // 也直接检查 NoellesRoles 沉默，使其在没有 SparkTraits 时同样生效（与窃时者一致）。
         if (ControlExpertStun.isStunned(player)
+                || NoellesSilenceBridge.isSilenced(player)
                 || SparkTraitsKillerBridge.isRoleSkillBlocked(player)
                 || GrandWitchFearService.denyRoleSkillIfFeared(player)) {
             return;
         }
-        long tick = player.getServerWorld().getTime();
+        // Server tick count, not world time: it never jumps backwards across a world switch or /time set.
+        // 使用服务端刻计数而非世界时间：跨世界切换或 /time set 时不会倒退。
+        long tick = player.getServer().getTicks();
         UUID playerId = player.getUuid();
         Long lastAcceptedTick = LAST.get(playerId);
         // 首次请求没有历史 tick，必须直接允许通过；不能用 Long.MIN_VALUE 作为缺省值参与相减，
@@ -77,6 +83,11 @@ public final class MagicianAbility {
                 }
             }
         }
+    }
+
+    /** Drops the debounce entry (disconnect, reset). / 移除去抖记录（断线、重置）。 */
+    static void forget(UUID playerId) {
+        LAST.remove(playerId);
     }
 
     /**

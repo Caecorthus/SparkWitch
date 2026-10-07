@@ -446,6 +446,85 @@ def watheClientMixinContracts = [
                 providerEntry: "org/agmas/noellesroles/client/SwapperPlayerWidget.class",
                 providerMethod: "lambda\$new\$0",
                 providerDescriptor: "(Ljava/util/UUID;Lnet/minecraft/class_4185;)V"
+        ],
+        [
+                // Magician D6: a live puppet stops Wathe's player name-tag raycast (ordinal 0, next to the Wraith
+                // narrowing) and the hit is reported as the copied player. / 魔术师 D6：存活皮套挡住 Wathe 玩家名牌射线
+                // （第 0 个，与冤魂收窄并列），命中改报为被复制的玩家。
+                configName: "MagicianPlaybackRoleNameMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianPlaybackRoleNameMixin.class",
+                handler: "sparkwitch\$nameTagStopsAtPuppets",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/ModifyArg;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_1675;method_49998(Lnet/minecraft/class_1297;Ljava/util/function/Predicate;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "MagicianPlaybackRoleNameMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianPlaybackRoleNameMixin.class",
+                handler: "sparkwitch\$labelPuppetAsCopiedPlayer",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_1675;method_49998(Lnet/minecraft/class_1297;Ljava/util/function/Predicate;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                // Magician D6: a puppet's instinct colour is its copied player's. / 魔术师 D6：皮套的本能颜色即被复制玩家的颜色。
+                configName: "MagicianPlaybackInstinctMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianPlaybackInstinctMixin.class",
+                handler: "sparkwitch\$highlightPuppetAsCopiedPlayer",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
+                // Magician D6: Wathe gun and knife client pickers prefer a strictly nearer puppet; whole-method wraps
+                // enclose SparkTraits Marksman HEAD replacements. / 魔术师 D6：Wathe 枪与刀的客户端选靶优先严格更近的
+                // 皮套；整方法包装包住 SparkTraits 神射手的 HEAD 替换。
+                configName: "MagicianRevolverTargetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianRevolverTargetMixin.class",
+                handler: "sparkwitch\$preferNearerPuppet",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/RevolverItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "MagicianDerringerTargetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianDerringerTargetMixin.class",
+                handler: "sparkwitch\$preferNearerPuppet",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/DerringerItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "MagicianKnifeTargetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianKnifeTargetMixin.class",
+                handler: "sparkwitch\$preferNearerPuppet",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getKnifeTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/KnifeItem.class",
+                providerMethod: "getKnifeTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "MagicianRevolverCrosshairMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianRevolverCrosshairMixin.class",
+                handler: "sparkwitch\$preferNearerVisiblePuppet",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getVisibleGunTarget(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "getVisibleGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;"
         ]
 ]
 

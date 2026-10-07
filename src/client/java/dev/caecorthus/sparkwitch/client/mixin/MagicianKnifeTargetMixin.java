@@ -1,23 +1,24 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
-import dev.doctor4t.wathe.game.GameFunctions;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import dev.caecorthus.sparkwitch.client.magician.MagicianPuppetAim;
 import dev.doctor4t.wathe.item.KnifeItem;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** 让 Wathe 匕首客户端准星可以选中魔术师皮套。 */
-@Mixin(KnifeItem.class)
+/**
+ * Lets every Wathe knife target pick (the charged stab, the NoellesRoles/SparkStrength instant stabs and Wathe's knife
+ * crosshair hint) hit a Magician puppet that is strictly nearer than its pick. {@code @WrapMethod} encloses the Seeker's
+ * RETURN device preference and any HEAD replacement, so the selector's full answer is compared.
+ * 让所有 Wathe 刀的选靶（蓄力刺、NoellesRoles/SparkStrength 瞬刺以及 Wathe 刀准星提示）命中严格更近的魔术师皮套。
+ * {@code @WrapMethod} 包住搜寻者在 RETURN 的设备优先与任何 HEAD 替换，因此比较的是选靶器的完整结果。
+ */
+@Mixin(value = KnifeItem.class, remap = false)
 public abstract class MagicianKnifeTargetMixin {
-    @Inject(method = "getKnifeTarget", at = @At("HEAD"), cancellable = true)
-    private static void sparkwitch$target(PlayerEntity user, CallbackInfoReturnable<HitResult> cir) {
-        HitResult hit = ProjectileUtil.getCollision(user, e -> e instanceof MagicianPlaybackEntity || (e instanceof PlayerEntity p && GameFunctions.isPlayerAliveAndSurvival(p)), 3f);
-        if (hit instanceof EntityHitResult entity && entity.getEntity() instanceof MagicianPlaybackEntity) cir.setReturnValue(hit);
+    @WrapMethod(method = "getKnifeTarget")
+    private static HitResult sparkwitch$preferNearerPuppet(PlayerEntity user, Operation<HitResult> original) {
+        return MagicianPuppetAim.preferNearerPuppet(user, original.call(user), MagicianPuppetAim.KNIFE_RANGE, false);
     }
 }

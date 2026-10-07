@@ -47,24 +47,33 @@ public final class MagicianPlaybackActionExecutor {
             case SELECT_SLOT -> proxy.getInventory().selectedSlot = Math.max(0, Math.min(8, action.intValue()));
             case GUN_SHOOT -> shoot(owner, proxy, visible);
             case KNIFE_STAB -> knife(owner, proxy, visible);
+            case BAT_HIT -> bat(owner, proxy, visible);
         }
     }
     private static void attack(ServerPlayerEntity owner, MagicianPlaybackFakePlayer proxy, MagicianPlaybackEntity visible) {
-        EntityHitResult hit = target(proxy, MagicianConstants.KNIFE_RANGE);
-        if (hit == null || !(hit.getEntity() instanceof ServerPlayerEntity target) || !GameFunctions.isPlayerAliveAndSurvival(target)) return;
-        if (proxy.getMainHandStack().isOf(WatheItems.KNIFE)) { knife(owner, proxy, visible); return; }
-        if (proxy.getMainHandStack().isOf(WatheItems.BAT)) {
-            // FakePlayer 不一定会完整经过 Wathe 的 PlayerEntity.attack mixin，球棒必须在回放层显式复刻。
-            GameFunctions.killPlayer(target, true, owner, GameConstants.DeathReasons.BAT);
-            proxy.getWorld().playSound(null, target.getX(), target.getEyeY(), target.getZ(),
-                    WatheSounds.ITEM_BAT_HIT, SoundCategory.PLAYERS, 3.0F, 1.0F);
-            proxy.swingHand(Hand.MAIN_HAND);
-            visible.playReplaySwing(Hand.MAIN_HAND);
-            return;
-        }
-        // 普通左键必须继续走 Minecraft 原版伤害链，不能把空手挥击错误变成瞬杀。
+        ServerPlayerEntity target = target(owner, proxy, MagicianConstants.KNIFE_RANGE);
+        if (target == null) return;
+        // 普通左键必须继续走 Minecraft 原版伤害链，不能把空手挥击错误变成瞬杀。A recorded ATTACK is a left-click
+        // that reached the attack chain (a punch, also with a knife in hand, as in Wathe); a full-charge bat kill is
+        // recorded separately as BAT_HIT. / 录制的 ATTACK 是进入攻击链的左键（与 Wathe 一致，手持刀也只是普通一拳）；
+        // 满蓄力球棒击杀另行录制为 BAT_HIT。
         proxy.attack(target);
         proxy.swingHand(Hand.MAIN_HAND); visible.playReplaySwing(Hand.MAIN_HAND);
+    }
+    /**
+     * Replays a full-charge bat kill the Magician landed while recording (recorded at Wathe's kill call, so a weak
+     * swing never replays as a kill). The bat must be in the proxy's main hand at this frame.
+     * 回放录制期间魔术师打出的满蓄力球棒击杀（在 Wathe 击杀调用处录制，弱挥击永远不会回放成击杀）。该帧代理主手必须持球棒。
+     */
+    private static void bat(ServerPlayerEntity owner, MagicianPlaybackFakePlayer proxy, MagicianPlaybackEntity visible) {
+        if (!proxy.getMainHandStack().isOf(WatheItems.BAT)) return;
+        ServerPlayerEntity target = target(owner, proxy, MagicianConstants.KNIFE_RANGE);
+        if (target == null) return;
+        GameFunctions.killPlayer(target, true, owner, GameConstants.DeathReasons.BAT);
+        proxy.getWorld().playSound(null, target.getX(), target.getEyeY(), target.getZ(),
+                WatheSounds.ITEM_BAT_HIT, SoundCategory.PLAYERS, 3.0F, 1.0F);
+        proxy.swingHand(Hand.MAIN_HAND);
+        visible.playReplaySwing(Hand.MAIN_HAND);
     }
     private static void use(MagicianPlaybackFakePlayer proxy, MagicianPlaybackEntity visible, Hand hand, @Nullable BlockHitResult recorded) {
         ItemStack stack = proxy.getStackInHand(hand);
@@ -77,10 +86,11 @@ public final class MagicianPlaybackActionExecutor {
         if (result.isAccepted() && !proxy.isUsingItem()) visible.playReplaySwing(hand);
     }
     private static void release(ServerPlayerEntity owner, MagicianPlaybackFakePlayer proxy, MagicianPlaybackEntity visible) {
-        ItemStack stack = proxy.getActiveItem().copy();
-        int used = stack.isEmpty() ? 0 : stack.getMaxUseTime(proxy) - proxy.getItemUseTimeLeft();
+        // A knife release never stabs by itself: only the KNIFE_STAB recorded at Wathe's accepted-stab anchor does,
+        // so a released knife that Wathe or SparkTraits refused never replays as a kill.
+        // 松开刀本身从不刺击：只有在 Wathe 已接受刺击锚点录制的 KNIFE_STAB 才会，因此被 Wathe 或 SparkTraits 拒绝的松手
+        // 不会回放成击杀。
         proxy.stopUsingItem(); visible.setReplayUseState(false, null); visible.setReplayItemUseTimeLeft(0);
-        if (stack.isOf(WatheItems.KNIFE) && used >= 10) knife(owner, proxy, visible);
     }
     private static void shoot(ServerPlayerEntity owner, MagicianPlaybackFakePlayer proxy, MagicianPlaybackEntity visible) {
         ItemStack stack = proxy.getMainHandStack();
@@ -88,9 +98,9 @@ public final class MagicianPlaybackActionExecutor {
         // 真实左轮右键会先发机械上膛声，再发射击声；回放代理没有客户端物品 use 链，需在服务端补齐。
         proxy.getWorld().playSound(null, proxy.getX(), proxy.getEyeY(), proxy.getZ(),
                 WatheSounds.ITEM_REVOLVER_CLICK, SoundCategory.PLAYERS, 0.5F, 1.0F);
-        EntityHitResult hit = target(proxy, MagicianConstants.REVOLVER_RANGE);
-        if (hit != null && hit.getEntity() instanceof ServerPlayerEntity target && GameFunctions.isPlayerAliveAndSurvival(target)) {
-            GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.REVOLVER), target instanceof ServerPlayerEntity sp ? sp : null, null);
+        ServerPlayerEntity target = target(owner, proxy, MagicianConstants.REVOLVER_RANGE);
+        if (target != null) {
+            GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.REVOLVER), target, null);
             GameFunctions.killPlayer(target, true, owner, GameConstants.DeathReasons.GUN);
         } else {
             GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.REVOLVER), null, null);
@@ -104,16 +114,31 @@ public final class MagicianPlaybackActionExecutor {
         visible.playReplaySwing(Hand.MAIN_HAND);
     }
     private static void knife(ServerPlayerEntity owner, MagicianPlaybackFakePlayer proxy, MagicianPlaybackEntity visible) {
-        EntityHitResult hit = target(proxy, MagicianConstants.KNIFE_RANGE);
-        if (hit == null || !(hit.getEntity() instanceof ServerPlayerEntity target) || !GameFunctions.isPlayerAliveAndSurvival(target)) return;
-        GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.KNIFE), target instanceof ServerPlayerEntity sp ? sp : null, null);
+        // The recorded stab passed Wathe's receiver with a knife in hand; the replay needs the knife in hand too.
+        // 录制的刺击是手持刀通过 Wathe 接收器的；回放同样要求手中有刀。
+        if (!proxy.getMainHandStack().isOf(WatheItems.KNIFE) && !proxy.getOffHandStack().isOf(WatheItems.KNIFE)) return;
+        ServerPlayerEntity target = target(owner, proxy, MagicianConstants.KNIFE_RANGE);
+        if (target == null) return;
+        GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.KNIFE), target, null);
         GameFunctions.killPlayer(target, true, owner, GameConstants.DeathReasons.KNIFE);
         target.playSound(WatheSounds.ITEM_KNIFE_STAB, 1f, 1f); proxy.swingHand(Hand.MAIN_HAND); visible.playReplaySwing(Hand.MAIN_HAND);
         proxy.getItemCooldownManager().set(WatheItems.KNIFE, GameConstants.ITEM_COOLDOWNS.getOrDefault(WatheItems.KNIFE, 0));
     }
-    private static @Nullable EntityHitResult target(PlayerEntity player, double range) {
-        Box box = player.getBoundingBox().stretch(player.getRotationVec(1f).multiply(range)).expand(.5);
-        return ProjectileUtil.raycast(player, player.getEyePos(), player.getEyePos().add(player.getRotationVec(1f).multiply(range)), box,
-                e -> e != player && e instanceof PlayerEntity p && !p.isSpectator() && GameFunctions.isPlayerAliveAndSurvival(p), range * range);
+    /**
+     * The player the puppet's weapon hits, picked like Wathe's own knife/revolver targeting
+     * ({@code ProjectileUtil.getCollision}: the nearest entity along the look ray, cut by blocks, so nothing is hit
+     * through walls or closed doors). Never the Magician who owns the puppet (the proxy carries the owner's UUID, so
+     * the UUID check excludes both), never a spectator or a dead player.
+     * 皮套武器命中的玩家，与 Wathe 自身刀/左轮选目标方式一致（{@code ProjectileUtil.getCollision}：沿视线的最近实体，
+     * 被方块截断，因此不会隔墙或隔着关闭的门命中）。永远不会是皮套主人魔术师（代理使用主人的 UUID，UUID 检查同时排除二者），
+     * 也不会是旁观者或已死亡玩家。
+     */
+    private static @Nullable ServerPlayerEntity target(ServerPlayerEntity owner, PlayerEntity proxy, double range) {
+        HitResult hit = ProjectileUtil.getCollision(proxy,
+                e -> e instanceof ServerPlayerEntity p && !p.getUuid().equals(owner.getUuid())
+                        && !p.isSpectator() && GameFunctions.isPlayerAliveAndSurvival(p),
+                range);
+        return hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof ServerPlayerEntity target
+                ? target : null;
     }
 }

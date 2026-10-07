@@ -68,6 +68,9 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenShopService
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackManager;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianReplayEvents;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetAttackHandlers;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianDecoyBodies;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianRoster;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithConversion;
 import dev.caecorthus.sparkwitch.roles.special.wraith.runtime.WraithLifecycle;
@@ -147,12 +150,16 @@ public final class SparkWitchEvents {
         ApprenticeFeatureService.register();
         MagicianPlaybackManager.init();
         MagicianReplayEvents.register();
+        MagicianPuppetAttackHandlers.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
                 if (role != null && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())) {
                     MagicianPlayerComponent.KEY.get(serverPlayer).reset();
                     MagicianPlayerComponent.KEY.get(serverPlayer).assignInitialCooldown();
+                    // Mid-round assignments get the roster now; round start re-captures it once every role is dealt.
+                    // 回合中途分配时立即记录名单；回合开始时会在全部身份发放后重新记录。
+                    MagicianRoster.capture(serverPlayer);
                     MagicianPlayerComponent.KEY.get(serverPlayer).sync();
                 }
                 ProphetRuntime.assignForRole(serverPlayer, role);
@@ -211,6 +218,7 @@ public final class SparkWitchEvents {
         GameEvents.ON_FINISH_INITIALIZE.register((world, gameComponent) -> {
             if (world instanceof ServerWorld serverWorld) {
                 WraithConversion.beginRound(serverWorld, gameComponent.getAllPlayers().size());
+                MagicianRoster.captureAll(serverWorld);
             }
         });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
@@ -221,6 +229,8 @@ public final class SparkWitchEvents {
                 FirePokerFallAttributionService.clearAll();
                 WraithLifecycle.clearRoundState(serverWorld);
                 PoisonApplePlateService.clearLoadedPlates();
+                MagicianPlaybackManager.clearAll();
+                MagicianDecoyBodies.clear();
                 for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                     WitchFactionFeatureService.clearPlayerRuntime(player);
                     WitchPlayerComponent.KEY.get(player).clear();

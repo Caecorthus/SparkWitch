@@ -21,9 +21,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 import java.util.UUID;
 
-/** 魔术师可见皮套；原版伤害全部免疫，武器包由管理器显式收束。 */
+/**
+ * 魔术师可见皮套；原版伤害全部免疫，武器包由管理器显式收束。
+ * The owner (the Magician) is a server-only field and never tracked: a tracked owner UUID would let any client name the
+ * Magician from its puppet. Clients see only the copied player's UUID and name.
+ * 主人（魔术师）是仅服务端字段且从不追踪同步：同步主人 UUID 会让任何客户端从皮套认出魔术师。客户端只能看到被复制玩家的 UUID 与名字。
+ */
 public class MagicianPlaybackEntity extends LivingEntity {
-    private static final TrackedData<Optional<UUID>> OWNER = DataTracker.registerData(MagicianPlaybackEntity.class, TrackedDataHandlerRegistry.OPTIONAL_UUID);
     private static final TrackedData<Optional<UUID>> DISGUISE = DataTracker.registerData(MagicianPlaybackEntity.class, TrackedDataHandlerRegistry.OPTIONAL_UUID);
     private static final TrackedData<String> NAME = DataTracker.registerData(MagicianPlaybackEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedData<Boolean> USING = DataTracker.registerData(MagicianPlaybackEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
@@ -34,10 +38,12 @@ public class MagicianPlaybackEntity extends LivingEntity {
     private static final TrackedData<Boolean> SWING_OFF_HAND = DataTracker.registerData(MagicianPlaybackEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private final ItemStack[] armor = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};
     private ItemStack main = ItemStack.EMPTY, off = ItemStack.EMPTY;
+    private @Nullable UUID owner;
     public MagicianPlaybackEntity(EntityType<? extends LivingEntity> type, World world) { super(type, world); noClip = true; setNoGravity(true); }
-    @Override protected void initDataTracker(DataTracker.Builder b) { super.initDataTracker(b); b.add(OWNER, Optional.empty()); b.add(DISGUISE, Optional.empty()); b.add(NAME, "未知玩家"); b.add(USING, false); b.add(ACTIVE_OFF_HAND, false); b.add(USE_LEFT, 0); b.add(SITTING, false); b.add(SWING_SEQUENCE, 0); b.add(SWING_OFF_HAND, false); }
-    public void setIdentity(@Nullable UUID owner, @Nullable UUID disguise, String name) { dataTracker.set(OWNER, Optional.ofNullable(owner)); dataTracker.set(DISGUISE, Optional.ofNullable(disguise)); dataTracker.set(NAME, name == null ? "未知玩家" : name); }
-    public UUID owner() { return dataTracker.get(OWNER).orElse(null); }
+    @Override protected void initDataTracker(DataTracker.Builder b) { super.initDataTracker(b); b.add(DISGUISE, Optional.empty()); b.add(NAME, ""); b.add(USING, false); b.add(ACTIVE_OFF_HAND, false); b.add(USE_LEFT, 0); b.add(SITTING, false); b.add(SWING_SEQUENCE, 0); b.add(SWING_OFF_HAND, false); }
+    public void setIdentity(@Nullable UUID owner, @Nullable UUID disguise, String name) { this.owner = owner; dataTracker.set(DISGUISE, Optional.ofNullable(disguise)); dataTracker.set(NAME, name == null ? "" : name); }
+    /** Server only; always null on the client. / 仅服务端；客户端上恒为 null。 */
+    public @Nullable UUID owner() { return owner; }
     public UUID disguise() { return dataTracker.get(DISGUISE).orElse(null); }
     public String disguiseName() { return dataTracker.get(NAME); }
     public void clearEquipment() { main=ItemStack.EMPTY; off=ItemStack.EMPTY; for(int i=0;i<armor.length;i++) armor[i]=ItemStack.EMPTY; }

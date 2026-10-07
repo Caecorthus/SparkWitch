@@ -20,7 +20,8 @@ public record MagicianRecordedAction(
         @Nullable Direction blockSide,
         boolean insideBlock
 ) {
-    public enum Type { ATTACK, USE_MAIN_HAND, USE_OFF_HAND, RELEASE_USE_ITEM, SWING_MAIN_HAND, SWING_OFF_HAND, SELECT_SLOT, GUN_SHOOT, KNIFE_STAB }
+    // BAT_HIT: a full-charge bat kill accepted by Wathe (recorded at its killPlayer call). / Wathe 接受的满蓄力球棒击杀。
+    public enum Type { ATTACK, USE_MAIN_HAND, USE_OFF_HAND, RELEASE_USE_ITEM, SWING_MAIN_HAND, SWING_OFF_HAND, SELECT_SLOT, GUN_SHOOT, KNIFE_STAB, BAT_HIT }
     public static MagicianRecordedAction attack(int tick) { return simple(tick, Type.ATTACK, null, 0); }
     public static MagicianRecordedAction use(int tick, Hand hand) { return simple(tick, hand == Hand.MAIN_HAND ? Type.USE_MAIN_HAND : Type.USE_OFF_HAND, hand, 0); }
     public static MagicianRecordedAction useBlock(int tick, Hand hand, BlockHitResult hit) {

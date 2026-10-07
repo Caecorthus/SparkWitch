@@ -14,6 +14,8 @@ It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with
 train fall can kill and that may buy a timed Fiend Moment.
 It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao and win together.
+It also adds the Magician (`sparkwitch:magician`, 魔术师, merged from main), a killer whose recorded puppet replays
+its actions disguised as a chosen player.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
 the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
 It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only a
@@ -79,7 +81,8 @@ Current build baseline:
     set only when no charge is left. Clairvoyance (D9) exposes her to every living viewer for 10 s.
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
 - `roles/civilian/prophet/`: passive Death Sense (world-wide corpse pulse every 60 s; skips Scavenger-hidden bodies and,
-  per owner decision, SparkTraits Depression fake-death bodies via `compat/SparkTraitsBodyDragBridge`), the
+  per owner decision, SparkTraits Depression fake-death bodies via `compat/SparkTraitsBodyDragBridge` and Magician
+  decoys via `MagicianDecoyBodies`; a pulse that skipped a decoy says so on its action-bar line, 2026-10-07 D8), the
   owner-only `sparkwitch:prophet_player` component (permanent highlight set, necrology,
   Prophecy records), the Prophecy skill registration, and economy. The client outline
   lives in `client/hooks/ProphetCorpseHighlightClientHooks`.
@@ -119,7 +122,8 @@ Current build baseline:
   presentation (faction-count HUD, reading slip, reading log, selector ledger)
   lives in `client/tarot/`, `client/hud/Tarot*`, and `client/screen/`.
 - `roles/killer/ninja/`: parry, dark-kill bounty, shop, and death cleanup.
-- `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup.
+- `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
+  SparkTraits fake bodies, camera-bound bodies and Magician decoys; a deliberate drag on a decoy tells the Kidnapper.
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
   bound ledger, restricted shop, and lifecycle cleanup. The bound ledger and Raven Mask
   (`BlackRavenInventoryRules`) never drop, never leave their owner's inventory slots, and are
@@ -175,6 +179,56 @@ Current build baseline:
   `mixin/timestealer/DecoratedPotBlockTimeStealerItemMixin` makes a decorated pot answer
   `SKIP_DEFAULT_BLOCK_INTERACTION`, so the per-tick restore never mints a second Clock and the Clock's own
   use still runs at a pot.
+- `roles/killer/magician/`: Magician (`sparkwitch:magician`, 魔术师), an ordinary killer merged from main (#99,
+  collaborator Huankings, who may keep editing these files upstream: keep v2-side edits minimal). It records 30 s of
+  its own actions, then a puppet disguised as a chosen player replays them; the 2026-10-07 audit fix applies owner
+  decisions D1–D8 (`MAGICIAN-AUDIT.md` in the merge-all-2026-10-07 archive).
+  - State: `MagicianAbility` (the shared ability key's four-stage machine; server debounce on server ticks; the
+    Control Expert stun, the NoellesRoles silence, the SparkTraits role-skill block and Fear all refuse it) and
+    `MagicianPlayerComponent` (`sparkwitch:magician`, synced to its owner only: stage, cooldown, chosen disguise and
+    the round roster). `MagicianRoster` (D7) captures every round participant when the round starts or a player
+    becomes the Magician; the disguise list and the target packet accept any roster member, alive or dead, so a pick
+    never reveals a death. `client/magician/MagicianKeyRepeatGuard` drops key-repeat presses (one stage step per
+    physical press).
+  - Recording only records accepted actions: gun shots and knife stabs at Wathe's `recordItemUse` anchor
+    (`mixin/MagicianGunShootPayloadReceiverMixin`, `mixin/MagicianKnifeStabPayloadReceiverMixin`), full-charge bat
+    kills at Wathe's `killPlayer(..., BAT)` (`mixin/MagicianRecordBatKillMixin`); the other `MagicianRecord*Mixin`s
+    capture movement-side interactions. A rejected, parried or out-of-range action never replays.
+  - Replay: `MagicianPlaybackManager` alone owns live puppets (spawn, per-tick frames, the replay proxy, round-end
+    `clearAll`, disconnect cleanup, discarding a finished puppet even when its owner is offline).
+    `MagicianPlaybackActionExecutor` replays through a `FakePlayer` proxy that carries the owner's UUID; weapon
+    targets are picked like Wathe's own (`ProjectileUtil.getCollision`, cut by blocks) and never the owner; a
+    recorded left-click replays as a punch, a knife stab needs the knife in hand, a bat kill needs `BAT_HIT`.
+    `MagicianPlaybackEntity` (`sparkwitch:magician_playback`, `disableSaving`, `disableSummon`) tracks only the
+    copied player's UUID and name; its owner UUID is a server-only field, never synced.
+  - Ending a puppet: `MagicianPuppetHits` has one entry per damage source on the Seeker-device pattern
+    (`SeekerDeviceHits`): revolver/derringer at the `recordItemUse` anchor, the knife at HEAD priority 2300 after the
+    SparkTraits guards, blasts as a sphere with line of sight; every entry validates weapon, reach, aim and line of
+    sight, refuses the Magician's own puppet and spectators, and costs the attacker what a real hit costs without the
+    innocent-shot punishment or mood loss (D3). All entries end in `MagicianPlaybackManager.endPuppet`, which leaves
+    a decoy body stamped with the Civilian cover role through the Wraith death-role seam (D1), registers it in the
+    server-only `MagicianDecoyBodies` (D2) and pays the Magician 50 coins when anyone other than the Magician ended
+    it, blasts included (D4).
+  - Other weapons (D5) end a puppet through their own `MagicianPuppetHits` entry, placed next to each weapon's Seeker
+    hook (a nearer puppet wins over the player and over a breakable device): Hunter shotgun, NoellesRoles Demon
+    Hunter pistol (only when the copied player would die to it; `mixin/MagicianDemonHunterRefundMixin` pays the
+    Jester refund), Death Ray (pierces), Wathe bat (`MagicianPuppetAttackHandlers`, full charge), Swordfish,
+    Ceremonial Sword strike and dash, ninja shuriken, NoellesRoles throwing axe, Potion Gunner shell and backblast,
+    and the SparkStrength M67 blast. Non-lethal tools still pass through puppets.
+  - Presentation (D6): `client/magician/MagicianPuppetStandIn` answers every skin, name-label and instinct-glow
+    question for a puppet with a stand-in player (the copied player when loaded, else a detached client-only copy
+    that is never spawned), so each viewer's existing rules apply unchanged (`MagicianPuppetAppearance`,
+    `MagicianPuppetNameTags`, `client/mixin/MagicianPlaybackRoleNameMixin`, `MagicianPlaybackInstinctMixin`). The
+    Blind never sees puppets. Client aim (`MagicianPuppetAim`) wraps Wathe's revolver, derringer, knife and crosshair
+    target methods and returns a puppet only when it is strictly nearer than the original result.
+  - Decoys (D2): the Prophet's Death Sense, the Kidnapper's drag and the NoellesRoles Vulture's eat
+    (`mixin/vulture/NoellesVultureDecoyBodyMixin` through `compat/NoellesVultureDecoyGuard`) ignore decoy bodies and
+    tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
+    SparkStrength) still treat a decoy as a body.
+  - The ability cooldown is the `sparkwitch:magician` store in `compat/cooldown/MagicianCooldownStore` (appended
+    last; nominal = the 5 s playback cooldown; raise-only). Client presentation lives in `client/magician/` and
+    `client/mixin/Magician*`; HUD, button and replay texts are lang keys (`hud.sparkwitch.magician.*`,
+    `ui.sparkwitch.magician.*`, `replay.global.sparkwitch.magician_*`).
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers.
 - `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
@@ -999,7 +1053,8 @@ draws the same plain reticle on the vanilla path; and the `@WrapMethod`s on Wath
 name-tag and cohort-label seams included) and `CrosshairRenderer.renderCrosshair` (priority 2100,
 Wathe's plain 3x3 reticle only, so no target pip, name, corpse info or note text) are pinned in
 `watheClientMixinContracts`. Non-player entities (corpses, dropped items, Seeker devices) are
-environment and are never gated, except a hidden player's fishing bobber. Bumps are client-only (no
+environment and are never gated, except a hidden player's fishing bobber and Magician puppets, which stay
+hidden like a never-perceived player. Bumps are client-only (no
 packet, no public sound): a hard wall bump, or a head bump with the space just above the head
 blocked, adds a local SELF pulse and briefly perceives a bumped player with no block in the gap
 between the two boxes; the 8-tick throttle is per contact (blocks, or one player), so a bump on a

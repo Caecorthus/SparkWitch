@@ -43,6 +43,9 @@ public final class SparkWitchEntities {
                         .trackingTickInterval(1)
                         // 皮套是 LivingEntity 子类，不应被存档持久化；播放结束后由管理器负责清理。
                         .disableSaving()
+                        // Only the playback manager spawns puppets; /summon would create an ownerless puppet.
+                        // 只有回放管理器生成皮套；/summon 会产生无主皮套。
+                        .disableSummon()
                         .build(MAGICIAN_PLAYBACK_ID.toString())
         );
         /*

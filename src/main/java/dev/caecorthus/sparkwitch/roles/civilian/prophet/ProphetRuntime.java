@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import dev.caecorthus.sparkwitch.compat.NoellesHiddenBodiesBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsBodyDragBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent.NecrologyEntry;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianDecoyBodies;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -36,6 +37,8 @@ import org.jetbrains.annotations.Nullable;
 public final class ProphetRuntime {
     static final String SENSE_FOUND_KEY = "message.sparkwitch.prophet.sense.found";
     static final String SENSE_NONE_KEY = "message.sparkwitch.prophet.sense.none";
+    static final String SENSE_FOUND_ILLUSION_KEY = "message.sparkwitch.prophet.sense.found_illusion";
+    static final String SENSE_NONE_ILLUSION_KEY = "message.sparkwitch.prophet.sense.none_illusion";
     private static boolean registered;
 
     private ProphetRuntime() {
@@ -113,12 +116,14 @@ public final class ProphetRuntime {
     }
 
     /**
-     * Snapshots every visible body in the Prophet's world (no distance limit; Scavenger-hidden and Depression fake-death bodies excluded), then
-     * sends a private sound and action-bar count to the Prophet alone.
-     * 快照先知所在世界里所有可见尸体（不限距离，排除拾荒者隐藏与抑郁假死的尸体），然后只向先知本人播放私有音效并发送动作栏计数。
+     * Snapshots every visible body in the Prophet's world (no distance limit; Scavenger-hidden, Depression fake-death
+     * and Magician decoy bodies excluded), then sends a private sound and action-bar count to the Prophet alone. When a
+     * decoy was skipped, the line says some bodies were illusions (owner decision 2026-10-07 D8).
+     * 快照先知所在世界里所有可见尸体（不限距离，排除拾荒者隐藏、抑郁假死与魔术师诱饵尸体），然后只向先知本人播放私有音效并
+     * 发送动作栏计数。跳过了诱饵尸体时，提示中会说明有尸体是幻象（所有者 2026-10-07 决定 D8）。
      */
     private static void pulse(ServerPlayerEntity prophet, ServerWorld world, ProphetPlayerComponent component) {
-        List<PlayerBodyEntity> bodies = new ArrayList<>(world.getEntitiesByType(
+        List<? extends PlayerBodyEntity> visible = world.getEntitiesByType(
                 WatheEntities.PLAYER_BODY,
                 body -> !body.isRemoved()
                         && body.getPlayerUuid() != null
@@ -127,7 +132,20 @@ public final class ProphetRuntime {
                         // living player that the Prophecy list would then omit.
                         // 所有者决定：跳过抑郁假死尸体，避免名录记下活人而预言列表缺席，从而暴露假死。
                         && !SparkTraitsBodyDragBridge.isConfirmedFakeDeathBody(body)
-        ));
+        );
+        // Owner decision D8: a Magician decoy is skipped like a fake-death body (no count, outline or Necrology line);
+        // the decoy registry is server-only, so the owner-synced outline set never carries one.
+        // 所有者决定 D8：魔术师诱饵尸体与假死尸体一样被跳过（不计数、不描边、不进名录）；诱饵登记表仅在服务端，
+        // 因此只同步给先知本人的描边集合中永远不会出现诱饵。
+        List<PlayerBodyEntity> bodies = new ArrayList<>(visible.size());
+        boolean skippedDecoy = false;
+        for (PlayerBodyEntity body : visible) {
+            if (MagicianDecoyBodies.isDecoy(body)) {
+                skippedDecoy = true;
+            } else {
+                bodies.add(body);
+            }
+        }
         bodies.sort(Comparator.comparingInt(PlayerBodyEntity::getDeathGameTime).thenComparing(Entity::getUuid));
 
         Map<UUID, String> knownNames = new LinkedHashMap<>();
@@ -145,12 +163,24 @@ public final class ProphetRuntime {
         component.recordPulse(bodyUuids, List.copyOf(owners.values()));
 
         prophet.playSoundToPlayer(SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, SoundCategory.PLAYERS, 0.8F, 0.6F);
+        String messageKey = senseMessageKey(bodies.size(), skippedDecoy);
         prophet.sendMessage(
                 bodies.isEmpty()
-                        ? Text.translatable(SENSE_NONE_KEY)
-                        : Text.translatable(SENSE_FOUND_KEY, bodies.size()),
+                        ? Text.translatable(messageKey)
+                        : Text.translatable(messageKey, bodies.size()),
                 true
         );
+    }
+
+    /**
+     * Action-bar key of one pulse: the found/none line, or its illusion variant when a decoy was skipped.
+     * 单次感知的动作栏键：发现/未发现，跳过诱饵尸体时改用对应的幻象版本。
+     */
+    static String senseMessageKey(int bodyCount, boolean skippedDecoy) {
+        if (bodyCount <= 0) {
+            return skippedDecoy ? SENSE_NONE_ILLUSION_KEY : SENSE_NONE_KEY;
+        }
+        return skippedDecoy ? SENSE_FOUND_ILLUSION_KEY : SENSE_FOUND_KEY;
     }
 
     private static String resolveName(@Nullable MinecraftServer server, UUID uuid, @Nullable String knownName) {

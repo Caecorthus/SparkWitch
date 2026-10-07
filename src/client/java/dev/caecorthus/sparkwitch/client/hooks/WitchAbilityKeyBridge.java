@@ -36,6 +36,12 @@ public final class WitchAbilityKeyBridge {
         PRESS_STATE.reset();
     }
 
+    /** Whether the shared ability key is physically held now. / 共享技能键当前是否被按住。 */
+    public static boolean isHeld() {
+        KeyBinding keyBinding = sharedAbilityKeyBinding();
+        return keyBinding != null && keyBinding.isPressed();
+    }
+
     public static Text keyText() {
         KeyBinding keyBinding = sharedAbilityKeyBinding();
         return keyBinding == null

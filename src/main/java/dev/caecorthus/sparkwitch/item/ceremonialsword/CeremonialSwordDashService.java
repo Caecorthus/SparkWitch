@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.item.ceremonialsword;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import net.minecraft.item.ItemStack;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;
@@ -105,9 +106,15 @@ public final class CeremonialSwordDashService {
             Box currentBox = player.getBoundingBox();
             Box nextBox = currentBox.offset(delta);
 
-            ServerPlayerEntity target = findDashTarget(player, currentBox.stretch(delta).expand(0.15));
+            Box sweptBox = currentBox.stretch(delta).expand(0.15);
+            ServerPlayerEntity target = findDashTarget(player, sweptBox);
             if (target != null) {
                 CeremonialSwordCombatService.killWithCeremonialSword(player, target);
+                return true;
+            }
+            // Magician seam: a puppet in this step is a dash contact like a player (sword kill, the dash stops).
+            // 魔术师接缝：该步中的皮套与玩家一样构成冲刺接触（剑杀，冲刺停止）。
+            if (MagicianPuppetHits.onCeremonialSwordDash(player, sweptBox)) {
                 return true;
             }
 

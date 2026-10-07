@@ -159,15 +159,18 @@ public final class SparkWitchPackets {
                         () -> MagicianAbility.handle(context.player(), payload.action())
                 )
         );
+        // Any member of the round roster is accepted, alive or dead (owner decision 2026-10-07 D7), so a refused pick
+        // can never reveal a death. / 接受本局名单内任何成员，无论生死（所有者 2026-10-07 决定 D7），拒绝选择永远不会暴露死亡。
         ServerPlayNetworking.registerGlobalReceiver(SelectMagicianTargetC2SPacket.ID, (payload, context) ->
                 context.server().execute(() -> {
-                    var target = context.player().getServer().getPlayerManager().getPlayer(payload.target());
                     var game = dev.doctor4t.wathe.cca.GameWorldComponent.KEY.get(context.player().getWorld());
                     var role = game.getRole(context.player());
-                    if (target != null && role != null
+                    var component = MagicianPlayerComponent.KEY.get(context.player());
+                    var entry = payload.target() == null ? null : component.rosterEntry(payload.target());
+                    if (entry != null && role != null
                             && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())
-                            && game.isRunning() && dev.doctor4t.wathe.game.GameFunctions.isPlayerAliveAndSurvival(target)) {
-                        MagicianPlayerComponent.KEY.get(context.player()).setSelectedTarget(target.getUuid(), target.getName().getString());
+                            && game.isRunning()) {
+                        component.setSelectedTarget(entry.uuid(), entry.name());
                     }
                 })
         );

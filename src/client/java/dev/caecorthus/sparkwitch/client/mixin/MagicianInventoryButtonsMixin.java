@@ -10,7 +10,7 @@ import dev.doctor4t.wathe.client.gui.screen.ingame.LimitedHandledScreen;
 import net.minecraft.entity.player.PlayerInventory;
 import dev.doctor4t.wathe.client.gui.screen.ingame.LimitedInventoryScreen;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.network.PlayerListEntry;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlayerComponent;
 import net.minecraft.item.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.PlayerScreenHandler;
@@ -45,7 +45,8 @@ public abstract class MagicianInventoryButtonsMixin extends LimitedHandledScreen
     }
     @Shadow @Final public ClientPlayerEntity player;
 
-    @Inject(method="method_25426()V", at=@At("TAIL"))
+    // Named selector (remapped at build time): the intermediary name crashed the dev client. / 使用具名选择器（构建时重映射）：中间名会让开发客户端崩溃。
+    @Inject(method = "init()V", at = @At("TAIL"))
     private void sparkwitch$addMagicianTargets(CallbackInfo ci) {
         if (player == null || player.networkHandler == null) return;
         var role = dev.doctor4t.wathe.cca.GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
@@ -53,7 +54,8 @@ public abstract class MagicianInventoryButtonsMixin extends LimitedHandledScreen
         sparkwitch$magicianTargets.clear();
         sparkwitch$magicianPage = 0;
         int y = SparkWitchInventoryButtonLayout.getPlayerRowY(this.height);
-        for (PlayerListEntry entry : MagicianTargetSelectionApi.onlinePlayers(player)) {
+        // The fixed round roster (owner decision 2026-10-07 D7), not the live online list. / 本局固定名单（所有者 2026-10-07 决定 D7），而非实时在线列表。
+        for (MagicianPlayerComponent.RosterEntry entry : MagicianTargetSelectionApi.roster(player)) {
             sparkwitch$magicianTargets.add(this.addDrawableChild(new MagicianTargetWidget(0, y, entry)));
         }
 
@@ -96,7 +98,12 @@ public abstract class MagicianInventoryButtonsMixin extends LimitedHandledScreen
                 UseMagicianAbilityC2SPacket.START_PLAYBACK,
                 UseMagicianAbilityC2SPacket.STOP_PLAYBACK
         };
-        String[] labels = {"开始录制", "结束录制", "开始播放", "结束播放"};
+        String[] labels = {
+                "ui.sparkwitch.magician.action.start_recording",
+                "ui.sparkwitch.magician.action.stop_recording",
+                "ui.sparkwitch.magician.action.start_playback",
+                "ui.sparkwitch.magician.action.stop_playback"
+        };
         int startX = this.width / 2 - (icons.length * SparkWitchInventoryButtonLayout.SLOT_APART) / 2
                 + SparkWitchInventoryButtonLayout.SLOT_X_OFFSET;
         for (int i = 0; i < icons.length; i++) {
@@ -104,7 +111,7 @@ public abstract class MagicianInventoryButtonsMixin extends LimitedHandledScreen
                     startX + i * SparkWitchInventoryButtonLayout.SLOT_APART,
                     y,
                     icons[i],
-                    Text.literal(labels[i]),
+                    Text.translatable(labels[i]),
                     actions[i]
             )));
         }

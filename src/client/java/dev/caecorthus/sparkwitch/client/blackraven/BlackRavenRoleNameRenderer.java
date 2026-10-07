@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
+import dev.caecorthus.sparkwitch.client.magician.MagicianPuppetNameTags;
 import dev.caecorthus.sparkwitch.client.render.WraithNameTagPassThrough;
 import dev.caecorthus.sparkwitch.client.text.WitchRoleDisplayTexts;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenIdentitySnapshot;
@@ -45,13 +46,14 @@ public final class BlackRavenRoleNameRenderer {
                 && player.getWorld().getLightLevel(LightType.SKY, eyeBlock) < 10) {
             return;
         }
-        // Same Wraith pass-through as Wathe's name tag, so the sensed role follows the tagged player.
-        // 与 Wathe 名牌相同的冤魂穿透，使感知身份跟随被显示名牌的玩家。
+        // Same Wraith pass-through and Magician puppet stand-in as Wathe's name tag, so the sensed role follows the
+        // tagged player. 与 Wathe 名牌相同的冤魂穿透与魔术师皮套替身，使感知身份跟随被显示名牌的玩家。
         Predicate<Entity> nameTarget = WraithNameTagPassThrough.filterNameTarget(
                 player,
                 entity -> entity instanceof PlayerEntity
         );
-        if (!(ProjectileUtil.getCollision(player, nameTarget, 2.0)
+        if (!(MagicianPuppetNameTags.asCopiedPlayer(ProjectileUtil.getCollision(
+                player, MagicianPuppetNameTags.stopAtPuppets(nameTarget), 2.0))
                 instanceof EntityHitResult hit)
                 || !(hit.getEntity() instanceof PlayerEntity target)
                 || !BlackRavenInstinctClientHooks.isPubliclyVisible(player, target)) {
