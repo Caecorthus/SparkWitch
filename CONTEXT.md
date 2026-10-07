@@ -260,7 +260,7 @@ Current build baseline:
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
     SparkStrength) still treat a decoy as a body.
   - The ability cooldown is the `sparkwitch:magician` store in `compat/cooldown/MagicianCooldownStore` (appended
-    last; nominal = the 5 s playback cooldown; raise-only). Client presentation lives in `client/magician/` and
+    last; nominal = the 15 s playback cooldown; raise-only). Client presentation lives in `client/magician/` and
     `client/mixin/Magician*`; HUD, button and replay texts are lang keys (`hud.sparkwitch.magician.*`,
     `ui.sparkwitch.magician.*`, `replay.global.sparkwitch.magician_*`).
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
@@ -682,7 +682,10 @@ stun's input lock is client-side; the server denies item use, interactions, and 
 payloads (`ControlExpertStunGuards`, `ControlExpertStunPayloadGuardMixin`). Add-on sessions those
 guards cannot end read the stun through the public `SparkWitchApi.isControlExpertStunned(PlayerEntity)`
 (2026-10-07, name and signature frozen): SparkStrength reflects it to refuse and end a Bomber drone pilot
-session as STUNNED, since drone moves and exit stay off the deny-list. The Disruptor gates
+session as STUNNED, since drone moves and exit stay off the deny-list. The SparkStrength Serial
+Killer's psycho-pistol shot (`sparkstrength:serial_pistol_shoot`, 2026-10-07) is classified as a gun
+shot: it sits on exactly the lists that hold `wathe:gunshoot` (stun, Seeker session, Rift occupant)
+and, like that id, not on Grand Witch Fear's. The Disruptor gates
 keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
