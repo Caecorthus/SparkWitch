@@ -108,6 +108,7 @@ public final class RiftSessionRules {
             Identifier.of("sparkstrength", "coroner_morph"),
             Identifier.of("sparkstrength", "professor_remote_feed"),
             Identifier.of("sparkstrength", "demon_hunter_sniff"),
+            Identifier.of("sparkstrength", "vulture_super_curse"),
             Identifier.of("sparkstrength", "call_tablet_meeting"),
             Identifier.of("sparkstrength", "cast_tablet_vote"),
             Identifier.of("sparkstrength", "confirm_tablet_vote"),
