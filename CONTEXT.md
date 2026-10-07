@@ -1008,7 +1008,13 @@ draws the same plain reticle on the vanilla path; and the `@WrapMethod`s on Wath
 name-tag and cohort-label seams included) and `CrosshairRenderer.renderCrosshair` (priority 2100,
 Wathe's plain 3x3 reticle only, so no target pip, name, corpse info or note text) are pinned in
 `watheClientMixinContracts`. Non-player entities (corpses, dropped items, Seeker devices) are
-environment and are never gated, except a hidden player's fishing bobber. Bumps are client-only (no
+environment and are never gated, except a hidden player's fishing bobber. A body another mod draws in place of the
+player model keeps its own shape (owner 2026-10-07). A perceived SparkTraits Pig, whose renderer cancels
+`PlayerEntityRenderer#render` before `LivingEntityRenderer` runs, stays a pig outline in the line art and the
+silhouette: the pig body and head, with the helmet cut by the armor veto. Feature-like extras drawn outside the feature
+loop ask the public `SparkWitchApi.hidesFeaturesFromBlind`, installed by `BlindClientGateWiring`. It is true under
+either Blind feature skip: the world frame (`BlindClientGates.suppressesFeatures`) or the silhouette pass. SparkStrength's
+skateboard under a replaced body skips itself while it holds. Bumps are client-only (no
 packet, no public sound): a hard wall bump, or a head bump with the space just above the head
 blocked, adds a local SELF pulse and briefly perceives a bumped player with no block in the gap
 between the two boxes; the 8-tick throttle is per contact (blocks, or one player), so a bump on a

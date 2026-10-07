@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.blind.gate;
 
 import dev.caecorthus.sparkwitch.client.blind.BlindPerceptionClientState;
 import dev.caecorthus.sparkwitch.client.blind.BlindView;
+import dev.caecorthus.sparkwitch.client.blind.render.BlindSilhouettePass;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -64,6 +65,19 @@ public final class BlindClientGates {
             return false;
         }
         return BlindGateRules.suppressesFeatures(BlindView.isActive(client), true);
+    }
+
+    /**
+     * The answer behind {@code SparkWitchApi.hidesFeaturesFromBlind}: a feature would be skipped here by either Blind
+     * gate, the world frame's ({@link #suppressesFeatures}) or the silhouette pass's
+     * ({@link BlindSilhouettePass#isRendering()}). Downstream extras drawn outside the feature loop (SparkStrength's
+     * skateboard under a replaced Pig body) follow it; a replaced body itself keeps its shape (owner 2026-10-07).
+     * {@code SparkWitchApi.hidesFeaturesFromBlind} 背后的答案：任一盲人闸门（世界画面的 {@link #suppressesFeatures}
+     * 或轮廓 pass 的 {@link BlindSilhouettePass#isRendering()}）会在此跳过附加层。附加层循环之外绘制的下游附加物
+     * （SparkStrength 在被替换的猪身体下方绘制的滑板）遵循它；被替换的身体本身保留原形状（所有者 2026-10-07）。
+     */
+    public static boolean hidesFeaturesFromBlind(@Nullable Entity entity) {
+        return suppressesFeatures(entity) || BlindSilhouettePass.isRendering();
     }
 
     private static boolean hidesPlayer(MinecraftClient client, @Nullable Entity entity) {
