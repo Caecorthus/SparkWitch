@@ -15,11 +15,19 @@ public final class SecondaryAbilityRegistry {
     }
 
     public static synchronized void register(Identifier roleId, SecondaryAbilityHandler handler) {
-        Objects.requireNonNull(roleId, "roleId");
-        Objects.requireNonNull(handler, "handler");
-        if (HANDLERS.putIfAbsent(roleId, handler) != null) {
+        if (!tryRegister(roleId, handler)) {
             throw new IllegalStateException("Secondary ability handler already registered for " + roleId);
         }
+    }
+
+    /**
+     * Non-throwing form for the public {@code api.client.SecondarySkillKeyApi}: false keeps the first handler.
+     * 供公共 {@code api.client.SecondarySkillKeyApi} 使用的不抛异常形式：返回 false 时保留先注册的处理器。
+     */
+    public static synchronized boolean tryRegister(Identifier roleId, SecondaryAbilityHandler handler) {
+        Objects.requireNonNull(roleId, "roleId");
+        Objects.requireNonNull(handler, "handler");
+        return HANDLERS.putIfAbsent(roleId, handler) == null;
     }
 
     public static synchronized @Nullable SecondaryAbilityHandler get(Identifier roleId) {
