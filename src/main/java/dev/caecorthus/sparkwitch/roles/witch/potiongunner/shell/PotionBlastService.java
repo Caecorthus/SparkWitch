@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerBreakSource;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
@@ -73,6 +74,8 @@ public final class PotionBlastService {
         }
         SeekerDeviceHits.onBlast(world, center, PotionBlastRings.half(type.size()), gunner,
                 SeekerBreakSource.POTION_SHELL);
+        // Magician seam: a TR blast ends the puppets its player rule would catch. / 魔术师接缝：TR 爆炸结束其玩家规则会波及的皮套。
+        MagicianPuppetHits.onPotionShellBlast(world, center, type, gunner, shell.getStack());
 
         List<PotionBlastHit> hits = PotionBlastResolver.resolve(world, center, type, gunnerUuid, gunner);
         PotionBlastContext context = new PotionBlastContext(world, center, type, gunnerUuid, gunner, hits);

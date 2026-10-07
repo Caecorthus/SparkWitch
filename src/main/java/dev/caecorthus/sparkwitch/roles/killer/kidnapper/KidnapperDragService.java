@@ -15,6 +15,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 public final class KidnapperDragService {
     public static final String NO_TARGET_MESSAGE = "message.sparkwitch.kidnapper.no_target";
     public static final String FALSE_BODY_MESSAGE = "message.sparkwitch.kidnapper.false_body";
+    public static final String DECOY_BODY_MESSAGE = "message.sparkwitch.kidnapper.decoy_body";
 
     private KidnapperDragService() {
     }
@@ -33,6 +34,11 @@ public final class KidnapperDragService {
         PlayerBodyEntity body = KidnapperTargeting.findAimedBody(player);
         if (body == null || player.hasPassengers() || body.hasVehicle()) {
             return WitchSkillUseResult.fail(NO_TARGET_MESSAGE);
+        }
+        // Owner decision D2: a Magician decoy is refused with its own line, only on this deliberate skill use.
+        // 所有者决定 D2：魔术师诱饵尸体以专属提示拒绝，且只在玩家主动使用技能时提示。
+        if (KidnapperFalseBodyPolicy.isMagicianDecoy(body)) {
+            return WitchSkillUseResult.fail(DECOY_BODY_MESSAGE);
         }
         if (!KidnapperFalseBodyPolicy.canDrag(body)) {
             return WitchSkillUseResult.fail(FALSE_BODY_MESSAGE);

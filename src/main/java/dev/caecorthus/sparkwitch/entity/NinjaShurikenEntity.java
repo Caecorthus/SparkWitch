@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -46,9 +47,12 @@ public final class NinjaShurikenEntity extends PersistentProjectileEntity implem
 
     @Override
     public void tick() {
-        // Seeker seam (server, in flight): a Seeker device in this tick's path breaks and stops the shuriken.
-        // 搜寻者接缝（服务端、飞行中）：本刻路径上的搜寻者设备被打坏，手里剑随之停下。
+        // Seeker seam (server, in flight): a Seeker device in this tick's path breaks and stops the shuriken, unless a
+        // Magician puppet lies before it (vanilla collision then takes the puppet or a nearer player).
+        // 搜寻者接缝（服务端、飞行中）：本刻路径上的搜寻者设备被打坏，手里剑随之停下；若魔术师皮套位于设备之前则跳过
+        // （由原版碰撞处理该皮套或更近的玩家）。
         if (!getWorld().isClient() && !inGround
+                && !MagicianPuppetHits.puppetBeforeDevice(this, getOwner(), getPos(), getPos().add(getVelocity()))
                 && SeekerDeviceHits.onShurikenSweep(this, getOwner(), getPos(), getPos().add(getVelocity()))) {
             discard();
             return;
@@ -67,9 +71,24 @@ public final class NinjaShurikenEntity extends PersistentProjectileEntity implem
         return 0.0;
     }
 
+    /**
+     * Magician seam: a puppet its thrower may not end (the Magician's own) is transparent; any other entity keeps the
+     * vanilla filter. / 魔术师接缝：投掷者不能结束的皮套（魔术师自己的）对手里剑透明；其他实体保持原版过滤。
+     */
+    @Override
+    protected boolean canHit(Entity entity) {
+        return super.canHit(entity) && MagicianPuppetHits.projectileMayHit(getOwner(), entity);
+    }
+
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
         Entity owner = getOwner();
+        // Magician seam: a puppet takes the hit as its copied player would, then the shuriken stops.
+        // 魔术师接缝：皮套与其复制的玩家一样承受命中，随后手里剑停下。
+        if (MagicianPuppetHits.onShurikenHit(this, owner, entityHitResult, getItemStack())) {
+            discard();
+            return;
+        }
         Entity hitEntity = entityHitResult.getEntity();
         if (!(owner instanceof ServerPlayerEntity thrower)
                 || !(hitEntity instanceof ServerPlayerEntity victim)

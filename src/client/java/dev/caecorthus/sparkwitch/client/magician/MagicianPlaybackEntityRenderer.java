@@ -1,8 +1,6 @@
 package dev.caecorthus.sparkwitch.client.magician;
 
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -13,7 +11,6 @@ import net.minecraft.client.render.entity.feature.HeldItemFeatureRenderer;
 import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
-import net.minecraft.client.util.DefaultSkinHelper;
 import net.minecraft.client.util.SkinTextures;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.EquipmentSlot;
@@ -25,8 +22,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.UseAction;
 import net.minecraft.util.math.RotationAxis;
-
-import java.util.UUID;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 魔术师皮套的玩家外观渲染器。
@@ -40,6 +36,8 @@ public final class MagicianPlaybackEntityRenderer extends LivingEntityRenderer<M
     private static final float PLAYBACK_GROUND_OFFSET = -0.045F;
     private final MagicianPlaybackPlayerEntityModel classicModel;
     private final MagicianPlaybackPlayerEntityModel slimModel;
+    private @Nullable MagicianPlaybackEntity renderingEntity;
+    private @Nullable MagicianPuppetAppearance renderingAppearance;
 
     public MagicianPlaybackEntityRenderer(EntityRendererFactory.Context context) {
         super(context, new MagicianPlaybackPlayerEntityModel(context.getPart(EntityModelLayers.PLAYER), false), 0.5F);
@@ -53,18 +51,28 @@ public final class MagicianPlaybackEntityRenderer extends LivingEntityRenderer<M
     @Override
     public void render(MagicianPlaybackEntity entity, float entityYaw, float tickDelta, MatrixStack matrices,
                        VertexConsumerProvider vertexConsumers, int light) {
-        this.model = resolveSkinTextures(entity).model() == SkinTextures.Model.SLIM ? slimModel : classicModel;
+        // Resolved once per frame and shared by getTexture and the cape layer (owner decision D6).
+        // 每帧解析一次，供 getTexture 与披风层共用（所有者决定 D6）。
+        MagicianPuppetAppearance appearance = MagicianPuppetAppearance.resolve(entity);
+        this.model = appearance.model() == SkinTextures.Model.SLIM ? slimModel : classicModel;
         setModelPose(entity);
         matrices.push();
         matrices.translate(0.0F, PLAYBACK_GROUND_OFFSET, 0.0F);
         matrices.scale(PLAYBACK_VISUAL_SCALE, PLAYBACK_VISUAL_SCALE, PLAYBACK_VISUAL_SCALE);
-        super.render(entity, entityYaw, tickDelta, matrices, vertexConsumers, light);
-        matrices.pop();
+        this.renderingEntity = entity;
+        this.renderingAppearance = appearance;
+        try {
+            super.render(entity, entityYaw, tickDelta, matrices, vertexConsumers, light);
+        } finally {
+            this.renderingEntity = null;
+            this.renderingAppearance = null;
+            matrices.pop();
+        }
     }
 
     @Override
     public Identifier getTexture(MagicianPlaybackEntity entity) {
-        return resolveSkinTextures(entity).texture();
+        return appearance(entity).texture();
     }
 
     @Override
@@ -117,14 +125,13 @@ public final class MagicianPlaybackEntityRenderer extends LivingEntityRenderer<M
         return BipedEntityModel.ArmPose.ITEM;
     }
 
-    private static SkinTextures resolveSkinTextures(MagicianPlaybackEntity entity) {
-        UUID disguise = entity.disguise();
-        if (disguise == null) return DefaultSkinHelper.getSkinTextures(entity.getUuid());
-        MinecraftClient client = MinecraftClient.getInstance();
-        PlayerListEntry entry = client.getNetworkHandler() == null
-                ? null
-                : client.getNetworkHandler().getPlayerListEntry(disguise);
-        return entry == null ? DefaultSkinHelper.getSkinTextures(disguise) : entry.getSkinTextures();
+    /**
+     * The look resolved for the entity being rendered, or a fresh one outside {@link #render}.
+     * 正在渲染的实体已解析的外观；在 {@link #render} 之外则重新解析。
+     */
+    private MagicianPuppetAppearance appearance(MagicianPlaybackEntity entity) {
+        MagicianPuppetAppearance current = this.renderingAppearance;
+        return current != null && this.renderingEntity == entity ? current : MagicianPuppetAppearance.resolve(entity);
     }
 
     /** 玩家实体没有真的挂在坐骑上，坐姿必须由录制帧显式驱动模型。 */
@@ -149,7 +156,7 @@ public final class MagicianPlaybackEntityRenderer extends LivingEntityRenderer<M
         public void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light,
                            MagicianPlaybackEntity entity, float limbAngle, float limbDistance, float tickDelta,
                            float animationProgress, float headYaw, float headPitch) {
-            Identifier cape = resolveSkinTextures(entity).capeTexture();
+            Identifier cape = appearance(entity).cape();
             if (cape == null || entity.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.ELYTRA)) return;
             matrices.push();
             matrices.translate(0.0F, 0.0F, 0.125F);

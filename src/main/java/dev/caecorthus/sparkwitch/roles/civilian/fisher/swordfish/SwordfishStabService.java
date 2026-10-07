@@ -11,6 +11,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceRaycast;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -107,6 +109,15 @@ public final class SwordfishStabService {
             }
             return;
         }
+        // Magician seam: a puppet takes an accepted stab like its copied player (consumed, stab played, no
+        // friendly-fire death). / 魔术师接缝：皮套与其复制的玩家一样承受被接纳的刺击（消耗、播放刺击，无误伤致死）。
+        if (entity instanceof MagicianPlaybackEntity puppet) {
+            if (MagicianPuppetHits.onSwordfishStab(attacker, puppet)) {
+                consume(attacker, stack);
+                playStab(attacker, puppet);
+            }
+            return;
+        }
         if (!(entity instanceof ServerPlayerEntity target)) {
             return;
         }
@@ -183,6 +194,10 @@ public final class SwordfishStabService {
                 target -> isAimCandidate(attacker, target)));
         candidates.addAll(attacker.getServerWorld().getEntitiesByClass(SeekerDeviceEntity.class, search,
                 device -> isAimCandidate(attacker, device)));
+        // Magician puppets compete as players do (a nearer puppet rejects a stab submitted on a player behind it).
+        // 魔术师皮套与玩家同等竞争（更近的皮套会使提交给其后方玩家的刺击被拒绝）。
+        candidates.addAll(attacker.getServerWorld().getEntitiesByClass(MagicianPlaybackEntity.class, search,
+                puppet -> isAimCandidate(attacker, puppet)));
         Entity nearest = SwordfishRules.nearestOnRay(start, end, candidates, SwordfishStabService::aimBox);
         // A nearer device intercepts; a different nearer player rejects the request instead of changing the victim.
         // 更近设备拦截；若另一个玩家更近则拒绝请求，不擅自更换受害者。
@@ -195,6 +210,9 @@ public final class SwordfishStabService {
         }
         if (entity instanceof ServerPlayerEntity target) {
             return validPlayerGeometry(attacker, target);
+        }
+        if (entity instanceof MagicianPlaybackEntity) {
+            return MagicianPuppetHits.isHittablePuppet(attacker, entity);
         }
         return entity instanceof SeekerDeviceEntity device && device.isAlive() && !device.isRemoved()
                 && !SeekerDeviceRaycast.isOwnDevice(attacker, device);

@@ -1,48 +1,27 @@
 package dev.caecorthus.sparkwitch.client.mixin;
 
-import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import dev.caecorthus.sparkwitch.client.magician.MagicianPuppetAim;
 import dev.doctor4t.wathe.client.gui.CrosshairRenderer;
-import dev.doctor4t.wathe.game.GameFunctions;
-import dev.doctor4t.wathe.index.WatheItems;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import org.spongepowered.asm.mixin.injection.At;
 
-/** Wathe 的准星逻辑只识别 PlayerEntity；补充魔术师皮套作为左轮有效目标。 */
-@Mixin(CrosshairRenderer.class)
+/**
+ * Keeps Wathe's revolver and derringer crosshair target pip consistent with the selectors: its private
+ * {@code getVisibleGunTarget(player, range)} (30 for the revolver, 7 for the derringer, only asked off cooldown) now
+ * also lights up for a Magician puppet strictly nearer than its pick, with the same geometry as the selectors.
+ * {@code @WrapMethod} encloses SparkTraits Marksman's HEAD range replacement.
+ * 使 Wathe 左轮与德林加的准星目标提示与选靶一致：其私有的 {@code getVisibleGunTarget(player, range)}（左轮 30、德林加 7，
+ * 仅在非冷却时调用）现在对严格更近的魔术师皮套同样亮起，几何与选靶相同。{@code @WrapMethod} 包住 SparkTraits 神射手的
+ * HEAD 射程替换。
+ */
+@Mixin(value = CrosshairRenderer.class, remap = false)
 public abstract class MagicianRevolverCrosshairMixin {
-    @ModifyExpressionValue(
-            method = "renderCrosshair",
-            at = @At(value = "FIELD", target = "Ldev/doctor4t/wathe/client/gui/CrosshairRenderer;CROSSHAIR:Lnet/minecraft/util/Identifier;")
-    )
-    private static Identifier sparkwitch$showPlaybackTargetCrosshair(
-            Identifier original,
-            MinecraftClient client,
-            ClientPlayerEntity player,
-            DrawContext context,
-            RenderTickCounter tickCounter
-    ) {
-        ItemStack stack = player.getMainHandStack();
-        if (!stack.isOf(WatheItems.REVOLVER)
-                || player.getItemCooldownManager().isCoolingDown(WatheItems.REVOLVER)) return original;
-        HitResult hit = ProjectileUtil.getCollision(player, entity ->
-                entity instanceof MagicianPlaybackEntity
-                        || (entity instanceof PlayerEntity target
-                        && GameFunctions.isPlayerAliveAndSurvival(target)
-                        && !target.isInvisible()), 30.0F);
-        return hit instanceof EntityHitResult entityHit
-                && entityHit.getEntity() instanceof MagicianPlaybackEntity
-                ? Identifier.of("wathe", "hud/crosshair_target")
-                : original;
+    @WrapMethod(method = "getVisibleGunTarget")
+    private static HitResult sparkwitch$preferNearerVisiblePuppet(PlayerEntity player, double range,
+                                                                  Operation<HitResult> original) {
+        return MagicianPuppetAim.preferNearerPuppet(player, original.call(player, range), range, true);
     }
 }

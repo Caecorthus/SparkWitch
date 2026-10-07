@@ -52,7 +52,10 @@ public final class SparkWitchForcedCooldowns {
                 new FiendDashCooldownStore(),
                 // Apprentice Purify (owner decision 2026-10-06), appended after the Fiend Dash.
                 // 预备魔女净化（所有者 2026-10-06 决定），追加在魔人疾驰之后。
-                new ApprenticePurifyCooldownStore()
+                new ApprenticePurifyCooldownStore(),
+                // Magician (audit fix 2026-10-07), appended after the Apprentice Purify.
+                // 魔术师（2026-10-07 审计修复），追加在预备魔女净化之后。
+                new MagicianCooldownStore()
         );
     }
 

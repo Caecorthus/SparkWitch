@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceRaycast;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.util.math.Box;
@@ -25,14 +26,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * {@code Box#raycast} calls in {@code tick}); with no device on the segment the cut stays infinite and every player
  * test returns NoellesRoles' own result, so behaviour is unchanged. Coexists with
  * {@code NoellesThrowingAxeVendettaTargetMixin} and {@code JudgeThrowingAxeAttributionMixin}, which only touch
- * {@code onEntityHit}. Default remap: {@code tick} and every {@code @At} target are vanilla members.
+ * {@code onEntityHit}. The pre-loop hook also pierces Magician puppets before the cut
+ * ({@code MagicianPuppetHits.onThrowingAxeSweep}), since NoellesRoles' loop sees only players. Default remap:
+ * {@code tick} and every {@code @At} target are vanilla members.
  * NoellesRoles 飞斧：“最近者命中”的设备命中，归属于投掷者（所有者决定 Q4）。飞斧会贯穿玩家，因此“遮挡”即
  * “飞斧止于设备”：本刻路径上设备之前的玩家照常被命中，其后的玩家不会被命中，设备经由
  * {@link SeekerDeviceHits#onThrowingAxeSweep} 被打坏，飞斧随即移除而不再继续飞行。三个钩子只在 NoellesRoles
  * 服务端、未插入方块的贯穿分支中运行（{@code tick} 中唯一的 {@code World#getOtherEntities} 与 {@code Box#raycast}
  * 调用）；路径上没有设备时截断距离保持无穷大，每次玩家检测都返回 NoellesRoles 自身的结果，行为不变。
  * 与只作用于 {@code onEntityHit} 的 {@code NoellesThrowingAxeVendettaTargetMixin} 和
- * {@code JudgeThrowingAxeAttributionMixin} 共存。默认 remap：{@code tick} 与所有 {@code @At} 目标均为原版成员。
+ * {@code JudgeThrowingAxeAttributionMixin} 共存。由于 NoellesRoles 的循环只认玩家，循环前的钩子同时贯穿截断点之前的魔术师
+ * 皮套（{@code MagicianPuppetHits.onThrowingAxeSweep}）。默认 remap：{@code tick} 与所有 {@code @At} 目标均为原版成员。
  */
 @Mixin(ThrowingAxeEntity.class)
 public abstract class SeekerThrowingAxeMixin {
@@ -71,6 +75,9 @@ public abstract class SeekerThrowingAxeMixin {
                 && SeekerDeviceHits.onThrowingAxeSweep(axe, axe.getOwner(), from, to)
                 ? sparkwitch$cutSquared(nearby, from, to)
                 : Double.POSITIVE_INFINITY;
+        // Magician seam: puppets on this segment before the cut are pierced like players; the axe flies on.
+        // 魔术师接缝：本刻线段上截断点之前的皮套与玩家一样被贯穿；飞斧继续飞行。
+        MagicianPuppetHits.onThrowingAxeSweep(axe, axe.getOwner(), from, to, sparkwitch$deviceCutSquared);
     }
 
     /**
