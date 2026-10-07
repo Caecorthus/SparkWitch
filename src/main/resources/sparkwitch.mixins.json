@@ -189,7 +189,12 @@
     "riftwalker.RiftSwapperCrushMixin",
     "riftwalker.RiftSessionNetworkHandlerMixin",
     "riftwalker.RiftSessionPlayerMixin",
-    "riftwalker.RiftProjectileDeflectionMixin"
+    "riftwalker.RiftProjectileDeflectionMixin",
+    "usec.GameFunctionsUsecItemDropMixin",
+    "usec.PlayerEntityUsecItemMixin",
+    "usec.ServerPlayerEntityUsecDropMixin",
+    "usec.ScreenHandlerUsecItemMixin",
+    "usec.DecoratedPotBlockUsecItemMixin"
   ],
   "injectors": {
     "defaultRequire": 1
