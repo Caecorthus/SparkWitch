@@ -14,7 +14,7 @@ public final class SaintRules {
     public static final int HELLFIRE_INITIAL_COOLDOWN_TICKS = 1200;
     public static final int HELLFIRE_ACTIVE_TICKS = 300;
     public static final int HELLFIRE_POST_COOLDOWN_TICKS = 1200;
-    public static final int HELLFIRE_REQUIRED_COINS = 175;
+    public static final int HELLFIRE_REQUIRED_COINS = 100;
     public static final int NORMAL_KARMA = 100;
     public static final int BOMBER_KARMA = 400;
 

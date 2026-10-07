@@ -29,6 +29,7 @@ import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
+import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianConstants;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
@@ -72,6 +73,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier HUNTER_ID = HunterRules.ROLE_ID;
     public static final Identifier ORTHOPEDIST_ID = OrthopedistRules.ROLE_ID;
     public static final Identifier KIDNAPPER_ID = KidnapperRules.ROLE_ID;
+    public static final Identifier MAGICIAN_ID = SparkWitch.id("magician");
     public static final Identifier TAROT_READER_ID = SparkWitch.id("tarot_reader");
     public static final Identifier WRAITH_ID = SparkWitch.id("wraith");
     public static final Identifier WIND_SPIRIT_ID = WindSpiritRole.ID;
@@ -108,6 +110,7 @@ public final class SparkWitchRoleRegistry {
     private static Role hunter;
     private static Role orthopedist;
     private static Role kidnapper;
+    private static Role magician;
     private static Role tarotReader;
     private static Role wraith;
     private static Role windSpirit;
@@ -244,6 +247,8 @@ public final class SparkWitchRoleRegistry {
         ensureRegistered();
         return kidnapper;
     }
+
+    public static Role magician() { ensureRegistered(); return magician; }
 
     public static Role tarotReader() {
         ensureRegistered();
@@ -576,6 +581,17 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
+        // Merged from main (Huankings): registered after the Time Stealer so the Fisher, Blind, Fiend and Insider keep
+        // their relative order (nothing may follow the Insider). An ordinary killer with the default one-player spawn group.
+        // 合并自 main（Huankings）：注册在窃时者之后，使钓鱼佬、盲人、魔人与内应的相对顺序不变（内应之后不得再注册）。
+        // 普通杀手职业，默认单人分配组。
+        magician = SparkFactionApi.registerRole(FactionRoleDefinition.builder(MAGICIAN_ID, FactionIds.KILLER)
+                .color(MagicianConstants.ROLE_COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
         // Appended last so existing registration order stays unchanged; an ordinary task-funded civilian.
         // 追加在最后以保持既有注册顺序不变；依靠任务赚钱的普通平民职业。
         fisher = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FISHER_ID, FactionIds.CIVILIAN)
@@ -672,6 +688,7 @@ public final class SparkWitchRoleRegistry {
                 kidnapper,
                 bellRinger,
                 timeStealer,
+                magician,
                 murderousWitch,
                 accomplice,
                 abyssListener,

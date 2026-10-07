@@ -91,6 +91,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import net.minecraft.util.Util;
+import dev.caecorthus.sparkwitch.client.magician.MagicianPlaybackEntityRenderer;
+import dev.caecorthus.sparkwitch.roles.killer.magician.UseMagicianAbilityC2SPacket;
 
 public final class SparkWitchClient implements ClientModInitializer {
     @Override
@@ -182,7 +184,13 @@ public final class SparkWitchClient implements ClientModInitializer {
                 var role = GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player);
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
-                if (JudgeRules.isJudge(role)) {
+                if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID)) {
+                    // Real role only; the server re-checks the role and every skill lock before advancing the stage.
+                    // 仅限真实职业；服务端会再次检查职业与所有技能锁后才推进阶段。
+                    if (ClientPlayNetworking.canSend(UseMagicianAbilityC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseMagicianAbilityC2SPacket(UseMagicianAbilityC2SPacket.ADVANCE));
+                    }
+                } else if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
                 } else if (ProphetClientModule.ownsAbilityKey(client.player, role)) {
                     // Prophecy opens its own session instead of sending the generic skill packet.
@@ -255,6 +263,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         EntityRendererRegistry.register(HolyFlashEntities.holyFlash(), FlyingItemEntityRenderer::new);
         EntityRendererRegistry.register(PotionGunnerEntities.potionShell(), FlyingItemEntityRenderer::new);
         SeekerClientModule.registerEntityRenderers();
+        EntityRendererRegistry.register(SparkWitchEntities.magicianPlayback(), MagicianPlaybackEntityRenderer::new);
     }
 
     private static void registerWraithRoleAnnouncementNetworking() {
