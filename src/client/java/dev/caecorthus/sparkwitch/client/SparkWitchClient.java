@@ -91,6 +91,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import net.minecraft.util.Util;
+import dev.caecorthus.sparkwitch.client.magician.MagicianPlaybackEntityRenderer;
+import dev.caecorthus.sparkwitch.roles.killer.magician.UseMagicianAbilityC2SPacket;
 
 public final class SparkWitchClient implements ClientModInitializer {
     @Override
@@ -178,11 +180,18 @@ public final class SparkWitchClient implements ClientModInitializer {
             dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter.tick(client);
             if (client.player != null
                     && client.getNetworkHandler() != null
-                    && WitchAbilityKeyBridge.wasPressed()) {
+                    && WitchAbilityKeyBridge.pollPressed()) {
                 var role = GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player);
+                // Server-side validation makes this request harmless for other
+                // roles and avoids losing the press while custom-role sync catches up.
+                if (ClientPlayNetworking.canSend(UseMagicianAbilityC2SPacket.ID)) {
+                    ClientPlayNetworking.send(new UseMagicianAbilityC2SPacket(UseMagicianAbilityC2SPacket.ADVANCE));
+                }
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
-                if (JudgeRules.isJudge(role)) {
+                if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID)) {
+                    // Already sent above; the server performs authoritative gating.
+                } else if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
                 } else if (ProphetClientModule.ownsAbilityKey(client.player, role)) {
                     // Prophecy opens its own session instead of sending the generic skill packet.
@@ -255,6 +264,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         EntityRendererRegistry.register(HolyFlashEntities.holyFlash(), FlyingItemEntityRenderer::new);
         EntityRendererRegistry.register(PotionGunnerEntities.potionShell(), FlyingItemEntityRenderer::new);
         SeekerClientModule.registerEntityRenderers();
+        EntityRendererRegistry.register(SparkWitchEntities.magicianPlayback(), MagicianPlaybackEntityRenderer::new);
     }
 
     private static void registerWraithRoleAnnouncementNetworking() {
