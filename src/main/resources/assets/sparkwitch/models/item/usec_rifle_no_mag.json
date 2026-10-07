@@ -77,30 +77,6 @@
       }
     },
     {
-      "name": "magazine",
-      "from": [7, 2.5, 11.5],
-      "to": [9, 5.5, 15.5],
-      "faces": {
-        "north": {"uv": [14.5, 8.5, 15, 9.25], "texture": "#0"},
-        "east": {"uv": [11.75, 7.5, 12.75, 8.25], "texture": "#0"},
-        "south": {"uv": [15, 8.5, 15.5, 9.25], "texture": "#0"},
-        "west": {"uv": [12.75, 7.5, 13.75, 8.25], "texture": "#0"}
-      }
-    },
-    {
-      "name": "mag_floorplate",
-      "from": [7, 1.5, 11],
-      "to": [9, 2.5, 16],
-      "faces": {
-        "north": {"uv": [0, 11.5, 0.5, 11.75], "texture": "#0"},
-        "east": {"uv": [13.25, 11, 14.5, 11.25], "texture": "#0"},
-        "south": {"uv": [0.5, 11.5, 1, 11.75], "texture": "#0"},
-        "west": {"uv": [14.5, 11, 15.75, 11.25], "texture": "#0"},
-        "up": {"uv": [6, 5.25, 6.5, 6.5], "texture": "#0"},
-        "down": {"uv": [5.5, 5.25, 6, 6.5], "texture": "#0"}
-      }
-    },
-    {
       "name": "guard_post",
       "from": [7.5, 5.5, 16],
       "to": [8.5, 6.5, 17],
@@ -466,11 +442,5 @@
     "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.35, 0.35, 0.35]},
     "gui": {"rotation": [90, 45, -65], "translation": [0, 0, 0], "scale": [0.43, 0.43, 0.43]},
     "fixed": {"rotation": [90, -45, 115], "translation": [0, 0, 0], "scale": [0.65, 0.65, 0.65]}
-  },
-  "overrides": [
-    {"predicate": {"sparkwitch:usec_magazine": 0}, "model": "sparkwitch:item/usec_rifle_no_mag"},
-    {"predicate": {"sparkwitch:usec_magazine": 1}, "model": "sparkwitch:item/usec_rifle"},
-    {"predicate": {"sparkwitch:usec_magazine": 0, "sparkwitch:usec_suppressor": 1}, "model": "sparkwitch:item/usec_rifle_suppressed_no_mag"},
-    {"predicate": {"sparkwitch:usec_magazine": 1, "sparkwitch:usec_suppressor": 1}, "model": "sparkwitch:item/usec_rifle_suppressed"}
-  ]
+  }
 }
