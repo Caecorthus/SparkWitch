@@ -627,8 +627,8 @@ Current build baseline:
     `SparkTraitsApi.isHeavyArtilleryGunShot` facade for one extra shield layer (O3, see shield piercing). SparkAssist
     owns the guidebook page.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
-  `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`. Presentation and intent only: the
-  server decides every shot, attachment and scope flag.
+  `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`. Presentation
+  and intent only: the server decides every shot, attachment and scope flag.
   - Fire input (`UsecFireInput`, `UsecFireLatch`; `client/mixin/usec/UsecRifleInputMixin` copies the launcher seam): a
     fresh attack press with the rifle in the main hand sends `sparkwitch:fire_usec_rifle` with the press-time aim,
     scoped or from the hip. Attacking and mining are swallowed, and held keys never fire. The recoil kick is camera-only
@@ -745,6 +745,27 @@ Current build baseline:
     themselves, so their nesting with Fear, Control Expert and the SparkStrength wrappers does not matter. Not
     covered (not instinct): vanilla GLOWING from the server (SparkTraits Conscience bomb, SparkStrength Noisemaker),
     Blind echolocation (its `hasOutline` veto already hides every outline), Seeker cameras, and name tags.
+  - Bolt sway (owner, 2026-10-08; pure `UsecBoltSway`, wiring `UsecBoltSwayClient`): while scoped with the AXMC, the
+    bolt cycle after a shot shakes the view in step with `item.usec_rifle.bolt`. Visual only, like the recoil kick:
+    `client/mixin/usec/UsecBoltSwayCameraMixin` appends yaw/pitch/roll at every return of
+    `GameRenderer.tiltViewWhenHurt`, on top of the hurt tilt, the recoil kick, bobbing and FOV changes; the PiP lens
+    pass reuses that main projection, so the lens shows the same rotation magnified. Trigger: `UsecFireInput` reports
+    each sent request (`UsecBoltSwayClient.onShotSent`), which arms a 20-tick pending window only when the synced state
+    chambers a new round (`UsecBoltSway.chambersRound`, i.e. `UsecFireRules.cycle(...).chambered()`, the server's
+    bolt-sound condition); the first synced `UsecCooldowns.status(...).bolt()` entry inside it confirms the shot and
+    anchors the timeline at the entry's start tick, which shares the one-way latency with the bolt sound. An empty
+    click, the last round, other players' shots, a rejected shot, a long lock and the attachment-screen bolts (no local
+    shot; a screen also clears the pending shot) never sway. The feel follows Escape from Tarkov's scoped bolt cycling
+    (owner, 2026-10-08): in world degrees, timed to the sound's four transients, the rifle cants (roll, which no zoom
+    magnifies) to about -3.5° over the handle lift (20 ms) and the pull, the sight dips about 0.6° and drifts about 0.4°
+    right, short yaw/pitch jolts (about 0.26° and, strongest, 0.39°, magnified by the scope) land on the rear (300 ms)
+    and forward (605 ms) clacks, and the sight swings back across the lock (800 ms, done by 860 ms) with a small damped
+    settle. Smooth quintic hand-motion ramps plus C1 damped rings; per-cycle ±15 % gains and ±15° jolt directions, never
+    the timing. It ends at `min(natural end, bolt cooldown total)`, so Fast Reload's 28 ticks settle it 2.5 ticks after
+    the lock and the view is at rest when the rifle can fire again. Shown only while `UsecScopeProfile.isActive()`
+    (3-tick fade in, so scoping in mid-cycle shows the rest; 3-tick fade out); death, a screen, a dropped rifle, a
+    cleared cooldown or a new shot release it with a 3-tick fade, never to resume. Scaled by the lower of vanilla
+    Accessibility's Distortion Effects and Damage Tilt (the recoil kick follows neither). Nothing is sent or synced.
 - `client/scope/`: the reusable client scope module, built for USEC and also carrying the Potion Gunner launcher
   (`client/potiongunner/PotionScopeProfile`; the launcher's own `PotionScope*` mixins and mask texture were removed on
   2026-10-08). Presentation only; nothing here syncs.
