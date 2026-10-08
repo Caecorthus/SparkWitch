@@ -325,8 +325,9 @@ Current build baseline:
   Subpackages: `launcher/` (the launcher item, inventory loading, the server-authoritative fire service, the backblast)
   and `shell/` (the shell items and entity, flat flight, blast targeting and falloff, rewards) with `shell/effect/`
   (GW-DK, GW-AC, GW-MR, TR, harmless burning). Its mixins live in `mixin/potiongunner/` and
-  `client/mixin/potiongunner/`; client presentation (scope zoom and reticle, fire input, HUD, two-handed pose) in
-  `client/potiongunner/`. Its packet is `net/FirePotionLauncherC2SPacket`.
+  `client/mixin/potiongunner/`; client presentation (the scope profile and reticle on the shared `client/scope`
+  module, fire input, HUD, two-handed pose) in `client/potiongunner/`. Its packet is
+  `net/FirePotionLauncherC2SPacket`.
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells and fear;
   `GrandWitchFeatureService` also owns the round lifecycle of the special-accomplice ledger (seed at
   `ON_FINISH_INITIALIZE`, clear at `ON_FINISH_FINALIZE`). Its `factor/` ledger is shared: cumulative world-wide
@@ -686,12 +687,17 @@ Current build baseline:
     never clears breaking entries on a world change, so all cracks are cleared on a world change, on disconnect, and
     when Wathe's `isRunning` flips; vanilla draws them only within 32 blocks of the camera. The client never changes a
     block and never sends a packet.
-- `client/scope/`: the reusable client scope module, built for USEC; the Potion Gunner launcher (still on its own
-  `client/potiongunner/PotionScope*`) is meant to migrate onto it later. Presentation only; nothing here syncs.
-  - Registration: `ScopeClient.register()` (once, from `UsecClientModule`) loads the settings and wires the lens resets.
-    A weapon calls `ScopeClient.registerProvider(Supplier<@Nullable ScopeProfile>)` once at client init; the first
-    non-null profile wins. Providers are asked only after the generic gate passes: local player, first person, the
-    camera is the player, no screen open, not a spectator.
+- `client/scope/`: the reusable client scope module, built for USEC and also carrying the Potion Gunner launcher
+  (`client/potiongunner/PotionScopeProfile`; the launcher's own `PotionScope*` mixins and mask texture were removed on
+  2026-10-08). Presentation only; nothing here syncs.
+  - Registration: `ScopeClient.register()` loads the settings and wires the lens resets. It is idempotent and every
+    consumer calls it right before registering its provider (`PotionGunnerClient.init()`, then
+    `UsecClientModule.register()` in `SparkWitchClient` order), so the module registers exactly once whichever weapon
+    initialises first. A weapon calls `ScopeClient.registerProvider(Supplier<@Nullable ScopeProfile>)` once at client
+    init; the first non-null profile wins. The two providers answer for different active items (the launcher via
+    `PotionScopeClient.isUsingLauncher`, the rifle via `UsecRifleClient.isUsingRifleInMainHand`), so at most one is
+    ever non-null and their order changes nothing. Providers are asked only after the generic gate passes: local
+    player, first person, the camera is the player, no screen open, not a spectator.
   - While a profile is active: `ScopeFovMixin` (`@ModifyExpressionValue` on the single `getFovMultiplier()` read in
     `GameRenderer#updateFovMultiplier`, before vanilla eases it and clamps it to [0.1, 1.5]) multiplies it by
     `fovMultiplier()` in Full-Screen Zoom; PiP keeps the main view at 1×. The call site runs after every player-side
@@ -2109,14 +2115,26 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
   - The sweep also moves shells from hidden main slots into shown room (same-type stacks first, then empty slots) and
     never displaces another item. Hidden means 9-35, or 9-26 when SparkFactionAPI 0.1.5.13+ shows 27-35: shells the
     player parks in that row stay there, and surfaced shells fill that row before an empty hotbar slot.
-- **Scope and fire.** Holding use scopes, client-side only: zoom ×0.25, mouse look ×0.25, a hidden hand, and the
-  reticle with range ticks drawn by a priority-1100 `InGameHud#renderCrosshair` wrapper. Left-click sends
-  `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec), one shot per fresh press. Only an
-  attack press edge drained in `MinecraftClient#handleInputEvents` while the launcher is in the main hand fires,
-  scoped or not; `doAttack` and held-attack block breaking are only swallowed, and keyboard auto-repeat is ignored
-  until the key is physically released. So a key held through a slot switch or past the end of a stun, Seeker or
-  Kidnapper key lock never fires (`client/potiongunner/PotionFireInput`, `PotionFireLatch`). The client's aim is
-  trusted for direction only (Death Ray precedent); there is no server aim cone.
+- **Scope and fire.** Holding use (main hand only) scopes, client-side only, through the shared `client/scope` module:
+  `PotionScopeProfile`, whose provider `PotionGunnerClient.init()` registers once, answers while the local player is
+  using the launcher, and the module's view gate adds first person, own camera, no screen and not a spectator. The
+  scope therefore follows the player's Scope View (Full-Screen Zoom by default, or Picture-in-Picture), Lens Resolution
+  and Scoped Sensitivity, and gets the module's lens picture, rim, scope shadow and first-person held-item hiding (the
+  in-wall, underwater and fire overlays still draw); there is no black mask, glint or scope sound. Zoom ×0.25
+  (`PotionScopeRules.ZOOM_FACTOR`) and base look ×0.25 (`PotionScopeRules.SENSITIVITY_SCALE`) are the single tuning
+  points. `PotionScopeClient.isScoped()` is exactly "the module renders this profile", so the loaded-shell HUD line
+  hides exactly while the lens shows.
+  - Reticle (`PotionScopeOverlay.draw`, an interim port until a design pass replaces its body): from the `ScopeFrame`
+    and clipped to the lens (`PotionScopeRules.insideLens`), a thin crosshair to the lens edge with the 0-50 centre
+    label, the 60/70/80/90/100-block drop ticks with alternating labels at the frame's real projection FOV
+    (`PotionScopeRules.tickOffset` over `PotionBallistics`, within 0.92 of the lens radius), and the loaded shell
+    right-aligned at the lens's upper-right 45° point, shrunk only when that quadrant is too narrow.
+  - Fire: left-click sends `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec), one shot
+    per fresh press. Only an attack press edge drained in `MinecraftClient#handleInputEvents` while the launcher is in
+    the main hand fires, scoped or not; `doAttack` and held-attack block breaking are only swallowed, and keyboard
+    auto-repeat is ignored until the key is physically released. So a key held through a slot switch or past the end
+    of a stun, Seeker or Kidnapper key lock never fires (`client/potiongunner/PotionFireInput`, `PotionFireLatch`).
+    The client's aim is trusted for direction only (Death Ray precedent); there is no server aim cone.
   - Use never checks the role (owner rule 2026-10-04, `util/OffMatchUse`). The server re-checks, in order: the
     shot's mode (a dead participant of an `ACTIVE` round is refused), launcher in the main hand, not a spectator, not
     stunned, no Seeker session, no SparkTraits weapon block, the 20-tick launcher cooldown, and a loaded shell.
