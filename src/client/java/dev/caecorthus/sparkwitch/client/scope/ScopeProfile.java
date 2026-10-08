@@ -3,21 +3,22 @@ package dev.caecorthus.sparkwitch.client.scope;
 import net.minecraft.client.gui.DrawContext;
 
 /**
- * Weapon-owned scope parameters, polled every frame while a provider returns this profile (USEC rifle now, the Potion
- * Gunner launcher later). The scope module owns zoom easing, mouse scaling, the lens picture and the rim; the weapon
+ * Weapon-owned scope parameters, polled every frame while a provider returns this profile (the USEC rifle and the
+ * Potion Gunner launcher). The scope module owns zoom easing, mouse scaling, the lens picture and the rim; the weapon
  * owns only these numbers and its reticle. Client-only presentation: the server never sees any of it.
- * 武器自有的瞄准镜参数，在提供者返回该配置期间每帧轮询（现为 USEC 狙击枪，之后为药炮手炮筒）。开镜模块负责放大缓动、
+ * 武器自有的瞄准镜参数，在提供者返回该配置期间每帧轮询（USEC 狙击枪与药炮手炮筒）。开镜模块负责放大缓动、
  * 鼠标缩放、镜片画面与镜框；武器只提供这些数值与自己的分划。纯客户端展示，服务端完全不可见。
  */
 public interface ScopeProfile {
     /**
-     * Multiplier on the local player's FOV multiplier while scoped: 1 / magnification, so 1 = 1x (no zoom), 0.25 = 4x;
-     * {@link ScopeVariableZoom#fovMultiplier} converts a variable magnification. Polled every frame, so a profile may
-     * return a value that changes smoothly. Vanilla eases the change and clamps the eased multiplier at 0.1, so 10x is
-     * the deepest zoom. Non-finite or non-positive values mean no zoom.
-     * 开镜时本地玩家 FOV 倍率的乘数：1 / 倍率，因此 1 = 1 倍（不放大）、0.25 = 4 倍；可变倍率由
-     * {@link ScopeVariableZoom#fovMultiplier} 换算。每帧轮询，因此配置可以返回平滑变化的值。原版会缓动该变化，并把缓动后的
-     * 倍率钳制在 0.1，因此最深为 10 倍。非有限值或非正值视为不放大。
+     * Multiplier on the local player's FOV multiplier while scoped: 1 = no zoom, smaller zooms in (USEC's variable
+     * zoom uses 1 / magnification through {@link ScopeVariableZoom#fovMultiplier}, so 0.25 = 4x; the launcher derives
+     * its true 2.7x from the FOV option). Polled every frame, so a profile may return a value that changes smoothly.
+     * Vanilla eases the change and clamps the eased multiplier at 0.1, so 10x is the deepest zoom. Non-finite or
+     * non-positive values mean no zoom.
+     * 开镜时本地玩家 FOV 倍率的乘数：1 = 不放大，越小放得越大（USEC 的可变倍率经 {@link ScopeVariableZoom#fovMultiplier}
+     * 使用 1 / 倍率，因此 0.25 = 4 倍；炮筒按视场角选项换算出真实 2.7 倍）。每帧轮询，因此配置可以返回平滑变化的值。原版会
+     * 缓动该变化，并把缓动后的倍率钳制在 0.1，因此最深为 10 倍。非有限值或非正值视为不放大。
      */
     float fovMultiplier();
 

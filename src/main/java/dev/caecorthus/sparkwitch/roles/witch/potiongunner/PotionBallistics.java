@@ -3,14 +3,14 @@ package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellFlight;
 
 /**
- * Pure, side-safe model of a fired shell's flight, used by the client scope's range ticks and by tests. It mirrors the
+ * Pure, side-safe model of a fired shell's flight, used by the client scope's range rows and by tests. It mirrors the
  * shell entity on top of vanilla {@code ThrownEntity}: the shell spawns {@link #LAUNCH_BELOW_EYE} below the eye with
  * the exact launch velocity, and every tick first moves by its velocity; on the first {@link #flatTicks()} ticks the
  * velocity then stays unchanged (flat flight, 20 moves to exactly 50.0 blocks), on every later tick it is multiplied by
  * {@link PotionGunnerRules#DRAG} and loses {@link PotionGunnerRules#GRAVITY} vertically, as in vanilla (which moves
  * before it applies drag and gravity, so the 21st move still uses the launch velocity). No wind, no divergence. A
  * shell that hits nothing bursts after {@link #MOVES_BEFORE_BURST} moves.
- * 炮弹飞行的纯计算模型（两端安全），供客户端瞄准镜射程刻度与测试使用。它与建立在原版 {@code ThrownEntity} 之上的炮弹
+ * 炮弹飞行的纯计算模型（两端安全），供客户端瞄准镜射程横线与测试使用。它与建立在原版 {@code ThrownEntity} 之上的炮弹
  * 实体一致：炮弹以精确的发射速度在眼睛下方 {@link #LAUNCH_BELOW_EYE} 处生成，每刻先按速度移动；前
  * {@link #flatTicks()} 刻速度保持不变（平飞，20 次移动恰好到 50.0 格），之后每刻速度乘以
  * {@link PotionGunnerRules#DRAG} 并在竖直方向减去 {@link PotionGunnerRules#GRAVITY}，与原版相同（原版先移动再施加
@@ -30,14 +30,16 @@ public final class PotionBallistics {
      * 一旦 {@code age >= SHELL_LIFETIME_TICKS} 就爆炸，因此它在 age 1 到 99 时移动，并在第 100 刻原地爆炸：比寿命少一次移动。
      */
     public static final int MOVES_BEFORE_BURST = PotionGunnerRules.SHELL_LIFETIME_TICKS - 1;
+    /** {@link #flatTicks()}, computed once (the scope re-solves its rows every frame). / 只计算一次的平飞刻数。 */
+    private static final int FLAT_TICKS = countFlatTicks();
 
     private PotionBallistics() {
     }
 
     /**
      * The single flat-flight predicate of this model, on the start-of-tick path length. It is the shell entity's own
-     * predicate, so the scope ticks and the flying shell can never disagree.
-     * 本模型唯一的平飞判定，参数为某刻开始时的路径长度。它就是炮弹实体自身的判定，因此刻度与飞行中的炮弹永不不一致。
+     * predicate, so the scope's range rows and the flying shell can never disagree.
+     * 本模型唯一的平飞判定，参数为某刻开始时的路径长度。它就是炮弹实体自身的判定，因此射程横线与飞行中的炮弹永不不一致。
      */
     public static boolean isFlatTick(double pathLengthBeforeTick) {
         return PotionShellFlight.isFlatTick(pathLengthBeforeTick);
@@ -50,6 +52,10 @@ public final class PotionBallistics {
      * {@code 刻数 x MUZZLE_SPEED}：每刻 2.5 格时为 20。
      */
     public static int flatTicks() {
+        return FLAT_TICKS;
+    }
+
+    private static int countFlatTicks() {
         int ticks = 0;
         while (ticks < MOVES_BEFORE_BURST && isFlatTick(ticks * (double) PotionGunnerRules.MUZZLE_SPEED)) {
             ticks++;
@@ -106,31 +112,50 @@ public final class PotionBallistics {
     }
 
     /**
-     * Angle in radians between the line of sight ({@code pitchDegrees}) and the eye-to-shell direction when the shell
-     * has travelled {@code horizontalDistance}; positive means the shell is below the aim point. NaN when unreachable.
-     * 视线（{@code pitchDegrees}）与炮弹水平飞行 {@code horizontalDistance} 时“眼睛到炮弹”方向之间的弧度夹角；
-     * 正值表示炮弹位于瞄准点下方。不可达时为 NaN。
+     * Angle in radians between the line of sight ({@code pitchDegrees}) and the eye-to-shell direction at the moment
+     * the shell is first {@code lineOfSightRange} blocks from the eye (slant range, the distance a target at the aim
+     * point would be at); positive means the shell is below the aim point. The scope's range rows are labelled in this
+     * range and re-solved at the current pitch every frame. The path is the same per-tick polyline as
+     * {@link #heightAt}: the first move whose end is at least the range away contains the crossing, solved exactly on
+     * that segment (|start + t (end - start)| = range, the larger root, clamped to the segment). NaN when the shell
+     * never gets that far from the eye in its {@link #MOVES_BEFORE_BURST} moves, or for a non-finite pitch or a
+     * non-positive range.
+     * 炮弹第一次距眼睛 {@code lineOfSightRange} 格（视线距离，即位于瞄准点的目标所在的距离）时，视线
+     * （{@code pitchDegrees}）与“眼睛到炮弹”方向之间的弧度夹角；正值表示炮弹位于瞄准点下方。瞄准镜的射程横线按此距离
+     * 标注，并在每帧按当前俯仰角重新求解。路径与 {@link #heightAt} 相同，为逐刻折线：终点距离首次不小于该距离的那一次
+     * 移动包含交点，在该线段上精确求解（|起点 + t (终点 - 起点)| = 距离，取较大根并限制在线段内）。若炮弹在
+     * {@link #MOVES_BEFORE_BURST} 次移动内离眼睛不到这么远，或俯仰角非有限、距离不为正，则返回 NaN。
      */
-    public static double angleBelowSight(double pitchDegrees, double horizontalDistance) {
-        double height = heightAt(pitchDegrees, horizontalDistance);
-        if (Double.isNaN(height) || horizontalDistance <= 0.0) {
+    public static double angleBelowSightAtRange(double pitchDegrees, double lineOfSightRange) {
+        if (!(lineOfSightRange > 0.0) || !Double.isFinite(lineOfSightRange) || !Double.isFinite(pitchDegrees)) {
             return Double.NaN;
         }
-        return Math.toRadians(-pitchDegrees) - Math.atan2(height, horizontalDistance);
-    }
-
-    /**
-     * Perspective projection of an angle below the view axis onto the screen: distance below the centre for a
-     * vertical field of view {@code verticalFovDegrees} and half the screen height {@code halfHeight} (any unit).
-     * NaN outside the representable range.
-     * 视轴下方某角度在屏幕上的透视投影：在竖直视场角 {@code verticalFovDegrees}、半屏高 {@code halfHeight}（任意单位）
-     * 下位于中心下方的距离。超出可表示范围时为 NaN。
-     */
-    public static double screenOffset(double angleBelowAxisRadians, double verticalFovDegrees, double halfHeight) {
-        if (!Double.isFinite(angleBelowAxisRadians) || Math.abs(angleBelowAxisRadians) >= Math.PI / 2.0
-                || !(verticalFovDegrees > 0.0) || verticalFovDegrees >= 180.0) {
-            return Double.NaN;
+        double elevation = Math.toRadians(-pitchDegrees);
+        double x = 0.0;
+        double y = -LAUNCH_BELOW_EYE;
+        double vx = PotionGunnerRules.MUZZLE_SPEED * Math.cos(elevation);
+        double vy = PotionGunnerRules.MUZZLE_SPEED * Math.sin(elevation);
+        int flatTicks = flatTicks();
+        for (int tick = 0; tick < MOVES_BEFORE_BURST; tick++) {
+            double nextX = x + vx;
+            double nextY = y + vy;
+            if (Math.hypot(nextX, nextY) >= lineOfSightRange) {
+                double dx = nextX - x;
+                double dy = nextY - y;
+                double a = dx * dx + dy * dy;
+                double b = 2.0 * (x * dx + y * dy);
+                double c = x * x + y * y - lineOfSightRange * lineOfSightRange;
+                double t = (-b + Math.sqrt(Math.max(0.0, b * b - 4.0 * a * c))) / (2.0 * a);
+                t = Math.min(1.0, Math.max(0.0, t));
+                return elevation - Math.atan2(y + t * dy, x + t * dx);
+            }
+            x = nextX;
+            y = nextY;
+            if (tick >= flatTicks) {
+                vx *= PotionGunnerRules.DRAG;
+                vy = vy * PotionGunnerRules.DRAG - PotionGunnerRules.GRAVITY;
+            }
         }
-        return Math.tan(angleBelowAxisRadians) / Math.tan(Math.toRadians(verticalFovDegrees) / 2.0) * halfHeight;
+        return Double.NaN;
     }
 }
