@@ -166,7 +166,11 @@
     "usec.UsecRifleInputMixin",
     "usec.UsecRecoilCameraMixin",
     "usec.UsecLimitedInventoryRifleClickMixin",
-    "usec.UsecInventoryScreenRifleClickMixin"
+    "usec.UsecInventoryScreenRifleClickMixin",
+    "scope.ScopeHeldItemRendererMixin",
+    "scope.ScopeWorldRendererMixin",
+    "scope.ScopeParticleManagerMixin",
+    "scope.ScopeMinecraftClientAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

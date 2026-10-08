@@ -578,18 +578,27 @@ Current build baseline:
     A weapon calls `ScopeClient.registerProvider(Supplier<@Nullable ScopeProfile>)` once at client init; the first
     non-null profile wins. Providers are asked only after the generic gate passes: local player, first person, the
     camera is the player, no screen open, not a spectator.
-  - While a profile is active: `ScopeFovMixin` multiplies `getFovMultiplier` at RETURN by `fovMultiplier()`, local
-    player only (vanilla eases it and floors it at 0.1). `ScopeMouseMixin` wraps the one `changeLookDirection` in
-    `updateMouse` and always calls through, scaling by `sensitivityMultiplier()` × the player's Scoped Sensitivity.
-    `ScopeGameRendererMixin` cancels `renderHand` at HEAD. `ScopeInGameHudMixin`, a priority-1100 `@WrapMethod` on
-    `renderCrosshair` outside Wathe's, draws, in order, the fallback ring when needed, the lens rim, then
-    `drawReticle(ctx, ScopeFrame)` with the real projection FOV from `ScopeGameRendererInvoker`.
+  - While a profile is active: `ScopeFovMixin` (`@ModifyExpressionValue` on the single `getFovMultiplier()` read in
+    `GameRenderer#updateFovMultiplier`, before vanilla eases it and clamps it to [0.1, 1.5]) multiplies it by
+    `fovMultiplier()` in Full-Screen Zoom; PiP keeps the main view at 1×. The call site runs after every player-side
+    hook, so Wathe's cancellable RETURN `wathe$fovPulse` (which advances its poison pulse per call) can no longer skip
+    the zoom; the view gate already requires the camera to be the local player. `ScopeMouseMixin` wraps the one
+    `changeLookDirection` in `updateMouse` and always calls through, scaling by `sensitivityMultiplier()` × the
+    player's Scoped Sensitivity (only SparkStrength's stunned Engineer cancels `updateMouse`; nothing redirects the
+    call). `ScopeHeldItemRendererMixin` cancels HEAD of the first-person `HeldItemRenderer#renderItem(F…)` only (never
+    the third-person overload), so `renderHand` and its in-wall/underwater/fire overlays always run; vanilla's
+    `renderHand` and Iris's shader-pack `HandRenderer` both call that method, so hands hide with and without Iris.
+    `ScopeInGameHudMixin`, a priority-1100 `@WrapMethod` on `renderCrosshair` outside Wathe's, draws, in order, the
+    fallback ring when needed (Full-Screen Zoom only), the lens rim, then `drawReticle(ctx, ScopeFrame)` with the real
+    projection FOV from `ScopeGameRendererInvoker` (PiP: the FOV Full-Screen Zoom would need to show the lens at its
+    on-screen scale, `ScopeRules.equivalentFovDegrees`).
   - Settings: Scope View (Full-Screen Zoom, the default, or Picture-in-Picture) and Scoped Sensitivity (10–200 % in 5 %
     steps, default 100 %) are appended at the end of vanilla Options → Accessibility by `ScopeAccessibilityOptionsMixin`
     (`addOptions` TAIL; SparkAssist's `getOptions` hook is left untouched). Values persist in
     `config/sparkwitch-client.json` through `ScopeSettingsStore`, which merges saves into the existing file.
-    Picture-in-Picture renders as Full-Screen Zoom while `ScopeRules.PICTURE_IN_PICTURE_AVAILABLE` is false (today);
-    `ScopeClient.effectiveMode()` reports what actually renders.
+    `ScopeClient.effectiveMode()` reports what actually renders: Picture-in-Picture falls back to Full-Screen Zoom
+    under an Iris shader pack, Fabulous! graphics, the Blind echo view, or while `ScopePictureInPicture` backs off
+    after a failure (`ScopeRules.effectiveMode`).
   - Lens filter: `ScopeLensFilter` runs a private `PostEffectProcessor` on `sparkwitch:shaders/post/scope_lens.json`,
     never `GameRenderer.postProcessor`, before `GameRenderer#render`'s single `beginWrite(Z)` (the Seeker filter's
     point), so the HUD and reticle stay sharp. Passes: a half-resolution two-direction Gaussian blur
@@ -604,6 +613,27 @@ Current build baseline:
   - Scope shadow: `ScopeShadow` is a smoothed exit-pupil offset driven by the camera's yaw/pitch rate plus a smaller
     share of camera motion, exposed as `ScopeFrame.shadowX/Y` (GUI axes, pointing the way the view swings); the crescent
     appears on the opposite edge.
+  - Picture-in-Picture (WP4b, `ScopePictureInPicture`, `scope_pip.json`, `sparkwitch_scope_pip`): at the same point as
+    the lens filter, only on frames whose main world pass ran, it calls `WorldRenderer#render` a second time with the
+    same camera and the main frustum (`setupFrustum` is not called again; the lens is a narrower cone on the same axis)
+    into the square `scope_lens_view` target (`ScopeRules.lensViewSize`: the lens diameter × 1.1, at most 512²). The
+    projection is the main pass's (captured at `render` HEAD by `ScopeWorldRendererMixin`, so bobbing, hurt tilt and
+    USEC recoil carry over) narrowed in clip space by `ScopeRules.lensClipScale`, exactly what Full-Screen Zoom shows;
+    the lens zoom eases with vanilla's half-life (`easeZoom`). For the pass, `MinecraftClient.framebuffer` points at the
+    lens target (`ScopeMinecraftClientAccessor`, restored in `finally`) because vanilla re-binds
+    `client.getFramebuffer()` mid-pass; `ScopeWorldRendererMixin` puts the viewport back on the lens after each
+    `beginWrite(Z)` in `render` and shows `RenderSystem` the main projection around the `setupTerrain` INVOKE, so
+    Sodium reuses its render lists (it rebuilds its graph whenever that projection changes) and nothing is rebuilt or
+    re-sorted twice. No block outline; clouds and weather (`renderClouds`/`renderWeather` HEAD) and particles
+    (`ScopeParticleManagerMixin`, which also catches Iris's opaque-particle call) are skipped; no hands. The pass then
+    composites its own glowing/instinct outlines onto the lens and draws `InGameOverlayRenderer.renderOverlays`, so a
+    scoped player inside a block cannot see through it. The composite keeps the 1× main view sharp outside a short dark
+    tube rim and applies the same lens look (its "shared lens look" GLSL blocks are pinned identical to
+    `sparkwitch_scope_lens.fsh`). Released 2 s after leaving PiP, on disconnect/login/stop and resource reload; failures
+    back off like the lens filter. Fabric `WorldRenderEvents` fire again inside the lens pass;
+    `ScopeClient.isRenderingLens()` lets a listener opt out. Measured on an Apple M2 Pro at 2560×1440 (WP4b spike,
+    2026-10-07), Full-Screen Zoom 4× vs PiP 4×: vanilla 201/191 → 131/130 FPS, Sodium 0.6.13 264/263 → 213/215 FPS,
+    Iris 1.8.8 without a pack 310/317 → 231/235 FPS; with a pack it falls back to Full-Screen Zoom.
 - `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
   bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
   Key Fish doors, tracked pufferfish, replay formatting, and lifecycle cleanup. Subpackages:

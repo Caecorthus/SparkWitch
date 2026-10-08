@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.scope;
 
+import dev.caecorthus.sparkwitch.client.blind.BlindView;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -51,6 +52,7 @@ public final class ScopeClient {
         registered = true;
         ScopeSettingsStore.load();
         ScopeLensFilter.register();
+        ScopePictureInPicture.register();
         ClientLoginConnectionEvents.INIT.register((handler, client) -> ScopeRuntime.reset());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ScopeRuntime.reset());
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> ScopeRuntime.reset());
@@ -85,12 +87,31 @@ public final class ScopeClient {
     }
 
     /**
-     * The mode that actually renders: the player's choice after the shader-pack fallback (and ZOOM_BLUR until PiP is
-     * available).
-     * 实际渲染的模式：玩家的选择经过光影包回退之后的结果（画中画可用前始终为全画面放大）。
+     * The mode that actually renders: the player's choice after the fallbacks of {@link ScopeRules#effectiveMode}
+     * (an Iris shader pack, Fabulous! graphics, the Blind echo view, or a PiP renderer backing off after a failure all
+     * mean ZOOM_BLUR).
+     * 实际渲染的模式：玩家的选择经过 {@link ScopeRules#effectiveMode} 的回退之后的结果（Iris 光影包、「极佳」画质、盲人回声视图，
+     * 或画中画渲染器失败后的退避期间，都按全画面放大渲染）。
      */
     public static ScopeMode effectiveMode() {
-        return ScopeRules.effectiveMode(ScopeSettingsStore.current().mode(), ScopeLensFilter.shaderPackInUse(),
-                ScopeRules.PICTURE_IN_PICTURE_AVAILABLE);
+        ScopeMode selected = ScopeSettingsStore.current().mode();
+        if (selected == ScopeMode.ZOOM_BLUR) {
+            return ScopeMode.ZOOM_BLUR;
+        }
+        MinecraftClient client = MinecraftClient.getInstance();
+        // The Blind echo view captures the world render once per frame (a BEFORE_DEBUG_RENDER listener on
+        // client.getFramebuffer()); a second, lens-sized pass would hijack it. / 盲人回声视图每帧只捕获一次世界渲染
+        // （作用于 client.getFramebuffer() 的 BEFORE_DEBUG_RENDER 监听器），第二次镜内尺寸的渲染会劫持它。
+        return ScopeRules.effectiveMode(selected, ScopeLensFilter.shaderPackInUse(),
+                MinecraftClient.isFabulousGraphicsOrBetter(), BlindView.isActive(client), ScopePictureInPicture.ready());
+    }
+
+    /**
+     * True only while the PiP lens pass re-renders the world. World-render hooks that must run once per frame, or must
+     * stay out of the magnified lens, can check it.
+     * 仅在画中画镜内渲染重新渲染世界期间为 true。每帧只能运行一次、或不应出现在放大镜内的世界渲染钩子可以检查它。
+     */
+    public static boolean isRenderingLens() {
+        return ScopePictureInPicture.isRenderingLens();
     }
 }
