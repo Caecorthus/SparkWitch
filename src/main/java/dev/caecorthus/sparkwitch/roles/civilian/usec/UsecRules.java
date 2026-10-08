@@ -97,6 +97,17 @@ public final class UsecRules {
     /** Rewound player hitboxes are expanded by this much. / 倒回的玩家碰撞箱外扩量。 */
     public static final double HIT_MARGIN = 0.1;
 
+    // ---- Shield piercing (O3, owner 2026-10-07) ----
+    /** Shield layers one FMJ round pierces. / 一发 FMJ 可击穿的护盾层数。 */
+    public static final int FMJ_SHIELD_PIERCE = 2;
+    /** Shield layers one AP round pierces. / 一发 AP 可击穿的护盾层数。 */
+    public static final int AP_SHIELD_PIERCE = 5;
+    /**
+     * Extra layers on a SparkTraits Heavy Artillery shot (within its 5-block reach). / SparkTraits 重炮手射击（5 格内）
+     * 额外击穿的层数。
+     */
+    public static final int HEAVY_ARTILLERY_SHIELD_PIERCE_BONUS = 1;
+
     // ---- Sound (D12, Q6) ----
     public static final float SHOT_VOLUME = 12.0F;
     public static final float SUPPRESSED_SHOT_VOLUME = 2.5F;

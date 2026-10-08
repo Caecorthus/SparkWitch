@@ -156,7 +156,7 @@ public final class UsecRifleFireService {
         GameRecordManager.recordItemUse(player, UsecReplay.RECORD_ID, victim,
                 UsecReplay.fireData(ammo, penetratedBefore(trace, stop)));
         if (victim != null) {
-            UsecFirePunishment.killAndPunish(player, victim);
+            UsecFirePunishment.killAndPunish(player, victim, ammo);
         }
         return stop;
     }

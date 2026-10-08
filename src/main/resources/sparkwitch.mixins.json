@@ -198,7 +198,9 @@
     "usec.DecoratedPotBlockUsecItemMixin",
     "usec.ItemEntityUsecGunMixin",
     "usec.PlayerInventoryUsecGunMixin",
-    "usec.ServerPlayerInteractionManagerUsecScopeMixin"
+    "usec.ServerPlayerInteractionManagerUsecScopeMixin",
+    "usec.NoellesUsecShieldPierceMixin",
+    "usec.GameFunctionsUsecPsychoArmourMixin"
   ],
   "injectors": {
     "defaultRequire": 1

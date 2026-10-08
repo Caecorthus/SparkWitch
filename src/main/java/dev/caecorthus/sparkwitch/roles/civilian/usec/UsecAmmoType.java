@@ -42,6 +42,17 @@ public enum UsecAmmoType {
         return penetrates;
     }
 
+    /**
+     * Shield layers this round pierces before one blocks it (O3): FMJ 2, AP 5 ({@link UsecRules}).
+     * 本弹种在被某层护盾挡下之前可击穿的护盾层数（O3）：FMJ 2，AP 5（{@link UsecRules}）。
+     */
+    public int shieldPierce() {
+        return switch (this) {
+            case FMJ -> UsecRules.FMJ_SHIELD_PIERCE;
+            case AP -> UsecRules.AP_SHIELD_PIERCE;
+        };
+    }
+
     /** Registry id of this round's item ({@code sparkwitch:usec_338_<id>}). / 本弹种物品的注册 id。 */
     public Identifier itemId() {
         return SparkWitch.id("usec_338_" + id);

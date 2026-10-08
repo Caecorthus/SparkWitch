@@ -25,15 +25,17 @@ import org.jetbrains.annotations.Nullable;
  * otherwise, only while the shooter still carries a USEC rifle (Wathe: still carries a gun), the rifle is confiscated,
  * sanity drops to 0, gun pickup is prevented, and {@code KILL_SHOOTER} also kills the shooter. The kill itself is
  * Wathe's ordinary {@code killPlayer(victim, true, shooter, wathe:gun_shot)} in {@link #kill}, the single AXMC kill
- * site, so every protection hooked there (Saint, Fiend, Ninja parry, Last Stand, Depression, Judge denial,
- * SparkFactionAPI vetoes) applies unchanged.
+ * site, run once inside the round's shield-pierce budget (O3), so only shield layers can be pierced and every other
+ * protection hooked there (Saint, Fiend, Ninja parry, Last Stand, Depression, Judge denial, SparkFactionAPI vetoes)
+ * applies unchanged.
  * 对局命中的致命部分：击杀与命中惩罚（Q8 与所有者 O1 2026-10-07，与 Wathe 左轮接收器一致）。
  * 阵营取射击前的 SparkFactionAPI 快照。与 Wathe 自身的开枪接收器一样，每次命中玩家都在击杀之前询问 Wathe
  * {@code ShouldPunishGunShooter} 事件（监听器读取受害者的实时职业与词条，死亡可能会清除它们）。惩罚在命中时即作判定，
  * 与受害者是否死亡无关，并在四刻后执行（Wathe 自身的延迟）：监听器的自定义惩罚原样执行；否则仅当射手仍携带 USEC 步枪时
  * （Wathe：仍携带枪械），没收步枪、理智清零、禁止拾枪，{@code KILL_SHOOTER} 还会处死射手。击杀本身是 {@link #kill} 中
- * Wathe 普通的 {@code killPlayer(victim, true, shooter, wathe:gun_shot)}，即 AXMC 唯一的击杀点，因此挂在其上的所有保护
- * （圣徒、魔人、忍者格挡、背水一战、抑郁、法官禁杀、SparkFactionAPI 否决）照常生效。
+ * Wathe 普通的 {@code killPlayer(victim, true, shooter, wathe:gun_shot)}，即 AXMC 唯一的击杀点，在本发子弹的穿盾预算内
+ * 执行一次（O3），因此只有护盾层可被击穿，挂在其上的其他所有保护（圣徒、魔人、忍者格挡、背水一战、抑郁、法官禁杀、
+ * SparkFactionAPI 否决）照常生效。
  */
 final class UsecFirePunishment {
     /** Wathe's own gun receiver waits this long before punishing. / Wathe 自身开枪接收器执行惩罚前的延迟。 */
@@ -47,7 +49,7 @@ final class UsecFirePunishment {
      * Decides the hit punishment, schedules it, then kills {@code victim} with the rifle.
      * 判定命中惩罚并安排执行，随后用步枪击杀 {@code victim}。
      */
-    static void killAndPunish(ServerPlayerEntity shooter, ServerPlayerEntity victim) {
+    static void killAndPunish(ServerPlayerEntity shooter, ServerPlayerEntity victim, UsecAmmoType ammo) {
         GameWorldComponent game = GameWorldComponent.KEY.get(shooter.getWorld());
         boolean innocentShot = UsecFireRules.isInnocentShot(SparkFactionApi.resolveEffectiveFaction(shooter, game),
                 SparkFactionApi.resolveEffectiveFaction(victim, game));
@@ -58,15 +60,20 @@ final class UsecFirePunishment {
         UsecFireRules.Punishment punishment = UsecFireRules.punishment(innocentShot, shooter.isCreative(),
                 eventResult, game.getShootInnocentPunishment());
         schedule(shooter, victim, game, punishment, eventResult);
-        kill(shooter, victim);
+        kill(shooter, victim, ammo);
     }
 
     /**
-     * The single place an AXMC round kills a player; later rules (Heavy Artillery, shield piercing) extend here.
-     * AXMC 子弹击杀玩家的唯一位置；之后的规则（重炮手、穿盾）在此扩展。
+     * The single place an AXMC round kills a player (O3): ONE ordinary {@code killPlayer} with
+     * {@code wathe:gun_shot}, run inside the round's shield-pierce budget ({@link UsecShieldPierce}: FMJ 2, AP 5). The
+     * kill is never repeated, so every non-shield protection runs exactly once.
+     * AXMC 子弹击杀玩家的唯一位置（O3）：在本发子弹的穿盾预算内（{@link UsecShieldPierce}：FMJ 2、AP 5）执行一次普通的
+     * {@code wathe:gun_shot} {@code killPlayer}。击杀从不重复，因此每个非护盾保护都只执行一次。
      */
-    static void kill(ServerPlayerEntity shooter, ServerPlayerEntity victim) {
-        GameFunctions.killPlayer(victim, true, shooter, GameConstants.DeathReasons.GUN);
+    static void kill(ServerPlayerEntity shooter, ServerPlayerEntity victim, UsecAmmoType ammo) {
+        int budget = UsecShieldPierce.budget(ammo, false);
+        UsecShieldPierce.run(shooter.getUuid(), victim.getUuid(), budget,
+                () -> GameFunctions.killPlayer(victim, true, shooter, GameConstants.DeathReasons.GUN));
     }
 
     private static void schedule(ServerPlayerEntity shooter, ServerPlayerEntity victim, GameWorldComponent game,
