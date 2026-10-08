@@ -9,13 +9,16 @@ import dev.doctor4t.wathe.block.TrainDoorBlock;
 import dev.doctor4t.wathe.block.VentHatchBlock;
 import dev.doctor4t.wathe.block_entity.SmallDoorBlockEntity;
 import dev.doctor4t.wathe.index.WatheItems;
+import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ButtonBlock;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.FacingBlock;
 import net.minecraft.block.FenceGateBlock;
+import net.minecraft.block.HorizontalFacingBlock;
 import net.minecraft.block.TrapdoorBlock;
+import net.minecraft.block.enums.BedPart;
 import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ActionResult;
@@ -26,8 +29,10 @@ import net.minecraft.world.World;
 
 /**
  * Keeps promoted Wraiths from toggling doors, train windows, door buttons and vent hatches (owner decision
- * 2026-10-04). Only the Wathe lockpick keeps its jam and unlock uses on Wathe doors.
- * 阻止晋升冤魂开关门、车窗、门边按钮与通风口盖（所有者 2026-10-04 决定），仅开锁器在 Wathe 门上保留卡门与撬锁用途。
+ * 2026-10-04). Only the Wathe lockpick keeps its jam and unlock uses on Wathe doors. It also refuses an occupied bed,
+ * which would wake the sleeper; restricted Wraiths share that bed check (owner decision 2026-10-07).
+ * 阻止晋升冤魂开关门、车窗、门边按钮与通风口盖（所有者 2026-10-04 决定），仅开锁器在 Wathe 门上保留卡门与撬锁用途；
+ * 也拒绝有人的床，以免叫醒床上的人，未晋升冤魂共用这一床判断（所有者 2026-10-07 决定）。
  *
  * <p>Runs inside the Wraith {@code UseBlockCallback} on both sides, so it reads only synced state: block states and
  * the Wathe door entity's open and key fields. FAIL ends the whole right-click, just as a successful toggle would.
@@ -52,18 +57,47 @@ final class WraithPassageGuard {
             pos = pos.offset(state.get(FacingBlock.FACING).getOpposite());
             state = world.getBlockState(pos);
         }
+        if (state.getBlock() instanceof BedBlock) {
+            return mayUseBed(player, world, pos, state) ? ActionResult.PASS : ActionResult.FAIL;
+        }
         if (!isPassage(world, pos, state)) {
             return ActionResult.PASS;
         }
-        // 与原版 interactBlock 相同的跳过条件：任一手有物品且潜行时，方块自身的使用不会运行。
-        // Vanilla's own skip condition: with an item in either hand, sneaking skips the block's own use.
-        boolean blockUseSkipped = player.shouldCancelInteraction()
-                && (!player.getMainHandStack().isEmpty() || !player.getOffHandStack().isEmpty());
         if (WraithParticipationRules.mayUseItemOnPassage(
-                blockUseSkipped, player.getStackInHand(hand).isOf(WatheItems.CROWBAR))) {
+                blockUseSkipped(player), player.getStackInHand(hand).isOf(WatheItems.CROWBAR))) {
             return ActionResult.PASS;
         }
         return mayUseLockpick(player, world, hand, pos, state) ? ActionResult.PASS : ActionResult.FAIL;
+    }
+
+    /**
+     * Shared bed check for a Wraith's click already resolved to {@code pos}, which must hold a {@link BedBlock}.
+     * 冤魂点击已解析到 pos 的床（须为 BedBlock）时共用的判断。
+     */
+    static boolean mayUseBed(PlayerEntity player, World world, BlockPos pos, BlockState state) {
+        return WraithParticipationRules.mayUseBed(blockUseSkipped(player), isHeadOccupied(world, pos, state));
+    }
+
+    // 与原版 interactBlock 相同的跳过条件：任一手有物品且潜行时，方块自身的使用不会运行。
+    // Vanilla's own skip condition: with an item in either hand, sneaking skips the block's own use.
+    private static boolean blockUseSkipped(PlayerEntity player) {
+        return player.shouldCancelInteraction()
+                && (!player.getMainHandStack().isEmpty() || !player.getOffHandStack().isEmpty());
+    }
+
+    /**
+     * Mirrors Wathe's bed: a foot click is redirected to the head, whose sleeper is woken. If the head is missing,
+     * the clicked half's own OCCUPIED decides.
+     * 与 Wathe 的床一致：点击床尾会转到床头并叫醒床头的人。床头缺失时按被点击半格自身的 OCCUPIED 判断。
+     */
+    private static boolean isHeadOccupied(World world, BlockPos pos, BlockState state) {
+        if (state.get(BedBlock.PART) != BedPart.HEAD) {
+            BlockState head = world.getBlockState(pos.offset(state.get(HorizontalFacingBlock.FACING)));
+            if (head.getBlock() instanceof BedBlock) {
+                return head.get(BedBlock.OCCUPIED);
+            }
+        }
+        return state.get(BedBlock.OCCUPIED);
     }
 
     private static boolean isPassage(World world, BlockPos pos, BlockState state) {

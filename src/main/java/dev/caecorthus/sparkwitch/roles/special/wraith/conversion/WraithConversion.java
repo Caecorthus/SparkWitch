@@ -14,6 +14,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaLifecycleServic
 import dev.doctor4t.wathe.cca.PlayerPsychoComponent;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.config.datapack.RoomConfig;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import dev.doctor4t.wathe.index.WatheEntities;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -149,19 +150,38 @@ public final class WraithConversion {
         WraithRoundComponent round = WraithRoundComponent.KEY.get(victim.getServerWorld());
         if (wraith.isActive()
                 || !WraithRules.isEligibleDeath(
-                        snapshot.alignment(), deathReason, snapshot.creditedKillerUuid() != null)
-                || !round.hasCapacity()
+                        snapshot.alignment(), deathReason, snapshot.creditedKillerUuid() != null)) {
+            return false;
+        }
+        boolean fellOutOfTrain =
+                dev.doctor4t.wathe.game.GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason);
+        // A train fall converts only into the victim's own room; checked before the quota, roll, or announcement.
+        // 坠车只能在受害者自己的房间转化；在名额、概率与公告之前检查。
+        @Nullable RoomConfig.SpawnPoint roomSpawn = fellOutOfTrain ? WraithRoomDestination.resolve(victim) : null;
+        if (fellOutOfTrain && roomSpawn == null) {
+            return false;
+        }
+        if (!round.hasCapacity()
                 || !WraithRules.passesChance(
                         victim.getRandom().nextDouble(), round.getSettingsSnapshot().chance())
                 || !round.tryConsume(victim.getUuid())) {
             return false;
         }
 
-        ensureDeathBody(victim, deathReason, snapshot.deathGameTime(), snapshot.originalRoleId());
+        if (roomSpawn == null) {
+            // Wathe leaves no body for a train fall, so a room conversion never spawns one.
+            // Wathe 不为坠车留尸体，因此房间转化也绝不生成尸体。
+            ensureDeathBody(victim, deathReason, snapshot.deathGameTime(), snapshot.originalRoleId());
+        }
         SparkTraitsWraithBridge.restore(victim, snapshot.traitSnapshot());
         VendettaLifecycleService.captureCreditedKiller(victim, snapshot.creditedKillerUuid());
         wraith.activate(snapshot.alignment());
         WraithLifecycle.activateConvertedPlayer(victim, snapshot.taskSnapshot());
+        if (roomSpawn != null) {
+            // Moved within this END_SERVER_TICK, so the next END_WORLD_TICK fall check sees the room, not the drop.
+            // 在本次 END_SERVER_TICK 内移动，下一次 END_WORLD_TICK 的坠落检查看到的是房间而非坠落处。
+            WraithRoomDestination.placeInRoom(victim, roomSpawn);
+        }
         clearPsychoState(victim);
         victim.closeHandledScreen();
         victim.getInventory().clear();

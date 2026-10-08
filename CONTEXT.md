@@ -2590,11 +2590,12 @@ exposure) still stop at doors: the Vendetta knife and the Guardian Angel shield
 need real sight. Every SparkWitch door-passing exemption must honour this scope
 instead of adding its own ray wrapper.
 
-Wraiths cannot open or close doors or windows (owner decision 2026-10-04). A
+Wraiths cannot open or close doors or windows (owner decision 2026-10-04), and no
+active Wraith can wake a sleeper through a bed (owner decision 2026-10-07). A
 restricted Wraith's right-click fails on every block except food platters, drink
-trays and beds. A promoted Wraith's right-click fails only on passage blocks,
-through `runtime/WraithPassageGuard` inside the single Wraith `UseBlockCallback`
-(both sides). Passage blocks are:
+trays and unoccupied beds. A promoted Wraith's right-click fails only on passage
+blocks and occupied beds, through `runtime/WraithPassageGuard` inside the single
+Wraith `UseBlockCallback` (both sides). Passage blocks are:
 - the door family above;
 - Wathe `PrivacyBlock` train windows;
 - vent hatches;
@@ -2609,6 +2610,15 @@ unlock a closed locked door. A closed train door counts as locked; a small door
 counts as locked when it has a key name. Its plain open and close stay blocked
 (`WraithParticipationRules.mayUsePassageBlock`).
 
+A bed is occupied when its head's synced `OCCUPIED` is set; a foot click is read
+at the head, because Wathe redirects it there and wakes the head's sleeper
+without checking who clicks. Both branches share `WraithPassageGuard.mayUseBed`
+(`WraithParticipationRules.mayUseBed`), so free beds stay usable and the
+restricted sleep task still works. A promoted Wraith's ornament click on a bed is
+judged by that bed; a restricted Wraith's ornament click still fails. Sneaking
+with an item stays allowed on an occupied bed, because vanilla then skips the
+bed's own use.
+
 A projectile thrown by an active Wraith (the Wind Spirit's wind charge) triggers
 no blocks:
 - `mixin/WraithExplosionTriggerMixin` makes `Explosion#canTriggerBlocks` false,
@@ -2618,6 +2628,27 @@ no blocks:
   (bells, target blocks, decorated pots).
 
 Knockback is unchanged.
+
+A credited train fall (`wathe:fell_out_of_train` with a pusher credited by
+Wathe's last attacker, `FirePokerFallAttributionService` or
+`WraithSwapperFallAttribution`; an uncredited fall stays ineligible) becomes a
+Wraith only inside the victim's own room (owner request 2026-10-07).
+`roles/special/wraith/conversion/WraithRoomDestination` reads Wathe's round room
+roster (`GameWorldComponent.getPlayerRoom`) and the map's
+`MapEnhancementsWorldComponent.getRoomConfig(room index)`, and picks
+`RoomConfig.getSpawnPoint(max(0, index in the roster))`, the round-start spawn.
+No room, no room config or spawn points (legacy maps), or a spawn below the play
+area's fall line (the only play-area bound it trusts) means no destination:
+`WraithConversion.activate` returns before the capacity check, chance roll and
+`tryConsume`, so the victim stays an ordinary dead spectator with no quota spent,
+no role announcement and no body. A room conversion never spawns a body (Wathe
+spawns none for falls; every other death keeps `ensureDeathBody`), keeps the
+Vendetta binding to the credited pusher, and is moved after
+`WraithLifecycle.activateConvertedPlayer` by the 7-arg teleport to the spawn's
+yaw/pitch with zero velocity and fall distance. The move happens in the same
+END_SERVER_TICK, so the next END_WORLD_TICK fall check in
+`WraithLifecycle.tickWorld` already sees the room; `activateConvertedPlayer`
+stays reason-agnostic and never teleports.
 
 ## Tofana Elixir Vocabulary
 
