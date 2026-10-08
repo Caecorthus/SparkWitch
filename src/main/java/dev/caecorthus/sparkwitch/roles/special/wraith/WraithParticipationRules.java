@@ -55,6 +55,15 @@ public final class WraithParticipationRules {
     }
 
     /**
+     * A Wraith's right-click on a bed. Wathe's bed wakes whoever sleeps in it, whoever clicks, so a bed whose head is
+     * occupied is refused unless the click skips the bed's own use (owner decision 2026-10-07).
+     * 冤魂右键床时：Wathe 的床无论谁点击都会叫醒床上的人，因此床头有人时拒绝，除非这次点击跳过了床自身的使用（所有者 2026-10-07 决定）。
+     */
+    public static boolean mayUseBed(boolean blockUseSkipped, boolean headOccupied) {
+        return blockUseSkipped || !headOccupied;
+    }
+
+    /**
      * Wind charges thrown by an active Wraith trigger no blocks, through neither their explosion nor their impact
      * (owner decision 2026-10-04). Knockback is unchanged.
      * 激活冤魂扔出的风弹无论爆炸还是命中都不触发任何方块（所有者 2026-10-04 决定），击退不变。

@@ -19,10 +19,12 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.block.BedBlock;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -150,18 +152,21 @@ final class WraithParticipation {
 
     private static void registerInteractions() {
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-            // 晋升冤魂只被拦下门窗类方块；未晋升冤魂沿用下方的白名单。
-            // Promoted Wraiths are only kept off passage blocks; restricted ones keep the allowlist below.
+            // 晋升冤魂只被拦下门窗类方块与有人的床；未晋升冤魂沿用下方的白名单，其中的床同样须无人。
+            // Promoted Wraiths are only kept off passage blocks and occupied beds; restricted ones keep the
+            // allowlist below, where a bed must be unoccupied too.
             if (WraithStateService.isPromoted(player)) {
                 return WraithPassageGuard.verdict(player, world, hand, hitResult);
             }
             if (!WraithStateService.isRestricted(player)) {
                 return ActionResult.PASS;
             }
-            Object block = world.getBlockState(hitResult.getBlockPos()).getBlock();
+            BlockPos pos = hitResult.getBlockPos();
+            BlockState state = world.getBlockState(pos);
+            Object block = state.getBlock();
             return block instanceof FoodPlatterBlock
                     || block instanceof DrinkTrayBlock
-                    || block instanceof BedBlock
+                    || block instanceof BedBlock && WraithPassageGuard.mayUseBed(player, world, pos, state)
                     ? ActionResult.PASS : ActionResult.FAIL;
         });
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) ->
