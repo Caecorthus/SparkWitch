@@ -3,10 +3,10 @@ package dev.caecorthus.sparkwitch.client.scope;
 import net.minecraft.client.gui.DrawContext;
 
 /**
- * Weapon-owned scope parameters, polled every frame while a provider returns this profile (USEC rifle now, the Potion
- * Gunner launcher later). The scope module owns zoom easing, mouse scaling, the lens picture and the rim; the weapon
+ * Weapon-owned scope parameters, polled every frame while a provider returns this profile (the USEC rifle and the
+ * Potion Gunner launcher). The scope module owns zoom easing, mouse scaling, the lens picture and the rim; the weapon
  * owns only these numbers and its reticle. Client-only presentation: the server never sees any of it.
- * 武器自有的瞄准镜参数，在提供者返回该配置期间每帧轮询（现为 USEC 狙击枪，之后为药炮手炮筒）。开镜模块负责放大缓动、
+ * 武器自有的瞄准镜参数，在提供者返回该配置期间每帧轮询（USEC 狙击枪与药炮手炮筒）。开镜模块负责放大缓动、
  * 鼠标缩放、镜片画面与镜框；武器只提供这些数值与自己的分划。纯客户端展示，服务端完全不可见。
  */
 public interface ScopeProfile {

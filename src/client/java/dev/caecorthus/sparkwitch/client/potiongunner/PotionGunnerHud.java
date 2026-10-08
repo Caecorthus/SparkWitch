@@ -15,10 +15,10 @@ import net.minecraft.text.Text;
 import java.util.Optional;
 
 /**
- * The loaded-shell line above the hotbar while the launcher is held and not scoped (the scope shows the same text in
- * its corner). It reads only the local player's own synced launcher stack, so it never leaks anything. Role-owned
+ * The loaded-shell line above the hotbar while the launcher is held and not scoped (the scope reticle shows the same
+ * text inside the lens). It reads only the local player's own synced launcher stack, so it never leaks anything. Role-owned
  * presentation, never the witch skill inventory panel.
- * 手持炮筒且未开镜时，快捷栏上方的装填行（开镜时同样的文字显示在瞄准镜角落）。只读取本地玩家自己已同步的炮筒物品，
+ * 手持炮筒且未开镜时，快捷栏上方的装填行（开镜时同样的文字显示在镜片内）。只读取本地玩家自己已同步的炮筒物品，
  * 因此不会泄露任何信息。职业自有展示，从不使用魔女技能背包面板。
  */
 public final class PotionGunnerHud {
@@ -41,7 +41,7 @@ public final class PotionGunnerHud {
                 == GameWorldComponent.GameStatus.ACTIVE;
         if (!PotionScopeRules.showsHudLine(client.options.hudHidden, trainHudActive, gameActive,
                 GameFunctions.isPlayerPlayingAndAlive(player), PotionScopeClient.holdsLauncherInMainHand(player),
-                PotionScopeClient.isScoped(client))) {
+                PotionScopeClient.isScoped())) {
             return;
         }
         Optional<PotionShellType> loaded = PotionScopeClient.loaded(player.getMainHandStack());
