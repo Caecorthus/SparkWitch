@@ -502,7 +502,8 @@ Current build baseline:
     magazine's top round (LIFO), and always writes the stack (`UsecRifleState.write`) and the bolt
     (`UsecCooldowns.bolt`: 2 s, 1.4 s with SparkTraits Fast Reload), even with nothing to chamber. The shot is a public
     `ServerWorld.playSound` at the eye: `item.usec_rifle.shoot` (volume 12, pitch 1 ± 0.03) or
-    `item.usec_rifle.shoot_suppressed` (volume 2.5, pitch 1.5). The bolt sound plays 10 ticks later, only when a round
+    `item.usec_rifle.shoot_suppressed` (volume 4, pitch 1.0: the .ogg is rendered at final pitch; louder re-master
+    2026-10-08, both mono). The bolt sound plays 10 ticks later, only when a round
     was chambered and nothing changed since the shot (`UsecFireRules.boltSoundDue`): the shooter is online in that world
     and not a spectator, holds that very rifle stack in the main hand with the post-shot state (an attachment action in
     between, such as UNLOAD_CHAMBER, plays its own bolt and is never doubled), and the use mode and Wathe game status are

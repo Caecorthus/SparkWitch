@@ -110,10 +110,23 @@ public final class UsecRules {
      */
     public static final int HEAVY_ARTILLERY_SHIELD_PIERCE_BONUS = 1;
 
-    // ---- Sound (D12, Q6) ----
+    // ---- Sound (D12, Q6; louder re-master 2026-10-08) ----
+    /**
+     * Gain is clamped to 1, so a volume above 1 only widens the linear roll-off radius (16 x volume): 192 blocks.
+     * 增益上限为 1，音量大于 1 只会扩大线性衰减半径（16 × 音量）：192 格。
+     */
     public static final float SHOT_VOLUME = 12.0F;
-    public static final float SUPPRESSED_SHOT_VOLUME = 2.5F;
-    public static final float SUPPRESSED_PITCH = 1.5F;
+    /**
+     * 64 blocks: about -3 dB at 20 blocks, still shorter-reaching than the revolver's 80.
+     * 64 格：20 格处约 -3 dB，仍比左轮的 80 格近。
+     */
+    public static final float SUPPRESSED_SHOT_VOLUME = 4.0F;
+    /**
+     * The suppressed .ogg is rendered at its final pitch (full band to 18.5 kHz), so it must play at 1.0; a higher
+     * pitch would shift it and could alias in OpenAL's resampler.
+     * 消音枪声 .ogg 已按最终音调渲染（全频带至 18.5 kHz），必须以 1.0 播放；更高音调会使其变调，并可能在 OpenAL 重采样中混叠。
+     */
+    public static final float SUPPRESSED_PITCH = 1.0F;
     /** Fixed broadcast range of the scope-in sound, in blocks (Seeker motor precedent). / 开镜声的固定广播范围（格）。 */
     public static final float SCOPE_SOUND_RANGE = 8.0F;
     public static final float SCOPE_SOUND_VOLUME = 0.8F;
