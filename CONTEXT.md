@@ -2165,6 +2165,19 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
     any shot, but its backblast and burst play only sound and particles, it breaks no Seeker device, and it records
     no replay line.
   - The payload is also on the stun and Seeker-session deny lists.
+- **Third-person pose.** `client/mixin/potiongunner/PotionLauncherArmPoseMixin` (priority 1600, the USEC rifle's
+  pattern) gives the hand whose shown stack is the launcher `CROSSBOW_HOLD`, both arms, hip or scoped (the plan's
+  two-handed carry; the launcher's third-person display transform is fitted to it). The shown stack is the single
+  `getStackInHand` result after Wathe's held-item substitution, read by a `@ModifyVariable` at the STORE of vanilla's
+  only `ItemStack` local into a `@Share` flag.
+  - The answer comes from a `@WrapMethod` on `getArmPose`, inside the Blind gate's priority-2000 wrapper (Blind
+    viewers still get EMPTY) and outside two cancellable TAIL injects: Wathe's bat pose (priority 1000) and
+    NoellesRoles' Jester Moment pose (priority 1500). The launcher's use action is NONE, so vanilla always ends at the
+    final `return ITEM`, where a `@ModifyReturnValue(RETURN)` is not woven next to those injects; the old hook never
+    fired in game.
+  - Only vanilla's plain `ITEM` answer becomes `CROSSBOW_HOLD`; an inner pose is kept. Owner, 2026-10-08: during a
+    viewer's Jester Moment the Jester pose wins, since NoellesRoles then draws a bat in that hand
+    (`JesterMomentHeldItemMixin`) and CROSSBOW_CHARGE, so the gunner looks like everyone else.
 - **Flight.** The shell is a role-owned `ThrownItemEntity`, never Wathe's grenade, and it is never saved. While the
   path length from its synced launch point at the start of a tick is below 50 blocks, it moves straight at
   2.5 blocks/tick with no drag or gravity (`PotionShellFlight.isFlatTick`, snapped to the 2.5-block step).
