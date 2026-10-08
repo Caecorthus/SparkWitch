@@ -61,7 +61,17 @@ Current build baseline:
     reaches it by reflection (FQCN and both signatures are frozen) for the NoellesRoles Vulture's Super Curse
     (秃鹫超级骂), whose C2S id `sparkstrength:vulture_super_curse` sits next to `sparkstrength:demon_hunter_sniff` on
     the Control Expert stun, Seeker session, Riftwalker session and Grand Witch Fear deny-lists (Fear blocks every
-    SparkStrength role skill since the owner's 2026-10-07 decision, the Sniff included).
+    SparkStrength role skill since the owner's 2026-10-07 decision, the Sniff included). The NoellesRoles
+    Spiritualist's Wraith possession (灵界行者附身冤魂) is its second consumer: its start id
+    `sparkstrength:spirit_possess` sits on the same four deny-lists, while `sparkstrength:spirit_possess_exit` stays
+    allowed everywhere.
+  - `api/client/WraithViewerApi` (client source set, 2026-10-07) is the stable cross-mod seam that reveals Wraiths to
+    add-on viewers: `static void addViewerGate(BiPredicate<PlayerEntity, PlayerEntity>)` (gates are OR'd, a throwing
+    gate is dropped, null throws NPE). `client/render/WraithViewerGates.revealsBody` asks the gates only for an active
+    Wraith (promoted ones included) other than the viewer itself, and `WraithEntityInvisibilityMixin` then draws that
+    body translucent like a spectator's view. It reveals the body only: held items, outlines, instinct colour, name
+    tags and aim pass-through keep the ordinary-viewer rules. SparkStrength reaches it by reflection (FQCN and the
+    JDK-only signature are frozen) so a living NoellesRoles Spiritualist sees every active Wraith.
   - Add-on gun world hits (2026-10-07, frozen names and signatures, reached by SparkStrength's `SparkWitchCompat`
     through reflection for the Serial Killer pistols, which extend Wathe's `RevolverItem` but fire through
     `sparkstrength:serial_pistol_shoot`): client `SparkWitchApi.preferNearerGunWorldTarget(PlayerEntity, HitResult,
