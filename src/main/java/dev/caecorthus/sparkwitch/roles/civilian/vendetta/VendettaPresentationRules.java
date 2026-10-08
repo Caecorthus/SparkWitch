@@ -3,10 +3,11 @@ package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 /** Pure distance, highlight, and timer presentation rules for Vendetta. / 仇杀客距离、描边与计时显示的纯规则。 */
 public final class VendettaPresentationRules {
     public static final int KILLER_HIGHLIGHT_COLOR = 0xFF0000;
-    public static final int VENDETTA_HIGHLIGHT_COLOR = 0xFF8C00;
+    /** What the bound killer sees: the Vendetta role theme colour. / 绑定凶手眼中仇杀客的描边：仇杀客身份主题色。 */
+    public static final int VENDETTA_HIGHLIGHT_COLOR = VendettaRole.COLOR;
     public static final double FULL_DESATURATION_DISTANCE = 1.0D;
     public static final double BASE_DESATURATION_DISTANCE = 15.0D;
-    public static final double PROXIMITY_HIGHLIGHT_DISTANCE = 4.0D;
+    public static final double PROXIMITY_HIGHLIGHT_DISTANCE = 8.0D;
     public static final float BASE_DESATURATION = 0.50F;
     public static final float FULL_DESATURATION = 1.0F;
 
