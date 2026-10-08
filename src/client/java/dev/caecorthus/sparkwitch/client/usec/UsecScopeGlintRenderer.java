@@ -117,9 +117,10 @@ public final class UsecScopeGlintRenderer {
     }
 
     /**
-     * Scope objective: eye + 0.55 along the aim, 0.09 to the right, 0.06 up. MC yaw 0 faces +Z, so right is
-     * {@code (-cos yaw, 0, -sin yaw)}.
-     * 物镜位置：眼睛沿瞄准方向 0.55、向右 0.09、向上 0.06。MC 偏航 0 朝向 +Z，因此右方为 {@code (-cos yaw, 0, -sin yaw)}。
+     * LPVO objective lens: eye + 0.92 along the aim, 0.18 to the right, 0.05 down ({@link UsecGlintRules}). MC yaw 0
+     * faces +Z, so right is {@code (-cos yaw, 0, -sin yaw)}.
+     * 低倍率瞄具物镜：眼睛沿瞄准方向 0.92、向右 0.18、向下 0.05（{@link UsecGlintRules}）。MC 偏航 0 朝向 +Z，因此右方为
+     * {@code (-cos yaw, 0, -sin yaw)}。
      */
     static Vec3d objective(AbstractClientPlayerEntity player, float tickDelta) {
         Vec3d eye = player.getCameraPosVec(tickDelta);
