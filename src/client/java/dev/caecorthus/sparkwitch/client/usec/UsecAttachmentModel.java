@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.usec;
 
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoType;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAttachmentRules;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecCooldowns;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecMagazineContents;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRifleState;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
@@ -80,8 +81,10 @@ public final class UsecAttachmentModel {
     }
 
     /**
-     * Client approximation of the server's room check: a free main slot, and the round types that still fit on an
-     * existing stack. / 服务端空位检查的客户端近似：是否有空的主背包栏位，以及仍能叠入现有堆的弹种。
+     * Client approximation of the server's shown-slot room check ({@code UsecAttachmentRules.releaseSlot}, A7): a free
+     * shown slot (hotbar, the second row while shown) or an empty offhand, and the round types that still fit on a
+     * shown stack. / 服务端显示栏位空位检查的客户端近似（{@code UsecAttachmentRules.releaseSlot}，A7）：是否有空的显示栏位
+     * （快捷栏、显示时的第二行）或空副手，以及仍能叠入显示中物品堆的弹种。
      */
     public record Room(boolean freeSlot, Set<UsecAmmoType> roundStacksWithRoom) {
         public static final Room NONE = new Room(false, Set.of());
@@ -265,10 +268,12 @@ public final class UsecAttachmentModel {
 
     /**
      * The parts list with each part's buttons. Magazine rows (2 x 2 grid): 装入, 退弹, +FMJ, +AP. Round rows: 上膛,
-     * disabled while the chamber is occupied or the bolt is cycling. Suppressor rows: 装上.
-     * 零件列表及各零件的按钮。弹匣行（2 × 2 格）：装入、退弹、+FMJ、+AP。子弹行：上膛，弹膛有弹或正在拉栓时不可用。消音器行：装上。
+     * disabled only when {@link UsecAttachmentRules#chamberRound} refuses (the server allows chambering while the bolt
+     * cycles, so the screen never locks it then). Suppressor rows: 装上.
+     * 零件列表及各零件的按钮。弹匣行（2 × 2 格）：装入、退弹、+FMJ、+AP。子弹行：上膛，仅在
+     * {@link UsecAttachmentRules#chamberRound} 拒绝时不可用（服务端允许在拉栓期间上膛，因此界面此时不锁定）。消音器行：装上。
      */
-    public static List<Row> rows(UsecRifleState rifle, int rifleSlot, List<Part> parts, Room room, boolean bolting) {
+    public static List<Row> rows(UsecRifleState rifle, int rifleSlot, List<Part> parts, Room room) {
         List<Row> rows = new ArrayList<>(parts.size());
         for (Part part : parts) {
             List<Button> buttons = new ArrayList<>(4);
@@ -287,7 +292,7 @@ public final class UsecAttachmentModel {
                     }
                 }
                 case ROUNDS -> buttons.add(new Button(Label.CHAMBER, UsecAttachmentAction.CHAMBER_ROUND, rifleSlot,
-                        part.slot(), !bolting && UsecAttachmentRules.chamberRound(rifle, part.ammo()) != null));
+                        part.slot(), UsecAttachmentRules.chamberRound(rifle, part.ammo()) != null));
                 case SUPPRESSOR -> buttons.add(new Button(Label.ATTACH, UsecAttachmentAction.ATTACH_SUPPRESSOR,
                         rifleSlot, part.slot(), UsecAttachmentRules.attachSuppressor(rifle) != null));
             }
@@ -299,23 +304,23 @@ public final class UsecAttachmentModel {
     // ---- status / 状态 ----
 
     /**
-     * Footer status from the synced rifle cooldown ({@code UsecCooldowns.remainingTicks}): longer than one bolt is a
-     * lock, otherwise any remainder is the bolt cycling. / 依据已同步的步枪冷却得出的页脚状态：超过一次拉栓时长视为锁定，
-     * 否则剩余时间即为拉栓。
+     * Footer status from the shared exact classifier ({@link UsecCooldowns#status}): a bolt-length cooldown is the bolt
+     * cycling, any longer one a lock for its whole length (no longer guessed from the remaining ticks alone).
+     * 依据共用精确分类器（{@link UsecCooldowns#status}）得出的页脚状态：拉栓长度的冷却即为拉栓，更长的冷却在整个时长内都是锁定
+     * （不再仅凭剩余刻数猜测）。
      */
-    public static BoltStatus boltStatus(UsecRifleState rifle, int remainingTicks) {
-        if (remainingTicks > UsecRules.BOLT_TICKS) {
+    public static BoltStatus boltStatus(UsecRifleState rifle, UsecCooldowns.Status cooldown) {
+        if (cooldown.otherLock()) {
             return BoltStatus.LOCKED;
         }
-        if (remainingTicks > 0) {
+        if (cooldown.bolt()) {
             return BoltStatus.BOLTING;
         }
         return rifle.chamber() != null ? BoltStatus.READY : BoltStatus.EMPTY;
     }
 
     /**
-     * Gauge fill for a running cooldown: {@code total} is the longest remainder seen since it started.
-     * 冷却进度条：{@code total} 为本次冷却开始以来见到的最长剩余时间。
+     * Gauge fill for a running cooldown. / 冷却进度条的填充比例。
      */
     public static float progress(int remainingTicks, int totalTicks) {
         if (remainingTicks <= 0 || totalTicks <= 0) {
@@ -325,25 +330,12 @@ public final class UsecAttachmentModel {
     }
 
     /**
-     * Gauge scale for the running cooldown. A remainder that grew since the last tick is a fresh cooldown seen from its
-     * start; the first sighting (screen opened mid-cooldown, {@code previousRemaining < 0}) assumes a whole bolt, or the
-     * round-start lock when longer. / 冷却进度条的满刻度。剩余时间比上一刻长即为从头看到的新冷却；首次看到（冷却中途打开界面，
-     * {@code previousRemaining < 0}）时按一次完整拉栓估计，更长时按开局锁定估计。
+     * Gauge scale: the cooldown's exact total from its entry (start to end), 0 when none; no longer estimated from
+     * the remainders seen since the screen opened. / 冷却进度条的满刻度：取自条目（开始到结束）的精确总长，无冷却时为 0；
+     * 不再根据界面打开以来见到的剩余时间估算。
      */
-    public static int gaugeTotal(int previousTotal, int previousRemaining, int remaining) {
-        if (remaining <= 0) {
-            return 0;
-        }
-        if (previousRemaining < 0) {
-            if (remaining <= UsecRules.BOLT_TICKS) {
-                return UsecRules.BOLT_TICKS;
-            }
-            return Math.max(remaining, UsecRules.ROUND_START_COOLDOWN_TICKS);
-        }
-        if (remaining > previousRemaining) {
-            return remaining;
-        }
-        return Math.max(previousTotal, remaining);
+    public static int gaugeTotal(UsecCooldowns.Status cooldown) {
+        return cooldown.coolingDown() ? cooldown.total() : 0;
     }
 
     /** Whole seconds, rounded up. / 向上取整的秒数。 */

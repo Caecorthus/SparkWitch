@@ -78,7 +78,11 @@ public final class UsecShopPurchase {
         return count > 0 && incoming > 0 && count <= max - incoming;
     }
 
-    private static boolean fitsWhole(PlayerInventory inventory, ItemStack target, ItemStack bought) {
+    /**
+     * Whether {@code target} is a non-empty stack of the same item and components that can take all of
+     * {@code incoming}; shared with the attachment release (A7). / 目标堆是否为同物品同组件的非空堆且能整份放下；与配件释放共用。
+     */
+    static boolean fitsWhole(PlayerInventory inventory, ItemStack target, ItemStack bought) {
         return !target.isEmpty() && ItemStack.areItemsAndComponentsEqual(target, bought)
                 && hasRoomFor(target.getCount(), Math.min(target.getMaxCount(), inventory.getMaxCount(target)),
                 bought.getCount());

@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.usec;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAttachmentRules.Gate;
@@ -33,14 +34,16 @@ import java.util.function.Function;
  * stunned, not in a Seeker session; Fear does not block), the item types, and, before anything changes, that the
  * inventory has room for what leaves the rifle. State is written in place with {@link UsecRifleState#write} and
  * {@link UsecMagazineItem#setContents}, so the held item only changes components and never replays its equip
- * animation. Released items go through {@code PlayerInventory#insertStack}, which follows SparkFactionAPI's slot order.
+ * animation. Released items go only to shown slots ({@link UsecAttachmentRules#releaseSlot}, A7): a shown same-item
+ * stack, then an empty shown slot, then the empty offhand; otherwise the action is refused as "no room".
  * Sounds are public ({@code ServerWorld#playSound} at the player); a bolt also writes {@link UsecCooldowns#bolt}.
  * Fabric runs play-payload receivers on the server thread, so no extra hand-off is needed.
  * {@code sparkwitch:usec_attachment}（配件界面）的服务端权威，以及光标装填共用的应用辅助方法。客户端只给出动作与两个
  * 玩家背包栏位；本服务复核栏位形状、玩家准入（{@link UsecAttachmentRules#gate}：非已死亡参与者、存活、非旁观、未被
  * 眩晕、不在搜寻者会话；恐惧不阻止）、物品类型，并在任何改动之前确认背包能放下离开步枪的物品。状态以
  * {@link UsecRifleState#write} 与 {@link UsecMagazineItem#setContents} 原地写入，手持物品只改组件，不重播换手动画。
- * 释放的物品走 {@code PlayerInventory#insertStack}，遵循 SparkFactionAPI 的栏位顺序。声音公开播放（在玩家位置调用
+ * 释放的物品只进入显示中的栏位（{@link UsecAttachmentRules#releaseSlot}，A7）：先补进显示中的同种物品堆，再放入空的显示栏位，
+ * 最后放入空的副手；都不行时该动作以“没有空位”拒绝。声音公开播放（在玩家位置调用
  * {@code ServerWorld#playSound}）；拉栓时同时写入 {@link UsecCooldowns#bolt}。Fabric 在服务端线程执行游戏数据包接收器，
  * 无需额外切换线程。
  */
@@ -187,7 +190,7 @@ public final class UsecAttachmentService {
         }
         UsecRifleState.write(rifle, outcome.rifle());
         if (!released.isEmpty()) {
-            player.getInventory().insertStack(released);
+            insertReleased(player, released);
         }
         finish(player, cue, outcome.bolted());
         return true;
@@ -219,7 +222,7 @@ public final class UsecAttachmentService {
             return false;
         }
         UsecMagazineItem.setContents(magazine, outcome.contents());
-        player.getInventory().insertStack(released);
+        insertReleased(player, released);
         finish(player, Cue.ROUND, false);
         return true;
     }
@@ -241,14 +244,44 @@ public final class UsecAttachmentService {
     }
 
     /**
-     * Room check before any change, so a refused release never destroys an item (a creative {@code insertStack} would
-     * void it). It asks the same slot finders {@code insertStack} uses, which SparkFactionAPI orders.
-     * 在任何改动之前检查空位，被拒绝的释放绝不会销毁物品（创造模式的 {@code insertStack} 会直接吞掉）。它询问
-     * {@code insertStack} 所用的同一组栏位查找方法，其顺序由 SparkFactionAPI 决定。
+     * Room check before any change (A7): only a shown slot counts ({@link UsecAttachmentRules#releaseSlot}), so a
+     * release never lands in hidden storage the in-round inventory cannot show, and a refused release never destroys
+     * an item. / 在任何改动之前检查空位（A7）：只算显示中的栏位（{@link UsecAttachmentRules#releaseSlot}），因此释放的物品绝不会
+     * 落进局内背包无法显示的隐藏栏位，被拒绝的释放也绝不会销毁物品。
      */
     static boolean hasRoom(PlayerEntity player, ItemStack stack) {
+        return releaseSlot(player, stack) != UsecAttachmentRules.NO_ROOM;
+    }
+
+    /** {@link UsecAttachmentRules#releaseSlot} over live slots. / 基于实时栏位的 {@link UsecAttachmentRules#releaseSlot}。 */
+    static int releaseSlot(PlayerEntity player, ItemStack stack) {
         PlayerInventory inventory = player.getInventory();
-        return inventory.getOccupiedSlotWithRoomForStack(stack) >= 0 || inventory.getEmptySlot() >= 0;
+        return UsecAttachmentRules.releaseSlot(
+                slot -> UsecShopPurchase.fitsWhole(inventory, inventory.getStack(slot), stack),
+                slot -> inventory.getStack(slot).isEmpty(),
+                SparkFactionSecondRowCompat.isShown());
+    }
+
+    /**
+     * Puts a released stack where {@link #releaseSlot} says, by explicit slot writes (never {@code insertStack}, whose
+     * order reaches hidden slots); callers checked {@link #hasRoom} first. Returns whether it was placed.
+     * 按 {@link #releaseSlot} 指定的位置以显式栏位写入放置释放的物品（从不使用会落到隐藏栏位的 {@code insertStack}）；调用方已先检查
+     * {@link #hasRoom}。返回是否已放置。
+     */
+    static boolean insertReleased(PlayerEntity player, ItemStack stack) {
+        int slot = releaseSlot(player, stack);
+        if (slot == UsecAttachmentRules.NO_ROOM) {
+            return false;
+        }
+        PlayerInventory inventory = player.getInventory();
+        ItemStack target = inventory.getStack(slot);
+        if (target.isEmpty()) {
+            inventory.setStack(slot, stack);
+        } else {
+            target.increment(stack.getCount());
+        }
+        inventory.markDirty();
+        return true;
     }
 
     /** The only refusal with feedback: an action-bar line to the player. / 唯一有反馈的拒绝：给玩家的动作栏提示。 */

@@ -4,6 +4,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.usec.net.UsecAttachmentAction;
 import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+import java.util.function.IntPredicate;
+
 /**
  * Stable contract: the pure attachment state machine shared by the {@code sparkwitch:usec_attachment} receiver, cursor
  * loading ({@code Item#onClicked}) and the client screen's button prediction. Every transition returns {@code null}
@@ -25,6 +28,8 @@ public final class UsecAttachmentRules {
     public static final int MAIN_SLOTS = 36;
     /** Vanilla offhand inventory index. / 原版副手的背包下标。 */
     public static final int OFFHAND_SLOT = 40;
+    /** {@link #releaseSlot}: nowhere shown to put the item. / {@link #releaseSlot}：没有可显示的位置放置该物品。 */
+    public static final int NO_ROOM = -1;
 
     private UsecAttachmentRules() {
     }
@@ -108,6 +113,35 @@ public final class UsecAttachmentRules {
     /** Player inventory indices an action may name: 0-35 and the offhand 40. / 动作可引用的背包下标：0-35 与副手 40。 */
     public static boolean isActionSlot(int slot) {
         return slot >= 0 && slot < MAIN_SLOTS || slot == OFFHAND_SLOT;
+    }
+
+    /**
+     * A7: where an item leaving the rifle (or a loose magazine) goes, shown slots only, in {@link UsecShopPurchase}'s
+     * order: the first shown same-item stack that takes it whole (hotbar 0-8, then 27-35 only while SparkFactionAPI
+     * shows the second row), else the first empty shown slot in that order, else the offhand when it is empty;
+     * {@link #NO_ROOM} otherwise. Hidden main slots (9-26, and 27-35 while hidden) never receive a release, because
+     * Wathe's in-round inventory does not show them. Pure; shared by the server and the screen's room prediction.
+     * A7：离开步枪（或散装弹匣）的物品放到哪里，只限显示中的栏位，顺序与 {@link UsecShopPurchase} 相同：先找第一个能整份放下的
+     * 显示中同种物品堆（快捷栏 0-8，然后仅在 SparkFactionAPI 显示第二行时为 27-35），否则按同一顺序找第一个空的显示栏位，
+     * 否则在副手为空时放入副手；都不行则为 {@link #NO_ROOM}。隐藏的主背包栏位（9-26，以及第二行隐藏时的 27-35）从不接收释放的
+     * 物品，因为 Wathe 局内背包不显示它们。纯函数，由服务端与界面的空位预测共用。
+     *
+     * @param topsUp the shown stack in that slot is the same item and can take the whole release / 该栏位的物品堆可整份放下
+     * @param empty  the slot is empty / 该栏位为空
+     */
+    public static int releaseSlot(IntPredicate topsUp, IntPredicate empty, boolean secondRowShown) {
+        List<Integer> shown = UsecShopPurchase.shownTopUpSlots(secondRowShown);
+        for (int slot : shown) {
+            if (topsUp.test(slot)) {
+                return slot;
+            }
+        }
+        for (int slot : shown) {
+            if (empty.test(slot)) {
+                return slot;
+            }
+        }
+        return empty.test(OFFHAND_SLOT) ? OFFHAND_SLOT : NO_ROOM;
     }
 
     /** Actions whose {@code itemSlot} names a second stack. / {@code itemSlot} 指向第二个物品堆的动作。 */
