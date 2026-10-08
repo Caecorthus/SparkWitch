@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
  * and intent only: the server applies the same rule on its own, and firing stays cooldown-gated there.
  * A1，{@code mixin/usec/ServerPlayerInteractionManagerUsecScopeMixin} 的客户端一半：原版客户端 {@code interactItem}
  * 在顺序数据包 lambda {@code method_41929} 中检查冷却，冷却时返回 PASS 且不调用 {@code ItemStack#use}（数据包仍会发出）。
- * 仅对 {@link UsecRifleItem}，这一处检查视为“未冷却”，因此开局锁定与拉栓期间也能 Shift + 右键切换倍率并开镜。仅为表现与
+ * 仅对 {@link UsecRifleItem}，这一处检查视为“未冷却”，因此开局锁定与拉栓期间也能 Shift + 右键跳转倍率并开镜。仅为表现与
  * 意图：服务端独立执行同样的规则，开火在服务端仍受冷却限制。
  */
 @Mixin(ClientPlayerInteractionManager.class)

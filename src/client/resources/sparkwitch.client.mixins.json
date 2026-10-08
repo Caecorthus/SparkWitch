@@ -159,15 +159,19 @@
     "scope.ScopeMouseMixin",
     "usec.UsecRifleArmPoseMixin",
     "usec.UsecRifleInputMixin",
+    "usec.UsecInstinctCloakMixin",
     "usec.UsecRecoilCameraMixin",
     "usec.UsecLimitedInventoryRifleClickMixin",
     "usec.UsecInventoryScreenRifleClickMixin",
     "usec.UsecRifleUseCooldownMixin",
     "usec.UsecCreativeSlotAccessor",
+    "usec.UsecScopeInputMixin",
+    "usec.UsecBoltSwayCameraMixin",
     "scope.ScopeHeldItemRendererMixin",
     "scope.ScopeWorldRendererMixin",
     "scope.ScopeParticleManagerMixin",
-    "scope.ScopeMinecraftClientAccessor"
+    "scope.ScopeMinecraftClientAccessor",
+    "scope.ScopeMouseScrollMixin"
   ],
   "injectors": {
     "defaultRequire": 1

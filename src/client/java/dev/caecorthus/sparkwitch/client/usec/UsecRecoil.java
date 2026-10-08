@@ -4,10 +4,10 @@ package dev.caecorthus.sparkwitch.client.usec;
  * Local recoil camera kick after a sent shot. Purely visual: {@code UsecRecoilCameraMixin} adds it as an extra view
  * pitch to the camera transform, so the player's real rotation, the crosshair ray and every server check are
  * untouched (the shot's aim already left with the request). The kick rises fast and decays exponentially; while scoped
- * it is scaled by the FOV multiplier so it moves the same share of the screen at 1x, 4x and 8x.
+ * it is scaled by the FOV multiplier so it moves the same share of the screen at every magnification (1x-6x).
  * 开火后的本地后坐镜头抖动。纯视觉：{@code UsecRecoilCameraMixin} 将其作为额外的视角俯仰加到镜头变换上，因此玩家真实
  * 朝向、准星射线与所有服务端检查都不受影响（该次射击的朝向已随请求发出）。抖动快速上扬并指数衰减；开镜时按视野倍率
- * 缩放，使其在 1 倍、4 倍、8 倍下在屏幕上移动的比例相同。
+ * 缩放，使其在任何倍率（1-6 倍）下在屏幕上移动的比例相同。
  */
 public final class UsecRecoil {
     /** Peak upward kick at 1x, in degrees. / 1 倍下的最大上扬角度。 */

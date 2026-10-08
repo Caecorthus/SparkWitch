@@ -11,12 +11,13 @@ import org.joml.Matrix4f;
 
 /**
  * Client only. What {@code ScopeInGameHudMixin} draws on the crosshair layer instead of the crosshair while scoped:
- * under a shader pack or a failing lens pipeline, a semi-transparent dark periphery with a darker tube rim (never
- * fully black); then the crisp lens rim ring; then the weapon's {@link ScopeProfile#drawReticle} with this frame's
+ * under a shader pack or a failing lens pipeline, a semi-transparent dark periphery (faded with the profile's
+ * {@link ScopeProfile#peripheryBlur}, like the filter's blur) with a darker tube rim (never fully black); then the
+ * crisp lens rim ring; then the weapon's {@link ScopeProfile#drawReticle} with this frame's
  * {@link ScopeFrame}. Lens geometry comes from {@link ScopeLensGeometry}, centred on the exact framebuffer centre like
  * the lens shader.
  * 仅客户端。开镜时 {@code ScopeInGameHudMixin} 在准星层代替准星绘制的内容：开光影包或镜片管线失败时，先画半透明的暗色
- * 镜外区域与更暗的镜筒边（绝不全黑）；然后画清晰的镜框环；最后用本帧 {@link ScopeFrame} 调用武器的
+ * 镜外区域（与滤镜的模糊一样随配置的 {@link ScopeProfile#peripheryBlur} 淡出）与更暗的镜筒边（绝不全黑）；然后画清晰的镜框环；最后用本帧 {@link ScopeFrame} 调用武器的
  * {@link ScopeProfile#drawReticle}。镜片几何来自 {@link ScopeLensGeometry}，与镜片着色器一样以帧缓冲精确中心为圆心。
  */
 public final class ScopeHud {
@@ -44,10 +45,26 @@ public final class ScopeHud {
             float rimOuter = radius * ScopeLensGeometry.FALLBACK_RIM_OUTER;
             float cover = (float) ScopeLensGeometry.coverRadius(context.getScaledWindowWidth(),
                     context.getScaledWindowHeight(), centerX, centerY) + 2.0F;
+            float outer = Math.max(cover, rimOuter + pixel);
             annulus(context, centerX, centerY, radius, rimOuter, ScopeLensGeometry.FALLBACK_RIM_INNER_COLOR,
                     ScopeLensGeometry.FALLBACK_RIM_OUTER_COLOR, scale);
-            annulus(context, centerX, centerY, rimOuter, Math.max(cover, rimOuter + pixel),
-                    ScopeLensGeometry.FALLBACK_RIM_OUTER_COLOR, ScopeLensGeometry.FALLBACK_PERIPHERY_COLOR, scale);
+            float blur = ScopeRuntime.peripheryBlur(profile);
+            float fadeEnd = rimOuter + radius * ScopeLensGeometry.FALLBACK_RIM_FADE;
+            if (blur >= 1.0F || fadeEnd >= outer) {
+                // Full blur: the original single gradient. / 满模糊：原有的单段渐变。
+                annulus(context, centerX, centerY, rimOuter, outer, ScopeLensGeometry.FALLBACK_RIM_OUTER_COLOR,
+                        ScopeLensGeometry.fallbackPeripheryColor(blur, 1.0F), scale);
+            } else {
+                // The stand-in darkening fades with the periphery blur; the tube rim above stays. Past the rim's
+                // edge colour it fades over FALLBACK_RIM_FADE into the full gradient scaled by blur (clear at 0).
+                // 替代的压暗随镜外模糊淡出；上面的镜筒边保留。从镜筒边边缘颜色起，在 FALLBACK_RIM_FADE 内淡入按 blur 缩放的
+                // 完整渐变（为 0 时清晰）。
+                int mid = ScopeLensGeometry.fallbackPeripheryColor(blur, (fadeEnd - rimOuter) / (outer - rimOuter));
+                annulus(context, centerX, centerY, rimOuter, fadeEnd, ScopeLensGeometry.FALLBACK_RIM_OUTER_COLOR, mid,
+                        scale);
+                annulus(context, centerX, centerY, fadeEnd, outer, mid,
+                        ScopeLensGeometry.fallbackPeripheryColor(blur, 1.0F), scale);
+            }
         }
         annulus(context, centerX, centerY, radius - ScopeLensGeometry.RIM_RING_INSIDE_PIXELS * pixel,
                 radius + ScopeLensGeometry.RIM_RING_OUTSIDE_PIXELS * pixel, ScopeLensGeometry.RIM_RING_INNER_COLOR,

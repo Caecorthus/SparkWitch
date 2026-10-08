@@ -107,6 +107,10 @@ public final class UsecFireInput {
         if (UsecInputRules.kicksOnFire(true, UsecRifleState.read(rifle).chamber() != null)) {
             UsecRecoil.onShot();
         }
+
+        // Arms the scoped bolt sway; only the synced bolt cooldown that follows confirms it.
+        // 预备开镜拉栓晃动；只有随后同步的拉栓冷却才会确认它。
+        UsecBoltSwayClient.onShotSent(UsecRifleState.read(rifle));
     }
 
     /** FOV multiplier the recoil scales with: the USEC profile's while scoped, else 1. / 后坐缩放所用的视野倍率。 */

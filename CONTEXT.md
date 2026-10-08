@@ -412,6 +412,9 @@ Current build baseline:
     no cap (Q1+). The stamina cap is 20 s and regeneration is doubled, both stacking with traits. Death drops one Wathe
     revolver and deletes the rifle and its parts (Q2). Right-click scopes, left-click fires, and hip fire is as accurate
     (Q15). Grand Witch Fear blocks neither the shot nor the attachments (Q14).
+    Passive (owner, 2026-10-08): while scoped, a USEC is hidden from the keyed instinct x-ray of every living viewer
+    within 12 blocks; spectators, Rift occupants and active Wraiths still see it, and always-on highlights stay (see
+    `client/usec/` instinct cloak).
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 20 s `maxSprintTime`, no appearance
     condition) registered right before the Insider in `registerFactionApiRoles` and right after the Seeker in the
     assassin-guess order. It is drawn only through the shared Vigilante slots
@@ -439,7 +442,7 @@ Current build baseline:
     the ammo HUD and the attachment screen both read it. The cooldown never stops the scope:
     `mixin/usec/ServerPlayerInteractionManagerUsecScopeMixin` and `client/mixin/usec/UsecRifleUseCooldownMixin` wrap the
     one `isCoolingDown` call of server `interactItem` and of the client `interactItem` lambda `method_41929` so it reads
-    "not cooling" for `UsecRifleItem` only, so `use` (which only scopes, and Shift toggles the zoom) runs during the lock
+    "not cooling" for `UsecRifleItem` only, so `use` (which only scopes, and Shift jumps the zoom) runs during the lock
     and the bolt; firing stays cooldown-gated in `UsecFireRules`. The `usec_rifle` nominal is the 40-tick bolt
     (the lock is not a nominal), and no `SparkWitchItemCooldownReleases` case exists because only the vanilla cooldown
     gates the rifle. `compat/SparkTraitsUsecBridge` reflects only the public facade (Marksman, Fast Reload) and fails
@@ -624,23 +627,37 @@ Current build baseline:
     `SparkTraitsApi.isHeavyArtilleryGunShot` facade for one extra shield layer (O3, see shield piercing). SparkAssist
     owns the guidebook page.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
-  `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`. Presentation and intent only: the
-  server decides every shot, attachment and scope flag.
+  `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`. Presentation
+  and intent only: the server decides every shot, attachment and scope flag.
   - Fire input (`UsecFireInput`, `UsecFireLatch`; `client/mixin/usec/UsecRifleInputMixin` copies the launcher seam): a
     fresh attack press with the rifle in the main hand sends `sparkwitch:fire_usec_rifle` with the press-time aim,
     scoped or from the hip. Attacking and mining are swallowed, and held keys never fire. The recoil kick is camera-only
     (`UsecRecoil`, `UsecRecoilCameraMixin` at every return of `GameRenderer.tiltViewWhenHurt`).
-  - Scope (`UsecScopeInput`, `UsecZoomState`): starting to raise the rifle while sneaking toggles 4×/8× first, and the
-    choice is remembered for the game session. Each change of the actually scoped state (`UsecScopeProfile.isActive()`:
-    the `client/scope` view gate with the USEC profile, so never in third person or with a screen open) sends
-    `sparkwitch:usec_scope`, which drives the glint. `UsecScopeProfile`
-    feeds `client/scope`; zoom and sensitivity follow the selected level.
+  - Scope (`UsecScopeInput`, `UsecZoomState`, owner 2026-10-08): a continuous 1×–6× variable scope on the generic
+    `client/scope/ScopeVariableZoom` (`UsecRules.ZOOM_MIN/MAX_MAGNIFICATION`). While scoped every wheel event zooms
+    (`UsecScopeProfile.onWheel` consumes it, so the hotbar never changes; unscoped the wheel is vanilla's): each notch
+    multiplies the target by 6^(1/10) ≈ 1.196 (`ZOOM_NOTCHES_END_TO_END` = 10, geometric so every notch changes the view
+    by the same share; fractional trackpad deltas move it proportionally), and the shown magnification eases toward it
+    in log space with vanilla's 50 ms FOV half-life, frame-rate independently and without overshoot. Starting to raise
+    the rifle while sneaking (Shift + right-click) jumps to the end more wheel notches away (≤ √6 ≈ 2.45× → 6×, above →
+    1×); `client/mixin/usec/UsecScopeInputMixin` (`handleInputEvents` RETURN) applies it before `GameRenderer#tick`
+    samples the zoom, and since the scope is only opening it lands at once and the scope-in ease shows it. The scope
+    reopens at the last magnification (scope releases, death and respawn keep it); `UsecZoomState.observeRound` resets it
+    to `ZOOM_ROUND_START_MAGNIFICATION` (4×) when the client sees Wathe's game leave INACTIVE (a round begins; the first
+    observation of a connection counts as idle, so a mid-round join also starts at 4×) and on disconnect. Each change of
+    the actually scoped state (`UsecScopeProfile.isActive()`: the `client/scope` view gate with the USEC profile, so
+    never in third person or with a screen open) sends `sparkwitch:usec_scope`, which drives the glint; the
+    magnification never leaves the client. `UsecScopeProfile` feeds `client/scope`; zoom (FOV × 1/magnification),
+    sensitivity, the recoil scale and the Full-Screen Zoom periphery blur (`ScopeRules.peripheryBlurFor`: none at 1×,
+    where an LPVO is used with both eyes open, full from 3× up; owner 2026-10-08) follow the shown magnification.
   - Reticle (`UsecReticleGeometry`, `UsecReticleRenderer`): code-drawn in framebuffer pixels. The owner's R2 tactical
-    tree is the default (`UsecReticleStyle.DEFAULT` = `TACTICAL`); R1 `MIL_DOT` is calibrated at 8×. The AP holds
-    (100-200 blocks) are atan(`UsecBallistics.apDropAt`/d) at the frame's real projection FOV, with the shooter's
-    SparkTraits Marksman multiplier.
+    tree is the default (`UsecReticleStyle.DEFAULT` = `TACTICAL`); R1 `MIL_DOT` is calibrated at the top 6×. The AP
+    holds (100-200 blocks) are atan(`UsecBallistics.apDropAt`/d) at the frame's real projection FOV, with the shooter's
+    SparkTraits Marksman multiplier, so R2's marks stay at true angles at every magnification, mid-ease included.
   - Ammo HUD (`UsecAmmoHud`, `UsecAmmoHudRules`): a role-owned bottom-right `HudRenderCallback` line (chamber »
-    [magazine] · 消音, a zoom tag and a bolt bar), shown only to a living, exact-role USEC holding the rifle in an ACTIVE
+    [magazine] · 消音, a magnification tag and a bolt bar; the tag shows the shown magnification to one decimal, `3.4×`,
+    dropping `.0` for whole numbers, `4×`, and the row's placement reserves the widest form so it never jumps while the
+    zoom eases), shown only to a living, exact-role USEC holding the rifle in an ACTIVE
     round; never in the witch skill panel. `拉栓中` comes only from the `UsecCooldowns` classifier (exact entry ticks),
     never from the interpolated cooldown share, so it cannot flicker; the bar fill uses vanilla's smooth share.
   - Glint (`UsecScopeGlintRenderer`, `UsecGlintRules`): an `AFTER_TRANSLUCENT`, screen-blended S1 flare on other
@@ -648,7 +665,26 @@ Current build baseline:
     It is hidden in the Blind view (`BlindClientGates.hidesEntity`) and for self, the camera entity, invisible, Wraith
     or spectating players.
     PiP draws it in both passes, sized via `ScopeClient.screenPixelsPerNdcY`, so the lens matches Full-Screen Zoom.
-  - Pose and model: `UsecRifleArmPoseMixin` gives `CROSSBOW_HOLD`; `UsecModelPredicates` registers the rifle's
+    It sits at the optic's objective lens: eye + `SCOPE_FORWARD` 0.92 along the aim, `SCOPE_RIGHT` 0.18 to the right,
+    `SCOPE_UP` −0.05. The offsets are fitted to the lens centre (8, 14, 10) of `usec_rifle.json` under the
+    third-person `CROSSBOW_HOLD` pose (head pitch ±30°, within 0.15 blocks); refit them when the model or its display
+    transforms move.
+  - Pose: `UsecRifleArmPoseMixin` (priority 1600) gives `CROSSBOW_HOLD` both from the hip and while scoped (plan
+    D15) whenever the shown stack is the rifle. The shown stack is the single `getStackInHand` result after Wathe's
+    held-item substitution. A `@ModifyVariable` at the STORE of vanilla's only `ItemStack` local reads it into a
+    `@Share` flag. An expression hook on the same call would sit inside Wathe's, because the later-applied handler
+    is the inner one.
+    - The answer comes from a `@WrapMethod` on `getArmPose`. It sits inside the Blind gate's priority-2000 wrapper,
+      so Blind viewers still get EMPTY, and outside two cancellable TAIL injects: Wathe's bat pose (priority 1000)
+      and NoellesRoles' Jester Moment pose (priority 1500). For the AXMC it replaces only vanilla's plain `ITEM`
+      answer; a deliberate inner pose passes through, so during the viewer's Jester Moment the bat pose
+      (`CROSSBOW_CHARGE`) wins and the USEC looks like everyone else (owner 2026-10-08, the same rule as the
+      launcher). Any other item passes through unchanged.
+    - Why a wrapper: the rifle's use action is NONE, so vanilla always ends at the final `return ITEM`. A
+      `@ModifyReturnValue(RETURN)` is not woven there next to those TAIL injects (exported class, 2026-10-08), so the
+      old hook never fired in game.
+    - `PotionLauncherArmPoseMixin` uses the same wrapper and ITEM-only rule (Potion Gunner, third-person pose).
+  - Model: `UsecModelPredicates` registers the rifle's
     `sparkwitch:usec_magazine` and `sparkwitch:usec_suppressor` predicates, and `sparkwitch:usec_loaded` on a loose
     magazine (owner, 2026-10-07): `models/item/usec_magazine.json` is the empty magazine and overrides to
     `item/usec_magazine_loaded` (brass round on top) once it holds a round. `UsecRifleModels` registers a
@@ -657,6 +693,22 @@ Current build baseline:
     `item/usec_rifle_suppressed_no_mag`) in `UsecRifleIconSwapModel`.
     - GUI, ground and item frames draw the 2-D `item/usec_rifle_icon` / `item/usec_rifle_suppressed_icon`; every held
       context draws the 3-D AXMC element model.
+    - The 3-D model (owner, 2026-10-08: "more faithful to the AXMC, and to a 1–6× scope") is the AXMC .338 LM with a
+      1–6×24 LPVO after the EOTech Vudu, in the owner's tan colourway (tan chassis; black barrel, bolt, optic and
+      furniture). At about 25.6 mm per unit it has:
+      - an AI double-chamber brake or the 3×3 suppressor can;
+      - a plain heavy barrel and a 15-unit octagonal forend tube with KeySlot slots;
+      - a polymer handguard with a hand stop, and a continuous top rail;
+      - a 5-round magazine, a 2.5-unit bolt knob and the bolt shroud;
+      - a solid AX folding stock that folds to the right: knuckle on the right, cheek riser on posts, monopod rail,
+        length-of-pull spacers.
+      The 10-unit optic has a 2-unit tube, a 2.5-unit objective and a 3-unit ocular, low capped turrets with
+      illumination on the left, and a magnification ring with a throw lever, on a one-piece cantilever mount.
+      The grip (z 19..22), the forend's support-hand section (y 7.5..10.5 behind z -1) and every display transform
+      are unchanged from the 2026-10-07 model; the tube only grew forward.
+      The four variants, the 64×64 atlas and both icons are generated by the archived
+      `usec-art-2026-10-07/art/rifle-axmc-lpvo/scripts/build_all.py`. Its `ui/rifle_art.py` and `ui/emit_java.py`
+      write `UsecAttachmentRifleArt` on the U2 anchors.
     - `models/item/usec_rifle.json` picks its variant from those two predicates. Its self-referencing override keeps the
       base for "magazine in, no suppressor".
     - The base resource `item/usec_rifle` is never wrapped, and no model may use a wrapped id as `parent`.
@@ -687,6 +739,49 @@ Current build baseline:
     never clears breaking entries on a world change, so all cracks are cleared on a world change, on disconnect, and
     when Wathe's `isRunning` flips; vanilla draws them only within 32 blocks of the camera. The client never changes a
     block and never sends a packet.
+  - Instinct cloak (owner, 2026-10-08; `UsecInstinctCloak`, pure `UsecInstinctCloakRules`, range
+    `UsecRules.INSTINCT_CLOAK_RANGE`): a target with the synced `UsecPlayerComponent.scoped` flag is cloaked from the
+    local viewer at a feet-to-feet distance of at most 12 blocks (`squaredDistanceTo`, inclusive, the Apprentice Murder
+    Sense and Vendetta measure) on a confirmed server, never from itself and never from an exempt viewer
+    (`UsecInstinctCloakRules.exemptViewer`, owner 2026-10-08), who keeps seeing a scoped USEC at any distance: the
+    viewers SparkStrength's Corrupt Cop concealment exempts (not Wathe playing-and-alive, or spectating or creative:
+    dead spectators, non-participants, creative players), plus active Wraiths (`WraithClientState.isActive`) and Rift
+    Gate occupants (`RiftSessionService.isInside`) named through SparkWitch's own state.
+    `client/mixin/usec/UsecInstinctCloakMixin` puts three `@WrapMethod`s on `WatheClient` (pinned in
+    `watheClientMixinContracts`): for a cloaked target the whole `getInstinctHighlight` runs as a per-thread "cloaked
+    evaluation" in which `isInstinctEnabled()` and `isInstinctEnabledAndIsKiller()` read false, exactly as if the
+    viewer had released the instinct key for that target. Wathe then drops a keybind event result and its null-result
+    killer/spectator default, and every HEAD answer, RETURN fallback and listener keyed on those gates drops too
+    (SparkTraits Conscience/Impostor/effective-killer HEAD, Black Raven sensed mode, the Insider's and SparkStrength
+    Corrupt Cop's key-held `always`, NoellesRoles Shadow Jester, SparkFactionAPI and witch-faction policies), while
+    key-free answers stay: `always` results, Feather marks, Fiend Moment, Final Moment, Judge sentence, factor and
+    Emma fallbacks, Vendetta, Guardian Shield, tablet suspects, Corrupt Cop Moment window and other timed marks. A
+    `skip()` listener was rejected because its priority 100 would also wipe always-on highlights, and filtering the
+    event result alone would miss the HEAD answers and the key-held `always` listeners. The wrappers never answer by
+    themselves, so their nesting with Fear, Control Expert and the SparkStrength wrappers does not matter. Not
+    covered (not instinct): vanilla GLOWING from the server (SparkTraits Conscience bomb, SparkStrength Noisemaker),
+    Blind echolocation (its `hasOutline` veto already hides every outline), Seeker cameras, and name tags.
+  - Bolt sway (owner, 2026-10-08; pure `UsecBoltSway`, wiring `UsecBoltSwayClient`): while scoped with the AXMC, the
+    bolt cycle after a shot shakes the view in step with `item.usec_rifle.bolt`. Visual only, like the recoil kick:
+    `client/mixin/usec/UsecBoltSwayCameraMixin` appends yaw/pitch/roll at every return of
+    `GameRenderer.tiltViewWhenHurt`, on top of the hurt tilt, the recoil kick, bobbing and FOV changes; the PiP lens
+    pass reuses that main projection, so the lens shows the same rotation magnified. Trigger: `UsecFireInput` reports
+    each sent request (`UsecBoltSwayClient.onShotSent`), which arms a 20-tick pending window only when the synced state
+    chambers a new round (`UsecBoltSway.chambersRound`, i.e. `UsecFireRules.cycle(...).chambered()`, the server's
+    bolt-sound condition); the first synced `UsecCooldowns.status(...).bolt()` entry inside it confirms the shot and
+    anchors the timeline at the entry's start tick, which shares the one-way latency with the bolt sound. An empty
+    click, the last round, other players' shots, a rejected shot, a long lock and the attachment-screen bolts (no local
+    shot; a screen also clears the pending shot) never sway. The feel follows Escape from Tarkov's scoped bolt cycling
+    (owner, 2026-10-08): in world degrees, timed to the sound's four transients, the rifle cants (roll, which no zoom
+    magnifies) to about -3.5° over the handle lift (20 ms) and the pull, the sight dips about 0.6° and drifts about 0.4°
+    right, short yaw/pitch jolts (about 0.26° and, strongest, 0.39°, magnified by the scope) land on the rear (300 ms)
+    and forward (605 ms) clacks, and the sight swings back across the lock (800 ms, done by 860 ms) with a small damped
+    settle. Smooth quintic hand-motion ramps plus C1 damped rings; per-cycle ±15 % gains and ±15° jolt directions, never
+    the timing. It ends at `min(natural end, bolt cooldown total)`, so Fast Reload's 28 ticks settle it 2.5 ticks after
+    the lock and the view is at rest when the rifle can fire again. Shown only while `UsecScopeProfile.isActive()`
+    (3-tick fade in, so scoping in mid-cycle shows the rest; 3-tick fade out); death, a screen, a dropped rifle, a
+    cleared cooldown or a new shot release it with a 3-tick fade, never to resume. Scaled by the lower of vanilla
+    Accessibility's Distortion Effects and Damage Tilt (the recoil kick follows neither). Nothing is sent or synced.
 - `client/scope/`: the reusable client scope module, built for USEC and also carrying the Potion Gunner launcher
   (`client/potiongunner/PotionScopeProfile`; the launcher's own `PotionScope*` mixins and mask texture were removed on
   2026-10-08). Presentation only; nothing here syncs.
@@ -715,6 +810,25 @@ Current build baseline:
     whether this frame's lens picture is barrel-distorted (exactly when no fallback ring draws), and
     `ScopeLensGeometry.BARREL_DISTORTION` is the Java copy of both composites' `DISTORTION` (a test pins them equal);
     the launcher reticle uses both, USEC uses neither.
+  - Variable zoom (2026-10-08, role-agnostic): `ScopeVariableZoom` is a reusable magnification state a profile may
+    own: a target moved by wheel notches in geometric steps (`(max/min)^(1/notchesEndToEnd)` per notch, fractional
+    deltas proportional, clamped to [min, max]), a shown value that eases toward it in log space with
+    `ScopeRules.ZOOM_EASE_HALF_LIFE_SECONDS` as an exact exponential of wall time (frame-rate independent, never
+    overshoots, lands within `SETTLE_LOG_EPSILON`), a jump to the end more notches away (`m² ≤ min·max` → max, else
+    min) that lands at once while the scope is closed, `settle`/`reset`, and `fovMultiplier(m)` = 1/m (1× = 1, no
+    zoom). `ScopeProfile.onWheel(notches)` (default false) lets the active profile take the wheel:
+    `ScopeMouseScrollMixin` injects into vanilla `Mouse#onMouseScroll` at the first GETFIELD of
+    `eventDeltaHorizontalWheel`, reached only for the game window with no overlay, no screen and a player, after every
+    HEAD injector (the Control Expert stun, Seeker remote view, Rift session, Kidnapper control and SparkStrength's
+    stunned Engineer HEAD cancels still win), offers `ScopeRuntime.onMouseWheel` the delta vanilla would accumulate
+    (`ScopeRules.wheelNotches`: Discrete Scrolling's sign, × Mouse Wheel Sensitivity), and cancels only when the
+    profile consumes it, so neither vanilla's accumulator, the spectator branch nor `scrollInHotbar` (and the
+    SparkStrength M67/drone/Serial Killer and Wathe bat wrappers on it) see a consumed wheel. A vanilla target, so
+    `verifyClientMixinSelectors` needs no pin; `ScopeClientMixinTargetsTest` pins it against the named jar. Only USEC
+    uses it: the launcher's `PotionScopeProfile` keeps its fixed true 2.7× and never takes the wheel, so the wheel
+    changes the hotbar as usual while the launcher is scoped. At 1× nothing degenerates: Full-Screen Zoom multiplies
+    the FOV by 1, the PiP narrowing in `ScopeRules.lensClipScale` is exactly 1 (the lens pass only crops) and the
+    `setupTerrain` projection swap still shows Sodium the main projection.
   - Settings: Scope View (Full-Screen Zoom, the default, or Picture-in-Picture), Lens Resolution beside it, and Scoped
     Sensitivity (10–200 % in 5 % steps, default 100 %) are appended at the end of vanilla Options → Accessibility by
     `ScopeAccessibilityOptionsMixin` (`addOptions` TAIL calls `ScopeOptions.addTo(body)`, one `addAll`; SparkAssist's
@@ -734,10 +848,18 @@ Current build baseline:
     vertex shader sizes by `OutSize`), the `sparkwitch_scope_lens` composite, and a copy back. Inside the lens (radius
     0.42 × the short side, `ScopeLensGeometry`) the composite adds barrel distortion, edge transmittance, coating tint,
     smudges, a reflection streak and the scope-shadow crescent; outside, the blurred periphery darkens toward a dark
-    tube rim that is never black. The filter is released 2 s after scoping out, and on disconnect, login, client stop
-    and resource reload; after a failure it retries after 2, 4, 8, 16, then 30 s. Under an Iris shader pack (Wathe
-    `IrisHelper`; an Iris error counts as a pack in use), or while failing, the HUD draws a semi-transparent ring
-    instead.
+    tube rim that is never black. Periphery blur (owner, 2026-10-08): the composite's `PeripheryBlur` uniform (0..1,
+    JSON default 1) is `ScopeRuntime.peripheryBlur(profile)`, the active profile's `ScopeProfile.peripheryBlur()`
+    clamped (unusable means 1). It fades both the blur and the `PERIPHERY_SHADE` darkening, never the tube rim, so 0
+    is exactly PiP's periphery (sharp and undarkened past the same rim) and 1 today's look; the lens, rim ring and
+    reticle never change. The default is 1, so the launcher looks as before; `ScopeRules.peripheryBlurFor(m)` is a
+    ready curve for magnification-driven profiles (smoothstep over ln m / ln 3: 0 at 1×, about 0.69 at 2×, 1 from
+    `PERIPHERY_BLUR_FULL_MAGNIFICATION` 3× up), and a profile that varies it must follow its eased magnification. The
+    filter is released 2 s after scoping out, and on disconnect, login, client stop and resource reload; after a failure
+    it retries after 2, 4, 8, 16, then 30 s. Under an Iris shader pack (Wathe `IrisHelper`; an Iris error counts as a
+    pack in use), or while failing, the HUD draws a semi-transparent ring instead; its dark periphery fades with the
+    same blur (below 1 it first clears over `ScopeLensGeometry.FALLBACK_RIM_FADE` past the tube rim,
+    `fallbackPeripheryColor`), and at 1 it is the original single gradient.
   - Scope shadow: `ScopeShadow` is a smoothed exit-pupil offset driven by the camera's yaw/pitch rate plus a smaller
     share of camera motion, exposed as `ScopeFrame.shadowX/Y` (GUI axes, pointing the way the view swings); the crescent
     appears on the opposite edge.
@@ -772,6 +894,9 @@ Current build baseline:
     50 % 100/98 FPS; Sodium 0.6.13 Full-Screen Zoom 257/238, PiP 100 % 209/198, 75 % 198/193, 50 % 187/188 FPS. On this
     GPU the PiP cost is the second world pass, not the lens fill (native costs about 0.35 ms in vanilla, nothing
     measurable in Sodium), hence the 100 % default; lower steps are for fill-rate-bound GPUs.
+    The 1×–6× variable zoom (2026-10-08, same machine, vanilla, vsync off, a hill-top demo-world view, two 10 s windows
+    each, other builds running) costs nothing extra at 1×: PiP 1× 106/111, PiP 6× 91/99, Full-Screen Zoom 1× 156/155,
+    6× 151/163 FPS.
 - `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
   bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
   Key Fish doors, tracked pufferfish, replay formatting, and lifecycle cleanup. Subpackages:

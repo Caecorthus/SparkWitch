@@ -50,6 +50,26 @@ public final class ScopeRuntime {
                 ScopeSettingsStore.current().sensitivityPercent());
     }
 
+    /**
+     * {@code ScopeMouseScrollMixin}: offers one wheel event to the active profile ({@link ScopeProfile#onWheel}); true
+     * means it consumed the event and vanilla must skip it. Unscoped (or a profile that declines), the wheel stays
+     * vanilla's.
+     * {@code ScopeMouseScrollMixin}：把一次滚轮事件交给当前配置（{@link ScopeProfile#onWheel}）；返回 true 表示已被消耗，
+     * 原版必须跳过。未开镜（或配置不接收）时滚轮仍归原版。
+     */
+    public static boolean onMouseWheel(double notches) {
+        ScopeProfile profile = ScopeClient.activeProfile();
+        return profile != null && profile.onWheel(notches);
+    }
+
+    /**
+     * The active profile's Full-Screen Zoom periphery blur, made safe ({@link ScopeRules#peripheryBlur}); 1 unscoped.
+     * 当前配置的全画面放大镜外模糊强度（经 {@link ScopeRules#peripheryBlur} 安全化）；未开镜时为 1。
+     */
+    public static float peripheryBlur(ScopeProfile profile) {
+        return profile == null ? 1.0F : ScopeRules.peripheryBlur(profile.peripheryBlur());
+    }
+
     public static boolean hidesHand() {
         return ScopeClient.isScoped();
     }
@@ -110,7 +130,8 @@ public final class ScopeRuntime {
             ScopePictureInPicture.idle(now - lastPictureInPictureNanos);
         }
         lastZoomBlurNanos = now;
-        ScopeLensFilter.render(client, fade, SHADOW.x(), SHADOW.y(), tickCounter.getLastFrameDuration());
+        ScopeLensFilter.render(client, fade, SHADOW.x(), SHADOW.y(), peripheryBlur(profile),
+                tickCounter.getLastFrameDuration());
     }
 
     /**

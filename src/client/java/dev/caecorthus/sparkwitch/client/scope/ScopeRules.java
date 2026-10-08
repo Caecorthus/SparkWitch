@@ -48,6 +48,12 @@ public final class ScopeRules {
     /** GameRenderer clamps the eased FOV multiplier at 0.1; deeper requests gain nothing. / 原版把缓动后的倍率钳制在 0.1。 */
     public static final float MIN_FOV_MULTIPLIER = 0.1F;
     public static final float MAX_SENSITIVITY_MULTIPLIER = 4.0F;
+    /**
+     * Default periphery-blur curve ({@link #peripheryBlurFor}): none at 1x, full from this magnification up (owner,
+     * 2026-10-08: a 1x LPVO is used with both eyes open).
+     * 默认镜外模糊曲线（{@link #peripheryBlurFor}）：1 倍时为零，从该倍率起为满强度（所有者 2026-10-08：1 倍 LPVO 双眼睁开使用）。
+     */
+    public static final double PERIPHERY_BLUR_FULL_MAGNIFICATION = 3.0;
 
     private ScopeRules() {
     }
@@ -111,6 +117,48 @@ public final class ScopeRules {
                 ? Math.max(0.0, Math.min(MAX_SENSITIVITY_MULTIPLIER, profileMultiplier))
                 : 1.0;
         return base * ScopeSettings.clampPercent(sensitivityPercent) / 100.0;
+    }
+
+    /**
+     * A ready-made periphery-blur curve for a magnification-driven profile ({@link ScopeProfile#peripheryBlur}): a
+     * smoothstep over {@code ln(m) / ln(}{@link #PERIPHERY_BLUR_FULL_MAGNIFICATION}{@code )}, so 0 at 1x (and below),
+     * about 0.69 at 2x, 1 from 3x up, with zero slope at both ends (no visible kink). Log space, like the zoom steps.
+     * Non-finite input means full blur (today's look).
+     * 供按倍率变化的配置使用的现成镜外模糊曲线（{@link ScopeProfile#peripheryBlur}）：对
+     * {@code ln(m) / ln(}{@link #PERIPHERY_BLUR_FULL_MAGNIFICATION}{@code )} 做 smoothstep，因此 1 倍（及以下）为 0、2 倍约
+     * 0.69、3 倍起为 1，两端斜率为零（没有可见拐点）。与缩放步长一样在对数空间计算。非有限输入视为满模糊（原有外观）。
+     */
+    public static float peripheryBlurFor(double magnification) {
+        if (!Double.isFinite(magnification)) {
+            return 1.0F;
+        }
+        double t = Math.log(Math.max(1.0, magnification)) / Math.log(PERIPHERY_BLUR_FULL_MAGNIFICATION);
+        t = Math.max(0.0, Math.min(1.0, t));
+        return (float) (t * t * (3.0 - 2.0 * t));
+    }
+
+    /**
+     * A profile's periphery blur made safe: [0, 1], anything unusable means full blur. / 安全化的镜外模糊强度。
+     */
+    public static float peripheryBlur(float profileBlur) {
+        if (!Float.isFinite(profileBlur)) {
+            return 1.0F;
+        }
+        return Math.max(0.0F, Math.min(1.0F, profileBlur));
+    }
+
+    /**
+     * The wheel delta {@code Mouse#onMouseScroll} accumulates for the hotbar, recomputed from the raw GLFW vertical
+     * offset: its sign only under Discrete Scrolling, times Mouse Wheel Sensitivity. Trackpads and high-resolution
+     * wheels give fractions; 0 for a non-finite input.
+     * {@code Mouse#onMouseScroll} 为快捷栏累加的滚轮增量，由 GLFW 原始竖直偏移重新计算：「离散滚动」时只取符号，再乘以
+     * 「滚轮灵敏度」。触控板与高精度滚轮会给出小数；非有限输入为 0。
+     */
+    public static double wheelNotches(double vertical, boolean discreteScroll, double wheelSensitivity) {
+        if (!Double.isFinite(vertical) || !Double.isFinite(wheelSensitivity)) {
+            return 0.0;
+        }
+        return (discreteScroll ? Math.signum(vertical) : vertical) * wheelSensitivity;
     }
 
     /**

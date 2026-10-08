@@ -305,6 +305,39 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_1297;)I"
         ],
         [
+                // USEC scoped instinct cloak (owner, 2026-10-08): a cloaked target's whole highlight runs with Wathe's
+                // two keyed instinct gates closed. / USEC 开镜本能隐蔽（所有者 2026-10-08）：被隐蔽目标的整个高亮求值
+                // 在 Wathe 两个按键本能入口关闭的状态下运行。
+                configName: "usec.UsecInstinctCloakMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/usec/UsecInstinctCloakMixin.class",
+                handler: "sparkwitch\$cloakScopedUsec",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
+                configName: "usec.UsecInstinctCloakMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/usec/UsecInstinctCloakMixin.class",
+                handler: "sparkwitch\$closeInstinctForCloakedUsec",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "isInstinctEnabled()Z",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "isInstinctEnabled",
+                providerDescriptor: "()Z"
+        ],
+        [
+                configName: "usec.UsecInstinctCloakMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/usec/UsecInstinctCloakMixin.class",
+                handler: "sparkwitch\$closeKillerInstinctForCloakedUsec",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "isInstinctEnabledAndIsKiller()Z",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "isInstinctEnabledAndIsKiller",
+                providerDescriptor: "()Z"
+        ],
+        [
                 configName: "AssassinVendettaTargetMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/AssassinVendettaTargetMixin.class",
                 handler: "sparkwitch\$appendBoundVendetta",
