@@ -13,10 +13,11 @@ import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 /**
  * USEC per-player state ({@code sparkwitch:usec_player}, {@code NEVER_COPY}, appended last in the CCA list), kept out
  * of the shared {@code sparkwitch:player} packet whose field order is frozen. Its only field, {@code scoped}, is synced
- * to every client because others draw the scope glint (S1). The server is the authority: only its scope service writes
- * it. It is transient and never saved.
+ * to every client because others draw the scope glint (S1) and apply the instinct cloak (owner, 2026-10-08). The
+ * server is the authority: only its scope service writes it. It is transient and never saved.
  * USEC 每玩家状态（{@code sparkwitch:usec_player}，{@code NEVER_COPY}，追加在 CCA 列表末尾），不放进字段顺序已冻结的
- * 共享 {@code sparkwitch:player} 同步包。唯一字段 {@code scoped} 同步给所有客户端，因为其他人要绘制镜头反光（S1）。
+ * 共享 {@code sparkwitch:player} 同步包。唯一字段 {@code scoped} 同步给所有客户端，因为其他人要绘制镜头反光（S1）并
+ * 执行本能隐蔽（所有者 2026-10-08）。
  * 服务端是权威：只有其开镜服务写入。该状态是瞬时的，从不保存。
  */
 public final class UsecPlayerComponent implements AutoSyncedComponent {

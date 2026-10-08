@@ -412,6 +412,9 @@ Current build baseline:
     no cap (Q1+). The stamina cap is 20 s and regeneration is doubled, both stacking with traits. Death drops one Wathe
     revolver and deletes the rifle and its parts (Q2). Right-click scopes, left-click fires, and hip fire is as accurate
     (Q15). Grand Witch Fear blocks neither the shot nor the attachments (Q14).
+    Passive (owner, 2026-10-08): while scoped, a USEC is hidden from the keyed instinct x-ray of every living viewer
+    within 12 blocks; spectators, Rift occupants and active Wraiths still see it, and always-on highlights stay (see
+    `client/usec/` instinct cloak).
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 20 s `maxSprintTime`, no appearance
     condition) registered right before the Insider in `registerFactionApiRoles` and right after the Seeker in the
     assassin-guess order. It is drawn only through the shared Vigilante slots
@@ -687,6 +690,28 @@ Current build baseline:
     never clears breaking entries on a world change, so all cracks are cleared on a world change, on disconnect, and
     when Wathe's `isRunning` flips; vanilla draws them only within 32 blocks of the camera. The client never changes a
     block and never sends a packet.
+  - Instinct cloak (owner, 2026-10-08; `UsecInstinctCloak`, pure `UsecInstinctCloakRules`, range
+    `UsecRules.INSTINCT_CLOAK_RANGE`): a target with the synced `UsecPlayerComponent.scoped` flag is cloaked from the
+    local viewer at a feet-to-feet distance of at most 12 blocks (`squaredDistanceTo`, inclusive, the Apprentice Murder
+    Sense and Vendetta measure) on a confirmed server, never from itself and never from an exempt viewer
+    (`UsecInstinctCloakRules.exemptViewer`, owner 2026-10-08), who keeps seeing a scoped USEC at any distance: the
+    viewers SparkStrength's Corrupt Cop concealment exempts (not Wathe playing-and-alive, or spectating or creative:
+    dead spectators, non-participants, creative players), plus active Wraiths (`WraithClientState.isActive`) and Rift
+    Gate occupants (`RiftSessionService.isInside`) named through SparkWitch's own state.
+    `client/mixin/usec/UsecInstinctCloakMixin` puts three `@WrapMethod`s on `WatheClient` (pinned in
+    `watheClientMixinContracts`): for a cloaked target the whole `getInstinctHighlight` runs as a per-thread "cloaked
+    evaluation" in which `isInstinctEnabled()` and `isInstinctEnabledAndIsKiller()` read false, exactly as if the
+    viewer had released the instinct key for that target. Wathe then drops a keybind event result and its null-result
+    killer/spectator default, and every HEAD answer, RETURN fallback and listener keyed on those gates drops too
+    (SparkTraits Conscience/Impostor/effective-killer HEAD, Black Raven sensed mode, the Insider's and SparkStrength
+    Corrupt Cop's key-held `always`, NoellesRoles Shadow Jester, SparkFactionAPI and witch-faction policies), while
+    key-free answers stay: `always` results, Feather marks, Fiend Moment, Final Moment, Judge sentence, factor and
+    Emma fallbacks, Vendetta, Guardian Shield, tablet suspects, Corrupt Cop Moment window and other timed marks. A
+    `skip()` listener was rejected because its priority 100 would also wipe always-on highlights, and filtering the
+    event result alone would miss the HEAD answers and the key-held `always` listeners. The wrappers never answer by
+    themselves, so their nesting with Fear, Control Expert and the SparkStrength wrappers does not matter. Not
+    covered (not instinct): vanilla GLOWING from the server (SparkTraits Conscience bomb, SparkStrength Noisemaker),
+    Blind echolocation (its `hasOutline` veto already hides every outline), Seeker cameras, and name tags.
 - `client/scope/`: the reusable client scope module, built for USEC and also carrying the Potion Gunner launcher
   (`client/potiongunner/PotionScopeProfile`; the launcher's own `PotionScope*` mixins and mask texture were removed on
   2026-10-08). Presentation only; nothing here syncs.
