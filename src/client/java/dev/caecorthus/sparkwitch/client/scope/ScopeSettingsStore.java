@@ -53,6 +53,10 @@ public final class ScopeSettingsStore {
         update(settings -> settings.withSensitivityPercent(percent));
     }
 
+    public static void setLensResolutionPercent(int percent) {
+        update(settings -> settings.withLensResolutionPercent(percent));
+    }
+
     private static synchronized void update(UnaryOperator<ScopeSettings> change) {
         ScopeSettings next = change.apply(current);
         if (next.equals(current)) {

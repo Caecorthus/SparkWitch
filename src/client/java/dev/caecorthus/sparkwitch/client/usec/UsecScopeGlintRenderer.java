@@ -69,10 +69,11 @@ public final class UsecScopeGlintRenderer {
         Vec3d cameraPos = camera.getPos();
         float tickDelta = context.tickCounter().getTickDelta(false);
         // On-screen pixels per unit tangent of this pass's projection (m11 = 1 / tan(fov / 2)). The PiP lens pass
-        // renders into a small square with a narrowed projection; the scope module maps that back to screen pixels, so
-        // the flare in the lens matches Full-Screen Zoom and the 1x main pass stays as before.
-        // 本次渲染投影每单位正切对应的屏幕像素（m11 = 1 / tan(fov / 2)）。画中画镜内渲染输出到小方形目标且投影已收窄；开镜
-        // 模块把它换算回屏幕像素，因此镜内闪光与全画面放大一致，1 倍主渲染保持不变。
+        // renders into a square sized by the player's Lens Resolution with a narrowed projection; the scope module maps
+        // that back to screen pixels, so the flare in the lens matches Full-Screen Zoom and the 1x main pass stays as
+        // before.
+        // 本次渲染投影每单位正切对应的屏幕像素（m11 = 1 / tan(fov / 2)）。画中画镜内渲染输出到按玩家镜内分辨率确定大小的方形
+        // 目标且投影已收窄；开镜模块把它换算回屏幕像素，因此镜内闪光与全画面放大一致，1 倍主渲染保持不变。
         double widthPx = client.getWindow().getFramebufferWidth();
         double heightPx = client.getWindow().getFramebufferHeight();
         double pixelsPerTangent = ScopeClient.screenPixelsPerNdcY(widthPx, heightPx)

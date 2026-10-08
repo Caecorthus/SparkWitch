@@ -18,11 +18,15 @@ public final class ScopeRules {
      */
     public static final float LENS_VIEW_MARGIN = 1.1F;
     /**
-     * Longest side of the square PiP lens render in pixels (owner brief: a reduced lens resolution, about 512²); a
-     * smaller lens renders at its own size.
-     * 画中画方形镜内渲染的最长边（像素；所有者要求：降低的镜内分辨率，约 512²）；更小的镜片按自身尺寸渲染。
+     * Hard cap on the side of the square PiP lens render, in pixels, whatever the player's Lens Resolution. 2048 is the
+     * smallest power of two above the native lens of 4K UHD (3840x2160: 1996 px), so every screen up to 4K renders the
+     * lens natively at 100 %; 5K and larger stay at 2048² (4.2 MP, about the 4K cost, 32 MiB with depth) instead of
+     * growing to 2661² and beyond. It is always below the main framebuffer's short side when it applies.
+     * 画中画方形镜内渲染边长的硬上限（像素），与玩家的镜内分辨率设置无关。2048 是大于 4K UHD 原生镜片（3840x2160：1996 像素）的
+     * 最小 2 的幂，因此 4K 及以下的屏幕在 100 % 时都按原生尺寸渲染镜内画面；5K 及更大的屏幕停在 2048²（420 万像素，约等于
+     * 4K 的开销，含深度 32 MiB），不会增长到 2661² 以上。该上限生效时总小于主帧缓冲的短边。
      */
-    public static final int LENS_VIEW_MAX_PIXELS = 512;
+    public static final int LENS_VIEW_MAX_PIXELS = 2048;
     public static final int LENS_VIEW_MIN_PIXELS = 64;
     /**
      * Vanilla closes half of the FOV gap every tick (50 ms); the PiP lens zoom eases per frame with the same half-life.
@@ -113,20 +117,42 @@ public final class ScopeRules {
     }
 
     /**
-     * Side of the square PiP lens render: the lens diameter plus {@link #LENS_VIEW_MARGIN}, in framebuffer pixels,
-     * within [{@link #LENS_VIEW_MIN_PIXELS}, {@link #LENS_VIEW_MAX_PIXELS}] and never above the framebuffer's short side
-     * (the entity-outline composite maps the lens render 1:1 onto the corner of the window-sized outline target).
-     * 画中画方形镜内渲染的边长：镜片直径加 {@link #LENS_VIEW_MARGIN}（帧缓冲像素），限制在给定范围内，且绝不超过帧缓冲短边
-     * （实体描边合成把镜内渲染 1:1 映射到窗口尺寸描边目标的一角）。
+     * The native PiP lens render side, in framebuffer pixels: the on-screen span the composite stretches the whole lens
+     * target over, 2 x {@link #LENS_VIEW_MARGIN} lens radii, so a target this size has one texel per screen pixel.
+     * 画中画镜内渲染的原生边长（帧缓冲像素）：合成时整个镜内目标在屏幕上覆盖的跨度，即 2 x {@link #LENS_VIEW_MARGIN} 个镜片
+     * 半径；该尺寸的目标每个纹素对应一个屏幕像素。
      */
-    public static int lensViewSize(int framebufferWidth, int framebufferHeight) {
+    public static double nativeLensViewPixels(int framebufferWidth, int framebufferHeight) {
+        return 2.0 * LENS_VIEW_MARGIN * ScopeLensGeometry.lensRadius(framebufferWidth, framebufferHeight);
+    }
+
+    /**
+     * Side of the square PiP lens render for the player's Lens Resolution: {@code resolutionPercent} (one of
+     * {@link ScopeSettings#LENS_RESOLUTION_STEPS}; anything else means 100 %) of {@link #nativeLensViewPixels}, rounded
+     * to the nearest whole pixel with the same parity as the framebuffer's short side, then kept within
+     * [{@link #LENS_VIEW_MIN_PIXELS}, {@link #LENS_VIEW_MAX_PIXELS}] and never above the short side (the entity-outline
+     * composite maps the lens render 1:1 onto the corner of the window-sized outline target). It depends on the
+     * framebuffer size only, never on the GUI scale. The parity matters at 100 %: the composite samples the lens with
+     * linear filtering, and with a matching parity the texels sit on screen-pixel centres around the lens centre, so a
+     * native lens is as crisp as Full-Screen Zoom there instead of a half-texel blend; smaller steps upscale smoothly.
+     * 玩家镜内分辨率对应的画中画方形镜内渲染边长：{@link #nativeLensViewPixels} 的 {@code resolutionPercent}（属于
+     * {@link ScopeSettings#LENS_RESOLUTION_STEPS}；其他值按 100 % 处理），取与帧缓冲短边奇偶性相同的最近整数像素，再限制在
+     * [{@link #LENS_VIEW_MIN_PIXELS}, {@link #LENS_VIEW_MAX_PIXELS}] 内且绝不超过短边（实体描边合成把镜内渲染 1:1 映射到窗口
+     * 尺寸描边目标的一角）。它只取决于帧缓冲尺寸，与 GUI 缩放无关。奇偶性在 100 % 时有意义：合成以线性过滤采样镜内画面，
+     * 奇偶一致时镜片中心附近的纹素正好落在屏幕像素中心，原生镜内画面在那里与全画面放大一样清晰，而不是半个纹素的混合；
+     * 较低档位则平滑放大。
+     */
+    public static int lensViewSize(int framebufferWidth, int framebufferHeight, int resolutionPercent) {
         int shortSide = Math.min(framebufferWidth, framebufferHeight);
         if (shortSide <= 0) {
             return LENS_VIEW_MIN_PIXELS;
         }
-        double diameter = 2.0 * LENS_VIEW_MARGIN * ScopeLensGeometry.lensRadius(framebufferWidth, framebufferHeight);
-        int side = (int) Math.ceil(diameter);
-        return Math.max(1, Math.min(shortSide, Math.max(LENS_VIEW_MIN_PIXELS, Math.min(LENS_VIEW_MAX_PIXELS, side))));
+        double wanted = nativeLensViewPixels(framebufferWidth, framebufferHeight)
+                * ScopeSettings.lensResolutionOrDefault(resolutionPercent) / 100.0;
+        int parity = shortSide & 1;
+        long side = Math.round((wanted - parity) / 2.0) * 2L + parity;
+        return (int) Math.max(1, Math.min(shortSide, Math.max(LENS_VIEW_MIN_PIXELS,
+                Math.min(LENS_VIEW_MAX_PIXELS, side))));
     }
 
     /**
@@ -162,16 +188,16 @@ public final class ScopeRules {
     /**
      * On-screen (main framebuffer) pixels spanned by one unit of vertical NDC in a world pass, for world-render hooks
      * that size sprites in screen pixels. The main pass fills the screen: half its height. The PiP lens pass renders a
-     * small square target whose whole [-1, 1] NDC range the composite stretches over 2 x {@link #LENS_VIEW_MARGIN} lens
-     * radii: {@link #LENS_VIEW_MARGIN} x the lens radius, whatever the target's own size ({@link #lensViewSize}). Times
-     * the pass's projection m11 this gives on-screen pixels per unit tangent, and in the lens that product equals
-     * ZOOM_BLUR's at the same zoom ({@link #lensClipScale} uses the same radius), so a sprite sized with it looks the
-     * same in both modes.
+     * square target whose whole [-1, 1] NDC range the composite stretches over 2 x {@link #LENS_VIEW_MARGIN} lens
+     * radii: {@link #LENS_VIEW_MARGIN} x the lens radius, whatever the target's own size ({@link #lensViewSize}, which
+     * follows the player's Lens Resolution). Times the pass's projection m11 this gives on-screen pixels per unit
+     * tangent, and in the lens that product equals ZOOM_BLUR's at the same zoom ({@link #lensClipScale} uses the same
+     * radius), so a sprite sized with it looks the same in both modes.
      * 世界渲染中竖直 NDC 一个单位在屏幕（主帧缓冲）上覆盖的像素数，供以屏幕像素设定大小的世界渲染钩子使用。主渲染铺满屏幕：
-     * 屏幕高度的一半。画中画镜内渲染输出一个小的方形目标，合成时把它整个 [-1, 1] NDC 范围拉伸到 2 x {@link #LENS_VIEW_MARGIN}
-     * 个镜片半径上：即 {@link #LENS_VIEW_MARGIN} x 镜片半径，与目标自身尺寸（{@link #lensViewSize}）无关。乘以该次渲染投影的
-     * m11 即为每单位正切的屏幕像素；镜内该乘积与相同倍率下全画面放大的值相等（{@link #lensClipScale} 使用同一半径），因此据此
-     * 设定大小的精灵在两种模式下看起来一样大。
+     * 屏幕高度的一半。画中画镜内渲染输出一个方形目标，合成时把它整个 [-1, 1] NDC 范围拉伸到 2 x {@link #LENS_VIEW_MARGIN}
+     * 个镜片半径上：即 {@link #LENS_VIEW_MARGIN} x 镜片半径，与目标自身尺寸（{@link #lensViewSize}，随玩家的镜内分辨率变化）
+     * 无关。乘以该次渲染投影的 m11 即为每单位正切的屏幕像素；镜内该乘积与相同倍率下全画面放大的值相等
+     * （{@link #lensClipScale} 使用同一半径），因此据此设定大小的精灵在两种模式下看起来一样大。
      *
      * @param lensPass     whether the PiP lens pass is rendering ({@code ScopeClient.isRenderingLens()}) / 是否处于镜内渲染
      * @param screenWidth  main framebuffer width in pixels / 主帧缓冲宽度（像素）
