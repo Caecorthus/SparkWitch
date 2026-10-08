@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 /**
  * Client only. The reusable scope module's public entry (WP4): weapons register a provider, and while one returns a
  * {@link ScopeProfile} the module zooms the FOV, scales mouse look, hides the hand, renders the lens and the rim, and
- * calls the weapon's reticle. USEC registers first; the Potion Gunner launcher is meant to migrate onto it later.
+ * calls the weapon's reticle. The USEC rifle and the Potion Gunner launcher are its consumers.
  * Presentation only: no state here is synced, and the server never trusts it.
  * <p>
  * A consumer calls {@link #registerProvider} once at client init with a supplier that returns its profile while its
@@ -25,7 +25,7 @@ import java.util.function.Supplier;
  * first person, the camera is that player, no screen open, not a spectator), so a provider never repeats those checks.
  * Providers are polled several times per frame and must be cheap and side-effect free.
  * 仅客户端。可复用开镜模块的公共入口（WP4）：武器注册提供者，只要某个提供者返回 {@link ScopeProfile}，本模块就放大 FOV、
- * 缩放鼠标视角、隐藏手、渲染镜片与镜框并调用武器自己的分划。USEC 最先注册；药炮手炮筒之后将迁移到这里。仅负责展示：
+ * 缩放鼠标视角、隐藏手、渲染镜片与镜框并调用武器自己的分划。USEC 步枪与药炮手炮筒是它的使用方。仅负责展示：
  * 这里的状态从不同步，服务端也从不信任。
  * <p>
  * 使用方在客户端初始化时调用一次 {@link #registerProvider}，传入的 supplier 在自己的瞄准镜开启时（例如本地玩家正在使用该
@@ -41,9 +41,11 @@ public final class ScopeClient {
     }
 
     /**
-     * Called once from {@code UsecClientModule.register()}: loads the settings and wires the lens filter's reload and
-     * connection resets.
-     * 由 {@code UsecClientModule.register()} 调用一次：加载设置，并接好镜片滤镜的资源重载与连接重置。
+     * Loads the settings and wires the lens filter's reload and connection resets. Idempotent: every consumer's client
+     * init calls it before registering its provider ({@code PotionGunnerClient.init()} and
+     * {@code UsecClientModule.register()}), and only the first call registers anything.
+     * 加载设置，并接好镜片滤镜的资源重载与连接重置。幂等：每个使用方的客户端初始化都会在注册提供者之前调用它
+     * （{@code PotionGunnerClient.init()} 与 {@code UsecClientModule.register()}），只有第一次调用会注册。
      */
     public static synchronized void register() {
         if (registered) {

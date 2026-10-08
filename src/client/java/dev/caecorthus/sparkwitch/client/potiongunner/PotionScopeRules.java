@@ -1,10 +1,8 @@
 package dev.caecorthus.sparkwitch.client.potiongunner;
 
-import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionBallistics;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
-import net.minecraft.util.Identifier;
 
 import java.util.List;
 
@@ -15,10 +13,19 @@ import java.util.List;
  * 背包面板。
  */
 public final class PotionScopeRules {
-    /** FOV multiplier while scoped (about 4x zoom). / 开镜时的视场倍率（约 4 倍放大）。 */
+    /**
+     * The launcher scope's magnification, as {@code client/scope}'s {@code ScopeProfile#fovMultiplier} (0.25 = 4x).
+     * The single place to retune it.
+     * 炮筒瞄准镜的放大倍率，即 {@code client/scope} 的 {@code ScopeProfile#fovMultiplier}（0.25 = 4 倍）。唯一的调整处。
+     */
     public static final float ZOOM_FACTOR = 0.25F;
-    /** Mouse look scale while scoped, matching the zoom. / 开镜时的鼠标视角缩放，与放大倍率一致。 */
-    public static final double SENSITIVITY_SCALE = 0.25;
+    /**
+     * Base mouse-look scale while scoped, matching the zoom, as {@code ScopeProfile#sensitivityMultiplier}; the player's
+     * Scoped Sensitivity percentage multiplies it. The single place to retune it.
+     * 开镜时的基础鼠标视角缩放，与放大倍率一致，即 {@code ScopeProfile#sensitivityMultiplier}；再乘以玩家的「开镜灵敏度」
+     * 百分比。唯一的调整处。
+     */
+    public static final float SENSITIVITY_SCALE = 0.25F;
     /**
      * Drop ticks in horizontal blocks. Inside {@link PotionGunnerRules#FLAT_RANGE_BLOCKS} the shell flies straight, so
      * the crosshair centre itself is the 0-50 mark ({@link #CENTER_LABEL}); ticks start beyond it.
@@ -28,19 +35,19 @@ public final class PotionScopeRules {
     public static final List<Integer> RANGE_TICKS = List.of(60, 70, 80, 90, 100);
     /** Label of the crosshair centre: the flat-flight range. / 准星中心的标签：平飞距离。 */
     public static final String CENTER_LABEL = "0-" + (int) PotionGunnerRules.FLAT_RANGE_BLOCKS;
+    /** Drop ticks stay a little inside the lens radius. / 下坠刻度略微保持在镜片半径以内。 */
+    public static final double TICK_RADIUS_SHARE = 0.92;
     /**
-     * WP5 mask, 256x256 and drawn with blur: fully clear inside a radius of about 108 px, then a faint dark ring (alpha
-     * up to about 72/255) out to about 119 px, then a soft edge that is opaque from about 122 px.
-     * WP5 遮罩，256x256，以模糊方式绘制：半径约 108 像素内完全透明，向外是一圈淡暗环（透明度最高约 72/255）至约
-     * 119 像素，随后是柔和边缘，约 122 像素起完全不透明。
+     * Gap (GUI px) between the lens edge and the loaded-shell line's outer corner.
+     * 镜片边缘与装填行外角之间的间隙（GUI 像素）。
      */
-    public static final Identifier MASK_TEXTURE = SparkWitch.id("textures/gui/potion_scope_mask.png");
+    public static final double SHELL_LINE_INSET = 6.0;
     /**
-     * Radius of the mask's soft edge at half opacity (about 120 px) as a fraction of the drawn mask side; the crosshair
-     * arms reach it and the range ticks stay inside it.
-     * 遮罩柔和边缘半不透明处的半径（约 120 像素）占遮罩边长的比例；十字线延伸到此处，射程刻度保持在其以内。
+     * The loaded-shell line never reaches left of this x (GUI px from the lens centre), clear of the vertical crosshair
+     * arm and its one-pixel shadow (x 0..2).
+     * 装填行左端不越过该 x（距镜片中心的 GUI 像素），避开竖直十字线及其一像素阴影（x 0..2）。
      */
-    public static final double MASK_CLEAR_RADIUS = 120.0 / 256.0;
+    public static final double SHELL_LINE_MIN_X = 4.0;
 
     public static final String HUD_LOADED_KEY = "hud.sparkwitch.potion_gunner.loaded";
     public static final String HUD_EMPTY_KEY = "hud.sparkwitch.potion_gunner.empty";
@@ -53,16 +60,6 @@ public final class PotionScopeRules {
     public static final double LABEL_MIN_TOP = 2.5;
 
     private PotionScopeRules() {
-    }
-
-    /**
-     * Local scoped state: using the launcher, in first person through the player's own eyes, no screen, not a
-     * spectator. Every input is local-client state.
-     * 本地开镜状态：正在使用炮筒、以玩家自己的眼睛第一人称观看、未打开界面、不是旁观者。所有输入都是本地客户端状态。
-     */
-    public static boolean isScoped(boolean usingLauncher, boolean firstPerson, boolean cameraIsPlayer,
-                                   boolean screenOpen, boolean spectator) {
-        return usingLauncher && firstPerson && cameraIsPlayer && !screenOpen && !spectator;
     }
 
     /**
@@ -123,11 +120,13 @@ public final class PotionScopeRules {
     }
 
     /**
-     * Pixels below the screen centre at which the {@code distance}-block tick sits for the current {@code pitch} and
-     * the effective vertical FOV of this frame; NaN when the shell cannot reach that distance or the tick would leave
-     * the circle of radius {@code clearRadius}.
-     * 在当前俯仰角与本帧实际竖直视场角下，{@code distance} 格刻度位于屏幕中心下方的像素数；炮弹无法到达该距离或刻度
-     * 超出半径为 {@code clearRadius} 的圆时返回 NaN。
+     * Pixels below the lens centre at which the {@code distance}-block tick sits for the current {@code pitch} and
+     * the vertical FOV the world was projected with this frame ({@code ScopeFrame#projectionFovDegrees}, over a
+     * projection {@code halfHeight} px tall above the centre); NaN when the shell cannot reach that distance or the
+     * tick would leave the circle of radius {@code clearRadius}.
+     * 在当前俯仰角与本帧世界投影实际使用的竖直视场角（{@code ScopeFrame#projectionFovDegrees}，中心以上投影高度为
+     * {@code halfHeight} 像素）下，{@code distance} 格刻度位于镜片中心下方的像素数；炮弹无法到达该距离或刻度超出半径为
+     * {@code clearRadius} 的圆时返回 NaN。
      */
     public static double tickOffset(double pitchDegrees, double distance, double verticalFovDegrees,
                                     double halfHeight, double clearRadius) {
@@ -137,5 +136,55 @@ public final class PotionScopeRules {
             return Double.NaN;
         }
         return offset;
+    }
+
+    /**
+     * Length of each crosshair arm (GUI px from the lens centre) so the arm, one pixel thick plus its one-pixel shadow,
+     * ends just inside the lens edge.
+     * 每条十字线臂的长度（距镜片中心的 GUI 像素），使一像素粗的线臂连同一像素阴影正好止于镜片边缘以内。
+     */
+    public static int crosshairArm(double lensRadius) {
+        if (!(lensRadius > 0.0) || !Double.isFinite(lensRadius)) {
+            return 0;
+        }
+        return Math.max(0, (int) Math.floor(lensRadius) - 2);
+    }
+
+    /**
+     * True when the whole rectangle (GUI px relative to the lens centre) lies inside the lens circle, so the interim
+     * reticle never draws outside the lens.
+     * 矩形（相对镜片中心的 GUI 像素）完全位于镜片圆内时为 true，使过渡分划从不画到镜片外。
+     */
+    public static boolean insideLens(double x0, double y0, double x1, double y1, double lensRadius) {
+        if (!(lensRadius > 0.0)) {
+            return false;
+        }
+        double farX = Math.max(Math.abs(x0), Math.abs(x1));
+        double farY = Math.max(Math.abs(y0), Math.abs(y1));
+        return farX * farX + farY * farY <= lensRadius * lensRadius;
+    }
+
+    /**
+     * The loaded-shell line's top-right corner sits at (+c, -c) from the lens centre: the lens's upper-right 45-degree
+     * point, {@link #SHELL_LINE_INSET} inside the edge.
+     * 装填行右上角位于镜片中心的 (+c, -c)：镜片右上 45 度点，距边缘 {@link #SHELL_LINE_INSET}。
+     */
+    public static double shellLineCorner(double lensRadius) {
+        return Math.max(0.0, lensRadius - SHELL_LINE_INSET) * Math.sqrt(0.5);
+    }
+
+    /**
+     * Scale of the loaded-shell line ({@code lineWidth} GUI px wide at scale 1, swatch and shadow included): 1, or less
+     * when the upper-right quadrant between {@link #SHELL_LINE_MIN_X} and {@link #shellLineCorner} is narrower, so the
+     * right-aligned line stays inside the lens and clear of the vertical arm.
+     * 装填行的缩放（缩放为 1 时宽 {@code lineWidth} GUI 像素，含色块与阴影）：为 1；若右上象限中 {@link #SHELL_LINE_MIN_X}
+     * 至 {@link #shellLineCorner} 之间更窄则缩小，使右对齐的装填行留在镜片内并避开竖直十字线。
+     */
+    public static double shellLineScale(double lensRadius, double lineWidth) {
+        double room = shellLineCorner(lensRadius) - SHELL_LINE_MIN_X;
+        if (!(room > 0.0)) {
+            return 0.0;
+        }
+        return lineWidth > room ? room / lineWidth : 1.0;
     }
 }
