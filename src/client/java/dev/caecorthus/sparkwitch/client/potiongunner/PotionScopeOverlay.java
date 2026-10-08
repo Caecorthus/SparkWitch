@@ -1,38 +1,67 @@
 package dev.caecorthus.sparkwitch.client.potiongunner;
 
+import dev.caecorthus.sparkwitch.client.scope.ScopeClient;
 import dev.caecorthus.sparkwitch.client.scope.ScopeFrame;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
+import org.joml.Matrix4f;
 
 import java.util.Optional;
 
 /**
  * The launcher reticle, drawn by {@link PotionScopeProfile#drawReticle} after {@code client/scope} has drawn the lens
- * and its rim. INTERIM: it ports the old scope's content (a thin crosshair to the lens edge whose centre is labelled
- * 0-50 for flat flight, the 60/70/80/90/100-block drop ticks below it with alternating labels, and the loaded shell)
- * onto the {@link ScopeFrame} geometry; a later design pass replaces only {@link #draw}'s body. Everything is placed
- * around the frame's lens centre and stays inside its lens radius; nothing outside the lens is painted. Tick placement
- * uses the frame's real projection FOV and the exact shell ballistics at the current pitch
- * ({@link PotionScopeRules#tickOffset}). Presentation only; the server decides every shot.
- * 炮筒分划，由 {@link PotionScopeProfile#drawReticle} 在 {@code client/scope} 画好镜片与镜框后绘制。过渡版本：把旧瞄准镜的
- * 内容（延伸到镜片边缘、中心标注 0-50 平飞的细十字线，其下方左右交替标注的 60/70/80/90/100 格下坠刻度，以及已装填弹种）
- * 移植到 {@link ScopeFrame} 几何上；之后的设计只替换 {@link #draw} 的方法体。全部内容围绕帧的镜片中心放置并保持在镜片半径
- * 以内，镜片外不绘制任何东西。刻度位置使用帧的真实投影视场角与当前俯仰角下的精确弹道（{@link PotionScopeRules#tickOffset}）。
- * 仅负责展示，每次发射都由服务端决定。
+ * and its rim: the lit (amber) PGO-7 of {@link PotionScopeRules#layout}, placed from the {@link ScopeFrame} (lens
+ * centre and radius, the real projection FOV, the interpolated pitch) and corrected for the lens's barrel distortion
+ * only while a lens composite distorts this frame ({@link ScopeClient#lensDistorts}, never under the HUD fallback
+ * ring), then the loaded shell at the lens's upper right. Like the USEC reticle it draws plain HUD quads and the vanilla
+ * font in framebuffer pixels (the matrix moved to the lens centre and scaled by {@code 1 / guiScale}). Presentation
+ * only; the server decides every shot.
+ * <p>
+ * Paint (A_LIT_SPEC.md §5): a dark key ring around every stroke and digit, a faint amber glow around the strokes, then
+ * the amber strokes and digits. Each translucent layer must cover a pixel once, as the spec's dilated mask does, even
+ * where grown rectangles or outline copies overlap; the GUI depth test (LEQUAL, with depth writes) does that: every
+ * primitive of a translucent layer sits a little farther than the previous one, so it fails wherever an earlier one
+ * drew. The layers live in a band of negative z inside the crosshair layer ({@code LayeredDrawer} puts layers 200
+ * apart, and the depth buffer is cleared before the HUD), behind anything drawn later in this layer and in front of
+ * the layer below.
+ * 炮筒分划，由 {@link PotionScopeProfile#drawReticle} 在 {@code client/scope} 画好镜片与镜框后绘制：
+ * {@link PotionScopeRules#layout} 的发光（琥珀色）PGO-7，依据 {@link ScopeFrame}（镜片中心与半径、真实投影视场角、插值
+ * 俯仰角）定位，仅在本帧镜片合成着色器确实产生畸变时（{@link ScopeClient#lensDistorts}，HUD 回退环下从不）校正桶形畸变；
+ * 随后在镜片右上方绘制已装填弹种。与 USEC 分划一样，以帧缓冲像素绘制普通 HUD 四边形与原版字体（矩阵移到镜片中心并按
+ * {@code 1 / guiScale} 缩放）。仅负责展示，每次发射都由服务端决定。
+ * <p>
+ * 配色（规格第 5 节）：每条线与每个数字外的一圈深色描边、线条周围的淡琥珀色辉光，然后是琥珀色线条与数字。每个半透明
+ * 层对每个像素只能覆盖一次（与规格中膨胀后的蒙版一致），即使扩展后的矩形或描边副本相互重叠；GUI 深度测试（LEQUAL，
+ * 写入深度）可以做到：半透明层中的每个图元都比前一个稍远，因此在先前已绘制处深度测试失败。这些层位于准星层内一段负 z
+ * 区间（{@code LayeredDrawer} 各层相距 200，且 HUD 之前已清除深度缓冲），位于本层之后绘制的内容之后、下一层之前。
  */
 public final class PotionScopeOverlay {
-    private static final int LINE = 0xE6F2F2F2;
-    private static final int LINE_SHADOW = 0x99000000;
-    private static final int CENTER_GAP = 3;
-    private static final int TICK_HALF_WIDTH = 4;
-    private static final float LABEL_SCALE = 0.75F;
+    /**
+     * Depth bands, GUI z inside the crosshair layer: keys farthest, then the outer and inner glow, then the core; each
+     * band has room for well over a thousand primitives (an 8K frame needs about 1200) above the layer below at -200.
+     * 深度区间（准星层内的 GUI z）：描边最远，其次是外辉光与内辉光，最后是主体；每个区间都能容纳一千多个图元（8K 画面约需
+     * 1200 个），且都在下一层（-200）之上。
+     */
+    private static final float KEY_Z = -170.0F;
+    private static final float OUTER_GLOW_Z = -135.0F;
+    private static final float INNER_GLOW_Z = -100.0F;
+    private static final float CORE_Z = -60.0F;
+    /** Each translucent primitive this much farther than the previous one (about 16 depth-buffer steps). / 深度步长。 */
+    private static final float DEPTH_STEP = 0.02F;
+    /** Key ring offsets, in strokes: the 3 x 3 neighbourhood. / 描边偏移（以线宽为单位）：3 x 3 邻域。 */
+    private static final int[][] KEY_OFFSETS = {{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}};
     /** Swatch (6 px) plus its gap before the shell name. / 色块（6 像素）及其与弹种名之间的间隙。 */
     private static final int SWATCH_ADVANCE = 9;
+    /** Black at alpha 150 under the swatch, offset (+1, +1). / 色块下方偏移 (+1, +1) 的黑色阴影，透明度 150。 */
+    private static final int SWATCH_SHADOW = 0x96000000;
 
     private PotionScopeOverlay() {
     }
@@ -43,103 +72,117 @@ public final class PotionScopeOverlay {
         if (player == null || frame == null || !(frame.lensRadius() > 0.0F)) {
             return;
         }
-        double radius = frame.lensRadius();
+        TextRenderer font = client.textRenderer;
+        double guiScale = client.getWindow().getScaleFactor();
+        // The lens centre is the exact framebuffer centre, so twice its y is the framebuffer height.
+        // 镜片中心即帧缓冲精确中心，因此其 y 的两倍就是帧缓冲高度。
+        PotionScopeRules.Reticle reticle = PotionScopeRules.layout(player.getPitch(frame.tickDelta()),
+                frame.projectionFovDegrees(), frame.lensCenterY() * 2.0 * guiScale, frame.lensRadius() * guiScale,
+                ScopeClient.lensDistorts(frame.mode()), text -> font.getWidth(text) - 1);
+        renderReticle(context, font, frame, guiScale, reticle);
+        renderLoadedShell(context, font, frame, PotionScopeClient.loaded(player.getActiveItem()));
+    }
+
+    private static void renderReticle(DrawContext context, TextRenderer font, ScopeFrame frame, double guiScale,
+                                      PotionScopeRules.Reticle reticle) {
+        if (reticle.strokes().isEmpty()) {
+            return;
+        }
+        int s = reticle.strokeScale();
+        double radius = frame.lensRadius() * guiScale;
         MatrixStack matrices = context.getMatrices();
         matrices.push();
         matrices.translate(frame.lensCenterX(), frame.lensCenterY(), 0.0F);
-
-        int arm = PotionScopeRules.crosshairArm(radius);
-        line(context, -arm, 0, -CENTER_GAP, 1);
-        line(context, CENTER_GAP + 1, 0, arm, 1);
-        line(context, 0, -arm, 1, -CENTER_GAP);
-        line(context, 0, CENTER_GAP + 1, 1, arm);
-        line(context, 0, 0, 1, 1);
-
-        // The lens centre is the exact framebuffer centre, so its y is also the projection's half height (GUI px).
-        // 镜片中心即帧缓冲精确中心，因此其 y 也是投影的半高（GUI 像素）。
-        renderRangeTicks(context, client.textRenderer, player.getPitch(frame.tickDelta()),
-                frame.projectionFovDegrees(), frame.lensCenterY(), radius);
-        renderLoadedShell(context, client.textRenderer, PotionScopeClient.loaded(player.getActiveItem()), radius);
-
-        matrices.pop();
-    }
-
-    private static void renderRangeTicks(DrawContext context, TextRenderer text, float pitch, double fov,
-                                         double halfHeight, double radius) {
-        double labelHeight = text.fontHeight * LABEL_SCALE;
-        // Flat flight: the centre is the aim point for the whole 0-50 range; the shell passes only the 0.1-block launch
-        // offset below it. / 平飞：整个 0-50 格内准星中心即瞄准点；炮弹只比它低 0.1 格的发射偏移。
-        label(context, text, PotionScopeRules.CENTER_LABEL, CENTER_GAP + 3.0, -labelHeight - 1.0, radius);
-        double tickRadius = radius * PotionScopeRules.TICK_RADIUS_SHARE;
-        for (int index = 0; index < PotionScopeRules.RANGE_TICKS.size(); index++) {
-            int distance = PotionScopeRules.RANGE_TICKS.get(index);
-            double offset = PotionScopeRules.tickOffset(pitch, distance, fov, halfHeight, tickRadius);
-            if (Double.isNaN(offset)) {
-                continue;
+        matrices.scale((float) (1.0 / guiScale), (float) (1.0 / guiScale), 1.0F);
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        float z = fills(context, matrix, reticle, s, radius, KEY_Z, DEPTH_STEP, PotionScopeRules.LIT_KEY_COLOR);
+        for (PotionScopeRules.Label label : reticle.labels()) {
+            for (int[] offset : KEY_OFFSETS) {
+                text(context, font, matrix, label, reticle.textScale(), offset[0] * s, offset[1] * s, z,
+                        PotionScopeRules.LIT_KEY_COLOR);
+                z -= DEPTH_STEP;
             }
-            int y = (int) Math.round(offset);
-            // The bar and its shadow span x -4..6, y..y+2. / 刻度线连同阴影占 x -4..6、y..y+2。
-            if (!PotionScopeRules.insideLens(-TICK_HALF_WIDTH, y, TICK_HALF_WIDTH + 2, y + 2, radius)) {
-                continue;
-            }
-            line(context, -TICK_HALF_WIDTH, y, TICK_HALF_WIDTH + 1, y + 1);
-            String value = Integer.toString(distance);
-            double labelX = PotionScopeRules.labelOnRight(index)
-                    ? TICK_HALF_WIDTH + 4.0
-                    : -TICK_HALF_WIDTH - 3.0 - text.getWidth(value) * LABEL_SCALE;
-            label(context, text, value, labelX, PotionScopeRules.labelTop(offset, labelHeight), radius);
         }
-    }
-
-    /** A small label, skipped when any part of it (shadow included) would leave the lens. / 小标签；任何部分（含阴影）超出镜片时跳过。 */
-    private static void label(DrawContext context, TextRenderer text, String value, double x, double y,
-                              double radius) {
-        double width = (text.getWidth(value) + 1) * LABEL_SCALE;
-        double height = (text.fontHeight + 1) * LABEL_SCALE;
-        if (!PotionScopeRules.insideLens(x, y, x + width, y + height, radius)) {
-            return;
+        context.draw();
+        // The inner glow first and nearer, so the outer one only fills the ring beyond it. / 内辉光先画且更近。
+        fills(context, matrix, reticle, 2 * s, radius, INNER_GLOW_Z, DEPTH_STEP, PotionScopeRules.LIT_GLOW_INNER_COLOR);
+        fills(context, matrix, reticle, 4 * s, radius, OUTER_GLOW_Z, DEPTH_STEP, PotionScopeRules.LIT_GLOW_OUTER_COLOR);
+        fills(context, matrix, reticle, 0, radius, CORE_Z, 0.0F, PotionScopeRules.LIT_COLOR);
+        for (PotionScopeRules.Label label : reticle.labels()) {
+            text(context, font, matrix, label, reticle.textScale(), 0, 0, CORE_Z, PotionScopeRules.LIT_COLOR);
         }
-        MatrixStack matrices = context.getMatrices();
-        matrices.push();
-        matrices.translate(x, y, 0.0F);
-        matrices.scale(LABEL_SCALE, LABEL_SCALE, 1.0F);
-        context.drawTextWithShadow(text, value, 0, 0, LINE);
+        context.draw();
         matrices.pop();
     }
 
     /**
-     * The loaded shell (swatch and name), right-aligned to the lens's upper-right 45-degree point and shrunk only when
-     * that quadrant is too narrow ({@link PotionScopeRules#shellLineScale}).
-     * 已装填弹种（色块与名称），右对齐到镜片右上 45 度点，仅在该象限过窄时缩小（{@link PotionScopeRules#shellLineScale}）。
+     * Every stroke grown by {@code grow} px and clipped to the lens, one quad each from {@code z} on, stepping
+     * {@code step} farther per quad; returns the next free z. / 每条线扩展 {@code grow} 像素并裁剪到镜片内后各画一个四边形。
      */
-    private static void renderLoadedShell(DrawContext context, TextRenderer text, Optional<PotionShellType> loaded,
-                                          double radius) {
-        Text line = PotionGunnerHud.loadedText(loaded);
-        int textWidth = text.getWidth(line);
+    private static float fills(DrawContext context, Matrix4f matrix, PotionScopeRules.Reticle reticle, int grow,
+                               double radius, float z, float step, int color) {
+        VertexConsumer buffer = context.getVertexConsumers().getBuffer(RenderLayer.getGui());
+        float depth = z;
+        for (PotionScopeRules.Rect stroke : reticle.strokes()) {
+            PotionScopeRules.Rect r = grow == 0 ? stroke : PotionScopeRules.clipToLens(stroke.x0() - grow,
+                    stroke.y0() - grow, stroke.x1() + grow, stroke.y1() + grow, radius);
+            if (r == null) {
+                continue;
+            }
+            // DrawContext.fill's winding. / 与 DrawContext.fill 相同的绕序。
+            buffer.vertex(matrix, r.x0(), r.y0(), depth).color(color);
+            buffer.vertex(matrix, r.x0(), r.y1(), depth).color(color);
+            buffer.vertex(matrix, r.x1(), r.y1(), depth).color(color);
+            buffer.vertex(matrix, r.x1(), r.y0(), depth).color(color);
+            depth -= step;
+        }
+        context.draw();
+        return depth;
+    }
+
+    /** One label copy, {@code (dx, dy)} px off its place, at depth {@code z}, without the vanilla drop shadow. */
+    private static void text(DrawContext context, TextRenderer font, Matrix4f matrix, PotionScopeRules.Label label,
+                             int scale, int dx, int dy, float z, int color) {
+        Matrix4f placed = new Matrix4f(matrix).translate(label.x() + dx, label.y() + dy, z).scale(scale, scale, 1.0F);
+        font.draw(label.text(), 0.0F, 0.0F, color, false, placed, context.getVertexConsumers(),
+                TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+    }
+
+    /**
+     * The loaded shell in GUI px with the game's text shadow (A_LIT_SPEC.md §6): the shell's name in its colour after
+     * a swatch, or the empty text, right edge at {@link PotionScopeRules#SHELL_LINE_RIGHT_RHO} and top at
+     * {@link PotionScopeRules#SHELL_LINE_TOP_RHO} lens radii from the centre; shrunk only when that is too narrow
+     * ({@link PotionScopeRules#shellLineScale}).
+     * 以 GUI 像素与游戏文字阴影绘制已装填弹种（规格第 6 节）：色块后接弹种名（弹种颜色），或未装填文字；右缘与顶部距中心
+     * {@link PotionScopeRules#SHELL_LINE_RIGHT_RHO} / {@link PotionScopeRules#SHELL_LINE_TOP_RHO} 个镜片半径；仅在空间过窄时
+     * 缩小（{@link PotionScopeRules#shellLineScale}）。
+     */
+    private static void renderLoadedShell(DrawContext context, TextRenderer font, ScopeFrame frame,
+                                          Optional<PotionShellType> loaded) {
+        Text line = loaded.<Text>map(type -> Text.translatable(PotionScopeRules.shellNameKey(type)))
+                .orElseGet(() -> Text.translatable(PotionScopeRules.HUD_EMPTY_KEY));
+        int color = loaded.map(PotionScopeRules::textColor).orElse(PotionScopeRules.EMPTY_COLOR);
+        int textWidth = font.getWidth(line);
         int lineWidth = textWidth + 1 + (loaded.isPresent() ? SWATCH_ADVANCE : 0);
+        double radius = frame.lensRadius();
         double scale = PotionScopeRules.shellLineScale(radius, lineWidth);
         if (!(scale > 0.0)) {
             return;
         }
-        double corner = PotionScopeRules.shellLineCorner(radius);
         MatrixStack matrices = context.getMatrices();
         matrices.push();
         // Local origin = the line's top-right corner. / 局部原点即装填行的右上角。
-        matrices.translate(corner, -corner, 0.0F);
+        matrices.translate(frame.lensCenterX() + PotionScopeRules.SHELL_LINE_RIGHT_RHO * radius,
+                frame.lensCenterY() - PotionScopeRules.SHELL_LINE_TOP_RHO * radius, 0.0F);
         matrices.scale((float) scale, (float) scale, 1.0F);
-        int x = -textWidth - 1;
+        int x = -textWidth;
         if (loaded.isPresent()) {
             int swatch = 0xFF000000 | loaded.get().color();
+            context.fill(x - 8, 2, x - 2, 8, SWATCH_SHADOW);
             context.fill(x - 9, 1, x - 3, 7, 0xFFFFFFFF);
             context.fill(x - 8, 2, x - 4, 6, swatch);
         }
-        context.drawTextWithShadow(text, line, x, 0, PotionGunnerHud.baseColor(loaded));
+        context.drawTextWithShadow(font, line, x, 0, color);
         matrices.pop();
-    }
-
-    /** A filled rectangle with a one-pixel dark shadow, readable on bright and dark scenes. / 带一像素暗影的填充矩形，明暗场景都可读。 */
-    private static void line(DrawContext context, int x1, int y1, int x2, int y2) {
-        context.fill(x1 + 1, y1 + 1, x2 + 1, y2 + 1, LINE_SHADOW);
-        context.fill(x1, y1, x2, y2, LINE);
     }
 }
