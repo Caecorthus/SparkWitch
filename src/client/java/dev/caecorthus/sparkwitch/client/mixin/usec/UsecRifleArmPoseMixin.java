@@ -27,8 +27,10 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  * <ul>
  * <li>{@code @WrapMethod} at mixin priority 1600. MixinExtras nests method wrappers by priority (higher = outer):
  * {@code BlindGatePlayerEntityRendererMixin} (2000, Blind viewers get EMPTY, still wins) → this wrapper → the
- * method body with Wathe's and NoellesRoles' TAIL injects. For the AXMC our answer is therefore final over theirs;
- * for any other item the result passes through unchanged.</li>
+ * method body with Wathe's and NoellesRoles' TAIL injects. For the AXMC only vanilla's plain {@code ITEM} answer becomes
+ * {@code CROSSBOW_HOLD}; a deliberate inner pose passes through, so the viewer's Jester Moment bat pose
+ * (CROSSBOW_CHARGE) wins and the USEC looks like everyone else (owner 2026-10-08, same rule as the launcher). Any
+ * other item passes through unchanged.</li>
  * <li>The shown stack is still the one Wathe renders. A {@code @ModifyVariable} at the STORE of vanilla's only
  * {@code ItemStack} local reads the value after every expression handler on the single {@code getStackInHand} call,
  * Wathe's held-item substitution included, whatever the mixin priorities. An expression hook would sit inside
@@ -48,7 +50,9 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  * <ul>
  * <li>改用混入优先级 1600 的 {@code @WrapMethod}。MixinExtras 按优先级嵌套方法包装（越高越外层）：
  * {@code BlindGatePlayerEntityRendererMixin}（2000，盲人观察者得到 EMPTY，仍然优先）→ 本包装 → 带 Wathe 与
- * NoellesRoles TAIL 注入的方法体。因此对 AXMC 我们的结果覆盖它们的结果；其他物品的结果原样通过。</li>
+ * NoellesRoles TAIL 注入的方法体。对 AXMC 只把原版普通的 {@code ITEM} 结果换成 {@code CROSSBOW_HOLD}；内层有意给出的
+ * 姿势原样通过，因此观察者小丑时刻的球棒姿势（CROSSBOW_CHARGE）优先，USEC 看起来与其他人一样（所有者 2026-10-08，
+ * 与炮管同规则）。其他物品的结果原样通过。</li>
  * <li>显示物品仍是 Wathe 渲染的那一个。在原版唯一的 {@code ItemStack} 局部变量 STORE 处的 {@code @ModifyVariable}
  * 读取的是唯一一次 {@code getStackInHand} 调用上所有表达式处理器（含 Wathe 的手持物替换）之后的值，与混入优先级无关。
  * 表达式钩子会落在 Wathe 的里层，因为同一调用上后应用的处理器在内层。因此看到假物品的观察者永远看不到持枪姿势。一个
@@ -70,6 +74,7 @@ public abstract class UsecRifleArmPoseMixin {
             AbstractClientPlayerEntity player, Hand hand, Operation<BipedEntityModel.ArmPose> original,
             @Share("usecShownRifle") LocalBooleanRef shownRifle) {
         BipedEntityModel.ArmPose pose = original.call(player, hand);
-        return shownRifle.get() ? BipedEntityModel.ArmPose.CROSSBOW_HOLD : pose;
+        return shownRifle.get() && pose == BipedEntityModel.ArmPose.ITEM
+                ? BipedEntityModel.ArmPose.CROSSBOW_HOLD : pose;
     }
 }

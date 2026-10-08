@@ -676,8 +676,10 @@ Current build baseline:
     is the inner one.
     - The answer comes from a `@WrapMethod` on `getArmPose`. It sits inside the Blind gate's priority-2000 wrapper,
       so Blind viewers still get EMPTY, and outside two cancellable TAIL injects: Wathe's bat pose (priority 1000)
-      and NoellesRoles' Jester Moment pose (priority 1500). For the AXMC our answer is final; any other item passes
-      through unchanged.
+      and NoellesRoles' Jester Moment pose (priority 1500). For the AXMC it replaces only vanilla's plain `ITEM`
+      answer; a deliberate inner pose passes through, so during the viewer's Jester Moment the bat pose
+      (`CROSSBOW_CHARGE`) wins and the USEC looks like everyone else (owner 2026-10-08, the same rule as the
+      launcher). Any other item passes through unchanged.
     - Why a wrapper: the rifle's use action is NONE, so vanilla always ends at the final `return ITEM`. A
       `@ModifyReturnValue(RETURN)` is not woven there next to those TAIL injects (exported class, 2026-10-08), so the
       old hook never fired in game.
