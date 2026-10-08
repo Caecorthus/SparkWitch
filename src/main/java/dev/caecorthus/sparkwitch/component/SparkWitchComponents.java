@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashComponent;
@@ -139,6 +140,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, ApprenticePlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(ApprenticePlayerComponent::new);
+        // USEC scope state for the lens glint, synced to everyone; appended last.
+        // USEC 开镜状态（镜头反光用），同步给所有人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, UsecPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(UsecPlayerComponent::new);
     }
 
     @Override

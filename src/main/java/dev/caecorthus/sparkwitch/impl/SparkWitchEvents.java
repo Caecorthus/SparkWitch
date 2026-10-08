@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaGunService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaLifecycle;
@@ -241,5 +242,8 @@ public final class SparkWitchEvents {
                 }
             }
         });
+        // USEC (police variant): appended last so every existing listener keeps its order; the hub fixes the order of
+        // the USEC services. / USEC（警察变体）：追加在最后，使所有既有监听器保持顺序；USEC 各服务的顺序由注册中心固定。
+        UsecFeatureService.register();
     }
 }

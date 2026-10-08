@@ -155,7 +155,24 @@
     "riftwalker.RiftSessionMouseMixin",
     "riftwalker.RiftSessionSpectatorHudMixin",
     "riftwalker.RiftGateAttackMixin",
-    "riftwalker.RiftGateCrosshairMixin"
+    "riftwalker.RiftGateCrosshairMixin",
+    "scope.ScopeAccessibilityOptionsMixin",
+    "scope.ScopeFovMixin",
+    "scope.ScopeGameRendererInvoker",
+    "scope.ScopeGameRendererMixin",
+    "scope.ScopeInGameHudMixin",
+    "scope.ScopeMouseMixin",
+    "usec.UsecRifleArmPoseMixin",
+    "usec.UsecRifleInputMixin",
+    "usec.UsecRecoilCameraMixin",
+    "usec.UsecLimitedInventoryRifleClickMixin",
+    "usec.UsecInventoryScreenRifleClickMixin",
+    "usec.UsecRifleUseCooldownMixin",
+    "usec.UsecCreativeSlotAccessor",
+    "scope.ScopeHeldItemRendererMixin",
+    "scope.ScopeWorldRendererMixin",
+    "scope.ScopeParticleManagerMixin",
+    "scope.ScopeMinecraftClientAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
