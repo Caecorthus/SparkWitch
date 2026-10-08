@@ -454,7 +454,9 @@ Current build baseline:
     The guards are five `mixin/usec/` HEAD injects (Q drop, `dropItem`, slot click, `shouldDropOnDeath`, and the
     decorated pot, which answers `SKIP_DEFAULT_BLOCK_INTERACTION`) plus a both-sides `UseEntityCallback` veto for item
     frames, armor stands and allays. A refused drop goes back to a living USEC or free holder through explicit slot
-    writes. Match participants who are not USEC (`OffMatchUse.isMatchParticipant`) are stripped on role change and by a
+    writes. Exemption: vanilla `/give`'s cosmetic count-1 drop (`util/GiveCommandDropScope`) is only cancelled, never
+    restored or emptied, so a give yields exactly the requested count and its message keeps the item name. Match
+    participants who are not USEC (`OffMatchUse.isMatchParticipant`) are stripped on role change and by a
     staggered 20-tick sweep; free holders are never touched. Reset, finalize and disconnect strip the items and unscope
     (`UsecPlayerComponent.setScoped(false)`).
   - No guns (owner O2, 2026-10-07; `UsecGunRules`): a player whose live role is exactly USEC never picks up or receives
@@ -845,6 +847,10 @@ Current build baseline:
   Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
   an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;
   `isMatchParticipant` scopes the bound-item rules.
+- `util/GiveCommandDropScope`: marks, by stack identity and per thread, vanilla `/give`'s cosmetic pickup-animation drop
+  (the shared count-1 template). `mixin/GiveCommandDropScopeMixin` (common config) is the one `@WrapOperation` on
+  `GiveCommand.execute`'s second `dropItem(ItemStack, boolean)` (ordinal 1); ordinal 0, the real remainder drop, stays
+  outside. Only `UsecLoadoutService.interceptDrop` reads it so far.
 
 ## Runtime Invariants
 
