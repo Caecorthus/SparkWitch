@@ -101,6 +101,20 @@ public final class ScopeRules {
     }
 
     /**
+     * The wheel delta {@code Mouse#onMouseScroll} accumulates for the hotbar, recomputed from the raw GLFW vertical
+     * offset: its sign only under Discrete Scrolling, times Mouse Wheel Sensitivity. Trackpads and high-resolution
+     * wheels give fractions; 0 for a non-finite input.
+     * {@code Mouse#onMouseScroll} 为快捷栏累加的滚轮增量，由 GLFW 原始竖直偏移重新计算：「离散滚动」时只取符号，再乘以
+     * 「滚轮灵敏度」。触控板与高精度滚轮会给出小数；非有限输入为 0。
+     */
+    public static double wheelNotches(double vertical, boolean discreteScroll, double wheelSensitivity) {
+        if (!Double.isFinite(vertical) || !Double.isFinite(wheelSensitivity)) {
+            return 0.0;
+        }
+        return (discreteScroll ? Math.signum(vertical) : vertical) * wheelSensitivity;
+    }
+
+    /**
      * One frame of the PiP lens zoom easing toward {@code target} (vanilla's FOV curve, per frame): half the gap per
      * {@link #ZOOM_EASE_HALF_LIFE_SECONDS}. A non-finite or non-positive frame time keeps {@code current}.
      * 画中画镜内放大向 {@code target} 缓动一帧（逐帧版的原版视场曲线）：每 {@link #ZOOM_EASE_HALF_LIFE_SECONDS} 缩小一半差距。

@@ -169,10 +169,12 @@
     "usec.UsecInventoryScreenRifleClickMixin",
     "usec.UsecRifleUseCooldownMixin",
     "usec.UsecCreativeSlotAccessor",
+    "usec.UsecScopeInputMixin",
     "scope.ScopeHeldItemRendererMixin",
     "scope.ScopeWorldRendererMixin",
     "scope.ScopeParticleManagerMixin",
-    "scope.ScopeMinecraftClientAccessor"
+    "scope.ScopeMinecraftClientAccessor",
+    "scope.ScopeMouseScrollMixin"
   ],
   "injectors": {
     "defaultRequire": 1

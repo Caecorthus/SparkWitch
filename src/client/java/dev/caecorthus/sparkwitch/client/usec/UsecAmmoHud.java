@@ -64,7 +64,7 @@ public final class UsecAmmoHud {
                 tickCounter.getTickDelta(true))
                 : 0.0F;
         UsecAmmoHudRules.Snapshot snapshot = new UsecAmmoHudRules.Snapshot(state.chamber(), state.magazine(),
-                state.suppressor(), cooldown, progress, UsecScopeProfile.isActive(), UsecZoomState.level());
+                state.suppressor(), cooldown, progress, UsecScopeProfile.isActive(), UsecZoomState.magnification());
 
         TextRenderer renderer = client.textRenderer;
         List<UsecAmmoHudRules.Part> parts = UsecAmmoHudRules.line(snapshot);
@@ -73,7 +73,11 @@ public final class UsecAmmoHud {
         UsecAmmoHudRules.Part zoom = UsecAmmoHudRules.zoomTag(snapshot);
         Text zoomText = zoom == null ? null : text(zoom);
         int lineWidth = renderer.getWidth(line);
-        int rowWidth = lineWidth + (zoomText == null ? 0 : renderer.getWidth(zoomText) + UsecAmmoHudRules.ZOOM_TAG_GAP);
+        // Placement reserves the widest tag form, so the row does not jump as the magnification eases.
+        // 布局按最宽的标签形式预留宽度，倍率缓动时该行不会跳动。
+        int rowWidth = lineWidth + (zoom == null ? 0 : Math.max(renderer.getWidth(zoomText), renderer.getWidth(
+                Text.translatable(UsecAmmoHudRules.ZOOM_KEY, UsecAmmoHudRules.ZOOM_TAG_LAYOUT_SAMPLE)))
+                + UsecAmmoHudRules.ZOOM_TAG_GAP);
         WitchPlayerComponent witch = WitchPlayerComponent.KEY.get(player);
         boolean sharedLineOccupied = witch.getActiveSkillId() != null
                 || witch.getSaintState().karmaCooldownTicks() > 0;

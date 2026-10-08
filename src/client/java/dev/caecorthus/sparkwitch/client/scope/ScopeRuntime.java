@@ -50,6 +50,18 @@ public final class ScopeRuntime {
                 ScopeSettingsStore.current().sensitivityPercent());
     }
 
+    /**
+     * {@code ScopeMouseScrollMixin}: offers one wheel event to the active profile ({@link ScopeProfile#onWheel}); true
+     * means it consumed the event and vanilla must skip it. Unscoped (or a profile that declines), the wheel stays
+     * vanilla's.
+     * {@code ScopeMouseScrollMixin}：把一次滚轮事件交给当前配置（{@link ScopeProfile#onWheel}）；返回 true 表示已被消耗，
+     * 原版必须跳过。未开镜（或配置不接收）时滚轮仍归原版。
+     */
+    public static boolean onMouseWheel(double notches) {
+        ScopeProfile profile = ScopeClient.activeProfile();
+        return profile != null && profile.onWheel(notches);
+    }
+
     public static boolean hidesHand() {
         return ScopeClient.isScoped();
     }

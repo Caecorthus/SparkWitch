@@ -10,17 +10,17 @@ import java.util.List;
  * Pure geometry of the USEC reticles (no rendering state), matching the WP6 spec sheet
  * ({@code usec-art/ui/README.md}, "Reticles"). Angles become framebuffer pixels through the frame's real projection:
  * {@code m} mrad sits {@code ppt * tan(m / 1000)} px from the lens centre, with {@code ppt = (H / 2) / tan(fov / 2)},
- * so 1 mrad is 3.508 px at 4x and 7.058 px at 8x on a 1080p, 70-degree frame. AP holdover marks are
+ * so 1 mrad is 0.771 px at 1x, 3.508 px at 4x and 5.286 px at 6x on a 1080p, 70-degree frame. AP holdover marks are
  * {@code atan(apDropAt(distance, marksman) / distance)} from {@link UsecBallistics} (the server tracer's own math).
  * Stroke widths, minimum mark sizes and label texels are fixed 1080p pixels times {@code round(H / 1080)}.
  * Coordinates are framebuffer pixels relative to the lens centre, y down; the wire column and row are pixel 0, so
  * a mark {@code n} px right sits in column {@code n} and its mirror in column {@code -n}.
  * USEC 分划的纯几何（无渲染状态），与 WP6 规格表（{@code usec-art/ui/README.md}“Reticles”）一致。角度经本帧真实投影换算为
  * 帧缓冲像素：{@code m} 密位距镜片中心 {@code ppt * tan(m / 1000)} 像素，{@code ppt = (H / 2) / tan(fov / 2)}，因此在 1080p、
- * 70 度画面上 4 倍时 1 密位为 3.508 像素、8 倍时为 7.058 像素。AP 抬枪刻度取自 {@link UsecBallistics}（服务端射线追踪自己的
- * 数学）：{@code atan(apDropAt(距离, 精确枪手) / 距离)}。线宽、刻度最小尺寸与标签像素为 1080p 下的固定像素乘以
- * {@code round(H / 1080)}。坐标为相对镜片中心的帧缓冲像素，y 轴向下；十字线所在的列与行为第 0 像素，因此右侧 {@code n}
- * 像素处的刻度位于第 {@code n} 列，其镜像位于第 {@code -n} 列。
+ * 70 度画面上 1 倍时 1 密位为 0.771 像素、4 倍时为 3.508 像素、6 倍时为 5.286 像素。AP 抬枪刻度取自
+ * {@link UsecBallistics}（服务端射线追踪自己的数学）：{@code atan(apDropAt(距离, 精确枪手) / 距离)}。线宽、刻度最小
+ * 尺寸与标签像素为 1080p 下的固定像素乘以 {@code round(H / 1080)}。坐标为相对镜片中心的帧缓冲像素，y 轴向下；十字线所在
+ * 的列与行为第 0 像素，因此右侧 {@code n} 像素处的刻度位于第 {@code n} 列，其镜像位于第 {@code -n} 列。
  */
 public final class UsecReticleGeometry {
     /** AP holdover ladder distances in blocks (D14). / AP 抬枪梯的距离（格，D14）。 */
@@ -50,14 +50,17 @@ public final class UsecReticleGeometry {
     public static final List<String> PERSON_GLYPH = List.of(".##.", ".##.", "####", ".##.", ".##.", ".##.", ".#.#",
             ".#.#");
 
-    // ---- R1 classic Mil-Dot (second focal plane, true at 8x; every position in mil) ----
+    // ---- R1 classic Mil-Dot (second focal plane, true at the top 6x; every position in mil) ----
     public static final int R1_DOTS_SIDE = 4;
     public static final int R1_DOTS_DOWN = 14;
     public static final double R1_POST_START_MIL = 5.0;
     public static final double R1_LOWER_POST_START_MIL = 15.0;
     public static final int R1_POST_PX = 4;
-    /** R1 is calibrated at this zoom level (8x). / R1 在该倍率档位（8 倍）下校准。 */
-    public static final int R1_CALIBRATION_LEVEL = 1;
+    /**
+     * R1 is calibrated at the top magnification (6x), as second-focal-plane scopes are.
+     * R1 在最高倍率（6 倍）下校准，与第二焦平面瞄准镜一致。
+     */
+    public static final double R1_CALIBRATION_MAGNIFICATION = UsecRules.ZOOM_MAX_MAGNIFICATION;
 
     /** Digit glyph height in font texels. / 数字字形高度（字体像素）。 */
     public static final int DIGIT_HEIGHT = 7;
@@ -125,10 +128,10 @@ public final class UsecReticleGeometry {
 
     /**
      * The whole reticle for one frame. {@code projectionFovDegrees} is the vertical FOV this frame was projected with
-     * and {@code zoomFovMultiplier} the scope multiplier inside it (R1 recovers its 8x calibration from the two).
+     * and {@code zoomFovMultiplier} the scope multiplier inside it (R1 recovers its 6x calibration from the two).
      * {@code heightPx} and {@code lensRadiusPx} are framebuffer pixels. An unusable FOV yields nothing.
      * 一帧的完整分划。{@code projectionFovDegrees} 为本帧实际投影使用的竖直视野，{@code zoomFovMultiplier} 为其中包含的
-     * 开镜倍率（R1 由二者还原 8 倍校准）。{@code heightPx} 与 {@code lensRadiusPx} 为帧缓冲像素。视野不可用时不画任何东西。
+     * 开镜倍率（R1 由二者还原 6 倍校准）。{@code heightPx} 与 {@code lensRadiusPx} 为帧缓冲像素。视野不可用时不画任何东西。
      */
     public static Layout layout(UsecReticleStyle style, double projectionFovDegrees, double zoomFovMultiplier,
                                 double heightPx, double lensRadiusPx, double marksmanMultiplier) {
@@ -138,7 +141,7 @@ public final class UsecReticleGeometry {
             return out.build();
         }
         if (style == UsecReticleStyle.MIL_DOT) {
-            double calibration = UsecRules.zoomFovMultiplier(R1_CALIBRATION_LEVEL);
+            double calibration = 1.0 / R1_CALIBRATION_MAGNIFICATION;
             double multiplier = zoomFovMultiplier > 0.0 && Double.isFinite(zoomFovMultiplier)
                     ? zoomFovMultiplier : calibration;
             double calibrated = pixelsPerTangent(projectionFovDegrees * calibration / multiplier, heightPx);
@@ -200,8 +203,8 @@ public final class UsecReticleGeometry {
             }
         }
 
-        // Illuminated centre dot: 3 px below 5 px/mrad (4x), else 4 px; corners at 40%.
-        // 发光中心点：每密位不足 5 像素（4 倍）时 3 像素，否则 4 像素；四角 40%。
+        // Illuminated centre dot: 3 px below 5 px/mrad (up to about 5.7x at 1080p, 70 degrees), else 4 px; corners 40%.
+        // 发光中心点：每密位不足 5 像素（1080p、70 度下约 5.7 倍以下）时 3 像素，否则 4 像素；四角 40%。
         int dot = (pxPerMrad < 5.0 ? 3 : 4) * s;
         int d0 = Math.floorDiv(s - dot, 2);
         out.illum(d0 + s, d0, d0 + dot - s, d0 + dot, ILLUM_COLOR);
@@ -301,10 +304,10 @@ public final class UsecReticleGeometry {
     }
 
     /**
-     * R1: second focal plane, so the mil spacing is the 8x one at every zoom (one mil-dot covers 2.01 mrad at 4x). No
-     * labels and no ladder: AP holds are read off the dots (8x: 2.5 / 4 / 7.5 / 10 / 13.75 dots).
-     * R1：第二焦平面，因此在任何倍率下密位间距都按 8 倍计算（4 倍时一个密位点覆盖 2.01 密位）。无标签、无抬枪梯：AP 抬枪
-     * 按点读取（8 倍：2.5 / 4 / 7.5 / 10 / 13.75 点）。
+     * R1: second focal plane, so the mil spacing is the 6x one at every magnification (one mil-dot covers 1.51 mrad at
+     * 4x). No labels and no ladder: AP holds are read off the dots at 6x (2.5 / 4 / 7.5 / 10 / 13.75 dots).
+     * R1：第二焦平面，因此在任何倍率下密位间距都按 6 倍计算（4 倍时一个密位点覆盖 1.51 密位）。无标签、无抬枪梯：AP 抬枪
+     * 在 6 倍下按点读取（2.5 / 4 / 7.5 / 10 / 13.75 点）。
      */
     private static void milDot(Builder out, double pxPerMil) {
         int s = out.scale;

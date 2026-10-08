@@ -11,10 +11,13 @@ import net.minecraft.client.gui.DrawContext;
  */
 public interface ScopeProfile {
     /**
-     * Multiplier on the local player's FOV multiplier while scoped: 0.25 = 4x, 0.125 = 8x. Vanilla eases the change and
-     * clamps the eased multiplier at 0.1, so 10x is the deepest zoom. Non-finite or non-positive values mean no zoom.
-     * 开镜时本地玩家 FOV 倍率的乘数：0.25 = 4 倍，0.125 = 8 倍。原版会缓动该变化，并把缓动后的倍率钳制在 0.1，
-     * 因此最深为 10 倍。非有限值或非正值视为不放大。
+     * Multiplier on the local player's FOV multiplier while scoped: 1 / magnification, so 1 = 1x (no zoom), 0.25 = 4x;
+     * {@link ScopeVariableZoom#fovMultiplier} converts a variable magnification. Polled every frame, so a profile may
+     * return a value that changes smoothly. Vanilla eases the change and clamps the eased multiplier at 0.1, so 10x is
+     * the deepest zoom. Non-finite or non-positive values mean no zoom.
+     * 开镜时本地玩家 FOV 倍率的乘数：1 / 倍率，因此 1 = 1 倍（不放大）、0.25 = 4 倍；可变倍率由
+     * {@link ScopeVariableZoom#fovMultiplier} 换算。每帧轮询，因此配置可以返回平滑变化的值。原版会缓动该变化，并把缓动后的
+     * 倍率钳制在 0.1，因此最深为 10 倍。非有限值或非正值视为不放大。
      */
     float fovMultiplier();
 
@@ -32,4 +35,18 @@ public interface ScopeProfile {
      * {@code frame} 以缩放后的 GUI 像素给出镜片几何与真实投影视场角。
      */
     void drawReticle(DrawContext context, ScopeFrame frame);
+
+    /**
+     * The mouse wheel turned while this profile is active ({@code ScopeMouseScrollMixin}: in game, no screen or
+     * overlay, after every HEAD lock on {@code Mouse#onMouseScroll} has passed). {@code notches} is the vertical delta
+     * exactly as vanilla would accumulate it (discrete scrolling and wheel sensitivity applied; fractional on trackpads
+     * and high-resolution wheels; positive = away from the player). Return true to consume the whole wheel event, so
+     * vanilla neither accumulates it nor changes the hotbar slot; false (the default) leaves the wheel to vanilla.
+     * 本配置生效时鼠标滚轮转动（{@code ScopeMouseScrollMixin}：游戏内、无界面或遮罩，且 {@code Mouse#onMouseScroll} 上所有
+     * HEAD 锁都已放行之后）。{@code notches} 为原版累加时使用的竖直增量（已应用离散滚动与滚轮灵敏度；触控板与高精度滚轮为
+     * 小数；正数为向前推）。返回 true 表示消耗整个滚轮事件，原版既不累加也不切换快捷栏；返回 false（默认）交给原版。
+     */
+    default boolean onWheel(double notches) {
+        return false;
+    }
 }

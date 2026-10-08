@@ -11,14 +11,15 @@ import java.util.List;
 
 /**
  * Pure presentation rules for the owner-only USEC ammo line (S2, WP6 mockup {@code s2_ammo_hud_states.png}):
- * {@code <chamber> » [<magazine in firing order>] · 消音}, a tan zoom tag left of it while scoped, and a 2-px progress
- * bar under the chamber token while the rifle cools down. The chamber token is the round label in its own colour,
- * {@code 空膛}, or {@code 拉栓中} while the bolt cycles; without a magazine the feed reads {@code · 无弹匣}. It is
- * role-owned, bottom-right, and never part of the witch skill inventory panel (AGENTS.md). Colours are opaque ARGB.
+ * {@code <chamber> » [<magazine in firing order>] · 消音}, a tan magnification tag ({@code 3.4×}) left of it while
+ * scoped, and a 2-px progress bar under the chamber token while the rifle cools down. The chamber token is the round
+ * label in its own colour, {@code 空膛}, or {@code 拉栓中} while the bolt cycles; without a magazine the feed reads
+ * {@code · 无弹匣}. It is role-owned, bottom-right, and never part of the witch skill inventory panel (AGENTS.md).
+ * Colours are opaque ARGB.
  * 仅拥有者可见的 USEC 弹药行的纯展示规则（S2，WP6 样稿 {@code s2_ammo_hud_states.png}）：
- * {@code <弹膛> » [<按发射顺序的弹匣>] · 消音}，开镜时左侧有沙色倍率标签，步枪冷却期间弹膛标记下方有 2 像素进度条。弹膛标记为
- * 自身颜色的弹种标签、{@code 空膛}，或拉栓时的 {@code 拉栓中}；没有弹匣时显示 {@code · 无弹匣}。属于职业自有的右下角展示，
- * 从不进入魔女技能背包面板（AGENTS.md）。颜色为不透明 ARGB。
+ * {@code <弹膛> » [<按发射顺序的弹匣>] · 消音}，开镜时左侧有沙色倍率标签（{@code 3.4×}），步枪冷却期间弹膛标记下方有
+ * 2 像素进度条。弹膛标记为自身颜色的弹种标签、{@code 空膛}，或拉栓时的 {@code 拉栓中}；没有弹匣时显示 {@code · 无弹匣}。
+ * 属于职业自有的右下角展示，从不进入魔女技能背包面板（AGENTS.md）。颜色为不透明 ARGB。
  */
 public final class UsecAmmoHudRules {
     public static final String ZOOM_KEY = "hud.sparkwitch.usec.zoom";
@@ -45,6 +46,11 @@ public final class UsecAmmoHudRules {
     public static final int BAR_FILL_SHADE_COLOR = 0xFF78653F;
     public static final int BAR_HEIGHT = 2;
     public static final int ZOOM_TAG_GAP = 6;
+    /**
+     * The widest zoom tag form (one decimal), so the row's placement does not jump while the decimal comes and goes.
+     * 最宽的倍率标签形式（一位小数），使小数出现或消失时该行的位置不跳动。
+     */
+    public static final String ZOOM_TAG_LAYOUT_SAMPLE = "8.8";
     public static final int RIGHT_PADDING = 6;
     /** Line top sits 16 GUI px above the bottom edge (9-px font). / 行顶位于底边上方 16 GUI 像素（9 像素字体）。 */
     public static final int BOTTOM_PADDING = 7;
@@ -108,13 +114,28 @@ public final class UsecAmmoHudRules {
         return List.copyOf(parts);
     }
 
-    /** The tan {@code 4×}/{@code 8×} tag while scoped, else null. / 开镜时的沙色倍率标签，否则为 null。 */
+    /**
+     * The tan magnification tag while scoped ({@code 3.4×}, {@code 4×}, see {@link #magnificationLabel}), else null.
+     * 开镜时的沙色倍率标签（{@code 3.4×}、{@code 4×}，见 {@link #magnificationLabel}），否则为 null。
+     */
     public static @Nullable Part zoomTag(Snapshot snapshot) {
         if (!snapshot.scoped()) {
             return null;
         }
-        return new Part(ZOOM_KEY, TAN_COLOR,
-                List.of(new Literal(Integer.toString(UsecInputRules.magnification(snapshot.zoomLevel())))));
+        return new Part(ZOOM_KEY, TAN_COLOR, List.of(new Literal(magnificationLabel(snapshot.magnification()))));
+    }
+
+    /**
+     * The number in the zoom tag: the magnification rounded to one decimal, the {@code .0} dropped for a whole number
+     * ({@code 3.44 -> "3.4"}, {@code 3.96 -> "4"}, {@code 6 -> "6"}). Always a dot, whatever the locale; an unusable
+     * value reads as the 1x it zooms at.
+     * 倍率标签中的数字：四舍五入到一位小数，整数去掉 {@code .0}（{@code 3.44 -> "3.4"}、{@code 3.96 -> "4"}、
+     * {@code 6 -> "6"}）。与语言区域无关，始终使用小数点；不可用的值按实际放大的 1 倍显示。
+     */
+    public static String magnificationLabel(double magnification) {
+        double value = Double.isFinite(magnification) && magnification >= 1.0 ? magnification : 1.0;
+        long tenths = Math.round(value * 10.0);
+        return tenths % 10 == 0 ? Long.toString(tenths / 10) : (tenths / 10) + "." + (tenths % 10);
     }
 
     /** The bar shows during any rifle cooldown. / 步枪任何冷却期间都显示进度条。 */
@@ -167,14 +188,14 @@ public final class UsecAmmoHudRules {
      * Local snapshot of the held rifle. {@code cooldown} is the shared exact classifier
      * ({@link UsecCooldowns#status}), which alone decides {@code 拉栓中} (A2: never estimated from the interpolated
      * share, which flickered); {@code cooldownProgress} is vanilla's smooth remaining share (1 just started, 0 done) and
-     * only fills the bar.
+     * only fills the bar. {@code magnification} is the shown (eased) scope magnification, 1-6.
      * 手持步枪的本地快照。{@code cooldown} 为共用的精确分类器（{@link UsecCooldowns#status}），只由它决定是否显示
      * {@code 拉栓中}（A2：不再从会闪烁的插值比例估算）；{@code cooldownProgress} 为原版平滑的剩余比例（1 为刚开始，0 为结束），
-     * 只用于填充进度条。
+     * 只用于填充进度条。{@code magnification} 为显示（缓动后）的瞄准镜倍率，1-6。
      */
     public record Snapshot(@Nullable UsecAmmoType chamber, @Nullable UsecMagazineContents magazine,
                            boolean suppressor, UsecCooldowns.Status cooldown, float cooldownProgress, boolean scoped,
-                           int zoomLevel) {
+                           double magnification) {
         public Snapshot {
             cooldown = cooldown == null ? UsecCooldowns.Status.NONE : cooldown;
         }

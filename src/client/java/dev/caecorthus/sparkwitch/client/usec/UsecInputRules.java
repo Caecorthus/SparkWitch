@@ -1,12 +1,10 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
-import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
-
 /**
- * Pure client rules for the rifle's fire intent, recoil kick and zoom toggle. Presentation and intent only: the server
- * re-checks every shot, so skipping a request here only saves a packet.
- * 狙击步枪开火意图、后坐镜头抖动与倍率切换的纯客户端规则。仅为表现与意图：服务端复核每次开火，因此此处跳过请求
- * 只是省下一个数据包。
+ * Pure client rules for the rifle's fire intent, recoil kick and the round reset of the scope magnification.
+ * Presentation and intent only: the server re-checks every shot, so skipping a request here only saves a packet.
+ * 狙击步枪开火意图、后坐镜头抖动与瞄准镜倍率按局重置的纯客户端规则。仅为表现与意图：服务端复核每次开火，因此此处跳过
+ * 请求只是省下一个数据包。
  */
 public final class UsecInputRules {
     private UsecInputRules() {
@@ -33,18 +31,19 @@ public final class UsecInputRules {
         return sent && chamberLoaded;
     }
 
-    /** Clamps a remembered zoom level into the table. / 将记住的倍率档位钳制到表内。 */
-    public static int clampZoomLevel(int level) {
-        return Math.max(0, Math.min(UsecRules.ZOOM_FOV_MULTIPLIERS.length - 1, level));
-    }
-
-    /** Shift + right-click cycles 4x -> 8x -> 4x. / Shift + 右键循环切换 4 倍 -> 8 倍 -> 4 倍。 */
-    public static int nextZoomLevel(int level) {
-        return (clampZoomLevel(level) + 1) % UsecRules.ZOOM_FOV_MULTIPLIERS.length;
-    }
-
-    /** Magnification shown to the player (4 or 8). / 展示给玩家的放大倍数（4 或 8）。 */
-    public static int magnification(int level) {
-        return Math.round(1.0F / UsecRules.zoomFovMultiplier(level));
+    /**
+     * Whether the remembered magnification goes back to 4x: a Wathe round begins when the client sees the game leave
+     * INACTIVE (STARTING, or straight to ACTIVE) after an idle observation. The first observation of a connection
+     * counts as idle, so joining or rejoining mid-round also starts at 4x; death, respawn and the round's own
+     * STARTING -> ACTIVE -> STOPPING steps never reset it.
+     * 记住的倍率是否回到 4 倍：客户端在空闲观察之后看到对局离开 INACTIVE（进入 STARTING 或直接 ACTIVE）即为一局开始。
+     * 每次连接的第一次观察算作空闲，因此中途加入或重新加入也从 4 倍开始；死亡、重生以及对局自身的 STARTING -> ACTIVE ->
+     * STOPPING 不会重置。
+     *
+     * @param wasIdle the previous observation had no round in progress / 上一次观察时没有进行中的对局
+     * @param idle    no round in progress now (INACTIVE or no world) / 现在没有进行中的对局（INACTIVE 或没有世界）
+     */
+    public static boolean beginsRound(boolean wasIdle, boolean idle) {
+        return wasIdle && !idle;
     }
 }
