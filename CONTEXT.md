@@ -702,10 +702,15 @@ Current build baseline:
     fallback ring when needed (Full-Screen Zoom only), the lens rim, then `drawReticle(ctx, ScopeFrame)` with the real
     projection FOV from `ScopeGameRendererInvoker` (PiP: the FOV Full-Screen Zoom would need to show the lens at its
     on-screen scale, `ScopeRules.equivalentFovDegrees`).
-  - Settings: Scope View (Full-Screen Zoom, the default, or Picture-in-Picture) and Scoped Sensitivity (10–200 % in 5 %
-    steps, default 100 %) are appended at the end of vanilla Options → Accessibility by `ScopeAccessibilityOptionsMixin`
-    (`addOptions` TAIL; SparkAssist's `getOptions` hook is left untouched). Values persist in
-    `config/sparkwitch-client.json` through `ScopeSettingsStore`, which merges saves into the existing file.
+  - Settings: Scope View (Full-Screen Zoom, the default, or Picture-in-Picture), Lens Resolution beside it, and Scoped
+    Sensitivity (10–200 % in 5 % steps, default 100 %) are appended at the end of vanilla Options → Accessibility by
+    `ScopeAccessibilityOptionsMixin` (`addOptions` TAIL calls `ScopeOptions.addTo(body)`, one `addAll`; SparkAssist's
+    `getOptions` hook is left untouched). Lens Resolution (owner, 2026-10-08) is a cycling button of 50 / 75 / 100 % of
+    the native PiP lens size (default 100 %); it only matters in Picture-in-Picture, so its button is inactive (greyed)
+    while Full-Screen Zoom is selected, follows the Scope View button at once, and its tooltip says so. Values persist
+    in `config/sparkwitch-client.json` (`scopeMode`, `scopedSensitivityPercent`, `scopeLensResolutionPercent`) through
+    `ScopeSettingsStore`, which merges saves into the existing file; a missing, unknown or non-step lens value loads as
+    100 %.
     `ScopeClient.effectiveMode()` reports what actually renders: Picture-in-Picture falls back to Full-Screen Zoom
     under an Iris shader pack, Fabulous! graphics, the Blind echo view, or while `ScopePictureInPicture` backs off
     after a failure (`ScopeRules.effectiveMode`).
@@ -726,7 +731,12 @@ Current build baseline:
   - Picture-in-Picture (WP4b, `ScopePictureInPicture`, `scope_pip.json`, `sparkwitch_scope_pip`): at the same point as
     the lens filter, only on frames whose main world pass ran, it calls `WorldRenderer#render` a second time with the
     same camera and the main frustum (`setupFrustum` is not called again; the lens is a narrower cone on the same axis)
-    into the square `scope_lens_view` target (`ScopeRules.lensViewSize`: the lens diameter × 1.1, at most 512²). The
+    into the square `scope_lens_view` target (`ScopeRules.lensViewSize(W, H, percent)`: the player's Lens Resolution of
+    the native size 2 × 1.1 × the lens radius, i.e. one texel per screen pixel at 100 %, rounded to the short side's
+    parity so linear sampling lands on texel centres, within 64..2048 and never above the short side; 2048 is the
+    smallest power of two over native 4K (1996 px), so 5K+ stays near the 4K cost. 1440p: 666 / 998 / 1330 px, 4K: 998 /
+    1496 / 1996 px. The target is resized in place whenever that size changes (setting or window; the GUI scale does not
+    change it), and the composite samples it linearly: crisp at 100 %, smooth below). The
     projection is the main pass's (captured at `render` HEAD by `ScopeWorldRendererMixin`, so bobbing, hurt tilt and
     USEC recoil carry over) narrowed in clip space by `ScopeRules.lensClipScale`, exactly what Full-Screen Zoom shows;
     the lens zoom eases with vanilla's half-life (`easeZoom`). For the pass, `MinecraftClient.framebuffer` points at the
@@ -743,7 +753,12 @@ Current build baseline:
     back off like the lens filter. Fabric `WorldRenderEvents` fire again inside the lens pass;
     `ScopeClient.isRenderingLens()` lets a listener opt out. Measured on an Apple M2 Pro at 2560×1440 (WP4b spike,
     2026-10-07), Full-Screen Zoom 4× vs PiP 4×: vanilla 201/191 → 131/130 FPS, Sodium 0.6.13 264/263 → 213/215 FPS,
-    Iris 1.8.8 without a pack 310/317 → 231/235 FPS; with a pack it falls back to Full-Screen Zoom.
+    Iris 1.8.8 without a pack 310/317 → 231/235 FPS; with a pack it falls back to Full-Screen Zoom. Lens Resolution
+    (2026-10-08, same machine, the spike's river view where the old 512² lens gave 98/97 FPS, two 10 s windows each,
+    4×): vanilla Full-Screen Zoom 142/131, PiP 100 % 96/95, 75 % 99/99,
+    50 % 100/98 FPS; Sodium 0.6.13 Full-Screen Zoom 257/238, PiP 100 % 209/198, 75 % 198/193, 50 % 187/188 FPS. On this
+    GPU the PiP cost is the second world pass, not the lens fill (native costs about 0.35 ms in vanilla, nothing
+    measurable in Sodium), hence the 100 % default; lower steps are for fill-rate-bound GPUs.
 - `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
   bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
   Key Fish doors, tracked pufferfish, replay formatting, and lifecycle cleanup. Subpackages:

@@ -44,7 +44,8 @@ import java.io.IOException;
  *   <li>the main projection captured at {@code render} HEAD, narrowed in clip space by
  *   {@link ScopeRules#lensClipScale} (the same picture ZOOM_BLUR shows, bobbing and recoil included);</li>
  *   <li>{@code MinecraftClient#getFramebuffer()} pointed at {@link #LENS_VIEW_TARGET}, a square target of
- *   {@link ScopeRules#lensViewSize} (at most 512²), because vanilla re-binds that framebuffer mid-pass;</li>
+ *   {@link ScopeRules#lensViewSize} (the player's Lens Resolution of the native lens size, at most 2048²), because
+ *   vanilla re-binds that framebuffer mid-pass;</li>
  *   <li>no block outline, clouds, weather, particles or hands. Glowing/instinct outlines of the pass are composited
  *   onto the lens like vanilla does on the main view, then the in-wall, underwater and fire overlays are drawn over it,
  *   so a scoped player inside a block cannot see through it.</li>
@@ -55,9 +56,11 @@ import java.io.IOException;
  * as ZOOM_BLUR (distortion, edge darkening, tint, smudges, streak, scope shadow) and a short dark tube rim.
  * <p>
  * Lifecycle: built on first use, rebuilt on resize, released 2 s after leaving PiP and on disconnect or resource
- * reload. Any failure closes it and backs off ({@link ScopeRules#retryDelaySeconds}); meanwhile {@link #ready()} is
- * false and the scope renders as ZOOM_BLUR. Fabulous! graphics and Iris shader packs never reach this class
- * ({@link ScopeRules#effectiveMode}). Render thread only; presentation only.
+ * reload. The lens target is resized in place (vanilla deletes the old textures first) whenever its wanted side
+ * changes: a window resize or a new Lens Resolution; the GUI scale does not change it. Any failure closes it and backs
+ * off ({@link ScopeRules#retryDelaySeconds}); meanwhile {@link #ready()} is false and the scope renders as ZOOM_BLUR.
+ * Fabulous! graphics and Iris shader packs never reach this class ({@link ScopeRules#effectiveMode}). Render thread
+ * only; presentation only.
  * 仅客户端。画中画镜片（WP4b）：主画面保持清晰、不模糊的 1 倍，只有镜片圆内显示第二次放大的世界渲染。
  * <p>
  * 每个开镜帧在 GUI 之前（{@code ScopeRuntime.beforeGui}，位于主世界、手部、实体描边合成与原版后处理之后）由 {@link #render}
@@ -66,14 +69,15 @@ import java.io.IOException;
  * 重建或重新排序两次；镜内是同一轴线上更窄的视锥，1 倍视锥总能包含它。投影取自 {@code render} HEAD 捕获的主投影，经
  * {@link ScopeRules#lensClipScale} 在裁剪空间中收窄（与全画面放大所见相同，包含视角摇晃与后坐力）。由于原版会在渲染中途重新
  * 绑定 {@code MinecraftClient#getFramebuffer()}，渲染期间把它指向 {@link #LENS_VIEW_TARGET}——边长为 {@link ScopeRules#lensViewSize}
- * （最多 512²）的方形目标。不画方块选框、云、天气、粒子与手；本次渲染的发光/本能描边像原版合成到主画面那样合成到镜内，随后
- * 在其上绘制墙内、水下与着火覆盖层，开镜玩家在方块内无法透视。
+ * （原生镜片尺寸乘以玩家的镜内分辨率，最多 2048²）的方形目标。不画方块选框、云、天气、粒子与手；本次渲染的发光/本能描边像
+ * 原版合成到主画面那样合成到镜内，随后在其上绘制墙内、水下与着火覆盖层，开镜玩家在方块内无法透视。
  * <p>
  * 渲染前后保存并恢复：帧缓冲字段、投影矩阵、模型视图栈、视口与绑定的帧缓冲；{@code WorldRenderer#render} 自身会重置雾
  * （{@code clearFog}）、混合与深度写入。随后 {@code scope_pip.json} 合成把镜内画面叠到主画面上，镜片效果与全画面放大相同
  * （畸变、边缘变暗、色调、污渍、反光条纹、镜内阴影），外加一圈短的暗色镜筒边。
  * <p>
- * 生命周期：首次使用时创建，尺寸变化时重建，离开画中画 2 秒后以及断线或资源重载时释放。任何失败都会关闭它并进入退避
+ * 生命周期：首次使用时创建，尺寸变化时重建，离开画中画 2 秒后以及断线或资源重载时释放。镜内目标的期望边长变化时（窗口尺寸
+ * 变化或新的镜内分辨率；GUI 缩放不影响它）就地重建尺寸（原版会先删除旧纹理）。任何失败都会关闭它并进入退避
  * （{@link ScopeRules#retryDelaySeconds}），期间 {@link #ready()} 为 false，开镜按全画面放大渲染。「极佳」画质与 Iris 光影包
  * 永远不会进入本类（{@link ScopeRules#effectiveMode}）。仅渲染线程；仅用于展示。
  */
@@ -81,7 +85,11 @@ public final class ScopePictureInPicture {
     public static final Identifier EFFECT = SparkWitch.id("shaders/post/scope_pip.json");
     /** The composite program; its pass receives the per-frame uniforms. / 合成程序；其 pass 接收逐帧 uniform。 */
     public static final String LENS_PROGRAM = "sparkwitch_scope_pip";
-    /** The square lens render target, resized after every {@code setupDimensions}. / 方形镜内渲染目标。 */
+    /**
+     * The square lens render target, resized to {@link ScopeRules#lensViewSize} after every {@code setupDimensions} and
+     * whenever that size changes. / 方形镜内渲染目标，每次 {@code setupDimensions} 之后以及该尺寸变化时调整为
+     * {@link ScopeRules#lensViewSize}。
+     */
     public static final String LENS_VIEW_TARGET = "scope_lens_view";
     /** Vanilla's near plane and first-person hand FOV. / 原版近平面与第一人称手部视场角。 */
     private static final float NEAR_PLANE = 0.05F;
@@ -390,15 +398,20 @@ public final class ScopePictureInPicture {
                 }
             }
             if (processorWidth != framebuffer.textureWidth || processorHeight != framebuffer.textureHeight) {
-                // First use or window resize: every target follows the framebuffer, then the lens view is made square
-                // again (the scope vertex shader maps each pass to its own output, whatever its size).
-                // 首次使用或窗口尺寸变化：所有目标跟随帧缓冲，随后再把镜内目标改回方形（开镜顶点着色器按各 pass 自己的输出
-                // 尺寸映射，与尺寸无关）。
+                // First use or window resize: every target follows the framebuffer (the lens view too, so it is made
+                // square again below; the scope vertex shader maps each pass to its own output, whatever its size).
+                // 首次使用或窗口尺寸变化：所有目标跟随帧缓冲（镜内目标也是，下方再把它改回方形；开镜顶点着色器按各 pass
+                // 自己的输出尺寸映射，与尺寸无关）。
                 processor.setupDimensions(framebuffer.textureWidth, framebuffer.textureHeight);
-                int side = ScopeRules.lensViewSize(framebuffer.textureWidth, framebuffer.textureHeight);
-                lensView.resize(side, side, MinecraftClient.IS_SYSTEM_MAC);
                 processorWidth = framebuffer.textureWidth;
                 processorHeight = framebuffer.textureHeight;
+            }
+            // The player's Lens Resolution may change at any time; Framebuffer#resize deletes the old textures first,
+            // so nothing leaks. / 玩家可随时修改镜内分辨率；Framebuffer#resize 会先删除旧纹理，不会泄漏。
+            int side = ScopeRules.lensViewSize(framebuffer.textureWidth, framebuffer.textureHeight,
+                    ScopeSettingsStore.current().lensResolutionPercent());
+            if (lensView.textureWidth != side || lensView.textureHeight != side) {
+                lensView.resize(side, side, MinecraftClient.IS_SYSTEM_MAC);
             }
             return processor;
         } catch (IOException | RuntimeException exception) {
