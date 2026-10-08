@@ -411,8 +411,9 @@ Current build baseline:
     no cap (Q1+). The stamina cap is 20 s and regeneration is doubled, both stacking with traits. Death drops one Wathe
     revolver and deletes the rifle and its parts (Q2). Right-click scopes, left-click fires, and hip fire is as accurate
     (Q15). Grand Witch Fear blocks neither the shot nor the attachments (Q14).
-    Passive (owner, 2026-10-08): while scoped, a USEC is hidden from the keyed instinct x-ray of every viewer within 12
-    blocks; always-on highlights stay (see `client/usec/` instinct cloak).
+    Passive (owner, 2026-10-08): while scoped, a USEC is hidden from the keyed instinct x-ray of every living viewer
+    within 12 blocks; spectators, Rift occupants and active Wraiths still see it, and always-on highlights stay (see
+    `client/usec/` instinct cloak).
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 20 s `maxSprintTime`, no appearance
     condition) registered right before the Insider in `registerFactionApiRoles` and right after the Seeker in the
     assassin-guess order. It is drawn only through the shared Vigilante slots
@@ -691,10 +692,12 @@ Current build baseline:
   - Instinct cloak (owner, 2026-10-08; `UsecInstinctCloak`, pure `UsecInstinctCloakRules`, range
     `UsecRules.INSTINCT_CLOAK_RANGE`): a target with the synced `UsecPlayerComponent.scoped` flag is cloaked from the
     local viewer at a feet-to-feet distance of at most 12 blocks (`squaredDistanceTo`, inclusive, the Apprentice Murder
-    Sense and Vendetta measure) on a confirmed server, never from itself and never from a viewer with Wathe's
-    spectator information (`WatheClient.canSeeSpectatorInformation()`: dead spectators and non-participants keep
-    seeing everything); Rift occupants (alive spectators) and active Wraiths are in-round viewers and are cloaked
-    from. `client/mixin/usec/UsecInstinctCloakMixin` puts three `@WrapMethod`s on `WatheClient` (pinned in
+    Sense and Vendetta measure) on a confirmed server, never from itself and never from an exempt viewer
+    (`UsecInstinctCloakRules.exemptViewer`, owner 2026-10-08), who keeps seeing a scoped USEC at any distance: the
+    viewers SparkStrength's Corrupt Cop concealment exempts (not Wathe playing-and-alive, or spectating or creative:
+    dead spectators, non-participants, creative players), plus active Wraiths (`WraithClientState.isActive`) and Rift
+    Gate occupants (`RiftSessionService.isInside`) named through SparkWitch's own state.
+    `client/mixin/usec/UsecInstinctCloakMixin` puts three `@WrapMethod`s on `WatheClient` (pinned in
     `watheClientMixinContracts`): for a cloaked target the whole `getInstinctHighlight` runs as a per-thread "cloaked
     evaluation" in which `isInstinctEnabled()` and `isInstinctEnabledAndIsKiller()` read false, exactly as if the
     viewer had released the instinct key for that target. Wathe then drops a keybind event result and its null-result

@@ -141,8 +141,9 @@ public final class UsecRules {
 
     // ---- Scoped instinct cloak (owner, 2026-10-08) ----
     /**
-     * A scoped USEC is hidden from keyed instinct x-ray of every viewer at most this many blocks away (feet to feet,
-     * inclusive); always-on highlights stay. / 开镜的 USEC 对此距离以内（脚到脚，含边界）的观察者隐藏按键本能透视；常驻高亮保留。
+     * A scoped USEC is hidden from keyed instinct x-ray of every living in-round viewer at most this many blocks away
+     * (feet to feet, inclusive); always-on highlights stay. / 开镜的 USEC 对此距离以内（脚到脚，含边界）的对局存活观察者隐藏
+     * 按键本能透视；常驻高亮保留。
      */
     public static final double INSTINCT_CLOAK_RANGE = 12.0;
 

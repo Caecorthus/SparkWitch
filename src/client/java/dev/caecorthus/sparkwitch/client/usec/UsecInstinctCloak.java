@@ -1,8 +1,10 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
+import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
-import dev.doctor4t.wathe.client.WatheClient;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
@@ -76,9 +78,15 @@ public final class UsecInstinctCloak {
         if (viewer == null) {
             return false;
         }
+        boolean exemptViewer = UsecInstinctCloakRules.exemptViewer(
+                GameFunctions.isPlayerPlayingAndAlive(viewer),
+                GameFunctions.isPlayerSpectatingOrCreative(viewer),
+                WraithClientState.isActive(viewer),
+                RiftSessionService.isInside(viewer)
+        );
         return UsecInstinctCloakRules.cloaks(
                 SparkWitchServerConnection.isConfirmedServer(),
-                WatheClient.canSeeSpectatorInformation(),
+                exemptViewer,
                 viewer == player || viewer.getUuid().equals(player.getUuid()),
                 true,
                 viewer.squaredDistanceTo(player)
