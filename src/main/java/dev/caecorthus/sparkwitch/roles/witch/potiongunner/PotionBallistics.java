@@ -30,6 +30,8 @@ public final class PotionBallistics {
      * 一旦 {@code age >= SHELL_LIFETIME_TICKS} 就爆炸，因此它在 age 1 到 99 时移动，并在第 100 刻原地爆炸：比寿命少一次移动。
      */
     public static final int MOVES_BEFORE_BURST = PotionGunnerRules.SHELL_LIFETIME_TICKS - 1;
+    /** {@link #flatTicks()}, computed once (the scope re-solves its rows every frame). / 只计算一次的平飞刻数。 */
+    private static final int FLAT_TICKS = countFlatTicks();
 
     private PotionBallistics() {
     }
@@ -50,6 +52,10 @@ public final class PotionBallistics {
      * {@code 刻数 x MUZZLE_SPEED}：每刻 2.5 格时为 20。
      */
     public static int flatTicks() {
+        return FLAT_TICKS;
+    }
+
+    private static int countFlatTicks() {
         int ticks = 0;
         while (ticks < MOVES_BEFORE_BURST && isFlatTick(ticks * (double) PotionGunnerRules.MUZZLE_SPEED)) {
             ticks++;
