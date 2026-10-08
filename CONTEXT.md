@@ -881,7 +881,7 @@ Current build baseline:
 - `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
   Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
   an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;
-  `isMatchParticipant` scopes the bound-item rules.
+  `isMatchParticipant` scopes the bound-item rules and splits the Ninja Grappling Hook gate (`NinjaRules.mayGrapple`).
 - `util/GiveCommandDropScope`: marks, by stack identity and per thread, vanilla `/give`'s cosmetic pickup-animation drop
   (the shared count-1 template). `mixin/GiveCommandDropScopeMixin` (common config) is the one `@WrapOperation` on
   `GiveCommand.execute`'s second `dropItem(ItemStack, boolean)` (ordinal 1); ordinal 0, the real remainder drop, stays
