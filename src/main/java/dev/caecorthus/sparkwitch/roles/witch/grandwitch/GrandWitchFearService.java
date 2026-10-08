@@ -69,6 +69,10 @@ public final class GrandWitchFearService {
             // and chat, detective notes, drone moves and exit, and the Timekeeper's watch-mode pick stay allowed.
             // SparkStrength 职业技能，与上方 NoellesRoles 技能一致（所有者 2026-10-07）。平板会议、投票与聊天、侦探笔记、
             // 无人机移动与退出以及计时员怀表模式切换放行。
+            // The Serial Killer pistol shot is blocked like the Demon Hunter pistol above, although Wathe's own
+            // wathe:gunshoot stays allowed (owner decision 2026-10-07).
+            // 连环杀手手枪射击与上方猎魔人手枪一样被拦截，Wathe 自身的 wathe:gunshoot 仍放行（所有者 2026-10-07 决定）。
+            Identifier.of("sparkstrength", "serial_pistol_shoot"),
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
             Identifier.of("sparkstrength", "coroner_morph"),
@@ -79,6 +83,9 @@ public final class GrandWitchFearService {
             Identifier.of("sparkstrength", "demon_hunter_sniff"),
             // Vulture Super Curse (key 2) and Taotie head launch. / 秃鹫超级骂（技能键 2）与饕餮发射头颅。
             Identifier.of("sparkstrength", "vulture_super_curse"),
+            // Spiritualist Wraith possession (SparkStrength, key 2); its exit packet stays allowed.
+            // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
+            Identifier.of("sparkstrength", "spirit_possess"),
             Identifier.of("sparkstrength", "taotie_head_fire"),
             // Legacy Criminologist skill (older SparkStrength builds); an unregistered id never matches.
             // 旧版犯罪学家技能（较旧的 SparkStrength 构建）；未注册时该 id 永远不会命中。

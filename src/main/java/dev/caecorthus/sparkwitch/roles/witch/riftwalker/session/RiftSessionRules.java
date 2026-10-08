@@ -102,7 +102,14 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "use_fiend_dash"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
+            // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.
+            // USEC 步枪开火与配件界面操作；开镜状态仅为表现，保持放行。
+            Identifier.of("sparkwitch", "fire_usec_rifle"),
+            Identifier.of("sparkwitch", "usec_attachment"),
 
+            // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
+            // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。
+            Identifier.of("sparkstrength", "serial_pistol_shoot"),
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
             Identifier.of("sparkstrength", "coroner_morph"),
@@ -114,6 +121,9 @@ public final class RiftSessionRules {
             Identifier.of("sparkstrength", "drone_pilot_action"),
             Identifier.of("sparkstrength", "demon_hunter_sniff"),
             Identifier.of("sparkstrength", "vulture_super_curse"),
+            // Spiritualist Wraith possession (SparkStrength, key 2); its exit packet stays allowed.
+            // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
+            Identifier.of("sparkstrength", "spirit_possess"),
             Identifier.of("sparkstrength", "call_tablet_meeting"),
             Identifier.of("sparkstrength", "cast_tablet_vote"),
             Identifier.of("sparkstrength", "confirm_tablet_vote"),

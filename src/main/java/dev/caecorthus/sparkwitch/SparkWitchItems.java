@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
+import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
@@ -50,6 +51,12 @@ import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.DeepDarkSporeFla
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher.PotionLauncherItem;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoItem;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoType;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecMagazineItem;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRifleItem;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecSuppressorItem;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellItem;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateItem;
@@ -71,6 +78,7 @@ public final class SparkWitchItems {
     public static final Identifier NINJA_KNIFE_ID = SparkWitch.id("ninja_knife");
     public static final Identifier VENDETTA_KNIFE_ID = SparkWitch.id("vendetta_knife");
     public static final Identifier NINJA_SHURIKEN_ID = SparkWitch.id("ninja_shuriken");
+    public static final Identifier NINJA_GRAPPLING_HOOK_ID = SparkWitch.id("ninja_grappling_hook");
     public static final Identifier FEATHER_BLADE_ID = SparkWitch.id("feather_blade");
     public static final Identifier BLACK_RAVEN_LEDGER_ID = SparkWitch.id("black_raven_ledger");
     public static final Identifier BLACK_RAVEN_MASK_ID = BlackRavenDisguiseRules.MASK_ITEM_ID;
@@ -107,6 +115,11 @@ public final class SparkWitchItems {
     public static final Identifier POTION_LAUNCHER_ID = PotionGunnerRules.LAUNCHER_ID;
     public static final Identifier RIFT_GATE_ID = RiftwalkerRules.GATE_ITEM_ID;
     public static final Identifier RIFT_GATE_REMOVER_ID = RiftwalkerRules.GATE_REMOVER_ITEM_ID;
+    public static final Identifier USEC_RIFLE_ID = UsecRules.RIFLE_ITEM_ID;
+    public static final Identifier USEC_MAGAZINE_ID = UsecRules.MAGAZINE_ITEM_ID;
+    public static final Identifier USEC_FMJ_ROUND_ID = UsecRules.FMJ_ITEM_ID;
+    public static final Identifier USEC_AP_ROUND_ID = UsecRules.AP_ITEM_ID;
+    public static final Identifier USEC_SUPPRESSOR_ID = UsecRules.SUPPRESSOR_ITEM_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -115,6 +128,7 @@ public final class SparkWitchItems {
     private static Item ninjaKnife;
     private static Item vendettaKnife;
     private static Item ninjaShuriken;
+    private static Item ninjaGrapplingHook;
     private static Item featherBlade;
     private static Item blackRavenLedger;
     private static Item blackRavenMask;
@@ -155,6 +169,11 @@ public final class SparkWitchItems {
     private static Item trShell;
     private static Item riftGate;
     private static Item riftGateRemover;
+    private static Item usecRifle;
+    private static Item usecMagazine;
+    private static Item usecFmjRound;
+    private static Item usecApRound;
+    private static Item usecSuppressor;
 
     private static boolean registered;
 
@@ -204,6 +223,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 NINJA_SHURIKEN_ID,
                 new NinjaShurikenItem(new Item.Settings().maxCount(1))
+        );
+        ninjaGrapplingHook = Registry.register(
+                Registries.ITEM,
+                NINJA_GRAPPLING_HOOK_ID,
+                new NinjaGrapplingHookItem(new Item.Settings().maxCount(1))
         );
         featherBlade = Registry.register(
                 Registries.ITEM,
@@ -405,6 +429,33 @@ public final class SparkWitchItems {
                 RIFT_GATE_REMOVER_ID,
                 new RiftGateRemoverItem(RiftGateRemoverItem.createSettings())
         );
+        // USEC (police variant): the rifle, its magazine, the two .338 rounds and the suppressor; appended last.
+        // USEC（警察变体）：狙击步枪、弹匣、两种 .338 子弹与消音器；追加在最后。
+        usecRifle = Registry.register(
+                Registries.ITEM,
+                USEC_RIFLE_ID,
+                new UsecRifleItem(UsecRifleItem.createSettings())
+        );
+        usecMagazine = Registry.register(
+                Registries.ITEM,
+                USEC_MAGAZINE_ID,
+                new UsecMagazineItem(UsecMagazineItem.createSettings())
+        );
+        usecFmjRound = Registry.register(
+                Registries.ITEM,
+                USEC_FMJ_ROUND_ID,
+                new UsecAmmoItem(UsecAmmoType.FMJ, UsecAmmoItem.createSettings())
+        );
+        usecApRound = Registry.register(
+                Registries.ITEM,
+                USEC_AP_ROUND_ID,
+                new UsecAmmoItem(UsecAmmoType.AP, UsecAmmoItem.createSettings())
+        );
+        usecSuppressor = Registry.register(
+                Registries.ITEM,
+                USEC_SUPPRESSOR_ID,
+                new UsecSuppressorItem(UsecSuppressorItem.createSettings())
+        );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
@@ -464,6 +515,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return ninjaShuriken;
+    }
+
+    public static Item ninjaGrapplingHook() {
+        if (ninjaGrapplingHook == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return ninjaGrapplingHook;
     }
 
     public static Item featherBlade() {
@@ -775,5 +833,47 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return riftGateRemover;
+    }
+
+    public static Item usecRifle() {
+        if (usecRifle == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return usecRifle;
+    }
+
+    public static Item usecMagazine() {
+        if (usecMagazine == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return usecMagazine;
+    }
+
+    public static Item usecFmjRound() {
+        if (usecFmjRound == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return usecFmjRound;
+    }
+
+    public static Item usecApRound() {
+        if (usecApRound == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return usecApRound;
+    }
+
+    public static Item usecAmmo(UsecAmmoType type) {
+        return switch (type) {
+            case FMJ -> usecFmjRound();
+            case AP -> usecApRound();
+        };
+    }
+
+    public static Item usecSuppressor() {
+        if (usecSuppressor == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return usecSuppressor;
     }
 }

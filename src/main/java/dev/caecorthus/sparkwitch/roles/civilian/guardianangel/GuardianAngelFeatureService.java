@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordProtectionPolicy;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecShieldPierce;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -233,6 +234,12 @@ public final class GuardianAngelFeatureService {
                 1.0F
         );
         recordShieldActivation(victim, owner, ownerUuid, deathReason);
+        // O3: an AXMC round with pierce budget left goes through the spent shield. Null, never allow(): later BEFORE
+        // listeners (Saint, Judge, ...) must still run. / O3：仍有穿盾预算的 AXMC 子弹穿过已消耗的护盾。返回 null 而绝不是
+        // allow()：后续 BEFORE 监听（圣徒、法官等）仍须执行。
+        if (UsecShieldPierce.tryPierce(victim, killer, deathReason)) {
+            return null;
+        }
         return CeremonialSwordProtectionPolicy.afterProtection(deathReason);
     }
 

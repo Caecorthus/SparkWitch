@@ -54,6 +54,12 @@ public final class NinjaShopService {
                 ShopEntry.Type.WEAPON
         ).build());
         context.addEntry(new ShopEntry.Builder(
+                "ninja_grappling_hook",
+                new ItemStack(SparkWitchItems.ninjaGrapplingHook()),
+                NinjaRules.GRAPPLING_HOOK_PRICE,
+                ShopEntry.Type.TOOL
+        ).stock(1).build());
+        context.addEntry(new ShopEntry.Builder(
                 "lockpick",
                 new ItemStack(WatheItems.LOCKPICK),
                 NinjaRules.LOCKPICK_PRICE,

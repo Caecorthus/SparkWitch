@@ -159,5 +159,44 @@
         "pitch": 1.6
       }
     ]
+  },
+  "item.usec_rifle.shoot": {
+    "subtitle": "subtitles.sparkwitch.item.usec_rifle.shoot",
+    "sounds": [
+      "sparkwitch:item/usec_rifle_shoot"
+    ]
+  },
+  "item.usec_rifle.shoot_suppressed": {
+    "subtitle": "subtitles.sparkwitch.item.usec_rifle.shoot_suppressed",
+    "sounds": [
+      "sparkwitch:item/usec_rifle_shoot_suppressed"
+    ]
+  },
+  "item.usec_rifle.bolt": {
+    "subtitle": "subtitles.sparkwitch.item.usec_rifle.bolt",
+    "sounds": [
+      "sparkwitch:item/usec_rifle_bolt"
+    ]
+  },
+  "item.usec_rifle.magazine": {
+    "subtitle": "subtitles.sparkwitch.item.usec_rifle.magazine",
+    "sounds": [
+      "sparkwitch:item/usec_rifle_magazine"
+    ]
+  },
+  "item.usec_rifle.load_round": {
+    "subtitle": "subtitles.sparkwitch.item.usec_rifle.load_round",
+    "sounds": [
+      "sparkwitch:item/usec_rifle_load_round"
+    ]
+  },
+  "item.usec_rifle.scope": {
+    "subtitle": "subtitles.sparkwitch.item.usec_rifle.scope",
+    "sounds": [
+      {
+        "name": "sparkwitch:item/usec_rifle_scope",
+        "attenuation_distance": 8
+      }
+    ]
   }
 }

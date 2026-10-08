@@ -63,12 +63,13 @@ public final class BlindSoundPerception {
             return;
         }
         BlindPerceiver[] perceivers = BlindPerceptionTargets.perceivers();
-        if (!BlindPulseFanout.anyInRange(perceivers, world, x, y, z, false)) {
+        if (!BlindPulseFanout.anyInRange(perceivers, world, x, y, z, BlindSoundRules.NORMAL_RANGE_FACTOR)) {
             return;
         }
         PlayerEntity sourcePlayer = entity instanceof PlayerEntity player ? player : null;
         Entity sourceObject = sourcePlayer == null ? entity : null;
-        fanOut(world, null, sourcePlayer, sourceObject, sourceObject != null, x, y, z, true, false);
+        fanOut(world, null, sourcePlayer, sourceObject, sourceObject != null, x, y, z,
+                BlindSoundRules.NORMAL_RANGE_FACTOR, true, false);
     }
 
     /** Voice drain, server thread: one proximity voice frame from a speaker. / 语音取出，服务端线程。 */
@@ -80,12 +81,13 @@ public final class BlindSoundPerception {
         double x = speaker.getX();
         double y = speaker.getEyeY();
         double z = speaker.getZ();
+        double rangeFactor = BlindSoundRules.voiceRangeFactor(whispering);
         BlindPerceiver[] perceivers = BlindPerceptionTargets.perceivers();
-        if (!BlindPulseFanout.anyInRange(perceivers, world, x, y, z, whispering)) {
+        if (!BlindPulseFanout.anyInRange(perceivers, world, x, y, z, rangeFactor)) {
             return;
         }
         BlindPulseFanout.fanOut(perceivers, world, new BlindPulseFanout.Source(x, y, z, speaker.getId(), true,
-                whispering, speaker.getId(), 0L, false, false));
+                rangeFactor, speaker.getId(), 0L, false, false));
     }
 
     private static void perceive(ServerWorld world, @Nullable PlayerEntity except, @Nullable Entity entity,
@@ -94,11 +96,14 @@ public final class BlindSoundPerception {
         if (!BlindSoundRules.isPerceivableCategory(category)) {
             return;
         }
+        // The id is read before the range pre-check: a x2 USEC shot reaches past the Blind's ordinary range.
+        // 在距离预检之前读取 id：x2 的 USEC 枪声能传到盲人普通感知距离之外。
+        Identifier soundId = sound.value().getId();
+        double rangeFactor = BlindSoundRules.soundRangeFactor(soundId);
         BlindPerceiver[] perceivers = BlindPerceptionTargets.perceivers();
-        if (!BlindPulseFanout.anyInRange(perceivers, world, x, y, z, false)) {
+        if (!BlindPulseFanout.anyInRange(perceivers, world, x, y, z, rangeFactor)) {
             return;
         }
-        Identifier soundId = sound.value().getId();
         PlayerEntity sourcePlayer = entity instanceof PlayerEntity player ? player : null;
         Entity sourceObject = sourcePlayer == null ? entity : null;
         BlindSoundRules.Handling handling = BlindSoundRules.handling(soundId, except != null, sourceObject != null,
@@ -107,12 +112,12 @@ public final class BlindSoundPerception {
             return;
         }
         fanOut(world, except, sourcePlayer, sourceObject, handling == BlindSoundRules.Handling.OBJECT, x, y, z,
-                BlindSoundRules.isOneShot(soundId), BlindSoundRules.isFootstep(soundId));
+                rangeFactor, BlindSoundRules.isOneShot(soundId), BlindSoundRules.isFootstep(soundId));
     }
 
     private static void fanOut(ServerWorld world, @Nullable PlayerEntity except, @Nullable PlayerEntity sourcePlayer,
                                @Nullable Entity sourceObject, boolean objectSound, double x, double y, double z,
-                               boolean oneShot, boolean footstep) {
+                               double rangeFactor, boolean oneShot, boolean footstep) {
         BlindSoundAttribution.Result<PlayerEntity> result = objectSound
                 ? BlindSoundAttribution.object()
                 : BlindSoundAttribution.attribute(except, sourcePlayer, world.getPlayers(), x, y, z, PROBE);
@@ -124,7 +129,7 @@ public final class BlindSoundPerception {
                 : sourceObject != null ? sourceObject.getId() : BlindPulseFanout.NO_ENTITY;
         long block = BlockPos.asLong(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z));
         BlindPulseFanout.fanOut(BlindPerceptionTargets.perceivers(), world,
-                new BlindPulseFanout.Source(x, y, z, emitter, false, false, key, block, oneShot, footstep));
+                new BlindPulseFanout.Source(x, y, z, emitter, false, rangeFactor, key, block, oneShot, footstep));
     }
 
     /**

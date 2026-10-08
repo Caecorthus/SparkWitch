@@ -28,6 +28,7 @@ import dev.caecorthus.sparkwitch.client.insider.InsiderClient;
 import dev.caecorthus.sparkwitch.client.abysslistener.AbyssListenerClient;
 import dev.caecorthus.sparkwitch.client.riftwalker.RiftwalkerClient;
 import dev.caecorthus.sparkwitch.client.seeker.SeekerClientModule;
+import dev.caecorthus.sparkwitch.client.usec.UsecClientModule;
 import dev.caecorthus.sparkwitch.client.hooks.DeathRayClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.GrandWitchFearClientHooks;
 import dev.caecorthus.sparkwitch.client.hooks.HunterTrapClientHooks;
@@ -40,8 +41,10 @@ import dev.caecorthus.sparkwitch.client.hooks.WitchInstinctSuppressionClientHook
 import dev.caecorthus.sparkwitch.client.hooks.WitchPoisonVisionClientHooks;
 import dev.caecorthus.sparkwitch.client.curser.CurserClientHooks;
 import dev.caecorthus.sparkwitch.client.net.version.SparkWitchClientVersionHandshake;
+import dev.caecorthus.sparkwitch.client.ninja.NinjaGrappleClientPull;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.client.renderer.HunterTrapEntityRenderer;
+import dev.caecorthus.sparkwitch.client.renderer.NinjaGrapplingHookEntityRenderer;
 import dev.caecorthus.sparkwitch.client.screen.TarotDivinationSelectorScreen;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
 import dev.caecorthus.sparkwitch.client.tarot.TarotReadingLog;
@@ -160,6 +163,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> resetConnectionState());
         WitchInstinctSuppressionClientHooks.register();
         HunterTrapClientHooks.register();
+        NinjaGrappleClientPull.register();
         OrthopedistClientHooks.register();
         ProphetCorpseHighlightClientHooks.register();
         registerGrandWitchCeremonialSwordBgm();
@@ -245,6 +249,9 @@ public final class SparkWitchClient implements ClientModInitializer {
             return null;
         });
         CanSeePoison.EVENT.register(WitchPoisonVisionClientHooks::canSeeHiddenPoison);
+        // USEC client hub, appended last: scope, HUD, attachment screen, impact cracks.
+        // USEC 客户端注册中心，追加在最后：开镜、HUD、配件界面、命中裂痕。
+        UsecClientModule.register();
     }
 
     public static Text abilityKeyText() {
@@ -258,6 +265,8 @@ public final class SparkWitchClient implements ClientModInitializer {
                 SparkWitchEntities.ninjaShuriken(),
                 context -> new FlyingItemEntityRenderer<>(context, 1.0F, true)
         );
+        // The grappling hook draws its head sprite and the chain to the owner's hand. / 钩爪绘制钩头贴图与连到主人手上的锁链。
+        EntityRendererRegistry.register(SparkWitchEntities.ninjaGrapplingHook(), NinjaGrapplingHookEntityRenderer::new);
         EntityRendererRegistry.register(HunterEntities.hunterTrap(), HunterTrapEntityRenderer::new);
         // The thrown Shock Device renders its synced item stack like vanilla thrown items.
         // 投出的电击装置与原版投掷物一样渲染其同步的物品。

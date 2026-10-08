@@ -94,7 +94,17 @@ public final class ControlExpertStunRules {
             // stored pre-selection used only when playback starts, so it stays allowed like other UI-only payloads.
             // 魔术师录制/播放阶段；皮套选择（magician_target）只是开始播放时才使用的预选，与其他仅界面数据包一样放行。
             Identifier.of("sparkwitch", "magician_ability"),
+            // USEC rifle fire and attachment-screen actions. The stun closes gameplay screens only on the client
+            // (ControlExpertStunClient) and the server does not deny inventory clicks, so this list is the server-side
+            // refusal; the scope state is presentation only and stays allowed. / USEC 步枪开火与配件界面操作。眩晕只在
+            // 客户端关闭游戏界面（ControlExpertStunClient），服务端并不拒绝背包点击，因此本列表才是服务端的拒绝；
+            // 开镜状态仅为表现，保持放行。
+            Identifier.of("sparkwitch", "fire_usec_rifle"),
+            Identifier.of("sparkwitch", "usec_attachment"),
 
+            // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
+            // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。
+            Identifier.of("sparkstrength", "serial_pistol_shoot"),
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
             Identifier.of("sparkstrength", "coroner_morph"),
@@ -109,6 +119,9 @@ public final class ControlExpertStunRules {
             // Vulture Super Curse (SparkStrength, key 2): a voice line only, classified like the Sniff.
             // 秃鹫超级骂（SparkStrength，技能键 2）：仅播放语音，与嗅探同样归类。
             Identifier.of("sparkstrength", "vulture_super_curse"),
+            // Spiritualist Wraith possession (SparkStrength, key 2); its exit packet stays allowed.
+            // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
+            Identifier.of("sparkstrength", "spirit_possess"),
             Identifier.of("sparkstrength", "call_tablet_meeting"),
             Identifier.of("sparkstrength", "cast_tablet_vote"),
             Identifier.of("sparkstrength", "confirm_tablet_vote"),

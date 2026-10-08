@@ -10,6 +10,8 @@ God, Prophet, Saint, Perfumer, Tarot Reader, Ninja, Kidnapper, Black Raven, Bell
 Time Stealer, and Angler (`sparkwitch:fisher`) gameplay to Wathe.
 It also adds the Control Expert, a non-lethal police variant that shares the Vigilante slots,
 and the Seeker, a police variant with a remote car and wall cameras that shares the same slots.
+It also adds USEC (`sparkwitch:usec`), a police variant with the AXMC bolt-action sniper rifle that shares the
+Vigilante slots.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill and that may buy a timed Fiend Moment.
 It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
@@ -59,7 +61,37 @@ Current build baseline:
     reaches it by reflection (FQCN and both signatures are frozen) for the NoellesRoles Vulture's Super Curse
     (秃鹫超级骂), whose C2S id `sparkstrength:vulture_super_curse` sits next to `sparkstrength:demon_hunter_sniff` on
     the Control Expert stun, Seeker session, Riftwalker session and Grand Witch Fear deny-lists (Fear blocks every
-    SparkStrength role skill since the owner's 2026-10-07 decision, the Sniff included).
+    SparkStrength role skill since the owner's 2026-10-07 decision, the Sniff included). The NoellesRoles
+    Spiritualist's Wraith possession (灵界行者附身冤魂) is its second consumer: its start id
+    `sparkstrength:spirit_possess` sits on the same four deny-lists, while `sparkstrength:spirit_possess_exit` stays
+    allowed everywhere.
+  - `api/client/WraithViewerApi` (client source set, 2026-10-07) is the stable cross-mod seam that reveals Wraiths to
+    add-on viewers: `static void addViewerGate(BiPredicate<PlayerEntity, PlayerEntity>)` (gates are OR'd, a throwing
+    gate is dropped, null throws NPE). `client/render/WraithViewerGates.revealsBody` asks the gates only for an active
+    Wraith (promoted ones included) other than the viewer itself, and `WraithEntityInvisibilityMixin` then draws that
+    body translucent like a spectator's view. It reveals the body only: held items, outlines, instinct colour, name
+    tags and aim pass-through keep the ordinary-viewer rules. SparkStrength reaches it by reflection (FQCN and the
+    JDK-only signature are frozen) so a living NoellesRoles Spiritualist sees every active Wraith.
+  - Add-on gun world hits (2026-10-07, frozen names and signatures, reached by SparkStrength's `SparkWitchCompat`
+    through reflection for the Serial Killer pistols, which extend Wathe's `RevolverItem` but fire through
+    `sparkstrength:serial_pistol_shoot`): client `SparkWitchApi.preferNearerGunWorldTarget(PlayerEntity, HitResult,
+    double)` adds the Seeker device step that `mixin/seeker/SeekerGunTargetMixin` wraps inside `RevolverItem#use`
+    (the Wraith pass-through and Magician puppet pick already sit on `RevolverItem.getGunTarget` itself); server
+    `SparkWitchApi.hitGunWorldTarget(ServerPlayerEntity, Entity, ItemStack, double)` runs the gun's non-player
+    target where Wathe's receiver records the shot, through `MagicianPuppetHits.onAddonGunShot` and
+    `SeekerDeviceHits.onAddonGunShot` (revolver rules with the caller's range, capped at 65; a device break is
+    recorded as `REVOLVER`). The caller finishes such a shot as a miss. `SparkWitchApi.isBoundKillerTargetingVendetta(
+    PlayerEntity, PlayerEntity)` (`VendettaInteractionService`'s rule) lets the pistols' own alive check accept the
+    shooter's bound active Vendetta, so `killPlayer` resolves its terminal death as under a revolver shot.
+  - Shield pierce seam (2026-10-07, frozen names and signatures, server thread only, reached by SparkStrength's
+    `SparkWitchCompat` through reflection for the Bodyguard gear): `SparkWitchApi.tryPierceShieldLayer(PlayerEntity,
+    PlayerEntity, Identifier)` spends one pierce of the shot being settled against exactly that victim, killer and death
+    reason (today only the USEC AXMC's `wathe:gun_shot` scope, `UsecShieldPierce.tryPierce`); true means the caller
+    spends its layer and lets the same kill go on. `SparkWitchApi.piercingShotAmmoId(PlayerEntity, PlayerEntity,
+    Identifier)` returns that shot's stable round id (`"fmj"` or `"ap"`, `UsecAmmoType.id()`), budget left or not, and
+    spends nothing; null for every other kill. Both fail closed (false / null) for nulls and outside the exact scope.
+    The facade exposes the round, not a price: the add-on owns its balance numbers (the Democracy Shield's 10 / 25
+    points live in SparkStrength's `BodyguardRules`, next to its sword and TR shell costs).
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
   D1–D10, numbers in each ability class):
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
@@ -131,6 +163,31 @@ Current build baseline:
   presentation (faction-count HUD, reading slip, reading log, selector ledger)
   lives in `client/tarot/`, `client/hud/Tarot*`, and `client/screen/`.
 - `roles/killer/ninja/`: parry, dark-kill bounty, shop, and death cleanup.
+  - Grappling Hook (`sparkwitch:ninja_grappling_hook`, 钩爪, owner 2026-10-07): a 100-coin, stock-1 shop TOOL,
+    role-agnostic like the Kunai and removed on death with the other Ninja items. `NinjaGrappleService` (server only)
+    keeps one active hook per player, throws it (Wathe playing+alive and alive+survival; refused for Fabric fake
+    players such as Magician replay stand-ins, and during SparkTraits Last Escape through `isKillerInteractionBlocked`,
+    never the weapon gate) and discards it silently on death, ResetPlayer, role assignment and round finalize.
+    `entity/NinjaGrapplingHookEntity` is a plain `Entity` (never a `ProjectileEntity`, so projectile hooks never see it;
+    not saved, not summonable): the server flies it 24 blocks on a block-only COLLIDER ray (it passes through every
+    entity), latches on the first block (vanilla barriers and Wathe barrier panels / light barriers are a miss),
+    auto-retracts after 5 s or when the latched block stops holding the hook point (a door opens, a block goes), and
+    breaks the chain when the owner is over 32 blocks away, stops holding it in either hand, is no longer playing, alive
+    and survival, or is held (`NinjaGrappleService.isHeld`: the Rift session's private list, deliberately copied —
+    Taotie swallow, Last Stand, Last Escape, Kidnapper control, Control Expert stun, Seeker session, foreign camera —
+    plus a Hunter root; a held player can neither throw nor pull). A second right-click on a latched hook starts the
+    pull: the server syncs the feet target (`NinjaRules.grappleFeetTarget`, floor/wall/ceiling) as tracked data and the
+    owner's client (`client/ninja/NinjaGrappleClientPull`, START_CLIENT_TICK) sets its own velocity toward it, so walls
+    and doors stop it through client physics and latency cannot overshoot; the server keeps fall distance at zero and
+    ends the pull on arrival, stall or a 2 s timeout by zeroing the velocity. The item has no cooldown while a hook is
+    out (holding right-click therefore throws and then reels in on its own); every cycle end writes the 10 s cooldown
+    unless a longer forced cooldown is already running (`ForcedCooldowns.itemRemainingTicks`), and Ninja assignment
+    locks it for 90 s. Vanilla chain sounds only, never a `.step` id. The state (FLYING, LATCHED, PULLING) is tracked
+    data and the owner id rides the spawn packet for the client `client/renderer/NinjaGrapplingHookEntityRenderer`: a
+    camera-facing head sprite (`textures/entity/ninja_grappling_hook.png`, hidden for its first ticks next to the
+    camera) and a leash-style steel chain to the hand holding the hook (vanilla bobber hand anchor; geometry in
+    `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible to the viewer.
+    `BlindClientGates.hidesEntity` hides a hook whose owner is hidden, like the fishing bobber.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
   SparkTraits fake bodies, camera-bound bodies and Magician decoys; a deliberate drag on a decoy tells the Kidnapper.
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
@@ -223,7 +280,9 @@ Current build baseline:
     Hunter pistol (only when the copied player would die to it; `mixin/MagicianDemonHunterRefundMixin` pays the
     Jester refund), Death Ray (pierces), Wathe bat (`MagicianPuppetAttackHandlers`, full charge), Swordfish,
     Ceremonial Sword strike and dash, ninja shuriken, NoellesRoles throwing axe, Potion Gunner shell and backblast,
-    and the SparkStrength M67 blast. Non-lethal tools still pass through puppets.
+    the SparkStrength M67 blast, and the USEC rifle (`onUsecRifleFired`, by path distance along the bullet).
+    Non-lethal tools still pass through puppets. The SparkStrength Serial Killer
+    pistols end one through `SparkWitchApi.hitGunWorldTarget` (`onAddonGunShot`, revolver rules with the caller's range).
   - Presentation (D6): `client/magician/MagicianPuppetStandIn` answers every skin, name-label and instinct-glow
     question for a puppet with a stand-in player (the copied player when loaded, else a detached client-only copy
     that is never spawned), so each viewer's existing rules apply unchanged (`MagicianPuppetAppearance`,
@@ -235,7 +294,7 @@ Current build baseline:
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
     SparkStrength) still treat a decoy as a body.
   - The ability cooldown is the `sparkwitch:magician` store in `compat/cooldown/MagicianCooldownStore` (appended
-    last; nominal = the 5 s playback cooldown; raise-only). Client presentation lives in `client/magician/` and
+    last; nominal = the 15 s playback cooldown; raise-only). Client presentation lives in `client/magician/` and
     `client/mixin/Magician*`; HUD, button and replay texts are lang keys (`hud.sparkwitch.magician.*`,
     `ui.sparkwitch.magician.*`, `replay.global.sparkwitch.magician_*`).
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
@@ -340,6 +399,351 @@ Current build baseline:
   device renderers) in `client/seeker/`. Cross-mod seams go through `compat/SparkTraitsSeekerBridge`,
   `compat/SeekerControlExpertBridge`, `compat/NoellesTaotieSeekerBridge`,
   `compat/SparkStrengthTabletCompat`, and `compat/SparkStrengthM67Compat`.
+- `roles/civilian/usec/`: USEC (`sparkwitch:usec`), the fifth police variant. Its only weapon is the AXMC bolt-action
+  sniper rifle (`sparkwitch:usec_rifle`; the owner named it AXMC on 2026-10-07, while ids, classes and the role name
+  stay "USEC"). Qn/Dn/Sn are the owner decisions in `docs/plans/2026-10-07-usec.md` (all answered).
+  - Owner decisions: the round starts with one empty rifle (no magazine, empty chamber, no suppressor), 0 coins and a
+    60 s rifle lock (Q1, D10). The shop sells a 5-round magazine for 25, one .338 FMJ round for 50 and one .338 AP round
+    for 150 (all unlimited), and a suppressor for 50 (stock 1) (Q1, D11). Income is +50 per task plus +5 every 10 s with
+    no cap (Q1+). The stamina cap is 20 s and regeneration is doubled, both stacking with traits. Death drops one Wathe
+    revolver and deletes the rifle and its parts (Q2). Right-click scopes, left-click fires, and hip fire is as accurate
+    (Q15). Grand Witch Fear blocks neither the shot nor the attachments (Q14).
+  - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 20 s `maxSprintTime`, no appearance
+    condition) registered right before the Insider in `registerFactionApiRoles` and right after the Seeker in the
+    assassin-guess order. It is drawn only through the shared Vigilante slots
+    (`PoliceSlotAssignmentService.VARIANT_IDS`; a slot never draws a variant someone already holds).
+    `PoliceRoles.register` gives it the SparkTraits police traits and the free SparkStrength tablet; it is in the Black
+    Raven `POLICE_IDS`, is not in `isRegisteredSparkWitchRole` or `WitchSkillRegistry`, and never renders in the
+    `gui.sparkwitch.skills` panel.
+  - Foundation: `UsecRules` holds every owner number and literal id (both sides read it; nothing redefines it).
+    `UsecAmmoType` is FMJ or AP; its `id()` is the stable serialized id. `UsecMagazineContents` is immutable and ordered
+    bottom to top: LIFO, mixed loading allowed, and a magazine's name lists its rounds in firing order, e.g.
+    `弹匣 [AP·FMJ·FMJ]`. `UsecRifleState` (chamber, inserted magazine, suppressor) lives only in vanilla `CUSTOM_DATA`
+    under the stable key `UsecRifle`; a list under `Magazine` (even an empty one) means a magazine is inserted.
+    `UsecBallistics` is the pure energy and drop model shared by the server tracer and the client reticle. The five
+    items are the rifle, the magazine, the FMJ and AP rounds and the suppressor. Payload types register only in
+    `net/UsecNetworking` (from `SparkWitchPackets`): C2S `sparkwitch:fire_usec_rifle`, `sparkwitch:usec_attachment` and
+    `sparkwitch:usec_scope`, S2C `sparkwitch:usec_bullet_impacts`; each owning service registers its own receiver.
+    `UsecPlayerComponent` (`sparkwitch:usec_player`, `NEVER_COPY`, appended last in the CCA list, never saved) holds
+    only the `scoped` flag, synced to everyone for the scope glint. `UsecFeatureService` (the single line appended last
+    in `SparkWitchEvents`) and `client/usec/UsecClientModule` (the single line appended last in `SparkWitchClient`) fix
+    the registration order, which is the listener order within each event. `UsecCooldowns` is the single max + exact
+    writer of the rifle cooldown (the 60 s lock and the bolt): SparkTraits' exact write with a vanilla fallback, never
+    shortening a longer running cooldown (Saint Karma, the Fiend aura). It is also the one shared classifier
+    (`UsecCooldowns.status` / `classify`): remaining and total ticks from the vanilla entry's start and end ticks, and a
+    total of at most 40 ticks (Fast Reload's 28 included) is a bolt, anything longer another lock for its whole length;
+    the ammo HUD and the attachment screen both read it. The cooldown never stops the scope:
+    `mixin/usec/ServerPlayerInteractionManagerUsecScopeMixin` and `client/mixin/usec/UsecRifleUseCooldownMixin` wrap the
+    one `isCoolingDown` call of server `interactItem` and of the client `interactItem` lambda `method_41929` so it reads
+    "not cooling" for `UsecRifleItem` only, so `use` (which only scopes, and Shift toggles the zoom) runs during the lock
+    and the bolt; firing stays cooldown-gated in `UsecFireRules`. The `usec_rifle` nominal is the 40-tick bolt
+    (the lock is not a nominal), and no `SparkWitchItemCooldownReleases` case exists because only the vanilla cooldown
+    gates the rifle. `compat/SparkTraitsUsecBridge` reflects only the public facade (Marksman, Fast Reload) and fails
+    closed.
+  - Economy (`UsecEconomyService`): its own `ON_FINISH_INITIALIZE` phase `sparkwitch:usec_economy_finish_initialize`
+    (after the default phase) sets each living final USEC's balance to 0; the loadout never writes the balance. Each
+    task pays +50, never to a SparkTraits Impostor or on an unknown answer (`UsecEconomyTraitsProbe`, facade only).
+    Wathe's passive-money ticks (`getTime() % 200 == 0`, `END_WORLD_TICK`) pay +5 with no cap to an ACTIVE, playing,
+    alive, survival, exact USEC that is not a restricted Wraith. `CanSeeMoney` allows a living USEC.
+  - Shop (`UsecShopService`, `UsecShopRules`): rebuilt on both sides for the exact role (a role-only gate, because Wathe
+    caches stock limits while STARTING), keeping `sparktraits:*` entries and applying the Charisma discount. A bought
+    round (`UsecShopPurchase`) first tops up a shown same-item stack with room for the whole purchase (hotbar 0-8, then
+    27-35 only when `SparkFactionSecondRowCompat.isShown()`, never hidden storage); otherwise it runs a handler-less
+    twin entry's default `onBuy`, so SparkFactionAPI's second-row fallback applies and a full inventory fails uncharged.
+    The magazine (sold empty) and the suppressor keep the default `onBuy`. Bought rounds are never auto-loaded, and the
+    tablet is never sold.
+  - Stamina: the 20 s cap is the role's `maxSprintTime`, which SparkTraits Excellent Physique doubles again.
+    `mixin/usec/UsecStaminaRegenMixin` (common config, priority 1500) captures stamina at `PlayerEntity.tickMovement`
+    HEAD with `order = 0`, before Wathe's `wathe$limitSprint`. At TAIL, after the Excellent Physique bonus and on real
+    regeneration ticks only, `UsecStaminaService` sets `prev + 2 × (cur − prev)`, clamped to the cap: a deliberate ×4
+    with Excellent Physique. The server copy is authoritative; the local client applies the same boost to its own
+    prediction only.
+  - Lifecycle (`UsecLifecycleService`, `UsecLoadoutService`): in the `sparkwitch:usec_finish_initialize` phase of
+    `GameEvents.ON_FINISH_INITIALIZE`, ordered after `Event.DEFAULT_PHASE` (the Seeker pattern; the round is still
+    STARTING), each living final USEC gets one empty rifle through `insertStack` plus the 60 s lock. The rifle is
+    outside `wathe:guns`, so the SparkTraits Impostor gun rule never refuses it. A playing, alive player who becomes
+    USEC while the round is ACTIVE gets the same grant once per round (`UsecLoadoutService.isGranted`). Nothing
+    re-grants, so a confiscated rifle stays gone.
+  - Bound items: the five items, identified by class in `UsecInventoryRules` (no creative exemption), never leave the
+    holder's own inventory but move freely inside it, cursor included: PICKUP, PICKUP_ALL, number-key or offhand SWAP
+    and drags across the player's own slots (cursor loading is one of these). Throws, clones, shift-clicks of a bound
+    stack, the creative clone drag, drag steps onto foreign slots and clicks outside the player's own slots are refused.
+    The slot-click veto sees only server-resolved clicks: the vanilla creative inventory screen sets slots through
+    creative packets, so a creative player (an admin) can already forge, clone or delete these items there.
+    The guards are five `mixin/usec/` HEAD injects (Q drop, `dropItem`, slot click, `shouldDropOnDeath`, and the
+    decorated pot, which answers `SKIP_DEFAULT_BLOCK_INTERACTION`) plus a both-sides `UseEntityCallback` veto for item
+    frames, armor stands and allays. A refused drop goes back to a living USEC or free holder through explicit slot
+    writes. Exemption: vanilla `/give`'s cosmetic count-1 drop (`util/GiveCommandDropScope`) is only cancelled, never
+    restored or emptied, so a give yields exactly the requested count and its message keeps the item name. Match
+    participants who are not USEC (`OffMatchUse.isMatchParticipant`) are stripped on role change and by a
+    staggered 20-tick sweep; free holders are never touched. Reset, finalize and disconnect strip the items and unscope
+    (`UsecPlayerComponent.setScoped(false)`).
+  - No guns (owner O2, 2026-10-07; `UsecGunRules`): a player whose live role is exactly USEC never picks up or receives
+    a `wathe:guns` item (the AXMC is outside the tag). Server only, creative exempt (the Wathe and SparkTraits Impostor
+    precedent): `mixin/usec/ItemEntityUsecGunMixin` cancels `ItemEntity.onPlayerCollision` at HEAD,
+    `mixin/usec/PlayerInventoryUsecGunMixin` answers false at HEAD of both `PlayerInventory.insertStack` overloads (gives
+    and offers fall back to their drop), and `ScreenHandlerUsecItemMixin` also refuses PICKUP, QUICK_MOVE, SWAP and
+    PICKUP_ALL of a gun in a foreign slot. A former USEC is free again, and the death revolver is a `dropItem` for others.
+    A SparkTraits Last Stand revive's `ensureRevolver` therefore drops that revolver at the USEC's feet.
+  - Death (`UsecDeathDrops`, `KillPlayer.AFTER`): unless SparkTraits intercepted the death
+    (`WitchFactorTraitsBridge.isDeathIntercepted`, as for the Seeker), every bound item is deleted (inventory, offhand,
+    cursor, open slots), the component is cleared, and a USEC victim drops exactly one `WatheItems.REVOLVER` with
+    `dropItem(stack, true, false)`, so normal Wathe pickup rules apply. Wathe's drop loop runs before
+    `KillPlayer.AFTER`, so `PlayerEntityUsecItemMixin` records at RETURN every revolver item entity created for a USEC;
+    a revolver that left the USEC in the same world tick (a carried one dropped by Wathe's loop, or Wathe's misfire
+    throw) is that revolver, and no second one spawns.
+  - Fire (`UsecRifleFireService`, pure rules in `UsecFireRules`): the client sends `sparkwitch:fire_usec_rifle` with its
+    click-time yaw and pitch, trusted for direction only (Death Ray rule; without an aim the server rotation is used).
+    Use never checks the role (`util/OffMatchUse`). `UsecFireRules.decide` re-checks, in order: the mode (a dead
+    participant of an ACTIVE round is refused), the rifle in the main hand, not a spectator, not stunned, no Seeker
+    session, not under Kidnapper control, not an active Wraith, no SparkTraits weapon block, the rifle cooldown, and a
+    chambered round; with none, the shooter alone hears a dry click and gets `message.sparkwitch.usec.chamber_empty`.
+    Every other refusal is silent and costs nothing. A shot consumes the chambered round, chambers the inserted
+    magazine's top round (LIFO), and always writes the stack (`UsecRifleState.write`) and the bolt
+    (`UsecCooldowns.bolt`: 2 s, 1.4 s with SparkTraits Fast Reload), even with nothing to chamber. The shot is a public
+    `ServerWorld.playSound` at the eye: `item.usec_rifle.shoot` (volume 12, pitch 1 ± 0.03) or
+    `item.usec_rifle.shoot_suppressed` (volume 2.5, pitch 1.5). The bolt sound plays 10 ticks later, only when a round
+    was chambered and nothing changed since the shot (`UsecFireRules.boltSoundDue`): the shooter is online in that world
+    and not a spectator, holds that very rifle stack in the main hand with the post-shot state (an attachment action in
+    between, such as UNLOAD_CHAMBER, plays its own bolt and is never doubled), and the use mode and Wathe game status are
+    unchanged. Muzzle smoke always plays; a small flame flash only without the suppressor.
+  - Ballistics (`UsecTracer`, pure over a `BlockProbe`; the server probe is `UsecTracerWorldProbe`): steps of at most
+    one block flown along the aim. FMJ flies straight to `fmjRange` (50, or 65 with Marksman) and stops at the first
+    block. AP spends 0.5% of its energy per block flown (÷ Marksman: 200 open blocks, 260 at ×1.3) and 37.5% per pierced
+    block; each step bends world-down by `UsecBallistics.sinkAfter`, so an open shot matches the reticle's `apDropAt`. A
+    pierced block counts once (the exit is the last face of its ray shape in the cell), and energy running out inside a
+    block stops the round there. The vanilla barrier and Wathe `barrier_panel` stop every round (the light barrier has
+    no collision). Block queries are COLLIDER, fluid-less `RaycastContext`s cast by the shooter (`RaycastShapeScope`
+    keeps doors solid); the trace stops before any segment that touches an unloaded chunk and never loads one.
+  - Match hits: nearest wins, all on one scale, the path distance along `UsecShotPath`. The player candidate is the
+    nearest eligible player (`UsecShotTargets`) on `PlayerHitboxHistory.hitVolumes` grown by 0.1; the shooter,
+    spectators (Rift Gate occupants included), creative players, players not playing and alive in Wathe, active Wraiths
+    and Last Escape players are excluded, and Vendetta exact-pair isolation applies (the Shriek Gun's
+    `vendettaAllows`; an active Vendetta is an active Wraith, so there is no bound-killer exception). Then
+    `MagicianPuppetHits.onUsecRifleFired` ends a puppet strictly nearer than that player and every breakable device
+    (`gun_shot`); else `SeekerDeviceHits.onUsecRifleFired` breaks a device strictly nearer than the player as
+    `USEC_RIFLE` (AP reaches devices behind pierced walls); else the single kill, `UsecFirePunishment.kill`. The bullet
+    stops at whatever it hit. Presentation shots trace blocks only (sound, particles, cracks): they never hit a player,
+    device or puppet and record no replay.
+  - Shield piercing (owner O3, 2026-10-07; `UsecShieldPierce`): the kill is ONE `killPlayer(victim, true, shooter,
+    wathe:gun_shot)` run inside a scoped pierce budget: FMJ 2 shield layers, AP 5 (`UsecAmmoType.shieldPierce`,
+    `UsecRules`), +1 when `compat/SparkTraitsUsecBridge.isHeavyArtilleryGunShot` (reflecting
+    `SparkTraitsApi.isHeavyArtilleryGunShot(ServerPlayerEntity, ServerPlayerEntity)`, asked before the kill, failing
+    closed when absent) says it is a Heavy Artillery shot. The scope is a server-thread `ThreadLocal` restored in
+    `finally`, and `tryPierce` spends one unit only for the exact scoped victim, killer and `wathe:gun_shot`, so nested
+    kills (Bodyguard, deaths in AFTER, Tofana retaliation) never spend it. The scope also names its round
+    (`UsecShieldPierce.scopedAmmo`). Only four shield-layer consumers ask it, each spending its layer and then letting
+    the shot on: SparkStrength's Bodyguard vest (owner 2026-10-07, through the frozen
+    `SparkWitchApi.tryPierceShieldLayer`; its HEAD hook on `killPlayer` runs before every BEFORE listener, so the vest
+    is always the first layer and is pierced by both rounds, then the same kill goes on with one unit fewer), the pinned
+    NoellesRoles BEFORE listener `lambda$registerEvents$5` (whiskey stack and Iron Man;
+    `mixin/usec/NoellesUsecShieldPierceMixin`, a `@WrapMethod` that, for the scoped shot only, re-invokes it while each
+    cancel spent exactly one layer and a pierce is paid, with layers read by `compat/NoellesShieldLayersCompat`; its
+    earlier non-shield branches such as the Jester stasis and fake death still run first), the Guardian Angel shield
+    (`GuardianAngelFeatureService.beforeKill` returns null, never `allow()`, after removing it), and Wathe psycho
+    armour, Jester-moment armour included (`mixin/usec/GameFunctionsUsecPsychoArmourMixin`, an expression hook on
+    `ShouldPiercePsychoArmour.pierces` that strips one layer per pierce left, each recorded as `shield_blocked` with
+    source `sparkwitch:usec_rifle`, then returns the original answer so Wathe absorbs with the next layer or stops
+    psycho mode and lets the death through). The layer that finds the budget empty blocks as usual. SparkStrength's
+    Democracy Shield is NOT a layer (owner 2026-10-07: the shield is too strong): a raised shield facing the shot blocks
+    the AXMC before the vest, spends no budget and leaves the vest alone, and only its stamina cost depends on the
+    round, read through the frozen `SparkWitchApi.piercingShotAmmoId`: 10 stamina points for FMJ, 25 for AP
+    (SparkStrength's points, 10 ticks each, a base bar of 20; it owns the numbers), instead of the default 5, so an AP
+    block breaks even a full shield. Revolvers and every other weapon get no round id and keep the vest and the 5-point
+    shield. The SparkTraits Second Strike mirror in SparkStrength keeps its two settlements; a pierced vest ends them
+    and lets the kill go on. An innocent shot the shield stops is never punished (SparkStrength's
+    `ShouldPunishGunShooter` cancel, asked before the kill as for the revolver); a vest stop or a pierced vest is
+    punished like the revolver's vest stop. Every other protection hooked on `killPlayer` (Saint, Judge, the
+    SparkFactionAPI veto, Fiend, Ninja parry, Pig God, Last Stand, Last Escape, Depression, Tofana) runs exactly once
+    and is never pierced; KillPlayer.BEFORE fires once and AFTER at most once. Known quirk: a layer earlier in the
+    BEFORE chain (or the vest, at HEAD) than a later parry is pierced and spent, then the parry still blocks. The death
+    reason stays `wathe:gun_shot`, and the Ceremonial Sword path is unchanged.
+  - Hit punishment (`UsecFirePunishment`, Q8 and owner O1 2026-10-07, Wathe's revolver receiver): Wathe's
+    `ShouldPunishGunShooter` is asked for every player hit, before the kill, and the punishment is decided on the hit,
+    whether or not the victim dies (a Saint, shield, Last Stand or Judge denial does not spare the USEC). A listener's
+    custom result runs 4 ticks later for any hit. Otherwise only an innocent shot (shooter and victim both
+    SparkFactionAPI civilians before the shot) by a non-creative shooter that no listener cancelled is punished, also 4
+    ticks later and only while the shooter still carries a USEC rifle (inventory, offhand or cursor; Wathe: still
+    carries a gun): every rifle is confiscated, mood drops to 0, `addToPreventGunPickup`, and `KILL_SHOOTER` (Wathe's
+    default) also kills the USEC (`wathe:shot_innocent`) while `PREVENT_GUN_PICKUP` stops there. Loose magazines, rounds
+    and the suppressor stay, and nothing re-grants the rifle. There is no backfire roll (Wathe's backfire chance
+    defaults to 0). The kill is the single `UsecFirePunishment.kill` call.
+  - Cracks (`UsecImpactRules`, visual only): every block pierced before the stop, plus the stop block (never an
+    invisible map wall), cracks at stage 9 up to 25 blocks from the eye, then one stage less per further 25 blocks
+    (minimum 2). One `sparkwitch:usec_bullet_impacts` packet goes to every player within 64 blocks of any impact, and
+    the server spawns block debris at entries and exits.
+  - Replay (`UsecReplay`, record id `sparkwitch:usec_rifle_fire`, match shots only): a fire line (round, blocks pierced,
+    the target on a player hit) is recorded before the kill, followed by a `punished` or `confiscated` line; the lines
+    name the AXMC. The death line still comes from `killPlayer`, and a device break or puppet end records its own line.
+  - Deny lists: `sparkwitch:fire_usec_rifle` and `sparkwitch:usec_attachment` are on the Control Expert stun
+    (`ControlExpertStunRules.BLOCKED_PAYLOADS`), Seeker session (`SeekerRemoteRules.BLOCKED_WHILE_VIEWING`) and Rift
+    occupant (`RiftSessionRules.BLOCKED_WHILE_INSIDE`) lists; `sparkwitch:usec_scope` is deliberately on none. Grand
+    Witch Fear blocks none of them. The stun closes gameplay screens only on the client, so the stun list is the
+    server's refusal of `usec_attachment`. The AXMC is on the Apprentice Murder Sense dangerous-item list
+    (`MurderSenseAbility.DANGEROUS_ITEM_IDS`, by id, since it is outside `wathe:guns`).
+  - Attachments: `UsecAttachmentRules` is the pure state machine shared by server and client: the magazine swap; the
+    owner's bolt rule (an action that leaves the chamber empty while the inserted magazine has rounds chambers the top
+    round and reports `bolted`); single-round chambering, which always bolts; LIFO mixed loading; the player gate and
+    the slot shape. `UsecAttachmentService` receives `sparkwitch:usec_attachment` (a `net/UsecAttachmentAction`, whose
+    wire id is its ordinal, so actions are only appended, and two slots). Before any write it re-checks the slots (0-35,
+    40) and item types; the gate (a dead participant through `util/OffMatchUse`, not alive, spectator, Control Expert
+    stun, Seeker session; Fear never blocks and the role is never read); and inventory room. It writes in place with
+    `UsecRifleState.write` / `UsecMagazineItem.setContents`, releases items only to shown slots
+    (`UsecAttachmentRules.releaseSlot`, `UsecShopPurchase`'s order: a shown same-item stack that takes it whole, hotbar
+    0-8 then 27-35 only while `SparkFactionSecondRowCompat.isShown()`, else the first empty shown slot, else the empty
+    offhand; otherwise "no room", never hidden 9-26; the screen predicts room with the same rule), plays public
+    `ServerWorld#playSound` cues, and calls `UsecCooldowns.bolt` on a bolt. Chambering a round stays allowed while the
+    bolt cycles, so the screen never locks 上膛 for it.
+    `UsecAttachmentCursorLoading` backs `onClicked` on the magazine and the rifle: a right-click with rounds on the
+    cursor loads one round into that magazine, or into the rifle's inserted magazine, or into its empty chamber when no
+    magazine is inserted. Every side that resolves the click claims it, so it never swaps, and exactly one side writes
+    (`UsecAttachmentCursorLoading.writer`): the server for every click it resolves (survival, adventure, and any
+    container click, a creative player's included; the client only claims, the shotgun pattern), and the client only
+    for a creative player's click in the vanilla creative inventory screen (owner, 2026-10-07). That screen resolves
+    slot clicks on the client (`PlayerScreenHandler.onSlotClick` on its inventory tab, its own handler for the other
+    tabs' hotbar row) and syncs whole stacks with creative packets, so the server never sees the click; the client
+    applies the same pure rule, plays the cues locally, writes no bolt cooldown, and the creative stack sync carries
+    the result. `UsecAttachmentClient.register` installs that screen probe
+    (`UsecAttachmentCursorLoading.installCreativeScreenProbe`); a dedicated server keeps the default "never".
+  - Scope (`UsecScopeService`): the only writer of `UsecPlayerComponent.scoped`. The `sparkwitch:usec_scope` receiver
+    stores true only for a playing, alive, non-spectator, non-Wraith, exact-role USEC using the rifle in the main hand,
+    and a per-tick sweep clears anyone who stops qualifying. The payload is harmless and on no deny-list. When the flag
+    turns on, a subtle `item.usec_rifle.scope` plays through the public `ServerWorld#playSound` at the shooter's eye
+    (owner, 2026-10-07): a fixed `SCOPE_SOUND_RANGE` (8-block) broadcast at volume 0.8, so the shooter and nearby
+    players hear it and the Blind perceives it as an ordinary sound; at most once per `SCOPE_SOUND_MIN_INTERVAL_TICKS`
+    per player, and scoping out is silent.
+  - Cross-mod seams: SparkStrength hooks `SeekerDeviceHits.onUsecRifleFired` at HEAD (a `@Pseudo` mixin) so Bomber
+    drones absorb the shot like a device, and mirrors `sparkwitch:fire_usec_rifle` and `sparkwitch:usec_attachment` in
+    its Taotie daze list. SparkTraits excludes USEC from Niko by role id (`PoliceRoleCategory.canReceiveNikoTrait`). Its
+    Heavy Artillery repeat-kill hooks only Wathe's revolver receiver; the AXMC instead asks the public
+    `SparkTraitsApi.isHeavyArtilleryGunShot` facade for one extra shield layer (O3, see shield piercing). SparkAssist
+    owns the guidebook page.
+- `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
+  `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`. Presentation and intent only: the
+  server decides every shot, attachment and scope flag.
+  - Fire input (`UsecFireInput`, `UsecFireLatch`; `client/mixin/usec/UsecRifleInputMixin` copies the launcher seam): a
+    fresh attack press with the rifle in the main hand sends `sparkwitch:fire_usec_rifle` with the press-time aim,
+    scoped or from the hip. Attacking and mining are swallowed, and held keys never fire. The recoil kick is camera-only
+    (`UsecRecoil`, `UsecRecoilCameraMixin` at every return of `GameRenderer.tiltViewWhenHurt`).
+  - Scope (`UsecScopeInput`, `UsecZoomState`): starting to raise the rifle while sneaking toggles 4×/8× first, and the
+    choice is remembered for the game session. Each change of the actually scoped state (`UsecScopeProfile.isActive()`:
+    the `client/scope` view gate with the USEC profile, so never in third person or with a screen open) sends
+    `sparkwitch:usec_scope`, which drives the glint. `UsecScopeProfile`
+    feeds `client/scope`; zoom and sensitivity follow the selected level.
+  - Reticle (`UsecReticleGeometry`, `UsecReticleRenderer`): code-drawn in framebuffer pixels. The owner's R2 tactical
+    tree is the default (`UsecReticleStyle.DEFAULT` = `TACTICAL`); R1 `MIL_DOT` is calibrated at 8×. The AP holds
+    (100-200 blocks) are atan(`UsecBallistics.apDropAt`/d) at the frame's real projection FOV, with the shooter's
+    SparkTraits Marksman multiplier.
+  - Ammo HUD (`UsecAmmoHud`, `UsecAmmoHudRules`): a role-owned bottom-right `HudRenderCallback` line (chamber »
+    [magazine] · 消音, a zoom tag and a bolt bar), shown only to a living, exact-role USEC holding the rifle in an ACTIVE
+    round; never in the witch skill panel. `拉栓中` comes only from the `UsecCooldowns` classifier (exact entry ticks),
+    never from the interpolated cooldown share, so it cannot flicker; the bar fill uses vanilla's smooth share.
+  - Glint (`UsecScopeGlintRenderer`, `UsecGlintRules`): an `AFTER_TRANSLUCENT`, screen-blended S1 flare on other
+    players, from the synced `UsecPlayerComponent.scoped`, with a 6–35° cosine smoothstep and block-raycast occlusion.
+    It is hidden in the Blind view (`BlindClientGates.hidesEntity`) and for self, the camera entity, invisible, Wraith
+    or spectating players.
+    PiP draws it in both passes, sized via `ScopeClient.screenPixelsPerNdcY`, so the lens matches Full-Screen Zoom.
+  - Pose and model: `UsecRifleArmPoseMixin` gives `CROSSBOW_HOLD`; `UsecModelPredicates` registers the rifle's
+    `sparkwitch:usec_magazine` and `sparkwitch:usec_suppressor` predicates, and `sparkwitch:usec_loaded` on a loose
+    magazine (owner, 2026-10-07): `models/item/usec_magazine.json` is the empty magazine and overrides to
+    `item/usec_magazine_loaded` (brass round on top) once it holds a round. `UsecRifleModels` registers a
+    ModelLoadingPlugin (Vendetta knife precedent) that wraps the top-level `sparkwitch:usec_rifle#inventory` model and
+    the three override targets (`item/usec_rifle_no_mag`, `item/usec_rifle_suppressed`,
+    `item/usec_rifle_suppressed_no_mag`) in `UsecRifleIconSwapModel`.
+    - GUI, ground and item frames draw the 2-D `item/usec_rifle_icon` / `item/usec_rifle_suppressed_icon`; every held
+      context draws the 3-D AXMC element model.
+    - `models/item/usec_rifle.json` picks its variant from those two predicates. Its self-referencing override keeps the
+      base for "magazine in, no suppressor".
+    - The base resource `item/usec_rifle` is never wrapped, and no model may use a wrapped id as `parent`.
+    - A missing or non-`item/generated` icon falls back to the 3-D model.
+  - Attachment screen (`UsecAttachmentScreen`): a plain `Screen` in the owner-picked U2 "field manual blueprint" style
+    and the only place to change magazines, with one button per `UsecAttachmentAction` (geometry `UsecAttachmentLayout`,
+    400×260, scaled down only on small GUIs; paint `UsecAttachmentPaint`; rifle line art `UsecAttachmentRifleArt`;
+    button predictions `UsecAttachmentModel`). It draws its parent inventory behind it, returns to that inventory on Esc
+    or the inventory key, closes fully during a Wathe fade or on death, and names the rifle by its item display name
+    (AXMC). `UsecAttachmentClient.tryOpen` opens it on an empty-cursor right press (PICKUP, button 1) on a rifle in the
+    player's own inventory, resolved to the inventory index (0-35, 40) by `UsecAttachmentModel.ownInventoryIndex`: a
+    `PlayerScreenHandler` slot, or (owner, 2026-10-07) a creative inventory-tab slot read through the player handler
+    slot it wraps (`client/mixin/usec/UsecCreativeSlotAccessor` on `CreativeInventoryScreen$CreativeSlot.slot`; the
+    wrapper's own index is its handler position, 36 for hotbar 0). Containers, the creative item list and the other
+    creative tabs' hotbar row never open it: while the screen covers the creative screen, vanilla routes the server's
+    non-hotbar slot updates (sync id 0) into the creative handler, whose inventory-tab slots delegate to the player
+    inventory but whose other tabs hold the item grid. Actions still go through `sparkwitch:usec_attachment`, whose gate
+    never reads creative. Callers: `client/mixin/usec/UsecLimitedInventoryRifleClickMixin`, a
+    `@WrapOperation` on `onMouseClick` in Wathe's `LimitedHandledScreen.mouseClicked` that chains with the armor wrapper
+    and is pinned in `watheClientMixinContracts`; and `UsecInventoryScreenRifleClickMixin`, the same call in vanilla
+    `HandledScreen.mouseClicked`, which the creative screen's `mouseClicked` also reaches after its tab and scrollbar
+    checks.
+  - Cracks: `UsecImpactClient` receives `sparkwitch:usec_bullet_impacts` and feeds the pure `UsecCrackTracker`, which
+    drives vanilla `WorldRenderer#setBlockBreakingInfo` under reserved fake breaker ids (`-0x55534543` down by up to
+    255; entity ids are positive), one per cracked block. A repeat hit reuses the id, keeps the higher stage and
+    restarts the hold. A crack holds `CRACK_HOLD_TICKS`, heals one stage every `CRACK_HEAL_STEP_TICKS`, and is cleared
+    with -1 after stage 0 (14 s at most). At most 256 cracks are tracked; the least recently hit is evicted. Vanilla
+    never clears breaking entries on a world change, so all cracks are cleared on a world change, on disconnect, and
+    when Wathe's `isRunning` flips; vanilla draws them only within 32 blocks of the camera. The client never changes a
+    block and never sends a packet.
+- `client/scope/`: the reusable client scope module, built for USEC; the Potion Gunner launcher (still on its own
+  `client/potiongunner/PotionScope*`) is meant to migrate onto it later. Presentation only; nothing here syncs.
+  - Registration: `ScopeClient.register()` (once, from `UsecClientModule`) loads the settings and wires the lens resets.
+    A weapon calls `ScopeClient.registerProvider(Supplier<@Nullable ScopeProfile>)` once at client init; the first
+    non-null profile wins. Providers are asked only after the generic gate passes: local player, first person, the
+    camera is the player, no screen open, not a spectator.
+  - While a profile is active: `ScopeFovMixin` (`@ModifyExpressionValue` on the single `getFovMultiplier()` read in
+    `GameRenderer#updateFovMultiplier`, before vanilla eases it and clamps it to [0.1, 1.5]) multiplies it by
+    `fovMultiplier()` in Full-Screen Zoom; PiP keeps the main view at 1×. The call site runs after every player-side
+    hook, so Wathe's cancellable RETURN `wathe$fovPulse` (which advances its poison pulse per call) can no longer skip
+    the zoom; the view gate already requires the camera to be the local player. `ScopeMouseMixin` wraps the one
+    `changeLookDirection` in `updateMouse` and always calls through, scaling by `sensitivityMultiplier()` × the
+    player's Scoped Sensitivity (only SparkStrength's stunned Engineer cancels `updateMouse`; nothing redirects the
+    call). `ScopeHeldItemRendererMixin` cancels HEAD of the first-person `HeldItemRenderer#renderItem(F…)` only (never
+    the third-person overload), so `renderHand` and its in-wall/underwater/fire overlays always run; vanilla's
+    `renderHand` and Iris's shader-pack `HandRenderer` both call that method, so hands hide with and without Iris.
+    `ScopeInGameHudMixin`, a priority-1100 `@WrapMethod` on `renderCrosshair` outside Wathe's, draws, in order, the
+    fallback ring when needed (Full-Screen Zoom only), the lens rim, then `drawReticle(ctx, ScopeFrame)` with the real
+    projection FOV from `ScopeGameRendererInvoker` (PiP: the FOV Full-Screen Zoom would need to show the lens at its
+    on-screen scale, `ScopeRules.equivalentFovDegrees`).
+  - Settings: Scope View (Full-Screen Zoom, the default, or Picture-in-Picture) and Scoped Sensitivity (10–200 % in 5 %
+    steps, default 100 %) are appended at the end of vanilla Options → Accessibility by `ScopeAccessibilityOptionsMixin`
+    (`addOptions` TAIL; SparkAssist's `getOptions` hook is left untouched). Values persist in
+    `config/sparkwitch-client.json` through `ScopeSettingsStore`, which merges saves into the existing file.
+    `ScopeClient.effectiveMode()` reports what actually renders: Picture-in-Picture falls back to Full-Screen Zoom
+    under an Iris shader pack, Fabulous! graphics, the Blind echo view, or while `ScopePictureInPicture` backs off
+    after a failure (`ScopeRules.effectiveMode`).
+  - Lens filter: `ScopeLensFilter` runs a private `PostEffectProcessor` on `sparkwitch:shaders/post/scope_lens.json`,
+    never `GameRenderer.postProcessor`, before `GameRenderer#render`'s single `beginWrite(Z)` (the Seeker filter's
+    point), so the HUD and reticle stay sharp. Passes: a half-resolution two-direction Gaussian blur
+    (`sparkwitch_scope_blur`; the blur targets are re-halved after every `setupDimensions`, and the `sparkwitch_scope`
+    vertex shader sizes by `OutSize`), the `sparkwitch_scope_lens` composite, and a copy back. Inside the lens (radius
+    0.42 × the short side, `ScopeLensGeometry`) the composite adds barrel distortion, edge transmittance, coating tint,
+    smudges, a reflection streak and the scope-shadow crescent; outside, the blurred periphery darkens toward a dark
+    tube rim that is never black. The filter is released 2 s after scoping out, and on disconnect, login, client stop
+    and resource reload; after a failure it retries after 2, 4, 8, 16, then 30 s. Under an Iris shader pack (Wathe
+    `IrisHelper`; an Iris error counts as a pack in use), or while failing, the HUD draws a semi-transparent ring
+    instead.
+  - Scope shadow: `ScopeShadow` is a smoothed exit-pupil offset driven by the camera's yaw/pitch rate plus a smaller
+    share of camera motion, exposed as `ScopeFrame.shadowX/Y` (GUI axes, pointing the way the view swings); the crescent
+    appears on the opposite edge.
+  - Picture-in-Picture (WP4b, `ScopePictureInPicture`, `scope_pip.json`, `sparkwitch_scope_pip`): at the same point as
+    the lens filter, only on frames whose main world pass ran, it calls `WorldRenderer#render` a second time with the
+    same camera and the main frustum (`setupFrustum` is not called again; the lens is a narrower cone on the same axis)
+    into the square `scope_lens_view` target (`ScopeRules.lensViewSize`: the lens diameter × 1.1, at most 512²). The
+    projection is the main pass's (captured at `render` HEAD by `ScopeWorldRendererMixin`, so bobbing, hurt tilt and
+    USEC recoil carry over) narrowed in clip space by `ScopeRules.lensClipScale`, exactly what Full-Screen Zoom shows;
+    the lens zoom eases with vanilla's half-life (`easeZoom`). For the pass, `MinecraftClient.framebuffer` points at the
+    lens target (`ScopeMinecraftClientAccessor`, restored in `finally`) because vanilla re-binds
+    `client.getFramebuffer()` mid-pass; `ScopeWorldRendererMixin` puts the viewport back on the lens after each
+    `beginWrite(Z)` in `render` and shows `RenderSystem` the main projection around the `setupTerrain` INVOKE, so
+    Sodium reuses its render lists (it rebuilds its graph whenever that projection changes) and nothing is rebuilt or
+    re-sorted twice. No block outline; clouds and weather (`renderClouds`/`renderWeather` HEAD) and particles
+    (`ScopeParticleManagerMixin`, which also catches Iris's opaque-particle call) are skipped; no hands. The pass then
+    composites its own glowing/instinct outlines onto the lens and draws `InGameOverlayRenderer.renderOverlays`, so a
+    scoped player inside a block cannot see through it. The composite keeps the 1× main view sharp outside a short dark
+    tube rim and applies the same lens look (its "shared lens look" GLSL blocks are pinned identical to
+    `sparkwitch_scope_lens.fsh`). Released 2 s after leaving PiP, on disconnect/login/stop and resource reload; failures
+    back off like the lens filter. Fabric `WorldRenderEvents` fire again inside the lens pass;
+    `ScopeClient.isRenderingLens()` lets a listener opt out. Measured on an Apple M2 Pro at 2560×1440 (WP4b spike,
+    2026-10-07), Full-Screen Zoom 4× vs PiP 4×: vanilla 201/191 → 131/130 FPS, Sodium 0.6.13 264/263 → 213/215 FPS,
+    Iris 1.8.8 without a pack 310/317 → 231/235 FPS; with a pack it falls back to Full-Screen Zoom.
 - `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
   bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
   Key Fish doors, tracked pufferfish, replay formatting, and lifecycle cleanup. Subpackages:
@@ -423,16 +827,17 @@ Current build baseline:
     the panel because it is a visible `ClickableWidget` child; being inactive, it never consumes a
     click.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
-  and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, and
-  the Seeker share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a separate
-  slot mixin.
+  and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, the
+  Seeker, and USEC share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
+  separate slot mixin.
 - Police gun parity: Wathe's server gun receiver gives innocent non-Vigilante shooters a 15 s
   cooldown and -0.35 mood per hit. Each SparkWitch police role has its own additive OR-wrap of all
   four `isRole` calls that also answers "Vigilante" for that role, so it gets the 10 s revolver
   cooldown and no mood penalty. Innocent-shot punishment is unchanged. The wraps are
   `mixin/JudgePoliceGunMixin`, `mixin/EmmaPoliceGunMixin`,
   `mixin/controlexpert/ControlExpertPoliceGunMixin` and `mixin/seeker/SeekerPoliceGunMixin`. A new
-  police role needs its own wrap; registering in `PoliceRoles` is not enough.
+  police role needs its own wrap; registering in `PoliceRoles` is not enough. USEC has no wrap because it carries no
+  revolver: the AXMC fires through its own `sparkwitch:fire_usec_rifle` path, never Wathe's gun receiver.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `client/judge/`: primary-key selector and the role-owned bottom-right line (`JudgeHudRenderer`: "press key to
@@ -450,8 +855,9 @@ Current build baseline:
   either version). Callers: bound-item displacement (Blind cane, Time Stealer Clock and Gift Watch, Abyss Listener
   gun: a full-hotbar re-grant moves the displaced item into the slot a removed stray vacated, but
   never into hidden storage while the shown row has room), Potion Gunner launcher placement and
-  keeper move, shell returns and surfacing, the Seeker's swallowed-car return, the armor block, and
-  the info card's reserved inventory block. Hotbar-only rules are unchanged: a bound item in 27-35
+  keeper move, shell returns and surfacing, the Seeker's swallowed-car return, USEC round purchases
+  (`UsecShopPurchase` tops up 27-35 only while the row is shown), the armor block, and the info card's reserved
+  inventory block. Hotbar-only rules are unchanged: a bound item in 27-35
   is still a stray.
 - `compat/cooldown/`: SparkWitch's registrations with the SparkFactionAPI forced-cooldown contract
   (`api.cooldown.ForcedCooldowns`): role-skill stores for SparkWitch and NoellesRoles counters, the SparkWitch item
@@ -464,13 +870,23 @@ Current build baseline:
   one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
   `HitscanLagRules` owns the ping-based rewind window and swept volumes. Used by the Hunter
   double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, the Abyss Listener Shriek
-  Gun, and the Black Raven Feather Blade (whose sight and feet-distance reach are taken at the rewound hit);
+  Gun, the USEC rifle (its whole bullet path against `hitVolumes` grown by 0.1), and the Black Raven Feather Blade
+  (whose sight and feet-distance reach are taken at the rewound hit);
   client crosshair hints keep current boxes. The Potion Gunner shell's in-flight player check uses
   `projectileHitVolumes`, which rewinds only the ping-independent view delay: the gunner's client also simulates the
   shell, so the ping cancels.
 - `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
-  Shriek Gun, SparkStrength M67). `mode` gives a living participant of an `ACTIVE` round a match shot, refuses a dead
-  one, and gives anyone else a presentation-only shot; `isMatchParticipant` scopes the bound-item rules.
+  Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
+  an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;
+  `isMatchParticipant` scopes the bound-item rules.
+- `util/GiveCommandDropScope`: marks, by stack identity and per thread, vanilla `/give`'s cosmetic pickup-animation drop
+  (the shared count-1 template). `mixin/GiveCommandDropScopeMixin` (common config) is the one `@WrapOperation` on
+  `GiveCommand.execute`'s second `dropItem(ItemStack, boolean)` (ordinal 1); ordinal 0, the real remainder drop, stays
+  outside. It is read by the drop guards that copy or empty a refused drop, each only cancelling the marked template:
+  `UsecLoadoutService.interceptDrop`, `PotionGunnerLoadoutService.interceptDrop` (launcher and shells),
+  `BlindItemDrops.intercept` (ComTac) and `TimeStealerItemDrops.intercept` (stamps). The other bound-item guards
+  only cancel (Clock, Gift Watch, White Cane, Black Raven ledger and mask, Vendetta knife, Toll Bell, Prophet Necrology)
+  or hand back only the cursor stack (Abyss Listener), which `/give` never drops, so they do not read it.
 
 ## Runtime Invariants
 
@@ -617,7 +1033,9 @@ holder's own inventory slots, never death-drop, and are hidden from other living
 view through `NoellesHiddenEquipment`; beyond the Bell Ringer's rules they also refuse shift-click
 moves and offhand swaps, and a living holder keeps exactly one Clock in the hotbar. A stamp stack
 caught by the `dropItem` guard is emptied in place (move semantics) and re-delivered only to a
-living holder, so no drop path duplicates stamps. Only a living, playing, exact Time Stealer may
+living holder, so no drop path duplicates stamps. Vanilla `/give`'s cosmetic count-1 copy
+(`util/GiveCommandDropScope`) is only cancelled, never emptied or re-delivered, so a give yields exactly
+the requested stamps and its message keeps the item name. Only a living, playing, exact Time Stealer may
 hold stamps (spectator mode does not count against it, so a Time Stealer swallowed by the
 NoellesRoles Taotie keeps the Clock and stamps and still receives grants); everyone else is stripped
 on role change, terminal death, reset, finalize, and a staggered 20-tick sweep. Grants go
@@ -657,7 +1075,13 @@ stun's input lock is client-side; the server denies item use, interactions, and 
 payloads (`ControlExpertStunGuards`, `ControlExpertStunPayloadGuardMixin`). Add-on sessions those
 guards cannot end read the stun through the public `SparkWitchApi.isControlExpertStunned(PlayerEntity)`
 (2026-10-07, name and signature frozen): SparkStrength reflects it to refuse and end a Bomber drone pilot
-session as STUNNED, since drone moves and exit stay off the deny-list. The Disruptor gates
+session as STUNNED, since drone moves and exit stay off the deny-list. The SparkStrength Serial
+Killer's psycho-pistol shot (`sparkstrength:serial_pistol_shoot`, 2026-10-07) is classified as a gun
+shot: it sits on every list that holds `wathe:gunshoot` (stun, Seeker session, Rift occupant), and
+`roles/civilian/vendetta/VendettaTargetingPacketGuard` drops it like `wathe:gunshoot` when Vendetta
+pair isolation refuses the target (target id read through the id's registered codec, no SparkStrength
+class named). Unlike `wathe:gunshoot`, it is also on Grand Witch Fear's list, like the Demon Hunter
+pistol (owner decision 2026-10-07). The Disruptor gates
 keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
@@ -762,12 +1186,16 @@ the NoellesRoles throwing axe, the thrown Ninja shuriken, the Black Raven feathe
 Time Stealer Pocket Watch, the Murderous Witch Death Ray, the Wathe grenade (including the SparkTraits Bomb Maniac
 grenade), the SparkStrength M67, the Abyss Listener Shriek Gun (`SHRIEK_GUN`, appended after the pre-existing
 sources in `SeekerBreakSource` so earlier replay ids keep their values; a server ray through
-`SeekerDeviceHits.onShriekGunFired`), and the Potion Gunner (`POTION_SHELL`: the shell's in-flight sweep, its impact
-blast, and the launcher backblast lane). A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol)
+`SeekerDeviceHits.onShriekGunFired`), the Potion Gunner (`POTION_SHELL`: the shell's in-flight sweep, its impact
+blast, and the launcher backblast lane), and the USEC rifle (`USEC_RIFLE`, appended after `POTION_SHELL`: the server
+bullet path through `SeekerDeviceHits.onUsecRifleFired`, called after the Magician puppet entry
+`MagicianPuppetHits.onUsecRifleFired`; nearest wins by path distance, and an AP round reaches a device behind the
+blocks it pierced). A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol)
 is accepted when the shooter's look ray meets the device box grown by its client targeting margin with
 a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
-(`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. Rays and projectiles are
-nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
+(`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. The SparkStrength Serial Killer pistols
+break a device with that revolver rule (recorded as `REVOLVER`) through `SparkWitchApi.hitGunWorldTarget`. Rays and
+projectiles are nearest-wins (a nearer device takes the hit, the player behind is not hit); blasts (Wathe grenade,
 SparkStrength M67, Potion Gunner shell) break every device in a sphere with line of sight and still kill players as
 before. An M67 breaks devices only when the round is ACTIVE and its thrower holds a match role
 (`compat/SparkStrengthM67Compat`, the `util/OffMatchUse` rule); SparkStrength's presentation-only M67s
@@ -1008,10 +1436,16 @@ firecracker decoys and Seeker devices are objects). An active Wraith or a player
 NoellesRoles Taotie is silent: its own sounds (named actor or source) are dropped, but it never wins
 the hitbox search and never drops a sound merely near it; invisible players are perceived.
 `BlindPulseFanout` sends one pulse (4-block reveal) to every living, playing, real, unswallowed
-Blind in the same world within that Blind's range (10 blocks, x3 with a worn ComTac, x5 during Attune: 30/50/150): SOUND or VOICE with the emitter's
-entity id for another player, SELF for the Blind's own sounds, OBJECT otherwise. Each Blind
+Blind in the same world within that Blind's range (10 blocks, x3 with a worn ComTac, x5 during Attune: 30/50/150)
+times the source's range factor: SOUND or VOICE with the emitter's
+entity id for another player, SELF for the Blind's own sounds, OBJECT otherwise. The range factor is x0.5 for a whisper
+and, per sound id (`BlindSoundRules.SOUND_RANGE_FACTORS`, never the volume), x2 for the USEC shot
+`sparkwitch:item.usec_rifle.shoot` (20/60/100/300) and x0.5 for `sparkwitch:item.usec_rifle.shoot_suppressed`
+(5/15/25/75); every other sound, the Wathe revolver included, is x1. The sound id is read before the range pre-check,
+which culls past 300 blocks. Each Blind
 throttles each sound emitter to one pulse per 10 ticks; the one-shot sounds (the Wathe revolver,
-grenade and door, the SparkStrength M67, the NoellesRoles bomb, the generic explosion, every vanilla
+grenade and door, both USEC rifle shots and the USEC bolt (`sparkwitch:item.usec_rifle.bolt`, played inside the
+10-tick window after the shot), the SparkStrength M67, the NoellesRoles bomb, the generic explosion, every vanilla
 door, trapdoor and fence-gate open or close, and every `createExplosion`) bypass that throttle.
 Voice needs the optional Simple Voice Chat (compile-only, never a dependency):
 `voice/BlindVoicePerceptionListener` handles `MicrophonePacketEvent` at `Integer.MIN_VALUE`, after
@@ -1034,7 +1468,8 @@ re-reads it per call. `client/blind/render/BlindEchoView` is a private
 captured at `WorldRenderEvents.BEFORE_DEBUG_RENDER` (after flushing the pending block-entity layer and
 the Fast/Fancy dropped-item layer), where `BlindSilhouettePass` also re-renders the
 perceived players into a private silhouette target (their features and labels stripped by
-`BlindEchoSilhouetteMixin`), and `client/mixin/blind/BlindGameRendererMixin` runs the pass after
+`BlindEchoSilhouetteMixin`; its per-pass white vertex consumer drops every write once the pass ends,
+because PatPat 1.3 keeps the provider and draws through it at the next frame's `AFTER_ENTITIES`), and `client/mixin/blind/BlindGameRendererMixin` runs the pass after
 `GameRenderer#render`'s `Framebuffer#beginWrite(Z)` with `shift = AFTER`, so it draws over the
 Seeker and Black Raven filters injected at the same call, and the HUD is drawn on top. The view
 fails closed to black, never to the plain world: an Iris shader pack in use (reflective check; an
@@ -1133,7 +1568,11 @@ on both sides so the pot never takes it and the cane tap or ComTac equip still r
 from other players through `NoellesHiddenEquipment` (D9),
 and stripped from inventory, head slot, cursor and open screens of anyone who is not a living,
 playing, exact Blind (role change, terminal death, reset, finalize, disconnect and a staggered
-20-tick sweep that spares a real Blind inside a SparkTraits-intercepted Last Stand death). The
+20-tick sweep that spares a real Blind inside a SparkTraits-intercepted Last Stand death). A
+ComTac caught by the `dropItem` guard is emptied in place and re-delivered only to a living, active
+Blind (`BlindItemDrops`); a cane is just refused. Vanilla `/give`'s cosmetic count-1 copy
+(`util/GiveCommandDropScope`) is only cancelled, so a give never adds a second ComTac to the head
+slot and its message keeps the item name. The
 ComTac equips silently (`minecraft:intentionally_empty` equip sound) and neither item's `use` ever
 returns SUCCESS, so no arm swing is broadcast. The Blind's shop is role-gated (rebuilt for the exact
 role, `sparktraits:*` entries preserved) and sells one ComTac VIII for 100 coins, stock 1, shown with
@@ -1169,7 +1608,7 @@ entry, so it is never rolled. Rules that use `isAccompliceLike`:
 - killer-style instinct light, the dropped-item outline, and the hidden-Phantom skip;
 - instinct colors: the Grand Witch and every accomplice see each accomplice (the Bewitched included) in that role's
   own color;
-- passive, direct-kill and task money (+50 per task, see "Witch task money" below), accomplice starting money, and
+- passive, direct-kill and task money (+25 per task, see "Witch task money" below), accomplice starting money, and
   the Grand Witch's +25 team-kill share;
 - Grand Witch mana for accomplice kills, and hidden poison vision;
 - the witch factor: accomplices are never carriers and always see the network;
@@ -1186,8 +1625,8 @@ Bewitched. These never include variants merely for being variants, nor the Bewit
 (the Abyss Listener and the Riftwalker are added by exact role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`
 (the Abyss Listener and the Riftwalker are added by exact role, each for its shared skill).
 
-Witch task money (owner request 2026-10-04): `WitchEconomyService.onTaskComplete` pays
-`WitchFactionRules.WITCH_TASK_MONEY_REWARD` (+50) per completed task to the Grand Witch and every accomplice (plain or
+Witch task money (owner request 2026-10-04, lowered from 50 to 25 on 2026-10-07): `WitchEconomyService.onTaskComplete`
+pays `WitchFactionRules.WITCH_TASK_MONEY_REWARD` (+25) per completed task to the Grand Witch and every accomplice (plain or
 special) while the round is ACTIVE and the player is playing, alive, not a spectator, not creative and not
 Wraith-restricted (`WitchFactionRules.earnsTaskMoney`). It follows the Insider model: no Impostor skip, because witch
 roles roll only UNIVERSAL SparkTraits (SparkTraits `TraitRoleEligibility`), and SparkTraits task bonuses stack on top.
@@ -1366,14 +1805,15 @@ Features that force a cooldown on another player (penalties, auras) go through S
    defaults.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
-White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken and knife, Feather Blade, Knockout
-Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun, and the 1 s anti-repeat writes of the potion launcher and the Rift
-Gate, which no current consumer reaches) and of NoellesRoles items with a public constant (Antidote, Repair Tool, Poison
-Needle) plus the 200-tick neutral master key; round-start cooldowns are not nominals, and Wathe items fall through to
-Wathe's own table. The local `SparkWitchItemCooldownNominalsTest` scans every main source file for item cooldown
-writes (direct, through a local `ItemCooldownManager`, or through a ticks-parameter helper) and requires each written
-constant, by its qualified name, to be in the provider, unless it is listed as round-start, non-nominal, or a
-variable write with its reason.
+White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
+written when a hook cycle ends), Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun,
+USEC rifle (the 2 s bolt), and the 1 s anti-repeat writes of the potion launcher and the Rift Gate, which no current
+consumer reaches) and of NoellesRoles items with a public constant (Antidote, Repair Tool, Poison Needle) plus the
+200-tick neutral master key; round-start cooldowns are not nominals, and Wathe items fall through to Wathe's own
+table. The local `SparkWitchItemCooldownNominalsTest` scans every main source file for item cooldown writes (direct,
+through a local `ItemCooldownManager`, or through a ticks-parameter helper) and requires each written constant, by its
+qualified name, to be in the provider, unless it is listed as round-start, non-nominal, or a variable write with its
+reason.
 The Seeker car (`sparkwitch:seeker_car`) is registered as an item exemption: `SeekerCooldowns` stays its sole
 "max + exact" writer and offers no write path to other features, so the Fiend gun-hit aura skips it too (owner
 decision, 2026-10-02). Not registered (out of scope): Wathe shop-entry cooldowns, the Black Raven disguise switch,
@@ -1643,7 +2083,9 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
   - A holder's shell is never deleted. A removed duplicate launcher's shell loads the kept launcher or returns
     hotbar-first (the shown second row with SparkFactionAPI 0.1.5.13+, then a hidden slot, else the empty cursor, when
     the hotbar is full); a copy whose shell has nowhere to go stays put. A re-inserted drop keeps any remainder in its
-    original stack. With a full hotbar a new launcher, or a kept one in hidden storage, the offhand or armor, goes to
+    original stack. Vanilla `/give`'s cosmetic count-1 copy (`util/GiveCommandDropScope`) is only cancelled, never
+    re-inserted or emptied, so a give yields exactly the requested launchers or shells and its message keeps the item
+    name. With a full hotbar a new launcher, or a kept one in hidden storage, the offhand or armor, goes to
     the shown second row before hidden slots; a launcher in that row still moves into a free hotbar slot.
   - The sweep also moves shells from hidden main slots into shown room (same-type stacks first, then empty slots) and
     never displaces another item. Hidden means 9-35, or 9-26 when SparkFactionAPI 0.1.5.13+ shows 27-35: shells the
@@ -2002,6 +2444,18 @@ follows the base role), and gun removal on every death. A present build whose fa
 back per method: not pending (the spectator gate still excludes a pending Last Stand player), no Last Escape and no
 block (as `SparkTraitsKillerBridge` defines), traits unknown (which `hasRealSanity` never counts as real sanity), or an
 intercepted death (the `KillPlayer.AFTER` removal is skipped, and the 20-tick sweep strips the dead holder).
+USEC may query only `getMarksmanRangeMultiplier` (FMJ range and AP flight cost on the server, the reticle's AP holds
+on the client, clamped to 1.0-1.3) and `hasActiveTrait` (Fast Reload, the 1.4 s bolt) through
+`compat/SparkTraitsUsecBridge`, `hasActiveTrait` (Impostor, task money) through its own `UsecEconomyTraitsProbe`,
+`discountShopEntryForCharisma` through `SparkTraitsCharismaBridge`, and `isLastStandDeathIntercepted` through the
+existing `WitchFactorTraitsBridge`, beyond the existing `SparkTraitsKillerBridge` seams (`blocksWeaponAction` with its
+`isKillerInteractionBlocked` and `getForcedMeleeCooldownTicks` reads, `isLastEscapeActive`, `isNonFinalKillPending`,
+`setExactItemCooldownRemaining`) and `SparkTraitsShopEntryPreserver`. An absent SparkTraits means a 1.0 multiplier, a
+2 s bolt, task money paid, full prices, no weapon block, no Last Escape, no pending fake death, a vanilla cooldown
+write, and cleanup on every death. A present build whose facade lacks or fails a method falls back per method to a
+1.0 multiplier, a 2 s bolt, no task money (unknown fails closed), full prices, no block, a vanilla write, or an
+intercepted death: the `KillPlayer.AFTER` cleanup and revolver drop are skipped (reset and finalize still strip the
+kit), and an innocent shot goes unpunished.
 
 Black Raven disguise state never enters `sparkwitch:player`, `sparkwitch:black_raven_perception`,
 or `sparkwitch:black_raven_mark`. `sparkwitch:black_raven_disguise` (`NEVER_COPY`, owner-only

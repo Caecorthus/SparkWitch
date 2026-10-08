@@ -90,7 +90,8 @@ public final class BlackRavenDisguiseRules {
             sparkwitch("judge"),
             sparkwitch("emma"),
             sparkwitch("control_expert"),
-            sparkwitch("seeker")
+            sparkwitch("seeker"),
+            sparkwitch("usec")
     );
 
     /** Roles whose adapters ship in batch 1; the rest of ALLOWED shows as UNSUPPORTED. / 第一批已上线适配器的职业。 */

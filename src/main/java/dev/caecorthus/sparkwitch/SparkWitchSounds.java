@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.sound.SoundEvent;
@@ -27,6 +28,17 @@ public final class SparkWitchSounds {
      * 客户端在闪光压音中排除此 id，保证耳鸣始终最响。
      */
     public static final Identifier HOLY_FLASH_TINNITUS_ID = SparkWitch.id("skill.holy_flash_tinnitus");
+    /**
+     * USEC rifle sounds (ids live in UsecRules). Variable range: the shot carries by its volume (12 loud, 2.5
+     * suppressed), and the server plays it publicly so the Blind can perceive it.
+     * USEC 步枪音效（id 定义在 UsecRules）。可变范围：枪声按音量传播（未消音 12，消音 2.5），由服务端公开播放，盲人才能感知。
+     */
+    public static final Identifier USEC_RIFLE_SHOOT_ID = UsecRules.SHOOT_SOUND_ID;
+    public static final Identifier USEC_RIFLE_SHOOT_SUPPRESSED_ID = UsecRules.SHOOT_SUPPRESSED_SOUND_ID;
+    public static final Identifier USEC_RIFLE_BOLT_ID = UsecRules.BOLT_SOUND_ID;
+    public static final Identifier USEC_RIFLE_MAGAZINE_ID = UsecRules.MAGAZINE_SOUND_ID;
+    public static final Identifier USEC_RIFLE_LOAD_ROUND_ID = UsecRules.LOAD_ROUND_SOUND_ID;
+    public static final Identifier USEC_RIFLE_SCOPE_ID = UsecRules.SCOPE_SOUND_ID;
     public static SoundEvent PIG_CHASE;
     public static SoundEvent GRAND_WITCH_CEREMONIAL_SWORD_BGM;
     public static SoundEvent SAINT_BELL;
@@ -34,6 +46,12 @@ public final class SparkWitchSounds {
     public static SoundEvent TIME_STEALER_CHIME;
     public static SoundEvent TIME_STEALER_FINAL;
     public static SoundEvent HOLY_FLASH_TINNITUS;
+    public static SoundEvent USEC_RIFLE_SHOOT;
+    public static SoundEvent USEC_RIFLE_SHOOT_SUPPRESSED;
+    public static SoundEvent USEC_RIFLE_BOLT;
+    public static SoundEvent USEC_RIFLE_MAGAZINE;
+    public static SoundEvent USEC_RIFLE_LOAD_ROUND;
+    public static SoundEvent USEC_RIFLE_SCOPE;
     private static boolean registered;
 
     private SparkWitchSounds() {
@@ -71,5 +89,18 @@ public final class SparkWitchSounds {
                 HOLY_FLASH_TINNITUS_ID,
                 SoundEvent.of(HOLY_FLASH_TINNITUS_ID)
         );
+        USEC_RIFLE_SHOOT = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_SHOOT_ID,
+                SoundEvent.of(USEC_RIFLE_SHOOT_ID));
+        USEC_RIFLE_SHOOT_SUPPRESSED = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_SHOOT_SUPPRESSED_ID,
+                SoundEvent.of(USEC_RIFLE_SHOOT_SUPPRESSED_ID));
+        USEC_RIFLE_BOLT = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_BOLT_ID,
+                SoundEvent.of(USEC_RIFLE_BOLT_ID));
+        USEC_RIFLE_MAGAZINE = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_MAGAZINE_ID,
+                SoundEvent.of(USEC_RIFLE_MAGAZINE_ID));
+        USEC_RIFLE_LOAD_ROUND = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_LOAD_ROUND_ID,
+                SoundEvent.of(USEC_RIFLE_LOAD_ROUND_ID));
+        // Fixed range: only players within SCOPE_SOUND_RANGE receive it. / 固定范围：仅 SCOPE_SOUND_RANGE 格内的玩家收到。
+        USEC_RIFLE_SCOPE = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_SCOPE_ID,
+                SoundEvent.of(USEC_RIFLE_SCOPE_ID, UsecRules.SCOPE_SOUND_RANGE));
     }
 }

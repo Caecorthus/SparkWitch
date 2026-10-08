@@ -43,7 +43,14 @@ public enum SeekerBreakSource {
      * 药炮手炮弹：命中爆炸（球形，不遮挡）、飞行扫掠（路径上的设备被打坏，炮弹在该处爆炸）以及炮筒尾焰通道（最近者命中）
      * 都记录为此来源。
      */
-    POTION_SHELL(Kind.BLAST);
+    POTION_SHELL(Kind.BLAST),
+    /**
+     * USEC sniper rifle: a server polyline (AP pierces blocks and sinks), nearest-wins along the whole path, through
+     * {@code SeekerDeviceHits.onUsecRifleFired}. Appended last so every earlier replay id keeps its value.
+     * USEC 狙击步枪：服务端折线弹道（AP 穿透方块并下坠），沿整条路径最近者命中，经 {@code SeekerDeviceHits.onUsecRifleFired}。
+     * 追加在最后，既有回放 id 不变。
+     */
+    USEC_RIFLE(Kind.RAY);
 
     /** Geometry family; rays and projectiles use nearest-wins blocking, blasts do not. / 几何类别。 */
     public enum Kind {

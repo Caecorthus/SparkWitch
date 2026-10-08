@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class WitchFactionRules {
     public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
-    public static final int WITCH_TASK_MONEY_REWARD = 50;
+    public static final int WITCH_TASK_MONEY_REWARD = 25;
 
     public static final int OTHER_WITCH_INSTINCT_COLOR = 0x7AB8FF;
     public static final int NON_WITCH_INSTINCT_COLOR = 0x36E51B;

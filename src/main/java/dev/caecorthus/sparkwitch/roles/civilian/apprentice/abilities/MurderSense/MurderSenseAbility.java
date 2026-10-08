@@ -32,7 +32,9 @@ public final class MurderSenseAbility {
             Identifier.of("noellesroles", "poison_gas_bomb"),
             Identifier.of("noellesroles", "throwing_axe"),
             SparkWitch.id("ceremonial_sword"),
-            SparkWitch.id("fire_poker")
+            SparkWitch.id("fire_poker"),
+            // USEC AXMC (outside wathe:guns, so it needs its own entry). / USEC 的 AXMC（不在 wathe:guns 中，需单独列出）。
+            SparkWitch.id("usec_rifle")
     );
 
     private MurderSenseAbility() {

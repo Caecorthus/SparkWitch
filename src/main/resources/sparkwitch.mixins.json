@@ -66,6 +66,7 @@
     "PlayerStaminaComponentOrthopedistMixin",
     "PlayerMoodComponentAccessor",
     "RaycastShapeScopeMixin",
+    "GiveCommandDropScopeMixin",
     "ScreenHandlerBlackRavenLedgerMixin",
     "ScreenHandlerVendettaKnifeMixin",
     "ScreenHandlerWraithConsumableDropMixin",
@@ -189,7 +190,18 @@
     "riftwalker.RiftSwapperCrushMixin",
     "riftwalker.RiftSessionNetworkHandlerMixin",
     "riftwalker.RiftSessionPlayerMixin",
-    "riftwalker.RiftProjectileDeflectionMixin"
+    "riftwalker.RiftProjectileDeflectionMixin",
+    "usec.UsecStaminaRegenMixin",
+    "usec.GameFunctionsUsecItemDropMixin",
+    "usec.PlayerEntityUsecItemMixin",
+    "usec.ServerPlayerEntityUsecDropMixin",
+    "usec.ScreenHandlerUsecItemMixin",
+    "usec.DecoratedPotBlockUsecItemMixin",
+    "usec.ItemEntityUsecGunMixin",
+    "usec.PlayerInventoryUsecGunMixin",
+    "usec.ServerPlayerInteractionManagerUsecScopeMixin",
+    "usec.NoellesUsecShieldPierceMixin",
+    "usec.GameFunctionsUsecPsychoArmourMixin"
   ],
   "injectors": {
     "defaultRequire": 1

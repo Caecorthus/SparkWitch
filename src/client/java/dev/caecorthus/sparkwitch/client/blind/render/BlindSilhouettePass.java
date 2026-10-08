@@ -69,7 +69,7 @@ public final class BlindSilhouettePass {
         }
         BufferBuilder builder = new BufferBuilder(allocator(), VertexFormat.DrawMode.QUADS,
                 VertexFormats.POSITION_COLOR);
-        VertexConsumer white = new WhiteVertexConsumer(builder);
+        WhiteVertexConsumer white = new WhiteVertexConsumer(builder);
         VertexConsumerProvider provider = layer -> white;
         EntityRenderDispatcher dispatcher = client.getEntityRenderDispatcher();
         rendering = true;
@@ -79,6 +79,9 @@ public final class BlindSilhouettePass {
             }
         } finally {
             rendering = false;
+            // Closed before the builder ends: a provider another mod kept is dead from here on.
+            // 在构建器结束前关闭：其他模组保留的提供器从此失效。
+            white.close();
         }
         BuiltBuffer built = builder.endNullable();
         if (built == null) {
@@ -155,12 +158,32 @@ public final class BlindSilhouettePass {
 
     /**
      * Keeps only positions and paints every vertex opaque white; texture, overlay, light and normal are ignored.
-     * 只保留位置并把每个顶点涂成不透明白色；忽略纹理、覆盖层、光照与法线。
+     * Valid for one pass only: other mods may keep the provider and write through it after the builder ended (PatPat
+     * 1.3 draws its queued pat hand at the next frame's {@code WorldRenderEvents.AFTER_ENTITIES}), so every write after
+     * {@link #close()} is dropped.
+     * 只保留位置并把每个顶点涂成不透明白色；忽略纹理、覆盖层、光照与法线。仅在一次 pass 内有效：其他模组可能保留提供器并在
+     * 构建器结束后继续写入（PatPat 1.3 在下一帧 {@code WorldRenderEvents.AFTER_ENTITIES} 绘制排队的拍头之手），
+     * 因此 {@link #close()} 之后的写入全部丢弃。
      */
-    private record WhiteVertexConsumer(VertexConsumer delegate) implements VertexConsumer {
+    static final class WhiteVertexConsumer implements VertexConsumer {
+        @Nullable
+        private VertexConsumer delegate;
+
+        WhiteVertexConsumer(VertexConsumer delegate) {
+            this.delegate = delegate;
+        }
+
+        /** Ends this pass's writes; idempotent. / 结束本次 pass 的写入；可重复调用。 */
+        void close() {
+            delegate = null;
+        }
+
         @Override
         public VertexConsumer vertex(float x, float y, float z) {
-            delegate.vertex(x, y, z).color(255, 255, 255, 255);
+            VertexConsumer target = delegate;
+            if (target != null) {
+                target.vertex(x, y, z).color(255, 255, 255, 255);
+            }
             return this;
         }
 

@@ -81,6 +81,11 @@ public final class MagicianPuppetHits {
      */
     static final double PROJECTILE_MARGIN = 0.3;
     /**
+     * Player box growth of the USEC rifle pick ({@code UsecRules.HIT_MARGIN}), given to the puppet too.
+     * USEC 步枪选取玩家时的箱体扩大量（{@code UsecRules.HIT_MARGIN}），皮套相同。
+     */
+    static final double USEC_RIFLE_BOX_EXPANSION = 0.1;
+    /**
      * SparkStrength M67 kill radius ({@code M67Rules.BLAST_RADIUS}: 5.0 since SparkStrength 3fa84e9, 2026-10-03).
      * SparkStrength M67 击杀半径（自 SparkStrength 3fa84e9 起为 5.0）。
      */
@@ -118,6 +123,38 @@ public final class MagicianPuppetHits {
             return false;
         }
         double max = SeekerDamageRules.GUN_MAX_DISTANCE;
+        Box box = puppet.getBoundingBox();
+        if (shooter.distanceTo(puppet) >= max
+                || !SeekerDamageRules.gunAimedAndVisible(shooter.getWorld(), shooter.getEyePos(),
+                shooter.getRotationVec(1.0F), max, box, box.expand(puppet.getTargetingMargin()), shooter)) {
+            return false;
+        }
+        return MagicianPlaybackManager.endPuppet(puppet, shooter, GameConstants.DeathReasons.GUN,
+                gun.getTranslationKey());
+    }
+
+    /**
+     * Add-on gun shot routed through {@code SparkWitchApi.hitGunWorldTarget} (today SparkStrength's Serial Killer
+     * pistols, lethal guns under D5 that fire through their own payload). The facade has already checked the gun (a
+     * {@code wathe:guns} stack in hand, not cooling down); this is the revolver entry with the caller's
+     * {@code maxDistance} (capped at Wathe's 65): a live foreign puppet, aim and line of sight. The puppet ends
+     * ({@code GUN}, the gun's own name in the replay) and pays the Magician (D4); the caller then finishes the shot as
+     * a miss, so the hit costs what a real shot costs and never the innocent-shot punishment or mood loss (D3).
+     * True = ended.
+     * 经 {@code SparkWitchApi.hitGunWorldTarget} 转入的附属模组枪械射击（目前为 SparkStrength 连环杀手手枪：D5 下的致命枪械，
+     * 经自有数据包开火）。门面已校验枪械（手中的 {@code wathe:guns} 物品且未冷却）；这里按左轮入口处理，距离取调用方的
+     * {@code maxDistance}（上限为 Wathe 的 65）：他人的活皮套、瞄准与视线。皮套被结束（{@code GUN}，回放显示该枪自己的名称）
+     * 并向魔术师付款（D4）；调用方随后按未命中收尾，因此命中付出真实射击的代价，绝不触发误杀惩罚或理智损失（D3）。
+     * 返回 true 表示已结束。
+     */
+    public static boolean onAddonGunShot(ServerPlayerEntity shooter, @Nullable Entity target, ItemStack gun,
+                                         double maxDistance) {
+        if (shooter == null || shooter.getWorld().isClient() || shooter.isSpectator()
+                || !(target instanceof MagicianPlaybackEntity puppet) || gun == null || gun.isEmpty()
+                || !(maxDistance > 0.0) || !hittableBy(shooter, puppet)) {
+            return false;
+        }
+        double max = Math.min(maxDistance, SeekerDamageRules.GUN_MAX_DISTANCE);
         Box box = puppet.getBoundingBox();
         if (shooter.distanceTo(puppet) >= max
                 || !SeekerDamageRules.gunAimedAndVisible(shooter.getWorld(), shooter.getEyePos(),
@@ -325,6 +362,66 @@ public final class MagicianPuppetHits {
             MagicianPlaybackManager.endPuppet(puppet, caster, SparkWitchDeathReasons.PIERCED_BY_RAY,
                     DEATH_RAY_WEAPON_KEY);
         }
+    }
+
+    /**
+     * USEC sniper rifle match shot, called once per shot before the Seeker hook
+     * ({@code SeekerDeviceHits.onUsecRifleFired}) with the same arguments. The bullet's path is a polyline (AP pierces
+     * blocks and sinks), so
+     * nearest-wins is measured as path distance along {@code path}. Walking the segments in flight order, the first live
+     * foreign puppet whose box, grown like the player pick ({@link #USEC_RIFLE_BOX_EXPANSION}), the path enters strictly
+     * before {@code reach} (the player the bullet would hit, else the path length) and strictly before every Seeker
+     * device the shooter may break ends ({@code gun_shot}, the rifle's name in the replay): a lethal weapon ends a puppet
+     * (D5) and costs what a real hit costs (D3: the round, the bolt, the sound), never the innocent-shot punishment.
+     * Returns {@code reach} unchanged when no puppet absorbed the shot, else the puppet's path distance (strictly less);
+     * the caller then skips the Seeker hook and kills nobody.
+     * USEC 狙击步枪的对局射击，每发一次，在搜寻者钩子（{@code SeekerDeviceHits.onUsecRifleFired}）之前以相同参数调用。子弹路径是
+     * 折线（AP 穿透方块并下坠），因此最近者命中按沿 {@code path} 的路径距离量取。按飞行顺序逐段检查，路径在 {@code reach}
+     * （本会命中的玩家，否则为路径长度）之前、且在射手可打坏的所有搜寻者设备之前（均为严格更早）进入其箱体（与玩家选取同样扩大
+     * {@link #USEC_RIFLE_BOX_EXPANSION}）的第一个他人活皮套被结束（{@code gun_shot}，回放显示步枪名称）：致命武器会结束皮套（D5），
+     * 并付出真实命中的代价（D3：子弹、拉栓、枪声），但绝不触发误杀惩罚。没有皮套吸收时原样返回 {@code reach}，否则返回该皮套的
+     * 路径距离（严格更小）；调用方随后跳过搜寻者钩子且不击杀任何人。
+     */
+    public static double onUsecRifleFired(ServerPlayerEntity shooter, @Nullable ItemStack rifle, List<Vec3d> path,
+                                          double reach) {
+        if (shooter == null || shooter.getWorld().isClient() || shooter.isSpectator() || path == null
+                || path.size() < 2 || !(reach > 0.0) || !(shooter.getWorld() instanceof ServerWorld world)
+                || !GameWorldComponent.KEY.get(world).isRunning()) {
+            return reach;
+        }
+        List<MagicianPlaybackEntity> candidates = MagicianPlaybackManager.livePuppets(world).stream()
+                .filter(puppet -> hittableBy(shooter, puppet))
+                .toList();
+        if (candidates.isEmpty()) {
+            return reach;
+        }
+        double travelled = 0.0;
+        for (int i = 0; i + 1 < path.size() && travelled < reach; i++) {
+            Vec3d from = path.get(i);
+            Vec3d to = path.get(i + 1);
+            double length = from.distanceTo(to);
+            if (!(length > 0.0)) {
+                continue;
+            }
+            double cut = Math.min(length, reach - travelled);
+            Vec3d end = cut < length ? from.add(to.subtract(from).multiply(cut / length)) : to;
+            double device = MagicianPuppetRaycast.breakableDeviceSquared(shooter, from, end);
+            MagicianPuppetRaycast.PuppetHit hit = MagicianPuppetRaycast.nearest(from, end, candidates,
+                    USEC_RIFLE_BOX_EXPANSION, Math.min(cut * cut, device));
+            if (hit != null) {
+                return MagicianPlaybackManager.endPuppet(hit.puppet(), shooter, GameConstants.DeathReasons.GUN,
+                        rifle == null ? null : rifle.getTranslationKey())
+                        ? Math.min(reach, travelled + Math.sqrt(hit.distanceSquared()))
+                        : reach;
+            }
+            if (device < cut * cut) {
+                // A breakable device on this segment takes the shot first; puppets behind it are spared.
+                // 本段上可打坏的设备先吃下这一枪；其后的皮套幸免。
+                return reach;
+            }
+            travelled += length;
+        }
+        return reach;
     }
 
     /**
