@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoType;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecCooldowns;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecMagazineContents;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import org.jetbrains.annotations.Nullable;
@@ -84,7 +85,7 @@ public final class UsecAmmoHudRules {
     public static List<Part> line(Snapshot snapshot) {
         List<Part> parts = new ArrayList<>(6);
         UsecAmmoType chamber = snapshot.chamber();
-        if (isBolt(snapshot.cooldownTicks(), snapshot.cooldownProgress())) {
+        if (snapshot.cooldown().bolt()) {
             parts.add(new Part(CYCLING_KEY, TAN_COLOR, List.of()));
         } else if (chamber != null) {
             parts.add(new Part(chamber.labelKey(), 0xFF000000 | chamber.color(), List.of()));
@@ -114,22 +115,6 @@ public final class UsecAmmoHudRules {
         }
         return new Part(ZOOM_KEY, TAN_COLOR,
                 List.of(new Literal(Integer.toString(UsecInputRules.magnification(snapshot.zoomLevel())))));
-    }
-
-    /**
-     * A bolt cycle when the whole cooldown (remaining / remaining share) is no longer than a bolt; the round-start lock
-     * or any longer forced cooldown keeps the chamber token (the bar still runs). Without a usable share the remaining
-     * ticks decide.
-     * 整段冷却（剩余 / 剩余比例）不长于一次拉栓时视为拉栓；开局锁定或任何更长的强制冷却保留弹膛标记（进度条照常显示）。
-     * 比例不可用时按剩余刻数判断。
-     */
-    public static boolean isBolt(int remainingTicks, float remainingShare) {
-        if (remainingTicks <= 0) {
-            return false;
-        }
-        double total = remainingShare > 0.0F && remainingShare <= 1.0F && Float.isFinite(remainingShare)
-                ? remainingTicks / (double) remainingShare : remainingTicks;
-        return total <= UsecRules.BOLT_TICKS + 1.0;
     }
 
     /** The bar shows during any rifle cooldown. / 步枪任何冷却期间都显示进度条。 */
@@ -179,12 +164,20 @@ public final class UsecAmmoHudRules {
     }
 
     /**
-     * Local snapshot of the held rifle. {@code cooldownProgress} is vanilla's remaining share (1 just started, 0 done).
-     * 手持步枪的本地快照。{@code cooldownProgress} 为原版剩余比例（1 为刚开始，0 为结束）。
+     * Local snapshot of the held rifle. {@code cooldown} is the shared exact classifier
+     * ({@link UsecCooldowns#status}), which alone decides {@code 拉栓中} (A2: never estimated from the interpolated
+     * share, which flickered); {@code cooldownProgress} is vanilla's smooth remaining share (1 just started, 0 done) and
+     * only fills the bar.
+     * 手持步枪的本地快照。{@code cooldown} 为共用的精确分类器（{@link UsecCooldowns#status}），只由它决定是否显示
+     * {@code 拉栓中}（A2：不再从会闪烁的插值比例估算）；{@code cooldownProgress} 为原版平滑的剩余比例（1 为刚开始，0 为结束），
+     * 只用于填充进度条。
      */
     public record Snapshot(@Nullable UsecAmmoType chamber, @Nullable UsecMagazineContents magazine,
-                           boolean suppressor, int cooldownTicks, float cooldownProgress, boolean scoped,
+                           boolean suppressor, UsecCooldowns.Status cooldown, float cooldownProgress, boolean scoped,
                            int zoomLevel) {
+        public Snapshot {
+            cooldown = cooldown == null ? UsecCooldowns.Status.NONE : cooldown;
+        }
     }
 
     /** One coloured, translated part of the line. / 该行中一个着色的翻译片段。 */

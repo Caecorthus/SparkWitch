@@ -25,9 +25,10 @@ public final class UsecRifleClient {
 
     /**
      * Holding use with the rifle in the main hand ({@code UsecRifleItem.use} never starts from the offhand). This is
-     * the raised-rifle state that the scope profile, the {@code usec_scope} intent and the server check all share.
-     * 主手持狙击步枪并按住使用键（{@code UsecRifleItem.use} 从不从副手开始）。开镜配置、{@code usec_scope} 意图与服务端
-     * 检查共用这一“举枪”状态。
+     * the raised-rifle state the scope profile and the server check share; the {@code usec_scope} intent additionally
+     * requires the shared scope view gate ({@code UsecScopeInput}).
+     * 主手持狙击步枪并按住使用键（{@code UsecRifleItem.use} 从不从副手开始）。开镜配置与服务端检查共用这一“举枪”状态；
+     * {@code usec_scope} 意图还要求共享的开镜视角条件（{@code UsecScopeInput}）。
      */
     public static boolean isUsingRifleInMainHand(PlayerEntity player) {
         return player != null && player.isUsingItem() && player.getActiveHand() == Hand.MAIN_HAND

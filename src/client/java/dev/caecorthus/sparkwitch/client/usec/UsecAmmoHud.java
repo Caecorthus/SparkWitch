@@ -58,13 +58,13 @@ public final class UsecAmmoHud {
             return;
         }
         UsecRifleState state = UsecRifleState.read(rifle);
-        int cooldownTicks = UsecCooldowns.remainingTicks(player);
-        float progress = cooldownTicks > 0
+        UsecCooldowns.Status cooldown = UsecCooldowns.status(player);
+        float progress = cooldown.coolingDown()
                 ? player.getItemCooldownManager().getCooldownProgress(SparkWitchItems.usecRifle(),
                 tickCounter.getTickDelta(true))
                 : 0.0F;
         UsecAmmoHudRules.Snapshot snapshot = new UsecAmmoHudRules.Snapshot(state.chamber(), state.magazine(),
-                state.suppressor(), cooldownTicks, progress, UsecScopeProfile.isActive(), UsecZoomState.level());
+                state.suppressor(), cooldown, progress, UsecScopeProfile.isActive(), UsecZoomState.level());
 
         TextRenderer renderer = client.textRenderer;
         List<UsecAmmoHudRules.Part> parts = UsecAmmoHudRules.line(snapshot);
@@ -86,7 +86,7 @@ public final class UsecAmmoHud {
             context.drawTextWithShadow(renderer, zoomText,
                     x - UsecAmmoHudRules.ZOOM_TAG_GAP - renderer.getWidth(zoomText), y, UsecAmmoHudRules.TAN_COLOR);
         }
-        if (UsecAmmoHudRules.showsBar(cooldownTicks)) {
+        if (UsecAmmoHudRules.showsBar(cooldown.remaining())) {
             // Directly under the chamber token, as wide as it. / 紧贴弹膛标记下方，与其等宽。
             int width = renderer.getWidth(token);
             int barY = y + renderer.fontHeight;

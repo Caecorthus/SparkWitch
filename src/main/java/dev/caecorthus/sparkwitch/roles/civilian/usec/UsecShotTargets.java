@@ -59,7 +59,7 @@ final class UsecShotTargets {
         return UsecFireRules.targetEligible(
                 self,
                 GameFunctions.isPlayerSpectatingOrCreative(candidate),
-                !self && VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(shooter, candidate),
+                GameFunctions.isPlayerPlayingAndAlive(candidate),
                 WraithStateService.isActive(candidate),
                 SparkTraitsKillerBridge.isLastEscapeActive(candidate),
                 VendettaInteractionService.isActiveVendetta(shooter),

@@ -12,6 +12,7 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponen
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.util.OffMatchUse;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import dev.doctor4t.wathe.util.Scheduler;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -85,7 +86,7 @@ public final class UsecRifleFireService {
                 holding && player.getItemCooldownManager().isCoolingDown(rifle.getItem()),
                 state.chamber() != null));
         switch (decision) {
-            case FIRE -> shoot(player, rifle, state, payload, mode == OffMatchUse.Mode.MATCH);
+            case FIRE -> shoot(player, rifle, state, payload, mode);
             case EMPTY_CHAMBER -> dryClick(player);
             default -> {
             }
@@ -98,7 +99,7 @@ public final class UsecRifleFireService {
      * 一次射击。先完成拉栓循环（消耗子弹、弹匣顶部子弹上膛、拉栓冷却、写回物品），之后的任何事（击杀、惩罚）都无法撤销或重复它。
      */
     private static void shoot(ServerPlayerEntity player, ItemStack rifle, UsecRifleState state,
-                              FireUsecRifleC2SPacket payload, boolean match) {
+                              FireUsecRifleC2SPacket payload, OffMatchUse.Mode mode) {
         UsecFireRules.Cycle cycle = UsecFireRules.cycle(state);
         if (cycle == null) {
             return;
@@ -113,13 +114,13 @@ public final class UsecRifleFireService {
         playShot(world, player, state.suppressor());
         spawnMuzzle(world, eye, direction, state.suppressor());
         if (cycle.chambered()) {
-            scheduleBoltSound(player, world);
+            scheduleBoltSound(player, world, rifle, cycle.next(), mode);
         }
 
         UsecTracer.Trace trace = UsecTracer.trace(eye, direction, cycle.fired(),
                 SparkTraitsUsecBridge.marksmanRangeMultiplier(player), new UsecTracerWorldProbe(world, player));
         double stop = trace.path().length();
-        if (match) {
+        if (mode == OffMatchUse.Mode.MATCH) {
             stop = resolveMatchHit(player, rifle, cycle.fired(), trace);
         }
         List<UsecImpactRules.Impact> impacts = UsecImpactRules.impacts(eye, trace, stop);
@@ -155,7 +156,7 @@ public final class UsecRifleFireService {
         GameRecordManager.recordItemUse(player, UsecReplay.RECORD_ID, victim,
                 UsecReplay.fireData(ammo, penetratedBefore(trace, stop)));
         if (victim != null) {
-            UsecFirePunishment.killAndPunish(player, victim);
+            UsecFirePunishment.killAndPunish(player, victim, ammo);
         }
         return stop;
     }
@@ -195,13 +196,26 @@ public final class UsecRifleFireService {
     }
 
     /**
-     * The bolt cycles audibly about half a second later when a round was chambered; skipped once the shooter left,
-     * changed world or became a spectator.
-     * 有子弹上膛时约半秒后播放拉栓声；射手已离开、换了世界或成为旁观者时跳过。
+     * The bolt cycles audibly about half a second later when a round was chambered, only if nothing changed since the
+     * shot ({@link UsecFireRules#boltSoundDue}): the shooter is still online in that world and not a spectator, still
+     * holds that very rifle stack in the main hand with the post-shot state (so an UNLOAD_CHAMBER or any other
+     * attachment action in between, which plays its own bolt, never adds a second one), and the round context is the
+     * same (the use mode and Wathe's game status).
+     * 有子弹上膛时约半秒后播放拉栓声，但仅当射击后一切未变（{@link UsecFireRules#boltSoundDue}）：射手仍在线、仍在该世界且
+     * 不是旁观者；主手仍是同一把步枪物品堆且保持射击后的状态（因此期间的退膛或其他配件操作会自行播放拉栓声，绝不会多出第二次）；
+     * 对局情境相同（使用模式与 Wathe 游戏状态）。
      */
-    private static void scheduleBoltSound(ServerPlayerEntity player, ServerWorld world) {
+    private static void scheduleBoltSound(ServerPlayerEntity player, ServerWorld world, ItemStack rifle,
+                                          UsecRifleState expected, OffMatchUse.Mode mode) {
+        GameWorldComponent.GameStatus status = GameWorldComponent.KEY.get(world).getGameStatus();
         Scheduler.schedule(() -> {
-            if (player.isRemoved() || player.getServerWorld() != world || player.isSpectator()) {
+            boolean online = !player.isRemoved() && !player.isDisconnected() && player.getServerWorld() == world
+                    && !player.isSpectator();
+            ItemStack held = online ? player.getMainHandStack() : ItemStack.EMPTY;
+            if (!UsecFireRules.boltSoundDue(online, held == rifle,
+                    held == rifle && UsecRifleState.read(held).equals(expected),
+                    mode, online ? OffMatchUse.mode(player) : null,
+                    status, GameWorldComponent.KEY.get(world).getGameStatus())) {
                 return;
             }
             world.playSound(null, player.getX(), player.getEyeY(), player.getZ(), SparkWitchSounds.USEC_RIFLE_BOLT,

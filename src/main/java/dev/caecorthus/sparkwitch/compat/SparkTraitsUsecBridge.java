@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.compat;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -10,10 +11,13 @@ import java.lang.reflect.Modifier;
 
 /**
  * Optional SparkTraits seam for USEC. Reflects only the public facade
- * {@code SparkTraitsApi.getMarksmanRangeMultiplier(PlayerEntity)} and {@code hasActiveTrait(PlayerEntity, Identifier)};
- * an absent, older or failing provider means base rifle range and the base bolt time. Both sides may call it.
- * USEC 的可选 SparkTraits 接缝。仅反射公共门面 {@code getMarksmanRangeMultiplier} 与 {@code hasActiveTrait}；
- * 提供方缺失、过旧或出错时，狙击枪使用基础射程与基础拉栓时间。两端均可调用。
+ * {@code SparkTraitsApi.getMarksmanRangeMultiplier(PlayerEntity)}, {@code hasActiveTrait(PlayerEntity, Identifier)}
+ * and the server-only {@code isHeavyArtilleryGunShot(ServerPlayerEntity, ServerPlayerEntity)}; an absent, older or
+ * failing provider means base rifle range, the base bolt time and no Heavy Artillery layer. Both sides may call the
+ * first two.
+ * USEC 的可选 SparkTraits 接缝。仅反射公共门面 {@code getMarksmanRangeMultiplier}、{@code hasActiveTrait} 与仅服务端的
+ * {@code isHeavyArtilleryGunShot}；提供方缺失、过旧或出错时，狙击枪使用基础射程、基础拉栓时间且没有重炮手额外层数。
+ * 前两者两端均可调用。
  */
 public final class SparkTraitsUsecBridge {
     private static final String MOD_ID = "sparktraits";
@@ -28,6 +32,8 @@ public final class SparkTraitsUsecBridge {
     private static volatile @Nullable Method marksmanMethod;
     private static volatile boolean traitResolved;
     private static volatile @Nullable Method traitMethod;
+    private static volatile boolean heavyArtilleryResolved;
+    private static volatile @Nullable Method heavyArtilleryMethod;
 
     private SparkTraitsUsecBridge() {
     }
@@ -70,6 +76,31 @@ public final class SparkTraitsUsecBridge {
         }
     }
 
+    /**
+     * Server only (O3): whether SparkTraits counts this {@code wathe:gun_shot} kill of {@code victim} by
+     * {@code shooter} as a Heavy Artillery shot (active trait on a gun-police role, within 5 blocks feet to feet), which
+     * gives the AXMC one more shield layer. Ask it before the kill, because a death clears traits. Fails closed: an
+     * absent or older SparkTraits, or a failing facade, is false.
+     * 仅服务端（O3）：SparkTraits 是否把 {@code shooter} 以 {@code wathe:gun_shot} 击杀 {@code victim} 视为重炮手射击（持枪警职
+     * 持有生效词条、脚对脚 5 格内），这会让 AXMC 多击穿一层护盾。须在击杀之前询问，因为死亡会清除词条。失败关闭：SparkTraits
+     * 缺失、过旧或门面出错时为 false。
+     */
+    public static boolean isHeavyArtilleryGunShot(@Nullable ServerPlayerEntity shooter,
+                                                  @Nullable ServerPlayerEntity victim) {
+        if (shooter == null || victim == null || !FabricLoader.getInstance().isModLoaded(MOD_ID)) {
+            return false;
+        }
+        Method method = heavyArtilleryMethod();
+        if (method == null) {
+            return false;
+        }
+        try {
+            return method.invoke(null, shooter, victim) instanceof Boolean shot && shot;
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            return false;
+        }
+    }
+
     /** Non-numeric or non-finite values fail closed to 1.0. / 非数值或非有限值回退为 1.0。 */
     static double clampMultiplier(@Nullable Object raw) {
         if (!(raw instanceof Number number)) {
@@ -104,6 +135,19 @@ public final class SparkTraitsUsecBridge {
             }
         }
         return traitMethod;
+    }
+
+    private static @Nullable Method heavyArtilleryMethod() {
+        if (!heavyArtilleryResolved) {
+            synchronized (SparkTraitsUsecBridge.class) {
+                if (!heavyArtilleryResolved) {
+                    heavyArtilleryMethod = resolve("isHeavyArtilleryGunShot", boolean.class,
+                            ServerPlayerEntity.class, ServerPlayerEntity.class);
+                    heavyArtilleryResolved = true;
+                }
+            }
+        }
+        return heavyArtilleryMethod;
     }
 
     private static @Nullable Method resolve(String name, Class<?> returnType, Class<?>... parameters) {

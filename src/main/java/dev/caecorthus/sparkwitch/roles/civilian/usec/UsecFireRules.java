@@ -145,29 +145,67 @@ public final class UsecFireRules {
     }
 
     /**
-     * Whether a candidate player may be hit (before geometry): never the shooter, a spectator (Rift Gate occupants,
-     * swallowed or Wathe-dead players), a creative player, a Wathe-dead player (except a Vendetta its bound killer
-     * shoots), an active Wraith or a SparkTraits Last Escape player; Vendetta isolation lets an active Vendetta and
-     * everyone else touch only their exact pair.
-     * 候选玩家能否被命中（几何判定之前）：射手本人、旁观者（裂隙门内、被吞下或 Wathe 判定死亡的玩家）、创造模式玩家、
-     * Wathe 判定死亡的玩家（其绑定杀手射击复仇者除外）、激活冤魂与 SparkTraits 绝处逢生玩家都不能命中；复仇者隔离使激活的复仇者
-     * 与其他人只能触及其确切配对。
+     * Whether the delayed bolt sound of a shot still plays: the shooter is online (same world, not a spectator), the
+     * main hand still holds the very rifle stack that fired, that stack still carries the post-shot state (an
+     * attachment action in between, e.g. UNLOAD_CHAMBER, plays its own bolt and must not be doubled), and the round
+     * context is unchanged: the same {@link OffMatchUse.Mode} and the same Wathe game status (still the ACTIVE round,
+     * or still the same off-match context).
+     * 射击的延迟拉栓声是否仍应播放：射手在线（同一世界、非旁观者）；主手仍是开火的那把步枪物品堆；该物品堆仍保持射击后的状态
+     * （期间的配件操作如退膛会自行播放拉栓声，不得重复）；对局情境未变：相同的 {@link OffMatchUse.Mode} 与相同的 Wathe 游戏状态
+     * （仍是该 ACTIVE 对局，或仍是同一非对局情境）。
      */
-    public static boolean targetEligible(boolean self, boolean spectatorOrCreative, boolean aliveOrBoundKillerTarget,
-                                         boolean activeWraith, boolean lastEscape, boolean shooterVendetta,
-                                         boolean targetVendetta, boolean exactPair) {
-        return !self && !spectatorOrCreative && aliveOrBoundKillerTarget && !activeWraith && !lastEscape
-                && (!(shooterVendetta || targetVendetta) || exactPair);
+    public static boolean boltSoundDue(boolean online, boolean sameStackInMainHand, boolean stateUnchanged,
+                                       @Nullable OffMatchUse.Mode modeAtShot, @Nullable OffMatchUse.Mode modeNow,
+                                       @Nullable GameWorldComponent.GameStatus statusAtShot,
+                                       @Nullable GameWorldComponent.GameStatus statusNow) {
+        return online && sameStackInMainHand && stateUnchanged && modeAtShot != null && modeAtShot == modeNow
+                && statusAtShot == statusNow;
     }
 
-    /** Innocent-shot punishment outcome (Q8, revolver parity). / 误杀惩罚结果（Q8，与左轮一致）。 */
+    /**
+     * Whether a candidate player may be hit (before geometry), the Shriek Gun's target semantics
+     * ({@code ShriekGunService.isEligible}): never the shooter, a spectator (Rift Gate occupants, swallowed or
+     * Wathe-dead players), a creative player, a player who is not playing and alive in Wathe, an active Wraith or a
+     * SparkTraits Last Escape player. Vendetta isolation is {@code ShriekGunRules.vendettaAllows}: an active Vendetta
+     * and everyone else touch only their exact pair. An active Vendetta is itself an active, promoted Wraith, so it is
+     * never a target; there is no bound-killer exception.
+     * 候选玩家能否被命中（几何判定之前），与啸音铳的目标语义一致（{@code ShriekGunService.isEligible}）：射手本人、旁观者
+     * （裂隙门内、被吞下或 Wathe 判定死亡的玩家）、创造模式玩家、在 Wathe 中并非在局且存活的玩家、激活冤魂与 SparkTraits
+     * 绝处逢生玩家都不能命中。复仇者隔离即 {@code ShriekGunRules.vendettaAllows}：激活的复仇者与其他人只能触及其确切配对。
+     * 激活的复仇者本身就是已激活、已晋升的冤魂，因此永远不是目标；不存在绑定杀手例外。
+     */
+    public static boolean targetEligible(boolean self, boolean spectatorOrCreative, boolean playingAndAlive,
+                                         boolean activeWraith, boolean lastEscape, boolean shooterVendetta,
+                                         boolean targetVendetta, boolean exactPair) {
+        return !self && !spectatorOrCreative && playingAndAlive && !activeWraith && !lastEscape
+                && vendettaAllows(shooterVendetta, targetVendetta, exactPair);
+    }
+
+    /**
+     * Same rule as {@code ShriekGunRules.vendettaAllows} (kept local so USEC does not depend on a witch role).
+     * 与 {@code ShriekGunRules.vendettaAllows} 相同的规则（保留在本地，避免 USEC 依赖魔女职业包）。
+     */
+    static boolean vendettaAllows(boolean shooterVendetta, boolean targetVendetta, boolean exactPair) {
+        return !(shooterVendetta || targetVendetta) || exactPair;
+    }
+
+    /**
+     * Hit punishment outcome (Q8 and O1, revolver parity); every non-custom one runs 4 ticks after the hit.
+     * 命中惩罚结果（Q8 与 O1，与左轮一致）；除自定义惩罚外均在命中后 4 刻执行。
+     */
     public enum Punishment {
         NONE,
         /** A {@code ShouldPunishGunShooter} listener supplied its own punishment. / 监听器提供了自定义惩罚。 */
         CUSTOM,
-        /** Wathe {@code KILL_SHOOTER}: sanity 0, the USEC dies ({@code wathe:shot_innocent}). / 理智清零，USEC 死亡。 */
+        /**
+         * Wathe {@code KILL_SHOOTER}: as {@link #CONFISCATE}, then the USEC dies ({@code wathe:shot_innocent}); Wathe
+         * also takes the revolver before it kills. / 同 {@link #CONFISCATE}，随后 USEC 死亡；Wathe 同样先收走左轮再处死。
+         */
         KILL_SHOOTER,
-        /** Wathe {@code PREVENT_GUN_PICKUP}: sanity 0, the rifle is confiscated. / 理智清零，没收狙击步枪。 */
+        /**
+         * Wathe {@code PREVENT_GUN_PICKUP}: sanity 0, gun pickup prevented, the rifle is confiscated.
+         * 理智清零、禁止拾枪，并没收狙击步枪。
+         */
         CONFISCATE
     }
 
@@ -180,32 +218,24 @@ public final class UsecFireRules {
     }
 
     /**
-     * The victim really died from this shot: alive before, dead after, and neither intercepted (SparkTraits Last Stand)
-     * nor turned into a non-final kill (e.g. a Depression fake death). Same gate as the Swordfish stab.
-     * 受害者确实死于这一枪：射击前存活、射击后死亡，且未被拦截（SparkTraits 背水一战），也未变为非最终击杀（如抑郁假死）。
-     * 与剑鱼刺杀相同的门槛。
+     * Revolver-parity punishment for a player hit (owner O1, 2026-10-07; Wathe's revolver receiver): it
+     * is decided on the hit itself, so a victim saved by a Saint, a shield, Last Stand or a Judge denial still costs
+     * the shooter. A listener's custom result wins for any hit, as in Wathe; otherwise only an innocent shot by a
+     * non-creative shooter that no listener cancelled is punished, by Wathe's configured punishment
+     * ({@code PREVENT_GUN_PICKUP} confiscates, anything else kills the shooter, Wathe's own default). No backfire
+     * roll: Wathe's backfire chance defaults to 0.
+     * 与左轮一致的命中惩罚（所有者 O1，2026-10-07；Wathe 左轮接收器）：在命中时即作判定，因此即使受害者
+     * 被圣徒、护盾、背水一战或法官禁杀救下，射手仍要受罚。与 Wathe 一样，监听器的自定义结果对任何命中都优先；否则只有未被
+     * 监听器取消、非创造模式射手的误杀才受罚，执行 Wathe 配置的惩罚（{@code PREVENT_GUN_PICKUP} 没收，其余一律处死射手，
+     * 即 Wathe 自身的默认值）。没有走火判定：Wathe 的走火概率默认为 0。
      */
-    public static boolean victimDied(boolean deadBefore, boolean deadAfter, boolean intercepted, boolean nonFinal) {
-        return !deadBefore && deadAfter && !intercepted && !nonFinal;
-    }
-
-    /**
-     * Revolver-parity punishment for an innocent shot that really killed: a custom listener result wins, a cancelling
-     * one (or a creative shooter) spares the shooter, otherwise Wathe's configured punishment applies
-     * ({@code PREVENT_GUN_PICKUP} confiscates, anything else kills the shooter, Wathe's own default).
-     * 与左轮一致的误杀惩罚（仅限确实击杀的误杀）：监听器的自定义结果优先，取消结果（或创造模式射手）免除惩罚，否则执行 Wathe
-     * 配置的惩罚（{@code PREVENT_GUN_PICKUP} 没收，其余一律处死射手，即 Wathe 自身的默认值）。
-     */
-    public static Punishment punishment(boolean innocentShot, boolean victimDied, boolean shooterCreative,
+    public static Punishment punishment(boolean innocentShot, boolean shooterCreative,
                                         @Nullable ShouldPunishGunShooter.PunishResult eventResult,
                                         @Nullable GameWorldComponent.ShootInnocentPunishment configured) {
-        if (!innocentShot || !victimDied) {
-            return Punishment.NONE;
-        }
         if (eventResult != null && eventResult.hasCustomPunishment()) {
             return Punishment.CUSTOM;
         }
-        if ((eventResult != null && !eventResult.shouldPunish()) || shooterCreative) {
+        if (!innocentShot || shooterCreative || (eventResult != null && !eventResult.shouldPunish())) {
             return Punishment.NONE;
         }
         return configured == GameWorldComponent.ShootInnocentPunishment.PREVENT_GUN_PICKUP

@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.client.usec.UsecAttachmentModel.PartKind;
 import dev.caecorthus.sparkwitch.client.usec.UsecAttachmentModel.Room;
 import dev.caecorthus.sparkwitch.client.usec.UsecAttachmentModel.Row;
 import dev.caecorthus.sparkwitch.client.usec.UsecAttachmentPaint.ButtonState;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoItem;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoType;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAttachmentRules;
@@ -88,10 +89,6 @@ public final class UsecAttachmentScreen extends Screen {
     private @Nullable View pendingFrom;
     private int pendingTicks;
     private int scroll;
-    /** Longest cooldown remainder seen since the current cooldown began (gauge scale). 本次冷却的最长剩余时间。 */
-    private int cooldownTotal;
-    /** Remainder seen last tick; -1 before the first tick. 上一刻看到的剩余时间；首刻之前为 -1。 */
-    private int lastRemaining = -1;
     private final Map<UsecAmmoType, ItemStack> chamberIcons = new EnumMap<>(UsecAmmoType.class);
     private @Nullable ItemStack magazineIcon;
     private @Nullable ItemStack suppressorIcon;
@@ -153,9 +150,6 @@ public final class UsecAttachmentScreen extends Screen {
             pendingTicks = pendingFrom != null && !view.sameState(pendingFrom) ? 0 : pendingTicks - 1;
         }
         scroll = clampScroll(scroll, view.parts().size());
-        int remaining = UsecCooldowns.remainingTicks(player);
-        cooldownTotal = UsecAttachmentModel.gaugeTotal(cooldownTotal, lastRemaining, remaining);
-        lastRemaining = remaining;
     }
 
     /** Returns to the parent inventory screen (Esc, inventory key). 返回父背包界面。 */
@@ -175,24 +169,15 @@ public final class UsecAttachmentScreen extends Screen {
         PlayerInventory inventory = player.getInventory();
         ItemStack rifle = inventory.getStack(rifleSlot);
         List<Part> raw = new ArrayList<>();
-        boolean freeSlot = false;
-        Set<UsecAmmoType> roundRoom = EnumSet.noneOf(UsecAmmoType.class);
         for (int slot = 0; slot <= UsecAttachmentRules.OFFHAND_SLOT; slot++) {
             if (!UsecAttachmentRules.isActionSlot(slot)) {
                 continue;
             }
             ItemStack stack = inventory.getStack(slot);
-            if (stack.isEmpty()) {
-                freeSlot |= slot < UsecAttachmentRules.MAIN_SLOTS;
-                continue;
-            }
             if (stack.getItem() instanceof UsecMagazineItem) {
                 raw.add(Part.magazine(slot, UsecMagazineItem.contents(stack)));
             } else if (stack.getItem() instanceof UsecAmmoItem ammo) {
                 raw.add(Part.rounds(slot, ammo.ammoType(), stack.getCount()));
-                if (stack.getCount() < stack.getMaxCount()) {
-                    roundRoom.add(ammo.ammoType());
-                }
             } else if (stack.getItem() instanceof UsecSuppressorItem) {
                 raw.add(Part.suppressor(slot));
             }
@@ -202,8 +187,30 @@ public final class UsecAttachmentScreen extends Screen {
         for (Part part : parts) {
             stacks.add(inventory.getStack(part.slot()));
         }
-        view = new View(UsecRifleState.read(rifle), rifle.getName(), parts, List.copyOf(stacks),
-                new Room(freeSlot, roundRoom));
+        view = new View(UsecRifleState.read(rifle), rifle.getName(), parts, List.copyOf(stacks), room(inventory));
+    }
+
+    /**
+     * Room prediction through the server's own shown-slot rule ({@link UsecAttachmentRules#releaseSlot}, A7): an empty
+     * shown slot or empty offhand, and per round type a shown stack with room.
+     * 通过服务端同一显示栏位规则（{@link UsecAttachmentRules#releaseSlot}，A7）预测空位：空的显示栏位或空的副手，以及每种弹种
+     * 是否有尚有空余的显示中物品堆。
+     */
+    private static Room room(PlayerInventory inventory) {
+        boolean secondRow = SparkFactionSecondRowCompat.isShown();
+        boolean freeSlot = UsecAttachmentRules.releaseSlot(slot -> false,
+                slot -> inventory.getStack(slot).isEmpty(), secondRow) != UsecAttachmentRules.NO_ROOM;
+        Set<UsecAmmoType> roundRoom = EnumSet.noneOf(UsecAmmoType.class);
+        for (UsecAmmoType type : UsecAmmoType.values()) {
+            if (UsecAttachmentRules.releaseSlot(slot -> {
+                ItemStack stack = inventory.getStack(slot);
+                return stack.getItem() instanceof UsecAmmoItem ammo && ammo.ammoType() == type
+                        && stack.getCount() < stack.getMaxCount();
+            }, slot -> false, secondRow) != UsecAttachmentRules.NO_ROOM) {
+                roundRoom.add(type);
+            }
+        }
+        return new Room(freeSlot, roundRoom);
     }
 
     // ---- input / 输入 ----
@@ -264,12 +271,14 @@ public final class UsecAttachmentScreen extends Screen {
 
     // ---- model / 模型 ----
 
-    private int remainingTicks() {
-        return client == null || client.player == null ? 0 : UsecCooldowns.remainingTicks(client.player);
+    /** The rifle cooldown from the shared exact classifier. 共用精确分类器给出的步枪冷却。 */
+    private UsecCooldowns.Status cooldown() {
+        return client == null || client.player == null ? UsecCooldowns.Status.NONE
+                : UsecCooldowns.status(client.player);
     }
 
     private BoltStatus status() {
-        return UsecAttachmentModel.boltStatus(view.rifle(), remainingTicks());
+        return UsecAttachmentModel.boltStatus(view.rifle(), cooldown());
     }
 
     private List<Button> cardButtons(Card card) {
@@ -277,8 +286,7 @@ public final class UsecAttachmentScreen extends Screen {
     }
 
     private List<Row> rows() {
-        return UsecAttachmentModel.rows(view.rifle(), rifleSlot, view.parts(), view.room(),
-                status() == BoltStatus.BOLTING);
+        return UsecAttachmentModel.rows(view.rifle(), rifleSlot, view.parts(), view.room());
     }
 
     private static PartKind[] kinds(List<Row> rows) {
@@ -660,10 +668,11 @@ public final class UsecAttachmentScreen extends Screen {
         text(context, Text.translatable(KEY + "block.scale.value"), BLOCK_VALUE2_X, row1, UsecAttachmentPaint.TEXT);
         text(context, fit(Text.translatable(KEY + "block.number"), BLOCK_SPLIT_X - BLOCK_LABEL_X + 1), BLOCK_LABEL_X,
                 row2, UsecAttachmentPaint.FAINT);
-        // Owner (2026-10-07): the drawing number names the rifle by its item display name ("AXMC .338 LM").
-        // 所有者（2026-10-07）：图号以步枪的物品显示名命名（「AXMC .338 LM」）。
-        text(context, fit(Text.translatable(KEY + "block.number.value", view.rifleName()), valueWidth),
-                BLOCK_VALUE_X, row2, UsecAttachmentPaint.TEXT);
+        // Owner (2026-10-07): the drawing number reads "AXMC .338 LM". Its own key, because the long item name
+        // ("AXMC Sniper Rifle .338 LM") cut ".338 LM" off. / 所有者（2026-10-07）：图号为「AXMC .338 LM」。使用独立的键，
+        // 因为较长的物品名（「AXMC 狙击步枪 .338 LM」）会把「.338 LM」截掉。
+        text(context, fit(Text.translatable(KEY + "drawing_number"), valueWidth), BLOCK_VALUE_X, row2,
+                UsecAttachmentPaint.TEXT);
         text(context, fit(Text.translatable(KEY + "block.sheet"), label2Width), BLOCK_LABEL2_X, row2,
                 UsecAttachmentPaint.FAINT);
         text(context, Text.translatable(KEY + "block.sheet.value"), BLOCK_VALUE2_X, row2, UsecAttachmentPaint.TEXT);
@@ -681,10 +690,11 @@ public final class UsecAttachmentScreen extends Screen {
         if (status != BoltStatus.BOLTING && status != BoltStatus.LOCKED) {
             return;
         }
-        int remaining = remainingTicks();
+        UsecCooldowns.Status cooldown = cooldown();
+        int remaining = cooldown.remaining();
         int gaugeX = PILL_X + width + 5;
         UsecAttachmentPaint.gauge(context, gaugeX, PILL_Y,
-                UsecAttachmentModel.progress(remaining, Math.max(cooldownTotal, remaining)));
+                UsecAttachmentModel.progress(remaining, UsecAttachmentModel.gaugeTotal(cooldown)));
         int tenths = UsecAttachmentModel.tenthsCeil(remaining);
         Text seconds = status == BoltStatus.BOLTING
                 ? Text.translatable(KEY + "status.tenths", tenths / 10, tenths % 10)
