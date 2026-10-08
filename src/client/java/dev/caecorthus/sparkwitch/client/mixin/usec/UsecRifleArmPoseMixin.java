@@ -37,7 +37,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  * Wathe's, because a later-applied handler on the same call is the inner one. So a viewer shown a fake item never
  * sees the rifle pose. A {@code @Share} flag carries the verdict out to the wrapper.</li>
  * </ul>
- * {@code PotionLauncherArmPoseMixin} keeps its own hook.
+ * {@code PotionLauncherArmPoseMixin} uses the same wrapper and rule.
  * <p>
  * 所有被渲染玩家的双手持枪姿势（计划 D15，腰射与开镜时都用 CROSSBOW_HOLD）：显示物品为 USEC 步枪的那只手返回
  * {@code CROSSBOW_HOLD}，由双足模型应用到双臂。
@@ -58,7 +58,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  * 表达式钩子会落在 Wathe 的里层，因为同一调用上后应用的处理器在内层。因此看到假物品的观察者永远看不到持枪姿势。一个
  * {@code @Share} 标记把判断结果带给外层包装。</li>
  * </ul>
- * {@code PotionLauncherArmPoseMixin} 保留自己的钩子。
+ * {@code PotionLauncherArmPoseMixin} 使用相同的包装与规则。
  */
 @Mixin(value = PlayerEntityRenderer.class, priority = 1600)
 public abstract class UsecRifleArmPoseMixin {
