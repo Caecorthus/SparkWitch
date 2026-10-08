@@ -114,4 +114,20 @@ public final class ScopeClient {
     public static boolean isRenderingLens() {
         return ScopePictureInPicture.isRenderingLens();
     }
+
+    /**
+     * Screen-pixel scale of the world pass now rendering: on-screen pixels per unit of vertical NDC for a window
+     * framebuffer of this size ({@link ScopeRules#screenPixelsPerNdcY}). Multiply by the pass's projection m11 (for
+     * example {@code WorldRenderContext.projectionMatrix().m11()}) for on-screen pixels per unit tangent. Inside the PiP
+     * lens pass the target is a small square and the projection is narrowed, yet this still answers in screen pixels,
+     * so a world sprite sized in screen pixels shows in the lens exactly as large as in Full-Screen Zoom; in the main
+     * pass it is half the height, as before.
+     * 当前世界渲染的屏幕像素比例：对给定尺寸的窗口帧缓冲，竖直 NDC 每单位对应的屏幕像素（{@link ScopeRules#screenPixelsPerNdcY}）。
+     * 乘以该次渲染投影的 m11（例如 {@code WorldRenderContext.projectionMatrix().m11()}）即为每单位正切的屏幕像素。画中画镜内渲染
+     * 的目标是小方形且投影已收窄，但这里仍以屏幕像素作答，因此以屏幕像素设定大小的世界精灵在镜内与全画面放大中一样大；主渲染
+     * 中即为高度的一半，与以往相同。
+     */
+    public static double screenPixelsPerNdcY(double screenWidth, double screenHeight) {
+        return ScopeRules.screenPixelsPerNdcY(isRenderingLens(), screenWidth, screenHeight);
+    }
 }

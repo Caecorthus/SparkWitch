@@ -159,6 +159,31 @@ public final class ScopeRules {
         return clampFov(clampFov(mainFovDegrees) * zoomFactor(zoom));
     }
 
+    /**
+     * On-screen (main framebuffer) pixels spanned by one unit of vertical NDC in a world pass, for world-render hooks
+     * that size sprites in screen pixels. The main pass fills the screen: half its height. The PiP lens pass renders a
+     * small square target whose whole [-1, 1] NDC range the composite stretches over 2 x {@link #LENS_VIEW_MARGIN} lens
+     * radii: {@link #LENS_VIEW_MARGIN} x the lens radius, whatever the target's own size ({@link #lensViewSize}). Times
+     * the pass's projection m11 this gives on-screen pixels per unit tangent, and in the lens that product equals
+     * ZOOM_BLUR's at the same zoom ({@link #lensClipScale} uses the same radius), so a sprite sized with it looks the
+     * same in both modes.
+     * 世界渲染中竖直 NDC 一个单位在屏幕（主帧缓冲）上覆盖的像素数，供以屏幕像素设定大小的世界渲染钩子使用。主渲染铺满屏幕：
+     * 屏幕高度的一半。画中画镜内渲染输出一个小的方形目标，合成时把它整个 [-1, 1] NDC 范围拉伸到 2 x {@link #LENS_VIEW_MARGIN}
+     * 个镜片半径上：即 {@link #LENS_VIEW_MARGIN} x 镜片半径，与目标自身尺寸（{@link #lensViewSize}）无关。乘以该次渲染投影的
+     * m11 即为每单位正切的屏幕像素；镜内该乘积与相同倍率下全画面放大的值相等（{@link #lensClipScale} 使用同一半径），因此据此
+     * 设定大小的精灵在两种模式下看起来一样大。
+     *
+     * @param lensPass     whether the PiP lens pass is rendering ({@code ScopeClient.isRenderingLens()}) / 是否处于镜内渲染
+     * @param screenWidth  main framebuffer width in pixels / 主帧缓冲宽度（像素）
+     * @param screenHeight main framebuffer height in pixels / 主帧缓冲高度（像素）
+     */
+    public static double screenPixelsPerNdcY(boolean lensPass, double screenWidth, double screenHeight) {
+        if (!lensPass) {
+            return Math.max(0.0, screenHeight) / 2.0;
+        }
+        return LENS_VIEW_MARGIN * Math.max(ScopeLensGeometry.lensRadius(screenWidth, screenHeight), 1.0);
+    }
+
     private static double clampFov(double degrees) {
         if (!Double.isFinite(degrees)) {
             return 70.0;
