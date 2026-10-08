@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.kit;
 
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
+import dev.caecorthus.sparkwitch.util.GiveCommandDropScope;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -24,12 +25,19 @@ public final class BlindItemDrops {
      * it anyway.
      * 在双端的 {@code PlayerEntity.dropItem} HEAD 处调用；客户端只取消预测，由服务端裁定。非盲人或濒死玩家的 ComTac
      * 被销毁，因为清理本来也会移除它。
+     * Exception: vanilla {@code /give}'s cosmetic count-1 copy ({@link GiveCommandDropScope}) is only cancelled, never
+     * re-delivered or emptied, so a give yields exactly the requested count and its success message keeps the item name.
+     * 例外：原版 {@code /give} 的装饰性数量为 1 的副本（{@link GiveCommandDropScope}）只取消丢弃，既不重新交付也不清空，
+     * 因此一次给予恰好得到所请求的数量，成功提示也保留物品名称。
      */
     public static boolean intercept(PlayerEntity player, ItemStack stack) {
         if (!BlindInventoryRules.isBound(stack)) {
             return false;
         }
         if (BlindInventoryRules.isComTac(stack) && player instanceof ServerPlayerEntity serverPlayer) {
+            if (GiveCommandDropScope.isCosmeticCopy(stack)) {
+                return true;
+            }
             ItemStack moved = stack.copy();
             // Move semantics: empty the passed stack before anything is re-delivered. / 移动语义：重新交付前先清空传入的物品堆。
             stack.setCount(0);
