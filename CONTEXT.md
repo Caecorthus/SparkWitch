@@ -609,6 +609,7 @@ Current build baseline:
     players, from the synced `UsecPlayerComponent.scoped`, with a 6–35° cosine smoothstep and block-raycast occlusion.
     It is hidden in the Blind view (`BlindClientGates.hidesEntity`) and for self, the camera entity, invisible, Wraith
     or spectating players.
+    PiP draws it in both passes, sized via `ScopeClient.screenPixelsPerNdcY`, so the lens matches Full-Screen Zoom.
   - Pose and model: `UsecRifleArmPoseMixin` gives `CROSSBOW_HOLD`; `UsecModelPredicates` registers the rifle's
     `sparkwitch:usec_magazine` and `sparkwitch:usec_suppressor` predicates, and `sparkwitch:usec_loaded` on a loose
     magazine (owner, 2026-10-07): `models/item/usec_magazine.json` is the empty magazine and overrides to

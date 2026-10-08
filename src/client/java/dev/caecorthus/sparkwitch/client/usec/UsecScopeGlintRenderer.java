@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.blind.gate.BlindClientGates;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
+import dev.caecorthus.sparkwitch.client.scope.ScopeClient;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
@@ -36,12 +37,16 @@ import org.joml.Matrix4fStack;
  * flag, which the server sets after its own checks, and the USEC's synced head yaw and pitch. Occlusion is a point
  * test like the mockup's: a client block raycast from the camera to the objective with VISUAL shapes (clear glass and
  * windows let it through), so walls hide it while the flare itself is never clipped by the USEC's own head or rifle.
- * Presentation only.
+ * It deliberately draws in both world passes of a Picture-in-Picture frame, sized from
+ * {@code ScopeClient.screenPixelsPerNdcY}: at 1x in the main pass (seen outside the lens) and magnified in the lens pass,
+ * exactly as large as Full-Screen Zoom shows it. The composite replaces the main picture inside the lens, so the two
+ * never stack. Presentation only.
  * 在其他每个开镜 USEC 的物镜处绘制镜头反光（S1，WP6 样稿）：一个朝向镜头的小型生成闪光公告板（预乘的 {@code #FFF6DE}
  * 核心与光芒、{@code #FFE2AA} 光晕），在 {@code WorldRenderEvents.AFTER_TRANSLUCENT} 中以滤色混合绘制。只读取同步给全员的
  * {@code UsecPlayerComponent.scoped} 标记（服务端检查后设置）以及 USEC 同步的头部偏航与俯仰。遮挡与样稿一样是点测试：
  * 客户端以 VISUAL 形状从镜头向物镜做方块射线检测（透明玻璃与车窗可透过），因此墙会挡住它，而闪光本身绝不会被 USEC 自己
- * 的头或枪截断。仅为表现。
+ * 的头或枪截断。画中画帧的两次世界渲染中都有意绘制，大小取自 {@code ScopeClient.screenPixelsPerNdcY}：主渲染中为 1 倍
+ * （镜外可见），镜内渲染中放大，与全画面放大所见一样大。合成在镜内替换主画面，因此两者不会叠加。仅为表现。
  */
 public final class UsecScopeGlintRenderer {
     public static final Identifier TEXTURE = SparkWitch.id("textures/entity/usec_scope_glint.png");
@@ -63,9 +68,15 @@ public final class UsecScopeGlintRenderer {
         Camera camera = context.camera();
         Vec3d cameraPos = camera.getPos();
         float tickDelta = context.tickCounter().getTickDelta(false);
-        // Pixels per unit tangent of the viewer's projection: m11 = 1 / tan(fov / 2). / 观察者投影每单位正切的像素。
+        // On-screen pixels per unit tangent of this pass's projection (m11 = 1 / tan(fov / 2)). The PiP lens pass
+        // renders into a small square with a narrowed projection; the scope module maps that back to screen pixels, so
+        // the flare in the lens matches Full-Screen Zoom and the 1x main pass stays as before.
+        // 本次渲染投影每单位正切对应的屏幕像素（m11 = 1 / tan(fov / 2)）。画中画镜内渲染输出到小方形目标且投影已收窄；开镜
+        // 模块把它换算回屏幕像素，因此镜内闪光与全画面放大一致，1 倍主渲染保持不变。
+        double widthPx = client.getWindow().getFramebufferWidth();
         double heightPx = client.getWindow().getFramebufferHeight();
-        double pixelsPerTangent = heightPx / 2.0 * context.projectionMatrix().m11();
+        double pixelsPerTangent = ScopeClient.screenPixelsPerNdcY(widthPx, heightPx)
+                * context.projectionMatrix().m11();
         Entity cameraEntity = client.getCameraEntity();
         BufferBuilder buffer = null;
         for (AbstractClientPlayerEntity player : world.getPlayers()) {
