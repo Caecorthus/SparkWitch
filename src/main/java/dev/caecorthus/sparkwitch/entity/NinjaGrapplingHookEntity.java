@@ -5,7 +5,6 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaGrappleService;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkfactionapi.api.cooldown.ForcedCooldowns;
-import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheBlocks;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -181,16 +180,16 @@ public final class NinjaGrapplingHookEntity extends Entity {
     }
 
     /**
-     * Chain-break rule: the owner must stay a living, playing, survival participant within range, not held by another
-     * authority ({@link NinjaGrappleService#isHeld}), and keep the hook in either hand.
-     * 断链规则：持有者必须仍是存活、在局、生存模式的参与者，处于距离内，未被其他机制持有（{@link NinjaGrappleService#isHeld}），
-     * 并在任一手中握着钩爪。
+     * Chain-break rule: the owner must still pass the throw gate ({@link NinjaGrappleService#mayGrapple}: a match
+     * participant stays playing, alive and in survival, anyone else alive and not a spectator), stay within range, not
+     * be held by another authority ({@link NinjaGrappleService#isHeld}), and keep the hook in either hand.
+     * 断链规则：持有者必须仍满足投掷门槛（{@link NinjaGrappleService#mayGrapple}：对局参与者须在局、存活且为生存模式，其他人
+     * 须存活且不是旁观者），处于距离内，未被其他机制持有（{@link NinjaGrappleService#isHeld}），并在任一手中握着钩爪。
      */
     private boolean mayKeepChain(ServerPlayerEntity owner) {
         return !owner.isRemoved()
                 && owner.getWorld() == getWorld()
-                && GameFunctions.isPlayerPlayingAndAlive(owner)
-                && GameFunctions.isPlayerAliveAndSurvival(owner)
+                && NinjaGrappleService.mayGrapple(owner)
                 && !NinjaGrappleService.isHeld(owner)
                 && NinjaGrappleService.holdsHook(owner)
                 && !NinjaRules.isGrappleChainOverstretched(owner.distanceTo(this));

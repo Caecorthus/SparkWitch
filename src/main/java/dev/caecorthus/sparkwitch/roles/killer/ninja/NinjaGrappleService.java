@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -56,10 +57,10 @@ public final class NinjaGrappleService {
 
     /**
      * Item right-click on the server. A live hook takes every press: a latched one starts the pull, a flying or
-     * pulling one swallows it. Otherwise a hook is thrown when the item is ready and the thrower is a living,
-     * playing, survival participant. Returns whether the press was consumed.
-     * 服务端物品右键。存在活动钩爪时接收每次按键：已钩住则开始拉拽，飞行或拉拽中则吞掉按键。否则在物品就绪、投掷者为存活、
-     * 在局、生存模式的参与者时投出钩爪。返回该按键是否被消耗。
+     * pulling one swallows it. Otherwise a hook is thrown when the item is ready, the thrower may grapple
+     * ({@link #mayGrapple}) and is not held. Returns whether the press was consumed.
+     * 服务端物品右键。存在活动钩爪时接收每次按键：已钩住则开始拉拽，飞行或拉拽中则吞掉按键。否则在物品就绪、投掷者可以使用
+     * 钩爪（{@link #mayGrapple}）且未被持有时投出钩爪。返回该按键是否被消耗。
      */
     public static boolean use(ServerPlayerEntity player) {
         // Magician replay stand-ins share the Magician's UUID; a replayed hook would chain and pull the real player.
@@ -75,8 +76,7 @@ public final class NinjaGrappleService {
             return true;
         }
         if (player.getItemCooldownManager().isCoolingDown(SparkWitchItems.ninjaGrapplingHook())
-                || !GameFunctions.isPlayerPlayingAndAlive(player)
-                || !GameFunctions.isPlayerAliveAndSurvival(player)
+                || !mayGrapple(player)
                 || isHeld(player)) {
             return false;
         }
@@ -99,6 +99,21 @@ public final class NinjaGrappleService {
             return null;
         }
         return hook;
+    }
+
+    /**
+     * The throw and chain gate ({@link NinjaRules#mayGrapple}): a match participant ({@link
+     * OffMatchUse#isMatchParticipant}) must be playing, alive and in survival; anyone else, such as a player outside a
+     * match, may grapple while alive and not a spectator.
+     * 投掷与铁链门槛（{@link NinjaRules#mayGrapple}）：对局参与者（{@link OffMatchUse#isMatchParticipant}）必须在局、存活且
+     * 为生存模式；其他人（例如局外玩家）只要存活且不是旁观者即可使用钩爪。
+     */
+    public static boolean mayGrapple(ServerPlayerEntity player) {
+        return NinjaRules.mayGrapple(
+                OffMatchUse.isMatchParticipant(player),
+                GameFunctions.isPlayerPlayingAndAlive(player) && GameFunctions.isPlayerAliveAndSurvival(player),
+                player.isAlive() && !player.isSpectator()
+        );
     }
 
     /**
