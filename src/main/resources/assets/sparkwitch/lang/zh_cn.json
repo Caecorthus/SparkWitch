@@ -1345,7 +1345,6 @@
   "gui.sparkwitch.usec_attachment.block.scale": "比例",
   "gui.sparkwitch.usec_attachment.block.scale.value": "1:8",
   "gui.sparkwitch.usec_attachment.block.number": "图号",
-  "gui.sparkwitch.usec_attachment.block.number.value": "%s .338 LM",
   "gui.sparkwitch.usec_attachment.drawing_number": "AXMC .338 LM",
   "gui.sparkwitch.usec_attachment.block.sheet": "页次",
   "gui.sparkwitch.usec_attachment.block.sheet.value": "1/1",
