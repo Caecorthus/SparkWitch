@@ -94,8 +94,10 @@ public final class ControlExpertStunRules {
             // stored pre-selection used only when playback starts, so it stays allowed like other UI-only payloads.
             // 魔术师录制/播放阶段；皮套选择（magician_target）只是开始播放时才使用的预选，与其他仅界面数据包一样放行。
             Identifier.of("sparkwitch", "magician_ability"),
-            // USEC rifle fire and attachment-screen actions (the stun already denies inventory clicks); the scope
-            // state is presentation only and stays allowed. / USEC 步枪开火与配件界面操作（眩晕本就禁止背包点击）；
+            // USEC rifle fire and attachment-screen actions. The stun closes gameplay screens only on the client
+            // (ControlExpertStunClient) and the server does not deny inventory clicks, so this list is the server-side
+            // refusal; the scope state is presentation only and stays allowed. / USEC 步枪开火与配件界面操作。眩晕只在
+            // 客户端关闭游戏界面（ControlExpertStunClient），服务端并不拒绝背包点击，因此本列表才是服务端的拒绝；
             // 开镜状态仅为表现，保持放行。
             Identifier.of("sparkwitch", "fire_usec_rifle"),
             Identifier.of("sparkwitch", "usec_attachment"),

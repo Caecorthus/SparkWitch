@@ -410,7 +410,14 @@ Current build baseline:
     in `SparkWitchEvents`) and `client/usec/UsecClientModule` (the single line appended last in `SparkWitchClient`) fix
     the registration order, which is the listener order within each event. `UsecCooldowns` is the single max + exact
     writer of the rifle cooldown (the 60 s lock and the bolt): SparkTraits' exact write with a vanilla fallback, never
-    shortening a longer running cooldown (Saint Karma, the Fiend aura). The `usec_rifle` nominal is the 40-tick bolt
+    shortening a longer running cooldown (Saint Karma, the Fiend aura). It is also the one shared classifier
+    (`UsecCooldowns.status` / `classify`): remaining and total ticks from the vanilla entry's start and end ticks, and a
+    total of at most 40 ticks (Fast Reload's 28 included) is a bolt, anything longer another lock for its whole length;
+    the ammo HUD and the attachment screen both read it. The cooldown never stops the scope:
+    `mixin/usec/ServerPlayerInteractionManagerUsecScopeMixin` and `client/mixin/usec/UsecRifleUseCooldownMixin` wrap the
+    one `isCoolingDown` call of server `interactItem` and of the client `interactItem` lambda `method_41929` so it reads
+    "not cooling" for `UsecRifleItem` only, so `use` (which only scopes, and Shift toggles the zoom) runs during the lock
+    and the bolt; firing stays cooldown-gated in `UsecFireRules`. The `usec_rifle` nominal is the 40-tick bolt
     (the lock is not a nominal), and no `SparkWitchItemCooldownReleases` case exists because only the vanilla cooldown
     gates the rifle. `compat/SparkTraitsUsecBridge` reflects only the public facade (Marksman, Fast Reload) and fails
     closed.
@@ -448,6 +455,13 @@ Current build baseline:
     writes. Match participants who are not USEC (`OffMatchUse.isMatchParticipant`) are stripped on role change and by a
     staggered 20-tick sweep; free holders are never touched. Reset, finalize and disconnect strip the items and unscope
     (`UsecPlayerComponent.setScoped(false)`).
+  - No guns (owner O2, 2026-10-07; `UsecGunRules`): a player whose live role is exactly USEC never picks up or receives
+    a `wathe:guns` item (the AXMC is outside the tag). Server only, creative exempt (the Wathe and SparkTraits Impostor
+    precedent): `mixin/usec/ItemEntityUsecGunMixin` cancels `ItemEntity.onPlayerCollision` at HEAD,
+    `mixin/usec/PlayerInventoryUsecGunMixin` answers false at HEAD of both `PlayerInventory.insertStack` overloads (gives
+    and offers fall back to their drop), and `ScreenHandlerUsecItemMixin` also refuses PICKUP, QUICK_MOVE, SWAP and
+    PICKUP_ALL of a gun in a foreign slot. A former USEC is free again, and the death revolver is a `dropItem` for others.
+    A SparkTraits Last Stand revive's `ensureRevolver` therefore drops that revolver at the USEC's feet.
   - Death (`UsecDeathDrops`, `KillPlayer.AFTER`): unless SparkTraits intercepted the death
     (`WitchFactorTraitsBridge.isDeathIntercepted`, as for the Seeker), every bound item is deleted (inventory, offhand,
     cursor, open slots), the component is cleared, and a USEC victim drops exactly one `WatheItems.REVOLVER` with
@@ -466,7 +480,10 @@ Current build baseline:
     (`UsecCooldowns.bolt`: 2 s, 1.4 s with SparkTraits Fast Reload), even with nothing to chamber. The shot is a public
     `ServerWorld.playSound` at the eye: `item.usec_rifle.shoot` (volume 12, pitch 1 ± 0.03) or
     `item.usec_rifle.shoot_suppressed` (volume 2.5, pitch 1.5). The bolt sound plays 10 ticks later, only when a round
-    was chambered. Muzzle smoke always plays; a small flame flash only without the suppressor.
+    was chambered and nothing changed since the shot (`UsecFireRules.boltSoundDue`): the shooter is online in that world
+    and not a spectator, holds that very rifle stack in the main hand with the post-shot state (an attachment action in
+    between, such as UNLOAD_CHAMBER, plays its own bolt and is never doubled), and the use mode and Wathe game status are
+    unchanged. Muzzle smoke always plays; a small flame flash only without the suppressor.
   - Ballistics (`UsecTracer`, pure over a `BlockProbe`; the server probe is `UsecTracerWorldProbe`): steps of at most
     one block flown along the aim. FMJ flies straight to `fmjRange` (50, or 65 with Marksman) and stops at the first
     block. AP spends 0.5% of its energy per block flown (÷ Marksman: 200 open blocks, 260 at ×1.3) and 37.5% per pierced
@@ -477,19 +494,24 @@ Current build baseline:
     keeps doors solid); the trace stops before any segment that touches an unloaded chunk and never loads one.
   - Match hits: nearest wins, all on one scale, the path distance along `UsecShotPath`. The player candidate is the
     nearest eligible player (`UsecShotTargets`) on `PlayerHitboxHistory.hitVolumes` grown by 0.1; the shooter,
-    spectators (Rift Gate occupants included), creative players, Wathe-dead players (except a Vendetta shot by its bound
-    killer), active Wraiths and Last Escape players are excluded, and Vendetta exact-pair isolation applies. Then
+    spectators (Rift Gate occupants included), creative players, players not playing and alive in Wathe, active Wraiths
+    and Last Escape players are excluded, and Vendetta exact-pair isolation applies (the Shriek Gun's
+    `vendettaAllows`; an active Vendetta is an active Wraith, so there is no bound-killer exception). Then
     `MagicianPuppetHits.onUsecRifleFired` ends a puppet strictly nearer than that player and every breakable device
     (`gun_shot`); else `SeekerDeviceHits.onUsecRifleFired` breaks a device strictly nearer than the player as
     `USEC_RIFLE` (AP reaches devices behind pierced walls); else `killPlayer(victim, true, shooter, wathe:gun_shot)`, so
     every protection hooked there applies. The bullet stops at whatever it hit. Presentation shots trace blocks only
     (sound, particles, cracks): they never hit a player, device or puppet and record no replay.
-  - Innocent shots (`UsecFirePunishment`, Q8): when shooter and victim are both SparkFactionAPI civilians before the
-    shot, Wathe's `ShouldPunishGunShooter` is asked before the kill, and its result applies only if the victim really
-    died (not intercepted, not a pending non-final kill). A custom result runs 4 ticks later; a cancel, or a creative
-    shooter, spares the shooter. Otherwise the shooter gets mood 0 and `addToPreventGunPickup`, then `KILL_SHOOTER`
-    kills the USEC (`wathe:shot_innocent`) or `PREVENT_GUN_PICKUP` confiscates every rifle; loose magazines, rounds and
-    the suppressor stay, and nothing re-grants the rifle. There is no backfire roll.
+  - Hit punishment (`UsecFirePunishment`, Q8 and owner O1 2026-10-07, Wathe's revolver receiver): Wathe's
+    `ShouldPunishGunShooter` is asked for every player hit, before the kill, and the punishment is decided on the hit,
+    whether or not the victim dies (a Saint, shield, Last Stand or Judge denial does not spare the USEC). A listener's
+    custom result runs 4 ticks later for any hit. Otherwise only an innocent shot (shooter and victim both
+    SparkFactionAPI civilians before the shot) by a non-creative shooter that no listener cancelled is punished, also 4
+    ticks later and only while the shooter still carries a USEC rifle (inventory, offhand or cursor; Wathe: still
+    carries a gun): every rifle is confiscated, mood drops to 0, `addToPreventGunPickup`, and `KILL_SHOOTER` (Wathe's
+    default) also kills the USEC (`wathe:shot_innocent`) while `PREVENT_GUN_PICKUP` stops there. Loose magazines, rounds
+    and the suppressor stay, and nothing re-grants the rifle. There is no backfire roll (Wathe's backfire chance
+    defaults to 0). The kill is the single `UsecFirePunishment.kill` call.
   - Cracks (`UsecImpactRules`, visual only): every block pierced before the stop, plus the stop block (never an
     invisible map wall), cracks at stage 9 up to 25 blocks from the eye, then one stage less per further 25 blocks
     (minimum 2). One `sparkwitch:usec_bullet_impacts` packet goes to every player within 64 blocks of any impact, and
@@ -500,7 +522,9 @@ Current build baseline:
   - Deny lists: `sparkwitch:fire_usec_rifle` and `sparkwitch:usec_attachment` are on the Control Expert stun
     (`ControlExpertStunRules.BLOCKED_PAYLOADS`), Seeker session (`SeekerRemoteRules.BLOCKED_WHILE_VIEWING`) and Rift
     occupant (`RiftSessionRules.BLOCKED_WHILE_INSIDE`) lists; `sparkwitch:usec_scope` is deliberately on none. Grand
-    Witch Fear blocks none of them.
+    Witch Fear blocks none of them. The stun closes gameplay screens only on the client, so the stun list is the
+    server's refusal of `usec_attachment`. The AXMC is on the Apprentice Murder Sense dangerous-item list
+    (`MurderSenseAbility.DANGEROUS_ITEM_IDS`, by id, since it is outside `wathe:guns`).
   - Attachments: `UsecAttachmentRules` is the pure state machine shared by server and client: the magazine swap; the
     owner's bolt rule (an action that leaves the chamber empty while the inserted magazine has rounds chambers the top
     round and reports `bolted`); single-round chambering, which always bolts; LIFO mixed loading; the player gate and
@@ -508,8 +532,12 @@ Current build baseline:
     wire id is its ordinal, so actions are only appended, and two slots). Before any write it re-checks the slots (0-35,
     40) and item types; the gate (a dead participant through `util/OffMatchUse`, not alive, spectator, Control Expert
     stun, Seeker session; Fear never blocks and the role is never read); and inventory room. It writes in place with
-    `UsecRifleState.write` / `UsecMagazineItem.setContents`, releases items through `PlayerInventory#insertStack`
-    (SparkFactionAPI slot order), plays public `ServerWorld#playSound` cues, and calls `UsecCooldowns.bolt` on a bolt.
+    `UsecRifleState.write` / `UsecMagazineItem.setContents`, releases items only to shown slots
+    (`UsecAttachmentRules.releaseSlot`, `UsecShopPurchase`'s order: a shown same-item stack that takes it whole, hotbar
+    0-8 then 27-35 only while `SparkFactionSecondRowCompat.isShown()`, else the first empty shown slot, else the empty
+    offhand; otherwise "no room", never hidden 9-26; the screen predicts room with the same rule), plays public
+    `ServerWorld#playSound` cues, and calls `UsecCooldowns.bolt` on a bolt. Chambering a round stays allowed while the
+    bolt cycles, so the screen never locks 上膛 for it.
     `UsecAttachmentCursorLoading` backs `onClicked` on the magazine and the rifle: a right-click with rounds on the
     cursor loads one round into that magazine, or into the rifle's inserted magazine, or into its empty chamber when no
     magazine is inserted. Both sides claim the click, so it never swaps, but only the server writes (the shotgun
@@ -529,8 +557,10 @@ Current build baseline:
     fresh attack press with the rifle in the main hand sends `sparkwitch:fire_usec_rifle` with the press-time aim,
     scoped or from the hip. Attacking and mining are swallowed, and held keys never fire. The recoil kick is camera-only
     (`UsecRecoil`, `UsecRecoilCameraMixin` at every return of `GameRenderer.tiltViewWhenHurt`).
-  - Scope (`UsecScopeInput`, `UsecZoomState`): starting to scope while sneaking toggles 4×/8× first, and the choice is
-    remembered for the game session. Each change of the raised state sends `sparkwitch:usec_scope`. `UsecScopeProfile`
+  - Scope (`UsecScopeInput`, `UsecZoomState`): starting to raise the rifle while sneaking toggles 4×/8× first, and the
+    choice is remembered for the game session. Each change of the actually scoped state (`UsecScopeProfile.isActive()`:
+    the `client/scope` view gate with the USEC profile, so never in third person or with a screen open) sends
+    `sparkwitch:usec_scope`, which drives the glint. `UsecScopeProfile`
     feeds `client/scope`; zoom and sensitivity follow the selected level.
   - Reticle (`UsecReticleGeometry`, `UsecReticleRenderer`): code-drawn in framebuffer pixels. The owner's R2 tactical
     tree is the default (`UsecReticleStyle.DEFAULT` = `TACTICAL`); R1 `MIL_DOT` is calibrated at 8×. The AP holds
@@ -538,7 +568,8 @@ Current build baseline:
     SparkTraits Marksman multiplier.
   - Ammo HUD (`UsecAmmoHud`, `UsecAmmoHudRules`): a role-owned bottom-right `HudRenderCallback` line (chamber »
     [magazine] · 消音, a zoom tag and a bolt bar), shown only to a living, exact-role USEC holding the rifle in an ACTIVE
-    round; never in the witch skill panel.
+    round; never in the witch skill panel. `拉栓中` comes only from the `UsecCooldowns` classifier (exact entry ticks),
+    never from the interpolated cooldown share, so it cannot flicker; the bar fill uses vanilla's smooth share.
   - Glint (`UsecScopeGlintRenderer`, `UsecGlintRules`): an `AFTER_TRANSLUCENT`, screen-blended S1 flare on other
     players, from the synced `UsecPlayerComponent.scoped`, with a 6–35° cosine smoothstep and block-raycast occlusion.
     It is hidden in the Blind view (`BlindClientGates.hidesEntity`) and for self, the camera entity, invisible, Wraith

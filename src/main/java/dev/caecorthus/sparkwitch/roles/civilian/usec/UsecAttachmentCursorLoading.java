@@ -16,13 +16,14 @@ import org.jetbrains.annotations.Nullable;
  * sides. Both sides claim the click, so a right-click with rounds never turns into a vanilla swap; only the server
  * changes anything (the shotgun pattern: the client never writes rifle or magazine state, and the server's inventory
  * sync corrects the slot and the cursor). The server re-checks the {@link UsecAttachmentRules#gate player gate} and
- * that the clicked slot is in the player's own inventory. In creative mode the client owns slot contents, so cursor
- * loading does nothing there; use the attachment screen.
+ * that the clicked slot is in the player's own inventory. Creative mode is not supported: the creative inventory
+ * sets slots client-side, so the server never sees the click, and the attachment screen does not open from it either
+ * (it opens only from a player screen handler).
  * 光标装填（Q9/D17，参照 NoellesRoles 酒保基酒与猎人霰弹枪）：光标拿着 .338 子弹时右键弹匣或步枪，恰好装入一发。
  * {@code Item#onClicked} 在两端都会执行。两端都认领这次点击，因此拿着子弹右键永远不会变成原版交换；只有服务端修改状态
  * （霰弹枪模式：客户端从不写入步枪或弹匣状态，由服务端的背包同步纠正栏位与光标）。服务端复核
- * {@link UsecAttachmentRules#gate 玩家准入}，并确认被点击的栏位属于玩家自己的背包。创造模式下栏位内容由客户端决定，
- * 因此光标装填在创造模式无效，请改用配件界面。
+ * {@link UsecAttachmentRules#gate 玩家准入}，并确认被点击的栏位属于玩家自己的背包。不支持创造模式：创造模式物品栏在客户端
+ * 直接设置栏位，服务端看不到这次点击；配件界面也不会从创造模式物品栏打开（只从玩家界面处理器打开）。
  */
 public final class UsecAttachmentCursorLoading {
     private UsecAttachmentCursorLoading() {

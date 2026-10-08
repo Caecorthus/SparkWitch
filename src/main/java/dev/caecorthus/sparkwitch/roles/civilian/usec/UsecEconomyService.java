@@ -23,8 +23,9 @@ import org.jetbrains.annotations.Nullable;
  * {@code CanSeeMoney}.
  * <ul>
  *   <li>Start: the balance is overwritten with {@link UsecRules#INITIAL_MONEY} for every living final USEC at
- *   {@code ON_FINISH_INITIALIZE}, in a phase after the default one (after SparkTraits Conscience compensation has
- *   settled final roles), like the Seeker. The round-start loadout never writes the balance.</li>
+ *   {@code ON_FINISH_INITIALIZE}, in a phase after the default one, like the Seeker. Roles are final by then
+ *   (SparkTraits Conscience compensation rewrites them during role assignment, before the roles are announced). The round-start
+ *   loadout never writes the balance.</li>
  *   <li>Tasks: +{@link UsecRules#TASK_REWARD}, never for a SparkTraits Impostor or an unknown answer (SparkTraits pays
  *   an Impostor's task income itself), Control Expert semantics.</li>
  *   <li>Passive: +{@link UsecRules#PASSIVE_INCOME} on the same world tick as Wathe's killer ticker
@@ -33,7 +34,8 @@ import org.jetbrains.annotations.Nullable;
  * </ul>
  * 归 WP1 所有：初始金币、任务收入与不设上限的被动收入（Q1/Q1+、D11）。由 {@link UsecFeatureService#register()} 调用一次。
  * 只有服务端写入余额；客户端只读取 {@code CanSeeMoney}。
- * 开局：在 {@code ON_FINISH_INITIALIZE} 默认阶段之后的阶段（SparkTraits 良心补偿已确定最终身份后），与搜寻者一样，
+ * 开局：在 {@code ON_FINISH_INITIALIZE} 默认阶段之后的阶段，与搜寻者一样（此时身份已是最终身份：SparkTraits 良心补偿在分配
+ * 职业期间、公布身份之前就已改写身份），
  * 把每名存活的最终 USEC 的余额覆盖为 {@link UsecRules#INITIAL_MONEY}；开局装备流程从不写余额。
  * 任务：+{@link UsecRules#TASK_REWARD}，SparkTraits 内鬼或无法判定时不发（内鬼任务收入由 SparkTraits 自行支付），沿用控场专家语义。
  * 被动：与 Wathe 杀手计时器同一世界刻（{@code getTime() % interval == 0}）发放 +{@link UsecRules#PASSIVE_INCOME}，
