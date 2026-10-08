@@ -75,10 +75,18 @@ public final class PotionScopeRules {
     /** A deep row whose label top is closer than this below the number line is dropped. / 深行标签与数字线的最小间距。 */
     public static final int DEEP_CLEAR_PX = 2;
     /**
-     * A range row is dropped when its label centre is less than the digit height plus this (strokes) below the
-     * previous kept row's, so labels and their key rings never overlap (rows bunch up at steep pitches).
-     * 若某射程横线的标签中心与上一条保留横线的标签中心相距不足“数字高度 + 此值（线宽）”，则舍弃该横线，使标签及其描边从不
-     * 重叠（俯仰很大时横线会挤在一起）。
+     * Rows are aim lines (coordinator decision 2026-10-08): a row is dropped only when its line (the doubled row's
+     * upper stroke) comes within this many strokes of the previous kept row's line, i.e. the lines would merge.
+     * 横线是瞄准线（协调者 2026-10-08 决定）：只有当某横线（双线行取其上方线条）与上一条保留横线相距不足此线宽数、即两线会
+     * 并在一起时，才舍弃该横线。
+     */
+    public static final int ROW_LINE_CLEAR_PX = 3;
+    /**
+     * A row keeps its line but loses its label when the label centre is less than the digit height plus this
+     * (strokes) below the previous labelled row's, so labels and their key rings never overlap (rows bunch up at
+     * steep pitches and wide FOVs). The doubled 100 row's "10" wins: a neighbour it would touch loses its label.
+     * 若某横线标签中心与上一条带标签横线的标签中心相距不足“数字高度 + 此值（线宽）”，则该横线保留线条但不画标签，使标签及其
+     * 描边从不重叠（俯仰很大或视场角很宽时横线会挤在一起）。双线 100 行的“10”优先：与它相碰的相邻标签被省略。
      */
     public static final int ROW_CLEAR_PX = 2;
     /** The cant line ends this many lens radii below the centre. / 倾斜检查线止于中心下方的镜片半径倍数。 */
@@ -376,24 +384,24 @@ public final class PotionScopeRules {
 
     /**
      * Pure grid decisions for one pitch (A_LIT_SPEC.md §4). Rows the shell cannot reach are skipped, and so is a row
-     * whose label would overlap the previous kept row's ({@link #ROW_CLEAR_PX}; rows bunch up toward the centre at
-     * steep pitches).
-     * 某一俯仰角下的网格判定（规格第 4 节）。炮弹到不了的横线不画；标签会与上一条保留横线的标签重叠的横线也不画
-     * （{@link #ROW_CLEAR_PX}；俯仰很大时横线会向中心挤拢）。
+     * whose line would merge with the previous kept row's ({@link #ROW_LINE_CLEAR_PX}); a row whose label would touch
+     * the previous label keeps its line without the label ({@link #labelRows}).
+     * 某一俯仰角下的网格判定（规格第 4 节）。炮弹到不了的横线不画；线条会与上一条保留横线并在一起的横线也不画
+     * （{@link #ROW_LINE_CLEAR_PX}）；标签会碰到上一个标签的横线保留线条但不画标签（{@link #labelRows}）。
      */
     private static Plan plan(Lens lens, double pitch) {
         List<RangeRow> rows = new ArrayList<>();
-        double minGap = lens.digitHeight() + ROW_CLEAR_PX * lens.s();
-        double previousLabel = labelCentre(lens, FLAT_ROW_RANGE, 0.0);
+        double previousLine = lens.pt(0.0, 0.0)[1];
         for (int range : RANGE_ROWS) {
             double mrad = rangeRowMrad(pitch, range);
             if (Double.isNaN(mrad)) {
                 continue;
             }
-            double label = labelCentre(lens, range, mrad);
-            if (label - previousLabel >= minGap) {
-                rows.add(new RangeRow(range, mrad));
-                previousLabel = label;
+            double line = lens.pt(0.0, mrad)[1];
+            double top = line - (range == DOUBLED_ROW ? DOUBLE_GAP_PX * lens.s() : 0.0);
+            if (top - previousLine >= ROW_LINE_CLEAR_PX * lens.s()) {
+                rows.add(new RangeRow(range, mrad, true));
+                previousLine = line;
             }
         }
         RangeRow bottom = null;
@@ -411,7 +419,7 @@ public final class PotionScopeRules {
         if (bottom == null) {
             // No row fits (a very narrow FOV option): the grid is the centre row with as many columns as fit.
             // 没有横线能放下（极窄的视场角选项）：网格只剩中心横线，并放下尽可能多的提前量竖线。
-            bottom = new RangeRow(FLAT_ROW_RANGE, 0.0);
+            bottom = new RangeRow(FLAT_ROW_RANGE, 0.0, true);
             for (int candidate = LEAD_COLUMNS; candidate >= 1 && columns == 0; candidate--) {
                 if (gridFits(lens, candidate, 0.0)) {
                     columns = candidate;
@@ -434,8 +442,54 @@ public final class PotionScopeRules {
                 deep.add(row);
             }
         }
+        boolean centreLabelled = labelRows(lens, grid, deep);
         return new Plan(bottom, columns, Collections.unmodifiableList(grid), Collections.unmodifiableList(deep),
-                numberLineY);
+                numberLineY, centreLabelled);
+    }
+
+    /**
+     * Decides which labels draw, top to bottom from the centre row's "5": a label closer than the digit height +
+     * {@link #ROW_CLEAR_PX} strokes to the previous drawn label is left out, except the doubled row's "10", which
+     * instead removes the labels it would touch. Rows in {@code grid} and {@code deep} are replaced by their labelled
+     * or unlabelled copies; returns whether "5" draws.
+     * 自中心横线“5”起自上而下决定哪些标签绘制：与上一个绘制的标签相距不足“数字高度 + {@link #ROW_CLEAR_PX} 线宽”的标签被
+     * 省略，但双线行的“10”例外，改为省略它会碰到的标签。{@code grid} 与 {@code deep} 中的横线替换为带或不带标签的副本；
+     * 返回“5”是否绘制。
+     */
+    private static boolean labelRows(Lens lens, List<RangeRow> grid, List<RangeRow> deep) {
+        int count = grid.size() + deep.size();
+        double[] centres = new double[count + 1];
+        boolean[] drawn = new boolean[count + 1];
+        centres[0] = labelCentre(lens, FLAT_ROW_RANGE, 0.0);
+        drawn[0] = true;
+        double minGap = lens.digitHeight() + ROW_CLEAR_PX * lens.s();
+        int previous = 0;
+        for (int index = 1; index <= count; index++) {
+            RangeRow row = index <= grid.size() ? grid.get(index - 1) : deep.get(index - 1 - grid.size());
+            centres[index] = labelCentre(lens, row.range(), row.mrad());
+            if (row.range() == DOUBLED_ROW) {
+                while (previous >= 0 && centres[index] - centres[previous] < minGap) {
+                    drawn[previous] = false;
+                    do {
+                        previous--;
+                    } while (previous >= 0 && !drawn[previous]);
+                }
+                drawn[index] = true;
+                previous = index;
+            } else if (previous < 0 || centres[index] - centres[previous] >= minGap) {
+                drawn[index] = true;
+                previous = index;
+            }
+        }
+        for (int index = 1; index <= count; index++) {
+            List<RangeRow> list = index <= grid.size() ? grid : deep;
+            int at = index <= grid.size() ? index - 1 : index - 1 - grid.size();
+            RangeRow row = list.get(at);
+            if (row.labelled() != drawn[index]) {
+                list.set(at, new RangeRow(row.range(), row.mrad(), drawn[index]));
+            }
+        }
+        return drawn[0];
     }
 
     /** Vertical centre of a row's label, less the common half-stroke offset. / 横线标签的竖直中心（不含共同的半线宽偏移）。 */
@@ -530,14 +584,20 @@ public final class PotionScopeRules {
             }
         }
         // 8. Range labels left of their rows, vertically centred. / 横线左侧垂直居中的距离标签。
-        double[] five = lens.pt(-gx, 0.0);
-        out.label(rowLabel(FLAT_ROW_RANGE), five[0] - LABEL_GAP_PX * s, five[1] + 0.5 * s, Align.RIGHT,
-                VAlign.MIDDLE);
+        if (plan.centreLabelled()) {
+            double[] five = lens.pt(-gx, 0.0);
+            out.label(rowLabel(FLAT_ROW_RANGE), five[0] - LABEL_GAP_PX * s, five[1] + 0.5 * s, Align.RIGHT,
+                    VAlign.MIDDLE);
+        }
         for (RangeRow row : plan.grid()) {
-            rangeLabel(out, lens, row, -gx);
+            if (row.labelled()) {
+                rangeLabel(out, lens, row, -gx);
+            }
         }
         for (RangeRow row : plan.deep()) {
-            rangeLabel(out, lens, row, -SHORT_ROW_HALF_MRAD);
+            if (row.labelled()) {
+                rangeLabel(out, lens, row, -SHORT_ROW_HALF_MRAD);
+            }
         }
         // 9. The "+" check cross high above the grid. / 网格上方高处的“+”校验十字。
         int crossY = (int) Math.floor(-CHECK_CROSS_RHO * lens.radius());
@@ -656,11 +716,15 @@ public final class PotionScopeRules {
         BOTTOM
     }
 
-    /** A drawn range row: line-of-sight blocks and its hold-over in mrad. / 已绘制的射程横线：视线距离与抬枪密位。 */
-    public record RangeRow(int range, double mrad) {
+    /**
+     * A drawn range row: line-of-sight blocks, its hold-over in mrad, and whether its label draws.
+     * 已绘制的射程横线：视线距离、抬枪密位，以及是否绘制其标签。
+     */
+    public record RangeRow(int range, double mrad, boolean labelled) {
     }
 
-    private record Plan(RangeRow bottom, int columns, List<RangeRow> grid, List<RangeRow> deep, double numberLineY) {
+    private record Plan(RangeRow bottom, int columns, List<RangeRow> grid, List<RangeRow> deep, double numberLineY,
+                        boolean centreLabelled) {
     }
 
     /** The frame's projection, lens and text metrics. / 本帧的投影、镜片与文字尺寸。 */

@@ -2136,8 +2136,10 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
     `ScopeLensGeometry.BARREL_DISTORTION`; everything is clipped to pixel centres within the lens radius − 1.5 px.
     Range rows 70–150 (60 skipped; the centre row "5" is the 0–50 flat zone) are labelled in tens of LINE-OF-SIGHT
     blocks and stay pitch-tracked: each frame re-solves `PotionBallistics.angleBelowSightAtRange`, where the shell first
-    reaches that distance from the eye on its per-tick path. A row whose label would overlap the previous kept row's
-    (closer than the digit height + 2 strokes, `ROW_CLEAR_PX`) is dropped, since rows bunch up at steep pitches. The
+    reaches that distance from the eye on its per-tick path. Rows are aim lines (coordinator, 2026-10-08): a row is
+    dropped only when its line comes within 3 strokes of the previous kept line (`ROW_LINE_CLEAR_PX`); a label that
+    would touch the previous one (closer than the digit height + 2 strokes, `ROW_CLEAR_PX`) is left out while its line
+    stays, except the doubled "10", which wins over its neighbours (rows bunch up at steep pitches and wide FOVs). The
     lead grid (columns every 20 mrad = 1 block/s, 5 a side, 4 if 5 do not fit, columns 3 and 4 heavy) ends at the
     doubled 100 row; deeper rows hang short on the cant line, and one whose label would touch the number line is
     dropped. A PGO-7 rangefinder for a 1.8-block player (heights atan(1.8/D), labels 5/8/10/12/15) sits under the
