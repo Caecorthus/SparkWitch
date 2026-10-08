@@ -651,7 +651,20 @@ Current build baseline:
     `SCOPE_UP` −0.05. The offsets are fitted to the lens centre (8, 14, 10) of `usec_rifle.json` under the
     third-person `CROSSBOW_HOLD` pose (head pitch ±30°, within 0.15 blocks); refit them when the model or its display
     transforms move.
-  - Pose and model: `UsecRifleArmPoseMixin` gives `CROSSBOW_HOLD`; `UsecModelPredicates` registers the rifle's
+  - Pose: `UsecRifleArmPoseMixin` (priority 1600) gives `CROSSBOW_HOLD` both from the hip and while scoped (plan
+    D15) whenever the shown stack is the rifle. The shown stack is the single `getStackInHand` result after Wathe's
+    held-item substitution. A `@ModifyVariable` at the STORE of vanilla's only `ItemStack` local reads it into a
+    `@Share` flag. An expression hook on the same call would sit inside Wathe's, because the later-applied handler
+    is the inner one.
+    - The answer comes from a `@WrapMethod` on `getArmPose`. It sits inside the Blind gate's priority-2000 wrapper,
+      so Blind viewers still get EMPTY, and outside two cancellable TAIL injects: Wathe's bat pose (priority 1000)
+      and NoellesRoles' Jester Moment pose (priority 1500). For the AXMC our answer is final; any other item passes
+      through unchanged.
+    - Why a wrapper: the rifle's use action is NONE, so vanilla always ends at the final `return ITEM`. A
+      `@ModifyReturnValue(RETURN)` is not woven there next to those TAIL injects (exported class, 2026-10-08), so the
+      old hook never fired in game.
+    - `PotionLauncherArmPoseMixin` still uses that `@ModifyReturnValue` and has the same gap.
+  - Model: `UsecModelPredicates` registers the rifle's
     `sparkwitch:usec_magazine` and `sparkwitch:usec_suppressor` predicates, and `sparkwitch:usec_loaded` on a loose
     magazine (owner, 2026-10-07): `models/item/usec_magazine.json` is the empty magazine and overrides to
     `item/usec_magazine_loaded` (brass round on top) once it holds a round. `UsecRifleModels` registers a
