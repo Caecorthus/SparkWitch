@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.usec;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsUsecBridge;
 import dev.doctor4t.wathe.api.event.ShouldPunishGunShooter;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
@@ -65,13 +66,15 @@ final class UsecFirePunishment {
 
     /**
      * The single place an AXMC round kills a player (O3): ONE ordinary {@code killPlayer} with
-     * {@code wathe:gun_shot}, run inside the round's shield-pierce budget ({@link UsecShieldPierce}: FMJ 2, AP 5). The
-     * kill is never repeated, so every non-shield protection runs exactly once.
-     * AXMC 子弹击杀玩家的唯一位置（O3）：在本发子弹的穿盾预算内（{@link UsecShieldPierce}：FMJ 2、AP 5）执行一次普通的
-     * {@code wathe:gun_shot} {@code killPlayer}。击杀从不重复，因此每个非护盾保护都只执行一次。
+     * {@code wathe:gun_shot}, run inside the round's shield-pierce budget ({@link UsecShieldPierce}: FMJ 2, AP 5, +1
+     * on a SparkTraits Heavy Artillery shot, asked here before the kill because a death clears traits). The kill is
+     * never repeated, so every non-shield protection runs exactly once.
+     * AXMC 子弹击杀玩家的唯一位置（O3）：在本发子弹的穿盾预算内（{@link UsecShieldPierce}：FMJ 2、AP 5，SparkTraits 重炮手
+     * 射击再 +1，在此于击杀之前询问，因为死亡会清除词条）执行一次普通的 {@code wathe:gun_shot} {@code killPlayer}。击杀从不
+     * 重复，因此每个非护盾保护都只执行一次。
      */
     static void kill(ServerPlayerEntity shooter, ServerPlayerEntity victim, UsecAmmoType ammo) {
-        int budget = UsecShieldPierce.budget(ammo, false);
+        int budget = UsecShieldPierce.budget(ammo, SparkTraitsUsecBridge.isHeavyArtilleryGunShot(shooter, victim));
         UsecShieldPierce.run(shooter.getUuid(), victim.getUuid(), budget,
                 () -> GameFunctions.killPlayer(victim, true, shooter, GameConstants.DeathReasons.GUN));
     }
