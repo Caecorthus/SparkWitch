@@ -1262,6 +1262,7 @@
   "subtitles.sparkwitch.item.usec_rifle.shoot_suppressed": "AXMC suppressed shot",
   "subtitles.sparkwitch.item.usec_rifle.bolt": "AXMC bolt cycles",
   "subtitles.sparkwitch.item.usec_rifle.magazine": "AXMC magazine swapped",
+  "subtitles.sparkwitch.item.usec_rifle.scope": "AXMC raised",
   "subtitles.sparkwitch.item.usec_rifle.load_round": "Round loaded",
   "option.sparkwitch.scope_mode": "Scope View",
   "option.sparkwitch.scope_mode.zoom_blur": "Full-Screen Zoom",

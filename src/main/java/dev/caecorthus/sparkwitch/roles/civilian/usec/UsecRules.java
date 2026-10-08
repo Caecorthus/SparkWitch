@@ -40,6 +40,8 @@ public final class UsecRules {
     public static final Identifier BOLT_SOUND_ID = SparkWitch.id("item.usec_rifle.bolt");
     public static final Identifier MAGAZINE_SOUND_ID = SparkWitch.id("item.usec_rifle.magazine");
     public static final Identifier LOAD_ROUND_SOUND_ID = SparkWitch.id("item.usec_rifle.load_round");
+    /** Subtle scope-in sound (owner, 2026-10-07): heard by the shooter and nearby players. / 细微的开镜声（所有者 2026-10-07）：自己与附近玩家可闻。 */
+    public static final Identifier SCOPE_SOUND_ID = SparkWitch.id("item.usec_rifle.scope");
 
     // ---- Shop (D11; rounds are sold one at a time) ----
     public static final String MAGAZINE_ENTRY_ID = "usec_magazine";
@@ -112,6 +114,11 @@ public final class UsecRules {
     public static final float SHOT_VOLUME = 12.0F;
     public static final float SUPPRESSED_SHOT_VOLUME = 2.5F;
     public static final float SUPPRESSED_PITCH = 1.5F;
+    /** Fixed broadcast range of the scope-in sound, in blocks (Seeker motor precedent). / 开镜声的固定广播范围（格）。 */
+    public static final float SCOPE_SOUND_RANGE = 8.0F;
+    public static final float SCOPE_SOUND_VOLUME = 0.8F;
+    /** Minimum ticks between two scope-in sounds of one player, so rapid toggling cannot spam it. / 同一玩家两次开镜声的最小间隔刻。 */
+    public static final int SCOPE_SOUND_MIN_INTERVAL_TICKS = 8;
     public static final double BLIND_LOUD_RANGE_FACTOR = 2.0;
     public static final double BLIND_SUPPRESSED_RANGE_FACTOR = 0.5;
 

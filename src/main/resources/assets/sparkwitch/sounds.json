@@ -189,5 +189,14 @@
     "sounds": [
       "sparkwitch:item/usec_rifle_load_round"
     ]
+  },
+  "item.usec_rifle.scope": {
+    "subtitle": "subtitles.sparkwitch.item.usec_rifle.scope",
+    "sounds": [
+      {
+        "name": "sparkwitch:item/usec_rifle_scope",
+        "attenuation_distance": 8
+      }
+    ]
   }
 }

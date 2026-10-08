@@ -1,15 +1,23 @@
 package dev.caecorthus.sparkwitch.roles.civilian.usec;
 
+import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.net.UsecScopeC2SPacket;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Hand;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Server authority for {@code UsecPlayerComponent.scoped}, the all-player flag behind the scope glint (S1). The
@@ -24,9 +32,19 @@ import net.minecraft.util.Hand;
  * （即 {@code UsecRifleItem.use} 开始的按住使用）；其他情况一律写入 false。每个服务端刻都会复查已开镜的玩家，一旦不再
  * 符合条件（松开使用、换物品、死亡、职业或对局变化）即清除，因此丢失的 "false" 数据包永远不会留下过期反光。该数据包是
  * 无害的表现信息，刻意不进入任何拒绝列表。Fabric 在服务端线程执行游戏数据包接收器，因此无需切换线程。
+ * <p>
+ * Scope-in sound (owner, 2026-10-07): when the flag turns on, a subtle {@code item.usec_rifle.scope} plays through the
+ * public {@code ServerWorld#playSound} at the shooter (fixed {@link UsecRules#SCOPE_SOUND_RANGE}-block broadcast, so the
+ * shooter and nearby players hear it and the Blind perceives it as an ordinary sound), at most once per
+ * {@link UsecRules#SCOPE_SOUND_MIN_INTERVAL_TICKS} ticks per player.
+ * 开镜声（所有者 2026-10-07）：标记由关变开时，经公开的 {@code ServerWorld#playSound} 在射手处播放细微的
+ * {@code item.usec_rifle.scope}（固定 {@link UsecRules#SCOPE_SOUND_RANGE} 格广播，射手与附近玩家都能听到，盲人按普通声音感知），
+ * 每名玩家最多每 {@link UsecRules#SCOPE_SOUND_MIN_INTERVAL_TICKS} 刻一次。
  */
 public final class UsecScopeService {
     private static boolean registered;
+    /** Server-thread only: last world tick a scope-in sound played, per player. / 仅服务端线程：每名玩家上次开镜声的世界刻。 */
+    private static final Map<UUID, Long> LAST_SCOPE_SOUND = new HashMap<>();
 
     private UsecScopeService() {
     }
@@ -39,13 +57,39 @@ public final class UsecScopeService {
         ServerPlayNetworking.registerGlobalReceiver(UsecScopeC2SPacket.ID,
                 (payload, context) -> receive(context.player(), payload.scoped()));
         ServerTickEvents.END_SERVER_TICK.register(UsecScopeService::sweep);
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
+                LAST_SCOPE_SOUND.remove(handler.getPlayer().getUuid()));
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> LAST_SCOPE_SOUND.clear());
     }
 
     static void receive(ServerPlayerEntity player, boolean scoped) {
         UsecPlayerComponent component = component(player);
-        if (component != null) {
-            component.setScoped(scoped && qualifies(player));
+        if (component == null) {
+            return;
         }
+        boolean wasScoped = component.isScoped();
+        boolean nowScoped = scoped && qualifies(player);
+        component.setScoped(nowScoped);
+        long now = player.getWorld().getTime();
+        Long last = LAST_SCOPE_SOUND.get(player.getUuid());
+        if (shouldPlayScopeSound(wasScoped, nowScoped, last == null ? Long.MIN_VALUE : last, now)) {
+            LAST_SCOPE_SOUND.put(player.getUuid(), now);
+            player.getWorld().playSound(null, player.getX(), player.getEyeY(), player.getZ(),
+                    SparkWitchSounds.USEC_RIFLE_SCOPE, SoundCategory.PLAYERS, UsecRules.SCOPE_SOUND_VOLUME,
+                    0.95F + player.getRandom().nextFloat() * 0.1F);
+        }
+    }
+
+    /**
+     * Pure rule: the scope-in sound plays only on an off-to-on change, and not again within the minimum interval.
+     * 纯规则：开镜声只在由关变开时播放，且最小间隔内不重复。
+     */
+    static boolean shouldPlayScopeSound(boolean wasScoped, boolean nowScoped, long lastTick, long now) {
+        if (wasScoped || !nowScoped) {
+            return false;
+        }
+        // A clock that went backwards (another world's time) never suppresses it. / 时钟倒退（换到另一世界）时不抑制。
+        return lastTick == Long.MIN_VALUE || now < lastTick || now - lastTick >= UsecRules.SCOPE_SOUND_MIN_INTERVAL_TICKS;
     }
 
     /** Clears every scoped player who no longer qualifies; unscoped players cost one flag read. / 清除不再符合条件者。 */

@@ -1262,6 +1262,7 @@
   "subtitles.sparkwitch.item.usec_rifle.shoot_suppressed": "AXMC：消音射击",
   "subtitles.sparkwitch.item.usec_rifle.bolt": "AXMC：拉栓",
   "subtitles.sparkwitch.item.usec_rifle.magazine": "AXMC：更换弹匣",
+  "subtitles.sparkwitch.item.usec_rifle.scope": "AXMC：开镜",
   "subtitles.sparkwitch.item.usec_rifle.load_round": "子弹：压入",
   "option.sparkwitch.scope_mode": "开镜画面",
   "option.sparkwitch.scope_mode.zoom_blur": "全画面放大",

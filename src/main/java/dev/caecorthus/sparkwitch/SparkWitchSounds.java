@@ -38,6 +38,7 @@ public final class SparkWitchSounds {
     public static final Identifier USEC_RIFLE_BOLT_ID = UsecRules.BOLT_SOUND_ID;
     public static final Identifier USEC_RIFLE_MAGAZINE_ID = UsecRules.MAGAZINE_SOUND_ID;
     public static final Identifier USEC_RIFLE_LOAD_ROUND_ID = UsecRules.LOAD_ROUND_SOUND_ID;
+    public static final Identifier USEC_RIFLE_SCOPE_ID = UsecRules.SCOPE_SOUND_ID;
     public static SoundEvent PIG_CHASE;
     public static SoundEvent GRAND_WITCH_CEREMONIAL_SWORD_BGM;
     public static SoundEvent SAINT_BELL;
@@ -50,6 +51,7 @@ public final class SparkWitchSounds {
     public static SoundEvent USEC_RIFLE_BOLT;
     public static SoundEvent USEC_RIFLE_MAGAZINE;
     public static SoundEvent USEC_RIFLE_LOAD_ROUND;
+    public static SoundEvent USEC_RIFLE_SCOPE;
     private static boolean registered;
 
     private SparkWitchSounds() {
@@ -97,5 +99,8 @@ public final class SparkWitchSounds {
                 SoundEvent.of(USEC_RIFLE_MAGAZINE_ID));
         USEC_RIFLE_LOAD_ROUND = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_LOAD_ROUND_ID,
                 SoundEvent.of(USEC_RIFLE_LOAD_ROUND_ID));
+        // Fixed range: only players within SCOPE_SOUND_RANGE receive it. / 固定范围：仅 SCOPE_SOUND_RANGE 格内的玩家收到。
+        USEC_RIFLE_SCOPE = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_SCOPE_ID,
+                SoundEvent.of(USEC_RIFLE_SCOPE_ID, UsecRules.SCOPE_SOUND_RANGE));
     }
 }
