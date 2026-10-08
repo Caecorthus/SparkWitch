@@ -94,10 +94,28 @@ public final class UsecRules {
      */
     public static final double MIN_MARKSMAN_MULTIPLIER = 1.0;
     public static final double MAX_MARKSMAN_MULTIPLIER = 1.3;
-    /** Scope FOV multipliers: 4x, then 8x (Shift + right-click toggles). / 开镜视野倍率：4 倍、8 倍（Shift + 右键切换）。 */
-    public static final float[] ZOOM_FOV_MULTIPLIERS = {0.25F, 0.125F};
     /** Rewound player hitboxes are expanded by this much. / 倒回的玩家碰撞箱外扩量。 */
     public static final double HIT_MARGIN = 0.1;
+
+    // ---- Scope magnification (owner 2026-10-08: continuous 1x-6x, replacing 4x/8x; client presentation only) ----
+    /** Lowest scope magnification: 1x still shows the lens and reticle. / 最低倍率：1 倍仍显示镜片与分划。 */
+    public static final double ZOOM_MIN_MAGNIFICATION = 1.0;
+    public static final double ZOOM_MAX_MAGNIFICATION = 6.0;
+    /**
+     * The first scope-in of each round opens here; afterwards the scope reopens at the last magnification used.
+     * 每局第一次开镜的倍率；之后瞄准镜以上次使用的倍率重新打开。
+     */
+    public static final double ZOOM_ROUND_START_MAGNIFICATION = 4.0;
+    /**
+     * Wheel notches from 1x to 6x. The step is geometric, 6^(1/10) = x1.196 per notch, so every notch narrows or widens
+     * the view by the same share (about 16 %) at any magnification, where a linear 0.5x step would be +50 % at 1x but
+     * +9 % at 5.5x. Ten notches is under half a turn of a typical 24-detent wheel for the whole range, yet fine enough
+     * to settle on a magnification.
+     * 从 1 倍到 6 倍的滚轮格数。步长为几何步长，每格 x6^(1/10) = x1.196，因此任何倍率下每格都把视野收窄或放宽相同比例
+     * （约 16 %）；线性 0.5 倍步长在 1 倍时为 +50 %，在 5.5 倍时只有 +9 %。十格不到常见 24 格滚轮的半圈即可走完整个范围，
+     * 又足够精细以停在想要的倍率上。
+     */
+    public static final int ZOOM_NOTCHES_END_TO_END = 10;
 
     // ---- Shield piercing (O3, owner 2026-10-07) ----
     /** Shield layers one FMJ round pierces. / 一发 FMJ 可击穿的护盾层数。 */
@@ -156,14 +174,5 @@ public final class UsecRules {
 
     public static boolean isUsec(@Nullable Role role) {
         return role != null && isUsecId(role.identifier());
-    }
-
-    /**
-     * Scope FOV multiplier for a zoom level (0 = 4x, 1 = 8x); out-of-range levels clamp. Read through this instead of
-     * writing to the array. / 指定倍率档位的开镜视野倍率（0 = 4 倍，1 = 8 倍）；越界档位会被钳制。请通过此方法读取，不要写入数组。
-     */
-    public static float zoomFovMultiplier(int level) {
-        int clamped = Math.max(0, Math.min(ZOOM_FOV_MULTIPLIERS.length - 1, level));
-        return ZOOM_FOV_MULTIPLIERS[clamped];
     }
 }

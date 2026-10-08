@@ -22,6 +22,7 @@
     { "name": "LensCenter", "type": "float", "count": 2, "values": [0.5, 0.5] },
     { "name": "LensRadius", "type": "float", "count": 1, "values": [0.42] },
     { "name": "ShadowOffset", "type": "float", "count": 2, "values": [0, 0] },
-    { "name": "Fade", "type": "float", "count": 1, "values": [1] }
+    { "name": "Fade", "type": "float", "count": 1, "values": [1] },
+    { "name": "PeripheryBlur", "type": "float", "count": 1, "values": [1] }
   ]
 }

@@ -11,10 +11,14 @@ import net.minecraft.client.gui.DrawContext;
  */
 public interface ScopeProfile {
     /**
-     * Multiplier on the local player's FOV multiplier while scoped: 0.25 = 4x, 0.125 = 8x. Vanilla eases the change and
-     * clamps the eased multiplier at 0.1, so 10x is the deepest zoom. Non-finite or non-positive values mean no zoom.
-     * 开镜时本地玩家 FOV 倍率的乘数：0.25 = 4 倍，0.125 = 8 倍。原版会缓动该变化，并把缓动后的倍率钳制在 0.1，
-     * 因此最深为 10 倍。非有限值或非正值视为不放大。
+     * Multiplier on the local player's FOV multiplier while scoped: 1 = no zoom, smaller zooms in (USEC's variable
+     * zoom uses 1 / magnification through {@link ScopeVariableZoom#fovMultiplier}, so 0.25 = 4x; the launcher derives
+     * its true 2.7x from the FOV option). Polled every frame, so a profile may return a value that changes smoothly.
+     * Vanilla eases the change and clamps the eased multiplier at 0.1, so 10x is the deepest zoom. Non-finite or
+     * non-positive values mean no zoom.
+     * 开镜时本地玩家 FOV 倍率的乘数：1 = 不放大，越小放得越大（USEC 的可变倍率经 {@link ScopeVariableZoom#fovMultiplier}
+     * 使用 1 / 倍率，因此 0.25 = 4 倍；炮筒按视场角选项换算出真实 2.7 倍）。每帧轮询，因此配置可以返回平滑变化的值。原版会
+     * 缓动该变化，并把缓动后的倍率钳制在 0.1，因此最深为 10 倍。非有限值或非正值视为不放大。
      */
     float fovMultiplier();
 
@@ -32,4 +36,32 @@ public interface ScopeProfile {
      * {@code frame} 以缩放后的 GUI 像素给出镜片几何与真实投影视场角。
      */
     void drawReticle(DrawContext context, ScopeFrame frame);
+
+    /**
+     * The mouse wheel turned while this profile is active ({@code ScopeMouseScrollMixin}: in game, no screen or
+     * overlay, after every HEAD lock on {@code Mouse#onMouseScroll} has passed). {@code notches} is the vertical delta
+     * exactly as vanilla would accumulate it (discrete scrolling and wheel sensitivity applied; fractional on trackpads
+     * and high-resolution wheels; positive = away from the player). Return true to consume the whole wheel event, so
+     * vanilla neither accumulates it nor changes the hotbar slot; false (the default) leaves the wheel to vanilla.
+     * 本配置生效时鼠标滚轮转动（{@code ScopeMouseScrollMixin}：游戏内、无界面或遮罩，且 {@code Mouse#onMouseScroll} 上所有
+     * HEAD 锁都已放行之后）。{@code notches} 为原版累加时使用的竖直增量（已应用离散滚动与滚轮灵敏度；触控板与高精度滚轮为
+     * 小数；正数为向前推）。返回 true 表示消耗整个滚轮事件，原版既不累加也不切换快捷栏；返回 false（默认）交给原版。
+     */
+    default boolean onWheel(double notches) {
+        return false;
+    }
+
+    /**
+     * How much of the Full-Screen Zoom periphery look to apply this frame, polled every frame: 1 (the default) is the
+     * full half-resolution blur and darkening outside the lens; 0 leaves the view past the dark tube rim sharp and
+     * undarkened, like Picture-in-Picture. The lens, its tube rim, the rim ring and the reticle never change. A profile
+     * that varies it should follow its eased magnification (for example {@link ScopeRules#peripheryBlurFor}), so it
+     * never pops; values are clamped to [0, 1] and anything unusable means 1. PiP ignores it (its periphery is sharp).
+     * 每帧轮询：本帧应用多少全画面放大的镜外效果。1（默认）为镜外完整的半分辨率模糊与压暗；0 时暗色镜筒边之外的画面清晰且
+     * 不压暗，与画中画一致。镜片、镜筒边、镜框环与分划始终不变。会改变它的配置应跟随缓动后的倍率（例如
+     * {@link ScopeRules#peripheryBlurFor}），以免跳变；数值钳制到 [0, 1]，不可用时视为 1。画中画忽略它（其镜外本就清晰）。
+     */
+    default float peripheryBlur() {
+        return 1.0F;
+    }
 }

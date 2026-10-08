@@ -157,9 +157,12 @@ public final class ScopeLensFilter {
      * @param fade          lens fade-in, 0..1 / 镜片淡入，0..1
      * @param shadowX       scope-shadow offset, lens radii, GUI +x right / 镜内阴影偏移（镜片半径，GUI +x 向右）
      * @param shadowY       scope-shadow offset, lens radii, GUI +y down / 镜内阴影偏移（镜片半径，GUI +y 向下）
+     * @param peripheryBlur share of the periphery blur and darkening, 0..1 ({@link ScopeProfile#peripheryBlur}) /
+     *                      镜外模糊与压暗的比例，0..1
      * @param frameDuration frame duration in ticks (the processor's clock) / 以 tick 计的帧时长（处理器时钟）
      */
-    static void render(MinecraftClient client, float fade, float shadowX, float shadowY, float frameDuration) {
+    static void render(MinecraftClient client, float fade, float shadowX, float shadowY, float peripheryBlur,
+                       float frameDuration) {
         if (shaderPackInUse()) {
             // Iris owns the frame; drop our GL targets until the pack is turned off (HUD fallback meanwhile).
             // Iris 接管画面；在关闭光影包前释放我们的 GL 目标（期间使用 HUD 回退）。
@@ -177,6 +180,7 @@ public final class ScopeLensFilter {
         // GL texture space has +y up; the GUI-axis shadow has +y down. / GL 纹理空间 +y 向上，GUI 阴影 +y 向下。
         program.getUniformByNameOrDummy("ShadowOffset").set(shadowX, -shadowY);
         program.getUniformByNameOrDummy("Fade").set(fade);
+        program.getUniformByNameOrDummy("PeripheryBlur").set(peripheryBlur);
         // Same state vanilla sets before its own post pass. / 与原版后处理前设置的状态一致。
         RenderSystem.disableBlend();
         RenderSystem.disableDepthTest();
