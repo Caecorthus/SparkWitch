@@ -50,4 +50,18 @@ public interface ScopeProfile {
     default boolean onWheel(double notches) {
         return false;
     }
+
+    /**
+     * How much of the Full-Screen Zoom periphery look to apply this frame, polled every frame: 1 (the default) is the
+     * full half-resolution blur and darkening outside the lens; 0 leaves the view past the dark tube rim sharp and
+     * undarkened, like Picture-in-Picture. The lens, its tube rim, the rim ring and the reticle never change. A profile
+     * that varies it should follow its eased magnification (for example {@link ScopeRules#peripheryBlurFor}), so it
+     * never pops; values are clamped to [0, 1] and anything unusable means 1. PiP ignores it (its periphery is sharp).
+     * 每帧轮询：本帧应用多少全画面放大的镜外效果。1（默认）为镜外完整的半分辨率模糊与压暗；0 时暗色镜筒边之外的画面清晰且
+     * 不压暗，与画中画一致。镜片、镜筒边、镜框环与分划始终不变。会改变它的配置应跟随缓动后的倍率（例如
+     * {@link ScopeRules#peripheryBlurFor}），以免跳变；数值钳制到 [0, 1]，不可用时视为 1。画中画忽略它（其镜外本就清晰）。
+     */
+    default float peripheryBlur() {
+        return 1.0F;
+    }
 }

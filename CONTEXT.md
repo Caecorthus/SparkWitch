@@ -645,7 +645,8 @@ Current build baseline:
     the actually scoped state (`UsecScopeProfile.isActive()`: the `client/scope` view gate with the USEC profile, so
     never in third person or with a screen open) sends `sparkwitch:usec_scope`, which drives the glint; the
     magnification never leaves the client. `UsecScopeProfile` feeds `client/scope`; zoom (FOV × 1/magnification),
-    sensitivity and the recoil scale follow the shown magnification.
+    sensitivity, the recoil scale and the Full-Screen Zoom periphery blur (`ScopeRules.peripheryBlurFor`: none at 1×,
+    where an LPVO is used with both eyes open, full from 3× up; owner 2026-10-08) follow the shown magnification.
   - Reticle (`UsecReticleGeometry`, `UsecReticleRenderer`): code-drawn in framebuffer pixels. The owner's R2 tactical
     tree is the default (`UsecReticleStyle.DEFAULT` = `TACTICAL`); R1 `MIL_DOT` is calibrated at the top 6×. The AP
     holds (100-200 blocks) are atan(`UsecBallistics.apDropAt`/d) at the frame's real projection FOV, with the shooter's
@@ -766,10 +767,18 @@ Current build baseline:
     vertex shader sizes by `OutSize`), the `sparkwitch_scope_lens` composite, and a copy back. Inside the lens (radius
     0.42 × the short side, `ScopeLensGeometry`) the composite adds barrel distortion, edge transmittance, coating tint,
     smudges, a reflection streak and the scope-shadow crescent; outside, the blurred periphery darkens toward a dark
-    tube rim that is never black. The filter is released 2 s after scoping out, and on disconnect, login, client stop
-    and resource reload; after a failure it retries after 2, 4, 8, 16, then 30 s. Under an Iris shader pack (Wathe
-    `IrisHelper`; an Iris error counts as a pack in use), or while failing, the HUD draws a semi-transparent ring
-    instead.
+    tube rim that is never black. Periphery blur (owner, 2026-10-08): the composite's `PeripheryBlur` uniform (0..1,
+    JSON default 1) is `ScopeRuntime.peripheryBlur(profile)`, the active profile's `ScopeProfile.peripheryBlur()`
+    clamped (unusable means 1). It fades both the blur and the `PERIPHERY_SHADE` darkening, never the tube rim, so 0
+    is exactly PiP's periphery (sharp and undarkened past the same rim) and 1 today's look; the lens, rim ring and
+    reticle never change. The default is 1, so the launcher looks as before; `ScopeRules.peripheryBlurFor(m)` is a
+    ready curve for magnification-driven profiles (smoothstep over ln m / ln 3: 0 at 1×, about 0.69 at 2×, 1 from
+    `PERIPHERY_BLUR_FULL_MAGNIFICATION` 3× up), and a profile that varies it must follow its eased magnification. The
+    filter is released 2 s after scoping out, and on disconnect, login, client stop and resource reload; after a failure
+    it retries after 2, 4, 8, 16, then 30 s. Under an Iris shader pack (Wathe `IrisHelper`; an Iris error counts as a
+    pack in use), or while failing, the HUD draws a semi-transparent ring instead; its dark periphery fades with the
+    same blur (below 1 it first clears over `ScopeLensGeometry.FALLBACK_RIM_FADE` past the tube rim,
+    `fallbackPeripheryColor`), and at 1 it is the original single gradient.
   - Scope shadow: `ScopeShadow` is a smoothed exit-pupil offset driven by the camera's yaw/pitch rate plus a smaller
     share of camera motion, exposed as `ScopeFrame.shadowX/Y` (GUI axes, pointing the way the view swings); the crescent
     appears on the opposite edge.

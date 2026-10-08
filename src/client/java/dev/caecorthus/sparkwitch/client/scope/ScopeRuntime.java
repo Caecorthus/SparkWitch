@@ -62,6 +62,14 @@ public final class ScopeRuntime {
         return profile != null && profile.onWheel(notches);
     }
 
+    /**
+     * The active profile's Full-Screen Zoom periphery blur, made safe ({@link ScopeRules#peripheryBlur}); 1 unscoped.
+     * 当前配置的全画面放大镜外模糊强度（经 {@link ScopeRules#peripheryBlur} 安全化）；未开镜时为 1。
+     */
+    public static float peripheryBlur(ScopeProfile profile) {
+        return profile == null ? 1.0F : ScopeRules.peripheryBlur(profile.peripheryBlur());
+    }
+
     public static boolean hidesHand() {
         return ScopeClient.isScoped();
     }
@@ -122,7 +130,8 @@ public final class ScopeRuntime {
             ScopePictureInPicture.idle(now - lastPictureInPictureNanos);
         }
         lastZoomBlurNanos = now;
-        ScopeLensFilter.render(client, fade, SHADOW.x(), SHADOW.y(), tickCounter.getLastFrameDuration());
+        ScopeLensFilter.render(client, fade, SHADOW.x(), SHADOW.y(), peripheryBlur(profile),
+                tickCounter.getLastFrameDuration());
     }
 
     /**

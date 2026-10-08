@@ -3,15 +3,17 @@
 // SparkWitch scope, pass 3: the ZOOM_BLUR composite. Inside a circle of LensRadius x the short screen side (aspect
 // corrected): the sharp main image with slight barrel distortion near the edge, edge transmittance loss, a faint
 // coating tint, very subtle smudges and dust fixed to the glass, a soft reflection streak, and the scope shadow (the
-// exit pupil shifted by ShadowOffset; a dark crescent enters from the opposite edge). Outside: the half-resolution blur,
-// darkening toward a dark (never black) tube rim. Fade blends from the plain picture while scoping in.
-// Java sets LensCenter, LensRadius, ShadowOffset and Fade; the look itself is tuned by the constants below. The two
-// "shared lens look" blocks are kept identical to sparkwitch_scope_pip.fsh (post shaders cannot #moj_import; a unit
+// exit pupil shifted by ShadowOffset; a dark crescent enters from the opposite edge). Outside: the half-resolution
+// blur, darkening toward a dark (never black) tube rim; PeripheryBlur fades the blur and the darkening (not the tube
+// rim) down to PiP's sharp periphery (0 at 1x for USEC). Fade blends from the plain picture while scoping in.
+// Java sets LensCenter, LensRadius, ShadowOffset, Fade and PeripheryBlur; the look is tuned by the constants below. The
+// two "shared lens look" blocks are kept identical to sparkwitch_scope_pip.fsh (post shaders cannot #moj_import; a unit
 // test compares them).
 // SparkWitch 开镜第 3 步：全画面放大档的合成。在半径为 LensRadius x 屏幕短边的圆内（已做宽高比校正）：清晰的主画面，
 // 边缘带轻微桶形畸变、透光衰减、淡淡的镀膜色调、附着在镜片上的极淡污渍与灰尘、柔和的反光条纹，以及镜内阴影（出瞳按
-// ShadowOffset 偏移，暗色月牙从相反一侧边缘进入）。圆外：半分辨率模糊画面，向暗色（绝不全黑）的镜筒边逐渐变暗。
-// 开镜时 Fade 从原画面过渡。Java 设置 LensCenter、LensRadius、ShadowOffset 与 Fade；画面风格由下列常量调节。两段
+// ShadowOffset 偏移，暗色月牙从相反一侧边缘进入）。圆外：半分辨率模糊画面，向暗色（绝不全黑）的镜筒边逐渐变暗；PeripheryBlur
+// 让模糊与压暗（不含镜筒边）淡出到画中画那样清晰的镜外（USEC 1 倍时为 0）。开镜时 Fade 从原画面过渡。Java 设置
+// LensCenter、LensRadius、ShadowOffset、Fade 与 PeripheryBlur；画面风格由下列常量调节。两段
 // “shared lens look” 与 sparkwitch_scope_pip.fsh 保持一致（后处理着色器不支持 #moj_import；由单元测试比对）。
 
 uniform sampler2D DiffuseSampler; // sharp main / 清晰主画面
@@ -22,6 +24,7 @@ uniform vec2 LensCenter;   // texture space / 纹理空间
 uniform float LensRadius;  // share of the short side / 占短边的比例
 uniform vec2 ShadowOffset; // lens radii, texture axes (+y up) / 镜片半径，纹理坐标轴（+y 向上）
 uniform float Fade;        // 0..1
+uniform float PeripheryBlur; // 0 sharp, undarkened periphery .. 1 full blur and darkening / 0 镜外清晰不压暗 .. 1 完整模糊与压暗
 
 in vec2 texCoord;
 
@@ -78,10 +81,14 @@ void main() {
 
     vec3 original = texture(DiffuseSampler, texCoord).rgb;
 
-    // Periphery: blurred scene, dark tube rim right outside the lens. / 镜外：模糊画面，镜片外侧紧挨暗色镜筒边。
-    vec3 blurred = texture(BlurSampler, texCoord).rgb;
+    // Periphery: blurred scene, dark tube rim right outside the lens. PeripheryBlur 0 is PiP's sharp, undarkened
+    // periphery behind the same tube rim; 1 is the full blur and PERIPHERY_SHADE.
+    // 镜外：模糊画面，镜片外侧紧挨暗色镜筒边。PeripheryBlur 为 0 时与画中画一样：同一镜筒边之外清晰且不压暗；为 1 时为完整模糊
+    // 与 PERIPHERY_SHADE。
+    float blur = clamp(PeripheryBlur, 0.0, 1.0);
+    vec3 blurred = mix(original, texture(BlurSampler, texCoord).rgb, blur);
     float open = smoothstep(RIM_WIDTH * 0.4, RIM_WIDTH * 3.0, max(r - 1.0, 0.0));
-    vec3 periphery = blurred * mix(RIM_SHADE, PERIPHERY_SHADE, open) + vec3(RIM_FLOOR * (1.0 - open));
+    vec3 periphery = blurred * mix(RIM_SHADE, mix(1.0, PERIPHERY_SHADE, blur), open) + vec3(RIM_FLOOR * (1.0 - open));
 
     // Lens: barrel distortion grows with r^4, so the centre (and the reticle's ticks) stays exact.
     // 镜片：桶形畸变随 r^4 增长，中心（以及分划刻度）保持准确。

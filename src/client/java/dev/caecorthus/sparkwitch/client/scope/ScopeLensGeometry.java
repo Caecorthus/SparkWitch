@@ -26,6 +26,12 @@ public final class ScopeLensGeometry {
     public static final int FALLBACK_RIM_INNER_COLOR = 0xD80A0A0C;
     public static final int FALLBACK_RIM_OUTER_COLOR = 0xB00A0A0C;
     public static final int FALLBACK_PERIPHERY_COLOR = 0x8C0A0A0C;
+    /**
+     * With less than full periphery blur, the fallback's dark periphery first fades out over this many lens radii past
+     * the tube rim, roughly like the shader's rim falloff (which ends about 0.21 radii out). / 镜外模糊不满时，回退的暗色
+     * 镜外区域先在镜筒边外这么多个镜片半径内淡出，与着色器的镜筒边衰减（约 0.21 个半径处结束）大致相同。
+     */
+    public static final float FALLBACK_RIM_FADE = 0.2F;
     /** Crisp lens rim ring: from one physical pixel inside the edge, fading out over a few pixels outside. / 清晰镜框环。 */
     public static final float RIM_RING_INSIDE_PIXELS = 1.0F;
     public static final float RIM_RING_OUTSIDE_PIXELS = 2.5F;
@@ -37,6 +43,23 @@ public final class ScopeLensGeometry {
     public static final double RING_SEGMENT_PIXELS = 6.0;
 
     private ScopeLensGeometry() {
+    }
+
+    /**
+     * The HUD fallback periphery's colour at {@code t} (0 at the tube rim's outer edge, 1 at the screen corner) for a
+     * periphery blur of {@code blur}: the full gradient from {@link #FALLBACK_RIM_OUTER_COLOR} to
+     * {@link #FALLBACK_PERIPHERY_COLOR} with its alpha scaled by {@code blur}, so 1 is today's darkening and 0 leaves the
+     * view clear past the rim. / HUD 回退镜外区域在 {@code t}（镜筒边外缘为 0，屏幕角为 1）处、镜外模糊为 {@code blur} 时的
+     * 颜色：从 {@link #FALLBACK_RIM_OUTER_COLOR} 到 {@link #FALLBACK_PERIPHERY_COLOR} 的完整渐变，透明度乘以 {@code blur}；
+     * 1 即原有压暗，0 时镜筒边之外清晰。
+     */
+    public static int fallbackPeripheryColor(float blur, float t) {
+        float b = Float.isFinite(blur) ? Math.max(0.0F, Math.min(1.0F, blur)) : 1.0F;
+        float k = Float.isFinite(t) ? Math.max(0.0F, Math.min(1.0F, t)) : 1.0F;
+        int from = FALLBACK_RIM_OUTER_COLOR >>> 24;
+        int to = FALLBACK_PERIPHERY_COLOR >>> 24;
+        int alpha = Math.round(b * (from + (to - from) * k));
+        return (alpha << 24) | (FALLBACK_PERIPHERY_COLOR & 0x00FFFFFF);
     }
 
     /** Lens radius for a screen of this size. / 该尺寸屏幕的镜片半径。 */
