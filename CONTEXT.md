@@ -882,7 +882,11 @@ Current build baseline:
 - `util/GiveCommandDropScope`: marks, by stack identity and per thread, vanilla `/give`'s cosmetic pickup-animation drop
   (the shared count-1 template). `mixin/GiveCommandDropScopeMixin` (common config) is the one `@WrapOperation` on
   `GiveCommand.execute`'s second `dropItem(ItemStack, boolean)` (ordinal 1); ordinal 0, the real remainder drop, stays
-  outside. Only `UsecLoadoutService.interceptDrop` reads it so far.
+  outside. It is read by the drop guards that copy or empty a refused drop, each only cancelling the marked template:
+  `UsecLoadoutService.interceptDrop`, `PotionGunnerLoadoutService.interceptDrop` (launcher and shells),
+  `BlindItemDrops.intercept` (ComTac) and `TimeStealerItemDrops.intercept` (stamps). The other bound-item guards
+  only cancel (Clock, Gift Watch, White Cane, Black Raven ledger and mask, Vendetta knife, Toll Bell, Prophet Necrology)
+  or hand back only the cursor stack (Abyss Listener), which `/give` never drops, so they do not read it.
 
 ## Runtime Invariants
 
@@ -1029,7 +1033,9 @@ holder's own inventory slots, never death-drop, and are hidden from other living
 view through `NoellesHiddenEquipment`; beyond the Bell Ringer's rules they also refuse shift-click
 moves and offhand swaps, and a living holder keeps exactly one Clock in the hotbar. A stamp stack
 caught by the `dropItem` guard is emptied in place (move semantics) and re-delivered only to a
-living holder, so no drop path duplicates stamps. Only a living, playing, exact Time Stealer may
+living holder, so no drop path duplicates stamps. Vanilla `/give`'s cosmetic count-1 copy
+(`util/GiveCommandDropScope`) is only cancelled, never emptied or re-delivered, so a give yields exactly
+the requested stamps and its message keeps the item name. Only a living, playing, exact Time Stealer may
 hold stamps (spectator mode does not count against it, so a Time Stealer swallowed by the
 NoellesRoles Taotie keeps the Clock and stamps and still receives grants); everyone else is stripped
 on role change, terminal death, reset, finalize, and a staggered 20-tick sweep. Grants go
@@ -1562,7 +1568,11 @@ on both sides so the pot never takes it and the cane tap or ComTac equip still r
 from other players through `NoellesHiddenEquipment` (D9),
 and stripped from inventory, head slot, cursor and open screens of anyone who is not a living,
 playing, exact Blind (role change, terminal death, reset, finalize, disconnect and a staggered
-20-tick sweep that spares a real Blind inside a SparkTraits-intercepted Last Stand death). The
+20-tick sweep that spares a real Blind inside a SparkTraits-intercepted Last Stand death). A
+ComTac caught by the `dropItem` guard is emptied in place and re-delivered only to a living, active
+Blind (`BlindItemDrops`); a cane is just refused. Vanilla `/give`'s cosmetic count-1 copy
+(`util/GiveCommandDropScope`) is only cancelled, so a give never adds a second ComTac to the head
+slot and its message keeps the item name. The
 ComTac equips silently (`minecraft:intentionally_empty` equip sound) and neither item's `use` ever
 returns SUCCESS, so no arm swing is broadcast. The Blind's shop is role-gated (rebuilt for the exact
 role, `sparktraits:*` entries preserved) and sells one ComTac VIII for 100 coins, stock 1, shown with
@@ -2073,7 +2083,9 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
   - A holder's shell is never deleted. A removed duplicate launcher's shell loads the kept launcher or returns
     hotbar-first (the shown second row with SparkFactionAPI 0.1.5.13+, then a hidden slot, else the empty cursor, when
     the hotbar is full); a copy whose shell has nowhere to go stays put. A re-inserted drop keeps any remainder in its
-    original stack. With a full hotbar a new launcher, or a kept one in hidden storage, the offhand or armor, goes to
+    original stack. Vanilla `/give`'s cosmetic count-1 copy (`util/GiveCommandDropScope`) is only cancelled, never
+    re-inserted or emptied, so a give yields exactly the requested launchers or shells and its message keeps the item
+    name. With a full hotbar a new launcher, or a kept one in hidden storage, the offhand or armor, goes to
     the shown second row before hidden slots; a launcher in that row still moves into a free hotbar slot.
   - The sweep also moves shells from hidden main slots into shown room (same-type stacks first, then empty slots) and
     never displaces another item. Hidden means 9-35, or 9-26 when SparkFactionAPI 0.1.5.13+ shows 27-35: shells the

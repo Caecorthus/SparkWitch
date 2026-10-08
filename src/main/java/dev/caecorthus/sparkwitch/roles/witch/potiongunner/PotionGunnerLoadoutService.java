@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher.PotionLauncherLoad;
+import dev.caecorthus.sparkwitch.util.GiveCommandDropScope;
 import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -205,12 +206,19 @@ public final class PotionGunnerLoadoutService {
      * 传入的物品堆（有些调用方已把它移出栏位，另一些仍在栏位中引用它），再为存活的持有者或存活的自由持有者重新放回一份副本
      * （{@link #keepsRefusedDrop}；炮筒保留已装填的炮弹），其他人则直接销毁（他们本来就会被收走）。客户端只取消预测，
      * 由服务端裁定。
+     * Exception: vanilla {@code /give}'s cosmetic count-1 copy ({@link GiveCommandDropScope}) is only cancelled, never
+     * restored or emptied, so a give yields exactly the requested count and its success message keeps the item name.
+     * 例外：原版 {@code /give} 的装饰性数量为 1 的副本（{@link GiveCommandDropScope}）只取消丢弃，既不放回也不清空，
+     * 因此一次给予恰好得到所请求的数量，成功提示也保留物品名称。
      */
     public static boolean interceptDrop(PlayerEntity player, ItemStack stack) {
         if (!PotionGunnerInventoryRules.isBound(stack)) {
             return false;
         }
         if (player instanceof ServerPlayerEntity serverPlayer) {
+            if (GiveCommandDropScope.isCosmeticCopy(stack)) {
+                return true;
+            }
             ItemStack copy = stack.copy();
             stack.setCount(0);
             if (serverPlayer.isAlive()
