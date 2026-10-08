@@ -81,6 +81,19 @@ public final class ScopeRules {
         return ScopeMode.ZOOM_BLUR;
     }
 
+    /**
+     * Whether a lens composite barrel-distorts the picture of a frame rendered in {@code mode}: always in
+     * PICTURE_IN_PICTURE, and in ZOOM_BLUR unless its HUD fallback ring stands in for the filter (a shader pack or a
+     * failing pipeline, {@code ScopeLensFilter.fallbackActive()}), i.e. exactly when {@code ScopeHud} draws no
+     * fallback ring. A reticle that corrects for {@link ScopeLensGeometry#BARREL_DISTORTION} does so only then.
+     * 以 {@code mode} 渲染的一帧的镜内画面是否被镜片合成着色器做了桶形畸变：画中画时总是；全画面放大时，除非由 HUD 回退环
+     * 代替滤镜（光影包或管线失败，{@code ScopeLensFilter.fallbackActive()}），即恰在 {@code ScopeHud} 不画回退环时。
+     * 校正 {@link ScopeLensGeometry#BARREL_DISTORTION} 的分划只应在此时校正。
+     */
+    public static boolean lensDistorts(ScopeMode mode, boolean zoomBlurFallbackActive) {
+        return mode == ScopeMode.PICTURE_IN_PICTURE || (mode == ScopeMode.ZOOM_BLUR && !zoomBlurFallbackActive);
+    }
+
     /** A profile's FOV multiplier made safe: (0.1..1], anything unusable means no zoom. / 安全化的 FOV 乘数。 */
     public static float zoomFactor(float profileMultiplier) {
         if (!Float.isFinite(profileMultiplier) || profileMultiplier <= 0.0F) {

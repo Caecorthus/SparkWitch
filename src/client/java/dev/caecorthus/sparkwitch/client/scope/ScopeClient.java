@@ -109,6 +109,16 @@ public final class ScopeClient {
     }
 
     /**
+     * Whether this frame's lens picture, rendered in {@code mode} ({@link ScopeFrame#mode()}), is barrel-distorted by
+     * a lens composite ({@link ScopeRules#lensDistorts}): PiP, or ZOOM_BLUR without the HUD fallback ring.
+     * 本帧以 {@code mode}（{@link ScopeFrame#mode()}）渲染的镜内画面是否经镜片合成着色器桶形畸变
+     * （{@link ScopeRules#lensDistorts}）：画中画，或没有 HUD 回退环的全画面放大。
+     */
+    public static boolean lensDistorts(ScopeMode mode) {
+        return ScopeRules.lensDistorts(mode, ScopeLensFilter.fallbackActive());
+    }
+
+    /**
      * True only while the PiP lens pass re-renders the world. World-render hooks that must run once per frame, or must
      * stay out of the magnified lens, can check it.
      * 仅在画中画镜内渲染重新渲染世界期间为 true。每帧只能运行一次、或不应出现在放大镜内的世界渲染钩子可以检查它。

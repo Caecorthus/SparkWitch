@@ -10,6 +10,16 @@ package dev.caecorthus.sparkwitch.client.scope;
 public final class ScopeLensGeometry {
     /** Lens radius as a share of the screen's short side (owner brief: about 0.42). / 镜片半径占屏幕短边的比例。 */
     public static final float LENS_RADIUS_SHARE = 0.42F;
+    /**
+     * Barrel distortion k of both lens composites ({@code DISTORTION} in {@code sparkwitch_scope_lens.fsh} and
+     * {@code sparkwitch_scope_pip.fsh}, pinned equal by a test): the lens pixel r lens radii from the centre shows the
+     * picture at r (1 + k r^4). The shaders keep their own literal (post shaders cannot import); this is the Java copy
+     * for reticles that place marks on the distorted picture. Changing it alone changes no rendering.
+     * 两个镜片合成着色器的桶形畸变系数 k（{@code sparkwitch_scope_lens.fsh} 与 {@code sparkwitch_scope_pip.fsh} 中的
+     * {@code DISTORTION}，由测试保证相等）：距中心 r 个镜片半径的镜片像素显示画面中 r (1 + k r^4) 处的内容。着色器保留
+     * 各自的字面量（后处理着色器无法 import）；这是供分划在畸变画面上定位刻度的 Java 副本，单独修改它不会改变任何渲染。
+     */
+    public static final double BARREL_DISTORTION = 0.06;
     /** Outer edge of the HUD fallback's dark tube rim, in lens radii. / HUD 回退暗色镜筒边的外缘（镜片半径倍数）。 */
     public static final float FALLBACK_RIM_OUTER = 1.07F;
     /** HUD fallback colours: dark and semi-transparent, never fully black. / HUD 回退颜色：深色半透明，绝不全黑。 */
