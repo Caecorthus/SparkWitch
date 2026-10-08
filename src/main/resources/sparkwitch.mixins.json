@@ -195,7 +195,10 @@
     "usec.PlayerEntityUsecItemMixin",
     "usec.ServerPlayerEntityUsecDropMixin",
     "usec.ScreenHandlerUsecItemMixin",
-    "usec.DecoratedPotBlockUsecItemMixin"
+    "usec.DecoratedPotBlockUsecItemMixin",
+    "usec.ItemEntityUsecGunMixin",
+    "usec.PlayerInventoryUsecGunMixin",
+    "usec.ServerPlayerInteractionManagerUsecScopeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

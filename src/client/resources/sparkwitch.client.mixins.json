@@ -166,7 +166,8 @@
     "usec.UsecRifleInputMixin",
     "usec.UsecRecoilCameraMixin",
     "usec.UsecLimitedInventoryRifleClickMixin",
-    "usec.UsecInventoryScreenRifleClickMixin"
+    "usec.UsecInventoryScreenRifleClickMixin",
+    "usec.UsecRifleUseCooldownMixin"
   ],
   "injectors": {
     "defaultRequire": 1
