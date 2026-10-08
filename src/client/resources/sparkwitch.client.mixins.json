@@ -169,6 +169,7 @@
     "usec.UsecInventoryScreenRifleClickMixin",
     "usec.UsecRifleUseCooldownMixin",
     "usec.UsecCreativeSlotAccessor",
+    "usec.UsecBoltSwayCameraMixin",
     "scope.ScopeHeldItemRendererMixin",
     "scope.ScopeWorldRendererMixin",
     "scope.ScopeParticleManagerMixin",
