@@ -711,7 +711,10 @@ Current build baseline:
     `ScopeInGameHudMixin`, a priority-1100 `@WrapMethod` on `renderCrosshair` outside Wathe's, draws, in order, the
     fallback ring when needed (Full-Screen Zoom only), the lens rim, then `drawReticle(ctx, ScopeFrame)` with the real
     projection FOV from `ScopeGameRendererInvoker` (PiP: the FOV Full-Screen Zoom would need to show the lens at its
-    on-screen scale, `ScopeRules.equivalentFovDegrees`).
+    on-screen scale, `ScopeRules.equivalentFovDegrees`). `ScopeClient.lensDistorts(frame.mode())` tells a reticle
+    whether this frame's lens picture is barrel-distorted (exactly when no fallback ring draws), and
+    `ScopeLensGeometry.BARREL_DISTORTION` is the Java copy of both composites' `DISTORTION` (a test pins them equal);
+    the launcher reticle uses both, USEC uses neither.
   - Settings: Scope View (Full-Screen Zoom, the default, or Picture-in-Picture), Lens Resolution beside it, and Scoped
     Sensitivity (10–200 % in 5 % steps, default 100 %) are appended at the end of vanilla Options → Accessibility by
     `ScopeAccessibilityOptionsMixin` (`addOptions` TAIL calls `ScopeOptions.addTo(body)`, one `addAll`; SparkAssist's
@@ -2120,18 +2123,30 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
   using the launcher, and the module's view gate adds first person, own camera, no screen and not a spectator. The
   scope therefore follows the player's Scope View (Full-Screen Zoom by default, or Picture-in-Picture), Lens Resolution
   and Scoped Sensitivity, and gets the module's lens picture, rim, scope shadow and first-person held-item hiding (the
-  in-wall, underwater and fire overlays still draw); there is no black mask, glint or scope sound. Zoom ×0.25
-  (`PotionScopeRules.ZOOM_FACTOR`) and base look ×0.25 (`PotionScopeRules.SENSITIVITY_SCALE`) are the single tuning
-  points. `PotionScopeClient.isScoped()` is exactly "the module renders this profile", so the loaded-shell HUD line
-  hides exactly while the lens shows.
-  - Reticle (`PotionScopeOverlay.draw`, an interim port until a design pass replaces its body): from the `ScopeFrame`
-    and clipped to the lens (`PotionScopeRules.insideLens`), a thin crosshair to the lens edge with the 0-50 centre
-    label, the 60/70/80/90/100-block drop ticks with alternating labels at the frame's real projection FOV
-    (`PotionScopeRules.tickOffset` over `PotionBallistics`, within 0.92 of the lens radius), and the loaded shell
-    right-aligned at the lens's upper-right 45° point, shrunk only when that quadrant is too narrow.
-  - Fire: left-click sends `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec), one shot
-    per fresh press. Only an attack press edge drained in `MinecraftClient#handleInputEvents` while the launcher is in
-    the main hand fires, scoped or not; `doAttack` and held-attack block breaking are only swallowed, and keyboard
+  in-wall, underwater and fire overlays still draw); there is no black mask, glint or scope sound. The zoom is a true
+  2.7× (owner, 2026-10-08: the real PGO-7, `PotionScopeRules.MAGNIFICATION`): `fovMultiplier()` reads the FOV option
+  every frame, `zoomFactor(fov) = 2·atan(tan(fov/2)/2.7)/fov` (0.415 at 70, 0.452 at 90), and the base look scale
+  follows it (`sensitivityScale`, the USEC convention: look scale = FOV multiplier). `PotionScopeClient.isScoped()` is
+  exactly "the module renders this profile", so the loaded-shell HUD line hides exactly while the lens shows.
+  - Reticle (owner, 2026-10-08: the RPG-7's PGO-7, illuminated amber; design spec `A_LIT_SPEC.md`): pure layout in
+    `PotionScopeRules.layout`, drawn by `PotionScopeOverlay` in framebuffer px like the USEC reticle (stroke and text
+    sizes × round(H/1080)). Every mark is placed by angle through the frame's exact tangent projection about the lens
+    centre and, only while a lens composite distorts this frame (`ScopeClient.lensDistorts`: PiP, or Full-Screen Zoom
+    without the HUD fallback ring), through the barrel inverse r(1 + k·r⁴) = ρ with
+    `ScopeLensGeometry.BARREL_DISTORTION`; everything is clipped to pixel centres within the lens radius − 1.5 px.
+    Range rows 70–150 (60 skipped; the centre row "5" is the 0–50 flat zone) are labelled in tens of LINE-OF-SIGHT
+    blocks and stay pitch-tracked: each frame re-solves `PotionBallistics.angleBelowSightAtRange`, where the shell first
+    reaches that distance from the eye on its per-tick path. The lead grid (columns every 20 mrad = 1 block/s, 5 a
+    side, 4 if 5 do not fit, columns 3 and 4 heavy) ends at the doubled 100 row; deeper rows hang short on the cant
+    line, and one whose label would touch the number line is dropped. A PGO-7 rangefinder for a 1.8-block player
+    (heights atan(1.8/D), labels 5/8/10/12/15) sits under the grid; its first tick is chosen at pitch 0 and kept, so
+    it never jumps with pitch. All fits use ρ ≤ 0.90. Paint: a dark key ring, a faint amber glow, then amber
+    `0xFFFFC860` strokes and digits, no black fill; each translucent layer covers a pixel once via GUI depth bands in
+    negative z inside the crosshair layer. The loaded shell (swatch and name in its colour, or the empty text) sits at
+    the lens's upper right (right edge 0.60 R, top 0.66 R), shrunk only when too narrow.
+  - Fire: left-click sends `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec),
+    one shot per fresh press. Only an attack press edge drained in `MinecraftClient#handleInputEvents` while the
+    launcher is in the main hand fires, scoped or not; `doAttack` and held-attack block breaking are only swallowed, and keyboard
     auto-repeat is ignored until the key is physically released. So a key held through a slot switch or past the end
     of a stun, Seeker or Kidnapper key lock never fires (`client/potiongunner/PotionFireInput`, `PotionFireLatch`).
     The client's aim is trusted for direction only (Death Ray precedent); there is no server aim cone.
@@ -2148,7 +2163,7 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
   path length from its synced launch point at the start of a tick is below 50 blocks, it moves straight at
   2.5 blocks/tick with no drag or gravity (`PotionShellFlight.isFlatTick`, snapped to the 2.5-block step).
   - After that, vanilla thrown physics apply.
-  - The scope ticks use the same predicate (`PotionBallistics`).
+  - The scope's range rows use the same predicate (`PotionBallistics`).
   - The shell bursts on the first block, closed door, or player its blast could catch, on a Seeker device in its
     path, or after 100 ticks (99 moves). It passes through Wathe corpses (`PlayerBodyEntity`), spectators, creative and
     Wathe-dead players (Wraiths) on both sides, and SparkTraits Last Escape players on the server only.
