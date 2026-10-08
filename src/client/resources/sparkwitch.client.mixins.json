@@ -168,7 +168,11 @@
     "usec.UsecLimitedInventoryRifleClickMixin",
     "usec.UsecInventoryScreenRifleClickMixin",
     "usec.UsecRifleUseCooldownMixin",
-    "usec.UsecCreativeSlotAccessor"
+    "usec.UsecCreativeSlotAccessor",
+    "scope.ScopeHeldItemRendererMixin",
+    "scope.ScopeWorldRendererMixin",
+    "scope.ScopeParticleManagerMixin",
+    "scope.ScopeMinecraftClientAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

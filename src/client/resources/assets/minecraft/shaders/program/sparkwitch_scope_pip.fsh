@@ -1,25 +1,25 @@
 #version 150
 
-// SparkWitch scope, pass 3: the ZOOM_BLUR composite. Inside a circle of LensRadius x the short screen side (aspect
-// corrected): the sharp main image with slight barrel distortion near the edge, edge transmittance loss, a faint
-// coating tint, very subtle smudges and dust fixed to the glass, a soft reflection streak, and the scope shadow (the
-// exit pupil shifted by ShadowOffset; a dark crescent enters from the opposite edge). Outside: the half-resolution blur,
-// darkening toward a dark (never black) tube rim. Fade blends from the plain picture while scoping in.
-// Java sets LensCenter, LensRadius, ShadowOffset and Fade; the look itself is tuned by the constants below. The two
-// "shared lens look" blocks are kept identical to sparkwitch_scope_pip.fsh (post shaders cannot #moj_import; a unit
-// test compares them).
-// SparkWitch 开镜第 3 步：全画面放大档的合成。在半径为 LensRadius x 屏幕短边的圆内（已做宽高比校正）：清晰的主画面，
-// 边缘带轻微桶形畸变、透光衰减、淡淡的镀膜色调、附着在镜片上的极淡污渍与灰尘、柔和的反光条纹，以及镜内阴影（出瞳按
-// ShadowOffset 偏移，暗色月牙从相反一侧边缘进入）。圆外：半分辨率模糊画面，向暗色（绝不全黑）的镜筒边逐渐变暗。
-// 开镜时 Fade 从原画面过渡。Java 设置 LensCenter、LensRadius、ShadowOffset 与 Fade；画面风格由下列常量调节。两段
-// “shared lens look” 与 sparkwitch_scope_pip.fsh 保持一致（后处理着色器不支持 #moj_import；由单元测试比对）。
+// SparkWitch scope, PICTURE_IN_PICTURE composite. Outside the lens: the sharp, unblurred 1x main view, with only a
+// short dark tube rim right at the lens edge. Inside a circle of LensRadius x the short screen side (aspect corrected):
+// the second, magnified world render (LensSampler, a square covering LensMargin lens radii), with the same lens look as
+// ZOOM_BLUR: slight barrel distortion near the edge, edge transmittance loss, a faint coating tint, very subtle smudges
+// and dust fixed to the glass, a soft reflection streak, and the scope shadow. Fade blends from the plain picture while
+// scoping in. Java sets LensCenter, LensRadius, LensMargin, ShadowOffset and Fade. The two "shared lens look" blocks
+// are kept identical to sparkwitch_scope_lens.fsh (post shaders cannot #moj_import; a unit test compares them).
+// SparkWitch 开镜画中画合成。镜外：清晰、不模糊的 1 倍主画面，只在镜片边缘有一圈短的暗色镜筒边。在半径为 LensRadius x 屏幕
+// 短边的圆内（已做宽高比校正）：第二次放大的世界渲染（LensSampler，覆盖 LensMargin 个镜片半径的正方形），镜片外观与全画面
+// 放大相同：边缘轻微桶形畸变、透光衰减、淡淡的镀膜色调、附着在镜片上的极淡污渍与灰尘、柔和的反光条纹以及镜内阴影。开镜时
+// Fade 从原画面过渡。Java 设置 LensCenter、LensRadius、LensMargin、ShadowOffset 与 Fade。两段 “shared lens look” 与
+// sparkwitch_scope_lens.fsh 保持一致（后处理着色器不支持 #moj_import；由单元测试比对）。
 
-uniform sampler2D DiffuseSampler; // sharp main / 清晰主画面
-uniform sampler2D BlurSampler;    // half-resolution blur of main / 主画面的半分辨率模糊
+uniform sampler2D DiffuseSampler; // sharp 1x main / 清晰的 1 倍主画面
+uniform sampler2D LensSampler;    // magnified lens render / 放大的镜内渲染
 
 uniform vec2 OutSize;
 uniform vec2 LensCenter;   // texture space / 纹理空间
 uniform float LensRadius;  // share of the short side / 占短边的比例
+uniform float LensMargin;  // lens radii the lens render covers from its centre / 镜内渲染从中心覆盖的镜片半径数
 uniform vec2 ShadowOffset; // lens radii, texture axes (+y up) / 镜片半径，纹理坐标轴（+y 向上）
 uniform float Fade;        // 0..1
 
@@ -67,8 +67,6 @@ float fbm(vec2 p) {
 }
 // END shared lens look
 
-const float PERIPHERY_SHADE = 0.62;
-
 void main() {
     vec2 size = max(OutSize, vec2(1.0));
     float radiusPx = max(LensRadius * min(size.x, size.y), 1.0);
@@ -78,16 +76,17 @@ void main() {
 
     vec3 original = texture(DiffuseSampler, texCoord).rgb;
 
-    // Periphery: blurred scene, dark tube rim right outside the lens. / 镜外：模糊画面，镜片外侧紧挨暗色镜筒边。
-    vec3 blurred = texture(BlurSampler, texCoord).rgb;
+    // Periphery: the sharp 1x view, with a short dark tube rim right outside the lens.
+    // 镜外：清晰的 1 倍画面，镜片外侧紧挨一圈短的暗色镜筒边。
     float open = smoothstep(RIM_WIDTH * 0.4, RIM_WIDTH * 3.0, max(r - 1.0, 0.0));
-    vec3 periphery = blurred * mix(RIM_SHADE, PERIPHERY_SHADE, open) + vec3(RIM_FLOOR * (1.0 - open));
+    vec3 periphery = original * mix(RIM_SHADE, 1.0, open) + vec3(RIM_FLOOR * (1.0 - open));
 
-    // Lens: barrel distortion grows with r^4, so the centre (and the reticle's ticks) stays exact.
-    // 镜片：桶形畸变随 r^4 增长，中心（以及分划刻度）保持准确。
+    // Lens: barrel distortion grows with r^4, so the centre (and the reticle's ticks) stays exact. The lens render
+    // spans [-LensMargin, LensMargin] lens radii on both axes.
+    // 镜片：桶形畸变随 r^4 增长，中心（以及分划刻度）保持准确。镜内渲染在两个轴上都覆盖 [-LensMargin, LensMargin] 个镜片半径。
     float r2 = r * r;
     vec2 sampleP = p * (1.0 + DISTORTION * r2 * r2);
-    vec3 lens = texture(DiffuseSampler, LensCenter + sampleP * radiusPx / size).rgb;
+    vec3 lens = texture(LensSampler, 0.5 + 0.5 * sampleP / max(LensMargin, 1.0)).rgb;
     // BEGIN shared lens look: glass / 共享镜片外观：镜片
     lens *= COATING_TINT;
     float edge = smoothstep(0.5, 1.0, r);

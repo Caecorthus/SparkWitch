@@ -3,7 +3,6 @@ package dev.caecorthus.sparkwitch.client.scope;
 import com.mojang.serialization.Codec;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.option.SimpleOption;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
 import java.util.List;
@@ -21,8 +20,6 @@ public final class ScopeOptions {
     public static final String MODE_KEY = "option.sparkwitch.scope_mode";
     public static final String SENSITIVITY_KEY = "option.sparkwitch.scope_sensitivity";
     public static final String SENSITIVITY_TOOLTIP_KEY = "option.sparkwitch.scope_sensitivity.tooltip";
-    /** Appended to the PiP tooltip while PiP still renders as ZOOM_BLUR. / 画中画仍按全画面放大渲染期间追加到其提示。 */
-    public static final String PICTURE_IN_PICTURE_PENDING_KEY = "option.sparkwitch.scope_mode.picture_in_picture.pending";
     private static final Codec<ScopeMode> MODE_CODEC = Codec.STRING.xmap(ScopeSettings::parseMode,
             ScopeSettings::serializedName);
 
@@ -37,7 +34,7 @@ public final class ScopeOptions {
     public static SimpleOption<ScopeMode> modeOption() {
         return new SimpleOption<>(
                 MODE_KEY,
-                ScopeOptions::modeTooltip,
+                mode -> Tooltip.of(Text.translatable(modeTooltipKey(mode))),
                 (prefix, mode) -> Text.translatable(modeKey(mode)),
                 new SimpleOption.PotentialValuesBasedCallbacks<>(List.of(ScopeMode.values()), MODE_CODEC),
                 ScopeSettingsStore.current().mode(),
@@ -66,13 +63,5 @@ public final class ScopeOptions {
 
     public static String modeTooltipKey(ScopeMode mode) {
         return modeKey(mode) + ".tooltip";
-    }
-
-    private static Tooltip modeTooltip(ScopeMode mode) {
-        MutableText text = Text.translatable(modeTooltipKey(mode));
-        if (mode == ScopeMode.PICTURE_IN_PICTURE && !ScopeRules.PICTURE_IN_PICTURE_AVAILABLE) {
-            text.append("\n").append(Text.translatable(PICTURE_IN_PICTURE_PENDING_KEY));
-        }
-        return Tooltip.of(text);
     }
 }

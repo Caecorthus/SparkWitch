@@ -37,7 +37,10 @@ public final class ScopeHud {
         float radius = (float) (ScopeLensGeometry.lensRadius(framebufferWidth, framebufferHeight) / scale);
         float pixel = (float) (1.0 / scale);
 
-        if (ScopeLensFilter.fallbackActive()) {
+        ScopeMode mode = ScopeClient.effectiveMode();
+        // PiP draws its own lens; the ring only stands in for a missing ZOOM_BLUR filter.
+        // 画中画自己绘制镜片；回退环只替代缺失的全画面放大滤镜。
+        if (mode == ScopeMode.ZOOM_BLUR && ScopeLensFilter.fallbackActive()) {
             float rimOuter = radius * ScopeLensGeometry.FALLBACK_RIM_OUTER;
             float cover = (float) ScopeLensGeometry.coverRadius(context.getScaledWindowWidth(),
                     context.getScaledWindowHeight(), centerX, centerY) + 2.0F;
@@ -51,11 +54,14 @@ public final class ScopeHud {
                 ScopeLensGeometry.RIM_RING_OUTER_COLOR, scale);
 
         float tickDelta = tickCounter.getTickDelta(true);
-        double fov = ((ScopeGameRendererInvoker) client.gameRenderer)
-                .sparkwitch$scopeFov(client.gameRenderer.getCamera(), tickDelta, true);
+        // PiP: the FOV ZOOM_BLUR would need to show the lens at its on-screen scale, so reticle angles match the lens.
+        // 画中画：全画面放大以同样屏幕比例显示镜内所需的视场角，使分划角度与镜内画面一致。
+        double fov = mode == ScopeMode.PICTURE_IN_PICTURE
+                ? ScopePictureInPicture.equivalentFovDegrees()
+                : ((ScopeGameRendererInvoker) client.gameRenderer)
+                        .sparkwitch$scopeFov(client.gameRenderer.getCamera(), tickDelta, true);
         profile.drawReticle(context, new ScopeFrame(context.getScaledWindowWidth(), context.getScaledWindowHeight(),
-                centerX, centerY, radius, fov, tickDelta, ScopeRuntime.shadowX(), ScopeRuntime.shadowY(),
-                ScopeClient.effectiveMode()));
+                centerX, centerY, radius, fov, tickDelta, ScopeRuntime.shadowX(), ScopeRuntime.shadowY(), mode));
     }
 
     /**
