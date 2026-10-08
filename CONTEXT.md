@@ -565,7 +565,11 @@ Current build baseline:
     pattern).
   - Scope (`UsecScopeService`): the only writer of `UsecPlayerComponent.scoped`. The `sparkwitch:usec_scope` receiver
     stores true only for a playing, alive, non-spectator, non-Wraith, exact-role USEC using the rifle in the main hand,
-    and a per-tick sweep clears anyone who stops qualifying. The payload is harmless and on no deny-list.
+    and a per-tick sweep clears anyone who stops qualifying. The payload is harmless and on no deny-list. When the flag
+    turns on, a subtle `item.usec_rifle.scope` plays through the public `ServerWorld#playSound` at the shooter's eye
+    (owner, 2026-10-07): a fixed `SCOPE_SOUND_RANGE` (8-block) broadcast at volume 0.8, so the shooter and nearby
+    players hear it and the Blind perceives it as an ordinary sound; at most once per `SCOPE_SOUND_MIN_INTERVAL_TICKS`
+    per player, and scoping out is silent.
   - Cross-mod seams: SparkStrength hooks `SeekerDeviceHits.onUsecRifleFired` at HEAD (a `@Pseudo` mixin) so Bomber
     drones absorb the shot like a device, and mirrors `sparkwitch:fire_usec_rifle` and `sparkwitch:usec_attachment` in
     its Taotie daze list. SparkTraits excludes USEC from Niko by role id (`PoliceRoleCategory.canReceiveNikoTrait`). Its
@@ -596,8 +600,10 @@ Current build baseline:
     players, from the synced `UsecPlayerComponent.scoped`, with a 6–35° cosine smoothstep and block-raycast occlusion.
     It is hidden in the Blind view (`BlindClientGates.hidesEntity`) and for self, the camera entity, invisible, Wraith
     or spectating players.
-  - Pose and model: `UsecRifleArmPoseMixin` gives `CROSSBOW_HOLD`; `UsecModelPredicates` registers the
-    `sparkwitch:usec_magazine` and `sparkwitch:usec_suppressor` predicates. `UsecRifleModels` registers a
+  - Pose and model: `UsecRifleArmPoseMixin` gives `CROSSBOW_HOLD`; `UsecModelPredicates` registers the rifle's
+    `sparkwitch:usec_magazine` and `sparkwitch:usec_suppressor` predicates, and `sparkwitch:usec_loaded` on a loose
+    magazine (owner, 2026-10-07): `models/item/usec_magazine.json` is the empty magazine and overrides to
+    `item/usec_magazine_loaded` (brass round on top) once it holds a round. `UsecRifleModels` registers a
     ModelLoadingPlugin (Vendetta knife precedent) that wraps the top-level `sparkwitch:usec_rifle#inventory` model and
     the three override targets (`item/usec_rifle_no_mag`, `item/usec_rifle_suppressed`,
     `item/usec_rifle_suppressed_no_mag`) in `UsecRifleIconSwapModel`.
