@@ -499,9 +499,30 @@ Current build baseline:
     `vendettaAllows`; an active Vendetta is an active Wraith, so there is no bound-killer exception). Then
     `MagicianPuppetHits.onUsecRifleFired` ends a puppet strictly nearer than that player and every breakable device
     (`gun_shot`); else `SeekerDeviceHits.onUsecRifleFired` breaks a device strictly nearer than the player as
-    `USEC_RIFLE` (AP reaches devices behind pierced walls); else `killPlayer(victim, true, shooter, wathe:gun_shot)`, so
-    every protection hooked there applies. The bullet stops at whatever it hit. Presentation shots trace blocks only
-    (sound, particles, cracks): they never hit a player, device or puppet and record no replay.
+    `USEC_RIFLE` (AP reaches devices behind pierced walls); else the single kill, `UsecFirePunishment.kill`. The bullet
+    stops at whatever it hit. Presentation shots trace blocks only (sound, particles, cracks): they never hit a player,
+    device or puppet and record no replay.
+  - Shield piercing (owner O3, 2026-10-07; `UsecShieldPierce`): the kill is ONE `killPlayer(victim, true, shooter,
+    wathe:gun_shot)` run inside a scoped pierce budget: FMJ 2 shield layers, AP 5 (`UsecAmmoType.shieldPierce`,
+    `UsecRules`), +1 when `compat/SparkTraitsUsecBridge.isHeavyArtilleryGunShot` (reflecting
+    `SparkTraitsApi.isHeavyArtilleryGunShot(ServerPlayerEntity, ServerPlayerEntity)`, asked before the kill, failing
+    closed when absent) says it is a Heavy Artillery shot. The scope is a server-thread `ThreadLocal` restored in
+    `finally`, and `tryPierce` spends one unit only for the exact scoped victim, killer and `wathe:gun_shot`, so nested
+    kills (Bodyguard, deaths in AFTER, Tofana retaliation) never spend it. Only three shield-layer consumers ask it,
+    each spending its layer first and then letting the shot on: the pinned NoellesRoles BEFORE listener
+    `lambda$registerEvents$5` (whiskey stack and Iron Man; `mixin/usec/NoellesUsecShieldPierceMixin`, a `@WrapMethod`
+    that, for the scoped shot only, re-invokes it while each cancel spent exactly one layer and a pierce is paid, with
+    layers read by `compat/NoellesShieldLayersCompat`; its earlier non-shield branches such as the Jester stasis and
+    fake death still run first), the Guardian Angel shield (`GuardianAngelFeatureService.beforeKill` returns null,
+    never `allow()`, after removing it), and Wathe psycho armour, Jester-moment armour included
+    (`mixin/usec/GameFunctionsUsecPsychoArmourMixin`, an expression hook on `ShouldPiercePsychoArmour.pierces` that strips
+    one layer per pierce left, each recorded as `shield_blocked` with source `sparkwitch:usec_rifle`, then returns the
+    original answer so Wathe absorbs with the next layer or stops psycho mode and lets the death through). The layer
+    that finds the budget empty blocks as usual. Every other protection hooked on `killPlayer` (Saint, Judge, the
+    SparkFactionAPI veto, Fiend, Ninja parry, Pig God, Last Stand, Last Escape, Depression, Tofana) runs exactly once
+    and is never pierced; KillPlayer.BEFORE fires once and AFTER at most once. Known quirk: a layer earlier in the
+    BEFORE chain than a later parry is pierced and spent, then the parry still blocks. The death reason stays
+    `wathe:gun_shot`, and the Ceremonial Sword path is unchanged.
   - Hit punishment (`UsecFirePunishment`, Q8 and owner O1 2026-10-07, Wathe's revolver receiver): Wathe's
     `ShouldPunishGunShooter` is asked for every player hit, before the kill, and the punishment is decided on the hit,
     whether or not the victim dies (a Saint, shield, Last Stand or Judge denial does not spare the USEC). A listener's
@@ -547,9 +568,10 @@ Current build baseline:
     and a per-tick sweep clears anyone who stops qualifying. The payload is harmless and on no deny-list.
   - Cross-mod seams: SparkStrength hooks `SeekerDeviceHits.onUsecRifleFired` at HEAD (a `@Pseudo` mixin) so Bomber
     drones absorb the shot like a device, and mirrors `sparkwitch:fire_usec_rifle` and `sparkwitch:usec_attachment` in
-    its Taotie daze list. SparkTraits excludes USEC from Niko by role id (`PoliceRoleCategory.canReceiveNikoTrait`); its
-    Heavy Artillery hooks only Wathe's revolver receiver, so it never reaches the AXMC. SparkAssist owns the guidebook
-    page.
+    its Taotie daze list. SparkTraits excludes USEC from Niko by role id (`PoliceRoleCategory.canReceiveNikoTrait`). Its
+    Heavy Artillery repeat-kill hooks only Wathe's revolver receiver; the AXMC instead asks the public
+    `SparkTraitsApi.isHeavyArtilleryGunShot` facade for one extra shield layer (O3, see shield piercing). SparkAssist
+    owns the guidebook page.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`. Presentation and intent only: the
   server decides every shot, attachment and scope flag.
