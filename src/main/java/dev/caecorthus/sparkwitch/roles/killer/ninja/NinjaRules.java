@@ -83,6 +83,23 @@ public final class NinjaRules {
     }
 
     /**
+     * Who may throw a Grappling Hook and keep its chain (fix 2026-10-08: the hook did nothing outside a match). A
+     * participant of a running match, alive or dead, keeps the match rule: playing, alive and in survival. Everyone
+     * else is a free holder (no match, the STARTING transition, or a lobby player while a match runs) and needs only to
+     * be a living non-spectator, creative included: the hook passes through every entity and only moves its holder.
+     * 谁可以投出钩爪并保持铁链（2026-10-08 修复：局外钩爪无法使用）。进行中对局的参与者（无论存活或死亡）沿用对局规则：
+     * 在局、存活且为生存模式。其他人都是自由持有者（没有对局、STARTING 过渡阶段，或对局进行时身在大厅的玩家），只需存活且
+     * 不是旁观者（含创造模式）：钩爪穿过所有实体，只会移动持有者本人。
+     */
+    public static boolean mayGrapple(
+            boolean matchParticipant,
+            boolean playingAliveSurvival,
+            boolean livingNonSpectator
+    ) {
+        return matchParticipant ? playingAliveSurvival : livingNonSpectator;
+    }
+
+    /**
      * Where the puller's feet should end for a latch on {@code side}: a floor puts the feet on the hit point, a
      * ceiling puts the head just under it, a wall centres the body on the hook, set off the face so it stays clear.
      * 钩在 {@code side} 面时拉拽者双脚的终点：地面让双脚落在钩点；天花板让头部恰在其下；墙面让身体中心对准钩点，

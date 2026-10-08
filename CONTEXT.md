@@ -165,15 +165,18 @@ Current build baseline:
 - `roles/killer/ninja/`: parry, dark-kill bounty, shop, and death cleanup.
   - Grappling Hook (`sparkwitch:ninja_grappling_hook`, 钩爪, owner 2026-10-07): a 100-coin, stock-1 shop TOOL,
     role-agnostic like the Kunai and removed on death with the other Ninja items. `NinjaGrappleService` (server only)
-    keeps one active hook per player, throws it (Wathe playing+alive and alive+survival; refused for Fabric fake
-    players such as Magician replay stand-ins, and during SparkTraits Last Escape through `isKillerInteractionBlocked`,
-    never the weapon gate) and discards it silently on death, ResetPlayer, role assignment and round finalize.
+    keeps one active hook per player, throws it (`NinjaGrappleService.mayGrapple` / `NinjaRules.mayGrapple`: a match
+    participant, `OffMatchUse.isMatchParticipant`, must be Wathe playing+alive and alive+survival; everyone else — no
+    match, STARTING, a lobby player during a match — is a free holder who only needs to be alive and not a spectator,
+    creative included, fix 2026-10-08; refused for Fabric fake players such as Magician replay stand-ins, and during
+    SparkTraits Last Escape through `isKillerInteractionBlocked`, never the weapon gate) and discards it silently on
+    death, ResetPlayer, role assignment and round finalize.
     `entity/NinjaGrapplingHookEntity` is a plain `Entity` (never a `ProjectileEntity`, so projectile hooks never see it;
     not saved, not summonable): the server flies it 24 blocks on a block-only COLLIDER ray (it passes through every
     entity), latches on the first block (vanilla barriers and Wathe barrier panels / light barriers are a miss),
     auto-retracts after 5 s or when the latched block stops holding the hook point (a door opens, a block goes), and
-    breaks the chain when the owner is over 32 blocks away, stops holding it in either hand, is no longer playing, alive
-    and survival, or is held (`NinjaGrappleService.isHeld`: the Rift session's private list, deliberately copied —
+    breaks the chain when the owner is over 32 blocks away, stops holding it in either hand, no longer passes
+    `mayGrapple`, or is held (`NinjaGrappleService.isHeld`: the Rift session's private list, deliberately copied —
     Taotie swallow, Last Stand, Last Escape, Kidnapper control, Control Expert stun, Seeker session, foreign camera —
     plus a Hunter root; a held player can neither throw nor pull). A second right-click on a latched hook starts the
     pull: the server syncs the feet target (`NinjaRules.grappleFeetTarget`, floor/wall/ceiling) as tracked data and the
@@ -893,7 +896,7 @@ Current build baseline:
 - `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
   Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
   an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;
-  `isMatchParticipant` scopes the bound-item rules.
+  `isMatchParticipant` scopes the bound-item rules and splits the Ninja Grappling Hook gate (`NinjaRules.mayGrapple`).
 - `util/GiveCommandDropScope`: marks, by stack identity and per thread, vanilla `/give`'s cosmetic pickup-animation drop
   (the shared count-1 template). `mixin/GiveCommandDropScopeMixin` (common config) is the one `@WrapOperation` on
   `GiveCommand.execute`'s second `dropItem(ItemStack, boolean)` (ordinal 1); ordinal 0, the real remainder drop, stays
