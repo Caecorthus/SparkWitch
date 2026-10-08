@@ -449,6 +449,8 @@ Current build baseline:
     holder's own inventory but move freely inside it, cursor included: PICKUP, PICKUP_ALL, number-key or offhand SWAP
     and drags across the player's own slots (cursor loading is one of these). Throws, clones, shift-clicks of a bound
     stack, the creative clone drag, drag steps onto foreign slots and clicks outside the player's own slots are refused.
+    The slot-click veto sees only server-resolved clicks: the vanilla creative inventory screen sets slots through
+    creative packets, so a creative player (an admin) can already forge, clone or delete these items there.
     The guards are five `mixin/usec/` HEAD injects (Q drop, `dropItem`, slot click, `shouldDropOnDeath`, and the
     decorated pot, which answers `SKIP_DEFAULT_BLOCK_INTERACTION`) plus a both-sides `UseEntityCallback` veto for item
     frames, armor stands and allays. A refused drop goes back to a living USEC or free holder through explicit slot
@@ -561,8 +563,15 @@ Current build baseline:
     bolt cycles, so the screen never locks 上膛 for it.
     `UsecAttachmentCursorLoading` backs `onClicked` on the magazine and the rifle: a right-click with rounds on the
     cursor loads one round into that magazine, or into the rifle's inserted magazine, or into its empty chamber when no
-    magazine is inserted. Both sides claim the click, so it never swaps, but only the server writes (the shotgun
-    pattern).
+    magazine is inserted. Every side that resolves the click claims it, so it never swaps, and exactly one side writes
+    (`UsecAttachmentCursorLoading.writer`): the server for every click it resolves (survival, adventure, and any
+    container click, a creative player's included; the client only claims, the shotgun pattern), and the client only
+    for a creative player's click in the vanilla creative inventory screen (owner, 2026-10-07). That screen resolves
+    slot clicks on the client (`PlayerScreenHandler.onSlotClick` on its inventory tab, its own handler for the other
+    tabs' hotbar row) and syncs whole stacks with creative packets, so the server never sees the click; the client
+    applies the same pure rule, plays the cues locally, writes no bolt cooldown, and the creative stack sync carries
+    the result. `UsecAttachmentClient.register` installs that screen probe
+    (`UsecAttachmentCursorLoading.installCreativeScreenProbe`); a dedicated server keeps the default "never".
   - Scope (`UsecScopeService`): the only writer of `UsecPlayerComponent.scoped`. The `sparkwitch:usec_scope` receiver
     stores true only for a playing, alive, non-spectator, non-Wraith, exact-role USEC using the rifle in the main hand,
     and a per-tick sweep clears anyone who stops qualifying. The payload is harmless and on no deny-list. When the flag
@@ -619,10 +628,18 @@ Current build baseline:
     button predictions `UsecAttachmentModel`). It draws its parent inventory behind it, returns to that inventory on Esc
     or the inventory key, closes fully during a Wathe fade or on death, and names the rifle by its item display name
     (AXMC). `UsecAttachmentClient.tryOpen` opens it on an empty-cursor right press (PICKUP, button 1) on a rifle in the
-    player's own `PlayerScreenHandler` slot. Callers: `client/mixin/usec/UsecLimitedInventoryRifleClickMixin`, a
+    player's own inventory, resolved to the inventory index (0-35, 40) by `UsecAttachmentModel.ownInventoryIndex`: a
+    `PlayerScreenHandler` slot, or (owner, 2026-10-07) a creative inventory-tab slot read through the player handler
+    slot it wraps (`client/mixin/usec/UsecCreativeSlotAccessor` on `CreativeInventoryScreen$CreativeSlot.slot`; the
+    wrapper's own index is its handler position, 36 for hotbar 0). Containers, the creative item list and the other
+    creative tabs' hotbar row never open it: while the screen covers the creative screen, vanilla routes the server's
+    non-hotbar slot updates (sync id 0) into the creative handler, whose inventory-tab slots delegate to the player
+    inventory but whose other tabs hold the item grid. Actions still go through `sparkwitch:usec_attachment`, whose gate
+    never reads creative. Callers: `client/mixin/usec/UsecLimitedInventoryRifleClickMixin`, a
     `@WrapOperation` on `onMouseClick` in Wathe's `LimitedHandledScreen.mouseClicked` that chains with the armor wrapper
     and is pinned in `watheClientMixinContracts`; and `UsecInventoryScreenRifleClickMixin`, the same call in vanilla
-    `HandledScreen.mouseClicked`.
+    `HandledScreen.mouseClicked`, which the creative screen's `mouseClicked` also reaches after its tab and scrollbar
+    checks.
   - Cracks: `UsecImpactClient` receives `sparkwitch:usec_bullet_impacts` and feeds the pure `UsecCrackTracker`, which
     drives vanilla `WorldRenderer#setBlockBreakingInfo` under reserved fake breaker ids (`-0x55534543` down by up to
     255; entity ids are positive), one per cracked block. A repeat hit reuses the id, keeps the higher stage and

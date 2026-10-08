@@ -167,7 +167,8 @@
     "usec.UsecRecoilCameraMixin",
     "usec.UsecLimitedInventoryRifleClickMixin",
     "usec.UsecInventoryScreenRifleClickMixin",
-    "usec.UsecRifleUseCooldownMixin"
+    "usec.UsecRifleUseCooldownMixin",
+    "usec.UsecCreativeSlotAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

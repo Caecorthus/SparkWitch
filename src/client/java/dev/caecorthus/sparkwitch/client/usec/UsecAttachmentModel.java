@@ -159,14 +159,49 @@ public final class UsecAttachmentModel {
     /**
      * The inventory right-click seam opens the screen only for a plain right press (PICKUP, button 1) with an empty
      * cursor on a rifle in the player's own inventory slot, for a non-spectator connected to a SparkWitch server. A
-     * press with rounds on the cursor is never intercepted, so cursor loading still reaches the server as a click.
+     * press with rounds on the cursor is never intercepted, so cursor loading still runs as a normal click (on the
+     * server in survival, on the client in the creative inventory).
      * 背包右键接缝仅在以下情况打开界面：空光标下普通右键（PICKUP、按键 1），点在玩家自己背包栏位里的步枪上，玩家不是旁观者且
-     * 连接的是 SparkWitch 服务端。光标拿着子弹的按下从不拦截，因此光标装填仍以普通点击到达服务端。
+     * 连接的是 SparkWitch 服务端。光标拿着子弹的按下从不拦截，因此光标装填仍按普通点击执行（生存模式在服务端，创造模式物品栏
+     * 在客户端）。
      */
     public static boolean opensOnClick(int button, boolean pickup, boolean cursorEmpty, boolean ownInventorySlot,
                                        int inventoryIndex, boolean rifle, boolean spectator, boolean serverReady) {
         return button == 1 && pickup && cursorEmpty && ownInventorySlot
                 && UsecAttachmentRules.isActionSlot(inventoryIndex) && rifle && !spectator && serverReady;
+    }
+
+    /**
+     * A clicked slot as the opener sees it: whether its inventory is the player's own and its {@code getIndex()}.
+     * 入口所见的被点击栏位：其物品栏是否为玩家自己的背包，以及它的 {@code getIndex()}。
+     */
+    public record SlotRef(boolean playerInventory, int index) {
+    }
+
+    /**
+     * Resolves a clicked slot to the player inventory index (0-35, offhand 40) that the screen and
+     * {@code sparkwitch:usec_attachment} use, or {@link #NO_SLOT}.
+     * <ul>
+     *   <li>{@code creativeWrapped} non-null: a creative inventory-tab slot, which wraps a player screen handler slot.
+     *   The wrapper's own index is its handler position (36 for hotbar 0, 45 for the offhand), so only the wrapped slot
+     *   is read.</li>
+     *   <li>Otherwise only the player's own screen handler (the vanilla survival inventory, Wathe's in-round inventory)
+     *   counts, read from the clicked slot itself.</li>
+     *   <li>Everything else never opens: containers, the creative item list, and the hotbar row of the other creative
+     *   tabs. That row is a plain slot of the creative handler, and while this screen covers the creative screen
+     *   vanilla routes the server's non-hotbar slot updates into that handler's item grid, so the shown inventory
+     *   would go stale.</li>
+     * </ul>
+     * 把被点击的栏位解析为界面与 {@code sparkwitch:usec_attachment} 使用的玩家背包下标（0-35，副手 40），否则返回
+     * {@link #NO_SLOT}。{@code creativeWrapped} 非空：创造模式背包标签页的栏位，它包装一个玩家界面处理器栏位；包装栏位自身的下标
+     * 是其在处理器中的位置（快捷栏 0 为 36，副手为 45），因此只读取被包装的栏位。否则只认玩家自己的界面处理器（原版生存背包、
+     * Wathe 局内背包），直接读取被点击的栏位。其余情况一律不打开：容器、创造模式物品列表，以及其他创造标签页的快捷栏行。该行是
+     * 创造处理器的普通栏位；本界面覆盖创造界面期间，原版会把服务端发来的非快捷栏栏位更新写进该处理器的物品网格，显示的背包会过期。
+     */
+    public static int ownInventoryIndex(boolean playerHandler, SlotRef clicked, @Nullable SlotRef creativeWrapped) {
+        SlotRef own = creativeWrapped != null ? creativeWrapped : playerHandler ? clicked : null;
+        return own != null && own.playerInventory() && UsecAttachmentRules.isActionSlot(own.index())
+                ? own.index() : NO_SLOT;
     }
 
     // ---- parts / 零件 ----
