@@ -5,6 +5,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceRaycast;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoType;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecShieldPierce;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
@@ -14,7 +16,9 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.HitResult;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -167,6 +171,41 @@ public final class SparkWitchApi {
      */
     public static boolean isBoundKillerTargetingVendetta(PlayerEntity actor, PlayerEntity target) {
         return VendettaInteractionService.isBoundKillerTargetingVendetta(actor, target);
+    }
+
+    /**
+     * Frozen cross-mod seam (2026-10-07), server thread only: an add-on shield layer that is about to stop a kill asks
+     * this first. True spends one pierce of the shield-piercing shot being settled against exactly this
+     * {@code victim}, {@code killer} and {@code deathReason}; the caller then spends its layer as if it had blocked
+     * and lets the same kill go on. Today the only such shot is the USEC AXMC's {@code wathe:gun_shot} (FMJ 2 layers,
+     * AP 5, +1 with SparkTraits Heavy Artillery), and the only add-on layer is SparkStrength's Bodyguard vest (owner
+     * 2026-10-07). False, spending nothing, for every other kill, with the budget empty, off the server thread and for
+     * nulls; the caller then blocks as usual.
+     * 冻结的跨模组接缝（2026-10-07），仅服务端线程：即将挡下一次击杀的附属模组护盾层先询问这里。返回 true 即花费正对确切的
+     * {@code victim}、{@code killer} 与 {@code deathReason} 结算的穿盾射击的一次穿透；调用方随后如同挡下一样消耗该层，并放行同一
+     * 次击杀。目前唯一的此类射击是 USEC AXMC 的 {@code wathe:gun_shot}（FMJ 2 层，AP 5 层，SparkTraits 重炮手再 +1），唯一的
+     * 附属模组护盾层是 SparkStrength 保镖防弹衣（所有者 2026-10-07）。其他任何击杀、预算已空、不在服务端线程以及参数为 null 时
+     * 返回 false 且不花费任何预算，调用方照常挡下。
+     */
+    public static boolean tryPierceShieldLayer(PlayerEntity victim, PlayerEntity killer, Identifier deathReason) {
+        return UsecShieldPierce.tryPierce(victim, killer, deathReason);
+    }
+
+    /**
+     * Frozen cross-mod seam (2026-10-07), server thread only: the stable round id ({@code "fmj"} or {@code "ap"},
+     * {@code UsecAmmoType.id()}) of the shield-piercing shot being settled against exactly this {@code victim},
+     * {@code killer} and {@code deathReason}, pierce budget left or not; null for every other kill (revolvers
+     * included), off the server thread and for nulls. Spends nothing. For an add-on shield the shot never pierces that
+     * prices its block by round; the add-on owns the price (owner 2026-10-07: SparkStrength's Democracy Shield, 10
+     * stamina points for FMJ, 25 for AP). Treat an unknown id as "not a piercing shot".
+     * 冻结的跨模组接缝（2026-10-07），仅服务端线程：正对确切的 {@code victim}、{@code killer} 与 {@code deathReason} 结算的穿盾
+     * 射击的稳定弹种 id（{@code "fmj"} 或 {@code "ap"}，即 {@code UsecAmmoType.id()}），不论穿透预算是否剩余；其他任何击杀（含
+     * 左轮）、不在服务端线程以及参数为 null 时为 null。不花费任何预算。供该射击无法击穿、按弹种为格挡定价的附属模组盾牌使用；
+     * 价格归附属模组所有（所有者 2026-10-07：SparkStrength 民主盾牌，FMJ 10 点体力，AP 25 点）。未知 id 应视为“非穿盾射击”。
+     */
+    public static @Nullable String piercingShotAmmoId(PlayerEntity victim, PlayerEntity killer, Identifier deathReason) {
+        UsecAmmoType ammo = UsecShieldPierce.scopedAmmo(victim, killer, deathReason);
+        return ammo == null ? null : ammo.id();
     }
 
     public static boolean isWraithActive(PlayerEntity player) {

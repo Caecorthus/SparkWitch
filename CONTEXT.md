@@ -83,6 +83,15 @@ Current build baseline:
     recorded as `REVOLVER`). The caller finishes such a shot as a miss. `SparkWitchApi.isBoundKillerTargetingVendetta(
     PlayerEntity, PlayerEntity)` (`VendettaInteractionService`'s rule) lets the pistols' own alive check accept the
     shooter's bound active Vendetta, so `killPlayer` resolves its terminal death as under a revolver shot.
+  - Shield pierce seam (2026-10-07, frozen names and signatures, server thread only, reached by SparkStrength's
+    `SparkWitchCompat` through reflection for the Bodyguard gear): `SparkWitchApi.tryPierceShieldLayer(PlayerEntity,
+    PlayerEntity, Identifier)` spends one pierce of the shot being settled against exactly that victim, killer and death
+    reason (today only the USEC AXMC's `wathe:gun_shot` scope, `UsecShieldPierce.tryPierce`); true means the caller
+    spends its layer and lets the same kill go on. `SparkWitchApi.piercingShotAmmoId(PlayerEntity, PlayerEntity,
+    Identifier)` returns that shot's stable round id (`"fmj"` or `"ap"`, `UsecAmmoType.id()`), budget left or not, and
+    spends nothing; null for every other kill. Both fail closed (false / null) for nulls and outside the exact scope.
+    The facade exposes the round, not a price: the add-on owns its balance numbers (the Democracy Shield's 10 / 25
+    points live in SparkStrength's `BodyguardRules`, next to its sword and TR shell costs).
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
   D1–D10, numbers in each ability class):
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
@@ -522,21 +531,33 @@ Current build baseline:
     `SparkTraitsApi.isHeavyArtilleryGunShot(ServerPlayerEntity, ServerPlayerEntity)`, asked before the kill, failing
     closed when absent) says it is a Heavy Artillery shot. The scope is a server-thread `ThreadLocal` restored in
     `finally`, and `tryPierce` spends one unit only for the exact scoped victim, killer and `wathe:gun_shot`, so nested
-    kills (Bodyguard, deaths in AFTER, Tofana retaliation) never spend it. Only three shield-layer consumers ask it,
-    each spending its layer first and then letting the shot on: the pinned NoellesRoles BEFORE listener
-    `lambda$registerEvents$5` (whiskey stack and Iron Man; `mixin/usec/NoellesUsecShieldPierceMixin`, a `@WrapMethod`
-    that, for the scoped shot only, re-invokes it while each cancel spent exactly one layer and a pierce is paid, with
-    layers read by `compat/NoellesShieldLayersCompat`; its earlier non-shield branches such as the Jester stasis and
-    fake death still run first), the Guardian Angel shield (`GuardianAngelFeatureService.beforeKill` returns null,
-    never `allow()`, after removing it), and Wathe psycho armour, Jester-moment armour included
-    (`mixin/usec/GameFunctionsUsecPsychoArmourMixin`, an expression hook on `ShouldPiercePsychoArmour.pierces` that strips
-    one layer per pierce left, each recorded as `shield_blocked` with source `sparkwitch:usec_rifle`, then returns the
-    original answer so Wathe absorbs with the next layer or stops psycho mode and lets the death through). The layer
-    that finds the budget empty blocks as usual. Every other protection hooked on `killPlayer` (Saint, Judge, the
+    kills (Bodyguard, deaths in AFTER, Tofana retaliation) never spend it. The scope also names its round
+    (`UsecShieldPierce.scopedAmmo`). Only four shield-layer consumers ask it, each spending its layer and then letting
+    the shot on: SparkStrength's Bodyguard vest (owner 2026-10-07, through the frozen
+    `SparkWitchApi.tryPierceShieldLayer`; its HEAD hook on `killPlayer` runs before every BEFORE listener, so the vest
+    is always the first layer and is pierced by both rounds, then the same kill goes on with one unit fewer), the pinned
+    NoellesRoles BEFORE listener `lambda$registerEvents$5` (whiskey stack and Iron Man;
+    `mixin/usec/NoellesUsecShieldPierceMixin`, a `@WrapMethod` that, for the scoped shot only, re-invokes it while each
+    cancel spent exactly one layer and a pierce is paid, with layers read by `compat/NoellesShieldLayersCompat`; its
+    earlier non-shield branches such as the Jester stasis and fake death still run first), the Guardian Angel shield
+    (`GuardianAngelFeatureService.beforeKill` returns null, never `allow()`, after removing it), and Wathe psycho
+    armour, Jester-moment armour included (`mixin/usec/GameFunctionsUsecPsychoArmourMixin`, an expression hook on
+    `ShouldPiercePsychoArmour.pierces` that strips one layer per pierce left, each recorded as `shield_blocked` with
+    source `sparkwitch:usec_rifle`, then returns the original answer so Wathe absorbs with the next layer or stops
+    psycho mode and lets the death through). The layer that finds the budget empty blocks as usual. SparkStrength's
+    Democracy Shield is NOT a layer (owner 2026-10-07: the shield is too strong): a raised shield facing the shot blocks
+    the AXMC before the vest, spends no budget and leaves the vest alone, and only its stamina cost depends on the
+    round, read through the frozen `SparkWitchApi.piercingShotAmmoId`: 10 stamina points for FMJ, 25 for AP
+    (SparkStrength's points, 10 ticks each, a base bar of 20; it owns the numbers), instead of the default 5, so an AP
+    block breaks even a full shield. Revolvers and every other weapon get no round id and keep the vest and the 5-point
+    shield. The SparkTraits Second Strike mirror in SparkStrength keeps its two settlements; a pierced vest ends them
+    and lets the kill go on. An innocent shot the shield stops is never punished (SparkStrength's
+    `ShouldPunishGunShooter` cancel, asked before the kill as for the revolver); a vest stop or a pierced vest is
+    punished like the revolver's vest stop. Every other protection hooked on `killPlayer` (Saint, Judge, the
     SparkFactionAPI veto, Fiend, Ninja parry, Pig God, Last Stand, Last Escape, Depression, Tofana) runs exactly once
     and is never pierced; KillPlayer.BEFORE fires once and AFTER at most once. Known quirk: a layer earlier in the
-    BEFORE chain than a later parry is pierced and spent, then the parry still blocks. The death reason stays
-    `wathe:gun_shot`, and the Ceremonial Sword path is unchanged.
+    BEFORE chain (or the vest, at HEAD) than a later parry is pierced and spent, then the parry still blocks. The death
+    reason stays `wathe:gun_shot`, and the Ceremonial Sword path is unchanged.
   - Hit punishment (`UsecFirePunishment`, Q8 and owner O1 2026-10-07, Wathe's revolver receiver): Wathe's
     `ShouldPunishGunShooter` is asked for every player hit, before the kill, and the punishment is decided on the hit,
     whether or not the victim dies (a Saint, shield, Last Stand or Judge denial does not spare the USEC). A listener's

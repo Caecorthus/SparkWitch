@@ -75,7 +75,7 @@ final class UsecFirePunishment {
      */
     static void kill(ServerPlayerEntity shooter, ServerPlayerEntity victim, UsecAmmoType ammo) {
         int budget = UsecShieldPierce.budget(ammo, SparkTraitsUsecBridge.isHeavyArtilleryGunShot(shooter, victim));
-        UsecShieldPierce.run(shooter.getUuid(), victim.getUuid(), budget,
+        UsecShieldPierce.run(shooter.getUuid(), victim.getUuid(), ammo, budget,
                 () -> GameFunctions.killPlayer(victim, true, shooter, GameConstants.DeathReasons.GUN));
     }
 
