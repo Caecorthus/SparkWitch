@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
@@ -73,6 +74,13 @@ public final class PotionScopeRules {
     public static final double SHORT_ROW_HALF_MRAD = 10.0;
     /** A deep row whose label top is closer than this below the number line is dropped. / 深行标签与数字线的最小间距。 */
     public static final int DEEP_CLEAR_PX = 2;
+    /**
+     * A range row is dropped when its label centre is less than the digit height plus this (strokes) below the
+     * previous kept row's, so labels and their key rings never overlap (rows bunch up at steep pitches).
+     * 若某射程横线的标签中心与上一条保留横线的标签中心相距不足“数字高度 + 此值（线宽）”，则舍弃该横线，使标签及其描边从不
+     * 重叠（俯仰很大时横线会挤在一起）。
+     */
+    public static final int ROW_CLEAR_PX = 2;
     /** The cant line ends this many lens radii below the centre. / 倾斜检查线止于中心下方的镜片半径倍数。 */
     public static final double CANT_END_RHO = 0.88;
     /** The "+" check cross sits this many lens radii above the centre, arms of {@link #CHECK_ARM_PX}. / “+”校验十字。 */
@@ -111,11 +119,14 @@ public final class PotionScopeRules {
     // ---- Lit paint (A_LIT_SPEC.md §5) / 照明配色 ----
     /** PGO-7 bulb amber, the stroke and digit colour. / PGO-7 灯泡琥珀色，线条与数字颜色。 */
     public static final int LIT_COLOR = 0xFFFFC860;
-    /** 1-stroke dark key ring around every stroke and digit, at 55 %. / 每条线与数字外一圈深色描边，不透明度 55%。 */
+    /** 1-stroke dark key ring around every stroke, at 55 %. / 每条线外一圈深色描边，不透明度 55%。 */
     public static final int LIT_KEY_COLOR = 0x8C221406;
-    /** Faint amber glow: about 10 % within 2 strokes, 3 % out to 4. / 淡琥珀色辉光。 */
-    public static final int LIT_GLOW_INNER_COLOR = 0x1AFFC860;
-    public static final int LIT_GLOW_OUTER_COLOR = 0x08FFC860;
+    /**
+     * The same key around digits, opaque: the eight outline copies of a label overlap, and the text layer re-sorts its
+     * quads, so a translucent outline would build up unevenly.
+     * 数字外的同色描边，不透明：标签的八个描边副本相互重叠，且文字渲染层会重新排序其四边形，半透明描边会叠加得不均匀。
+     */
+    public static final int LIT_LABEL_KEY_COLOR = 0xFF221406;
 
     // ---- Loaded-shell readout and HUD line / 装填显示与 HUD 行 ----
     /** The readout's right edge and top, in lens radii right of / above the centre. / 装填显示的右缘与顶部。 */
@@ -351,29 +362,45 @@ public final class PotionScopeRules {
                 : RANGEFINDER_RANGES.subList(start, RANGEFINDER_RANGES.size());
         Builder out = new Builder(lens);
         draw(out, lens, plan);
+        double x0 = Double.NaN;
+        double base = Double.NaN;
         if (!ranges.isEmpty()) {
-            rangefinder(out, lens, plan.numberLineY(), ranges);
+            x0 = rangefinderX0(lens);
+            base = rangefinderBase(lens, plan.numberLineY(), ranges.getFirst());
+            rangefinder(out, lens, x0, base, ranges);
         }
-        return new Reticle(s, lens.textScale(), List.copyOf(out.strokes), List.copyOf(out.labels),
-                plan.bottom().range(), plan.columns(), plan.gridRows(), plan.deepRows(), plan.numberLineY(),
-                ranges, ranges.isEmpty() ? Double.NaN : rangefinderX0(lens),
-                ranges.isEmpty() ? Double.NaN : rangefinderBase(lens, plan.numberLineY(), ranges.getFirst()));
+        return new Reticle(s, lens.textScale(), Collections.unmodifiableList(out.strokes),
+                Collections.unmodifiableList(out.labels), plan.bottom().range(), plan.columns(), plan.grid(),
+                plan.deep(), plan.numberLineY(), ranges, x0, base);
     }
 
-    /** Pure grid decisions for one pitch (A_LIT_SPEC.md §4). / 某一俯仰角下的网格判定。 */
+    /**
+     * Pure grid decisions for one pitch (A_LIT_SPEC.md §4). Rows the shell cannot reach are skipped, and so is a row
+     * whose label would overlap the previous kept row's ({@link #ROW_CLEAR_PX}; rows bunch up toward the centre at
+     * steep pitches).
+     * 某一俯仰角下的网格判定（规格第 4 节）。炮弹到不了的横线不画；标签会与上一条保留横线的标签重叠的横线也不画
+     * （{@link #ROW_CLEAR_PX}；俯仰很大时横线会向中心挤拢）。
+     */
     private static Plan plan(Lens lens, double pitch) {
-        List<Row> rows = new ArrayList<>();
+        List<RangeRow> rows = new ArrayList<>();
+        double minGap = lens.digitHeight() + ROW_CLEAR_PX * lens.s();
+        double previousLabel = labelCentre(lens, FLAT_ROW_RANGE, 0.0);
         for (int range : RANGE_ROWS) {
             double mrad = rangeRowMrad(pitch, range);
-            if (!Double.isNaN(mrad)) {
-                rows.add(new Row(range, mrad));
+            if (Double.isNaN(mrad)) {
+                continue;
+            }
+            double label = labelCentre(lens, range, mrad);
+            if (label - previousLabel >= minGap) {
+                rows.add(new RangeRow(range, mrad));
+                previousLabel = label;
             }
         }
-        Row bottom = null;
+        RangeRow bottom = null;
         int columns = 0;
         for (int candidate = LEAD_COLUMNS; candidate >= MIN_LEAD_COLUMNS && bottom == null; candidate--) {
             for (int index = rows.size() - 1; index >= 0; index--) {
-                Row row = rows.get(index);
+                RangeRow row = rows.get(index);
                 if (row.range() <= GRID_MAX_ROW && gridFits(lens, candidate, row.mrad())) {
                     bottom = row;
                     columns = candidate;
@@ -384,7 +411,7 @@ public final class PotionScopeRules {
         if (bottom == null) {
             // No row fits (a very narrow FOV option): the grid is the centre row with as many columns as fit.
             // 没有横线能放下（极窄的视场角选项）：网格只剩中心横线，并放下尽可能多的提前量竖线。
-            bottom = new Row(FLAT_ROW_RANGE, 0.0);
+            bottom = new RangeRow(FLAT_ROW_RANGE, 0.0);
             for (int candidate = LEAD_COLUMNS; candidate >= 1 && columns == 0; candidate--) {
                 if (gridFits(lens, candidate, 0.0)) {
                     columns = candidate;
@@ -392,10 +419,10 @@ public final class PotionScopeRules {
             }
         }
         double numberLineY = lens.pt(0.0, bottom.mrad())[1] + NUMBER_LINE_PX * lens.s();
-        List<Row> grid = new ArrayList<>();
-        List<Row> deep = new ArrayList<>();
+        List<RangeRow> grid = new ArrayList<>();
+        List<RangeRow> deep = new ArrayList<>();
         double half = lens.digitHeight() / 2.0;
-        for (Row row : rows) {
+        for (RangeRow row : rows) {
             if (row.range() <= bottom.range()) {
                 grid.add(row);
                 continue;
@@ -407,7 +434,13 @@ public final class PotionScopeRules {
                 deep.add(row);
             }
         }
-        return new Plan(bottom, columns, List.copyOf(grid), List.copyOf(deep), numberLineY);
+        return new Plan(bottom, columns, Collections.unmodifiableList(grid), Collections.unmodifiableList(deep),
+                numberLineY);
+    }
+
+    /** Vertical centre of a row's label, less the common half-stroke offset. / 横线标签的竖直中心（不含共同的半线宽偏移）。 */
+    private static double labelCentre(Lens lens, int range, double mrad) {
+        return lens.pt(0.0, mrad)[1] - (range == DOUBLED_ROW ? DOUBLE_GAP_PX * lens.s() / 2.0 : 0.0);
     }
 
     /** The grid's lower corner and its number line fit inside {@link #CULL_RHO}. / 网格下角与数字线位于适配上限内。 */
@@ -457,7 +490,7 @@ public final class PotionScopeRules {
         double bottomMrad = plan.bottom().mrad();
         // 1-2. The centre row "5" and the grid rows, the 100 row doubled. / 中心横线与网格横线，100 行为双线。
         out.row(-gx, gx, 0.0, 0.0);
-        for (Row row : plan.grid()) {
+        for (RangeRow row : plan.grid()) {
             out.row(-gx, gx, row.mrad(), 0.0);
             if (row.range() == DOUBLED_ROW) {
                 out.row(-gx, gx, row.mrad(), -DOUBLE_GAP_PX * s);
@@ -490,7 +523,7 @@ public final class PotionScopeRules {
             out.horizontal(lens.pt(-gx, bottomMrad)[0], lens.pt(gx, bottomMrad)[0], plan.numberLineY());
         }
         // 7. Deep rows: short, on the cant line, centre aim only. / 深行：挂在倾斜检查线上的短横线，只用中心瞄准。
-        for (Row row : plan.deep()) {
+        for (RangeRow row : plan.deep()) {
             out.row(-SHORT_ROW_HALF_MRAD, SHORT_ROW_HALF_MRAD, row.mrad(), 0.0);
             if (row.range() == DOUBLED_ROW) {
                 out.row(-SHORT_ROW_HALF_MRAD, SHORT_ROW_HALF_MRAD, row.mrad(), -DOUBLE_GAP_PX * s);
@@ -500,10 +533,10 @@ public final class PotionScopeRules {
         double[] five = lens.pt(-gx, 0.0);
         out.label(rowLabel(FLAT_ROW_RANGE), five[0] - LABEL_GAP_PX * s, five[1] + 0.5 * s, Align.RIGHT,
                 VAlign.MIDDLE);
-        for (Row row : plan.grid()) {
+        for (RangeRow row : plan.grid()) {
             rangeLabel(out, lens, row, -gx);
         }
-        for (Row row : plan.deep()) {
+        for (RangeRow row : plan.deep()) {
             rangeLabel(out, lens, row, -SHORT_ROW_HALF_MRAD);
         }
         // 9. The "+" check cross high above the grid. / 网格上方高处的“+”校验十字。
@@ -513,7 +546,7 @@ public final class PotionScopeRules {
         out.rect(0, crossY - arm, s, crossY + arm + s);
     }
 
-    private static void rangeLabel(Builder out, Lens lens, Row row, double leftMrad) {
+    private static void rangeLabel(Builder out, Lens lens, RangeRow row, double leftMrad) {
         int s = lens.s();
         double[] p = lens.pt(leftMrad, row.mrad());
         double lift = row.range() == DOUBLED_ROW ? DOUBLE_GAP_PX * s / 2.0 : 0.0;
@@ -527,10 +560,8 @@ public final class PotionScopeRules {
      * 第 10 项：网格下方、倾斜检查线右侧的 PGO-7 测距尺，对应 1.8 格高的站立玩家。实线基线、其上方玩家头顶高度处的虚线
      * 曲线、自曲线向上的刻度（带标签的刻度延伸到共同的标签线），以及“1,8”图例。头顶位置按畸变精确计算（{@link #headY}）。
      */
-    private static void rangefinder(Builder out, Lens lens, double numberLineY, List<Integer> ranges) {
+    private static void rangefinder(Builder out, Lens lens, double x0, double base, List<Integer> ranges) {
         int s = lens.s();
-        double x0 = rangefinderX0(lens);
-        double base = rangefinderBase(lens, numberLineY, ranges.getFirst());
         double step = RANGEFINDER_STEP_PX * s;
         double[] heads = new double[ranges.size()];
         double highest = Double.POSITIVE_INFINITY;
@@ -564,6 +595,7 @@ public final class PotionScopeRules {
                     previousX = xx;
                     previousY = yy;
                 }
+                out.endPolyline();
             }
         }
         out.label(RANGEFINDER_LEGEND, x0 - 3 * s, base + 4 * s, Align.LEFT, VAlign.TOP);
@@ -587,10 +619,6 @@ public final class PotionScopeRules {
 
     /** Filled pixel rectangle [x0, x1) x [y0, y1), framebuffer px from the lens centre. / 填充像素矩形。 */
     public record Rect(int x0, int y0, int x1, int y1) {
-        /** This rectangle grown by {@code by} px on every side. / 四边各扩展 {@code by} 像素。 */
-        public Rect grow(int by) {
-            return new Rect(x0 - by, y0 - by, x1 + by, y1 + by);
-        }
     }
 
     /**
@@ -601,14 +629,14 @@ public final class PotionScopeRules {
     }
 
     /**
-     * One frame of the reticle: clipped strokes and labels, plus the layout decisions (exposed for tests and tuning).
-     * {@code gridBottomRange} is {@link #FLAT_ROW_RANGE} when only the centre row fits; without a rangefinder
-     * {@code rangefinderRanges} is empty and its tall-end x and baseline y are NaN.
-     * 一帧分划：裁剪后的线条与标签，以及布局判定（供测试与调参）。只放得下中心横线时 {@code gridBottomRange} 为
-     * {@link #FLAT_ROW_RANGE}；没有测距尺时 {@code rangefinderRanges} 为空，其高端 x 与基线 y 为 NaN。
+     * One frame of the reticle: clipped strokes and labels, plus the layout decisions it was built from (the plan's
+     * own lists, no extra per-frame work). {@code gridBottomRange} is {@link #FLAT_ROW_RANGE} when only the centre row
+     * fits; without a rangefinder {@code rangefinderRanges} is empty and its tall-end x and baseline y are NaN.
+     * 一帧分划：裁剪后的线条与标签，以及构建它所用的布局判定（即规划自身的列表，无额外的逐帧开销）。只放得下中心横线时
+     * {@code gridBottomRange} 为 {@link #FLAT_ROW_RANGE}；没有测距尺时 {@code rangefinderRanges} 为空，其高端 x 与基线 y 为 NaN。
      */
     public record Reticle(int strokeScale, int textScale, List<Rect> strokes, List<Label> labels, int gridBottomRange,
-                          int leadColumns, List<Integer> gridRows, List<Integer> deepRows, double numberLineY,
+                          int leadColumns, List<RangeRow> gridRows, List<RangeRow> deepRows, double numberLineY,
                           List<Integer> rangefinderRanges, double rangefinderX0, double rangefinderBase) {
         static Reticle empty(int strokeScale) {
             return new Reticle(strokeScale, TEXT_TEXEL_PX * strokeScale, List.of(), List.of(), FLAT_ROW_RANGE, 0,
@@ -628,17 +656,11 @@ public final class PotionScopeRules {
         BOTTOM
     }
 
-    private record Row(int range, double mrad) {
+    /** A drawn range row: line-of-sight blocks and its hold-over in mrad. / 已绘制的射程横线：视线距离与抬枪密位。 */
+    public record RangeRow(int range, double mrad) {
     }
 
-    private record Plan(Row bottom, int columns, List<Row> grid, List<Row> deep, double numberLineY) {
-        List<Integer> gridRows() {
-            return grid.stream().map(Row::range).toList();
-        }
-
-        List<Integer> deepRows() {
-            return deep.stream().map(Row::range).toList();
-        }
+    private record Plan(RangeRow bottom, int columns, List<RangeRow> grid, List<RangeRow> deep, double numberLineY) {
     }
 
     /** The frame's projection, lens and text metrics. / 本帧的投影、镜片与文字尺寸。 */
@@ -696,6 +718,10 @@ public final class PotionScopeRules {
         final int s;
         final List<Rect> strokes = new ArrayList<>();
         final List<Label> labels = new ArrayList<>();
+        private boolean inRun;
+        private int runX;
+        private int runTop;
+        private int runBottom;
 
         Builder(Lens lens) {
             this.lens = lens;
@@ -723,7 +749,13 @@ public final class PotionScopeRules {
             rect(left, (int) Math.floor(Math.min(ya, yb)), left + thickness, (int) Math.floor(Math.max(ya, yb)) + s);
         }
 
-        /** 1-px Bresenham segment between floored points, one rect per column run. / 布雷森汉姆线段。 */
+        /**
+         * One 1-px Bresenham segment of the current polyline, between floored points. Pixels gather into one run per
+         * column across the whole polyline (a shared end pixel is not drawn twice); {@link #endPolyline} draws the
+         * last run.
+         * 当前折线中的一段 1 像素布雷森汉姆线段（端点取整）。像素在整条折线内按列合并为一段（共享端点不会重复绘制）；
+         * {@link #endPolyline} 绘制最后一段。
+         */
         void segment(double xa, double ya, double xb, double yb) {
             int x0 = (int) Math.floor(xa);
             int y0 = (int) Math.floor(ya);
@@ -734,21 +766,10 @@ public final class PotionScopeRules {
             int sx = x0 < x1 ? 1 : -1;
             int sy = y0 < y1 ? 1 : -1;
             int error = dx + dy;
-            int runX = x0;
-            int runTop = y0;
-            int runBottom = y0;
             while (true) {
-                if (x0 != runX) {
-                    rect(runX, runTop, runX + s, runBottom + s);
-                    runX = x0;
-                    runTop = y0;
-                    runBottom = y0;
-                } else {
-                    runTop = Math.min(runTop, y0);
-                    runBottom = Math.max(runBottom, y0);
-                }
+                runPixel(x0, y0);
                 if (x0 == x1 && y0 == y1) {
-                    break;
+                    return;
                 }
                 int doubled = 2 * error;
                 if (doubled >= dy) {
@@ -760,7 +781,27 @@ public final class PotionScopeRules {
                     y0 += sy;
                 }
             }
-            rect(runX, runTop, runX + s, runBottom + s);
+        }
+
+        private void runPixel(int x, int y) {
+            if (inRun && x == runX) {
+                runTop = Math.min(runTop, y);
+                runBottom = Math.max(runBottom, y);
+                return;
+            }
+            endPolyline();
+            inRun = true;
+            runX = x;
+            runTop = y;
+            runBottom = y;
+        }
+
+        /** Draws the pending column run of the current polyline. / 绘制当前折线尚未绘制的列。 */
+        void endPolyline() {
+            if (inRun) {
+                rect(runX, runTop, runX + s, runBottom + s);
+                inRun = false;
+            }
         }
 
         void rect(int x0, int y0, int x1, int y1) {

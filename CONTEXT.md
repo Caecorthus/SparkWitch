@@ -2136,14 +2136,18 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
     `ScopeLensGeometry.BARREL_DISTORTION`; everything is clipped to pixel centres within the lens radius − 1.5 px.
     Range rows 70–150 (60 skipped; the centre row "5" is the 0–50 flat zone) are labelled in tens of LINE-OF-SIGHT
     blocks and stay pitch-tracked: each frame re-solves `PotionBallistics.angleBelowSightAtRange`, where the shell first
-    reaches that distance from the eye on its per-tick path. The lead grid (columns every 20 mrad = 1 block/s, 5 a
-    side, 4 if 5 do not fit, columns 3 and 4 heavy) ends at the doubled 100 row; deeper rows hang short on the cant
-    line, and one whose label would touch the number line is dropped. A PGO-7 rangefinder for a 1.8-block player
-    (heights atan(1.8/D), labels 5/8/10/12/15) sits under the grid; its first tick is chosen at pitch 0 and kept, so
-    it never jumps with pitch. All fits use ρ ≤ 0.90. Paint: a dark key ring, a faint amber glow, then amber
-    `0xFFFFC860` strokes and digits, no black fill; each translucent layer covers a pixel once via GUI depth bands in
-    negative z inside the crosshair layer. The loaded shell (swatch and name in its colour, or the empty text) sits at
-    the lens's upper right (right edge 0.60 R, top 0.66 R), shrunk only when too narrow.
+    reaches that distance from the eye on its per-tick path. A row whose label would overlap the previous kept row's
+    (closer than the digit height + 2 strokes, `ROW_CLEAR_PX`) is dropped, since rows bunch up at steep pitches. The
+    lead grid (columns every 20 mrad = 1 block/s, 5 a side, 4 if 5 do not fit, columns 3 and 4 heavy) ends at the
+    doubled 100 row; deeper rows hang short on the cant line, and one whose label would touch the number line is
+    dropped. A PGO-7 rangefinder for a 1.8-block player (heights atan(1.8/D), labels 5/8/10/12/15) sits under the
+    grid; its first tick is chosen at pitch 0 and kept, so it never jumps with pitch. All fits use ρ ≤ 0.90. Paint
+    (no glow): a dark key ring, then amber `0xFFFFC860` strokes and digits, no black fill. The strokes' 55 % key
+    covers a pixel once through GUI depth order (the GUI layer keeps its quad order; each key quad sits a little
+    farther, in negative z inside the crosshair layer); the digits' outline is opaque, because the text layer
+    re-sorts its quads. The layout is cached until pitch, FOV, size or distortion changes. The loaded shell (swatch
+    and name in its colour, or the empty text) sits at the lens's upper right (right edge 0.60 R, top 0.66 R), shrunk
+    only when too narrow.
   - Fire: left-click sends `sparkwitch:fire_potion_launcher` (yaw and pitch at the press, tolerant codec),
     one shot per fresh press. Only an attack press edge drained in `MinecraftClient#handleInputEvents` while the
     launcher is in the main hand fires, scoped or not; `doAttack` and held-attack block breaking are only swallowed, and keyboard
