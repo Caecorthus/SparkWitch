@@ -93,6 +93,7 @@
     "WraithRoleHistoryNbtMixin",
     "WraithStatusEffectMixin",
     "WindSpiritWindChargeMixin",
+    "WindSpiritKnockRecordMixin",
     "blind.ServerWorldBlindPerceptionMixin",
     "bellringer.DecoratedPotBlockTollBellMixin",
     "bellringer.GameFunctionsTollBellDropMixin",

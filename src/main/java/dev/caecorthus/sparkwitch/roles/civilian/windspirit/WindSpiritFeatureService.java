@@ -42,6 +42,9 @@ public final class WindSpiritFeatureService {
         BuildShopEntries.EVENT.register(WindSpiritFeatureService::addWindCharge);
         BlackoutEffect.BEFORE.register(WindSpiritFeatureService::beforeBlackoutEffect);
         ServerTickEvents.END_WORLD_TICK.register(WindSpiritFeatureService::tickWorld);
+        // Record-only knock-off ledger for the achievement record (W2); no gameplay or kill credit change.
+        // 仅用于成就记录（W2）的击落账本；不改变玩法与击杀归属。
+        WindSpiritFallRecords.register();
     }
 
     private static void addWindCharge(PlayerEntity player, BuildShopEntries.ShopContext context) {
