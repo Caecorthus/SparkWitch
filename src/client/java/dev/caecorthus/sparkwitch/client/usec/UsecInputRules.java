@@ -1,10 +1,11 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
 /**
- * Pure client rules for the rifle's fire intent, recoil kick and the round reset of the scope magnification.
- * Presentation and intent only: the server re-checks every shot, so skipping a request here only saves a packet.
- * 狙击步枪开火意图、后坐镜头抖动与瞄准镜倍率按局重置的纯客户端规则。仅为表现与意图：服务端复核每次开火，因此此处跳过
- * 请求只是省下一个数据包。
+ * Pure client rules for the rifle's fire intent, recoil kick, the macOS Ctrl-click left press and the round reset of
+ * the scope magnification. Presentation and intent only: the server re-checks every shot, so skipping a request here
+ * only saves a packet.
+ * 狙击步枪开火意图、后坐镜头抖动、macOS Ctrl 点击左键按下与瞄准镜倍率按局重置的纯客户端规则。仅为表现与意图：服务端
+ * 复核每次开火，因此此处跳过请求只是省下一个数据包。
  */
 public final class UsecInputRules {
     private UsecInputRules() {
@@ -29,6 +30,27 @@ public final class UsecInputRules {
      */
     public static boolean kicksOnFire(boolean sent, boolean chamberLoaded) {
         return sent && chamberLoaded;
+    }
+
+    /**
+     * Whether a mouse event skips vanilla's macOS Ctrl-click remap ({@code Mouse.onMouseButton}: a left press with Ctrl
+     * becomes a right press and is counted, and while that count is above zero the next left release becomes a right
+     * release). Sprint defaults to Left Ctrl, so without this a Mac player sprinting with the AXMC scopes instead of
+     * firing from the hip. True only for a left PRESS, no screen open, the rifle in the main hand, and no remapped
+     * press still waiting for its release. A kept press is never counted, so its own release stays a left release;
+     * releases are never kept, so a press remapped before the rifle was drawn still gets its remapped release and the
+     * use key is never left down. Without Ctrl the skipped branch would change nothing for a press anyway.
+     * 鼠标事件是否跳过原版 macOS Ctrl 点击重映射（{@code Mouse.onMouseButton}：按住 Ctrl 的左键按下变为右键按下并计数，
+     * 计数大于零时下一次左键松开变为右键松开）。疾跑默认是左 Ctrl，否则 Mac 玩家疾跑中用 AXMC 腰射会变成开镜。仅当左键
+     * 按下、未打开界面、主手持步枪且没有仍在等待松开的已重映射按下时为 true。保留的按下从不计数，因此它自己的松开仍是左键
+     * 松开；松开从不保留，因此持枪前已重映射的按下仍会得到重映射的松开，使用键永不卡住。没有 Ctrl 时被跳过的分支对按下本就
+     * 没有作用。
+     *
+     * @param pendingRemappedReleases vanilla's {@code controlLeftClicks} / 原版的 {@code controlLeftClicks}
+     */
+    public static boolean skipsMacControlClickRemap(boolean leftButton, boolean press, boolean screenOpen,
+                                                    boolean rifleInMainHand, int pendingRemappedReleases) {
+        return leftButton && press && !screenOpen && rifleInMainHand && pendingRemappedReleases == 0;
     }
 
     /**
