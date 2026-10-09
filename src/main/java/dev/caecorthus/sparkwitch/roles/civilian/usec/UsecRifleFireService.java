@@ -130,15 +130,20 @@ public final class UsecRifleFireService {
 
     /**
      * Nearest wins along the path, one measure for all: a puppet strictly nearer than the player and every breakable
-     * device ends; else a device strictly nearer than the player breaks; else the player is hit. Records the fire line
-     * (before the kill, like Wathe's gun) and returns the path distance where the bullet stopped.
+     * device ends; else a device strictly nearer than the player breaks; else the player is hit. The player is the box
+     * pick or, when nearer, a sleeper hit through the first block the round met being its bed ({@link UsecShotBeds}).
+     * Records the fire line (before the kill, like Wathe's gun) and returns the path distance where the bullet stopped.
      * 沿路径最近者命中，所有对象同一量法：严格近于玩家及所有可打坏设备的皮套被结束；否则严格近于玩家的设备被打坏；否则命中玩家。
-     * 记录开火行（与 Wathe 枪械一样在击杀之前），并返回子弹停下处的路径距离。
+     * 玩家为箱体选取，或在更近时为经由子弹遇到的第一个方块（其床）命中的睡觉玩家（{@link UsecShotBeds}）。记录开火行（与 Wathe
+     * 枪械一样在击杀之前），并返回子弹停下处的路径距离。
      */
     private static double resolveMatchHit(ServerPlayerEntity player, ItemStack rifle, UsecAmmoType ammo,
                                           UsecTracer.Trace trace) {
         UsecShotPath path = trace.path();
-        UsecShotTargets.PlayerHit hit = UsecShotTargets.nearestPlayer(player, path);
+        // Revolver parity: a sleeper whose bed the round met first competes with the box pick (UsecShotBeds).
+        // 与左轮一致：子弹最先遇到其床的睡觉玩家与箱体选取一同比较（UsecShotBeds）。
+        UsecShotTargets.PlayerHit hit = UsecShotTargets.withSleeperOnBed(player, trace,
+                UsecShotTargets.nearestPlayer(player, path));
         double reach = hit == null ? path.length() : Math.min(hit.distance(), path.length());
         double stop = reach;
         ServerPlayerEntity victim = null;
