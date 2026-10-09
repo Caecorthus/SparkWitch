@@ -1025,6 +1025,23 @@ Current build baseline:
   SparkWitch timers behind an item whose vanilla cooldown is removed (`mixin/ItemCooldownRemovalMixin`). For the
   SparkFactionAPI admin clear alone (`mixin/SparkFactionClearCooldownMixin`), it also exempts the item from Saint Karma.
 - `impl/SparkWitchEvents`: watch-only registration/lifecycle aggregator.
+- `record/AchievementRecords`: the SparkWitch writers of the cross-mod achievement record contract (2026-10-09, W2-W7),
+  match-record events that SparkAssist reads from SparkFactionAPI's round-end broadcast to award local hidden
+  achievements. Event types and field names are frozen: `sparkwitch:wind_spirit_fall` (`actor` Wind Spirit, UUID
+  when offline; `target` victim), `sparkwitch:sabotage` (`lamps`), `sparkwitch:curse` (`targets`),
+  `sparkwitch:murder_sense` (`duration` ticks), `sparkwitch:black_raven_perceived` (`target`, `actor_faction`, `role`,
+  `faction`) and `sparkwitch:holy_flash_burst` (`affected`, `affected_others`; owner UUID as `actor` when the thrower
+  left). Each is written through Wathe's `GameRecordManager.event` builder after its feature's success checks, has
+  no replay formatter (Wathe's replay skips it), and swallows a recording failure. W1 adds `distance` (player hit
+  only) and `scoped` to the existing USEC `sparkwitch:usec_rifle_fire` item use (`UsecReplay.fireData`). Record only:
+  no gameplay, balance or kill-credit change. Hooks: `SaboteurAbilityService.use` (the lamps
+  `SaboteurLightOutageService.activate` turned off, lit and powered before), `CurserFeatureService.use` (after the
+  cooldown and the confusion), the Murder Sense activation effect, `BlackRavenPerceptionService.tick` (a reveal),
+  `HolyFlashEntity.burst` (`HolyFlashBurstTally`), and `roles/civilian/windspirit/WindSpiritFallRecords`:
+  `mixin/WindSpiritKnockRecordMixin` (`ServerPlayerEntity#onExplodedBy`, TAIL, observe only) notes a promoted Wind
+  Spirit's wind charge catching a living participant in `WindSpiritKnockLedger` (latest knock per victim, 10 s
+  window, cleared by reset, any death and round end), and a `wathe:fell_out_of_train` death inside the window records
+  the event from `KillPlayer.AFTER`, after Wathe's own `death` record.
 - `util/hitscan/`: server-side lag compensation for hitscan weapons. `PlayerHitboxHistory` keeps a
   one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
   `HitscanLagRules` owns the ping-based rewind window and swept volumes. Used by the Hunter

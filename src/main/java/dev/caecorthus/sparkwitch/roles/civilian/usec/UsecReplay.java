@@ -34,6 +34,14 @@ public final class UsecReplay {
     static final String AMMO_KEY = "ammo";
     static final String PENETRATED_KEY = "penetrated";
     static final String PUNISHMENT_KEY = "punishment";
+    /**
+     * Achievement record contract W1 (2026-10-09), read by SparkAssist: path distance in blocks to the player the shot
+     * hit (only on a player hit) and the shooter's server-side scope state when firing. No replay line reads them.
+     * 成就记录契约 W1（2026-10-09），由 SparkAssist 读取：沿弹道到被命中玩家的路径距离（方块，仅命中玩家时写入），以及开火时
+     * 射手的服务端开镜状态。回放行不读取它们。
+     */
+    static final String DISTANCE_KEY = "distance";
+    static final String SCOPED_KEY = "scoped";
     /** Wathe's own keys for the recording player and its target. / Wathe 自身写入的记录玩家与目标键。 */
     static final String WATHE_ACTOR_KEY = "actor";
     static final String WATHE_TARGET_KEY = "target";
@@ -65,6 +73,21 @@ public final class UsecReplay {
         extra.putString(KIND_KEY, KIND_FIRE);
         extra.putString(AMMO_KEY, ammo.id());
         extra.putInt(PENETRATED_KEY, Math.max(0, penetrated));
+        return extra;
+    }
+
+    /**
+     * Extra data of a match fire record: {@link #fireData(UsecAmmoType, int)} plus {@link #SCOPED_KEY}, and
+     * {@link #DISTANCE_KEY} when {@code hitDistance} is not null (a player was hit).
+     * 对局开火记录的附加数据：{@link #fireData(UsecAmmoType, int)} 加上 {@link #SCOPED_KEY}；{@code hitDistance} 非 null
+     * （命中玩家）时再加 {@link #DISTANCE_KEY}。
+     */
+    static NbtCompound fireData(UsecAmmoType ammo, int penetrated, @Nullable Double hitDistance, boolean scoped) {
+        NbtCompound extra = fireData(ammo, penetrated);
+        if (hitDistance != null) {
+            extra.putDouble(DISTANCE_KEY, Math.max(0.0, hitDistance));
+        }
+        extra.putBoolean(SCOPED_KEY, scoped);
         return extra;
     }
 

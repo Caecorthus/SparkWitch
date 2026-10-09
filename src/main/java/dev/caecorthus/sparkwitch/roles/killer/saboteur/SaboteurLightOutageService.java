@@ -50,14 +50,19 @@ public final class SaboteurLightOutageService {
                 server.getWorlds().forEach(SaboteurLightOutageService::clearAll));
     }
 
-    /** Activates successfully even when the scan finds no eligible lamps. / 即使范围内没有合格灯具，技能仍视为成功释放。 */
-    public static void activate(ServerPlayerEntity player) {
+    /**
+     * Activates successfully even when the scan finds no eligible lamps. Returns how many lamps it turned off (lit and
+     * powered before, dark now), for the achievement record only.
+     * 即使范围内没有合格灯具，技能仍视为成功释放。返回其熄灭的灯数（此前点亮且通电、现在熄灭），仅用于成就记录。
+     */
+    public static int activate(ServerPlayerEntity player) {
         ServerWorld world = player.getServerWorld();
         Vec3d center = player.getPos();
         int radius = SaboteurRules.LIGHT_RADIUS;
         long expiryTick = world.getTime() + SaboteurRules.LIGHT_DURATION_TICKS;
         BlockPos min = BlockPos.ofFloored(center.x - radius, center.y - radius, center.z - radius);
         BlockPos max = BlockPos.ofFloored(center.x + radius, center.y + radius, center.z + radius);
+        int turnedOff = 0;
 
         for (BlockPos mutablePos : BlockPos.iterate(min, max)) {
             if (!SaboteurLightGeometry.containsBlockCenter(
@@ -85,7 +90,16 @@ public final class SaboteurLightOutageService {
                     state.get(WatheProperties.ACTIVE)
             );
             keepDark(world, pos);
+            if (emitsLight(state.get(Properties.LIT), state.get(WatheProperties.ACTIVE))) {
+                turnedOff++;
+            }
         }
+        return turnedOff;
+    }
+
+    /** Wathe's lamp light rule: lit and powered. / Wathe 灯具发光规则：点亮且通电。 */
+    static boolean emitsLight(boolean lit, boolean active) {
+        return lit && active;
     }
 
     /**

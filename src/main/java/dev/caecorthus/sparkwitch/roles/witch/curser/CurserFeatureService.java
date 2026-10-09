@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.curser;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
+import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -71,6 +72,9 @@ public final class CurserFeatureService {
         for (ServerPlayerEntity target : targets) {
             CurserPlayerComponent.KEY.get(target).applyConfusion();
         }
+        // Achievement record W4: only a cast that started the cooldown and cursed someone.
+        // 成就记录 W4：仅记录进入冷却且诅咒到人的施法。
+        AchievementRecords.curse(caster, targets.size());
     }
 
     public static void clearPlayer(ServerPlayerEntity player) {
