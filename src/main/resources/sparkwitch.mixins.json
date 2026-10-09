@@ -175,6 +175,7 @@
     "witchmaiden.BeveragePlateBlockEntityPoisonAppleMixin",
     "witchmaiden.BlockEntityPoisonAppleLifecycleMixin",
     "witchmaiden.FoodPlatterBlockPoisonAppleMixin",
+    "witchmaiden.GameFunctionsWitchMaidenVoodooMixin",
     "witchmaiden.ItemStackPoisonAppleDrinkMixin",
     "accessor.ItemCooldownEntryAccessor",
     "accessor.ItemCooldownManagerAccessor",

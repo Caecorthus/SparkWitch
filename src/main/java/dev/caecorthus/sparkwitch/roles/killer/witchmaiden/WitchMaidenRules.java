@@ -34,4 +34,9 @@ public final class WitchMaidenRules {
     public static boolean blocksVoodooDeath(@Nullable Role victimRole, @Nullable Identifier deathReason) {
         return isWitchMaiden(victimRole) && VOODOO_DEATH_REASON_ID.equals(deathReason);
     }
+
+    /** Wathe ignores a cancel on a forced kill, so the head-of-kill guard does too. / Wathe 不取消强制击杀，开头拦截保持一致。 */
+    public static boolean cancelsVoodooKill(@Nullable Role victimRole, @Nullable Identifier deathReason, boolean force) {
+        return !force && blocksVoodooDeath(victimRole, deathReason);
+    }
 }

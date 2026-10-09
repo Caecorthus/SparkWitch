@@ -248,6 +248,12 @@ Current build baseline:
   `mixin/timestealer/DecoratedPotBlockTimeStealerItemMixin` makes a decorated pot answer
   `SKIP_DEFAULT_BLOCK_INTERACTION`, so the per-tick restore never mints a second Clock and the Clock's own
   use still runs at a pot.
+- `roles/killer/witchmaiden/`: Witch Maiden (`sparkwitch:witch_maiden`, 巫女) Focused Footsteps, poison apple, shop,
+  and Voodoo immunity. A NoellesRoles Voodoo may still bind her and start the 5 s countdown; only the final
+  `noellesroles:voodoo` kill (not forced) is cancelled, by `mixin/witchmaiden/GameFunctionsWitchMaidenVoodooMixin` at
+  the head of Wathe's five-argument `killPlayer` (fix 2026-10-09). It was a `KillPlayer.BEFORE` listener, which
+  NoellesRoles' earlier `allowWithoutBody()` for a Taotie-swallowed victim skipped. The cancel comes before every
+  BEFORE listener, psycho armour and Tofana, so nothing (Last Stand, Tofana) reacts to or pays for it.
 - `roles/killer/magician/`: Magician (`sparkwitch:magician`, 魔术师), an ordinary killer merged from main (#99,
   collaborator Huankings, who may keep editing these files upstream: keep v2-side edits minimal). It records 30 s of
   its own actions, then a puppet disguised as a chosen player replays them; the 2026-10-07 audit fix applies owner
