@@ -443,9 +443,13 @@ Current build baseline:
     the registration order, which is the listener order within each event. `UsecCooldowns` is the single max + exact
     writer of the rifle cooldown (the 60 s lock and the bolt): SparkTraits' exact write with a vanilla fallback, never
     shortening a longer running cooldown (Saint Karma, the Fiend aura). It is also the one shared classifier
-    (`UsecCooldowns.status` / `classify`): remaining and total ticks from the vanilla entry's start and end ticks, and a
-    total of at most 40 ticks (Fast Reload's 28 included) is a bolt, anything longer another lock for its whole length;
-    the ammo HUD and the attachment screen both read it. The cooldown never stops the scope:
+    (`UsecCooldowns.read` / `classify`): remaining and total ticks from the vanilla entry's start and end ticks; an entry
+    is a bolt only with the caller's evidence and a total of at most 40 ticks (Fast Reload's 28 included), anything else
+    another lock for its whole length. The length alone never makes a bolt: SparkFactionAPI's exact forced writer (the
+    Shriek Gun's 40 ticks, the AC shell's up to 8) restarts the entry, so a forced lock on a ready rifle has a bolt's
+    total. The evidence comes from the client's `UsecBoltWatch` (see `client/usec/`); the ammo HUD, the attachment
+    screen and the bolt sway all read the classifier through `UsecBoltWatchClient.status`, and the server reads only
+    `remainingTicks`. The cooldown never stops the scope:
     `mixin/usec/ServerPlayerInteractionManagerUsecScopeMixin` and `client/mixin/usec/UsecRifleUseCooldownMixin` wrap the
     one `isCoolingDown` call of server `interactItem` and of the client `interactItem` lambda `method_41929` so it reads
     "not cooling" for `UsecRifleItem` only, so `use` (which only scopes, and Shift jumps the zoom) runs during the lock
@@ -641,7 +645,8 @@ Current build baseline:
     `SparkTraitsApi.isHeavyArtilleryGunShot` facade for one extra shield layer (O3, see shield piercing). SparkAssist
     owns the guidebook page.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
-  `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`. Presentation
+  `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
+  `UsecBoltWatchClient`. Presentation
   and intent only: the server decides every shot, attachment and scope flag.
   - Fire input (`UsecFireInput`, `UsecFireLatch`; `client/mixin/usec/UsecRifleInputMixin` copies the launcher seam): a
     fresh attack press with the rifle in the main hand sends `sparkwitch:fire_usec_rifle` with the press-time aim,
@@ -681,8 +686,11 @@ Current build baseline:
     [magazine] · 消音, a magnification tag and a bolt bar; the tag shows the shown magnification to one decimal, `3.4×`,
     dropping `.0` for whole numbers, `4×`, and the row's placement reserves the widest form so it never jumps while the
     zoom eases), shown only to a living, exact-role USEC holding the rifle in an ACTIVE
-    round; never in the witch skill panel. `拉栓中` comes only from the `UsecCooldowns` classifier (exact entry ticks),
-    never from the interpolated cooldown share, so it cannot flicker; the bar fill uses vanilla's smooth share.
+    round; never in the witch skill panel. `拉栓中` comes only from the `UsecCooldowns` classifier read through
+    `UsecBoltWatchClient.status` (exact entry ticks plus bolt evidence), never from the interpolated cooldown share, so
+    it cannot flicker, and a short forced lock keeps the chamber token with the bar. A shot's `拉栓中` waits for its
+    slot update, up to about a server tick after the cooldown packet (the fired round shows with the bar until then);
+    the bar fill uses vanilla's smooth share.
   - Glint (`UsecScopeGlintRenderer`, `UsecGlintRules`): an `AFTER_TRANSLUCENT`, screen-blended S1 flare on other
     players, from the synced `UsecPlayerComponent.scoped`, with a 6–35° cosine smoothstep and block-raycast occlusion.
     It is hidden in the Blind view (`BlindClientGates.hidesEntity`) and for self, the camera entity, invisible, Wraith
@@ -753,7 +761,13 @@ Current build baseline:
     `@WrapOperation` on `onMouseClick` in Wathe's `LimitedHandledScreen.mouseClicked` that chains with the armor wrapper
     and is pinned in `watheClientMixinContracts`; and `UsecInventoryScreenRifleClickMixin`, the same call in vanilla
     `HandledScreen.mouseClicked`, which the creative screen's `mouseClicked` also reaches after its tab and scrollbar
-    checks.
+    checks. The footer pill is `UsecAttachmentModel.boltStatus`: BOLTING for a proven bolt, LOCKED for any other
+    cooldown (a short forced lock included). While the screen's own action waits for the inventory's answer
+    (`pendingTicks`), a bolt-length entry that started after the press already reads BOLTING, because its proof (the
+    rifle state change) comes with that answer a tick or two after the cooldown packet; so the pill does not flash
+    LOCKED first (unless the answer takes longer than the 10-tick wait, or an unrelated inventory change ends it). The
+    wait is not limited to actions predicted to bolt, so a forced lock landing during a non-bolting action shows
+    BOLTING until the answer.
   - Cracks: `UsecImpactClient` receives `sparkwitch:usec_bullet_impacts` and feeds the pure `UsecCrackTracker`, which
     drives vanilla `WorldRenderer#setBlockBreakingInfo` under reserved fake breaker ids (`-0x55534543` down by up to
     255; entity ids are positive), one per cracked block. A repeat hit reuses the id, keeps the higher stage and
@@ -791,10 +805,11 @@ Current build baseline:
     pass reuses that main projection, so the lens shows the same rotation magnified. Trigger: `UsecFireInput` reports
     each sent request (`UsecBoltSwayClient.onShotSent`), which arms a 20-tick pending window only when the synced state
     chambers a new round (`UsecBoltSway.chambersRound`, i.e. `UsecFireRules.cycle(...).chambered()`, the server's
-    bolt-sound condition); the first synced `UsecCooldowns.status(...).bolt()` entry inside it confirms the shot and
-    anchors the timeline at the entry's start tick, which shares the one-way latency with the bolt sound. An empty
-    click, the last round, other players' shots, a rejected shot, a long lock and the attachment-screen bolts (no local
-    shot; a screen also clears the pending shot) never sway. The feel follows Escape from Tarkov's scoped bolt cycling
+    bolt-sound condition); the first synced entry inside it that the bolt watch proves a bolt
+    (`UsecBoltWatchClient.status(...).bolt()`) confirms the shot and anchors the timeline at the entry's start tick,
+    which shares the one-way latency with the bolt sound. An empty click, the last round, other players' shots, a
+    rejected shot, a long lock, a short forced lock landing on a rejected shot (no rifle state change, so no proof) and
+    the attachment-screen bolts (no local shot; a screen also clears the pending shot) never sway. The feel follows Escape from Tarkov's scoped bolt cycling
     (owner, 2026-10-08): in world degrees, timed to the sound's four transients, the rifle cants (roll, which no zoom
     magnifies) to about -3.5° over the handle lift (20 ms) and the pull, the sight dips about 0.6° and drifts about 0.4°
     right, short yaw/pitch jolts (about 0.26° and, strongest, 0.39°, magnified by the scope) land on the rear (300 ms)
@@ -805,6 +820,22 @@ Current build baseline:
     (3-tick fade in, so scoping in mid-cycle shows the rest; 3-tick fade out); death, a screen, a dropped rifle, a
     cleared cooldown or a new shot release it with a 3-tick fade, never to resume. Scaled by the lower of vanilla
     Accessibility's Distortion Effects and Damage Tilt (the recoil kick follows neither). Nothing is sent or synced.
+  - Bolt watch (2026-10-09 cooldown-display audit; pure `UsecBoltWatch`, wiring `UsecBoltWatchClient`): tells a real
+    bolt from a short forced lock on the local rifle cooldown, which the entry length cannot (see `UsecCooldowns`).
+    Every server bolt (`UsecCooldowns.bolt`: an accepted shot, an attachment action, a cursor load) is written in the
+    same handler as a `UsecRifleState` change, and a forced lock never touches the rifle, so an entry is a bolt when the
+    synced state of the rifles the player carries (main inventory, offhand, cursor; compared as a multiset, so moving
+    the rifle is no change) changed within `EVIDENCE_WINDOW_TICKS` (6) of the entry's start, either way round: the
+    cooldown packet goes out at once and the slot update with the next `sendContentUpdates`. All times are the local
+    `ItemCooldownManager` clock; the END_CLIENT_TICK listener records a change at the clock it was handled at (the
+    clock minus this tick's update), and `status` also counts a not-yet-ticked change at the current clock, so it
+    answers live and the listener's place in the tick order shifts a change by at most one tick. A proven entry stays a bolt (latched by
+    its start tick) whatever changes later; a forced lock that restarts a running bolt more than 6 ticks after its
+    proof reads as a lock. The first observation (join, respawn: a new player entity resets it) is the baseline, never
+    a change. Known edges, presentation only: an unrelated rifle change (a non-bolting attachment edit, a creative
+    cursor load, a rifle gained or lost) within 6 ticks of a short forced lock makes it read as a bolt, and a slot update trailing its cooldown by more than 6 ticks (a server
+    hitch) leaves a real bolt reading as a lock. Nothing is sent or synced; the server cooldown stays the only
+    authority.
 - `client/scope/`: the reusable client scope module, built for USEC and also carrying the Potion Gunner launcher
   (`client/potiongunner/PotionScopeProfile`; the launcher's own `PotionScope*` mixins and mask texture were removed on
   2026-10-08). Presentation only; nothing here syncs.

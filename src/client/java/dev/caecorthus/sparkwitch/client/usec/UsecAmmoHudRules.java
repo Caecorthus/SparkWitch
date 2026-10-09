@@ -186,11 +186,12 @@ public final class UsecAmmoHudRules {
 
     /**
      * Local snapshot of the held rifle. {@code cooldown} is the shared exact classifier
-     * ({@link UsecCooldowns#status}), which alone decides {@code 拉栓中} (A2: never estimated from the interpolated
-     * share, which flickered); {@code cooldownProgress} is vanilla's smooth remaining share (1 just started, 0 done) and
+     * ({@link UsecBoltWatchClient#status}), which alone decides {@code 拉栓中} (A2: never estimated from the interpolated
+     * share, which flickered; never from the length alone, so a short forced lock shows the chambered round and the
+     * bar); {@code cooldownProgress} is vanilla's smooth remaining share (1 just started, 0 done) and
      * only fills the bar. {@code magnification} is the shown (eased) scope magnification, 1-6.
-     * 手持步枪的本地快照。{@code cooldown} 为共用的精确分类器（{@link UsecCooldowns#status}），只由它决定是否显示
-     * {@code 拉栓中}（A2：不再从会闪烁的插值比例估算）；{@code cooldownProgress} 为原版平滑的剩余比例（1 为刚开始，0 为结束），
+     * 手持步枪的本地快照。{@code cooldown} 为共用的精确分类器（{@link UsecBoltWatchClient#status}），只由它决定是否显示
+     * {@code 拉栓中}（A2：不再从会闪烁的插值比例估算；也不只凭时长，因此短暂的强制锁定显示膛内子弹与进度条）；{@code cooldownProgress} 为原版平滑的剩余比例（1 为刚开始，0 为结束），
      * 只用于填充进度条。{@code magnification} 为显示（缓动后）的瞄准镜倍率，1-6。
      */
     public record Snapshot(@Nullable UsecAmmoType chamber, @Nullable UsecMagazineContents magazine,
