@@ -58,7 +58,7 @@ public final class UsecAmmoHud {
             return;
         }
         UsecRifleState state = UsecRifleState.read(rifle);
-        UsecCooldowns.Status cooldown = UsecCooldowns.status(player);
+        UsecCooldowns.Status cooldown = UsecBoltWatchClient.status(player);
         float progress = cooldown.coolingDown()
                 ? player.getItemCooldownManager().getCooldownProgress(SparkWitchItems.usecRifle(),
                 tickCounter.getTickDelta(true))

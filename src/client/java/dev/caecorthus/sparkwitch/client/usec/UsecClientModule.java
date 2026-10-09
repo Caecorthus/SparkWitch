@@ -25,5 +25,6 @@ public final class UsecClientModule {
         UsecImpactClient.register();
         UsecRifleModels.register();
         UsecBoltSwayClient.register();
+        UsecBoltWatchClient.register();
     }
 }
