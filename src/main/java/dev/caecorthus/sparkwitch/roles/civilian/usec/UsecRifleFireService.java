@@ -154,11 +154,18 @@ public final class UsecRifleFireService {
             }
         }
         GameRecordManager.recordItemUse(player, UsecReplay.RECORD_ID, victim,
-                UsecReplay.fireData(ammo, penetratedBefore(trace, stop)));
+                UsecReplay.fireData(ammo, penetratedBefore(trace, stop), victim == null ? null : hit.distance(),
+                        isScoped(player)));
         if (victim != null) {
             UsecFirePunishment.killAndPunish(player, victim, ammo);
         }
         return stop;
+    }
+
+    /** The server-owned scope flag ({@link UsecScopeService}) at fire time. / 开火时服务端持有的开镜标记。 */
+    private static boolean isScoped(ServerPlayerEntity player) {
+        UsecPlayerComponent component = UsecPlayerComponent.KEY.getNullable(player);
+        return component != null && component.isScoped();
     }
 
     private static int penetratedBefore(UsecTracer.Trace trace, double stop) {

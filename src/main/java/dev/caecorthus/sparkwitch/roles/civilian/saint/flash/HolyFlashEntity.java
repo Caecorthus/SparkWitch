@@ -1,6 +1,8 @@
 package dev.caecorthus.sparkwitch.roles.civilian.saint.flash;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.mixin.JudgeProjectileOwnerAccessor;
+import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertTargeting;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.index.WatheParticles;
@@ -21,6 +23,8 @@ import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 /**
  * Thrown Holy Flash. Bursts on its first block or entity impact like Wathe's grenade, but it is a role-owned entity
@@ -105,12 +109,18 @@ public final class HolyFlashEntity extends ThrownItemEntity {
                 SPARK_SPREAD, SPARK_SPREAD, SPARK_SPREAD, SPARK_SPEED);
         world.spawnParticles(ParticleTypes.FIREWORK, center.x, center.y, center.z, GLITTER_COUNT,
                 SPARK_SPREAD, SPARK_SPREAD, SPARK_SPREAD, SPARK_SPEED);
-        ServerPlayerEntity thrower = getOwner() instanceof ServerPlayerEntity owner
-                && ControlExpertTargeting.isParticipant(owner) ? owner : null;
-        flashPlayers(world, thrower, center);
+        ServerPlayerEntity owner = getOwner() instanceof ServerPlayerEntity player ? player : null;
+        ServerPlayerEntity thrower = owner != null && ControlExpertTargeting.isParticipant(owner) ? owner : null;
+        UUID ownerUuid = ((JudgeProjectileOwnerAccessor) (Object) this).sparkwitch$judgeOwnerUuid();
+        HolyFlashBurstTally tally = new HolyFlashBurstTally(ownerUuid);
+        flashPlayers(world, thrower, center, tally);
+        // Achievement record W7; the owner UUID stands in for a thrower who left mid-flight.
+        // 成就记录 W7；投掷者在飞行途中离线时以所有者 UUID 代替。
+        AchievementRecords.holyFlashBurst(world, owner, ownerUuid, tally.affected(), tally.affectedOthers());
     }
 
-    private static void flashPlayers(ServerWorld world, @Nullable ServerPlayerEntity thrower, Vec3d center) {
+    private static void flashPlayers(ServerWorld world, @Nullable ServerPlayerEntity thrower, Vec3d center,
+                                     HolyFlashBurstTally tally) {
         for (ServerPlayerEntity target : world.getPlayers()) {
             Vec3d eye = target.getEyePos();
             double distance = HolyFlashTargeting.bodyDistance(target.getBoundingBox(), center);
@@ -124,6 +134,7 @@ public final class HolyFlashEntity extends ThrownItemEntity {
             int ticks = HolyFlashRules.durationTicks(distance, facing);
             if (ticks > 0) {
                 HolyFlashComponent.KEY.get(target).flash(ticks, center, facing);
+                tally.flashed(target.getUuid());
             }
         }
     }
