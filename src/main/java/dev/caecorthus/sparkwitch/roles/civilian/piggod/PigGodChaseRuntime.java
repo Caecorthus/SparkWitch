@@ -69,7 +69,7 @@ public final class PigGodChaseRuntime {
     ) {
         WitchPlayerComponent.PigChaseState state = component.pigChaseState();
         if (effectiveWindowTicks(state) > 0 || state.ownsPsycho()) {
-            stopSound(player, state);
+            stopSound(player);
         }
     }
 
@@ -103,7 +103,7 @@ public final class PigGodChaseRuntime {
         int remaining = state.chaseTicks() - 1;
         component.applyPigChaseState(withChaseTicks(state, remaining));
         if (remaining == 0) {
-            stopSound(player, state);
+            stopSound(player);
             clearPsycho(player, component);
             return true;
         }
@@ -133,7 +133,7 @@ public final class PigGodChaseRuntime {
             ownsPsycho = psycho.startPsycho(PsychoType.VISIBLE_QUIET);
         }
         if (!ownsPsycho && psycho.getPsychoTicks() <= 0) {
-            stopSound(player, state);
+            stopSound(player);
             component.applyPigChaseState(withChaseTicks(state, 0));
             return;
         }
@@ -161,7 +161,7 @@ public final class PigGodChaseRuntime {
         if (effectiveWindowTicks(state) <= 0 && !state.ownsPsycho()) {
             return;
         }
-        stopSound(player, state);
+        stopSound(player);
         clearPsycho(player, component);
         component.applyPigChaseState(new WitchPlayerComponent.PigChaseState(
                 0,
@@ -195,13 +195,8 @@ public final class PigGodChaseRuntime {
         player.velocityModified = true;
     }
 
-    private static void stopSound(ServerPlayerEntity player, WitchPlayerComponent.PigChaseState state) {
-        PigGodSkillService.stopChaseSound(
-                player.getServerWorld(),
-                state.freezeX(),
-                state.freezeY(),
-                state.freezeZ()
-        );
+    private static void stopSound(ServerPlayerEntity player) {
+        PigGodSkillService.stopChaseSound(player);
     }
 
     private static int effectiveWindowTicks(WitchPlayerComponent.PigChaseState state) {

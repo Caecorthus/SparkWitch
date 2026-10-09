@@ -25,7 +25,6 @@ public final class PigGodRules {
     public static final int INSTINCT_PRIORITY = 90;
     public static final float SOUND_VOLUME = 1.0f;
     public static final float SOUND_PITCH = 1.0f;
-    public static final double SOUND_STOP_RANGE_BLOCKS = 16.0D;
     public static final int HOTBAR_SIZE = 9;
     // Match Wathe's crowbar door-pry feedback when Pig Chase blasts a Wathe door.
     // 皮革追杀破开 Wathe 门时，复用 Wathe 撬棍撬门的听觉反馈。
@@ -107,21 +106,6 @@ public final class PigGodRules {
                 && chaseActive
                 && killerAlive
                 && victimCivilian;
-    }
-
-    public static boolean shouldStopSoundForListener(
-            double soundX,
-            double soundY,
-            double soundZ,
-            double listenerX,
-            double listenerY,
-            double listenerZ
-    ) {
-        double deltaX = listenerX - soundX;
-        double deltaY = listenerY - soundY;
-        double deltaZ = listenerZ - soundZ;
-        return deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ
-                <= SOUND_STOP_RANGE_BLOCKS * SOUND_STOP_RANGE_BLOCKS;
     }
 
     public static boolean instinctPriorityPreservesHardSkips() {
