@@ -533,8 +533,16 @@ Current build baseline:
     nearest eligible player (`UsecShotTargets`) on `PlayerHitboxHistory.hitVolumes` grown by 0.1; the shooter,
     spectators (Rift Gate occupants included), creative players, players not playing and alive in Wathe, active Wraiths
     and Last Escape players are excluded, and Vendetta exact-pair isolation applies (the Shriek Gun's
-    `vendettaAllows`; an active Vendetta is an active Wraith, so there is no bound-killer exception). Then
-    `MagicianPuppetHits.onUsecRifleFired` ends a puppet strictly nearer than that player and every breakable device
+    `vendettaAllows`; an active Vendetta is an active Wraith, so there is no bound-killer exception). Sleepers
+    (revolver parity, 2026-10-09; pure rule `UsecShotBeds`, glue `UsecShotTargets.withSleeperOnBed`): a sleeper's box
+    is only a 0.2 cube in the bed's head cell, so when the first block the round met is a bed (the stop block when
+    nothing was pierced, FMJ always, or AP's first pierced block at its entry; never a bed reached after piercing
+    another block), Wathe's own `RevolverItem.findSleepingPlayerOnBed` names the sleeper, the same eligibility
+    applies, and that sleeper replaces the box pick when strictly nearer along the path. It is then an ordinary player
+    hit (kill, punishment, pierce budget, replay line, cracks cut at the hit): a bed the round stopped at still cracks,
+    while a bed AP hit through cracks nothing and counts as 0 pierced blocks. Sleep state is the server's current one,
+    not lag-rewound like the box pick (known gap).
+    Then `MagicianPuppetHits.onUsecRifleFired` ends a puppet strictly nearer than that player and every breakable device
     (`gun_shot`); else `SeekerDeviceHits.onUsecRifleFired` breaks a device strictly nearer than the player as
     `USEC_RIFLE` (AP reaches devices behind pierced walls); else the single kill, `UsecFirePunishment.kill`. The bullet
     stops at whatever it hit. Presentation shots trace blocks only (sound, particles, cracks): they never hit a player,
@@ -639,6 +647,15 @@ Current build baseline:
     fresh attack press with the rifle in the main hand sends `sparkwitch:fire_usec_rifle` with the press-time aim,
     scoped or from the hip. Attacking and mining are swallowed, and held keys never fire. The recoil kick is camera-only
     (`UsecRecoil`, `UsecRecoilCameraMixin` at every return of `GameRenderer.tiltViewWhenHurt`).
+    Hip-fire gaps (2026-10-09): on macOS `UsecMacControlClickMixin` keeps a Ctrl + left press with the rifle (no
+    screen) a left press, uncounted (releases stay vanilla's), and `requestFire` first flushes a same-tick hotbar slot
+    (`UsecSelectedSlotSyncInvoker`), as `interactItem` does for Wathe's revolver.
+  - Target crosshair (owner 2026-10-09, revolver parity): `client/mixin/usec/UsecCrosshairMixin` chains one more
+    `@ModifyExpressionValue` on Wathe `CrosshairRenderer.CROSSHAIR`. Every rule lives in the pure `UsecCrosshairRules`
+    (it mirrors the server pick, so a change there must follow); `UsecCrosshairTargeting` only gathers inputs. An armed
+    AXMC at the hip (main hand, off cooldown, chambered, not scoped; no role gate) lights it when the server's aim ray,
+    cut at the first block (round reach × Marksman, no penetration or drop), enters the current box, grown by
+    `UsecRules.HIT_MARGIN`, of a visible player (never self or an active Wraith) or a live visible Magician puppet.
   - Scope (`UsecScopeInput`, `UsecZoomState`, owner 2026-10-08): a continuous 1×–6× variable scope on the generic
     `client/scope/ScopeVariableZoom` (`UsecRules.ZOOM_MIN/MAX_MAGNIFICATION`). While scoped every wheel event zooms
     (`UsecScopeProfile.onWheel` consumes it, so the hotbar never changes; unscoped the wheel is vanilla's): each notch
