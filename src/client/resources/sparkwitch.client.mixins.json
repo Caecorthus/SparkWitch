@@ -12,6 +12,7 @@
     "CurserInstinctGateMixin",
     "DeathRayAttackMixin",
     "DeathRayBlockBreakingMixin",
+    "DeathRayMacControlClickMixin",
     "GuardianAngelHudMixin",
     "GrandWitchSwordCooldownMixin",
     "GrandWitchSwordCrosshairMixin",
@@ -142,6 +143,7 @@
     "abysslistener.MoodRendererTaskRowAbyssAccessor",
     "potiongunner.PotionLauncherArmPoseMixin",
     "potiongunner.PotionLauncherInputMixin",
+    "potiongunner.PotionLauncherMacControlClickMixin",
     "riftwalker.RiftSwapperWidgetMixin",
     "riftwalker.RiftSessionGameRendererMixin",
     "riftwalker.RiftSessionInGameHudMixin",
@@ -174,7 +176,8 @@
     "scope.ScopeWorldRendererMixin",
     "scope.ScopeParticleManagerMixin",
     "scope.ScopeMinecraftClientAccessor",
-    "scope.ScopeMouseScrollMixin"
+    "scope.ScopeMouseScrollMixin",
+    "input.SelectedSlotFlushInvoker"
   ],
   "injectors": {
     "defaultRequire": 1
