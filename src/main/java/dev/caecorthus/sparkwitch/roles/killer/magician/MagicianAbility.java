@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,6 +55,16 @@ public final class MagicianAbility {
         }
         LAST.put(playerId, tick);
         MagicianPlayerComponent c=MagicianPlayerComponent.KEY.get(player);
+        // A press that would start a recording or a playback while any cooldown remains (a forced one included) is
+        // refused with the shared action-bar line (owner decision 2026-10-09); stopping one never waits.
+        // 冷却未结束（含强制冷却）时，本应开始录制或播放的按键会被拒绝并显示通用动作栏提示（所有者 2026-10-09 决定）；
+        // 结束录制或播放从不需要等待。
+        if (c.cooldownTicks() > 0
+                && startsRecordingOrPlayback(c.stage(), action, MagicianPlaybackManager.hasCachedRecording(player))) {
+            player.sendMessage(Text.translatable("message.sparkwitch.skill.cooldown", (c.cooldownTicks() + 19) / 20),
+                    true);
+            return;
+        }
         if (c.stage() == MagicianStage.IDLE && c.cooldownTicks() > 0) return;
         switch (action) {
             case UseMagicianAbilityC2SPacket.START_RECORDING -> {
@@ -83,6 +94,20 @@ public final class MagicianAbility {
                 }
             }
         }
+    }
+
+    /**
+     * Whether {@code action} in {@code stage} would start a recording or a playback, mirroring the switch in
+     * {@link #handle(ServerPlayerEntity, int)}; only those wait for the cooldown.
+     * 该动作在该阶段是否会开始录制或播放，与 {@link #handle(ServerPlayerEntity, int)} 中的分支一致；只有这些需要等待冷却。
+     */
+    static boolean startsRecordingOrPlayback(MagicianStage stage, int action, boolean cachedRecording) {
+        return switch (action) {
+            case UseMagicianAbilityC2SPacket.START_RECORDING -> stage == MagicianStage.IDLE;
+            case UseMagicianAbilityC2SPacket.START_PLAYBACK -> stage == MagicianStage.READY_PLAYBACK || cachedRecording;
+            case UseMagicianAbilityC2SPacket.STOP_RECORDING, UseMagicianAbilityC2SPacket.STOP_PLAYBACK -> false;
+            default -> stage == MagicianStage.IDLE || stage == MagicianStage.READY_PLAYBACK;
+        };
     }
 
     /** Drops the debounce entry (disconnect, reset). / 移除去抖记录（断线、重置）。 */

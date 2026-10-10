@@ -26,7 +26,11 @@ public final class MagicianStatusHudRenderer {
         Text key = SparkWitchClient.abilityKeyText();
         Text line = switch(c.stage()) {
             case RECORDING -> Text.translatable("hud.sparkwitch.magician.recording", seconds(c.stageTicks()), key);
-            case READY_PLAYBACK -> Text.translatable("hud.sparkwitch.magician.ready", key);
+            // The server refuses playback while any cooldown remains, including a forced one raised during recording.
+            // 只要仍有冷却（包括录制期间被强制抬高的冷却），服务端就拒绝播放。
+            case READY_PLAYBACK -> c.cooldownTicks() > 0
+                    ? Text.translatable("hud.sparkwitch.magician.ready_cooldown", seconds(c.cooldownTicks()))
+                    : Text.translatable("hud.sparkwitch.magician.ready", key);
             case PLAYING -> Text.translatable("hud.sparkwitch.magician.playing", seconds(c.stageTicks()), key);
             default -> c.cooldownTicks() > 0
                     ? Text.translatable("hud.sparkwitch.magician.cooldown", seconds(c.cooldownTicks()))
