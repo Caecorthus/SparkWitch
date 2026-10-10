@@ -12,13 +12,17 @@ import java.util.UUID;
 
 /**
  * Per-player locks of the role a Bewitched is promoted to ({@code /sparkwitch:forceAccompliceRole}, D4/C5): the plain
- * Accomplice or one special accomplice per UUID. Server-only, never synced. NBT: a list of {@code Player}/{@code Role}
- * string pairs under {@code ForcedAccompliceRoles}; malformed entries are skipped.
+ * Accomplice or one special accomplice per UUID. Server-only, never synced. {@code WitchWorldComponent} keeps two stores:
+ * the current round's locks under {@code ForcedAccompliceRoles} and the next round's under
+ * {@code PendingForcedAccompliceRoles}; each is a list of {@code Player}/{@code Role} string pairs, and malformed
+ * entries are skipped.
  * 魔化使晋升身份的逐玩家锁定（{@code /sparkwitch:forceAccompliceRole}，D4/C5）：每个 UUID 对应普通共犯或一种特殊共犯。
- * 仅服务端、从不同步。NBT：{@code ForcedAccompliceRoles} 下的 {@code Player}/{@code Role} 字符串对列表；损坏条目会被跳过。
+ * 仅服务端、从不同步。{@code WitchWorldComponent} 保存两份：本局锁定位于 {@code ForcedAccompliceRoles}，下一局锁定位于
+ * {@code PendingForcedAccompliceRoles}；每份都是 {@code Player}/{@code Role} 字符串对列表，损坏条目会被跳过。
  */
 final class ForcedAccompliceRoleLocks {
     static final String NBT_KEY = "ForcedAccompliceRoles";
+    static final String PENDING_NBT_KEY = "PendingForcedAccompliceRoles";
 
     private final LinkedHashMap<UUID, Identifier> locks = new LinkedHashMap<>();
 
@@ -56,8 +60,13 @@ final class ForcedAccompliceRoleLocks {
     }
 
     void readFromNbt(NbtCompound tag) {
+        readFromNbt(tag, NBT_KEY);
+    }
+
+    /** Replaces every entry with the list under {@code key} (absent: none). / 以 {@code key} 下的列表替换全部条目（缺失则为空）。 */
+    void readFromNbt(NbtCompound tag, String key) {
         locks.clear();
-        NbtList list = tag.getList(NBT_KEY, NbtElement.COMPOUND_TYPE);
+        NbtList list = tag.getList(key, NbtElement.COMPOUND_TYPE);
         for (int index = 0; index < list.size(); index++) {
             NbtCompound entry = list.getCompound(index);
             Identifier roleId = Identifier.tryParse(entry.getString("Role"));

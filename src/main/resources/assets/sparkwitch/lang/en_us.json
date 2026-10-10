@@ -1209,7 +1209,7 @@
   "message.sparkwitch.bewitched.promoted": "Your true identity is unlocked: %s.",
   "message.sparkwitch.bewitched.promoted_grand_witch": "%s unlocked their true identity: %s.",
   "command.sparkwitch.force_accomplice_role.success.current_round": "Locked the identity %s Bewitched player(s) will unlock to %s for this round.",
-  "command.sparkwitch.force_accomplice_role.success.next_round": "Locked the identity %s Bewitched player(s) will unlock to %s for the next round.",
+  "command.sparkwitch.force_accomplice_role.success.next_round": "Locked the identity %s player(s) will unlock to %s for the next round (it applies only if they are Bewitched when that round starts).",
   "command.sparkwitch.force_accomplice_role.unknown_role": "Unknown Accomplice role: %s",
   "command.sparkwitch.force_accomplice_role.special_single_target": "%s can be locked to only one player at a time.",
   "command.sparkwitch.force_accomplice_role.already_locked": "%s already holds the %s lock; a special Accomplice can be locked to only one player at a time.",

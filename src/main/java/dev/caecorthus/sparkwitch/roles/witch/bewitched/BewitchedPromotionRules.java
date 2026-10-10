@@ -102,8 +102,9 @@ public final class BewitchedPromotionRules {
     }
 
     /**
-     * C5: the plain Accomplice may be locked to many players; a special accomplice to one player at a time.
-     * C5：普通共犯可锁定给多名玩家；特殊共犯同一时间只能锁定给一名玩家。
+     * C5: the plain Accomplice may be locked to many players; a special accomplice to one player at a time per round
+     * (current-round and next-round locks are checked separately).
+     * C5：普通共犯可锁定给多名玩家；特殊共犯每局同一时间只能锁定给一名玩家（本局与下一局锁定分别检查）。
      */
     public static LockCheck checkLock(boolean special, int targetCount, boolean heldByAnother) {
         if (!special) {
@@ -116,13 +117,15 @@ public final class BewitchedPromotionRules {
     }
 
     /**
-     * Whether another holder's lock still blocks a new holder: always outside a round (it applies to the next round);
-     * during a round only while that holder is a living, unpromoted Bewitched, the same test as the live reservation,
-     * because a dead, promoted or never-dealt holder reserves nothing (D4).
-     * 另一名持有者的锁定是否仍阻止新持有者：对局外总是阻止（作用于下一局）；对局中仅当该持有者仍是存活且未晋升的魔化使时
-     * 才阻止，与实时预留的判定相同，因为已死亡、已晋升或从未被发放的持有者不预留任何席位（D4）。
+     * Which round a new lock is for (D4; owner, 2026-10-10). Only a living Bewitched of an ACTIVE round is locked for
+     * the current round; every other lock (lobby, start or end fade, a target who is not a living Bewitched) waits for
+     * the next round start and applies there only if the target is then a Bewitched, the same lifetime as Wathe's
+     * forced roles. So "forceRole bewitched + lock" queued during a round both reach the next round.
+     * 新锁定作用于哪一局（D4；所有者 2026-10-10）。只有 ACTIVE 对局中存活的魔化使锁定于本局；其他锁定（大厅、开局或结束
+     * 渐变、目标不是存活魔化使）等待下一局开局，且仅当目标届时是魔化使才生效，生命周期与 Wathe 强制身份相同。因此在对局中
+     * 一并设置的"强制魔化使 + 锁定"都会作用于下一局。
      */
-    public static boolean lockStillHeld(boolean roundRunning, boolean holderLivingBewitched) {
-        return !roundRunning || holderLivingBewitched;
+    public static boolean appliesToCurrentRound(boolean roundActive, boolean targetLivingBewitched) {
+        return roundActive && targetLivingBewitched;
     }
 }

@@ -1974,15 +1974,26 @@ tasks it is promoted to an accomplice role through the pool above.
 - **Forced lock (D4, C5).** `/sparkwitch:forceAccompliceRole <role> <players>` (`command/ForceAccompliceRoleCommand`,
   permission `sparkwitch.command.forceaccomplicerole`, default level 2, run through `Wathe.executeSupporterCommand`; a
   bare path resolves to the `sparkwitch` namespace; suggestions are `accomplice` plus every registered special
-  accomplice). There is no round guard: set outside a round, a lock applies to the next round; set during a round, to
-  the current one (the round is read from the world where it runs, since map voting can move it off the overworld). A
-  special accomplice is locked to one player at a time: more than one target → `special_single_target`; another
-  holder → `already_locked`, except that during a round a holder that is not a living Bewitched
-  (`BewitchedPromotionService.isLivingBewitched`, the same test as the reservation) has its stale lock dropped. The
-  plain Accomplice may be locked to many players. Locks are stored per UUID on the overworld `WitchWorldComponent`
-  (NBT `ForcedAccompliceRoles`, a list of `Player`/`Role` strings; never in the world sync packet), cleared by
-  `clearRoundState` and, explicitly on the overworld store, by `BewitchedFeatureService` at `ON_FINISH_FINALIZE`, and
-  cleared for the player when its promotion commits.
+  accomplice). There is no round guard. The lock has the same lifetime as Wathe's forced roles (owner, 2026-10-10:
+  "forceRole bewitched + lock" queued during one round used to reach the next round without its lock), decided per
+  target by `BewitchedPromotionRules.appliesToCurrentRound`:
+  - **Current round:** the target is a living Bewitched (`BewitchedPromotionService.isLivingBewitched`) of an ACTIVE
+    round (read from the world where it runs, since map voting can move it off the overworld). Feedback
+    `success.current_round`.
+  - **Next round:** any other target (lobby, the start or end fade, a target who is not a living Bewitched now). It has
+    no effect on the current round. Feedback `success.next_round`. At the next `ON_FINISH_INITIALIZE`, after dealing,
+    `armPendingForcedAccompliceRoles` turns it into a current-round lock if the holder is then a Bewitched (dealt or
+    `/wathe:forceRole`); otherwise it lapses.
+  A player holds one lock at a time (the newest command wins). A special accomplice is locked to one player at a time
+  per round, checked within the target's round: more than one target → `special_single_target`; another holder →
+  `already_locked`, except that a current-round holder that is no longer a living Bewitched (the same test as the
+  reservation) has its stale lock dropped. The plain Accomplice may be locked to many players. Locks are stored per UUID
+  on the overworld `WitchWorldComponent`, never in the world sync packet: current-round locks under NBT
+  `ForcedAccompliceRoles` and next-round locks under `PendingForcedAccompliceRoles` (each a list of `Player`/`Role`
+  strings). Only current-round locks are read by the promotion, cleared by `clearRoundState` and, explicitly on the
+  overworld store, by `BewitchedFeatureService` at `ON_FINISH_FINALIZE`, and cleared for the player when its
+  promotion commits. Next-round locks survive round end and the stop Wathe runs on every world at server start
+  (Wathe's forced roles are not saved, so re-run `/wathe:forceRole` after a restart). The command still runs through `Wathe.executeSupporterCommand`, so the console stores nothing (use `execute as`).
 - **Client.** `client/bewitched/BewitchedClientPresentation` draws `hud.sparkwitch.bewitched.progress` (`n/2`)
   bottom-right for a living Bewitched on a confirmed SparkWitch server through `HudRenderCallback` (hidden under F1 or
   without Wathe's train HUD).
