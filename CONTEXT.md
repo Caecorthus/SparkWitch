@@ -303,7 +303,11 @@ Current build baseline:
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
     SparkStrength) still treat a decoy as a body.
   - The ability cooldown is the `sparkwitch:magician` store in `compat/cooldown/MagicianCooldownStore` (appended
-    last; nominal = the 15 s playback cooldown; raise-only). Client presentation lives in `client/magician/` and
+    last; nominal = the 15 s playback cooldown; raise-only). Forced cooldowns land in every stage and only delay the
+    next start (owner decision 2026-10-09): the ready HUD line then shows the remaining seconds
+    (`hud.sparkwitch.magician.ready_cooldown`), and a press or start button refused for it gets the shared
+    `message.sparkwitch.skill.cooldown` action-bar line (`MagicianAbility.startsRecordingOrPlayback`); stopping a
+    recording or playback never waits. Client presentation lives in `client/magician/` and
     `client/mixin/Magician*`; HUD, button and replay texts are lang keys (`hud.sparkwitch.magician.*`,
     `ui.sparkwitch.magician.*`, `replay.global.sparkwitch.magician_*`).
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
@@ -2621,10 +2625,19 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
 Active Wraiths do not absorb name-tag raycasts they are hidden from.
 `client/render/WraithNameTagPassThrough` owns the presentation rule: a player
 whose synced Wraith state is active is skipped when
-`WraithViewerRules.shouldHideFromOrdinaryViewer` hides it, except for the
-promoted Curser viewed by the witch faction. Wathe-dead spectators (not a living
-Rift Gate occupant), killers viewing the promoted Saboteur, and the bound killer
-viewing its Vendetta keep selecting it.
+`WraithViewerRules.shouldHideFromOrdinaryViewer` hides it. Wathe-dead spectators
+(not a living Rift Gate occupant), killers viewing the promoted Saboteur, the
+witch faction viewing the promoted Curser, and the bound killer viewing its
+Vendetta keep selecting it.
+
+`WraithViewerRules.shouldRevealCurserToWitch` is the one rule for the witch
+faction (`WitchFactionRules.isWitchFactionMember` viewer) seeing the promoted
+Curser. `shouldHideFromOrdinaryViewer` excludes it, so the witch faction sees the
+Curser's held items and name tag, `WraithEntityInvisibilityMixin` shows its body
+translucent, and `WraithWatheHighlightMixin` gives it an always-on outline in the
+Curser's role colour (no instinct key) that the final `WraithMinecraftClientMixin`
+`hasOutline` veto no longer cancels. Aim pass-through is unchanged: a witch's aim
+still passes through the Curser.
 `client/mixin/WraithNameTagRaycastMixin` narrows only the predicate of the first
 (player) `ProjectileUtil.getCollision` in Wathe's `RoleNameRenderer.renderHud`;
 `WitchCohortRoleNameMixin`, `InsiderCohortRoleNameMixin` and `BlackRavenRoleNameRenderer` apply the same filter

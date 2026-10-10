@@ -5,8 +5,6 @@ import dev.caecorthus.sparkwitch.client.guardianangel.GuardianAngelClientHooks;
 import dev.caecorthus.sparkwitch.client.render.WraithViewerRules;
 import dev.caecorthus.sparkwitch.client.vendetta.VendettaClientPresentation;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
-import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
-import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithBodyRoleResolver;
 import dev.doctor4t.wathe.api.Role;
@@ -80,12 +78,12 @@ public abstract class WraithWatheHighlightMixin {
             return;
         }
 
-        if (CurserFeatureService.isActivePromotedCurser(playerTarget)) {
+        if (WraithViewerRules.shouldRevealCurserToWitch(viewer, playerTarget)) {
+            // Always on, like a cohort marker: no instinct key, and WraithMinecraftClientMixin lets it through.
+            // 常驻显示，如同同伙标记：无需本能键，WraithMinecraftClientMixin 也不会否决。
             GameWorldComponent game = GameWorldComponent.KEY.get(viewer.getWorld());
-            if (WitchFactionRules.isWitchFactionMember(game.getRole(viewer))) {
-                cir.setReturnValue(Objects.requireNonNullElse(game.getRole(playerTarget), WatheRoles.CIVILIAN).color());
-                return;
-            }
+            cir.setReturnValue(Objects.requireNonNullElse(game.getRole(playerTarget), WatheRoles.CIVILIAN).color());
+            return;
         }
 
         if (WraithViewerRules.shouldRevealToSpectator(viewer, playerTarget)) {

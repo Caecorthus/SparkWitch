@@ -187,6 +187,7 @@
   "ui.sparkwitch.magician.action.stop_playback": "结束播放",
   "hud.sparkwitch.magician.recording": "录制中，剩余 %s 秒（按 %s 提前结束）",
   "hud.sparkwitch.magician.ready": "按 %s 键以进行播放",
+  "hud.sparkwitch.magician.ready_cooldown": "录制已就绪，播放冷却中：%s 秒",
   "hud.sparkwitch.magician.playing": "播放中，剩余 %s 秒（按 %s 提前结束）",
   "hud.sparkwitch.magician.cooldown": "魔术师技能冷却中：%s 秒",
   "hud.sparkwitch.magician.idle": "当前选择玩家：%s；按 %s 键以进行录制",
