@@ -313,6 +313,13 @@ Current build baseline:
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers. `register` throws on a duplicate role; `tryRegister` (used only
   by `api/client/SecondarySkillKeyApi`) returns false and keeps the first handler.
+- `client/input/` (2026-10-09): neutral pure client input rules only, no state and no Minecraft types.
+  `MacControlClickRules.keepsLeftPress` is vanilla's macOS Ctrl-click remap rule (a left press with Ctrl becomes a
+  counted right press; sprint is Left Ctrl) for the launcher and the Death Ray; each weapon owns its own
+  `@ModifyExpressionValue` on the single `IS_SYSTEM_MAC` read in `Mouse.onMouseButton` and answers only for itself, so
+  the hooks chain. `client/mixin/input/SelectedSlotFlushInvoker` (`sparkwitch$flushSelectedSlot`) is the neutral
+  invoker of `ClientPlayerInteractionManager.syncSelectedSlot`. The AXMC keeps its own copies (`UsecInputRules`,
+  `UsecSelectedSlotSyncInvoker`, a different method name, since two invokers adding one name to one class clash).
 - `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
   `sparkwitch:fiend_moment` world component and its pure state, dormant immunity and hit reactions, cooldown
   aura, bomb-pass ledger, swallow block, last-one-standing exclusion (`FiendWinExclusion`), the Fiend Moment
@@ -1136,6 +1143,12 @@ and `sparkwitch:world`; packet field order and NBT keys must remain stable.
 `sparkwitch:fire_death_ray` carries the caster's yaw and pitch at key press (the attack key
 is handled before that tick's rotation packet); a payload without them still decodes and
 falls back to the server rotation. The server still decides every Death Ray and shotgun hit.
+On macOS a Ctrl + left press (sprint is Left Ctrl) with no screen stays a left press, uncounted, while the Death Ray
+owns the attack exactly as `DeathRayClientHooks.tryFire` decides (`ownsAttack`: confirmed server, player, network
+handler, active ray); releases keep vanilla's remap (`client/mixin/DeathRayMacControlClickMixin`, `client/input`).
+The ray's server never checks the held item, so it needs no slot flush.
+So on macOS, while the ray is active, a Ctrl + click (sprinting or not) fires the ray instead of using the held item
+(knife, revolver); a real right-click still uses it.
 Perfumer state uses the separate owner-only `sparkwitch:perfumer_player`
 component so its target lists are never added to the shared player packet.
 Prophet state lives in the separate owner-only `sparkwitch:prophet_player`
@@ -2356,6 +2369,10 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
     auto-repeat is ignored until the key is physically released. So a key held through a slot switch or past the end
     of a stun, Seeker or Kidnapper key lock never fires (`client/potiongunner/PotionFireInput`, `PotionFireLatch`).
     The client's aim is trusted for direction only (Death Ray precedent); there is no server aim cone.
+    AXMC parity (2026-10-09): on macOS `PotionLauncherMacControlClickMixin` keeps a Ctrl + left press with the
+    launcher in the main hand (no screen) a left press, uncounted (releases stay vanilla's; `client/input`), so a
+    sprinting click fires instead of scoping, and `requestFire` first flushes a same-tick hotbar slot
+    (`client/mixin/input/SelectedSlotFlushInvoker`), which the server would otherwise refuse as not holding.
   - Use never checks the role (owner rule 2026-10-04, `util/OffMatchUse`). The server re-checks, in order: the
     shot's mode (a dead participant of an `ACTIVE` round is refused), launcher in the main hand, not a spectator, not
     stunned, no Seeker session, no SparkTraits weapon block, the 20-tick launcher cooldown, and a loaded shell.
