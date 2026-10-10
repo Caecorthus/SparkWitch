@@ -303,7 +303,11 @@ Current build baseline:
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
     SparkStrength) still treat a decoy as a body.
   - The ability cooldown is the `sparkwitch:magician` store in `compat/cooldown/MagicianCooldownStore` (appended
-    last; nominal = the 15 s playback cooldown; raise-only). Client presentation lives in `client/magician/` and
+    last; nominal = the 15 s playback cooldown; raise-only). Forced cooldowns land in every stage and only delay the
+    next start (owner decision 2026-10-09): the ready HUD line then shows the remaining seconds
+    (`hud.sparkwitch.magician.ready_cooldown`), and a press or start button refused for it gets the shared
+    `message.sparkwitch.skill.cooldown` action-bar line (`MagicianAbility.startsRecordingOrPlayback`); stopping a
+    recording or playback never waits. Client presentation lives in `client/magician/` and
     `client/mixin/Magician*`; HUD, button and replay texts are lang keys (`hud.sparkwitch.magician.*`,
     `ui.sparkwitch.magician.*`, `replay.global.sparkwitch.magician_*`).
 - `client/ability/`: generic configurable skill-key-2 registration and role-id

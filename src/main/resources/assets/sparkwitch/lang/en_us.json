@@ -187,6 +187,7 @@
   "ui.sparkwitch.magician.action.stop_playback": "Stop playback",
   "hud.sparkwitch.magician.recording": "Recording: %s s left (press %s to stop early)",
   "hud.sparkwitch.magician.ready": "Press %s to play back",
+  "hud.sparkwitch.magician.ready_cooldown": "Recording ready; playback on cooldown: %s s",
   "hud.sparkwitch.magician.playing": "Playing back: %s s left (press %s to stop early)",
   "hud.sparkwitch.magician.cooldown": "Magician ability on cooldown: %s s",
   "hud.sparkwitch.magician.idle": "Disguise: %s; press %s to record",
