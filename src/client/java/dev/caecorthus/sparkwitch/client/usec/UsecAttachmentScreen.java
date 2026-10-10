@@ -271,14 +271,15 @@ public final class UsecAttachmentScreen extends Screen {
 
     // ---- model / 模型 ----
 
-    /** The rifle cooldown from the shared exact classifier. 共用精确分类器给出的步枪冷却。 */
+    /** The rifle cooldown from the shared classifier. 共用分类器给出的步枪冷却。 */
     private UsecCooldowns.Status cooldown() {
         return client == null || client.player == null ? UsecCooldowns.Status.NONE
-                : UsecCooldowns.status(client.player);
+                : UsecBoltWatchClient.status(client.player);
     }
 
     private BoltStatus status() {
-        return UsecAttachmentModel.boltStatus(view.rifle(), cooldown());
+        return UsecAttachmentModel.boltStatus(view.rifle(), cooldown(),
+                pendingTicks > 0 ? PENDING_TICKS - pendingTicks : UsecAttachmentModel.NO_PENDING_ACTION);
     }
 
     private List<Button> cardButtons(Card card) {

@@ -22,6 +22,9 @@ import java.util.random.RandomGenerator;
  * one-way latency, so the anchor stays in step with the sound at any ping. An empty-chamber click (no cooldown, nothing
  * armed), the last round (no round chambered, no sound), another player's shot (it never touches the local cooldown or
  * the local send) and the attachment-screen bolts (no local shot, and a screen clears the pending shot) never sway.
+ * Neither does a short forced lock (the Shriek Gun's or an AC shell's) that lands on a rejected shot inside the
+ * window: {@link UsecBoltWatch} reads it as a bolt only when the rifle state changed with it, which a rejected shot
+ * never does.
  * <p>
  * Feel (owner, 2026-10-08, Escape from Tarkov's scoped bolt cycling as the reference): the rifle cants a few degrees
  * as the hand lifts and pulls the handle, the sight dips and drifts to one side, gets jolted on the rear and forward
@@ -36,7 +39,8 @@ import java.util.random.RandomGenerator;
  * 短暂的待确认窗口；窗口内看到的第一个同步拉栓冷却条目（{@link UsecCooldowns.Status#bolt()}）确认服务端接受了这次射击，
  * 并以该条目的起始刻为时间轴锚点。冷却数据包与拉栓声数据包经过同一段单程延迟，因此任何延迟下锚点都与声音同步。空膛点击
  * （无冷却、不预备）、最后一发（无新子弹上膛、无声音）、其他玩家的射击（从不影响本地冷却或本地发送）以及配件界面中的拉栓
- * （没有本地射击，且打开界面会清除待确认射击）都不会晃动。
+ * （没有本地射击，且打开界面会清除待确认射击）都不会晃动。窗口内落在被拒绝射击上的短暂强制锁定（尖啸枪或 AC 炮弹）同样不会：
+ * {@link UsecBoltWatch} 只有在步枪状态随之变化时才把它当作拉栓，而被拒绝的射击从不改变步枪状态。
  * <p>
  * 手感（所有者 2026-10-08，以《逃离塔科夫》开镜拉栓为参照）：手抬起并后拉拉柄时枪身倾斜几度，视野下沉并向一侧漂移，在后拉
  * 与前推撞击时被震动，随后在拉柄闭锁时摆回瞄准点并回稳。角度为世界角度（度）：偏航 &gt; 0 视角右转，俯仰 &gt; 0 视角上抬，

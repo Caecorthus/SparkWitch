@@ -146,9 +146,12 @@ public final class UsecAttachmentModel {
     public enum BoltStatus {
         /** A round is chambered and the rifle is not cooling down. / 已上膛且没有冷却。 */
         READY,
-        /** The bolt is cycling (at most one bolt length left). / 正在拉栓（剩余不超过一次拉栓时长）。 */
+        /** The bolt is cycling (a proven bolt, at most one bolt length). / 正在拉栓（已证实的拉栓，不超过一次拉栓时长）。 */
         BOLTING,
-        /** A longer lock (round start, Saint Karma, Fiend aura). / 更长的锁定（开局、圣徒业报、魔人光环）。 */
+        /**
+         * Any other lock: round start, Saint Karma, Fiend aura, or a short forced lock (Shriek Gun, AC shell).
+         * 其他锁定：开局、圣徒业报、魔人光环，或短暂的强制锁定（尖啸枪、AC 炮弹）。
+         */
         LOCKED,
         /** Nothing chambered. / 弹膛为空。 */
         EMPTY
@@ -338,20 +341,39 @@ public final class UsecAttachmentModel {
 
     // ---- status / 状态 ----
 
+    /** No action of this screen is waiting for the inventory's answer. / 本界面没有等待背包回应的动作。 */
+    public static final int NO_PENDING_ACTION = -1;
+
     /**
-     * Footer status from the shared exact classifier ({@link UsecCooldowns#status}): a bolt-length cooldown is the bolt
-     * cycling, any longer one a lock for its whole length (no longer guessed from the remaining ticks alone).
-     * 依据共用精确分类器（{@link UsecCooldowns#status}）得出的页脚状态：拉栓长度的冷却即为拉栓，更长的冷却在整个时长内都是锁定
-     * （不再仅凭剩余刻数猜测）。
+     * Footer status from the shared classifier ({@code UsecBoltWatchClient.status}): a proven bolt is the bolt cycling,
+     * any other cooldown a lock for its whole length, a short forced lock (Shriek Gun, AC shell) included.
+     * {@code ownActionAge} is the ticks since this screen sent an action the inventory has not answered yet, else
+     * {@link #NO_PENDING_ACTION}. While it waits, a bolt-length entry that started after the press already reads as the
+     * bolt: its proof (the rifle state change) comes with that answer, a tick or two after the cooldown, so the pill
+     * does not flash 锁定 first (unless the answer takes longer than the screen's 10-tick wait, or an unrelated
+     * inventory change ends the wait early).
+     * 依据共用分类器（{@code UsecBoltWatchClient.status}）得出的页脚状态：已证实的拉栓即为拉栓，其余冷却在整个时长内都是锁定，
+     * 包括短暂的强制锁定（尖啸枪、AC 炮弹）。{@code ownActionAge} 为本界面发出、背包尚未回应的动作至今的刻数，否则为
+     * {@link #NO_PENDING_ACTION}。等待期间，按下之后才开始的拉栓长度条目直接显示为拉栓：它的证据（步枪状态变化）随该回应到达，
+     * 比冷却晚一两刻，因此状态标签不会先闪一下“锁定”（除非回应超过界面 10 刻的等待，或无关的背包变化提前结束等待）。
      */
-    public static BoltStatus boltStatus(UsecRifleState rifle, UsecCooldowns.Status cooldown) {
+    public static BoltStatus boltStatus(UsecRifleState rifle, UsecCooldowns.Status cooldown, int ownActionAge) {
+        if (cooldown.bolt() || awaitsOwnBolt(cooldown, ownActionAge)) {
+            return BoltStatus.BOLTING;
+        }
         if (cooldown.otherLock()) {
             return BoltStatus.LOCKED;
         }
-        if (cooldown.bolt()) {
-            return BoltStatus.BOLTING;
-        }
         return rifle.chamber() != null ? BoltStatus.READY : BoltStatus.EMPTY;
+    }
+
+    /**
+     * A bolt-length entry that started no earlier than this screen's unanswered action (elapsed ticks within its age).
+     * 不早于本界面未获回应动作开始的拉栓长度条目（已经过的刻数不超过该动作的时长）。
+     */
+    static boolean awaitsOwnBolt(UsecCooldowns.Status cooldown, int ownActionAge) {
+        return ownActionAge >= 0 && cooldown.coolingDown() && cooldown.total() <= UsecRules.BOLT_TICKS
+                && cooldown.total() - cooldown.remaining() <= ownActionAge;
     }
 
     /**

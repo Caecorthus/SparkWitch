@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
-import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecCooldowns;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRifleState;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -11,13 +10,15 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import java.util.Random;
 
 /**
- * Client only. Wiring of the scoped AXMC bolt sway ({@link UsecBoltSway}), registered once, last, by
+ * Client only. Wiring of the scoped AXMC bolt sway ({@link UsecBoltSway}), registered once by
  * {@code UsecClientModule}: one end-of-tick listener feeds the local player's scope state, interruptions and synced
- * rifle cooldown to the tracker, and a disconnect resets it. {@code UsecFireInput} reports each sent fire request, and
+ * rifle cooldown (as classified by {@link UsecBoltWatchClient#status}, so a short forced lock is never a bolt) to the
+ * tracker, and a disconnect resets it. {@code UsecFireInput} reports each sent fire request, and
  * {@code UsecBoltSwayCameraMixin} reads {@link #currentAngles} per frame. Presentation only: nothing is sent or synced,
  * and it never touches the witch skill inventory panel.
- * 仅客户端。开镜 AXMC 拉栓晃动（{@link UsecBoltSway}）的接线，由 {@code UsecClientModule} 最后注册一次：一个刻末监听器把本地
- * 玩家的开镜状态、打断条件与已同步的步枪冷却喂给追踪器，断线时重置。{@code UsecFireInput} 报告每个已发出的开火请求，
+ * 仅客户端。开镜 AXMC 拉栓晃动（{@link UsecBoltSway}）的接线，由 {@code UsecClientModule} 注册一次：一个刻末监听器把本地
+ * 玩家的开镜状态、打断条件与已同步的步枪冷却（经 {@link UsecBoltWatchClient#status} 分类，短暂的强制锁定永远不算拉栓）喂给
+ * 追踪器，断线时重置。{@code UsecFireInput} 报告每个已发出的开火请求，
  * {@code UsecBoltSwayCameraMixin} 每帧读取 {@link #currentAngles}。仅为表现：不发送也不同步任何内容，从不触及魔女技能背包面板。
  */
 public final class UsecBoltSwayClient {
@@ -64,6 +65,6 @@ public final class UsecBoltSwayClient {
         boolean interrupted = !SparkWitchServerConnection.isConfirmedServer() || player == null || !player.isAlive()
                 || player.isSpectator() || client.currentScreen != null
                 || !UsecRifleClient.holdsRifleInMainHand(player);
-        TRACKER.tick(!interrupted && UsecScopeProfile.isActive(), interrupted, UsecCooldowns.status(player));
+        TRACKER.tick(!interrupted && UsecScopeProfile.isActive(), interrupted, UsecBoltWatchClient.status(player));
     }
 }
