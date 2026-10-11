@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
-import dev.caecorthus.sparkwitch.client.mixin.usec.UsecSelectedSlotSyncInvoker;
+import dev.caecorthus.sparkwitch.client.input.MacControlClickRules;
+import dev.caecorthus.sparkwitch.client.mixin.input.SelectedSlotFlushInvoker;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRifleState;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.net.FireUsecRifleC2SPacket;
@@ -23,14 +24,18 @@ import org.lwjgl.glfw.GLFW;
  * and the latch ignores a keyboard key's auto-repeat edges. The Seeker remote view, the Control Expert stun and the
  * Kidnapper control make the attack key read as released and consume its queued presses, so they win first. Two
  * hip-fire gaps the revolver never had are closed here: on macOS a Ctrl + left press with the rifle stays a left press
- * ({@link #skipsMacControlClickRemap}), and a request first flushes a hotbar slot picked earlier in the same tick.
+ * ({@link #keepsMacLeftPress}), and a request first flushes a hotbar slot picked earlier in the same tick. Both use the
+ * neutral seams shared with the launcher and the Death Ray ({@code client/input/MacControlClickRules},
+ * {@code client/mixin/input/SelectedSlotFlushInvoker}; 2026-10-11).
  * USEC 狙击步枪的左键桥接（开镜或腰射，Q15）。仅为客户端意图：携带按下时的准星朝向发送 {@link FireUsecRifleC2SPacket}，
  * 由服务端复核一切（D3）。该层复制自炮筒（{@code PotionFireInput}）：主手持步枪时攻击键永远不会攻击、挖掘或挥动；只有一条
  * 路径会发射，即原版在 {@code handleInputEvents} 两个分支之一（开镜时的使用中丢弃循环，或 {@code doAttack} 循环）中取出的
  * 攻击按下沿，经 {@link UsecFireLatch} 判定。它不以 {@code isUsingItem()} 为条件，因为原版使用中分支会先执行
  * {@code stopUsingItem} 再取出按键。按住不放永不发射：按住鼠标键不产生按下沿，闩锁忽略键盘自动重复。搜寻者遥控视角、
  * 控场专家眩晕与绑匪控制会让攻击键读作未按下并消耗排队按键，因此它们先生效。左轮从未有过的两个腰射缺口在此补上：macOS 上
- * 持步枪时 Ctrl + 左键按下仍是左键（{@link #skipsMacControlClickRemap}），发射请求会先同步同一刻早先选中的快捷栏位。
+ * 持步枪时 Ctrl + 左键按下仍是左键（{@link #keepsMacLeftPress}），发射请求会先同步同一刻早先选中的快捷栏位。两者都使用与
+ * 炮筒、死亡射线共用的中立接缝（{@code client/input/MacControlClickRules}、
+ * {@code client/mixin/input/SelectedSlotFlushInvoker}；2026-10-11）。
  */
 public final class UsecFireInput {
     private static final UsecFireLatch LATCH = new UsecFireLatch();
@@ -62,15 +67,16 @@ public final class UsecFireInput {
     /**
      * {@code Mouse.onMouseButton}, at its only {@code IS_SYSTEM_MAC} read (macOS only): true keeps this left press as
      * button 0, uncounted, so Ctrl + left-click (sprint is Left Ctrl) reaches the attack key and fires like a plain
-     * left click. Never fires by itself and never touches a release; see {@link UsecInputRules#skipsMacControlClickRemap}.
+     * left click. The rifle test is the fire path's own main-hand check. Never fires by itself and never touches a
+     * release; see {@link MacControlClickRules#keepsLeftPress}.
      * {@code Mouse.onMouseButton} 中唯一一次读取 {@code IS_SYSTEM_MAC} 处（仅 macOS）：返回 true 时本次左键按下保持为按键 0
-     * 且不计数，于是 Ctrl + 左键（疾跑是左 Ctrl）会到达攻击键，像普通左键一样开火。它自身从不发射，也从不改动松开；见
-     * {@link UsecInputRules#skipsMacControlClickRemap}。
+     * 且不计数，于是 Ctrl + 左键（疾跑是左 Ctrl）会到达攻击键，像普通左键一样开火。步枪判断与发射路径使用同一主手检查。它自身
+     * 从不发射，也从不改动松开；见 {@link MacControlClickRules#keepsLeftPress}。
      */
-    public static boolean skipsMacControlClickRemap(MinecraftClient client, int button, int action,
-                                                    int pendingRemappedReleases) {
+    public static boolean keepsMacLeftPress(MinecraftClient client, int button, int action,
+                                            int pendingRemappedReleases) {
         ClientPlayerEntity player = client.player;
-        return UsecInputRules.skipsMacControlClickRemap(
+        return MacControlClickRules.keepsLeftPress(
                 button == GLFW.GLFW_MOUSE_BUTTON_LEFT,
                 action == GLFW.GLFW_PRESS,
                 client.currentScreen != null,
@@ -131,7 +137,7 @@ public final class UsecFireInput {
         // 服务端仅在其主手持步枪时开火，但本刻早先处理的快捷栏按键只改变了客户端栏位（原版在下一刻才发送）。像
         // interactItem 一样先同步，服务端便会先读到栏位再处理开火。栏位未变时不发送任何内容。
         if (client.interactionManager != null) {
-            ((UsecSelectedSlotSyncInvoker) client.interactionManager).sparkwitch$syncSelectedSlot();
+            ((SelectedSlotFlushInvoker) client.interactionManager).sparkwitch$flushSelectedSlot();
         }
         // Rotation at press time: the attack key is handled before this tick's rotation packet (Death Ray precedent).
         // 按下瞬间的朝向：攻击键先于本刻的朝向数据包处理（参照死亡射线）。

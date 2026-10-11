@@ -315,11 +315,15 @@ Current build baseline:
   by `api/client/SecondarySkillKeyApi`) returns false and keeps the first handler.
 - `client/input/` (2026-10-09): neutral pure client input rules only, no state and no Minecraft types.
   `MacControlClickRules.keepsLeftPress` is vanilla's macOS Ctrl-click remap rule (a left press with Ctrl becomes a
-  counted right press; sprint is Left Ctrl) for the launcher and the Death Ray; each weapon owns its own
-  `@ModifyExpressionValue` on the single `IS_SYSTEM_MAC` read in `Mouse.onMouseButton` and answers only for itself, so
-  the hooks chain. `client/mixin/input/SelectedSlotFlushInvoker` (`sparkwitch$flushSelectedSlot`) is the neutral
-  invoker of `ClientPlayerInteractionManager.syncSelectedSlot`. The AXMC keeps its own copies (`UsecInputRules`,
-  `UsecSelectedSlotSyncInvoker`, a different method name, since two invokers adding one name to one class clash).
+  counted right press; sprint is Left Ctrl), shared by all three left-click weapons: the AXMC
+  (`UsecFireInput.keepsMacLeftPress`), the launcher (`PotionFireInput.keepsMacLeftPress`) and the Death Ray
+  (`DeathRayClientHooks.keepsMacLeftPress`). Each weapon owns its own `@ModifyExpressionValue` on the single
+  `IS_SYSTEM_MAC` read in `Mouse.onMouseButton` and answers only for itself, so the hooks chain.
+  `client/mixin/input/SelectedSlotFlushInvoker` (`sparkwitch$flushSelectedSlot`) is the only invoker of
+  `ClientPlayerInteractionManager.syncSelectedSlot` (two invokers adding one name to one class clash); the AXMC and the
+  launcher flush through it right before their fire packet, and the Death Ray needs none (its server never reads the
+  held item). The AXMC's former copies (`UsecInputRules.skipsMacControlClickRemap`, `UsecSelectedSlotSyncInvoker`) were
+  folded into these seams on 2026-10-11 (owner-approved, no behaviour change).
 - `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
   `sparkwitch:fiend_moment` world component and its pure state, dormant immunity and hit reactions, cooldown
   aura, bomb-pass ledger, swallow block, last-one-standing exclusion (`FiendWinExclusion`), the Fiend Moment
@@ -664,8 +668,11 @@ Current build baseline:
     scoped or from the hip. Attacking and mining are swallowed, and held keys never fire. The recoil kick is camera-only
     (`UsecRecoil`, `UsecRecoilCameraMixin` at every return of `GameRenderer.tiltViewWhenHurt`).
     Hip-fire gaps (2026-10-09): on macOS `UsecMacControlClickMixin` keeps a Ctrl + left press with the rifle (no
-    screen) a left press, uncounted (releases stay vanilla's), and `requestFire` first flushes a same-tick hotbar slot
-    (`UsecSelectedSlotSyncInvoker`), as `interactItem` does for Wathe's revolver.
+    screen) a left press, uncounted (releases stay vanilla's), and `requestFire` first flushes a same-tick hotbar slot,
+    as `interactItem` does for Wathe's revolver. Both run on the neutral seams shared with the launcher and the Death Ray
+    (2026-10-11, see `client/input/`): `UsecFireInput.keepsMacLeftPress` asks `MacControlClickRules.keepsLeftPress` with
+    the rifle as owner, and the flush goes through `client/mixin/input/SelectedSlotFlushInvoker`. The mixin stays the
+    AXMC's own chained hook.
   - Target crosshair (owner 2026-10-09, revolver parity): `client/mixin/usec/UsecCrosshairMixin` chains one more
     `@ModifyExpressionValue` on Wathe `CrosshairRenderer.CROSSHAIR`. Every rule lives in the pure `UsecCrosshairRules`
     (it mirrors the server pick, so a change there must follow); `UsecCrosshairTargeting` only gathers inputs. An armed

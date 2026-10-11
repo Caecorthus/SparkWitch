@@ -2,17 +2,17 @@ package dev.caecorthus.sparkwitch.client.input;
 
 /**
  * Neutral pure rule for vanilla's macOS Ctrl-click remap, shared by the left-click weapons that answer the single
- * {@code MinecraftClient.IS_SYSTEM_MAC} read in {@code Mouse.onMouseButton} (Potion Gunner launcher, Murderous Witch
- * Death Ray). Vanilla 1.21.1 turns a left press with Ctrl into a right press and counts it in
+ * {@code MinecraftClient.IS_SYSTEM_MAC} read in {@code Mouse.onMouseButton} (USEC AXMC, Potion Gunner launcher,
+ * Murderous Witch Death Ray). Vanilla 1.21.1 turns a left press with Ctrl into a right press and counts it in
  * {@code controlLeftClicks}; while that count is above zero the next left release becomes a right release and the count
  * drops. Sprint defaults to Left Ctrl, so a Mac player sprinting would use the held item instead of firing. Each
  * caller owns its mixin and decides only whether its own weapon owns the left click; this class holds no state and no
- * Minecraft types. The AXMC keeps its own identical copy in {@code client/usec/UsecInputRules} (2026-10-09).
+ * Minecraft types. The AXMC answered through its own identical copy until 2026-10-11.
  * 原版 macOS Ctrl 点击重映射的中立纯规则，供应答 {@code Mouse.onMouseButton} 中唯一一次 {@code MinecraftClient.IS_SYSTEM_MAC}
- * 读取的左键武器共用（药炮手炮筒、杀意魔女死亡射线）。原版 1.21.1 把按住 Ctrl 的左键按下变为右键按下，并计入
+ * 读取的左键武器共用（USEC AXMC、药炮手炮筒、杀意魔女死亡射线）。原版 1.21.1 把按住 Ctrl 的左键按下变为右键按下，并计入
  * {@code controlLeftClicks}；计数大于零时下一次左键松开变为右键松开并减少计数。疾跑默认是左 Ctrl，因此 Mac 玩家疾跑时会
  * 使用手持物品而不是开火。每个调用方拥有自己的 mixin，只判断自己的武器是否占有左键；本类无状态，也不含 Minecraft 类型。
- * AXMC 在 {@code client/usec/UsecInputRules} 中保留一份相同的规则（2026-10-09）。
+ * AXMC 在 2026-10-11 之前使用自己的一份相同规则。
  */
 public final class MacControlClickRules {
     private MacControlClickRules() {
