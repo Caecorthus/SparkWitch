@@ -171,7 +171,6 @@
     "usec.UsecBoltSwayCameraMixin",
     "usec.UsecCrosshairMixin",
     "usec.UsecMacControlClickMixin",
-    "usec.UsecSelectedSlotSyncInvoker",
     "scope.ScopeHeldItemRendererMixin",
     "scope.ScopeWorldRendererMixin",
     "scope.ScopeParticleManagerMixin",
