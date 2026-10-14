@@ -64,6 +64,11 @@ public abstract class BeveragePlateBlockEntityPoisonAppleMixin implements Poison
     }
 
     @Override
+    public @Nullable UUID sparkwitch$poisonApplePlacer() {
+        return sparkwitch$poisonAppleState == null ? null : sparkwitch$poisonAppleState.placerUuid();
+    }
+
+    @Override
     public void sparkwitch$clearPoisonApple() {
         if (!sparkwitch$isPoisonAppleArmed()) {
             PoisonApplePlateTracker.untrack(this);

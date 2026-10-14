@@ -14,6 +14,12 @@ public interface PoisonApplePlateAccess {
 
     @Nullable UUID sparkwitch$recordSuccessfulTake(UUID matchUuid);
 
+    /**
+     * The player who armed this platter's Poison Apple (server state only), or {@code null} when none is armed.
+     * 布置此餐盘毒苹果的玩家（仅服务端状态）；未布置时为 {@code null}。
+     */
+    @Nullable UUID sparkwitch$poisonApplePlacer();
+
     void sparkwitch$clearPoisonApple();
 
     void sparkwitch$clearIfMatchChanged(@Nullable UUID matchUuid);

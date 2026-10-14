@@ -36,6 +36,13 @@ public final class HunterTrapEntity extends Entity {
     public static final Identifier EVENT_TRIGGERED = SparkWitch.id("hunter_trap_triggered");
     public static final Identifier POISON_SOURCE = SparkWitch.id("trap");
     public static final String POISON_PLACER_NBT_KEY = "SparkWitchTrapPlacer";
+    /**
+     * Achievement record contract W16 (2026-10-14), read by SparkAssist: on {@link #EVENT_TRIGGERED}, true when an
+     * active Bone Setting absorbed this trap's fracture. Every earlier field keeps its name and meaning.
+     * 成就记录契约 W16（2026-10-14），由 SparkAssist 读取：写在 {@link #EVENT_TRIGGERED} 上，生效中的正骨吸收了这次捕兽夹
+     * 骨折时为 true。原有字段的名称与含义均不变。
+     */
+    static final String BONE_SETTING_ABSORBED_KEY = "bone_setting_absorbed";
     private static final TrackedData<Optional<UUID>> OWNER_UUID = DataTracker.registerData(
             HunterTrapEntity.class,
             TrackedDataHandlerRegistry.OPTIONAL_UUID
@@ -187,9 +194,12 @@ public final class HunterTrapEntity extends Entity {
     }
 
     private void trigger(PlayerEntity player) {
-        recordTrigger(player);
         HunterPlayerComponent injuryComponent = HunterPlayerComponent.KEY.get(player);
-        injuryComponent.applyTrapInjury();
+        HunterInjuryState.FractureApplication fracture = injuryComponent.applyTrapInjury();
+        // Recorded after the injury so the record can tell whether Bone Setting absorbed it (W16); the injury writes no
+        // record, and the trigger record still precedes the trap poison's, as before.
+        // 在伤害之后记录，以便写明正骨是否吸收了骨折（W16）；伤害本身不写记录，触发记录仍像以前一样早于捕兽夹中毒记录。
+        recordTrigger(player, fracture);
 
         if (isPoisoned()) {
             UUID placerUuid = getOwnerUuid();
@@ -312,7 +322,7 @@ public final class HunterTrapEntity extends Entity {
         return false;
     }
 
-    private void recordTrigger(PlayerEntity player) {
+    private void recordTrigger(PlayerEntity player, HunterInjuryState.FractureApplication fracture) {
         if (!(getWorld() instanceof ServerWorld serverWorld) || !(player instanceof ServerPlayerEntity target)) {
             return;
         }
@@ -324,6 +334,7 @@ public final class HunterTrapEntity extends Entity {
             data.putUuid("poisoner", poisonerUuid);
         }
         data.putBoolean("poisoned", isPoisoned());
+        data.putBoolean(BONE_SETTING_ABSORBED_KEY, fracture.absorbedByBoneSetting());
         GameRecordManager.putPos(data, "pos", getPos());
         GameRecordManager.recordGlobalEvent(
                 serverWorld,

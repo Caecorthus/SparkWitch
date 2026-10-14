@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.killer.witchmaiden;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.NoellesToxicologistBridge;
+import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.doctor4t.wathe.block_entity.BeveragePlateBlockEntity;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.index.WatheDataComponentTypes;
@@ -45,18 +46,34 @@ public final class PoisonApplePlateService {
         return true;
     }
 
-    public static void recordSuccessfulTake(ItemStack takenStack, PoisonApplePlateAccess plate) {
+    public static void recordSuccessfulTake(PlayerEntity taker, ItemStack takenStack, PoisonApplePlateAccess plate) {
         UUID matchUuid = activeMatchId();
         plate.sparkwitch$clearIfMatchChanged(matchUuid);
         if (matchUuid == null) {
             return;
         }
+        // Read before the take: the poisoned (second) take clears the plate state.
+        // 在拿取前读取：第二次（下毒）拿取会清空餐盘状态。
+        UUID placerUuid = plate.sparkwitch$poisonApplePlacer();
         UUID poisonerUuid = plate.sparkwitch$recordSuccessfulTake(matchUuid);
-        if (poisonerUuid == null) {
-            return;
+        if (poisonerUuid != null) {
+            takenStack.set(WatheDataComponentTypes.POISONER, poisonerUuid.toString());
+            PoisonAppleDrinkMarker.mark(takenStack);
         }
-        takenStack.set(WatheDataComponentTypes.POISONER, poisonerUuid.toString());
-        PoisonAppleDrinkMarker.mark(takenStack);
+        UUID recordedPoisoner = takeRecordPoisoner(placerUuid, poisonerUuid);
+        if (recordedPoisoner != null && taker instanceof ServerPlayerEntity serverTaker) {
+            AchievementRecords.poisonAppleTake(serverTaker, recordedPoisoner, poisonerUuid != null);
+        }
+    }
+
+    /**
+     * Achievement record W9: the poisoner a take from an armed platter is recorded against (the poisoned take's
+     * poisoner, else the placer of the still-armed apple); {@code null} when the platter held no Poison Apple.
+     * 成就记录 W9：从已布置餐盘拿取时所记录的下毒者（下毒那一次取其下毒者，否则取仍布置着的毒苹果的布置者）；餐盘上没有
+     * 毒苹果时为 {@code null}。
+     */
+    static @Nullable UUID takeRecordPoisoner(@Nullable UUID placerUuid, @Nullable UUID poisonerUuid) {
+        return poisonerUuid != null ? poisonerUuid : placerUuid;
     }
 
     public static boolean isReadyAntidote(PlayerEntity player) {

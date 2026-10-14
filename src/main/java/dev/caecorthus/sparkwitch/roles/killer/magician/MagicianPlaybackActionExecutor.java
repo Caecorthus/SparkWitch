@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.magician;
 
+import dev.caecorthus.sparkwitch.record.AchievementRecords;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
@@ -9,17 +11,22 @@ import dev.doctor4t.wathe.record.GameRecordManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Hand;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 /**
  * 播放动作执行层。第一层只实现 Wathe 原版匕首、左轮和普通交互；
@@ -69,7 +76,7 @@ public final class MagicianPlaybackActionExecutor {
         if (!proxy.getMainHandStack().isOf(WatheItems.BAT)) return;
         ServerPlayerEntity target = target(owner, proxy, MagicianConstants.KNIFE_RANGE);
         if (target == null) return;
-        GameFunctions.killPlayer(target, true, owner, GameConstants.DeathReasons.BAT);
+        puppetKill(owner, visible, target, GameConstants.DeathReasons.BAT, WatheItems.BAT);
         proxy.getWorld().playSound(null, target.getX(), target.getEyeY(), target.getZ(),
                 WatheSounds.ITEM_BAT_HIT, SoundCategory.PLAYERS, 3.0F, 1.0F);
         proxy.swingHand(Hand.MAIN_HAND);
@@ -101,7 +108,7 @@ public final class MagicianPlaybackActionExecutor {
         ServerPlayerEntity target = target(owner, proxy, MagicianConstants.REVOLVER_RANGE);
         if (target != null) {
             GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.REVOLVER), target, null);
-            GameFunctions.killPlayer(target, true, owner, GameConstants.DeathReasons.GUN);
+            puppetKill(owner, visible, target, GameConstants.DeathReasons.GUN, WatheItems.REVOLVER);
         } else {
             GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.REVOLVER), null, null);
         }
@@ -120,9 +127,31 @@ public final class MagicianPlaybackActionExecutor {
         ServerPlayerEntity target = target(owner, proxy, MagicianConstants.KNIFE_RANGE);
         if (target == null) return;
         GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.KNIFE), target, null);
-        GameFunctions.killPlayer(target, true, owner, GameConstants.DeathReasons.KNIFE);
+        puppetKill(owner, visible, target, GameConstants.DeathReasons.KNIFE, WatheItems.KNIFE);
         target.playSound(WatheSounds.ITEM_KNIFE_STAB, 1f, 1f); proxy.swingHand(Hand.MAIN_HAND); visible.playReplaySwing(Hand.MAIN_HAND);
         proxy.getItemCooldownManager().set(WatheItems.KNIFE, GameConstants.ITEM_COOLDOWNS.getOrDefault(WatheItems.KNIFE, 0));
+    }
+    /**
+     * The puppet's kill, unchanged ({@code killPlayer} with the owner as killer), followed by achievement record W17
+     * only when it took: the target was alive before and is dead after (a parry, shield or protection leaves them
+     * alive). The disguise's death state is read before the kill, so a puppet disguised as its own victim reads false.
+     * 皮套的击杀，行为不变（以主人为击杀者调用 {@code killPlayer}）；仅当击杀生效时（目标此前存活、此后死亡；格挡、护盾或保护会让其
+     * 存活）才写入成就记录 W17。伪装对象的死亡状态在击杀前读取，因此伪装成受害者本人的皮套记为未死亡。
+     */
+    private static void puppetKill(ServerPlayerEntity owner, MagicianPlaybackEntity visible, ServerPlayerEntity target,
+                                   Identifier deathReason, Item weapon) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(target.getWorld());
+        UUID disguise = visible.disguise();
+        boolean disguiseDead = disguise != null && game.isPlayerDead(disguise);
+        boolean wasDead = game.isPlayerDead(target.getUuid());
+        GameFunctions.killPlayer(target, true, owner, deathReason);
+        if (killTook(wasDead, game.isPlayerDead(target.getUuid()))) {
+            AchievementRecords.magicianPuppetKill(owner, target, Registries.ITEM.getId(weapon), disguise, disguiseDead);
+        }
+    }
+    /** W17: a puppet kill took only when it turned a living target dead. / W17：仅当把存活目标变为死亡时皮套击杀才算生效。 */
+    static boolean killTook(boolean deadBefore, boolean deadAfter) {
+        return !deadBefore && deadAfter;
     }
     /**
      * The player the puppet's weapon hits, picked like Wathe's own knife/revolver targeting
