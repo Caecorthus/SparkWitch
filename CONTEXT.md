@@ -1108,6 +1108,25 @@ Current build baseline:
   Spirit's wind charge catching a living participant in `WindSpiritKnockLedger` (latest knock per victim, 10 s
   window, cleared by reset, any death and round end), and a `wathe:fell_out_of_train` death inside the window records
   the event from `KillPlayer.AFTER`, after Wathe's own `death` record.
+  Batch 2026-10-14 (W8-W17, same rules; `target` is a UUID when that player is offline):
+  `sparkwitch:ninja_parry` (`actor` Ninja, `target` attacker, `death_reason`, `weapon` = attacker main-hand item id;
+  `NinjaFeatureService.beforeKill`, never for a Ceremonial Sword blow that pierces the parry),
+  `sparkwitch:poison_apple_take` (`actor` placer, UUID when offline; `target` taker; `poisoned` only on the poisoned
+  second serving; `PoisonApplePlateService.recordSuccessfulTake`, after the serving is marked),
+  `sparkwitch:perfume_mark` (`PerfumeEssenceItem.useOnEntity`, after the mark and the essence spend),
+  `sparkwitch:prophecy` (`target` dead victim, `guess` cause group id, `correct`, `attempt` 1-based on this death via
+  `ProphetProphecyRules.attemptNumber`, `killer` + `killer_faction` only when a correct guess revealed someone;
+  `ProphetProphecyService.confirmGuess`, after the charge and cooldown), `sparkwitch:saint_karma` (`actor` dead Saint,
+  `target` killer; only when `SaintKarmaService.mark` passed the immunity check), `sparkwitch:judge_verdict`
+  (`sentenced`, `kills`, `required_kills`, `duration` ticks or 0; every charged judgment in
+  `JudgeRuntime.confirmSelection`), `sparkwitch:emma_hunt_reward` (`target` Witch Factor holder; when
+  `EmmaGunCycle.confirmKill` grants the reward), `sparkwitch:seeker_mark` (`target` breaker, `duration`; after
+  `SeekerMarkService` applies the mark) and `sparkwitch:magician_puppet_kill` (`weapon` `wathe:knife`/`wathe:bat`/
+  `wathe:revolver`, `disguise_player`, `disguise_dead` read before the kill; `MagicianPlaybackActionExecutor.puppetKill`,
+  only when the target was alive before and dead after). W16 adds `bone_setting_absorbed` to the existing
+  `sparkwitch:hunter_trap_triggered` global event: `HunterTrapEntity.trigger` now applies the injury first and records
+  after it (the injury writes no record; the trigger record still precedes the trap poison's), every earlier field
+  unchanged.
 - `util/hitscan/`: server-side lag compensation for hitscan weapons. `PlayerHitboxHistory` keeps a
   one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
   `HitscanLagRules` owns the ping-based rewind window and swept volumes. Used by the Hunter

@@ -96,6 +96,18 @@ public final class ProphetProphecyRules {
     }
 
     /**
+     * Achievement record W11: the 1-based number of a confirmed guess on this death of the victim, one more than the
+     * causes already excluded for it (each wrong guess excludes exactly one); a record made against an earlier death
+     * counts as fresh.
+     * 成就记录 W11：针对该死者这一次死亡的已确认猜测是第几次（从 1 起），即已排除死因数加一（每次猜错恰好排除一个）；
+     * 针对更早一次死亡的记录视为全新。
+     */
+    public static int attemptNumber(@Nullable ProphecyRecord existing, @Nullable ProphetDeathRecord death) {
+        ProphecyRecord current = recordForDeath(existing, death);
+        return (current == null ? 0 : current.excluded().size()) + 1;
+    }
+
+    /**
      * The name revealed by a correct guess: {@code null} means no killer; a known responsible UUID without a captured
      * name falls back to the UUID's first eight characters.
      * 猜中后揭示的名字：{@code null} 表示无人行凶；已知责任人 UUID 但未抓到名字时，回退为 UUID 前八个字符。

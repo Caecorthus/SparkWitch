@@ -90,7 +90,15 @@ public final class HunterInjuryState {
     public enum FractureApplication {
         ADDED,
         CONSUMED_BONE_SETTING,
-        AT_CAP
+        AT_CAP;
+
+        /**
+         * Whether an active Bone Setting absorbed the fracture (achievement record W16).
+         * 生效中的正骨是否吸收了这次骨折（成就记录 W16）。
+         */
+        public boolean absorbedByBoneSetting() {
+            return this == CONSUMED_BONE_SETTING;
+        }
     }
 
     public record TickResult(boolean rootWasActive, boolean fractureExpired) {

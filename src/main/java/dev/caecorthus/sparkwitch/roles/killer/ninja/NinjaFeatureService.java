@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordProtectionPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -88,6 +89,11 @@ public final class NinjaFeatureService {
         component.finishNinjaParryWindow();
         victim.playSoundToPlayer(WatheSounds.ITEM_PSYCHO_ARMOUR, SoundCategory.PLAYERS, 1.0F, 0.8F);
         victim.sendMessage(Text.translatable("message.sparkwitch.skill.ninja_parry.blocked"), true);
+        // Achievement record W8, only for a blow the parry really stops (the Ceremonial Sword pierces it and kills).
+        // 成就记录 W8，仅在格挡确实挡下时写入（仪礼剑会穿透格挡并照常击杀）。
+        if (!CeremonialSwordProtectionPolicy.pierces(deathReason)) {
+            AchievementRecords.ninjaParry(victim, killer, deathReason);
+        }
         return CeremonialSwordProtectionPolicy.afterProtection(deathReason);
     }
 

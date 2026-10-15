@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.seeker.hit;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthTabletCompat;
+import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerDeviceKind;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerStatusComponent;
@@ -58,6 +59,8 @@ public final class SeekerMarkService {
         // Chat, not the action bar, so the device-broken action-bar notice that follows does not hide it.
         // 使用聊天栏而非动作栏，避免随后的设备损坏提示将其覆盖。
         owner.sendMessage(Text.translatable(APPLIED_MESSAGE_KEY), false);
+        // Achievement record W15: the breaker is marked now. / 成就记录 W15：损坏者此刻已被标记。
+        AchievementRecords.seekerMark(owner, breaker, SeekerRules.MARK_TICKS);
     }
 
     /** Pure gate in evaluation order. / 按求值顺序排列的纯判定。 */

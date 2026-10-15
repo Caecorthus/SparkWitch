@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.emma;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsGunBridge;
+import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -54,6 +55,8 @@ public final class EmmaGunService {
         if (shot.cycle().confirmKill(attempt.wasCarrier(), terminal)) {
             shooter.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, 40, 2, false, false, true));
             applyCooldown(shot);
+            // Achievement record W14: the hunt reward was earned. / 成就记录 W14：获得了猎杀奖励。
+            AchievementRecords.emmaHuntReward(shooter, target);
         }
     }
 

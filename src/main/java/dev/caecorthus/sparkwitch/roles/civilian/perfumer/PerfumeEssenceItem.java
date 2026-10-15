@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.perfumer;
 
 import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
+import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -47,6 +48,7 @@ public final class PerfumeEssenceItem extends Item {
                 Text.translatable("message.sparkwitch.perfumer.marked", serverTarget.getDisplayName()),
                 true
         );
+        AchievementRecords.perfumeMark(serverUser, serverTarget);
         return ActionResult.SUCCESS;
     }
 }

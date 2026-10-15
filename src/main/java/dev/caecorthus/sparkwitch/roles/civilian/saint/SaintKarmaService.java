@@ -21,10 +21,14 @@ public final class SaintKarmaService {
     private SaintKarmaService() {
     }
 
-    public static void mark(ServerPlayerEntity player) {
+    /**
+     * Marks {@code player} with Karma; returns whether they carry it now ({@code false} only for an immune role).
+     * 为 {@code player} 标记业障；返回其此刻是否背负业障（仅免疫职业返回 {@code false}）。
+     */
+    public static boolean mark(ServerPlayerEntity player) {
         if (SaintRules.isKarmaImmune(currentRole(player))) {
             clear(player);
-            return;
+            return false;
         }
         WitchWorldComponent worldComponent = WitchWorldComponent.KEY.get(player.getServerWorld());
         worldComponent.markSaintKarma(player.getUuid());
@@ -32,6 +36,7 @@ public final class SaintKarmaService {
         sendBell(player, 1.0F);
         sendBell(player, 0.97F);
         player.sendMessage(Text.translatable("message.sparkwitch.saint.karma.marked"), true);
+        return true;
     }
 
     public static void trigger(ServerPlayerEntity player) {

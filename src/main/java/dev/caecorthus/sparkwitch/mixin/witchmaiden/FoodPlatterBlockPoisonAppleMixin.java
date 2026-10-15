@@ -78,7 +78,7 @@ public abstract class FoodPlatterBlockPoisonAppleMixin {
             return ActionResult.SUCCESS;
         }
         if (!call.acquired().isEmpty()) {
-            PoisonApplePlateService.recordSuccessfulTake(call.acquired(), poisonApple);
+            PoisonApplePlateService.recordSuccessfulTake(player, call.acquired(), poisonApple);
         }
         return call.result();
     }
