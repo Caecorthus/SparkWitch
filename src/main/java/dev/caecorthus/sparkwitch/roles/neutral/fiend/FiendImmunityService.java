@@ -16,17 +16,27 @@ public final class FiendImmunityService {
     }
 
     /**
-     * Returns true when the kill must be cancelled; the hit reaction runs only then (C3), and a failing reaction never
-     * weakens the immunity.
-     * 返回 true 表示必须取消此次击杀；仅在此时触发受击反应（C3），且反应出错绝不削弱免疫。
+     * Returns true when the kill must be cancelled; the feign death and the hit reaction run only then (C3), and a
+     * failing one never weakens the immunity. Every cancelled kill is lethal force (owner answer 2026-10-16): it starts
+     * the 20 s feign death first, so the reaction's Speed III can wait for the revival. While the Fiend feigns, a fall
+     * is cancelled too ({@link FiendFeignRules#shieldsWhileFeigning}).
+     * 返回 true 表示必须取消此次击杀；仅在此时触发假死与受击反应（C3），且二者出错绝不削弱免疫。每次被取消的击杀都算致命武力
+     * （所有者 2026-10-16 回答）：先开始 20 秒假死，受击反应的速度 III 才能等到复活时给予。魔人假死期间，坠落同样被取消
+     * （{@link FiendFeignRules#shieldsWhileFeigning}）。
      */
     public static boolean interceptKill(ServerPlayerEntity victim, @Nullable ServerPlayerEntity killer,
                                         @Nullable Identifier deathReason, boolean force) {
         if (!FiendParticipation.isDormantFiend(victim)) {
             return false;
         }
-        if (!blocksDeath(true, deathReason, force)) {
+        if (!blocksDeath(true, deathReason, force)
+                && !FiendFeignRules.shieldsWhileFeigning(FiendFeignService.isFeigning(victim), deathReason)) {
             return false;
+        }
+        try {
+            FiendFeignService.onBlockedKill(victim, deathReason);
+        } catch (RuntimeException exception) {
+            SparkWitch.LOGGER.error("Fiend feign death failed; the kill stays cancelled.", exception);
         }
         try {
             FiendReactionService.onBlockedHit(victim, killer, deathReason);

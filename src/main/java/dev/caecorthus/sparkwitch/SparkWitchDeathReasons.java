@@ -26,6 +26,12 @@ public final class SparkWitchDeathReasons {
     public static final Identifier POTION_SHELL = SparkWitch.id("potion_shell");
     /** Ordinary, non-forced Potion Gunner launcher backblast kill. / 普通、非强制的药炮筒尾焰击杀。 */
     public static final Identifier POTION_BACKBLAST = SparkWitch.id("potion_backblast");
+    /**
+     * A Vulture ate a feigning Fiend's fake corpse: forced, body-less, and registered SparkTraits-terminal, so the
+     * Fiend dies outright (owner request 2026-10-16).
+     * 秃鹫吃掉了假死魔人的假尸体：强制、不留尸体，并注册为 SparkTraits 终结死亡原因，魔人直接死亡（所有者 2026-10-16 需求）。
+     */
+    public static final Identifier FIEND_DEVOURED = SparkWitch.id("fiend_devoured");
 
     private SparkWitchDeathReasons() {
     }

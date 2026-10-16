@@ -70,7 +70,8 @@ public final class FiendMomentService {
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         FiendMomentWorldComponent moment = FiendMomentWorldComponent.get(world);
         UUID matchId = currentMatchId();
-        if (!FiendMomentRules.canStart(FiendParticipation.isDormantFiend(fiend),
+        // A feigning Fiend cannot buy the moment until it revives. / 正在假死的魔人复活前不能购买时刻。
+        if (!FiendMomentRules.canStart(FiendParticipation.isDormantFiend(fiend) && !FiendFeignService.isFeigning(fiend),
                 game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE, matchId, moment.isActive())) {
             return false;
         }

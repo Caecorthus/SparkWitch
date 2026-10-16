@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.item.firepoker;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignService;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.item.Item;
@@ -46,6 +47,12 @@ public final class FirePokerFallAttributionService {
             @Nullable ServerPlayerEntity fallbackKiller,
             Identifier deathReason
     ) {
+        if (FiendFeignService.isFeigning(victim)) {
+            // The dormant immunity blocks this fall while the Fiend feigns, so keep the push credit for its real fall.
+            // 魔人假死期间休眠免疫会拦下这次坠落，因此保留推人记录，留给其真正的坠落。
+            GameFunctions.killPlayer(victim, spawnBody, fallbackKiller, deathReason);
+            return;
+        }
         long now = victim.getServerWorld().getTime();
         UUID source = LEDGER.takeResponsibleSource(victim.getUuid(), now);
         UUID responsible = dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeTrainFallAttribution.resolve(victim, source);
