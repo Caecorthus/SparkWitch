@@ -97,6 +97,10 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkstrength", "approve_suspect_removal"),
             // SparkStrength Taotie head launch (TaotieHeadFireC2SPacket). / SparkStrength 饕餮发射头颅。
             Identifier.of("sparkstrength", "taotie_head_fire"),
+            // SparkStrength sabotage trigger and breaker repair, classified like the tablet meeting and vote.
+            // SparkStrength 破坏触发与电闸维修，与平板会议、投票同类。
+            Identifier.of("sparkstrength", "trigger_sabotage"),
+            Identifier.of("sparkstrength", "complete_breaker_repair"),
             Identifier.of("sparkstrength", "select_criminologist_target")));
 
     /** Grace before an unsupported or wet body ends the session (BODY_MOVED). / 本体离地或入水多久后结束会话。 */
