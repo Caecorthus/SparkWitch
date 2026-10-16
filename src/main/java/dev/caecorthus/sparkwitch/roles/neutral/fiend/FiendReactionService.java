@@ -5,8 +5,6 @@ import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.index.WatheItems;
 import dev.doctor4t.wathe.index.tag.WatheItemTags;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.MutableText;
@@ -117,8 +115,8 @@ public final class FiendReactionService {
     private static void grant(ServerPlayerEntity fiend, Reward reward) {
         PlayerShopComponent.KEY.get(fiend).addToBalance(reward.gold());
         if (reward.speed()) {
-            fiend.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, FiendRules.GUN_SPEED_TICKS,
-                    FiendRules.GUN_SPEED_AMPLIFIER, false, false, true));
+            // A feigning Fiend gets it at the revival. / 正在假死的魔人在复活时获得。
+            FiendFeignService.grantGunSpeed(fiend);
         }
         if (reward.notes() > 0) {
             fiend.getInventory().offerOrDrop(new ItemStack(WatheItems.NOTE, reward.notes()));

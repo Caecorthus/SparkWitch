@@ -11,10 +11,12 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * TR: ordinary kill of everyone hit; survivors get the 3-second fallback.
  * The kill is Wathe's non-forced 4-argument {@code killPlayer}, so every protection runs normally (shields, psycho
  * armour, Tofana retaliation on the gunner, Last Stand, a dormant Fiend). Any target still alive and playing
- * afterwards gets Blindness + Slowness II and harmless burning. The blast service runs this inside Judge attribution.
+ * afterwards gets Blindness + Slowness II and harmless burning; a dormant Fiend is not one, since the blocked kill
+ * puts it into its spectator feign death. The blast service runs this inside Judge attribution.
  * TR：对所有被波及者进行普通击杀；幸存者获得 3 秒的后备效果。
  * 击杀使用 Wathe 非强制的四参数 {@code killPlayer}，所有保护照常生效（护盾、疯魔护甲、托法娜反杀药炮手、
- * 最后的坚守、休眠魔人）。之后仍存活且在对局中的目标获得失明 + 缓慢 II 与无伤燃烧。爆炸服务在审判官归因内调用本效果。
+ * 最后的坚守、休眠魔人）。之后仍存活且在对局中的目标获得失明 + 缓慢 II 与无伤燃烧；休眠魔人不在此列，因为被挡下的击杀
+ * 会让它进入旁观假死。爆炸服务在审判官归因内调用本效果。
  */
 public final class TrShellEffect {
     private TrShellEffect() {

@@ -11,6 +11,7 @@ import de.maxhenkel.voicechat.api.packets.SoundPacket;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
+import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
@@ -166,6 +167,12 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         if (KidnapperControlComponent.KEY.get(speaker).isControlled()
                 && GameFunctions.isPlayerAliveAndSurvival(speaker)) {
             // 迷药控制期间目标黑屏且无法主动行动；语音也必须在同一入口静音，避免报点破坏劫持效果。
+            event.cancel();
+            return;
+        }
+        if (FiendFeignService.isFeigning(speaker)) {
+            // A feigning Fiend plays dead: muted but still hears, and never joins the dead players' group.
+            // 假死的魔人在装死：被静音但仍能听见，也从不加入死者语音组。
             event.cancel();
             return;
         }

@@ -64,6 +64,9 @@ public enum ProphetDeathCauseGroup {
             entry("noellesroles:voodoo", SUPERNATURAL),
             entry("noellesroles:assassinated", SUPERNATURAL),
             entry("noellesroles:digested", SUPERNATURAL),
+            // A Vulture ate a feigning Fiend's fake corpse (2026-10-16); grouped with the Taotie's digestion.
+            // 秃鹫吃掉假死魔人的假尸体（2026-10-16）；与饕餮消化同组。
+            entry("sparkwitch:fiend_devoured", SUPERNATURAL),
             entry("wathe:shot_innocent", PENALTY),
             entry("noellesroles:assassin_misfire", PENALTY),
             entry("noellesroles:jester_timeout", PENALTY),

@@ -24,6 +24,7 @@ import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeTheftPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendMomentWorldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.AbyssZoneExposureComponent;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariantRoundComponent;
@@ -145,6 +146,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, UsecPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(UsecPlayerComponent::new);
+        // Fiend feign-death cycle, synced to its owner only; appended last.
+        // 魔人假死周期，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, FiendFeignComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FiendFeignComponent::new);
     }
 
     @Override

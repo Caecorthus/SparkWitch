@@ -44,6 +44,16 @@ public final class FiendRules {
     public static final String MOMENT_SHOP_ENTRY_ID = "sparkwitch_fiend_moment";
 
     /**
+     * Feign death (owner request 2026-10-16): a dormant Fiend fakes death for 5 s once 60 s have passed since the
+     * round start or its last revival; a kill the dormant immunity blocks starts one at once that lasts 20 s.
+     * 假死（所有者 2026-10-16 需求）：休眠魔人在开局或上次复活后满 60 秒时假死 5 秒；被休眠免疫挡下的击杀会立即触发
+     * 一次持续 20 秒的假死。
+     */
+    public static final int FEIGN_INTERVAL_TICKS = 1200;
+    public static final int FEIGN_TICKS = 100;
+    public static final int LETHAL_FEIGN_TICKS = 400;
+
+    /**
      * NoellesRoles Demon Hunter pistol kill. A literal id on purpose: NoellesRoles exposes it only as a mutable
      * static on its entrypoint class, and reading it would initialize that class.
      * NoellesRoles 猎魔枪击杀原因。刻意使用字面量：NoellesRoles 只在入口类上以可变静态字段暴露它，读取会触发该类初始化。
@@ -65,14 +75,18 @@ public final class FiendRules {
     /**
      * Owner decision D3: only falling or being pushed off the train kills the dormant Fiend; forced and piercing
      * kills are blocked too. Disconnect ({@code wathe:escaped}) and {@code /kill} ({@code wathe:vanilla_death}) still
-     * apply. An unknown ({@code null}) reason is treated as immune.
+     * apply, and so does {@code sparkwitch:fiend_devoured}, which only {@code FiendFeignService} uses when a Vulture
+     * eats the fake corpse during a feign death (owner request 2026-10-16). An unknown ({@code null}) reason is
+     * treated as immune.
      * 所有者决定 D3：只有坠落或被推下列车能杀死休眠魔人，强制与穿透击杀同样被拦截。断线（{@code wathe:escaped}）与
-     * {@code /kill}（{@code wathe:vanilla_death}）仍然生效。未知（{@code null}）原因视为免疫。
+     * {@code /kill}（{@code wathe:vanilla_death}）仍然生效；{@code sparkwitch:fiend_devoured} 也生效，它只由
+     * {@code FiendFeignService} 在假死期间秃鹫吃掉假尸体时使用（所有者 2026-10-16 需求）。未知（{@code null}）原因视为免疫。
      */
     public static boolean mayDie(@Nullable Identifier deathReason) {
         return GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason)
                 || GameConstants.DeathReasons.ESCAPED.equals(deathReason)
-                || GameConstants.DeathReasons.VANILLA_DEATH.equals(deathReason);
+                || GameConstants.DeathReasons.VANILLA_DEATH.equals(deathReason)
+                || SparkWitchDeathReasons.FIEND_DEVOURED.equals(deathReason);
     }
 
     /**

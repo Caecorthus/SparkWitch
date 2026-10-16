@@ -13,7 +13,8 @@ and the Seeker, a police variant with a remote car and wall cameras that shares 
 It also adds USEC (`sparkwitch:usec`), a police variant with the AXMC bolt-action sniper rifle that shares the
 Vigilante slots.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
-train fall can kill and that may buy a timed Fiend Moment.
+train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
+any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
 It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao and win together.
 It also adds the Magician (`sparkwitch:magician`, 魔术师, merged from main), a killer whose recorded puppet replays
@@ -192,7 +193,8 @@ Current build baseline:
     `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible to the viewer.
     `BlindClientGates.hidesEntity` hides a hook whose owner is hidden, like the fishing bobber.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
-  SparkTraits fake bodies, camera-bound bodies and Magician decoys; a deliberate drag on a decoy tells the Kidnapper.
+  SparkTraits fake bodies, camera-bound bodies, Magician decoys and Fiend feign-death corpses; a deliberate drag on a
+  decoy tells the Kidnapper.
 - `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
   bound ledger, restricted shop, and lifecycle cleanup. The bound ledger and Raven Mask
   (`BlackRavenInventoryRules`) never drop, never leave their owner's inventory slots, and are
@@ -327,9 +329,12 @@ Current build baseline:
 - `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
   `sparkwitch:fiend_moment` world component and its pure state, dormant immunity and hit reactions, cooldown
   aura, bomb-pass ledger, swallow block, last-one-standing exclusion (`FiendWinExclusion`), the Fiend Moment
-  shop, economy, win listener, lifecycle and owned effects, and the moment-only Dash (`FiendDashRules`,
-  `FiendDashService`, `FiendNetworking`, `net/UseFiendDashC2SPayload`). Its mixins live in `mixin/fiend/` and
-  `client/mixin/fiend/`; client presentation (countdown HUD, Dash HUD, outline decision) in `client/fiend/`.
+  shop, economy, win listener, lifecycle and owned effects, the moment-only Dash (`FiendDashRules`,
+  `FiendDashService`, `FiendNetworking`, `net/UseFiendDashC2SPayload`), and the dormant feign death
+  (`FiendFeignRules`, `FiendFeignState`, the owner-only `sparkwitch:fiend_feign` player component
+  `FiendFeignComponent`, `FiendFeignService`, the server-only fake-corpse registry `FiendFakeBodies`). Its mixins live
+  in `mixin/fiend/` and `client/mixin/fiend/`; client presentation (countdown HUD, Dash HUD, feign HUD, outline
+  decision) in `client/fiend/`.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
@@ -1563,11 +1568,13 @@ every player; its packet carries only a presence flag, the moment Fiend's UUID, 
 Dash cooldown (the real value only to the moment Fiend, 0 to everyone else), never absolute server time or the match
 id; clients count both down only for display, and it is never persisted. It also keeps a
 server-only, never-synced spent ledger bound to the match id. A dormant Fiend (Fiend role, playing and alive, not
-the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:escaped` and `wathe:vanilla_death`:
+the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:escaped`, `wathe:vanilla_death` and the
+feign-death `sparkwitch:fiend_devoured` (below):
 `mixin/fiend/GameFunctionsFiendImmunityMixin` is a cancellable HEAD guard on Wathe's 5-arg `killPlayer`
 (priority 1100, so SparkFactionAPI's affect veto runs first) that ignores `force`, so the owner-approved piercing
 kills (bell toll, time curse, portal crush) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
-per attack: `wathe:gun_shot` (every gun) gives the Fiend +50 gold and Speed III 5 s, and puts a 20 s item-cooldown
+per attack: `wathe:gun_shot` (every gun) gives the Fiend +50 gold and Speed III 5 s (deferred to the revival while it
+feigns), and puts a 20 s item-cooldown
 floor on every other participant within 8 blocks, queued at the hit and applied at END_SERVER_TICK through
 SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, …)` (exact, never shortened; role-skill counters
 untouched; the registry's exemptions skip the Seeker car and NoellesRoles `timed_bomb`, whose cooldown is the Bomber
@@ -1613,6 +1620,52 @@ shown only to the moment Fiend (`client/fiend/FiendDashHud`, drawn from `FiendCl
 `SparkWitchClient`'s ability-key dispatch sends the request through `client/fiend/FiendDashClient`.
 The Fiend is absent from `isRegisteredSparkWitchRole` and `WitchSkillRegistry` and never renders in the
 `gui.sparkwitch.skills` panel.
+Feign death (owner request 2026-10-16): a dormant Fiend fakes death for 5 s (`FiendRules.FEIGN_TICKS`) once 60 s
+(`FEIGN_INTERVAL_TICKS`) have passed since its cycle was scheduled on the first ACTIVE tick of the match or since its
+last revival, and every kill the dormant immunity cancels (any reason: lethal force, owner answer) starts one at once
+that lasts 20 s (`LETHAL_FEIGN_TICKS`); `FiendImmunityService` calls `FiendFeignService.onBlockedKill` before the hit
+reaction, and a Fiend already feigning or busy is left alone. A feign starts only for a dormant Fiend in an ACTIVE
+round that stands in the world (not spectator or creative) and is not Taotie-swallowed (a safety net: D4 still keeps
+the Taotie off a dormant Fiend), inside a Rift Gate or Kidnapper-controlled; a busy Fiend's periodic feign waits, and
+so does a falling one (`FiendFeignRules.isFalling`, fall distance over 2), so a Fiend pushed off the train is never
+frozen mid-air. A lethal hit that also launched the Fiend (velocity set that tick, `FiendFeignRules.isLaunched`;
+Mighty Force knocks back, then kills) lets the push play out: its 20 s feign starts once the Fiend lands
+(`launchSettled`, at most 3 s), so a push off the train still kills it. While it feigns,
+`FirePokerFallAttributionService.resolveFallKill` leaves the push credit untouched for its real fall.
+`FiendFeignService` (registered once from `FiendFeatureService`, driven at `END_SERVER_TICK`) spawns a Wathe
+`PlayerBodyEntity` at the anchor: exactly where the Fiend stands (the Jester placement, so the spectating Fiend, which
+vanilla moves onto its camera entity, is never carried through a wall), or on the floor right below it when it is
+mid-air (floor within 3 blocks), with the Fiend as owner and a Civilian cover role (the Wraith body-role seam plus
+SparkStrength's Coroner snapshot through `compat/SparkStrengthCoronerCompat.recordBodyRole`, Magician decoy precedent:
+a real dormant Fiend leaves no corpse, so its live role would name the living Fiend), showing a random reason from
+`FiendFeignRules.PERIODIC_REASONS` (Wathe knife, gun, poison, bat; owner pick) or the blocked kill's own reason, and
+marks it in the server-only `FiendFakeBodies` (body entity UUIDs, never synced, cleared at round boundaries). The
+Fiend then follows the SparkTraits Depression / NoellesRoles Jester pattern: spectator mode with its camera on the
+corpse (on itself, pinned to the anchor every tick, once the corpse is gone or moved off the anchor), never marked
+dead in Wathe (no invulnerable flag: a spectator already is) (a `wathe:fell_out_of_train` kill is blocked too while it
+feigns, `FiendFeignRules.shieldsWhileFeigning`), so it stays dormant, immune and outside every last-one-standing count
+while vanilla hides it from every living client. It cannot act, buy (`FiendMomentService.tryStart` refuses it), speak
+(`SparkWitchVoiceChatPlugin` cancels its microphone and it never joins the dead players' group), spectator-teleport
+(`mixin/fiend/ServerPlayNetworkHandlerFiendFeignMixin` drops the request after `forceMainThread`, like the Rift Gate
+guard) or possess another entity's camera (`mixin/fiend/ServerPlayerEntityFiendFeignMixin` cancels `attack` and
+refuses every camera but its corpse and itself), and a NoellesRoles Swapper request naming it is dropped at HEAD
+before the Swapper's cooldown (`mixin/fiend/NoellesSwapperFiendFeignMixin`). At the end it revives at its anchor in
+its saved game mode, the corpse is discarded, a deferred gun Speed III is applied, and the next periodic feign is due
+60 s later. Hits during a feign never extend or restart it (an attacker's blocked hit still pays its reward). The
+NoellesRoles Vulture may eat the fake corpse like any body (it counts toward the Vulture win):
+`mixin/fiend/NoellesVultureFiendFakeBodyMixin` injects after the eat receiver's single `recordSkillUse` (`require =
+1`) and hands the eaten body to `FiendFeignService.onBodyDevoured`, which kills a Fiend feigning on that corpse with
+`sparkwitch:fiend_devoured` (`force = true`, no body, registered SparkTraits-terminal at server start; Prophet group
+SUPERNATURAL); if another guard refuses that death the Fiend simply revives. Any other corpse removal (body bag) never
+kills: the Fiend still revives on time. A corpse that could not be discarded (its chunk unloaded) keeps its fake mark
+and is discarded at the end of the tick if it ever loads again (`ServerEntityEvents.ENTITY_LOAD`). The Prophet's Death
+Sense and Necrology skip the fake corpse silently, `KidnapperFalseBodyPolicy` refuses to drag it, and Wraith
+conversion never takes it for a real body. A real death, round reset or disconnect mid-feign restores the camera,
+drops the corpse and the cycle (a disconnect revives first so no living player is saved in spectator mode); feigning
+ends for good once the Fiend Moment starts. The `sparkwitch:fiend_feign` component (`NEVER_COPY`, appended last in the
+CCA list, never saved) syncs only to its owner and carries a shown flag, a feigning flag and the remaining ticks;
+`client/fiend/FiendFeignHud` draws that owner's bottom-right countdown line (next feign or revival) from
+`FiendClient`'s HUD callback.
 The Insider (`sparkwitch:insider`) has no component; every rule reads synced roles. Wathe never draws it
 (`appearanceCondition(context -> false)`). `MurderGameModeMixin` calls, in order, the Hunter→Orthopedist
 pairing, the Witch assignment, then `InsiderAssignmentService`, all before Wathe's civilian pass: when a
