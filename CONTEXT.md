@@ -3071,12 +3071,17 @@ own.
 - **What it does.** It scans the pinned Wathe and NoellesRoles jars for every `isRole`,
   `getAllWithRole`, role-equality, and role-id-equality read of the roles a Black Raven can
   disguise as. Each site must match the classified list in
-  `src/test/resources/blackraven/acting_role_seams.txt`, with the same kind, role, owner method,
+  `config/blackraven/acting_role_seams.txt`, with the same kind, role, owner method,
   tag, and count.
 - **When it fails.** It fails on an unclassified site, on count drift, and on any dynamic `isRole`
   whose role argument is not an immediately preceding `GETSTATIC` of a `Role` field.
-- **Local-only input.** The list lives under the gitignored `src/test/` tree, so a checkout
-  without the local test tree fails `verifyArchitecture`.
+- **Tracked input.** The list is committed outside `src/main/resources`, so it never ships in the
+  jar and the audit also runs on a fresh clone.
+
+`verifyArchitecture` then requires `CONTEXT.md`, `DOWNSTREAM_MIGRATION_NOTES.md`, and the API and
+rule sources listed in `build.gradle`. The four contract tests in `localArchitectureTests` are
+required only when the local `src/test/` tree exists. A fresh clone skips them and prints how many
+it skipped.
 
 Provider bump checklist for the Black Raven disguise. The seam audit covers only the pinned Wathe
 and NoellesRoles jars, so a SparkStrength or SparkTraits compatibility-floor bump needs these

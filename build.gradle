@@ -944,9 +944,11 @@ tasks.register("verifyModJarVersion") {
 
 // Black Raven acting overlay drift guard. The overlay widens GameWorldComponent#isRole(UUID, Role) for the
 // allowed disguise roles, so every allowed-role gate in the pinned Wathe/NoellesRoles jars must be classified in
-// src/test/resources/blackraven/acting_role_seams.txt, and no isRole call may take a non-constant role.
+// config/blackraven/acting_role_seams.txt, and no isRole call may take a non-constant role. The list is tracked
+// (outside src/main/resources, so it never ships in the jar) so the guard also runs on a fresh clone.
 // 黑羽鸦扮演覆盖层漂移守卫：覆盖层会为可伪装职业放宽 GameWorldComponent#isRole(UUID, Role)，因此固定版本
-// Wathe/NoellesRoles jar 中每个可伪装职业判定点都必须在 acting_role_seams.txt 中归类，且任何 isRole 调用都不得使用非常量职业。
+// Wathe/NoellesRoles jar 中每个可伪装职业判定点都必须在 config/blackraven/acting_role_seams.txt 中归类，且任何 isRole
+// 调用都不得使用非常量职业。该清单已纳入版本控制（不在 src/main/resources 下，不会打进 jar），因此全新克隆也会执行此守卫。
 def blackRavenRoleDescriptor = "Ldev/doctor4t/wathe/api/Role;"
 def blackRavenIdentifierDescriptor = "Lnet/minecraft/class_2960;"
 def blackRavenGameWorldOwner = "dev/doctor4t/wathe/cca/GameWorldComponent"
@@ -978,7 +980,7 @@ def blackRavenGapTags = ["GAP_KIT", "GAP_TASK_MONEY", "GAP_DOOR_NOTICE"]
 def blackRavenSeamKinds = ["isRole", "getAllWithRole", "equals", "idEquals", "acmp"]
 
 def verifyBlackRavenActingRoleSeams = tasks.register("verifyBlackRavenActingRoleSeams") {
-    def seamsFile = file("src/test/resources/blackraven/acting_role_seams.txt")
+    def seamsFile = file("config/blackraven/acting_role_seams.txt")
     inputs.file("libs/wathe-${project.wathe_version}.jar")
     inputs.file("libs/noellesroles-${project.noellesroles_version}.jar")
     inputs.file(seamsFile)
@@ -1211,7 +1213,6 @@ def verifyBlackRavenActingRoleSeams = tasks.register("verifyBlackRavenActingRole
 }
 
 def requiredArchitectureDocs = [
-        "AGENTS.md",
         "CONTEXT.md",
         "DOWNSTREAM_MIGRATION_NOTES.md"
 ]
@@ -1222,7 +1223,13 @@ def requiredArchitectureSources = [
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityRuntime.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/piggod/PigGodChaseRuntime.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRules.java",
-        "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchWorldRuntime.java",
+        "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchWorldRuntime.java"
+]
+// Contract tests for the API and rule classes above. src/test/ is gitignored and local-only, so they are required
+// only in a checkout that has the local test tree; a fresh clone skips them.
+// 上述 API 与规则类的契约测试。src/test/ 已被 gitignore 且仅存于本地，因此只在拥有本地测试树的检出中要求它们；全新克隆会跳过。
+def localTestTree = file("src/test")
+def localArchitectureTests = [
         "src/test/java/dev/caecorthus/sparkwitch/api/SparkWitchApiTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/api/WitchManaApiTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityWindowRulesTest.java",
@@ -1233,11 +1240,18 @@ tasks.register("verifyArchitecture") {
     dependsOn verifyBlackRavenActingRoleSeams
     inputs.files(requiredArchitectureDocs.collect { file(it) })
     inputs.files(requiredArchitectureSources.collect { file(it) })
+    inputs.files(localArchitectureTests.collect { file(it) })
     inputs.files(fileTree("src/main/java") { include "**/*.java" })
     inputs.files(fileTree("src/client/java") { include "**/*.java" })
 
     doLast {
-        (requiredArchitectureDocs + requiredArchitectureSources).each { path ->
+        def requiredPaths = requiredArchitectureDocs + requiredArchitectureSources
+        if (localTestTree.isDirectory()) {
+            requiredPaths += localArchitectureTests
+        } else {
+            logger.lifecycle("No local src/test tree: skipped ${localArchitectureTests.size()} local-only architecture contract tests.")
+        }
+        requiredPaths.each { path ->
             if (!file(path).isFile()) {
                 throw new GradleException("Missing required architecture contract file: ${path}")
             }
