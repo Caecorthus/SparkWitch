@@ -128,6 +128,11 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkstrength", "approve_suspect_removal"),
             // SparkStrength Taotie head launch (TaotieHeadFireC2SPacket). / SparkStrength 饕餮发射头颅。
             Identifier.of("sparkstrength", "taotie_head_fire"),
+            // SparkStrength sabotage: triggering from the tablet and finishing a circuit breaker repair; their cancel
+            // packets (cancel_sabotage_channel, cancel_breaker_repair) stay allowed.
+            // SparkStrength 破坏系统：在平板触发破坏、完成电闸维修；对应的取消包（cancel_sabotage_channel、cancel_breaker_repair）放行。
+            Identifier.of("sparkstrength", "trigger_sabotage"),
+            Identifier.of("sparkstrength", "complete_breaker_repair"),
             // Legacy Criminologist skill: still registered by SparkStrength main-line and pre-b17ab75 1.0.7 builds,
             // which "suggests: *" allows to load; an unregistered id never matches.
             // 旧版犯罪学家技能：SparkStrength main 线及 b17ab75 之前的 1.0.7 仍注册此包，"suggests: *" 允许其同时加载；

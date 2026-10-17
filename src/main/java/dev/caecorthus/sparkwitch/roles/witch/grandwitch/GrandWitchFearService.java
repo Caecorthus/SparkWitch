@@ -87,6 +87,9 @@ public final class GrandWitchFearService {
             // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
             Identifier.of("sparkstrength", "spirit_possess"),
             Identifier.of("sparkstrength", "taotie_head_fire"),
+            // SparkStrength tablet sabotage: the killer team's skill, like the Saboteur's own. Breaker repair is not a
+            // role skill and stays allowed. / SparkStrength 平板破坏：杀手阵营的技能，与破坏者自身技能同类；修电闸不是职业技能，放行。
+            Identifier.of("sparkstrength", "trigger_sabotage"),
             // Legacy Criminologist skill (older SparkStrength builds); an unregistered id never matches.
             // 旧版犯罪学家技能（较旧的 SparkStrength 构建）；未注册时该 id 永远不会命中。
             Identifier.of("sparkstrength", "select_criminologist_target")
