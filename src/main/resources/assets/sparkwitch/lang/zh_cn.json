@@ -1214,7 +1214,7 @@
   "message.sparkwitch.bewitched.promoted": "你的真实身份已解锁：%s。",
   "message.sparkwitch.bewitched.promoted_grand_witch": "%s 已解锁真实身份：%s。",
   "command.sparkwitch.force_accomplice_role.success.current_round": "已为 %s 名魔化使锁定本局解锁后的身份：%s。",
-  "command.sparkwitch.force_accomplice_role.success.next_round": "已为 %s 名魔化使锁定下一局解锁后的身份：%s。",
+  "command.sparkwitch.force_accomplice_role.success.next_round": "已为 %s 名玩家锁定下一局解锁后的身份：%s（仅当其在下一局开局时为魔化使才生效）。",
   "command.sparkwitch.force_accomplice_role.unknown_role": "未知的共犯职业：%s",
   "command.sparkwitch.force_accomplice_role.special_single_target": "%s 同一时间只能锁定给一名玩家。",
   "command.sparkwitch.force_accomplice_role.already_locked": "%s 已持有 %s 的锁定；特殊共犯同一时间只能锁定给一名玩家。",

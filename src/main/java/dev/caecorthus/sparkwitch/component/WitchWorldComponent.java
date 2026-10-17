@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 /**
  * Stores world-level skill toggles and round-scoped shared runtime state.
@@ -43,6 +44,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     private final LinkedHashSet<Identifier> disabledSkills = new LinkedHashSet<>();
     private final ForcedWraithPromotionLocks forcedWraithPromotions = new ForcedWraithPromotionLocks();
     private final ForcedAccompliceRoleLocks forcedAccompliceRoles = new ForcedAccompliceRoleLocks();
+    private final ForcedAccompliceRoleLocks pendingForcedAccompliceRoles = new ForcedAccompliceRoleLocks();
     private final GrandWitchCeremonialSwordBgmSources grandWitchCeremonialSwordBgmSources =
             new GrandWitchCeremonialSwordBgmSources();
     private final SaintKarmaState saintKarmaState = new SaintKarmaState();
@@ -88,12 +90,29 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     }
 
     /**
-     * Locks the role this player's Bewitched promotion yields (D4); applies to the current round if one runs, else to
-     * the next one. Server-only state, never synced. Returns whether the lock changed.
-     * 锁定该玩家魔化使晋升后的身份（D4）；对局进行中时作用于本局，否则作用于下一局。仅服务端状态、从不同步。返回锁定是否变化。
+     * Locks the role this player's Bewitched promotion yields in the current round (D4); the command calls it only for
+     * a living Bewitched of an ACTIVE round. A player holds one lock at a time, so any next-round lock is dropped.
+     * Server-only state, never synced. Returns whether the lock changed.
+     * 锁定该玩家本局魔化使晋升后的身份（D4）；命令只对 ACTIVE 对局中存活的魔化使调用。每名玩家同一时间只持有一个锁定，
+     * 因此会移除其下一局锁定。仅服务端状态、从不同步。返回锁定是否变化。
      */
     public boolean setForcedAccompliceRole(UUID playerUuid, Identifier roleId) {
-        return forcedAccompliceRoles.set(playerUuid, roleId);
+        boolean dropped = pendingForcedAccompliceRoles.clear(playerUuid);
+        return forcedAccompliceRoles.set(playerUuid, roleId) || dropped;
+    }
+
+    /**
+     * Queues a lock for the next round (owner, 2026-10-10): the lobby, the start/end fades, or a target who is not a
+     * living Bewitched now. Like Wathe's forced roles it outlives round end (and, unlike them, a restart); the next
+     * round start keeps it only for a Bewitched ({@link #armPendingForcedAccompliceRoles}). Drops any current-round
+     * lock of the player.
+     * 为下一局排队锁定（所有者 2026-10-10）：大厅、开局/结束渐变期间，或目标此刻不是存活魔化使。与 Wathe 的强制身份一样，
+     * 它跨越局末保留（且与其不同，也跨越重启）；下一局开局时只对魔化使生效（{@link #armPendingForcedAccompliceRoles}）。
+     * 会移除该玩家的本局锁定。
+     */
+    public boolean setPendingForcedAccompliceRole(UUID playerUuid, Identifier roleId) {
+        boolean dropped = forcedAccompliceRoles.clear(playerUuid);
+        return pendingForcedAccompliceRoles.set(playerUuid, roleId) || dropped;
     }
 
     public Identifier getForcedAccompliceRole(UUID playerUuid) {
@@ -104,13 +123,35 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         return forcedAccompliceRoles.clear(playerUuid);
     }
 
+    /** Current-round locks, the only ones a promotion reads. / 本局锁定，晋升只读取这些。 */
     public Map<UUID, Identifier> getForcedAccompliceRoles() {
         return forcedAccompliceRoles.snapshot();
     }
 
+    /** Next-round locks. / 下一局锁定。 */
+    public Map<UUID, Identifier> getPendingForcedAccompliceRoles() {
+        return pendingForcedAccompliceRoles.snapshot();
+    }
+
     /**
-     * Drops every accomplice-role lock; round end calls it on the overworld store even when the round ran elsewhere.
-     * 清除所有共犯身份锁定；局末即使对局在其他维度进行，也会对主世界存储调用。
+     * Round start, after dealing: each next-round lock whose holder {@code bewitchedThisRound} becomes a current-round
+     * lock; the others lapse, and no next-round lock remains.
+     * 开局发放身份之后：持有者满足 {@code bewitchedThisRound} 的下一局锁定转为本局锁定；其余作废，不再保留任何下一局锁定。
+     */
+    public void armPendingForcedAccompliceRoles(Predicate<UUID> bewitchedThisRound) {
+        forcedAccompliceRoles.clearAll();
+        for (Map.Entry<UUID, Identifier> lock : pendingForcedAccompliceRoles.snapshot().entrySet()) {
+            if (bewitchedThisRound.test(lock.getKey())) {
+                forcedAccompliceRoles.set(lock.getKey(), lock.getValue());
+            }
+        }
+        pendingForcedAccompliceRoles.clearAll();
+    }
+
+    /**
+     * Drops every current-round lock; next-round locks are kept. Round end calls it on the overworld store even when
+     * the round ran elsewhere.
+     * 清除所有本局锁定，保留下一局锁定。局末即使对局在其他维度进行，也会对主世界存储调用。
      */
     public void clearForcedAccompliceRoles() {
         forcedAccompliceRoles.clearAll();
@@ -246,6 +287,8 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         syncedGrandWitchCeremonialSwordBgmSources = 0;
         saintKarmaState.clear();
         forcedWraithPromotions.clearAll();
+        // Next-round accomplice-role locks outlive the round, like Wathe's forced roles.
+        // 下一局共犯身份锁定跨局保留，与 Wathe 强制身份相同。
         forcedAccompliceRoles.clearAll();
         sync();
     }
@@ -293,6 +336,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         tag.put("DisabledSkills", toNbt(disabledSkills));
         tag.put("ForcedWraithPromotions", forcedWraithPromotions.toNbt());
         tag.put(ForcedAccompliceRoleLocks.NBT_KEY, forcedAccompliceRoles.toNbt());
+        tag.put(ForcedAccompliceRoleLocks.PENDING_NBT_KEY, pendingForcedAccompliceRoles.toNbt());
         WraithSettingsNbtCodec.writeWorld(tag, wraithSettings);
         if (instinctObscureTicks > 0) {
             tag.putInt("InstinctObscureTicks", instinctObscureTicks);
@@ -322,6 +366,7 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         fromNbt(tag.getList("DisabledSkills", NbtElement.STRING_TYPE), disabledSkills);
         forcedWraithPromotions.readFromNbt(tag, "ForcedWraithPromotions");
         forcedAccompliceRoles.readFromNbt(tag);
+        pendingForcedAccompliceRoles.readFromNbt(tag, ForcedAccompliceRoleLocks.PENDING_NBT_KEY);
         wraithSettings = WraithSettingsNbtCodec.readWorld(tag);
         instinctObscureTicks = tag.contains("InstinctObscureTicks", NbtElement.NUMBER_TYPE)
                 ? Math.max(0, tag.getInt("InstinctObscureTicks"))

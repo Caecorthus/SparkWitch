@@ -39,15 +39,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 /**
  * Registers {@code /sparkwitch:forceAccompliceRole <role> <players>} (D4, C5): locks the role each target's Bewitched
- * promotion yields, the plain Accomplice or one registered special accomplice. Set outside a round it applies to the
- * next round; set during a round it applies to the current one (no round guard). A special accomplice is locked to one
- * player at a time; the plain Accomplice to any number. Locks are server-only and cleared at round end.
+ * promotion yields, the plain Accomplice or one registered special accomplice. A living Bewitched of an ACTIVE round is
+ * locked for the current round; any other target (lobby, start or end fade, not a living Bewitched) is locked for the
+ * next round, which keeps the lock only if the target is then a Bewitched, the same lifetime as Wathe's forced roles
+ * (owner, 2026-10-10). A special accomplice is locked to one player at a time per round; the plain Accomplice to any
+ * number. Locks are server-only.
  * 注册 {@code /sparkwitch:forceAccompliceRole <role> <players>}（D4、C5）：锁定每名目标魔化使晋升后的身份，可以是普通共犯或
- * 一种已注册的特殊共犯。对局外设置作用于下一局；对局中设置作用于本局（不设对局守卫）。特殊共犯同一时间只能锁定给一名玩家；
- * 普通共犯不限人数。锁定仅保存在服务端，局末清空。
+ * 一种已注册的特殊共犯。ACTIVE 对局中存活的魔化使锁定于本局；其他目标（大厅、开局或结束渐变、不是存活魔化使）锁定于下一局，
+ * 且仅当目标届时是魔化使才保留，生命周期与 Wathe 强制身份相同（所有者 2026-10-10）。特殊共犯每局同一时间只能锁定给一名
+ * 玩家；普通共犯不限人数。锁定仅保存在服务端。
  */
 public final class ForceAccompliceRoleCommand {
     static final String KEY_PREFIX = "command.sparkwitch.force_accomplice_role.";
@@ -88,53 +92,65 @@ public final class ForceAccompliceRoleCommand {
         // 锁定与强制冤魂晋升一样保存在主世界组件上；对局状态从其实际所在的世界读取。
         WitchWorldComponent world = WitchWorldComponent.KEY.get(server.getOverworld());
         GameWorldComponent game = GameWorldComponent.KEY.get(gameWorld(server));
+        boolean active = game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE;
         boolean special = AccompliceVariants.isVariant(role);
         Text roleName = roleName(role);
         Set<UUID> targets = new HashSet<>();
-        players.forEach(player -> targets.add(player.getUuid()));
+        List<UUID> currentRound = new ArrayList<>();
+        List<UUID> nextRound = new ArrayList<>();
+        for (ServerPlayerEntity player : players) {
+            UUID uuid = player.getUuid();
+            if (targets.add(uuid)) {
+                (BewitchedPromotionRules.appliesToCurrentRound(active,
+                        BewitchedPromotionService.isLivingBewitched(game, uuid)) ? currentRound : nextRound).add(uuid);
+            }
+        }
         List<UUID> staleHolders = new ArrayList<>();
-        UUID holder = special ? otherHolder(world.getForcedAccompliceRoles(), role, targets, game, staleHolders) : null;
+        // One holder per special accomplice per round: a current-round holder still counts only while it is a living
+        // Bewitched; a next-round holder always counts. / 每局每个特殊共犯只有一名持有者：本局持有者仅在仍是存活魔化使时
+        // 计入；下一局持有者始终计入。
+        UUID holder = !special ? null : currentRound.isEmpty()
+                ? otherHolder(world.getPendingForcedAccompliceRoles(), role, targets, uuid -> true, staleHolders)
+                : otherHolder(world.getForcedAccompliceRoles(), role, targets,
+                        uuid -> BewitchedPromotionService.isLivingBewitched(game, uuid), staleHolders);
         switch (BewitchedPromotionRules.checkLock(special, targets.size(), holder != null)) {
             case SPECIAL_SINGLE_TARGET -> throw SPECIAL_SINGLE_TARGET.create(roleName);
             case ALREADY_LOCKED -> throw ALREADY_LOCKED.create(holderName(server, holder), roleName);
             case OK -> {
             }
         }
-        boolean currentRound = game.isRunning();
         return Wathe.executeSupporterCommand(source, () -> {
             // A stale holder's seat is already back in the pool (D4); drop its lock so only one player holds it.
             // 失效持有者的席位已回到池中（D4）；移除其锁定，保证只有一名玩家持有。
             staleHolders.forEach(world::clearForcedAccompliceRole);
-            int changed = 0;
-            for (ServerPlayerEntity player : players) {
-                if (world.setForcedAccompliceRole(player.getUuid(), role.identifier())) {
-                    changed++;
-                }
+            currentRound.forEach(uuid -> world.setForcedAccompliceRole(uuid, role.identifier()));
+            nextRound.forEach(uuid -> world.setPendingForcedAccompliceRole(uuid, role.identifier()));
+            if (!currentRound.isEmpty()) {
+                source.sendFeedback(() -> Text.translatable(
+                        KEY_PREFIX + "success.current_round", currentRound.size(), roleName), true);
             }
-            int finalChanged = changed;
-            source.sendFeedback(() -> Text.translatable(
-                    KEY_PREFIX + (currentRound ? "success.current_round" : "success.next_round"),
-                    finalChanged,
-                    roleName
-            ), true);
+            if (!nextRound.isEmpty()) {
+                source.sendFeedback(() -> Text.translatable(
+                        KEY_PREFIX + "success.next_round", nextRound.size(), roleName), true);
+            }
         });
     }
 
     /**
-     * The other player still holding this special accomplice's lock, if any; during a round, locks of holders who are
-     * not a living Bewitched (dead, promoted, never dealt) are collected into {@code staleHolders} instead (C5, D4).
-     * 仍持有该特殊共犯锁定的其他玩家（若有）；对局中，持有者不是存活魔化使（已死亡、已晋升、从未被发放）的锁定改为收集到
-     * {@code staleHolders}（C5、D4）。
+     * The other player still holding this special accomplice's lock in {@code locks}, if any; holders that
+     * {@code stillHeld} rejects (a current-round holder who is no longer a living Bewitched: dead, promoted) are
+     * collected into {@code staleHolders} instead (C5, D4).
+     * {@code locks} 中仍持有该特殊共犯锁定的其他玩家（若有）；被 {@code stillHeld} 拒绝的持有者（不再是存活魔化使的本局持有者：
+     * 已死亡、已晋升）改为收集到 {@code staleHolders}（C5、D4）。
      */
     private static @Nullable UUID otherHolder(Map<UUID, Identifier> locks, Role role, Set<UUID> targets,
-                                              GameWorldComponent game, List<UUID> staleHolders) {
+                                              Predicate<UUID> stillHeld, List<UUID> staleHolders) {
         UUID holder = null;
         for (Map.Entry<UUID, Identifier> lock : locks.entrySet()) {
             if (targets.contains(lock.getKey()) || !role.identifier().equals(lock.getValue())) {
                 continue;
             }
-            if (BewitchedPromotionRules.lockStillHeld(game.isRunning(),
-                    BewitchedPromotionService.isLivingBewitched(game, lock.getKey()))) {
+            if (stillHeld.test(lock.getKey())) {
                 holder = holder == null ? lock.getKey() : holder;
             } else {
                 staleHolders.add(lock.getKey());
