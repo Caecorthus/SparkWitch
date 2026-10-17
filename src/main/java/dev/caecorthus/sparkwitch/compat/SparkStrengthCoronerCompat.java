@@ -12,7 +12,7 @@ import org.ladysnake.cca.api.v3.component.ComponentRegistry;
  *
  * <p>SparkWitch 不能硬依赖 SparkStrength；这里仅在模组实际加载时用反射询问
  * “验尸官是否正伪装为 SparkWitch 绑架者”。SparkStrength 不存在或旧版本无该方法时，
- * 迷药会自然只对真实绑架者生效；并为魔人假死的假尸体写入验尸官读取的身份快照。</p>
+ * 迷药会自然只对真实绑架者生效；并为魔人假死的假尸体与魔术师诱饵尸体写入验尸官读取的身份快照。</p>
  */
 public final class SparkStrengthCoronerCompat {
     private static final String MOD_ID = "sparkstrength";
@@ -26,10 +26,10 @@ public final class SparkStrengthCoronerCompat {
 
     /**
      * Writes the role SparkStrength's Coroner reads from a body SparkWitch spawned itself (the Fiend's feign-death
-     * corpse); SparkStrength only snapshots bodies made inside Wathe's kill and otherwise falls back to the owner's live
-     * role. Looked up by component id, setter called reflectively; absent, older or failing SparkStrength leaves the
-     * body as is.
-     * 为 SparkWitch 自行生成的尸体（魔人假死的假尸体）写入 SparkStrength 验尸官读取的身份；SparkStrength 只会快照 Wathe
+     * corpse, the Magician decoy); SparkStrength only snapshots bodies made inside Wathe's kill and otherwise falls back
+     * to the owner's live role. Looked up by component id, setter called reflectively; absent, older or failing
+     * SparkStrength leaves the body as is.
+     * 为 SparkWitch 自行生成的尸体（魔人假死的假尸体、魔术师诱饵尸体）写入 SparkStrength 验尸官读取的身份；SparkStrength 只会快照 Wathe
      * 击杀流程中生成的尸体，否则回落到尸体主人的实时身份。按组件 id 查找、反射调用 setter；SparkStrength 缺失、过旧或失败时
      * 保持尸体不变。
      */

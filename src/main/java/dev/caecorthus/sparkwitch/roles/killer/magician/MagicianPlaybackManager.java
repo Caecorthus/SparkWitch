@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.killer.magician;
 
 import com.mojang.authlib.GameProfile;
 import dev.caecorthus.sparkwitch.SparkWitchEntities;
+import dev.caecorthus.sparkwitch.compat.SparkStrengthCoronerCompat;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithBodyRoleAccess;
 import dev.doctor4t.wathe.api.WatheRoles;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
@@ -230,7 +231,13 @@ public final class MagicianPlaybackManager {
         body.prevYaw = corpseYaw;
         body.prevHeadYaw = corpseYaw;
         body.prevBodyYaw = entity.bodyYaw;
-        if (owner.getWorld().spawnEntity(body)) MagicianDecoyBodies.mark(body);
+        if (owner.getWorld().spawnEntity(body)) {
+            MagicianDecoyBodies.mark(body);
+            // The same cover for SparkStrength's Coroner snapshot, which otherwise falls back to the copied player's live
+            // role (fails closed without SparkStrength).
+            // 同样的掩护身份写入 SparkStrength 验尸官快照，否则它会回落到被复制玩家的实时身份（缺少 SparkStrength 时失败即关闭）。
+            SparkStrengthCoronerCompat.recordBodyRole(body, WatheRoles.CIVILIAN.identifier());
+        }
     }
     private record RecordingData(List<MagicianReplayFrame> frames, List<MagicianRecordedAction> actions) {
         private static RecordingData from(MagicianPlayerComponent component) {

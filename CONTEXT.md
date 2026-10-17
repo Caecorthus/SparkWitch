@@ -283,7 +283,8 @@ Current build baseline:
     SparkTraits guards, blasts as a sphere with line of sight; every entry validates weapon, reach, aim and line of
     sight, refuses the Magician's own puppet and spectators, and costs the attacker what a real hit costs without the
     innocent-shot punishment or mood loss (D3). All entries end in `MagicianPlaybackManager.endPuppet`, which leaves
-    a decoy body stamped with the Civilian cover role through the Wraith death-role seam (D1), registers it in the
+    a decoy body stamped with the Civilian cover role through the Wraith death-role seam and SparkStrength's Coroner
+    snapshot (`compat/SparkStrengthCoronerCompat.recordBodyRole`, 2026-10-16) (D1), registers it in the
     server-only `MagicianDecoyBodies` (D2) and pays the Magician 50 coins when anyone other than the Magician ended
     it, blasts included (D4).
   - Other weapons (D5) end a puppet through their own `MagicianPuppetHits` entry, placed next to each weapon's Seeker
