@@ -33,10 +33,6 @@ public final class TarotLedgerLayout {
     public static final int TITLE_X = 18;
     public static final int TITLE_Y = 7;
     public static final int CHIP_RIGHT = 7;
-    public static final int CHIP_GAP = 4;
-    public static final int COIN_GAP = 1;
-    /** Advance of Wathe's coin glyph U+E781. Wathe 金币字形 U+E781 的前进宽度。 */
-    public static final int COIN_ADVANCE = 9;
     public static final int TITLE_CHIP_GAP = 8;
 
     // ---- search well and jump tabs ----
@@ -227,15 +223,19 @@ public final class TarotLedgerLayout {
         return !footprint.intersects(hud);
     }
 
-    /** Title, icon and paid chip ("已付 50" + coin) in the band. 标题带中的标题、图标与已付金额。 */
-    public static TitleBar titleBar(Panel panel, int paidLabelWidth, int priceWidth) {
+    /**
+     * Title, icon and the "Paid" chip in the band. The chip carries no amount: the price actually paid can be below
+     * the list price (a Black Raven acting as the reader gets killer discounts, such as SparkStrength's engine-failure
+     * discount) and the server never sends it, so a fixed number could be wrong.
+     * 标题带中的标题、图标与“已付”标记。标记不写金额：实际成交价可能低于标价（黑羽鸦扮演塔罗牌师时享有杀手折扣，
+     * 例如 SparkStrength 动力损毁期间的折扣），而服务端不会下发成交价，写死的数字可能是错的。
+     */
+    public static TitleBar titleBar(Panel panel, int paidLabelWidth) {
         Rect f = panel.frame();
-        int chipWidth = paidLabelWidth + CHIP_GAP + priceWidth + COIN_GAP + COIN_ADVANCE;
-        int paidX = f.right() - CHIP_RIGHT - chipWidth;
+        int paidX = f.right() - CHIP_RIGHT - paidLabelWidth;
         int titleX = f.x() + TITLE_X;
-        int priceX = paidX + paidLabelWidth + CHIP_GAP;
         return new TitleBar(f.x() + TITLE_ICON_X, f.y() + TITLE_ICON_Y, titleX, f.y() + TITLE_Y,
-                Math.max(0, paidX - TITLE_CHIP_GAP - titleX), paidX, priceX, priceX + priceWidth + COIN_GAP);
+                Math.max(0, paidX - TITLE_CHIP_GAP - titleX), paidX);
     }
 
     // ================================================================ content
@@ -764,8 +764,7 @@ public final class TarotLedgerLayout {
         }
     }
 
-    public record TitleBar(int iconX, int iconY, int titleX, int titleY, int titleMaxWidth, int paidX, int priceX,
-                           int coinX) {
+    public record TitleBar(int iconX, int iconY, int titleX, int titleY, int titleMaxWidth, int paidX) {
     }
 
     /**

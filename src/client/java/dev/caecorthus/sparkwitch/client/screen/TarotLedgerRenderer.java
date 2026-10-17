@@ -20,7 +20,6 @@ import dev.caecorthus.sparkwitch.client.tarot.TarotLedgerLayout.TitleBar;
 import dev.caecorthus.sparkwitch.client.tarot.TarotLedgerPaint;
 import dev.caecorthus.sparkwitch.client.tarot.TarotReadingLog;
 import dev.caecorthus.sparkwitch.net.OpenTarotDivinationSelectorS2CPacket;
-import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -45,8 +44,6 @@ import org.jetbrains.annotations.Nullable;
  */
 final class TarotLedgerRenderer {
     private static final String ESC_LABEL = "Esc";
-    /** Wathe's coin glyph, drawn untinted. Wathe 金币字形，保持原色绘制。 */
-    private static final String COIN_GLYPH = "\uE781";
     private static final int TOOLTIP_Z = 400;
 
     private final TextRenderer textRenderer;
@@ -57,7 +54,6 @@ final class TarotLedgerRenderer {
     private final int totalCount;
     private final Map<Section, Integer> sectionColors = new EnumMap<>(Section.class);
     private final String paidLabel;
-    private final String priceLabel;
     private final String placeholder;
     private final String selfTag;
     private final int selfTagWidth;
@@ -82,8 +78,9 @@ final class TarotLedgerRenderer {
         sectionColors.put(Section.WITCH, TarotDivinationHudRenderer.factionColor(SparkWitchFactions.WITCH));
         sectionColors.put(Section.SPECIAL, TarotLedgerPaint.SPECIAL & 0xFFFFFF);
 
+        // No amount after "Paid": the price actually paid is not sent to the client (see TarotLedgerLayout.titleBar).
+        // “已付”后不写金额：实际成交价不会下发到客户端（见 TarotLedgerLayout.titleBar）。
         paidLabel = Text.translatable("screen.sparkwitch.tarot.paid").getString();
-        priceLabel = String.valueOf(identity ? TarotReaderRules.IDENTITY_PRICE : TarotReaderRules.SURVIVAL_PRICE);
         placeholder = ellipsize(TarotLedgerText.searchPrompt(identity).getString(), panel.placeholderWidth());
         selfTag = Text.translatable("screen.sparkwitch.tarot.self").getString();
         selfTagWidth = textRenderer.getWidth(selfTag);
@@ -173,8 +170,7 @@ final class TarotLedgerRenderer {
     private void drawChrome(DrawContext c, View v) {
         Rect frame = panel.frame();
         InventoryCardPaint.panel(c, frame.x(), frame.y(), frame.width(), frame.height());
-        TitleBar bar = TarotLedgerLayout.titleBar(panel, textRenderer.getWidth(paidLabel),
-                textRenderer.getWidth(priceLabel));
+        TitleBar bar = TarotLedgerLayout.titleBar(panel, textRenderer.getWidth(paidLabel));
         Rect well = panel.well();
         Hit hover = v.hover();
         boolean focused = v.searchFocused();
@@ -210,9 +206,6 @@ final class TarotLedgerRenderer {
         c.drawText(textRenderer, ellipsize(title.getString(), bar.titleMaxWidth()), bar.titleX(), bar.titleY(),
                 InventoryCardPaint.TITLE, false);
         c.drawText(textRenderer, paidLabel, bar.paidX(), bar.titleY(), InventoryCardPaint.FAINT, true);
-        c.drawText(textRenderer, priceLabel, bar.priceX(), bar.titleY(), InventoryCardPaint.TEXT, true);
-        InventoryCardPaint.iconText(c, textRenderer, Text.literal(COIN_GLYPH), bar.coinX(), bar.titleY(),
-                InventoryCardPaint.GLYPH, false);
         if (v.query().isEmpty()) {
             int shift = focused ? TarotLedgerLayout.PLACEHOLDER_FOCUS_SHIFT : 0;
             c.drawText(textRenderer, placeholder, panel.fieldX() + shift, panel.fieldY(), InventoryCardPaint.FAINT,
