@@ -1,0 +1,95 @@
+# Black Raven acting overlay: classified allowed-role gates in the pinned provider jars.
+# 黑羽鸦扮演覆盖层：固定版本提供方 jar 中已归类的可伪装职业判定点。
+#
+# Checked by `./gradlew verifyBlackRavenActingRoleSeams` (a dependency of verifyArchitecture) against
+# libs/wathe-*.jar and libs/noellesroles-*.jar. Any unlisted site, vanished site, count change, or isRole call
+# whose role operand is not an immediately preceding GETSTATIC of a Role field fails the build.
+#
+# Format: <TAG> <kind> <role id> <owner#method> <count>
+# kind: isRole (reached by the overlay) | getAllWithRole | equals | idEquals | acmp (all stay raw)
+# isRole tags (overlay reaches them; each must be safe to widen for the Raven's own UUID only):
+#   SELF                the acting player's own skill, shop, item, tick, or voice-speaker gate
+#   RECIPIENT           a sync / voice / packet gate that asks whether the Raven should receive something
+#   LOCAL               a client check on the local viewer (HUD, instinct, key dispatch, money)
+#   DEATH               runs after markPlayerDead, so the overlay's dead check keeps it raw
+#   BEFORE              runs in the KillPlayer.BEFORE window, where the victim is not yet dead (none today)
+#   TARGET_SERVER_ONLY  a server-side check on another entity that only matches ServerPlayerEntity targets
+# raw tags (the overlay never reaches them; an adapter replicates the effect):
+#   GAP_KIT             RoleAssigned starting kit (role.equals)
+#   GAP_TASK_MONEY      TaskComplete money (getRole().equals)
+#   GAP_DOOR_NOTICE     Engineer door notices (getAllWithRole)
+#
+# When a provider jar is bumped, re-classify every reported site before updating this list.
+# 升级提供方 jar 时，必须先重新归类每个被报告的调用点，再更新本清单。
+
+# --- NoellesRoles: gaps (raw) ---
+GAP_KIT equals noellesroles:attendant org/agmas/noellesroles/Noellesroles#lambda$registerEvents$7 1
+GAP_KIT equals noellesroles:awesome_binglus org/agmas/noellesroles/Noellesroles#lambda$registerEvents$7 1
+GAP_KIT equals noellesroles:conductor org/agmas/noellesroles/Noellesroles#lambda$registerEvents$7 1
+GAP_KIT equals noellesroles:engineer org/agmas/noellesroles/Noellesroles#lambda$registerEvents$7 1
+GAP_KIT equals noellesroles:professor org/agmas/noellesroles/Noellesroles#lambda$registerEvents$7 1
+GAP_KIT equals noellesroles:reporter org/agmas/noellesroles/Noellesroles#lambda$registerEvents$7 1
+GAP_KIT equals noellesroles:spiritualist org/agmas/noellesroles/Noellesroles#lambda$registerEvents$7 1
+GAP_KIT equals noellesroles:toxicologist org/agmas/noellesroles/Noellesroles#lambda$registerEvents$7 1
+GAP_KIT equals noellesroles:waiter org/agmas/noellesroles/Noellesroles#lambda$registerEvents$7 1
+GAP_TASK_MONEY equals noellesroles:bartender org/agmas/noellesroles/Noellesroles#lambda$registerEvents$13 1
+GAP_TASK_MONEY equals noellesroles:recaller org/agmas/noellesroles/Noellesroles#lambda$registerEvents$13 1
+GAP_TASK_MONEY equals noellesroles:reporter org/agmas/noellesroles/Noellesroles#lambda$registerEvents$13 1
+GAP_TASK_MONEY equals noellesroles:time_keeper org/agmas/noellesroles/Noellesroles#lambda$registerEvents$13 1
+GAP_TASK_MONEY equals noellesroles:waiter org/agmas/noellesroles/Noellesroles#lambda$registerEvents$13 1
+GAP_DOOR_NOTICE getAllWithRole noellesroles:engineer org/agmas/noellesroles/Noellesroles#lambda$registerEvents$20 1
+GAP_DOOR_NOTICE getAllWithRole noellesroles:engineer org/agmas/noellesroles/Noellesroles#lambda$registerEvents$21 1
+
+# --- NoellesRoles: server self gates (skills, shops, items, ticks, voice speaker) ---
+SELF isRole noellesroles:bartender org/agmas/noellesroles/bartender/BartenderShopHandler#lambda$register$0 1
+SELF isRole noellesroles:bartender org/agmas/noellesroles/util/HiddenEquipmentHelper#shouldHideItem 1
+SELF isRole noellesroles:detective org/agmas/noellesroles/Noellesroles#lambda$registerPackets$8 1
+SELF isRole noellesroles:engineer org/agmas/noellesroles/Noellesroles#lambda$registerEvents$19 1
+SELF isRole noellesroles:mermaid org/agmas/noellesroles/mermaid/MermaidPlayerComponent#serverTick 1
+SELF isRole noellesroles:noisemaker org/agmas/noellesroles/Noellesroles#lambda$registerPackets$5 1
+SELF isRole noellesroles:noisemaker org/agmas/noellesroles/voice/NoellesrolesVoiceChatPlugin#noisemakerBroadcastEvent 1
+SELF isRole noellesroles:recaller org/agmas/noellesroles/Noellesroles#lambda$registerPackets$5 1
+SELF isRole noellesroles:reporter org/agmas/noellesroles/Noellesroles#lambda$registerPackets$7 1
+SELF isRole noellesroles:reporter org/agmas/noellesroles/reporter/ReporterShopHandler#lambda$register$0 1
+SELF isRole noellesroles:spiritualist org/agmas/noellesroles/Noellesroles#lambda$registerPackets$14 1
+SELF isRole noellesroles:spiritualist org/agmas/noellesroles/mixin/spiritualist/SpiritDamageMixin#spiritualist$exitOnDamage 1
+SELF isRole noellesroles:spiritualist org/agmas/noellesroles/spiritualist/SpiritPlayerComponent#serverTick 1
+SELF isRole noellesroles:spiritualist org/agmas/noellesroles/voice/NoellesrolesVoiceChatPlugin#blockSpiritVoice 1
+SELF isRole noellesroles:time_keeper org/agmas/noellesroles/timekeeper/TimekeeperShopHandler#lambda$register$0 1
+SELF isRole noellesroles:toxicologist org/agmas/noellesroles/Noellesroles#lambda$registerEvents$6 1
+SELF isRole noellesroles:waiter org/agmas/noellesroles/mixin/waiter/WaiterFeedingMixin#waiterFeedPlayer 1
+SELF isRole noellesroles:waiter org/agmas/noellesroles/mixin/waiter/WaiterPlatterMixin#waiterDoublePickup 1
+SELF isRole noellesroles:waiter org/agmas/noellesroles/waiter/WaiterShopHandler#lambda$register$0 1
+
+# --- NoellesRoles: recipient gates (component sync, sound/voice delivery) ---
+RECIPIENT isRole noellesroles:bartender org/agmas/noellesroles/bartender/BartenderPlayerComponent#shouldSyncWith 1
+RECIPIENT isRole noellesroles:professor org/agmas/noellesroles/professor/IronManPlayerComponent#shouldSyncWith 1
+RECIPIENT isRole noellesroles:spiritualist org/agmas/noellesroles/mixin/spiritualist/SpiritSoundMixin#spiritualist$blockSoundPackets 1
+RECIPIENT isRole noellesroles:spiritualist org/agmas/noellesroles/voice/NoellesrolesVoiceChatPlugin#blockVoiceToProjectingSpiritualist 1
+RECIPIENT isRole noellesroles:toxicologist org/agmas/noellesroles/mixin/toxicologist/ToxicologistPoisonSyncMixin#syncWithToxicologist 1
+RECIPIENT isRole noellesroles:waiter org/agmas/noellesroles/waiter/WaiterPlayerComponent#shouldSyncWith 1
+
+# --- NoellesRoles: client local-viewer gates (instinct, key dispatch, HUD, money, vial particles) ---
+LOCAL isRole noellesroles:bartender org/agmas/noellesroles/client/NoellesrolesClient#lambda$onInitializeClient$7 1
+LOCAL isRole noellesroles:bartender org/agmas/noellesroles/client/mixin/bartender/DefenseVialViewMixin#view 2
+LOCAL isRole noellesroles:detective org/agmas/noellesroles/client/NoellesrolesClient#lambda$onInitializeClient$16 1
+LOCAL isRole noellesroles:detective org/agmas/noellesroles/client/NoellesrolesClient#lambda$onInitializeClient$7 1
+LOCAL isRole noellesroles:detective org/agmas/noellesroles/client/mixin/detective/DetectiveHudMixin#detectiveHud 1
+LOCAL isRole noellesroles:noisemaker org/agmas/noellesroles/client/mixin/noisemaker/NoisemakerHudMixin#noisemakerHud 1
+LOCAL isRole noellesroles:professor org/agmas/noellesroles/client/NoellesrolesClient#lambda$onInitializeClient$7 1
+LOCAL isRole noellesroles:recaller org/agmas/noellesroles/client/NoellesrolesClient#lambda$onInitializeClient$4 1
+LOCAL isRole noellesroles:recaller org/agmas/noellesroles/client/mixin/recaller/RecallerHudMixin#phantomHud 1
+LOCAL isRole noellesroles:reporter org/agmas/noellesroles/client/NoellesrolesClient#lambda$onInitializeClient$16 1
+LOCAL isRole noellesroles:reporter org/agmas/noellesroles/client/NoellesrolesClient#lambda$onInitializeClient$7 1
+LOCAL isRole noellesroles:reporter org/agmas/noellesroles/client/mixin/reporter/ReporterHudMixin#reporterHud 1
+LOCAL isRole noellesroles:spiritualist org/agmas/noellesroles/client/NoellesrolesClient#lambda$onInitializeClient$16 1
+LOCAL isRole noellesroles:spiritualist org/agmas/noellesroles/client/mixin/spiritualist/SpiritHudMixin#spiritualistHud 1
+LOCAL isRole noellesroles:toxicologist org/agmas/noellesroles/client/NoellesrolesClient#lambda$onInitializeClient$7 1
+
+# --- NoellesRoles: death-time checks (KillPlayer.AFTER listener; body-spawn inject after markPlayerDead) ---
+DEATH isRole noellesroles:noisemaker org/agmas/noellesroles/Noellesroles#lambda$registerEvents$16 1
+DEATH isRole noellesroles:noisemaker org/agmas/noellesroles/mixin/noisemaker/NoisemakerKillMixin#noisemakerKill 1
+DEATH isRole noellesroles:spiritualist org/agmas/noellesroles/Noellesroles#lambda$registerEvents$16 1
+
+# --- NoellesRoles: server-only target check (projecting Spiritualist instinct skip; ServerPlayerEntity targets) ---
+TARGET_SERVER_ONLY isRole noellesroles:spiritualist org/agmas/noellesroles/Noellesroles#lambda$onInitialize$2 1
