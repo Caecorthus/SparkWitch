@@ -101,9 +101,10 @@ public final class ScopeClient {
             return ScopeMode.ZOOM_BLUR;
         }
         MinecraftClient client = MinecraftClient.getInstance();
-        // The Blind echo view captures the world render once per frame (a BEFORE_DEBUG_RENDER listener on
-        // client.getFramebuffer()); a second, lens-sized pass would hijack it. / 盲人回声视图每帧只捕获一次世界渲染
-        // （作用于 client.getFramebuffer() 的 BEFORE_DEBUG_RENDER 监听器），第二次镜内尺寸的渲染会劫持它。
+        // The Blind echo view captures the world render once per frame (a BEFORE_DEBUG_RENDER listener plus a depth copy
+        // at the head of the particle draw, both on client.getFramebuffer()); a second, lens-sized pass would hijack it.
+        // 盲人回声视图每帧只捕获一次世界渲染（作用于 client.getFramebuffer() 的 BEFORE_DEBUG_RENDER 监听器，以及粒子绘制
+        // 开头的深度拷贝），第二次镜内尺寸的渲染会劫持它。
         return ScopeRules.effectiveMode(selected, ScopeLensFilter.shaderPackInUse(),
                 MinecraftClient.isFabulousGraphicsOrBetter(), BlindView.isActive(client), ScopePictureInPicture.ready());
     }

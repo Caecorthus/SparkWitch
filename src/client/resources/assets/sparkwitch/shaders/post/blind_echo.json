@@ -62,6 +62,10 @@
         {
           "name": "SilBlurSampler",
           "id": "blind_blur_b"
+        },
+        {
+          "name": "SilDepthSampler",
+          "id": "blind_sil:depth"
         }
       ]
     }

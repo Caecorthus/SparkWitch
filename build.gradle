@@ -395,6 +395,16 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
         [
+                configName: "blind.BlindDoorDepthMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blind/BlindDoorDepthMixin.class",
+                handler: "sparkwitch\$blindDoorDepth",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "render(Ldev/doctor4t/wathe/block_entity/SmallDoorBlockEntity;FLnet/minecraft/class_4587;Lnet/minecraft/class_4597;II)V",
+                providerEntry: "dev/doctor4t/wathe/client/render/block_entity/SmallDoorBlockEntityRenderer.class",
+                providerMethod: "render",
+                providerDescriptor: "(Ldev/doctor4t/wathe/block_entity/SmallDoorBlockEntity;FLnet/minecraft/class_4587;Lnet/minecraft/class_4597;II)V"
+        ],
+        [
                 configName: "armor.LimitedInventoryArmorSlotsMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/armor/LimitedInventoryArmorSlotsMixin.class",
                 handler: "sparkwitch\$addArmorPanel",

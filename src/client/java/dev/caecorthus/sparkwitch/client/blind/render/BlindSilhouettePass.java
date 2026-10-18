@@ -33,11 +33,11 @@ import java.util.List;
  * depth test, so the echo pass can show the parts a wall hides (D1). It uses the normal entity renderer path, so any
  * render gate on other players also applies; while it runs {@link #isRendering()} is true and
  * {@code BlindEchoSilhouetteMixin} drops feature renderers (held items, armor, capes) and name labels, so the shape
- * never shows a knife or gun. Render thread only; called during world rendering after the depth capture.
+ * never shows a knife or gun. Render thread only; called at {@code BEFORE_DEBUG_RENDER}, before the world depth copy.
  * 把被感知玩家的身体以纯白重新渲染到私有 {@code blind_sil} 目标（自带深度测试），让回声 pass 能显示被墙挡住的部分（D1）。
  * 走普通实体渲染路径，因此针对其他玩家的渲染闸门同样生效；运行期间 {@link #isRendering()} 为真，
  * {@code BlindEchoSilhouetteMixin} 会去掉特征渲染器（手持物、盔甲、披风）与名字标签，轮廓不会露出刀或枪的形状。
- * 仅限渲染线程；在世界渲染中深度捕获之后调用。
+ * 仅限渲染线程；在 {@code BEFORE_DEBUG_RENDER} 调用，早于世界深度拷贝。
  */
 public final class BlindSilhouettePass {
     private static final int INITIAL_BUFFER_BYTES = 64 * 1024;

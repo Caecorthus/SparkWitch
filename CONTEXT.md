@@ -73,6 +73,17 @@ Current build baseline:
     body translucent like a spectator's view. It reveals the body only: held items, outlines, instinct colour, name
     tags and aim pass-through keep the ordinary-viewer rules. SparkStrength reaches it by reflection (FQCN and the
     JDK-only signature are frozen) so a living NoellesRoles Spiritualist sees every active Wraith.
+  - `api/client/BlindViewApi` (client source set, 2026-10-18) is the stable cross-mod seam for see-through outlines
+    the Blind should see: `static void addSeeThroughOutlines(Consumer<ObjIntConsumer<Box>>)` (null throws NPE;
+    sources are never removed, except one that throws, which is dropped with that frame's boxes after one warning).
+    `client/blind/render/BlindSeeThroughOutlines` calls every source once per frame (until the cap is reached) on the
+    render thread, only while
+    the local Blind's echo frame is actually shown (never on the black fallback, never for other players). Sources
+    report world-space boxes as `(box, 0xAARRGGBB)` and only write to the sink while called (later writes are
+    dropped); null boxes, non-finite coordinates and alpha 0 are skipped, with at most 512 boxes per frame.
+    SparkStrength reaches it by reflection (FQCN and the erased JDK-only signature are frozen) for its repair-mode
+    tripped breakers and engine-sabotage units, which it otherwise draws at `WorldRenderEvents.LAST`, under the echo
+    pass; it never reports the saboteur junction boxes or the admin configurator view.
   - Add-on gun world hits (2026-10-07, frozen names and signatures, reached by SparkStrength's `SparkWitchCompat`
     through reflection for the Serial Killer pistols, which extend Wathe's `RevolverItem` but fire through
     `sparkstrength:serial_pistol_shoot`): client `SparkWitchApi.preferNearerGunWorldTarget(PlayerEntity, HitResult,
@@ -1013,12 +1024,13 @@ Current build baseline:
   `BlindComTacHeadVisibility` (the in-round ComTac head hide), `render/` (the private echo post
   processor `BlindEchoView`, depth capture and fail-closed hint in `BlindRenderWiring`,
   `BlindSilhouettePass`, the Iris check `BlindShaderPackCheck`, the fog-culling guard
-  `BlindTerrainFog`), `gate/` (`BlindClientGates` and the
+  `BlindTerrainFog`, and the add-on outline overlay `BlindSeeThroughOutlines` behind `api/client/BlindViewApi`), `gate/` (`BlindClientGates` and the
   pure `BlindGateRules` behind the `BlindGate*` vetoes, client-only bumps, the plain
   `BlindCrosshair`, and the Attune ducking in `BlindAttuneDucking`) and `kit/` (the owner-only HUD
   and the Attune key handler). Its client mixins live in `client/mixin/blind/`: the eleven
   `BlindGate*` vetoes, `BlindGameRendererMixin` (the end-of-frame pass), `BlindEchoSilhouetteMixin`,
-  `BlindTerrainFogMixin`, `BlindAttuneSoundSystemMixin`, and `BlindComTacHeadRenderMixin`.
+  `BlindTerrainFogMixin`, `BlindDepthCaptureMixin` (the late depth copy), `BlindDoorDepthMixin` (the Wathe door
+  depth seam), `BlindAttuneSoundSystemMixin`, and `BlindComTacHeadRenderMixin`.
 - `client/armor/`: the four vanilla armor slots (`PlayerScreenHandler` 5..8) on Wathe's
   `LimitedInventoryScreen` for every player (D10), client presentation only.
   `LimitedInventoryArmorLayout` (pure geometry, the shift-click plan and the full-hotbar rule),
@@ -1785,14 +1797,41 @@ dead) or swallowed; the camera is not part of it, so a SparkTraits Last Stand or
 death keeps the view and every gate on (black) and only a real Wathe death ends it. Every gate
 re-reads it per call. `client/blind/render/BlindEchoView` is a private
 `PostEffectProcessor` (`sparkwitch:shaders/post/blind_echo.json`, programs
-`sparkwitch_blind_silmask`, `sparkwitch_blind_blur` and `sparkwitch_blind_echo`): the world depth is
-captured at `WorldRenderEvents.BEFORE_DEBUG_RENDER` (after flushing the pending block-entity layer and
-the Fast/Fancy dropped-item layer), where `BlindSilhouettePass` also re-renders the
+`sparkwitch_blind_silmask`, `sparkwitch_blind_blur` and `sparkwitch_blind_echo`): the frame (projection, view
+rotation, camera, perceived bodies) is recorded at `WorldRenderEvents.BEFORE_DEBUG_RENDER`, and the world depth is
+copied later, at the head of `ParticleManager#renderParticles` (`BlindDepthCaptureMixin`, method head rather than the
+call site so a redirect of that call cannot break it): vanilla calls it once per graphics branch after the full entity
+flush and translucent terrain, so glass and Wathe's translucent hull and privacy panels are walls and particles never
+enter the line art. In Fabulous! the copy comes from the translucent target (seeded with main's depth), otherwise from
+main; the framebuffer binding is restored for the particle draw, and only that copy marks the frame captured. A frame
+whose particle draw never ran (a mod cancelling it) gets the same copy at `WorldRenderEvents.LAST` instead, particles
+included, so it is not black for good; a frame with neither copy stays black. Water and other translucent terrain are
+surfaces in the copy too (fluids never hide a body's line of sight), as are debug lines drawn by the debug renderer
+(F3+G, F3+B). Wathe's small and train doors (`SmallDoorBlockEntityRenderer`, cutout, glass windows of alpha 0)
+are drawn once more into vanilla's depth-only water-mask layer while the view is active (`BlindDoorDepthMixin`, TAIL,
+pinned in `watheClientMixinContracts`), so a closed glass door is solid; other players' frames are unchanged. Cutout
+glass (vanilla glass, Wathe `golden_glass_panel` and `culling_glass`) still has no depth in its clear texels. Body lines
+of sight use camera shapes like vanilla's VISUAL raycast, except that a translucent-layer block with an empty camera
+shape (the Wathe glass panels, stained glass) uses its collision shape, so translucent glass hides a body for the ripple
+and blur too while cutout glass does not. The echo pass draws its edges
+from `min(world depth, blind_sil depth)` while any body is perceived (`sceneDepth`), so a perceived body in plain view
+always has line art even when a client mod keeps it out of the captured world: Iris, installed with its shader pack
+off, defers every entity draw to its `translucent` profiler step, which made bodies visible only through walls
+(playtest 2026-10-18). The silhouette mask still compares against the world depth alone. Under Iris with Fabulous!
+graphics Iris flushes its deferred draws only after the translucent target took main's depth, so environment entities
+(corpses, items) and the door depth may still be missing from the copy. At the early capture,
+`BlindSilhouettePass` also re-renders the
 perceived players into a private silhouette target (their features and labels stripped by
 `BlindEchoSilhouetteMixin`; its per-pass white vertex consumer drops every write once the pass ends,
 because PatPat 1.3 keeps the provider and draws through it at the next frame's `AFTER_ENTITIES`), and `client/mixin/blind/BlindGameRendererMixin` runs the pass after
 `GameRenderer#render`'s `Framebuffer#beginWrite(Z)` with `shift = AFTER`, so it draws over the
-Seeker and Black Raven filters injected at the same call, and the HUD is drawn on top. The view
+Seeker and Black Raven filters injected at the same call, and the HUD is drawn on top. Outlines other mods draw at
+`WorldRenderEvents.LAST` are consumed by the echo pass; add-ons register them through `api/client/BlindViewApi`
+instead, and right after a successful echo pass (never the black fallback) `BlindSeeThroughOutlines.render` draws
+them with the frame's captured projection, view rotation and camera, see-through (depth test off), fog-free, line
+width 3.5, in the source's colours, restoring every RenderSystem matrix and state it changes before the HUD. Wave
+fronts (`WAVE_BRIGHTNESS` 0.12, `WAVE_SHARPNESS` 12) and body ripples (`RIPPLE_BRIGHTNESS` 0.4) are dim decoration
+under the full-white depth-edge lines (playtest 2026-10-18). The view
 fails closed to black, never to the plain world: an Iris shader pack in use (reflective check; an
 error counts as in use) paints black and shows `hud.sparkwitch.blind.view_unavailable` (turn shader
 packs off); a load or render failure, or 20 consecutive missed depth captures, with no shader pack
