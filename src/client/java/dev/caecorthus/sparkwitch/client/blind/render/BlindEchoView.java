@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.blind.render;
 
 import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlDebugInfo;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.blind.BlindPerceptionClientState;
@@ -10,6 +11,7 @@ import dev.caecorthus.sparkwitch.client.mixin.PostEffectProcessorAccessor;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
@@ -18,8 +20,8 @@ import net.minecraft.client.gl.PostEffectPass;
 import net.minecraft.client.gl.PostEffectProcessor;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.render.TexturedRenderLayers;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
@@ -27,7 +29,8 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.RaycastContext;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.BlockView;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 
@@ -39,10 +42,12 @@ import java.util.List;
  * The Blind's screen (C4, C13, D1): a PRIVATE post processor (Seeker pattern, never
  * {@code GameRenderer.postProcessor}).
  * <ol>
- *   <li>{@link #captureWorld} at {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}: flushes the pending block-entity layer
- *   (Wathe doors) and the Fast/Fancy dropped-item layer, copies the main depth into {@code blind_depth}, re-binds main,
- *   records this frame's projection, view rotation and camera, and re-renders perceived bodies into {@code blind_sil}
- *   ({@link BlindSilhouettePass}).</li>
+ *   <li>{@link #captureWorld} at {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}: records this frame's projection, view
+ *   rotation and camera, and re-renders perceived bodies into {@code blind_sil} ({@link BlindSilhouettePass}).</li>
+ *   <li>{@link #captureDepth} at the head of the world's {@code ParticleManager#renderParticles} (both graphics
+ *   branches): copies the world depth into {@code blind_depth} after translucent terrain (glass, Wathe hull and privacy
+ *   panels) and the full entity flush, but before particles, so glass reads as a wall and no particle enters the
+ *   line art. In Fabulous! that depth lives in the translucent target, which started as a copy of main's.</li>
  *   <li>{@link #renderFrame} right after {@code GameRenderer#render}'s {@code Framebuffer#beginWrite(Z)} (after every
  *   other SparkWitch filter, before the GUI): writes black plus white line art over the whole main framebuffer, so
  *   every earlier image (sky, particles, outlines, other filters) is consumed; the entity-outline framebuffer is never
@@ -53,9 +58,11 @@ import java.util.List;
  * pipeline is rebuilt after a growing backoff ({@link BlindEchoMode#retryDelaySeconds}). Released on every inactive
  * frame; {@link #reset()} on disconnect and resource reload.
  * 盲人的画面（C4、C13、D1）：私有后处理器（搜寻者模式，从不使用 {@code GameRenderer.postProcessor}）。
- * 1）{@link #captureWorld} 于 {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}：先刷新待绘制的方块实体层（Wathe 车门）
- * 与 Fast/Fancy 下的掉落物层，把主深度拷贝到 {@code blind_depth}，重新绑定主帧缓冲，记录本帧投影、视角旋转与
- * 相机位置，并把被感知身体重新渲染到 {@code blind_sil}（{@link BlindSilhouettePass}）。2）{@link #renderFrame} 紧接在 {@code GameRenderer#render} 的
+ * 1）{@link #captureWorld} 于 {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}：记录本帧投影、视角旋转与相机位置，
+ * 并把被感知身体重新渲染到 {@code blind_sil}（{@link BlindSilhouettePass}）。2）{@link #captureDepth} 位于世界渲染中
+ * {@code ParticleManager#renderParticles} 的开头（两种画质分支都有）：在半透明地形（玻璃、Wathe 船体与隐私玻璃板）
+ * 和实体全部刷新之后、粒子之前，把世界深度拷贝到 {@code blind_depth}，使玻璃被当作墙，且粒子不会进入线稿。
+ * Fabulous! 下该深度位于半透明目标中，它起初就是主深度的拷贝。3）{@link #renderFrame} 紧接在 {@code GameRenderer#render} 的
  * {@code Framebuffer#beginWrite(Z)} 之后（其他所有 SparkWitch 滤镜之后、GUI 之前）：把整个主帧缓冲写成黑底白线，
  * 吞掉之前的所有画面（天空、粒子、描边、其他滤镜），且不再合成实体描边帧缓冲。
  * 失败即全黑：开着 Iris 光影包、加载失败、缺少捕获或镜头不在盲人身上时，世界画成全黑，绝不显示未过滤画面；
@@ -82,6 +89,8 @@ public final class BlindEchoView {
     private static int failures;
     private static long retryAtNanos;
     private static boolean captured;
+    /** captureWorld ran this frame and the depth copy is still due. / 本帧已运行 captureWorld，深度拷贝尚未进行。 */
+    private static boolean depthPending;
     private static BlindEchoMode.Hint hint = BlindEchoMode.Hint.NONE;
     private static int missedCaptures;
     private static double cameraX;
@@ -99,6 +108,7 @@ public final class BlindEchoView {
     /** {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}; render thread. / 渲染线程。 */
     public static void captureWorld(WorldRenderContext context) {
         captured = false;
+        depthPending = false;
         MinecraftClient client = MinecraftClient.getInstance();
         if (!BlindView.isActive(client) || !seesOwnView(client) || BlindShaderPackCheck.isShaderPackInUse()) {
             return;
@@ -115,17 +125,6 @@ public final class BlindEchoView {
             return;
         }
         try {
-            // Block entities with custom layers (Wathe doors) and, in Fast/Fancy, dropped items (C6: the fixed
-            // entity-translucent-cull layer) are still pending here; vanilla flushes both right after the debug render.
-            // 使用自定义层的方块实体（Wathe 车门）以及 Fast/Fancy 下的掉落物（C6：固定的实体半透明剔除层）此时仍待绘制；
-            // 原版在调试渲染之后紧接着刷新这两者。
-            if (context.consumers() instanceof VertexConsumerProvider.Immediate immediate) {
-                immediate.drawCurrentLayer();
-                immediate.draw(TexturedRenderLayers.getEntityTranslucentCull());
-            }
-            depth.copyDepthFrom(main);
-            // copyDepthFrom leaves FBO 0 bound. / copyDepthFrom 结束时绑定的是 FBO 0。
-            main.beginWrite(false);
             PROJECTION.set(context.projectionMatrix());
             VIEW_ROTATION.set(context.positionMatrix());
             Vec3d camera = context.camera().getPos();
@@ -135,10 +134,51 @@ public final class BlindEchoView {
             float tickDelta = context.tickCounter().getTickDelta(true);
             collectBodies(client, tickDelta, Util.getMeasuringTimeNano());
             BlindSilhouettePass.render(client, silhouette, main, BODIES, PROJECTION, VIEW_ROTATION, camera, tickDelta);
-            captured = true;
+            // The frame counts as captured only once captureDepth copies the world depth later in this frame.
+            // 只有本帧稍后 captureDepth 拷贝了世界深度，本帧才算捕获成功。
+            depthPending = true;
         } catch (RuntimeException exception) {
             main.beginWrite(false);
             fail(exception);
+        }
+    }
+
+    /**
+     * Head of {@code ParticleManager#renderParticles}, which {@code WorldRenderer#render} calls once per frame in each
+     * graphics branch after translucent terrain and the full entity flush, and again at {@code WorldRenderEvents.LAST}
+     * as a fallback for a frame whose particle draw never ran; render thread. Copies the world depth into
+     * {@code blind_depth} once for a frame {@link #captureWorld} prepared and restores the framebuffer binding the caller
+     * expects. A frame where neither runs stays uncaptured, so it is painted black (fail closed).
+     * {@code ParticleManager#renderParticles} 的开头；{@code WorldRenderer#render} 每帧在各画质分支中于半透明地形与实体
+     * 全部刷新之后调用一次，并在 {@code WorldRenderEvents.LAST} 为粒子绘制未运行的帧再兜底调用；渲染线程。为
+     * {@link #captureWorld} 准备好的帧把世界深度拷贝到 {@code blind_depth} 一次，并恢复调用方所需的帧缓冲绑定。两处都未运行
+     * 的帧保持未捕获，因此画成全黑（失败即全黑）。
+     */
+    public static void captureDepth() {
+        if (!depthPending) {
+            return;
+        }
+        depthPending = false;
+        PostEffectProcessor active = processor;
+        Framebuffer depth = active == null ? null : active.getSecondaryTarget(DEPTH_TARGET);
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (depth == null || client.worldRenderer == null) {
+            return;
+        }
+        // Fabulous! draws translucent terrain into its own target, whose depth began as a copy of main's.
+        // Fabulous! 把半透明地形画进自己的目标，其深度起初就是主深度的拷贝。
+        Framebuffer translucent = client.worldRenderer.getTranslucentFramebuffer();
+        Framebuffer source = translucent != null ? translucent : client.getFramebuffer();
+        int bound = GlStateManager.getBoundFramebuffer();
+        try {
+            depth.copyDepthFrom(source);
+            captured = true;
+        } catch (RuntimeException exception) {
+            fail(exception);
+        } finally {
+            // copyDepthFrom leaves FBO 0 bound; particles draw into whichever target was bound (main or Fabulous'
+            // particles target). / copyDepthFrom 结束时绑定的是 FBO 0；粒子要画进原先绑定的目标（主目标或 Fabulous 粒子目标）。
+            GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, bound);
         }
     }
 
@@ -149,6 +189,7 @@ public final class BlindEchoView {
     public static void renderFrame(MinecraftClient client) {
         boolean wasCaptured = captured;
         captured = false;
+        depthPending = false;
         boolean active = BlindView.isActive(client);
         boolean ownView = seesOwnView(client);
         boolean shaderPack = active && BlindShaderPackCheck.isShaderPackInUse();
@@ -169,6 +210,10 @@ public final class BlindEchoView {
             case ECHO -> {
                 if (!runPasses(client)) {
                     fillBlack(client);
+                } else {
+                    // Add-on see-through outlines (BlindViewApi) over the echo frame only, never the black fallback.
+                    // 附属模组透视描边（BlindViewApi）只画在回声画面上，从不画在黑屏兜底上。
+                    BlindSeeThroughOutlines.render(PROJECTION, VIEW_ROTATION, cameraX, cameraY, cameraZ);
                 }
             }
         }
@@ -195,6 +240,7 @@ public final class BlindEchoView {
         failures = 0;
         retryAtNanos = 0L;
         captured = false;
+        depthPending = false;
         hint = BlindEchoMode.Hint.NONE;
         missedCaptures = 0;
     }
@@ -327,11 +373,26 @@ public final class BlindEchoView {
         return BlindEchoUniforms.occludes(camera.distanceTo(point), blockHitDistance(world, camera, point));
     }
 
-    /** Distance to the first block on the line of sight, or infinity. / 视线上第一个方块的距离，无则为无穷大。 */
+    /**
+     * Distance to the first block on the line of sight, or infinity. Camera shapes, like vanilla's VISUAL raycast,
+     * except that a block on the translucent terrain layer with an empty camera shape (Wathe hull and privacy glass,
+     * stained glass) uses its collision shape: it is a wall in the copied depth, so a body behind it still ripples and
+     * blurs. Cutout glass keeps its empty camera shape, because its clear texels stay holes in that depth.
+     * 视线上第一个方块的距离，无则为无穷大。与原版 VISUAL 射线一样使用镜头形状，但处于半透明地形层且镜头形状为空的方块
+     * （Wathe 船体与隐私玻璃、染色玻璃）改用碰撞形状：它在拷贝的深度里是墙，其后的身体仍有涟漪与模糊。镂空玻璃保留空的
+     * 镜头形状，因为它的透明像素在该深度里仍是洞。
+     */
     private static double blockHitDistance(ClientWorld world, Vec3d from, Vec3d to) {
-        BlockHitResult hit = world.raycast(new RaycastContext(from, to, RaycastContext.ShapeType.VISUAL,
-                RaycastContext.FluidHandling.NONE, ShapeContext.absent()));
-        return hit.getType() == HitResult.Type.MISS ? Double.POSITIVE_INFINITY : from.distanceTo(hit.getPos());
+        BlockHitResult hit = BlockView.raycast(from, to, world, (view, pos) -> {
+            BlockState state = view.getBlockState(pos);
+            VoxelShape shape = state.getCameraCollisionShape(view, pos, ShapeContext.absent());
+            if (shape.isEmpty() && RenderLayers.getBlockLayer(state) == RenderLayer.getTranslucent()) {
+                shape = state.getCollisionShape(view, pos, ShapeContext.absent());
+            }
+            return view.raycastBlock(from, to, pos, shape, state);
+        }, view -> null);
+        return hit == null || hit.getType() == HitResult.Type.MISS
+                ? Double.POSITIVE_INFINITY : from.distanceTo(hit.getPos());
     }
 
     @Nullable

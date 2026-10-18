@@ -70,6 +70,8 @@
     "WraithWatheHighlightMixin",
     "armor.LimitedInventoryArmorSlotsMixin",
     "blind.BlindComTacHeadRenderMixin",
+    "blind.BlindDepthCaptureMixin",
+    "blind.BlindDoorDepthMixin",
     "bellringer.MoodRendererTaskRendererBellEchoMixin",
     "timestealer.TimeStealerClockCrosshairMixin",
     "blind.BlindEchoSilhouetteMixin",

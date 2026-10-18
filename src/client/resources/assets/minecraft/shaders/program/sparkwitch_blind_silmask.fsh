@@ -6,7 +6,7 @@
 // 输出：r = 被遮挡的覆盖度，g = 身体距离 / 64（决定随距离的模糊与淡出）。
 
 uniform sampler2D DiffuseSampler;    // perceived bodies, white, own depth test / 被感知玩家身体（白色，自带深度测试）
-uniform sampler2D WorldDepthSampler; // opaque world depth captured before the debug render / 调试渲染前捕获的不透明世界深度
+uniform sampler2D WorldDepthSampler; // world depth copied before particles, glass included / 粒子之前拷贝的世界深度（含玻璃）
 uniform sampler2D SilDepthSampler;   // depth of the nearest perceived body / 最近的被感知身体深度
 
 uniform mat4 InvViewProj;

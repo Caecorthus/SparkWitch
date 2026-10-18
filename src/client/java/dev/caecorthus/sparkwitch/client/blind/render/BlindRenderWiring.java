@@ -21,11 +21,15 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * Client wiring of the Blind's black screen and line-art pipeline: the depth capture at
- * {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}, the fail-closed HUD hint, and {@link BlindEchoView#reset()} on
- * disconnect and resource reload. The end-of-frame pass itself runs from {@code BlindGameRendererMixin}.
- * 盲人黑屏与线稿管线的客户端接线：在 {@code WorldRenderEvents.BEFORE_DEBUG_RENDER} 捕获深度、失败即全黑时的 HUD 提示，
- * 以及断线与资源重载时的 {@link BlindEchoView#reset()}。帧末 pass 本身由 {@code BlindGameRendererMixin} 运行。
+ * Client wiring of the Blind's black screen and line-art pipeline: the frame capture at
+ * {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}, the fallback depth copy at {@code WorldRenderEvents.LAST} for a frame
+ * whose particle draw never ran, the fail-closed HUD hint, and {@link BlindEchoView#reset()} on disconnect and
+ * resource reload. The usual depth copy runs from {@code BlindDepthCaptureMixin}, the end-of-frame pass from
+ * {@code BlindGameRendererMixin}.
+ * 盲人黑屏与线稿管线的客户端接线：在 {@code WorldRenderEvents.BEFORE_DEBUG_RENDER} 捕获本帧，在
+ * {@code WorldRenderEvents.LAST} 为粒子绘制未运行的帧补做深度拷贝，失败即全黑时的 HUD 提示，以及断线与资源重载时的
+ * {@link BlindEchoView#reset()}。通常的深度拷贝由 {@code BlindDepthCaptureMixin} 运行，帧末 pass 由
+ * {@code BlindGameRendererMixin} 运行。
  */
 public final class BlindRenderWiring {
     /** Iris reports a shader pack. / Iris 报告正在使用光影包。 */
@@ -44,6 +48,9 @@ public final class BlindRenderWiring {
         }
         registered = true;
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(BlindEchoView::captureWorld);
+        // A mod that cancels or swallows the particle draw would otherwise leave the Blind black for good; this copy then
+        // also holds that frame's particles. / 若有模组取消或吞掉粒子绘制，盲人会一直黑屏；此时的补拷贝会包含该帧的粒子。
+        WorldRenderEvents.LAST.register(context -> BlindEchoView.captureDepth());
         HudRenderCallback.EVENT.register((context, tickCounter) -> renderFallbackHint(context));
         ClientLoginConnectionEvents.INIT.register((handler, client) -> BlindEchoView.reset());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> BlindEchoView.reset());

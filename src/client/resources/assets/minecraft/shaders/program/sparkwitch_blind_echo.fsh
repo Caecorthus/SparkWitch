@@ -7,8 +7,9 @@
 // 模糊的人形轮廓。从不读取颜色，因此天空、雾、粒子、描边以及之前的所有滤镜都会被吞掉。
 
 uniform sampler2D DiffuseSampler;    // blind_mask: r = hidden body coverage, g = distance / 64 / 被遮挡身体遮罩
-uniform sampler2D WorldDepthSampler; // captured opaque world depth / 捕获的不透明世界深度
+uniform sampler2D WorldDepthSampler; // world depth copied before particles, glass included / 粒子之前拷贝的世界深度（含玻璃）
 uniform sampler2D SilBlurSampler;    // blind_blur_b: distance-blurred hidden bodies / 随距离模糊后的遮挡身体
+uniform sampler2D SilDepthSampler;   // blind_sil depth: perceived bodies only, own depth test / 仅被感知身体的深度
 
 uniform mat4 InvViewProj; // inverse(projection * view rotation): camera-relative positions / 相机相对坐标
 uniform vec2 InSize;
@@ -30,10 +31,28 @@ const int MAX_PLAYERS = 16;
 const int PLAYER_STRIDE = 4;
 const float PLAYER_REVEAL_RADIUS = 1.3;
 const float RIPPLE_PERIOD = 0.9;
+// Playtest 2026-10-18: the sweeping wave fronts and body ripples were bright enough to hide the line art, so they are
+// dim and thin decoration now; the depth-edge lines stay at full white.
+// 2026-10-18 试玩：扫过的声波前沿与身体涟漪亮到会挡住线稿，现改为暗而细的点缀；深度边缘线条仍为全白。
+const float WAVE_BRIGHTNESS = 0.12;
+const float WAVE_SHARPNESS = 12.0;
+const float RIPPLE_BRIGHTNESS = 0.4;
 
 vec3 viewPos(vec2 uv, float depth) {
     vec4 p = InvViewProj * vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
     return p.xyz / p.w;
+}
+
+// The line art's depth: the captured world plus the perceived bodies' own silhouette depth. A client mod can keep a
+// body out of the captured world (Iris, even with shaders off, defers every entity draw until after the capture), and
+// then a body in plain view had no edges at all while it still showed as a silhouette behind walls (playtest
+// 2026-10-18). A body behind a wall is farther than the wall, so the min keeps the wall there.
+// 线稿使用的深度：捕获的世界深度与被感知身体自身轮廓深度的较小值。客户端模组可能让身体不进入捕获的世界深度（Iris 即使关闭
+// 光影也会把所有实体推迟到捕获之后才绘制），此时视线内的身体完全没有边线，墙后却仍显示轮廓（2026-10-18 试玩）。
+// 墙后的身体比墙更远，因此取较小值时那里仍是墙。
+float sceneDepth(vec2 uv) {
+    float world = texture(WorldDepthSampler, uv).r;
+    return PlayerCount > 0.5 ? min(world, texture(SilDepthSampler, uv).r) : world;
 }
 
 // 1 - cos of the turn between the two one-sided tangents: 0 on a plane, high at creases and depth jumps.
@@ -59,10 +78,10 @@ float edges(vec2 uv, vec3 p, float range) {
     vec2 ur = clamp(uv + vec2(texel.x, 0.0), lo, hi);
     vec2 uu = clamp(uv + vec2(0.0, texel.y), lo, hi);
     vec2 ub = clamp(uv - vec2(0.0, texel.y), lo, hi);
-    float dl = texture(WorldDepthSampler, ul).r;
-    float dr = texture(WorldDepthSampler, ur).r;
-    float du = texture(WorldDepthSampler, uu).r;
-    float db = texture(WorldDepthSampler, ub).r;
+    float dl = sceneDepth(ul);
+    float dr = sceneDepth(ur);
+    float du = sceneDepth(uu);
+    float db = sceneDepth(ub);
     if (max(max(dl, dr), max(du, db)) >= 1.0) {
         return 1.0; // outline against the void / 与虚空交界的轮廓
     }
@@ -95,7 +114,7 @@ float pulseReveal(vec3 p, out float wave) {
         float rim = mix(1.0, 0.6, smoothstep(radius * 0.6, radius, dist));
         reveal = max(reveal, inside * fade * rim);
         float sweep = 1.0 - smoothstep(expand, expand + 0.3, age);
-        wave = max(wave, exp(-abs(dist - front) * 7.0) * sweep * fade);
+        wave = max(wave, exp(-abs(dist - front) * WAVE_SHARPNESS) * sweep * fade);
     }
     return reveal;
 }
@@ -163,7 +182,7 @@ float ripples(vec2 uv) {
             ripple = max(ripple, ring * hidden * PlayerData[o + 3]);
         }
     }
-    return ripple * 0.75;
+    return ripple * RIPPLE_BRIGHTNESS;
 }
 
 // Hidden bodies: a crisp outline with a faint fill up close, a soft blob far away, fainter with distance (D1).
@@ -194,7 +213,7 @@ float silhouettes(vec2 uv) {
 }
 
 void main() {
-    float depth = texture(WorldDepthSampler, texCoord).r;
+    float depth = sceneDepth(texCoord);
     float line = 0.0;
     if (depth < 1.0) {
         vec3 p = viewPos(texCoord, depth);
@@ -204,7 +223,7 @@ void main() {
         if (reveal > 0.003) {
             line = edges(texCoord, p, range) * reveal * mix(1.0, 0.6, smoothstep(30.0, 150.0, range));
         }
-        line = max(line, wave * 0.3);
+        line = max(line, wave * WAVE_BRIGHTNESS);
     }
     float value = max(line, max(silhouettes(texCoord), ripples(texCoord)));
     fragColor = vec4(vec3(clamp(value, 0.0, 1.0)), 1.0);
