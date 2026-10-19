@@ -29,13 +29,6 @@ public final class SparkWitchSounds {
      */
     public static final Identifier HOLY_FLASH_TINNITUS_ID = SparkWitch.id("skill.holy_flash_tinnitus");
     /**
-     * Fiend Moment start: vanilla wither-spawn audio under SparkWitch's own id, so client volume groups (SparkAssist)
-     * can turn it down without touching ordinary withers. No new asset.
-     * 魔人时刻开始：以 SparkWitch 自己的 id 播放原版凋灵生成音频，客户端音量分组（SparkAssist）可以单独调低它而不影响普通凋灵。
-     * 不新增资源。
-     */
-    public static final Identifier FIEND_MOMENT_ID = SparkWitch.id("ambient.fiend_moment");
-    /**
      * USEC rifle sounds (ids live in UsecRules). Variable range: the shot carries by its volume (12 loud, 2.5
      * suppressed), and the server plays it publicly so the Blind can perceive it.
      * USEC 步枪音效（id 定义在 UsecRules）。可变范围：枪声按音量传播（未消音 12，消音 2.5），由服务端公开播放，盲人才能感知。
@@ -53,7 +46,6 @@ public final class SparkWitchSounds {
     public static SoundEvent TIME_STEALER_CHIME;
     public static SoundEvent TIME_STEALER_FINAL;
     public static SoundEvent HOLY_FLASH_TINNITUS;
-    public static SoundEvent FIEND_MOMENT;
     public static SoundEvent USEC_RIFLE_SHOOT;
     public static SoundEvent USEC_RIFLE_SHOOT_SUPPRESSED;
     public static SoundEvent USEC_RIFLE_BOLT;
@@ -97,7 +89,6 @@ public final class SparkWitchSounds {
                 HOLY_FLASH_TINNITUS_ID,
                 SoundEvent.of(HOLY_FLASH_TINNITUS_ID)
         );
-        FIEND_MOMENT = Registry.register(Registries.SOUND_EVENT, FIEND_MOMENT_ID, SoundEvent.of(FIEND_MOMENT_ID));
         USEC_RIFLE_SHOOT = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_SHOOT_ID,
                 SoundEvent.of(USEC_RIFLE_SHOOT_ID));
         USEC_RIFLE_SHOOT_SUPPRESSED = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_SHOOT_SUPPRESSED_ID,
