@@ -1817,9 +1817,12 @@ and blur too while cutout glass does not. The echo pass draws its edges
 from `min(world depth, blind_sil depth)` while any body is perceived (`sceneDepth`), so a perceived body in plain view
 always has line art even when a client mod keeps it out of the captured world: Iris, installed with its shader pack
 off, defers every entity draw to its `translucent` profiler step, which made bodies visible only through walls
-(playtest 2026-10-18). The silhouette mask still compares against the world depth alone. Under Iris with Fabulous!
-graphics Iris flushes its deferred draws only after the translucent target took main's depth, so environment entities
-(corpses, items) and the door depth may still be missing from the copy. At the early capture,
+(playtest 2026-10-18). The silhouette mask still compares against the world depth alone. Iris only makes
+`Immediate#draw(RenderLayer)` and `drawCurrentLayer` no-ops; its full `draw()` is a real flush, and vanilla's full
+entity flush runs with main bound before the Fabulous! translucent seed and before the Fast/Fancy particle draw, so
+Iris-batched corpses, items and the door depth reach the copy in every graphics mode (checked against Iris 1.8.8,
+2026-10-19). Under Fabulous! only the few draws on the item-entity target (translucent-block items such as stained
+glass, ice or slime, and line layers) stay out of the copy. At the early capture,
 `BlindSilhouettePass` also re-renders the
 perceived players into a private silhouette target (their features and labels stripped by
 `BlindEchoSilhouetteMixin`; its per-pass white vertex consumer drops every write once the pass ends,
