@@ -84,6 +84,17 @@ Current build baseline:
     SparkStrength reaches it by reflection (FQCN and the erased JDK-only signature are frozen) for its repair-mode
     tripped breakers and engine-sabotage units, which it otherwise draws at `WorldRenderEvents.LAST`, under the echo
     pass; it never reports the saboteur junction boxes or the admin configurator view.
+  - `api/client/ScopeSettingsApi` (client source set, 2026-10-19) is the stable cross-mod seam for SparkAssist's
+    SparkDLC settings screen, which draws the three scope settings with its own widgets. JDK-only, all static: mode
+    (`scopeMode()`, `setScopeMode(String)`, `scopeModes()`, `defaultScopeMode()`, serialized names), lens resolution
+    (`lensResolutionPercent()`, `setLensResolutionPercent(int)`, `int[] lensResolutionChoices()`,
+    `defaultLensResolutionPercent()`), scoped sensitivity (`scopedSensitivityPercent()`,
+    `setScopedSensitivityPercent(int)`, `scopedSensitivityMin/Max/Step()`, `defaultScopedSensitivityPercent()`),
+    `pictureInPictureSuppressed()` (PiP selected but `ScopeClient.effectiveMode()` renders Full-Screen Zoom) and
+    `save()`. It drives the same `ScopeSettingsStore` value as Options → Accessibility; setters are live-only
+    (`ScopeSettingsStore.apply*`), clamp and snap like the file, and ignore an unknown mode or lens step; only `save()`
+    writes the file. The first call loads the file, so it is safe before `ScopeClient.register()`. SparkAssist reaches
+    it by reflection (FQCN and signatures are frozen).
   - Add-on gun world hits (2026-10-07, frozen names and signatures, reached by SparkStrength's `SparkWitchCompat`
     through reflection for the Serial Killer pistols, which extend Wathe's `RevolverItem` but fire through
     `sparkstrength:serial_pistol_shoot`): client `SparkWitchApi.preferNearerGunWorldTarget(PlayerEntity, HitResult,
@@ -921,9 +932,14 @@ Current build baseline:
   - Settings: Scope View (Full-Screen Zoom, the default, or Picture-in-Picture), Lens Resolution beside it, and Scoped
     Sensitivity (10–200 % in 5 % steps, default 100 %) are appended at the end of vanilla Options → Accessibility by
     `ScopeAccessibilityOptionsMixin` (`addOptions` TAIL calls `ScopeOptions.addTo(body)`, one `addAll`; SparkAssist's
-    `getOptions` hook is left untouched). Lens Resolution (owner, 2026-10-08) is a cycling button of 50 / 75 / 100 % of
-    the native PiP lens size (default 100 %); it only matters in Picture-in-Picture, so its button is inactive (greyed)
-    while Full-Screen Zoom is selected, follows the Scope View button at once, and its tooltip says so. Values persist
+    `getOptions` hook is left untouched). The rows are left out while SparkAssist's SparkDLC settings screen hosts them
+    (`client/compat/SparkDlcSettingsBridge`: SparkAssist loaded and its public
+    `dev.caecorthus.sparkassist.client.settings.SparkDlcSettingsApi.hostsScopeSettings()` answers true, resolved by
+    reflection at the first screen init and asked at every one; absent, older or failing means the rows stay, a
+    failure is logged once); that screen edits them through `api/client/ScopeSettingsApi`. Lens Resolution (owner,
+    2026-10-08) is a cycling button of 50 / 75 / 100 % of the native PiP lens size (default 100 %); it only matters in
+    Picture-in-Picture, so its button is inactive (greyed) while Full-Screen Zoom is selected, follows the Scope View
+    button at once, and its tooltip says so. Values persist
     in `config/sparkwitch-client.json` (`scopeMode`, `scopedSensitivityPercent`, `scopeLensResolutionPercent`) through
     `ScopeSettingsStore`, which merges saves into the existing file; a missing, unknown or non-step lens value loads as
     100 %.
