@@ -734,7 +734,6 @@
   "replay.death.sparkwitch.bell_toll.killed": "%s 被 %s 的§c丧钟§r夺魂",
   "replay.death.sparkwitch.bell_toll.died": "%s 被§c丧钟§r夺魂",
   "subtitles.sparkwitch.ambient.bell_ringer_toll": "丧钟回响",
-  "subtitles.sparkwitch.ambient.fiend_moment": "魔人时刻降临",
   "hud.sparkwitch.bell_echo.heard": "你听到了敲钟人的钟声",
   "task.sparkwitch.bell_echo.sleep": "你必须去睡一会儿。（%s秒）",
   "task.sparkwitch.bell_echo.outside": "你必须出去呼吸点新鲜空气。（%s秒）",

@@ -198,11 +198,5 @@
         "attenuation_distance": 8
       }
     ]
-  },
-  "ambient.fiend_moment": {
-    "subtitle": "subtitles.sparkwitch.ambient.fiend_moment",
-    "sounds": [
-      "minecraft:mob/wither/spawn"
-    ]
   }
 }
