@@ -734,6 +734,7 @@
   "replay.death.sparkwitch.bell_toll.killed": "%s was claimed by %s's §cDeath Knell§r",
   "replay.death.sparkwitch.bell_toll.died": "%s was claimed by the §cDeath Knell§r",
   "subtitles.sparkwitch.ambient.bell_ringer_toll": "Death knell tolls",
+  "subtitles.sparkwitch.ambient.fiend_moment": "Fiend Moment begins",
   "hud.sparkwitch.bell_echo.heard": "You heard the Bell Ringer's bell",
   "task.sparkwitch.bell_echo.sleep": "You must get some sleep. (%ss)",
   "task.sparkwitch.bell_echo.outside": "You must get some fresh air. (%ss)",

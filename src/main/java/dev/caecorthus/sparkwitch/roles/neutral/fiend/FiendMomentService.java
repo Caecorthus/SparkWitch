@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.neutral.fiend;
 
+import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.record.GameRecordManager;
@@ -13,7 +14,6 @@ import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
@@ -158,7 +158,7 @@ public final class FiendMomentService {
             player.networkHandler.sendPacket(new TitleFadeS2CPacket(FADE_IN_TICKS, STAY_TICKS, FADE_OUT_TICKS));
             player.networkHandler.sendPacket(new SubtitleS2CPacket(subtitle));
             player.networkHandler.sendPacket(new TitleS2CPacket(title));
-            player.playSoundToPlayer(SoundEvents.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, START_SOUND_VOLUME,
+            player.playSoundToPlayer(SparkWitchSounds.FIEND_MOMENT, SoundCategory.MASTER, START_SOUND_VOLUME,
                     START_SOUND_PITCH);
         }
     }
