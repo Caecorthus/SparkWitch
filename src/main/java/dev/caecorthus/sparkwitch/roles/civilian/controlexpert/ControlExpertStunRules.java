@@ -101,6 +101,9 @@ public final class ControlExpertStunRules {
             // 开镜状态仅为表现，保持放行。
             Identifier.of("sparkwitch", "fire_usec_rifle"),
             Identifier.of("sparkwitch", "usec_attachment"),
+            // Witch Maiden Mini Wither toggle (key 2) and crimson skull fire. / 巫女小凋灵切换（技能键 2）与赤首射击。
+            Identifier.of("sparkwitch", "mini_wither_toggle"),
+            Identifier.of("sparkwitch", "fire_crimson_skull"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

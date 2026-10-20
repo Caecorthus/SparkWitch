@@ -32,6 +32,11 @@ public final class SparkWitchDeathReasons {
      * 秃鹫吃掉了假死魔人的假尸体：强制、不留尸体，并注册为 SparkTraits 终结死亡原因，魔人直接死亡（所有者 2026-10-16 需求）。
      */
     public static final Identifier FIEND_DEVOURED = SparkWitch.id("fiend_devoured");
+    /**
+     * Ordinary, non-forced Witch Maiden crimson wither skull kill; treated as a gunshot elsewhere (owner Q5).
+     * 普通、非强制的巫女赤色凋灵之首击杀；在其他系统中按枪击处理（所有者 Q5）。
+     */
+    public static final Identifier CRIMSON_WITHER_SKULL = SparkWitch.id("crimson_wither_skull");
 
     private SparkWitchDeathReasons() {
     }

@@ -127,6 +127,8 @@
     "witchmaiden.FocusedFootstepsKeyboardInputMixin",
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin",
+    "witchmaiden.WitherGoheiInputMixin",
+    "witchmaiden.WitherGoheiMacControlClickMixin",
     "fiend.WatheClientFiendHighlightMixin",
     "blind.BlindAttuneSoundSystemMixin",
     "blind.BlindGateArmorFeatureRendererMixin",

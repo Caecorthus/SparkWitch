@@ -37,6 +37,9 @@ public enum ProphetDeathCauseGroup {
             entry("sparkwitch:swordfish_stab", BLADE),
             entry("wathe:gun_shot", GUNSHOT),
             entry("wathe:gun_shot_backfire", GUNSHOT),
+            // Witch Maiden crimson wither skull: a gunshot for every other system (owner Q5, 2026-10-20).
+            // 巫女赤色凋灵之首：在其他系统中按枪击处理（所有者 Q5，2026-10-20）。
+            entry("sparkwitch:crimson_wither_skull", GUNSHOT),
             entry("sparkwitch:ninja_shuriken_kill", THROWN),
             entry("noellesroles:throwing_axe", THROWN),
             entry("wathe:bat_hit", BLUNT),

@@ -50,7 +50,13 @@ public enum SeekerBreakSource {
      * USEC 狙击步枪：服务端折线弹道（AP 穿透方块并下坠），沿整条路径最近者命中，经 {@code SeekerDeviceHits.onUsecRifleFired}。
      * 追加在最后，既有回放 id 不变。
      */
-    USEC_RIFLE(Kind.RAY);
+    USEC_RIFLE(Kind.RAY),
+    /**
+     * Witch Maiden crimson wither skull: a fast projectile swept at the top of its tick like the shuriken; the harmless
+     * auto-fired skulls break nothing. Appended last so every earlier replay id keeps its value.
+     * 巫女赤色凋灵之首：与手里剑一样在 tick 开头扫掠的快速投射物；无害的自动射击头颅不打坏任何东西。追加在最后，既有回放 id 不变。
+     */
+    CRIMSON_SKULL(Kind.PROJECTILE);
 
     /** Geometry family; rays and projectiles use nearest-wins blocking, blasts do not. / 几何类别。 */
     public enum Kind {

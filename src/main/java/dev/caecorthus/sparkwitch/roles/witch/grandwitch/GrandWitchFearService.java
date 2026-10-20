@@ -65,6 +65,10 @@ public final class GrandWitchFearService {
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),
+            // Witch Maiden Mini Wither toggle and crimson skull fire; the server also re-checks fear on use.
+            // 巫女小凋灵切换与赤首射击；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "mini_wither_toggle"),
+            Identifier.of("sparkwitch", "fire_crimson_skull"),
             // SparkStrength role skills, like the NoellesRoles skills above (owner 2026-10-07). Tablet meetings, votes
             // and chat, detective notes, drone moves and exit, and the Timekeeper's watch-mode pick stay allowed.
             // SparkStrength 职业技能，与上方 NoellesRoles 技能一致（所有者 2026-10-07）。平板会议、投票与聊天、侦探笔记、

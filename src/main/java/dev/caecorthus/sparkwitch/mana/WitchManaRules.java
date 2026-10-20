@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.mana;
 
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
@@ -8,8 +9,9 @@ import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.doctor4t.wathe.api.Role;
 
 /**
- * Pure mana economy rules for the mana-bearing roles: the three witches, Emma, and the Abyss Listener and the
- * Riftwalker (which use the Grand Witch's economy, Abyss Listener D11 and Riftwalker D7).
+ * Pure mana economy rules for the mana-bearing roles: the three witches, Emma, the Abyss Listener and the
+ * Riftwalker (which use the Grand Witch's economy, Abyss Listener D11 and Riftwalker D7), and the Witch Maiden (crimson
+ * skull mana, 2026-10-20).
  * 魔力角色的纯规则集中在这里（三位魔女、艾玛，以及沿用大魔女魔力机制的聆渊者与隙行者，聆渊者 D11、隙行者 D7），
  * 避免事件、组件和 HUD 各写一份判断。
  */
@@ -26,6 +28,9 @@ public final class WitchManaRules {
     private static final int GRADUATED_APPRENTICE_NATURAL_CAP = 150;
     private static final int GRAND_WITCH_NATURAL_CAP = 300;
     private static final int MURDEROUS_WITCH_NATURAL_CAP = 150;
+    // Witch Maiden: mana from round start, 1 per second, natural cap 250, for the crimson skull (owner 2026-10-20 Q8).
+    // 巫女：开局即有魔力，每秒 1 点，自然上限 250，用于赤色凋灵之首（所有者 2026-10-20 Q8）。
+    private static final int WITCH_MAIDEN_NATURAL_CAP = 250;
     private static final int APPRENTICE_TASK_REWARD = 20;
     private static final int GENERIC_KILL_REWARD = 25;
     private static final int WITCH_KILL_REWARD = 50;
@@ -37,7 +42,7 @@ public final class WitchManaRules {
 
     public static boolean isManaRole(Role role) {
         return isWitchManaRole(role) || EmmaRules.isEmma(role) || AbyssListenerRules.isAbyssListener(role)
-                || RiftwalkerRules.isRiftwalker(role);
+                || RiftwalkerRules.isRiftwalker(role) || WitchMaidenRules.isWitchMaiden(role);
     }
 
     /**
@@ -73,6 +78,9 @@ public final class WitchManaRules {
         if (role == SparkWitchRoles.murderousWitch()) {
             return MURDEROUS_WITCH_NATURAL_CAP;
         }
+        if (WitchMaidenRules.isWitchMaiden(role)) {
+            return WITCH_MAIDEN_NATURAL_CAP;
+        }
         return isManaRole(role) ? DEFAULT_NATURAL_CAP : 0;
     }
 
@@ -96,7 +104,7 @@ public final class WitchManaRules {
         if (!canRegenerateNaturally(role)) {
             return 0;
         }
-        if (usesGrandWitchManaEconomy(role) || EmmaRules.isEmma(role)) {
+        if (usesGrandWitchManaEconomy(role) || EmmaRules.isEmma(role) || WitchMaidenRules.isWitchMaiden(role)) {
             return GRAND_WITCH_REGENERATION_INTERVAL_TICKS;
         }
         if (role == SparkWitchRoles.apprenticeWitch()) {

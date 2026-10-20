@@ -88,6 +88,7 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.blackRavenMask(),
                                     SparkWitchItems.poisonApple(),
                                     SparkWitchItems.tofanaElixir(),
+                                    SparkWitchItems.witherGohei(),
                                     SparkWitchItems.hunterTrap(),
                                     SparkWitchItems.doubleBarrelShotgun(),
                                     SparkWitchItems.doubleBarrelShell(),

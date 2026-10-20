@@ -406,6 +406,20 @@ public final class SeekerDeviceHits {
     }
 
     /**
+     * Witch Maiden crimson skull, checked at the top of {@code MiniWitherSkullEntity#tick} like the shuriken: a device
+     * in this tick's path breaks (recorded as {@code CRIMSON_SKULL}) and its entry point is returned so the caller ends
+     * the skull there; {@code null} when nothing broke. A nearer living player keeps the collision.
+     * 巫女赤色凋灵之首，与手里剑一样在 {@code MiniWitherSkullEntity#tick} 开头检查：本刻路径上的设备被打坏（记录为
+     * {@code CRIMSON_SKULL}），并返回其入射点，由调用方在该处结束头颅；未打坏任何设备时返回 {@code null}。更近的存活玩家
+     * 保留这次碰撞。
+     */
+    @Nullable
+    public static Vec3d onCrimsonSkullSweep(Entity skull, @Nullable Entity owner, Vec3d from, Vec3d to) {
+        SeekerDeviceRaycast.DeviceHit hit = sweepHit(skull, owner, from, to, true, SeekerBreakSource.CRIMSON_SKULL);
+        return hit == null ? null : hit.point();
+    }
+
+    /**
      * Potion Gunner shell in flight, checked at the top of {@code PotionShellEntity#tick} like the Shock Device. A
      * device in this tick's path breaks (recorded as {@code POTION_SHELL}) and its entry point is returned so the
      * caller detonates the shell there; {@code null} when nothing broke. A nearer living player keeps the collision.
