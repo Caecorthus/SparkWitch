@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.compat.cooldown;
 
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherRules;
 import dev.caecorthus.sparkfactionapi.api.cooldown.ItemCooldownNominalProvider;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
@@ -111,6 +112,8 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             // its only writer.
             // USEC 步枪：2 秒拉栓（快速装填 x0.7 因人而异），而非开局 60 秒锁定；UsecCooldowns 是唯一写入方。
             entries.put(SparkWitchItems.USEC_RIFLE_ID, UsecRules.BOLT_TICKS);
+            // Witch Maiden Wither Gohei: the crimson skull cooldown. / 巫女凋灵御币：赤首冷却。
+            entries.put(SparkWitchItems.WITHER_GOHEI_ID, MiniWitherRules.CRIMSON_COOLDOWN_TICKS);
             // NoellesRoles items: public constants of the pinned 1.7.6 jar, plus the master key, which both
             // NoellesRoles (literal) and the Insider door path write as 200 ticks. The timed bomb stays exempt in
             // SparkFactionAPI itself (Bomber pass gate).

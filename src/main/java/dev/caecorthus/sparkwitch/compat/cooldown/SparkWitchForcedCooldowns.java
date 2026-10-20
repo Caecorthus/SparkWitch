@@ -55,7 +55,10 @@ public final class SparkWitchForcedCooldowns {
                 new ApprenticePurifyCooldownStore(),
                 // Magician (audit fix 2026-10-07), appended after the Apprentice Purify.
                 // 魔术师（2026-10-07 审计修复），追加在预备魔女净化之后。
-                new MagicianCooldownStore()
+                new MagicianCooldownStore(),
+                // Witch Maiden Mini Wither toggle (owner 2026-10-20), appended after the Magician.
+                // 巫女小凋灵切换（所有者 2026-10-20），追加在魔术师之后。
+                new MiniWitherToggleCooldownStore()
         );
     }
 

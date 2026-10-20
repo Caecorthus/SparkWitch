@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherRules;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.WitherGoheiItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
@@ -120,6 +122,7 @@ public final class SparkWitchItems {
     public static final Identifier USEC_FMJ_ROUND_ID = UsecRules.FMJ_ITEM_ID;
     public static final Identifier USEC_AP_ROUND_ID = UsecRules.AP_ITEM_ID;
     public static final Identifier USEC_SUPPRESSOR_ID = UsecRules.SUPPRESSOR_ITEM_ID;
+    public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
     private static Item ceremonialSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -174,6 +177,7 @@ public final class SparkWitchItems {
     private static Item usecFmjRound;
     private static Item usecApRound;
     private static Item usecSuppressor;
+    private static Item witherGohei;
 
     private static boolean registered;
 
@@ -455,6 +459,12 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 USEC_SUPPRESSOR_ID,
                 new UsecSuppressorItem(UsecSuppressorItem.createSettings())
+        );
+        // Witch Maiden Wither Gohei (Mini Wither unlock); appended last. / 巫女凋灵御币（小凋灵解锁）；追加在最后。
+        witherGohei = Registry.register(
+                Registries.ITEM,
+                WITHER_GOHEI_ID,
+                new WitherGoheiItem(WitherGoheiItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -875,5 +885,12 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return usecSuppressor;
+    }
+
+    public static Item witherGohei() {
+        if (witherGohei == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return witherGohei;
     }
 }

@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client;
 
+import dev.caecorthus.sparkwitch.client.witchmaiden.MiniWitherClient;
 import dev.caecorthus.sparkwitch.client.potiongunner.PotionGunnerClient;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionGunnerEntities;
 import dev.caecorthus.sparkwitch.SparkWitch;
@@ -108,6 +109,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         GrandWitchClientModule.register();
         ApprenticeClientModule.register();
         WitchMaidenClientModule.register();
+        MiniWitherClient.register();
         BellRingerClient.init();
         TimeStealerClient.init();
         VendettaKnifeModelLoadingPlugin.register();

@@ -464,6 +464,23 @@ public final class MagicianPuppetHits {
     }
 
     /**
+     * Witch Maiden crimson skull entity hit (vanilla collision already picked the nearest entity, puppets included): a
+     * puppet its owner may end ends ({@code crimson_wither_skull}), as a player would die; true means the caller
+     * discards the skull.
+     * 巫女赤色凋灵之首命中实体（原版碰撞已在含皮套的实体中选出最近者）：主人可结束的皮套被结束
+     * （{@code crimson_wither_skull}），与玩家被击杀一致；返回 true 时由调用方移除头颅。
+     */
+    public static boolean onCrimsonSkullHit(Entity skull, @Nullable Entity owner, EntityHitResult hit) {
+        if (skull == null || hit == null || !(skull.getWorld() instanceof ServerWorld)
+                || !(hit.getEntity() instanceof MagicianPlaybackEntity puppet)
+                || !(owner instanceof ServerPlayerEntity attacker) || !hittableBy(attacker, puppet)) {
+            return false;
+        }
+        return MagicianPlaybackManager.endPuppet(puppet, attacker, SparkWitchDeathReasons.CRIMSON_WITHER_SKULL,
+                SparkWitchItems.witherGohei().getTranslationKey());
+    }
+
+    /**
      * Read-only tick-head check for a projectile whose Seeker sweep runs before vanilla collision (Ninja shuriken):
      * true when a puppet its thrower may end lies on this tick's block-clipped segment (box grown by the vanilla 0.3
      * projectile margin) strictly before every Seeker device the thrower may break. The caller then skips the Seeker

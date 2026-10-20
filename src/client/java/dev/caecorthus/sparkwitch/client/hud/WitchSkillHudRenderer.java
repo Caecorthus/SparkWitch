@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
 import dev.caecorthus.sparkwitch.client.judge.JudgeHudRenderer;
 import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
+import dev.caecorthus.sparkwitch.client.witchmaiden.MiniWitherClient;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
@@ -76,6 +77,10 @@ public final class WitchSkillHudRenderer {
             return;
         }
         if (FocusedFootstepsRules.SKILL_ID.equals(skillId)) {
+            // Focused Footsteps keeps its avatar countdown; this slot shows the Mini Wither (key 2) instead.
+            // 聚焦步伐仍使用头像倒计时；此位置改为显示小凋灵（技能键 2）。
+            MiniWitherClient.renderHud(context, renderer, player, context.getScaledWindowWidth() - RIGHT_PADDING, y,
+                    LINE_GAP);
             return;
         }
         // The Apprentice's Purify line sits where the Prophet's sense line would; the two roles never overlap.

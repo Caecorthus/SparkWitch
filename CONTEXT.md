@@ -278,6 +278,22 @@ Current build baseline:
   the head of Wathe's five-argument `killPlayer` (fix 2026-10-09). It was a `KillPlayer.BEFORE` listener, which
   NoellesRoles' earlier `allowWithoutBody()` for a Taotie-swallowed victim skipped. The cancel comes before every
   BEFORE listener, psycho armour and Tofana, so nothing (Last Stand, Tofana) reacts to or pays for it.
+  - `roles/killer/witchmaiden/wither/`: her second skill, the Mini Wither (owner 2026-10-20, plan
+    `docs/plans/2026-10-20-witch-maiden-mini-wither.md`). Two of her own completed tasks (`TaskComplete`) unlock it and
+    grant the bound Wither Gohei (`sparkwitch:wither_gohei`); key 2 (`mini_wither_toggle`) summons or dismisses it with
+    a shared 10 s cooldown. State lives in `MiniWitherPlayerComponent` (`sparkwitch:mini_wither`, appended last: the
+    active flag for everyone, tasks and cooldown for the owner). No Wither entity exists: `MiniWitherAnchor` places it
+    behind the main-hand shoulder for both the server (skull origin, quiet ambient call) and the client
+    (`client/witchmaiden/MiniWitherRenderer`, a player feature plus a first-person world draw). Every 5 s it fires a
+    `MiniWitherSkullEntity` at the visible target nearest her look within 24 blocks; the 2x2x2 burst
+    (`MiniWitherBurstService`, no vanilla explosion, so no knockback) gives non-killers Slowness II for 2 s. "Killer"
+    is the SparkFactionAPI effective faction (the Impostor trait counts) plus the NoellesRoles Undercover. A
+    Conscience owner fires at anyone and her bursts give Speed I. The Gohei's left-click (`fire_crimson_skull`) spends
+    75 mana (she is a mana role from round start: 1 per second, natural cap 250) for a crimson skull that kills the
+    first player it hits through a normal non-forced `killPlayer` with her as the killer
+    (`sparkwitch:crimson_wither_skull`, a gunshot for the Prophet), then a 15 s Gohei item cooldown. Both payloads are
+    on the Control Expert stun, Seeker session, Riftwalker session and Fear deny-lists; the crimson skull breaks Seeker
+    devices (`SeekerBreakSource.CRIMSON_SKULL`) and ends Magician puppets.
 - `roles/killer/magician/`: Magician (`sparkwitch:magician`, 魔术师), an ordinary killer merged from main (#99,
   collaborator Huankings, who may keep editing these files upstream: keep v2-side edits minimal). It records 30 s of
   its own actions, then a puppet disguised as a chosen player replays them; the 2026-10-07 audit fix applies owner

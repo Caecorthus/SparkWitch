@@ -69,7 +69,8 @@
       "sparkwitch:bewitched",
       "sparkwitch:apprentice_player",
       "sparkwitch:usec_player",
-      "sparkwitch:fiend_feign"
+      "sparkwitch:fiend_feign",
+      "sparkwitch:mini_wither"
     ]
   },
   "mixins": [
