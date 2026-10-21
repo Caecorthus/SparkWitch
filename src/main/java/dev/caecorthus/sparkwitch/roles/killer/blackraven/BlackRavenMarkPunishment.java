@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenStashedDeathDrops;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
@@ -61,10 +62,11 @@ final class BlackRavenMarkPunishment {
     }
 
     /**
-     * Wathe's non-lethal revolver punishment: every revolver the marker carries (inventory, offhand, cursor) is
-     * dropped at its feet with Wathe's pickup delay and thrower, sanity drops to 0, and gun pickup is banned.
-     * Wathe 的非致命左轮惩罚：标记者携带的所有左轮（背包、副手、光标）按 Wathe 的拾取延迟与投掷者掉落在其脚下，
-     * 理智清零，并禁止捡枪。
+     * Wathe's non-lethal revolver punishment: every revolver the marker carries (inventory, offhand, cursor, and every
+     * disguise stash, so a Raven that disguised after marking never gets one back on revert) is dropped at its feet with
+     * Wathe's pickup delay and thrower, sanity drops to 0, and gun pickup is banned.
+     * Wathe 的非致命左轮惩罚：标记者携带的所有左轮（背包、副手、光标，以及每个伪装暂存，因此标记后才伪装的黑羽鸦恢复时不会拿回左轮）
+     * 按 Wathe 的拾取延迟与投掷者掉落在其脚下，理智清零，并禁止捡枪。
      */
     static void preventGunPickup(ServerPlayerEntity marker, GameWorldComponent game) {
         int removed = 0;
@@ -79,7 +81,12 @@ final class BlackRavenMarkPunishment {
             marker.currentScreenHandler.setCursorStack(ItemStack.EMPTY);
             removed++;
         }
-        for (int dropped = 0; dropped < removed; dropped++) {
+        int stashed = 0;
+        for (ItemStack stack : BlackRavenStashedDeathDrops.takeFromStashes(marker,
+                stack -> stack.isOf(WatheItems.REVOLVER))) {
+            stashed += stack.getCount();
+        }
+        for (int dropped = 0; dropped < removed + stashed; dropped++) {
             ItemEntity item = marker.dropItem(WatheItems.REVOLVER.getDefaultStack(), false, false);
             if (item != null) {
                 item.setPickupDelay(DROPPED_REVOLVER_PICKUP_DELAY);

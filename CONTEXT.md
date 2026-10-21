@@ -123,10 +123,12 @@ Current build baseline:
     accepts only players send the attack); server `SparkWitchApi.crowMeleeStandIn(ServerPlayerEntity, Entity, double
     reach)` returns the owner of a crow the attacker may hit within reach + 0.5 (lag-compensated, clear line) and arms
     the owner substitution (`BlackRavenCrowHits.addonMeleeStandIn`), so the add-on runs its own player path on the
-    Black Raven without its own body-distance check; null otherwise. `SparkWitchApi.killCrowsInBlast(ServerWorld,
+    Black Raven without its own body-distance check; null otherwise, also when SparkFactionAPI shields the owner from
+    the attacker for `wathe:knife` (the frozen signature has no action; callers still check their own). `SparkWitchApi.killCrowsInBlast(ServerWorld,
     Vec3d, double radius, ServerPlayerEntity killer, Identifier deathReason)` kills the owner of every crow in the
     closed sphere with a clear line from the centre (`BlackRavenCrowHits.onBlast`, the M67 measure, the reason passed
-    through as the same instance) and returns the count. Not an API: SparkStrength's `@Pseudo`
+    through as the same instance; an owner SparkFactionAPI shields from `killer` for that reason is skipped) and
+    returns the count. Not an API: SparkStrength's `@Pseudo`
     `DroneSparkWitchCrowTargetsMixin` lowers `BlackRavenCrowTargets.deviceSquared(ServerPlayerEntity, Vec3d, Vec3d)` at
     RETURN to its nearest Bomber drone, so keep that name and signature.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
@@ -244,7 +246,9 @@ Current build baseline:
     civilian on civilian, really dead, not SparkTraits-intercepted, not a non-final kill, and the marker
     online, playing, alive and in survival. Wathe's `ShootInnocentPunishment` picks the kind: `KILL_SHOOTER`
     kills the marker with `wathe:shot_innocent`; `PREVENT_GUN_PICKUP` drops its revolvers like Wathe's gun
-    receiver, sets sanity to 0 and bans gun pickup. A mark still kills after its Raven died, unpunished.
+    receiver (the live inventory, the cursor and every disguise stash, through
+    `BlackRavenStashedDeathDrops.takeFromStashes`, so a revert never returns one), sets sanity to 0 and bans gun
+    pickup. A mark still kills after its Raven died, unpunished.
   - `BlackRavenSettlement` is the raw-role settlement exclusion (Runtime Invariants, "Black Raven settlement
     exclusion"); its Wathe and NoellesRoles seams live in `mixin/blackraven/`.
   - The bound ledger and Raven Mask
@@ -3277,8 +3281,12 @@ Seeker car.
   lets the view resettle, tells the owner, then fires `BlackRavenCrowEvents.ENDED(owner, reason, crowPos)`. Only
   `PLAYER` and `TIMEOUT` have `usesHomingFeather()`. Per-tick exits, in order: round not ACTIVE, dead or spectator,
   Taotie-swallowed, Control Expert stun, Kidnapper control, Fear, crow lost, body riding / sleeping / beyond sqrt(2)
-  of its anchor / ungrounded for over 10 ticks, then the timeout. Role loss, death (`KillPlayer.AFTER`), reset,
-  disconnect and round finalize end it too; only an intercepted death keeps the unlock progress.
+  of its anchor / hanging ungrounded for over 10 ticks, then the timeout. Role loss, death (`KillPlayer.AFTER`), reset,
+  disconnect and round finalize end it too; only an intercepted death keeps the unlock progress. Anchor: the server
+  anchors the body when it handles the toggle, but the client freezes it only when the sync lands, so for the first
+  `BlackRavenCrowRules.anchorGraceTicks(ping)` ticks (round trip + 4, within 10-20) the anchor follows the body and
+  nothing counts as ungrounded; afterwards x/z stay fixed and y only follows a falling body down (`nextAnchor`), and a
+  descending body is never "hanging".
 - **Body.** Server invisibility without particles or icon, refreshed every 20 ticks and taken over if another source's
   invisibility ends mid-session; sprint cleared; using an item cleared (never released). The component's active bit
   is synced to every client (Wathe already syncs every RAW role, so it leaks nothing), so the SparkFactionAPI
@@ -3287,11 +3295,15 @@ Seeker car.
   read `BlackRavenCrowForm.isInCrowForm` / `isHiddenBody` / `isBodyOrCrow`. Weapons still hit the body (Wathe's guns
   ignore invisibility); its corpse stays at the body.
 - **Flight.** `BlackRavenCrowFlightRules` is the pure math shared with client prediction: 1.2 blocks/tick horizontal
-  (24 blocks/s, owner Q8) and 0.8 vertical, a per-axis budget of 3 steps refilled by world time, at most 2 moves per
-  tick, clamp to Wathe's play area (x/z intersected with the world border, y in [minY, maxY]; an axis already outside is
-  never pulled back) and swept block collision. A result more than 0.0625 from the request is answered with a
-  correction. The owner's client installs `BlackRavenCrowEntity.installClientPilotHook` so it ignores tracker updates
-  for the crow its live view flies, predicts with `clientPilotMove` and applies corrections with `clientApplyCorrection`.
+  (24 blocks/s, owner Q8) and 0.8 vertical, a per-axis budget of 3 steps refilled by world time, clamp to Wathe's play
+  area (x/z intersected with the world border, y in [minY, maxY]; an axis already outside is never pulled back) and
+  swept block collision. The server applies at most 2 moves per tick as they arrive; later moves of that tick merge
+  into one latest pose the crow applies on its own tick (`BlackRavenCrowFlightService.applyDeferredMove`), and one
+  server step may cover up to `CATCH_UP_STEPS` (2) caps when the budget allows, so a jitter or TPS-dip burst never
+  leaves the server crow a step behind; the budget still bounds the average to 24 blocks/s. Client prediction keeps the
+  single-cap `limitStep`. A result more than 0.0625 from the request is answered with a correction. The owner's
+  client installs `BlackRavenCrowEntity.installClientPilotHook` so it ignores tracker updates for the crow its live
+  view flies, predicts with `clientPilotMove` and applies corrections with `clientApplyCorrection`.
 - **Client (crow-client, `client/blackraven/crow/`).** Presentation only; the server decides everything.
   - *Key 2.* `BlackRavenCrowClient` registers the RAW-role `sparkwitch:black_raven` handler in `SecondaryAbilityRegistry`:
     a press sends the toggle (start, or end early); its `reset()` closes `BlackRavenPerceptionScreenEffects`.
@@ -3304,7 +3316,9 @@ Seeker car.
     entity (`keepTrackedBase`). Start: clear (never release) the item in use, close
     gameplay screens, drain the locked keys, `BlackRavenCrowFrozenInput` on the body, chunk culling off, hand hidden,
     then `setCameraEntity(crow)` (bound by id every tick). The body stays `isCamera()` and its SELF moves are cancelled
-    for the whole session, then until its chunks are back (`BlackRavenCrowBodyMixin`, the Seeker chunk-fall fix). End
+    for the whole session, then until its chunks are back (`BlackRavenCrowBodyMixin`, the Seeker chunk-fall fix);
+    during the session a body frozen in mid-air (a jump or ledge before the freeze landed) still falls straight down
+    under gravity until it lands, while its chunks are loaded and it is out of water (the server's anchor follows). End
     (server session over or changed, death, respawn/join, disconnect, world change): the camera goes back to the body
     only while it is still ours. Flight (END tick): WASD/space/sneak read physically, `BlackRavenCrowClientRules`
     accelerates 35 % of the gap per tick toward 1.2 / 0.8 blocks per tick, capped with `BlackRavenCrowFlightRules.limitStep`,
@@ -3364,6 +3378,17 @@ Seeker car.
     substitution that never reaches `killPlayer` (a backfire, a refused target) expires at the end of the tick, and a
     receiver that resolves a real player id drops a pending one (`forget`). Weapons without a reusable player path
     (the bat, sphere blasts, add-on guns) call `killOwnerVia` directly.
+  - **SparkFactionAPI veto** (`BlackRavenCrowTargets.mayAffect`, as `PlayerAffectMixinGuard`: a non-player attacker,
+    the owner itself or a null action pass): SparkFactionAPI's own guards resolve only player ids, and its
+    `killPlayer` HEAD veto cancels a refused kill only after a session end, so a refused crow hit must leave the crow
+    and its session alone. The kill link and `killOwnerVia` end nothing when the killer is refused for the death
+    reason; where SparkFactionAPI vetoes players early, the crow entry refuses first with the same action: the Wathe
+    gun (`wathe:gun`, the crow id stays a miss: no punishment) and knife (`wathe:knife`) receivers, the bat
+    (`wathe:bat`), `crowMeleeStandIn` (`wathe:knife`), sphere blasts (their reason; not counted), and projectiles
+    (`sparkfactionapi:projectile`: `projectileStandIn`, `crowBeforeDevice`, the throwing-axe sweep, and
+    `projectileMayHit` in the shuriken, skull and shell `canHit`, so a refused crow is transparent like a refused
+    player). Weapons without an early SparkFactionAPI veto keep the player parity: the crow absorbs the hit, the
+    weapon's `killPlayer` is cancelled, the session stays.
   - **Who may hit** (`BlackRavenCrowTargets.hittable`): a live crow (its owner's session still flies it) in the
     attacker's world, never by its own owner, never by a spectator or creative player; a null attacker is an ownerless
     blast.
@@ -3388,8 +3413,12 @@ Seeker car.
       `wathe:knife`; Wathe's stab path (no innocent rule in Wathe).
     - Wathe bat (also SparkStrength's Silencer bat): `BlackRavenCrowAttackHandlers` (full charge, reach 4, SparkTraits
       gate and parry); `killOwnerVia`, `wathe:bat`; none.
-    - Wathe grenade (NoellesRoles Bomber grenade too): `BlackRavenCrowGrenadeMixin` appends the owner of every crow
-      whose feet lie in the grenade box +3 to Wathe's own kill loop; `wathe:grenade`, thrower credited; none.
+    - Wathe grenade (NoellesRoles Bomber and SparkTraits Bomb Maniac grenades too): `BlackRavenCrowGrenadeMixin`
+      (`@WrapMethod` on `onCollision`) runs its own crow pass after a live grenade exploded (discarded by Wathe's
+      server branch), never through Wathe's player list (SparkStrength refilters that by each player's own box):
+      `onGrenadeBlast`, the 3-block sphere on the grenade box centre with a clear line, inside the thrower's Judge
+      attribution, skipping owners the loop already tried to kill (`recordBlastAttempts` through the kill link) and
+      dead ones; `killOwnerVia`, `wathe:grenade`, thrower credited; none.
     - Hunter shotgun: crow step first in `DoubleBarrelShotgunItem#use` (volumes +0.5 vs the aimed player, puppets,
       devices); `wathe:gun`; none (no shotgun innocent rule).
     - USEC AXMC: crow step first in `UsecRifleFireService.resolveMatchHit` (bullet polyline, volumes +0.1), then the
@@ -3407,8 +3436,10 @@ Seeker car.
     - Ninja shuriken and Witch Maiden crimson skull: vanilla collision already stops them on the crow;
       `projectileStandIn` hands the owner to their player branch; `crowBeforeDevice` skips the Seeker sweep for a
       nearer crow; `sparkwitch:ninja_shuriken_kill` / `sparkwitch:crimson_wither_skull`; none.
-    - Ninja Knife and a Magician puppet's replayed revolver/knife: `nearerOnLook` on their players-only server pick;
-      `sparkwitch:ninja_knife_kill` / `wathe:gun` / `wathe:knife`; none.
+    - Ninja Knife and a Magician puppet's replayed revolver/knife/bat: `nearerOnLook` on their players-only server
+      pick; `sparkwitch:ninja_knife_kill` / `wathe:gun` / `wathe:knife` / `wathe:bat`; none. A puppet's replayed punch
+      (vanilla `attack()`, no reach check) picks players only (`MagicianPlaybackActionExecutor.pickPlayer`), so it
+      never reaches a hidden body from afar.
     - NoellesRoles throwing axe: `BlackRavenCrowThrowingAxeMixin` (priority 900, before the Seeker sweep) hands each
       crow's owner on the tick segment to the axe's own `onEntityHit` (it pierces on); `noellesroles:throwing_axe`;
       none.

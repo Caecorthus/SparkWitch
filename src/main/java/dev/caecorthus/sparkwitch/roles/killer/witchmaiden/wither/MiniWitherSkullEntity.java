@@ -181,14 +181,16 @@ public class MiniWitherSkullEntity extends ThrownEntity {
 
     /**
      * Corpses never stop a skull, nor do players its blast or kill could never reach; the owner and (for a hostile
-     * skull) the killer team are passed on the server. Every other entity stops it; a Rift Gate deflects it.
-     * 尸体永不挡下头颅，爆炸或击杀不可能触及的玩家也一样；服务端还会让主人以及（敌对头颅时）杀手队伍放行。其他实体都会挡下头颅；
-     * 裂隙门会使其偏转。
+     * skull) the killer team are passed on the server, and so is a Raven Form crow whose owner SparkFactionAPI shields
+     * from the shooter. Every other entity stops it; a Rift Gate deflects it.
+     * 尸体永不挡下头颅，爆炸或击杀不可能触及的玩家也一样；服务端还会让主人以及（敌对头颅时）杀手队伍放行，SparkFactionAPI 禁止
+     * 射手影响其主人的化鸦乌鸦亦然。其他实体都会挡下头颅；裂隙门会使其偏转。
      */
     @Override
     protected boolean canHit(Entity entity) {
         if (!super.canHit(entity) || entity instanceof PlayerBodyEntity
-                || !MagicianPuppetHits.projectileMayHit(getOwner(), entity)) {
+                || !MagicianPuppetHits.projectileMayHit(getOwner(), entity)
+                || !BlackRavenCrowHits.projectileMayHit(getOwner(), entity)) {
             return false;
         }
         if (!(entity instanceof PlayerEntity player)) {

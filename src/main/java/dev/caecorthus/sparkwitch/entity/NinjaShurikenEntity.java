@@ -76,11 +76,16 @@ public final class NinjaShurikenEntity extends PersistentProjectileEntity implem
     }
 
     /**
-     * Magician seam: a puppet its thrower may not end (the Magician's own) is transparent; any other entity keeps the
-     * vanilla filter. / 魔术师接缝：投掷者不能结束的皮套（魔术师自己的）对手里剑透明；其他实体保持原版过滤。
+     * Magician seam: a puppet its thrower may not end (the Magician's own) is transparent; Raven Form seam: so is a crow
+     * whose owner SparkFactionAPI shields from the thrower ({@code BlackRavenCrowHits.projectileMayHit}); any other
+     * entity keeps the vanilla filter. / 魔术师接缝：投掷者不能结束的皮套（魔术师自己的）对手里剑透明；化鸦接缝：SparkFactionAPI
+     * 禁止投掷者影响其主人的乌鸦同样透明；其他实体保持原版过滤。
      */
     @Override
     protected boolean canHit(Entity entity) {
+        if (!BlackRavenCrowHits.projectileMayHit(getOwner(), entity)) {
+            return false;
+        }
         return super.canHit(entity) && MagicianPuppetHits.projectileMayHit(getOwner(), entity);
     }
 

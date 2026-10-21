@@ -269,16 +269,22 @@ public class PotionShellEntity extends ThrownItemEntity {
      * {@code isPlayerPlayingAndAlive} (Wathe-dead, e.g. Wraiths); both sides decide these from synced state, so client
      * prediction matches. SparkTraits Last Escape is server-only (like {@code ShockDeviceEntity}): the client keeps
      * flying through until the server's position corrects it. Every other living player stops the shell, allies
-     * included (it is a physical shell); doors stop it through the shared {@code RaycastShapeScope}.
+     * included (it is a physical shell); doors stop it through the shared {@code RaycastShapeScope}. A Raven Form crow
+     * whose owner SparkFactionAPI shields from the gunner is passed on the server, as SparkFactionAPI's collision filter
+     * passes such a player.
      * D-R4：炮弹穿过所有其爆炸永远波及不到的对象。Wathe 尸体（{@link PlayerBodyEntity}，属于 {@code LivingEntity}）
      * 对炮弹透明；旁观、创造模式以及不满足 {@code isPlayerPlayingAndAlive}（Wathe 判定死亡，如冤魂）的玩家同样透明；
      * 两端都依据同步状态判定，客户端预测一致。SparkTraits 最后逃脱只在服务端判定（与 {@code ShockDeviceEntity} 相同）：
      * 客户端继续飞行，直到服务端位置纠正。其余存活玩家都会挡下炮弹，包括己方（这是实体炮弹）；门通过共享的
-     * {@code RaycastShapeScope} 挡住炮弹。
+     * {@code RaycastShapeScope} 挡住炮弹。SparkFactionAPI 禁止药炮手影响其主人的化鸦乌鸦在服务端放行，正如 SparkFactionAPI 的
+     * 碰撞过滤放行此类玩家。
      */
     @Override
     protected boolean canHit(Entity entity) {
         if (!super.canHit(entity) || entity instanceof PlayerBodyEntity) {
+            return false;
+        }
+        if (!BlackRavenCrowHits.projectileMayHit(getOwner(), entity)) {
             return false;
         }
         if (!(entity instanceof PlayerEntity player)) {

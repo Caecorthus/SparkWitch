@@ -51,14 +51,28 @@ public final class BlackRavenStashedDeathDrops {
                 || !BlackRavenRules.isBlackRaven(GameWorldComponent.KEY.get(victim.getServerWorld()).getRole(victim))) {
             return;
         }
-        BlackRavenDisguiseState state = BlackRavenDisguiseComponent.KEY.get(victim).state();
-        List<ItemStack> drops = new ArrayList<>();
-        for (BlackRavenIdentityStash stash : state.stashes().values()) {
-            drops.addAll(takeMatching(stash, stack -> GameFunctions.shouldDropOnDeath(stack, victim)));
-        }
-        for (ItemStack stack : drops) {
+        for (ItemStack stack : takeFromStashes(victim, stack -> GameFunctions.shouldDropOnDeath(stack, victim))) {
             victim.dropItem(stack, true, false);
         }
+    }
+
+    /**
+     * Server: removes and returns every stack that {@code matches} from all of {@code player}'s disguise stashes (the
+     * death drop above, and the Feather Blade's {@code PREVENT_GUN_PICKUP} punishment, which must also take a revolver
+     * a disguised Raven keeps in its stash). Stashes are never synced, so nothing needs a resync.
+     * 服务端：从 {@code player} 的所有伪装暂存中移除并返回满足 {@code matches} 的物品（上方的死亡掉落，以及羽刃的
+     * {@code PREVENT_GUN_PICKUP} 惩罚：伪装中的黑羽鸦放在暂存里的左轮同样要收走）。暂存从不同步，因此无需重新同步。
+     */
+    public static List<ItemStack> takeFromStashes(ServerPlayerEntity player, Predicate<ItemStack> matches) {
+        List<ItemStack> taken = new ArrayList<>();
+        BlackRavenDisguiseComponent component = BlackRavenDisguiseComponent.KEY.getNullable(player);
+        if (component == null) {
+            return taken;
+        }
+        for (BlackRavenIdentityStash stash : component.state().stashes().values()) {
+            taken.addAll(takeMatching(stash, matches));
+        }
+        return taken;
     }
 
     /**

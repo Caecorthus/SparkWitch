@@ -23,8 +23,22 @@ public final class BlackRavenCrowFlightRules {
      * 每组轴的预算上限（步数）：吸收数据包抖动与短暂掉刻，但刷移动包无法让持续速度超过上限。
      */
     public static final int MOVE_BUDGET_STEPS = 3;
-    /** Moves accepted per server tick; the rest are dropped. / 每个服务端刻接受的移动包数，其余丢弃。 */
+    /**
+     * Moves applied as they arrive per server tick; later ones in the same tick merge into one pending latest pose that
+     * the crow applies on its own server tick (a newer tick's move supersedes it), so a jitter or TPS-dip burst never
+     * leaves the server crow a step behind.
+     * 每个服务端刻按到达顺序立即应用的移动包数；同一刻内之后的移动包合并为一个待应用的最新位姿，由乌鸦在自身服务端刻中应用（更新刻的
+     * 移动包会取代它），因此抖动或掉刻造成的突发不会让服务端乌鸦落后一步。
+     */
     public static final int MAX_MOVES_PER_TICK = 2;
+    /**
+     * Server catch-up: one validated step may cover up to this many per-tick caps when the budget allows (a merged or
+     * late pose), so the server never lags one step and bounces corrections; the refilling budget still bounds the
+     * average speed to the caps (24 blocks/s). Client prediction keeps single-cap steps.
+     * 服务端追赶：预算允许时，一次校验的位移最多可覆盖这么多个每刻上限（合并或迟到的位姿），使服务端不会落后一步并反复纠正；按刻补充的
+     * 预算仍把平均速度限制在上限内（24 格/秒）。客户端预测仍使用单倍上限。
+     */
+    public static final int CATCH_UP_STEPS = 2;
     /** A result this close to the request is accepted without a correction. / 与请求相差不超过此值时不纠正。 */
     public static final double CORRECTION_EPSILON = 0.0625;
     /** Steps shorter than this are no movement (float noise). / 短于此值的位移视为不动（浮点噪声）。 */
@@ -69,8 +83,20 @@ public final class BlackRavenCrowFlightRules {
      * 按上限与剩余预算（水平、垂直分别计算）缩短一次请求的位移。
      */
     public static Vec3d limitStep(Vec3d requested, double horizontalBudget, double verticalBudget) {
-        double scale = horizontalScale(requested.x, requested.z, allowedStep(HORIZONTAL_STEP, horizontalBudget));
-        double vertical = clampVertical(requested.y, allowedStep(VERTICAL_STEP, verticalBudget));
+        return limitStep(requested, horizontalBudget, verticalBudget, 1);
+    }
+
+    /**
+     * {@link #limitStep(Vec3d, double, double)} with each cap multiplied by {@code steps} (at least 1): the server
+     * validator passes {@link #CATCH_UP_STEPS}; the budgets still limit the step.
+     * 每个上限乘以 {@code steps}（至少为 1）的 {@link #limitStep(Vec3d, double, double)}：服务端校验传入 {@link #CATCH_UP_STEPS}；
+     * 位移仍受预算限制。
+     */
+    public static Vec3d limitStep(Vec3d requested, double horizontalBudget, double verticalBudget, int steps) {
+        int multiple = Math.max(1, steps);
+        double scale = horizontalScale(requested.x, requested.z,
+                allowedStep(HORIZONTAL_STEP * multiple, horizontalBudget));
+        double vertical = clampVertical(requested.y, allowedStep(VERTICAL_STEP * multiple, verticalBudget));
         return new Vec3d(requested.x * scale, vertical, requested.z * scale);
     }
 

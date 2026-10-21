@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit;
 
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
@@ -18,6 +19,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -27,8 +29,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -59,6 +63,11 @@ public final class BlackRavenCrowTargets {
     private static final double SEARCH_PADDING = 1.0;
     /** Pending kill links: owner UUID → the substituted crow, valid for one server tick. / 待生效的击杀链接，仅本刻有效。 */
     private static final Map<UUID, Substitution> SUBSTITUTIONS = new HashMap<>();
+    /**
+     * Victims of every {@code killPlayer} attempt inside an open blast scope (the Wathe grenade's own loop), or null.
+     * 处于打开的爆炸作用域（Wathe 手雷自身的循环）内时，所有 {@code killPlayer} 尝试的受害者；否则为 null。
+     */
+    private static @Nullable Set<UUID> blastAttempts;
     private static boolean registered;
 
     /** A live crow some attacker may hit, with its live owner. / 某攻击者可命中的存活乌鸦及其在线主人。 */
@@ -80,8 +89,14 @@ public final class BlackRavenCrowTargets {
             return;
         }
         registered = true;
-        ServerTickEvents.END_SERVER_TICK.register(server -> SUBSTITUTIONS.clear());
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> SUBSTITUTIONS.clear());
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            SUBSTITUTIONS.clear();
+            blastAttempts = null;
+        });
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            SUBSTITUTIONS.clear();
+            blastAttempts = null;
+        });
     }
 
     // ---- Who may be hit / 谁可以被命中 ----
@@ -122,12 +137,47 @@ public final class BlackRavenCrowTargets {
         return targets;
     }
 
+    /** {@link #live} without the crows whose owner {@link #mayAffect} refuses for {@code action}. / 去掉被拒乌鸦的 live。 */
+    public static List<Target> live(ServerWorld world, @Nullable Entity attacker, @Nullable Identifier action) {
+        List<Target> targets = live(world, attacker);
+        targets.removeIf(target -> !mayAffect(attacker, target.owner(), action));
+        return targets;
+    }
+
     /**
      * Cheap pre-check for the per-shot entries: whether {@code attacker}'s world has any crow it may hit.
      * 每次射击入口的廉价预检：{@code attacker} 所在世界是否有其可命中的乌鸦。
      */
     public static boolean anyLive(ServerPlayerEntity attacker) {
         return attacker.getWorld() instanceof ServerWorld world && !live(world, attacker).isEmpty();
+    }
+
+    /**
+     * External seam (SparkFactionAPI, deny wins): whether {@code attacker} may affect the crow's {@code owner} with
+     * {@code action}, exactly as SparkFactionAPI judges a hit on the owner's body ({@code PlayerAffectMixinGuard}: no
+     * player attacker, the owner itself or a null action always pass). SparkFactionAPI's own guards resolve only player
+     * ids (Wathe's gun/knife receivers, projectile collisions, the {@code killPlayer} HEAD veto that would cancel the
+     * kill after our session end), so every entry where a crow hit becomes an owner hit asks this first, and a refused
+     * hit leaves the crow and its session alone.
+     * 外部接缝（SparkFactionAPI，拒绝优先）：{@code attacker} 能否以 {@code action} 影响乌鸦的主人 {@code owner}，判定与
+     * SparkFactionAPI 对命中本体的判定完全一致（{@code PlayerAffectMixinGuard}：非玩家攻击者、主人本人或 null 行为一律放行）。
+     * SparkFactionAPI 自身的守卫只解析玩家 id（Wathe 枪/刀接收器、投射物碰撞，以及会在会话已结束后才取消击杀的
+     * {@code killPlayer} HEAD 否决），因此每个把乌鸦命中变为主人命中的入口都先询问此处，被拒的命中不触碰乌鸦及其会话。
+     */
+    public static boolean mayAffect(@Nullable Entity attacker, @Nullable ServerPlayerEntity owner,
+                                    @Nullable Identifier action) {
+        if (!(attacker instanceof PlayerEntity player) || owner == null || action == null
+                || player.getUuid().equals(owner.getUuid())) {
+            return true;
+        }
+        return SparkFactionApi.canAffectPlayer(player, owner, action, GameWorldComponent.KEY.get(owner.getWorld()));
+    }
+
+    /** {@link #hittable} plus {@link #mayAffect} for {@code action}. / {@link #hittable} 加上对 action 的许可判定。 */
+    public static @Nullable Target hittable(@Nullable Entity attacker, @Nullable Entity entity,
+                                            @Nullable Identifier action) {
+        Target target = hittable(attacker, entity);
+        return target != null && mayAffect(attacker, target.owner(), action) ? target : null;
     }
 
     // ---- Owner substitution / 主人替身 ----
@@ -170,12 +220,24 @@ public final class BlackRavenCrowTargets {
 
     /**
      * Kill link, from {@code BlackRavenCrowKillLinkMixin} at the HEAD of every {@code killPlayer}: a victim substituted
-     * this tick loses its session first ({@code CROW_KILLED}, no Homing Feather), as {@code killOwnerVia} does.
+     * this tick loses its session first ({@code CROW_KILLED}, no Homing Feather), as {@code killOwnerVia} does, unless
+     * SparkFactionAPI refuses {@code killer} on it for {@code deathReason} ({@link #mayAffect}): that kill is cancelled
+     * by SparkFactionAPI's own HEAD veto, so the crow and its session stay. Also records the victim of an open blast
+     * scope ({@link #recordBlastAttempts}).
      * 击杀链接，由 {@code BlackRavenCrowKillLinkMixin} 在每次 {@code killPlayer} 的 HEAD 调用：本刻被替身的受害者先结束会话
-     * （{@code CROW_KILLED}，不使用归羽），与 {@code killOwnerVia} 一致。
+     * （{@code CROW_KILLED}，不使用归羽），与 {@code killOwnerVia} 一致；但 SparkFactionAPI 以 {@code deathReason} 拒绝
+     * {@code killer} 影响它时（{@link #mayAffect}），该击杀会被 SparkFactionAPI 自身的 HEAD 否决取消，乌鸦与会话保持不变。
+     * 同时记录打开的爆炸作用域中的受害者（{@link #recordBlastAttempts}）。
      */
-    public static void beforeKillPlayer(@Nullable ServerPlayerEntity victim) {
-        if (victim == null || SUBSTITUTIONS.isEmpty()) {
+    public static void beforeKillPlayer(@Nullable ServerPlayerEntity victim, @Nullable ServerPlayerEntity killer,
+                                        @Nullable Identifier deathReason) {
+        if (victim == null) {
+            return;
+        }
+        if (blastAttempts != null) {
+            blastAttempts.add(victim.getUuid());
+        }
+        if (SUBSTITUTIONS.isEmpty()) {
             return;
         }
         Substitution substitution = substitution(victim);
@@ -184,8 +246,30 @@ public final class BlackRavenCrowTargets {
         }
         SUBSTITUTIONS.remove(victim.getUuid());
         BlackRavenCrowEntity crow = BlackRavenCrowSessions.crowOf(victim);
-        if (crow != null && crow.getId() == substitution.crowEntityId()) {
+        if (crow != null && crow.getId() == substitution.crowEntityId() && mayAffect(killer, victim, deathReason)) {
             BlackRavenCrowSessions.end(victim, BlackRavenCrowEndReason.CROW_KILLED);
+        }
+    }
+
+    /**
+     * Runs {@code blast} (a weapon's own kill loop) and returns the UUID of every victim it tried to kill, through the
+     * kill link, so a crow pass after it never hits a Black Raven twice for one blast. Server thread; not reentrant
+     * (an inner scope only adds to the outer one); the end-of-tick sweep closes a scope an exception left open.
+     * 执行 {@code blast}（武器自身的击杀循环），并经击杀链接返回其尝试击杀的每个受害者的 UUID，使其后的乌鸦扫描不会因同一次
+     * 爆炸两次命中同一黑羽鸦。服务端线程；不可重入（内层作用域只并入外层）；异常遗留的作用域由刻末清扫关闭。
+     */
+    public static Set<UUID> recordBlastAttempts(Runnable blast) {
+        if (blastAttempts != null) {
+            Set<UUID> outer = blastAttempts;
+            blast.run();
+            return Set.copyOf(outer);
+        }
+        blastAttempts = new HashSet<>();
+        try {
+            blast.run();
+            return Set.copyOf(blastAttempts);
+        } finally {
+            blastAttempts = null;
         }
     }
 

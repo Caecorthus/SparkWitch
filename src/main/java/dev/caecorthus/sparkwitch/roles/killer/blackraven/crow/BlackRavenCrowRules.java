@@ -45,8 +45,23 @@ public final class BlackRavenCrowRules {
 
     /** Body anchor tolerance, as the Seeker: sqrt(2) blocks. / 本体锚点容差，与搜寻者一致：√2 格。 */
     public static final double BODY_MOVE_TOLERANCE_SQUARED = 2.0;
-    /** Grace before an unsupported or wet body ends the session. / 本体离地或入水多久后结束会话。 */
+    /** Grace before an unsupported (hanging, not falling) or wet body ends the session. / 本体悬空（未下落）或入水多久后结束会话。 */
     public static final int UNGROUNDED_GRACE_TICKS = 10;
+    /**
+     * Start-of-session anchor grace, in ticks, scaled by the owner's ping ({@link #anchorGraceTicks}): the server anchors
+     * the body when it handles the toggle, but the client freezes it only when the session sync lands, so moves the
+     * client made before that (a sprint, a jump) arrive up to one round trip later. During the grace the anchor follows
+     * the body and nothing counts as ungrounded; afterwards the body must stay put (only falling is followed).
+     * 会话开始时的锚点宽限（刻），按主人延迟缩放（{@link #anchorGraceTicks}）：服务端在处理开关时锚定本体，但客户端要等会话同步到达
+     * 才冻结本体，因此此前客户端的移动（疾跑、跳跃）最多晚一个往返才到达。宽限期内锚点跟随本体，且不计离地；之后本体必须原地不动
+     * （只跟随下落）。
+     */
+    public static final int ANCHOR_GRACE_MIN_TICKS = 10;
+    public static final int ANCHOR_GRACE_MAX_TICKS = 20;
+    /** Ticks added to the ping's round trip (client tick, server tick, jitter). / 往返之外追加的刻数。 */
+    public static final int ANCHOR_GRACE_MARGIN_TICKS = 4;
+    /** A body this much lower than its anchor is falling. / 本体低于锚点超过此值即视为正在下落。 */
+    public static final double BODY_DESCENT_EPSILON = 1.0E-3;
     /**
      * Server invisibility is refreshed to this length every tick while the session runs, so a stray effect clear
      * (Wathe, other mods) never leaves the body visible for more than one tick.
@@ -98,6 +113,34 @@ public final class BlackRavenCrowRules {
     /** The body left its anchor by more than sqrt(2) blocks. / 本体偏离锚点超过 √2 格。 */
     public static boolean bodyMoved(Vec3d anchor, Vec3d body) {
         return anchor.squaredDistanceTo(body) > BODY_MOVE_TOLERANCE_SQUARED;
+    }
+
+    /**
+     * Anchor grace for an owner with {@code latencyMs} ping (round trip): the round trip in ticks plus
+     * {@link #ANCHOR_GRACE_MARGIN_TICKS}, within [{@link #ANCHOR_GRACE_MIN_TICKS}, {@link #ANCHOR_GRACE_MAX_TICKS}].
+     * 延迟（往返）为 {@code latencyMs} 的主人的锚点宽限：往返刻数加 {@link #ANCHOR_GRACE_MARGIN_TICKS}，限制在
+     * [{@link #ANCHOR_GRACE_MIN_TICKS}, {@link #ANCHOR_GRACE_MAX_TICKS}] 内。
+     */
+    public static int anchorGraceTicks(int latencyMs) {
+        int pingTicks = (int) Math.ceil(Math.max(0, Math.min(latencyMs, 60_000)) / 50.0);
+        return Math.max(ANCHOR_GRACE_MIN_TICKS, Math.min(ANCHOR_GRACE_MAX_TICKS, pingTicks + ANCHOR_GRACE_MARGIN_TICKS));
+    }
+
+    /** The body is lower than its anchor: it is falling. / 本体低于锚点：正在下落。 */
+    public static boolean isBodyDescending(Vec3d anchor, Vec3d body) {
+        return body.y < anchor.y - BODY_DESCENT_EPSILON;
+    }
+
+    /**
+     * The anchor after this tick's body position: during the grace it is the body itself; afterwards x/z stay fixed
+     * and y follows the body only downward (gravity), so walking or rising off the anchor still ends the session.
+     * 本刻本体位置之后的锚点：宽限期内就是本体位置；之后 x/z 固定，y 只向下跟随本体（重力），因此离开锚点行走或上升仍会结束会话。
+     */
+    public static Vec3d nextAnchor(Vec3d anchor, Vec3d body, boolean inGrace) {
+        if (inGrace) {
+            return body;
+        }
+        return isBodyDescending(anchor, body) ? new Vec3d(anchor.x, body.y, anchor.z) : anchor;
     }
 
     /** Start and per-tick footing rule: on the ground, not riding, not in water. / 起始与逐刻立足规则：站在地面、未乘骑、不在水中。 */

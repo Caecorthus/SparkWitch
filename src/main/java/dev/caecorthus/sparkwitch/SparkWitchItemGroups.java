@@ -80,13 +80,14 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.usecFmjRound(),
                                     SparkWitchItems.usecApRound(),
                                     SparkWitchItems.usecSuppressor(),
+                                    // Black Raven (civilian police) / 黑羽鸦（平民警察）
+                                    SparkWitchItems.featherBlade(),
+                                    SparkWitchItems.blackRavenLedger(),
+                                    SparkWitchItems.blackRavenMask(),
                                     // Killer / 杀手
                                     SparkWitchItems.ninjaKnife(),
                                     SparkWitchItems.ninjaShuriken(),
                                     SparkWitchItems.ninjaGrapplingHook(),
-                                    SparkWitchItems.featherBlade(),
-                                    SparkWitchItems.blackRavenLedger(),
-                                    SparkWitchItems.blackRavenMask(),
                                     SparkWitchItems.poisonApple(),
                                     SparkWitchItems.tofanaElixir(),
                                     SparkWitchItems.witherGohei(),

@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.killer.blackraven.crow;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowTargets;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.net.BlackRavenCrowCorrectionS2CPayload;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.net.BlackRavenCrowNetworking;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
@@ -117,7 +118,7 @@ public final class BlackRavenCrowSessions {
         long now = world.getTime();
         boolean ownsInvisibility = !player.hasStatusEffect(StatusEffects.INVISIBILITY);
         component.beginSession(crow.getId(), now, now + BlackRavenCrowRules.SESSION_MAX_TICKS, player.getPos(),
-                ownsInvisibility);
+                now + BlackRavenCrowRules.anchorGraceTicks(player.networkHandler.getLatency()), ownsInvisibility);
         maintainInvisibility(player, component);
         player.setSprinting(false);
         if (player.isUsingItem()) {
@@ -172,10 +173,14 @@ public final class BlackRavenCrowSessions {
      * Kill link for crow-hits: a lethal hit on the crow ends the session (no Homing Feather) and runs the standard
      * {@code GameFunctions.killPlayer(owner, true, killer, deathReason)}, so kill credit, Wathe's innocent-kill rules and
      * every protection (psycho armour, SparkTraits, Last Stand) apply as if the body had been hit; the corpse lies at
-     * the body. An orphan crow is simply removed. Returns true when the owner is dead afterwards.
+     * the body. An orphan crow is simply removed. A killer SparkFactionAPI refuses on the owner for {@code deathReason}
+     * changes nothing (its {@code killPlayer} HEAD veto would cancel the kill after the session end). Returns true when
+     * the owner is dead afterwards.
      * 供 crow-hits 使用的击杀接口：对乌鸦的致命命中先结束会话（不使用归羽），再执行标准的
      * {@code GameFunctions.killPlayer(owner, true, killer, deathReason)}，因此击杀归属、Wathe 误杀规则与所有保护（疯魔护甲、
-     * SparkTraits、背水一战）都如同命中本体一样生效；尸体位于本体处。孤儿乌鸦直接移除。之后主人已死亡时返回 true。
+     * SparkTraits、背水一战）都如同命中本体一样生效；尸体位于本体处。孤儿乌鸦直接移除。SparkFactionAPI 以 {@code deathReason}
+     * 禁止 {@code killer} 影响主人时什么都不改变（其 {@code killPlayer} HEAD 否决会在会话结束后才取消击杀）。之后主人已死亡时
+     * 返回 true。
      */
     public static boolean killOwnerVia(@Nullable BlackRavenCrowEntity crow, @Nullable ServerPlayerEntity killer,
                                        Identifier deathReason) {
@@ -185,6 +190,9 @@ public final class BlackRavenCrowSessions {
         ServerPlayerEntity owner = ownerOf(crow);
         if (owner == null) {
             crow.discard();
+            return false;
+        }
+        if (!BlackRavenCrowTargets.mayAffect(killer, owner, deathReason)) {
             return false;
         }
         end(owner, BlackRavenCrowEndReason.CROW_KILLED);
@@ -245,12 +253,21 @@ public final class BlackRavenCrowSessions {
         if (crowOf(player) == null) {
             return BlackRavenCrowEndReason.CROW_LOST;
         }
+        // Anchor grace: moves the client made before its freeze landed (up to one round trip) re-anchor the body and
+        // never count as ungrounded; afterwards the anchor only follows a falling body down (the frozen body falls under
+        // gravity until it lands), so walking or rising away still ends the session.
+        // 锚点宽限：客户端冻结生效前的移动（最多一个往返）会重新锚定本体且不计离地；之后锚点只随下落的本体下移（冻结的本体在
+        // 重力作用下落到地面），因此离开锚点行走或上升仍会结束会话。
+        Vec3d body = player.getPos();
+        boolean inGrace = player.getServerWorld().getTime() < component.getAnchorGraceEndTick();
+        boolean descending = BlackRavenCrowRules.isBodyDescending(component.getAnchor(), body);
+        component.moveAnchor(BlackRavenCrowRules.nextAnchor(component.getAnchor(), body, inGrace));
         if (player.hasVehicle() || player.isSleeping()
-                || BlackRavenCrowRules.bodyMoved(component.getAnchor(), player.getPos())) {
+                || BlackRavenCrowRules.bodyMoved(component.getAnchor(), body)) {
             return BlackRavenCrowEndReason.BODY_MOVED;
         }
-        if (component.tickUngrounded(BlackRavenCrowRules.isBodyGrounded(player.isOnGround(), player.hasVehicle(),
-                player.isTouchingWater()))) {
+        if (component.tickUngrounded(inGrace || descending || BlackRavenCrowRules.isBodyGrounded(player.isOnGround(),
+                player.hasVehicle(), player.isTouchingWater()))) {
             return BlackRavenCrowEndReason.BODY_MOVED;
         }
         if (BlackRavenCrowRules.sessionTimedOut(component.getSessionEndTick(), player.getServerWorld().getTime())) {
