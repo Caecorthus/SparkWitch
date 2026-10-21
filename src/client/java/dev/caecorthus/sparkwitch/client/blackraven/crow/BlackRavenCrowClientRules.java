@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.blackraven.crow;
 
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowFlightRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowRules;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowUseRules;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
@@ -26,10 +27,11 @@ public final class BlackRavenCrowClientRules {
     /** Crow look pitch limit. / 乌鸦俯仰角上限。 */
     public static final float MAX_PITCH = 89.0F;
     /**
-     * Right-click reach from the crow's eye (the server re-validates from the crow; crow-world owns the exact rule).
-     * 从乌鸦眼睛起算的右键距离（服务端从乌鸦位置重新校验；具体规则归 crow-world）。
+     * Right-click reach from the crow's eye: the server's own {@link BlackRavenCrowUseRules#USE_REACH}, which it
+     * re-validates from the crow with extra slack.
+     * 从乌鸦眼睛起算的右键距离：即服务端的 {@link BlackRavenCrowUseRules#USE_REACH}，服务端会带余量重新校验。
      */
-    public static final double USE_REACH = 3.0;
+    public static final double USE_REACH = BlackRavenCrowUseRules.USE_REACH;
     /**
      * Ticks the feather slot shows empty after a drop request while the server confirmation is on its way; afterwards
      * an unconfirmed drop shows the feather again so the owner can retry.

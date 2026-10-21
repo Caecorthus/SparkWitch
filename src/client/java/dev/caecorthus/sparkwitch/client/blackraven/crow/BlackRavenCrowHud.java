@@ -3,13 +3,12 @@ package dev.caecorthus.sparkwitch.client.blackraven.crow;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowRules;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenFeatherRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -102,7 +101,6 @@ public final class BlackRavenCrowHud {
     }
 
     private static ItemStack homingFeather() {
-        Item item = Registries.ITEM.get(BlackRavenCrowRules.HOMING_FEATHER_ID);
-        return item == null ? ItemStack.EMPTY : new ItemStack(item);
+        return new ItemStack(BlackRavenFeatherRegistry.homingFeather());
     }
 }

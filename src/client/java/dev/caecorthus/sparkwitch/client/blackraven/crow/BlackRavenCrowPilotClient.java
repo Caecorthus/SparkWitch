@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.client.seeker.remote.SeekerRemoteKeyDrain;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowEntity;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowUseRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.net.BlackRavenCrowCorrectionS2CPayload;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.net.BlackRavenCrowDropFeatherC2SPayload;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.net.BlackRavenCrowMoveC2SPayload;
@@ -80,6 +81,8 @@ public final class BlackRavenCrowPilotClient {
     private static boolean dropQueued;
     private static boolean useQueued;
     private static int featherPendingTicks;
+    /** World time of the last use packet sent. / 上次发送使用包时的世界时间。 */
+    private static long lastUseTick = Long.MIN_VALUE / 2;
     // A session this client already entered or gave up on is never re-entered. / 已进入或已放弃的会话不再进入。
     private static @Nullable ClientPlayerEntity handledPlayer;
     private static int handledCrowId = -1;
@@ -298,9 +301,14 @@ public final class BlackRavenCrowPilotClient {
         return component != null && BlackRavenCrowClientRules.showsFeather(component.hasFeather(), featherPendingTicks);
     }
 
-    /** The crow's eye looks at a block within reach. / 乌鸦眼睛看着使用距离内的方块。 */
+    /**
+     * The crow's eye looks, within reach, at a block the crow can actually use (door, trapdoor, gate, button, lever).
+     * 乌鸦眼睛在使用距离内看着一个乌鸦真正能使用的方块（门、活板门、栅栏门、按钮、拉杆）。
+     */
     public static boolean targetsBlock(MinecraftClient client) {
-        return active && client.crosshairTarget instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK;
+        return active && client.world != null
+                && client.crosshairTarget instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK
+                && BlackRavenCrowUseRules.target(client.world.getBlockState(hit.getBlockPos())) != null;
     }
 
     // ---- Packets / 数据包 ----
@@ -347,9 +355,16 @@ public final class BlackRavenCrowPilotClient {
         if (bound == null || MinecraftClient.getInstance().getCameraEntity() != bound) {
             return;
         }
+        // Client pacing matches the server's use interval, so fast clicks are not silently throttled there.
+        // 客户端节流与服务端的使用间隔一致，避免快速连点在服务端被静默丢弃。
+        long now = bound.getWorld().getTime();
+        if (now >= lastUseTick && now - lastUseTick < BlackRavenCrowUseRules.USE_INTERVAL_TICKS) {
+            return;
+        }
         BlockHitResult hit = crowBlockTarget(bound, 1.0F);
         if (hit != null && ClientPlayNetworking.canSend(BlackRavenCrowUseC2SPayload.ID)) {
             ClientPlayNetworking.send(new BlackRavenCrowUseC2SPayload(bound.getId(), hit));
+            lastUseTick = now;
         }
     }
 
