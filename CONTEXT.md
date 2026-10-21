@@ -1990,6 +1990,16 @@ read or written. The Grand Witch has no secondary-key (key N) handler; her inven
 the Ceremonial Sword rows only.
 A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so an ex-Hunter whose role changed
 gets no trap back (the trap itself stays armed until it expires or the round ends).
+A Hunter shotgun shot that reaches the wall takes `HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE` (7000 in SparkStrength's
+unit, 10000 = 100%, so 70%; owner, 2026-10-21) from the SparkStrength junction box (`sparkstrength:junction_box`) it
+lands on, so two shots open a full box. Nearest wins along one COLLIDER block ray (`DoubleBarrelShotgunItem.wallHit`,
+shared with the player pick): an eligible player, then a Magician puppet, then a breakable Seeker device
+(`SeekerDeviceHits.shotgunPathHasDevice`, a read-only query asked before the breaking `onShotgunFired`) absorbs the shot
+first. A SparkStrength Bomber drone absorbs inside `onShotgunFired` without a signal, so a drone between the Hunter
+and a box lets that shot hit the box too (accepted). `compat/SparkStrengthJunctionBoxCompat` reflects
+`JunctionBoxService#damageByWeapon(ServerPlayerEntity, BlockPos, int)` only after the block id matches and fails
+closed; SparkStrength owns every sabotage gate and opens a box that reaches 0 like a pry finished by the shooter. The
+shot's record fields, sound and cooldown are unchanged.
 Sword piercing
 applies to role/item shields, not trait protections such as Last Stand or Last
 Escape; protection costs and retaliation keep their normal side effects.
@@ -3025,7 +3035,8 @@ Black Raven disguise shop and wallet seams (SparkStrength is optional and fail-c
   only these two mixins and in the reflected purse class in `BlackRavenDisguiseEconomy`.
   `compat/SparkStrengthDisguiseCompat` touches only the `sparkstrength:flashlight` registry id.
 - **Rest of SparkWitch.** Elsewhere, SparkStrength implementation classes are named by
-  `compat/SparkStrengthM67Compat`, `compat/SparkStrengthCoronerCompat`, and the client
+  `compat/SparkStrengthM67Compat`, `compat/SparkStrengthCoronerCompat`,
+  `compat/SparkStrengthJunctionBoxCompat` (the Hunter shotgun's junction-box hit), and the client
   `client/emma/EmmaVisibleName`.
 
 Active Wraiths do not absorb another player's aimed action in the client

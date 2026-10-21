@@ -27,6 +27,11 @@ public final class HunterRules {
     // 猎枪开局锁定 40 秒（所有者 2026-10-07 决定），短于 Wathe 左轮的 60 秒开局锁定。
     public static final int SHOTGUN_INITIAL_COOLDOWN_TICKS = 40 * 20;
     public static final int SECOND_SHELL_WINDOW_TICKS = 20 * 10;
+    // A shot into a SparkStrength junction box takes 70% of its durability (owner decision 2026-10-21), in
+    // SparkStrength's unit where 10_000 = 100%, so two shots open a full box.
+    // 一枪打中 SparkStrength 接线箱扣除其 70% 耐久（所有者 2026-10-21 决定），单位为 SparkStrength 的 10_000 = 100%，
+    // 因此满耐久的箱子两枪即开。
+    public static final int SHOTGUN_JUNCTION_BOX_DAMAGE = 7_000;
 
     public static final int MAX_OWNED_TRAPS = 4;
     public static final int TRAP_ARM_TICKS = 10;

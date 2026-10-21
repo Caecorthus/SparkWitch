@@ -161,6 +161,22 @@ public final class SeekerDeviceHits {
     }
 
     /**
+     * Read-only query for a shotgun shot that hit no player: true iff {@link #onShotgunFired} with a {@code null}
+     * target and the same range would break a device (the same ray and {@link SeekerDamageRules#mayBreak} filter as
+     * {@code rayBlocks}). Breaks, marks and records nothing; call it before {@link #onShotgunFired}, whose break
+     * removes the device. False on the client. SparkStrength's Bomber drones, which absorb inside
+     * {@link #onShotgunFired} itself, are not seen here.
+     * 未命中玩家的猎枪射击的只读查询：仅当以 {@code null} 目标、相同射程调用 {@link #onShotgunFired} 会打坏设备时返回 true
+     * （与 {@code rayBlocks} 相同的射线与 {@link SeekerDamageRules#mayBreak} 过滤）。不打坏、不标记、不记录任何内容；
+     * 须在 {@link #onShotgunFired} 之前调用，因为其打坏会移除该设备。客户端恒为 false。SparkStrength 轰炸者无人机在
+     * {@link #onShotgunFired} 内部吸收，此处看不到。
+     */
+    public static boolean shotgunPathHasDevice(PlayerEntity shooter, double range) {
+        return shooter instanceof ServerPlayerEntity serverShooter && !shooter.getWorld().isClient()
+                && rayBlockingHit(serverShooter, null, range) != null;
+    }
+
+    /**
      * NoellesRoles Demon Hunter pistol receiver. Validates everything itself (pistol in the main hand, not cooling
      * down, at least one bullet, live foreign device within the receiver's 65 cap, the same aim and line-of-sight rule
      * as the Wathe guns, {@link SeekerDamageRules#mayBreak}) so it is correct at the receiver HEAD as well as at its
@@ -562,18 +578,27 @@ public final class SeekerDeviceHits {
      */
     private static boolean rayBlocks(ServerPlayerEntity shooter, @Nullable PlayerEntity target, double range,
                                      SeekerBreakSource source) {
-        if (!(range > 0.0) || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
-            return false;
-        }
-        Vec3d start = shooter.getEyePos();
-        Vec3d end = start.add(shooter.getRotationVec(1.0F).multiply(range));
-        SeekerDeviceRaycast.DeviceHit hit = SeekerDeviceRaycast.blockingHit(shooter, start, end, target,
-                breakableBy(shooter));
+        SeekerDeviceRaycast.DeviceHit hit = rayBlockingHit(shooter, target, range);
         if (hit == null) {
             return false;
         }
         SeekerDeviceService.breakDevice(hit.device(), source, shooter);
         return true;
+    }
+
+    /**
+     * The device {@link #rayBlocks} breaks for these arguments, without breaking it. / {@link #rayBlocks} 对这些参数会打坏
+     * 的设备（本身不打坏）。
+     */
+    @Nullable
+    private static SeekerDeviceRaycast.DeviceHit rayBlockingHit(ServerPlayerEntity shooter,
+                                                                @Nullable PlayerEntity target, double range) {
+        if (!(range > 0.0) || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
+            return null;
+        }
+        Vec3d start = shooter.getEyePos();
+        Vec3d end = start.add(shooter.getRotationVec(1.0F).multiply(range));
+        return SeekerDeviceRaycast.blockingHit(shooter, start, end, target, breakableBy(shooter));
     }
 
     /**

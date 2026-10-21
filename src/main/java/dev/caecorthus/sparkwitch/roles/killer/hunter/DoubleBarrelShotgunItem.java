@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
+import dev.caecorthus.sparkwitch.compat.SparkStrengthJunctionBoxCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
@@ -21,6 +22,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.Registries;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
@@ -31,6 +33,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -94,10 +97,23 @@ public final class DoubleBarrelShotgunItem extends Item {
                 : findTarget(user);
         // Nearest-wins: a nearer Magician puppet, else a nearer Seeker device, absorbs the shot (null target).
         // 最近者命中：更近的魔术师皮套（其次是更近的搜寻者设备）吸收这一枪。
-        PlayerEntity target = MagicianPuppetHits.onShotgunFired(user, shotgun, aimed, HunterRules.SHOTGUN_RANGE)
+        boolean puppetAbsorbed = MagicianPuppetHits.onShotgunFired(user, shotgun, aimed, HunterRules.SHOTGUN_RANGE);
+        // The ray already stops at the first block, so the shot reaches that block only when no eligible player, puppet
+        // or device took it. Asked before the device step, which breaks the device. A SparkStrength Bomber drone
+        // absorbs inside that step without a signal, so one between the Hunter and a junction box lets this shot hit
+        // the box too (accepted, like the puppet step's drone case).
+        // 射线本就止于第一个方块，因此只有合格玩家、皮套与设备都未吸收时这一枪才打到该方块。须在设备一步之前询问，因其会打坏
+        // 设备。SparkStrength 轰炸者无人机在那一步内部吸收且不给出信号，所以猎人与接线箱之间的无人机会让这一枪同时打中箱子
+        // （已接受，与皮套一步的无人机情形相同）。
+        boolean reachesWall = aimed == null && !puppetAbsorbed
+                && !SeekerDeviceHits.shotgunPathHasDevice(user, HunterRules.SHOTGUN_RANGE);
+        PlayerEntity target = puppetAbsorbed
                 ? null : SeekerDeviceHits.onShotgunFired(user, aimed, HunterRules.SHOTGUN_RANGE);
         if (user instanceof ServerPlayerEntity shooter && target instanceof ServerPlayerEntity serverTarget) {
             GameFunctions.killPlayer(serverTarget, true, shooter, GameConstants.DeathReasons.GUN);
+        }
+        if (reachesWall && user instanceof ServerPlayerEntity shooter) {
+            hitJunctionBox(shooter);
         }
         if (user instanceof ServerPlayerEntity shooter) {
             NbtCompound extra = new NbtCompound();
@@ -202,15 +218,8 @@ public final class DoubleBarrelShotgunItem extends Item {
      */
     static PlayerEntity findTarget(PlayerEntity user, Function<PlayerEntity, List<Box>> hitVolumes) {
         Vec3d eye = user.getEyePos();
-        Vec3d look = user.getRotationVec(1.0F);
-        Vec3d end = eye.add(look.multiply(HunterRules.SHOTGUN_RANGE));
-        HitResult blockHit = user.getWorld().raycast(new RaycastContext(
-                eye,
-                end,
-                RaycastContext.ShapeType.COLLIDER,
-                RaycastContext.FluidHandling.NONE,
-                user
-        ));
+        Vec3d end = eye.add(user.getRotationVec(1.0F).multiply(HunterRules.SHOTGUN_RANGE));
+        HitResult blockHit = wallHit(user);
         if (blockHit.getType() != HitResult.Type.MISS) {
             end = blockHit.getPos();
         }
@@ -232,13 +241,43 @@ public final class DoubleBarrelShotgunItem extends Item {
         return nearest;
     }
 
+    /**
+     * The shot's block ray (COLLIDER shapes, eye to {@link HunterRules#SHOTGUN_RANGE} along the look): the player pick
+     * stops there, and the junction-box step hits the block it lands on. / 这一枪的方块射线（COLLIDER 形状，沿视线从眼睛到
+     * {@link HunterRules#SHOTGUN_RANGE}）：玩家选取止于此处，接线箱一步命中其落点方块。
+     */
+    static HitResult wallHit(PlayerEntity user) {
+        Vec3d eye = user.getEyePos();
+        return user.getWorld().raycast(new RaycastContext(
+                eye,
+                eye.add(user.getRotationVec(1.0F).multiply(HunterRules.SHOTGUN_RANGE)),
+                RaycastContext.ShapeType.COLLIDER,
+                RaycastContext.FluidHandling.NONE,
+                user
+        ));
+    }
+
+    /**
+     * A shot that reached the wall damages the SparkStrength junction box it landed on (owner decision 2026-10-21).
+     * The id filter keeps reflection off every other block; SparkStrength decides the rest silently.
+     * 打到墙上的一枪会伤害其落点处的 SparkStrength 接线箱（所有者 2026-10-21 决定）。先按 id 过滤，其他方块不触发反射；
+     * 其余条件由 SparkStrength 静默判定。
+     */
+    private static void hitJunctionBox(ServerPlayerEntity shooter) {
+        if (wallHit(shooter) instanceof BlockHitResult wall && wall.getType() == HitResult.Type.BLOCK
+                && SparkStrengthJunctionBoxCompat.JUNCTION_BOX_ID.equals(
+                        Registries.BLOCK.getId(shooter.getWorld().getBlockState(wall.getBlockPos()).getBlock()))) {
+            SparkStrengthJunctionBoxCompat.damage(shooter, wall.getBlockPos(), HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE);
+        }
+    }
+
     @Override
     public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
         tooltip.add(Text.translatable(
                 "item.sparkwitch.double_barrel_shotgun.tooltip.line1",
                 getLoadedShells(stack)
         ).formatted(Formatting.GRAY));
-        for (int line = 2; line <= 5; line++) {
+        for (int line = 2; line <= 6; line++) {
             tooltip.add(Text.translatable(
                     "item.sparkwitch.double_barrel_shotgun.tooltip.line" + line
             ).formatted(Formatting.GRAY));
