@@ -11,6 +11,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseS2CPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseSender;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -141,6 +142,10 @@ public final class BlindCaneService {
         for (ServerPlayerEntity other : blind.getServerWorld().getPlayers()) {
             if (ids.size() >= BlindPulseS2CPayload.MAX_PLAYER_IDS) {
                 break;
+            }
+            // A Raven Form body is never revealed (plan §2.6). / 化鸦留下的本体永不显示（计划 §2.6）。
+            if (BlackRavenCrowForm.isHiddenBody(other)) {
+                continue;
             }
             if (BlindKitRules.isCaneTarget(other == blind, GameFunctions.isPlayerPlayingAndAlive(other),
                     other.isSpectator(), WraithStateService.isActive(other),

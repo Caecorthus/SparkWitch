@@ -23,6 +23,7 @@ import dev.caecorthus.sparkwitch.client.bellringer.BellRingerClient;
 import dev.caecorthus.sparkwitch.client.timestealer.TimeStealerClient;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenClientModule;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerScreen;
+import dev.caecorthus.sparkwitch.client.blackraven.crow.BlackRavenCrowWorldClient;
 import dev.caecorthus.sparkwitch.client.prophet.ProphetNecrologyBookScreen;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStatusHud;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStunClient;
@@ -280,6 +281,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         EntityRendererRegistry.register(PotionGunnerEntities.potionShell(), FlyingItemEntityRenderer::new);
         SeekerClientModule.registerEntityRenderers();
         EntityRendererRegistry.register(SparkWitchEntities.magicianPlayback(), MagicianPlaybackEntityRenderer::new);
+        // Raven Form world content: Homing Feather marker and black feather particle. / 化鸦世界内容：归羽标记与黑羽粒子。
+        BlackRavenCrowWorldClient.register();
     }
 
     private static void registerWraithRoleAnnouncementNetworking() {

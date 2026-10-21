@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.perception;
 
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.cca.WorldBlackoutComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -141,6 +142,12 @@ public final class BlindSoundPerception {
         @Override
         public BlindSoundAttribution.Status status(PlayerEntity player) {
             if (WraithStateService.isActive(player) || NoellesTaotieSeekerBridge.isSwallowed(player)) {
+                return BlindSoundAttribution.Status.SILENT;
+            }
+            // The body a Black Raven left behind in Raven Form is never perceived: its own sounds and voice drop, and it
+            // never wins the nearest-emitter search. The crow is an ordinary non-player source.
+            // 黑羽鸦化鸦时留下的本体永不被感知：其自身声音与语音被丢弃，也不会在最近发声者搜索中胜出。乌鸦是普通的非玩家声源。
+            if (BlackRavenCrowForm.isHiddenBody(player)) {
                 return BlindSoundAttribution.Status.SILENT;
             }
             return !player.isSpectator() && GameFunctions.isPlayerPlayingAndAlive(player)

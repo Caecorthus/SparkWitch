@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.controlexpert;
 
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowLandingHold;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -24,10 +25,19 @@ public final class ControlExpertStun {
      * player who stops participating (death, spectator, Wraith, round end) is released at once.
      * 两端通用：服务端读取权威计时，拥有者客户端读取同步副本。被眩晕者一旦不再参与
      * （死亡、旁观、冤魂、对局结束）立即解除。
+     *
+     * <p>Seam: the Black Raven's 3 s Homing Feather landing hold reuses this input lock (plan §3.6), so a landing Raven
+     * also reads as stunned here (interaction guards, blocked payloads, role refusals, client key lock with free mouse
+     * look). Readers of {@link ControlExpertStatusComponent} itself never see the hold.
+     * 接缝：黑羽鸦 3 秒归羽落地定身复用此输入锁（计划 §3.6），因此落地中的黑羽鸦在此同样视为被眩晕（交互拦截、受限数据包、职业拒绝、
+     * 鼠标视角自由的客户端按键锁）。直接读取 {@link ControlExpertStatusComponent} 的地方永远看不到定身。</p>
      */
     public static boolean isStunned(@Nullable PlayerEntity player) {
         if (player == null) {
             return false;
+        }
+        if (BlackRavenCrowLandingHold.isHeld(player)) {
+            return true;
         }
         ControlExpertStatusComponent status = ControlExpertStatusComponent.KEY.getNullable(player);
         return status != null && status.isStunned() && ControlExpertTargeting.isParticipant(player);

@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenFeatherRegistry;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.item.Item;
@@ -107,7 +108,10 @@ public final class SparkWitchItemGroups {
                             for (Item item : Registries.ITEM) {
                                 if (SparkWitch.MOD_ID.equals(Registries.ITEM.getId(item).getNamespace())
                                         && !factionOrder.contains(item) && !operatorOnly.contains(item)) {
-                                    entries.add(item);
+                                    // The display-only Homing Feather is never obtainable. / 仅用于显示的归羽永不可获得。
+                                    if (!BlackRavenFeatherRegistry.isHomingFeather(item)) {
+                                        entries.add(item);
+                                    }
                                 }
                             }
                         })

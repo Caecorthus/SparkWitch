@@ -106,7 +106,23 @@ public final class GrandWitchFearService {
             Identifier.of("sparkstrength", "select_criminologist_target")
     );
 
+    /**
+     * Fear-blocked ids that are dropped without the "skill blocked" message: per-tick streams whose in-flight packets
+     * would otherwise repeat it (Raven Form crow moves; Fear already ends the session on the next server tick). They
+     * stay on {@link #BLOCKED_ROLE_SKILL_PAYLOADS}.
+     * 被恐惧拦截但不提示“技能被封锁”的 id：逐刻发送的数据流，否则在途数据包会反复刷出提示（化鸦乌鸦移动；恐惧会在下一服务端刻结束会话）。
+     * 它们仍保留在 {@link #BLOCKED_ROLE_SKILL_PAYLOADS} 中。
+     */
+    private static final Set<Identifier> SILENTLY_BLOCKED_PAYLOADS = Set.of(
+            Identifier.of("sparkwitch", "black_raven_crow_move")
+    );
+
     private GrandWitchFearService() {
+    }
+
+    /** Whether a Fear-blocked payload is dropped without a message. / 被恐惧拦截的数据包是否静默丢弃。 */
+    public static boolean isSilentlyBlockedPayload(Identifier payloadId) {
+        return payloadId != null && SILENTLY_BLOCKED_PAYLOADS.contains(payloadId);
     }
 
     public static boolean isFearActive(World world) {
