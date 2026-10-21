@@ -8,6 +8,7 @@ import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSettlementExclusionCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
@@ -169,6 +170,14 @@ public final class SparkWitchRoleRegistry {
         // cop slots come from PoliceSlotAssignmentService.
         // 与控场专家、搜寻者相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
         PoliceRoles.register(USEC_ID);
+        // Police classification, like the other Vigilante variants (SparkTraits police traits, SparkStrength tablet);
+        // cop slots come from PoliceSlotAssignmentService.
+        // 与其他义警变体相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(BLACK_RAVEN_ID);
+        // Plan v2 §3.3: the Black Raven never counts as alive for settlement in other mods either (reflective, fails
+        // closed on an older SparkFactionAPI). 计划 v2 §3.3：黑羽鸦在其他模组的结算中同样不算存活（反射调用，旧版
+        // SparkFactionAPI 下失败关闭）。
+        SparkFactionSettlementExclusionCompat.registerExcludedRole(BLACK_RAVEN_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
@@ -518,12 +527,19 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
-        blackRaven = SparkFactionApi.registerRole(FactionRoleDefinition.builder(BLACK_RAVEN_ID, FactionIds.KILLER)
+        // Police variant since 2026-10-21 (plan v2 §3.1), changed in place so the registration order stays unchanged:
+        // the Judge/Control Expert/Seeker civilian police profile with no appearance condition, so it is drawn only
+        // through the shared Vigilante slots (PoliceSlotAssignmentService). It stays in isRegisteredSparkWitchRole for
+        // its Perception skill dispatch only; the witch skill panel never shows it (WitchSkillPresentationRules).
+        // 自 2026-10-21 起为警察变体（计划 v2 §3.1），原地修改以保持注册顺序不变：与法官、控场专家、搜寻者相同的
+        // 平民警察参数，无出现条件，只通过共享义警槽位抽取（PoliceSlotAssignmentService）。仍保留在
+        // isRegisteredSparkWitchRole 中，仅用于感知技能分发；魔女技能面板从不显示它（WitchSkillPresentationRules）。
+        blackRaven = SparkFactionApi.registerRole(FactionRoleDefinition.builder(BLACK_RAVEN_ID, FactionIds.CIVILIAN)
                 .color(BlackRavenRules.COLOR)
-                .moodType(Role.MoodType.FAKE)
-                .maxSprintTime(-1)
-                .canSeeTime(true)
-                .nativeWatheFaction(Faction.KILLER)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
         witchMaiden = SparkFactionApi.registerRole(FactionRoleDefinition.builder(WITCH_MAIDEN_ID, FactionIds.KILLER)
                 .color(WitchMaidenRules.COLOR)
@@ -708,7 +724,6 @@ public final class SparkWitchRoleRegistry {
                 judge,
                 blind,
                 ninja,
-                blackRaven,
                 witchMaiden,
                 hunter,
                 kidnapper,
@@ -722,6 +737,9 @@ public final class SparkWitchRoleRegistry {
                 riftwalker,
                 bewitched,
                 grandWitch,
+                // The police block: the Black Raven (police since 2026-10-21) leads it, so every other police
+                // variant keeps its index. 警察段：黑羽鸦（2026-10-21 起为警察）排在段首，其他警察变体的下标不变。
+                blackRaven,
                 emma,
                 controlExpert,
                 seeker,
@@ -749,6 +767,10 @@ public final class SparkWitchRoleRegistry {
                 || role == tarotReader
                 || role == ninja
                 || role == kidnapper
+                // Perception skill dispatch only (a police variant since 2026-10-21); grants no witch skill panel
+                // access (WitchSkillPresentationRules lists the panel roles explicitly, AGENTS.md panel rule).
+                // 仅用于感知技能分发（自 2026-10-21 起为警察变体）；不授予魔女技能面板资格
+                // （WitchSkillPresentationRules 显式列出面板职业，AGENTS.md 面板规则）。
                 || role == blackRaven
                 || role == witchMaiden
                 || role == bellRinger

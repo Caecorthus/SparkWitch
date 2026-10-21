@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
-import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseEconomy;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -265,21 +264,16 @@ public final class HunterFeatureService {
     }
 
     /**
-     * Poisoner and placer rewards are killer income: a disguised Black Raven receives them in its stashed Raven
-     * wallet (amendment W, reported to the SparkStrength purse like any action reward), everyone else in the live
-     * wallet.
-     * 投毒与布置奖励属于杀手收入：伪装中的黑羽鸦记入其存档中的黑羽鸦钱包（修订 W，与其他行动奖励一样上报
-     * SparkStrength 团队资金），其他玩家记入当前钱包。
+     * Poisoner and placer rewards go to the recipient's live wallet, like every other balance credit. The Black Raven
+     * is a police variant since 2026-10-21 and has no killer wallet to route into.
+     * 投毒与布置奖励与其他入账一样记入获得者的当前钱包。黑羽鸦自 2026-10-21 起为警察变体，不再有可转入的杀手钱包。
      */
     private static void addKillerReward(ServerWorld world, UUID playerUuid, int amount) {
         PlayerEntity player = world.getPlayerByUuid(playerUuid);
         if (player == null) {
             return;
         }
-        PlayerShopComponent shop = PlayerShopComponent.KEY.get(player);
-        if (!BlackRavenDisguiseEconomy.creditKillerIncome(shop, amount, true)) {
-            shop.addToBalance(amount);
-        }
+        PlayerShopComponent.KEY.get(player).addToBalance(amount);
     }
 
     private static ShouldPunishGunShooter.PunishResult gunPunishment(PlayerEntity shooter, PlayerEntity victim) {

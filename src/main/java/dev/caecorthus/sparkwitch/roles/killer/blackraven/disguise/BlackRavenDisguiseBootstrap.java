@@ -21,5 +21,7 @@ public final class BlackRavenDisguiseBootstrap {
         BlackRavenDisguiseAdapterBootstrap.registerBatchOne();
         BlackRavenDisguiseService.register();
         BlackRavenDisguiseEconomy.register();
+        // Early KillPlayer.AFTER phase: stashed revolvers drop on death (plan v2 §3.4). / 提前的死亡阶段：暂存左轮随死亡掉落。
+        BlackRavenStashedDeathDrops.register();
     }
 }

@@ -5,6 +5,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionInstinctPolicy;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.economy.WitchEconomyService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenSettlement;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendParticipation;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchRules.MurderousWitchRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchShop.MurderousWitchShopService;
@@ -115,6 +116,10 @@ public final class MurderousWitchFeatureService {
             // D1: a dormant Fiend counts as not alive for the last-one-standing win.
             // D1：休眠魔人在最后存活者胜利中视为不存活。
             if (!GameFunctions.isPlayerPlayingAndAlive(player) || FiendParticipation.isDormantFiend(player)) {
+                continue;
+            }
+            // Plan v2 §3.3: the Black Raven never counts as alive for settlement. / 计划 v2 §3.3：黑羽鸦在结算中永不算存活。
+            if (BlackRavenSettlement.isExcluded(player)) {
                 continue;
             }
             livingPlayerCount++;
