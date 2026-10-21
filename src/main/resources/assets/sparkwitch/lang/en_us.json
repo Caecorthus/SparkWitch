@@ -1399,8 +1399,6 @@
   "replay.skill.sparkwitch.mini_wither.summon": "%s summoned the §5Mini Wither§r",
   "replay.skill.sparkwitch.mini_wither.dismiss": "%s dismissed the §5Mini Wither§r",
   "entity.sparkwitch.black_raven_crow": "Crow",
-  "skill.sparkwitch.black_raven_crow.name": "Raven Form",
-  "skill.sparkwitch.black_raven_crow.description": "Unlocks after 2 tasks (tasks done while disguised count). Role Skill 2 leaves your body behind, invisible and frozen, and lets you fly a crow at 24 blocks per second for up to 30 s; press it again to return early. 45 s cooldown after it ends. Not while disguised. If the crow or your body is killed, you die.",
   "message.sparkwitch.black_raven_crow.unlocked": "Raven Form has awakened. Press %s to take Raven Form.",
   "message.sparkwitch.black_raven_crow.locked": "Raven Form unlocks after tasks (%s/%s tasks).",
   "message.sparkwitch.black_raven_crow.blocked": "You can't take Raven Form right now.",

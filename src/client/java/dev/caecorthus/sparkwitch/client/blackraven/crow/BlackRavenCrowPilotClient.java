@@ -26,6 +26,8 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.TrackedPosition;
+import net.minecraft.network.packet.s2c.play.EntityS2CPacket;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
@@ -78,6 +80,11 @@ public final class BlackRavenCrowPilotClient {
     private static boolean savedChunkCulling = true;
     private static int missingTicks;
     private static Vec3d velocity = Vec3d.ZERO;
+    /**
+     * Velocity last fed to the prediction, before collisions and the bounds clamp eat it (still pointing at a face the
+     * crow presses against). / 最近一次送入预测的速度，尚未被碰撞与边界限制吃掉（贴住边界面时仍指向该面）。
+     */
+    private static Vec3d commandedVelocity = Vec3d.ZERO;
     private static boolean dropQueued;
     private static boolean useQueued;
     private static int featherPendingTicks;
@@ -122,6 +129,15 @@ public final class BlackRavenCrowPilotClient {
     /** The bound crow while active. / 激活时已绑定的乌鸦。 */
     public static @Nullable BlackRavenCrowEntity boundCrow() {
         return active ? crow : null;
+    }
+
+    /**
+     * The flight the owner currently commands, in blocks per tick (zero when not flying); the boundary indicator reads it
+     * to tell whether the crow heads toward the floor or ceiling. / 本人当前指令的飞行速度（格/刻，未飞行时为零）；边界提示据此
+     * 判断乌鸦是否正朝底面或顶面移动。
+     */
+    public static Vec3d commandedVelocity() {
+        return active ? commandedVelocity : Vec3d.ZERO;
     }
 
     /** The camera is the bound crow. / 镜头正是已绑定的乌鸦。 */
@@ -313,7 +329,18 @@ public final class BlackRavenCrowPilotClient {
 
     // ---- Packets / 数据包 ----
 
+    /**
+     * The pilot hook ({@code isLocallyPiloted}): only the crow this client's LIVE view flies, and only while the
+     * server's session still names it. Once the view is given up while the server session goes on (camera taken, crow
+     * missing), the owner's crow follows tracker updates like any other crow instead of staying drawn frozen at the
+     * last prediction; {@link #keepTrackedBase} keeps the base those updates are relative to exact meanwhile.
+     * 驾驶钩子（isLocallyPiloted）：只认本客户端实时画面正在操控、且服务端会话仍指向的乌鸦。服务端会话仍在进行而画面已放弃时（镜头被接管、
+     * 乌鸦缺失），本人的乌鸦像其他乌鸦一样跟随追踪包，而不是停在最后一次预测处；期间由 keepTrackedBase 保持这些相对更新的基准准确。
+     */
     private static boolean pilots(BlackRavenCrowEntity candidate) {
+        if (!active || candidate.getId() != crowId) {
+            return false;
+        }
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (player == null || candidate.getWorld() != player.getWorld()) {
             return false;
@@ -321,6 +348,22 @@ public final class BlackRavenCrowPilotClient {
         BlackRavenCrowPlayerComponent component = BlackRavenCrowPlayerComponent.KEY.getNullable(player);
         return component != null && component.isActive() && component.getCrowEntityId() == candidate.getId()
                 && candidate.isOwnedBy(player.getUuid());
+    }
+
+    /**
+     * {@code BlackRavenCrowNetworkHandlerMixin} ({@code onEntity}, a relative tracker move): vanilla skips a
+     * logical-side entity entirely, tracked base included, so the base of the crow this client flies is advanced here
+     * (the pose itself stays predicted). When the view ends, {@link #end} hands the crow back to tracker interpolation
+     * from that exact server base, and later relative moves land where the server has the crow.
+     * 相对追踪移动包：原版对逻辑端实体整体跳过（包括追踪基准），因此本客户端操控的乌鸦的基准在此推进（位姿本身仍由预测决定）。画面结束时
+     * end 从这一准确的服务端基准把乌鸦交还给追踪插值，之后的相对移动落在服务端乌鸦所在处。
+     */
+    public static void keepTrackedBase(Entity entity, EntityS2CPacket packet) {
+        if (!(entity instanceof BlackRavenCrowEntity flown) || !packet.isPositionChanged() || !flown.isLocallyPiloted()) {
+            return;
+        }
+        TrackedPosition tracked = flown.getTrackedPosition();
+        tracked.setPos(tracked.withDelta(packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ()));
     }
 
     private static void onCorrection(MinecraftClient client, BlackRavenCrowCorrectionS2CPayload payload) {
@@ -429,6 +472,7 @@ public final class BlackRavenCrowPilotClient {
         boundWorld = client.world;
         missingTicks = 0;
         velocity = Vec3d.ZERO;
+        commandedVelocity = Vec3d.ZERO;
         dropQueued = false;
         useQueued = false;
         featherPendingTicks = 0;
@@ -501,6 +545,12 @@ public final class BlackRavenCrowPilotClient {
         active = false;
         crow = null;
         crowId = -1;
+        // No longer piloted: a crow still tracked (view given up mid-session) glides to the server's base and follows
+        // tracker updates from now on. 不再驾驶：仍被追踪的乌鸦（会话中途放弃画面）滑向服务端基准，此后跟随追踪包。
+        if (old != null && !old.isRemoved()) {
+            Vec3d base = old.getTrackedPosition().getPos();
+            old.updateTrackedPositionAndAngles(base.x, base.y, base.z, old.getYaw(), old.getPitch(), 3);
+        }
         ClientPlayerEntity player = client.player;
         // Only hand back a camera that is still ours. / 只归还仍属于我们的镜头。
         if (restoreCamera && player != null) {
@@ -522,6 +572,7 @@ public final class BlackRavenCrowPilotClient {
             client.gameRenderer.setRenderHand(true);
         }
         velocity = Vec3d.ZERO;
+        commandedVelocity = Vec3d.ZERO;
         dropQueued = false;
         useQueued = false;
         featherPendingTicks = 0;
@@ -560,6 +611,7 @@ public final class BlackRavenCrowPilotClient {
         BlackRavenCrowEntity bound = crow;
         if (bound == null || bound.isRemoved() || client.getCameraEntity() != bound || client.player == null) {
             velocity = Vec3d.ZERO;
+            commandedVelocity = Vec3d.ZERO;
             return;
         }
         fly(client, bound);
@@ -580,6 +632,7 @@ public final class BlackRavenCrowPilotClient {
         }
         Vec3d target = BlackRavenCrowClientRules.targetVelocity(forward, strafe, vertical, bound.getYaw());
         velocity = BlackRavenCrowClientRules.nextVelocity(velocity, target);
+        commandedVelocity = velocity;
         Vec3d before = bound.getPos();
         bound.clientPilotMove(velocity, bound.getYaw(), bound.getPitch());
         // Collisions and the bounds clamp eat momentum. / 碰撞与边界限制会吃掉动量。

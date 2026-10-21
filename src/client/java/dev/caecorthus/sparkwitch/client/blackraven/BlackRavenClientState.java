@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
-import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenIdentitySnapshot;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -33,12 +32,5 @@ public final class BlackRavenClientState {
 
     public static boolean isPerceptionActive(@Nullable PlayerEntity player) {
         return isEligible(player) && BlackRavenPerceptionPlayerComponent.KEY.get(player).isActive();
-    }
-
-    public static @Nullable BlackRavenIdentitySnapshot snapshot(PlayerEntity viewer, PlayerEntity target) {
-        if (!isEligible(viewer)) {
-            return null;
-        }
-        return BlackRavenPerceptionPlayerComponent.KEY.get(viewer).snapshot(target.getUuid());
     }
 }

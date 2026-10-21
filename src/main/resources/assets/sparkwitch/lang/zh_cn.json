@@ -1399,8 +1399,6 @@
   "replay.skill.sparkwitch.mini_wither.summon": "%s 召唤了§5小凋灵§r",
   "replay.skill.sparkwitch.mini_wither.dismiss": "%s 收回了§5小凋灵§r",
   "entity.sparkwitch.black_raven_crow": "乌鸦",
-  "skill.sparkwitch.black_raven_crow.name": "化鸦",
-  "skill.sparkwitch.black_raven_crow.description": "完成 2 个任务后解锁（伪装期间完成的任务也算）。按技能键 2 让本体原地隐身并冻结，化身乌鸦以每秒 24 格的速度飞行，最长 30 秒；再按一次可提前结束。结束后冷却 45 秒。伪装期间不能使用。乌鸦或本体任一方被打死，你都会死亡。",
   "message.sparkwitch.black_raven_crow.unlocked": "化鸦已觉醒。按 %s 化身乌鸦。",
   "message.sparkwitch.black_raven_crow.locked": "完成任务后才能化鸦（任务 %s/%s）。",
   "message.sparkwitch.black_raven_crow.blocked": "现在无法化鸦。",
