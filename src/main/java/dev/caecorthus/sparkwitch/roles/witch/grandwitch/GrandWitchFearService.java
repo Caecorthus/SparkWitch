@@ -69,6 +69,13 @@ public final class GrandWitchFearService {
             // 巫女小凋灵切换与赤首射击；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "mini_wither_toggle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),
+            // Black Raven Raven Form toggle, crow moves, use and Homing Feather drop; Fear ends a session anyway and
+            // the server re-checks Fear on the toggle. / 黑羽鸦化鸦开关、乌鸦移动、交互与丢出归羽；恐惧本就会结束会话，
+            // 服务端在开关时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "black_raven_crow_toggle"),
+            Identifier.of("sparkwitch", "black_raven_crow_move"),
+            Identifier.of("sparkwitch", "black_raven_crow_use"),
+            Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
             // SparkStrength role skills, like the NoellesRoles skills above (owner 2026-10-07). Tablet meetings, votes
             // and chat, detective notes, drone moves and exit, and the Timekeeper's watch-mode pick stay allowed.
             // SparkStrength 职业技能，与上方 NoellesRoles 技能一致（所有者 2026-10-07）。平板会议、投票与聊天、侦探笔记、

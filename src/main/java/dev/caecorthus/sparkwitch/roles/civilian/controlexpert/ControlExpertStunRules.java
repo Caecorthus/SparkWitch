@@ -104,6 +104,13 @@ public final class ControlExpertStunRules {
             // Witch Maiden Mini Wither toggle (key 2) and crimson skull fire. / 巫女小凋灵切换（技能键 2）与赤首射击。
             Identifier.of("sparkwitch", "mini_wither_toggle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),
+            // Black Raven Raven Form: toggle (key 2), crow moves, right-click use and Homing Feather drop. A stun ends a
+            // session anyway; the toggle is the role skill. / 黑羽鸦化鸦：开关（技能键 2）、乌鸦移动、右键交互与丢出归羽。
+            // 眩晕本就会结束会话；开关属于职业技能。
+            Identifier.of("sparkwitch", "black_raven_crow_toggle"),
+            Identifier.of("sparkwitch", "black_raven_crow_move"),
+            Identifier.of("sparkwitch", "black_raven_crow_use"),
+            Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

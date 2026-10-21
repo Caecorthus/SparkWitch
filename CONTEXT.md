@@ -248,6 +248,12 @@ Current build baseline:
   - Its packets are `net/OpenBlackRavenDisguiseS2CPacket` and `net/SelectBlackRavenDisguiseC2SPacket`.
   - Its cross-mod seams go through `compat/SparkTraitsBlackRavenBridge` and
     `compat/SparkStrengthDisguiseCompat`.
+  - `crow/`: Raven Form (化鸦, plan `docs/plans/2026-10-21-black-raven-police.md` §3.6), the Black Raven's
+    key-2 skill. This package is the server core and the shared contract; see the "Black Raven Raven Form" paragraph
+    under Runtime Invariants. Its streaming mixins are
+    `mixin/blackraven/BlackRavenCrow{ChunkView,ChunkBatch,EntityTracker}Mixin`, its client entry is
+    `client/blackraven/crow/BlackRavenCrowClient`. `BlackRavenPerceptionCenter` (one level up)
+    is the Perception distance centre that Raven Form overrides.
 - `roles/killer/bellringer/`: Echo skill (game-time cost, forced Echo tasks,
   deadline penalty), owner-private Echo/hint/toll state, bound bell and toll kill,
   restricted native shop, and lifecycle cleanup; its mixins live in
@@ -3142,6 +3148,64 @@ yaw/pitch with zero velocity and fall distance. The move happens in the same
 END_SERVER_TICK, so the next END_WORLD_TICK fall check in
 `WraithLifecycle.tickWorld` already sees the room; `activateConvertedPlayer`
 stays reason-agnostic and never teleports.
+
+Black Raven Raven Form. Raven Form (化鸦, `roles/killer/blackraven/crow/`) is keyed on the RAW role
+`sparkwitch:black_raven` (`GameWorldComponent#getRole`), never on the disguise acting overlay. The body stays the
+player's own server entity (never riding, the server camera never moves), invisible and frozen; the owner's client
+switches its camera to a `BlackRavenCrowEntity` and streams client-predicted poses, like SparkStrength's drone and the
+Seeker car.
+
+- **Fixed ids.** Entity and component `sparkwitch:black_raven_crow`; C2S `sparkwitch:black_raven_crow_toggle` (empty),
+  `sparkwitch:black_raven_crow_move` (`crowEntityId`, x, y, z, yaw, pitch every tick while flying),
+  `sparkwitch:black_raven_crow_use` (`crowEntityId` + vanilla block hit), `sparkwitch:black_raven_crow_drop_feather`
+  (empty); S2C `sparkwitch:black_raven_crow_correction` (`crowEntityId`, x, y, z, yaw, pitch; owner only). Reserved
+  for crow-world: the Homing Feather (归羽) `sparkwitch:homing_feather` and the particle `sparkwitch:black_feather`.
+  `net/BlackRavenCrowNetworking` is the only payload registration; all four C2S ids sit on the Control Expert stun,
+  Seeker session, Riftwalker session and Fear deny-lists.
+- **Unlock.** `BlackRavenCrowSkillService.onTaskComplete` counts `TaskComplete.EVENT` for a playing, alive RAW Black
+  Raven in an ACTIVE round, disguised or not; Bell Ringer Echo tasks never fire the event. The second task tells the
+  owner in chat with the Role Skill 2 keybind.
+- **Toggle.** A press during a session always ends it (`PLAYER`). Otherwise `BlackRavenCrowRules.toggleVerdict` checks,
+  in order: eligible (silent), crow-world's landing hold (silent), SparkTraits role-skill block or Taotie swallow
+  (silent), locked x/2, Fear (Fear's own message), Control Expert stun, cooldown (shared key), disguised, kidnapped,
+  inside a Rift Gate, in a Seeker remote view, sleeping, riding, then the footing check (on the ground, not in water).
+- **Session.** At most 30 s; the 45 s cooldown is raised when the session ends (`BlackRavenCrowEndReason.startsCooldown`).
+  `BlackRavenCrowSessions.end(player, reason)` is the only way to end it: it discards the crow, removes the session's
+  own invisibility, clears the session fields (the Homing Feather fields stay for crow-world), raises the cooldown,
+  lets the view resettle, tells the owner, then fires `BlackRavenCrowEvents.ENDED(owner, reason, crowPos)`. Only
+  `PLAYER` and `TIMEOUT` have `usesHomingFeather()`. Per-tick exits, in order: round not ACTIVE, dead or spectator,
+  Taotie-swallowed, Control Expert stun, Kidnapper control, Fear, crow lost, body riding / sleeping / beyond sqrt(2)
+  of its anchor / ungrounded for over 10 ticks, then the timeout. Role loss, death (`KillPlayer.AFTER`), reset,
+  disconnect and round finalize end it too; only an intercepted death keeps the unlock progress.
+- **Body.** Server invisibility without particles or icon, refreshed every 20 ticks and taken over if another source's
+  invisibility ends mid-session; sprint cleared; using an item cleared (never released). The component's active bit
+  is synced to every client (Wathe already syncs every RAW role, so it leaks nothing), so the SparkFactionAPI
+  collision exemption (`BlackRavenCrowForm::isHiddenBody`) agrees on every client. Vanilla invisibility hides the model
+  and the vanilla name tag but not held items, armour or Wathe's `RoleNameRenderer` label: other client gates must
+  read `BlackRavenCrowForm.isInCrowForm` / `isHiddenBody` / `isBodyOrCrow`. Weapons still hit the body (Wathe's guns
+  ignore invisibility); its corpse stays at the body.
+- **Flight.** `BlackRavenCrowFlightRules` is the pure math shared with client prediction: 1.2 blocks/tick horizontal
+  (24 blocks/s, owner Q8) and 0.8 vertical, a per-axis budget of 3 steps refilled by world time, at most 2 moves per
+  tick, clamp to Wathe's play area (x/z intersected with the world border, y in [minY, maxY]; an axis already outside is
+  never pulled back) and swept block collision. A result more than 0.0625 from the request is answered with a
+  correction. The owner's client installs `BlackRavenCrowEntity.installClientPilotHook` so it ignores tracker updates
+  for its own crow, predicts with `clientPilotMove` and applies corrections with `clientApplyCorrection`.
+- **Streaming.** `BlackRavenCrowStreaming` and the three `BlackRavenCrow*Mixin`s copy the Seeker remote view: the
+  owner's chunk view, chunk batches and entity tracking centre on the crow, a per-tick expiring
+  `sparkwitch:black_raven_crow` ticket keeps the crow's chunks entity-ticking, and tracking re-evaluates for 40 ticks
+  after the session. They chain with the Seeker's and the drone's mixins.
+- **Hits.** `BlackRavenCrowSessions.killOwnerVia(crow, killer, deathReason)` ends the session (`CROW_KILLED`, no
+  feather) and runs the standard `GameFunctions.killPlayer(owner, true, killer, deathReason)`. Vanilla `damage()` on
+  the crow routes only a Wathe bat melee (`wathe:bat_hit`) or an explosion of at least 20 (`wathe:grenade`) there;
+  everything else is ignored. Wathe's own weapons never damage a non-player, so crow-hits wires each one to
+  `killOwnerVia`.
+- **Perception.** `BlackRavenPerceptionCenter.of(player)` is Perception's distance centre; Raven Form's override
+  answers the crow's position during a session.
+- **Cooldown.** `compat/cooldown/BlackRavenCrowCooldownStore` (`sparkwitch:black_raven_crow`, appended after the Mini
+  Wither toggle) exposes it to the SparkFactionAPI forced-cooldown contract. The admin `clearCooldown` clears only the
+  held item, so, like the Mini Wither toggle, it does not reach Raven Form.
+- **Disguise.** The Raven Mask switch answers `window_active` while the crow flies; Raven Form refuses a disguised
+  Raven (`disguised`).
 
 ## Tofana Elixir Vocabulary
 

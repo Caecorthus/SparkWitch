@@ -58,7 +58,10 @@ public final class SparkWitchForcedCooldowns {
                 new MagicianCooldownStore(),
                 // Witch Maiden Mini Wither toggle (owner 2026-10-20), appended after the Magician.
                 // 巫女小凋灵切换（所有者 2026-10-20），追加在魔术师之后。
-                new MiniWitherToggleCooldownStore()
+                new MiniWitherToggleCooldownStore(),
+                // Black Raven Raven Form (plan 2026-10-21), appended after the Mini Wither.
+                // 黑羽鸦化鸦（2026-10-21 计划），追加在小凋灵之后。
+                new BlackRavenCrowCooldownStore()
         );
     }
 
