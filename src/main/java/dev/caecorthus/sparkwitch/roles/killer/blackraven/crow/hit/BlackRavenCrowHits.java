@@ -37,7 +37,7 @@ import java.util.List;
  * entries at the same seams. A hit that would kill a player kills the Black Raven: the weapon's own player path runs on
  * the crow's owner through {@link BlackRavenCrowTargets#substitute} whenever the weapon has one, so the shooter pays
  * exactly what hitting the Raven directly costs (the Raven is an innocent police role: Wathe's revolver 小脑, the USEC,
- * Swordfish and Mighty Force misfire rules); the bat, the M67 and add-on guns use
+ * Swordfish and Mighty Force misfire rules); the bat, sphere blasts (the M67, add-on blasts) and add-on guns use
  * {@link BlackRavenCrowSessions#killOwnerVia}. Nearest wins: a crow takes a ray or sweep only when strictly nearer
  * than the player the weapon would hit and than every Magician puppet and Seeker device it would end or break; blasts
  * use the weapon's own player rule at the crow's position. A crow is never hit by its own owner, nor by a spectator.
@@ -45,7 +45,7 @@ import java.util.List;
  * 让每件能杀死玩家的武器都能命中化鸦乌鸦的服务端入口（计划 v2 §2.5），每个武器接缝一个入口，与同一接缝上的魔术师皮套
  * （{@code MagicianPuppetHits}）和搜寻者设备（{@code SeekerDeviceHits}）入口并列。足以杀死玩家的命中杀死黑羽鸦：武器有自身
  * 玩家路径时，都经 {@link BlackRavenCrowTargets#substitute} 让该路径作用于乌鸦的主人，因此射手付出的代价与直接命中黑羽鸦
- * 完全相同（黑羽鸦是无辜的警察职业：Wathe 左轮小脑，USEC、剑鱼与巨力的误杀规则）；球棒、M67 与附属枪械使用
+ * 完全相同（黑羽鸦是无辜的警察职业：Wathe 左轮小脑，USEC、剑鱼与巨力的误杀规则）；球棒、球形爆炸（M67、附属模组爆炸）与附属枪械使用
  * {@link BlackRavenCrowSessions#killOwnerVia}。最近者命中：只有严格近于武器本会命中的玩家、以及其本会结束或打坏的所有
  * 魔术师皮套与搜寻者设备时，乌鸦才承受射线或扫掠；爆炸在乌鸦位置套用武器自身的玩家规则。乌鸦永远不会被其主人或旁观者命中。
  * 即时射线与客户端选靶的检查读取乌鸦的延迟补偿体积（{@link BlackRavenCrowHitboxHistory}）。
@@ -182,6 +182,30 @@ public final class BlackRavenCrowHits {
         if (target == null || !BlackRavenCrowTargets.inMeleeReach(attacker, target,
                 reach + (BlackRavenCrowHitRules.KNIFE_REACH - 3.0))) {
             return entity;
+        }
+        return BlackRavenCrowTargets.substitute(target);
+    }
+
+    /**
+     * Add-on melee weapons with their own player path, through {@code SparkWitchApi.crowMeleeStandIn} (today
+     * SparkStrength's Veteran, Coroner-disguise and Silencer knives and the Undercover tomahawk, whose handlers take
+     * over before Wathe's receivers): a crow the attacker may hit within its {@code reach} plus
+     * {@link BlackRavenCrowHitRules#ADDON_MELEE_TOLERANCE} (lag-compensated) with a clear line becomes its substituted
+     * owner; null for anything else, so nothing is armed.
+     * 自带玩家路径的附属模组近战武器，经 {@code SparkWitchApi.crowMeleeStandIn} 调用（目前为 SparkStrength 老兵、验尸官伪装与
+     * 沉默者的刀以及卧底战术斧，其处理器在 Wathe 接收器之前接管）：攻击者可命中、在其 {@code reach} 加
+     * {@link BlackRavenCrowHitRules#ADDON_MELEE_TOLERANCE}（延迟补偿）内且视线畅通的乌鸦变为其被替身的主人；其余情况为 null，
+     * 不装入任何替身。
+     */
+    public static @Nullable ServerPlayerEntity addonMeleeStandIn(@Nullable ServerPlayerEntity attacker,
+                                                                 @Nullable Entity entity, double reach) {
+        if (attacker == null || entity == null || attacker.getWorld().isClient() || attacker.isSpectator()) {
+            return null;
+        }
+        BlackRavenCrowTargets.Target target = BlackRavenCrowTargets.hittable(attacker, entity);
+        if (target == null || !BlackRavenCrowTargets.inMeleeReach(attacker, target,
+                BlackRavenCrowHitRules.addonMeleeReach(reach))) {
+            return null;
         }
         return BlackRavenCrowTargets.substitute(target);
     }
@@ -528,22 +552,39 @@ public final class BlackRavenCrowHits {
      * （{@code killOwnerVia}，{@code wathe:grenade}，记在投掷者名下）。从不包括投掷者自己的乌鸦。
      */
     public static void onM67Blast(ServerWorld world, Vec3d center, @Nullable ServerPlayerEntity thrower) {
-        if (world == null || center == null || !GameWorldComponent.KEY.get(world).isRunning()) {
-            return;
+        onBlast(world, center, BlackRavenCrowHitRules.M67_RADIUS, thrower, GameConstants.DeathReasons.GRENADE);
+    }
+
+    /**
+     * Sphere blast whose weapon kills the players in it on its own (the SparkStrength M67, and through
+     * {@code SparkWitchApi.killCrowsInBlast} add-on blasts such as SparkStrength's bomb drone): every crow whose box
+     * centre lies in the closed {@code radius} sphere with a clear line from {@code center} (the Magician puppet's
+     * measure) kills its owner ({@code killOwnerVia}, {@code killer} credited, {@code deathReason} passed through as the
+     * same instance). Never the killer's own crow; only while a Wathe round runs. Returns how many crows were hit.
+     * 武器自行击杀范围内玩家的球形爆炸（SparkStrength M67，以及经 {@code SparkWitchApi.killCrowsInBlast} 转入的附属模组爆炸，
+     * 如 SparkStrength 炸弹无人机）：箱体中心位于闭球 {@code radius} 内且与 {@code center} 视线畅通（魔术师皮套的量法）的每只乌鸦
+     * 处死其主人（{@code killOwnerVia}，记在 {@code killer} 名下，{@code deathReason} 按同一实例原样传递）。从不包括击杀者自己的
+     * 乌鸦；仅在 Wathe 对局进行中生效。返回被命中的乌鸦数量。
+     */
+    public static int onBlast(@Nullable ServerWorld world, @Nullable Vec3d center, double radius,
+                              @Nullable ServerPlayerEntity killer, @Nullable Identifier deathReason) {
+        if (world == null || center == null || deathReason == null || !(radius >= 0.0) || !Double.isFinite(radius)
+                || !GameWorldComponent.KEY.get(world).isRunning()) {
+            return 0;
         }
         List<BlackRavenCrowEntity> hit = new ArrayList<>();
         for (BlackRavenCrowTargets.Target target : BlackRavenCrowTargets.live(world, null)) {
             Box box = target.crow().getBoundingBox();
-            if ((thrower == null || !thrower.getUuid().equals(target.owner().getUuid()))
-                    && BlackRavenCrowHitRules.inBlastSphere(center, box.getCenter(),
-                    BlackRavenCrowHitRules.M67_RADIUS)
+            if ((killer == null || !killer.getUuid().equals(target.owner().getUuid()))
+                    && BlackRavenCrowHitRules.inBlastSphere(center, box.getCenter(), radius)
                     && SeekerDamageRules.hasLineOfSight(world, center, box, null)) {
                 hit.add(target.crow());
             }
         }
         for (BlackRavenCrowEntity crow : hit) {
-            BlackRavenCrowSessions.killOwnerVia(crow, thrower, GameConstants.DeathReasons.GRENADE);
+            BlackRavenCrowSessions.killOwnerVia(crow, killer, deathReason);
         }
+        return hit.size();
     }
 
     // ---- Add-on guns / 附属枪械 ----

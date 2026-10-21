@@ -45,13 +45,13 @@ import java.util.UUID;
  * 5-argument {@code killPlayer}) first ends the session with {@code CROW_KILLED}, exactly the first half of
  * {@link BlackRavenCrowSessions#killOwnerVia}; the kill itself is the weapon's, and the corpse lies at the body. A
  * substitution that never reaches {@code killPlayer} (a backfire, a refused target) expires at the end of the tick.
- * Weapons without a reusable player path (the bat, the M67, add-on guns) call {@code killOwnerVia} directly.
+ * Weapons without a reusable player path (the bat, sphere blasts, add-on guns) call {@code killOwnerVia} directly.
  * 主人替身（稳定契约）：武器在选取受害者时找到乌鸦，就把乌鸦的主人交给其玩家代码（{@link #substitute}），而不另行击杀，
  * 因此该武器对玩家受害者施加的每条规则都原样作用于黑羽鸦：Wathe 误杀惩罚（小脑）、走火与理智损失，USEC、剑鱼与巨力的误杀规则，
  * 阵营否决、复仇者隔离、审判官归因、奖励与记录。替身只在本服务端刻内记住乌鸦；随后该武器对主人调用
  * {@code GameFunctions.killPlayer} 时，{@code mixin/blackraven/BlackRavenCrowKillLinkMixin}（5 参数 {@code killPlayer} 的 HEAD）
  * 先以 {@code CROW_KILLED} 结束会话，正是 {@link BlackRavenCrowSessions#killOwnerVia} 的前半段；击杀本身属于武器，尸体位于本体处。
- * 没有走到 {@code killPlayer} 的替身（走火、目标被拒）在本刻结束时失效。没有可复用玩家路径的武器（球棒、M67、附属枪械）
+ * 没有走到 {@code killPlayer} 的替身（走火、目标被拒）在本刻结束时失效。没有可复用玩家路径的武器（球棒、球形爆炸、附属枪械）
  * 直接调用 {@code killOwnerVia}。</p>
  */
 public final class BlackRavenCrowTargets {
@@ -303,8 +303,15 @@ public final class BlackRavenCrowTargets {
     /**
      * Squared entry of the segment into the nearest live Seeker device {@code attacker} may break (margin-grown box,
      * the device hooks' own measure); +inf when none. A device the attacker may not break is transparent, as in the
-     * device hooks. / 线段进入 {@code attacker} 可打坏的最近存活搜寻者设备（按瞄准余量扩大，即设备钩子自身的量法）处的平方
-     * 距离；没有时为正无穷。攻击者不能打坏的设备是透明的，与设备钩子一致。
+     * device hooks. External seam: SparkStrength's {@code @Pseudo} {@code DroneSparkWitchCrowTargetsMixin} lowers
+     * the result at RETURN to its nearest live Bomber drone on the block-clipped segment, so a nearer drone beats the
+     * crow wherever the crow skips the device step (shotgun, Feather Blade, projectile and axe sweeps) and then absorbs
+     * in that device step; keep the name and the {@code (ServerPlayerEntity, Vec3d, Vec3d)} signature.
+     * 线段进入 {@code attacker} 可打坏的最近存活搜寻者设备（按瞄准余量扩大，即设备钩子自身的量法）处的平方距离；没有时为
+     * 正无穷。攻击者不能打坏的设备是透明的，与设备钩子一致。外部接缝：SparkStrength 的 {@code @Pseudo}
+     * {@code DroneSparkWitchCrowTargetsMixin} 在 RETURN 处把结果压低到按方块截断的线段上最近的存活炸弹客无人机，因此在乌鸦会
+     * 跳过设备步骤之处（猎枪、羽刃、投射物与飞斧扫掠），更近的无人机胜过乌鸦，随后在该设备步骤中吸收；保持方法名与
+     * {@code (ServerPlayerEntity, Vec3d, Vec3d)} 签名不变。
      */
     public static double deviceSquared(ServerPlayerEntity attacker, Vec3d start, Vec3d end) {
         World world = attacker.getWorld();

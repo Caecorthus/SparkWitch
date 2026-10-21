@@ -31,6 +31,13 @@ public final class BlackRavenCrowHitRules {
     public static final double CLIENT_AIM_GROWTH = 0.1;
     /** Wathe knife stab reach plus the latency tolerance of every client-trusted stab. / Wathe 刀刺距离加延迟容差。 */
     public static final double KNIFE_REACH = 3.5;
+    /**
+     * Latency tolerance an add-on melee weapon's own reach gets on the crow ({@code SparkWitchApi.crowMeleeStandIn}),
+     * the allowance that turns Wathe's 3-block stab into {@link #KNIFE_REACH}.
+     * 附属模组近战武器自身距离在乌鸦上获得的延迟容差（{@code SparkWitchApi.crowMeleeStandIn}），即把 Wathe 3 格刺击变为
+     * {@link #KNIFE_REACH} 的余量。
+     */
+    public static final double ADDON_MELEE_TOLERANCE = 0.5;
     /** Vanilla left-click reach 3 plus its 1-block attack allowance. / 原版左键距离 3 加 1 格攻击余量。 */
     public static final double MELEE_REACH = 4.0;
     /**
@@ -101,6 +108,16 @@ public final class BlackRavenCrowHitRules {
             nearest = Math.min(nearest, volume.squaredMagnitude(point));
         }
         return nearest;
+    }
+
+    /**
+     * Reach on the crow of an add-on melee weapon with its own nominal {@code reach} (plus
+     * {@link #ADDON_MELEE_TOLERANCE}); NaN for a non-positive or non-finite reach, which then never hits.
+     * 自带名义距离 {@code reach} 的附属模组近战武器在乌鸦上的距离（加 {@link #ADDON_MELEE_TOLERANCE}）；距离非正或非有限时为
+     * NaN，此时永远命中不了。
+     */
+    public static double addonMeleeReach(double reach) {
+        return reach > 0.0 && Double.isFinite(reach) ? reach + ADDON_MELEE_TOLERANCE : Double.NaN;
     }
 
     /** Melee and stab reach on the rewound volumes (inclusive). / 按回溯体积判定的近战与刺击距离（含边界）。 */
