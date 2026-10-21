@@ -683,7 +683,8 @@ Current build baseline:
     cursor loads one round into that magazine, or into the rifle's inserted magazine, or into its empty chamber when no
     magazine is inserted. Every side that resolves the click claims it, so it never swaps, and exactly one side writes
     (`UsecAttachmentCursorLoading.writer`): the server for every click it resolves (survival, adventure, and any
-    container click, a creative player's included; the client only claims, the shotgun pattern), and the client only
+    container click, a creative player's included; the client only claims the click, the shotgun's `onClicked` pattern),
+    and the client only
     for a creative player's click in the vanilla creative inventory screen (owner, 2026-10-07). That screen resolves
     slot clicks on the client (`PlayerScreenHandler.onSlotClick` on its inventory tab, its own handler for the other
     tabs' hotbar row) and syncs whole stacks with creative packets, so the server never sees the click; the client
@@ -1180,12 +1181,28 @@ Current build baseline:
 - `util/hitscan/`: server-side lag compensation for hitscan weapons. `PlayerHitboxHistory` keeps a
   one-second, server-thread-only ring buffer of player hitboxes (never saved, synced, or sent);
   `HitscanLagRules` owns the ping-based rewind window and swept volumes. Used by the Hunter
-  double-barrel shotgun, the Murderous Witch Death Ray, the Control Expert Taser, the Abyss Listener Shriek
-  Gun, the USEC rifle (its whole bullet path against `hitVolumes` grown by 0.1), and the Black Raven Feather Blade
-  (whose sight and feet-distance reach are taken at the rewound hit);
-  client crosshair hints keep current boxes. The Potion Gunner shell's in-flight player check uses
-  `projectileHitVolumes`, which rewinds only the ping-independent view delay: the gunner's client also simulates the
-  shell, so the ping cancels.
+  double-barrel shotgun (to confirm its client aim claim, below), the Murderous Witch Death Ray, the Control Expert
+  Taser, the Abyss Listener Shriek Gun, the USEC rifle (its whole bullet path against `hitVolumes` grown by 0.1), and
+  the Black Raven Feather Blade (whose sight and feet-distance reach are taken at the rewound hit);
+  client crosshair hints keep current boxes. Known trade-off of a nearest pick over the whole window: against a running
+  target the hit zone reaches from where the shooter saw it to where the server has it now (~2 blocks ahead at sprint
+  and 100 ms), which players read as shots "offset by movement speed". The Potion Gunner shell's in-flight player
+  check uses `projectileHitVolumes`, which rewinds only the ping-independent view delay: the gunner's client also
+  simulates the shell, so the ping cancels.
+- Hunter shotgun aim claim (revolver parity, 2026-10-21; `roles/killer/hunter/HunterShotgunAim`,
+  `HunterShotgunAimClaims`, `net/HunterNetworking`, client `client/hunter/HunterShotgunAimClient` and
+  `client/mixin/hunter/DoubleBarrelAimClaimMixin`): at the head of the client's `interactItem`, whenever that hand holds
+  the shotgun, the client sends stable C2S `sparkwitch:double_barrel_aim` (`count:varint, ids:varint[count]`, at most 8;
+  malformed → empty claim) naming every other player whose current client box (+0.1) its block-clipped 8-block ray
+  enters, nearest first. Every use packet thus follows its claim, including the held-trigger repeat that vanilla sends
+  without calling `use` while the client still predicts the 4-tick follow-up cooldown. The receiver stores it synchronously
+  (Fabric queues payloads with vanilla packets, so it lands first); the server `use` takes it once (fresh for one tick).
+  With a claim, the first server-eligible claimed player decides: hit when its `hitVolumes` grown by 0.5 meet the
+  server's ray, else a miss (never passed through to a player behind); ineligible ones are transparent. Without a claim
+  the old nearest pick over rewound volumes runs; a Magician puppet proxy (a `FakePlayer` sharing its owner's UUID)
+  never reads one, so it cannot use up the owner's claim. The payload is
+  on no deny-list: it fires nothing, and the shot stays on the guarded vanilla use path. Puppet and Seeker/drone
+  nearest-wins hooks still receive the resulting `aimed`.
 - `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
   Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
   an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;
@@ -1218,7 +1235,8 @@ Do not reorder these calls. The existing component ids remain `sparkwitch:player
 and `sparkwitch:world`; packet field order and NBT keys must remain stable.
 `sparkwitch:fire_death_ray` carries the caster's yaw and pitch at key press (the attack key
 is handled before that tick's rotation packet); a payload without them still decodes and
-falls back to the server rotation. The server still decides every Death Ray and shotgun hit.
+falls back to the server rotation. The server still decides every Death Ray hit, and confirms every shotgun hit
+(the shotgun's client names its target, see the Hunter shotgun aim claim).
 On macOS a Ctrl + left press (sprint is Left Ctrl) with no screen stays a left press, uncounted, while the Death Ray
 owns the attack exactly as `DeathRayClientHooks.tryFire` decides (`ownsAttack`: confirmed server, player, network
 handler, active ray); releases keep vanilla's remap (`client/mixin/DeathRayMacControlClickMixin`, `client/input`).
@@ -1993,13 +2011,15 @@ gets no trap back (the trap itself stays armed until it expires or the round end
 A Hunter shotgun shot that reaches the wall takes `HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE` (7000 in SparkStrength's
 unit, 10000 = 100%, so 70%; owner, 2026-10-21) from the SparkStrength junction box (`sparkstrength:junction_box`) it
 lands on, so two shots open a full box. Nearest wins along one COLLIDER block ray (`DoubleBarrelShotgunItem.wallHit`,
-shared with the player pick): an eligible player, then a Magician puppet, then a breakable Seeker device
-(`SeekerDeviceHits.shotgunPathHasDevice`, a read-only query asked before the breaking `onShotgunFired`) absorbs the shot
-first. A SparkStrength Bomber drone absorbs inside `onShotgunFired` without a signal, so a drone between the Hunter
-and a box lets that shot hit the box too (accepted). `compat/SparkStrengthJunctionBoxCompat` reflects
-`JunctionBoxService#damageByWeapon(ServerPlayerEntity, BlockPos, int)` only after the block id matches and fails
-closed; SparkStrength owns every sabotage gate and opens a box that reaches 0 like a pry finished by the shooter. The
-shot's record fields, sound and cooldown are unchanged.
+which `aim` clips the player pick and the client claim to): an eligible player, then a Magician puppet, then a breakable
+Seeker device (`SeekerDeviceHits.shotgunPathHasDevice`, a read-only query asked before the breaking `onShotgunFired`)
+absorbs the shot first. A claimed eligible player the server cannot confirm also stops it (`ShotgunPick.playerInWay`):
+the shot misses that player and reaches nothing behind, as the aim claim's "never passed through" rule. A SparkStrength
+Bomber drone absorbs inside `onShotgunFired` without a signal, so a drone between the Hunter and a box lets that shot
+hit the box too (accepted). `compat/SparkStrengthJunctionBoxCompat` reflects
+`JunctionBoxService#damageByWeapon(ServerPlayerEntity, BlockPos, int)` only after the block id matches and fails closed;
+SparkStrength owns every sabotage gate and opens a box that reaches 0 like a pry finished by the shooter. The shot's
+record fields, sound and cooldown are unchanged.
 Sword piercing
 applies to role/item shields, not trait protections such as Last Stand or Last
 Escape; protection costs and retaliation keep their normal side effects.
