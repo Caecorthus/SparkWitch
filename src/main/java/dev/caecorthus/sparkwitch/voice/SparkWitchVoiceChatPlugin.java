@@ -9,6 +9,7 @@ import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
 import de.maxhenkel.voicechat.api.events.SoundPacketEvent;
 import de.maxhenkel.voicechat.api.packets.SoundPacket;
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignService;
@@ -180,6 +181,12 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
             // Rift Gate occupants are muted but still hear (plan §6.6): no voice may leak from a gate, and the NR
             // Paranoid would otherwise hear them as non-swallowed spectators.
             // 裂隙门内的玩家被静音但仍能听见（plan §6.6）：门口不得传出人声，否则 NR 偏执杀手会把他们当作未被吞的旁观者听到。
+            event.cancel();
+            return;
+        }
+        if (BlackRavenCrowForm.isInCrowForm(speaker)) {
+            // A Black Raven in Raven Form is muted but still hears (owner Q6), like a Rift Gate occupant: no voice may
+            // leave the hidden body. / 化鸦中的黑羽鸦被静音但仍能听见（所有者 Q6），与裂隙门内玩家相同：隐藏的本体不得传出人声。
             event.cancel();
             return;
         }

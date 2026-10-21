@@ -1404,6 +1404,9 @@
   "message.sparkwitch.black_raven_crow.ended.timeout": "Raven Form has ended.",
   "message.sparkwitch.black_raven_crow.ended.body": "You were pulled back to your body.",
   "replay.skill.sparkwitch.black_raven_crow": "%s took §8Raven Form§r",
+  "item.sparkwitch.homing_feather": "Homing Feather",
+  "entity.sparkwitch.homing_feather": "Homing Feather",
+  "message.sparkwitch.black_raven_crow.feather_blocked": "No room to land at the Homing Feather. You returned to your body.",
   "death_reason.sparkwitch.crimson_wither_skull": "Killed by a crimson wither skull",
   "replay.death.sparkwitch.crimson_wither_skull.killed": "%s was killed by %s's §ccrimson wither skull§r",
   "replay.death.sparkwitch.crimson_wither_skull.died": "%s was killed by a §ccrimson wither skull§r"

@@ -46,7 +46,7 @@ public abstract class ServerPlayNetworkAddonFearMixin {
             return;
         }
         MinecraftServer server = player.getServer();
-        if (server != null) {
+        if (server != null && !GrandWitchFearService.isSilentlyBlockedPayload(payload.getId().id())) {
             server.execute(() -> GrandWitchFearService.sendSkillBlocked(player));
         }
         ci.cancel();
@@ -78,7 +78,9 @@ public abstract class ServerPlayNetworkAddonFearMixin {
         ServerPlayerEntity player = context.player();
         original.call(server, (Runnable) () -> {
             if (GrandWitchFearService.shouldBlockRoleSkillPayload(player, payloadId)) {
-                GrandWitchFearService.sendSkillBlocked(player);
+                if (!GrandWitchFearService.isSilentlyBlockedPayload(payloadId)) {
+                    GrandWitchFearService.sendSkillBlocked(player);
+                }
             } else {
                 handler.run();
             }

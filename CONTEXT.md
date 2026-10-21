@@ -3240,8 +3240,8 @@ Seeker car.
 - **Fixed ids.** Entity and component `sparkwitch:black_raven_crow`; C2S `sparkwitch:black_raven_crow_toggle` (empty),
   `sparkwitch:black_raven_crow_move` (`crowEntityId`, x, y, z, yaw, pitch every tick while flying),
   `sparkwitch:black_raven_crow_use` (`crowEntityId` + vanilla block hit), `sparkwitch:black_raven_crow_drop_feather`
-  (empty); S2C `sparkwitch:black_raven_crow_correction` (`crowEntityId`, x, y, z, yaw, pitch; owner only). Reserved
-  for crow-world: the Homing Feather (归羽) `sparkwitch:homing_feather` and the particle `sparkwitch:black_feather`.
+  (empty); S2C `sparkwitch:black_raven_crow_correction` (`crowEntityId`, x, y, z, yaw, pitch; owner only). crow-world
+  registers the Homing Feather (归羽) `sparkwitch:homing_feather` and the particle `sparkwitch:black_feather`.
   `net/BlackRavenCrowNetworking` is the only payload registration; all four C2S ids sit on the Control Expert stun,
   Seeker session, Riftwalker session and Fear deny-lists.
 - **Unlock.** `BlackRavenCrowSkillService.onTaskComplete` counts `TaskComplete.EVENT` for a playing, alive RAW Black
@@ -3288,6 +3288,40 @@ Seeker car.
   held item, so, like the Mini Wither toggle, it does not reach Raven Form.
 - **Disguise.** The Raven Mask switch answers `window_active` while the crow flies; Raven Form refuses a disguised
   Raven (`disguised`).
+- **Right-click (crow-world).** `BlackRavenCrowUseService` / `BlackRavenCrowUseRules` are Raven-owned copies of the
+  Seeker car use (the Seeker's classes are untouched; only its two read-only vanilla-field accessors are reused):
+  session-owned crow id, throttle (client 4 ticks, server 2), reach 3.0 from the crow's eye plus 1.5 server slack, an
+  80° 3D look cone, outline sight ray, then Wathe small/train doors through `DoorInteraction.EVENT` with
+  `ItemStack.EMPTY` and the body as the acting player (locked, key and jammed doors refuse with Wathe's tips), vanilla
+  doors, trapdoors and fence gates sourced by the crow, buttons and levers. Never an item, entity or attack.
+- **Homing Feather (归羽).** `BlackRavenFeatherRegistry` (from `SparkWitch`) registers the display-only item and the
+  marker entity (both `sparkwitch:homing_feather`) and the particle `sparkwitch:black_feather`. The item is not in
+  `SparkWitchItems`, is skipped by the SparkWitch tab and deletes itself in any player inventory. `handleDrop` spawns
+  one `BlackRavenFeatherEntity` per session at the crow (silent refusal otherwise): it drifts down
+  (`BlackRavenCrowFeatherRules`), rests, is visible to all within 64 blocks, cannot be picked up, hit, targeted, pushed
+  or destroyed, reports its rest position through `updateFeatherPos`, and an expiring radius-2 chunk ticket keeps it
+  ticking far behind the crow. It removes itself when its session no longer names it; every `ENDED` removes it first.
+- **Landing.** `BlackRavenCrowLandingService` listens to `ENDED`: only `usesHomingFeather()` with a feather and a
+  playing owner lands at the feather (a still-falling feather is projected to the floor); `BlackRavenCrowLandingSafety`
+  (a copy of the package-private `RiftExitSafety`, driven by the public `RiftExitSearch` ring) picks the spot, else the
+  owner stays at the body with `message.sparkwitch.black_raven_crow.feather_blocked`. A landing teleports (body
+  yaw/pitch kept), starts the 3 s `setLandingHoldUntil`, plays parrot fly 0.6 + phantom flap 0.5 at the spot, and
+  swirls `black_feather` particles from 3 per tick to none: vanilla velocity-mode particle packets launched
+  tangentially, the client particle turning its velocity by `SWIRL_TURN` each tick so it orbits (no custom packet).
+- **Landing hold.** `ControlExpertStun.isStunned` answers true while `BlackRavenCrowLandingHold.isHeld` (server: world
+  time; owner's client: until the server's zero sync), so the stun's interaction guards, payload deny-list, role
+  refusals and client key lock apply with free mouse look. The hold service pulls a drifting player back with a
+  rotation-relative teleport, lets a drift over 4 blocks (another system's teleport) end the hold, and zeroes the field
+  when time is up. The player stays visible and attackable.
+- **Frozen body.** `BlackRavenCrowBodyGuards` fails the five Fabric use/attack callbacks in crow form (phase
+  `sparkwitch:black_raven_crow_body` before default); `BlackRavenCrowBodyInventoryGuardMixin` drops slot clicks, drops
+  and hand swaps; `BlackRavenCrowBodyPayloadGuardMixin` drops the stun deny-list except the four crow ids and
+  Perception's `sparkwitch:use_skill`.
+- **Blackout, voice, Fear, Blind.** A `BlackoutEffect.BEFORE` listener cancels blackout blindness in crow form without
+  removing existing blindness (Wathe re-applies it every tick, so a later end is blind like any police). The voice
+  plugin mutes a crow-form speaker after the Rift branch; they still hear. Fear keeps `black_raven_crow_move` on its
+  list but drops it silently (`GrandWitchFearService.isSilentlyBlockedPayload`). The Blind's server sound probe treats a
+  hidden body as SILENT and the cane never lists it; the crow is an ordinary non-player source.
 
 ## Tofana Elixir Vocabulary
 

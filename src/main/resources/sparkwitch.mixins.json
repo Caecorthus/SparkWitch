@@ -177,6 +177,8 @@
     "blackraven.BlackRavenCrowChunkViewMixin",
     "blackraven.BlackRavenCrowChunkBatchMixin",
     "blackraven.BlackRavenCrowEntityTrackerMixin",
+    "blackraven.BlackRavenCrowBodyInventoryGuardMixin",
+    "blackraven.BlackRavenCrowBodyPayloadGuardMixin",
     "fisher.FisherDoorPassingMixin",
     "blind.BlindKitDeathDropMixin",
     "blind.BlindKitDecoratedPotMixin",
