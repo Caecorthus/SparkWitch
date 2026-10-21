@@ -224,6 +224,38 @@ Current build baseline:
   answers `SKIP_DEFAULT_BLOCK_INTERACTION` for them through
   `mixin/blackraven/DecoratedPotBlockBlackRavenItemMixin`, so it never takes them (not even through a
   Wathe ornament hung on it) and the ledger or mask still opens there.
+  - Perception and the x-ray (owner, 2026-10-21; police rework plan §3.2/§3.5). Perception has no opening cooldown
+    (`PERCEPTION_INITIAL_COOLDOWN_TICKS = 0`); the 15 s window, 10 s accumulation within 8 blocks and 90 s cooldown
+    stay. A completed Perception no longer reveals a role: `BlackRavenIdentitySnapshot` is only `(targetUuid,
+    playerName)`, and the `sparkwitch:black_raven_perception` NBT and owner sync carry only those (old `RoleId` /
+    `RoleColor` NBT keys are ignored, not migrated: the state is match-bound). There is no N-key instinct switch, no
+    sensed HUD line and no role text under name tags any more; the N slot for `sparkwitch:black_raven` in
+    `SecondaryAbilityRegistry` is free (the crow skill takes it).
+    - Held-instinct x-ray (`client/blackraven/BlackRavenInstinctClientHooks`): while the local player whose RAW role
+      (`getRole`) is the Black Raven, alive and playing, holds the instinct key (`WatheClient.isInstinctEnabled()`),
+      every living perceived player within 8 blocks of the camera entity (`MinecraftClient.getCameraEntity()`, the
+      player when null; `BlackRavenRules.XRAY_RADIUS_SQUARED`, inclusive) is outlined in the single
+      `BlackRavenRules.XRAY_COLOR` `0x9D8BC2` (the ledger's feather-violet `SHEEN`); a Feather-marked target keeps
+      `COLOR`. It only adds outlines (unperceived players are never answered), works while disguised (no disguise
+      gate), honours explicit `skip` results and the `isPubliclyVisible` hard hides, and is off during Perception's
+      own window (`BlackRavenInstinctGateMixin` closes the instinct gates) and whenever the key gate reads false
+      (Grand Witch Fear, the USEC cloak). Wiring: `BlackRavenInstinctPriorityMixin` (HEAD, priority 2000) and
+      `BlackRavenInstinctResolverMixin` (RETURN, priority 400). SparkTraits' reflective
+      `SparkWitchBlackRavenBridge` still calls the frozen `public static Integer
+      resolvePrioritySensedHighlight(Entity)` before its Conscience branch (`null` = not answered). The Judge
+      sentence and factor/Emma RETURN fallbacks hide for the Raven only during Perception's window; the x-ray is
+      per-target and only fills perceived players, so it needs no viewer-wide hide there.
+    - Never visible to instinct (`client/blackraven/BlackRavenInstinctVeto`): a living player whose RAW role is the
+      Black Raven is never highlighted or outlined for any viewer except itself and spectator/creative viewers (dead
+      spectators, spectating non-participants, creative admins). Wathe syncs the whole role map to every client, so
+      `getRole` is the raw role there; an unconfirmed server, a missing viewer or an unknown role never vetoes.
+      `client/mixin/blackraven/BlackRavenInstinctVetoMixin` (`@WrapMethod` on `WatheClient.getInstinctHighlight`,
+      priority 3000, pinned in `watheClientMixinContracts`) returns -1 without `original.call()`, so every event
+      result, HEAD answer and RETURN fallback (killer instinct, Judge sentence, Seeker/Emma/factor marks, tablet
+      suspects, Fiend and Final Moment, Vendetta) drops; `BlackRavenOutlineVetoMixin` (`@WrapMethod` on
+      `MinecraftClient#hasOutline`, priority 1900, inside the Blind's priority-2000 gate) is the final guarantee and
+      also hides server GLOWING on the Raven. Both only veto, so their nesting with the other wrappers does not
+      matter. A Magician puppet copying the Raven re-asks the method for its stand-in and never glows either.
   - `disguise/`: the Black Raven disguise. It owns the acting-role overlay
     (`BlackRavenActingRole`), the owner-only `BlackRavenDisguiseComponent` and its sync codec, the
     Tab B pool snapshot, the bound Raven Mask (`sparkwitch:black_raven_mask`), one-shot open
@@ -239,7 +271,7 @@ Current build baseline:
     `PlayerShopComponentBlackRavenDisguiseMixin`, the death-index, swap-guard, swap-remainder and
     wallet mixins, and the optional SparkStrength seams.
   - Its client presentation lives in `client/blackraven/`: `BlackRavenLedgerBookScreen` (the
-    code-drawn ledger panel: Tab A is a ruled perceived-identity grid with player faces, Tab B a
+    code-drawn ledger panel: Tab A is a ruled 3 x 7 grid of perceived players' faces and names (no role), Tab B a
     sectioned, scrolling disguise list with a footer revert button), `BlackRavenLedgerLayout`
     (its pure geometry and hit-testing), `BlackRavenLedgerPaint` (its role-local "raven noir"
     palette and fill primitives), `BlackRavenDisguiseClientState` (synced view,
@@ -852,7 +884,7 @@ Current build baseline:
     evaluation" in which `isInstinctEnabled()` and `isInstinctEnabledAndIsKiller()` read false, exactly as if the
     viewer had released the instinct key for that target. Wathe then drops a keybind event result and its null-result
     killer/spectator default, and every HEAD answer, RETURN fallback and listener keyed on those gates drops too
-    (SparkTraits Conscience/Impostor/effective-killer HEAD, Black Raven sensed mode, the Insider's and SparkStrength
+    (SparkTraits Conscience/Impostor/effective-killer HEAD, Black Raven x-ray, the Insider's and SparkStrength
     Corrupt Cop's key-held `always`, NoellesRoles Shadow Jester, SparkFactionAPI and witch-faction policies), while
     key-free answers stay: `always` results, Feather marks, Fiend Moment, Final Moment, Judge sentence, factor and
     Emma fallbacks, Vendetta, Guardian Shield, tablet suspects, Corrupt Cop Moment window and other timed marks. A
@@ -1153,7 +1185,8 @@ Current build baseline:
   only) and `scoped` to the existing USEC `sparkwitch:usec_rifle_fire` item use (`UsecReplay.fireData`). Record only:
   no gameplay, balance or kill-credit change. Hooks: `SaboteurAbilityService.use` (the lamps
   `SaboteurLightOutageService.activate` turned off, lit and powered before), `CurserFeatureService.use` (after the
-  cooldown and the confusion), the Murder Sense activation effect, `BlackRavenPerceptionService.tick` (a reveal),
+  cooldown and the confusion), the Murder Sense activation effect, `BlackRavenPerceptionService.tick` (a reveal; its
+  `role` is the target's real role read from the game at that moment, since the snapshot holds no role),
   `HolyFlashEntity.burst` (`HolyFlashBurstTally`), and `roles/civilian/windspirit/WindSpiritFallRecords`:
   `mixin/WindSpiritKnockRecordMixin` (`ServerPlayerEntity#onExplodedBy`, TAIL, observe only) notes a promoted Wind
   Spirit's wind charge catching a living participant in `WindSpiritKnockLedger` (latest knock per victim, 10 s
@@ -1251,8 +1284,8 @@ holds the Death Sense countdown, an only-growing set of highlighted body entity
 UUIDs, the necrology, and Prophecy records. The old `DeathOmenTicks` and
 `DeathOmenBodyUuids` NBT keys are no longer read or written.
 Black Raven state never enters that shared schema. Victim marks use
-`sparkwitch:black_raven_mark`; owner-only progress and completed identity
-snapshots use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
+`sparkwitch:black_raven_mark`; owner-only progress and completed perceived-player
+snapshots (UUID and name, no role) use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
 Its role-owned active window is exposed to the shared cooldown/HUD path only
 through `WitchSkillRegistry`'s stateless active-window provider.
 The Feather Blade aim (`BlackRavenTargeting.findAimedPlayer`) treats spectators as transparent:
@@ -2835,7 +2868,7 @@ Curser's role colour (no instinct key) that the final `WraithMinecraftClientMixi
 still passes through the Curser.
 `client/mixin/WraithNameTagRaycastMixin` narrows only the predicate of the first
 (player) `ProjectileUtil.getCollision` in Wathe's `RoleNameRenderer.renderHud`;
-`WitchCohortRoleNameMixin`, `InsiderCohortRoleNameMixin` and `BlackRavenRoleNameRenderer` apply the same filter
+`WitchCohortRoleNameMixin` and `InsiderCohortRoleNameMixin` apply the same filter
 to their own raycasts so their labels follow the tagged player.
 
 SparkTraits is optional and fail-closed. Reflection may target only
@@ -3021,7 +3054,7 @@ owner-only sync. `client/blackraven/` adds no client mixin and registers these l
 - **Acting-role changes.** `BlackRavenDisguiseClientState` installs the acting-role change
   listener. On any enter, exit, or switch it:
   - closes `LimitedInventoryScreen` and `TarotDivinationSelectorScreen`;
-  - resets the instinct mode to normal and clears the Tarot client state;
+  - clears the Tarot client state;
   - clears Orthopedist observer data when leaving the Orthopedist identity.
 - **Money visibility.** The `CanSeeMoney` phase `sparkwitch:black_raven_disguise_money` is ordered
   before `Event.DEFAULT_PHASE`. It answers only for the confirmed, disguised local Raven on the

@@ -23,8 +23,9 @@ import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 /**
- * Owner-private Perception window, incomplete points, and completed identity snapshots.
- * 仅拥有者可见的感知窗口、未完成点数与已解锁身份快照。
+ * Owner-private Perception window, incomplete points, and completed perceived-player snapshots (UUID and name only;
+ * no role since 2026-10-21).
+ * 仅拥有者可见的感知窗口、未完成点数与已完成的被感知者快照（仅 UUID 与名字；自 2026-10-21 起不含职业）。
  */
 public final class BlackRavenPerceptionPlayerComponent
         implements AutoSyncedComponent, ServerTickingComponent, ClientTickingComponent {
@@ -34,7 +35,6 @@ public final class BlackRavenPerceptionPlayerComponent
     );
     private static final int MAX_TARGETS = 256;
     private static final int MAX_NAME_LENGTH = 64;
-    private static final int MAX_ROLE_ID_LENGTH = 128;
 
     private final PlayerEntity player;
     private final BlackRavenPerceptionState state = new BlackRavenPerceptionState();
@@ -222,37 +222,28 @@ public final class BlackRavenPerceptionPlayerComponent
     private static void writeSnapshot(RegistryByteBuf buf, BlackRavenIdentitySnapshot snapshot) {
         buf.writeUuid(snapshot.targetUuid());
         buf.writeString(snapshot.playerName(), MAX_NAME_LENGTH);
-        buf.writeString(snapshot.roleId(), MAX_ROLE_ID_LENGTH);
-        buf.writeInt(snapshot.roleColor());
     }
 
     private static BlackRavenIdentitySnapshot readSnapshot(RegistryByteBuf buf) {
-        return new BlackRavenIdentitySnapshot(
-                buf.readUuid(),
-                buf.readString(MAX_NAME_LENGTH),
-                buf.readString(MAX_ROLE_ID_LENGTH),
-                buf.readInt()
-        );
+        return new BlackRavenIdentitySnapshot(buf.readUuid(), buf.readString(MAX_NAME_LENGTH));
     }
 
     private static NbtCompound toNbt(BlackRavenIdentitySnapshot snapshot) {
         NbtCompound entry = new NbtCompound();
         entry.putUuid("Target", snapshot.targetUuid());
         entry.putString("PlayerName", snapshot.playerName());
-        entry.putString("RoleId", snapshot.roleId());
-        entry.putInt("RoleColor", snapshot.roleColor());
         return entry;
     }
 
+    /**
+     * Pre-2026-10-21 entries also carry {@code RoleId}/{@code RoleColor}; they are ignored, never migrated (the state is
+     * match-bound and dropped when the match changes).
+     * 2026-10-21 之前的条目还带有 {@code RoleId}/{@code RoleColor}；读取时直接忽略，不做迁移（状态绑定对局，换局即清除）。
+     */
     private static @Nullable BlackRavenIdentitySnapshot fromNbt(NbtCompound entry) {
         if (!entry.containsUuid("Target")) {
             return null;
         }
-        return new BlackRavenIdentitySnapshot(
-                entry.getUuid("Target"),
-                entry.getString("PlayerName"),
-                entry.getString("RoleId"),
-                entry.getInt("RoleColor")
-        );
+        return new BlackRavenIdentitySnapshot(entry.getUuid("Target"), entry.getString("PlayerName"));
     }
 }

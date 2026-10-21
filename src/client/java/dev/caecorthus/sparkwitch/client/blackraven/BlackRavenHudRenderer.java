@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
-import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseSyncCodec;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -16,7 +15,6 @@ public final class BlackRavenHudRenderer {
     private static final int RIGHT_PADDING = 5;
     private static final int BOTTOM_PADDING = 5;
     private static final int ROW_GAP = 2;
-    private static final int DISABLED_COLOR = 0x777777;
 
     private BlackRavenHudRenderer() {
     }
@@ -30,29 +28,13 @@ public final class BlackRavenHudRenderer {
         BlackRavenDisguiseSyncCodec.View view = BlackRavenDisguiseClientState.view(player);
         if (view.bound() && view.disguised() && BlackRavenDisguiseClientState.isDisguised(player)) {
             renderDisguise(context, view);
-            return;
         }
-
-        Text line = Text.translatable(
-                BlackRavenClientState.isSensedMode()
-                        ? "hud.sparkwitch.black_raven.instinct.sensed"
-                        : "hud.sparkwitch.black_raven.instinct.normal",
-                SecondaryAbilityController.secondaryKeyText()
-        );
-        TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
-        int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
-        int y = context.getScaledWindowHeight()
-                - BOTTOM_PADDING
-                - renderer.fontHeight * 2
-                - ROW_GAP;
-        int color = BlackRavenClientState.isPerceptionActive(player) ? DISABLED_COLOR : BlackRavenRules.COLOR;
-        context.drawTextWithShadow(renderer, line, x, y, color);
     }
 
     /**
-     * While disguised the instinct mode is fixed, so the mode row becomes one compact disguise line in the same
-     * right-aligned slot, lifted to clear the disguise role's own bottom-right HUD lines.
-     * 伪装期间本能模式固定，模式行改为一行紧凑的伪装提示，保持右对齐位置，并上移以避开伪装职业自己的右下角 HUD。
+     * While disguised the row becomes one compact disguise line, right-aligned and lifted to clear the disguise role's
+     * own bottom-right HUD lines.
+     * 伪装期间该行改为一行紧凑的伪装提示，保持右对齐，并上移以避开伪装职业自己的右下角 HUD。
      */
     private static void renderDisguise(DrawContext context, BlackRavenDisguiseSyncCodec.View view) {
         Text role = BlackRavenDisguiseClientState.roleName(view.acting());
