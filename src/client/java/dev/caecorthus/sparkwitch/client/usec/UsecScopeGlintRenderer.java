@@ -32,10 +32,12 @@ import org.joml.Matrix4fStack;
 
 /**
  * Draws the scope glint (S1, WP6 mockup) on every other scoped USEC's objective lens, at the point where this pass
- * actually drew it ({@code UsecScopeLensAnchors}), so it rides the rifle's bob: a camera-facing billboard of a
- * small generated flare (premultiplied {@code #FFF6DE} core and streaks, {@code #FFE2AA} halo), screen-blended in
- * {@code WorldRenderEvents.AFTER_TRANSLUCENT}. It reads only the all-player synced {@code UsecPlayerComponent.scoped}
- * flag, which the server sets after its own checks, and the USEC's synced head yaw and pitch. Occlusion is a point
+ * actually drew it ({@code UsecScopeLensAnchors}), so it rides the rifle's bob. Three camera-facing quads from one
+ * premultiplied atlas ({@link UsecGlintRules.Cell}): a white-hot core the size of the lens glass with a small warm
+ * halo, a thin screen-horizontal streak, and a vertical spike that the anamorphic look leaves empty. They share one
+ * buffer and are screen-blended in {@code WorldRenderEvents.AFTER_TRANSLUCENT}. It reads only the all-player synced
+ * {@code UsecPlayerComponent.scoped} flag, which the server sets after its own checks, and the USEC's synced head yaw
+ * and pitch. Occlusion is a point
  * test like the mockup's: a client block raycast from the camera to the objective with VISUAL shapes (clear glass and
  * windows let it through), so walls hide it while the flare itself is never clipped by the USEC's own head or rifle.
  * It deliberately draws in both world passes of a Picture-in-Picture frame, sized from
@@ -43,8 +45,9 @@ import org.joml.Matrix4fStack;
  * exactly as large as Full-Screen Zoom shows it. The composite replaces the main picture inside the lens, so the two
  * never stack. Presentation only.
  * 在其他每个开镜 USEC 的物镜上、即本次渲染实际画出物镜的位置（{@code UsecScopeLensAnchors}）绘制镜头反光（S1，WP6 样稿），
- * 因此它随步枪一起晃动：一个朝向镜头的小型生成闪光公告板（预乘的 {@code #FFF6DE}
- * 核心与光芒、{@code #FFE2AA} 光晕），在 {@code WorldRenderEvents.AFTER_TRANSLUCENT} 中以滤色混合绘制。只读取同步给全员的
+ * 因此它随步枪一起晃动。一张预乘图集（{@link UsecGlintRules.Cell}）上的三个朝向镜头的四边形：与物镜玻璃一样大的白热
+ * 核心加小暖色光晕、一条细的屏幕水平光芒，以及变形宽银幕外观中为空的竖直光芒。它们共用一个缓冲，在
+ * {@code WorldRenderEvents.AFTER_TRANSLUCENT} 中以滤色混合绘制。只读取同步给全员的
  * {@code UsecPlayerComponent.scoped} 标记（服务端检查后设置）以及 USEC 同步的头部偏航与俯仰。遮挡与样稿一样是点测试：
  * 客户端以 VISUAL 形状从镜头向物镜做方块射线检测（透明玻璃与车窗可透过），因此墙会挡住它，而闪光本身绝不会被 USEC 自己
  * 的头或枪截断。画中画帧的两次世界渲染中都有意绘制，大小取自 {@code ScopeClient.screenPixelsPerNdcY}：主渲染中为 1 倍
@@ -103,19 +106,30 @@ public final class UsecScopeGlintRenderer {
                 continue;
             }
             double distance = toViewer.length();
-            double halfPixels = UsecGlintRules.spriteHalfPixels(
-                    UsecGlintRules.corePixels(distance, pixelsPerTangent, heightPx), heightPx);
-            double half = UsecGlintRules.worldHalfSize(halfPixels, distance, pixelsPerTangent);
-            double alpha = UsecGlintRules.alpha(intensity, world.getTime() + tickDelta, player.getId());
-            if (!(half > 0.0)) {
+            double age = world.getTime() + tickDelta;
+            double core = UsecGlintRules.corePixels(distance, pixelsPerTangent, heightPx);
+            double rayPixels = UsecGlintRules.rayHalfLengthPixels(distance, pixelsPerTangent, heightPx)
+                    * UsecGlintRules.rayScale(age, player.getId());
+            float flare = (float) UsecGlintRules.worldHalfSize(UsecGlintRules.flareHalfPixels(core), distance,
+                    pixelsPerTangent);
+            float ray = (float) UsecGlintRules.worldHalfSize(rayPixels, distance, pixelsPerTangent);
+            float thickness = (float) UsecGlintRules.worldHalfSize(UsecGlintRules.rayHalfThicknessPixels(rayPixels),
+                    distance, pixelsPerTangent);
+            int shade = (int) Math.round(UsecGlintRules.brightness(intensity, age, player.getId()) * 255.0);
+            if (!(flare > 0.0F) || !(ray > 0.0F) || shade <= 0) {
                 continue;
             }
             if (buffer == null) {
                 buffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS,
                         VertexFormats.POSITION_TEXTURE_COLOR);
             }
-            quad(buffer, context.positionMatrix(), camera, scope.subtract(cameraPos), (float) half,
-                    (int) Math.round(alpha * 255.0));
+            // Three quads from one atlas, in the same buffer: the round flare, the screen-horizontal streak and the
+            // screen-vertical spike (empty in the anamorphic look).
+            // 同一图集、同一缓冲中的三个四边形：圆形闪光、屏幕水平光芒与屏幕竖直光芒（变形宽银幕外观中为空）。
+            Matrix4f billboard = billboard(context.positionMatrix(), camera, scope.subtract(cameraPos));
+            quad(buffer, billboard, flare, flare, UsecGlintRules.Cell.FLARE, false, shade);
+            quad(buffer, billboard, ray, thickness, UsecGlintRules.Cell.STREAK, false, shade);
+            quad(buffer, billboard, thickness, ray, UsecGlintRules.Cell.SPIKE, true, shade);
         }
         if (buffer != null) {
             draw(buffer);
@@ -128,19 +142,40 @@ public final class UsecScopeGlintRenderer {
         return hit != null && hit.getType() != HitResult.Type.MISS;
     }
 
-    private static void quad(BufferBuilder buffer, Matrix4f view, Camera camera, Vec3d offset, float half,
-                             int alpha) {
+    /**
+     * A camera-facing frame at the lens: local x is the camera's right (screen-horizontal), local y its up.
+     * 物镜处朝向镜头的坐标系：局部 x 为镜头的右方向（屏幕水平），局部 y 为其上方向。
+     */
+    private static Matrix4f billboard(Matrix4f view, Camera camera, Vec3d offset) {
         MatrixStack stack = new MatrixStack();
         stack.multiplyPositionMatrix(view);
         stack.translate(offset.x, offset.y, offset.z);
         stack.multiply(camera.getRotation());
-        stack.scale(half, half, half);
-        Matrix4f matrix = stack.peek().getPositionMatrix();
-        // Premultiplied texture: the intensity scales colour and alpha alike. / 预乘贴图：强度同时缩放颜色与透明度。
-        buffer.vertex(matrix, -1.0F, -1.0F, 0.0F).texture(0.0F, 1.0F).color(alpha, alpha, alpha, alpha);
-        buffer.vertex(matrix, -1.0F, 1.0F, 0.0F).texture(0.0F, 0.0F).color(alpha, alpha, alpha, alpha);
-        buffer.vertex(matrix, 1.0F, 1.0F, 0.0F).texture(1.0F, 0.0F).color(alpha, alpha, alpha, alpha);
-        buffer.vertex(matrix, 1.0F, -1.0F, 0.0F).texture(1.0F, 1.0F).color(alpha, alpha, alpha, alpha);
+        return stack.peek().getPositionMatrix();
+    }
+
+    /**
+     * One quad of {@code halfX} x {@code halfY} blocks textured with an atlas cell. An upright quad turns the cell a
+     * quarter: its u runs down the quad, so the lying spike cell stands up.
+     * 一个 {@code halfX} x {@code halfY} 格、贴图集格子的四边形。竖直四边形把格子转四分之一圈：u 沿四边形向下，因此横放
+     * 存储的竖直光芒格子会立起来。
+     */
+    private static void quad(BufferBuilder buffer, Matrix4f matrix, float halfX, float halfY, UsecGlintRules.Cell cell,
+                             boolean upright, int shade) {
+        corner(buffer, matrix, -halfX, -halfY, cell, upright, 0.0F, 1.0F, shade);
+        corner(buffer, matrix, -halfX, halfY, cell, upright, 0.0F, 0.0F, shade);
+        corner(buffer, matrix, halfX, halfY, cell, upright, 1.0F, 0.0F, shade);
+        corner(buffer, matrix, halfX, -halfY, cell, upright, 1.0F, 1.0F, shade);
+    }
+
+    private static void corner(BufferBuilder buffer, Matrix4f matrix, float x, float y, UsecGlintRules.Cell cell,
+                               boolean upright, float across, float down, int shade) {
+        float u = cell.u0 + (cell.u1 - cell.u0) * (upright ? down : across);
+        float v = cell.v0 + (cell.v1 - cell.v0) * (upright ? across : down);
+        // Premultiplied texture: the brightness scales the colour; alpha stays opaque so the core shader's alpha < 0.1
+        // discard keeps to the texture's own black edge. / 预乘贴图：亮度缩放颜色；透明度保持不透明，使核心着色器
+        // alpha < 0.1 的丢弃只落在贴图自身的黑色边缘。
+        buffer.vertex(matrix, x, y, 0.0F).texture(u, v).color(shade, shade, shade, 255);
     }
 
     /**

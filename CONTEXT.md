@@ -767,6 +767,20 @@ Current build baseline:
     back to the holder's render origin. Any outer pass transform cancels. `WorldRenderEvents.START` clears the map,
     so a rifle not drawn in this pass (culled, held items hidden, a substituted item) shows no glint. Move
     `LENS_MODEL` when the objective moves.
+    - Look (owner 2026-10-21, look A "anamorphic"): one 128×128 premultiplied atlas whose cells are
+      `UsecGlintRules.Cell`. FLARE holds a white-hot core the size of the lens glass (0.04 blocks, clamped to 2.8–7 px
+      at 1080p) and a small warm halo with a faint violet coating ring; its quad is 2.8 cores. STREAK is one thin
+      screen-horizontal ray. SPIKE is the screen-vertical ray, stored lying down and empty in A.
+    - All three quads share one buffer and one draw. Rays run 26–36 px half length, longest on a far target (about
+      70 px across at 64 blocks), so the glint stays readable far away and stays on the optic up close. Their quads are
+      8:1 like their cells, so texels stay square. Every size comes from the projected px per block, so zoom reads as
+      nearer and PiP keeps matching Full-Screen Zoom. The twinkle is 90–100 % brightness plus 88–100 % ray length.
+    - Brightness rides the vertex RGB only, and the vertex alpha stays 255, because `position_tex_color` discards
+      alpha < 0.1: a fading alpha cut a moving hard ring into the old halo. The texture's alpha is max(rgb), but at
+      least 26 wherever any colour remains, so that discard edge only ever cuts black.
+    - The generator `docs/plans/usec-glint/GlintTextures.java` is local and ignored. It writes look A into the
+      resources and, given a folder, the four-point (B) and pixel-sparkle (C, `blur: false`) looks. Switching looks
+      is a texture and mcmeta swap.
   - Pose: `UsecRifleArmPoseMixin` (priority 1600) gives `CROSSBOW_HOLD` both from the hip and while scoped (plan
     D15) whenever the shown stack is the rifle. The shown stack is the single `getStackInHand` result after Wathe's
     held-item substitution. A `@ModifyVariable` at the STORE of vanilla's only `ItemStack` local reads it into a
