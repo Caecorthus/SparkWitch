@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.render;
 
+import dev.caecorthus.sparkwitch.client.blackraven.crow.BlackRavenCrowBodyVisibility;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 
@@ -37,7 +38,10 @@ public final class WraithNameTagPassThrough {
     }
 
     static boolean passesThrough(PlayerEntity viewer, Entity candidate) {
+        // Also the Black Raven's hidden Raven Form body, and everything for a viewer flying the crow (labels would be
+        // cast from its frozen body). / 另含黑羽鸦化鸦时被隐藏的本体；操控乌鸦的观察者穿过一切（名牌射线从其冻结的本体发出）。
         return candidate instanceof PlayerEntity target
-                && WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, target);
+                && WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, target)
+                || BlackRavenCrowBodyVisibility.nameTagPassesThrough(viewer, candidate);
     }
 }

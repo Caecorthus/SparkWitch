@@ -303,7 +303,8 @@ Current build baseline:
     key-2 skill. This package is the server core and the shared contract; see the "Black Raven Raven Form" paragraph
     under Runtime Invariants. Its streaming mixins are
     `mixin/blackraven/BlackRavenCrow{ChunkView,ChunkBatch,EntityTracker}Mixin`, its client entry is
-    `client/blackraven/crow/BlackRavenCrowClient`. `BlackRavenPerceptionCenter` (one level up)
+    `client/blackraven/crow/BlackRavenCrowClient` (pilot view, crow renderer, HUD, boundary indicator; client mixins
+    in `client/mixin/blackraven/crow/`). `BlackRavenPerceptionCenter` (one level up)
     is the Perception distance centre that Raven Form overrides.
 - `roles/killer/bellringer/`: Echo skill (game-time cost, forced Echo tasks,
   deadline penalty), owner-private Echo/hint/toll state, bound bell and toll kill,
@@ -3272,6 +3273,50 @@ Seeker car.
   never pulled back) and swept block collision. A result more than 0.0625 from the request is answered with a
   correction. The owner's client installs `BlackRavenCrowEntity.installClientPilotHook` so it ignores tracker updates
   for its own crow, predicts with `clientPilotMove` and applies corrections with `clientApplyCorrection`.
+- **Client (crow-client, `client/blackraven/crow/`).** Presentation only; the server decides everything.
+  - *Key 2.* `BlackRavenCrowClient` registers the RAW-role `sparkwitch:black_raven` handler in `SecondaryAbilityRegistry`:
+    a press sends the toggle (start, or end early); its `reset()` closes `BlackRavenPerceptionScreenEffects`.
+  - *Pilot view.* `BlackRavenCrowPilotClient` follows only the owner-synced component (active bit + crow id; START tick):
+    it never sends the toggle itself, so a view it gives up on (camera taken by `SetCameraEntity`, crow missing over
+    40 ticks) waits for the server's end or the next key-2 press. Start: clear (never release) the item in use, close
+    gameplay screens, drain the locked keys, `BlackRavenCrowFrozenInput` on the body, chunk culling off, hand hidden,
+    then `setCameraEntity(crow)` (bound by id every tick). The body stays `isCamera()` and its SELF moves are cancelled
+    for the whole session, then until its chunks are back (`BlackRavenCrowBodyMixin`, the Seeker chunk-fall fix). End
+    (server session over or changed, death, respawn/join, disconnect, world change): the camera goes back to the body
+    only while it is still ours. Flight (END tick): WASD/space/sneak read physically, `BlackRavenCrowClientRules`
+    accelerates 35 % of the gap per tick toward 1.2 / 0.8 blocks per tick, capped with `BlackRavenCrowFlightRules.limitStep`,
+    predicted with `clientPilotMove`, and one `black_raven_crow_move` per tick; mouse turns the crow (pitch +-89).
+  - *Input lock.* `BlackRavenCrowClientRules.LOCKED_KEYS` (attack, use, pick, drop, swap, inventory, hotbar, sprint,
+    movement) read as released (`BlackRavenCrowKeyBindingMixin`); instinct, Perception, key 2, chat and voice keep
+    working. The drop key sends `black_raven_crow_drop_feather` once (the slot shows empty while 20 ticks pending or
+    after `hasFeather()`); right-click sends `black_raven_crow_use` with the block the crow's eye looks at within
+    3 blocks (also the crosshair target; never an entity); left click does nothing. Body attack/use/pick and
+    interaction-manager calls are cancelled.
+  - *HUD.* While flying, the real hotbar is replaced by a one-slot crow hotbar (the `sparkwitch:homing_feather` item
+    model by registry id; air until crow-world registers it) and Wathe's crosshair by a plain one
+    (`BlackRavenCrowInGameHudMixin`, priority 1100). `BlackRavenHudRenderer` draws the Raven Form line
+    (`BlackRavenCrowHud.statusLine`: flying s left > landing s > locked x/2 > cooldown s > ready) on the free mode row,
+    or one row above the disguise line; never in the witch skills panel.
+  - *Boundary (owner Q10).* `BlackRavenCrowBoundaryOverlay` (HUD callback) reads Wathe's play area and the world border
+    (the server's clamp box); faces within 8 blocks of the hull glow their screen edge(s) (fill gradients, smoothstep
+    intensity), and an arrow points at the nearest face with "Edge x.x m" / "边界 x.x 格"; the math is
+    `BlackRavenCrowBoundaryRules`.
+  - *Vision.* Night vision through the crow is a lightmap override (`BlackRavenCrowLightmapMixin`: night vision at full
+    strength, no darkness), never a status effect. Fog and sky read the camera entity, so the body's blackout
+    blindness never shows through the crow; during Perception `BlackRavenCrowFogMixin` / `BlackRavenCrowSkyMixin` read
+    the body instead, so Perception looks as on foot (desaturation and Steve skins already key on the local player).
+    `BlackRavenCrowTerrainGridMixin` centres vanilla's render grid on the crow (skipped under Sodium by
+    `SparkWitchClientMixinPlugin`, like the Seeker's).
+  - *Hiding.* `BlackRavenInstinctVeto` vetoes `BlackRavenCrowForm.isBodyOrCrow` targets for every non-spectator/creative
+    viewer. `BlackRavenCrowBodyRenderMixin` (`EntityRenderDispatcher#shouldRender`) skips the hidden body entirely
+    (model, held items, armour, shadow) for those viewers; `WraithNameTagPassThrough` lets every name-tag raycast pass
+    through it, and through everything for a viewer flying the crow (labels would be cast from its frozen body);
+    `BlindClientGates` never forces it visible and always hides it from the Blind. The crow is a normal entity with no
+    name tag.
+  - *Renderer.* Crow model B ("Blackcoat crow", owner pick 2026-10-21, `docs/dev-harness/art/black-raven-crow/`):
+    `BlackRavenCrowModel` (64x32 `textures/entity/black_raven_crow.png`, `RenderLayer::getEntityCutout`) posed by the
+    pure `BlackRavenCrowAnimation` (flap 3.5-6 Hz by speed, glide when slow, hover under 1 block/s, perched idle when
+    supported, 0.15 s blends); `BlackRavenCrowRenderer` draws it at 0.85x centred on the 0.5-block hitbox.
 - **Streaming.** `BlackRavenCrowStreaming` and the three `BlackRavenCrow*Mixin`s copy the Seeker remote view: the
   owner's chunk view, chunk batches and entity tracking centre on the crow, a per-tick expiring
   `sparkwitch:black_raven_crow` ticket keeps the crow's chunks entity-ticking, and tracking re-evaluates for 40 ticks

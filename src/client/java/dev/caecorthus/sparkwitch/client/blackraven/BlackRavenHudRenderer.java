@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
+import dev.caecorthus.sparkwitch.client.blackraven.crow.BlackRavenCrowHud;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseSyncCodec;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -26,9 +27,31 @@ public final class BlackRavenHudRenderer {
             return;
         }
         BlackRavenDisguiseSyncCodec.View view = BlackRavenDisguiseClientState.view(player);
-        if (view.bound() && view.disguised() && BlackRavenDisguiseClientState.isDisguised(player)) {
+        boolean disguised = view.bound() && view.disguised() && BlackRavenDisguiseClientState.isDisguised(player);
+        if (disguised) {
             renderDisguise(context, view);
         }
+        renderCrow(context, player, disguised);
+    }
+
+    /**
+     * The Raven Form (化鸦) line (plan §2.11): the free mode row above the shared primary-skill line, or one row above
+     * the disguise line while disguised (tasks done in disguise still count).
+     * 化鸦状态行（计划 §2.11）：位于共享主技能行上方的空闲行；伪装期间位于伪装行上方一行（伪装时完成的任务同样计数）。
+     */
+    private static void renderCrow(DrawContext context, ClientPlayerEntity player, boolean disguised) {
+        Text line = BlackRavenCrowHud.statusLine(player);
+        if (line == null) {
+            return;
+        }
+        TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+        int height = context.getScaledWindowHeight();
+        int y = disguised
+                ? BlackRavenDisguiseClientRules.disguiseLineY(height, renderer.fontHeight, BOTTOM_PADDING, ROW_GAP)
+                        - renderer.fontHeight - ROW_GAP
+                : height - BOTTOM_PADDING - renderer.fontHeight * 2 - ROW_GAP;
+        int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
+        context.drawTextWithShadow(renderer, line, x, y, BlackRavenRules.COLOR);
     }
 
     /**
