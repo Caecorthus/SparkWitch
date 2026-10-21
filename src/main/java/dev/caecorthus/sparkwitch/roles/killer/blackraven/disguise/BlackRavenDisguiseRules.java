@@ -91,7 +91,10 @@ public final class BlackRavenDisguiseRules {
             sparkwitch("emma"),
             sparkwitch("control_expert"),
             sparkwitch("seeker"),
-            sparkwitch("usec")
+            sparkwitch("usec"),
+            // Police since 2026-10-21 (plan v2 §3.4); never in its own pool (it is in the round), listed for parity.
+            // 自 2026-10-21 起为警察（计划 v2 §3.4）；它本局在场，不会出现在自己的名单中，列出只为与其他警察一致。
+            sparkwitch("black_raven")
     );
 
     /** Roles whose adapters ship in batch 1; the rest of ALLOWED shows as UNSUPPORTED. / 第一批已上线适配器的职业。 */

@@ -12,6 +12,9 @@ It also adds the Control Expert, a non-lethal police variant that shares the Vig
 and the Seeker, a police variant with a remote car and wall cameras that shares the same slots.
 It also adds USEC (`sparkwitch:usec`), a police variant with the AXMC bolt-action sniper rifle that shares the
 Vigilante slots.
+The Black Raven (`sparkwitch:black_raven`, 黑羽鸦) is a police variant too since 2026-10-21 (plan
+`docs/plans/2026-10-21-black-raven-police.md`): it shares the Vigilante slots, carries a revolver and the Feather
+Blade, keeps its Raven Mask disguise, and never counts as alive for round settlement.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -217,8 +220,23 @@ Current build baseline:
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
   SparkTraits fake bodies, camera-bound bodies, Magician decoys and Fiend feign-death corpses; a deliberate drag on a
   decoy tells the Kidnapper.
-- `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
-  bound ledger, restricted shop, and lifecycle cleanup. The bound ledger and Raven Mask
+- `roles/killer/blackraven/`: the Black Raven, a police variant since 2026-10-21 (the package keeps its old
+  `killer` path; moving it needs owner approval). Feather Blade marks, owner-private Perception state,
+  bound ledger, and lifecycle cleanup. It has no shop of its own, like the Vigilante (the killer shop
+  `BlackRavenShopService` is gone; the disguise shop seams M2-M4 stay).
+  - Police rules are in `BlackRavenPoliceRules`: gun parity, the starting revolver, and Feather Blade friendly
+    fire. `BlackRavenLoadoutService.assignForRole` (the `RoleAssigned` route) also inserts a Wathe revolver, but
+    only when none is held in the live inventory or on the cursor. At round start that runs before Wathe's
+    per-Item 60 s revolver cooldown, and the plain `insertStack` keeps SparkTraits' Impostor free-gun refusal.
+  - `BlackRavenMarkRuntime` snapshots the marker's and the victim's SparkFactionAPI effective factions and
+    `deadBefore` before the mark's kill. `BlackRavenMarkPunishment` then applies the Swordfish gate:
+    civilian on civilian, really dead, not SparkTraits-intercepted, not a non-final kill, and the marker
+    online, playing, alive and in survival. Wathe's `ShootInnocentPunishment` picks the kind: `KILL_SHOOTER`
+    kills the marker with `wathe:shot_innocent`; `PREVENT_GUN_PICKUP` drops its revolvers like Wathe's gun
+    receiver, sets sanity to 0 and bans gun pickup. A mark still kills after its Raven died, unpunished.
+  - `BlackRavenSettlement` is the raw-role settlement exclusion (Runtime Invariants, "Black Raven settlement
+    exclusion"); its Wathe and NoellesRoles seams live in `mixin/blackraven/`.
+  - The bound ledger and Raven Mask
   (`BlackRavenInventoryRules`) never drop, never leave their owner's inventory slots, and are
   refused by a `UseEntityCallback` veto for item frames, armor stands and allays; a decorated pot
   answers `SKIP_DEFAULT_BLOCK_INTERACTION` for them through
@@ -229,7 +247,8 @@ Current build baseline:
     Tab B pool snapshot, the bound Raven Mask (`sparkwitch:black_raven_mask`), one-shot open
     sessions, the server-authoritative switch transaction with per-identity inventory and wallet
     stashes (`BlackRavenDisguiseService`, `BlackRavenInventorySwap`), the disguise shop
-    whitelist, and disguise task income and killer-income routing (`BlackRavenDisguiseEconomy`).
+    whitelist, disguise task income and killer-income routing (`BlackRavenDisguiseEconomy`), and the stashed
+    death drop (`BlackRavenStashedDeathDrops`).
   - `disguise/adapter/`: one adapter per shipped disguise role, holding its kit, shop spec, task
     reward policy, first-entry cooldowns, and enter/exit hooks. Batch 1 ships Conductor,
     Attendant, Awesome Binglus, Mermaid, Time Keeper, Waiter, Reporter, Tarot Reader, and
@@ -237,7 +256,7 @@ Current build baseline:
   - Its mixins live in `mixin/blackraven/`: M1 `GameWorldComponentActingRoleMixin`, M2
     `ShopUtilsBlackRavenDisguiseMixin`, M3 `KillerShopBuilderBlackRavenDisguiseMixin`, M4
     `PlayerShopComponentBlackRavenDisguiseMixin`, the death-index, swap-guard, swap-remainder and
-    wallet mixins, and the optional SparkStrength seams.
+    wallet mixins, and the optional SparkStrength purse seam.
   - Its client presentation lives in `client/blackraven/`: `BlackRavenLedgerBookScreen` (the
     code-drawn ledger panel: Tab A is a ruled perceived-identity grid with player faces, Tab B a
     sectioned, scrolling disguise list with a footer revert button), `BlackRavenLedgerLayout`
@@ -1104,14 +1123,15 @@ Current build baseline:
     click.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, the
-  Seeker, and USEC share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
-  separate slot mixin.
+  Seeker, USEC and the Black Raven share the Vigilante slots uniformly through `VARIANT_IDS` (1/7 each with the
+  Vigilante); no variant owns a separate slot mixin.
 - Police gun parity: Wathe's server gun receiver gives innocent non-Vigilante shooters a 15 s
   cooldown and -0.35 mood per hit. Each SparkWitch police role has its own additive OR-wrap of all
   four `isRole` calls that also answers "Vigilante" for that role, so it gets the 10 s revolver
   cooldown and no mood penalty. Innocent-shot punishment is unchanged. The wraps are
   `mixin/JudgePoliceGunMixin`, `mixin/EmmaPoliceGunMixin`,
-  `mixin/controlexpert/ControlExpertPoliceGunMixin` and `mixin/seeker/SeekerPoliceGunMixin`. A new
+  `mixin/controlexpert/ControlExpertPoliceGunMixin`, `mixin/seeker/SeekerPoliceGunMixin` and
+  `mixin/BlackRavenPoliceGunMixin` (raw role, so a disguised Raven keeps it; the M1 overlay wraps the callee). A new
   police role needs its own wrap; registering in `PoliceRoles` is not enough. USEC has no wrap because it carries no
   revolver: the AXMC fires through its own `sparkwitch:fire_usec_rifle` path, never Wathe's gun receiver.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
@@ -1260,6 +1280,29 @@ a Rift Gate occupant (an alive spectator, Riftwalker D3) is never marked, never 
 cooldown, and never shields the player behind its gate. An active Vendetta is an adventure-mode
 Wraith and stays a target of its bound killer.
 
+Black Raven settlement exclusion (plan v2 §3.3; owner 2026-10-21, no special case): the Black Raven never counts as
+a living player for round settlement, so every win, block, moment and time bonus comes out exactly as if it were not
+in the round. Every check reads the raw role through `BlackRavenSettlement` (`getRole`, never `isRole`) and skips
+the Raven on top of the host's own alive test:
+- W1, Wathe's killer-win check: `mixin/blackraven/MurderGameModeBlackRavenSettlementMixin` wraps only the first
+  `isPlayerPlayingAndAlive` of `MurderGameMode.tickServerGameLoop` (ordinal 0, the `isInnocent`-guarded civilian
+  loop; SparkTraits' `isInnocent` redirect is untouched; the killer-team passenger check stays raw). Raven +
+  killers → KILLERS; killers dead with only the Raven and neutrals → whatever the neutrals' own wins give, never a
+  PASSENGERS win caused by the Raven; only the Raven alive → KILLERS, Wathe's all-dead order.
+- SparkWitch's own counts: `WitchWinConditions` (Witch win and the Shadow Jester showdown gate) and the Murderous
+  Witch `checkWin` skip the Raven right after the dormant-Fiend skip.
+- NoellesRoles: `FiendWinExclusion.countsAsAlive` also refuses a living raw Raven (class name kept), which reaches
+  the Jester-moment and Corrupt Cop loops, `countAliveAndNotSwallowed` and Taotie `hasSwallowedEveryone`. The
+  Pathogen's "every other living player is infected" loop (`lambda$registerEvents$14` alive-check ordinal 3) gets
+  its own `mixin/blackraven/NoellesRolesPathogenBlackRavenSettlementMixin`, which skips only the Raven (the dormant
+  Fiend keeps the old Pathogen behaviour). Ordinals are pinned by `BlackRavenSettlementContractTest`.
+- Wathe's civilian-death time bonus: `mixin/blackraven/GameFunctionsBlackRavenTimeBonusMixin`.
+- Other mods: `compat/SparkFactionSettlementExclusionCompat` registers `sparkwitch:black_raven` at init into
+  SparkFactionAPI's `api.settlement.SettlementExclusions.registerRole(Identifier)` (0.1.5.16+) by reflection.
+  SparkWitch compiles against an older floor, so an older SparkFactionAPI only logs at debug and those mods keep
+  counting the Raven. SparkTraits (Last Stand, Final Moment, its own win listener) and SparkStrength (Shadow Jester
+  showdown) read that registry; SparkWitch's own seams never do.
+
 Bell Ringer state never enters that shared schema either. `sparkwitch:bell_echo`
 (`NEVER_COPY`, owner-only sync, match-id bound) holds the forced Echo task
 marker and deadline, the red heard-hint window, and the ringer's server-computed
@@ -1315,9 +1358,11 @@ the stamps. The Saint HEAD guard ignores Wathe's `force` flag and opts out throu
 civilian-death time bonus (+30 s) is suppressed only for `sparkwitch:time_stolen` through
 `mixin/timestealer/GameFunctionsTimeStolenClockMixin` (`@WrapOperation` on the single
 `GameTimeComponent.addTime` call in the five-argument `killPlayer`, `require = 1`, `allow = 1`, no
-`@Redirect`); every other death reason keeps it. Only a confirmed death in the same `ACTIVE` match
-that SparkTraits did not intercept then sets the round time to exactly `max(0, t - 600)` (it may
-drain to 0, and then the civilians win on time) and grants one stamp to a living exact Time Stealer.
+`@Redirect`); every other death reason keeps it. (Separately, a dying Black Raven adds no time either: the settlement
+exclusion's own wrap on the same call, `mixin/blackraven/GameFunctionsBlackRavenTimeBonusMixin`.) Only a confirmed
+death in the same `ACTIVE` match that SparkTraits did not intercept then sets the round time to exactly
+`max(0, t - 600)` (it may drain to 0, and then the civilians win on time) and grants one stamp to a living exact
+Time Stealer.
 A Conscience Time Stealer also earns one stamp per completed task (owner decision 2026-10-05): the
 role's own `TaskComplete` listener pays a living exact Time Stealer whose SparkFactionAPI effective
 faction is known and not `wathe:killer` (`TimeStealerRules.earnsTaskStamp`), since Wathe fires
@@ -2966,7 +3011,8 @@ it is ever synced to another player.
   inspection reads stay raw: Tarot identity resolution and counts, divination candidates,
   `countActiveFactions`, the Professor serum, and the Judge, Prophet, Wraith, and Emma
   inspections.
-- **Shops.** The Wathe killer shop (M3) and the Black Raven shop never reach a disguised Raven.
+- **Shops.** The Wathe killer shop (M3) never reaches a disguised Raven; since the police rework the Raven itself
+  has no shop.
   Perception is refused while disguised, the ledger stays in the Raven stash, and killer instinct
   and Feather marks keep working.
 - **Per-identity inventories and wallets.**
@@ -2982,8 +3028,10 @@ it is ever synced to another player.
       `MurderGameModeBlackRavenWalletMixin`;
     - the kill reward, teammate share, and civilian-death pool in
       `GameFunctionsBlackRavenWalletMixin`;
-    - the SparkWitch Hunter poisoner and placer rewards (`HunterFeatureService`);
-    - the optional SparkStrength seams below.
+    - the optional SparkStrength purse seam below.
+
+    Since the police rework (2026-10-21) the raw Raven is no killer, so these routes no longer fire (plan v2 §3.4);
+    the Hunter's poisoner and placer rewards now go straight to the live wallet like every other credit.
   - Known limitation: these SparkTraits killer receipts still land in the live disguise wallet:
     - the killer-trait rewards (Showman, Plunderer, Cornered, and Conscience's kill reward and
       dividend);
@@ -2997,11 +3045,15 @@ it is ever synced to another player.
     wallet. Routing them would need a SparkTraits public-facade seam (for example a kill-income
     recipient hook on `SparkTraitsApi`) used through `compat/SparkTraitsBlackRavenBridge` and failing
     closed. A mixin into `sparktraits.impl` is not allowed.
-- **Death and exits.** At death every stash (inventory and wallet) vanishes. The live set goes
-  through Wathe's drop rules, except the mask, which never drops. Role loss discards the stashes
-  and keeps the live set. A `RoleAssigned(black_raven)` for a Raven that is still disguised (a
+- **Death and exits.** At death, `BlackRavenStashedDeathDrops` first takes every stashed stack that Wathe's
+  `shouldDropOnDeath` would drop (the revolver) out of every stash and drops it like Wathe's death loop
+  (`dropItem(stack, true, false)`). It runs in the `sparkwitch:black_raven_stashed_death_drops` phase of
+  `KillPlayer.AFTER`, ordered before `Event.DEFAULT_PHASE`: after BEFORE (where a death can still be cancelled)
+  and before SparkTraits consumes its Last Stand set. Then every stash (the rest of its inventory and wallet)
+  vanishes. The live set goes through Wathe's drop rules, except the mask, which never drops. Role loss discards
+  the stashes and keeps the live set. A `RoleAssigned(black_raven)` for a Raven that is still disguised (a
   forced role mid-round) reverts to the Raven set first, so the kit re-grant leaves exactly one
-  blade, ledger, and mask.
+  blade, ledger, and mask, and grants no second revolver.
 - **Round binding.** The Raven round binding (disguise `beginRound`, Perception `bindCurrentMatch`,
   and `restoreLedgerIfNeeded`) runs in the `sparkwitch:black_raven_finish_initialize` phase of
   `GameEvents.ON_FINISH_INITIALIZE`, ordered after `Event.DEFAULT_PHASE`, so Wathe's
@@ -3047,12 +3099,9 @@ Black Raven disguise shop and wallet seams (SparkStrength is optional and fail-c
   `BlackRavenDisguiseEconomy` reflects only its `recordIncome(PlayerEntity, long)`, to report
   routed kill rewards. Without the seam, disguise purchases can draw on the killer-team purse
   (degraded, but no money is lost).
-- **Engineer share.** The optional `@Pseudo` `mixin/blackraven/EngineerPowerRestorationBlackRavenWalletMixin`
-  (`remap = false`, `require = 0`) wraps the `addToBalance` call in SparkStrength
-  `EngineerPowerRestorationService#distributeRestorationCost`. It routes a disguised Raven's
-  restoration share to the Raven wallet. Without it, the share stays in the live disguise wallet.
 - **Where the disguise names SparkStrength.** It names SparkStrength implementation classes in
-  only these two mixins and in the reflected purse class in `BlackRavenDisguiseEconomy`.
+  only the purse mixin and in the reflected purse class in `BlackRavenDisguiseEconomy`. (The dead Engineer-share
+  seam was deleted on 2026-10-21: its SparkStrength target class no longer exists.)
   `compat/SparkStrengthDisguiseCompat` touches only the `sparkstrength:flashlight` registry id.
 - **Rest of SparkWitch.** Elsewhere, SparkStrength implementation classes are named by
   `compat/SparkStrengthM67Compat`, `compat/SparkStrengthCoronerCompat`,
@@ -3200,9 +3249,8 @@ manual checks:
   allowed disguise role. Classify each one as a self gate (widened) or an inspection (raw).
 - **SparkStrength floor bump:**
   - Re-check the `sparkstrength:flashlight` id used by `SparkStrengthDisguiseCompat`.
-  - Re-check the `@Pseudo` targets `KillerTeamEconomyService` (`recordIncome`,
-    `availableForPurchase`, `personalBalanceAfterPurchase`) and
-    `EngineerPowerRestorationService#distributeRestorationCost` (its `addToBalance` call).
-  - Both seams use `require = 0`, so a rename silently degrades to the live wallet.
+  - Re-check the `@Pseudo` target `KillerTeamEconomyService` (`recordIncome`,
+    `availableForPurchase`, `personalBalanceAfterPurchase`).
+  - The seam uses `require = 0`, so a rename silently degrades to the live wallet.
   - Re-check `DemonHunterSniffRules`, which reads the shop through M2 and must never see
     `psycho_mode`.
