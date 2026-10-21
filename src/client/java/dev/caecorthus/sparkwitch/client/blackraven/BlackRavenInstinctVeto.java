@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.blackraven;
 
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -29,8 +30,15 @@ public final class BlackRavenInstinctVeto {
 
     /** Whether {@code viewer} must not see any instinct highlight or outline on {@code target}. / 观察者是否不得看到目标的任何本能高亮或描边。 */
     public static boolean hides(@Nullable PlayerEntity viewer, @Nullable Entity target) {
-        if (viewer == null || !(target instanceof PlayerEntity targetPlayer)
-                || !SparkWitchServerConnection.isConfirmedServer()) {
+        if (viewer == null || !SparkWitchServerConnection.isConfirmedServer()) {
+            return false;
+        }
+        // Raven Form (plan §3.2, §2.5): neither the left-behind body nor the crow is ever outlined, for every viewer
+        // except spectator/creative ones. 化鸦（计划 §3.2、§2.5）：被留下的本体与乌鸦从不被描边，旁观/创造模式观察者除外。
+        if (BlackRavenCrowForm.isBodyOrCrow(target)) {
+            return vetoesRavenForm(GameFunctions.isPlayerSpectatingOrCreative(viewer));
+        }
+        if (!(target instanceof PlayerEntity targetPlayer)) {
             return false;
         }
         Role targetRole = GameWorldComponent.KEY.get(targetPlayer.getWorld()).getRole(targetPlayer);
@@ -49,5 +57,10 @@ public final class BlackRavenInstinctVeto {
     static boolean vetoes(boolean self, boolean viewerSpectatingOrCreative, boolean targetRawBlackRaven,
                           boolean targetPlayingAndAlive) {
         return !self && !viewerSpectatingOrCreative && targetRawBlackRaven && targetPlayingAndAlive;
+    }
+
+    /** Pure veto for a Raven Form body or crow. / 化鸦本体或乌鸦的纯否决判定。 */
+    static boolean vetoesRavenForm(boolean viewerSpectatingOrCreative) {
+        return !viewerSpectatingOrCreative;
     }
 }
