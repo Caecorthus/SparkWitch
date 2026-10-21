@@ -5,10 +5,12 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowTargets;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -66,7 +68,46 @@ public final class PotionBlastResolver {
             int ring = PotionBlastRings.ring(size, dx, dz);
             hits.add(new PotionBlastHit(target, ring, PotionBlastRings.factor(size, ring), ally, self));
         }
+        if (type == PotionShellType.TR) {
+            addCrows(world, center, size, gunnerUuid, gunner, game, hits);
+        }
         return List.copyOf(hits);
+    }
+
+    /**
+     * Raven Form seam (plan v2 §2.5): only the lethal TR shell catches a crow. The player rule is measured at the crow
+     * (its feet and box in the cube, a clear line to its feet, centre or eye) and judged on its owner (liveness,
+     * faction flags, the gunner's permission); the hit carries the substituted owner, so TR's own kill, ally flag and
+     * reward apply to the Black Raven as if it stood there. The gunner's own crow and an owner whose body is already
+     * caught are skipped. / 化鸦接缝（计划 v2 §2.5）：只有致命的 TR 炮弹会波及乌鸦。玩家规则在乌鸦处量取（其脚下与箱体位于立方体内，
+     * 到其脚部、中心或眼睛的视线畅通），并以其主人判定（存活、阵营标记、药炮手许可）；命中记录的是被替身的主人，因此 TR 自身的击杀、
+     * 己方标记与奖励如同黑羽鸦站在该处一样生效。跳过药炮手自己的乌鸦，以及本体已被波及的主人。
+     */
+    private static void addCrows(ServerWorld world, Vec3d center, int size, @Nullable UUID gunnerUuid,
+                                 @Nullable ServerPlayerEntity gunner, GameWorldComponent game,
+                                 List<PotionBlastHit> hits) {
+        for (BlackRavenCrowTargets.Target crow : BlackRavenCrowTargets.live(world, null)) {
+            ServerPlayerEntity owner = crow.owner();
+            if (!isCandidate(owner) || isSelf(gunnerUuid, owner.getUuid())
+                    || hits.stream().anyMatch(hit -> hit.target() == owner)) {
+                continue;
+            }
+            Entity entity = crow.crow();
+            double dx = entity.getX() - center.x;
+            double dz = entity.getZ() - center.z;
+            Box box = entity.getBoundingBox();
+            if (!PotionBlastRings.inCube(size, dx, dz, box.minY - center.y, box.maxY - center.y)
+                    || !hasLineOfSight(world, center, entity)) {
+                continue;
+            }
+            boolean ally = isAlly(SparkFactionApi.resolveEffectiveFaction(owner, game));
+            if (!keeps(true, false, ally, gunner != null, () -> gunnerMayAffect(gunner, owner, game))) {
+                continue;
+            }
+            int ring = PotionBlastRings.ring(size, dx, dz);
+            hits.add(new PotionBlastHit(BlackRavenCrowTargets.substitute(crow), ring,
+                    PotionBlastRings.factor(size, ring), ally, false));
+        }
     }
 
     /**
@@ -110,7 +151,7 @@ public final class PotionBlastResolver {
                 && !SparkTraitsKillerBridge.isLastEscapeActive(player);
     }
 
-    private static boolean hasLineOfSight(ServerWorld world, Vec3d center, PlayerEntity target) {
+    private static boolean hasLineOfSight(ServerWorld world, Vec3d center, Entity target) {
         for (Vec3d point : PotionBlastGeometry.sightPoints(target.getPos(), target.getBoundingBox(),
                 target.getEyeY())) {
             if (SeekerDamageRules.segmentClear(world, center, point, null)) {

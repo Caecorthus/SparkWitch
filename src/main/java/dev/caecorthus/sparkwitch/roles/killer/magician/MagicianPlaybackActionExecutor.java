@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.magician;
 
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -167,7 +168,12 @@ public final class MagicianPlaybackActionExecutor {
                 e -> e instanceof ServerPlayerEntity p && !p.getUuid().equals(owner.getUuid())
                         && !p.isSpectator() && GameFunctions.isPlayerAliveAndSurvival(p),
                 range);
-        return hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof ServerPlayerEntity target
-                ? target : null;
+        ServerPlayerEntity picked = hit instanceof EntityHitResult entityHit
+                && entityHit.getEntity() instanceof ServerPlayerEntity target ? target : null;
+        // Raven Form seam: a crow strictly nearer on the puppet's look ray stands in for its owner.
+        // 化鸦接缝：皮套视线上严格更近的乌鸦以其主人代入。
+        ServerPlayerEntity crowOwner = proxy instanceof ServerPlayerEntity attacker
+                ? BlackRavenCrowHits.nearerOnLook(attacker, picked, range) : null;
+        return crowOwner != null ? crowOwner : picked;
     }
 }

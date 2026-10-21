@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceRaycast;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoType;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecShieldPierce;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
 import dev.doctor4t.wathe.index.tag.WatheItemTags;
@@ -135,15 +136,20 @@ public final class SparkWitchApi {
      * (D3–D5: decoy, 50 coins to the Magician); a Seeker device the shooter may break breaks as under a revolver hit.
      * Both re-check aim and line of sight within {@code maxDistance} (capped at Wathe's 65). {@code gun} must be the
      * {@code wathe:guns} stack in the shooter's main or off hand, not cooling down. True when the shot ended a puppet
-     * or broke a device. Either way a non-player target leaves the shot a miss for the caller: record it with no
-     * target, play the shot, set the cooldown, never call {@code killPlayer} or apply a gun punishment. False for
-     * players, nulls and anything else.
+     * or broke a device. A Black Raven Raven Form crow the shooter hits (same aim, line and distance checks) kills
+     * the Black Raven as this gun kills a player, inside this call: the SparkFactionAPI gun veto, the
+     * {@code ShouldPunishGunShooter} custom punishment, then the kill ({@code wathe:gun}); true as well. Either way a
+     * non-player target leaves the shot a miss for the caller: record it with no target, play the shot, set the
+     * cooldown, never call {@code killPlayer} or apply a gun punishment itself. False for players, nulls and anything
+     * else.
      * 冻结的跨模组接缝（2026-10-07），仅服务端线程：附属模组枪械射击中、客户端发送了非玩家目标 id 时属于 SparkWitch
      * 世界实体的部分（目前为 SparkStrength 连环杀手手枪）。在 Wathe 左轮接收器记录这一枪的位置调用：射击已被接受、扳机声已
      * 播放之后，记录、击杀与冷却之前。不属于射手自己的活魔术师皮套按左轮命中结束（D3–D5：诱饵、向魔术师支付 50 金币）；射手
      * 可打坏的搜寻者设备按左轮命中打坏。两者都会在 {@code maxDistance}（上限为 Wathe 的 65）内复查瞄准与视线。{@code gun}
-     * 须为射手主手或副手中、未冷却的 {@code wathe:guns} 物品。结束皮套或打坏设备时返回 true。无论结果如何，非玩家目标对调用方
-     * 都是一次未命中：以无目标记录、播放枪声、设置冷却，绝不调用 {@code killPlayer} 或施加枪械惩罚。玩家、null 及其他情况
+     * 须为射手主手或副手中、未冷却的 {@code wathe:guns} 物品。结束皮套或打坏设备时返回 true。射手命中黑羽鸦的化鸦乌鸦（同样的
+     * 瞄准、视线与距离检查）时，在本调用内按该枪击杀玩家的方式处死黑羽鸦：SparkFactionAPI 枪械否决、
+     * {@code ShouldPunishGunShooter} 自定义惩罚，然后击杀（{@code wathe:gun}），同样返回 true。无论结果如何，非玩家目标对调用方
+     * 都是一次未命中：以无目标记录、播放枪声、设置冷却，自身绝不调用 {@code killPlayer} 或施加枪械惩罚。玩家、null 及其他情况
      * 返回 false。
      */
     public static boolean hitGunWorldTarget(ServerPlayerEntity shooter, Entity target, ItemStack gun,
@@ -155,7 +161,8 @@ public final class SparkWitchApi {
             return false;
         }
         return MagicianPuppetHits.onAddonGunShot(shooter, target, gun, maxDistance)
-                || SeekerDeviceHits.onAddonGunShot(shooter, target, maxDistance);
+                || SeekerDeviceHits.onAddonGunShot(shooter, target, maxDistance)
+                || BlackRavenCrowHits.onAddonGunShot(shooter, target, maxDistance);
     }
 
     /**

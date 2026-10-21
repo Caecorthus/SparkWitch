@@ -581,6 +581,48 @@ def watheClientMixinContracts = [
                 providerMethod: "getVisibleGunTarget",
                 providerDescriptor: "(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;"
         ],
+        // Raven Form crow aim (plan v2 §2.5): the gun, knife and crosshair picks prefer a strictly nearer crow.
+        // 化鸦乌鸦选靶（计划 v2 §2.5）：枪械、刀与准星选靶优先严格更近的乌鸦。
+        [
+                configName: "blackraven.BlackRavenCrowRevolverAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blackraven/BlackRavenCrowRevolverAimMixin.class",
+                handler: "sparkwitch\$preferNearerCrow",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/RevolverItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "blackraven.BlackRavenCrowDerringerAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blackraven/BlackRavenCrowDerringerAimMixin.class",
+                handler: "sparkwitch\$preferNearerCrow",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/DerringerItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "blackraven.BlackRavenCrowKnifeAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blackraven/BlackRavenCrowKnifeAimMixin.class",
+                handler: "sparkwitch\$preferNearerCrow",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getKnifeTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/KnifeItem.class",
+                providerMethod: "getKnifeTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "blackraven.BlackRavenCrowGunCrosshairMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blackraven/BlackRavenCrowGunCrosshairMixin.class",
+                handler: "sparkwitch\$preferNearerCrow",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getVisibleGunTarget(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "getVisibleGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;"
+        ],
         [
                 // USEC D16: an empty-cursor right press on the rifle opens the attachment screen (chains with the
                 // armor wrapper). / USEC D16：空光标右键按下步枪时打开配件界面（与护甲包装串联）。

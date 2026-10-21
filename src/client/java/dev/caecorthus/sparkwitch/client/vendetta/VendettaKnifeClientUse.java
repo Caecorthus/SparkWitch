@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowEntity;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.entity.LivingEntity;
@@ -39,11 +40,14 @@ public final class VendettaKnifeClientUse {
 
         // Client targeting is feedback only; the server repeats role, UUID, distance, and sight validation.
         // 客户端瞄准仅用于反馈；服务端会重新校验身份、UUID、距离与视线。
+        // The bound killer's Raven Form crow stands in for it (the server validates and resolves the owner).
+        // 被绑定杀手的化鸦乌鸦可代替其本人（由服务端校验并解析为主人）。
         HitResult collision = ProjectileUtil.getCollision(
                 attacker,
                 entity -> entity instanceof PlayerEntity target
                         && !target.isSpectator()
-                        && killerUuid.equals(target.getUuid()),
+                        && killerUuid.equals(target.getUuid())
+                        || entity instanceof BlackRavenCrowEntity crow && crow.isOwnedBy(killerUuid),
                 VendettaKnifeRules.MAX_RANGE
         );
         if (collision instanceof EntityHitResult entityHit) {
