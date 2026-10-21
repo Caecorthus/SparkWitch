@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.item.ceremonialsword;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRuntimeComponent;
 import net.minecraft.item.ItemStack;
@@ -62,6 +63,9 @@ public final class CeremonialSwordCombatService {
         if (!(attacker instanceof ServerPlayerEntity serverAttacker)) {
             return ActionResult.PASS;
         }
+        // Raven Form seam: a crow in reach stands in for its owner, so a charged strike is a sword kill on the Raven.
+        // 化鸦接缝：近战距离内的乌鸦以其主人代入，因此蓄满的一击即是对黑羽鸦的剑杀。
+        target = BlackRavenCrowHits.meleeStandIn(serverAttacker, target);
         AttackDecision decision = decideAttack(
                 canStrike(serverAttacker, target),
                 serverAttacker.getAttackCooldownProgress(0.0f) >= 1.0f

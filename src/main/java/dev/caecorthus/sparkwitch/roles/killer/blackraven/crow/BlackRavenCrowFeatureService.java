@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.killer.blackraven.crow;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionCenter;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHitService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.net.BlackRavenCrowNetworking;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -34,6 +35,8 @@ public final class BlackRavenCrowFeatureService {
         BlackRavenCrowNetworking.register();
         BlackRavenCrowStreaming.register();
         BlackRavenCrowSkillService.registerReplayFormatter();
+        // Weapon hits on the crow (crow-hits). / 武器命中乌鸦（crow-hits）。
+        BlackRavenCrowHitService.register();
         // The left-behind body neither pushes nor is pushed, for everyone: the predicate reads the active bit, which
         // every client receives, so each client's own collision prediction agrees with the server.
         // 被留下的本体对所有人都不推挤也不被推挤：谓词读取所有客户端都会收到的在场标记，因此各客户端的本地碰撞预测与服务端一致。

@@ -11,6 +11,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceRaycast;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowEntity;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
@@ -40,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -101,7 +104,11 @@ public final class SwordfishStabService {
         }
 
         Entity submitted = attacker.getServerWorld().getEntityById(targetEntityId);
-        Entity entity = resolveAimedTarget(attacker, submitted);
+        // Raven Form seam: a crow the server's own ray enters before every other candidate stands in for its owner, so
+        // the stab below (costs, parry, kill, friendly-fire death) runs on the Black Raven.
+        // 化鸦接缝：服务端自身射线先于其他所有候选进入的乌鸦以其主人代入，因此下方的刺击（消耗、格挡、击杀、误伤致死）作用于黑羽鸦。
+        ServerPlayerEntity crowOwner = resolveAimedCrow(attacker, submitted);
+        Entity entity = crowOwner != null ? crowOwner : resolveAimedTarget(attacker, submitted);
         if (entity instanceof SeekerDeviceEntity device) {
             if (SeekerDeviceHits.onSwordfishStab(attacker, device)) {
                 consume(attacker, stack);
@@ -176,18 +183,54 @@ public final class SwordfishStabService {
             return null;
         }
         Vec3d start = attacker.getEyePos();
-        Vec3d end = start.add(attacker.getRotationVec(1.0F).multiply(FisherRules.SWORDFISH_REACH));
-        HitResult block = attacker.getWorld().raycast(new RaycastContext(start, end,
-                RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, attacker));
-        if (block.getType() != HitResult.Type.MISS) {
-            end = block.getPos();
-        }
+        Vec3d end = aimEnd(attacker, start);
         if (SwordfishRules.entryDistanceSquared(start, end, aimBox(submitted)) < 0.0) {
             return null;
         }
 
         // Compare all eligible players and foreign devices on THIS ray, never on a ray toward the submitted id.
         // 在这一条射线上比较所有合格玩家与他人设备；绝不向数据包所报目标另发一条射线。
+        List<Entity> candidates = rayCandidates(attacker, start, end);
+        Entity nearest = SwordfishRules.nearestOnRay(start, end, candidates, SwordfishStabService::aimBox);
+        // A nearer device intercepts; a different nearer player rejects the request instead of changing the victim.
+        // 更近设备拦截；若另一个玩家更近则拒绝请求，不擅自更换受害者。
+        return nearest == submitted || nearest instanceof SeekerDeviceEntity ? nearest : null;
+    }
+
+    /**
+     * A crow submitted as the target: accepted when the server's own ray enters its lag-compensated volumes (grown by
+     * {@link SwordfishRules#AIM_TOLERANCE}) strictly before every other candidate on that ray; returns the substituted
+     * owner, else null (a refused crow stab does nothing, like a refused player stab).
+     * 提交的目标为乌鸦时：服务端自身射线严格早于该射线上其他所有候选进入其延迟补偿体积（按 {@link SwordfishRules#AIM_TOLERANCE}
+     * 扩大）则接受，返回被替身的主人；否则为 null（被拒的乌鸦刺击与被拒的玩家刺击一样毫无作用）。
+     */
+    private static @Nullable ServerPlayerEntity resolveAimedCrow(ServerPlayerEntity attacker,
+                                                                 @Nullable Entity submitted) {
+        if (!(submitted instanceof BlackRavenCrowEntity)) {
+            return null;
+        }
+        Vec3d start = attacker.getEyePos();
+        Vec3d end = aimEnd(attacker, start);
+        double beat = Double.POSITIVE_INFINITY;
+        for (Entity candidate : rayCandidates(attacker, start, end)) {
+            double entry = SwordfishRules.entryDistanceSquared(start, end, aimBox(candidate));
+            if (entry >= 0.0 && entry < beat) {
+                beat = entry;
+            }
+        }
+        return BlackRavenCrowHits.onSwordfishStab(attacker, submitted, start, end, SwordfishRules.AIM_TOLERANCE, beat);
+    }
+
+    /** The stab ray's end: the Swordfish reach along the look, cut at the first block. / 刺击射线终点。 */
+    private static Vec3d aimEnd(ServerPlayerEntity attacker, Vec3d start) {
+        Vec3d end = start.add(attacker.getRotationVec(1.0F).multiply(FisherRules.SWORDFISH_REACH));
+        HitResult block = attacker.getWorld().raycast(new RaycastContext(start, end,
+                RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, attacker));
+        return block.getType() != HitResult.Type.MISS ? block.getPos() : end;
+    }
+
+    /** Eligible players, foreign devices and puppets around the stab ray. / 刺击射线附近的合格玩家、他人设备与皮套。 */
+    private static List<Entity> rayCandidates(ServerPlayerEntity attacker, Vec3d start, Vec3d end) {
         Box search = new Box(start, end).expand(1.0);
         var candidates = new ArrayList<Entity>();
         candidates.addAll(attacker.getServerWorld().getEntitiesByClass(ServerPlayerEntity.class, search,
@@ -198,10 +241,7 @@ public final class SwordfishStabService {
         // 魔术师皮套与玩家同等竞争（更近的皮套会使提交给其后方玩家的刺击被拒绝）。
         candidates.addAll(attacker.getServerWorld().getEntitiesByClass(MagicianPlaybackEntity.class, search,
                 puppet -> isAimCandidate(attacker, puppet)));
-        Entity nearest = SwordfishRules.nearestOnRay(start, end, candidates, SwordfishStabService::aimBox);
-        // A nearer device intercepts; a different nearer player rejects the request instead of changing the victim.
-        // 更近设备拦截；若另一个玩家更近则拒绝请求，不擅自更换受害者。
-        return nearest == submitted || nearest instanceof SeekerDeviceEntity ? nearest : null;
+        return candidates;
     }
 
     private static boolean isAimCandidate(ServerPlayerEntity attacker, @Nullable Entity entity) {
@@ -232,7 +272,10 @@ public final class SwordfishStabService {
     }
 
     private static void playStab(ServerPlayerEntity attacker, Entity target) {
-        target.playSound(WatheSounds.ITEM_KNIFE_STAB, 1.0F, 1.0F);
+        // A crow stand-in hears the stab where the crow was hit. / 乌鸦代入时在乌鸦被命中处播放刺击声。
+        if (!BlackRavenCrowHits.playAtSubstitutedCrow(target, WatheSounds.ITEM_KNIFE_STAB, 1.0F, 1.0F)) {
+            target.playSound(WatheSounds.ITEM_KNIFE_STAB, 1.0F, 1.0F);
+        }
         attacker.swingHand(Hand.MAIN_HAND, true);
     }
 

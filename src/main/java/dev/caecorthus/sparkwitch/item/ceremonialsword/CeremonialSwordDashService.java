@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.item.ceremonialsword;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import net.minecraft.item.ItemStack;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -115,6 +116,13 @@ public final class CeremonialSwordDashService {
             // Magician seam: a puppet in this step is a dash contact like a player (sword kill, the dash stops).
             // 魔术师接缝：该步中的皮套与玩家一样构成冲刺接触（剑杀，冲刺停止）。
             if (MagicianPuppetHits.onCeremonialSwordDash(player, sweptBox)) {
+                return true;
+            }
+            // Raven Form seam: a crow in this step is a dash contact like a player (sword kill on its owner, stop).
+            // 化鸦接缝：该步中的乌鸦与玩家一样构成冲刺接触（对其主人剑杀，冲刺停止）。
+            ServerPlayerEntity crowOwner = BlackRavenCrowHits.onDashContact(player, sweptBox);
+            if (crowOwner != null) {
+                CeremonialSwordCombatService.killWithCeremonialSword(player, crowOwner);
                 return true;
             }
 

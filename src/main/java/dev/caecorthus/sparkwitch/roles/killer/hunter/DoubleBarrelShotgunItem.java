@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.killer.hunter;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthJunctionBoxCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
@@ -99,9 +100,17 @@ public final class DoubleBarrelShotgunItem extends Item {
                 ? serverPick(serverUser)
                 : ShotgunPick.of(findTarget(user));
         PlayerEntity aimed = pick.target();
+        // Raven Form seam, first: a crow strictly nearer than the aimed player, every puppet and every breakable device
+        // takes the shot as its owner (the target below); the puppet and device steps are skipped.
+        // 化鸦接缝，最先执行：严格近于被瞄准玩家、所有皮套与所有可打坏设备的乌鸦以其主人身份承受这一枪（即下方的目标）；
+        // 跳过皮套与设备步骤。
+        Aim crowAim = aim(user);
+        PlayerEntity crowOwner = BlackRavenCrowHits.onShotgunFired(user, aimed, crowAim.eye(), crowAim.end(),
+                HunterShotgunAim.CONFIRM_BOX_EXPANSION);
         // Nearest-wins: a nearer Magician puppet, else a nearer Seeker device, absorbs the shot (null target).
         // 最近者命中：更近的魔术师皮套（其次是更近的搜寻者设备）吸收这一枪。
-        boolean puppetAbsorbed = MagicianPuppetHits.onShotgunFired(user, shotgun, aimed, HunterRules.SHOTGUN_RANGE);
+        boolean puppetAbsorbed = crowOwner == null
+                && MagicianPuppetHits.onShotgunFired(user, shotgun, aimed, HunterRules.SHOTGUN_RANGE);
         // The ray already stops at the first block, so the shot reaches that block only when no eligible player (an
         // unconfirmed claimed one included), puppet or device took it. Asked before the device step, which breaks the
         // device. A SparkStrength Bomber drone absorbs inside that step without a signal, so one between the Hunter and
@@ -109,9 +118,9 @@ public final class DoubleBarrelShotgunItem extends Item {
         // 射线本就止于第一个方块，因此只有合格玩家（含未能确认的声明玩家）、皮套与设备都未吸收时这一枪才打到该方块。须在
         // 设备一步之前询问，因其会打坏设备。SparkStrength 轰炸者无人机在那一步内部吸收且不给出信号，所以猎人与接线箱之间的
         // 无人机会让这一枪同时打中箱子（已接受，与皮套一步的无人机情形相同）。
-        boolean reachesWall = !pick.playerInWay() && !puppetAbsorbed
+        boolean reachesWall = crowOwner == null && !pick.playerInWay() && !puppetAbsorbed
                 && !SeekerDeviceHits.shotgunPathHasDevice(user, HunterRules.SHOTGUN_RANGE);
-        PlayerEntity target = puppetAbsorbed
+        PlayerEntity target = crowOwner != null ? crowOwner : puppetAbsorbed
                 ? null : SeekerDeviceHits.onShotgunFired(user, aimed, HunterRules.SHOTGUN_RANGE);
         if (user instanceof ServerPlayerEntity shooter && target instanceof ServerPlayerEntity serverTarget) {
             GameFunctions.killPlayer(serverTarget, true, shooter, GameConstants.DeathReasons.GUN);

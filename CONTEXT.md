@@ -305,7 +305,12 @@ Current build baseline:
     `mixin/blackraven/BlackRavenCrow{ChunkView,ChunkBatch,EntityTracker}Mixin`, its client entry is
     `client/blackraven/crow/BlackRavenCrowClient` (pilot view, crow renderer, HUD, boundary indicator; client mixins
     in `client/mixin/blackraven/crow/`). `BlackRavenPerceptionCenter` (one level up)
-    is the Perception distance centre that Raven Form overrides.
+    is the Perception distance centre that Raven Form overrides. Weapon hits on the crow live in `crow/hit/`
+    (`BlackRavenCrowHits` entries, `BlackRavenCrowTargets` queries and owner substitution, `BlackRavenCrowHitRules`,
+    the lag-compensation `BlackRavenCrowHitboxHistory`, the bat `BlackRavenCrowAttackHandlers`), their mixins are
+    `mixin/blackraven/BlackRavenCrow{KillLink,GunReceiver,KnifeReceiver,Grenade,ThrowingAxe}Mixin` and the client
+    picks `client/blackraven/crow/BlackRavenCrowAim` with `client/mixin/blackraven/BlackRavenCrow{RevolverAim,
+    DerringerAim,KnifeAim,GunCrosshair}Mixin`.
 - `roles/killer/bellringer/`: Echo skill (game-time cost, forced Echo tasks,
   deadline penalty), owner-private Echo/hint/toll state, bound bell and toll kill,
   restricted native shop, and lifecycle cleanup; its mixins live in
@@ -3323,9 +3328,81 @@ Seeker car.
   after the session. They chain with the Seeker's and the drone's mixins.
 - **Hits.** `BlackRavenCrowSessions.killOwnerVia(crow, killer, deathReason)` ends the session (`CROW_KILLED`, no
   feather) and runs the standard `GameFunctions.killPlayer(owner, true, killer, deathReason)`. Vanilla `damage()` on
-  the crow routes only a Wathe bat melee (`wathe:bat_hit`) or an explosion of at least 20 (`wathe:grenade`) there;
-  everything else is ignored. Wathe's own weapons never damage a non-player, so crow-hits wires each one to
-  `killOwnerVia`.
+  the crow routes only a Wathe bat melee (`wathe:bat_hit`, reached only by creative attackers) or an explosion of at
+  least 20 (`wathe:grenade`) there; everything else is ignored. Wathe's own weapons never damage a non-player, so
+  `crow/hit/` wires each weapon at its own victim pick (plan v2 §2.5: every weapon that can directly kill a player):
+  - **Owner substitution** (`BlackRavenCrowTargets.substitute`, the stable contract): where a weapon has its own
+    player path, a crow it hits hands that path the crow's OWNER, so every rule the weapon applies to a player victim
+    runs on the Black Raven, shooter consequences included (the Raven is an innocent police role: Wathe's revolver
+    小脑/backfire/mood, the USEC, Swordfish and Mighty Force misfire deaths, faction vetoes, Vendetta isolation, Judge
+    attribution, rewards, records). The substitution remembers the crow for that server tick only;
+    `mixin/blackraven/BlackRavenCrowKillLinkMixin` (non-cancelling HEAD of the 5-argument `killPlayer`) ends the
+    session with `CROW_KILLED` when the weapon then kills that owner, exactly `killOwnerVia`'s first half. A
+    substitution that never reaches `killPlayer` (a backfire, a refused target) expires at the end of the tick, and a
+    receiver that resolves a real player id drops a pending one (`forget`). Weapons without a reusable player path
+    (the bat, the M67, add-on guns) call `killOwnerVia` directly.
+  - **Who may hit** (`BlackRavenCrowTargets.hittable`): a live crow (its owner's session still flies it) in the
+    attacker's world, never by its own owner, never by a spectator or creative player; a null attacker is an ownerless
+    blast.
+  - **Nearest wins**: a crow takes a ray or sweep only when strictly nearer than the player the weapon would hit, every
+    Magician puppet it would end and every Seeker device it would break (ties go to them); the crow step runs before the
+    weapon's puppet and device steps (or shrinks the reach they compete with). SparkStrength Bomber drones absorb
+    inside the Seeker hooks, so a drone nearer than a crow absorbs only where the crow shrinks the reach (USEC,
+    backblast), not where the crow skips the Seeker step (shotgun, Feather Blade).
+  - **Lag compensation**: the crow flies up to 24 blocks/s and is drawn on other clients with tracker interval 1 plus
+    3-step interpolation, so every server check that confirms an aim (server rays, client-picked ids, melee reach)
+    tests `BlackRavenCrowHitboxHistory.hitVolumes`: the crow's boxes over the shooter's ping-based rewind window
+    (`HitscanLagRules.rewindTicks`, swept between ticks), like `PlayerHitboxHistory` for players. Projectiles and blasts
+    keep the crow's current box (they are simulated on the server). Client picks (`BlackRavenCrowAim`) use the drawn box
+    grown by 0.1 and never pick the local player's own crow.
+  - **Coverage** (weapon: seam, death reason, shooter consequence):
+    - Wathe revolver/derringer: client `getGunTarget` + crosshair prefer a nearer crow; `BlackRavenCrowGunReceiverMixin`
+      resolves the crow id to the owner (65 cap, look ray on volumes +0.5) and passes the body-measured cap; `wathe:gun`;
+      Wathe's whole player path (innocent-shot punishment, backfire, passenger mood loss, `ShouldPunishGunShooter`).
+    - Wathe knife (killers, the Fiend stab, NoellesRoles instant stabs): client `getKnifeTarget`;
+      `BlackRavenCrowKnifeReceiverMixin` (reach 3.5 on volumes, line of sight; the stab sound plays at the crow);
+      `wathe:knife`; Wathe's stab path (no innocent rule in Wathe).
+    - Wathe bat (also SparkStrength's Silencer bat): `BlackRavenCrowAttackHandlers` (full charge, reach 4, SparkTraits
+      gate and parry); `killOwnerVia`, `wathe:bat`; none.
+    - Wathe grenade (NoellesRoles Bomber grenade too): `BlackRavenCrowGrenadeMixin` appends the owner of every crow
+      whose feet lie in the grenade box +3 to Wathe's own kill loop; `wathe:grenade`, thrower credited; none.
+    - Hunter shotgun: crow step first in `DoubleBarrelShotgunItem#use` (volumes +0.5 vs the aimed player, puppets,
+      devices); `wathe:gun`; none (no shotgun innocent rule).
+    - USEC AXMC: crow step first in `UsecRifleFireService.resolveMatchHit` (bullet polyline, volumes +0.1), then the
+      puppet/device steps with the crow's distance; `wathe:gun`; `UsecFirePunishment.killAndPunish` (USEC 小脑).
+    - Feather Blade: crow step before the Seeker seam in `FeatherBladeItem#use`; marks the OWNER, because the mark is
+      player state (`BlackRavenMarkPlayerComponent`) that settles 20 s later through `BlackRavenMarkRuntime` (the kill
+      and the marker's 小脑 on an innocent) and must outlive the at most 30 s crow.
+    - Angler Swordfish: `SwordfishStabService.resolveAimedCrow` (the server's own ray on volumes +0.25, strictly before
+      every other candidate); `sparkwitch:swordfish_stab`; the Swordfish friendly-fire `shot_innocent`.
+    - Mighty Force and the Ceremonial Sword strike: `BlackRavenCrowHits.meleeStandIn` at the top of their attack
+      handlers (reach 4, line of sight); the sword dash: `onDashContact` after the puppet contact;
+      `sparkwitch:mighty_force` (misfire `shot_innocent` / forfeit) and `sparkwitch:ceremonial_blade` (none).
+    - Vendetta knife: `stabStandIn` in `VendettaKnifeService.use` (reach 3.5) and the client pick accepts the bound
+      killer's crow; `VendettaTargetingPacketGuard` judges a crow id as its owner; `wathe:knife`; none.
+    - Ninja shuriken and Witch Maiden crimson skull: vanilla collision already stops them on the crow;
+      `projectileStandIn` hands the owner to their player branch; `crowBeforeDevice` skips the Seeker sweep for a
+      nearer crow; `sparkwitch:ninja_shuriken_kill` / `sparkwitch:crimson_wither_skull`; none.
+    - Ninja Knife and a Magician puppet's replayed revolver/knife: `nearerOnLook` on their players-only server pick;
+      `sparkwitch:ninja_knife_kill` / `wathe:gun` / `wathe:knife`; none.
+    - NoellesRoles throwing axe: `BlackRavenCrowThrowingAxeMixin` (priority 900, before the Seeker sweep) hands each
+      crow's owner on the tick segment to the axe's own `onEntityHit` (it pierces on); `noellesroles:throwing_axe`;
+      none.
+    - Potion Gunner: the shell bursts on a crow (vanilla collision; `crowBeforeDevice` before the Seeker sweep); only
+      TR kills, and `PotionBlastResolver.addCrows` adds the owner of every crow the player rule catches (cube, sight
+      line, flags, reward); the backblast lane measures crows by the player rule (`backblastLane`);
+      `sparkwitch:potion_shell` / `sparkwitch:potion_backblast`; none.
+    - Murderous Witch Death Ray: `withPiercedCrows` adds every crow on the visible ray (volumes +0.2);
+      `sparkwitch:pierced_by_ray`; none.
+    - SparkStrength M67: `SparkStrengthM67Compat` → `onM67Blast` (sphere 5, line of sight); `killOwnerVia`,
+      `wathe:grenade`; none. SparkStrength Serial Killer pistols: `SparkWitchApi.hitGunWorldTarget` →
+      `onAddonGunShot` (SparkFactionAPI veto, `ShouldPunishGunShooter` custom punishment, `killOwnerVia`, `wathe:gun`).
+    - Not lethal to the Black Raven, so they never touch the crow: Taser, Shock Device, Holy Flash, Shriek Gun, Time
+      Stealer Clock, Hunter traps, Taotie heads, and the Demon Hunter pistol (it kills only Jesters and frenzied
+      players).
+    - Not covered (need SparkStrength seams): the SparkStrength Veteran/Coroner and Silencer knives (their HEAD hooks
+      in `KnifeStabPayload$Receiver` cancel non-player ids before Wathe's lookup), the Undercover tomahawk (its
+      `AttackEntityCallback` fails non-player targets on both sides) and Bomber drone bombs (no SparkWitch seam).
 - **Perception.** `BlackRavenPerceptionCenter.of(player)` is Perception's distance centre; Raven Form's override
   answers the crow's position during a session.
 - **Cooldown.** `compat/cooldown/BlackRavenCrowCooldownStore` (`sparkwitch:black_raven_crow`, appended after the Mini

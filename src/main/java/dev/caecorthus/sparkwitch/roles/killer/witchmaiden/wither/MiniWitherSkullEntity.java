@@ -4,6 +4,7 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastGeometry;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntity;
@@ -149,7 +150,9 @@ public class MiniWitherSkullEntity extends ThrownEntity {
             // Seeker seam, crimson only (a harmless skull breaks nothing): a device in the path breaks and stops it,
             // unless a puppet its owner may end lies nearer. / 搜寻者接缝，仅赤首（无害的头颅不打坏任何东西）：路径上的
             // 设备被打坏并挡下赤首，除非更近处有主人可结束的皮套。
-            if (kind() == Kind.CRIMSON && !MagicianPuppetHits.puppetBeforeDevice(this, getOwner(), from, to)) {
+            // A Raven Form crow before the device is skipped the same way. / 设备之前的化鸦乌鸦同样跳过。
+            if (kind() == Kind.CRIMSON && !MagicianPuppetHits.puppetBeforeDevice(this, getOwner(), from, to)
+                    && !BlackRavenCrowHits.crowBeforeDevice(this, getOwner(), from, to)) {
                 Vec3d device = SeekerDeviceHits.onCrimsonSkullSweep(this, getOwner(), from, to);
                 if (device != null) {
                     fizzle(device);
@@ -225,7 +228,9 @@ public class MiniWitherSkullEntity extends ThrownEntity {
         if (hitResult instanceof EntityHitResult entityHit) {
             Entity entity = entityHit.getEntity();
             Vec3d at = PotionBlastGeometry.entityImpact(getPos(), getPos().add(getVelocity()), entity.getBoundingBox());
-            if (entity instanceof ServerPlayerEntity player) {
+            // Raven Form seam: a crimson skull kills a crow's owner as it kills a player. / 化鸦接缝：赤首像击杀玩家一样处死乌鸦的主人。
+            Entity standIn = kind() == Kind.CRIMSON ? BlackRavenCrowHits.projectileStandIn(getOwner(), entity) : entity;
+            if (standIn instanceof ServerPlayerEntity player) {
                 hitPlayer(player, at);
             } else if (kind() == Kind.CRIMSON
                     && MagicianPuppetHits.onCrimsonSkullHit(this, getOwner(), entityHit)) {

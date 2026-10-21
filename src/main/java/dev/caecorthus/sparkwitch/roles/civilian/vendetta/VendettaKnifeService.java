@@ -3,6 +3,8 @@ package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowTargets;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
@@ -42,10 +44,14 @@ public final class VendettaKnifeService {
         if (heldTicks < VendettaKnifeRules.MINIMUM_HOLD_TICKS) {
             return;
         }
-        Entity entity = attacker.getServerWorld().getEntityById(targetEntityId);
+        // Raven Form seam: the bound killer's crow in reach stands in for it (its owner); reach and sight were measured on
+        // the crow. / 化鸦接缝：距离内的被绑定杀手的乌鸦以其主人代入；距离与视线已按乌鸦量取。
+        Entity entity = BlackRavenCrowHits.stabStandIn(attacker,
+                attacker.getServerWorld().getEntityById(targetEntityId), VendettaKnifeRules.MAX_RANGE);
         if (!(entity instanceof ServerPlayerEntity target)) {
             return;
         }
+        boolean crowStandIn = BlackRavenCrowTargets.isSubstituted(target);
         UUID boundKillerUuid = component.getBoundKillerUuid();
         boolean activeVendetta = game.isRunning()
                 && game.isRole(attacker, SparkWitchRoles.vendetta())
@@ -61,8 +67,8 @@ public final class VendettaKnifeService {
                 boundKillerUuid != null && boundKillerUuid.equals(target.getUuid()),
                 targetAlive,
                 heldTicks,
-                attacker.squaredDistanceTo(target),
-                attacker.canSee(target))) {
+                crowStandIn ? 0.0 : attacker.squaredDistanceTo(target),
+                crowStandIn || attacker.canSee(target))) {
             return;
         }
 
@@ -82,7 +88,9 @@ public final class VendettaKnifeService {
                 target,
                 null
         );
-        target.playSound(WatheSounds.ITEM_KNIFE_STAB, 1.0F, 1.0F);
+        if (!BlackRavenCrowHits.playAtSubstitutedCrow(target, WatheSounds.ITEM_KNIFE_STAB, 1.0F, 1.0F)) {
+            target.playSound(WatheSounds.ITEM_KNIFE_STAB, 1.0F, 1.0F);
+        }
         attacker.swingHand(heldHand);
     }
 

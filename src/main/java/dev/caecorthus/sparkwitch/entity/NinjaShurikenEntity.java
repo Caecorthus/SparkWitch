@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
@@ -51,8 +52,11 @@ public final class NinjaShurikenEntity extends PersistentProjectileEntity implem
         // Magician puppet lies before it (vanilla collision then takes the puppet or a nearer player).
         // 搜寻者接缝（服务端、飞行中）：本刻路径上的搜寻者设备被打坏，手里剑随之停下；若魔术师皮套位于设备之前则跳过
         // （由原版碰撞处理该皮套或更近的玩家）。
+        // A Raven Form crow before the device is skipped the same way (vanilla collision then hits it).
+        // 设备之前的化鸦乌鸦同样跳过扫掠（随后由原版碰撞命中它）。
         if (!getWorld().isClient() && !inGround
                 && !MagicianPuppetHits.puppetBeforeDevice(this, getOwner(), getPos(), getPos().add(getVelocity()))
+                && !BlackRavenCrowHits.crowBeforeDevice(this, getOwner(), getPos(), getPos().add(getVelocity()))
                 && SeekerDeviceHits.onShurikenSweep(this, getOwner(), getPos(), getPos().add(getVelocity()))) {
             discard();
             return;
@@ -89,7 +93,9 @@ public final class NinjaShurikenEntity extends PersistentProjectileEntity implem
             discard();
             return;
         }
-        Entity hitEntity = entityHitResult.getEntity();
+        // Raven Form seam: a crow takes the hit as its owner, through the player branch below.
+        // 化鸦接缝：乌鸦以其主人身份经下方玩家分支承受命中。
+        Entity hitEntity = BlackRavenCrowHits.projectileStandIn(owner, entityHitResult.getEntity());
         if (!(owner instanceof ServerPlayerEntity thrower)
                 || !(hitEntity instanceof ServerPlayerEntity victim)
                 || victim.getUuid().equals(thrower.getUuid())

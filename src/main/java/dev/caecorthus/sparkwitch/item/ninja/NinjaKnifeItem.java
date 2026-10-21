@@ -8,6 +8,7 @@ package dev.caecorthus.sparkwitch.item.ninja;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
@@ -57,8 +58,13 @@ public final class NinjaKnifeItem extends Item {
                         && GameFunctions.isPlayerAliveAndSurvival(victim),
                 MAX_RANGE
         );
-        if (!(collision instanceof EntityHitResult entityHit)
-                || !(entityHit.getEntity() instanceof ServerPlayerEntity victim)) {
+        ServerPlayerEntity picked = collision instanceof EntityHitResult entityHit
+                && entityHit.getEntity() instanceof ServerPlayerEntity player ? player : null;
+        // Raven Form seam: a crow strictly nearer on the look ray stands in for its owner (lag-compensated).
+        // 化鸦接缝：视线上严格更近的乌鸦以其主人代入（延迟补偿）。
+        ServerPlayerEntity crowOwner = BlackRavenCrowHits.nearerOnLook(attacker, picked, MAX_RANGE);
+        ServerPlayerEntity victim = crowOwner != null ? crowOwner : picked;
+        if (victim == null) {
             return TypedActionResult.pass(stack);
         }
 

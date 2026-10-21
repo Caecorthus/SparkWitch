@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntity;
@@ -160,8 +161,12 @@ public class PotionShellEntity extends ThrownItemEntity {
             // Seeker seam (server): a Seeker device in this tick's path breaks and the shell bursts at it; a
             // presentation shell never touches a device. / 搜寻者接缝（服务端）：本刻路径上的搜寻者设备被打坏，炮弹在该处
             // 爆炸；仅表现的炮弹从不触碰设备。
-            Vec3d device = presentation ? null : SeekerDeviceHits.onPotionShellSweep(this, getOwner(), getPos(),
-                    getPos().add(getVelocity()));
+            // A Raven Form crow before the device leaves the tick to vanilla collision, which bursts the shell on it.
+            // 设备之前的化鸦乌鸦使本刻交给原版碰撞处理，炮弹在乌鸦处爆炸。
+            boolean crowFirst = !presentation
+                    && BlackRavenCrowHits.crowBeforeDevice(this, getOwner(), getPos(), getPos().add(getVelocity()));
+            Vec3d device = presentation || crowFirst ? null : SeekerDeviceHits.onPotionShellSweep(this, getOwner(),
+                    getPos(), getPos().add(getVelocity()));
             if (device != null) {
                 detonate(device);
                 return;

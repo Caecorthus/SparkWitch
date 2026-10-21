@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.killer.blackraven;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -40,9 +41,13 @@ public final class FeatherBladeItem extends Item {
                 serverUser.getServerWorld().getPlayers(),
                 candidate -> PlayerHitboxHistory.hitVolumes(
                         serverUser, candidate, BlackRavenTargeting.FEATHER_BOX_EXPANSION));
+        // Raven Form seam: a crow the aim enters before the aimed player and every breakable device takes the blade, and
+        // its OWNER is marked (the mark is player state that settles after 20 s, outliving the crow).
+        // 化鸦接缝：瞄准先于被瞄准玩家与所有可打坏设备进入的乌鸦承受羽刃，被标记的是其主人（标记是玩家状态，20 秒后结算，比乌鸦存续更久）。
+        BlackRavenCrowHits.FeatherHit crow = BlackRavenCrowHits.onFeatherBladeFired(serverUser, aim);
         // Seeker seam: a nearer Seeker device within reach absorbs the blade and breaks; nobody is marked.
         // 搜寻者接缝：射程内更近的搜寻者设备吸收羽刃并被打坏；不标记任何人。
-        ServerPlayerEntity target = SeekerDeviceHits.onFeatherBladeFired(serverUser,
+        ServerPlayerEntity target = crow != null ? crow.target().owner() : SeekerDeviceHits.onFeatherBladeFired(serverUser,
                 aim == null ? null : aim.player(), BlackRavenRules.FEATHER_REACH);
         UUID matchId = BlackRavenMatch.currentId();
         BlackRavenMarkPlayerComponent mark = target == null ? null : BlackRavenMarkPlayerComponent.KEY.get(target);
@@ -55,7 +60,8 @@ public final class FeatherBladeItem extends Item {
                 // Sight and reach come from the rewound hit, not the current position: the aim is block-clipped.
                 // 可见性与距离取自回溯命中处而非当前位置：瞄准射线已被方块截断。
                 target != null,
-                target == null || aim == null ? Double.POSITIVE_INFINITY : aim.feetDistanceSquared()
+                crow != null ? crow.distanceSquared()
+                        : target == null || aim == null ? Double.POSITIVE_INFINITY : aim.feetDistanceSquared()
         );
         if (!allowed || matchId == null || mark == null
                 || !mark.mark(serverUser.getUuid(), world.getTime() + BlackRavenRules.MARK_DURATION_TICKS, matchId)) {

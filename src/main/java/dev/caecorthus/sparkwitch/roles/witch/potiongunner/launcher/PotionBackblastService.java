@@ -6,6 +6,8 @@ import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowTargets;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -69,6 +71,14 @@ public final class PotionBackblastService {
         // goes to the player. / 搜寻者接缝，最近者命中：受害者距离按其真实碰撞箱量取（与设备射线同一量法），只有严格
         // 更近的可破坏设备才会吸收尾焰并被打坏，其后方的人不受影响；距离相同时命中玩家。
         double reach = victim.map(PotionBackblastRules.Hit::distance).orElse(length);
+        // Raven Form seam: a crow in the lane, measured by the player rule, takes the backblast when strictly nearer than
+        // the victim (a tie goes to the player); the puppet and device steps then compete with the crow's distance.
+        // 化鸦接缝：按玩家规则量取的通道内乌鸦严格近于受害者时承受尾焰（距离相同时归玩家）；皮套与设备步骤随后与乌鸦的距离比较。
+        PotionBackblastRules.Hit<BlackRavenCrowTargets.Target> crow = BlackRavenCrowHits.backblastLane(gunner, origin,
+                backwards, length, reach, SparkWitchDeathReasons.POTION_BACKBLAST);
+        if (crow != null) {
+            reach = crow.distance();
+        }
         // Magician seam: a puppet strictly nearer than the victim and than any device takes the backblast instead.
         // 魔术师接缝：严格近于受害者且近于任何设备的皮套改为承受尾焰。
         if (MagicianPuppetHits.onPotionBackblast(gunner, origin, backwards, length, reach)) {
@@ -76,6 +86,10 @@ public final class PotionBackblastService {
         }
         if (SeekerDeviceHits.onPotionBackblast(gunner, origin, backwards, reach)) {
             return;
+        }
+        if (crow != null) {
+            victim = Optional.of(new PotionBackblastRules.Hit<>(BlackRavenCrowTargets.substitute(crow.target()),
+                    crow.distance(), true));
         }
         victim.ifPresent(hit -> JudgeKillAttribution.runWith(world, gunner.getUuid(),
                 () -> GameFunctions.killPlayer(hit.target(), true, gunner, SparkWitchDeathReasons.POTION_BACKBLAST)));
