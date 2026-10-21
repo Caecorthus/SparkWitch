@@ -759,10 +759,14 @@ Current build baseline:
     It is hidden in the Blind view (`BlindClientGates.hidesEntity`) and for self, the camera entity, invisible, Wraith
     or spectating players.
     PiP draws it in both passes, sized via `ScopeClient.screenPixelsPerNdcY`, so the lens matches Full-Screen Zoom.
-    It sits at the optic's objective lens: eye + `SCOPE_FORWARD` 0.92 along the aim, `SCOPE_RIGHT` 0.18 to the right,
-    `SCOPE_UP` −0.05. The offsets are fitted to the lens centre (8, 14, 10) of `usec_rifle.json` under the
-    third-person `CROSSBOW_HOLD` pose (head pitch ±30°, within 0.15 blocks); refit them when the model or its display
-    transforms move.
+    It sits on the optic's objective lens where the pass actually drew it (`UsecScopeLensAnchors`, owner 2026-10-21),
+    so it rides the walk bob, sneaking and body yaw. `client/mixin/usec/UsecScopeLensPlayerRenderMixin` opens a holder
+    at `PlayerEntityRenderer#render` HEAD/RETURN for a scoped player. `UsecScopeLensItemRenderMixin` reads that
+    player's own main-hand rifle matrix in a third-person hand mode, right after `ItemRenderer#renderItem`'s single
+    −0.5 shift, and maps the lens face centre `UsecGlintRules.LENS_MODEL` (8, 14, 10) of every `usec_rifle*` model
+    back to the holder's render origin. Any outer pass transform cancels. `WorldRenderEvents.START` clears the map,
+    so a rifle not drawn in this pass (culled, held items hidden, a substituted item) shows no glint. Move
+    `LENS_MODEL` when the objective moves.
   - Pose: `UsecRifleArmPoseMixin` (priority 1600) gives `CROSSBOW_HOLD` both from the hip and while scoped (plan
     D15) whenever the shown stack is the rifle. The shown stack is the single `getStackInHand` result after Wathe's
     held-item substitution. A `@ModifyVariable` at the STORE of vanilla's only `ItemStack` local reads it into a

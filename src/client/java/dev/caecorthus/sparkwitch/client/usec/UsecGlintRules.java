@@ -1,26 +1,35 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
+import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
+import org.joml.Vector3f;
+
 /**
  * Pure rules for the scope glint others see on a scoped USEC (S1, WP6 mockup {@code s1_glint_detail.png}). The flare
- * sits at the LPVO objective lens (eye + 0.92 along the aim, 0.18 right, 0.05 down: the lens centre of the
- * 2026-10-08 {@code usec_rifle} model held in the third-person CROSSBOW_HOLD pose, fitted over head pitches of
- * -30..30 degrees, within 0.15 blocks). Its intensity is a smoothstep over the
+ * sits on the LPVO objective lens where the rifle model was actually drawn this pass: the lens face centre
+ * {@code (8, 14, 10)} of every {@code usec_rifle*} model, taken through the item's render matrix
+ * ({@link #lensOffset}, recorded by {@code UsecScopeLensAnchors}). Its intensity is a smoothstep over the
  * cosine of the angle between the USEC's aim and the direction to the viewer: full inside
  * {@link #FULL_ANGLE_DEGREES}, gone beyond {@link #ZERO_ANGLE_DEGREES}. Its size is set in screen pixels at 1080p
  * (scaled with the framebuffer height): a core of 0.12 blocks projected, clamped to 2.6..6 px, and a sprite half extent
  * of {@code max(34 px, 9 x core)} that carries the streaks. Presentation only.
- * 他人在开镜 USEC 身上看到的镜头反光（S1，WP6 样稿 {@code s1_glint_detail.png}）的纯规则。闪光位于低倍率瞄具的物镜处
- * （眼睛沿瞄准方向 0.92、向右 0.18、向下 0.05：2026-10-08 {@code usec_rifle} 模型在第三人称 CROSSBOW_HOLD 姿势下的物镜中心，
- * 按头部俯仰 -30..30 度拟合，误差在 0.15 格以内）。强度是 USEC 瞄准方向与指向观察者方向夹角余弦上的 smoothstep：{@link #FULL_ANGLE_DEGREES}
+ * 他人在开镜 USEC 身上看到的镜头反光（S1，WP6 样稿 {@code s1_glint_detail.png}）的纯规则。闪光位于本次渲染中步枪模型
+ * 实际绘制出的低倍率瞄具物镜上：所有 {@code usec_rifle*} 模型的物镜镜面中心 {@code (8, 14, 10)} 经物品渲染矩阵变换
+ * （{@link #lensOffset}，由 {@code UsecScopeLensAnchors} 记录）。强度是 USEC 瞄准方向与指向观察者方向夹角余弦上的 smoothstep：{@link #FULL_ANGLE_DEGREES}
  * 以内为满，超过 {@link #ZERO_ANGLE_DEGREES} 消失。大小以 1080p 屏幕像素设定（随帧缓冲高度缩放）：核心为 0.12 格的投影，
  * 钳制在 2.6..6 像素，精灵半尺寸为 {@code max(34 像素, 9 x 核心)}，承载光芒。仅为表现。
  */
 public final class UsecGlintRules {
     public static final double FULL_ANGLE_DEGREES = 6.0;
     public static final double ZERO_ANGLE_DEGREES = 35.0;
-    public static final double SCOPE_FORWARD = 0.92;
-    public static final double SCOPE_RIGHT = 0.18;
-    public static final double SCOPE_UP = -0.05;
+    /**
+     * Objective lens face centre {@code (8, 14, 10)} of every {@code usec_rifle*} model, in the item renderer's unit
+     * space after its -0.5 shift (model units / 16).
+     * 所有 {@code usec_rifle*} 模型的物镜镜面中心 {@code (8, 14, 10)}，位于物品渲染器 -0.5 平移之后的单位空间（模型单位 / 16）。
+     */
+    public static final float LENS_MODEL_X = 8.0F / 16.0F;
+    public static final float LENS_MODEL_Y = 14.0F / 16.0F;
+    public static final float LENS_MODEL_Z = 10.0F / 16.0F;
     public static final double CORE_BLOCKS = 0.12;
     public static final double CORE_MIN_PX = 2.6;
     public static final double CORE_MAX_PX = 6.0;
@@ -47,6 +56,17 @@ public final class UsecGlintRules {
     public static boolean draws(boolean confirmedServer, boolean blindView, boolean scoped, boolean localPlayer,
                                 boolean cameraEntity, boolean invisible, boolean spectator) {
         return confirmedServer && !blindView && scoped && !localPlayer && !cameraEntity && !invisible && !spectator;
+    }
+
+    /**
+     * The lens centre relative to the holder's render origin: {@code rootInverse x item x lens}. {@code item} is the
+     * item matrix after the display transform, {@code rootInverse} the inverse of the matrix at the holder's render
+     * HEAD, so the pass's own outer transform cancels out.
+     * 物镜中心相对持有者渲染原点的位置：{@code rootInverse x item x lens}。{@code item} 为显示变换之后的物品矩阵，
+     * {@code rootInverse} 为持有者渲染 HEAD 处矩阵的逆，因此本次渲染自己的外层变换会抵消。
+     */
+    public static Vector3f lensOffset(Matrix4fc rootInverse, Matrix4fc item, Vector3f out) {
+        return rootInverse.mul(item, new Matrix4f()).transformPosition(LENS_MODEL_X, LENS_MODEL_Y, LENS_MODEL_Z, out);
     }
 
     /**

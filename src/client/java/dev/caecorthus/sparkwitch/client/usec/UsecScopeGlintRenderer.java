@@ -31,7 +31,8 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 
 /**
- * Draws the scope glint (S1, WP6 mockup) at every other scoped USEC's scope objective: a camera-facing billboard of a
+ * Draws the scope glint (S1, WP6 mockup) on every other scoped USEC's objective lens, at the point where this pass
+ * actually drew it ({@code UsecScopeLensAnchors}), so it rides the rifle's bob: a camera-facing billboard of a
  * small generated flare (premultiplied {@code #FFF6DE} core and streaks, {@code #FFE2AA} halo), screen-blended in
  * {@code WorldRenderEvents.AFTER_TRANSLUCENT}. It reads only the all-player synced {@code UsecPlayerComponent.scoped}
  * flag, which the server sets after its own checks, and the USEC's synced head yaw and pitch. Occlusion is a point
@@ -41,7 +42,8 @@ import org.joml.Matrix4fStack;
  * {@code ScopeClient.screenPixelsPerNdcY}: at 1x in the main pass (seen outside the lens) and magnified in the lens pass,
  * exactly as large as Full-Screen Zoom shows it. The composite replaces the main picture inside the lens, so the two
  * never stack. Presentation only.
- * 在其他每个开镜 USEC 的物镜处绘制镜头反光（S1，WP6 样稿）：一个朝向镜头的小型生成闪光公告板（预乘的 {@code #FFF6DE}
+ * 在其他每个开镜 USEC 的物镜上、即本次渲染实际画出物镜的位置（{@code UsecScopeLensAnchors}）绘制镜头反光（S1，WP6 样稿），
+ * 因此它随步枪一起晃动：一个朝向镜头的小型生成闪光公告板（预乘的 {@code #FFF6DE}
  * 核心与光芒、{@code #FFE2AA} 光晕），在 {@code WorldRenderEvents.AFTER_TRANSLUCENT} 中以滤色混合绘制。只读取同步给全员的
  * {@code UsecPlayerComponent.scoped} 标记（服务端检查后设置）以及 USEC 同步的头部偏航与俯仰。遮挡与样稿一样是点测试：
  * 客户端以 VISUAL 形状从镜头向物镜做方块射线检测（透明玻璃与车窗可透过），因此墙会挡住它，而闪光本身绝不会被 USEC 自己
@@ -88,7 +90,11 @@ public final class UsecScopeGlintRenderer {
                     player.isSpectator()) || BlindClientGates.hidesEntity(player)) {
                 continue;
             }
-            Vec3d scope = objective(player, tickDelta);
+            // Only where the rifle was drawn in this pass. / 只在本次渲染画出步枪的位置。
+            Vec3d scope = UsecScopeLensAnchors.lens(player);
+            if (scope == null) {
+                continue;
+            }
             Vec3d look = player.getRotationVec(tickDelta);
             Vec3d toViewer = cameraPos.subtract(scope);
             double intensity = UsecGlintRules.intensity(UsecGlintRules.aimCosine(look.x, look.y, look.z,
@@ -114,21 +120,6 @@ public final class UsecScopeGlintRenderer {
         if (buffer != null) {
             draw(buffer);
         }
-    }
-
-    /**
-     * LPVO objective lens: eye + 0.92 along the aim, 0.18 to the right, 0.05 down ({@link UsecGlintRules}). MC yaw 0
-     * faces +Z, so right is {@code (-cos yaw, 0, -sin yaw)}.
-     * 低倍率瞄具物镜：眼睛沿瞄准方向 0.92、向右 0.18、向下 0.05（{@link UsecGlintRules}）。MC 偏航 0 朝向 +Z，因此右方为
-     * {@code (-cos yaw, 0, -sin yaw)}。
-     */
-    static Vec3d objective(AbstractClientPlayerEntity player, float tickDelta) {
-        Vec3d eye = player.getCameraPosVec(tickDelta);
-        Vec3d look = player.getRotationVec(tickDelta);
-        double yaw = Math.toRadians(player.getYaw(tickDelta));
-        return eye.add(look.multiply(UsecGlintRules.SCOPE_FORWARD))
-                .add(-Math.cos(yaw) * UsecGlintRules.SCOPE_RIGHT, UsecGlintRules.SCOPE_UP,
-                        -Math.sin(yaw) * UsecGlintRules.SCOPE_RIGHT);
     }
 
     private static boolean occluded(ClientWorld world, Vec3d from, Vec3d to) {
