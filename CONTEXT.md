@@ -1123,7 +1123,9 @@ Current build baseline:
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, the
   Seeker, and USEC share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
-  separate slot mixin.
+  separate slot mixin. A Vigilante slot draws only from the eligible variants nobody holds yet; the
+  plain Vigilante appears only once all of them are held (or none is eligible). The Veteran slot
+  (every third police slot) is unchanged.
 - Police gun parity: Wathe's server gun receiver gives innocent non-Vigilante shooters a 15 s
   cooldown and -0.35 mood per hit. Each SparkWitch police role has its own additive OR-wrap of all
   four `isRole` calls that also answers "Vigilante" for that role, so it gets the 10 s revolver

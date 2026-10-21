@@ -11,6 +11,15 @@ public record KidnapperBodyPose(float bodyYaw, float relativeHeadYaw, float head
         return hasDirectPlayerCarrier && isExactKidnapper;
     }
 
+    /**
+     * Wathe sets the vanilla riding flag on the skin model only, so a carried corpse's skin sat up while
+     * its skeleton model stayed flat. A Kidnapper-carried corpse keeps the flat pose so skin and bones line up.
+     * Wathe 只给皮肤模型设置原版骑乘标记，被携带尸体的皮肤会坐起而骨架仍平躺；绑架者携带的尸体保持平躺，使皮肤与骨架重合。
+     */
+    public static boolean skinModelRiding(boolean watheRiding, boolean isKidnapperCarried) {
+        return watheRiding && !isKidnapperCarried;
+    }
+
     public static KidnapperBodyPose fromCarrierRotation(
             float previousYaw,
             float yaw,
