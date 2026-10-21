@@ -18,6 +18,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPack
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeService;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderDivinationService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseService;
+import dev.caecorthus.sparkwitch.roles.killer.hunter.net.HunterNetworking;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurNetworking;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.net.SeekerNetworking;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.net.UsecNetworking;
@@ -51,6 +52,8 @@ public final class SparkWitchPackets {
         SeekerNetworking.register();
         // Riftwalker payloads register in their own role-owned class, like the Seeker. / 隙行者数据包与搜寻者一样在自有类中注册。
         RiftwalkerNetworking.register();
+        // Hunter shotgun aim claim, also role-owned. / 猎人猎枪瞄准声明，同样在自有类中注册。
+        HunterNetworking.register();
         PayloadTypeRegistry.playC2S().register(OpenJudgeSelectionC2SPacket.ID, OpenJudgeSelectionC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(ConfirmJudgeSelectionC2SPacket.ID, ConfirmJudgeSelectionC2SPacket.CODEC);
         PayloadTypeRegistry.playS2C().register(OpenJudgeSelectionS2CPacket.ID, OpenJudgeSelectionS2CPacket.CODEC);

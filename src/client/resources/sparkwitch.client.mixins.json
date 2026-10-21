@@ -99,6 +99,7 @@
     "kidnapper.KidnapperControlledKeyMixin",
     "kidnapper.KidnapperControlledMouseMixin",
     "kidnapper.KidnapperThrowUseMixin",
+    "hunter.DoubleBarrelAimClaimMixin",
     "hunter.DoubleBarrelShotgunCrosshairMixin",
     "insider.InsiderCohortRoleNameMixin",
     "insider.RoundTextRendererJiahaoTitleMixin",

@@ -11,6 +11,8 @@ import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
+import net.fabricmc.fabric.api.entity.FakePlayer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import net.minecraft.component.DataComponentTypes;
@@ -86,11 +88,10 @@ public final class DoubleBarrelShotgunItem extends Item {
         setLoadedShells(shotgun, remainingShells);
         clearReloadWindow(shotgun);
 
-        // The shooter aimed at its delayed client view of others, so the server tests their rewound volumes.
-        // 射手瞄准的是客户端延迟画面中的其他玩家，因此服务端改为检测其回溯后的命中体积。
+        // As with the revolver, the shooter's client view decides who is hit; the server confirms it (serverTarget).
+        // 与左轮一样，由射手客户端画面决定命中谁；服务端负责确认（serverTarget）。
         PlayerEntity aimed = user instanceof ServerPlayerEntity serverUser
-                ? findTarget(user,
-                        candidate -> PlayerHitboxHistory.hitVolumes(serverUser, candidate, TARGET_BOX_EXPANSION))
+                ? serverTarget(serverUser)
                 : findTarget(user);
         // Nearest-wins: a nearer Magician puppet, else a nearer Seeker device, absorbs the shot (null target).
         // 最近者命中：更近的魔术师皮套（其次是更近的搜寻者设备）吸收这一枪。
@@ -201,9 +202,56 @@ public final class DoubleBarrelShotgunItem extends Item {
      * {@link PlayerHitboxHistory} 命中体积。先判定资格再算几何，不合格的玩家保持“透明”。
      */
     static PlayerEntity findTarget(PlayerEntity user, Function<PlayerEntity, List<Box>> hitVolumes) {
+        Aim aim = aim(user);
+        PlayerEntity nearest = null;
+        double nearestDistance = Double.POSITIVE_INFINITY;
+        for (PlayerEntity candidate : user.getWorld().getPlayers()) {
+            if (!isShotgunTarget(user, candidate)) {
+                continue;
+            }
+            double distance = HitscanLagRules.entryDistanceSquared(aim.eye(), aim.end(), hitVolumes.apply(candidate));
+            if (distance >= 0.0D && distance < nearestDistance) {
+                nearest = candidate;
+                nearestDistance = distance;
+            }
+        }
+        return nearest;
+    }
+
+    /**
+     * Server pick. The client's aim claim ({@link HunterShotgunAim}) names who its screen showed on the ray; the first
+     * eligible one is hit if its rewound volumes, grown by {@link HunterShotgunAim#CONFIRM_BOX_EXPANSION}, meet this
+     * block-clipped ray, else the shot misses. The server's own nearest pick over the whole rewind window hit running
+     * targets well ahead of where the shooter saw them, so it now runs only without a fresh claim. A Magician puppet
+     * proxy never has one: it is a {@link FakePlayer} sharing its owner's UUID, so it must never read (and use up) the
+     * owner's claim.
+     * 服务端选取。客户端瞄准声明（{@link HunterShotgunAim}）列出其画面中射线上的玩家；第一个有资格者若其回溯体积
+     * （按 {@link HunterShotgunAim#CONFIRM_BOX_EXPANSION} 扩大）与这条按方块截断的射线相交则被命中，否则这一枪未命中。
+     * 服务端在整个回溯窗口内自行取最近者时，会命中远在射手所见位置前方的奔跑目标，因此现在只在没有新鲜声明时使用。
+     * 魔术师皮套代理永远没有声明：它是与其主人共用 UUID 的 {@link FakePlayer}，因此绝不能读取（并用掉）主人的声明。
+     */
+    private static PlayerEntity serverTarget(ServerPlayerEntity user) {
+        List<Integer> claim = user instanceof FakePlayer ? null : HunterShotgunAimClaims.take(user);
+        if (claim == null) {
+            return findTarget(user, candidate -> PlayerHitboxHistory.hitVolumes(user, candidate, TARGET_BOX_EXPANSION));
+        }
+        Aim aim = aim(user);
+        List<PlayerEntity> claimed = new ArrayList<>(claim.size());
+        for (int id : claim) {
+            if (user.getWorld().getEntityById(id) instanceof PlayerEntity player) {
+                claimed.add(player);
+            }
+        }
+        return HunterShotgunAim.decide(claimed,
+                candidate -> isShotgunTarget(user, candidate),
+                candidate -> HitscanLagRules.entryDistanceSquared(aim.eye(), aim.end(), PlayerHitboxHistory.hitVolumes(
+                        user, candidate, HunterShotgunAim.CONFIRM_BOX_EXPANSION)) >= 0.0D);
+    }
+
+    /** Eye and block-clipped end of the shotgun ray. / 猎枪射线的眼睛位置与按方块截断的终点。 */
+    public static Aim aim(PlayerEntity user) {
         Vec3d eye = user.getEyePos();
-        Vec3d look = user.getRotationVec(1.0F);
-        Vec3d end = eye.add(look.multiply(HunterRules.SHOTGUN_RANGE));
+        Vec3d end = eye.add(user.getRotationVec(1.0F).multiply(HunterRules.SHOTGUN_RANGE));
         HitResult blockHit = user.getWorld().raycast(new RaycastContext(
                 eye,
                 end,
@@ -211,25 +259,17 @@ public final class DoubleBarrelShotgunItem extends Item {
                 RaycastContext.FluidHandling.NONE,
                 user
         ));
-        if (blockHit.getType() != HitResult.Type.MISS) {
-            end = blockHit.getPos();
-        }
+        return new Aim(eye, blockHit.getType() == HitResult.Type.MISS ? end : blockHit.getPos());
+    }
 
-        PlayerEntity nearest = null;
-        double nearestDistance = Double.POSITIVE_INFINITY;
-        for (PlayerEntity candidate : user.getWorld().getPlayers()) {
-            if (candidate == user
-                    || !VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(user, candidate)
-                    || !GameFunctions.isPlayerAliveAndSurvival(candidate)) {
-                continue;
-            }
-            double distance = HitscanLagRules.entryDistanceSquared(eye, end, hitVolumes.apply(candidate));
-            if (distance >= 0.0D && distance < nearestDistance) {
-                nearest = candidate;
-                nearestDistance = distance;
-            }
-        }
-        return nearest;
+    /** Shared by the server pick, the claim check and the client claim. / 服务端选取、声明确认与客户端声明共用。 */
+    public record Aim(Vec3d eye, Vec3d end) {
+    }
+
+    private static boolean isShotgunTarget(PlayerEntity user, PlayerEntity candidate) {
+        return candidate != user
+                && VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(user, candidate)
+                && GameFunctions.isPlayerAliveAndSurvival(candidate);
     }
 
     @Override
