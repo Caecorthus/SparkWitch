@@ -12,17 +12,19 @@ import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.border.WorldBorder;
 import org.joml.Matrix4f;
 
 /**
  * Screen-edge boundary indicator while the local Raven flies its crow (owner Q10). It reads Wathe's play area, synced to
  * every client, and the world border, the same clamp box the server enforces; the geometry is
- * {@link BlackRavenCrowBoundaryRules}. Everything is drawn with fills (no textures): edge glows with a gradient into
- * the screen, an arrow toward the nearest face and its distance. Presentation only.
+ * {@link BlackRavenCrowBoundaryRules} (horizontal faces within 8 blocks; floor and ceiling within 2 blocks, only while
+ * the pilot's commanded flight heads toward them). Everything is drawn with fills (no textures): edge glows with a
+ * gradient into the screen, an arrow toward the nearest warning face and its distance. Presentation only.
  * 本地黑羽鸦操控乌鸦时的屏幕边缘边界提示（所有者 Q10）。读取同步给所有客户端的 Wathe 游戏区域与世界边界，与服务端执行的限制框相同；
- * 几何计算见 {@link BlackRavenCrowBoundaryRules}。全部以填充绘制（不用贴图）：向屏幕内渐变的边缘泛光、指向最近边界面的箭头及其距离。
- * 仅用于展示。
+ * 几何计算见 {@link BlackRavenCrowBoundaryRules}（水平面 8 格以内；底面与顶面 2 格以内，且仅在驾驶指令朝其飞行时）。全部以填充
+ * 绘制（不用贴图）：向屏幕内渐变的边缘泛光、指向最近警告边界面的箭头及其距离。仅用于展示。
  */
 public final class BlackRavenCrowBoundaryOverlay {
     /** Warm red glow, readable over the night-vision view. / 暖红色泛光，在夜视画面上清晰可见。 */
@@ -51,7 +53,9 @@ public final class BlackRavenCrowBoundaryOverlay {
         Box bounds = BlackRavenCrowFlightRules.bounds(MapVariablesWorldComponent.KEY.get(client.world).getPlayArea(),
                 border.getBoundWest(), border.getBoundNorth(), border.getBoundEast(), border.getBoundSouth());
         Box hull = crow.getBoundingBox();
-        BlackRavenCrowBoundaryRules.FaceDistance nearest = BlackRavenCrowBoundaryRules.nearest(hull, bounds);
+        // Floor and ceiling warn only while the crow heads toward them. / 底面与顶面只在乌鸦朝其移动时警告。
+        Vec3d motion = BlackRavenCrowPilotClient.commandedVelocity();
+        BlackRavenCrowBoundaryRules.FaceDistance nearest = BlackRavenCrowBoundaryRules.nearest(hull, bounds, motion);
         if (nearest == null) {
             return;
         }
@@ -59,8 +63,8 @@ public final class BlackRavenCrowBoundaryOverlay {
         BlackRavenCrowBoundaryRules.Basis basis = BlackRavenCrowBoundaryRules.basis(camera.getYaw(), camera.getPitch());
         int width = context.getScaledWindowWidth();
         int height = context.getScaledWindowHeight();
-        renderGlow(context, BlackRavenCrowBoundaryRules.edgeGlow(hull, bounds, basis), width, height);
-        float strength = BlackRavenCrowBoundaryRules.intensity(nearest.distance());
+        renderGlow(context, BlackRavenCrowBoundaryRules.edgeGlow(hull, bounds, basis, motion), width, height);
+        float strength = BlackRavenCrowBoundaryRules.intensity(nearest.face(), nearest.distance(), motion);
         BlackRavenCrowBoundaryRules.Arrow arrow = BlackRavenCrowBoundaryRules.arrow(
                 nearest.face().normal(), basis, width, height, ARROW_INSET);
         renderArrow(context, arrow, strength);

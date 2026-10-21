@@ -275,8 +275,11 @@ Current build baseline:
       sentence and factor/Emma RETURN fallbacks hide for the Raven only during Perception's window; the x-ray is
       per-target and only fills perceived players, so it needs no viewer-wide hide there.
     - Never visible to instinct (`client/blackraven/BlackRavenInstinctVeto`): a living player whose RAW role is the
-      Black Raven is never highlighted or outlined for any viewer except itself and spectator/creative viewers (dead
-      spectators, spectating non-participants, creative admins). Wathe syncs the whole role map to every client, so
+      Black Raven is never highlighted or outlined for any viewer except itself and viewers who may see spectator
+      information (`seesSpectatorInformation`, Wathe's `canSeeSpectatorInformation` per viewer: spectator or creative
+      AND not `isPlayerPlayingAndAlive` — dead spectators, spectating non-participants, creative admins; plan §2.2).
+      Living participants in spectator mode (Rift Gate occupants, a feign-dead Fiend) keep their living instinct and
+      are vetoed like anyone else. Wathe syncs the whole role map to every client, so
       `getRole` is the raw role there; an unconfirmed server, a missing viewer or an unknown role never vetoes.
       `client/mixin/blackraven/BlackRavenInstinctVetoMixin` (`@WrapMethod` on `WatheClient.getInstinctHighlight`,
       priority 3000, pinned in `watheClientMixinContracts`) returns -1 without `original.call()`, so every event
@@ -3288,13 +3291,17 @@ Seeker car.
   tick, clamp to Wathe's play area (x/z intersected with the world border, y in [minY, maxY]; an axis already outside is
   never pulled back) and swept block collision. A result more than 0.0625 from the request is answered with a
   correction. The owner's client installs `BlackRavenCrowEntity.installClientPilotHook` so it ignores tracker updates
-  for its own crow, predicts with `clientPilotMove` and applies corrections with `clientApplyCorrection`.
+  for the crow its live view flies, predicts with `clientPilotMove` and applies corrections with `clientApplyCorrection`.
 - **Client (crow-client, `client/blackraven/crow/`).** Presentation only; the server decides everything.
   - *Key 2.* `BlackRavenCrowClient` registers the RAW-role `sparkwitch:black_raven` handler in `SecondaryAbilityRegistry`:
     a press sends the toggle (start, or end early); its `reset()` closes `BlackRavenPerceptionScreenEffects`.
   - *Pilot view.* `BlackRavenCrowPilotClient` follows only the owner-synced component (active bit + crow id; START tick):
     it never sends the toggle itself, so a view it gives up on (camera taken by `SetCameraEntity`, crow missing over
-    40 ticks) waits for the server's end or the next key-2 press. Start: clear (never release) the item in use, close
+    40 ticks) waits for the server's end or the next key-2 press. The pilot hook holds only while that live view flies
+    the crow: once given up, the owner's still-tracked crow glides to the server's tracked base and follows tracker
+    updates like any other crow (never left drawn at the last prediction); the base stays exact while flying because
+    `BlackRavenCrowNetworkHandlerMixin` (`onEntity`) advances it for the relative moves vanilla skips on a logical-side
+    entity (`keepTrackedBase`). Start: clear (never release) the item in use, close
     gameplay screens, drain the locked keys, `BlackRavenCrowFrozenInput` on the body, chunk culling off, hand hidden,
     then `setCameraEntity(crow)` (bound by id every tick). The body stays `isCamera()` and its SELF moves are cancelled
     for the whole session, then until its chunks are back (`BlackRavenCrowBodyMixin`, the Seeker chunk-fall fix). End
@@ -3314,21 +3321,26 @@ Seeker car.
     (`BlackRavenCrowHud.statusLine`: flying s left > landing s > locked x/2 > cooldown s > ready) on the free mode row,
     or one row above the disguise line; never in the witch skills panel.
   - *Boundary (owner Q10).* `BlackRavenCrowBoundaryOverlay` (HUD callback) reads Wathe's play area and the world border
-    (the server's clamp box); faces within 8 blocks of the hull glow their screen edge(s) (fill gradients, smoothstep
-    intensity), and an arrow points at the nearest face with "Edge x.x m" / "边界 x.x 格"; the math is
-    `BlackRavenCrowBoundaryRules`.
+    (the server's clamp box). A face warns only when useful: the four horizontal faces within 8 blocks of the hull
+    (`WARN_DISTANCE`), the floor and ceiling only within 2 blocks (`VERTICAL_WARN_DISTANCE`) and only while the pilot's
+    commanded velocity (`BlackRavenCrowPilotClient.commandedVelocity`, taken before collisions and the clamp) heads
+    toward them, since the floor is the fall line under the train and usually within 8 blocks of a crow inside a
+    carriage. Warning faces glow their screen edge(s) (fill gradients, smoothstep intensity), and an arrow points at the
+    nearest warning face with "Edge x.x m" / "边界 x.x 格"; the math is `BlackRavenCrowBoundaryRules`.
   - *Vision.* Night vision through the crow is a lightmap override (`BlackRavenCrowLightmapMixin`: night vision at full
     strength, no darkness), never a status effect. Fog and sky read the camera entity, so the body's blackout
     blindness never shows through the crow; during Perception `BlackRavenCrowFogMixin` / `BlackRavenCrowSkyMixin` read
     the body instead, so Perception looks as on foot (desaturation and Steve skins already key on the local player).
     `BlackRavenCrowTerrainGridMixin` centres vanilla's render grid on the crow (skipped under Sodium by
     `SparkWitchClientMixinPlugin`, like the Seeker's).
-  - *Hiding.* `BlackRavenInstinctVeto` vetoes `BlackRavenCrowForm.isBodyOrCrow` targets for every non-spectator/creative
-    viewer. `BlackRavenCrowBodyRenderMixin` (`EntityRenderDispatcher#shouldRender`) skips the hidden body entirely
-    (model, held items, armour, shadow) for those viewers; `WraithNameTagPassThrough` lets every name-tag raycast pass
-    through it, and through everything for a viewer flying the crow (labels would be cast from its frozen body);
-    `BlindClientGates` never forces it visible and always hides it from the Blind. The crow is a normal entity with no
-    name tag.
+  - *Hiding.* `BlackRavenInstinctVeto` vetoes `BlackRavenCrowForm.isBodyOrCrow` targets for every viewer without
+    spectator information (`BlackRavenInstinctVeto.seesSpectatorInformation`: only dead spectators and admins are
+    exempt, never a living participant in spectator mode). `BlackRavenCrowBodyRenderMixin`
+    (`EntityRenderDispatcher#shouldRender`) skips the hidden body entirely (model, held items, armour, shadow) for the
+    same viewers (`BlackRavenCrowBodyVisibility` shares that exemption); `WraithNameTagPassThrough` lets every name-tag
+    raycast pass through it, and through everything for a viewer flying the crow (labels would be cast from its frozen
+    body); `BlindClientGates` never forces it visible and always hides it from the Blind. The crow is a normal entity
+    with no name tag.
   - *Renderer.* Crow model B ("Blackcoat crow", owner pick 2026-10-21, `docs/dev-harness/art/black-raven-crow/`):
     `BlackRavenCrowModel` (64x32 `textures/entity/black_raven_crow.png`, `RenderLayer::getEntityCutout`) posed by the
     pure `BlackRavenCrowAnimation` (flap 3.5-6 Hz by speed, glide when slow, hover under 1 block/s, perched idle when

@@ -68,7 +68,11 @@ public final class GrandWitchFearClientHooks {
         if (!GrandWitchFearService.shouldBlockRoleSkillPayload(player, payloadId)) {
             return false;
         }
-        sendSkillBlocked(player);
+        // Per-tick streams (Raven Form crow moves) are dropped silently, like on the server; one-shot skill packets
+        // still say "skill blocked". 逐刻数据流（化鸦乌鸦移动）与服务端一样静默丢弃；一次性技能包仍提示“技能被封锁”。
+        if (!GrandWitchFearService.isSilentlyBlockedPayload(payloadId)) {
+            sendSkillBlocked(player);
+        }
         return true;
     }
 
