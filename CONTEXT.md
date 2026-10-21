@@ -118,6 +118,17 @@ Current build baseline:
     spends nothing; null for every other kill. Both fail closed (false / null) for nulls and outside the exact scope.
     The facade exposes the round, not a price: the add-on owns its balance numbers (the Democracy Shield's 10 / 25
     points live in SparkStrength's `BodyguardRules`, next to its sword and TR shell costs).
+  - Raven Form crow seam (2026-10-21, frozen names and signatures, reached by SparkStrength's `SparkWitchCompat`
+    through reflection; plan v2 §2.5): `SparkWitchApi.isBlackRavenCrow(Entity)` (side-neutral, lets a client gate that
+    accepts only players send the attack); server `SparkWitchApi.crowMeleeStandIn(ServerPlayerEntity, Entity, double
+    reach)` returns the owner of a crow the attacker may hit within reach + 0.5 (lag-compensated, clear line) and arms
+    the owner substitution (`BlackRavenCrowHits.addonMeleeStandIn`), so the add-on runs its own player path on the
+    Black Raven without its own body-distance check; null otherwise. `SparkWitchApi.killCrowsInBlast(ServerWorld,
+    Vec3d, double radius, ServerPlayerEntity killer, Identifier deathReason)` kills the owner of every crow in the
+    closed sphere with a clear line from the centre (`BlackRavenCrowHits.onBlast`, the M67 measure, the reason passed
+    through as the same instance) and returns the count. Not an API: SparkStrength's `@Pseudo`
+    `DroneSparkWitchCrowTargetsMixin` lowers `BlackRavenCrowTargets.deviceSquared(ServerPlayerEntity, Vec3d, Vec3d)` at
+    RETURN to its nearest Bomber drone, so keep that name and signature.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
   D1–D10, numbers in each ability class):
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
@@ -3340,15 +3351,16 @@ Seeker car.
     session with `CROW_KILLED` when the weapon then kills that owner, exactly `killOwnerVia`'s first half. A
     substitution that never reaches `killPlayer` (a backfire, a refused target) expires at the end of the tick, and a
     receiver that resolves a real player id drops a pending one (`forget`). Weapons without a reusable player path
-    (the bat, the M67, add-on guns) call `killOwnerVia` directly.
+    (the bat, sphere blasts, add-on guns) call `killOwnerVia` directly.
   - **Who may hit** (`BlackRavenCrowTargets.hittable`): a live crow (its owner's session still flies it) in the
     attacker's world, never by its own owner, never by a spectator or creative player; a null attacker is an ownerless
     blast.
   - **Nearest wins**: a crow takes a ray or sweep only when strictly nearer than the player the weapon would hit, every
     Magician puppet it would end and every Seeker device it would break (ties go to them); the crow step runs before the
     weapon's puppet and device steps (or shrinks the reach they compete with). SparkStrength Bomber drones absorb
-    inside the Seeker hooks, so a drone nearer than a crow absorbs only where the crow shrinks the reach (USEC,
-    backblast), not where the crow skips the Seeker step (shotgun, Feather Blade).
+    inside the Seeker hooks: where the crow shrinks the reach (USEC, backblast) a nearer drone absorbs there, and where
+    the crow skips the Seeker step (shotgun, Feather Blade, projectile and axe sweeps) SparkStrength adds its nearest
+    drone to `BlackRavenCrowTargets.deviceSquared`, so the crow loses to it and the Seeker step's drone hook absorbs.
   - **Lag compensation**: the crow flies up to 24 blocks/s and is drawn on other clients with tracker interval 1 plus
     3-step interpolation, so every server check that confirms an aim (server rays, client-picked ids, melee reach)
     tests `BlackRavenCrowHitboxHistory.hitVolumes`: the crow's boxes over the shooter's ping-based rewind window
@@ -3397,12 +3409,19 @@ Seeker car.
     - SparkStrength M67: `SparkStrengthM67Compat` → `onM67Blast` (sphere 5, line of sight); `killOwnerVia`,
       `wathe:grenade`; none. SparkStrength Serial Killer pistols: `SparkWitchApi.hitGunWorldTarget` →
       `onAddonGunShot` (SparkFactionAPI veto, `ShouldPunishGunShooter` custom punishment, `killOwnerVia`, `wathe:gun`).
+    - SparkStrength Veteran knife, Coroner instant silent knife and Silencer knife: their HEAD takeovers in
+      `KnifeStabPayload$Receiver` resolve a non-player id through `SparkWitchApi.crowMeleeStandIn` (reach 3 + 0.5) and
+      run their own player path on the owner; `wathe:knife`; Veteran: `InnocentKnifeKillRules` 小脑
+      (`wathe:shot_innocent`) as for any effective innocent; Coroner and Silencer: none (their own rules).
+    - SparkStrength Undercover tomahawk: the client gate accepts `isBlackRavenCrow`, the server strikes the owner from
+      `crowMeleeStandIn` (reach 3 + 0.5, crit sound at the crow); `sparkstrength:tomahawk`; the tomahawk's 小脑 rule
+      and its kill cooldown.
+    - SparkStrength Bomber bomb drone: `DroneCombatService#detonate` calls `SparkWitchApi.killCrowsInBlast` after its
+      player kills (radius 4, inside its `AttackOriginScope` blast); NoellesRoles `DEATH_REASON_BOMB` instance, the
+      pilot credited; none. A grenade drone drops an ordinary M67 (covered by the M67 seam).
     - Not lethal to the Black Raven, so they never touch the crow: Taser, Shock Device, Holy Flash, Shriek Gun, Time
       Stealer Clock, Hunter traps, Taotie heads, and the Demon Hunter pistol (it kills only Jesters and frenzied
       players).
-    - Not covered (need SparkStrength seams): the SparkStrength Veteran/Coroner and Silencer knives (their HEAD hooks
-      in `KnifeStabPayload$Receiver` cancel non-player ids before Wathe's lookup), the Undercover tomahawk (its
-      `AttackEntityCallback` fails non-player targets on both sides) and Bomber drone bombs (no SparkWitch seam).
 - **Perception.** `BlackRavenPerceptionCenter.of(player)` is Perception's distance centre; Raven Form's override
   answers the crow's position during a session.
 - **Cooldown.** `compat/cooldown/BlackRavenCrowCooldownStore` (`sparkwitch:black_raven_crow`, appended after the Mini
