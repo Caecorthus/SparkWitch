@@ -14,7 +14,6 @@ import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerLayout.TabHin
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerLayout.TitleBar;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerPaint.PillKind;
 import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
-import dev.caecorthus.sparkwitch.client.text.WitchRoleDisplayTexts;
 import dev.caecorthus.sparkwitch.net.SelectBlackRavenDisguiseC2SPacket;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenIdentitySnapshot;
@@ -47,16 +46,17 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Two-tab Perception Ledger in the role's "raven noir" panel. Tab A, Perceived identities, is read-only knowledge: a
- * ruled, paged grid of player faces with the role frozen for each. Tab B, Absent Good Roles, is a sectioned, scrolling
- * disguise list with the revert button in the footer, interactive only when opened from a mask session. Everything is
+ * Two-tab Perception Ledger in the role's "raven noir" panel. Tab A, Perceived, is read-only knowledge: a ruled, paged
+ * grid of the faces and names of the players perceived this round (no role since 2026-10-21). Tab B, Absent Good
+ * Roles, is a sectioned, scrolling disguise list with the revert button in the footer, interactive only when opened
+ * from a mask session. Everything is
  * code-drawn: geometry and hit testing come from {@link BlackRavenLedgerLayout}, tokens and fills from
  * {@link BlackRavenLedgerPaint}, and one per-frame model feeds both paint and hit test, so what is painted is what is
  * clicked. The client never predicts a switch; a click sends one select and closes, and the server answers with a
  * sync.
- * 双页感知册，采用职业自有的“鸦羽暗夜”面板。Tab A“已感知身份”是只读知识：带横线、可翻页的玩家头像网格，每格附其
- * 定格的职业。Tab B“未登场的善良职业”是分区、可滚动的伪装名单，恢复按钮位于页脚，仅在面具会话打开时可交互。全部由
- * 代码绘制：几何与命中判定来自 {@link BlackRavenLedgerLayout}，令牌与填充来自 {@link BlackRavenLedgerPaint}，同一份
+ * 双页感知册，采用职业自有的“鸦羽暗夜”面板。Tab A“已感知”是只读知识：带横线、可翻页的网格，列出本局已感知玩家的头像与
+ * 名字（2026-10-21 起不含职业）。Tab B“未登场的善良职业”是分区、可滚动的伪装名单，恢复按钮位于页脚，仅在面具会话
+ * 打开时可交互。全部由代码绘制：几何与命中判定来自 {@link BlackRavenLedgerLayout}，令牌与填充来自 {@link BlackRavenLedgerPaint}，同一份
  * 逐帧模型同时供绘制与命中使用，绘制即命中。客户端从不预测切换；点击发送一次选择并关闭，由服务端同步结果。
  */
 public final class BlackRavenLedgerBookScreen extends Screen {
@@ -369,9 +369,8 @@ public final class BlackRavenLedgerBookScreen extends Screen {
         }
     }
 
-    /** One Tab A cell; {@code cut} = a line was ellipsized, so the cell carries a tooltip. cut 表示有文字被截断，需要提示框。 */
-    private record PerceivedCell(BlackRavenIdentitySnapshot snapshot, Rect rect, String name, String role,
-                                 boolean cut) {
+    /** One Tab A cell; {@code cut} = the name was ellipsized, so the cell carries a tooltip. cut 表示名字被截断，需要提示框。 */
+    private record PerceivedCell(BlackRavenIdentitySnapshot snapshot, Rect rect, String name, boolean cut) {
     }
 
     /**
@@ -428,27 +427,18 @@ public final class BlackRavenLedgerBookScreen extends Screen {
 
     /** Builds Tab A and keeps {@code perceivedPage} inside the page range. 构建 Tab A，并将 perceivedPage 限制在页码范围内。 */
     private GridPage gridPage() {
-        // The widest role on the whole ledger picks the columns, so turning a page never reflows the grid.
-        // 列数由整本感知册中最宽的职业名决定，翻页时网格不会重排。
-        int widestRole = 0;
-        for (BlackRavenIdentitySnapshot snapshot : perceived) {
-            widestRole = Math.max(widestRole, textRenderer.getWidth(roleName(snapshot)));
-        }
-        Grid grid = BlackRavenLedgerLayout.perceivedGrid(panel, widestRole);
+        Grid grid = BlackRavenLedgerLayout.perceivedGrid(panel);
         int perPage = BlackRavenLedgerLayout.perceivedPerPage(panel, grid);
         int pageCount = BlackRavenLedgerLayout.pageCount(perceived.size(), perPage);
         perceivedPage = Math.clamp(perceivedPage, 0, pageCount - 1);
         List<BlackRavenIdentitySnapshot> page = BlackRavenDisguiseClientRules.page(perceived, perceivedPage, perPage);
         int nameMax = BlackRavenLedgerLayout.perceivedNameMax(grid.cellWidth());
-        int roleMax = BlackRavenLedgerLayout.perceivedRoleMax(grid.cellWidth());
         List<PerceivedCell> cells = new ArrayList<>(page.size());
         for (int index = 0; index < page.size(); index++) {
             BlackRavenIdentitySnapshot snapshot = page.get(index);
-            String fullRole = roleName(snapshot);
             String name = ellipsize(snapshot.playerName(), nameMax);
-            String role = ellipsize(fullRole, roleMax);
-            cells.add(new PerceivedCell(snapshot, BlackRavenLedgerLayout.perceivedCell(panel, grid, index), name, role,
-                    !name.equals(snapshot.playerName()) || !role.equals(fullRole)));
+            cells.add(new PerceivedCell(snapshot, BlackRavenLedgerLayout.perceivedCell(panel, grid, index), name,
+                    !name.equals(snapshot.playerName())));
         }
         Text pageText = Text.translatable(LEDGER_KEY + "page", perceivedPage + 1, pageCount);
         Pager pager = BlackRavenLedgerLayout.pager(panel, textRenderer.getWidth(pageText), pageCount);
@@ -633,7 +623,6 @@ public final class BlackRavenLedgerBookScreen extends Screen {
                     BlackRavenLedgerPaint.SHEEN_LO, BlackRavenLedgerLayout.EMPTY_FEATHER_SCALE);
         }
         for (int index = 0; index < page.cells().size(); index++) {
-            BlackRavenIdentitySnapshot snapshot = page.cells().get(index).snapshot();
             Rect rect = page.cells().get(index).rect();
             boolean hovered = cellHovered(index);
             if (hovered) {
@@ -642,8 +631,6 @@ public final class BlackRavenLedgerBookScreen extends Screen {
             BlackRavenLedgerPaint.rowRule(context, rect);
             BlackRavenLedgerPaint.faceFrame(context, rect.x() + BlackRavenLedgerLayout.FACE_FRAME_X,
                     rect.y() + BlackRavenLedgerLayout.FACE_FRAME_Y, hovered);
-            BlackRavenLedgerPaint.roleGem(context, rect.x() + BlackRavenLedgerLayout.ROLE_GEM_X,
-                    rect.y() + BlackRavenLedgerLayout.ROLE_GEM_Y, snapshot.roleColor(), hovered);
         }
     }
 
@@ -654,8 +641,6 @@ public final class BlackRavenLedgerBookScreen extends Screen {
             context.drawText(textRenderer, cell.name(), rect.x() + BlackRavenLedgerLayout.NAME_X,
                     rect.y() + BlackRavenLedgerLayout.NAME_Y,
                     cellHovered(index) ? BlackRavenLedgerPaint.TEXT_HI : BlackRavenLedgerPaint.TEXT, true);
-            context.drawText(textRenderer, cell.role(), rect.x() + BlackRavenLedgerLayout.ROLE_X,
-                    rect.y() + BlackRavenLedgerLayout.ROLE_Y, BlackRavenLedgerPaint.MUTED, true);
         }
         if (perceived.isEmpty()) {
             int y = BlackRavenLedgerLayout.emptyTop(panel, 1 + page.emptyHint().size())
@@ -946,9 +931,9 @@ public final class BlackRavenLedgerBookScreen extends Screen {
     // ---------------------------------------------------------------- tooltip
 
     /**
-     * The wallet shows its full label; a Tab A cell shows name and role only when a line was cut; Tab B cells keep
-     * the row tooltip rules.
-     * 钱包显示完整说明；Tab A 单元仅在文字被截断时显示名称与职业；Tab B 单元沿用行提示规则。
+     * The wallet shows its full label; a Tab A cell shows the full name only when it was cut; Tab B cells keep the row
+     * tooltip rules.
+     * 钱包显示完整说明；Tab A 单元仅在名字被截断时显示完整名字；Tab B 单元沿用行提示规则。
      */
     private @Nullable Text tooltipAt(Frame frame, int mouseX, int mouseY) {
         if (draggingRod) {
@@ -964,8 +949,7 @@ public final class BlackRavenLedgerBookScreen extends Screen {
         return switch (frame.body()) {
             case GridPage page -> {
                 PerceivedCell cell = page.cells().get(hover.index());
-                BlackRavenIdentitySnapshot snapshot = cell.snapshot();
-                yield cell.cut() ? Text.literal(snapshot.playerName() + " — " + roleName(snapshot)) : null;
+                yield cell.cut() ? Text.literal(cell.snapshot().playerName()) : null;
             }
             case RoleList list -> tooltip(list.entries().get(hover.index()).row());
         };
@@ -1021,10 +1005,6 @@ public final class BlackRavenLedgerBookScreen extends Screen {
             order.add(role.identifier());
         }
         return order;
-    }
-
-    private static String roleName(BlackRavenIdentitySnapshot snapshot) {
-        return WitchRoleDisplayTexts.roleName(snapshot.roleTranslationKey()).getString();
     }
 
     private String ellipsize(String text, int maxWidth) {

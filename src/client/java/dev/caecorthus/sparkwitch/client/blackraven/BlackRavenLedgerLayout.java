@@ -5,12 +5,12 @@ import java.util.List;
 
 /**
  * Pure geometry of the Black Raven Perception Ledger: panel, title band and disguise chip, tabs, the ruled
- * perceived-identity grid (Tab A), the sectioned and scrolling disguise list (Tab B), footer status, revert button
+ * perceived-player grid (Tab A), the sectioned and scrolling disguise list (Tab B), footer status, revert button
  * and pager, plus the hit tests. {@code BlackRavenLedgerBookScreen} paints with exactly these rects and hit-tests
  * through {@link #hitPerceived} / {@link #hitAbsent}, so what is painted is what is clicked. No client types: the
  * screen measures text and passes the widths in. GUI px; right and bottom edges are exclusive, like
  * {@code DrawContext.fill}.
- * 黑羽鸦感知册的纯几何布局：面板、标题带与伪装徽章、页签、带横线的已感知身份网格（Tab A）、分区可滚动的伪装名单
+ * 黑羽鸦感知册的纯几何布局：面板、标题带与伪装徽章、页签、带横线的已感知玩家网格（Tab A）、分区可滚动的伪装名单
  * （Tab B）、页脚状态、恢复按钮与翻页，以及命中判定。{@code BlackRavenLedgerBookScreen} 严格按这些矩形绘制并通过
  * {@link #hitPerceived} / {@link #hitAbsent} 判定点击，绘制即命中。不含客户端类型，文本宽度由界面测量后传入。
  * 单位为 GUI 像素，右缘与下缘为开区间（与 fill 一致）。
@@ -71,8 +71,7 @@ public final class BlackRavenLedgerLayout {
     public static final int GRID_TOP_PAD = 1;
     public static final int PERCEIVED_ROWS = 7;
     public static final int PERCEIVED_PITCH = 20;
-    public static final int PERCEIVED_MAX_COLS = 3;
-    public static final int PERCEIVED_MIN_COLS = 2;
+    public static final int PERCEIVED_COLS = 3;
     public static final int COL_GAP = 4;
     public static final int FACE_FRAME_X = 1;
     public static final int FACE_FRAME_Y = 1;
@@ -81,11 +80,8 @@ public final class BlackRavenLedgerLayout {
     public static final int FACE_Y = 2;
     public static final int FACE_SIZE = 16;
     public static final int NAME_X = 23;
-    public static final int NAME_Y = 2;
-    public static final int ROLE_GEM_X = 23;
-    public static final int ROLE_GEM_Y = 12;
-    public static final int ROLE_X = 31;
-    public static final int ROLE_Y = 11;
+    /** The name is the only line (no role since 2026-10-21), centred on the face. 名字是唯一一行（2026-10-21 起无职业），与头像居中对齐。 */
+    public static final int NAME_Y = 6;
     public static final int CELL_PAD_R = 2;
     /** The ruled line under a row starts here and sits on the row's last pixel. 行下横线的起点；位于行的最后一像素。 */
     public static final int ROW_RULE_X = 22;
@@ -369,21 +365,12 @@ public final class BlackRavenLedgerLayout {
     }
 
     /**
-     * Three columns while every role name fits its line, else two. Player names never widen the grid: they are
-     * ellipsized and carry a tooltip.
-     * 所有职业名都放得下时为三列，否则两列。玩家名不会撑宽网格：超宽时截断并提供提示框。
-     *
-     * @param widestRole the widest role name on the ledger / 感知册中最宽的职业名
+     * Always {@link #PERCEIVED_COLS} columns: a cell holds only a face and a name (no role since 2026-10-21), and player
+     * names never widen the grid: they are ellipsized and carry a tooltip.
+     * 固定 {@link #PERCEIVED_COLS} 列：单元只有头像与名字（2026-10-21 起无职业），玩家名不会撑宽网格：超宽时截断并提供提示框。
      */
-    public static Grid perceivedGrid(Panel panel, int widestRole) {
-        int listWidth = panel.view().width();
-        for (int columns = PERCEIVED_MAX_COLS; columns > PERCEIVED_MIN_COLS; columns--) {
-            int width = cellWidth(listWidth, columns);
-            if (perceivedRoleMax(width) >= widestRole) {
-                return new Grid(columns, width);
-            }
-        }
-        return new Grid(PERCEIVED_MIN_COLS, cellWidth(listWidth, PERCEIVED_MIN_COLS));
+    public static Grid perceivedGrid(Panel panel) {
+        return new Grid(PERCEIVED_COLS, cellWidth(panel.view().width(), PERCEIVED_COLS));
     }
 
     /**
@@ -401,10 +388,6 @@ public final class BlackRavenLedgerLayout {
 
     public static int perceivedNameMax(int cellWidth) {
         return Math.max(0, cellWidth - NAME_X - CELL_PAD_R);
-    }
-
-    public static int perceivedRoleMax(int cellWidth) {
-        return Math.max(0, cellWidth - ROLE_X - CELL_PAD_R);
     }
 
     /** Cell {@code index} on the page, row-major (left to right, then down). 页内第 index 个单元，按行优先排列。 */

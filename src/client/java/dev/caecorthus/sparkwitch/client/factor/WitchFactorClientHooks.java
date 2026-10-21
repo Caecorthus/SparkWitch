@@ -63,8 +63,9 @@ public final class WitchFactorClientHooks {
                 || WraithViewerRules.shouldHideFromOrdinaryViewer(viewer, target)
                 || WitchInstinctSuppressionClientHooks.shouldSuppressInstinctHighlight()
                 || WitchInstinctSuppressionClientHooks.shouldSuppressSwallowedInstinctHighlight(target)
-                || (BlackRavenClientState.isEligible(viewer)
-                    && (BlackRavenClientState.isPerceptionActive(viewer)
-                        || BlackRavenClientState.mode() == BlackRavenClientState.InstinctMode.SENSED_ONLY));
+                // During Perception's window the Black Raven sees only its Feather marks. Its held-key x-ray is
+                // per-target and only answers perceived players, so it needs no viewer-wide hide here.
+                // 感知窗口期间黑羽鸦只看到羽刃标记。按键透视按目标作答且只回应已感知玩家，因此此处无需整体隐藏。
+                || BlackRavenClientState.isPerceptionActive(viewer);
     }
 }
