@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
@@ -157,6 +158,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, MiniWitherPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(MiniWitherPlayerComponent::new);
+        // Black Raven Raven Form: the active bit for everyone, the rest for its owner; appended last.
+        // 黑羽鸦化鸦：在场标记同步给所有人，其余只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, BlackRavenCrowPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(BlackRavenCrowPlayerComponent::new);
     }
 
     @Override

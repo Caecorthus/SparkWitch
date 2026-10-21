@@ -66,7 +66,7 @@ public final class BlackRavenPerceptionService {
             if (target == player
                     || !GameFunctions.isPlayerPlayingAndAlive(target)
                     || GameFunctions.isPlayerSpectatingOrCreative(target)
-                    || !BlackRavenRules.isWithinPerceptionRadius(player.squaredDistanceTo(target))) {
+                    || !BlackRavenRules.isWithinPerceptionRadius(BlackRavenPerceptionCenter.of(player).squaredDistanceTo(target.getPos()))) {
                 continue;
             }
             Role targetRole = game.getRole(target);
