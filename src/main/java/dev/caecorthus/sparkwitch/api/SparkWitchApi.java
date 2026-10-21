@@ -192,15 +192,18 @@ public final class SparkWitchApi {
      * record, {@code GameFunctions.killPlayer} with its own death reason, and its own innocent-kill rule, so the wielder
      * pays exactly what killing the Raven directly costs. That {@code killPlayer} first ends the Raven Form session
      * (crow killed, no Homing Feather); a path that never kills leaves the link to expire at the end of the tick. Null,
-     * arming nothing, for players, nulls, any other entity, a crow out of reach or behind a wall, and off the server.
+     * arming nothing, for players, nulls, any other entity, a crow out of reach or behind a wall, a crow whose owner
+     * SparkFactionAPI shields from {@code attacker} for {@code wathe:knife} (the stab action; the signature carries none,
+     * so callers still check their own), and off the server.
      * 冻结的跨模组接缝（2026-10-21），仅服务端线程：供经自身路径击杀玩家目标的附属模组近战武器使用的主人替身（目前为
      * SparkStrength 老兵、验尸官伪装与沉默者的刀以及卧底战术斧）。{@code target} 是 {@code attacker} 可命中的存活化鸦乌鸦
      * （攻击者存活且为生存或冒险模式，且绝不是其主人），从攻击者眼睛到乌鸦延迟补偿命中箱的距离在武器自身 {@code reach} 加 0.5
      * 延迟容差之内，且视线畅通时，返回乌鸦的主人（黑羽鸦）并为本服务端刻装好击杀链接。调用方随后对该主人执行自身的玩家路径，
      * 只跳过自身对本体的距离检查（乌鸦已在此量过）：其门槛、阵营否决、格挡、记录、带自身死因的 {@code GameFunctions.killPlayer}
      * 以及自身的误杀规则，因此持械者付出的代价与直接杀死黑羽鸦完全相同。该 {@code killPlayer} 会先结束化鸦会话（乌鸦被杀，不使用
-     * 归羽）；从未击杀的路径让链接在本刻结束时失效。玩家、null、其他任何实体、超出距离或墙后的乌鸦以及不在服务端时返回 null，
-     * 且不装入任何替身。
+     * 归羽）；从未击杀的路径让链接在本刻结束时失效。玩家、null、其他任何实体、超出距离或墙后的乌鸦、SparkFactionAPI 以
+     * {@code wathe:knife}（刺击行为；签名不带行为 id，调用方仍须检查自身行为）禁止 {@code attacker} 影响其主人的乌鸦，以及不在
+     * 服务端时返回 null，且不装入任何替身。
      */
     public static @Nullable ServerPlayerEntity crowMeleeStandIn(ServerPlayerEntity attacker, @Nullable Entity target,
                                                                 double reach) {
@@ -214,14 +217,16 @@ public final class SparkWitchApi {
      * SparkStrength M67 gets) kills its owner: the session ends (crow killed, no Homing Feather), then
      * {@code GameFunctions.killPlayer(owner, true, killer, deathReason)} with {@code deathReason} passed through as the
      * same instance, so reference-compared rewards and every kill protection see it as the blast's own kill. Never the
-     * killer's own crow; only while a Wathe round runs. Returns how many crows were hit; 0 for nulls, a negative or
+     * killer's own crow, nor one whose owner SparkFactionAPI shields from {@code killer} for {@code deathReason} (left
+     * alone, not counted); only while a Wathe round runs. Returns how many crows were hit; 0 for nulls, a negative or
      * non-finite radius, and off a running round.
      * 冻结的跨模组接缝（2026-10-21），仅服务端线程：供自行击杀范围内玩家的附属模组爆炸使用（目前为 SparkStrength 炸弹客炸弹
      * 无人机），在其玩家击杀之后调用一次。箱体中心位于 {@code center} 的 {@code radius} 范围内且与爆心视线畅通（与 SparkStrength
      * M67 相同的量法）的每只存活化鸦乌鸦处死其主人：先结束会话（乌鸦被杀，不使用归羽），再以按同一实例原样传递的
      * {@code deathReason} 调用 {@code GameFunctions.killPlayer(owner, true, killer, deathReason)}，因此按引用比较的奖励与所有
-     * 击杀保护都把它视为该爆炸自身的击杀。从不包括击杀者自己的乌鸦；仅在 Wathe 对局进行中生效。返回被命中的乌鸦数量；参数为
-     * null、半径为负或非有限、以及对局未进行时返回 0。
+     * 击杀保护都把它视为该爆炸自身的击杀。从不包括击杀者自己的乌鸦，也不包括 SparkFactionAPI 以 {@code deathReason} 禁止
+     * {@code killer} 影响其主人的乌鸦（保持不动、不计数）；仅在 Wathe 对局进行中生效。返回被命中的乌鸦数量；参数为 null、半径为负
+     * 或非有限、以及对局未进行时返回 0。
      */
     public static int killCrowsInBlast(ServerWorld world, Vec3d center, double radius,
                                        @Nullable ServerPlayerEntity killer, Identifier deathReason) {

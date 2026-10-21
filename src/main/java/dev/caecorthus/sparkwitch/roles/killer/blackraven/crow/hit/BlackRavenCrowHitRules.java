@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit;
 
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 
@@ -41,10 +42,18 @@ public final class BlackRavenCrowHitRules {
     /** Vanilla left-click reach 3 plus its 1-block attack allowance. / 原版左键距离 3 加 1 格攻击余量。 */
     public static final double MELEE_REACH = 4.0;
     /**
-     * Wathe grenade: a player dies when its feet lie in the grenade box grown by 3 ({@code GrenadeEntity#onCollision}).
-     * Wathe 手雷：玩家脚下位于手雷箱体扩大 3 格的范围内即死亡。
+     * Wathe grenade crow pass: the 3-block sphere around the grenade box centre with a clear line from it, the Magician
+     * puppet / Seeker device measure ({@code SeekerDamageRules.GRENADE_RADIUS}), never Wathe's own cube.
+     * Wathe 手雷的乌鸦扫描：以手雷箱体中心为球心、半径 3 格且视线畅通，与魔术师皮套 / 搜寻者设备的量法相同，不沿用 Wathe 的立方体。
      */
-    public static final double GRENADE_REACH = 3.0;
+    public static final double GRENADE_RADIUS = 3.0;
+    /**
+     * SparkFactionAPI's action for a player-owned projectile reaching a player (its {@code getOtherEntities} collision
+     * filter; also the Wind Spirit exemption in {@code WraithParticipation}).
+     * SparkFactionAPI 中玩家投射物命中玩家所用的行为 id（其 {@code getOtherEntities} 碰撞过滤；亦为 {@code WraithParticipation}
+     * 中风灵豁免所用）。
+     */
+    public static final Identifier PROJECTILE_ACTION = Identifier.of("sparkfactionapi", "projectile");
     /** Vanilla projectile entity margin ({@code ProjectileUtil.getEntityCollision}, 0.3F). / 原版投射物实体余量。 */
     public static final double PROJECTILE_MARGIN = 0.3;
     /**
@@ -123,14 +132,6 @@ public final class BlackRavenCrowHitRules {
     /** Melee and stab reach on the rewound volumes (inclusive). / 按回溯体积判定的近战与刺击距离（含边界）。 */
     public static boolean withinReach(double closestSquared, double reach) {
         return closestSquared <= reach * reach;
-    }
-
-    /**
-     * Wathe grenade rule applied to the crow's feet position (the player rule, {@code contains(getPos())}).
-     * 以乌鸦脚下位置套用 Wathe 手雷规则（玩家规则 {@code contains(getPos())}）。
-     */
-    public static boolean inGrenadeReach(Box grenadeBox, Vec3d crowPos) {
-        return grenadeBox.expand(GRENADE_REACH).contains(crowPos);
     }
 
     /** Closed blast sphere on the crow's box centre. / 以乌鸦箱体中心计算的闭球判定。 */

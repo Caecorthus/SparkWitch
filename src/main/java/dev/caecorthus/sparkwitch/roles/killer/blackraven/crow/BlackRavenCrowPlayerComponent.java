@@ -57,6 +57,7 @@ public final class BlackRavenCrowPlayerComponent
     private long landingHoldUntilTick;
     // Server-only session bookkeeping. / 仅服务端的会话记录。
     private Vec3d anchor = Vec3d.ZERO;
+    private long anchorGraceEndTick;
     private int ungroundedTicks;
     private boolean ownsInvisibility;
 
@@ -146,6 +147,19 @@ public final class BlackRavenCrowPlayerComponent
         return anchor;
     }
 
+    /**
+     * Server only: world time the start-of-session anchor grace ends ({@link BlackRavenCrowRules#anchorGraceTicks}).
+     * 仅服务端：会话开始时锚点宽限结束的世界时间。
+     */
+    public long getAnchorGraceEndTick() {
+        return anchorGraceEndTick;
+    }
+
+    /** Server: the anchor after this tick ({@link BlackRavenCrowRules#nextAnchor}). / 服务端：本刻之后的锚点。 */
+    void moveAnchor(Vec3d next) {
+        anchor = next;
+    }
+
     boolean ownsInvisibility() {
         return ownsInvisibility;
     }
@@ -155,12 +169,14 @@ public final class BlackRavenCrowPlayerComponent
         ownsInvisibility = true;
     }
 
-    void beginSession(int crowId, long startTick, long endTick, Vec3d bodyAnchor, boolean ownsBodyInvisibility) {
+    void beginSession(int crowId, long startTick, long endTick, Vec3d bodyAnchor, long anchorGraceEnd,
+                      boolean ownsBodyInvisibility) {
         active = true;
         crowEntityId = crowId;
         sessionStartTick = startTick;
         sessionEndTick = endTick;
         anchor = bodyAnchor;
+        anchorGraceEndTick = anchorGraceEnd;
         ungroundedTicks = 0;
         ownsInvisibility = ownsBodyInvisibility;
         sync();
@@ -176,12 +192,16 @@ public final class BlackRavenCrowPlayerComponent
         sessionStartTick = 0L;
         sessionEndTick = 0L;
         anchor = Vec3d.ZERO;
+        anchorGraceEndTick = 0L;
         ungroundedTicks = 0;
         ownsInvisibility = false;
         sync();
     }
 
-    /** Server: counts an ungrounded tick; true once past the grace. / 服务端：记一刻离地；超过宽限后返回 true。 */
+    /**
+     * Server: counts an ungrounded tick ({@code grounded} also covers a falling body and the anchor grace); true once past
+     * the grace. / 服务端：记一刻离地（{@code grounded} 也涵盖正在下落的本体与锚点宽限）；超过宽限后返回 true。
+     */
     boolean tickUngrounded(boolean grounded) {
         if (grounded) {
             ungroundedTicks = 0;
@@ -278,6 +298,7 @@ public final class BlackRavenCrowPlayerComponent
         featherEntityId = NO_ENTITY;
         landingHoldUntilTick = 0L;
         anchor = Vec3d.ZERO;
+        anchorGraceEndTick = 0L;
         ungroundedTicks = 0;
         ownsInvisibility = false;
         sync();
@@ -393,6 +414,7 @@ public final class BlackRavenCrowPlayerComponent
         featherEntityId = NO_ENTITY;
         landingHoldUntilTick = 0L;
         anchor = Vec3d.ZERO;
+        anchorGraceEndTick = 0L;
         ungroundedTicks = 0;
         ownsInvisibility = false;
     }

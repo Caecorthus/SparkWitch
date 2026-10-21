@@ -63,6 +63,7 @@ public class BlackRavenCrowEntity extends Entity {
     private long moveBudgetTime = -1L;
     private long moveTick = -1L;
     private int movesThisTick;
+    private @Nullable PilotPose deferredPose;
 
     // Client-only interpolation. / 仅客户端插值。
     private int lerpTicks;
@@ -110,29 +111,55 @@ public class BlackRavenCrowEntity extends Entity {
         // Self-check: the owner's live session must still name this crow. / 自检：主人的有效会话必须仍指向此乌鸦。
         if (!isRemoved() && getWorld() instanceof ServerWorld world && !BlackRavenCrowSessions.isLiveCrow(world, this)) {
             discard();
+            return;
         }
+        // Apply this tick's merged excess move, if any. / 应用本刻合并的超量移动（如有）。
+        BlackRavenCrowFlightService.applyDeferredMove(this);
     }
 
     // ---- Flight / 飞行 ----
 
+    /** One owner-reported absolute pose. / 主人上报的一个绝对位姿。 */
+    record PilotPose(Vec3d target, float yaw, float pitch) {
+    }
+
     /**
-     * Server: per-tick move rate cap ({@link BlackRavenCrowFlightRules#MAX_MOVES_PER_TICK}). / 服务端：每刻移动包数量上限。
+     * Server: per-tick move rate cap ({@link BlackRavenCrowFlightRules#MAX_MOVES_PER_TICK}); false means the caller
+     * defers the move ({@link #deferMove}). A new tick drops a pose still deferred from an older one (the new move is
+     * newer). / 服务端：每刻移动包数量上限；返回 false 时由调用方推迟该移动。新的一刻会丢弃更早一刻仍在推迟的位姿（新移动更新）。
      */
     boolean acceptMove(long now) {
         if (now != moveTick) {
             moveTick = now;
             movesThisTick = 0;
+            deferredPose = null;
         }
         return ++movesThisTick <= BlackRavenCrowFlightRules.MAX_MOVES_PER_TICK;
     }
 
     /**
-     * Server: apply one owner-reported absolute pose. Horizontal and vertical parts are capped separately (each also
-     * limited by its refilling budget), clamped to the flight bounds and re-collided with blocks. Returns false when
-     * the result differs from the request by more than {@link BlackRavenCrowFlightRules#CORRECTION_EPSILON}, so the
-     * caller sends a correction.
-     * 服务端：应用主人上报的一个绝对位姿。水平与垂直分量分别限制（且各受按刻补充的预算约束），再限制在飞行边界内并重新计算方块碰撞。
-     * 结果与请求相差超过 CORRECTION_EPSILON 时返回 false，由调用方发送纠正。
+     * Server: an excess move of this tick merges into the one pending latest pose (absolute poses, so the latest wins).
+     * 服务端：本刻超量的移动合并为唯一待应用的最新位姿（绝对位姿，最新者为准）。
+     */
+    void deferMove(PilotPose pose) {
+        deferredPose = pose;
+    }
+
+    /** Server: takes the pending merged pose, if any. / 服务端：取出待应用的合并位姿（如有）。 */
+    @Nullable PilotPose takeDeferredMove() {
+        PilotPose pose = deferredPose;
+        deferredPose = null;
+        return pose;
+    }
+
+    /**
+     * Server: apply one owner-reported absolute pose. Horizontal and vertical parts are capped separately (up to
+     * {@link BlackRavenCrowFlightRules#CATCH_UP_STEPS} caps, each also limited by its refilling budget), clamped to the
+     * flight bounds and re-collided with blocks. Returns false when the result differs from the request by more than
+     * {@link BlackRavenCrowFlightRules#CORRECTION_EPSILON}, so the caller sends a correction.
+     * 服务端：应用主人上报的一个绝对位姿。水平与垂直分量分别限制（最多 {@link BlackRavenCrowFlightRules#CATCH_UP_STEPS} 倍上限，
+     * 且各受按刻补充的预算约束），再限制在飞行边界内并重新计算方块碰撞。结果与请求相差超过 CORRECTION_EPSILON 时返回 false，
+     * 由调用方发送纠正。
      */
     public boolean applyPilotStep(Vec3d target, float yaw, float pitch) {
         if (getWorld().isClient() || isRemoved()) {
@@ -155,7 +182,8 @@ public class BlackRavenCrowEntity extends Entity {
                     now - moveBudgetTime);
         }
         moveBudgetTime = now;
-        Vec3d limited = BlackRavenCrowFlightRules.limitStep(target.subtract(start), horizontalBudget, verticalBudget);
+        Vec3d limited = BlackRavenCrowFlightRules.limitStep(target.subtract(start), horizontalBudget, verticalBudget,
+                BlackRavenCrowFlightRules.CATCH_UP_STEPS);
         horizontalBudget = Math.max(0.0, horizontalBudget - limited.horizontalLength());
         verticalBudget = Math.max(0.0, verticalBudget - Math.abs(limited.y));
         Vec3d actual = collide(clampToBounds(limited));
