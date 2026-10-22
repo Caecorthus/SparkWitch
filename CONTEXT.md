@@ -3005,6 +3005,14 @@ SparkTraits is optional and fail-closed. Reflection may target only
 `isInstinctHidden(viewer, target)` facade; an absent or older SparkTraits build
 adds no suppression and must not break the client.
 
+`compat/OptionalStaticMethod` (2026-10-22) is the shared resolver for optional `SparkTraitsApi` static methods. The
+mod check and the lookup each run once and stay latched, failure included. Every call passes its own absent,
+unavailable and thrown fallbacks; the static/return-type check and `Class.forName` initialisation are opt-in, and a
+warning is opt-in and fires at most once. Each bridge still owns its fallbacks, which deliberately differ (for example
+`isRoleSkillBlocked` fails open in `SparkTraitsKillerBridge` but closed in `SparkTraitsGunBridge`, and
+`WitchFactorTraitsBridge` treats a missing facade as an intercepted Last Stand death). The Wraith bridge, the Emma gun
+protocol, Last Escape vision and the inventory presenter handshake stay bespoke.
+
 For the Black Raven disguise, the allowlist grows by two queries:
 - `isRoleSkillBlocked`, through the existing `SparkTraitsKillerBridge`, gates mask use and every
   switch;
