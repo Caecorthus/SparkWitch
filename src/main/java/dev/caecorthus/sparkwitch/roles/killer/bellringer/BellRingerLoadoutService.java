@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.bellringer;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.util.StaggeredSweep;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -47,7 +48,7 @@ public final class BellRingerLoadoutService {
             restoreIfNeeded(player);
             return;
         }
-        if (Math.floorMod(player.getServerWorld().getTime() + player.getId(), STRAY_SWEEP_INTERVAL_TICKS) == 0) {
+        if (StaggeredSweep.isDue(player.getServerWorld().getTime(), player.getId(), STRAY_SWEEP_INTERVAL_TICKS)) {
             removeBells(player);
         }
     }

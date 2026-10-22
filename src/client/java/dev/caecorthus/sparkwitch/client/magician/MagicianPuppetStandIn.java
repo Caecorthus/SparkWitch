@@ -10,7 +10,6 @@ import net.minecraft.client.network.OtherClientPlayerEntity;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -59,9 +58,15 @@ public final class MagicianPuppetStandIn {
         return detachedCopy(world, puppet, copied);
     }
 
-    /** Whether {@code player} is a detached copy rather than a world player. / 是否为分离副本而非世界中的玩家。 */
-    public static boolean isDetachedCopy(@Nullable PlayerEntity player) {
-        return player instanceof DetachedCopy;
+    /**
+     * Drops every detached copy on a connection edge: each copy holds its ClientWorld, and the world-change clear below
+     * only runs when a copy is next needed. Client thread only (the caller defers to it).
+     * 连接边界时丢弃所有分离副本：每个副本都持有其 ClientWorld，而下方的换世界清理只在下次需要副本时才执行。仅限客户端
+     * 线程（由调用方推迟到该线程）。
+     */
+    public static void reset() {
+        COPIES.clear();
+        copiesWorld = new WeakReference<>(null);
     }
 
     private static DetachedCopy detachedCopy(ClientWorld world, MagicianPlaybackEntity puppet, UUID copied) {
