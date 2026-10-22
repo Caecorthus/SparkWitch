@@ -1566,6 +1566,14 @@ keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGat
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
 
+Fabric runs `ServerPlayNetworkAddon#receive` on the Netty thread (vanilla `onCustomPayload` has no
+`forceMainThread`); only the Runnable it hands to `MinecraftServer#execute` runs on the server thread. Every
+SparkWitch payload guard there (`mixin/ServerPlayNetworkAddonFearMixin` for Vendetta targets and Fear, plus the stun,
+Seeker session, Rift session and crow-body guards) is a `@WrapOperation` on that single call, never an `@Inject`. On
+Netty it only picks payloads by id from immutable sets; it reads the player, world and components inside the
+scheduled Runnable, atomically with the handler (2026-10-22). The Fear/Vendetta wrapper has `priority = 900`: it is
+applied first, so it sits innermost and judges Vendetta (silent) and then Fear before any other guard.
+
 Role HUD panels draw through `client/hud/RoleHudDispatcher` (2026-10-22), behind two default-priority seams:
 `client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, still drawn under F1: Curser, Guardian Angel,
 Orthopedist, Saint, Vendetta, Kidnapper control screen, Saboteur) and `client/mixin/RoleHudMainHudTailMixin`
