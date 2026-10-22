@@ -29,6 +29,11 @@ import net.minecraft.util.math.random.Random;
  */
 public final class HunterTrapEntityRenderer extends EntityRenderer<HunterTrapEntity> {
     private static final long QUAD_RANDOM_SEED = 42L;
+    // Shared across frames: render() reseeds it before every getQuads call, so each call sees the same sequence as a
+    // fresh Random; entity rendering runs on the render thread only.
+    // 跨帧共用：render() 每次调用 getQuads 前都会重新设种子，因此序列与新建 Random 相同；实体渲染只在渲染线程执行。
+    private static final Random QUAD_RANDOM = Random.create();
+    private static final Direction[] DIRECTIONS = Direction.values();
     /**
      * ItemRenderer 会先把 baked model 的坐标整体平移到以方块中心为原点，
      * 再由这里补偿捕兽夹贴地所需的高度。
@@ -73,8 +78,8 @@ public final class HunterTrapEntityRenderer extends EntityRenderer<HunterTrapEnt
         VertexConsumer consumer = vertexConsumers.getBuffer(
                 RenderLayer.getEntityCutoutNoCull(PlayerScreenHandler.BLOCK_ATLAS_TEXTURE)
         );
-        Random random = Random.create();
-        for (Direction direction : Direction.values()) {
+        Random random = QUAD_RANDOM;
+        for (Direction direction : DIRECTIONS) {
             random.setSeed(QUAD_RANDOM_SEED);
             renderQuads(model.getQuads(null, direction, random), matrices, consumer, light);
         }

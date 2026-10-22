@@ -37,8 +37,10 @@ public final class OrthopedistClientHooks {
                 || viewer == target
                 || !GameFunctions.isPlayerPlayingAndAlive(viewer)
                 || !isOrthopedist(viewer)
-                || !viewer.canSee(target)
-                || !OrthopedistPlayerComponent.KEY.get(target).hasBoneSettingActive()) {
+                // Cheap synced flag before the raycast; both are side-effect-free.
+                // 先读廉价的同步标记再做射线检测；两者均无副作用。
+                || !OrthopedistPlayerComponent.KEY.get(target).hasBoneSettingActive()
+                || !viewer.canSee(target)) {
             return null;
         }
         return GetInstinctHighlight.HighlightResult.always(OrthopedistRules.COLOR);

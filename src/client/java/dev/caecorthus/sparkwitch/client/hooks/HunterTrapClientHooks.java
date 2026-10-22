@@ -40,13 +40,13 @@ public final class HunterTrapClientHooks {
 
     @Nullable
     private static GetInstinctHighlight.HighlightResult trapHighlight(Entity target) {
-        if (!(target instanceof HunterTrapEntity trap)) {
+        if (!(target instanceof HunterTrapEntity)) {
             return null;
         }
         PlayerEntity viewer = MinecraftClient.getInstance().player;
-        if (viewer == null
-                || HunterTrapVisibilityHelper.visibilityFor(trap, viewer)
-                != HunterRules.TrapVisibility.THROUGH_WALL) {
+        // Only THROUGH_WALL gets an outline and it never depends on line of sight, so this skips the trap raycast.
+        // 只有 THROUGH_WALL 才描边，它与视线无关，因此这里跳过捕兽夹射线检测。
+        if (viewer == null || !HunterTrapVisibilityHelper.isVisibleThroughWalls(viewer)) {
             return null;
         }
 
