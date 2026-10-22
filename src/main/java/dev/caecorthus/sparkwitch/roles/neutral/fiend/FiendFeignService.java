@@ -191,6 +191,10 @@ public final class FiendFeignService {
         discardStaleBodies(server);
         UUID match = FiendMatch.currentId();
         for (ServerWorld world : server.getWorlds()) {
+            // An empty world has nothing to tick: skip its defensive copy. / 空世界无可推进：跳过其防御性拷贝。
+            if (world.getPlayers().isEmpty()) {
+                continue;
+            }
             boolean active = GameWorldComponent.KEY.get(world).getGameStatus() == GameWorldComponent.GameStatus.ACTIVE;
             long now = world.getTime();
             for (ServerPlayerEntity player : List.copyOf(world.getPlayers())) {

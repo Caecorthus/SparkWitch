@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import net.minecraft.item.ItemStack;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
@@ -36,6 +37,9 @@ public final class CeremonialSwordDashService {
         }
         registered = true;
         ServerTickEvents.END_SERVER_TICK.register(CeremonialSwordDashService::tickServer);
+        // A dash never outlives its server (an integrated server reopened in the same JVM starts clean).
+        // 冲刺不会延续到服务端之外（同一 JVM 中重新打开的内置服务端从干净状态开始）。
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> DASHES.clear());
     }
 
     public static void start(ServerPlayerEntity player) {
@@ -84,6 +88,9 @@ public final class CeremonialSwordDashService {
     }
 
     private static void tickServer(MinecraftServer server) {
+        if (DASHES.isEmpty()) {
+            return;
+        }
         Iterator<Map.Entry<UUID, DashState>> iterator = DASHES.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<UUID, DashState> entry = iterator.next();

@@ -130,6 +130,9 @@ public final class WraithConversion {
     }
 
     private static void finishActivations(MinecraftServer server) {
+        if (PENDING.isEmpty()) {
+            return;
+        }
         for (UUID uuid : new ArrayList<>(PENDING.keySet())) {
             PendingDeath pending = PENDING.remove(uuid);
             ServerPlayerEntity victim = server.getPlayerManager().getPlayer(uuid);

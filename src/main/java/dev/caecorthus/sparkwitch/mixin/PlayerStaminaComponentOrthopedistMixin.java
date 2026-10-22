@@ -29,11 +29,21 @@ public abstract class PlayerStaminaComponentOrthopedistMixin {
 
     @ModifyVariable(method = "setSprintingTicks(F)V", at = @At("HEAD"), argsOnly = true)
     private float sparkwitch$reduceOrthopedistStaminaConsumption(float requestedValue) {
-        HunterPlayerComponent injury = HunterPlayerComponent.KEY.get(player);
-        boolean hunterInjuryControlsMovement = injury.isRooted() || injury.getFractureLayers() > 0;
+        // Every stamina write on both sides: adjustedValue returns requestedValue unchanged for a non-consuming write
+        // or an inactive reduction, so those exit before the injury lookup (all lookups are side-effect free).
+        // 双端每次体力写入都会执行：对非消耗写入或未生效的减免，adjustedValue 原样返回 requestedValue，因此在读取伤势
+        // 之前即退出（所有查询均无副作用）。
+        if (requestedValue >= sprintingTicks) {
+            return requestedValue;
+        }
         Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
         boolean reductionActive = role != null && OrthopedistRules.ROLE_ID.equals(role.identifier())
                 || player.hasStatusEffect(OrthopedistEffects.boneSetting());
+        if (!reductionActive) {
+            return requestedValue;
+        }
+        HunterPlayerComponent injury = HunterPlayerComponent.KEY.get(player);
+        boolean hunterInjuryControlsMovement = injury.isRooted() || injury.getFractureLayers() > 0;
         return OrthopedistStaminaRules.adjustedValue(
                 sprintingTicks,
                 requestedValue,
