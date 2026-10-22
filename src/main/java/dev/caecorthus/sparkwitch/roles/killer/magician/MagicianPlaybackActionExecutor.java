@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.magician;
 
+import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
@@ -24,6 +25,7 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -75,6 +77,17 @@ public final class MagicianPlaybackActionExecutor {
     private static void bat(ServerPlayerEntity owner, MagicianPlaybackFakePlayer proxy, MagicianPlaybackEntity visible) {
         if (!proxy.getMainHandStack().isOf(WatheItems.BAT)) return;
         ServerPlayerEntity target = target(owner, proxy, MagicianConstants.KNIFE_RANGE);
+        // A nearer Partygoer takes the blow with the bat's hit sound and swing. / 更近的派对客挨下这一棒，照常播放球棒命中声并挥手。
+        Entity partygoer = nearerPartygoer(proxy, MagicianConstants.KNIFE_RANGE, target);
+        if (partygoer != null) {
+            double x = partygoer.getX(), y = partygoer.getEyeY(), z = partygoer.getZ();
+            if (SparkStrengthPartygoerCompat.killByWeapon(owner, partygoer, GameConstants.DeathReasons.BAT)) {
+                proxy.getWorld().playSound(null, x, y, z, WatheSounds.ITEM_BAT_HIT, SoundCategory.PLAYERS, 3.0F, 1.0F);
+                proxy.swingHand(Hand.MAIN_HAND);
+                visible.playReplaySwing(Hand.MAIN_HAND);
+            }
+            return;
+        }
         if (target == null) return;
         puppetKill(owner, visible, target, GameConstants.DeathReasons.BAT, WatheItems.BAT);
         proxy.getWorld().playSound(null, target.getX(), target.getEyeY(), target.getZ(),
@@ -106,11 +119,16 @@ public final class MagicianPlaybackActionExecutor {
         proxy.getWorld().playSound(null, proxy.getX(), proxy.getEyeY(), proxy.getZ(),
                 WatheSounds.ITEM_REVOLVER_CLICK, SoundCategory.PLAYERS, 0.5F, 1.0F);
         ServerPlayerEntity target = target(owner, proxy, MagicianConstants.REVOLVER_RANGE);
+        // A nearer Partygoer takes the bullet; the shot then records as Wathe records a real shot at one (a miss).
+        // 更近的派对客挨下这一枪；这一枪随后与 Wathe 记录真实射向派对客的一枪一样记为未命中。
+        Entity partygoer = nearerPartygoer(proxy, MagicianConstants.REVOLVER_RANGE, target);
+        if (partygoer != null) target = null;
         if (target != null) {
             GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.REVOLVER), target, null);
             puppetKill(owner, visible, target, GameConstants.DeathReasons.GUN, WatheItems.REVOLVER);
         } else {
             GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.REVOLVER), null, null);
+            if (partygoer != null) SparkStrengthPartygoerCompat.killByWeapon(owner, partygoer, GameConstants.DeathReasons.GUN);
         }
         proxy.getWorld().playSound(null, proxy.getX(), proxy.getEyeY(), proxy.getZ(), WatheSounds.ITEM_REVOLVER_SHOOT, SoundCategory.PLAYERS, 5f, 1f);
         // Wathe 原版火花是客户端手部特效；回放代理没有真实客户端手部，因此补发服务端粒子让所有客户端可见。
@@ -125,6 +143,18 @@ public final class MagicianPlaybackActionExecutor {
         // 录制的刺击是手持刀通过 Wathe 接收器的；回放同样要求手中有刀。
         if (!proxy.getMainHandStack().isOf(WatheItems.KNIFE) && !proxy.getOffHandStack().isOf(WatheItems.KNIFE)) return;
         ServerPlayerEntity target = target(owner, proxy, MagicianConstants.KNIFE_RANGE);
+        // A nearer Partygoer takes the stab with the stab's sound, swing and cooldown; no item-use record, as for a real
+        // stab on one (SparkStrength takes that stab before Wathe's record and records the kill itself).
+        // 更近的派对客挨下这一刺，照常播放刺击声、挥手并进入冷却；与真实刺向派对客一样不写物品使用记录（SparkStrength 在 Wathe
+        // 记录之前接管那一刺，并自行记录击杀）。
+        Entity partygoer = nearerPartygoer(proxy, MagicianConstants.KNIFE_RANGE, target);
+        if (partygoer != null) {
+            if (SparkStrengthPartygoerCompat.killByWeapon(owner, partygoer, GameConstants.DeathReasons.KNIFE)) {
+                partygoer.playSound(WatheSounds.ITEM_KNIFE_STAB, 1f, 1f); proxy.swingHand(Hand.MAIN_HAND); visible.playReplaySwing(Hand.MAIN_HAND);
+                proxy.getItemCooldownManager().set(WatheItems.KNIFE, GameConstants.ITEM_COOLDOWNS.getOrDefault(WatheItems.KNIFE, 0));
+            }
+            return;
+        }
         if (target == null) return;
         GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.KNIFE), target, null);
         puppetKill(owner, visible, target, GameConstants.DeathReasons.KNIFE, WatheItems.KNIFE);
@@ -169,5 +199,36 @@ public final class MagicianPlaybackActionExecutor {
                 range);
         return hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof ServerPlayerEntity target
                 ? target : null;
+    }
+    /**
+     * SparkStrength Partygoer seam (owner rule 2026-10-21: whatever kills a player kills a Partygoer in one hit): the
+     * killable Partygoer the replayed weapon's ray meets strictly nearer than {@code player} (the {@link #target} pick,
+     * or null), else null; the player behind it is then not hit. Picked on the same ray as {@link #target}
+     * ({@code ProjectileUtil.getCollision}, cut by blocks), with entries compared on that ray.
+     * SparkStrength 派对客接缝（所有者规则 2026-10-21：能杀死玩家的东西一击打死派对客）：回放武器射线上严格近于 {@code player}
+     * （{@link #target} 的选中结果，或 null）的可击杀派对客，否则为 null；此时其后的玩家不会被命中。与 {@link #target} 在同一条
+     * 射线上选取（{@code ProjectileUtil.getCollision}，被方块截断），并在该射线上比较入射距离。
+     */
+    private static @Nullable Entity nearerPartygoer(PlayerEntity proxy, double range, @Nullable Entity player) {
+        HitResult hit = ProjectileUtil.getCollision(proxy, SparkStrengthPartygoerCompat::isKillable, range);
+        if (!(hit instanceof EntityHitResult entityHit)) return null;
+        Entity partygoer = entityHit.getEntity();
+        if (player == null) return partygoer;
+        Vec3d start = proxy.getEyePos();
+        Vec3d end = start.add(proxy.getRotationVec(0.0F).multiply(range));
+        return partygoerFirst(entryDistanceSquared(start, end, partygoer.getBoundingBox()),
+                entryDistanceSquared(start, end, player.getBoundingBox())) ? partygoer : null;
+    }
+    /** Strictly nearer wins; a tie keeps the player. / 严格更近者胜出；等距时保留玩家。 */
+    static boolean partygoerFirst(double partygoerDistanceSquared, double playerDistanceSquared) {
+        return partygoerDistanceSquared < playerDistanceSquared;
+    }
+    /**
+     * Squared distance to where {@code start → end} enters {@code box}, as {@code getCollision} measures it; infinite
+     * when it never does. / {@code start → end} 进入 {@code box} 处的距离平方，与 {@code getCollision} 的测量一致；
+     * 不相交时为无穷大。
+     */
+    private static double entryDistanceSquared(Vec3d start, Vec3d end, Box box) {
+        return box.raycast(start, end).map(start::squaredDistanceTo).orElse(Double.POSITIVE_INFINITY);
     }
 }

@@ -68,6 +68,15 @@ public final class SwordfishRules {
         return livingParticipant && !samePlayer && inReach(squaredDistance) && lineOfSight;
     }
 
+    /**
+     * A SparkStrength Partygoer takes the player rule's reach and sight (owner rule 2026-10-21: it dies in one hit to
+     * anything that kills a player); killable replaces the participant check. / SparkStrength 派对客沿用玩家规则的距离与视线
+     * （所有者规则 2026-10-21：能杀死玩家的东西一击打死它）；“可击杀”取代参与者判定。
+     */
+    public static boolean acceptsPartygoerHit(boolean killable, double squaredDistance, boolean lineOfSight) {
+        return killable && inReach(squaredDistance) && lineOfSight;
+    }
+
     /** Factions are pre-hit snapshots; intercepted or fake deaths never trigger friendly-fire punishment.
      * 阵营来自命中前快照；被拦截的死亡或假死永不触发小脑。 */
     public static boolean shouldPunish(Identifier attackerFaction, Identifier victimFaction,

@@ -133,6 +133,11 @@ public final class RiftSessionRules {
             Identifier.of("sparkstrength", "approve_suspect_removal"),
             // SparkStrength Taotie head launch (TaotieHeadFireC2SPacket). / SparkStrength 饕餮发射头颅。
             Identifier.of("sparkstrength", "taotie_head_fire"),
+            // SparkStrength Party Animal's Partygoer: summoning it (key 2) and a Taotie swallowing it (G); the room
+            // picker request (partygoer_menu) is UI only and stays allowed.
+            // SparkStrength 派对狂的派对客：召唤（技能键 2）与饕餮吞下它（G）；选房请求（partygoer_menu）仅是界面，放行。
+            Identifier.of("sparkstrength", "partygoer_summon"),
+            Identifier.of("sparkstrength", "partygoer_swallow"),
             // SparkStrength sabotage trigger and breaker repair, classified like the tablet meeting and vote.
             // SparkStrength 破坏触发与电闸维修，与平板会议、投票同类。
             Identifier.of("sparkstrength", "trigger_sabotage"),
