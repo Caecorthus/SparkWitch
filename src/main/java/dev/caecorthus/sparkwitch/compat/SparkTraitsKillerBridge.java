@@ -6,6 +6,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -13,7 +16,15 @@ import java.lang.reflect.Method;
  * 可选公共门面查询；旧版或缺失 Traits 时不附加限制。 */
 public final class SparkTraitsKillerBridge {
     private static final String API = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
-    private static final Method ACTIVE = resolve("isLastEscapeActive", PlayerEntity.class);
+    /**
+     * Hot (every player, every server tick, from {@code PlayerHitboxHistory}): an exact-typed handle, so a call builds
+     * no argument array. A facade that lacks, hides or mistypes the method latches null (not active); a failing call
+     * returns false for that call only, as the wrapped {@code Method.invoke} failure did.
+     * 热路径（{@code PlayerHitboxHistory} 每个服务端 tick 对每名玩家调用）：使用精确类型的句柄，调用时不构建参数数组。
+     * 门面缺少、隐藏或签名不符时锁定为 null（视为未激活）；单次调用失败只让该次返回 false，与包装后的
+     * {@code Method.invoke} 失败一致。
+     */
+    private static final MethodHandle ACTIVE = handle(resolve("isLastEscapeActive", PlayerEntity.class));
     private static final Method BLOCKED = resolve("isKillerInteractionBlocked", PlayerEntity.class);
     private static final Method FORCED = resolve("getForcedMeleeCooldownTicks", PlayerEntity.class, ItemStack.class);
     private static final Method MELEE = resolve("shouldCancelMeleeAttack", ServerPlayerEntity.class,
@@ -33,7 +44,14 @@ public final class SparkTraitsKillerBridge {
     }
 
     public static boolean isLastEscapeActive(PlayerEntity player) {
-        return player != null && Boolean.TRUE.equals(invoke(ACTIVE, player));
+        if (player == null || ACTIVE == null) {
+            return false;
+        }
+        try {
+            return Boolean.TRUE.equals((Object) ACTIVE.invokeExact(player));
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     public static boolean isKillerInteractionBlocked(PlayerEntity player) {
@@ -140,6 +158,19 @@ public final class SparkTraitsKillerBridge {
             if (!ran[0]) {
                 kill.run();
             }
+        }
+    }
+
+    /** {@code (PlayerEntity)Object} view of a public static query, or null. / 公共静态查询的 {@code (PlayerEntity)Object} 视图，或 null。 */
+    private static MethodHandle handle(Method method) {
+        if (method == null) {
+            return null;
+        }
+        try {
+            return MethodHandles.publicLookup().unreflect(method)
+                    .asType(MethodType.methodType(Object.class, PlayerEntity.class));
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            return null;
         }
     }
 

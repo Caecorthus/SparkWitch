@@ -7,6 +7,8 @@ import net.minecraft.util.Identifier;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 
+import java.lang.reflect.Method;
+
 /**
  * SparkStrength 软兼容桥。
  *
@@ -20,6 +22,8 @@ public final class SparkStrengthCoronerCompat {
     /** SparkStrength's per-body role snapshot component and its public setter. / SparkStrength 尸体身份快照组件及其 public setter。 */
     static final Identifier BODY_SNAPSHOT_ID = Identifier.of(MOD_ID, "coroner_body_snapshot");
     static final String BODY_SNAPSHOT_SETTER = "setRoleId";
+    private static volatile ComponentKey<?> snapshotKey;
+    private static volatile SnapshotSetter snapshotSetter;
 
     private SparkStrengthCoronerCompat() {
     }
@@ -38,10 +42,13 @@ public final class SparkStrengthCoronerCompat {
             return;
         }
         try {
-            ComponentKey<?> key = ComponentRegistry.get(BODY_SNAPSHOT_ID);
+            ComponentKey<?> key = snapshotKey();
             Object snapshot = key == null ? null : key.getNullable(body);
             if (snapshot != null) {
-                snapshot.getClass().getMethod(BODY_SNAPSHOT_SETTER, Identifier.class).invoke(snapshot, roleId);
+                Method setter = snapshotSetter(snapshot.getClass());
+                if (setter != null) {
+                    setter.invoke(snapshot, roleId);
+                }
             }
         } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
             // Fail closed: the Coroner falls back to its own lookup. / 失败即关闭：验尸官回落到其自身查找。
@@ -52,12 +59,64 @@ public final class SparkStrengthCoronerCompat {
         if (player == null || !FabricLoader.getInstance().isModLoaded(MOD_ID)) {
             return false;
         }
+        Method disguise = DisguiseHolder.METHOD;
+        if (disguise == null) {
+            return false;
+        }
         try {
-            Class<?> service = Class.forName(CORONER_SERVICE);
-            Object result = service.getMethod("hasKidnapperDisguise", PlayerEntity.class).invoke(null, player);
+            Object result = disguise.invoke(null, player);
             return result instanceof Boolean value && value;
         } catch (ReflectiveOperationException | LinkageError ignored) {
             return false;
+        }
+    }
+
+    /**
+     * The snapshot key once registered; an absent key is not latched, so it is looked up again on the next call.
+     * 快照组件键一经注册即缓存；缺失不会被锁定，下次调用会重新查找。
+     */
+    private static ComponentKey<?> snapshotKey() {
+        ComponentKey<?> key = snapshotKey;
+        if (key == null) {
+            key = ComponentRegistry.get(BODY_SNAPSHOT_ID);
+            snapshotKey = key;
+        }
+        return key;
+    }
+
+    /** The public setter of the snapshot's runtime class, cached per class (null when it has none). / 按快照运行时类缓存的 public setter（没有时为 null）。 */
+    private static Method snapshotSetter(Class<?> type) {
+        SnapshotSetter cached = snapshotSetter;
+        if (cached == null || cached.type() != type) {
+            Method setter;
+            try {
+                setter = type.getMethod(BODY_SNAPSHOT_SETTER, Identifier.class);
+            } catch (NoSuchMethodException ignored) {
+                setter = null;
+            }
+            cached = new SnapshotSetter(type, setter);
+            snapshotSetter = cached;
+        }
+        return cached.setter();
+    }
+
+    private record SnapshotSetter(Class<?> type, Method setter) {
+    }
+
+    /**
+     * Resolved once, after the mod-loaded guard (class init is thread-safe); SparkStrength's classes never change at
+     * runtime, so a failed lookup is latched as null (not disguised).
+     * 在模组加载守卫之后解析一次（类初始化线程安全）；SparkStrength 的类在运行期不会改变，因此查找失败锁定为 null（未伪装）。
+     */
+    private static final class DisguiseHolder {
+        private static final Method METHOD = resolve();
+
+        private static Method resolve() {
+            try {
+                return Class.forName(CORONER_SERVICE).getMethod("hasKidnapperDisguise", PlayerEntity.class);
+            } catch (ReflectiveOperationException | LinkageError ignored) {
+                return null;
+            }
         }
     }
 }
