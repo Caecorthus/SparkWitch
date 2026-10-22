@@ -1,12 +1,8 @@
 package dev.caecorthus.sparkwitch.compat;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 /**
  * External seam: the Abyss Listener's own optional SparkTraits reads, through the public {@code SparkTraitsApi}
@@ -26,10 +22,8 @@ public final class SparkTraitsAbyssListenerBridge {
     static final Identifier CONSCIENCE = Identifier.of(MOD_ID, "conscience");
     static final Identifier IMPOSTOR = Identifier.of(MOD_ID, "impostor");
 
-    private static volatile boolean pendingResolved;
-    private static volatile @Nullable Method pendingMethod;
-    private static volatile boolean traitResolved;
-    private static volatile @Nullable Method traitMethod;
+    private static final OptionalStaticMethod PENDING = resolve("isLastStandPending", PlayerEntity.class);
+    private static final OptionalStaticMethod TRAIT = resolve("hasActiveTrait", PlayerEntity.class, Identifier.class);
 
     private SparkTraitsAbyssListenerBridge() {
     }
@@ -40,18 +34,7 @@ public final class SparkTraitsAbyssListenerBridge {
      * SparkTraits 背水一战当前是否持有该玩家的待决死亡转换；提供方缺失、过旧或出错时为 false。
      */
     public static boolean isLastStandPending(@Nullable PlayerEntity player) {
-        if (player == null || !isLoaded()) {
-            return false;
-        }
-        Method method = pendingMethod();
-        if (method == null) {
-            return false;
-        }
-        try {
-            return Boolean.TRUE.equals(method.invoke(null, player));
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return false;
-        }
+        return player != null && PENDING.callBoolean(false, false, false, player);
     }
 
     /** Conscience trait: FALSE when SparkTraits is absent, null when unknown. / 良知词条：未安装为 FALSE，未知为 null。 */
@@ -65,62 +48,13 @@ public final class SparkTraitsAbyssListenerBridge {
     }
 
     private static @Nullable Boolean hasActiveTrait(@Nullable PlayerEntity player, Identifier traitId) {
-        if (!isLoaded()) {
+        if (!TRAIT.isModLoaded()) {
             return Boolean.FALSE;
         }
-        if (player == null) {
-            return null;
-        }
-        Method method = traitMethod();
-        if (method == null) {
-            return null;
-        }
-        try {
-            return method.invoke(null, player, traitId) instanceof Boolean active ? active : null;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return null;
-        }
+        return player == null ? null : TRAIT.callNullableBoolean(Boolean.FALSE, null, null, player, traitId);
     }
 
-    private static boolean isLoaded() {
-        try {
-            return FabricLoader.getInstance().isModLoaded(MOD_ID);
-        } catch (LinkageError | RuntimeException ignored) {
-            return false;
-        }
-    }
-
-    private static @Nullable Method pendingMethod() {
-        if (!pendingResolved) {
-            synchronized (SparkTraitsAbyssListenerBridge.class) {
-                if (!pendingResolved) {
-                    pendingMethod = resolve("isLastStandPending", PlayerEntity.class);
-                    pendingResolved = true;
-                }
-            }
-        }
-        return pendingMethod;
-    }
-
-    private static @Nullable Method traitMethod() {
-        if (!traitResolved) {
-            synchronized (SparkTraitsAbyssListenerBridge.class) {
-                if (!traitResolved) {
-                    traitMethod = resolve("hasActiveTrait", PlayerEntity.class, Identifier.class);
-                    traitResolved = true;
-                }
-            }
-        }
-        return traitMethod;
-    }
-
-    private static @Nullable Method resolve(String name, Class<?>... parameters) {
-        try {
-            Method method = Class.forName(API_CLASS, false, SparkTraitsAbyssListenerBridge.class.getClassLoader())
-                    .getMethod(name, parameters);
-            return Modifier.isStatic(method.getModifiers()) && method.getReturnType() == boolean.class ? method : null;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return null;
-        }
+    private static OptionalStaticMethod resolve(String name, Class<?>... parameters) {
+        return OptionalStaticMethod.of(MOD_ID, API_CLASS, name, parameters).returning(boolean.class);
     }
 }

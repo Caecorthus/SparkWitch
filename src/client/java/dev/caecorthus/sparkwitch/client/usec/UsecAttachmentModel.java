@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecMagazineContents;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRifleState;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.net.UsecAttachmentAction;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -397,7 +398,7 @@ public final class UsecAttachmentModel {
 
     /** Whole seconds, rounded up. / 向上取整的秒数。 */
     public static int secondsCeil(int ticks) {
-        return Math.max(0, (ticks + 19) / 20);
+        return Math.max(0, TickTime.ceilSecondsRaw(ticks));
     }
 
     /** Tenths of a second, rounded up ("1.2 s"). / 十分之一秒，向上取整（「1.2 s」）。 */

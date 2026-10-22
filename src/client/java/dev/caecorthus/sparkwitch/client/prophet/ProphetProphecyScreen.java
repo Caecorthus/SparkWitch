@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetDeathCauseGroup;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent.ProphecyRecord;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import java.util.List;
 import java.util.UUID;
@@ -206,7 +207,7 @@ public final class ProphetProphecyScreen extends Screen {
         // Diamond flourishes beside the title. 标题两侧的菱形装饰。
         diamond(context, titleX - 8, titleY + 4);
         diamond(context, titleX + titleWidth + 6, titleY + 4);
-        int seconds = (ProphetClientModule.remainingTicks() + 19) / 20;
+        int seconds = TickTime.ceilSecondsRaw(ProphetClientModule.remainingTicks());
         if (seconds > 0) {
             String time = Text.translatable("gui.sparkwitch.prophecy.time_left", seconds).getString();
             context.drawText(textRenderer, time, panelX + panelW - PAD - 2 - textRenderer.getWidth(time), titleY,

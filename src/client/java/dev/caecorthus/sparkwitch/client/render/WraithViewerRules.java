@@ -11,16 +11,30 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 
 /**
- * Shared owner, ordinary-viewer, and spectator rules for Wraith presentation.
- * 统一冤魂本人、普通观察者与旁观者的显示规则。
+ * Shared owner, ordinary-viewer, and spectator rules for Wraith presentation. Each rule splits into a target part and a
+ * viewer-only part; the viewer part is memoized per world pass for the local player ({@link LocalViewerSnapshot}),
+ * because these rules run several times per rendered player per frame (highlight HEAD, outline veto, invisibility,
+ * held items, name tags). Any other viewer (the integrated server's {@code isInvisibleTo}) is answered fresh.
+ * 统一冤魂本人、普通观察者与旁观者的显示规则。每条规则分为目标部分与只与观察者有关的部分；本地玩家的观察者部分按世界 pass
+ * 缓存，因为这些规则每帧对每个渲染玩家执行多次（高亮 HEAD、描边否决、隐身、手持物、名牌）。其他观察者（集成服务端的
+ * {@code isInvisibleTo}）实时计算。
  */
 public final class WraithViewerRules {
     private WraithViewerRules() {
     }
 
     public static boolean shouldRevealPromotedSaboteurToKiller(PlayerEntity viewer, PlayerEntity target) {
-        if (viewer == null || target == null || viewer == target || viewer.isSpectator()
-                || !SaboteurRules.isActivePromotedSaboteur(target)) {
+        return viewer != null
+                && target != null
+                && viewer != target
+                && LocalViewerSnapshot.viewerFact(LocalViewerSnapshot.Fact.WRAITH_LIVING_KILLER_VIEWER, viewer,
+                WraithViewerRules::isLivingKillerViewer)
+                && SaboteurRules.isActivePromotedSaboteur(target);
+    }
+
+    /** Viewer part of the promoted-Saboteur reveal. / 晋升破坏者显形的观察者部分。 */
+    private static boolean isLivingKillerViewer(PlayerEntity viewer) {
+        if (viewer.isSpectator()) {
             return false;
         }
         Role viewerRole = GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer);
@@ -36,9 +50,14 @@ public final class WraithViewerRules {
      */
     public static boolean shouldRevealCurserToWitch(PlayerEntity viewer, PlayerEntity target) {
         return viewer != null
-                && CurserFeatureService.isActivePromotedCurser(target)
-                && WitchFactionRules.isWitchFactionMember(
-                        GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer));
+                && LocalViewerSnapshot.viewerFact(LocalViewerSnapshot.Fact.WRAITH_WITCH_FACTION_VIEWER, viewer,
+                WraithViewerRules::isWitchFactionViewer)
+                && CurserFeatureService.isActivePromotedCurser(target);
+    }
+
+    /** Viewer part of the promoted-Curser reveal. / 晋升诅咒者显形的观察者部分。 */
+    private static boolean isWitchFactionViewer(PlayerEntity viewer) {
+        return WitchFactionRules.isWitchFactionMember(GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer));
     }
 
     public static boolean shouldHideFromOrdinaryViewer(PlayerEntity viewer, PlayerEntity target) {
@@ -66,6 +85,11 @@ public final class WraithViewerRules {
      * 观察者，按住本能键也看不到冤魂的真实职业颜色。
      */
     private static boolean isDeadSpectator(PlayerEntity viewer) {
+        return LocalViewerSnapshot.viewerFact(LocalViewerSnapshot.Fact.WRAITH_DEAD_SPECTATOR, viewer,
+                WraithViewerRules::evaluateDeadSpectator);
+    }
+
+    private static boolean evaluateDeadSpectator(PlayerEntity viewer) {
         return viewer.isSpectator() && !GameFunctions.isPlayerPlayingAndAlive(viewer);
     }
 }

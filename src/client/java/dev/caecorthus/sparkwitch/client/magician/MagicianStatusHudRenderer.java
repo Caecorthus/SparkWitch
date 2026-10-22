@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.magician;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlayerComponent;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
@@ -45,5 +46,5 @@ public final class MagicianStatusHudRenderer {
         if (x < width / 2 + HOTBAR_HALF_WIDTH) y -= HOTBAR_HEIGHT;
         context.drawTextWithShadow(renderer, line, x, y, 0x6B17B0);
     }
-    private static int seconds(int ticks){ return Math.max(0,(ticks+19)/20); }
+    private static int seconds(int ticks){ return Math.max(0, TickTime.ceilSecondsRaw(ticks)); }
 }

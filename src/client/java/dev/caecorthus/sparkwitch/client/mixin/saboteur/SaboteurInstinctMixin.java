@@ -1,10 +1,10 @@
 package dev.caecorthus.sparkwitch.client.mixin.saboteur;
 
+import dev.caecorthus.sparkwitch.client.render.LocalViewerSnapshot;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.client.saboteur.SaboteurInstinctClientRules;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.client.WatheClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -23,8 +23,13 @@ public abstract class SaboteurInstinctMixin {
         if (player == null) {
             return;
         }
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        // The viewer's role comes from the per-pass memo; every other role leaves before the Wraith and key reads.
+        // 观察者职业来自按 pass 的缓存；其他职业在冤魂状态与按键读取之前即返回。
+        Role role = LocalViewerSnapshot.role(player);
         Identifier roleId = role == null ? null : role.identifier();
+        if (!SaboteurInstinctClientRules.isExtendedRole(roleId)) {
+            return;
+        }
         if (SaboteurInstinctClientRules.shouldEnableNativeInstinct(
                 false,
                 roleId,

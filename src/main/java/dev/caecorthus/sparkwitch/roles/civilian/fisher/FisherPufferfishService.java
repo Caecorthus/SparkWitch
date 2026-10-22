@@ -76,7 +76,13 @@ public final class FisherPufferfishService {
 
     private static void tick(MinecraftServer server) {
         long now = now(server);
-        LAST_STING.entrySet().removeIf(entry -> stingReady(now, entry.getValue()));
+        // Every server tick: skip the lambda and copies while nothing is tracked. / 每个服务端 tick：无追踪时跳过 lambda 与拷贝。
+        if (!LAST_STING.isEmpty()) {
+            LAST_STING.entrySet().removeIf(entry -> stingReady(now, entry.getValue()));
+        }
+        if (FISH.isEmpty()) {
+            return;
+        }
         for (TrackedFish tracked : new ArrayList<>(FISH.values())) {
             PufferfishEntity fish = tracked.fish();
             GameWorldComponent game = GameWorldComponent.KEY.get(fish.getWorld());

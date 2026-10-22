@@ -2,9 +2,12 @@ package dev.caecorthus.sparkwitch.roles.special.wraith;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Shared Wraith body-collision rules.
@@ -18,6 +21,14 @@ import net.minecraft.util.Identifier;
  */
 public final class WraithCollisionRules {
     private static final Identifier NO_COLLISION = Identifier.of("noellesroles", "no_collision");
+    /**
+     * The registered entry, resolved on first use: STATUS_EFFECT is a static registry, so the reference stored under the
+     * id at registration (the same object NoellesRoles keeps in {@code ModEffects.NO_COLLISION}) never changes. Absence
+     * is not latched, so a missing effect is looked up again exactly as before.
+     * 首次使用时解析的已注册条目：STATUS_EFFECT 是静态注册表，注册时存于该 id 下的引用（与 NoellesRoles 保存在
+     * {@code ModEffects.NO_COLLISION} 中的是同一对象）永不改变。缺失不会被锁定，因此缺失时与此前一样重新查找。
+     */
+    private static volatile RegistryEntry<StatusEffect> noCollision;
 
     private WraithCollisionRules() {
     }
@@ -39,8 +50,16 @@ public final class WraithCollisionRules {
         if (!(entity instanceof LivingEntity living)) {
             return false;
         }
-        return Registries.STATUS_EFFECT.getEntry(NO_COLLISION)
-                .map(living::hasStatusEffect)
-                .orElse(false);
+        RegistryEntry<StatusEffect> effect = noCollisionEffect();
+        return effect != null && living.hasStatusEffect(effect);
+    }
+
+    private static @Nullable RegistryEntry<StatusEffect> noCollisionEffect() {
+        RegistryEntry<StatusEffect> effect = noCollision;
+        if (effect == null) {
+            effect = Registries.STATUS_EFFECT.getEntry(NO_COLLISION).orElse(null);
+            noCollision = effect;
+        }
+        return effect;
     }
 }

@@ -55,11 +55,11 @@ public final class KidnapperDragService {
 
     public static void reconcile(ServerPlayerEntity player) {
         PlayerBodyEntity body = KidnapperCarryState.findCarriedBody(player);
-        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
         if (body == null) {
             removeSpeedModifier(player);
             return;
         }
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
         if (!KidnapperRules.isKidnapper(role)
                 || !GameFunctions.isPlayerPlayingAndAlive(player)
                 || body.isRemoved()) {

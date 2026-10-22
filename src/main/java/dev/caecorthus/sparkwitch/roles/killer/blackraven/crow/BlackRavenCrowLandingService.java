@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven.crow;
 
-import dev.doctor4t.wathe.game.GameFunctions;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -127,8 +127,10 @@ public final class BlackRavenCrowLandingService {
         ANCHORS.clear();
     }
 
+    // Alive, not spectating, playing; creative players and active Wraiths pass (RoundParticipants.CROW_LANDING).
+    // 存活、非旁观、在局；创造模式与激活冤魂通过（RoundParticipants.CROW_LANDING）。
     private static boolean isParticipant(ServerPlayerEntity player) {
-        return player.isAlive() && !player.isSpectator() && GameFunctions.isPlayerPlayingAndAlive(player);
+        return RoundParticipants.CROW_LANDING.test(player);
     }
 
     /**

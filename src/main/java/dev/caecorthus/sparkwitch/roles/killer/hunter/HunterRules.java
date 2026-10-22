@@ -5,6 +5,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 /**
  * Pure Hunter tuning and role-id based compatibility rules.
@@ -114,16 +115,32 @@ public final class HunterRules {
             boolean hasLineOfSight,
             boolean instinctActive
     ) {
+        return trapVisibility(roleId, nativeKiller, deadSpectator, () -> hasLineOfSight, () -> instinctActive);
+    }
+
+    /**
+     * Same matrix with lazy inputs: line of sight (a raycast) and instinct are read only for the viewers whose answer
+     * depends on them, at most once each. Line of sight only ever separates {@code DIRECT_ONLY} from {@code HIDDEN}.
+     * 输入惰性求值的同一矩阵：视线（射线检测）与本能仅在答案依赖它们的观察者上读取，且各至多一次。视线只区分
+     * {@code DIRECT_ONLY} 与 {@code HIDDEN}。
+     */
+    public static TrapVisibility trapVisibility(
+            @Nullable Identifier roleId,
+            boolean nativeKiller,
+            boolean deadSpectator,
+            BooleanSupplier hasLineOfSight,
+            BooleanSupplier instinctActive
+    ) {
         if (nativeKiller || deadSpectator) {
             return TrapVisibility.THROUGH_WALL;
         }
         if (isInstinctTrapViewer(roleId)) {
-            if (instinctActive) {
+            if (instinctActive.getAsBoolean()) {
                 return TrapVisibility.THROUGH_WALL;
             }
-            return hasLineOfSight ? TrapVisibility.DIRECT_ONLY : TrapVisibility.HIDDEN;
+            return hasLineOfSight.getAsBoolean() ? TrapVisibility.DIRECT_ONLY : TrapVisibility.HIDDEN;
         }
-        if (roleId != null && DIRECT_VIEWERS.contains(roleId) && hasLineOfSight) {
+        if (roleId != null && DIRECT_VIEWERS.contains(roleId) && hasLineOfSight.getAsBoolean()) {
             return TrapVisibility.DIRECT_ONLY;
         }
         return TrapVisibility.HIDDEN;

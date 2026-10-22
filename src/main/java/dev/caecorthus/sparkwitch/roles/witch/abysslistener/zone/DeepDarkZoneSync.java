@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.LongFunction;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.minecraft.block.BlockState;
@@ -13,6 +14,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
@@ -28,14 +30,39 @@ final class DeepDarkZoneSync {
     private DeepDarkZoneSync() {
     }
 
-    /** Sends each position's fake look. / 发送每个位置的假外观。 */
-    static void sendFake(ServerWorld world, LongList positions, LongFunction<BlockState> fakeState) {
-        send(world, positions, fakeState);
-    }
-
     /** Sends each position's current real state (restore, drop, clear). / 发送每个位置当前的真实状态（恢复、丢弃、清空）。 */
     static void sendReal(ServerWorld world, LongList positions) {
         send(world, positions, pos -> world.getBlockState(BlockPos.fromLong(pos)));
+    }
+
+    /**
+     * Players tracking the chunk of a packed section position; nobody before the chunk is post-processed. Vanilla
+     * counts a player in range as tracking unless the chunk is queued for it, and queues a chunk only once it is
+     * post-processed, so before that a "tracker" holds no chunk data and a delta would be dropped.
+     * 追踪该区块段所在区块的玩家；区块完成后处理之前视为无人追踪。原版只要玩家在范围内且该区块不在其发送队列中就算追踪，而区块
+     * 只有在完成后处理后才会入队，因此在那之前的“追踪者”并没有区块数据，增量包会被丢弃。
+     */
+    static Collection<ServerPlayerEntity> trackers(ServerWorld world, long section) {
+        ChunkPos chunk = ChunkSectionPos.from(section).toChunkPos();
+        if (world.getChunkManager().chunkLoadingManager.getPostProcessedChunk(chunk.toLong()) == null) {
+            return List.of();
+        }
+        return PlayerLookup.tracking(world, chunk);
+    }
+
+    /**
+     * Sends one section's fake looks to the given players only (the delivery bookkeeping picks them among the
+     * section's trackers). / 只把一个区块段的假外观发给给定玩家（由投递记录从该段追踪者中挑选）。
+     */
+    static void sendFakeTo(ServerWorld world, long section, LongList positions, LongFunction<BlockState> fakeState,
+                           Collection<ServerPlayerEntity> recipients) {
+        ChunkDeltaUpdateS2CPacket packet = packet(world, ChunkSectionPos.from(section), positions, fakeState);
+        if (packet == null) {
+            return;
+        }
+        for (ServerPlayerEntity player : recipients) {
+            player.networkHandler.sendPacket(packet);
+        }
     }
 
     private static void send(ServerWorld world, LongList positions, LongFunction<BlockState> stateOf) {

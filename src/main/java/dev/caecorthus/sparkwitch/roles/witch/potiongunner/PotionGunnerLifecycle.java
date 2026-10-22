@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.witch.potiongunner;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionShellEntity;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.caecorthus.sparkwitch.util.OffMatchUse;
+import dev.caecorthus.sparkwitch.util.StaggeredSweep;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -82,7 +83,7 @@ public final class PotionGunnerLifecycle {
 
     /** Each player is visited once per interval, offset by entity id. / 每名玩家每个间隔按实体 id 错开访问一次。 */
     static boolean isSweepTick(long worldTime, int entityId) {
-        return Math.floorMod(worldTime + entityId, SWEEP_INTERVAL_TICKS) == 0;
+        return StaggeredSweep.isDue(worldTime, entityId, SWEEP_INTERVAL_TICKS);
     }
 
     private static void sweep(ServerWorld world) {

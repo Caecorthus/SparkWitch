@@ -11,6 +11,7 @@ import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -61,12 +62,27 @@ public final class MagicianPuppetAim {
             return original;
         }
         World world = shooter.getWorld();
-        Vec3d end = clipToBlocks(shooter, start, start.add(look.multiply(limit)));
+        Vec3d unclipped = start.add(look.multiply(limit));
+        // Puppets first, blocks second: the block-clipped end lies on the same segment, so its search box is inside
+        // the unclipped one. No targetable puppet there means none after clipping and {@code original}, without the
+        // block raycast; otherwise the unclipped candidates filtered by the clipped box are exactly (and in the same
+        // section order as) what querying the clipped box would return.
+        // 先查皮套，再做方块射线：方块截断后的终点仍在同一线段上，因此其搜索箱包含于未截断的搜索箱。未截断箱内没有可选
+        // 皮套即意味着截断后也没有，直接返回 {@code original} 而无需方块射线；否则用截断箱过滤未截断候选，结果（及其分区
+        // 顺序）与直接查询截断箱完全相同。
+        List<MagicianPlaybackEntity> candidates = world.getEntitiesByClass(MagicianPlaybackEntity.class,
+                new Box(start, unclipped).expand(SEARCH_PADDING), candidate -> isTargetable(candidate, visibleOnly));
+        if (candidates.isEmpty()) {
+            return original;
+        }
+        Vec3d end = clipToBlocks(shooter, start, unclipped);
         Box search = new Box(start, end).expand(SEARCH_PADDING);
         MagicianPlaybackEntity nearest = null;
         double nearestDistance = limit * limit;
-        for (MagicianPlaybackEntity puppet : world.getEntitiesByClass(MagicianPlaybackEntity.class, search,
-                candidate -> isTargetable(candidate, visibleOnly))) {
+        for (MagicianPlaybackEntity puppet : candidates) {
+            if (!puppet.getBoundingBox().intersects(search)) {
+                continue;
+            }
             Optional<Vec3d> entry = puppet.getBoundingBox().raycast(start, end);
             if (entry.isEmpty()) {
                 continue;

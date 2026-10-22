@@ -71,7 +71,7 @@ public final class AbyssListenerLoadout {
             for (ServerPlayerEntity player : world.getPlayers()) {
                 // Match participants only: a free holder's copy is never stripped, granted or deduplicated.
                 // 只校正对局参与者：自由持有者的枪从不被收走、补发或去重。
-                if (AbyssListenerGunSweep.sweeps(time, player.getId(), () -> OffMatchUse.isMatchParticipant(player))) {
+                if (AbyssListenerGunSweep.sweeps(time, player.getId(), player, OffMatchUse::isMatchParticipant)) {
                     reconcile(player, mayHold(player));
                 }
             }
@@ -163,56 +163,47 @@ public final class AbyssListenerLoadout {
     static void reconcile(ServerPlayerEntity player, boolean entitled) {
         PlayerInventory inventory = player.getInventory();
         ScreenHandler handler = player.currentScreenHandler;
-        List<AbyssListenerGunSweep.Location> locations = new ArrayList<>(2);
-        List<Runnable> removers = new ArrayList<>(2);
-        List<ItemStack> stacks = new ArrayList<>(2);
-        // Inventory index of each copy; NO_SLOT for the cursor and foreign handler slots.
-        // 每份副本所在的背包下标；光标与外部界面栏位为 NO_SLOT。
-        List<Integer> inventorySlots = new ArrayList<>(2);
+        // Created on the first copy found, so a clean sweep allocates nothing. / 找到第一份副本时才创建，干净的清扫不产生分配。
+        GunCopies copies = null;
         for (int slot = 0; slot < inventory.size(); slot++) {
             ItemStack stack = inventory.getStack(slot);
             if (AbyssListenerInventoryRules.isGun(stack)) {
                 int index = slot;
-                locations.add(PlayerInventory.isValidHotbarIndex(slot)
-                        ? AbyssListenerGunSweep.Location.HOTBAR
-                        : AbyssListenerGunSweep.Location.STRAY);
-                removers.add(() -> inventory.setStack(index, ItemStack.EMPTY));
-                stacks.add(stack);
-                inventorySlots.add(slot);
+                copies = GunCopies.add(copies, PlayerInventory.isValidHotbarIndex(slot)
+                                ? AbyssListenerGunSweep.Location.HOTBAR
+                                : AbyssListenerGunSweep.Location.STRAY,
+                        () -> inventory.setStack(index, ItemStack.EMPTY), stack, slot);
             }
         }
         ItemStack cursor = handler.getCursorStack();
         if (AbyssListenerInventoryRules.isGun(cursor)) {
-            locations.add(AbyssListenerGunSweep.Location.CURSOR);
-            removers.add(() -> handler.setCursorStack(ItemStack.EMPTY));
-            stacks.add(cursor);
-            inventorySlots.add(AbyssListenerGunSweep.NO_SLOT);
+            copies = GunCopies.add(copies, AbyssListenerGunSweep.Location.CURSOR,
+                    () -> handler.setCursorStack(ItemStack.EMPTY), cursor, AbyssListenerGunSweep.NO_SLOT);
         }
         for (Slot slot : handler.slots) {
             if (slot.inventory != inventory && AbyssListenerInventoryRules.isGun(slot.getStack())) {
-                locations.add(AbyssListenerGunSweep.Location.STRAY);
-                removers.add(() -> slot.setStack(ItemStack.EMPTY));
-                stacks.add(slot.getStack());
-                inventorySlots.add(AbyssListenerGunSweep.NO_SLOT);
+                copies = GunCopies.add(copies, AbyssListenerGunSweep.Location.STRAY,
+                        () -> slot.setStack(ItemStack.EMPTY), slot.getStack(), AbyssListenerGunSweep.NO_SLOT);
             }
         }
-        if (locations.isEmpty() && !entitled) {
+        if (copies == null && !entitled) {
             return;
         }
+        List<AbyssListenerGunSweep.Location> locations = copies == null ? List.of() : copies.locations;
         AbyssListenerGunSweep.Decision decision = AbyssListenerGunSweep.decide(entitled, locations);
         boolean changed = false;
         int vacated = AbyssListenerGunSweep.NO_SLOT;
         for (int copy = 0; copy < locations.size(); copy++) {
             if (copy == decision.keep()) {
-                ItemStack kept = stacks.get(copy);
+                ItemStack kept = copies.stacks.get(copy);
                 if (kept.getCount() > 1) {
                     kept.setCount(1);
                     changed = true;
                 }
                 continue;
             }
-            removers.get(copy).run();
-            int slot = inventorySlots.get(copy);
+            copies.removers.get(copy).run();
+            int slot = copies.inventorySlots.get(copy);
             if (vacated == AbyssListenerGunSweep.NO_SLOT && AbyssListenerGunSweep.isStorageSlot(slot)) {
                 vacated = slot;
             }
@@ -304,5 +295,26 @@ public final class AbyssListenerLoadout {
             }
         }
         return AbyssListenerInventoryRules.isGun(player.currentScreenHandler.getCursorStack());
+    }
+    /**
+     * The gun copies one reconcile found, in scan order (inventory 0..40, cursor, foreign handler slots).
+     * 一次校正找到的枪副本，按扫描顺序排列（背包 0..40、光标、外部界面栏位）。
+     */
+    private static final class GunCopies {
+        private final List<AbyssListenerGunSweep.Location> locations = new ArrayList<>(2);
+        private final List<Runnable> removers = new ArrayList<>(2);
+        private final List<ItemStack> stacks = new ArrayList<>(2);
+        /** Inventory index of each copy; NO_SLOT for the cursor and foreign handler slots. / 每份副本所在的背包下标；光标与外部界面栏位为 NO_SLOT。 */
+        private final List<Integer> inventorySlots = new ArrayList<>(2);
+
+        private static GunCopies add(@Nullable GunCopies copies, AbyssListenerGunSweep.Location location,
+                                     Runnable remover, ItemStack stack, int inventorySlot) {
+            GunCopies target = copies == null ? new GunCopies() : copies;
+            target.locations.add(location);
+            target.removers.add(remover);
+            target.stacks.add(stack);
+            target.inventorySlots.add(inventorySlot);
+            return target;
+        }
     }
 }

@@ -9,6 +9,7 @@ import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -27,6 +28,10 @@ public abstract class WraithJumpRestrictionMixin {
             1.0,
             EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
     );
+
+    /** Wathe's map no-jump modifier id, built once instead of per player per tick. / Wathe 地图禁跳 modifier id，只构建一次。 */
+    @Unique
+    private static final Identifier WATHE_DISABLE_JUMP_MODIFIER_ID = Wathe.id("disable_jump_modifier");
 
     @Shadow
     protected abstract float getJumpVelocity();
@@ -58,7 +63,7 @@ public abstract class WraithJumpRestrictionMixin {
         if (jumpStrength == null) {
             return;
         }
-        boolean hasWatheDisable = jumpStrength.hasModifier(Wathe.id("disable_jump_modifier"));
+        boolean hasWatheDisable = jumpStrength.hasModifier(WATHE_DISABLE_JUMP_MODIFIER_ID);
         boolean hasWraithCompensation = jumpStrength.hasModifier(WRAITH_JUMP_REENABLE_MODIFIER.id());
         boolean shouldCompensate = WraithStateService.isActive(player) && hasWatheDisable;
         if (shouldCompensate && !hasWraithCompensation) {

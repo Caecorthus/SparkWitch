@@ -1,11 +1,8 @@
 package dev.caecorthus.sparkwitch.compat;
 
 import dev.doctor4t.wathe.util.ShopEntry;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.Nullable;
-
-import java.lang.reflect.Method;
 
 /**
  * SparkTraits 魅力折扣的软兼容桥。
@@ -16,53 +13,17 @@ import java.lang.reflect.Method;
 public final class SparkTraitsCharismaBridge {
     private static final String MOD_ID = "sparktraits";
     private static final String API_CLASS = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
-
-    private static volatile Method discountMethod;
-    private static volatile boolean lookupFailed;
+    private static final OptionalStaticMethod DISCOUNT = OptionalStaticMethod.of(MOD_ID, API_CLASS,
+            "discountShopEntryForCharisma", PlayerEntity.class, ShopEntry.class).initializingClass();
 
     private SparkTraitsCharismaBridge() {
     }
 
     public static @Nullable ShopEntry discountShopEntry(@Nullable PlayerEntity player, @Nullable ShopEntry entry) {
-        if (player == null || entry == null || !FabricLoader.getInstance().isModLoaded(MOD_ID)) {
+        if (player == null || entry == null) {
             return entry;
         }
-        Method method = discountMethod();
-        if (method == null) {
-            return entry;
-        }
-        try {
-            Object result = method.invoke(null, player, entry);
-            return result instanceof ShopEntry discounted ? discounted : entry;
-        } catch (ReflectiveOperationException | LinkageError | ClassCastException ignored) {
-            return entry;
-        }
-    }
-
-    @Nullable
-    private static Method discountMethod() {
-        if (lookupFailed) {
-            return null;
-        }
-        Method cached = discountMethod;
-        if (cached != null) {
-            return cached;
-        }
-        synchronized (SparkTraitsCharismaBridge.class) {
-            if (discountMethod != null) {
-                return discountMethod;
-            }
-            if (lookupFailed) {
-                return null;
-            }
-            try {
-                Class<?> apiClass = Class.forName(API_CLASS);
-                discountMethod = apiClass.getMethod("discountShopEntryForCharisma", PlayerEntity.class, ShopEntry.class);
-                return discountMethod;
-            } catch (ReflectiveOperationException | LinkageError | ClassCastException ignored) {
-                lookupFailed = true;
-                return null;
-            }
-        }
+        // Absent, missing, failing or non-entry answers all keep the original entry. / 缺失、失败或非条目结果均保留原条目。
+        return DISCOUNT.callOrNull(player, entry) instanceof ShopEntry discounted ? discounted : entry;
     }
 }

@@ -13,10 +13,10 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * skill: it never enters the witch skill registry, the shared witch-skill cooldowns or the witch skill panel; its
  * cooldown is an absolute ready tick in the {@code sparkwitch:fiend_moment} world component (synced only to the moment
  * Fiend) and dies with the moment. Forced cooldowns from other features reach it only through
- * {@code compat/cooldown/FiendDashCooldownStore}, which only moves the ready tick later.
+ * {@code compat/cooldown/SparkWitchForcedCooldowns#fiendDash}, which only moves the ready tick later.
  * {@code sparkwitch:use_fiend_dash} 的服务端处理（NoellesRoles 技能键）。疾驰是职业自有、仅限时刻中的技能：从不进入魔女
  * 技能注册表、共享的魔女技能冷却或魔女技能面板；其冷却以绝对就绪刻保存在 {@code sparkwitch:fiend_moment} 世界组件中
- * （只同步给时刻中的魔人），并随时刻一同结束。其他功能的强制冷却只经 {@code compat/cooldown/FiendDashCooldownStore}
+ * （只同步给时刻中的魔人），并随时刻一同结束。其他功能的强制冷却只经 {@code compat/cooldown/SparkWitchForcedCooldowns#fiendDash}
  * 作用于它，且只会把就绪刻推后。
  */
 public final class FiendDashService {

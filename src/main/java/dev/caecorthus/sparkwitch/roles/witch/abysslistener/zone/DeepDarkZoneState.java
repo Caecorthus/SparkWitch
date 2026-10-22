@@ -149,6 +149,21 @@ public final class DeepDarkZoneState<S> {
         return Collections.unmodifiableCollection(zones.values());
     }
 
+    /**
+     * True while a registered cell's world state still equals its landing snapshot ({@code realState} null = unknown,
+     * kept like the heal sweep keeps it); resends skip a changed cell until the heal sweep drops it.
+     * 已登记格子的世界状态仍与落地快照一致时为 true（{@code realState} 为 null 表示未知，与补发扫描一样保留）；
+     * 补发会跳过已改变的格子，直到补发扫描将其丢弃。
+     */
+    public boolean matchesSnapshot(long pos, LongFunction<S> realState) {
+        Cell<S> cell = cells.get(pos);
+        if (cell == null) {
+            return false;
+        }
+        S real = realState.apply(pos);
+        return real == null || Objects.equals(real, cell.original);
+    }
+
     /** The fake look of a registered cell, or null. / 已登记格子的假外观，未登记时为 null。 */
     public @Nullable S fakeAt(long pos) {
         Cell<S> cell = cells.get(pos);

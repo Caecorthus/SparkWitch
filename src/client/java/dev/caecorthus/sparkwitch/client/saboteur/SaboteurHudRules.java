@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.client.saboteur;
 
+import dev.caecorthus.sparkwitch.util.TickTime;
+
 /** Pure eligibility and display rules for Saboteur's role-owned HUD. / 破坏者角色自有 HUD 的纯资格与显示规则。 */
 public final class SaboteurHudRules {
     private SaboteurHudRules() {
@@ -14,6 +16,6 @@ public final class SaboteurHudRules {
     }
 
     public static int cooldownSeconds(int cooldownTicks) {
-        return (int) Math.ceil(Math.max(0, cooldownTicks) / 20.0D);
+        return Math.max(0, TickTime.ceilSecondsUnclamped(cooldownTicks));
     }
 }

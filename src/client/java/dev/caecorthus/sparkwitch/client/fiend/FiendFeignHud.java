@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.fiend;
 
+import dev.caecorthus.sparkwitch.client.text.HudFontOptions;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignComponent;
@@ -12,6 +13,7 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Language;
 
 /**
  * Draws the dormant Fiend's owner-only feign-death line ({@link FiendFeignHudRules}) in the Dash line's row. Reads only
@@ -25,6 +27,19 @@ import net.minecraft.text.Text;
  * {@code gui.sparkwitch.skills} 面板。
  */
 public final class FiendFeignHud {
+    // Render-thread cache: the Texts and widths are a pure function of the line, the active Language (replaced on
+    // every resource reload) and the font renderer, so they are rebuilt only when one changes.
+    // 渲染线程缓存：文本与宽度只取决于该行、当前 Language（每次资源重载都会换新）与字体渲染器，因此只在其中之一变化时重建。
+    // The key also holds the font glyph options (`HudFontOptions`), which a toggle changes without a reload.
+    // 键还包含字形选项（`HudFontOptions`），切换它们不会触发资源重载。
+    private static FiendFeignHudRules.Line cachedLine;
+    private static Language cachedLanguage;
+    private static TextRenderer cachedRenderer;
+    private static int cachedFontOptions = -1;
+    private static Text cachedText;
+    private static int cachedTextWidth;
+    private static int cachedMeasured;
+
     private FiendFeignHud() {
     }
 
@@ -58,11 +73,23 @@ public final class FiendFeignHud {
         WitchPlayerComponent witch = WitchPlayerComponent.KEY.get(player);
         boolean sharedLineOccupied = witch.getActiveSkillId() != null || witch.getSaintState().karmaCooldownTicks() > 0;
         TextRenderer renderer = client.textRenderer;
-        Text text = Text.translatable(line.key(), line.seconds());
-        int measured = renderer.getWidth(Text.translatable(line.key(),
-                FiendDashHudRules.measuredSeconds(line.seconds())));
+        Language language = Language.getInstance();
+        int fontOptions = HudFontOptions.current();
+        if (!line.equals(cachedLine) || language != cachedLanguage || renderer != cachedRenderer
+                || fontOptions != cachedFontOptions) {
+            cachedText = Text.translatable(line.key(), line.seconds());
+            cachedTextWidth = renderer.getWidth(cachedText);
+            cachedMeasured = renderer.getWidth(Text.translatable(line.key(),
+                    FiendDashHudRules.measuredSeconds(line.seconds())));
+            cachedLine = line;
+            cachedLanguage = language;
+            cachedRenderer = renderer;
+            cachedFontOptions = fontOptions;
+        }
+        Text text = cachedText;
+        int measured = cachedMeasured;
         int width = context.getScaledWindowWidth();
-        int x = FiendDashHudRules.rowX(width, renderer.getWidth(text));
+        int x = FiendDashHudRules.rowX(width, cachedTextWidth);
         int y = FiendDashHudRules.rowY(width, context.getScaledWindowHeight(), measured, renderer.fontHeight,
                 sharedLineOccupied);
         context.drawTextWithShadow(renderer, text, x, y, line.color());

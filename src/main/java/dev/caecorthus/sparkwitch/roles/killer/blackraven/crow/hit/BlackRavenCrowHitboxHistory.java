@@ -73,11 +73,16 @@ public final class BlackRavenCrowHitboxHistory {
 
     private static void record(MinecraftServer server) {
         int tick = server.getTicks();
-        Set<UUID> live = new HashSet<>();
+        // Allocated only once a live crow is found; with none, every history is dropped (as retainAll of an empty set).
+        // 只在找到存活乌鸦时才分配；没有乌鸦时丢弃全部历史（等同于对空集合 retainAll）。
+        Set<UUID> live = null;
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             BlackRavenCrowEntity crow = BlackRavenCrowSessions.crowOf(player);
             if (crow == null) {
                 continue;
+            }
+            if (live == null) {
+                live = new HashSet<>();
             }
             live.add(crow.getUuid());
             ArrayDeque<Sample> samples = HISTORY.computeIfAbsent(crow.getUuid(), uuid -> new ArrayDeque<>());
@@ -86,6 +91,12 @@ public final class BlackRavenCrowHitboxHistory {
                 samples.removeLast();
             }
         }
-        HISTORY.keySet().retainAll(live);
+        if (live == null) {
+            if (!HISTORY.isEmpty()) {
+                HISTORY.clear();
+            }
+        } else {
+            HISTORY.keySet().retainAll(live);
+        }
     }
 }

@@ -29,10 +29,15 @@ public abstract class FisherDoorPassingMixin {
             at = @At("HEAD"), cancellable = true)
     private void sparkwitch$fisherPassesDoors(BlockView world, BlockPos pos, ShapeContext context,
                                              CallbackInfoReturnable<VoxelShape> cir) {
-        if (!RaycastShapeScope.isRaycast() && context instanceof EntityShapeContext entityContext
+        // Cheapest side-effect-free test first (hot on both sides); the ray scope is read last, so the result is
+        // unchanged. FisherSpiritComponent is attached to every player, so its lookup never throws.
+        // 无副作用的判断按开销从低到高排列（双端热路径），射线作用域最后读取，结果不变。每名玩家都挂有
+        // FisherSpiritComponent，查找从不抛出异常。
+        if (FisherDoorPassingRules.isDoor((BlockState) (Object) this)
+                && context instanceof EntityShapeContext entityContext
                 && entityContext.getEntity() instanceof PlayerEntity player
-                && FisherDoorPassingRules.isDoor((BlockState) (Object) this)
-                && FisherSpiritComponent.KEY.get(player).isActive()) {
+                && FisherSpiritComponent.KEY.get(player).isActive()
+                && !RaycastShapeScope.isRaycast()) {
             cir.setReturnValue(VoxelShapes.empty());
         }
     }

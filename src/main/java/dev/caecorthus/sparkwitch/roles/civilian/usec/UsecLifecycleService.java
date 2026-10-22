@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.usec;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.util.OffMatchUse;
+import dev.caecorthus.sparkwitch.util.StaggeredSweep;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -133,7 +134,7 @@ public final class UsecLifecycleService {
 
     /** Each player is visited once per interval, offset by entity id. / 每名玩家每个间隔按实体 id 错开访问一次。 */
     static boolean isSweepTick(long worldTime, int entityId) {
-        return Math.floorMod(worldTime + entityId, SWEEP_INTERVAL_TICKS) == 0;
+        return StaggeredSweep.isDue(worldTime, entityId, SWEEP_INTERVAL_TICKS);
     }
 
     private static void sweep(ServerWorld world) {

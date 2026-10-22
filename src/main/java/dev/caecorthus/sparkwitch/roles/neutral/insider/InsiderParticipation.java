@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.roles.neutral.insider;
 
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,16 +32,7 @@ public final class InsiderParticipation {
         return player != null && isInsiderRole(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
     }
 
-    public static boolean isCorruptCop(@Nullable PlayerEntity player) {
-        return player != null && isCorruptCopRole(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
-    }
-
     public static boolean isTeamMember(@Nullable PlayerEntity player) {
         return player != null && isTeamRole(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
-    }
-
-    /** Insider role, playing and alive in Wathe. / 拥有内应职业，并在 Wathe 中参与且存活。 */
-    public static boolean isLivingInsider(@Nullable PlayerEntity player) {
-        return isInsider(player) && GameFunctions.isPlayerPlayingAndAlive(player);
     }
 }

@@ -19,9 +19,18 @@ public final class SaboteurInstinctClientRules {
     ) {
         return originalAllowed
                 || confirmedServer
-                && SaboteurRole.ID.equals(roleId)
+                && isExtendedRole(roleId)
                 && activeWraith
                 && promotedWraith
                 && instinctKeyPressed;
+    }
+
+    /**
+     * The role half of {@link #shouldEnableNativeInstinct}: without {@code originalAllowed} no other role can pass it, so
+     * callers may leave before the per-call key read. / {@link #shouldEnableNativeInstinct} 的职业部分：没有
+     * {@code originalAllowed} 时其他职业无法通过，因此调用方可在逐次按键读取之前返回。
+     */
+    public static boolean isExtendedRole(@Nullable Identifier roleId) {
+        return SaboteurRole.ID.equals(roleId);
     }
 }

@@ -4,12 +4,11 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkfactionapi.api.cooldown.ForcedCooldowns;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsAbyssListenerBridge;
-import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -36,22 +35,14 @@ public final class AbyssSuppression {
     /**
      * Living participant of a running game: playing and alive, not spectating (which also covers Taotie-swallowed
      * players and fake deaths), not creative, not an active Wraith, has a role, not SparkTraits Last Stand pending and
-     * not in SparkTraits Last Escape (N16). Absent SparkTraits adds no exclusion.
+     * not in SparkTraits Last Escape (N16), in that order ({@link RoundParticipants#ABYSS_TARGET}: the SparkTraits bridges
+     * are consulted last and only after every earlier gate passed). Absent SparkTraits adds no exclusion.
      * 进行中对局的存活参与者：参与且存活、非旁观（同时排除被饕餮吞下与假死的玩家）、非创造、非激活冤魂、拥有职业、
-     * 不处于 SparkTraits 背水一战待定且不处于绝处逢生（N16）。未安装 SparkTraits 时不附加排除。
+     * 不处于 SparkTraits 背水一战待定且不处于绝处逢生（N16），按此顺序（{@link RoundParticipants#ABYSS_TARGET}：
+     * SparkTraits 桥最后查询，且只在前序条件全部通过后查询）。未安装 SparkTraits 时不附加排除。
      */
     public static boolean isParticipantTarget(ServerPlayerEntity player) {
-        if (player == null) {
-            return false;
-        }
-        return participant(
-                GameFunctions.isPlayerPlayingAndAlive(player),
-                player.isSpectator(),
-                player.isCreative(),
-                () -> WraithStateService.isActive(player),
-                () -> GameWorldComponent.KEY.get(player.getWorld()).getRole(player) != null,
-                () -> SparkTraitsAbyssListenerBridge.isLastStandPending(player),
-                () -> SparkTraitsKillerBridge.isLastEscapeActive(player));
+        return RoundParticipants.ABYSS_TARGET.test(player);
     }
 
     /**
@@ -148,19 +139,6 @@ public final class AbyssSuppression {
             return;
         }
         player.addStatusEffect(new StatusEffectInstance(effect, ticks, amplifier, false, false, true), source);
-    }
-
-    /** Pure gate; later seams are consulted only after every earlier one passed. / 纯判定；前序条件全部通过后才查询后续接缝。 */
-    static boolean participant(boolean playingAndAlive, boolean spectator, boolean creative,
-                               BooleanSupplier activeWraith, BooleanSupplier hasRole,
-                               BooleanSupplier lastStandPending, BooleanSupplier lastEscape) {
-        return playingAndAlive
-                && !spectator
-                && !creative
-                && !activeWraith.getAsBoolean()
-                && hasRole.getAsBoolean()
-                && !lastStandPending.getAsBoolean()
-                && !lastEscape.getAsBoolean();
     }
 
     /** Pure gate: eligibility first, then the SFA veto only when an actor is known. / 纯判定：先资格，有施加者时再查 SFA 否决。 */

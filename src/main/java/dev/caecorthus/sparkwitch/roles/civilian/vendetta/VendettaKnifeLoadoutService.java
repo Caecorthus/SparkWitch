@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.util.StaggeredSweep;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -10,6 +11,14 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 /** Grants, restores, deduplicates, and terminally removes the bound revenge knife. */
 public final class VendettaKnifeLoadoutService {
+    /**
+     * Cadence of the world-tick stray sweep for players not entitled to the knife (owner-approved 2026-10-22: a stray
+     * knife may stay up to one second on such a player; drops are already refused by the knife mixins). The entitled
+     * path still runs every tick.
+     * 对无权持刀玩家的世界 tick 残留清理间隔（所有者 2026-10-22 批准：残留刀最多在此类玩家身上停留一秒；丢弃已被
+     * 复仇刀 mixin 拒绝）。有权持刀的路径仍每 tick 执行。
+     */
+    static final int STRAY_SWEEP_INTERVAL_TICKS = 20;
     private static boolean registered;
 
     private VendettaKnifeLoadoutService() {
@@ -24,10 +33,16 @@ public final class VendettaKnifeLoadoutService {
                 VendettaKnifeService.clearPlayer(handler.player));
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> VendettaKnifeService.clearAll());
         ServerTickEvents.END_WORLD_TICK.register(world -> {
+            long time = world.getTime();
             for (ServerPlayerEntity player : world.getPlayers()) {
-                reconcile(player);
+                reconcile(player, isStraySweepTick(time, player.getId()));
             }
         });
+    }
+
+    /** Each non-entitled player is swept once per interval, offset by entity id. / 每名无权玩家每个间隔按实体 id 错开清理一次。 */
+    static boolean isStraySweepTick(long worldTime, int entityId) {
+        return StaggeredSweep.isDue(worldTime, entityId, STRAY_SWEEP_INTERVAL_TICKS);
     }
 
     public static void initializeForPromotion(ServerPlayerEntity player) {
@@ -35,14 +50,19 @@ public final class VendettaKnifeLoadoutService {
         reconcile(player);
     }
 
+    /** Immediate reconcile, strays included. / 立即校正，包括清理残留。 */
     public static void reconcile(ServerPlayerEntity player) {
+        reconcile(player, true);
+    }
+
+    private static void reconcile(ServerPlayerEntity player, boolean sweepStrays) {
         VendettaPlayerComponent component = VendettaPlayerComponent.KEY.get(player);
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getServerWorld());
         boolean entitled = component.isActive()
                 && component.isKnifeAvailable()
                 && !player.isSpectator()
                 && game.isRole(player, SparkWitchRoles.vendetta());
-        if (!entitled && !containsKnife(player)) {
+        if (!entitled && (!sweepStrays || !containsKnife(player))) {
             return;
         }
 

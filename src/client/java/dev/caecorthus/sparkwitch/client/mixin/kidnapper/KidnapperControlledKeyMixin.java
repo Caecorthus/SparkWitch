@@ -16,7 +16,16 @@ public abstract class KidnapperControlledKeyMixin {
     @Unique
     private void sparkwitch$lockControlledKeys(CallbackInfoReturnable<Boolean> cir) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || !GameFunctions.isPlayerAliveAndSurvival(client.player)) {
+        if (client.player == null) {
+            return;
+        }
+        // Every isPressed/wasPressed of every key lands here: the O(1) control flag goes first, so an uncontrolled
+        // player skips the survival check and the key comparisons. Same AND of pure checks as before.
+        // 每个按键的每次 isPressed/wasPressed 都会到这里：先做 O(1) 的受控判断，未受控玩家跳过生存模式检查与按键比较。
+        // 与原先是同一组纯判断的与运算。
+        KidnapperControlComponent control = KidnapperControlComponent.KEY.getNullable(client.player);
+        if (control == null || !control.isControlled()
+                || !GameFunctions.isPlayerAliveAndSurvival(client.player)) {
             return;
         }
 
@@ -30,8 +39,7 @@ public abstract class KidnapperControlledKeyMixin {
                 break;
             }
         }
-        if (KidnapperControlComponent.KEY.get(client.player).isControlled()
-                && (useKey || attackKey || hotbarKey)) {
+        if (useKey || attackKey || hotbarKey) {
             cir.setReturnValue(false);
         }
     }

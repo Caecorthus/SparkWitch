@@ -10,6 +10,7 @@ import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
@@ -130,11 +131,6 @@ public final class BlackRavenCrowPlayerComponent
     /** Owner and server only; -1 without a session. / 仅本人与服务端；无会话时为 -1。 */
     public int getCrowEntityId() {
         return crowEntityId;
-    }
-
-    /** World time the session started (owner and server). / 会话开始的世界时间（本人与服务端）。 */
-    public long getSessionStartTick() {
-        return sessionStartTick;
     }
 
     /** World time the session times out (owner and server). / 会话超时的世界时间（本人与服务端）。 */
@@ -323,7 +319,9 @@ public final class BlackRavenCrowPlayerComponent
         if (cooldownTicks > 0) {
             cooldownTicks--;
             if (cooldownTicks % SYNC_INTERVAL_TICKS == 0) {
-                sync();
+                // Non-owners only read the active bit, which every write already synced to all; the countdown
+                // checkpoint goes to the owner alone. / 非本人只读取在场标记，而每次写入都已同步给所有人；倒计时校准只发给本人。
+                KEY.syncWith(serverPlayer, (ComponentProvider) serverPlayer);
             }
         }
     }

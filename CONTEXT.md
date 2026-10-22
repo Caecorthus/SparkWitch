@@ -145,7 +145,7 @@ Current build baseline:
     sends the empty `sparkwitch:use_apprentice_purify` (`net/UseApprenticePurifyC2SPayload`, registered by
     `ApprenticeFeatureService`, in the Control Expert stun, Seeker session and Rift session deny-lists, not in Fear's).
     It is not in `WitchSkillRegistry`, so the random draw never deals it. 30 mana, 20 s own cooldown
-    (`compat/cooldown/ApprenticePurifyCooldownStore`, appended last), aim within 6 blocks
+    (`compat/cooldown/SparkWitchForcedCooldowns#apprenticePurify`, appended last), aim within 6 blocks
     (`GrandWitchTargeting.findTarget(caster, requested, range)`), else herself if she carries a factor.
     `WitchFactorService.purify` removes the factor without refunding quota; success pays her 30 mana.
   - Spell-proof (D4/D8): `GrandWitchFearService.isPlayerFeared` = `isPlayerUnderFear` minus
@@ -418,13 +418,15 @@ Current build baseline:
     question for a puppet with a stand-in player (the copied player when loaded, else a detached client-only copy
     that is never spawned), so each viewer's existing rules apply unchanged (`MagicianPuppetAppearance`,
     `MagicianPuppetNameTags`, `client/mixin/MagicianPlaybackRoleNameMixin`, `MagicianPlaybackInstinctMixin`). The
-    Blind never sees puppets. Client aim (`MagicianPuppetAim`) wraps Wathe's revolver, derringer, knife and crosshair
+    stand-in copy cache is dropped on every connection edge (login INIT/DISCONNECT, play DISCONNECT, JOIN) by
+    `SparkWitchClient.releaseClosedWorldPlayers`, which also clears Wathe's never-cleared `WatheClient.particleMap` on
+    the client thread (2026-10-22). The Blind never sees puppets. Client aim (`MagicianPuppetAim`) wraps Wathe's revolver, derringer, knife and crosshair
     target methods and returns a puppet only when it is strictly nearer than the original result.
   - Decoys (D2): the Prophet's Death Sense, the Kidnapper's drag and the NoellesRoles Vulture's eat
     (`mixin/vulture/NoellesVultureDecoyBodyMixin` through `compat/NoellesVultureDecoyGuard`) ignore decoy bodies and
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
     SparkStrength) still treat a decoy as a body.
-  - The ability cooldown is the `sparkwitch:magician` store in `compat/cooldown/MagicianCooldownStore` (appended
+  - The ability cooldown is the `sparkwitch:magician` store in `compat/cooldown/SparkWitchForcedCooldowns#magician` (appended
     last; nominal = the 15 s playback cooldown; raise-only). Forced cooldowns land in every stage and only delay the
     next start (owner decision 2026-10-09): the ready HUD line then shows the remaining seconds
     (`hud.sparkwitch.magician.ready_cooldown`), and a press or start button refused for it gets the shared
@@ -503,7 +505,7 @@ Current build baseline:
     Dark Zone terrain: flood-fill shape and landing cell (`DeepDarkZoneShape`), eligibility and palette
     (`DeepDarkZoneEligibility`), timeline (`DeepDarkZoneSchedule`), in-memory registry (`DeepDarkZoneState`), section
     grouping (`DeepDarkZoneSections`), read-only world adapter (`DeepDarkZoneBlocks`), chunk-delta sender
-    (`DeepDarkZoneSync`), sampled vanilla cues (`DeepDarkZoneCues`), and the runtime with its lifecycle
+    (`DeepDarkZoneSync`), per-section delivery bookkeeping (`DeepDarkZoneDelivery`), sampled vanilla cues (`DeepDarkZoneCues`), and the runtime with its lifecycle
     (`DeepDarkZoneService`); standing effects, exposure, and drain operands (`DeepDarkZoneStandingRules`,
     `DeepDarkZoneStandingService`, `DeepDarkZoneStandingDrain`); and the owner-only `AbyssZoneExposureComponent`.
   - Its mixins live in `mixin/abysslistener/` (the five Shriek Gun guards and the zone mood drain) and
@@ -1310,6 +1312,21 @@ Current build baseline:
   Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
   an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;
   `isMatchParticipant` scopes the bound-item rules and splits the Ninja Grappling Hook gate (`NinjaRules.mayGrapple`).
+- `util/TickTime`: the shared tick-to-second roundings (`ceilSeconds` = 0 at or below zero, else rounded up;
+  `ceilSecondsUnclamped` = `Math.ceil(t / 20.0)`; `ceilSecondsAtLeastOne`; `ceilSecondsRaw` = `(t + 19) / 20`). They
+  differ only for zero and negative input; every call site keeps the variant it used before (2026-10-22).
+- `util/StaggeredSweep.isDue(worldTime, entityId, interval)`: the per-player sweep offset
+  `Math.floorMod(worldTime + entityId, interval) == 0`; each owner keeps its own interval constant.
+- `util/RoundParticipants` (2026-10-22): the one living-round-participant predicate. Named `Profile`s are ordered
+  `Gate` lists that all include Wathe `isPlayerPlayingAndAlive`; a null player never passes. Gates run in the declared
+  order and stop at the first failure, so the SparkTraits gates (Last Stand pending via the Abyss bridge, Last Escape
+  via the killer bridge) run last. `test(player)` reads the player's own world; `test(player, game)` reads the caller's
+  component for `HAS_ROLE`/`STATUS_ACTIVE`. Profiles: `ROLE_HOLDER` (Control Expert, Bell Ringer Echo, Time Stealer
+  targets), `CONNECTED_ROLE_HOLDER` (Witches' Sabbath, `SeekerTargeting.isRoundParticipant`), `LIVING_SURVIVOR`
+  (`FisherParticipants`, Blind money; no Wraith or role gate), `SWORDFISH_TARGET` (status exactly ACTIVE, not an active
+  Wraith), `ABYSS_TARGET`, `RIFT_ENTRANT` (no role gate), `JUDGE_ACTIVE`, `CROW_LANDING` (creative players and Wraiths
+  pass) and `MINI_WITHER_TARGET` (Wraith checked on the server only, Last Escape before the role). The differences are
+  each site's existing rule. `OffMatchUse.isMatchParticipant` and `SeekerTargeting.isActiveParticipant` stay separate.
 - `util/GiveCommandDropScope`: marks, by stack identity and per thread, vanilla `/give`'s cosmetic pickup-animation drop
   (the shared count-1 template). `mixin/GiveCommandDropScopeMixin` (common config) is the one `@WrapOperation` on
   `GiveCommand.execute`'s second `dropItem(ItemStack, boolean)` (ordinal 1); ordinal 0, the real remainder drop, stays
@@ -1548,6 +1565,15 @@ pistol (owner decision 2026-10-07). The Disruptor gates
 keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
+
+Role HUD panels draw through `client/hud/RoleHudDispatcher` (2026-10-22), behind two default-priority seams:
+`client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, still drawn under F1: Curser, Guardian Angel,
+Orthopedist, Saint, Vendetta, Kidnapper control screen, Saboteur) and `client/mixin/RoleHudMainHudTailMixin`
+(`renderMainHud` TAIL, hidden by F1: Witch mana with the tarot snapshot and slip, Witch skill, Magician, Black Raven).
+The layer order is the draw order and matches the old per-role mixins' config order, so the group keeps its slot
+relative to Fabric's `HudRenderCallback` and Wathe's own TAIL injects. Each layer owns its gate (the Vendetta,
+Kidnapper and Magician layers have no confirmed-server check, as before); a new panel adds a layer, not another
+`InGameHud` TAIL mixin. The Holy Flash overlay (priority 1100) stays its own mixin and draws after them.
 
 Holy Flash state never enters that shared schema either. `sparkwitch:holy_flash` (`NEVER_COPY`,
 owner-only sync, never saved) holds the flashed player's total and remaining ticks, the burst
@@ -1973,7 +1999,7 @@ Blind presentation is client-only. `BlindView.isActive` holds on a confirmed Spa
 a round runs for a real Blind (`getRole`) who is playing and alive in Wathe's sense (not marked
 dead) or swallowed; the camera is not part of it, so a SparkTraits Last Stand or Depression fake
 death keeps the view and every gate on (black) and only a real Wathe death ends it. Every gate
-re-reads it per call. `client/blind/render/BlindEchoView` is a private
+asks it per call; inside one world render pass the answer is memoized by `client/render/LocalViewerSnapshot`. `client/blind/render/BlindEchoView` is a private
 `PostEffectProcessor` (`sparkwitch:shaders/post/blind_echo.json`, programs
 `sparkwitch_blind_silmask`, `sparkwitch_blind_blur` and `sparkwitch_blind_echo`): the frame (projection, view
 rotation, camera, perceived bodies) is recorded at `WorldRenderEvents.BEFORE_DEBUG_RENDER`, and the world depth is
@@ -2325,7 +2351,11 @@ tasks it is promoted to an accomplice role through the pool above.
 Features that force a cooldown on another player (penalties, auras) go through SparkFactionAPI `ForcedCooldowns`
 (floor 0.1.5.11), never through a counter directly; affect vetoes stay the caller's job (`canAffectPlayer`).
 `compat/cooldown/SparkWitchForcedCooldowns` registers these role-skill stores, in this observable order (it is the
-`slots` order):
+`slots` order). Stores 1, 2, 5 and 6 keep their own classes (they override a SparkFactionAPI default or derive a
+per-role nominal); stores 3, 4 and 7-13 are `SimpleRoleSkillCooldownStore` instances built by factory methods in
+`SparkWitchForcedCooldowns` (2026-10-22), each with an explicit round gate (`anyGameStatus` or `whileActive`) and write
+kind (`EXACT`, `CLAMPED_AT_ZERO`, `RAISED_READY_TICK`); nominals are read lazily. The per-store differences below are
+deliberate and kept:
 1. `sparkwitch:witch_skill`: the shared `WitchPlayerComponent` cooldown, for any player with a skill (`hasSkill()`;
    Saint has none). Remaining time includes a pending deferred cooldown (`max(cooldown, window + deferred)`); the
    nominal is the active `WitchSkillDefinition.cooldownTicks`. Raises and extensions go through the additive
@@ -2359,7 +2389,7 @@ Features that force a cooldown on another player (penalties, auras) go through S
    nominal leaves its window out. Every write only moves the ready tick later (`ForcedCooldownMath.raiseReadyTick`)
    through the owner-syncing `BlindComponent.setAttune`; it never touches the window and never shortens. Raise and
    extend are the SparkFactionAPI defaults.
-9. `sparkwitch:fiend_dash` (`FiendDashCooldownStore`, coordinator default 2026-10-04 following the Blind,
+9. `sparkwitch:fiend_dash` (`SparkWitchForcedCooldowns#fiendDash`, coordinator default 2026-10-04 following the Blind,
    appended after it): the Fiend's Dash, for the role-gated moment Fiend in an ACTIVE round (`FiendDashService`'s
    role and round gates), so it exists only while a moment runs.
    Remaining time counts to the absolute Dash ready tick in `sparkwitch:fiend_moment`; the nominal is the 30 s
@@ -2556,15 +2586,21 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     Overlapping zones keep one window per zone on a cell whose landing snapshot matches (a union, so the cell restores
     at its last owner's end); a cell whose snapshot differs is replaced, and its stale fake is resent as real.
   - Fake and real states reach only the chunk's trackers as vanilla `ChunkDeltaUpdateS2CPacket`s grouped per section.
-    Every 20 ticks a heal sweep resends live fakes, and a cell whose real block no longer equals its landing snapshot is
-    dropped (compare-and-swap, which stops its look and effect). Nothing is persisted (no NBT, `shouldSave() = false`),
-    so a crash needs no cleanup.
+    Every tick a section's fakes go to trackers that do not hold them yet (`DeepDarkZoneDelivery`, so a new, returning
+    or re-tracking player gets them at once); such a newcomer stays pending and gets them again on every heal tick until
+    one comes at least 20 ticks after its first send, because vanilla counts a player as tracking before its chunk data
+    may have landed (a chunk that is not post-processed has no trackers). No send re-fakes a cell whose real block no
+    longer equals its landing snapshot. Every 20 ticks a heal sweep drops such a cell (compare-and-swap, which stops its
+    look and effect) and sends its real state to every tracker; every 100 ticks every tracker gets every fake again
+    (owner decision 2026-10-22, was every 20 ticks). Nothing is
+    persisted (no NBT, `shouldSave() = false`), so a crash needs no cleanup.
   - The zone restores instantly (real states resent, registry dropped) at `ON_FINISH_INITIALIZE` (stale),
     `ON_WIN_DETERMINED`, `ON_FINISH_FINALIZE` (which also discards flasks in flight), `SERVER_STOPPING`, and on any
     tick whose round is no longer ACTIVE (covers `/stop`); every such restore also clears the exposure of that world's
     players in the same tick. `ServerWorldEvents.UNLOAD` only forgets the registry.
   - Known cosmetic limits: other players' footsteps use the real block's sound (server-played), and a right-click on a
-    converted block shows the real block to that player for up to one heal interval.
+    converted block (or client break prediction) shows the real block to that player for up to 5 s, the full resend
+    interval.
 - **Standing and exposure.** Standing is checked every `ZONE_CHECK_INTERVAL_TICKS` (5) ticks, only in worlds where
   `DeepDarkZoneService.hasActiveZones`. A player stands on the zone when `AbyssSuppression.isParticipantTarget`,
   `isOnGround()`, and `DeepDarkZoneService.isConverted(world, getSteppingPos())` (the block vanilla uses for the step
@@ -2971,6 +3007,14 @@ SparkTraits is optional and fail-closed. Reflection may target only
 `sparktraits.component`. Black Raven may query only the public
 `isInstinctHidden(viewer, target)` facade; an absent or older SparkTraits build
 adds no suppression and must not break the client.
+
+`compat/OptionalStaticMethod` (2026-10-22) is the shared resolver for optional `SparkTraitsApi` static methods. The
+mod check and the lookup each run once and stay latched, failure included. Every call passes its own absent,
+unavailable and thrown fallbacks; the static/return-type check and `Class.forName` initialisation are opt-in, and a
+warning is opt-in and fires at most once. Each bridge still owns its fallbacks, which deliberately differ (for example
+`isRoleSkillBlocked` fails open in `SparkTraitsKillerBridge` but closed in `SparkTraitsGunBridge`, and
+`WitchFactorTraitsBridge` treats a missing facade as an intercepted Last Stand death). The Wraith bridge, the Emma gun
+protocol, Last Escape vision and the inventory presenter handshake stay bespoke.
 
 For the Black Raven disguise, the allowlist grows by two queries:
 - `isRoleSkillBlocked`, through the existing `SparkTraitsKillerBridge`, gates mask use and every
@@ -3500,7 +3544,7 @@ Seeker car.
       players).
 - **Perception.** `BlackRavenPerceptionCenter.of(player)` is Perception's distance centre; Raven Form's override
   answers the crow's position during a session.
-- **Cooldown.** `compat/cooldown/BlackRavenCrowCooldownStore` (`sparkwitch:black_raven_crow`, appended after the Mini
+- **Cooldown.** `compat/cooldown/SparkWitchForcedCooldowns#blackRavenCrow` (`sparkwitch:black_raven_crow`, appended after the Mini
   Wither toggle) exposes it to the SparkFactionAPI forced-cooldown contract. The admin `clearCooldown` clears only the
   held item, so, like the Mini Wither toggle, it does not reach Raven Form.
 - **Disguise.** The Raven Mask switch answers `window_active` while the crow flies; Raven Form refuses a disguised
@@ -3539,6 +3583,76 @@ Seeker car.
   plugin mutes a crow-form speaker after the Rift branch; they still hear. Fear keeps `black_raven_crow_move` on its
   list but drops it silently (`GrandWitchFearService.isSilentlyBlockedPayload`). The Blind's server sound probe treats a
   hidden body as SILENT and the cane never lists it; the crow is an ordinary non-player source.
+
+## Hot-Path Caches and Cadences
+
+Performance pass 2026-10-22. Each entry names a cache or cadence on a hot path and what keeps it exact. A change to one
+of these paths must keep its invalidation; everything not listed recomputes per call.
+
+Client (render thread):
+- `client/render/LocalViewerSnapshot`: a per-world-pass memo of local-viewer facts (role, liveness, Wraith state, Black
+  Raven eligibility and Perception, Curser confusion, Control Expert block, Fear, Blind view, the Wraith and Raven
+  viewer halves). It memoizes only between `WorldRenderEvents.START` and `END`, on the render thread, for the player,
+  world and confirmed flag captured at START; every other call (ticks, HUD, screens, packets) recomputes. It is closed
+  at `MinecraftClient#render` HEAD (`WraithMinecraftClientMixin`), START/END_CLIENT_TICK and disconnect. It never caches
+  the instinct key (`isPressed`/`isInstinctEnabled`): SparkStrength Blackout and the USEC cloak release it per target.
+- `WitchInstinctSuppressionClientHooks` resolves SparkTraits `isFinalMomentActive` once (latched when absent) and reads it
+  only when Fear or Obscure would suppress, since an active Final Moment only ever lifts a suppression. The swallowed
+  check calls `NoellesTaotieSeekerBridge.isSwallowed` directly.
+- Condition order only (pure `&&`, same answers): `WitchFactorClientHooks` checks carrier/Emma before the hard-hide
+  gates; the Orthopedist hook and HUD and the Guardian Angel preview run `canSee` last; `WitchCohortRoleNameMixin` and
+  `InsiderCohortRoleNameMixin` skip their raycast unless the viewer's raw role is witch-faction / Team Jiahao.
+  `HunterRules.trapVisibility` has a lazy `BooleanSupplier` overload, and the trap outline listener uses
+  `HunterTrapVisibilityHelper.isVisibleThroughWalls`, which never raycasts (line of sight only separates DIRECT_ONLY
+  from HIDDEN). `WraithEntityInvisibilityMixin` returns early when the entity is already visible;
+  `WraithMinecraftClientMixin`'s `hasOutline` veto deliberately does not, because it runs before Wathe's
+  `hasInstinctOutline` and must still cancel it.
+- HUD text caches (Seeker status, USEC ammo, Tarot table, Blind kit lines, Fiend Dash/Feign) key on their snapshot or
+  parts plus the current `Language` and `TextRenderer` instances and `client/text/HudFontOptions` (Force Unicode Font
+  and Japanese Glyph Variants, which swap glyph filters without a reload), so a language, resource or font-option change
+  re-measures. A Tarot table that fell back to white for an unregistered faction is never reused.
+- `SeekerCctvOverlay` batches each group of fills through `InventoryCardPaint.batch` (same order, text after).
+  `SeekerCarUseClient` casts the car aim once per frame (cleared at `WorldRenderEvents.START`). `SwordfishCrosshairMixin`
+  memoizes `showsTarget` per Wathe `CrosshairRenderer.renderCrosshair` call (a HEAD inject clears it).
+- The crosshair aim wrappers (`MagicianPuppetAim`, `BlackRavenCrowAim`, `SeekerDeviceRaycast`'s knife target) query
+  candidate entities first and return the original target when there are none.
+- `NinjaGrappleClientPull` tracks hooks through Fabric `ClientEntityEvents` (weak references) and searches the world only
+  while one is loaded. `UsecBoltWatchClient` skips a tracker tick that is provably a no-op (ticked since its reset, never
+  carried a rifle).
+- `LastEscapeTraitsVisionBridge` caches the SparkTraits protocol version until `BlackRavenPerceptionScreenEffects.close()`
+  (disconnect, reload, stop, null-world frames), and the screen effect returns early off a confirmed server when no
+  processor is open. `OwnerInventoryPresenter.traitsFacade()` resolves the facade once per session, failing closed.
+
+Server:
+- `util/RaycastShapeScope` is a per-thread depth counter (`enter`/`exit` in `finally`, `query` kept); `isRaycast()` means
+  depth above zero.
+- The Wraith and Fisher door-passing mixins test the block type first. `WraithStateService` reads `getNullable`.
+  `WraithCollisionRules` and `WraithPresence` cache NoellesRoles' `no_collision` RegistryEntry; absence is looked up
+  again, never latched.
+- `JudgeWorldComponent` compares viewers without allocating. JOIN syncs the Judge world component to the joiner only:
+  Fabric fires JOIN before the joiner is added to its world, and CCA syncs world components to it in `sendWorldInfo`.
+- `SaintKarmaRuntime` skips unmarked players whose mirror is clear; `EmmaLifecycle` skips the empty penalty copy.
+- `VendettaKnifeLoadoutService` reconciles the entitled Vendetta every world tick; the stray-knife sweep for everyone
+  else runs once per 20 ticks per player, offset by entity id (owner decision 2026-10-22), so a stray knife can stay up
+  to 1 s (drops stay blocked by the mixins).
+- `PlayerHitboxHistory` keeps recording every tick everywhere: off-match shells and early-round rewinds read across
+  round edges. `SparkTraitsKillerBridge.isLastEscapeActive` uses a cached MethodHandle.
+- `ShadowJesterShowdownBridge`, `SparkStrengthCoronerCompat` and `SparkStrengthJunctionBoxCompat` resolve their
+  reflection once (lazy holders, failing closed). `CeremonialSwordDashService.DASHES` is cleared on SERVER_STOPPING.
+
+Network:
+- `HunterTrapEntity` zeroes and syncs its velocity only when it was non-zero.
+- `KidnapperControlComponent` syncs on start, on end and when the HUD's shown second changes; the client counts down
+  locally but never below the first tick of the shown second, so the HUD and client `isControlled()` change exactly
+  when the server's sync arrives. The controller's action bar is still sent every tick (other action-bar messages are
+  overwritten the next tick), and the teleport still runs every tick.
+- `MagicianPlayerComponent` syncs its timers when the shown second changes (at most once per tick) with the same client
+  countdown floor, so READY shows only after the server's zero; role assignment sends one sync (`syncOnceAfter`).
+- Periodic owner-only cooldown resyncs (Black Raven crow, Mini Wither, Apprentice, Orthopedist, Wraith task count,
+  Vendetta) go to the owner only (`KEY.syncWith(owner, …)`); every write to a field other players see still syncs to
+  all, and the Apprentice stays broad while an exposure runs.
+- `WitchFactorWorldComponent` remembers per recipient what each client holds (`sentViews`) and syncs a recipient only
+  on a difference; `WitchFactorService.onRoleChanged` syncs only when `recover()` removed a factor.
 
 ## Tofana Elixir Vocabulary
 

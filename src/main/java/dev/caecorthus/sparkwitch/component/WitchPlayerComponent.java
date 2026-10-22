@@ -117,36 +117,12 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return GrandWitchRules.isCeremonialSwordUnlocked(grandWitchCeremonialSwordTasks);
     }
 
-    public int getMightyForceTicks() {
-        return mightyForceTicks;
-    }
-
-    public int getSwiftStepTicks() {
-        return swiftStepTicks;
-    }
-
     public int getMurderSenseTicks() {
         return murderSenseTicks;
     }
 
-    public int getHealingTicks() {
-        return healingTicks;
-    }
-
-    public int getClairvoyanceSelfTicks() {
-        return clairvoyanceSelfTicks;
-    }
-
     public int getClairvoyanceOthersTicks() {
         return clairvoyanceOthersTicks;
-    }
-
-    public int getPigChaseFreezeTicks() {
-        return pigChaseFreezeTicks;
-    }
-
-    public int getPigChaseTicks() {
-        return pigChaseTicks;
     }
 
     public int getDeathRayTicks() {
@@ -161,19 +137,8 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return saintState;
     }
 
-    public int getNinjaParryTicks() {
-        return ninjaParryTicks;
-    }
-
     public boolean isNinjaParryActive() {
         return ninjaParryTicks > 0;
-    }
-
-    public int decrementCeremonialSwordTicks() {
-        if (ceremonialSwordTicks > 0) {
-            ceremonialSwordTicks--;
-        }
-        return ceremonialSwordTicks;
     }
 
     public int decrementDeathRayTicks() {
@@ -204,10 +169,6 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     public boolean hasSkill() {
         return activeSkillId != null;
-    }
-
-    public boolean hasActiveCeremonialSword() {
-        return ceremonialSwordTicks > 0 && ceremonialSwordSlot >= 0;
     }
 
     public boolean hasActiveMightyForce() {
@@ -436,13 +397,6 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         sync();
     }
 
-    public void completeCeremonialSwordWindow(int cooldownTicks) {
-        ceremonialSwordTicks = 0;
-        ceremonialSwordSlot = -1;
-        this.cooldownTicks = Math.max(0, cooldownTicks);
-        sync();
-    }
-
     public void clearCeremonialSwordWindow() {
         if (ceremonialSwordTicks == 0 && ceremonialSwordSlot < 0) {
             return;
@@ -538,15 +492,6 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     public void clearDeferredCooldownState() {
         deferredCooldownTicks = 0;
-    }
-
-    public void clearDeathRayWindow() {
-        if (deathRayTicks == 0 && deathRayCharges == 0) {
-            return;
-        }
-        deathRayTicks = 0;
-        deathRayCharges = 0;
-        sync();
     }
 
     public void beginNinjaParryWindow(int durationTicks) {

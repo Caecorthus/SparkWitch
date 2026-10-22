@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.hud;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -33,7 +34,7 @@ public final class OrthopedistHudRenderer {
         if (component.getCooldownTicks() > 0) {
             return Text.translatable(
                     "hud.sparkwitch.orthopedist.cooldown",
-                    seconds(component.getCooldownTicks())
+                    TickTime.ceilSecondsAtLeastOne(component.getCooldownTicks())
             );
         }
 
@@ -63,14 +64,10 @@ public final class OrthopedistHudRenderer {
                 || target == player
                 || target.isSpectator()
                 || !GameFunctions.isPlayerPlayingAndAlive(target)
-                || !player.canSee(target)
-                || player.squaredDistanceTo(target) > OrthopedistRules.TARGET_RANGE_SQUARED) {
+                || player.squaredDistanceTo(target) > OrthopedistRules.TARGET_RANGE_SQUARED
+                || !player.canSee(target)) {
             return null;
         }
         return target;
-    }
-
-    private static int seconds(int ticks) {
-        return Math.max(1, (int) Math.ceil(ticks / 20.0D));
     }
 }

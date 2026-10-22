@@ -11,6 +11,7 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
@@ -80,8 +81,11 @@ public final class OrthopedistPlayerComponent
     public void serverTick() {
         if (cooldownTicks > 0) {
             cooldownTicks--;
-            if (cooldownTicks == 0 || cooldownTicks % 20 == 0) {
-                sync();
+            if ((cooldownTicks == 0 || cooldownTicks % 20 == 0) && player instanceof ServerPlayerEntity owner) {
+                // Observers only read the Bone Setting bit, which every write syncs to all (and every new observer gets a
+                // full resend); the countdown checkpoint goes to the owner alone.
+                // 观察者只读取正骨标记，而每次写入都会同步给所有人（新观察者也会收到补发）；倒计时校准只发给本人。
+                KEY.syncWith(owner, (ComponentProvider) owner);
             }
         }
         refreshBoneSettingState();

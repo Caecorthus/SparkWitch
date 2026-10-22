@@ -4,8 +4,10 @@ import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.MapVariablesWorldComponent;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,27 +17,39 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.block.BlockState;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Deep Dark Zone runtime (design B, research/04 §3.3): client-only fake sculk/deepslate blocks. The server world never
  * changes; an in-memory per-world {@link DeepDarkZoneState} is the single authority that the standing effects read
- * through {@link #isConverted}. Fake looks reach clients through vanilla chunk-delta packets, a heal sweep resends
- * them every {@link #HEAL_INTERVAL_TICKS} ticks (re-tracked chunks, late joiners, spectators, vanilla interact
- * resends), and a cell whose real block changed is dropped. Nothing is persisted, so a crash needs no cleanup.
- * Standing effects, exposure and the sanity drain belong to {@code DeepDarkZoneStanding*} (L3b).
+ * through {@link #isConverted}. Fake looks reach clients through vanilla chunk-delta packets. Every tick a section's
+ * looks go only to trackers that do not hold them yet ({@link DeepDarkZoneDelivery}: re-tracked chunks, late joiners,
+ * spectators, dimension returns), and such a newcomer gets them again on heal ticks until one comes a heal interval
+ * after its first send; a heal sweep every {@link #HEAL_INTERVAL_TICKS} ticks drops cells whose real block changed
+ * (no send re-fakes such a cell before that), and every {@link #FULL_RESEND_INTERVAL_TICKS} ticks all trackers get
+ * every look again (client-side overwrites such as vanilla interact resends or block-break prediction; owner-approved
+ * 2026-10-22, was every heal). Nothing is persisted, so a crash needs no cleanup. Standing effects, exposure and the sanity drain belong to
+ * {@code DeepDarkZoneStanding*} (L3b).
  * 深暗领域运行时（方案 B，research/04 §3.3）：仅发给客户端的假幽匿/深板岩方块。服务端世界从不改变；每个世界一份内存中的
- * {@link DeepDarkZoneState} 是唯一权威，站立效果通过 {@link #isConverted} 读取它。假外观通过原版区块增量包到达客户端，
- * 补发扫描每 {@link #HEAL_INTERVAL_TICKS} 刻重发一次（重新追踪的区块、后加入者、旁观者、原版交互回发），真实方块已改变的
- * 格子会被丢弃。不持久化任何内容，崩服无需清理。站立效果、暴露与理智下降属于 {@code DeepDarkZoneStanding*}（L3b）。
+ * {@link DeepDarkZoneState} 是唯一权威，站立效果通过 {@link #isConverted} 读取它。假外观通过原版区块增量包到达客户端。
+ * 每刻只把区块段外观发给尚未持有它的追踪者（{@link DeepDarkZoneDelivery}：重新追踪的区块、后加入者、旁观者、回到本维度者），
+ * 这类新追踪者还会在补发刻再次收到，直到某个补发刻距其首次发送已过一个补发间隔；补发扫描每 {@link #HEAL_INTERVAL_TICKS} 刻
+ * 丢弃真实方块已改变的格子（在此之前任何发送都不会再次伪装它），每 {@link #FULL_RESEND_INTERVAL_TICKS} 刻向所有
+ * 追踪者重发全部外观（覆盖客户端自行改写，如原版交互回发或破坏预测；所有者 2026-10-22 批准，原为每次补发扫描）。
+ * 不持久化任何内容，崩服无需清理。站立效果、暴露与理智下降属于 {@code DeepDarkZoneStanding*}（L3b）。
  */
 public final class DeepDarkZoneService {
-    /** Resend cadence for live fake looks. / 存活假外观的补发周期。 */
+    /** Heal sweep cadence (drops cells whose real block changed). / 补发扫描周期（丢弃真实方块已改变的格子）。 */
     static final int HEAL_INTERVAL_TICKS = 20;
+    /** Full resend cadence of live fake looks to every tracker. / 向所有追踪者全量重发存活假外观的周期。 */
+    static final int FULL_RESEND_INTERVAL_TICKS = 100;
     private static final Map<ServerWorld, Runtime> RUNTIMES = new IdentityHashMap<>();
     private static boolean registered;
 
@@ -134,6 +148,7 @@ public final class DeepDarkZoneService {
         Runtime runtime = RUNTIMES.computeIfAbsent(world, ignored -> new Runtime(now));
         LongList stale = runtime.state.addZone(owner, landing.asLong(), now,
                 now + DeepDarkZoneSchedule.lifetimeTicks(), claims);
+        runtime.delivery.hide(stale);
         DeepDarkZoneSync.sendReal(world, stale);
         DeepDarkZoneCues.landing(world, landing);
     }
@@ -152,16 +167,34 @@ public final class DeepDarkZoneService {
         long now = world.getTime();
         LongFunction<BlockState> realState = pos -> realStateIfLoaded(world, pos);
         DeepDarkZoneState.Changes changes = runtime.state.advance(now, realState);
-        DeepDarkZoneSync.sendFake(world, changes.shown(), runtime.state::fakeAt);
+        runtime.delivery.show(changes.shown());
+        runtime.delivery.hide(changes.hidden());
         DeepDarkZoneSync.sendReal(world, changes.hidden());
         DeepDarkZoneCues.spread(world, changes.shown());
         DeepDarkZoneCues.restore(world, changes.hidden());
         DeepDarkZoneCues.hold(world, runtime.state.zones(), now);
-        if (now >= runtime.nextHealTick) {
+        boolean healTick = now >= runtime.nextHealTick;
+        if (healTick) {
             runtime.nextHealTick = now + HEAL_INTERVAL_TICKS;
             DeepDarkZoneState.Heal heal = runtime.state.heal(realState);
+            runtime.delivery.hide(heal.dropped());
             DeepDarkZoneSync.sendReal(world, heal.dropped());
-            DeepDarkZoneSync.sendFake(world, heal.resend(), runtime.state::fakeAt);
+        }
+        boolean resendAll = now >= runtime.nextResendTick;
+        if (resendAll) {
+            runtime.nextResendTick = now + FULL_RESEND_INTERVAL_TICKS;
+        }
+        // A newcomer may count as tracking before its chunk data landed (DeepDarkZoneSync.trackers), so it stays pending
+        // and gets the section again on heal ticks until one comes at least a heal interval after its first send.
+        // 新追踪者可能在其区块数据到达前就被视为追踪（见 DeepDarkZoneSync.trackers），因此它保持待确认，并在补发刻再次收到
+        // 该段，直到某个补发刻距其首次发送至少一个补发间隔。
+        if (!runtime.delivery.isEmpty()) {
+            Long2ObjectOpenHashMap<Collection<ServerPlayerEntity>> columns = new Long2ObjectOpenHashMap<>();
+            runtime.delivery.deliver(now, healTick, resendAll, section -> columns.computeIfAbsent(
+                            ChunkPos.toLong(ChunkSectionPos.unpackX(section), ChunkSectionPos.unpackZ(section)),
+                            ignored -> DeepDarkZoneSync.trackers(world, section)),
+                    pos -> runtime.state.matchesSnapshot(pos, realState), (section, positions, recipients) ->
+                            DeepDarkZoneSync.sendFakeTo(world, section, positions, runtime.state::fakeAt, recipients));
         }
         if (runtime.state.isEmpty()) {
             RUNTIMES.remove(world);
@@ -201,10 +234,13 @@ public final class DeepDarkZoneService {
 
     private static final class Runtime {
         private final DeepDarkZoneState<BlockState> state = new DeepDarkZoneState<>();
+        private final DeepDarkZoneDelivery<ServerPlayerEntity> delivery = new DeepDarkZoneDelivery<>(HEAL_INTERVAL_TICKS);
         private long nextHealTick;
+        private long nextResendTick;
 
         private Runtime(long now) {
             this.nextHealTick = now + HEAL_INTERVAL_TICKS;
+            this.nextResendTick = now + FULL_RESEND_INTERVAL_TICKS;
         }
     }
 }

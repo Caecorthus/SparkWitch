@@ -68,14 +68,19 @@ public abstract class WraithWatheHighlightMixin {
             return;
         }
 
-        Integer saboteurHighlight = SaboteurRules.instinctHighlight(
-                WatheClient.isInstinctEnabled(),
-                WraithViewerRules.shouldRevealPromotedSaboteurToKiller(viewer, playerTarget),
-                SaboteurRules.isActivePromotedSaboteur(playerTarget)
-        );
-        if (saboteurHighlight != null) {
-            cir.setReturnValue(saboteurHighlight);
-            return;
+        if (SaboteurRules.isActivePromotedSaboteur(playerTarget)) {
+            // instinctHighlight answers null for any other target, so the instinct-gate chain and the viewer rule
+            // run only for an active promoted Saboteur.
+            // 对其他目标 instinctHighlight 恒为 null，因此本能入口链与观察者规则只对活跃的晋升破坏者执行。
+            Integer saboteurHighlight = SaboteurRules.instinctHighlight(
+                    WatheClient.isInstinctEnabled(),
+                    WraithViewerRules.shouldRevealPromotedSaboteurToKiller(viewer, playerTarget),
+                    true
+            );
+            if (saboteurHighlight != null) {
+                cir.setReturnValue(saboteurHighlight);
+                return;
+            }
         }
 
         if (WraithViewerRules.shouldRevealCurserToWitch(viewer, playerTarget)) {

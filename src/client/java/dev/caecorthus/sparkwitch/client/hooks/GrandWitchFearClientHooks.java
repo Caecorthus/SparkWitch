@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.hooks;
 
+import dev.caecorthus.sparkwitch.client.render.LocalViewerSnapshot;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.client.WatheClient;
@@ -30,18 +31,30 @@ public final class GrandWitchFearClientHooks {
         }
     }
 
+    /**
+     * Both instinct gates ask this for every rendered entity. Only the viewer-only Fear fact is memoized per world pass
+     * ({@link LocalViewerSnapshot}); the key read and the rate-limited message stay per call, because the key can read
+     * as released for one target (SparkStrength Blackout, the USEC cloak).
+     * 两个本能入口会对每个渲染实体询问。只有与观察者有关的恐惧事实按世界 pass 缓存；按键读取与限频提示仍逐次执行，
+     * 因为本能键可能只对某个目标视为松开（SparkStrength 熄灯、USEC 隐蔽）。
+     */
     public static boolean shouldBlockInstinct() {
         if (!SparkWitchServerConnection.isConfirmedServer()) {
             return false;
         }
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        if (!GrandWitchFearService.isPlayerFeared(player)) {
+        if (!LocalViewerSnapshot.localFact(LocalViewerSnapshot.Fact.GRAND_WITCH_FEARED,
+                GrandWitchFearClientHooks::isLocalPlayerFeared)) {
             return false;
         }
         if (WatheClient.instinctKeybind != null && WatheClient.instinctKeybind.isPressed()) {
             sendInstinctBlocked(player);
         }
         return true;
+    }
+
+    private static boolean isLocalPlayerFeared() {
+        return GrandWitchFearService.isPlayerFeared(MinecraftClient.getInstance().player);
     }
 
     public static boolean shouldBlockRoleAbilityKey(KeyBinding keyBinding, boolean originalPressed) {

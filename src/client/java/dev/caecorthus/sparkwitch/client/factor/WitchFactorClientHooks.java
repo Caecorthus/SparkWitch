@@ -35,14 +35,18 @@ public final class WitchFactorClientHooks {
             return originalColor;
         }
         GameWorldComponent game = GameWorldComponent.KEY.get(viewer.getWorld());
-        if (!game.isRunning() || isHardHidden(viewer, target)) {
+        if (!game.isRunning()) {
             return originalColor;
         }
         boolean carrier = WitchFactorService.isVisibleTo(viewer, target);
         // Authorization is a server-sanitized bit, including empty networks. / 授权由服务端裁剪的标记给出，空网络也可区分。
         boolean emma = WitchFactorWorldComponent.KEY.get(viewer.getWorld()).mayExposeEmma()
                 && game.getRole(target) != null && EMMA_ID.equals(game.getRole(target).identifier());
-        if (!carrier && !emma) {
+        // Both exits return the original color and every check is a side-effect-free read, so the cheap carrier/Emma
+        // bits run before the costlier hard-hide gates (reflection, Traits bridge) without changing any answer.
+        // 两个出口都返回原颜色且各项检查均为无副作用读取，因此先做廉价的携带者/艾玛判断，再做较贵的硬隐藏门禁
+        // （反射、Traits 桥接），结果不变。
+        if (!carrier && !emma || isHardHidden(viewer, target)) {
             return originalColor;
         }
 

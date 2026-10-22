@@ -1,13 +1,9 @@
 package dev.caecorthus.sparkwitch.compat;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 /**
  * Optional SparkTraits seam for USEC. Reflects only the public facade
@@ -28,12 +24,10 @@ public final class SparkTraitsUsecBridge {
     private static final double MIN_MULTIPLIER = 1.0;
     private static final double MAX_MULTIPLIER = 1.3;
 
-    private static volatile boolean marksmanResolved;
-    private static volatile @Nullable Method marksmanMethod;
-    private static volatile boolean traitResolved;
-    private static volatile @Nullable Method traitMethod;
-    private static volatile boolean heavyArtilleryResolved;
-    private static volatile @Nullable Method heavyArtilleryMethod;
+    private static final OptionalStaticMethod MARKSMAN = resolve("getMarksmanRangeMultiplier", double.class,
+            PlayerEntity.class);
+    private static final OptionalStaticMethod TRAIT = resolve("hasActiveTrait", boolean.class, PlayerEntity.class,
+            Identifier.class);
 
     private SparkTraitsUsecBridge() {
     }
@@ -43,18 +37,7 @@ public final class SparkTraitsUsecBridge {
      * 狙击枪使用的 SparkTraits 精确枪手射程倍率，限制在 [1.0, 1.3]；任何缺失或失败均为 1.0。
      */
     public static double marksmanRangeMultiplier(@Nullable PlayerEntity player) {
-        if (player == null || !FabricLoader.getInstance().isModLoaded(MOD_ID)) {
-            return MIN_MULTIPLIER;
-        }
-        Method method = marksmanMethod();
-        if (method == null) {
-            return MIN_MULTIPLIER;
-        }
-        try {
-            return clampMultiplier(method.invoke(null, player));
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return MIN_MULTIPLIER;
-        }
+        return player == null ? MIN_MULTIPLIER : clampMultiplier(MARKSMAN.callOrNull(player));
     }
 
     /**
@@ -62,18 +45,7 @@ public final class SparkTraitsUsecBridge {
      * SparkTraits 快速装填是否生效；未安装 SparkTraits 或门面出错时为 false。
      */
     public static boolean hasFastReload(@Nullable PlayerEntity player) {
-        if (player == null || !FabricLoader.getInstance().isModLoaded(MOD_ID)) {
-            return false;
-        }
-        Method method = traitMethod();
-        if (method == null) {
-            return false;
-        }
-        try {
-            return method.invoke(null, player, FAST_RELOAD) instanceof Boolean active && active;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return false;
-        }
+        return player != null && TRAIT.callBoolean(false, false, false, player, FAST_RELOAD);
     }
 
     /**
@@ -87,18 +59,15 @@ public final class SparkTraitsUsecBridge {
      */
     public static boolean isHeavyArtilleryGunShot(@Nullable ServerPlayerEntity shooter,
                                                   @Nullable ServerPlayerEntity victim) {
-        if (shooter == null || victim == null || !FabricLoader.getInstance().isModLoaded(MOD_ID)) {
-            return false;
-        }
-        Method method = heavyArtilleryMethod();
-        if (method == null) {
-            return false;
-        }
-        try {
-            return method.invoke(null, shooter, victim) instanceof Boolean shot && shot;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return false;
-        }
+        return shooter != null && victim != null
+                && HeavyArtillery.METHOD.callBoolean(false, false, false, shooter, victim);
+    }
+
+    /** Server-only query, held apart so the client (which shares the first two) never resolves it.
+     * 仅服务端的查询，单独持有，使共用前两者的客户端从不解析它。 */
+    private static final class HeavyArtillery {
+        private static final OptionalStaticMethod METHOD = resolve("isHeavyArtilleryGunShot", boolean.class,
+                ServerPlayerEntity.class, ServerPlayerEntity.class);
     }
 
     /** Non-numeric or non-finite values fail closed to 1.0. / 非数值或非有限值回退为 1.0。 */
@@ -113,49 +82,7 @@ public final class SparkTraitsUsecBridge {
         return Math.min(MAX_MULTIPLIER, Math.max(MIN_MULTIPLIER, value));
     }
 
-    private static @Nullable Method marksmanMethod() {
-        if (!marksmanResolved) {
-            synchronized (SparkTraitsUsecBridge.class) {
-                if (!marksmanResolved) {
-                    marksmanMethod = resolve("getMarksmanRangeMultiplier", double.class, PlayerEntity.class);
-                    marksmanResolved = true;
-                }
-            }
-        }
-        return marksmanMethod;
-    }
-
-    private static @Nullable Method traitMethod() {
-        if (!traitResolved) {
-            synchronized (SparkTraitsUsecBridge.class) {
-                if (!traitResolved) {
-                    traitMethod = resolve("hasActiveTrait", boolean.class, PlayerEntity.class, Identifier.class);
-                    traitResolved = true;
-                }
-            }
-        }
-        return traitMethod;
-    }
-
-    private static @Nullable Method heavyArtilleryMethod() {
-        if (!heavyArtilleryResolved) {
-            synchronized (SparkTraitsUsecBridge.class) {
-                if (!heavyArtilleryResolved) {
-                    heavyArtilleryMethod = resolve("isHeavyArtilleryGunShot", boolean.class,
-                            ServerPlayerEntity.class, ServerPlayerEntity.class);
-                    heavyArtilleryResolved = true;
-                }
-            }
-        }
-        return heavyArtilleryMethod;
-    }
-
-    private static @Nullable Method resolve(String name, Class<?> returnType, Class<?>... parameters) {
-        try {
-            Method method = Class.forName(API_CLASS).getMethod(name, parameters);
-            return Modifier.isStatic(method.getModifiers()) && method.getReturnType() == returnType ? method : null;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return null;
-        }
+    private static OptionalStaticMethod resolve(String name, Class<?> returnType, Class<?>... parameters) {
+        return OptionalStaticMethod.of(MOD_ID, API_CLASS, name, parameters).returning(returnType).initializingClass();
     }
 }

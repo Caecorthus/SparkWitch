@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.api.SparkWitchApi;
 import dev.caecorthus.sparkwitch.net.OpenJudgeSelectionS2CPacket;
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.CanSeeMoney;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -11,7 +12,6 @@ import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.api.event.TaskComplete;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
@@ -22,6 +22,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 
 import java.util.Comparator;
 import java.util.List;
@@ -60,8 +61,13 @@ public final class JudgeRuntime {
         });
         TaskComplete.EVENT.register((player, task) -> JudgeEconomyService.onTaskComplete(player));
         CanSeeMoney.EVENT.register(player -> canJudge(player) ? CanSeeMoney.Result.ALLOW : null);
+        // JOIN fires inside PlayerManager#onPlayerConnect before the joiner is added to its world, so a world-wide
+        // sync reached only the players already there, whose views a join cannot change; CCA then syncs every world
+        // component to the joiner in sendWorldInfo. Only the joiner is synced here.
+        // JOIN 在 PlayerManager#onPlayerConnect 中、加入者被加入世界之前触发，因此全世界同步只会发给已在世界中的玩家，
+        // 而加入不会改变他们的视图；随后 CCA 在 sendWorldInfo 中把所有世界组件同步给加入者。这里只同步加入者。
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                JudgeWorldComponent.KEY.get(handler.player.getServerWorld()).sync());
+                JudgeWorldComponent.KEY.syncWith(handler.player, (ComponentProvider) handler.player.getServerWorld()));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             for (ServerWorld world : server.getWorlds()) {
                 JudgeWorldComponent.KEY.get(world).sessions().invalidate(handler.player.getUuid());
@@ -120,8 +126,10 @@ public final class JudgeRuntime {
                 && activeParticipant(player) && !SparkWitchApi.isWraithRestricted(player);
     }
 
+    // Playing, survival or adventure; no Wraith or role gate here (canJudge checks the role and Wraith restriction).
+    // 在局、生存或冒险模式；此处不检查冤魂与职业（canJudge 自行检查职业与冤魂限制）。
     private static boolean activeParticipant(PlayerEntity player) {
-        return GameFunctions.isPlayerPlayingAndAlive(player) && !player.isSpectator() && !player.isCreative();
+        return RoundParticipants.JUDGE_ACTIVE.test(player);
     }
 
     public static void openSelection(ServerPlayerEntity player) {

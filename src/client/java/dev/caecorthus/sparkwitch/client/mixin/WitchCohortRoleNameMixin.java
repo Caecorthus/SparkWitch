@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.client.hooks.WitchCohortClientHooks;
 import dev.caecorthus.sparkwitch.client.magician.MagicianPuppetNameTags;
 import dev.caecorthus.sparkwitch.client.render.WraithNameTagPassThrough;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
+import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.client.WatheClient;
 import dev.doctor4t.wathe.client.gui.RoleNameRenderer;
@@ -39,7 +40,11 @@ public abstract class WitchCohortRoleNameMixin {
     ) {
         if (!SparkWitchServerConnection.isConfirmedServer()
                 || nametagAlpha <= 0.05f
-                || !GameWorldComponent.KEY.get(player.getWorld()).isRunning()) {
+                || !GameWorldComponent.KEY.get(player.getWorld()).isRunning()
+                // isGrandWitchCohortPair needs a witch-faction viewer (raw role), so others skip the per-frame raycast.
+                // isGrandWitchCohortPair 要求魔女阵营观察者（原始职业），其他人跳过每帧射线检测。
+                || !WitchFactionRules.isWitchFactionMember(
+                        GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
             return;
         }
 

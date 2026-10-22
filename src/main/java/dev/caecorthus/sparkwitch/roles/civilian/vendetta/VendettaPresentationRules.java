@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 
+import dev.caecorthus.sparkwitch.util.TickTime;
+
 /** Pure distance, highlight, and timer presentation rules for Vendetta. / 仇杀客距离、描边与计时显示的纯规则。 */
 public final class VendettaPresentationRules {
     public static final int KILLER_HIGHLIGHT_COLOR = 0xFF0000;
@@ -40,6 +42,6 @@ public final class VendettaPresentationRules {
     }
 
     public static int secondsRemaining(int ticks) {
-        return Math.max(0, (int) Math.ceil(ticks / 20.0D));
+        return Math.max(0, TickTime.ceilSecondsUnclamped(ticks));
     }
 }

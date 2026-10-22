@@ -34,10 +34,6 @@ public final class CurserPlayerComponent
         return state.cooldownTicks();
     }
 
-    public int getConfusionTicks() {
-        return state.confusionTicks();
-    }
-
     public boolean isConfused() {
         return state.isConfused();
     }

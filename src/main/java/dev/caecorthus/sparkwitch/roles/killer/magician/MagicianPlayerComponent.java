@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.magician;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -16,6 +17,7 @@ import net.minecraft.util.Identifier;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
+import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
@@ -29,8 +31,13 @@ import java.util.UUID;
  * at round start; any roster member may be picked, alive or dead, so a pick never reveals a death.
  * 只同步给本人（阶段、冷却、所选伪装与本局名单）；否则其他人可凭进行中的冷却认出魔术师。名单（所有者 2026-10-07 决定 D7）
  * 是回合开始时记录的全部参与者；名单内任何人都可选，无论生死，因此选择永远不会暴露死亡。
+ * The running cooldown and stage timers sync only when the HUD's shown second changes (their 20-tick boundaries, which
+ * the old 5-tick cadence also hit); the client counts down in between without crossing the shown second, so every HUD
+ * line, READY included, changes exactly when the server's sync lands.
+ * 进行中的冷却与阶段计时只在 HUD 显示的秒数变化时同步（即 20 刻边界，旧的 5 刻节奏同样会命中）；客户端在两次同步之间自行倒数，
+ * 但不会越过当前显示的秒数，因此每行 HUD（包括 READY）都恰在服务端同步到达时变化。
  */
-public final class MagicianPlayerComponent implements AutoSyncedComponent, ServerTickingComponent {
+public final class MagicianPlayerComponent implements AutoSyncedComponent, ServerTickingComponent, ClientTickingComponent {
     public static final ComponentKey<MagicianPlayerComponent> KEY = ComponentRegistry.getOrCreate(SparkWitch.id("magician"), MagicianPlayerComponent.class);
     final PlayerEntity player;
     private UUID selectedTarget;
@@ -42,6 +49,10 @@ public final class MagicianPlayerComponent implements AutoSyncedComponent, Serve
     private final List<MagicianReplayFrame> frames = new ArrayList<>();
     private final List<MagicianRecordedAction> actions = new ArrayList<>();
     private final List<RosterEntry> roster = new ArrayList<>();
+    /** Server: nesting depth of {@link #syncOnceAfter}. Client: local countdown floors. / 服务端：合并同步深度；客户端：本地倒数下限。 */
+    private int syncHold;
+    private int clientCooldownFloor;
+    private int clientStageFloor;
     /** One round participant the Magician may copy. / 魔术师可复制的一名本局参与者。 */
     public record RosterEntry(UUID uuid, String name) {}
     public MagicianPlayerComponent(PlayerEntity player) { this.player = player; this.selectedTarget = safeOwnUuid(); this.selectedName = safeOwnName(); }
@@ -75,9 +86,17 @@ public final class MagicianPlayerComponent implements AutoSyncedComponent, Serve
     public void recordSlot(int slot) { if(stage==MagicianStage.RECORDING) actions.add(MagicianRecordedAction.slot(recordedTicks, slot)); }
     @Override public void serverTick() {
         if (!(player instanceof ServerPlayerEntity sp)) return;
-        if (cooldownTicks > 0) { cooldownTicks--; if (cooldownTicks % 5 == 0) sync(); }
-        if (stage==MagicianStage.RECORDING) { recordedTicks++; frames.add(MagicianReplayFrame.capture(player)); if(--stageTicks<=0) finishRecording(); else if(stageTicks%5==0) sync(); }
-        else if(stage==MagicianStage.PLAYING) { stageTicks=MagicianPlaybackManager.remaining(player); if(stageTicks%5==0) sync(); }
+        // One sync per tick at most, and only when a shown second changed (finishRecording syncs everything itself).
+        // 每刻至多同步一次，且只在显示的秒数变化时同步（finishRecording 自身会同步全部状态）。
+        boolean resync = false;
+        if (cooldownTicks > 0) { cooldownTicks--; resync = Cadence.shownSecondChanged(cooldownTicks + 1, cooldownTicks); }
+        if (stage==MagicianStage.RECORDING) { recordedTicks++; frames.add(MagicianReplayFrame.capture(player)); if(--stageTicks<=0) { finishRecording(); return; } resync |= Cadence.shownSecondChanged(stageTicks + 1, stageTicks); }
+        else if(stage==MagicianStage.PLAYING) { int before=stageTicks; stageTicks=MagicianPlaybackManager.remaining(player); resync |= Cadence.shownSecondChanged(before, stageTicks); }
+        if (resync) sync();
+    }
+    @Override public void clientTick() {
+        if (cooldownTicks > clientCooldownFloor) cooldownTicks--;
+        if ((stage==MagicianStage.RECORDING || stage==MagicianStage.PLAYING) && stageTicks > clientStageFloor) stageTicks--;
     }
     void beginPlaying(int ticks) { stage=MagicianStage.PLAYING; stageTicks=ticks; sync(); }
     void finishPlaying() { finishPlaying(true); }
@@ -89,8 +108,14 @@ public final class MagicianPlayerComponent implements AutoSyncedComponent, Serve
     /** Owner-only sync. / 只同步给本人。 */
     @Override public boolean shouldSyncWith(ServerPlayerEntity recipient) { return recipient == player; }
     public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) { buf.writeUuid(selectedTarget()); buf.writeString(selectedName()); buf.writeVarInt(stage.ordinal()); buf.writeVarInt(stageTicks); buf.writeVarInt(cooldownTicks); buf.writeVarInt(roster.size()); for(RosterEntry entry:roster){buf.writeUuid(entry.uuid()); buf.writeString(entry.name());} }
-    public void applySyncPacket(RegistryByteBuf buf) { selectedTarget=buf.readUuid(); selectedName=buf.readString(); int ordinal=Math.max(0,Math.min(MagicianStage.values().length-1,buf.readVarInt())); stage=MagicianStage.values()[ordinal]; stageTicks=Math.max(0,buf.readVarInt()); cooldownTicks=Math.max(0,buf.readVarInt()); roster.clear(); int size=buf.readVarInt(); for(int i=0;i<size;i++) roster.add(new RosterEntry(buf.readUuid(), buf.readString())); }
-    public void sync(){ KEY.sync(player); }
+    public void applySyncPacket(RegistryByteBuf buf) { selectedTarget=buf.readUuid(); selectedName=buf.readString(); int ordinal=Math.max(0,Math.min(MagicianStage.values().length-1,buf.readVarInt())); stage=MagicianStage.values()[ordinal]; stageTicks=Math.max(0,buf.readVarInt()); cooldownTicks=Math.max(0,buf.readVarInt()); clientStageFloor=Cadence.clientFloor(stageTicks); clientCooldownFloor=Cadence.clientFloor(cooldownTicks); roster.clear(); int size=buf.readVarInt(); for(int i=0;i<size;i++) roster.add(new RosterEntry(buf.readUuid(), buf.readString())); }
+    public void sync(){ if (syncHold == 0) KEY.sync(player); }
+    /**
+     * Runs {@code writes} (each of which would sync) and syncs once at the end with the final state, e.g. the reset,
+     * initial cooldown and roster capture of a role assignment.
+     * 执行 {@code writes}（其中每次写入本会各自同步），最后只用最终状态同步一次，例如身份分配时的重置、初始冷却与名单记录。
+     */
+    public void syncOnceAfter(Runnable writes) { syncHold++; try { writes.run(); } finally { syncHold--; } sync(); }
     /** FakePlayer 在 PlayerEntity 构造早期可能尚未注入 GameProfile，不能调用 getName。 */
     private UUID safeOwnUuid() { try { return player.getUuid(); } catch (Throwable ignored) { return new UUID(0L, 0L); } }
     private String safeOwnName() {
@@ -99,5 +124,21 @@ public final class MagicianPlayerComponent implements AutoSyncedComponent, Serve
             if (profile != null && profile.getName() != null && !profile.getName().isBlank()) return profile.getName();
         } catch (Throwable ignored) { }
         return "";
+    }
+    /**
+     * Pure sync cadence of the HUD timers, matching {@code MagicianStatusHudRenderer}'s shown seconds
+     * ({@code ceil(ticks / 20)}). Nested so tests reach it without loading the component key.
+     * HUD 计时的纯同步节奏，与 {@code MagicianStatusHudRenderer} 显示的秒数（{@code ceil(ticks / 20)}）一致。
+     * 作为嵌套类，测试无需加载组件键即可访问。
+     */
+    static final class Cadence {
+        private Cadence() {}
+        static int shownSeconds(int ticks) { return Math.max(0, TickTime.ceilSecondsRaw(ticks)); }
+        static boolean shownSecondChanged(int before, int after) { return shownSeconds(before) != shownSeconds(after); }
+        /**
+         * Lowest local value that still shows the same second (at least 1 while running, so READY waits for the server).
+         * 仍显示同一秒的最低本地值（计时中至少为 1，因此 READY 会等待服务端）。
+         */
+        static int clientFloor(int ticks) { return ticks <= 0 ? 0 : (shownSeconds(ticks) - 1) * 20 + 1; }
     }
 }

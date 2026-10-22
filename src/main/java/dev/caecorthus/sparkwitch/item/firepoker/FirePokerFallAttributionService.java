@@ -68,16 +68,6 @@ public final class FirePokerFallAttributionService {
                         : () -> SparkTraitsKillerBridge.runWithNonFinalKillWeapon(credit.weapon(), kill));
     }
 
-    public static @Nullable ServerPlayerEntity resolveFallKiller(
-            ServerPlayerEntity victim,
-            @Nullable ServerPlayerEntity fallbackKiller,
-            Identifier deathReason
-    ) {
-        Attribution<Item> credit = consumeCredit(victim, deathReason, victim.getServerWorld().getTime());
-        ServerPlayerEntity pusher = credit == null ? null : pusherOf(victim, credit);
-        return pusher != null ? pusher : fallbackKiller;
-    }
-
     public static void clearPlayer(ServerPlayerEntity player) {
         LEDGER.clearPlayer(player.getUuid());
     }

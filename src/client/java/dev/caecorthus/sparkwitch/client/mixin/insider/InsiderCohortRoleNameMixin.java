@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.client.insider.InsiderCohortRules;
 import dev.caecorthus.sparkwitch.client.magician.MagicianPuppetNameTags;
 import dev.caecorthus.sparkwitch.client.render.WraithNameTagPassThrough;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderParticipation;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.client.WatheClient;
@@ -52,7 +53,10 @@ public abstract class InsiderCohortRoleNameMixin {
     ) {
         if (!SparkWitchServerConnection.isConfirmedServer()
                 || nametagAlpha <= 0.05f
-                || !GameWorldComponent.KEY.get(player.getWorld()).isRunning()) {
+                || !GameWorldComponent.KEY.get(player.getWorld()).isRunning()
+                // isJiahaoCohortPair needs a Team Jiahao viewer (raw role), so others skip the per-frame raycast.
+                // isJiahaoCohortPair 要求嘉豪阵营观察者（原始职业），其他人跳过每帧射线检测。
+                || !InsiderParticipation.isTeamRole(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
             return;
         }
 

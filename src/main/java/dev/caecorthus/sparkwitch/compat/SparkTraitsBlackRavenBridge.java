@@ -1,7 +1,5 @@
 package dev.caecorthus.sparkwitch.compat;
 
-import java.lang.reflect.Method;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -19,8 +17,8 @@ public final class SparkTraitsBlackRavenBridge {
     static final Identifier CONSCIENCE = Identifier.of(MOD_ID, "conscience");
     static final Identifier IMPOSTOR = Identifier.of(MOD_ID, "impostor");
 
-    private static volatile @Nullable Method hasActiveTrait;
-    private static volatile boolean lookupFailed;
+    private static final OptionalStaticMethod HAS_ACTIVE_TRAIT = OptionalStaticMethod.of(MOD_ID, API_CLASS,
+            "hasActiveTrait", PlayerEntity.class, Identifier.class);
 
     private SparkTraitsBlackRavenBridge() {
     }
@@ -34,35 +32,9 @@ public final class SparkTraitsBlackRavenBridge {
     }
 
     private static @Nullable Boolean hasActiveTrait(@Nullable PlayerEntity player, Identifier traitId) {
-        if (player == null || !FabricLoader.getInstance().isModLoaded(MOD_ID)) {
+        if (player == null) {
             return Boolean.FALSE;
         }
-        Method method = method();
-        if (method == null) {
-            return null;
-        }
-        try {
-            return method.invoke(null, player, traitId) instanceof Boolean active ? active : null;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return null;
-        }
-    }
-
-    private static @Nullable Method method() {
-        Method cached = hasActiveTrait;
-        if (cached != null || lookupFailed) {
-            return cached;
-        }
-        synchronized (SparkTraitsBlackRavenBridge.class) {
-            if (hasActiveTrait == null && !lookupFailed) {
-                try {
-                    hasActiveTrait = Class.forName(API_CLASS, false, SparkTraitsBlackRavenBridge.class.getClassLoader())
-                            .getMethod("hasActiveTrait", PlayerEntity.class, Identifier.class);
-                } catch (ReflectiveOperationException | LinkageError | SecurityException ignored) {
-                    lookupFailed = true;
-                }
-            }
-            return hasActiveTrait;
-        }
+        return HAS_ACTIVE_TRAIT.callNullableBoolean(Boolean.FALSE, null, null, player, traitId);
     }
 }

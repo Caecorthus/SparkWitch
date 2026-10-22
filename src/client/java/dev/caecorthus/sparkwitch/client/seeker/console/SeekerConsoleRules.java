@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.seeker.console;
 
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCarState;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerSessionMode;
+import dev.caecorthus.sparkwitch.util.TickTime;
 
 /**
  * Pure client rules of the Seeker Console (plan §3.10.3–§3.10.5): when the tablet right-click is intercepted, which
@@ -15,7 +16,6 @@ public final class SeekerConsoleRules {
     public static final int INTERCEPT_THROTTLE_TICKS = 10;
     /** Client-side spacing of quick-connect packets, matching the server's open throttle. / 快速连接发包的客户端间隔。 */
     public static final int QUICK_CONNECT_THROTTLE_TICKS = 10;
-    private static final int TICKS_PER_SECOND = 20;
 
     /** Car status row variants. / 小车状态行的取值。 */
     public enum CarStatus {
@@ -93,7 +93,7 @@ public final class SeekerConsoleRules {
 
     /** Rounds remaining ticks up to whole seconds (never shows 0 while cooling down). / 剩余刻数向上取整为秒。 */
     public static int secondsCeil(int ticks) {
-        return ticks <= 0 ? 0 : (ticks + TICKS_PER_SECOND - 1) / TICKS_PER_SECOND;
+        return TickTime.ceilSeconds(ticks);
     }
 
     /** The battery row is shown only while a car is out. / 仅当小车在场时显示电量行。 */

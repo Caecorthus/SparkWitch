@@ -69,10 +69,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         }
     }
 
-    public Set<Identifier> getDisabledSkillIds() {
-        return Set.copyOf(disabledSkills);
-    }
-
     public boolean setForcedWraithPromotion(UUID playerUuid, Identifier roleId) {
         return forcedWraithPromotions.set(playerUuid, roleId);
     }
@@ -83,10 +79,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
 
     public boolean clearForcedWraithPromotion(UUID playerUuid) {
         return forcedWraithPromotions.clear(playerUuid);
-    }
-
-    public Map<UUID, Identifier> getForcedWraithPromotions() {
-        return forcedWraithPromotions.snapshot();
     }
 
     /**
@@ -175,10 +167,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
 
     public boolean isInstinctObscured() {
         return instinctObscureTicks > 0;
-    }
-
-    public int getInstinctObscureTicks() {
-        return instinctObscureTicks;
     }
 
     public int getFearTicks() {

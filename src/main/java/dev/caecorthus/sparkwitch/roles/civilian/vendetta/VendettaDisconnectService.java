@@ -101,6 +101,9 @@ public final class VendettaDisconnectService {
     }
 
     private static void tickPendingEscapes(MinecraftServer server) {
+        if (PENDING_ESCAPES.isEmpty()) {
+            return;
+        }
         Iterator<Map.Entry<UUID, PendingBoundKillerEscape>> iterator =
                 PENDING_ESCAPES.entrySet().iterator();
         ArrayList<PendingBoundKillerEscape> expired = new ArrayList<>();

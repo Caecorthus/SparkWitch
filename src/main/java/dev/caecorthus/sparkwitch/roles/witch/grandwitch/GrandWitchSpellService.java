@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeResonance;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -52,7 +53,7 @@ public final class GrandWitchSpellService {
 
     public static void sendObscureActionbars(ServerWorld world, int remainingTicks) {
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(world);
-        int seconds = (int) Math.ceil(remainingTicks / 20.0);
+        int seconds = TickTime.ceilSecondsUnclamped(remainingTicks);
         for (ServerPlayerEntity player : world.getPlayers()) {
             Role role = gameComponent.getRole(player);
             if (!GameFunctions.isPlayerPlayingAndAlive(player)

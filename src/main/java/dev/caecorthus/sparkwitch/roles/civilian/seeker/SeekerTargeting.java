@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
@@ -70,28 +71,15 @@ public final class SeekerTargeting {
      * Role-agnostic round participant for actions taken AGAINST a Seeker (the device-break gate): an online server
      * player, alive in Wathe, not spectating or creative, not an active Wraith, holding any role. Unlike
      * {@link #isActiveParticipant} it never requires the Seeker role or a bound match id, so killers, civilians, police
-     * and neutrals all qualify ("other players", owner decision Q4). Mirrors {@code ControlExpertTargeting.isParticipant}
-     * without importing it.
+     * and neutrals all qualify ("other players", owner decision Q4). {@code ControlExpertTargeting.isParticipant}'s rule
+     * plus the online-server-player gate ({@link RoundParticipants#CONNECTED_ROLE_HOLDER}, the player's own world).
      * 与职业无关的对局参与者，用于针对搜寻者的行动（设备损坏门槛）：在线的服务端玩家，在 Wathe 中存活、非旁观/创造、
      * 非激活冤魂，且拥有任意职业。与 {@link #isActiveParticipant} 不同，它从不要求搜寻者职业或绑定的对局 id，
-     * 因此杀手、平民、警察与中立都满足（所有者决定 Q4 的“其他玩家”）。复制控场专家 {@code isParticipant} 语义但不引用它。
+     * 因此杀手、平民、警察与中立都满足（所有者决定 Q4 的“其他玩家”）。即控场专家 {@code isParticipant} 的规则另加在线服务端
+     * 玩家条件（{@link RoundParticipants#CONNECTED_ROLE_HOLDER}，读取玩家自身世界）。
      */
     public static boolean isRoundParticipant(@Nullable PlayerEntity player) {
-        if (!(player instanceof ServerPlayerEntity serverPlayer) || serverPlayer.isDisconnected()) {
-            return false;
-        }
-        return roundParticipant(
-                GameFunctions.isPlayerPlayingAndAlive(serverPlayer),
-                serverPlayer.isSpectator(),
-                serverPlayer.isCreative(),
-                WraithStateService.isActive(serverPlayer),
-                GameWorldComponent.KEY.get(serverPlayer.getWorld()).getRole(serverPlayer) != null);
-    }
-
-    /** Pure role-agnostic participant rule. / 与职业无关的纯参与者规则。 */
-    static boolean roundParticipant(boolean playingAndAlive, boolean spectator, boolean creative,
-                                    boolean wraithActive, boolean hasRole) {
-        return playingAndAlive && !spectator && !creative && !wraithActive && hasRole;
+        return RoundParticipants.CONNECTED_ROLE_HOLDER.test(player);
     }
 
     /**

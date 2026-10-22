@@ -60,11 +60,20 @@ public final class SeekerDeviceRaycast {
         if (!(limit > 0.0)) {
             return original;
         }
-        Vec3d end = clipToBlocks(shooter.getWorld(), start, start.add(look.multiply(limit)), shooter);
+        World world = shooter.getWorld();
+        Vec3d unclipped = start.add(look.multiply(limit));
+        Predicate<SeekerDeviceEntity> eligible = device -> !isOwnDevice(shooter, device);
+        // Wathe's crosshair asks every frame: when no eligible device is inside the unclipped search box, none can be
+        // inside the block-clipped one (same segment, shorter), so skip the block raycast and keep {@code original}.
+        // Wathe 准星每帧都会询问：未截断的搜索箱内没有合格设备时，按方块截断后（同一线段、更短）的搜索箱内也不可能有，
+        // 因此跳过方块射线并保留 {@code original}。
+        if (!hasDeviceNear(world, start, unclipped, eligible)) {
+            return original;
+        }
+        Vec3d end = clipToBlocks(world, start, unclipped, shooter);
         // Strictly nearer than the original hit: on a tie the player (or block) keeps the shot.
         // 必须严格近于原命中点：距离相同时仍由玩家（或方块）承受这一枪。
-        DeviceHit hit = nearestDevice(shooter.getWorld(), start, end, limit * limit,
-                device -> !isOwnDevice(shooter, device));
+        DeviceHit hit = nearestDevice(world, start, end, limit * limit, eligible);
         if (hit == null) {
             return original;
         }
@@ -83,22 +92,6 @@ public final class SeekerDeviceRaycast {
     public static SeekerDeviceEntity blockingDevice(Entity shooter, Vec3d start, Vec3d end,
                                                     @Nullable Entity playerTarget) {
         DeviceHit hit = blockingHit(shooter, start, end, playerTarget, device -> !isOwnDevice(shooter, device));
-        return hit == null ? null : hit.device();
-    }
-
-    /**
-     * Projectile sweep between two tick positions: the nearest live device on {@code from → to} before the first
-     * COLLIDER block. Players and breakability are the caller's concern.
-     * 投射物在两个刻位置之间的扫掠检测：{@code from → to} 上、第一个 COLLIDER 方块之前最近的存活设备。
-     * 玩家遮挡与能否打坏由调用方判断。
-     */
-    @Nullable
-    public static SeekerDeviceEntity projectileSweep(Entity projectile, Vec3d from, Vec3d to) {
-        if (projectile == null) {
-            return null;
-        }
-        Vec3d end = clipToBlocks(projectile.getWorld(), from, to, projectile);
-        DeviceHit hit = nearestDevice(projectile.getWorld(), from, end, Double.POSITIVE_INFINITY, device -> true);
         return hit == null ? null : hit.device();
     }
 
@@ -145,6 +138,16 @@ public final class SeekerDeviceRaycast {
         }
         Vec3d point = entryPoint(start, end, targetBox(device)).orElse(start);
         return new DeviceHit(device, point, start.squaredDistanceTo(point));
+    }
+
+    /**
+     * Whether {@link #nearestDevice} could find anything on {@code start → end}: a live eligible device in the same
+     * padded search box. / {@link #nearestDevice} 在该线段上是否可能找到设备：同一外扩搜索箱内存在存活的合格设备。
+     */
+    private static boolean hasDeviceNear(World world, Vec3d start, Vec3d end, Predicate<SeekerDeviceEntity> eligible) {
+        return world != null && !world.getEntitiesByClass(SeekerDeviceEntity.class,
+                new Box(start, end).expand(SEARCH_PADDING),
+                device -> device.isAlive() && !device.isRemoved() && eligible.test(device)).isEmpty();
     }
 
     /**

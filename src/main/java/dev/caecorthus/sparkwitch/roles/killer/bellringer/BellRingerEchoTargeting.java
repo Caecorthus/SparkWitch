@@ -1,10 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.killer.bellringer;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
-import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
@@ -16,18 +15,12 @@ public final class BellRingerEchoTargeting {
     }
 
     /**
-     * Living, non-spectator, non-creative, non-active-Wraith player with a role.
-     * 存活、非旁观、非创造、非激活冤魂且拥有职业的玩家。
+     * Living, non-spectator, non-creative, non-active-Wraith player with a role
+     * ({@link RoundParticipants#ROLE_HOLDER}, the player's own world).
+     * 存活、非旁观、非创造、非激活冤魂且拥有职业的玩家（{@link RoundParticipants#ROLE_HOLDER}，读取玩家自身世界）。
      */
     public static boolean isParticipant(ServerPlayerEntity player) {
-        if (player == null
-                || !GameFunctions.isPlayerPlayingAndAlive(player)
-                || player.isSpectator()
-                || player.isCreative()
-                || WraithStateService.isActive(player)) {
-            return false;
-        }
-        return GameWorldComponent.KEY.get(player.getWorld()).getRole(player) != null;
+        return RoundParticipants.ROLE_HOLDER.test(player);
     }
 
     /**

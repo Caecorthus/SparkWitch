@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.kidnapper;
 
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -27,7 +28,7 @@ public final class KidnapperControlledHudRenderer {
         context.fill(0, 0, width, height, 0xFF000000);
 
         MinecraftClient client = MinecraftClient.getInstance();
-        int remainingSeconds = Math.max(1, (component.getControlTicks() + 19) / 20);
+        int remainingSeconds = Math.max(1, TickTime.ceilSecondsRaw(component.getControlTicks()));
         context.drawCenteredTextWithShadow(
                 client.textRenderer,
                 Text.translatable("message.sparkwitch.kidnapper.warning"),

@@ -17,6 +17,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = AbstractClientPlayerEntity.class, priority = 2100)
 public abstract class CurserConfusionSkinMixin {
     private static final Identifier WATHE_PSYCHO_TEXTURE = Identifier.of("wathe", "textures/entity/psycho.png");
+    /**
+     * Every input is constant and the record is immutable, so one instance serves every call (as Black Raven's Steve).
+     * 所有输入均为常量且该记录不可变，因此所有调用共用同一实例（与黑羽鸦的史蒂夫皮肤相同）。
+     */
+    private static final SkinTextures SPARKWITCH$PSYCHO_SKIN = new SkinTextures(
+            WATHE_PSYCHO_TEXTURE,
+            null,
+            null,
+            null,
+            SkinTextures.Model.WIDE,
+            true
+    );
 
     @Inject(method = "getSkinTextures", at = @At("HEAD"), cancellable = true)
     private void sparkwitch$projectConfusedPsychoSkin(CallbackInfoReturnable<SkinTextures> cir) {
@@ -25,13 +37,6 @@ public abstract class CurserConfusionSkinMixin {
                 || target == MinecraftClient.getInstance().player) {
             return;
         }
-        cir.setReturnValue(new SkinTextures(
-                WATHE_PSYCHO_TEXTURE,
-                null,
-                null,
-                null,
-                SkinTextures.Model.WIDE,
-                true
-        ));
+        cir.setReturnValue(SPARKWITCH$PSYCHO_SKIN);
     }
 }
