@@ -418,7 +418,9 @@ Current build baseline:
     question for a puppet with a stand-in player (the copied player when loaded, else a detached client-only copy
     that is never spawned), so each viewer's existing rules apply unchanged (`MagicianPuppetAppearance`,
     `MagicianPuppetNameTags`, `client/mixin/MagicianPlaybackRoleNameMixin`, `MagicianPlaybackInstinctMixin`). The
-    Blind never sees puppets. Client aim (`MagicianPuppetAim`) wraps Wathe's revolver, derringer, knife and crosshair
+    stand-in copy cache is dropped on every connection edge (login INIT/DISCONNECT, play DISCONNECT, JOIN) by
+    `SparkWitchClient.releaseClosedWorldPlayers`, which also clears Wathe's never-cleared `WatheClient.particleMap` on
+    the client thread (2026-10-22). The Blind never sees puppets. Client aim (`MagicianPuppetAim`) wraps Wathe's revolver, derringer, knife and crosshair
     target methods and returns a puppet only when it is strictly nearer than the original result.
   - Decoys (D2): the Prophet's Death Sense, the Kidnapper's drag and the NoellesRoles Vulture's eat
     (`mixin/vulture/NoellesVultureDecoyBodyMixin` through `compat/NoellesVultureDecoyGuard`) ignore decoy bodies and
