@@ -28,14 +28,29 @@ final class DeepDarkZoneSync {
     private DeepDarkZoneSync() {
     }
 
-    /** Sends each position's fake look. / 发送每个位置的假外观。 */
-    static void sendFake(ServerWorld world, LongList positions, LongFunction<BlockState> fakeState) {
-        send(world, positions, fakeState);
-    }
-
     /** Sends each position's current real state (restore, drop, clear). / 发送每个位置当前的真实状态（恢复、丢弃、清空）。 */
     static void sendReal(ServerWorld world, LongList positions) {
         send(world, positions, pos -> world.getBlockState(BlockPos.fromLong(pos)));
+    }
+
+    /** Players tracking the chunk of a packed section position. / 追踪该区块段所在区块的玩家。 */
+    static Collection<ServerPlayerEntity> trackers(ServerWorld world, long section) {
+        return PlayerLookup.tracking(world, ChunkSectionPos.from(section).toChunkPos());
+    }
+
+    /**
+     * Sends one section's fake looks to the given players only (the delivery bookkeeping picks them among the
+     * section's trackers). / 只把一个区块段的假外观发给给定玩家（由投递记录从该段追踪者中挑选）。
+     */
+    static void sendFakeTo(ServerWorld world, long section, LongList positions, LongFunction<BlockState> fakeState,
+                           Collection<ServerPlayerEntity> recipients) {
+        ChunkDeltaUpdateS2CPacket packet = packet(world, ChunkSectionPos.from(section), positions, fakeState);
+        if (packet == null) {
+            return;
+        }
+        for (ServerPlayerEntity player : recipients) {
+            player.networkHandler.sendPacket(packet);
+        }
     }
 
     private static void send(ServerWorld world, LongList positions, LongFunction<BlockState> stateOf) {
