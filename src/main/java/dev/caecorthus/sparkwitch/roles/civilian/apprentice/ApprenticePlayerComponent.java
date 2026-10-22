@@ -10,6 +10,7 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
@@ -175,6 +176,7 @@ public final class ApprenticePlayerComponent
             return;
         }
         boolean sync = false;
+        boolean ownerCheckpoint = false;
         if (hasApprenticeOnlyState()
                 && GameWorldComponent.KEY.get(player.getWorld()).getRole(player) != SparkWitchRoles.apprenticeWitch()) {
             clearApprenticeOnlyState();
@@ -182,15 +184,15 @@ public final class ApprenticePlayerComponent
         }
         if (purifyCooldownTicks > 0) {
             purifyCooldownTicks--;
-            sync |= purifyCooldownTicks % SYNC_INTERVAL_TICKS == 0;
+            ownerCheckpoint |= purifyCooldownTicks % SYNC_INTERVAL_TICKS == 0;
         }
         if (swiftStepRechargeA > 0) {
             swiftStepRechargeA--;
-            sync |= swiftStepRechargeA % SYNC_INTERVAL_TICKS == 0;
+            ownerCheckpoint |= swiftStepRechargeA % SYNC_INTERVAL_TICKS == 0;
         }
         if (swiftStepRechargeB > 0) {
             swiftStepRechargeB--;
-            sync |= swiftStepRechargeB % SYNC_INTERVAL_TICKS == 0;
+            ownerCheckpoint |= swiftStepRechargeB % SYNC_INTERVAL_TICKS == 0;
         }
         if (fearWardTicks > 0) {
             fearWardTicks--;
@@ -200,8 +202,13 @@ public final class ApprenticePlayerComponent
             exposureTicks--;
             sync |= exposureTicks == 0;
         }
-        if (sync) {
+        // A countdown checkpoint changes only owner-private fields; non-owners get the exposure timer, so it still goes to
+        // everyone while an exposure runs (their copy of the timer is refreshed as before).
+        // 倒计时校准只改变本人私有字段；非本人会收到暴露计时，因此暴露进行中仍发给所有人（照旧刷新他们的计时副本）。
+        if (sync || ownerCheckpoint && exposureTicks > 0) {
             sync();
+        } else if (ownerCheckpoint && player instanceof ServerPlayerEntity owner) {
+            KEY.syncWith(owner, (ComponentProvider) owner);
         }
     }
 

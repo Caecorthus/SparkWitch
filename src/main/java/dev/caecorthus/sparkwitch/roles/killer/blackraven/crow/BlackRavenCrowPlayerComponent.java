@@ -10,6 +10,7 @@ import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
@@ -323,7 +324,9 @@ public final class BlackRavenCrowPlayerComponent
         if (cooldownTicks > 0) {
             cooldownTicks--;
             if (cooldownTicks % SYNC_INTERVAL_TICKS == 0) {
-                sync();
+                // Non-owners only read the active bit, which every write already synced to all; the countdown
+                // checkpoint goes to the owner alone. / 非本人只读取在场标记，而每次写入都已同步给所有人；倒计时校准只发给本人。
+                KEY.syncWith(serverPlayer, (ComponentProvider) serverPlayer);
             }
         }
     }

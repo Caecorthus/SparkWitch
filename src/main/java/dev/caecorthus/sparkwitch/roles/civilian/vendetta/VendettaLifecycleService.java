@@ -102,8 +102,10 @@ public final class VendettaLifecycleService {
                 || oldReveal > 0 && component.getRevealActiveTicks() == 0;
         boolean secondChanged = oldCooldown / 20 != component.getRevealCooldownTicks() / 20
                 || oldReveal / 20 != component.getRevealActiveTicks() / 20;
-        if (wasPaused != component.isTimerPaused() || phaseChanged || secondChanged) {
+        if (wasPaused != component.isTimerPaused() || phaseChanged) {
             component.sync();
+        } else if (secondChanged) {
+            component.syncOwner();
         }
     }
 

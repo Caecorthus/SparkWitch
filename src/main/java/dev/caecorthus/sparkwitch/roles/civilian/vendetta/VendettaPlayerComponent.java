@@ -10,6 +10,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
@@ -207,5 +208,15 @@ public final class VendettaPlayerComponent
 
     void sync() {
         KEY.sync(player);
+    }
+
+    /**
+     * Owner-only resend for a countdown second; the bound killer's marker payload does not depend on the timers.
+     * 只发给本人的倒计时秒数补发；绑定凶手收到的标记内容与计时无关。
+     */
+    void syncOwner() {
+        if (player instanceof ServerPlayerEntity owner) {
+            KEY.syncWith(owner, (ComponentProvider) owner);
+        }
     }
 }

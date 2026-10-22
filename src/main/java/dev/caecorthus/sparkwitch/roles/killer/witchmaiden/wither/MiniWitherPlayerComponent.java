@@ -10,6 +10,7 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
@@ -182,8 +183,10 @@ public final class MiniWitherPlayerComponent
         }
         if (toggleCooldownTicks > 0) {
             toggleCooldownTicks--;
-            if (toggleCooldownTicks % SYNC_INTERVAL_TICKS == 0) {
-                sync();
+            if (toggleCooldownTicks % SYNC_INTERVAL_TICKS == 0 && player instanceof ServerPlayerEntity owner) {
+                // Non-owners only read the active flag and aim, which every write already synced to all; the countdown
+                // checkpoint goes to the owner alone. / 非本人只读取在场标记与朝向，而每次写入都已同步给所有人；倒计时校准只发给本人。
+                KEY.syncWith(owner, (ComponentProvider) owner);
             }
         }
         if (active && player instanceof ServerPlayerEntity serverPlayer) {

@@ -10,6 +10,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 
@@ -70,12 +71,19 @@ public final class WraithPlayerComponent implements AutoSyncedComponent {
     }
 
     public int recordTaskCompletion() {
+        boolean importPending = !legacyImportCompleted && !canonicalDataPresent;
         ensureLegacyImported();
         if (!state.isActive()) {
             return state.getCompletedTasks();
         }
         int completedTasks = state.recordTaskCompletion();
-        sync();
+        // Only the owner's task count changed; non-owners read only active/restricted, unchanged unless this very call
+        // imported legacy data. / 只有本人的任务数改变；非本人只读取在场/受限标记，除非本次调用刚导入旧数据，否则不变。
+        if (!importPending && provider instanceof ServerPlayerEntity owner) {
+            KEY.syncWith(owner, (ComponentProvider) owner);
+        } else {
+            sync();
+        }
         return completedTasks;
     }
 
