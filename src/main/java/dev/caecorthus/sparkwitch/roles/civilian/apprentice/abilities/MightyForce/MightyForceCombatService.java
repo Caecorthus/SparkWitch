@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
@@ -47,15 +48,18 @@ public final class MightyForceCombatService {
                 tryHandleAttack(player, world, hand, entity));
     }
 
-    public static ActionResult tryHandleAttack(Entity attacker, World world, Hand hand, Entity target) {
+    public static ActionResult tryHandleAttack(Entity attacker, World world, Hand hand, Entity attacked) {
         if (world.isClient
                 || !(attacker instanceof ServerPlayerEntity serverAttacker)
                 || !serverAttacker.getStackInHand(hand).isEmpty()) {
             return ActionResult.PASS;
         }
-        if (SparkStrengthPartygoerCompat.isPartygoer(target)) {
-            return tryStrikePartygoer(serverAttacker, target);
+        if (SparkStrengthPartygoerCompat.isPartygoer(attacked)) {
+            return tryStrikePartygoer(serverAttacker, attacked);
         }
+        // Raven Form seam: a crow in reach stands in for its owner, so the strike and its misfire rule hit the Black Raven.
+        // 化鸦接缝：近战距离内的乌鸦以其主人代入，因此这一击及其误杀规则作用于黑羽鸦。
+        Entity target = BlackRavenCrowHits.meleeStandIn(serverAttacker, attacked);
         if (!canStrike(serverAttacker, target)) {
             return ActionResult.PASS;
         }

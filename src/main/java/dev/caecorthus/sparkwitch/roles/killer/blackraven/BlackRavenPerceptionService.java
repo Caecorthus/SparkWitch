@@ -66,7 +66,7 @@ public final class BlackRavenPerceptionService {
             if (target == player
                     || !GameFunctions.isPlayerPlayingAndAlive(target)
                     || GameFunctions.isPlayerSpectatingOrCreative(target)
-                    || !BlackRavenRules.isWithinPerceptionRadius(player.squaredDistanceTo(target))) {
+                    || !BlackRavenRules.isWithinPerceptionRadius(BlackRavenPerceptionCenter.of(player).squaredDistanceTo(target.getPos()))) {
                 continue;
             }
             Role targetRole = game.getRole(target);
@@ -75,13 +75,12 @@ public final class BlackRavenPerceptionService {
             }
             boolean revealed = component.accumulate(target.getUuid(), 1, () -> new BlackRavenIdentitySnapshot(
                     target.getUuid(),
-                    target.getGameProfile().getName(),
-                    targetRole.identifier().toString(),
-                    targetRole.color()
+                    target.getGameProfile().getName()
             ));
             if (revealed) {
-                // Achievement record W6: the reveal itself, with the role the snapshot holds.
-                // 成就记录 W6：揭示本身，职业与快照所记一致。
+                // Achievement record W6 (frozen fields): the reveal itself, with the target's real role read from the
+                // game here; the snapshot no longer holds a role.
+                // 成就记录 W6（字段冻结）：揭示本身，目标真实职业在此处从对局读取；快照已不再记录职业。
                 AchievementRecords.blackRavenPerceived(player, target, targetRole, game);
             }
         }

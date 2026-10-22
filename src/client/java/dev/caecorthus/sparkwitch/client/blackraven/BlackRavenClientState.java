@@ -1,68 +1,22 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
-import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenIdentitySnapshot;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
-import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenActingRole;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
-/** Local-only instinct mode; all identity knowledge still comes from owner-only component sync. / 仅本地保存本能模式；身份情报仍只来自所有者组件同步。 */
+/**
+ * Read-only client gates for the local Black Raven. Eligibility reads the RAW Wathe role ({@code getRole}), never the
+ * disguise acting overlay, so every gate here also holds while disguised; perceived-player knowledge still comes only
+ * from the owner-only component sync.
+ * 本地黑羽鸦的只读客户端门禁。资格读取 Wathe 原始职业（{@code getRole}），从不读取伪装扮演覆盖层，因此伪装期间这里的门禁
+ * 同样成立；被感知者情报仍只来自仅拥有者可见的组件同步。
+ */
 public final class BlackRavenClientState {
-    public enum InstinctMode {
-        NORMAL,
-        SENSED_ONLY;
-
-        private InstinctMode next() {
-            return this == NORMAL ? SENSED_ONLY : NORMAL;
-        }
-    }
-
-    private static InstinctMode mode = InstinctMode.NORMAL;
-
     private BlackRavenClientState() {
-    }
-
-    public static InstinctMode mode() {
-        return mode;
-    }
-
-    public static boolean isSensedMode() {
-        return mode == InstinctMode.SENSED_ONLY;
-    }
-
-    public static void cycle(ClientPlayerEntity player) {
-        if (!isEligible(player)) {
-            reset();
-            return;
-        }
-        // Sensed-only mode is a Perception product and hides disguise outlines, so a disguise stays NORMAL and N does nothing.
-        // 感知模式来自感知技能且会隐藏伪装职业的外框，因此伪装期间保持普通模式，N 键无效。
-        if (BlackRavenActingRole.isDisguised(player)) {
-            reset();
-            return;
-        }
-        if (isPerceptionActive(player)) {
-            return;
-        }
-        mode = mode.next();
-    }
-
-    public static void tick(MinecraftClient client) {
-        if (client.player == null
-                || !isEligible(client.player)
-                || BlackRavenActingRole.isDisguised(client.player)) {
-            reset();
-        }
-    }
-
-    public static void reset() {
-        mode = InstinctMode.NORMAL;
     }
 
     public static boolean isEligible(@Nullable PlayerEntity player) {
@@ -78,12 +32,5 @@ public final class BlackRavenClientState {
 
     public static boolean isPerceptionActive(@Nullable PlayerEntity player) {
         return isEligible(player) && BlackRavenPerceptionPlayerComponent.KEY.get(player).isActive();
-    }
-
-    public static @Nullable BlackRavenIdentitySnapshot snapshot(PlayerEntity viewer, PlayerEntity target) {
-        if (!isEligible(viewer)) {
-            return null;
-        }
-        return BlackRavenPerceptionPlayerComponent.KEY.get(viewer).snapshot(target.getUuid());
     }
 }

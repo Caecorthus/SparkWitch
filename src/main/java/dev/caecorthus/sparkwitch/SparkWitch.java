@@ -1,6 +1,8 @@
 package dev.caecorthus.sparkwitch;
 
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherEntities;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowEntities;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenFeatherRegistry;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionGunnerEntities;
 import dev.caecorthus.sparkfactionapi.api.compat.NoellesHiddenEquipment;
 import dev.caecorthus.sparkwitch.command.ForceAbilityCommand;
@@ -60,6 +62,8 @@ public final class SparkWitch implements ModInitializer {
         HolyFlashEntities.register();
         PotionGunnerEntities.register();
         MiniWitherEntities.register();
+        BlackRavenCrowEntities.register();
+        BlackRavenFeatherRegistry.register();
         SparkWitchItems.register();
         SparkWitchItemGroups.register();
         SparkWitchEntities.register();

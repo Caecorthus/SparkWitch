@@ -305,6 +305,18 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_1297;)I"
         ],
         [
+                // Black Raven never visible to instinct (owner, 2026-10-21): outermost veto on a living raw Black Raven.
+                // 黑羽鸦永不被本能透视（所有者 2026-10-21）：对存活的原始黑羽鸦的最外层否决。
+                configName: "blackraven.BlackRavenInstinctVetoMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blackraven/BlackRavenInstinctVetoMixin.class",
+                handler: "sparkwitch\$vetoBlackRavenInstinct",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
                 // USEC scoped instinct cloak (owner, 2026-10-08): a cloaked target's whole highlight runs with Wathe's
                 // two keyed instinct gates closed. / USEC 开镜本能隐蔽（所有者 2026-10-08）：被隐蔽目标的整个高亮求值
                 // 在 Wathe 两个按键本能入口关闭的状态下运行。
@@ -563,6 +575,48 @@ def watheClientMixinContracts = [
                 configName: "MagicianRevolverCrosshairMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianRevolverCrosshairMixin.class",
                 handler: "sparkwitch\$preferNearerVisiblePuppet",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getVisibleGunTarget(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "getVisibleGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;"
+        ],
+        // Raven Form crow aim (plan v2 §2.5): the gun, knife and crosshair picks prefer a strictly nearer crow.
+        // 化鸦乌鸦选靶（计划 v2 §2.5）：枪械、刀与准星选靶优先严格更近的乌鸦。
+        [
+                configName: "blackraven.BlackRavenCrowRevolverAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blackraven/BlackRavenCrowRevolverAimMixin.class",
+                handler: "sparkwitch\$preferNearerCrow",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/RevolverItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "blackraven.BlackRavenCrowDerringerAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blackraven/BlackRavenCrowDerringerAimMixin.class",
+                handler: "sparkwitch\$preferNearerCrow",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getGunTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/DerringerItem.class",
+                providerMethod: "getGunTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "blackraven.BlackRavenCrowKnifeAimMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blackraven/BlackRavenCrowKnifeAimMixin.class",
+                handler: "sparkwitch\$preferNearerCrow",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getKnifeTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/item/KnifeItem.class",
+                providerMethod: "getKnifeTarget",
+                providerDescriptor: "(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;"
+        ],
+        [
+                configName: "blackraven.BlackRavenCrowGunCrosshairMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blackraven/BlackRavenCrowGunCrosshairMixin.class",
+                handler: "sparkwitch\$preferNearerCrow",
                 annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
                 selector: "getVisibleGunTarget(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;",
                 providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",

@@ -70,7 +70,8 @@
       "sparkwitch:apprentice_player",
       "sparkwitch:usec_player",
       "sparkwitch:fiend_feign",
-      "sparkwitch:mini_wither"
+      "sparkwitch:mini_wither",
+      "sparkwitch:black_raven_crow"
     ]
   },
   "mixins": [

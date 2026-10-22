@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenFeatherRegistry;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.item.Item;
@@ -79,13 +80,14 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.usecFmjRound(),
                                     SparkWitchItems.usecApRound(),
                                     SparkWitchItems.usecSuppressor(),
+                                    // Black Raven (civilian police) / 黑羽鸦（平民警察）
+                                    SparkWitchItems.featherBlade(),
+                                    SparkWitchItems.blackRavenLedger(),
+                                    SparkWitchItems.blackRavenMask(),
                                     // Killer / 杀手
                                     SparkWitchItems.ninjaKnife(),
                                     SparkWitchItems.ninjaShuriken(),
                                     SparkWitchItems.ninjaGrapplingHook(),
-                                    SparkWitchItems.featherBlade(),
-                                    SparkWitchItems.blackRavenLedger(),
-                                    SparkWitchItems.blackRavenMask(),
                                     SparkWitchItems.poisonApple(),
                                     SparkWitchItems.tofanaElixir(),
                                     SparkWitchItems.witherGohei(),
@@ -107,7 +109,10 @@ public final class SparkWitchItemGroups {
                             for (Item item : Registries.ITEM) {
                                 if (SparkWitch.MOD_ID.equals(Registries.ITEM.getId(item).getNamespace())
                                         && !factionOrder.contains(item) && !operatorOnly.contains(item)) {
-                                    entries.add(item);
+                                    // The display-only Homing Feather is never obtainable. / 仅用于显示的归羽永不可获得。
+                                    if (!BlackRavenFeatherRegistry.isHomingFeather(item)) {
+                                        entries.add(item);
+                                    }
                                 }
                             }
                         })

@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.compat;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerBreakSource;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
@@ -109,6 +110,9 @@ public final class SparkStrengthM67Compat {
         // Magician seam: the same match blast ends puppets in the M67's own kill radius.
         // 魔术师接缝：同一次对局爆炸按 M67 自身的击杀半径结束皮套。
         MagicianPuppetHits.onM67Blast(world, entity.getBoundingBox().getCenter(), thrower);
+        // Raven Form seam: the same blast kills the owner of every crow in the M67 kill sphere.
+        // 化鸦接缝：同一次爆炸处死 M67 击杀球内每只乌鸦的主人。
+        BlackRavenCrowHits.onM67Blast(world, entity.getBoundingBox().getCenter(), thrower);
     }
 
     /**

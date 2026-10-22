@@ -76,6 +76,12 @@ public final class SeekerRemoteRules {
             // Witch Maiden Mini Wither toggle and crimson skull fire. / 巫女小凋灵切换与赤首射击。
             Identifier.of("sparkwitch", "mini_wither_toggle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),
+            // Black Raven Raven Form toggle, crow moves, use and Homing Feather drop.
+            // 黑羽鸦化鸦开关、乌鸦移动、交互与丢出归羽。
+            Identifier.of("sparkwitch", "black_raven_crow_toggle"),
+            Identifier.of("sparkwitch", "black_raven_crow_move"),
+            Identifier.of("sparkwitch", "black_raven_crow_use"),
+            Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

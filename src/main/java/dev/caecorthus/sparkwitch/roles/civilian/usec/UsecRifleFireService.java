@@ -8,6 +8,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.net.FireUsecRifleC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.net.UsecBulletImpactsS2CPacket;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowTargets;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
@@ -145,8 +147,17 @@ public final class UsecRifleFireService {
         UsecShotTargets.PlayerHit hit = UsecShotTargets.withSleeperOnBed(player, trace,
                 UsecShotTargets.nearestPlayer(player, path));
         double reach = hit == null ? path.length() : Math.min(hit.distance(), path.length());
+        // Raven Form seam: a crow the path enters strictly before the player becomes the nearest target; the puppet and
+        // device steps then compete with its distance, and the USEC kill and punishment below run on its owner.
+        // 化鸦接缝：路径严格早于玩家进入的乌鸦成为最近目标；皮套与设备步骤随后与其距离比较，下方 USEC 的击杀与惩罚作用于其主人。
+        BlackRavenCrowHits.PathHit crow = BlackRavenCrowHits.onUsecRifleFired(player, path.points(), reach,
+                UsecRules.HIT_MARGIN);
+        if (crow != null) {
+            reach = crow.distance();
+        }
         double stop = reach;
         ServerPlayerEntity victim = null;
+        Double victimDistance = null;
         double puppetEnd = MagicianPuppetHits.onUsecRifleFired(player, rifle, path.points(), reach);
         if (puppetEnd < reach) {
             stop = puppetEnd;
@@ -154,13 +165,16 @@ public final class UsecRifleFireService {
             double deviceEnd = SeekerDeviceHits.onUsecRifleFired(player, path.points(), reach);
             if (deviceEnd < reach) {
                 stop = deviceEnd;
+            } else if (crow != null) {
+                victim = BlackRavenCrowTargets.substitute(crow.target());
+                victimDistance = crow.distance();
             } else if (hit != null) {
                 victim = hit.player();
+                victimDistance = hit.distance();
             }
         }
         GameRecordManager.recordItemUse(player, UsecReplay.RECORD_ID, victim,
-                UsecReplay.fireData(ammo, penetratedBefore(trace, stop), victim == null ? null : hit.distance(),
-                        isScoped(player)));
+                UsecReplay.fireData(ammo, penetratedBefore(trace, stop), victimDistance, isScoped(player)));
         if (victim != null) {
             UsecFirePunishment.killAndPunish(player, victim, ammo);
         }

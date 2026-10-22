@@ -36,10 +36,10 @@ import java.util.List;
 
 /**
  * Owner-client disguise presentation state: reacts to acting-role changes by closing stale private views
- * (shop screen, instinct mode, SparkWitch role caches) and exposes the synced view to the book and HUD.
+ * (shop screen, Tarot client state, SparkWitch role caches) and exposes the synced view to the book and HUD.
  * The view comes only from the owner-only {@code sparkwitch:black_raven_disguise} sync; the client never
  * predicts a switch.
- * 拥有者客户端的伪装展示状态：扮演职业变化时关闭过期的私有视图（商店界面、本能模式、SparkWitch 职业缓存），
+ * 拥有者客户端的伪装展示状态：扮演职业变化时关闭过期的私有视图（商店界面、塔罗客户端状态、SparkWitch 职业缓存），
  * 并向感知册与 HUD 提供同步视图。视图只来自仅拥有者可见的伪装组件同步；客户端从不预测切换。
  */
 public final class BlackRavenDisguiseClientState {
@@ -103,7 +103,6 @@ public final class BlackRavenDisguiseClientState {
                 || client.currentScreen instanceof TarotDivinationSelectorScreen) {
             client.setScreen(null);
         }
-        BlackRavenClientState.reset();
         TarotDivinationClientState.clear();
         if (previous != null && previous == SparkWitchRoles.orthopedist()) {
             clearOrthopedistObserverViews(client.world, client.player);

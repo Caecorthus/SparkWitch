@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
-import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
+import dev.caecorthus.sparkwitch.client.blackraven.crow.BlackRavenCrowHud;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseSyncCodec;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -16,7 +16,6 @@ public final class BlackRavenHudRenderer {
     private static final int RIGHT_PADDING = 5;
     private static final int BOTTOM_PADDING = 5;
     private static final int ROW_GAP = 2;
-    private static final int DISABLED_COLOR = 0x777777;
 
     private BlackRavenHudRenderer() {
     }
@@ -28,31 +27,37 @@ public final class BlackRavenHudRenderer {
             return;
         }
         BlackRavenDisguiseSyncCodec.View view = BlackRavenDisguiseClientState.view(player);
-        if (view.bound() && view.disguised() && BlackRavenDisguiseClientState.isDisguised(player)) {
+        boolean disguised = view.bound() && view.disguised() && BlackRavenDisguiseClientState.isDisguised(player);
+        if (disguised) {
             renderDisguise(context, view);
-            return;
         }
-
-        Text line = Text.translatable(
-                BlackRavenClientState.isSensedMode()
-                        ? "hud.sparkwitch.black_raven.instinct.sensed"
-                        : "hud.sparkwitch.black_raven.instinct.normal",
-                SecondaryAbilityController.secondaryKeyText()
-        );
-        TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
-        int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
-        int y = context.getScaledWindowHeight()
-                - BOTTOM_PADDING
-                - renderer.fontHeight * 2
-                - ROW_GAP;
-        int color = BlackRavenClientState.isPerceptionActive(player) ? DISABLED_COLOR : BlackRavenRules.COLOR;
-        context.drawTextWithShadow(renderer, line, x, y, color);
+        renderCrow(context, player, disguised);
     }
 
     /**
-     * While disguised the instinct mode is fixed, so the mode row becomes one compact disguise line in the same
-     * right-aligned slot, lifted to clear the disguise role's own bottom-right HUD lines.
-     * 伪装期间本能模式固定，模式行改为一行紧凑的伪装提示，保持右对齐位置，并上移以避开伪装职业自己的右下角 HUD。
+     * The Raven Form (化鸦) line (plan §2.11): the free mode row above the shared primary-skill line, or one row above
+     * the disguise line while disguised (tasks done in disguise still count).
+     * 化鸦状态行（计划 §2.11）：位于共享主技能行上方的空闲行；伪装期间位于伪装行上方一行（伪装时完成的任务同样计数）。
+     */
+    private static void renderCrow(DrawContext context, ClientPlayerEntity player, boolean disguised) {
+        Text line = BlackRavenCrowHud.statusLine(player);
+        if (line == null) {
+            return;
+        }
+        TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+        int height = context.getScaledWindowHeight();
+        int y = disguised
+                ? BlackRavenDisguiseClientRules.disguiseLineY(height, renderer.fontHeight, BOTTOM_PADDING, ROW_GAP)
+                        - renderer.fontHeight - ROW_GAP
+                : height - BOTTOM_PADDING - renderer.fontHeight * 2 - ROW_GAP;
+        int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
+        context.drawTextWithShadow(renderer, line, x, y, BlackRavenRules.COLOR);
+    }
+
+    /**
+     * While disguised the row becomes one compact disguise line, right-aligned and lifted to clear the disguise role's
+     * own bottom-right HUD lines.
+     * 伪装期间该行改为一行紧凑的伪装提示，保持右对齐，并上移以避开伪装职业自己的右下角 HUD。
      */
     private static void renderDisguise(DrawContext context, BlackRavenDisguiseSyncCodec.View view) {
         Text role = BlackRavenDisguiseClientState.roleName(view.acting());

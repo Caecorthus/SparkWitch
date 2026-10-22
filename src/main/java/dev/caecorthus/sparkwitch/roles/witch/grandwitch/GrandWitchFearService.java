@@ -69,6 +69,13 @@ public final class GrandWitchFearService {
             // 巫女小凋灵切换与赤首射击；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "mini_wither_toggle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),
+            // Black Raven Raven Form toggle, crow moves, use and Homing Feather drop; Fear ends a session anyway and
+            // the server re-checks Fear on the toggle. / 黑羽鸦化鸦开关、乌鸦移动、交互与丢出归羽；恐惧本就会结束会话，
+            // 服务端在开关时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "black_raven_crow_toggle"),
+            Identifier.of("sparkwitch", "black_raven_crow_move"),
+            Identifier.of("sparkwitch", "black_raven_crow_use"),
+            Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
             // SparkStrength role skills, like the NoellesRoles skills above (owner 2026-10-07). Tablet meetings, votes
             // and chat, detective notes, drone moves and exit, and the Timekeeper's watch-mode pick stay allowed.
             // SparkStrength 职业技能，与上方 NoellesRoles 技能一致（所有者 2026-10-07）。平板会议、投票与聊天、侦探笔记、
@@ -104,7 +111,23 @@ public final class GrandWitchFearService {
             Identifier.of("sparkstrength", "select_criminologist_target")
     );
 
+    /**
+     * Fear-blocked ids that are dropped without the "skill blocked" message: per-tick streams whose in-flight packets
+     * would otherwise repeat it (Raven Form crow moves; Fear already ends the session on the next server tick). They
+     * stay on {@link #BLOCKED_ROLE_SKILL_PAYLOADS}.
+     * 被恐惧拦截但不提示“技能被封锁”的 id：逐刻发送的数据流，否则在途数据包会反复刷出提示（化鸦乌鸦移动；恐惧会在下一服务端刻结束会话）。
+     * 它们仍保留在 {@link #BLOCKED_ROLE_SKILL_PAYLOADS} 中。
+     */
+    private static final Set<Identifier> SILENTLY_BLOCKED_PAYLOADS = Set.of(
+            Identifier.of("sparkwitch", "black_raven_crow_move")
+    );
+
     private GrandWitchFearService() {
+    }
+
+    /** Whether a Fear-blocked payload is dropped without a message. / 被恐惧拦截的数据包是否静默丢弃。 */
+    public static boolean isSilentlyBlockedPayload(Identifier payloadId) {
+        return payloadId != null && SILENTLY_BLOCKED_PAYLOADS.contains(payloadId);
     }
 
     public static boolean isFearActive(World world) {

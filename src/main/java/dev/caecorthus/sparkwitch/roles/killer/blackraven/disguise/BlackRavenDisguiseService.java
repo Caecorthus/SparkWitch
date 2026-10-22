@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMatch;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.adapter.BlackRavenDisguiseAdapter;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.adapter.BlackRavenDisguiseAdapters;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.adapter.DisguiseExitReason;
@@ -600,7 +601,9 @@ public final class BlackRavenDisguiseService {
         WitchPlayerComponent witch = WitchPlayerComponent.KEY.get(player);
         if (BlackRavenPerceptionPlayerComponent.KEY.get(player).isActive()
                 || witch.getActiveSkillWindowTicks() > 0
-                || witch.hasDeferredCooldown()) {
+                || witch.hasDeferredCooldown()
+                // Raven Form: no mask switch while the crow flies (plan §3.6). / 化鸦期间不能切换假面（计划 §3.6）。
+                || BlackRavenCrowForm.isInCrowForm(player)) {
             return true;
         }
         BlackRavenDisguiseAdapter adapter = BlackRavenDisguiseAdapters.get(acting);

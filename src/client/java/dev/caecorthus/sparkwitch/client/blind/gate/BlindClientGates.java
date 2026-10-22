@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.client.blind.BlindView;
 import dev.caecorthus.sparkwitch.client.blind.render.BlindSilhouettePass;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.entity.NinjaGrapplingHookEntity;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -48,6 +49,11 @@ public final class BlindClientGates {
         if (entity instanceof NinjaGrapplingHookEntity hook) {
             return hidesPlayer(client, hook.getOwnerPlayer());
         }
+        if (BlackRavenCrowForm.isHiddenBody(entity) && isOtherPlayer(client, entity) && BlindView.isActive(client)) {
+            // The Black Raven's left-behind Raven Form body is never drawn or echoed (the crow is a normal entity).
+            // 黑羽鸦化鸦时被留下的本体从不绘制、也不回声显示（乌鸦是普通实体）。
+            return true;
+        }
         return hidesPlayer(client, entity);
     }
 
@@ -59,7 +65,7 @@ public final class BlindClientGates {
      */
     public static boolean forcesVisible(@Nullable Entity entity) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (!isOtherPlayer(client, entity) || !BlindView.isActive(client)) {
+        if (!isOtherPlayer(client, entity) || !BlindView.isActive(client) || BlackRavenCrowForm.isHiddenBody(entity)) {
             return false;
         }
         return BlindGateRules.forcesVisible(true, true, isPerceived(entity), entity.isSpectator(),

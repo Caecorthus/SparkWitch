@@ -4,23 +4,17 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Immutable identity captured at the instant Perception reaches ten points.
- * 感知达到十点瞬间冻结的不可变身份快照。
+ * Who was perceived, frozen at the instant Perception reaches ten points. Since the 2026-10-21 police rework it holds no
+ * role: the ledger and the x-ray only know that a player was perceived.
+ * 感知达到十点瞬间冻结的“被感知者”记录。自 2026-10-21 警察化起不再含职业：感知册与透视只知道某玩家已被感知。
  */
-public record BlackRavenIdentitySnapshot(UUID targetUuid, String playerName, String roleId, int roleColor) {
+public record BlackRavenIdentitySnapshot(UUID targetUuid, String playerName) {
     public BlackRavenIdentitySnapshot {
         Objects.requireNonNull(targetUuid, "targetUuid");
         playerName = Objects.requireNonNullElse(playerName, "");
-        roleId = Objects.requireNonNullElse(roleId, "");
     }
 
     public UUID playerId() {
         return targetUuid;
-    }
-
-    public String roleTranslationKey() {
-        int separator = roleId.indexOf(':');
-        String path = separator >= 0 ? roleId.substring(separator + 1) : roleId;
-        return "announcement.role." + path;
     }
 }

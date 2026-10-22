@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowTargets;
 import dev.doctor4t.wathe.util.GunShootPayload;
 import dev.doctor4t.wathe.util.KnifeStabPayload;
 import io.netty.buffer.Unpooled;
@@ -40,6 +41,11 @@ public final class VendettaTargetingPacketGuard {
         }
 
         Entity entity = actor.getServerWorld().getEntityById(targetEntityId.getAsInt());
+        // A Raven Form crow is judged as its owner, the player such a hit kills. / 化鸦乌鸦按其主人（命中所处死的玩家）判定。
+        BlackRavenCrowTargets.Target crow = BlackRavenCrowTargets.hittable(null, entity);
+        if (crow != null) {
+            entity = crow.owner();
+        }
         if (!(entity instanceof ServerPlayerEntity target)) {
             return false;
         }

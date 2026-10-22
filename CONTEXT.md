@@ -12,6 +12,9 @@ It also adds the Control Expert, a non-lethal police variant that shares the Vig
 and the Seeker, a police variant with a remote car and wall cameras that shares the same slots.
 It also adds USEC (`sparkwitch:usec`), a police variant with the AXMC bolt-action sniper rifle that shares the
 Vigilante slots.
+The Black Raven (`sparkwitch:black_raven`, 黑羽鸦) is a police variant too since 2026-10-21 (plan
+`docs/plans/2026-10-21-black-raven-police.md`): it shares the Vigilante slots, carries a revolver and the Feather
+Blade, keeps its Raven Mask disguise, and never counts as alive for round settlement.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -115,6 +118,19 @@ Current build baseline:
     spends nothing; null for every other kill. Both fail closed (false / null) for nulls and outside the exact scope.
     The facade exposes the round, not a price: the add-on owns its balance numbers (the Democracy Shield's 10 / 25
     points live in SparkStrength's `BodyguardRules`, next to its sword and TR shell costs).
+  - Raven Form crow seam (2026-10-21, frozen names and signatures, reached by SparkStrength's `SparkWitchCompat`
+    through reflection; plan v2 §2.5): `SparkWitchApi.isBlackRavenCrow(Entity)` (side-neutral, lets a client gate that
+    accepts only players send the attack); server `SparkWitchApi.crowMeleeStandIn(ServerPlayerEntity, Entity, double
+    reach)` returns the owner of a crow the attacker may hit within reach + 0.5 (lag-compensated, clear line) and arms
+    the owner substitution (`BlackRavenCrowHits.addonMeleeStandIn`), so the add-on runs its own player path on the
+    Black Raven without its own body-distance check; null otherwise, also when SparkFactionAPI shields the owner from
+    the attacker for `wathe:knife` (the frozen signature has no action; callers still check their own). `SparkWitchApi.killCrowsInBlast(ServerWorld,
+    Vec3d, double radius, ServerPlayerEntity killer, Identifier deathReason)` kills the owner of every crow in the
+    closed sphere with a clear line from the centre (`BlackRavenCrowHits.onBlast`, the M67 measure, the reason passed
+    through as the same instance; an owner SparkFactionAPI shields from `killer` for that reason is skipped) and
+    returns the count. Not an API: SparkStrength's `@Pseudo`
+    `DroneSparkWitchCrowTargetsMixin` lowers `BlackRavenCrowTargets.deviceSquared(ServerPlayerEntity, Vec3d, Vec3d)` at
+    RETURN to its nearest Bomber drone, so keep that name and signature.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
   D1–D10, numbers in each ability class):
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
@@ -217,19 +233,72 @@ Current build baseline:
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
   SparkTraits fake bodies, camera-bound bodies, Magician decoys and Fiend feign-death corpses; a deliberate drag on a
   decoy tells the Kidnapper.
-- `roles/killer/blackraven/`: Feather Blade marks, owner-private Perception state,
-  bound ledger, restricted shop, and lifecycle cleanup. The bound ledger and Raven Mask
+- `roles/killer/blackraven/`: the Black Raven, a police variant since 2026-10-21 (the package keeps its old
+  `killer` path; moving it needs owner approval). Feather Blade marks, owner-private Perception state,
+  bound ledger, and lifecycle cleanup. It has no shop of its own, like the Vigilante (the killer shop
+  `BlackRavenShopService` is gone; the disguise shop seams M2-M4 stay).
+  - Police rules are in `BlackRavenPoliceRules`: gun parity, the starting revolver, and Feather Blade friendly
+    fire. `BlackRavenLoadoutService.assignForRole` (the `RoleAssigned` route) also inserts a Wathe revolver, but
+    only when none is held in the live inventory or on the cursor. At round start that runs before Wathe's
+    per-Item 60 s revolver cooldown, and the plain `insertStack` keeps SparkTraits' Impostor free-gun refusal.
+  - `BlackRavenMarkRuntime` snapshots the marker's and the victim's SparkFactionAPI effective factions and
+    `deadBefore` before the mark's kill. `BlackRavenMarkPunishment` then applies the Swordfish gate:
+    civilian on civilian, really dead, not SparkTraits-intercepted, not a non-final kill, and the marker
+    online, playing, alive and in survival. Wathe's `ShootInnocentPunishment` picks the kind: `KILL_SHOOTER`
+    kills the marker with `wathe:shot_innocent`; `PREVENT_GUN_PICKUP` drops its revolvers like Wathe's gun
+    receiver (the live inventory, the cursor and every disguise stash, through
+    `BlackRavenStashedDeathDrops.takeFromStashes`, so a revert never returns one), sets sanity to 0 and bans gun
+    pickup. A mark still kills after its Raven died, unpunished.
+  - `BlackRavenSettlement` is the raw-role settlement exclusion (Runtime Invariants, "Black Raven settlement
+    exclusion"); its Wathe and NoellesRoles seams live in `mixin/blackraven/`.
+  - The bound ledger and Raven Mask
   (`BlackRavenInventoryRules`) never drop, never leave their owner's inventory slots, and are
   refused by a `UseEntityCallback` veto for item frames, armor stands and allays; a decorated pot
   answers `SKIP_DEFAULT_BLOCK_INTERACTION` for them through
   `mixin/blackraven/DecoratedPotBlockBlackRavenItemMixin`, so it never takes them (not even through a
   Wathe ornament hung on it) and the ledger or mask still opens there.
+  - Perception and the x-ray (owner, 2026-10-21; police rework plan §3.2/§3.5). Perception has no opening cooldown
+    (`PERCEPTION_INITIAL_COOLDOWN_TICKS = 0`); the 15 s window, 10 s accumulation within 8 blocks and 90 s cooldown
+    stay. A completed Perception no longer reveals a role: `BlackRavenIdentitySnapshot` is only `(targetUuid,
+    playerName)`, and the `sparkwitch:black_raven_perception` NBT and owner sync carry only those (old `RoleId` /
+    `RoleColor` NBT keys are ignored, not migrated: the state is match-bound). There is no N-key instinct switch, no
+    sensed HUD line and no role text under name tags any more; the N slot for `sparkwitch:black_raven` in
+    `SecondaryAbilityRegistry` is free (the crow skill takes it).
+    - Held-instinct x-ray (`client/blackraven/BlackRavenInstinctClientHooks`): while the local player whose RAW role
+      (`getRole`) is the Black Raven, alive and playing, holds the instinct key (`WatheClient.isInstinctEnabled()`),
+      every living perceived player within 8 blocks of the camera entity (`MinecraftClient.getCameraEntity()`, the
+      player when null; `BlackRavenRules.XRAY_RADIUS_SQUARED`, inclusive) is outlined in the single
+      `BlackRavenRules.XRAY_COLOR` `0x9D8BC2` (the ledger's feather-violet `SHEEN`); a Feather-marked target keeps
+      `COLOR`. It only adds outlines (unperceived players are never answered), works while disguised (no disguise
+      gate), honours explicit `skip` results and the `isPubliclyVisible` hard hides, and is off during Perception's
+      own window (`BlackRavenInstinctGateMixin` closes the instinct gates) and whenever the key gate reads false
+      (Grand Witch Fear, the USEC cloak). Wiring: `BlackRavenInstinctPriorityMixin` (HEAD, priority 2000) and
+      `BlackRavenInstinctResolverMixin` (RETURN, priority 400). SparkTraits' reflective
+      `SparkWitchBlackRavenBridge` still calls the frozen `public static Integer
+      resolvePrioritySensedHighlight(Entity)` before its Conscience branch (`null` = not answered). The Judge
+      sentence and factor/Emma RETURN fallbacks hide for the Raven only during Perception's window; the x-ray is
+      per-target and only fills perceived players, so it needs no viewer-wide hide there.
+    - Never visible to instinct (`client/blackraven/BlackRavenInstinctVeto`): a living player whose RAW role is the
+      Black Raven is never highlighted or outlined for any viewer except itself and viewers who may see spectator
+      information (`seesSpectatorInformation`, Wathe's `canSeeSpectatorInformation` per viewer: spectator or creative
+      AND not `isPlayerPlayingAndAlive` — dead spectators, spectating non-participants, creative admins; plan §2.2).
+      Living participants in spectator mode (Rift Gate occupants, a feign-dead Fiend) keep their living instinct and
+      are vetoed like anyone else. Wathe syncs the whole role map to every client, so
+      `getRole` is the raw role there; an unconfirmed server, a missing viewer or an unknown role never vetoes.
+      `client/mixin/blackraven/BlackRavenInstinctVetoMixin` (`@WrapMethod` on `WatheClient.getInstinctHighlight`,
+      priority 3000, pinned in `watheClientMixinContracts`) returns -1 without `original.call()`, so every event
+      result, HEAD answer and RETURN fallback (killer instinct, Judge sentence, Seeker/Emma/factor marks, tablet
+      suspects, Fiend and Final Moment, Vendetta) drops; `BlackRavenOutlineVetoMixin` (`@WrapMethod` on
+      `MinecraftClient#hasOutline`, priority 1900, inside the Blind's priority-2000 gate) is the final guarantee and
+      also hides server GLOWING on the Raven. Both only veto, so their nesting with the other wrappers does not
+      matter. A Magician puppet copying the Raven re-asks the method for its stand-in and never glows either.
   - `disguise/`: the Black Raven disguise. It owns the acting-role overlay
     (`BlackRavenActingRole`), the owner-only `BlackRavenDisguiseComponent` and its sync codec, the
     Tab B pool snapshot, the bound Raven Mask (`sparkwitch:black_raven_mask`), one-shot open
     sessions, the server-authoritative switch transaction with per-identity inventory and wallet
     stashes (`BlackRavenDisguiseService`, `BlackRavenInventorySwap`), the disguise shop
-    whitelist, and disguise task income and killer-income routing (`BlackRavenDisguiseEconomy`).
+    whitelist, disguise task income and killer-income routing (`BlackRavenDisguiseEconomy`), and the stashed
+    death drop (`BlackRavenStashedDeathDrops`).
   - `disguise/adapter/`: one adapter per shipped disguise role, holding its kit, shop spec, task
     reward policy, first-entry cooldowns, and enter/exit hooks. Batch 1 ships Conductor,
     Attendant, Awesome Binglus, Mermaid, Time Keeper, Waiter, Reporter, Tarot Reader, and
@@ -237,9 +306,9 @@ Current build baseline:
   - Its mixins live in `mixin/blackraven/`: M1 `GameWorldComponentActingRoleMixin`, M2
     `ShopUtilsBlackRavenDisguiseMixin`, M3 `KillerShopBuilderBlackRavenDisguiseMixin`, M4
     `PlayerShopComponentBlackRavenDisguiseMixin`, the death-index, swap-guard, swap-remainder and
-    wallet mixins, and the optional SparkStrength seams.
+    wallet mixins, and the optional SparkStrength purse seam.
   - Its client presentation lives in `client/blackraven/`: `BlackRavenLedgerBookScreen` (the
-    code-drawn ledger panel: Tab A is a ruled perceived-identity grid with player faces, Tab B a
+    code-drawn ledger panel: Tab A is a ruled 3 x 7 grid of perceived players' faces and names (no role), Tab B a
     sectioned, scrolling disguise list with a footer revert button), `BlackRavenLedgerLayout`
     (its pure geometry and hit-testing), `BlackRavenLedgerPaint` (its role-local "raven noir"
     palette and fill primitives), `BlackRavenDisguiseClientState` (synced view,
@@ -248,6 +317,18 @@ Current build baseline:
   - Its packets are `net/OpenBlackRavenDisguiseS2CPacket` and `net/SelectBlackRavenDisguiseC2SPacket`.
   - Its cross-mod seams go through `compat/SparkTraitsBlackRavenBridge` and
     `compat/SparkStrengthDisguiseCompat`.
+  - `crow/`: Raven Form (化鸦, plan `docs/plans/2026-10-21-black-raven-police.md` §3.6), the Black Raven's
+    key-2 skill. This package is the server core and the shared contract; see the "Black Raven Raven Form" paragraph
+    under Runtime Invariants. Its streaming mixins are
+    `mixin/blackraven/BlackRavenCrow{ChunkView,ChunkBatch,EntityTracker}Mixin`, its client entry is
+    `client/blackraven/crow/BlackRavenCrowClient` (pilot view, crow renderer, HUD, boundary indicator; client mixins
+    in `client/mixin/blackraven/crow/`). `BlackRavenPerceptionCenter` (one level up)
+    is the Perception distance centre that Raven Form overrides. Weapon hits on the crow live in `crow/hit/`
+    (`BlackRavenCrowHits` entries, `BlackRavenCrowTargets` queries and owner substitution, `BlackRavenCrowHitRules`,
+    the lag-compensation `BlackRavenCrowHitboxHistory`, the bat `BlackRavenCrowAttackHandlers`), their mixins are
+    `mixin/blackraven/BlackRavenCrow{KillLink,GunReceiver,KnifeReceiver,Grenade,ThrowingAxe}Mixin` and the client
+    picks `client/blackraven/crow/BlackRavenCrowAim` with `client/mixin/blackraven/BlackRavenCrow{RevolverAim,
+    DerringerAim,KnifeAim,GunCrosshair}Mixin`.
 - `roles/killer/bellringer/`: Echo skill (game-time cost, forced Echo tasks,
   deadline penalty), owner-private Echo/hint/toll state, bound bell and toll kill,
   restricted native shop, and lifecycle cleanup; its mixins live in
@@ -870,7 +951,7 @@ Current build baseline:
     evaluation" in which `isInstinctEnabled()` and `isInstinctEnabledAndIsKiller()` read false, exactly as if the
     viewer had released the instinct key for that target. Wathe then drops a keybind event result and its null-result
     killer/spectator default, and every HEAD answer, RETURN fallback and listener keyed on those gates drops too
-    (SparkTraits Conscience/Impostor/effective-killer HEAD, Black Raven sensed mode, the Insider's and SparkStrength
+    (SparkTraits Conscience/Impostor/effective-killer HEAD, Black Raven x-ray, the Insider's and SparkStrength
     Corrupt Cop's key-held `always`, NoellesRoles Shadow Jester, SparkFactionAPI and witch-faction policies), while
     key-free answers stay: `always` results, Feather marks, Fiend Moment, Final Moment, Judge sentence, factor and
     Emma fallbacks, Vendetta, Guardian Shield, tablet suspects, Corrupt Cop Moment window and other timed marks. A
@@ -1122,7 +1203,7 @@ Current build baseline:
     click.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, the
-  Seeker, and USEC share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
+  Seeker, USEC and the Black Raven share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
   separate slot mixin. A Vigilante slot draws only from the eligible variants nobody holds yet; the
   plain Vigilante appears only once all of them are held (or none is eligible). The Veteran slot
   (every third police slot) is unchanged.
@@ -1131,7 +1212,8 @@ Current build baseline:
   four `isRole` calls that also answers "Vigilante" for that role, so it gets the 10 s revolver
   cooldown and no mood penalty. Innocent-shot punishment is unchanged. The wraps are
   `mixin/JudgePoliceGunMixin`, `mixin/EmmaPoliceGunMixin`,
-  `mixin/controlexpert/ControlExpertPoliceGunMixin` and `mixin/seeker/SeekerPoliceGunMixin`. A new
+  `mixin/controlexpert/ControlExpertPoliceGunMixin`, `mixin/seeker/SeekerPoliceGunMixin` and
+  `mixin/BlackRavenPoliceGunMixin` (raw role, so a disguised Raven keeps it; the M1 overlay wraps the callee). A new
   police role needs its own wrap; registering in `PoliceRoles` is not enough. USEC has no wrap because it carries no
   revolver: the AXMC fires through its own `sparkwitch:fire_usec_rifle` path, never Wathe's gun receiver.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
@@ -1173,7 +1255,8 @@ Current build baseline:
   only) and `scoped` to the existing USEC `sparkwitch:usec_rifle_fire` item use (`UsecReplay.fireData`). Record only:
   no gameplay, balance or kill-credit change. Hooks: `SaboteurAbilityService.use` (the lamps
   `SaboteurLightOutageService.activate` turned off, lit and powered before), `CurserFeatureService.use` (after the
-  cooldown and the confusion), the Murder Sense activation effect, `BlackRavenPerceptionService.tick` (a reveal),
+  cooldown and the confusion), the Murder Sense activation effect, `BlackRavenPerceptionService.tick` (a reveal; its
+  `role` is the target's real role read from the game at that moment, since the snapshot holds no role),
   `HolyFlashEntity.burst` (`HolyFlashBurstTally`), and `roles/civilian/windspirit/WindSpiritFallRecords`:
   `mixin/WindSpiritKnockRecordMixin` (`ServerPlayerEntity#onExplodedBy`, TAIL, observe only) notes a promoted Wind
   Spirit's wind charge catching a living participant in `WindSpiritKnockLedger` (latest knock per victim, 10 s
@@ -1271,14 +1354,37 @@ holds the Death Sense countdown, an only-growing set of highlighted body entity
 UUIDs, the necrology, and Prophecy records. The old `DeathOmenTicks` and
 `DeathOmenBodyUuids` NBT keys are no longer read or written.
 Black Raven state never enters that shared schema. Victim marks use
-`sparkwitch:black_raven_mark`; owner-only progress and completed identity
-snapshots use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
+`sparkwitch:black_raven_mark`; owner-only progress and completed perceived-player
+snapshots (UUID and name, no role) use `sparkwitch:black_raven_perception`, both with `NEVER_COPY`.
 Its role-owned active window is exposed to the shared cooldown/HUD path only
 through `WitchSkillRegistry`'s stateless active-window provider.
 The Feather Blade aim (`BlackRavenTargeting.findAimedPlayer`) treats spectators as transparent:
 a Rift Gate occupant (an alive spectator, Riftwalker D3) is never marked, never starts the blade
 cooldown, and never shields the player behind its gate. An active Vendetta is an adventure-mode
 Wraith and stays a target of its bound killer.
+
+Black Raven settlement exclusion (plan v2 §3.3; owner 2026-10-21, no special case): the Black Raven never counts as
+a living player for round settlement, so every win, block, moment and time bonus comes out exactly as if it were not
+in the round. Every check reads the raw role through `BlackRavenSettlement` (`getRole`, never `isRole`) and skips
+the Raven on top of the host's own alive test:
+- W1, Wathe's killer-win check: `mixin/blackraven/MurderGameModeBlackRavenSettlementMixin` wraps only the first
+  `isPlayerPlayingAndAlive` of `MurderGameMode.tickServerGameLoop` (ordinal 0, the `isInnocent`-guarded civilian
+  loop; SparkTraits' `isInnocent` redirect is untouched; the killer-team passenger check stays raw). Raven +
+  killers → KILLERS; killers dead with only the Raven and neutrals → whatever the neutrals' own wins give, never a
+  PASSENGERS win caused by the Raven; only the Raven alive → KILLERS, Wathe's all-dead order.
+- SparkWitch's own counts: `WitchWinConditions` (Witch win and the Shadow Jester showdown gate) and the Murderous
+  Witch `checkWin` skip the Raven right after the dormant-Fiend skip.
+- NoellesRoles: `FiendWinExclusion.countsAsAlive` also refuses a living raw Raven (class name kept), which reaches
+  the Jester-moment and Corrupt Cop loops, `countAliveAndNotSwallowed` and Taotie `hasSwallowedEveryone`. The
+  Pathogen's "every other living player is infected" loop (`lambda$registerEvents$14` alive-check ordinal 3) gets
+  its own `mixin/blackraven/NoellesRolesPathogenBlackRavenSettlementMixin`, which skips only the Raven (the dormant
+  Fiend keeps the old Pathogen behaviour). Ordinals are pinned by `BlackRavenSettlementContractTest`.
+- Wathe's civilian-death time bonus: `mixin/blackraven/GameFunctionsBlackRavenTimeBonusMixin`.
+- Other mods: `compat/SparkFactionSettlementExclusionCompat` registers `sparkwitch:black_raven` at init into
+  SparkFactionAPI's `api.settlement.SettlementExclusions.registerRole(Identifier)` (0.1.5.16+) by reflection.
+  SparkWitch compiles against an older floor, so an older SparkFactionAPI only logs at debug and those mods keep
+  counting the Raven. SparkTraits (Last Stand, Final Moment, its own win listener) and SparkStrength (Shadow Jester
+  showdown) read that registry; SparkWitch's own seams never do.
 
 Bell Ringer state never enters that shared schema either. `sparkwitch:bell_echo`
 (`NEVER_COPY`, owner-only sync, match-id bound) holds the forced Echo task
@@ -1335,9 +1441,11 @@ the stamps. The Saint HEAD guard ignores Wathe's `force` flag and opts out throu
 civilian-death time bonus (+30 s) is suppressed only for `sparkwitch:time_stolen` through
 `mixin/timestealer/GameFunctionsTimeStolenClockMixin` (`@WrapOperation` on the single
 `GameTimeComponent.addTime` call in the five-argument `killPlayer`, `require = 1`, `allow = 1`, no
-`@Redirect`); every other death reason keeps it. Only a confirmed death in the same `ACTIVE` match
-that SparkTraits did not intercept then sets the round time to exactly `max(0, t - 600)` (it may
-drain to 0, and then the civilians win on time) and grants one stamp to a living exact Time Stealer.
+`@Redirect`); every other death reason keeps it. (Separately, a dying Black Raven adds no time either: the settlement
+exclusion's own wrap on the same call, `mixin/blackraven/GameFunctionsBlackRavenTimeBonusMixin`.) Only a confirmed
+death in the same `ACTIVE` match that SparkTraits did not intercept then sets the round time to exactly
+`max(0, t - 600)` (it may drain to 0, and then the civilians win on time) and grants one stamp to a living exact
+Time Stealer.
 A Conscience Time Stealer also earns one stamp per completed task (owner decision 2026-10-05): the
 role's own `TaskComplete` listener pays a living exact Time Stealer whose SparkFactionAPI effective
 faction is known and not `wathe:killer` (`TimeStealerRules.earnsTaskStamp`), since Wathe fires
@@ -2855,7 +2963,7 @@ Curser's role colour (no instinct key) that the final `WraithMinecraftClientMixi
 still passes through the Curser.
 `client/mixin/WraithNameTagRaycastMixin` narrows only the predicate of the first
 (player) `ProjectileUtil.getCollision` in Wathe's `RoleNameRenderer.renderHud`;
-`WitchCohortRoleNameMixin`, `InsiderCohortRoleNameMixin` and `BlackRavenRoleNameRenderer` apply the same filter
+`WitchCohortRoleNameMixin` and `InsiderCohortRoleNameMixin` apply the same filter
 to their own raycasts so their labels follow the tagged player.
 
 SparkTraits is optional and fail-closed. Reflection may target only
@@ -2986,7 +3094,8 @@ it is ever synced to another player.
   inspection reads stay raw: Tarot identity resolution and counts, divination candidates,
   `countActiveFactions`, the Professor serum, and the Judge, Prophet, Wraith, and Emma
   inspections.
-- **Shops.** The Wathe killer shop (M3) and the Black Raven shop never reach a disguised Raven.
+- **Shops.** The Wathe killer shop (M3) never reaches a disguised Raven; since the police rework the Raven itself
+  has no shop.
   Perception is refused while disguised, the ledger stays in the Raven stash, and killer instinct
   and Feather marks keep working.
 - **Per-identity inventories and wallets.**
@@ -3002,8 +3111,10 @@ it is ever synced to another player.
       `MurderGameModeBlackRavenWalletMixin`;
     - the kill reward, teammate share, and civilian-death pool in
       `GameFunctionsBlackRavenWalletMixin`;
-    - the SparkWitch Hunter poisoner and placer rewards (`HunterFeatureService`);
-    - the optional SparkStrength seams below.
+    - the optional SparkStrength purse seam below.
+
+    Since the police rework (2026-10-21) the raw Raven is no killer, so these routes no longer fire (plan v2 §3.4);
+    the Hunter's poisoner and placer rewards now go straight to the live wallet like every other credit.
   - Known limitation: these SparkTraits killer receipts still land in the live disguise wallet:
     - the killer-trait rewards (Showman, Plunderer, Cornered, and Conscience's kill reward and
       dividend);
@@ -3017,11 +3128,15 @@ it is ever synced to another player.
     wallet. Routing them would need a SparkTraits public-facade seam (for example a kill-income
     recipient hook on `SparkTraitsApi`) used through `compat/SparkTraitsBlackRavenBridge` and failing
     closed. A mixin into `sparktraits.impl` is not allowed.
-- **Death and exits.** At death every stash (inventory and wallet) vanishes. The live set goes
-  through Wathe's drop rules, except the mask, which never drops. Role loss discards the stashes
-  and keeps the live set. A `RoleAssigned(black_raven)` for a Raven that is still disguised (a
+- **Death and exits.** At death, `BlackRavenStashedDeathDrops` first takes every stashed stack that Wathe's
+  `shouldDropOnDeath` would drop (the revolver) out of every stash and drops it like Wathe's death loop
+  (`dropItem(stack, true, false)`). It runs in the `sparkwitch:black_raven_stashed_death_drops` phase of
+  `KillPlayer.AFTER`, ordered before `Event.DEFAULT_PHASE`: after BEFORE (where a death can still be cancelled)
+  and before SparkTraits consumes its Last Stand set. Then every stash (the rest of its inventory and wallet)
+  vanishes. The live set goes through Wathe's drop rules, except the mask, which never drops. Role loss discards
+  the stashes and keeps the live set. A `RoleAssigned(black_raven)` for a Raven that is still disguised (a
   forced role mid-round) reverts to the Raven set first, so the kit re-grant leaves exactly one
-  blade, ledger, and mask.
+  blade, ledger, and mask, and grants no second revolver.
 - **Round binding.** The Raven round binding (disguise `beginRound`, Perception `bindCurrentMatch`,
   and `restoreLedgerIfNeeded`) runs in the `sparkwitch:black_raven_finish_initialize` phase of
   `GameEvents.ON_FINISH_INITIALIZE`, ordered after `Event.DEFAULT_PHASE`, so Wathe's
@@ -3041,7 +3156,7 @@ owner-only sync. `client/blackraven/` adds no client mixin and registers these l
 - **Acting-role changes.** `BlackRavenDisguiseClientState` installs the acting-role change
   listener. On any enter, exit, or switch it:
   - closes `LimitedInventoryScreen` and `TarotDivinationSelectorScreen`;
-  - resets the instinct mode to normal and clears the Tarot client state;
+  - clears the Tarot client state;
   - clears Orthopedist observer data when leaving the Orthopedist identity.
 - **Money visibility.** The `CanSeeMoney` phase `sparkwitch:black_raven_disguise_money` is ordered
   before `Event.DEFAULT_PHASE`. It answers only for the confirmed, disguised local Raven on the
@@ -3067,12 +3182,9 @@ Black Raven disguise shop and wallet seams (SparkStrength is optional and fail-c
   `BlackRavenDisguiseEconomy` reflects only its `recordIncome(PlayerEntity, long)`, to report
   routed kill rewards. Without the seam, disguise purchases can draw on the killer-team purse
   (degraded, but no money is lost).
-- **Engineer share.** The optional `@Pseudo` `mixin/blackraven/EngineerPowerRestorationBlackRavenWalletMixin`
-  (`remap = false`, `require = 0`) wraps the `addToBalance` call in SparkStrength
-  `EngineerPowerRestorationService#distributeRestorationCost`. It routes a disguised Raven's
-  restoration share to the Raven wallet. Without it, the share stays in the live disguise wallet.
 - **Where the disguise names SparkStrength.** It names SparkStrength implementation classes in
-  only these two mixins and in the reflected purse class in `BlackRavenDisguiseEconomy`.
+  only the purse mixin and in the reflected purse class in `BlackRavenDisguiseEconomy`. (The dead Engineer-share
+  seam was deleted on 2026-10-21: its SparkStrength target class no longer exists.)
   `compat/SparkStrengthDisguiseCompat` touches only the `sparkstrength:flashlight` registry id.
 - **Rest of SparkWitch.** Elsewhere, SparkStrength implementation classes are named by
   `compat/SparkStrengthM67Compat`, `compat/SparkStrengthCoronerCompat`,
@@ -3176,6 +3288,258 @@ END_SERVER_TICK, so the next END_WORLD_TICK fall check in
 `WraithLifecycle.tickWorld` already sees the room; `activateConvertedPlayer`
 stays reason-agnostic and never teleports.
 
+Black Raven Raven Form. Raven Form (化鸦, `roles/killer/blackraven/crow/`) is keyed on the RAW role
+`sparkwitch:black_raven` (`GameWorldComponent#getRole`), never on the disguise acting overlay. The body stays the
+player's own server entity (never riding, the server camera never moves), invisible and frozen; the owner's client
+switches its camera to a `BlackRavenCrowEntity` and streams client-predicted poses, like SparkStrength's drone and the
+Seeker car.
+
+- **Fixed ids.** Entity and component `sparkwitch:black_raven_crow`; C2S `sparkwitch:black_raven_crow_toggle` (empty),
+  `sparkwitch:black_raven_crow_move` (`crowEntityId`, x, y, z, yaw, pitch every tick while flying),
+  `sparkwitch:black_raven_crow_use` (`crowEntityId` + vanilla block hit), `sparkwitch:black_raven_crow_drop_feather`
+  (empty); S2C `sparkwitch:black_raven_crow_correction` (`crowEntityId`, x, y, z, yaw, pitch; owner only). crow-world
+  registers the Homing Feather (归羽) `sparkwitch:homing_feather` and the particle `sparkwitch:black_feather`.
+  `net/BlackRavenCrowNetworking` is the only payload registration; all four C2S ids sit on the Control Expert stun,
+  Seeker session, Riftwalker session and Fear deny-lists.
+- **Unlock.** `BlackRavenCrowSkillService.onTaskComplete` counts `TaskComplete.EVENT` for a playing, alive RAW Black
+  Raven in an ACTIVE round, disguised or not; Bell Ringer Echo tasks never fire the event. The second task tells the
+  owner in chat with the Role Skill 2 keybind.
+- **Toggle.** A press during a session always ends it (`PLAYER`). Otherwise `BlackRavenCrowRules.toggleVerdict` checks,
+  in order: eligible (silent), crow-world's landing hold (silent), SparkTraits role-skill block or Taotie swallow
+  (silent), locked x/2, Fear (Fear's own message), Control Expert stun, cooldown (shared key), disguised, kidnapped,
+  inside a Rift Gate, in a Seeker remote view, sleeping, riding, then the footing check (on the ground, not in water).
+- **Session.** At most 30 s; the 45 s cooldown is raised when the session ends (`BlackRavenCrowEndReason.startsCooldown`).
+  `BlackRavenCrowSessions.end(player, reason)` is the only way to end it: it discards the crow, removes the session's
+  own invisibility, clears the session fields (the Homing Feather fields stay for crow-world), raises the cooldown,
+  lets the view resettle, tells the owner, then fires `BlackRavenCrowEvents.ENDED(owner, reason, crowPos)`. Only
+  `PLAYER` and `TIMEOUT` have `usesHomingFeather()`. Per-tick exits, in order: round not ACTIVE, dead or spectator,
+  Taotie-swallowed, Control Expert stun, Kidnapper control, Fear, crow lost, body riding / sleeping / beyond sqrt(2)
+  of its anchor / hanging ungrounded for over 10 ticks, then the timeout. Role loss, death (`KillPlayer.AFTER`), reset,
+  disconnect and round finalize end it too; only an intercepted death keeps the unlock progress. Anchor: the server
+  anchors the body when it handles the toggle, but the client freezes it only when the sync lands, so for the first
+  `BlackRavenCrowRules.anchorGraceTicks(ping)` ticks (round trip + 4, within 10-20) the anchor follows the body and
+  nothing counts as ungrounded; afterwards x/z stay fixed and y only follows a falling body down (`nextAnchor`), and a
+  descending body is never "hanging".
+- **Body.** Server invisibility without particles or icon, refreshed every 20 ticks and taken over if another source's
+  invisibility ends mid-session; sprint cleared; using an item cleared (never released). The component's active bit
+  is synced to every client (Wathe already syncs every RAW role, so it leaks nothing), so the SparkFactionAPI
+  collision exemption (`BlackRavenCrowForm::isHiddenBody`) agrees on every client. Vanilla invisibility hides the model
+  and the vanilla name tag but not held items, armour or Wathe's `RoleNameRenderer` label: other client gates must
+  read `BlackRavenCrowForm.isInCrowForm` / `isHiddenBody` / `isBodyOrCrow`. Weapons still hit the body (Wathe's guns
+  ignore invisibility); its corpse stays at the body.
+- **Flight.** `BlackRavenCrowFlightRules` is the pure math shared with client prediction: 1.2 blocks/tick horizontal
+  (24 blocks/s, owner Q8) and 0.8 vertical, a per-axis budget of 3 steps refilled by world time, clamp to Wathe's play
+  area (x/z intersected with the world border, y in [minY, maxY]; an axis already outside is never pulled back) and
+  swept block collision. The server applies at most 2 moves per tick as they arrive; later moves of that tick merge
+  into one latest pose the crow applies on its own tick (`BlackRavenCrowFlightService.applyDeferredMove`), and one
+  server step may cover up to `CATCH_UP_STEPS` (2) caps when the budget allows, so a jitter or TPS-dip burst never
+  leaves the server crow a step behind; the budget still bounds the average to 24 blocks/s. Client prediction keeps the
+  single-cap `limitStep`. A result more than 0.0625 from the request is answered with a correction. The owner's
+  client installs `BlackRavenCrowEntity.installClientPilotHook` so it ignores tracker updates for the crow its live
+  view flies, predicts with `clientPilotMove` and applies corrections with `clientApplyCorrection`.
+- **Client (crow-client, `client/blackraven/crow/`).** Presentation only; the server decides everything.
+  - *Key 2.* `BlackRavenCrowClient` registers the RAW-role `sparkwitch:black_raven` handler in `SecondaryAbilityRegistry`:
+    a press sends the toggle (start, or end early); its `reset()` closes `BlackRavenPerceptionScreenEffects`.
+  - *Pilot view.* `BlackRavenCrowPilotClient` follows only the owner-synced component (active bit + crow id; START tick):
+    it never sends the toggle itself, so a view it gives up on (camera taken by `SetCameraEntity`, crow missing over
+    40 ticks) waits for the server's end or the next key-2 press. The pilot hook holds only while that live view flies
+    the crow: once given up, the owner's still-tracked crow glides to the server's tracked base and follows tracker
+    updates like any other crow (never left drawn at the last prediction); the base stays exact while flying because
+    `BlackRavenCrowNetworkHandlerMixin` (`onEntity`) advances it for the relative moves vanilla skips on a logical-side
+    entity (`keepTrackedBase`). Start: clear (never release) the item in use, close
+    gameplay screens, drain the locked keys, `BlackRavenCrowFrozenInput` on the body, chunk culling off, hand hidden,
+    then `setCameraEntity(crow)` (bound by id every tick). The body stays `isCamera()` and its SELF moves are cancelled
+    for the whole session, then until its chunks are back (`BlackRavenCrowBodyMixin`, the Seeker chunk-fall fix);
+    during the session a body frozen in mid-air (a jump or ledge before the freeze landed) still falls straight down
+    under gravity until it lands, while its chunks are loaded and it is out of water (the server's anchor follows). End
+    (server session over or changed, death, respawn/join, disconnect, world change): the camera goes back to the body
+    only while it is still ours. Flight (END tick): WASD/space/sneak read physically, `BlackRavenCrowClientRules`
+    accelerates 35 % of the gap per tick toward 1.2 / 0.8 blocks per tick, capped with `BlackRavenCrowFlightRules.limitStep`,
+    predicted with `clientPilotMove`, and one `black_raven_crow_move` per tick; mouse turns the crow (pitch +-89).
+  - *Input lock.* `BlackRavenCrowClientRules.LOCKED_KEYS` (attack, use, pick, drop, swap, inventory, hotbar, sprint,
+    movement) read as released (`BlackRavenCrowKeyBindingMixin`); instinct, Perception, key 2, chat and voice keep
+    working. The drop key sends `black_raven_crow_drop_feather` once (the slot shows empty while 20 ticks pending or
+    after `hasFeather()`); right-click sends `black_raven_crow_use` with the block the crow's eye looks at within
+    3 blocks (also the crosshair target; never an entity); left click does nothing. Body attack/use/pick and
+    interaction-manager calls are cancelled.
+  - *HUD.* While flying, the real hotbar is replaced by a one-slot crow hotbar (the `sparkwitch:homing_feather` item
+    model by registry id; air until crow-world registers it) and Wathe's crosshair by a plain one
+    (`BlackRavenCrowInGameHudMixin`, priority 1100). `BlackRavenHudRenderer` draws the Raven Form line
+    (`BlackRavenCrowHud.statusLine`: flying s left > landing s > locked x/2 > cooldown s > ready) on the free mode row,
+    or one row above the disguise line; never in the witch skills panel.
+  - *Boundary (owner Q10).* `BlackRavenCrowBoundaryOverlay` (HUD callback) reads Wathe's play area and the world border
+    (the server's clamp box). A face warns only when useful: the four horizontal faces within 8 blocks of the hull
+    (`WARN_DISTANCE`), the floor and ceiling only within 2 blocks (`VERTICAL_WARN_DISTANCE`) and only while the pilot's
+    commanded velocity (`BlackRavenCrowPilotClient.commandedVelocity`, taken before collisions and the clamp) heads
+    toward them, since the floor is the fall line under the train and usually within 8 blocks of a crow inside a
+    carriage. Warning faces glow their screen edge(s) (fill gradients, smoothstep intensity), and an arrow points at the
+    nearest warning face with "Edge x.x m" / "边界 x.x 格"; the math is `BlackRavenCrowBoundaryRules`.
+  - *Vision.* Night vision through the crow is a lightmap override (`BlackRavenCrowLightmapMixin`: night vision at full
+    strength, no darkness), never a status effect. Fog and sky read the camera entity, so the body's blackout
+    blindness never shows through the crow; during Perception `BlackRavenCrowFogMixin` / `BlackRavenCrowSkyMixin` read
+    the body instead, so Perception looks as on foot (desaturation and Steve skins already key on the local player).
+    `BlackRavenCrowTerrainGridMixin` centres vanilla's render grid on the crow (skipped under Sodium by
+    `SparkWitchClientMixinPlugin`, like the Seeker's).
+  - *Hiding.* `BlackRavenInstinctVeto` vetoes `BlackRavenCrowForm.isBodyOrCrow` targets for every viewer without
+    spectator information (`BlackRavenInstinctVeto.seesSpectatorInformation`: only dead spectators and admins are
+    exempt, never a living participant in spectator mode). `BlackRavenCrowBodyRenderMixin`
+    (`EntityRenderDispatcher#shouldRender`) skips the hidden body entirely (model, held items, armour, shadow) for the
+    same viewers (`BlackRavenCrowBodyVisibility` shares that exemption); `WraithNameTagPassThrough` lets every name-tag
+    raycast pass through it, and through everything for a viewer flying the crow (labels would be cast from its frozen
+    body); `BlindClientGates` never forces it visible and always hides it from the Blind. The crow is a normal entity
+    with no name tag.
+  - *Renderer.* Crow model B ("Blackcoat crow", owner pick 2026-10-21, `docs/dev-harness/art/black-raven-crow/`):
+    `BlackRavenCrowModel` (64x32 `textures/entity/black_raven_crow.png`, `RenderLayer::getEntityCutout`) posed by the
+    pure `BlackRavenCrowAnimation` (flap 3.5-6 Hz by speed, glide when slow, hover under 1 block/s, perched idle when
+    supported, 0.15 s blends); `BlackRavenCrowRenderer` draws it at 0.85x centred on the 0.5-block hitbox.
+- **Streaming.** `BlackRavenCrowStreaming` and the three `BlackRavenCrow*Mixin`s copy the Seeker remote view: the
+  owner's chunk view, chunk batches and entity tracking centre on the crow, a per-tick expiring
+  `sparkwitch:black_raven_crow` ticket keeps the crow's chunks entity-ticking, and tracking re-evaluates for 40 ticks
+  after the session. They chain with the Seeker's and the drone's mixins.
+- **Hits.** `BlackRavenCrowSessions.killOwnerVia(crow, killer, deathReason)` ends the session (`CROW_KILLED`, no
+  feather) and runs the standard `GameFunctions.killPlayer(owner, true, killer, deathReason)`. Vanilla `damage()` on
+  the crow routes only a Wathe bat melee (`wathe:bat_hit`, reached only by creative attackers) or an explosion of at
+  least 20 (`wathe:grenade`) there; everything else is ignored. Wathe's own weapons never damage a non-player, so
+  `crow/hit/` wires each weapon at its own victim pick (plan v2 §2.5: every weapon that can directly kill a player):
+  - **Owner substitution** (`BlackRavenCrowTargets.substitute`, the stable contract): where a weapon has its own
+    player path, a crow it hits hands that path the crow's OWNER, so every rule the weapon applies to a player victim
+    runs on the Black Raven, shooter consequences included (the Raven is an innocent police role: Wathe's revolver
+    小脑/backfire/mood, the USEC, Swordfish and Mighty Force misfire deaths, faction vetoes, Vendetta isolation, Judge
+    attribution, rewards, records). The substitution remembers the crow for that server tick only;
+    `mixin/blackraven/BlackRavenCrowKillLinkMixin` (non-cancelling HEAD of the 5-argument `killPlayer`) ends the
+    session with `CROW_KILLED` when the weapon then kills that owner, exactly `killOwnerVia`'s first half. A
+    substitution that never reaches `killPlayer` (a backfire, a refused target) expires at the end of the tick, and a
+    receiver that resolves a real player id drops a pending one (`forget`). Weapons without a reusable player path
+    (the bat, sphere blasts, add-on guns) call `killOwnerVia` directly.
+  - **SparkFactionAPI veto** (`BlackRavenCrowTargets.mayAffect`, as `PlayerAffectMixinGuard`: a non-player attacker,
+    the owner itself or a null action pass): SparkFactionAPI's own guards resolve only player ids, and its
+    `killPlayer` HEAD veto cancels a refused kill only after a session end, so a refused crow hit must leave the crow
+    and its session alone. The kill link and `killOwnerVia` end nothing when the killer is refused for the death
+    reason; where SparkFactionAPI vetoes players early, the crow entry refuses first with the same action: the Wathe
+    gun (`wathe:gun`, the crow id stays a miss: no punishment) and knife (`wathe:knife`) receivers, the bat
+    (`wathe:bat`), `crowMeleeStandIn` (`wathe:knife`), sphere blasts (their reason; not counted), and projectiles
+    (`sparkfactionapi:projectile`: `projectileStandIn`, `crowBeforeDevice`, the throwing-axe sweep, and
+    `projectileMayHit` in the shuriken, skull and shell `canHit`, so a refused crow is transparent like a refused
+    player). Weapons without an early SparkFactionAPI veto keep the player parity: the crow absorbs the hit, the
+    weapon's `killPlayer` is cancelled, the session stays.
+  - **Who may hit** (`BlackRavenCrowTargets.hittable`): a live crow (its owner's session still flies it) in the
+    attacker's world, never by its own owner, never by a spectator or creative player; a null attacker is an ownerless
+    blast.
+  - **Nearest wins**: a crow takes a ray or sweep only when strictly nearer than the player the weapon would hit, every
+    Magician puppet it would end and every Seeker device it would break (ties go to them); the crow step runs before the
+    weapon's puppet and device steps (or shrinks the reach they compete with). SparkStrength Bomber drones absorb
+    inside the Seeker hooks: where the crow shrinks the reach (USEC, backblast) a nearer drone absorbs there, and where
+    the crow skips the Seeker step (shotgun, Feather Blade, projectile and axe sweeps) SparkStrength adds its nearest
+    drone to `BlackRavenCrowTargets.deviceSquared`, so the crow loses to it and the Seeker step's drone hook absorbs.
+  - **Lag compensation**: the crow flies up to 24 blocks/s and is drawn on other clients with tracker interval 1 plus
+    3-step interpolation, so every server check that confirms an aim (server rays, client-picked ids, melee reach)
+    tests `BlackRavenCrowHitboxHistory.hitVolumes`: the crow's boxes over the shooter's ping-based rewind window
+    (`HitscanLagRules.rewindTicks`, swept between ticks), like `PlayerHitboxHistory` for players. Projectiles and blasts
+    keep the crow's current box (they are simulated on the server). Client picks (`BlackRavenCrowAim`) use the drawn box
+    grown by 0.1 and never pick the local player's own crow.
+  - **Coverage** (weapon: seam, death reason, shooter consequence):
+    - Wathe revolver/derringer: client `getGunTarget` + crosshair prefer a nearer crow; `BlackRavenCrowGunReceiverMixin`
+      resolves the crow id to the owner (65 cap, look ray on volumes +0.5) and passes the body-measured cap; `wathe:gun`;
+      Wathe's whole player path (innocent-shot punishment, backfire, passenger mood loss, `ShouldPunishGunShooter`).
+    - Wathe knife (killers, the Fiend stab, NoellesRoles instant stabs): client `getKnifeTarget`;
+      `BlackRavenCrowKnifeReceiverMixin` (reach 3.5 on volumes, line of sight; the stab sound plays at the crow);
+      `wathe:knife`; Wathe's stab path (no innocent rule in Wathe).
+    - Wathe bat (also SparkStrength's Silencer bat): `BlackRavenCrowAttackHandlers` (full charge, reach 4, SparkTraits
+      gate and parry); `killOwnerVia`, `wathe:bat`; none.
+    - Wathe grenade (NoellesRoles Bomber and SparkTraits Bomb Maniac grenades too): `BlackRavenCrowGrenadeMixin`
+      (`@WrapMethod` on `onCollision`) runs its own crow pass after a live grenade exploded (discarded by Wathe's
+      server branch), never through Wathe's player list (SparkStrength refilters that by each player's own box):
+      `onGrenadeBlast`, the 3-block sphere on the grenade box centre with a clear line, inside the thrower's Judge
+      attribution, skipping owners the loop already tried to kill (`recordBlastAttempts` through the kill link) and
+      dead ones; `killOwnerVia`, `wathe:grenade`, thrower credited; none.
+    - Hunter shotgun: crow step first in `DoubleBarrelShotgunItem#use` (volumes +0.5 vs the aimed player, puppets,
+      devices); `wathe:gun`; none (no shotgun innocent rule).
+    - USEC AXMC: crow step first in `UsecRifleFireService.resolveMatchHit` (bullet polyline, volumes +0.1), then the
+      puppet/device steps with the crow's distance; `wathe:gun`; `UsecFirePunishment.killAndPunish` (USEC 小脑).
+    - Feather Blade: crow step before the Seeker seam in `FeatherBladeItem#use`; marks the OWNER, because the mark is
+      player state (`BlackRavenMarkPlayerComponent`) that settles 20 s later through `BlackRavenMarkRuntime` (the kill
+      and the marker's 小脑 on an innocent) and must outlive the at most 30 s crow.
+    - Angler Swordfish: `SwordfishStabService.resolveAimedCrow` (the server's own ray on volumes +0.25, strictly before
+      every other candidate); `sparkwitch:swordfish_stab`; the Swordfish friendly-fire `shot_innocent`.
+    - Mighty Force and the Ceremonial Sword strike: `BlackRavenCrowHits.meleeStandIn` at the top of their attack
+      handlers (reach 4, line of sight); the sword dash: `onDashContact` after the puppet contact;
+      `sparkwitch:mighty_force` (misfire `shot_innocent` / forfeit) and `sparkwitch:ceremonial_blade` (none).
+    - Vendetta knife: `stabStandIn` in `VendettaKnifeService.use` (reach 3.5) and the client pick accepts the bound
+      killer's crow; `VendettaTargetingPacketGuard` judges a crow id as its owner; `wathe:knife`; none.
+    - Ninja shuriken and Witch Maiden crimson skull: vanilla collision already stops them on the crow;
+      `projectileStandIn` hands the owner to their player branch; `crowBeforeDevice` skips the Seeker sweep for a
+      nearer crow; `sparkwitch:ninja_shuriken_kill` / `sparkwitch:crimson_wither_skull`; none.
+    - Ninja Knife and a Magician puppet's replayed revolver/knife/bat: `nearerOnLook` on their players-only server
+      pick; `sparkwitch:ninja_knife_kill` / `wathe:gun` / `wathe:knife` / `wathe:bat`; none. A puppet's replayed punch
+      (vanilla `attack()`, no reach check) picks players only (`MagicianPlaybackActionExecutor.pickPlayer`), so it
+      never reaches a hidden body from afar.
+    - NoellesRoles throwing axe: `BlackRavenCrowThrowingAxeMixin` (priority 900, before the Seeker sweep) hands each
+      crow's owner on the tick segment to the axe's own `onEntityHit` (it pierces on); `noellesroles:throwing_axe`;
+      none.
+    - Potion Gunner: the shell bursts on a crow (vanilla collision; `crowBeforeDevice` before the Seeker sweep); only
+      TR kills, and `PotionBlastResolver.addCrows` adds the owner of every crow the player rule catches (cube, sight
+      line, flags, reward); the backblast lane measures crows by the player rule (`backblastLane`);
+      `sparkwitch:potion_shell` / `sparkwitch:potion_backblast`; none.
+    - Murderous Witch Death Ray: `withPiercedCrows` adds every crow on the visible ray (volumes +0.2);
+      `sparkwitch:pierced_by_ray`; none.
+    - SparkStrength M67: `SparkStrengthM67Compat` → `onM67Blast` (sphere 5, line of sight); `killOwnerVia`,
+      `wathe:grenade`; none. SparkStrength Serial Killer pistols: `SparkWitchApi.hitGunWorldTarget` →
+      `onAddonGunShot` (SparkFactionAPI veto, `ShouldPunishGunShooter` custom punishment, `killOwnerVia`, `wathe:gun`).
+    - SparkStrength Veteran knife, Coroner instant silent knife and Silencer knife: their HEAD takeovers in
+      `KnifeStabPayload$Receiver` resolve a non-player id through `SparkWitchApi.crowMeleeStandIn` (reach 3 + 0.5) and
+      run their own player path on the owner; `wathe:knife`; Veteran: `InnocentKnifeKillRules` 小脑
+      (`wathe:shot_innocent`) as for any effective innocent; Coroner and Silencer: none (their own rules).
+    - SparkStrength Undercover tomahawk: the client gate accepts `isBlackRavenCrow`, the server strikes the owner from
+      `crowMeleeStandIn` (reach 3 + 0.5, crit sound at the crow); `sparkstrength:tomahawk`; the tomahawk's 小脑 rule
+      and its kill cooldown.
+    - SparkStrength Bomber bomb drone: `DroneCombatService#detonate` calls `SparkWitchApi.killCrowsInBlast` after its
+      player kills (radius 4, inside its `AttackOriginScope` blast); NoellesRoles `DEATH_REASON_BOMB` instance, the
+      pilot credited; none. A grenade drone drops an ordinary M67 (covered by the M67 seam).
+    - Not lethal to the Black Raven, so they never touch the crow: Taser, Shock Device, Holy Flash, Shriek Gun, Time
+      Stealer Clock, Hunter traps, Taotie heads, and the Demon Hunter pistol (it kills only Jesters and frenzied
+      players).
+- **Perception.** `BlackRavenPerceptionCenter.of(player)` is Perception's distance centre; Raven Form's override
+  answers the crow's position during a session.
+- **Cooldown.** `compat/cooldown/BlackRavenCrowCooldownStore` (`sparkwitch:black_raven_crow`, appended after the Mini
+  Wither toggle) exposes it to the SparkFactionAPI forced-cooldown contract. The admin `clearCooldown` clears only the
+  held item, so, like the Mini Wither toggle, it does not reach Raven Form.
+- **Disguise.** The Raven Mask switch answers `window_active` while the crow flies; Raven Form refuses a disguised
+  Raven (`disguised`).
+- **Right-click (crow-world).** `BlackRavenCrowUseService` / `BlackRavenCrowUseRules` are Raven-owned copies of the
+  Seeker car use (the Seeker's classes are untouched; only its two read-only vanilla-field accessors are reused):
+  session-owned crow id, throttle (client 4 ticks, server 2), reach 3.0 from the crow's eye plus 1.5 server slack, an
+  80° 3D look cone, outline sight ray, then Wathe small/train doors through `DoorInteraction.EVENT` with
+  `ItemStack.EMPTY` and the body as the acting player (locked, key and jammed doors refuse with Wathe's tips), vanilla
+  doors, trapdoors and fence gates sourced by the crow, buttons and levers. Never an item, entity or attack.
+- **Homing Feather (归羽).** `BlackRavenFeatherRegistry` (from `SparkWitch`) registers the display-only item and the
+  marker entity (both `sparkwitch:homing_feather`) and the particle `sparkwitch:black_feather`. The item is not in
+  `SparkWitchItems`, is skipped by the SparkWitch tab and deletes itself in any player inventory. `handleDrop` spawns
+  one `BlackRavenFeatherEntity` per session at the crow (silent refusal otherwise): it drifts down
+  (`BlackRavenCrowFeatherRules`), rests, is visible to all within 64 blocks, cannot be picked up, hit, targeted, pushed
+  or destroyed, reports its rest position through `updateFeatherPos`, and an expiring radius-2 chunk ticket keeps it
+  ticking far behind the crow. It removes itself when its session no longer names it; every `ENDED` removes it first.
+- **Landing.** `BlackRavenCrowLandingService` listens to `ENDED`: only `usesHomingFeather()` with a feather and a
+  playing owner lands at the feather (a still-falling feather is projected to the floor); `BlackRavenCrowLandingSafety`
+  (a copy of the package-private `RiftExitSafety`, driven by the public `RiftExitSearch` ring) picks the spot, else the
+  owner stays at the body with `message.sparkwitch.black_raven_crow.feather_blocked`. A landing teleports (body
+  yaw/pitch kept), starts the 3 s `setLandingHoldUntil`, plays parrot fly 0.6 + phantom flap 0.5 at the spot, and
+  swirls `black_feather` particles from 3 per tick to none: vanilla velocity-mode particle packets launched
+  tangentially, the client particle turning its velocity by `SWIRL_TURN` each tick so it orbits (no custom packet).
+- **Landing hold.** `ControlExpertStun.isStunned` answers true while `BlackRavenCrowLandingHold.isHeld` (server: world
+  time; owner's client: until the server's zero sync), so the stun's interaction guards, payload deny-list, role
+  refusals and client key lock apply with free mouse look. The hold service pulls a drifting player back with a
+  rotation-relative teleport, lets a drift over 4 blocks (another system's teleport) end the hold, and zeroes the field
+  when time is up. The player stays visible and attackable.
+- **Frozen body.** `BlackRavenCrowBodyGuards` fails the five Fabric use/attack callbacks in crow form (phase
+  `sparkwitch:black_raven_crow_body` before default); `BlackRavenCrowBodyInventoryGuardMixin` drops slot clicks, drops
+  and hand swaps; `BlackRavenCrowBodyPayloadGuardMixin` drops the stun deny-list except the four crow ids and
+  Perception's `sparkwitch:use_skill`.
+- **Blackout, voice, Fear, Blind.** A `BlackoutEffect.BEFORE` listener cancels blackout blindness in crow form without
+  removing existing blindness (Wathe re-applies it every tick, so a later end is blind like any police). The voice
+  plugin mutes a crow-form speaker after the Rift branch; they still hear. Fear keeps `black_raven_crow_move` on its
+  list but drops it silently (`GrandWitchFearService.isSilentlyBlockedPayload`). The Blind's server sound probe treats a
+  hidden body as SILENT and the cane never lists it; the crow is an ordinary non-player source.
+
 ## Tofana Elixir Vocabulary
 
 - **Tofana protection**: A single-use protection granted by possessing Tofana Elixir. It cancels one otherwise valid, non-forced Wathe kill by another active player and consumes one elixir.
@@ -3233,9 +3597,8 @@ manual checks:
   allowed disguise role. Classify each one as a self gate (widened) or an inspection (raw).
 - **SparkStrength floor bump:**
   - Re-check the `sparkstrength:flashlight` id used by `SparkStrengthDisguiseCompat`.
-  - Re-check the `@Pseudo` targets `KillerTeamEconomyService` (`recordIncome`,
-    `availableForPurchase`, `personalBalanceAfterPurchase`) and
-    `EngineerPowerRestorationService#distributeRestorationCost` (its `addToBalance` call).
-  - Both seams use `require = 0`, so a rename silently degrades to the live wallet.
+  - Re-check the `@Pseudo` target `KillerTeamEconomyService` (`recordIncome`,
+    `availableForPurchase`, `personalBalanceAfterPurchase`).
+  - The seam uses `require = 0`, so a rename silently degrades to the live wallet.
   - Re-check `DemonHunterSniffRules`, which reads the shop through M2 and must never see
     `psycho_mode`.

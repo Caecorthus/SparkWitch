@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.killer.magician;
 
 import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -60,7 +61,9 @@ public final class MagicianPlaybackActionExecutor {
         }
     }
     private static void attack(ServerPlayerEntity owner, MagicianPlaybackFakePlayer proxy, MagicianPlaybackEntity visible) {
-        ServerPlayerEntity target = target(owner, proxy, MagicianConstants.KNIFE_RANGE);
+        // Players only: vanilla attack() has no reach check, so a crow stand-in would punch the hidden body from afar.
+        // 只选玩家：原版 attack() 不检查距离，乌鸦替身会让拳头隔空打到隐藏的本体。
+        ServerPlayerEntity target = pickPlayer(owner, proxy, MagicianConstants.KNIFE_RANGE);
         if (target == null) return;
         // 普通左键必须继续走 Minecraft 原版伤害链，不能把空手挥击错误变成瞬杀。A recorded ATTACK is a left-click
         // that reached the attack chain (a punch, also with a knife in hand, as in Wathe); a full-charge bat kill is
@@ -193,12 +196,24 @@ public final class MagicianPlaybackActionExecutor {
      * 也不会是旁观者或已死亡玩家。
      */
     private static @Nullable ServerPlayerEntity target(ServerPlayerEntity owner, PlayerEntity proxy, double range) {
+        ServerPlayerEntity picked = pickPlayer(owner, proxy, range);
+        // Raven Form seam (the lethal gun/knife/bat replays only): a crow strictly nearer on the puppet's look ray stands
+        // in for its owner. / 化鸦接缝（仅致命的枪/刀/球棒回放）：皮套视线上严格更近的乌鸦以其主人代入。
+        ServerPlayerEntity crowOwner = proxy instanceof ServerPlayerEntity attacker
+                ? BlackRavenCrowHits.nearerOnLook(attacker, picked, range) : null;
+        return crowOwner != null ? crowOwner : picked;
+    }
+    /**
+     * The players-only half of {@link #target}: the nearest eligible player on the puppet's block-clipped look ray,
+     * never a Raven Form crow's owner. / {@link #target} 只选玩家的一半：皮套按方块截断的视线上最近的合格玩家，绝不是化鸦乌鸦的主人。
+     */
+    private static @Nullable ServerPlayerEntity pickPlayer(ServerPlayerEntity owner, PlayerEntity proxy, double range) {
         HitResult hit = ProjectileUtil.getCollision(proxy,
                 e -> e instanceof ServerPlayerEntity p && !p.getUuid().equals(owner.getUuid())
                         && !p.isSpectator() && GameFunctions.isPlayerAliveAndSurvival(p),
                 range);
-        return hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof ServerPlayerEntity target
-                ? target : null;
+        return hit instanceof EntityHitResult entityHit
+                && entityHit.getEntity() instanceof ServerPlayerEntity target ? target : null;
     }
     /**
      * SparkStrength Partygoer seam (owner rule 2026-10-21: whatever kills a player kills a Partygoer in one hit): the

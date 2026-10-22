@@ -24,6 +24,9 @@ public final class SparkWitchClientMixinPlugin implements IMixinConfigPlugin {
     static final String SODIUM_MOD_ID = "sodium";
     static final String TERRAIN_GRID_MIXIN =
             "dev.caecorthus.sparkwitch.client.mixin.seeker.SeekerRemoteTerrainGridMixin";
+    /** The Black Raven crow view's grid hook, skipped under Sodium for the same reason. / 黑羽鸦乌鸦视角的网格钩子，同理跳过。 */
+    static final String CROW_TERRAIN_GRID_MIXIN =
+            "dev.caecorthus.sparkwitch.client.mixin.blackraven.crow.BlackRavenCrowTerrainGridMixin";
 
     private boolean sodiumLoaded;
 
@@ -44,7 +47,8 @@ public final class SparkWitchClientMixinPlugin implements IMixinConfigPlugin {
 
     /** Pure decision, unit-tested without a loader. / 纯判定，可脱离加载器做单元测试。 */
     static boolean applies(String mixinClassName, boolean sodiumLoaded) {
-        return !(sodiumLoaded && TERRAIN_GRID_MIXIN.equals(mixinClassName));
+        return !(sodiumLoaded
+                && (TERRAIN_GRID_MIXIN.equals(mixinClassName) || CROW_TERRAIN_GRID_MIXIN.equals(mixinClassName)));
     }
 
     @Override

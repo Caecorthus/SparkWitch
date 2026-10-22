@@ -5,6 +5,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionWinResult;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.caecorthus.sparkwitch.compat.ShadowJesterShowdownBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsLastStandBridge;
+import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenSettlement;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendParticipation;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.doctor4t.wathe.api.Role;
@@ -109,6 +110,11 @@ public final class WitchWinConditions {
             // D1: a dormant Fiend counts as not alive for the Witch win and the showdown gate.
             // D1：休眠魔人在魔女胜利与双影谢幕门槛中视为不存活。
             if (!GameFunctions.isPlayerPlayingAndAlive(player) || FiendParticipation.isDormantFiend(player)) {
+                continue;
+            }
+            // Plan v2 §3.3: the Black Raven never counts as alive for settlement (Witch win and showdown gate alike).
+            // 计划 v2 §3.3：黑羽鸦在结算中永不算存活（魔女胜利与双影谢幕门槛均如此）。
+            if (BlackRavenSettlement.isExcluded(player)) {
                 continue;
             }
             livingPlayerCount++;

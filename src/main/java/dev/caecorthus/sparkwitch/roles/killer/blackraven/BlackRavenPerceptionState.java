@@ -10,8 +10,8 @@ import java.util.function.Supplier;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Server-authoritative Perception progress; only completed snapshots are client-visible.
- * 服务端权威的感知进度；客户端只能看到已完成的身份快照。
+ * Server-authoritative Perception progress; only completed perceived-player snapshots are client-visible.
+ * 服务端权威的感知进度；客户端只能看到已完成的被感知者快照。
  */
 public final class BlackRavenPerceptionState {
     private @Nullable UUID matchId;
