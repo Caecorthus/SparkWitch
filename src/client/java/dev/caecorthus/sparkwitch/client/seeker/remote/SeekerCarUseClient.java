@@ -49,6 +49,18 @@ public final class SeekerCarUseClient {
     private static final float OUTLINE_ALPHA = 0.4F;
     private static boolean registered;
     private static int ticksSinceUse = SeekerRules.CAR_USE_INTERVAL_TICKS;
+    // One aim() per rendered frame: the world pass (BEFORE_BLOCK_OUTLINE) stores its ray and the HUD hint of the same
+    // frame reuses it. WorldRenderEvents.START clears it each frame; no tick, packet or input runs between the world
+    // and HUD passes, and the car id and tick delta must match, so the reused ray equals a fresh one. Only an entity
+    // id is kept, never the entity, so no old world is retained.
+    // 每个渲染帧只调用一次 aim()：世界阶段（BEFORE_BLOCK_OUTLINE）保存其射线，同一帧的 HUD 提示复用它。
+    // WorldRenderEvents.START 每帧清除；世界阶段与 HUD 阶段之间不会运行 tick、数据包或输入，且小车 id 与 tick delta
+    // 必须一致，因此复用的射线与重新计算的相同。只保存实体 id 而不持有实体，避免旧世界无法释放。
+    private static boolean frameAimFresh;
+    private static int frameAimCarId;
+    private static float frameAimTickDelta;
+    @Nullable
+    private static BlockHitResult frameAim;
 
     private SeekerCarUseClient() {
     }
@@ -66,6 +78,7 @@ public final class SeekerCarUseClient {
         }
         registered = true;
         ClientTickEvents.START_CLIENT_TICK.register(SeekerCarUseClient::tick);
+        WorldRenderEvents.START.register(context -> forgetFrameAim());
         WorldRenderEvents.BEFORE_BLOCK_OUTLINE.register(SeekerCarUseClient::renderOutline);
     }
 
@@ -100,7 +113,7 @@ public final class SeekerCarUseClient {
     static void renderHint(DrawContext context, TextRenderer text, RenderTickCounter tickCounter, int width,
                            int height, int color) {
         SeekerCarEntity car = drivenCar();
-        BlockHitResult aim = car == null ? null : aim(car, tickCounter.getTickDelta(true));
+        BlockHitResult aim = car == null ? null : frameAim(car, tickCounter.getTickDelta(true));
         if (aim == null) {
             return;
         }
@@ -129,7 +142,12 @@ public final class SeekerCarUseClient {
                 || client.player == null || SeekerCctvOverlay.isSignalLost(client.player)) {
             return true;
         }
-        BlockHitResult aim = aim(car, context.tickCounter().getTickDelta(true));
+        float tickDelta = context.tickCounter().getTickDelta(true);
+        BlockHitResult aim = aim(car, tickDelta);
+        frameAimFresh = true;
+        frameAimCarId = car.getId();
+        frameAimTickDelta = tickDelta;
+        frameAim = aim;
         if (aim == null) {
             return true;
         }
@@ -150,6 +168,20 @@ public final class SeekerCarUseClient {
         }
         return SeekerRemoteViewClient.focus() instanceof SeekerCarEntity car && SeekerRemoteViewClient.isDriving(car)
                 && !car.isRemoved() ? car : null;
+    }
+
+    private static void forgetFrameAim() {
+        frameAimFresh = false;
+        frameAim = null;
+    }
+
+    /** This frame's stored aim when it was cast for this car and tick delta, else a fresh one. / 本帧已保存且匹配时复用。 */
+    @Nullable
+    private static BlockHitResult frameAim(SeekerCarEntity car, float tickDelta) {
+        if (frameAimFresh && frameAimCarId == car.getId() && frameAimTickDelta == tickDelta) {
+            return frameAim;
+        }
+        return aim(car, tickDelta);
     }
 
     /** The whitelisted block the car aims at within reach, or null. / 小车在触及范围内瞄准的白名单方块，否则为 null。 */

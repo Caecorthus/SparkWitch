@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.seeker.remote;
 
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
+import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.seeker.SeekerClientState;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCameraRules;
@@ -15,8 +16,10 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
@@ -24,6 +27,7 @@ import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Client-only CCTV overlay for the Seeker's remote view ({@code HudRenderCallback}): frame corners, blinking REC, mode
@@ -55,6 +59,11 @@ public final class SeekerCctvOverlay {
     private static boolean registered;
     private static int sessionId = Integer.MIN_VALUE;
     private static int sessionStartAge;
+    // Resolved on first use: the status effect registry is frozen after mod init, so the Gin entry (or its absence
+    // without NoellesRoles) never changes for the session; registry sync only remaps raw ids, not entry objects.
+    // 首次使用时解析：状态效果注册表在模组初始化后即冻结，金酒条目（或未安装 NoellesRoles 时的缺失）在整个会话中
+    // 不会改变；注册表同步只重映射数字 id，不替换条目对象。
+    private static Optional<RegistryEntry.Reference<StatusEffect>> ginImmunity;
 
     private SeekerCctvOverlay() {
     }
@@ -109,7 +118,12 @@ public final class SeekerCctvOverlay {
      * 本体失明或处于黑暗且没有金酒免疫；与 {@link SeekerViewFilter} 共用，使着色器同样黑屏。
      */
     public static boolean isSignalLost(ClientPlayerEntity player) {
-        boolean ginImmune = Registries.STATUS_EFFECT.getEntry(GIN_IMMUNITY_ID).map(player::hasStatusEffect).orElse(false);
+        Optional<RegistryEntry.Reference<StatusEffect>> gin = ginImmunity;
+        if (gin == null) {
+            gin = Registries.STATUS_EFFECT.getEntry(GIN_IMMUNITY_ID);
+            ginImmunity = gin;
+        }
+        boolean ginImmune = gin.isPresent() && player.hasStatusEffect(gin.get());
         return SeekerCctvRules.signalLost(player.hasStatusEffect(StatusEffects.BLINDNESS),
                 player.hasStatusEffect(StatusEffects.DARKNESS), ginImmune);
     }
@@ -133,11 +147,15 @@ public final class SeekerCctvOverlay {
         int color = (SeekerCctvRules.frameColor(SeekerRemoteViewClient.mode()) & 0x00FFFFFF) | 0xC0000000;
         int x = context.getScaledWindowWidth() / 2;
         int y = context.getScaledWindowHeight() / 2;
-        context.fill(x - 7, y, x - 3, y + 1, color);
-        context.fill(x + 4, y, x + 8, y + 1, color);
-        context.fill(x, y - 7, x + 1, y - 3, color);
-        context.fill(x, y + 4, x + 1, y + 8, color);
-        context.fill(x, y, x + 1, y + 1, color);
+        // Fills only, one GUI layer, in call order: one batched draw is pixel-identical.
+        // 同一 GUI 层的纯填充按调用顺序合批，像素不变。
+        InventoryCardPaint.batch(context, () -> {
+            context.fill(x - 7, y, x - 3, y + 1, color);
+            context.fill(x + 4, y, x + 8, y + 1, color);
+            context.fill(x, y - 7, x + 1, y - 3, color);
+            context.fill(x, y + 4, x + 1, y + 8, color);
+            context.fill(x, y, x + 1, y + 1, color);
+        });
     }
 
     private static void trackSession(ClientPlayerEntity player) {
@@ -156,14 +174,16 @@ public final class SeekerCctvOverlay {
         int top = INSET;
         int right = width - INSET;
         int bottom = height - INSET;
-        context.fill(left, top, left + CORNER, top + 1, color);
-        context.fill(left, top, left + 1, top + CORNER, color);
-        context.fill(right - CORNER, top, right, top + 1, color);
-        context.fill(right - 1, top, right, top + CORNER, color);
-        context.fill(left, bottom - 1, left + CORNER, bottom, color);
-        context.fill(left, bottom - CORNER, left + 1, bottom, color);
-        context.fill(right - CORNER, bottom - 1, right, bottom, color);
-        context.fill(right - 1, bottom - CORNER, right, bottom, color);
+        InventoryCardPaint.batch(context, () -> {
+            context.fill(left, top, left + CORNER, top + 1, color);
+            context.fill(left, top, left + 1, top + CORNER, color);
+            context.fill(right - CORNER, top, right, top + 1, color);
+            context.fill(right - 1, top, right, top + CORNER, color);
+            context.fill(left, bottom - 1, left + CORNER, bottom, color);
+            context.fill(left, bottom - CORNER, left + 1, bottom, color);
+            context.fill(right - CORNER, bottom - 1, right, bottom, color);
+            context.fill(right - 1, bottom - CORNER, right, bottom, color);
+        });
     }
 
     private static void renderStatusBlock(DrawContext context, TextRenderer text, ClientPlayerEntity player,
@@ -199,18 +219,21 @@ public final class SeekerCctvOverlay {
         int y = height - HOTBAR_CLEARANCE - BATTERY_BAR_HEIGHT - 6;
         context.drawTextWithShadow(text, Text.translatable("hud.sparkwitch.seeker.view.battery", battery), x,
                 y - text.fontHeight - 2, color);
-        // Frame + terminal nub. / 外框与电池正极凸起。
-        context.fill(x - 1, y - 1, x + BATTERY_BAR_WIDTH + 1, y + BATTERY_BAR_HEIGHT + 1, 0xC0000000);
-        context.fill(x + BATTERY_BAR_WIDTH + 1, y + 2, x + BATTERY_BAR_WIDTH + 3, y + BATTERY_BAR_HEIGHT - 2,
-                0xC0000000);
-        if (SeekerCctvRules.batteryVisible(battery, ticks)) {
-            int segments = SeekerCctvRules.batterySegments(battery);
-            int segmentWidth = BATTERY_BAR_WIDTH / SeekerCctvRules.BATTERY_SEGMENTS;
-            for (int i = 0; i < segments; i++) {
-                int left = x + i * segmentWidth + 1;
-                context.fill(left, y + 1, left + segmentWidth - 2, y + BATTERY_BAR_HEIGHT - 1, color);
+        // Frame + terminal nub, then the segments: fills only, flushed together before the warning text.
+        // 外框与电池正极凸起，然后是电量格：纯填充，在警告文字之前一并提交。
+        InventoryCardPaint.batch(context, () -> {
+            context.fill(x - 1, y - 1, x + BATTERY_BAR_WIDTH + 1, y + BATTERY_BAR_HEIGHT + 1, 0xC0000000);
+            context.fill(x + BATTERY_BAR_WIDTH + 1, y + 2, x + BATTERY_BAR_WIDTH + 3, y + BATTERY_BAR_HEIGHT - 2,
+                    0xC0000000);
+            if (SeekerCctvRules.batteryVisible(battery, ticks)) {
+                int segments = SeekerCctvRules.batterySegments(battery);
+                int segmentWidth = BATTERY_BAR_WIDTH / SeekerCctvRules.BATTERY_SEGMENTS;
+                for (int i = 0; i < segments; i++) {
+                    int left = x + i * segmentWidth + 1;
+                    context.fill(left, y + 1, left + segmentWidth - 2, y + BATTERY_BAR_HEIGHT - 1, color);
+                }
             }
-        }
+        });
         if (SeekerRules.isBatteryWarning(battery)) {
             Text warning = Text.translatable(SeekerRules.isBatteryCritical(battery)
                     ? "hud.sparkwitch.seeker.battery.critical" : "hud.sparkwitch.seeker.battery.low");
@@ -290,16 +313,22 @@ public final class SeekerCctvOverlay {
                             @Nullable Text subtitle, boolean exitHint) {
         int width = context.getScaledWindowWidth();
         int height = context.getScaledWindowHeight();
-        context.fill(0, 0, width, height, SeekerCctvRules.SIGNAL_LOST_BACKGROUND);
-        // Deterministic static per tick: no per-frame allocation-heavy noise. / 每 tick 确定性的雪花噪声。
-        Random random = Random.create(ticks * 31L + 7L);
-        for (int i = 0; i < 48; i++) {
-            int y = random.nextInt(Math.max(1, height));
-            int x = random.nextInt(Math.max(1, width));
-            int length = 8 + random.nextInt(Math.max(1, width / 3));
-            int grey = 0x30 + random.nextInt(0x50);
-            context.fill(x, y, Math.min(width, x + length), y + 1, 0x60000000 | grey << 16 | grey << 8 | grey);
-        }
+        // The backing and the 49 static fills share the GUI fill layer and are submitted in call order, so one
+        // batched draw blends exactly like 49 separate flushes; the text below is drawn after it as before.
+        // 底色与 49 次雪花填充同属 GUI 填充层并按调用顺序提交，因此一次合批绘制的混合结果与 49 次单独提交完全相同；
+        // 下方文字仍在其后绘制。
+        InventoryCardPaint.batch(context, () -> {
+            context.fill(0, 0, width, height, SeekerCctvRules.SIGNAL_LOST_BACKGROUND);
+            // Deterministic static per tick: no per-frame allocation-heavy noise. / 每 tick 确定性的雪花噪声。
+            Random random = Random.create(ticks * 31L + 7L);
+            for (int i = 0; i < 48; i++) {
+                int y = random.nextInt(Math.max(1, height));
+                int x = random.nextInt(Math.max(1, width));
+                int length = 8 + random.nextInt(Math.max(1, width / 3));
+                int grey = 0x30 + random.nextInt(0x50);
+                context.fill(x, y, Math.min(width, x + length), y + 1, 0x60000000 | grey << 16 | grey << 8 | grey);
+            }
+        });
         context.getMatrices().push();
         context.getMatrices().translate(width / 2.0F, height / 2.0F - 12.0F, 0.0F);
         context.getMatrices().scale(2.0F, 2.0F, 1.0F);
