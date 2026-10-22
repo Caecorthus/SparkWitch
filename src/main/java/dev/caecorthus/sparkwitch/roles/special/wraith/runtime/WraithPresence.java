@@ -19,6 +19,12 @@ import org.agmas.noellesroles.silencer.SilencedPlayerComponent;
  */
 public final class WraithPresence {
     private static final Identifier NO_COLLISION = Identifier.of("noellesroles", "no_collision");
+    /**
+     * Resolved on first use; the static STATUS_EFFECT registry never replaces the registered reference. Absence is not
+     * latched (it still throws on every call). / 首次使用时解析；静态 STATUS_EFFECT 注册表从不替换已注册的引用。
+     * 缺失不会被锁定（每次调用仍会抛出）。
+     */
+    private static volatile RegistryEntry<StatusEffect> noCollision;
 
     private WraithPresence() {
     }
@@ -70,7 +76,12 @@ public final class WraithPresence {
     }
 
     private static RegistryEntry<StatusEffect> noCollisionEffect() {
-        return Registries.STATUS_EFFECT.getEntry(NO_COLLISION).orElseThrow(() ->
-                new IllegalStateException("Missing NoellesRoles status effect: " + NO_COLLISION));
+        RegistryEntry<StatusEffect> effect = noCollision;
+        if (effect == null) {
+            effect = Registries.STATUS_EFFECT.getEntry(NO_COLLISION).orElseThrow(() ->
+                    new IllegalStateException("Missing NoellesRoles status effect: " + NO_COLLISION));
+            noCollision = effect;
+        }
+        return effect;
     }
 }

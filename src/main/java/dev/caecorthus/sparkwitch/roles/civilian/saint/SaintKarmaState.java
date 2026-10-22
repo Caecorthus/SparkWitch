@@ -71,7 +71,10 @@ public final class SaintKarmaState {
 
     public void tick() {
         remainingTicks.replaceAll((playerUuid, ticks) -> Math.max(0, ticks - 1));
-        adminClearedItems.keySet().removeIf(playerUuid -> remainingTicks(playerUuid) <= 0);
+        // Skips the capturing lambda and iterator when there is nothing to drop. / 无可丢弃时跳过捕获 lambda 与迭代器。
+        if (!adminClearedItems.isEmpty()) {
+            adminClearedItems.keySet().removeIf(playerUuid -> remainingTicks(playerUuid) <= 0);
+        }
     }
 
     public void restore(UUID playerUuid, int ticks) {

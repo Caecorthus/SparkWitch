@@ -10,7 +10,6 @@ import net.minecraft.block.EntityShapeContext;
 import net.minecraft.block.FenceGateBlock;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.TrapdoorBlock;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.shape.VoxelShape;
@@ -48,16 +47,17 @@ public abstract class WraithDoorPassingMixin {
             ShapeContext context,
             CallbackInfoReturnable<VoxelShape> cir
     ) {
-        if (context instanceof EntityShapeContext entityContext) {
-            Entity entity = entityContext.getEntity();
-            BlockState state = (BlockState) (Object) this;
-            if (entity instanceof PlayerEntity player
-                    && WraithStateService.isActive(player)
-                    && isDoorFamilyBlock(state)
-                    && !RaycastShapeScope.isRaycast()) {
-                // 只对正在查询碰撞的冤魂本人返回空形状；非冤魂仍使用目标方块原本的碰撞体积。
-                cir.setReturnValue(VoxelShapes.empty());
-            }
+        // Hot path (every collision-shape query on both sides): the side-effect-free tests run cheapest first, so a
+        // non-door block returns before any entity, component or thread-local read; the result is unchanged.
+        // 热路径（双端每次碰撞形状查询）：无副作用的判断按开销从低到高排列，非门类方块在读取实体、组件或线程局部变量前
+        // 即返回；结果不变。
+        if (isDoorFamilyBlock((BlockState) (Object) this)
+                && context instanceof EntityShapeContext entityContext
+                && entityContext.getEntity() instanceof PlayerEntity player
+                && WraithStateService.isActive(player)
+                && !RaycastShapeScope.isRaycast()) {
+            // 只对正在查询碰撞的冤魂本人返回空形状；非冤魂仍使用目标方块原本的碰撞体积。
+            cir.setReturnValue(VoxelShapes.empty());
         }
     }
 

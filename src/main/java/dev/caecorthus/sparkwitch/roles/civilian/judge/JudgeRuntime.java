@@ -22,6 +22,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 
 import java.util.Comparator;
 import java.util.List;
@@ -60,8 +61,13 @@ public final class JudgeRuntime {
         });
         TaskComplete.EVENT.register((player, task) -> JudgeEconomyService.onTaskComplete(player));
         CanSeeMoney.EVENT.register(player -> canJudge(player) ? CanSeeMoney.Result.ALLOW : null);
+        // JOIN fires inside PlayerManager#onPlayerConnect before the joiner is added to its world, so a world-wide
+        // sync reached only the players already there, whose views a join cannot change; CCA then syncs every world
+        // component to the joiner in sendWorldInfo. Only the joiner is synced here.
+        // JOIN 在 PlayerManager#onPlayerConnect 中、加入者被加入世界之前触发，因此全世界同步只会发给已在世界中的玩家，
+        // 而加入不会改变他们的视图；随后 CCA 在 sendWorldInfo 中把所有世界组件同步给加入者。这里只同步加入者。
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                JudgeWorldComponent.KEY.get(handler.player.getServerWorld()).sync());
+                JudgeWorldComponent.KEY.syncWith(handler.player, (ComponentProvider) handler.player.getServerWorld()));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             for (ServerWorld world : server.getWorlds()) {
                 JudgeWorldComponent.KEY.get(world).sessions().invalidate(handler.player.getUuid());

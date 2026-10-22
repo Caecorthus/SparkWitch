@@ -79,7 +79,8 @@ public final class EmmaLifecycle {
         EmmaRoundComponent round = EmmaRoundComponent.KEY.get(world);
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         if (!round.active() || !game.isRunning()) return;
-        for (var entry : Map.copyOf(round.penalties()).entrySet()) {
+        // Most rounds have no pending penalty: skip the defensive copy. / 多数回合没有待结算惩罚：跳过防御性拷贝。
+        if (!round.penalties().isEmpty()) for (var entry : Map.copyOf(round.penalties()).entrySet()) {
             ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(entry.getKey());
             if (player == null || player.getServerWorld() != world) continue;
             if (!GameFunctions.isPlayerPlayingAndAlive(player)) {
@@ -103,7 +104,8 @@ public final class EmmaLifecycle {
             personal.joinRound(round.roundId());
             if (!EmmaRules.isEmma(game.getRole(player)) || !GameFunctions.isPlayerPlayingAndAlive(player)
                     || round.died(player.getUuid())) {
-                removeOwnedSpeed(player);
+                // Nothing owned means nothing to remove (the common no-Emma round). / 未持有即无可移除（常见的无艾玛回合）。
+                if (!OWN_SPEED.isEmpty()) removeOwnedSpeed(player);
                 continue;
             }
             if (WitchFactorService.hasReachedSpeedThreshold(world)) personal.unlockSpeed();

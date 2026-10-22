@@ -96,13 +96,13 @@ public final class PerfumerRuntime {
 
     private static boolean hasNearbyVisibleCorpse(ServerPlayerEntity player) {
         ServerWorld world = player.getServerWorld();
-        return world.getEntitiesByClass(
+        return !world.getEntitiesByClass(
                 PlayerBodyEntity.class,
                 player.getBoundingBox().expand(PerfumerRules.CORPSE_SANITY_RANGE_BLOCKS),
                 body -> PerfumerRules.isWithinCorpseSanityRange(player.squaredDistanceTo(body))
                         && !NoellesHiddenBodiesBridge.isHidden(world, body.getPlayerUuid())
                         // A killed Partygoer's corpse doesn't weigh on the mind. / 派对客的尸体不会压在心头。
                         && !SparkStrengthPartygoerCompat.isPartygoerCorpse(body)
-        ).stream().findAny().isPresent();
+        ).isEmpty();
     }
 }

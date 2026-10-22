@@ -62,7 +62,14 @@ final class WraithPromotionQueue {
     }
 
     static void finishPromotions(MinecraftServer server) {
-        tickRetryDelays();
+        // Every server tick: both copies are skipped while empty (retries may refill PENDING first).
+        // 每个服务端 tick 执行：两处拷贝在为空时跳过（重试可能先向 PENDING 补入）。
+        if (!RETRY_DELAYS.isEmpty()) {
+            tickRetryDelays();
+        }
+        if (PENDING.isEmpty()) {
+            return;
+        }
         for (UUID uuid : new ArrayList<>(PENDING)) {
             PENDING.remove(uuid);
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);

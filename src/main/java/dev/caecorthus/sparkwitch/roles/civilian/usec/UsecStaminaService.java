@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.usec;
 
+import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerStaminaComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -44,8 +45,14 @@ public final class UsecStaminaService {
             return;
         }
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
-        if (game == null || !UsecStaminaRules.appliesTo(game.isRunning(),
-                GameFunctions.isPlayerAliveAndSurvival(player), game.getRole(player))) {
+        if (game == null) {
+            return;
+        }
+        // Runs for every player every tick: the role test rejects non-USEC players before the other (side-effect
+        // free) lookups. / 每 tick 对每名玩家执行：先用职业判断排除非 USEC 玩家，再做其余（无副作用的）查询。
+        Role role = game.getRole(player);
+        if (!UsecRules.isUsec(role) || !UsecStaminaRules.appliesTo(game.isRunning(),
+                GameFunctions.isPlayerAliveAndSurvival(player), role)) {
             return;
         }
         PlayerStaminaComponent stamina = PlayerStaminaComponent.KEY.get(player);

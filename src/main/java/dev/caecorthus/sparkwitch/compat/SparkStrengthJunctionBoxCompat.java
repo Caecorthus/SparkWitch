@@ -5,6 +5,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
+import java.lang.reflect.Method;
+
 /**
  * Optional SparkStrength junction-box seam (owner decision 2026-10-21): a weapon hit on a saboteur junction box
  * ({@code sparkstrength:junction_box}). SparkWitch never compiles against SparkStrength, so this is the only SparkWitch
@@ -44,14 +46,34 @@ public final class SparkStrengthJunctionBoxCompat {
         if (attacker == null || pos == null || damage <= 0 || !FabricLoader.getInstance().isModLoaded(MOD_ID)) {
             return false;
         }
+        Method damageByWeapon = Holder.DAMAGE_BY_WEAPON_METHOD;
+        if (damageByWeapon == null) {
+            return false;
+        }
         try {
-            Object result = Class.forName(JUNCTION_BOX_SERVICE)
-                    .getMethod(DAMAGE_BY_WEAPON, ServerPlayerEntity.class, BlockPos.class, int.class)
-                    .invoke(null, attacker, pos, damage);
+            Object result = damageByWeapon.invoke(null, attacker, pos, damage);
             return result instanceof Boolean applied && applied;
         } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
             // Fail closed: the shot leaves the box untouched. / 失败即关闭：这一枪不影响箱子。
             return false;
+        }
+    }
+
+    /**
+     * Resolved once, after the mod-loaded guard (class init is thread-safe); SparkStrength's classes never change at
+     * runtime, so a failed lookup is latched as null (the hit does nothing).
+     * 在模组加载守卫之后解析一次（类初始化线程安全）；SparkStrength 的类在运行期不会改变，因此查找失败锁定为 null（命中无效）。
+     */
+    private static final class Holder {
+        private static final Method DAMAGE_BY_WEAPON_METHOD = resolve();
+
+        private static Method resolve() {
+            try {
+                return Class.forName(JUNCTION_BOX_SERVICE)
+                        .getMethod(DAMAGE_BY_WEAPON, ServerPlayerEntity.class, BlockPos.class, int.class);
+            } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+                return null;
+            }
         }
     }
 }

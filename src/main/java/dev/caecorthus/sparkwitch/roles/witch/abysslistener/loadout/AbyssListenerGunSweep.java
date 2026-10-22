@@ -3,8 +3,8 @@ package dev.caecorthus.sparkwitch.roles.witch.abysslistener.loadout;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import java.util.List;
-import java.util.function.BooleanSupplier;
 import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 import net.minecraft.entity.player.PlayerInventory;
 
 /**
@@ -75,9 +75,11 @@ final class AbyssListenerGunSweep {
      * grant, no dedupe (owner rule 2026-10-04).
      * 本刻是否校正该玩家：仅在其错峰清理刻，且只校正对局参与者（{@link OffMatchUse#isMatchParticipant}，只在该刻读取）。
      * 自由持有者完全跳过：不收走、不补发、不去重（所有者 2026-10-04 规则）。
+     * The test takes the player as an argument, so a static method reference is passed and nothing is allocated per
+     * player per tick. / 判定以参数接收玩家，因此可传入静态方法引用，每 tick 每名玩家都不产生分配。
      */
-    static boolean sweeps(long worldTime, int entityId, BooleanSupplier matchParticipant) {
-        return isSweepTick(worldTime, entityId) && matchParticipant.getAsBoolean();
+    static <T> boolean sweeps(long worldTime, int entityId, T player, Predicate<? super T> matchParticipant) {
+        return isSweepTick(worldTime, entityId) && matchParticipant.test(player);
     }
 
     /**

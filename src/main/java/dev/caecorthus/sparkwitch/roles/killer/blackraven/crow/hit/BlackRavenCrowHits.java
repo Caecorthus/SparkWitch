@@ -546,10 +546,17 @@ public final class BlackRavenCrowHits {
         if (thrower != null && attacker == null) {
             return owners;
         }
+        // Live crows first (runs per axe per tick): with none, the Seeker-device box query is skipped. Both reads are
+        // side-effect free, so swapping them leaves the result unchanged.
+        // 先取存活乌鸦（每把飞斧每 tick 执行）：没有乌鸦时跳过搜寻者设备的箱体查询。两次读取都无副作用，交换顺序不改变结果。
+        List<BlackRavenCrowTargets.Target> crows = BlackRavenCrowTargets.live(world, attacker,
+                BlackRavenCrowHitRules.PROJECTILE_ACTION);
+        if (crows.isEmpty()) {
+            return owners;
+        }
         double cut = attacker == null ? Double.POSITIVE_INFINITY
                 : BlackRavenCrowTargets.deviceSquared(attacker, from, to);
-        for (BlackRavenCrowTargets.Target target : BlackRavenCrowTargets.live(world, attacker,
-                BlackRavenCrowHitRules.PROJECTILE_ACTION)) {
+        for (BlackRavenCrowTargets.Target target : crows) {
             double entry = BlackRavenCrowHitRules.entrySquared(from, to, List.of(target.crow().getBoundingBox()));
             if (BlackRavenCrowHitRules.crowWins(entry, cut)) {
                 owners.add(BlackRavenCrowTargets.substitute(target));

@@ -18,10 +18,10 @@ import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /** The complete round ledger is private; sync exposes only public sentences.
  * 完整回合账本仅存服务端，同步只包含公开判决状态。 */
@@ -88,15 +88,40 @@ public final class JudgeWorldComponent implements AutoSyncedComponent, ServerTic
             return;
         }
         JudgeRuntime.tick(serverWorld, this);
-        Set<UUID> viewers = serverWorld.getPlayers().stream()
-                .filter(GameFunctions::isPlayerPlayingAndAlive)
-                .filter(player -> !player.isSpectator() && !player.isCreative())
-                .map(ServerPlayerEntity::getUuid)
-                .collect(Collectors.toSet());
-        if (!previousViewers.equals(viewers)) {
+        List<ServerPlayerEntity> players = serverWorld.getPlayers();
+        if (viewersChanged(players)) {
+            Set<UUID> viewers = new HashSet<>();
+            for (ServerPlayerEntity player : players) {
+                if (isViewer(player)) {
+                    viewers.add(player.getUuid());
+                }
+            }
             previousViewers = Set.copyOf(viewers);
             sync();
         }
+    }
+
+    /**
+     * Allocation-free set comparison: a world's players have distinct UUIDs (the entity manager refuses a duplicate),
+     * so the viewers equal {@code previousViewers} exactly when each one is in it and the counts match.
+     * 无分配的集合比较：同一世界的玩家 UUID 互不相同（实体管理器拒绝重复 UUID），因此当每名观察者都在
+     * {@code previousViewers} 中且数量相等时，二者恰好相等。
+     */
+    private boolean viewersChanged(List<ServerPlayerEntity> players) {
+        int viewers = 0;
+        for (ServerPlayerEntity player : players) {
+            if (isViewer(player)) {
+                if (!previousViewers.contains(player.getUuid())) {
+                    return true;
+                }
+                viewers++;
+            }
+        }
+        return viewers != previousViewers.size();
+    }
+
+    private static boolean isViewer(ServerPlayerEntity player) {
+        return GameFunctions.isPlayerPlayingAndAlive(player) && !player.isSpectator() && !player.isCreative();
     }
 
     @Override
