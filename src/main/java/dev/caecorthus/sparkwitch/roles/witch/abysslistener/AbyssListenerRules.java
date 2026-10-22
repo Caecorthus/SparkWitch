@@ -92,10 +92,6 @@ public final class AbyssListenerRules {
     private AbyssListenerRules() {
     }
 
-    public static boolean isAbyssListenerId(Identifier roleId) {
-        return ROLE_ID.equals(roleId);
-    }
-
     public static boolean isAbyssListener(Role role) {
         return role != null && ROLE_ID.equals(role.identifier());
     }

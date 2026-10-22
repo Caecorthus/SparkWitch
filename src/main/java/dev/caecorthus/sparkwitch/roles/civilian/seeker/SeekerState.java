@@ -429,15 +429,6 @@ public final class SeekerState {
         return new Delta(true, 0, SeekerCooldownReason.NONE, false, null, false);
     }
 
-    public Delta clearMark() {
-        if (markTarget == null && markRemainingTicks <= 0) {
-            return Delta.NONE;
-        }
-        markTarget = null;
-        markRemainingTicks = 0;
-        return new Delta(true, 0, SeekerCooldownReason.NONE, false, null, false);
-    }
-
     /**
      * Any → NONE: final death, role change, reset, finalize. Keeps the match binding and the monotonic sessionId.
      * 任意 → NONE：最终死亡、职业变更、重置、结算。保留对局绑定与单调递增的 sessionId。

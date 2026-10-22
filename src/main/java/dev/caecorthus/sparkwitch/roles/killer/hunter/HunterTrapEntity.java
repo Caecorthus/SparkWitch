@@ -105,29 +105,8 @@ public final class HunterTrapEntity extends Entity {
         }
     }
 
-    @Nullable
-    public UUID getPoisonerUuid() {
-        return poisonerUuid;
-    }
-
     public void setSupportPos(BlockPos supportPos) {
         this.supportPos = supportPos.toImmutable();
-    }
-
-    @Nullable
-    public BlockPos getSupportPos() {
-        return supportPos;
-    }
-
-    public double getSupportTopY() {
-        BlockPos effectiveSupportPos = getEffectiveSupportPos();
-        if (effectiveSupportPos == null) {
-            return getY();
-        }
-        VoxelShape collisionShape = getCachedSupportShape(effectiveSupportPos);
-        return collisionShape.isEmpty()
-                ? effectiveSupportPos.getY()
-                : effectiveSupportPos.getY() + collisionShape.getMax(Direction.Axis.Y);
     }
 
     @Override

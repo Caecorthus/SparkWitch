@@ -133,11 +133,6 @@ public final class BlackRavenCrowPlayerComponent
         return crowEntityId;
     }
 
-    /** World time the session started (owner and server). / 会话开始的世界时间（本人与服务端）。 */
-    public long getSessionStartTick() {
-        return sessionStartTick;
-    }
-
     /** World time the session times out (owner and server). / 会话超时的世界时间（本人与服务端）。 */
     public long getSessionEndTick() {
         return sessionEndTick;

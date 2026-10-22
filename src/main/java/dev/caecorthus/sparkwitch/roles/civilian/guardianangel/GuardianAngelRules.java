@@ -86,8 +86,4 @@ public final class GuardianAngelRules {
                 && !ASSASSINATED.equals(deathReason)
                 && !VOODOO.equals(deathReason);
     }
-
-    public static boolean shouldBlockWraithMicrophone(boolean activeWraith, Role role) {
-        return activeWraith && !isGuardianAngel(role);
-    }
 }

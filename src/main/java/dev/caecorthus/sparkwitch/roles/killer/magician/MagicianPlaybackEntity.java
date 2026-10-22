@@ -55,7 +55,6 @@ public class MagicianPlaybackEntity extends LivingEntity {
     public void setReplaySitting(boolean sitting) { dataTracker.set(SITTING, sitting); }
     public boolean isReplaySitting() { return dataTracker.get(SITTING); }
     public void playReplaySwing(Hand hand) { dataTracker.set(SWING_OFF_HAND, hand == Hand.OFF_HAND); dataTracker.set(SWING_SEQUENCE, dataTracker.get(SWING_SEQUENCE) + 1); swingHand(hand); }
-    public Hand getReplaySwingHand() { return dataTracker.get(SWING_OFF_HAND) ? Hand.OFF_HAND : Hand.MAIN_HAND; }
     // 自定义 LivingEntity 不会自动继承玩家的使用状态；客户端渲染时补齐，服务端仍保持真实状态。
     @Override public boolean isUsingItem() { return getWorld().isClient() && isReplayUsingItem() || super.isUsingItem(); }
     @Override public Hand getActiveHand() { return getWorld().isClient() && isReplayUsingItem() ? getReplayActiveHand() : super.getActiveHand(); }

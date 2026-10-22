@@ -86,7 +86,6 @@ public final class MagicianPlaybackManager {
     public static int remaining(net.minecraft.entity.player.PlayerEntity p) { Active a=ACTIVE.get(p.getUuid()); return a==null?0:Math.max(0,a.frames.size()-a.index); }
     public static boolean hasCachedRecording(PlayerEntity player) { return READY.containsKey(player.getUuid()); }
     public static void clearCachedRecording(PlayerEntity player) { READY.remove(player.getUuid()); }
-    public static boolean isPlaybackEntity(Object e) { return e instanceof MagicianPlaybackEntity; }
     public static MagicianPlaybackEntity find(Object e) { return e instanceof MagicianPlaybackEntity p?p:null; }
     public static void stopPlaybackSilently(net.minecraft.entity.player.PlayerEntity p) { if (p instanceof ServerPlayerEntity sp) stop(sp, true, null, MagicianReplayEvents.PLAYBACK_FINISHED, null, null, null); }
     public static void stopPlaybackEarly(ServerPlayerEntity owner) { stop(owner, false, null, MagicianReplayEvents.PLAYBACK_STOPPED_EARLY, null, null, null); }
