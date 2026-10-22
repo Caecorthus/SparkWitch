@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
+import dev.caecorthus.sparkwitch.client.render.LocalViewerSnapshot;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
@@ -19,7 +20,22 @@ public final class BlackRavenClientState {
     private BlackRavenClientState() {
     }
 
+    /**
+     * Asked several times per rendered entity by the instinct hooks and Perception gates; for the local player it is
+     * memoized per world pass ({@link LocalViewerSnapshot}), any other player is answered fresh.
+     * 本能钩子与感知门禁会对每个渲染实体多次询问；本地玩家的结果按世界 pass 缓存，其他玩家实时计算。
+     */
     public static boolean isEligible(@Nullable PlayerEntity player) {
+        return LocalViewerSnapshot.viewerFact(LocalViewerSnapshot.Fact.BLACK_RAVEN_ELIGIBLE, player,
+                BlackRavenClientState::evaluateEligible);
+    }
+
+    public static boolean isPerceptionActive(@Nullable PlayerEntity player) {
+        return LocalViewerSnapshot.viewerFact(LocalViewerSnapshot.Fact.BLACK_RAVEN_PERCEPTION_ACTIVE, player,
+                BlackRavenClientState::evaluatePerceptionActive);
+    }
+
+    private static boolean evaluateEligible(@Nullable PlayerEntity player) {
         if (!SparkWitchServerConnection.isConfirmedServer() || player == null) {
             return false;
         }
@@ -30,7 +46,7 @@ public final class BlackRavenClientState {
                 && BlackRavenRules.isBlackRaven(gameComponent.getRole(player));
     }
 
-    public static boolean isPerceptionActive(@Nullable PlayerEntity player) {
+    private static boolean evaluatePerceptionActive(@Nullable PlayerEntity player) {
         return isEligible(player) && BlackRavenPerceptionPlayerComponent.KEY.get(player).isActive();
     }
 }

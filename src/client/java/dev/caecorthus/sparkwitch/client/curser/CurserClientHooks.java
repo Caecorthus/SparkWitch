@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.curser;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.client.render.LocalViewerSnapshot;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserPlayerComponent;
@@ -39,7 +40,16 @@ public final class CurserClientHooks {
         }
     }
 
+    /**
+     * Viewer-only and asked by both instinct gates for every rendered entity, so it is memoized per world pass
+     * ({@link LocalViewerSnapshot}). / 只与观察者有关，且两个本能入口会对每个渲染实体询问，因此按世界 pass 缓存。
+     */
     public static boolean canUseInstinct() {
+        return LocalViewerSnapshot.localFact(LocalViewerSnapshot.Fact.CURSER_CAN_USE_INSTINCT,
+                CurserClientHooks::evaluateCanUseInstinct);
+    }
+
+    private static boolean evaluateCanUseInstinct() {
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (!SparkWitchServerConnection.isConfirmedServer() || player == null) {
             return false;
@@ -56,7 +66,13 @@ public final class CurserClientHooks {
         );
     }
 
+    /** Memoized per world pass like {@link #canUseInstinct}. / 与 {@link #canUseInstinct} 一样按世界 pass 缓存。 */
     public static boolean isLocallyConfused() {
+        return LocalViewerSnapshot.localFact(LocalViewerSnapshot.Fact.CURSER_LOCALLY_CONFUSED,
+                CurserClientHooks::evaluateLocallyConfused);
+    }
+
+    private static boolean evaluateLocallyConfused() {
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         return SparkWitchServerConnection.isConfirmedServer()
                 && player != null
