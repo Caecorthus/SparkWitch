@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.LongFunction;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.minecraft.block.BlockState;
@@ -13,6 +14,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
@@ -33,9 +35,19 @@ final class DeepDarkZoneSync {
         send(world, positions, pos -> world.getBlockState(BlockPos.fromLong(pos)));
     }
 
-    /** Players tracking the chunk of a packed section position. / 追踪该区块段所在区块的玩家。 */
+    /**
+     * Players tracking the chunk of a packed section position; nobody before the chunk is post-processed. Vanilla
+     * counts a player in range as tracking unless the chunk is queued for it, and queues a chunk only once it is
+     * post-processed, so before that a "tracker" holds no chunk data and a delta would be dropped.
+     * 追踪该区块段所在区块的玩家；区块完成后处理之前视为无人追踪。原版只要玩家在范围内且该区块不在其发送队列中就算追踪，而区块
+     * 只有在完成后处理后才会入队，因此在那之前的“追踪者”并没有区块数据，增量包会被丢弃。
+     */
     static Collection<ServerPlayerEntity> trackers(ServerWorld world, long section) {
-        return PlayerLookup.tracking(world, ChunkSectionPos.from(section).toChunkPos());
+        ChunkPos chunk = ChunkSectionPos.from(section).toChunkPos();
+        if (world.getChunkManager().chunkLoadingManager.getPostProcessedChunk(chunk.toLong()) == null) {
+            return List.of();
+        }
+        return PlayerLookup.tracking(world, chunk);
     }
 
     /**

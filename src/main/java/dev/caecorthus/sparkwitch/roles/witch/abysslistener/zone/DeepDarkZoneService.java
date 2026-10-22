@@ -31,15 +31,17 @@ import org.jetbrains.annotations.Nullable;
  * changes; an in-memory per-world {@link DeepDarkZoneState} is the single authority that the standing effects read
  * through {@link #isConverted}. Fake looks reach clients through vanilla chunk-delta packets. Every tick a section's
  * looks go only to trackers that do not hold them yet ({@link DeepDarkZoneDelivery}: re-tracked chunks, late joiners,
- * spectators, dimension returns); a heal sweep every {@link #HEAL_INTERVAL_TICKS} ticks drops cells whose real block
- * changed, and every {@link #FULL_RESEND_INTERVAL_TICKS} ticks all trackers get every look again (client-side
- * overwrites such as vanilla interact resends or block-break prediction; owner-approved 2026-10-22, was every heal).
- * Nothing is persisted, so a crash needs no cleanup. Standing effects, exposure and the sanity drain belong to
+ * spectators, dimension returns), and such a newcomer gets them again on heal ticks until one comes a heal interval
+ * after its first send; a heal sweep every {@link #HEAL_INTERVAL_TICKS} ticks drops cells whose real block changed
+ * (no send re-fakes such a cell before that), and every {@link #FULL_RESEND_INTERVAL_TICKS} ticks all trackers get
+ * every look again (client-side overwrites such as vanilla interact resends or block-break prediction; owner-approved
+ * 2026-10-22, was every heal). Nothing is persisted, so a crash needs no cleanup. Standing effects, exposure and the sanity drain belong to
  * {@code DeepDarkZoneStanding*} (L3b).
  * 深暗领域运行时（方案 B，research/04 §3.3）：仅发给客户端的假幽匿/深板岩方块。服务端世界从不改变；每个世界一份内存中的
  * {@link DeepDarkZoneState} 是唯一权威，站立效果通过 {@link #isConverted} 读取它。假外观通过原版区块增量包到达客户端。
- * 每刻只把区块段外观发给尚未持有它的追踪者（{@link DeepDarkZoneDelivery}：重新追踪的区块、后加入者、旁观者、回到本维度者）；
- * 补发扫描每 {@link #HEAL_INTERVAL_TICKS} 刻丢弃真实方块已改变的格子，每 {@link #FULL_RESEND_INTERVAL_TICKS} 刻向所有
+ * 每刻只把区块段外观发给尚未持有它的追踪者（{@link DeepDarkZoneDelivery}：重新追踪的区块、后加入者、旁观者、回到本维度者），
+ * 这类新追踪者还会在补发刻再次收到，直到某个补发刻距其首次发送已过一个补发间隔；补发扫描每 {@link #HEAL_INTERVAL_TICKS} 刻
+ * 丢弃真实方块已改变的格子（在此之前任何发送都不会再次伪装它），每 {@link #FULL_RESEND_INTERVAL_TICKS} 刻向所有
  * 追踪者重发全部外观（覆盖客户端自行改写，如原版交互回发或破坏预测；所有者 2026-10-22 批准，原为每次补发扫描）。
  * 不持久化任何内容，崩服无需清理。站立效果、暴露与理智下降属于 {@code DeepDarkZoneStanding*}（L3b）。
  */
@@ -171,7 +173,8 @@ public final class DeepDarkZoneService {
         DeepDarkZoneCues.spread(world, changes.shown());
         DeepDarkZoneCues.restore(world, changes.hidden());
         DeepDarkZoneCues.hold(world, runtime.state.zones(), now);
-        if (now >= runtime.nextHealTick) {
+        boolean healTick = now >= runtime.nextHealTick;
+        if (healTick) {
             runtime.nextHealTick = now + HEAL_INTERVAL_TICKS;
             DeepDarkZoneState.Heal heal = runtime.state.heal(realState);
             runtime.delivery.hide(heal.dropped());
@@ -181,15 +184,16 @@ public final class DeepDarkZoneService {
         if (resendAll) {
             runtime.nextResendTick = now + FULL_RESEND_INTERVAL_TICKS;
         }
-        // Chunk data reaches a player only after the server stops listing the chunk as queued for it, so a newcomer
-        // seen here already holds the real chunk and the fake delta lands on top of it.
-        // 只有当区块不再处于该玩家的待发送队列时才会被列为追踪，因此这里看到的新追踪者已收到真实区块，假外观增量覆盖其上。
+        // A newcomer may count as tracking before its chunk data landed (DeepDarkZoneSync.trackers), so it stays pending
+        // and gets the section again on heal ticks until one comes at least a heal interval after its first send.
+        // 新追踪者可能在其区块数据到达前就被视为追踪（见 DeepDarkZoneSync.trackers），因此它保持待确认，并在补发刻再次收到
+        // 该段，直到某个补发刻距其首次发送至少一个补发间隔。
         if (!runtime.delivery.isEmpty()) {
             Long2ObjectOpenHashMap<Collection<ServerPlayerEntity>> columns = new Long2ObjectOpenHashMap<>();
-            runtime.delivery.deliver(section -> columns.computeIfAbsent(
+            runtime.delivery.deliver(now, healTick, resendAll, section -> columns.computeIfAbsent(
                             ChunkPos.toLong(ChunkSectionPos.unpackX(section), ChunkSectionPos.unpackZ(section)),
                             ignored -> DeepDarkZoneSync.trackers(world, section)),
-                    resendAll, (section, positions, recipients) ->
+                    pos -> runtime.state.matchesSnapshot(pos, realState), (section, positions, recipients) ->
                             DeepDarkZoneSync.sendFakeTo(world, section, positions, runtime.state::fakeAt, recipients));
         }
         if (runtime.state.isEmpty()) {
@@ -230,7 +234,7 @@ public final class DeepDarkZoneService {
 
     private static final class Runtime {
         private final DeepDarkZoneState<BlockState> state = new DeepDarkZoneState<>();
-        private final DeepDarkZoneDelivery<ServerPlayerEntity> delivery = new DeepDarkZoneDelivery<>();
+        private final DeepDarkZoneDelivery<ServerPlayerEntity> delivery = new DeepDarkZoneDelivery<>(HEAL_INTERVAL_TICKS);
         private long nextHealTick;
         private long nextResendTick;
 

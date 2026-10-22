@@ -49,8 +49,6 @@ public final class KidnapperControlComponent
     private @Nullable UUID controllerUuid;
     private int controlTicks;
     private int knockoutDrugStartCooldownTicks;
-    /** Server only: seconds last shown on the controller's action bar, -1 = none yet. / 仅服务端：上次在控制者动作栏显示的秒数。 */
-    private int notifiedSeconds = -1;
     /** Client only: the local countdown never goes below this (the shown second's first tick). / 仅客户端：本地倒数下限。 */
     private int clientFloorTicks;
 
@@ -109,7 +107,6 @@ public final class KidnapperControlComponent
     public void startControl(PlayerEntity controller) {
         controllerUuid = controller.getUuid();
         controlTicks = KidnapperRules.KNOCKOUT_DRUG_CONTROL_TICKS;
-        notifiedSeconds = -1;
         sync();
     }
 
@@ -210,18 +207,13 @@ public final class KidnapperControlComponent
         if (controller == null) {
             return;
         }
-        // The vanilla action bar stays fully opaque for 40 of its 60 ticks, so the same text resent once per shown
-        // second looks identical to the old per-tick resend.
-        // 原版动作栏在其 60 刻中有 40 刻完全不透明，因此每个显示秒重发一次相同文本，与旧的每刻重发看起来一致。
-        int seconds = controlTicks / 20;
-        if (seconds != notifiedSeconds) {
-            notifiedSeconds = seconds;
-            controller.sendMessage(
-                    Text.translatable("message.sparkwitch.kidnapper.timeleft", seconds)
-                            .withColor(KidnapperRules.COLOR),
-                    true
-            );
-        }
+        // Sent every tick on purpose: any other action-bar message to the controller is overwritten the next tick.
+        // 有意每刻发送：发给控制者的其他动作栏消息会在下一刻被覆盖。
+        controller.sendMessage(
+                Text.translatable("message.sparkwitch.kidnapper.timeleft", controlTicks / 20)
+                        .withColor(KidnapperRules.COLOR),
+                true
+        );
         if (controlTicks == 1) {
             releaseControlTip(controller);
         }
@@ -259,7 +251,6 @@ public final class KidnapperControlComponent
     private void resetControlState() {
         controllerUuid = null;
         controlTicks = 0;
-        notifiedSeconds = -1;
     }
 
     private void sync() {
