@@ -2587,9 +2587,12 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     at its last owner's end); a cell whose snapshot differs is replaced, and its stale fake is resent as real.
   - Fake and real states reach only the chunk's trackers as vanilla `ChunkDeltaUpdateS2CPacket`s grouped per section.
     Every tick a section's fakes go to trackers that do not hold them yet (`DeepDarkZoneDelivery`, so a new, returning
-    or re-tracking player gets them at once); every 20 ticks a heal sweep drops a cell whose real block no longer equals
-    its landing snapshot (compare-and-swap, which stops its look and effect) and sends its real state to every tracker;
-    every 100 ticks every tracker gets every fake again (owner decision 2026-10-22, was every 20 ticks). Nothing is
+    or re-tracking player gets them at once); such a newcomer stays pending and gets them again on every heal tick until
+    one comes at least 20 ticks after its first send, because vanilla counts a player as tracking before its chunk data
+    may have landed (a chunk that is not post-processed has no trackers). No send re-fakes a cell whose real block no
+    longer equals its landing snapshot. Every 20 ticks a heal sweep drops such a cell (compare-and-swap, which stops its
+    look and effect) and sends its real state to every tracker; every 100 ticks every tracker gets every fake again
+    (owner decision 2026-10-22, was every 20 ticks). Nothing is
     persisted (no NBT, `shouldSave() = false`), so a crash needs no cleanup.
   - The zone restores instantly (real states resent, registry dropped) at `ON_FINISH_INITIALIZE` (stale),
     `ON_WIN_DETERMINED`, `ON_FINISH_FINALIZE` (which also discards flasks in flight), `SERVER_STOPPING`, and on any
@@ -3641,8 +3644,8 @@ Network:
 - `HunterTrapEntity` zeroes and syncs its velocity only when it was non-zero.
 - `KidnapperControlComponent` syncs on start, on end and when the HUD's shown second changes; the client counts down
   locally but never below the first tick of the shown second, so the HUD and client `isControlled()` change exactly
-  when the server's sync arrives. The controller's action bar is sent when `controlTicks / 20` changes; the teleport
-  still runs every tick.
+  when the server's sync arrives. The controller's action bar is still sent every tick (other action-bar messages are
+  overwritten the next tick), and the teleport still runs every tick.
 - `MagicianPlayerComponent` syncs its timers when the shown second changes (at most once per tick) with the same client
   countdown floor, so READY shows only after the server's zero; role assignment sends one sync (`syncOnceAfter`).
 - Periodic owner-only cooldown resyncs (Black Raven crow, Mini Wither, Apprentice, Orthopedist, Wraith task count,
