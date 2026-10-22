@@ -59,16 +59,31 @@ public final class BlackRavenCrowAim {
             return original;
         }
         Vec3d end = start.add(look.multiply(limit));
+        // Crows first, blocks second: the block-clipped end lies on the same segment, so its search box is inside the
+        // unclipped one. No targetable crow there means none after clipping and {@code original}, without the block
+        // raycast; otherwise the unclipped candidates filtered by the clipped box are exactly (and in the same section
+        // order as) what querying the clipped box would return.
+        // 先查乌鸦，再做方块射线：方块截断后的终点仍在同一线段上，因此其搜索箱包含于未截断的搜索箱。未截断箱内没有可选
+        // 乌鸦即意味着截断后也没有，直接返回 {@code original} 而无需方块射线；否则用截断箱过滤未截断候选，结果（及其分区
+        // 顺序）与直接查询截断箱完全相同。
+        double padding = SEARCH_PADDING + BlackRavenCrowHitRules.CLIENT_AIM_GROWTH;
+        List<BlackRavenCrowEntity> candidates = shooter.getWorld().getEntitiesByClass(BlackRavenCrowEntity.class,
+                new Box(start, end).expand(padding), candidate -> isTargetable(candidate, shooter));
+        if (candidates.isEmpty()) {
+            return original;
+        }
         HitResult block = shooter.getWorld().raycast(new RaycastContext(start, end, RaycastContext.ShapeType.COLLIDER,
                 RaycastContext.FluidHandling.NONE, shooter));
         if (block.getType() != HitResult.Type.MISS) {
             end = block.getPos();
         }
+        Box search = new Box(start, end).expand(padding);
         BlackRavenCrowEntity nearest = null;
         double nearestDistance = limit * limit;
-        for (BlackRavenCrowEntity crow : shooter.getWorld().getEntitiesByClass(BlackRavenCrowEntity.class,
-                new Box(start, end).expand(SEARCH_PADDING + BlackRavenCrowHitRules.CLIENT_AIM_GROWTH),
-                candidate -> isTargetable(candidate, shooter))) {
+        for (BlackRavenCrowEntity crow : candidates) {
+            if (!crow.getBoundingBox().intersects(search)) {
+                continue;
+            }
             double distance = BlackRavenCrowHitRules.entrySquared(start, end,
                     List.of(crow.getBoundingBox().expand(BlackRavenCrowHitRules.CLIENT_AIM_GROWTH)));
             // Strictly nearer: on a tie the original target keeps the hit. / 严格更近：距离相同时原目标保留命中。
