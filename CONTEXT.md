@@ -1556,6 +1556,15 @@ keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGat
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
 
+Role HUD panels draw through `client/hud/RoleHudDispatcher` (2026-10-22), behind two default-priority seams:
+`client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, still drawn under F1: Curser, Guardian Angel,
+Orthopedist, Saint, Vendetta, Kidnapper control screen, Saboteur) and `client/mixin/RoleHudMainHudTailMixin`
+(`renderMainHud` TAIL, hidden by F1: Witch mana with the tarot snapshot and slip, Witch skill, Magician, Black Raven).
+The layer order is the draw order and matches the old per-role mixins' config order, so the group keeps its slot
+relative to Fabric's `HudRenderCallback` and Wathe's own TAIL injects. Each layer owns its gate (the Vendetta,
+Kidnapper and Magician layers have no confirmed-server check, as before); a new panel adds a layer, not another
+`InGameHud` TAIL mixin. The Holy Flash overlay (priority 1100) stays its own mixin and draws after them.
+
 Holy Flash state never enters that shared schema either. `sparkwitch:holy_flash` (`NEVER_COPY`,
 owner-only sync, never saved) holds the flashed player's total and remaining ticks, the burst
 position, and whether they faced it; it uses no vanilla Blindness, so Blindness cleanups never touch
