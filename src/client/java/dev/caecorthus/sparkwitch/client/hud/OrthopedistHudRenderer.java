@@ -63,8 +63,8 @@ public final class OrthopedistHudRenderer {
                 || target == player
                 || target.isSpectator()
                 || !GameFunctions.isPlayerPlayingAndAlive(target)
-                || !player.canSee(target)
-                || player.squaredDistanceTo(target) > OrthopedistRules.TARGET_RANGE_SQUARED) {
+                || player.squaredDistanceTo(target) > OrthopedistRules.TARGET_RANGE_SQUARED
+                || !player.canSee(target)) {
             return null;
         }
         return target;
