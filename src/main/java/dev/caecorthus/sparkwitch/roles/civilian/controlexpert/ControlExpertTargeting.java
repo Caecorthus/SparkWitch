@@ -3,9 +3,8 @@ package dev.caecorthus.sparkwitch.roles.civilian.controlexpert;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
-import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
@@ -14,27 +13,22 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.BooleanSupplier;
 
 /**
- * Control Expert participant and targeting predicates. Same participant semantics as the Bell Ringer's,
- * kept role-owned so neither module depends on the other.
- * 控场专家的参与者与目标判定。参与者语义与敲钟人一致，但由本职业自行持有，两个模块互不依赖。
+ * Control Expert participant and targeting predicates. Same participant profile as the Bell Ringer's
+ * ({@link RoundParticipants#ROLE_HOLDER}); neither module depends on the other.
+ * 控场专家的参与者与目标判定。参与者档案与敲钟人一致（{@link RoundParticipants#ROLE_HOLDER}）；两个模块互不依赖。
  */
 public final class ControlExpertTargeting {
     private ControlExpertTargeting() {
     }
 
     /**
-     * Living, non-spectator, non-creative, non-active-Wraith player with a role in a running game.
-     * 在进行中的对局里存活、非旁观、非创造、非激活冤魂且拥有职业的玩家。
+     * Living, non-spectator, non-creative, non-active-Wraith player with a role in a running game
+     * ({@link RoundParticipants#ROLE_HOLDER}, the player's own world). Both sides.
+     * 在进行中的对局里存活、非旁观、非创造、非激活冤魂且拥有职业的玩家（{@link RoundParticipants#ROLE_HOLDER}，
+     * 读取玩家自身世界）。双端可用。
      */
     public static boolean isParticipant(@Nullable PlayerEntity player) {
-        if (player == null
-                || !GameFunctions.isPlayerPlayingAndAlive(player)
-                || player.isSpectator()
-                || player.isCreative()
-                || WraithStateService.isActive(player)) {
-            return false;
-        }
-        return GameWorldComponent.KEY.get(player.getWorld()).getRole(player) != null;
+        return RoundParticipants.ROLE_HOLDER.test(player);
     }
 
     /**

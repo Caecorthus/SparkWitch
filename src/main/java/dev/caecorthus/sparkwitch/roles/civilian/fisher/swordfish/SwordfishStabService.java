@@ -6,7 +6,6 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
-import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
@@ -16,8 +15,8 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowEnti
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
-import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -179,10 +178,10 @@ public final class SwordfishStabService {
                 && !SparkTraitsKillerBridge.blocksWeaponAction(player, stack);
     }
 
+    // The Fisher's living participant, then status exactly ACTIVE, then not an active Wraith.
+    // 钓鱼佬的存活参与者，随后状态恰为 ACTIVE，再随后非激活冤魂。
     private static boolean isParticipant(ServerPlayerEntity player) {
-        return FisherParticipants.isLivingParticipant(player)
-                && GameWorldComponent.KEY.get(player.getWorld()).getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
-                && !WraithStateService.isActive(player);
+        return RoundParticipants.SWORDFISH_TARGET.test(player);
     }
 
     private static boolean validPlayerGeometry(ServerPlayerEntity attacker, ServerPlayerEntity target) {

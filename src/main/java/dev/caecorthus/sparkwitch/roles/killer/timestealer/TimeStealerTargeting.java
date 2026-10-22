@@ -5,7 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.compat.NoellesSilenceBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
-import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import java.util.function.BooleanSupplier;
@@ -160,15 +160,12 @@ public final class TimeStealerTargeting {
     }
 
     /**
-     * Living, non-spectator, non-creative, non-active-Wraith player with a role.
-     * 存活、非旁观、非创造、非激活冤魂且拥有职业的玩家。
+     * Living, non-spectator, non-creative, non-active-Wraith player with a role in the user's {@code game}
+     * ({@link RoundParticipants#ROLE_HOLDER}).
+     * 存活、非旁观、非创造、非激活冤魂且在使用者的 {@code game} 中拥有职业的玩家（{@link RoundParticipants#ROLE_HOLDER}）。
      */
     private static boolean isParticipant(PlayerEntity player, GameWorldComponent game) {
-        return GameFunctions.isPlayerPlayingAndAlive(player)
-                && !player.isSpectator()
-                && !player.isCreative()
-                && !WraithStateService.isActive(player)
-                && game.getRole(player) != null;
+        return RoundParticipants.ROLE_HOLDER.test(player, game);
     }
 
     /**

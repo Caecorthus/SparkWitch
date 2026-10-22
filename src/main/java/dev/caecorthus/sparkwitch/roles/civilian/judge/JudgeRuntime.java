@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.api.SparkWitchApi;
 import dev.caecorthus.sparkwitch.net.OpenJudgeSelectionS2CPacket;
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.CanSeeMoney;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -11,7 +12,6 @@ import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.api.event.TaskComplete;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
@@ -126,8 +126,10 @@ public final class JudgeRuntime {
                 && activeParticipant(player) && !SparkWitchApi.isWraithRestricted(player);
     }
 
+    // Playing, survival or adventure; no Wraith or role gate here (canJudge checks the role and Wraith restriction).
+    // 在局、生存或冒险模式；此处不检查冤魂与职业（canJudge 自行检查职业与冤魂限制）。
     private static boolean activeParticipant(PlayerEntity player) {
-        return GameFunctions.isPlayerPlayingAndAlive(player) && !player.isSpectator() && !player.isCreative();
+        return RoundParticipants.JUDGE_ACTIVE.test(player);
     }
 
     public static void openSelection(ServerPlayerEntity player) {
