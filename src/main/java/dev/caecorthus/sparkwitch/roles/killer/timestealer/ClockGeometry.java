@@ -58,17 +58,57 @@ public final class ClockGeometry {
             return null;
         }
         World world = user.getWorld();
-        // On the server vanilla has already applied the use packet's yaw and pitch, so this is the user's real aim.
-        // 服务端调用时原版已应用使用物品数据包中的朝向，因此这就是使用者真实的瞄准方向。
         Vec3d start = user.getEyePos();
+        Vec3d end = aimEnd(world, user, start, range);
+        return pick(start, end, range, candidates, candidate -> candidate != user && eligible.test(candidate),
+                Entity::getBoundingBox, (from, to) -> segmentClear(world, from, to, user));
+    }
+
+    /**
+     * The same Clock ray and pick as {@link #findTarget}, over the world's other entities near the block-cut aim that
+     * pass {@code eligible} (the server passes SparkStrength's killable-Partygoer check). Server-side use only.
+     * 与 {@link #findTarget} 相同的时钟射线与选取规则，候选者为方块截断后的瞄准线附近、通过 {@code eligible} 的世界中其他实体
+     * （服务端传入 SparkStrength 的可击杀派对客判定）。仅供服务端使用。
+     */
+    public static @Nullable Entity findEntity(PlayerEntity user, double range, Predicate<? super Entity> eligible) {
+        if (user == null || eligible == null || !(range > 0.0D)) {
+            return null;
+        }
+        World world = user.getWorld();
+        Vec3d start = user.getEyePos();
+        Vec3d end = aimEnd(world, user, start, range);
+        List<Entity> candidates = world.getOtherEntities(user,
+                new Box(start, end).expand(TimeStealerRules.CLOCK_BOX_EXPANSION + 1.0D), eligible);
+        return pick(start, end, range, candidates, candidate -> true, Entity::getBoundingBox,
+                (from, to) -> segmentClear(world, from, to, user));
+    }
+
+    /**
+     * End of the aim ray of length {@code range} from {@code start}, cut at the first collider block. On the server
+     * vanilla has already applied the use packet's yaw and pitch, so this is the user's real aim.
+     * 从 {@code start} 出发、长度为 {@code range} 的瞄准射线终点，在第一个碰撞方块处截断。服务端调用时原版已应用使用物品
+     * 数据包中的朝向，因此这就是使用者真实的瞄准方向。
+     */
+    /**
+     * Squared eye distance at which the Clock's aim ray (cut at blocks, boxes grown by
+     * {@link TimeStealerRules#CLOCK_BOX_EXPANSION}) enters {@code entity}; infinity when it misses. Used to compare a
+     * Partygoer with the picked player on the same terms.
+     * 时钟瞄准射线（在方块处截断，命中盒按 CLOCK_BOX_EXPANSION 扩展）进入 entity 时距眼睛的距离平方；未命中时为无穷大。
+     * 用于以同一标准比较派对客与选中的玩家。
+     */
+    public static double aimEntrySquared(PlayerEntity user, Entity entity, double range) {
+        Vec3d start = user.getEyePos();
+        Vec3d end = aimEnd(user.getWorld(), user, start, range);
+        Box aimBox = entity.getBoundingBox().expand(TimeStealerRules.CLOCK_BOX_EXPANSION);
+        Vec3d hit = aimBox.contains(start) ? start : aimBox.raycast(start, end).orElse(null);
+        return hit == null ? Double.POSITIVE_INFINITY : start.squaredDistanceTo(hit);
+    }
+
+    private static Vec3d aimEnd(World world, PlayerEntity user, Vec3d start, double range) {
         Vec3d end = start.add(user.getRotationVec(1.0F).multiply(range));
         BlockHitResult block = world.raycast(new RaycastContext(
                 start, end, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, user));
-        if (block.getType() != HitResult.Type.MISS) {
-            end = block.getPos();
-        }
-        return pick(start, end, range, candidates, candidate -> candidate != user && eligible.test(candidate),
-                Entity::getBoundingBox, (from, to) -> segmentClear(world, from, to, user));
+        return block.getType() != HitResult.Type.MISS ? block.getPos() : end;
     }
 
     /**

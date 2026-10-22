@@ -635,6 +635,20 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedHandledScreen.class",
                 providerMethod: "method_25402",
                 providerDescriptor: "(DDI)Z"
+        ],
+        [
+                // Kidnapper carried corpse: Wathe's only riding write (skin model). The inherited field must remap
+                // to PlayerEntityModel's owner. / 绑架者携带尸体：Wathe 唯一的 riding 写入（皮肤模型），继承字段须按
+                // PlayerEntityModel 所有者重映射。
+                configName: "kidnapper.KidnapperBodyPoseMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/kidnapper/KidnapperBodyPoseMixin.class",
+                handler: "sparkwitch\$keepKidnappedSkinFlat",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "render(Ldev/doctor4t/wathe/entity/PlayerBodyEntity;FFLnet/minecraft/class_4587;Lnet/minecraft/class_4597;ILnet/minecraft/class_572;Lnet/minecraft/class_1921;FF)V",
+                atTarget: "Lnet/minecraft/class_591;field_3449:Z",
+                providerEntry: "dev/doctor4t/wathe/client/render/entity/PlayerBodyEntityRenderer.class",
+                providerMethod: "render",
+                providerDescriptor: "(Ldev/doctor4t/wathe/entity/PlayerBodyEntity;FFLnet/minecraft/class_4587;Lnet/minecraft/class_4597;ILnet/minecraft/class_572;Lnet/minecraft/class_1921;FF)V"
         ]
 ]
 

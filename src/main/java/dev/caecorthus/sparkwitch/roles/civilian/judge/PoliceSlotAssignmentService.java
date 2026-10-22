@@ -53,14 +53,16 @@ public final class PoliceSlotAssignmentService {
         return VIGILANTE_ID.equals(selected) ? WatheRoles.VIGILANTE : WatheRoles.getRole(selected);
     }
 
+    /** Special police fill the slots first; the plain Vigilante is only the fallback once every eligible variant
+     * is held (owner 2026-10-21).
+     * 特殊警职优先占用警位；只有所有可出现的变体都已有人担任时，普通义警才作为兜底出现（所有者 2026-10-21）。 */
     static List<Identifier> candidates(Set<Identifier> eligible, Set<Identifier> assigned) {
         List<Identifier> result = new ArrayList<>();
-        result.add(VIGILANTE_ID);
         for (Identifier variant : VARIANT_IDS) {
             if (eligible.contains(variant) && !assigned.contains(variant)) {
                 result.add(variant);
             }
         }
-        return List.copyOf(result);
+        return result.isEmpty() ? List.of(VIGILANTE_ID) : List.copyOf(result);
     }
 }

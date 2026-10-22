@@ -840,10 +840,28 @@ Current build baseline:
     It is hidden in the Blind view (`BlindClientGates.hidesEntity`) and for self, the camera entity, invisible, Wraith
     or spectating players.
     PiP draws it in both passes, sized via `ScopeClient.screenPixelsPerNdcY`, so the lens matches Full-Screen Zoom.
-    It sits at the optic's objective lens: eye + `SCOPE_FORWARD` 0.92 along the aim, `SCOPE_RIGHT` 0.18 to the right,
-    `SCOPE_UP` −0.05. The offsets are fitted to the lens centre (8, 14, 10) of `usec_rifle.json` under the
-    third-person `CROSSBOW_HOLD` pose (head pitch ±30°, within 0.15 blocks); refit them when the model or its display
-    transforms move.
+    It sits on the optic's objective lens where the pass actually drew it (`UsecScopeLensAnchors`, owner 2026-10-21),
+    so it rides the walk bob, sneaking and body yaw. `client/mixin/usec/UsecScopeLensPlayerRenderMixin` opens a holder
+    at `PlayerEntityRenderer#render` HEAD/RETURN for a scoped player. `UsecScopeLensItemRenderMixin` reads that
+    player's own main-hand rifle matrix in a third-person hand mode, right after `ItemRenderer#renderItem`'s single
+    −0.5 shift, and maps the lens face centre `UsecGlintRules.LENS_MODEL` (8, 14, 10) of every `usec_rifle*` model
+    back to the holder's render origin. Any outer pass transform cancels. `WorldRenderEvents.START` clears the map,
+    so a rifle not drawn in this pass (culled, held items hidden, a substituted item) shows no glint. Move
+    `LENS_MODEL` when the objective moves.
+    - Look (owner 2026-10-21, look A "anamorphic"): one 128×128 premultiplied atlas whose cells are
+      `UsecGlintRules.Cell`. FLARE holds a white-hot core the size of the lens glass (0.04 blocks, clamped to 2.8–7 px
+      at 1080p) and a small warm halo with a faint violet coating ring; its quad is 2.8 cores. STREAK is one thin
+      screen-horizontal ray. SPIKE is the screen-vertical ray, stored lying down and empty in A.
+    - All three quads share one buffer and one draw. Rays run 26–36 px half length, longest on a far target (about
+      70 px across at 64 blocks), so the glint stays readable far away and stays on the optic up close. Their quads are
+      8:1 like their cells, so texels stay square. Every size comes from the projected px per block, so zoom reads as
+      nearer and PiP keeps matching Full-Screen Zoom. The twinkle is 90–100 % brightness plus 88–100 % ray length.
+    - Brightness rides the vertex RGB only, and the vertex alpha stays 255, because `position_tex_color` discards
+      alpha < 0.1: a fading alpha cut a moving hard ring into the old halo. The texture's alpha is max(rgb), but at
+      least 26 wherever any colour remains, so that discard edge only ever cuts black.
+    - The generator `docs/plans/usec-glint/GlintTextures.java` is local and ignored. It writes look A into the
+      resources and, given a folder, the four-point (B) and pixel-sparkle (C, `blur: false`) looks. Switching looks
+      is a texture and mcmeta swap.
   - Pose: `UsecRifleArmPoseMixin` (priority 1600) gives `CROSSBOW_HOLD` both from the hip and while scoped (plan
     D15) whenever the shown stack is the rifle. The shown stack is the single `getStackInHand` result after Wathe's
     held-item substitution. A `@ModifyVariable` at the STORE of vanilla's only `ItemStack` local reads it into a
@@ -1185,8 +1203,10 @@ Current build baseline:
     click.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, the
-  Seeker, USEC and the Black Raven share the Vigilante slots uniformly through `VARIANT_IDS` (1/7 each with the
-  Vigilante); no variant owns a separate slot mixin.
+  Seeker, USEC and the Black Raven share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
+  separate slot mixin. A Vigilante slot draws only from the eligible variants nobody holds yet; the
+  plain Vigilante appears only once all of them are held (or none is eligible). The Veteran slot
+  (every third police slot) is unchanged.
 - Police gun parity: Wathe's server gun receiver gives innocent non-Vigilante shooters a 15 s
   cooldown and -0.35 mood per hit. Each SparkWitch police role has its own additive OR-wrap of all
   four `isRole` calls that also answers "Vigilante" for that role, so it gets the 10 s revolver
@@ -3168,8 +3188,21 @@ Black Raven disguise shop and wallet seams (SparkStrength is optional and fail-c
   `compat/SparkStrengthDisguiseCompat` touches only the `sparkstrength:flashlight` registry id.
 - **Rest of SparkWitch.** Elsewhere, SparkStrength implementation classes are named by
   `compat/SparkStrengthM67Compat`, `compat/SparkStrengthCoronerCompat`,
-  `compat/SparkStrengthJunctionBoxCompat` (the Hunter shotgun's junction-box hit), and the client
+  `compat/SparkStrengthJunctionBoxCompat` (the Hunter shotgun's junction-box hit),
+  `compat/SparkStrengthPartygoerCompat` (the Party Animal's Partygoer, below), and the client
   `client/emma/EmmaVisibleName`.
+- **SparkStrength Partygoer (2026-10-21).** The Party Animal's summoned zombie (`sparkstrength:partygoer`) dies in one
+  hit to anything that can kill a player (owner rule). SparkStrength already answers the weapons it reaches through
+  `SeekerDeviceHits`/`MagicianPuppetHits`; SparkWitch kills it itself on the paths those seams don't cover: the
+  Swordfish stab (a nearest-wins candidate), a Mighty Force strike (ends the window), Magician bat/gun/knife replays
+  (strictly nearer than the player pick), a **poisoned** Hunter trap (`wathe:poison`; an unpoisoned trap can't kill a
+  player, so it ignores it) and a Time Stealer clock with no player aimed (SparkStrength's `onClockFired` hook handles
+  the player-behind case, so the cooldown starts once). Its corpse is no passenger's: the Prophet's Necrology skips it,
+  the Perfumer neither outlines it nor drains sanity near it, and the Kidnapper can't drag it. The Fear, Control Expert,
+  Rift-session and Seeker-remote lists block `sparkstrength:partygoer_summon` and `partygoer_swallow`; the room picker
+  request `partygoer_menu` stays allowed. `compat/SparkStrengthPartygoerCompat` reflects the frozen
+  `PartygoerService#killByWeapon(ServerPlayerEntity, Entity, Identifier)` / `#isKillable(Entity)` and
+  `PartygoerCorpseComponent#isPartygoerCorpse(Entity)`, and fails closed.
 
 Active Wraiths do not absorb another player's aimed action in the client
 selectors listed below. `client/render/WraithAimPassThrough` owns the rule: a player whose synced

@@ -4,6 +4,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionInstinctPolicy;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
 import dev.caecorthus.sparkwitch.compat.NoellesHiddenBodiesBridge;
+import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -64,7 +65,9 @@ public final class PerfumerFeatureService {
                 return null;
             }
         } else if (target instanceof PlayerBodyEntity body) {
-            if (NoellesHiddenBodiesBridge.isHidden(viewer.getWorld(), body.getPlayerUuid())) {
+            // A killed SparkStrength Partygoer is no passenger's body. / 被打死的 SparkStrength 派对客不是乘客的尸体。
+            if (NoellesHiddenBodiesBridge.isHidden(viewer.getWorld(), body.getPlayerUuid())
+                    || SparkStrengthPartygoerCompat.isPartygoerCorpse(body)) {
                 return null;
             }
             color = PerfumerRules.CORPSE_OUTLINE_COLOR;
