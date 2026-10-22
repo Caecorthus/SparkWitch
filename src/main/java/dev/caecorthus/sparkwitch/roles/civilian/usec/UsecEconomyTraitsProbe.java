@@ -1,14 +1,10 @@
 package dev.caecorthus.sparkwitch.roles.civilian.usec;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import net.fabricmc.loader.api.FabricLoader;
+import dev.caecorthus.sparkwitch.compat.OptionalStaticMethod;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * External seam for USEC task pay: reflects only the public facade
@@ -24,20 +20,18 @@ final class UsecEconomyTraitsProbe {
     static final String MOD_ID = "sparktraits";
     private static final String API_CLASS = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
     private static final Identifier IMPOSTOR = Identifier.of("sparktraits", "impostor");
-    private static final AtomicBoolean WARNING_LOGGED = new AtomicBoolean();
-
-    private static volatile boolean resolved;
-    private static volatile @Nullable Method traitMethod;
+    private static final OptionalStaticMethod HAS_ACTIVE_TRAIT = OptionalStaticMethod.of(MOD_ID, API_CLASS,
+                    "hasActiveTrait", PlayerEntity.class, Identifier.class)
+            .returning(boolean.class)
+            .warnOnce(error -> SparkWitch.LOGGER.warn(
+                    "USEC task income cannot verify the optional Impostor trait; skipping the reward", error));
 
     private UsecEconomyTraitsProbe() {
     }
 
+    /** Asked once; a throwing loader reads as absent. / 只询问一次；加载器抛出异常时视为未安装。 */
     static boolean isSparkTraitsLoaded() {
-        try {
-            return FabricLoader.getInstance().isModLoaded(MOD_ID);
-        } catch (LinkageError | RuntimeException ignored) {
-            return false;
-        }
+        return HAS_ACTIVE_TRAIT.isModLoaded();
     }
 
     /**
@@ -48,51 +42,6 @@ final class UsecEconomyTraitsProbe {
         if (player == null) {
             return null;
         }
-        if (!isSparkTraitsLoaded()) {
-            return Boolean.FALSE;
-        }
-        Method method = traitMethod();
-        if (method == null) {
-            return null;
-        }
-        try {
-            Object result = method.invoke(null, player, IMPOSTOR);
-            return result instanceof Boolean active ? active : null;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException error) {
-            warn(error);
-            return null;
-        }
-    }
-
-    private static @Nullable Method traitMethod() {
-        if (!resolved) {
-            synchronized (UsecEconomyTraitsProbe.class) {
-                if (!resolved) {
-                    traitMethod = resolve();
-                    if (traitMethod == null) {
-                        warn(null);
-                    }
-                    resolved = true;
-                }
-            }
-        }
-        return traitMethod;
-    }
-
-    private static @Nullable Method resolve() {
-        try {
-            Method method = Class.forName(API_CLASS, false, UsecEconomyTraitsProbe.class.getClassLoader())
-                    .getMethod("hasActiveTrait", PlayerEntity.class, Identifier.class);
-            return Modifier.isStatic(method.getModifiers()) && method.getReturnType() == boolean.class ? method : null;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return null;
-        }
-    }
-
-    private static void warn(@Nullable Throwable error) {
-        if (WARNING_LOGGED.compareAndSet(false, true)) {
-            SparkWitch.LOGGER.warn("USEC task income cannot verify the optional Impostor trait; skipping the reward",
-                    error);
-        }
+        return HAS_ACTIVE_TRAIT.callNullableBoolean(Boolean.FALSE, null, null, player, IMPOSTOR);
     }
 }

@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.hooks;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
+import dev.caecorthus.sparkwitch.compat.OptionalStaticMethod;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeFearExemption;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
@@ -10,13 +11,10 @@ import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GetInstinctHighlight;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.world.World;
-
-import java.lang.reflect.Method;
 
 /**
  * High-priority client gate for Grand Witch area spells that must beat always-on role highlights.
@@ -24,15 +22,13 @@ import java.lang.reflect.Method;
  */
 public final class WitchInstinctSuppressionClientHooks {
     public static final int SUPPRESSION_PRIORITY = GetInstinctHighlight.HighlightResult.PRIORITY_HIGH + 2;
-    private static final String SPARKTRAITS_MOD_ID = "sparktraits";
-    private static final String SPARK_TRAITS_API_CLASS =
-            "dev.caecorthus.sparktraits.api.SparkTraitsApi";
     // Resolved once: Fabric's mod set and classpath are fixed after launch, so a missing mod, class or method stays
-    // missing (latched) and a found facade method stays valid. Render thread only; a race just resolves twice.
+    // missing (latched) and a found facade method stays valid. Reflects only the stable public facade; missing or
+    // incompatible Traits fails closed (not active).
     // 只解析一次：Fabric 启动后模组集合与类路径固定，缺失的模组、类或方法会一直缺失（锁存），找到的门面方法也一直有效。
-    // 仅渲染线程使用；并发最多导致重复解析。
-    private static Method finalMomentActiveMethod;
-    private static boolean finalMomentActiveUnavailable;
+    // 只反射稳定公共门面；Traits 缺失或不兼容时按未激活安全回退。
+    private static final OptionalStaticMethod FINAL_MOMENT_ACTIVE = OptionalStaticMethod.of("sparktraits",
+            "dev.caecorthus.sparktraits.api.SparkTraitsApi", "isFinalMomentActive", World.class).initializingClass();
 
     private WitchInstinctSuppressionClientHooks() {
     }
@@ -93,43 +89,6 @@ public final class WitchInstinctSuppressionClientHooks {
     }
 
     private static boolean isSparkTraitsFinalMomentActive(World world) {
-        if (world == null) {
-            return false;
-        }
-        Method activeMethod = finalMomentActiveMethod;
-        if (activeMethod == null) {
-            activeMethod = resolveFinalMomentActiveMethod();
-            if (activeMethod == null) {
-                return false;
-            }
-        }
-        try {
-            return Boolean.TRUE.equals(activeMethod.invoke(null, world));
-        } catch (LinkageError | ReflectiveOperationException | RuntimeException ignored) {
-            return false;
-        }
-    }
-
-    private static Method resolveFinalMomentActiveMethod() {
-        if (finalMomentActiveUnavailable) {
-            return null;
-        }
-        if (!FabricLoader.getInstance().isModLoaded(SPARKTRAITS_MOD_ID)) {
-            finalMomentActiveUnavailable = true;
-            return null;
-        }
-        try {
-            // Reflect only the stable public facade; missing or incompatible Traits fails closed.
-            // 只反射稳定公共门面；Traits 缺失或不兼容时按 false 安全回退。
-            Class<?> apiClass = Class.forName(SPARK_TRAITS_API_CLASS);
-            Method activeMethod = apiClass.getMethod("isFinalMomentActive", World.class);
-            finalMomentActiveMethod = activeMethod;
-            return activeMethod;
-        } catch (ClassNotFoundException | NoSuchMethodException | LinkageError ignored) {
-            finalMomentActiveUnavailable = true;
-            return null;
-        } catch (RuntimeException ignored) {
-            return null;
-        }
+        return world != null && FINAL_MOMENT_ACTIVE.callBoolean(false, false, false, world);
     }
 }

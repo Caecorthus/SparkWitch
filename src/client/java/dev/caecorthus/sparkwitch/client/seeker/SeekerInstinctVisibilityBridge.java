@@ -1,9 +1,7 @@
 package dev.caecorthus.sparkwitch.client.seeker;
 
-import net.fabricmc.loader.api.FabricLoader;
+import dev.caecorthus.sparkwitch.compat.OptionalStaticMethod;
 import net.minecraft.entity.player.PlayerEntity;
-
-import java.lang.reflect.Method;
 
 /**
  * External seam (optional SparkTraits): the Seeker's own copy of the public {@code SparkTraitsApi
@@ -17,33 +15,15 @@ import java.lang.reflect.Method;
 public final class SeekerInstinctVisibilityBridge {
     private static final String MOD_ID = "sparktraits";
     private static final String API_CLASS = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
-    private static volatile Method hiddenMethod;
-    private static volatile boolean unavailable;
+    // Static boolean only: a non-static or mistyped variant hides nothing, exactly as a failing call did.
+    // 仅接受静态 boolean：非静态或类型不符的变体不隐藏任何人，与调用失败时完全一致。
+    private static final OptionalStaticMethod IS_INSTINCT_HIDDEN = OptionalStaticMethod.of(MOD_ID, API_CLASS,
+            "isInstinctHidden", PlayerEntity.class, PlayerEntity.class).returning(boolean.class);
 
     private SeekerInstinctVisibilityBridge() {
     }
 
     public static boolean isHidden(PlayerEntity viewer, PlayerEntity target) {
-        if (viewer == null || target == null || unavailable || !FabricLoader.getInstance().isModLoaded(MOD_ID)) {
-            return false;
-        }
-        try {
-            Method method = hiddenMethod;
-            if (method == null) {
-                Class<?> api = Class.forName(API_CLASS, false, SeekerInstinctVisibilityBridge.class.getClassLoader());
-                method = api.getMethod("isInstinctHidden", PlayerEntity.class, PlayerEntity.class);
-                if (method.getReturnType() != boolean.class) {
-                    unavailable = true;
-                    return false;
-                }
-                hiddenMethod = method;
-            }
-            return Boolean.TRUE.equals(method.invoke(null, viewer, target));
-        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
-            unavailable = true;
-            return false;
-        } catch (LinkageError | ReflectiveOperationException | RuntimeException ignored) {
-            return false;
-        }
+        return viewer != null && target != null && IS_INSTINCT_HIDDEN.callBoolean(false, false, false, viewer, target);
     }
 }
