@@ -1,11 +1,8 @@
 package dev.caecorthus.sparkwitch.client.insider;
 
-import net.fabricmc.loader.api.FabricLoader;
+import dev.caecorthus.sparkwitch.compat.OptionalStaticMethod;
 import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.Nullable;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 /**
  * External seam (optional SparkTraits): the Insider's own client read of the public {@code SparkTraitsApi} facade,
@@ -19,70 +16,20 @@ import java.lang.reflect.Modifier;
 public final class InsiderSparkTraitsBridge {
     private static final String MOD_ID = "sparktraits";
     private static final String API_CLASS = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
-
-    private static volatile boolean hiddenResolved;
-    private static volatile @Nullable Method hiddenMethod;
+    // The mod check and the lookup each run once, on first use, instead of on every outline query.
+    // 模组检查与方法查找各只在首次使用时执行一次，而不是每次描边查询都执行。
+    private static final OptionalStaticMethod HIDDEN =
+            resolve("isInstinctHidden", PlayerEntity.class, PlayerEntity.class);
 
     private InsiderSparkTraitsBridge() {
     }
 
     /** SparkTraits hides the target from this viewer's instinct. / SparkTraits 是否对该观察者的本能隐藏目标。 */
     public static boolean isInstinctHidden(@Nullable PlayerEntity viewer, @Nullable PlayerEntity target) {
-        if (viewer == null || target == null || !isLoaded()) {
-            return false;
-        }
-        Method method = hiddenMethod();
-        return method != null && invoke(method, viewer, target);
+        return viewer != null && target != null && HIDDEN.callBoolean(false, false, false, viewer, target);
     }
 
-    private static boolean isLoaded() {
-        return Loaded.VALUE;
-    }
-
-    /**
-     * The mod set is fixed once the game runs, so the loader is asked once, on first use (holder idiom), instead of on
-     * every outline query.
-     * 游戏运行后模组集合固定，因此只在首次使用时询问一次加载器（持有者惯用法），而不是每次描边查询都询问。
-     */
-    private static final class Loaded {
-        private static final boolean VALUE = detect();
-
-        private static boolean detect() {
-            try {
-                return FabricLoader.getInstance().isModLoaded(MOD_ID);
-            } catch (LinkageError | RuntimeException ignored) {
-                return false;
-            }
-        }
-    }
-
-    private static boolean invoke(Method method, Object... args) {
-        try {
-            return Boolean.TRUE.equals(method.invoke(null, args));
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return false;
-        }
-    }
-
-    private static @Nullable Method hiddenMethod() {
-        if (!hiddenResolved) {
-            synchronized (InsiderSparkTraitsBridge.class) {
-                if (!hiddenResolved) {
-                    hiddenMethod = resolve("isInstinctHidden", PlayerEntity.class, PlayerEntity.class);
-                    hiddenResolved = true;
-                }
-            }
-        }
-        return hiddenMethod;
-    }
-
-    private static @Nullable Method resolve(String name, Class<?>... parameters) {
-        try {
-            Method method = Class.forName(API_CLASS, false, InsiderSparkTraitsBridge.class.getClassLoader())
-                    .getMethod(name, parameters);
-            return Modifier.isStatic(method.getModifiers()) && method.getReturnType() == boolean.class ? method : null;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return null;
-        }
+    private static OptionalStaticMethod resolve(String name, Class<?>... parameters) {
+        return OptionalStaticMethod.of(MOD_ID, API_CLASS, name, parameters).returning(boolean.class);
     }
 }

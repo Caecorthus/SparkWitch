@@ -1,15 +1,10 @@
 package dev.caecorthus.sparkwitch.compat;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * External seam: the Seeker's own optional SparkTraits reads through the public {@code SparkTraitsApi} facade only
@@ -27,12 +22,11 @@ public final class SparkTraitsSeekerBridge {
     private static final String API_CLASS = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
     private static final Identifier IMPOSTOR = Identifier.of("sparktraits", "impostor");
     private static final Logger LOGGER = LoggerFactory.getLogger("sparkwitch");
-    private static final AtomicBoolean IMPOSTOR_WARNING_LOGGED = new AtomicBoolean();
-
-    private static volatile boolean pendingResolved;
-    private static volatile @Nullable Method pendingMethod;
-    private static volatile boolean traitResolved;
-    private static volatile @Nullable Method traitMethod;
+    // Older SparkTraits builds lack this facade: silently "not pending". / 旧版缺少此门面：静默视为非待定。
+    private static final OptionalStaticMethod PENDING = resolve("isLastStandPending", PlayerEntity.class);
+    private static final OptionalStaticMethod TRAIT = resolve("hasActiveTrait", PlayerEntity.class, Identifier.class)
+            .warnOnce(error -> LOGGER.warn(
+                    "Seeker cannot verify the optional Impostor trait; devices and task pay are denied", error));
 
     private SparkTraitsSeekerBridge() {
     }
@@ -44,18 +38,7 @@ public final class SparkTraitsSeekerBridge {
      * 此时最终死亡兜底会把已死亡的搜寻者视为最终死亡。
      */
     public static boolean isLastStandPending(@Nullable PlayerEntity player) {
-        if (player == null || !isLoaded()) {
-            return false;
-        }
-        Method method = pendingMethod();
-        if (method == null) {
-            return false;
-        }
-        try {
-            return Boolean.TRUE.equals(method.invoke(null, player));
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return false;
-        }
+        return player != null && PENDING.callBoolean(false, false, false, player);
     }
 
     /**
@@ -65,74 +48,18 @@ public final class SparkTraitsSeekerBridge {
      * 或未提供玩家时为 true。
      */
     public static boolean isImpostorOrUnknown(@Nullable PlayerEntity player) {
-        if (!isLoaded()) {
+        if (!TRAIT.isModLoaded()) {
             return false;
         }
         if (player == null) {
             return true;
         }
-        Method method = traitMethod();
-        if (method == null) {
-            return true;
-        }
-        try {
-            Object result = method.invoke(null, player, IMPOSTOR);
-            return !(result instanceof Boolean active) || active;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException error) {
-            warnImpostor(error);
-            return true;
-        }
+        // Unknown (null: missing, malformed or throwing facade, or a non-Boolean answer) counts as Impostor.
+        // 未知（null：门面缺失、形状不符或抛出，或返回非布尔值）按内鬼处理。
+        return !Boolean.FALSE.equals(TRAIT.callNullableBoolean(Boolean.FALSE, null, null, player, IMPOSTOR));
     }
 
-    private static boolean isLoaded() {
-        try {
-            return FabricLoader.getInstance().isModLoaded(MOD_ID);
-        } catch (LinkageError | RuntimeException ignored) {
-            return false;
-        }
-    }
-
-    private static @Nullable Method pendingMethod() {
-        if (!pendingResolved) {
-            synchronized (SparkTraitsSeekerBridge.class) {
-                if (!pendingResolved) {
-                    // Older SparkTraits builds lack this facade: silently "not pending". / 旧版缺少此门面：静默视为非待定。
-                    pendingMethod = resolve("isLastStandPending", PlayerEntity.class);
-                    pendingResolved = true;
-                }
-            }
-        }
-        return pendingMethod;
-    }
-
-    private static @Nullable Method traitMethod() {
-        if (!traitResolved) {
-            synchronized (SparkTraitsSeekerBridge.class) {
-                if (!traitResolved) {
-                    traitMethod = resolve("hasActiveTrait", PlayerEntity.class, Identifier.class);
-                    if (traitMethod == null) {
-                        warnImpostor(null);
-                    }
-                    traitResolved = true;
-                }
-            }
-        }
-        return traitMethod;
-    }
-
-    private static @Nullable Method resolve(String name, Class<?>... parameters) {
-        try {
-            Method method = Class.forName(API_CLASS, false, SparkTraitsSeekerBridge.class.getClassLoader())
-                    .getMethod(name, parameters);
-            return Modifier.isStatic(method.getModifiers()) && method.getReturnType() == boolean.class ? method : null;
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return null;
-        }
-    }
-
-    private static void warnImpostor(@Nullable Throwable error) {
-        if (IMPOSTOR_WARNING_LOGGED.compareAndSet(false, true)) {
-            LOGGER.warn("Seeker cannot verify the optional Impostor trait; devices and task pay are denied", error);
-        }
+    private static OptionalStaticMethod resolve(String name, Class<?>... parameters) {
+        return OptionalStaticMethod.of(MOD_ID, API_CLASS, name, parameters).returning(boolean.class);
     }
 }

@@ -1,23 +1,23 @@
 package dev.caecorthus.sparkwitch.roles.civilian.judge;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.compat.OptionalStaticMethod;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
-
-import java.lang.reflect.Method;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Judge income has one owner; its police-network registration (which earns it a free SparkStrength tablet) must
  * never grant a second task reward.
  * 法官收入只有一个归属；其警察网络登记（因此获得 SparkStrength 免费平板）不得产生第二份任务收益。 */
 public final class JudgeEconomyService {
     private static final Identifier IMPOSTOR = Identifier.of("sparktraits", "impostor");
-    private static final AtomicBoolean WARNING_LOGGED = new AtomicBoolean();
-    private static volatile boolean traitMethodResolved;
-    private static Method hasActiveTrait;
+    private static final OptionalStaticMethod HAS_ACTIVE_TRAIT = OptionalStaticMethod.of("sparktraits",
+                    "dev.caecorthus.sparktraits.api.SparkTraitsApi", "hasActiveTrait",
+                    PlayerEntity.class, Identifier.class)
+            .initializingClass()
+            .warnOnce(error -> SparkWitch.LOGGER.warn(
+                    "Judge task income cannot verify the optional Impostor trait; skipping the reward", error));
 
     private JudgeEconomyService() {
     }
@@ -32,42 +32,9 @@ public final class JudgeEconomyService {
         }
     }
 
+    /** Pays only on an exact FALSE: an absent SparkTraits counts as FALSE, an unknown answer (null) never pays.
+     * 仅在确切为 FALSE 时发放：未安装 SparkTraits 视为 FALSE，未知答案（null）从不发放。 */
     private static boolean receivesOrdinaryTaskMoney(PlayerEntity player) {
-        if (!FabricLoader.getInstance().isModLoaded("sparktraits")) {
-            return true;
-        }
-        Method method = traitMethod();
-        if (method == null) {
-            return false;
-        }
-        try {
-            return Boolean.FALSE.equals(method.invoke(null, player, IMPOSTOR));
-        } catch (ReflectiveOperationException | LinkageError error) {
-            warn(error);
-            return false;
-        }
-    }
-
-    private static Method traitMethod() {
-        if (!traitMethodResolved) {
-            synchronized (JudgeEconomyService.class) {
-                if (!traitMethodResolved) {
-                    try {
-                        hasActiveTrait = Class.forName("dev.caecorthus.sparktraits.api.SparkTraitsApi")
-                                .getMethod("hasActiveTrait", PlayerEntity.class, Identifier.class);
-                    } catch (ReflectiveOperationException | LinkageError error) {
-                        warn(error);
-                    }
-                    traitMethodResolved = true;
-                }
-            }
-        }
-        return hasActiveTrait;
-    }
-
-    private static void warn(Throwable error) {
-        if (WARNING_LOGGED.compareAndSet(false, true)) {
-            SparkWitch.LOGGER.warn("Judge task income cannot verify the optional Impostor trait; skipping the reward", error);
-        }
+        return Boolean.FALSE.equals(HAS_ACTIVE_TRAIT.callNullableBoolean(Boolean.FALSE, null, null, player, IMPOSTOR));
     }
 }

@@ -16,11 +16,9 @@ import java.util.UUID;
 public final class SparkTraitsGunBridge {
     private static final String API = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
     private static boolean initialized;
-    private static boolean cycleProtocol;
     private static Method intercepted;
     private static Method roleSkillBlocked;
     private static Method exactCooldown;
-    private static Method cooldownTick;
     private static Method terminalReason;
 
     private SparkTraitsGunBridge() { }
@@ -36,7 +34,9 @@ public final class SparkTraitsGunBridge {
             terminalReason = api.getMethod("registerTerminalDeathReason", Identifier.class);
             terminalReason.invoke(null, SparkWitch.id("factor_backlash"));
             exactCooldown = api.getMethod("setExactItemCooldownRemaining", ServerPlayerEntity.class, Item.class, int.class);
-            cooldownTick = api.getMethod("getItemCooldownTick", PlayerEntity.class);
+            // Probe only, kept from the original protocol check: a facade without it registers no Emma cycle listener.
+            // 仅作探测，保留自原有协议检查：门面缺少该方法时不注册 Emma 射击周期监听器。
+            api.getMethod("getItemCooldownTick", PlayerEntity.class);
             Class<?> listener = Class.forName(API + "$GunShotCycleListener");
             Object proxy = Proxy.newProxyInstance(listener.getClassLoader(), new Class<?>[]{listener},
                     (object, method, args) -> {
@@ -73,7 +73,6 @@ public final class SparkTraitsGunBridge {
                         };
                     });
             api.getMethod("registerGunShotCycleListener", listener).invoke(null, proxy);
-            cycleProtocol = true;
         } catch (ReflectiveOperationException | LinkageError exception) {
             SparkWitch.LOGGER.warn("SparkTraits does not expose the complete Emma protocol; provider-dependent Emma abilities are disabled.", exception);
         }
@@ -87,10 +86,6 @@ public final class SparkTraitsGunBridge {
         } catch (ReflectiveOperationException | LinkageError exception) {
             return true;
         }
-    }
-
-    public static boolean hasCycleProtocol() {
-        return cycleProtocol;
     }
 
     public static boolean deathWasIntercepted(PlayerEntity target) {
@@ -110,15 +105,6 @@ public final class SparkTraitsGunBridge {
             return true;
         } catch (ReflectiveOperationException | LinkageError exception) {
             return false;
-        }
-    }
-
-    public static int cooldownTick(ServerPlayerEntity player, int fallback) {
-        if (cooldownTick == null) return fallback;
-        try {
-            return (int) cooldownTick.invoke(null, player);
-        } catch (ReflectiveOperationException | LinkageError exception) {
-            return fallback;
         }
     }
 }
