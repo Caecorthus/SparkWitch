@@ -154,6 +154,13 @@ public final class HunterPlayerComponent implements AutoSyncedComponent, ServerT
 
     @Override
     public void serverTick() {
+        if (injury.rootTicks() == 0 && injury.fractureLayers() == 0) {
+            // No injury: the injury tick is a no-op and nothing syncs, so only the leftover cleanup and the poison
+            // check remain. / 无伤：伤害计时为空操作且不同步，只剩残留清理与中毒检查。
+            clearFractureStateIfApplied();
+            clearStalePoisonAttribution();
+            return;
+        }
         boolean rootWasActive = injury.rootTicks() > 0;
         HunterInjuryState.TickResult tickResult = injury.tick();
         boolean injuryActive = rootWasActive || injury.fractureLayers() > 0;
@@ -166,16 +173,35 @@ public final class HunterPlayerComponent implements AutoSyncedComponent, ServerT
             lockSprintAndStamina();
         }
         refreshFractureState();
-
-        PlayerPoisonComponent poison = PlayerPoisonComponent.KEY.get(player);
-        if (trapPoisonAttribution != null && (poison.poisonTicks < 0 || poison.poisoner == null)) {
-            clearPoisonAttribution();
-        }
+        clearStalePoisonAttribution();
 
         if (tickResult.fractureExpired()
                 || rootWasActive && injury.rootTicks() == 0
                 || player.age % 20 == 0 && injuryActive) {
             sync();
+        }
+    }
+
+    private void clearStalePoisonAttribution() {
+        if (trapPoisonAttribution == null) {
+            return;
+        }
+        PlayerPoisonComponent poison = PlayerPoisonComponent.KEY.get(player);
+        if (poison.poisonTicks < 0 || poison.poisoner == null) {
+            clearPoisonAttribution();
+        }
+    }
+
+    /**
+     * {@link #clearFractureState} for a player without layers. The speed modifier is only ever added together with a
+     * positive {@code appliedFractureLayers} and removed when it returns to 0 (-1 = unknown after a load), so at 0 only
+     * a fracture effect from elsewhere can be left to remove.
+     * 无骨折层玩家的 {@link #clearFractureState}。减速修饰符只会在 {@code appliedFractureLayers} 为正时添加，并在其归 0 时移除
+     * （-1 表示读档后未知），因此为 0 时只可能残留来自别处的骨折效果。
+     */
+    private void clearFractureStateIfApplied() {
+        if (appliedFractureLayers != 0 || player.hasStatusEffect(HunterEffects.fracture())) {
+            clearFractureState();
         }
     }
 

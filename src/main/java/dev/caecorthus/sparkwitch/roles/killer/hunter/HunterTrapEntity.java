@@ -140,8 +140,14 @@ public final class HunterTrapEntity extends Entity {
             return;
         }
 
-        setVelocity(Vec3d.ZERO);
-        velocityModified = true;
+        // The trap never moves itself (no move() call), so its velocity stays zero unless something pushed it (fluid
+        // flow, explosion); only then is it zeroed and the zero sent, instead of a velocity packet every tick.
+        // 捕兽夹从不自行移动（不调用 move()），速度保持为零，除非被推动（流体、爆炸）；只在那时清零并同步零速度，
+        // 而不是每刻都发送速度包。
+        if (!getVelocity().equals(Vec3d.ZERO)) {
+            setVelocity(Vec3d.ZERO);
+            velocityModified = true;
+        }
         if (supportPos == null) {
             supportPos = getBlockPos().down().toImmutable();
         }
