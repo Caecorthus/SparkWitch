@@ -56,11 +56,15 @@ public final class WitchFactorService {
                 && !VOODOO_ROLE_ID.equals(role.identifier());
     }
 
+    /**
+     * A removed factor syncs at once; a role-only view change (viewer rights, pink) reaches clients through the world
+     * component's next per-recipient tick diff, at most one tick later.
+     * 被移除的因子立即同步；仅由身份引起的视图变化（观看权限、粉色）由世界组件下一刻的逐接收者差异同步，最多晚一刻。
+     */
     public static void onRoleChanged(ServerPlayerEntity player) {
         for (ServerWorld world : player.getServer().getWorlds()) {
             WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
-            if (!isEligibleCarrier(player)) component.state().recover(player.getUuid());
-            component.sync();
+            if (!isEligibleCarrier(player) && component.state().recover(player.getUuid())) component.sync();
         }
     }
 
