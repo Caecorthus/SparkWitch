@@ -76,10 +76,6 @@ public final class HunterPlayerComponent implements AutoSyncedComponent, ServerT
         return injury.rootTicks() > 0;
     }
 
-    public int getRootTicks() {
-        return injury.rootTicks();
-    }
-
     public int getFractureLayers() {
         return injury.fractureLayers();
     }

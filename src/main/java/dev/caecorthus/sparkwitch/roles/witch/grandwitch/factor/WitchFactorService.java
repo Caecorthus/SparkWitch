@@ -163,7 +163,6 @@ public final class WitchFactorService {
     }
 
     public static int getRemaining(ServerWorld world) { return WitchFactorWorldComponent.KEY.get(world).state().remaining(); }
-    public static int getLimit(ServerWorld world) { return WitchFactorWorldComponent.KEY.get(world).state().limit(); }
     public static boolean hasReachedSpeedThreshold(ServerWorld world) {
         return WitchFactorWorldComponent.KEY.get(world).state().speedUnlocked();
     }

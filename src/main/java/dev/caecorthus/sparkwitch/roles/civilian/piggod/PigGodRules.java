@@ -3,7 +3,6 @@ package dev.caecorthus.sparkwitch.roles.civilian.piggod;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.DoorInteraction;
-import dev.doctor4t.wathe.api.event.GetInstinctHighlight;
 import dev.doctor4t.wathe.game.GameConstants;
 import net.minecraft.util.Identifier;
 
@@ -106,9 +105,5 @@ public final class PigGodRules {
                 && chaseActive
                 && killerAlive
                 && victimCivilian;
-    }
-
-    public static boolean instinctPriorityPreservesHardSkips() {
-        return INSTINCT_PRIORITY < GetInstinctHighlight.HighlightResult.PRIORITY_HIGH;
     }
 }

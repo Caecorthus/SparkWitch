@@ -44,10 +44,6 @@ public final class TimeGiftPlayerComponent implements ServerTickingComponent {
         return giverUuid != null;
     }
 
-    public @Nullable UUID giver() {
-        return giverUuid;
-    }
-
     public @Nullable UUID matchId() {
         return matchId;
     }

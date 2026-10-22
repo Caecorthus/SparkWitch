@@ -52,10 +52,6 @@ public final class GrandWitchRules {
                 && NoellesRoleIds.VOODOO_CURSE_DEATH_REASON.equals(deathReason);
     }
 
-    public static boolean isShopSpellId(String entryId) {
-        return GrandWitchSpell.fromEntryId(entryId) != null;
-    }
-
     public enum GrandWitchSpell {
         OBSCURE("sparkwitch_obscure", 80, GameConstants.getInTicks(0, 30), GameConstants.getInTicks(2, 0)),
         BLINDNESS("sparkwitch_blindness", 80, GameConstants.getInTicks(0, 20), GameConstants.getInTicks(3, 0)),

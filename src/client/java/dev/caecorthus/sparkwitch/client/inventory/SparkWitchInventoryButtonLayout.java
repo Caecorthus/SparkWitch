@@ -17,11 +17,6 @@ public final class SparkWitchInventoryButtonLayout {
         return (screenHeight - 32) / 2 + 80;
     }
 
-    /** 按槽位间距居中计算玩家按钮行起点。 */
-    public static int getCenteredPlayerStartX(int screenWidth, int visiblePlayerCount) {
-        return screenWidth / 2 - visiblePlayerCount * SLOT_APART / 2 + SLOT_X_OFFSET;
-    }
-
     /**
      * Centers the complete player/control group. The page buttons occupy the same
      * 36-pixel slot as an avatar, matching SparkStrength's inventory layout.

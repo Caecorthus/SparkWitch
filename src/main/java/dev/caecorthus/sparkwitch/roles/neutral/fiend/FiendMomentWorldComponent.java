@@ -58,10 +58,6 @@ public final class FiendMomentWorldComponent implements AutoSyncedComponent, Cli
         return player != null && KEY.get(player.getWorld()).isMomentFiend(player.getUuid());
     }
 
-    public static @Nullable UUID activeFiend(@Nullable World world) {
-        return world == null ? null : KEY.get(world).fiend();
-    }
-
     /**
      * Server only: whether this player is a spent Fiend in the current Wathe match (its moment was ended by a Taotie
      * swallow). Always false on the client, where the ledger is never synced.

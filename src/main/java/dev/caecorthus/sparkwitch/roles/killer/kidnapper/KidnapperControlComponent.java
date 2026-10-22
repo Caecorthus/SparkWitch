@@ -8,7 +8,6 @@ import dev.doctor4t.wathe.record.GameRecordManager;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.RegistryByteBuf;
@@ -102,10 +101,6 @@ public final class KidnapperControlComponent
         return Math.max(0, controlTicks);
     }
 
-    public @Nullable UUID getControllerUuid() {
-        return controllerUuid;
-    }
-
     public boolean isControlledBy(PlayerEntity controller) {
         return controller != null && controller.getUuid().equals(controllerUuid) && controlTicks > 0;
     }
@@ -124,10 +119,6 @@ public final class KidnapperControlComponent
     public void startRoundCooldowns() {
         knockoutDrugStartCooldownTicks = KidnapperRules.KNOCKOUT_DRUG_START_COOLDOWN_TICKS;
         sync();
-    }
-
-    public boolean isUsingStartCooldown(Item item) {
-        return item == SparkWitchItems.knockoutDrug() && knockoutDrugStartCooldownTicks > 0;
     }
 
     public void clearKnockoutDrugStartCooldown() {
