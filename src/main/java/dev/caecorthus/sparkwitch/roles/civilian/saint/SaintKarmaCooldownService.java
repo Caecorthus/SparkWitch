@@ -18,6 +18,16 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * 将业障冷却施加到主背包、快捷栏和副手内的物品类型；盔甲栏不在范围内。
  */
 public final class SaintKarmaCooldownService {
+    /**
+     * Carried-item scratch set reused by {@link #apply} (server thread only, called every tick while Karma runs);
+     * emptied after each call. Each item's write is independent of the others, so the iteration order is irrelevant.
+     * A re-entrant call (none exists today) takes a fresh set.
+     * {@link #apply} 复用的携带物品临时集合（仅服务端线程，业障期间每 tick 调用），每次调用后清空。各物品的写入互不
+     * 相关，迭代顺序无关紧要。重入调用（目前不存在）使用新集合。
+     */
+    private static final Set<Item> CARRIED_SCRATCH = new HashSet<>();
+    private static boolean scratchInUse;
+
     private SaintKarmaCooldownService() {
     }
 
@@ -26,23 +36,32 @@ public final class SaintKarmaCooldownService {
             return;
         }
 
-        Set<Item> carriedItems = new HashSet<>();
-        collectItems(player.getInventory().main, carriedItems);
-        collectItems(player.getInventory().offHand, carriedItems);
+        boolean reuse = !scratchInUse;
+        Set<Item> carriedItems = reuse ? CARRIED_SCRATCH : new HashSet<>();
+        scratchInUse = true;
+        try {
+            collectItems(player.getInventory().main, carriedItems);
+            collectItems(player.getInventory().offHand, carriedItems);
 
-        WitchWorldComponent worldComponent = WitchWorldComponent.KEY.get(player.getServerWorld());
-        ItemCooldownManager manager = player.getItemCooldownManager();
-        ItemCooldownManagerAccessor managerAccessor = (ItemCooldownManagerAccessor) manager;
-        Map<Item, ?> entries = managerAccessor.sparkwitch$getEntries();
-        int currentTick = managerAccessor.sparkwitch$getTick();
-        for (Item item : carriedItems) {
-            if (worldComponent.isSaintKarmaAdminCleared(player.getUuid(), Registries.ITEM.getId(item))) {
-                continue;
+            WitchWorldComponent worldComponent = WitchWorldComponent.KEY.get(player.getServerWorld());
+            ItemCooldownManager manager = player.getItemCooldownManager();
+            ItemCooldownManagerAccessor managerAccessor = (ItemCooldownManagerAccessor) manager;
+            Map<Item, ?> entries = managerAccessor.sparkwitch$getEntries();
+            int currentTick = managerAccessor.sparkwitch$getTick();
+            for (Item item : carriedItems) {
+                if (worldComponent.isSaintKarmaAdminCleared(player.getUuid(), Registries.ITEM.getId(item))) {
+                    continue;
+                }
+                int existingTicks = remainingTicks(entries.get(item), currentTick);
+                int mergedTicks = SaintRules.mergeCooldownTicks(existingTicks, requestedTicks);
+                if (mergedTicks > existingTicks) {
+                    write(player, manager, item, mergedTicks);
+                }
             }
-            int existingTicks = remainingTicks(entries.get(item), currentTick);
-            int mergedTicks = SaintRules.mergeCooldownTicks(existingTicks, requestedTicks);
-            if (mergedTicks > existingTicks) {
-                write(player, manager, item, mergedTicks);
+        } finally {
+            if (reuse) {
+                CARRIED_SCRATCH.clear();
+                scratchInUse = false;
             }
         }
     }

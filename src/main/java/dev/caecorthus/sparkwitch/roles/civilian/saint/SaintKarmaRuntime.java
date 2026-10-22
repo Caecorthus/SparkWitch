@@ -18,13 +18,20 @@ public final class SaintKarmaRuntime {
     public static void tick(ServerWorld world, WitchWorldComponent worldComponent) {
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(world);
         for (ServerPlayerEntity player : world.getPlayers()) {
+            boolean marked = worldComponent.hasSaintKarma(player.getUuid());
+            if (!marked && isMirrorClear(player)) {
+                // Both branches below are no-ops here: an unmarked player has no Karma entry (nor an admin exemption,
+                // which only exists while marked), and updatePlayerMirror(false, 0) leaves a clear mirror unchanged.
+                // 此时下面两个分支都是空操作：未标记玩家没有业障条目（管理员豁免也只在标记期间存在），
+                // updatePlayerMirror(false, 0) 不会改变已清空的镜像。
+                continue;
+            }
             Role role = gameComponent.getRole(player);
             if (SaintRules.isKarmaImmune(role)) {
                 SaintKarmaService.clear(player);
                 continue;
             }
 
-            boolean marked = worldComponent.hasSaintKarma(player.getUuid());
             int remainingTicks = worldComponent.getSaintKarmaTicks(player.getUuid());
             if (remainingTicks > 0) {
                 SaintKarmaCooldownService.apply(player, remainingTicks);
@@ -32,5 +39,11 @@ public final class SaintKarmaRuntime {
             SaintKarmaService.updatePlayerMirror(player, marked, remainingTicks);
         }
         worldComponent.tickSaintKarmaState();
+    }
+
+    /** The player's Karma mirror shows neither a mark nor a cooldown. / 玩家的业障镜像既无标记也无冷却。 */
+    private static boolean isMirrorClear(ServerPlayerEntity player) {
+        SaintPlayerState mirror = WitchPlayerComponent.KEY.get(player).getSaintState();
+        return !mirror.isKarmaMarked() && mirror.karmaCooldownTicks() == 0;
     }
 }
