@@ -145,7 +145,7 @@ Current build baseline:
     sends the empty `sparkwitch:use_apprentice_purify` (`net/UseApprenticePurifyC2SPayload`, registered by
     `ApprenticeFeatureService`, in the Control Expert stun, Seeker session and Rift session deny-lists, not in Fear's).
     It is not in `WitchSkillRegistry`, so the random draw never deals it. 30 mana, 20 s own cooldown
-    (`compat/cooldown/ApprenticePurifyCooldownStore`, appended last), aim within 6 blocks
+    (`compat/cooldown/SparkWitchForcedCooldowns#apprenticePurify`, appended last), aim within 6 blocks
     (`GrandWitchTargeting.findTarget(caster, requested, range)`), else herself if she carries a factor.
     `WitchFactorService.purify` removes the factor without refunding quota; success pays her 30 mana.
   - Spell-proof (D4/D8): `GrandWitchFearService.isPlayerFeared` = `isPlayerUnderFear` minus
@@ -426,7 +426,7 @@ Current build baseline:
     (`mixin/vulture/NoellesVultureDecoyBodyMixin` through `compat/NoellesVultureDecoyGuard`) ignore decoy bodies and
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
     SparkStrength) still treat a decoy as a body.
-  - The ability cooldown is the `sparkwitch:magician` store in `compat/cooldown/MagicianCooldownStore` (appended
+  - The ability cooldown is the `sparkwitch:magician` store in `compat/cooldown/SparkWitchForcedCooldowns#magician` (appended
     last; nominal = the 15 s playback cooldown; raise-only). Forced cooldowns land in every stage and only delay the
     next start (owner decision 2026-10-09): the ready HUD line then shows the remaining seconds
     (`hud.sparkwitch.magician.ready_cooldown`), and a press or start button refused for it gets the shared
@@ -1317,6 +1317,16 @@ Current build baseline:
   differ only for zero and negative input; every call site keeps the variant it used before (2026-10-22).
 - `util/StaggeredSweep.isDue(worldTime, entityId, interval)`: the per-player sweep offset
   `Math.floorMod(worldTime + entityId, interval) == 0`; each owner keeps its own interval constant.
+- `util/RoundParticipants` (2026-10-22): the one living-round-participant predicate. Named `Profile`s are ordered
+  `Gate` lists that all include Wathe `isPlayerPlayingAndAlive`; a null player never passes. Gates run in the declared
+  order and stop at the first failure, so the SparkTraits gates (Last Stand pending via the Abyss bridge, Last Escape
+  via the killer bridge) run last. `test(player)` reads the player's own world; `test(player, game)` reads the caller's
+  component for `HAS_ROLE`/`STATUS_ACTIVE`. Profiles: `ROLE_HOLDER` (Control Expert, Bell Ringer Echo, Time Stealer
+  targets), `CONNECTED_ROLE_HOLDER` (Witches' Sabbath, `SeekerTargeting.isRoundParticipant`), `LIVING_SURVIVOR`
+  (`FisherParticipants`, Blind money; no Wraith or role gate), `SWORDFISH_TARGET` (status exactly ACTIVE, not an active
+  Wraith), `ABYSS_TARGET`, `RIFT_ENTRANT` (no role gate), `JUDGE_ACTIVE`, `CROW_LANDING` (creative players and Wraiths
+  pass) and `MINI_WITHER_TARGET` (Wraith checked on the server only, Last Escape before the role). The differences are
+  each site's existing rule. `OffMatchUse.isMatchParticipant` and `SeekerTargeting.isActiveParticipant` stay separate.
 - `util/GiveCommandDropScope`: marks, by stack identity and per thread, vanilla `/give`'s cosmetic pickup-animation drop
   (the shared count-1 template). `mixin/GiveCommandDropScopeMixin` (common config) is the one `@WrapOperation` on
   `GiveCommand.execute`'s second `dropItem(ItemStack, boolean)` (ordinal 1); ordinal 0, the real remainder drop, stays
@@ -2341,7 +2351,11 @@ tasks it is promoted to an accomplice role through the pool above.
 Features that force a cooldown on another player (penalties, auras) go through SparkFactionAPI `ForcedCooldowns`
 (floor 0.1.5.11), never through a counter directly; affect vetoes stay the caller's job (`canAffectPlayer`).
 `compat/cooldown/SparkWitchForcedCooldowns` registers these role-skill stores, in this observable order (it is the
-`slots` order):
+`slots` order). Stores 1, 2, 5 and 6 keep their own classes (they override a SparkFactionAPI default or derive a
+per-role nominal); stores 3, 4 and 7-13 are `SimpleRoleSkillCooldownStore` instances built by factory methods in
+`SparkWitchForcedCooldowns` (2026-10-22), each with an explicit round gate (`anyGameStatus` or `whileActive`) and write
+kind (`EXACT`, `CLAMPED_AT_ZERO`, `RAISED_READY_TICK`); nominals are read lazily. The per-store differences below are
+deliberate and kept:
 1. `sparkwitch:witch_skill`: the shared `WitchPlayerComponent` cooldown, for any player with a skill (`hasSkill()`;
    Saint has none). Remaining time includes a pending deferred cooldown (`max(cooldown, window + deferred)`); the
    nominal is the active `WitchSkillDefinition.cooldownTicks`. Raises and extensions go through the additive
@@ -2375,7 +2389,7 @@ Features that force a cooldown on another player (penalties, auras) go through S
    nominal leaves its window out. Every write only moves the ready tick later (`ForcedCooldownMath.raiseReadyTick`)
    through the owner-syncing `BlindComponent.setAttune`; it never touches the window and never shortens. Raise and
    extend are the SparkFactionAPI defaults.
-9. `sparkwitch:fiend_dash` (`FiendDashCooldownStore`, coordinator default 2026-10-04 following the Blind,
+9. `sparkwitch:fiend_dash` (`SparkWitchForcedCooldowns#fiendDash`, coordinator default 2026-10-04 following the Blind,
    appended after it): the Fiend's Dash, for the role-gated moment Fiend in an ACTIVE round (`FiendDashService`'s
    role and round gates), so it exists only while a moment runs.
    Remaining time counts to the absolute Dash ready tick in `sparkwitch:fiend_moment`; the nominal is the 30 s
@@ -3519,7 +3533,7 @@ Seeker car.
       players).
 - **Perception.** `BlackRavenPerceptionCenter.of(player)` is Perception's distance centre; Raven Form's override
   answers the crow's position during a session.
-- **Cooldown.** `compat/cooldown/BlackRavenCrowCooldownStore` (`sparkwitch:black_raven_crow`, appended after the Mini
+- **Cooldown.** `compat/cooldown/SparkWitchForcedCooldowns#blackRavenCrow` (`sparkwitch:black_raven_crow`, appended after the Mini
   Wither toggle) exposes it to the SparkFactionAPI forced-cooldown contract. The admin `clearCooldown` clears only the
   held item, so, like the Mini Wither toggle, it does not reach Raven Form.
 - **Disguise.** The Raven Mask switch answers `window_active` while the crow flies; Raven Form refuses a disguised
