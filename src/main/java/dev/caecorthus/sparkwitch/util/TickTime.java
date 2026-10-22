@@ -1,9 +1,11 @@
 package dev.caecorthus.sparkwitch.util;
 
 /**
- * Tick-to-second rounding shared by HUDs and rules. The variants differ only for zero and negative input, and each
- * call site keeps the variant it already used, so a countdown never changes what it shows.
- * HUD 与规则共用的刻转秒取整。各变体只在零与负数输入上不同，每个调用点保留原先使用的变体，因此倒计时显示不变。
+ * Tick-to-second rounding shared by HUDs and rules. The variants differ for zero and negative input, and the
+ * {@code (ticks + 19)} forms also wrap for ticks within 19 of {@link Integer#MAX_VALUE}, exactly like the formulas they
+ * replaced. Each call site keeps the variant it already used, so a countdown never changes what it shows.
+ * HUD 与规则共用的刻转秒取整。各变体在零与负数输入上不同，{@code (ticks + 19)} 形式在距 {@link Integer#MAX_VALUE}
+ * 19 以内时还会溢出回绕，与被替换的公式完全一致。每个调用点保留原先使用的变体，因此倒计时显示不变。
  */
 public final class TickTime {
     public static final int TICKS_PER_SECOND = 20;
@@ -35,9 +37,10 @@ public final class TickTime {
     }
 
     /**
-     * The bare {@code (ticks + 19) / 20}: integer division truncates toward zero, so only ticks at or below -39 give a
-     * negative count.
-     * 原始的 {@code (ticks + 19) / 20}：整数除法向零截断，因此只有 -39 刻及以下得到负数。
+     * The bare {@code (ticks + 19) / 20}: integer division truncates toward zero, so ticks at or below -39 give a
+     * negative count (as do ticks within 19 of {@link Integer#MAX_VALUE}, where the sum wraps).
+     * 原始的 {@code (ticks + 19) / 20}：整数除法向零截断，因此 -39 刻及以下得到负数（距 {@link Integer#MAX_VALUE} 19
+     * 以内时和值回绕，也得到负数）。
      */
     public static int ceilSecondsRaw(int ticks) {
         return (ticks + TICKS_PER_SECOND - 1) / TICKS_PER_SECOND;
