@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.client.text.HudFontOptions;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecCooldowns;
@@ -41,11 +42,14 @@ public final class UsecAmmoHud {
     // resource reload) and the font renderer, so they are rebuilt only when one of those changes.
     // 渲染线程缓存。物品组件不可变，同一个 CUSTOM_DATA 实例总是解码出相同的步枪状态；构建出的文本与宽度只取决于其片段、
     // 当前 Language（每次资源重载都会换新）与字体渲染器，因此只在其中之一变化时重建。
+    // The key also holds the font glyph options (`HudFontOptions`), which a toggle changes without a reload.
+    // 键还包含字形选项（`HudFontOptions`），切换它们不会触发资源重载。
     private static boolean cachedStateRead;
     private static NbtComponent cachedStateData;
     private static UsecRifleState cachedState = UsecRifleState.EMPTY;
     private static Language cachedLanguage;
     private static TextRenderer cachedRenderer;
+    private static int cachedFontOptions = -1;
     private static List<UsecAmmoHudRules.Part> cachedLineParts;
     private static Text cachedLine;
     private static int cachedLineWidth;
@@ -90,9 +94,11 @@ public final class UsecAmmoHud {
 
         TextRenderer renderer = client.textRenderer;
         Language language = Language.getInstance();
-        if (language != cachedLanguage || renderer != cachedRenderer) {
+        int fontOptions = HudFontOptions.current();
+        if (language != cachedLanguage || renderer != cachedRenderer || fontOptions != cachedFontOptions) {
             cachedLanguage = language;
             cachedRenderer = renderer;
+            cachedFontOptions = fontOptions;
             cachedLineParts = null;
             cachedZoomPart = null;
             cachedZoomSampleWidth = renderer.getWidth(

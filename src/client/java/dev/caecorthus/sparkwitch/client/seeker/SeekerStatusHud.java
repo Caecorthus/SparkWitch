@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.seeker;
 
 import dev.caecorthus.sparkwitch.client.seeker.remote.SeekerRemoteViewClient;
+import dev.caecorthus.sparkwitch.client.text.HudFontOptions;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCooldowns;
 import dev.doctor4t.wathe.client.WatheClient;
@@ -35,9 +36,12 @@ public final class SeekerStatusHud {
     // resource reload installs a new one) and the font renderer, so it is rebuilt and re-measured only when one changes.
     // 渲染线程上的上一行缓存：文本只取决于快照、当前 Language（每次资源重载都会换新实例）与字体渲染器，
     // 因此只在其中之一变化时重建并重新测量宽度。
+    // The key also holds the font glyph options (`HudFontOptions`), which a toggle changes without a reload.
+    // 键还包含字形选项（`HudFontOptions`），切换它们不会触发资源重载。
     private static SeekerHudRules.Snapshot cachedSnapshot;
     private static Language cachedLanguage;
     private static TextRenderer cachedRenderer;
+    private static int cachedFontOptions = -1;
     private static Text cachedLine;
     private static int cachedWidth;
 
@@ -76,13 +80,16 @@ public final class SeekerStatusHud {
                 SeekerClientState.carBattery(), SeekerClientState.cameraCount(), markTicks);
         TextRenderer renderer = client.textRenderer;
         Language language = Language.getInstance();
-        if (!snapshot.equals(cachedSnapshot) || language != cachedLanguage || renderer != cachedRenderer) {
+        int fontOptions = HudFontOptions.current();
+        if (!snapshot.equals(cachedSnapshot) || language != cachedLanguage || renderer != cachedRenderer
+                || fontOptions != cachedFontOptions) {
             List<SeekerHudRules.Segment> segments = SeekerHudRules.segments(snapshot);
             cachedLine = segments.isEmpty() ? null : compose(segments);
             cachedWidth = cachedLine == null ? 0 : renderer.getWidth(cachedLine);
             cachedSnapshot = snapshot;
             cachedLanguage = language;
             cachedRenderer = renderer;
+            cachedFontOptions = fontOptions;
         }
         Text line = cachedLine;
         if (line == null) {

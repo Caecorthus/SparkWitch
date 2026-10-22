@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClientStatus;
 import dev.caecorthus.sparkwitch.client.blind.BlindView;
+import dev.caecorthus.sparkwitch.client.text.HudFontOptions;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
@@ -41,9 +42,12 @@ final class BlindKitHud {
     // when one changes (about once a second while a countdown runs).
     // 渲染线程上按行位置的缓存：一行的文本与宽度只取决于该行、技能按键文本、当前 Language（每次资源重载都会换新）与
     // 字体渲染器，因此只在其中之一变化时重建（倒计时期间约每秒一次）。
+    // The key also holds the font glyph options (`HudFontOptions`), which a toggle changes without a reload.
+    // 键还包含字形选项（`HudFontOptions`），切换它们不会触发资源重载。
     private static BuiltLine[] cachedLines = new BuiltLine[0];
     private static Language cachedLanguage;
     private static TextRenderer cachedRenderer;
+    private static int cachedFontOptions = -1;
 
     private BlindKitHud() {
     }
@@ -104,9 +108,11 @@ final class BlindKitHud {
 
     private static BuiltLine[] build(List<BlindKitHudRules.Line> lines, TextRenderer renderer) {
         Language language = Language.getInstance();
-        if (language != cachedLanguage || renderer != cachedRenderer) {
+        int fontOptions = HudFontOptions.current();
+        if (language != cachedLanguage || renderer != cachedRenderer || fontOptions != cachedFontOptions) {
             cachedLanguage = language;
             cachedRenderer = renderer;
+            cachedFontOptions = fontOptions;
             Arrays.fill(cachedLines, null);
         }
         if (cachedLines.length != lines.size()) {

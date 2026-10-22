@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationHudLayout;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationSnapshotState;
+import dev.caecorthus.sparkwitch.client.text.HudFontOptions;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -62,12 +63,15 @@ public final class TarotDivinationHudRenderer {
     // 渲染线程上一次测量的表格缓存，键包含 measure() 读取的全部输入：两次快照、屏幕宽度、当前 Language（每次资源重载
     // 都会换新）与字体渲染器。所有阵营都已注册的表格不会再变（SparkFactionAPI 从不替换或移除阵营）；回退为白色的表格
     // 仍与以前一样每次重新测量。
+    // The key also holds the font glyph options (`HudFontOptions`), which a toggle changes without a reload.
+    // 键还包含字形选项（`HudFontOptions`），切换它们不会触发资源重载。
     private static Optional<Table> cachedTable = Optional.empty();
     private static TarotDivinationSnapshotState.Snapshot cachedSnapshot;
     private static TarotDivinationSnapshotState.Snapshot cachedPrevious;
     private static int cachedScreenWidth;
     private static Language cachedLanguage;
     private static TextRenderer cachedRenderer;
+    private static int cachedFontOptions = -1;
 
     private TarotDivinationHudRenderer() {
     }
@@ -177,8 +181,10 @@ public final class TarotDivinationHudRenderer {
 
         TarotDivinationSnapshotState.Snapshot previous = state.previous().orElse(null);
         Language language = Language.getInstance();
+        int fontOptions = HudFontOptions.current();
         if (cachedTable.isPresent() && snapshot.equals(cachedSnapshot) && Objects.equals(previous, cachedPrevious)
-                && screenWidth == cachedScreenWidth && language == cachedLanguage && renderer == cachedRenderer) {
+                && screenWidth == cachedScreenWidth && language == cachedLanguage && renderer == cachedRenderer
+                && fontOptions == cachedFontOptions) {
             return cachedTable;
         }
         List<TarotDivinationHudLayout.Row> rows = TarotDivinationHudLayout.rows(snapshot, previous);
@@ -216,6 +222,7 @@ public final class TarotDivinationHudRenderer {
         cachedScreenWidth = screenWidth;
         cachedLanguage = language;
         cachedRenderer = renderer;
+        cachedFontOptions = fontOptions;
         return table;
     }
 
