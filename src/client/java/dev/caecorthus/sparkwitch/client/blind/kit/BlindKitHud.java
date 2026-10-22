@@ -14,7 +14,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindInventoryRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.client.WatheClient;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -23,6 +25,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.ItemCooldownManager;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.text.Text;
+import net.minecraft.util.Language;
 
 /**
  * Draws the Blind's owner-only status lines ({@link BlindKitHudRules}) after the world, so they sit over the black
@@ -33,6 +36,14 @@ import net.minecraft.text.Text;
  */
 final class BlindKitHud {
     private static boolean registered;
+    // Render-thread cache per line slot: a line's Texts and widths are a pure function of the line, the ability key
+    // text, the active Language (replaced on every resource reload) and the font renderer, so they are rebuilt only
+    // when one changes (about once a second while a countdown runs).
+    // 渲染线程上按行位置的缓存：一行的文本与宽度只取决于该行、技能按键文本、当前 Language（每次资源重载都会换新）与
+    // 字体渲染器，因此只在其中之一变化时重建（倒计时期间约每秒一次）。
+    private static BuiltLine[] cachedLines = new BuiltLine[0];
+    private static Language cachedLanguage;
+    private static TextRenderer cachedRenderer;
 
     private BlindKitHud() {
     }
@@ -75,29 +86,61 @@ final class BlindKitHud {
         // 防御性处理：共享右下角技能行只在存在魔女技能 id 时绘制，而盲人没有。
         boolean sharedLineOccupied = WitchPlayerComponent.KEY.get(player).getActiveSkillId() != null;
         TextRenderer renderer = client.textRenderer;
+        BuiltLine[] built = build(lines, renderer);
         int width = context.getScaledWindowWidth();
         int widest = 0;
-        for (BlindKitHudRules.Line line : lines) {
-            widest = Math.max(widest, renderer.getWidth(text(line, BlindKitHudRules.measuredSeconds(line.seconds()))));
+        for (BuiltLine line : built) {
+            widest = Math.max(widest, line.measuredWidth());
         }
         int bottomOffset = BlindKitHudRules.bottomOffset(width, widest, renderer.fontHeight, sharedLineOccupied);
-        for (int index = 0; index < lines.size(); index++) {
-            BlindKitHudRules.Line line = lines.get(index);
-            Text text = text(line, line.seconds());
-            int x = BlindKitHudRules.rowX(width, renderer.getWidth(text));
-            int y = BlindKitHudRules.rowY(context.getScaledWindowHeight(), renderer.fontHeight, index, lines.size(),
+        for (int index = 0; index < built.length; index++) {
+            BuiltLine line = built[index];
+            int x = BlindKitHudRules.rowX(width, line.width());
+            int y = BlindKitHudRules.rowY(context.getScaledWindowHeight(), renderer.fontHeight, index, built.length,
                     bottomOffset);
-            context.drawTextWithShadow(renderer, text, x, y, line.color());
+            context.drawTextWithShadow(renderer, line.text(), x, y, line.line().color());
         }
     }
 
-    private static Text text(BlindKitHudRules.Line line, int seconds) {
+    private static BuiltLine[] build(List<BlindKitHudRules.Line> lines, TextRenderer renderer) {
+        Language language = Language.getInstance();
+        if (language != cachedLanguage || renderer != cachedRenderer) {
+            cachedLanguage = language;
+            cachedRenderer = renderer;
+            Arrays.fill(cachedLines, null);
+        }
+        if (cachedLines.length != lines.size()) {
+            cachedLines = Arrays.copyOf(cachedLines, lines.size());
+        }
+        Text keyText = null;
+        for (int index = 0; index < lines.size(); index++) {
+            BlindKitHudRules.Line line = lines.get(index);
+            if (line.keyHint() && keyText == null) {
+                keyText = SparkWitchClient.abilityKeyText();
+            }
+            Text key = line.keyHint() ? keyText : null;
+            BuiltLine cached = cachedLines[index];
+            if (cached != null && cached.line().equals(line) && Objects.equals(cached.keyText(), key)) {
+                continue;
+            }
+            Text text = text(line, line.seconds(), key);
+            int textWidth = renderer.getWidth(text);
+            int measuredSeconds = BlindKitHudRules.measuredSeconds(line.seconds());
+            int measuredWidth = measuredSeconds == line.seconds()
+                    ? textWidth
+                    : renderer.getWidth(text(line, measuredSeconds, key));
+            cachedLines[index] = new BuiltLine(line, key, text, textWidth, measuredWidth);
+        }
+        return cachedLines;
+    }
+
+    private static Text text(BlindKitHudRules.Line line, int seconds, Text keyText) {
         List<Object> args = new ArrayList<>(3);
         if (line.nameKey() != null) {
             args.add(Text.translatable(line.nameKey()));
         }
         if (line.keyHint()) {
-            args.add(SparkWitchClient.abilityKeyText());
+            args.add(keyText);
         }
         if (line.hasSeconds()) {
             args.add(seconds);
@@ -126,5 +169,9 @@ final class BlindKitHud {
             return 0;
         }
         return Math.max(0, entry.sparkwitch$getEndTick() - accessor.sparkwitch$getTick());
+    }
+
+    /** One built line: its Text, drawn width and lift-measuring width. / 一行构建结果：文本、绘制宽度与抬升测量宽度。 */
+    private record BuiltLine(BlindKitHudRules.Line line, Text keyText, Text text, int width, int measuredWidth) {
     }
 }
