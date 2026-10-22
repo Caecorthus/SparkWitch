@@ -1,12 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.kit;
 
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.api.event.CanSeeMoney;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.api.event.TaskComplete;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 
@@ -46,10 +46,12 @@ public final class BlindEconomyService {
         });
     }
 
-    /** Both sides: alive, connected, playing and not a spectator or creative player. / 双端：存活、在线、参与且非旁观/创造。 */
+    /**
+     * Both sides: alive, connected, playing and not a spectator or creative player
+     * ({@link RoundParticipants#LIVING_SURVIVOR}).
+     * 双端：存活、在线、参与且非旁观/创造（{@link RoundParticipants#LIVING_SURVIVOR}）。
+     */
     private static boolean isLivingParticipant(PlayerEntity player) {
-        return player.isAlive()
-                && !(player instanceof ServerPlayerEntity serverPlayer && serverPlayer.isDisconnected())
-                && GameFunctions.isPlayerPlayingAndAlive(player) && GameFunctions.isPlayerAliveAndSurvival(player);
+        return RoundParticipants.LIVING_SURVIVOR.test(player);
     }
 }

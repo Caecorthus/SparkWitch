@@ -7,14 +7,13 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerInventoryRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
-import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftGateUsers;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerStatusProbes;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -190,19 +189,15 @@ final class WitchesSabbathTargets {
     }
 
     /**
-     * Online, playing and alive in Wathe, not spectating or creative, not an active Wraith, holding a role. Uses
-     * {@code isPlayerPlayingAndAlive}, never {@code isPlayerAliveAndSurvival} (which passes active Wraiths).
-     * 在线、在 Wathe 中参与且存活、非旁观/创造、非激活冤魂、拥有职业。使用 {@code isPlayerPlayingAndAlive}，
+     * Online, playing and alive in Wathe, not spectating or creative, not an active Wraith, holding a role in
+     * {@code game} ({@link RoundParticipants#CONNECTED_ROLE_HOLDER}). Uses {@code isPlayerPlayingAndAlive}, never
+     * {@code isPlayerAliveAndSurvival} (which passes active Wraiths).
+     * 在线、在 Wathe 中参与且存活、非旁观/创造、非激活冤魂、在 {@code game} 中拥有职业
+     * （{@link RoundParticipants#CONNECTED_ROLE_HOLDER}）。使用 {@code isPlayerPlayingAndAlive}，
      * 从不使用 {@code isPlayerAliveAndSurvival}（后者会放过激活冤魂）。
      */
     static boolean isRoundParticipant(ServerPlayerEntity player, GameWorldComponent game) {
-        return player != null
-                && !player.isDisconnected()
-                && GameFunctions.isPlayerPlayingAndAlive(player)
-                && !player.isSpectator()
-                && !player.isCreative()
-                && !WraithStateService.isActive(player)
-                && game.getRole(player) != null;
+        return RoundParticipants.CONNECTED_ROLE_HOLDER.test(player, game);
     }
 
     private static boolean isKidnapperControlled(PlayerEntity player) {

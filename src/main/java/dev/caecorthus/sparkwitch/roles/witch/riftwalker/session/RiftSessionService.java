@@ -19,6 +19,7 @@ import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateCloseReason
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntity;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateRecord;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateRegistry;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
@@ -520,15 +521,13 @@ public final class RiftSessionService {
     }
 
     /**
-     * Living participant: playing and alive, not spectator, not creative, not an active Wraith (dead but adventure).
-     * 存活参与者：参赛且存活、非旁观、非创造、非激活冤魂（已死亡但处于冒险模式）。
+     * Living participant: playing and alive, not spectator, not creative, not an active Wraith (dead but adventure); no
+     * role gate ({@link RoundParticipants#RIFT_ENTRANT}).
+     * 存活参与者：参赛且存活、非旁观、非创造、非激活冤魂（已死亡但处于冒险模式）；不检查职业
+     * （{@link RoundParticipants#RIFT_ENTRANT}）。
      */
     private static boolean isParticipant(ServerPlayerEntity player) {
-        return GameFunctions.isPlayerPlayingAndAlive(player)
-                && player.isAlive()
-                && !player.isSpectator()
-                && !player.isCreative()
-                && !WraithStateService.isActive(player);
+        return RoundParticipants.RIFT_ENTRANT.test(player);
     }
 
     /**

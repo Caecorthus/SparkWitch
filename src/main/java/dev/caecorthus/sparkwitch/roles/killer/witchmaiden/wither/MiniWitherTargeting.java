@@ -2,13 +2,11 @@ package dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
-import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
-import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastGeometry;
+import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -68,16 +66,13 @@ public final class MiniWitherTargeting {
 
     /**
      * Alive, playing, survival or adventure, not a spectator (Rift Gate occupants, Taotie prey), not an active Wraith,
-     * not in SparkTraits Last Escape, and holding a role.
-     * 存活、在局、生存或冒险模式、非旁观（裂隙门内玩家、饕餮吞下者）、非激活冤魂、未处于 SparkTraits 最后逃脱，且拥有职业。
+     * not in SparkTraits Last Escape, and holding a role in {@code game}, in that order; the Wraith check applies to server
+     * players only ({@link RoundParticipants#MINI_WITHER_TARGET}).
+     * 存活、在局、生存或冒险模式、非旁观（裂隙门内玩家、饕餮吞下者）、非激活冤魂、未处于 SparkTraits 最后逃脱，且在
+     * {@code game} 中拥有职业，按此顺序；冤魂检查只对服务端玩家生效（{@link RoundParticipants#MINI_WITHER_TARGET}）。
      */
     public static boolean isLiveParticipant(PlayerEntity player, GameWorldComponent game) {
-        return GameFunctions.isPlayerAliveAndSurvival(player)
-                && GameFunctions.isPlayerPlayingAndAlive(player)
-                && !player.isSpectator()
-                && !(player instanceof ServerPlayerEntity serverPlayer && WraithStateService.isActive(serverPlayer))
-                && !SparkTraitsKillerBridge.isLastEscapeActive(player)
-                && game.getRole(player) != null;
+        return RoundParticipants.MINI_WITHER_TARGET.test(player, game);
     }
 
     /** Effective killer (Impostor included) or Undercover. / 有效阵营为杀手（含内鬼）或卧底。 */
