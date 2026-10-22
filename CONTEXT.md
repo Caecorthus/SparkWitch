@@ -3605,8 +3605,9 @@ Client (render thread):
   `WraithMinecraftClientMixin`'s `hasOutline` veto deliberately does not, because it runs before Wathe's
   `hasInstinctOutline` and must still cancel it.
 - HUD text caches (Seeker status, USEC ammo, Tarot table, Blind kit lines, Fiend Dash/Feign) key on their snapshot or
-  parts plus the current `Language` and `TextRenderer` instances, so a language or resource reload re-measures. A Tarot
-  table that fell back to white for an unregistered faction is never reused.
+  parts plus the current `Language` and `TextRenderer` instances and `client/text/HudFontOptions` (Force Unicode Font
+  and Japanese Glyph Variants, which swap glyph filters without a reload), so a language, resource or font-option change
+  re-measures. A Tarot table that fell back to white for an unregistered faction is never reused.
 - `SeekerCctvOverlay` batches each group of fills through `InventoryCardPaint.batch` (same order, text after).
   `SeekerCarUseClient` casts the car aim once per frame (cleared at `WorldRenderEvents.START`). `SwordfishCrosshairMixin`
   memoizes `showsTarget` per Wathe `CrosshairRenderer.renderCrosshair` call (a HEAD inject clears it).
