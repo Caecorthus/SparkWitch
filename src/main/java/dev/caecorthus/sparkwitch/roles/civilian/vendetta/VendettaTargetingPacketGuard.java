@@ -34,6 +34,22 @@ public final class VendettaTargetingPacketGuard {
     private VendettaTargetingPacketGuard() {
     }
 
+    /**
+     * Network-thread pre-filter: whether {@code payload} is one of the target payloads {@link #shouldBlock} judges. It
+     * reads only the decoded payload's class and id, never world, entity or component state, so Fabric's receive path
+     * may call it on the Netty thread before the server-thread hand-off.
+     * 网络线程预筛：{@code payload} 是否为 {@link #shouldBlock} 要判定的目标数据包。只读取已解码数据包的类与 id，从不读取世界、
+     * 实体或组件状态，因此 Fabric 接收路径可在移交服务端主线程之前于 Netty 线程上调用它。
+     */
+    public static boolean isTargetPayload(@Nullable CustomPayload payload) {
+        return payload instanceof KnifeStabPayload || payload instanceof GunShootPayload
+                || payload != null && payload.getId() != null && SERIAL_PISTOL_SHOOT_ID.equals(payload.getId().id());
+    }
+
+    /**
+     * Server thread only: looks the target up in the actor's world and reads Vendetta and Raven Form components.
+     * 仅限服务端主线程：在行动者所在世界查找目标，并读取仇杀与化鸦组件。
+     */
     public static boolean shouldBlock(ServerPlayerEntity actor, CustomPayload payload) {
         OptionalInt targetEntityId = targetEntityId(actor, payload);
         if (targetEntityId.isEmpty()) {
