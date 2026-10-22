@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.blind.kit;
 
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.jetbrains.annotations.Nullable;
@@ -88,7 +89,7 @@ public final class BlindKitHudRules {
 
     /** Whole seconds, rounded up, never negative. / 向上取整的整秒数，不为负。 */
     public static int seconds(int ticks) {
-        return ticks <= 0 ? 0 : (ticks + 19) / 20;
+        return TickTime.ceilSeconds(ticks);
     }
 
     /**

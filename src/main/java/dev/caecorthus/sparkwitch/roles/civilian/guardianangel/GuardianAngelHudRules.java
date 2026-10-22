@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.guardianangel;
 
+import dev.caecorthus.sparkwitch.util.TickTime;
+
 /** Pure state selection for the Guardian Angel's private skill HUD. / 守护天使私有技能 HUD 的纯状态选择。 */
 public final class GuardianAngelHudRules {
     public enum State {
@@ -19,6 +21,6 @@ public final class GuardianAngelHudRules {
     }
 
     public static int cooldownSeconds(int cooldownTicks) {
-        return Math.max(1, (int) Math.ceil(cooldownTicks / 20.0D));
+        return TickTime.ceilSecondsAtLeastOne(cooldownTicks);
     }
 }

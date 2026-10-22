@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherEntit
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.net.ToggleMiniWitherC2SPayload;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -101,7 +102,8 @@ public final class MiniWitherClient {
             return lines;
         }
         if (wither.getToggleCooldownTicks() > 0) {
-            lines.add(Text.translatable("hud.sparkwitch.mini_wither.cooldown", seconds(wither.getToggleCooldownTicks())));
+            lines.add(Text.translatable("hud.sparkwitch.mini_wither.cooldown",
+                    TickTime.ceilSecondsUnclamped(wither.getToggleCooldownTicks())));
         } else {
             lines.add(Text.translatable(wither.isActive() ? "hud.sparkwitch.mini_wither.dismiss"
                     : "hud.sparkwitch.mini_wither.summon", SecondaryAbilityController.secondaryKeyText()));
@@ -111,7 +113,8 @@ public final class MiniWitherClient {
         }
         int crimsonTicks = goheiCooldownTicks(player);
         if (crimsonTicks > 0) {
-            lines.add(Text.translatable("hud.sparkwitch.mini_wither.crimson.cooldown", seconds(crimsonTicks)));
+            lines.add(Text.translatable("hud.sparkwitch.mini_wither.crimson.cooldown",
+                    TickTime.ceilSecondsUnclamped(crimsonTicks)));
         } else if (WitchPlayerComponent.KEY.get(player).getMana() < MiniWitherRules.CRIMSON_MANA_COST) {
             lines.add(Text.translatable("hud.sparkwitch.mini_wither.crimson.not_enough_mana",
                     MiniWitherRules.CRIMSON_MANA_COST));
@@ -127,9 +130,5 @@ public final class MiniWitherClient {
         Object entry = manager.sparkwitch$getEntries().get(SparkWitchItems.witherGohei());
         return entry instanceof ItemCooldownEntryAccessor cooldown
                 ? Math.max(0, cooldown.sparkwitch$getEndTick() - manager.sparkwitch$getTick()) : 0;
-    }
-
-    private static int seconds(int ticks) {
-        return (int) Math.ceil(ticks / 20.0);
     }
 }

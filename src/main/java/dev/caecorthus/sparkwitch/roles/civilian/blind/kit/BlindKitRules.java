@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.blind.kit;
 
 import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
+import dev.caecorthus.sparkwitch.util.StaggeredSweep;
 import dev.doctor4t.wathe.api.event.CanSeeMoney;
 import java.util.Arrays;
 import java.util.Objects;
@@ -144,7 +145,7 @@ public final class BlindKitRules {
 
     /** Staggered per-player sweep tick. / 按玩家错开的清理刻。 */
     public static boolean straySweepDue(long time, int entityId) {
-        return Math.floorMod(time + entityId, STRAY_SWEEP_INTERVAL_TICKS) == 0;
+        return StaggeredSweep.isDue(time, entityId, STRAY_SWEEP_INTERVAL_TICKS);
     }
 
     /**

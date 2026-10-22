@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.magician;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -132,7 +133,7 @@ public final class MagicianPlayerComponent implements AutoSyncedComponent, Serve
      */
     static final class Cadence {
         private Cadence() {}
-        static int shownSeconds(int ticks) { return Math.max(0, (ticks + 19) / 20); }
+        static int shownSeconds(int ticks) { return Math.max(0, TickTime.ceilSecondsRaw(ticks)); }
         static boolean shownSecondChanged(int before, int after) { return shownSeconds(before) != shownSeconds(after); }
         /**
          * Lowest local value that still shows the same second (at least 1 while running, so READY waits for the server).

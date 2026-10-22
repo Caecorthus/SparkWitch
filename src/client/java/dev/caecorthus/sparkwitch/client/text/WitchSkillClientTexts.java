@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.skill.WitchSkillHudRules;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -57,7 +58,7 @@ public final class WitchSkillClientTexts {
             lines.add(Text.translatable("skill.sparkwitch.witch_factor.transfer"));
         }
         if (activeTicks > 0) {
-            lines.add(Text.translatable("gui.sparkwitch.skill.active", (int) Math.ceil(activeTicks / 20.0)));
+            lines.add(Text.translatable("gui.sparkwitch.skill.active", TickTime.ceilSecondsUnclamped(activeTicks)));
         } else if (WitchSkillHudRules.shouldShowCeremonialSwordTaskUnlock(
                 skillId,
                 ceremonialSwordTasks,
@@ -70,7 +71,7 @@ public final class WitchSkillClientTexts {
                     GrandWitchRules.CEREMONIAL_SWORD_UNLOCK_TASKS
             ));
         } else if (cooldownTicks > 0) {
-            lines.add(Text.translatable("gui.sparkwitch.skill.cooldown", (int) Math.ceil(cooldownTicks / 20.0)));
+            lines.add(Text.translatable("gui.sparkwitch.skill.cooldown", TickTime.ceilSecondsUnclamped(cooldownTicks)));
         } else {
             lines.add(Text.translatable("gui.sparkwitch.skill.ready"));
         }

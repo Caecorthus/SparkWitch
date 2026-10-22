@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.witch.riftwalker.session;
 
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftGateUser;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateCloseReason;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.Nullable;
@@ -222,7 +223,7 @@ public final class RiftSessionRules {
 
     /** Whole seconds shown to players, rounded up (1..20 ticks → 1 s). / 向玩家显示的整秒，向上取整。 */
     public static int secondsCeil(int ticks) {
-        return ticks <= 0 ? 0 : (ticks + TICKS_PER_SECOND - 1) / TICKS_PER_SECOND;
+        return TickTime.ceilSeconds(ticks);
     }
 
     /** Only these modes are ours to swap for SPECTATOR and back (never creative). / 只有这两种模式可以换成旁观再换回。 */

@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.saint;
 
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
@@ -39,7 +40,7 @@ public final class SaintAbilityService {
             send(
                     player,
                     "message.sparkwitch.saint.hellfire.cooldown",
-                    seconds(state.hellfireCooldownTicks())
+                    TickTime.ceilSecondsUnclamped(state.hellfireCooldownTicks())
             );
             return false;
         }
@@ -66,10 +67,6 @@ public final class SaintAbilityService {
         if (component.getSaintState().tickAbility()) {
             component.sync();
         }
-    }
-
-    private static int seconds(int ticks) {
-        return (int) Math.ceil(ticks / 20.0);
     }
 
     private static void send(ServerPlayerEntity player, String translationKey, Object... args) {

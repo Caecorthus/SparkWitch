@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeA
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceAbility;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Purify.PurifyAbility;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.SwiftStep.SwiftStepAbility;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -39,7 +40,7 @@ public final class ApprenticeClientPresentation {
         }
         if (apprentice.getPurifyCooldownTicks() > 0) {
             return Text.translatable("hud.sparkwitch.apprentice.purify.cooldown",
-                    seconds(apprentice.getPurifyCooldownTicks()));
+                    TickTime.ceilSecondsUnclamped(apprentice.getPurifyCooldownTicks()));
         }
         if (WitchPlayerComponent.KEY.get(player).getMana() < PurifyAbility.MANA_COST) {
             return Text.translatable("hud.sparkwitch.apprentice.purify.not_enough_mana", PurifyAbility.MANA_COST);
@@ -64,9 +65,5 @@ public final class ApprenticeClientPresentation {
                 SparkWitchClient.abilityKeyText(),
                 ApprenticePlayerComponent.KEY.get(player).getSwiftStepCharges(),
                 ApprenticeRules.SWIFT_STEP_MAX_CHARGES);
-    }
-
-    private static int seconds(int ticks) {
-        return (int) Math.ceil(ticks / 20.0);
     }
 }

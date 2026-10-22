@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.saint;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.nbt.NbtCompound;
@@ -55,7 +56,8 @@ public final class SaintKarmaService {
         SaintKarmaCooldownService.apply(player, remainingTicks);
         updatePlayerMirror(player, true, remainingTicks);
         player.sendMessage(
-                Text.translatable("message.sparkwitch.saint.karma.triggered", seconds(remainingTicks)),
+                Text.translatable("message.sparkwitch.saint.karma.triggered",
+                        TickTime.ceilSecondsAtLeastOne(remainingTicks)),
                 true
         );
     }
@@ -97,10 +99,6 @@ public final class SaintKarmaService {
                 pitch,
                 player.getWorld().random.nextLong()
         ));
-    }
-
-    private static int seconds(int ticks) {
-        return Math.max(1, (int) Math.ceil(ticks / 20.0));
     }
 
     static void updatePlayerMirror(ServerPlayerEntity player, boolean marked, int remainingTicks) {

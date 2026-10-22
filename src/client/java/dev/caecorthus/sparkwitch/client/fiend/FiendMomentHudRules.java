@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.fiend;
 
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
+import dev.caecorthus.sparkwitch.util.TickTime;
 
 /**
  * Pure layout and text rules for the Fiend Moment countdown that every player sees: one fixed, horizontally centred
@@ -37,7 +38,7 @@ public final class FiendMomentHudRules {
 
     /** Whole seconds, rounded up, never negative. / 向上取整的整秒数，不为负。 */
     public static int seconds(int remainingTicks) {
-        return remainingTicks <= 0 ? 0 : (remainingTicks + 19) / 20;
+        return TickTime.ceilSeconds(remainingTicks);
     }
 
     /** {@code m:ss} clock text for the {@code %s} argument, e.g. {@code 1:42}. / {@code %s} 参数的 {@code m:ss} 时钟文本。 */

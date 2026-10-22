@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven.crow;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.game.GameConstants;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
@@ -98,7 +99,7 @@ public final class BlackRavenCrowRules {
 
     /** Whole seconds shown for a tick count (rounded up). / 刻数对应的显示秒数（向上取整）。 */
     public static int ceilSeconds(long ticks) {
-        return ticks <= 0 ? 0 : (int) ((ticks + 19) / 20);
+        return (int) TickTime.ceilSeconds(ticks);
     }
 
     /** Session ticks left at {@code now}, never negative. / {@code now} 时会话剩余刻数，不为负。 */
