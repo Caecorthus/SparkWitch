@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.controlexpert;
 
+import dev.caecorthus.sparkwitch.client.render.LocalViewerSnapshot;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertTargeting;
@@ -20,11 +21,13 @@ public final class ControlExpertStatusClient {
     }
 
     /**
-     * True while a disrupt or stun counter vetoes the local player's keyed instinct.
-     * 当干扰或眩晕计时否决本地玩家的按键本能时返回 true。
+     * True while a disrupt or stun counter vetoes the local player's keyed instinct. Viewer-only, so it is memoized
+     * per world pass ({@link LocalViewerSnapshot}).
+     * 当干扰或眩晕计时否决本地玩家的按键本能时返回 true。只与观察者有关，因此按世界 pass 缓存。
      */
     public static boolean blocksLocalInstinct() {
-        return localActiveStatus() != null;
+        return LocalViewerSnapshot.localFact(LocalViewerSnapshot.Fact.CONTROL_EXPERT_BLOCKS_INSTINCT,
+                () -> localActiveStatus() != null);
     }
 
     /**

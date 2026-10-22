@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
+import dev.caecorthus.sparkwitch.client.render.LocalViewerSnapshot;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm;
@@ -59,10 +60,17 @@ public final class BlackRavenInstinctVeto {
 
     /**
      * The exemption, per viewer (Wathe's {@code WatheClient.canSeeSpectatorInformation} for any viewer, not only the
-     * local one); shared with {@code BlackRavenCrowBodyVisibility}. / 按观察者计算的豁免（对任意观察者等价于 Wathe 的
-     * canSeeSpectatorInformation，而不仅是本地玩家）；与 BlackRavenCrowBodyVisibility 共用。
+     * local one); shared with {@code BlackRavenCrowBodyVisibility}. Viewer-only, so the local player's answer is
+     * memoized per world pass ({@link LocalViewerSnapshot}). / 按观察者计算的豁免（对任意观察者等价于 Wathe 的
+     * canSeeSpectatorInformation，而不仅是本地玩家）；与 BlackRavenCrowBodyVisibility 共用。只与观察者有关，因此本地玩家的
+     * 结果按世界 pass 缓存。
      */
     public static boolean seesSpectatorInformation(@Nullable PlayerEntity viewer) {
+        return LocalViewerSnapshot.viewerFact(LocalViewerSnapshot.Fact.BLACK_RAVEN_SEES_SPECTATOR_INFORMATION, viewer,
+                BlackRavenInstinctVeto::evaluateSeesSpectatorInformation);
+    }
+
+    private static boolean evaluateSeesSpectatorInformation(@Nullable PlayerEntity viewer) {
         return viewer != null && seesSpectatorInformation(GameFunctions.isPlayerSpectatingOrCreative(viewer),
                 GameFunctions.isPlayerPlayingAndAlive(viewer));
     }
