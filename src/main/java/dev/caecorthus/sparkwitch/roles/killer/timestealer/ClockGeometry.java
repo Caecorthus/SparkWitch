@@ -89,6 +89,21 @@ public final class ClockGeometry {
      * 从 {@code start} 出发、长度为 {@code range} 的瞄准射线终点，在第一个碰撞方块处截断。服务端调用时原版已应用使用物品
      * 数据包中的朝向，因此这就是使用者真实的瞄准方向。
      */
+    /**
+     * Squared eye distance at which the Clock's aim ray (cut at blocks, boxes grown by
+     * {@link TimeStealerRules#CLOCK_BOX_EXPANSION}) enters {@code entity}; infinity when it misses. Used to compare a
+     * Partygoer with the picked player on the same terms.
+     * 时钟瞄准射线（在方块处截断，命中盒按 CLOCK_BOX_EXPANSION 扩展）进入 entity 时距眼睛的距离平方；未命中时为无穷大。
+     * 用于以同一标准比较派对客与选中的玩家。
+     */
+    public static double aimEntrySquared(PlayerEntity user, Entity entity, double range) {
+        Vec3d start = user.getEyePos();
+        Vec3d end = aimEnd(user.getWorld(), user, start, range);
+        Box aimBox = entity.getBoundingBox().expand(TimeStealerRules.CLOCK_BOX_EXPANSION);
+        Vec3d hit = aimBox.contains(start) ? start : aimBox.raycast(start, end).orElse(null);
+        return hit == null ? Double.POSITIVE_INFINITY : start.squaredDistanceTo(hit);
+    }
+
     private static Vec3d aimEnd(World world, PlayerEntity user, Vec3d start, double range) {
         Vec3d end = start.add(user.getRotationVec(1.0F).multiply(range));
         BlockHitResult block = world.raycast(new RaycastContext(

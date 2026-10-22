@@ -64,6 +64,19 @@ public final class TimeStealerClockService {
         if (aimed == null) {
             return killPartygoerOrRefuse(user, stack, clock, state);
         }
+        // A Partygoer strictly nearer on the same ray is decided here, with the Clock's own aim tolerance, before
+        // SparkStrength's device-seam hook could judge it with another one; it dies and the player behind keeps their time.
+        // 同一射线上更近的派对客在此处判定（使用时钟自身的瞄准容差），先于 SparkStrength 在设备接缝中的钩子以另一套容差判定；
+        // 派对客死亡，其后的玩家保住时间。
+        Entity shield = ClockGeometry.findEntity(user, TimeStealerRules.CLOCK_RANGE,
+                SparkStrengthPartygoerCompat::isKillable);
+        if (shield != null
+                && ClockGeometry.aimEntrySquared(user, shield, TimeStealerRules.CLOCK_RANGE)
+                < ClockGeometry.aimEntrySquared(user, aimed, TimeStealerRules.CLOCK_RANGE)
+                && SparkStrengthPartygoerCompat.killByWeapon(user, shield, SparkWitchDeathReasons.TIME_STOLEN)) {
+            startCooldown(user, clock, state);
+            return TypedActionResult.consume(stack);
+        }
         // Seeker seam (Q9): a nearer Seeker device absorbs the Clock and breaks; nothing is stolen, cooldown applies.
         // Called only with a picked target: a Clock miss is free, so a device with nobody eligible behind it is left
         // intact rather than becoming a free device breaker.
@@ -91,12 +104,12 @@ public final class TimeStealerClockService {
      * only when the Clock picked no eligible player: a killable Partygoer on the same Clock ray dies at once
      * ({@code TIME_STOLEN}, the curse's own kill) and the Clock cools down as after a theft; SparkStrength's reward line
      * is the feedback (no record: SparkStrength records the kill). Otherwise the usual free refusal. When a player was
-     * picked, SparkStrength's own hook in the device seam above handles a nearer Partygoer and returns a null target,
-     * so one use reaches at most one of the two kills and one cooldown start.
+     * picked, a strictly nearer Partygoer is decided above, before the device seam, so one use kills at most once and
+     * starts one cooldown.
      * SparkStrength 派对客接缝（所有者规则 2026-10-21：能杀死玩家的东西一击打死派对客），仅在时钟没有选中合格玩家时进入：同一条
      * 时钟射线上的可击杀派对客立即死亡（{@code TIME_STOLEN}，即诅咒自身的击杀死因），时钟与窃取后一样进入冷却；以 SparkStrength
-     * 的奖励提示作为反馈（不写记录：由 SparkStrength 记录击杀）。否则照常免费拒绝。选中玩家时，由 SparkStrength 自己在上方设备接缝
-     * 中的钩子处理更近的派对客并返回 null 目标，因此一次使用至多触发两者之一的击杀与一次冷却。
+     * 的奖励提示作为反馈（不写记录：由 SparkStrength 记录击杀）。否则照常免费拒绝。选中玩家时，更近的派对客已在上方、设备接缝之前
+     * 判定，因此一次使用至多击杀一次、只开始一次冷却。
      */
     private static TypedActionResult<ItemStack> killPartygoerOrRefuse(ServerPlayerEntity user, ItemStack stack,
                                                                       Item clock, TimeStealerPlayerComponent state) {

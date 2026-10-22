@@ -218,7 +218,19 @@ public final class SwordfishStabService {
         Entity nearest = SwordfishRules.nearestOnRay(start, end, candidates, SwordfishStabService::aimBox);
         // A nearer device intercepts; a different nearer player rejects the request instead of changing the victim.
         // 更近设备拦截；若另一个玩家更近则拒绝请求，不擅自更换受害者。
-        return nearest == submitted || nearest instanceof SeekerDeviceEntity ? nearest : null;
+        if (nearest == submitted || nearest instanceof SeekerDeviceEntity) {
+            return nearest;
+        }
+        // The client picks a Partygoer with a thinner aim box than this one; a near tie (its carried prey overlaps it)
+        // keeps the Partygoer instead of wasting the released charge. / 客户端选派对客的瞄准盒比这里更薄；近乎等距时（其扛着的
+        // 猎物与它重叠）保留派对客，而不是白白浪费已松开的蓄力。
+        if (nearest != null && SparkStrengthPartygoerCompat.isPartygoer(submitted)
+                && SwordfishRules.withinPartygoerTie(
+                SwordfishRules.entryDistanceSquared(start, end, aimBox(submitted)),
+                SwordfishRules.entryDistanceSquared(start, end, aimBox(nearest)))) {
+            return submitted;
+        }
+        return null;
     }
 
     private static boolean isAimCandidate(ServerPlayerEntity attacker, @Nullable Entity entity) {

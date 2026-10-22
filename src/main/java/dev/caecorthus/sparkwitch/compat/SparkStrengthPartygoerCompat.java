@@ -50,7 +50,9 @@ public final class SparkStrengthPartygoerCompat {
      * 服务端：此刻可被武器命中的派对客（不在饕餮肚里、尚未死亡）。
      */
     public static boolean isKillable(@Nullable Entity entity) {
-        if (!isPartygoer(entity) || entity.isRemoved() || entity.isInvisible()) {
+        // Without the kill seam nothing may treat it as a target (it would shield players and spend skills for nothing).
+        // 没有击杀接缝时任何东西都不能把它当目标（否则它会白白挡住玩家、耗掉技能）。
+        if (Methods.KILL_BY_WEAPON == null || !isPartygoer(entity) || entity.isRemoved() || entity.isInvisible()) {
             return false;
         }
         Object result = invoke(Methods.IS_KILLABLE, entity);
