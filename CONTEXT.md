@@ -3076,8 +3076,21 @@ Black Raven disguise shop and wallet seams (SparkStrength is optional and fail-c
   `compat/SparkStrengthDisguiseCompat` touches only the `sparkstrength:flashlight` registry id.
 - **Rest of SparkWitch.** Elsewhere, SparkStrength implementation classes are named by
   `compat/SparkStrengthM67Compat`, `compat/SparkStrengthCoronerCompat`,
-  `compat/SparkStrengthJunctionBoxCompat` (the Hunter shotgun's junction-box hit), and the client
+  `compat/SparkStrengthJunctionBoxCompat` (the Hunter shotgun's junction-box hit),
+  `compat/SparkStrengthPartygoerCompat` (the Party Animal's Partygoer, below), and the client
   `client/emma/EmmaVisibleName`.
+- **SparkStrength Partygoer (2026-10-21).** The Party Animal's summoned zombie (`sparkstrength:partygoer`) dies in one
+  hit to anything that can kill a player (owner rule). SparkStrength already answers the weapons it reaches through
+  `SeekerDeviceHits`/`MagicianPuppetHits`; SparkWitch kills it itself on the paths those seams don't cover: the
+  Swordfish stab (a nearest-wins candidate), a Mighty Force strike (ends the window), Magician bat/gun/knife replays
+  (strictly nearer than the player pick), a **poisoned** Hunter trap (`wathe:poison`; an unpoisoned trap can't kill a
+  player, so it ignores it) and a Time Stealer clock with no player aimed (SparkStrength's `onClockFired` hook handles
+  the player-behind case, so the cooldown starts once). Its corpse is no passenger's: the Prophet's Necrology skips it,
+  the Perfumer neither outlines it nor drains sanity near it, and the Kidnapper can't drag it. The Fear, Control Expert,
+  Rift-session and Seeker-remote lists block `sparkstrength:partygoer_summon` and `partygoer_swallow`; the room picker
+  request `partygoer_menu` stays allowed. `compat/SparkStrengthPartygoerCompat` reflects the frozen
+  `PartygoerService#killByWeapon(ServerPlayerEntity, Entity, Identifier)` / `#isKillable(Entity)` and
+  `PartygoerCorpseComponent#isPartygoerCorpse(Entity)`, and fails closed.
 
 Active Wraiths do not absorb another player's aimed action in the client
 selectors listed below. `client/render/WraithAimPassThrough` owns the rule: a player whose synced

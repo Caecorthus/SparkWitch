@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.perfumer;
 
 import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
 import dev.caecorthus.sparkwitch.compat.NoellesHiddenBodiesBridge;
+import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -100,6 +101,8 @@ public final class PerfumerRuntime {
                 player.getBoundingBox().expand(PerfumerRules.CORPSE_SANITY_RANGE_BLOCKS),
                 body -> PerfumerRules.isWithinCorpseSanityRange(player.squaredDistanceTo(body))
                         && !NoellesHiddenBodiesBridge.isHidden(world, body.getPlayerUuid())
+                        // A killed Partygoer's corpse doesn't weigh on the mind. / 派对客的尸体不会压在心头。
+                        && !SparkStrengthPartygoerCompat.isPartygoerCorpse(body)
         ).stream().findAny().isPresent();
     }
 }

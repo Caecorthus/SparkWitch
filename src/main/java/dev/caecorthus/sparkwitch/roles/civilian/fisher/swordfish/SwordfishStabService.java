@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherParticipants;
@@ -118,6 +119,17 @@ public final class SwordfishStabService {
             }
             return;
         }
+        // SparkStrength Partygoer seam (owner rule 2026-10-21): it dies to an accepted stab, which then costs the
+        // Swordfish and plays the stab like a player hit; never friendly fire (a Partygoer is never an innocent).
+        // SparkStrength 派对客接缝（所有者规则 2026-10-21）：被接纳的刺击打死它，随后与刺中玩家一样消耗剑鱼并播放刺击；
+        // 永不触发小脑（派对客永远不是好人）。
+        if (SparkStrengthPartygoerCompat.isPartygoer(entity)) {
+            if (SparkStrengthPartygoerCompat.killByWeapon(attacker, entity, SparkWitchDeathReasons.SWORDFISH_STAB)) {
+                consume(attacker, stack);
+                playStab(attacker, entity);
+            }
+            return;
+        }
         if (!(entity instanceof ServerPlayerEntity target)) {
             return;
         }
@@ -198,10 +210,27 @@ public final class SwordfishStabService {
         // 魔术师皮套与玩家同等竞争（更近的皮套会使提交给其后方玩家的刺击被拒绝）。
         candidates.addAll(attacker.getServerWorld().getEntitiesByClass(MagicianPlaybackEntity.class, search,
                 puppet -> isAimCandidate(attacker, puppet)));
+        // SparkStrength Partygoers compete as players do too (listed last, so an exact tie keeps the earlier candidate).
+        // SparkStrength 派对客同样与玩家同等竞争（列在最后，完全等距时保留先列出的候选）。
+        candidates.addAll(attacker.getServerWorld().getOtherEntities(attacker, search,
+                partygoer -> SparkStrengthPartygoerCompat.isPartygoer(partygoer)
+                        && isAimCandidate(attacker, partygoer)));
         Entity nearest = SwordfishRules.nearestOnRay(start, end, candidates, SwordfishStabService::aimBox);
         // A nearer device intercepts; a different nearer player rejects the request instead of changing the victim.
         // 更近设备拦截；若另一个玩家更近则拒绝请求，不擅自更换受害者。
-        return nearest == submitted || nearest instanceof SeekerDeviceEntity ? nearest : null;
+        if (nearest == submitted || nearest instanceof SeekerDeviceEntity) {
+            return nearest;
+        }
+        // The client picks a Partygoer with a thinner aim box than this one; a near tie (its carried prey overlaps it)
+        // keeps the Partygoer instead of wasting the released charge. / 客户端选派对客的瞄准盒比这里更薄；近乎等距时（其扛着的
+        // 猎物与它重叠）保留派对客，而不是白白浪费已松开的蓄力。
+        if (nearest != null && SparkStrengthPartygoerCompat.isPartygoer(submitted)
+                && SwordfishRules.withinPartygoerTie(
+                SwordfishRules.entryDistanceSquared(start, end, aimBox(submitted)),
+                SwordfishRules.entryDistanceSquared(start, end, aimBox(nearest)))) {
+            return submitted;
+        }
+        return null;
     }
 
     private static boolean isAimCandidate(ServerPlayerEntity attacker, @Nullable Entity entity) {
@@ -213,6 +242,10 @@ public final class SwordfishStabService {
         }
         if (entity instanceof MagicianPlaybackEntity) {
             return MagicianPuppetHits.isHittablePuppet(attacker, entity);
+        }
+        if (SparkStrengthPartygoerCompat.isPartygoer(entity)) {
+            return SwordfishRules.acceptsPartygoerHit(SparkStrengthPartygoerCompat.isKillable(entity),
+                    attacker.squaredDistanceTo(entity), attacker.canSee(entity));
         }
         return entity instanceof SeekerDeviceEntity device && device.isAlive() && !device.isRemoved()
                 && !SeekerDeviceRaycast.isOwnDevice(attacker, device);

@@ -17,6 +17,11 @@ public final class SwordfishRules {
     /** Quarter-block aim slack (about 4.8 degrees at 3 blocks) tolerates a late rotation without extending reach.
      * 四分之一格瞄准容差（三格处约 4.8 度），容忍朝向迟到但不延长射线。 */
     public static final double AIM_TOLERANCE = 0.25;
+    /**
+     * How much nearer (blocks) another candidate may be before a stab submitted on a Partygoer is rejected.
+     * 提交给派对客的刺击被拒绝之前，其他候选者最多可以近多少格。
+     */
+    public static final double PARTYGOER_TIE_MARGIN = 0.3;
 
     private SwordfishRules() {
     }
@@ -68,11 +73,31 @@ public final class SwordfishRules {
         return livingParticipant && !samePlayer && inReach(squaredDistance) && lineOfSight;
     }
 
+    /**
+     * A SparkStrength Partygoer takes the player rule's reach and sight (owner rule 2026-10-21: it dies in one hit to
+     * anything that kills a player); killable replaces the participant check. / SparkStrength 派对客沿用玩家规则的距离与视线
+     * （所有者规则 2026-10-21：能杀死玩家的东西一击打死它）；“可击杀”取代参与者判定。
+     */
+    public static boolean acceptsPartygoerHit(boolean killable, double squaredDistance, boolean lineOfSight) {
+        return killable && inReach(squaredDistance) && lineOfSight;
+    }
+
     /** Factions are pre-hit snapshots; intercepted or fake deaths never trigger friendly-fire punishment.
      * 阵营来自命中前快照；被拦截的死亡或假死永不触发小脑。 */
     public static boolean shouldPunish(Identifier attackerFaction, Identifier victimFaction,
                                        boolean deadBefore, boolean deadAfter, boolean intercepted, boolean nonFinal) {
         return FactionIds.CIVILIAN.equals(attackerFaction) && FactionIds.CIVILIAN.equals(victimFaction)
                 && !deadBefore && deadAfter && !intercepted && !nonFinal;
+    }
+
+    /**
+     * A stab submitted on a SparkStrength Partygoer still lands when the nearest candidate on the server ray is at most
+     * {@link #PARTYGOER_TIE_MARGIN} blocks nearer (the client's thinner aim box). Arguments are squared entry distances.
+     * 提交给 SparkStrength 派对客的刺击在服务端射线上最近的候选者至多近 PARTYGOER_TIE_MARGIN 格时仍然命中（客户端瞄准盒更薄）。
+     * 参数为入射距离的平方。
+     */
+    public static boolean withinPartygoerTie(double submittedSquared, double nearestSquared) {
+        return submittedSquared >= 0.0 && nearestSquared >= 0.0
+                && Math.sqrt(submittedSquared) - Math.sqrt(nearestSquared) <= PARTYGOER_TIE_MARGIN;
     }
 }

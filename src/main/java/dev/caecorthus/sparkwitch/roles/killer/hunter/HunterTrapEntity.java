@@ -1,9 +1,11 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.cca.PlayerPoisonComponent;
+import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import java.util.Optional;
@@ -174,6 +176,13 @@ public final class HunterTrapEntity extends Entity {
             trigger(player);
             break;
         }
+        if (!isRemoved() && isPoisoned()) {
+            for (Entity partygoer : getWorld().getOtherEntities(this, triggerBox,
+                    SparkStrengthPartygoerCompat::isKillable)) {
+                triggerOnPartygoer(partygoer);
+                break;
+            }
+        }
     }
 
     private boolean canCatch(PlayerEntity player) {
@@ -217,6 +226,36 @@ public final class HunterTrapEntity extends Entity {
             );
         }
 
+        playSnap();
+        discardTrap();
+    }
+
+    /**
+     * SparkStrength Partygoer seam (owner rule 2026-10-21: whatever can kill a player kills a Partygoer in one hit). Only
+     * the trap's poison can kill a player, so only a poisoned trap catches a Partygoer, after the players in its box had
+     * their chance this tick. It dies at once ({@code wathe:poison}, the reason the trap poison kills a player with),
+     * credited to whom that poison would credit (the poisoner, else the placer) while online; the trap then snaps and is
+     * spent as on a player. No trigger record: SparkStrength records the kill.
+     * SparkStrength 派对客接缝（所有者规则 2026-10-21：能杀死玩家的东西一击打死派对客）。捕兽夹只有其毒能杀死玩家，因此只有带毒的
+     * 捕兽夹会夹住派对客，且排在本 tick 夹框内的玩家之后。它立即死亡（{@code wathe:poison}，即捕兽夹毒杀玩家所用的死因），在线时
+     * 记在该毒所记之人头上（下毒者，否则放置者）；随后捕兽夹与夹住玩家时一样合拢并用掉。不写触发记录：由 SparkStrength 记录击杀。
+     */
+    private void triggerOnPartygoer(Entity partygoer) {
+        UUID placerUuid = getOwnerUuid();
+        UUID actualPoisonerUuid = poisonerUuid != null ? poisonerUuid : placerUuid;
+        PlayerEntity poisoner = actualPoisonerUuid == null ? null : getWorld().getPlayerByUuid(actualPoisonerUuid);
+        if (!SparkStrengthPartygoerCompat.killByWeapon(
+                poisoner instanceof ServerPlayerEntity serverPoisoner ? serverPoisoner : null,
+                partygoer,
+                GameConstants.DeathReasons.POISON
+        )) {
+            return;
+        }
+        playSnap();
+        discardTrap();
+    }
+
+    private void playSnap() {
         getWorld().playSound(
                 null,
                 getBlockPos(),
@@ -238,7 +277,6 @@ public final class HunterTrapEntity extends Entity {
                     0.05D
             );
         }
-        discardTrap();
     }
 
     /**

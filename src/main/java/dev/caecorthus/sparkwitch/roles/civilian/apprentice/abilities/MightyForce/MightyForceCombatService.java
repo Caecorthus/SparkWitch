@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForc
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
@@ -49,8 +50,13 @@ public final class MightyForceCombatService {
     public static ActionResult tryHandleAttack(Entity attacker, World world, Hand hand, Entity target) {
         if (world.isClient
                 || !(attacker instanceof ServerPlayerEntity serverAttacker)
-                || !serverAttacker.getStackInHand(hand).isEmpty()
-                || !canStrike(serverAttacker, target)) {
+                || !serverAttacker.getStackInHand(hand).isEmpty()) {
+            return ActionResult.PASS;
+        }
+        if (SparkStrengthPartygoerCompat.isPartygoer(target)) {
+            return tryStrikePartygoer(serverAttacker, target);
+        }
+        if (!canStrike(serverAttacker, target)) {
             return ActionResult.PASS;
         }
 
@@ -64,19 +70,44 @@ public final class MightyForceCombatService {
     }
 
     private static boolean canStrike(ServerPlayerEntity attacker, Entity target) {
-        WitchPlayerComponent component = WitchPlayerComponent.KEY.get(attacker);
-        GameWorldComponent gameComponent = GameWorldComponent.KEY.get(attacker.getWorld());
-        boolean ownsMightyForce = gameComponent.getRole(attacker) == SparkWitchRoles.apprenticeWitch()
-                && MightyForceAbility.ID.equals(component.getActiveSkillId());
-        if (!ownsMightyForce
-                || !component.hasActiveMightyForce()
-                || !GameFunctions.isPlayerPlayingAndAlive(attacker)
+        if (!hasLiveMightyForce(attacker)
                 || !(target instanceof ServerPlayerEntity serverTarget)
                 || attacker.getUuid().equals(serverTarget.getUuid())) {
             return false;
         }
         return VendettaInteractionService.isOrdinaryAliveOrBoundKillerTarget(attacker, serverTarget)
                 && GameFunctions.isPlayerAliveAndSurvival(serverTarget);
+    }
+
+    /** The living current Apprentice inside her own Mighty Force window. / 处于自己巨力窗口内的存活现任预备魔女。 */
+    private static boolean hasLiveMightyForce(ServerPlayerEntity attacker) {
+        WitchPlayerComponent component = WitchPlayerComponent.KEY.get(attacker);
+        GameWorldComponent gameComponent = GameWorldComponent.KEY.get(attacker.getWorld());
+        boolean ownsMightyForce = gameComponent.getRole(attacker) == SparkWitchRoles.apprenticeWitch()
+                && MightyForceAbility.ID.equals(component.getActiveSkillId());
+        return ownsMightyForce
+                && component.hasActiveMightyForce()
+                && GameFunctions.isPlayerPlayingAndAlive(attacker);
+    }
+
+    /**
+     * SparkStrength Partygoer seam (owner rule 2026-10-21: whatever kills a player kills a Partygoer in one hit): a bare
+     * hand strike inside the window kills it with {@code MIGHTY_FORCE} and spends the window like a player strike. The
+     * attacker gates are the player strike's (vanilla's server reach check included); the target gates are
+     * SparkStrength's {@code isKillable}. PASS for anything else, so the attack reaches vanilla untouched.
+     * SparkStrength 派对客接缝（所有者规则 2026-10-21：能杀死玩家的东西一击打死派对客）：窗口内的空手一击以 {@code MIGHTY_FORCE}
+     * 打死它，并与击中玩家一样用掉窗口。攻击者门槛与玩家一击相同（含原版服务端距离检查）；目标门槛为 SparkStrength 的
+     * {@code isKillable}。其他情况一律 PASS，攻击原样交给原版。
+     */
+    private static ActionResult tryStrikePartygoer(ServerPlayerEntity attacker, Entity partygoer) {
+        if (!hasLiveMightyForce(attacker) || !SparkStrengthPartygoerCompat.isKillable(partygoer)) {
+            return ActionResult.PASS;
+        }
+        if (SparkTraitsKillerBridge.isKillerInteractionBlocked(attacker)) {
+            return ActionResult.FAIL;
+        }
+        strikePartygoer(attacker, partygoer);
+        return ActionResult.SUCCESS;
     }
 
     private static void strike(ServerPlayerEntity attacker, ServerPlayerEntity target) {
@@ -140,6 +171,35 @@ public final class MightyForceCombatService {
     }
 
     /**
+     * The window ends first, as in {@link #strike}; the Partygoer is never an innocent (no misfire, no skill record:
+     * SparkStrength records the kill). Its corpse (a Wathe body under the Partygoer's UUID, spawned during the kill)
+     * flies like a player's body.
+     * 与 {@link #strike} 一样先结束窗口；派对客永远不是好人（不算误杀，也不写技能记录：由 SparkStrength 记录这次击杀）。
+     * 它的尸体（击杀时生成、以派对客 UUID 为主人的 Wathe 尸体）与玩家尸体一样被击飞。
+     */
+    private static void strikePartygoer(ServerPlayerEntity attacker, Entity partygoer) {
+        WitchPlayerComponent.KEY.get(attacker).clearMightyForceWindow();
+
+        ServerWorld world = attacker.getServerWorld();
+        Vec3d impulse = knockbackImpulse(attacker, partygoer);
+        UUID partygoerUuid = partygoer.getUuid();
+        double x = partygoer.getX();
+        double y = partygoer.getEyeY();
+        double z = partygoer.getZ();
+        if (!SparkStrengthPartygoerCompat.killByWeapon(attacker, partygoer, SparkWitchDeathReasons.MIGHTY_FORCE)) {
+            return;
+        }
+        world.getEntitiesByType(
+                WatheEntities.PLAYER_BODY,
+                body -> body.getPlayerUuid().equals(partygoerUuid)
+                        && body.getDeathGameTime() == (int) world.getTime()
+                        && SparkWitchDeathReasons.MIGHTY_FORCE.equals(body.getDeathReason())
+        ).stream().findFirst().ifPresent(corpse -> applyKnockback(corpse, impulse));
+        world.playSound(null, x, y, z, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, SoundCategory.PLAYERS,
+                1.0f, 0.8f);
+    }
+
+    /**
      * Killing an innocent follows Wathe's shoot-innocent punishment: KILL_SHOOTER kills her with Wathe's own
      * {@code shot_innocent} reason, PREVENT_GUN_PICKUP takes Mighty Force away for the round (owner D5).
      * 误杀好人沿用 Wathe 的误杀惩罚：KILL_SHOOTER 以 Wathe 自带的 {@code shot_innocent} 死因击杀她，PREVENT_GUN_PICKUP
@@ -177,7 +237,7 @@ public final class MightyForceCombatService {
         }
     }
 
-    private static Vec3d knockbackImpulse(ServerPlayerEntity attacker, ServerPlayerEntity target) {
+    private static Vec3d knockbackImpulse(ServerPlayerEntity attacker, Entity target) {
         Vec3d direction = target.getPos().subtract(attacker.getPos());
         Vec3d horizontal = new Vec3d(direction.x, 0.0, direction.z);
         if (horizontal.lengthSquared() < 1.0E-6) {
