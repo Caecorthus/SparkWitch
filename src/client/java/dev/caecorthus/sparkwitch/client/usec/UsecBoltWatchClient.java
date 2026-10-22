@@ -27,6 +27,13 @@ import java.util.List;
 public final class UsecBoltWatchClient {
     private static final UsecBoltWatch.Tracker TRACKER = new UsecBoltWatch.Tracker();
     private static @Nullable PlayerEntity watched;
+    // True once the tracker was ticked since its last reset and every one of those ticks carried no rifle: it then holds
+    // the empty baseline with no recorded change and no latch, which another rifle-less tick leaves exactly as it is, so
+    // that tick is skipped (no list, no multiset) for the many players who never carry a rifle.
+    // 自上次重置后追踪器已推进过、且每一刻都没有携带步枪时为真：此时它保持空基准、没有记录的变化也没有锁存，再推进一个
+    // 没有步枪的刻不会改变其任何状态，因此跳过该刻（不建列表、不建多重集），惠及从不携带步枪的大多数玩家。
+    private static boolean idleEmptyBaseline;
+    private static boolean trackerTickedSinceReset;
     private static boolean registered;
 
     private UsecBoltWatchClient() {
@@ -65,18 +72,30 @@ public final class UsecBoltWatchClient {
         if (player != watched) {
             // Respawn and dimension changes make a new player with a new cooldown clock. / 重生与换维度会产生新的冷却时钟。
             TRACKER.reset();
+            idleEmptyBaseline = false;
+            trackerTickedSinceReset = false;
             watched = player;
+        }
+        List<UsecRifleState> rifles = rifles(player);
+        if (idleEmptyBaseline && rifles.isEmpty()) {
+            return;
         }
         // This tick's cooldown update (PlayerEntity.tick) already ran, and packets are handled between ticks, so what
         // is seen here was handled one clock tick earlier: where an entry created with it starts. (A paused
         // singleplayer game or an unloaded chunk skips that update; one tick off, well inside the window.)
         // 本刻的冷却更新（PlayerEntity.tick）已执行，而数据包在两刻之间处理，因此此处所见的内容是在早一个时钟刻处理的，即随之
         // 创建的条目的起点。（单人游戏暂停或区块未加载时会跳过该更新；偏差一刻，远在窗口之内。）
-        TRACKER.tick(reading.tick() - 1, rifles(player), reading.startTick());
+        TRACKER.tick(reading.tick() - 1, rifles, reading.startTick());
+        // Set by an empty first tick after a reset, kept by empty ticks, and lost for good with the first rifle.
+        // 由重置后的首个空刻置位，空刻保持，出现第一把步枪后即永久失效（直到下次重置）。
+        idleEmptyBaseline = rifles.isEmpty() && (idleEmptyBaseline || !trackerTickedSinceReset);
+        trackerTickedSinceReset = true;
     }
 
     private static void reset() {
         TRACKER.reset();
+        idleEmptyBaseline = false;
+        trackerTickedSinceReset = false;
         watched = null;
     }
 
@@ -86,25 +105,33 @@ public final class UsecBoltWatchClient {
      * 玩家携带的每把步枪的同步状态：主背包、副手与光标（因此拿起步枪移动不算变化）。
      */
     private static List<UsecRifleState> rifles(PlayerEntity player) {
-        List<UsecRifleState> rifles = new ArrayList<>(1);
+        // Read-only for its callers; the shared empty list spares the common rifle-less case an allocation.
+        // 调用方只读；无步枪的常见情形使用共享空列表，免去一次分配。
+        List<UsecRifleState> rifles = List.of();
         PlayerInventory inventory = player.getInventory();
-        addRifles(rifles, inventory.main);
-        addRifles(rifles, inventory.offHand);
+        rifles = addRifles(rifles, inventory.main);
+        rifles = addRifles(rifles, inventory.offHand);
         if (player.currentScreenHandler != null) {
-            addRifle(rifles, player.currentScreenHandler.getCursorStack());
+            rifles = addRifle(rifles, player.currentScreenHandler.getCursorStack());
         }
         return rifles;
     }
 
-    private static void addRifles(List<UsecRifleState> rifles, List<ItemStack> stacks) {
+    private static List<UsecRifleState> addRifles(List<UsecRifleState> rifles, List<ItemStack> stacks) {
         for (ItemStack stack : stacks) {
-            addRifle(rifles, stack);
+            rifles = addRifle(rifles, stack);
         }
+        return rifles;
     }
 
-    private static void addRifle(List<UsecRifleState> rifles, ItemStack stack) {
-        if (UsecRifleClient.isRifle(stack)) {
-            rifles.add(UsecRifleState.read(stack));
+    private static List<UsecRifleState> addRifle(List<UsecRifleState> rifles, ItemStack stack) {
+        if (!UsecRifleClient.isRifle(stack)) {
+            return rifles;
         }
+        if (rifles.isEmpty()) {
+            rifles = new ArrayList<>(1);
+        }
+        rifles.add(UsecRifleState.read(stack));
+        return rifles;
     }
 }

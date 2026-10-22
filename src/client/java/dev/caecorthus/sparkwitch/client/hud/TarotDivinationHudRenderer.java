@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationHudLayout;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationSnapshotState;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -17,6 +18,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Language;
 
 /**
  * Draws the Tarot Reader's divination table under Wathe's money row. The counts are the server snapshot taken when
@@ -52,6 +54,20 @@ public final class TarotDivinationHudRenderer {
     private static final String[] ICON_IRIS = {"", "", "", "", "...#..."};
     private static final String[] TREND_UP = {"..#..", ".###.", "#####"};
     private static final String[] TREND_DOWN = {"#####", ".###.", "..#.."};
+
+    // Render-thread cache of the last measured table, keyed on everything measure() reads: the two snapshots, the
+    // screen width, the active Language (replaced on every resource reload) and the font renderer. A table whose
+    // factions were all registered is final (SparkFactionAPI never replaces or removes a faction); one that fell back
+    // to white is re-measured every call, as before.
+    // 渲染线程上一次测量的表格缓存，键包含 measure() 读取的全部输入：两次快照、屏幕宽度、当前 Language（每次资源重载
+    // 都会换新）与字体渲染器。所有阵营都已注册的表格不会再变（SparkFactionAPI 从不替换或移除阵营）；回退为白色的表格
+    // 仍与以前一样每次重新测量。
+    private static Optional<Table> cachedTable = Optional.empty();
+    private static TarotDivinationSnapshotState.Snapshot cachedSnapshot;
+    private static TarotDivinationSnapshotState.Snapshot cachedPrevious;
+    private static int cachedScreenWidth;
+    private static Language cachedLanguage;
+    private static TextRenderer cachedRenderer;
 
     private TarotDivinationHudRenderer() {
     }
@@ -159,7 +175,13 @@ public final class TarotDivinationHudRenderer {
             return Optional.empty();
         }
 
-        List<TarotDivinationHudLayout.Row> rows = TarotDivinationHudLayout.rows(snapshot, state.previous().orElse(null));
+        TarotDivinationSnapshotState.Snapshot previous = state.previous().orElse(null);
+        Language language = Language.getInstance();
+        if (cachedTable.isPresent() && snapshot.equals(cachedSnapshot) && Objects.equals(previous, cachedPrevious)
+                && screenWidth == cachedScreenWidth && language == cachedLanguage && renderer == cachedRenderer) {
+            return cachedTable;
+        }
+        List<TarotDivinationHudLayout.Row> rows = TarotDivinationHudLayout.rows(snapshot, previous);
         String title = fit(renderer, Text.translatable("hud.sparkwitch.tarot.title").getString(),
                 TarotDivinationHudLayout.TITLE_MAX_WIDTH);
         int size = rows.size();
@@ -169,6 +191,7 @@ public final class TarotDivinationHudRenderer {
         int[] colors = new int[size];
         int nameWidth = 0;
         int countWidth = 0;
+        boolean factionsRegistered = true;
         for (int i = 0; i < size; i++) {
             TarotDivinationHudLayout.Row row = rows.get(i);
             names[i] = fit(renderer, Text.translatable(nameKey(row.faction())).getString(),
@@ -178,13 +201,22 @@ public final class TarotDivinationHudRenderer {
             counts[i] = TarotDivinationHudLayout.boldCount(row.count()) ? count.formatted(Formatting.BOLD) : count;
             countWidths[i] = renderer.getWidth(counts[i]);
             countWidth = Math.max(countWidth, countWidths[i]);
-            colors[i] = 0xFF000000 | factionColor(factionId(row.faction()));
+            Identifier factionId = factionId(row.faction());
+            factionsRegistered &= SparkFactionApi.getFaction(factionId).isPresent();
+            colors[i] = 0xFF000000 | factionColor(factionId);
         }
         int countReserveWidth = renderer.getWidth(
                 Text.literal(TarotDivinationHudLayout.COUNT_RESERVE_TEXT).formatted(Formatting.BOLD));
         TarotDivinationHudLayout.Geometry geometry = TarotDivinationHudLayout.geometry(
                 screenWidth, renderer.getWidth(title), nameWidth, countWidth, countReserveWidth);
-        return Optional.of(new Table(title, rows, names, counts, countWidths, colors, geometry));
+        Optional<Table> table = Optional.of(new Table(title, rows, names, counts, countWidths, colors, geometry));
+        cachedTable = factionsRegistered ? table : Optional.empty();
+        cachedSnapshot = snapshot;
+        cachedPrevious = previous;
+        cachedScreenWidth = screenWidth;
+        cachedLanguage = language;
+        cachedRenderer = renderer;
+        return table;
     }
 
     /**

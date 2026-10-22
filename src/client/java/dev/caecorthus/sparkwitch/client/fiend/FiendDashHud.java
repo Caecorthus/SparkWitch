@@ -13,6 +13,9 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Language;
+
+import java.util.Objects;
 
 /**
  * Draws the moment Fiend's owner-only Dash line ({@link FiendDashHudRules}). Reads only the local player's synced role,
@@ -26,6 +29,18 @@ import net.minecraft.text.Text;
  * 绝不使用动作栏，也绝不进入 {@code gui.sparkwitch.skills} 面板。
  */
 public final class FiendDashHud {
+    // Render-thread cache: the Texts and widths are a pure function of the line, the ability key text, the active
+    // Language (replaced on every resource reload) and the font renderer, so they are rebuilt only when one changes.
+    // 渲染线程缓存：文本与宽度只取决于该行、技能按键文本、当前 Language（每次资源重载都会换新）与字体渲染器，
+    // 因此只在其中之一变化时重建。
+    private static FiendDashHudRules.Line cachedLine;
+    private static Text cachedKeyText;
+    private static Language cachedLanguage;
+    private static TextRenderer cachedRenderer;
+    private static Text cachedText;
+    private static int cachedTextWidth;
+    private static int cachedMeasured;
+
     private FiendDashHud() {
     }
 
@@ -59,18 +74,30 @@ public final class FiendDashHud {
         WitchPlayerComponent witch = WitchPlayerComponent.KEY.get(player);
         boolean sharedLineOccupied = witch.getActiveSkillId() != null || witch.getSaintState().karmaCooldownTicks() > 0;
         TextRenderer renderer = client.textRenderer;
-        Text text = text(line, line.seconds());
-        int measured = renderer.getWidth(text(line, FiendDashHudRules.measuredSeconds(line.seconds())));
+        Text keyText = line.keyHint() ? SparkWitchClient.abilityKeyText() : null;
+        Language language = Language.getInstance();
+        if (!line.equals(cachedLine) || !Objects.equals(keyText, cachedKeyText) || language != cachedLanguage
+                || renderer != cachedRenderer) {
+            cachedText = text(line, line.seconds(), keyText);
+            cachedTextWidth = renderer.getWidth(cachedText);
+            cachedMeasured = renderer.getWidth(text(line, FiendDashHudRules.measuredSeconds(line.seconds()), keyText));
+            cachedLine = line;
+            cachedKeyText = keyText;
+            cachedLanguage = language;
+            cachedRenderer = renderer;
+        }
+        Text text = cachedText;
+        int measured = cachedMeasured;
         int width = context.getScaledWindowWidth();
-        int x = FiendDashHudRules.rowX(width, renderer.getWidth(text));
+        int x = FiendDashHudRules.rowX(width, cachedTextWidth);
         int y = FiendDashHudRules.rowY(width, context.getScaledWindowHeight(), measured, renderer.fontHeight,
                 sharedLineOccupied);
         context.drawTextWithShadow(renderer, text, x, y, line.color());
     }
 
-    private static Text text(FiendDashHudRules.Line line, int seconds) {
+    private static Text text(FiendDashHudRules.Line line, int seconds, Text keyText) {
         if (line.keyHint()) {
-            return Text.translatable(line.key(), SparkWitchClient.abilityKeyText());
+            return Text.translatable(line.key(), keyText);
         }
         return line.hasSeconds() ? Text.translatable(line.key(), seconds) : Text.translatable(line.key());
     }

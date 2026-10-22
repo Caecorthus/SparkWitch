@@ -9,6 +9,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -22,6 +23,27 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(CrosshairRenderer.class)
 public abstract class SwordfishCrosshairMixin {
+    // One showsTarget() per renderCrosshair call: HEAD forgets it, the CROSSHAIR read stores it and the TAIL glyph
+    // reuses it (nothing in between changes the main hand or the knife target). When Wathe's own target branch skips
+    // the CROSSHAIR read, the TAIL still asks for itself, as before.
+    // 每次 renderCrosshair 只调用一次 showsTarget()：HEAD 清除，CROSSHAIR 读取处保存，TAIL 的图标复用（两者之间主手与
+    // 刀目标都不会变化）。Wathe 自身目标分支跳过 CROSSHAIR 读取时，TAIL 仍与以前一样自行判断。
+    @Unique
+    private static boolean sparkwitch$targetKnown;
+    @Unique
+    private static boolean sparkwitch$showsTarget;
+
+    @Inject(method = "renderCrosshair", at = @At("HEAD"))
+    private static void sparkwitch$forgetSwordfishTarget(
+            MinecraftClient client,
+            ClientPlayerEntity player,
+            DrawContext context,
+            RenderTickCounter tickCounter,
+            CallbackInfo ci
+    ) {
+        sparkwitch$targetKnown = false;
+    }
+
     @ModifyExpressionValue(
             method = "renderCrosshair",
             at = @At(
@@ -36,7 +58,10 @@ public abstract class SwordfishCrosshairMixin {
             DrawContext context,
             RenderTickCounter tickCounter
     ) {
-        return SwordfishClientTargeting.showsTarget(player) ? SwordfishClientTargeting.TARGET_CROSSHAIR : original;
+        boolean shows = SwordfishClientTargeting.showsTarget(player);
+        sparkwitch$showsTarget = shows;
+        sparkwitch$targetKnown = true;
+        return shows ? SwordfishClientTargeting.TARGET_CROSSHAIR : original;
     }
 
     /** Same place and size as Wathe's knife glyph (centre + (-5, 5), 10x7). / 位置与尺寸同 Wathe 刀图标。 */
@@ -48,7 +73,8 @@ public abstract class SwordfishCrosshairMixin {
             RenderTickCounter tickCounter,
             CallbackInfo ci
     ) {
-        if (client.options.getPerspective().isFirstPerson() && SwordfishClientTargeting.showsTarget(player)) {
+        if (client.options.getPerspective().isFirstPerson() && (sparkwitch$targetKnown
+                ? sparkwitch$showsTarget : SwordfishClientTargeting.showsTarget(player))) {
             context.drawGuiTexture(SwordfishClientTargeting.ATTACK_GLYPH,
                     context.getScaledWindowWidth() / 2 - 5, context.getScaledWindowHeight() / 2 + 5, 10, 7);
         }

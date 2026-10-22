@@ -67,9 +67,23 @@ public final class OwnerInventoryPresenter {
     private static @Nullable SkillKey skillKey;
     private static @Nullable InventoryInfoCard.Section skillCache;
     private static @Nullable InventoryInfoCard.Section traitsCache;
+    // The facade lookup is answered once per game session: mod presence and the facade class cannot change while the
+    // game runs, so SparkTraits without the facade no longer throws a ClassNotFoundException on every inventory frame
+    // (the bridge keeps failing closed). / 门面查找每次游戏会话只解析一次：模组是否存在与门面类在运行期间不会改变，
+    // 因此没有门面的 SparkTraits 不再在每个背包帧抛出 ClassNotFoundException（桥接仍然安全失败）。
+    private static boolean traitsFacadeResolved;
+    private static @Nullable Class<?> traitsFacade;
     private OwnerInventoryPresenter() {}
 
     private static Class<?> traitsFacade() {
+        if (!traitsFacadeResolved) {
+            traitsFacade = resolveTraitsFacade();
+            traitsFacadeResolved = true;
+        }
+        return traitsFacade;
+    }
+
+    private static @Nullable Class<?> resolveTraitsFacade() {
         if (!FabricLoader.getInstance().isModLoaded("sparktraits")) return null;
         try { return Class.forName("dev.caecorthus.sparktraits.api.SparkTraitsApi"); }
         catch (ClassNotFoundException | LinkageError unavailable) { return null; }

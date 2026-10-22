@@ -22,8 +22,14 @@ public final class SaintHudRenderer {
     public static List<Text> getHudLines(ClientPlayerEntity player) {
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         SaintPlayerState state = component.getSaintState();
+        boolean saint = SaintRules.isSaint(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
+        // Almost every player is neither a Saint nor carrying Karma; the HUD mixin asks each frame, so answer
+        // without allocating. / 几乎所有玩家既不是圣徒也没有业障；HUD mixin 每帧都会询问，因此不分配对象直接返回。
+        if (!saint && state.karmaCooldownTicks() <= 0) {
+            return List.of();
+        }
         List<Text> lines = new ArrayList<>(2);
-        if (SaintRules.isSaint(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
+        if (saint) {
             int balance = PlayerShopComponent.KEY.get(player).getBalance();
             Text hellfireLine = hellfireLine(state, balance);
             lines.add(hellfireLine);

@@ -15,11 +15,14 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
+import net.minecraft.util.Language;
 
 import java.util.List;
 
@@ -33,6 +36,25 @@ import java.util.List;
  * 权威。F1 或 Wathe HUD 隐藏时不显示，且从不属于魔女技能背包面板。
  */
 public final class UsecAmmoHud {
+    // Render-thread caches. Item components are immutable, so one CUSTOM_DATA instance always decodes to the same rifle
+    // state; the built Texts and widths are pure functions of their parts, the active Language (replaced on every
+    // resource reload) and the font renderer, so they are rebuilt only when one of those changes.
+    // 渲染线程缓存。物品组件不可变，同一个 CUSTOM_DATA 实例总是解码出相同的步枪状态；构建出的文本与宽度只取决于其片段、
+    // 当前 Language（每次资源重载都会换新）与字体渲染器，因此只在其中之一变化时重建。
+    private static boolean cachedStateRead;
+    private static NbtComponent cachedStateData;
+    private static UsecRifleState cachedState = UsecRifleState.EMPTY;
+    private static Language cachedLanguage;
+    private static TextRenderer cachedRenderer;
+    private static List<UsecAmmoHudRules.Part> cachedLineParts;
+    private static Text cachedLine;
+    private static int cachedLineWidth;
+    private static int cachedTokenWidth;
+    private static UsecAmmoHudRules.Part cachedZoomPart;
+    private static Text cachedZoomText;
+    private static int cachedZoomWidth;
+    private static int cachedZoomSampleWidth;
+
     private UsecAmmoHud() {
     }
 
@@ -57,7 +79,7 @@ public final class UsecAmmoHud {
                 player.isSpectator(), true)) {
             return;
         }
-        UsecRifleState state = UsecRifleState.read(rifle);
+        UsecRifleState state = rifleState(rifle);
         UsecCooldowns.Status cooldown = UsecBoltWatchClient.status(player);
         float progress = cooldown.coolingDown()
                 ? player.getItemCooldownManager().getCooldownProgress(SparkWitchItems.usecRifle(),
@@ -67,16 +89,34 @@ public final class UsecAmmoHud {
                 state.suppressor(), cooldown, progress, UsecScopeProfile.isActive(), UsecZoomState.magnification());
 
         TextRenderer renderer = client.textRenderer;
+        Language language = Language.getInstance();
+        if (language != cachedLanguage || renderer != cachedRenderer) {
+            cachedLanguage = language;
+            cachedRenderer = renderer;
+            cachedLineParts = null;
+            cachedZoomPart = null;
+            cachedZoomSampleWidth = renderer.getWidth(
+                    Text.translatable(UsecAmmoHudRules.ZOOM_KEY, UsecAmmoHudRules.ZOOM_TAG_LAYOUT_SAMPLE));
+        }
         List<UsecAmmoHudRules.Part> parts = UsecAmmoHudRules.line(snapshot);
-        Text line = compose(parts);
-        Text token = text(parts.getFirst());
+        if (!parts.equals(cachedLineParts)) {
+            cachedLineParts = parts;
+            cachedLine = compose(parts);
+            cachedLineWidth = renderer.getWidth(cachedLine);
+            cachedTokenWidth = renderer.getWidth(text(parts.getFirst()));
+        }
+        Text line = cachedLine;
+        int lineWidth = cachedLineWidth;
         UsecAmmoHudRules.Part zoom = UsecAmmoHudRules.zoomTag(snapshot);
-        Text zoomText = zoom == null ? null : text(zoom);
-        int lineWidth = renderer.getWidth(line);
+        if (zoom != null && !zoom.equals(cachedZoomPart)) {
+            cachedZoomPart = zoom;
+            cachedZoomText = text(zoom);
+            cachedZoomWidth = renderer.getWidth(cachedZoomText);
+        }
+        Text zoomText = zoom == null ? null : cachedZoomText;
         // Placement reserves the widest tag form, so the row does not jump as the magnification eases.
         // 布局按最宽的标签形式预留宽度，倍率缓动时该行不会跳动。
-        int rowWidth = lineWidth + (zoom == null ? 0 : Math.max(renderer.getWidth(zoomText), renderer.getWidth(
-                Text.translatable(UsecAmmoHudRules.ZOOM_KEY, UsecAmmoHudRules.ZOOM_TAG_LAYOUT_SAMPLE)))
+        int rowWidth = lineWidth + (zoom == null ? 0 : Math.max(cachedZoomWidth, cachedZoomSampleWidth)
                 + UsecAmmoHudRules.ZOOM_TAG_GAP);
         WitchPlayerComponent witch = WitchPlayerComponent.KEY.get(player);
         boolean sharedLineOccupied = witch.getActiveSkillId() != null
@@ -88,17 +128,31 @@ public final class UsecAmmoHud {
         context.drawTextWithShadow(renderer, line, x, y, UsecAmmoHudRules.TEXT_COLOR);
         if (zoomText != null) {
             context.drawTextWithShadow(renderer, zoomText,
-                    x - UsecAmmoHudRules.ZOOM_TAG_GAP - renderer.getWidth(zoomText), y, UsecAmmoHudRules.TAN_COLOR);
+                    x - UsecAmmoHudRules.ZOOM_TAG_GAP - cachedZoomWidth, y, UsecAmmoHudRules.TAN_COLOR);
         }
         if (UsecAmmoHudRules.showsBar(cooldown.remaining())) {
             // Directly under the chamber token, as wide as it. / 紧贴弹膛标记下方，与其等宽。
-            int width = renderer.getWidth(token);
+            int width = cachedTokenWidth;
             int barY = y + renderer.fontHeight;
             context.fill(x, barY, x + width, barY + UsecAmmoHudRules.BAR_HEIGHT, UsecAmmoHudRules.BAR_TRACK_COLOR);
             int fill = UsecAmmoHudRules.barFill(progress, width);
             context.fill(x, barY, x + fill, barY + 1, UsecAmmoHudRules.BAR_FILL_COLOR);
             context.fill(x, barY + 1, x + fill, barY + 2, UsecAmmoHudRules.BAR_FILL_SHADE_COLOR);
         }
+    }
+
+    /**
+     * The held rifle's state, decoded again only when its CUSTOM_DATA component instance changes.
+     * 手持步枪的状态；只在其 CUSTOM_DATA 组件实例变化时重新解码。
+     */
+    private static UsecRifleState rifleState(ItemStack rifle) {
+        NbtComponent data = rifle.get(DataComponentTypes.CUSTOM_DATA);
+        if (!cachedStateRead || data != cachedStateData) {
+            cachedState = UsecRifleState.read(rifle);
+            cachedStateData = data;
+            cachedStateRead = true;
+        }
+        return cachedState;
     }
 
     static Text compose(List<UsecAmmoHudRules.Part> parts) {

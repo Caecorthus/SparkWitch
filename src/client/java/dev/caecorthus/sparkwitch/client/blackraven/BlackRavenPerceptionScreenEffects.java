@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.client.render.WraithVisionRules;
 import dev.caecorthus.sparkwitch.client.vendetta.VendettaClientPresentation;
+import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.PostEffectProcessor;
@@ -39,6 +40,14 @@ public final class BlackRavenPerceptionScreenEffects {
     }
 
     public static void render(ClientPlayerEntity player, float delta) {
+        // Off a confirmed SparkWitch server no Vendetta, Wraith or Perception state can be active (each gate asks for
+        // the confirmation first), so with no processor open both branches below are no-ops: skip them. A processor
+        // left open by a Last Escape pass still takes the full path, which closes it once the escape ends.
+        // 未确认 SparkWitch 服务端时，复仇者、冤魂与感知状态都不可能生效（各门禁都先检查确认状态），因此没有已打开的处理器时
+        // 下面两个分支都不会产生任何效果，直接跳过。脱险后处理遗留的处理器仍走完整流程，脱险结束后由其关闭。
+        if (processor == null && !SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
         // Traits renders the combined pass through our public facade. This gate is independent
         // of which GameRenderer mixin runs first; querying parameters never renders recursively.
         if (LastEscapeTraitsVisionBridge.composition(player)[0] >= 0.5f) {
@@ -73,6 +82,12 @@ public final class BlackRavenPerceptionScreenEffects {
             lumaRed = PERCEPTION_LUMA_RED;
             lumaGreen = PERCEPTION_LUMA_GREEN;
             lumaBlue = PERCEPTION_LUMA_BLUE;
+        }
+        // Without an escape composeLastEscape returns the existing vision unchanged, so an off effect is known here,
+        // before building it. / 没有脱险时 composeLastEscape 原样返回现有效果，因此可在构建前得知效果已关闭。
+        if (escape == null && desaturation <= 0.0F) {
+            closeProcessor();
+            return false;
         }
         WraithVisionRules.Vision vision = WraithVisionRules.composeLastEscape(
                 new WraithVisionRules.Vision(desaturation, 0.0f, 1.0f,
@@ -115,6 +130,7 @@ public final class BlackRavenPerceptionScreenEffects {
     public static void close() {
         closeProcessor();
         loadFailed = false;
+        LastEscapeTraitsVisionBridge.forgetProtocol();
     }
 
     private static PostEffectProcessor ensureProcessor(MinecraftClient client) {
