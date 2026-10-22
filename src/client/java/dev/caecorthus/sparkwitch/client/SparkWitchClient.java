@@ -100,7 +100,9 @@ import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import net.minecraft.util.Util;
 import dev.caecorthus.sparkwitch.client.magician.MagicianPlaybackEntityRenderer;
 import dev.caecorthus.sparkwitch.client.magician.MagicianKeyRepeatGuard;
+import dev.caecorthus.sparkwitch.client.magician.MagicianPuppetStandIn;
 import dev.caecorthus.sparkwitch.roles.killer.magician.UseMagicianAbilityC2SPacket;
+import dev.doctor4t.wathe.client.WatheClient;
 
 public final class SparkWitchClient implements ClientModInitializer {
     @Override
@@ -170,6 +172,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         ClientLoginConnectionEvents.INIT.register((handler, client) -> resetConnectionState());
         ClientLoginConnectionEvents.DISCONNECT.register((handler, client) -> resetConnectionState());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> resetConnectionState());
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> releaseClosedWorldPlayers());
         WitchInstinctSuppressionClientHooks.register();
         HunterTrapClientHooks.register();
         NinjaGrappleClientPull.register();
@@ -385,5 +388,30 @@ public final class SparkWitchClient implements ClientModInitializer {
         ProphetClientModule.clear();
         SeekerClientModule.reset();
         BlindClient.reset();
+        releaseClosedWorldPlayers();
+    }
+
+    /**
+     * Connection edges (login, disconnect, join): drops client-side player references that would otherwise keep a
+     * closed ClientWorld alive, namely the Magician stand-in copies and Wathe's muzzle-position map
+     * ({@code WatheClient.particleMap}, keyed by player and never cleared by Wathe). Wathe only reads and writes that
+     * map on the client thread (held-item render, muzzle packet task) and never iterates it, so both are cleared there;
+     * calls from another thread (login events run on the network thread) are deferred to it.
+     * 连接生命周期节点（登录、断开、加入）：丢弃否则会让已关闭 ClientWorld 一直存活的客户端玩家引用，即魔术师替身副本与
+     * Wathe 的枪口位置表（{@code WatheClient.particleMap}，以玩家为键且 Wathe 从不清空）。Wathe 只在客户端线程（手持物品
+     * 渲染、枪口数据包任务）读写该表且从不遍历它，因此二者都在该线程清理；来自其他线程的调用（登录事件在网络线程触发）
+     * 会推迟到该线程。
+     */
+    private static void releaseClosedWorldPlayers() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (!client.isOnThread()) {
+            client.execute(SparkWitchClient::releaseClosedWorldPlayers);
+            return;
+        }
+        MagicianPuppetStandIn.reset();
+        var muzzles = WatheClient.particleMap;
+        if (muzzles != null) {
+            muzzles.clear();
+        }
     }
 }
