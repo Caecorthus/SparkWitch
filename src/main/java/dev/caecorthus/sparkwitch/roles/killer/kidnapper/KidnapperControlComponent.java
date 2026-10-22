@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.killer.kidnapper;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
@@ -323,7 +324,8 @@ public final class KidnapperControlComponent
         }
 
         static int shownSeconds(int ticks) {
-            return Math.max(1, (ticks + 19) / 20);
+            // Same formula as KidnapperControlledHudRenderer. / 与 KidnapperControlledHudRenderer 相同的公式。
+            return Math.max(1, TickTime.ceilSecondsRaw(ticks));
         }
 
         /** True when one tick down to {@code ticks} changes the shown second. / 倒数到该值时显示的秒数是否变化。 */
