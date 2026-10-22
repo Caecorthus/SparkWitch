@@ -95,22 +95,6 @@ public final class SeekerDeviceRaycast {
         return hit == null ? null : hit.device();
     }
 
-    /**
-     * Projectile sweep between two tick positions: the nearest live device on {@code from → to} before the first
-     * COLLIDER block. Players and breakability are the caller's concern.
-     * 投射物在两个刻位置之间的扫掠检测：{@code from → to} 上、第一个 COLLIDER 方块之前最近的存活设备。
-     * 玩家遮挡与能否打坏由调用方判断。
-     */
-    @Nullable
-    public static SeekerDeviceEntity projectileSweep(Entity projectile, Vec3d from, Vec3d to) {
-        if (projectile == null) {
-            return null;
-        }
-        Vec3d end = clipToBlocks(projectile.getWorld(), from, to, projectile);
-        DeviceHit hit = nearestDevice(projectile.getWorld(), from, end, Double.POSITIVE_INFINITY, device -> true);
-        return hit == null ? null : hit.device();
-    }
-
     /** Pure nearest-wins comparison on squared distances. / 基于平方距离的纯“最近者命中”比较。 */
     public static boolean deviceWins(double deviceDistanceSquared, double targetDistanceSquared) {
         return deviceDistanceSquared < targetDistanceSquared;
