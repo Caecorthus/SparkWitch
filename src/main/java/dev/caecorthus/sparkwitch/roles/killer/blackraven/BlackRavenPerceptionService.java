@@ -9,6 +9,7 @@ import java.util.UUID;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.math.Vec3d;
 
 /** Server-authoritative Perception activation, accumulation, and cleanup. */
 public final class BlackRavenPerceptionService {
@@ -62,11 +63,13 @@ public final class BlackRavenPerceptionService {
 
         maintainBlindness(player);
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getServerWorld());
+        // Read once per tick: nothing in the scan moves the player or the crow. / 每刻只读取一次：扫描过程不会移动玩家或乌鸦。
+        Vec3d center = BlackRavenPerceptionCenter.of(player);
         for (ServerPlayerEntity target : player.getServerWorld().getPlayers()) {
             if (target == player
                     || !GameFunctions.isPlayerPlayingAndAlive(target)
                     || GameFunctions.isPlayerSpectatingOrCreative(target)
-                    || !BlackRavenRules.isWithinPerceptionRadius(BlackRavenPerceptionCenter.of(player).squaredDistanceTo(target.getPos()))) {
+                    || !BlackRavenRules.isWithinPerceptionRadius(center.squaredDistanceTo(target.getPos()))) {
                 continue;
             }
             Role targetRole = game.getRole(target);

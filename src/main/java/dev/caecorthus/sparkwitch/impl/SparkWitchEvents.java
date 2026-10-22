@@ -160,12 +160,15 @@ public final class SparkWitchEvents {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
                 if (role != null && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())) {
-                    MagicianPlayerComponent.KEY.get(serverPlayer).reset();
-                    MagicianPlayerComponent.KEY.get(serverPlayer).assignInitialCooldown();
-                    // Mid-round assignments get the roster now; round start re-captures it once every role is dealt.
-                    // 回合中途分配时立即记录名单；回合开始时会在全部身份发放后重新记录。
-                    MagicianRoster.capture(serverPlayer);
-                    MagicianPlayerComponent.KEY.get(serverPlayer).sync();
+                    // One sync with the final state instead of one per write. / 只用最终状态同步一次，而不是每次写入各同步一次。
+                    MagicianPlayerComponent magician = MagicianPlayerComponent.KEY.get(serverPlayer);
+                    magician.syncOnceAfter(() -> {
+                        magician.reset();
+                        magician.assignInitialCooldown();
+                        // Mid-round assignments get the roster now; round start re-captures it once every role is dealt.
+                        // 回合中途分配时立即记录名单；回合开始时会在全部身份发放后重新记录。
+                        MagicianRoster.capture(serverPlayer);
+                    });
                 }
                 ProphetRuntime.assignForRole(serverPlayer, role);
                 ProphetEconomyService.assignForRole(serverPlayer, role);
