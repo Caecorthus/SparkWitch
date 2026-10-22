@@ -503,7 +503,7 @@ Current build baseline:
     Dark Zone terrain: flood-fill shape and landing cell (`DeepDarkZoneShape`), eligibility and palette
     (`DeepDarkZoneEligibility`), timeline (`DeepDarkZoneSchedule`), in-memory registry (`DeepDarkZoneState`), section
     grouping (`DeepDarkZoneSections`), read-only world adapter (`DeepDarkZoneBlocks`), chunk-delta sender
-    (`DeepDarkZoneSync`), sampled vanilla cues (`DeepDarkZoneCues`), and the runtime with its lifecycle
+    (`DeepDarkZoneSync`), per-section delivery bookkeeping (`DeepDarkZoneDelivery`), sampled vanilla cues (`DeepDarkZoneCues`), and the runtime with its lifecycle
     (`DeepDarkZoneService`); standing effects, exposure, and drain operands (`DeepDarkZoneStandingRules`,
     `DeepDarkZoneStandingService`, `DeepDarkZoneStandingDrain`); and the owner-only `AbyssZoneExposureComponent`.
   - Its mixins live in `mixin/abysslistener/` (the five Shriek Gun guards and the zone mood drain) and
@@ -1310,6 +1310,11 @@ Current build baseline:
   Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
   an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;
   `isMatchParticipant` scopes the bound-item rules and splits the Ninja Grappling Hook gate (`NinjaRules.mayGrapple`).
+- `util/TickTime`: the shared tick-to-second roundings (`ceilSeconds` = 0 at or below zero, else rounded up;
+  `ceilSecondsUnclamped` = `Math.ceil(t / 20.0)`; `ceilSecondsAtLeastOne`; `ceilSecondsRaw` = `(t + 19) / 20`). They
+  differ only for zero and negative input; every call site keeps the variant it used before (2026-10-22).
+- `util/StaggeredSweep.isDue(worldTime, entityId, interval)`: the per-player sweep offset
+  `Math.floorMod(worldTime + entityId, interval) == 0`; each owner keeps its own interval constant.
 - `util/GiveCommandDropScope`: marks, by stack identity and per thread, vanilla `/give`'s cosmetic pickup-animation drop
   (the shared count-1 template). `mixin/GiveCommandDropScopeMixin` (common config) is the one `@WrapOperation` on
   `GiveCommand.execute`'s second `dropItem(ItemStack, boolean)` (ordinal 1); ordinal 0, the real remainder drop, stays
@@ -1973,7 +1978,7 @@ Blind presentation is client-only. `BlindView.isActive` holds on a confirmed Spa
 a round runs for a real Blind (`getRole`) who is playing and alive in Wathe's sense (not marked
 dead) or swallowed; the camera is not part of it, so a SparkTraits Last Stand or Depression fake
 death keeps the view and every gate on (black) and only a real Wathe death ends it. Every gate
-re-reads it per call. `client/blind/render/BlindEchoView` is a private
+asks it per call; inside one world render pass the answer is memoized by `client/render/LocalViewerSnapshot`. `client/blind/render/BlindEchoView` is a private
 `PostEffectProcessor` (`sparkwitch:shaders/post/blind_echo.json`, programs
 `sparkwitch_blind_silmask`, `sparkwitch_blind_blur` and `sparkwitch_blind_echo`): the frame (projection, view
 rotation, camera, perceived bodies) is recorded at `WorldRenderEvents.BEFORE_DEBUG_RENDER`, and the world depth is
@@ -2556,15 +2561,18 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     Overlapping zones keep one window per zone on a cell whose landing snapshot matches (a union, so the cell restores
     at its last owner's end); a cell whose snapshot differs is replaced, and its stale fake is resent as real.
   - Fake and real states reach only the chunk's trackers as vanilla `ChunkDeltaUpdateS2CPacket`s grouped per section.
-    Every 20 ticks a heal sweep resends live fakes, and a cell whose real block no longer equals its landing snapshot is
-    dropped (compare-and-swap, which stops its look and effect). Nothing is persisted (no NBT, `shouldSave() = false`),
-    so a crash needs no cleanup.
+    Every tick a section's fakes go to trackers that do not hold them yet (`DeepDarkZoneDelivery`, so a new, returning
+    or re-tracking player gets them at once); every 20 ticks a heal sweep drops a cell whose real block no longer equals
+    its landing snapshot (compare-and-swap, which stops its look and effect) and sends its real state to every tracker;
+    every 100 ticks every tracker gets every fake again (owner decision 2026-10-22, was every 20 ticks). Nothing is
+    persisted (no NBT, `shouldSave() = false`), so a crash needs no cleanup.
   - The zone restores instantly (real states resent, registry dropped) at `ON_FINISH_INITIALIZE` (stale),
     `ON_WIN_DETERMINED`, `ON_FINISH_FINALIZE` (which also discards flasks in flight), `SERVER_STOPPING`, and on any
     tick whose round is no longer ACTIVE (covers `/stop`); every such restore also clears the exposure of that world's
     players in the same tick. `ServerWorldEvents.UNLOAD` only forgets the registry.
   - Known cosmetic limits: other players' footsteps use the real block's sound (server-played), and a right-click on a
-    converted block shows the real block to that player for up to one heal interval.
+    converted block (or client break prediction) shows the real block to that player for up to 5 s, the full resend
+    interval.
 - **Standing and exposure.** Standing is checked every `ZONE_CHECK_INTERVAL_TICKS` (5) ticks, only in worlds where
   `DeepDarkZoneService.hasActiveZones`. A player stands on the zone when `AbyssSuppression.isParticipantTarget`,
   `isOnGround()`, and `DeepDarkZoneService.isConverted(world, getSteppingPos())` (the block vanilla uses for the step
@@ -3539,6 +3547,75 @@ Seeker car.
   plugin mutes a crow-form speaker after the Rift branch; they still hear. Fear keeps `black_raven_crow_move` on its
   list but drops it silently (`GrandWitchFearService.isSilentlyBlockedPayload`). The Blind's server sound probe treats a
   hidden body as SILENT and the cane never lists it; the crow is an ordinary non-player source.
+
+## Hot-Path Caches and Cadences
+
+Performance pass 2026-10-22. Each entry names a cache or cadence on a hot path and what keeps it exact. A change to one
+of these paths must keep its invalidation; everything not listed recomputes per call.
+
+Client (render thread):
+- `client/render/LocalViewerSnapshot`: a per-world-pass memo of local-viewer facts (role, liveness, Wraith state, Black
+  Raven eligibility and Perception, Curser confusion, Control Expert block, Fear, Blind view, the Wraith and Raven
+  viewer halves). It memoizes only between `WorldRenderEvents.START` and `END`, on the render thread, for the player,
+  world and confirmed flag captured at START; every other call (ticks, HUD, screens, packets) recomputes. It is closed
+  at `MinecraftClient#render` HEAD (`WraithMinecraftClientMixin`), START/END_CLIENT_TICK and disconnect. It never caches
+  the instinct key (`isPressed`/`isInstinctEnabled`): SparkStrength Blackout and the USEC cloak release it per target.
+- `WitchInstinctSuppressionClientHooks` resolves SparkTraits `isFinalMomentActive` once (latched when absent) and reads it
+  only when Fear or Obscure would suppress, since an active Final Moment only ever lifts a suppression. The swallowed
+  check calls `NoellesTaotieSeekerBridge.isSwallowed` directly.
+- Condition order only (pure `&&`, same answers): `WitchFactorClientHooks` checks carrier/Emma before the hard-hide
+  gates; the Orthopedist hook and HUD and the Guardian Angel preview run `canSee` last; `WitchCohortRoleNameMixin` and
+  `InsiderCohortRoleNameMixin` skip their raycast unless the viewer's raw role is witch-faction / Team Jiahao.
+  `HunterRules.trapVisibility` has a lazy `BooleanSupplier` overload, and the trap outline listener uses
+  `HunterTrapVisibilityHelper.isVisibleThroughWalls`, which never raycasts (line of sight only separates DIRECT_ONLY
+  from HIDDEN). `WraithEntityInvisibilityMixin` returns early when the entity is already visible;
+  `WraithMinecraftClientMixin`'s `hasOutline` veto deliberately does not, because it runs before Wathe's
+  `hasInstinctOutline` and must still cancel it.
+- HUD text caches (Seeker status, USEC ammo, Tarot table, Blind kit lines, Fiend Dash/Feign) key on their snapshot or
+  parts plus the current `Language` and `TextRenderer` instances, so a language or resource reload re-measures. A Tarot
+  table that fell back to white for an unregistered faction is never reused.
+- `SeekerCctvOverlay` batches each group of fills through `InventoryCardPaint.batch` (same order, text after).
+  `SeekerCarUseClient` casts the car aim once per frame (cleared at `WorldRenderEvents.START`). `SwordfishCrosshairMixin`
+  memoizes `showsTarget` per Wathe `CrosshairRenderer.renderCrosshair` call (a HEAD inject clears it).
+- The crosshair aim wrappers (`MagicianPuppetAim`, `BlackRavenCrowAim`, `SeekerDeviceRaycast`'s knife target) query
+  candidate entities first and return the original target when there are none.
+- `NinjaGrappleClientPull` tracks hooks through Fabric `ClientEntityEvents` (weak references) and searches the world only
+  while one is loaded. `UsecBoltWatchClient` skips a tracker tick that is provably a no-op (ticked since its reset, never
+  carried a rifle).
+- `LastEscapeTraitsVisionBridge` caches the SparkTraits protocol version until `BlackRavenPerceptionScreenEffects.close()`
+  (disconnect, reload, stop, null-world frames), and the screen effect returns early off a confirmed server when no
+  processor is open. `OwnerInventoryPresenter.traitsFacade()` resolves the facade once per session, failing closed.
+
+Server:
+- `util/RaycastShapeScope` is a per-thread depth counter (`enter`/`exit` in `finally`, `query` kept); `isRaycast()` means
+  depth above zero.
+- The Wraith and Fisher door-passing mixins test the block type first. `WraithStateService` reads `getNullable`.
+  `WraithCollisionRules` and `WraithPresence` cache NoellesRoles' `no_collision` RegistryEntry; absence is looked up
+  again, never latched.
+- `JudgeWorldComponent` compares viewers without allocating. JOIN syncs the Judge world component to the joiner only:
+  Fabric fires JOIN before the joiner is added to its world, and CCA syncs world components to it in `sendWorldInfo`.
+- `SaintKarmaRuntime` skips unmarked players whose mirror is clear; `EmmaLifecycle` skips the empty penalty copy.
+- `VendettaKnifeLoadoutService` reconciles the entitled Vendetta every world tick; the stray-knife sweep for everyone
+  else runs once per 20 ticks per player, offset by entity id (owner decision 2026-10-22), so a stray knife can stay up
+  to 1 s (drops stay blocked by the mixins).
+- `PlayerHitboxHistory` keeps recording every tick everywhere: off-match shells and early-round rewinds read across
+  round edges. `SparkTraitsKillerBridge.isLastEscapeActive` uses a cached MethodHandle.
+- `ShadowJesterShowdownBridge`, `SparkStrengthCoronerCompat` and `SparkStrengthJunctionBoxCompat` resolve their
+  reflection once (lazy holders, failing closed). `CeremonialSwordDashService.DASHES` is cleared on SERVER_STOPPING.
+
+Network:
+- `HunterTrapEntity` zeroes and syncs its velocity only when it was non-zero.
+- `KidnapperControlComponent` syncs on start, on end and when the HUD's shown second changes; the client counts down
+  locally but never below the first tick of the shown second, so the HUD and client `isControlled()` change exactly
+  when the server's sync arrives. The controller's action bar is sent when `controlTicks / 20` changes; the teleport
+  still runs every tick.
+- `MagicianPlayerComponent` syncs its timers when the shown second changes (at most once per tick) with the same client
+  countdown floor, so READY shows only after the server's zero; role assignment sends one sync (`syncOnceAfter`).
+- Periodic owner-only cooldown resyncs (Black Raven crow, Mini Wither, Apprentice, Orthopedist, Wraith task count,
+  Vendetta) go to the owner only (`KEY.syncWith(owner, …)`); every write to a field other players see still syncs to
+  all, and the Apprentice stays broad while an exposure runs.
+- `WitchFactorWorldComponent` remembers per recipient what each client holds (`sentViews`) and syncs a recipient only
+  on a difference; `WitchFactorService.onRoleChanged` syncs only when `recover()` removed a factor.
 
 ## Tofana Elixir Vocabulary
 
