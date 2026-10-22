@@ -27,6 +27,8 @@ public final class MiniWitherFollow {
     /** A jump this large (teleport, respawn) snaps instead of flying across. / 这么大的跳变（传送、复活）直接对齐。 */
     private static final double SNAP_DISTANCE = 4.0;
     private static final Map<UUID, State> STATES = new HashMap<>();
+    /** Reused by {@link #tick} on the client thread, so no set is allocated per tick. / 客户端线程上复用，避免每刻新建集合。 */
+    private static final Set<UUID> SEEN = new HashSet<>();
 
     private MiniWitherFollow() {
     }
@@ -48,7 +50,8 @@ public final class MiniWitherFollow {
             STATES.clear();
             return;
         }
-        Set<UUID> seen = new HashSet<>();
+        Set<UUID> seen = SEEN;
+        seen.clear();
         for (AbstractClientPlayerEntity player : client.world.getPlayers()) {
             if (!MiniWitherRenderer.shows(player)) {
                 continue;
@@ -63,6 +66,7 @@ public final class MiniWitherFollow {
             seen.add(player.getUuid());
         }
         STATES.keySet().retainAll(seen);
+        seen.clear();
     }
 
     private static void step(State state, Vec3d target) {
