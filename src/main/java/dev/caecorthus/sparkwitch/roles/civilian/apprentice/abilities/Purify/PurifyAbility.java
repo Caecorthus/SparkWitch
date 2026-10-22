@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchTargeting;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -75,7 +76,7 @@ public final class PurifyAbility {
         }
         if (apprentice.getPurifyCooldownTicks() > 0) {
             send(player, Text.translatable("message.sparkwitch.skill.cooldown",
-                    (apprentice.getPurifyCooldownTicks() + 19) / 20));
+                    TickTime.ceilSecondsRaw(apprentice.getPurifyCooldownTicks())));
             return;
         }
 

@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.client.fiend;
 
+import dev.caecorthus.sparkwitch.util.TickTime;
+
 /**
  * Pure presentation rules of the moment Fiend's owner-only Dash line: "ready: press G" or "cooling down Ns", from the
  * remaining Dash cooldown synced only to that Fiend. Text only and only the local player's own state, so it never leaks
@@ -67,7 +69,7 @@ public final class FiendDashHudRules {
 
     /** Whole seconds, rounded up, never negative. / 向上取整的整秒数，不为负。 */
     public static int seconds(int ticks) {
-        return ticks <= 0 ? 0 : (ticks + 19) / 20;
+        return TickTime.ceilSeconds(ticks);
     }
 
     /**

@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.seeker;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCarState;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerCooldownReason;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
+import dev.caecorthus.sparkwitch.util.TickTime;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,7 +73,7 @@ public final class SeekerHudRules {
 
     /** Whole seconds, rounded up, never negative. / 向上取整的整秒数，不为负。 */
     public static int seconds(int ticks) {
-        return ticks <= 0 ? 0 : (ticks + 19) / 20;
+        return TickTime.ceilSeconds(ticks);
     }
 
     /**

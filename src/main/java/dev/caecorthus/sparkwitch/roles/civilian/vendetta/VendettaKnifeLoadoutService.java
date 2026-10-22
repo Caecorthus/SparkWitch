@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.util.StaggeredSweep;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -41,7 +42,7 @@ public final class VendettaKnifeLoadoutService {
 
     /** Each non-entitled player is swept once per interval, offset by entity id. / 每名无权玩家每个间隔按实体 id 错开清理一次。 */
     static boolean isStraySweepTick(long worldTime, int entityId) {
-        return Math.floorMod(worldTime + entityId, STRAY_SWEEP_INTERVAL_TICKS) == 0;
+        return StaggeredSweep.isDue(worldTime, entityId, STRAY_SWEEP_INTERVAL_TICKS);
     }
 
     public static void initializeForPromotion(ServerPlayerEntity player) {

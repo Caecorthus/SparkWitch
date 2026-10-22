@@ -11,6 +11,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeat
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.util.Identifier;
@@ -131,7 +132,7 @@ public final class SkillProgressTracker {
         for (int i = 0; i < cooldowns.size(); i++) widest = Math.max(widest, cooldowns.getInt(i));
         IntList windows = candidates(skill, definition, true);
         for (int i = 0; i < windows.size(); i++) widest = Math.max(widest, windows.getInt(i));
-        return (int) Math.ceil(widest / 20.0);
+        return TickTime.ceilSecondsUnclamped(widest);
     }
 
     /**

@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.riftwalker.session;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import net.minecraft.util.Identifier;
 
 /**
@@ -106,7 +107,7 @@ public final class RiftSessionHudRules {
 
     /** Whole seconds shown, rounded up so "1" lasts until the very end. / 显示的整秒数，向上取整。 */
     public static int seconds(int remainingTicks) {
-        return remainingTicks <= 0 ? 0 : (remainingTicks + TICKS_PER_SECOND - 1) / TICKS_PER_SECOND;
+        return TickTime.ceilSeconds(remainingTicks);
     }
 
     public static boolean urgent(int remainingTicks) {

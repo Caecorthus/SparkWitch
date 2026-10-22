@@ -1,5 +1,7 @@
 package dev.caecorthus.sparkwitch.client.bellringer;
 
+import dev.caecorthus.sparkwitch.util.TickTime;
+
 /**
  * Pure presentation rules for the Bell Ringer's Echo HUD. The layout mirrors Wathe 1.5.6
  * {@code MoodRenderer.renderHud}: task rows at {@code y = 6 + 10 * offset}, the mood icon at
@@ -69,10 +71,7 @@ public final class BellEchoHudRules {
 
     /** Whole seconds shown on the Echo task line, rounded up, never negative. / 回响任务行显示的整秒数，向上取整且不为负。 */
     public static int taskSeconds(int remainingTicks) {
-        if (remainingTicks <= 0) {
-            return 0;
-        }
-        return (remainingTicks + 19) / 20;
+        return TickTime.ceilSeconds(remainingTicks);
     }
 
     /** Lang key for a Wathe task name ({@code sleep/outside/eat/drink}). / Wathe 任务名对应的语言键。 */

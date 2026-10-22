@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordEvent;
@@ -59,7 +60,7 @@ public final class MiniWitherSkillService {
         }
         if (wither.getToggleCooldownTicks() > 0) {
             send(player, Text.translatable("message.sparkwitch.skill.cooldown",
-                    (wither.getToggleCooldownTicks() + 19) / 20));
+                    TickTime.ceilSecondsRaw(wither.getToggleCooldownTicks())));
             return;
         }
         boolean summon = !wither.isActive();

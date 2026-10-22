@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.curser;
 
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserPlayerComponent;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -16,7 +17,7 @@ public final class CurserHudRenderer {
     public static void render(DrawContext context, ClientPlayerEntity player) {
         int cooldown = CurserPlayerComponent.KEY.get(player).getCooldownTicks();
         Text line = cooldown > 0
-                ? Text.translatable("hud.sparkwitch.curser.cooldown", seconds(cooldown))
+                ? Text.translatable("hud.sparkwitch.curser.cooldown", TickTime.ceilSecondsUnclamped(cooldown))
                 : Text.translatable("hud.sparkwitch.curser.ready", SparkWitchClient.abilityKeyText());
         TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
         context.drawTextWithShadow(
@@ -26,9 +27,5 @@ public final class CurserHudRenderer {
                 context.getScaledWindowHeight() - 5 - renderer.fontHeight,
                 0xA968D5
         );
-    }
-
-    private static int seconds(int ticks) {
-        return (int) Math.ceil(ticks / 20.0);
     }
 }

@@ -19,6 +19,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsRules;
 import dev.caecorthus.sparkwitch.skill.WitchSkillHudRules;
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
@@ -110,7 +111,7 @@ public final class WitchSkillHudRenderer {
         }
         // Below 20 TPS the client countdown can reach zero before the server pulse; show "imminent", never "0s".
         // 服务端低于 20 TPS 时客户端倒计时可能先归零；此时显示“即将发动”，而不是“0 秒”。
-        int senseSeconds = seconds(prophet.senseRemainingTicks());
+        int senseSeconds = TickTime.ceilSecondsUnclamped(prophet.senseRemainingTicks());
         Text line = senseSeconds > 0
                 ? Text.translatable("hud.sparkwitch.prophet.sense.countdown", senseSeconds)
                 : Text.translatable("hud.sparkwitch.prophet.sense.imminent");
@@ -129,14 +130,14 @@ public final class WitchSkillHudRenderer {
                 return Text.translatable(
                         "hud.sparkwitch.skill.death_ray.active",
                         WitchSkillClientTexts.name(skillId),
-                        seconds(component.getDeathRayTicks()),
+                        TickTime.ceilSecondsUnclamped(component.getDeathRayTicks()),
                         component.getDeathRayCharges()
                 );
             }
             return Text.translatable(
                     "hud.sparkwitch.skill.active",
                     WitchSkillClientTexts.name(skillId),
-                    seconds(activeTicks)
+                    TickTime.ceilSecondsUnclamped(activeTicks)
             );
         }
         if (WitchSkillHudRules.shouldShowCeremonialSwordTaskUnlock(
@@ -155,7 +156,7 @@ public final class WitchSkillHudRenderer {
             return Text.translatable(
                     "hud.sparkwitch.skill.cooldown",
                     WitchSkillClientTexts.name(skillId),
-                    seconds(component.getCooldownTicks())
+                    TickTime.ceilSecondsUnclamped(component.getCooldownTicks())
             );
         }
         WitchSkillDefinition skill = WitchSkillRegistry.get(skillId);
@@ -203,9 +204,5 @@ public final class WitchSkillHudRenderer {
                 WitchSkillClientTexts.name(skillId),
                 SparkWitchClient.abilityKeyText()
         );
-    }
-
-    private static int seconds(int ticks) {
-        return (int) Math.ceil(ticks / 20.0);
     }
 }
