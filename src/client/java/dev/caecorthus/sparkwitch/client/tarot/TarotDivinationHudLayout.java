@@ -8,9 +8,15 @@ import java.util.List;
  * 塔罗牌师占卜表的纯布局：行顺序、变化趋势、人数文本与整数 GUI 几何。不含客户端类型，文本宽度由渲染器测量后传入。
  */
 public final class TarotDivinationHudLayout {
-    /** Title y, one row below Wathe's money row (drawn at y 6). 标题 y，位于 Wathe 金币行（绘制于 y 6）下方。 */
+    /**
+     * Default title y, one row below Wathe's money row (drawn at y 6); {@link #headerY} moves it lower.
+     * 默认标题 y，位于 Wathe 金币行（绘制于 y 6）下方；{@link #headerY} 可将其下移。
+     */
     public static final int HEADER_Y = 20;
-    /** The 7x9 card icon covers y 19..27, so its centre row matches the title glyphs. 卡牌图标中心与标题字形对齐。 */
+    /**
+     * Default icon y: the 7x9 card icon covers y 19..27, so its centre row matches the title glyphs.
+     * 默认图标 y：卡牌图标覆盖 y 19..27，中心与标题字形对齐。
+     */
     public static final int ICON_Y = 19;
     public static final int ICON_WIDTH = 7;
     /** Title and faction names share this x offset from the table's left edge. 标题与阵营名共用此左侧偏移。 */
@@ -43,6 +49,8 @@ public final class TarotDivinationHudLayout {
     private static final int BACKING_PAD_TOP = 3;
     private static final int BACKING_PAD_BOTTOM = 2;
     private static final int ROW_COUNT = FactionSlot.values().length;
+    /** Exclusive bottom of Wathe's money row band (its text ends at y 15). Wathe 金币行顶带的底边（不含，文字止于 y 15）。 */
+    private static final int MONEY_BAND_BOTTOM = 16;
 
     private TarotDivinationHudLayout() {
     }
@@ -79,16 +87,30 @@ public final class TarotDivinationHudLayout {
     }
 
     /**
-     * Table geometry for measured text widths. {@code countWidth} is the widest shown count and
+     * Title y under every row stacked beneath Wathe's money. {@code strengthRowsBottom} is the exclusive bottom of
+     * SparkStrength's killer team-wallet row (0 when it is not showing, e.g. a Tarot Reader with the Impostor trait
+     * only sees it on a killer team); the table drops by the same amount, so it keeps the gap it has under the money.
+     * Wathe 金币下方所有叠加行之下的标题 y。{@code strengthRowsBottom} 为 SparkStrength 杀手团队余额行的底边（不含，
+     * 未显示时为 0；例如带“内鬼”词条的塔罗牌师处于杀手团队时才会看到该行）；表格下移相同距离，与金币行保持原有间距。
+     */
+    public static int headerY(int strengthRowsBottom) {
+        return HEADER_Y + Math.max(0, strengthRowsBottom - MONEY_BAND_BOTTOM);
+    }
+
+    /**
+     * Table geometry for measured text widths, hanging from the title y {@code headerY} ({@link #headerY}).
+     * {@code countWidth} is the widest shown count and
      * {@code countReserveWidth} the width of bold {@link #COUNT_RESERVE_TEXT}; the count column is the larger of
      * the two, so counts 0..99 never move the table. The table grows leftwards from a fixed right edge and is pinned
      * inside the left screen edge on very narrow windows.
-     * 按测得的文本宽度计算表格几何。{@code countWidth} 为最宽人数文本，{@code countReserveWidth} 为粗体
+     * 按测得的文本宽度计算表格几何，自标题 y {@code headerY}（{@link #headerY}）向下展开。{@code countWidth} 为最宽人数文本，
+     * {@code countReserveWidth} 为粗体
      * {@link #COUNT_RESERVE_TEXT} 的宽度；人数列取两者较大值，人数在 0..99 间变化不会移动表格。表格自固定右缘
      * 向左扩展，窗口极窄时固定在屏幕左缘内侧。
      */
     public static Geometry geometry(
             int screenWidth,
+            int headerY,
             int titleWidth,
             int nameWidth,
             int countWidth,
@@ -98,16 +120,17 @@ public final class TarotDivinationHudLayout {
         int tableWidth = Math.max(NAME_X + nameWidth + COLUMN_GAP + countColumn, NAME_X + titleWidth);
         int right = Math.max(screenWidth - RIGHT_EDGE_INSET, BACKING_PAD_LEFT + tableWidth);
         int left = right - tableWidth;
-        int separatorY = HEADER_Y + SEPARATOR_Y_OFFSET;
+        int separatorY = headerY + SEPARATOR_Y_OFFSET;
         int firstRowY = separatorY + ROWS_Y_OFFSET;
         int lastRowY = firstRowY + (ROW_COUNT - 1) * ROW_PITCH;
         return new Geometry(
                 left,
                 right,
+                headerY,
                 separatorY,
                 firstRowY,
                 left - BACKING_PAD_LEFT,
-                HEADER_Y - BACKING_PAD_TOP,
+                headerY - BACKING_PAD_TOP,
                 right + BACKING_PAD_RIGHT,
                 lastRowY + LINE_HEIGHT + BACKING_PAD_BOTTOM
         );
@@ -140,6 +163,7 @@ public final class TarotDivinationHudLayout {
     public record Geometry(
             int left,
             int right,
+            int headerY,
             int separatorY,
             int firstRowY,
             int backingLeft,
@@ -149,6 +173,11 @@ public final class TarotDivinationHudLayout {
     ) {
         public int rowY(int rowIndex) {
             return firstRowY + rowIndex * ROW_PITCH;
+        }
+
+        /** The card icon keeps its offset from the title. 卡牌图标与标题保持固定偏移。 */
+        public int iconY() {
+            return headerY + ICON_Y - HEADER_Y;
         }
     }
 }

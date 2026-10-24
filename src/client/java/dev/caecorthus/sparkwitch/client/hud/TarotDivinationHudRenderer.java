@@ -4,6 +4,7 @@ import dev.caecorthus.sparkfactionapi.api.FactionDefinition;
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
+import dev.caecorthus.sparkwitch.client.compat.SparkStrengthHudBridge;
 import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationHudLayout;
@@ -22,11 +23,12 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 
 /**
- * Draws the Tarot Reader's divination table under Wathe's money row. The counts are the server snapshot taken when
+ * Draws the Tarot Reader's divination table under Wathe's money row, and under SparkStrength's killer team-wallet row
+ * while that row is showing (an Impostor Tarot Reader on a killer team). The counts are the server snapshot taken when
  * the reading was bought, never live counts, and the client recalculates nothing. The change arrows compare two
  * server snapshots this player already received, so they reveal nothing new. Role-owned presentation, never part of
  * the witch skill inventory panel.
- * 在 Wathe 金币行下方绘制塔罗牌师的占卜表。人数是购买占卜时服务端生成的快照，并非实时人数，客户端不做任何重算。
+ * 在 Wathe 金币行下方绘制塔罗牌师的占卜表；SparkStrength 显示杀手团队余额行时（处于杀手团队的内鬼塔罗牌师）改为绘制在该行下方。人数是购买占卜时服务端生成的快照，并非实时人数，客户端不做任何重算。
  * 变化箭头只比较该玩家已收到的两次服务端快照，不会泄露新信息。属于职业自有展示，从不属于魔女技能背包面板。
  */
 public final class TarotDivinationHudRenderer {
@@ -63,8 +65,9 @@ public final class TarotDivinationHudRenderer {
     // 渲染线程上一次测量的表格缓存，键包含 measure() 读取的全部输入：两次快照、屏幕宽度、当前 Language（每次资源重载
     // 都会换新）与字体渲染器。所有阵营都已注册的表格不会再变（SparkFactionAPI 从不替换或移除阵营）；回退为白色的表格
     // 仍与以前一样每次重新测量。
-    // The key also holds the font glyph options (`HudFontOptions`), which a toggle changes without a reload.
-    // 键还包含字形选项（`HudFontOptions`），切换它们不会触发资源重载。
+    // The key also holds the font glyph options (`HudFontOptions`), which a toggle changes without a reload, and the
+    // title y, which follows SparkStrength's team-wallet row as it appears and goes.
+    // 键还包含字形选项（`HudFontOptions`，切换它们不会触发资源重载）以及随 SparkStrength 团队余额行出现与消失而变化的标题 y。
     private static Optional<Table> cachedTable = Optional.empty();
     private static TarotDivinationSnapshotState.Snapshot cachedSnapshot;
     private static TarotDivinationSnapshotState.Snapshot cachedPrevious;
@@ -72,6 +75,7 @@ public final class TarotDivinationHudRenderer {
     private static Language cachedLanguage;
     private static TextRenderer cachedRenderer;
     private static int cachedFontOptions = -1;
+    private static int cachedHeaderY;
 
     private TarotDivinationHudRenderer() {
     }
@@ -103,7 +107,7 @@ public final class TarotDivinationHudRenderer {
                 InventoryCardPaint.roundedFill(context, g.backingLeft(), g.backingTop(),
                         g.backingRight() - g.backingLeft(), g.backingBottom() - g.backingTop(), backing);
             }
-            drawIcon(context, left, TarotDivinationHudLayout.ICON_Y);
+            drawIcon(context, left, g.iconY());
             int separatorY = g.separatorY();
             context.fill(left + 1, separatorY + 1, right, separatorY + 2, shadow(SEPARATOR));
             context.fill(left, separatorY, right - 1, separatorY + 1, SEPARATOR);
@@ -134,8 +138,7 @@ public final class TarotDivinationHudRenderer {
         });
 
         int textX = left + TarotDivinationHudLayout.NAME_X;
-        context.drawTextWithShadow(renderer, title, textX, TarotDivinationHudLayout.HEADER_Y,
-                InventoryCardPaint.POLISHED);
+        context.drawTextWithShadow(renderer, title, textX, g.headerY(), InventoryCardPaint.POLISHED);
         for (int i = 0; i < size; i++) {
             int y = g.rowY(i);
             boolean zero = rows.get(i).count() <= 0;
@@ -182,9 +185,10 @@ public final class TarotDivinationHudRenderer {
         TarotDivinationSnapshotState.Snapshot previous = state.previous().orElse(null);
         Language language = Language.getInstance();
         int fontOptions = HudFontOptions.current();
+        int headerY = TarotDivinationHudLayout.headerY(SparkStrengthHudBridge.topRightHudBottom());
         if (cachedTable.isPresent() && snapshot.equals(cachedSnapshot) && Objects.equals(previous, cachedPrevious)
                 && screenWidth == cachedScreenWidth && language == cachedLanguage && renderer == cachedRenderer
-                && fontOptions == cachedFontOptions) {
+                && fontOptions == cachedFontOptions && headerY == cachedHeaderY) {
             return cachedTable;
         }
         List<TarotDivinationHudLayout.Row> rows = TarotDivinationHudLayout.rows(snapshot, previous);
@@ -214,7 +218,7 @@ public final class TarotDivinationHudRenderer {
         int countReserveWidth = renderer.getWidth(
                 Text.literal(TarotDivinationHudLayout.COUNT_RESERVE_TEXT).formatted(Formatting.BOLD));
         TarotDivinationHudLayout.Geometry geometry = TarotDivinationHudLayout.geometry(
-                screenWidth, renderer.getWidth(title), nameWidth, countWidth, countReserveWidth);
+                screenWidth, headerY, renderer.getWidth(title), nameWidth, countWidth, countReserveWidth);
         Optional<Table> table = Optional.of(new Table(title, rows, names, counts, countWidths, colors, geometry));
         cachedTable = factionsRegistered ? table : Optional.empty();
         cachedSnapshot = snapshot;
@@ -223,6 +227,7 @@ public final class TarotDivinationHudRenderer {
         cachedLanguage = language;
         cachedRenderer = renderer;
         cachedFontOptions = fontOptions;
+        cachedHeaderY = headerY;
         return table;
     }
 
