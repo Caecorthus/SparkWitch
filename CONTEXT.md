@@ -1585,7 +1585,12 @@ Orthopedist, Saint, Vendetta, Kidnapper control screen, Saboteur) and `client/mi
 The layer order is the draw order and matches the old per-role mixins' config order, so the group keeps its slot
 relative to Fabric's `HudRenderCallback` and Wathe's own TAIL injects. Each layer owns its gate (the Vendetta,
 Kidnapper and Magician layers have no confirmed-server check, as before); a new panel adds a layer, not another
-`InGameHud` TAIL mixin. The Holy Flash overlay (priority 1100) stays its own mixin and draws after them.
+`InGameHud` TAIL mixin. The Holy Flash overlay (priority 1100) stays its own mixin and draws after them. The mana
+row and the Tarot divination table sit under Wathe's money, and move under SparkStrength's killer team-wallet row
+while that row shows (a Witch Maiden on a killer team, or a Tarot Reader with the Impostor trait) through
+`client/compat/SparkStrengthHudBridge.topRightHudBottom`, the seam the inventory card already uses. The table's title
+y comes from `TarotDivinationHudLayout.headerY` and is part of the renderer's measure cache key, so
+`backingBounds` (the selector's HUD nudge) follows the moved table.
 
 Holy Flash state never enters that shared schema either. `sparkwitch:holy_flash` (`NEVER_COPY`,
 owner-only sync, never saved) holds the flashed player's total and remaining ticks, the burst
