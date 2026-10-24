@@ -2,7 +2,9 @@ package dev.caecorthus.sparkwitch.roles.civilian.usec;
 
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAttachmentRules.Gate;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAttachmentRules.Magazine;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAttachmentRules.Outcome;
+import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAttachmentService.Cue;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.StackReference;
 import net.minecraft.item.ItemStack;
@@ -16,8 +18,10 @@ import java.util.function.BooleanSupplier;
 
 /**
  * Cursor loading (Q9/D17, after the NoellesRoles Bartender base spirit and the Hunter shotgun): with .338 rounds on the
- * cursor, a right-click on a magazine, or on the rifle, loads exactly one round. {@code Item#onClicked} runs wherever
- * the click is resolved, and every such side claims the click, so a right-click with rounds never turns into a vanilla
+ * cursor, a right-click on a magazine, or on the rifle, loads exactly one round. With a magazine on the cursor
+ * (owner, 2026-10-24), a right-click on the rifle inserts it like the attachment screen's 装入: the inserted magazine,
+ * if any, comes back onto the cursor, and the bolt rule applies. {@code Item#onClicked} runs wherever the click is
+ * resolved, and every such side claims the click, so a right-click with rounds or a magazine never turns into a vanilla
  * swap. Exactly one side writes each click ({@link #writer}):
  * <ul>
  *   <li>Survival, adventure and container clicks (creative players' too) are resolved on both sides; only the server
@@ -30,8 +34,9 @@ import java.util.function.BooleanSupplier;
  * </ul>
  * The writer re-checks the {@link UsecAttachmentRules#gate player gate} and that the clicked slot is in the player's
  * own inventory.
- * 光标装填（Q9/D17，参照 NoellesRoles 酒保基酒与猎人霰弹枪）：光标拿着 .338 子弹时右键弹匣或步枪，恰好装入一发。
- * {@code Item#onClicked} 在结算该点击的一端执行，每一端都认领这次点击，因此拿着子弹右键永远不会变成原版交换。每次点击恰好由
+ * 光标装填（Q9/D17，参照 NoellesRoles 酒保基酒与猎人霰弹枪）：光标拿着 .338 子弹时右键弹匣或步枪，恰好装入一发。光标拿着
+ * 弹匣时右键步枪（所有者 2026-10-24），与配件界面的「装入」相同：原先装着的弹匣（若有）回到光标上，并适用拉栓规则。
+ * {@code Item#onClicked} 在结算该点击的一端执行，每一端都认领这次点击，因此拿着子弹或弹匣右键永远不会变成原版交换。每次点击恰好由
  * 一端写入（{@link #writer}）：生存、冒险与容器中的点击（包括创造模式玩家在容器中的点击）在两端都会结算，只有服务端写入
  * （霰弹枪模式：客户端从不写入步枪或弹匣状态，由服务端的背包同步纠正栏位与光标）。创造模式物品栏（所有者 2026-10-07）只在客户端
  * 结算点击，并通过创造模式数据包同步整个物品堆（创造模式服务端本就接受任意物品堆），服务端不会为这些点击执行本钩子；此时由
@@ -94,6 +99,15 @@ public final class UsecAttachmentCursorLoading {
         return round.ammoType();
     }
 
+    /**
+     * Whether a click on the rifle inserts the cursor's magazine: a right-click with one magazine on the cursor.
+     * 这次点击是否把光标上的弹匣装入步枪：光标拿着一个弹匣右键。
+     */
+    public static boolean claimsMagazine(ItemStack cursor, ClickType clickType) {
+        return clickType == ClickType.RIGHT && cursor != null && cursor.getCount() == 1
+                && cursor.getItem() instanceof UsecMagazineItem;
+    }
+
     /** {@code UsecMagazineItem#onClicked}: push one round onto a loose magazine. / 向散装弹匣压入一发。 */
     public static boolean onMagazineClicked(ItemStack magazine, ItemStack cursor, Slot slot, ClickType clickType,
                                             PlayerEntity player, StackReference cursorReference) {
@@ -106,18 +120,25 @@ public final class UsecAttachmentCursorLoading {
             if (next != null) {
                 UsecMagazineItem.setContents(magazine, next);
                 consumeOne(cursor, cursorReference);
-                finish(player, false);
+                finish(player, Cue.ROUND, false);
             }
         }
         return true;
     }
 
     /**
-     * {@code UsecRifleItem#onClicked}: into the inserted magazine, or a single round into an empty chamber when there
-     * is no magazine; the bolt rule applies. / 装入已装弹匣；未装弹匣时单发压入空弹膛；适用拉栓规则。
+     * {@code UsecRifleItem#onClicked}: a magazine is inserted (swapped onto the cursor); a round goes into the inserted
+     * magazine, or a single round into an empty chamber when there is no magazine; the bolt rule applies.
+     * 弹匣被装入（与光标交换）；子弹装入已装弹匣，未装弹匣时单发压入空弹膛；适用拉栓规则。
      */
     public static boolean onRifleClicked(ItemStack rifle, ItemStack cursor, Slot slot, ClickType clickType,
                                          PlayerEntity player, StackReference cursorReference) {
+        if (claimsMagazine(cursor, clickType)) {
+            if (writes(player) && mayLoad(player, slot, rifle)) {
+                insertMagazine(rifle, cursor, player, cursorReference);
+            }
+            return true;
+        }
         UsecAmmoType type = claimedRound(cursor, clickType);
         if (type == null) {
             return false;
@@ -127,10 +148,30 @@ public final class UsecAttachmentCursorLoading {
             if (outcome != null) {
                 UsecRifleState.write(rifle, outcome.rifle());
                 consumeOne(cursor, cursorReference);
-                finish(player, outcome.bolted());
+                finish(player, Cue.ROUND, outcome.bolted());
             }
         }
         return true;
+    }
+
+    /**
+     * The attachment screen's swap ({@code UsecAttachmentService#insertMagazine}) with the cursor as the magazine's
+     * slot: the cursor stack is rewritten as the released magazine, or emptied when the rifle had none.
+     * 配件界面的交换（{@code UsecAttachmentService#insertMagazine}），以光标充当弹匣栏位：光标物品堆被改写为卸下的弹匣，步枪
+     * 原先没有弹匣时光标清空。
+     */
+    private static void insertMagazine(ItemStack rifle, ItemStack cursor, PlayerEntity player,
+                                       StackReference cursorReference) {
+        Outcome outcome = UsecAttachmentRules.insertMagazine(UsecRifleState.read(rifle),
+                UsecMagazineItem.contents(cursor));
+        UsecRifleState.write(rifle, outcome.rifle());
+        if (outcome.release() instanceof Magazine released) {
+            UsecMagazineItem.setContents(cursor, released.contents());
+            cursorReference.set(cursor);
+        } else {
+            cursorReference.set(ItemStack.EMPTY);
+        }
+        finish(player, Cue.MAGAZINE, outcome.bolted());
     }
 
     /** Own inventory slot, single target stack, open gate. / 自己的背包栏位、单件目标、准入通过。 */
@@ -151,12 +192,13 @@ public final class UsecAttachmentCursorLoading {
      * 服务端：公开声音与拉栓冷却（{@link UsecAttachmentService#finish}）。创造模式客户端：只播放本地声音；不写入冷却，因为服务端
      * 看不到这次点击，且所有步枪冷却都由服务端掌管。
      */
-    private static void finish(PlayerEntity player, boolean bolted) {
+    private static void finish(PlayerEntity player, Cue cue, boolean bolted) {
         if (player instanceof ServerPlayerEntity server) {
-            UsecAttachmentService.finish(server, UsecAttachmentService.Cue.ROUND, bolted);
+            UsecAttachmentService.finish(server, cue, bolted);
             return;
         }
-        playLocal(player, SparkWitchSounds.USEC_RIFLE_LOAD_ROUND);
+        playLocal(player, cue == Cue.MAGAZINE ? SparkWitchSounds.USEC_RIFLE_MAGAZINE
+                : SparkWitchSounds.USEC_RIFLE_LOAD_ROUND);
         if (bolted) {
             playLocal(player, SparkWitchSounds.USEC_RIFLE_BOLT);
         }

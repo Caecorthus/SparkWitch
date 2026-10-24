@@ -764,7 +764,10 @@ Current build baseline:
     bolt cycles, so the screen never locks 上膛 for it.
     `UsecAttachmentCursorLoading` backs `onClicked` on the magazine and the rifle: a right-click with rounds on the
     cursor loads one round into that magazine, or into the rifle's inserted magazine, or into its empty chamber when no
-    magazine is inserted. Every side that resolves the click claims it, so it never swaps, and exactly one side writes
+    magazine is inserted; a right-click on the rifle with one magazine on the cursor (owner, 2026-10-24) is the screen's
+    magazine swap with the cursor as the magazine's slot: the inserted magazine, if any, is rewritten onto the cursor
+    stack, otherwise the cursor empties, and the bolt rule applies (magazine cue, bolt cooldown on the server). Every
+    side that resolves the click claims it, so it never swaps, and exactly one side writes
     (`UsecAttachmentCursorLoading.writer`): the server for every click it resolves (survival, adventure, and any
     container click, a creative player's included; the client only claims the click, the shotgun's `onClicked` pattern),
     and the client only
@@ -909,7 +912,8 @@ Current build baseline:
     - The base resource `item/usec_rifle` is never wrapped, and no model may use a wrapped id as `parent`.
     - A missing or non-`item/generated` icon falls back to the 3-D model.
   - Attachment screen (`UsecAttachmentScreen`): a plain `Screen` in the owner-picked U2 "field manual blueprint" style
-    and the only place to change magazines, with one button per `UsecAttachmentAction` (geometry `UsecAttachmentLayout`,
+    where magazines are changed (besides the cursor magazine swap above), with one button per `UsecAttachmentAction`
+    (geometry `UsecAttachmentLayout`,
     400×260, scaled down only on small GUIs; paint `UsecAttachmentPaint`; rifle line art `UsecAttachmentRifleArt`;
     button predictions `UsecAttachmentModel`). It draws its parent inventory behind it, returns to that inventory on Esc
     or the inventory key, closes fully during a Wathe fade or on death, and names the rifle by its item display name

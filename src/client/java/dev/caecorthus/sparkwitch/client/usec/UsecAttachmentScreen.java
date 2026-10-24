@@ -57,7 +57,8 @@ import static dev.caecorthus.sparkwitch.client.usec.UsecAttachmentLayout.*;
 
 /**
  * Client only. The USEC rifle attachment screen (D16), drawn in the owner-picked U2 "field manual blueprint" style:
- * the only place to change magazines (Q4), plus the suppressor, single-round chambering (Q4+) and loading or unloading
+ * magazine changes (Q4; since 2026-10-24 also a right-click on the rifle with a magazine on the cursor, see
+ * {@code UsecAttachmentCursorLoading}), plus the suppressor, single-round chambering (Q4+) and loading or unloading
  * rounds, one button per {@code UsecAttachmentAction}. A plain {@link Screen} with no screen handler (like the Seeker
  * Console and Judge selection): each frame it reads the rifle at {@code rifleSlot} and the inventory from the client
  * player, offers the {@link UsecAttachmentModel} buttons, and every press sends one {@code sparkwitch:usec_attachment}
@@ -67,7 +68,8 @@ import static dev.caecorthus.sparkwitch.client.usec.UsecAttachmentLayout.*;
  * it returns to the parent when the rifle leaves its slot. The rifle is always named by its item display name.
  * Geometry is {@link UsecAttachmentLayout}, colours and shapes {@link UsecAttachmentPaint}; all text uses
  * {@code gui.sparkwitch.usec_attachment.*}.
- * 仅客户端。USEC 步枪配件界面（D16），采用所有者选定的 U2「野战手册蓝图」样式：唯一可以更换弹匣的地方（Q4），另含消音器、
+ * 仅客户端。USEC 步枪配件界面（D16），采用所有者选定的 U2「野战手册蓝图」样式：更换弹匣（Q4；自 2026-10-24 起也可在光标拿着弹匣时右键步枪，见
+ * {@code UsecAttachmentCursorLoading}），另含消音器、
  * 单发压膛（Q4+）以及子弹的装填与退出，每个 {@code UsecAttachmentAction} 都有一个按钮。普通 {@link Screen}，没有界面处理器
  * （同搜寻者控制台与法官选择）：每帧从客户端玩家读取 {@code rifleSlot} 上的步枪与背包，提供 {@link UsecAttachmentModel} 的
  * 按钮，每次按下发送一个由服务端校验的 {@code sparkwitch:usec_attachment} 数据包。按钮只是预测；按下后所有按钮会等到已同步
