@@ -93,10 +93,11 @@ public class UsecRifleItem extends Item {
 
     /**
      * Cursor loading onto the rifle: rounds on the cursor + right-click loads one round into the inserted magazine, or
-     * chambers it when there is no magazine and the chamber is empty (server only; both sides claim the click). An
-     * empty-cursor right-click in the inventory opens the attachment screen instead (client mixins).
-     * 光标装填到步枪：光标拿着子弹右键，装入已装弹匣一发；未装弹匣且弹膛为空时压入弹膛（仅服务端改动；两端都认领该点击）。
-     * 空光标在背包中右键则改为打开配件界面（客户端 mixin）。
+     * chambers it when there is no magazine and the chamber is empty; a magazine on the cursor + right-click inserts it
+     * and puts the previous one on the cursor (server only; both sides claim the click). An empty-cursor right-click in
+     * the inventory opens the attachment screen instead (client mixins).
+     * 光标装填到步枪：光标拿着子弹右键，装入已装弹匣一发；未装弹匣且弹膛为空时压入弹膛；光标拿着弹匣右键则装入该弹匣，
+     * 原弹匣回到光标（仅服务端改动；两端都认领该点击）。空光标在背包中右键则改为打开配件界面（客户端 mixin）。
      */
     @Override
     public boolean onClicked(ItemStack stack, ItemStack otherStack, Slot slot, ClickType clickType,
