@@ -36,6 +36,9 @@ the special-accomplice pool.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
+Round-start subtitles are one short sentence per role (owner, 2026-10-25): Wathe shows `announcement.goal.<role>`
+with one killer and `announcement.goals.<role>` with more, so both keys carry the same line; rules, costs and
+cooldowns go in letters, skill descriptions and the SparkAssist guidebook (`roles/RoleGoalSubtitleTest` caps them).
 Seeker availability requires the SparkStrength tablet item (`sparkstrength:tablet`), resolved by
 registry id only; SparkStrength owns no Seeker gameplay. SparkWitch never sells or grants the tablet: SparkStrength
 issues it free at round start to every tablet-eligible player (SparkWitch's `PoliceRoles` members and the witch
@@ -2356,8 +2359,8 @@ tasks it is promoted to an accomplice role through the pool above.
   `announcement.role/goal/win.sparkwitch.bewitched`, the HUD line, the two promotion lines, the command feedback
   (`command.sparkwitch.force_accomplice_role.*`) and
   `replay.sparkfactionapi.role_changed.cause.sparkwitch.bewitched_promotion`. The shared texts
-  `announcement.goals.grand_witch`, `announcement.goals.riftwalker`, `tip.letter.riftwalker.tooltip1/2` and
-  `tip.letter.potion_gunner.tooltip1` describe the Bewitched promotion; these and
+  `tip.letter.riftwalker.tooltip1/2` and `tip.letter.potion_gunner.tooltip1` describe the Bewitched promotion; these,
+  the one-sentence `announcement.goals.grand_witch` / `announcement.goals.riftwalker` and
   `skill.sparkwitch.emma_factor.network` no longer mention recruitment in either language.
 - **Local tests** under `src/test/java/dev/caecorthus/sparkwitch/`: `roles/witch/bewitched/` (rules, promotion rules,
   registration, promotion source contracts, lang), `registry/BewitchedDealingContractTest`,
