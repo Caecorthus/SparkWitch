@@ -430,6 +430,11 @@ Current build baseline:
     client-only `client/mixin/MagicianPuppetPsychoMaskMixin` on `PlayerPsychoComponent#getPsychoTicks`, makes the
     stand-in's psycho read 0 while the puppet's look resolves. `MagicianPlaybackRoleNameMixin` leaves Wathe's psycho
     name scramble off a puppet label. The replay records no psycho, so the Magician's own psycho never shows either.
+  - Size (forum T-0013, 2026-10-25): at spawn the server-side `MagicianPuppetBodySize` copies SparkTraits' Childish
+    `generic.scale` modifier onto the puppet. It takes the copied player's live modifier when they are playing and
+    alive; otherwise it reads `SparkTraitsApi.getRoundEndTraitIds`, so a dead player's puppet keeps their size (D7).
+    It fails closed, and vanilla attribute sync then scales the model, shadow and hitbox for every viewer. The
+    big-head Childish model is not reproduced: SparkTraits draws it only for players.
   - Decoys (D2): the Prophet's Death Sense, the Kidnapper's drag and the NoellesRoles Vulture's eat
     (`mixin/vulture/NoellesVultureDecoyBodyMixin` through `compat/NoellesVultureDecoyGuard`) ignore decoy bodies and
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
