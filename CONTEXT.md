@@ -433,8 +433,11 @@ Current build baseline:
   - Size (forum T-0013, 2026-10-25): at spawn the server-side `MagicianPuppetBodySize` copies SparkTraits' Childish
     `generic.scale` modifier onto the puppet. It takes the copied player's live modifier when they are playing and
     alive; otherwise it reads `SparkTraitsApi.getRoundEndTraitIds`, so a dead player's puppet keeps their size (D7).
-    It fails closed, and vanilla attribute sync then scales the model, shadow and hitbox for every viewer. The
-    big-head Childish model is not reproduced: SparkTraits draws it only for players.
+    It fails closed, and vanilla attribute sync then scales the model, shadow and hitbox for every viewer.
+    `MagicianPlaybackEntityRenderer` scales its ground offset by the puppet's scale. SparkTraits (branch
+    `fix/magician-puppet-traits-look`) draws the big-head Childish model and its fill scale for any non-player with a
+    `PlayerEntityModel` and that modifier, so the puppet matches; older SparkTraits draws a small adult model. Its
+    Depression grey psycho skin also needs Wathe psycho ticks, so the psycho mask hides it on puppets too.
   - Decoys (D2): the Prophet's Death Sense, the Kidnapper's drag and the NoellesRoles Vulture's eat
     (`mixin/vulture/NoellesVultureDecoyBodyMixin` through `compat/NoellesVultureDecoyGuard`) ignore decoy bodies and
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
