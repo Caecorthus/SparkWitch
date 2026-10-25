@@ -2182,6 +2182,9 @@ read or written. The Grand Witch has no secondary-key (key N) handler; her inven
 the Ceremonial Sword rows only.
 A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so an ex-Hunter whose role changed
 gets no trap back (the trap itself stays armed until it expires or the round ends).
+A reclaimed poisoned trap returns as a stack carrying its poison and poisoner (custom data `Poisoned` + `Poisoner`,
+`HunterTrapItem.poison`), and the next placement restores both, so its poison kill, credit and poisoner/placer rewards
+are as if it had never moved (T-0011, 2026-10-25). An unpoisoned trap still returns as a plain stack.
 A Hunter shotgun shot that reaches the wall takes `HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE` (7000 in SparkStrength's
 unit, 10000 = 100%, so 70%; owner, 2026-10-21) from the SparkStrength junction box (`sparkstrength:junction_box`) it
 lands on, so two shots open a full box. Nearest wins along one COLLIDER block ray (`DoubleBarrelShotgunItem.wallHit`,

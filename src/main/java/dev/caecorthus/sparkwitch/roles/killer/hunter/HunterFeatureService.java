@@ -106,6 +106,11 @@ public final class HunterFeatureService {
                 && role != null && HunterRules.ROLE_ID.equals(role.identifier())) {
             if (!world.isClient) {
                 ItemStack returnedTrap = new ItemStack(Registries.ITEM.get(HunterTrapItem.ID));
+                // A poisoned trap keeps its poison and poisoner through the reclaim (T-0011); an unpoisoned one
+                // stays a plain stack. 带毒捕兽夹回收后保留其毒与下毒者（T-0011）；无毒的仍为普通物品。
+                if (trap.isPoisoned()) {
+                    HunterTrapItem.poison(returnedTrap, trap.getPoisonerUuid());
+                }
                 if (!player.giveItemStack(returnedTrap)) {
                     player.dropItem(returnedTrap, false);
                 }

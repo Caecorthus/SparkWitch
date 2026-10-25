@@ -98,6 +98,15 @@ public final class HunterTrapEntity extends Entity {
         dataTracker.set(POISONED, true);
     }
 
+    /**
+     * Server-side poisoner credit, which the entity never syncs; null on a poisoned trap credits the placer.
+     * 服务端的下毒者归属，实体从不同步它；带毒捕兽夹上为 null 时记在放置者名下。
+     */
+    @Nullable
+    public UUID getPoisonerUuid() {
+        return poisonerUuid;
+    }
+
     public void setPoisoned(boolean poisoned) {
         dataTracker.set(POISONED, poisoned);
         if (!poisoned) {
