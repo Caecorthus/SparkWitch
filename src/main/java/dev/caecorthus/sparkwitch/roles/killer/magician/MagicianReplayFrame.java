@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.magician;
 
+import dev.caecorthus.sparkwitch.compat.SparkStrengthM67ReplayCompat;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.LivingEntity;
@@ -46,7 +47,16 @@ public record MagicianReplayFrame(
         e.setReplayUseState(usingItem, activeHand); e.setReplayItemUseTimeLeft(usingItem ? itemUseTimeLeft : 0);
     }
     public void applyInventoryTo(PlayerEntity p) {
-        PlayerInventory i = p.getInventory(); apply(mainStacks, i.main); apply(armorStacks, i.armor); apply(offHandStacks, i.offHand); i.selectedSlot = selectedSlot;
+        PlayerInventory i = p.getInventory();
+        // SparkStrength M67 seam: SparkStrength tracks a held M67 and its charge by the stack object, so a hand M67 this
+        // frame still shows unchanged keeps the proxy's object instead of a fresh copy; every other stack is copied.
+        // SparkStrength M67 接缝：SparkStrength 按堆叠对象追踪手中的 M67 及其蓄力，因此本帧仍显示未变化的手中 M67 保留代理原对象，
+        // 不换成新副本；其他堆叠照常复制。
+        ItemStack keptMain = keptM67(i.main, selectedSlot, mainStacks);
+        ItemStack keptOff = keptM67(i.offHand, 0, offHandStacks);
+        apply(mainStacks, i.main); apply(armorStacks, i.armor); apply(offHandStacks, i.offHand); i.selectedSlot = selectedSlot;
+        if (keptMain != null) i.main.set(selectedSlot, keptMain);
+        if (keptOff != null) i.offHand.set(0, keptOff);
         if (usingItem && activeHand != null && !p.getStackInHand(activeHand).isEmpty()) p.setCurrentHand(activeHand);
         else if (p.isUsingItem()) p.stopUsingItem();
         if (usingItem && p instanceof MagicianPlaybackFakePlayer fp) fp.setReplayItemUseTimeLeft(itemUseTimeLeft);
@@ -80,6 +90,12 @@ public record MagicianReplayFrame(
         if (name == null || name.isBlank()) return EntityPose.STANDING;
         try { return EntityPose.valueOf(name); }
         catch (IllegalArgumentException ignored) { return EntityPose.STANDING; }
+    }
+    /** The proxy's M67 at {@code index} when the frame shows an equal stack there, else null. / 帧中同位置为相同堆叠时返回代理的 M67，否则为 null。 */
+    private static @Nullable ItemStack keptM67(List<ItemStack> current, int index, List<ItemStack> recorded) {
+        if (index < 0 || index >= current.size() || index >= recorded.size()) return null;
+        ItemStack held = current.get(index);
+        return SparkStrengthM67ReplayCompat.isM67(held) && ItemStack.areEqual(held, recorded.get(index)) ? held : null;
     }
     private static List<ItemStack> copy(List<ItemStack> src) { List<ItemStack> out = new ArrayList<>(src.size()); for (ItemStack s:src) out.add(s.copy()); return List.copyOf(out); }
     private static ItemStack stack(List<ItemStack> src, int index) { return index >= 0 && index < src.size() ? src.get(index).copy() : ItemStack.EMPTY; }
