@@ -240,6 +240,11 @@ Current build baseline:
   `killer` path; moving it needs owner approval). Feather Blade marks, owner-private Perception state,
   bound ledger, and lifecycle cleanup. It has no shop of its own, like the Vigilante (the killer shop
   `BlackRavenShopService` is gone; the disguise shop seams M2-M4 stay).
+  - Task pay (owner, 2026-10-25): `BlackRavenEconomyService` pays +50 (`BlackRavenPoliceRules.TASK_MONEY_REWARD`) per
+    completed task, the Judge/Seeker/Control Expert amount, to an ACTIVE, playing, alive, survival raw Raven that is not
+    a restricted Wraith and not a SparkTraits Impostor (an unknown answer pays nothing), disguised or not. It lands in
+    the Raven's own wallet (see "Per-identity inventories and wallets") and its `CanSeeMoney` listener shows the
+    balance while undisguised. The coins have nothing to buy yet.
   - Police rules are in `BlackRavenPoliceRules`: gun parity, the starting revolver, and Feather Blade friendly
     fire. `BlackRavenLoadoutService.assignForRole` (the `RoleAssigned` route) also inserts a Wathe revolver, but
     only when none is held in the live inventory or on the cursor. At round start that runs before Wathe's
@@ -3192,6 +3197,10 @@ it is ever synced to another player.
     the stash overflow.
   - The live Wathe balance always belongs to the live identity. A disguise's first entry starts
     at 0.
+  - The Raven's own police task pay (`BlackRavenEconomyService`) goes to the live wallet while undisguised and,
+    while disguised, to the stashed Black Raven wallet (`BlackRavenDisguiseService.creditRavenWallet`), never to the
+    disguise wallet; a disguised Raven without a bound Raven stash is paid nothing. A disguise's own task income
+    (`BlackRavenDisguiseEconomy`, same as the real role) is paid separately into the disguise wallet and stacks.
   - Killer income earned while disguised goes to the stashed Black Raven wallet, not the
     disguise wallet. The routed sources are:
     - Wathe passive income (both the cap check and the credit) in
@@ -3247,7 +3256,8 @@ owner-only sync. `client/blackraven/` adds no client mixin and registers these l
   - clears Orthopedist observer data when leaving the Orthopedist identity.
 - **Money visibility.** The `CanSeeMoney` phase `sparkwitch:black_raven_disguise_money` is ordered
   before `Event.DEFAULT_PHASE`. It answers only for the confirmed, disguised local Raven on the
-  client world.
+  client world. The undisguised Raven is answered in the default phase by `BlackRavenEconomyService` (ALLOW for a
+  playing, alive raw Raven; null while disguised).
 - **Killer-teammate highlight.** `BlackRavenDisguiseInstinctClientHooks` restates Wathe 1.5.6's
   killer-teammate highlight at `PRIORITY_DEFAULT + 50`. That sits above the disguise role's
   `GetInstinctHighlight.EVENT` results (NoellesRoles and SparkTraits event listeners) and below explicit
