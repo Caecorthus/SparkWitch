@@ -528,6 +528,30 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
         [
+                // Magician puppets never wear the copied player's live psycho (forum T-0016): no psycho scramble on a
+                // puppet label, no psycho read for its stand-in while its look resolves. / 魔术师皮套从不带上被复制
+                // 玩家的实时疯魔（论坛 T-0016）：皮套名牌无疯魔乱码，解析其外观时替身的疯魔读数为 0。
+                configName: "MagicianPlaybackRoleNameMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianPlaybackRoleNameMixin.class",
+                handler: "sparkwitch\$noPsychoScrambleOnPuppet",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Ldev/doctor4t/wathe/cca/PlayerPsychoComponent;getPsychoTicks()I",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "MagicianPuppetPsychoMaskMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianPuppetPsychoMaskMixin.class",
+                handler: "sparkwitch\$noPsychoOnPuppetLook",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyReturnValue;",
+                selector: "getPsychoTicks()I",
+                providerEntry: "dev/doctor4t/wathe/cca/PlayerPsychoComponent.class",
+                providerMethod: "getPsychoTicks",
+                providerDescriptor: "()I"
+        ],
+        [
                 // Magician D6: a puppet's instinct colour is its copied player's. / 魔术师 D6：皮套的本能颜色即被复制玩家的颜色。
                 configName: "MagicianPlaybackInstinctMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/MagicianPlaybackInstinctMixin.class",

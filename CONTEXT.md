@@ -425,6 +425,19 @@ Current build baseline:
     `SparkWitchClient.releaseClosedWorldPlayers`, which also clears Wathe's never-cleared `WatheClient.particleMap` on
     the client thread (2026-10-22). The Blind never sees puppets. Client aim (`MagicianPuppetAim`) wraps Wathe's revolver, derringer, knife and crosshair
     target methods and returns a puppet only when it is strictly nearer than the original result.
+  - Psycho is not mirrored (forum T-0016, 2026-10-25): a puppet never shows the copied player's live Wathe psycho
+    (any psycho type, the Pig God chase included). `client/magician/MagicianPuppetPsychoMask`, through the
+    client-only `client/mixin/MagicianPuppetPsychoMaskMixin` on `PlayerPsychoComponent#getPsychoTicks`, makes the
+    stand-in's psycho read 0 while the puppet's look resolves. `MagicianPlaybackRoleNameMixin` leaves Wathe's psycho
+    name scramble off a puppet label. The replay records no psycho, so the Magician's own psycho never shows either.
+  - Size (forum T-0013, 2026-10-25): at spawn the server-side `MagicianPuppetBodySize` copies SparkTraits' Childish
+    `generic.scale` modifier onto the puppet. It takes the copied player's live modifier when they are playing and
+    alive; otherwise it reads `SparkTraitsApi.getRoundEndTraitIds`, so a dead player's puppet keeps their size (D7).
+    It fails closed, and vanilla attribute sync then scales the model, shadow and hitbox for every viewer.
+    `MagicianPlaybackEntityRenderer` scales its ground offset by the puppet's scale. SparkTraits (branch
+    `fix/magician-puppet-traits-look`) draws the big-head Childish model and its fill scale for any non-player with a
+    `PlayerEntityModel` and that modifier, so the puppet matches; older SparkTraits draws a small adult model. Its
+    Depression grey psycho skin also needs Wathe psycho ticks, so the psycho mask hides it on puppets too.
   - Decoys (D2): the Prophet's Death Sense, the Kidnapper's drag and the NoellesRoles Vulture's eat
     (`mixin/vulture/NoellesVultureDecoyBodyMixin` through `compat/NoellesVultureDecoyGuard`) ignore decoy bodies and
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
