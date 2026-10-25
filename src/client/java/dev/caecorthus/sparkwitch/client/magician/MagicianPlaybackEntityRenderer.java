@@ -57,7 +57,9 @@ public final class MagicianPlaybackEntityRenderer extends LivingEntityRenderer<M
         this.model = appearance.model() == SkinTextures.Model.SLIM ? slimModel : classicModel;
         setModelPose(entity);
         matrices.push();
-        matrices.translate(0.0F, PLAYBACK_GROUND_OFFSET, 0.0F);
+        // The offset shrinks with the puppet's scale (SparkTraits Childish, T-0013), so a small puppet's head top
+        // matches the copied player's. / 偏移随皮套体型缩放（SparkTraits 幼稚，T-0013），使小体型皮套头顶与被复制玩家一致。
+        matrices.translate(0.0F, PLAYBACK_GROUND_OFFSET * entity.getScale(), 0.0F);
         matrices.scale(PLAYBACK_VISUAL_SCALE, PLAYBACK_VISUAL_SCALE, PLAYBACK_VISUAL_SCALE);
         this.renderingEntity = entity;
         this.renderingAppearance = appearance;

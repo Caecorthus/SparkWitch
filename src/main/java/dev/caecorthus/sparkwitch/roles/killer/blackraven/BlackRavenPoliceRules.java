@@ -15,8 +15,34 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class BlackRavenPoliceRules {
     public static final Identifier VIGILANTE_ID = Identifier.of("wathe", "vigilante");
+    /**
+     * Coins per completed task (owner, 2026-10-25), the Judge/Seeker/Control Expert amount; paid into the Black Raven's
+     * own wallet, disguised or not. / 每完成一个任务的金币（所有者 2026-10-25），与法官/搜寻者/控场专家相同；无论是否伪装，
+     * 都存入黑羽鸦自己的钱包。
+     */
+    public static final int TASK_MONEY_REWARD = 50;
 
     private BlackRavenPoliceRules() {
+    }
+
+    /**
+     * Running round, playing and alive, RAW role Black Raven, survival, not a restricted Wraith (Seeker eligibility).
+     * 对局进行中、参与且存活、原始职业为黑羽鸦、生存模式、不是受限冤魂（与搜寻者相同）。
+     */
+    public static boolean earnsTaskMoney(boolean active, boolean playingAndAlive, @Nullable Role rawRole,
+                                         boolean spectator, boolean creative, boolean wraithRestricted) {
+        return active && playingAndAlive && BlackRavenRules.isBlackRaven(rawRole)
+                && !spectator && !creative && !wraithRestricted;
+    }
+
+    /**
+     * Pays only on an exact FALSE Impostor answer: an absent SparkTraits reads FALSE, an unknown answer (null) never
+     * pays (Judge semantics; SparkTraits pays an Impostor's task income itself).
+     * 仅在内鬼答案确切为 FALSE 时发放：未安装 SparkTraits 视为 FALSE，未知（null）从不发放（与法官相同；内鬼的任务收入由
+     * SparkTraits 自行支付）。
+     */
+    public static boolean receivesTaskMoney(@Nullable Boolean impostor) {
+        return Boolean.FALSE.equals(impostor);
     }
 
     /**

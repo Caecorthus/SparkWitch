@@ -74,7 +74,8 @@ public final class MagicianPlaybackManager {
         Active old=ACTIVE.remove(owner.getUuid()); if (old != null) old.entity.discard();
         MagicianReplayFrame first=recording.frames().getFirst();
         MagicianPlaybackEntity entity=new MagicianPlaybackEntity(SparkWitchEntities.magicianPlayback(), owner.getServerWorld());
-        entity.setIdentity(owner.getUuid(), c.selectedTarget(), c.selectedName()); first.applyTo(entity);
+        entity.setIdentity(owner.getUuid(), c.selectedTarget(), c.selectedName());
+        MagicianPuppetBodySize.copyOnto(entity, owner.getServerWorld(), c.selectedTarget()); first.applyTo(entity);
         MagicianPlaybackFakePlayer proxy=new MagicianPlaybackFakePlayer(owner.getServerWorld(), new GameProfile(owner.getUuid(), "[MagicianReplay]"), owner.getUuid(), c.selectedTarget(), c.selectedName()); first.applyToProxy(proxy);
         if (!owner.getServerWorld().spawnEntity(entity)) return;
         ACTIVE.put(owner.getUuid(), new Active(owner,c,entity,proxy,recording.frames(),recording.actions())); c.beginPlaying(recording.frames().size());

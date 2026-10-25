@@ -240,6 +240,11 @@ Current build baseline:
   `killer` path; moving it needs owner approval). Feather Blade marks, owner-private Perception state,
   bound ledger, and lifecycle cleanup. It has no shop of its own, like the Vigilante (the killer shop
   `BlackRavenShopService` is gone; the disguise shop seams M2-M4 stay).
+  - Task pay (owner, 2026-10-25): `BlackRavenEconomyService` pays +50 (`BlackRavenPoliceRules.TASK_MONEY_REWARD`) per
+    completed task, the Judge/Seeker/Control Expert amount, to an ACTIVE, playing, alive, survival raw Raven that is not
+    a restricted Wraith and not a SparkTraits Impostor (an unknown answer pays nothing), disguised or not. It lands in
+    the Raven's own wallet (see "Per-identity inventories and wallets") and its `CanSeeMoney` listener shows the
+    balance while undisguised. The coins have nothing to buy yet.
   - Police rules are in `BlackRavenPoliceRules`: gun parity, the starting revolver, and Feather Blade friendly
     fire. `BlackRavenLoadoutService.assignForRole` (the `RoleAssigned` route) also inserts a Wathe revolver, but
     only when none is held in the live inventory or on the cursor. At round start that runs before Wathe's
@@ -373,8 +378,10 @@ Current build baseline:
     (`MiniWitherBurstService`, no vanilla explosion, so no knockback) gives non-killers Slowness II for 2 s. "Killer"
     is the SparkFactionAPI effective faction (the Impostor trait counts) plus the NoellesRoles Undercover. A
     Conscience owner fires at anyone and her bursts give Speed I. The Gohei's left-click (`fire_crimson_skull`) spends
-    75 mana (she is a mana role from round start: 1 per second, natural cap 250) for a crimson skull that kills the
-    first player it hits through a normal non-forced `killPlayer` with her as the killer
+    75 mana (she is a mana role from round start: 1 per second, natural cap 250) for a crimson skull aimed at the
+    player under her crosshair, picked from the lag-compensated `PlayerHitboxHistory.hitVolumes` and aimed at their
+    current box (`MiniWitherRules.crimsonAimOnTarget`, fix 2026-10-25: a current-box pick missed moving targets), that
+    kills the first player it hits through a normal non-forced `killPlayer` with her as the killer
     (`sparkwitch:crimson_wither_skull`, a gunshot for the Prophet), then a 15 s Gohei item cooldown. Both payloads are
     on the Control Expert stun, Seeker session, Riftwalker session and Fear deny-lists; the crimson skull breaks Seeker
     devices (`SeekerBreakSource.CRIMSON_SKULL`) and ends Magician puppets.
@@ -398,6 +405,13 @@ Current build baseline:
     `MagicianPlaybackActionExecutor` replays through a `FakePlayer` proxy that carries the owner's UUID; weapon
     targets are picked like Wathe's own (`ProjectileUtil.getCollision`, cut by blocks) and never the owner; a
     recorded left-click replays as a punch, a knife stab needs the knife in hand, a bat kill needs `BAT_HIT`.
+    A recorded SparkStrength M67 throw replays through SparkStrength's own session
+    (`compat/SparkStrengthM67ReplayCompat`, forum T-0015, 2026-10-25): the replayed use first lets SparkStrength note
+    the proxy's M67 and drops its equip lock, an unchanged hand M67 keeps its stack object across frames
+    (`MagicianReplayFrame`), and the recorded release runs inside SparkStrength's release scope. SparkStrength's round,
+    charge and cooldown rules still decide (an under-charged release never throws); the grenade's thrower is the
+    Magician, so its blast kills are theirs, as with a replayed Wathe grenade; the puppet throws its recorded copy, never
+    the Magician's own stack.
     `MagicianPlaybackEntity` (`sparkwitch:magician_playback`, `disableSaving`, `disableSummon`) tracks only the
     copied player's UUID and name; its owner UUID is a server-only field, never synced.
   - Ending a puppet: `MagicianPuppetHits` has one entry per damage source on the Seeker-device pattern
@@ -425,6 +439,19 @@ Current build baseline:
     `SparkWitchClient.releaseClosedWorldPlayers`, which also clears Wathe's never-cleared `WatheClient.particleMap` on
     the client thread (2026-10-22). The Blind never sees puppets. Client aim (`MagicianPuppetAim`) wraps Wathe's revolver, derringer, knife and crosshair
     target methods and returns a puppet only when it is strictly nearer than the original result.
+  - Psycho is not mirrored (forum T-0016, 2026-10-25): a puppet never shows the copied player's live Wathe psycho
+    (any psycho type, the Pig God chase included). `client/magician/MagicianPuppetPsychoMask`, through the
+    client-only `client/mixin/MagicianPuppetPsychoMaskMixin` on `PlayerPsychoComponent#getPsychoTicks`, makes the
+    stand-in's psycho read 0 while the puppet's look resolves. `MagicianPlaybackRoleNameMixin` leaves Wathe's psycho
+    name scramble off a puppet label. The replay records no psycho, so the Magician's own psycho never shows either.
+  - Size (forum T-0013, 2026-10-25): at spawn the server-side `MagicianPuppetBodySize` copies SparkTraits' Childish
+    `generic.scale` modifier onto the puppet. It takes the copied player's live modifier when they are playing and
+    alive; otherwise it reads `SparkTraitsApi.getRoundEndTraitIds`, so a dead player's puppet keeps their size (D7).
+    It fails closed, and vanilla attribute sync then scales the model, shadow and hitbox for every viewer.
+    `MagicianPlaybackEntityRenderer` scales its ground offset by the puppet's scale. SparkTraits (branch
+    `fix/magician-puppet-traits-look`) draws the big-head Childish model and its fill scale for any non-player with a
+    `PlayerEntityModel` and that modifier, so the puppet matches; older SparkTraits draws a small adult model. Its
+    Depression grey psycho skin also needs Wathe psycho ticks, so the psycho mask hides it on puppets too.
   - Decoys (D2): the Prophet's Death Sense, the Kidnapper's drag and the NoellesRoles Vulture's eat
     (`mixin/vulture/NoellesVultureDecoyBodyMixin` through `compat/NoellesVultureDecoyGuard`) ignore decoy bodies and
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
@@ -2224,6 +2251,9 @@ read or written. The Grand Witch has no secondary-key (key N) handler; her inven
 the Ceremonial Sword rows only.
 A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so an ex-Hunter whose role changed
 gets no trap back (the trap itself stays armed until it expires or the round ends).
+A reclaimed poisoned trap returns as a stack carrying its poison and poisoner (custom data `Poisoned` + `Poisoner`,
+`HunterTrapItem.poison`), and the next placement restores both, so its poison kill, credit and poisoner/placer rewards
+are as if it had never moved (T-0011, 2026-10-25). An unpoisoned trap still returns as a plain stack.
 A Hunter shotgun shot that reaches the wall takes `HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE` (7000 in SparkStrength's
 unit, 10000 = 100%, so 70%; owner, 2026-10-21) from the SparkStrength junction box (`sparkstrength:junction_box`) it
 lands on, so two shots open a full box. Nearest wins along one COLLIDER block ray (`DoubleBarrelShotgunItem.wallHit`,
@@ -3211,6 +3241,10 @@ it is ever synced to another player.
     the stash overflow.
   - The live Wathe balance always belongs to the live identity. A disguise's first entry starts
     at 0.
+  - The Raven's own police task pay (`BlackRavenEconomyService`) goes to the live wallet while undisguised and,
+    while disguised, to the stashed Black Raven wallet (`BlackRavenDisguiseService.creditRavenWallet`), never to the
+    disguise wallet; a disguised Raven without a bound Raven stash is paid nothing. A disguise's own task income
+    (`BlackRavenDisguiseEconomy`, same as the real role) is paid separately into the disguise wallet and stacks.
   - Killer income earned while disguised goes to the stashed Black Raven wallet, not the
     disguise wallet. The routed sources are:
     - Wathe passive income (both the cap check and the credit) in
@@ -3266,7 +3300,8 @@ owner-only sync. `client/blackraven/` adds no client mixin and registers these l
   - clears Orthopedist observer data when leaving the Orthopedist identity.
 - **Money visibility.** The `CanSeeMoney` phase `sparkwitch:black_raven_disguise_money` is ordered
   before `Event.DEFAULT_PHASE`. It answers only for the confirmed, disguised local Raven on the
-  client world.
+  client world. The undisguised Raven is answered in the default phase by `BlackRavenEconomyService` (ALLOW for a
+  playing, alive raw Raven; null while disguised).
 - **Killer-teammate highlight.** `BlackRavenDisguiseInstinctClientHooks` restates Wathe 1.5.6's
   killer-teammate highlight at `PRIORITY_DEFAULT + 50`. That sits above the disguise role's
   `GetInstinctHighlight.EVENT` results (NoellesRoles and SparkTraits event listeners) and below explicit
