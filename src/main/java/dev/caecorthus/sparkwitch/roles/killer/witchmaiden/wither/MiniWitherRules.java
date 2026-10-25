@@ -9,6 +9,8 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
+
 /**
  * Stable ids, tuning and pure rules of the Witch Maiden's second skill, the Mini Wither (owner 2026-10-20): unlocked by
  * two completed tasks together with the Wither Gohei, toggled on key 2, auto-firing wither skulls every 5 s, and firing
@@ -35,6 +37,8 @@ public final class MiniWitherRules {
     public static final int CRIMSON_LIFETIME_TICKS = (int) Math.ceil(CRIMSON_RANGE / CRIMSON_SPEED);
     public static final int CRIMSON_COOLDOWN_TICKS = GameConstants.getInTicks(0, 15);
     public static final int CRIMSON_MANA_COST = 75;
+    /** Growth of the rewound volumes the crosshair is tested against (hitscan parity). / 准星检测所用回溯体积的扩大量。 */
+    public static final double CRIMSON_AIM_MARGIN = 0.1;
     /** Half the burst cube's edge: the 2x2x2 burst reaches 1 block from its centre. / 2x2x2 爆炸立方体的半边长。 */
     public static final double BURST_HALF_SIZE = 1.0;
     public static final int BURST_EFFECT_TICKS = GameConstants.getInTicks(0, 2);
@@ -127,6 +131,30 @@ public final class MiniWitherRules {
      */
     public static boolean crimsonPassesThrough(boolean self) {
         return self;
+    }
+
+    /**
+     * Where the crimson skull aims at the player the crosshair picked {@code entryDistance} blocks along
+     * {@code eye → end}: the entry point on the player's current box when the ray crosses it (a still target, as
+     * before), else the current box's vertical axis at the height the ray met the rewound volume, clamped to the box,
+     * so a moving target is aimed at where it stands now.
+     * 准星沿 {@code eye → end} 在 {@code entryDistance} 格处选中玩家后赤首的瞄准点：射线穿过该玩家当前箱体时取其入射点
+     * （静止目标，与此前相同）；否则取当前箱体的竖直中轴上、射线遇到回溯体积处的高度（限制在箱体内），使移动中的目标按其
+     * 当前位置被瞄准。
+     */
+    public static Vec3d crimsonAimOnTarget(Vec3d eye, Vec3d end, double entryDistance, Box current) {
+        if (current.contains(eye)) {
+            return eye;
+        }
+        Optional<Vec3d> entry = current.raycast(eye, end);
+        if (entry.isPresent()) {
+            return entry.get();
+        }
+        Vec3d direction = end.subtract(eye);
+        double met = direction.lengthSquared() > 0.0
+                ? eye.y + direction.normalize().y * Math.max(0.0, entryDistance) : eye.y;
+        Vec3d center = current.getCenter();
+        return new Vec3d(center.x, MathHelper.clamp(met, current.minY, current.maxY), center.z);
     }
 
     /** Whether the 2x2x2 burst cube touches {@code box}. / 2x2x2 爆炸立方体是否触及该箱体。 */

@@ -373,8 +373,10 @@ Current build baseline:
     (`MiniWitherBurstService`, no vanilla explosion, so no knockback) gives non-killers Slowness II for 2 s. "Killer"
     is the SparkFactionAPI effective faction (the Impostor trait counts) plus the NoellesRoles Undercover. A
     Conscience owner fires at anyone and her bursts give Speed I. The Gohei's left-click (`fire_crimson_skull`) spends
-    75 mana (she is a mana role from round start: 1 per second, natural cap 250) for a crimson skull that kills the
-    first player it hits through a normal non-forced `killPlayer` with her as the killer
+    75 mana (she is a mana role from round start: 1 per second, natural cap 250) for a crimson skull aimed at the
+    player under her crosshair, picked from the lag-compensated `PlayerHitboxHistory.hitVolumes` and aimed at their
+    current box (`MiniWitherRules.crimsonAimOnTarget`, fix 2026-10-25: a current-box pick missed moving targets), that
+    kills the first player it hits through a normal non-forced `killPlayer` with her as the killer
     (`sparkwitch:crimson_wither_skull`, a gunshot for the Prophet), then a 15 s Gohei item cooldown. Both payloads are
     on the Control Expert stun, Seeker session, Riftwalker session and Fear deny-lists; the crimson skull breaks Seeker
     devices (`SeekerBreakSource.CRIMSON_SKULL`) and ends Magician puppets.
