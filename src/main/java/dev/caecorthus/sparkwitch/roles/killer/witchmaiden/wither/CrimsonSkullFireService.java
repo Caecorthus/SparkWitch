@@ -8,20 +8,17 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.net.FireCrimsonSkullC2SPayload;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastGeometry;
 import dev.caecorthus.sparkwitch.util.OffMatchUse;
+import dev.caecorthus.sparkwitch.util.hitscan.HitscanLagRules;
+import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
-import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
@@ -84,8 +81,13 @@ public final class CrimsonSkullFireService {
 
     /**
      * What the crosshair rests on within 48 blocks: the first living player, else the first block, else the end of the
-     * range.
-     * 准星在 48 格内落在的位置：第一名存活玩家，否则第一个方块，否则射程末端。
+     * range. The click aimed at the owner's delayed client view, so players are tested against their lag-compensated
+     * volumes ({@link PlayerHitboxHistory#hitVolumes}); the skull then aims at that player's current box
+     * ({@link MiniWitherRules#crimsonAimOnTarget}), or a moving target would be missed and the skull would burst on
+     * the wall behind it (fix 2026-10-25).
+     * 准星在 48 格内落在的位置：第一名存活玩家，否则第一个方块，否则射程末端。点击时主人瞄准的是客户端的延迟画面，因此按玩家的
+     * 延迟补偿体积（{@link PlayerHitboxHistory#hitVolumes}）检测；头颅随后瞄准该玩家的当前箱体
+     * （{@link MiniWitherRules#crimsonAimOnTarget}），否则移动中的目标会被打空，头颅在其身后的墙上炸开（2026-10-25 修复）。
      */
     static Vec3d aimPoint(ServerPlayerEntity player, float yaw, float pitch) {
         Vec3d eye = player.getEyePos();
@@ -95,14 +97,25 @@ public final class CrimsonSkullFireService {
         if (block.getType() != HitResult.Type.MISS) {
             end = block.getPos();
         }
-        Box search = player.getBoundingBox().stretch(end.subtract(eye)).expand(1.0);
-        EntityHitResult entity = ProjectileUtil.raycast(player, eye, end, search,
-                candidate -> isAimable(player, candidate), eye.squaredDistanceTo(end));
-        return entity != null ? entity.getPos() : end;
+        ServerPlayerEntity target = null;
+        double nearest = Double.POSITIVE_INFINITY;
+        for (ServerPlayerEntity candidate : player.getServerWorld().getPlayers()) {
+            if (!isAimable(player, candidate)) {
+                continue;
+            }
+            double entry = HitscanLagRules.entryDistanceSquared(eye, end,
+                    PlayerHitboxHistory.hitVolumes(player, candidate, MiniWitherRules.CRIMSON_AIM_MARGIN));
+            if (entry >= 0.0 && entry < nearest) {
+                target = candidate;
+                nearest = entry;
+            }
+        }
+        return target == null ? end
+                : MiniWitherRules.crimsonAimOnTarget(eye, end, Math.sqrt(nearest), target.getBoundingBox());
     }
 
-    private static boolean isAimable(ServerPlayerEntity owner, Entity candidate) {
-        return candidate != owner && candidate instanceof PlayerEntity player
-                && GameFunctions.isPlayerAliveAndSurvival(player) && GameFunctions.isPlayerPlayingAndAlive(player);
+    private static boolean isAimable(ServerPlayerEntity owner, ServerPlayerEntity candidate) {
+        return candidate != owner && GameFunctions.isPlayerAliveAndSurvival(candidate)
+                && GameFunctions.isPlayerPlayingAndAlive(candidate);
     }
 }
