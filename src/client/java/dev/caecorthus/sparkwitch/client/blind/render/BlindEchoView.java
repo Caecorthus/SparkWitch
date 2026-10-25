@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.client.blind.BlindPerceptionClientState;
 import dev.caecorthus.sparkwitch.client.blind.BlindView;
 import dev.caecorthus.sparkwitch.client.mixin.PostEffectProcessorAccessor;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
+import dev.caecorthus.sparkwitch.client.render.entity.SecondaryWorldPass;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.block.BlockState;
@@ -42,8 +43,10 @@ import java.util.List;
  * The Blind's screen (C4, C13, D1): a PRIVATE post processor (Seeker pattern, never
  * {@code GameRenderer.postProcessor}).
  * <ol>
+ *   <li>{@link #beginFrame} at {@code WorldRenderEvents.START}: picks this frame's perceived bodies and records the
+ *   world pass's own draw of them (entity render protocol, {@link BlindSilhouettePass#beginFrame}).</li>
  *   <li>{@link #captureWorld} at {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}: records this frame's projection, view
- *   rotation and camera, and re-renders perceived bodies into {@code blind_sil} ({@link BlindSilhouettePass}).</li>
+ *   rotation and camera, and draws the perceived bodies into {@code blind_sil} ({@link BlindSilhouettePass}).</li>
  *   <li>{@link #captureDepth} at the head of the world's {@code ParticleManager#renderParticles} (both graphics
  *   branches): copies the world depth into {@code blind_depth} after translucent terrain (glass, Wathe hull and privacy
  *   panels) and the full entity flush, but before particles, so glass reads as a wall and no particle enters the
@@ -58,8 +61,10 @@ import java.util.List;
  * pipeline is rebuilt after a growing backoff ({@link BlindEchoMode#retryDelaySeconds}). Released on every inactive
  * frame; {@link #reset()} on disconnect and resource reload.
  * 盲人的画面（C4、C13、D1）：私有后处理器（搜寻者模式，从不使用 {@code GameRenderer.postProcessor}）。
- * 1）{@link #captureWorld} 于 {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}：记录本帧投影、视角旋转与相机位置，
- * 并把被感知身体重新渲染到 {@code blind_sil}（{@link BlindSilhouettePass}）。2）{@link #captureDepth} 位于世界渲染中
+ * 0）{@link #beginFrame} 于 {@code WorldRenderEvents.START}：选出本帧被感知的身体，并录制世界 pass 自己对它们的绘制
+ * （实体渲染协议，{@link BlindSilhouettePass#beginFrame}）。1）{@link #captureWorld} 于
+ * {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}：记录本帧投影、视角旋转与相机位置，并把被感知身体画到 {@code blind_sil}
+ * （{@link BlindSilhouettePass}）。2）{@link #captureDepth} 位于世界渲染中
  * {@code ParticleManager#renderParticles} 的开头（两种画质分支都有）：在半透明地形（玻璃、Wathe 船体与隐私玻璃板）
  * 和实体全部刷新之后、粒子之前，把世界深度拷贝到 {@code blind_depth}，使玻璃被当作墙，且粒子不会进入线稿。
  * Fabulous! 下该深度位于半透明目标中，它起初就是主深度的拷贝。3）{@link #renderFrame} 紧接在 {@code GameRenderer#render} 的
@@ -101,26 +106,61 @@ public final class BlindEchoView {
     private static final BlindEchoUniforms UNIFORMS = new BlindEchoUniforms();
     private static final List<AbstractClientPlayerEntity> BODIES = new ArrayList<>();
     private static final List<BlindEchoUniforms.Body> BODY_CENTRES = new ArrayList<>();
+    /** {@link #beginFrame} picked this frame's {@link #BODIES}. / {@link #beginFrame} 已选出本帧的 {@link #BODIES}。 */
+    private static boolean bodiesSelected;
 
     private BlindEchoView() {
     }
 
-    /** {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}; render thread. / 渲染线程。 */
+    /**
+     * {@code WorldRenderEvents.START}; render thread. Picks this frame's perceived bodies before the world pass draws
+     * them and starts recording that draw, so their silhouettes reuse its geometry. A secondary world pass (scope
+     * picture-in-picture) is ignored.
+     * {@code WorldRenderEvents.START}；渲染线程。在世界 pass 绘制之前选出本帧被感知的身体并开始录制这次绘制，使轮廓复用其几何。
+     * 忽略第二次世界渲染（瞄准镜画中画）。
+     */
+    public static void beginFrame(WorldRenderContext context) {
+        if (SecondaryWorldPass.isActive()) {
+            return;
+        }
+        bodiesSelected = false;
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (!BlindView.isActive(client) || !seesOwnView(client) || BlindShaderPackCheck.isShaderPackInUse()) {
+            BlindSilhouettePass.discardFrame();
+            return;
+        }
+        selectBodies(client, context.camera().getPos(), Util.getMeasuringTimeNano());
+        BlindSilhouettePass.beginFrame(BODIES);
+        bodiesSelected = true;
+    }
+
+    /**
+     * {@code WorldRenderEvents.BEFORE_DEBUG_RENDER}; render thread. A secondary world pass is ignored.
+     * 渲染线程。忽略第二次世界渲染。
+     */
     public static void captureWorld(WorldRenderContext context) {
+        if (SecondaryWorldPass.isActive()) {
+            return;
+        }
+        boolean selected = bodiesSelected;
+        bodiesSelected = false;
         captured = false;
         depthPending = false;
         MinecraftClient client = MinecraftClient.getInstance();
         if (!BlindView.isActive(client) || !seesOwnView(client) || BlindShaderPackCheck.isShaderPackInUse()) {
+            BlindSilhouettePass.discardFrame();
             return;
         }
         PostEffectProcessor active = ensureProcessor(client);
         if (active == null) {
+            BlindSilhouettePass.discardFrame();
             return;
         }
         Framebuffer main = client.getFramebuffer();
         Framebuffer depth = active.getSecondaryTarget(DEPTH_TARGET);
         Framebuffer silhouette = active.getSecondaryTarget(SILHOUETTE_TARGET);
         if (depth == null || silhouette == null) {
+            BlindSilhouettePass.discardFrame();
             fail(new IllegalStateException("blind_echo.json lacks its capture targets"));
             return;
         }
@@ -132,12 +172,16 @@ public final class BlindEchoView {
             cameraY = camera.y;
             cameraZ = camera.z;
             float tickDelta = context.tickCounter().getTickDelta(true);
-            collectBodies(client, tickDelta, Util.getMeasuringTimeNano());
+            if (!selected) {
+                selectBodies(client, camera, Util.getMeasuringTimeNano());
+            }
+            measureBodies(client, tickDelta);
             BlindSilhouettePass.render(client, silhouette, main, BODIES, PROJECTION, VIEW_ROTATION, camera, tickDelta);
             // The frame counts as captured only once captureDepth copies the world depth later in this frame.
             // 只有本帧稍后 captureDepth 拷贝了世界深度，本帧才算捕获成功。
             depthPending = true;
         } catch (RuntimeException exception) {
+            BlindSilhouettePass.discardFrame();
             main.beginWrite(false);
             fail(exception);
         }
@@ -254,6 +298,8 @@ public final class BlindEchoView {
         processorTarget = null;
         processorWidth = -1;
         processorHeight = -1;
+        BlindSilhouettePass.discardFrame();
+        bodiesSelected = false;
         BODIES.clear();
         BODY_CENTRES.clear();
     }
@@ -323,9 +369,9 @@ public final class BlindEchoView {
         RenderSystem.clear(GlConst.GL_COLOR_BUFFER_BIT, MinecraftClient.IS_SYSTEM_MAC);
     }
 
-    private static void collectBodies(MinecraftClient client, float tickDelta, long now) {
+    /** This frame's perceived bodies, nearest first, at most 16. / 本帧被感知的身体，由近到远，至多 16 个。 */
+    private static void selectBodies(MinecraftClient client, Vec3d camera, long now) {
         BODIES.clear();
-        BODY_CENTRES.clear();
         ClientWorld world = client.world;
         if (world == null) {
             return;
@@ -337,8 +383,17 @@ public final class BlindEchoView {
                 BODIES.add(other);
             }
         }
-        BlindEchoUniforms.keepNearest(BODIES, body -> body.squaredDistanceTo(cameraX, cameraY, cameraZ),
-                BlindEchoUniforms.MAX_PLAYERS);
+        BlindEchoUniforms.keepNearest(BODIES, body -> body.squaredDistanceTo(camera), BlindEchoUniforms.MAX_PLAYERS);
+    }
+
+    /** Centres and lines of sight of {@link #BODIES}. / {@link #BODIES} 的中心与视线。 */
+    private static void measureBodies(MinecraftClient client, float tickDelta) {
+        BODY_CENTRES.clear();
+        ClientWorld world = client.world;
+        if (world == null) {
+            BODIES.clear();
+            return;
+        }
         Vec3d camera = new Vec3d(cameraX, cameraY, cameraZ);
         for (AbstractClientPlayerEntity body : BODIES) {
             double x = MathHelper.lerp(tickDelta, body.lastRenderX, body.getX());

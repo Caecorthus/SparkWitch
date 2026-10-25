@@ -1325,7 +1325,10 @@ def requiredArchitectureSources = [
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityRuntime.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/piggod/PigGodChaseRuntime.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRules.java",
-        "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchWorldRuntime.java"
+        "src/main/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchWorldRuntime.java",
+        "src/client/java/dev/caecorthus/sparkwitch/client/render/entity/EntityRedraw.java",
+        "src/client/java/dev/caecorthus/sparkwitch/client/render/entity/EntityModelCapture.java",
+        "src/client/java/dev/caecorthus/sparkwitch/client/render/entity/SecondaryWorldPass.java"
 ]
 // Contract tests for the API and rule classes above. src/test/ is gitignored and local-only, so they are required
 // only in a checkout that has the local test tree; a fresh clone skips them.
@@ -1337,6 +1340,42 @@ def localArchitectureTests = [
         "src/test/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityWindowRulesTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRulesTest.java"
 ]
+// Entity render protocol (EMF/ETF and animation-pack compatibility, 2026-10-25; CONTEXT.md "Entity render protocol"):
+// an entity is drawn outside the world's own entity loop only through EntityRedraw, and a second world render runs
+// only inside SecondaryWorldPass.run. Returns the violations in one source file, comments stripped.
+// 实体渲染协议（EMF/ETF 与动画包兼容，2026-10-25；见 CONTEXT.md「Entity render protocol」）：在世界自身的实体循环之外
+// 只能经由 EntityRedraw 绘制实体，第二次世界渲染只能在 SecondaryWorldPass.run 内执行。返回单个源文件（已去掉注释）的违规项。
+def entityRenderRedrawOwner = "src/client/java/dev/caecorthus/sparkwitch/client/render/entity/EntityRedraw.java"
+def entityRenderProtocolViolations = { String source, boolean redrawOwner ->
+    def code = source.replaceAll(/(?s)\/\*.*?\*\//, " ").replaceAll(/(?m)\/\/.*$/, " ")
+    def found = []
+    if (!redrawOwner) {
+        if (code =~ /getRenderer\([^;]*?\)\s*\.render\(/) {
+            found << "EntityRenderer#render on a getRenderer(...) result"
+        }
+        if (code =~ /getEntityRenderDispatcher\(\)\s*\.render\(/) {
+            found << "EntityRenderDispatcher#render"
+        }
+        def names = [] as Set
+        (code =~ /(\w+)\s*=\s*[^;=]*?\bgetRenderer\(/).each { names << it[1] }
+        (code =~ /(\w+)\s*=\s*[^;=]*?\bgetEntityRenderDispatcher\(\)/).each { names << it[1] }
+        (code =~ /\bEntityRenderDispatcher\s+(\w+)/).each { names << it[1] }
+        (code =~ /\bEntityRenderer\s*(?:<[^;{]*?>)?\s+(\w+)/).each { names << it[1] }
+        names.each { name ->
+            if (code =~ /\b${java.util.regex.Pattern.quote(name)}\s*\.render\(/) {
+                found << "${name}.render(...) on an entity renderer or dispatcher"
+            }
+        }
+    }
+    def worldRender = code =~ /\bworldRenderer\s*\.render\(/
+    while (worldRender.find()) {
+        def before = code.substring(Math.max(0, worldRender.start() - 160), worldRender.start())
+        if (!before.contains("SecondaryWorldPass.run(")) {
+            found << "WorldRenderer#render outside SecondaryWorldPass.run"
+        }
+    }
+    return found
+}
 
 tasks.register("verifyArchitecture") {
     dependsOn verifyBlackRavenActingRoleSeams
@@ -1374,6 +1413,22 @@ tasks.register("verifyArchitecture") {
                                 "Forbidden SparkTraits internal target '${target}' in ${sourceFile}"
                         )
                     }
+                }
+            }
+        }
+
+        // Entity render protocol: see entityRenderProtocolViolations above.
+        // 实体渲染协议：见上方 entityRenderProtocolViolations。
+        [fileTree("src/main/java"), fileTree("src/client/java")].each { sourceTree ->
+            sourceTree.matching { include "**/*.java" }.files.each { sourceFile ->
+                def relative = project.relativePath(sourceFile).replace(File.separatorChar, '/' as char)
+                def violations = entityRenderProtocolViolations(sourceFile.getText("UTF-8"),
+                        relative == entityRenderRedrawOwner)
+                if (!violations.isEmpty()) {
+                    throw new GradleException("Entity render protocol violation in ${relative}: "
+                            + violations.join("; ") + ". Draw entities again only through "
+                            + "client/render/entity/EntityRedraw (or reuse EntityModelCapture geometry), and run a "
+                            + "second world render inside SecondaryWorldPass.run; see CONTEXT.md.")
                 }
             }
         }
