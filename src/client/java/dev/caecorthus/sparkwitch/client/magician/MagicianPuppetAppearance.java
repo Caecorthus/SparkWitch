@@ -17,14 +17,17 @@ import org.jetbrains.annotations.Nullable;
  * player, resolved through that player's own entry points instead of copies of their logic. The skin descriptor comes
  * from {@code AbstractClientPlayerEntity#getSkinTextures} on the stand-in (Black Raven perception, Wraith projection,
  * Curser confusion and other mods' HEAD rules), the texture from the stand-in's {@code PlayerEntityRenderer#getTexture}
- * (the terminal Wraith and Black Raven Steve, Wathe psycho, NoellesRoles Jester Moment and Morphling, SparkTraits
- * Depression), and the cape follows {@code WraithCapeFeatureRendererMixin}. A renderer swap that is not a
- * {@code PlayerEntityRenderer} (SparkTraits Pig) or a failing third-party hook falls back to the raw skin, as before D6.
+ * (the terminal Wraith and Black Raven Steve, NoellesRoles Jester Moment and Morphling, SparkTraits Depression), and the
+ * cape follows {@code WraithCapeFeatureRendererMixin}. The copied player's live Wathe psycho is the exception: the whole
+ * lookup runs inside {@link MagicianPuppetPsychoMask}, so a puppet never wears it (forum T-0016). A renderer swap that is
+ * not a {@code PlayerEntityRenderer} (SparkTraits Pig) or a failing third-party hook falls back to the raw skin, as
+ * before D6.
  * 本观察者看到的皮套外观（所有者决定 D6）：本客户端对被复制玩家应用的全部皮肤规则，均通过该玩家自己的入口解析，而非复制逻辑。
  * 皮肤描述取自替身的 {@code AbstractClientPlayerEntity#getSkinTextures}（黑羽鸦感知、冤魂投影、咒术师混乱及其他模组的 HEAD
- * 规则），贴图取自替身的 {@code PlayerEntityRenderer#getTexture}（终端冤魂与黑羽鸦 Steve、Wathe 疯魔、NoellesRoles
- * 小丑时刻与变形者、SparkTraits 抑郁），披风遵循 {@code WraithCapeFeatureRendererMixin}。渲染器被替换为非
- * {@code PlayerEntityRenderer}（SparkTraits 猪）或第三方钩子出错时，回退为 D6 之前的原始皮肤。
+ * 规则），贴图取自替身的 {@code PlayerEntityRenderer#getTexture}（终端冤魂与黑羽鸦 Steve、NoellesRoles 小丑时刻与变形者、
+ * SparkTraits 抑郁），披风遵循 {@code WraithCapeFeatureRendererMixin}。被复制玩家的实时 Wathe 疯魔是例外：整个查询在
+ * {@link MagicianPuppetPsychoMask} 内执行，皮套从不穿上它（论坛 T-0016）。渲染器被替换为非 {@code PlayerEntityRenderer}
+ * （SparkTraits 猪）或第三方钩子出错时，回退为 D6 之前的原始皮肤。
  */
 public record MagicianPuppetAppearance(Identifier texture, SkinTextures.Model model, @Nullable Identifier cape) {
     public static MagicianPuppetAppearance resolve(MagicianPlaybackEntity puppet) {
@@ -33,8 +36,11 @@ public record MagicianPuppetAppearance(Identifier texture, SkinTextures.Model mo
             SkinTextures fallback = DefaultSkinHelper.getSkinTextures(puppet.getUuid());
             return new MagicianPuppetAppearance(fallback.texture(), fallback.model(), null);
         }
-        SkinTextures skin = standIn.getSkinTextures();
-        return new MagicianPuppetAppearance(playerTexture(standIn, skin), skin.model(), cape(standIn, skin));
+        // Never the copied player's live Wathe psycho (forum T-0016). / 从不带上被复制玩家的实时 Wathe 疯魔（论坛 T-0016）。
+        return MagicianPuppetPsychoMask.withoutPsycho(standIn, () -> {
+            SkinTextures skin = standIn.getSkinTextures();
+            return new MagicianPuppetAppearance(playerTexture(standIn, skin), skin.model(), cape(standIn, skin));
+        });
     }
 
     private static Identifier playerTexture(AbstractClientPlayerEntity standIn, SkinTextures skin) {
