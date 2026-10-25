@@ -451,6 +451,42 @@ Current build baseline:
   launcher flush through it right before their fire packet, and the Death Ray needs none (its server never reads the
   held item). The AXMC's former copies (`UsecInputRules.skipsMacControlClickRemap`, `UsecSelectedSlotSyncInvoker`) were
   folded into these seams on 2026-10-11 (owner-approved, no behaviour change).
+- `client/render/entity/` (2026-10-25): the entity render protocol, which keeps SparkWitch effects working with
+  Entity Model Features (EMF), Entity Texture Features (ETF), animation resource packs (Fresh Animations and its
+  Player Extension) and other model mods. EMF 3.3 animates a model while it renders, from the per-entity state ETF
+  mounts at `EntityRenderDispatcher#render` HEAD, and its `frame_time` is the client's global last-frame duration. So a
+  model drawn outside that entry gets no state or the last-mounted entity's, and an entity drawn twice in one frame
+  advances its animation twice. Three tools, all render-thread only:
+  - `EntityRedraw.draw(dispatcher, entity, tickDelta, camera, provider, light)` is the only way to draw an entity again
+    outside the world's entity loop. It goes through `EntityRenderDispatcher#render`, placed like
+    `WorldRenderer#renderEntity`; `client/mixin/render/EntityRenderProtocolDispatcherMixin` skips shadow, fire and
+    hitbox while `isActive()`. Feature, label and look gates stay with the caller. EntityCulling cancels
+    `WorldRenderer#renderEntity`, never the dispatcher, so it does not stop a redraw.
+  - `EntityModelCapture` lends the exact body geometry the world pass drew. A `Recorder` opened at
+    `WorldRenderEvents.START` receives, through `EntityModelCaptureMixin` (the single `EntityModel#render` call in
+    `LivingEntityRenderer#render`, priority 2100, outside the Blind gate's 2000), the body model's vertices in
+    camera-relative world space for each entity it wants, keyed on the outermost `EntityRenderDispatcher#render`
+    entity (so a replaced body drawn under it counts); they go through vanilla `VertexConsumers.union`. Feature layers,
+    shadows and labels are never recorded, nor anything inside a redraw or a secondary pass. An entity the world pass
+    did not draw (frustum, Sodium or EntityCulling culling) is not recorded; redraw it. Never redraw an entity the
+    world pass drew in the same frame.
+  - `SecondaryWorldPass.run` wraps every second `WorldRenderer#render` in a frame (today the scope picture-in-picture).
+    While it runs, `SecondaryWorldPassFrameClockMixin` makes `RenderTickCounter.Dynamic#getLastFrameDuration` report
+    `FROZEN_FRAME_TICKS` (2e-8 ticks, never 0, because packs divide by `frame_time`), so frame-time animation evaluates
+    the frame's state again instead of playing at double speed. Inside a vanilla world render that value only feeds the
+    entity-outline and Fabulous! post processors' time. Recorders and the Blind's world hooks ignore such a pass.
+  `verifyArchitecture` scans `src/main/java` and `src/client/java` (comments stripped) and fails on an
+  `EntityRenderer#render` or `EntityRenderDispatcher#render` call outside `EntityRedraw`, and on a
+  `worldRenderer.render(` call that is not inside `SecondaryWorldPass.run(`. Rules for new roles and features:
+  - Pose through vanilla inputs (`getArmPose`/`ArmPose`, sneaking, riding, `setAngles` arguments), never by writing
+    `ModelPart` angles after `setAngles`: EMF animates after `setAngles` and overwrites every part a pack animates,
+    while Fresh Animations reads the vanilla rotation and blends to it for an arm "action" (crossbow hold, bow).
+  - Hide a model part with `visible = false`, never `hidden`: an EMF part with `attach: false` has no cubes of its own.
+    ETF's villager nose and coat copy only the pose and ignore both.
+  - Change a player's skin at `AbstractClientPlayerEntity#getSkinTextures`. A swap only at
+    `PlayerEntityRenderer#getTexture` can run after ETF's RETURN hook, which then draws the real skin's features.
+  - A consumer or provider handed to a renderer in a secondary draw must go dead after it (PatPat 1.3 keeps them, see
+    the Blind).
 - `roles/neutral/fiend/`: Fiend rules (`FiendRules`), side-safe predicates (`FiendParticipation`), the
   `sparkwitch:fiend_moment` world component and its pure state, dormant immunity and hit reactions, cooldown
   aura, bomb-pass ledger, swallow block, last-one-standing exclusion (`FiendWinExclusion`), the Fiend Moment
@@ -1116,7 +1152,9 @@ Current build baseline:
     tube rim and applies the same lens look (its "shared lens look" GLSL blocks are pinned identical to
     `sparkwitch_scope_lens.fsh`). Released 2 s after leaving PiP, on disconnect/login/stop and resource reload; failures
     back off like the lens filter. Fabric `WorldRenderEvents` fire again inside the lens pass;
-    `ScopeClient.isRenderingLens()` lets a listener opt out. Measured on an Apple M2 Pro at 2560×1440 (WP4b spike,
+    `ScopeClient.isRenderingLens()` lets a listener opt out. The lens pass runs inside
+    `client/render/entity/SecondaryWorldPass.run`, so EMF animation packs evaluate the frame again instead of advancing
+    twice (entity render protocol). Measured on an Apple M2 Pro at 2560×1440 (WP4b spike,
     2026-10-07), Full-Screen Zoom 4× vs PiP 4×: vanilla 201/191 → 131/130 FPS, Sodium 0.6.13 264/263 → 213/215 FPS,
     Iris 1.8.8 without a pack 310/317 → 231/235 FPS; with a pack it falls back to Full-Screen Zoom. Lens Resolution
     (2026-10-08, same machine, the spike's river view where the old 512² lens gave 98/97 FPS, two 10 s windows each,
@@ -2021,8 +2059,9 @@ dead) or swallowed; the camera is not part of it, so a SparkTraits Last Stand or
 death keeps the view and every gate on (black) and only a real Wathe death ends it. Every gate
 asks it per call; inside one world render pass the answer is memoized by `client/render/LocalViewerSnapshot`. `client/blind/render/BlindEchoView` is a private
 `PostEffectProcessor` (`sparkwitch:shaders/post/blind_echo.json`, programs
-`sparkwitch_blind_silmask`, `sparkwitch_blind_blur` and `sparkwitch_blind_echo`): the frame (projection, view
-rotation, camera, perceived bodies) is recorded at `WorldRenderEvents.BEFORE_DEBUG_RENDER`, and the world depth is
+`sparkwitch_blind_silmask`, `sparkwitch_blind_blur` and `sparkwitch_blind_echo`): the perceived bodies are picked at
+`WorldRenderEvents.START`, the frame (projection, view rotation, camera) is recorded at
+`WorldRenderEvents.BEFORE_DEBUG_RENDER`, and the world depth is
 copied later, at the head of `ParticleManager#renderParticles` (`BlindDepthCaptureMixin`, method head rather than the
 call site so a redirect of that call cannot break it): vanilla calls it once per graphics branch after the full entity
 flush and translucent terrain, so glass and Wathe's translucent hull and privacy panels are walls and particles never
@@ -2046,11 +2085,14 @@ off, defers every entity draw to its `translucent` profiler step, which made bod
 entity flush runs with main bound before the Fabulous! translucent seed and before the Fast/Fancy particle draw, so
 Iris-batched corpses, items and the door depth reach the copy in every graphics mode (checked against Iris 1.8.8,
 2026-10-19). Under Fabulous! only the few draws on the item-entity target (translucent-block items such as stained
-glass, ice or slime, and line layers) stay out of the copy. At the early capture,
-`BlindSilhouettePass` also re-renders the
-perceived players into a private silhouette target (their features and labels stripped by
-`BlindEchoSilhouetteMixin`; its per-pass white vertex consumer drops every write once the pass ends,
-because PatPat 1.3 keeps the provider and draws through it at the next frame's `AFTER_ENTITIES`), and `client/mixin/blind/BlindGameRendererMixin` runs the pass after
+glass, ice or slime, and line layers) stay out of the copy. `BlindSilhouettePass` draws the perceived players into a
+private silhouette target on the entity render protocol (`client/render/entity/`, 2026-10-25): `BlindEchoView.beginFrame`
+picks the bodies at `WorldRenderEvents.START` and opens an `EntityModelCapture` recorder, so a body the world pass draws
+keeps exactly that geometry (re-rendering it under EMF and Fresh Animations made the silhouette twitch and double up
+against the line art, playtest 2026-10-25); at the early capture only a body the world pass culled is drawn again,
+through `EntityRedraw`, its features and labels stripped by `BlindEchoSilhouetteMixin`. The frame's white vertex
+consumer drops every write once the frame ends, because PatPat 1.3 keeps the provider and draws through it at the next
+frame's `AFTER_ENTITIES`. `client/mixin/blind/BlindGameRendererMixin` runs the pass after
 `GameRenderer#render`'s `Framebuffer#beginWrite(Z)` with `shift = AFTER`, so it draws over the
 Seeker and Black Raven filters injected at the same call, and the HUD is drawn on top. Outlines other mods draw at
 `WorldRenderEvents.LAST` are consumed by the echo pass; add-ons register them through `api/client/BlindViewApi`

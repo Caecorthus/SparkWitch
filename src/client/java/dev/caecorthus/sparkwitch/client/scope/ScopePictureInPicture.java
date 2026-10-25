@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.mixin.PostEffectProcessorAccessor;
 import dev.caecorthus.sparkwitch.client.mixin.scope.ScopeGameRendererInvoker;
 import dev.caecorthus.sparkwitch.client.mixin.scope.ScopeMinecraftClientAccessor;
+import dev.caecorthus.sparkwitch.client.render.entity.SecondaryWorldPass;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.client.MinecraftClient;
@@ -343,8 +344,11 @@ public final class ScopePictureInPicture {
         try {
             lens.beginWrite(true);
             RenderSystem.setProjectionMatrix(lensProjection, VertexSorter.BY_DISTANCE);
-            client.worldRenderer.render(tickCounter, false, camera, client.gameRenderer,
-                    client.gameRenderer.getLightmapTextureManager(), viewRotation, lensProjection);
+            // A secondary world pass (entity render protocol): frame-time animation (EMF animation packs) evaluates
+            // this frame's state again instead of advancing twice. / 第二次世界渲染（实体渲染协议）：按帧时长推进的
+            // 动画（EMF 动画包）只是再次求值本帧状态，不会推进两次。
+            SecondaryWorldPass.run(() -> client.worldRenderer.render(tickCounter, false, camera, client.gameRenderer,
+                    client.gameRenderer.getLightmapTextureManager(), viewRotation, lensProjection));
             // The pass's glowing/instinct outlines sit 1:1 in the corner of the window-sized outline target, so the
             // window-sized composite vanilla uses for the main view lands exactly on the lens target.
             // 本次渲染的发光/本能描边 1:1 位于窗口尺寸描边目标的一角，因此原版用于主画面的窗口尺寸合成恰好落在镜内目标上。
