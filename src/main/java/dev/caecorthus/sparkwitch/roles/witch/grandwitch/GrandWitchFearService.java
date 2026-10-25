@@ -106,6 +106,9 @@ public final class GrandWitchFearService {
             // SparkStrength tablet sabotage: the killer team's skill, like the Saboteur's own. Breaker repair is not a
             // role skill and stays allowed. / SparkStrength 平板破坏：杀手阵营的技能，与破坏者自身技能同类；修电闸不是职业技能，放行。
             Identifier.of("sparkstrength", "trigger_sabotage"),
+            // SparkStrength Detective remote interrogation (magnifier roster), a role skill; the folder edits stay
+            // allowed. / SparkStrength 侦探远程审问（放大镜名单），属于职业技能；文件夹编辑放行。
+            Identifier.of("sparkstrength", "interrogate_detective_suspect"),
             // Legacy Criminologist skill (older SparkStrength builds); an unregistered id never matches.
             // 旧版犯罪学家技能（较旧的 SparkStrength 构建）；未注册时该 id 永远不会命中。
             Identifier.of("sparkstrength", "select_criminologist_target")

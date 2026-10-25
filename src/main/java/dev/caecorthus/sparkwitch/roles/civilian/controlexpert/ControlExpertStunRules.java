@@ -148,6 +148,10 @@ public final class ControlExpertStunRules {
             // SparkStrength 破坏系统：在平板触发破坏、完成电闸维修；对应的取消包（cancel_sabotage_channel、cancel_breaker_repair）放行。
             Identifier.of("sparkstrength", "trigger_sabotage"),
             Identifier.of("sparkstrength", "complete_breaker_repair"),
+            // SparkStrength Detective remote interrogation from the magnifier roster (cooldown skill); opening the roster
+            // is a vanilla item use and the case-folder edits stay allowed.
+            // SparkStrength 侦探在放大镜名单中远程审问（有冷却的技能）；打开名单是原版物品使用，文件夹编辑放行。
+            Identifier.of("sparkstrength", "interrogate_detective_suspect"),
             // Legacy Criminologist skill: still registered by SparkStrength main-line and pre-b17ab75 1.0.7 builds,
             // which "suggests: *" allows to load; an unregistered id never matches.
             // 旧版犯罪学家技能：SparkStrength main 线及 b17ab75 之前的 1.0.7 仍注册此包，"suggests: *" 允许其同时加载；
