@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.magician;
 
+import dev.caecorthus.sparkwitch.compat.SparkStrengthM67ReplayCompat;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
@@ -105,6 +106,9 @@ public final class MagicianPlaybackActionExecutor {
             if (result.isAccepted()) { visible.playReplaySwing(hand); return; }
         }
         if (stack.isOf(WatheItems.REVOLVER)) return;
+        // SparkStrength M67 seam: the proxy's M67 is not refused as freshly equipped (no-op for other items).
+        // SparkStrength M67 接缝：代理的 M67 不会因“刚装备”被拒（其他物品不受影响）。
+        SparkStrengthM67ReplayCompat.beforeReplayedUse(proxy, stack);
         ActionResult result = proxy.interactionManager.interactItem(proxy, proxy.getWorld(), stack, hand);
         if (result.isAccepted() && !proxy.isUsingItem()) visible.playReplaySwing(hand);
     }
@@ -113,7 +117,9 @@ public final class MagicianPlaybackActionExecutor {
         // so a released knife that Wathe or SparkTraits refused never replays as a kill.
         // 松开刀本身从不刺击：只有在 Wathe 已接受刺击锚点录制的 KNIFE_STAB 才会，因此被 Wathe 或 SparkTraits 拒绝的松手
         // 不会回放成击杀。
-        proxy.stopUsingItem(); visible.setReplayUseState(false, null); visible.setReplayItemUseTimeLeft(0);
+        // A held SparkStrength M67 releases inside SparkStrength's release scope, as the recorded packet did; anything
+        // else stops as before. / 手持的 SparkStrength M67 与录制的数据包一样在其松手作用域内松手；其他物品照旧停止使用。
+        SparkStrengthM67ReplayCompat.releaseUse(proxy); visible.setReplayUseState(false, null); visible.setReplayItemUseTimeLeft(0);
     }
     private static void shoot(ServerPlayerEntity owner, MagicianPlaybackFakePlayer proxy, MagicianPlaybackEntity visible) {
         ItemStack stack = proxy.getMainHandStack();

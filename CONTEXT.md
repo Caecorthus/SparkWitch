@@ -398,6 +398,13 @@ Current build baseline:
     `MagicianPlaybackActionExecutor` replays through a `FakePlayer` proxy that carries the owner's UUID; weapon
     targets are picked like Wathe's own (`ProjectileUtil.getCollision`, cut by blocks) and never the owner; a
     recorded left-click replays as a punch, a knife stab needs the knife in hand, a bat kill needs `BAT_HIT`.
+    A recorded SparkStrength M67 throw replays through SparkStrength's own session
+    (`compat/SparkStrengthM67ReplayCompat`, forum T-0015, 2026-10-25): the replayed use first lets SparkStrength note
+    the proxy's M67 and drops its equip lock, an unchanged hand M67 keeps its stack object across frames
+    (`MagicianReplayFrame`), and the recorded release runs inside SparkStrength's release scope. SparkStrength's round,
+    charge and cooldown rules still decide (an under-charged release never throws); the grenade's thrower is the
+    Magician, so its blast kills are theirs, as with a replayed Wathe grenade; the puppet throws its recorded copy, never
+    the Magician's own stack.
     `MagicianPlaybackEntity` (`sparkwitch:magician_playback`, `disableSaving`, `disableSummon`) tracks only the
     copied player's UUID and name; its owner UUID is a server-only field, never synced.
   - Ending a puppet: `MagicianPuppetHits` has one entry per damage source on the Seeker-device pattern

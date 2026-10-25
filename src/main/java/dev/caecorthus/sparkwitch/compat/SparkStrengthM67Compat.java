@@ -29,8 +29,9 @@ import java.util.UUID;
  * detonation during STOPPING was thrown during STOPPING; that grenade, like a non-participant's, is presentation-only.
  * The blast then breaks devices in a 3.5-block sphere with line of sight to the grenade centre, attributed to the
  * thrower; the same blast ends Magician puppets in the M67's own kill radius ({@code MagicianPuppetHits.onM67Blast}).
- * Only this class may name SparkStrength implementation classes, and only those two getters (pinned by a
- * source test); any lookup failure disables the seam for the session, never throwing into entity unloading.
+ * Apart from the Magician replay seam ({@link SparkStrengthM67ReplayCompat}, the M67 use service), only this class may
+ * name SparkStrength M67 implementation classes, and only those two getters (pinned by a source test); any lookup
+ * failure disables the seam for the session, never throwing into entity unloading.
  * 外部接缝：SparkStrength M67 爆炸经 {@code ServerEntityEvents.ENTITY_UNLOAD} 与两个带缓存、失败即关闭的反射 public getter
  * 打坏搜寻者设备；未安装 SparkStrength 时不生效。SparkStrength 没有爆炸事件，因此以启发式识别引爆：
  * {@code sparkstrength:m67} 实体以 DISCARDED 原因卸载、{@code getDetonateAt()} 已设置且已到时、
@@ -38,8 +39,9 @@ import java.util.UUID;
  * （{@link #breaksDevices}，即 {@code OffMatchUse} 规则）：Wathe 状态恰为 ACTIVE 且投掷者持有对局职业。SparkStrength
  * 在阶段切换时会移除所有飞行中的 M67，因此 STOPPING 期间的引爆必定是 STOPPING 期间投出的；它与非参与者的手雷一样
  * 仅作表现。随后打坏以手雷中心为球心、半径 3.5、有视线的设备，归属于投掷者；同一次爆炸按 M67 自身的击杀半径结束魔术师皮套
- * （{@code MagicianPuppetHits.onM67Blast}）。只有本类可以提及 SparkStrength 实现类且
- * 只限这两个 getter（由源码测试固定）；任何查找失败都会在本次会话中关闭该接缝，绝不向实体卸载流程抛出异常。
+ * （{@code MagicianPuppetHits.onM67Blast}）。除魔术师回放接缝（{@link SparkStrengthM67ReplayCompat}，M67 使用服务）外，
+ * 只有本类可以提及 SparkStrength M67 实现类且只限这两个 getter（由源码测试固定）；任何查找失败都会在本次会话中关闭该接缝，
+ * 绝不向实体卸载流程抛出异常。
  */
 public final class SparkStrengthM67Compat {
     public static final String MOD_ID = "sparkstrength";
