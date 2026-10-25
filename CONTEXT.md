@@ -400,6 +400,13 @@ Current build baseline:
     `MagicianPlaybackActionExecutor` replays through a `FakePlayer` proxy that carries the owner's UUID; weapon
     targets are picked like Wathe's own (`ProjectileUtil.getCollision`, cut by blocks) and never the owner; a
     recorded left-click replays as a punch, a knife stab needs the knife in hand, a bat kill needs `BAT_HIT`.
+    A recorded SparkStrength M67 throw replays through SparkStrength's own session
+    (`compat/SparkStrengthM67ReplayCompat`, forum T-0015, 2026-10-25): the replayed use first lets SparkStrength note
+    the proxy's M67 and drops its equip lock, an unchanged hand M67 keeps its stack object across frames
+    (`MagicianReplayFrame`), and the recorded release runs inside SparkStrength's release scope. SparkStrength's round,
+    charge and cooldown rules still decide (an under-charged release never throws); the grenade's thrower is the
+    Magician, so its blast kills are theirs, as with a replayed Wathe grenade; the puppet throws its recorded copy, never
+    the Magician's own stack.
     `MagicianPlaybackEntity` (`sparkwitch:magician_playback`, `disableSaving`, `disableSummon`) tracks only the
     copied player's UUID and name; its owner UUID is a server-only field, never synced.
   - Ending a puppet: `MagicianPuppetHits` has one entry per damage source on the Seeker-device pattern
@@ -427,6 +434,19 @@ Current build baseline:
     `SparkWitchClient.releaseClosedWorldPlayers`, which also clears Wathe's never-cleared `WatheClient.particleMap` on
     the client thread (2026-10-22). The Blind never sees puppets. Client aim (`MagicianPuppetAim`) wraps Wathe's revolver, derringer, knife and crosshair
     target methods and returns a puppet only when it is strictly nearer than the original result.
+  - Psycho is not mirrored (forum T-0016, 2026-10-25): a puppet never shows the copied player's live Wathe psycho
+    (any psycho type, the Pig God chase included). `client/magician/MagicianPuppetPsychoMask`, through the
+    client-only `client/mixin/MagicianPuppetPsychoMaskMixin` on `PlayerPsychoComponent#getPsychoTicks`, makes the
+    stand-in's psycho read 0 while the puppet's look resolves. `MagicianPlaybackRoleNameMixin` leaves Wathe's psycho
+    name scramble off a puppet label. The replay records no psycho, so the Magician's own psycho never shows either.
+  - Size (forum T-0013, 2026-10-25): at spawn the server-side `MagicianPuppetBodySize` copies SparkTraits' Childish
+    `generic.scale` modifier onto the puppet. It takes the copied player's live modifier when they are playing and
+    alive; otherwise it reads `SparkTraitsApi.getRoundEndTraitIds`, so a dead player's puppet keeps their size (D7).
+    It fails closed, and vanilla attribute sync then scales the model, shadow and hitbox for every viewer.
+    `MagicianPlaybackEntityRenderer` scales its ground offset by the puppet's scale. SparkTraits (branch
+    `fix/magician-puppet-traits-look`) draws the big-head Childish model and its fill scale for any non-player with a
+    `PlayerEntityModel` and that modifier, so the puppet matches; older SparkTraits draws a small adult model. Its
+    Depression grey psycho skin also needs Wathe psycho ticks, so the psycho mask hides it on puppets too.
   - Decoys (D2): the Prophet's Death Sense, the Kidnapper's drag and the NoellesRoles Vulture's eat
     (`mixin/vulture/NoellesVultureDecoyBodyMixin` through `compat/NoellesVultureDecoyGuard`) ignore decoy bodies and
     tell that player; Wraith conversion never takes a decoy for the real body. Other body readers (Perfumer, Coroner,
@@ -2184,6 +2204,9 @@ read or written. The Grand Witch has no secondary-key (key N) handler; her inven
 the Ceremonial Sword rows only.
 A placed Hunter trap is reclaimed only by its owner while still the real Hunter, so an ex-Hunter whose role changed
 gets no trap back (the trap itself stays armed until it expires or the round ends).
+A reclaimed poisoned trap returns as a stack carrying its poison and poisoner (custom data `Poisoned` + `Poisoner`,
+`HunterTrapItem.poison`), and the next placement restores both, so its poison kill, credit and poisoner/placer rewards
+are as if it had never moved (T-0011, 2026-10-25). An unpoisoned trap still returns as a plain stack.
 A Hunter shotgun shot that reaches the wall takes `HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE` (7000 in SparkStrength's
 unit, 10000 = 100%, so 70%; owner, 2026-10-21) from the SparkStrength junction box (`sparkstrength:junction_box`) it
 lands on, so two shots open a full box. Nearest wins along one COLLIDER block ray (`DoubleBarrelShotgunItem.wallHit`,
