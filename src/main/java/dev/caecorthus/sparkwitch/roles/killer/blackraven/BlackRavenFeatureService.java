@@ -39,6 +39,7 @@ public final class BlackRavenFeatureService {
         registered = true;
         FeatherBladeMeleeService.register();
         BlackRavenDisguiseBootstrap.register();
+        BlackRavenEconomyService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (!(player instanceof ServerPlayerEntity serverPlayer)) {
                 return;
