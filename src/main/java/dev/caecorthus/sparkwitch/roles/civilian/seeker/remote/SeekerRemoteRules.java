@@ -115,6 +115,8 @@ public final class SeekerRemoteRules {
             // SparkStrength 破坏触发与电闸维修，与平板会议、投票同类。
             Identifier.of("sparkstrength", "trigger_sabotage"),
             Identifier.of("sparkstrength", "complete_breaker_repair"),
+            // SparkStrength Detective remote interrogation (magnifier roster). / SparkStrength 侦探远程审问（放大镜名单）。
+            Identifier.of("sparkstrength", "interrogate_detective_suspect"),
             Identifier.of("sparkstrength", "select_criminologist_target")));
 
     /** Grace before an unsupported or wet body ends the session (BODY_MOVED). / 本体离地或入水多久后结束会话。 */

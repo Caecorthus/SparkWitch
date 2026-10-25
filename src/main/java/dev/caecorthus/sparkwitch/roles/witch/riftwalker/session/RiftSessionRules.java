@@ -149,6 +149,8 @@ public final class RiftSessionRules {
             // SparkStrength 破坏触发与电闸维修，与平板会议、投票同类。
             Identifier.of("sparkstrength", "trigger_sabotage"),
             Identifier.of("sparkstrength", "complete_breaker_repair"),
+            // SparkStrength Detective remote interrogation (magnifier roster). / SparkStrength 侦探远程审问（放大镜名单）。
+            Identifier.of("sparkstrength", "interrogate_detective_suspect"),
             Identifier.of("sparkstrength", "select_criminologist_target")));
 
     /**
