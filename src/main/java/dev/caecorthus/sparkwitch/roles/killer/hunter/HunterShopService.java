@@ -55,5 +55,13 @@ public final class HunterShopService {
                 HunterRules.SHOTGUN_PRICE,
                 ShopEntry.Type.WEAPON
         ).stock(HunterRules.SHOTGUN_STOCK).build());
+        // Index 2: the slug sits right after the shell (and the shotgun before both, the add order at 0 reverses).
+        // 下标 2：独头弹紧挨霰弹之后（下标 0 依次前插使顺序反转，猎枪在最前）。
+        context.addEntry(2, new ShopEntry.Builder(
+                "double_barrel_slug",
+                new ItemStack(Registries.ITEM.get(DoubleBarrelSlugItem.ID)),
+                HunterRules.SLUG_PRICE,
+                ShopEntry.Type.WEAPON
+        ).build());
     }
 }

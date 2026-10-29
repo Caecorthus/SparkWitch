@@ -8,6 +8,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 
 import java.util.ArrayList;
@@ -30,18 +31,23 @@ public final class HunterShotgunAimClient {
 
     public static void beforeUsePacket(PlayerEntity shooter, Hand hand) {
         if (!(shooter instanceof ClientPlayerEntity player) || player != MinecraftClient.getInstance().player
-                || !(player.getStackInHand(hand).getItem() instanceof DoubleBarrelShotgunItem)
                 || !ClientPlayNetworking.canSend(DoubleBarrelAimC2SPacket.ID)) {
             return;
         }
-        DoubleBarrelShotgunItem.Aim aim = DoubleBarrelShotgunItem.aim(player);
+        ItemStack shotgun = player.getStackInHand(hand);
+        if (!(shotgun.getItem() instanceof DoubleBarrelShotgunItem)) {
+            return;
+        }
         List<HunterShotgunAim.Candidate> candidates = new ArrayList<>();
         for (AbstractClientPlayerEntity other : player.clientWorld.getPlayers()) {
             if (other != player) {
                 candidates.add(new HunterShotgunAim.Candidate(other.getId(), other.getBoundingBox()));
             }
         }
-        ClientPlayNetworking.send(new DoubleBarrelAimC2SPacket(
-                HunterShotgunAim.claimOrder(aim.eye(), aim.end(), candidates)));
+        List<List<Integer>> claims = new ArrayList<>(HunterShotgunAim.RAY_COUNT);
+        for (DoubleBarrelShotgunItem.Aim aim : DoubleBarrelShotgunItem.shotAims(player, shotgun)) {
+            claims.add(HunterShotgunAim.claimOrder(aim.eye(), aim.end(), candidates));
+        }
+        ClientPlayNetworking.send(new DoubleBarrelAimC2SPacket(claims));
     }
 }

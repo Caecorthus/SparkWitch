@@ -26,7 +26,7 @@ public final class HunterShotgunAimClaims {
     private HunterShotgunAimClaims() {
     }
 
-    private record Claim(int tick, List<Integer> targetIds) {
+    private record Claim(int tick, List<List<Integer>> targetRays) {
     }
 
     public static synchronized void register() {
@@ -44,17 +44,17 @@ public final class HunterShotgunAimClaims {
     }
 
     /** Receiver side: replaces this player's pending claim. / 接收器：替换该玩家的待处理声明。 */
-    public static void submit(ServerPlayerEntity player, List<Integer> targetIds) {
-        PENDING.put(player.getUuid(), new Claim(player.getServer().getTicks(), List.copyOf(targetIds)));
+    public static void submit(ServerPlayerEntity player, List<List<Integer>> targetRays) {
+        PENDING.put(player.getUuid(), new Claim(player.getServer().getTicks(), List.copyOf(targetRays)));
     }
 
     /**
-     * Removes this player's pending claim and returns its ids when still fresh, else null (no claim: the server pick).
-     * 移除该玩家的待处理声明，仍新鲜时返回其 id，否则返回 null（无声明：使用服务端选取）。
+     * Removes this player's pending claim and returns its per-ray ids when still fresh, else null (no claim: the server
+     * pick). / 移除该玩家的待处理声明，仍新鲜时返回其每条射线的 id，否则返回 null（无声明：使用服务端选取）。
      */
-    public static @Nullable List<Integer> take(ServerPlayerEntity player) {
+    public static @Nullable List<List<Integer>> take(ServerPlayerEntity player) {
         Claim claim = PENDING.remove(player.getUuid());
         return claim != null && HunterShotgunAim.isFresh(claim.tick(), player.getServer().getTicks())
-                ? claim.targetIds() : null;
+                ? claim.targetRays() : null;
     }
 }

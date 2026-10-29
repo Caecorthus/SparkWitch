@@ -147,10 +147,15 @@ public final class SeekerDeviceHits {
     }
 
     /**
-     * SparkWitch double-barrel shotgun (one-line Hunter hook, server branch): nearest-wins along the shooter's 8-block
-     * ray. A nearer breakable device breaks and the shot kills nobody (the Hunter's record then says {@code hit:false}).
-     * SparkWitch 双管猎枪（Hunter 服务端分支中的一行钩子）：沿射手 8 格射线执行最近者命中；更近且可打坏的设备被打坏，
-     * 这一枪不击杀任何人（Hunter 的记录随之为 {@code hit:false}）。
+     * SparkWitch double-barrel shotgun (one-line Hunter hook, server branch): nearest-wins along the shooter's look ray
+     * of {@code range} (the fired shell's range: 8 buckshot, 15 slug). A nearer breakable device breaks and the shot
+     * kills nobody (the Hunter's record then says {@code hit:false}). Frozen external seam: SparkStrength injects its
+     * Bomber drone and Partygoer steps at this method's HEAD by name and reads {@code range}, so the Hunter calls it
+     * exactly once per shot, for the centre ray, and this entry must keep a unique name and this signature.
+     * SparkWitch 双管猎枪（Hunter 服务端分支中的一行钩子）：沿射手视线、长 {@code range}（所射弹药的射程：霰弹 8、独头弹 15）
+     * 执行最近者命中；更近且可打坏的设备被打坏，这一枪不击杀任何人（Hunter 的记录随之为 {@code hit:false}）。冻结的外部接缝：
+     * SparkStrength 按方法名在其 HEAD 注入轰炸者无人机与派对客步骤并读取 {@code range}，因此 Hunter 每枪只为中心射线调用一次，
+     * 本入口必须保持唯一的方法名与此签名。
      */
     @Nullable
     public static <T extends PlayerEntity> T onShotgunFired(PlayerEntity shooter, @Nullable T target, double range) {
@@ -161,19 +166,36 @@ public final class SeekerDeviceHits {
     }
 
     /**
-     * Read-only query for a shotgun shot that hit no player: true iff {@link #onShotgunFired} with a {@code null}
-     * target and the same range would break a device (the same ray and {@link SeekerDamageRules#mayBreak} filter as
-     * {@code rayBlocks}). Breaks, marks and records nothing; call it before {@link #onShotgunFired}, whose break
-     * removes the device. False on the client. SparkStrength's Bomber drones, which absorb inside
-     * {@link #onShotgunFired} itself, are not seen here.
-     * 未命中玩家的猎枪射击的只读查询：仅当以 {@code null} 目标、相同射程调用 {@link #onShotgunFired} 会打坏设备时返回 true
-     * （与 {@code rayBlocks} 相同的射线与 {@link SeekerDamageRules#mayBreak} 过滤）。不打坏、不标记、不记录任何内容；
-     * 须在 {@link #onShotgunFired} 之前调用，因为其打坏会移除该设备。客户端恒为 false。SparkStrength 轰炸者无人机在
-     * {@link #onShotgunFired} 内部吸收，此处看不到。
+     * Read-only device step for one Hunter pellet ray ({@code start → end}): the breakable device {@code rayBlocks}
+     * would break on that segment for {@code target} (the same {@link SeekerDamageRules#mayBreak} filter), else null.
+     * Breaks, marks and records nothing, so the buckshot asks every ray before breaking anything and a device broken
+     * by one pellet still absorbs the others that reached it first. Null on the client. SparkStrength's Bomber drones,
+     * which absorb inside {@link #onShotgunFired} itself, are not seen here.
+     * 猎人单条弹丸射线（{@code start → end}）的只读设备步骤：{@code rayBlocks} 在该线段上针对 {@code target} 会打坏的
+     * 可打坏设备（相同的 {@link SeekerDamageRules#mayBreak} 过滤），否则为 null。不打坏、不标记、不记录任何内容，因此霰弹
+     * 先询问每条射线再打坏任何设备，被某颗弹丸打坏的设备仍会吸收其他先到达它的弹丸。客户端恒为 null。SparkStrength 轰炸者
+     * 无人机在 {@link #onShotgunFired} 内部吸收，此处看不到。
      */
-    public static boolean shotgunPathHasDevice(PlayerEntity shooter, double range) {
-        return shooter instanceof ServerPlayerEntity serverShooter && !shooter.getWorld().isClient()
-                && rayBlockingHit(serverShooter, null, range) != null;
+    @Nullable
+    public static SeekerDeviceEntity shotgunDeviceOnRay(PlayerEntity shooter, @Nullable PlayerEntity target,
+                                                        Vec3d start, Vec3d end) {
+        if (!(shooter instanceof ServerPlayerEntity serverShooter) || shooter.getWorld().isClient()
+                || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
+            return null;
+        }
+        SeekerDeviceRaycast.DeviceHit hit = SeekerDeviceRaycast.blockingHit(serverShooter, start, end, target,
+                breakableBy(serverShooter));
+        return hit == null ? null : hit.device();
+    }
+
+    /**
+     * Writing half of {@link #shotgunDeviceOnRay}: breaks a device it returned, as the shotgun hook does. A device
+     * already broken this shot is skipped by {@link SeekerDeviceService#breakDevice}.
+     * {@link #shotgunDeviceOnRay} 的写入部分：与猎枪钩子一样打坏其返回的设备。本枪已被打坏的设备由
+     * {@link SeekerDeviceService#breakDevice} 跳过。
+     */
+    public static void breakByShotgun(ServerPlayerEntity shooter, SeekerDeviceEntity device) {
+        SeekerDeviceService.breakDevice(device, SeekerBreakSource.SHOTGUN, shooter);
     }
 
     /**

@@ -424,7 +424,8 @@ Current build baseline:
     server-only `MagicianDecoyBodies` (D2) and pays the Magician 50 coins when anyone other than the Magician ended
     it, blasts included (D4).
   - Other weapons (D5) end a puppet through their own `MagicianPuppetHits` entry, placed next to each weapon's Seeker
-    hook (a nearer puppet wins over the player and over a breakable device): Hunter shotgun, NoellesRoles Demon
+    hook (a nearer puppet wins over the player and over a breakable device): Hunter shotgun (read-only
+    `shotgunPuppetOnRay` per pellet ray, then `endShotgunPuppet` once per puppet), NoellesRoles Demon
     Hunter pistol (only when the copied player would die to it; `mixin/MagicianDemonHunterRefundMixin` pays the
     Jester refund), Death Ray (pierces), Wathe bat (`MagicianPuppetAttackHandlers`, full charge), Swordfish,
     Ceremonial Sword strike and dash, ninja shuriken, NoellesRoles throwing axe, Potion Gunner shell and backblast,
@@ -1369,17 +1370,40 @@ Current build baseline:
 - Hunter shotgun aim claim (revolver parity, 2026-10-21; `roles/killer/hunter/HunterShotgunAim`,
   `HunterShotgunAimClaims`, `net/HunterNetworking`, client `client/hunter/HunterShotgunAimClient` and
   `client/mixin/hunter/DoubleBarrelAimClaimMixin`): at the head of the client's `interactItem`, whenever that hand holds
-  the shotgun, the client sends stable C2S `sparkwitch:double_barrel_aim` (`count:varint, ids:varint[count]`, at most 8;
-  malformed → empty claim) naming every other player whose current client box (+0.1) its block-clipped 8-block ray
-  enters, nearest first. Every use packet thus follows its claim, including the held-trigger repeat that vanilla sends
-  without calling `use` while the client still predicts the 4-tick follow-up cooldown. The receiver stores it synchronously
-  (Fabric queues payloads with vanilla packets, so it lands first); the server `use` takes it once (fresh for one tick).
-  With a claim, the first server-eligible claimed player decides: hit when its `hitVolumes` grown by 0.5 meet the
-  server's ray, else a miss (never passed through to a player behind); ineligible ones are transparent. Without a claim
-  the old nearest pick over rewound volumes runs; a Magician puppet proxy (a `FakePlayer` sharing its owner's UUID)
-  never reads one, so it cannot use up the owner's claim. The payload is
-  on no deny-list: it fires nothing, and the shot stays on the guarded vanilla use path. Puppet and Seeker/drone
-  nearest-wins hooks still receive the resulting `aimed`.
+  the shotgun, the client sends stable C2S `sparkwitch:double_barrel_aim` (`rayCount:varint`, then per ray
+  `count:varint, ids:varint[count]`; at most 9 rays of 8 ids; malformed → empty claim, 2026-10-29) with one list per ray
+  of the shot its top shell will fire (`DoubleBarrelShotgunItem.shotAims`: 1 slug ray, 9 buckshot pellet rays), each
+  naming every other player whose current client box (+0.1) that block-clipped ray enters, nearest first. Every use
+  packet thus follows its claim, including the held-trigger repeat that vanilla sends without calling `use` while the
+  client still predicts the 4-tick follow-up cooldown. The receiver stores it synchronously (Fabric queues payloads with
+  vanilla packets, so it lands first); the server `fire` takes it once (fresh for one tick) and splits it per ray with
+  `HunterShotgunAim.claimForRay`: an empty claim misses on every ray, and a claim with another ray count (the client
+  still saw the other shell on top) is ignored like no claim. Per ray, `HunterShotgunAim.confirmAll` keeps every
+  server-eligible claimed player whose `hitVolumes` grown by 0.5 meet the server's ray (pellets pierce players); the
+  first eligible one that fails stops the ray (never passed through to a player behind); ineligible ones are
+  transparent. Without a claim the server's nearest-first pick over rewound volumes runs per ray; a Magician puppet
+  proxy (a `FakePlayer` sharing its owner's UUID) never reads one, so it cannot use up the owner's claim. The payload is
+  on no deny-list: it fires nothing, and the shot stays on the guarded vanilla use path.
+- Hunter shotgun shells (2026-10-29; `DoubleBarrelAmmoItem` with `DoubleBarrelShellItem` = 霰弹 buckshot, item id
+  unchanged, 150 coins, and `DoubleBarrelSlugItem` = 独头弹 slug, 50 coins). The gun keeps a last-in-first-out stack in
+  custom data `ShellStack` (digits `HunterRules.SHELL_BUCKSHOT` 0 / `SHELL_SLUG` 1, cleaned by `sanitizeShellStack`);
+  `LoadedShells` still mirrors the count and an item with only that count reads as buckshot. A slug fires one centre
+  ray at `SLUG_RANGE` 15 and kills its first victim (the old shot). Buckshot fires 9 pellet rays at `SHOTGUN_RANGE` 8,
+  the vanilla look plus eight at ±`SHOTGUN_SPREAD_DEGREES` (1°) in yaw/pitch, and kills
+  `HunterRules.buckshotKillCount` = ceil(hit rays / 3) of the nearest distinct victims. `DoubleBarrelShotgunItem.fire`
+  resolves in three phases so no interceptor is written before every ray was read: (1) read-only per ray, the pierced
+  players, then the crow (`BlackRavenCrowHits.onShotgunFired`, returns owner + entry), the puppet
+  (`MagicianPuppetHits.shotgunPuppetOnRay`) and the Seeker device (`SeekerDeviceHits.shotgunDeviceOnRay`) against that
+  ray's nearest player; (2) the frozen `SeekerDeviceHits.onShotgunFired(PlayerEntity, T, double)` once for the centre
+  ray at the fired range (skipped when a crow or puppet took it): SparkStrength injects its Bomber drone and Partygoer
+  steps there by name and promises "the caller hits nobody", so a drone or Partygoer that takes the centre ray in front
+  of an aimed player (or in front of the centre ray's device, which then survives the call) absorbs the whole shot;
+  (3) each absorbing puppet ends once (`endShotgunPuppet`), each absorbing device breaks once (`breakByShotgun`), then
+  the kills, the junction box and the record (`hit_rays`, `victims`, target = first killed). The shot sound
+  `sparkwitch:item.double_barrel.shot` plays from the shooter's eye; its stereo file is spatialized on the client
+  (`client/hunter/DoubleBarrelShotAudio`, `client/mixin/hunter/DoubleBarrelShotSoundSystemMixin` wrapping the first
+  setup `Channel$SourceManager#run` in `SoundSystem#play`, OpenAL Soft `AL_SOFT_source_spatialize`, fails closed to
+  non-positional stereo) so it has a direction and fades out at its 16-block `attenuation_distance`.
 - `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
   Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
   an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;
@@ -2256,16 +2280,17 @@ A reclaimed poisoned trap returns as a stack carrying its poison and poisoner (c
 are as if it had never moved (T-0011, 2026-10-25). An unpoisoned trap still returns as a plain stack.
 A Hunter shotgun shot that reaches the wall takes `HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE` (7000 in SparkStrength's
 unit, 10000 = 100%, so 70%; owner, 2026-10-21) from the SparkStrength junction box (`sparkstrength:junction_box`) it
-lands on, so two shots open a full box. Nearest wins along one COLLIDER block ray (`DoubleBarrelShotgunItem.wallHit`,
-which `aim` clips the player pick and the client claim to): an eligible player, then a Magician puppet, then a breakable
-Seeker device (`SeekerDeviceHits.shotgunPathHasDevice`, a read-only query asked before the breaking `onShotgunFired`)
-absorbs the shot first. A claimed eligible player the server cannot confirm also stops it (`ShotgunPick.playerInWay`):
-the shot misses that player and reaches nothing behind, as the aim claim's "never passed through" rule. A SparkStrength
-Bomber drone absorbs inside `onShotgunFired` without a signal, so a drone between the Hunter and a box lets that shot
-hit the box too (accepted). `compat/SparkStrengthJunctionBoxCompat` reflects
+lands on, so two shots open a full box. Only the centre ray counts (the slug's ray at 15, buckshot's at 8;
+`DoubleBarrelShotgunItem.wallHit` along the look, the block `aimAlong` clips the player pick and the client claim to),
+and only when nothing took it: an eligible player it hit (pellets pierce players, but a hit player still keeps the
+centre ray off the box), a Raven Form crow, a Magician puppet or a breakable Seeker device (all read before anything
+breaks). A claimed eligible player the server cannot confirm also stops it: the ray misses that player and reaches
+nothing behind, as the aim claim's "never passed through" rule. A SparkStrength Bomber drone absorbs inside
+`onShotgunFired` without a signal when no player was aimed, so a drone between the Hunter and a box lets that shot hit
+the box too (accepted). `compat/SparkStrengthJunctionBoxCompat` reflects
 `JunctionBoxService#damageByWeapon(ServerPlayerEntity, BlockPos, int)` only after the block id matches and fails closed;
-SparkStrength owns every sabotage gate and opens a box that reaches 0 like a pry finished by the shooter. The shot's
-record fields, sound and cooldown are unchanged.
+SparkStrength owns every sabotage gate and opens a box that reaches 0 like a pry finished by the shooter. The cooldown
+is unchanged; the record and sound changed with the shells (2026-10-29, see the aim-claim entry).
 Sword piercing
 applies to role/item shields, not trait protections such as Last Stand or Last
 Escape; protection costs and retaliation keep their normal side effects.
@@ -3593,8 +3618,9 @@ Seeker car.
       `onGrenadeBlast`, the 3-block sphere on the grenade box centre with a clear line, inside the thrower's Judge
       attribution, skipping owners the loop already tried to kill (`recordBlastAttempts` through the kill link) and
       dead ones; `killOwnerVia`, `wathe:grenade`, thrower credited; none.
-    - Hunter shotgun: crow step first in `DoubleBarrelShotgunItem#use` (volumes +0.5 vs the aimed player, puppets,
-      devices); `wathe:gun`; none (no shotgun innocent rule).
+    - Hunter shotgun: crow step first on every pellet ray in `DoubleBarrelShotgunItem#fire` (read-only, volumes +0.5 vs
+      that ray's nearest player, puppets, devices); the owner joins the victims at the crow's entry; `wathe:gun`; none
+      (no shotgun innocent rule).
     - USEC AXMC: crow step first in `UsecRifleFireService.resolveMatchHit` (bullet polyline, volumes +0.1), then the
       puppet/device steps with the crow's distance; `wathe:gun`; `UsecFirePunishment.killAndPunish` (USEC 小脑).
     - Feather Blade: crow step before the Seeker seam in `FeatherBladeItem#use`; marks the OWNER, because the mark is

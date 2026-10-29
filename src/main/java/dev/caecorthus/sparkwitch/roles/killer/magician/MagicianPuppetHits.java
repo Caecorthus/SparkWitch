@@ -232,31 +232,43 @@ public final class MagicianPuppetHits {
     }
 
     /**
-     * SparkWitch Hunter double-barrel shotgun (server branch, after the shell is spent): nearest-wins along the shooter's
-     * block-clipped ray of {@code range}. A puppet whose box (grown like the player pick, 0.1) is entered strictly
-     * nearer than {@code target} and than every Seeker device the shooter may break ends ({@code GUN}); true means
-     * "absorbed": the caller kills nobody and skips the Seeker hook, and the shot still costs its shell, sound and
-     * cooldown (D3). Returns false when no puppet is involved.
-     * SparkWitch 双管猎枪（服务端分支、耗弹之后）：沿射手按方块截断、长 {@code range} 的射线执行最近者命中。箱体（与玩家选取
-     * 同样扩大 0.1）入射严格近于 {@code target} 且近于射手可打坏的所有搜寻者设备的皮套被结束（{@code GUN}）；true 表示
-     * “已吸收”：调用方不击杀任何人并跳过搜寻者钩子，这一枪照常消耗弹壳、播放声音并进入冷却（D3）。不涉及皮套时返回 false。
+     * SparkWitch Hunter double-barrel shotgun, read-only half (server branch, after the shell is spent), asked once per
+     * pellet ray ({@code start → end}, block-clipped by the caller) before anything is ended: nearest-wins along that
+     * ray. Returns the puppet whose box (grown like the player pick, 0.1) is entered strictly nearer than
+     * {@code target} and than every Seeker device the shooter may break, else null. The caller ends each returned
+     * puppet once ({@link #endShotgunPuppet}) after every ray was asked, so a puppet ended by one pellet still absorbs
+     * the other pellets that reached it first; such a ray kills nobody and skips the Seeker step (D3).
+     * SparkWitch 猎人双管猎枪的只读部分（服务端分支、耗弹之后），在结束任何皮套之前对每条弹丸射线（{@code start → end}，
+     * 已由调用方按方块截断）询问一次：沿该射线执行最近者命中。返回箱体（与玩家选取同样扩大 0.1）入射严格近于 {@code target}
+     * 且近于射手可打坏的所有搜寻者设备的皮套，否则为 null。调用方在询问完所有射线后对每个返回的皮套只结束一次
+     * （{@link #endShotgunPuppet}），因此被某颗弹丸结束的皮套仍会吸收其他先到达它的弹丸；这样的射线不击杀任何人并跳过
+     * 搜寻者步骤（D3）。
      */
-    public static boolean onShotgunFired(PlayerEntity shooter, ItemStack shotgun, @Nullable PlayerEntity target,
-                                         double range) {
+    public static @Nullable MagicianPlaybackEntity shotgunPuppetOnRay(PlayerEntity shooter,
+                                                                      @Nullable PlayerEntity target, Vec3d start,
+                                                                      Vec3d end) {
         if (!(shooter instanceof ServerPlayerEntity serverShooter) || shooter.getWorld().isClient()
-                || !(range > 0.0) || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
-            return false;
+                || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
+            return null;
         }
-        Vec3d start = serverShooter.getEyePos();
-        Vec3d end = MagicianPuppetRaycast.clipToBlocks(serverShooter.getWorld(), start,
-                start.add(serverShooter.getRotationVec(1.0F).multiply(range)), serverShooter);
         double beat = Math.min(
                 MagicianPuppetRaycast.playerDistanceSquared(start, end, target, SHOTGUN_BOX_EXPANSION),
                 MagicianPuppetRaycast.breakableDeviceSquared(serverShooter, start, end));
         MagicianPuppetRaycast.PuppetHit hit = MagicianPuppetRaycast.nearestHittable(serverShooter, start, end,
                 SHOTGUN_BOX_EXPANSION, beat);
-        return hit != null && MagicianPlaybackManager.endPuppet(hit.puppet(), serverShooter,
-                GameConstants.DeathReasons.GUN, shotgun == null ? null : shotgun.getTranslationKey());
+        return hit == null ? null : hit.puppet();
+    }
+
+    /**
+     * Writing half of the shotgun step: ends a puppet {@link #shotgunPuppetOnRay} returned ({@code GUN}); the shot
+     * still costs its shell, sound and cooldown (D3). False when it already ended.
+     * 猎枪步骤的写入部分：结束 {@link #shotgunPuppetOnRay} 返回的皮套（{@code GUN}）；这一枪照常消耗弹壳、播放声音并进入
+     * 冷却（D3）。已结束时返回 false。
+     */
+    public static boolean endShotgunPuppet(ServerPlayerEntity shooter, @Nullable ItemStack shotgun,
+                                           MagicianPlaybackEntity puppet) {
+        return MagicianPlaybackManager.endPuppet(puppet, shooter, GameConstants.DeathReasons.GUN,
+                shotgun == null ? null : shotgun.getTranslationKey());
     }
 
     /**

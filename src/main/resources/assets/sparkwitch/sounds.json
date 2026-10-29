@@ -198,5 +198,23 @@
         "attenuation_distance": 8
       }
     ]
+  },
+  "item.double_barrel.shot": {
+    "subtitle": "subtitles.sparkwitch.item.double_barrel.shot",
+    "sounds": [
+      {
+        "name": "sparkwitch:item/double_barrel_shot",
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "item.double_barrel.load": {
+    "subtitle": "subtitles.sparkwitch.item.double_barrel.load",
+    "sounds": [
+      {
+        "name": "sparkwitch:item/double_barrel_load",
+        "attenuation_distance": 8
+      }
+    ]
   }
 }

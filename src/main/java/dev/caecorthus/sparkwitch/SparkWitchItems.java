@@ -39,6 +39,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.FeatherBladeItem;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenMaskItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
+import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelSlugItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KnockoutDrugItem;
@@ -88,6 +89,7 @@ public final class SparkWitchItems {
     public static final Identifier HUNTER_TRAP_ID = HunterTrapItem.ID;
     public static final Identifier DOUBLE_BARREL_SHOTGUN_ID = DoubleBarrelShotgunItem.ID;
     public static final Identifier DOUBLE_BARREL_SHELL_ID = DoubleBarrelShellItem.ID;
+    public static final Identifier DOUBLE_BARREL_SLUG_ID = DoubleBarrelSlugItem.ID;
     public static final Identifier POISON_APPLE_ID = SparkWitch.id("poison_apple");
     public static final Identifier TOFANA_ELIXIR_ID = SparkWitch.id("tofana_elixir");
     public static final Identifier TOLL_BELL_ID = SparkWitch.id("toll_bell");
@@ -139,6 +141,7 @@ public final class SparkWitchItems {
     private static Item hunterTrap;
     private static Item doubleBarrelShotgun;
     private static Item doubleBarrelShell;
+    private static Item doubleBarrelSlug;
     private static Item poisonApple;
     private static Item tofanaElixir;
     private static Item tollBell;
@@ -267,6 +270,11 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 DOUBLE_BARREL_SHELL_ID,
                 new DoubleBarrelShellItem(DoubleBarrelShellItem.createSettings())
+        );
+        doubleBarrelSlug = Registry.register(
+                Registries.ITEM,
+                DOUBLE_BARREL_SLUG_ID,
+                new DoubleBarrelSlugItem(DoubleBarrelSlugItem.createSettings())
         );
         poisonApple = Registry.register(
                 Registries.ITEM,
@@ -581,6 +589,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return doubleBarrelShell;
+    }
+
+    public static Item doubleBarrelSlug() {
+        if (doubleBarrelSlug == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return doubleBarrelSlug;
     }
 
     public static Item poisonApple() {
