@@ -299,33 +299,16 @@ public final class BlackRavenCrowHits {
      * Hunter double-barrel shotgun (server branch, after the shell is spent), before the puppet and device steps: the
      * crow takes the shot when the block-clipped ray ({@code eye -> end}) enters its lag-compensated volumes (grown by
      * {@code growth}, the claim confirm growth) strictly nearer than {@code aimed}'s volumes (same growth), every
-     * puppet and every breakable device. Returns the substituted owner (the caller kills it as its target and skips
-     * the puppet and device steps), else null.
+     * puppet and every breakable device. Read-only, asked once per pellet ray. Returns the substituted owner with the
+     * squared ray entry (the caller kills it as that ray's victim and skips the ray's puppet and device steps), else
+     * null.
      * Hunter 双管猎枪（服务端分支、耗弹之后），在皮套与设备步骤之前：按方块截断的射线（{@code eye -> end}）严格早于
      * {@code aimed} 的体积（相同扩大量）、所有皮套与所有可打坏设备进入乌鸦延迟补偿体积（按 {@code growth} 扩大，即声明确认扩大量）
-     * 时，乌鸦承受这一枪。返回被替身的主人（调用方将其作为目标击杀并跳过皮套与设备步骤），否则为 null。
+     * 时，乌鸦承受这一枪。只读，每条弹丸射线询问一次。返回被替身的主人及射线入射平方距离（调用方将其作为该射线的受害者击杀，
+     * 并跳过该射线的皮套与设备步骤），否则为 null。
      */
-    public static @Nullable ServerPlayerEntity onShotgunFired(PlayerEntity user, @Nullable PlayerEntity aimed,
-                                                              Vec3d eye, Vec3d end, double growth) {
-        ShotgunHit hit = onShotgunFiredWithEntry(user, aimed, eye, end, growth);
-        return hit == null ? null : hit.owner();
-    }
-
-    /**
-     * A shotgun ray's crow hit: the substituted owner plus the squared ray-entry distance, so the spread shot can order
-     * its victims by entry like a plain player hit. / 猎枪射线的乌鸦命中：被替身的主人及其射线入射平方距离，
-     * 使散射射击能像普通玩家命中一样按入射距离排列受害者。
-     */
-    public record ShotgunHit(ServerPlayerEntity owner, double entryDistanceSquared) {
-    }
-
-    /**
-     * {@link #onShotgunFired} that also reports the entry distance ({@link ShotgunHit}); the shotgun's spread needs it
-     * for the nearest-victims order. / 同时返回入射距离（{@link ShotgunHit}）的 {@link #onShotgunFired}；
-     * 猎枪散射需要它来排列最近的受害者。
-     */
-    public static @Nullable ShotgunHit onShotgunFiredWithEntry(PlayerEntity user, @Nullable PlayerEntity aimed,
-                                                               Vec3d eye, Vec3d end, double growth) {
+    public static @Nullable ShotgunHit onShotgunFired(PlayerEntity user, @Nullable PlayerEntity aimed,
+                                                      Vec3d eye, Vec3d end, double growth) {
         if (!(user instanceof ServerPlayerEntity shooter) || shooter.getWorld().isClient()
                 || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()
                 || !BlackRavenCrowTargets.anyLive(shooter)) {
@@ -339,6 +322,13 @@ public final class BlackRavenCrowHits {
         BlackRavenCrowTargets.RayHit hit = BlackRavenCrowTargets.nearestOnRay(shooter, eye, end, growth, beat);
         return hit == null ? null : new ShotgunHit(BlackRavenCrowTargets.substitute(hit.target()),
                 hit.distanceSquared());
+    }
+
+    /**
+     * A shotgun ray's crow hit: the substituted owner plus the squared ray entry, so the buckshot orders its victims
+     * like plain player hits. / 猎枪射线的乌鸦命中：被替身的主人及射线入射平方距离，使霰弹像普通玩家命中一样排列受害者。
+     */
+    public record ShotgunHit(ServerPlayerEntity owner, double entryDistanceSquared) {
     }
 
     /** A crow on a bullet path, with the path distance where the bullet enters it. / 子弹路径上的乌鸦及进入处的路径距离。 */

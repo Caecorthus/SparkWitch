@@ -12,15 +12,14 @@ public final class HunterInventoryRules {
     private HunterInventoryRules() {
     }
 
-    /** Shotgun, shells, and traps. / 猎枪、弹药与捕兽夹。 */
+    /** Shotgun, both ammo types, and traps. / 猎枪、两种弹药与捕兽夹。 */
     public static boolean isHunterLoadout(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return false;
         }
         Item item = stack.getItem();
         return item instanceof DoubleBarrelShotgunItem
-                || item instanceof DoubleBarrelShellItem
-                || item instanceof DoubleBarrelSlugItem
+                || item instanceof DoubleBarrelAmmoItem
                 || item instanceof HunterTrapItem;
     }
 }

@@ -65,7 +65,7 @@ public abstract class DoubleBarrelShotgunCrosshairMixin {
     @Unique
     private static boolean sparkwitch$puppetInSight(ClientPlayerEntity player, ItemStack stack) {
         Vec3d eye = player.getEyePos();
-        double range = DoubleBarrelShotgunItem.peekShell(stack) == 1
+        double range = DoubleBarrelShotgunItem.peekShell(stack) == HunterRules.SHELL_SLUG
                 ? HunterRules.SLUG_RANGE : HunterRules.SHOTGUN_RANGE;
         Vec3d end = eye.add(player.getRotationVec(1.0F).multiply(range));
         HitResult block = player.getWorld().raycast(new RaycastContext(eye, end, RaycastContext.ShapeType.COLLIDER,

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 
 /**
  * Pure rules of the shotgun's aim claim (revolver parity, 2026-10-21). The server's own pick tests every box a target
@@ -74,20 +75,60 @@ public final class HunterShotgunAim {
         return entries.stream().limit(MAX_CLAIMED_PER_RAY).map(Entry::id).toList();
     }
 
+    /** A confirmed claimed player and its squared ray entry. / 已确认的声明玩家及其射线入射平方距离。 */
+    public record Confirmed<T>(T target, double entrySquared) {
+    }
+
     /**
-     * The first claimed player the server finds eligible decides the shot, as the first box on the revolver's ray does:
-     * confirmed, it is hit; unconfirmed, the shot misses rather than passing through to someone behind it. Ineligible
-     * players stay transparent, as in the server pick.
-     * 服务端认定有资格的第一个声明玩家决定这一枪，与左轮射线上的第一个箱体相同：确认则命中；未能确认则未命中，
-     * 而不会穿过它打中后面的人。无资格的玩家与服务端选取中一样保持“透明”。
+     * One pellet ray's confirmed players in claim order, and whether an unconfirmed eligible player stopped the ray.
+     * 一条弹丸射线上按声明顺序排列的已确认玩家，以及是否有未能确认的合格玩家截停了该射线。
      */
-    public static <T> @Nullable T decide(List<T> claimed, Predicate<T> eligible, Predicate<T> confirmed) {
+    public record Confirmation<T>(List<Confirmed<T>> hits, boolean stopped) {
+    }
+
+    /**
+     * Confirms one pellet ray's claim, nearest first. The ray pierces players, so every eligible claimed player whose
+     * {@code confirmedEntry} (squared, negative = the rewound volumes miss the ray) is confirmed joins the hits; the
+     * first eligible one that fails stops the ray, as the first box on the revolver's ray does: the ray never passes
+     * through someone the shooter saw to hit a player behind it. Ineligible players stay transparent, as in the server
+     * pick.
+     * 按由近到远确认一条弹丸射线的声明。射线穿透玩家，因此每个 {@code confirmedEntry}（平方距离，负数表示回溯体积与射线
+     * 不相交）得到确认的合格声明玩家都加入命中；第一个确认失败的合格玩家截停该射线，与左轮射线上的第一个箱体相同：射线绝不
+     * 穿过射手看到的人去打中其身后的玩家。无资格的玩家与服务端选取中一样保持“透明”。
+     */
+    public static <T> Confirmation<T> confirmAll(List<T> claimed, Predicate<T> eligible,
+                                                 ToDoubleFunction<T> confirmedEntry) {
+        List<Confirmed<T>> hits = new ArrayList<>();
         for (T candidate : claimed) {
-            if (eligible.test(candidate)) {
-                return confirmed.test(candidate) ? candidate : null;
+            if (!eligible.test(candidate)) {
+                continue;
             }
+            double entry = confirmedEntry.applyAsDouble(candidate);
+            if (entry < 0.0D) {
+                return new Confirmation<>(List.copyOf(hits), true);
+            }
+            hits.add(new Confirmed<>(candidate, entry));
         }
-        return null;
+        return new Confirmation<>(List.copyOf(hits), false);
+    }
+
+    /**
+     * The claimed ids for ray {@code index} of a shot of {@code rayCount} rays. No fresh claim: null (the server's own
+     * pick). An empty claim, which is what a malformed payload decodes to: an empty list, so every ray misses. A claim
+     * shaped for another shot (the client still saw the other shell on top, e.g. a held-trigger repeat before the pop
+     * synced): null, the server's own pick, as if no claim had been sent.
+     * 一枪共 {@code rayCount} 条射线时第 {@code index} 条射线的声明 id。没有新鲜声明：null（服务端自行选取）。空声明
+     * （格式错误的载荷即解码为此）：空列表，因此每条射线都未命中。按另一种射击形状给出的声明（客户端仍看到另一种弹药在栈顶，
+     * 例如按住扳机连发时弹出尚未同步）：null，服务端自行选取，如同未发送声明。
+     */
+    public static @Nullable List<Integer> claimForRay(@Nullable List<List<Integer>> claim, int rayCount, int index) {
+        if (claim == null) {
+            return null;
+        }
+        if (claim.isEmpty()) {
+            return List.of();
+        }
+        return claim.size() == rayCount && index >= 0 && index < rayCount ? claim.get(index) : null;
     }
 
     /** Whether a claim stored at {@code claimTick} may still be read at {@code nowTick}. / 声明是否仍可读取。 */
