@@ -307,6 +307,25 @@ public final class BlackRavenCrowHits {
      */
     public static @Nullable ServerPlayerEntity onShotgunFired(PlayerEntity user, @Nullable PlayerEntity aimed,
                                                               Vec3d eye, Vec3d end, double growth) {
+        ShotgunHit hit = onShotgunFiredWithEntry(user, aimed, eye, end, growth);
+        return hit == null ? null : hit.owner();
+    }
+
+    /**
+     * A shotgun ray's crow hit: the substituted owner plus the squared ray-entry distance, so the spread shot can order
+     * its victims by entry like a plain player hit. / 猎枪射线的乌鸦命中：被替身的主人及其射线入射平方距离，
+     * 使散射射击能像普通玩家命中一样按入射距离排列受害者。
+     */
+    public record ShotgunHit(ServerPlayerEntity owner, double entryDistanceSquared) {
+    }
+
+    /**
+     * {@link #onShotgunFired} that also reports the entry distance ({@link ShotgunHit}); the shotgun's spread needs it
+     * for the nearest-victims order. / 同时返回入射距离（{@link ShotgunHit}）的 {@link #onShotgunFired}；
+     * 猎枪散射需要它来排列最近的受害者。
+     */
+    public static @Nullable ShotgunHit onShotgunFiredWithEntry(PlayerEntity user, @Nullable PlayerEntity aimed,
+                                                               Vec3d eye, Vec3d end, double growth) {
         if (!(user instanceof ServerPlayerEntity shooter) || shooter.getWorld().isClient()
                 || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()
                 || !BlackRavenCrowTargets.anyLive(shooter)) {
@@ -318,7 +337,8 @@ public final class BlackRavenCrowHits {
                 BlackRavenCrowTargets.puppetSquared(shooter, eye, end, SHOTGUN_PUPPET_GROWTH),
                 BlackRavenCrowTargets.deviceSquared(shooter, eye, end));
         BlackRavenCrowTargets.RayHit hit = BlackRavenCrowTargets.nearestOnRay(shooter, eye, end, growth, beat);
-        return hit == null ? null : BlackRavenCrowTargets.substitute(hit.target());
+        return hit == null ? null : new ShotgunHit(BlackRavenCrowTargets.substitute(hit.target()),
+                hit.distanceSquared());
     }
 
     /** A crow on a bullet path, with the path distance where the bullet enters it. / 子弹路径上的乌鸦及进入处的路径距离。 */

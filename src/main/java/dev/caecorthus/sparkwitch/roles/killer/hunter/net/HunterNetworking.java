@@ -32,7 +32,7 @@ public final class HunterNetworking {
         registered = true;
         PayloadTypeRegistry.playC2S().register(DoubleBarrelAimC2SPacket.ID, DoubleBarrelAimC2SPacket.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(DoubleBarrelAimC2SPacket.ID,
-                (payload, context) -> HunterShotgunAimClaims.submit(context.player(), payload.targetIds()));
+                (payload, context) -> HunterShotgunAimClaims.submit(context.player(), payload.rays()));
         HunterShotgunAimClaims.register();
     }
 }

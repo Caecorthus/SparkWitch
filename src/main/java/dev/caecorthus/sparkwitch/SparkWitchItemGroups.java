@@ -94,6 +94,7 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.hunterTrap(),
                                     SparkWitchItems.doubleBarrelShotgun(),
                                     SparkWitchItems.doubleBarrelShell(),
+                                    SparkWitchItems.doubleBarrelSlug(),
                                     SparkWitchItems.knockoutDrug(),
                                     SparkWitchItems.tollBell(),
                                     SparkWitchItems.timeStealerClock(),

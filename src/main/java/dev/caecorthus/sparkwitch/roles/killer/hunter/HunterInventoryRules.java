@@ -20,6 +20,7 @@ public final class HunterInventoryRules {
         Item item = stack.getItem();
         return item instanceof DoubleBarrelShotgunItem
                 || item instanceof DoubleBarrelShellItem
+                || item instanceof DoubleBarrelSlugItem
                 || item instanceof HunterTrapItem;
     }
 }

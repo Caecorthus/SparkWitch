@@ -21,8 +21,14 @@ import java.util.function.Predicate;
  * 所显示的目标。猎枪现在与其一致：客户端按由近到远列出其视线射线进入的玩家，服务端只依据回溯体积确认该声明。
  */
 public final class HunterShotgunAim {
-    /** Claimed players kept per shot, nearest first. / 每次射击保留的声明玩家数（由近到远）。 */
-    public static final int MAX_CLAIMED_TARGETS = 8;
+    /**
+     * Spread rays per shot: the centre plus up/down, left/right and the four diagonals, each
+     * {@link HunterRules#SHOTGUN_SPREAD_DEGREES} from the centre.
+     * 每次射击的散射射线数：中心、上下、左右与四角，各偏离中心 {@link HunterRules#SHOTGUN_SPREAD_DEGREES}。
+     */
+    public static final int RAY_COUNT = 9;
+    /** Claimed players kept per ray, nearest first (the old single-ray cap). / 每条射线保留的声明玩家数（由近到远，沿用旧单射线上限）。 */
+    public static final int MAX_CLAIMED_PER_RAY = 8;
     /**
      * Client claim margin, the same growth as the server pick and the target crosshair.
      * 客户端声明的箱体扩大量，与服务端选取和目标准星相同。
@@ -50,8 +56,8 @@ public final class HunterShotgunAim {
 
     /**
      * Ids of the candidates whose box, grown by {@link #CLAIM_BOX_EXPANSION}, the segment {@code start → end} enters,
-     * nearest entry first, at most {@link #MAX_CLAIMED_TARGETS}. Eligibility is left to the server.
-     * 线段进入其扩大箱体的候选 id，按进入距离由近到远，最多 {@link #MAX_CLAIMED_TARGETS} 个。资格由服务端判定。
+     * nearest entry first, at most {@link #MAX_CLAIMED_PER_RAY}. Eligibility is left to the server.
+     * 线段进入其扩大箱体的候选 id，按进入距离由近到远，最多 {@link #MAX_CLAIMED_PER_RAY} 个。资格由服务端判定。
      */
     public static List<Integer> claimOrder(Vec3d start, Vec3d end, List<Candidate> candidates) {
         record Entry(int id, double distance) {
@@ -65,7 +71,7 @@ public final class HunterShotgunAim {
             }
         }
         entries.sort(Comparator.comparingDouble(Entry::distance));
-        return entries.stream().limit(MAX_CLAIMED_TARGETS).map(Entry::id).toList();
+        return entries.stream().limit(MAX_CLAIMED_PER_RAY).map(Entry::id).toList();
     }
 
     /**

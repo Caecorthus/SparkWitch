@@ -48,22 +48,26 @@ public abstract class DoubleBarrelShotgunCrosshairMixin {
         if (!(stack.getItem() instanceof DoubleBarrelShotgunItem shotgun)
                 || DoubleBarrelShotgunItem.getLoadedShells(stack) <= 0
                 || player.getItemCooldownManager().isCoolingDown(shotgun)
-                || DoubleBarrelShotgunItem.findTarget(player) == null && !sparkwitch$puppetInSight(player)) {
+                || DoubleBarrelShotgunItem.findTarget(player, stack) == null
+                && !sparkwitch$puppetInSight(player, stack)) {
             return original;
         }
         return Identifier.of("wathe", "hud/crosshair_target");
     }
 
     /**
-     * Magician seam: a live puppet on the same 8-block, block-clipped aim ray (its box grown like the player pick)
-     * lights the crosshair as its copied player would; the server decides the shot ({@code MagicianPuppetHits}).
-     * 魔术师接缝：同一条 8 格、按方块截断的瞄准射线上的存活皮套（箱体与玩家选取同样扩大）与其复制的玩家一样点亮准星；
+     * Magician seam: a live puppet on the same block-clipped aim ray at the next shell's range (its box grown like the
+     * player pick) lights the crosshair as its copied player would; the server decides the shot
+     * ({@code MagicianPuppetHits}).
+     * 魔术师接缝：下一发弹药射程、按方块截断的瞄准射线上的存活皮套（箱体与玩家选取同样扩大）与其复制的玩家一样点亮准星；
      * 这一枪由服务端判定（{@code MagicianPuppetHits}）。
      */
     @Unique
-    private static boolean sparkwitch$puppetInSight(ClientPlayerEntity player) {
+    private static boolean sparkwitch$puppetInSight(ClientPlayerEntity player, ItemStack stack) {
         Vec3d eye = player.getEyePos();
-        Vec3d end = eye.add(player.getRotationVec(1.0F).multiply(HunterRules.SHOTGUN_RANGE));
+        double range = DoubleBarrelShotgunItem.peekShell(stack) == 1
+                ? HunterRules.SLUG_RANGE : HunterRules.SHOTGUN_RANGE;
+        Vec3d end = eye.add(player.getRotationVec(1.0F).multiply(range));
         HitResult block = player.getWorld().raycast(new RaycastContext(eye, end, RaycastContext.ShapeType.COLLIDER,
                 RaycastContext.FluidHandling.NONE, player));
         Vec3d clipped = block.getType() == HitResult.Type.MISS ? end : block.getPos();

@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
+import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -16,12 +17,24 @@ public final class HunterRules {
     public static final int COLOR = 0x5C4C34;
 
     public static final int SHOTGUN_PRICE = 75;
-    public static final int SHELL_PRICE = 50;
+    public static final int SHELL_PRICE = 150;
+    public static final int SLUG_PRICE = 50;
     public static final int TRAP_PRICE = 25;
     public static final int SHOTGUN_STOCK = 1;
 
     public static final int MAX_SHELLS = 2;
     public static final double SHOTGUN_RANGE = 8.0D;
+    // The slug's single-ray range, longer than the buckshot spread (2026-10-29).
+    // 独头弹单射线射程，长于霰弹散射（2026-10-29）。
+    public static final double SLUG_RANGE = 15.0D;
+    // Angular offset of each spread ray from the centre: up/down, left/right and the four diagonals (2026-10-29).
+    // 散射射线相对中心射线的偏角：上下、左右与四角（2026-10-29）。
+    public static final double SHOTGUN_SPREAD_DEGREES = 1.0D;
+
+    // Bundled shotgun audio (2026-10-29): the shot carries 16 blocks, the reload 8, by attenuation_distance in
+    // sounds.json. / 猎枪自带音频（2026-10-29）：枪声 16 格、装填 8 格，由 sounds.json 的 attenuation_distance 决定。
+    public static final Identifier SHOT_SOUND_ID = SparkWitch.id("item.double_barrel.shot");
+    public static final Identifier LOAD_SOUND_ID = SparkWitch.id("item.double_barrel.load");
     public static final int FOLLOW_UP_COOLDOWN_TICKS = 4;
     public static final int EMPTY_COOLDOWN_TICKS = 20 * 30;
     // Round-start shotgun lock: 40 s (owner decision 2026-10-07), shorter than Wathe's 60 s revolver lock.

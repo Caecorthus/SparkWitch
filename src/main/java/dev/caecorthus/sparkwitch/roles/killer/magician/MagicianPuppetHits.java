@@ -250,6 +250,20 @@ public final class MagicianPuppetHits {
         Vec3d start = serverShooter.getEyePos();
         Vec3d end = MagicianPuppetRaycast.clipToBlocks(serverShooter.getWorld(), start,
                 start.add(serverShooter.getRotationVec(1.0F).multiply(range)), serverShooter);
+        return onShotgunFired(serverShooter, shotgun, target, start, end);
+    }
+
+    /**
+     * The same shotgun step on one spread ray ({@code start → end} already block-clipped by the caller), so the Hunter
+     * spread asks the puppet step per ray with the same nearest-wins measure. / 同一步在一条散射射线上的形式
+     * （{@code start → end} 已由调用方按方块截断），供猎枪散射按射线询问皮套步骤，最近者命中规则不变。
+     */
+    public static boolean onShotgunFired(PlayerEntity shooter, ItemStack shotgun, @Nullable PlayerEntity target,
+                                         Vec3d start, Vec3d end) {
+        if (!(shooter instanceof ServerPlayerEntity serverShooter) || shooter.getWorld().isClient()
+                || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
+            return false;
+        }
         double beat = Math.min(
                 MagicianPuppetRaycast.playerDistanceSquared(start, end, target, SHOTGUN_BOX_EXPANSION),
                 MagicianPuppetRaycast.breakableDeviceSquared(serverShooter, start, end));

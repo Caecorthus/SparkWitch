@@ -157,7 +157,22 @@ public final class SeekerDeviceHits {
         if (!(shooter instanceof ServerPlayerEntity serverShooter) || shooter.getWorld().isClient()) {
             return target;
         }
-        return rayBlocks(serverShooter, target, range, SeekerBreakSource.SHOTGUN) ? null : target;
+        Vec3d start = serverShooter.getEyePos();
+        Vec3d end = start.add(serverShooter.getRotationVec(1.0F).multiply(range));
+        return onShotgunFired(serverShooter, target, start, end);
+    }
+
+    /**
+     * The same shotgun step on one spread ray ({@code start → end}), so the Hunter spread asks the device step per ray
+     * with the same nearest-wins measure. / 同一步在一条散射射线上的形式，供猎枪散射按射线询问设备步骤，最近者命中规则不变。
+     */
+    @Nullable
+    public static <T extends PlayerEntity> T onShotgunFired(PlayerEntity shooter, @Nullable T target, Vec3d start,
+                                                            Vec3d end) {
+        if (!(shooter instanceof ServerPlayerEntity serverShooter) || shooter.getWorld().isClient()) {
+            return target;
+        }
+        return rayBlocks(serverShooter, target, start, end, SeekerBreakSource.SHOTGUN) ? null : target;
     }
 
     /**
@@ -174,6 +189,14 @@ public final class SeekerDeviceHits {
     public static boolean shotgunPathHasDevice(PlayerEntity shooter, double range) {
         return shooter instanceof ServerPlayerEntity serverShooter && !shooter.getWorld().isClient()
                 && rayBlockingHit(serverShooter, null, range) != null;
+    }
+
+    /**
+     * {@link #shotgunPathHasDevice} on one spread ray. / {@link #shotgunPathHasDevice} 在一条散射射线上的形式。
+     */
+    public static boolean shotgunPathHasDevice(PlayerEntity shooter, Vec3d start, Vec3d end) {
+        return shooter instanceof ServerPlayerEntity serverShooter && !shooter.getWorld().isClient()
+                && rayBlockingHit(serverShooter, null, start, end) != null;
     }
 
     /**
@@ -578,7 +601,18 @@ public final class SeekerDeviceHits {
      */
     private static boolean rayBlocks(ServerPlayerEntity shooter, @Nullable PlayerEntity target, double range,
                                      SeekerBreakSource source) {
-        SeekerDeviceRaycast.DeviceHit hit = rayBlockingHit(shooter, target, range);
+        if (!(range > 0.0)) {
+            return false;
+        }
+        Vec3d start = shooter.getEyePos();
+        Vec3d end = start.add(shooter.getRotationVec(1.0F).multiply(range));
+        return rayBlocks(shooter, target, start, end, source);
+    }
+
+    /** {@link #rayBlocks} on one spread ray. / {@link #rayBlocks} 在一条散射射线上的形式。 */
+    private static boolean rayBlocks(ServerPlayerEntity shooter, @Nullable PlayerEntity target, Vec3d start,
+                                     Vec3d end, SeekerBreakSource source) {
+        SeekerDeviceRaycast.DeviceHit hit = rayBlockingHit(shooter, target, start, end);
         if (hit == null) {
             return false;
         }
@@ -598,6 +632,17 @@ public final class SeekerDeviceHits {
         }
         Vec3d start = shooter.getEyePos();
         Vec3d end = start.add(shooter.getRotationVec(1.0F).multiply(range));
+        return SeekerDeviceRaycast.blockingHit(shooter, start, end, target, breakableBy(shooter));
+    }
+
+    /** {@link #rayBlockingHit} on one spread ray. / {@link #rayBlockingHit} 在一条散射射线上的形式。 */
+    @Nullable
+    private static SeekerDeviceRaycast.DeviceHit rayBlockingHit(ServerPlayerEntity shooter,
+                                                                @Nullable PlayerEntity target, Vec3d start,
+                                                                Vec3d end) {
+        if (!GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
+            return null;
+        }
         return SeekerDeviceRaycast.blockingHit(shooter, start, end, target, breakableBy(shooter));
     }
 

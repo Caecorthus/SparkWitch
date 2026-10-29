@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch;
 
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
+import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.sound.SoundEvent;
@@ -39,6 +40,12 @@ public final class SparkWitchSounds {
     public static final Identifier USEC_RIFLE_MAGAZINE_ID = UsecRules.MAGAZINE_SOUND_ID;
     public static final Identifier USEC_RIFLE_LOAD_ROUND_ID = UsecRules.LOAD_ROUND_SOUND_ID;
     public static final Identifier USEC_RIFLE_SCOPE_ID = UsecRules.SCOPE_SOUND_ID;
+    /**
+     * Hunter double-barrel shotgun sounds (ids live in HunterRules): the shot carries 16 blocks and the reload 8.
+     * 猎人双管猎枪音效（id 定义在 HunterRules）：枪声传播 16 格，装填 8 格。
+     */
+    public static final Identifier DOUBLE_BARREL_SHOT_ID = HunterRules.SHOT_SOUND_ID;
+    public static final Identifier DOUBLE_BARREL_LOAD_ID = HunterRules.LOAD_SOUND_ID;
     public static SoundEvent PIG_CHASE;
     public static SoundEvent GRAND_WITCH_CEREMONIAL_SWORD_BGM;
     public static SoundEvent SAINT_BELL;
@@ -52,6 +59,8 @@ public final class SparkWitchSounds {
     public static SoundEvent USEC_RIFLE_MAGAZINE;
     public static SoundEvent USEC_RIFLE_LOAD_ROUND;
     public static SoundEvent USEC_RIFLE_SCOPE;
+    public static SoundEvent DOUBLE_BARREL_SHOT;
+    public static SoundEvent DOUBLE_BARREL_LOAD;
     private static boolean registered;
 
     private SparkWitchSounds() {
@@ -102,5 +111,9 @@ public final class SparkWitchSounds {
         // Fixed range: only players within SCOPE_SOUND_RANGE receive it. / 固定范围：仅 SCOPE_SOUND_RANGE 格内的玩家收到。
         USEC_RIFLE_SCOPE = Registry.register(Registries.SOUND_EVENT, USEC_RIFLE_SCOPE_ID,
                 SoundEvent.of(USEC_RIFLE_SCOPE_ID, UsecRules.SCOPE_SOUND_RANGE));
+        DOUBLE_BARREL_SHOT = Registry.register(Registries.SOUND_EVENT, DOUBLE_BARREL_SHOT_ID,
+                SoundEvent.of(DOUBLE_BARREL_SHOT_ID));
+        DOUBLE_BARREL_LOAD = Registry.register(Registries.SOUND_EVENT, DOUBLE_BARREL_LOAD_ID,
+                SoundEvent.of(DOUBLE_BARREL_LOAD_ID));
     }
 }
