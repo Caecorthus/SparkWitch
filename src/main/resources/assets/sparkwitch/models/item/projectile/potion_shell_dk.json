@@ -1,0 +1,4 @@
+{
+  "parent": "sparkwitch:item/projectile/potion_shell",
+  "textures": {"shell": "sparkwitch:item/projectile/potion_shell_dk", "particle": "sparkwitch:item/projectile/potion_shell_dk"}
+}

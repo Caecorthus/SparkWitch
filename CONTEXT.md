@@ -231,9 +231,15 @@ Current build baseline:
     unless a longer forced cooldown is already running (`ForcedCooldowns.itemRemainingTicks`), and Ninja assignment
     locks it for 90 s. Vanilla chain sounds only, never a `.step` id. The state (FLYING, LATCHED, PULLING) is tracked
     data and the owner id rides the spawn packet for the client `client/renderer/NinjaGrapplingHookEntityRenderer`: a
-    camera-facing head sprite (`textures/entity/ninja_grappling_hook.png`, hidden for its first ticks next to the
-    camera) and a leash-style steel chain to the hand holding the hook (vanilla bobber hand anchor; geometry in
-    `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible to the viewer.
+    3D grapnel head (standalone model `models/item/projectile/ninja_grappling_hook.json`, block-atlas texture
+    `textures/item/projectile/ninja_grappling_hook.png`, drawn through `ProjectileModels`; hidden for its first ticks
+    next to the camera) whose pivot is the crown tip, placed at the hook position itself (the exact hit point once
+    LATCHED) with its four claws pointing along its velocity while FLYING and along hand→hook once LATCHED or PULLING
+    (each falls back to the other, then the owner's look; `NinjaGrapplingHeadPose`), and a leash-style steel chain from the head's ring
+    (`NinjaGrapplingHeadPose.RING_DISTANCE`, tied to the model) to the hand holding the hook (vanilla bobber hand
+    anchor; geometry in `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible
+    to the viewer. The old billboard `textures/entity/ninja_grappling_hook.png` is no longer drawn in game but stays
+    because SparkAssist's ponder scene draws it by id.
     `BlindClientGates.hidesEntity` hides a hook whose owner is hidden, like the fishing bobber.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
   SparkTraits fake bodies, camera-bound bodies, Magician decoys and Fiend feign-death corpses; a deliberate drag on a
@@ -543,7 +549,7 @@ Current build baseline:
   and `shell/` (the shell items and entity, flat flight, blast targeting and falloff, rewards) with `shell/effect/`
   (GW-DK, GW-AC, GW-MR, TR, harmless burning). Its mixins live in `mixin/potiongunner/` and
   `client/mixin/potiongunner/`; client presentation (the scope profile and reticle on the shared `client/scope`
-  module, fire input, HUD, two-handed pose) in `client/potiongunner/`. Its packet is
+  module, fire input, HUD, two-handed pose, the in-flight shell model) in `client/potiongunner/`. Its packet is
   `net/FirePotionLauncherC2SPacket`.
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells and fear;
   `GrandWitchFeatureService` also owns the round lifecycle of the special-accomplice ledger (seed at
@@ -2951,6 +2957,22 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
   - Once the round leaves `ACTIVE`, a match shell still in flight is discarded without exploding, and its
     detonation also requires `ACTIVE`, so no kill, gold or bounty lands after the result. A presentation shell flies
     the same, ignores the round status and skips the Seeker sweep. Finalize discards any shell left.
+- **In-flight model.** The flying shell draws a 3D model, never the item sprite
+  (`client/potiongunner/PotionShellEntityRenderer`, presentation only), through the shared
+  `client/renderer/ProjectileModels` seam. `PotionShellModels` registers once, from `PotionGunnerClient.init()`, one
+  textures-only child per `PotionShellType` (`item/projectile/potion_shell_<key>`, a 64×64 sheet coloured from that
+  type's item sprite) of the shared geometry `item/projectile/potion_shell` (14 px, nose north, four-fold symmetric:
+  fuse, glass warhead bulb, steel neck, band, cross fins, nozzle), plus the type-agnostic nozzle glow
+  `item/projectile/potion_shell_flare`. No face uses a UV `rotation`; each region is painted in its face's default
+  orientation.
+  - The model follows the synced stack (`renderType()`, TR when it is not a shell), sits at the box centre, faces the
+    client velocity (the vanilla projectile yaw/pitch when the velocity is zero), rolls 30° per tick clockwise seen
+    from behind (`PotionShellModelPose`), and is scaled 0.75.
+  - The body is entity cutout no-cull at the entity's light; the glow is the additive eyes layer at full bright (no
+    depth write). The body must stay on an immediate layer: `getEntityCutout(BLOCK_ATLAS)` is a fixed entity buffer
+    drawn after every entity, so it would paint over the glow. Like vanilla `FlyingItemEntityRenderer`, nothing (label included) is drawn while `age < 2` and the camera's
+    focused entity is within 3.5 blocks.
+  - The in-hand and GUI icons stay the flat `*_shell` sprites.
 - **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect,
   Judge attribution or reward). The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
   body overlapping vertically, plus line of sight. It does not catch spectators, Wathe-dead players, or SparkTraits
