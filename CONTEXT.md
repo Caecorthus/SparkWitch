@@ -2968,8 +2968,9 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
   - The model follows the synced stack (`renderType()`, TR when it is not a shell), sits at the box centre, faces the
     client velocity (the vanilla projectile yaw/pitch when the velocity is zero), rolls 30° per tick clockwise seen
     from behind (`PotionShellModelPose`), and is scaled 0.75.
-  - The body is entity cutout at the entity's light; the glow is the additive eyes layer at full bright (no depth
-    write). Like vanilla `FlyingItemEntityRenderer`, nothing (label included) is drawn while `age < 2` and the camera's
+  - The body is entity cutout no-cull at the entity's light; the glow is the additive eyes layer at full bright (no
+    depth write). The body must stay on an immediate layer: `getEntityCutout(BLOCK_ATLAS)` is a fixed entity buffer
+    drawn after every entity, so it would paint over the glow. Like vanilla `FlyingItemEntityRenderer`, nothing (label included) is drawn while `age < 2` and the camera's
     focused entity is within 3.5 blocks.
   - The in-hand and GUI icons stay the flat `*_shell` sprites.
 - **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect,

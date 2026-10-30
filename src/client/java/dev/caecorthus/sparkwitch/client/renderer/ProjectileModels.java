@@ -6,6 +6,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.model.BakedModel;
+import net.minecraft.client.render.model.BakedModelManager;
 import net.minecraft.client.render.model.BakedQuad;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
@@ -40,9 +41,15 @@ public final class ProjectileModels {
         ModelLoadingPlugin.register(context -> context.addModels(ids));
     }
 
-    /** The baked model, or the missing model when it failed to load. / 烘焙后的模型；加载失败时为缺失模型。 */
+    /**
+     * The baked model, or the missing model when it failed to bake (Fabric then has no entry and returns null, e.g.
+     * a broken resource-pack override). / 烘焙后的模型；烘焙失败时（Fabric 此时无条目而返回 null，如损坏的资源包覆盖）
+     * 为缺失模型。
+     */
     public static BakedModel model(Identifier modelId) {
-        return ((FabricBakedModelManager) MinecraftClient.getInstance().getBakedModelManager()).getModel(modelId);
+        BakedModelManager manager = MinecraftClient.getInstance().getBakedModelManager();
+        BakedModel model = ((FabricBakedModelManager) manager).getModel(modelId);
+        return model != null ? model : manager.getMissingModel();
     }
 
     /**

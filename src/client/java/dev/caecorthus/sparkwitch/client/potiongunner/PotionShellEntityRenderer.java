@@ -54,11 +54,15 @@ public final class PotionShellEntityRenderer extends EntityRenderer<PotionShellE
         matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(
                 PotionShellModelPose.rollDegrees(shell.age, tickDelta)));
         matrices.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+        // Not getEntityCutout(BLOCK_ATLAS): that is one of the fixed entity buffers, drawn after every entity, so the
+        // body would paint over the glow below. This layer is immediate and flushes when the eyes buffer is requested.
+        // 不用 getEntityCutout(BLOCK_ATLAS)：它是固定实体缓冲之一，在所有实体之后才绘制，弹体会盖掉下面的尾焰。本层为即时层，
+        // 请求 eyes 缓冲时先行提交。
         ProjectileModels.render(ProjectileModels.model(PotionShellModels.bodyModelId(shell.renderType())), matrices,
-                vertexConsumers.getBuffer(RenderLayer.getEntityCutout(PlayerScreenHandler.BLOCK_ATLAS_TEXTURE)),
+                vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(PlayerScreenHandler.BLOCK_ATLAS_TEXTURE)),
                 light);
-        // Eyes layer: additive and full bright, depth-tested but never written, so it only lifts the nozzle.
-        // 眼睛渲染层：加色且全亮，参与深度测试但不写深度，只提亮喷口。
+        // Eyes layer: additive and full bright, depth-tested against the body but never written, so it only lifts the
+        // nozzle. / 眼睛渲染层：加色且全亮，与弹体做深度测试但不写深度，只提亮喷口。
         ProjectileModels.render(ProjectileModels.model(PotionShellModels.FLARE_MODEL_ID), matrices,
                 vertexConsumers.getBuffer(RenderLayer.getEyes(PlayerScreenHandler.BLOCK_ATLAS_TEXTURE)),
                 LightmapTextureManager.MAX_LIGHT_COORDINATE);

@@ -97,11 +97,14 @@ public final class NinjaGrapplingHookEntityRenderer extends EntityRenderer<Ninja
 
         // Like vanilla thrown items: skip the head for its first ticks right in front of the camera, so the model does
         // not flash across the thrower's view. / 同原版投掷物：刚出手且紧贴镜头时不画钩头，避免模型闪过投掷者视野。
-        if (hook.age >= HEAD_HIDDEN_AGE
-                || this.dispatcher.camera.getPos().squaredDistanceTo(hookPos) >= HEAD_HIDDEN_DISTANCE_SQ) {
+        boolean headDrawn = hook.age >= HEAD_HIDDEN_AGE
+                || this.dispatcher.camera.getPos().squaredDistanceTo(hookPos) >= HEAD_HIDDEN_DISTANCE_SQ;
+        if (headDrawn) {
             renderHead(matrices, vertexConsumers, facing, hookLight);
         }
-        Vector3f ring = NinjaGrapplingHeadPose.ringOffset(facing).toVector3f();
+        // With no head drawn, the chain starts at the hook itself, not at a ring behind the camera.
+        // 未画钩头时链条从钩爪本身开始，而不是从镜头后方的圆环处。
+        Vector3f ring = headDrawn ? NinjaGrapplingHeadPose.ringOffset(facing).toVector3f() : new Vector3f();
         ChainStrip strip = new ChainStrip(
                 vertexConsumers.getBuffer(RenderLayer.getLeash()),
                 matrices.peek().getPositionMatrix(),
