@@ -1377,8 +1377,61 @@ def entityRenderProtocolViolations = { String source, boolean redrawOwner ->
     return found
 }
 
+// Minecraft decodes a sound file's FIRST Ogg logical stream with stb_vorbis, so a file whose first stream is not
+// Vorbis (e.g. cover art that ffmpeg re-muxed into a Theora stream) plays silence with no error. Every shipped .ogg
+// must be exactly one Vorbis stream. Runs on a fresh clone (CI).
+// Minecraft 用 stb_vorbis 解码声音文件的第一个 Ogg 逻辑流；若第一个流不是 Vorbis（例如 ffmpeg 把封面重封装成
+// Theora 流），播放时静音且不报错。每个发布的 .ogg 必须恰好是一个 Vorbis 流。全新克隆（CI）上也会运行。
+def verifySoundAssets = tasks.register("verifySoundAssets") {
+    def soundTree = fileTree("src/main/resources/assets") { include "**/*.ogg" }
+    inputs.files(soundTree)
+
+    doLast {
+        def problems = []
+        soundTree.files.sort { it.path }.each { ogg ->
+            byte[] data = ogg.bytes
+            def name = project.relativePath(ogg)
+            def serials = [] as LinkedHashSet
+            int offset = 0
+            boolean firstPage = true
+            while (offset < data.length) {
+                if (offset + 27 > data.length || new String(data, offset, 4, "US-ASCII") != "OggS") {
+                    problems << "${name}: broken Ogg page at byte ${offset}"
+                    break
+                }
+                int serial = (data[offset + 14] & 0xFF) | ((data[offset + 15] & 0xFF) << 8) |
+                        ((data[offset + 16] & 0xFF) << 16) | ((data[offset + 17] & 0xFF) << 24)
+                serials << serial
+                int segments = data[offset + 26] & 0xFF
+                int body = 0
+                for (int i = 0; i < segments; i++) {
+                    body += data[offset + 27 + i] & 0xFF
+                }
+                int bodyStart = offset + 27 + segments
+                if (firstPage) {
+                    boolean vorbis = body >= 7 && data[bodyStart] == 1 &&
+                            new String(data, bodyStart + 1, 6, "US-ASCII") == "vorbis"
+                    if (!vorbis) {
+                        problems << "${name}: first Ogg stream is not Vorbis (Minecraft would play silence)"
+                    }
+                    firstPage = false
+                }
+                offset = bodyStart + body
+            }
+            if (serials.size() > 1) {
+                problems << "${name}: ${serials.size()} Ogg streams; ship exactly one Vorbis stream (strip cover art)"
+            }
+        }
+        if (!problems.isEmpty()) {
+            throw new GradleException("Sound asset check failed:\n  " + problems.join("\n  "))
+        }
+        logger.lifecycle("Sound assets verified: ${soundTree.files.size()} single-stream Vorbis files.")
+    }
+}
+
 tasks.register("verifyArchitecture") {
     dependsOn verifyBlackRavenActingRoleSeams
+    dependsOn verifySoundAssets
     inputs.files(requiredArchitectureDocs.collect { file(it) })
     inputs.files(requiredArchitectureSources.collect { file(it) })
     inputs.files(localArchitectureTests.collect { file(it) })
