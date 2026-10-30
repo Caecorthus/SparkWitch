@@ -3846,6 +3846,11 @@ export PATH="$JAVA_HOME/bin:$PATH"
 git diff --check
 ```
 
+GitHub Actions (`.github/workflows/build.yml`, since 2026-10-30) runs `build verifyArchitecture
+verifyClientMixinSelectors` and a whitespace check on a fresh clone for every PR and every push to `main`, and
+uploads the jar as a 14-day artifact. It has no `src/test`, so it runs no unit tests and skips the local-only
+architecture contract tests; the command above stays the full local check.
+
 Run a full sequential `build` for a release or after packet, NBT, resource,
 metadata, mixin, or cross-module changes. Do not overlap SparkWitch and sibling
 SparkFactionAPI clean/build tasks.
