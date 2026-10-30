@@ -288,7 +288,9 @@ public final class SparkWitchClient implements ClientModInitializer {
                 SparkWitchEntities.ninjaShuriken(),
                 context -> new FlyingItemEntityRenderer<>(context, 1.0F, true)
         );
-        // The grappling hook draws its head sprite and the chain to the owner's hand. / 钩爪绘制钩头贴图与连到主人手上的锁链。
+        // The grappling hook draws its 3D head model and the chain to the owner's hand.
+        // 钩爪绘制 3D 钩头模型与连到主人手上的锁链。
+        NinjaGrapplingHookEntityRenderer.registerHeadModel();
         EntityRendererRegistry.register(SparkWitchEntities.ninjaGrapplingHook(), NinjaGrapplingHookEntityRenderer::new);
         EntityRendererRegistry.register(HunterEntities.hunterTrap(), HunterTrapEntityRenderer::new);
         // The thrown Shock Device renders its synced item stack like vanilla thrown items.
