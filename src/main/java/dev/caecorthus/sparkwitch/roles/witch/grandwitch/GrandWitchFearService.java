@@ -36,6 +36,9 @@ public final class GrandWitchFearService {
             SparkWitch.id("use_orthopedist_skill"),
             UseSaboteurSkillC2SPacket.PAYLOAD_ID,
             SparkWitch.id("throw_kidnapper_body"),
+            // Knight duel target pick (KnightDuelTargetC2SPayload); the duel receiver also re-checks Fear.
+            // 骑士决斗目标选择（KnightDuelTargetC2SPayload）；决斗接收器也会再次检查恐惧。
+            SparkWitch.id("knight_duel_target"),
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
             Identifier.of("noellesroles", "detective_investigate"),

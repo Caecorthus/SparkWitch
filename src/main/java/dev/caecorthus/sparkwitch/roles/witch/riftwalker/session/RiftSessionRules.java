@@ -91,6 +91,8 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "vendetta_knife_stab"),
             Identifier.of("sparkwitch", "open_judge_selection"),
             Identifier.of("sparkwitch", "confirm_judge_selection"),
+            // Knight duel target pick, classified like the Judge's pair. / 骑士决斗目标选择，与法官的两个包同样归类。
+            Identifier.of("sparkwitch", "knight_duel_target"),
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
             Identifier.of("sparkwitch", "seeker_car_swallow"),
             Identifier.of("sparkwitch", "seeker_car_recall"),

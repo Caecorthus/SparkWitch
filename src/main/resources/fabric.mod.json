@@ -71,7 +71,8 @@
       "sparkwitch:usec_player",
       "sparkwitch:fiend_feign",
       "sparkwitch:mini_wither",
-      "sparkwitch:black_raven_crow"
+      "sparkwitch:black_raven_crow",
+      "sparkwitch:knight_duel"
     ]
   },
   "mixins": [

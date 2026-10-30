@@ -15,6 +15,8 @@ Vigilante slots.
 The Black Raven (`sparkwitch:black_raven`, 黑羽鸦) is a police variant too since 2026-10-21 (plan
 `docs/plans/2026-10-21-black-raven-police.md`): it shares the Vigilante slots, carries a revolver and the Feather
 Blade, keeps its Raven Mask disguise, and never counts as alive for round settlement.
+The Knight (`sparkwitch:knight`, 骑士, contributed in PR #169 and reworked 2026-10-30) is a police variant that shares
+the Vigilante slots and spends 150 coins on the shared ability key (G) to duel one living player.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -857,6 +859,55 @@ Current build baseline:
     Heavy Artillery repeat-kill hooks only Wathe's revolver receiver; the AXMC instead asks the public
     `SparkTraitsApi.isHeavyArtilleryGunShot` facade for one extra shield layer (O3, see shield piercing). SparkAssist
     owns the guidebook page.
+- `roles/civilian/knight/`: the Knight (`sparkwitch:knight`, 骑士), a police variant. The owner spec and the
+  2026-10-30 review answers are the source of truth; every number lives in `KnightRules` and `duel/KnightDuelRules`.
+  - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
+    appearance condition) registered right before the Insider and right after USEC in the assassin-guess order. It is
+    drawn only through the shared Vigilante slots (`PoliceSlotAssignmentService.VARIANT_IDS`); `PoliceRoles.register`
+    gives it the SparkTraits police traits and the free SparkStrength tablet. It is not a witch-skill role and never
+    renders in the `gui.sparkwitch.skills` panel.
+  - Loadout and economy: `KnightFeatureService` grants a revolver, a spent derringer and the cross sword at
+    `ON_FINISH_INITIALIZE`; `KnightEconomyService` starts it at 0 coins, pays +50 per task and always shows money.
+  - "Good" for every Knight rule is `KnightRules.isGoodForKnight`: SparkFactionAPI effective faction CIVILIAN (Impostor
+    out, Conscience in). Neutrals are not good (owner, 2026-10-30).
+  - Kills (`KnightKillService`): +100 for any non-good victim; pushing a good player off the train kills the Knight
+    with `sparkwitch:cerebellum` (non-forced, like Wathe's `shot_innocent`). `mixin/KnightPoliceGunMixin` OR-wraps
+    Wathe's four gun `isRole` reads (Vigilante parity) and charges -1.0 mood only for a derringer shot that kills a
+    good player; `mixin/KnightDerringerCooldownMixin` pins the Knight's derringer cooldown to 20 ticks;
+    `mixin/knight/KnightDerringerReloadMixin` stops Wathe's kill reload of every derringer when a Knight kills a good
+    player with any weapon.
+  - Duel (`duel/`): `KnightDuelWorldComponent` (`sparkwitch:knight_duel`, world, auto-synced to every client, appended
+    last in `fabric.mod.json`) is the single duel state; clients read nothing else. `KnightDuelService` validates the
+    C2S `sparkwitch:knight_duel_target` (Fear, stun and skill blocks refuse it; the cost is charged only when a duel
+    starts). A good pick force-kills the Knight with `sparkwitch:duel_suicide` (自裁); a third-party kill of a duelist
+    force-kills the other with `sparkwitch:duel_failed` (决斗失败), except a train fall; the 120 s timeout force-kills
+    both with `duel_failed`; a disconnect or round end just ends it. Both reasons are SparkTraits terminal death
+    reasons. Prophecy groups all three Knight reasons as PENALTY.
+  - Seal (`duel/KnightDuelSeal`): every carried non-whitelisted item of BOTH duelists (the Knight's revolver included;
+    knife, derringer, cross sword, the SparkStrength tablet, letters, keys, lockpick, crowbar, cocktails and master keys
+    are whitelisted) is raised through SparkFactionAPI `ForcedCooldowns` every 10 ticks. Guards cover paths that skip
+    the cooldown check: UseItem, UseEntity, main-hand Attack, and UseBlock only on Wathe `FoodPlatterBlock` /
+    `TrimmedBedBlock` (doors and buttons stay usable). Payload weapons (`KnightDuelSkillLock.SEALED_WEAPON_PAYLOADS`:
+    Death Ray, crimson skull, launcher, AXMC, Demon Hunter and Serial Killer pistols, Vendetta knife, Swordfish, drone
+    fire) are dropped for duelists; `wathe:gunshoot`, `wathe:knifestab` and `sparkwitch:cross_sword_stab` never are.
+    At the end only sealed items are written back to their pre-duel remaining time (a longer cooldown someone else
+    raised during the duel is kept), never through `ItemCooldownManager.remove`.
+  - Knives (`duel/KnightDuelKnives`): a target without a knife gets one marked with the `sparkwitch:duel_knife` data
+    component; only that marked knife is limited to stabbing the Knight (`mixin/knight/KnightDuelKnife*Mixin`), own
+    knives are never limited. The target's knife cooldown is cleared at the start; marked knives are confiscated
+    everywhere (inventories, cursor, open containers, item entities) at the end.
+  - Cross sword (`CrossSwordItem`, `CrossSwordStabService`): 0.5 s hold, the client picks the duel target on a
+    2-block target-only ray (`client/knight/CrossSwordClientStab`, shared with the crosshair mixin) and sends
+    `sparkwitch:cross_sword_stab`; the server matches it to the release and checks the duel, the main-hand sword and
+    3 blocks. It has no cooldown and is exempt from SparkFactionAPI forced raises.
+  - Duelists: Speed II and glowing colour teams for the Knight (aqua) and the target (red); `KnightDuelBodyCollision`
+    with `mixin/knight/KnightDuelEntityCollisionMixin` (priority 1100, outside Wathe's `collidesWith` wrap) and
+    `KnightDuelLivingEntityCollisionMixin` lets duelists pass through every player both ways; doors still block them.
+    `KnightDuelSkillLock` with `mixin/knight/KnightDuelSkillPayloadGuardMixin` drops the shared-ability-key (G) skill
+    payloads of both duelists on the server; key-N skills and weapons stay allowed.
+  - Client (`client/knight/`): no own key binding; the Knight branch of the shared ability dispatch in
+    `SparkWitchClient` opens `KnightDuelScreen`, and `KnightDuelClient` draws the HUD and stops the duel track on
+    `sparkwitch:knight_duel_stop_sound`. SparkAssist has no guidebook page yet.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation

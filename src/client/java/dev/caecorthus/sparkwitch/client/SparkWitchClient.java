@@ -13,6 +13,8 @@ import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
 import dev.caecorthus.sparkwitch.client.fisher.FisherClient;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
+import dev.caecorthus.sparkwitch.client.knight.KnightDuelClient;
+import dev.caecorthus.sparkwitch.client.knight.KnightSwordClient;
 import dev.caecorthus.sparkwitch.client.prophet.ProphetClientModule;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
@@ -130,6 +132,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerProphetNecrologyNetworking();
         registerWraithRoleAnnouncementNetworking();
         JudgeClientModule.register();
+        KnightSwordClient.register();
+        KnightDuelClient.register();
         ProphetClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
@@ -202,7 +206,13 @@ public final class SparkWitchClient implements ClientModInitializer {
                 var role = GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player);
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
-                if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID)) {
+                if (KnightDuelClient.ownsAbilityKey(client.player, role)) {
+                    // Checked first: either duelist's press does nothing (any role, owner 2026-10-30; the server also
+                    // drops their G-skill payloads), and a Knight's press opens the duel target panel.
+                    // 最先判定：任一决斗者的按下无效（任何职业，所有者 2026-10-30；服务端也会丢弃其 G 键技能包），
+                    // 骑士的按下打开决斗目标面板。
+                    KnightDuelClient.onAbilityKey(client);
+                } else if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID)) {
                     // Real role only; the server re-checks the role and every skill lock before advancing the stage.
                     // Key-repeat presses while the key stays held are dropped (one stage step per physical press).
                     // 仅限真实职业；服务端会再次检查职业与所有技能锁后才推进阶段。按住不放时的重复按下被丢弃（每次物理按键只推进一步）。

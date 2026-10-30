@@ -66,6 +66,9 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "vendetta_knife_stab"),
             Identifier.of("sparkwitch", "open_judge_selection"),
             Identifier.of("sparkwitch", "confirm_judge_selection"),
+            // Knight duel target pick (KnightDuelTargetC2SPayload), the Knight's priced G skill, like the Judge's.
+            // 骑士决斗目标选择（KnightDuelTargetC2SPayload），骑士的付费 G 键技能，与法官同类。
+            Identifier.of("sparkwitch", "knight_duel_target"),
             // Prophet Prophecy request and priced confirmation, classified like the Judge's pair.
             // 先知预言的请求与付费确认，与法官的两个包同样归类。
             Identifier.of("sparkwitch", "request_prophecy"),
