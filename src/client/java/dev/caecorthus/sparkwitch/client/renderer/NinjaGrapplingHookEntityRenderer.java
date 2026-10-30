@@ -6,7 +6,6 @@ import dev.caecorthus.sparkwitch.entity.NinjaGrapplingHookEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Frustum;
 import net.minecraft.client.render.LightmapTextureManager;
-import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -15,6 +14,7 @@ import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.util.Arm;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -22,31 +22,31 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.joml.Matrix4f;
-import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 /**
- * Draws the Ninja Grappling Hook: a camera-facing head sprite (like the vanilla fishing bobber) and a steel chain from
- * the head to the owner's hand (vanilla leash strip, thinner, in alternating dark/light links). Taut while LATCHED or
- * PULLING, a slight sag while FLYING. Nothing is drawn without a loaded owner.
- * 绘制忍者钩爪：始终朝向镜头的钩头贴图（同原版浮漂）与从钩头连到主人手上的钢链（原版拴绳条带，更细，深浅链节交替）。
- * 钩住或拉拽时绷直，飞行中略微下垂。主人未加载时什么都不画。
+ * Draws the Ninja Grappling Hook: a 3D grapnel head ({@link ProjectileModels}) whose crown tip sits on the hook position
+ * and whose claws point away from the thrower along the chain, and a steel chain from the head's ring to the owner's
+ * hand (vanilla leash strip, thinner, in alternating dark/light links). Taut while LATCHED or PULLING, a slight sag
+ * while FLYING. Nothing is drawn without a loaded owner. The old billboard texture
+ * {@code textures/entity/ninja_grappling_hook.png} is no longer drawn here but stays for SparkAssist's ponder scene.
+ * 绘制忍者钩爪：3D 钩头（{@link ProjectileModels}），钩冠尖端位于钩爪位置，爪尖沿链条背离投掷者；以及从钩头圆环连到
+ * 主人手上的钢链（原版拴绳条带，更细，深浅链节交替）。钩住或拉拽时绷直，飞行中略微下垂。主人未加载时什么都不画。
+ * 旧的公告板贴图 {@code textures/entity/ninja_grappling_hook.png} 不再在此绘制，但为 SparkAssist 的 ponder 场景保留。
  */
 public final class NinjaGrapplingHookEntityRenderer extends EntityRenderer<NinjaGrapplingHookEntity> {
-    private static final Identifier TEXTURE = SparkWitch.id("textures/entity/ninja_grappling_hook.png");
-    private static final RenderLayer HEAD_LAYER = RenderLayer.getEntityCutout(TEXTURE);
-    private static final float HEAD_SIZE = 0.5F;
     /**
-     * The chain meets the head at the ring drawn at the bottom of the 16x16 sprite (pixel row ~13.5), in blocks along
-     * the camera's up axis. Re-check it if the sprite is redrawn.
-     * 链条连接在 16x16 贴图底部的圆环处（约第 13.5 行像素），单位为沿镜头上方向的方块数。重绘贴图时需复核。
+     * Standalone JSON model (no item points at it); pivot at the crown tip, claws north. Its texture lives under
+     * {@code textures/item/projectile/}, so it is stitched into the block atlas.
+     * 独立 JSON 模型（没有物品引用它）；枢轴在钩冠尖端，爪尖朝北。贴图位于 {@code textures/item/projectile/}，会拼入方块图集。
      */
-    private static final float HEAD_EYE_OFFSET = -0.17F;
+    private static final Identifier HEAD_MODEL_ID = SparkWitch.id("item/projectile/ninja_grappling_hook");
+    private static final RenderLayer HEAD_LAYER = RenderLayer.getEntityCutout(PlayerScreenHandler.BLOCK_ATLAS_TEXTURE);
     /** A 0.02 wide chain, thinner than the vanilla leash's 0.025. / 链宽 0.02，比原版拴绳的 0.025 更细。 */
     private static final float CHAIN_HALF_WIDTH = 0.01F;
     /**
-     * Light is probed this far toward the owner, so a hook flush with a wall is not lit as the inside of the block.
-     * 光照取样点向主人方向偏移这么远，避免贴墙的钩头按方块内部的光照变黑。
+     * Light is probed this far back along the head (toward the owner), so a hook flush with a wall is not lit as the
+     * inside of the block. / 光照取样点沿钩头向后（朝主人方向）偏移这么远，避免贴墙的钩头按方块内部的光照变黑。
      */
     private static final double LIGHT_PROBE_BACKOFF = 0.3D;
     /**
@@ -65,6 +65,11 @@ public final class NinjaGrapplingHookEntityRenderer extends EntityRenderer<Ninja
         super(context);
     }
 
+    /** Adds the head model to the model bakery; call once from client init. / 把钩头模型加入模型烘焙；客户端初始化时调用一次。 */
+    public static void registerHeadModel() {
+        ProjectileModels.register(HEAD_MODEL_ID);
+    }
+
     @Override
     public void render(
             NinjaGrapplingHookEntity hook,
@@ -78,36 +83,36 @@ public final class NinjaGrapplingHookEntityRenderer extends EntityRenderer<Ninja
         if (owner == null || hidesOwner(owner)) {
             return;
         }
-        float halfHeight = hook.getHeight() / 2.0F;
-        Vec3d center = hook.getLerpedPos(tickDelta).add(0.0D, halfHeight, 0.0D);
+        // The matrix origin is the hook position: the exact block hit point once LATCHED (the server latches with
+        // setPosition(hit)), so the crown tip touches the surface. / 矩阵原点即钩爪位置：钩住后就是精确的方块命中点
+        // （服务端以 setPosition(hit) 钩住），因此钩冠尖端正好贴在表面上。
+        Vec3d hookPos = hook.getLerpedPos(tickDelta);
         Vec3d hand = handPos(owner, tickDelta);
+        Vec3d facing = NinjaGrapplingHeadPose.facing(
+                hookPos.subtract(hand), hook.getVelocity(), owner.getRotationVec(tickDelta));
         World world = hook.getWorld();
-        Vec3d lightProbe = center.add(hand.subtract(center).normalize().multiply(LIGHT_PROBE_BACKOFF));
+        Vec3d lightProbe = hookPos.subtract(facing.multiply(LIGHT_PROBE_BACKOFF));
         int hookLight = brighter(light, sampleLight(world, lightProbe));
         int handLight = sampleLight(world, owner.getCameraPosVec(tickDelta));
-        Quaternionf facing = this.dispatcher.getRotation();
 
-        matrices.push();
-        matrices.translate(0.0D, halfHeight, 0.0D);
-        // Like vanilla thrown items: skip the head for its first ticks right in front of the camera, so the sprite does
-        // not flash across the thrower's view. / 同原版投掷物：刚出手且紧贴镜头时不画钩头，避免贴图闪过投掷者视野。
+        // Like vanilla thrown items: skip the head for its first ticks right in front of the camera, so the model does
+        // not flash across the thrower's view. / 同原版投掷物：刚出手且紧贴镜头时不画钩头，避免模型闪过投掷者视野。
         if (hook.age >= HEAD_HIDDEN_AGE
-                || this.dispatcher.camera.getPos().squaredDistanceTo(center) >= HEAD_HIDDEN_DISTANCE_SQ) {
+                || this.dispatcher.camera.getPos().squaredDistanceTo(hookPos) >= HEAD_HIDDEN_DISTANCE_SQ) {
             renderHead(matrices, vertexConsumers, facing, hookLight);
         }
-        Vector3f eye = facing.transform(new Vector3f(0.0F, HEAD_EYE_OFFSET, 0.0F));
+        Vector3f ring = NinjaGrapplingHeadPose.ringOffset(facing).toVector3f();
         ChainStrip strip = new ChainStrip(
                 vertexConsumers.getBuffer(RenderLayer.getLeash()),
                 matrices.peek().getPositionMatrix(),
-                eye,
-                (float) (hand.x - center.x) - eye.x,
-                (float) (hand.y - center.y) - eye.y,
-                (float) (hand.z - center.z) - eye.z,
+                ring,
+                (float) (hand.x - hookPos.x) - ring.x,
+                (float) (hand.y - hookPos.y) - ring.y,
+                (float) (hand.z - hookPos.z) - ring.z,
                 hookLight,
                 handLight
         );
         strip.render(hook.getState() == NinjaGrapplingHookEntity.State.FLYING);
-        matrices.pop();
         super.render(hook, yaw, tickDelta, matrices, vertexConsumers, light);
     }
 
@@ -139,44 +144,23 @@ public final class NinjaGrapplingHookEntityRenderer extends EntityRenderer<Ninja
         return viewer != null && owner != viewer && owner.isInvisibleTo(viewer);
     }
 
+    /** The head model's texture is stitched into the block atlas. / 钩头模型贴图拼在方块图集中。 */
     @Override
     public Identifier getTexture(NinjaGrapplingHookEntity hook) {
-        return TEXTURE;
+        return PlayerScreenHandler.BLOCK_ATLAS_TEXTURE;
     }
 
     private static void renderHead(
             MatrixStack matrices,
             VertexConsumerProvider vertexConsumers,
-            Quaternionf facing,
+            Vec3d facing,
             int light
     ) {
         matrices.push();
-        matrices.scale(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE);
-        matrices.multiply(facing);
-        MatrixStack.Entry entry = matrices.peek();
-        VertexConsumer consumer = vertexConsumers.getBuffer(HEAD_LAYER);
-        headVertex(consumer, entry, light, 0.0F, 0.0F, 0.0F, 1.0F);
-        headVertex(consumer, entry, light, 1.0F, 0.0F, 1.0F, 1.0F);
-        headVertex(consumer, entry, light, 1.0F, 1.0F, 1.0F, 0.0F);
-        headVertex(consumer, entry, light, 0.0F, 1.0F, 0.0F, 0.0F);
+        ProjectileModels.faceAlong(matrices, facing.x, facing.y, facing.z);
+        ProjectileModels.render(
+                ProjectileModels.model(HEAD_MODEL_ID), matrices, vertexConsumers.getBuffer(HEAD_LAYER), light);
         matrices.pop();
-    }
-
-    private static void headVertex(
-            VertexConsumer consumer,
-            MatrixStack.Entry entry,
-            int light,
-            float x,
-            float y,
-            float u,
-            float v
-    ) {
-        consumer.vertex(entry, x - 0.5F, y - 0.5F, 0.0F)
-                .color(0xFFFFFFFF)
-                .texture(u, v)
-                .overlay(OverlayTexture.DEFAULT_UV)
-                .light(light)
-                .normal(entry, 0.0F, 1.0F, 0.0F);
     }
 
     /**

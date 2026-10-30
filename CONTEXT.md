@@ -231,9 +231,15 @@ Current build baseline:
     unless a longer forced cooldown is already running (`ForcedCooldowns.itemRemainingTicks`), and Ninja assignment
     locks it for 90 s. Vanilla chain sounds only, never a `.step` id. The state (FLYING, LATCHED, PULLING) is tracked
     data and the owner id rides the spawn packet for the client `client/renderer/NinjaGrapplingHookEntityRenderer`: a
-    camera-facing head sprite (`textures/entity/ninja_grappling_hook.png`, hidden for its first ticks next to the
-    camera) and a leash-style steel chain to the hand holding the hook (vanilla bobber hand anchor; geometry in
-    `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible to the viewer.
+    3D grapnel head (standalone model `models/item/projectile/ninja_grappling_hook.json`, block-atlas texture
+    `textures/item/projectile/ninja_grappling_hook.png`, drawn through `ProjectileModels`; hidden for its first ticks
+    next to the camera) whose pivot is the crown tip, placed at the hook position itself (the exact hit point once
+    LATCHED) with its four claws pointing along hand→hook (fallback: velocity, then the owner's look;
+    `NinjaGrapplingHeadPose`), and a leash-style steel chain from the head's ring
+    (`NinjaGrapplingHeadPose.RING_DISTANCE`, tied to the model) to the hand holding the hook (vanilla bobber hand
+    anchor; geometry in `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible
+    to the viewer. The old billboard `textures/entity/ninja_grappling_hook.png` is no longer drawn in game but stays
+    because SparkAssist's ponder scene draws it by id.
     `BlindClientGates.hidesEntity` hides a hook whose owner is hidden, like the fishing bobber.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
   SparkTraits fake bodies, camera-bound bodies, Magician decoys and Fiend feign-death corpses; a deliberate drag on a
