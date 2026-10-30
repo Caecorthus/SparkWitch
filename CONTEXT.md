@@ -234,8 +234,8 @@ Current build baseline:
     3D grapnel head (standalone model `models/item/projectile/ninja_grappling_hook.json`, block-atlas texture
     `textures/item/projectile/ninja_grappling_hook.png`, drawn through `ProjectileModels`; hidden for its first ticks
     next to the camera) whose pivot is the crown tip, placed at the hook position itself (the exact hit point once
-    LATCHED) with its four claws pointing along hand→hook (fallback: velocity, then the owner's look;
-    `NinjaGrapplingHeadPose`), and a leash-style steel chain from the head's ring
+    LATCHED) with its four claws pointing along its velocity while FLYING and along hand→hook once LATCHED or PULLING
+    (each falls back to the other, then the owner's look; `NinjaGrapplingHeadPose`), and a leash-style steel chain from the head's ring
     (`NinjaGrapplingHeadPose.RING_DISTANCE`, tied to the model) to the hand holding the hook (vanilla bobber hand
     anchor; geometry in `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible
     to the viewer. The old billboard `textures/entity/ninja_grappling_hook.png` is no longer drawn in game but stays

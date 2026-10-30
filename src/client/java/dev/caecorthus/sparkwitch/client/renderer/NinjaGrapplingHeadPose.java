@@ -31,17 +31,23 @@ final class NinjaGrapplingHeadPose {
     }
 
     /**
-     * Unit direction of the claws: away from the thrower along the chain ({@code hook - hand}), so a latched head
-     * points into the surface and pivots as the owner moves; the hook's velocity, then the owner's look, when the
-     * chain is too short; north if every input is degenerate.
-     * 爪尖的单位方向：沿链条背离投掷者（{@code 钩爪 - 手}），因此钩住时指向表面并随主人移动而转动；链条过短时依次退回
-     * 钩爪速度与主人视线；所有输入都退化时取北方。
+     * Unit direction of the claws. A FLYING head points along its velocity, claws first; other players see the hand
+     * ahead of the eyes the hook spawns at, so the chain would point it backwards on its first frame. A LATCHED or
+     * PULLING head points away from the thrower along the chain ({@code hook - hand}), into the surface, and pivots
+     * as the owner moves. Each falls back to the other, then to the owner's look, then north.
+     * 爪尖的单位方向。飞行中的钩头沿速度方向、爪尖在前；其他玩家看到的手在钩爪生成的眼部前方，按链条朝向会在第一帧
+     * 指向后方。钩住或拉拽时沿链条背离投掷者（{@code 钩爪 - 手}），指向表面并随主人移动而转动。两者互为后备，再退回
+     * 主人视线，最后取北方。
      */
-    static Vec3d facing(Vec3d handToHook, Vec3d velocity, Vec3d ownerLook) {
+    static Vec3d facing(boolean flying, Vec3d handToHook, Vec3d velocity, Vec3d ownerLook) {
+        boolean velocityUsable = velocity.lengthSquared() > MIN_FALLBACK_LENGTH_SQ;
+        if (flying && velocityUsable) {
+            return velocity.normalize();
+        }
         if (handToHook.lengthSquared() >= MIN_AIM_LENGTH * MIN_AIM_LENGTH) {
             return handToHook.normalize();
         }
-        if (velocity.lengthSquared() > MIN_FALLBACK_LENGTH_SQ) {
+        if (velocityUsable) {
             return velocity.normalize();
         }
         if (ownerLook.lengthSquared() > MIN_FALLBACK_LENGTH_SQ) {

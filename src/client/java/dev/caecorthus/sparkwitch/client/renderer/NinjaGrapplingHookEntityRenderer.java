@@ -88,7 +88,7 @@ public final class NinjaGrapplingHookEntityRenderer extends EntityRenderer<Ninja
         // （服务端以 setPosition(hit) 钩住），因此钩冠尖端正好贴在表面上。
         Vec3d hookPos = hook.getLerpedPos(tickDelta);
         Vec3d hand = handPos(owner, tickDelta);
-        Vec3d facing = NinjaGrapplingHeadPose.facing(
+        Vec3d facing = NinjaGrapplingHeadPose.facing(hook.getState() == NinjaGrapplingHookEntity.State.FLYING,
                 hookPos.subtract(hand), hook.getVelocity(), owner.getRotationVec(tickDelta));
         World world = hook.getWorld();
         Vec3d lightProbe = hookPos.subtract(facing.multiply(LIGHT_PROBE_BACKOFF));
