@@ -3873,6 +3873,11 @@ verifyClientMixinSelectors` and a whitespace check on a fresh clone for every PR
 uploads the jar as a 14-day artifact. It has no `src/test`, so it runs no unit tests and skips the local-only
 architecture contract tests; the command above stays the full local check.
 
+`verifyArchitecture` also runs `verifySoundAssets`: every `.ogg` under `src/main/resources/assets` must be exactly one
+Vorbis stream. Minecraft decodes only the first Ogg stream, so a file with embedded cover art that ffmpeg re-muxed into
+a Theora stream plays silence (the Knight duel track shipped that way in #169). When re-encoding, keep audio only:
+`ffmpeg -i in.ogg -map 0:a:0 -vn -map_metadata -1 -c:a libvorbis -q:a 4 out.ogg`.
+
 Run a full sequential `build` for a release or after packet, NBT, resource,
 metadata, mixin, or cross-module changes. Do not overlap SparkWitch and sibling
 SparkFactionAPI clean/build tasks.
