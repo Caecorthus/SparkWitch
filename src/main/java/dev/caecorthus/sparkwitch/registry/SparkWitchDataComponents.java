@@ -7,18 +7,14 @@ import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 
-/**
- * SparkWitch item data components. {@code sparkwitch:special} is a per-stack marker: the same item id can carry it
- * or not, so the system can tell a specifically marked stack apart from ordinary copies of the same item.
- * SparkWitch 物品数据组件。{@code sparkwitch:special} 是逐物品堆的标记：同一个物品 id 可以带或不带它，
- * 系统因此能区分被特别标记的物品堆与同类的普通物品。
- */
+/** SparkWitch item data components. / SparkWitch 物品数据组件。 */
 public final class SparkWitchDataComponents {
-    public static final ComponentType<Boolean> SPECIAL = register("special",
-            ComponentType.<Boolean>builder()
-                    .codec(Codec.BOOL)
-                    .packetCodec(PacketCodecs.BOOL));
-    /** Marks the knife handed to a Knight duel opponent. / 标记发给骑士决斗对手的小刀。 */
+    /**
+     * Per-stack marker of the knife issued to a Knight duel target ({@code KnightDuelKnives}): only that stack is
+     * restricted to stabbing the Knight, and every marked stack is confiscated when the duel ends.
+     * 发给骑士决斗对手的小刀的逐物品堆标记（{@code KnightDuelKnives}）：只有该物品堆被限制为只能刺骑士，
+     * 决斗结束时所有带标记的物品堆都会被收回。
+     */
     public static final ComponentType<Boolean> DUEL_KNIFE = register("duel_knife",
             ComponentType.<Boolean>builder()
                     .codec(Codec.BOOL)

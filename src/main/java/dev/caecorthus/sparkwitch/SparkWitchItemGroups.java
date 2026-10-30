@@ -80,6 +80,8 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.usecFmjRound(),
                                     SparkWitchItems.usecApRound(),
                                     SparkWitchItems.usecSuppressor(),
+                                    // Knight (civilian police) / 骑士（平民警察）
+                                    SparkWitchItems.crossSword(),
                                     // Black Raven (civilian police) / 黑羽鸦（平民警察）
                                     SparkWitchItems.featherBlade(),
                                     SparkWitchItems.blackRavenLedger(),

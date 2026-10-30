@@ -303,8 +303,11 @@ public final class SparkWitchForcedCooldowns {
      * The Seeker car is exempt: {@code SeekerCooldowns} is its frozen sole "max + exact" writer, driven only by the
      * Seeker state machine, and offers no write path to other features.
      * 搜寻者小车豁免：SeekerCooldowns 是其冻结的唯一“取最大 + 精确”写入方，只由搜寻者状态机驱动，不向其他功能开放写入。
+     * The Knight's cross sword is exempt too: it has no cooldown at all, so forced raises must not lock it.
+     * 骑士十字剑同样豁免：它完全没有冷却，强制抬高不得将其锁住。
      */
     static boolean isExemptItem(Identifier itemId) {
-        return SparkWitchItems.SEEKER_CAR_ID.equals(itemId);
+        // The Knight's cross sword never cools down (spec 无cd). / 骑士十字剑永不冷却（规格“无cd”）。
+        return SparkWitchItems.SEEKER_CAR_ID.equals(itemId) || SparkWitchItems.CROSS_SWORD_ID.equals(itemId);
     }
 }

@@ -51,6 +51,7 @@ public final class SparkWitchPackets {
         SaboteurNetworking.register();
         SeekerNetworking.register();
         dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelNetworking.registerServer();
+        dev.caecorthus.sparkwitch.roles.civilian.knight.CrossSwordStabService.register();
         // Riftwalker payloads register in their own role-owned class, like the Seeker. / 隙行者数据包与搜寻者一样在自有类中注册。
         RiftwalkerNetworking.register();
         // Hunter shotgun aim claim, also role-owned. / 猎人猎枪瞄准声明，同样在自有类中注册。

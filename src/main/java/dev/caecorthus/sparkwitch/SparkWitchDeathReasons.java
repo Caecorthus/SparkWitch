@@ -37,12 +37,19 @@ public final class SparkWitchDeathReasons {
      * 普通、非强制的巫女赤色凋灵之首击杀；在其他系统中按枪击处理（所有者 Q5）。
      */
     public static final Identifier CRIMSON_WITHER_SKULL = SparkWitch.id("crimson_wither_skull");
-    /** Knight picked a good target: Manba Out. / 骑士选到好人：曼巴out。 */
-    public static final Identifier MANBA_OUT = SparkWitch.id("manba_out");
-    /** Duel opponent killed by a third party. / 决斗方被第三人击杀。 */
-    public static final Identifier DUEL_VIOLATION = SparkWitch.id("duel_violation");
-    /** Duel reached 120 s without a death: the Knight dies. / 决斗 120 秒未分胜负：骑士死亡。 */
-    public static final Identifier DUEL_TIMEOUT = SparkWitch.id("duel_timeout");
+    /**
+     * The Knight challenged a good player and dies at once. Forced, body kept, no killer, and registered
+     * SparkTraits-terminal (owner 2026-10-30).
+     * 骑士对好人发起决斗，当场自裁。强制击杀、保留尸体、无凶手，并注册为 SparkTraits 终结死亡原因（所有者 2026-10-30）。
+     */
+    public static final Identifier DUEL_SUICIDE = SparkWitch.id("duel_suicide");
+    /**
+     * A duel was lost without a duel kill: a third party killed the other duelist, or 120 s passed (both die). Forced,
+     * body kept, no killer, and registered SparkTraits-terminal (owner 2026-10-30).
+     * 决斗失败（非决斗击杀）：第三人击杀了另一方，或 120 秒到时（双方均死）。强制击杀、保留尸体、无凶手，并注册为
+     * SparkTraits 终结死亡原因（所有者 2026-10-30）。
+     */
+    public static final Identifier DUEL_FAILED = SparkWitch.id("duel_failed");
     /** The Knight pushed a good player off the train. / 骑士把好人推下列车。 */
     public static final Identifier CEREBELLUM = SparkWitch.id("cerebellum");
 

@@ -1,16 +1,14 @@
 package dev.caecorthus.sparkwitch.roles.civilian.knight.duel;
 
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
-import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
-import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
-import net.minecraft.util.ActionResult;
-import dev.caecorthus.sparkwitch.compat.KnightTraitsBridge;
-import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
-import dev.caecorthus.sparkwitch.net.KnightDuelStateS2CPayload;
+import dev.caecorthus.sparkwitch.api.SparkWitchApi;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.net.KnightDuelStopSoundS2CPayload;
-import dev.caecorthus.sparkwitch.registry.SparkWitchDataComponents;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -19,21 +17,16 @@ import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
-import dev.doctor4t.wathe.item.CocktailItem;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.player.ItemCooldownManager;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
-import net.minecraft.registry.Registries;
 import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.scoreboard.AbstractTeam;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.scoreboard.Team;
@@ -48,14 +41,16 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Server owner of the Knight duel: validation, the Manba Out branch, duel state, teams/effects, item cooldowns,
- * marked knife, titles, audio and cleanup.
- * 骑士决斗的服务端归属：校验、曼巴out 分支、决斗状态、队伍/效果、物品冷却、标记刀、标题、音频与收尾。
+ * Server owner of the Knight duel: validation, the good-pick self-execution, duel state, teams/effects, the weapon
+ * seal ({@link KnightDuelSeal}), the marked knife ({@link KnightDuelKnives}), titles, audio and cleanup.
+ * 骑士决斗的服务端归属：校验、选到好人时的自裁、决斗状态、队伍/效果、武器封印（{@link KnightDuelSeal}）、
+ * 标记小刀（{@link KnightDuelKnives}）、标题、音频与收尾。
  */
 public final class KnightDuelService {
     private static boolean registered;
@@ -68,36 +63,32 @@ public final class KnightDuelService {
             return;
         }
         registered = true;
-        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTED.register(KnightDuelService::resetDuelTeams);
+        KnightDuelSeal.registerGuards();
+        // Owner-approved forced kills (2026-10-30): SparkTraits reads terminal reasons from a live set at kill time, so
+        // registering on server start is early enough and idempotent; an absent or older SparkTraits registers nothing.
+        // 所有者批准的强制击杀（2026-10-30）：SparkTraits 在击杀时实时读取终结原因集合，服务端启动时注册即足够早且幂等；
+        // 缺失或旧版 SparkTraits 不注册任何内容。
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            SparkTraitsKillerBridge.registerTerminalDeathReason(SparkWitchDeathReasons.DUEL_SUICIDE);
+            SparkTraitsKillerBridge.registerTerminalDeathReason(SparkWitchDeathReasons.DUEL_FAILED);
+        });
+        ServerLifecycleEvents.SERVER_STARTED.register(KnightDuelService::resetDuelTeams);
         KillPlayer.AFTER.register(KnightDuelService::afterKill);
-        AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient() || !(player instanceof ServerPlayerEntity serverPlayer)) {
-                return ActionResult.PASS;
-            }
-            KnightDuelWorldComponent duel = KnightDuelWorldComponent.KEY.get(serverPlayer.getWorld());
-            if (!duel.isDuelist(serverPlayer.getUuid())) {
-                return ActionResult.PASS;
-            }
-            ItemStack held = serverPlayer.getStackInHand(hand);
-            if (held.isOf(SparkWitchItems.ceremonialSword()) || held.isOf(WatheItems.BAT)) {
-                return ActionResult.FAIL;
-            }
-            return ActionResult.PASS;
-        });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            if (handler.player.getWorld() instanceof ServerWorld world) {
-                KnightDuelWorldComponent duel = KnightDuelWorldComponent.KEY.get(world);
-                if (duel.active()) {
-                    ServerPlayNetworking.send(handler.player, statePayload(duel));
-                }
+            // A marked knife saved on someone who left mid-duel never comes back (a resumed duel keeps the target's).
+            // 中途离线者存档里的标记小刀不会随其回来（恢复中的决斗保留对手的小刀）。
+            ServerPlayerEntity player = handler.player;
+            if (!KnightDuelWorldComponent.KEY.get(player.getServerWorld()).isTarget(player.getUuid())) {
+                KnightDuelKnives.confiscate(player);
             }
         });
+        // Owner keeps it: a disconnect only ends the duel, nobody dies. / 所有者保留：断线只结束决斗，无人死亡。
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             ServerPlayerEntity player = handler.player;
             if (player.getWorld() instanceof ServerWorld world) {
                 KnightDuelWorldComponent duel = KnightDuelWorldComponent.KEY.get(world);
                 if (duel.isDuelist(player.getUuid())) {
-                    endDuel(world, duel);
+                    endDuel(world, duel, player);
                 }
             }
         });
@@ -106,7 +97,10 @@ public final class KnightDuelService {
                 resetDuelTeams(serverWorld.getServer());
                 KnightDuelWorldComponent duel = KnightDuelWorldComponent.KEY.get(serverWorld);
                 if (duel.active()) {
-                    endDuel(serverWorld, duel);
+                    // The new round already reset cooldowns: never write a stale duel's seal back onto it.
+                    // 新回合已重置冷却：绝不把过期决斗的封印恢复写入新回合。
+                    duel.sealedItems().clear();
+                    endDuel(serverWorld, duel, null);
                 }
             }
         });
@@ -114,13 +108,17 @@ public final class KnightDuelService {
             if (world instanceof ServerWorld serverWorld) {
                 KnightDuelWorldComponent duel = KnightDuelWorldComponent.KEY.get(serverWorld);
                 if (duel.active()) {
-                    endDuel(serverWorld, duel);
+                    endDuel(serverWorld, duel, null);
                 }
             }
         });
     }
 
-    /** C2S entry: the client only proposes; every rule is re-checked here. / C2S 入口：客户端只提议，所有规则在此重查。 */
+    /**
+     * C2S entry, on the server thread: the client only proposes; every rule is re-checked here. The cost is charged
+     * only when a duel actually starts.
+     * C2S 入口（服务端线程）：客户端只提议，所有规则在此重查。仅在决斗真正开始时扣费。
+     */
     public static void requestDuel(ServerPlayerEntity knight, UUID targetId) {
         if (knight == null || targetId == null) {
             return;
@@ -129,29 +127,54 @@ public final class KnightDuelService {
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         KnightDuelWorldComponent duel = KnightDuelWorldComponent.KEY.get(world);
         if (duel.active() || game.getGameStatus() != GameWorldComponent.GameStatus.ACTIVE
-                || !KnightRules.isKnight(game.getRole(knight))
-                || !GameFunctions.isPlayerPlayingAndAlive(knight)) {
+                || !KnightRules.isKnight(game.getRole(knight)) || !canDuel(knight)) {
             return;
         }
         ServerPlayerEntity target = world.getServer().getPlayerManager().getPlayer(targetId);
-        if (target == null || target == knight || !GameFunctions.isPlayerPlayingAndAlive(target)) {
+        if (target == null || target == knight || target.getServerWorld() != world || !canDuel(target)) {
+            return;
+        }
+        // Stun and Last Escape/silence refuse silently (their own HUD explains); Fear names the block, as the Judge.
+        // 眩晕与脱险/沉默静默拒绝（其自身 HUD 会说明）；恐惧会提示被阻止，与法官一致。
+        if (ControlExpertStun.isStunned(knight) || SparkTraitsKillerBridge.isRoleSkillBlocked(knight)
+                || GrandWitchFearService.denyRoleSkillIfFeared(knight)) {
             return;
         }
         if (PlayerShopComponent.KEY.get(knight).getBalance() < KnightDuelRules.COST) {
             return;
         }
-        boolean good = game.isInnocent(target);
-        boolean impostor = Boolean.TRUE.equals(KnightTraitsBridge.isImpostorActive(target));
-        if (good && !impostor) {
-            GameFunctions.killPlayer(knight, true, null, SparkWitchDeathReasons.MANBA_OUT);
-            playSoundToAll(world.getServer(), SparkWitchSounds.DUEL_MANBA);
-            if (isSurvivalMaster(game, target)) {
-                showTitleToAll(world.getServer(),
-                        Text.translatable("title.sparkwitch.duel.survival").formatted(Formatting.WHITE));
-            }
+        // Structural vetoes (Rift occupants, Wraiths, add-on protections) refuse before alignment is read, so a refusal
+        // never tells the Knight whether the target is good.
+        // 结构性否决（门内玩家、冤魂、附属模组保护）在读取阵营之前拒绝，因此拒绝不会向骑士透露目标是否为好人。
+        if (!SparkFactionApi.canAffectPlayer(knight, target, KnightDuelRules.DUEL_ACTION_ID, game)) {
+            return;
+        }
+        if (KnightRules.isGoodForKnight(target, game)) {
+            selfExecute(world, game, knight, target);
             return;
         }
         startDuel(world, duel, knight, target);
+    }
+
+    /** Playing, alive, not a spectator or creative, and not an active Wraith. / 在局存活、非旁观或创造、且非活跃冤魂。 */
+    private static boolean canDuel(ServerPlayerEntity player) {
+        return GameFunctions.isPlayerPlayingAndAlive(player) && GameFunctions.isPlayerAliveAndSurvival(player)
+                && !SparkWitchApi.isWraithRestricted(player);
+    }
+
+    /** The Knight challenged a good player: he dies at once, uncharged. / 骑士挑战了好人：当场死亡，不扣费。 */
+    private static void selfExecute(ServerWorld world, GameWorldComponent game,
+                                    ServerPlayerEntity knight, ServerPlayerEntity target) {
+        GameFunctions.killPlayer(knight, true, null, SparkWitchDeathReasons.DUEL_SUICIDE, true);
+        if (GameFunctions.isPlayerPlayingAndAlive(knight)) {
+            // Should not happen (forced + SparkTraits-terminal): no sting without a death. / 不应发生：未死亡则不播放。
+            return;
+        }
+        playSoundToAll(world.getServer(), SparkWitchSounds.DUEL_MANBA);
+        if (isSurvivalMaster(game, target)) {
+            showTitleToAll(world.getServer(),
+                    Text.translatable("title.sparkwitch.duel.survival").formatted(Formatting.WHITE));
+        }
     }
 
     private static void startDuel(ServerWorld world, KnightDuelWorldComponent duel,
@@ -159,11 +182,17 @@ public final class KnightDuelService {
         PlayerShopComponent shop = PlayerShopComponent.KEY.get(knight);
         shop.setBalance(shop.getBalance() - KnightDuelRules.COST);
         duel.begin(knight.getUuid(), target.getUuid(), world.getTime() + KnightDuelRules.DUEL_TICKS);
-        broadcastState(world.getServer(), duel);
         applyTeamsAndEffects(world, duel, knight, target);
-        applyCooldowns(knight, target, duel);
-        giveMarkedKnifeIfMissing(target);
-        stopSf(world);
+        // Wathe cooldowns are per item, so the issued knife shares the target's knife cooldown: clear it so the issued
+        // or own knife can be raised at once (owner bug report). The knife is whitelisted, so the seal never touches it.
+        // Wathe 冷却按物品计，发出的小刀与对手原有小刀共用冷却：清除它，使发出的或自己的小刀能立即举起（所有者反馈）。
+        // 小刀在白名单内，封印不会碰它。
+        target.getItemCooldownManager().remove(WatheItems.KNIFE);
+        KnightDuelKnives.issue(target);
+        sealBoth(world, duel);
+        // No stop before the play: endDuel already stopped the last track, and a stop sent in the same tick as the
+        // play can reach the client after it and cut the new track.
+        // 播放前不再发送停止：endDuel 已停止上一首；与播放同一刻发出的停止可能晚于播放到达客户端并掐断新曲。
         playSoundToAll(world.getServer(), SparkWitchSounds.DUEL_SF);
         showTitleToAll(world.getServer(), Text.translatable("title.sparkwitch.duel.start", target.getNameForScoreboard())
                 .formatted(Formatting.WHITE));
@@ -174,31 +203,37 @@ public final class KnightDuelService {
             return;
         }
         if (duel.remainingTicks() <= 0) {
-            UUID knightId = duel.knight();
-            endDuel(world, duel);
-            ServerPlayerEntity knight = knightId == null ? null : world.getServer().getPlayerManager().getPlayer(knightId);
-            if (knight != null && GameFunctions.isPlayerPlayingAndAlive(knight)) {
-                GameFunctions.killPlayer(knight, true, null, SparkWitchDeathReasons.DUEL_TIMEOUT);
-            }
+            timeout(world, duel);
             return;
         }
-        if (world.getTime() % 10 == 0) {
-            // Every 0.5 s: force-end if a duelist died without a kill event, then re-apply the duel state.
-            // 每 0.5 秒：若有一方死亡且未走击杀事件，强制结束；随后重新下发决斗状态。
-            GameWorldComponent game = GameWorldComponent.KEY.get(world);
-            UUID knightId = duel.knight();
-            UUID targetId = duel.target();
-            if ((knightId != null && game.isPlayerDead(knightId))
-                    || (targetId != null && game.isPlayerDead(targetId))) {
-                endDuel(world, duel);
-                return;
+        if (world.getTime() % KnightDuelRules.REFRESH_INTERVAL_TICKS != 0) {
+            return;
+        }
+        // Force-end if a duelist died without a kill event, then re-raise the seal (also covers pickups), re-apply the
+        // duel's effects and resync.
+        // 若有一方死亡且未走击杀事件则强制结束；随后重新抬高封印（也覆盖新捡到的物品）、补回决斗效果并重新同步。
+        GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        UUID knightId = duel.knight();
+        UUID targetId = duel.target();
+        if ((knightId != null && game.isPlayerDead(knightId))
+                || (targetId != null && game.isPlayerDead(targetId))) {
+            endDuel(world, duel, null);
+            return;
+        }
+        sealBoth(world, duel);
+        refreshEffects(world, duel);
+        duel.sync();
+    }
+
+    /** 120 s without a duel kill: both duelists fail (spec). / 120 秒未分胜负：双方均决斗失败（规格）。 */
+    private static void timeout(ServerWorld world, KnightDuelWorldComponent duel) {
+        List<UUID> duelists = duelists(duel);
+        endDuel(world, duel, null);
+        for (UUID id : duelists) {
+            ServerPlayerEntity player = player(world.getServer(), id);
+            if (player != null && GameFunctions.isPlayerPlayingAndAlive(player)) {
+                GameFunctions.killPlayer(player, true, null, SparkWitchDeathReasons.DUEL_FAILED, true);
             }
-            ServerPlayerEntity target = player(world.getServer(), targetId);
-            if (target != null) {
-                applyCooldowns(target, target, duel);
-            }
-            duel.sync();
-            broadcastState(world.getServer(), duel);
         }
     }
 
@@ -215,49 +250,61 @@ public final class KnightDuelService {
         // 被推下列车属于正常结束，不算第三方违反规则（所有者，2026-10-30）。
         boolean violation = killer != null && !duel.isDuelist(killer.getUuid())
                 && !GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(reason);
-        endDuel(world, duel);
+        endDuel(world, duel, null);
         if (violation && otherId != null) {
-            ServerPlayerEntity other = world.getServer().getPlayerManager().getPlayer(otherId);
+            ServerPlayerEntity other = player(world.getServer(), otherId);
             if (other != null && GameFunctions.isPlayerPlayingAndAlive(other)) {
-                GameFunctions.killPlayer(other, true, null, SparkWitchDeathReasons.DUEL_VIOLATION);
+                GameFunctions.killPlayer(other, true, null, SparkWitchDeathReasons.DUEL_FAILED, true);
             }
         }
     }
 
-    static void endDuel(ServerWorld world, KnightDuelWorldComponent duel) {
+    /**
+     * Ends the duel and undoes everything it applied. {@code leaving} is a disconnecting duelist, who may already be
+     * missing from the player list but must still be cleaned up before the save.
+     * 结束决斗并撤销其施加的一切。{@code leaving} 为正在断线的决斗者：其可能已不在玩家列表中，但仍须在存档前完成清理。
+     */
+    static void endDuel(ServerWorld world, KnightDuelWorldComponent duel, @Nullable ServerPlayerEntity leaving) {
         if (!duel.active()) {
             return;
         }
         UUID knightId = duel.knight();
         UUID targetId = duel.target();
-        int elapsed = KnightDuelRules.DUEL_TICKS - duel.remainingTicks();
+        // Every re-raise targets the duel's end, so the time still left is the seal's own floor on each sealed item.
+        // 每次重新抬高都以决斗结束为目标，因此尚余的决斗时间就是封印施加在每件被封印物品上的下限。
+        int sealFloor = duel.remainingTicks();
+        int elapsed = KnightDuelRules.DUEL_TICKS - sealFloor;
+        long now = world.getTime();
         Map<UUID, StatusEffectInstance> previousGlowing = Map.copyOf(duel.previousGlowing());
         Map<UUID, StatusEffectInstance> previousSpeed = Map.copyOf(duel.previousSpeed());
         Map<UUID, String> previousTeams = Map.copyOf(duel.previousTeams());
+        Map<UUID, Map<Item, Long>> sealed = Map.copyOf(duel.sealedItems());
         duel.clearState();
         duel.sync();
-        broadcastState(world.getServer(), duel);
         stopSf(world);
-        cleanupPlayer(world, knightId, elapsed, previousGlowing, previousSpeed, previousTeams);
-        cleanupPlayer(world, targetId, elapsed, previousGlowing, previousSpeed, previousTeams);
+        ServerPlayerEntity knight = resolve(world.getServer(), knightId, leaving);
+        if (knight != null) {
+            restoreEffect(knight, StatusEffects.SPEED, previousSpeed.get(knightId), elapsed);
+        }
+        cleanupPlayer(world, knight, elapsed, sealFloor, now, previousGlowing, previousTeams, sealed);
+        cleanupPlayer(world, resolve(world.getServer(), targetId, leaving), elapsed, sealFloor, now,
+                previousGlowing, previousTeams, sealed);
+        KnightDuelKnives.confiscateEverywhere(world.getServer());
     }
 
-    private static void cleanupPlayer(ServerWorld world, @Nullable UUID uuid, int elapsed,
+    private static void cleanupPlayer(ServerWorld world, @Nullable ServerPlayerEntity player, int elapsed,
+                                      int sealFloor, long now,
                                       Map<UUID, StatusEffectInstance> previousGlowing,
-                                      Map<UUID, StatusEffectInstance> previousSpeed,
-                                      Map<UUID, String> previousTeams) {
-        if (uuid == null) {
-            return;
-        }
-        ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(uuid);
+                                      Map<UUID, String> previousTeams,
+                                      Map<UUID, Map<Item, Long>> sealed) {
         if (player == null) {
             return;
         }
+        UUID uuid = player.getUuid();
         restoreEffect(player, StatusEffects.GLOWING, previousGlowing.get(uuid), elapsed);
-        restoreEffect(player, StatusEffects.SPEED, previousSpeed.get(uuid), elapsed);
         restoreTeam(world.getScoreboard(), player, previousTeams.get(uuid));
-        removeMarkedKnives(player);
-        clearCooldowns(player);
+        KnightDuelKnives.confiscate(player);
+        KnightDuelSeal.restore(player, sealed.getOrDefault(uuid, Map.of()), now, sealFloor);
     }
 
     private static void restoreEffect(ServerPlayerEntity player, RegistryEntry<StatusEffect> effect,
@@ -266,30 +313,22 @@ public final class KnightDuelService {
         if (previous == null) {
             return;
         }
-        int remaining = Math.max(0, previous.getDuration() - elapsed);
-        if (remaining > 0) {
+        // An infinite pre-duel effect comes back infinite (INFINITE is -1, never 0). / 决斗前的无限效果恢复为无限。
+        int remaining = KnightDuelRules.restoredEffectTicks(previous.getDuration(), previous.isInfinite(), elapsed);
+        if (remaining != 0) {
             player.addStatusEffect(new StatusEffectInstance(effect, remaining, previous.getAmplifier(),
                     previous.isAmbient(), previous.shouldShowParticles(), previous.shouldShowIcon()));
         }
     }
 
-    private static void removeMarkedKnives(ServerPlayerEntity player) {
-        var inventory = player.getInventory();
-        for (int slot = 0; slot < inventory.size(); slot++) {
-            ItemStack stack = inventory.getStack(slot);
-            if (!stack.isEmpty() && Boolean.TRUE.equals(stack.get(SparkWitchDataComponents.DUEL_KNIFE))) {
-                inventory.setStack(slot, ItemStack.EMPTY);
+    private static void sealBoth(ServerWorld world, KnightDuelWorldComponent duel) {
+        int ticks = duel.remainingTicks();
+        long now = world.getTime();
+        for (UUID id : duelists(duel)) {
+            ServerPlayerEntity player = player(world.getServer(), id);
+            if (player != null) {
+                KnightDuelSeal.seal(player, duel.sealedItems().computeIfAbsent(id, key -> new HashMap<>()), ticks, now);
             }
-        }
-        inventory.markDirty();
-        player.currentScreenHandler.sendContentUpdates();
-    }
-
-    private static void clearCooldowns(ServerPlayerEntity player) {
-        ItemCooldownManager manager = player.getItemCooldownManager();
-        Map<Item, ?> entries = ((ItemCooldownManagerAccessor) manager).sparkwitch$getEntries();
-        for (Item item : new ArrayList<>(entries.keySet())) {
-            manager.remove(item);
         }
     }
 
@@ -300,11 +339,47 @@ public final class KnightDuelService {
         Team targetTeam = team(scoreboard, KnightDuelRules.TARGET_TEAM, KnightDuelRules.TARGET_COLOR);
         joinTeam(scoreboard, duel, knight, knightTeam);
         joinTeam(scoreboard, duel, target, targetTeam);
-        applyEffect(duel, knight, StatusEffects.GLOWING, 0, duel.previousGlowing());
-        applyEffect(duel, knight, StatusEffects.SPEED, 1, duel.previousSpeed());
-        applyEffect(duel, target, StatusEffects.GLOWING, 0, duel.previousGlowing());
+        applyEffect(knight, StatusEffects.GLOWING, 0, duel.previousGlowing());
+        applyEffect(knight, StatusEffects.SPEED, KnightDuelRules.KNIGHT_SPEED_AMPLIFIER, duel.previousSpeed());
+        applyEffect(target, StatusEffects.GLOWING, 0, duel.previousGlowing());
     }
 
+    /**
+     * Puts back the duel's Glowing (both) and Speed II (Knight) when something removed them or left a weaker level;
+     * a stronger or longer effect is left alone, and a weaker one waits underneath through vanilla's hidden-effect
+     * upgrade. The pre-duel snapshot taken at the start is never overwritten.
+     * 当决斗的发光（双方）与速度 II（骑士）被移除或被降为较低等级时补回；更强或更久的效果保持不动，较弱的效果经原版隐藏效果
+     * 升级机制保留在下层。开局时记录的决斗前快照不会被覆盖。
+     */
+    private static void refreshEffects(ServerWorld world, KnightDuelWorldComponent duel) {
+        int ticks = duel.remainingTicks();
+        if (ticks <= 0) {
+            return;
+        }
+        ServerPlayerEntity knight = player(world.getServer(), duel.knight());
+        if (knight != null) {
+            ensureEffect(knight, StatusEffects.GLOWING, 0, ticks);
+            ensureEffect(knight, StatusEffects.SPEED, KnightDuelRules.KNIGHT_SPEED_AMPLIFIER, ticks);
+        }
+        ServerPlayerEntity target = player(world.getServer(), duel.target());
+        if (target != null) {
+            ensureEffect(target, StatusEffects.GLOWING, 0, ticks);
+        }
+    }
+
+    private static void ensureEffect(ServerPlayerEntity player, RegistryEntry<StatusEffect> effect, int amplifier,
+                                     int ticks) {
+        StatusEffectInstance existing = player.getStatusEffect(effect);
+        if (existing == null || existing.getAmplifier() < amplifier) {
+            player.addStatusEffect(new StatusEffectInstance(effect, ticks, amplifier));
+        }
+    }
+
+    /**
+     * The teams only colour the glow. Collision NEVER turns off vanilla soft pushing for duelists; passing through
+     * players is the separate {@code Entity.collidesWith} seam.
+     * 队伍只用于发光颜色。碰撞规则 NEVER 关闭决斗者的原版软推挤；穿过玩家由独立的 {@code Entity.collidesWith} 接缝负责。
+     */
     private static Team team(Scoreboard scoreboard, String name, Formatting color) {
         Team team = scoreboard.getTeam(name);
         if (team == null) {
@@ -312,9 +387,7 @@ public final class KnightDuelService {
         }
         team.setColor(color);
         team.setFriendlyFireAllowed(true);
-        // Normal solid player collision: never leave a persisted NEVER rule from older builds.
-        // 正常实体碰撞：清除旧版本可能残留在存档里的 NEVER 队伍规则。
-        team.setCollisionRule(AbstractTeam.CollisionRule.ALWAYS);
+        team.setCollisionRule(AbstractTeam.CollisionRule.NEVER);
         return team;
     }
 
@@ -344,8 +417,7 @@ public final class KnightDuelService {
         }
     }
 
-    private static void applyEffect(KnightDuelWorldComponent duel, ServerPlayerEntity player,
-                                    RegistryEntry<StatusEffect> effect, int amplifier,
+    private static void applyEffect(ServerPlayerEntity player, RegistryEntry<StatusEffect> effect, int amplifier,
                                     Map<UUID, StatusEffectInstance> previous) {
         StatusEffectInstance existing = player.getStatusEffect(effect);
         if (existing != null) {
@@ -355,58 +427,15 @@ public final class KnightDuelService {
         player.addStatusEffect(new StatusEffectInstance(effect, KnightDuelRules.DUEL_TICKS, amplifier));
     }
 
-    private static void applyCooldowns(ServerPlayerEntity knight, ServerPlayerEntity target,
-                                       KnightDuelWorldComponent duel) {
-        knight.getItemCooldownManager().set(WatheItems.REVOLVER, KnightDuelRules.REVOLVER_COOLDOWN_TICKS);
-        for (int slot = 0; slot < target.getInventory().size(); slot++) {
-            ItemStack stack = target.getInventory().getStack(slot);
-            if (stack.isEmpty() || whitelisted(stack)) {
-                continue;
-            }
-            Item item = stack.getItem();
-            if (duel.cooledItems().add(item)) {
-                target.getItemCooldownManager().set(item, KnightDuelRules.ITEM_COOLDOWN_TICKS);
-            }
-        }
-    }
-
-    private static boolean whitelisted(ItemStack stack) {
-        Item item = stack.getItem();
-        if (item == WatheItems.LETTER || item == WatheItems.KEY || item == WatheItems.LOCKPICK
-                || item == WatheItems.CROWBAR || item == WatheItems.KNIFE || item == WatheItems.DERRINGER
-                || item == SparkWitchItems.crossSword() || item instanceof CocktailItem) {
-            return true;
-        }
-        Identifier id = Registries.ITEM.getId(item);
-        if (id.equals(KnightDuelRules.MASTER_KEY_ID) || id.equals(KnightDuelRules.NEUTRAL_MASTER_KEY_ID)) {
-            return true;
-        }
-        if (!id.getNamespace().equals("minecraft")) {
-            return false;
-        }
-        boolean weaponOrTool = stack.isIn(ItemTags.SWORDS) || stack.isIn(ItemTags.AXES)
-                || stack.isIn(ItemTags.PICKAXES) || stack.isIn(ItemTags.SHOVELS) || stack.isIn(ItemTags.HOES)
-                || item == Items.BOW || item == Items.CROSSBOW || item == Items.TRIDENT || item == Items.MACE;
-        return !weaponOrTool;
-    }
-
-    private static void giveMarkedKnifeIfMissing(ServerPlayerEntity target) {
-        for (int slot = 0; slot < target.getInventory().size(); slot++) {
-            if (target.getInventory().getStack(slot).isOf(WatheItems.KNIFE)) {
-                return;
-            }
-        }
-        ItemStack knife = new ItemStack(WatheItems.KNIFE);
-        knife.set(SparkWitchDataComponents.DUEL_KNIFE, true);
-        target.giveItemStack(knife);
-    }
-
     private static boolean isSurvivalMaster(GameWorldComponent game, ServerPlayerEntity player) {
         Role role = game.getRole(player);
         return role != null && KnightDuelRules.SURVIVAL_MASTER_ID.equals(role.identifier());
     }
 
-    /** Clears old NEVER rules/memberships persisted by earlier builds. / 清理旧版本残留在存档里的 NEVER 规则与成员。 */
+    /**
+     * Drops memberships a crash or an older build left in the saved scoreboard and keeps the rule at NEVER.
+     * 清除崩溃或旧版本残留在存档计分板中的成员，并保持碰撞规则为 NEVER。
+     */
     private static void resetDuelTeams(MinecraftServer server) {
         for (ServerWorld world : server.getWorlds()) {
             Scoreboard scoreboard = world.getScoreboard();
@@ -415,7 +444,7 @@ public final class KnightDuelService {
                 if (team == null) {
                     continue;
                 }
-                team.setCollisionRule(AbstractTeam.CollisionRule.ALWAYS);
+                team.setCollisionRule(AbstractTeam.CollisionRule.NEVER);
                 for (String member : List.copyOf(team.getPlayerList())) {
                     scoreboard.removeScoreHolderFromTeam(member, team);
                 }
@@ -423,22 +452,27 @@ public final class KnightDuelService {
         }
     }
 
+    private static List<UUID> duelists(KnightDuelWorldComponent duel) {
+        List<UUID> ids = new ArrayList<>(2);
+        if (duel.knight() != null) {
+            ids.add(duel.knight());
+        }
+        if (duel.target() != null) {
+            ids.add(duel.target());
+        }
+        return ids;
+    }
+
     private static @Nullable ServerPlayerEntity player(MinecraftServer server, @Nullable UUID uuid) {
         return uuid == null ? null : server.getPlayerManager().getPlayer(uuid);
     }
 
-    private static KnightDuelStateS2CPayload statePayload(KnightDuelWorldComponent duel) {
-        if (!duel.active() || duel.knight() == null || duel.target() == null) {
-            return KnightDuelStateS2CPayload.inactive();
+    private static @Nullable ServerPlayerEntity resolve(MinecraftServer server, @Nullable UUID uuid,
+                                                        @Nullable ServerPlayerEntity leaving) {
+        if (uuid != null && leaving != null && uuid.equals(leaving.getUuid())) {
+            return leaving;
         }
-        return new KnightDuelStateS2CPayload(true, duel.knight(), duel.target(), duel.remainingTicks());
-    }
-
-    private static void broadcastState(MinecraftServer server, KnightDuelWorldComponent duel) {
-        KnightDuelStateS2CPayload payload = statePayload(duel);
-        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            ServerPlayNetworking.send(player, payload);
-        }
+        return player(server, uuid);
     }
 
     private static void playSoundToAll(MinecraftServer server, SoundEvent sound) {

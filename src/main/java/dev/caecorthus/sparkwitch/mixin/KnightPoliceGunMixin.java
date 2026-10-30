@@ -2,13 +2,16 @@ package dev.caecorthus.sparkwitch.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightKillService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.WatheRoles;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.index.WatheDataComponentTypes;
 import dev.doctor4t.wathe.util.GunShootPayload;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
@@ -32,18 +35,25 @@ public abstract class KnightPoliceGunMixin {
     }
 
     /**
-     * Wathe's target kill (ordinal 1, the one that kills the aimed player). Runs after the whole kill handler,
-     * including its derringer reload loop, so a wrong derringer kill can restore the spent state.
-     * Wathe 的目标击杀（ordinal 1，即击杀瞄准的玩家）。在整个击杀处理（含德林加装填循环）之后运行，
-     * 因此德林加误杀可以恢复已使用状态。
+     * Wathe's target kill (ordinal 1 at line 116; ordinal 0 is the revolver backfire self-kill at line 93). The gun is
+     * Wathe's own {@code mainHandStack} local (the only ItemStack local of {@code receive}), and the wrong-shot check
+     * runs before the kill, while the victim is alive. Only a derringer shot at a good player costs sanity; a revolver
+     * misfire keeps Wathe's punishment alone. The no-refill rule for kills lives in {@code KnightDerringerReloadMixin}.
+     * Wathe 的目标击杀（ordinal 1，第 116 行；ordinal 0 是第 93 行的左轮走火自杀）。枪械取 Wathe 自身的
+     * {@code mainHandStack} 局部变量（{@code receive} 中唯一的 ItemStack 局部变量），误射判断在击杀前、受害者仍存活时进行。
+     * 只有德林加射击好人才扣理智；左轮误杀只保留 Wathe 的惩罚。击杀不补弹规则位于 {@code KnightDerringerReloadMixin}。
      */
     @WrapOperation(method = "receive(Ldev/doctor4t/wathe/util/GunShootPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking$Context;)V",
             at = @At(value = "INVOKE", ordinal = 1,
                     target = "Ldev/doctor4t/wathe/game/GameFunctions;killPlayer(Lnet/minecraft/server/network/ServerPlayerEntity;ZLnet/minecraft/server/network/ServerPlayerEntity;Lnet/minecraft/util/Identifier;)V"))
     private void sparkwitch$knightDerringerOutcome(ServerPlayerEntity victim, boolean spawnBody,
                                                    ServerPlayerEntity shooter, Identifier reason,
-                                                   Operation<Void> original) {
+                                                   Operation<Void> original, @Local ItemStack mainHandStack) {
+        boolean wrongDerringerShot = KnightKillService.isWrongDerringerShot(shooter, victim, mainHandStack);
+        boolean spentBeforeKill = Boolean.TRUE.equals(mainHandStack.get(WatheDataComponentTypes.USED));
         original.call(victim, spawnBody, shooter, reason);
-        KnightKillService.afterDerringerKill(shooter, victim);
+        if (wrongDerringerShot) {
+            KnightKillService.afterWrongDerringerShot(shooter, victim, mainHandStack, spentBeforeKill);
+        }
     }
 }

@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.knight;
 
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
-import dev.caecorthus.sparkwitch.compat.KnightTraitsBridge;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
@@ -16,16 +15,21 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Knight kill economy and the derringer's wrong-target rule.
+ * Knight kill economy, push-off rule and derringer wrong-target rule; "good" is always
+ * {@link KnightRules#isGoodForKnight}.
  * <ul>
- *   <li>Reward: +100 coins for killing a non-good player without Conscience, or any Impostor.</li>
- *   <li>Punishment: a derringer kill of an innocent (passenger or police) without Impostor keeps the derringer
- *   spent (undoing Wathe's kill reload) and costs the whole sanity bar (100 points).</li>
+ *   <li>Reward: +100 coins for killing a non-good player (Impostor included).</li>
+ *   <li>Push-off: a train-fall kill credited to the Knight whose victim is good kills the Knight (Cerebellum).</li>
+ *   <li>Reload: killing a good player, with any weapon, never refills a derringer.</li>
+ *   <li>Derringer: shooting a good player with it costs the whole sanity bar (100 points); a revolver misfire keeps
+ *   only Wathe's own punishment.</li>
  * </ul>
- * 骑士击杀经济与德林加的误杀规则。
+ * 骑士击杀经济、推下车规则与德林加误杀规则；“好人”一律以 {@link KnightRules#isGoodForKnight} 判断。
  * <ul>
- *   <li>奖励：击杀没有良知词条的非好人，或任意内鬼，+100 金币。</li>
- *   <li>惩罚：德林加击杀没有内鬼词条的乘客/警察类好人时，德林加保持已使用（撤销 Wathe 的击杀装填），并扣除整条理智（100 点）。</li>
+ *   <li>奖励：击杀非好人（含内鬼）+100 金币。</li>
+ *   <li>推下车：记在骑士名下的坠车击杀若受害者是好人，骑士死于“小脑”。</li>
+ *   <li>装填：以任何武器击杀好人都不会补充德林加。</li>
+ *   <li>德林加：用它击中好人扣除整条理智（100 点）；左轮误杀只保留 Wathe 自身的惩罚。</li>
  * </ul>
  */
 public final class KnightKillService {
@@ -50,34 +54,69 @@ public final class KnightKillService {
         if (!KnightRules.isKnight(game.getRole(killer))) {
             return;
         }
-        boolean impostor = Boolean.TRUE.equals(KnightTraitsBridge.isImpostorActive(victim));
-        boolean conscience = Boolean.TRUE.equals(KnightTraitsBridge.isConscienceActive(victim));
-        // Pushing a good player (innocent without Impostor, or any Conscience holder) off the train kills the Knight.
-        // 把好人（不带内鬼的平民/警察，或任何带善良词条者）推下列车时，骑士死于“小脑”。
-        if (GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason)
-                && (conscience || (game.isInnocent(victim) && !impostor))) {
+        // AFTER runs once the victim is dead; SparkTraits' death snapshot keeps Impostor/Conscience readable.
+        // AFTER 在受害者死亡后执行；SparkTraits 的死亡快照使内鬼/善良词条仍可读取。
+        boolean good = KnightRules.isGoodForKnight(victim, game);
+        if (good && GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason)) {
+            // Non-forced, like Wathe's own SHOT_INNOCENT kill. / 非强制击杀，与 Wathe 自身的 SHOT_INNOCENT 一致。
             GameFunctions.killPlayer(killer, true, null, SparkWitchDeathReasons.CEREBELLUM);
             return;
         }
-        if (impostor || (!game.isInnocent(victim) && !conscience)) {
+        if (!good) {
             PlayerShopComponent.KEY.get(killer).addToBalance(KnightRules.KILL_REWARD);
         }
     }
 
-    /** Runs after Wathe's kill handler, i.e. after its derringer reload loop. / 在 Wathe 击杀处理（含德林加装填循环）之后执行。 */
-    public static void afterDerringerKill(ServerPlayerEntity killer, ServerPlayerEntity victim) {
+    /**
+     * Seam for {@code KnightDerringerReloadMixin}: whether Wathe's kill reload skips every derringer of
+     * {@code killer}, i.e. a Knight killed a good player with any weapon. Read inside {@code killPlayer} after
+     * {@code markPlayerDead}, which keeps the raw role, and before KillPlayer.AFTER clears SparkTraits traits.
+     * Self-kills keep Wathe's reload.
+     * {@code KnightDerringerReloadMixin} 的接缝：Wathe 的击杀装填是否跳过 {@code killer} 的所有德林加，即骑士以任何武器击杀了
+     * 好人。在 {@code killPlayer} 内 {@code markPlayerDead} 之后读取（原始职业不变），且早于 KillPlayer.AFTER 清除
+     * SparkTraits 词条。自杀保留 Wathe 的装填。
+     */
+    public static boolean blocksKillReload(ServerPlayerEntity victim, @Nullable ServerPlayerEntity killer) {
+        if (killer == null || killer == victim) {
+            return false;
+        }
         GameWorldComponent game = GameWorldComponent.KEY.get(killer.getWorld());
-        if (!KnightRules.isKnight(game.getRole(killer)) || !game.isPlayerDead(victim.getUuid())) {
-            return;
+        return KnightRules.isKnight(game.getRole(killer)) && KnightRules.isGoodForKnight(victim, game);
+    }
+
+    /**
+     * Whether a gun shot is a Knight's derringer shot at a good player. {@code weapon} is Wathe's {@code mainHandStack}
+     * of the shot; call it before the target kill, while the victim is alive.
+     * 该枪击是否为骑士用德林加射击好人。{@code weapon} 为 Wathe 本次射击的 {@code mainHandStack}；须在目标击杀之前、
+     * 受害者仍存活时调用。
+     */
+    public static boolean isWrongDerringerShot(ServerPlayerEntity shooter, ServerPlayerEntity victim, ItemStack weapon) {
+        if (!weapon.isOf(WatheItems.DERRINGER)) {
+            return false;
         }
-        if (!game.isInnocent(victim) || Boolean.TRUE.equals(KnightTraitsBridge.isImpostorActive(victim))) {
-            return;
-        }
-        ItemStack derringer = killer.getMainHandStack();
-        if (derringer.isOf(WatheItems.DERRINGER)) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(shooter.getWorld());
+        return KnightRules.isKnight(game.getRole(shooter)) && KnightRules.isGoodForKnight(victim, game);
+    }
+
+    /**
+     * After the target kill of a wrong derringer shot. A derringer the shot spent stays spent even if something inside
+     * the kill call refilled it (SparkTraits' fake-death replenish for Depression / Last Stand victims), so a fake
+     * death keeps no bullet and looks like a real good kill. The sanity cost applies only when the victim really died.
+     * 德林加误射的目标击杀之后执行。本次射击已用掉的德林加保持已使用，即使击杀调用内部将其补充（SparkTraits 对抑郁/背水一战
+     * 受害者的假死补弹），使假死不返还子弹、与真实误杀无异。理智代价仅在受害者确实死亡时扣除。
+     */
+    public static void afterWrongDerringerShot(ServerPlayerEntity shooter, ServerPlayerEntity victim,
+                                               ItemStack derringer, boolean spentBeforeKill) {
+        if (spentBeforeKill && !Boolean.TRUE.equals(derringer.get(WatheDataComponentTypes.USED))) {
             derringer.set(WatheDataComponentTypes.USED, true);
         }
-        PlayerMoodComponent mood = PlayerMoodComponent.KEY.get(killer);
-        mood.setMood(Math.max(0.0F, mood.getMood() - KnightRules.WRONG_KILL_MOOD_COST));
+        GameWorldComponent game = GameWorldComponent.KEY.get(shooter.getWorld());
+        if (!game.isPlayerDead(victim.getUuid())) {
+            return;
+        }
+        PlayerMoodComponent mood = PlayerMoodComponent.KEY.get(shooter);
+        // Wathe clamps mood to -1..1 itself; never floor at 0, or a low-sanity Knight would gain sanity.
+        // Wathe 自行把理智限制在 -1..1；不得以 0 为下限，否则低理智骑士反而会回理智。
+        mood.setMood(mood.getMood() - KnightRules.WRONG_KILL_MOOD_COST);
     }
 }

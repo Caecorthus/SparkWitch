@@ -680,9 +680,10 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
         // Registered right before the Insider (nothing may follow the Insider): the Judge/Emma parameter set with
-        // no appearance condition, so it is drawn only through the shared Vigilante slots. No skill or start item yet.
+        // no appearance condition, so it is drawn only through the shared Vigilante slots. Loadout, economy and the
+        // duel live in roles/civilian/knight.
         // 注册在内应之前（内应之后不得再注册）：与法官、艾玛相同的参数且无出现条件，只通过共享义警警位抽取。
-        // 暂不提供技能与开局物品。
+        // 开局装备、经济与决斗位于 roles/civilian/knight。
         knight = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KNIGHT_ID, FactionIds.CIVILIAN)
                 .color(KnightRules.ROLE_COLOR)
                 .moodType(Role.MoodType.REAL)

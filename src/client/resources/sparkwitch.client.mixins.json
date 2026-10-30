@@ -4,8 +4,6 @@
   "package": "dev.caecorthus.sparkwitch.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "KeyBindingAccessor",
-    "KnightDuelAbilityKeyMixin",
     "CrossSwordWatheCrosshairMixin",
     "AssassinSaboteurGuessMixin",
     "AssassinVendettaTargetMixin",

@@ -75,7 +75,13 @@ public enum ProphetDeathCauseGroup {
             entry("noellesroles:jester_timeout", PENALTY),
             entry("noellesroles:commander_suicide", PENALTY),
             entry("noellesroles:bodyguard_sacrifice", PENALTY),
-            entry("sparktraits:self_realization", PENALTY)
+            entry("sparktraits:self_realization", PENALTY),
+            // Knight rule deaths (self-execution, lost duel, pushing a good player off) are penalties like Wathe's
+            // shot_innocent.
+            // 骑士规则死亡（自裁、决斗失败、推好人下车）与 Wathe 的 shot_innocent 一样属于惩罚。
+            entry("sparkwitch:duel_suicide", PENALTY),
+            entry("sparkwitch:duel_failed", PENALTY),
+            entry("sparkwitch:cerebellum", PENALTY)
     );
 
     private final String id = name().toLowerCase(Locale.ROOT);

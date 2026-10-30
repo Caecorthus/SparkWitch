@@ -16,15 +16,15 @@ import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 /**
- * The active Knight duel. Public state (pair + remaining time) syncs to clients; pre-duel effects, teams and the
- * applied cooldown set are server-only bookkeeping for cleanup.
- * 当前骑士决斗。公开状态（双方 + 剩余时间）同步给客户端；决斗前效果、队伍与已施加冷却集合仅服务端用于收尾。
+ * Stable contract: the single source of the active Knight duel on both sides. The public state (pair + remaining
+ * time) is AutoSynced to every client; there is no separate duel packet or client mirror. Pre-duel effects, teams and
+ * the sealed items' pre-duel cooldowns are server-only bookkeeping for cleanup and are not persisted.
+ * 稳定契约：双端当前骑士决斗的唯一来源。公开状态（双方 + 剩余时间）自动同步给所有客户端；不存在单独的决斗数据包或
+ * 客户端镜像。决斗前效果、队伍与被封印物品的决斗前冷却仅服务端用于收尾，且不持久化。
  */
 public final class KnightDuelWorldComponent implements AutoSyncedComponent, ServerTickingComponent {
     public static final ComponentKey<KnightDuelWorldComponent> KEY = ComponentRegistry.getOrCreate(
@@ -37,7 +37,8 @@ public final class KnightDuelWorldComponent implements AutoSyncedComponent, Serv
     private final Map<UUID, StatusEffectInstance> previousGlowing = new HashMap<>();
     private final Map<UUID, StatusEffectInstance> previousSpeed = new HashMap<>();
     private final Map<UUID, String> previousTeams = new HashMap<>();
-    private final Set<Item> cooledItems = new HashSet<>();
+    /** Per duelist: sealed item -> world tick its pre-duel cooldown would have ended. / 每名决斗者：被封印物品 -> 其决斗前冷却本应结束的世界刻。 */
+    private final Map<UUID, Map<Item, Long>> sealedItems = new HashMap<>();
 
     public KnightDuelWorldComponent(World world) {
         this.world = world;
@@ -45,11 +46,6 @@ public final class KnightDuelWorldComponent implements AutoSyncedComponent, Serv
 
     public boolean active() {
         return active;
-    }
-
-    /** 1 while a duel is running, 0 otherwise. / 决斗进行中为 1，否则为 0。 */
-    public int duelVariable() {
-        return active ? 1 : 0;
     }
 
     public @Nullable UUID knight() {
@@ -96,7 +92,7 @@ public final class KnightDuelWorldComponent implements AutoSyncedComponent, Serv
         previousGlowing.clear();
         previousSpeed.clear();
         previousTeams.clear();
-        cooledItems.clear();
+        sealedItems.clear();
     }
 
     Map<UUID, StatusEffectInstance> previousGlowing() {
@@ -111,8 +107,8 @@ public final class KnightDuelWorldComponent implements AutoSyncedComponent, Serv
         return previousTeams;
     }
 
-    Set<Item> cooledItems() {
-        return cooledItems;
+    Map<UUID, Map<Item, Long>> sealedItems() {
+        return sealedItems;
     }
 
     public void sync() {
