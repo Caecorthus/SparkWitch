@@ -543,7 +543,7 @@ Current build baseline:
   and `shell/` (the shell items and entity, flat flight, blast targeting and falloff, rewards) with `shell/effect/`
   (GW-DK, GW-AC, GW-MR, TR, harmless burning). Its mixins live in `mixin/potiongunner/` and
   `client/mixin/potiongunner/`; client presentation (the scope profile and reticle on the shared `client/scope`
-  module, fire input, HUD, two-handed pose) in `client/potiongunner/`. Its packet is
+  module, fire input, HUD, two-handed pose, the in-flight shell model) in `client/potiongunner/`. Its packet is
   `net/FirePotionLauncherC2SPacket`.
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells and fear;
   `GrandWitchFeatureService` also owns the round lifecycle of the special-accomplice ledger (seed at
@@ -2951,6 +2951,21 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
   - Once the round leaves `ACTIVE`, a match shell still in flight is discarded without exploding, and its
     detonation also requires `ACTIVE`, so no kill, gold or bounty lands after the result. A presentation shell flies
     the same, ignores the round status and skips the Seeker sweep. Finalize discards any shell left.
+- **In-flight model.** The flying shell draws a 3D model, never the item sprite
+  (`client/potiongunner/PotionShellEntityRenderer`, presentation only), through the shared
+  `client/renderer/ProjectileModels` seam. `PotionShellModels` registers once, from `PotionGunnerClient.init()`, one
+  textures-only child per `PotionShellType` (`item/projectile/potion_shell_<key>`, a 64×64 sheet coloured from that
+  type's item sprite) of the shared geometry `item/projectile/potion_shell` (14 px, nose north, four-fold symmetric:
+  fuse, glass warhead bulb, steel neck, band, cross fins, nozzle), plus the type-agnostic nozzle glow
+  `item/projectile/potion_shell_flare`. No face uses a UV `rotation`; each region is painted in its face's default
+  orientation.
+  - The model follows the synced stack (`renderType()`, TR when it is not a shell), sits at the box centre, faces the
+    client velocity (the vanilla projectile yaw/pitch when the velocity is zero), rolls 30° per tick clockwise seen
+    from behind (`PotionShellModelPose`), and is scaled 0.75.
+  - The body is entity cutout at the entity's light; the glow is the additive eyes layer at full bright (no depth
+    write). Like vanilla `FlyingItemEntityRenderer`, nothing (label included) is drawn while `age < 2` and the camera's
+    focused entity is within 3.5 blocks.
+  - The in-hand and GUI icons stay the flat `*_shell` sprites.
 - **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect,
   Judge attribution or reward). The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
   body overlapping vertically, plus line of sight. It does not catch spectators, Wathe-dead players, or SparkTraits

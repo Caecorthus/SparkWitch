@@ -1,0 +1,34 @@
+{
+  "credit": "SparkWitch Potion Gunner shell nozzle glow (generated), drawn additive",
+  "textures": {"flare": "sparkwitch:item/projectile/potion_shell_flare", "particle": "sparkwitch:item/projectile/potion_shell_flare"},
+  "elements": [
+    {
+      "name": "flare_core",
+      "from": [7.5, 7.5, 15],
+      "to": [8.5, 8.5, 16.5],
+      "shade": false,
+      "faces": {
+        "north": {"uv": [2, 2, 6, 6], "texture": "#flare"},
+        "east": {"uv": [2, 2, 6, 6], "texture": "#flare"},
+        "south": {"uv": [2, 2, 6, 6], "texture": "#flare"},
+        "west": {"uv": [2, 2, 6, 6], "texture": "#flare"},
+        "up": {"uv": [2, 2, 6, 6], "texture": "#flare"},
+        "down": {"uv": [2, 2, 6, 6], "texture": "#flare"}
+      }
+    },
+    {
+      "name": "flare_halo",
+      "from": [7, 7, 15],
+      "to": [9, 9, 15.5],
+      "shade": false,
+      "faces": {
+        "north": {"uv": [10, 2, 14, 6], "texture": "#flare"},
+        "east": {"uv": [10, 2, 14, 6], "texture": "#flare"},
+        "south": {"uv": [10, 2, 14, 6], "texture": "#flare"},
+        "west": {"uv": [10, 2, 14, 6], "texture": "#flare"},
+        "up": {"uv": [10, 2, 14, 6], "texture": "#flare"},
+        "down": {"uv": [10, 2, 14, 6], "texture": "#flare"}
+      }
+    }
+  ]
+}
