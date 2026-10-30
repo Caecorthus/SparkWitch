@@ -22,6 +22,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FisherFishKind;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FishingRodItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.KeyFishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishItem;
+import dev.caecorthus.sparkwitch.roles.civilian.knight.CrossSwordItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashItem;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashRules;
@@ -74,6 +75,7 @@ import net.minecraft.util.Identifier;
 
 public final class SparkWitchItems {
     public static final Identifier CEREMONIAL_SWORD_ID = SparkWitch.id("ceremonial_sword");
+    public static final Identifier CROSS_SWORD_ID = SparkWitch.id("cross_sword");
     public static final Identifier FIRE_POKER_ID = SparkWitch.id("fire_poker");
     public static final Identifier PERFUME_ESSENCE_ID = SparkWitch.id("perfume_essence");
     public static final Identifier COLOGNE_ID = SparkWitch.id("cologne");
@@ -126,6 +128,7 @@ public final class SparkWitchItems {
     public static final Identifier USEC_SUPPRESSOR_ID = UsecRules.SUPPRESSOR_ITEM_ID;
     public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
     private static Item ceremonialSword;
+    private static Item crossSword;
     private static Item firePoker;
     private static Item perfumeEssence;
     private static Item cologne;
@@ -474,6 +477,13 @@ public final class SparkWitchItems {
                 WITHER_GOHEI_ID,
                 new WitherGoheiItem(WitherGoheiItem.createSettings())
         );
+        // Knight's cross sword: Wathe knife logic and sounds, rendered as a scaled vanilla-style sword.
+        // 骑士的十字剑：沿用 Wathe 小刀的逻辑与音效，按放大后的原版剑样式渲染。
+        crossSword = Registry.register(
+                Registries.ITEM,
+                CROSS_SWORD_ID,
+                new CrossSwordItem(new Item.Settings().maxCount(1))
+        );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
@@ -484,6 +494,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return ceremonialSword;
+    }
+
+    public static Item crossSword() {
+        if (crossSword == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return crossSword;
     }
 
     public static Item firePoker() {
@@ -694,6 +711,10 @@ public final class SparkWitchItems {
         // 苦无通过 Wathe 的仅玩家攻击路径处理左键，从而沿用原生击退规则。
         AllowPlayerPunching.EVENT.register((attacker, victim) ->
                 attacker.getMainHandStack().isOf(ninjaKnife)
+        );
+        // Cross Sword keeps the knife's left-click punching contract. / 十字剑沿用与小刀一致的主手攻击规则。
+        AllowPlayerPunching.EVENT.register((attacker, victim) ->
+                attacker.getMainHandStack().isOf(crossSword)
         );
         AllowPlayerPunching.EVENT.register((attacker, victim) ->
                 attacker.getMainHandStack().isOf(vendettaKnife)

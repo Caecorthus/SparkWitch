@@ -44,6 +44,7 @@ public final class SparkWitchRoles {
     public static final Identifier RIFTWALKER_ID = SparkWitchRoleRegistry.RIFTWALKER_ID;
     public static final Identifier BEWITCHED_ID = SparkWitchRoleRegistry.BEWITCHED_ID;
     public static final Identifier USEC_ID = SparkWitchRoleRegistry.USEC_ID;
+    public static final Identifier KNIGHT_ID = SparkWitchRoleRegistry.KNIGHT_ID;
 
     private SparkWitchRoles() {
     }
@@ -200,6 +201,10 @@ public final class SparkWitchRoles {
 
     public static Role usec() {
         return SparkWitchRoleRegistry.usec();
+    }
+
+    public static Role knight() {
+        return SparkWitchRoleRegistry.knight();
     }
 
     public static List<Role> assassinGuessRoles() {

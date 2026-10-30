@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
+import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRole;
@@ -98,6 +99,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier RIFTWALKER_ID = RiftwalkerRules.ROLE_ID;
     public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
+    public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -136,6 +138,7 @@ public final class SparkWitchRoleRegistry {
     private static Role riftwalker;
     private static Role bewitched;
     private static Role usec;
+    private static Role knight;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -170,6 +173,10 @@ public final class SparkWitchRoleRegistry {
         // cop slots come from PoliceSlotAssignmentService.
         // 与控场专家、搜寻者相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
         PoliceRoles.register(USEC_ID);
+        // Police classification only, like the other Vigilante variants (SparkTraits police traits, SparkStrength
+        // tablet); cop slots come from PoliceSlotAssignmentService.
+        // 与其他义警变体相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(KNIGHT_ID);
         // Police classification, like the other Vigilante variants (SparkTraits police traits, SparkStrength tablet);
         // cop slots come from PoliceSlotAssignmentService.
         // 与其他义警变体相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
@@ -369,6 +376,11 @@ public final class SparkWitchRoleRegistry {
     public static Role usec() {
         ensureRegistered();
         return usec;
+    }
+
+    public static Role knight() {
+        ensureRegistered();
+        return knight;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -667,6 +679,17 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Registered right before the Insider (nothing may follow the Insider): the Judge/Emma parameter set with
+        // no appearance condition, so it is drawn only through the shared Vigilante slots. No skill or start item yet.
+        // 注册在内应之前（内应之后不得再注册）：与法官、艾玛相同的参数且无出现条件，只通过共享义警警位抽取。
+        // 暂不提供技能与开局物品。
+        knight = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KNIGHT_ID, FactionIds.CIVILIAN)
+                .color(KnightRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
         // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
         // a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
@@ -744,6 +767,7 @@ public final class SparkWitchRoleRegistry {
                 controlExpert,
                 seeker,
                 usec,
+                knight,
                 fiend,
                 insider,
                 windSpirit,

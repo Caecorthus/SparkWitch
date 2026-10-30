@@ -37,6 +37,14 @@ public final class SparkWitchDeathReasons {
      * 普通、非强制的巫女赤色凋灵之首击杀；在其他系统中按枪击处理（所有者 Q5）。
      */
     public static final Identifier CRIMSON_WITHER_SKULL = SparkWitch.id("crimson_wither_skull");
+    /** Knight picked a good target: Manba Out. / 骑士选到好人：曼巴out。 */
+    public static final Identifier MANBA_OUT = SparkWitch.id("manba_out");
+    /** Duel opponent killed by a third party. / 决斗方被第三人击杀。 */
+    public static final Identifier DUEL_VIOLATION = SparkWitch.id("duel_violation");
+    /** Duel reached 120 s without a death: the Knight dies. / 决斗 120 秒未分胜负：骑士死亡。 */
+    public static final Identifier DUEL_TIMEOUT = SparkWitch.id("duel_timeout");
+    /** The Knight pushed a good player off the train. / 骑士把好人推下列车。 */
+    public static final Identifier CEREBELLUM = SparkWitch.id("cerebellum");
 
     private SparkWitchDeathReasons() {
     }

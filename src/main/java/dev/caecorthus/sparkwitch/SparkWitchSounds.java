@@ -61,6 +61,11 @@ public final class SparkWitchSounds {
     public static SoundEvent USEC_RIFLE_SCOPE;
     public static SoundEvent DOUBLE_BARREL_SHOT;
     public static SoundEvent DOUBLE_BARREL_LOAD;
+    /** Knight duel audio; no subtitles. / 骑士决斗音频；无字幕。 */
+    public static final Identifier DUEL_MANBA_ID = dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelRules.MANBA_SOUND_ID;
+    public static final Identifier DUEL_SF_ID = dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelRules.SF_SOUND_ID;
+    public static SoundEvent DUEL_MANBA;
+    public static SoundEvent DUEL_SF;
     private static boolean registered;
 
     private SparkWitchSounds() {
@@ -115,5 +120,7 @@ public final class SparkWitchSounds {
                 SoundEvent.of(DOUBLE_BARREL_SHOT_ID));
         DOUBLE_BARREL_LOAD = Registry.register(Registries.SOUND_EVENT, DOUBLE_BARREL_LOAD_ID,
                 SoundEvent.of(DOUBLE_BARREL_LOAD_ID));
+        DUEL_MANBA = Registry.register(Registries.SOUND_EVENT, DUEL_MANBA_ID, SoundEvent.of(DUEL_MANBA_ID));
+        DUEL_SF = Registry.register(Registries.SOUND_EVENT, DUEL_SF_ID, SoundEvent.of(DUEL_SF_ID));
     }
 }

@@ -216,5 +216,21 @@
         "attenuation_distance": 8
       }
     ]
+  },
+  "duel.manba": {
+    "sounds": [
+      {
+        "name": "sparkwitch:duel/manba",
+        "stream": true
+      }
+    ]
+  },
+  "duel.sf": {
+    "sounds": [
+      {
+        "name": "sparkwitch:duel/sf",
+        "stream": true
+      }
+    ]
   }
 }

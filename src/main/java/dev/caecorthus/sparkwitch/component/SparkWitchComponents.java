@@ -176,5 +176,7 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.register(FiendMomentWorldComponent.KEY, FiendMomentWorldComponent::new);
         registry.register(AccompliceVariantRoundComponent.KEY, AccompliceVariantRoundComponent::new);
         registry.register(RiftGateRegistryComponent.KEY, RiftGateRegistryComponent::new);
+        registry.register(dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent.KEY,
+                dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent::new);
     }
 }

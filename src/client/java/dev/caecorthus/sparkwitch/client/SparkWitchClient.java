@@ -13,6 +13,8 @@ import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
 import dev.caecorthus.sparkwitch.client.fisher.FisherClient;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
+import dev.caecorthus.sparkwitch.client.knight.KnightDuelClient;
+import dev.caecorthus.sparkwitch.client.knight.KnightSwordClient;
 import dev.caecorthus.sparkwitch.client.prophet.ProphetClientModule;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
@@ -130,6 +132,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerProphetNecrologyNetworking();
         registerWraithRoleAnnouncementNetworking();
         JudgeClientModule.register();
+        KnightSwordClient.register();
+        KnightDuelClient.register();
         ProphetClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
