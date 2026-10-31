@@ -15,8 +15,9 @@ import net.minecraft.entity.player.PlayerEntity;
  * {@code KnightDuelService} 给双方施加隐藏的 NoellesRoles {@code noellesroles:no_collision} 效果，
  * SparkFactionAPI 的实体碰撞豁免在双端读取它；本类供仅限玩家对的
  * {@code mixin/knight/KnightDuelEntityCollisionMixin} 与 {@code KnightDuelLivingEntityCollisionMixin} 兜底。
- * 两者都读取自动同步的 {@link KnightDuelWorldComponent}，使客户端移动预测与服务端移动校验一致。方块形状、门与所有射线
- * （{@code canHit}、小刀、枪械、准星）均不变，因此无需处理 {@code RaycastShapeScope}。
+ * 两者都读取自动同步的 {@link KnightDuelWorldComponent}，使客户端移动预测与服务端移动校验一致。门类方块由
+ * {@code mixin/knight/KnightDuelDoorPassingMixin} 为决斗者清空碰撞形状（与冤魂、幽光鱼相同的机制），门的开关、交互与
+ * 渲染不变；其他方块形状与所有射线（{@code canHit}、小刀、枪械、准星）均不变，射线查询受 {@code RaycastShapeScope} 保护。
  */
 public final class KnightDuelBodyCollision {
     private KnightDuelBodyCollision() {

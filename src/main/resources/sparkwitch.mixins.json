@@ -12,6 +12,7 @@
     "KnightPoliceGunMixin",
     "KnightDerringerCooldownMixin",
     "knight.GameFunctionsKnightDuelInterferenceMixin",
+    "knight.KnightDuelDoorPassingMixin",
     "knight.KnightDuelKnifeTargetMixin",
     "knight.KnightDuelKnifeRayTargetMixin",
     "knight.KnightDerringerReloadMixin",

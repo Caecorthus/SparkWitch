@@ -915,8 +915,10 @@ Current build baseline:
     NoellesRoles `noellesroles:no_collision` effect (no icon/particles) for the duel duration; SparkFactionAPI's
     entity-collision exemption reads it on both sides, so duelists pass through every player both ways and cannot be
     pushed. `KnightDuelBodyCollision` with `mixin/knight/KnightDuelEntityCollisionMixin` (priority 1100, outside
-    Wathe's `collidesWith` wrap) and `KnightDuelLivingEntityCollisionMixin` remains a player-pair fallback; doors still
-    block them.
+    Wathe's `collidesWith` wrap) and `KnightDuelLivingEntityCollisionMixin` remains a player-pair fallback.
+    `mixin/knight/KnightDuelDoorPassingMixin` clears the collision shape of Wathe `DoorPartBlock` and vanilla
+    doors/trapdoors/fence gates for a duelist's own movement only (the Wraith/Fisher mechanism; rays inside
+    `RaycastShapeScope` still stop at the door, and other block shapes are untouched).
     `KnightDuelSkillLock` with `mixin/knight/KnightDuelSkillPayloadGuardMixin` drops the shared-ability-key (G) skill
     payloads of both duelists on the server; key-N skills and weapons stay allowed.
   - Client (`client/knight/`): no own key binding; the Knight branch of the shared ability dispatch in
