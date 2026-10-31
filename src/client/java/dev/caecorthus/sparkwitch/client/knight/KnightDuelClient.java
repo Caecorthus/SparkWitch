@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.client.fiend.FiendMomentHudRules;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.net.KnightDuelStopSoundS2CPayload;
 import dev.caecorthus.sparkwitch.net.KnightDuelTargetC2SPayload;
+import dev.caecorthus.sparkwitch.net.KnightDuelUiLockS2CPayload;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelRules;
@@ -60,6 +61,11 @@ public final class KnightDuelClient {
         // packets. / 播放阶段的数据包处理器已在客户端线程运行：立即停止，不排到后续数据包之后。
         ClientPlayNetworking.registerGlobalReceiver(KnightDuelStopSoundS2CPayload.ID, (payload, context) ->
                 context.client().getSoundManager().stopSounds(KnightDuelRules.SF_SOUND_ID, SoundCategory.MASTER));
+        ClientPlayNetworking.registerGlobalReceiver(KnightDuelUiLockS2CPayload.ID, (payload, context) -> {
+            if (payload.locked()) {
+                KnightDuelUiLock.closeOpen(context.client());
+            }
+        });
     }
 
     /**

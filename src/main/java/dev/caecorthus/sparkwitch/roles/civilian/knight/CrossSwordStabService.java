@@ -36,10 +36,11 @@ import java.util.UUID;
  */
 public final class CrossSwordStabService {
     /**
-     * Wathe's knife receiver tolerance: server positions may lag the client's {@link CrossSwordItem#STAB_RANGE} pick.
-     * Wathe 小刀接收端的容差：服务端位置可能落后于客户端 {@link CrossSwordItem#STAB_RANGE} 的选靶。
+     * Same 3-block reach as the client pick ({@link CrossSwordItem#STAB_RANGE}) and Wathe's knife receiver; the server
+     * position may lag the client's ray.
+     * 与客户端选靶（{@link CrossSwordItem#STAB_RANGE}）及 Wathe 小刀接收端相同的 3 格距离；服务端位置可能落后于客户端射线。
      */
-    public static final double STAB_TOLERANCE = 3.0D;
+    public static final double STAB_TOLERANCE = CrossSwordItem.STAB_RANGE;
     /**
      * The client holds {@link CrossSwordItem#MIN_HOLD_TICKS}; the server's use and release packets may straddle two
      * fewer tick boundaries (same slack as the Swordfish).

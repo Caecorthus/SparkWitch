@@ -81,6 +81,9 @@ public enum ProphetDeathCauseGroup {
             // 骑士规则死亡（自裁、决斗失败、推好人下车）与 Wathe 的 shot_innocent 一样属于惩罚。
             entry("sparkwitch:duel_suicide", PENALTY),
             entry("sparkwitch:duel_failed", PENALTY),
+            // A third party attacking a duelist: punished like the other duel-rule deaths.
+            // 第三人攻击决斗者：与其他决斗规则死亡一样属于惩罚。
+            entry("sparkwitch:duel_interference", PENALTY),
             entry("sparkwitch:cerebellum", PENALTY)
     );
 

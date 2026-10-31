@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "CrossSwordWatheCrosshairMixin",
+    "knight.KnightDuelInventoryLockMixin",
     "AssassinSaboteurGuessMixin",
     "AssassinVendettaTargetMixin",
     "ClientPlayNetworkingFearMixin",

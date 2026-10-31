@@ -11,10 +11,12 @@ import net.minecraft.entity.player.PlayerEntity;
  * {@link KnightDuelWorldComponent}, so client movement prediction and server movement checks agree. Player pairs
  * only; block shapes, doors and every ray ({@code canHit}, knife, guns, crosshair) are untouched, so no
  * {@code RaycastShapeScope} handling is needed.
- * 决斗身体碰撞（规格“决斗时双方无碰撞体积”；所有者 2026-10-30：决斗双方穿过所有玩家，所有玩家也穿过他们）。由
- * {@code mixin/knight/KnightDuelEntityCollisionMixin}（Wathe 的玩家实体墙）与 {@code KnightDuelLivingEntityCollisionMixin}
- * （轻推挤）在双端读取自动同步的 {@link KnightDuelWorldComponent}，使客户端移动预测与服务端移动校验一致。只针对玩家对；
- * 方块形状、门与所有射线（{@code canHit}、小刀、枪械、准星）均不变，因此无需处理 {@code RaycastShapeScope}。
+ * 决斗身体碰撞（规格“决斗时双方无碰撞体积”；所有者 2026-10-30：决斗双方穿过所有玩家，所有玩家也穿过他们）。主机制是
+ * {@code KnightDuelService} 给双方施加隐藏的 NoellesRoles {@code noellesroles:no_collision} 效果，
+ * SparkFactionAPI 的实体碰撞豁免在双端读取它；本类供仅限玩家对的
+ * {@code mixin/knight/KnightDuelEntityCollisionMixin} 与 {@code KnightDuelLivingEntityCollisionMixin} 兜底。
+ * 两者都读取自动同步的 {@link KnightDuelWorldComponent}，使客户端移动预测与服务端移动校验一致。方块形状、门与所有射线
+ * （{@code canHit}、小刀、枪械、准星）均不变，因此无需处理 {@code RaycastShapeScope}。
  */
 public final class KnightDuelBodyCollision {
     private KnightDuelBodyCollision() {
