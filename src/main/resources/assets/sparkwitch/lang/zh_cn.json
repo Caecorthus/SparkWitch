@@ -1491,5 +1491,6 @@
   "announcement.win.sparkwitch.lost_soul": "摆渡人与迷失的灵魂获胜。",
   "death_reason.sparkwitch.ferryman_moment_lost": "迷失的灵魂尽数消散，摆渡人随之而亡",
   "replay.death.sparkwitch.ferryman_moment_lost.killed": "%s 随迷失的灵魂消散而亡",
-  "replay.death.sparkwitch.ferryman_moment_lost.died": "%s 随迷失的灵魂消散而亡"
+  "replay.death.sparkwitch.ferryman_moment_lost.died": "%s 随迷失的灵魂消散而亡",
+  "message.sparkwitch.ferryman.mercy.broken": "你摆渡过的遗体被动了。+%s 金币，破坏者已被标记。"
 }

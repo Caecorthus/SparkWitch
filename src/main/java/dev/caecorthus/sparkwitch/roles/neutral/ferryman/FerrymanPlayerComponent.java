@@ -141,6 +141,15 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent {
         return true;
     }
 
+    /** Server: drops one 怜悯 mark once its body is gone (paid or not). / 服务端：遗体消失后移除对应「怜悯」标记。 */
+    public boolean removeFerried(UUID bodyOwner) {
+        if (!ferriedBodies.remove(bodyOwner)) {
+            return false;
+        }
+        syncOwner();
+        return true;
+    }
+
     public Set<UUID> ferriedBodies() {
         return Set.copyOf(ferriedBodies);
     }

@@ -71,6 +71,9 @@ public final class FerrymanFeignService {
      * 拒绝了这次死亡，则按普通假死结束起身。
      */
     public static void onBodyDevoured(@Nullable PlayerBodyEntity body, @Nullable ServerPlayerEntity vulture) {
+        // A ferried body eaten by the Vulture pays its Ferryman and marks the eater, whether or not it was also fake.
+        // 被吞食的已摆渡遗体同样要给摆渡人分成并标记吞食者，无论它是否同时也是假尸体。
+        FerrymanMercyService.onBodyDestroyed(body, vulture);
         if (!isFakeBody(body)) {
             return;
         }

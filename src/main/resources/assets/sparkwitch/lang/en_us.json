@@ -1491,5 +1491,6 @@
   "announcement.win.sparkwitch.lost_soul": "The Ferryman and the Lost Souls win.",
   "death_reason.sparkwitch.ferryman_moment_lost": "The Lost Souls fell, and the Ferryman with them",
   "replay.death.sparkwitch.ferryman_moment_lost.killed": "%s died as the Lost Souls fell",
-  "replay.death.sparkwitch.ferryman_moment_lost.died": "%s died as the Lost Souls fell"
+  "replay.death.sparkwitch.ferryman_moment_lost.died": "%s died as the Lost Souls fell",
+  "message.sparkwitch.ferryman.mercy.broken": "A body you ferried was taken. +%s coins, and its destroyer is marked."
 }
