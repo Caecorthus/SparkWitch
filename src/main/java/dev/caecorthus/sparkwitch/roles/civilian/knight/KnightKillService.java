@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.roles.civilian.knight;
 
-import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
@@ -59,7 +58,7 @@ public final class KnightKillService {
         boolean good = KnightRules.isGoodForKnight(victim, game);
         if (good && GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason)) {
             // Non-forced, like Wathe's own SHOT_INNOCENT kill. / 非强制击杀，与 Wathe 自身的 SHOT_INNOCENT 一致。
-            GameFunctions.killPlayer(killer, true, null, SparkWitchDeathReasons.CEREBELLUM);
+            GameFunctions.killPlayer(killer, true, null, GameConstants.DeathReasons.SHOT_INNOCENT);
             return;
         }
         if (!good) {
