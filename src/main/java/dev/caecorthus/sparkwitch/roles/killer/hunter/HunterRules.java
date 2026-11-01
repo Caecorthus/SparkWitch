@@ -27,9 +27,9 @@ public final class HunterRules {
     // The slug's single-ray range, longer than the buckshot spread (2026-10-29).
     // 独头弹单射线射程，长于霰弹散射（2026-10-29）。
     public static final double SLUG_RANGE = 15.0D;
-    // Angular offset of each spread ray from the centre: up/down, left/right and the four diagonals (2026-10-29).
-    // 散射射线相对中心射线的偏角：上下、左右与四角（2026-10-29）。
-    public static final double SHOTGUN_SPREAD_DEGREES = 1.0D;
+    // Angular offset of each spread ray from the centre: up/down, left/right and the four diagonals (2026-11-01).
+    // 散射射线相对中心射线的偏角：上下、左右与四角（2026-11-01）。
+    public static final double SHOTGUN_SPREAD_DEGREES = 3.0D;
     // Shell types on the shotgun's shell stack, stored as the digit chars '0' / '1' (2026-10-29); NONE = empty gun.
     // 猎枪弹药栈中的弹药类型，以数字字符 '0' / '1' 存储（2026-10-29）；NONE 表示空枪。
     public static final int SHELL_NONE = -1;
@@ -149,13 +149,13 @@ public final class HunterRules {
     }
 
     /**
-     * Buckshot kill count (2026-10-29): one victim per three pellet rays that hit, rounded up, so 1–3 rays kill one and
-     * all 9 kill up to three; never more than the distinct victims hit.
-     * 霰弹击杀人数（2026-10-29）：每 3 条命中的弹丸射线击杀 1 人，向上取整，即 1–3 条击杀 1 人、9 条最多击杀 3 人；
-     * 不超过被命中的不同受害者人数。
+     * Buckshot kill count (2026-11-01): one victim per full three pellet rays that hit, rounded down, so 3–5 rays kill
+     * one, 6–8 kill two, all 9 kill three, and 1–2 rays kill none; never more than the distinct victims hit.
+     * 霰弹击杀人数（2026-11-01）：每满 3 条命中的弹丸射线击杀 1 人，向下取整，即 3–5 条击杀 1 人、6–8 条击杀 2 人、
+     * 9 条击杀 3 人、1–2 条不击杀；不超过被命中的不同受害者人数。
      */
     public static int buckshotKillCount(int hitRays, int victims) {
-        return Math.max(0, Math.min((hitRays + 2) / 3, victims));
+        return Math.max(0, Math.min(hitRays / 3, victims));
     }
 
     public static TrapVisibility trapVisibility(
