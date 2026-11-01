@@ -886,9 +886,17 @@ Current build baseline:
     last in `fabric.mod.json`) is the single duel state; clients read nothing else. `KnightDuelService` validates the
     C2S `sparkwitch:knight_duel_target` (Fear, stun and skill blocks refuse it; the cost is charged only when a duel
     starts). A good pick force-kills the Knight with `sparkwitch:duel_suicide` (自裁); a third-party kill of a duelist
-    force-kills the other with `sparkwitch:duel_failed` (决斗失败), except a train fall; the 120 s timeout force-kills
-    both with `duel_failed`; a disconnect or round end just ends it. Both reasons are SparkTraits terminal death
-    reasons. Prophecy groups all three Knight reasons as PENALTY.
+    just ends the duel and never kills the other (owner 2026-10-31); while the duel is active, a non-duelist player who
+    kills a duelist with a reason in `KnightDuelInterference#HUMAN_LETHAL_REASONS` is force-killed with
+    `sparkwitch:duel_interference` (破坏决斗规则). That set is Wathe weapon damage (knife, gun, bat, grenade, poison,
+    generic), every player-caused SparkWitch reason (ceremonial blade, mighty force, death ray, ninja knife/shuriken,
+    bell toll, time stolen, swordfish, potion shell/backblast, fiend devoured, crimson skull), the
+    SparkStrength kills (`tomahawk`, `partygoer_eaten`, `partygoer_kicked`), and the NoellesRoles attacks reachable in
+    this pack (`bomb`, `throwing_axe`, `demon_hunter_shot`, `assassinated`). Self
+    penalties, duel-rule deaths and environment reasons stay out; ordinary non-lethal hits never trigger it, and the
+    victim's damage still resolves (`KnightDuelInterference` + the `killPlayer` HEAD mixin); the 120 s timeout force-kills both
+    with `duel_failed`; a disconnect or round end just ends it. `duel_suicide`, `duel_failed` and `duel_interference`
+    are SparkTraits terminal death reasons. Prophecy groups all four Knight reasons as PENALTY.
   - Seal (`duel/KnightDuelSeal`): every carried non-whitelisted item of BOTH duelists (the Knight's revolver included;
     knife, derringer, cross sword, the SparkStrength tablet, letters, keys, lockpick, crowbar, cocktails and master keys
     are whitelisted) is raised through SparkFactionAPI `ForcedCooldowns` every 10 ticks. Guards cover paths that skip
@@ -898,22 +906,40 @@ Current build baseline:
     fire) are dropped for duelists; `wathe:gunshoot`, `wathe:knifestab` and `sparkwitch:cross_sword_stab` never are.
     At the end only sealed items are written back to their pre-duel remaining time (a longer cooldown someone else
     raised during the duel is kept), never through `ItemCooldownManager.remove`.
-  - Knives (`duel/KnightDuelKnives`): a target without a knife gets one marked with the `sparkwitch:duel_knife` data
-    component; only that marked knife is limited to stabbing the Knight (`mixin/knight/KnightDuelKnife*Mixin`), own
-    knives are never limited. The target's knife cooldown is cleared at the start; marked knives are confiscated
-    everywhere (inventories, cursor, open containers, item entities) at the end.
-  - Cross sword (`CrossSwordItem`, `CrossSwordStabService`): 0.5 s hold, the client picks the duel target on a
-    2-block target-only ray (`client/knight/CrossSwordClientStab`, shared with the crosshair mixin) and sends
-    `sparkwitch:cross_sword_stab`; the server matches it to the release and checks the duel, the main-hand sword and
-    3 blocks. It has no cooldown and is exempt from SparkFactionAPI forced raises.
-  - Duelists: Speed II and glowing colour teams for the Knight (aqua) and the target (red); `KnightDuelBodyCollision`
-    with `mixin/knight/KnightDuelEntityCollisionMixin` (priority 1100, outside Wathe's `collidesWith` wrap) and
-    `KnightDuelLivingEntityCollisionMixin` lets duelists pass through every player both ways; doors still block them.
+  - Knives (`duel/KnightDuelKnives`): a target with no knife in reach gets one marked with the `sparkwitch:duel_knife`
+    data component; only that marked knife is limited to stabbing the Knight (`mixin/knight/KnightDuelKnife*Mixin`), own
+    knives are never limited. The UI lock leaves only the hotbar and off hand reachable, so the issued knife always goes
+    into the hotbar, and the target's own knife and the Knight's cross sword are swapped down from an upper row at the
+    start. The target's knife cooldown is cleared at the start; marked knives are confiscated everywhere (inventories,
+    cursor, open containers, item entities) at the end.
+  - Cross sword (`CrossSwordItem`, `CrossSwordStabService`): 11-tick hold (the same strict threshold as Wathe's
+    knife), the client picks the duel target on a 3-block target-only ray (`client/knight/CrossSwordClientStab`) and
+    sends `sparkwitch:cross_sword_stab`; the server matches it to the release and checks the duel, the main-hand sword
+    and 3 blocks. The crosshair mixin (`CrossSwordWatheCrosshairMixin`) runs the cross sword through Wathe's own knife
+    branch as soon as the duel target is in that 3-block reach (no hold gate) and forces the shared knife-cooldown read
+    off, so it draws the same knife target reticle as the vanilla knife. It has no cooldown and is exempt from
+    SparkFactionAPI forced raises.
+  - Duelists: Speed II and glowing colour teams for the Knight (aqua) and the target (red).
+    `KnightDuelBodyCollision` with `mixin/knight/KnightDuelEntityCollisionMixin` (priority 1100, outside Wathe's
+    `collidesWith` wrap) and `KnightDuelLivingEntityCollisionMixin` lets duelists pass through every player both ways
+    from the synced duel state. Both also receive a hidden NoellesRoles `noellesroles:no_collision` effect (no
+    icon/particles) for the duel duration, which adds non-player entities and pushing through SparkFactionAPI's
+    entity-collision exemption; that effect alone is one-sided, because other clients may not know it.
+    `mixin/knight/KnightDuelDoorPassingMixin` clears the collision shape of Wathe `DoorPartBlock` and vanilla `DoorBlock`
+    doors (never trapdoors or gates, like the Glimmerfish, since a living player would fall through a closed floor
+    trapdoor) for a duelist's own movement only; rays inside `RaycastShapeScope` still stop at the door, and other block
+    shapes are untouched.
     `KnightDuelSkillLock` with `mixin/knight/KnightDuelSkillPayloadGuardMixin` drops the shared-ability-key (G) skill
     payloads of both duelists on the server; key-N skills and weapons stay allowed.
   - Client (`client/knight/`): no own key binding; the Knight branch of the shared ability dispatch in
     `SparkWitchClient` opens `KnightDuelScreen`, and `KnightDuelClient` draws the HUD and stops the duel track on
-    `sparkwitch:knight_duel_stop_sound`. SparkAssist has no guidebook page yet.
+    `sparkwitch:knight_duel_stop_sound`. The server sends `sparkwitch:knight_duel_ui_lock` to both duelists at duel
+    start; `KnightDuelUiLock` closes an open `InventoryScreen`/Wathe `LimitedInventoryScreen` (the latter carries the
+    shop and the `gui.sparkwitch.skills` panel) through `closeHandledScreen`, so the server returns a cursor stack to the
+    inventory, and `client/mixin/knight/KnightDuelInventoryLockMixin` cancels every `MinecraftClient.setScreen` of those
+    screens while the synced duel state marks the local player as a duelist, so E is unavailable until the duel ends.
+    The lock is client presentation, not a server check, and needs no unlock packet. SparkAssist has no guidebook page
+    yet.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation

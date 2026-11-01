@@ -44,14 +44,23 @@ public final class SparkWitchDeathReasons {
      */
     public static final Identifier DUEL_SUICIDE = SparkWitch.id("duel_suicide");
     /**
-     * A duel was lost without a duel kill: a third party killed the other duelist, or 120 s passed (both die). Forced,
-     * body kept, no killer, and registered SparkTraits-terminal (owner 2026-10-30).
-     * 决斗失败（非决斗击杀）：第三人击杀了另一方，或 120 秒到时（双方均死）。强制击杀、保留尸体、无凶手，并注册为
-     * SparkTraits 终结死亡原因（所有者 2026-10-30）。
+     * The duel ran 120 s without a duel kill (both die). Forced, body kept, no killer, and registered
+     * SparkTraits-terminal (owner 2026-10-30). Third-party interference no longer kills the other duelist
+     * (owner 2026-10-31).
+     * 决斗 120 秒未分胜负（双方均死）。强制击杀、保留尸体、无凶手，并注册为 SparkTraits 终结死亡原因（所有者 2026-10-30）。
+     * 第三方干预不再使另一名决斗者死亡（所有者 2026-10-31）。
      */
     public static final Identifier DUEL_FAILED = SparkWitch.id("duel_failed");
     /** The Knight pushed a good player off the train. / 骑士把好人推下列车。 */
     public static final Identifier CEREBELLUM = SparkWitch.id("cerebellum");
+    /**
+     * A third party attacked a duelist while the duel variable was 1. Forced, body kept, no killer, and registered
+     * SparkTraits-terminal, so the attacker's traits and every shield are bypassed; the attack itself resolves normally
+     * (owner 2026-10-31).
+     * 决斗变量为 1 时第三人攻击决斗者。强制击杀、保留尸体、无凶手，并注册为 SparkTraits 终结死亡原因，绕过攻击者
+     * 的词条与一切护盾；攻击本身正常结算（所有者 2026-10-31）。
+     */
+    public static final Identifier DUEL_INTERFERENCE = SparkWitch.id("duel_interference");
 
     private SparkWitchDeathReasons() {
     }

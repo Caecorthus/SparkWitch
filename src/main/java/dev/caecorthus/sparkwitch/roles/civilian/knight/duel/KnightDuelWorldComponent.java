@@ -36,6 +36,8 @@ public final class KnightDuelWorldComponent implements AutoSyncedComponent, Serv
     private long endTick;
     private final Map<UUID, StatusEffectInstance> previousGlowing = new HashMap<>();
     private final Map<UUID, StatusEffectInstance> previousSpeed = new HashMap<>();
+    /** Pre-duel NoellesRoles no-collision effect per duelist. / 每名决斗者决斗前的 NoellesRoles 无碰撞效果。 */
+    private final Map<UUID, StatusEffectInstance> previousNoCollision = new HashMap<>();
     private final Map<UUID, String> previousTeams = new HashMap<>();
     /** Per duelist: sealed item -> world tick its pre-duel cooldown would have ended. / 每名决斗者：被封印物品 -> 其决斗前冷却本应结束的世界刻。 */
     private final Map<UUID, Map<Item, Long>> sealedItems = new HashMap<>();
@@ -91,6 +93,7 @@ public final class KnightDuelWorldComponent implements AutoSyncedComponent, Serv
         endTick = 0;
         previousGlowing.clear();
         previousSpeed.clear();
+        previousNoCollision.clear();
         previousTeams.clear();
         sealedItems.clear();
     }
@@ -101,6 +104,10 @@ public final class KnightDuelWorldComponent implements AutoSyncedComponent, Serv
 
     Map<UUID, StatusEffectInstance> previousSpeed() {
         return previousSpeed;
+    }
+
+    Map<UUID, StatusEffectInstance> previousNoCollision() {
+        return previousNoCollision;
     }
 
     Map<UUID, String> previousTeams() {
