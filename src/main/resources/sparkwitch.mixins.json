@@ -19,6 +19,8 @@
     "knight.KnightDuelEntityCollisionMixin",
     "knight.KnightDuelLivingEntityCollisionMixin",
     "knight.KnightDuelSkillPayloadGuardMixin",
+    "recruit.RecruitPoliceGunMixin",
+    "recruit.RecruitItemEntityAccessor",
     "JudgeKillCompletionMixin",
     "JudgeLivingLethalDamageMixin",
     "JudgePlayerLethalDamageMixin",
