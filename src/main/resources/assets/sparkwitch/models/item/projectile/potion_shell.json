@@ -1,0 +1,201 @@
+{
+  "credit": "SparkWitch Potion Gunner in-flight shell (generated); nose north, pivot 8,8,8",
+  "texture_size": [64, 64],
+  "elements": [
+    {
+      "name": "fuse",
+      "from": [7.5, 7.5, 1],
+      "to": [8.5, 8.5, 2],
+      "faces": {
+        "north": {"uv": [0.25, 0.25, 0.5, 0.5], "texture": "#shell"},
+        "east": {"uv": [1.25, 0.25, 1.5, 0.5], "texture": "#shell"},
+        "west": {"uv": [1.25, 0.25, 1.5, 0.5], "texture": "#shell"},
+        "up": {"uv": [1.25, 0.25, 1.5, 0.5], "texture": "#shell"},
+        "down": {"uv": [1.25, 0.25, 1.5, 0.5], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "bulb_front",
+      "from": [6.5, 6.5, 2],
+      "to": [9.5, 9.5, 3],
+      "faces": {
+        "north": {"uv": [2.25, 0.25, 3, 1], "texture": "#shell"},
+        "east": {"uv": [6.75, 0.25, 7, 1], "texture": "#shell"},
+        "west": {"uv": [7.75, 0.25, 8, 1], "texture": "#shell"},
+        "up": {"uv": [3.75, 0.25, 4.5, 0.5], "texture": "#shell"},
+        "down": {"uv": [5.25, 0.25, 6, 0.5], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "bulb_wide",
+      "from": [5.5, 6.5, 3],
+      "to": [10.5, 9.5, 7],
+      "faces": {
+        "north": {"uv": [8.75, 0.25, 10, 1], "texture": "#shell"},
+        "east": {"uv": [2.25, 1.75, 3.25, 2.5], "texture": "#shell"},
+        "south": {"uv": [10.75, 0.25, 12, 1], "texture": "#shell"},
+        "west": {"uv": [3.75, 1.75, 4.75, 2.5], "texture": "#shell"},
+        "up": {"uv": [12.75, 0.25, 14, 1.25], "texture": "#shell"},
+        "down": {"uv": [0.25, 1.75, 1.5, 2.75], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "bulb_tall",
+      "from": [6.5, 5.5, 3],
+      "to": [9.5, 10.5, 7],
+      "faces": {
+        "north": {"uv": [5.25, 1.75, 6, 3], "texture": "#shell"},
+        "east": {"uv": [11.25, 1.75, 12.25, 3], "texture": "#shell"},
+        "south": {"uv": [6.75, 1.75, 7.5, 3], "texture": "#shell"},
+        "west": {"uv": [12.75, 1.75, 13.75, 3], "texture": "#shell"},
+        "up": {"uv": [8.25, 1.75, 9, 2.75], "texture": "#shell"},
+        "down": {"uv": [9.75, 1.75, 10.5, 2.75], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "bulb_shoulder",
+      "from": [6.5, 6.5, 7],
+      "to": [9.5, 9.5, 8],
+      "faces": {
+        "east": {"uv": [1.75, 3.75, 2, 4.5], "texture": "#shell"},
+        "south": {"uv": [14.25, 1.75, 15, 2.5], "texture": "#shell"},
+        "west": {"uv": [1.75, 3.75, 2, 4.5], "texture": "#shell"},
+        "up": {"uv": [0.25, 3.75, 1, 4], "texture": "#shell"},
+        "down": {"uv": [0.25, 3.75, 1, 4], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "neck",
+      "from": [7, 7, 8],
+      "to": [9, 9, 13],
+      "faces": {
+        "east": {"uv": [4.75, 3.75, 6, 4.25], "texture": "#shell"},
+        "west": {"uv": [6.75, 3.75, 8, 4.25], "texture": "#shell"},
+        "up": {"uv": [2.75, 3.75, 3.25, 5], "texture": "#shell"},
+        "down": {"uv": [3.75, 3.75, 4.25, 5], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "band",
+      "from": [6.5, 6.5, 10],
+      "to": [9.5, 9.5, 11],
+      "faces": {
+        "north": {"uv": [8.75, 3.75, 9.5, 4.5], "texture": "#shell"},
+        "east": {"uv": [14.75, 3.75, 15, 4.5], "texture": "#shell"},
+        "south": {"uv": [10.25, 3.75, 11, 4.5], "texture": "#shell"},
+        "west": {"uv": [0.25, 5.75, 0.5, 6.5], "texture": "#shell"},
+        "up": {"uv": [11.75, 3.75, 12.5, 4], "texture": "#shell"},
+        "down": {"uv": [13.25, 3.75, 14, 4], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "fin_up_root",
+      "from": [7.5, 9, 11],
+      "to": [8.5, 10, 14],
+      "faces": {
+        "north": {"uv": [1.25, 5.75, 1.5, 6], "texture": "#shell"},
+        "east": {"uv": [4.25, 5.75, 5, 6], "texture": "#shell"},
+        "south": {"uv": [2.25, 5.75, 2.5, 6], "texture": "#shell"},
+        "west": {"uv": [5.75, 5.75, 6.5, 6], "texture": "#shell"},
+        "up": {"uv": [3.25, 5.75, 3.5, 6.5], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "fin_up_tip",
+      "from": [7.5, 10, 12],
+      "to": [8.5, 11, 14],
+      "faces": {
+        "north": {"uv": [7.25, 5.75, 7.5, 6], "texture": "#shell"},
+        "east": {"uv": [9.25, 5.75, 9.75, 6], "texture": "#shell"},
+        "south": {"uv": [2.25, 5.75, 2.5, 6], "texture": "#shell"},
+        "west": {"uv": [10.25, 5.75, 10.75, 6], "texture": "#shell"},
+        "up": {"uv": [8.25, 5.75, 8.5, 6.25], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "fin_down_root",
+      "from": [7.5, 6, 11],
+      "to": [8.5, 7, 14],
+      "faces": {
+        "north": {"uv": [1.25, 5.75, 1.5, 6], "texture": "#shell"},
+        "east": {"uv": [4.25, 5.75, 5, 6], "texture": "#shell"},
+        "south": {"uv": [2.25, 5.75, 2.5, 6], "texture": "#shell"},
+        "west": {"uv": [5.75, 5.75, 6.5, 6], "texture": "#shell"},
+        "down": {"uv": [11.25, 5.75, 11.5, 6.5], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "fin_down_tip",
+      "from": [7.5, 5, 12],
+      "to": [8.5, 6, 14],
+      "faces": {
+        "north": {"uv": [7.25, 5.75, 7.5, 6], "texture": "#shell"},
+        "east": {"uv": [9.25, 5.75, 9.75, 6], "texture": "#shell"},
+        "south": {"uv": [2.25, 5.75, 2.5, 6], "texture": "#shell"},
+        "west": {"uv": [10.25, 5.75, 10.75, 6], "texture": "#shell"},
+        "down": {"uv": [12.25, 5.75, 12.5, 6.25], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "fin_east_root",
+      "from": [9, 7.5, 11],
+      "to": [10, 8.5, 14],
+      "faces": {
+        "north": {"uv": [1.25, 5.75, 1.5, 6], "texture": "#shell"},
+        "east": {"uv": [4.25, 5.75, 5, 6], "texture": "#shell"},
+        "south": {"uv": [2.25, 5.75, 2.5, 6], "texture": "#shell"},
+        "up": {"uv": [3.25, 5.75, 3.5, 6.5], "texture": "#shell"},
+        "down": {"uv": [11.25, 5.75, 11.5, 6.5], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "fin_east_tip",
+      "from": [10, 7.5, 12],
+      "to": [11, 8.5, 14],
+      "faces": {
+        "north": {"uv": [7.25, 5.75, 7.5, 6], "texture": "#shell"},
+        "east": {"uv": [9.25, 5.75, 9.75, 6], "texture": "#shell"},
+        "south": {"uv": [2.25, 5.75, 2.5, 6], "texture": "#shell"},
+        "up": {"uv": [8.25, 5.75, 8.5, 6.25], "texture": "#shell"},
+        "down": {"uv": [12.25, 5.75, 12.5, 6.25], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "fin_west_root",
+      "from": [6, 7.5, 11],
+      "to": [7, 8.5, 14],
+      "faces": {
+        "north": {"uv": [1.25, 5.75, 1.5, 6], "texture": "#shell"},
+        "south": {"uv": [2.25, 5.75, 2.5, 6], "texture": "#shell"},
+        "west": {"uv": [5.75, 5.75, 6.5, 6], "texture": "#shell"},
+        "up": {"uv": [3.25, 5.75, 3.5, 6.5], "texture": "#shell"},
+        "down": {"uv": [11.25, 5.75, 11.5, 6.5], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "fin_west_tip",
+      "from": [5, 7.5, 12],
+      "to": [6, 8.5, 14],
+      "faces": {
+        "north": {"uv": [7.25, 5.75, 7.5, 6], "texture": "#shell"},
+        "south": {"uv": [2.25, 5.75, 2.5, 6], "texture": "#shell"},
+        "west": {"uv": [10.25, 5.75, 10.75, 6], "texture": "#shell"},
+        "up": {"uv": [8.25, 5.75, 8.5, 6.25], "texture": "#shell"},
+        "down": {"uv": [12.25, 5.75, 12.5, 6.25], "texture": "#shell"}
+      }
+    },
+    {
+      "name": "nozzle",
+      "from": [6.5, 6.5, 13],
+      "to": [9.5, 9.5, 15],
+      "faces": {
+        "north": {"uv": [13.25, 5.75, 14, 6.5], "texture": "#shell"},
+        "east": {"uv": [3.25, 7.25, 3.75, 8], "texture": "#shell"},
+        "south": {"uv": [14.75, 5.75, 15.5, 6.5], "texture": "#shell"},
+        "west": {"uv": [4.25, 7.25, 4.75, 8], "texture": "#shell"},
+        "up": {"uv": [0.25, 7.25, 1, 7.75], "texture": "#shell"},
+        "down": {"uv": [1.75, 7.25, 2.5, 7.75], "texture": "#shell"}
+      }
+    }
+  ]
+}

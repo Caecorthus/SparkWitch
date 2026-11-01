@@ -1,0 +1,51 @@
+# Fresh-clone checks for every PR and every push to main.
+# The local test suite (src/test) is gitignored, so `test` has no sources here and the four local-only
+# architecture contract tests are skipped; run the full suite locally (CONTEXT.md, Verification).
+# 每个 PR 与每次推送 main 时的全新克隆检查。本地测试（src/test）不进 git，因此这里的 `test` 没有源码，
+# 四个仅本地的架构契约测试会被跳过；完整测试仍在本地运行（见 CONTEXT.md 的 Verification）。
+name: build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # Depth 2 so the whitespace check can diff against the first parent (the base tip on a PR merge ref).
+      # 深度 2，使空白检查能与第一父提交比较（PR 合并引用上即基础分支末端）。
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # `build` runs neither verifyArchitecture nor verifyClientMixinSelectors, so both are named explicitly.
+      # `build` 不会运行 verifyArchitecture 与 verifyClientMixinSelectors，因此二者需显式列出。
+      - name: Build and verify
+        run: ./gradlew --no-daemon --console=plain build verifyArchitecture verifyClientMixinSelectors
+
+      - name: Whitespace check
+        run: git diff --check HEAD^1 HEAD
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sparkwitch-${{ github.sha }}
+          path: build/libs/*.jar
+          retention-days: 14

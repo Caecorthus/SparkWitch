@@ -231,9 +231,15 @@ Current build baseline:
     unless a longer forced cooldown is already running (`ForcedCooldowns.itemRemainingTicks`), and Ninja assignment
     locks it for 90 s. Vanilla chain sounds only, never a `.step` id. The state (FLYING, LATCHED, PULLING) is tracked
     data and the owner id rides the spawn packet for the client `client/renderer/NinjaGrapplingHookEntityRenderer`: a
-    camera-facing head sprite (`textures/entity/ninja_grappling_hook.png`, hidden for its first ticks next to the
-    camera) and a leash-style steel chain to the hand holding the hook (vanilla bobber hand anchor; geometry in
-    `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible to the viewer.
+    3D grapnel head (standalone model `models/item/projectile/ninja_grappling_hook.json`, block-atlas texture
+    `textures/item/projectile/ninja_grappling_hook.png`, drawn through `ProjectileModels`; hidden for its first ticks
+    next to the camera) whose pivot is the crown tip, placed at the hook position itself (the exact hit point once
+    LATCHED) with its four claws pointing along its velocity while FLYING and along hand→hook once LATCHED or PULLING
+    (each falls back to the other, then the owner's look; `NinjaGrapplingHeadPose`), and a leash-style steel chain from the head's ring
+    (`NinjaGrapplingHeadPose.RING_DISTANCE`, tied to the model) to the hand holding the hook (vanilla bobber hand
+    anchor; geometry in `NinjaGrapplingChainGeometry`), taut unless FLYING, and nothing at all for an owner invisible
+    to the viewer. The old billboard `textures/entity/ninja_grappling_hook.png` is no longer drawn in game but stays
+    because SparkAssist's ponder scene draws it by id.
     `BlindClientGates.hidesEntity` hides a hook whose owner is hidden, like the fishing bobber.
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
   SparkTraits fake bodies, camera-bound bodies, Magician decoys and Fiend feign-death corpses; a deliberate drag on a
@@ -543,7 +549,7 @@ Current build baseline:
   and `shell/` (the shell items and entity, flat flight, blast targeting and falloff, rewards) with `shell/effect/`
   (GW-DK, GW-AC, GW-MR, TR, harmless burning). Its mixins live in `mixin/potiongunner/` and
   `client/mixin/potiongunner/`; client presentation (the scope profile and reticle on the shared `client/scope`
-  module, fire input, HUD, two-handed pose) in `client/potiongunner/`. Its packet is
+  module, fire input, HUD, two-handed pose, the in-flight shell model) in `client/potiongunner/`. Its packet is
   `net/FirePotionLauncherC2SPacket`.
 - `roles/witch/grandwitch/`: Grand-Witch-private permanent sword reward, spells and fear;
   `GrandWitchFeatureService` also owns the round lifecycle of the special-accomplice ledger (seed at
@@ -2964,8 +2970,8 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
       `sparkfactionapi:projectile` action accept count, as for vanilla.
     - The hit wins only when it is strictly nearer than vanilla's own collision
       (`PotionShellFlight.lagCompensatedHitFirst`), so blocks, doors and Rift Gates still shield a player.
-    - It bursts on the player's current box (`PotionBlastGeometry.entityImpact`) when the blast's line of sight reaches
-      it from the rewound entry point, else at that entry point.
+    - It bursts on the player's current body (`PotionShellEntity.bodyBurst`: the axis, else the entered face) when
+      the blast's line of sight reaches it from the rewound entry point, else at that entry point.
   - A Riftwalker Rift Gate never bursts it (Riftwalker D18): the gate's deflection moves it to another gate or reflects
     it. On a flat tick the shell keeps the gate's exit velocity (`onDeflected`) and re-bases its launch point behind the
     new position (`PotionShellFlight.flatPathAfterTick`), so the path length carries over the jump: still 20 flat ticks
@@ -2973,11 +2979,32 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
   - Once the round leaves `ACTIVE`, a match shell still in flight is discarded without exploding, and its
     detonation also requires `ACTIVE`, so no kill, gold or bounty lands after the result. A presentation shell flies
     the same, ignores the round status and skips the Seeker sweep. Finalize discards any shell left.
-- **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect,
-  Judge attribution or reward). The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
-  body overlapping vertically, plus line of sight. It does not catch spectators, Wathe-dead players, or SparkTraits
-  Last Escape players. Falloff comes in rings by horizontal Chebyshev distance (`PotionBlastRings`: 5 → 100/67/33%,
-  7 → 100/75/50/25%, 3 → 100/50%).
+- **In-flight model.** The flying shell draws a 3D model, never the item sprite
+  (`client/potiongunner/PotionShellEntityRenderer`, presentation only), through the shared
+  `client/renderer/ProjectileModels` seam. `PotionShellModels` registers once, from `PotionGunnerClient.init()`, one
+  textures-only child per `PotionShellType` (`item/projectile/potion_shell_<key>`, a 64×64 sheet coloured from that
+  type's item sprite) of the shared geometry `item/projectile/potion_shell` (14 px, nose north, four-fold symmetric:
+  fuse, glass warhead bulb, steel neck, band, cross fins, nozzle), plus the type-agnostic nozzle glow
+  `item/projectile/potion_shell_flare`. No face uses a UV `rotation`; each region is painted in its face's default
+  orientation.
+  - The model follows the synced stack (`renderType()`, TR when it is not a shell), sits at the box centre, faces the
+    client velocity (the vanilla projectile yaw/pitch when the velocity is zero), rolls 30° per tick clockwise seen
+    from behind (`PotionShellModelPose`), and is scaled 0.75.
+  - The body is entity cutout no-cull at the entity's light; the glow is the additive eyes layer at full bright (no
+    depth write). The body must stay on an immediate layer: `getEntityCutout(BLOCK_ATLAS)` is a fixed entity buffer
+    drawn after every entity, so it would paint over the glow. Like vanilla `FlyingItemEntityRenderer`, nothing (label included) is drawn while `age < 2` and the camera's
+    focused entity is within 3.5 blocks.
+  - The in-hand and GUI icons stay the flat `*_shell` sprites.
+- **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect, Judge
+  attribution or reward). A shell that hits a body (vanilla or lag-compensated) bursts on that body's vertical axis at
+  the entry height (`PotionBlastGeometry.bodyImpact`, 2026-10-30) when no block lies between the entered face and the
+  axis, else on the face as before (a seated player's axis can be inside the stool or couch, and furniture still
+  blocks): the flat-crowd probe showed a front-face centre reached only 2.2 blocks behind the struck player, where the
+  rest of a crowd stands. The area is an N×N×N cube around the impact that any part of the body overlaps (box faces
+  within N/2 on every axis, 2026-10-30; it was the feet point horizontally), plus line of sight (furniture and walls
+  block; owner 2026-10-30). It does not catch spectators, Wathe-dead players, or SparkTraits Last Escape players.
+  Falloff comes in rings by horizontal Chebyshev distance (`PotionBlastRings`: 5 → 100/67/33%, 7 → 100/75/50/25%, 3 →
+  100/50%).
   - GW-DK, GW-AC and GW-MR skip the witch faction (effective faction, unknown fails closed) and the gunner.
   - TR keeps everyone, the gunner and witch allies included.
   - While the gunner is online, every non-self target also needs the gunner's `canAffectPlayer`, Vendetta isolation
@@ -3872,6 +3899,11 @@ GitHub Actions (`.github/workflows/build.yml`, since 2026-10-30) runs `build ver
 verifyClientMixinSelectors` and a whitespace check on a fresh clone for every PR and every push to `main`, and
 uploads the jar as a 14-day artifact. It has no `src/test`, so it runs no unit tests and skips the local-only
 architecture contract tests; the command above stays the full local check.
+
+`verifyArchitecture` also runs `verifySoundAssets`: every `.ogg` under `src/main/resources/assets` must be exactly one
+Vorbis stream. Minecraft decodes only the first Ogg stream, so a file with embedded cover art that ffmpeg re-muxed into
+a Theora stream plays silence (the Knight duel track shipped that way in #169). When re-encoding, keep audio only:
+`ffmpeg -i in.ogg -map 0:a:0 -vn -map_metadata -1 -c:a libvorbis -q:a 4 out.ogg`.
 
 Run a full sequential `build` for a release or after packet, NBT, resource,
 metadata, mixin, or cross-module changes. Do not overlap SparkWitch and sibling
