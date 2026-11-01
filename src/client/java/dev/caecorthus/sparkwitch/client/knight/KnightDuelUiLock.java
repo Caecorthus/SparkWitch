@@ -29,11 +29,16 @@ public final class KnightDuelUiLock {
         return KnightDuelWorldComponent.KEY.get(client.world).isDuelist(client.player.getUuid());
     }
 
-    /** Closes an inventory/skill panel that was already open when the duel started. / 关闭决斗开始时已打开的物品栏/技能面板。 */
+    /**
+     * Closes an inventory/skill panel that was already open when the duel started. Uses the same close as Esc, not
+     * {@code setScreen(null)}: the server must hear it to put a stack held on the cursor back into the inventory.
+     * 关闭决斗开始时已打开的物品栏/技能面板。与 Esc 走同一关闭路径，而非 {@code setScreen(null)}：服务端必须收到关闭才会
+     * 把光标上的物品放回背包。
+     */
     public static void closeOpen(MinecraftClient client) {
         Screen screen = client.currentScreen;
-        if (screen instanceof InventoryScreen || screen instanceof LimitedInventoryScreen) {
-            client.setScreen(null);
+        if (client.player != null && (screen instanceof InventoryScreen || screen instanceof LimitedInventoryScreen)) {
+            client.player.closeHandledScreen();
         }
     }
 }

@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.knight.duel;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
+import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.api.SparkWitchApi;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
@@ -184,10 +185,11 @@ public final class KnightDuelService {
         PlayerShopComponent shop = PlayerShopComponent.KEY.get(knight);
         shop.setBalance(shop.getBalance() - KnightDuelRules.COST);
         duel.begin(knight.getUuid(), target.getUuid(), world.getTime() + KnightDuelRules.DUEL_TICKS);
-        // Close any open inventory/skill panel and lock E until the duel ends; sent after begin()'s state sync.
-        // 关闭已打开的物品栏/技能面板，并锁住 E 直到决斗结束；在 begin() 的状态同步之后发送。
-        sendUiLock(knight, true, null);
-        sendUiLock(target, true, null);
+        // Close any open inventory/skill panel; begin()'s state sync already locks E until the duel ends.
+        // 关闭已打开的物品栏/技能面板；begin() 的状态同步已锁住 E，直到决斗结束。
+        ServerPlayNetworking.send(knight, new KnightDuelUiLockS2CPayload());
+        ServerPlayNetworking.send(target, new KnightDuelUiLockS2CPayload());
+        KnightDuelKnives.moveIntoReach(knight, SparkWitchItems.crossSword());
         applyTeamsAndEffects(world, duel, knight, target);
         // Wathe cooldowns are per item, so the issued knife shares the target's knife cooldown: clear it so the issued
         // or own knife can be raised at once (owner bug report). The knife is whitelisted, so the seal never touches it.
@@ -287,16 +289,13 @@ public final class KnightDuelService {
         duel.sync();
         stopSf(world);
         ServerPlayerEntity knight = resolve(world.getServer(), knightId, leaving);
-        ServerPlayerEntity target = resolve(world.getServer(), targetId, leaving);
         if (knight != null) {
             restoreEffect(knight, StatusEffects.SPEED, previousSpeed.get(knightId), elapsed);
         }
-        sendUiLock(knight, false, leaving);
-        sendUiLock(target, false, leaving);
         cleanupPlayer(world, knight, elapsed, sealFloor, now, previousGlowing, previousNoCollision, previousTeams,
                 sealed);
-        cleanupPlayer(world, target, elapsed, sealFloor, now, previousGlowing, previousNoCollision, previousTeams,
-                sealed);
+        cleanupPlayer(world, resolve(world.getServer(), targetId, leaving), elapsed, sealFloor, now,
+                previousGlowing, previousNoCollision, previousTeams, sealed);
         KnightDuelKnives.confiscateEverywhere(world.getServer());
     }
 
@@ -354,8 +353,10 @@ public final class KnightDuelService {
         applyEffect(knight, StatusEffects.GLOWING, 0, duel.previousGlowing());
         applyEffect(knight, StatusEffects.SPEED, KnightDuelRules.KNIGHT_SPEED_AMPLIFIER, duel.previousSpeed());
         applyEffect(target, StatusEffects.GLOWING, 0, duel.previousGlowing());
-        // NoellesRoles' no-collision: its own mixins veto player collision and pushing for anyone carrying it.
-        // NoellesRoles 的无碰撞：其自身 mixin 会让携带者不与其他实体碰撞、不可被推挤。
+        // NoellesRoles' no-collision covers the duelists against non-player entities and pushing; player pairs come
+        // from KnightDuelBodyCollision, which also works on clients that never received this effect.
+        // NoellesRoles 的无碰撞覆盖决斗者与非玩家实体的碰撞及推挤；玩家对由 KnightDuelBodyCollision 负责，未收到该效果的
+        // 客户端也同样生效。
         applyHiddenEffect(knight, ModEffects.NO_COLLISION, duel.previousNoCollision());
         applyHiddenEffect(target, ModEffects.NO_COLLISION, duel.previousNoCollision());
     }
@@ -418,11 +419,11 @@ public final class KnightDuelService {
     }
 
     /**
-     * The teams only colour the glow. Player pass-through is the hidden NoellesRoles NO_COLLISION effect applied to
-     * both duelists (SparkFactionAPI turns that effect into a two-sided collision/push exemption); the player-only
-     * mixins and the team's NEVER rule are fallbacks.
-     * 队伍只用于发光颜色。穿过玩家由施加给双方的隐藏 NoellesRoles NO_COLLISION 效果负责（SparkFactionAPI 将该效果转为
-     * 双端的碰撞/推挤豁免）；仅限玩家的 mixin 与队伍 NEVER 规则为兜底。
+     * The teams only colour the glow. Passing through players is {@link
+     * dev.caecorthus.sparkwitch.roles.civilian.knight.KnightDuelBodyCollision}, read from the synced duel state on every
+     * client; the hidden NO_COLLISION effect and the team's NEVER rule add non-player entities and vanilla pushing.
+     * 队伍只用于发光颜色。穿过玩家由 {@link dev.caecorthus.sparkwitch.roles.civilian.knight.KnightDuelBodyCollision}
+     * 负责，每个客户端都从同步的决斗状态读取；隐藏的 NO_COLLISION 效果与队伍 NEVER 规则补充非玩家实体与原版推挤。
      */
     private static Team team(Scoreboard scoreboard, String name, Formatting color) {
         Team team = scoreboard.getTeam(name);
@@ -530,15 +531,6 @@ public final class KnightDuelService {
         for (ServerPlayerEntity player : world.getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(player, payload);
         }
-    }
-
-    /** Never sends to a disconnecting duelist; the synced duel state already unlocks their client. / 绝不发给正在断线的决斗者；其客户端的同步决斗状态已解锁。 */
-    private static void sendUiLock(@Nullable ServerPlayerEntity player, boolean locked,
-                                   @Nullable ServerPlayerEntity leaving) {
-        if (player == null || player == leaving) {
-            return;
-        }
-        ServerPlayNetworking.send(player, new KnightDuelUiLockS2CPayload(locked));
     }
 
     private static void showTitleToAll(MinecraftServer server, Text text) {

@@ -61,11 +61,8 @@ public final class KnightDuelClient {
         // packets. / 播放阶段的数据包处理器已在客户端线程运行：立即停止，不排到后续数据包之后。
         ClientPlayNetworking.registerGlobalReceiver(KnightDuelStopSoundS2CPayload.ID, (payload, context) ->
                 context.client().getSoundManager().stopSounds(KnightDuelRules.SF_SOUND_ID, SoundCategory.MASTER));
-        ClientPlayNetworking.registerGlobalReceiver(KnightDuelUiLockS2CPayload.ID, (payload, context) -> {
-            if (payload.locked()) {
-                KnightDuelUiLock.closeOpen(context.client());
-            }
-        });
+        ClientPlayNetworking.registerGlobalReceiver(KnightDuelUiLockS2CPayload.ID, (payload, context) ->
+                KnightDuelUiLock.closeOpen(context.client()));
     }
 
     /**
