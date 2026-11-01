@@ -153,6 +153,8 @@
     "fiend.SerialKillerPlayerComponentFiendTargetMixin",
     "fiend.ServerPlayNetworkHandlerFiendFeignMixin",
     "fiend.ServerPlayerEntityFiendFeignMixin",
+    "ferryman.NoellesVultureFerrymanFakeBodyMixin",
+    "ferryman.BodyBagItemFerrymanFeignMixin",
     "fiend.TaotiePlayerComponentFiendMixin",
     "fiend.TaotiePlayerComponentFiendSwallowMixin",
     "fiend.VentHatchBlockFiendCooldownMixin",

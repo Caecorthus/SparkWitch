@@ -72,7 +72,11 @@
       "sparkwitch:fiend_feign",
       "sparkwitch:mini_wither",
       "sparkwitch:black_raven_crow",
-      "sparkwitch:knight_duel"
+      "sparkwitch:knight_duel",
+      "sparkwitch:ferryman",
+      "sparkwitch:ferryman_feign",
+      "sparkwitch:ferryman_feign_veil",
+      "sparkwitch:ferryman_moment"
     ]
   },
   "mixins": [

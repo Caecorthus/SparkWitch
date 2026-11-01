@@ -38,6 +38,7 @@ import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRole;
@@ -100,6 +101,8 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
+    public static final Identifier FERRYMAN_ID = FerrymanRules.ROLE_ID;
+    public static final Identifier LOST_SOUL_ID = SparkWitch.id("lost_soul");
 
     private static Role emma;
     private static Role grandWitch;
@@ -139,6 +142,8 @@ public final class SparkWitchRoleRegistry {
     private static Role bewitched;
     private static Role usec;
     private static Role knight;
+    private static Role ferryman;
+    private static Role lostSoul;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -381,6 +386,16 @@ public final class SparkWitchRoleRegistry {
     public static Role knight() {
         ensureRegistered();
         return knight;
+    }
+
+    public static Role ferryman() {
+        ensureRegistered();
+        return ferryman;
+    }
+
+    public static Role lostSoul() {
+        ensureRegistered();
+        return lostSoul;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -691,6 +706,32 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Registered right before the Insider (nothing may follow the Insider): a Wathe-native neutral with the
+        // Fiend's stance (FAKE mood, no tasks, no round clock) drawn from MIN_PLAYERS up. The pardon, the ferry, the
+        // marks and the shop live in roles/neutral/ferryman. Never a Witch-skill role: kept out of
+        // isRegisteredSparkWitchRole.
+        // 注册在内应之前（内应之后不得再注册）：Wathe 原生中立，参数与魔人一致（伪装情绪、无任务、不看回合时间），
+        // 从 MIN_PLAYERS 起抽取。宽恕、摆渡、标记与商店位于 roles/neutral/ferryman。
+        // 不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        ferryman = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FERRYMAN_ID, FactionIds.NEUTRAL)
+                .color(FerrymanRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> context.getTotalPlayerCount() >= FerrymanRules.MIN_PLAYERS)
+                .build());
+        // Lost Soul: never drawn on its own; the Soul Moment assigns it to bodies the Ferryman already ferried.
+        // Registered before the Insider for the same reason as the Ferryman.
+        // 迷失的灵魂：从不自行抽取；由亡魂时刻指派给摆渡人已摆渡的遗体。与摆渡人同样注册在内应之前。
+        lostSoul = SparkFactionApi.registerRole(FactionRoleDefinition.builder(LOST_SOUL_ID, FactionIds.NEUTRAL)
+                .color(0x7FB2C9)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> false)
+                .build());
         // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
         // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
         // a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
@@ -771,6 +812,7 @@ public final class SparkWitchRoleRegistry {
                 knight,
                 fiend,
                 insider,
+                ferryman,
                 windSpirit,
                 guardianAngel,
                 vendetta,
