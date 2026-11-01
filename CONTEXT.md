@@ -2948,8 +2948,8 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
       `sparkfactionapi:projectile` action accept count, as for vanilla.
     - The hit wins only when it is strictly nearer than vanilla's own collision
       (`PotionShellFlight.lagCompensatedHitFirst`), so blocks, doors and Rift Gates still shield a player.
-    - It bursts on the player's current box (`PotionBlastGeometry.entityImpact`) when the blast's line of sight reaches
-      it from the rewound entry point, else at that entry point.
+    - It bursts on the player's current body (`PotionShellEntity.bodyBurst`: the axis, else the entered face) when
+      the blast's line of sight reaches it from the rewound entry point, else at that entry point.
   - A Riftwalker Rift Gate never bursts it (Riftwalker D18): the gate's deflection moves it to another gate or reflects
     it. On a flat tick the shell keeps the gate's exit velocity (`onDeflected`) and re-bases its launch point behind the
     new position (`PotionShellFlight.flatPathAfterTick`), so the path length carries over the jump: still 20 flat ticks
@@ -2973,11 +2973,16 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
     drawn after every entity, so it would paint over the glow. Like vanilla `FlyingItemEntityRenderer`, nothing (label included) is drawn while `age < 2` and the camera's
     focused entity is within 3.5 blocks.
   - The in-hand and GUI icons stay the flat `*_shell` sprites.
-- **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect,
-  Judge attribution or reward). The area is an N×N×N cube around the impact: feet `x`/`z` within N/2,
-  body overlapping vertically, plus line of sight. It does not catch spectators, Wathe-dead players, or SparkTraits
-  Last Escape players. Falloff comes in rings by horizontal Chebyshev distance (`PotionBlastRings`: 5 → 100/67/33%,
-  7 → 100/75/50/25%, 3 → 100/50%).
+- **Blast.** It uses the grenade presentation; a presentation shell stops there (no Seeker device, target, effect, Judge
+  attribution or reward). A shell that hits a body (vanilla or lag-compensated) bursts on that body's vertical axis at
+  the entry height (`PotionBlastGeometry.bodyImpact`, 2026-10-30) when no block lies between the entered face and the
+  axis, else on the face as before (a seated player's axis can be inside the stool or couch, and furniture still
+  blocks): the flat-crowd probe showed a front-face centre reached only 2.2 blocks behind the struck player, where the
+  rest of a crowd stands. The area is an N×N×N cube around the impact that any part of the body overlaps (box faces
+  within N/2 on every axis, 2026-10-30; it was the feet point horizontally), plus line of sight (furniture and walls
+  block; owner 2026-10-30). It does not catch spectators, Wathe-dead players, or SparkTraits Last Escape players.
+  Falloff comes in rings by horizontal Chebyshev distance (`PotionBlastRings`: 5 → 100/67/33%, 7 → 100/75/50/25%, 3 →
+  100/50%).
   - GW-DK, GW-AC and GW-MR skip the witch faction (effective faction, unknown fails closed) and the gunner.
   - TR keeps everyone, the gunner and witch allies included.
   - While the gunner is online, every non-self target also needs the gunner's `canAffectPlayer`, Vendetta isolation

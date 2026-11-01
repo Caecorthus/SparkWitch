@@ -49,6 +49,19 @@ public final class PotionBlastGeometry {
     }
 
     /**
+     * A potion shell's body hit bursts on the struck body's vertical axis at the {@link #entityImpact} height, not on
+     * the face it entered. Measured from the front face, a 5×5 blast reached only 2.2 blocks behind the struck player
+     * (the side away from the gunner, where a crowd behind its front player stands) but 2.8 in front.
+     * 药炮手炮弹命中身体时，在被命中身体的竖直轴线上、{@link #entityImpact} 的高度处爆炸，而不是在进入的那一面。
+     * 若从正面量取，5×5 爆炸在被命中玩家身后（背离药炮手、人群中前排之后的人所站的一侧）只覆盖 2.2 格，正面却有 2.8 格。
+     */
+    public static Vec3d bodyImpact(Vec3d from, Vec3d to, Box box) {
+        Vec3d entry = entityImpact(from, to, box);
+        Vec3d centre = box.getCenter();
+        return new Vec3d(centre.x, entry.y, centre.z);
+    }
+
+    /**
      * The point {@code sqrt(distanceSquared)} along {@code from → to}, clamped to the segment; {@code from} for a
      * zero-length segment or a non-finite distance.
      * 沿 {@code from → to} 距起点 {@code sqrt(distanceSquared)} 的点，夹紧在线段内；线段长度为 0 或距离非有限时取 {@code from}。
