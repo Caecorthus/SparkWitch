@@ -1,10 +1,8 @@
 package dev.caecorthus.sparkwitch.roles.neutral.ferryman;
 
-import dev.doctor4t.wathe.api.event.CanSeeBodyRole;
 import dev.doctor4t.wathe.api.event.CanSeeMoney;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
-import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -33,11 +31,11 @@ public final class FerrymanFeatureService {
         FerrymanMomentService.register();
         FerrymanWinService.register();
         CanSeeMoney.EVENT.register(FerrymanFeatureService::canSeeMoney);
-        // A feigning player's fake corpse must not be examined: the role it would show is a cover, and the owner spec
-        // keeps the coroner out of it altogether.
-        // 假死者的假尸体不可被查验：它能显示的只是掩护身份，而所有者设定要求验尸官完全查不到。
-        CanSeeBodyRole.EVENT.register(entity ->
-                !(entity instanceof PlayerBodyEntity body) || !FerrymanFeignService.isFakeBody(body));
+        // Body identity stays with the pack's own gate. This role used to answer CanSeeBodyRole with true for every
+        // ordinary body, which overrode the coroner-only rule and let any player read a corpse's role and death: the
+        // fake corpse already carries a civilian cover, and a real body needs no listener here.
+        // 遗体身份交回整合包自己的判定。本角色曾对普通遗体一律回答 true，覆盖了“只有验尸官能看”的规则，导致谁都能读到
+        // 死者的身份与死法；假尸体本身已带平民掩护，真实遗体这里不需要任何监听器。
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer && FerrymanParticipation.isFerryman(role)) {
                 FerrymanPlayerComponent.KEY.get(serverPlayer).clearRoundState();

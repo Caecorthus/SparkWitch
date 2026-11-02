@@ -18,6 +18,7 @@ import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -39,6 +40,9 @@ public final class FerrymanMomentService {
 
     private FerrymanMomentService() {
     }
+
+    /** Wathe's internal dead-player set; null when the field is gone. / Wathe 内部死者集合；字段消失时为 null。 */
+    private static final @Nullable Field DEAD_PLAYERS = resolveDeadPlayersField();
 
     static void register() {
         ServerTickEvents.END_SERVER_TICK.register(FerrymanMomentService::tick);
@@ -86,6 +90,12 @@ public final class FerrymanMomentService {
 
     private static void reviveAsSoul(ServerPlayerEntity soul, ServerPlayerEntity ferryman) {
         ServerWorld world = soul.getServerWorld();
+        // Wathe's killPlayer both switches the player to spectator and records the uuid in the world component's dead
+        // set, and that set has no public removal. Leaving it there keeps the player dead for every Wathe check and
+        // for the reset pass that puts a dead player back into spectator, so it must be cleared first.
+        // Wathe 的 killPlayer 既把玩家切成旁观，又把 uuid 记进世界组件的死者集合，而该集合没有公开的移除方法。
+        // 留在里面会让玩家对所有 Wathe 判定都算死人，并被重置流程重新切回旁观，因此必须先清掉。
+        clearDeadFlag(soul);
         soul.changeGameMode(GameMode.SURVIVAL);
         soul.setCameraEntity(soul);
         soul.setHealth(soul.getMaxHealth());
@@ -103,6 +113,39 @@ public final class FerrymanMomentService {
         soul.currentScreenHandler.sendContentUpdates();
         discardBodies(world, soul.getUuid());
         soul.sendMessage(Text.translatable(SOUL_KEY), false);
+    }
+
+    /**
+     * Removes the player from Wathe's per-round dead set through its field, once, failing soft: a renamed field only
+     * logs and lets the revival report itself as failed instead of dying to a NoSuchFieldException every purchase.
+     * 通过字段移除 Wathe 本局的死者记录，只解析一次、失败即降级：字段改名时只记日志，让复活按“失败”上报，
+     * 而不是每次购买都抛 NoSuchFieldException。
+     */
+    private static void clearDeadFlag(ServerPlayerEntity soul) {
+        try {
+            if (DEAD_PLAYERS == null) {
+                return;
+            }
+            Object store = DEAD_PLAYERS.get(GameWorldComponent.KEY.get(soul.getServerWorld()));
+            if (store instanceof Set<?> dead) {
+                dead.remove(soul.getUuid());
+            }
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            SparkWitch.LOGGER.warn("Charon moment: could not clear Wathe's dead flag for {}",
+                    soul.getGameProfile().getName(), exception);
+        }
+    }
+
+    private static @Nullable Field resolveDeadPlayersField() {
+        try {
+            Field field = GameWorldComponent.class.getDeclaredField("deadPlayers");
+            field.setAccessible(true);
+            return field;
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            SparkWitch.LOGGER.warn("Charon moment: Wathe's dead-player set is not reachable; revivals will fail",
+                    exception);
+            return null;
+        }
     }
 
     private static void discardBodies(ServerWorld world, UUID owner) {

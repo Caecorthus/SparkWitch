@@ -136,6 +136,15 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
         return true;
     }
 
+    /** Server: consumes one 瞥视 mark (the feign death that answers a second strike takes it). / 服务端：消耗一层「瞥视」（二次攻击引发的假死会吃掉它）。 */
+    public boolean removeGaze(UUID target) {
+        if (!gazeTargets.remove(target)) {
+            return false;
+        }
+        syncOwner();
+        return true;
+    }
+
     public Set<UUID> gazeTargets() {
         return Set.copyOf(gazeTargets);
     }

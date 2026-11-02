@@ -28,6 +28,7 @@ public final class FerrymanPardonService {
     private static final String SAVED_KEY = "message.sparkwitch.ferryman.pardon.saved";
     private static final String UNAVAILABLE_KEY = "message.sparkwitch.ferryman.pardon.unavailable";
     private static final String FEIGN_KEY = "message.sparkwitch.ferryman.gaze.feign";
+    private static final String MARKED_KEY = "message.sparkwitch.ferryman.gaze.marked";
     /**
      * Re-entrancy guard: the replay must reach Wathe's own kill path without our BEFORE listener holding it again.
      * 重入保护：重放必须能进入 Wathe 自己的击杀流程，而不能被本监听器再次扣住。
@@ -63,9 +64,11 @@ public final class FerrymanPardonService {
             return KillPlayer.KillResult.allow();
         }
         FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(victim);
-        // A marked attacker's second strike is answered with 10 s of feign death instead of another pardon.
-        // 被标记者再次攻击时，回答他的是 10 秒假死，而不是再一次宽恕。
+        // A marked attacker's second strike is answered with 10 s of feign death instead of another pardon, and it
+        // consumes the mark: the glance is spent the moment it pays off, never left hanging on the killer.
+        // 被标记者再次攻击时，回答他的是 10 秒假死，而不是再一次宽恕；这层「瞥视」当场被消耗，不会一直挂在他头上。
         if (component.hasGaze(killer.getUuid()) && FerrymanFeignService.start(killer)) {
+            component.removeGaze(killer.getUuid());
             killer.sendMessage(Text.translatable(FEIGN_KEY), true);
             return KillPlayer.KillResult.cancel();
         }
@@ -131,6 +134,14 @@ public final class FerrymanPardonService {
         component.setCooldown(FerrymanRules.PARDON_COOLDOWN_TICKS);
         if (killerId != null) {
             component.addGaze(killerId);
+            // The marked attacker is the one who must hear the warning, not the Ferryman who already survived.
+            // 该听到警告的是被标记的攻击者，而不是已经活下来的摆渡人。
+            ServerPlayerEntity killer = player.getServer() == null
+                    ? null
+                    : player.getServer().getPlayerManager().getPlayer(killerId);
+            if (killer != null) {
+                killer.sendMessage(Text.translatable(MARKED_KEY), true);
+            }
         }
         player.sendMessage(Text.translatable(SAVED_KEY), true);
         return true;

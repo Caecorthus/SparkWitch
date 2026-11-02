@@ -1474,6 +1474,7 @@
   "replay.death.sparkwitch.pardon_expired.killed": "%s fell to %s after the pardon lapsed",
   "replay.death.sparkwitch.pardon_expired.died": "%s fell after the pardon lapsed",
   "message.sparkwitch.ferryman.gaze.feign": "A ringing fills your ears… the dead do not answer twice.",
+  "message.sparkwitch.ferryman.gaze.marked": "Do not disturb the rest of the dead…",
   "death_reason.sparkwitch.ferryman_feign": "Struck down while feigning before the Charon",
   "replay.death.sparkwitch.ferryman_feign.killed": "%s was killed by %s while feigning",
   "replay.death.sparkwitch.ferryman_feign.died": "%s was killed while feigning",

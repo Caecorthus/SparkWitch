@@ -1474,6 +1474,7 @@
   "replay.death.sparkwitch.pardon_expired.killed": "%s 的宽恕落空，被 %s 杀死",
   "replay.death.sparkwitch.pardon_expired.died": "%s 的宽恕落空而死",
   "message.sparkwitch.ferryman.gaze.feign": "耳鸣声里，亡者不会回答第二次……",
+  "message.sparkwitch.ferryman.gaze.marked": "勿扰亡者安宁……",
   "death_reason.sparkwitch.ferryman_feign": "在卡戎面前假死时被击杀",
   "replay.death.sparkwitch.ferryman_feign.killed": "%s 假死时被 %s 击杀",
   "replay.death.sparkwitch.ferryman_feign.died": "%s 假死时被击杀",
