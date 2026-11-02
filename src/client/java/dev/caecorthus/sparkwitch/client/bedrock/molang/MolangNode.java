@@ -97,94 +97,94 @@ abstract class MolangNode {
     }
 
     static final class QueryRead extends MolangNode {
-        private final int id;
+        private final String name;
 
-        QueryRead(int id) {
+        QueryRead(String name) {
             super(1);
-            this.id = id;
+            this.name = name;
         }
 
         @Override
         double eval(MolangRuntime rt) {
-            return rt.queryValue(id);
+            return rt.queryValue(name);
         }
 
         @Override
         boolean isResolvable(MolangRuntime rt) {
-            return rt.hasQuery(id);
+            return rt.hasQuery(name);
         }
     }
 
     static final class VariableRead extends MolangNode {
-        final int id;
+        final String name;
 
-        VariableRead(int id) {
+        VariableRead(String name) {
             super(1);
-            this.id = id;
+            this.name = name;
         }
 
         @Override
         double eval(MolangRuntime rt) {
-            return rt.variableValue(id);
+            return rt.variableValue(name);
         }
 
         @Override
         boolean isResolvable(MolangRuntime rt) {
-            return rt.hasVariable(id);
+            return rt.hasVariable(name);
         }
     }
 
     static final class TempRead extends MolangNode {
-        final int id;
+        final String name;
 
-        TempRead(int id) {
+        TempRead(String name) {
             super(1);
-            this.id = id;
+            this.name = name;
         }
 
         @Override
         double eval(MolangRuntime rt) {
-            return rt.tempValue(id);
+            return rt.tempValue(name);
         }
 
         @Override
         boolean isResolvable(MolangRuntime rt) {
-            return rt.hasTemp(id);
+            return rt.hasTemp(name);
         }
     }
 
     static final class VariableAssign extends MolangNode {
-        private final int id;
+        private final String name;
         private final MolangNode value;
 
-        VariableAssign(int id, MolangNode value) {
+        VariableAssign(String name, MolangNode value) {
             super(heightOf(value));
-            this.id = id;
+            this.name = name;
             this.value = value;
         }
 
         @Override
         double eval(MolangRuntime rt) {
             double v = value.eval(rt);
-            rt.storeVariable(id, v);
+            rt.storeVariable(name, v);
             return v;
         }
     }
 
     static final class TempAssign extends MolangNode {
-        private final int id;
+        private final String name;
         private final MolangNode value;
 
-        TempAssign(int id, MolangNode value) {
+        TempAssign(String name, MolangNode value) {
             super(heightOf(value));
-            this.id = id;
+            this.name = name;
             this.value = value;
         }
 
         @Override
         double eval(MolangRuntime rt) {
             double v = value.eval(rt);
-            rt.storeTemp(id, v);
+            rt.storeTemp(name, v);
             return v;
         }
     }
@@ -430,15 +430,15 @@ abstract class MolangNode {
 
     /**
      * {@code math.random}, {@code random_integer}, {@code die_roll}, {@code die_roll_integer}: never folded. Rolls are
-     * capped at {@link #MAX_ROLLS} (Bedrock's loop cap) so one expression cannot stall a frame.
-     * 随机函数：从不折叠。掷骰次数上限为 {@link #MAX_ROLLS}（与 Bedrock 循环上限一致），防止单个表达式卡住一帧。
+     * capped at {@link #MAX_ROLLS} per call, because every animation of a state is evaluated every frame.
+     * 随机函数：从不折叠。每次调用的掷骰次数上限为 {@link #MAX_ROLLS}，因为一个状态的所有动画每帧都会求值。
      */
     static final class Random extends MolangNode {
         static final int RANDOM = 0;
         static final int RANDOM_INTEGER = 1;
         static final int DIE_ROLL = 2;
         static final int DIE_ROLL_INTEGER = 3;
-        static final int MAX_ROLLS = 1024;
+        static final int MAX_ROLLS = 64;
 
         private final int kind;
         private final MolangNode count;
