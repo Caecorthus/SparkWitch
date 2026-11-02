@@ -25,6 +25,7 @@ public final class FerrymanClient {
 
     public static void register() {
         FerrymanClientHighlights.register();
+        FerrymanHud.register();
         SecondaryAbilityRegistry.register(SparkWitchRoles.FERRYMAN_ID, new SecondaryAbilityHandler() {
             @Override
             public void onPressed(MinecraftClient client) {

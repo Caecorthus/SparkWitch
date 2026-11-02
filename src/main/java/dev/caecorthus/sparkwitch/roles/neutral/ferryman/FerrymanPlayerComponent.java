@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
+import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
 
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -28,7 +29,7 @@ import java.util.UUID;
  * 死亡原因）、可被摆渡人透视的攻击者（瞥视）与已摆渡的遗体（怜悯）。全部字段由服务端拥有；拥有者客户端只接收剩余
  * 冷却与两组 id（绝不含死亡原因或服务端时间），并据此渲染标记。瞬时状态：换局或重生不会带走它。
  */
-public final class FerrymanPlayerComponent implements AutoSyncedComponent {
+public final class FerrymanPlayerComponent implements AutoSyncedComponent, ClientTickingComponent {
     public static final ComponentKey<FerrymanPlayerComponent> KEY = ComponentRegistry.getOrCreate(
             SparkWitch.id("ferryman"),
             FerrymanPlayerComponent.class
@@ -39,6 +40,8 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent {
     private final Set<UUID> ferriedBodies = new LinkedHashSet<>();
 
     private int cooldownTicks;
+    /** Owner's local copy of the remaining ticks, decremented every client tick for the HUD. / 拥有者本地倒计时，供 HUD 使用。 */
+    private int clientCooldownTicks;
     private boolean pardoning;
     private @Nullable UUID pendingKiller;
     private @Nullable Identifier pendingDeathReason;
@@ -52,8 +55,16 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent {
         return KEY.get(player);
     }
 
+    /** Both sides: the server's own value, or the owner's countdown on the client. / 双端：服务端原值，客户端取本地倒计时。 */
     public int cooldownTicks() {
-        return cooldownTicks;
+        return player.getWorld().isClient ? clientCooldownTicks : cooldownTicks;
+    }
+
+    @Override
+    public void clientTick() {
+        if (clientCooldownTicks > 0) {
+            clientCooldownTicks--;
+        }
     }
 
     /** Server: arms the ability for {@code ticks}; 0 clears it. / 服务端：把技能冷却设为 ticks，0 为就绪。 */
@@ -200,6 +211,7 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent {
     @Override
     public void applySyncPacket(RegistryByteBuf buf) {
         cooldownTicks = buf.readVarInt();
+        clientCooldownTicks = cooldownTicks;
         int gazeCount = buf.readVarInt();
         gazeTargets.clear();
         for (int i = 0; i < gazeCount; i++) {

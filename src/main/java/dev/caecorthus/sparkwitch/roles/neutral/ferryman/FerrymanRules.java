@@ -51,6 +51,14 @@ public final class FerrymanRules {
     /** Lost Soul revival: one body per 6 players in the round, at least one. / 亡魂时刻复活数量：每 6 名玩家 1 具，至少 1 具。 */
     public static final int SOUL_PLAYERS_PER_BODY = 6;
 
+    /**
+     * Ticks the moment waits before judging whether a revived soul survived: Wathe's death state can outlive the
+     * game-mode write, so the revival is re-asserted during this window instead of counted as a loss.
+     * 判定灵魂是否复活成功前的等待 tick：Wathe 的死亡状态可能比游戏模式写入更晚消失，因此这段时间只重新施加复活，
+     * 不计为损失。
+     */
+    public static final int MOMENT_REVIVE_GRACE_TICKS = 40;
+
     private FerrymanRules() {
     }
 

@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.neutral.ferryman;
 
+import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
@@ -123,12 +124,37 @@ public final class FerrymanMomentService {
                 end(world, moment, false);
                 continue;
             }
+            // Grace: Wathe's death state can outlive the game-mode write for a tick or two, so a freshly revived soul
+            // must never be mistaken for a dead one. During the grace the revival is re-asserted instead of judged.
+            // 宽限：Wathe 的死亡状态可能比游戏模式写入晚一两 tick 才消失，因此刚复活的灵魂绝不能被当成死人。
+            // 宽限期内只重新施加复活，不做死亡判定。
+            if (moment.graceTicks() > 0) {
+                moment.setGraceTicks(moment.graceTicks() - 1);
+                for (UUID soulId : moment.souls()) {
+                    ServerPlayerEntity soul = player(server, soulId);
+                    if (soul != null && soul.isSpectator()) {
+                        soul.changeGameMode(GameMode.SURVIVAL);
+                        soul.setHealth(soul.getMaxHealth());
+                    } else if (isSoulAlive(soul)) {
+                        moment.markSoulAlive();
+                    }
+                }
+                continue;
+            }
+            if (!moment.soulsEverAlive()) {
+                // No soul ever came back: that is a revival failure, not a loss, so the Charon is not killed for it.
+                // 没有任何灵魂复活成功：这是复活失败而不是战败，因此不能因此处死摆渡人。
+                SparkWitch.LOGGER.warn("Ferryman moment: no Lost Soul came back; ending the moment without a death");
+                end(world, moment, false);
+                continue;
+            }
             int soulsAlive = 0;
             for (UUID soulId : moment.souls()) {
                 ServerPlayerEntity soul = player(server, soulId);
-                if (soul != null && GameFunctions.isPlayerPlayingAndAlive(soul)) {
+                if (isSoulAlive(soul)) {
                     soulsAlive++;
                 } else {
+                    SparkWitch.LOGGER.warn("Ferryman moment: lost soul {} did not survive its revival", soulId);
                     moment.removeSoul(soulId);
                 }
             }
@@ -146,6 +172,11 @@ public final class FerrymanMomentService {
                 continue;
             }
         }
+    }
+
+    /** A Lost Soul counts as alive once it is out of spectator and has a body left. / 脱离旁观且有血量才算活着。 */
+    private static boolean isSoulAlive(@Nullable ServerPlayerEntity soul) {
+        return soul != null && !soul.isSpectator() && soul.isAlive() && soul.getHealth() > 0.0F;
     }
 
     private static @Nullable ServerPlayerEntity player(MinecraftServer server, @Nullable UUID id) {

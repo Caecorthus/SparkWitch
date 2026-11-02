@@ -30,8 +30,28 @@ public final class FerrymanMomentWorldComponent implements Component {
     private boolean active;
     private @Nullable UUID owner;
     private final Set<UUID> souls = new LinkedHashSet<>();
+    /** Ticks left before the moment judges whether a soul survived its revival. / 判定灵魂是否复活成功的剩余宽限 tick。 */
+    private int graceTicks;
+    /** True once at least one soul actually left spectator. / 至少有一名灵魂真的脱离旁观后为 true。 */
+    private boolean soulsEverAlive;
 
     public FerrymanMomentWorldComponent(World world) {
+    }
+
+    public int graceTicks() {
+        return graceTicks;
+    }
+
+    public void setGraceTicks(int ticks) {
+        graceTicks = Math.max(0, ticks);
+    }
+
+    public boolean soulsEverAlive() {
+        return soulsEverAlive;
+    }
+
+    public void markSoulAlive() {
+        soulsEverAlive = true;
     }
 
     public static FerrymanMomentWorldComponent get(World world) {
@@ -67,6 +87,8 @@ public final class FerrymanMomentWorldComponent implements Component {
         owner = ownerId;
         souls.clear();
         souls.addAll(revived);
+        graceTicks = FerrymanRules.MOMENT_REVIVE_GRACE_TICKS;
+        soulsEverAlive = false;
     }
 
     public void removeSoul(UUID soul) {
@@ -77,6 +99,8 @@ public final class FerrymanMomentWorldComponent implements Component {
         active = false;
         owner = null;
         souls.clear();
+        graceTicks = 0;
+        soulsEverAlive = false;
     }
 
     @Override
