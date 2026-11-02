@@ -12,7 +12,7 @@ final class MiniWitherSkinReadme {
             ==============================
 
             Put each skin in its own folder here. The folder name is the skin id: use only a-z, 0-9, _ . -
-            Pick a skin in Options > Skin Customization > Mini Wither appearance, and press Reload there after you
+            Pick a skin in Options > Skin Customization > Mini Wither Appearance, and press Reload there after you
             change any file. A skin only changes how every Mini Wither looks and sounds on YOUR game; nobody else sees
             or hears it. Any model is scaled automatically to the vanilla Mini Wither's size.
 
@@ -59,7 +59,7 @@ final class MiniWitherSkinReadme {
             Limits: .json up to 16 MiB; .png up to 4096x4096 px and 16 MiB; .ogg up to 8 MiB each, 32 files at most.
 
             Example (Cirno): create the folder mini_wither/cirno, copy pink_dye.json and pink_dye.png into it, then
-            press Reload in the Mini Wither appearance screen and choose "cirno".
+            press Reload in the Mini Wither Appearance screen and choose "cirno".
 
 
             SparkWitch - 小凋灵皮肤

@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.bedrock.geo.BedrockGeometryParser;
 import dev.caecorthus.sparkwitch.client.witchmaiden.skin.MiniWitherSkinFolder.InvalidSkinException;
 import dev.caecorthus.sparkwitch.client.witchmaiden.skin.sound.MiniWitherSoundOverrides;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
@@ -25,11 +26,13 @@ import java.util.Map;
  * {@code config/sparkwitch-client.json} 的 {@code miniWitherSkin} 键，与 {@code ScopeSettingsStore} 一样合并写入）、
  * 加载选中的文件夹、注册其贴图并把声音交给 {@code MiniWitherSoundOverrides}。仅限客户端线程。
  *
- * <p>Lifecycle: {@link #register()} only reads the setting; the first {@link #active()}, {@link #entries()} or
+ * <p>Lifecycle: {@link #register()} reads the setting and preloads once the client has started (so the first frame
+ * that draws a Mini Wither never parses files); otherwise the first {@link #active()}, {@link #entries()} or
  * {@link #status()} on the render thread scans the folder and loads the selected skin; {@link #select} and
  * {@link #reload()} load synchronously. Every load first frees the previous skin's textures and sounds. No public
  * method throws: a failure is logged, shown through {@link #status()} and drawn as vanilla.
- * 生命周期：{@link #register()} 只读取设置；渲染线程上第一次调用 {@link #active()}、{@link #entries()} 或
+ * 生命周期：{@link #register()} 读取设置，并在客户端启动完成后预加载（因此第一次绘制小凋灵的那一帧不会解析文件）；否则渲染线程上
+ * 第一次调用 {@link #active()}、{@link #entries()} 或
  * {@link #status()} 时扫描文件夹并加载选中的皮肤；{@link #select} 与 {@link #reload()} 同步加载。每次加载前先释放上一个皮肤的
  * 贴图与声音。公共方法从不抛出异常：失败只记录日志、通过 {@link #status()} 显示，并按原版绘制。
  */
@@ -57,13 +60,14 @@ public final class MiniWitherSkinManager {
     private MiniWitherSkinManager() {
     }
 
-    /** Client init: reads the setting; the first {@link #active()} call scans and loads. / 客户端初始化。 */
+    /** Client init: reads the setting and preloads when the client has started. / 客户端初始化：读取设置并在启动后预加载。 */
     public static void register() {
         try {
             readSetting();
         } catch (RuntimeException exception) {
             SparkWitch.LOGGER.warn("Unable to read the Mini Wither skin setting", exception);
         }
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> active());
     }
 
     public static Path skinsDirectory() {
