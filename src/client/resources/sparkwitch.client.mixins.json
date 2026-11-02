@@ -149,6 +149,8 @@
     "witchmaiden.MiniWitherSkinOptionsMixin",
     "witchmaiden.WitherGoheiInputMixin",
     "witchmaiden.WitherGoheiMacControlClickMixin",
+    "witchmaiden.MiniWitherSkinSoundLoaderMixin",
+    "witchmaiden.MiniWitherSkinSoundManagerMixin",
     "fiend.WatheClientFiendHighlightMixin",
     "blind.BlindAttuneSoundSystemMixin",
     "blind.BlindGateArmorFeatureRendererMixin",
