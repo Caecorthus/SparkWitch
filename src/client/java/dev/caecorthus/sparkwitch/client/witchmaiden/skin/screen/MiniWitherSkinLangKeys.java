@@ -21,7 +21,14 @@ public final class MiniWitherSkinLangKeys {
     public static final String ENTRY_TOOLTIP = PREFIX + "entry.tooltip";
     /** The "Default (Wither)" row: the vanilla Wither, no skin. / 「默认（凋灵）」一行：原版凋灵，无皮肤。 */
     public static final String DEFAULT_SKIN = PREFIX + "default";
-    public static final String SOUNDS = PREFIX + "sounds";
+    /** Muted line under the preview stage. / 预览舞台下方的灰色说明。 */
+    public static final String CAPTION = PREFIX + "caption";
+    /** Hint under the default row when there are no skins, {@code %s} = the skins folder. / 没有皮肤时的提示。 */
+    public static final String EMPTY = PREFIX + "empty";
+    /** Status tooltip header over the load warnings, {@code %s} = their count. / 状态提示中警告列表的标题。 */
+    public static final String WARNINGS = PREFIX + "status.warnings";
+    /** Last status tooltip line when warnings were left out, {@code %s} = how many. / 省略警告时的最后一行。 */
+    public static final String MORE_WARNINGS = PREFIX + "status.more_warnings";
     /** Second tooltip line of a sound button, {@code %s} = the slot's file stem. / 声音按钮提示的第二行。 */
     public static final String SOUND_FILE = PREFIX + "sound.file";
     public static final String OPEN_FOLDER = PREFIX + "open_folder";
@@ -52,8 +59,9 @@ public final class MiniWitherSkinLangKeys {
 
     /** Every key above, in a stable order. / 上述全部键，顺序固定。 */
     public static List<String> all() {
-        List<String> keys = new ArrayList<>(List.of(TITLE, ENTRY, ENTRY_TOOLTIP, DEFAULT_SKIN, SOUNDS, SOUND_FILE,
-                OPEN_FOLDER, OPEN_FOLDER_TOOLTIP, RELOAD, RELOAD_TOOLTIP, PREVIEW_UNAVAILABLE));
+        List<String> keys = new ArrayList<>(List.of(TITLE, ENTRY, ENTRY_TOOLTIP, DEFAULT_SKIN, CAPTION, EMPTY, WARNINGS,
+                MORE_WARNINGS, SOUND_FILE, OPEN_FOLDER, OPEN_FOLDER_TOOLTIP, RELOAD, RELOAD_TOOLTIP,
+                PREVIEW_UNAVAILABLE));
         for (MiniWitherSkinManager.Status.Kind kind : MiniWitherSkinManager.Status.Kind.values()) {
             keys.add(status(kind));
         }
