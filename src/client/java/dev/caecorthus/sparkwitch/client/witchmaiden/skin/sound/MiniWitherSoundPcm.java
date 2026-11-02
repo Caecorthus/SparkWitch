@@ -14,8 +14,12 @@ import java.nio.ByteBuffer;
 final class MiniWitherSoundPcm {
     /** Lowest accepted sample rate. / 可接受的最低采样率。 */
     static final int MIN_RATE = 8_000;
-    /** Highest accepted sample rate. / 可接受的最高采样率。 */
-    static final int MAX_RATE = 96_000;
+    /**
+     * Highest accepted sample rate: 192 kHz files exist in the wild (our own shotgun shot is one); the fixed byte cap
+     * below still bounds the decode.
+     * 可接受的最高采样率：实际存在 192 kHz 的文件（我们自己的猎枪枪声就是）；下方的固定字节上限仍限制解码量。
+     */
+    static final int MAX_RATE = 192_000;
     /**
      * Fixed decode cap per file, independent of the file's own header: 60 s of 48 kHz 16-bit stereo (11,520,000
      * bytes). A header can claim anything (JOrbis accepts 1-255 channels and any rate), so it never sizes memory.
