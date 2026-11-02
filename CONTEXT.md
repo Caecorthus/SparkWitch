@@ -162,6 +162,10 @@ Current build baseline:
     blocks of a living, non-spectator Apprentice gives her a private purple ripple and resonance sound there.
   - Mighty Force misfire (D5): pre-hit faction snapshots like the Swordfish stab; Wathe `KILL_SHOOTER` kills her with
     `wathe:shot_innocent` (no killer), `PREVENT_GUN_PICKUP` forfeits Mighty Force for the round.
+  - Mighty Force inside a Taotie (2026-10-30): Fabric's `AttackEntityCallback` fires before vanilla's spectator check,
+    so the strike gate (`hasLiveMightyForce`, shared by the player and Partygoer paths) refuses a spectator or
+    Taotie-swallowed Apprentice; activation also refuses while swallowed (`message.sparkwitch.skill.unavailable`, no
+    mana spent). A window started before the swallow keeps ticking and works again once she is released.
   - Swift Step (D6) has two charges with independent 20 s recharges and registers no cooldown; the shared cooldown is
     set only when no charge is left. Clairvoyance (D9) exposes her to every living viewer for 10 s.
 - `roles/civilian/piggod/`: Pig God chase, psycho, sound, economy, and rules.
