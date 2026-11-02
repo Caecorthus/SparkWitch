@@ -162,14 +162,15 @@ final class MiniWitherSkinLoader {
             }
         }
 
+        Map<String, BedrockAnimation> kept = MiniWitherSkinStates.capAnimations(animations, where, warnings);
         Map<MiniWitherAnimationState, List<String>> states = MiniWitherSkinStates.resolve(model.states(),
-                animations.keySet(), where, warnings);
+                kept.keySet(), where, warnings);
         int head = skull ? -1 : MiniWitherSkinStates.headBone(geometry::boneIndex, model.head(), warnings);
         BedrockBounds bounds = BedrockModelRenderer.bounds(geometry, null);
         if (bounds.isEmpty() || !finite(bounds)) {
             throw new InvalidSkinException(modelName + " has no cubes to draw");
         }
-        return new Parsed(model, geometry, Collections.unmodifiableMap(animations), states, head, bounds);
+        return new Parsed(model, geometry, Collections.unmodifiableMap(kept), states, head, bounds);
     }
 
     private static MiniWitherSkinModel model(Parsed parsed, Identifier texture, @Nullable Identifier blessed,

@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,6 +54,21 @@ public final class MiniWitherSkinFolder {
     public static final int MAX_PNG_SIDE = 4096;
     public static final long MAX_OGG_BYTES = 8L << 20;
     public static final int MAX_SOUND_FILES = 32;
+    /**
+     * Per model: more {@code *.animation.json} files are ignored with a warning (the first ones are kept).
+     * 每个模型：超出数量的 {@code *.animation.json} 文件会被忽略并给出警告（保留前面的）。
+     */
+    public static final int MAX_ANIMATION_FILES = 8;
+    /**
+     * Per skin: every file read (JSON, PNG, ogg) together; more is an error. Bounds the synchronous load.
+     * 每个皮肤：所有读取的文件（JSON、PNG、ogg）总和；超出即报错。用于限制同步加载的工作量。
+     */
+    public static final long MAX_SKIN_BYTES = 48L << 20;
+    /**
+     * Per skin: {@code *.json} files opened to find the models (folder and {@code skull/} together); more is an error.
+     * 每个皮肤：为查找模型而打开的 {@code *.json} 文件数（文件夹与 {@code skull/} 合计）；超出即报错。
+     */
+    public static final int MAX_MODEL_CANDIDATES = 32;
     /** Display names longer than this are cut. / 超过此长度的显示名会被截断。 */
     public static final int MAX_NAME_LENGTH = 64;
 
@@ -198,6 +214,7 @@ public final class MiniWitherSkinFolder {
         Path manifestPath = root.resolve(MANIFEST);
         if (Files.exists(manifestPath)) {
             Path real = context.existingFile(manifestPath, MANIFEST);
+            context.charge(real, MAX_JSON_BYTES);
             JsonElement element = readJson(real, MANIFEST);
             if (!element.isJsonObject()) {
                 throw new InvalidSkinException(MANIFEST + " must be a JSON object");
@@ -306,7 +323,7 @@ public final class MiniWitherSkinFolder {
                 | ((bytes[offset + 2] & 0xFF) << 8) | (bytes[offset + 3] & 0xFF);
     }
 
-    static void checkSize(Path file, long max, String shown) throws InvalidSkinException {
+    static long checkSize(Path file, long max, String shown) throws InvalidSkinException {
         long size;
         try {
             size = Files.size(file);
@@ -317,6 +334,7 @@ public final class MiniWitherSkinFolder {
             throw new InvalidSkinException(shown + " is too large (" + mebibytes(size) + "; the limit is "
                     + mebibytes(max) + ")");
         }
+        return size;
     }
 
     private static String mebibytes(long bytes) {
@@ -364,8 +382,41 @@ public final class MiniWitherSkinFolder {
         return (dot < 0 ? name : name.substring(0, dot)).toLowerCase(Locale.ROOT);
     }
 
-    /** Resolution state of one folder. / 单个文件夹的解析状态。 */
-    private record Context(Path root, Predicate<JsonElement> isGeometry, List<String> warnings) {
+    /**
+     * Resolution state of one folder, including the input budget: every distinct file is charged once, before it is
+     * read.
+     * 单个文件夹的解析状态，含输入预算：每个不同的文件在读取前计入一次。
+     */
+    private static final class Context {
+        private final Path root;
+        private final Predicate<JsonElement> isGeometry;
+        private final List<String> warnings;
+        private final Map<Path, Long> charged = new HashMap<>();
+        private long chargedBytes;
+        private int scannedCandidates;
+
+        Context(Path root, Predicate<JsonElement> isGeometry, List<String> warnings) {
+            this.root = root;
+            this.isGeometry = isGeometry;
+            this.warnings = warnings;
+        }
+
+        /**
+         * Checks {@code file}'s own limit, then adds it to the skin's {@link #MAX_SKIN_BYTES} budget (once per file).
+         * 检查文件自身的上限，再把它计入皮肤的 {@link #MAX_SKIN_BYTES} 预算（每个文件只计一次）。
+         */
+        void charge(Path file, long max) throws InvalidSkinException {
+            long size = checkSize(file, max, shown(file));
+            if (charged.putIfAbsent(file, size) != null) {
+                return;
+            }
+            chargedBytes += size;
+            if (chargedBytes > MAX_SKIN_BYTES) {
+                throw new InvalidSkinException("The skin's files add up to more than " + mebibytes(MAX_SKIN_BYTES)
+                        + " (at " + shown(file) + ")");
+            }
+        }
+
         /** {@code root}-relative, forward slashes. / 相对 root、使用正斜杠的路径。 */
         String shown(Path file) {
             Path relative = file.startsWith(root) ? root.relativize(file) : file.getFileName();
@@ -519,7 +570,7 @@ public final class MiniWitherSkinFolder {
             Path model;
             if (modelKey != null) {
                 model = inside(modelKey, prefix + "model");
-                checkSize(model, MAX_JSON_BYTES, shown(model));
+                charge(model, MAX_JSON_BYTES);
             } else {
                 model = discoverModel(dir, where, prefix);
                 if (model == null) {
@@ -544,19 +595,27 @@ public final class MiniWitherSkinFolder {
 
             List<Path> animations = new ArrayList<>();
             List<String> animationKeys = strings(section, "animations", prefix + "animations");
+            int animationFiles;
             if (animationKeys != null) {
-                for (String animation : animationKeys) {
+                List<String> distinct = animationKeys.stream().distinct().toList();
+                animationFiles = distinct.size();
+                for (String animation : distinct.subList(0, Math.min(distinct.size(), MAX_ANIMATION_FILES))) {
                     Path file = inside(animation, prefix + "animations");
-                    checkSize(file, MAX_JSON_BYTES, shown(file));
                     if (!animations.contains(file)) {
                         animations.add(file);
                     }
                 }
             } else {
-                for (Path file : files(dir, path -> isAnimationFile(path))) {
-                    checkSize(file, MAX_JSON_BYTES, shown(file));
-                    animations.add(file);
-                }
+                List<Path> found = files(dir, path -> isAnimationFile(path));
+                animationFiles = found.size();
+                animations.addAll(found.subList(0, Math.min(found.size(), MAX_ANIMATION_FILES)));
+            }
+            if (animationFiles > MAX_ANIMATION_FILES) {
+                warnings.add(where + "animations: " + animationFiles + " files, only the first "
+                        + MAX_ANIMATION_FILES + " are used");
+            }
+            for (Path file : animations) {
+                charge(file, MAX_JSON_BYTES);
             }
 
             Map<MiniWitherAnimationState, List<String>> states = states(section, prefix);
@@ -577,8 +636,15 @@ public final class MiniWitherSkinFolder {
         @Nullable
         private Path discoverModel(@Nullable Path dir, String where, String prefix) throws InvalidSkinException {
             List<Path> candidates = new ArrayList<>();
-            for (Path file : files(dir, path -> hasExtension(path, ".json") && !isAnimationFile(path)
-                    && !path.getFileName().toString().equalsIgnoreCase(MANIFEST))) {
+            List<Path> jsonFiles = files(dir, path -> hasExtension(path, ".json") && !isAnimationFile(path)
+                    && !path.getFileName().toString().equalsIgnoreCase(MANIFEST));
+            scannedCandidates += jsonFiles.size();
+            if (scannedCandidates > MAX_MODEL_CANDIDATES) {
+                throw new InvalidSkinException("Too many .json files to search for a model (" + scannedCandidates
+                        + "; the limit is " + MAX_MODEL_CANDIDATES + "): set \"" + prefix + "model\" in " + MANIFEST);
+            }
+            for (Path file : jsonFiles) {
+                charge(file, MAX_JSON_BYTES);
                 if (isGeometry.test(readJson(file, shown(file)))) {
                     candidates.add(file);
                 }
@@ -636,7 +702,7 @@ public final class MiniWitherSkinFolder {
         /** Size and header check without keeping the bytes. / 只检查大小与头部，不保留数据。 */
         private void readPngHeader(Path texture) throws InvalidSkinException {
             String shown = shown(texture);
-            checkSize(texture, MAX_PNG_BYTES, shown);
+            charge(texture, MAX_PNG_BYTES);
             byte[] head = new byte[24];
             int read = 0;
             try (InputStream in = Files.newInputStream(texture)) {
@@ -743,7 +809,7 @@ public final class MiniWitherSkinFolder {
 
         private void checkOgg(Path file) throws InvalidSkinException {
             String shown = shown(file);
-            checkSize(file, MAX_OGG_BYTES, shown);
+            charge(file, MAX_OGG_BYTES);
             byte[] magic = new byte[4];
             int read;
             try (InputStream in = Files.newInputStream(file)) {
