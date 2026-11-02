@@ -24,11 +24,6 @@ import java.util.List;
  */
 public final class MiniWitherSkinUi {
     private static final Logger LOGGER = LoggerFactory.getLogger("SparkWitch/MiniWitherSkin");
-    static final int COLOR_DEFAULT = 0xA0A0A0;
-    static final int COLOR_LOADED = 0x55FF55;
-    static final int COLOR_MISSING = 0xFFFF55;
-    static final int COLOR_ERROR = 0xFF5555;
-    static final int COLOR_BROKEN = 0xFFAA00;
 
     private MiniWitherSkinUi() {
     }
@@ -106,16 +101,6 @@ public final class MiniWitherSkinUi {
             case MISSING -> Text.translatable(key, selected);
             case ERROR -> Text.translatable(key, displayName(selected), status.detail());
             case LOADED, BROKEN -> Text.translatable(key, displayName(selected));
-        };
-    }
-
-    public static int statusColor(MiniWitherSkinManager.Status.Kind kind) {
-        return switch (kind) {
-            case DEFAULT -> COLOR_DEFAULT;
-            case LOADED -> COLOR_LOADED;
-            case MISSING -> COLOR_MISSING;
-            case ERROR -> COLOR_ERROR;
-            case BROKEN -> COLOR_BROKEN;
         };
     }
 
