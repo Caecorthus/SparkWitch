@@ -368,10 +368,10 @@ public final class MolangCompiler {
             Token assign = next();
             MolangNode value = parseExpression();
             if (target instanceof MolangNode.VariableRead read) {
-                return checked(new MolangNode.VariableAssign(read.id, value), assign);
+                return checked(new MolangNode.VariableAssign(read.name, value), assign);
             }
             if (target instanceof MolangNode.TempRead read) {
-                return checked(new MolangNode.TempAssign(read.id, value), assign);
+                return checked(new MolangNode.TempAssign(read.name, value), assign);
             }
             throw error(assign, "can only assign to variable.* or temp.*");
         }
@@ -587,11 +587,11 @@ public final class MolangCompiler {
                         // Function-style queries with arguments read 0; q.name() is the plain query.
                         // 带参数的函数式查询读作 0；q.name() 等同于普通查询。
                         if (parseArguments().isEmpty()) {
-                            return new MolangNode.QueryRead(slot(member, token));
+                            return new MolangNode.QueryRead(member);
                         }
                         return MolangNode.Undefined.INSTANCE;
                     }
-                    return new MolangNode.QueryRead(slot(member, token));
+                    return new MolangNode.QueryRead(member);
                 }
                 case "variable", "v", "temp", "t" -> {
                     if (member.isEmpty()) {
@@ -600,8 +600,7 @@ public final class MolangCompiler {
                     if (peek().kind() == Kind.LPAREN) {
                         throw error(peek(), "'" + name + "' is not a function");
                     }
-                    int id = slot(member, token);
-                    return space.startsWith("v") ? new MolangNode.VariableRead(id) : new MolangNode.TempRead(id);
+                    return space.startsWith("v") ? new MolangNode.VariableRead(member) : new MolangNode.TempRead(member);
                 }
                 case "math" -> {
                     return parseMath(token, member);
@@ -680,14 +679,6 @@ public final class MolangCompiler {
                 depth--;
                 throw error(peek(), "expression is nested too deeply");
             }
-        }
-
-        private int slot(String member, Token token) throws MolangSyntaxException {
-            int id = MolangNames.intern(member);
-            if (id < 0) {
-                throw error(token, "too many distinct Molang names");
-            }
-            return id;
         }
 
         /** Folds a pure node with constant inputs; rejects trees deeper than {@link #MAX_TREE_HEIGHT}. */
