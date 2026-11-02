@@ -45,8 +45,10 @@ public class MiniWitherSkullEntityRenderer extends EntityRenderer<MiniWitherSkul
     private static final float SCALE = 0.6F;
     private static final float MIN_SKIN_SCALE = 1.0E-4F;
     /**
-     * The vanilla skull (an 8 px cube resting on its pivot) in the y-up turned frame, the skin auto-fit target.
-     * 原版头颅（立在枢轴上的 8 像素立方体）在 y 向上的转向后坐标系中的包围盒，即皮肤自动缩放的目标。
+     * The vanilla skull (an 8 px cube resting on its pivot) in the y-up turned frame, the skin auto-fit target (already its
+     * own {@link MiniWitherSkinFit#envelope}).
+     * 原版头颅（立在枢轴上的 8 像素立方体）在 y 向上的转向后坐标系中的包围盒，即皮肤自动缩放的目标（本身就是自己的
+     * {@link MiniWitherSkinFit#envelope}）。
      */
     private static final BedrockBounds SKULL_BOUNDS = new BedrockBounds(-4.0F / 16.0F * SCALE, 0.0F,
             -4.0F / 16.0F * SCALE, 4.0F / 16.0F * SCALE, 8.0F / 16.0F * SCALE, 4.0F / 16.0F * SCALE);

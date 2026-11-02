@@ -3,14 +3,18 @@ package dev.caecorthus.sparkwitch.client.witchmaiden.skin;
 import dev.caecorthus.sparkwitch.client.bedrock.BedrockBounds;
 
 /**
- * The auto-fit (owner 2026-11-02: no user scale). A skin's bind pose is scaled uniformly to fit inside the vanilla
- * model's box and centred on it; each frame the posed model may grow to {@link #ALLOWANCE} times that box around its
- * centre, and is shrunk about the centre when an animation would push it further, so no skin is ever drawn larger
- * than the vanilla Mini Wither or skull (no visibility advantage). Both boxes are in the same frame: the caller's,
- * right before the model is drawn.
- * 自动缩放（所有者 2026-11-02：不提供手动缩放）。皮肤的绑定姿态按统一比例缩放到原版模型的包围盒之内并与其居中对齐；每帧摆姿
- * 后的模型最多可以达到该包围盒的 {@link #ALLOWANCE} 倍（以中心为准），动画若超出就绕中心缩小，因此任何皮肤都不会画得比原版
- * 小凋灵或头颅更大（不会带来视野优势）。两个包围盒处于同一坐标系：调用方绘制模型前的坐标系。
+ * The auto-fit (owner 2026-11-02: no user scale). The target is the {@link #envelope} of the vanilla model: a cube on
+ * the vanilla box's centre whose side is that box's largest side, so a skin's longest side matches the vanilla
+ * model's longest side whatever its proportions (a winged figure is not shrunk by its depth alone). A skin's bind pose
+ * is scaled uniformly to fit inside it and centred on it; each frame the posed model may grow to {@link #ALLOWANCE}
+ * times that cube around its centre, and is shrunk about the centre when an animation would push it further, so no
+ * skin ever reaches past the vanilla Mini Wither's or skull's largest extent (no visibility advantage). All boxes are
+ * in the same frame: the caller's, right before the model is drawn.
+ * 自动缩放（所有者 2026-11-02：不提供手动缩放）。目标是原版模型的 {@link #envelope}：以原版包围盒中心为中心、边长等于其最长
+ * 边的立方体，因此无论比例如何，皮肤的最长边都与原版模型的最长边一致（带翅膀的造型不会只因厚度被缩小）。皮肤的绑定姿态按统一
+ * 比例缩放到其中并居中对齐；每帧摆姿后的模型最多可以达到该立方体的 {@link #ALLOWANCE} 倍（以中心为准），动画若超出就绕中心
+ * 缩小，因此任何皮肤都不会超出原版小凋灵或头颅的最大尺寸（不会带来视野优势）。所有包围盒处于同一坐标系：调用方绘制模型前的
+ * 坐标系。
  */
 public final class MiniWitherSkinFit {
     /** How far an animated pose may reach past the fitted box. / 动画姿态可超出适配包围盒的倍数。 */
@@ -18,6 +22,15 @@ public final class MiniWitherSkinFit {
     private static final float MIN_SIZE = 1.0E-4F;
 
     private MiniWitherSkinFit() {
+    }
+
+    /**
+     * The cube on {@code vanilla}'s centre with its largest side. / 以 {@code vanilla} 中心为中心、边长为其最长边的立方体。
+     */
+    public static BedrockBounds envelope(BedrockBounds vanilla) {
+        float half = Math.max(vanilla.sizeX(), Math.max(vanilla.sizeY(), vanilla.sizeZ())) * 0.5F;
+        return new BedrockBounds(vanilla.centerX() - half, vanilla.centerY() - half, vanilla.centerZ() - half,
+                vanilla.centerX() + half, vanilla.centerY() + half, vanilla.centerZ() + half);
     }
 
     /**

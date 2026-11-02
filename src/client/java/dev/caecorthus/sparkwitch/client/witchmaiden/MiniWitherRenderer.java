@@ -183,8 +183,9 @@ public final class MiniWitherRenderer {
     }
 
     /**
-     * The vanilla Mini Wither's box in the body-aligned frame (rest pose, heads forward), the auto-fit target.
-     * 原版小凋灵在与身体对齐的坐标系中的包围盒（静止姿态、头朝前），即自动缩放的目标。
+     * The auto-fit target: the {@link MiniWitherSkinFit#envelope} of the vanilla Mini Wither's box in the body-aligned
+     * frame (rest pose, heads forward).
+     * 自动缩放的目标：原版小凋灵在与身体对齐的坐标系中的包围盒（静止姿态、头朝前）的 {@link MiniWitherSkinFit#envelope}。
      */
     private static BedrockBounds vanillaBounds() {
         if (vanillaBounds == null) {
@@ -210,7 +211,8 @@ public final class MiniWitherRenderer {
                     box[5] = Math.max(box[5], corner.z);
                 }
             });
-            vanillaBounds = new BedrockBounds(box[0], box[1], box[2], box[3], box[4], box[5]);
+            vanillaBounds = MiniWitherSkinFit.envelope(
+                    new BedrockBounds(box[0], box[1], box[2], box[3], box[4], box[5]));
         }
         return vanillaBounds;
     }
@@ -227,7 +229,7 @@ public final class MiniWitherRenderer {
         }
     }
 
-    /** The vanilla box, so the preview can frame it. / 原版包围盒，供预览取景。 */
+    /** The auto-fit target, so the preview can frame it. / 自动缩放目标，供预览取景。 */
     public static BedrockBounds previewBounds() {
         return vanillaBounds();
     }
