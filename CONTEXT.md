@@ -424,8 +424,9 @@ Current build baseline:
       model inside changes. Sounds: `skin/sound/MiniWitherSoundOverrides` + `client/mixin/witchmaiden/
       MiniWitherSkinSound{Manager,Loader}Mixin` swap our 8 event ids for the skin's ogg files (downmixed to mono so
       they stay positional, 60 s cap; the server's position, volume, pitch and timing unchanged). UI:
-      `skin/screen/MiniWitherSkinScreen` (list, status, spinning preview at in-game size, sound preview, open folder,
-      reload), opened from vanilla Options → Skin Customization (`MiniWitherSkinOptionsMixin`) and later from
+      `skin/screen/MiniWitherSkinScreen` (owner pick 2026-11-02: mockup A "暗夜面板", own flat `ClickableWidget`s in
+      SparkAssist's palette with Witch Maiden magenta as the only accent over the vanilla translucent background; skin
+      list, status pill, drag-to-rotate preview at in-game size, sound preview grid, open folder, reload), opened from vanilla Options → Skin Customization (`MiniWitherSkinOptionsMixin`) and later from
       SparkAssist through `api/client/MiniWitherSkinSettingsApi`.
 - `roles/killer/magician/`: Magician (`sparkwitch:magician`, 魔术师), an ordinary killer merged from main (#99,
   collaborator Huankings, who may keep editing these files upstream: keep v2-side edits minimal). It records 30 s of
