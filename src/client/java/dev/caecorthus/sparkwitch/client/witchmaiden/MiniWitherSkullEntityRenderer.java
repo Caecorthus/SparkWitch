@@ -28,11 +28,11 @@ import org.joml.Quaternionf;
  * Vanilla's wither skull model, scaled down for the Mini Wither and textured by kind: the black skull, the blue one for
  * a Conscience owner, and the crimson one, which is the blue texture tinted red at draw time (no recoloured copy of a
  * vanilla texture ships). Always fully lit, like vanilla's skull. A selected Mini Wither skin with a skull model
- * replaces it on this client only, fitted to the vanilla skull's box and keeping the three kinds apart (own textures,
- * else tints).
+ * replaces it on this client only, fitted to the vanilla skull's box. A kind the skin gives no texture of (blessed,
+ * crimson) stays the vanilla skull of that kind, so the three kinds can never look alike.
  * 原版凋灵之首模型，按小凋灵缩小，并按种类使用贴图：黑色头颅、主人善良时的蓝色头颅，以及赤色头颅——绘制时把蓝色贴图染成红色
- * （不随附任何原版贴图的改色副本）。与原版头颅一样始终全亮。选中的小凋灵皮肤若带有头颅模型，只在本客户端替换它：适配原版
- * 头颅的包围盒，并保持三种头颅可区分（使用各自贴图，否则染色）。
+ * （不随附任何原版贴图的改色副本）。与原版头颅一样始终全亮。选中的小凋灵皮肤若带有头颅模型，只在本客户端替换它，并适配原版
+ * 头颅的包围盒。皮肤未提供贴图的种类（善良、赤首）保持该种类的原版头颅，因此三种头颅永远不会看起来一样。
  */
 public class MiniWitherSkullEntityRenderer extends EntityRenderer<MiniWitherSkullEntity> {
     private static final Identifier NORMAL_TEXTURE = Identifier.ofVanilla("textures/entity/wither/wither.png");
@@ -40,8 +40,6 @@ public class MiniWitherSkullEntityRenderer extends EntityRenderer<MiniWitherSkul
             Identifier.ofVanilla("textures/entity/wither/wither_invulnerable.png");
     /** ARGB multiplier that turns the blue skull crimson. / 把蓝色头颅染成赤色的 ARGB 乘数。 */
     private static final int CRIMSON_TINT = 0xFFFF3A2E;
-    /** ARGB multiplier for a skin's blessed skull without its own texture. / 无专属贴图时善良头颅的 ARGB 乘数。 */
-    private static final int BLESSED_TINT = 0xFF7FB8FF;
     private static final float SCALE = 0.6F;
     private static final float MIN_SKIN_SCALE = 1.0E-4F;
     /**
@@ -89,35 +87,29 @@ public class MiniWitherSkullEntityRenderer extends EntityRenderer<MiniWitherSkul
 
     /**
      * The skin's skull, turned like the vanilla head part (about its base centre) and fitted to the vanilla skull's box;
-     * false hands the draw back to vanilla. A throwing skin is dropped to vanilla until it is reloaded.
-     * 皮肤的头颅：像原版头部一样（绕底面中心）转向，并适配原版头颅的包围盒；返回 false 时交还原版绘制。抛出异常的皮肤会回退到
-     * 原版，直到重新加载。
+     * false hands the draw back to vanilla (also for a kind the skin has no texture of). A throwing skin is dropped to
+     * vanilla until it is reloaded.
+     * 皮肤的头颅：像原版头部一样（绕底面中心）转向，并适配原版头颅的包围盒；返回 false 时交还原版绘制（皮肤没有该种类贴图时
+     * 也是如此）。抛出异常的皮肤会回退到原版，直到重新加载。
      */
     private static boolean renderSkin(MiniWitherSkullEntity entity, MiniWitherSkinModel skull, float headYaw,
                                       float headPitch, float tickDelta, MatrixStack matrices,
                                       VertexConsumerProvider vertexConsumers, int light) {
         try {
+            Identifier texture = switch (entity.kind()) {
+                case BLESSED -> skull.blessedTexture();
+                case CRIMSON -> skull.crimsonTexture();
+                default -> skull.texture();
+            };
+            if (texture == null) {
+                return false;
+            }
             BedrockPose pose = MiniWitherSkinAnimator.poseSkull(skull, entity, tickDelta);
             MiniWitherSkinFit.Transform fit = MiniWitherSkinFit.cap(
                     MiniWitherSkinFit.fit(SKULL_BOUNDS, skull.restBounds()), SKULL_BOUNDS,
                     BedrockModelRenderer.bounds(skull.geometry(), pose));
             if (fit.scale() <= MIN_SKIN_SCALE) {
                 return true;
-            }
-            Identifier texture = skull.texture();
-            int tint = -1;
-            switch (entity.kind()) {
-                case BLESSED -> {
-                    texture = skull.blessedTexture() != null ? skull.blessedTexture() : texture;
-                    tint = skull.blessedTexture() != null ? -1 : BLESSED_TINT;
-                }
-                case CRIMSON -> {
-                    texture = skull.crimsonTexture() != null ? skull.crimsonTexture()
-                            : skull.blessedTexture() != null ? skull.blessedTexture() : texture;
-                    tint = skull.crimsonTexture() != null ? -1 : CRIMSON_TINT;
-                }
-                default -> {
-                }
             }
             matrices.push();
             try {
@@ -132,12 +124,12 @@ public class MiniWitherSkullEntityRenderer extends EntityRenderer<MiniWitherSkul
                 RenderLayer layer = skull.translucent() ? RenderLayer.getEntityTranslucent(texture)
                         : RenderLayer.getEntityCutoutNoCull(texture);
                 BedrockModelRenderer.render(skull.geometry(), pose, matrices, vertexConsumers.getBuffer(layer), light,
-                        OverlayTexture.DEFAULT_UV, tint);
+                        OverlayTexture.DEFAULT_UV, -1);
             } finally {
                 matrices.pop();
             }
             return true;
-        } catch (RuntimeException failure) {
+        } catch (RuntimeException | StackOverflowError failure) {
             MiniWitherSkinManager.markBroken(failure);
             return false;
         }

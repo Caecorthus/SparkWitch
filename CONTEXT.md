@@ -417,8 +417,10 @@ Current build baseline:
       longest side (`envelope`: the cube on the vanilla box's centre), allowed at most 1.25× that cube per animated
       frame, so no skin reaches past vanilla's largest extent. `MiniWitherSkinAnimator` plays idle/move loops
       and summon/shoot/crimson one-shots from state the client already has (the synced active flag, a skull appearing
-      within 3 blocks of its owner's anchor, its synced kind) and adds the synced aim to the head bone. Custom skulls
-      keep the three kinds apart (own textures, else blue/red tints). The renderers keep every gate and frame; only the
+      within 3 blocks of its owner's anchor, its synced kind) and adds the synced aim to the head bone. A custom skull
+      replaces only the kinds it has textures for (blessed/crimson without one stay vanilla), so the kinds never look
+      alike. Glow bones (`glowPrefix`) glow only in the settings preview; world draws pass the world light as the glow
+      light, so a skin never makes a Mini Wither easier to spot in the dark. The renderers keep every gate and frame; only the
       model inside changes. Sounds: `skin/sound/MiniWitherSoundOverrides` + `client/mixin/witchmaiden/
       MiniWitherSkinSound{Manager,Loader}Mixin` swap our 8 event ids for the skin's ogg files (downmixed to mono so
       they stay positional, 60 s cap; the server's position, volume, pitch and timing unchanged). UI:

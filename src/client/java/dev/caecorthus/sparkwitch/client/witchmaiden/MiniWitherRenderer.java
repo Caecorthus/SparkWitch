@@ -14,6 +14,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -36,6 +37,8 @@ import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+
+import java.util.function.Supplier;
 
 /**
  * Draws a summoned Mini Wither: the vanilla Wither model and texture at 0.4 model scale (about 0.7 blocks), softly
@@ -117,15 +120,21 @@ public final class MiniWitherRenderer {
         float headYaw = MathHelper.wrapDegrees(state.getAimYaw() - yaw);
         Vec3d velocity = MiniWitherFollow.velocity(player);
         matrices.push();
-        tilt(matrices, velocity);
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0F - yaw));
-        MiniWitherSkinModel skin = skinBody();
-        if (skin == null || !drawSkin(matrices, consumers, light, skin,
-                MiniWitherSkinAnimator.poseBody(player, skin, tickDelta, yaw, headYaw, state.getAimPitch(), velocity,
-                        firstPerson))) {
-            drawVanilla(matrices, consumers, light, player.age + tickDelta, headYaw, state.getAimPitch());
+        try {
+            tilt(matrices, velocity);
+            matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0F - yaw));
+            MiniWitherSkinModel skin = skinBody();
+            // World draws keep glow bones at the world light: a skin must not make the Mini Wither easier to spot in
+            // the dark (a Wathe blackout) than the unlit vanilla Wither.
+            // 世界内绘制让发光骨骼使用世界光照：皮肤不能让小凋灵在黑暗中（Wathe 停电）比不发光的原版更容易被发现。
+            if (skin == null || !drawSkin(matrices, consumers, light, light, skin,
+                    () -> MiniWitherSkinAnimator.poseBody(player, skin, tickDelta, yaw, headYaw, state.getAimPitch(),
+                            velocity, firstPerson))) {
+                drawVanilla(matrices, consumers, light, player.age + tickDelta, headYaw, state.getAimPitch());
+            }
+        } finally {
+            matrices.pop();
         }
-        matrices.pop();
     }
 
     /** Expects the body-aligned frame. / 需要与身体对齐的坐标系。 */
@@ -146,9 +155,10 @@ public final class MiniWitherRenderer {
      * 在与身体对齐的坐标系中绘制皮肤并适配原版包围盒；没有可绘制内容时返回 false（调用方随即绘制原版）。抛出异常的皮肤会回退到
      * 原版，直到重新加载。
      */
-    private static boolean drawSkin(MatrixStack matrices, VertexConsumerProvider consumers, int light,
-                                    MiniWitherSkinModel skin, BedrockPose pose) {
+    private static boolean drawSkin(MatrixStack matrices, VertexConsumerProvider consumers, int light, int glowLight,
+                                    MiniWitherSkinModel skin, Supplier<BedrockPose> poser) {
         try {
+            BedrockPose pose = poser.get();
             BedrockBounds target = vanillaBounds();
             MiniWitherSkinFit.Transform fit = MiniWitherSkinFit.cap(MiniWitherSkinFit.fit(target, skin.restBounds()),
                     target, BedrockModelRenderer.bounds(skin.geometry(), pose));
@@ -160,12 +170,12 @@ public final class MiniWitherRenderer {
                 matrices.translate(fit.x(), fit.y(), fit.z());
                 matrices.scale(fit.scale(), fit.scale(), fit.scale());
                 BedrockModelRenderer.render(skin.geometry(), pose, matrices, consumers.getBuffer(layer(skin)), light,
-                        OverlayTexture.DEFAULT_UV, -1);
+                        glowLight, OverlayTexture.DEFAULT_UV, -1);
             } finally {
                 matrices.pop();
             }
             return true;
-        } catch (RuntimeException failure) {
+        } catch (RuntimeException | StackOverflowError failure) {
             MiniWitherSkinManager.markBroken(failure);
             return false;
         }
@@ -218,13 +228,15 @@ public final class MiniWitherRenderer {
     }
 
     /**
-     * The settings screen preview: the current look in a GUI frame (y up, facing the viewer), spun by the caller.
-     * 设置界面预览：在 GUI 坐标系（y 向上、面向观察者）中绘制当前外观，由调用方负责旋转。
+     * The settings screen preview: the current look in a GUI frame (y up, facing the viewer), spun by the caller. Glow
+     * bones glow here only.
+     * 设置界面预览：在 GUI 坐标系（y 向上、面向观察者）中绘制当前外观，由调用方负责旋转。发光骨骼只在这里发光。
      */
     public static void drawPreview(MatrixStack matrices, VertexConsumerProvider consumers, int light) {
         float progress = (float) (Util.getMeasuringTimeMs() / 50.0);
         MiniWitherSkinModel skin = skinBody();
-        if (skin == null || !drawSkin(matrices, consumers, light, skin, MiniWitherSkinAnimator.posePreview(skin))) {
+        if (skin == null || !drawSkin(matrices, consumers, light, LightmapTextureManager.MAX_LIGHT_COORDINATE, skin,
+                () -> MiniWitherSkinAnimator.posePreview(skin))) {
             drawVanilla(matrices, consumers, light, progress, 0.0F, 0.0F);
         }
     }

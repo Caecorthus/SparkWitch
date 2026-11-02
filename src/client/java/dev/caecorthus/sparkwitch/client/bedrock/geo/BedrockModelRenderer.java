@@ -34,6 +34,16 @@ public final class BedrockModelRenderer {
      */
     public static void render(BedrockGeometry geometry, BedrockPose pose, MatrixStack matrices,
                               VertexConsumer consumer, int light, int overlay, int argb) {
+        render(geometry, pose, matrices, consumer, light, LightmapTextureManager.MAX_LIGHT_COORDINATE, overlay, argb);
+    }
+
+    /**
+     * As above, with the light glow bones use; pass {@code light} itself to switch the glow off (world draws, where a
+     * glowing model would stand out in the dark).
+     * 同上，但指定发光骨骼使用的光照；传入 {@code light} 本身即关闭发光（世界内绘制时，发光模型会在黑暗中显眼）。
+     */
+    public static void render(BedrockGeometry geometry, BedrockPose pose, MatrixStack matrices,
+                              VertexConsumer consumer, int light, int glowLight, int overlay, int argb) {
         MatrixStack.Entry entry = matrices.peek();
         Scratch scratch = SCRATCH.get();
         scratch.pose(geometry, pose, entry.getPositionMatrix(), entry.getNormalMatrix());
@@ -48,7 +58,7 @@ public final class BedrockModelRenderer {
             }
             Matrix4f model = scratch.models[bone];
             Matrix3f normals = scratch.normals[bone];
-            int boneLight = geometry.boneGlows(bone) ? LightmapTextureManager.MAX_LIGHT_COORDINATE : light;
+            int boneLight = geometry.boneGlows(bone) ? glowLight : light;
             for (int quad = first; quad < end; quad++) {
                 int o = quad * BedrockGeometry.QUAD_STRIDE;
                 normals.transform(quads[o], quads[o + 1], quads[o + 2], normal);

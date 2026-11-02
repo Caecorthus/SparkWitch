@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.WeakHashMap;
 
 /**
  * Plays a skin's animations on every Mini Wither this client draws, from state the client already has: the synced
@@ -41,7 +42,10 @@ public final class MiniWitherSkinAnimator {
     /** Reused by {@link #tick}, so no set is allocated per tick. / {@link #tick} 复用，避免每刻新建集合。 */
     private static final Set<UUID> SEEN = new HashSet<>();
     private static final Owner PREVIEW = new Owner();
+    /** Pose holder for skulls; their Molang state is per skull below. / 头颅的姿态容器；Molang 状态见下方按头颅保存。 */
     private static final Owner SKULLS = new Owner();
+    /** Weak keys: a skull removed from the world drops its runtime. / 弱键：移出世界的头颅会释放其运行时。 */
+    private static final Map<MiniWitherSkullEntity, SkullRuntime> SKULL_RUNTIMES = new WeakHashMap<>();
 
     private MiniWitherSkinAnimator() {
     }
@@ -60,10 +64,12 @@ public final class MiniWitherSkinAnimator {
         private WeakReference<MiniWitherSkullEntity> shotSkull = new WeakReference<>(null);
         private boolean shotCrimson;
 
+        /** The reused pose; a new skin also drops the old one's {@code variable.*} values. / 新皮肤同时清除旧变量。 */
         private BedrockPose pose(BedrockGeometry geometry) {
             if (pose == null || poseFor != geometry) {
                 pose = new BedrockPose(geometry.boneCount());
                 poseFor = geometry;
+                runtime.clearVariables();
             }
             pose.reset();
             return pose;
@@ -101,6 +107,7 @@ public final class MiniWitherSkinAnimator {
 
     public static void clear() {
         OWNERS.clear();
+        SKULL_RUNTIMES.clear();
     }
 
     /** A Mini Wither skull entered the client world. / 一个小凋灵头颅进入了客户端世界。 */
@@ -171,14 +178,30 @@ public final class MiniWitherSkinAnimator {
         return pose;
     }
 
-    /** A flying skull: its move loop (else idle) from its own age. / 飞行中的头颅：按自身年龄播放移动（否则待机）循环。 */
+    /**
+     * A flying skull: its move loop (else idle) from its own age, with its own Molang variables (an accumulator must not
+     * run once per skull in flight). The pose array is shared: it is drawn right away.
+     * 飞行中的头颅：按自身年龄播放移动（否则待机）循环，并使用自己的 Molang 变量（累加器不能随空中头颅数量重复执行）。姿态数组
+     * 共用：取得后立即绘制。
+     */
     public static BedrockPose poseSkull(MiniWitherSkinModel model, MiniWitherSkullEntity skull, float tickDelta) {
         BedrockPose pose = SKULLS.pose(model.geometry());
+        SkullRuntime state = SKULL_RUNTIMES.computeIfAbsent(skull, entity -> new SkullRuntime());
+        if (state.geometry != model.geometry()) {
+            state.geometry = model.geometry();
+            state.runtime.clearVariables();
+        }
         double life = (skull.age + tickDelta) / 20.0;
-        setCommonQueries(SKULLS.runtime, life);
+        setCommonQueries(state.runtime, life);
         boolean move = !model.states().getOrDefault(MiniWitherAnimationState.MOVE, List.of()).isEmpty();
-        loop(model, move ? MiniWitherAnimationState.MOVE : MiniWitherAnimationState.IDLE, life, SKULLS.runtime, pose);
+        loop(model, move ? MiniWitherAnimationState.MOVE : MiniWitherAnimationState.IDLE, life, state.runtime, pose);
         return pose;
+    }
+
+    private static final class SkullRuntime {
+        private final MolangRuntime runtime = new MolangRuntime();
+        @Nullable
+        private BedrockGeometry geometry;
     }
 
     private static void setCommonQueries(MolangRuntime runtime, double life) {
