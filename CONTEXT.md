@@ -103,6 +103,12 @@ Current build baseline:
     (`ScopeSettingsStore.apply*`), clamp and snap like the file, and ignore an unknown mode or lens step; only `save()`
     writes the file. The first call loads the file, so it is safe before `ScopeClient.register()`. SparkAssist reaches
     it by reflection (FQCN and signatures are frozen).
+  - `api/client/MiniWitherSkinSettingsApi` (client source set, 2026-11-02) is the stable cross-mod seam for a later
+    SparkAssist SparkDLC page over the Mini Wither skins (not wired in SparkAssist yet). JDK-only, all static:
+    `skinIds()` (first `""` = vanilla), `skinDisplayName(String)`, `selectedSkin()`, `selectSkin(String)` (applies and
+    saves at once; only `""` or a listed id), `reloadSkins()`, `openSkinsFolder()`, `statusText()` (translated) and
+    `Object createScreen(Object parent)` (the `MiniWitherSkinScreen`, parent a `Screen` or null). FQCN and signatures
+    are frozen once shipped.
   - Add-on gun world hits (2026-10-07, frozen names and signatures, reached by SparkStrength's `SparkWitchCompat`
     through reflection for the Serial Killer pistols, which extend Wathe's `RevolverItem` but fire through
     `sparkstrength:serial_pistol_shoot`): client `SparkWitchApi.preferNearerGunWorldTarget(PlayerEntity, HitResult,
@@ -397,6 +403,35 @@ Current build baseline:
     (`sparkwitch:crimson_wither_skull`, a gunshot for the Prophet), then a 15 s Gohei item cooldown. Both payloads are
     on the Control Expert stun, Seeker session, Riftwalker session and Fear deny-lists; the crimson skull breaks Seeker
     devices (`SeekerBreakSource.CRIMSON_SKULL`) and ends Magician puppets.
+    - Sounds (2026-11-02): every Mini Wither sound is its own event `sparkwitch:mini_wither.<key>`
+      (`MiniWitherSoundSlot`: idle, shoot, summon, dismiss, unlock, crimson_shoot, crimson_hit, burst; registered in
+      `SparkWitchSounds`, looked up by `SparkWitchSounds.miniWither(slot)`). Each defaults in sounds.json to exactly the
+      vanilla files and subtitle it replaced, and the call sites keep their category, volume and pitch, so a resource
+      pack or a client skin can change the Mini Wither alone. The Blind keeps the burst as a one-shot sound
+      (`BlindSoundRules`, formerly via `minecraft:entity.generic.explode`).
+    - Skins (owner 2026-11-02, plan `docs/plans/2026-11-02-mini-wither-skins.md`): `client/witchmaiden/skin/` lets a
+      player replace the model and sounds of every Mini Wither and its skulls **on their own client only** (nothing
+      synced or sent). One folder per skin under `config/sparkwitch/mini_wither/<id>/` (`MiniWitherSkinFolder`, a
+      bilingual README is written there; optional `skin.json`); the selection is `miniWitherSkin` in
+      `config/sparkwitch-client.json` (`MiniWitherSkinSettings`, merge-written beside the scope keys).
+      `MiniWitherSkinManager` loads it (preloaded at client start; textures as `sparkwitch:dynamic/mini_wither_skin/...`,
+      replaced per load) and never throws: failures show in `status()` and draw vanilla; a draw that throws calls
+      `markBroken` until the next reload. Bodies and skulls are Bedrock geometry (`client/bedrock/`), auto-fitted
+      (`MiniWitherSkinFit`, owner: no user scale) so their longest side matches the vanilla Mini Wither's / skull's
+      longest side (`envelope`: the cube on the vanilla box's centre), allowed at most 1.25× that cube per animated
+      frame, so no skin reaches past vanilla's largest extent. `MiniWitherSkinAnimator` plays idle/move loops
+      and summon/shoot/crimson one-shots from state the client already has (the synced active flag, a skull appearing
+      within 3 blocks of its owner's anchor, its synced kind) and adds the synced aim to the head bone. A custom skull
+      replaces only the kinds it has textures for (blessed/crimson without one stay vanilla), so the kinds never look
+      alike. Glow bones (`glowPrefix`) glow only in the settings preview; world draws pass the world light as the glow
+      light, so a skin never makes a Mini Wither easier to spot in the dark. The renderers keep every gate and frame; only the
+      model inside changes. Sounds: `skin/sound/MiniWitherSoundOverrides` + `client/mixin/witchmaiden/
+      MiniWitherSkinSound{Manager,Loader}Mixin` swap our 8 event ids for the skin's ogg files (downmixed to mono so
+      they stay positional, 60 s cap; the server's position, volume, pitch and timing unchanged). UI:
+      `skin/screen/MiniWitherSkinScreen` (owner pick 2026-11-02: mockup A "暗夜面板", own flat `ClickableWidget`s in
+      SparkAssist's palette with Witch Maiden magenta as the only accent over the vanilla translucent background; skin
+      list, status pill, drag-to-rotate preview at in-game size, sound preview grid, open folder, reload), opened from vanilla Options → Skin Customization (`MiniWitherSkinOptionsMixin`) and later from
+      SparkAssist through `api/client/MiniWitherSkinSettingsApi`.
 - `roles/killer/magician/`: Magician (`sparkwitch:magician`, 魔术师), an ordinary killer merged from main (#99,
   collaborator Huankings, who may keep editing these files upstream: keep v2-side edits minimal). It records 30 s of
   its own actions, then a puppet disguised as a chosen player replays them; the 2026-10-07 audit fix applies owner
@@ -477,6 +512,15 @@ Current build baseline:
     recording or playback never waits. Client presentation lives in `client/magician/` and
     `client/mixin/Magician*`; HUD, button and replay texts are lang keys (`hud.sparkwitch.magician.*`,
     `ui.sparkwitch.magician.*`, `replay.global.sparkwitch.magician_*`).
+- `client/bedrock/` (2026-11-02): a role-neutral Bedrock model runtime for player-supplied files, first used by the
+  Mini Wither skins. `geo/`: `BedrockGeometryParser` (format 1.12+ `minecraft:geometry`, also inside a Java item-model
+  shell, and legacy 1.8; box and per-face UV, mirror, inflate, bone/cube pivots and rotations, glow bones by name
+  prefix, limits, readable `BedrockModelException`s) and `BedrockModelRenderer` (GeckoLib's frame: a Bedrock point
+  (x, y, z) px draws at (-x, y, z) / 16, y up, facing -z; box-UV cubes match vanilla `ModelPart.Cuboid` exactly,
+  pinned by tests; no per-frame allocation). `anim/` + `molang/`: Bedrock `.animation.json` playback (keyframes with
+  linear/catmullrom/step, loop/once/hold, `blend_weight`, `override_previous_animation`, `anim_time_update`) and a
+  compiled, allocation-free Molang subset (unknown names read 0, evaluation never throws). `BedrockPose` carries a
+  frame's extra rotation/position/scale per bone; `BedrockBounds` is a render-frame box.
 - `client/ability/`: generic configurable skill-key-2 registration and role-id
   dispatch only; concrete roles own their handlers. `register` throws on a duplicate role; `tryRegister` (used only
   by `api/client/SecondarySkillKeyApi`) returns false and keeps the first handler.
@@ -2178,7 +2222,8 @@ and, per sound id (`BlindSoundRules.SOUND_RANGE_FACTORS`, never the volume), x2 
 which culls past 300 blocks. Each Blind
 throttles each sound emitter to one pulse per 10 ticks; the one-shot sounds (the Wathe revolver,
 grenade and door, both USEC rifle shots and the USEC bolt (`sparkwitch:item.usec_rifle.bolt`, played inside the
-10-tick window after the shot), the SparkStrength M67, the NoellesRoles bomb, the generic explosion, every vanilla
+10-tick window after the shot), the SparkStrength M67, the NoellesRoles bomb, the generic explosion, the Mini Wither
+burst (`sparkwitch:mini_wither.burst`), every vanilla
 door, trapdoor and fence-gate open or close, and every `createExplosion`) bypass that throttle.
 Voice needs the optional Simple Voice Chat (compile-only, never a dependency):
 `voice/BlindVoicePerceptionListener` handles `MicrophonePacketEvent` at `Integer.MIN_VALUE`, after
