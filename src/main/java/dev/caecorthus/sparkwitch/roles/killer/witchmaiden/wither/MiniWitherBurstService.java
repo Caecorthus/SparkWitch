@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither;
 
+import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastGeometry;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -9,7 +10,6 @@ import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.UUID;
@@ -34,7 +34,7 @@ public final class MiniWitherBurstService {
             return;
         }
         boolean blessed = skull.mode() == MiniWitherRules.Mode.CONSCIENCE;
-        world.playSound(null, center.x, center.y, center.z, SoundEvents.ENTITY_GENERIC_EXPLODE.value(),
+        world.playSound(null, center.x, center.y, center.z, SparkWitchSounds.miniWither(MiniWitherSoundSlot.BURST),
                 SoundCategory.PLAYERS, EXPLODE_VOLUME, EXPLODE_PITCH);
         world.spawnParticles(ParticleTypes.EXPLOSION, center.x, center.y, center.z, 1, 0.0, 0.0, 0.0, 0.0);
         world.spawnParticles(blessed ? ParticleTypes.HAPPY_VILLAGER : ParticleTypes.SOUL, center.x, center.y, center.z,

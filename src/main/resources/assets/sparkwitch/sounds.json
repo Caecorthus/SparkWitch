@@ -232,5 +232,65 @@
         "stream": true
       }
     ]
+  },
+  "mini_wither.idle": {
+    "subtitle": "subtitles.entity.wither.ambient",
+    "sounds": [
+      "minecraft:mob/wither/idle1",
+      "minecraft:mob/wither/idle2",
+      "minecraft:mob/wither/idle3",
+      "minecraft:mob/wither/idle4"
+    ]
+  },
+  "mini_wither.shoot": {
+    "subtitle": "subtitles.entity.wither.shoot",
+    "sounds": [
+      "minecraft:mob/wither/shoot"
+    ]
+  },
+  "mini_wither.summon": {
+    "subtitle": "subtitles.entity.wither.spawn",
+    "sounds": [
+      "minecraft:mob/wither/spawn"
+    ]
+  },
+  "mini_wither.dismiss": {
+    "subtitle": "subtitles.entity.wither.ambient",
+    "sounds": [
+      "minecraft:mob/wither/idle1",
+      "minecraft:mob/wither/idle2",
+      "minecraft:mob/wither/idle3",
+      "minecraft:mob/wither/idle4"
+    ]
+  },
+  "mini_wither.unlock": {
+    "subtitle": "subtitles.entity.wither.ambient",
+    "sounds": [
+      "minecraft:mob/wither/idle1",
+      "minecraft:mob/wither/idle2",
+      "minecraft:mob/wither/idle3",
+      "minecraft:mob/wither/idle4"
+    ]
+  },
+  "mini_wither.crimson_shoot": {
+    "subtitle": "subtitles.entity.wither.shoot",
+    "sounds": [
+      "minecraft:mob/wither/shoot"
+    ]
+  },
+  "mini_wither.crimson_hit": {
+    "subtitle": "subtitles.entity.wither.shoot",
+    "sounds": [
+      "minecraft:mob/zombie/woodbreak"
+    ]
+  },
+  "mini_wither.burst": {
+    "subtitle": "subtitles.entity.generic.explode",
+    "sounds": [
+      "minecraft:random/explode1",
+      "minecraft:random/explode2",
+      "minecraft:random/explode3",
+      "minecraft:random/explode4"
+    ]
   }
 }
