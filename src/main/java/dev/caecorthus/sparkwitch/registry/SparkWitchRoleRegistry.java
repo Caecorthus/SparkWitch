@@ -21,6 +21,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
+import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
@@ -102,6 +103,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
+    public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -142,6 +144,7 @@ public final class SparkWitchRoleRegistry {
     private static Role bewitched;
     private static Role usec;
     private static Role knight;
+    private static Role recruit;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -392,6 +395,11 @@ public final class SparkWitchRoleRegistry {
     public static Role knight() {
         ensureRegistered();
         return knight;
+    }
+
+    public static Role recruit() {
+        ensureRegistered();
+        return recruit;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -690,10 +698,10 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // Registered right before the Insider (nothing may follow the Insider): the Judge/Emma parameter set with
-        // no appearance condition, so it is drawn only through the shared Vigilante slots. Loadout, economy and the
-        // duel live in roles/civilian/knight.
-        // 注册在内应之前（内应之后不得再注册）：与法官、艾玛相同的参数且无出现条件，只通过共享义警警位抽取。
+        // Registered after USEC, before the Recruit and the Insider (nothing may follow the Insider): the Judge/Emma
+        // parameter set with no appearance condition, so it is drawn only through the shared Vigilante slots.
+        // Loadout, economy and the duel live in roles/civilian/knight.
+        // 注册在 USEC 之后、新兵与内应之前（内应之后不得再注册）：与法官、艾玛相同的参数且无出现条件，只通过共享义警警位抽取。
         // 开局装备、经济与决斗位于 roles/civilian/knight。
         knight = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KNIGHT_ID, FactionIds.CIVILIAN)
                 .color(KnightRules.ROLE_COLOR)
@@ -702,17 +710,29 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // Registered right before the Insider (nothing may follow the Insider). A Wathe-native neutral with tasks and
-        // fake mood, available at every player count. It never blocks any win; at round end a living Stowaway joins the
-        // winning team, and a dead one loses.
-        // 注册在内应之前（内应之后不得再注册）。有任务、伪装情绪的 Wathe 原生中立职业，任何人数都可出现。它不阻止任何
-        // 胜利；回合结束时活着的偷渡客加入获胜阵营，死亡的偷渡客判负。
+        // Registered before the Recruit and the Insider (nothing may follow the Insider). A Wathe-native neutral with
+        // tasks and fake mood, available at every player count. It never blocks any win; at round end a living Stowaway
+        // joins the winning team, and a dead one loses.
+        // 注册在新兵与内应之前（内应之后不得再注册）。有任务、伪装情绪的 Wathe 原生中立职业，任何人数都可出现。它不阻止
+        // 任何胜利；回合结束时活着的偷渡客加入获胜阵营，死亡的偷渡客判负。
         stowaway = SparkFactionApi.registerRole(FactionRoleDefinition.builder(STOWAWAY_ID, FactionIds.NEUTRAL)
                 .color(StowawayRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.NEUTRAL)
+                .build());
+        // Registered right before the Insider (nothing may follow the Insider): an ordinary task civilian (no coins or
+        // shop) drawn by Wathe's civilian assignment like the Fisher and the Blind, never through a police slot. Its
+        // knife, gun and penalty rules live in roles/civilian/recruit.
+        // 注册在内应之前（内应之后不得再注册）：只做任务的普通平民（没有金币与商店），与钓鱼佬、盲人一样由 Wathe 平民分配
+        // 抽取，从不占用警位。刀、枪与惩罚规则位于 roles/civilian/recruit。
+        recruit = SparkFactionApi.registerRole(FactionRoleDefinition.builder(RECRUIT_ID, FactionIds.CIVILIAN)
+                .color(RecruitRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
         // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
         // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
@@ -765,6 +785,9 @@ public final class SparkWitchRoleRegistry {
                 orthopedist,
                 saint,
                 perfumer,
+                // The Recruit joins the civilian block; the promotion identities stay the tail.
+                // 新兵加入平民段；晋升身份始终位于末尾。
+                recruit,
                 pigGod,
                 tarotReader,
                 fisher,

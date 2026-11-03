@@ -17,6 +17,8 @@ The Black Raven (`sparkwitch:black_raven`, 黑羽鸦) is a police variant too si
 Blade, keeps its Raven Mask disguise, and never counts as alive for round settlement.
 The Knight (`sparkwitch:knight`, 骑士, contributed in PR #169 and reworked 2026-10-30) is a police variant that shares
 the Vigilante slots and spends 150 coins on the shared ability key (G) to duel one living player.
+The Recruit (`sparkwitch:recruit`, 新兵, contributed in PR #176) is an ordinary civilian that takes no police slot,
+gets Wathe's knife after its first task, and may pick up one ground gun per round.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -932,9 +934,10 @@ Current build baseline:
   - "Good" for every Knight rule is `KnightRules.isGoodForKnight`: SparkFactionAPI effective faction CIVILIAN (Impostor
     out, Conscience in). Neutrals are not good (owner, 2026-10-30).
   - Kills (`KnightKillService`): +100 for any non-good victim; pushing a good player off the train kills the Knight
-    with `sparkwitch:cerebellum` (non-forced, like Wathe's `shot_innocent`). `mixin/KnightPoliceGunMixin` OR-wraps
-    Wathe's four gun `isRole` reads (Vigilante parity) and charges -1.0 mood only for a derringer shot that kills a
-    good player; `mixin/KnightDerringerCooldownMixin` pins the Knight's derringer cooldown to 20 ticks;
+    with Wathe's own `shot_innocent` ("小脑" in zh_cn, non-forced; PR #176 moved it off `sparkwitch:cerebellum`, which
+    nothing produces now, so shields that spare Wathe's penalty death no longer block it).
+    `mixin/KnightPoliceGunMixin` OR-wraps Wathe's four gun `isRole` reads (Vigilante parity) and charges -1.0 mood
+    only for a derringer shot that kills a good player; `mixin/KnightDerringerCooldownMixin` pins the Knight's derringer cooldown to 20 ticks;
     `mixin/knight/KnightDerringerReloadMixin` stops Wathe's kill reload of every derringer when a Knight kills a good
     player with any weapon.
   - Duel (`duel/`): `KnightDuelWorldComponent` (`sparkwitch:knight_duel`, world, auto-synced to every client, appended
@@ -951,7 +954,8 @@ Current build baseline:
     penalties, duel-rule deaths and environment reasons stay out; ordinary non-lethal hits never trigger it, and the
     victim's damage still resolves (`KnightDuelInterference` + the `killPlayer` HEAD mixin); the 120 s timeout force-kills both
     with `duel_failed`; a disconnect or round end just ends it. `duel_suicide`, `duel_failed` and `duel_interference`
-    are SparkTraits terminal death reasons. Prophecy groups all four Knight reasons as PENALTY.
+    are SparkTraits terminal death reasons. Prophecy groups the three duel reasons, Wathe's `shot_innocent` and the
+    legacy `sparkwitch:cerebellum` (kept for older records) as PENALTY.
   - Seal (`duel/KnightDuelSeal`): every carried non-whitelisted item of BOTH duelists (the Knight's revolver included;
     knife, derringer, cross sword, the SparkStrength tablet, letters, keys, lockpick, crowbar, cocktails and master keys
     are whitelisted) is raised through SparkFactionAPI `ForcedCooldowns` every 10 ticks. Guards cover paths that skip
@@ -973,7 +977,9 @@ Current build baseline:
     and 3 blocks. The crosshair mixin (`CrossSwordWatheCrosshairMixin`) runs the cross sword through Wathe's own knife
     branch as soon as the duel target is in that 3-block reach (no hold gate) and forces the shared knife-cooldown read
     off, so it draws the same knife target reticle as the vanilla knife. It has no cooldown and is exempt from
-    SparkFactionAPI forced raises.
+    SparkFactionAPI forced raises. Three gray tooltip lines (`item.sparkwitch.cross_sword.tooltip.line1..3`). It is
+    kept out of every creative tab (`SparkWitchItemGroups.creativeHiddenItems`, 2026-11-02); the Knight loadout and
+    `/give` still hand it out.
   - Duelists: Speed II and glowing colour teams for the Knight (aqua) and the target (red).
     `KnightDuelBodyCollision` with `mixin/knight/KnightDuelEntityCollisionMixin` (priority 1100, outside Wathe's
     `collidesWith` wrap) and `KnightDuelLivingEntityCollisionMixin` lets duelists pass through every player both ways
@@ -995,6 +1001,34 @@ Current build baseline:
     screens while the synced duel state marks the local player as a duelist, so E is unavailable until the duel ends.
     The lock is client presentation, not a server check, and needs no unlock packet. SparkAssist has no guidebook page
     yet.
+- `roles/civilian/recruit/`: the Recruit (`sparkwitch:recruit`, 新兵, color `0x5B862D`), contributed in PR #176; the
+  PR description is the spec, every number lives in `RecruitRules`.
+  - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
+    appearance condition) registered right before the Insider, and in the civilian block of the assassin-guess order
+    (between the Perfumer and the Pig God). Wathe's civilian pass draws it like the Fisher and the Blind; it is not a police variant
+    (`PoliceRoles`, `PoliceSlotAssignmentService.VARIANT_IDS`) and never takes a cop slot. It has no coins, shop or
+    economy service, owns no witch skill (not in `isRegisteredSparkWitchRole`) and never renders in the
+    `gui.sparkwitch.skills` panel.
+  - State: `RecruitPlayerComponent` (`sparkwitch:recruit`, `NEVER_COPY`, appended last in the CCA list) keeps the task
+    count and the knife-granted flag (synced to the owner only) and the server-only "ground gun used" flag; NBT keeps
+    all three across a relog, and `RoleAssigned` and Wathe's `ResetPlayer` clear them.
+  - Knife (`RecruitRuntime`): the first completed task grants Wathe's knife into the hotbar (a full hotbar swaps it
+    into the selected slot; the displaced item goes to a free slot, an empty off hand or the floor, never deleted) and
+    records the global replay event `sparkwitch:recruit_knife_granted`. Until then
+    `client/recruit/RecruitClientPresentation` draws the role-owned bottom-right line `n/1`.
+  - Kills (`KillPlayer.AFTER`): every `wathe:knife` kill costs 0.35 mood (35 sanity); a knife kill of a good player
+    (SparkFactionAPI effective faction CIVILIAN: Impostor out, Conscience in, neutrals not good) or a train-fall kill
+    of one credited to the Recruit kills it with Wathe's `shot_innocent` (non-forced). An active SparkTraits Impostor
+    trait (`compat/SparkTraitsRecruitBridge`, public facade only, fails closed to "not Impostor") lifts both.
+    Revolver kills follow the police gun parity below (`mixin/recruit/RecruitGunParityMixin`: 10 s cooldown, no mood
+    cost); Wathe's own innocent-shot punishment still applies.
+  - Ground guns: Wathe's own `ItemEntityMixin` decides the first pickup (an innocent with no gun, not its own throw,
+    no misfire ban; the SparkTraits Impostor refusal stays). `mixin/recruit/ItemEntityRecruitGunMixin` marks the
+    round's one pickup at vanilla's `sendPickup` (reached only after a successful insert) and vetoes any later
+    `wathe:guns` pickup at HEAD; guns from a shop or a command are not pickups.
+  - Open (owner calls, unchanged by review): the push-off penalty applies with or without the knife (Knight
+    precedent); a Last Stand victim who revives still costs sanity or the Recruit's life; the Black Raven disguise
+    pool and SparkAssist have no Recruit entry yet.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation
@@ -1426,9 +1460,11 @@ Current build baseline:
   cooldown and no mood penalty. Innocent-shot punishment is unchanged. The wraps are
   `mixin/JudgePoliceGunMixin`, `mixin/EmmaPoliceGunMixin`,
   `mixin/controlexpert/ControlExpertPoliceGunMixin`, `mixin/seeker/SeekerPoliceGunMixin` and
-  `mixin/BlackRavenPoliceGunMixin` (raw role, so a disguised Raven keeps it; the M1 overlay wraps the callee). A new
-  police role needs its own wrap; registering in `PoliceRoles` is not enough. USEC has no wrap because it carries no
-  revolver: the AXMC fires through its own `sparkwitch:fire_usec_rifle` path, never Wathe's gun receiver.
+  `mixin/BlackRavenPoliceGunMixin` (raw role, so a disguised Raven keeps it; the M1 overlay wraps the callee), plus
+  the Knight's `mixin/KnightPoliceGunMixin` and, for a civilian, the Recruit's `mixin/recruit/RecruitGunParityMixin`
+  (owner spec, PR #176). A new police role needs its own wrap; registering in `PoliceRoles` is not enough.
+  USEC has no wrap because it carries no revolver: the AXMC fires through its own `sparkwitch:fire_usec_rifle` path,
+  never Wathe's gun receiver.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `client/judge/`: primary-key selector and the role-owned bottom-right line (`JudgeHudRenderer`: "press key to
@@ -1527,8 +1563,11 @@ Current build baseline:
   custom data `ShellStack` (digits `HunterRules.SHELL_BUCKSHOT` 0 / `SHELL_SLUG` 1, cleaned by `sanitizeShellStack`);
   `LoadedShells` still mirrors the count and an item with only that count reads as buckshot. A slug fires one centre
   ray at `SLUG_RANGE` 15 and kills its first victim (the old shot). Buckshot fires 9 pellet rays at `SHOTGUN_RANGE` 8,
-  the vanilla look plus eight at ±`SHOTGUN_SPREAD_DEGREES` (1°) in yaw/pitch, and kills
-  `HunterRules.buckshotKillCount` = ceil(hit rays / 3) of the nearest distinct victims. `DoubleBarrelShotgunItem.fire`
+  the vanilla look plus eight at ±`SHOTGUN_SPREAD_DEGREES` (3°, 2026-11-01; was 1°) in yaw/pitch, and kills
+  `HunterRules.buckshotKillCount` = floor(hit rays / 3) of the nearest distinct victims (2026-11-01; was ceil): 1–2 hit
+  rays kill nobody, 3–5 one, 6–8 two, 9 three, never more than the distinct victims. A Raven Form crow's rays count the
+  same way for its owner, while a single pellet still ends a Magician puppet or breaks a Seeker device; a 1–2-ray graze
+  records `hit` with no target. `DoubleBarrelShotgunItem.fire`
   resolves in three phases so no interceptor is written before every ray was read: (1) read-only per ray, the pierced
   players, then the crow (`BlackRavenCrowHits.onShotgunFired`, returns owner + entry), the puppet
   (`MagicianPuppetHits.shotgunPuppetOnRay`) and the Seeker device (`SeekerDeviceHits.shotgunDeviceOnRay`) against that

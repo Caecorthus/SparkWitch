@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.bewitched.BewitchedClientPresentation;
+import dev.caecorthus.sparkwitch.client.recruit.RecruitClientPresentation;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
@@ -151,6 +152,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         RiftwalkerClient.init();
         // Bewitched promotion progress line (role-owned HUD). / 魔化使晋升进度行（职业自有 HUD）。
         BewitchedClientPresentation.register();
+        // Recruit first-task knife progress line (role-owned HUD). / 新兵首个任务发刀进度行（职业自有 HUD）。
+        RecruitClientPresentation.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
