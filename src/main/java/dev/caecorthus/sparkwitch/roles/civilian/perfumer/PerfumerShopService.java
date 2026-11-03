@@ -35,7 +35,7 @@ public final class PerfumerShopService {
         }
 
         // SparkTraits 的词条商店监听可能先于 SparkWitch 执行；先保存 sparktraits:* 条目，
-        // 避免下面重建调香师专属商店时误删内鬼左轮等词条追加商品。
+        // 避免下面重建调香师专属商店时误删内应左轮等词条追加商品。
         List<ShopEntry> preservedTraitEntries = SparkTraitsShopEntryPreserver.capture(context);
         context.clearEntries();
         context.addEntry(new ShopEntry.Builder(

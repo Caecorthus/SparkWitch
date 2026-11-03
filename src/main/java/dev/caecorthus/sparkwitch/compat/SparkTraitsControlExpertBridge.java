@@ -45,7 +45,7 @@ public final class SparkTraitsControlExpertBridge {
     /**
      * Whether the SparkTraits Impostor trait is active: FALSE when SparkTraits is absent, null when the facade is
      * missing or fails (callers treat null as "do not pay", like the Judge).
-     * SparkTraits 内鬼词条是否生效：未安装 SparkTraits 时为 FALSE；门面缺失或出错时为 null（调用方与法官一致，视为不发放）。
+     * SparkTraits 内应词条是否生效：未安装 SparkTraits 时为 FALSE；门面缺失或出错时为 null（调用方与法官一致，视为不发放）。
      */
     public static @Nullable Boolean isImpostor(@Nullable PlayerEntity player) {
         return player == null ? null : TRAIT.callNullableBoolean(Boolean.FALSE, null, null, player, IMPOSTOR);

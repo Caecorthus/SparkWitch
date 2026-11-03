@@ -73,7 +73,16 @@
       "sparkwitch:mini_wither",
       "sparkwitch:black_raven_crow",
       "sparkwitch:knight_duel",
-      "sparkwitch:recruit"
+      "sparkwitch:planner_player",
+      "sparkwitch:consultant_player",
+      "sparkwitch:undercover_disguise",
+      "sparkwitch:criminal_reasoner_player",
+      "sparkwitch:ragpicker_player",
+      "sparkwitch:ragpicker_loot",
+      "sparkwitch:sherry_player",
+      "sparkwitch:noa_player",
+      "sparkwitch:natsume_anan_player",
+      "sparkwitch:accountant_player"
     ]
   },
   "mixins": [
@@ -81,6 +90,14 @@
     {
       "config": "sparkwitch.client.mixins.json",
       "environment": "client"
+    },
+    "sparkwitch.planner.mixins.json",
+    {
+      "config": "sparkwitch.planner.client.mixins.json",
+      "environment": "client"
+    },
+    {
+      "config": "sparkwitch.cat.mixins.json"
     }
   ],
   "depends": {

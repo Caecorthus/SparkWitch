@@ -38,7 +38,7 @@ public final class BlackRavenPoliceRules {
     /**
      * Pays only on an exact FALSE Impostor answer: an absent SparkTraits reads FALSE, an unknown answer (null) never
      * pays (Judge semantics; SparkTraits pays an Impostor's task income itself).
-     * 仅在内鬼答案确切为 FALSE 时发放：未安装 SparkTraits 视为 FALSE，未知（null）从不发放（与法官相同；内鬼的任务收入由
+     * 仅在内应答案确切为 FALSE 时发放：未安装 SparkTraits 视为 FALSE，未知（null）从不发放（与法官相同；内应的任务收入由
      * SparkTraits 自行支付）。
      */
     public static boolean receivesTaskMoney(@Nullable Boolean impostor) {

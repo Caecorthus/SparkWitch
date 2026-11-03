@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
  * failing: not pending (the spectator gate still excludes a pending Last Stand player), and trait queries read as
  * unknown ({@code null}) so the caller fails closed.
  * 外部接缝：聆渊者自有的可选 SparkTraits 读取，仅经由公共门面 {@code SparkTraitsApi}（{@code isLastStandPending} 与
- * 针对良知、内鬼的 {@code hasActiveTrait}），从不触及 {@code impl} 或 {@code component} 包。查询结果被缓存，形状不符的方法
+ * 针对良知、内应的 {@code hasActiveTrait}），从不触及 {@code impl} 或 {@code component} 包。查询结果被缓存，形状不符的方法
  * 永不被信任。未安装：非待定，两个词条均为 FALSE。已安装但方法缺失或出错：非待定（旁观判定仍会排除背水一战待定的玩家），
  * 词条查询视为未知（{@code null}），由调用方失败关闭。
  */
@@ -42,7 +42,7 @@ public final class SparkTraitsAbyssListenerBridge {
         return hasActiveTrait(player, CONSCIENCE);
     }
 
-    /** Impostor trait: FALSE when SparkTraits is absent, null when unknown. / 内鬼词条：未安装为 FALSE，未知为 null。 */
+    /** Impostor trait: FALSE when SparkTraits is absent, null when unknown. / 内应词条：未安装为 FALSE，未知为 null。 */
     public static @Nullable Boolean isImpostorActive(@Nullable PlayerEntity player) {
         return hasActiveTrait(player, IMPOSTOR);
     }

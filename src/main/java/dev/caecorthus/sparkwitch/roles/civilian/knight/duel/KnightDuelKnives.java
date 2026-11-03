@@ -6,7 +6,6 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
@@ -57,56 +56,35 @@ public final class KnightDuelKnives {
         return duel.isTarget(attacker.getUuid()) && duel.isKnight(victim);
     }
 
-    /**
-     * The duel's UI lock leaves only the hotbar and off hand reachable until it ends, so a weapon in an upper row is
-     * swapped into the hotbar. True when the player can now reach {@code item}.
-     * 决斗的界面锁使玩家在决斗结束前只能用到快捷栏与副手，因此上排的武器会被换到快捷栏。玩家现在能用到 {@code item} 时返回 true。
-     */
-    static boolean moveIntoReach(ServerPlayerEntity player, Item item) {
+    /** True when the player holds any Wathe knife, marked or not. / 玩家是否持有任意 Wathe 小刀（无论是否带标记）。 */
+    static boolean carriesKnife(ServerPlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
-        if (player.getOffHandStack().isOf(item)) {
-            return true;
-        }
-        for (int slot = 0; slot < PlayerInventory.getHotbarSize(); slot++) {
-            if (inventory.getStack(slot).isOf(item)) {
+        for (int slot = 0; slot < inventory.size(); slot++) {
+            if (inventory.getStack(slot).isOf(WatheItems.KNIFE)) {
                 return true;
             }
         }
-        for (int slot = PlayerInventory.getHotbarSize(); slot < inventory.main.size(); slot++) {
-            ItemStack stack = inventory.getStack(slot);
-            if (stack.isOf(item)) {
-                int hotbarSlot = inventory.getSwappableHotbarSlot();
-                inventory.setStack(slot, inventory.getStack(hotbarSlot));
-                inventory.setStack(hotbarSlot, stack);
-                inventory.markDirty();
-                player.currentScreenHandler.sendContentUpdates();
-                return true;
-            }
-        }
-        return false;
+        return player.currentScreenHandler.getCursorStack().isOf(WatheItems.KNIFE);
     }
 
     /**
-     * Issues the marked knife to a target with no knife in reach, always into the hotbar. With a full hotbar it goes
-     * into the selected slot, so it is in hand at once; the item it displaces moves to a free upper slot, then an empty
-     * off hand, or is dropped at the target's feet as {@code VendettaKnifeLoadoutService} does, never deleted.
-     * 为够不到小刀的对手发放带标记小刀，一定放入快捷栏。快捷栏已满时放进当前选中的格子，使其立即在手；被替换的物品移到
-     * 上排空位，其次是空着的副手，否则像 {@code VendettaKnifeLoadoutService} 一样掉落在对手脚下，绝不删除。
+     * Issues the marked knife to a target without one. With no free slot (giveItemStack fails) the knife still goes
+     * into the selected hotbar slot, so it is in hand at once; the item it displaces moves to an empty off hand, or is
+     * dropped at the target's feet as {@code VendettaKnifeLoadoutService} does, never deleted.
+     * 为没有小刀的对手发放带标记小刀。没有空位（giveItemStack 失败）时仍把小刀放进当前快捷栏，使其立即在手；被替换的物品
+     * 移到空着的副手，否则像 {@code VendettaKnifeLoadoutService} 一样掉落在对手脚下，绝不删除。
      */
     static void issue(ServerPlayerEntity target) {
-        if (moveIntoReach(target, WatheItems.KNIFE)) {
+        if (carriesKnife(target)) {
             return;
         }
         ItemStack knife = new ItemStack(WatheItems.KNIFE);
         knife.set(SparkWitchDataComponents.DUEL_KNIFE, true);
-        PlayerInventory inventory = target.getInventory();
-        int empty = inventory.getEmptySlot();
-        if (PlayerInventory.isValidHotbarIndex(empty)) {
-            inventory.setStack(empty, knife);
-        } else {
+        if (!target.giveItemStack(knife)) {
+            PlayerInventory inventory = target.getInventory();
             ItemStack displaced = inventory.getStack(inventory.selectedSlot);
             inventory.setStack(inventory.selectedSlot, knife);
-            if (!target.giveItemStack(displaced)) {
+            if (!displaced.isEmpty()) {
                 if (target.getOffHandStack().isEmpty()) {
                     target.setStackInHand(Hand.OFF_HAND, displaced);
                 } else {
@@ -114,7 +92,7 @@ public final class KnightDuelKnives {
                 }
             }
         }
-        inventory.markDirty();
+        target.getInventory().markDirty();
         target.currentScreenHandler.sendContentUpdates();
     }
 

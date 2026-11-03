@@ -4,8 +4,6 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityHandler;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityRegistry;
-import dev.caecorthus.sparkwitch.client.witchmaiden.skin.MiniWitherSkinAnimator;
-import dev.caecorthus.sparkwitch.client.witchmaiden.skin.MiniWitherSkinManager;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
@@ -14,10 +12,8 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherEntities;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherRules;
-import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherSkullEntity;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.net.ToggleMiniWitherC2SPayload;
 import dev.caecorthus.sparkwitch.util.TickTime;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -36,10 +32,10 @@ import java.util.List;
 
 /**
  * Client side of the Mini Wither: key 2 sends the toggle request (the server checks the unlock, cooldown and states and
- * answers a refusal on the action bar), the Wither and skull renderers, the local skin and its animations, the Gohei
- * left-click input, and the bottom-right HUD lines.
+ * answers a refusal on the action bar), the Wither and skull renderers, the Gohei left-click input, and the bottom-right
+ * HUD lines.
  * 小凋灵的客户端部分：技能键 2 发送切换请求（解锁、冷却与各种状态由服务端校验，拒绝时在动作栏回复）、小凋灵与头颅的渲染、
- * 本地皮肤及其动画、凋灵御币左键输入，以及右下角的 HUD 行。
+ * 凋灵御币左键输入，以及右下角的 HUD 行。
  */
 public final class MiniWitherClient {
     private static boolean registered;
@@ -68,27 +64,18 @@ public final class MiniWitherClient {
         });
         WorldRenderEvents.AFTER_ENTITIES.register(MiniWitherRenderer::renderCameraWither);
         EntityRendererRegistry.register(MiniWitherEntities.skull(), MiniWitherSkullEntityRenderer::new);
-        MiniWitherSkinManager.register();
-        ClientEntityEvents.ENTITY_LOAD.register((entity, world) -> {
-            if (entity instanceof MiniWitherSkullEntity skull) {
-                MiniWitherSkinAnimator.onSkullLoaded(skull);
-            }
-        });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 WitherGoheiFireInput.reset();
                 MiniWitherFollow.clear();
-                MiniWitherSkinAnimator.clear();
                 return;
             }
             WitherGoheiFireInput.tick(client);
             MiniWitherFollow.tick(client);
-            MiniWitherSkinAnimator.tick(client);
         });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             WitherGoheiFireInput.reset();
             MiniWitherFollow.clear();
-            MiniWitherSkinAnimator.clear();
         });
     }
 

@@ -81,7 +81,7 @@ public final class AbyssSuppression {
      * Whether the target's sanity is effectively REAL, mirroring SparkTraits' effective mood type: Conscience makes it
      * REAL, Impostor makes it FAKE, otherwise the base role decides; an active Wraith never has real sanity. Absent
      * SparkTraits: the base role's mood type. An unknown trait answer fails closed (no real sanity).
-     * 目标理智是否实际为真实理智，与 SparkTraits 的有效情绪类型一致：良知使其为真实，内鬼使其为伪装，否则由基础职业决定；
+     * 目标理智是否实际为真实理智，与 SparkTraits 的有效情绪类型一致：良知使其为真实，内应使其为伪装，否则由基础职业决定；
      * 激活冤魂永远没有真实理智。未安装 SparkTraits：取基础职业情绪类型。词条查询结果未知时失败关闭（视为无真实理智）。
      */
     public static boolean hasRealSanity(ServerPlayerEntity player) {
@@ -154,7 +154,7 @@ public final class AbyssSuppression {
     /**
      * Pure effective-REAL rule: an active Wraith never; Conscience (TRUE) always; otherwise a REAL base role that is
      * proven not Impostor (FALSE). {@code null} means the SparkTraits answer is unknown and never grants real sanity.
-     * 纯判定：激活冤魂永不；良知（TRUE）总是；否则需基础职业为真实理智且确认非内鬼（FALSE）。{@code null} 表示 SparkTraits
+     * 纯判定：激活冤魂永不；良知（TRUE）总是；否则需基础职业为真实理智且确认非内应（FALSE）。{@code null} 表示 SparkTraits
      * 结果未知，从不据此认定真实理智。
      */
     static boolean effectiveRealSanity(boolean baseReal, @Nullable Boolean conscience, @Nullable Boolean impostor,

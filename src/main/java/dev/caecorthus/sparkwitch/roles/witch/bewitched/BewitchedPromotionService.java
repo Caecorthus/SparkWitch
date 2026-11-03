@@ -155,12 +155,12 @@ public final class BewitchedPromotionService {
     private static void sendPromotionLines(ServerWorld world, GameWorldComponent game, ServerPlayerEntity player,
                                            Role role) {
         Text roleName = Text.translatable(RoleDisplayTextRules.roleTranslationKey(role)).withColor(role.color());
-        player.sendMessage(Text.translatable(PROMOTED_KEY, roleName), false);
+        player.sendMessage(Text.translatable(PROMOTED_KEY, roleName), true);
         Text line = Text.translatable(PROMOTED_GRAND_WITCH_KEY, player.getName(), roleName);
         for (UUID grandWitchId : game.getAllWithRole(SparkWitchRoles.grandWitch())) {
             ServerPlayerEntity grandWitch = world.getServer().getPlayerManager().getPlayer(grandWitchId);
             if (grandWitch != null && grandWitch != player && GameFunctions.isPlayerPlayingAndAlive(grandWitch)) {
-                grandWitch.sendMessage(line, false);
+                grandWitch.sendMessage(line, true);
             }
         }
     }

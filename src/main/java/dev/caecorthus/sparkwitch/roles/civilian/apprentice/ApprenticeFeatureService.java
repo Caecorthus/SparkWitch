@@ -55,7 +55,7 @@ public final class ApprenticeFeatureService {
             return;
         }
         if (ApprenticePlayerComponent.KEY.get(player).recordCompletedTask()) {
-            player.sendMessage(Text.translatable("message.sparkwitch.apprentice.graduated"), false);
+            player.sendMessage(Text.translatable("message.sparkwitch.apprentice.graduated"), true);
             player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
     }

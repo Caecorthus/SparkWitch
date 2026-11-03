@@ -50,6 +50,12 @@ public final class SparkWitch implements ModInitializer {
     @Override
     public void onInitialize() {
         SparkWitchSounds.register();
+        dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteDashService.register();
+        dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerService.register();
+        dev.caecorthus.sparkwitch.roles.killer.consultant.ConsultantService.register();
+        dev.caecorthus.sparkwitch.roles.undercover.UndercoverDisguiseService.register();
+        dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService.register();
+        dev.caecorthus.sparkwitch.roles.replay.SparkWitchReplay.register();
         SeekerSounds.register();
         HunterEffects.register();
         OrthopedistEffects.register();

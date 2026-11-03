@@ -32,7 +32,7 @@ public final class SparkTraitsShopEntryPreserver {
 
     /**
      * Restores captured SparkTraits entries after SparkWitch has rebuilt its role-owned shop.
-     * 在 SparkWitch 重建职业专属商店后恢复词条商品，保证内鬼左轮以及未来 sparktraits:* 商品不会被 clearEntries 吞掉。
+     * 在 SparkWitch 重建职业专属商店后恢复词条商品，保证内应左轮以及未来 sparktraits:* 商品不会被 clearEntries 吞掉。
      */
     public static void restore(BuildShopEntries.ShopContext context, List<ShopEntry> preservedEntries) {
         if (preservedEntries == null || preservedEntries.isEmpty()) {

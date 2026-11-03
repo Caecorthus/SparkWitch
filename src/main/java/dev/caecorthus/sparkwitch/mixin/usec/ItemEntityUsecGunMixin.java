@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Owner O2: a USEC never picks a {@code wathe:guns} item up from the ground (the Wathe {@code ItemEntityMixin} and
  * SparkTraits Impostor precedent, HEAD of {@code onPlayerCollision}). Server only; a creative player and a former USEC
  * are free (see {@link UsecGunRules}).
- * 所有者 O2：USEC 永远不能从地面拾取 {@code wathe:guns} 物品（沿用 Wathe {@code ItemEntityMixin} 与 SparkTraits 内鬼的先例，
+ * 所有者 O2：USEC 永远不能从地面拾取 {@code wathe:guns} 物品（沿用 Wathe {@code ItemEntityMixin} 与 SparkTraits 内应的先例，
  * 挂在 {@code onPlayerCollision} 的 HEAD）。仅服务端；创造模式玩家与前 USEC 不受限制（见 {@link UsecGunRules}）。
  */
 @Mixin(ItemEntity.class)

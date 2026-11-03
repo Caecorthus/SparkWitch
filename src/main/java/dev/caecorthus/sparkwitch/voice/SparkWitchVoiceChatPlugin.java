@@ -32,6 +32,34 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * 在物理客户端上还会通过 {@link HolyFlashVoiceClientBridge} 接入圣光弹的传入语音压低。
  */
 public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
+    /** Server-side voice API, captured in initialize(); null until the voice chat mod boots. */
+    /** 服务端语音 API，在 initialize() 中捕获；语音模组启动前为 null。 */
+    private static volatile de.maxhenkel.voicechat.api.VoicechatServerApi VOICE_API;
+
+    @Override
+    public void initialize(de.maxhenkel.voicechat.api.VoicechatApi api) {
+        if (api instanceof de.maxhenkel.voicechat.api.VoicechatServerApi server) {
+            VOICE_API = server;
+        }
+    }
+
+    /**
+     * Drops a player out of the dead-talkers group. Wathe puts corpses into a voice group; a revived player keeps
+     * that group membership, so they would still chat with the dead.
+     * 把玩家移出死亡语音组。Wathe 会把尸体放进一个语音组；被复活的玩家仍保留该组成员身份，
+     * 因此还能和死人说话。
+     */
+    public static void leaveDeathVoiceGroup(java.util.UUID uuid) {
+        var api = VOICE_API;
+        if (api == null) {
+            return;
+        }
+        var connection = api.getConnectionOf(uuid);
+        if (connection != null && connection.isInGroup()) {
+            connection.setGroup(null);
+        }
+    }
+
     @Override
     public String getPluginId() {
         return SparkWitch.MOD_ID;

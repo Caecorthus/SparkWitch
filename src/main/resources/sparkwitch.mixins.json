@@ -11,16 +11,12 @@
     "JudgePoliceGunMixin",
     "KnightPoliceGunMixin",
     "KnightDerringerCooldownMixin",
-    "knight.GameFunctionsKnightDuelInterferenceMixin",
-    "knight.KnightDuelDoorPassingMixin",
     "knight.KnightDuelKnifeTargetMixin",
     "knight.KnightDuelKnifeRayTargetMixin",
     "knight.KnightDerringerReloadMixin",
     "knight.KnightDuelEntityCollisionMixin",
     "knight.KnightDuelLivingEntityCollisionMixin",
     "knight.KnightDuelSkillPayloadGuardMixin",
-    "recruit.RecruitGunParityMixin",
-    "recruit.ItemEntityRecruitGunMixin",
     "JudgeKillCompletionMixin",
     "JudgeLivingLethalDamageMixin",
     "JudgePlayerLethalDamageMixin",
@@ -160,10 +156,6 @@
     "fiend.TaotiePlayerComponentFiendMixin",
     "fiend.TaotiePlayerComponentFiendSwallowMixin",
     "fiend.VentHatchBlockFiendCooldownMixin",
-    "stowaway.FactionWinnerCollectorStowawayWinnerMixin",
-    "stowaway.GameFunctionsStowawaySettlementMixin",
-    "stowaway.GameRoundEndComponentStowawayWinnerMixin",
-    "stowaway.MurderGameModeStowawayWinScopeMixin",
     "hunter.GunShootPayloadShotgunGuardMixin",
     "hunter.HunterPlayerMoveMixin",
     "hunter.PlayerPoisonComponentHunterSourceMixin",
@@ -241,7 +233,8 @@
     "usec.PlayerInventoryUsecGunMixin",
     "usec.ServerPlayerInteractionManagerUsecScopeMixin",
     "usec.NoellesUsecShieldPierceMixin",
-    "usec.GameFunctionsUsecPsychoArmourMixin"
+    "usec.GameFunctionsUsecPsychoArmourMixin",
+    "cat.CatLethalHitMixin"
   ],
   "injectors": {
     "defaultRequire": 1

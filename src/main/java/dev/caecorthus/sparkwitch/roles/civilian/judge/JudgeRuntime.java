@@ -215,7 +215,7 @@ public final class JudgeRuntime {
                 message(player, "sentenced", target.getName());
                 Text announcement = Text.translatable("message.sparkwitch.judge.announcement", target.getName());
                 for (ServerPlayerEntity recipient : world.getPlayers()) {
-                    recipient.sendMessage(announcement, false);
+                    recipient.sendMessage(announcement, true);
                 }
             }
         }

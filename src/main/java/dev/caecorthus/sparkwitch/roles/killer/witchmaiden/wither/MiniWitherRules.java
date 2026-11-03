@@ -100,7 +100,7 @@ public final class MiniWitherRules {
     /**
      * The killer team for HOSTILE mode: an effective killer (the Impostor trait included, owner 2026-10-20) or the
      * NoellesRoles Undercover, whom killers see as a teammate. An unknown faction fails closed as a teammate.
-     * HOSTILE 模式下的杀手队伍：有效阵营为杀手（含内鬼词条，所有者 2026-10-20），或被杀手视作队友的 NoellesRoles 卧底。
+     * HOSTILE 模式下的杀手队伍：有效阵营为杀手（含内应词条，所有者 2026-10-20），或被杀手视作队友的 NoellesRoles 卧底。
      * 阵营未知时按队友处理（失败关闭）。
      */
     public static boolean isKillerTeam(@Nullable Identifier effectiveFaction, boolean undercover) {

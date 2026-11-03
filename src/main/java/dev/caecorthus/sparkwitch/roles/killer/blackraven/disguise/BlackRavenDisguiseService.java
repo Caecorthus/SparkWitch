@@ -129,7 +129,7 @@ public final class BlackRavenDisguiseService {
                 ? Text.translatable(BlackRavenDisguiseRules.messageKey("reverted"))
                 : Text.translatable(BlackRavenDisguiseRules.messageKey("became"), roleName(target)), true);
         if (result.itemsKept()) {
-            player.sendMessage(Text.translatable(BlackRavenDisguiseRules.messageKey("items_kept")), false);
+            player.sendMessage(Text.translatable(BlackRavenDisguiseRules.messageKey("items_kept")), true);
         }
         NbtCompound extra = new NbtCompound();
         extra.putString(REPLAY_FROM_KEY, from.toString());
@@ -308,7 +308,7 @@ public final class BlackRavenDisguiseService {
             return false;
         }
         state.stashOrCreate(identityId(state.acting())).overflow().add(stack.copy());
-        serverPlayer.sendMessage(Text.translatable(BlackRavenDisguiseRules.messageKey("items_kept")), false);
+        serverPlayer.sendMessage(Text.translatable(BlackRavenDisguiseRules.messageKey("items_kept")), true);
         return true;
     }
 

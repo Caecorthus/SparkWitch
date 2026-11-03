@@ -45,7 +45,7 @@ public final class SeekerLoadoutService {
         PlayerInventory inventory = player.getInventory();
         // The revolver shares Wathe's per-Item start cooldown. SparkTraits refuses free guns to an Impostor at this
         // point; that trait rule is deliberately not bypassed.
-        // 左轮沿用 Wathe 按物品写入的开局冷却。SparkTraits 此时会拒绝向内鬼发放免费枪械；刻意不绕过该词条规则。
+        // 左轮沿用 Wathe 按物品写入的开局冷却。SparkTraits 此时会拒绝向内应发放免费枪械；刻意不绕过该词条规则。
         inventory.insertStack(new ItemStack(WatheItems.REVOLVER));
         if (needsCarItem(holdsCarItem(inventory))) {
             inventory.insertStack(new ItemStack(SparkWitchItems.seekerCar()));

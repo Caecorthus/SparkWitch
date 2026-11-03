@@ -176,7 +176,7 @@ public final class TimeStealerRules {
      * disguise keeps the Coroner role). The check is literally "not KILLER", not "is CIVILIAN".
      * 所有者决定 Q5：只有真正的 NoellesRoles 计时员能解除诅咒。购买的必须是减少时间的物品，买家当前职业必须精确为
      * {@code noellesroles:time_keeper}，在 ACTIVE 对局中存活，且有效阵营已知并且不是 {@code wathe:killer}
-     * （内鬼计时员属于杀手阵营；验尸官伪装仍保留验尸官职业）。判定字面为“不是杀手”，而非“是平民”。
+     * （内应计时员属于杀手阵营；验尸官伪装仍保留验尸官职业）。判定字面为“不是杀手”，而非“是平民”。
      */
     public static boolean countsAsTimekeeperRescue(
             boolean reduceTimeItem,

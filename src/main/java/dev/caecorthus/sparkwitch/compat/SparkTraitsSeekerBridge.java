@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  * query reads as unknown (true), which denies devices and pay (Q5-b, fail closed).
  * 外部接缝：搜寻者自有的可选 SparkTraits 读取，仅经由公共门面 {@code SparkTraitsApi}
  * （{@code isLastStandPending} 与 {@code hasActiveTrait}），从不触及 {@code impl} 或 {@code component} 包。查询结果被缓存，
- * 形状不符的方法永不被信任。未安装：非待定、非内鬼。已安装但方法缺失或失败：非待定；内鬼查询视为未知（true），
+ * 形状不符的方法永不被信任。未安装：非待定、非内应。已安装但方法缺失或失败：非待定；内应查询视为未知（true），
  * 从而拒绝设备与报酬（Q5-b，失败即关闭）。
  */
 public final class SparkTraitsSeekerBridge {
@@ -44,7 +44,7 @@ public final class SparkTraitsSeekerBridge {
     /**
      * Whether the Impostor trait is active or cannot be verified. False when SparkTraits is absent; true when it is
      * present but the facade is missing, malformed or throws, or when no player is given.
-     * 内鬼词条是否生效或无法确认。未安装 SparkTraits 时为 false；已安装但门面缺失、形状不符、抛出异常，
+     * 内应词条是否生效或无法确认。未安装 SparkTraits 时为 false；已安装但门面缺失、形状不符、抛出异常，
      * 或未提供玩家时为 true。
      */
     public static boolean isImpostorOrUnknown(@Nullable PlayerEntity player) {
@@ -55,7 +55,7 @@ public final class SparkTraitsSeekerBridge {
             return true;
         }
         // Unknown (null: missing, malformed or throwing facade, or a non-Boolean answer) counts as Impostor.
-        // 未知（null：门面缺失、形状不符或抛出，或返回非布尔值）按内鬼处理。
+        // 未知（null：门面缺失、形状不符或抛出，或返回非布尔值）按内应处理。
         return !Boolean.FALSE.equals(TRAIT.callNullableBoolean(Boolean.FALSE, null, null, player, IMPOSTOR));
     }
 

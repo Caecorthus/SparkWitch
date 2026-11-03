@@ -38,15 +38,17 @@ public final class SparkWitchRoles {
     public static final Identifier FISHER_ID = SparkWitchRoleRegistry.FISHER_ID;
     public static final Identifier BLIND_ID = SparkWitchRoleRegistry.BLIND_ID;
     public static final Identifier FIEND_ID = SparkWitchRoleRegistry.FIEND_ID;
-    public static final Identifier STOWAWAY_ID = SparkWitchRoleRegistry.STOWAWAY_ID;
     public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
     public static final Identifier ABYSS_LISTENER_ID = SparkWitchRoleRegistry.ABYSS_LISTENER_ID;
     public static final Identifier POTION_GUNNER_ID = SparkWitchRoleRegistry.POTION_GUNNER_ID;
     public static final Identifier RIFTWALKER_ID = SparkWitchRoleRegistry.RIFTWALKER_ID;
     public static final Identifier BEWITCHED_ID = SparkWitchRoleRegistry.BEWITCHED_ID;
     public static final Identifier USEC_ID = SparkWitchRoleRegistry.USEC_ID;
+    public static final Identifier ATHLETE_ID = SparkWitchRoleRegistry.ATHLETE_ID;
+    public static final Identifier PLANNER_ID = SparkWitchRoleRegistry.PLANNER_ID;
+    public static final Identifier CONSULTANT_ID = SparkWitchRoleRegistry.CONSULTANT_ID;
+    public static final Identifier CAT_ID = SparkWitchRoleRegistry.CAT_ID;
     public static final Identifier KNIGHT_ID = SparkWitchRoleRegistry.KNIGHT_ID;
-    public static final Identifier RECRUIT_ID = SparkWitchRoleRegistry.RECRUIT_ID;
 
     private SparkWitchRoles() {
     }
@@ -185,10 +187,6 @@ public final class SparkWitchRoles {
         return SparkWitchRoleRegistry.fiend();
     }
 
-    public static Role stowaway() {
-        return SparkWitchRoleRegistry.stowaway();
-    }
-
     public static Role insider() {
         return SparkWitchRoleRegistry.insider();
     }
@@ -211,10 +209,6 @@ public final class SparkWitchRoles {
 
     public static Role knight() {
         return SparkWitchRoleRegistry.knight();
-    }
-
-    public static Role recruit() {
-        return SparkWitchRoleRegistry.recruit();
     }
 
     public static List<Role> assassinGuessRoles() {

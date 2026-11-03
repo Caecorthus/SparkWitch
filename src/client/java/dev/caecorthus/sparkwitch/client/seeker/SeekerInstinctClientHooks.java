@@ -62,7 +62,7 @@ public final class SeekerInstinctClientHooks {
     private static boolean hasInstinct(ClientPlayerEntity viewer) {
         Role role = GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer);
         // isKiller() already counts SparkTraits Impostors (it reads canUseKillerFeatures).
-        // isKiller() 已包含 SparkTraits 内鬼（它读取 canUseKillerFeatures）。
+        // isKiller() 已包含 SparkTraits 内应（它读取 canUseKillerFeatures）。
         return SeekerInstinctRules.hasInstinct(WatheClient.isPlayerPlayingAndAlive(), WatheClient.isKiller(),
                 WatheClient.canSeeSpectatorInformation(), role == null ? null : role.identifier());
     }

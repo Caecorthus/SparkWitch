@@ -199,7 +199,7 @@ public final class ProphetProphecyService {
         AchievementRecords.prophecy(player, victim, guess.id(), verdict.isCorrect(), attempt,
                 verdict == Verdict.CORRECT_KILLER ? death.responsible() : null);
         // Private chat line and sound: nobody else learns that a Prophecy happened. / 私有聊天与音效：其他人不会得知发生了预言。
-        player.sendMessage(result, false);
+        player.sendMessage(result, true);
         if (verdict.isCorrect()) {
             player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1.0F, 1.0F);
         } else {

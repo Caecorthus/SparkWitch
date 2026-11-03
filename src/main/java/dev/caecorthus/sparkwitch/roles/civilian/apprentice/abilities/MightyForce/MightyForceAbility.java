@@ -3,7 +3,6 @@ package dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForc
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseContext;
 import dev.caecorthus.sparkwitch.api.WitchSkillUseResult;
-import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.ApprenticeAbilitySupport;
@@ -26,11 +25,6 @@ public final class MightyForceAbility {
         // 在 Wathe 的禁止拾枪设置下误杀好人，会让巨力本局失效（所有者 D5）。
         if (ApprenticePlayerComponent.KEY.get(context.player()).isMightyForceForfeited()) {
             return WitchSkillUseResult.fail("message.sparkwitch.skill.mighty_force.forfeited");
-        }
-        // Inside a Taotie she can never strike (MightyForceCombatService), so refuse before mana is spent.
-        // 在饕餮肚子里永远无法出拳（见 MightyForceCombatService），因此在扣魔力之前拒绝。
-        if (NoellesTaotieSeekerBridge.isSwallowed(context.player())) {
-            return WitchSkillUseResult.fail("message.sparkwitch.skill.unavailable");
         }
         return ApprenticeAbilitySupport.use(
                 context,

@@ -85,7 +85,7 @@ public final class SeekerTargeting {
     /**
      * Deploy/place gate: the common gate (incl. the Q5-b impostor rule), an available body, no open session, and no
      * SparkTraits weapon-action block for this stack.
-     * 部署与放置门槛：公共门槛（含 Q5-b 内鬼规则）、本体可用、没有打开的会话，且该物品未被 SparkTraits 武器动作封锁。
+     * 部署与放置门槛：公共门槛（含 Q5-b 内应规则）、本体可用、没有打开的会话，且该物品未被 SparkTraits 武器动作封锁。
      */
     public static boolean canUseDevice(ServerPlayerEntity player, ItemStack stack) {
         if (player == null || stack == null || stack.isEmpty()) {

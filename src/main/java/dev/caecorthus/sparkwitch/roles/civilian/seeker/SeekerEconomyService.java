@@ -20,8 +20,8 @@ import org.jetbrains.annotations.Nullable;
  * Control Expert's fail-closed precedent; SparkTraits pays an Impostor's task income itself.
  * 搜寻者经济（Q9）：开局余额 0（由 {@link SeekerLoadoutService#grant} 写入；原先 50 所购买的平板现由 SparkStrength 免费发放），
  * 每完成一个任务 +50，金钱始终可见。
- * SparkStrength 不给新警察职业发钱，因此搜寻者的全部收入由 SparkWitch 负责。SparkTraits 内鬼或无法判定时
- * 不发任务钱（未安装视为非内鬼，已安装但无法回答视为未知），沿用控场专家“未知即拒绝”的先例；内鬼的任务收入由 SparkTraits 自行支付。
+ * SparkStrength 不给新警察职业发钱，因此搜寻者的全部收入由 SparkWitch 负责。SparkTraits 内应或无法判定时
+ * 不发任务钱（未安装视为非内应，已安装但无法回答视为未知），沿用控场专家“未知即拒绝”的先例；内应的任务收入由 SparkTraits 自行支付。
  */
 public final class SeekerEconomyService {
     private static boolean registered;
@@ -67,7 +67,7 @@ public final class SeekerEconomyService {
                 && !spectator && !creative && !wraithRestricted;
     }
 
-    /** Q5-b: no pay for an Impostor or an unknown answer. / Q5-b：内鬼或无法判定时不发钱。 */
+    /** Q5-b: no pay for an Impostor or an unknown answer. / Q5-b：内应或无法判定时不发钱。 */
     static boolean receivesTaskMoney(boolean impostorOrUnknown) {
         return !impostorOrUnknown;
     }

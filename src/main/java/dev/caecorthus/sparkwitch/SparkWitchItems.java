@@ -102,6 +102,8 @@ public final class SparkWitchItems {
     public static final Identifier DISRUPTOR_ID = ControlExpertRules.DISRUPTOR_ID;
     public static final Identifier TASER_ID = ControlExpertRules.TASER_ID;
     public static final Identifier SHOCK_DEVICE_ID = ControlExpertRules.SHOCK_DEVICE_ID;
+    public static final Identifier PLANNER_TASK_SLIP_ID = dev.caecorthus.sparkwitch.SparkWitch.id("planner_task_slip");
+    public static final Identifier CONSULTANT_RECORD_BOOK_ID = dev.caecorthus.sparkwitch.SparkWitch.id("consultant_record_book");
     public static final Identifier HOLY_FLASH_ID = HolyFlashRules.ITEM_ID;
     public static final Identifier SEEKER_CAR_ID = SeekerRules.CAR_ITEM_ID;
     public static final Identifier SEEKER_CAMERA_ID = SeekerRules.CAMERA_ITEM_ID;
@@ -112,6 +114,14 @@ public final class SparkWitchItems {
     public static final Identifier CLOWNFISH_ID = FisherRules.CLOWNFISH_ID;
     public static final Identifier GOLDFISH_ID = FisherRules.GOLDFISH_ID;
     public static final Identifier KEY_FISH_ID = FisherRules.KEY_FISH_ID;
+    public static final Identifier CONDUCTOR_KEY_ID =
+            dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules.CONDUCTOR_KEY_ID;
+    public static final Identifier SHERRY_BADGE_ID = dev.caecorthus.sparkwitch.SparkWitch.id("sherry_badge");
+    public static final Identifier SHERRY_NOTE_ID = dev.caecorthus.sparkwitch.SparkWitch.id("sherry_note");
+    /** 诺亚的蝴蝶护身符 (amethyst art), the 200-coin revival charm. 诺亚的蝴蝶护身符（紫水晶贴图），200 金币复活护符。 */
+    public static final Identifier ACCOUNTANT_PASSBOOK_ID = dev.caecorthus.sparkwitch.SparkWitch.id("accountant_passbook");
+    public static final Identifier NATSUME_AMULET_ID =
+            dev.caecorthus.sparkwitch.SparkWitch.id("natsume_amulet");
     public static final Identifier SWORDFISH_ID = FisherRules.SWORDFISH_ID;
     public static final Identifier GLIMMERFISH_ID = FisherRules.GLIMMERFISH_ID;
     public static final Identifier WHITE_CANE_ID = BlindRules.WHITE_CANE_ID;
@@ -128,6 +138,8 @@ public final class SparkWitchItems {
     public static final Identifier USEC_SUPPRESSOR_ID = UsecRules.SUPPRESSOR_ITEM_ID;
     public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
     private static Item ceremonialSword;
+    private static Item plannerTaskSlip;
+    private static Item consultantRecordBook;
     private static Item crossSword;
     private static Item firePoker;
     private static Item perfumeEssence;
@@ -165,6 +177,11 @@ public final class SparkWitchItems {
     private static Item clownfish;
     private static Item goldfish;
     private static Item keyFish;
+    private static Item conductorKey;
+    private static Item sherryBadge;
+    private static Item sherryNote;
+    private static Item natsumeAmulet;
+    private static Item accountantPassbook;
     private static Item swordfish;
     private static Item glimmerfish;
     private static Item whiteCane;
@@ -194,6 +211,16 @@ public final class SparkWitchItems {
         if (registered) {
             return;
         }
+        consultantRecordBook = Registry.register(
+                Registries.ITEM,
+                CONSULTANT_RECORD_BOOK_ID,
+                new dev.caecorthus.sparkwitch.item.consultant.ConsultantRecordBookItem(new Item.Settings().maxCount(1))
+        );
+        plannerTaskSlip = Registry.register(
+                Registries.ITEM,
+                PLANNER_TASK_SLIP_ID,
+                new dev.caecorthus.sparkwitch.item.planner.PlannerTaskSlipItem(new Item.Settings().maxCount(1))
+        );
         ceremonialSword = Registry.register(
                 Registries.ITEM,
                 CEREMONIAL_SWORD_ID,
@@ -379,6 +406,37 @@ public final class SparkWitchItems {
                 KEY_FISH_ID,
                 new KeyFishItem(KeyFishItem.createSettings())
         );
+        // Discoverer's conductor key: master-key behaviour at 3 durability per door, 7 points total.
+        // 探索者的乘务员钥匙：与万能钥匙同样的开门范围，每次 3 点、共 7 点耐久。
+        conductorKey = Registry.register(
+                Registries.ITEM,
+                CONDUCTOR_KEY_ID,
+                new dev.caecorthus.sparkwitch.roles.civilian.discoverer.ConductorKeyItem(
+                        dev.caecorthus.sparkwitch.roles.civilian.discoverer.ConductorKeyItem.createSettings())
+        );
+        sherryBadge = Registry.register(
+                Registries.ITEM,
+                SHERRY_BADGE_ID,
+                new dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryBadgeItem(
+                        new Item.Settings().maxCount(1))
+        );
+        accountantPassbook = Registry.register(
+                Registries.ITEM,
+                ACCOUNTANT_PASSBOOK_ID,
+                new dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookItem(
+                        new Item.Settings().maxCount(1))
+        );
+        natsumeAmulet = Registry.register(
+                Registries.ITEM,
+                NATSUME_AMULET_ID,
+                new Item(new Item.Settings().maxCount(1))
+        );
+        sherryNote = Registry.register(
+                Registries.ITEM,
+                SHERRY_NOTE_ID,
+                new dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryNoteItem(
+                        new Item.Settings().maxCount(16))
+        );
         swordfish = Registry.register(
                 Registries.ITEM,
                 SWORDFISH_ID,
@@ -487,6 +545,14 @@ public final class SparkWitchItems {
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
+    }
+
+    public static Item plannerTaskSlip() {
+        return plannerTaskSlip;
+    }
+
+    public static Item consultantRecordBook() {
+        return consultantRecordBook;
     }
 
     public static Item ceremonialSword() {
@@ -779,6 +845,41 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return keyFish;
+    }
+
+    public static Item accountantPassbook() {
+        if (accountantPassbook == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return accountantPassbook;
+    }
+
+    public static Item natsumeAmulet() {
+        if (natsumeAmulet == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return natsumeAmulet;
+    }
+
+    public static Item sherryBadge() {
+        if (sherryBadge == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return sherryBadge;
+    }
+
+    public static Item sherryNote() {
+        if (sherryNote == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return sherryNote;
+    }
+
+    public static Item conductorKey() {
+        if (conductorKey == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return conductorKey;
     }
 
     public static Item swordfish() {

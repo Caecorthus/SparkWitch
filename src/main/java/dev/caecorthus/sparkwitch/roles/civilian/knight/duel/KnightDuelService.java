@@ -2,12 +2,10 @@ package dev.caecorthus.sparkwitch.roles.civilian.knight.duel;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
-import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.api.SparkWitchApi;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.net.KnightDuelStopSoundS2CPayload;
-import dev.caecorthus.sparkwitch.net.KnightDuelUiLockS2CPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
@@ -16,6 +14,7 @@ import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
+import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -39,7 +38,6 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
-import org.agmas.noellesroles.ModEffects;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -73,7 +71,6 @@ public final class KnightDuelService {
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             SparkTraitsKillerBridge.registerTerminalDeathReason(SparkWitchDeathReasons.DUEL_SUICIDE);
             SparkTraitsKillerBridge.registerTerminalDeathReason(SparkWitchDeathReasons.DUEL_FAILED);
-            SparkTraitsKillerBridge.registerTerminalDeathReason(SparkWitchDeathReasons.DUEL_INTERFERENCE);
         });
         ServerLifecycleEvents.SERVER_STARTED.register(KnightDuelService::resetDuelTeams);
         KillPlayer.AFTER.register(KnightDuelService::afterKill);
@@ -185,11 +182,6 @@ public final class KnightDuelService {
         PlayerShopComponent shop = PlayerShopComponent.KEY.get(knight);
         shop.setBalance(shop.getBalance() - KnightDuelRules.COST);
         duel.begin(knight.getUuid(), target.getUuid(), world.getTime() + KnightDuelRules.DUEL_TICKS);
-        // Close any open inventory/skill panel; begin()'s state sync already locks E until the duel ends.
-        // 关闭已打开的物品栏/技能面板；begin() 的状态同步已锁住 E，直到决斗结束。
-        ServerPlayNetworking.send(knight, new KnightDuelUiLockS2CPayload());
-        ServerPlayNetworking.send(target, new KnightDuelUiLockS2CPayload());
-        KnightDuelKnives.moveIntoReach(knight, SparkWitchItems.crossSword());
         applyTeamsAndEffects(world, duel, knight, target);
         // Wathe cooldowns are per item, so the issued knife shares the target's knife cooldown: clear it so the issued
         // or own knife can be raised at once (owner bug report). The knife is whitelisted, so the seal never touches it.
@@ -210,11 +202,16 @@ public final class KnightDuelService {
         if (!duel.active()) {
             return;
         }
-        // Checked every tick and before the timeout: a duelist's death ends the duel at once, and endDuel stops the sf
-        // track and clears the 120 s clock. Checking first also keeps a last-tick death from letting timeout kill the
-        // survivor. Covers deaths that never fired a kill event.
-        // 每刻检查且先于超时：任一决斗者死亡即刻结束决斗，endDuel 会停止 sf 曲目并清除 120 秒计时。先检查也避免最后一刻的
-        // 死亡仍触发超时击杀幸存者。覆盖未触发击杀事件的死亡。
+        if (duel.remainingTicks() <= 0) {
+            timeout(world, duel);
+            return;
+        }
+        if (world.getTime() % KnightDuelRules.REFRESH_INTERVAL_TICKS != 0) {
+            return;
+        }
+        // Force-end if a duelist died without a kill event, then re-raise the seal (also covers pickups), re-apply the
+        // duel's effects and resync.
+        // 若有一方死亡且未走击杀事件则强制结束；随后重新抬高封印（也覆盖新捡到的物品）、补回决斗效果并重新同步。
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         UUID knightId = duel.knight();
         UUID targetId = duel.target();
@@ -223,15 +220,6 @@ public final class KnightDuelService {
             endDuel(world, duel, null);
             return;
         }
-        if (duel.remainingTicks() <= 0) {
-            timeout(world, duel);
-            return;
-        }
-        if (world.getTime() % KnightDuelRules.REFRESH_INTERVAL_TICKS != 0) {
-            return;
-        }
-        // Re-raise the seal (also covers pickups), re-apply the duel's effects and resync.
-        // 重新抬高封印（也覆盖新捡到的物品）、补回决斗效果并重新同步。
         sealBoth(world, duel);
         refreshEffects(world, duel);
         duel.sync();
@@ -249,10 +237,6 @@ public final class KnightDuelService {
         }
     }
 
-    /**
-     * A duelist died: the duel just ends. A third-party kill never punishes the other duelist (owner, 2026-10-31).
-     * 决斗者死亡：决斗直接结束。第三方击杀不再牵连另一名决斗者（所有者，2026-10-31）。
-     */
     private static void afterKill(ServerPlayerEntity victim, @Nullable ServerPlayerEntity killer, Identifier reason) {
         if (!(victim.getWorld() instanceof ServerWorld world)) {
             return;
@@ -261,7 +245,18 @@ public final class KnightDuelService {
         if (!duel.active() || !duel.isDuelist(victim.getUuid())) {
             return;
         }
+        UUID otherId = duel.isKnight(victim.getUuid()) ? duel.target() : duel.knight();
+        // Being pushed off the train is a normal duel end, never a third-party violation (owner, 2026-10-30).
+        // 被推下列车属于正常结束，不算第三方违反规则（所有者，2026-10-30）。
+        boolean violation = killer != null && !duel.isDuelist(killer.getUuid())
+                && !GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(reason);
         endDuel(world, duel, null);
+        if (violation && otherId != null) {
+            ServerPlayerEntity other = player(world.getServer(), otherId);
+            if (other != null && GameFunctions.isPlayerPlayingAndAlive(other)) {
+                GameFunctions.killPlayer(other, true, null, SparkWitchDeathReasons.DUEL_FAILED, true);
+            }
+        }
     }
 
     /**
@@ -282,7 +277,6 @@ public final class KnightDuelService {
         long now = world.getTime();
         Map<UUID, StatusEffectInstance> previousGlowing = Map.copyOf(duel.previousGlowing());
         Map<UUID, StatusEffectInstance> previousSpeed = Map.copyOf(duel.previousSpeed());
-        Map<UUID, StatusEffectInstance> previousNoCollision = Map.copyOf(duel.previousNoCollision());
         Map<UUID, String> previousTeams = Map.copyOf(duel.previousTeams());
         Map<UUID, Map<Item, Long>> sealed = Map.copyOf(duel.sealedItems());
         duel.clearState();
@@ -292,17 +286,15 @@ public final class KnightDuelService {
         if (knight != null) {
             restoreEffect(knight, StatusEffects.SPEED, previousSpeed.get(knightId), elapsed);
         }
-        cleanupPlayer(world, knight, elapsed, sealFloor, now, previousGlowing, previousNoCollision, previousTeams,
-                sealed);
+        cleanupPlayer(world, knight, elapsed, sealFloor, now, previousGlowing, previousTeams, sealed);
         cleanupPlayer(world, resolve(world.getServer(), targetId, leaving), elapsed, sealFloor, now,
-                previousGlowing, previousNoCollision, previousTeams, sealed);
+                previousGlowing, previousTeams, sealed);
         KnightDuelKnives.confiscateEverywhere(world.getServer());
     }
 
     private static void cleanupPlayer(ServerWorld world, @Nullable ServerPlayerEntity player, int elapsed,
                                       int sealFloor, long now,
                                       Map<UUID, StatusEffectInstance> previousGlowing,
-                                      Map<UUID, StatusEffectInstance> previousNoCollision,
                                       Map<UUID, String> previousTeams,
                                       Map<UUID, Map<Item, Long>> sealed) {
         if (player == null) {
@@ -310,9 +302,6 @@ public final class KnightDuelService {
         }
         UUID uuid = player.getUuid();
         restoreEffect(player, StatusEffects.GLOWING, previousGlowing.get(uuid), elapsed);
-        // The duel's hidden NoCollision goes away here; a tequila one the player already had resumes.
-        // 决斗添加的隐藏无碰撞在此移除；玩家原有的龙舌兰无碰撞恢复。
-        restoreEffect(player, ModEffects.NO_COLLISION, previousNoCollision.get(uuid), elapsed);
         restoreTeam(world.getScoreboard(), player, previousTeams.get(uuid));
         KnightDuelKnives.confiscate(player);
         KnightDuelSeal.restore(player, sealed.getOrDefault(uuid, Map.of()), now, sealFloor);
@@ -353,12 +342,6 @@ public final class KnightDuelService {
         applyEffect(knight, StatusEffects.GLOWING, 0, duel.previousGlowing());
         applyEffect(knight, StatusEffects.SPEED, KnightDuelRules.KNIGHT_SPEED_AMPLIFIER, duel.previousSpeed());
         applyEffect(target, StatusEffects.GLOWING, 0, duel.previousGlowing());
-        // NoellesRoles' no-collision covers the duelists against non-player entities and pushing; player pairs come
-        // from KnightDuelBodyCollision, which also works on clients that never received this effect.
-        // NoellesRoles 的无碰撞覆盖决斗者与非玩家实体的碰撞及推挤；玩家对由 KnightDuelBodyCollision 负责，未收到该效果的
-        // 客户端也同样生效。
-        applyHiddenEffect(knight, ModEffects.NO_COLLISION, duel.previousNoCollision());
-        applyHiddenEffect(target, ModEffects.NO_COLLISION, duel.previousNoCollision());
     }
 
     /**
@@ -377,12 +360,10 @@ public final class KnightDuelService {
         if (knight != null) {
             ensureEffect(knight, StatusEffects.GLOWING, 0, ticks);
             ensureEffect(knight, StatusEffects.SPEED, KnightDuelRules.KNIGHT_SPEED_AMPLIFIER, ticks);
-            ensureHiddenEffect(knight, ModEffects.NO_COLLISION, ticks);
         }
         ServerPlayerEntity target = player(world.getServer(), duel.target());
         if (target != null) {
             ensureEffect(target, StatusEffects.GLOWING, 0, ticks);
-            ensureHiddenEffect(target, ModEffects.NO_COLLISION, ticks);
         }
     }
 
@@ -395,35 +376,9 @@ public final class KnightDuelService {
     }
 
     /**
-     * Snapshots and applies a hidden duel effect (no particles, no icon); the duel's no-collision is a silent rule.
-     * 快照并施加隐藏的决斗效果（无粒子、无图标）；决斗的无碰撞是静默规则。
-     */
-    private static void applyHiddenEffect(ServerPlayerEntity player, RegistryEntry<StatusEffect> effect,
-                                          Map<UUID, StatusEffectInstance> previous) {
-        StatusEffectInstance existing = player.getStatusEffect(effect);
-        if (existing != null) {
-            previous.put(player.getUuid(), new StatusEffectInstance(existing));
-        }
-        player.removeStatusEffect(effect);
-        player.addStatusEffect(hiddenEffect(effect, KnightDuelRules.DUEL_TICKS));
-    }
-
-    private static void ensureHiddenEffect(ServerPlayerEntity player, RegistryEntry<StatusEffect> effect, int ticks) {
-        if (player.getStatusEffect(effect) == null) {
-            player.addStatusEffect(hiddenEffect(effect, ticks));
-        }
-    }
-
-    private static StatusEffectInstance hiddenEffect(RegistryEntry<StatusEffect> effect, int ticks) {
-        return new StatusEffectInstance(effect, ticks, 0, false, false, false);
-    }
-
-    /**
-     * The teams only colour the glow. Passing through players is {@link
-     * dev.caecorthus.sparkwitch.roles.civilian.knight.KnightDuelBodyCollision}, read from the synced duel state on every
-     * client; the hidden NO_COLLISION effect and the team's NEVER rule add non-player entities and vanilla pushing.
-     * 队伍只用于发光颜色。穿过玩家由 {@link dev.caecorthus.sparkwitch.roles.civilian.knight.KnightDuelBodyCollision}
-     * 负责，每个客户端都从同步的决斗状态读取；隐藏的 NO_COLLISION 效果与队伍 NEVER 规则补充非玩家实体与原版推挤。
+     * The teams only colour the glow. Collision NEVER turns off vanilla soft pushing for duelists; passing through
+     * players is the separate {@code Entity.collidesWith} seam.
+     * 队伍只用于发光颜色。碰撞规则 NEVER 关闭决斗者的原版软推挤；穿过玩家由独立的 {@code Entity.collidesWith} 接缝负责。
      */
     private static Team team(Scoreboard scoreboard, String name, Formatting color) {
         Team team = scoreboard.getTeam(name);

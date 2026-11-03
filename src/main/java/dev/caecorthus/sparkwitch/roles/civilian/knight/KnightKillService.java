@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.knight;
 
+import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
@@ -18,16 +19,15 @@ import org.jetbrains.annotations.Nullable;
  * {@link KnightRules#isGoodForKnight}.
  * <ul>
  *   <li>Reward: +100 coins for killing a non-good player (Impostor included).</li>
- *   <li>Push-off: a train-fall kill credited to the Knight whose victim is good kills the Knight with Wathe's
- *   {@code shot_innocent} ("小脑" in zh_cn).</li>
+ *   <li>Push-off: a train-fall kill credited to the Knight whose victim is good kills the Knight (Cerebellum).</li>
  *   <li>Reload: killing a good player, with any weapon, never refills a derringer.</li>
  *   <li>Derringer: shooting a good player with it costs the whole sanity bar (100 points); a revolver misfire keeps
  *   only Wathe's own punishment.</li>
  * </ul>
  * 骑士击杀经济、推下车规则与德林加误杀规则；“好人”一律以 {@link KnightRules#isGoodForKnight} 判断。
  * <ul>
- *   <li>奖励：击杀非好人（含内鬼）+100 金币。</li>
- *   <li>推下车：记在骑士名下的坠车击杀若受害者是好人，骑士死于 Wathe 的 {@code shot_innocent}（中文显示为“小脑”）。</li>
+ *   <li>奖励：击杀非好人（含内应）+100 金币。</li>
+ *   <li>推下车：记在骑士名下的坠车击杀若受害者是好人，骑士死于“小脑”。</li>
  *   <li>装填：以任何武器击杀好人都不会补充德林加。</li>
  *   <li>德林加：用它击中好人扣除整条理智（100 点）；左轮误杀只保留 Wathe 自身的惩罚。</li>
  * </ul>
@@ -55,11 +55,11 @@ public final class KnightKillService {
             return;
         }
         // AFTER runs once the victim is dead; SparkTraits' death snapshot keeps Impostor/Conscience readable.
-        // AFTER 在受害者死亡后执行；SparkTraits 的死亡快照使内鬼/善良词条仍可读取。
+        // AFTER 在受害者死亡后执行；SparkTraits 的死亡快照使内应/善良词条仍可读取。
         boolean good = KnightRules.isGoodForKnight(victim, game);
         if (good && GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason)) {
             // Non-forced, like Wathe's own SHOT_INNOCENT kill. / 非强制击杀，与 Wathe 自身的 SHOT_INNOCENT 一致。
-            GameFunctions.killPlayer(killer, true, null, GameConstants.DeathReasons.SHOT_INNOCENT);
+            GameFunctions.killPlayer(killer, true, null, SparkWitchDeathReasons.CEREBELLUM);
             return;
         }
         if (!good) {

@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * {@code insertStack} fall back to their drop path. Both overloads are guarded at HEAD, as SparkTraits guards the
  * Impostor. Server only; a creative player and a former USEC are free (see {@link UsecGunRules}).
  * 所有者 O2：任何 {@code wathe:guns} 物品都不会被放入 USEC 的背包，因此经由 {@code insertStack} 的给予与 offer 会退回到其
- * 丢出路径。两个重载都在 HEAD 拦截，与 SparkTraits 拦截内鬼的方式相同。仅服务端；创造模式玩家与前 USEC 不受限制（见
+ * 丢出路径。两个重载都在 HEAD 拦截，与 SparkTraits 拦截内应的方式相同。仅服务端；创造模式玩家与前 USEC 不受限制（见
  * {@link UsecGunRules}）。
  */
 @Mixin(PlayerInventory.class)

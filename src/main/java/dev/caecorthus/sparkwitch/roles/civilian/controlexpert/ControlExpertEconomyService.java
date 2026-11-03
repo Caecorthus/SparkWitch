@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Control Expert task economy on the Judge model: 0 at round start, +50 per completed task, nothing for a
  * SparkTraits Impostor (SparkTraits pays that trait's task income itself, so paying here would double it).
- * 控场专家沿用法官的任务经济：开局 0 金币，每完成一个任务 +50；SparkTraits 内鬼不在此发放
+ * 控场专家沿用法官的任务经济：开局 0 金币，每完成一个任务 +50；SparkTraits 内应不在此发放
  * （该词条的任务收入由 SparkTraits 自行支付，此处再发会重复）。
  */
 public final class ControlExpertEconomyService {
@@ -66,7 +66,7 @@ public final class ControlExpertEconomyService {
 
     /**
      * SparkTraits absent → pay; present → pay only on a confirmed non-Impostor (unknown fails closed, Judge semantics).
-     * 未安装 SparkTraits → 发放；已安装 → 仅在确认不是内鬼时发放（无法确认时不发放，与法官一致）。
+     * 未安装 SparkTraits → 发放；已安装 → 仅在确认不是内应时发放（无法确认时不发放，与法官一致）。
      */
     static boolean receivesTaskMoney(boolean traitsLoaded, @Nullable Boolean impostor) {
         return !traitsLoaded || Boolean.FALSE.equals(impostor);

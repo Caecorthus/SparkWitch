@@ -56,13 +56,95 @@ public final class SparkWitchPackets {
         RiftwalkerNetworking.register();
         // Hunter shotgun aim claim, also role-owned. / 猎人猎枪瞄准声明，同样在自有类中注册。
         HunterNetworking.register();
+        PayloadTypeRegistry.playS2C().register(
+                dev.caecorthus.sparkwitch.roles.civilian.planner.net.PlannerTaskAssignedS2CPayload.ID,
+                dev.caecorthus.sparkwitch.roles.civilian.planner.net.PlannerTaskAssignedS2CPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(
+                dev.caecorthus.sparkwitch.roles.killer.consultant.net.ConsultantInspectC2SPayload.ID,
+                dev.caecorthus.sparkwitch.roles.killer.consultant.net.ConsultantInspectC2SPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(
+                dev.caecorthus.sparkwitch.roles.civilian.planner.net.PlannerRecommendC2SPayload.ID,
+                dev.caecorthus.sparkwitch.roles.civilian.planner.net.PlannerRecommendC2SPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(
+                dev.caecorthus.sparkwitch.roles.civilian.athlete.net.AthleteDashC2SPayload.ID,
+                dev.caecorthus.sparkwitch.roles.civilian.athlete.net.AthleteDashC2SPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(OpenJudgeSelectionC2SPacket.ID, OpenJudgeSelectionC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(ConfirmJudgeSelectionC2SPacket.ID, ConfirmJudgeSelectionC2SPacket.CODEC);
         PayloadTypeRegistry.playS2C().register(OpenJudgeSelectionS2CPacket.ID, OpenJudgeSelectionS2CPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(RequestCriminalReasonerC2SPacket.ID, RequestCriminalReasonerC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(ConfirmCriminalReasonerC2SPacket.ID, ConfirmCriminalReasonerC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(CriminalReasonerInvisibilityC2SPacket.ID, CriminalReasonerInvisibilityC2SPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(OpenCriminalReasonerS2CPacket.ID, OpenCriminalReasonerS2CPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(JunkerSearchC2SPacket.ID, JunkerSearchC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(ConfirmSherryDeductionC2SPacket.ID, ConfirmSherryDeductionC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(RequestSherryDeductionC2SPacket.ID, RequestSherryDeductionC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(UseSherryMightyForceC2SPacket.ID, UseSherryMightyForceC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(NoaPaintC2SPacket.ID, NoaPaintC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(AccountantAuditC2SPacket.ID, AccountantAuditC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(RequestNatsumeMenuC2SPacket.ID, RequestNatsumeMenuC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(ConfirmNatsumeTargetC2SPacket.ID, ConfirmNatsumeTargetC2SPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(OpenNatsumeMenuS2CPacket.ID, OpenNatsumeMenuS2CPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(OpenSherryDeductionS2CPacket.ID, OpenSherryDeductionS2CPacket.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(
+                dev.caecorthus.sparkwitch.roles.killer.consultant.net.ConsultantInspectC2SPayload.ID,
+                (payload, context) -> context.server().execute(
+                        () -> dev.caecorthus.sparkwitch.roles.killer.consultant.ConsultantService
+                                .inspect(context.player(), payload.target())));
+        ServerPlayNetworking.registerGlobalReceiver(
+                dev.caecorthus.sparkwitch.roles.civilian.planner.net.PlannerRecommendC2SPayload.ID,
+                (payload, context) -> context.server().execute(
+                        () -> dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerService
+                                .recommend(context.player(), payload.target())));
+        ServerPlayNetworking.registerGlobalReceiver(
+                dev.caecorthus.sparkwitch.roles.civilian.athlete.net.AthleteDashC2SPayload.ID,
+                (payload, context) -> context.server().execute(
+                        () -> dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteDashService.handle(context.player())));
         ServerPlayNetworking.registerGlobalReceiver(OpenJudgeSelectionC2SPacket.ID,
                 (payload, context) -> JudgeRuntime.openSelection(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(ConfirmJudgeSelectionC2SPacket.ID,
                 (payload, context) -> JudgeRuntime.confirmSelection(context.player(), payload.sessionId(), payload.targetId()));
+        ServerPlayNetworking.registerGlobalReceiver(RequestCriminalReasonerC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRuntime
+                                .openSelection(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmCriminalReasonerC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRuntime
+                                .reason(context.player(), payload.sessionId(), payload.victimId(), payload.suspectId())));
+        ServerPlayNetworking.registerGlobalReceiver(CriminalReasonerInvisibilityC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRuntime
+                                .activateInvisibility(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(JunkerSearchC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerService
+                                .handleSearchRequest(context.player(), payload.bodyUuid())));
+        ServerPlayNetworking.registerGlobalReceiver(RequestSherryDeductionC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryDeductionService
+                                .openSelection(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(AccountantAuditC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantService
+                                .audit(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(RequestNatsumeMenuC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeService
+                                .requestMenu(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmNatsumeTargetC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeService
+                                .cast(context.player(), payload.target())));
+        ServerPlayNetworking.registerGlobalReceiver(NoaPaintC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.civilian.noa.NoaService.paint(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(UseSherryMightyForceC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryMightyForce.use(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmSherryDeductionC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryDeductionService
+                                .confirm(context.player(), payload.targetId())));
         // Prophecy uses its own session packets; the generic skill packet is refused for it.
         // 预言使用自有会话数据包；通用技能包对其一律拒绝。
         PayloadTypeRegistry.playC2S().register(RequestProphecyC2SPacket.ID, RequestProphecyC2SPacket.CODEC);

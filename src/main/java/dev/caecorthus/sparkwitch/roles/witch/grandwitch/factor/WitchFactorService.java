@@ -190,7 +190,7 @@ public final class WitchFactorService {
             WitchFactorState.Factor factor = previous.advance();
             entry.setValue(factor);
             if (!previous.mature() && factor.mature()) {
-                holder.sendMessage(Text.translatable("message.sparkwitch.factor.awakened"), false);
+                holder.sendMessage(Text.translatable("message.sparkwitch.factor.awakened"), true);
             }
             if (factor.mature()) matureCount++;
             Role role = game.getRole(holder);

@@ -28,7 +28,7 @@ import net.minecraft.util.Language;
  * the reading was bought, never live counts, and the client recalculates nothing. The change arrows compare two
  * server snapshots this player already received, so they reveal nothing new. Role-owned presentation, never part of
  * the witch skill inventory panel.
- * 在 Wathe 金币行下方绘制塔罗牌师的占卜表；SparkStrength 显示杀手团队余额行时（处于杀手团队的内鬼塔罗牌师）改为绘制在该行下方。人数是购买占卜时服务端生成的快照，并非实时人数，客户端不做任何重算。
+ * 在 Wathe 金币行下方绘制塔罗牌师的占卜表；SparkStrength 显示杀手团队余额行时（处于杀手团队的内应塔罗牌师）改为绘制在该行下方。人数是购买占卜时服务端生成的快照，并非实时人数，客户端不做任何重算。
  * 变化箭头只比较该玩家已收到的两次服务端快照，不会泄露新信息。属于职业自有展示，从不属于魔女技能背包面板。
  */
 public final class TarotDivinationHudRenderer {

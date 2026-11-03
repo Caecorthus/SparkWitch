@@ -59,7 +59,7 @@ public final class BlackRavenCrowSkillService {
         // A keybind text resolves to the owner's own binding of Role Skill 2 on their client.
         // 按键文本会在主人客户端上显示其自己绑定的职业技能 2 按键。
         player.sendMessage(Text.translatable("message.sparkwitch.black_raven_crow.unlocked",
-                Text.keybind("key.sparkwitch.secondary_skill")).withColor(BlackRavenRules.COLOR), false);
+                Text.keybind("key.sparkwitch.secondary_skill")).withColor(BlackRavenRules.COLOR), true);
         player.playSoundToPlayer(SoundEvents.ENTITY_PARROT_FLY, SoundCategory.PLAYERS, 0.7F, 0.8F);
         player.playSoundToPlayer(SoundEvents.ENTITY_PHANTOM_FLAP, SoundCategory.PLAYERS, 0.5F, 0.7F);
     }

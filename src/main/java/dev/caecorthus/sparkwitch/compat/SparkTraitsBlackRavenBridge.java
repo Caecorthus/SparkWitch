@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
  * Optional SparkTraits seam for the Black Raven disguise economy; reflects only the public facade
  * {@code SparkTraitsApi.hasActiveTrait(PlayerEntity, Identifier)} for Conscience and Impostor.
  * FALSE when SparkTraits is absent; null when the facade is missing or fails (callers pay nothing).
- * 黑羽鸦伪装经济的可选 SparkTraits 接缝；仅反射公共门面 hasActiveTrait 查询良知与内鬼词条。
+ * 黑羽鸦伪装经济的可选 SparkTraits 接缝；仅反射公共门面 hasActiveTrait 查询良知与内应词条。
  * 未安装 SparkTraits 时为 FALSE；门面缺失或出错时为 null（调用方不发放）。
  */
 public final class SparkTraitsBlackRavenBridge {

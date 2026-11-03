@@ -1,0 +1,13 @@
+{
+  "vertex": "blit",
+  "fragment": "sparkwitch_cat_spectre",
+  "attributes": [
+    "Position"
+  ],
+  "samplers": [
+    {
+      "name": "DiffuseSampler"
+    }
+  ],
+  "uniforms": []
+}

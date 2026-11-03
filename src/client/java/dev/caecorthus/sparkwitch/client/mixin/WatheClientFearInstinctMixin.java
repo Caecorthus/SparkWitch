@@ -28,7 +28,7 @@ public abstract class WatheClientFearInstinctMixin {
      * inside {@code original.call()}. The swallow veto has no exemption, so it also beats Final Moment.
      * 最外层的障眼/恐惧/吞噬描边否决。MixinExtras 的 {@code @WrapMethod} 晚于任何模组在 WatheClient 上的全部
      * {@code @Inject} 与 {@code @ModifyReturnValue} 应用，因此不调用 {@code original.call()} 直接返回 -1，
-     * 也会隐藏 SparkTraits 优先级 1000 的 HEAD 结果（内鬼、善良与常驻描边）。HEAD 回调按 mixin 优先级升序执行，
+     * 也会隐藏 SparkTraits 优先级 1000 的 HEAD 结果（内应、善良与常驻描边）。HEAD 回调按 mixin 优先级升序执行，
      * 此处的 HEAD 否决会排在其后，提高优先级也无法解决。豁免（最终时刻、已死亡的观察者、魔女阵营）仍由
      * {@link WitchInstinctSuppressionClientHooks} 判断；魔人时刻的配对在此豁免，使其优先级 500 的 HEAD 在
      * {@code original.call()} 内作答。吞噬否决没有豁免，因此也优先于最终时刻。

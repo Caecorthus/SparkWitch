@@ -708,6 +708,6 @@ public final class SeekerDeviceService {
 
     /** Something happened to the owner's device while they may be looking elsewhere. / 设备发生的事件。 */
     private static void chat(ServerPlayerEntity player, String key) {
-        player.sendMessage(Text.translatable(key), false);
+        player.sendMessage(Text.translatable(key), true);
     }
 }

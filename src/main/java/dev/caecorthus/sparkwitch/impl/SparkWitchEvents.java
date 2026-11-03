@@ -36,7 +36,6 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaTerminalService
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
-import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFeatureService;
@@ -48,7 +47,6 @@ import dev.caecorthus.sparkwitch.mana.WitchManaService;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeature.MurderousWitchFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderFeatureService;
-import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodChaseRuntime;
@@ -126,7 +124,6 @@ public final class SparkWitchEvents {
         PerfumerFeatureService.register();
         PerfumerRuntime.register();
         PerfumerEconomyService.register();
-        RecruitRuntime.register();
         NinjaFeatureService.register();
         HunterFeatureService.register();
         OrthopedistSkillService.registerReplayFormatter();
@@ -164,7 +161,6 @@ public final class SparkWitchEvents {
         RiftwalkerFeatureService.register();
         BewitchedFeatureService.register();
         ApprenticeFeatureService.register();
-        StowawayFeatureService.register();
         MagicianPlaybackManager.init();
         MagicianReplayEvents.register();
         MagicianPuppetAttackHandlers.register();
@@ -199,6 +195,19 @@ public final class SparkWitchEvents {
             }
         });
         TaskComplete.EVENT.register(WitchManaService::onTaskComplete);
+        dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererService.register();
+        dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererShopService.register();
+        dev.caecorthus.sparkwitch.roles.civilian.discoverer.ConductorKeyDoors.register();
+        dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRuntime.register();
+        dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerService.register();
+        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryService.register();
+        dev.caecorthus.sparkwitch.roles.civilian.noa.NoaService.register();
+        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeService.register();
+        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeAmuletService.register();
+        dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantService.register();
+        KillPlayer.AFTER.register((victim, killer, deathReason) ->
+                dev.caecorthus.sparkwitch.roles.civilian.noa.NoaService.onKillNearCarrier(victim, killer));
+        dev.caecorthus.sparkwitch.impl.SparkWitchReplayFormatters.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.

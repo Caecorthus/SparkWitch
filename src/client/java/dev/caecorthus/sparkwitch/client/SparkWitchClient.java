@@ -9,7 +9,6 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.bewitched.BewitchedClientPresentation;
-import dev.caecorthus.sparkwitch.client.recruit.RecruitClientPresentation;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
@@ -32,7 +31,6 @@ import dev.caecorthus.sparkwitch.client.prophet.ProphetNecrologyBookScreen;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStatusHud;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStunClient;
 import dev.caecorthus.sparkwitch.client.insider.InsiderClient;
-import dev.caecorthus.sparkwitch.client.stowaway.StowawaySensesClient;
 import dev.caecorthus.sparkwitch.client.abysslistener.AbyssListenerClient;
 import dev.caecorthus.sparkwitch.client.riftwalker.RiftwalkerClient;
 import dev.caecorthus.sparkwitch.client.seeker.SeekerClientModule;
@@ -121,6 +119,10 @@ public final class SparkWitchClient implements ClientModInitializer {
         BlackRavenClientModule.register();
         GrandWitchClientModule.register();
         ApprenticeClientModule.register();
+        dev.caecorthus.sparkwitch.client.athlete.AthleteClientModule.register();
+        dev.caecorthus.sparkwitch.client.planner.PlannerClientModule.register();
+        dev.caecorthus.sparkwitch.client.consultant.ConsultantClientModule.register();
+        dev.caecorthus.sparkwitch.client.consultant.ConsultantInstinctModule.register();
         WitchMaidenClientModule.register();
         MiniWitherClient.register();
         BlackRavenCrowClient.register();
@@ -135,6 +137,12 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerProphetNecrologyNetworking();
         registerWraithRoleAnnouncementNetworking();
         JudgeClientModule.register();
+        dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule.register();
+        dev.caecorthus.sparkwitch.client.junker.JunkerClientModule.register();
+        dev.caecorthus.sparkwitch.client.sherry.SherryClientModule.register();
+        dev.caecorthus.sparkwitch.client.noa.NoaClientModule.register();
+        dev.caecorthus.sparkwitch.client.natsume.NatsumeClientModule.register();
+        dev.caecorthus.sparkwitch.client.accountant.AccountantClientModule.register();
         KnightSwordClient.register();
         KnightDuelClient.register();
         ProphetClientModule.register();
@@ -145,15 +153,12 @@ public final class SparkWitchClient implements ClientModInitializer {
         SeekerClientModule.register();
         FisherClient.register();
         dev.caecorthus.sparkwitch.client.fiend.FiendClient.init();
-        StowawaySensesClient.register();
         BlindClient.register();
         dev.caecorthus.sparkwitch.client.saint.HolyFlashAudioClient.register();
         AbyssListenerClient.init();
         RiftwalkerClient.init();
         // Bewitched promotion progress line (role-owned HUD). / 魔化使晋升进度行（职业自有 HUD）。
         BewitchedClientPresentation.register();
-        // Recruit first-task knife progress line (role-owned HUD). / 新兵首个任务发刀进度行（职业自有 HUD）。
-        RecruitClientPresentation.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
@@ -195,6 +200,7 @@ public final class SparkWitchClient implements ClientModInitializer {
             JudgeClientModule.tick(client);
             ProphetClientModule.tick(client);
             SecondaryAbilityController.tick(client);
+            dev.caecorthus.sparkwitch.client.planner.PlannerClientModule.tick(client);
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 WitchAbilityKeyBridge.reset();
                 DeathRayClientHooks.reset();
@@ -227,6 +233,34 @@ public final class SparkWitchClient implements ClientModInitializer {
                     }
                 } else if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
+                } else if (role != null
+                        && dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantRules.ROLE_ID
+                                .equals(role.identifier())) {
+                    dev.caecorthus.sparkwitch.client.accountant.AccountantClientModule.onAbilityKey(client);
+                } else if (role != null
+                        && dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID
+                                .equals(role.identifier())) {
+                    dev.caecorthus.sparkwitch.client.natsume.NatsumeClientModule.onAbilityKey(client);
+                } else if (role != null
+                        && dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules.ROLE_ID
+                                .equals(role.identifier())) {
+                    // 诺亚's shared ability key paints. / 诺亚的技能键作画。
+                    dev.caecorthus.sparkwitch.client.noa.NoaClientModule.onAbilityKey(client);
+                } else if (role != null
+                        && dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules.ROLE_ID
+                                .equals(role.identifier())) {
+                    // 橘雪莉's shared ability key opens the deduction panel. / 橘雪莉的技能键打开推演面板。
+                    dev.caecorthus.sparkwitch.client.sherry.SherryClientModule.onAbilityKey(client);
+                } else if (role != null
+                        && dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules.ROLE_ID
+                                .equals(role.identifier())) {
+                    // The 拾荒者's shared ability key starts a corpse search. / 拾荒者的共享技能键用于发起搜刮。
+                    dev.caecorthus.sparkwitch.client.junker.JunkerClientModule.onAbilityKey(client);
+                } else if (role != null
+                        && dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules.ROLE_ID
+                                .equals(role.identifier())) {
+                    dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule
+                            .requestSelection(client);
                 } else if (ProphetClientModule.ownsAbilityKey(client.player, role)) {
                     // Prophecy opens its own session instead of sending the generic skill packet.
                     // 预言打开自有会话，而不是发送通用技能包。
@@ -259,6 +293,15 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role plus the synced moment owner; Dash exists only during the moment. The server decides use.
                     // 真实职业加同步的时刻拥有者；疾驰只在时刻中存在，是否生效由服务端决定。
                     FiendDashClient.onAbilityKey(client);
+                } else if (role != null && role.identifier().equals(
+                        dev.caecorthus.sparkwitch.SparkWitchRoles.ATHLETE_ID)) {
+                    dev.caecorthus.sparkwitch.client.athlete.AthleteClientModule.onAbilityKey(client);
+                } else if (role != null && role.identifier().equals(
+                        dev.caecorthus.sparkwitch.SparkWitchRoles.PLANNER_ID)) {
+                    dev.caecorthus.sparkwitch.client.planner.PlannerClientModule.onAbilityKey(client);
+                } else if (role != null && role.identifier().equals(
+                        dev.caecorthus.sparkwitch.SparkWitchRoles.CONSULTANT_ID)) {
+                    dev.caecorthus.sparkwitch.client.consultant.ConsultantClientModule.onAbilityKey(client);
                 } else if (!WitchMaidenRules.isWitchMaiden(role)
                         && (WitchPlayerComponent.KEY.get(client.player).hasSkill()
                         || SaintRules.isSaint(role))) {
@@ -404,9 +447,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         WitchMaidenClientModule.clear();
         TarotDivinationClientState.clear();
         JudgeClientModule.clear();
+        dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule.clear();
         ProphetClientModule.clear();
         SeekerClientModule.reset();
-        StowawaySensesClient.reset();
         BlindClient.reset();
         releaseClosedWorldPlayers();
     }

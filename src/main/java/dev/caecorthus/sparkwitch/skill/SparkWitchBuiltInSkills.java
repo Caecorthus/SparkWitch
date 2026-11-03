@@ -60,6 +60,23 @@ public final class SparkWitchBuiltInSkills {
                 EmmaRules.SKILL_ID, EmmaRules.COLOR, 1, 0, EmmaRules.COOLDOWN_TICKS,
                 EmmaRules.MANA_COST, context -> EmmaRules.isEmma(context.role()), EmmaSkillService::useSkill
         ));
+        // 橘雪莉's own Mighty Force entry: same window, gated to her role and to the apprentice exclusion.
+        // 橘雪莉自己的巨力条目：同一个窗口，限定她的身份，并与预备魔女互斥。
+        WitchSkillRegistry.register(new WitchSkillDefinition(
+                dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryMightyForce.SKILL_ID,
+                dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules.COLOR,
+                1,
+                0,
+                MightyForceAbility.COOLDOWN_TICKS,
+                MightyForceAbility.MANA_COST,
+                context -> context.role() != null
+                        && dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules.ROLE_ID
+                                .equals(context.role().identifier()),
+                context -> {
+                    dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryMightyForce.use(context.player());
+                    return WitchSkillUseResult.success(MightyForceAbility.COOLDOWN_TICKS);
+                }
+        ));
         registerApprenticeAbility(
                 MightyForceAbility.ID,
                 MightyForceAbility.COLOR,

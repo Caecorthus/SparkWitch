@@ -75,7 +75,7 @@ public final class BlackRavenDisguiseEconomy {
      * black_raven has none, so the NoellesRoles and SparkStrength mirrors skip it to avoid double pay.
      * An unknown trait answer (null) pays nothing for those two policies.
      * 伪装在其他监听器已向真实黑羽鸦支付之外可获得的任务金钱。SparkTraits 会向真实职业无原生任务金钱的
-     * 良知/内鬼持有者支付 +50，而 black_raven 没有原生任务金钱，因此诺艾尔与 SparkStrength 镜像跳过以免重复。
+     * 良知/内应持有者支付 +50，而 black_raven 没有原生任务金钱，因此诺艾尔与 SparkStrength 镜像跳过以免重复。
      * 词条结果未知（null）时这两种策略不发放。
      */
     static int taskRewardAmount(

@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
-import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
@@ -28,6 +27,7 @@ import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
@@ -261,8 +261,8 @@ public class MiniWitherSkullEntity extends ThrownEntity {
         ServerWorld world = (ServerWorld) getWorld();
         ServerPlayerEntity owner = getOwner() instanceof ServerPlayerEntity player ? player : null;
         world.spawnParticles(CRIMSON_DUST, at.x, at.y, at.z, 16, 0.2, 0.3, 0.2, 0.0);
-        world.playSound(null, at.x, at.y, at.z, SparkWitchSounds.miniWither(MiniWitherSoundSlot.CRIMSON_HIT),
-                SoundCategory.PLAYERS, 0.5F, 1.6F);
+        world.playSound(null, at.x, at.y, at.z, SoundEvents.ENTITY_WITHER_BREAK_BLOCK, SoundCategory.PLAYERS, 0.5F,
+                1.6F);
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         // A non-forced kill with the live owner as killer: money, records and every protection apply, and SparkTraits
         // judges a Conscience owner's innocent victim (小脑) from this killer. / 非强制击杀，凶手为在线主人：金币、记录与

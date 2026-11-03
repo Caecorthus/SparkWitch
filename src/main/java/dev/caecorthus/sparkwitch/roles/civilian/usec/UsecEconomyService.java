@@ -37,9 +37,9 @@ import org.jetbrains.annotations.Nullable;
  * 开局：在 {@code ON_FINISH_INITIALIZE} 默认阶段之后的阶段，与搜寻者一样（此时身份已是最终身份：SparkTraits 良心补偿在分配
  * 职业期间、公布身份之前就已改写身份），
  * 把每名存活的最终 USEC 的余额覆盖为 {@link UsecRules#INITIAL_MONEY}；开局装备流程从不写余额。
- * 任务：+{@link UsecRules#TASK_REWARD}，SparkTraits 内鬼或无法判定时不发（内鬼任务收入由 SparkTraits 自行支付），沿用控场专家语义。
+ * 任务：+{@link UsecRules#TASK_REWARD}，SparkTraits 内应或无法判定时不发（内应任务收入由 SparkTraits 自行支付），沿用控场专家语义。
  * 被动：与 Wathe 杀手计时器同一世界刻（{@code getTime() % interval == 0}）发放 +{@link UsecRules#PASSIVE_INCOME}，
- * 不设余额上限，发给每名可获得收入的 USEC（无论是否内鬼：没有其他系统给 USEC 发被动收入）。
+ * 不设余额上限，发给每名可获得收入的 USEC（无论是否内应：没有其他系统给 USEC 发被动收入）。
  */
 public final class UsecEconomyService {
     /**
@@ -103,7 +103,7 @@ public final class UsecEconomyService {
 
     /**
      * SparkTraits absent → pay; present → pay only on a confirmed non-Impostor (unknown fails closed).
-     * 未安装 SparkTraits → 发放；已安装 → 仅在确认不是内鬼时发放（无法确认时不发放）。
+     * 未安装 SparkTraits → 发放；已安装 → 仅在确认不是内应时发放（无法确认时不发放）。
      */
     static boolean receivesTaskMoney(boolean traitsLoaded, @Nullable Boolean impostor) {
         return !traitsLoaded || Boolean.FALSE.equals(impostor);

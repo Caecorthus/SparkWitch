@@ -75,7 +75,7 @@ public final class MiniWitherTargeting {
         return RoundParticipants.MINI_WITHER_TARGET.test(player, game);
     }
 
-    /** Effective killer (Impostor included) or Undercover. / 有效阵营为杀手（含内鬼）或卧底。 */
+    /** Effective killer (Impostor included) or Undercover. / 有效阵营为杀手（含内应）或卧底。 */
     public static boolean isKillerTeam(PlayerEntity player, GameWorldComponent game) {
         return MiniWitherRules.isKillerTeam(SparkFactionApi.resolveEffectiveFaction(player, game),
                 NoellesRoleIds.isUndercover(game.getRole(player)));

@@ -1,22 +1,12 @@
 package dev.caecorthus.sparkwitch.client.witchmaiden;
 
-import dev.caecorthus.sparkwitch.client.bedrock.BedrockBounds;
-import dev.caecorthus.sparkwitch.client.bedrock.BedrockPose;
-import dev.caecorthus.sparkwitch.client.bedrock.geo.BedrockModelRenderer;
-import dev.caecorthus.sparkwitch.client.witchmaiden.skin.MiniWitherSkin;
-import dev.caecorthus.sparkwitch.client.witchmaiden.skin.MiniWitherSkinAnimator;
-import dev.caecorthus.sparkwitch.client.witchmaiden.skin.MiniWitherSkinFit;
-import dev.caecorthus.sparkwitch.client.witchmaiden.skin.MiniWitherSkinManager;
-import dev.caecorthus.sparkwitch.client.witchmaiden.skin.MiniWitherSkinModel;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherAnchor;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
@@ -29,16 +19,11 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.boss.WitherEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
-import org.joml.Vector3f;
-
-import java.util.function.Supplier;
 
 /**
  * Draws a summoned Mini Wither: the vanilla Wither model and texture at 0.4 model scale (about 0.7 blocks), softly
@@ -46,13 +31,11 @@ import java.util.function.Supplier;
  * body yaw; the three heads keep staring the way the last skull flew and snap to each new shot (owner 2026-10-20).
  * Other players get it from a player-renderer feature, so anything that hides a player (invisibility, the Blind gate)
  * hides it too; the camera's own player, which first person never renders, gets it in world space (SparkStrength
- * skateboard pattern). A Mini Wither skin selected in the settings ({@link MiniWitherSkinManager}) replaces the model on
- * this client only, inside the same gates and frames.
+ * skateboard pattern).
  * 绘制已召唤的小凋灵：原版凋灵模型与贴图，模型缩放 0.4（约 0.7 格高），柔性跟随 {@link MiniWitherAnchor}
  * （{@link MiniWitherFollow}）并随飞行倾斜。身体朝向主人的身体偏航；三个头一直盯着上一枚头颅飞去的方向，每次射击时瞬间转到
  * 新方向（所有者 2026-10-20）。其他玩家由玩家渲染器特征绘制，因此任何隐藏玩家的效果（隐身、盲人遮蔽）也会隐藏它；第一人称
- * 不渲染的镜头玩家本人改在世界空间绘制（沿用 SparkStrength 滑板的做法）。在设置中选中的小凋灵皮肤
- * （{@link MiniWitherSkinManager}）只在本客户端、在相同的显示条件与坐标系内替换模型。
+ * 不渲染的镜头玩家本人改在世界空间绘制（沿用 SparkStrength 滑板的做法）。
  */
 public final class MiniWitherRenderer {
     private static final Identifier TEXTURE = Identifier.ofVanilla("textures/entity/wither/wither.png");
@@ -68,12 +51,7 @@ public final class MiniWitherRenderer {
     private static final float TILT_PER_SPEED = 60.0F;
     private static final float MAX_TILT = 15.0F;
 
-    /** Below this the capped skin is too small to see; nothing is drawn. / 低于此值时皮肤小到不可见，不绘制。 */
-    private static final float MIN_SKIN_SCALE = 1.0E-4F;
-
     private static WitherEntityModel<WitherEntity> model;
-    @Nullable
-    private static BedrockBounds vanillaBounds;
 
     private MiniWitherRenderer() {
     }
@@ -100,150 +78,31 @@ public final class MiniWitherRenderer {
         Vec3d camera = context.camera().getPos();
         matrices.push();
         matrices.translate(anchor.x - camera.x, anchor.y - camera.y, anchor.z - camera.z);
-        draw(matrices, consumers, light(player, anchor), player, tickDelta, true);
+        draw(matrices, consumers, light(player, anchor), player, tickDelta);
         matrices.pop();
     }
 
     /**
      * Expects a world-aligned frame at the anchor. The model is posed by hand (no Wither entity exists): vanilla's idle
      * ribcage and tail sway, and the heads on the synced last-shot direction, never interpolated, so a new shot snaps
-     * them round. The whole body leans toward its drawn velocity. A selected skin replaces the vanilla model in the same
-     * frame (local only, auto-fitted to the vanilla box).
+     * them round. The whole body leans toward its drawn velocity.
      * 需要位于悬浮点、与世界坐标轴对齐的坐标系。模型手动摆姿（不存在凋灵实体）：原版待机的肋骨与尾巴摆动，三个头朝向同步的
-     * 上一次射击方向且从不插值，因此新的射击会让它们瞬间扭过去。整个身体朝绘制速度方向倾斜。选中的皮肤在同一坐标系中替换原版
-     * 模型（仅本地，自动缩放到原版包围盒）。
+     * 上一次射击方向且从不插值，因此新的射击会让它们瞬间扭过去。整个身体朝绘制速度方向倾斜。
      */
     private static void draw(MatrixStack matrices, VertexConsumerProvider consumers, int light, PlayerEntity player,
-                             float tickDelta, boolean firstPerson) {
+                             float tickDelta) {
+        WitherEntityModel<WitherEntity> wither = model();
         float yaw = MiniWitherAnchor.bodyYaw(player, tickDelta);
         MiniWitherPlayerComponent state = MiniWitherPlayerComponent.KEY.get(player);
         float headYaw = MathHelper.wrapDegrees(state.getAimYaw() - yaw);
-        Vec3d velocity = MiniWitherFollow.velocity(player);
+        pose(wither.getPart(), player.age + tickDelta, headYaw, state.getAimPitch());
         matrices.push();
-        try {
-            tilt(matrices, velocity);
-            matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0F - yaw));
-            MiniWitherSkinModel skin = skinBody();
-            // World draws keep glow bones at the world light: a skin must not make the Mini Wither easier to spot in
-            // the dark (a Wathe blackout) than the unlit vanilla Wither.
-            // 世界内绘制让发光骨骼使用世界光照：皮肤不能让小凋灵在黑暗中（Wathe 停电）比不发光的原版更容易被发现。
-            if (skin == null || !drawSkin(matrices, consumers, light, light, skin,
-                    () -> MiniWitherSkinAnimator.poseBody(player, skin, tickDelta, yaw, headYaw, state.getAimPitch(),
-                            velocity, firstPerson))) {
-                drawVanilla(matrices, consumers, light, player.age + tickDelta, headYaw, state.getAimPitch());
-            }
-        } finally {
-            matrices.pop();
-        }
-    }
-
-    /** Expects the body-aligned frame. / 需要与身体对齐的坐标系。 */
-    private static void drawVanilla(MatrixStack matrices, VertexConsumerProvider consumers, int light,
-                                    float animationProgress, float headYaw, float headPitch) {
-        WitherEntityModel<WitherEntity> wither = model();
-        pose(wither.getPart(), animationProgress, headYaw, headPitch);
-        matrices.push();
+        tilt(matrices, MiniWitherFollow.velocity(player));
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0F - yaw));
         matrices.scale(-MODEL_SCALE, -MODEL_SCALE, MODEL_SCALE);
         matrices.translate(0.0F, -MODEL_CENTER, 0.0F);
         wither.render(matrices, consumers.getBuffer(wither.getLayer(TEXTURE)), light, OverlayTexture.DEFAULT_UV);
         matrices.pop();
-    }
-
-    /**
-     * Draws the skin in the body-aligned frame, fitted to the vanilla box; false when there is nothing to draw (the
-     * caller then draws vanilla). A throwing skin is dropped to vanilla until it is reloaded.
-     * 在与身体对齐的坐标系中绘制皮肤并适配原版包围盒；没有可绘制内容时返回 false（调用方随即绘制原版）。抛出异常的皮肤会回退到
-     * 原版，直到重新加载。
-     */
-    private static boolean drawSkin(MatrixStack matrices, VertexConsumerProvider consumers, int light, int glowLight,
-                                    MiniWitherSkinModel skin, Supplier<BedrockPose> poser) {
-        try {
-            BedrockPose pose = poser.get();
-            BedrockBounds target = vanillaBounds();
-            MiniWitherSkinFit.Transform fit = MiniWitherSkinFit.cap(MiniWitherSkinFit.fit(target, skin.restBounds()),
-                    target, BedrockModelRenderer.bounds(skin.geometry(), pose));
-            if (fit.scale() <= MIN_SKIN_SCALE) {
-                return true;
-            }
-            matrices.push();
-            try {
-                matrices.translate(fit.x(), fit.y(), fit.z());
-                matrices.scale(fit.scale(), fit.scale(), fit.scale());
-                BedrockModelRenderer.render(skin.geometry(), pose, matrices, consumers.getBuffer(layer(skin)), light,
-                        glowLight, OverlayTexture.DEFAULT_UV, -1);
-            } finally {
-                matrices.pop();
-            }
-            return true;
-        } catch (RuntimeException | StackOverflowError failure) {
-            MiniWitherSkinManager.markBroken(failure);
-            return false;
-        }
-    }
-
-    @Nullable
-    private static MiniWitherSkinModel skinBody() {
-        MiniWitherSkin skin = MiniWitherSkinManager.active();
-        return skin == null ? null : skin.body();
-    }
-
-    static RenderLayer layer(MiniWitherSkinModel skin) {
-        return skin.translucent() ? RenderLayer.getEntityTranslucent(skin.texture())
-                : RenderLayer.getEntityCutoutNoCull(skin.texture());
-    }
-
-    /**
-     * The auto-fit target: the {@link MiniWitherSkinFit#envelope} of the vanilla Mini Wither's box in the body-aligned
-     * frame (rest pose, heads forward).
-     * 自动缩放的目标：原版小凋灵在与身体对齐的坐标系中的包围盒（静止姿态、头朝前）的 {@link MiniWitherSkinFit#envelope}。
-     */
-    private static BedrockBounds vanillaBounds() {
-        if (vanillaBounds == null) {
-            WitherEntityModel<WitherEntity> wither = model();
-            // cos(progress * 0.1) = 0: the sway's middle. / 摆动的中点。
-            pose(wither.getPart(), (float) (Math.PI * 5.0), 0.0F, 0.0F);
-            MatrixStack stack = new MatrixStack();
-            stack.scale(-MODEL_SCALE, -MODEL_SCALE, MODEL_SCALE);
-            stack.translate(0.0F, -MODEL_CENTER, 0.0F);
-            float[] box = {Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE,
-                    -Float.MAX_VALUE};
-            Vector3f corner = new Vector3f();
-            wither.getPart().forEachCuboid(stack, (entry, path, index, cuboid) -> {
-                for (int i = 0; i < 8; i++) {
-                    corner.set((i & 1) == 0 ? cuboid.minX : cuboid.maxX, (i & 2) == 0 ? cuboid.minY : cuboid.maxY,
-                            (i & 4) == 0 ? cuboid.minZ : cuboid.maxZ).div(16.0F);
-                    entry.getPositionMatrix().transformPosition(corner);
-                    box[0] = Math.min(box[0], corner.x);
-                    box[1] = Math.min(box[1], corner.y);
-                    box[2] = Math.min(box[2], corner.z);
-                    box[3] = Math.max(box[3], corner.x);
-                    box[4] = Math.max(box[4], corner.y);
-                    box[5] = Math.max(box[5], corner.z);
-                }
-            });
-            vanillaBounds = MiniWitherSkinFit.envelope(
-                    new BedrockBounds(box[0], box[1], box[2], box[3], box[4], box[5]));
-        }
-        return vanillaBounds;
-    }
-
-    /**
-     * The settings screen preview: the current look in a GUI frame (y up, facing the viewer), spun by the caller. Glow
-     * bones glow here only.
-     * 设置界面预览：在 GUI 坐标系（y 向上、面向观察者）中绘制当前外观，由调用方负责旋转。发光骨骼只在这里发光。
-     */
-    public static void drawPreview(MatrixStack matrices, VertexConsumerProvider consumers, int light) {
-        float progress = (float) (Util.getMeasuringTimeMs() / 50.0);
-        MiniWitherSkinModel skin = skinBody();
-        if (skin == null || !drawSkin(matrices, consumers, light, LightmapTextureManager.MAX_LIGHT_COORDINATE, skin,
-                () -> MiniWitherSkinAnimator.posePreview(skin))) {
-            drawVanilla(matrices, consumers, light, progress, 0.0F, 0.0F);
-        }
-    }
-
-    /** The auto-fit target, so the preview can frame it. / 自动缩放目标，供预览取景。 */
-    public static BedrockBounds previewBounds() {
-        return vanillaBounds();
     }
 
     /** Leans the top toward the horizontal drawn velocity. / 让顶部朝水平绘制速度方向倾斜。 */
@@ -327,7 +186,7 @@ public final class MiniWitherRenderer {
             Vec3d offset = anchor.subtract(feet).multiply(1.0 / scale);
             matrices.translate(offset.x, offset.y, offset.z);
             matrices.scale(1.0F / scale, 1.0F / scale, 1.0F / scale);
-            draw(matrices, vertexConsumers, light(player, anchor), player, tickDelta, false);
+            draw(matrices, vertexConsumers, light(player, anchor), player, tickDelta);
             matrices.pop();
         }
     }

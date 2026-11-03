@@ -144,7 +144,7 @@ public final class SeekerRules {
     public static final LockScope LOCK_SCOPE = LockScope.SESSION;
     /**
      * Owner decision Q5-b: with SparkTraits present, an Impostor (or unknown) Seeker may not use devices or earn pay.
-     * 所有者决定 Q5-b：装有 SparkTraits 时，内鬼（或无法判定）的搜寻者不能使用设备，也不获得报酬。
+     * 所有者决定 Q5-b：装有 SparkTraits 时，内应（或无法判定）的搜寻者不能使用设备，也不获得报酬。
      */
     public static final boolean DENY_IMPOSTOR_DEVICES = true;
 

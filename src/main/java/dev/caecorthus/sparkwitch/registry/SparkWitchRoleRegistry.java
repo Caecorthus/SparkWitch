@@ -21,7 +21,6 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
-import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
@@ -40,7 +39,6 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
-import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
@@ -95,15 +93,30 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier FISHER_ID = FisherRules.ROLE_ID;
     public static final Identifier BLIND_ID = BlindRules.ROLE_ID;
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
-    public static final Identifier STOWAWAY_ID = StowawayRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
     public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
     public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
     public static final Identifier RIFTWALKER_ID = RiftwalkerRules.ROLE_ID;
     public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
+    public static final Identifier ATHLETE_ID = dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules.ROLE_ID;
+    public static final Identifier DISCOVERER_ID = dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules.ROLE_ID;
+    public static final Identifier PLANNER_ID = dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules.ROLE_ID;
+    public static final Identifier CONSULTANT_ID = dev.caecorthus.sparkwitch.roles.killer.consultant.ConsultantRules.ROLE_ID;
+    public static final Identifier CAT_ID = dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
-    public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
+    public static final Identifier CRIMINAL_REASONER_ID =
+            dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules.ROLE_ID;
+    public static final Identifier RAGPICKER_ID =
+            dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules.ROLE_ID;
+    public static final Identifier SHERRY_ID =
+            dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules.ROLE_ID;
+    public static final Identifier NOA_ID =
+            dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules.ROLE_ID;
+    public static final Identifier ACCOUNTANT_ID =
+            dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantRules.ROLE_ID;
+    public static final Identifier NATSUME_ID =
+            dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -136,15 +149,24 @@ public final class SparkWitchRoleRegistry {
     private static Role fisher;
     private static Role blind;
     private static Role fiend;
-    private static Role stowaway;
     private static Role insider;
     private static Role abyssListener;
     private static Role potionGunner;
     private static Role riftwalker;
     private static Role bewitched;
     private static Role usec;
+    private static Role athlete;
+    private static Role discoverer;
+    private static Role planner;
+    private static Role consultant;
+    private static Role schrodingersCat;
+    private static Role criminalReasoner;
+    private static Role ragpicker;
+    private static Role sherry;
+    private static Role noa;
+    private static Role natsumeAnan;
+    private static Role accountant;
     private static Role knight;
-    private static Role recruit;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -191,9 +213,6 @@ public final class SparkWitchRoleRegistry {
         // closed on an older SparkFactionAPI). 计划 v2 §3.3：黑羽鸦在其他模组的结算中同样不算存活（反射调用，旧版
         // SparkFactionAPI 下失败关闭）。
         SparkFactionSettlementExclusionCompat.registerExcludedRole(BLACK_RAVEN_ID);
-        // A living Stowaway never counts as alive for settlement in other mods either.
-        // 活着的偷渡客在其他模组的结算中同样不算存活。
-        SparkFactionSettlementExclusionCompat.registerExcludedRole(STOWAWAY_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
@@ -362,11 +381,6 @@ public final class SparkWitchRoleRegistry {
         return fiend;
     }
 
-    public static Role stowaway() {
-        ensureRegistered();
-        return stowaway;
-    }
-
     public static Role insider() {
         ensureRegistered();
         return insider;
@@ -387,6 +401,50 @@ public final class SparkWitchRoleRegistry {
         return bewitched;
     }
 
+    public static Role schrodingersCat() {
+        return schrodingersCat;
+    }
+
+    public static Role criminalReasoner() {
+        return criminalReasoner;
+    }
+
+    public static Role ragpicker() {
+        return ragpicker;
+    }
+
+    public static Role sherry() {
+        return sherry;
+    }
+
+    public static Role noa() {
+        return noa;
+    }
+
+    public static Role natsumeAnan() {
+        return natsumeAnan;
+    }
+
+    public static Role accountant() {
+        return accountant;
+    }
+
+    public static Role consultant() {
+        return consultant;
+    }
+
+    public static Role planner() {
+        return planner;
+    }
+
+    public static Role athlete() {
+        return athlete;
+    }
+
+    public static Role discoverer() {
+        return discoverer;
+    }
+
     public static Role usec() {
         ensureRegistered();
         return usec;
@@ -395,11 +453,6 @@ public final class SparkWitchRoleRegistry {
     public static Role knight() {
         ensureRegistered();
         return knight;
-    }
-
-    public static Role recruit() {
-        ensureRegistered();
-        return recruit;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -691,6 +744,114 @@ public final class SparkWitchRoleRegistry {
         // USEC（第五个警察变体）：注册在内应之前，因为内应之后不得再注册职业（InsiderRegistrationContractTest），
         // 因此只有内应自身的下标偏移；刺客猜测尾部会重新排序。平民警察参数，冲刺上限 20 秒（义警的两倍），
         // 无出现条件（Q11）：只通过共享的义警槽位抽取。不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        // 运动员: an ordinary task-funded passenger with unlimited stamina and a 5-block forward dash on the
+        // secondary key (15 s cooldown). maxSprintTime(-1) removes the stamina cap entirely.
+        // 运动员：普通靠任务赚钱的乘客，取消体力限制，并在副技能键上拥有 5 格前冲（15 秒间隔）。
+        // 规划大师: an ordinary task-funded passenger whose skill recommends a task to a marked player.
+        // 规划大师：普通靠任务赚钱的乘客，技能可为标记的玩家推荐一项任务。
+        // 顾问: killer-side information role that pays to learn identities.
+        // 顾问：杀手阵营的情报职业，付费得知身份。
+        // 薛定谔之猫: neutral that survives non-train kills by defecting to the killer's side.
+        // 薛定谔之猫：中立，被非“推出列车外”击杀时倒向击杀者阵营并存活。
+        schrodingersCat = SparkFactionApi.registerRole(FactionRoleDefinition.builder(CAT_ID, FactionIds.NEUTRAL)
+                .color(dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .build());
+        // 会计 accountant: passenger auditor, real sanity, passenger stamina. 会计：乘客审计员，真实理智，乘客体力。
+        accountant = SparkFactionApi.registerRole(
+                FactionRoleDefinition.builder(ACCOUNTANT_ID, FactionIds.CIVILIAN)
+                        .color(dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantRules.COLOR)
+                        .moodType(Role.MoodType.REAL)
+                        .maxSprintTime(GameConstants.getInTicks(0, 10))
+                        .canSeeTime(false)
+                        .nativeWatheFaction(Faction.CIVILIAN)
+                        .build());
+        // 夏目安安 Natsume Anan: killer hypnotist; fake mood, limited stamina with 25% faster drain.
+        // 夏目安安：杀手催眠师；假理智，体力有限且消耗快 25%。
+        natsumeAnan = SparkFactionApi.registerRole(
+                FactionRoleDefinition.builder(NATSUME_ID, FactionIds.KILLER)
+                        .color(dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.COLOR)
+                        .moodType(Role.MoodType.REAL)
+                        .maxSprintTime(GameConstants.getInTicks(0, 8))
+                        .canSeeTime(true)
+                        .nativeWatheFaction(Faction.KILLER)
+                        .build());
+        // 城崎诺亚 Noa Jogasaki: passenger painter with her own sanity rules. 城崎诺亚：有独立理智规则的乘客画家。
+        noa = SparkFactionApi.registerRole(
+                FactionRoleDefinition.builder(NOA_ID, FactionIds.CIVILIAN)
+                        .color(dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules.COLOR)
+                        .moodType(Role.MoodType.REAL)
+                        .maxSprintTime(GameConstants.getInTicks(0, 10))
+                        .canSeeTime(false)
+                        .nativeWatheFaction(Faction.CIVILIAN)
+                        .build());
+        // 橘雪莉 Tachibana Sherry: passenger, real sanity, 1.5x passenger stamina (15 s), coins and mana income.
+        // 橘雪莉：乘客、真实理智、1.5 倍乘客体力（15 秒）、有金币与魔力收入。
+        sherry = SparkFactionApi.registerRole(
+                FactionRoleDefinition.builder(SHERRY_ID, FactionIds.CIVILIAN)
+                        .color(dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules.COLOR)
+                        .moodType(Role.MoodType.REAL)
+                        .maxSprintTime(GameConstants.getInTicks(0, 15))
+                        .canSeeTime(false)
+                        .nativeWatheFaction(Faction.CIVILIAN)
+                        .build());
+        // Ragpicker (拾荒者): civilian, real sanity, passenger stamina, sees drops through walls and loots corpses.
+        // 拾荒者：平民、真实理智、乘客体力，能透墙看见掉落物并从尸体上搜刮。
+        ragpicker = SparkFactionApi.registerRole(
+                FactionRoleDefinition.builder(RAGPICKER_ID, FactionIds.CIVILIAN)
+                        .color(dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules.COLOR)
+                        .moodType(Role.MoodType.REAL)
+                        .maxSprintTime(GameConstants.getInTicks(0, 10))
+                        .canSeeTime(false)
+                        .nativeWatheFaction(Faction.CIVILIAN)
+                        .build());
+        // Criminal Reasoner: neutral, fake sanity, passenger-grade stamina, carries the neutral master key.
+        // 犯罪推理学家：中立、假理智、乘客级体力，携带中立万能钥匙。
+        criminalReasoner = SparkFactionApi.registerRole(
+                FactionRoleDefinition.builder(CRIMINAL_REASONER_ID, FactionIds.NEUTRAL)
+                        .color(dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules.COLOR)
+                        .moodType(Role.MoodType.FAKE)
+                        .maxSprintTime(GameConstants.getInTicks(0, 10))
+                        .canSeeTime(false)
+                        .nativeWatheFaction(Faction.NEUTRAL)
+                        .build());
+        consultant = SparkFactionApi.registerRole(FactionRoleDefinition.builder(CONSULTANT_ID, FactionIds.KILLER)
+                .color(dev.caecorthus.sparkwitch.roles.killer.consultant.ConsultantRules.COLOR)
+                // FAKE mood: the consultant has no sanity bar of their own, like a killer.
+                // 假理智：顾问没有自己的理智条，和杀手一致。
+                .moodType(Role.MoodType.FAKE)
+                // Unlimited stamina, like the Athlete. 与运动员一样取消体力限制。
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
+        planner = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PLANNER_ID, FactionIds.CIVILIAN)
+                .color(dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        athlete = SparkFactionApi.registerRole(FactionRoleDefinition.builder(ATHLETE_ID, FactionIds.CIVILIAN)
+                .color(dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        discoverer = SparkFactionApi.registerRole(FactionRoleDefinition.builder(DISCOVERER_ID, FactionIds.CIVILIAN)
+                .color(dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                // 4/3 of the normal 10s cap: same as a 25% slower stamina drain.
+                // 普通上限 10 秒的 4/3：等同于体力消耗慢 25%。
+                .maxSprintTime((int) Math.round(GameConstants.getInTicks(0, 10)
+                        * dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules.STAMINA_CAP_MULTIPLIER))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         usec = SparkFactionApi.registerRole(FactionRoleDefinition.builder(USEC_ID, FactionIds.CIVILIAN)
                 .color(UsecRules.COLOR)
                 .moodType(Role.MoodType.REAL)
@@ -698,37 +859,13 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // Registered after USEC, before the Recruit and the Insider (nothing may follow the Insider): the Judge/Emma
-        // parameter set with no appearance condition, so it is drawn only through the shared Vigilante slots.
-        // Loadout, economy and the duel live in roles/civilian/knight.
-        // 注册在 USEC 之后、新兵与内应之前（内应之后不得再注册）：与法官、艾玛相同的参数且无出现条件，只通过共享义警警位抽取。
+        // Registered right before the Insider (nothing may follow the Insider): the Judge/Emma parameter set with
+        // no appearance condition, so it is drawn only through the shared Vigilante slots. Loadout, economy and the
+        // duel live in roles/civilian/knight.
+        // 注册在内应之前（内应之后不得再注册）：与法官、艾玛相同的参数且无出现条件，只通过共享义警警位抽取。
         // 开局装备、经济与决斗位于 roles/civilian/knight。
         knight = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KNIGHT_ID, FactionIds.CIVILIAN)
                 .color(KnightRules.ROLE_COLOR)
-                .moodType(Role.MoodType.REAL)
-                .maxSprintTime(GameConstants.getInTicks(0, 10))
-                .canSeeTime(false)
-                .nativeWatheFaction(Faction.CIVILIAN)
-                .build());
-        // Registered before the Recruit and the Insider (nothing may follow the Insider). A Wathe-native neutral with
-        // tasks and fake mood, available at every player count. It never blocks any win; at round end a living Stowaway
-        // joins the winning team, and a dead one loses.
-        // 注册在新兵与内应之前（内应之后不得再注册）。有任务、伪装情绪的 Wathe 原生中立职业，任何人数都可出现。它不阻止
-        // 任何胜利；回合结束时活着的偷渡客加入获胜阵营，死亡的偷渡客判负。
-        stowaway = SparkFactionApi.registerRole(FactionRoleDefinition.builder(STOWAWAY_ID, FactionIds.NEUTRAL)
-                .color(StowawayRules.COLOR)
-                .moodType(Role.MoodType.FAKE)
-                .maxSprintTime(-1)
-                .canSeeTime(false)
-                .nativeWatheFaction(Faction.NEUTRAL)
-                .build());
-        // Registered right before the Insider (nothing may follow the Insider): an ordinary task civilian (no coins or
-        // shop) drawn by Wathe's civilian assignment like the Fisher and the Blind, never through a police slot. Its
-        // knife, gun and penalty rules live in roles/civilian/recruit.
-        // 注册在内应之前（内应之后不得再注册）：只做任务的普通平民（没有金币与商店），与钓鱼佬、盲人一样由 Wathe 平民分配
-        // 抽取，从不占用警位。刀、枪与惩罚规则位于 roles/civilian/recruit。
-        recruit = SparkFactionApi.registerRole(FactionRoleDefinition.builder(RECRUIT_ID, FactionIds.CIVILIAN)
-                .color(RecruitRules.ROLE_COLOR)
                 .moodType(Role.MoodType.REAL)
                 .maxSprintTime(GameConstants.getInTicks(0, 10))
                 .canSeeTime(false)
@@ -785,9 +922,6 @@ public final class SparkWitchRoleRegistry {
                 orthopedist,
                 saint,
                 perfumer,
-                // The Recruit joins the civilian block; the promotion identities stay the tail.
-                // 新兵加入平民段；晋升身份始终位于末尾。
-                recruit,
                 pigGod,
                 tarotReader,
                 fisher,
@@ -813,11 +947,20 @@ public final class SparkWitchRoleRegistry {
                 emma,
                 controlExpert,
                 seeker,
+                consultant,
+                schrodingersCat,
+                planner,
+                athlete,
                 usec,
                 knight,
                 fiend,
                 insider,
-                stowaway,
+                criminalReasoner,
+                ragpicker,
+                sherry,
+                noa,
+                natsumeAnan,
+                accountant,
                 windSpirit,
                 guardianAngel,
                 vendetta,

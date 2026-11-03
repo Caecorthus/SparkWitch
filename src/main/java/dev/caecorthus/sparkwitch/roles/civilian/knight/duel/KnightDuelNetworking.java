@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.roles.civilian.knight.duel;
 
 import dev.caecorthus.sparkwitch.net.KnightDuelStopSoundS2CPayload;
 import dev.caecorthus.sparkwitch.net.KnightDuelTargetC2SPayload;
-import dev.caecorthus.sparkwitch.net.KnightDuelUiLockS2CPayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
@@ -18,7 +17,6 @@ public final class KnightDuelNetworking {
     public static void registerServer() {
         PayloadTypeRegistry.playC2S().register(KnightDuelTargetC2SPayload.ID, KnightDuelTargetC2SPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(KnightDuelStopSoundS2CPayload.ID, KnightDuelStopSoundS2CPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(KnightDuelUiLockS2CPayload.ID, KnightDuelUiLockS2CPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(KnightDuelTargetC2SPayload.ID, (payload, context) ->
                 context.server().execute(() -> KnightDuelService.requestDuel(context.player(), payload.target())));
     }

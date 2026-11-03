@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither;
 
-import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
@@ -17,6 +16,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.MathHelper;
@@ -75,9 +75,8 @@ public final class CrimsonSkullFireService {
         mana.spendMana(MiniWitherRules.CRIMSON_MANA_COST);
         player.getItemCooldownManager().set(gohei.getItem(), MiniWitherRules.CRIMSON_COOLDOWN_TICKS);
         ServerWorld world = player.getServerWorld();
-        world.playSound(null, anchor.x, anchor.y, anchor.z,
-                SparkWitchSounds.miniWither(MiniWitherSoundSlot.CRIMSON_SHOOT), SoundCategory.PLAYERS, LAUNCH_VOLUME,
-                LAUNCH_PITCH);
+        world.playSound(null, anchor.x, anchor.y, anchor.z, SoundEvents.ENTITY_WITHER_SHOOT, SoundCategory.PLAYERS,
+                LAUNCH_VOLUME, LAUNCH_PITCH);
     }
 
     /**

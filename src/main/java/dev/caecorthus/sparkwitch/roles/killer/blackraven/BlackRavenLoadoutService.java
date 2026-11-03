@@ -32,7 +32,7 @@ public final class BlackRavenLoadoutService {
         // plain insertStack keeps SparkTraits' Impostor free-gun refusal, which is deliberately not bypassed.
         // 警察套装（计划 v2 §3.1）：只有身上任何位置都没有左轮时才发放 Wathe 左轮（强制重新指定时暂存的左轮已先归还）。
         // 开局时本方法在 initializeGame 内的 RoleAssigned 中执行，早于 Wathe 按物品写入的 60 秒左轮冷却，因此与其他警察的
-        // 左轮共享该冷却。普通 insertStack 保留 SparkTraits 对内鬼的免费枪械拒绝，刻意不绕过。
+        // 左轮共享该冷却。普通 insertStack 保留 SparkTraits 对内应的免费枪械拒绝，刻意不绕过。
         if (BlackRavenPoliceRules.grantsStartingRevolver(holdsRevolver(player))) {
             player.getInventory().insertStack(new ItemStack(WatheItems.REVOLVER));
         }

@@ -16,8 +16,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * Impostor check (task income stacks with Impostor income; SparkTraits itself no longer rolls the Impostor for the
  * Blind).
  * 盲人金币（D8），沿用钓鱼佬规则：存活参与的盲人可见余额，分配职业时余额置 0，每完成一个任务获得
- * {@link BlindRules#TASK_REWARD}。与钓鱼佬相同，不检查 SparkTraits 内鬼（任务收入与内鬼收入叠加；SparkTraits
- * 本身已不再为盲人抽取内鬼）。
+ * {@link BlindRules#TASK_REWARD}。与钓鱼佬相同，不检查 SparkTraits 内应（任务收入与内应收入叠加；SparkTraits
+ * 本身已不再为盲人抽取内应）。
  */
 public final class BlindEconomyService {
     private static boolean registered;

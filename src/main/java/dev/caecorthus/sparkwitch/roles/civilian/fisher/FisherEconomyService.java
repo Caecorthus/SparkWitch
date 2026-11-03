@@ -32,7 +32,7 @@ public final class FisherEconomyService {
         TaskComplete.EVENT.register((player, task) -> {
             if (FisherRules.isFisher(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
                 // Owner rule: task-role income stacks with SparkTraits' Impostor income.
-                // 所有者规则：任务职业金币与 SparkTraits 的内鬼金币叠加。
+                // 所有者规则：任务职业金币与 SparkTraits 的内应金币叠加。
                 PlayerShopComponent.KEY.get(player).addToBalance(FisherRules.TASK_MONEY_REWARD);
             }
         });

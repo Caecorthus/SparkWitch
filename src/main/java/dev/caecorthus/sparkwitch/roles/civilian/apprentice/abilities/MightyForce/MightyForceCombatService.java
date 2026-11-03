@@ -3,7 +3,6 @@ package dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForc
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
-import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
@@ -84,13 +83,7 @@ public final class MightyForceCombatService {
                 && GameFunctions.isPlayerAliveAndSurvival(serverTarget);
     }
 
-    /**
-     * The living current Apprentice inside her own Mighty Force window. Fabric fires {@link AttackEntityCallback} before
-     * vanilla's spectator check, and a Taotie-swallowed player is a Wathe-alive spectator riding the Taotie's camera, so
-     * both are refused here or she could strike whoever stands in front of the Taotie.
-     * 处于自己巨力窗口内的存活现任预备魔女。Fabric 的 {@link AttackEntityCallback} 在原版旁观者检查之前触发，而被饕餮吞下的
-     * 玩家是 Wathe 视为存活、视角锁在饕餮身上的旁观者，因此两者都在此拒绝，否则她能在肚子里击杀饕餮面前的玩家。
-     */
+    /** The living current Apprentice inside her own Mighty Force window. / 处于自己巨力窗口内的存活现任预备魔女。 */
     private static boolean hasLiveMightyForce(ServerPlayerEntity attacker) {
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(attacker);
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(attacker.getWorld());
@@ -98,9 +91,7 @@ public final class MightyForceCombatService {
                 && MightyForceAbility.ID.equals(component.getActiveSkillId());
         return ownsMightyForce
                 && component.hasActiveMightyForce()
-                && GameFunctions.isPlayerPlayingAndAlive(attacker)
-                && !attacker.isSpectator()
-                && !NoellesTaotieSeekerBridge.isSwallowed(attacker);
+                && GameFunctions.isPlayerPlayingAndAlive(attacker);
     }
 
     /**

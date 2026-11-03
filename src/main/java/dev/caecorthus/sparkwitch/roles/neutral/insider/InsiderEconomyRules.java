@@ -16,8 +16,8 @@ public final class InsiderEconomyRules {
     /**
      * Task pay: an active, living, participating Insider that is not a spectator, creative or Wraith-restricted. Always
      * paid, with no Impostor skip: a neutral cannot roll Impostor, and SparkTraits bonuses stack on top.
-     * 任务收入：处于 ACTIVE、存活且参与对局、非旁观/创造、未受灵体限制的内应。始终发放，不跳过内鬼：
-     * 中立抽不到内鬼，SparkTraits 的加成叠加在此之上。
+     * 任务收入：处于 ACTIVE、存活且参与对局、非旁观/创造、未受灵体限制的内应。始终发放，不跳过内应：
+     * 中立抽不到内应，SparkTraits 的加成叠加在此之上。
      */
     public static boolean earnsTaskMoney(boolean active, boolean playingAndAlive, @Nullable Role role,
                                          boolean spectator, boolean creative, boolean wraithRestricted) {

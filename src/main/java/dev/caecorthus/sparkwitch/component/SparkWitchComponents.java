@@ -6,7 +6,6 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlay
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
-import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerStatusComponent;
@@ -50,6 +49,15 @@ import org.ladysnake.cca.api.v3.world.WorldComponentInitializer;
 public final class SparkWitchComponents implements EntityComponentInitializer, WorldComponentInitializer {
     @Override
     public void registerEntityComponentFactories(@NotNull EntityComponentFactoryRegistry registry) {
+        registry.beginRegistration(PlayerEntity.class, UndercoverDisguiseComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(UndercoverDisguiseComponent::new);
+        registry.beginRegistration(PlayerEntity.class, ConsultantPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(ConsultantPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, PlannerPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(PlannerPlayerComponent::new);
         registry.beginRegistration(PlayerEntity.class, WitchPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(WitchPlayerComponent::new);
@@ -164,11 +172,30 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, BlackRavenCrowPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(BlackRavenCrowPlayerComponent::new);
-        // Recruit first-task progress and knife grant, synced to its owner only; appended last.
-        // 新兵首个任务进度与发刀状态，只同步给本人；追加在最后。
-        registry.beginRegistration(PlayerEntity.class, RecruitPlayerComponent.KEY)
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
-                .end(RecruitPlayerComponent::new);
+                .end(dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerComponent::new);
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantComponent::new);
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent::new);
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.civilian.noa.NoaComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.civilian.noa.NoaComponent::new);
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent::new);
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent::new);
     }
 
     @Override
@@ -184,5 +211,7 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.register(RiftGateRegistryComponent.KEY, RiftGateRegistryComponent::new);
         registry.register(dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent.KEY,
                 dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent::new);
+        registry.register(dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerLootWorldComponent.KEY,
+                dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerLootWorldComponent::new);
     }
 }

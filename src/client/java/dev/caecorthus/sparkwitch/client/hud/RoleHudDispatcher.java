@@ -58,6 +58,12 @@ public final class RoleHudDispatcher {
         renderSaint(hud, context);
         renderVendetta(context);
         renderKidnapperControlled(context);
+        CriminalReasonerHudRenderer.render(context);
+        JunkerHudRenderer.render(context);
+        SherryHudRenderer.render(context);
+        NoaHudRenderer.render(context);
+        NatsumeHudRenderer.render(context);
+        AccountantHudRenderer.render(context);
         renderSaboteur(context);
     }
 
@@ -70,6 +76,79 @@ public final class RoleHudDispatcher {
         renderWitchSkill(context);
         renderMagician(context);
         renderBlackRaven(context);
+        renderAthlete(context);
+        renderPlanner(context);
+        renderConsultant(context);
+        renderUndercoverDisguise(context);
+    }
+
+    /**
+     * Undercover disguise line under the round timer.
+     * 回合时间下方的卧底伪装提示。
+     */
+    private static void renderUndercoverDisguise(DrawContext context) {
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
+        if (player != null) {
+            dev.caecorthus.sparkwitch.client.undercover.UndercoverDisguiseHud.render(context, player);
+        }
+    }
+
+    /**
+     * 顾问's bottom-right skill line.
+     * 顾问右下角技能行。
+     */
+    private static void renderConsultant(DrawContext context) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
+        if (player == null) {
+            return;
+        }
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        if (role != null && SparkWitchRoles.CONSULTANT_ID.equals(role.identifier())) {
+            dev.caecorthus.sparkwitch.client.consultant.ConsultantHudRenderer.render(context, player);
+        }
+    }
+
+    /**
+     * 规划大师's bottom-right panel: passive task countdown plus skill state.
+     * 规划大师右下角面板：被动任务倒计时与技能状态。
+     */
+    private static void renderPlanner(DrawContext context) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
+        if (player == null) {
+            return;
+        }
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        boolean planner = role != null && SparkWitchRoles.PLANNER_ID.equals(role.identifier());
+        dev.caecorthus.sparkwitch.client.planner.PlannerClientModule.tickRoleState(planner);
+        if (planner) {
+            dev.caecorthus.sparkwitch.client.planner.PlannerHudRenderer.render(context, player);
+        }
+    }
+
+    /**
+     * 运动员's bottom-right skill line; drawn for that exact role only.
+     * 运动员的右下角技能行，仅在本人是该职业时绘制。
+     */
+    private static void renderAthlete(DrawContext context) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
+        if (player == null) {
+            return;
+        }
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        boolean athlete = role != null && SparkWitchRoles.ATHLETE_ID.equals(role.identifier());
+        dev.caecorthus.sparkwitch.client.athlete.AthleteClientModule.tickRoleState(athlete);
+        if (athlete) {
+            dev.caecorthus.sparkwitch.client.athlete.AthleteHudRenderer.render(context, player);
+        }
     }
 
     /** Was CurserHudMixin: the active promoted Curser only. / 原 CurserHudMixin：仅活动中的晋升诅咒师。 */

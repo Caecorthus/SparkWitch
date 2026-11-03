@@ -19,7 +19,7 @@ import java.util.List;
  * a shown stack before falling back to Wathe's default insertion ({@link UsecShopPurchase}); the magazine and suppressor
  * keep the default buy handler. The SparkStrength tablet is issued free at round start, never sold here.
  * 归 WP1 所有：在两端把 USEC 商店替换为 {@link UsecShopRules#entries()}（弹匣、FMJ、AP、消音器）。由
- * {@link UsecFeatureService#register()} 调用一次。SparkTraits 条目（如内鬼左轮）在重建后保留，每个条目经过可选的
+ * {@link UsecFeatureService#register()} 调用一次。SparkTraits 条目（如内应左轮）在重建后保留，每个条目经过可选的
  * SparkTraits 魅力折扣。子弹先补进显示中的物品堆，再回退到 Wathe 默认插入（{@link UsecShopPurchase}）；弹匣与消音器保留默认
  * 购买处理。SparkStrength 平板开局免费发放，此处不出售。
  */
@@ -43,7 +43,7 @@ public final class UsecShopService {
             return;
         }
         // SparkTraits entries (e.g. the Impostor revolver) may already be present; keep them across the rebuild.
-        // SparkTraits 条目（如内鬼左轮）可能已先加入；重建时保留它们。
+        // SparkTraits 条目（如内应左轮）可能已先加入；重建时保留它们。
         List<ShopEntry> preservedTraitEntries = SparkTraitsShopEntryPreserver.capture(context);
         context.clearEntries();
         for (UsecShopRules.EntrySpec spec : UsecShopRules.entries()) {

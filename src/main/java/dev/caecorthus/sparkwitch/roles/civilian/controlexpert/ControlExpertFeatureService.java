@@ -96,7 +96,7 @@ public final class ControlExpertFeatureService {
     private static void grantRoundStartLoadout(ServerPlayerEntity player) {
         // The revolver shares Wathe's per-Item start cooldown written earlier in initializeGame. SparkTraits refuses
         // free guns to an Impostor at this point; that trait rule is deliberately not bypassed.
-        // 左轮沿用 initializeGame 先前按物品写入的开局冷却。SparkTraits 此时会拒绝向内鬼发放免费枪械；刻意不绕过该词条规则。
+        // 左轮沿用 initializeGame 先前按物品写入的开局冷却。SparkTraits 此时会拒绝向内应发放免费枪械；刻意不绕过该词条规则。
         player.getInventory().insertStack(new ItemStack(WatheItems.REVOLVER));
         for (Item item : List.of(SparkWitchItems.disruptor(), SparkWitchItems.taser(), SparkWitchItems.shockDevice())) {
             applyExactCooldown(player, item, ControlExpertRules.INITIAL_COOLDOWN);
