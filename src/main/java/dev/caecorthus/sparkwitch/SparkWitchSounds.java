@@ -2,10 +2,15 @@ package dev.caecorthus.sparkwitch;
 
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherSoundSlot;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
+
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Objects;
 
 public final class SparkWitchSounds {
     public static final Identifier PIG_CHASE_ID = SparkWitch.id("skill.pig_chase");
@@ -66,6 +71,13 @@ public final class SparkWitchSounds {
     public static final Identifier DUEL_SF_ID = dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelRules.SF_SOUND_ID;
     public static SoundEvent DUEL_MANBA;
     public static SoundEvent DUEL_SF;
+    /**
+     * The Mini Wither's own events, one per {@link MiniWitherSoundSlot}: variable range like the vanilla events they
+     * replaced, and sounds.json defaults each to the same vanilla files and subtitle. Read with {@link #miniWither}.
+     * 小凋灵自有事件，每个 {@link MiniWitherSoundSlot} 一个：与被替换的原版事件一样为可变范围，sounds.json 默认指向相同的
+     * 原版音频与字幕。通过 {@link #miniWither} 读取。
+     */
+    private static final Map<MiniWitherSoundSlot, SoundEvent> MINI_WITHER = new EnumMap<>(MiniWitherSoundSlot.class);
     private static boolean registered;
 
     private SparkWitchSounds() {
@@ -122,5 +134,14 @@ public final class SparkWitchSounds {
                 SoundEvent.of(DOUBLE_BARREL_LOAD_ID));
         DUEL_MANBA = Registry.register(Registries.SOUND_EVENT, DUEL_MANBA_ID, SoundEvent.of(DUEL_MANBA_ID));
         DUEL_SF = Registry.register(Registries.SOUND_EVENT, DUEL_SF_ID, SoundEvent.of(DUEL_SF_ID));
+        for (MiniWitherSoundSlot slot : MiniWitherSoundSlot.values()) {
+            MINI_WITHER.put(slot, Registry.register(Registries.SOUND_EVENT, slot.eventId(),
+                    SoundEvent.of(slot.eventId())));
+        }
+    }
+
+    /** The registered event of one Mini Wither slot. / 某个小凋灵槽位已注册的事件。 */
+    public static SoundEvent miniWither(MiniWitherSoundSlot slot) {
+        return Objects.requireNonNull(MINI_WITHER.get(slot), "SparkWitchSounds.register() has not run");
     }
 }

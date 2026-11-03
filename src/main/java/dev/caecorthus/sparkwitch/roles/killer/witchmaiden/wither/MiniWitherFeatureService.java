@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither;
 
+import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.net.FireCrimsonSkullC2SPayload;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.net.ToggleMiniWitherC2SPayload;
@@ -21,7 +22,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 
@@ -110,7 +110,8 @@ public final class MiniWitherFeatureService {
         // 按键文本会在主人客户端上显示其自己绑定的职业技能 2 按键。
         player.sendMessage(Text.translatable("message.sparkwitch.mini_wither.unlocked",
                 Text.keybind("key.sparkwitch.secondary_skill")).withColor(WitchMaidenRules.COLOR), false);
-        player.playSoundToPlayer(SoundEvents.ENTITY_WITHER_AMBIENT, SoundCategory.PLAYERS, 0.5F, 1.8F);
+        player.playSoundToPlayer(SparkWitchSounds.miniWither(MiniWitherSoundSlot.UNLOCK), SoundCategory.PLAYERS, 0.5F,
+                1.8F);
         player.getServer().execute(() -> {
             if (WitherGoheiLoadoutService.mayHold(player)) {
                 WitherGoheiLoadoutService.ensureGohei(player);
