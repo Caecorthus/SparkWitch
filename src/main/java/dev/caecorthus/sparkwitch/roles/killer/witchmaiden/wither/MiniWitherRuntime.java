@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither;
 
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
@@ -10,7 +11,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.Vec3d;
 
 /**
@@ -36,7 +36,7 @@ public final class MiniWitherRuntime {
         }
         Vec3d anchor = MiniWitherAnchor.position(player);
         if (component.tickAmbient()) {
-            world.playSound(null, anchor.x, anchor.y, anchor.z, SoundEvents.ENTITY_WITHER_AMBIENT,
+            world.playSound(null, anchor.x, anchor.y, anchor.z, SparkWitchSounds.miniWither(MiniWitherSoundSlot.IDLE),
                     SoundCategory.PLAYERS, MiniWitherRules.AMBIENT_VOLUME, jitter(player, MiniWitherRules.AMBIENT_PITCH));
         }
         if (isSilenced(player) || component.tickAutoFire() > 0) {
@@ -53,8 +53,8 @@ public final class MiniWitherRuntime {
             component.restartAutoFire();
             Vec3d shot = target.aimPoint().subtract(anchor);
             component.setAim(MiniWitherRules.yawOf(shot), MiniWitherRules.pitchOf(shot));
-            world.playSound(null, anchor.x, anchor.y, anchor.z, SoundEvents.ENTITY_WITHER_SHOOT, SoundCategory.PLAYERS,
-                    SHOOT_VOLUME, jitter(player, SHOOT_PITCH));
+            world.playSound(null, anchor.x, anchor.y, anchor.z, SparkWitchSounds.miniWither(MiniWitherSoundSlot.SHOOT),
+                    SoundCategory.PLAYERS, SHOOT_VOLUME, jitter(player, SHOOT_PITCH));
         }
     }
 
