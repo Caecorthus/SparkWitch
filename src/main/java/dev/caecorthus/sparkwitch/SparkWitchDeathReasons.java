@@ -51,7 +51,12 @@ public final class SparkWitchDeathReasons {
      * 第三方干预不再使另一名决斗者死亡（所有者 2026-10-31）。
      */
     public static final Identifier DUEL_FAILED = SparkWitch.id("duel_failed");
-    /** The Knight pushed a good player off the train. / 骑士把好人推下列车。 */
+    /**
+     * Legacy: the Knight's push-off penalty before it moved to Wathe's {@code shot_innocent}. Nothing produces it now;
+     * the id, its lang line and its Prophecy PENALTY group stay so older replays and records still read.
+     * 旧版：骑士推下好人的惩罚改用 Wathe 的 {@code shot_innocent} 之前的原因。现已无处产生；保留该 id、语言条目与预言
+     * PENALTY 分组，使旧回放与记录仍可读取。
+     */
     public static final Identifier CEREBELLUM = SparkWitch.id("cerebellum");
     /**
      * A third party attacked a duelist while the duel variable was 1. Forced, body kept, no killer, and registered
