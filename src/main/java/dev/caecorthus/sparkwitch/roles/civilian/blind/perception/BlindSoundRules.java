@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.blind.perception;
 
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
+import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherSoundSlot;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -71,11 +72,12 @@ public final class BlindSoundRules {
     /**
      * One-shot sounds that bypass the per-(emitter, Blind) throttle: every Wathe-style gunshot (revolver, derringer,
      * firecracker decoy, Demon Hunter, Assassin guess), both USEC rifle shots and its bolt (played within the 10-tick
-     * throttle window after the shot), grenade, M67 and bomb explosions, generic explosions (Hunter shotgun), Wathe's
-     * door toggle and every vanilla door, trapdoor and fence-gate open or close.
+     * throttle window after the shot), grenade, M67 and bomb explosions, generic explosions (Hunter shotgun), the Mini
+     * Wither burst (its own event since 2026-11-02, formerly the generic explosion), Wathe's door toggle and every
+     * vanilla door, trapdoor and fence-gate open or close.
      * 不受（发声者，盲人）节流限制的一次性声音：所有 Wathe 式枪声（左轮、德林杰、鞭炮诱饵、恶魔猎手、刺客猜测）、
      * USEC 步枪的两种枪声及拉栓声（拉栓在枪声后 10 刻节流窗口内播放）、手雷、M67 与炸弹爆炸、通用爆炸（猎人霰弹枪）、
-     * Wathe 的门开关，以及所有原版门、活板门与栅栏门的开关声。
+     * 小凋灵爆裂（2026-11-02 起为其自有事件，原为通用爆炸）、Wathe 的门开关，以及所有原版门、活板门与栅栏门的开关声。
      */
     static final Set<Identifier> ONE_SHOT_SOUNDS = oneShotSounds();
 
@@ -199,6 +201,7 @@ public final class BlindSoundRules {
                 Identifier.of("sparkstrength", "item.m67.explode"),
                 Identifier.of("noellesroles", "item.bomb.explode"),
                 Identifier.of("minecraft", "entity.generic.explode"),
+                MiniWitherSoundSlot.BURST.eventId(),
                 Identifier.of("wathe", "block.door.toggle")));
         for (String material : new String[]{"wooden", "iron", "copper", "bamboo_wood", "cherry_wood", "nether_wood"}) {
             for (String block : new String[]{"door", "trapdoor"}) {
