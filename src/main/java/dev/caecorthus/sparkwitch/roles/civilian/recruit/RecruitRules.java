@@ -5,7 +5,6 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.index.WatheItems;
 import dev.doctor4t.wathe.index.tag.WatheItemTags;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -13,9 +12,10 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Pure Recruit constants and predicates. The Recruit is an ordinary task-funded passenger whose sanity bar, stamina
- * and tasks come from the civilian role definition; after one completed task it earns Wathe's knife.
- * 新兵的纯常数与判断。新兵是普通任务平民，理智条、体力与任务来自平民职业定义；完成第一个任务后获得 Wathe 的刀。
+ * Pure Recruit constants and predicates. The Recruit is an ordinary task passenger (no coins or shop) whose sanity
+ * bar, stamina and tasks come from the civilian role definition; after one completed task it earns Wathe's knife.
+ * 新兵的纯常数与判断。新兵是只做任务的普通平民（没有金币与商店），理智条、体力与任务来自平民职业定义；完成第一个任务后
+ * 获得 Wathe 的刀。
  */
 public final class RecruitRules {
     public static final Identifier ROLE_ID = SparkWitch.id("recruit");
@@ -45,57 +45,19 @@ public final class RecruitRules {
         return player != null && FactionIds.CIVILIAN.equals(SparkFactionApi.resolveEffectiveFaction(player, game));
     }
 
-    /** Whether the Recruit carries Wathe's knife (main inventory or offhand). / 新兵是否带着 Wathe 的刀（主物品栏或副手）。 */
-    public static boolean hasKnife(@Nullable PlayerEntity player) {
-        if (player == null) {
-            return false;
-        }
-        for (ItemStack stack : player.getInventory().main) {
-            if (stack.isOf(WatheItems.KNIFE)) {
-                return true;
-            }
-        }
-        for (ItemStack stack : player.getInventory().offHand) {
-            if (stack.isOf(WatheItems.KNIFE)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /** Whether the player carries any {@code wathe:guns} item (main inventory or offhand). / 是否带着任意 {@code wathe:guns}。 */
-    public static boolean hasGun(@Nullable PlayerEntity player) {
-        if (player == null) {
-            return false;
-        }
-        for (ItemStack stack : player.getInventory().main) {
-            if (stack.isIn(WatheItemTags.GUNS)) {
-                return true;
-            }
-        }
-        for (ItemStack stack : player.getInventory().offHand) {
-            if (stack.isIn(WatheItemTags.GUNS)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
-     * Whether this player belongs to the Recruit's separate ground gun-pickup whitelist: the Recruit role and a
-     * carried Wathe knife. Once a gun has been acquired this round the component's flag blocks every further pickup.
-     * Wathe otherwise blocks an innocent player without a gun or leftover Veteran stabs; the tick whitelist bypasses
-     * that only for the Recruit.
-     * 此玩家是否属于新兵独有的地面枪械拾取白名单：新兵职业且身上带着 Wathe 的刀。本局一旦拿到枪，组件标志会阻止继续拾取。
-     * Wathe 原本会拦下没有枪、也没有老兵剩余刺击次数的好人；tick 白名单仅对新兵绕过该规则。
+     * Ground pickup veto: a live Recruit who already picked up one {@code wathe:guns} item this round picks up no
+     * other. Wathe's own rule (an innocent with no gun, not its own throw, no misfire ban) still decides the first
+     * pickup; server side only, creative players are free, the role is asked last.
+     * 地面拾取否决：本局已从地面捡过一把 {@code wathe:guns} 的新兵不能再捡。第一把是否能捡仍由 Wathe 自身规则决定
+     * （没有枪的好人、不是自己丢出的枪、未受误杀禁捡）；仅服务端，创造模式不受限，职业最后才询问。
      */
-    public static boolean mayPickUpGuns(PlayerEntity player) {
-        if (player == null || player.getWorld() == null) {
+    public static boolean blocksGunPickup(@Nullable PlayerEntity player, @Nullable ItemStack stack) {
+        if (player == null || stack == null || stack.isEmpty() || player.getWorld() == null
+                || player.getWorld().isClient || player.isCreative() || !stack.isIn(WatheItemTags.GUNS)) {
             return false;
         }
-        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
-        return isRecruit(game.getRole(player))
-                && hasKnife(player)
-                && !RecruitPlayerComponent.KEY.get(player).isGunAcquired();
+        return isRecruit(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))
+                && RecruitPlayerComponent.KEY.get(player).hasPickedUpGun();
     }
 }

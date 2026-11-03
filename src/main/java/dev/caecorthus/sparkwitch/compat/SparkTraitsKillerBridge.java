@@ -42,9 +42,6 @@ public final class SparkTraitsKillerBridge {
             Runnable.class);
     private static final OptionalStaticMethod LAST_STAND_INTERCEPTED = resolve("isLastStandDeathIntercepted",
             PlayerEntity.class);
-    private static final Identifier IMPOSTOR = Identifier.of("sparktraits", "impostor");
-    private static final OptionalStaticMethod TRAIT = resolve("hasActiveTrait", PlayerEntity.class,
-            Identifier.class);
 
     private SparkTraitsKillerBridge() {
     }
@@ -113,12 +110,6 @@ public final class SparkTraitsKillerBridge {
      * 越过 Traits 冷却倍率写入精确冷却（其内部自行完成原版写入）；返回 false 时调用方需回退到原版冷却写入。 */
     public static boolean setExactItemCooldownRemaining(ServerPlayerEntity player, Item item, int ticks) {
         return player != null && item != null && EXACT_COOLDOWN.callVoid(player, item, Math.max(0, ticks));
-    }
-
-    /** Impostor trait active; absent, older or failing Traits reads false (the caller keeps its rule).
-     * 内鬼词条是否生效；Traits 缺失、过旧或出错时为 false（调用方保留原有规则）。 */
-    public static boolean isImpostorActive(PlayerEntity player) {
-        return player != null && TRAIT.callBoolean(false, false, false, player, IMPOSTOR);
     }
 
     /** Whether Traits turned this attacker's hit into a non-final kill (e.g. a Depression fake death);

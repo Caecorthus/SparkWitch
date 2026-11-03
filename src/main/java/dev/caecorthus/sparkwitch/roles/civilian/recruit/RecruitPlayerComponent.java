@@ -13,25 +13,25 @@ import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 
 /**
  * Stable CCA contract {@code sparkwitch:recruit} (NEVER_COPY): the Recruit's completed-task count, whether the
- * first-task knife has been granted, and the per-round gun-pickup lock. Server-authoritative; the task fields are
- * synced only to the owner, whose bottom-right HUD shows {@code n/1} until the knife is granted; the gun lock is
- * server-only. NBT keeps all three across a mid-round relog; role assignment, Wathe's {@code ResetPlayer} and round
- * end clear them. No game logic lives here.
- * 稳定 CCA 契约 {@code sparkwitch:recruit}（NEVER_COPY）：新兵已完成任务数、第一个任务的刀是否已发放，以及本局枪械
- * 拾取锁。任务字段只同步给本人，本人右下角 HUD 在发刀前显示 {@code n/1}；枪械锁仅服务端。NBT 使三者都在局中重新登录后
- * 保留；身份分配、Wathe 的 {@code ResetPlayer} 与局末会清空它们。这里不含游戏逻辑。
+ * first-task knife has been granted, and whether this round's one ground gun pickup is used. Server-authoritative;
+ * the task fields are synced only to the owner, whose bottom-right HUD shows {@code n/1} until the knife is granted;
+ * the gun flag is server-only. NBT keeps all three across a mid-round relog; role assignment and Wathe's
+ * {@code ResetPlayer} clear them. No game logic lives here.
+ * 稳定 CCA 契约 {@code sparkwitch:recruit}（NEVER_COPY）：新兵已完成任务数、第一个任务的刀是否已发放，以及本局唯一
+ * 一次地面捡枪是否已用掉。任务字段只同步给本人，本人右下角 HUD 在发刀前显示 {@code n/1}；捡枪标志仅服务端。NBT 使三者
+ * 都在局中重新登录后保留；身份分配与 Wathe 的 {@code ResetPlayer} 会清空它们。这里不含游戏逻辑。
  */
 public final class RecruitPlayerComponent implements AutoSyncedComponent {
     public static final ComponentKey<RecruitPlayerComponent> KEY = ComponentRegistry.getOrCreate(
             RecruitRules.ROLE_ID, RecruitPlayerComponent.class);
     static final String TASKS_COMPLETED = "TasksCompleted";
     static final String KNIFE_GRANTED = "KnifeGranted";
-    static final String GUN_ACQUIRED = "GunAcquired";
+    static final String GUN_PICKED_UP = "GunPickedUp";
 
     private final PlayerEntity player;
     private int tasksCompleted;
     private boolean knifeGranted;
-    private boolean gunAcquired;
+    private boolean gunPickedUp;
 
     public RecruitPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -45,20 +45,21 @@ public final class RecruitPlayerComponent implements AutoSyncedComponent {
         return knifeGranted;
     }
 
-    public boolean isGunAcquired() {
-        return gunAcquired;
+    public boolean hasPickedUpGun() {
+        return gunPickedUp;
     }
 
     /**
-     * Server only: locks ground gun pickup for the rest of the round. Deliberately not synced; the client never reads
-     * it, and the NBT copy keeps it across a mid-round relog.
-     * 仅服务端：本局余下时间禁止再从地面捡枪。刻意不同步；客户端不读取，NBT 副本使其在局中重登后保留。
+     * Server only: uses up this round's one ground gun pickup. Deliberately not synced; the client never reads it, and
+     * the NBT copy keeps it across a mid-round relog.
+     * 仅服务端：用掉本局唯一一次地面捡枪。刻意不同步；客户端不读取，NBT 副本使其在局中重登后保留。
      */
-    public void lockGunPickup() {
-        gunAcquired = true;
+    public void markGunPickedUp() {
+        gunPickedUp = true;
     }
 
-    /** Server only: records one completed task, capped at the knife threshold, and syncs a change. / 仅服务端。 */
+    /** Server only: records one completed task, capped at the knife threshold, and syncs a change.
+     * 仅服务端：记录一次完成的任务（不超过发刀门槛），有变化时同步。 */
     public void recordTask() {
         int next = Math.min(tasksCompleted + 1, RecruitRules.REQUIRED_TASKS);
         if (next != tasksCompleted) {
@@ -67,7 +68,7 @@ public final class RecruitPlayerComponent implements AutoSyncedComponent {
         }
     }
 
-    /** Server only: marks the first-task knife granted and syncs a change. / 仅服务端。 */
+    /** Server only: marks the first-task knife granted and syncs a change. / 仅服务端：标记已发刀，有变化时同步。 */
     public void grantKnife() {
         if (!knifeGranted) {
             knifeGranted = true;
@@ -75,9 +76,10 @@ public final class RecruitPlayerComponent implements AutoSyncedComponent {
         }
     }
 
-    /** Server only: clears both fields and syncs. / 仅服务端：清空两个字段并同步。 */
+    /** Server only: clears all three fields; syncs only when an owner-synced task field changed.
+     * 仅服务端：清空全部三个字段；只有同步给本人的任务字段变化时才同步。 */
     public void clear() {
-        gunAcquired = false;
+        gunPickedUp = false;
         if (tasksCompleted != 0 || knifeGranted) {
             tasksCompleted = 0;
             knifeGranted = false;
@@ -114,7 +116,7 @@ public final class RecruitPlayerComponent implements AutoSyncedComponent {
                 ? Math.clamp(tag.getInt(TASKS_COMPLETED), 0, RecruitRules.REQUIRED_TASKS)
                 : 0;
         knifeGranted = tag.getBoolean(KNIFE_GRANTED);
-        gunAcquired = tag.getBoolean(GUN_ACQUIRED);
+        gunPickedUp = tag.getBoolean(GUN_PICKED_UP);
     }
 
     @Override
@@ -125,8 +127,8 @@ public final class RecruitPlayerComponent implements AutoSyncedComponent {
         if (knifeGranted) {
             tag.putBoolean(KNIFE_GRANTED, true);
         }
-        if (gunAcquired) {
-            tag.putBoolean(GUN_ACQUIRED, true);
+        if (gunPickedUp) {
+            tag.putBoolean(GUN_PICKED_UP, true);
         }
     }
 }

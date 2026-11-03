@@ -141,10 +141,6 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, BewitchedPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(BewitchedPlayerComponent::new);
-        // Recruit first-task progress and knife grant, synced to its owner only. / 新兵首个任务进度与发刀状态，只同步给本人。
-        registry.beginRegistration(PlayerEntity.class, RecruitPlayerComponent.KEY)
-                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
-                .end(RecruitPlayerComponent::new);
         registry.beginRegistration(PlayerEntity.class, ApprenticePlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(ApprenticePlayerComponent::new);
@@ -168,6 +164,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, BlackRavenCrowPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(BlackRavenCrowPlayerComponent::new);
+        // Recruit first-task progress and knife grant, synced to its owner only; appended last.
+        // 新兵首个任务进度与发刀状态，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, RecruitPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(RecruitPlayerComponent::new);
     }
 
     @Override

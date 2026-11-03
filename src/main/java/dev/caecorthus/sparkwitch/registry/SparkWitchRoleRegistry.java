@@ -687,10 +687,10 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // Registered right before the Insider (nothing may follow the Insider): the Judge/Emma parameter set with
-        // no appearance condition, so it is drawn only through the shared Vigilante slots. Loadout, economy and the
-        // duel live in roles/civilian/knight.
-        // 注册在内应之前（内应之后不得再注册）：与法官、艾玛相同的参数且无出现条件，只通过共享义警警位抽取。
+        // Registered after USEC, before the Recruit and the Insider (nothing may follow the Insider): the Judge/Emma
+        // parameter set with no appearance condition, so it is drawn only through the shared Vigilante slots.
+        // Loadout, economy and the duel live in roles/civilian/knight.
+        // 注册在 USEC 之后、新兵与内应之前（内应之后不得再注册）：与法官、艾玛相同的参数且无出现条件，只通过共享义警警位抽取。
         // 开局装备、经济与决斗位于 roles/civilian/knight。
         knight = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KNIGHT_ID, FactionIds.CIVILIAN)
                 .color(KnightRules.ROLE_COLOR)
@@ -699,8 +699,11 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // Registered right before the Insider (nothing may follow the Insider): an ordinary task-funded civilian.
-        // 注册在内应之前（内应之后不得再注册）：普通、依靠任务赚钱的平民职业。
+        // Registered right before the Insider (nothing may follow the Insider): an ordinary task civilian (no coins or
+        // shop) drawn by Wathe's civilian assignment like the Fisher and the Blind, never through a police slot. Its
+        // knife, gun and penalty rules live in roles/civilian/recruit.
+        // 注册在内应之前（内应之后不得再注册）：只做任务的普通平民（没有金币与商店），与钓鱼佬、盲人一样由 Wathe 平民分配
+        // 抽取，从不占用警位。刀、枪与惩罚规则位于 roles/civilian/recruit。
         recruit = SparkFactionApi.registerRole(FactionRoleDefinition.builder(RECRUIT_ID, FactionIds.CIVILIAN)
                 .color(RecruitRules.ROLE_COLOR)
                 .moodType(Role.MoodType.REAL)
@@ -759,6 +762,9 @@ public final class SparkWitchRoleRegistry {
                 orthopedist,
                 saint,
                 perfumer,
+                // The Recruit joins the civilian block; the promotion identities stay the tail.
+                // 新兵加入平民段；晋升身份始终位于末尾。
+                recruit,
                 pigGod,
                 tarotReader,
                 fisher,
@@ -792,10 +798,7 @@ public final class SparkWitchRoleRegistry {
                 guardianAngel,
                 vendetta,
                 saboteur,
-                curser,
-                // New roles append to the tail so every existing assassin-guess index stays put.
-                // 新职业追加到末尾，既有刺客猜测下标全部保持不变。
-                recruit
+                curser
         );
     }
 
