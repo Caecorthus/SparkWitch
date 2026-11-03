@@ -1699,9 +1699,10 @@ the Insider and guessed right after it, before the promotion tail.
 - Instinct ("同生存大师"): `StowawaySensesClient` registers a `GetInstinctHighlight` listener that returns `skip()`
   (priority 100, the Survival Master's) when a living viewer has no line of sight to a living Stowaway. Nothing else is
   vetoed: spectators, vanilla Glowing and answers that outrank the skip behave as for a hidden Survival Master.
-  Owner 2026-11-03: Impostor instinct is out of scope. SparkTraits answers an Impostor viewer before the event and
-  hides only the Survival Master (`EffectiveTraitService.shouldSkipSurvivalMasterForImpostorInstinct`), so an
-  Impostor may see the Stowaway through walls; that is intended.
+  Impostor viewers (owner 2026-11-03): SparkTraits routes a living Impostor holding the instinct key through this
+  event as a plain killer (Caecorthus/SparkTraits#66, `ImpostorKillerView`), so the same skip hides the Stowaway from
+  it with no SparkWitch whitelist. A SparkTraits build without that change answers Impostors before the event, and an
+  Impostor then sees the Stowaway through walls.
 - Senses: while a living Stowaway has another living role holder within 10 blocks, a local heartbeat (pitched bass drum)
   plays at 160 rpm at 0 blocks down to 80 rpm at 10, and the action bar shows "你感到一阵不安" only while the action
   bar is free or already shows that line (`client/mixin/stowaway/StowawayInGameHudOverlayAccessor`).
