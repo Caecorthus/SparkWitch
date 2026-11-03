@@ -37,6 +37,8 @@ public final class CrossSwordItem extends Item {
     public static final int MIN_HOLD_TICKS = 11;
     /** Wathe's knife stab distance. / Wathe 小刀的刺击距离。 */
     public static final double STAB_RANGE = 3.0D;
+    /** Lang keys {@code item.sparkwitch.cross_sword.tooltip.line1..N}. / 提示语言键的行数。 */
+    public static final int TOOLTIP_LINES = 3;
 
     private static final ClientRelease NO_CLIENT_RELEASE = (player, stack, heldTicks) -> {
     };
@@ -46,10 +48,13 @@ public final class CrossSwordItem extends Item {
         super(settings);
     }
 
-    /** Three gray lines after the name, styled after Wathe's knife tooltip. / 名称后的三行灰色说明，样式仿照 Wathe 小刀提示。 */
+    /**
+     * Gray {@code .tooltip.lineN} lines after the name (the SparkWitch item style); the hold wording follows Wathe's
+     * knife tooltip. / 名称后的灰色 {@code .tooltip.lineN} 说明（SparkWitch 物品样式）；蓄力措辞沿用 Wathe 小刀提示。
+     */
     @Override
     public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
-        for (int line = 1; line <= 3; line++) {
+        for (int line = 1; line <= TOOLTIP_LINES; line++) {
             tooltip.add(Text.translatable("item.sparkwitch.cross_sword.tooltip.line" + line)
                     .formatted(Formatting.GRAY));
         }
