@@ -32,6 +32,7 @@ import dev.caecorthus.sparkwitch.client.prophet.ProphetNecrologyBookScreen;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStatusHud;
 import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStunClient;
 import dev.caecorthus.sparkwitch.client.insider.InsiderClient;
+import dev.caecorthus.sparkwitch.client.stowaway.StowawaySensesClient;
 import dev.caecorthus.sparkwitch.client.abysslistener.AbyssListenerClient;
 import dev.caecorthus.sparkwitch.client.riftwalker.RiftwalkerClient;
 import dev.caecorthus.sparkwitch.client.seeker.SeekerClientModule;
@@ -144,6 +145,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         SeekerClientModule.register();
         FisherClient.register();
         dev.caecorthus.sparkwitch.client.fiend.FiendClient.init();
+        StowawaySensesClient.register();
         BlindClient.register();
         dev.caecorthus.sparkwitch.client.saint.HolyFlashAudioClient.register();
         AbyssListenerClient.init();
@@ -404,6 +406,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         JudgeClientModule.clear();
         ProphetClientModule.clear();
         SeekerClientModule.reset();
+        StowawaySensesClient.reset();
         BlindClient.reset();
         releaseClosedWorldPlayers();
     }

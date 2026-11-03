@@ -40,6 +40,7 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
@@ -94,6 +95,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier FISHER_ID = FisherRules.ROLE_ID;
     public static final Identifier BLIND_ID = BlindRules.ROLE_ID;
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
+    public static final Identifier STOWAWAY_ID = StowawayRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
     public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
     public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
@@ -134,6 +136,7 @@ public final class SparkWitchRoleRegistry {
     private static Role fisher;
     private static Role blind;
     private static Role fiend;
+    private static Role stowaway;
     private static Role insider;
     private static Role abyssListener;
     private static Role potionGunner;
@@ -188,6 +191,9 @@ public final class SparkWitchRoleRegistry {
         // closed on an older SparkFactionAPI). 计划 v2 §3.3：黑羽鸦在其他模组的结算中同样不算存活（反射调用，旧版
         // SparkFactionAPI 下失败关闭）。
         SparkFactionSettlementExclusionCompat.registerExcludedRole(BLACK_RAVEN_ID);
+        // A living Stowaway never counts as alive for settlement in other mods either.
+        // 活着的偷渡客在其他模组的结算中同样不算存活。
+        SparkFactionSettlementExclusionCompat.registerExcludedRole(STOWAWAY_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
@@ -354,6 +360,11 @@ public final class SparkWitchRoleRegistry {
     public static Role fiend() {
         ensureRegistered();
         return fiend;
+    }
+
+    public static Role stowaway() {
+        ensureRegistered();
+        return stowaway;
     }
 
     public static Role insider() {
@@ -699,6 +710,18 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Registered before the Recruit and the Insider (nothing may follow the Insider). A Wathe-native neutral with
+        // tasks and fake mood, available at every player count. It never blocks any win; at round end a living Stowaway
+        // joins the winning team, and a dead one loses.
+        // 注册在新兵与内应之前（内应之后不得再注册）。有任务、伪装情绪的 Wathe 原生中立职业，任何人数都可出现。它不阻止
+        // 任何胜利；回合结束时活着的偷渡客加入获胜阵营，死亡的偷渡客判负。
+        stowaway = SparkFactionApi.registerRole(FactionRoleDefinition.builder(STOWAWAY_ID, FactionIds.NEUTRAL)
+                .color(StowawayRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .build());
         // Registered right before the Insider (nothing may follow the Insider): an ordinary task civilian (no coins or
         // shop) drawn by Wathe's civilian assignment like the Fisher and the Blind, never through a police slot. Its
         // knife, gun and penalty rules live in roles/civilian/recruit.
@@ -794,6 +817,7 @@ public final class SparkWitchRoleRegistry {
                 knight,
                 fiend,
                 insider,
+                stowaway,
                 windSpirit,
                 guardianAngel,
                 vendetta,

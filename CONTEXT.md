@@ -24,6 +24,9 @@ train fall can kill, that feigns death for 5 s 60 s after the round start and af
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
 It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao and win together.
+It also adds the Stowaway (`sparkwitch:stowaway`, 偷渡客, contributed in PR #178), a neutral drawn at any player count
+that starts with only a lockpick, never counts as alive for any win, joins the winning side if it is alive at round
+end, senses players within 10 blocks, and hides from instinct behind cover like NoellesRoles' Survival Master.
 It also adds the Magician (`sparkwitch:magician`, 魔术师, merged from main), a killer whose recorded puppet replays
 its actions disguised as a chosen player.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
@@ -589,6 +592,10 @@ Current build baseline:
   exemption, and Team Jiahao win seams. Its mixins live in `mixin/insider/`; client presentation
   (instinct outlines, the "嘉豪同伙" label, the Team Jiahao end title) lives in
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
+- `roles/neutral/stowaway/`: Stowaway (`sparkwitch:stowaway`) rules, the opening loadout (`StowawayLoadoutService`),
+  the settlement exclusion and round-end row rule (`StowawaySettlement`, `StowawayWinScope`), and the kill reward
+  (`StowawayKillRewardService`). Its mixins live in `mixin/stowaway/`; client presentation (senses, the Survival
+  Master instinct rule, the round-start "不欢迎登车" line) lives in `client/stowaway/` and `client/mixin/stowaway/`.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the promotion roll
   `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the per-variant hooks: the
@@ -1668,6 +1675,41 @@ the Raven on top of the host's own alive test:
   SparkWitch compiles against an older floor, so an older SparkFactionAPI only logs at debug and those mods keep
   counting the Raven. SparkTraits (Last Stand, Final Moment, its own win listener) and SparkStrength (Shadow Jester
   showdown) read that registry; SparkWitch's own seams never do.
+
+Stowaway rules (owner spec 2026-11-02, PR #178). Profile: Wathe-native neutral, FAKE mood with tasks (tasks pay
+nothing), infinite stamina (`maxSprintTime(-1)`), no round clock, no appearance condition; registered right before
+the Insider and guessed right after it, before the promotion tail.
+- Loadout: a SparkWitch `ON_FINISH_INITIALIZE` phase after the default one strips every room key and role letter
+  (crafting grid included) and grants one lockpick.
+- Settlement: the Stowaway never counts as alive for any win, block or moment. Every `CheckWinCondition` listener
+  runs inside `StowawayWinScope` (`mixin/stowaway/MurderGameModeStowawayWinScopeMixin` wraps Wathe's single dispatch),
+  where `GameFunctions.isPlayerPlayingAndAlive` answers false for a raw Stowaway
+  (`mixin/stowaway/GameFunctionsStowawaySettlementMixin`). Outside the dispatch, the NoellesRoles moment trigger and
+  head counts skip it through `FiendWinExclusion.countsAsAlive`, and SparkTraits / SparkStrength through SparkFactionAPI's
+  `SettlementExclusions` (registered beside the Black Raven; 0.1.5.16+). Wathe's own pre-dispatch checks already skip
+  a neutral.
+- Round end: every writer of the round-end rows (Wathe's two `setRoundEndData` overloads, SparkTraits' replacement of
+  the team overload, which cancels Wathe's body at HEAD) ends in `GameRoundEndComponent.sync()`, so
+  `mixin/stowaway/GameRoundEndComponentStowawayWinnerMixin` completes the rows at the server-side HEAD of `sync()`
+  (`StowawaySettlement.completeRoundEndRows`): once there is a team result or any other winning row, every ALIVE
+  Stowaway row becomes a winner (DEAD, LEFT, LEFT_DEAD lose), and winning Stowaway rows move last so Wathe's
+  "first winning row" neutral title never names the Stowaway. A Stowaway row answers `didWin` with its own flag;
+  SparkFactionAPI custom faction wins also collect a living Stowaway
+  (`mixin/stowaway/FactionWinnerCollectorStowawayWinnerMixin`).
+- Instinct ("同生存大师"): `StowawaySensesClient` registers a `GetInstinctHighlight` listener that returns `skip()`
+  (priority 100, the Survival Master's) when a living viewer has no line of sight to a living Stowaway. Nothing else is
+  vetoed: spectators, vanilla Glowing and answers that outrank the skip behave as for a hidden Survival Master.
+  Impostor viewers (owner 2026-11-03): SparkTraits routes a living Impostor holding the instinct key through this
+  event as a plain killer (Caecorthus/SparkTraits#66, `ImpostorKillerView`), so the same skip hides the Stowaway from
+  it with no SparkWitch whitelist. A SparkTraits build without that change answers Impostors before the event, and an
+  Impostor then sees the Stowaway through walls.
+- Senses: while a living Stowaway has another living role holder within 10 blocks, a local heartbeat (pitched bass drum)
+  plays at 160 rpm at 0 blocks down to 80 rpm at 10, and the action bar shows "你感到一阵不安" only while the action
+  bar is free or already shows that line (`client/mixin/stowaway/StowawayInGameHudOverlayAccessor`).
+- Kill reward: when the committed responsible player (`JudgeKillAttribution.committedResponsible`, else the killer) is
+  effective CIVILIAN, it gets 75 extra coins and the nearest living effective-civilian player who holds no revolver
+  and is not gun-banned by a Wathe misfire gets one revolver through `giveItemStack`, falling through to the next
+  nearest when a role guard or a full inventory refuses it.
 
 Bell Ringer state never enters that shared schema either. `sparkwitch:bell_echo`
 (`NEVER_COPY`, owner-only sync, match-id bound) holds the forced Echo task

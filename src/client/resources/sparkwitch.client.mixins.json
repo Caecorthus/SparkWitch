@@ -152,6 +152,8 @@
     "witchmaiden.MiniWitherSkinSoundLoaderMixin",
     "witchmaiden.MiniWitherSkinSoundManagerMixin",
     "fiend.WatheClientFiendHighlightMixin",
+    "stowaway.StowawayInGameHudOverlayAccessor",
+    "stowaway.StowawayWelcomeTextMixin",
     "blind.BlindAttuneSoundSystemMixin",
     "blind.BlindGateArmorFeatureRendererMixin",
     "blind.BlindGateBipedEntityModelMixin",
