@@ -970,7 +970,9 @@ Current build baseline:
     and 3 blocks. The crosshair mixin (`CrossSwordWatheCrosshairMixin`) runs the cross sword through Wathe's own knife
     branch as soon as the duel target is in that 3-block reach (no hold gate) and forces the shared knife-cooldown read
     off, so it draws the same knife target reticle as the vanilla knife. It has no cooldown and is exempt from
-    SparkFactionAPI forced raises.
+    SparkFactionAPI forced raises. Three gray tooltip lines (`item.sparkwitch.cross_sword.tooltip.line1..3`). It is
+    kept out of every creative tab (`SparkWitchItemGroups.creativeHiddenItems`, 2026-11-02); the Knight loadout and
+    `/give` still hand it out.
   - Duelists: Speed II and glowing colour teams for the Knight (aqua) and the target (red).
     `KnightDuelBodyCollision` with `mixin/knight/KnightDuelEntityCollisionMixin` (priority 1100, outside Wathe's
     `collidesWith` wrap) and `KnightDuelLivingEntityCollisionMixin` lets duelists pass through every player both ways
@@ -1554,8 +1556,11 @@ Current build baseline:
   custom data `ShellStack` (digits `HunterRules.SHELL_BUCKSHOT` 0 / `SHELL_SLUG` 1, cleaned by `sanitizeShellStack`);
   `LoadedShells` still mirrors the count and an item with only that count reads as buckshot. A slug fires one centre
   ray at `SLUG_RANGE` 15 and kills its first victim (the old shot). Buckshot fires 9 pellet rays at `SHOTGUN_RANGE` 8,
-  the vanilla look plus eight at ±`SHOTGUN_SPREAD_DEGREES` (1°) in yaw/pitch, and kills
-  `HunterRules.buckshotKillCount` = ceil(hit rays / 3) of the nearest distinct victims. `DoubleBarrelShotgunItem.fire`
+  the vanilla look plus eight at ±`SHOTGUN_SPREAD_DEGREES` (3°, 2026-11-01; was 1°) in yaw/pitch, and kills
+  `HunterRules.buckshotKillCount` = floor(hit rays / 3) of the nearest distinct victims (2026-11-01; was ceil): 1–2 hit
+  rays kill nobody, 3–5 one, 6–8 two, 9 three, never more than the distinct victims. A Raven Form crow's rays count the
+  same way for its owner, while a single pellet still ends a Magician puppet or breaks a Seeker device; a 1–2-ray graze
+  records `hit` with no target. `DoubleBarrelShotgunItem.fire`
   resolves in three phases so no interceptor is written before every ray was read: (1) read-only per ray, the pierced
   players, then the crow (`BlackRavenCrowHits.onShotgunFired`, returns owner + entry), the puppet
   (`MagicianPuppetHits.shotgunPuppetOnRay`) and the Seeker device (`SeekerDeviceHits.shotgunDeviceOnRay`) against that
