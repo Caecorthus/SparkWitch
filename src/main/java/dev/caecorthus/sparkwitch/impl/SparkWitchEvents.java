@@ -155,7 +155,6 @@ public final class SparkWitchEvents {
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();
-        StowawayFeatureService.register();
         InsiderFeatureService.register();
         BlindFeatureService.register();
         AbyssListenerFeatureService.register();
@@ -163,6 +162,7 @@ public final class SparkWitchEvents {
         RiftwalkerFeatureService.register();
         BewitchedFeatureService.register();
         ApprenticeFeatureService.register();
+        StowawayFeatureService.register();
         MagicianPlaybackManager.init();
         MagicianReplayEvents.register();
         MagicianPuppetAttackHandlers.register();

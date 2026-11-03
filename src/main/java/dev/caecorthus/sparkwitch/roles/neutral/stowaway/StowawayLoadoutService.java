@@ -1,20 +1,25 @@
 package dev.caecorthus.sparkwitch.roles.neutral.stowaway;
 
+import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.index.WatheItems;
+import net.fabricmc.fabric.api.event.Event;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 
 /**
  * Stowaway opening loadout: exactly one lockpick, no room key and no role letter. Runs after Wathe has handed out both
- * default items, in the {@code ON_FINISH_INITIALIZE} phase (final roles already assigned, round still STARTING).
- * 偷渡客开局装备：恰好一个开锁器，没有房间钥匙与职业信件。在 Wathe 发放完两件默认物品后的
- * {@code ON_FINISH_INITIALIZE} 阶段执行（最终职业已确定，对局仍为 STARTING）。
+ * default items, in a SparkWitch {@code ON_FINISH_INITIALIZE} phase ordered after the default one, like the other
+ * role loadouts (final roles already assigned, round still STARTING).
+ * 偷渡客开局装备：恰好一个开锁器，没有房间钥匙与职业信件。与其他职业开局装备一样，在排于默认阶段之后的 SparkWitch
+ * {@code ON_FINISH_INITIALIZE} 阶段执行，此时 Wathe 已发放两件默认物品（最终职业已确定，对局仍为 STARTING）。
  */
 public final class StowawayLoadoutService {
+    private static final Identifier FINISH_INITIALIZE_PHASE = SparkWitch.id("stowaway_finish_initialize");
     private static boolean registered;
 
     private StowawayLoadoutService() {
@@ -25,7 +30,8 @@ public final class StowawayLoadoutService {
             return;
         }
         registered = true;
-        GameEvents.ON_FINISH_INITIALIZE.register((world, game) -> {
+        GameEvents.ON_FINISH_INITIALIZE.addPhaseOrdering(Event.DEFAULT_PHASE, FINISH_INITIALIZE_PHASE);
+        GameEvents.ON_FINISH_INITIALIZE.register(FINISH_INITIALIZE_PHASE, (world, game) -> {
             if (world instanceof ServerWorld serverWorld) {
                 grantRoundStart(serverWorld, game);
             }

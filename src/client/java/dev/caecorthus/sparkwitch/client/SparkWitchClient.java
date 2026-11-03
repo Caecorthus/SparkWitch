@@ -403,8 +403,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         JudgeClientModule.clear();
         ProphetClientModule.clear();
         SeekerClientModule.reset();
-        BlindClient.reset();
         StowawaySensesClient.reset();
+        BlindClient.reset();
         releaseClosedWorldPlayers();
     }
 

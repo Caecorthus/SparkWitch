@@ -676,18 +676,6 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> context.getTotalPlayerCount() >= FiendRules.MIN_PLAYERS)
                 .build());
-        // A Wathe-native neutral with tasks and fake mood, available at every player count. It never blocks any win; at
-        // round end a living Stowaway joins the winning team, and a dead one loses.
-        // 有任务、伪装情绪的 Wathe 原生中立职业，任何人数都可出现。它不阻止任何胜利；回合结束时活着的偷渡客加入获胜阵营，
-        // 死亡的偷渡客判负。
-        stowaway = SparkFactionApi.registerRole(FactionRoleDefinition.builder(STOWAWAY_ID, FactionIds.NEUTRAL)
-                .color(StowawayRules.COLOR)
-                .moodType(Role.MoodType.FAKE)
-                .maxSprintTime(-1)
-                .canSeeTime(false)
-                .nativeWatheFaction(Faction.NEUTRAL)
-                .appearanceCondition(context -> true)
-                .build());
         // USEC (fifth police variant): registered right before the Insider, because nothing may follow the Insider
         // (InsiderRegistrationContractTest), so only the Insider's own index shifts; the assassin-guess tail is re-sorted.
         // Civilian police profile with a 20 s sprint cap (twice the Vigilante's) and no appearance condition (Q11): it is
@@ -713,6 +701,18 @@ public final class SparkWitchRoleRegistry {
                 .maxSprintTime(GameConstants.getInTicks(0, 10))
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // Registered right before the Insider (nothing may follow the Insider). A Wathe-native neutral with tasks and
+        // fake mood, available at every player count. It never blocks any win; at round end a living Stowaway joins the
+        // winning team, and a dead one loses.
+        // 注册在内应之前（内应之后不得再注册）。有任务、伪装情绪的 Wathe 原生中立职业，任何人数都可出现。它不阻止任何
+        // 胜利；回合结束时活着的偷渡客加入获胜阵营，死亡的偷渡客判负。
+        stowaway = SparkFactionApi.registerRole(FactionRoleDefinition.builder(STOWAWAY_ID, FactionIds.NEUTRAL)
+                .color(StowawayRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
                 .build());
         // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
         // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
@@ -794,14 +794,12 @@ public final class SparkWitchRoleRegistry {
                 knight,
                 fiend,
                 insider,
+                stowaway,
                 windSpirit,
                 guardianAngel,
                 vendetta,
                 saboteur,
-                curser,
-                // New roles append to the tail so every existing assassin-guess index stays put.
-                // 新职业追加到末尾，既有刺客猜测下标全部保持不变。
-                stowaway
+                curser
         );
     }
 
