@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerFeatureService;
@@ -127,6 +128,7 @@ public final class SparkWitchEvents {
         PerfumerRuntime.register();
         PerfumerEconomyService.register();
         RecruitRuntime.register();
+        AthleteFeatureService.register();
         NinjaFeatureService.register();
         HunterFeatureService.register();
         OrthopedistSkillService.registerReplayFormatter();

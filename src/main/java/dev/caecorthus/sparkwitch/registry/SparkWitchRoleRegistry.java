@@ -9,6 +9,7 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSettlementExclusionCompat;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
@@ -104,6 +105,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
     public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
+    public static final Identifier ATHLETE_ID = AthleteRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -145,6 +147,7 @@ public final class SparkWitchRoleRegistry {
     private static Role usec;
     private static Role knight;
     private static Role recruit;
+    private static Role athlete;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -400,6 +403,11 @@ public final class SparkWitchRoleRegistry {
     public static Role recruit() {
         ensureRegistered();
         return recruit;
+    }
+
+    public static Role athlete() {
+        ensureRegistered();
+        return athlete;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -722,15 +730,27 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .build());
-        // Registered right before the Insider (nothing may follow the Insider): an ordinary task civilian (no coins or
-        // shop) drawn by Wathe's civilian assignment like the Fisher and the Blind, never through a police slot. Its
-        // knife, gun and penalty rules live in roles/civilian/recruit.
-        // 注册在内应之前（内应之后不得再注册）：只做任务的普通平民（没有金币与商店），与钓鱼佬、盲人一样由 Wathe 平民分配
-        // 抽取，从不占用警位。刀、枪与惩罚规则位于 roles/civilian/recruit。
+        // Registered before the Athlete and the Insider (nothing may follow the Insider): an ordinary task civilian (no
+        // coins or shop) drawn by Wathe's civilian assignment like the Fisher and the Blind, never through a police slot.
+        // Its knife, gun and penalty rules live in roles/civilian/recruit.
+        // 注册在运动员与内应之前（内应之后不得再注册）：只做任务的普通平民（没有金币与商店），与钓鱼佬、盲人一样由 Wathe
+        // 平民分配抽取，从不占用警位。刀、枪与惩罚规则位于 roles/civilian/recruit。
         recruit = SparkFactionApi.registerRole(FactionRoleDefinition.builder(RECRUIT_ID, FactionIds.CIVILIAN)
                 .color(RecruitRules.ROLE_COLOR)
                 .moodType(Role.MoodType.REAL)
                 .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // Registered right before the Insider (nothing may follow the Insider): an ordinary task civilian drawn by Wathe's
+        // civilian assignment, never through a police slot, with unlimited stamina (-1). Its dash lives in
+        // roles/civilian/athlete. Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // 注册在内应之前（内应之后不得再注册）：由 Wathe 平民分配抽取、从不占用警位的普通任务平民，体力无限（-1）。冲刺位于
+        // roles/civilian/athlete。不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        athlete = SparkFactionApi.registerRole(FactionRoleDefinition.builder(ATHLETE_ID, FactionIds.CIVILIAN)
+                .color(AthleteRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(-1)
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
@@ -785,9 +805,10 @@ public final class SparkWitchRoleRegistry {
                 orthopedist,
                 saint,
                 perfumer,
-                // The Recruit joins the civilian block; the promotion identities stay the tail.
-                // 新兵加入平民段；晋升身份始终位于末尾。
+                // The Recruit and the Athlete join the civilian block; the promotion identities stay the tail.
+                // 新兵与运动员加入平民段；晋升身份始终位于末尾。
                 recruit,
+                athlete,
                 pigGod,
                 tarotReader,
                 fisher,
