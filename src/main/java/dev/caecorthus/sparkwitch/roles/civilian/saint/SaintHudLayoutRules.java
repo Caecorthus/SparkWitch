@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.saint;
 
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,11 +58,12 @@ public final class SaintHudLayoutRules {
 
     /**
      * SparkWitch roles without a witch skill that still draw their own skill line in the shared corner slot (5 px
-     * padding, one font row): the Ragpicker. Reserved by role so the Karma line any player can carry sits above it.
-     * 没有魔女技能、却在共享右下角位置绘制自有技能行（5 像素边距、一行字高）的 SparkWitch 职业：拾荒者。按职业预留，
-     * 使任何玩家都可能带有的业障行位于其上方。
+     * padding, one font row): the Ragpicker and the Dominator (always on, PR #192). Reserved by role so the Karma line
+     * any player can carry sits above it.
+     * 没有魔女技能、却在共享右下角位置绘制自有技能行（5 像素边距、一行字高）的 SparkWitch 职业：拾荒者与支配者（常驻显示，
+     * PR #192）。按职业预留，使任何玩家都可能带有的业障行位于其上方。
      */
     private static boolean ownsCornerSkillLine(Identifier roleId) {
-        return JunkerRules.ROLE_ID.equals(roleId);
+        return JunkerRules.ROLE_ID.equals(roleId) || DominatorRules.ROLE_ID.equals(roleId);
     }
 }

@@ -72,6 +72,9 @@ public final class GrandWitchFearService {
             // Athlete dash (owner 2026-11-03: Fear blocks it); the server also re-checks fear on use.
             // 运动员冲刺（所有者 2026-11-03：恐惧时不能冲刺）；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "use_athlete_dash"),
+            // Dominator mark/release (G); the server also re-checks fear on use.
+            // 支配者标记/释放（G 键）；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "use_dominator_skill"),
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),

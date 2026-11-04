@@ -253,6 +253,11 @@
     "dominator.DominatorForcedShotGunMixin",
     "dominator.DominatorForcedShotRewardMixin",
     "dominator.GameFunctionsForcedShotProtectionMixin",
+    "dominator.GameFunctionsForcedShotDeathMixin",
+    "dominator.SchedulerForcedShotConsequenceMixin",
+    "dominator.EntityForcedShotSneakMixin",
+    "dominator.ServerPlayerEntityForcedShotScreenMixin",
+    "dominator.DecoratedPotBlockForcedShotGunMixin",
     "dominator.GameFunctionsDominatorLetterMixin"
   ],
   "injectors": {

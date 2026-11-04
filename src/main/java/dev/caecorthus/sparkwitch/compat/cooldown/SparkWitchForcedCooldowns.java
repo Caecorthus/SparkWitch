@@ -23,6 +23,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowRules;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianConstants;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
@@ -71,6 +73,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier BLACK_RAVEN_CROW_ID = BlackRavenCrowRules.SKILL_ID;
     static final Identifier NOA_PAINT_ID = NoaRules.PAINT_SKILL_ID;
     static final Identifier RAGPICKER_SEARCH_ID = SparkWitch.id("ragpicker_search");
+    static final Identifier DOMINATOR_SKILL_ID = SparkWitch.id("dominator_skill");
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -124,7 +127,10 @@ public final class SparkWitchForcedCooldowns {
                 noaPaint(),
                 // Ragpicker Search (owner decision 2026-11-04), appended after the Noa painting.
                 // 拾荒者搜刮（所有者 2026-11-04 决定），追加在诺亚作画之后。
-                ragpickerSearch()
+                ragpickerSearch(),
+                // Dominator mark/release key (PR #192), appended after the Ragpicker Search.
+                // 支配者标记/释放键（PR #192），追加在拾荒者搜刮之后。
+                dominatorSkill()
         );
     }
 
@@ -375,6 +381,34 @@ public final class SparkWitchForcedCooldowns {
                 player -> JunkerPlayerComponent.KEY.get(player),
                 JunkerPlayerComponent::getSearchReadyTick,
                 JunkerPlayerComponent::setSearchReadyTick
+        );
+    }
+
+    /**
+     * The Dominator's G cooldown (PR #192), kept as a counting-down tick total in the owner-synced
+     * {@code sparkwitch:dominator} component; it gates both marking and releasing. An ACTIVE round, the raw role (the
+     * Dominator is never a Black Raven disguise target, so {@code DominatorSkillService}'s {@code isRole} gate reads
+     * the same) and no active mark: the same counter gates the release press, and the mark's end writes the post-mark
+     * cooldown, so a running mark is never forced (like the Kidnapper's carried body and a burning Hellfire).
+     * {@code SimpleRoleSkillCooldownStore} has no {@code mayForce}, so that clause sits in the gate; SparkFactionAPI
+     * leaves out a store for which either is false. Remaining time includes the 45 s round-start cooldown; the nominal
+     * is the 10 s cooldown after each mark ends. The setter is exact (floored at 0) and syncs the owner. The skill has
+     * no item, so SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it, like Raven Form.
+     * 支配者 G 键冷却（PR #192），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:dominator} 组件中；它同时拦住标记与
+     * 释放。ACTIVE 回合、真实职业（支配者不可能是黑羽鸦的伪装目标，因此 DominatorSkillService 的 isRole 门控读到的相同）
+     * 且没有进行中的标记：同一计数也拦着释放键，且标记结束时会写入标记后冷却，因此进行中的标记绝不强制（与绑架者携尸、
+     * 业火燃烧相同）。SimpleRoleSkillCooldownStore 没有 mayForce，因此该条件放在门控中；二者任一为假时 SparkFactionAPI
+     * 都会略过该存储。剩余时间包含 45 秒回合初始冷却；标准冷却为每次标记结束后的 10 秒。setter 为精确写入（下限为 0）并
+     * 同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）触及不到它，与化鸦相同。
+     */
+    static SimpleRoleSkillCooldownStore dominatorSkill() {
+        return SimpleRoleSkillCooldownStore.exact(
+                DOMINATOR_SKILL_ID,
+                whileActive((game, player) -> DominatorRules.isDominator(game.getRole(player))
+                        && !DominatorPlayerComponent.KEY.get(player).hasActiveMark()),
+                player -> DominatorPlayerComponent.KEY.get(player).getCooldownTicks(),
+                () -> DominatorRules.MARK_END_COOLDOWN_TICKS,
+                (player, ticks) -> DominatorPlayerComponent.KEY.get(player).setCooldownTicks(ticks)
         );
     }
 

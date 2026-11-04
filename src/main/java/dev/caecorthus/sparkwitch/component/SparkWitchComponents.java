@@ -195,8 +195,9 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, DominatorPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(DominatorPlayerComponent::new);
-        // Forced-shot sequence; ALWAYS_COPY keeps a stashed original stack recoverable across a respawn.
-        // 强制开枪序列；ALWAYS_COPY 使收起的原物品在重生后仍可还原。
+        // Forced-shot sequence. Only the "active" flag is saved/copied: a loaded or respawn-copied sequence never resumes,
+        // it purges leftover marked guns on its next tick and keeps no stash.
+        // 强制开枪序列。只保存/复制“进行中”标记：读档或重生复制后的序列绝不继续，下一刻清除残留的标记左轮且不保留原物品。
         registry.beginRegistration(PlayerEntity.class, DominatorForcedShotComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.ALWAYS_COPY)
                 .end(DominatorForcedShotComponent::new);

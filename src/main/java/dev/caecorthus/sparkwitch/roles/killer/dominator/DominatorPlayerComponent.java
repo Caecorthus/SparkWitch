@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.dominator;
 
+import dev.caecorthus.sparkwitch.util.TickTime;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.game.GameFunctions;
 import java.util.UUID;
@@ -19,10 +20,17 @@ import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 /**
- * Owner-only Dominator state: remaining skill uses (2 at role assignment) and the 30 s mark target.
- * Marking itself consumes no use. Synced only to the owner, whose HUD and outline read it.
- * 支配者仅本人可见的状态：剩余技能次数（分配职业时为 2）和 30 秒标记目标。标记本身不消耗次数。
- * 只同步给本人，本人的 HUD 与描边读取它。
+ * Owner-only Dominator state: remaining skill uses ({@link DominatorRules#INITIAL_USES} = 0 at role assignment, +1
+ * per personal kill up to {@link DominatorRules#MAX_USES}), the 30 s mark target and the G cooldown (45 s at role
+ * assignment, 10 s after each mark ends). Marking itself consumes no use. Synced only to the owner, whose HUD and
+ * outline read it. The server syncs a running timer when its shown second changes; the client counts down in
+ * between but never below the first tick of the shown second (the Kidnapper/Magician floor), so the client never
+ * shows READY, sends G or drops the mark before the server's own zero arrives.
+ * 支配者仅本人可见的状态：剩余技能次数（分配职业时为 {@link DominatorRules#INITIAL_USES} = 0，每次亲手击杀 +1，上限
+ * {@link DominatorRules#MAX_USES}）、30 秒标记目标与 G 键冷却（分配职业时 45 秒，每次标记结束后 10 秒）。标记本身不消耗
+ * 次数。只同步给本人，本人的 HUD 与描边读取它。计时中的值在显示秒数变化时由服务端同步；客户端在两次同步之间本地倒数，但
+ * 绝不低于当前显示秒数的第一刻（与绑匪/魔术师相同的下限），因此客户端不会在服务端的归零同步到达前显示就绪、发送 G 或
+ * 丢掉标记。
  */
 public final class DominatorPlayerComponent
         implements AutoSyncedComponent, ServerTickingComponent, ClientTickingComponent {
@@ -40,6 +48,9 @@ public final class DominatorPlayerComponent
     private @Nullable UUID markedTarget;
     private int markRemainingTicks;
     private int cooldownTicks;
+    /** Client only: local countdown floors (the shown second's first tick). / 仅客户端：本地倒数下限。 */
+    private int clientCooldownFloor;
+    private int clientMarkFloor;
 
     public DominatorPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -90,6 +101,20 @@ public final class DominatorPlayerComponent
         }
     }
 
+    /**
+     * Server only: exact cooldown write for the SparkFactionAPI role-skill store {@code sparkwitch:dominator_skill}
+     * ({@code SparkWitchForcedCooldowns#dominatorSkill}), floored at 0; syncs the owner when the value changes.
+     * 仅服务端：供 SparkFactionAPI 职业技能存储 {@code sparkwitch:dominator_skill} 精确写入冷却，下限为 0；值变化时同步给本人。
+     */
+    public void setCooldownTicks(int ticks) {
+        int next = Math.max(0, ticks);
+        if (next == cooldownTicks) {
+            return;
+        }
+        cooldownTicks = next;
+        syncOwner();
+    }
+
     /** Server only: marks the target for 30 s. Does not consume a use. / 仅服务端：标记目标 30 秒，不消耗次数。 */
     public void mark(UUID target) {
         markedTarget = target;
@@ -110,8 +135,10 @@ public final class DominatorPlayerComponent
     }
 
     /**
-     * Server only: clears the mark, starts the G cooldown and syncs, leaving the remaining uses untouched.
-     * 仅服务端：清除标记、开始 G 冷却并同步，不动剩余次数。
+     * Server only: clears the mark, starts the G cooldown and syncs, leaving the remaining uses untouched. The
+     * cooldown is raised, never shortened (the forced-cooldown store skips a running mark, so this is a safety net).
+     * 仅服务端：清除标记、开始 G 冷却并同步，不动剩余次数。冷却只抬高、绝不缩短（强制冷却存储会跳过进行中的标记，
+     * 这里只是保险）。
      */
     public void clearMark() {
         if (markedTarget == null && markRemainingTicks == 0) {
@@ -119,7 +146,7 @@ public final class DominatorPlayerComponent
         }
         markedTarget = null;
         markRemainingTicks = 0;
-        cooldownTicks = DominatorRules.MARK_END_COOLDOWN_TICKS;
+        cooldownTicks = Math.max(cooldownTicks, DominatorRules.MARK_END_COOLDOWN_TICKS);
         syncOwner();
     }
 
@@ -132,15 +159,15 @@ public final class DominatorPlayerComponent
         sync();
     }
 
-    /** Server only: consumes one use, clears the mark, starts the G cooldown and syncs once.
-     *  仅服务端：消耗一次次数、清除标记、开始 G 冷却并只同步一次。 */
+    /** Server only: consumes one use, clears the mark, raises the G cooldown to at least 10 s and syncs once.
+     *  仅服务端：消耗一次次数、清除标记、把 G 冷却抬高到至少 10 秒并只同步一次。 */
     public void releaseMark() {
         if (remainingUses > 0) {
             remainingUses--;
         }
         markedTarget = null;
         markRemainingTicks = 0;
-        cooldownTicks = DominatorRules.MARK_END_COOLDOWN_TICKS;
+        cooldownTicks = Math.max(cooldownTicks, DominatorRules.MARK_END_COOLDOWN_TICKS);
         sync();
     }
 
@@ -148,8 +175,8 @@ public final class DominatorPlayerComponent
     public void serverTick() {
         if (cooldownTicks > 0) {
             cooldownTicks--;
-            // Once per second keeps the HUD accurate without syncing every tick; the client counts down locally too.
-            // 每秒同步一次即可让 HUD 准确；客户端也会本地倒计时。
+            // A multiple of 20 is exactly where the shown second changes (zero included), so the client's floor
+            // releases only here. 20 的倍数（含 0）正是显示秒数变化之处，客户端的下限只在此处放开。
             if (cooldownTicks % 20 == 0) {
                 syncOwner();
             }
@@ -183,15 +210,13 @@ public final class DominatorPlayerComponent
 
     @Override
     public void clientTick() {
-        if (cooldownTicks > 0) {
+        // Never below the shown second's first tick: READY and the mark's end wait for the server's sync.
+        // 绝不低于显示秒数的第一刻：就绪与标记结束都等待服务端同步。
+        if (cooldownTicks > clientCooldownFloor) {
             cooldownTicks--;
         }
-        if (markRemainingTicks <= 0) {
-            return;
-        }
-        markRemainingTicks--;
-        if (markRemainingTicks <= 0) {
-            markedTarget = null;
+        if (markedTarget != null && markRemainingTicks > clientMarkFloor) {
+            markRemainingTicks--;
         }
     }
 
@@ -260,6 +285,17 @@ public final class DominatorPlayerComponent
             markedTarget = null;
             markRemainingTicks = 0;
         }
+        clientCooldownFloor = clientFloor(cooldownTicks);
+        clientMarkFloor = clientFloor(markRemainingTicks);
+    }
+
+    /**
+     * Lowest local value that still shows the same second ({@code ceil(ticks / 20)}, as the HUD), at least 1 while
+     * running, so READY waits for the server. / 仍显示同一秒（与 HUD 相同的 {@code ceil(ticks / 20)}）的最低本地值，
+     * 计时中至少为 1，因此就绪会等待服务端。
+     */
+    static int clientFloor(int ticks) {
+        return ticks <= 0 ? 0 : (TickTime.ceilSeconds(ticks) - 1) * TickTime.TICKS_PER_SECOND + 1;
     }
 
     private void sync() {

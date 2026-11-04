@@ -64,6 +64,8 @@ public final class KnightDuelSkillLock {
             Identifier.of("sparkwitch", "ragpicker_search"),
             Identifier.of("sparkwitch", "use_fiend_dash"),
             Identifier.of("sparkwitch", "use_athlete_dash"),
+            // Dominator mark/release (UseDominatorSkillC2SPacket). / 支配者标记/释放（UseDominatorSkillC2SPacket）。
+            Identifier.of("sparkwitch", "use_dominator_skill"),
             // The Knight's own pick; a non-duelist is never locked, so it always passes for them.
             // 骑士自己的选择包；非决斗者从不被锁，因此对他们始终放行。
             Identifier.of("sparkwitch", "knight_duel_target"),

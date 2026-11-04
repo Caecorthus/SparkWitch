@@ -266,11 +266,14 @@ public final class SparkWitchClient implements ClientModInitializer {
                         ClientPlayNetworking.send(new UseSaboteurSkillC2SPacket());
                     }
                 } else if (DominatorRules.isDominator(role)) {
-                    // No uses left means G is dead: send nothing, matching the hidden HUD prompt. The server also
-                    // refuses the request, so this is presentation only.
-                    // 次数为 0 时 G 已失效：不发请求，与隐藏的 HUD 提示一致。服务端同样会拒绝，此处仅为表现层。
+                    // Real role only. Sends nothing while the press cannot do anything: dead, in spectator mode or
+                    // swallowed (the shared side-neutral caster gate), no uses left, or on cooldown. The server re-checks
+                    // all of this plus its own gates, so this only saves a doomed request.
+                    // 仅限真实职业。按键无效时不发送：死亡、旁观模式或被吞下（两端共用的施放者门槛）、次数为 0 或冷却中。
+                    // 服务端会再次检查这些以及其自身门槛，此处只是省掉注定被拒的请求。
                     DominatorPlayerComponent dominator = DominatorPlayerComponent.KEY.get(client.player);
-                    if (dominator.getRemainingUses() > 0
+                    if (DominatorRules.isActiveCaster(client.player)
+                            && dominator.getRemainingUses() > 0
                             && !dominator.isOnCooldown()
                             && ClientPlayNetworking.canSend(UseDominatorSkillC2SPacket.ID)) {
                         ClientPlayNetworking.send(new UseDominatorSkillC2SPacket());

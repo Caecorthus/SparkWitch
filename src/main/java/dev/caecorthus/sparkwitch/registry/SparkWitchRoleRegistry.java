@@ -842,13 +842,11 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // Ragpicker (拾荒者, PR #184): registered after Noa as the last registration before the Insider, since nothing
-        // may follow the Insider (InsiderRegistrationContractTest). Every existing role keeps its index except the
-        // Insider's own. An ordinary civilian (REAL mood, passenger stamina, no appearance condition) drawn by Wathe's
-        // civilian pass; never a police variant and never a Witch-skill role.
-        // 拾荒者（PR #184）：注册在诺亚之后，作为内应之前的最后一个注册，因为内应之后不得再注册
-        // （InsiderRegistrationContractTest）。除内应自身外，所有既有职业下标不变。普通平民（真实情绪、乘客体力、
-        // 无出现条件），由 Wathe 平民分配抽取；既不是警察变体，也不是魔女技能职业。
+        // Ragpicker (拾荒者, PR #184): registered after Noa and before the Dominator and the Insider, since nothing may
+        // follow the Insider (InsiderRegistrationContractTest). An ordinary civilian (REAL mood, passenger stamina, no
+        // appearance condition) drawn by Wathe's civilian pass; never a police variant and never a Witch-skill role.
+        // 拾荒者（PR #184）：注册在诺亚之后、支配者与内应之前，因为内应之后不得再注册（InsiderRegistrationContractTest）。
+        // 普通平民（真实情绪、乘客体力、无出现条件），由 Wathe 平民分配抽取；既不是警察变体，也不是魔女技能职业。
         ragpicker = SparkFactionApi.registerRole(FactionRoleDefinition.builder(RAGPICKER_ID, FactionIds.CIVILIAN)
                 .color(JunkerRules.COLOR)
                 .moodType(Role.MoodType.REAL)
@@ -856,11 +854,16 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // A plain killer clone for now: exactly Wathe's Killer stats, only the name and dark green color differ.
-        // Registered right before the Insider (nothing may follow the Insider); the default one-player spawn group
-        // keeps it to one killer slot and at most one per round, like the Ninja.
-        // 暂时完全照搬 wathe 的杀手机制与数值，仅名字和深绿色不同。注册在内应之前（内应之后不得再注册）；
-        // 默认单人分配组使它只占一个杀手位、每局至多一人，与忍者相同。
+        // Dominator (支配者, PR #192): a killer with Wathe's Killer profile (FAKE mood, unlimited sprint, round clock)
+        // whose shared ability key (G) marks a player through walls and then forces that player to fire one shot;
+        // the runtime lives in roles/killer/dominator, mixin/dominator and client/dominator (CONTEXT.md). Registered
+        // after the Ragpicker, right before the Insider (nothing may follow the Insider), so only the Insider's own
+        // index shifts. The default one-player spawn group keeps it to one killer slot, at most one per round, like
+        // the Ninja. Never a Witch-skill role and never in the gui.sparkwitch.skills panel.
+        // 支配者（PR #192）：沿用 Wathe 杀手参数（伪装情绪、无限冲刺、可见回合时间）的杀手，共享技能键（G）可穿墙标记一名
+        // 玩家，随后强制该玩家开一枪；运行时位于 roles/killer/dominator、mixin/dominator 与 client/dominator（见 CONTEXT.md）。
+        // 注册在拾荒者之后、紧挨内应之前（内应之后不得再注册），因此只有内应自身的下标改变。默认单人分配组使它只占一个
+        // 杀手位、每局至多一人，与忍者相同。不是魔女技能职业，也不进入 gui.sparkwitch.skills 面板。
         dominator = SparkFactionApi.registerRole(FactionRoleDefinition.builder(DOMINATOR_ID, FactionIds.KILLER)
                 .color(DominatorRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -941,6 +944,11 @@ public final class SparkWitchRoleRegistry {
                 bellRinger,
                 timeStealer,
                 magician,
+                // The Dominator (PR #192) joins the killer block right after the Magician; NoellesRoles sends role
+                // identifiers, so this order is presentation only and the promotion identities stay the tail.
+                // 支配者（PR #192）加入杀手段，紧随魔术师；NoellesRoles 发送的是职业标识符，此顺序仅影响展示，晋升身份
+                // 仍位于末尾。
+                dominator,
                 murderousWitch,
                 accomplice,
                 abyssListener,
@@ -964,10 +972,7 @@ public final class SparkWitchRoleRegistry {
                 guardianAngel,
                 vendetta,
                 saboteur,
-                curser,
-                // New roles append to the tail so every existing assassin-guess index stays put.
-                // 新职业追加到末尾，既有刺客猜测下标全部保持不变。
-                dominator
+                curser
         );
     }
 
