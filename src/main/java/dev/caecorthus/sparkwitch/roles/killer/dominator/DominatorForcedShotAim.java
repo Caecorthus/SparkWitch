@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  * what SparkWitch's client selector mixins add, in the same nearest-wins order:
  * <ol>
  *   <li>Wathe's 30-block players-only ray, lengthened by an active Marksman range trait, through which active Wraiths
- *   pass (except the exact Vendetta pair), as {@code WraithRevolverAimMixin}/{@code WraithAimRaycastMixin} do; a
+ *   pass (except the exact Vendetta pair), as the client Wraith revolver-aim pass-through does; a
  *   sleeping Wraith picked by Wathe's bed fallback is a miss.</li>
  *   <li>A live Magician puppet strictly nearer ({@code MagicianRevolverTargetMixin}).</li>
  *   <li>A Raven Form crow strictly nearer, never the shooter's own ({@code BlackRavenCrowRevolverAimMixin}); Wathe's
