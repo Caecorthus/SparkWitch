@@ -19,6 +19,7 @@ public final class SparkWitchRoles {
     public static final Identifier NINJA_ID = SparkWitchRoleRegistry.NINJA_ID;
     public static final Identifier BLACK_RAVEN_ID = SparkWitchRoleRegistry.BLACK_RAVEN_ID;
     public static final Identifier HUNTER_ID = SparkWitchRoleRegistry.HUNTER_ID;
+    public static final Identifier DOMINATOR_ID = SparkWitchRoleRegistry.DOMINATOR_ID;
     public static final Identifier ORTHOPEDIST_ID = SparkWitchRoleRegistry.ORTHOPEDIST_ID;
     public static final Identifier KIDNAPPER_ID = SparkWitchRoleRegistry.KIDNAPPER_ID;
     public static final Identifier MAGICIAN_ID = SparkWitchRoleRegistry.MAGICIAN_ID;
@@ -240,6 +241,10 @@ public final class SparkWitchRoles {
 
     public static Role ragpicker() {
         return SparkWitchRoleRegistry.ragpicker();
+    }
+
+    public static Role dominator() {
+        return SparkWitchRoleRegistry.dominator();
     }
 
     public static List<Role> assassinGuessRoles() {

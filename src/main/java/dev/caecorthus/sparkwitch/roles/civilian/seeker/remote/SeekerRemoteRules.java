@@ -72,6 +72,7 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "rift_gate_close"),
             Identifier.of("sparkwitch", "use_fiend_dash"),
             Identifier.of("sparkwitch", "use_athlete_dash"),
+            Identifier.of("sparkwitch", "use_dominator_skill"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
             // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.

@@ -82,6 +82,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.UseDominatorSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashEntities;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
@@ -146,6 +149,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         JunkerClientModule.register();
         KnightSwordClient.register();
         KnightDuelClient.register();
+        dev.caecorthus.sparkwitch.client.dominator.DominatorClientModule.register();
         ProphetClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
@@ -260,6 +264,19 @@ public final class SparkWitchClient implements ClientModInitializer {
                             ClientPlayNetworking.canSend(UseSaboteurSkillC2SPacket.ID)
                     )) {
                         ClientPlayNetworking.send(new UseSaboteurSkillC2SPacket());
+                    }
+                } else if (DominatorRules.isDominator(role)) {
+                    // Real role only. Sends nothing while the press cannot do anything: dead, in spectator mode or
+                    // swallowed (the shared side-neutral caster gate), no uses left, or on cooldown. The server re-checks
+                    // all of this plus its own gates, so this only saves a doomed request.
+                    // 仅限真实职业。按键无效时不发送：死亡、旁观模式或被吞下（两端共用的施放者门槛）、次数为 0 或冷却中。
+                    // 服务端会再次检查这些以及其自身门槛，此处只是省掉注定被拒的请求。
+                    DominatorPlayerComponent dominator = DominatorPlayerComponent.KEY.get(client.player);
+                    if (DominatorRules.isActiveCaster(client.player)
+                            && dominator.getRemainingUses() > 0
+                            && !dominator.isOnCooldown()
+                            && ClientPlayNetworking.canSend(UseDominatorSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseDominatorSkillC2SPacket());
                     }
                 } else if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.CURSER_ID)) {
                     if (CurserClientHooks.canUse(client.player)) {
