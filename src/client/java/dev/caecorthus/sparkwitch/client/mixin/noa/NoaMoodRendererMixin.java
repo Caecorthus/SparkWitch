@@ -46,39 +46,6 @@ public abstract class NoaMoodRendererMixin {
             int height,
             Operation<Void> original
     ) {
-        // 夏目安安 (PR #194, ported from the fork's @Redirect): a local Natsume with synced mood >= 0 sees the red copy.
-        // The PR ships it as plain textures/gui/natsume_mood_*.png (not GUI-atlas sprites), so it is drawn with
-        // drawTexture at the same footprint, 14x17 source, instead of going through the wrapped drawGuiTexture.
-        // 夏目安安（PR #194，移植自 fork 的 @Redirect）：同步理智不低于 0 的本地夏目安安看到红色版。PR 以普通的
-        // textures/gui/natsume_mood_*.png（不是 GUI 图集 sprite）提供，因此用 drawTexture 以相同位置、14x17 源尺寸绘制，
-        // 而不经过被包装的 drawGuiTexture。
-        Identifier natsume = natsumeMoodTexture(sprite);
-        if (natsume != null) {
-            context.drawTexture(natsume, x, y, 0, 0, width, height, 14, 17);
-            return;
-        }
         original.call(context, NoaMoodIcon.spriteFor(sprite), x, y, width, height);
-    }
-
-    @org.spongepowered.asm.mixin.Unique
-    private static Identifier natsumeMoodTexture(Identifier sprite) {
-        var client = net.minecraft.client.MinecraftClient.getInstance();
-        if (client.player == null || client.player.getWorld() == null) {
-            return null;
-        }
-        var role = dev.doctor4t.wathe.cca.GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player);
-        if (role == null || !dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID
-                .equals(role.identifier())) {
-            return null;
-        }
-        if (dev.doctor4t.wathe.cca.PlayerMoodComponent.KEY.get(client.player).getMood() < 0.0F) {
-            return null;
-        }
-        String path = sprite.getPath();
-        String name = path.endsWith("mood_happy") ? "natsume_mood_happy"
-                : path.endsWith("mood_mid") ? "natsume_mood_mid"
-                : path.endsWith("mood_depressive") ? "natsume_mood_depressive"
-                : null;
-        return name == null ? null : Identifier.of("sparkwitch", "textures/gui/" + name + ".png");
     }
 }
