@@ -50,11 +50,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Server side of 薛定谔之猫. {@link #onDeathCommit} runs at Wathe's death-commit point inside {@code killPlayer}, after
@@ -88,8 +88,12 @@ public final class SchrodingersCatService {
      * 这次击杀。
      */
     private static final Identifier DISCONNECT_PHASE = SparkWitch.id("schrodingers_cat_release");
-    /** Cats in their spectre window, by player; server thread only. / 处于幽魂阶段的猫，按玩家索引；仅服务端线程。 */
-    private static final Map<UUID, Spectre> SPECTRES = new HashMap<>();
+    /**
+     * Cats in their spectre window, by player. Written on the server thread only; concurrent so the voice plugin's
+     * microphone thread may read it. / 处于幽魂阶段的猫，按玩家索引。只在服务端线程写入；使用并发表，使语音插件的麦克风
+     * 线程也可读取。
+     */
+    private static final Map<UUID, Spectre> SPECTRES = new ConcurrentHashMap<>();
     private static boolean registered;
 
     private SchrodingersCatService() {
@@ -127,9 +131,9 @@ public final class SchrodingersCatService {
     /**
      * Whether this player is a cat in its spectre window: every {@code killPlayer} on it is refused at HEAD, forced
      * kills included (they ignore a {@code KillPlayer.BEFORE} cancel), and the spectator guards in {@code mixin/cat/}
-     * close the Swapper, spectator teleport and camera possession. Server thread only.
+     * close the Swapper, spectator teleport and camera possession.
      * 该玩家是否为处于幽魂阶段的猫：对其的每次 {@code killPlayer} 都在 HEAD 被拒绝，包括忽略 {@code KillPlayer.BEFORE}
-     * 取消结果的强制击杀；{@code mixin/cat/} 中的旁观守卫封住换位、旁观传送与视角附身。仅服务端线程。
+     * 取消结果的强制击杀；{@code mixin/cat/} 中的旁观守卫封住换位、旁观传送与视角附身。
      */
     public static boolean isSpectre(@Nullable ServerPlayerEntity player) {
         return player != null && SPECTRES.containsKey(player.getUuid());
@@ -199,9 +203,14 @@ public final class SchrodingersCatService {
                 previous == GameMode.SPECTATOR ? GameMode.ADVENTURE : previous, side,
                 world.getTime() + SchrodingersCatRules.SPECTRE_TICKS);
         SPECTRES.put(cat.getUuid(), spectre);
-        // What Wathe does right after the commit point, which the takeover skips: a spent poison never kills again.
-        // Wathe 在落定点之后会做、而接管跳过的事：用尽的毒不会再次致死。
-        PlayerPoisonComponent.KEY.get(cat).reset();
+        // What Wathe does right after the commit point, which the takeover skips: a spent poison never kills again, and
+        // its poisoner is forgotten too (killPlayer credits a killerless death to a lingering poisoner).
+        // Wathe 在落定点之后会做、而接管跳过的事：用尽的毒不会再次致死，下毒者也一并清除（killPlayer 会把无凶手的死亡记给
+        // 残留的下毒者）。
+        PlayerPoisonComponent poison = PlayerPoisonComponent.KEY.get(cat);
+        poison.reset();
+        poison.poisoner = null;
+        poison.sync();
         // A Knight duel ends on a duelist's death through KillPlayer.AFTER, which the takeover skips.
         // 骑士决斗经由 KillPlayer.AFTER 在决斗者死亡时结束，而接管跳过了它。
         KnightDuelService.endForTakenOverDeath(cat);

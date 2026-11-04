@@ -162,10 +162,11 @@ public final class SeekerLifecycleService {
         if (!Objects.equals(component.state().matchId(), matchId)) {
             cleanUp(player, SeekerExitReason.ROUND_END);
         }
-        if (matchId == null) {
-            return;
+        // Like the round start: bind when Wathe reports a match, grant either way.
+        // 与开局相同：Wathe 报告对局时绑定，无论如何都发放。
+        if (matchId != null) {
+            component.bindMatch(matchId);
         }
-        component.bindMatch(matchId);
         SeekerLoadoutService.grant(player);
     }
 
