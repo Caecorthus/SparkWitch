@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.blind.gate;
 
 import dev.caecorthus.sparkwitch.api.SparkWitchApi;
+import dev.caecorthus.sparkwitch.client.render.entity.EmfVanillaModel;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
 /**
@@ -30,6 +31,11 @@ public final class BlindClientGateWiring {
         // Public seam for feature-like extras that other mods draw outside the feature loop (see the facade method).
         // 供其他模组在附加层循环之外绘制的类附加层物件使用的公开接口（见门面方法说明）。
         SparkWitchApi.installBlindFeatureGate(BlindClientGates::hidesFeaturesFromBlind);
+        // Animation packs pose other players from their real hands (Fresh Animations raises an item holder's arm), so
+        // under EMF they keep the vanilla model while the view is active and the empty arm pose holds.
+        // 动画包根据其他玩家真实的手持物摆姿（Fresh Animations 会抬起持物者的手臂），因此视图生效期间在 EMF 下保持原版模型，
+        // 空手姿势才能成立。
+        EmfVanillaModel.when(BlindClientGates::suppressesFeatures);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             BlindBumpClient.tick(client);
             BlindAttuneDucking.tick(client);

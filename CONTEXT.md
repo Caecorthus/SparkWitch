@@ -405,7 +405,9 @@ Current build baseline:
     a shared 10 s cooldown. State lives in `MiniWitherPlayerComponent` (`sparkwitch:mini_wither`, appended last: the
     active flag for everyone, tasks and cooldown for the owner). No Wither entity exists: `MiniWitherAnchor` places it
     behind the main-hand shoulder for both the server (skull origin, quiet ambient call) and the client
-    (`client/witchmaiden/MiniWitherRenderer`, a player feature plus a first-person world draw). Every 5 s it fires a
+    (`client/witchmaiden/MiniWitherRenderer`, a player feature plus a first-person world draw; its hand-posed vanilla
+    Wither model, drawn when no skin is selected, is built from vanilla's model data so animation packs cannot re-pose
+    it, entity render protocol). Every 5 s it fires a
     `MiniWitherSkullEntity` at the visible target nearest her look within 24 blocks; the 2x2x2 burst
     (`MiniWitherBurstService`, no vanilla explosion, so no knockback) gives non-killers Slowness II for 2 s. "Killer"
     is the SparkFactionAPI effective faction (the Impostor trait counts) plus the NoellesRoles Undercover. A
@@ -510,7 +512,12 @@ Current build baseline:
     `generic.scale` modifier onto the puppet. It takes the copied player's live modifier when they are playing and
     alive; otherwise it reads `SparkTraitsApi.getRoundEndTraitIds`, so a dead player's puppet keeps their size (D7).
     It fails closed, and vanilla attribute sync then scales the model, shadow and hitbox for every viewer.
-    `MagicianPlaybackEntityRenderer` scales its ground offset by the puppet's scale. SparkTraits (branch
+    `MagicianPlaybackEntityRenderer` scales its ground offset by the puppet's scale.
+  - Animation packs (2026-10-25): measured under EMF 3.3.12 with Fresh Animations 1.11.1 and its Player add-on 1.1,
+    every Fresh Animations state of a puppet matches the copied player's for walk, idle, sneak and a held item; only
+    the per-entity random idle phase differs, as it does between any two players. A seated replay frame stood up,
+    because the pack reads `is_riding` from `Entity#hasVehicle`, not the model's `riding` flag, so the renderer sets
+    `MagicianPlaybackEntity#setDrawnSeated` for its own draw and the puppet reads seated there only. SparkTraits (branch
     `fix/magician-puppet-traits-look`) draws the big-head Childish model and its fill scale for any non-player with a
     `PlayerEntityModel` and that modifier, so the puppet matches; older SparkTraits draws a small adult model. Its
     Depression grey psycho skin also needs Wathe psycho ticks, so the psycho mask hides it on puppets too.
@@ -573,12 +580,26 @@ Current build baseline:
     `FROZEN_FRAME_TICKS` (2e-8 ticks, never 0, because packs divide by `frame_time`), so frame-time animation evaluates
     the frame's state again instead of playing at double speed. Inside a vanilla world render that value only feeds the
     entity-outline and Fabulous! post processors' time. Recorders and the Blind's world hooks ignore such a pass.
+  - `EmfVanillaModel.when(condition)` is an optional, reflective bridge to EMF's
+    `EMFAnimationApi#registerVanillaModelCondition`: while a condition holds for an entity, EMF draws it with its
+    vanilla model and vanilla pose (no pack geometry or animation). A condition that throws counts as true; without EMF
+    or its API nothing is registered. Today only the Blind uses it (other players while the view is active).
   `verifyArchitecture` scans `src/main/java` and `src/client/java` (comments stripped) and fails on an
-  `EntityRenderer#render` or `EntityRenderDispatcher#render` call outside `EntityRedraw`, and on a
-  `worldRenderer.render(` call that is not inside `SecondaryWorldPass.run(`. Rules for new roles and features:
+  `EntityRenderer#render` or `EntityRenderDispatcher#render` call outside `EntityRedraw`, on a
+  `worldRenderer.render(` call that is not inside `SecondaryWorldPass.run(`, and on any `getEntityModelLoader()` call.
+  Rules for new roles and features:
   - Pose through vanilla inputs (`getArmPose`/`ArmPose`, sneaking, riding, `setAngles` arguments), never by writing
     `ModelPart` angles after `setAngles`: EMF animates after `setAngles` and overwrites every part a pack animates,
     while Fresh Animations reads the vanilla rotation and blends to it for an arm "action" (crossbow hold, bow).
+  - Packs also read entity state that no vanilla pose input carries. Fresh Animations' player add-on raises the arm
+    of anyone whose hand holds an item (`is_holding_item_right/left`), sits on `Entity#hasVehicle` (`is_riding`), and
+    reads held-item NBT for maps and shields. An effect that must show vanilla poses whatever the pack registers an
+    `EmfVanillaModel.when` condition (the Blind). A non-player drawn as a player reports what a player in that pose
+    would through vanilla state, for its own draw only (the Magician puppet's seated frames, measured 2026-10-25).
+  - A model posed by hand outside its own entity's render (the Mini Wither) is built from its `TexturedModelData`,
+    never from `EntityModelLoader#getModelPart` (hence the `getEntityModelLoader()` guard): EMF replaces and animates
+    models handed out there with whatever entity is mounted (the owner), so a pack animation would overwrite the pose.
+    A model taken from `EntityRendererFactory.Context#getPart` for an entity's own renderer is fine.
   - Hide a model part with `visible = false`, never `hidden`: an EMF part with `attach: false` has no cubes of its own.
     ETF's villager nose and coat copy only the pose and ignore both.
   - Change a player's skin at `AbstractClientPlayerEntity#getSkinTextures`. A swap only at
@@ -2528,7 +2549,11 @@ inner wraps there (today SparkTraits' Chameleon fade) do not apply to it;
 `ArmorFeatureRenderer#renderArmor` is HEAD-cancelled for armor drawn outside the feature loop;
 `PlayerEntityRenderer#getArmPose` (priority 2000, `EMPTY` for other players) and
 `BipedEntityModel#positionRightArm` / `#positionLeftArm` (priority 2000, vanilla `EMPTY` branch
-only, removing Wathe's gun hold) keep weapon stances out of the line art;
+only, removing Wathe's gun hold) keep weapon stances out of the line art. Under Entity Model Features
+other players keep EMF's vanilla model while the view is active (`BlindClientGateWiring` registers
+`BlindClientGates::suppressesFeatures` with `client/render/entity/EmfVanillaModel`), because Fresh
+Animations' player add-on raises an item holder's arm from the real hand stack, about 17° standing and
+34° sneaking, with half the walk swing, whatever the arm pose (harness, 2026-10-25);
 `MinecraftClient#hasOutline` (priority 2000) answers false, so no instinct, glow or role outline
 reaches the Blind; `GameRenderer#renderHand` and `#shouldRenderBlockOutline` (priority 2000) hide
 the hand and the block outline; `DebugHud#shouldShowDebugHud` (priority 2000) answers false (F3
