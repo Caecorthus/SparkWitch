@@ -88,3 +88,20 @@ Perception uses full BT.709 grayscale at 0.85 luminance, matching NoellesRoles S
 treatment while retaining SparkWitch's processor lifecycle and final outline recomposition. The adapted
 shader remains covered by GPL-3.0-only; the existing copy is included at
 `licenses/StarRailExpress-GPL-3.0-only.txt`.
+
+## NoellesRoles master-key model transforms (Spare Key)
+
+The `display` transforms (`thirdperson_righthand`, `firstperson_righthand`) in
+`src/main/resources/assets/sparkwitch/models/item/spare_key.json` are copied from
+`assets/noellesroles/models/item/master_key.json` in
+[Caecorthus/NoellesRoles](https://github.com/Caecorthus/NoellesRoles) commit
+`45934af010561e22251cbfcfbc022f87ad581a36`. SparkWitch keeps the transforms unchanged and points the
+model at its own texture.
+
+The upstream repository licenses this work under LGPL-3.0-or-later. A copy of that license is
+included at `licenses/NoellesRoles-LGPL-3.0-or-later.txt`.
+
+The 16x16 item texture `src/main/resources/assets/sparkwitch/textures/item/spare_key.png` is not
+the NoellesRoles master-key texture: it was contributed by Ranmeng-Someya in
+[Caecorthus/SparkWitch#189](https://github.com/Caecorthus/SparkWitch/pull/189) and is covered by
+`LICENSE-TEXTURES.md`.
