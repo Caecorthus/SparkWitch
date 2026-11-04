@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.neutral.cat;
 
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.doctor4t.wathe.game.GameConstants;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -29,9 +30,6 @@ public final class SchrodingersCatRules {
 
     /** SparkFactionAPI replay cause of the role change. / 身份变更在 SparkFactionAPI 回放中的原因。 */
     public static final Identifier TRANSFORM_CAUSE = SparkWitch.id("schrodingers_cat_transform");
-
-    /** Witch faction id, a literal like the Insider's Corrupt Cop id. / 魔女阵营 id，与内应的黑警 id 一样使用字面量。 */
-    static final Identifier WITCH_FACTION_ID = Identifier.of("sparkwitch", "witch");
 
     /**
      * Deaths that kill the cat outright even with a killer: falling off the train (shoved or not) and the NoellesRoles
@@ -71,7 +69,7 @@ public final class SchrodingersCatRules {
         if (teamJiahao) {
             return Side.TEAM_JIAHAO;
         }
-        if (witchMember || WITCH_FACTION_ID.equals(effectiveFaction)) {
+        if (witchMember || SparkWitchFactions.WITCH.equals(effectiveFaction)) {
             return Side.WITCH;
         }
         if (FactionIds.KILLER.equals(effectiveFaction)) {

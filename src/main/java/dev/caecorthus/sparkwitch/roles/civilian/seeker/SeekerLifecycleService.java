@@ -149,7 +149,28 @@ public final class SeekerLifecycleService {
         }
     }
 
-    /** Final roles only; a mid-round Seeker never receives the loadout. / 仅按最终身份；对局中途的搜寻者不获得装备。 */
+    /**
+     * Mid-round entry for a player who becomes a Seeker after the round start (Schrödinger's Cat transformation): the
+     * same per-player match binding (stale state from another match dropped first) and loadout the round start hands
+     * out, called once after {@code RoleAssigned}.
+     * 对局开始后才成为搜寻者的玩家的中途入口（薛定谔之猫转化）：
+     * 与开局相同的个人对局绑定（先清除其他对局的残留状态）与开局装备，在 {@code RoleAssigned} 之后调用一次。
+     */
+    public static void grantLateLoadout(ServerPlayerEntity player) {
+        String matchId = SeekerTargeting.currentMatchId(player.getWorld());
+        SeekerStatusComponent component = SeekerStatusComponent.KEY.get(player);
+        if (!Objects.equals(component.state().matchId(), matchId)) {
+            cleanUp(player, SeekerExitReason.ROUND_END);
+        }
+        if (matchId == null) {
+            return;
+        }
+        component.bindMatch(matchId);
+        SeekerLoadoutService.grant(player);
+    }
+
+    /** Final roles only at the round start; {@link #grantLateLoadout} is the one mid-round path.
+     * 开局时仅按最终身份；{@link #grantLateLoadout} 是唯一的中途路径。 */
     static boolean receivesLoadout(boolean hasRole, boolean dead, @Nullable Role finalRole) {
         return hasRole && !dead && SeekerRules.isSeeker(finalRole);
     }

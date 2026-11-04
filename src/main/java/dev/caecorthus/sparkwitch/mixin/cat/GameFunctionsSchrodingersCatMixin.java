@@ -14,19 +14,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 薛定谔之猫's two seams in Wathe's {@code killPlayer}. Ordering is the contract:
  * <ul>
  *     <li>HEAD, {@code order = 0}: a cat in its 3 s spectre is untouchable, so the kill is refused before any other
- *     HEAD hook can spend something on it (forced kills too; they skip {@code KillPlayer.BEFORE}).</li>
- *     <li>Right before the alive branch's {@code changeGameMode(SPECTATOR)}, {@code order = 1100}: callbacks at one
- *     call site run in ascending order, so this one runs after every default-order injector there (SparkTraits Last
- *     Escape at priority 900, SparkWitch Tofana at 1000) and after every HEAD veto, BEFORE listener and psycho armour
- *     — owner 2026-11-04: protections are spent first, the cat transforms only on a death that really commits.</li>
+ *     HEAD hook can spend something on it (forced kills too; they ignore a {@code KillPlayer.BEFORE} cancel).</li>
+ *     <li>On the alive branch's {@code changeGameMode(SPECTATOR)} call itself (no shift), {@code order = 1100}:
+ *     SparkWitch Tofana injects one instruction earlier ({@code shift = BEFORE}) and SparkTraits Last Escape on the
+ *     same call with the default order, and callbacks at one instruction run in ascending order, so this one runs after
+ *     both, after every {@code @WrapMethod} pre-call, HEAD veto, BEFORE listener and psycho armour — owner 2026-11-04:
+ *     protections are spent first, the cat transforms only on a death that really commits.</li>
  * </ul>
  * Cancelling there skips the death mark, kill reward, corpse, drops and {@code KillPlayer.AFTER}, like Tofana.
  * Every non-cat victim returns at once. Server only.
  * 薛定谔之猫在 Wathe {@code killPlayer} 中的两个接缝，顺序即契约：HEAD（{@code order = 0}）：处于 3 秒幽魂阶段的猫
- * 无法被击杀，在其他 HEAD 钩子消耗任何东西之前就拒绝本次击杀（强制击杀同样拒绝，它们会跳过 {@code KillPlayer.BEFORE}）。
- * 存活分支 {@code changeGameMode(SPECTATOR)} 之前（{@code order = 1100}）：同一调用点的回调按 order 升序执行，因此它在该处
- * 所有默认顺序注入（SparkTraits 绝境逃生 priority 900、SparkWitch 托法娜 1000）之后，也在所有 HEAD 否决、BEFORE 监听器
- * 与狂暴护甲之后执行——所有者 2026-11-04：先消耗保护，只有真正落定的死亡才让猫转化。在此取消会跳过死亡标记、击杀奖励、
+ * 无法被击杀，在其他 HEAD 钩子消耗任何东西之前就拒绝本次击杀（强制击杀同样拒绝，它们忽略 {@code KillPlayer.BEFORE} 的取消）。
+ * 存活分支的 {@code changeGameMode(SPECTATOR)} 调用本身（不偏移，{@code order = 1100}）：SparkWitch 托法娜注入在前一条指令
+ * （{@code shift = BEFORE}），SparkTraits 绝境逃生以默认顺序注入在同一调用上，同一指令处的回调按 order 升序执行，因此它在
+ * 两者之后，也在所有 {@code @WrapMethod} 调用前逻辑、HEAD 否决、BEFORE 监听器与狂暴护甲之后执行——所有者 2026-11-04：
+ * 先消耗保护，只有真正落定的死亡才让猫转化。在此取消会跳过死亡标记、击杀奖励、
  * 尸体、掉落与 {@code KillPlayer.AFTER}，与托法娜一致。非猫受害者立即返回。仅服务端。
  */
 @Mixin(GameFunctions.class)
@@ -54,8 +56,7 @@ public abstract class GameFunctionsSchrodingersCatMixin {
             method = "killPlayer(Lnet/minecraft/server/network/ServerPlayerEntity;ZLnet/minecraft/server/network/ServerPlayerEntity;Lnet/minecraft/util/Identifier;Z)V",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/server/network/ServerPlayerEntity;changeGameMode(Lnet/minecraft/world/GameMode;)Z",
-                    shift = At.Shift.BEFORE
+                    target = "Lnet/minecraft/server/network/ServerPlayerEntity;changeGameMode(Lnet/minecraft/world/GameMode;)Z"
             ),
             cancellable = true,
             require = 1,

@@ -4,8 +4,12 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkfactionapi.api.replay.SparkReplayApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
+import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsSchrodingersCatBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRoundComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
+import dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelService;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderParticipation;
 import dev.caecorthus.sparkwitch.roles.special.wraith.runtime.WraithRoleAnnouncementService;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
@@ -17,10 +21,12 @@ import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.api.event.TaskComplete;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.cca.PlayerPoisonComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.cca.ScoreboardRoleSelectorComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.util.ShopUtils;
+import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -75,6 +81,13 @@ public final class SchrodingersCatService {
     /** A spectre farther than this from its anchor is pulled back. / 幽魂离锚点超过此距离即被拉回。 */
     private static final double PINNED_DRIFT = 0.05;
     private static final double GROUND_SNAP_DEPTH = 3.0;
+    /**
+     * Runs before Wathe's default-phase disconnect listener, which kills a leaving participant on the spot (reason
+     * {@code escaped}): the spectre must be released first, or the HEAD veto would refuse that kill.
+     * 先于 Wathe 默认阶段的断线监听器执行（后者当场以 {@code escaped} 杀死离开的参与者）：必须先解除幽魂，否则 HEAD 否决会拒绝
+     * 这次击杀。
+     */
+    private static final Identifier DISCONNECT_PHASE = SparkWitch.id("schrodingers_cat_release");
     /** Cats in their spectre window, by player; server thread only. / 处于幽魂阶段的猫，按玩家索引；仅服务端线程。 */
     private static final Map<UUID, Spectre> SPECTRES = new HashMap<>();
     private static boolean registered;
@@ -94,7 +107,14 @@ public final class SchrodingersCatService {
         TaskComplete.EVENT.register((player, task) -> onTaskComplete(player));
         ServerTickEvents.END_SERVER_TICK.register(SchrodingersCatService::tick);
         ResetPlayer.EVENT.register(SchrodingersCatService::onReset);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> onDisconnect(handler.getPlayer()));
+        ServerPlayConnectionEvents.DISCONNECT.addPhaseOrdering(DISCONNECT_PHASE, Event.DEFAULT_PHASE);
+        // Fabric may fire DISCONNECT on the network thread; execute() runs at once on the server thread and otherwise
+        // queues ahead of Wathe's own queued kill. / Fabric 可能在网络线程触发 DISCONNECT；execute() 在服务端线程上立即
+        // 执行，否则排在 Wathe 自身排队的击杀之前。
+        ServerPlayConnectionEvents.DISCONNECT.register(DISCONNECT_PHASE, (handler, server) -> {
+            ServerPlayerEntity player = handler.getPlayer();
+            server.execute(() -> onDisconnect(player));
+        });
         GameEvents.ON_FINISH_INITIALIZE.register((world, game) -> SPECTRES.clear());
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> SPECTRES.clear());
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> SPECTRES.clear());
@@ -106,12 +126,18 @@ public final class SchrodingersCatService {
 
     /**
      * Whether this player is a cat in its spectre window: every {@code killPlayer} on it is refused at HEAD, forced
-     * kills included (they skip {@code KillPlayer.BEFORE}).
-     * 该玩家是否为处于幽魂阶段的猫：对其的每次 {@code killPlayer} 都在 HEAD 被拒绝，包括跳过 {@code KillPlayer.BEFORE}
-     * 的强制击杀。
+     * kills included (they ignore a {@code KillPlayer.BEFORE} cancel), and the spectator guards in {@code mixin/cat/}
+     * close the Swapper, spectator teleport and camera possession. Server thread only.
+     * 该玩家是否为处于幽魂阶段的猫：对其的每次 {@code killPlayer} 都在 HEAD 被拒绝，包括忽略 {@code KillPlayer.BEFORE}
+     * 取消结果的强制击杀；{@code mixin/cat/} 中的旁观守卫封住换位、旁观传送与视角附身。仅服务端线程。
      */
     public static boolean isSpectre(@Nullable ServerPlayerEntity player) {
         return player != null && SPECTRES.containsKey(player.getUuid());
+    }
+
+    /** By UUID, for packet receivers that name players. / 按 UUID 判断，供以 UUID 指定玩家的数据包接收器使用。 */
+    public static boolean isSpectre(@Nullable UUID player) {
+        return player != null && SPECTRES.containsKey(player);
     }
 
     /**
@@ -127,7 +153,10 @@ public final class SchrodingersCatService {
                                         @Nullable Identifier deathReason) {
         ServerWorld world = victim.getServerWorld();
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
-        if (!isCatRole(game.getRole(victim)) || isSpectre(victim)) {
+        // A swallowed cat dies (FiendFeign's guard): NoellesRoles pins a swallowed player's camera and game mode to the
+        // Taotie, so a spectre could never get up. / 被吞的猫照常死亡（沿用魔人假死守卫）：NoellesRoles 把被吞者的视角与
+        // 游戏模式锁定在饕餮身上，幽魂无法起身。
+        if (!isCatRole(game.getRole(victim)) || isSpectre(victim) || NoellesTaotieSeekerBridge.isSwallowed(victim)) {
             return false;
         }
         boolean distinctKiller = killer != null && !killer.getUuid().equals(victim.getUuid());
@@ -170,6 +199,12 @@ public final class SchrodingersCatService {
                 previous == GameMode.SPECTATOR ? GameMode.ADVENTURE : previous, side,
                 world.getTime() + SchrodingersCatRules.SPECTRE_TICKS);
         SPECTRES.put(cat.getUuid(), spectre);
+        // What Wathe does right after the commit point, which the takeover skips: a spent poison never kills again.
+        // Wathe 在落定点之后会做、而接管跳过的事：用尽的毒不会再次致死。
+        PlayerPoisonComponent.KEY.get(cat).reset();
+        // A Knight duel ends on a duelist's death through KillPlayer.AFTER, which the takeover skips.
+        // 骑士决斗经由 KillPlayer.AFTER 在决斗者死亡时结束，而接管跳过了它。
+        KnightDuelService.endForTakenOverDeath(cat);
         cat.setVelocity(Vec3d.ZERO);
         cat.velocityModified = true;
         cat.fallDistance = 0.0F;
@@ -278,18 +313,27 @@ public final class SchrodingersCatService {
      */
     private static void transform(ServerPlayerEntity cat, ServerWorld world, GameWorldComponent game,
                                   Spectre spectre) {
-        Role next = roleFor(spectre.side(), world, game);
         release(cat, spectre);
         PlayerShopComponent shop = PlayerShopComponent.KEY.get(cat);
         int balance = shop.getBalance();
-        SparkReplayApi.withRoleChangeCause(SchrodingersCatRules.TRANSFORM_CAUSE, (UUID) null,
-                () -> game.addRole(cat, next));
+        Role next = writeRole(cat, game, roleFor(spectre.side(), world, game), spectre.side());
+        if (next == null) {
+            LOGGER.error("Schrödinger's Cat {} could not take a {} role; it stays a cat", cat.getUuid(), spectre.side());
+            return;
+        }
         try {
             RoleAssigned.EVENT.invoker().assignRole(cat, next);
         } catch (RuntimeException exception) {
             // The role is committed: log the listener failure, never undo. / 身份已提交：记录监听器故障，绝不撤销。
             LOGGER.error("Schrödinger's Cat transformation committed but a role-assignment listener failed for {}",
                     cat.getUuid(), exception);
+        }
+        try {
+            // Kits several roles hand out only at the round start. / 多个职业只在开局发放的装备。
+            SchrodingersCatLoadouts.grantLateLoadout(cat, next);
+        } catch (RuntimeException exception) {
+            LOGGER.error("Schrödinger's Cat late loadout failed for {} as {}", cat.getUuid(), next.identifier(),
+                    exception);
         } finally {
             // RoleAssigned may reset the balance to the role's starting money; the cat never loses what it earned.
             // RoleAssigned 可能把余额重置为该职业的开局金币；猫绝不损失已赚到的金币。
@@ -309,6 +353,27 @@ public final class SchrodingersCatService {
     }
 
     /**
+     * Writes the role under the replay cause and checks it stuck: a role guard may refuse {@code addRole} (Emma's one
+     * claim per round). A refused police role falls back to the plain Vigilante; null when nothing stuck.
+     * 在回放原因下写入身份并确认写入成功：职业守卫可能拒绝 {@code addRole}（艾玛每局唯一的声明）。被拒的警职退回普通义警；
+     * 均未写入时返回 null。
+     */
+    private static @Nullable Role writeRole(ServerPlayerEntity cat, GameWorldComponent game, Role role,
+                                           SchrodingersCatRules.Side side) {
+        SparkReplayApi.withRoleChangeCause(SchrodingersCatRules.TRANSFORM_CAUSE, (UUID) null,
+                () -> game.addRole(cat, role));
+        if (game.getRole(cat) == role) {
+            return role;
+        }
+        if (side != SchrodingersCatRules.Side.CIVILIAN || role == WatheRoles.VIGILANTE) {
+            return null;
+        }
+        SparkReplayApi.withRoleChangeCause(SchrodingersCatRules.TRANSFORM_CAUSE, (UUID) null,
+                () -> game.addRole(cat, WatheRoles.VIGILANTE));
+        return game.getRole(cat) == WatheRoles.VIGILANTE ? WatheRoles.VIGILANTE : null;
+    }
+
+    /**
      * The concrete role for a side. Police is the live pool (owner 2026-11-03 "随机"): a random enabled police variant
      * nobody holds this round, the plain Vigilante only once every variant is held, through the same
      * {@link PoliceSlotAssignmentService#choose} the round start uses.
@@ -322,8 +387,15 @@ public final class SchrodingersCatService {
             case KILLER -> WatheRoles.KILLER;
             // NONE never gets here: transforms() refuses it. / NONE 不会到达此处：transforms() 已拒绝。
             case CIVILIAN, NONE -> PoliceSlotAssignmentService.choose(ScoreboardRoleSelectorComponent.KEY
-                    .get(world.getScoreboard()).createSelectionContext(world, game, participants(world, game)));
+                    .get(world.getScoreboard()).createSelectionContext(world, game, participants(world, game)),
+                    role -> EmmaRules.isEmma(role) && !emmaClaimOpen(world));
         };
+    }
+
+    /** Emma may be claimed once per round (EmmaRoleClaimMixin). / 艾玛每局只能被声明一次（EmmaRoleClaimMixin）。 */
+    private static boolean emmaClaimOpen(ServerWorld world) {
+        EmmaRoundComponent emma = EmmaRoundComponent.KEY.get(world);
+        return emma.active() && !emma.claimed();
     }
 
     private static List<ServerPlayerEntity> participants(ServerWorld world, GameWorldComponent game) {
@@ -348,9 +420,10 @@ public final class SchrodingersCatService {
     }
 
     /**
-     * Leaving mid-spectre: the transformation finishes now, so the saved player data never keeps a living player in
-     * spectator mode; Wathe's own disconnect handling then decides about the new role.
-     * 幽魂期间离线：立即完成转化，确保保存的玩家数据不会让活着的玩家停留在旁观模式；之后由 Wathe 自身的断线处理决定新身份。
+     * Leaving mid-spectre: the body is released at once (no transformation), so the saved player data never keeps a
+     * living player in spectator mode and Wathe's own disconnect kill that follows (no killer) is not refused.
+     * 幽魂期间离线：立即恢复身体（不转化），确保保存的玩家数据不会让活着的玩家停留在旁观模式，且随后 Wathe 自身的断线击杀
+     * （没有凶手）不会被拒绝。
      */
     private static void onDisconnect(@Nullable ServerPlayerEntity player) {
         Spectre spectre = player == null ? null : SPECTRES.remove(player.getUuid());
@@ -358,15 +431,7 @@ public final class SchrodingersCatService {
             return;
         }
         try {
-            ServerWorld world = player.getServerWorld();
-            GameWorldComponent game = GameWorldComponent.KEY.get(world);
-            if (world.getRegistryKey().equals(spectre.world())
-                    && game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
-                    && GameFunctions.isPlayerPlayingAndAlive(player) && isCatRole(game.getRole(player))) {
-                transform(player, world, game, spectre);
-            } else {
-                release(player, spectre);
-            }
+            release(player, spectre);
         } catch (RuntimeException exception) {
             LOGGER.error("Schrödinger's Cat spectre could not finish for disconnecting {}", player.getUuid(),
                     exception);

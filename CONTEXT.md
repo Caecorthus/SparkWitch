@@ -1721,27 +1721,35 @@ the Insider and guessed right after it, before the promotion tail.
 Schrödinger's Cat rules (owner 2026-11-03/04, PR #182). Profile: Wathe-native neutral, REAL mood with tasks (+25
 coins per task), passenger stamina, no round clock, no appearance condition; registered after the Stowaway and before
 the Recruit and the Insider, guessed right after the Stowaway, before the promotion tail.
-- Trigger: `mixin/cat/GameFunctionsSchrodingersCatMixin` injects right before the alive branch's
-  `changeGameMode(SPECTATOR)` in `killPlayer` with `order = 1100`, so it runs after every default-order injector at that
-  call (SparkTraits Last Escape, Tofana) and after every `@WrapMethod`, HEAD veto, `KillPlayer.BEFORE` listener and
-  psycho armour: protections are spent first (owner 2026-11-04) and only a death that really commits reaches the cat.
-  Forced kills count (bell toll, time curse…). The cat dies normally when the round is not ACTIVE, there is no killer
-  or the killer is the cat, the reason is `wathe:fell_out_of_train` or `noellesroles:voodoo`, or the killer's side is
-  none. Cancelling there skips the death mark, kill reward, corpse, drops and `KillPlayer.AFTER`, like Tofana.
+- Trigger: `mixin/cat/GameFunctionsSchrodingersCatMixin` injects on the alive branch's `changeGameMode(SPECTATOR)`
+  call in `killPlayer` itself (no shift) with `order = 1100`: Tofana sits one instruction earlier (`shift = BEFORE`)
+  and SparkTraits Last Escape on the same call with the default order, so the cat runs after both and after every
+  `@WrapMethod` pre-call, HEAD veto, `KillPlayer.BEFORE` listener and psycho armour: protections are spent first
+  (owner 2026-11-04) and only a death that really commits reaches the cat. Forced kills count (bell toll, time
+  curse…). The cat dies normally when the round is not ACTIVE, there is no killer or the killer is the cat, the reason
+  is `wathe:fell_out_of_train` or `noellesroles:voodoo`, it is swallowed by a Taotie (FiendFeign's guard), or the
+  killer's side is none. Cancelling there skips the death mark, kill reward, corpse, drops and `KillPlayer.AFTER`, like
+  Tofana; the takeover still resets the poison (Wathe's next step) and ends a Knight duel the cat is in
+  (`KnightDuelService.endForTakenOverDeath`).
 - Side (`SchrodingersCatRules.sideOf`): Corrupt Cop or Insider → Insider; any `WitchFactionRules.isWitchFactionMember`
   killer (Grand Witch, every accomplice incl. the Bewitched and special accomplices, Curser) → Bewitched; otherwise the
   killer's SparkFactionAPI EFFECTIVE faction: KILLER → `wathe:killer` (an Impostor civilian counts), CIVILIAN → a random
   unheld police variant through `PoliceSlotAssignmentService.choose` (plain Vigilante only once every variant is held;
+  an Emma whose one claim per round is taken is skipped, and a role a guard still refuses falls back to the Vigilante;
   the Apprentice Witch is an innocent role, so it gives police); anything else (Murderous Witch, Fiend, other
   neutrals) → the cat dies.
 - Spectre (FiendFeign pattern): never marked dead; pinned spectator at its ground-snapped hit position for 3 s, own
-  camera, every `killPlayer` on it refused at HEAD (`order = 0`). It then gets up at that spot in its saved game mode
-  with zero velocity, the role is written under the `sparkwitch:schrodingers_cat_transform` replay cause, and
-  `RoleAssigned` fires for the role's own kit and skills (Bewitched promotion pattern); the higher of the old and new
-  balance is kept, the shop is rebuilt, SparkTraits swaps ineligible traits through its facade, the totem sound plays
-  and the role announcement replays. The round leaving ACTIVE, a role change or a death mark during the window only
-  restores the body; a disconnect finishes the transformation first. State is in memory, server thread only, cleared
-  at every round boundary, reset and server stop.
+  camera, every `killPlayer` on it refused at HEAD (`order = 0`); the `mixin/cat/` spectator guards drop NoellesRoles
+  Swapper requests, spectator-menu teleports and camera possession, and the voice plugin mutes it. It then gets up at
+  that spot in its saved game mode with zero velocity, the role is written under the
+  `sparkwitch:schrodingers_cat_transform` replay cause, and `RoleAssigned` fires for the role's own kit and skills
+  (Bewitched promotion pattern). Roles that equip only at the round start get their per-player late entry
+  (`SchrodingersCatLoadouts`: Knight, Control Expert, Judge, Seeker, Black Raven, Insider master key). The higher of the
+  old and new balance is kept, the shop is rebuilt, SparkTraits swaps ineligible traits through its facade, the totem
+  sound plays and the role announcement replays. The round leaving ACTIVE, a role change or a death mark during the window only
+  restores the body; so does a disconnect, in a `DISCONNECT` phase ordered before Wathe's and moved onto the server
+  thread with `execute`, so Wathe's disconnect kill (no killer) then goes through. State is in memory, server thread only, cleared at every round boundary, reset and
+  server stop.
 - Settlement (`SchrodingersCatSettlement`): an untransformed cat never counts as alive for any win, block or moment —
   the Stowaway's seams (`StowawayWinScope` via `mixin/cat/GameFunctionsSchrodingersCatSettlementMixin`,
   `FiendWinExclusion.countsAsAlive`, SparkFactionAPI `SettlementExclusions`) — but unlike the Stowaway it never joins

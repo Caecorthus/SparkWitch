@@ -250,6 +250,16 @@ public final class KnightDuelService {
     }
 
     /**
+     * A duelist whose committed death was taken over (Schrödinger's Cat: it vanishes instead, so no
+     * {@code KillPlayer.AFTER} and no death mark): the duel ends exactly as on a duelist's death.
+     * 落定的死亡被接管的决斗者（薛定谔之猫：它改为消失，因此没有 {@code KillPlayer.AFTER} 也没有死亡标记）：决斗与决斗者
+     * 死亡时完全一样地结束。
+     */
+    public static void endForTakenOverDeath(ServerPlayerEntity victim) {
+        afterKill(victim, null, null);
+    }
+
+    /**
      * A duelist died: the duel just ends. A third-party kill never punishes the other duelist (owner, 2026-10-31).
      * 决斗者死亡：决斗直接结束。第三方击杀不再牵连另一名决斗者（所有者，2026-10-31）。
      */
