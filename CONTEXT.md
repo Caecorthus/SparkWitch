@@ -49,6 +49,8 @@ It also adds the Magician (`sparkwitch:magician`, 魔术师, merged from main), 
 its actions disguised as a chosen player.
 It also adds the Dominator (`sparkwitch:dominator`, 支配者, contributed in PR #192), a killer whose shared ability key
 (G) marks a player through walls and then forces that player to fire one shot along their own aim.
+It also adds 夏目安安 Natsume Anan (`sparkwitch:natsume_anan`, contributed in PR #194), a killer whose ability key
+hypnotises a player within 3 blocks: blinded, locked out of items and role skills, and losing sanity.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
 the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
 It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only a
@@ -559,22 +561,23 @@ Current build baseline:
   and fixed in review (2026-11-04); every number lives in `DominatorRules`. Mixins in `mixin/dominator/`, client in
   `client/dominator/` plus `client/hud/DominatorHudRenderer` and `client/mixin/dominator/`.
   - Registration: a SparkFactionAPI killer (Wathe-native killer, FAKE mood, unlimited sprint, round clock, the default
-    one-player spawn group) registered after the Ragpicker, right before the Insider, and guessed in the killer block
-    right after the Magician (NoellesRoles sends identifiers, so the order is presentation only). No witch skill,
+    one-player spawn group) registered after the Ragpicker and right before 夏目安安 (then the Insider), and guessed in
+    the killer block right after the Magician, with 夏目安安 next (NoellesRoles sends identifiers, so the order is
+    presentation only). No witch skill,
     never in the `gui.sparkwitch.skills` panel, never a Black Raven disguise target.
   - State: `DominatorPlayerComponent` (`sparkwitch:dominator`, `NEVER_COPY`, owner-synced: uses, mark target and
     ticks, G cooldown) and the server-only `DominatorForcedShotComponent` (`sparkwitch:dominator_forced_shot`,
     `ALWAYS_COPY`, but only the "active" flag is saved or copied: a loaded or respawn-copied sequence never resumes,
-    it purges leftover tagged guns on its next tick and keeps no stash), appended last in the CCA list and in
-    `fabric.mod.json`. Timers sync
+    it purges leftover tagged guns on its next tick and keeps no stash), appended after the Ragpicker's in the CCA
+    list and in `fabric.mod.json`, with 夏目安安's after them. Timers sync
     when the shown second changes; the client counts down to the first tick of the shown second only (the
     Kidnapper/Magician floor), so READY, the G send and the mark's end wait for the server's zero.
   - Uses and cooldowns (owner decisions): 0 uses at role assignment, +1 per kill the Dominator makes personally (never
     for a forced-shot kill), capped at 2. G needs at least one use; marking costs none, a release costs one. G cools
     down 45 s at role assignment and 10 s after every mark ends (expired, invalidated or released). The cooldown is
     the SparkFactionAPI role-skill store `sparkwitch:dominator_skill` (`compat/cooldown/SparkWitchForcedCooldowns`,
-    appended last, exact setter, nominal 10 s), never forced while a mark runs; the admin `clearCooldown` (held item
-    only) does not reach it.
+    appended after the Ragpicker Search with 夏目安安's next, exact setter, nominal 10 s), never forced while a mark
+    runs; the admin `clearCooldown` (held item only) does not reach it.
   - Mark (`DominatorSkillService`, empty C2S `sparkwitch:use_dominator_skill`): the caster must pass
     `DominatorRules.isActiveCaster` (alive, not spectating, not swallowed) plus the server gates in `mayCast` (ACTIVE
     round, role, not held by another mechanic, not silenced, not SparkTraits role-skill blocked) and Fear last. The
@@ -636,6 +639,94 @@ Current build baseline:
   - Letter: Wathe's killer letter with Dominator `tooltip3` / `tooltip4`, recoloured by
     `mixin/dominator/GameFunctionsDominatorLetterMixin` from the `.a`-`.e` segments, which concatenate to the plain
     lines. Lang: `hud.sparkwitch.dominator.*`, `tip.letter.dominator.*`, one-sentence `announcement.goal(s)`.
+- `roles/killer/natsume/`: 夏目安安 Natsume Anan (`sparkwitch:natsume_anan`, color `0xC5B4FF`), a killer hypnotist
+  contributed in PR #194 and fixed in review (2026-11-04); every number and pure gate lives in `NatsumeRules`. Mixin in
+  `mixin/natsume/`, client in `client/natsume/` plus `client/hud/NatsumeHudRenderer` and `client/mixin/natsume/`.
+  - Registration: a SparkFactionAPI killer (Wathe-native killer, REAL mood, 8 s `maxSprintTime`, round clock, the
+    default one-player spawn group) registered after the Dominator, right before the Insider (the fork put it between
+    the Accountant and Noa), and guessed in the killer block right after the Dominator, before the Murderous Witch.
+    No witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel, never a Black
+    Raven disguise target. The accessor is `SparkWitchRoleRegistry.natsumeAnan()`; `SparkWitchRoles` has none.
+  - State: `NatsumeComponent` (`sparkwitch:natsume_anan_player`, `NEVER_COPY`, appended last in the CCA list and in
+    `fabric.mod.json`) on every player: the hypnosis end tick, caster and world, and her cooldown ready tick, all
+    absolute world ticks kept on the server. Only the shown hypnosis and cooldown seconds sync, to the owner only and
+    when they change; the client never predicts them. NBT keeps only the ready tick, so a relog never resumes a
+    hypnosis. Role assignment, Wathe's `ResetPlayer` and round finalize clear both; a disconnect ends the hypnosis. No
+    static per-player state (the blocked-notice throttle is a transient component field).
+  - Cooldown: 60 s at role assignment and 90 s after each cast, exposed as the SparkFactionAPI role-skill store
+    `sparkwitch:natsume_hypnosis` (`compat/cooldown/SparkWitchForcedCooldowns`, appended last after the Dominator key,
+    `RAISED_READY_TICK`, nominal 90 s; remaining time includes the opening cooldown). The skill has no item, so the
+    admin `clearCooldown` (held item only) does not reach it.
+  - Menu and cast (`NatsumeService`; C2S `sparkwitch:request_natsume_menu` (empty) and
+    `sparkwitch:confirm_natsume_target` (target UUID), S2C `sparkwitch:open_natsume_menu`): both C2S run
+    `NatsumeRules.casterVerdict` in the Dominator's order (raw role, exactly ACTIVE round, alive, not spectating, not
+    swallowed, not held by a Ninja hook, not NoellesRoles-silenced, not SparkTraits role-skill blocked, not hypnotised
+    herself, ready) with Fear last; a Fear refusal sends the Grand Witch "skill blocked" line, every other refusal is
+    silent and free. The menu lists herself first (owner: self-target allowed), then every player in her world who
+    passes `isTargetable`: living participant, not spectating, same world, not swallowed, not inside a Rift Gate, then
+    SparkFactionAPI `canAffectPlayer` with the action id `sparkwitch:natsume_hypnosis`. The cast re-checks the target
+    and, for anyone but herself, needs 3 blocks (`RANGE`) and block line of sight (`canSee`, no hypnosis through
+    walls); the `too_far` / `no_line_of_sight` refusals cost nothing.
+  - Hypnosis: a cast restarts her 90 s cooldown and starts or extends (never shortens) the victim's window: 12 s for a
+    non-police civilian, 8 s for everyone else (`durationTicksFor`: Loose End `wathe:loose_end` and police by raw role,
+    police meaning a `PoliceRoles` member whose base faction is civilian, so the Insider and Corrupt Cop are not
+    police; otherwise SparkFactionAPI's effective faction, so a SparkTraits Impostor civilian reads as a killer). The
+    victim gets Blindness for exactly the rest of the window (no particles or icon; a longer blindness is kept), and
+    the cast stops what is running, like a Control Expert stun: `clearActiveItem`, the Seeker remote session
+    (`BLOCKED`) and the Black Raven crow session (`STUNNED`). The window ends early and silently when the round leaves
+    ACTIVE or the victim dies, spectates or changes world.
+  - Lock (owner decision: every victim, whatever their faction): `NatsumeHypnosisGuards` registers the five Fabric
+    player callbacks in its own `sparkwitch:natsume_hypnosis` phase ordered before the default phase, on both sides
+    (a client FAIL predicts and sends nothing; the server is the authority). Item use and entity attacks always fail
+    (a bare-hand strike can be a role skill, e.g. Mighty Force); block use, entity use and block attacks fail only with
+    something in the acting hand, so an empty hand still opens doors. `mixin/natsume/NatsumeHypnosisPayloadGuardMixin`
+    (common config; wraps `ServerPlayNetworkAddon#receive`'s `MinecraftServer#execute` like the crow-body guard)
+    drops, on the server thread, every Control Expert stun-listed payload plus `cross_sword_stab`, `swordfish_stab` and
+    her own two ids; on Netty it reads ids only. Refusals show `message.sparkwitch.natsume.blocked` at most once per
+    second; the crow pose stream is dropped silently.
+  - Sanity and breakdown: each time the shown second drops (exactly 12 drains in a 12 s window), a REAL-mood victim
+    loses 0.04 sanity, floored at -1; FAKE-mood victims are not drained. A victim at -1 inside the window is killed
+    after the world loop with Wathe's own `killPlayer(victim, true, caster, MENTAL_BREAKDOWN, true)`, credited to her
+    when she is online (owner); a self-hypnosis breakdown has no killer, like Wathe's own.
+  - Sounds and lines: an amethyst chime at the victim on cast (a world sound), a warden roar every 2 s that only the
+    victim hears (`playSoundToPlayer`, owner), her `cast` line, and the victim's `hypnotised`, per-second `remaining`
+    and final `ended` action-bar lines.
+  - Shop (`NatsumeShopRules`, applied on both sides through `BuildShopEntries`): exact plain Wathe ids only. Seven rows
+    go: `grenade` (which also drops SparkStrength's M67, appended only while a grenade row sells), `psycho_mode`,
+    `scorpion`, `note`, `crowbar`, `firecracker` and the dead `blackout`. `poison_vial` is repriced to 25 coins with
+    every other Builder field kept; all other rows are untouched.
+  - Deny lists: both C2S ids are on the Control Expert stun (so also the Raven Form body), Grand Witch Fear, Seeker
+    session, Rift occupant and Knight duel lists, next to the Dominator's; the S2C menu is on none.
+  - Replay (`NatsumeReplay`): one `skill_use` under her role id, `action` `hypnosis` with `target`, rendered as
+    `replay.skill.sparkwitch.natsume.effect`.
+  - Client (presentation only; the server decides every cast, lock and timer):
+    - Picker: the raw-role branch of `SparkWitchClient`'s ability-key dispatch (right before Noa's) calls
+      `NatsumeClientModule.onAbilityKey`, which sends the empty request unless she is hypnotised. The S2C menu opens
+      `NatsumeTargetScreen`, a 6-column grid of `NatsumeTargetButton` tiles (shop TOOL frame, player-list head and
+      hat, name as tooltip only (owner 2026-11-03), `C5B4FF` selection border) with Back and Confirm.
+    - Instinct gate: `client/mixin/natsume/NatsumeInstinctGateMixin` (`@WrapMethod` on `WatheClient`'s
+      `getInstinctHighlight`, `isInstinctEnabled` and `isInstinctEnabledAndIsKiller`, in `watheClientMixinContracts`)
+      answers -1 / false while `NatsumeClientState.bindsLocalPlayer` holds (confirmed server, living participant, own
+      synced hypnosis), so the instinct light and every key-gated highlight go; vanilla server GLOWING stays.
+    - HUD garble: `NatsumeHudGarbleScopeMixin` scopes it to `InGameHud.render` and suspends it for `renderChat` and
+      `renderHeldItemTooltip`; `NatsumeGarbleMixin` swaps the `Text` and `String` arguments of `DrawContext.drawText`
+      at HEAD (`@ModifyVariable`) and suspends for `drawItemInSlot`. Nothing is garbled with a screen open, and her own
+      `message.sparkwitch.natsume.*` / `hud.sparkwitch.natsume.*` keys are exempt by translation key. The garble is
+      stable per 5-tick bucket and keeps styles and glyph widths.
+    - Mood icon: `NatsumeMoodRendererMixin` (`@WrapOperation` on `MoodRenderer.renderCivilian`'s only icon draw, the
+      call Noa's mixin wraps too, in `watheClientMixinContracts`) swaps Wathe's three icons for the
+      `sparkwitch:hud/natsume_mood_*` sketchbook sprites for the local living Natsume on a confirmed server; as a
+      REAL-mood killer her icon is drawn by `renderCivilian`.
+    - HUD layer: `RoleHudDispatcher.renderNatsume` (a `renderTail` layer right before the Saboteur's; confirmed
+      server, living local player) draws `NatsumeHudRenderer`'s centred line 86 px above the bottom: the cooldown
+      seconds or the ready hint with the ability key, hidden with F1 or a screen open.
+  - Owner decisions (2026-11-04): no Noa immunity; the item and skill lock applies to every victim; self-target
+    allowed; neither the M67 nor the blackout is in her shop.
+  - Open: SparkStrength `TaotieHeadRules.DAZE_BLOCKED_PAYLOADS` and SparkFactionAPI
+    `AntiFastRoundRules.BLOCKED_PAYLOADS` do not list her two C2S ids yet; a hypnosis does not end SparkStrength drone
+    or Spiritualist sessions or an already summoned Mini Wither (the lock only refuses new actions); the menu sends
+    real profile names (no disguise or Emma visible-name mapping); the 8 s for neutrals, witches and Jiahao is a
+    coordinator default (`NatsumeRules.durationTicks` is the single switch).
 - `client/bedrock/` (2026-11-02): a role-neutral Bedrock model runtime for player-supplied files, first used by the
   Mini Wither skins. `geo/`: `BedrockGeometryParser` (format 1.12+ `minecraft:geometry`, also inside a Java item-model
   shell, and legacy 1.8; box and per-face UV, mirror, inflate, bone/cube pivots and rotations, glow bones by name
@@ -3055,7 +3146,7 @@ Features that force a cooldown on another player (penalties, auras) go through S
 (floor 0.1.5.11), never through a counter directly; affect vetoes stay the caller's job (`canAffectPlayer`).
 `compat/cooldown/SparkWitchForcedCooldowns` registers these role-skill stores, in this observable order (it is the
 `slots` order). Stores 1, 2, 5 and 6 keep their own classes (they override a SparkFactionAPI default or derive a
-per-role nominal); stores 3, 4 and 7-13 are `SimpleRoleSkillCooldownStore` instances built by factory methods in
+per-role nominal); stores 3, 4 and 7-18 are `SimpleRoleSkillCooldownStore` instances built by factory methods in
 `SparkWitchForcedCooldowns` (2026-10-22), each with an explicit round gate (`anyGameStatus` or `whileActive`) and write
 kind (`EXACT`, `CLAMPED_AT_ZERO`, `RAISED_READY_TICK`); nominals are read lazily. The per-store differences below are
 deliberate and kept:
@@ -3100,6 +3191,15 @@ deliberate and kept:
    (`ForcedCooldownMath.raiseReadyTick`) through the resyncing `FiendMomentWorldComponent.setDashReadyTick`; it never
    shortens, never touches a running Speed IV, and dies with the moment. Raise and extend are the SparkFactionAPI
    defaults.
+10. to 17., each appended after the one before and described in its role's entry: `sparkwitch:apprentice_purify`,
+   `sparkwitch:magician`, `sparkwitch:mini_wither_toggle`, `sparkwitch:black_raven_crow`, `sparkwitch:athlete_dash`,
+   `sparkwitch:noa_paint`, `sparkwitch:ragpicker_search` and `sparkwitch:dominator_skill`.
+18. `sparkwitch:natsume_hypnosis` (`SparkWitchForcedCooldowns#natsumeHypnosis`, PR #194, appended after the Dominator
+   key): 夏目安安's hypnosis, for the raw role in an ACTIVE round (`NatsumeService`'s role and round gates; she is never
+   a disguise target). Remaining time counts to the absolute ready tick in `sparkwitch:natsume_anan_player`, so it
+   includes the 60 s opening cooldown; the nominal is the 90 s post-cast cooldown (`NatsumeRules.COOLDOWN_TICKS`,
+   1800). Every write only moves the ready tick later through the owner-syncing
+   `NatsumeComponent.setCooldownReadyTick`; it never touches a running hypnosis.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
