@@ -24,7 +24,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import dev.doctor4t.wathe.util.ShopEntry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -85,15 +84,6 @@ public final class NatsumeService {
                 applyShop(context.getEntries());
             }
         });
-        // A hypnotised player cannot use items. 被催眠者无法使用道具。
-        UseItemCallback.EVENT.register((player, world, hand) -> {
-            if (player instanceof ServerPlayerEntity serverPlayer && blocksItems(serverPlayer)) {
-                serverPlayer.sendMessage(Text.translatable("message.sparkwitch.natsume.blocked")
-                        .formatted(Formatting.DARK_PURPLE), true);
-                return TypedActionResult.fail(ItemStack.EMPTY);
-            }
-            return TypedActionResult.pass(ItemStack.EMPTY);
-        });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
             for (PlayerEntity player : world.getPlayers()) {
                 if (player instanceof ServerPlayerEntity serverPlayer) {
@@ -105,10 +95,6 @@ public final class NatsumeService {
 
     public static boolean isNatsume(PlayerEntity player) {
         return NatsumeRules.isNatsume(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
-    }
-
-    private static boolean blocksItems(ServerPlayerEntity player) {
-        return NatsumeComponent.KEY.get(player).isLocked();
     }
 
     /**
