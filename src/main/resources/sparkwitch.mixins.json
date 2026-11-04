@@ -242,7 +242,8 @@
     "usec.PlayerInventoryUsecGunMixin",
     "usec.ServerPlayerInteractionManagerUsecScopeMixin",
     "usec.NoellesUsecShieldPierceMixin",
-    "usec.GameFunctionsUsecPsychoArmourMixin"
+    "usec.GameFunctionsUsecPsychoArmourMixin",
+    "discoverer.DiscovererSprintDrainMixin"
   ],
   "injectors": {
     "defaultRequire": 1

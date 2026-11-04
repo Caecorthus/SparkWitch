@@ -78,6 +78,9 @@ public final class BlackRavenDisguiseRules {
             sparkwitch("vendetta"),
             sparkwitch("pig_god"),
             sparkwitch("blind"),
+            // Owner 2026-11-03: the dash and unlimited stamina read the real role, so no disguise.
+            // 所有者 2026-11-03：冲刺与无限体力读取真实职业，因此不可伪装。
+            sparkwitch("athlete"),
             noelles("demon_hunter"),
             noelles("undercover"),
             wathe("civilian"),

@@ -67,6 +67,9 @@ public final class GrandWitchFearService {
             Identifier.of("sparkwitch", "use_noa_paint"),
             // Fiend Dash; the server also re-checks fear on use. / 魔人疾驰；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            // Athlete dash (owner 2026-11-03: Fear blocks it); the server also re-checks fear on use.
+            // 运动员冲刺（所有者 2026-11-03：恐惧时不能冲刺）；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "use_athlete_dash"),
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),

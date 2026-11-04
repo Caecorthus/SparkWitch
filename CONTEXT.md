@@ -19,6 +19,12 @@ The Knight (`sparkwitch:knight`, 骑士, contributed in PR #169 and reworked 202
 the Vigilante slots and spends 150 coins on the shared ability key (G) to duel one living player.
 The Recruit (`sparkwitch:recruit`, 新兵, contributed in PR #176) is an ordinary civilian that takes no police slot,
 gets Wathe's knife after its first task, and may pick up one ground gun per round.
+The Athlete (`sparkwitch:athlete`, 运动员, contributed in PR #191) is an ordinary civilian with unlimited stamina whose
+shared ability key (G) dashes up to 5 blocks forward along the ground, with a 15 s cooldown.
+The Discoverer (`sparkwitch:discoverer`, 探索者, contributed in PR #189) is an ordinary civilian that gets Speed II
+under open sky, sprints with 25% less stamina drain, and earns 50 coins per task to spend on a spyglass.
+SparkWitch also gives the NoellesRoles Attendant (`noellesroles:attendant`, 乘务员) one Spare Key
+(`sparkwitch:spare_key`, 备用钥匙) at round start; it opens train doors and room-locked doors for durability.
 城崎诺亚 Noa Jogasaki (`sparkwitch:noa`, contributed in PR #186 and reworked in review) is a civilian painter whose
 sanity never drains on its own and never returns from tasks, and whose shared ability key (G) paints a random reward
 from one of two tables chosen by her sanity, with a 60 s cooldown.
@@ -1007,8 +1013,8 @@ Current build baseline:
 - `roles/civilian/recruit/`: the Recruit (`sparkwitch:recruit`, 新兵, color `0x5B862D`), contributed in PR #176; the
   PR description is the spec, every number lives in `RecruitRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
-    appearance condition) registered before Noa and the Insider, and in the civilian block of the assassin-guess order
-    (between the Perfumer and Noa). Wathe's civilian pass draws it like the Fisher and the Blind; it is not a police variant
+    appearance condition) registered before the Athlete, the Discoverer, Noa and the Insider, and in the civilian block of the
+    assassin-guess order (between the Perfumer and the Athlete). Wathe's civilian pass draws it like the Fisher and the Blind; it is not a police variant
     (`PoliceRoles`, `PoliceSlotAssignmentService.VARIANT_IDS`) and never takes a cop slot. It has no coins, shop or
     economy service, owns no witch skill (not in `isRegisteredSparkWitchRole`) and never renders in the
     `gui.sparkwitch.skills` panel.
@@ -1032,11 +1038,94 @@ Current build baseline:
   - Open (owner calls, unchanged by review): the push-off penalty applies with or without the knife (Knight
     precedent); a Last Stand victim who revives still costs sanity or the Recruit's life; the Black Raven disguise
     pool and SparkAssist have no Recruit entry yet.
+- `roles/civilian/athlete/`: the Athlete (`sparkwitch:athlete`, 运动员, color `0x6FD08C`), contributed in PR #191 and
+  reworked in review (owner answers 2026-11-03); every gameplay number lives in `AthleteRules`.
+  - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, `maxSprintTime(-1)` = unlimited
+    stamina, no appearance condition) registered after the Recruit, before the Discoverer, Noa and the Insider, and in
+    the civilian block of the assassin-guess order (right after the Recruit). Drawn by Wathe's civilian pass, never a police slot; no coins or
+    shop, no witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel. Real role
+    only: the Black Raven disguise `DENYLIST` lists it.
+  - Dash (`AthleteFeatureService` registers the empty C2S `sparkwitch:use_athlete_dash`, the replay formatter and the
+    lifecycle): `AthleteDashService.tryUse` gates through the pure `AthleteDashRules.verdict` (ACTIVE round, playing,
+    alive and not a spectator, not held — swallowed, Last Stand, Last Escape, Kidnapper control, Control Expert stun,
+    Seeker session, borrowed camera, Hunter root —, not riding or sleeping, not SparkTraits role-skill blocked, ready;
+    Fear last, which sends Grand Witch's "skill blocked" line). `AthleteDashPath` then moves the whole bounding box
+    forward in 1/16 steps with vanilla collision and the player's own shape context (an entity already overlapping
+    the start box never blocks, like walking): flat first, else the smallest 1/16 rise up to the step height that
+    clears (carpets, slabs, stair steps, with walking's headroom); a drop deeper than 0.6 is a ledge; an airborne start
+    uses the floor up to 1.3 below; a dash aimed within 30° of a block axis slides along a wall on that axis (narrow
+    corridors), a steeper one stops. The destination is the farthest accepted box whose four bottom corners all have
+    floor within 0.6, so the dash never ends inside a wall, door or panel, never passes a corner a walk cannot, and
+    never leaves the player hanging over a ledge. Under 0.5 blocks of path, or no floor, refuses and costs nothing. The teleport keeps the
+    client's rotation (relative flags, zero delta) and zeroes velocity (no leftover momentum), plays the riptide sound,
+    records the skill replay `sparkwitch:athlete_dash` (success only) and restarts the cooldown.
+  - Cooldown: `AthleteComponent` (`sparkwitch:athlete`, `NEVER_COPY`, appended last in the CCA list) keeps an absolute
+    ready tick synced to the owner only; `RoleAssigned` clears it and starts the 15 s opening cooldown for a drawn
+    Athlete, Wathe's `ResetPlayer` clears it, NBT keeps it across a relog. The forced-cooldown store
+    `sparkwitch:athlete_dash` (appended last in `SparkWitchForcedCooldowns`) only raises it.
+  - Deny lists: `use_athlete_dash` is classified next to the Fiend Dash in the Control Expert stun, Knight duel,
+    Seeker session, Riftwalker session and Grand Witch Fear lists. SparkStrength's Taotie daze list
+    (`feat/athlete-dash-daze`) and SparkFactionAPI's opening safe-time list (`feat/athlete-dash-safe-time`) add it on
+    their own branches; until those merge, a dazed Athlete can still dash.
+  - Client (`client/athlete/`): `SparkWitchClient`'s G-key dispatch sends the request through `AthleteDashClient`
+    (no N-key handler, no client cooldown); `AthleteDashHud` (from `AthleteClient`'s confirmed-server HUD callback)
+    draws the owner-only bottom-right ready/cooldown line from the synced component, with the Fiend Dash line's gates
+    and layout. SparkAssist has no guidebook page yet.
+- `roles/civilian/discoverer/`: the Discoverer (`sparkwitch:discoverer`, 探索者, color `0xAF9042`), contributed in
+  PR #189 and fixed in review (owner decisions 2026-11-03); every number lives in `DiscovererRules`.
+  - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, plain 10 s `maxSprintTime`, no
+    appearance condition) registered after the Athlete, before Noa and the Insider, and right after the Athlete in the
+    civilian block of the assassin-guess order. Wathe's civilian pass draws it; it is not a police variant, owns no
+    witch skill and never renders in the `gui.sparkwitch.skills` panel. `SparkWitchRoles` exposes `DISCOVERER_ID`.
+  - Gate (`DiscovererService.canUsePassives`, the USEC/Control Expert `canEarn` shape): round ACTIVE, playing and
+    alive, the exact role, not spectator or creative (so a Taotie-swallowed or dead Discoverer gets nothing), not a
+    restricted Wraith.
+  - Open air: an `END_WORLD_TICK` loop (early return unless ACTIVE) gives Speed II for 40 ticks, refreshed at 20 or
+    below, while `Wathe.isSkyVisibleAdjacent` holds (Wathe's own outside-task test, so glass roofs count). It never
+    removes Speed, so a weaker hidden Speed from another source survives; a stronger or infinite one is left alone.
+  - Stamina: `mixin/discoverer/DiscovererSprintDrainMixin` (`tickMovement` HEAD, `order = 0` capture before Wathe's
+    `wathe$limitSprint`, `order = 1500` rewrite right after it) turns Wathe's 1-per-sprinting-tick drain into 0.75
+    through `DiscovererStaminaService`; the cap and Wathe's flat 0.25 regen are unchanged, so a full bar lasts 267
+    instead of 200 ticks. It only touches sprinting ticks, so the TAIL regen hooks (SparkTraits Excellent Physique,
+    Depression, USEC) never overlap it; jump costs are not reduced.
+  - Economy: no passive income and a 0 starting balance (owner OK). Each `TaskComplete` pays +50 through
+    `addToBalance` (so SparkFactionAPI income records and SparkTraits Snowball see it), never to a SparkTraits
+    Impostor (`compat/SparkTraitsTaskIncomeBridge`: SparkTraits absent → pay, confirmed non-Impostor → pay, unknown →
+    no pay), because SparkTraits pays an Impostor's task income itself.
+  - Shop (`DiscovererShopService`, both sides via `BuildShopEntries`): only the vanilla spyglass (`discoverer_spyglass`,
+    150, stock 1), priced through `SparkTraitsCharismaBridge`. The PR's conductor key is no longer sold here; it became
+    the Attendant's Spare Key below.
+  - Open: no SparkAssist guidebook page and no Black Raven disguise entry yet.
+- `item/sparekey/`: the Spare Key (`sparkwitch:spare_key`, 备用钥匙), the PR #189 conductor key renamed and given to
+  the NoellesRoles Attendant (owner decisions 2026-11-03); numbers live in `SpareKeyRules`.
+  - Grant (`SpareKeyAttendantKit`): once per round from an own `ON_FINISH_INITIALIZE` phase after Wathe's default
+    phase (Fisher rod / Blind kit precedent), to every living player whose real role is `noellesroles:attendant`
+    (`compat/NoellesRoleIds.ATTENDANT`) and who holds none; a full inventory drops it at their feet. It never listens
+    to `RoleAssigned`, so a used-up key is never re-granted and a mid-round Attendant gets none. A SparkStrength Coroner
+    or a Black Raven disguised as an Attendant gets no key.
+  - Doors (`SpareKeyDoors` on Wathe's `DoorInteraction.EVENT`, shaped like `FisherKeyFishDoors`): only while a round
+    is running, on a closed, unblasted, unjammed (paired leaf included) TRAIN_DOOR (3 points) or a `requiresKey()`
+    small door (1 point), out of 7. Too few points → DENY on both sides with an actionbar line, nothing spent. Otherwise
+    the server answers HANDLED, toggles the door itself and charges only once the whole doorway is open (Wathe ignores
+    a same-tick second toggle); 0 points removes the stack. Each opening starts a 5 s vanilla item cooldown (also its
+    SparkFactionAPI nominal in `compat/cooldown/SparkWitchItemCooldownNominals`); a cooling key PASSes. Creative and
+    spectator PASS to Wathe.
+  - Hands: any holder may use it (no role gate). The main-hand key is read from the event's hand item, so the Seeker
+    car and Black Raven crow (which dispatch with an empty hand and the body as player) never spend it. The off-hand
+    key acts only when the event hand and the real main hand are both empty (any main-hand door tool wins), the body is
+    not locked by a Seeker session or crow, and the body can reach the door itself.
+  - It never drops on death. Replay: `recordItemUse`, rendered by `SpareKeyReplayFormatter` (registered from
+    `SpareKeyDoors.register`) with `replay.item_use.sparkwitch.spare_key`.
+    The model's display transforms come from NoellesRoles `master_key.json` (`THIRD_PARTY_NOTICES.md`); the texture
+    was contributed in PR #189.
+  - SparkStrength's Attendant door log (`DoorLogService`) classifies openings by the main-hand item id only, so until
+    SparkStrength lists `sparkwitch:spare_key` in `DoorLogRules`' universal keys and also reads an off-hand Spare Key
+    (main hand empty), Spare Key openings log as FORCED.
 - `roles/civilian/noa/`: 城崎诺亚 Noa Jogasaki (`sparkwitch:noa`, color `0x9CC8FC`), contributed in PR #186 and
   reworked in review (owner answers 2026-11-04); every number lives in `NoaRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
-    appearance condition) registered right before the Insider, and in the civilian block of the assassin-guess order
-    (right after the Recruit). Drawn by Wathe's civilian pass, never a police slot; no witch skill (not in
+    appearance condition) registered after the Discoverer, right before the Insider, and in the civilian block of the
+    assassin-guess order (right after the Discoverer). Drawn by Wathe's civilian pass, never a police slot; no witch skill (not in
     `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel. The Black Raven disguise pool does not
     support it. SparkTraits never gives her the Impostor trait (its Impostor role block, owner 2026-11-04).
   - Sanity lock: `mixin/noa/PlayerMoodComponentNoaMoodLockMixin` (common config, decisions in `NoaMoodLock`) zeroes
@@ -1053,8 +1142,8 @@ Current build baseline:
     sanity the high table (big dog portrait, Speed II, lose 10-50%, key, spyglass, firecracker, Wathe note), otherwise
     the low table (knife, revolver, whiskey shield, lose 10-30%, Speed III, crowbar, regain 10-30%). Dynamic weights
     are clamped to [0.5, 25], so none is ever zero or negative. Key, spyglass, knife, revolver and crowbar are
-    one-offs per round. Items go to the hotbar (Recruit precedent). The key is `sparkwitch:spare_key` once #189
-    registers it, else NoellesRoles' master key. The whiskey shield is NoellesRoles' own
+    one-offs per round. Items go to the hotbar (Recruit precedent). The key is the Spare Key below
+    (`sparkwitch:spare_key`, looked up by id; NoellesRoles' master key only if it were unregistered). The whiskey shield is NoellesRoles' own
     `WhiskeyShieldEffect.addShieldLayer` for 400 ticks (no mood bonus). The skill replay (role id) stores outcome
     names, item ids and amounts, formatted per viewer.
   - State: `NoaComponent` (`sparkwitch:noa_player`, `NEVER_COPY`, appended last in the CCA list) keeps the absolute
