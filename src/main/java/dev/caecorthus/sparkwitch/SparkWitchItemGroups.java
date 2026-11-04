@@ -80,6 +80,8 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.usecFmjRound(),
                                     SparkWitchItems.usecApRound(),
                                     SparkWitchItems.usecSuppressor(),
+                                    // NoellesRoles Attendant's Spare Key (civilian) / NoellesRoles 乘务员的备用钥匙（平民）
+                                    SparkWitchItems.spareKey(),
                                     // Black Raven (civilian police) / 黑羽鸦（平民警察）
                                     SparkWitchItems.featherBlade(),
                                     SparkWitchItems.blackRavenLedger(),

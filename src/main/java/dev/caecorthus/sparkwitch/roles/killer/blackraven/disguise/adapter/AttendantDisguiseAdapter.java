@@ -9,8 +9,10 @@ import net.minecraft.util.Identifier;
 
 /**
  * Disguise parity surface of the Attendant: kit only (the NoellesRoles room book plus, when SparkStrength is loaded,
- * its starter flashlight by registry id; absent means no flashlight).
+ * its starter flashlight by registry id; absent means no flashlight). The Attendant's round-start Spare Key
+ * ({@code item/sparekey/SpareKeyAttendantKit}) is deliberately not part of the disguise kit.
  * 乘务员的伪装对等面：仅开局物品（诺艾尔职业房间手册；SparkStrength 已加载时按注册 id 追加开局手电筒，缺失则不发）。
+ * 乘务员开局的备用钥匙（{@code item/sparekey/SpareKeyAttendantKit}）有意不计入伪装物品。
  */
 public final class AttendantDisguiseAdapter implements BlackRavenDisguiseAdapter {
     public static final Identifier ROLE_ID = Identifier.of("noellesroles", "attendant");

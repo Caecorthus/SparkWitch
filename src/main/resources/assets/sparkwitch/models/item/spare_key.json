@@ -1,7 +1,7 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "sparkwitch:item/conductor_key"
+    "layer0": "sparkwitch:item/spare_key"
   },
   "display": {
     "thirdperson_righthand": {

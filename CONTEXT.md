@@ -19,6 +19,10 @@ The Knight (`sparkwitch:knight`, 骑士, contributed in PR #169 and reworked 202
 the Vigilante slots and spends 150 coins on the shared ability key (G) to duel one living player.
 The Recruit (`sparkwitch:recruit`, 新兵, contributed in PR #176) is an ordinary civilian that takes no police slot,
 gets Wathe's knife after its first task, and may pick up one ground gun per round.
+The Discoverer (`sparkwitch:discoverer`, 探索者, contributed in PR #189) is an ordinary civilian that gets Speed II
+under open sky, sprints with 25% less stamina drain, and earns 50 coins per task to spend on a spyglass.
+SparkWitch also gives the NoellesRoles Attendant (`noellesroles:attendant`, 乘务员) one Spare Key
+(`sparkwitch:spare_key`, 备用钥匙) at round start; it opens train doors and room-locked doors for durability.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -1029,6 +1033,56 @@ Current build baseline:
   - Open (owner calls, unchanged by review): the push-off penalty applies with or without the knife (Knight
     precedent); a Last Stand victim who revives still costs sanity or the Recruit's life; the Black Raven disguise
     pool and SparkAssist have no Recruit entry yet.
+- `roles/civilian/discoverer/`: the Discoverer (`sparkwitch:discoverer`, 探索者, color `0xAF9042`), contributed in
+  PR #189 and fixed in review (owner decisions 2026-11-03); every number lives in `DiscovererRules`.
+  - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, plain 10 s `maxSprintTime`, no
+    appearance condition) registered after the Recruit, right before the Insider, and right after the Recruit in the
+    civilian block of the assassin-guess order. Wathe's civilian pass draws it; it is not a police variant, owns no
+    witch skill and never renders in the `gui.sparkwitch.skills` panel. `SparkWitchRoles` exposes `DISCOVERER_ID`.
+  - Gate (`DiscovererService.canUsePassives`, the USEC/Control Expert `canEarn` shape): round ACTIVE, playing and
+    alive, the exact role, not spectator or creative (so a Taotie-swallowed or dead Discoverer gets nothing), not a
+    restricted Wraith.
+  - Open air: an `END_WORLD_TICK` loop (early return unless ACTIVE) gives Speed II for 40 ticks, refreshed at 20 or
+    below, while `Wathe.isSkyVisibleAdjacent` holds (Wathe's own outside-task test, so glass roofs count). It never
+    removes Speed, so a weaker hidden Speed from another source survives; a stronger or infinite one is left alone.
+  - Stamina: `mixin/discoverer/DiscovererSprintDrainMixin` (`tickMovement` HEAD, `order = 0` capture before Wathe's
+    `wathe$limitSprint`, `order = 1500` rewrite right after it) turns Wathe's 1-per-sprinting-tick drain into 0.75
+    through `DiscovererStaminaService`; the cap and Wathe's flat 0.25 regen are unchanged, so a full bar lasts 267
+    instead of 200 ticks. It only touches sprinting ticks, so the TAIL regen hooks (SparkTraits Excellent Physique,
+    Depression, USEC) never overlap it; jump costs are not reduced.
+  - Economy: no passive income and a 0 starting balance (owner OK). Each `TaskComplete` pays +50 through
+    `addToBalance` (so SparkFactionAPI income records and SparkTraits Snowball see it), never to a SparkTraits
+    Impostor (`compat/SparkTraitsTaskIncomeBridge`: SparkTraits absent → pay, confirmed non-Impostor → pay, unknown →
+    no pay), because SparkTraits pays an Impostor's task income itself.
+  - Shop (`DiscovererShopService`, both sides via `BuildShopEntries`): only the vanilla spyglass (`discoverer_spyglass`,
+    150, stock 1), priced through `SparkTraitsCharismaBridge`. The PR's conductor key is no longer sold here; it became
+    the Attendant's Spare Key below.
+  - Open: no SparkAssist guidebook page and no Black Raven disguise entry yet.
+- `item/sparekey/`: the Spare Key (`sparkwitch:spare_key`, 备用钥匙), the PR #189 conductor key renamed and given to
+  the NoellesRoles Attendant (owner decisions 2026-11-03); numbers live in `SpareKeyRules`.
+  - Grant (`SpareKeyAttendantKit`): once per round from an own `ON_FINISH_INITIALIZE` phase after Wathe's default
+    phase (Fisher rod / Blind kit precedent), to every living player whose real role is `noellesroles:attendant`
+    (`compat/NoellesRoleIds.ATTENDANT`) and who holds none; a full inventory drops it at their feet. It never listens
+    to `RoleAssigned`, so a used-up key is never re-granted and a mid-round Attendant gets none. A SparkStrength Coroner
+    or a Black Raven disguised as an Attendant gets no key.
+  - Doors (`SpareKeyDoors` on Wathe's `DoorInteraction.EVENT`, shaped like `FisherKeyFishDoors`): only while a round
+    is running, on a closed, unblasted, unjammed (paired leaf included) TRAIN_DOOR (3 points) or a `requiresKey()`
+    small door (1 point), out of 7. Too few points → DENY on both sides with an actionbar line, nothing spent. Otherwise
+    the server answers HANDLED, toggles the door itself and charges only once the whole doorway is open (Wathe ignores
+    a same-tick second toggle); 0 points removes the stack. Each opening starts a 5 s vanilla item cooldown (also its
+    SparkFactionAPI nominal in `compat/cooldown/SparkWitchItemCooldownNominals`); a cooling key PASSes. Creative and
+    spectator PASS to Wathe.
+  - Hands: any holder may use it (no role gate). The main-hand key is read from the event's hand item, so the Seeker
+    car and Black Raven crow (which dispatch with an empty hand and the body as player) never spend it. The off-hand
+    key acts only when the event hand and the real main hand are both empty (any main-hand door tool wins), the body is
+    not locked by a Seeker session or crow, and the body can reach the door itself.
+  - It never drops on death. Replay: `recordItemUse`, rendered by `SpareKeyReplayFormatter` (registered from
+    `SpareKeyDoors.register`) with `replay.item_use.sparkwitch.spare_key`.
+    The model's display transforms come from NoellesRoles `master_key.json` (`THIRD_PARTY_NOTICES.md`); the texture
+    was contributed in PR #189.
+  - SparkStrength's Attendant door log (`DoorLogService`) classifies openings by the main-hand item id only, so until
+    SparkStrength lists `sparkwitch:spare_key` in `DoorLogRules`' universal keys and also reads an off-hand Spare Key
+    (main hand empty), Spare Key openings log as FORCED.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation
