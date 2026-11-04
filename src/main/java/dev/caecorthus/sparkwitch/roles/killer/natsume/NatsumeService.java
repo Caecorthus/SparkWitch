@@ -79,15 +79,6 @@ public final class NatsumeService {
                 }
             }
         });
-        // A hypnotised player cannot use items. 被催眠者无法使用道具。
-        UseItemCallback.EVENT.register((player, world, hand) -> {
-            if (player instanceof ServerPlayerEntity serverPlayer && blocksItems(serverPlayer)) {
-                serverPlayer.sendMessage(Text.translatable("message.sparkwitch.natsume.blocked")
-                        .formatted(Formatting.DARK_PURPLE), true);
-                return TypedActionResult.fail(ItemStack.EMPTY);
-            }
-            return TypedActionResult.pass(ItemStack.EMPTY);
-        });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
             HYPNOSIS_UNTIL.clear();
             COOLDOWN_UNTIL.clear();

@@ -58,6 +58,9 @@ public final class NatsumeComponent implements AutoSyncedComponent {
         return hypnosisSeconds > 0;
     }
 
+    // TODO(merge): replaced by the server agent's implementation
+    public boolean isLocked() { return isHypnotised(); }
+
     @Override
     public boolean shouldSyncWith(ServerPlayerEntity recipient) {
         return true;
