@@ -5,9 +5,10 @@ import net.minecraft.util.Identifier;
 
 /**
  * Frozen Insider contract: stable gameplay values shared by every work package, which read and never redefine them.
- * The Insider is a native neutral that spawns only beside a Corrupt Cop and wins with it as Team Jiahao.
- * 冻结的内应契约：各工作包共用的稳定玩法数值，只读取、不重新定义。内应是 Wathe 原生中立，只随黑警生成，
- * 并与黑警组成嘉豪阵营共同获胜。
+ * The Insider is a Team Jiahao member (SparkFactionAPI faction {@code sparkwitch:jiahao}, native Wathe constant
+ * JIAHAO since 2026-11-04) that spawns only beside a Corrupt Cop and wins with it.
+ * 冻结的内应契约：各工作包共用的稳定玩法数值，只读取、不重新定义。内应是嘉豪阵营成员（SparkFactionAPI 阵营
+ * {@code sparkwitch:jiahao}，自 2026-11-04 起为原生 Wathe 常量 JIAHAO），只随黑警生成，并与黑警共同获胜。
  */
 public final class InsiderRules {
     public static final Identifier ROLE_ID = SparkWitch.id("insider");

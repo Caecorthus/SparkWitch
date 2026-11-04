@@ -33,8 +33,12 @@ through walls and takes one item from a corpse with the shared ability key (G).
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
-It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
-the two form Team Jiahao and win together.
+It also adds the Insider, a Team Jiahao member paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
+the two form Team Jiahao (嘉豪阵营, `sparkwitch:jiahao`) and win together.
+Since 2026-11-04 the witch faction (`sparkwitch:witch`) and Team Jiahao (`sparkwitch:jiahao`) are real Wathe
+`Faction` constants (WITCH, JIAHAO), declared in `fabric.mod.json` under
+`custom."sparkfactionapi:native_wathe_factions"` and appended by SparkFactionAPI `0.1.6.0`; they are no longer
+disguised as Wathe `NEUTRAL`. See "Native Wathe factions" under Runtime Invariants.
 It also adds the Stowaway (`sparkwitch:stowaway`, 偷渡客, contributed in PR #178), a neutral drawn at any player count
 that starts with only a lockpick, never counts as alive for any win, joins the winning side if it is alive at round
 end, senses players within 10 blocks, and hides from instinct behind cover like NoellesRoles' Survival Master.
@@ -72,8 +76,11 @@ Current build baseline:
 - Minecraft `1.21.1`
 - Java `21`
 - SparkWitch `0.1.6.0` (Emma branch)
-- SparkFactionAPI floor `0.1.5.12` (SparkFactionAPI `0.1.5.13`+ adds the two-row limited inventory; see
-  `compat/SparkFactionSecondRowCompat`)
+- SparkFactionAPI floor `0.1.6.0` (native Wathe factions: the `sparkfactionapi:native_wathe_factions` declaration,
+  `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`; version provisional until the
+  owner picks the release number). Every `0.1.5.13`+ feature (two-row limited inventory,
+  `compat/SparkFactionSecondRowCompat`, settlement exclusions) is therefore present; the reflective compat paths are
+  kept as they are.
 
 ## Read Order
 
@@ -237,6 +244,14 @@ Current build baseline:
   faction-count snapshots, purchaser-only reading results, and economy. Client
   presentation (faction-count HUD, reading slip, reading log, selector ledger)
   lives in `client/tarot/`, `client/hud/Tarot*`, and `client/screen/`.
+  - Five count buckets in HUD order (`TarotReaderRules.FactionBucket`): Civilian, Killer, Neutral, Witch
+    (`sparkwitch:witch`) and Jiahao (`sparkwitch:jiahao`: Insider and Corrupt Cop, owner D5 2026-11-04).
+    `classifyFaction` buckets by SFA faction id first and falls back only to the built-in Wathe constants,
+    compared by identity: never a `switch` over `Faction`, whose WITCH/JIAHAO constants SFA appends at runtime;
+    any other constant has no bucket. `staticBucket` (selector grouping) still reads only the registered base faction.
+  - `tarot_divination_snapshot` is five VarInts in that order (jiahao appended last), so client and server jars
+    must match. The HUD table has five rows; the identity selector has six jump tabs (Jiahao before Special). Team
+    Jiahao's colour comes from SFA, falling back to `InsiderRules.TEAM_JIAHAO_COLOR` (0xFFC125) when unregistered.
 - `roles/killer/ninja/`: parry, dark-kill bounty, shop, and death cleanup.
   - Grappling Hook (`sparkwitch:ninja_grappling_hook`, 钩爪, owner 2026-10-07): a 100-coin, stock-1 shop TOOL,
     role-agnostic like the Kunai and removed on death with the other Ninja items. `NinjaGrappleService` (server only)
@@ -1895,6 +1910,30 @@ Current build baseline:
 
 ## Runtime Invariants
 
+Native Wathe factions (owner D1-D7, 2026-11-04). `fabric.mod.json` declares
+`custom."sparkfactionapi:native_wathe_factions"` = `{"sparkwitch:jiahao": "JIAHAO", "sparkwitch:witch": "WITCH"}`;
+SparkFactionAPI `0.1.6.0` reads it while Wathe's `Faction` class initializes and appends both constants (sorted by
+id), so they are real Wathe factions rather than the old `NEUTRAL` disguise. `SparkWitchRoleRegistry.registerFactions`
+builds the witch faction with `neutralAligned(true)` (D3: witch roles keep other mods' neutral perks through
+`SparkFactionApi.isNeutralAligned`) and `dealtInWatheNeutralPool(false)` (D1: no Wathe pass draws them and they take no
+neutral slot; `WitchRoleAssignmentService` alone deals the Grand Witch at 18+). It then appends Team Jiahao
+(`sparkwitch:jiahao`): `InsiderRules.TEAM_JIAHAO_COLOR`, prefix `faction.sparkwitch.jiahao`, capabilities copied from
+SparkFactionAPI's built-in `wathe:neutral`, no win condition (Jiahao wins stay on NoellesRoles' Corrupt Cop branch),
+`neutralAligned(true)` and `dealtInWatheNeutralPool(true)` (D6: Wathe's neutral pass still deals the Corrupt Cop with
+today's odds and slot). The Insider registers under it and the Corrupt Cop is bound to it (see the Insider rules).
+At runtime witch roles read `Faction.WITCH`, the Insider and the Corrupt Cop `Faction.JIAHAO`, and `isNeutral()` is
+false for all of them, so Wathe's rotation history counts them as civilian rounds (D4); wins stay
+`WinStatus.NEUTRAL`; the Murderous Witch, Fiend, Stowaway and Schrödinger's Cat stay Wathe neutrals and the Apprentice
+Witch stays civilian. SparkWitch gameplay compares SparkFactionAPI faction ids or exact role ids, never
+`Faction.NEUTRAL`, so the Tarot Reader's fifth Jiahao bucket (D5) is the only new classification. The Insider's and
+Corrupt Cop's effective faction is now `sparkwitch:jiahao` instead of `wathe:neutral`: `WraithRules.alignmentFor`
+refuses it as before (neither ever becomes a Wraith), and SparkWitch match-record faction keys
+(`record/AchievementRecords`) carry it. Letters: SparkFactionAPI names their letter faction `sparkwitch.jiahao` /
+`sparkwitch.witch`; like `neutral` before, no faction-specific `tip.letter.*` keys exist, so Wathe falls back to its
+generic letter keys. Unit tests run without mixins: the local `testsupport/NativeWatheFactionsTestInstaller`
+(auto-detected Jupiter extension) installs this declaration through SparkFactionAPI's production
+`NativeWatheFactions.install`, and `Role#getFaction()` there stays Wathe's flag-based value.
+
 `WitchPlayerComponent.serverTick()` preserves this order:
 
 1. Grand Witch ceremonial sword
@@ -2527,7 +2566,10 @@ ends for good once the Fiend Moment starts. The `sparkwitch:fiend_feign` compone
 CCA list, never saved) syncs only to its owner and carries a shown flag, a feigning flag and the remaining ticks;
 `client/fiend/FiendFeignHud` draws that owner's bottom-right countdown line (next feign or revival) from
 `FiendClient`'s HUD callback.
-The Insider (`sparkwitch:insider`) has no component; every rule reads synced roles. Wathe never draws it
+The Insider (`sparkwitch:insider`) has no component; every rule reads synced roles. It is registered under Team
+Jiahao (`SparkWitchFactions.JIAHAO`, native Wathe constant JIAHAO, no explicit `nativeWatheFaction` bucket), and
+`SparkWitchRoleRegistry.bindCorruptCopToTeamJiahao` binds `noellesroles:corrupt_cop` there with SparkFactionAPI
+`bindRoleFaction` during common init on both sides, right after the factions register (owner D2: every round). Wathe never draws it
 (`appearanceCondition(context -> false)`). `MurderGameModeMixin` calls, in order, the Hunter→Orthopedist
 pairing, the Witch assignment, then `InsiderAssignmentService`, all before Wathe's civilian pass: when a
 Corrupt Cop (exact id `noellesroles:corrupt_cop`) was drawn, no Insider exists, the role is enabled, and at
@@ -2552,8 +2594,9 @@ clear, revolver 150 and crowbar 50, each stock 1, then restore. The tablet is no
 SparkStrength police elector for meetings and votes (`TabletChannelResolver.isPoliceElector`).
 Team Jiahao (every Corrupt Cop and every Insider, by current role) applies only in a round that has an Insider
 (any role-map entry with the Insider role, online or not, dead or alive); without one, all three wraps below
-return NoellesRoles' own value, so several forced Corrupt Cops behave exactly as in NoellesRoles and the title
-stays "黑警胜利！". With an Insider it wins inside NoellesRoles' Corrupt Cop win branch, so NoellesRoles' win order stays Vulture > Survival Master > Pathogen > Jester > Taotie > Team Jiahao >
+return NoellesRoles' own value, so several forced Corrupt Cops behave exactly as in NoellesRoles (same single
+winner); only the end title changed (owner D7, 2026-11-04, overturning that part of C13): a lone Corrupt Cop win also
+reads "嘉豪胜利！", over NoellesRoles' own Corrupt Cop subtitle. With an Insider it wins inside NoellesRoles' Corrupt Cop win branch, so NoellesRoles' win order stays Vulture > Survival Master > Pathogen > Jester > Taotie > Team Jiahao >
 Shadow Jester. `mixin/insider/NoellesRolesJiahaoTeamWinMixin` wraps three calls in `lambda$registerEvents$14`
 (pinned NoellesRoles `b58fa5f`, ordinals fixed by `JiahaoTeamWinContractTest`): `getAllWithRole` ordinal 6 so the
 living-cop lookup sees the whole team and any living member blocks killer and passenger wins;
@@ -2569,9 +2612,11 @@ screen reads "嘉豪胜利！" over "整列列车的人都被嘉豪们豪完了"
 read the same rows. Every other win keeps Wathe's rows. Team Jiahao has its own faction color,
 `InsiderRules.TEAM_JIAHAO_COLOR` (tuhao gold `0xFFC125`), apart from the Insider's mint and the Corrupt Cop's navy:
 `client/mixin/insider/RoundTextRendererJiahaoTitleMixin` (`@ModifyExpressionValue` on the neutral title's
-`RoleAnnouncementTexts.getForRole(Identifier)` lookup in `RoundTextRenderer.renderHud`) swaps an Insider-led title's
-role text for an unregistered twin built with the same id in that gold, so the lang keys stay
-`announcement.win.insider` / `game.win.insider` and the Insider's own role announcement stays mint. SparkFactionAPI's
+`RoleAnnouncementTexts.getForRole(Identifier)` lookup in `RoundTextRenderer.renderHud`) swaps the role text of a
+title led by an Insider row or by a Corrupt Cop row (`JiahaoWinTitleClient.isTeamJiahaoTitle`, D7) for an
+unregistered twin built with the Insider id in that gold, so the title key stays `announcement.win.insider` and the
+Insider's own role announcement stays mint; Wathe reads the subtitle from the leading row's own id
+(`game.win.insider`, or NoellesRoles' `game.win.corrupt_cop` for a lone Corrupt Cop win). SparkFactionAPI's
 `@Redirect` on the `winText` read that follows still wins for a custom faction win.
 Insider presentation is client-only. One `GetInstinctHighlight` listener answers `always` only while its condition
 holds. At priority 65 (below SparkStrength's tablet suspect mark at 80, which keeps its color; SparkStrength no
@@ -2930,7 +2975,8 @@ tasks it is promoted to an accomplice role through the pool above.
   never shows the witch skill panel, and stays out of the Black Raven disguise pool like the Accomplice (not
   civilian-base).
 - **Dealing (D1).** `WitchRoleAssignmentService.assignAfterNeutralsBeforeCivilians`, right after the Grand Witch is
-  dealt: when the round then has at least one Grand Witch (dealt, neutral-drawn or forced) and the Bewitched is
+  dealt: when the round then has at least one Grand Witch (dealt or forced; no Wathe pass draws witch roles since the
+  native WITCH faction, 2026-11-04) and the Bewitched is
   enabled, it deals `WitchRoleCounts.bewitched(n)` minus the already forced Bewitched on the shuffled `NO_ROLE` seats,
   where `bewitched(n) = n < 18 ? 0 : (n - 18) / 6` (owner, 2026-10-06: an 18-23 round has the Grand Witch alone,
   24-29 deal 1, then +1 per further 6). There is no new mixin call: `MurderGameModeMixin` still runs
@@ -3082,7 +3128,7 @@ then acts by item id:
 - Any of the five edible fish: every cooling fish is removed, because any cooling fish refuses all of them.
 Other items gate only on the vanilla entry, so the command already clears them fully.
 The admin command alone also beats Saint Karma (owner decision, 2026-10-05). `SparkFactionClearCooldownMixin` wraps the
-command's `remove` call (the same method body from SparkFactionAPI 0.1.5.12 through 0.1.5.15). When that call really
+command's `remove` call (the same method body from SparkFactionAPI 0.1.5.12 through 0.1.6.0). When that call really
 cleared the item, `SaintKarmaState` exempts the item for that player until the Karma ends or is triggered again. The
 exemption is transient and never saved. Role mechanics that remove a cooldown (NoellesRoles Catalyst, the Bomber pass)
 do not come through the command, so Karma still re-covers those items. SparkTraits lifts its own forced melee floor
