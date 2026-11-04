@@ -99,6 +99,10 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "use_athlete_dash"),
             // Dominator mark/release (UseDominatorSkillC2SPacket, G key). / 支配者标记/释放（G 键）。
             Identifier.of("sparkwitch", "use_dominator_skill"),
+            // 夏目安安 hypnosis menu request and target confirm, both halves like the Judge pair.
+            // 夏目安安催眠菜单请求与目标确认，与法官的两个包一样两半都拦截。
+            Identifier.of("sparkwitch", "request_natsume_menu"),
+            Identifier.of("sparkwitch", "confirm_natsume_target"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a

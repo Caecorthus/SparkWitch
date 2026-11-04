@@ -27,6 +27,8 @@ import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianConstants;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent;
+import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
@@ -74,6 +76,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier NOA_PAINT_ID = NoaRules.PAINT_SKILL_ID;
     static final Identifier RAGPICKER_SEARCH_ID = SparkWitch.id("ragpicker_search");
     static final Identifier DOMINATOR_SKILL_ID = SparkWitch.id("dominator_skill");
+    static final Identifier NATSUME_HYPNOSIS_ID = NatsumeRules.HYPNOSIS_SKILL_ID;
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -130,7 +133,10 @@ public final class SparkWitchForcedCooldowns {
                 ragpickerSearch(),
                 // Dominator mark/release key (PR #192), appended after the Ragpicker Search.
                 // 支配者标记/释放键（PR #192），追加在拾荒者搜刮之后。
-                dominatorSkill()
+                dominatorSkill(),
+                // 夏目安安 hypnosis (PR #194), appended after the Dominator key.
+                // 夏目安安催眠（PR #194），追加在支配者按键之后。
+                natsumeHypnosis()
         );
     }
 
@@ -409,6 +415,30 @@ public final class SparkWitchForcedCooldowns {
                 player -> DominatorPlayerComponent.KEY.get(player).getCooldownTicks(),
                 () -> DominatorRules.MARK_END_COOLDOWN_TICKS,
                 (player, ticks) -> DominatorPlayerComponent.KEY.get(player).setCooldownTicks(ticks)
+        );
+    }
+
+    /**
+     * 夏目安安's hypnosis cooldown (PR #194), kept as an absolute ready tick in the owner-synced
+     * {@code sparkwitch:natsume_anan_player} component. {@code NatsumeService}'s role and round gates: an ACTIVE round
+     * and the raw role (she is never a Black Raven disguise target). Remaining time counts to the ready tick, so it
+     * includes the 60 s opening cooldown; the nominal is the 90 s cooldown after each cast. Every write only moves the
+     * ready tick later through {@code setCooldownReadyTick}, which syncs the shown second to the owner. The skill has no
+     * item, so SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it.
+     * 夏目安安催眠冷却（PR #194），以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:natsume_anan_player} 组件中。与
+     * NatsumeService 的职业与回合门控一致：ACTIVE 回合且为真实职业（她不可能是黑羽鸦的伪装目标）。剩余时间计到就绪刻，因此包含
+     * 60 秒开局冷却；标准冷却为每次施放后的 90 秒。每次写入都只经 {@code setCooldownReadyTick} 把就绪刻推后（并把显示秒数同步给
+     * 本人）。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore natsumeHypnosis() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                NATSUME_HYPNOSIS_ID,
+                whileActive((game, player) -> NatsumeRules.isNatsume(game.getRole(player))),
+                player -> NatsumeComponent.KEY.get(player).cooldownRemainingTicks(player.getServerWorld().getTime()),
+                () -> NatsumeRules.COOLDOWN_TICKS,
+                player -> NatsumeComponent.KEY.get(player),
+                NatsumeComponent::cooldownReadyTick,
+                NatsumeComponent::setCooldownReadyTick
         );
     }
 

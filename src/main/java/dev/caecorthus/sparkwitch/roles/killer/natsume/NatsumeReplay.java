@@ -13,10 +13,9 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Replay for 夏目安安: the skill events {@link NatsumeService} records under her role id (hypnosis landed, or the
- * target was immune). Ported from the author's fork, where it lived in a shared {@code SparkWitchReplayFormatters}.
- * 夏目安安的回放：{@link NatsumeService} 以其职业 id 记录的技能事件（催眠生效，或目标免疫）。移植自作者 fork，原位于共享的
- * {@code SparkWitchReplayFormatters}。
+ * Replay for 夏目安安: the one skill event {@link NatsumeService} records under her role id, a landed hypnosis
+ * ({@code action = hypnosis}); any other action renders nothing.
+ * 夏目安安的回放：{@link NatsumeService} 以其职业 id 记录的唯一技能事件——催眠生效（{@code action = hypnosis}）；其他行为不渲染。
  */
 public final class NatsumeReplay {
     private static boolean registered;
@@ -35,6 +34,9 @@ public final class NatsumeReplay {
     private static @Nullable Text format(GameRecordEvent event, GameRecordManager.MatchRecord match,
                                          ServerWorld world) {
         NbtCompound data = event.data();
+        if (!"hypnosis".equals(data.getString("action"))) {
+            return null;
+        }
         UUID actor = data.containsUuid("actor") ? data.getUuid("actor") : null;
         UUID target = data.containsUuid("target") ? data.getUuid("target") : null;
         if (actor == null || target == null) {
@@ -43,9 +45,6 @@ public final class NatsumeReplay {
         Map<UUID, ReplayGenerator.PlayerInfo> cache = ReplayGenerator.getPlayerInfoCache(match);
         Text actorText = ReplayGenerator.formatPlayerName(actor, cache);
         Text targetText = ReplayGenerator.formatPlayerName(target, cache);
-        if ("immune".equals(data.getString("action"))) {
-            return Text.translatable("replay.skill.sparkwitch.natsume.immune", targetText, actorText);
-        }
         return Text.translatable("replay.skill.sparkwitch.natsume.effect", actorText, targetText);
     }
 }

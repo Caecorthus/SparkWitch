@@ -75,6 +75,10 @@ public final class GrandWitchFearService {
             // Dominator mark/release (G); the server also re-checks fear on use.
             // 支配者标记/释放（G 键）；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "use_dominator_skill"),
+            // 夏目安安 hypnosis menu request and target confirm; the server also re-checks fear on both.
+            // 夏目安安催眠菜单请求与目标确认；服务端在两者上也会再次检查恐惧。
+            Identifier.of("sparkwitch", "request_natsume_menu"),
+            Identifier.of("sparkwitch", "confirm_natsume_target"),
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),
