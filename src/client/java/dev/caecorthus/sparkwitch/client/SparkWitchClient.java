@@ -10,6 +10,8 @@ import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.bewitched.BewitchedClientPresentation;
 import dev.caecorthus.sparkwitch.client.recruit.RecruitClientPresentation;
+import dev.caecorthus.sparkwitch.client.athlete.AthleteClient;
+import dev.caecorthus.sparkwitch.client.athlete.AthleteDashClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
@@ -69,6 +71,7 @@ import dev.caecorthus.sparkwitch.net.TarotDivinationReadingS2CPacket;
 import dev.caecorthus.sparkwitch.net.TarotDivinationSnapshotS2CPacket;
 import dev.caecorthus.sparkwitch.net.UseWitchSkillC2SPacket;
 import dev.caecorthus.sparkwitch.net.WraithRoleAnnouncementS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
@@ -154,6 +157,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         BewitchedClientPresentation.register();
         // Recruit first-task knife progress line (role-owned HUD). / 新兵首个任务发刀进度行（职业自有 HUD）。
         RecruitClientPresentation.register();
+        // Athlete Dash line (role-owned HUD); the dash itself rides the shared ability key below.
+        // 运动员冲刺行（职业自有 HUD）；冲刺本身走下方的共享技能键。
+        AthleteClient.init();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
@@ -259,6 +265,10 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role plus the synced moment owner; Dash exists only during the moment. The server decides use.
                     // 真实职业加同步的时刻拥有者；疾驰只在时刻中存在，是否生效由服务端决定。
                     FiendDashClient.onAbilityKey(client);
+                } else if (AthleteRules.isAthlete(role)) {
+                    // Real role only (the Athlete is never a disguise target); the server decides use.
+                    // 仅真实职业（运动员不可被伪装）；是否生效由服务端决定。
+                    AthleteDashClient.onAbilityKey(client);
                 } else if (!WitchMaidenRules.isWitchMaiden(role)
                         && (WitchPlayerComponent.KEY.get(client.player).hasSkill()
                         || SaintRules.isSaint(role))) {

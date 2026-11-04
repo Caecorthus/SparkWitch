@@ -91,6 +91,8 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "rift_gate_close"),
             // Fiend Dash (UseFiendDashC2SPayload), moment-only. / 魔人疾驰，仅限时刻中。
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            // Athlete dash (UseAthleteDashC2SPayload). / 运动员冲刺。
+            Identifier.of("sparkwitch", "use_athlete_dash"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a

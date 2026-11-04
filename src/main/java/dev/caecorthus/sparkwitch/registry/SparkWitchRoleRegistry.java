@@ -9,6 +9,7 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSettlementExclusionCompat;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
@@ -105,6 +106,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
     public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
+    public static final Identifier ATHLETE_ID = AthleteRules.ROLE_ID;
     public static final Identifier DISCOVERER_ID = DiscovererRules.ROLE_ID;
 
     private static Role emma;
@@ -147,6 +149,7 @@ public final class SparkWitchRoleRegistry {
     private static Role usec;
     private static Role knight;
     private static Role recruit;
+    private static Role athlete;
     private static Role discoverer;
     private static boolean registered;
 
@@ -403,6 +406,11 @@ public final class SparkWitchRoleRegistry {
     public static Role recruit() {
         ensureRegistered();
         return recruit;
+    }
+
+    public static Role athlete() {
+        ensureRegistered();
+        return athlete;
     }
 
     public static Role discoverer() {
@@ -730,10 +738,10 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .build());
-        // Registered before the Discoverer and the Insider (nothing may follow the Insider): an ordinary task civilian
-        // (no coins or shop) drawn by Wathe's civilian assignment like the Fisher and the Blind, never through a police
-        // slot. Its knife, gun and penalty rules live in roles/civilian/recruit.
-        // 注册在探索者与内应之前（内应之后不得再注册）：只做任务的普通平民（没有金币与商店），与钓鱼佬、盲人一样由 Wathe
+        // Registered before the Athlete, the Discoverer and the Insider (nothing may follow the Insider): an
+        // ordinary task civilian (no coins or shop) drawn by Wathe's civilian assignment like the Fisher and the
+        // Blind, never through a police slot. Its knife, gun and penalty rules live in roles/civilian/recruit.
+        // 注册在运动员、探索者与内应之前（内应之后不得再注册）：只做任务的普通平民（没有金币与商店），与钓鱼佬、盲人一样由 Wathe
         // 平民分配抽取，从不占用警位。刀、枪与惩罚规则位于 roles/civilian/recruit。
         recruit = SparkFactionApi.registerRole(FactionRoleDefinition.builder(RECRUIT_ID, FactionIds.CIVILIAN)
                 .color(RecruitRules.ROLE_COLOR)
@@ -742,11 +750,24 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // Registered after the Recruit, right before the Insider (nothing may follow the Insider): an ordinary task
+        // Registered after the Recruit, before the Discoverer and the Insider (nothing may follow the Insider): an
+        // ordinary task civilian drawn by Wathe's civilian assignment, never through a police slot, with unlimited
+        // stamina (-1). Its dash lives in roles/civilian/athlete. Never a Witch-skill role: kept out of
+        // isRegisteredSparkWitchRole.
+        // 注册在新兵之后、探索者与内应之前（内应之后不得再注册）：由 Wathe 平民分配抽取、从不占用警位的普通任务平民，体力无限
+        // （-1）。冲刺位于 roles/civilian/athlete。不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        athlete = SparkFactionApi.registerRole(FactionRoleDefinition.builder(ATHLETE_ID, FactionIds.CIVILIAN)
+                .color(AthleteRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // Registered after the Athlete, right before the Insider (nothing may follow the Insider): an ordinary task
         // civilian drawn by Wathe's civilian assignment, never through a police slot. The plain civilian 10 s cap: the
         // 25% slower sprint drain is DiscovererSprintDrainMixin, not a bigger cap. Passives and shop live in
         // roles/civilian/discoverer.
-        // 注册在新兵之后、紧挨内应之前（内应之后不得再注册）：由 Wathe 平民分配抽取的普通任务平民，从不占用警位。
+        // 注册在运动员之后、紧挨内应之前（内应之后不得再注册）：由 Wathe 平民分配抽取的普通任务平民，从不占用警位。
         // 冲刺上限为普通平民的 10 秒：疾跑消耗慢 25% 由 DiscovererSprintDrainMixin 实现，而不是加大上限。
         // 被动与商店位于 roles/civilian/discoverer。
         discoverer = SparkFactionApi.registerRole(FactionRoleDefinition.builder(DISCOVERER_ID, FactionIds.CIVILIAN)
@@ -807,9 +828,11 @@ public final class SparkWitchRoleRegistry {
                 orthopedist,
                 saint,
                 perfumer,
-                // The Recruit and then the Discoverer join the civilian block; the promotion identities stay the tail.
-                // 新兵与其后的探索者加入平民段；晋升身份始终位于末尾。
+                // The Recruit, the Athlete and then the Discoverer join the civilian block; the promotion identities
+                // stay the tail.
+                // 新兵、运动员与其后的探索者加入平民段；晋升身份始终位于末尾。
                 recruit,
+                athlete,
                 discoverer,
                 pigGod,
                 tarotReader,

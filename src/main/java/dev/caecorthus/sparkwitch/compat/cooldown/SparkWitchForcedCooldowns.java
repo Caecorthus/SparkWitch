@@ -8,6 +8,8 @@ import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Purify.PurifyAbility;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
@@ -58,6 +60,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier NOELLES_ASSASSIN_ROLE_ID = Identifier.of(NoellesRoleIds.NAMESPACE, "assassin");
     static final Identifier BLIND_ATTUNE_ID = SparkWitch.id("blind_attune");
     static final Identifier FIEND_DASH_ID = SparkWitch.id("fiend_dash");
+    static final Identifier ATHLETE_DASH_ID = AthleteRules.DASH_SKILL_ID;
     static final Identifier APPRENTICE_PURIFY_ID = SparkWitch.id("apprentice_purify");
     static final Identifier MAGICIAN_ID = SparkWitch.id("magician");
     static final Identifier MINI_WITHER_TOGGLE_ID = SparkWitch.id("mini_wither_toggle");
@@ -108,7 +111,9 @@ public final class SparkWitchForcedCooldowns {
                 miniWitherToggle(),
                 // Black Raven Raven Form (plan 2026-10-21), appended after the Mini Wither.
                 // 黑羽鸦化鸦（2026-10-21 计划），追加在小凋灵之后。
-                blackRavenCrow()
+                blackRavenCrow(),
+                // Athlete dash (PR #191), appended after the Raven Form. / 运动员冲刺（PR #191），追加在化鸦之后。
+                athleteDash()
         );
     }
 
@@ -208,6 +213,25 @@ public final class SparkWitchForcedCooldowns {
                 player -> FiendMomentWorldComponent.get(player.getServerWorld()),
                 FiendMomentWorldComponent::dashReadyTick,
                 FiendMomentWorldComponent::setDashReadyTick
+        );
+    }
+
+    /**
+     * The Athlete's dash cooldown, kept as an absolute ready tick in the owner-synced {@code sparkwitch:athlete} player
+     * component. Same role and round gates as {@code AthleteDashService}: an ACTIVE round and the real Athlete. The
+     * nominal is the 15 s cooldown after each dash; writes only move the ready tick later.
+     * 运动员冲刺冷却，以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:athlete} 玩家组件中。与 AthleteDashService 的
+     * 职业与回合门控一致：ACTIVE 回合且为真实运动员。标准冷却为每次冲刺后的 15 秒；写入只会把就绪刻推后。
+     */
+    static SimpleRoleSkillCooldownStore athleteDash() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                ATHLETE_DASH_ID,
+                whileActive((game, player) -> AthleteRules.isAthlete(game.getRole(player))),
+                player -> AthleteComponent.KEY.get(player).dashCooldownRemaining(player.getServerWorld().getTime()),
+                () -> AthleteRules.COOLDOWN_TICKS,
+                player -> AthleteComponent.KEY.get(player),
+                AthleteComponent::dashReadyTick,
+                AthleteComponent::setDashReadyTick
         );
     }
 
