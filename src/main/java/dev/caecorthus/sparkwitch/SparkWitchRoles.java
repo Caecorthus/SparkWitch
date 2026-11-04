@@ -48,6 +48,7 @@ public final class SparkWitchRoles {
     public static final Identifier KNIGHT_ID = SparkWitchRoleRegistry.KNIGHT_ID;
     public static final Identifier RECRUIT_ID = SparkWitchRoleRegistry.RECRUIT_ID;
     public static final Identifier ATHLETE_ID = SparkWitchRoleRegistry.ATHLETE_ID;
+    public static final Identifier DISCOVERER_ID = SparkWitchRoleRegistry.DISCOVERER_ID;
 
     private SparkWitchRoles() {
     }
@@ -220,6 +221,10 @@ public final class SparkWitchRoles {
 
     public static Role athlete() {
         return SparkWitchRoleRegistry.athlete();
+    }
+
+    public static Role discoverer() {
+        return SparkWitchRoleRegistry.discoverer();
     }
 
     public static List<Role> assassinGuessRoles() {

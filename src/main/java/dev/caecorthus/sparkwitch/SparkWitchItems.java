@@ -8,6 +8,8 @@ import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
+import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyItem;
+import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.item.ComTacItem;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.item.WhiteCaneItem;
@@ -112,6 +114,7 @@ public final class SparkWitchItems {
     public static final Identifier CLOWNFISH_ID = FisherRules.CLOWNFISH_ID;
     public static final Identifier GOLDFISH_ID = FisherRules.GOLDFISH_ID;
     public static final Identifier KEY_FISH_ID = FisherRules.KEY_FISH_ID;
+    public static final Identifier SPARE_KEY_ID = SpareKeyRules.ITEM_ID;
     public static final Identifier SWORDFISH_ID = FisherRules.SWORDFISH_ID;
     public static final Identifier GLIMMERFISH_ID = FisherRules.GLIMMERFISH_ID;
     public static final Identifier WHITE_CANE_ID = BlindRules.WHITE_CANE_ID;
@@ -165,6 +168,7 @@ public final class SparkWitchItems {
     private static Item clownfish;
     private static Item goldfish;
     private static Item keyFish;
+    private static Item spareKey;
     private static Item swordfish;
     private static Item glimmerfish;
     private static Item whiteCane;
@@ -378,6 +382,14 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 KEY_FISH_ID,
                 new KeyFishItem(KeyFishItem.createSettings())
+        );
+        // Spare Key: the NoellesRoles Attendant's round-start key, usable by any holder; 7 points, train door 3, key-locked
+        // small door 1, 5 s cooldown after each opening.
+        // 备用钥匙：NoellesRoles 乘务员的开局钥匙，任何持有者都能使用；共 7 点，列车门 3 点、上锁小门 1 点，每次开门后冷却 5 秒。
+        spareKey = Registry.register(
+                Registries.ITEM,
+                SPARE_KEY_ID,
+                new SpareKeyItem(SpareKeyItem.createSettings())
         );
         swordfish = Registry.register(
                 Registries.ITEM,
@@ -779,6 +791,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return keyFish;
+    }
+
+    public static Item spareKey() {
+        if (spareKey == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return spareKey;
     }
 
     public static Item swordfish() {
