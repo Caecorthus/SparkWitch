@@ -150,7 +150,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         KnightSwordClient.register();
         KnightDuelClient.register();
         dev.caecorthus.sparkwitch.client.dominator.DominatorClientModule.register();
-        // 夏目安安 (PR #194): instinct blanking and the target-menu receiver. / 夏目安安（PR #194）：本能屏蔽与目标菜单接收器。
+        // 夏目安安 (PR #194): the target-menu receiver (instinct is gated by NatsumeInstinctGateMixin).
+        // 夏目安安（PR #194）：目标菜单接收器（本能由 NatsumeInstinctGateMixin 屏蔽）。
         dev.caecorthus.sparkwitch.client.natsume.NatsumeClientModule.register();
         ProphetClientModule.register();
         ControlExpertStunClient.register();
