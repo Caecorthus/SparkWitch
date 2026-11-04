@@ -12,6 +12,7 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherAncho
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.model.Dilation;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.LightmapTextureManager;
@@ -21,7 +22,6 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
 import net.minecraft.client.render.entity.feature.FeatureRenderer;
-import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.client.render.entity.model.WitherEntityModel;
 import net.minecraft.client.util.math.MatrixStack;
@@ -279,10 +279,16 @@ public final class MiniWitherRenderer {
         left.pitch = pitch;
     }
 
+    /**
+     * Built from vanilla's model data, not {@code EntityModelLoader#getModelPart}: Entity Model Features replaces and
+     * animates models handed out there, and a pack's Wither animation would run with the owner's state and overwrite
+     * the hand-set aim (entity render protocol, 2026-10-25). The texture still follows resource packs.
+     * 由原版模型数据构建，而非 {@code EntityModelLoader#getModelPart}：Entity Model Features 会替换并驱动从那里取得的模型，
+     * 资源包的凋灵动画会以主人的状态运行并覆盖手动摆好的朝向（实体渲染协议，2026-10-25）。贴图仍遵循资源包。
+     */
     private static WitherEntityModel<WitherEntity> model() {
         if (model == null) {
-            model = new WitherEntityModel<>(MinecraftClient.getInstance().getEntityModelLoader()
-                    .getModelPart(EntityModelLayers.WITHER));
+            model = new WitherEntityModel<>(WitherEntityModel.getTexturedModelData(Dilation.NONE).createModel());
         }
         return model;
     }

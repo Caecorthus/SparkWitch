@@ -63,8 +63,15 @@ public final class GrandWitchFearService {
             SelectBlackRavenDisguiseC2SPacket.PAYLOAD_ID,
             // Blind Attune. / 盲人凝神。
             Identifier.of("sparkwitch", "use_blind_attune"),
+            // Noa painting; the server also re-checks fear on use. / 诺亚作画；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "use_noa_paint"),
+            // Ragpicker corpse search (G key). / 拾荒者搜刮尸体（G 键）。
+            Identifier.of("sparkwitch", "ragpicker_search"),
             // Fiend Dash; the server also re-checks fear on use. / 魔人疾驰；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            // Athlete dash (owner 2026-11-03: Fear blocks it); the server also re-checks fear on use.
+            // 运动员冲刺（所有者 2026-11-03：恐惧时不能冲刺）；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "use_athlete_dash"),
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),

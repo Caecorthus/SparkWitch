@@ -73,7 +73,11 @@
       "sparkwitch:mini_wither",
       "sparkwitch:black_raven_crow",
       "sparkwitch:knight_duel",
-      "sparkwitch:recruit"
+      "sparkwitch:recruit",
+      "sparkwitch:athlete",
+      "sparkwitch:noa_player",
+      "sparkwitch:ragpicker_player",
+      "sparkwitch:ragpicker_loot"
     ]
   },
   "mixins": [

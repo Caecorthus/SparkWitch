@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.saint;
 
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,7 +23,7 @@ public final class SaintHudLayoutRules {
         if (roleId == null) {
             return 0;
         }
-        if ("sparkwitch".equals(roleId.getNamespace()) && hasSparkWitchSkill) {
+        if ("sparkwitch".equals(roleId.getNamespace()) && (hasSparkWitchSkill || ownsCornerSkillLine(roleId))) {
             return fontHeight + SPARKWITCH_BOTTOM_PADDING;
         }
         if (!"noellesroles".equals(roleId.getNamespace())) {
@@ -48,9 +49,19 @@ public final class SaintHudLayoutRules {
         if (roleId == null) {
             return 0;
         }
-        if ("sparkwitch".equals(roleId.getNamespace()) && hasSparkWitchSkill) {
+        if ("sparkwitch".equals(roleId.getNamespace()) && (hasSparkWitchSkill || ownsCornerSkillLine(roleId))) {
             return SPARKWITCH_BOTTOM_PADDING;
         }
         return "noellesroles".equals(roleId.getNamespace()) && "assassin".equals(roleId.getPath()) ? 5 : 0;
+    }
+
+    /**
+     * SparkWitch roles without a witch skill that still draw their own skill line in the shared corner slot (5 px
+     * padding, one font row): the Ragpicker. Reserved by role so the Karma line any player can carry sits above it.
+     * 没有魔女技能、却在共享右下角位置绘制自有技能行（5 像素边距、一行字高）的 SparkWitch 职业：拾荒者。按职业预留，
+     * 使任何玩家都可能带有的业障行位于其上方。
+     */
+    private static boolean ownsCornerSkillLine(Identifier roleId) {
+        return JunkerRules.ROLE_ID.equals(roleId);
     }
 }

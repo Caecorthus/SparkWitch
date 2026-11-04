@@ -39,6 +39,8 @@ public class MagicianPlaybackEntity extends LivingEntity {
     private final ItemStack[] armor = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};
     private ItemStack main = ItemStack.EMPTY, off = ItemStack.EMPTY;
     private @Nullable UUID owner;
+    /** Client puppet renderer only, for one draw; see {@link #setDrawnSeated}. / 仅客户端皮套渲染器在一次绘制内设置。 */
+    private boolean drawnSeated;
     public MagicianPlaybackEntity(EntityType<? extends LivingEntity> type, World world) { super(type, world); noClip = true; setNoGravity(true); }
     @Override protected void initDataTracker(DataTracker.Builder b) { super.initDataTracker(b); b.add(DISGUISE, Optional.empty()); b.add(NAME, ""); b.add(USING, false); b.add(ACTIVE_OFF_HAND, false); b.add(USE_LEFT, 0); b.add(SITTING, false); b.add(SWING_SEQUENCE, 0); b.add(SWING_OFF_HAND, false); }
     public void setIdentity(@Nullable UUID owner, @Nullable UUID disguise, String name) { this.owner = owner; dataTracker.set(DISGUISE, Optional.ofNullable(disguise)); dataTracker.set(NAME, name == null ? "" : name); }
@@ -54,6 +56,17 @@ public class MagicianPlaybackEntity extends LivingEntity {
     public int getReplayItemUseTimeLeft() { return Math.max(0, dataTracker.get(USE_LEFT)); }
     public void setReplaySitting(boolean sitting) { dataTracker.set(SITTING, sitting); }
     public boolean isReplaySitting() { return dataTracker.get(SITTING); }
+    /**
+     * Client puppet renderer only (entity render protocol, 2026-10-25): while it draws a seated replay frame,
+     * {@link #hasVehicle()} reads true, as it does for a seated player, so vanilla's riding inputs and animation packs
+     * (Entity Model Features with Fresh Animations reads is_riding live from it) pose the puppet seated. A puppet never
+     * really rides, so ticking, collision and the server never see it set.
+     * 仅客户端皮套渲染器使用（实体渲染协议，2026-10-25）：绘制坐姿回放帧期间 {@link #hasVehicle()} 为真，与坐着的玩家相同，
+     * 原版骑乘输入与动画包（Entity Model Features 配合 Fresh Animations 实时读取 is_riding）因此给皮套摆出坐姿。皮套从不真正
+     * 骑乘，因此 tick、碰撞与服务端都不会看到它被设置。
+     */
+    public void setDrawnSeated(boolean seated) { drawnSeated = seated; }
+    @Override public boolean hasVehicle() { return drawnSeated || super.hasVehicle(); }
     public void playReplaySwing(Hand hand) { dataTracker.set(SWING_OFF_HAND, hand == Hand.OFF_HAND); dataTracker.set(SWING_SEQUENCE, dataTracker.get(SWING_SEQUENCE) + 1); swingHand(hand); }
     // 自定义 LivingEntity 不会自动继承玩家的使用状态；客户端渲染时补齐，服务端仍保持真实状态。
     @Override public boolean isUsingItem() { return getWorld().isClient() && isReplayUsingItem() || super.isUsingItem(); }
