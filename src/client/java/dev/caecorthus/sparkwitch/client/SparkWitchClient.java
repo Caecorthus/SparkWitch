@@ -74,6 +74,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntit
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.UseDominatorSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashEntities;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
@@ -137,6 +140,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         JudgeClientModule.register();
         KnightSwordClient.register();
         KnightDuelClient.register();
+        dev.caecorthus.sparkwitch.client.dominator.DominatorClientModule.register();
         ProphetClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
@@ -241,6 +245,16 @@ public final class SparkWitchClient implements ClientModInitializer {
                             ClientPlayNetworking.canSend(UseSaboteurSkillC2SPacket.ID)
                     )) {
                         ClientPlayNetworking.send(new UseSaboteurSkillC2SPacket());
+                    }
+                } else if (DominatorRules.isDominator(role)) {
+                    // No uses left means G is dead: send nothing, matching the hidden HUD prompt. The server also
+                    // refuses the request, so this is presentation only.
+                    // 次数为 0 时 G 已失效：不发请求，与隐藏的 HUD 提示一致。服务端同样会拒绝，此处仅为表现层。
+                    DominatorPlayerComponent dominator = DominatorPlayerComponent.KEY.get(client.player);
+                    if (dominator.getRemainingUses() > 0
+                            && !dominator.isOnCooldown()
+                            && ClientPlayNetworking.canSend(UseDominatorSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseDominatorSkillC2SPacket());
                     }
                 } else if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.CURSER_ID)) {
                     if (CurserClientHooks.canUse(client.player)) {

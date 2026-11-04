@@ -27,6 +27,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotService;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPsychoGazeService;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaDisconnectService;
@@ -154,6 +157,7 @@ public final class SparkWitchEvents {
         KnightFeatureService.register();
         KnightKillService.register();
         KnightDuelService.register();
+        DominatorPsychoGazeService.register();
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();
@@ -170,6 +174,7 @@ public final class SparkWitchEvents {
         MagicianPuppetAttackHandlers.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
+                DominatorForcedShotService.restoreAndClear(serverPlayer);
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
                 if (role != null && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())) {
                     // One sync with the final state instead of one per write. / 只用最终状态同步一次，而不是每次写入各同步一次。
@@ -193,6 +198,7 @@ public final class SparkWitchEvents {
                 PerfumerEconomyService.assignForRole(serverPlayer, role);
                 NinjaFeatureService.assignForRole(serverPlayer, role);
                 OrthopedistSkillService.assignForRole(serverPlayer, role);
+                DominatorSkillService.assignForRole(serverPlayer, role);
                 if (!GuardianAngelRules.isGuardianAngel(role)) {
                     GuardianAngelFeatureService.detachPlayer(serverPlayer);
                 }
@@ -211,12 +217,14 @@ public final class SparkWitchEvents {
         KillPlayer.AFTER.register(WraithConversion::afterKill);
         KillPlayer.AFTER.register(WitchManaService::afterKill);
         KillPlayer.AFTER.register(WitchEconomyService::afterKill);
+        KillPlayer.AFTER.register(DominatorSkillService::afterKill);
         KillPlayer.AFTER.register((victim, killer, deathReason) -> {
             WitchFactionFeatureService.clearPlayerRuntime(victim);
             FirePokerFallAttributionService.clearPlayer(victim);
             PigGodChaseRuntime.clear(victim, WitchPlayerComponent.KEY.get(victim));
             PerfumerPlayerComponent.KEY.get(victim).stopCologne();
             OrthopedistSkillService.clearPlayer(victim);
+            DominatorSkillService.clearPlayer(victim);
         });
         ResetPlayer.EVENT.register(player -> {
             WitchFactionFeatureService.clearPlayerRuntime(player);
@@ -225,7 +233,9 @@ public final class SparkWitchEvents {
             MagicianPlayerComponent.KEY.get(player).reset();
             PerfumerPlayerComponent.KEY.get(player).clear();
             if (player instanceof ServerPlayerEntity serverPlayer) {
+                DominatorForcedShotService.restoreAndClear(serverPlayer);
                 OrthopedistSkillService.clearPlayer(serverPlayer);
+                DominatorSkillService.clearPlayer(serverPlayer);
                 GuardianAngelFeatureService.clearRoundPlayer(serverPlayer);
                 if (WraithStateService.isActive(serverPlayer)) {
                     // SparkTraits observes active Wraith state while dispatching terminal trait removals.
@@ -256,7 +266,9 @@ public final class SparkWitchEvents {
                     WitchPlayerComponent.KEY.get(player).clear();
                     MagicianPlayerComponent.KEY.get(player).reset();
                     PerfumerPlayerComponent.KEY.get(player).clear();
+                    DominatorForcedShotService.restoreAndClear(player);
                     OrthopedistSkillService.clearPlayer(player);
+                    DominatorSkillService.clearPlayer(player);
                     GuardianAngelFeatureService.clearRoundPlayer(player);
                 }
             }

@@ -241,7 +241,11 @@
     "usec.PlayerInventoryUsecGunMixin",
     "usec.ServerPlayerInteractionManagerUsecScopeMixin",
     "usec.NoellesUsecShieldPierceMixin",
-    "usec.GameFunctionsUsecPsychoArmourMixin"
+    "usec.GameFunctionsUsecPsychoArmourMixin",
+    "dominator.DominatorForcedShotGunMixin",
+    "dominator.DominatorForcedShotRewardMixin",
+    "dominator.GameFunctionsForcedShotProtectionMixin",
+    "dominator.GameFunctionsDominatorLetterMixin"
   ],
   "injectors": {
     "defaultRequire": 1

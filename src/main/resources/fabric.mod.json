@@ -73,7 +73,9 @@
       "sparkwitch:mini_wither",
       "sparkwitch:black_raven_crow",
       "sparkwitch:knight_duel",
-      "sparkwitch:recruit"
+      "sparkwitch:recruit",
+      "sparkwitch:dominator",
+      "sparkwitch:dominator_forced_shot"
     ]
   },
   "mixins": [

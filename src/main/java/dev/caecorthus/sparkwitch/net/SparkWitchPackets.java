@@ -12,6 +12,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetProphecyService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotS2CPacket;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.UseDominatorSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPacket;
@@ -85,6 +88,10 @@ public final class SparkWitchPackets {
                 UseOrthopedistSkillC2SPacket.CODEC
         );
         PayloadTypeRegistry.playC2S().register(
+                UseDominatorSkillC2SPacket.ID,
+                UseDominatorSkillC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
                 ThrowKidnapperBodyC2SPacket.ID,
                 ThrowKidnapperBodyC2SPacket.CODEC
         );
@@ -107,6 +114,10 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
                 SparkWitchServerConfirmS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                DominatorForcedShotS2CPacket.ID,
+                DominatorForcedShotS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 TarotDivinationSnapshotS2CPacket.ID,
@@ -188,6 +199,8 @@ public final class SparkWitchPackets {
                 (payload, context) -> CurserFeatureService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseOrthopedistSkillC2SPacket.ID,
                 (payload, context) -> OrthopedistSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseDominatorSkillC2SPacket.ID,
+                (payload, context) -> DominatorSkillService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(ThrowKidnapperBodyC2SPacket.ID,
                 (payload, context) -> KidnapperThrowService.throwCarriedBody(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseGuardianAngelSkillC2SPacket.ID,

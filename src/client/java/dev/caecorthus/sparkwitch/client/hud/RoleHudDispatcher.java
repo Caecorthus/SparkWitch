@@ -55,6 +55,7 @@ public final class RoleHudDispatcher {
         renderCurser(context);
         renderGuardianAngel(context);
         renderOrthopedist(context);
+        renderDominator(context);
         renderSaint(hud, context);
         renderVendetta(context);
         renderKidnapperControlled(context);
@@ -119,6 +120,20 @@ public final class RoleHudDispatcher {
         // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
         if (GameWorldComponent.KEY.get(player.getWorld()).isRole(player, SparkWitchRoles.orthopedist())) {
             OrthopedistHudRenderer.render(context, player);
+        }
+    }
+
+    /** The Dominator's mark/uses lines. / 支配者的标记与次数两行。 */
+    private static void renderDominator(DrawContext context) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
+        if (player == null || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+            return;
+        }
+        if (GameWorldComponent.KEY.get(player.getWorld()).getRole(player) == SparkWitchRoles.dominator()) {
+            DominatorHudRenderer.render(context, player);
         }
     }
 

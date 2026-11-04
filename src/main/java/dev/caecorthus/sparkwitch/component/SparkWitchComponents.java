@@ -23,6 +23,8 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponen
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMarkPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseComponent;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotComponent;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerComponent;
@@ -169,6 +171,16 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, RecruitPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(RecruitPlayerComponent::new);
+        // Dominator uses and mark target, synced to its owner only; appended last.
+        // 支配者剩余次数与标记目标，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, DominatorPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(DominatorPlayerComponent::new);
+        // Forced-shot sequence; ALWAYS_COPY keeps a stashed original stack recoverable across a respawn.
+        // 强制开枪序列；ALWAYS_COPY 使收起的原物品在重生后仍可还原。
+        registry.beginRegistration(PlayerEntity.class, DominatorForcedShotComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.ALWAYS_COPY)
+                .end(DominatorForcedShotComponent::new);
     }
 
     @Override

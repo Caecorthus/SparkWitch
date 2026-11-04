@@ -31,6 +31,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaRole;
 import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianConstants;
@@ -104,6 +105,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
     public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
+    public static final Identifier DOMINATOR_ID = DominatorRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -145,6 +147,7 @@ public final class SparkWitchRoleRegistry {
     private static Role usec;
     private static Role knight;
     private static Role recruit;
+    private static Role dominator;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -400,6 +403,11 @@ public final class SparkWitchRoleRegistry {
     public static Role recruit() {
         ensureRegistered();
         return recruit;
+    }
+
+    public static Role dominator() {
+        ensureRegistered();
+        return dominator;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -734,6 +742,18 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // A plain killer clone for now: exactly Wathe's Killer stats, only the name and dark green color differ.
+        // Registered right before the Insider (nothing may follow the Insider); the default one-player spawn group
+        // keeps it to one killer slot and at most one per round, like the Ninja.
+        // 暂时完全照搬 wathe 的杀手机制与数值，仅名字和深绿色不同。注册在内应之前（内应之后不得再注册）；
+        // 默认单人分配组使它只占一个杀手位、每局至多一人，与忍者相同。
+        dominator = SparkFactionApi.registerRole(FactionRoleDefinition.builder(DOMINATOR_ID, FactionIds.KILLER)
+                .color(DominatorRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
         // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
         // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
         // a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
@@ -822,7 +842,10 @@ public final class SparkWitchRoleRegistry {
                 guardianAngel,
                 vendetta,
                 saboteur,
-                curser
+                curser,
+                // New roles append to the tail so every existing assassin-guess index stays put.
+                // 新职业追加到末尾，既有刺客猜测下标全部保持不变。
+                dominator
         );
     }
 
