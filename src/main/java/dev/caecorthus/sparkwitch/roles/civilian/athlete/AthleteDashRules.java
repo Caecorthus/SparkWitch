@@ -21,13 +21,13 @@ public final class AthleteDashRules {
     }
 
     /**
-     * Dash gate, checked in order: the real Athlete in an ACTIVE round, playing and alive, not held (swallowed, Last
-     * Stand, Last Escape, Kidnapper control, Control Expert stun, Seeker session, borrowed camera or Hunter root), not
-     * riding or sleeping (a teleport would dismount or wake them), not role-skill blocked (SparkTraits), ready; Fear is
-     * checked last so its message only appears when the dash would otherwise fire.
-     * 冲刺门槛，按顺序检查：处于 ACTIVE 回合的真实运动员，在局存活，未被持有（饕餮吞下、背水一战、脱险、绑架者控制、
-     * 控场专家眩晕、搜寻者会话、镜头被占用或被猎人定身），未骑乘或睡觉（传送会让其下坐骑或醒来），未被职业技能封锁
-     * （SparkTraits），已就绪；恐惧最后检查，使其提示只在本可冲刺时出现。
+     * Dash gate, checked in order: the real Athlete in an ACTIVE round, playing, alive and not a spectator, not held
+     * (swallowed, Last Stand, Last Escape, Kidnapper control, Control Expert stun, Seeker session, borrowed camera or
+     * Hunter root), not riding or sleeping (a teleport would dismount or wake them), not role-skill blocked
+     * (SparkTraits), ready; Fear is checked last so its message only appears when the dash would otherwise fire.
+     * 冲刺门槛，按顺序检查：处于 ACTIVE 回合的真实运动员，在局存活且不是旁观者，未被持有（饕餮吞下、背水一战、脱险、
+     * 绑架者控制、控场专家眩晕、搜寻者会话、镜头被占用或被猎人定身），未骑乘或睡觉（传送会让其下坐骑或醒来），未被
+     * 职业技能封锁（SparkTraits），已就绪；恐惧最后检查，使其提示只在本可冲刺时出现。
      */
     public static DashVerdict verdict(boolean athlete, boolean roundActive, boolean playingAndAlive, boolean held,
                                       boolean ridingOrSleeping, boolean roleSkillBlocked, boolean dashReady,

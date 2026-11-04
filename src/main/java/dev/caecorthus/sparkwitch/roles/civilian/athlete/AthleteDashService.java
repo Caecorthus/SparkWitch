@@ -16,8 +16,12 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.function.BooleanBiFunction;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.border.WorldBorder;
 
 import java.util.List;
 
@@ -45,7 +49,7 @@ public final class AthleteDashService {
         AthleteDashRules.DashVerdict verdict = AthleteDashRules.verdict(
                 AthleteRules.isAthlete(game.getRole(player)),
                 game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE,
-                GameFunctions.isPlayerPlayingAndAlive(player),
+                GameFunctions.isPlayerPlayingAndAlive(player) && !player.isSpectator(),
                 isHeld(player),
                 player.hasVehicle() || player.isSleeping(),
                 SparkTraitsKillerBridge.isRoleSkillBlocked(player),
@@ -65,7 +69,8 @@ public final class AthleteDashService {
         if (direction.lengthSquared() < 1.0E-6D) {
             return;
         }
-        Vec3d destination = AthleteDashPath.find(space(world, player), player.getBoundingBox(), player.getPos(),
+        Box start = player.getBoundingBox();
+        Vec3d destination = AthleteDashPath.find(space(world, player, start), start, player.getPos(),
                 direction.normalize(), Math.max(0.0F, player.getStepHeight()));
         if (destination == null) {
             return;
@@ -107,14 +112,33 @@ public final class AthleteDashService {
     }
 
     /**
-     * Vanilla collision with the player's own shape context, so the dash is blocked by exactly what blocks walking.
-     * 使用玩家自身形状上下文的原版碰撞，因此冲刺受阻的条件与走路完全相同。
+     * Vanilla collision with the player's own shape context (blocks, hard entities such as Wathe's solid players, the
+     * world border), so the dash is blocked by what blocks walking. Like walking, an entity whose box already overlaps
+     * the start box (two players spawned on one spot) never blocks.
+     * 使用玩家自身形状上下文的原版碰撞（方块、Wathe 中互相实体化的玩家等硬碰撞实体、世界边界），因此冲刺受阻的条件与
+     * 走路相同。与走路一样，碰撞箱已与起点碰撞箱重叠的实体（两名玩家生成在同一点）不会阻挡。
      */
-    private static AthleteDashPath.Space space(ServerWorld world, ServerPlayerEntity player) {
+    private static AthleteDashPath.Space space(ServerWorld world, ServerPlayerEntity player, Box start) {
         return new AthleteDashPath.Space() {
             @Override
             public boolean isFree(Box box) {
-                return world.isSpaceEmpty(player, box);
+                if (world.isSpaceEmpty(player, box)) {
+                    return true;
+                }
+                if (!world.isBlockSpaceEmpty(player, box)) {
+                    return false;
+                }
+                WorldBorder border = world.getWorldBorder();
+                if (border.canCollide(player, box) && VoxelShapes.matchesAnywhere(
+                        border.asVoxelShape(), VoxelShapes.cuboid(box), BooleanBiFunction.AND)) {
+                    return false;
+                }
+                for (VoxelShape shape : world.getEntityCollisions(player, box)) {
+                    if (!shape.getBoundingBox().intersects(start)) {
+                        return false;
+                    }
+                }
+                return true;
             }
 
             @Override

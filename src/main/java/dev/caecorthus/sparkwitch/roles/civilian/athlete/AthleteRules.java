@@ -23,12 +23,26 @@ public final class AthleteRules {
     public static final double MIN_DASH_DISTANCE = 0.5D;
     /** Sampling step along the path. / 沿路径的采样步长。 */
     public static final double DASH_STEP = 1.0D / 16.0D;
-    /** Vanilla player step height: carpets, slabs and stair steps are walked over. / 原版玩家跨步高度：地毯、台阶可直接走上。 */
-    public static final double MAX_STEP_UP = 0.6D;
+    /**
+     * Rise increment when stepping up, so a step needs only the headroom walking would (carpet: 1/16 more).
+     * 跨步时的升高增量，使跨步所需净空与走路相同（地毯只需多 1/16）。
+     */
+    public static final double STEP_RISE = 1.0D / 16.0D;
     /** Largest drop still treated as walking down; anything deeper is a ledge. / 仍算走下去的最大落差，更深即为边缘。 */
     public static final double MAX_STEP_DOWN = 0.6D;
-    /** How far below the feet an airborne start may find its floor. / 起跳时在脚下多深范围内寻找地面。 */
-    public static final double MAX_START_DROP = 1.25D;
+    /**
+     * How far below the feet an airborne start may find its floor; a vanilla jump peaks at about 1.25.
+     * 起跳时在脚下多深范围内寻找地面；原版跳跃最高约 1.25 格。
+     */
+    public static final double MAX_START_DROP = 1.3D;
+    /** Slack added to a fall query so "nothing within the limit" is distinguishable. / 下落查询的余量，用于区分“限度内无地面”。 */
+    public static final double FALL_SLACK = 1.0D / 32.0D;
+    /**
+     * A dash aimed within 30° of a block axis slides along a wall on that axis (narrow train corridors); a steeper
+     * dash stops at the wall.
+     * 朝向与方块轴线夹角在 30° 以内的冲刺会沿该轴贴墙滑行（列车窄走廊）；角度更大时在墙前停下。
+     */
+    public static final double SLIDE_MIN_AXIS_SHARE = Math.cos(Math.toRadians(30.0D));
     /** Opening cooldown on assignment and the cooldown after each dash (15 s). / 获得身份时与每次冲刺后的冷却（15 秒）。 */
     public static final int COOLDOWN_TICKS = 300;
 

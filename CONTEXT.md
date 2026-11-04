@@ -1032,21 +1032,24 @@ Current build baseline:
     precedent); a Last Stand victim who revives still costs sanity or the Recruit's life; the Black Raven disguise
     pool and SparkAssist have no Recruit entry yet.
 - `roles/civilian/athlete/`: the Athlete (`sparkwitch:athlete`, 运动员, color `0x6FD08C`), contributed in PR #191 and
-  reworked in review (owner answers 2026-11-03); every number lives in `AthleteRules`.
+  reworked in review (owner answers 2026-11-03); every gameplay number lives in `AthleteRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, `maxSprintTime(-1)` = unlimited
     stamina, no appearance condition) registered right before the Insider, and in the civilian block of the
     assassin-guess order (right after the Recruit). Drawn by Wathe's civilian pass, never a police slot; no coins or
     shop, no witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel. Real role
     only: the Black Raven disguise `DENYLIST` lists it.
   - Dash (`AthleteFeatureService` registers the empty C2S `sparkwitch:use_athlete_dash`, the replay formatter and the
-    lifecycle): `AthleteDashService.tryUse` gates through the pure `AthleteDashRules.verdict` (ACTIVE round, playing
-    and alive, not held — swallowed, Last Stand, Last Escape, Kidnapper control, Control Expert stun, Seeker session,
-    borrowed camera, Hunter root —, not riding or sleeping, not SparkTraits role-skill blocked, ready; Fear last, which
-    sends Grand Witch's "skill blocked" line). `AthleteDashPath` then moves the whole bounding box forward in 1/16
-    steps with vanilla collision and the player's own shape context: flat first, else a step up of at most the step
-    height (carpets, slabs, stair steps); a drop deeper than 0.6 is a ledge; an airborne start uses the floor up to
-    1.25 below. The last free, supported box wins, so the dash never ends inside a wall, door or panel and never
-    passes a corner a walk cannot. Under 0.5 blocks, or no floor, refuses and costs nothing. The teleport keeps the
+    lifecycle): `AthleteDashService.tryUse` gates through the pure `AthleteDashRules.verdict` (ACTIVE round, playing,
+    alive and not a spectator, not held — swallowed, Last Stand, Last Escape, Kidnapper control, Control Expert stun,
+    Seeker session, borrowed camera, Hunter root —, not riding or sleeping, not SparkTraits role-skill blocked, ready;
+    Fear last, which sends Grand Witch's "skill blocked" line). `AthleteDashPath` then moves the whole bounding box
+    forward in 1/16 steps with vanilla collision and the player's own shape context (an entity already overlapping
+    the start box never blocks, like walking): flat first, else the smallest 1/16 rise up to the step height that
+    clears (carpets, slabs, stair steps, with walking's headroom); a drop deeper than 0.6 is a ledge; an airborne start
+    uses the floor up to 1.3 below; a dash aimed within 30° of a block axis slides along a wall on that axis (narrow
+    corridors), a steeper one stops. The destination is the farthest accepted box whose four bottom corners all have
+    floor within 0.6, so the dash never ends inside a wall, door or panel, never passes a corner a walk cannot, and
+    never leaves the player hanging over a ledge. Under 0.5 blocks of path, or no floor, refuses and costs nothing. The teleport keeps the
     client's rotation (relative flags, zero delta) and zeroes velocity (no leftover momentum), plays the riptide sound,
     records the skill replay `sparkwitch:athlete_dash` (success only) and restarts the cooldown.
   - Cooldown: `AthleteComponent` (`sparkwitch:athlete`, `NEVER_COPY`, appended last in the CCA list) keeps an absolute
@@ -1054,7 +1057,9 @@ Current build baseline:
     Athlete, Wathe's `ResetPlayer` clears it, NBT keeps it across a relog. The forced-cooldown store
     `sparkwitch:athlete_dash` (appended last in `SparkWitchForcedCooldowns`) only raises it.
   - Deny lists: `use_athlete_dash` is classified next to the Fiend Dash in the Control Expert stun, Knight duel,
-    Seeker session, Riftwalker session and Grand Witch Fear lists, and in SparkStrength's Taotie daze list.
+    Seeker session, Riftwalker session and Grand Witch Fear lists. SparkStrength's Taotie daze list
+    (`feat/athlete-dash-daze`) and SparkFactionAPI's opening safe-time list (`feat/athlete-dash-safe-time`) add it on
+    their own branches; until those merge, a dazed Athlete can still dash.
   - Client (`client/athlete/`): `SparkWitchClient`'s G-key dispatch sends the request through `AthleteDashClient`
     (no N-key handler, no client cooldown); `AthleteDashHud` (from `AthleteClient`'s confirmed-server HUD callback)
     draws the owner-only bottom-right ready/cooldown line from the synced component, with the Fiend Dash line's gates

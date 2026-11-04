@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.impl;
 
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerFeatureService;
@@ -37,7 +38,6 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRuntime;
-import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFeatureService;
