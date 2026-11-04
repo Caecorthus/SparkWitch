@@ -1367,6 +1367,11 @@ def entityRenderProtocolViolations = { String source, boolean redrawOwner ->
             }
         }
     }
+    // A hand-posed model built from EntityModelLoader is replaced and animated by EMF with whatever entity is mounted.
+    // 由 EntityModelLoader 构建的手动摆姿模型会被 EMF 替换，并以当前挂载的实体驱动动画。
+    if (code =~ /\bgetEntityModelLoader\s*\(/) {
+        found << "EntityModelLoader model (build a hand-posed model from its TexturedModelData)"
+    }
     def worldRender = code =~ /\bworldRenderer\s*\.render\(/
     while (worldRender.find()) {
         def before = code.substring(Math.max(0, worldRender.start() - 160), worldRender.start())
@@ -1480,8 +1485,9 @@ tasks.register("verifyArchitecture") {
                 if (!violations.isEmpty()) {
                     throw new GradleException("Entity render protocol violation in ${relative}: "
                             + violations.join("; ") + ". Draw entities again only through "
-                            + "client/render/entity/EntityRedraw (or reuse EntityModelCapture geometry), and run a "
-                            + "second world render inside SecondaryWorldPass.run; see CONTEXT.md.")
+                            + "client/render/entity/EntityRedraw (or reuse EntityModelCapture geometry), run a "
+                            + "second world render inside SecondaryWorldPass.run, and build hand-posed models from "
+                            + "their TexturedModelData; see CONTEXT.md.")
                 }
             }
         }
