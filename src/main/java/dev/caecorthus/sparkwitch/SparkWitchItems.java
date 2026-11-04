@@ -25,6 +25,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FishingRodItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.KeyFishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.CrossSwordItem;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashItem;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashRules;
@@ -130,6 +131,7 @@ public final class SparkWitchItems {
     public static final Identifier USEC_AP_ROUND_ID = UsecRules.AP_ITEM_ID;
     public static final Identifier USEC_SUPPRESSOR_ID = UsecRules.SUPPRESSOR_ITEM_ID;
     public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
+    public static final Identifier BIG_DOG_PORTRAIT_ID = NoaRules.DOG_PORTRAIT_ITEM_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -188,6 +190,7 @@ public final class SparkWitchItems {
     private static Item usecApRound;
     private static Item usecSuppressor;
     private static Item witherGohei;
+    private static Item bigDogPortrait;
 
     private static boolean registered;
 
@@ -495,6 +498,14 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 CROSS_SWORD_ID,
                 new CrossSwordItem(new Item.Settings().maxCount(1))
+        );
+        // Noa's Big Dog Portrait: a plain carried token with no use action. NoaKillWatch finds it by registry id
+        // (NoaRules.DOG_PORTRAIT_ITEM_ID); appended last.
+        // 诺亚的大狗画像：无使用动作的普通携带物品。NoaKillWatch 按注册 ID（NoaRules.DOG_PORTRAIT_ITEM_ID）识别；追加在最后。
+        bigDogPortrait = Registry.register(
+                Registries.ITEM,
+                BIG_DOG_PORTRAIT_ID,
+                new Item(new Item.Settings().maxCount(1))
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -947,5 +958,12 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return witherGohei;
+    }
+
+    public static Item bigDogPortrait() {
+        if (bigDogPortrait == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return bigDogPortrait;
     }
 }

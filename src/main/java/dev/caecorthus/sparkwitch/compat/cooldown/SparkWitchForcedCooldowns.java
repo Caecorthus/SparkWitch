@@ -11,6 +11,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Purify.Puri
 import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindLoadoutService;
@@ -65,6 +67,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier MAGICIAN_ID = SparkWitch.id("magician");
     static final Identifier MINI_WITHER_TOGGLE_ID = SparkWitch.id("mini_wither_toggle");
     static final Identifier BLACK_RAVEN_CROW_ID = BlackRavenCrowRules.SKILL_ID;
+    static final Identifier NOA_PAINT_ID = NoaRules.PAINT_SKILL_ID;
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -113,7 +116,9 @@ public final class SparkWitchForcedCooldowns {
                 // 黑羽鸦化鸦（2026-10-21 计划），追加在小凋灵之后。
                 blackRavenCrow(),
                 // Athlete dash (PR #191), appended after the Raven Form. / 运动员冲刺（PR #191），追加在化鸦之后。
-                athleteDash()
+                athleteDash(),
+                // Noa painting (PR #186), appended after the Athlete dash. / 诺亚作画（PR #186），追加在运动员冲刺之后。
+                noaPaint()
         );
     }
 
@@ -320,6 +325,25 @@ public final class SparkWitchForcedCooldowns {
                 player -> BlackRavenCrowPlayerComponent.KEY.get(player).getCooldownTicks(),
                 () -> BlackRavenCrowRules.COOLDOWN_TICKS,
                 (player, ticks) -> BlackRavenCrowPlayerComponent.KEY.get(player).setCooldown(ticks)
+        );
+    }
+
+    /**
+     * Noa's painting cooldown, kept as an absolute ready tick in the owner-synced {@code sparkwitch:noa_player}
+     * component. Same role and round gates as {@code NoaPaintService}: an ACTIVE round and the real Noa. The nominal is
+     * the 60 s cooldown after each painting; writes only move the ready tick later.
+     * 诺亚作画冷却，以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:noa_player} 组件中。与 NoaPaintService 的职业与回合
+     * 门控一致：ACTIVE 回合且为真实诺亚。标准冷却为每次作画后的 60 秒；写入只会把就绪刻推后。
+     */
+    static SimpleRoleSkillCooldownStore noaPaint() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                NOA_PAINT_ID,
+                whileActive((game, player) -> NoaRules.isNoa(game.getRole(player))),
+                player -> NoaComponent.KEY.get(player).paintCooldownRemaining(player.getServerWorld().getTime()),
+                () -> NoaRules.COOLDOWN_TICKS,
+                player -> NoaComponent.KEY.get(player),
+                NoaComponent::paintReadyTick,
+                NoaComponent::setPaintReadyTick
         );
     }
 

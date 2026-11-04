@@ -12,6 +12,8 @@ import dev.caecorthus.sparkwitch.client.bewitched.BewitchedClientPresentation;
 import dev.caecorthus.sparkwitch.client.recruit.RecruitClientPresentation;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteClient;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteDashClient;
+import dev.caecorthus.sparkwitch.client.noa.NoaClient;
+import dev.caecorthus.sparkwitch.client.noa.NoaPaintClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
@@ -76,6 +78,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashEntities;
@@ -160,6 +163,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Athlete Dash line (role-owned HUD); the dash itself rides the shared ability key below.
         // 运动员冲刺行（职业自有 HUD）；冲刺本身走下方的共享技能键。
         AthleteClient.init();
+        // Noa painting line (role-owned HUD); the painting itself rides the shared ability key below.
+        // 诺亚作画行（职业自有 HUD）；作画本身走下方的共享技能键。
+        NoaClient.init();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
@@ -269,6 +275,10 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role only (the Athlete is never a disguise target); the server decides use.
                     // 仅真实职业（运动员不可被伪装）；是否生效由服务端决定。
                     AthleteDashClient.onAbilityKey(client);
+                } else if (NoaRules.isNoa(role)) {
+                    // Real role only (getRole stays raw, so a Black Raven acting as Noa keeps its own key); the server
+                    // decides use. / 仅真实职业（getRole 始终是真实身份，扮演诺亚的黑羽鸦保留自己的按键）；是否生效由服务端决定。
+                    NoaPaintClient.onAbilityKey(client);
                 } else if (!WitchMaidenRules.isWitchMaiden(role)
                         && (WitchPlayerComponent.KEY.get(client.player).hasSkill()
                         || SaintRules.isSaint(role))) {

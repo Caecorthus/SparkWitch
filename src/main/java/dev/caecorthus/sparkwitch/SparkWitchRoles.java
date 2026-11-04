@@ -49,6 +49,7 @@ public final class SparkWitchRoles {
     public static final Identifier RECRUIT_ID = SparkWitchRoleRegistry.RECRUIT_ID;
     public static final Identifier ATHLETE_ID = SparkWitchRoleRegistry.ATHLETE_ID;
     public static final Identifier DISCOVERER_ID = SparkWitchRoleRegistry.DISCOVERER_ID;
+    public static final Identifier NOA_ID = SparkWitchRoleRegistry.NOA_ID;
 
     private SparkWitchRoles() {
     }
@@ -225,6 +226,10 @@ public final class SparkWitchRoles {
 
     public static Role discoverer() {
         return SparkWitchRoleRegistry.discoverer();
+    }
+
+    public static Role noa() {
+        return SparkWitchRoleRegistry.noa();
     }
 
     public static List<Role> assassinGuessRoles() {

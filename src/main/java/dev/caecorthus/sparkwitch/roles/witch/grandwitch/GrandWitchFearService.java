@@ -63,6 +63,8 @@ public final class GrandWitchFearService {
             SelectBlackRavenDisguiseC2SPacket.PAYLOAD_ID,
             // Blind Attune. / 盲人凝神。
             Identifier.of("sparkwitch", "use_blind_attune"),
+            // Noa painting; the server also re-checks fear on use. / 诺亚作画；服务端在使用时也会再次检查恐惧。
+            Identifier.of("sparkwitch", "use_noa_paint"),
             // Fiend Dash; the server also re-checks fear on use. / 魔人疾驰；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "use_fiend_dash"),
             // Athlete dash (owner 2026-11-03: Fear blocks it); the server also re-checks fear on use.

@@ -66,6 +66,7 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "seeker_car_recall"),
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
             Identifier.of("sparkwitch", "use_blind_attune"),
+            Identifier.of("sparkwitch", "use_noa_paint"),
             Identifier.of("sparkwitch", "rift_hop"),
             Identifier.of("sparkwitch", "rift_gate_close"),
             Identifier.of("sparkwitch", "use_fiend_dash"),
