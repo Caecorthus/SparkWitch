@@ -47,6 +47,8 @@ any player count that never wins or blocks a win; the first death that really co
 turns it, 3 s later and where it fell, into its killer's side: Bewitched, Insider, plain killer or a random police role.
 It also adds the Magician (`sparkwitch:magician`, 魔术师, merged from main), a killer whose recorded puppet replays
 its actions disguised as a chosen player.
+It also adds the Dominator (`sparkwitch:dominator`, 支配者, contributed in PR #192), a killer whose shared ability key
+(G) marks a player through walls and then forces that player to fire one shot along their own aim.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
 the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
 It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only a
@@ -553,6 +555,87 @@ Current build baseline:
     recording or playback never waits. Client presentation lives in `client/magician/` and
     `client/mixin/Magician*`; HUD, button and replay texts are lang keys (`hud.sparkwitch.magician.*`,
     `ui.sparkwitch.magician.*`, `replay.global.sparkwitch.magician_*`).
+- `roles/killer/dominator/`: the Dominator (`sparkwitch:dominator`, 支配者, color `0x006400`), contributed in PR #192
+  and fixed in review (2026-11-04); every number lives in `DominatorRules`. Mixins in `mixin/dominator/`, client in
+  `client/dominator/` plus `client/hud/DominatorHudRenderer` and `client/mixin/dominator/`.
+  - Registration: a SparkFactionAPI killer (Wathe-native killer, FAKE mood, unlimited sprint, round clock, the default
+    one-player spawn group) registered after the Ragpicker, right before the Insider, and guessed in the killer block
+    right after the Magician (NoellesRoles sends identifiers, so the order is presentation only). No witch skill,
+    never in the `gui.sparkwitch.skills` panel, never a Black Raven disguise target.
+  - State: `DominatorPlayerComponent` (`sparkwitch:dominator`, `NEVER_COPY`, owner-synced: uses, mark target and
+    ticks, G cooldown) and the server-only `DominatorForcedShotComponent` (`sparkwitch:dominator_forced_shot`,
+    `ALWAYS_COPY`, but only the "active" flag is saved or copied: a loaded or respawn-copied sequence never resumes,
+    it purges leftover tagged guns on its next tick and keeps no stash), appended last in the CCA list and in
+    `fabric.mod.json`. Timers sync
+    when the shown second changes; the client counts down to the first tick of the shown second only (the
+    Kidnapper/Magician floor), so READY, the G send and the mark's end wait for the server's zero.
+  - Uses and cooldowns (owner decisions): 0 uses at role assignment, +1 per kill the Dominator makes personally (never
+    for a forced-shot kill), capped at 2. G needs at least one use; marking costs none, a release costs one. G cools
+    down 45 s at role assignment and 10 s after every mark ends (expired, invalidated or released). The cooldown is
+    the SparkFactionAPI role-skill store `sparkwitch:dominator_skill` (`compat/cooldown/SparkWitchForcedCooldowns`,
+    appended last, exact setter, nominal 10 s), never forced while a mark runs; the admin `clearCooldown` (held item
+    only) does not reach it.
+  - Mark (`DominatorSkillService`, empty C2S `sparkwitch:use_dominator_skill`): the caster must pass
+    `DominatorRules.isActiveCaster` (alive, not spectating, not swallowed) plus the server gates in `mayCast` (ACTIVE
+    round, role, not held by another mechanic, not silenced, not SparkTraits role-skill blocked) and Fear last. The
+    target is the nearest player on the crosshair ray within 150 blocks, through walls and without line of sight
+    (owner decision), filtered by `DominatorRules.isMarkable` (participant, alive, not spectating, not invisible or
+    invisible to the caster, not swallowed, not hidden from the caster's instinct by SparkTraits
+    `SparkTraitsApi.isInstinctHidden`, fail closed); disguises are not filtered. The mark lasts 30 s and ends when the target
+    dies, leaves, changes world or spectates. The payload is classified on the Fear, Control Expert stun, Seeker
+    session, Rift occupant and Knight duel deny lists. Replays: `sparkwitch:dominator_mark` / `dominator_release`.
+  - Release: G during the mark. If the marked player could not fire on their own right now
+    (`DominatorReleaseGate`), the press is refused with `message.sparkwitch.dominator.target_unforceable` and the
+    mark, use and cooldown stay. Otherwise one use is spent and `DominatorForcedShotService` runs the forced shot:
+    the marked player's selected hotbar stack is stashed, a revolver tagged with the `sparkwitch:forced_shot_gun` data
+    component (`SparkWitchDataComponents.FORCED_SHOT_GUN`) fires once along the marked player's own aim, then only
+    the tagged stack is confiscated and the stash restored after 1 s.
+    - Aim (`DominatorForcedShotAim`, shared with `DominatorReleaseGate`): Wathe's 30-block revolver ray (range traits
+      apply) with the server-decidable parts of the client gun-target seams mirrored: hidden Wraith pass-through
+      (except the exact Vendetta pair), Magician puppet, Raven Form crow (resolves to its owner), Seeker device.
+      SparkStrength's drone and Partygoer balloon picks are client-only and not mirrored. SparkFactionAPI
+      `canAffectPlayer` is asked directly.
+    - Cooldown: inside the forced shot only, Wathe's receiver reads the gun as ready and skips its final cooldown
+      write; the exact pre-shot cooldown entry is snapshotted and written back, so the marked player's own revolver
+      cooldown and SparkFactionAPI forced locks are untouched.
+    - Hand shots: every `wathe:gunshoot` the marked player fires by hand while the tagged gun is held or the sequence
+      runs is refused (`DominatorForcedShotGuns.refusesHandShot`).
+    - World use: item frames, armor stands and allays refuse the tagged gun (`UseEntityCallback` FAIL), decorated pots
+      answer `SKIP_DEFAULT_BLOCK_INTERACTION`, the server refuses `openHandledScreen` and closes an open container at
+      the start, the client lock covers every `HandledScreen`, and confiscation also scans the open screen, cursor and
+      crafting grid.
+    - Lifecycle (`DominatorForcedShotLifecycle`): on a committed death (`GameFunctionsForcedShotDeathMixin`, right after
+      `markPlayerDead`) the tagged gun is taken and the stash put back before Wathe's death-drop loop, so Wathe drops or
+      keeps it exactly as without the sequence; a SparkTraits-intercepted death is skipped. Reset and round finalize
+      discard the stash; a mid-round role change gives it back; disconnect settles in a DISCONNECT phase before
+      Wathe's.
+    - The `sparkwitch:dominator_forced_shot_lock` S2C closes and locks the shooter's inventory screens for the
+      sequence; particles orbit the shooter.
+  - Protection and reward: everything is keyed on `DominatorForcedShotScope` (the synchronous forced shot plus Wathe
+    `Scheduler` tasks queued during it, `SchedulerForcedShotConsequenceMixin`), never on the 1 s window. The kill is
+    attributed to the forced shooter, who gets no innocent-shot punishment, backfire, gun drop or mood loss for it
+    and can never die of `wathe:shot_innocent` (小脑) from it (`DominatorForcedShotGunMixin`,
+    `GameFunctionsForcedShotProtectionMixin`). The shooter reads as not sneaking inside the shot
+    (`EntityForcedShotSneakMixin`), so SparkTraits' Niko burst never starts from it (SparkTraits has no public veto).
+    Only the forced shooter's own balance is frozen (`addToBalance` and `setBalance`); every other player, killer
+    teammates' pool share included, settles normally (owner decision). A forced shot that commits a death of any
+    player, teammates included, pays the Dominator 100 coins (`FORCED_SHOT_KILL_REWARD`); a SparkTraits-intercepted
+    death pays nothing.
+  - Psycho gaze (`DominatorPsychoGazeService`, END_SERVER_TICK): while the Dominator is in psycho, every other living
+    non-spectator, non-Wraith participant within 1 block (teammates included) is forced to look up (pitch -89, own
+    yaw kept). The server re-forces only when the victim's reported pitch drops below -85, so a victim already
+    looking up gets no packet; the server entity is rotated too, for fake players and observers.
+  - Client (presentation only): `DominatorClientModule` draws the owner-only mark outline (`always`, priority 95 like
+    the Seeker mark, below `skip()`) and gives the HUD its aimed player through the same ray with client-only gates
+    (creative target, swallowed viewer) on top of `isMarkable`. The HUD names the player as
+    other viewers see them (owner decision "按别人看到的来": Wathe psycho scramble, then `client/emma/EmmaVisibleName`).
+    `DominatorHudRenderer` (`HudRenderCallback`, hidden with F1 and Wathe's train HUD) draws one always-on green
+    bottom-right line in the shared corner slot: no uses, cooldown, release hint, no target or mark hint, each with
+    the remaining uses. `SaintHudLayoutRules.ownsCornerSkillLine` reserves that slot so the Karma line stacks above
+    it. The G branch of `SparkWitchClient` sends nothing without a use, on cooldown or outside `isActiveCaster`.
+  - Letter: Wathe's killer letter with Dominator `tooltip3` / `tooltip4`, recoloured by
+    `mixin/dominator/GameFunctionsDominatorLetterMixin` from the `.a`-`.e` segments, which concatenate to the plain
+    lines. Lang: `hud.sparkwitch.dominator.*`, `tip.letter.dominator.*`, one-sentence `announcement.goal(s)`.
 - `client/bedrock/` (2026-11-02): a role-neutral Bedrock model runtime for player-supplied files, first used by the
   Mini Wither skins. `geo/`: `BedrockGeometryParser` (format 1.12+ `minecraft:geometry`, also inside a Java item-model
   shell, and legacy 1.8; box and per-face UV, mirror, inflate, bone/cube pivots and rotations, glow bones by name
@@ -1222,7 +1305,7 @@ Current build baseline:
   name of the NoellesRoles Parox original), contributed in PR #184 and fixed under owner decisions of 2026-11-04;
   every number lives in `JunkerRules`.
   - Registration: a SparkFactionAPI civilian (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no appearance
-    condition) registered after Noa as the last registration before the Insider, and guessed in the civilian block
+    condition) registered after Noa, before the Dominator and the Insider, and guessed in the civilian block
     right before the Perfumer. Not police, no coins or shop, no witch skill, never in the `gui.sparkwitch.skills`
     panel.
   - State: `JunkerPlayerComponent` (`sparkwitch:ragpicker_player`, `NEVER_COPY`, owner-synced search progress and

@@ -33,6 +33,10 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotLifecycle;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotService;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPsychoGazeService;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaDisconnectService;
@@ -47,6 +51,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFeatureService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedFeatureService;
@@ -164,6 +169,8 @@ public final class SparkWitchEvents {
         KnightFeatureService.register();
         KnightKillService.register();
         KnightDuelService.register();
+        DominatorPsychoGazeService.register();
+        DominatorForcedShotLifecycle.register();
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();
@@ -182,6 +189,7 @@ public final class SparkWitchEvents {
         MagicianPuppetAttackHandlers.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
+                DominatorForcedShotService.onRoleAssigned(serverPlayer);
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
                 if (role != null && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())) {
                     // One sync with the final state instead of one per write. / 只用最终状态同步一次，而不是每次写入各同步一次。
@@ -205,6 +213,7 @@ public final class SparkWitchEvents {
                 PerfumerEconomyService.assignForRole(serverPlayer, role);
                 NinjaFeatureService.assignForRole(serverPlayer, role);
                 OrthopedistSkillService.assignForRole(serverPlayer, role);
+                DominatorSkillService.assignForRole(serverPlayer, role);
                 if (!GuardianAngelRules.isGuardianAngel(role)) {
                     GuardianAngelFeatureService.detachPlayer(serverPlayer);
                 }
@@ -227,12 +236,23 @@ public final class SparkWitchEvents {
         KillPlayer.AFTER.register(WraithConversion::afterKill);
         KillPlayer.AFTER.register(WitchManaService::afterKill);
         KillPlayer.AFTER.register(WitchEconomyService::afterKill);
+        // A SparkTraits-intercepted death (Last Stand) is not a death: no use for the killer, and a revived Dominator
+        // keeps uses and mark (Time Stealer / Seeker precedent). / SparkTraits 拦截的死亡（背水一战）不算死亡：击杀者不加次数，
+        // 复活的支配者保留次数与标记（窃时者、搜寻者先例）。
+        KillPlayer.AFTER.register((victim, killer, deathReason) -> {
+            if (!WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
+                DominatorSkillService.afterKill(victim, killer, deathReason);
+            }
+        });
         KillPlayer.AFTER.register((victim, killer, deathReason) -> {
             WitchFactionFeatureService.clearPlayerRuntime(victim);
             FirePokerFallAttributionService.clearPlayer(victim);
             PigGodChaseRuntime.clear(victim, WitchPlayerComponent.KEY.get(victim));
             PerfumerPlayerComponent.KEY.get(victim).stopCologne();
             OrthopedistSkillService.clearPlayer(victim);
+            if (!WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
+                DominatorSkillService.clearPlayer(victim);
+            }
         });
         ResetPlayer.EVENT.register(player -> {
             WitchFactionFeatureService.clearPlayerRuntime(player);
@@ -241,7 +261,11 @@ public final class SparkWitchEvents {
             MagicianPlayerComponent.KEY.get(player).reset();
             PerfumerPlayerComponent.KEY.get(player).clear();
             if (player instanceof ServerPlayerEntity serverPlayer) {
+                // ResetPlayer fires after Wathe cleared the inventory: the stash is discarded, never re-inserted.
+                // ResetPlayer 在 Wathe 清空物品栏之后触发：原物品被丢弃，绝不重新放入。
+                DominatorForcedShotService.discard(serverPlayer);
                 OrthopedistSkillService.clearPlayer(serverPlayer);
+                DominatorSkillService.clearPlayer(serverPlayer);
                 GuardianAngelFeatureService.clearRoundPlayer(serverPlayer);
                 if (WraithStateService.isActive(serverPlayer)) {
                     // SparkTraits observes active Wraith state while dispatching terminal trait removals.
@@ -272,7 +296,9 @@ public final class SparkWitchEvents {
                     WitchPlayerComponent.KEY.get(player).clear();
                     MagicianPlayerComponent.KEY.get(player).reset();
                     PerfumerPlayerComponent.KEY.get(player).clear();
+                    DominatorForcedShotService.discard(player);
                     OrthopedistSkillService.clearPlayer(player);
+                    DominatorSkillService.clearPlayer(player);
                     GuardianAngelFeatureService.clearRoundPlayer(player);
                 }
             }

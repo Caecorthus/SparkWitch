@@ -77,7 +77,9 @@
       "sparkwitch:athlete",
       "sparkwitch:noa_player",
       "sparkwitch:ragpicker_player",
-      "sparkwitch:ragpicker_loot"
+      "sparkwitch:ragpicker_loot",
+      "sparkwitch:dominator",
+      "sparkwitch:dominator_forced_shot"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",

@@ -20,6 +20,16 @@ public final class SparkWitchDataComponents {
                     .codec(Codec.BOOL)
                     .packetCodec(PacketCodecs.BOOL));
 
+    /**
+     * Per-stack marker of the revolver temporarily issued by the Dominator's forced shot: only that stack is
+     * confiscated when the sequence ends.
+     * 支配者强制开枪临时发放的左轮手枪逐物品堆标记：序列结束时只没收带此标记的物品堆。
+     */
+    public static final ComponentType<Boolean> FORCED_SHOT_GUN = register("forced_shot_gun",
+            ComponentType.<Boolean>builder()
+                    .codec(Codec.BOOL)
+                    .packetCodec(PacketCodecs.BOOL));
+
     private SparkWitchDataComponents() {
     }
 

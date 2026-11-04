@@ -207,7 +207,8 @@
     "scope.ScopeMinecraftClientAccessor",
     "scope.ScopeMouseScrollMixin",
     "input.SelectedSlotFlushInvoker",
-    "noa.NoaMoodRendererMixin"
+    "noa.NoaMoodRendererMixin",
+    "dominator.DominatorForcedShotInventoryMixin"
   ],
   "injectors": {
     "defaultRequire": 1

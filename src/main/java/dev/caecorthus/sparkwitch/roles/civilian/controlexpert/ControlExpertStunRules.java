@@ -97,6 +97,8 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "use_fiend_dash"),
             // Athlete dash (UseAthleteDashC2SPayload). / 运动员冲刺。
             Identifier.of("sparkwitch", "use_athlete_dash"),
+            // Dominator mark/release (UseDominatorSkillC2SPacket, G key). / 支配者标记/释放（G 键）。
+            Identifier.of("sparkwitch", "use_dominator_skill"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a
