@@ -11,19 +11,16 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 
 /**
- * Two bottom-right lines for the Dominator, stacked like the Assassin HUD: the state hint on top and the remaining
- * uses below it. Hint colour is the Assassin's pulsing gold; the uses line is green while available and red at zero.
- * 支配者右下角两行，堆叠方式与刺客 HUD 相同：状态提示在上、剩余次数在下。提示色沿用刺客的金色呼吸效果，
- * 次数行有剩余时为绿色、为 0 时红色。
+ * One bottom-right line for the Dominator: the state hint with the remaining uses in parentheses.
+ * Every state uses the Dominator's green; cooldown outranks the other hints, and the prompt is hidden at zero uses
+ * (the skill cannot be used then unless it is still cooling down).
+ * 支配者右下角单行提示：状态文案加括号内的剩余次数，全部使用支配者的绿色。冷却优先于其他提示；
+ * 次数为 0 且不在冷却时隐藏整行（此时技能无法使用）。
  */
 public final class DominatorHudRenderer {
     private static final int RIGHT_PADDING = 5;
     private static final int BOTTOM_PADDING = 5;
-    private static final int ROW_GAP = 2;
-    private static final int USES_AVAILABLE_COLOR = 0xAA00FF00;
-    private static final int USES_EMPTY_COLOR = 0xAAFF0000;
-    /** The Assassin HUD's cooldown gold. / 刺客 HUD 的冷却金色。 */
-    private static final int COOLDOWN_COLOR = 0xAAFFC800;
+    private static final int GREEN = 0xAA000000 | DominatorRules.COLOR;
 
     private DominatorHudRenderer() {
     }
@@ -32,73 +29,63 @@ public final class DominatorHudRenderer {
         TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
         DominatorPlayerComponent component = DominatorPlayerComponent.KEY.get(player);
         int remainingUses = component.getRemainingUses();
-        Text uses = Text.translatable("hud.sparkwitch.dominator.uses", remainingUses);
-
-        int width = context.getScaledWindowWidth();
-        int usesY = context.getScaledWindowHeight() - BOTTOM_PADDING - renderer.fontHeight;
-        context.drawTextWithShadow(
-                renderer,
-                uses,
-                Math.max(0, width - RIGHT_PADDING - renderer.getWidth(uses)),
-                usesY,
-                remainingUses > 0 ? USES_AVAILABLE_COLOR : USES_EMPTY_COLOR
-        );
-        int hintY = usesY - renderer.fontHeight - ROW_GAP;
         int cooldownTicks = component.getCooldownTicks();
+
+        Text hint;
+        int color;
         if (cooldownTicks > 0) {
-            // Cooldown outranks every other hint, even at zero uses; same gold as the Assassin's cooldown line.
-            // 冷却优先于其他提示（即使次数为 0），颜色与刺客冷却行一致。
-            Text cooldown = Text.translatable(
+            // Cooldown outranks every other hint, even at zero uses.
+            // 冷却优先于其他提示（即使次数为 0）。
+            hint = Text.translatable(
                     "hud.sparkwitch.dominator.cooldown",
-                    (cooldownTicks + 19) / 20
+                    (cooldownTicks + 19) / 20,
+                    remainingUses
             );
-            context.drawTextWithShadow(
-                    renderer,
-                    cooldown,
-                    Math.max(0, width - RIGHT_PADDING - renderer.getWidth(cooldown)),
-                    hintY,
-                    COOLDOWN_COLOR
-            );
-            return;
+            color = GREEN;
+        } else {
+            // No uses left means G does nothing; hide the whole line.
+            // 次数为 0 时 G 已无效，隐藏整行。
+            if (remainingUses <= 0) {
+                return;
+            }
+            hint = hintText(player, component, remainingUses);
+            color = pulseColor();
         }
-        // No uses left means G does nothing; hide the whole prompt line and keep only the red uses counter.
-        // 次数为 0 时 G 已无效，隐藏整行提示，只保留红色次数。
-        if (remainingUses <= 0) {
-            return;
-        }
-        Text hint = hintText(player, component);
+
         context.drawTextWithShadow(
                 renderer,
                 hint,
-                Math.max(0, width - RIGHT_PADDING - renderer.getWidth(hint)),
-                hintY,
-                pulseColor()
+                Math.max(0, context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(hint)),
+                context.getScaledWindowHeight() - BOTTOM_PADDING - renderer.fontHeight,
+                color
         );
     }
 
-    private static Text hintText(ClientPlayerEntity player, DominatorPlayerComponent component) {
+    private static Text hintText(ClientPlayerEntity player, DominatorPlayerComponent component, int remainingUses) {
         if (component.hasActiveMark()) {
             return Text.translatable(
                     "hud.sparkwitch.dominator.force_shoot",
-                    SparkWitchClient.abilityKeyText()
+                    SparkWitchClient.abilityKeyText(),
+                    remainingUses
             );
         }
         PlayerEntity target = DominatorRules.findAimedPlayer(player);
         if (target == null) {
-            return Text.translatable("hud.sparkwitch.dominator.no_target");
+            return Text.translatable("hud.sparkwitch.dominator.no_target", remainingUses);
         }
         return Text.translatable(
                 "hud.sparkwitch.dominator.mark",
                 SparkWitchClient.abilityKeyText(),
-                target.getDisplayName()
+                target.getDisplayName(),
+                remainingUses
         );
     }
 
-    /** The Assassin hint's pulsing gold. / 刺客提示的金色呼吸色。 */
+    /** The Assassin hint's pulsing alpha, in the Dominator's green. / 刺客提示的呼吸透明度，换成支配者的绿色。 */
     private static int pulseColor() {
         float time = (float) (System.currentTimeMillis() % 2000L) / 2000.0F;
         float pulse = (float) (Math.sin(time * Math.PI * 2.0F) * 0.15D + 0.75D);
         int alpha = (int) (170.0F * pulse);
-        return (alpha << 24) | 0xFFC800;
+        return (alpha << 24) | DominatorRules.COLOR;
     }
 }
