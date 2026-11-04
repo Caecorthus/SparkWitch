@@ -113,6 +113,9 @@ public final class RiftSessionRules {
             // USEC 步枪开火与配件界面操作；开镜状态仅为表现，保持放行。
             Identifier.of("sparkwitch", "fire_usec_rifle"),
             Identifier.of("sparkwitch", "usec_attachment"),
+            // Accountant passbook withdraw (left-click), a held-item action like the launcher fire.
+            // 会计存折取钱（左键），与发射器开火一样属于手持物品操作。
+            Identifier.of("sparkwitch", "accountant_withdraw"),
             // Witch Maiden Mini Wither toggle and crimson skull fire. / 巫女小凋灵切换与赤首射击。
             Identifier.of("sparkwitch", "mini_wither_toggle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),

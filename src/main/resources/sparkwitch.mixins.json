@@ -258,7 +258,8 @@
     "dominator.EntityForcedShotSneakMixin",
     "dominator.ServerPlayerEntityForcedShotScreenMixin",
     "dominator.DecoratedPotBlockForcedShotGunMixin",
-    "dominator.GameFunctionsDominatorLetterMixin"
+    "dominator.GameFunctionsDominatorLetterMixin",
+    "accountant.DecoratedPotBlockAccountantPassbookMixin"
   ],
   "injectors": {
     "defaultRequire": 1

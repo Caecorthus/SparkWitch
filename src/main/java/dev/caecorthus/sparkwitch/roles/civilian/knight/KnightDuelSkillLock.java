@@ -83,7 +83,8 @@ public final class KnightDuelSkillLock {
      * revolver is already sealed because Wathe's receiver checks the held gun's cooldown), {@code wathe:knifestab} and
      * {@code sparkwitch:cross_sword_stab} (the duel's own weapons). Classified as not weapons and left out:
      * {@code sparkwitch:double_barrel_aim} (aim claims for a shotgun shot that is an item use the seal blocks),
-     * {@code sparkwitch:throw_kidnapper_body} (moves a corpse, hurts no one), {@code sparkwitch:usec_attachment} and
+     * {@code sparkwitch:throw_kidnapper_body} (moves a corpse, hurts no one), {@code sparkwitch:accountant_withdraw}
+     * (the passbook's left-click; moves coins, hurts no one), {@code sparkwitch:usec_attachment} and
      * {@code usec_scope} (loading and presentation), {@code sparkstrength:taotie_head_fire} (a skill-key-2 volley that
      * dazes and never kills), {@code sparkstrength:drone_pilot_start}, {@code drone_pilot_move} and
      * {@code drone_pilot_exit} (flying a drone; exit must always pass) and {@code sparkstrength:m67_cancel} (cancels a
@@ -92,7 +93,8 @@ public final class KnightDuelSkillLock {
      * 永不列入：{@code wathe:gunshoot}（德林加必须能开火；左轮已被封印，因为 Wathe 的接收器会检查手中枪械的冷却）、
      * {@code wathe:knifestab} 与 {@code sparkwitch:cross_sword_stab}（决斗自身的武器）。判定为非武器而不列入：
      * {@code sparkwitch:double_barrel_aim}（猎枪射击的瞄准声明，射击本身是被封印拦截的物品使用）、
-     * {@code sparkwitch:throw_kidnapper_body}（只移动尸体，不伤人）、{@code sparkwitch:usec_attachment} 与
+     * {@code sparkwitch:throw_kidnapper_body}（只移动尸体，不伤人）、{@code sparkwitch:accountant_withdraw}（存折左键，
+     * 只移动金币，不伤人）、{@code sparkwitch:usec_attachment} 与
      * {@code usec_scope}（装填与表现）、{@code sparkstrength:taotie_head_fire}（技能键 2 的齐射，只造成眩晕、从不致死）、
      * {@code sparkstrength:drone_pilot_start}、{@code drone_pilot_move} 与 {@code drone_pilot_exit}（驾驶无人机；退出必须
      * 始终放行）以及 {@code sparkstrength:m67_cancel}（取消投掷）。

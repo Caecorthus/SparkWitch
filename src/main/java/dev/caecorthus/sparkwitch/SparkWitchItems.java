@@ -10,6 +10,8 @@ import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
+import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookItem;
+import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.item.ComTacItem;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.item.WhiteCaneItem;
@@ -132,6 +134,7 @@ public final class SparkWitchItems {
     public static final Identifier USEC_SUPPRESSOR_ID = UsecRules.SUPPRESSOR_ITEM_ID;
     public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
     public static final Identifier BIG_DOG_PORTRAIT_ID = NoaRules.DOG_PORTRAIT_ITEM_ID;
+    public static final Identifier ACCOUNTANT_PASSBOOK_ID = AccountantRules.PASSBOOK_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -191,6 +194,7 @@ public final class SparkWitchItems {
     private static Item usecSuppressor;
     private static Item witherGohei;
     private static Item bigDogPortrait;
+    private static Item accountantPassbook;
 
     private static boolean registered;
 
@@ -506,6 +510,15 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 BIG_DOG_PORTRAIT_ID,
                 new Item(new Item.Settings().maxCount(1))
+        );
+        // Accountant passbook (PR #195): stored coins live in the stack's custom data, so maxCount(1) is mandatory; a
+        // stack would share one stored value and splitting it would duplicate coins. Appended last.
+        // 会计的存折（PR #195）：存款保存在物品的自定义数据中，因此必须 maxCount(1)；堆叠会共享同一存款值，拆分即复制金币。
+        // 追加在最后。
+        accountantPassbook = Registry.register(
+                Registries.ITEM,
+                ACCOUNTANT_PASSBOOK_ID,
+                new AccountantPassbookItem(new Item.Settings().maxCount(1))
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -965,5 +978,12 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return bigDogPortrait;
+    }
+
+    public static Item accountantPassbook() {
+        if (accountantPassbook == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return accountantPassbook;
     }
 }
