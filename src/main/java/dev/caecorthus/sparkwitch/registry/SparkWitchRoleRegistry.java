@@ -38,6 +38,7 @@ import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
+import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
@@ -96,6 +97,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BLIND_ID = BlindRules.ROLE_ID;
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
     public static final Identifier STOWAWAY_ID = StowawayRules.ROLE_ID;
+    public static final Identifier SCHRODINGERS_CAT_ID = SchrodingersCatRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
     public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
     public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
@@ -137,6 +139,7 @@ public final class SparkWitchRoleRegistry {
     private static Role blind;
     private static Role fiend;
     private static Role stowaway;
+    private static Role schrodingersCat;
     private static Role insider;
     private static Role abyssListener;
     private static Role potionGunner;
@@ -194,6 +197,10 @@ public final class SparkWitchRoleRegistry {
         // A living Stowaway never counts as alive for settlement in other mods either.
         // 活着的偷渡客在其他模组的结算中同样不算存活。
         SparkFactionSettlementExclusionCompat.registerExcludedRole(STOWAWAY_ID);
+        // An untransformed Schrödinger's Cat never counts as alive for settlement in other mods either (owner
+        // 2026-11-03); a transformed one holds another role id. 未转化的薛定谔之猫在其他模组的结算中同样不算存活
+        //（所有者 2026-11-03）；转化后的猫持有其他职业 id。
+        SparkFactionSettlementExclusionCompat.registerExcludedRole(SCHRODINGERS_CAT_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
@@ -365,6 +372,11 @@ public final class SparkWitchRoleRegistry {
     public static Role stowaway() {
         ensureRegistered();
         return stowaway;
+    }
+
+    public static Role schrodingersCat() {
+        ensureRegistered();
+        return schrodingersCat;
     }
 
     public static Role insider() {
@@ -722,6 +734,20 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .build());
+        // Registered after the Stowaway, before the Recruit and the Insider (nothing may follow the Insider). A
+        // Wathe-native neutral with tasks, real mood and passenger stamina, available at every player count (PR #182
+        // profile). It never wins and never blocks a win; its first committed death turns it into the killer's side
+        // (roles/neutral/cat).
+        // 注册在偷渡客之后、新兵与内应之前（内应之后不得再注册）。有任务、真实情绪与乘客体力的 Wathe 原生中立职业，任何
+        // 人数都可出现（PR #182 参数）。它永不获胜、也不阻挡任何胜利；第一次落定的死亡让它倒向凶手的阵营（roles/neutral/cat）。
+        schrodingersCat = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SCHRODINGERS_CAT_ID,
+                        FactionIds.NEUTRAL)
+                .color(SchrodingersCatRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .build());
         // Registered right before the Insider (nothing may follow the Insider): an ordinary task civilian (no coins or
         // shop) drawn by Wathe's civilian assignment like the Fisher and the Blind, never through a police slot. Its
         // knife, gun and penalty rules live in roles/civilian/recruit.
@@ -818,6 +844,7 @@ public final class SparkWitchRoleRegistry {
                 fiend,
                 insider,
                 stowaway,
+                schrodingersCat,
                 windSpirit,
                 guardianAngel,
                 vendetta,

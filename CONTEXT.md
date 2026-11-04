@@ -27,6 +27,9 @@ the two form Team Jiahao and win together.
 It also adds the Stowaway (`sparkwitch:stowaway`, 偷渡客, contributed in PR #178), a neutral drawn at any player count
 that starts with only a lockpick, never counts as alive for any win, joins the winning side if it is alive at round
 end, senses players within 10 blocks, and hides from instinct behind cover like NoellesRoles' Survival Master.
+It also adds Schrödinger's Cat (`sparkwitch:schrodingers_cat`, 薛定谔之猫, contributed in PR #182), a neutral drawn at
+any player count that never wins or blocks a win; the first death that really commits on it (after every protection)
+turns it, 3 s later and where it fell, into its killer's side: Bewitched, Insider, plain killer or a random police role.
 It also adds the Magician (`sparkwitch:magician`, 魔术师, merged from main), a killer whose recorded puppet replays
 its actions disguised as a chosen player.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
@@ -596,6 +599,10 @@ Current build baseline:
   the settlement exclusion and round-end row rule (`StowawaySettlement`, `StowawayWinScope`), and the kill reward
   (`StowawayKillRewardService`). Its mixins live in `mixin/stowaway/`; client presentation (senses, the Survival
   Master instinct rule, the round-start "不欢迎登车" line) lives in `client/stowaway/` and `client/mixin/stowaway/`.
+- `roles/neutral/cat/`: Schrödinger's Cat (`sparkwitch:schrodingers_cat`) rules (`SchrodingersCatRules`: the killer's
+  side and the transform gate), the spectre and transformation (`SchrodingersCatService`) and the settlement exclusion
+  (`SchrodingersCatSettlement`). Its mixins live in `mixin/cat/`; the optional trait swap goes through
+  `compat/SparkTraitsSchrodingersCatBridge`. No client code.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
 - `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the promotion roll
   `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the per-variant hooks: the
@@ -1710,6 +1717,36 @@ the Insider and guessed right after it, before the promotion tail.
   effective CIVILIAN, it gets 75 extra coins and the nearest living effective-civilian player who holds no revolver
   and is not gun-banned by a Wathe misfire gets one revolver through `giveItemStack`, falling through to the next
   nearest when a role guard or a full inventory refuses it.
+
+Schrödinger's Cat rules (owner 2026-11-03/04, PR #182). Profile: Wathe-native neutral, REAL mood with tasks (+25
+coins per task), passenger stamina, no round clock, no appearance condition; registered after the Stowaway and before
+the Recruit and the Insider, guessed right after the Stowaway, before the promotion tail.
+- Trigger: `mixin/cat/GameFunctionsSchrodingersCatMixin` injects right before the alive branch's
+  `changeGameMode(SPECTATOR)` in `killPlayer` with `order = 1100`, so it runs after every default-order injector at that
+  call (SparkTraits Last Escape, Tofana) and after every `@WrapMethod`, HEAD veto, `KillPlayer.BEFORE` listener and
+  psycho armour: protections are spent first (owner 2026-11-04) and only a death that really commits reaches the cat.
+  Forced kills count (bell toll, time curse…). The cat dies normally when the round is not ACTIVE, there is no killer
+  or the killer is the cat, the reason is `wathe:fell_out_of_train` or `noellesroles:voodoo`, or the killer's side is
+  none. Cancelling there skips the death mark, kill reward, corpse, drops and `KillPlayer.AFTER`, like Tofana.
+- Side (`SchrodingersCatRules.sideOf`): Corrupt Cop or Insider → Insider; any `WitchFactionRules.isWitchFactionMember`
+  killer (Grand Witch, every accomplice incl. the Bewitched and special accomplices, Curser) → Bewitched; otherwise the
+  killer's SparkFactionAPI EFFECTIVE faction: KILLER → `wathe:killer` (an Impostor civilian counts), CIVILIAN → a random
+  unheld police variant through `PoliceSlotAssignmentService.choose` (plain Vigilante only once every variant is held;
+  the Apprentice Witch is an innocent role, so it gives police); anything else (Murderous Witch, Fiend, other
+  neutrals) → the cat dies.
+- Spectre (FiendFeign pattern): never marked dead; pinned spectator at its ground-snapped hit position for 3 s, own
+  camera, every `killPlayer` on it refused at HEAD (`order = 0`). It then gets up at that spot in its saved game mode
+  with zero velocity, the role is written under the `sparkwitch:schrodingers_cat_transform` replay cause, and
+  `RoleAssigned` fires for the role's own kit and skills (Bewitched promotion pattern); the higher of the old and new
+  balance is kept, the shop is rebuilt, SparkTraits swaps ineligible traits through its facade, the totem sound plays
+  and the role announcement replays. The round leaving ACTIVE, a role change or a death mark during the window only
+  restores the body; a disconnect finishes the transformation first. State is in memory, server thread only, cleared
+  at every round boundary, reset and server stop.
+- Settlement (`SchrodingersCatSettlement`): an untransformed cat never counts as alive for any win, block or moment —
+  the Stowaway's seams (`StowawayWinScope` via `mixin/cat/GameFunctionsSchrodingersCatSettlementMixin`,
+  `FiendWinExclusion.countsAsAlive`, SparkFactionAPI `SettlementExclusions`) — but unlike the Stowaway it never joins
+  the winners: every row writer already gives a neutral row `isWinner=false`. A transformed cat holds another role id,
+  so it counts and wins as that role.
 
 Bell Ringer state never enters that shared schema either. `sparkwitch:bell_echo`
 (`NEVER_COPY`, owner-only sync, match-id bound) holds the forced Echo task

@@ -39,6 +39,7 @@ public final class SparkWitchRoles {
     public static final Identifier BLIND_ID = SparkWitchRoleRegistry.BLIND_ID;
     public static final Identifier FIEND_ID = SparkWitchRoleRegistry.FIEND_ID;
     public static final Identifier STOWAWAY_ID = SparkWitchRoleRegistry.STOWAWAY_ID;
+    public static final Identifier SCHRODINGERS_CAT_ID = SparkWitchRoleRegistry.SCHRODINGERS_CAT_ID;
     public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
     public static final Identifier ABYSS_LISTENER_ID = SparkWitchRoleRegistry.ABYSS_LISTENER_ID;
     public static final Identifier POTION_GUNNER_ID = SparkWitchRoleRegistry.POTION_GUNNER_ID;
@@ -187,6 +188,10 @@ public final class SparkWitchRoles {
 
     public static Role stowaway() {
         return SparkWitchRoleRegistry.stowaway();
+    }
+
+    public static Role schrodingersCat() {
+        return SparkWitchRoleRegistry.schrodingersCat();
     }
 
     public static Role insider() {

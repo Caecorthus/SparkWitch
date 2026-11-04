@@ -164,6 +164,8 @@
     "stowaway.GameFunctionsStowawaySettlementMixin",
     "stowaway.GameRoundEndComponentStowawayWinnerMixin",
     "stowaway.MurderGameModeStowawayWinScopeMixin",
+    "cat.GameFunctionsSchrodingersCatMixin",
+    "cat.GameFunctionsSchrodingersCatSettlementMixin",
     "hunter.GunShootPayloadShotgunGuardMixin",
     "hunter.HunterPlayerMoveMixin",
     "hunter.PlayerPoisonComponentHunterSourceMixin",
