@@ -56,6 +56,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeat
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodChaseRuntime;
@@ -174,6 +175,7 @@ public final class SparkWitchEvents {
         BewitchedFeatureService.register();
         ApprenticeFeatureService.register();
         StowawayFeatureService.register();
+        SchrodingersCatService.register();
         JunkerService.register();
         MagicianPlaybackManager.init();
         MagicianReplayEvents.register();

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /** Only Vigilante variants share this budget; police shop membership does not change allocation.
  * 这里只共享义警变体的警位预算，警类商店资格不改变其他身份的分配。 */
@@ -35,6 +36,16 @@ public final class PoliceSlotAssignmentService {
     }
 
     public static Role choose(RoleSelectionContext context) {
+        return choose(context, role -> false);
+    }
+
+    /**
+     * The same pool, minus the variants the caller cannot assign right now (a mid-round pick: Schrödinger's Cat skips
+     * an Emma whose one claim per round is already taken). The round start passes nothing and is unchanged.
+     * 同一警位池，去掉调用方此刻无法分配的变体（中途抽取：薛定谔之猫跳过本局唯一声明已被占用的艾玛）。开局不传入任何
+     * 限制，行为不变。
+     */
+    public static Role choose(RoleSelectionContext context, Predicate<Role> unavailable) {
         GameWorldComponent game = context.gameComponent();
         Set<Identifier> eligible = new HashSet<>();
         Set<Identifier> assigned = new HashSet<>();
@@ -43,7 +54,7 @@ public final class PoliceSlotAssignmentService {
             if (role == null || !id.equals(role.identifier())) {
                 continue;
             }
-            if (game.isRoleEnabled(role) && role.shouldAppear(context)) {
+            if (game.isRoleEnabled(role) && role.shouldAppear(context) && !unavailable.test(role)) {
                 eligible.add(id);
             }
             if (!game.getAllWithRole(role).isEmpty()) {

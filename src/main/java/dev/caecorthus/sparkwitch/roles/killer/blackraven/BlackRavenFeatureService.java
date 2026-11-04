@@ -83,10 +83,7 @@ public final class BlackRavenFeatureService {
             for (ServerPlayerEntity player : serverWorld.getPlayers()) {
                 BlackRavenMarkPlayerComponent.KEY.get(player).clear();
                 if (BlackRavenRules.isBlackRaven(game.getRole(player))) {
-                    // Binds the disguise state and snapshots Tab B before the kit check. / 在检查装备前绑定伪装状态并快照名单。
-                    BlackRavenDisguiseService.beginRound(player, serverWorld, game);
-                    BlackRavenPerceptionService.bindCurrentMatch(player);
-                    BlackRavenLoadoutService.restoreLedgerIfNeeded(player);
+                    bindRaven(player, serverWorld, game);
                 } else {
                     BlackRavenDisguiseService.clearForReset(player);
                     BlackRavenPerceptionPlayerComponent.KEY.get(player).clear();
@@ -135,5 +132,30 @@ public final class BlackRavenFeatureService {
         } else {
             BlackRavenLoadoutService.removeLedger(player);
         }
+    }
+
+    /**
+     * Mid-round entry for a player who becomes a Black Raven after the round start (Schrödinger's Cat
+     * transformation): the same per-player match binding, Tab B snapshot and ledger check the round start hands out,
+     * called once after {@code RoleAssigned}.
+     * 对局开始后才成为黑羽鸦的玩家的中途入口（薛定谔之猫转化）：
+     * 与开局相同的个人对局绑定、B 栏名单快照与账本检查，在 {@code RoleAssigned} 之后调用一次。
+     */
+    public static void beginLateRound(ServerPlayerEntity player) {
+        ServerWorld world = player.getServerWorld();
+        GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        if (BlackRavenRules.isBlackRaven(game.getRole(player))) {
+            bindRaven(player, world, game);
+        }
+    }
+
+    /**
+     * Binds the disguise state and snapshots Tab B before the kit check; the one binding path shared by the round start
+     * and {@link #beginLateRound}. / 在检查装备前绑定伪装状态并快照名单；开局与 {@link #beginLateRound} 共用的唯一绑定路径。
+     */
+    private static void bindRaven(ServerPlayerEntity player, ServerWorld world, GameWorldComponent game) {
+        BlackRavenDisguiseService.beginRound(player, world, game);
+        BlackRavenPerceptionService.bindCurrentMatch(player);
+        BlackRavenLoadoutService.restoreLedgerIfNeeded(player);
     }
 }
