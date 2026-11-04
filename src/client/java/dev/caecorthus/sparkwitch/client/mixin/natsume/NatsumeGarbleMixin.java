@@ -1,65 +1,62 @@
 package dev.caecorthus.sparkwitch.client.mixin.natsume;
 
-import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent;
-import net.minecraft.client.MinecraftClient;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import dev.caecorthus.sparkwitch.client.natsume.NatsumeHudGarble;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
-import java.util.Random;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 /**
- * A hypnotised player sees every HUD line as gibberish.
- * <p>Owner 2026-11-03: only the HUD is garbled, item names and tooltips are left alone. The two hypnosis lines stay
- * readable, otherwise she could not tell how long is left or why her items refuse to work.
- * 被催眠者看到的每一行 HUD 都是乱码。
- * <p>所有者 2026-11-03：只乱 HUD，物品名与 tooltip 不动。两条催眠提示保持可读，
- * 否则她无法知道还剩几秒、也看不懂道具为什么用不了。
+ * 夏目安安 hypnosis HUD garble, draw side (rules and scope in {@link NatsumeHudGarble}). The two vanilla 1.21.1
+ * {@code drawText} overloads every HUD renderer reaches swap their text argument at HEAD: the {@code Text} one (all
+ * {@code drawTextWithShadow}/{@code drawCenteredTextWithShadow}/{@code drawTextWithBackground} Text calls, e.g. the
+ * action bar, titles, scoreboard and Wathe's mood tasks) and the {@code String} one (the clock, money, cooldown digits
+ * and F3). The Text overload only forwards to the {@code OrderedText} one, so nothing is garbled twice; direct
+ * {@code OrderedText} draws are left alone. {@code @ModifyVariable}, not a cancelling re-draw, so other mods' hooks on
+ * these methods still run once with the swapped value. {@code drawItemInSlot} suspends the scope so a hotbar stack
+ * count stays an item decoration, like item names. Outside the HUD pass, with a screen open or when not hypnotised the
+ * arguments pass through untouched. Client-only, display-only. Pinned in {@code NatsumeClientMixinTargetsTest}.
+ * 夏目安安催眠 HUD 乱码的绘制端（规则与作用域见 {@link NatsumeHudGarble}）。原版 1.21.1 中所有 HUD 渲染都会走到的两个
+ * {@code drawText} 重载在 HEAD 替换文字参数：{@code Text} 版（所有 {@code drawTextWithShadow}/{@code
+ * drawCenteredTextWithShadow}/{@code drawTextWithBackground} 的 Text 调用，例如动作栏、标题、计分板与 Wathe 心情任务）与
+ * {@code String} 版（时钟、金币、冷却数字与 F3）。Text 版只会转发到 {@code OrderedText} 版，因此不会重复乱码；直接绘制的
+ * {@code OrderedText} 不处理。使用 {@code @ModifyVariable} 而非取消后重绘，其他模组在这些方法上的钩子仍只执行一次并看到替换
+ * 后的值。{@code drawItemInSlot} 暂停作用域，使快捷栏堆叠数量与物品名一样作为物品装饰保留。不在 HUD 绘制中、打开界面或未被
+ * 催眠时参数原样放行。仅客户端、仅展示。在 {@code NatsumeClientMixinTargetsTest} 中固定。
  */
 @Mixin(DrawContext.class)
 public abstract class NatsumeGarbleMixin {
-
-    private static final Random RANDOM = new Random();
-    private static final ThreadLocal<Boolean> REDRAWING = ThreadLocal.withInitial(() -> Boolean.FALSE);
-
-    @Inject(
+    @ModifyVariable(
             method = "drawText(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/text/Text;IIIZ)I",
             at = @At("HEAD"),
-            cancellable = true
+            argsOnly = true
     )
-    private void sparkwitch$garbleHudText(TextRenderer renderer, Text text, int x, int y, int color, boolean shadow,
-                                          CallbackInfoReturnable<Integer> cir) {
-        if (Boolean.TRUE.equals(REDRAWING.get())) {
-            return;
-        }
-        ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        if (player == null || !NatsumeComponent.KEY.get(player).isHypnotised()) {
-            return;
-        }
-        String raw = text.getString();
-        if (raw.isEmpty() || isExempt(raw)) {
-            return;
-        }
-        StringBuilder garbled = new StringBuilder(raw.length());
-        for (int i = 0; i < raw.length(); i++) {
-            char c = raw.charAt(i);
-            garbled.append(c == ' ' ? ' ' : (char) ('!' + RANDOM.nextInt(94)));
-        }
-        REDRAWING.set(Boolean.TRUE);
-        try {
-            cir.setReturnValue(((DrawContext) (Object) this).drawText(
-                    renderer, Text.literal(garbled.toString()), x, y, color, shadow));
-        } finally {
-            REDRAWING.set(Boolean.FALSE);
-        }
+    private Text sparkwitch$garbleHudText(Text text) {
+        return NatsumeHudGarble.garbleHud(text);
     }
 
-    private static boolean isExempt(String raw) {
-        return raw.contains("催眠") || raw.contains("hypnosis") || raw.contains("Hypnosis");
+    @ModifyVariable(
+            method = "drawText(Lnet/minecraft/client/font/TextRenderer;Ljava/lang/String;IIIZ)I",
+            at = @At("HEAD"),
+            argsOnly = true
+    )
+    private String sparkwitch$garbleHudString(String text) {
+        return NatsumeHudGarble.garbleHud(text);
+    }
+
+    @WrapMethod(method = "drawItemInSlot(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/item/ItemStack;IILjava/lang/String;)V")
+    private void sparkwitch$keepItemDecorations(TextRenderer textRenderer, ItemStack stack, int x, int y,
+                                                String countOverride, Operation<Void> original) {
+        NatsumeHudGarble.suspend();
+        try {
+            original.call(textRenderer, stack, x, y, countOverride);
+        } finally {
+            NatsumeHudGarble.resume();
+        }
     }
 }
