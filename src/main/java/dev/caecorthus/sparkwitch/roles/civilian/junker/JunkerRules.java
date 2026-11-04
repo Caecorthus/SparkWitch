@@ -1,7 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.civilian.junker;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.doctor4t.wathe.api.Role;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 拾荒者 Ragpicker — civilian who sees dropped items through walls and loots corpses.
@@ -35,9 +37,11 @@ public final class JunkerRules {
     /** Dropped items glow within this many blocks, through walls. 掉落物在这个半径内透墙高亮。 */
     public static final double LOOT_VISION_RANGE = 8.0D;
 
-    /** Custom-data key marking a stack as junker loot. 标记“搜刮所得”的自定义数据键。 */
-    public static final String LOOT_MARKER = "sparkwitch_ragpicker_loot";
-
     private JunkerRules() {
+    }
+
+    /** The real (raw) role is the 拾荒者; never a disguise overlay. / 真实（原始）职业是拾荒者；绝不看伪装覆盖层。 */
+    public static boolean isRagpicker(@Nullable Role role) {
+        return role != null && ROLE_ID.equals(role.identifier());
     }
 }

@@ -19,6 +19,8 @@ The Knight (`sparkwitch:knight`, 骑士, contributed in PR #169 and reworked 202
 the Vigilante slots and spends 150 coins on the shared ability key (G) to duel one living player.
 The Recruit (`sparkwitch:recruit`, 新兵, contributed in PR #176) is an ordinary civilian that takes no police slot,
 gets Wathe's knife after its first task, and may pick up one ground gun per round.
+The Ragpicker (`sparkwitch:ragpicker`, 拾荒者, contributed in PR #184) is an ordinary civilian that sees dropped items
+through walls and takes one item from a corpse with the shared ability key (G).
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -1004,7 +1006,8 @@ Current build baseline:
 - `roles/civilian/recruit/`: the Recruit (`sparkwitch:recruit`, 新兵, color `0x5B862D`), contributed in PR #176; the
   PR description is the spec, every number lives in `RecruitRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
-    appearance condition) registered right before the Insider, and in the civilian block of the assassin-guess order
+    appearance condition) registered after the Stowaway (only the Ragpicker sits between it and the Insider), and in
+    the civilian block of the assassin-guess order
     (between the Perfumer and the Pig God). Wathe's civilian pass draws it like the Fisher and the Blind; it is not a police variant
     (`PoliceRoles`, `PoliceSlotAssignmentService.VARIANT_IDS`) and never takes a cop slot. It has no coins, shop or
     economy service, owns no witch skill (not in `isRegisteredSparkWitchRole`) and never renders in the
@@ -1029,6 +1032,33 @@ Current build baseline:
   - Open (owner calls, unchanged by review): the push-off penalty applies with or without the knife (Knight
     precedent); a Last Stand victim who revives still costs sanity or the Recruit's life; the Black Raven disguise
     pool and SparkAssist have no Recruit entry yet.
+- `roles/civilian/junker/`: the Ragpicker (`sparkwitch:ragpicker`, 拾荒者, color `0x91876E`; classes keep the Junker
+  name of the NoellesRoles Parox original), contributed in PR #184 and fixed under owner decisions of 2026-11-04;
+  every number lives in `JunkerRules`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no appearance
+    condition) appended after the Recruit as the last registration before the Insider, and guessed in the civilian
+    block right before the Perfumer. Not police, no coins or shop, no witch skill, never in the `gui.sparkwitch.skills`
+    panel.
+  - State: `JunkerPlayerComponent` (`sparkwitch:ragpicker_player`, `NEVER_COPY`, owner-synced search progress and
+    absolute ready tick) and the world component `JunkerLootWorldComponent` (`sparkwitch:ragpicker_loot`: death
+    snapshots and searched corpses), appended last in the CCA list after the Recruit's.
+  - Search (server authority: `JunkerService`, pure gates in `JunkerSearchRules`): G sends
+    `sparkwitch:ragpicker_search` (body UUID only), a payload on the stun, Fear, Seeker-session, Rift-occupant and
+    Knight-duel G lists. The server re-checks the raw role and every state gate, then needs the corpse within 3 blocks
+    in block line of sight (no search through walls) for 5 s. Success transfers one stack from the dead owner's
+    snapshot into a free hotbar slot (moved, never copied). An empty corpse is marked searched at once; the owner
+    accepts that instant "nothing on the body" line as a fake-corpse tell. A refusal costs nothing.
+  - Cooldown: 45 s at round start and 60 s after a successful search, kept as the ready tick and exposed as the
+    SparkFactionAPI role-skill store `sparkwitch:ragpicker_search` (`compat/cooldown/SparkWitchForcedCooldowns`).
+  - Loot (`JunkerLoot`, custom-data marker `sparkwitch:ragpicker_loot`): unspent loot blocks the next search and is
+    spent only by a real use (`JunkerLootSpend`) or a sneak right-click destroy. Room keys, walkie-talkies and the
+    NoellesRoles neutral master key never block a search; walkie-talkies and the master key are never spent, and a
+    looted room key is spent when it opens a door.
+  - Replay (`JunkerReplay`): Wathe `skill_use` records with `action` `search`/`found` and `victim`; `found` stores the
+    item registry id and `count`, rendered as a translatable item name, never a server-language string.
+  - Client (`client/junker/JunkerClientModule`, `client/hud/JunkerHudRenderer`): drops within 8 blocks glow through
+    walls for the Ragpicker, the G branch of the shared dispatch sends the search, and the HUD shows ready, progress
+    and cooldown. Presentation only.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation

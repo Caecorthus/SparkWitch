@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
@@ -104,6 +105,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
     public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
+    public static final Identifier RAGPICKER_ID = JunkerRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -145,6 +147,7 @@ public final class SparkWitchRoleRegistry {
     private static Role usec;
     private static Role knight;
     private static Role recruit;
+    private static Role ragpicker;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -400,6 +403,11 @@ public final class SparkWitchRoleRegistry {
     public static Role recruit() {
         ensureRegistered();
         return recruit;
+    }
+
+    public static Role ragpicker() {
+        ensureRegistered();
+        return ragpicker;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -734,6 +742,20 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Ragpicker (拾荒者, PR #184): appended after the Recruit as the last registration before the Insider, since
+        // nothing may follow the Insider (InsiderRegistrationContractTest). Every existing role keeps its index except
+        // the Insider's own. An ordinary civilian (REAL mood, passenger stamina, no appearance condition) drawn by
+        // Wathe's civilian pass; never a police variant and never a Witch-skill role.
+        // 拾荒者（PR #184）：追加在新兵之后，作为内应之前的最后一个注册，因为内应之后不得再注册
+        // （InsiderRegistrationContractTest）。除内应自身外，所有既有职业下标不变。普通平民（真实情绪、乘客体力、
+        // 无出现条件），由 Wathe 平民分配抽取；既不是警察变体，也不是魔女技能职业。
+        ragpicker = SparkFactionApi.registerRole(FactionRoleDefinition.builder(RAGPICKER_ID, FactionIds.CIVILIAN)
+                .color(JunkerRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
         // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
         // a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
@@ -784,6 +806,9 @@ public final class SparkWitchRoleRegistry {
                 prophet,
                 orthopedist,
                 saint,
+                // The Ragpicker joins the civilian block too, before the Perfumer so the Perfumer, Recruit, Pig God and
+                // Tarot Reader stay adjacent. 拾荒者同样加入平民段，排在调香师之前，使调香师、新兵、猪神与塔罗师保持相邻。
+                ragpicker,
                 perfumer,
                 // The Recruit joins the civilian block; the promotion identities stay the tail.
                 // 新兵加入平民段；晋升身份始终位于末尾。

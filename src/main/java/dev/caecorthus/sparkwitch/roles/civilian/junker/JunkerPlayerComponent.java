@@ -15,9 +15,13 @@ import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 import java.util.UUID;
 
 /**
- * The 5-second corpse search: which body is being searched and how far along it is. Cancels the moment the body leaves
- * the player's sight.
- * 五秒搜刮：正在搜哪具尸体、进度多少。尸体一旦离开视线立刻取消。
+ * The 5-second corpse search and the search cooldown, synced to the owner only. The search cancels the moment any gate
+ * of {@link JunkerSearchRules#keepsSearching} fails (state gates, aim, range or block line of sight). The cooldown is an
+ * absolute ready tick in server world time; forced cooldowns reach it only through
+ * {@code compat/cooldown/SparkWitchForcedCooldowns#ragpickerSearch}, which only moves it later.
+ * 五秒搜刮与搜刮冷却，只同步给本人。{@link JunkerSearchRules#keepsSearching} 的任一门槛失败（状态门槛、瞄准、范围或
+ * 方块视线）就立即取消搜刮。冷却是服务端世界时间的绝对就绪刻；其他功能的强制冷却只经
+ * {@code compat/cooldown/SparkWitchForcedCooldowns#ragpickerSearch} 作用于它，且只会把它推后。
  */
 public final class JunkerPlayerComponent implements AutoSyncedComponent, ServerTickingComponent {
     public static final ComponentKey<JunkerPlayerComponent> KEY = ComponentRegistry.getOrCreate(
@@ -31,8 +35,11 @@ public final class JunkerPlayerComponent implements AutoSyncedComponent, ServerT
     private UUID searchBodyUuid;
     private int progressTicks;
     private boolean searching;
-    /** Remaining search cooldown in seconds, shown on the HUD. 搜刮冷却剩余秒数，显示在 HUD 上。 */
-    private int cooldownSeconds;
+    /**
+     * Absolute server world tick at which the search is ready again; synced to the owner only.
+     * 搜刮再次可用的服务端世界时间绝对刻，只同步给本人。
+     */
+    private long searchReadyTick;
 
     public JunkerPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -46,17 +53,21 @@ public final class JunkerPlayerComponent implements AutoSyncedComponent, ServerT
         return progressTicks;
     }
 
-    public int getCooldownSeconds() {
-        return cooldownSeconds;
+    public long getSearchReadyTick() {
+        return searchReadyTick;
     }
 
-    /** Server-driven; syncs only when the displayed second actually changes. 服务端驱动；只在显示的秒数变化时同步。 */
-    public void setCooldownSeconds(int seconds) {
-        int clamped = Math.max(0, seconds);
-        if (clamped != cooldownSeconds) {
-            cooldownSeconds = clamped;
+    /** Server only; syncs the owner. / 仅服务端调用，并同步给本人。 */
+    public void setSearchReadyTick(long tick) {
+        if (tick != searchReadyTick) {
+            searchReadyTick = tick;
             sync();
         }
+    }
+
+    /** Remaining cooldown at {@code worldTime} (server or client world time). / 在 worldTime 时剩余的冷却刻数。 */
+    public int searchCooldownRemainingTicks(long worldTime) {
+        return (int) Math.max(0L, Math.min(Integer.MAX_VALUE, searchReadyTick - worldTime));
     }
 
     public float getProgress() {
@@ -79,11 +90,16 @@ public final class JunkerPlayerComponent implements AutoSyncedComponent, ServerT
         }
     }
 
-    public void reset() {
+    /**
+     * Server only: a new round or a new ragpicker. Clears any search and sets the ready tick exactly (a leftover from
+     * an earlier round must not carry over); syncs once.
+     * 仅服务端：新回合或新成为拾荒者。清除进行中的搜刮并精确设置就绪刻（上一回合的残留不得延续）；只同步一次。
+     */
+    public void reset(long readyTick) {
         searchBodyUuid = null;
         progressTicks = 0;
         searching = false;
-        cooldownSeconds = 0;
+        searchReadyTick = readyTick;
         sync();
     }
 
@@ -96,13 +112,10 @@ public final class JunkerPlayerComponent implements AutoSyncedComponent, ServerT
         if (searchBodyUuid == null) {
             return;
         }
-        if (!(player instanceof ServerPlayerEntity serverPlayer)
-                || !dev.doctor4t.wathe.game.GameFunctions.isPlayerPlayingAndAlive(player)) {
-            cancelSearch();
-            return;
-        }
         UUID bodyUuid = searchBodyUuid;
-        if (!JunkerService.isLookingAtBody(serverPlayer, bodyUuid)) {
+        // Every persistent gate and the line of sight are re-read each tick; the completing tick has passed them too.
+        // 每刻重新读取全部持续门槛与视线；完成的那一刻同样已通过它们。
+        if (!(player instanceof ServerPlayerEntity serverPlayer) || !JunkerService.keepsSearching(serverPlayer, bodyUuid)) {
             cancelSearch();
             return;
         }
@@ -129,29 +142,31 @@ public final class JunkerPlayerComponent implements AutoSyncedComponent, ServerT
     public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) {
         buf.writeBoolean(searchBodyUuid != null);
         buf.writeInt(progressTicks);
-        buf.writeInt(cooldownSeconds);
+        buf.writeLong(searchReadyTick);
     }
 
     @Override
     public void applySyncPacket(RegistryByteBuf buf) {
         searching = buf.readBoolean();
         progressTicks = buf.readInt();
-        cooldownSeconds = buf.readInt();
+        searchReadyTick = buf.readLong();
     }
 
+    /**
+     * Only the ready tick is saved (world time survives a relog or restart, so a relog cannot skip the cooldown); a
+     * search in progress is never resumed.
+     * 只保存就绪刻（世界时间在重新登录或重启后仍延续，因此重新登录无法跳过冷却）；进行中的搜刮从不恢复。
+     */
     @Override
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
-        progressTicks = tag.contains("progressTicks") ? tag.getInt("progressTicks") : 0;
-        cooldownSeconds = 0;
-        searchBodyUuid = tag.contains("searchBodyUuid") ? tag.getUuid("searchBodyUuid") : null;
-        searching = searchBodyUuid != null;
+        searchBodyUuid = null;
+        progressTicks = 0;
+        searching = false;
+        searchReadyTick = tag.getLong("searchReadyTick");
     }
 
     @Override
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
-        tag.putInt("progressTicks", progressTicks);
-        if (searchBodyUuid != null) {
-            tag.putUuid("searchBodyUuid", searchBodyUuid);
-        }
+        tag.putLong("searchReadyTick", searchReadyTick);
     }
 }

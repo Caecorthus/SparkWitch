@@ -1,36 +1,33 @@
 package dev.caecorthus.sparkwitch.client.hud;
 
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
+import dev.caecorthus.sparkwitch.client.controlexpert.ControlExpertStatusHudRules;
+import dev.caecorthus.sparkwitch.client.junker.JunkerClientModule;
+import dev.caecorthus.sparkwitch.client.junker.JunkerHudRules;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.client.WatheClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 /**
- * 拾荒者 readout.
- * <p>While searching: the percentage sits above the action bar, with a progress bar in the role's identity colour
- * right underneath it. Otherwise the bottom-right skill line carries the key hint, or the remaining cooldown — the
- * cooldown belongs with the skill information, not in an action-bar toast.
- * 拾荒者的信息显示。
- * <p>搜刮过程中：百分比显示在动作栏上方，正下方是用身份色画的进度条。
- * 其余时候右下角的技能行显示按键提示，或剩余冷却——冷却属于技能信息，不占用动作栏。
+ * 拾荒者 owner-only readout ({@link JunkerHudRules}), drawn from a {@code HudRenderCallback} registered by
+ * {@link JunkerClientModule}, like the other role-owned lines. While searching: the percentage with the identity-coloured
+ * bar under it, above the action bar. Otherwise: the corner skill line with the key hint or the remaining cooldown.
+ * Reads only the local player's own synced role and owner-synced {@code sparkwitch:ragpicker_player} state.
+ * 拾荒者仅本人可见的信息显示（{@link JunkerHudRules}），与其他职业自有提示行一样由 {@link JunkerClientModule} 注册的
+ * {@code HudRenderCallback} 绘制。搜刮中：动作栏上方显示百分比及其下方的身份色进度条；其余时候：右下角技能行显示按键
+ * 提示或剩余冷却。只读取本地玩家自己同步的身份与仅同步给本人的 {@code sparkwitch:ragpicker_player} 状态。
  */
 public final class JunkerHudRenderer {
-
-    private static final int LINE_HEIGHT = 10;
-    private static final int MARGIN = 6;
-
-    /** Height of the progress bar under the percentage text. 百分比文本下方进度条的高度。 */
-    private static final int BAR_HEIGHT = 4;
-    private static final int BAR_WIDTH = 120;
-
-    /** The action bar sits around {@code height - 72}; keep the readout above it. 动作栏大约在 height-72，把信息放在它上方。 */
-    private static final int ACTION_BAR_CLEARANCE = 96;
+    private static final int TEXT_COLOR = 0xFFFFFFFF;
+    private static final int BACKING_COLOR = 0x99000000;
 
     private JunkerHudRenderer() {
     }
@@ -38,45 +35,65 @@ public final class JunkerHudRenderer {
     public static void render(DrawContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
         ClientPlayerEntity player = client.player;
-        if (player == null || client.options.hudHidden || client.currentScreen != null) {
-            return;
-        }
-        var role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
-        if (role == null || !JunkerRules.ROLE_ID.equals(role.identifier())) {
+        // HudRenderCallback fires even with F1, unlike Wathe's own HUD layer; follow Wathe's train HUD.
+        // HudRenderCallback 在 F1 下仍会触发，与 Wathe 自身 HUD 层不同；跟随 Wathe 列车 HUD 的显示状态。
+        if (player == null || client.world == null || client.options.hudHidden
+                || WatheClient.trainComponent == null || !WatheClient.trainComponent.hasHud()
+                || !JunkerClientModule.isActiveRagpicker(player)) {
             return;
         }
         JunkerPlayerComponent component = JunkerPlayerComponent.KEY.get(player);
         if (component.isSearching()) {
-            renderSearchOverlay(context, client.textRenderer, component);
+            renderSearchReadout(context, client.textRenderer, player, component.getProgress());
             return;
         }
-        Text line = component.getCooldownSeconds() > 0
-                ? Text.translatable("tip.sparkwitch.ragpicker.cooldown", component.getCooldownSeconds())
-                        .formatted(Formatting.GRAY)
-                : Text.translatable("tip.sparkwitch.ragpicker.ready",
-                        SparkWitchClient.abilityKeyText()).formatted(Formatting.GRAY);
-        int width = client.textRenderer.getWidth(line);
-        int x = context.getScaledWindowWidth() - MARGIN - width;
-        int y = context.getScaledWindowHeight() - MARGIN - LINE_HEIGHT;
-        context.drawTextWithShadow(client.textRenderer, line, x, y, 0xFFFFFF);
+        renderCornerLine(context, client.textRenderer,
+                JunkerHudRules.cornerLine(component.searchCooldownRemainingTicks(client.world.getTime())));
     }
 
-    /** Percentage above the action bar, identity-coloured bar right below it. 动作栏上方的百分比，下方是身份色进度条。 */
-    private static void renderSearchOverlay(DrawContext context, TextRenderer renderer,
-                                            JunkerPlayerComponent component) {
-        int centerX = context.getScaledWindowWidth() / 2;
-        int textY = context.getScaledWindowHeight() - ACTION_BAR_CLEARANCE;
-        Text text = Text.translatable("tip.sparkwitch.ragpicker.searching",
-                (int) (component.getProgress() * 100));
-        context.drawCenteredTextWithShadow(renderer, text, centerX, textY, 0xFFFFFF);
+    private static void renderCornerLine(DrawContext context, TextRenderer renderer, JunkerHudRules.Line line) {
+        Text text = cornerText(line, line.seconds());
+        Text measured = line.hasSeconds() ? cornerText(line, JunkerHudRules.measuredSeconds(line.seconds())) : text;
+        int width = context.getScaledWindowWidth();
+        int x = JunkerHudRules.cornerX(width, renderer.getWidth(text));
+        int y = JunkerHudRules.cornerY(width, context.getScaledWindowHeight(), renderer.getWidth(measured),
+                renderer.fontHeight);
+        context.drawTextWithShadow(renderer, text, x, y, TEXT_COLOR);
+    }
 
-        int barX = centerX - BAR_WIDTH / 2;
-        int barY = textY + renderer.fontHeight + 2;
-        // Backing plate, then the fill in the role colour. / 先底面，再用身份色填进度。
-        context.fill(barX - 1, barY - 1, barX + BAR_WIDTH + 1, barY + BAR_HEIGHT + 1, 0x99000000);
-        int filled = (int) (BAR_WIDTH * component.getProgress());
+    private static Text cornerText(JunkerHudRules.Line line, int seconds) {
+        MutableText text = line.keyHint()
+                ? Text.translatable(line.key(), SparkWitchClient.abilityKeyText())
+                : Text.translatable(line.key(), seconds);
+        return text.formatted(Formatting.GRAY);
+    }
+
+    /**
+     * Centred in the shared "above the action bar" band; while the Control Expert status block can show (the local
+     * player is stunned or disrupted) the readout sits above that block's tallest form instead.
+     * 居中于共享的“动作栏上方”显示带；控场专家状态块可能显示时（本地玩家被眩晕或干扰），读数改为位于该块最高形态的上方。
+     */
+    private static void renderSearchReadout(DrawContext context, TextRenderer renderer, ClientPlayerEntity player,
+                                            float progress) {
+        ControlExpertStatusComponent status = ControlExpertStatusComponent.KEY.getNullable(player);
+        int statusLines = status == null ? 0
+                : ControlExpertStatusHudRules.maxLineCount(status.isStunned(), status.isDisrupted());
+        int bandTop = ControlExpertStatusHudRules.blockTop(context.getScaledWindowHeight(), renderer.fontHeight,
+                statusLines);
+        int centerX = context.getScaledWindowWidth() / 2;
+        int textY = JunkerHudRules.searchTextY(bandTop, renderer.fontHeight);
+        Text text = Text.translatable(JunkerHudRules.SEARCHING_KEY, JunkerHudRules.percent(progress));
+        context.drawCenteredTextWithShadow(renderer, text, centerX, textY, TEXT_COLOR);
+
+        int barX = centerX - JunkerHudRules.BAR_WIDTH / 2;
+        int barY = JunkerHudRules.barY(textY, renderer.fontHeight);
+        int border = JunkerHudRules.BAR_BORDER;
+        // Backing plate, then the fill in the role colour. / 先底板，再用身份色填进度。
+        context.fill(barX - border, barY - border, barX + JunkerHudRules.BAR_WIDTH + border,
+                barY + JunkerHudRules.BAR_HEIGHT + border, BACKING_COLOR);
+        int filled = JunkerHudRules.filledWidth(progress);
         if (filled > 0) {
-            context.fill(barX, barY, barX + filled, barY + BAR_HEIGHT, 0xFF000000 | JunkerRules.COLOR);
+            context.fill(barX, barY, barX + filled, barY + JunkerHudRules.BAR_HEIGHT, 0xFF000000 | JunkerRules.COLOR);
         }
     }
 }

@@ -63,6 +63,8 @@ public final class GrandWitchFearService {
             SelectBlackRavenDisguiseC2SPacket.PAYLOAD_ID,
             // Blind Attune. / 盲人凝神。
             Identifier.of("sparkwitch", "use_blind_attune"),
+            // Ragpicker corpse search (G key). / 拾荒者搜刮尸体（G 键）。
+            Identifier.of("sparkwitch", "ragpicker_search"),
             // Fiend Dash; the server also re-checks fear on use. / 魔人疾驰；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "use_fiend_dash"),
             // Magician record/playback stages; the server also re-checks fear on use.

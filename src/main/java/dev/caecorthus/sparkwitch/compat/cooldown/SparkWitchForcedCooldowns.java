@@ -12,6 +12,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindLoadoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
@@ -62,6 +64,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier MAGICIAN_ID = SparkWitch.id("magician");
     static final Identifier MINI_WITHER_TOGGLE_ID = SparkWitch.id("mini_wither_toggle");
     static final Identifier BLACK_RAVEN_CROW_ID = BlackRavenCrowRules.SKILL_ID;
+    static final Identifier RAGPICKER_SEARCH_ID = SparkWitch.id("ragpicker_search");
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -108,7 +111,10 @@ public final class SparkWitchForcedCooldowns {
                 miniWitherToggle(),
                 // Black Raven Raven Form (plan 2026-10-21), appended after the Mini Wither.
                 // 黑羽鸦化鸦（2026-10-21 计划），追加在小凋灵之后。
-                blackRavenCrow()
+                blackRavenCrow(),
+                // Ragpicker Search (owner decision 2026-11-04), appended after Raven Form.
+                // 拾荒者搜刮（所有者 2026-11-04 决定），追加在化鸦之后。
+                ragpickerSearch()
         );
     }
 
@@ -296,6 +302,31 @@ public final class SparkWitchForcedCooldowns {
                 player -> BlackRavenCrowPlayerComponent.KEY.get(player).getCooldownTicks(),
                 () -> BlackRavenCrowRules.COOLDOWN_TICKS,
                 (player, ticks) -> BlackRavenCrowPlayerComponent.KEY.get(player).setCooldown(ticks)
+        );
+    }
+
+    /**
+     * The Ragpicker's Search cooldown (owner decision 2026-11-04), kept as an absolute ready tick in the owner-synced
+     * {@code sparkwitch:ragpicker_player} component. {@code JunkerService}'s role and round gates: an ACTIVE round and
+     * the real role (the overlay is never read). Remaining time counts to the ready tick, so it includes the 45 s
+     * round-start cooldown; the nominal is the 60 s cooldown after each successful search. Every write only moves the
+     * ready tick later through {@code setSearchReadyTick}, which syncs the owner, so nothing is shortened and a running
+     * search is never interrupted.
+     * 拾荒者搜刮冷却（所有者 2026-11-04 决定），以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:ragpicker_player}
+     * 组件中。与 JunkerService 的职业与回合门控一致：ACTIVE 回合且为真实职业（从不读取覆盖层）。剩余时间计到就绪刻，
+     * 因此包含 45 秒回合初始冷却；标准冷却为每次成功搜刮后的 60 秒。每次写入都只经 {@code setSearchReadyTick} 把就绪刻
+     * 推后（并同步本人），因此绝不缩短，也不会打断进行中的搜刮。
+     */
+    static SimpleRoleSkillCooldownStore ragpickerSearch() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                RAGPICKER_SEARCH_ID,
+                whileActive((game, player) -> JunkerRules.isRagpicker(game.getRole(player))),
+                player -> JunkerPlayerComponent.KEY.get(player)
+                        .searchCooldownRemainingTicks(player.getServerWorld().getTime()),
+                () -> JunkerRules.SEARCH_COOLDOWN_TICKS,
+                player -> JunkerPlayerComponent.KEY.get(player),
+                JunkerPlayerComponent::getSearchReadyTick,
+                JunkerPlayerComponent::setSearchReadyTick
         );
     }
 
