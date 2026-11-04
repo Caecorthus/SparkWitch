@@ -3571,7 +3571,10 @@ client renders and sends requests. Its `gui.sparkwitch.skills` panel shows only 
   `shouldUseCustomInstinctHighlight` key on Wathe-alive only (a null answer would reach SparkFactionAPI's
   role-revealing faction-colour fallback), Obscure/Fear still apply, and the Wraith reveal (`WraithViewerRules`) and
   the glimmering-Fisher outline exemption (`FisherGlimmerInstinctHooks`) belong to Wathe-dead spectators only. The
-  factor fallback (`WitchFactorClientHooks`) still stays off for any spectator.
+  factor fallback (`WitchFactorClientHooks`) still stays off for any spectator. When `WitchInstinctPolicy` gives a
+  Witch-faction viewer no Witch instinct (an ineligible Curser, or a member that is not Wathe-alive), it answers a
+  skip at the ordinary Witch priority for player targets (`WitchFactionRules.shouldSkipUnansweredViewer`), never null;
+  only a Wathe-dead spectator keeps null for Wathe's spectator colours (2026-11-04).
 - **Melee.** A gate keeps `canHit()` only for the right-click entry and never shields a player behind it (client only;
   the server never re-raycasts melee). The client `RiftGateEntity.interact` returns PASS unless the local player could
   enter now (B-6, `RiftSessionService.claimsRightClick`), so a held item still fires.
