@@ -46,6 +46,11 @@ public final class NatsumeComponent implements AutoSyncedComponent {
     /** Shown seconds, synced to the owner. / 显示秒数，同步给本人。 */
     private int hypnosisSeconds;
     private int cooldownSeconds;
+    /**
+     * World tick of the last "blocked" action-bar notice on this side; transient (never synced or saved).
+     * 本端上一次"被封锁"动作栏提示的世界刻；仅为临时值（不同步、不存档）。
+     */
+    private long lastBlockedNoticeTick = -1L;
 
     public NatsumeComponent(PlayerEntity player) {
         this.player = player;
@@ -57,6 +62,14 @@ public final class NatsumeComponent implements AutoSyncedComponent {
      */
     public boolean isHypnotised() {
         return hypnosisSeconds > 0;
+    }
+
+    long lastBlockedNoticeTick() {
+        return lastBlockedNoticeTick;
+    }
+
+    void markBlockedNotice(long tick) {
+        lastBlockedNoticeTick = tick;
     }
 
     /**

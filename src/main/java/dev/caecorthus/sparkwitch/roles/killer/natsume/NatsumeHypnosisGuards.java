@@ -3,13 +3,11 @@ package dev.caecorthus.sparkwitch.roles.killer.natsume;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStunRules;
 import net.fabricmc.fabric.api.event.Event;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -21,10 +19,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.TypedActionResult;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Hypnosis lock (owner decision, final): every hypnotised player, whatever their faction, uses no item and no role
@@ -68,9 +63,6 @@ public final class NatsumeHypnosisGuards {
      */
     public static final Set<Identifier> SILENT_PAYLOADS = Set.of(Identifier.of("sparkwitch", "black_raven_crow_move"));
 
-    /** Last notice tick per player, one table per side (server thread / client thread). / 每端各一张最近提示表。 */
-    private static final Map<UUID, Long> SERVER_NOTICES = new HashMap<>();
-    private static final Map<UUID, Long> CLIENT_NOTICES = new HashMap<>();
     private static boolean registered;
 
     /** A player action the lock judges. / 锁所判定的玩家行为。 */
@@ -108,8 +100,6 @@ public final class NatsumeHypnosisGuards {
         AttackBlockCallback.EVENT.addPhaseOrdering(HYPNOSIS_PHASE, Event.DEFAULT_PHASE);
         AttackBlockCallback.EVENT.register(HYPNOSIS_PHASE,
                 (player, world, hand, pos, direction) -> verdict(player, hand, Interaction.ATTACK_BLOCK));
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> SERVER_NOTICES.remove(handler.player.getUuid()));
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> SERVER_NOTICES.clear());
     }
 
     /**
@@ -183,13 +173,17 @@ public final class NatsumeHypnosisGuards {
      * 在拒绝的一端显示动作栏提示：服务端发送；当客户端自身的 FAIL 使数据包根本没有发出时，由主人客户端本地显示。仅为表现。
      */
     private static void notifyBlocked(PlayerEntity player) {
-        Map<UUID, Long> notices = player.getWorld().isClient() ? CLIENT_NOTICES : SERVER_NOTICES;
-        long now = player.getWorld().getTime();
-        Long last = notices.get(player.getUuid());
-        if (!noticeDue(now, last == null ? -1L : last)) {
+        // The throttle lives on this side's own component instance (no static per-player state).
+        // 节流状态存放在本端自己的组件实例上（不使用静态的逐玩家状态）。
+        NatsumeComponent component = NatsumeComponent.KEY.getNullable(player);
+        if (component == null) {
             return;
         }
-        notices.put(player.getUuid(), now);
+        long now = player.getWorld().getTime();
+        if (!noticeDue(now, component.lastBlockedNoticeTick())) {
+            return;
+        }
+        component.markBlockedNotice(now);
         player.sendMessage(Text.translatable(BLOCKED_MESSAGE_KEY).formatted(Formatting.DARK_PURPLE), true);
     }
 }
