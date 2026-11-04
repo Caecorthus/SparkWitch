@@ -79,7 +79,8 @@
       "sparkwitch:ragpicker_player",
       "sparkwitch:ragpicker_loot",
       "sparkwitch:dominator",
-      "sparkwitch:dominator_forced_shot"
+      "sparkwitch:dominator_forced_shot",
+      "sparkwitch:natsume_anan_player"
     ]
   },
   "mixins": [

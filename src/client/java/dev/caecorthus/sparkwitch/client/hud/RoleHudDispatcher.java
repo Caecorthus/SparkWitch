@@ -58,6 +58,9 @@ public final class RoleHudDispatcher {
         renderSaint(hud, context);
         renderVendetta(context);
         renderKidnapperControlled(context);
+        // 夏目安安 (PR #194): the fork's layer, right before the Saboteur; the renderer owns its own gate.
+        // 夏目安安（PR #194）：fork 中的层，位于破坏者之前；门槛由渲染器自行负责。
+        NatsumeHudRenderer.render(context);
         renderSaboteur(context);
     }
 

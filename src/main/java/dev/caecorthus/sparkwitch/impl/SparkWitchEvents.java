@@ -171,6 +171,11 @@ public final class SparkWitchEvents {
         KnightDuelService.register();
         DominatorPsychoGazeService.register();
         DominatorForcedShotLifecycle.register();
+        // 夏目安安 (PR #194): runtime listeners, then its replay formatter (the fork kept it in a shared
+        // SparkWitchReplayFormatters class that main does not have). 夏目安安（PR #194）：运行期监听器，然后是回放格式化器
+        // （fork 中位于 main 没有的共享 SparkWitchReplayFormatters 类）。
+        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeService.register();
+        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeReplay.register();
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();

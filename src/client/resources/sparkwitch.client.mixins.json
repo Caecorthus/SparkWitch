@@ -208,7 +208,8 @@
     "scope.ScopeMouseScrollMixin",
     "input.SelectedSlotFlushInvoker",
     "noa.NoaMoodRendererMixin",
-    "dominator.DominatorForcedShotInventoryMixin"
+    "dominator.DominatorForcedShotInventoryMixin",
+    "natsume.NatsumeGarbleMixin"
   ],
   "injectors": {
     "defaultRequire": 1

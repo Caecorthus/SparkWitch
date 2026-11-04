@@ -116,6 +116,8 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier NOA_ID = NoaRules.ROLE_ID;
     public static final Identifier RAGPICKER_ID = JunkerRules.ROLE_ID;
     public static final Identifier DOMINATOR_ID = DominatorRules.ROLE_ID;
+    public static final Identifier NATSUME_ID =
+            dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -163,6 +165,7 @@ public final class SparkWitchRoleRegistry {
     private static Role noa;
     private static Role ragpicker;
     private static Role dominator;
+    private static Role natsumeAnan;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -452,6 +455,11 @@ public final class SparkWitchRoleRegistry {
     public static Role dominator() {
         ensureRegistered();
         return dominator;
+    }
+
+    public static Role natsumeAnan() {
+        ensureRegistered();
+        return natsumeAnan;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -871,6 +879,18 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
+        // 夏目安安 Natsume Anan (PR #194): killer hypnotist, registered with the author's fork parameters (KILLER,
+        // REAL mood, 8 s sprint cap, round clock). The fork placed it between the Accountant and Noa; here it sits right
+        // before the Insider, since nothing may follow the Insider, so only the Insider's own index shifts.
+        // 夏目安安（PR #194）：杀手催眠师，沿用作者 fork 中的参数（杀手、真实理智、8 秒冲刺上限、可见回合时间）。fork 中
+        // 注册在会计与诺亚之间；此处紧挨内应之前（内应之后不得再注册），因此只有内应自身的下标改变。
+        natsumeAnan = SparkFactionApi.registerRole(FactionRoleDefinition.builder(NATSUME_ID, FactionIds.KILLER)
+                .color(dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 8))
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
         // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
         // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
         // a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
@@ -949,6 +969,9 @@ public final class SparkWitchRoleRegistry {
                 // 支配者（PR #192）加入杀手段，紧随魔术师；NoellesRoles 发送的是职业标识符，此顺序仅影响展示，晋升身份
                 // 仍位于末尾。
                 dominator,
+                // 夏目安安 (PR #194) joins the killer block after the Dominator (the fork listed it after Noa, outside
+                // the killer block). 夏目安安（PR #194）加入杀手段，排在支配者之后（fork 中排在诺亚之后、杀手段之外）。
+                natsumeAnan,
                 murderousWitch,
                 accomplice,
                 abyssListener,
