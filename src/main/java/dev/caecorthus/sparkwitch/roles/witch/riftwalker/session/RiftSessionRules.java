@@ -107,6 +107,9 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "use_fiend_dash"),
             Identifier.of("sparkwitch", "use_athlete_dash"),
             Identifier.of("sparkwitch", "use_dominator_skill"),
+            // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
+            Identifier.of("sparkwitch", "request_natsume_menu"),
+            Identifier.of("sparkwitch", "confirm_natsume_target"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
             // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.
