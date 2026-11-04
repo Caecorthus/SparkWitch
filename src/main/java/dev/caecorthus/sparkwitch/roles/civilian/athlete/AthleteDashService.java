@@ -1,137 +1,126 @@
 package dev.caecorthus.sparkwitch.roles.civilian.athlete;
 
-import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.api.event.RoleAssigned;
+import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
+import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
+import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
-import net.minecraft.entity.player.PlayerEntity;
+import dev.doctor4t.wathe.game.GameFunctions;
+import net.minecraft.entity.Entity;
+import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.List;
 
 /**
- * Server-side dash for 运动员: five blocks forward along the current horizontal facing, stopping at the last
- * standable tile. A flat area is required: the destination must be walkable and stay within one block of the
- * starting height, so the dash never launches the player off a ledge.
- * 运动员冲刺的服务端实现：沿当前水平朝向前进 5 格，遇到不可站立的格子就停在上一格。要求平地：终点必须可站立且与
- * 起跳高度相差不超过一格，因此不会把玩家甩下高台。
+ * Server side of the Athlete's dash ({@code sparkwitch:use_athlete_dash}): gates the request
+ * ({@link AthleteDashRules}), searches the destination ({@link AthleteDashPath}), then teleports with the client's own
+ * rotation kept and no leftover momentum, plays the dash sound, records the replay and restarts the cooldown in
+ * {@link AthleteComponent}. A refused or blocked dash changes nothing and costs nothing.
+ * 运动员冲刺（{@code sparkwitch:use_athlete_dash}）的服务端部分：先判定请求（{@link AthleteDashRules}），再搜索落点
+ * （{@link AthleteDashPath}），然后传送（保留客户端自身视角，不留余速），播放冲刺音效，记录回放，并在
+ * {@link AthleteComponent} 中重新开始冷却。被拒绝或受阻的冲刺不改变任何东西，也不消耗冷却。
  */
 public final class AthleteDashService {
-
-    private static final Map<UUID, Long> COOLDOWN_UNTIL = new HashMap<>();
-
     private AthleteDashService() {
     }
 
-    /**
-     * Starts the cooldown the moment this role is drawn, so the dash is not usable in the opening seconds.
-     * 抽到该身份的瞬间就开始冷却，避免开场就能冲刺。
-     */
-    public static void register() {
-        RoleAssigned.EVENT.register((player, role) -> {
-            if (role != null && AthleteRules.ROLE_ID.equals(role.identifier())) {
-                startCooldown(player, AthleteRules.COOLDOWN_TICKS);
-            }
-        });
-    }
-
-    /** Puts the dash on cooldown for {@code ticks}; also used at role assignment. 让冲刺进入冷却；身份分配时也用它。 */
-    public static void startCooldown(PlayerEntity player, int ticks) {
+    public static void tryUse(ServerPlayerEntity player) {
         if (player == null) {
             return;
         }
-        long now = player.getWorld().getTime();
-        COOLDOWN_UNTIL.put(player.getUuid(), now + ticks);
+        ServerWorld world = player.getServerWorld();
+        long now = world.getTime();
+        GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        AthleteComponent state = AthleteComponent.KEY.get(player);
+        AthleteDashRules.DashVerdict verdict = AthleteDashRules.verdict(
+                AthleteRules.isAthlete(game.getRole(player)),
+                game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE,
+                GameFunctions.isPlayerPlayingAndAlive(player),
+                isHeld(player),
+                player.hasVehicle() || player.isSleeping(),
+                SparkTraitsKillerBridge.isRoleSkillBlocked(player),
+                state.dashCooldownRemaining(now) <= 0,
+                GrandWitchFearService.isPlayerFeared(player));
+        switch (verdict) {
+            case USE -> dash(player, world, state, now);
+            case FEARED -> GrandWitchFearService.sendSkillBlocked(player);
+            case REFUSE -> {
+            }
+        }
     }
 
-    public static void handle(ServerPlayerEntity player) {
-        dev.caecorthus.sparkwitch.roles.replay.SparkWitchReplay.recordSkill(
-                player, dev.caecorthus.sparkwitch.roles.replay.SparkWitchReplay.ATHLETE_DASH, null, null);
-        if (player == null || !(player.getWorld() instanceof ServerWorld world)) {
+    private static void dash(ServerPlayerEntity player, ServerWorld world, AthleteComponent state, long now) {
+        Vec3d look = player.getRotationVector();
+        Vec3d direction = new Vec3d(look.x, 0.0D, look.z);
+        if (direction.lengthSquared() < 1.0E-6D) {
             return;
         }
-        Role role = GameWorldComponent.KEY.get(world).getRole(player);
-        if (role == null || !AthleteRules.ROLE_ID.equals(role.identifier())) {
-            return;
-        }
-        long now = world.getTime();
-        if (now < COOLDOWN_UNTIL.getOrDefault(player.getUuid(), 0L)) {
-            return;
-        }
-        Vec3d direction = horizontalFacing(player);
-        if (direction.lengthSquared() < 1.0E-6) {
-            return;
-        }
-        Vec3d destination = findDestination(world, player, direction);
+        Vec3d destination = AthleteDashPath.find(space(world, player), player.getBoundingBox(), player.getPos(),
+                direction.normalize(), Math.max(0.0F, player.getStepHeight()));
         if (destination == null) {
             return;
         }
-        player.teleport(world, destination.x, destination.y, destination.z, player.getYaw(), player.getPitch());
-        // Keep a little momentum so the dash reads as a burst rather than a teleport.
-        // 保留一点速度，让冲刺看起来像爆发而不是瞬移。
-        player.setVelocity(direction.x * 0.35D, 0.0D, direction.z * 0.35D);
-        player.velocityModified = true;
-        // Dash whoosh: the trident riptide burst, audible to nearby players.
-        // 冲刺音效：三叉戟激流爆发声，附近玩家都能听到。
-        world.playSound(null, player.getX(), player.getY(), player.getZ(),
+        // Same-world position only. The rotation flags are relative and the absolute yaw/pitch passed equal the
+        // server's own, so the client receives a zero rotation delta and its camera never snaps; the absolute position
+        // makes the client zero its velocity, so nothing slides the player past a ledge or into a door afterwards
+        // (owner 2026-11-03: no leftover momentum).
+        // 只改同一世界内的位置。视角标志为相对，传入的绝对朝向等于服务端自身的值，客户端收到的视角增量为零，镜头不会跳动；
+        // 绝对位置会让客户端把速度清零，之后不会被余速推下边缘或推进门里（所有者 2026-11-03：不保留余速）。
+        player.setVelocity(Vec3d.ZERO);
+        player.fallDistance = 0.0F;
+        player.networkHandler.requestTeleport(destination.x, destination.y, destination.z,
+                player.getYaw(), player.getPitch(), PositionFlag.ROT);
+        world.playSound(null, destination.x, destination.y, destination.z,
                 SoundEvents.ITEM_TRIDENT_RIPTIDE_2, SoundCategory.PLAYERS, 0.8F, 1.15F);
-        COOLDOWN_UNTIL.put(player.getUuid(), now + AthleteRules.COOLDOWN_TICKS);
-    }
-
-    public static boolean isOnCooldown(ServerPlayerEntity player) {
-        if (player == null || !(player.getWorld() instanceof ServerWorld world)) {
-            return false;
-        }
-        return world.getTime() < COOLDOWN_UNTIL.getOrDefault(player.getUuid(), 0L);
-    }
-
-    private static Vec3d horizontalFacing(ServerPlayerEntity player) {
-        Vec3d look = player.getRotationVec(1.0F);
-        return new Vec3d(look.x, 0.0D, look.z).normalize();
+        AthleteReplay.recordDash(player);
+        state.setDashReadyTick(now + AthleteRules.COOLDOWN_TICKS);
     }
 
     /**
-     * Walks forward in small steps and returns the furthest position whose feet and head are free and whose ground is
-     * at most one block above or below the start.
-     * 以小块步长前进，返回脚部与头部都无遮挡、且地面高度与起点相差不超过一格的最远位置。
+     * Held or locked by another mechanic (the Riftwalker session's private list, deliberately copied like the Ninja
+     * hook's, plus the Hunter root): swallowed by a Taotie, Last Stand, Last Escape, Kidnapper control, Control Expert
+     * stun, Seeker session, borrowed camera or rooted by a Hunter trap. A teleport would carry the body out of its hold.
+     * 被其他机制持有或锁定（隙行者会话的私有列表，与忍者钩爪一样有意复制，另加猎人定身）：饕餮吞下、背水一战、脱险、
+     * 绑架者控制、控场专家眩晕、搜寻者会话、镜头被占用或被猎人陷阱定身。传送会把身体带出这些控制。
      */
-    private static Vec3d findDestination(ServerWorld world, ServerPlayerEntity player, Vec3d direction) {
-        Vec3d start = player.getPos();
-        Vec3d best = null;
-        for (double distance = AthleteRules.DASH_STEP; distance <= AthleteRules.DASH_BLOCKS; distance += AthleteRules.DASH_STEP) {
-            Vec3d candidate = start.add(direction.multiply(distance));
-            if (!canStandAt(world, player, candidate, start.y)) {
-                break;
-            }
-            best = candidate;
-        }
-        return best;
+    static boolean isHeld(ServerPlayerEntity player) {
+        KidnapperControlComponent kidnap = KidnapperControlComponent.KEY.getNullable(player);
+        HunterPlayerComponent hunter = HunterPlayerComponent.KEY.getNullable(player);
+        return NoellesTaotieSeekerBridge.isSwallowed(player)
+                || SparkTraitsSeekerBridge.isLastStandPending(player)
+                || SparkTraitsKillerBridge.isLastEscapeActive(player)
+                || kidnap != null && kidnap.isControlled()
+                || ControlExpertStun.isStunned(player)
+                || SeekerRemoteSessionService.isLocked(player)
+                || player.getCameraEntity() != player
+                || hunter != null && hunter.isRooted();
     }
 
-    private static boolean canStandAt(ServerWorld world, ServerPlayerEntity player, Vec3d position, double startY) {
-        BlockPos feet = BlockPos.ofFloored(position.x, position.y + 0.1D, position.z);
-        BlockPos head = feet.up();
-        BlockPos ground = feet.down();
-        // Needs solid ground underneath and two free blocks for the player's height.
-        // 需要下方有实体地面，且身体占用的两格为空。
-        if (world.getBlockState(ground).getCollisionShape(world, ground).isEmpty()) {
-            return false;
-        }
-        if (!world.getBlockState(feet).getCollisionShape(world, feet).isEmpty()) {
-            return false;
-        }
-        if (!world.getBlockState(head).getCollisionShape(world, head).isEmpty()) {
-            return false;
-        }
-        // Flat enough: the destination floor must not drift more than one block from the start.
-        // 平地判定：终点地面与起点高度差不超过一格。
-        double floorY = ground.getY() + 1.0D;
-        return Math.abs(floorY - startY) <= 1.0D;
+    /**
+     * Vanilla collision with the player's own shape context, so the dash is blocked by exactly what blocks walking.
+     * 使用玩家自身形状上下文的原版碰撞，因此冲刺受阻的条件与走路完全相同。
+     */
+    private static AthleteDashPath.Space space(ServerWorld world, ServerPlayerEntity player) {
+        return new AthleteDashPath.Space() {
+            @Override
+            public boolean isFree(Box box) {
+                return world.isSpaceEmpty(player, box);
+            }
+
+            @Override
+            public double fallDistance(Box box, double max) {
+                return -Entity.adjustMovementForCollisions(player, new Vec3d(0.0D, -max, 0.0D), box, world, List.of()).y;
+            }
+        };
     }
 }

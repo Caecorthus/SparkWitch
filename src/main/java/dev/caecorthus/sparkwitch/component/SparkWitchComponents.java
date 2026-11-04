@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerStatusComponent;
@@ -169,6 +170,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, RecruitPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(RecruitPlayerComponent::new);
+        // Athlete dash ready tick, synced to its owner only; appended last.
+        // 运动员冲刺就绪刻，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, AthleteComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(AthleteComponent::new);
     }
 
     @Override

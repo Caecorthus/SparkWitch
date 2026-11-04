@@ -19,6 +19,8 @@ The Knight (`sparkwitch:knight`, 骑士, contributed in PR #169 and reworked 202
 the Vigilante slots and spends 150 coins on the shared ability key (G) to duel one living player.
 The Recruit (`sparkwitch:recruit`, 新兵, contributed in PR #176) is an ordinary civilian that takes no police slot,
 gets Wathe's knife after its first task, and may pick up one ground gun per round.
+The Athlete (`sparkwitch:athlete`, 运动员, contributed in PR #191) is an ordinary civilian with unlimited stamina whose
+shared ability key (G) dashes up to 5 blocks forward along the ground, with a 15 s cooldown.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -1004,8 +1006,8 @@ Current build baseline:
 - `roles/civilian/recruit/`: the Recruit (`sparkwitch:recruit`, 新兵, color `0x5B862D`), contributed in PR #176; the
   PR description is the spec, every number lives in `RecruitRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
-    appearance condition) registered right before the Insider, and in the civilian block of the assassin-guess order
-    (between the Perfumer and the Pig God). Wathe's civilian pass draws it like the Fisher and the Blind; it is not a police variant
+    appearance condition) registered before the Athlete and the Insider, and in the civilian block of the
+    assassin-guess order (between the Perfumer and the Athlete). Wathe's civilian pass draws it like the Fisher and the Blind; it is not a police variant
     (`PoliceRoles`, `PoliceSlotAssignmentService.VARIANT_IDS`) and never takes a cop slot. It has no coins, shop or
     economy service, owns no witch skill (not in `isRegisteredSparkWitchRole`) and never renders in the
     `gui.sparkwitch.skills` panel.
@@ -1029,6 +1031,34 @@ Current build baseline:
   - Open (owner calls, unchanged by review): the push-off penalty applies with or without the knife (Knight
     precedent); a Last Stand victim who revives still costs sanity or the Recruit's life; the Black Raven disguise
     pool and SparkAssist have no Recruit entry yet.
+- `roles/civilian/athlete/`: the Athlete (`sparkwitch:athlete`, 运动员, color `0x6FD08C`), contributed in PR #191 and
+  reworked in review (owner answers 2026-11-03); every number lives in `AthleteRules`.
+  - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, `maxSprintTime(-1)` = unlimited
+    stamina, no appearance condition) registered right before the Insider, and in the civilian block of the
+    assassin-guess order (right after the Recruit). Drawn by Wathe's civilian pass, never a police slot; no coins or
+    shop, no witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel. Real role
+    only: the Black Raven disguise `DENYLIST` lists it.
+  - Dash (`AthleteFeatureService` registers the empty C2S `sparkwitch:use_athlete_dash`, the replay formatter and the
+    lifecycle): `AthleteDashService.tryUse` gates through the pure `AthleteDashRules.verdict` (ACTIVE round, playing
+    and alive, not held — swallowed, Last Stand, Last Escape, Kidnapper control, Control Expert stun, Seeker session,
+    borrowed camera, Hunter root —, not riding or sleeping, not SparkTraits role-skill blocked, ready; Fear last, which
+    sends Grand Witch's "skill blocked" line). `AthleteDashPath` then moves the whole bounding box forward in 1/16
+    steps with vanilla collision and the player's own shape context: flat first, else a step up of at most the step
+    height (carpets, slabs, stair steps); a drop deeper than 0.6 is a ledge; an airborne start uses the floor up to
+    1.25 below. The last free, supported box wins, so the dash never ends inside a wall, door or panel and never
+    passes a corner a walk cannot. Under 0.5 blocks, or no floor, refuses and costs nothing. The teleport keeps the
+    client's rotation (relative flags, zero delta) and zeroes velocity (no leftover momentum), plays the riptide sound,
+    records the skill replay `sparkwitch:athlete_dash` (success only) and restarts the cooldown.
+  - Cooldown: `AthleteComponent` (`sparkwitch:athlete`, `NEVER_COPY`, appended last in the CCA list) keeps an absolute
+    ready tick synced to the owner only; `RoleAssigned` clears it and starts the 15 s opening cooldown for a drawn
+    Athlete, Wathe's `ResetPlayer` clears it, NBT keeps it across a relog. The forced-cooldown store
+    `sparkwitch:athlete_dash` (appended last in `SparkWitchForcedCooldowns`) only raises it.
+  - Deny lists: `use_athlete_dash` is classified next to the Fiend Dash in the Control Expert stun, Knight duel,
+    Seeker session, Riftwalker session and Grand Witch Fear lists, and in SparkStrength's Taotie daze list.
+  - Client (`client/athlete/`): `SparkWitchClient`'s G-key dispatch sends the request through `AthleteDashClient`
+    (no N-key handler, no client cooldown); `AthleteDashHud` (from `AthleteClient`'s confirmed-server HUD callback)
+    draws the owner-only bottom-right ready/cooldown line from the synced component, with the Fiend Dash line's gates
+    and layout. SparkAssist has no guidebook page yet.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation
