@@ -72,7 +72,9 @@ public final class TarotDivinationHudLayout {
                 new Row(FactionSlot.NEUTRAL, current.neutralCount(),
                         compare ? Trend.of(previous.neutralCount(), current.neutralCount()) : Trend.NONE),
                 new Row(FactionSlot.WITCH, current.witchCount(),
-                        compare ? Trend.of(previous.witchCount(), current.witchCount()) : Trend.NONE)
+                        compare ? Trend.of(previous.witchCount(), current.witchCount()) : Trend.NONE),
+                new Row(FactionSlot.JIAHAO, current.jiahaoCount(),
+                        compare ? Trend.of(previous.jiahaoCount(), current.jiahaoCount()) : Trend.NONE)
         );
     }
 
@@ -140,7 +142,8 @@ public final class TarotDivinationHudLayout {
         CIVILIAN,
         KILLER,
         NEUTRAL,
-        WITCH
+        WITCH,
+        JIAHAO
     }
 
     public enum Trend {

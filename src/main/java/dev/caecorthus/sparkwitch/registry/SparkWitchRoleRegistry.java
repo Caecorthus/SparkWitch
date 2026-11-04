@@ -174,6 +174,7 @@ public final class SparkWitchRoleRegistry {
 
         SparkFactionApi.bootstrap();
         registerFactions();
+        bindCorruptCopToTeamJiahao();
         registerFactionApiRoles();
         registerNativeWatheRoles();
         PoliceRoles.register(JUDGE_ID);
@@ -186,9 +187,9 @@ public final class SparkWitchRoleRegistry {
         // 与控场专家相同，仅作警察分类；警位由 PoliceSlotAssignmentService 分配。
         PoliceRoles.register(SEEKER_ID);
         // Police classification only, so SparkStrength issues the Insider a tablet at round start on its police channel
-        // (D4), as SparkStrength does for the Corrupt Cop; the Insider stays a Wathe neutral and never takes a cop slot.
+        // (D4), as SparkStrength does for the Corrupt Cop; the Insider stays on Team Jiahao and never takes a cop slot.
         // 仅作警察分类，使 SparkStrength 开局为内应发放接入警察频道的平板（D4），与 SparkStrength 对黑警的处理相同；
-        // 内应仍是 Wathe 中立，从不占用警位。
+        // 内应仍属嘉豪阵营，从不占用警位。
         PoliceRoles.register(INSIDER_ID);
         // Police classification, like the Control Expert and the Seeker (SparkTraits police traits, SparkStrength tablet);
         // cop slots come from PoliceSlotAssignmentService.
@@ -474,6 +475,14 @@ public final class SparkWitchRoleRegistry {
                         .instinctColor(0x36E51B)
                         .build())
                 .winCondition(WitchWinConditions::checkWin)
+                // Native Wathe constant WITCH (fabric.mod.json sparkfactionapi:native_wathe_factions): witch roles keep
+                // other mods' neutral perks through SparkFactionApi.isNeutralAligned (D3) but are drawn by no Wathe pass
+                // and take no neutral slot; SparkWitch deals them itself (D1).
+                // 原生 Wathe 常量 WITCH（fabric.mod.json 的 sparkfactionapi:native_wathe_factions）：魔女职业通过
+                // SparkFactionApi.isNeutralAligned 保留其他模组的中立特权（D3），但不参与任何 Wathe 抽取、不占中立名额，
+                // 由 SparkWitch 自行发放（D1）。
+                .neutralAligned(true)
+                .dealtInWatheNeutralPool(false)
                 .build());
         SparkFactionApi.registerFaction(FactionDefinition.builder(SparkWitchFactions.MURDEROUS_WITCH)
                 .color(0x7A3857)
@@ -488,6 +497,33 @@ public final class SparkWitchRoleRegistry {
                         .instinctColor(0xC13838)
                         .build())
                 .build());
+        // Team Jiahao (嘉豪阵营): the Insider plus NoellesRoles' Corrupt Cop, the native Wathe constant JIAHAO. Capabilities
+        // are copied from SparkFactionAPI's built-in wathe:neutral so no gameplay switch changes; no win condition, since
+        // Jiahao wins stay on NoellesRoles' Corrupt Cop neutralWin branch (NoellesRolesJiahaoTeamWinMixin). Neutral perks
+        // are kept (D3) and Wathe's neutral pass still deals the Corrupt Cop with today's odds and slot (D6).
+        // 嘉豪阵营：内应与 NoellesRoles 黑警，原生 Wathe 常量 JIAHAO。能力复制自 SparkFactionAPI 内置 wathe:neutral，
+        // 不改变任何玩法开关；没有胜利条件，嘉豪胜利仍走 NoellesRoles 黑警 neutralWin 分支（NoellesRolesJiahaoTeamWinMixin）。
+        // 保留中立特权（D3），Wathe 中立分配仍按现有概率与名额发放黑警（D6）。
+        SparkFactionApi.registerFaction(FactionDefinition.builder(SparkWitchFactions.JIAHAO)
+                .color(InsiderRules.TEAM_JIAHAO_COLOR)
+                .translationKeyPrefix("faction.sparkwitch.jiahao")
+                .capabilities(SparkFactionApi.getFaction(FactionIds.NEUTRAL)
+                        .map(FactionDefinition::capabilities)
+                        .orElseGet(FactionCapabilities::none))
+                .neutralAligned(true)
+                .dealtInWatheNeutralPool(true)
+                .build());
+    }
+
+    /**
+     * External seam (SparkFactionAPI 0.1.6.0 {@code bindRoleFaction}, owner D2): NoellesRoles' Corrupt Cop joins Team
+     * Jiahao in every round, with or without an Insider. Bound by literal id during common init on both sides, after
+     * the faction exists; SparkFactionAPI resolves it lazily, so NoellesRoles' load order does not matter.
+     * 外部接缝（SparkFactionAPI 0.1.6.0 {@code bindRoleFaction}，所有者 D2）：NoellesRoles 黑警在每一局都属于嘉豪阵营，
+     * 不论有无内应。在双端通用初始化中、阵营注册之后按字面 id 绑定；SparkFactionAPI 惰性解析，与 NoellesRoles 加载顺序无关。
+     */
+    private static void bindCorruptCopToTeamJiahao() {
+        SparkFactionApi.bindRoleFaction(InsiderRules.CORRUPT_COP_ID, SparkWitchFactions.JIAHAO);
     }
 
     private static void registerFactionApiRoles() {
@@ -848,17 +884,18 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // Appended last so existing registration order stays unchanged; a Wathe-native neutral with the Corrupt Cop's
-        // profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the Insider is paired with
-        // a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
-        // 追加在最后以保持既有注册顺序不变；Wathe 原生中立，参数与黑警相同（伪装情绪但有任务、平民体力、可见回合时间）。
-        // 从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
-        insider = SparkFactionApi.registerRole(FactionRoleDefinition.builder(INSIDER_ID, FactionIds.NEUTRAL)
+        // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
+        // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
+        // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
+        // of isRegisteredSparkWitchRole.
+        // 追加在最后以保持既有注册顺序不变；嘉豪阵营成员（原生 Wathe JIAHAO），参数与黑警相同（伪装情绪但有任务、平民体力、
+        // 可见回合时间）。从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole。
+        insider = SparkFactionApi.registerRole(FactionRoleDefinition.builder(INSIDER_ID, SparkWitchFactions.JIAHAO)
                 .color(InsiderRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(GameConstants.getInTicks(0, 10))
                 .canSeeTime(true)
-                .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> false)
                 .build());
     }

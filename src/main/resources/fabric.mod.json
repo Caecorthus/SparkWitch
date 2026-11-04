@@ -78,7 +78,11 @@
       "sparkwitch:noa_player",
       "sparkwitch:ragpicker_player",
       "sparkwitch:ragpicker_loot"
-    ]
+    ],
+    "sparkfactionapi:native_wathe_factions": {
+      "sparkwitch:jiahao": "JIAHAO",
+      "sparkwitch:witch": "WITCH"
+    }
   },
   "mixins": [
     "sparkwitch.mixins.json",
