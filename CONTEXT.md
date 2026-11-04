@@ -28,6 +28,8 @@ SparkWitch also gives the NoellesRoles Attendant (`noellesroles:attendant`, 乘�
 城崎诺亚 Noa Jogasaki (`sparkwitch:noa`, contributed in PR #186 and reworked in review) is a civilian painter whose
 sanity never drains on its own and never returns from tasks, and whose shared ability key (G) paints a random reward
 from one of two tables chosen by her sanity, with a 60 s cooldown.
+The Ragpicker (`sparkwitch:ragpicker`, 拾荒者, contributed in PR #184) is an ordinary civilian that sees dropped items
+through walls and takes one item from a corpse with the shared ability key (G).
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -1034,8 +1036,9 @@ Current build baseline:
 - `roles/civilian/recruit/`: the Recruit (`sparkwitch:recruit`, 新兵, color `0x5B862D`), contributed in PR #176; the
   PR description is the spec, every number lives in `RecruitRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
-    appearance condition) registered before the Athlete, the Discoverer, Noa and the Insider, and in the civilian block of the
-    assassin-guess order (between the Perfumer and the Athlete). Wathe's civilian pass draws it like the Fisher and the Blind; it is not a police variant
+    appearance condition) registered before the Athlete, the Discoverer, Noa, the Ragpicker and the Insider, and in
+    the civilian block of the assassin-guess order (between the Perfumer and the Athlete). Wathe's civilian pass draws
+    it like the Fisher and the Blind; it is not a police variant
     (`PoliceRoles`, `PoliceSlotAssignmentService.VARIANT_IDS`) and never takes a cop slot. It has no coins, shop or
     economy service, owns no witch skill (not in `isRegisteredSparkWitchRole`) and never renders in the
     `gui.sparkwitch.skills` panel.
@@ -1145,7 +1148,7 @@ Current build baseline:
 - `roles/civilian/noa/`: 城崎诺亚 Noa Jogasaki (`sparkwitch:noa`, color `0x9CC8FC`), contributed in PR #186 and
   reworked in review (owner answers 2026-11-04); every number lives in `NoaRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
-    appearance condition) registered after the Discoverer, right before the Insider, and in the civilian block of the
+    appearance condition) registered after the Discoverer, before the Ragpicker and the Insider, and in the civilian block of the
     assassin-guess order (right after the Discoverer). Drawn by Wathe's civilian pass, never a police slot; no witch skill (not in
     `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel. The Black Raven disguise pool does not
     support it. SparkTraits never gives her the Impostor trait (its Impostor role block, owner 2026-11-04).
@@ -1193,6 +1196,33 @@ Current build baseline:
     sanity is >= 0.
   - Open (owner calls): buying "spend 25%" near -75% can end in a breakdown; a Bell Echo task drains her nothing (it
     is a Wathe task) while its failure penalty lands; SparkAssist has no Noa page yet.
+- `roles/civilian/junker/`: the Ragpicker (`sparkwitch:ragpicker`, 拾荒者, color `0x91876E`; classes keep the Junker
+  name of the NoellesRoles Parox original), contributed in PR #184 and fixed under owner decisions of 2026-11-04;
+  every number lives in `JunkerRules`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no appearance
+    condition) registered after Noa as the last registration before the Insider, and guessed in the civilian block
+    right before the Perfumer. Not police, no coins or shop, no witch skill, never in the `gui.sparkwitch.skills`
+    panel.
+  - State: `JunkerPlayerComponent` (`sparkwitch:ragpicker_player`, `NEVER_COPY`, owner-synced search progress and
+    absolute ready tick) and the world component `JunkerLootWorldComponent` (`sparkwitch:ragpicker_loot`: death
+    snapshots and searched corpses), appended last in the CCA list after Noa's.
+  - Search (server authority: `JunkerService`, pure gates in `JunkerSearchRules`): G sends
+    `sparkwitch:ragpicker_search` (body UUID only), a payload on the stun, Fear, Seeker-session, Rift-occupant and
+    Knight-duel G lists. The server re-checks the raw role and every state gate, then needs the corpse within 3 blocks
+    in block line of sight (no search through walls) for 5 s. Success transfers one stack from the dead owner's
+    snapshot into a free hotbar slot (moved, never copied). An empty corpse is marked searched at once; the owner
+    accepts that instant "nothing on the body" line as a fake-corpse tell. A refusal costs nothing.
+  - Cooldown: 45 s at round start and 60 s after a successful search, kept as the ready tick and exposed as the
+    SparkFactionAPI role-skill store `sparkwitch:ragpicker_search` (`compat/cooldown/SparkWitchForcedCooldowns`).
+  - Loot (`JunkerLoot`, custom-data marker `sparkwitch:ragpicker_loot`): unspent loot blocks the next search and is
+    spent only by a real use (`JunkerLootSpend`) or a sneak right-click destroy. Room keys, walkie-talkies and the
+    NoellesRoles neutral master key never block a search; walkie-talkies and the master key are never spent, and a
+    looted room key is spent when it opens a door.
+  - Replay (`JunkerReplay`): Wathe `skill_use` records with `action` `search`/`found` and `victim`; `found` stores the
+    item registry id and `count`, rendered as a translatable item name, never a server-language string.
+  - Client (`client/junker/JunkerClientModule`, `client/hud/JunkerHudRenderer`): drops within 8 blocks glow through
+    walls for the Ragpicker, the G branch of the shared dispatch sends the search, and the HUD shows ready, progress
+    and cooldown. Presentation only.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation

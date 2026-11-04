@@ -19,10 +19,12 @@ import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
 import dev.caecorthus.sparkwitch.client.fisher.FisherClient;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
+import dev.caecorthus.sparkwitch.client.junker.JunkerClientModule;
 import dev.caecorthus.sparkwitch.client.knight.KnightDuelClient;
 import dev.caecorthus.sparkwitch.client.knight.KnightSwordClient;
 import dev.caecorthus.sparkwitch.client.prophet.ProphetClientModule;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.client.apprentice.ApprenticeClientModule;
 import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
@@ -141,6 +143,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerProphetNecrologyNetworking();
         registerWraithRoleAnnouncementNetworking();
         JudgeClientModule.register();
+        JunkerClientModule.register();
         KnightSwordClient.register();
         KnightDuelClient.register();
         ProphetClientModule.register();
@@ -239,6 +242,10 @@ public final class SparkWitchClient implements ClientModInitializer {
                     }
                 } else if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
+                } else if (JunkerRules.isRagpicker(role)) {
+                    // Real role only; a dead or swallowed Ragpicker's press is dropped here, not sent as a witch skill.
+                    // 仅限真实职业；死亡或被吞下的拾荒者的按键在此被丢弃，不会作为魔女技能发送。
+                    JunkerClientModule.onAbilityKey(client);
                 } else if (ProphetClientModule.ownsAbilityKey(client.player, role)) {
                     // Prophecy opens its own session instead of sending the generic skill packet.
                     // 预言打开自有会话，而不是发送通用技能包。

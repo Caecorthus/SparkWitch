@@ -13,6 +13,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerStatusComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeWorldComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerLootWorldComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRoundComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
@@ -181,6 +183,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, NoaComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(NoaComponent::new);
+        // Ragpicker search progress and ready tick, synced to its owner only; appended last.
+        // 拾荒者搜刮进度与就绪刻，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, JunkerPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(JunkerPlayerComponent::new);
     }
 
     @Override
@@ -196,5 +203,6 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.register(RiftGateRegistryComponent.KEY, RiftGateRegistryComponent::new);
         registry.register(dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent.KEY,
                 dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent::new);
+        registry.register(JunkerLootWorldComponent.KEY, JunkerLootWorldComponent::new);
     }
 }

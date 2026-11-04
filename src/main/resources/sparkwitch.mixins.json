@@ -51,6 +51,7 @@
     "GameFunctionsCeremonialSwordProtectionMixin",
     "GameFunctionsSaintProtectionMixin",
     "GameRecordManagerItemUseMixin",
+    "junker.LivingEntityJunkerReleaseMixin",
     "MagicianGunShootPayloadReceiverMixin",
     "MagicianKnifeStabPayloadReceiverMixin",
     "MagicianGrenadePlaybackHitMixin",

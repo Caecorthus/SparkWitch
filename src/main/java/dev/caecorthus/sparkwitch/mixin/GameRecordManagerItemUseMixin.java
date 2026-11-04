@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.mixin;
 
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerLootSpend;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintKarmaService;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaReplayService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithSwapperFallAttribution;
@@ -13,8 +14,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Keeps Vendetta terminal replay exclusive, then observes remaining confirmed item-use records.
- * 保证仇杀终止回放唯一，再观察其余已确认成功的物品使用记录。
+ * Spends used 拾荒者 loot first, then keeps Vendetta terminal replay exclusive, then observes remaining confirmed
+ * item-use records.
+ * 先消耗被使用的拾荒者战利品，再保证仇杀终止回放唯一，最后观察其余已确认成功的物品使用记录。
  */
 @Mixin(GameRecordManager.class)
 public abstract class GameRecordManagerItemUseMixin {
@@ -26,6 +28,8 @@ public abstract class GameRecordManagerItemUseMixin {
             NbtCompound extra,
             CallbackInfo ci
     ) {
+        // Ahead of the suppression: a hidden Vendetta record is still a real use. / 先于屏蔽：被隐藏的仇杀记录仍是一次真实使用。
+        JunkerLootSpend.onRecordedItemUse(actor, itemId, extra);
         if (VendettaReplayService.shouldSuppressItemRecord(actor, target)) {
             ci.cancel();
             return;

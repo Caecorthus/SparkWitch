@@ -77,6 +77,27 @@ public final class ControlExpertStatusHudRules {
         return screenHeight - ACTION_BAR_CLEARANCE - (count - index) * (fontHeight + LINE_GAP);
     }
 
+    /**
+     * Most lines {@link #lines} can return for this stun/disrupt state, the Alt-press flash included, so a readout
+     * stacked above the block does not jump while the flash comes and goes.
+     * 该眩晕/干扰状态下 {@link #lines} 最多返回的行数（含按 Alt 的闪烁行），使叠放在文本块上方的读数不会随闪烁跳动。
+     */
+    public static int maxLineCount(boolean stunned, boolean disrupted) {
+        if (stunned) {
+            return disrupted ? 2 : 1;
+        }
+        return disrupted ? 2 : 0;
+    }
+
+    /**
+     * Top y of a {@code count}-line block; with no lines this is the shared "above the action bar" band's bottom edge.
+     * Other owner-only readouts in that band stack above this y.
+     * 共 count 行文本块的顶部 y；没有行时即共享“动作栏上方”显示带的底边。该显示带中的其他本人可见读数叠放在此 y 之上。
+     */
+    public static int blockTop(int screenHeight, int fontHeight, int count) {
+        return screenHeight - ACTION_BAR_CLEARANCE - Math.max(0, count) * (fontHeight + LINE_GAP);
+    }
+
     /** One HUD line; {@code seconds < 0} means the key takes no argument. / 一行 HUD；seconds 小于 0 表示该键不带参数。 */
     record Line(String key, int seconds, int color) {
         boolean hasSeconds() {
