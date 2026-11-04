@@ -84,6 +84,10 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
             // Blind Attune (UseBlindAttuneC2SPayload). / 盲人凝神。
             Identifier.of("sparkwitch", "use_blind_attune"),
+            // Noa painting (UseNoaPaintC2SPayload). / 诺亚作画。
+            Identifier.of("sparkwitch", "use_noa_paint"),
+            // Ragpicker corpse search (JunkerSearchC2SPacket, G key). / 拾荒者搜刮尸体（G 键）。
+            Identifier.of("sparkwitch", "ragpicker_search"),
             // Riftwalker gate hop and console close; the occupant's own exit and the console snapshot request stay
             // allowed (leaving must always pass; the request is UI-only). / 隙行者跳门与控制台关门；门内玩家自己的
             // 出门与控制台快照请求放行（出门必须始终放行；快照请求仅为界面用途）。
@@ -91,6 +95,8 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "rift_gate_close"),
             // Fiend Dash (UseFiendDashC2SPayload), moment-only. / 魔人疾驰，仅限时刻中。
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            // Athlete dash (UseAthleteDashC2SPayload). / 运动员冲刺。
+            Identifier.of("sparkwitch", "use_athlete_dash"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a

@@ -8,10 +8,16 @@ import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.Purify.PurifyAbility;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindLoadoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
@@ -58,10 +64,13 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier NOELLES_ASSASSIN_ROLE_ID = Identifier.of(NoellesRoleIds.NAMESPACE, "assassin");
     static final Identifier BLIND_ATTUNE_ID = SparkWitch.id("blind_attune");
     static final Identifier FIEND_DASH_ID = SparkWitch.id("fiend_dash");
+    static final Identifier ATHLETE_DASH_ID = AthleteRules.DASH_SKILL_ID;
     static final Identifier APPRENTICE_PURIFY_ID = SparkWitch.id("apprentice_purify");
     static final Identifier MAGICIAN_ID = SparkWitch.id("magician");
     static final Identifier MINI_WITHER_TOGGLE_ID = SparkWitch.id("mini_wither_toggle");
     static final Identifier BLACK_RAVEN_CROW_ID = BlackRavenCrowRules.SKILL_ID;
+    static final Identifier NOA_PAINT_ID = NoaRules.PAINT_SKILL_ID;
+    static final Identifier RAGPICKER_SEARCH_ID = SparkWitch.id("ragpicker_search");
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -108,7 +117,14 @@ public final class SparkWitchForcedCooldowns {
                 miniWitherToggle(),
                 // Black Raven Raven Form (plan 2026-10-21), appended after the Mini Wither.
                 // 黑羽鸦化鸦（2026-10-21 计划），追加在小凋灵之后。
-                blackRavenCrow()
+                blackRavenCrow(),
+                // Athlete dash (PR #191), appended after the Raven Form. / 运动员冲刺（PR #191），追加在化鸦之后。
+                athleteDash(),
+                // Noa painting (PR #186), appended after the Athlete dash. / 诺亚作画（PR #186），追加在运动员冲刺之后。
+                noaPaint(),
+                // Ragpicker Search (owner decision 2026-11-04), appended after the Noa painting.
+                // 拾荒者搜刮（所有者 2026-11-04 决定），追加在诺亚作画之后。
+                ragpickerSearch()
         );
     }
 
@@ -212,6 +228,25 @@ public final class SparkWitchForcedCooldowns {
     }
 
     /**
+     * The Athlete's dash cooldown, kept as an absolute ready tick in the owner-synced {@code sparkwitch:athlete} player
+     * component. Same role and round gates as {@code AthleteDashService}: an ACTIVE round and the real Athlete. The
+     * nominal is the 15 s cooldown after each dash; writes only move the ready tick later.
+     * 运动员冲刺冷却，以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:athlete} 玩家组件中。与 AthleteDashService 的
+     * 职业与回合门控一致：ACTIVE 回合且为真实运动员。标准冷却为每次冲刺后的 15 秒；写入只会把就绪刻推后。
+     */
+    static SimpleRoleSkillCooldownStore athleteDash() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                ATHLETE_DASH_ID,
+                whileActive((game, player) -> AthleteRules.isAthlete(game.getRole(player))),
+                player -> AthleteComponent.KEY.get(player).dashCooldownRemaining(player.getServerWorld().getTime()),
+                () -> AthleteRules.COOLDOWN_TICKS,
+                player -> AthleteComponent.KEY.get(player),
+                AthleteComponent::dashReadyTick,
+                AthleteComponent::setDashReadyTick
+        );
+    }
+
+    /**
      * The graduated Apprentice's Purify cooldown (owner decision 2026-10-06 D3), kept in the owner-synced
      * {@code sparkwitch:apprentice_player} component and separate from her shared witch skill cooldown. An ACTIVE
      * round, {@code PurifyAbility}'s raw role gate, and graduation: Purify exists only once she has graduated. The
@@ -296,6 +331,50 @@ public final class SparkWitchForcedCooldowns {
                 player -> BlackRavenCrowPlayerComponent.KEY.get(player).getCooldownTicks(),
                 () -> BlackRavenCrowRules.COOLDOWN_TICKS,
                 (player, ticks) -> BlackRavenCrowPlayerComponent.KEY.get(player).setCooldown(ticks)
+        );
+    }
+
+    /**
+     * Noa's painting cooldown, kept as an absolute ready tick in the owner-synced {@code sparkwitch:noa_player}
+     * component. Same role and round gates as {@code NoaPaintService}: an ACTIVE round and the real Noa. The nominal is
+     * the 60 s cooldown after each painting; writes only move the ready tick later.
+     * 诺亚作画冷却，以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:noa_player} 组件中。与 NoaPaintService 的职业与回合
+     * 门控一致：ACTIVE 回合且为真实诺亚。标准冷却为每次作画后的 60 秒；写入只会把就绪刻推后。
+     */
+    static SimpleRoleSkillCooldownStore noaPaint() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                NOA_PAINT_ID,
+                whileActive((game, player) -> NoaRules.isNoa(game.getRole(player))),
+                player -> NoaComponent.KEY.get(player).paintCooldownRemaining(player.getServerWorld().getTime()),
+                () -> NoaRules.COOLDOWN_TICKS,
+                player -> NoaComponent.KEY.get(player),
+                NoaComponent::paintReadyTick,
+                NoaComponent::setPaintReadyTick
+        );
+    }
+
+    /**
+     * The Ragpicker's Search cooldown (owner decision 2026-11-04), kept as an absolute ready tick in the owner-synced
+     * {@code sparkwitch:ragpicker_player} component. {@code JunkerService}'s role and round gates: an ACTIVE round and
+     * the real role (the overlay is never read). Remaining time counts to the ready tick, so it includes the 45 s
+     * round-start cooldown; the nominal is the 60 s cooldown after each successful search. Every write only moves the
+     * ready tick later through {@code setSearchReadyTick}, which syncs the owner, so nothing is shortened and a running
+     * search is never interrupted.
+     * 拾荒者搜刮冷却（所有者 2026-11-04 决定），以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:ragpicker_player}
+     * 组件中。与 JunkerService 的职业与回合门控一致：ACTIVE 回合且为真实职业（从不读取覆盖层）。剩余时间计到就绪刻，
+     * 因此包含 45 秒回合初始冷却；标准冷却为每次成功搜刮后的 60 秒。每次写入都只经 {@code setSearchReadyTick} 把就绪刻
+     * 推后（并同步本人），因此绝不缩短，也不会打断进行中的搜刮。
+     */
+    static SimpleRoleSkillCooldownStore ragpickerSearch() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                RAGPICKER_SEARCH_ID,
+                whileActive((game, player) -> JunkerRules.isRagpicker(game.getRole(player))),
+                player -> JunkerPlayerComponent.KEY.get(player)
+                        .searchCooldownRemainingTicks(player.getServerWorld().getTime()),
+                () -> JunkerRules.SEARCH_COOLDOWN_TICKS,
+                player -> JunkerPlayerComponent.KEY.get(player),
+                JunkerPlayerComponent::getSearchReadyTick,
+                JunkerPlayerComponent::setSearchReadyTick
         );
     }
 

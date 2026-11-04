@@ -40,6 +40,7 @@ public final class SparkWitchRoles {
     public static final Identifier BLIND_ID = SparkWitchRoleRegistry.BLIND_ID;
     public static final Identifier FIEND_ID = SparkWitchRoleRegistry.FIEND_ID;
     public static final Identifier STOWAWAY_ID = SparkWitchRoleRegistry.STOWAWAY_ID;
+    public static final Identifier SCHRODINGERS_CAT_ID = SparkWitchRoleRegistry.SCHRODINGERS_CAT_ID;
     public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
     public static final Identifier ABYSS_LISTENER_ID = SparkWitchRoleRegistry.ABYSS_LISTENER_ID;
     public static final Identifier POTION_GUNNER_ID = SparkWitchRoleRegistry.POTION_GUNNER_ID;
@@ -48,6 +49,10 @@ public final class SparkWitchRoles {
     public static final Identifier USEC_ID = SparkWitchRoleRegistry.USEC_ID;
     public static final Identifier KNIGHT_ID = SparkWitchRoleRegistry.KNIGHT_ID;
     public static final Identifier RECRUIT_ID = SparkWitchRoleRegistry.RECRUIT_ID;
+    public static final Identifier ATHLETE_ID = SparkWitchRoleRegistry.ATHLETE_ID;
+    public static final Identifier DISCOVERER_ID = SparkWitchRoleRegistry.DISCOVERER_ID;
+    public static final Identifier NOA_ID = SparkWitchRoleRegistry.NOA_ID;
+    public static final Identifier RAGPICKER_ID = SparkWitchRoleRegistry.RAGPICKER_ID;
 
     private SparkWitchRoles() {
     }
@@ -190,6 +195,10 @@ public final class SparkWitchRoles {
         return SparkWitchRoleRegistry.stowaway();
     }
 
+    public static Role schrodingersCat() {
+        return SparkWitchRoleRegistry.schrodingersCat();
+    }
+
     public static Role insider() {
         return SparkWitchRoleRegistry.insider();
     }
@@ -216,6 +225,22 @@ public final class SparkWitchRoles {
 
     public static Role recruit() {
         return SparkWitchRoleRegistry.recruit();
+    }
+
+    public static Role athlete() {
+        return SparkWitchRoleRegistry.athlete();
+    }
+
+    public static Role discoverer() {
+        return SparkWitchRoleRegistry.discoverer();
+    }
+
+    public static Role noa() {
+        return SparkWitchRoleRegistry.noa();
+    }
+
+    public static Role ragpicker() {
+        return SparkWitchRoleRegistry.ragpicker();
     }
 
     public static Role dominator() {

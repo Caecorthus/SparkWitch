@@ -47,15 +47,30 @@ public final class InsiderEquipmentService {
         for (ServerPlayerEntity player : world.getPlayers()) {
             // The game is still STARTING here, so the running-state helper would reject every player.
             // 此时对局仍处于 STARTING，运行态判定会拒绝所有玩家。
-            PlayerInventory inventory = player.getInventory();
-            if (receivesMasterKey(game.hasAnyRole(player), game.isPlayerDead(player.getUuid()), game.getRole(player),
-                    inventory.contains(stack -> stack.isOf(ModItems.NEUTRAL_MASTER_KEY)))) {
-                // Drops at the player's feet when the inventory is full, so the key is never lost.
-                // 背包已满时掉落在玩家脚下，钥匙绝不会丢失。
-                inventory.offerOrDrop(new ItemStack(ModItems.NEUTRAL_MASTER_KEY));
-                inventory.markDirty();
-                player.currentScreenHandler.sendContentUpdates();
-            }
+            grantMasterKey(player, game);
+        }
+    }
+
+    /**
+     * Mid-round entry for a player who becomes an Insider after the round start (Schrödinger's Cat transformation):
+     * the same per-player master key (none when one is already held) the round start hands out, called once after
+     * {@code RoleAssigned}.
+     * 对局开始后才成为内应的玩家的中途入口（薛定谔之猫转化）：
+     * 与开局相同的个人万能钥匙（已持有时不发），在 {@code RoleAssigned} 之后调用一次。
+     */
+    public static void grantLateMasterKey(ServerPlayerEntity player) {
+        grantMasterKey(player, GameWorldComponent.KEY.get(player.getServerWorld()));
+    }
+
+    private static void grantMasterKey(ServerPlayerEntity player, GameWorldComponent game) {
+        PlayerInventory inventory = player.getInventory();
+        if (receivesMasterKey(game.hasAnyRole(player), game.isPlayerDead(player.getUuid()), game.getRole(player),
+                inventory.contains(stack -> stack.isOf(ModItems.NEUTRAL_MASTER_KEY)))) {
+            // Drops at the player's feet when the inventory is full, so the key is never lost.
+            // 背包已满时掉落在玩家脚下，钥匙绝不会丢失。
+            inventory.offerOrDrop(new ItemStack(ModItems.NEUTRAL_MASTER_KEY));
+            inventory.markDirty();
+            player.currentScreenHandler.sendContentUpdates();
         }
     }
 

@@ -50,6 +50,16 @@ public final class KnightFeatureService {
         return hasRole && !dead && KnightRules.isKnight(finalRole);
     }
 
+    /**
+     * Mid-round entry for a player who becomes a Knight after the round start (Schrödinger's Cat transformation): the
+     * same per-player loadout the round start hands out, called once after {@code RoleAssigned}.
+     * 对局开始后才成为骑士的玩家的中途入口（薛定谔之猫转化）：
+     * 与开局相同的个人开局装备，在 {@code RoleAssigned} 之后调用一次。
+     */
+    public static void grantLateLoadout(ServerPlayerEntity player) {
+        grantRoundStartLoadout(player);
+    }
+
     private static void grantRoundStartLoadout(ServerPlayerEntity player) {
         player.getInventory().insertStack(new ItemStack(WatheItems.REVOLVER));
         // Starts spent ("0 bullets"): Wathe reloads a used derringer on the owner's next kill.

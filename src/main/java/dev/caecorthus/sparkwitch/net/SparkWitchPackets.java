@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabSe
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerService;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetProphecyService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
@@ -165,6 +166,7 @@ public final class SparkWitchPackets {
                 BlindPulseS2CPayload.ID,
                 BlindPulseS2CPayload.CODEC
         );
+        PayloadTypeRegistry.playC2S().register(JunkerSearchC2SPacket.ID, JunkerSearchC2SPacket.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(UseWitchSkillC2SPacket.ID,
                 (payload, context) -> FocusedFootstepsRequestService.use(
                         context.player(), payload.targetUuid()));
@@ -217,6 +219,8 @@ public final class SparkWitchPackets {
                         context.player(), payload.session(), payload.target()));
         ServerPlayNetworking.registerGlobalReceiver(UseBlindAttuneC2SPayload.ID,
                 (payload, context) -> BlindAttuneService.tryUse(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(JunkerSearchC2SPacket.ID,
+                (payload, context) -> JunkerService.handleSearchRequest(context.player(), payload.bodyUuid()));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {

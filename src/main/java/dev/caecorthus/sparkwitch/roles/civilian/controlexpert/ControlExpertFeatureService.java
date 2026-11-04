@@ -93,6 +93,17 @@ public final class ControlExpertFeatureService {
         return hasRole && !dead && ControlExpertRules.isControlExpert(finalRole);
     }
 
+    /**
+     * Mid-round entry for a player who becomes a Control Expert after the round start (Schrödinger's Cat
+     * transformation): the same per-player loadout (revolver, gadget start cooldowns, economy) the round start hands
+     * out, called once after {@code RoleAssigned}.
+     * 对局开始后才成为控场专家的玩家的中途入口（薛定谔之猫转化）：
+     * 与开局相同的个人开局装备（左轮、道具开局冷却、经济），在 {@code RoleAssigned} 之后调用一次。
+     */
+    public static void grantLateLoadout(ServerPlayerEntity player) {
+        grantRoundStartLoadout(player);
+    }
+
     private static void grantRoundStartLoadout(ServerPlayerEntity player) {
         // The revolver shares Wathe's per-Item start cooldown written earlier in initializeGame. SparkTraits refuses
         // free guns to an Impostor at this point; that trait rule is deliberately not bypassed.
