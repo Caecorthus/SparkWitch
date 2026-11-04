@@ -81,7 +81,11 @@
       "sparkwitch:dominator",
       "sparkwitch:dominator_forced_shot",
       "sparkwitch:natsume_anan_player"
-    ]
+    ],
+    "sparkfactionapi:native_wathe_factions": {
+      "sparkwitch:jiahao": "JIAHAO",
+      "sparkwitch:witch": "WITCH"
+    }
   },
   "mixins": [
     "sparkwitch.mixins.json",

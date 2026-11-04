@@ -18,8 +18,8 @@ public final class BewitchedRole {
                     .moodType(Role.MoodType.FAKE)
                     .maxSprintTime(-1)
                     .canSeeTime(true)
-                    // Exclude natural selection (Wathe's neutral bucket); WitchRoleAssignmentService deals it.
-                    // 排除自然抽选（Wathe 中立抽取）；由 WitchRoleAssignmentService 发放。
+                    // Exclude natural selection; WitchRoleAssignmentService deals it.
+                    // 排除自然抽选；由 WitchRoleAssignmentService 发放。
                     .appearanceCondition(context -> false)
                     .build();
 

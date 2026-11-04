@@ -57,8 +57,8 @@ public final class TarotLedgerLayout {
     public static final int TAB_MARK_X = 3;
     public static final int TAB_MARK_Y = 4;
     /** Identity jump tabs, left to right, in the HUD's faction order. 身份模式跳转标签，按 HUD 阵营顺序从左到右。 */
-    public static final List<Section> TAB_SECTIONS =
-            List.of(Section.CIVILIAN, Section.KILLER, Section.NEUTRAL, Section.WITCH, Section.SPECIAL);
+    public static final List<Section> TAB_SECTIONS = List.of(
+            Section.CIVILIAN, Section.KILLER, Section.NEUTRAL, Section.WITCH, Section.JIAHAO, Section.SPECIAL);
     private static final int TABS_W = TAB_SECTIONS.size() * TAB_W + (TAB_SECTIONS.size() - 1) * TAB_GAP;
 
     // ---- list ----
@@ -810,7 +810,7 @@ public final class TarotLedgerLayout {
             return new Rect(x, frame.y() + WELL_Y, Math.max(0, right - x), WELL_H);
         }
 
-        /** Five jump tabs right-aligned to x+w-6 (identity only). 五个跳转标签，右对齐（仅身份模式）。 */
+        /** Six jump tabs right-aligned to x+w-6 (identity only). 六个跳转标签，右对齐（仅身份模式）。 */
         public List<Rect> tabs() {
             if (mode != Mode.IDENTITY) {
                 return List.of();

@@ -394,7 +394,8 @@ public final class SparkWitchClient implements ClientModInitializer {
                             payload.civilianCount(),
                             payload.killerCount(),
                             payload.neutralCount(),
-                            payload.witchCount()
+                            payload.witchCount(),
+                            payload.jiahaoCount()
                     );
                 }));
         ClientPlayNetworking.registerGlobalReceiver(OpenTarotDivinationSelectorS2CPacket.ID, (payload, context) ->
