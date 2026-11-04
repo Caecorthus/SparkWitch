@@ -90,6 +90,7 @@ final class TarotLedgerText {
             case KILLER -> "hud.sparkwitch.tarot.faction.killer";
             case NEUTRAL -> "hud.sparkwitch.tarot.faction.neutral";
             case WITCH -> "hud.sparkwitch.tarot.faction.witch";
+            case JIAHAO -> "hud.sparkwitch.tarot.faction.jiahao";
             case SPECIAL -> "screen.sparkwitch.tarot.section.special";
             case PLAYERS -> "screen.sparkwitch.tarot.section.players";
         });

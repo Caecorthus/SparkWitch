@@ -76,6 +76,7 @@ final class TarotLedgerRenderer {
         sectionColors.put(Section.KILLER, TarotDivinationHudRenderer.factionColor(FactionIds.KILLER));
         sectionColors.put(Section.NEUTRAL, TarotDivinationHudRenderer.factionColor(FactionIds.NEUTRAL));
         sectionColors.put(Section.WITCH, TarotDivinationHudRenderer.factionColor(SparkWitchFactions.WITCH));
+        sectionColors.put(Section.JIAHAO, TarotDivinationHudRenderer.factionColor(SparkWitchFactions.JIAHAO));
         sectionColors.put(Section.SPECIAL, TarotLedgerPaint.SPECIAL & 0xFFFFFF);
 
         // No amount after "Paid": the price actually paid is not sent to the client (see TarotLedgerLayout.titleBar).

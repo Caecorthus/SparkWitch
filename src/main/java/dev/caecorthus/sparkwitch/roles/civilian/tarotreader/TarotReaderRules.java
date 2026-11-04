@@ -34,12 +34,26 @@ public final class TarotReaderRules {
         return classifyFaction(SparkFactionApi.resolveBaseFaction(role), role.getFaction());
     }
 
-    static FactionBucket classifyFaction(Identifier effectiveFaction, Faction nativeFaction) {
+    /**
+     * Bucket for an SFA faction id, falling back to the role's Wathe faction only for ids outside the five buckets.
+     * SFA appends native constants (WITCH, JIAHAO) to Wathe's {@code Faction} enum at runtime, so the fallback compares
+     * the built-in constants by identity and never switches over the enum: any other constant reads as no bucket.
+     * 按 SFA 阵营 ID 归桶；仅当 ID 不属于五个桶时才回退到职业的 Wathe 阵营。SFA 会在运行时向 Wathe 的
+     * {@code Faction} 枚举追加原生常量（WITCH、JIAHAO），因此回退只按引用比较内置常量、从不对该枚举做 switch：
+     * 其他常量一律视为不属于任何桶。
+     */
+    static @Nullable FactionBucket classifyFaction(
+            @Nullable Identifier effectiveFaction,
+            @Nullable Faction nativeFaction
+    ) {
         if (effectiveFaction == null || FactionIds.NONE.equals(effectiveFaction)) {
             return null;
         }
         if (SparkWitchFactions.WITCH.equals(effectiveFaction)) {
             return FactionBucket.WITCH;
+        }
+        if (SparkWitchFactions.JIAHAO.equals(effectiveFaction)) {
+            return FactionBucket.JIAHAO;
         }
         if (FactionIds.CIVILIAN.equals(effectiveFaction)) {
             return FactionBucket.CIVILIAN;
@@ -50,15 +64,16 @@ public final class TarotReaderRules {
         if (FactionIds.NEUTRAL.equals(effectiveFaction)) {
             return FactionBucket.NEUTRAL;
         }
-        if (nativeFaction == null) {
-            return null;
+        if (nativeFaction == Faction.CIVILIAN) {
+            return FactionBucket.CIVILIAN;
         }
-        return switch (nativeFaction) {
-            case CIVILIAN -> FactionBucket.CIVILIAN;
-            case KILLER -> FactionBucket.KILLER;
-            case NEUTRAL -> FactionBucket.NEUTRAL;
-            case NONE -> null;
-        };
+        if (nativeFaction == Faction.KILLER) {
+            return FactionBucket.KILLER;
+        }
+        if (nativeFaction == Faction.NEUTRAL) {
+            return FactionBucket.NEUTRAL;
+        }
+        return null;
     }
 
     static boolean shouldCountActivePlayer(boolean assigned, boolean dead, boolean creative) {
@@ -73,10 +88,15 @@ public final class TarotReaderRules {
         return assigned && !dead;
     }
 
+    /**
+     * HUD and selector order. JIAHAO is Team Jiahao (Insider and Corrupt Cop, owner decision D5 2026-11-04).
+     * HUD 与选择界面的顺序。JIAHAO 为嘉豪阵营（内应与黑警，所有者决定 D5，2026-11-04）。
+     */
     public enum FactionBucket {
         CIVILIAN,
         KILLER,
         NEUTRAL,
-        WITCH
+        WITCH,
+        JIAHAO
     }
 }

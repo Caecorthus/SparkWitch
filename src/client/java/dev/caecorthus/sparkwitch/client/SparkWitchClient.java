@@ -10,15 +10,21 @@ import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.bewitched.BewitchedClientPresentation;
 import dev.caecorthus.sparkwitch.client.recruit.RecruitClientPresentation;
+import dev.caecorthus.sparkwitch.client.athlete.AthleteClient;
+import dev.caecorthus.sparkwitch.client.athlete.AthleteDashClient;
+import dev.caecorthus.sparkwitch.client.noa.NoaClient;
+import dev.caecorthus.sparkwitch.client.noa.NoaPaintClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
 import dev.caecorthus.sparkwitch.client.fisher.FisherClient;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
+import dev.caecorthus.sparkwitch.client.junker.JunkerClientModule;
 import dev.caecorthus.sparkwitch.client.knight.KnightDuelClient;
 import dev.caecorthus.sparkwitch.client.knight.KnightSwordClient;
 import dev.caecorthus.sparkwitch.client.prophet.ProphetClientModule;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.client.apprentice.ApprenticeClientModule;
 import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
@@ -69,11 +75,16 @@ import dev.caecorthus.sparkwitch.net.TarotDivinationReadingS2CPacket;
 import dev.caecorthus.sparkwitch.net.TarotDivinationSnapshotS2CPacket;
 import dev.caecorthus.sparkwitch.net.UseWitchSkillC2SPacket;
 import dev.caecorthus.sparkwitch.net.WraithRoleAnnouncementS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntities;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.UseDominatorSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashEntities;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
@@ -135,8 +146,10 @@ public final class SparkWitchClient implements ClientModInitializer {
         registerProphetNecrologyNetworking();
         registerWraithRoleAnnouncementNetworking();
         JudgeClientModule.register();
+        JunkerClientModule.register();
         KnightSwordClient.register();
         KnightDuelClient.register();
+        dev.caecorthus.sparkwitch.client.dominator.DominatorClientModule.register();
         ProphetClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
@@ -154,6 +167,12 @@ public final class SparkWitchClient implements ClientModInitializer {
         BewitchedClientPresentation.register();
         // Recruit first-task knife progress line (role-owned HUD). / 新兵首个任务发刀进度行（职业自有 HUD）。
         RecruitClientPresentation.register();
+        // Athlete Dash line (role-owned HUD); the dash itself rides the shared ability key below.
+        // 运动员冲刺行（职业自有 HUD）；冲刺本身走下方的共享技能键。
+        AthleteClient.init();
+        // Noa painting line (role-owned HUD); the painting itself rides the shared ability key below.
+        // 诺亚作画行（职业自有 HUD）；作画本身走下方的共享技能键。
+        NoaClient.init();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
@@ -227,6 +246,10 @@ public final class SparkWitchClient implements ClientModInitializer {
                     }
                 } else if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
+                } else if (JunkerRules.isRagpicker(role)) {
+                    // Real role only; a dead or swallowed Ragpicker's press is dropped here, not sent as a witch skill.
+                    // 仅限真实职业；死亡或被吞下的拾荒者的按键在此被丢弃，不会作为魔女技能发送。
+                    JunkerClientModule.onAbilityKey(client);
                 } else if (ProphetClientModule.ownsAbilityKey(client.player, role)) {
                     // Prophecy opens its own session instead of sending the generic skill packet.
                     // 预言打开自有会话，而不是发送通用技能包。
@@ -241,6 +264,19 @@ public final class SparkWitchClient implements ClientModInitializer {
                             ClientPlayNetworking.canSend(UseSaboteurSkillC2SPacket.ID)
                     )) {
                         ClientPlayNetworking.send(new UseSaboteurSkillC2SPacket());
+                    }
+                } else if (DominatorRules.isDominator(role)) {
+                    // Real role only. Sends nothing while the press cannot do anything: dead, in spectator mode or
+                    // swallowed (the shared side-neutral caster gate), no uses left, or on cooldown. The server re-checks
+                    // all of this plus its own gates, so this only saves a doomed request.
+                    // 仅限真实职业。按键无效时不发送：死亡、旁观模式或被吞下（两端共用的施放者门槛）、次数为 0 或冷却中。
+                    // 服务端会再次检查这些以及其自身门槛，此处只是省掉注定被拒的请求。
+                    DominatorPlayerComponent dominator = DominatorPlayerComponent.KEY.get(client.player);
+                    if (DominatorRules.isActiveCaster(client.player)
+                            && dominator.getRemainingUses() > 0
+                            && !dominator.isOnCooldown()
+                            && ClientPlayNetworking.canSend(UseDominatorSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseDominatorSkillC2SPacket());
                     }
                 } else if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.CURSER_ID)) {
                     if (CurserClientHooks.canUse(client.player)) {
@@ -259,6 +295,14 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role plus the synced moment owner; Dash exists only during the moment. The server decides use.
                     // 真实职业加同步的时刻拥有者；疾驰只在时刻中存在，是否生效由服务端决定。
                     FiendDashClient.onAbilityKey(client);
+                } else if (AthleteRules.isAthlete(role)) {
+                    // Real role only (the Athlete is never a disguise target); the server decides use.
+                    // 仅真实职业（运动员不可被伪装）；是否生效由服务端决定。
+                    AthleteDashClient.onAbilityKey(client);
+                } else if (NoaRules.isNoa(role)) {
+                    // Real role only (getRole stays raw, so a Black Raven acting as Noa keeps its own key); the server
+                    // decides use. / 仅真实职业（getRole 始终是真实身份，扮演诺亚的黑羽鸦保留自己的按键）；是否生效由服务端决定。
+                    NoaPaintClient.onAbilityKey(client);
                 } else if (!WitchMaidenRules.isWitchMaiden(role)
                         && (WitchPlayerComponent.KEY.get(client.player).hasSkill()
                         || SaintRules.isSaint(role))) {
@@ -342,7 +386,8 @@ public final class SparkWitchClient implements ClientModInitializer {
                             payload.civilianCount(),
                             payload.killerCount(),
                             payload.neutralCount(),
-                            payload.witchCount()
+                            payload.witchCount(),
+                            payload.jiahaoCount()
                     );
                 }));
         ClientPlayNetworking.registerGlobalReceiver(OpenTarotDivinationSelectorS2CPacket.ID, (payload, context) ->

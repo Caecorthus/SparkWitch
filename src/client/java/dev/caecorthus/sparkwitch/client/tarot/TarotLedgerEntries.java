@@ -175,6 +175,7 @@ public final class TarotLedgerEntries {
             case KILLER -> Section.KILLER;
             case NEUTRAL -> Section.NEUTRAL;
             case WITCH -> Section.WITCH;
+            case JIAHAO -> Section.JIAHAO;
         };
     }
 
@@ -196,6 +197,7 @@ public final class TarotLedgerEntries {
         KILLER,
         NEUTRAL,
         WITCH,
+        JIAHAO,
         SPECIAL,
         PLAYERS
     }

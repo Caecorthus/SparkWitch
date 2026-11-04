@@ -49,7 +49,8 @@ public final class TarotReaderDivinationService {
                     counts.civilian(),
                     counts.killer(),
                     counts.neutral(),
-                    counts.witch()
+                    counts.witch(),
+                    counts.jiahao()
             ));
             return true;
         } catch (RuntimeException ignored) {
@@ -93,6 +94,7 @@ public final class TarotReaderDivinationService {
         int killer = 0;
         int neutral = 0;
         int witch = 0;
+        int jiahao = 0;
         for (ServerPlayerEntity candidate : world.getPlayers()) {
             UUID uuid = candidate.getUuid();
             boolean assigned = gameComponent.hasAnyRole(uuid);
@@ -116,9 +118,10 @@ public final class TarotReaderDivinationService {
                 case KILLER -> killer++;
                 case NEUTRAL -> neutral++;
                 case WITCH -> witch++;
+                case JIAHAO -> jiahao++;
             }
         }
-        return new FactionCounts(civilian, killer, neutral, witch);
+        return new FactionCounts(civilian, killer, neutral, witch, jiahao);
     }
 
     private static boolean openSelector(PlayerEntity player, int mode) {
@@ -292,7 +295,7 @@ public final class TarotReaderDivinationService {
         player.sendMessage(Text.translatable(translationKey, args), true);
     }
 
-    record FactionCounts(int civilian, int killer, int neutral, int witch) {
+    record FactionCounts(int civilian, int killer, int neutral, int witch, int jiahao) {
     }
 
     private record PlayerTarget(UUID uuid, String name) {

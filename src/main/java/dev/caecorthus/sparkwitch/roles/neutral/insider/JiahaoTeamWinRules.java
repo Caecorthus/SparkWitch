@@ -15,7 +15,9 @@ import java.util.UUID;
  * <p>
  * Rule: members are every Corrupt Cop and every Insider. The rules apply only in a round that has an Insider (any
  * role-map entry with the Insider role, online or not, dead or alive); without one, every answer is NoellesRoles' own,
- * so several Corrupt Cops behave exactly as in NoellesRoles (C13). With an Insider, the team wins when at least one
+ * so several Corrupt Cops behave exactly as in NoellesRoles (C13). Only the end title is no longer NoellesRoles' there:
+ * since owner D7 (2026-11-04) the client titles a lone Corrupt Cop win "嘉豪胜利！" too ({@code JiahaoWinTitleClient}),
+ * with the winners unchanged. With an Insider, the team wins when at least one
  * member is alive and not swallowed and every other alive, not-swallowed player is a member. Every member wins, dead,
  * alive or offline (C14), and an Insider leads the winners. While any member is alive, killers and passengers cannot
  * win.
@@ -25,8 +27,9 @@ import java.util.UUID;
  * 读取的回合结算行。
  * <p>
  * 规则：所有黑警与所有内应都是成员。只有本局有内应（职业表中存在内应条目，不论在线与否、死活）时才生效；没有内应时
- * 所有结果都是 NoellesRoles 原值，多名黑警的表现与 NoellesRoles 完全一致（C13）。有内应时，至少一名成员存活且未被吞，
- * 并且其余存活且未被吞的玩家全是成员，阵营即获胜。所有成员不论死活、是否在线一起获胜（C14），由内应领衔。只要有成员
+ * 所有结果都是 NoellesRoles 原值，多名黑警的表现与 NoellesRoles 完全一致（C13）。唯一例外是结算标题：自所有者 D7
+ *（2026-11-04）起，客户端对单独的黑警胜利同样显示“嘉豪胜利！”（{@code JiahaoWinTitleClient}），胜者不变。
+ * 有内应时，至少一名成员存活且未被吞，并且其余存活且未被吞的玩家全是成员，阵营即获胜。所有成员不论死活、是否在线一起获胜（C14），由内应领衔。只要有成员
  * 存活，杀手和乘客都无法获胜。
  */
 public final class JiahaoTeamWinRules {

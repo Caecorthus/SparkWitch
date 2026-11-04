@@ -34,15 +34,15 @@ public final class MagicianPlaybackEntityRenderer extends LivingEntityRenderer<M
     // 自改版 NoellesRoles 的皮套略小于原版玩家模型；只缩放视觉，不改变服务端碰撞箱。
     private static final float PLAYBACK_VISUAL_SCALE = 0.96F;
     private static final float PLAYBACK_GROUND_OFFSET = -0.045F;
-    private final MagicianPlaybackPlayerEntityModel classicModel;
-    private final MagicianPlaybackPlayerEntityModel slimModel;
+    private final PlayerEntityModel<MagicianPlaybackEntity> classicModel;
+    private final PlayerEntityModel<MagicianPlaybackEntity> slimModel;
     private @Nullable MagicianPlaybackEntity renderingEntity;
     private @Nullable MagicianPuppetAppearance renderingAppearance;
 
     public MagicianPlaybackEntityRenderer(EntityRendererFactory.Context context) {
-        super(context, new MagicianPlaybackPlayerEntityModel(context.getPart(EntityModelLayers.PLAYER), false), 0.5F);
-        this.classicModel = (MagicianPlaybackPlayerEntityModel) this.getModel();
-        this.slimModel = new MagicianPlaybackPlayerEntityModel(context.getPart(EntityModelLayers.PLAYER_SLIM), true);
+        super(context, new PlayerEntityModel<>(context.getPart(EntityModelLayers.PLAYER), false), 0.5F);
+        this.classicModel = this.getModel();
+        this.slimModel = new PlayerEntityModel<>(context.getPart(EntityModelLayers.PLAYER_SLIM), true);
         // LivingEntityRenderer 不会自动添加玩家的手持物层，必须显式挂载，否则同步装备不可见。
         this.addFeature(new HeldItemFeatureRenderer<>(this, context.getHeldItemRenderer()));
         this.addFeature(new MagicianPlaybackCapeFeatureRenderer());
@@ -63,9 +63,15 @@ public final class MagicianPlaybackEntityRenderer extends LivingEntityRenderer<M
         matrices.scale(PLAYBACK_VISUAL_SCALE, PLAYBACK_VISUAL_SCALE, PLAYBACK_VISUAL_SCALE);
         this.renderingEntity = entity;
         this.renderingAppearance = appearance;
+        // A seated replay frame is drawn as a seated player is: hasVehicle() reads true for this draw only, so vanilla's
+        // riding inputs and animation packs (Fresh Animations' is_riding) pose it seated (entity render protocol).
+        // 坐姿回放帧按坐着的玩家绘制：仅在本次绘制中 hasVehicle() 为真，原版骑乘输入与动画包（Fresh Animations 的
+        // is_riding）因此摆出坐姿（实体渲染协议）。
+        entity.setDrawnSeated(entity.isReplaySitting());
         try {
             super.render(entity, entityYaw, tickDelta, matrices, vertexConsumers, light);
         } finally {
+            entity.setDrawnSeated(false);
             this.renderingEntity = null;
             this.renderingAppearance = null;
             matrices.pop();
@@ -134,20 +140,6 @@ public final class MagicianPlaybackEntityRenderer extends LivingEntityRenderer<M
     private MagicianPuppetAppearance appearance(MagicianPlaybackEntity entity) {
         MagicianPuppetAppearance current = this.renderingAppearance;
         return current != null && this.renderingEntity == entity ? current : MagicianPuppetAppearance.resolve(entity);
-    }
-
-    /** 玩家实体没有真的挂在坐骑上，坐姿必须由录制帧显式驱动模型。 */
-    private static final class MagicianPlaybackPlayerEntityModel extends PlayerEntityModel<MagicianPlaybackEntity> {
-        private MagicianPlaybackPlayerEntityModel(net.minecraft.client.model.ModelPart root, boolean thinArms) {
-            super(root, thinArms);
-        }
-
-        @Override
-        public void setAngles(MagicianPlaybackEntity entity, float limbAngle, float limbDistance,
-                              float animationProgress, float headYaw, float headPitch) {
-            this.riding = entity.isReplaySitting();
-            super.setAngles(entity, limbAngle, limbDistance, animationProgress, headYaw, headPitch);
-        }
     }
 
     /** 目标玩家有披风时复用其纹理。 */

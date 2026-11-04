@@ -172,8 +172,8 @@ def compatibilityBaselines = [
         ],
         sparkfactionapi: [
                 property: "sparkfactionapi_version",
-                version: "0.1.5.12",
-                sha256: "6bf1ae6072d17b990fe1cb2c1cb8f87e0cd17cbd8e343c9bd1c7cc9da2d24c86",
+                version: "0.1.6.0",
+                sha256: "9fbc0dafac49ad3ba25619314b4a32a35feeeca528df14de9b4fdaf05dd87370",
                 depends: [wathe: ">=1.5.6-spark-1.21.1"]
         ]
 ]
@@ -673,6 +673,20 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/render/entity/PlayerBodyEntityRenderer.class",
                 providerMethod: "render",
                 providerDescriptor: "(Ldev/doctor4t/wathe/entity/PlayerBodyEntity;FFLnet/minecraft/class_4587;Lnet/minecraft/class_4597;ILnet/minecraft/class_572;Lnet/minecraft/class_1921;FF)V"
+        ],
+        [
+                // Noa mood icon: the civilian icon's only drawGuiTexture(Identifier, IIII) in renderCivilian (the arrow
+                // uses the sprite overload). / 诺亚心情图标：renderCivilian 中平民图标唯一的 drawGuiTexture(Identifier,
+                // IIII) 调用（箭头使用 sprite 重载）。
+                configName: "noa.NoaMoodRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/noa/NoaMoodRendererMixin.class",
+                handler: "sparkwitch\$noaCyanMoodIcon",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "renderCivilian(Lnet/minecraft/class_327;Lnet/minecraft/class_332;F)V",
+                atTarget: "Lnet/minecraft/class_332;method_52706(Lnet/minecraft/class_2960;IIII)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer.class",
+                providerMethod: "renderCivilian",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_332;F)V"
         ]
 ]
 
@@ -1367,6 +1381,11 @@ def entityRenderProtocolViolations = { String source, boolean redrawOwner ->
             }
         }
     }
+    // A hand-posed model built from EntityModelLoader is replaced and animated by EMF with whatever entity is mounted.
+    // 由 EntityModelLoader 构建的手动摆姿模型会被 EMF 替换，并以当前挂载的实体驱动动画。
+    if (code =~ /\bgetEntityModelLoader\s*\(/) {
+        found << "EntityModelLoader model (build a hand-posed model from its TexturedModelData)"
+    }
     def worldRender = code =~ /\bworldRenderer\s*\.render\(/
     while (worldRender.find()) {
         def before = code.substring(Math.max(0, worldRender.start() - 160), worldRender.start())
@@ -1480,8 +1499,9 @@ tasks.register("verifyArchitecture") {
                 if (!violations.isEmpty()) {
                     throw new GradleException("Entity render protocol violation in ${relative}: "
                             + violations.join("; ") + ". Draw entities again only through "
-                            + "client/render/entity/EntityRedraw (or reuse EntityModelCapture geometry), and run a "
-                            + "second world render inside SecondaryWorldPass.run; see CONTEXT.md.")
+                            + "client/render/entity/EntityRedraw (or reuse EntityModelCapture geometry), run a "
+                            + "second world render inside SecondaryWorldPass.run, and build hand-posed models from "
+                            + "their TexturedModelData; see CONTEXT.md.")
                 }
             }
         }

@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationHudLayout;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationSnapshotState;
 import dev.caecorthus.sparkwitch.client.text.HudFontOptions;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -255,6 +256,7 @@ public final class TarotDivinationHudRenderer {
             case KILLER -> "hud.sparkwitch.tarot.faction.killer";
             case NEUTRAL -> "hud.sparkwitch.tarot.faction.neutral";
             case WITCH -> "hud.sparkwitch.tarot.faction.witch";
+            case JIAHAO -> "hud.sparkwitch.tarot.faction.jiahao";
         };
     }
 
@@ -264,18 +266,22 @@ public final class TarotDivinationHudRenderer {
             case KILLER -> FactionIds.KILLER;
             case NEUTRAL -> FactionIds.NEUTRAL;
             case WITCH -> SparkWitchFactions.WITCH;
+            case JIAHAO -> SparkWitchFactions.JIAHAO;
         };
     }
 
     /**
-     * A faction's RGB from SparkFactionAPI (white when unregistered), no alpha. The HUD pips and the selector's
+     * A faction's RGB from SparkFactionAPI, no alpha. Unregistered factions read white, except Team Jiahao, which
+     * falls back to its own tuhao gold ({@link InsiderRules#TEAM_JIAHAO_COLOR}). The HUD pips and the selector's
      * section marks share it so a faction reads the same everywhere.
-     * 来自 SparkFactionAPI 的阵营 RGB（未注册时为白色），不含透明度。HUD 圆点与选择界面分区标记共用，同一阵营处处同色。
+     * 来自 SparkFactionAPI 的阵营 RGB，不含透明度。未注册的阵营为白色，嘉豪阵营除外：回退为其土豪金
+     * （{@link InsiderRules#TEAM_JIAHAO_COLOR}）。HUD 圆点与选择界面分区标记共用，同一阵营处处同色。
      */
     public static int factionColor(Identifier factionId) {
+        int fallback = SparkWitchFactions.JIAHAO.equals(factionId) ? InsiderRules.TEAM_JIAHAO_COLOR : WHITE;
         return SparkFactionApi.getFaction(factionId)
                 .map(FactionDefinition::color)
-                .orElse(WHITE) & 0xFFFFFF;
+                .orElse(fallback) & 0xFFFFFF;
     }
 
     /** One measured table: what {@link #render} draws and where. 一次测量得到的表格：绘制内容与位置。 */

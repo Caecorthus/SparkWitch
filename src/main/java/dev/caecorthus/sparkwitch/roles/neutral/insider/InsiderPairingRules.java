@@ -3,8 +3,11 @@ package dev.caecorthus.sparkwitch.roles.neutral.insider;
 /**
  * Pure bound-spawn rule: the Insider follows a drawn Corrupt Cop (D1, C1, C2). Counts are taken after Wathe assigned
  * killers, vigilantes and neutrals and before civilians; the Insider takes a would-be civilian seat, never a neutral slot.
+ * The Corrupt Cop is still drawn by Wathe's neutral pass: Team Jiahao is built with {@code dealtInWatheNeutralPool}, so
+ * it reads as NEUTRAL inside that pass only (owner D6, 2026-11-04).
  * 纯绑定生成规则：内应跟随已抽到的黑警（D1、C1、C2）。计数取自 Wathe 分配完杀手、义警与中立之后、分配平民之前；
- * 内应占用原本属于平民的位置，从不占用中立名额。
+ * 内应占用原本属于平民的位置，从不占用中立名额。黑警仍由 Wathe 中立分配抽取：嘉豪阵营设置了
+ * {@code dealtInWatheNeutralPool}，只在该分配中读作 NEUTRAL（所有者 D6，2026-11-04）。
  */
 public final class InsiderPairingRules {
     private InsiderPairingRules() {
