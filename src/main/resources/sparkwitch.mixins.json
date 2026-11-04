@@ -226,6 +226,7 @@
     "abysslistener.ScreenHandlerAbyssListenerGunMixin",
     "abysslistener.GameFunctionsAbyssListenerGunDropMixin",
     "abysslistener.PlayerMoodComponentAbyssZoneDrainMixin",
+    "noa.PlayerMoodComponentNoaMoodLockMixin",
     "riftwalker.RiftSessionPayloadGuardMixin",
     "riftwalker.RiftThrowingAxeMixin",
     "riftwalker.RiftSwapperCrushMixin",
@@ -242,7 +243,8 @@
     "usec.PlayerInventoryUsecGunMixin",
     "usec.ServerPlayerInteractionManagerUsecScopeMixin",
     "usec.NoellesUsecShieldPierceMixin",
-    "usec.GameFunctionsUsecPsychoArmourMixin"
+    "usec.GameFunctionsUsecPsychoArmourMixin",
+    "discoverer.DiscovererSprintDrainMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -1,11 +1,13 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
@@ -171,6 +173,18 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, RecruitPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(RecruitPlayerComponent::new);
+        // Athlete dash ready tick, synced to its owner only; appended last.
+        // 运动员冲刺就绪刻，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, AthleteComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(AthleteComponent::new);
+        // 城崎诺亚's paint ready tick (owner-synced) and this round's painted one-offs; appended last.
+        // 城崎诺亚的作画就绪刻（只同步给本人）与本局已画出的一次性结果；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, NoaComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(NoaComponent::new);
+        // Ragpicker search progress and ready tick, synced to its owner only; appended last.
+        // 拾荒者搜刮进度与就绪刻，只同步给本人；追加在最后。
         registry.beginRegistration(PlayerEntity.class, JunkerPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(JunkerPlayerComponent::new);

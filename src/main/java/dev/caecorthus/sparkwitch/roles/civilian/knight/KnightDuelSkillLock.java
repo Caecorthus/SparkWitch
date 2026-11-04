@@ -59,9 +59,11 @@ public final class KnightDuelSkillLock {
             // Tarot Reader pick in the selector its use_skill opened. / 塔罗师在 use_skill 打开的选择界面中的选择。
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
             Identifier.of("sparkwitch", "use_blind_attune"),
+            Identifier.of("sparkwitch", "use_noa_paint"),
             // Ragpicker corpse search (JunkerSearchC2SPacket). / 拾荒者搜刮尸体（JunkerSearchC2SPacket）。
             Identifier.of("sparkwitch", "ragpicker_search"),
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            Identifier.of("sparkwitch", "use_athlete_dash"),
             // The Knight's own pick; a non-duelist is never locked, so it always passes for them.
             // 骑士自己的选择包；非决斗者从不被锁，因此对他们始终放行。
             Identifier.of("sparkwitch", "knight_duel_target"),
