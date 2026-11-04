@@ -19,6 +19,9 @@ The Knight (`sparkwitch:knight`, 骑士, contributed in PR #169 and reworked 202
 the Vigilante slots and spends 150 coins on the shared ability key (G) to duel one living player.
 The Recruit (`sparkwitch:recruit`, 新兵, contributed in PR #176) is an ordinary civilian that takes no police slot,
 gets Wathe's knife after its first task, and may pick up one ground gun per round.
+城崎诺亚 Noa Jogasaki (`sparkwitch:noa`, contributed in PR #186 and reworked in review) is a civilian painter whose
+sanity never drains on its own and never returns from tasks, and whose shared ability key (G) paints a random reward
+from one of two tables chosen by her sanity, with a 60 s cooldown.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -1004,8 +1007,8 @@ Current build baseline:
 - `roles/civilian/recruit/`: the Recruit (`sparkwitch:recruit`, 新兵, color `0x5B862D`), contributed in PR #176; the
   PR description is the spec, every number lives in `RecruitRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
-    appearance condition) registered right before the Insider, and in the civilian block of the assassin-guess order
-    (between the Perfumer and the Pig God). Wathe's civilian pass draws it like the Fisher and the Blind; it is not a police variant
+    appearance condition) registered before Noa and the Insider, and in the civilian block of the assassin-guess order
+    (between the Perfumer and Noa). Wathe's civilian pass draws it like the Fisher and the Blind; it is not a police variant
     (`PoliceRoles`, `PoliceSlotAssignmentService.VARIANT_IDS`) and never takes a cop slot. It has no coins, shop or
     economy service, owns no witch skill (not in `isRegisteredSparkWitchRole`) and never renders in the
     `gui.sparkwitch.skills` panel.
@@ -1029,6 +1032,57 @@ Current build baseline:
   - Open (owner calls, unchanged by review): the push-off penalty applies with or without the knife (Knight
     precedent); a Last Stand victim who revives still costs sanity or the Recruit's life; the Black Raven disguise
     pool and SparkAssist have no Recruit entry yet.
+- `roles/civilian/noa/`: 城崎诺亚 Noa Jogasaki (`sparkwitch:noa`, color `0x9CC8FC`), contributed in PR #186 and
+  reworked in review (owner answers 2026-11-04); every number lives in `NoaRules`.
+  - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
+    appearance condition) registered right before the Insider, and in the civilian block of the assassin-guess order
+    (right after the Recruit). Drawn by Wathe's civilian pass, never a police slot; no witch skill (not in
+    `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel. The Black Raven disguise pool does not
+    support it. SparkTraits never gives her the Impostor trait (its Impostor role block, owner 2026-11-04).
+  - Sanity lock: `mixin/noa/PlayerMoodComponentNoaMoodLockMixin` (common config, decisions in `NoaMoodLock`) zeroes
+    only Wathe's own operands for a Noa: the ordinal-0 `Map.size()` drain count in `serverTick` and `clientTick` (minus
+    her real tasks; require/allow 2) and `serverTick`'s only `0.5F` task gain (require/allow 1), with
+    `@ModifyExpressionValue` only. Every other `setMood` still lands (Fear, items, other roles, Wathe's gun-kill
+    -0.35, Bell Echo failure), the Abyss zone's +1 pseudo task still drains her, Bell Echo and Perfumer `MOOD_DRAIN`
+    scalers multiply zero, `TaskComplete` still fires, and `mood <= -1` still kills. Her sanity value is never shown:
+    no percentage line, and painting messages name only the direction. Pinned by `NoaMoodLockContractTest`.
+  - Painting (`NoaFeatureService` registers the empty C2S `sparkwitch:use_noa_paint`, the replay formatter, economy,
+    kill rules and lifecycle): `NoaPaintService.tryUse` gates through the pure `NoaPaintRules.verdict` (ACTIVE round,
+    playing and alive, not swallowed, not Control Expert stunned, not SparkTraits role-skill blocked, ready; Fear last,
+    which sends Grand Witch's "skill blocked" line), restarts the 60 s cooldown and rolls `NoaPaintTable`: above 25%
+    sanity the high table (big dog portrait, Speed II, lose 10-50%, key, spyglass, firecracker, Wathe note), otherwise
+    the low table (knife, revolver, whiskey shield, lose 10-30%, Speed III, crowbar, regain 10-30%). Dynamic weights
+    are clamped to [0.5, 25], so none is ever zero or negative. Key, spyglass, knife, revolver and crowbar are
+    one-offs per round. Items go to the hotbar (Recruit precedent). The key is `sparkwitch:spare_key` once #189
+    registers it, else NoellesRoles' master key. The whiskey shield is NoellesRoles' own
+    `WhiskeyShieldEffect.addShieldLayer` for 400 ticks (no mood bonus). The skill replay (role id) stores outcome
+    names, item ids and amounts, formatted per viewer.
+  - State: `NoaComponent` (`sparkwitch:noa_player`, `NEVER_COPY`, appended last in the CCA list) keeps the absolute
+    paint ready tick (synced to the owner only) and the round's painted one-offs (server only); NBT keeps both across
+    a relog; `RoleAssigned` clears both and starts the 50 s opening cooldown for a drawn Noa, Wathe's `ResetPlayer`
+    (every round end) clears both. The forced-cooldown store `sparkwitch:noa_paint` (appended last in
+    `SparkWitchForcedCooldowns`) only raises it. No static per-player state.
+  - Coins and shop (`NoaEconomyService`, all gated to a living Noa in an ACTIVE round, survival, not a restricted
+    Wraith): +50 per task for a confirmed non-Impostor (`compat/SparkTraitsNoaBridge`, public facade only), +5 on
+    Wathe's 10 s passive-money ticks (`addToBalance`), two 50-coin rows restoring or spending 25% sanity (a row at the
+    end of the bar refuses for free), and `CanSeeMoney` DENY once dead or outside a running round (Saint precedent).
+  - Kills (`NoaKillWatch`, `KillPlayer.AFTER`): a Noa who kills a good player (SparkFactionAPI effective faction
+    CIVILIAN) with `wathe:knife` dies with Wathe's `shot_innocent` (non-forced, owner 2026-11-04), skipped only for a
+    confirmed Impostor; her revolver keeps Wathe's own innocent-shot punishment. Anyone except a Noa who kills within
+    10 blocks of a Noa carrying `sparkwitch:big_dog_portrait` (main inventory or off hand; a living participant, or the
+    victim herself at that moment; `SparkFactionApi.canAffectPlayer` with `sparkwitch:noa_dog`) gets Slowness IV and
+    Blindness for 5 s, a growl, and a skill replay line. The portrait is a plain, unbound item (`SparkWitchItems`,
+    creative tab), so it stays in a dead Noa's inventory and can be dropped or picked up while she lives.
+  - Deny lists: `use_noa_paint` is classified next to Blind Attune in the Control Expert stun, Knight duel, Seeker
+    session, Riftwalker session and Grand Witch Fear lists, and in SparkStrength's Taotie daze list.
+  - Client (`client/noa/`): `NoaClient` registers one confirmed-server `HudRenderCallback` drawing `NoaPaintHud`
+    (bottom-right ready/cooldown line with the Fiend Dash gates and layout, from the owner-only ready tick vs the
+    client world clock); `SparkWitchClient`'s G-key dispatch hands the real Noa's press to `NoaPaintClient` (no
+    prediction). `client/mixin/noa/NoaMoodRendererMixin` (pinned `@WrapOperation` on `renderCivilian`'s only icon
+    draw, in `watheClientMixinContracts`) swaps Wathe's mood icon for `sparkwitch:hud/noa_mood_*` while the displayed
+    sanity is >= 0.
+  - Open (owner calls): buying "spend 25%" near -75% can end in a breakdown; a Bell Echo task drains her nothing (it
+    is a Wathe task) while its failure penalty lands; SparkAssist has no Noa page yet.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation

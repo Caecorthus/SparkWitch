@@ -22,6 +22,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRules;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
@@ -104,6 +105,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
     public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
+    public static final Identifier NOA_ID = NoaRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -145,6 +147,7 @@ public final class SparkWitchRoleRegistry {
     private static Role usec;
     private static Role knight;
     private static Role recruit;
+    private static Role noa;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -400,6 +403,11 @@ public final class SparkWitchRoleRegistry {
     public static Role recruit() {
         ensureRegistered();
         return recruit;
+    }
+
+    public static Role noa() {
+        ensureRegistered();
+        return noa;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -722,13 +730,27 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .build());
-        // Registered right before the Insider (nothing may follow the Insider): an ordinary task civilian (no coins or
+        // Registered before Noa and the Insider (nothing may follow the Insider): an ordinary task civilian (no coins or
         // shop) drawn by Wathe's civilian assignment like the Fisher and the Blind, never through a police slot. Its
         // knife, gun and penalty rules live in roles/civilian/recruit.
-        // 注册在内应之前（内应之后不得再注册）：只做任务的普通平民（没有金币与商店），与钓鱼佬、盲人一样由 Wathe 平民分配
-        // 抽取，从不占用警位。刀、枪与惩罚规则位于 roles/civilian/recruit。
+        // 注册在诺亚与内应之前（内应之后不得再注册）：只做任务的普通平民（没有金币与商店），与钓鱼佬、盲人一样由 Wathe 平民
+        // 分配抽取，从不占用警位。刀、枪与惩罚规则位于 roles/civilian/recruit。
         recruit = SparkFactionApi.registerRole(FactionRoleDefinition.builder(RECRUIT_ID, FactionIds.CIVILIAN)
                 .color(RecruitRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // Registered right before the Insider (nothing may follow the Insider): 城崎诺亚, a task civilian drawn by Wathe's
+        // civilian assignment, never through a police slot. REAL mood is required: her sanity picks the painting table
+        // and a -100% breakdown still kills her. Her painting, coins, shop and kill rules live in roles/civilian/noa.
+        // Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // 注册在内应之前（内应之后不得再注册）：城崎诺亚，由 Wathe 平民分配抽取、从不占用警位的任务平民。必须是真实理智：
+        // 她的理智决定作画结果表，-100% 的精神崩溃照样会杀死她。作画、金币、商店与击杀规则位于 roles/civilian/noa。
+        // 不是魔女技能职业：不加入 isRegisteredSparkWitchRole。
+        noa = SparkFactionApi.registerRole(FactionRoleDefinition.builder(NOA_ID, FactionIds.CIVILIAN)
+                .color(NoaRules.COLOR)
                 .moodType(Role.MoodType.REAL)
                 .maxSprintTime(GameConstants.getInTicks(0, 10))
                 .canSeeTime(false)
@@ -785,9 +807,10 @@ public final class SparkWitchRoleRegistry {
                 orthopedist,
                 saint,
                 perfumer,
-                // The Recruit joins the civilian block; the promotion identities stay the tail.
-                // 新兵加入平民段；晋升身份始终位于末尾。
+                // The Recruit and Noa join the civilian block; the promotion identities stay the tail.
+                // 新兵与诺亚加入平民段；晋升身份始终位于末尾。
                 recruit,
+                noa,
                 pigGod,
                 tarotReader,
                 fisher,

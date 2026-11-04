@@ -80,6 +80,7 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.usecFmjRound(),
                                     SparkWitchItems.usecApRound(),
                                     SparkWitchItems.usecSuppressor(),
+                                    SparkWitchItems.bigDogPortrait(),
                                     // Black Raven (civilian police) / 黑羽鸦（平民警察）
                                     SparkWitchItems.featherBlade(),
                                     SparkWitchItems.blackRavenLedger(),

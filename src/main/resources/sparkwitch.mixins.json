@@ -225,6 +225,7 @@
     "abysslistener.ScreenHandlerAbyssListenerGunMixin",
     "abysslistener.GameFunctionsAbyssListenerGunDropMixin",
     "abysslistener.PlayerMoodComponentAbyssZoneDrainMixin",
+    "noa.PlayerMoodComponentNoaMoodLockMixin",
     "riftwalker.RiftSessionPayloadGuardMixin",
     "riftwalker.RiftThrowingAxeMixin",
     "riftwalker.RiftSwapperCrushMixin",
