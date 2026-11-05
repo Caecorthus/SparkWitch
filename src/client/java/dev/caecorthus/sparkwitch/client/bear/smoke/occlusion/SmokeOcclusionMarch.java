@@ -26,13 +26,16 @@ import java.util.List;
  * hide everything from their entry on (fail closed, a few uniforms). Zero GPU work without smoke in view. It ignores
  * world depth, so it runs unchanged under an Iris shader pack (Iris 1.8.8 still draws entity outlines into the vanilla
  * outline target, composited after the pack's final pass). A GL failure is logged once and reported through
- * {@link #failedRect()} so the outline mask can fail closed.
+ * {@link #failedRect()} so the outline mask can fail closed. The outline mask passes the screen regions its outlines
+ * can touch ({@link SmokeOutlineRegions}), so it marches only the texels under them
+ * ({@link #prepare(Coverage, int, int, List)}).
  * {@link SmokeOcclusion} 的实现（仅渲染线程）：挑出视野内的烟雾浓度体，求出它们可能触及的屏幕矩形，只在该矩形内以
  * 1/{@link SmokeOcclusionMath#MARCH_DIVISOR} 分辨率步进写入 {@code GL_RGBA16F} 检查点纹理，其余纹素为
  * {@link SmokeOcclusion#NEVER}。采样视野内最近的 {@link SmokeOcclusionMath#MAX_VOLUMES} 团烟；其余的作为封口盒传入，从其入口
  * 起遮住一切（失败即遮挡，只需几个 uniform）。视野内无烟时不做任何 GPU 工作。它不使用世界深度，因此在 Iris 光影包下照常运行
  * （Iris 1.8.8 仍把实体描边画进原版描边目标，并在光影包最终处理之后合成）。GL 失败只记录一次，并通过 {@link #failedRect()}
- * 报告，使描边遮罩失败即遮挡。
+ * 报告，使描边遮罩失败即遮挡。描边遮罩会传入其描边可能触及的屏幕区域（{@link SmokeOutlineRegions}），因此只步进这些区域下的
+ * 纹素（{@link #prepare(Coverage, int, int, List)}）。
  */
 public final class SmokeOcclusionMarch {
     /** One volume picked for a pass, camera-relative. / 本次渲染选中的一个浓度体（相机相对坐标）。 */
@@ -156,12 +159,28 @@ public final class SmokeOcclusionMarch {
         if (coverage == null) {
             return false;
         }
+        return prepare(coverage, width, height, null);
+    }
+
+    /**
+     * Marches {@code coverage} (computed for this same pass) into the occlusion texture, but only the texels that
+     * pass-pixel {@code regions} read; null marches the whole smoke rectangle ({@link SmokeOcclusion#prepare}). With
+     * regions, texels outside them stay {@link SmokeOcclusion#NEVER} even inside the smoke, so only a caller that
+     * reads nothing else (the outline mask) may pass them.
+     * 把 {@code coverage}（为同一次渲染求出）步进写入遮挡纹理，但只写渲染目标像素矩形 {@code regions} 会读取的纹素；null 时
+     * 步进整个烟雾矩形（{@link SmokeOcclusion#prepare}）。给出区域时，区域外的纹素即使在烟中也保持
+     * {@link SmokeOcclusion#NEVER}，因此只有不读取其他位置的调用方（描边遮罩）才能传入区域。
+     */
+    static boolean prepare(Coverage coverage, int width, int height, List<int[]> regions) {
+        RenderSystem.assertOnRenderThread();
+        ready = false;
+        failedRect = null;
         if (broken) {
             failedRect = coverage.pixelRect();
             return false;
         }
         try {
-            march(coverage, width, height);
+            march(coverage, regions, width, height);
         } catch (RuntimeException exception) {
             broken = true;
             failedRect = coverage.pixelRect();
@@ -177,7 +196,7 @@ public final class SmokeOcclusionMarch {
         return true;
     }
 
-    private static void march(Coverage coverage, int width, int height) {
+    private static void march(Coverage coverage, List<int[]> regions, int width, int height) {
         int marchWidth = SmokeOcclusionMath.marchSize(width);
         int marchHeight = SmokeOcclusionMath.marchSize(height);
         List<Picked> volumes = coverage.volumes();
@@ -195,7 +214,6 @@ public final class SmokeOcclusionMarch {
             GlStateManager._viewport(0, 0, marchWidth, marchHeight);
             float never = SmokeOcclusion.NEVER;
             GL30.glClearBufferfv(GL11.GL_COLOR, 0, new float[]{never, never, never, never});
-            SmokeGlState.scissor(SmokeOcclusionMath.toMarchRect(coverage.pixelRect(), marchWidth, marchHeight));
 
             program.use();
             float[] mins = new float[SmokeOcclusionMath.MAX_VOLUMES * 3];
@@ -239,7 +257,15 @@ public final class SmokeOcclusionMarch {
             program.setVec3Array("SealedMax", sealedMax);
             program.setFloatArray("Checkpoints", CHECKPOINTS);
             program.setFloat("Never", SmokeOcclusion.NEVER);
-            SmokeGlProgram.drawFullscreenTriangle();
+            if (regions == null) {
+                SmokeGlState.scissor(SmokeOcclusionMath.toMarchRect(coverage.pixelRect(), marchWidth, marchHeight));
+                SmokeGlProgram.drawFullscreenTriangle();
+            } else {
+                for (int[] region : regions) {
+                    SmokeGlState.scissor(SmokeOcclusionMath.toMarchRect(region, marchWidth, marchHeight));
+                    SmokeGlProgram.drawFullscreenTriangle();
+                }
+            }
         } finally {
             state.restore();
         }

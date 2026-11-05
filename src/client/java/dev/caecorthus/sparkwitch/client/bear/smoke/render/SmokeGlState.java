@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
  */
 final class SmokeGlState {
     /** Texture units the smoke programs bind (0 .. UNITS-1). / 烟雾程序绑定的纹理单元（0 .. UNITS-1）。 */
-    static final int UNITS = 10;
+    static final int UNITS = 14;
 
     private int program;
     private int vertexArray;

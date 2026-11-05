@@ -4,12 +4,14 @@
 // Writes premultiplied in-scattered colour + transmittance, and the eye distance of the surface this texel marched to
 // (a checkerboard of the nearest and farthest of its 2x2 full-resolution depths) for the depth-aware upsample.
 // Lighting: lightmap ambient (block light indoors, sky outside, dark at night) with sky occlusion, plus single
-// scattering of the sun/moon with a 3-tap shadow march. Every #define comes from SmokeMarchRules (injected by
+// scattering of the sun/moon with a 3-tap shadow march. Steps that provably find no smoke (SmokeOccupancy) take the
+// empty branch without any noise or density taps. Every #define comes from SmokeMarchRules (injected by
 // SmokeProgram); the Java side mirrors the step, erosion and ray-box rules and its tests pin them.
 // BEAR 烟雾第 1 步（共 2 步）：半分辨率光线步进，穿过至多 MAX_CLOUDS 个浓度体（SmokeVolumes）。输出预乘的散射颜色与
 // 透射率，以及该纹素步进终点表面的视距（其 2x2 全分辨率深度按棋盘格交替取最近/最远），供深度感知放大使用。
-// 光照：光照图环境光（室内为方块光、室外为天空光、夜晚变暗）加天空遮蔽，以及日月光单次散射与 3 次阴影步进。
-// 所有 #define 都来自 SmokeMarchRules（由 SmokeProgram 注入）；Java 端镜像步长、侵蚀与光线-盒子规则并由测试固定。
+// 光照：光照图环境光（室内为方块光、室外为天空光、夜晚变暗）加天空遮蔽，以及日月光单次散射与 3 次阴影步进。可证明
+// 找不到烟的步（SmokeOccupancy）不做任何噪声或浓度采样，直接走空样本分支。所有 #define 都来自 SmokeMarchRules
+// （由 SmokeProgram 注入）；Java 端镜像步长、侵蚀与光线-盒子规则并由测试固定。
 
 uniform sampler2D SceneDepth;
 uniform sampler3D Noise;
@@ -21,6 +23,10 @@ uniform sampler3D Volume4;
 uniform sampler3D Volume5;
 uniform sampler3D Volume6;
 uniform sampler3D Volume7;
+uniform sampler3D Occupancy0;
+uniform sampler3D Occupancy1;
+uniform sampler3D Occupancy2;
+uniform sampler3D Occupancy3;
 
 // Clip space -> camera-relative world space (inverse of projection * view rotation of this world render).
 // 裁剪空间 -> 相对相机的世界空间（本次世界渲染的投影 * 视角旋转之逆）。
@@ -31,6 +37,11 @@ uniform int CloudCount;
 uniform vec3 BoxMin[MAX_CLOUDS];
 uniform vec3 BoxMax[MAX_CLOUDS];
 uniform vec3 BoxInvSize[MAX_CLOUDS];
+// Empty-space textures (SmokeOccupancy): bit i set when cloud i < OCCUPANCY_CLOUDS has one; camera-relative bounds.
+// 空区纹理（SmokeOccupancy）：烟团 i < OCCUPANCY_CLOUDS 有纹理时第 i 位为 1；相对相机的边界。
+uniform int OccupancyMask;
+uniform vec3 OccupancyMin[OCCUPANCY_CLOUDS];
+uniform vec3 OccupancyInvSize[OCCUPANCY_CLOUDS];
 // rgb: albedo times the ambient world light at each cloud (lightmap colour, sampled on the CPU); a: how much of the
 // cloud sees the sky (0 indoors), which gates the direct sun/moon light.
 // rgb：反照率乘以各烟团处的环境世界光照（CPU 采样的光照图颜色）；a：烟团见天的程度（室内为 0），决定是否有日月直射光。
@@ -59,8 +70,10 @@ uniform int FogShape;
 out vec4 OutSmoke;
 out float OutDepth;
 
-float tNear[MAX_CLOUDS];
-float tFar[MAX_CLOUDS];
+// Only CLOUD_SLOTS (>= CloudCount) clouds are looped over; SmokeRenderer picks the smallest compiled variant.
+// 只循环 CLOUD_SLOTS（>= CloudCount）个烟团；SmokeRenderer 选用能容纳的最小编译变体。
+float tNear[CLOUD_SLOTS];
+float tFar[CLOUD_SLOTS];
 
 float cloudSample(int i, vec3 p) {
     vec3 uvw = (p - BoxMin[i]) * BoxInvSize[i];
@@ -76,6 +89,34 @@ float cloudSample(int i, vec3 p) {
     }
 }
 
+float occupancySample(int i, vec3 p) {
+    vec3 uvw = (p - OccupancyMin[i]) * OccupancyInvSize[i];
+    switch (i) {
+        case 0: return textureLod(Occupancy0, uvw, 0.0).r;
+        case 1: return textureLod(Occupancy1, uvw, 0.0).r;
+        case 2: return textureLod(Occupancy2, uvw, 0.0).r;
+        default: return textureLod(Occupancy3, uvw, 0.0).r;
+    }
+}
+
+// True when no cloud whose ray interval holds t has a present cell within reach of p's warped and mirrored taps, so
+// both read exactly 0 and the sample is empty. / 光线区间包含 t 的烟团在 p 的扭曲与镜像采样可及范围内都没有有烟格时为
+// true：两次采样都恰好为 0，该样本为空。
+bool provablyEmpty(vec3 p, float t) {
+    for (int i = 0; i < CLOUD_SLOTS; i++) {
+        if (i >= CloudCount) {
+            break;
+        }
+        if (t < tNear[i] || t > tFar[i]) {
+            continue;
+        }
+        if (i >= OCCUPANCY_CLOUDS || (OccupancyMask & (1 << i)) == 0 || occupancySample(i, p) > 0.0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Raw density at p from the clouds whose ray interval holds t, plus the density-weighted cloud light and the cloud
 // that holds most of it (the lighting taps sample only that one).
 // p 处的原始浓度（只取光线区间包含 t 的烟团），以及按浓度加权的烟团光照与贡献最大的烟团（光照采样只取它）。
@@ -84,7 +125,7 @@ float densityOnRay(vec3 p, float t, out vec4 light, out int dominant) {
     float best = -1.0;
     dominant = 0;
     light = vec4(0.0);
-    for (int i = 0; i < MAX_CLOUDS; i++) {
+    for (int i = 0; i < CLOUD_SLOTS; i++) {
         if (i >= CloudCount) {
             break;
         }
@@ -179,7 +220,7 @@ void main() {
     // 光线-盒子板块求交（镜像 SmokeMarchRules.rayBox），按扭曲幅度外扩，使向外的烟丝也能被步进到。
     float tStart = tMax;
     float tEnd = 0.0;
-    for (int i = 0; i < MAX_CLOUDS; i++) {
+    for (int i = 0; i < CLOUD_SLOTS; i++) {
         // Sentinels: a missed box never holds t and never ends a gap. / 哨兵值：未命中的盒子既不包含 t 也不结束空隙。
         tNear[i] = 1.0e9;
         tFar[i] = -1.0;
@@ -217,7 +258,7 @@ void main() {
         // Jump over the gaps between boxes. / 跳过盒子之间的空隙。
         bool inside = false;
         float gapEnd = tEnd;
-        for (int i = 0; i < MAX_CLOUDS; i++) {
+        for (int i = 0; i < CLOUD_SLOTS; i++) {
             if (i >= CloudCount) {
                 break;
             }
@@ -239,6 +280,14 @@ void main() {
         a = b;
         vec3 p = origin + dir * t;
         bool visible = transmittance > VISIBLE_TRANSMITTANCE;
+        // Only tried at the first step and after an empty sample: inside the smoke it would only add a tap.
+        // 只在第一步与空样本之后尝试：在烟内部它只会多一次采样。
+        if ((empty || s == 0) && provablyEmpty(p, t)) {
+            // Same branch as a sample that reads no density below, without the taps.
+            // 与下方读不到浓度的样本走同一分支，只是不采样。
+            empty = true;
+            continue;
+        }
 
         float lod = log2(max(t * NoiseLodScale, 1.0));
         // Big billows (thick and thin regions), advected (SmokeMotion). / 大团块（浓淡区域），随平流移动（SmokeMotion）。

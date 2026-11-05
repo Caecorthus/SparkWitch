@@ -7,10 +7,14 @@
 // depth takes the ray's whole optical depth. The optical depth at that distance is decoded from the checkpoint texel
 // (SmokeOcclusion layout) and alpha falls linearly from 1 at the fade start to 0 at the hidden depth, interpolated
 // bilinearly in visibility space across the occlusion texels.
+// With IN_PLACE (bounded outline regions, SmokeOutlineMask) the outline colour is not read: the pass writes only the
+// visibility as alpha and blending (dst.rgb kept, dst.a * src.a) scales the target in place, so no copy is needed.
 // 后处理后实体描边目标的逐像素烟雾遮罩（SmokeOutlineMask）。每个描边像素取其剪影的视距：像素本身在 sobel/模糊之前捕获的
 // 深度；对于被后处理扩散到身体外侧的边缘像素，取 SEARCH_RADIUS 内最近一圈有剪影的切比雪夫环，并取该环中最远的深度
 // （失败即遮挡）。附近没有剪影视为无限远，因此没有深度的描边承受整条视线的光学厚度。该视距处的光学厚度从检查点纹素解出
 // （SmokeOcclusion 布局），alpha 从开始变淡处的 1 线性降到消失厚度处的 0，在遮挡纹素之间按可见度做双线性插值。
+// 定义 IN_PLACE 时（描边区域有界，SmokeOutlineMask）不读取描边颜色：只把可见度写为 alpha，由混合（保留 dst.rgb，
+// dst.a * src.a）原地缩放目标，因此无需拷贝。
 
 #define SEARCH_RADIUS 3
 #define CHECKPOINTS 4
@@ -88,10 +92,12 @@ float occlusionAt(ivec2 texel, float distance) {
 
 void main() {
     ivec2 pixel = ivec2(gl_FragCoord.xy);
+#ifndef IN_PLACE
     vec4 color = texelFetch(OutlineColor, pixel, 0);
     if (color.a <= 0.0) {
         discard;
     }
+#endif
     vec2 uv = gl_FragCoord.xy / PassSize;
     float depth = silhouetteDepth(pixel);
     float distance = 1.0e30;
@@ -108,5 +114,9 @@ void main() {
     if (v >= 1.0) {
         discard;
     }
+#ifdef IN_PLACE
+    fragColor = vec4(0.0, 0.0, 0.0, v);
+#else
     fragColor = vec4(color.rgb, color.a * v);
+#endif
 }

@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeClientState;
 import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeVolumes;
 import dev.caecorthus.sparkwitch.client.blind.render.BlindShaderPackCheck;
 import dev.caecorthus.sparkwitch.client.render.entity.SecondaryWorldPass;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.smoke.SmokeCloudSnapshot;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
@@ -29,6 +30,7 @@ import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The visible BEAR smoke: a GPU ray march of the {@link SmokeVolumes} density volumes, drawn by every
@@ -48,6 +50,9 @@ import java.util.List;
  *   world target's colour, compared against the final depth (main in Fast/Fancy, the translucent target in
  *   Fabulous!, whose composite clears main).</li>
  * </ol>
+ * Cost controls that leave the result unchanged: the march is compiled per cloud-slot count
+ * ({@link SmokeMarchRules#CLOUD_SLOT_VARIANTS}), so a one-cloud view does not loop over eight, and steps that provably
+ * read no density skip their noise and density taps ({@link SmokeOccupancy}).
  * Depth textures are only ever sampled through framebuffers that do not attach them, so there is no feedback loop
  * and no depth copy. Under an Iris shader pack the pack's final pass would overwrite the world target, so the pass
  * waits for {@link #renderAfterShaderPack} ({@code shaderpack.SmokeShaderPackBridge}, right after that final pass).
@@ -63,9 +68,11 @@ import java.util.List;
  * {@code WorldRenderEvents.LAST}，因为 Iris 把实体绘制推迟到半透明切换之后。3）{@link #renderWorldPass} 于
  * {@code WorldRenderEvents.LAST}（半透明地形、粒子、天气与 Fabulous! 合成之后，第一人称手部之前）：按深度感知、去颗粒的方式
  * 放大并混合到世界目标颜色上，对比的是最终深度（Fast/Fancy 用主深度，Fabulous! 用半透明目标的深度，因为其合成会清掉主深度）。
- * 深度纹理只经不挂载它们的帧缓冲采样，因此没有反馈回路也无需拷贝深度。开着 Iris 光影包时光影包的最终处理会覆盖世界目标，
- * 因此本次渲染改由 {@link #renderAfterShaderPack}（{@code shaderpack.SmokeShaderPackBridge}，紧接最终处理之后）完成。各步骤改动的
- * GL 状态全部保存并恢复（{@link SmokeGlState}）。失败时记录一次日志、释放全部资源，{@link #RETRY_NANOS} 后重试。
+ * 不改变结果的开销控制：步进按烟团槽数分别编译（{@link SmokeMarchRules#CLOUD_SLOT_VARIANTS}），只有一团烟的画面不必循环
+ * 8 次；可证明读不到浓度的步省去噪声与浓度采样（{@link SmokeOccupancy}）。深度纹理只经不挂载它们的帧缓冲采样，因此没有
+ * 反馈回路也无需拷贝深度。开着 Iris 光影包时光影包的最终处理会覆盖世界目标，因此本次渲染改由 {@link #renderAfterShaderPack}
+ * （{@code shaderpack.SmokeShaderPackBridge}，紧接最终处理之后）完成。各步骤改动的 GL 状态全部保存并恢复
+ * （{@link SmokeGlState}）。失败时记录一次日志、释放全部资源，{@link #RETRY_NANOS} 后重试。
  * 纯客户端展示；只读取 {@link SmokeClientState}。
  */
 public final class SmokeRenderer {
@@ -77,6 +84,7 @@ public final class SmokeRenderer {
     private static final int UNIT_DEPTH = 0;
     private static final int UNIT_NOISE = 1;
     private static final int UNIT_FIRST_VOLUME = 2;
+    private static final int UNIT_FIRST_OCCUPANCY = UNIT_FIRST_VOLUME + SmokeMarchRules.MAX_CLOUDS;
     private static final int UNIT_SMOKE_COLOR = 1;
     private static final int UNIT_SMOKE_DEPTH = 2;
 
@@ -90,6 +98,9 @@ public final class SmokeRenderer {
     private static final float[] BOX_MAX = new float[3 * SmokeMarchRules.MAX_CLOUDS];
     private static final float[] BOX_INV_SIZE = new float[3 * SmokeMarchRules.MAX_CLOUDS];
     private static final float[] CLOUD_LIGHT = new float[4 * SmokeMarchRules.MAX_CLOUDS];
+    private static final float[] OCCUPANCY_MIN = new float[3 * SmokeMarchRules.OCCUPANCY_CLOUDS];
+    private static final float[] OCCUPANCY_INV_SIZE = new float[3 * SmokeMarchRules.OCCUPANCY_CLOUDS];
+    private static final int[] OCCUPANCY_TEXTURES = new int[SmokeMarchRules.OCCUPANCY_CLOUDS];
     private static final float[] NOISE_OFFSETS = new float[9];
     private static final float[] SKY_LIGHT = new float[6];
     private static final float[] SKY_TINT = new float[3];
@@ -98,6 +109,9 @@ public final class SmokeRenderer {
     private static final int[] LOW_RECT = new int[4];
     @Nullable
     private static FloatBuffer matrixBuffer;
+    /** March programs per {@link SmokeMarchRules#CLOUD_SLOT_VARIANTS}, compiled on first use. / 各烟团槽数的步进程序，首次使用时编译。 */
+    private static final SmokeProgram[] MARCH_VARIANTS = new SmokeProgram[SmokeMarchRules.CLOUD_SLOT_VARIANTS.length];
+    /** The variant of the current march. / 本次步进所用的变体。 */
     @Nullable
     private static SmokeProgram march;
     @Nullable
@@ -333,7 +347,7 @@ public final class SmokeRenderer {
         }
         GL_STATE.save();
         try {
-            ensurePrograms(client.getResourceManager());
+            ensurePrograms(client.getResourceManager(), SmokeMarchRules.cloudSlotVariant(SELECTED.size()));
             SmokeViewTargets targets = TARGETS[passSlot];
             targets.ensureLow(width, height);
             targetsHeld = true;
@@ -362,10 +376,13 @@ public final class SmokeRenderer {
 
     private static void releaseAll() {
         releaseTargets();
-        if (march != null) {
-            march.delete();
-            march = null;
+        for (int i = 0; i < MARCH_VARIANTS.length; i++) {
+            if (MARCH_VARIANTS[i] != null) {
+                MARCH_VARIANTS[i].delete();
+                MARCH_VARIANTS[i] = null;
+            }
         }
+        march = null;
         if (composite != null) {
             composite.delete();
             composite = null;
@@ -379,6 +396,7 @@ public final class SmokeRenderer {
             matrixBuffer = null;
         }
         SmokeNoiseTexture.release();
+        SmokeOccupancy.release();
         SmokeCloudLighting.clear();
         passActive = false;
         passContext = null;
@@ -452,6 +470,9 @@ public final class SmokeRenderer {
             BOX_INV_SIZE[i * 3] = 1.0F / (maxX - minX);
             BOX_INV_SIZE[i * 3 + 1] = 1.0F / (maxY - minY);
             BOX_INV_SIZE[i * 3 + 2] = 1.0F / (maxZ - minZ);
+            if (i < SmokeMarchRules.OCCUPANCY_CLOUDS) {
+                occupancyBox(volume, camera, i);
+            }
             SmokeCloudLighting.write(world, context.lightmapTextureManager(), volume.cloudId(), CLOUD_LIGHT, i * 4);
         }
 
@@ -471,6 +492,14 @@ public final class SmokeRenderer {
         for (int i = 0; i < SmokeMarchRules.MAX_CLOUDS; i++) {
             bind(UNIT_FIRST_VOLUME + i, GL12.GL_TEXTURE_3D, i < count ? SELECTED.get(i).texture() : 0);
         }
+        int occupancyMask = 0;
+        for (int i = 0; i < SmokeMarchRules.OCCUPANCY_CLOUDS; i++) {
+            int texture = i < count ? OCCUPANCY_TEXTURES[i] : 0;
+            bind(UNIT_FIRST_OCCUPANCY + i, GL12.GL_TEXTURE_3D, texture);
+            if (texture != 0) {
+                occupancyMask |= 1 << i;
+            }
+        }
 
         INVERSE_VIEW_PROJECTION.set(VIEW_PROJECTION).invert();
         matrix(program.uniform("InvViewProj"), INVERSE_VIEW_PROJECTION);
@@ -480,6 +509,9 @@ public final class SmokeRenderer {
         GL20.glUniform3fv(program.uniform("BoxMax"), BOX_MAX);
         GL20.glUniform3fv(program.uniform("BoxInvSize"), BOX_INV_SIZE);
         GL20.glUniform4fv(program.uniform("CloudLight"), CLOUD_LIGHT);
+        GL20.glUniform1i(program.uniform("OccupancyMask"), occupancyMask);
+        GL20.glUniform3fv(program.uniform("OccupancyMin"), OCCUPANCY_MIN);
+        GL20.glUniform3fv(program.uniform("OccupancyInvSize"), OCCUPANCY_INV_SIZE);
         float tickDelta = context.tickCounter().getTickDelta(false);
         SmokeSkyLight.compute(world.getSkyAngle(tickDelta), world.getRainGradient(tickDelta), world.getMoonSize(),
                 SKY_LIGHT);
@@ -514,6 +546,25 @@ public final class SmokeRenderer {
         GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
     }
 
+    /**
+     * Empty-space texture of selected cloud {@code slot} and its camera-relative box (the volume's, widened by
+     * {@link SmokeOccupancy#EXTENSION} cells). / 选中烟团 {@code slot} 的空区纹理及其相对相机的盒子（浓度体盒子外扩
+     * {@link SmokeOccupancy#EXTENSION} 格）。
+     */
+    private static void occupancyBox(SmokeVolumes.Volume volume, Vec3d camera, int slot) {
+        OCCUPANCY_TEXTURES[slot] = SmokeOccupancy.texture(volume);
+        double pad = SmokeOccupancy.EXTENSION * (double) SmokeCloudSnapshot.CELL_SIZE;
+        double minX = volume.minX() - pad;
+        double minY = volume.minY() - pad;
+        double minZ = volume.minZ() - pad;
+        OCCUPANCY_MIN[slot * 3] = (float) (minX - camera.x);
+        OCCUPANCY_MIN[slot * 3 + 1] = (float) (minY - camera.y);
+        OCCUPANCY_MIN[slot * 3 + 2] = (float) (minZ - camera.z);
+        OCCUPANCY_INV_SIZE[slot * 3] = (float) (1.0 / (volume.maxX() + pad - minX));
+        OCCUPANCY_INV_SIZE[slot * 3 + 1] = (float) (1.0 / (volume.maxY() + pad - minY));
+        OCCUPANCY_INV_SIZE[slot * 3 + 2] = (float) (1.0 / (volume.maxZ() + pad - minZ));
+    }
+
     private static void compositePass(SmokeViewTargets targets, int colorTexture, int depthTexture,
                                       int width, int height) {
         SmokeProgram program = composite;
@@ -537,17 +588,21 @@ public final class SmokeRenderer {
         GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
     }
 
-    private static void ensurePrograms(ResourceManager resources) throws IOException {
-        if (march != null && composite != null) {
-            return;
-        }
+    private static void ensurePrograms(ResourceManager resources, int variant) throws IOException {
+        march = MARCH_VARIANTS[variant];
         if (march == null) {
-            march = SmokeProgram.load(resources, "fullscreen.vsh", "march.fsh", "OutSmoke", "OutDepth");
+            march = SmokeProgram.load(resources, "fullscreen.vsh", "march.fsh",
+                    Map.of("CLOUD_SLOTS", Integer.toString(SmokeMarchRules.CLOUD_SLOT_VARIANTS[variant])),
+                    "OutSmoke", "OutDepth");
+            MARCH_VARIANTS[variant] = march;
             GL20.glUseProgram(march.id());
             march.sampler("SceneDepth", UNIT_DEPTH);
             march.sampler("Noise", UNIT_NOISE);
             for (int i = 0; i < SmokeMarchRules.MAX_CLOUDS; i++) {
                 march.sampler("Volume" + i, UNIT_FIRST_VOLUME + i);
+            }
+            for (int i = 0; i < SmokeMarchRules.OCCUPANCY_CLOUDS; i++) {
+                march.sampler("Occupancy" + i, UNIT_FIRST_OCCUPANCY + i);
             }
         }
         if (composite == null) {
