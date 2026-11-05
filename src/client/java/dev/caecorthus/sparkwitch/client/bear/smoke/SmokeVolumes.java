@@ -125,6 +125,21 @@ public final class SmokeVolumes {
         return (float) (sum * EXTINCTION_PER_BLOCK);
     }
 
+    /**
+     * CPU density (0..1) of texel {@code (x, y, z)} of {@code volume} (border texels included; they are 0) from the last
+     * {@link #prepare}; 0 when the volume is gone or the texel is out of range. Used by the shader-pack billboard
+     * fallback, which places one puff per texel.
+     * {@code volume} 第 {@code (x, y, z)} 个纹素的 CPU 浓度（0..1，含外圈纹素，其值为 0），取最近一次 {@link #prepare}；浓度体已不存在
+     * 或纹素越界时为 0。供光影包公告板兜底使用，每个纹素放一个烟团。
+     */
+    public static float texelDensity(Volume volume, int x, int y, int z) {
+        Entry entry = ENTRIES.get(volume.cloudId());
+        if (entry == null || x < 0 || y < 0 || z < 0 || x >= entry.sizeX || y >= entry.sizeY || z >= entry.sizeZ) {
+            return 0.0F;
+        }
+        return (entry.densities[x + entry.sizeX * (y + entry.sizeY * z)] & 0xFF) / 255.0F;
+    }
+
     private static double[] clipToBox(double x0, double y0, double z0, double dx, double dy, double dz, Volume v) {
         double tMin = 0.0;
         double tMax = 1.0;

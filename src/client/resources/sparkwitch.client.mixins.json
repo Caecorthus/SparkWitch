@@ -219,7 +219,9 @@
     "natsume.NatsumeMoodRendererMixin",
     "bear.SmokeOutlineWorldRendererMixin",
     "bear.SmokeOutlineDepthMixin",
-    "bear.SmokeRoleNameRaycastMixin"
+    "bear.SmokeRoleNameRaycastMixin",
+    "bear.SmokeIrisFinalPassMixin",
+    "bear.SmokeOutlineVetoMixin"
   ],
   "injectors": {
     "defaultRequire": 1

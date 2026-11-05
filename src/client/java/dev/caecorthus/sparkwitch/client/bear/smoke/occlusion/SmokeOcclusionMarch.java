@@ -6,7 +6,6 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeClientState;
 import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeOcclusion;
 import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeVolumes;
-import dev.doctor4t.wathe.compat.IrisHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.world.ClientWorld;
@@ -24,16 +23,16 @@ import java.util.List;
  * rectangle they can touch, and ray-marches only that rectangle into a {@code GL_RGBA16F} checkpoint texture at
  * 1/{@link SmokeOcclusionMath#MARCH_DIVISOR} resolution; every other texel is {@link SmokeOcclusion#NEVER}. The nearest
  * {@link SmokeOcclusionMath#MAX_VOLUMES} clouds in view are sampled; any further ones are passed as sealed boxes that
- * hide everything from their entry on (fail closed, a few uniforms). Zero GPU work without smoke in view. Under an Iris
- * shader pack it stands down (logged once): a pack draws glowing entities through its own G-buffers, which a later
- * package handles. A GL failure is logged once and reported through {@link #failedRect()} so the outline mask can fail
- * closed.
+ * hide everything from their entry on (fail closed, a few uniforms). Zero GPU work without smoke in view. It ignores
+ * world depth, so it runs unchanged under an Iris shader pack (Iris 1.8.8 still draws entity outlines into the vanilla
+ * outline target, composited after the pack's final pass). A GL failure is logged once and reported through
+ * {@link #failedRect()} so the outline mask can fail closed.
  * {@link SmokeOcclusion} 的实现（仅渲染线程）：挑出视野内的烟雾浓度体，求出它们可能触及的屏幕矩形，只在该矩形内以
  * 1/{@link SmokeOcclusionMath#MARCH_DIVISOR} 分辨率步进写入 {@code GL_RGBA16F} 检查点纹理，其余纹素为
  * {@link SmokeOcclusion#NEVER}。采样视野内最近的 {@link SmokeOcclusionMath#MAX_VOLUMES} 团烟；其余的作为封口盒传入，从其入口
- * 起遮住一切（失败即遮挡，只需几个 uniform）。视野内无烟时不做任何 GPU 工作。使用 Iris 光影包时停用（只记录一次日志）：
- * 光影包用自己的 G 缓冲绘制发光实体，由后续工作包处理。GL 失败只记录一次，并通过 {@link #failedRect()} 报告，使描边遮罩
- * 失败即遮挡。
+ * 起遮住一切（失败即遮挡，只需几个 uniform）。视野内无烟时不做任何 GPU 工作。它不使用世界深度，因此在 Iris 光影包下照常运行
+ * （Iris 1.8.8 仍把实体描边画进原版描边目标，并在光影包最终处理之后合成）。GL 失败只记录一次，并通过 {@link #failedRect()}
+ * 报告，使描边遮罩失败即遮挡。
  */
 public final class SmokeOcclusionMarch {
     /** One volume picked for a pass, camera-relative. / 本次渲染选中的一个浓度体（相机相对坐标）。 */
@@ -50,8 +49,6 @@ public final class SmokeOcclusionMarch {
 
     private static SmokeGlProgram program;
     private static boolean broken;
-    private static boolean irisLogged;
-    private static boolean irisBroken;
     /**
      * Two targets, so the main view and the scope lens (different sizes, same frame) never reallocate each other's.
      * 两个目标，使主画面与瞄具镜内（同一帧、尺寸不同）不会互相触发重新分配。
@@ -81,9 +78,9 @@ public final class SmokeOcclusionMarch {
     }
 
     /**
-     * CPU-only: which volumes are in view of this pass and where on screen, or null when none (also under an Iris
-     * shader pack or without a world). Refreshes {@link SmokeVolumes} for the tick.
-     * 仅 CPU：本次渲染视野内有哪些浓度体、在屏幕何处；没有时（或使用 Iris 光影包、没有世界时）返回 null。会为本 tick
+     * CPU-only: which volumes are in view of this pass and where on screen, or null when none (also without a world).
+     * Refreshes {@link SmokeVolumes} for the tick.
+     * 仅 CPU：本次渲染视野内有哪些浓度体、在屏幕何处；没有时（或没有世界时）返回 null。会为本 tick
      * 刷新 {@link SmokeVolumes}。
      */
     static Coverage coverage(Camera camera, Matrix4f positionMatrix, Matrix4f projection, int width, int height) {
@@ -91,7 +88,7 @@ public final class SmokeOcclusionMarch {
             return null;
         }
         ClientWorld world = MinecraftClient.getInstance().world;
-        if (world == null || shaderPackInUse()) {
+        if (world == null) {
             return null;
         }
         List<SmokeVolumes.Volume> active = SmokeVolumes.prepare(world);
@@ -338,30 +335,5 @@ public final class SmokeOcclusionMarch {
 
     public static int height() {
         return ready ? current.height : 0;
-    }
-
-    /**
-     * Wathe's public Iris facade; a broken Iris API counts as a pack in use (stand down). Logged once per state.
-     * Wathe 的公共 Iris 门面；Iris API 异常视为正在使用光影包（停用）。每种状态只记录一次。
-     */
-    private static boolean shaderPackInUse() {
-        boolean inUse;
-        if (irisBroken) {
-            inUse = true;
-        } else {
-            try {
-                inUse = IrisHelper.isIrisShaderPackInUse();
-            } catch (LinkageError | RuntimeException exception) {
-                irisBroken = true;
-                inUse = true;
-            }
-        }
-        if (inUse && !irisLogged) {
-            irisLogged = true;
-            SparkWitch.LOGGER.warn("Iris shader pack in use: BEAR smoke does not mask entity outlines yet");
-        } else if (!inUse) {
-            irisLogged = false;
-        }
-        return inUse;
     }
 }

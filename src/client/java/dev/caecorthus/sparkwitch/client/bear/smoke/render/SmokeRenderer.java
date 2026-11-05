@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
+import net.minecraft.client.render.FogShape;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Util;
@@ -48,9 +49,10 @@ import java.util.List;
  *   Fabulous!, whose composite clears main).</li>
  * </ol>
  * Depth textures are only ever sampled through framebuffers that do not attach them, so there is no feedback loop
- * and no depth copy. Under an Iris shader pack the pass is skipped (logged once). Every GL state the passes touch is
- * saved and restored ({@link SmokeGlState}). A failure logs once, frees everything and retries after
- * {@link #RETRY_NANOS}. Client-only presentation; reads {@link SmokeClientState} only.
+ * and no depth copy. Under an Iris shader pack the pack's final pass would overwrite the world target, so the pass
+ * waits for {@link #renderAfterShaderPack} ({@code shaderpack.SmokeShaderPackBridge}, right after that final pass).
+ * Every GL state the passes touch is saved and restored ({@link SmokeGlState}). A failure logs once, frees everything
+ * and retries after {@link #RETRY_NANOS}. Client-only presentation; reads {@link SmokeClientState} only.
  * BEAR 可见烟雾：对 {@link SmokeVolumes} 浓度体做 GPU 光线步进，由每一次 {@code WorldRenderer#render} 调用（主画面、
  * 搜寻者摄像头画面，以及 USEC 瞄具画中画等第二次世界渲染）各自用本次调用的相机、视角旋转与投影绘制，不缓存主画面的任何值。
  * 1）{@link #beginWorldPass} 于 {@code WorldRenderEvents.START}：判断本次世界渲染是否有烟要画（{@link SmokeClientState}
@@ -61,12 +63,15 @@ import java.util.List;
  * {@code WorldRenderEvents.LAST}，因为 Iris 把实体绘制推迟到半透明切换之后。3）{@link #renderWorldPass} 于
  * {@code WorldRenderEvents.LAST}（半透明地形、粒子、天气与 Fabulous! 合成之后，第一人称手部之前）：按深度感知、去颗粒的方式
  * 放大并混合到世界目标颜色上，对比的是最终深度（Fast/Fancy 用主深度，Fabulous! 用半透明目标的深度，因为其合成会清掉主深度）。
- * 深度纹理只经不挂载它们的帧缓冲采样，因此没有反馈回路也无需拷贝深度。开着 Iris 光影包时跳过（只记录一次日志）。各步骤改动的
+ * 深度纹理只经不挂载它们的帧缓冲采样，因此没有反馈回路也无需拷贝深度。开着 Iris 光影包时光影包的最终处理会覆盖世界目标，
+ * 因此本次渲染改由 {@link #renderAfterShaderPack}（{@code shaderpack.SmokeShaderPackBridge}，紧接最终处理之后）完成。各步骤改动的
  * GL 状态全部保存并恢复（{@link SmokeGlState}）。失败时记录一次日志、释放全部资源，{@link #RETRY_NANOS} 后重试。
  * 纯客户端展示；只读取 {@link SmokeClientState}。
  */
 public final class SmokeRenderer {
     static final long RETRY_NANOS = 30_000_000_000L;
+    /** Texture units the smoke passes bind, 0 .. this - 1. / 烟雾各步骤绑定的纹理单元，0 .. 此值 - 1。 */
+    public static final int SHADER_PACK_TEXTURE_UNITS = SmokeGlState.UNITS;
     /** Offscreen targets are freed after this long without smoke. / 无烟持续这么久后释放离屏目标。 */
     static final long IDLE_RELEASE_NANOS = 10_000_000_000L;
     private static final int UNIT_DEPTH = 0;
@@ -100,7 +105,6 @@ public final class SmokeRenderer {
     private static int vertexArray;
     private static boolean failed;
     private static long retryAtNanos;
-    private static boolean irisLogged;
     private static long lastActiveNanos;
     private static boolean targetsHeld;
     private static int frame;
@@ -116,11 +120,15 @@ public final class SmokeRenderer {
     private static WorldRenderContext passContext;
     @Nullable
     private static Boolean irisLoaded;
+    /** Fog of this world render, captured at LAST (vanilla clears it before Iris's final pass). / LAST 时记下的本次雾。 */
+    private static final float[] PASS_FOG = new float[7];
 
     private enum MarchPoint {
         BEFORE_TRANSLUCENT,
         BEFORE_PARTICLES,
-        LAST
+        LAST,
+        /** Iris shader pack: march and composite after the pack's final pass. / Iris 光影包：在其最终处理之后步进与合成。 */
+        AFTER_SHADER_PACK
     }
 
     private SmokeRenderer() {
@@ -141,13 +149,6 @@ public final class SmokeRenderer {
             idle();
             return;
         }
-        if (BlindShaderPackCheck.isShaderPackInUse()) {
-            if (!irisLogged) {
-                irisLogged = true;
-                SparkWitch.LOGGER.info("BEAR smoke: an Iris shader pack is in use; the volumetric smoke is skipped");
-            }
-            return;
-        }
         if (failed) {
             if (Util.getMeasuringTimeNano() - retryAtNanos < 0L) {
                 return;
@@ -158,7 +159,9 @@ public final class SmokeRenderer {
         passContext = context;
         passSlot = SecondaryWorldPass.isActive() ? 1 : 0;
         lastActiveNanos = Util.getMeasuringTimeNano();
-        if (context.worldRenderer().getTranslucentFramebuffer() != null) {
+        if (BlindShaderPackCheck.isShaderPackInUse()) {
+            marchPoint = MarchPoint.AFTER_SHADER_PACK;
+        } else if (context.worldRenderer().getTranslucentFramebuffer() != null) {
             marchPoint = MarchPoint.BEFORE_PARTICLES;
         } else {
             marchPoint = irisLoaded() ? MarchPoint.LAST : MarchPoint.BEFORE_TRANSLUCENT;
@@ -194,6 +197,10 @@ public final class SmokeRenderer {
         if (!passActive) {
             return;
         }
+        if (marchPoint == MarchPoint.AFTER_SHADER_PACK) {
+            capturePassFog();
+            return;
+        }
         Framebuffer target = MinecraftClient.getInstance().getFramebuffer();
         Framebuffer translucent = context.worldRenderer().getTranslucentFramebuffer();
         // The final depth: Fabulous! composites over a cleared main depth, its translucent target keeps the scene's.
@@ -217,6 +224,94 @@ public final class SmokeRenderer {
         } finally {
             GL_STATE.restore();
         }
+    }
+
+    /**
+     * Iris shader pack only, right after the pack's final pass (main target bound and holding the finished image):
+     * marches against Iris's scene depth and composites onto the main colour. {@code depthAll} is Iris's full depth,
+     * {@code depthOpaque} its copy taken before translucents (solid hand included) and {@code depthBeforeHand} the copy
+     * taken before the hand; {@link SmokePackDepth} merges them so smoke behind glass is still drawn and the hand is
+     * never covered. Returns false when the smoke could not be drawn this frame (the caller then falls back).
+     * 仅 Iris 光影包，紧接其最终处理之后（主目标已绑定并保存成品图）：按 Iris 场景深度步进并合成到主颜色上。
+     * {@code depthAll} 是 Iris 完整深度，{@code depthOpaque} 是半透明之前的副本（含实心手部），{@code depthBeforeHand} 是手部之前的
+     * 副本；{@link SmokePackDepth} 合并三者，使玻璃后的烟照样画出、手部永不被遮。本帧无法画烟时返回 false（调用方随即兜底）。
+     */
+    public static boolean renderAfterShaderPack(int depthAll, int depthOpaque, int depthBeforeHand, int width,
+                                                int height) {
+        if (!hasShaderPackPass()) {
+            return !failed;
+        }
+        passActive = false;
+        Framebuffer target = MinecraftClient.getInstance().getFramebuffer();
+        if (width != target.textureWidth || height != target.textureHeight) {
+            passContext = null;
+            return false;
+        }
+        int marchDepth = 0;
+        GL_STATE.save();
+        try {
+            marchDepth = SmokePackDepth.merge(MinecraftClient.getInstance().getResourceManager(), depthAll,
+                    depthOpaque, depthBeforeHand, width, height);
+        } catch (RuntimeException | IOException exception) {
+            fail(exception);
+        } finally {
+            GL_STATE.restore();
+        }
+        if (failed) {
+            passContext = null;
+            return false;
+        }
+        float[] fog = swapFog(PASS_FOG);
+        try {
+            marchNow(marchDepth);
+        } finally {
+            swapFog(fog);
+        }
+        passContext = null;
+        if (smokeOnScreen && !failed) {
+            GL_STATE.save();
+            try {
+                compositePass(TARGETS[passSlot], target.getColorAttachment(), marchDepth, width, height);
+            } catch (RuntimeException exception) {
+                fail(exception);
+            } finally {
+                GL_STATE.restore();
+            }
+        }
+        return !failed;
+    }
+
+    /** A shader-pack pass is waiting for {@link #renderAfterShaderPack}. / 有光影包渲染在等待 {@link #renderAfterShaderPack}。 */
+    public static boolean hasShaderPackPass() {
+        return passActive && marchPoint == MarchPoint.AFTER_SHADER_PACK;
+    }
+
+    /** In the failure backoff: no smoke is drawn until the retry. / 处于失败退避中：重试前不画烟。 */
+    public static boolean isFailing() {
+        return failed;
+    }
+
+    private static void capturePassFog() {
+        float[] color = RenderSystem.getShaderFogColor();
+        System.arraycopy(color, 0, PASS_FOG, 0, 4);
+        PASS_FOG[4] = RenderSystem.getShaderFogStart();
+        PASS_FOG[5] = RenderSystem.getShaderFogEnd();
+        PASS_FOG[6] = RenderSystem.getShaderFogShape().ordinal();
+    }
+
+    /** Installs {@code fog} as the shader fog and returns the previous one. / 设置 {@code fog} 为着色器雾并返回原值。 */
+    private static float[] swapFog(float[] fog) {
+        float[] previous = new float[7];
+        float[] color = RenderSystem.getShaderFogColor();
+        System.arraycopy(color, 0, previous, 0, 4);
+        previous[4] = RenderSystem.getShaderFogStart();
+        previous[5] = RenderSystem.getShaderFogEnd();
+        previous[6] = RenderSystem.getShaderFogShape().ordinal();
+        RenderSystem.setShaderFogColor(fog[0], fog[1], fog[2], fog[3]);
+        RenderSystem.setShaderFogStart(fog[4]);
+        RenderSystem.setShaderFogEnd(fog[5]);
+        RenderSystem.setShaderFogShape(FogShape.values()[(int) fog[6]]);
+        return previous;
     }
 
     private static void marchNow(int depthTexture) {
@@ -263,7 +358,6 @@ public final class SmokeRenderer {
         RenderSystem.assertOnRenderThread();
         releaseAll();
         failed = false;
-        irisLogged = false;
     }
 
     private static void releaseAll() {
@@ -491,6 +585,7 @@ public final class SmokeRenderer {
         for (SmokeViewTargets targets : TARGETS) {
             targets.release();
         }
+        SmokePackDepth.release();
         targetsHeld = false;
     }
 
