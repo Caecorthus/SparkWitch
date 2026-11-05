@@ -30,6 +30,8 @@ sanity never drains on its own and never returns from tasks, and whose shared ab
 from one of two tables chosen by her sanity, with a 60 s cooldown.
 The Ragpicker (`sparkwitch:ragpicker`, 拾荒者, contributed in PR #184) is an ordinary civilian that sees dropped items
 through walls and takes one item from a corpse with the shared ability key (G).
+The Accountant (`sparkwitch:accountant`, 会计, contributed in PR #195) is an ordinary task civilian with no active skill
+that earns coins from tasks and over time and keeps them in a shop-bought passbook (存折).
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -561,9 +563,9 @@ Current build baseline:
   and fixed in review (2026-11-04); every number lives in `DominatorRules`. Mixins in `mixin/dominator/`, client in
   `client/dominator/` plus `client/hud/DominatorHudRenderer` and `client/mixin/dominator/`.
   - Registration: a SparkFactionAPI killer (Wathe-native killer, FAKE mood, unlimited sprint, round clock, the default
-    one-player spawn group) registered after the Ragpicker and right before 夏目安安 (then the Insider), and guessed in
-    the killer block right after the Magician, with 夏目安安 next (NoellesRoles sends identifiers, so the order is
-    presentation only). No witch skill,
+    one-player spawn group) registered after the Ragpicker, before the Accountant, 夏目安安 and the Insider, and
+    guessed in the killer block right after the Magician, with 夏目安安 next (NoellesRoles sends identifiers, so the
+    order is presentation only). No witch skill,
     never in the `gui.sparkwitch.skills` panel, never a Black Raven disguise target.
   - State: `DominatorPlayerComponent` (`sparkwitch:dominator`, `NEVER_COPY`, owner-synced: uses, mark target and
     ticks, G cooldown) and the server-only `DominatorForcedShotComponent` (`sparkwitch:dominator_forced_shot`,
@@ -643,8 +645,10 @@ Current build baseline:
   contributed in PR #194 and fixed in review (2026-11-04); every number and pure gate lives in `NatsumeRules`. Mixin in
   `mixin/natsume/`, client in `client/natsume/` plus `client/hud/NatsumeHudRenderer` and `client/mixin/natsume/`.
   - Registration: a SparkFactionAPI killer (Wathe-native killer, REAL mood, 8 s `maxSprintTime`, round clock, the
-    default one-player spawn group) registered after the Dominator, right before the Insider (the fork put it between
-    the Accountant and Noa), and guessed in the killer block right after the Dominator, before the Murderous Witch.
+    default one-player spawn group) registered after the Dominator and the Accountant, right before the Insider (the
+    fork also put it after the Accountant), and guessed in the killer block right after the Dominator, before the
+    Murderous Witch. The hypnosis lock also refuses the Accountant's `sparkwitch:accountant_withdraw`, since it is on
+    the Control Expert stun list.
     No witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel, never a Black
     Raven disguise target. The accessor is `SparkWitchRoleRegistry.natsumeAnan()`; `SparkWitchRoles` has none.
   - State: `NatsumeComponent` (`sparkwitch:natsume_anan_player`, `NEVER_COPY`, appended last in the CCA list and in
@@ -1419,6 +1423,40 @@ Current build baseline:
   - Client (`client/junker/JunkerClientModule`, `client/hud/JunkerHudRenderer`): drops within 8 blocks glow through
     walls for the Ragpicker, the G branch of the shared dispatch sends the search, and the HUD shows ready, progress
     and cooldown. Presentation only.
+- `roles/civilian/accountant/`: the Accountant (`sparkwitch:accountant`, 会计, color `0xFFFFC5`), contributed in PR #195
+  and rewritten in review (owner rules 2026-11-04); every number lives in `AccountantRules`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no round clock,
+    no appearance condition) registered after the Dominator, right before the Insider, and guessed in the civilian
+    block right after Noa. Drawn by Wathe's civilian pass, never a police variant or slot; no active skill, no witch
+    skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel; like the Discoverer and
+    the Ragpicker it is in neither Black Raven disguise list (so never claimable). `SparkWitchRoles` exposes
+    `ACCOUNTANT_ID`.
+  - Classes: `AccountantRules` (ids, numbers, the pure `canAct`/`canEarn` gates and the deposit/withdraw verdicts),
+    `AccountantFeatureService` (the single idempotent server entry, registered from `SparkWitchEvents` after the
+    Discoverer), `AccountantEconomyService` (+50 per `TaskComplete`, never for a SparkTraits Impostor, and +5 every
+    10 s, both through `addToBalance` and only while `canEarn` holds), `AccountantShopService` (one passbook entry:
+    75 coins, unlimited stock, 30 s between purchases, Charisma discount through `SparkTraitsCharismaBridge`),
+    `AccountantPassbookService` (deposit, withdraw, sneak drop, and the death drop through Wathe's
+    `ShouldDropOnDeath`) and `AccountantReplay` (skill replays `sparkwitch:accountant_deposit` / `accountant_withdraw`).
+  - Passbook (`sparkwitch:accountant_passbook`, 存折, `AccountantPassbookItem`, registered last in `SparkWitchItems`
+    with `maxCount(1)`, since a stack would share one stored value): the coins live in the stack's
+    `minecraft:custom_data` under `sparkwitch:stored_coins`, so they travel with the item. Owner rules: only the
+    Accountant may deposit (right-click stores the whole balance); anyone holding it may withdraw everything with a
+    left-click (the passbook is used up); sneak + right-click drops it; whoever carries it drops it on death.
+    Deposits and withdrawals are transfers through `setBalance`, so SparkStrength's killer team purse (owner: the
+    shared purse never takes passbook coins), SparkFactionAPI's income record and SparkTraits Snowball never count
+    them; only the +50/+5 income uses `addToBalance`. Dropped passbooks never despawn (`ENTITY_LOAD`), and item
+    frames, armor stands, allays (`UseEntityCallback` FAIL) and decorated pots
+    (`mixin/accountant/DecoratedPotBlockAccountantPassbookMixin`) never take one, since they outlive the round reset.
+  - Withdraw: `client/mixin/accountant/AccountantAirSwingMixin` (`MinecraftClient.doAttack` HEAD cancel, answer
+    false, while the main hand holds the passbook; adventure mode never reaches the attack callbacks) flushes the
+    selected hotbar slot (`SelectedSlotFlushInvoker`, like the launcher and USEC fire) and sends the empty
+    C2S `sparkwitch:accountant_withdraw` (`net/AccountantWithdrawC2SPacket`), and
+    `AccountantPassbookService.handleWithdrawRequest` re-checks every gate on the server thread. A held-item action,
+    not a role skill: classified like the potion launcher fire, on the Control Expert stun (so also the Raven Form
+    body), Seeker-session and Rift-occupant lists, and off the Grand Witch Fear and Knight duel lists.
+  - Open: no SparkAssist guidebook page; SparkStrength's Taotie daze list and SparkFactionAPI's opening safe-time list
+    have no `accountant_withdraw` entry yet.
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation
