@@ -1,10 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.usec;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
-import dev.caecorthus.sparkwitch.util.GiveCommandDropScope;
-import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
@@ -29,9 +26,11 @@ import java.util.UUID;
 public final class UsecLoadoutService {
     /**
      * Players already granted in the current round; a repeated {@code RoleAssigned} to USEC never grants again.
-     * Server thread only; cleared per player by {@link #cleanUp} and wholesale at round start, finalize and server stop.
-     * 本回合已发放过的玩家；重复的 USEC {@code RoleAssigned} 不会再次发放。仅服务端线程；由 {@link #cleanUp} 逐个清除，
-     * 并在开局、收尾与服务器停止时整体清空。
+     * Server thread only; cleared per player by {@link #forget} and wholesale at round start, finalize and server stop.
+     * A role change away from USEC keeps the record, so a second assignment in the same round never re-grants or
+     * re-locks the rifle.
+     * 本回合已发放过的玩家；重复的 USEC {@code RoleAssigned} 不会再次发放。仅服务端线程；由 {@link #forget} 逐个清除，
+     * 并在开局、收尾与服务器停止时整体清空。转出 USEC 时保留记录，因此同一回合再次分配既不重发也不重新锁定步枪。
      */
     private static final Set<UUID> GRANTED = new HashSet<>();
 
@@ -82,13 +81,24 @@ public final class UsecLoadoutService {
     }
 
     /**
-     * Terminal cleanup for one player: strip every bound item, clear {@link UsecPlayerComponent} (unscope) and forget
-     * the grant. Used for role change away from USEC, terminal death, reset, finalize and disconnect.
-     * 单名玩家的终局清理：清除所有绑定物品、清空 {@link UsecPlayerComponent}（取消开镜）并忘记发放记录。用于转出 USEC、
-     * 最终死亡、重置、收尾与断线。
+     * Terminal cleanup for one player: strip every bound item, then {@link #forget}. Used only where the holder's items
+     * end anyway: a terminal death ({@code UsecDeathDrops}), Wathe's {@code ResetPlayer} (it clears the inventory; this
+     * also clears the cursor and open slots) and a disconnect that Wathe turns into an ESCAPED death. A role change, the
+     * round end and every other moment never strip (owner, 2026-11-05).
+     * 单名玩家的终局清理：清除所有绑定物品，然后 {@link #forget}。只用于持有者的物品本就结束的时刻：最终死亡
+     * （{@code UsecDeathDrops}）、Wathe 的 {@code ResetPlayer}（它会清空背包；这里还清理光标与已打开界面的栏位），以及被 Wathe
+     * 转为 ESCAPED 死亡的断线。换职业、回合结束及其他任何时刻都不收走（所有者 2026-11-05）。
      */
     public static void cleanUp(ServerPlayerEntity player) {
         stripAll(player);
+        forget(player);
+    }
+
+    /**
+     * Forgets one player without touching their items: unscope and drop the grant record. / 忘记单名玩家而不触碰其物品：
+     * 取消开镜并移除发放记录。
+     */
+    public static void forget(ServerPlayerEntity player) {
         UsecPlayerComponent.KEY.get(player).setScoped(false);
         GRANTED.remove(player.getUuid());
     }
@@ -99,9 +109,11 @@ public final class UsecLoadoutService {
     }
 
     /**
-     * Removes every bound item from inventory 0..40 (offhand and armor included), the cursor and every open handler slot
-     * (crafting grid or foreign container included). / 从背包 0..40（含副手与盔甲栏）、光标及已打开界面的所有栏位
-     * （含合成格与外部容器）移除所有绑定物品。
+     * Removes every bound item the player owns: inventory 0..40 (offhand and armor included), the cursor and the
+     * player's own screen ({@code playerScreenHandler}: the 2x2 crafting grid). A container the player has open keeps
+     * its contents: since 2026-11-05 bound items may be stored there, and a copy in a chest belongs to nobody's death.
+     * 移除玩家自己拥有的所有绑定物品：背包 0..40（含副手与盔甲栏）、光标以及玩家自己的界面（{@code playerScreenHandler}：
+     * 2x2 合成格）。玩家打开着的容器保留其内容：自 2026-11-05 起绑定物品可以存放在容器中，箱子里的物品不属于任何人的死亡。
      */
     public static void stripAll(ServerPlayerEntity player) {
         boolean changed = false;
@@ -117,7 +129,8 @@ public final class UsecLoadoutService {
             handler.setCursorStack(ItemStack.EMPTY);
             changed = true;
         }
-        for (Slot slot : handler.slots) {
+        ScreenHandler own = player.playerScreenHandler;
+        for (Slot slot : own.slots) {
             if (UsecInventoryRules.isBound(slot.getStack())) {
                 slot.setStack(ItemStack.EMPTY);
                 changed = true;
@@ -126,93 +139,22 @@ public final class UsecLoadoutService {
         if (changed) {
             inventory.markDirty();
             handler.sendContentUpdates();
+            if (own != handler) {
+                own.sendContentUpdates();
+            }
         }
-    }
-
-    /** Sweep test: only a match participant who is not USEC is stripped. / 清扫判定：只收走非 USEC 的对局参与者的物品。 */
-    static boolean sweepStrips(boolean matchParticipant, boolean usec) {
-        return matchParticipant && !usec;
-    }
-
-    /**
-     * Whether a living player's refused drop goes back into their inventory: a USEC, or a free holder whom the bound
-     * rules do not bind ({@link OffMatchUse#isMatchParticipant}). Any other participant's copy is destroyed; the sweep
-     * strips them anyway.
-     * 存活玩家被拒绝的丢弃是否放回其背包：USEC，或不受绑定规则约束的自由持有者（{@link OffMatchUse#isMatchParticipant}）。
-     * 其他参与者的副本直接销毁；清扫本来也会收走。
-     */
-    static boolean keepsRefusedDrop(boolean matchParticipant, boolean usec) {
-        return usec || !matchParticipant;
     }
 
     /**
-     * Called at the HEAD of the player drop method on both sides; true cancels the drop, so a bound item never becomes
-     * an item entity (cursor on close with a full inventory, a disconnect, creative throws, offer fallbacks). Move
-     * semantics on the server: the passed stack is emptied first (some callers already removed it from its slot,
-     * others still reference it), then a copy returns to a living, connected keeper ({@link #keepsRefusedDrop}) by
-     * explicit slot writes; whatever does not fit goes back into the passed stack. On the client only the prediction
-     * is cancelled; the server decides.
-     * 在双端的玩家丢弃方法 HEAD 处调用；返回 true 即取消丢弃，因此绑定物品永不成为物品实体（背包已满时关闭界面的光标、断线、
-     * 创造模式丢弃、放入失败的回退）。服务端采用移动语义：先清空传入的物品堆（有些调用方已把它移出栏位，另一些仍在栏位中
-     * 引用它），再以显式栏位写入把副本放回存活且在线的保留者（{@link #keepsRefusedDrop}）；放不下的部分放回传入的物品堆。
-     * 客户端只取消预测，由服务端裁定。
-     * Exception: vanilla {@code /give}'s cosmetic count-1 copy ({@link GiveCommandDropScope}) is only cancelled, never
-     * restored or emptied, so a give yields exactly the requested count and its success message keeps the item name.
-     * 例外：原版 {@code /give} 的装饰性数量为 1 的副本（{@link GiveCommandDropScope}）只取消丢弃，既不放回也不清空，
-     * 因此一次给予恰好得到所请求的数量，成功提示也保留物品名称。
+     * HEAD of the player drop method ({@code PlayerEntityUsecItemMixin}), server only: true cancels the drop of a bound
+     * item by a dead player, so it vanishes (the callers empty the slot or cursor after the call). A living player's
+     * drop is never touched: it follows Wathe's own rules (owner, 2026-11-05).
+     * 玩家丢弃方法的 HEAD（{@code PlayerEntityUsecItemMixin}），仅服务端：已死亡玩家丢出绑定物品时返回 true 取消丢弃，使其消失
+     * （调用方在调用后清空栏位或光标）。存活玩家的丢弃从不干预，遵循 Wathe 自身规则（所有者 2026-11-05）。
      */
-    public static boolean interceptDrop(PlayerEntity player, ItemStack stack) {
-        if (!UsecInventoryRules.isBound(stack)) {
-            return false;
-        }
-        if (player instanceof ServerPlayerEntity serverPlayer) {
-            if (GiveCommandDropScope.isCosmeticCopy(stack)) {
-                return true;
-            }
-            ItemStack copy = stack.copy();
-            stack.setCount(0);
-            boolean usec = UsecRules.isUsec(GameWorldComponent.KEY.get(serverPlayer.getWorld()).getRole(serverPlayer));
-            if (serverPlayer.isAlive() && !serverPlayer.isDisconnected()
-                    && keepsRefusedDrop(OffMatchUse.isMatchParticipant(serverPlayer), usec)) {
-                if (!returnToInventory(serverPlayer.getInventory(), copy)) {
-                    stack.setCount(copy.getCount());
-                }
-                serverPlayer.getInventory().markDirty();
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Moves as much of {@code stack} as fits: same-item stacks with room first, then empty slots in
-     * {@code getEmptySlot} order (hotbar first; with SparkFactionAPI 0.1.5.13+ the shown second row before hidden
-     * storage). Explicit slot writes, never {@code insertStack}. True when all of it was placed.
-     * 尽量放入 {@code stack}：先并入有空余的同种物品堆，再按 {@code getEmptySlot} 顺序放入空栏位（快捷栏优先；SparkFactionAPI
-     * 0.1.5.13+ 时显示中的第二行先于隐藏栏位）。使用显式栏位写入，从不调用 {@code insertStack}。全部放入时返回 true。
-     */
-    static boolean returnToInventory(PlayerInventory inventory, ItemStack stack) {
-        while (!stack.isEmpty()) {
-            int slot = inventory.getOccupiedSlotWithRoomForStack(stack);
-            if (slot < 0) {
-                slot = inventory.getEmptySlot();
-            }
-            if (slot < 0) {
-                return false;
-            }
-            ItemStack target = inventory.getStack(slot);
-            if (target.isEmpty()) {
-                inventory.setStack(slot, stack.split(Math.min(stack.getCount(), inventory.getMaxCount(stack))));
-                continue;
-            }
-            int moved = Math.min(stack.getCount(),
-                    Math.min(target.getMaxCount(), inventory.getMaxCount(target)) - target.getCount());
-            if (moved <= 0) {
-                return false;
-            }
-            target.increment(moved);
-            stack.decrement(moved);
-        }
-        return true;
+    public static boolean vanishesOnDeath(PlayerEntity player, ItemStack stack) {
+        return player instanceof ServerPlayerEntity
+                && UsecInventoryRules.vanishesOnDrop(UsecInventoryRules.isBound(stack), player.isDead());
     }
 
     private static boolean holdsRifle(ServerPlayerEntity player) {
