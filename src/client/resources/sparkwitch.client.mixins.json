@@ -215,7 +215,10 @@
     "natsume.NatsumeGarbleMixin",
     "natsume.NatsumeHudGarbleScopeMixin",
     "natsume.NatsumeInstinctGateMixin",
-    "natsume.NatsumeMoodRendererMixin"
+    "natsume.NatsumeMoodRendererMixin",
+    "bear.SmokeOutlineWorldRendererMixin",
+    "bear.SmokeOutlineDepthMixin",
+    "bear.SmokeRoleNameRaycastMixin"
   ],
   "injectors": {
     "defaultRequire": 1
