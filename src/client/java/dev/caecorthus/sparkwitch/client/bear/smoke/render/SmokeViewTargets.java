@@ -11,13 +11,12 @@ import java.nio.ByteBuffer;
 
 /**
  * Offscreen GL objects of one view (the main view, or a secondary world pass such as the scope lens, which has its own
- * size): the half-resolution march target (RGBA16F premultiplied colour + transmittance, R32F eye distance), a
+ * size): the half-resolution march target (RGBA16F premultiplied colour + transmittance, R32F eye distance) and a
  * composite framebuffer that wraps ONLY the world target's colour texture (so the composite may sample that target's
- * depth texture without a feedback loop), and the Fabulous! R32F depth copy. Sized lazily, rebuilt on resize, freed
- * by {@link #release()}. Render thread only.
+ * depth texture without a feedback loop). Sized lazily, rebuilt on resize, freed by {@link #release()}. Render
+ * thread only.
  * 一个视图（主画面，或瞄具镜内等自带尺寸的第二次世界渲染）的离屏 GL 对象：半分辨率步进目标（RGBA16F 预乘颜色 + 透射率，
- * R32F 视距）、只包装世界目标颜色纹理的合成帧缓冲（因此合成时可采样该目标的深度纹理而不形成反馈回路），以及 Fabulous!
- * 的 R32F 深度拷贝。按需分配，尺寸变化时重建，由 {@link #release()} 释放。仅限渲染线程。
+ * R32F 视距），以及只包装世界目标颜色纹理的合成帧缓冲（因此合成时可采样该目标的深度纹理而不形成反馈回路）。按需分配，尺寸变化时重建，由 {@link #release()} 释放。仅限渲染线程。
  */
 final class SmokeViewTargets {
     private int lowFramebuffer;
@@ -27,10 +26,6 @@ final class SmokeViewTargets {
     private int lowHeight;
     private int compositeFramebuffer;
     private int compositeAttached;
-    private int copyFramebuffer;
-    private int copyTexture;
-    private int copyWidth;
-    private int copyHeight;
 
     /** Ensures the half-resolution march target for a full-resolution size. / 确保与全分辨率尺寸对应的半分辨率步进目标。 */
     void ensureLow(int fullWidth, int fullHeight) {
@@ -41,7 +36,9 @@ final class SmokeViewTargets {
         }
         releaseLow();
         lowColor = texture(GL30.GL_RGBA16F, GL11.GL_RGBA, GL11.GL_FLOAT, width, height, GL11.GL_LINEAR);
-        lowDepth = texture(GL30.GL_R32F, GL11.GL_RED, GL11.GL_FLOAT, width, height, GL11.GL_NEAREST);
+        // Linear: the composite's flatness test reads it bilinearly; edge taps use texelFetch.
+        // 线性过滤：合成的平坦判定以双线性读取它；边缘采样使用 texelFetch。
+        lowDepth = texture(GL30.GL_R32F, GL11.GL_RED, GL11.GL_FLOAT, width, height, GL11.GL_LINEAR);
         lowFramebuffer = framebuffer(lowColor, lowDepth);
         lowWidth = width;
         lowHeight = height;
@@ -65,18 +62,6 @@ final class SmokeViewTargets {
         return compositeFramebuffer;
     }
 
-    /** Ensures the Fabulous! depth copy for a full-resolution size. / 确保与全分辨率尺寸对应的 Fabulous! 深度拷贝。 */
-    void ensureCopy(int width, int height) {
-        if (copyFramebuffer != 0 && width == copyWidth && height == copyHeight) {
-            return;
-        }
-        releaseCopy();
-        copyTexture = texture(GL30.GL_R32F, GL11.GL_RED, GL11.GL_FLOAT, width, height, GL11.GL_NEAREST);
-        copyFramebuffer = framebuffer(copyTexture, 0);
-        copyWidth = width;
-        copyHeight = height;
-    }
-
     int lowFramebuffer() {
         return lowFramebuffer;
     }
@@ -97,21 +82,8 @@ final class SmokeViewTargets {
         return lowHeight;
     }
 
-    int copyFramebuffer() {
-        return copyFramebuffer;
-    }
-
-    int copyTexture() {
-        return copyTexture;
-    }
-
-    boolean hasCopy(int width, int height) {
-        return copyFramebuffer != 0 && copyWidth == width && copyHeight == height;
-    }
-
     void release() {
         releaseLow();
-        releaseCopy();
         if (compositeFramebuffer != 0) {
             GL30.glDeleteFramebuffers(compositeFramebuffer);
             compositeFramebuffer = 0;
@@ -134,19 +106,6 @@ final class SmokeViewTargets {
         }
         lowWidth = 0;
         lowHeight = 0;
-    }
-
-    private void releaseCopy() {
-        if (copyFramebuffer != 0) {
-            GL30.glDeleteFramebuffers(copyFramebuffer);
-            copyFramebuffer = 0;
-        }
-        if (copyTexture != 0) {
-            GlStateManager._deleteTexture(copyTexture);
-            copyTexture = 0;
-        }
-        copyWidth = 0;
-        copyHeight = 0;
     }
 
     /** Called with the caller's GL state saved; restores the unit-0 2D binding itself. / 调用方已保存 GL 状态；本方法自行恢复 0 号单元的 2D 绑定。 */
