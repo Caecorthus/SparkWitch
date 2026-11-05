@@ -29,7 +29,8 @@ import org.lwjgl.opengl.GL30;
  *   <li>Before the entity_outline post chain (which clears that depth): {@link SmokeOcclusion#prepare} marches the
  *   occlusion texture, and the silhouette depth inside the smoke rectangle is copied aside.</li>
  *   <li>After the chain: the post-processed outline colour is copied aside and {@code outline_mask.fsh} rewrites the
- *   smoke rectangle with alpha scaled by the smoke visibility at each outline pixel's silhouette distance.</li>
+ *   smoke rectangle with alpha scaled by the smoke visibility at each outline pixel's silhouette distance: linear in the
+ *   optical depth decoded from the checkpoint texel, so a thin veil fades a highlight in proportion.</li>
  * </ol>
  * Every composite of the target ({@code drawEntityOutlinesFramebuffer}: vanilla, the Black Raven, Seeker and Rift
  * filters, the scope lens) therefore reads the masked result. If the GL pipeline fails, the smoke rectangle of the
@@ -42,7 +43,8 @@ import org.lwjgl.opengl.GL30;
  * （{@link #drawWithSilhouetteDepth}），使描边目标的深度（{@code render} 开头已清除，从不含世界深度）保存最近的剪影。墙体仍不
  * 遮挡描边；只有两个描边身体在屏幕上重叠时，颜色改为较近者而非最后绘制者。3. entity_outline 后处理链（会清除该深度）之前：
  * {@link SmokeOcclusion#prepare} 步进生成遮挡纹理，并把烟雾矩形内的剪影深度另存。4. 后处理之后：另存处理后的描边颜色，
- * 由 {@code outline_mask.fsh} 按每个描边像素所属剪影距离处的烟雾可见度缩放 alpha，重写烟雾矩形。因此该目标的所有合成
+ * 由 {@code outline_mask.fsh} 按每个描边像素所属剪影距离处的烟雾可见度缩放 alpha（与从检查点纹素解出的光学厚度成线性，
+ * 薄烟按比例变淡），重写烟雾矩形。因此该目标的所有合成
  * （原版、黑羽鸦、探索者与隙行者滤镜、瞄具镜内的 {@code drawEntityOutlinesFramebuffer}）读到的都是遮罩后的结果。GL 管线
  * 失败时改为清空描边目标中的烟雾矩形（失败即遮挡）。
  */
@@ -206,6 +208,7 @@ public final class SmokeOutlineMask {
         program.setMatrix("InverseViewProjection", SmokeOcclusionMarch.inverseViewProjection());
         program.setVec2("PassSize", SmokeOcclusionMarch.passWidth(), SmokeOcclusionMarch.passHeight());
         program.setVec2("OcclusionSize", SmokeOcclusion.width(), SmokeOcclusion.height());
+        program.setFloatArray("Checkpoints", SmokeOcclusionMarch.CHECKPOINTS);
         program.setFloat("Never", SmokeOcclusion.NEVER);
         SmokeGlProgram.drawFullscreenTriangle();
     }

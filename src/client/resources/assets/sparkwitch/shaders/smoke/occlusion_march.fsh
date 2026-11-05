@@ -1,13 +1,19 @@
 #version 150
 
 // Screen-space smoke occlusion (SmokeOcclusion): marches every view ray through the raw density volumes, IGNORING
-// world depth (outlines are drawn through walls), and writes the eye distance where the accumulated optical depth
-// reaches FadeDepth (R) and HiddenDepth (G), or Never. Everything is camera-relative, so large world coordinates keep
-// their precision.
-// 屏幕空间烟雾遮挡（SmokeOcclusion）：每条视线穿过原始浓度体步进，忽略世界深度（描边本就穿墙），写出累积光学厚度达到
-// FadeDepth（R）与 HiddenDepth（G）时的视距，达不到为 Never。全部以相机为原点，大世界坐标也不丢精度。
+// world depth (outlines are drawn through walls), and writes one RGBA16F texel: per checkpoint the eye distance where
+// the accumulated optical depth reaches it, -(ray total) in the first unreached one after a reached one, else Never.
+// Clouds beyond the sampled volumes come in as sealed boxes: from a sealed box's entry on, every checkpoint counts as
+// reached (fail closed). A ray that runs out of steps is sealed where it stopped. Everything is camera-relative, so
+// large world coordinates keep their precision.
+// 屏幕空间烟雾遮挡（SmokeOcclusion）：每条视线穿过原始浓度体步进，忽略世界深度（描边本就穿墙），写出一个 RGBA16F
+// 纹素：每个检查点存累积光学厚度达到它时的视距；已达到检查点之后的第一个未达到检查点存 -(视线总量)；其余为 Never。
+// 超出可采样数量的烟团作为封口盒传入：从封口盒入口起所有检查点都算已达到（失败即遮挡）。步数用尽的视线在停止处封口。
+// 全部以相机为原点，大世界坐标也不丢精度。
 
 #define MAX_VOLUMES 8
+#define MAX_SEALED 24
+#define CHECKPOINTS 4
 #define MAX_STEPS 512
 
 uniform sampler3D Volume0;
@@ -22,12 +28,14 @@ uniform sampler3D Volume7;
 uniform int VolumeCount;
 uniform vec3 VolumeMin[MAX_VOLUMES];
 uniform vec3 VolumeSize[MAX_VOLUMES];
+uniform int SealedCount;
+uniform vec3 SealedMin[MAX_SEALED];
+uniform vec3 SealedMax[MAX_SEALED];
 uniform mat4 InverseViewProjection;
 uniform vec2 TargetSize;
 uniform float Extinction;
 uniform float StepLength;
-uniform float FadeDepth;
-uniform float HiddenDepth;
+uniform float Checkpoints[CHECKPOINTS];
 uniform float Never;
 
 out vec4 fragColor;
@@ -48,7 +56,10 @@ void main() {
     vec4 nearPoint = InverseViewProjection * vec4(ndc, -1.0, 1.0);
     vec4 farPoint = InverseViewProjection * vec4(ndc, 1.0, 1.0);
     vec3 dir = normalize(farPoint.xyz / farPoint.w - nearPoint.xyz / nearPoint.w);
-    vec3 inverseDir = 1.0 / dir;
+    // Keep the slab test finite on axis-aligned rays. / 让与坐标轴平行的视线的平板相交仍为有限值。
+    vec3 safeDir = vec3(abs(dir.x) < 1.0e-8 ? 1.0e-8 : dir.x, abs(dir.y) < 1.0e-8 ? 1.0e-8 : dir.y,
+                        abs(dir.z) < 1.0e-8 ? 1.0e-8 : dir.z);
+    vec3 inverseDir = 1.0 / safeDir;
 
     float start = 1.0e30;
     float end = -1.0;
@@ -72,12 +83,14 @@ void main() {
         }
     }
 
-    float fade = Never;
-    float hidden = Never;
+    float crossing[CHECKPOINTS] = float[CHECKPOINTS](Never, Never, Never, Never);
+    int reached = 0;
+    float depth = 0.0;
+    float sealAt = Never;
     if (end > start) {
-        float depth = 0.0;
         float t = start;
-        for (int step = 0; step < MAX_STEPS && t < end; step++) {
+        int step = 0;
+        for (; step < MAX_STEPS && t < end; step++) {
             float mid = t + 0.5 * StepLength;
             vec3 point = dir * mid;
             float density = 0.0;
@@ -108,18 +121,41 @@ void main() {
             if (added > 0.0) {
                 float before = depth;
                 depth += added;
-                // Midpoint rule: this sample stands for [t, t + StepLength]; the crossing is interpolated inside it.
-                // 中点法：该采样代表 [t, t + StepLength]，阈值穿越点在其中线性插值。
-                if (fade >= Never && depth >= FadeDepth) {
-                    fade = t + StepLength * (FadeDepth - before) / added;
+                // Midpoint rule: this sample stands for [t, t + StepLength]; crossings are interpolated inside it.
+                // 中点法：该采样代表 [t, t + StepLength]，穿越点在其中线性插值。
+                while (reached < CHECKPOINTS && depth >= Checkpoints[reached]) {
+                    crossing[reached] = t + StepLength * (Checkpoints[reached] - before) / added;
+                    reached++;
                 }
-                if (depth >= HiddenDepth) {
-                    hidden = t + StepLength * (HiddenDepth - before) / added;
+                if (reached == CHECKPOINTS) {
                     break;
                 }
             }
             t += StepLength;
         }
+        if (step >= MAX_STEPS && t < end && reached < CHECKPOINTS) {
+            sealAt = t;
+        }
     }
-    fragColor = vec4(fade, hidden, 0.0, 1.0);
+
+    for (int i = 0; i < SealedCount; i++) {
+        vec3 a = SealedMin[i] * inverseDir;
+        vec3 b = SealedMax[i] * inverseDir;
+        vec3 lo = min(a, b);
+        vec3 hi = max(a, b);
+        float t0 = max(max(max(lo.x, lo.y), lo.z), 0.0);
+        float t1 = min(min(hi.x, hi.y), hi.z);
+        if (t1 > t0) {
+            sealAt = min(sealAt, t0);
+        }
+    }
+
+    float texel[CHECKPOINTS];
+    for (int i = 0; i < CHECKPOINTS; i++) {
+        texel[i] = i < reached ? crossing[i] : (i == reached && i > 0 ? -depth : Never);
+        if (sealAt < Never) {
+            texel[i] = min(texel[i] < 0.0 ? Never : texel[i], sealAt);
+        }
+    }
+    fragColor = vec4(texel[0], texel[1], texel[2], texel[3]);
 }
