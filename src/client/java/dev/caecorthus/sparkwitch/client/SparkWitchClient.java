@@ -176,6 +176,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Noa painting line (role-owned HUD); the painting itself rides the shared ability key below.
         // 诺亚作画行（职业自有 HUD）；作画本身走下方的共享技能键。
         NoaClient.init();
+        // BEAR smoke (spike): the S2C receivers that write SmokeClientState, and the disconnect cleanup.
+        // BEAR 烟雾（原型）：写入 SmokeClientState 的 S2C 接收器与断线清理。
+        dev.caecorthus.sparkwitch.client.bear.smoke.SmokeNetworkClient.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;

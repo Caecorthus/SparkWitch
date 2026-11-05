@@ -260,5 +260,8 @@ public final class SparkWitchPackets {
         // receivers from SparkWitchEvents, which runs after this. / USEC 数据包类型与搜寻者一样在自有类中注册；
         // 接收器由各自的服务在之后运行的 SparkWitchEvents 中注册。
         UsecNetworking.register();
+        // BEAR smoke S2C payload types, role-owned like USEC; the receivers are client-side.
+        // BEAR 烟雾 S2C 数据包类型，与 USEC 一样在自有类中注册；接收器在客户端。
+        dev.caecorthus.sparkwitch.roles.civilian.bear.smoke.net.SmokeNetworking.register();
     }
 }
