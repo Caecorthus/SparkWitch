@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.bear.smoke;
 
+import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.longs.LongHeapPriorityQueue;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
@@ -7,40 +8,51 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 
 /**
- * Pure BEAR smoke shape (owner 2026-11-05: about 200 block³ per cloud, hot smoke). A weighted Dijkstra over half-block
- * cells spreads from the seed through open space only ({@link SmokeCells}); it stops at {@link #CELL_BUDGET} cells or
- * at {@link #MAX_PATH_COST}, and never leaves a box of {@code 2 * REACH + 1} cells per axis. Steps go to all 26
- * neighbours with anisotropic Euclidean costs, so an open-field cloud is a round dome rather than the diamond a
- * 6-neighbour fill gives; a diagonal step is taken only when some axis-by-axis path to it is free, so it never cuts
- * through a corner a face step could not pass. Cells pop in cost order, and a cell's arrival tick is its pop rank
- * spread over {@link SmokeTimeline#GROW_TICKS}: the smoke comes out at a constant volume rate, so the front is fast at
- * first and slows as it spreads.
- * 纯 BEAR 烟雾形状（所有者 2026-11-05：每团约 200 立方格，热烟）。在半格上做加权 Dijkstra，只经可容烟空间
- * （{@link SmokeCells}）从起点蔓延；达到 {@link #CELL_BUDGET} 格或 {@link #MAX_PATH_COST} 即停，且不会超出每轴
- * {@code 2 * REACH + 1} 格的盒子。可走向全部 26 个邻格，代价为各向异性的欧氏长度，因此空旷处的烟团是圆顶而不是 6 邻接
- * 泛洪得到的菱形；只有存在逐轴可通的路径时才允许斜走，所以斜步永远不会穿过面步过不去的拐角。格按代价顺序出队，
- * 到达 tick 为出队名次在 {@link SmokeTimeline#GROW_TICKS} 内的均匀分布：烟按恒定体积速率涌出，前沿先快后慢。
+ * Pure BEAR smoke shape (owner 2026-11-05: about 200 block³ per cloud, a burst). A priority flood over half-block cells
+ * spreads from the seed through open space only ({@link SmokeCells}); it stops at {@link #CELL_BUDGET} cells, never
+ * takes a cell whose path from the seed exceeds {@link #MAX_PATH_COST}, and never leaves a box of
+ * {@code 2 * REACH + 1} cells per axis. Connectivity comes from the flood: steps go to all 26 neighbours, a diagonal
+ * only when some axis-by-axis path to it is free, so walls, panes and closed doors stop it exactly. The ORDER does not:
+ * the frontier always takes the reachable cell with the smallest {@link #shapeKey}, a seeded, lumpy ellipsoid distance
+ * from the seed, so an open-field burst is a rounded, slightly flattened mound with a few lumps (no peak, no facets),
+ * and in a corridor the frontier keeps advancing along it once the ellipsoid meets the walls. A cell's arrival tick is
+ * its pop rank spread over {@link SmokeTimeline#GROW_TICKS}: the smoke comes out at a constant volume rate, so the front
+ * is fast at first and slows as it spreads.
+ * 纯 BEAR 烟雾形状（所有者 2026-11-05：每团约 200 立方格，爆散式）。在半格上做优先级泛洪，只经可容烟空间
+ * （{@link SmokeCells}）从起点蔓延；达到 {@link #CELL_BUDGET} 格即停，不收路径长度超过 {@link #MAX_PATH_COST} 的格，
+ * 且不会超出每轴 {@code 2 * REACH + 1} 格的盒子。连通性来自泛洪：可走向全部 26 个邻格，只有存在逐轴可通的路径时才允许
+ * 斜走，因此墙、玻璃板与关着的门都会准确挡住烟。顺序则不然：前沿总是取可达格中 {@link #shapeKey} 最小者，即带种子、
+ * 凹凸起伏的椭球距离，因此空旷处爆开的烟是圆润、略扁、带几处鼓包的烟堆（没有尖顶，没有棱面）；在走廊里，椭球碰到墙后
+ * 前沿会继续沿走廊推进。到达 tick 为出队名次在 {@link SmokeTimeline#GROW_TICKS} 内的均匀分布：烟按恒定体积速率涌出，
+ * 前沿先快后慢。
  */
 public final class SmokeCloudShape {
     /** Cells per cloud: 1600 half-block cells = 200 block³ (owner 2026-11-05). / 每团格数：1600 个半格 = 200 立方格。 */
     public static final int CELL_BUDGET = 1600;
     /**
-     * Path cost cap in sideways half-block steps: 32 = 16 blocks, so a 2-wide, 3-tall corridor (48 cells per block of
-     * length) fills about 31 blocks when the burst is in the middle; the box limit (15.5 blocks each way) binds first.
-     * 路径代价上限，以水平半格步计：32 = 16 格，因此 2 宽 3 高的走廊（每格长度 48 个小格）在中间爆开时约填满 31 格；
-     * 盒子上限（每侧 15.5 格）先生效。
+     * Path length cap in half-block steps (diagonals count their Euclidean length): 32 = 16 blocks, so a 2-wide,
+     * 3-tall corridor (48 cells per block of length) fills about 31 blocks when the burst is in the middle; the box
+     * limit (15.5 blocks each way) binds first on straight runs.
+     * 路径长度上限，以半格步计（斜步按欧氏长度）：32 = 16 格，因此 2 宽 3 高的走廊（每格长度 48 个小格）在中间爆开时约填满
+     * 31 格；直线上盒子上限（每侧 15.5 格）先生效。
      */
     public static final float MAX_PATH_COST = 32.0F;
     /**
-     * Hot smoke rises and hugs ceilings: a step up costs 0.85, so smoke reaches 1/0.85 = 1.18x as high as it spreads
-     * sideways and fills a room's upper part first; a step down costs 1.25, so it sinks only 0.8x as far and barely
-     * pours down stairs or open hatches. Gentle on purpose: a 3-tall train room still fills floor to ceiling.
-     * 热烟上升并贴着天花板：向上一步代价 0.85，烟向上可达水平距离的 1/0.85 = 1.18 倍，先填满房间上部；向下一步代价 1.25，
-     * 只下沉 0.8 倍，几乎不会顺楼梯或敞开的舱口流下。刻意保持温和：3 格高的车厢仍会从地板填到天花板。
+     * Vertical squash of the ellipsoid above the seed: the mound is 0.9x as tall as it is wide (real burst smoke spreads
+     * more than it climbs). / 起点以上椭球的竖向压缩：烟堆高度为宽度的 0.9 倍（真实的爆散烟横向铺开多于上升）。
      */
-    public static final float UP_COST = 0.85F;
-    public static final float SIDE_COST = 1.0F;
-    public static final float DOWN_COST = 1.25F;
+    public static final float KY_UP = 0.9F;
+    /**
+     * Below the seed the ellipsoid is squashed more (0.75): hot smoke barely sinks under the burst point, which is its
+     * only lift. / 起点以下压缩更多（0.75）：热烟几乎不会沉到爆点以下，这是它唯一的“上浮”。
+     */
+    public static final float KY_DOWN = 0.75F;
+    /**
+     * Seeded outline wobble: the key is scaled by {@code 1 ± LUMPINESS} of low-frequency noise ({@link SmokeShapeNoise}),
+     * so no two clouds are perfect domes. / 带种子的轮廓起伏：键值按低频噪声缩放 {@code 1 ± LUMPINESS}
+     * （{@link SmokeShapeNoise}），因此没有两团烟是完美的圆顶。
+     */
+    public static final float LUMPINESS = 0.15F;
     /**
      * Largest cell offset from the seed on any axis: the box is at most 63 cells (31.5 blocks) per axis, under the
      * 64-cell wire limit. / 任意轴上距起点的最大格偏移：盒子每轴最多 63 格（31.5 方块），低于线格式的 64 格上限。
@@ -53,6 +65,7 @@ public final class SmokeCloudShape {
     private static final byte KNOWN = 1;
     private static final byte OPEN = 2;
     private static final byte SETTLED = 4;
+    private static final byte QUEUED = 8;
     private static final int[] MOVE_DX;
     private static final int[] MOVE_DY;
     private static final int[] MOVE_DZ;
@@ -70,12 +83,10 @@ public final class SmokeCloudShape {
                     if (dx == 0 && dy == 0 && dz == 0) {
                         continue;
                     }
-                    double vertical = dy > 0 ? UP_COST : dy < 0 ? DOWN_COST : 0.0;
                     MOVE_DX[n] = dx;
                     MOVE_DY[n] = dy;
                     MOVE_DZ[n] = dz;
-                    MOVE_COST[n] = (float) Math.sqrt(SIDE_COST * SIDE_COST * (dx * dx + dz * dz)
-                            + vertical * vertical * dy * dy);
+                    MOVE_COST[n] = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
                     n++;
                 }
             }
@@ -93,19 +104,45 @@ public final class SmokeCloudShape {
     }
 
     /**
-     * Builds the cloud for a burst at {@code impact}, or null when no open cell is near it.
-     * 为在 {@code impact} 处的爆开生成烟团；附近没有可容烟格时返回 null。
+     * Builds the cloud for a burst at {@code impact}, or null when no open cell is near it. The outline noise is seeded
+     * from the cloud id and burst time ({@link #shapeSeed}); the shape is computed once, on the server.
+     * 为在 {@code impact} 处的爆开生成烟团；附近没有可容烟格时返回 null。轮廓噪声的种子取自烟团 id 与爆开时间
+     * （{@link #shapeSeed}）；形状只在服务端算一次。
      */
     @Nullable
     public static SmokeCloudSnapshot build(int cloudId, long spawnTime, Vec3d impact, @Nullable Vec3d incomingDirection,
                                            SmokeBlockView view) {
+        return build(cloudId, spawnTime, shapeSeed(cloudId, spawnTime), impact, incomingDirection, view);
+    }
+
+    @Nullable
+    static SmokeCloudSnapshot build(int cloudId, long spawnTime, long shapeSeed, Vec3d impact,
+                                    @Nullable Vec3d incomingDirection, SmokeBlockView view) {
         SmokeCells cells = new SmokeCells(view);
         int[] seed = seed(cells, impact, incomingDirection);
         if (seed == null) {
             return null;
         }
-        Fill fill = fill(cells, seed[0], seed[1], seed[2], CELL_BUDGET);
+        Fill fill = fill(cells, seed[0], seed[1], seed[2], CELL_BUDGET, new SmokeShapeNoise(shapeSeed));
         return toSnapshot(cloudId, spawnTime, fill, cells);
+    }
+
+    /** Outline noise seed of a cloud. / 烟团轮廓噪声的种子。 */
+    static long shapeSeed(int cloudId, long spawnTime) {
+        return HashCommon.mix(((long) cloudId << 32) ^ spawnTime ^ 0x5DEECE66DL);
+    }
+
+    /**
+     * Frontier priority of the cell at offset {@code (ox, oy, oz)} from the seed, in cells: the ellipsoid distance
+     * {@code sqrt(ox² + (oy / ky)² + oz²)} ({@code ky} = {@link #KY_UP} above the seed, {@link #KY_DOWN} below) scaled
+     * by {@code 1 + LUMPINESS * noise}. / 相对起点偏移 {@code (ox, oy, oz)} 的格的前沿优先级（格）：椭球距离
+     * {@code sqrt(ox² + (oy / ky)² + oz²)}（起点以上 {@code ky} = {@link #KY_UP}，以下为 {@link #KY_DOWN}）乘以
+     * {@code 1 + LUMPINESS * noise}。
+     */
+    static float shapeKey(int ox, int oy, int oz, SmokeShapeNoise noise) {
+        double vertical = oy / (double) (oy >= 0 ? KY_UP : KY_DOWN);
+        double distance = Math.sqrt(ox * (double) ox + vertical * vertical + oz * (double) oz);
+        return (float) (distance * (1.0 + LUMPINESS * noise.at(ox, oy, oz)));
     }
 
     /**
@@ -158,8 +195,13 @@ public final class SmokeCloudShape {
         return best;
     }
 
-    /** The weighted flood fill from an open seed cell. / 从可容烟起点格开始的加权泛洪。 */
-    static Fill fill(SmokeCells cells, int seedX, int seedY, int seedZ, int budget) {
+    /**
+     * The priority flood from an open seed cell. {@code distance} holds the shortest path found so far through settled
+     * cells (an upper bound of the true one), used only for the cap; the heap is keyed by {@link #shapeKey}.
+     * 从可容烟起点格开始的优先级泛洪。{@code distance} 记录经已定格找到的最短路径（真实最短路径的上界），只用于上限；
+     * 堆按 {@link #shapeKey} 排序。
+     */
+    static Fill fill(SmokeCells cells, int seedX, int seedY, int seedZ, int budget, SmokeShapeNoise noise) {
         int volume = WINDOW * WINDOW * WINDOW;
         float[] distance = new float[volume];
         Arrays.fill(distance, Float.POSITIVE_INFINITY);
@@ -171,17 +213,16 @@ public final class SmokeCloudShape {
         LongHeapPriorityQueue heap = new LongHeapPriorityQueue();
         int seedIndex = index(0, 0, 0);
         distance[seedIndex] = 0.0F;
-        state[seedIndex] = KNOWN | OPEN;
+        state[seedIndex] = KNOWN | OPEN | QUEUED;
         heap.enqueue(entry(0.0F, seedIndex));
         Walker walker = new Walker(cells, state, seedX, seedY, seedZ);
         while (!heap.isEmpty() && count < budget) {
-            long top = heap.dequeueLong();
-            int at = (int) top;
+            int at = (int) heap.dequeueLong();
             if ((state[at] & SETTLED) != 0) {
                 continue;
             }
             state[at] |= SETTLED;
-            float cost = Float.intBitsToFloat((int) (top >>> 32));
+            float path = distance[at];
             int ox = at % WINDOW - REACH;
             int oy = at / WINDOW % WINDOW - REACH;
             int oz = at / (WINDOW * WINDOW) - REACH;
@@ -197,15 +238,18 @@ public final class SmokeCloudShape {
                     continue;
                 }
                 int next = index(nx, ny, nz);
-                float nextCost = cost + MOVE_COST[m];
-                if ((state[next] & SETTLED) != 0 || nextCost > MAX_PATH_COST || nextCost >= distance[next]) {
+                float nextPath = path + MOVE_COST[m];
+                if ((state[next] & SETTLED) != 0 || nextPath > MAX_PATH_COST || nextPath >= distance[next]) {
                     continue;
                 }
                 if (!walker.reachable(ox, oy, oz, MOVE_DX[m], MOVE_DY[m], MOVE_DZ[m])) {
                     continue;
                 }
-                distance[next] = nextCost;
-                heap.enqueue(entry(nextCost, next));
+                distance[next] = nextPath;
+                if ((state[next] & QUEUED) == 0) {
+                    state[next] |= QUEUED;
+                    heap.enqueue(entry(shapeKey(nx, ny, nz, noise), next));
+                }
             }
         }
         return new Fill(seedX, seedY, seedZ, outX, outY, outZ, count);
@@ -252,7 +296,7 @@ public final class SmokeCloudShape {
         return (ox + REACH) + WINDOW * ((oy + REACH) + WINDOW * (oz + REACH));
     }
 
-    /** Non-negative costs keep their order as raw float bits; the index breaks ties. / 非负代价的浮点位序与数值序一致；索引打破并列。 */
+    /** Non-negative keys keep their order as raw float bits; the index breaks ties. / 非负键值的浮点位序与数值序一致；索引打破并列。 */
     private static long entry(float cost, int index) {
         return ((long) Float.floatToIntBits(cost) << 32) | (index & 0xFFFFFFFFL);
     }
