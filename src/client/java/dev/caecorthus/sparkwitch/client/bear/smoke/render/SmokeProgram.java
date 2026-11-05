@@ -40,7 +40,16 @@ final class SmokeProgram {
      */
     static SmokeProgram load(ResourceManager resources, String vertex, String fragment, String... outputs)
             throws IOException {
-        String defines = defineBlock(SmokeMarchRules.shaderDefines());
+        return load(resources, vertex, fragment, Map.of(), outputs);
+    }
+
+    /**
+     * As {@link #load(ResourceManager, String, String, String...)} with extra {@code #define}s after the shared ones.
+     * 同上，另在共享定义之后加入额外的 {@code #define}。
+     */
+    static SmokeProgram load(ResourceManager resources, String vertex, String fragment, Map<String, String> extra,
+                             String... outputs) throws IOException {
+        String defines = defineBlock(SmokeMarchRules.shaderDefines()) + defineBlock(extra);
         int vs = compile(GL20.GL_VERTEX_SHADER, vertex, inject(read(resources, vertex), defines));
         int fs;
         try {

@@ -38,10 +38,18 @@ final class SmokeGlProgram {
 
     /** Compiles and links; throws with the driver log on failure. / 编译并链接；失败时连同驱动日志抛出。 */
     static SmokeGlProgram load(String vertex, String fragment) {
-        int vs = compile(GL20.GL_VERTEX_SHADER, vertex);
+        return load(vertex, fragment, "");
+    }
+
+    /**
+     * As {@link #load(String, String)} with {@code defines} ({@code #define} lines) inserted after the fragment's
+     * {@code #version} line. / 同上，并在片元着色器的 {@code #version} 行之后插入 {@code defines}（{@code #define} 行）。
+     */
+    static SmokeGlProgram load(String vertex, String fragment, String defines) {
+        int vs = compile(GL20.GL_VERTEX_SHADER, vertex, "");
         int fs;
         try {
-            fs = compile(GL20.GL_FRAGMENT_SHADER, fragment);
+            fs = compile(GL20.GL_FRAGMENT_SHADER, fragment, defines);
         } catch (RuntimeException exception) {
             GL20.glDeleteShader(vs);
             throw exception;
@@ -112,8 +120,12 @@ final class SmokeGlProgram {
         return locations.computeIfAbsent(name, key -> GL20.glGetUniformLocation(program, key));
     }
 
-    private static int compile(int type, String file) {
+    private static int compile(int type, String file, String defines) {
         String source = read(file);
+        if (!defines.isEmpty()) {
+            int newline = source.indexOf('\n');
+            source = source.substring(0, newline + 1) + defines + source.substring(newline + 1);
+        }
         int shader = GL20.glCreateShader(type);
         GL20.glShaderSource(shader, source);
         GL20.glCompileShader(shader);

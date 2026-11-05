@@ -24,6 +24,19 @@ import java.util.Map;
 public final class SmokeMarchRules {
     /** Clouds marched per pixel; farther clouds are dropped. / 每像素步进的烟团数；更远的被舍弃。 */
     public static final int MAX_CLOUDS = 8;
+    /**
+     * Clouds per march that get an empty-space texture ({@link SmokeOccupancy}); later ones are always sampled.
+     * 每次步进带空区纹理（{@link SmokeOccupancy}）的烟团数；之后的烟团总是照常采样。
+     */
+    public static final int OCCUPANCY_CLOUDS = 4;
+    /**
+     * Cloud-slot counts the march is compiled for ({@code CLOUD_SLOTS}): a pass uses the smallest that holds its
+     * clouds, so a one-cloud view does not run eight-slot loops. Results are identical, since slots past
+     * {@code CloudCount} are skipped anyway.
+     * 步进着色器按这些烟团槽数编译（{@code CLOUD_SLOTS}）：每次渲染取能容纳其烟团的最小值，使只有一团烟的画面不必跑 8 槽循环。
+     * 结果完全相同，因为超出 {@code CloudCount} 的槽本来就会跳过。
+     */
+    static final int[] CLOUD_SLOT_VARIANTS = {1, 2, 4, MAX_CLOUDS};
     /** Hard cap on march steps per half-resolution pixel. / 每个半分辨率像素的步数上限。 */
     public static final int MAX_STEPS = 48;
     /** Step near the eye, in blocks (optical depth 0.45 per step in full smoke). / 眼前的步长（格；满浓度时每步光学厚度 0.45）。 */
@@ -140,6 +153,7 @@ public final class SmokeMarchRules {
     public static Map<String, String> shaderDefines() {
         Map<String, String> defines = new LinkedHashMap<>();
         defines.put("MAX_CLOUDS", Integer.toString(MAX_CLOUDS));
+        defines.put("OCCUPANCY_CLOUDS", Integer.toString(OCCUPANCY_CLOUDS));
         defines.put("MAX_STEPS", Integer.toString(MAX_STEPS));
         defines.put("MIN_STEP", glsl(MIN_STEP));
         defines.put("STEP_GROWTH", glsl(STEP_GROWTH));
@@ -177,6 +191,19 @@ public final class SmokeMarchRules {
         defines.put("UPSAMPLE_BILINEAR_FLOOR", glsl(UPSAMPLE_BILINEAR_FLOOR));
         defines.put("UPSAMPLE_FLAT", glsl(UPSAMPLE_FLAT));
         return defines;
+    }
+
+    /**
+     * Index into {@link #CLOUD_SLOT_VARIANTS} of the smallest variant holding {@code clouds}.
+     * 能容纳 {@code clouds} 的最小变体在 {@link #CLOUD_SLOT_VARIANTS} 中的下标。
+     */
+    static int cloudSlotVariant(int clouds) {
+        for (int i = 0; i < CLOUD_SLOT_VARIANTS.length - 1; i++) {
+            if (clouds <= CLOUD_SLOT_VARIANTS[i]) {
+                return i;
+            }
+        }
+        return CLOUD_SLOT_VARIANTS.length - 1;
     }
 
     static String glsl(float value) {
