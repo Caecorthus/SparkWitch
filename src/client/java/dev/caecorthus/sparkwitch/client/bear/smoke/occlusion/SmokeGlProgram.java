@@ -79,6 +79,10 @@ final class SmokeGlProgram {
         GL20.glUniform1f(location(name), value);
     }
 
+    void setFloatArray(String name, float[] values) {
+        GL20.glUniform1fv(location(name), values);
+    }
+
     void setVec2(String name, float x, float y) {
         GL20.glUniform2f(location(name), x, y);
     }

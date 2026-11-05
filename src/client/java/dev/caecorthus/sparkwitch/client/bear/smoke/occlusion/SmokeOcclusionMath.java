@@ -6,12 +6,12 @@ import org.joml.Vector4f;
 
 /**
  * Pure rules of the smoke outline mask: march resolution and the screen rectangles the passes cover (used here), plus
- * the Java reference of the per-pixel GLSL rules in {@code occlusion_march.fsh} and {@code outline_mask.fsh} (threshold
- * crossing, visibility curve, depth linearisation, which silhouette pixel an outline pixel belongs to); tests pin the
- * shaders to these rules and shared constants.
+ * the Java reference of the per-pixel GLSL rules in {@code occlusion_march.fsh} and {@code outline_mask.fsh} (checkpoint
+ * crossing and texel encoding, fail-closed sealing, optical depth and visibility at a distance, depth linearisation,
+ * which silhouette pixel an outline pixel belongs to); tests pin the shaders to these rules and shared constants.
  * 烟雾描边遮罩的纯规则：步进分辨率与各步骤覆盖的屏幕矩形（此处使用），以及 {@code occlusion_march.fsh}、
- * {@code outline_mask.fsh} 逐像素规则的 Java 参照（阈值穿越、可见度曲线、深度线性化、描边像素归属哪个剪影像素）；测试把
- * 着色器固定到这些规则与共享常量上。
+ * {@code outline_mask.fsh} 逐像素规则的 Java 参照（检查点穿越与纹素编码、失败即遮挡封口、某视距处的光学厚度与可见度、
+ * 深度线性化、描边像素归属哪个剪影像素）；测试把着色器固定到这些规则与共享常量上。
  */
 public final class SmokeOcclusionMath {
     /** The occlusion texture is this many times coarser than the pass on each axis. / 遮挡纹理每轴比渲染目标粗这么多倍。 */
@@ -20,6 +20,11 @@ public final class SmokeOcclusionMath {
     public static final float STEP_LENGTH = 0.25F;
     /** Volumes one march can sample (one texture unit each). / 单次步进可采样的浓度体数（各占一个纹理单元）。 */
     public static final int MAX_VOLUMES = 8;
+    /**
+     * Further clouds in view beyond {@link #MAX_VOLUMES} are passed as plain boxes that fail closed; past this many they
+     * merge into the last box. / 超出 {@link #MAX_VOLUMES} 的视野内烟团以失败即遮挡的盒子传入；再超出则并入最后一个盒子。
+     */
+    public static final int MAX_SEALED_BOXES = 24;
     /**
      * Chebyshev radius from an outline pixel to the silhouette pixel it came from. Vanilla's entity_outline chain is
      * a 1-texel sobel plus two 2-texel box blurs, so no outline pixel lies farther than 3 pixels from its body.
@@ -48,20 +53,78 @@ public final class SmokeOcclusionMath {
     }
 
     /**
-     * Alpha an outline keeps at eye distance {@code distance}: {@code 1 - smoothstep(fade, hidden, distance)}, 1 when
-     * the fade depth is never reached, a hard cut when the two distances coincide.
-     * 描边在视距 {@code distance} 处保留的 alpha：{@code 1 - smoothstep(fade, hidden, distance)}；永远达不到开始变淡的
-     * 厚度时为 1；两个距离重合时为硬切。
+     * Packs one ray's march into a texel ({@link SmokeOcclusion} layout): {@code crossings[i]} is the eye distance where
+     * checkpoint {@code i} was reached or {@link SmokeOcclusion#NEVER}; the first unreached checkpoint after a reached one
+     * carries {@code -totalDepth}.
+     * 把一条视线的步进结果打包成纹素（{@link SmokeOcclusion} 布局）：{@code crossings[i]} 为达到检查点 {@code i} 的视距或
+     * {@link SmokeOcclusion#NEVER}；已达到检查点之后的第一个未达到检查点存 {@code -totalDepth}。
      */
-    public static float visibility(float fadeDistance, float hiddenDistance, float distance) {
-        if (fadeDistance >= SmokeOcclusion.NEVER) {
-            return 1.0F;
+    public static float[] encode(float[] crossings, float totalDepth) {
+        float[] texel = new float[SmokeOcclusion.CHECKPOINT_COUNT];
+        for (int i = 0; i < texel.length; i++) {
+            boolean reached = crossings[i] < SmokeOcclusion.NEVER;
+            boolean previousReached = i > 0 && crossings[i - 1] < SmokeOcclusion.NEVER;
+            texel[i] = reached ? crossings[i] : previousReached ? -totalDepth : SmokeOcclusion.NEVER;
         }
-        if (hiddenDistance <= fadeDistance) {
-            return distance >= hiddenDistance ? 0.0F : 1.0F;
+        return texel;
+    }
+
+    /**
+     * Fails a texel closed at {@code entry}: smoke the march could not sample (more clouds in view than texture units)
+     * counts as fully hidden from its box onward, so every checkpoint is reached there at the latest.
+     * 让纹素在 {@code entry} 处失败即遮挡：步进无法采样的烟（视野内烟团多于纹理单元）从其盒子起视为完全遮住，因此每个
+     * 检查点最迟在该处达到。
+     */
+    public static float[] seal(float[] texel, float entry) {
+        float[] sealed = texel.clone();
+        for (int i = 0; i < sealed.length; i++) {
+            float distance = sealed[i] < 0.0F ? SmokeOcclusion.NEVER : sealed[i];
+            sealed[i] = Math.min(distance, entry);
         }
-        float x = Math.max(0.0F, Math.min(1.0F, (distance - fadeDistance) / (hiddenDistance - fadeDistance)));
-        return 1.0F - x * x * (3.0F - 2.0F * x);
+        return sealed;
+    }
+
+    /**
+     * Optical depth at eye distance {@code distance} decoded from a texel: 0 before the first checkpoint, piecewise
+     * linear between reached checkpoints, the ray total past the last one (an upper bound, fail closed), and the next
+     * checkpoint's depth when data is missing.
+     * 从纹素解出视距 {@code distance} 处的光学厚度：第一个检查点之前为 0；已达到的检查点之间分段线性；超过最后一个已达到的
+     * 检查点后取视线总量（上界，失败即遮挡）；数据缺失时取下一个检查点的厚度。
+     */
+    public static float opticalDepthAt(float[] texel, float distance) {
+        float first = texel[0];
+        if (first < 0.0F || first >= SmokeOcclusion.NEVER || distance < first) {
+            return 0.0F;
+        }
+        float previousDistance = first;
+        float previousDepth = SmokeOcclusion.checkpointOpticalDepth(0);
+        for (int i = 1; i < SmokeOcclusion.CHECKPOINT_COUNT; i++) {
+            float value = texel[i];
+            float depth = SmokeOcclusion.checkpointOpticalDepth(i);
+            if (value < 0.0F) {
+                return -value;
+            }
+            if (value >= SmokeOcclusion.NEVER) {
+                return depth;
+            }
+            if (distance < value) {
+                float span = Math.max(value - previousDistance, 1.0E-4F);
+                return previousDepth + (depth - previousDepth) * (distance - previousDistance) / span;
+            }
+            previousDistance = value;
+            previousDepth = depth;
+        }
+        return SmokeOcclusion.HIDDEN_OPTICAL_DEPTH;
+    }
+
+    /**
+     * Alpha an outline keeps behind {@code opticalDepth}: 1 up to the fade start, 0 from the hidden depth, linear between.
+     * 描边在光学厚度 {@code opticalDepth} 之后保留的 alpha：开始变淡前为 1，达到消失厚度为 0，其间线性。
+     */
+    public static float visibility(float opticalDepth) {
+        float fade = SmokeOcclusion.FADE_START_OPTICAL_DEPTH;
+        float span = SmokeOcclusion.HIDDEN_OPTICAL_DEPTH - fade;
+        return 1.0F - Math.max(0.0F, Math.min(1.0F, (opticalDepth - fade) / span));
     }
 
     /**

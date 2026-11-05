@@ -21,15 +21,19 @@ import java.util.List;
 
 /**
  * Implementation of {@link SmokeOcclusion} (render thread only): picks the smoke volumes in view, finds the screen
- * rectangle they can touch, and ray-marches only that rectangle into a {@code GL_RG16F} texture at
- * 1/{@link SmokeOcclusionMath#MARCH_DIVISOR} resolution; every other texel is {@link SmokeOcclusion#NEVER}. Zero GPU
- * work without smoke in view. Under an Iris shader pack it stands down (logged once): a pack draws glowing entities
- * through its own G-buffers, which a later package handles. A GL failure is logged once and reported through
- * {@link #failedRect()} so the outline mask can fail closed.
+ * rectangle they can touch, and ray-marches only that rectangle into a {@code GL_RGBA16F} checkpoint texture at
+ * 1/{@link SmokeOcclusionMath#MARCH_DIVISOR} resolution; every other texel is {@link SmokeOcclusion#NEVER}. The nearest
+ * {@link SmokeOcclusionMath#MAX_VOLUMES} clouds in view are sampled; any further ones are passed as sealed boxes that
+ * hide everything from their entry on (fail closed, a few uniforms). Zero GPU work without smoke in view. Under an Iris
+ * shader pack it stands down (logged once): a pack draws glowing entities through its own G-buffers, which a later
+ * package handles. A GL failure is logged once and reported through {@link #failedRect()} so the outline mask can fail
+ * closed.
  * {@link SmokeOcclusion} 的实现（仅渲染线程）：挑出视野内的烟雾浓度体，求出它们可能触及的屏幕矩形，只在该矩形内以
- * 1/{@link SmokeOcclusionMath#MARCH_DIVISOR} 分辨率步进写入 {@code GL_RG16F} 纹理，其余纹素为 {@link SmokeOcclusion#NEVER}。
- * 视野内无烟时不做任何 GPU 工作。使用 Iris 光影包时停用（只记录一次日志）：光影包用自己的 G 缓冲绘制发光实体，由后续
- * 工作包处理。GL 失败只记录一次，并通过 {@link #failedRect()} 报告，使描边遮罩失败即遮挡。
+ * 1/{@link SmokeOcclusionMath#MARCH_DIVISOR} 分辨率步进写入 {@code GL_RGBA16F} 检查点纹理，其余纹素为
+ * {@link SmokeOcclusion#NEVER}。采样视野内最近的 {@link SmokeOcclusionMath#MAX_VOLUMES} 团烟；其余的作为封口盒传入，从其入口
+ * 起遮住一切（失败即遮挡，只需几个 uniform）。视野内无烟时不做任何 GPU 工作。使用 Iris 光影包时停用（只记录一次日志）：
+ * 光影包用自己的 G 缓冲绘制发光实体，由后续工作包处理。GL 失败只记录一次，并通过 {@link #failedRect()} 报告，使描边遮罩
+ * 失败即遮挡。
  */
 public final class SmokeOcclusionMarch {
     /** One volume picked for a pass, camera-relative. / 本次渲染选中的一个浓度体（相机相对坐标）。 */
@@ -37,15 +41,17 @@ public final class SmokeOcclusionMarch {
                           double maxX, double maxY, double maxZ, double distanceSquared) {
     }
 
-    /** Volumes in view plus the pass-pixel rectangle they can touch. / 视野内的浓度体与其可能触及的像素矩形。 */
-    record Coverage(List<Picked> volumes, int[] pixelRect, Matrix4f viewProjection) {
+    /**
+     * Sampled volumes and sealed boxes in view plus the pass-pixel rectangle they can touch.
+     * 视野内的采样浓度体与封口盒，以及它们可能触及的像素矩形。
+     */
+    record Coverage(List<Picked> volumes, List<Picked> sealed, int[] pixelRect, Matrix4f viewProjection) {
     }
 
     private static SmokeGlProgram program;
     private static boolean broken;
     private static boolean irisLogged;
     private static boolean irisBroken;
-    private static boolean capLogged;
     /**
      * Two targets, so the main view and the scope lens (different sizes, same frame) never reallocate each other's.
      * 两个目标，使主画面与瞄具镜内（同一帧、尺寸不同）不会互相触发重新分配。
@@ -58,10 +64,20 @@ public final class SmokeOcclusionMarch {
     private static int[] failedRect;
     private static int[] pixelRect;
     private static final Matrix4f INVERSE_VIEW_PROJECTION = new Matrix4f();
+    /** Checkpoint optical depths, uploaded to both programs. / 检查点光学厚度，上传给两个程序。 */
+    static final float[] CHECKPOINTS = checkpoints();
     private static int passWidth;
     private static int passHeight;
 
     private SmokeOcclusionMarch() {
+    }
+
+    private static float[] checkpoints() {
+        float[] depths = new float[SmokeOcclusion.CHECKPOINT_COUNT];
+        for (int i = 0; i < depths.length; i++) {
+            depths[i] = SmokeOcclusion.checkpointOpticalDepth(i);
+        }
+        return depths;
     }
 
     /**
@@ -100,6 +116,7 @@ public final class SmokeOcclusionMarch {
         Matrix4f viewProjection = new Matrix4f(projection).mul(positionMatrix);
         double[] boxes = new double[6];
         List<Picked> inView = new ArrayList<>();
+        List<Picked> sealed = new ArrayList<>();
         int[] rect = null;
         for (Picked p : picked) {
             boxes[0] = p.minX();
@@ -112,22 +129,25 @@ public final class SmokeOcclusionMarch {
             if (one == null) {
                 continue;
             }
-            if (inView.size() == SmokeOcclusionMath.MAX_VOLUMES) {
-                if (!capLogged) {
-                    capLogged = true;
-                    SparkWitch.LOGGER.warn("More than {} smoke clouds in view; outline occlusion uses the nearest {}",
-                            SmokeOcclusionMath.MAX_VOLUMES, SmokeOcclusionMath.MAX_VOLUMES);
-                }
-                break;
+            if (inView.size() < SmokeOcclusionMath.MAX_VOLUMES) {
+                inView.add(p);
+            } else if (sealed.size() < SmokeOcclusionMath.MAX_SEALED_BOXES) {
+                sealed.add(p);
+            } else {
+                // Past the uniform budget the box only grows, so the extra clouds stay sealed.
+                // 超出 uniform 预算后只扩大盒子，多出的烟团仍然封口。
+                Picked last = sealed.remove(sealed.size() - 1);
+                sealed.add(new Picked(last.volume(), Math.min(last.minX(), p.minX()), Math.min(last.minY(), p.minY()),
+                        Math.min(last.minZ(), p.minZ()), Math.max(last.maxX(), p.maxX()),
+                        Math.max(last.maxY(), p.maxY()), Math.max(last.maxZ(), p.maxZ()), last.distanceSquared()));
             }
-            inView.add(p);
             rect = rect == null ? one : new int[]{Math.min(rect[0], one[0]), Math.min(rect[1], one[1]),
                     Math.max(rect[2], one[2]), Math.max(rect[3], one[3])};
         }
         if (rect == null || rect[2] <= rect[0] || rect[3] <= rect[1]) {
             return null;
         }
-        return new Coverage(inView, rect, viewProjection);
+        return new Coverage(inView, sealed, rect, viewProjection);
     }
 
     /** Body of {@link SmokeOcclusion#prepare}. / {@link SmokeOcclusion#prepare} 的实现。 */
@@ -176,7 +196,8 @@ public final class SmokeOcclusionMarch {
             current = target(marchWidth, marchHeight);
             GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, current.framebuffer);
             GlStateManager._viewport(0, 0, marchWidth, marchHeight);
-            GL30.glClearBufferfv(GL11.GL_COLOR, 0, new float[]{SmokeOcclusion.NEVER, SmokeOcclusion.NEVER, 0.0F, 1.0F});
+            float never = SmokeOcclusion.NEVER;
+            GL30.glClearBufferfv(GL11.GL_COLOR, 0, new float[]{never, never, never, never});
             SmokeGlState.scissor(SmokeOcclusionMath.toMarchRect(coverage.pixelRect(), marchWidth, marchHeight));
 
             program.use();
@@ -204,8 +225,22 @@ public final class SmokeOcclusionMarch {
             program.setVec2("TargetSize", marchWidth, marchHeight);
             program.setFloat("Extinction", SmokeVolumes.EXTINCTION_PER_BLOCK);
             program.setFloat("StepLength", SmokeOcclusionMath.STEP_LENGTH);
-            program.setFloat("FadeDepth", SmokeOcclusion.FADE_START_OPTICAL_DEPTH);
-            program.setFloat("HiddenDepth", SmokeOcclusion.HIDDEN_OPTICAL_DEPTH);
+            List<Picked> sealed = coverage.sealed();
+            float[] sealedMin = new float[SmokeOcclusionMath.MAX_SEALED_BOXES * 3];
+            float[] sealedMax = new float[SmokeOcclusionMath.MAX_SEALED_BOXES * 3];
+            for (int i = 0; i < sealed.size(); i++) {
+                Picked p = sealed.get(i);
+                sealedMin[i * 3] = (float) p.minX();
+                sealedMin[i * 3 + 1] = (float) p.minY();
+                sealedMin[i * 3 + 2] = (float) p.minZ();
+                sealedMax[i * 3] = (float) p.maxX();
+                sealedMax[i * 3 + 1] = (float) p.maxY();
+                sealedMax[i * 3 + 2] = (float) p.maxZ();
+            }
+            program.setInt("SealedCount", sealed.size());
+            program.setVec3Array("SealedMin", sealedMin);
+            program.setVec3Array("SealedMax", sealedMax);
+            program.setFloatArray("Checkpoints", CHECKPOINTS);
             program.setFloat("Never", SmokeOcclusion.NEVER);
             SmokeGlProgram.drawFullscreenTriangle();
         } finally {
@@ -249,7 +284,7 @@ public final class SmokeOcclusionMarch {
         GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
         GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL30.GL_CLAMP_TO_EDGE);
         GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL30.GL_CLAMP_TO_EDGE);
-        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL30.GL_RG16F, width, height, 0, GL30.GL_RG, GL11.GL_FLOAT,
+        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL30.GL_RGBA16F, width, height, 0, GL11.GL_RGBA, GL11.GL_FLOAT,
                 (java.nio.FloatBuffer) null);
         GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, t.framebuffer);
         GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D,
