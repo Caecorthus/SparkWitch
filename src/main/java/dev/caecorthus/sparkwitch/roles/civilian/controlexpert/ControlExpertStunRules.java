@@ -112,6 +112,11 @@ public final class ControlExpertStunRules {
             // 开镜状态仅为表现，保持放行。
             Identifier.of("sparkwitch", "fire_usec_rifle"),
             Identifier.of("sparkwitch", "usec_attachment"),
+            // Accountant passbook withdraw (AccountantWithdrawC2SPacket, left-click with the passbook): a held-item action
+            // like the launcher and USEC fire; the stun already denies the passbook's right-click item use.
+            // 会计存折取钱（AccountantWithdrawC2SPacket，手持存折左键）：与发射器、USEC 开火同类的手持物品操作；眩晕本已拒绝
+            // 存折的右键物品使用。
+            Identifier.of("sparkwitch", "accountant_withdraw"),
             // Witch Maiden Mini Wither toggle (key 2) and crimson skull fire. / 巫女小凋灵切换（技能键 2）与赤首射击。
             Identifier.of("sparkwitch", "mini_wither_toggle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),

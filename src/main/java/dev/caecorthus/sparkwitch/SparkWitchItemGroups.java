@@ -83,6 +83,8 @@ public final class SparkWitchItemGroups {
                                     // NoellesRoles Attendant's Spare Key (civilian) / NoellesRoles 乘务员的备用钥匙（平民）
                                     SparkWitchItems.spareKey(),
                                     SparkWitchItems.bigDogPortrait(),
+                                    // Accountant's passbook (civilian) / 会计的存折（平民）
+                                    SparkWitchItems.accountantPassbook(),
                                     // Black Raven (civilian police) / 黑羽鸦（平民警察）
                                     SparkWitchItems.featherBlade(),
                                     SparkWitchItems.blackRavenLedger(),

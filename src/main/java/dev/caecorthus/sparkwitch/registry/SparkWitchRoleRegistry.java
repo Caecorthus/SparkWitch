@@ -9,6 +9,7 @@ import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSettlementExclusionCompat;
+import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantRules;
 import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
@@ -116,6 +117,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier NOA_ID = NoaRules.ROLE_ID;
     public static final Identifier RAGPICKER_ID = JunkerRules.ROLE_ID;
     public static final Identifier DOMINATOR_ID = DominatorRules.ROLE_ID;
+    public static final Identifier ACCOUNTANT_ID = AccountantRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -163,6 +165,7 @@ public final class SparkWitchRoleRegistry {
     private static Role noa;
     private static Role ragpicker;
     private static Role dominator;
+    private static Role accountant;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -453,6 +456,11 @@ public final class SparkWitchRoleRegistry {
     public static Role dominator() {
         ensureRegistered();
         return dominator;
+    }
+
+    public static Role accountant() {
+        ensureRegistered();
+        return accountant;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -893,19 +901,35 @@ public final class SparkWitchRoleRegistry {
         // Dominator (支配者, PR #192): a killer with Wathe's Killer profile (FAKE mood, unlimited sprint, round clock)
         // whose shared ability key (G) marks a player through walls and then forces that player to fire one shot;
         // the runtime lives in roles/killer/dominator, mixin/dominator and client/dominator (CONTEXT.md). Registered
-        // after the Ragpicker, right before the Insider (nothing may follow the Insider), so only the Insider's own
-        // index shifts. The default one-player spawn group keeps it to one killer slot, at most one per round, like
-        // the Ninja. Never a Witch-skill role and never in the gui.sparkwitch.skills panel.
+        // after the Ragpicker, before the Accountant and the Insider (nothing may follow the Insider). The default
+        // one-player spawn group keeps it to one killer slot, at most one per round, like the Ninja. Never a
+        // Witch-skill role and never in the gui.sparkwitch.skills panel.
         // 支配者（PR #192）：沿用 Wathe 杀手参数（伪装情绪、无限冲刺、可见回合时间）的杀手，共享技能键（G）可穿墙标记一名
         // 玩家，随后强制该玩家开一枪；运行时位于 roles/killer/dominator、mixin/dominator 与 client/dominator（见 CONTEXT.md）。
-        // 注册在拾荒者之后、紧挨内应之前（内应之后不得再注册），因此只有内应自身的下标改变。默认单人分配组使它只占一个
-        // 杀手位、每局至多一人，与忍者相同。不是魔女技能职业，也不进入 gui.sparkwitch.skills 面板。
+        // 注册在拾荒者之后、会计与内应之前（内应之后不得再注册）。默认单人分配组使它只占一个杀手位、每局至多一人，与忍者
+        // 相同。不是魔女技能职业，也不进入 gui.sparkwitch.skills 面板。
         dominator = SparkFactionApi.registerRole(FactionRoleDefinition.builder(DOMINATOR_ID, FactionIds.KILLER)
                 .color(DominatorRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
                 .maxSprintTime(-1)
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
+                .build());
+        // Accountant (会计, PR #195): registered after the Dominator, right before the Insider (nothing may follow the
+        // Insider, InsiderRegistrationContractTest), so only the Insider's own index shifts. An ordinary task civilian
+        // (REAL mood, passenger stamina, no clock, no appearance condition) drawn by Wathe's civilian pass; never a
+        // police variant, never a Witch-skill role (kept out of isRegisteredSparkWitchRole) and never in the
+        // gui.sparkwitch.skills panel. Its coins, shop and passbook live in roles/civilian/accountant.
+        // 会计（PR #195）：注册在支配者之后、紧挨内应之前（内应之后不得再注册，InsiderRegistrationContractTest），因此只有
+        // 内应自身的下标改变。普通任务平民（真实情绪、乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配抽取；
+        // 不是警察变体，不是魔女技能职业（不加入 isRegisteredSparkWitchRole），也不进入 gui.sparkwitch.skills 面板。
+        // 金币、商店与存折位于 roles/civilian/accountant。
+        accountant = SparkFactionApi.registerRole(FactionRoleDefinition.builder(ACCOUNTANT_ID, FactionIds.CIVILIAN)
+                .color(AccountantRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
@@ -962,13 +986,14 @@ public final class SparkWitchRoleRegistry {
                 // Tarot Reader stays adjacent. 拾荒者同样加入平民段，排在调香师之前，使调香师至塔罗师一段保持相邻。
                 ragpicker,
                 perfumer,
-                // The Recruit, the Athlete, the Discoverer and then Noa join the civilian block; the promotion
-                // identities stay the tail.
-                // 新兵、运动员、探索者与其后的诺亚加入平民段；晋升身份始终位于末尾。
+                // The Recruit, the Athlete, the Discoverer, Noa and then the Accountant (PR #195) join the civilian
+                // block; the promotion identities stay the tail.
+                // 新兵、运动员、探索者、诺亚与其后的会计（PR #195）加入平民段；晋升身份始终位于末尾。
                 recruit,
                 athlete,
                 discoverer,
                 noa,
+                accountant,
                 pigGod,
                 tarotReader,
                 fisher,

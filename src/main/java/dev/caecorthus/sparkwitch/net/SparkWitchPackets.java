@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.net;
 
+import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookService;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindAttuneService;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseS2CPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.UseBlindAttuneC2SPayload;
@@ -167,6 +168,10 @@ public final class SparkWitchPackets {
                 BlindPulseS2CPayload.CODEC
         );
         PayloadTypeRegistry.playC2S().register(JunkerSearchC2SPacket.ID, JunkerSearchC2SPacket.CODEC);
+        // Accountant passbook left-click withdraw: a held-item action (not a role skill), on the stun, Seeker and Rift
+        // lists like the potion launcher fire. / 会计存折左键取钱：手持物品操作（不是职业技能），与炮筒开火一样列入眩晕、
+        // 搜寻者与裂隙名单。
+        PayloadTypeRegistry.playC2S().register(AccountantWithdrawC2SPacket.ID, AccountantWithdrawC2SPacket.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(UseWitchSkillC2SPacket.ID,
                 (payload, context) -> FocusedFootstepsRequestService.use(
                         context.player(), payload.targetUuid()));
@@ -221,6 +226,8 @@ public final class SparkWitchPackets {
                 (payload, context) -> BlindAttuneService.tryUse(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(JunkerSearchC2SPacket.ID,
                 (payload, context) -> JunkerService.handleSearchRequest(context.player(), payload.bodyUuid()));
+        ServerPlayNetworking.registerGlobalReceiver(AccountantWithdrawC2SPacket.ID,
+                (payload, context) -> AccountantPassbookService.handleWithdrawRequest(context.player()));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {
