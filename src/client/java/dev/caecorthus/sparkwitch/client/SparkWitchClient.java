@@ -179,6 +179,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         // BEAR smoke (spike): the S2C receivers that write SmokeClientState, and the disconnect cleanup.
         // BEAR 烟雾（原型）：写入 SmokeClientState 的 S2C 接收器与断线清理。
         dev.caecorthus.sparkwitch.client.bear.smoke.SmokeNetworkClient.register();
+        // BEAR volumetric smoke (client presentation only; reads SmokeClientState). / BEAR 体积烟雾（纯客户端展示；只读 SmokeClientState）。
+        dev.caecorthus.sparkwitch.client.bear.smoke.render.SmokeRenderWiring.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;

@@ -74,6 +74,8 @@
     "blind.BlindEchoSilhouetteMixin",
     "blind.BlindGameRendererMixin",
     "blind.BlindTerrainFogMixin",
+    "bear.SmokeFabulousDepthMixin",
+    "bear.SmokeLightmapImageAccessor",
     "render.EntityModelCaptureMixin",
     "render.EntityRenderProtocolDispatcherMixin",
     "render.SecondaryWorldPassFrameClockMixin",
