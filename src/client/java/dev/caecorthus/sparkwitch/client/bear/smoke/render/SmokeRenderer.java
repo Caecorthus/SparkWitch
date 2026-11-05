@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeVolumes;
 import dev.caecorthus.sparkwitch.client.blind.render.BlindShaderPackCheck;
 import dev.caecorthus.sparkwitch.client.render.entity.SecondaryWorldPass;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.world.ClientWorld;
@@ -35,28 +36,34 @@ import java.util.List;
  * <ol>
  *   <li>{@link #beginWorldPass} at {@code WorldRenderEvents.START}: decides whether this world render has smoke work
  *   (zero cost when {@link SmokeClientState} is empty or {@link SmokeVolumes#prepare} returns nothing).</li>
- *   <li>Fabulous! only, {@link #captureFabulousDepth} at the head of {@code ParticleManager#renderParticles}: copies
- *   the main depth (opaque terrain and entities, translucent terrain excluded) before the Fabulous! composite clears
- *   it.</li>
+ *   <li>The half-resolution march into a private RGBA16F target runs while the world target's depth holds opaque
+ *   terrain and every entity but no translucent terrain, so smoke behind stained glass and the hull's translucent
+ *   panels is still drawn: Fast/Fancy at the {@code "translucent"} profiler swap ({@link #beforeTranslucentTerrain},
+ *   {@code SmokeFancyMarchMixin}), Fabulous! at the head of the particle draw ({@link #beforeParticles},
+ *   {@code SmokeFabulousDepthMixin}). With Iris loaded (no pack) the march waits for {@code WorldRenderEvents.LAST},
+ *   because Iris defers entity draws past the translucent swap.</li>
  *   <li>{@link #renderWorldPass} at {@code WorldRenderEvents.LAST}, after translucent terrain, particles, weather and
- *   the Fabulous! composite, before the first-person hand: a half-resolution march into a private RGBA16F target,
- *   then a depth-aware upsample blended onto the world target's colour.</li>
+ *   the Fabulous! composite, before the first-person hand: a depth-aware, grain-removing upsample blended onto the
+ *   world target's colour, compared against the final depth (main in Fast/Fancy, the translucent target in
+ *   Fabulous!, whose composite clears main).</li>
  * </ol>
- * The scene depth in Fast/Fancy is the world target's own depth texture (translucent terrain and particles included),
- * sampled through a framebuffer that wraps only the colour texture, so there is no feedback loop and no copy.
- * Under an Iris shader pack the pass is skipped (logged once). Every GL state the passes touch is saved and restored
- * ({@link SmokeGlState}). A failure logs once, frees everything and retries after {@link #RETRY_NANOS}.
- * Client-only presentation; reads {@link SmokeClientState} only.
+ * Depth textures are only ever sampled through framebuffers that do not attach them, so there is no feedback loop
+ * and no depth copy. Under an Iris shader pack the pass is skipped (logged once). Every GL state the passes touch is
+ * saved and restored ({@link SmokeGlState}). A failure logs once, frees everything and retries after
+ * {@link #RETRY_NANOS}. Client-only presentation; reads {@link SmokeClientState} only.
  * BEAR 可见烟雾：对 {@link SmokeVolumes} 浓度体做 GPU 光线步进，由每一次 {@code WorldRenderer#render} 调用（主画面、
  * 搜寻者摄像头画面，以及 USEC 瞄具画中画等第二次世界渲染）各自用本次调用的相机、视角旋转与投影绘制，不缓存主画面的任何值。
  * 1）{@link #beginWorldPass} 于 {@code WorldRenderEvents.START}：判断本次世界渲染是否有烟要画（{@link SmokeClientState}
- * 为空或 {@link SmokeVolumes#prepare} 无结果时零开销）。2）仅 Fabulous!：{@link #captureFabulousDepth} 位于
- * {@code ParticleManager#renderParticles} 开头，在 Fabulous! 合成清掉主深度之前拷贝它（不透明地形与实体，不含半透明地形）。
- * 3）{@link #renderWorldPass} 于 {@code WorldRenderEvents.LAST}，位于半透明地形、粒子、天气与 Fabulous! 合成之后、第一人称
- * 手部之前：先半分辨率步进到私有 RGBA16F 目标，再按深度感知放大混合到世界目标的颜色上。Fast/Fancy 下场景深度就是世界目标
- * 自己的深度纹理（含半透明地形与粒子），经只包装颜色纹理的帧缓冲采样，因此既无反馈回路也无需拷贝。开着 Iris 光影包时跳过
- * （只记录一次日志）。各步骤改动的 GL 状态全部保存并恢复（{@link SmokeGlState}）。失败时记录一次日志、释放全部资源，
- * {@link #RETRY_NANOS} 后重试。纯客户端展示；只读取 {@link SmokeClientState}。
+ * 为空或 {@link SmokeVolumes#prepare} 无结果时零开销）。2）半分辨率步进写入私有 RGBA16F 目标，时机选在世界目标深度已含
+ * 不透明地形与全部实体、尚无半透明地形之时，因此彩色玻璃与车厢半透明板后面的烟照样画出：Fast/Fancy 在
+ * {@code "translucent"} 分析器切换处（{@link #beforeTranslucentTerrain}，{@code SmokeFancyMarchMixin}），Fabulous! 在粒子
+ * 绘制开头（{@link #beforeParticles}，{@code SmokeFabulousDepthMixin}）。装有 Iris（未开光影）时步进推迟到
+ * {@code WorldRenderEvents.LAST}，因为 Iris 把实体绘制推迟到半透明切换之后。3）{@link #renderWorldPass} 于
+ * {@code WorldRenderEvents.LAST}（半透明地形、粒子、天气与 Fabulous! 合成之后，第一人称手部之前）：按深度感知、去颗粒的方式
+ * 放大并混合到世界目标颜色上，对比的是最终深度（Fast/Fancy 用主深度，Fabulous! 用半透明目标的深度，因为其合成会清掉主深度）。
+ * 深度纹理只经不挂载它们的帧缓冲采样，因此没有反馈回路也无需拷贝深度。开着 Iris 光影包时跳过（只记录一次日志）。各步骤改动的
+ * GL 状态全部保存并恢复（{@link SmokeGlState}）。失败时记录一次日志、释放全部资源，{@link #RETRY_NANOS} 后重试。
+ * 纯客户端展示；只读取 {@link SmokeClientState}。
  */
 public final class SmokeRenderer {
     static final long RETRY_NANOS = 30_000_000_000L;
@@ -77,8 +84,10 @@ public final class SmokeRenderer {
     private static final float[] BOX_MIN = new float[3 * SmokeMarchRules.MAX_CLOUDS];
     private static final float[] BOX_MAX = new float[3 * SmokeMarchRules.MAX_CLOUDS];
     private static final float[] BOX_INV_SIZE = new float[3 * SmokeMarchRules.MAX_CLOUDS];
-    private static final float[] CLOUD_LIGHT = new float[3 * SmokeMarchRules.MAX_CLOUDS];
-    private static final float[] NOISE_OFFSETS = new float[6];
+    private static final float[] CLOUD_LIGHT = new float[4 * SmokeMarchRules.MAX_CLOUDS];
+    private static final float[] NOISE_OFFSETS = new float[9];
+    private static final float[] SKY_LIGHT = new float[6];
+    private static final float[] SKY_TINT = new float[3];
     private static final int[] RECT = new int[4];
     private static final int[] CLOUD_RECT = new int[4];
     private static final int[] LOW_RECT = new int[4];
@@ -88,8 +97,6 @@ public final class SmokeRenderer {
     private static SmokeProgram march;
     @Nullable
     private static SmokeProgram composite;
-    @Nullable
-    private static SmokeProgram depthCopy;
     private static int vertexArray;
     private static boolean failed;
     private static long retryAtNanos;
@@ -100,8 +107,21 @@ public final class SmokeRenderer {
     /** START found smoke work for the current world render. / START 判定本次世界渲染有烟要画。 */
     private static boolean passActive;
     private static int passSlot;
-    private static boolean fabulousCapturePending;
-    private static boolean fabulousCaptured;
+    /** Where this world render marches. / 本次世界渲染在何处步进。 */
+    private static MarchPoint marchPoint = MarchPoint.LAST;
+    /** The march ran this world render; {@link #smokeOnScreen} says whether it drew anything. / 本次世界渲染已步进。 */
+    private static boolean marched;
+    private static boolean smokeOnScreen;
+    @Nullable
+    private static WorldRenderContext passContext;
+    @Nullable
+    private static Boolean irisLoaded;
+
+    private enum MarchPoint {
+        BEFORE_TRANSLUCENT,
+        BEFORE_PARTICLES,
+        LAST
+    }
 
     private SmokeRenderer() {
     }
@@ -109,8 +129,9 @@ public final class SmokeRenderer {
     /** {@code WorldRenderEvents.START}; render thread. / {@code WorldRenderEvents.START}；渲染线程。 */
     public static void beginWorldPass(WorldRenderContext context) {
         passActive = false;
-        fabulousCapturePending = false;
-        fabulousCaptured = false;
+        marched = false;
+        smokeOnScreen = false;
+        passContext = null;
         ClientWorld world = context.world();
         if (world == null || SmokeClientState.isEmpty()) {
             idle();
@@ -134,33 +155,37 @@ public final class SmokeRenderer {
             failed = false;
         }
         passActive = true;
+        passContext = context;
         passSlot = SecondaryWorldPass.isActive() ? 1 : 0;
         lastActiveNanos = Util.getMeasuringTimeNano();
-        fabulousCapturePending = context.worldRenderer().getTranslucentFramebuffer() != null;
+        if (context.worldRenderer().getTranslucentFramebuffer() != null) {
+            marchPoint = MarchPoint.BEFORE_PARTICLES;
+        } else {
+            marchPoint = irisLoaded() ? MarchPoint.LAST : MarchPoint.BEFORE_TRANSLUCENT;
+        }
     }
 
     /**
-     * Head of {@code ParticleManager#renderParticles}; render thread. In Fabulous! the main depth still holds opaque
-     * terrain and every entity here (translucent terrain went to its own target) and is cleared by the composite
-     * later, so it is copied now; a no-op unless {@link #beginWorldPass} asked for it.
-     * {@code ParticleManager#renderParticles} 开头；渲染线程。Fabulous! 下此时主深度仍包含不透明地形与所有实体（半透明地形
-     * 画在自己的目标里），之后会被合成清掉，因此此刻拷贝；除非 {@link #beginWorldPass} 要求，否则不做任何事。
+     * {@code WorldRenderer#render} at its {@code "translucent"} profiler swaps (both graphics branches); render thread.
+     * Fast/Fancy marches here: main depth holds opaque terrain and the full entity flush, translucent terrain not yet.
+     * {@code WorldRenderer#render} 的 {@code "translucent"} 分析器切换处（两个画质分支）；渲染线程。Fast/Fancy 在此步进：
+     * 主深度已含不透明地形与实体全部刷新，尚无半透明地形。
      */
-    public static void captureFabulousDepth() {
-        if (!fabulousCapturePending) {
-            return;
+    public static void beforeTranslucentTerrain() {
+        if (passActive && !marched && marchPoint == MarchPoint.BEFORE_TRANSLUCENT) {
+            marchNow(MinecraftClient.getInstance().getFramebuffer().getDepthAttachment());
         }
-        fabulousCapturePending = false;
-        Framebuffer main = MinecraftClient.getInstance().getFramebuffer();
-        GL_STATE.save();
-        try {
-            ensurePrograms(MinecraftClient.getInstance().getResourceManager());
-            copyDepth(main.getDepthAttachment(), main.textureWidth, main.textureHeight);
-            fabulousCaptured = true;
-        } catch (RuntimeException | IOException exception) {
-            fail(exception);
-        } finally {
-            GL_STATE.restore();
+    }
+
+    /**
+     * Head of {@code ParticleManager#renderParticles}; render thread. Fabulous! marches here: translucent terrain went
+     * to its own target, so main depth is opaque terrain and every entity, and the composite clears it later.
+     * {@code ParticleManager#renderParticles} 开头；渲染线程。Fabulous! 在此步进：半透明地形画在自己的目标里，主深度是
+     * 不透明地形与全部实体，之后会被合成清掉。
+     */
+    public static void beforeParticles() {
+        if (passActive && !marched && marchPoint == MarchPoint.BEFORE_PARTICLES) {
+            marchNow(MinecraftClient.getInstance().getFramebuffer().getDepthAttachment());
         }
     }
 
@@ -169,13 +194,39 @@ public final class SmokeRenderer {
         if (!passActive) {
             return;
         }
+        Framebuffer target = MinecraftClient.getInstance().getFramebuffer();
+        Framebuffer translucent = context.worldRenderer().getTranslucentFramebuffer();
+        // The final depth: Fabulous! composites over a cleared main depth, its translucent target keeps the scene's.
+        // 最终深度：Fabulous! 合成会清掉主深度，其半透明目标保留场景深度。
+        int finalDepth = translucent != null ? translucent.getDepthAttachment() : target.getDepthAttachment();
+        if (!marched) {
+            // Iris loaded, or the early hook never ran (a mod cancelled it). / 装有 Iris，或提前的钩子未运行。
+            marchNow(finalDepth);
+        }
         passActive = false;
-        fabulousCapturePending = false;
-        ClientWorld world = context.world();
+        passContext = null;
+        if (!smokeOnScreen) {
+            return;
+        }
+        GL_STATE.save();
+        try {
+            compositePass(TARGETS[passSlot], target.getColorAttachment(), finalDepth,
+                    target.textureWidth, target.textureHeight);
+        } catch (RuntimeException exception) {
+            fail(exception);
+        } finally {
+            GL_STATE.restore();
+        }
+    }
+
+    private static void marchNow(int depthTexture) {
+        marched = true;
+        WorldRenderContext context = passContext;
         MinecraftClient client = MinecraftClient.getInstance();
         Framebuffer target = client.getFramebuffer();
         int width = target.textureWidth;
         int height = target.textureHeight;
+        ClientWorld world = context == null ? null : context.world();
         if (world == null || width <= 0 || height <= 0) {
             return;
         }
@@ -185,34 +236,26 @@ public final class SmokeRenderer {
         if (!select(SmokeVolumes.prepare(world), camera, width, height)) {
             return;
         }
-        boolean fabulous = context.worldRenderer().getTranslucentFramebuffer() != null;
         GL_STATE.save();
         try {
             ensurePrograms(client.getResourceManager());
             SmokeViewTargets targets = TARGETS[passSlot];
-            int depthTexture;
-            if (fabulous) {
-                if (!fabulousCaptured || !targets.hasCopy(width, height)) {
-                    // The particle draw never ran (or was redirected): fall back to the translucent target's depth,
-                    // which still holds opaque terrain, entities and translucent terrain.
-                    // 粒子绘制未运行（或被重定向）：退回半透明目标的深度，它仍包含不透明地形、实体与半透明地形。
-                    Framebuffer translucent = context.worldRenderer().getTranslucentFramebuffer();
-                    copyDepth(translucent.getDepthAttachment(), width, height);
-                }
-                depthTexture = targets.copyTexture();
-            } else {
-                depthTexture = target.getDepthAttachment();
-            }
             targets.ensureLow(width, height);
             targetsHeld = true;
             marchPass(context, world, camera, targets, depthTexture, width, height);
-            compositePass(targets, target.getColorAttachment(), depthTexture, width, height);
+            smokeOnScreen = true;
         } catch (RuntimeException | IOException exception) {
             fail(exception);
         } finally {
             GL_STATE.restore();
-            fabulousCaptured = false;
         }
+    }
+
+    private static boolean irisLoaded() {
+        if (irisLoaded == null) {
+            irisLoaded = FabricLoader.getInstance().isModLoaded("iris");
+        }
+        return irisLoaded;
     }
 
     /** Frees every GL object and clears the failure backoff (disconnect, resource reload). / 释放全部 GL 对象并清除失败退避（断线、资源重载）。 */
@@ -233,10 +276,6 @@ public final class SmokeRenderer {
             composite.delete();
             composite = null;
         }
-        if (depthCopy != null) {
-            depthCopy.delete();
-            depthCopy = null;
-        }
         if (vertexArray != 0) {
             GL30.glDeleteVertexArrays(vertexArray);
             vertexArray = 0;
@@ -248,8 +287,9 @@ public final class SmokeRenderer {
         SmokeNoiseTexture.release();
         SmokeCloudLighting.clear();
         passActive = false;
-        fabulousCapturePending = false;
-        fabulousCaptured = false;
+        passContext = null;
+        marched = false;
+        smokeOnScreen = false;
     }
 
     /**
@@ -318,7 +358,7 @@ public final class SmokeRenderer {
             BOX_INV_SIZE[i * 3] = 1.0F / (maxX - minX);
             BOX_INV_SIZE[i * 3 + 1] = 1.0F / (maxY - minY);
             BOX_INV_SIZE[i * 3 + 2] = 1.0F / (maxZ - minZ);
-            SmokeCloudLighting.write(world, context.lightmapTextureManager(), volume.cloudId(), CLOUD_LIGHT, i * 3);
+            SmokeCloudLighting.write(world, context.lightmapTextureManager(), volume.cloudId(), CLOUD_LIGHT, i * 4);
         }
 
         int lowWidth = targets.lowWidth();
@@ -345,13 +385,22 @@ public final class SmokeRenderer {
         GL20.glUniform3fv(program.uniform("BoxMin"), BOX_MIN);
         GL20.glUniform3fv(program.uniform("BoxMax"), BOX_MAX);
         GL20.glUniform3fv(program.uniform("BoxInvSize"), BOX_INV_SIZE);
-        GL20.glUniform3fv(program.uniform("CloudLight"), CLOUD_LIGHT);
+        GL20.glUniform4fv(program.uniform("CloudLight"), CLOUD_LIGHT);
+        float tickDelta = context.tickCounter().getTickDelta(false);
+        SmokeSkyLight.compute(world.getSkyAngle(tickDelta), world.getRainGradient(tickDelta), world.getMoonSize(),
+                SKY_LIGHT);
+        GL20.glUniform3f(program.uniform("LightDir"), SKY_LIGHT[0], SKY_LIGHT[1], SKY_LIGHT[2]);
+        GL20.glUniform3f(program.uniform("LightColor"), SKY_LIGHT[3], SKY_LIGHT[4], SKY_LIGHT[5]);
+        Vec3d sky = world.getSkyColor(camera, tickDelta);
+        SmokeSkyLight.tint(sky.x, sky.y, sky.z, SKY_TINT);
+        GL20.glUniform3f(program.uniform("SkyTint"), SKY_TINT[0], SKY_TINT[1], SKY_TINT[2]);
 
-        double seconds = (world.getTime() + context.tickCounter().getTickDelta(false)) / 20.0;
+        double seconds = (world.getTime() + tickDelta) / 20.0;
         SmokeMotion.noiseOffsets(camera.x, camera.y, camera.z, seconds, NOISE_OFFSETS);
         double period = SmokeMarchRules.NOISE_PERIOD_BLOCKS;
         GL20.glUniform3f(program.uniform("NoiseOffset"), NOISE_OFFSETS[0], NOISE_OFFSETS[1], NOISE_OFFSETS[2]);
         GL20.glUniform3f(program.uniform("DetailOffset"), NOISE_OFFSETS[3], NOISE_OFFSETS[4], NOISE_OFFSETS[5]);
+        GL20.glUniform3f(program.uniform("BigOffset"), NOISE_OFFSETS[6], NOISE_OFFSETS[7], NOISE_OFFSETS[8]);
         GL20.glUniform1f(program.uniform("BreathePhase"), SmokeMotion.breathePhase(seconds));
         GL20.glUniform1f(program.uniform("NoiseFrequency"), (float) (1.0 / period));
         // Half-resolution pixel footprint per block of distance, in noise texels (explicit LOD inside the loop).
@@ -394,23 +443,8 @@ public final class SmokeRenderer {
         GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
     }
 
-    /** Shader copy of a depth texture into this view's R32F copy. / 把深度纹理以着色器方式拷到本视图的 R32F 副本。 */
-    private static void copyDepth(int sourceDepth, int width, int height) {
-        SmokeViewTargets targets = TARGETS[passSlot];
-        targets.ensureCopy(width, height);
-        targetsHeld = true;
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, targets.copyFramebuffer());
-        GL11.glViewport(0, 0, width, height);
-        SmokeGlState.prepareFullscreenPass();
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
-        GL20.glUseProgram(depthCopy.id());
-        bind(UNIT_DEPTH, GL11.GL_TEXTURE_2D, sourceDepth);
-        GL30.glBindVertexArray(vertexArray);
-        GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
-    }
-
     private static void ensurePrograms(ResourceManager resources) throws IOException {
-        if (march != null && composite != null && depthCopy != null) {
+        if (march != null && composite != null) {
             return;
         }
         if (march == null) {
@@ -428,11 +462,6 @@ public final class SmokeRenderer {
             composite.sampler("SceneDepth", UNIT_DEPTH);
             composite.sampler("SmokeColor", UNIT_SMOKE_COLOR);
             composite.sampler("SmokeDepth", UNIT_SMOKE_DEPTH);
-        }
-        if (depthCopy == null) {
-            depthCopy = SmokeProgram.load(resources, "fullscreen.vsh", "depth_copy.fsh", "OutDepth");
-            GL20.glUseProgram(depthCopy.id());
-            depthCopy.sampler("SourceDepth", UNIT_DEPTH);
         }
         if (vertexArray == 0) {
             vertexArray = GL30.glGenVertexArrays();
