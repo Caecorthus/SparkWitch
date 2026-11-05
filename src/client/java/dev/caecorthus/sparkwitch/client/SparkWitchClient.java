@@ -150,6 +150,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         KnightSwordClient.register();
         KnightDuelClient.register();
         dev.caecorthus.sparkwitch.client.dominator.DominatorClientModule.register();
+        // 夏目安安 (PR #194): the target-menu receiver (instinct is gated by NatsumeInstinctGateMixin).
+        // 夏目安安（PR #194）：目标菜单接收器（本能由 NatsumeInstinctGateMixin 屏蔽）。
+        dev.caecorthus.sparkwitch.client.natsume.NatsumeClientModule.register();
         ProphetClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
@@ -299,6 +302,12 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role only (the Athlete is never a disguise target); the server decides use.
                     // 仅真实职业（运动员不可被伪装）；是否生效由服务端决定。
                     AthleteDashClient.onAbilityKey(client);
+                } else if (role != null
+                        && dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID
+                                .equals(role.identifier())) {
+                    // 夏目安安 (PR #194, fork order: right before Noa): the key asks the server for the target menu.
+                    // 夏目安安（PR #194，fork 中的顺序：紧挨诺亚之前）：按键向服务端请求目标菜单。
+                    dev.caecorthus.sparkwitch.client.natsume.NatsumeClientModule.onAbilityKey(client);
                 } else if (NoaRules.isNoa(role)) {
                     // Real role only (getRole stays raw, so a Black Raven acting as Noa keeps its own key); the server
                     // decides use. / 仅真实职业（getRole 始终是真实身份，扮演诺亚的黑羽鸦保留自己的按键）；是否生效由服务端决定。

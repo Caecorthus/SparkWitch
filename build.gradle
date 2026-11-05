@@ -687,6 +687,51 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer.class",
                 providerMethod: "renderCivilian",
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_332;F)V"
+        ],
+        [
+                // 夏目安安 sketchbook mood icon: a REAL-mood killer's icon is drawn by renderCivilian, on the same
+                // icon call as Noa's. / 夏目安安素描本心情图标：真实理智杀手的图标由 renderCivilian 绘制，与诺亚同一调用。
+                configName: "natsume.NatsumeMoodRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/natsume/NatsumeMoodRendererMixin.class",
+                handler: "sparkwitch\$natsumeSketchMoodIcon",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "renderCivilian(Lnet/minecraft/class_327;Lnet/minecraft/class_332;F)V",
+                atTarget: "Lnet/minecraft/class_332;method_52706(Lnet/minecraft/class_2960;IIII)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer.class",
+                providerMethod: "renderCivilian",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_332;F)V"
+        ],
+        [
+                // 夏目安安 hypnosis: no instinct at all for the hypnotised viewer (outermost veto + both keyed gates).
+                // 夏目安安催眠：被催眠的观察者完全没有本能（最外层否决 + 两个按键入口）。
+                configName: "natsume.NatsumeInstinctGateMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/natsume/NatsumeInstinctGateMixin.class",
+                handler: "sparkwitch\$vetoHypnotisedInstinct",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
+                configName: "natsume.NatsumeInstinctGateMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/natsume/NatsumeInstinctGateMixin.class",
+                handler: "sparkwitch\$gateHypnotisedInstinct",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "isInstinctEnabled()Z",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "isInstinctEnabled",
+                providerDescriptor: "()Z"
+        ],
+        [
+                configName: "natsume.NatsumeInstinctGateMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/natsume/NatsumeInstinctGateMixin.class",
+                handler: "sparkwitch\$gateHypnotisedKillerInstinct",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "isInstinctEnabledAndIsKiller()Z",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "isInstinctEnabledAndIsKiller",
+                providerDescriptor: "()Z"
         ]
 ]
 

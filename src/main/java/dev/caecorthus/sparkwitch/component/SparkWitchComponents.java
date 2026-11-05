@@ -201,6 +201,12 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, DominatorForcedShotComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.ALWAYS_COPY)
                 .end(DominatorForcedShotComponent::new);
+        // 夏目安安 (PR #194): hypnosis window and cooldown ready tick (server), their shown seconds synced to the owner
+        // only; appended last. / 夏目安安（PR #194）：催眠窗口与冷却就绪刻（服务端），显示秒数只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent::new);
     }
 
     @Override

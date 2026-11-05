@@ -172,6 +172,19 @@ public final class SparkWitchPackets {
         // lists like the potion launcher fire. / 会计存折左键取钱：手持物品操作（不是职业技能），与炮筒开火一样列入眩晕、
         // 搜寻者与裂隙名单。
         PayloadTypeRegistry.playC2S().register(AccountantWithdrawC2SPacket.ID, AccountantWithdrawC2SPacket.CODEC);
+        // 夏目安安 (PR #194): the target-menu request, the menu itself, and the confirmed pick.
+        // 夏目安安（PR #194）：目标菜单请求、菜单本身与确认选择。
+        PayloadTypeRegistry.playC2S().register(RequestNatsumeMenuC2SPacket.ID, RequestNatsumeMenuC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(ConfirmNatsumeTargetC2SPacket.ID, ConfirmNatsumeTargetC2SPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(OpenNatsumeMenuS2CPacket.ID, OpenNatsumeMenuS2CPacket.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(RequestNatsumeMenuC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeService
+                                .requestMenu(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmNatsumeTargetC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeService
+                                .cast(context.player(), payload.target())));
         ServerPlayNetworking.registerGlobalReceiver(UseWitchSkillC2SPacket.ID,
                 (payload, context) -> FocusedFootstepsRequestService.use(
                         context.player(), payload.targetUuid()));

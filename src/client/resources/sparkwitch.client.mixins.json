@@ -209,7 +209,11 @@
     "input.SelectedSlotFlushInvoker",
     "noa.NoaMoodRendererMixin",
     "dominator.DominatorForcedShotInventoryMixin",
-    "accountant.AccountantAirSwingMixin"
+    "accountant.AccountantAirSwingMixin",
+    "natsume.NatsumeGarbleMixin",
+    "natsume.NatsumeHudGarbleScopeMixin",
+    "natsume.NatsumeInstinctGateMixin",
+    "natsume.NatsumeMoodRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
