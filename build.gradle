@@ -702,6 +702,69 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_332;F)V"
         ],
         [
+                // Faction mood flags: the killer flag's only drawGuiTexture(Identifier, IIII) in renderKiller.
+                // 阵营心情旗帜：renderKiller 中杀手旗帜唯一的 drawGuiTexture(Identifier, IIII) 调用。
+                configName: "moodflag.MoodFlagRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/moodflag/MoodFlagRendererMixin.class",
+                handler: "sparkwitch\$killerMoodFlag",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "renderKiller(Lnet/minecraft/class_327;Lnet/minecraft/class_332;)V",
+                atTarget: "Lnet/minecraft/class_332;method_52706(Lnet/minecraft/class_2960;IIII)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer.class",
+                providerMethod: "renderKiller",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_332;)V"
+        ],
+        [
+                // Faction mood flags: the same civilian icon call Noa and Natsume wrap. / 阵营心情旗帜：与诺亚、夏目安安
+                // 包装的同一平民图标调用。
+                configName: "moodflag.MoodFlagRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/moodflag/MoodFlagRendererMixin.class",
+                handler: "sparkwitch\$civilianMoodFlag",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "renderCivilian(Lnet/minecraft/class_327;Lnet/minecraft/class_332;F)V",
+                atTarget: "Lnet/minecraft/class_332;method_52706(Lnet/minecraft/class_2960;IIII)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer.class",
+                providerMethod: "renderCivilian",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_332;F)V"
+        ],
+        [
+                // Faction mood flags: renderHud's FAKE dispatch, marked so the TAIL knows an icon path ran.
+                // 阵营心情旗帜：renderHud 的 FAKE 分派，标记后 TAIL 即知已进入图标路径。
+                configName: "moodflag.MoodFlagRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/moodflag/MoodFlagRendererMixin.class",
+                handler: "sparkwitch\$markKillerMoodDispatch",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "renderHud(Lnet/minecraft/class_1657;Lnet/minecraft/class_327;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Ldev/doctor4t/wathe/client/gui/MoodRenderer;renderKiller(Lnet/minecraft/class_327;Lnet/minecraft/class_332;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_1657;Lnet/minecraft/class_327;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                // Faction mood flags: renderHud's REAL dispatch. / 阵营心情旗帜：renderHud 的 REAL 分派。
+                configName: "moodflag.MoodFlagRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/moodflag/MoodFlagRendererMixin.class",
+                handler: "sparkwitch\$markCivilianMoodDispatch",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "renderHud(Lnet/minecraft/class_1657;Lnet/minecraft/class_327;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Ldev/doctor4t/wathe/client/gui/MoodRenderer;renderCivilian(Lnet/minecraft/class_327;Lnet/minecraft/class_332;F)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_1657;Lnet/minecraft/class_327;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                // Faction mood flags: renderHud's normal end, where a NONE mood gets the no-sanity flag.
+                // 阵营心情旗帜：renderHud 的正常结尾，NONE 理智在此获得无理智旗帜。
+                configName: "moodflag.MoodFlagRendererMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/moodflag/MoodFlagRendererMixin.class",
+                handler: "sparkwitch\$noSanityMoodFlag",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "renderHud(Lnet/minecraft/class_1657;Lnet/minecraft/class_327;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_1657;Lnet/minecraft/class_327;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
                 // 夏目安安 hypnosis: no instinct at all for the hypnotised viewer (outermost veto + both keyed gates).
                 // 夏目安安催眠：被催眠的观察者完全没有本能（最外层否决 + 两个按键入口）。
                 configName: "natsume.NatsumeInstinctGateMixin",

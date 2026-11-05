@@ -720,7 +720,8 @@ Current build baseline:
     - Mood icon: `NatsumeMoodRendererMixin` (`@WrapOperation` on `MoodRenderer.renderCivilian`'s only icon draw, the
       call Noa's mixin wraps too, in `watheClientMixinContracts`) swaps Wathe's three icons for the
       `sparkwitch:hud/natsume_mood_*` sketchbook sprites for the local living Natsume on a confirmed server; as a
-      REAL-mood killer her icon is drawn by `renderCivilian`.
+      REAL-mood killer her icon is drawn by `renderCivilian`. The faction mood flag wrap on the same call
+      (`client/moodflag/`) never covers her sketchbook with the Conscience flag.
     - HUD layer: `RoleHudDispatcher.renderNatsume` (a `renderTail` layer right before the Saboteur's; confirmed
       server, living local player) draws `NatsumeHudRenderer`'s centred line 86 px above the bottom: the cooldown
       seconds or the ready hint with the ability key, hidden with F1 or a screen open.
@@ -754,6 +755,24 @@ Current build baseline:
   launcher flush through it right before their fire packet, and the Death Ray needs none (its server never reads the
   held item). The AXMC's former copies (`UsecInputRules.skipsMacControlClickRemap`, `UsecSelectedSlotSyncInvoker`) were
   folded into these seams on 2026-10-11 (owner-approved, no behaviour change).
+- `client/moodflag/` (2026-11-05, owner art "Extra faction icons"): faction mood flags, recolours of Wathe's top-left
+  mood flag. `MoodFlags` holds the rules and the sprites (`sparkwitch:hud/mood_flag/*`, GUI atlas, 14x17, no
+  `.mcmeta`).
+  - Role flags (`ROLE_FLAGS`, by role id): Grand Witch only (owner: the other witch roles keep Wathe's flag until their
+    art exists), Bewitched, Murderous Witch, Insider, NoellesRoles Corrupt Cop, Fiend, and NoellesRoles Jester,
+    Pathogen, Taotie and Vulture (literal ids, no class reference). The Shadow Jester has no flag.
+  - Trait flags, through `compat/SparkTraitsMoodFlagBridge` (public `SparkTraitsApi.hasActiveTrait` only; absent or
+    failing reads as false): Conscience (owner art `Kindness`) on `renderCivilian`'s icon, Impostor on
+    `renderKiller`'s. A role flag wins over a trait flag; Natsume's and Noa's role-owned icons win over Conscience.
+  - No sanity (owner pick): an effective `MoodType.NONE` (Curser, Guardian Angel, Wind Spirit, Vendetta, Saboteur,
+    Wraith, NoellesRoles Undercover, a Conscience Wraith…) gets `no_sanity` (or its role flag) at the killer flag's
+    spot, with no bar. Wathe itself draws nothing for NONE.
+  - `client/mixin/moodflag/MoodFlagRendererMixin` (five entries in `watheClientMixinContracts`): `@WrapOperation`s
+    on the only icon `drawGuiTexture` in `renderKiller` and in `renderCivilian` swap only Wathe's own sprites, so
+    NoellesRoles Stimulation and the Natsume/Noa wraps pass through in any order. Two `@Inject`s before
+    `renderHud`'s `renderKiller`/`renderCivilian` calls mark the dispatch in a `@Share`d local, and the TAIL
+    `@Inject` (normal end only; the not-playing and Psycho early returns skip it) draws the NONE flag. The dispatch
+    is read after SparkTraits' effective-mood `@Redirect`. Confirmed SparkWitch server, local player, display only.
 - `client/render/entity/` (2026-10-25): the entity render protocol, which keeps SparkWitch effects working with
   Entity Model Features (EMF), Entity Texture Features (ETF), animation resource packs (Fresh Animations and its
   Player Extension) and other model mods. EMF 3.3 animates a model while it renders, from the per-entity state ETF
