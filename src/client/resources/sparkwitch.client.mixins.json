@@ -213,7 +213,8 @@
     "natsume.NatsumeGarbleMixin",
     "natsume.NatsumeHudGarbleScopeMixin",
     "natsume.NatsumeInstinctGateMixin",
-    "natsume.NatsumeMoodRendererMixin"
+    "natsume.NatsumeMoodRendererMixin",
+    "moodflag.MoodFlagRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
