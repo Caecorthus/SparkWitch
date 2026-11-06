@@ -1657,8 +1657,17 @@ Current build baseline:
     `M32SightState.handFov` (exactly the original at p = 0); the world projection passes through. The two halves are
     added in `M32LauncherClient`'s model plugin and fetched through `FabricBakedModelManager`; body ∪ sight equals the
     full model element for element (same texture and display block). `M32RangeDial` (wheel, 25 m steps, per holding
-    session = same hotbar slot), `M32Hud` (6-chamber sheet `textures/gui/bear/m32_chambers.png`, USEC ammo-row placement,
-    count + dial texts with shadow on one translucent dark plate `M32HudRules.plate`/`PLATE_COLOR`),
+    session = same hotbar slot), `M32Hud` (owner, 2026-11-06: a slot badge above the launcher's hotbar slot only while
+    it is in the main hand, like the Ceremonial Sword badge; the bottom-right corner row is gone, so no corner row
+    stacks against it. The 6-chamber icon from `textures/gui/bear/m32_chambers.png`, then the dial over the count on
+    one translucent dark plate `PLATE_COLOR` as tall as the cylinder and the cooldown bar under the count; pure layout
+    `M32HudRules.badge`: centred on Wathe's slot centre `w/2 - 80 + 20·slot`, clamped, the text column reserves
+    "200 m", bottom on the selection frame's top row `h - 23`, so the count sits on Wathe's cooldown-number line
+    `h - 35` and the bar on the sword's pip row `h - 26`; lifted to `h - 41` above Wathe's stamina row only when that
+    row is drawn under the badge, i.e. hotbar keys 5-9 with the vanilla font), `client/mixin/bear/M32CooldownNumberMixin`
+    (`@WrapOperation` on the one `drawTextWithShadow` in Wathe's `CooldownRenderer#renderHud`: skipped exactly while
+    `M32Hud.isShown`, since the badge shows the cooldown and the number would sit under the count; never cancels the
+    method, so `GrandWitchSwordCooldownMixin`'s HEAD inject is unaffected; pinned in `verifyClientMixinSelectors`),
     `M32FireInput` + `M32InputMixin`/`M32MacControlClickMixin` (the launcher's input scheme), `M32ArmPoseMixin`
     (CROSSBOW_HOLD at priority 1600 like the launcher; the art's hold lives in `m32a1.json` display transforms: the
     owner-approved first-pass art, restored 2026-11-06, with only its third-person entries re-solved so the pistol grip

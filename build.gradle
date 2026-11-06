@@ -248,6 +248,19 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
         [
+                // BEAR M32A1 (owner, 2026-11-06): the slot badge replaces Wathe's selected-slot cooldown number.
+                // BEAR M32A1（所有者 2026-11-06）：格标记取代 Wathe 选中格冷却数字。
+                configName: "bear.M32CooldownNumberMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/bear/M32CooldownNumberMixin.class",
+                handler: "sparkwitch\$yieldToM32Badge",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_332;method_25303(Lnet/minecraft/class_327;Ljava/lang/String;III)I",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CooldownRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
                 configName: "witchmaiden.WitchMaidenInventoryScreenMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/witchmaiden/WitchMaidenInventoryScreenMixin.class",
                 handler: "sparkwitch\$attachWitchMaidenUi",

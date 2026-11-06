@@ -7,32 +7,39 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Pure rules of the M32A1 HUD row ({@link M32Hud}), from the BEAR art package (README §8): when it shows, the sprite
- * sheet, where each chamber is drawn, the ring and dim rules, and the bottom-right row layout. Texts are fixed ASCII
- * ("4/6", "100 m"), precomputed so a frame allocates nothing. Layout numbers are GUI px.
+ * Pure rules of the M32A1 slot badge ({@link M32Hud}), from the BEAR art package (README §8): when it shows, the sprite
+ * sheet, where each chamber is drawn, the ring and dim rules, and the badge layout above the launcher's hotbar slot
+ * (owner, 2026-11-06: the bottom-right row could overlap the skill lines, so the readout moved above the hotbar like
+ * the Ceremonial Sword badge, only while held). Texts are fixed ASCII ("4/6", "100 m"), precomputed so a frame
+ * allocates nothing. Layout numbers are GUI px.
  * <ul>
  *   <li>Cylinder: chamber {@code i} is drawn in slot {@code (i - next) mod 6} (slot 0 at 12 o'clock under the fixed
  *   pointer, then clockwise), so the round that fires next always sits at the top; the cylinder sprite already shows
  *   every recess empty, so only loaded rounds are drawn over it ({@link #LOADED_DIM} while the launcher's item cooldown
  *   runs). The ring marks slot 0 only while anything is loaded.</li>
- *   <li>Row: {@code "<n>/6"}, 4 px, {@code "<dial> m"}, 5 px, the 25 x 29 icon (pointer row on top); right-aligned at
- *   {@code scaledWidth - 6}, the icon's bottom 7 px above the bottom edge and the texts' bottom 3 px above that. It
- *   moves exactly like the USEC ammo row ({@code UsecAmmoHudRules}): one text row up while the shared corner line is
- *   drawn, and above the hotbar and Wathe's stamina row when it is wide enough to reach the hotbar column. The
- *   cooldown bar copies USEC's, 2 px under the count.</li>
- *   <li>Plate: the two texts (and the bar) sit on one translucent dark rounded plate ({@link #plate}), so the light
- *   count and the olive dial keep their contrast over bright ground, vanilla or under a shader pack; the texts keep
- *   their vanilla drop shadow on top.</li>
+ *   <li>Badge ({@link #badge}): the 25 x 29 icon (pointer row on top), 4 px, then a text column as wide as the
+ *   widest of the count and {@link #WIDEST_DIAL_TEXT} (so nothing moves as the dial turns): {@code "<dial> m"} on
+ *   top, {@code "<n>/6"} under it and the cooldown bar under the count. Centred on the selected slot's centre (the x
+ *   Wathe centres its cooldown number on), clamped inside the screen. Its bottom is the hotbar selection frame's top
+ *   row ({@code h - 23}), so the count sits on Wathe's cooldown-number line ({@code h - 35}) and the bar on the
+ *   sword's pip row ({@code h - 26}). When Wathe's stamina row is drawn and the badge would reach its columns, the
+ *   badge is lifted above it ({@link #LIFTED_BOTTOM_OFFSET}), so the stamina icons are never hidden.</li>
+ *   <li>Plate: the texts and the bar sit on one translucent dark rounded plate exactly as tall as the cylinder, so the
+ *   light count and the olive dial keep their contrast over bright ground, vanilla or under a shader pack; the texts
+ *   keep their vanilla drop shadow on top.</li>
  * </ul>
- * M32A1 HUD 行（{@link M32Hud}）的纯规则，依据 BEAR 美术包（README 第 8 节）：何时显示、精灵图、每个弹膛的绘制位置、加圈与
- * 变暗规则，以及右下角的行布局。文本为固定 ASCII（"4/6"、"100 m"），预先生成，每帧不分配内存。布局数值为 GUI 像素。转轮：第
- * {@code i} 号弹膛画在第 {@code (i - next) mod 6} 个槽位（0 号槽位在固定指针下方的 12 点钟方向，其后顺时针），因此下一发击发
- * 的榴弹总在顶部；转轮精灵本身已画出全部空膛，因此只在其上叠画已装填的榴弹（发射器物品冷却期间用 {@link #LOADED_DIM}）。仅在有
- * 装填时给 0 号槽位加圈。行：{@code "<n>/6"}、4 像素、{@code "<刻度> m"}、5 像素、25 x 29 图标（顶部为指针行）；右对齐于
- * {@code scaledWidth - 6}，图标底边距底部 7 像素，文字底边再高 3 像素。其移动规则与 USEC 弹药行（{@code UsecAmmoHudRules}）
- * 完全相同：共享角落行显示时上移一行文字高度；行宽伸入快捷栏列时抬升到快捷栏与 Wathe 体力行之上。冷却进度条照搬 USEC，
- * 位于弹数下方 2 像素。底板：两段文字（及进度条）共用一块半透明深色圆角底板（{@link #plate}），使浅色弹数与橄榄色
- * 刻度在明亮地面上（原版或光影包下）仍保持对比度；文字其上仍保留原版投影。
+ * M32A1 物品栏格标记（{@link M32Hud}）的纯规则，依据 BEAR 美术包（README 第 8 节）：何时显示、精灵图、每个弹膛的绘制位置、
+ * 加圈与变暗规则，以及发射器所在快捷栏格上方的标记布局（所有者 2026-11-06：右下角的行可能与技能行重合，因此改为像仪礼剑
+ * 标记一样在物品栏上方显示，且仅在手持时显示）。文本为固定 ASCII（"4/6"、"100 m"），预先生成，每帧不分配内存。布局数值
+ * 为 GUI 像素。转轮：第 {@code i} 号弹膛画在第 {@code (i - next) mod 6} 个槽位（0 号槽位在固定指针下方的 12 点钟方向，其后
+ * 顺时针），因此下一发击发的榴弹总在顶部；转轮精灵本身已画出全部空膛，因此只在其上叠画已装填的榴弹（发射器物品冷却期间用
+ * {@link #LOADED_DIM}）。仅在有装填时给 0 号槽位加圈。标记（{@link #badge}）：25 x 29 图标（顶部为指针行）、4 像素，再接
+ * 一列文字，列宽取弹数与 {@link #WIDEST_DIAL_TEXT} 中较宽者（转动刻度时不移动）：上方 {@code "<刻度> m"}，其下
+ * {@code "<n>/6"}，弹数下方为冷却进度条。以选中格中心（即 Wathe 冷却数字的居中位置）为中心，并钳制在屏幕内。底边为快捷栏
+ * 选中框的顶行（{@code h - 23}），因此弹数位于 Wathe 冷却数字行（{@code h - 35}），进度条位于仪礼剑点阵行
+ * （{@code h - 26}）。Wathe 体力行显示且标记会伸入其所在列时，标记抬升到体力行之上（{@link #LIFTED_BOTTOM_OFFSET}），
+ * 体力图标永不被遮挡。底板：文字与进度条共用一块与转轮等高的半透明深色圆角底板，使浅色弹数与橄榄色刻度在明亮地面上
+ * （原版或光影包下）仍保持对比度；文字其上仍保留原版投影。
  */
 public final class M32HudRules {
     /** The one texture id of the sprite sheet (64 x 32). / 精灵图的唯一贴图 id（64 x 32）。 */
@@ -64,10 +71,6 @@ public final class M32HudRules {
     public static final int BAR_FILL_COLOR = DIAL_COLOR;
     public static final int BAR_FILL_SHADE_COLOR = 0xFF6E7F3F;
     public static final int BAR_HEIGHT = 2;
-    public static final int COUNT_GAP = 4;
-    public static final int ICON_GAP = 5;
-    /** Texts' bottom above the icon's bottom. / 文字底边高于图标底边的像素。 */
-    public static final int TEXT_LIFT = 3;
     /**
      * The text plate: a 63 % near-black with a faint BEAR olive cast (the Grand Witch sword's pip plate, lighter).
      * Padding is 2 px of air around the glyphs (the right side's last advance column already holds the shadow) and
@@ -81,17 +84,40 @@ public final class M32HudRules {
     public static final int PLATE_PAD_TOP = 2;
     public static final int PLATE_PAD_BOTTOM = 1;
 
-    // Placement, the same numbers as UsecAmmoHudRules (pinned by a test). / 布局数值与 UsecAmmoHudRules 相同（由测试固定）。
-    public static final int RIGHT_PADDING = 6;
-    public static final int BOTTOM_PADDING = 7;
-    public static final int ROW_GAP = 2;
-    public static final int HOTBAR_HALF_WIDTH = 91;
-    public static final int HOTBAR_GAP = 4;
+    // Slot badge placement. / 物品栏格标记布局。
+    public static final int HOTBAR_SLOTS = 9;
+    /** Icon right edge to the texts: 2 px of air, then the plate's 2 px pad. / 图标右缘到文字：2 像素空隙加底板 2 像素内边距。 */
+    public static final int TEXT_GAP = 4;
+    /** Dial line bottom to count line top. / 刻度行底边到弹数行顶边的间距。 */
+    public static final int LINE_GAP = 2;
+    /**
+     * Badge bottom (exclusive) above the screen bottom: the hotbar selection frame's top row, the same bottom as the
+     * sword badge's pip plate.
+     * 标记底边（不含）距屏幕底部的距离：快捷栏选中框的顶行，与仪礼剑标记点阵底板的底边相同。
+     */
+    public static final int BADGE_BOTTOM_OFFSET = 23;
+    /**
+     * Lifted badge bottom: above Wathe's stamina row (top at h - 39) + 2 px, the lifted offset every corner row uses
+     * ({@code UsecAmmoHudRules}, pinned by a test).
+     * 抬升后的标记底边：位于 Wathe 体力行（顶端 h - 39）之上再加 2 像素，与各角落行的抬升偏移相同（{@code UsecAmmoHudRules}，
+     * 由测试固定）。
+     */
     public static final int LIFTED_BOTTOM_OFFSET = 41;
+    /**
+     * Wathe's {@code StaminaRenderer} columns: ten 9 px icons 8 px apart from {@code w/2 + 10} to {@code w/2 + 91}
+     * (exclusive), rows {@code h - 39} to {@code h - 30}.
+     * Wathe {@code StaminaRenderer} 所在列：十个 9 像素图标间隔 8 像素，自 {@code w/2 + 10} 至 {@code w/2 + 91}（不含），
+     * 行为 {@code h - 39} 至 {@code h - 30}。
+     */
+    public static final int STAMINA_ROW_LEFT = 10;
+    public static final int STAMINA_ROW_RIGHT = 91;
 
     private static final String[] COUNT_TEXTS = new String[M32Cylinder.CHAMBERS + 1];
     private static final String[] DIAL_TEXTS;
-    /** The widest dial text, so the lift decision does not flicker as the dial turns. / 最宽的刻度文字。 */
+    /**
+     * The widest dial text: the text column reserves it, so the badge never moves as the dial turns.
+     * 最宽的刻度文字：文字列按其预留宽度，转动刻度时标记不移动。
+     */
     public static final String WIDEST_DIAL_TEXT;
 
     static {
@@ -174,61 +200,79 @@ public final class M32HudRules {
         return loaded > 0 ? COUNT_COLOR : EMPTY_COUNT_COLOR;
     }
 
-    /** Count, gap, dial, gap, icon. / 弹数、间隙、刻度、间隙、图标。 */
-    public static int rowWidth(int countWidth, int dialWidth) {
-        return Math.max(0, countWidth) + COUNT_GAP + Math.max(0, dialWidth) + ICON_GAP + ICON_WIDTH;
-    }
-
-    /** Left x of the right-aligned row; never negative. / 右对齐行的左侧 x；不为负。 */
-    public static int rowX(int scaledWidth, int rowWidth) {
-        return Math.max(0, scaledWidth - RIGHT_PADDING - Math.max(0, rowWidth));
-    }
-
-    /** Whether a row starting at {@code rowX} reaches the centred hotbar column. / 该行是否伸入快捷栏列。 */
-    public static boolean overlapsHotbar(int scaledWidth, int rowX) {
-        return rowX < scaledWidth / 2 + HOTBAR_HALF_WIDTH + HOTBAR_GAP;
+    /**
+     * Centre x of hotbar slot {@code slot} (clamped to 0..8): the x Wathe's {@code CooldownRenderer} and the sword
+     * badge centre on.
+     * 快捷栏第 {@code slot} 格（钳制到 0..8）的中心 x：即 Wathe {@code CooldownRenderer} 与仪礼剑标记的居中位置。
+     */
+    public static int slotCentreX(int scaledWidth, int slot) {
+        int clamped = Math.max(0, Math.min(HOTBAR_SLOTS - 1, slot));
+        return scaledWidth / 2 - 80 + clamped * 20;
     }
 
     /**
-     * The row's bottom (the icon's bottom edge, exclusive): 7 px above the bottom edge in the corner, one text row
-     * higher while the shared corner line is drawn, or lifted above the hotbar when {@code layoutWidth} reaches its
-     * column. {@code layoutWidth} should use {@link #WIDEST_DIAL_TEXT}, so the lift never flickers as the dial turns.
-     * 该行底边（图标底边，不含）：角落中距底部 7 像素；共享角落行显示时再高一行文字；{@code layoutWidth} 伸入快捷栏列时抬升到
-     * 快捷栏之上。{@code layoutWidth} 应按 {@link #WIDEST_DIAL_TEXT} 计算，使转动刻度时抬升不闪烁。
+     * Text column width: the wider of the count and the widest dial text (pass {@link #WIDEST_DIAL_TEXT}'s width).
+     * 文字列宽：弹数与最宽刻度文字中较宽者（传入 {@link #WIDEST_DIAL_TEXT} 的宽度）。
      */
-    public static int rowBottom(int scaledWidth, int scaledHeight, int layoutWidth, int fontHeight,
-                                boolean sharedLineOccupied) {
-        int bottomOffset;
-        if (overlapsHotbar(scaledWidth, rowX(scaledWidth, layoutWidth))) {
-            bottomOffset = LIFTED_BOTTOM_OFFSET;
-        } else {
-            bottomOffset = BOTTOM_PADDING + (sharedLineOccupied ? fontHeight + ROW_GAP : 0);
-        }
-        return scaledHeight - bottomOffset;
+    public static int columnWidth(int countWidth, int widestDialWidth) {
+        return Math.max(0, Math.max(countWidth, widestDialWidth));
     }
 
-    /** Top y of the texts for a row bottom. / 给定行底边时文字的顶部 y。 */
-    public static int textY(int rowBottom, int fontHeight) {
-        return rowBottom - TEXT_LIFT - fontHeight;
+    /** Icon, gap, text column, the plate's right pad. / 图标、间隙、文字列、底板右侧内边距。 */
+    public static int badgeWidth(int columnWidth) {
+        return ICON_WIDTH + TEXT_GAP + Math.max(0, columnWidth) + PLATE_PAD_RIGHT;
     }
 
-    /** Top y of the icon (its pointer row) for a row bottom. / 给定行底边时图标（指针行）的顶部 y。 */
-    public static int iconY(int rowBottom) {
-        return rowBottom - ICON_HEIGHT;
+    /** Left x of a badge centred on the slot, clamped inside the screen. / 以该格为中心、钳制在屏幕内的标记左侧 x。 */
+    public static int badgeX(int scaledWidth, int slot, int badgeWidth) {
+        int centred = slotCentreX(scaledWidth, slot) - Math.max(0, badgeWidth) / 2;
+        return Math.max(0, Math.min(centred, scaledWidth - Math.max(0, badgeWidth)));
     }
 
     /**
-     * The plate behind the texts that start at {@code textLeft}/{@code textY} and end (exclusive, the advance width)
-     * at {@code textRight}: it covers the glyphs, their shadow and the bar slot under the count; never left of 0.
-     * 位于文字之后的底板：文字从 {@code textLeft}/{@code textY} 开始，到 {@code textRight}（不含，按字宽计）结束；
-     * 覆盖字形、投影与弹数下方的进度条位置；左边不小于 0。
+     * Whether Wathe draws its stamina row this frame: the same gate as its {@code StaminaRenderer} (inside the train
+     * HUD, the local player playing and alive, stamina not infinite).
+     * Wathe 本帧是否绘制体力行：与其 {@code StaminaRenderer} 的条件相同（列车 HUD 内、本地玩家在局内存活、体力非无限）。
      */
-    public static Plate plate(int textLeft, int textY, int textRight, int fontHeight) {
-        int left = Math.max(0, textLeft - PLATE_PAD_LEFT);
-        int right = Math.max(left, textRight + PLATE_PAD_RIGHT);
-        int top = textY - PLATE_PAD_TOP;
-        int bottom = textY + fontHeight + BAR_HEIGHT + PLATE_PAD_BOTTOM;
-        return new Plate(left, top, right - left, bottom - top);
+    public static boolean staminaRowShown(boolean trainHudActive, boolean playingAndAlive, boolean infiniteStamina) {
+        return trainHudActive && playingAndAlive && !infiniteStamina;
+    }
+
+    /** Whether a badge spanning {@code [x, x + width)} reaches the stamina row's columns. / 标记是否伸入体力行所在列。 */
+    public static boolean reachesStaminaRow(int scaledWidth, int badgeX, int badgeWidth) {
+        int centre = scaledWidth / 2;
+        return badgeX < centre + STAMINA_ROW_RIGHT && badgeX + badgeWidth > centre + STAMINA_ROW_LEFT;
+    }
+
+    /** Badge bottom edge (exclusive). / 标记底边（不含）。 */
+    public static int badgeBottom(int scaledHeight, boolean lifted) {
+        return scaledHeight - (lifted ? LIFTED_BOTTOM_OFFSET : BADGE_BOTTOM_OFFSET);
+    }
+
+    /**
+     * The whole badge for the selected slot: centred and clamped ({@link #badgeX}), on the selection frame's top row
+     * unless Wathe's stamina row is drawn under its columns ({@link #reachesStaminaRow}), then lifted above it. From the
+     * bottom up: the plate's 1 px pad, the 2 px bar, the count line, 2 px, the dial line, the plate's 2 px pad; the icon
+     * shares the bottom edge.
+     * 选中格对应的整个标记：居中并钳制（{@link #badgeX}），默认位于选中框顶行之上；若 Wathe 体力行绘制在其所在列下方
+     * （{@link #reachesStaminaRow}），则抬升到体力行之上。自下而上：底板 1 像素内边距、2 像素进度条、弹数行、2 像素、刻度行、
+     * 底板 2 像素内边距；图标与其共用底边。
+     */
+    public static Badge badge(int scaledWidth, int scaledHeight, int selectedSlot, int columnWidth, int fontHeight,
+                              boolean staminaRowShown) {
+        int column = Math.max(0, columnWidth);
+        int width = badgeWidth(column);
+        int x = badgeX(scaledWidth, selectedSlot, width);
+        boolean lifted = staminaRowShown && reachesStaminaRow(scaledWidth, x, width);
+        int bottom = badgeBottom(scaledHeight, lifted);
+        int barY = bottom - PLATE_PAD_BOTTOM - BAR_HEIGHT;
+        int countY = barY - fontHeight;
+        int dialY = countY - LINE_GAP - fontHeight;
+        int textX = x + ICON_WIDTH + TEXT_GAP;
+        int plateY = dialY - PLATE_PAD_TOP;
+        Plate plate = new Plate(textX - PLATE_PAD_LEFT, plateY, PLATE_PAD_LEFT + column + PLATE_PAD_RIGHT,
+                bottom - plateY);
+        return new Badge(x, bottom - ICON_HEIGHT, textX, dialY, countY, barY, plate, lifted);
     }
 
     /** The bar shows while the launcher's item cooldown runs. / 发射器物品冷却期间显示进度条。 */
@@ -255,5 +299,14 @@ public final class M32HudRules {
 
     /** A GUI rect (top-left, size). / GUI 矩形（左上角与尺寸）。 */
     public record Plate(int x, int y, int width, int height) {
+    }
+
+    /**
+     * One frame's badge: icon top-left, the text column's x, the dial, count and bar tops, the plate, and whether it
+     * was lifted above Wathe's stamina row.
+     * 单帧的标记：图标左上角、文字列 x、刻度/弹数/进度条的顶边、底板，以及是否抬升到 Wathe 体力行之上。
+     */
+    public record Badge(int iconX, int iconY, int textX, int dialY, int countY, int barY, Plate plate,
+                        boolean lifted) {
     }
 }

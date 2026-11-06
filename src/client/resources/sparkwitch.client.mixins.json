@@ -232,6 +232,7 @@
     "bear.M32ArmPoseMixin",
     "bear.M32SightHeldItemMixin",
     "bear.M32SightFovMixin",
+    "bear.M32CooldownNumberMixin",
     "bear.HearingSoundSystemMixin",
     "bear.HearingSourceAccessor",
     "bear.HeadsetInventoryScreenMixin",
