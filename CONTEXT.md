@@ -1616,8 +1616,10 @@ Current build baseline:
     re-solved per frame), `M32Hud` (6-chamber sheet `textures/gui/bear/m32_chambers.png`, USEC ammo-row placement,
     count + dial texts with shadow on one translucent dark plate `M32HudRules.plate`/`PLATE_COLOR`),
     `M32FireInput` + `M32InputMixin`/`M32MacControlClickMixin` (the launcher's input scheme), `M32ArmPoseMixin`
-    (CROSSBOW_HOLD at priority 1600 like the launcher; the art's hold lives in `m32a1.json` display transforms, and the
-    support fist stays ≈0.7 block short of the vertical foregrip, which no vanilla `ArmPose` reaches),
+    (CROSSBOW_HOLD at priority 1600 like the launcher; the art's hold lives in `m32a1.json` display transforms: the
+    owner-approved first-pass art, restored 2026-11-06, with only its third-person entries re-solved so the pistol grip
+    sits in the dominant fist, the butt on the shoulder beside the head, the bore level and toed in 5°, scale 0.5;
+    the support fist stays ≈0.8 block short of the vertical foregrip, which no vanilla `ArmPose` reaches),
     `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6; launch hide = vanilla's age < 2 within 3.5 blocks, but
     measured camera to the interpolated round like the Ninja hook head, since a 3.8 b/t round leaves vanilla's
     feet-to-tick-position sphere on its first tick), `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
