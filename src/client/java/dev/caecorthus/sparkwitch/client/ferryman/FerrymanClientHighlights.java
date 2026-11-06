@@ -1,8 +1,12 @@
 package dev.caecorthus.sparkwitch.client.ferryman;
 
+import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanInstinctVeilComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanPlayerComponent;
+import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GetInstinctHighlight;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -28,6 +32,9 @@ public final class FerrymanClientHighlights {
     private static final int MERCY_COLOR = 0x8FD3FF;
     /** Fresh, not yet ferried. / 尚未摆渡的新鲜遗体。 */
     private static final int FRESH_BODY_COLOR = 0xFFD27A;
+    /** A Lost Soul's 6 block red sight. / 迷失灵魂 6 格内的红色透视。 */
+    private static final int SOUL_SIGHT_COLOR = 0xFF4A4A;
+    private static final double SOUL_SIGHT_RANGE_SQUARED = 6.0 * 6.0;
     private static final int PRIORITY = GetInstinctHighlight.HighlightResult.PRIORITY_DEFAULT + 40;
 
     private FerrymanClientHighlights() {
@@ -57,7 +64,28 @@ public final class FerrymanClientHighlights {
     private static @Nullable GetInstinctHighlight.HighlightResult highlight(@Nullable Entity target) {
         MinecraftClient client = MinecraftClient.getInstance();
         ClientPlayerEntity self = client.player;
-        if (self == null || target == null || target == self || !FerrymanClient.isLocalFerryman(client)) {
+        if (self == null || target == null || target == self) {
+            return null;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(self.getWorld());
+        Role selfRole = game.getRole(self);
+        // A Lost Soul sees the Charon through walls, always, in his own role colour, plus every player within 6 blocks
+        // in red. Both are outlines for that client only; nothing here changes what anyone else renders.
+        // 迷失的灵魂永远能穿墙看见卡戎（用他的职业颜色），另外 6 格内的玩家显示为红色。两者都只对这一台客户端生效，
+        // 不改变其他人看到的画面。
+        if (selfRole != null && SparkWitchRoles.LOST_SOUL_ID.equals(selfRole.identifier())) {
+            if (!(target instanceof PlayerEntity other)) {
+                return null;
+            }
+            Role otherRole = game.getRole(other);
+            if (otherRole != null && FerrymanRules.ROLE_ID.equals(otherRole.identifier())) {
+                return GetInstinctHighlight.HighlightResult.always(FerrymanRules.COLOR, PRIORITY + 5);
+            }
+            return self.squaredDistanceTo(other) <= SOUL_SIGHT_RANGE_SQUARED
+                    ? GetInstinctHighlight.HighlightResult.always(SOUL_SIGHT_COLOR, PRIORITY)
+                    : null;
+        }
+        if (!FerrymanClient.isLocalFerryman(client)) {
             return null;
         }
         FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(self);

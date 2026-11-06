@@ -1460,7 +1460,7 @@
   "tip.letter.charon.tooltip7": "亡魂时刻：在你身边复活「人数/6」具已摆渡的遗体，成为迷失的灵魂——周身升起蓝色灵魂火焰，各带空德林加、撬棍与匕首。",
   "tip.letter.charon.tooltip8": "胜利：杀光时刻之外的所有人。若迷失的灵魂先全部阵亡，你随之而死。",
   "message.sparkwitch.ferryman.pardon.prompt": "按下技能键，拒绝这次死亡……",
-  "message.sparkwitch.ferryman.pardon.saved": "安息吧，勿扰亡者安宁……",
+  "message.sparkwitch.ferryman.pardon.saved": "安息吧",
   "message.sparkwitch.ferryman.pardon.unavailable": "没有死亡在等你开口。",
   "message.sparkwitch.ferryman.ferry.done": "+%s 金币。灵魂已渡过。",
   "message.sparkwitch.ferryman.ferry.already": "这一具你已经摆渡过。",
@@ -1474,7 +1474,7 @@
   "replay.death.sparkwitch.pardon_expired.killed": "%s 的宽恕落空，被 %s 杀死",
   "replay.death.sparkwitch.pardon_expired.died": "%s 的宽恕落空而死",
   "message.sparkwitch.ferryman.gaze.feign": "耳鸣声里，亡者不会回答第二次……",
-  "message.sparkwitch.ferryman.gaze.marked": "勿扰亡者安宁……",
+  "message.sparkwitch.ferryman.gaze.marked": "§c勿扰亡者安宁……",
   "death_reason.sparkwitch.ferryman_feign": "在卡戎面前假死时被击杀",
   "replay.death.sparkwitch.ferryman_feign.killed": "%s 假死时被 %s 击杀",
   "replay.death.sparkwitch.ferryman_feign.died": "%s 假死时被击杀",
@@ -1500,5 +1500,7 @@
   "hud.sparkwitch.ferryman.pardon.cooldown": "%s · 免死：%s 秒",
   "hud.sparkwitch.ferryman.ferry.ready": "%s · 摆渡新鲜遗体",
   "hud.sparkwitch.ferryman.ferry.cooldown": "%s · 摆渡：%s 秒",
+  "game.win.charon": "卡戎与迷失的灵魂迎来了他们的结局",
+  "game.win.lost_soul": "卡戎与迷失的灵魂迎来了他们的结局",
   "message.sparkwitch.ferryman.ferry.cooldown": "摆渡冷却中：%s 秒"
 }

@@ -1460,7 +1460,7 @@
   "tip.letter.charon.tooltip7": "Soul Moment: one ferried body per 6 players rises beside you as a Lost Soul. Blue soul flames rise around them, and each carries a derringer with no rounds, a crowbar and a knife.",
   "tip.letter.charon.tooltip8": "Win: kill everyone outside the moment. If every Lost Soul dies first, you die with them.",
   "message.sparkwitch.ferryman.pardon.prompt": "Press the skill key to refuse this death…",
-  "message.sparkwitch.ferryman.pardon.saved": "Rest, and do not disturb the dead…",
+  "message.sparkwitch.ferryman.pardon.saved": "Rest.",
   "message.sparkwitch.ferryman.pardon.unavailable": "No death is waiting for your word.",
   "message.sparkwitch.ferryman.ferry.done": "+%s coins. The soul is ferried.",
   "message.sparkwitch.ferryman.ferry.already": "You already ferried this one.",
@@ -1474,7 +1474,7 @@
   "replay.death.sparkwitch.pardon_expired.killed": "%s fell to %s after the pardon lapsed",
   "replay.death.sparkwitch.pardon_expired.died": "%s fell after the pardon lapsed",
   "message.sparkwitch.ferryman.gaze.feign": "A ringing fills your ears… the dead do not answer twice.",
-  "message.sparkwitch.ferryman.gaze.marked": "Do not disturb the rest of the dead…",
+  "message.sparkwitch.ferryman.gaze.marked": "§cDo not disturb the rest of the dead…",
   "death_reason.sparkwitch.ferryman_feign": "Struck down while feigning before the Charon",
   "replay.death.sparkwitch.ferryman_feign.killed": "%s was killed by %s while feigning",
   "replay.death.sparkwitch.ferryman_feign.died": "%s was killed while feigning",
@@ -1500,5 +1500,7 @@
   "hud.sparkwitch.ferryman.pardon.cooldown": "%s · Refuse death: %ss",
   "hud.sparkwitch.ferryman.ferry.ready": "%s · Ferry a fresh body",
   "hud.sparkwitch.ferryman.ferry.cooldown": "%s · Ferry: %ss",
+  "game.win.charon": "The Charon and the Lost Souls found their ending",
+  "game.win.lost_soul": "The Charon and the Lost Souls found their ending",
   "message.sparkwitch.ferryman.ferry.cooldown": "Ferry cooling down: %ss"
 }

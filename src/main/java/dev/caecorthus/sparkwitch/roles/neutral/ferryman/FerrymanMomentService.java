@@ -43,6 +43,18 @@ public final class FerrymanMomentService {
     /** Wathe's internal dead-player set; null when the field is gone. / Wathe 内部死者集合；字段消失时为 null。 */
     private static final @Nullable Field DEAD_PLAYERS = resolveDeadPlayersField();
 
+    /**
+     * Installed by the optional voice-chat plugin: drops a revived soul out of every voice group, so it can never
+     * keep talking in the dead channel after coming back. No-op when Simple Voice Chat is absent.
+     * 由可选的语音插件安装：把复活的灵魂移出所有语音分组，避免他复活后仍在死者频道说话。没有语音模组时为空操作。
+     */
+    private static volatile java.util.function.Consumer<ServerPlayerEntity> voiceGroupReset = player -> {
+    };
+
+    public static void installVoiceGroupReset(java.util.function.Consumer<ServerPlayerEntity> reset) {
+        voiceGroupReset = reset;
+    }
+
     static void register() {
         ServerTickEvents.END_SERVER_TICK.register(FerrymanMomentService::tick);
     }
@@ -103,13 +115,23 @@ public final class FerrymanMomentService {
         soul.teleport(world, ferryman.getX(), ferryman.getY(), ferryman.getZ(), Set.of(),
                 ferryman.getYaw(), 0.0F);
         GameWorldComponent.KEY.get(world).addRole(soul, dev.caecorthus.sparkwitch.SparkWitchRoles.lostSoul());
-        // A Lost Soul is announced by blue soul particles around it, not by a GLOWING outline every client renders.
-        // 迷失的灵魂靠周身蓝色灵魂粒子被认出来，而不是所有人都渲染的发光描边。
+        // A Lost Soul keeps nothing from its old life: the whole inventory, the cursor stack and any dropped-loadout
+        // leftovers go first, then the role's own kit is issued.
+        // 迷失的灵魂不带走生前任何东西：先清空整个物品栏、光标上的物品以及残留，再发放本职业的套装。
+        clearInventory(soul);
         soul.getInventory().insertStack(new ItemStack(WatheItems.DERRINGER));
         soul.getInventory().insertStack(new ItemStack(WatheItems.CROWBAR));
         soul.getInventory().insertStack(new ItemStack(WatheItems.KNIFE));
         soul.currentScreenHandler.sendContentUpdates();
         discardBodies(world, soul.getUuid());
+        // Out of every voice group: a revived soul must not keep the dead channel it was moved into on death.
+        // 退出所有语音分组：复活的灵魂不能继续留在死亡时被挪进的死者频道。
+        try {
+            voiceGroupReset.accept(soul);
+        } catch (RuntimeException exception) {
+            SparkWitch.LOGGER.warn("Charon moment: could not drop {} from its voice group",
+                    soul.getGameProfile().getName(), exception);
+        }
         soul.sendMessage(Text.translatable(SOUL_KEY), false);
     }
 
@@ -154,6 +176,19 @@ public final class FerrymanMomentService {
         }
     }
 
+    /**
+     * Empties every slot the player owns: main inventory, hotbar, armour, off hand and the cursor stack, as vanilla
+     * {@code /clear} does, so nothing from the old life survives into the Lost Soul.
+     * 清空玩家所有槽位：主背包、快捷栏、护甲、副手与光标，行为同原版 {@code /clear}，让生前物品一件都留不进迷失的灵魂。
+     */
+    private static void clearInventory(ServerPlayerEntity soul) {
+        soul.getInventory().clear();
+        soul.currentScreenHandler.setCursorStack(ItemStack.EMPTY);
+        soul.playerScreenHandler.setCursorStack(ItemStack.EMPTY);
+        soul.currentScreenHandler.sendContentUpdates();
+        soul.playerScreenHandler.onContentChanged(soul.getInventory());
+    }
+
     private static void tick(MinecraftServer server) {
         long now = server.getOverworld().getTime();
         for (ServerWorld world : server.getWorlds()) {
@@ -163,7 +198,9 @@ public final class FerrymanMomentService {
             }
             ServerPlayerEntity owner = player(server, moment.owner());
             if (owner == null || !FerrymanParticipation.isActiveFerryman(owner)) {
-                end(world, moment, false);
+                // The Charon is gone: every Lost Soul goes with him at once (owner spec).
+                // 卡戎不在了：所有迷失的灵魂立刻随他一同消亡（所有者设定）。
+                endWithSouls(world, moment);
                 continue;
             }
             // Grace: Wathe's death state can outlive the game-mode write for a tick or two, so a freshly revived soul
@@ -254,6 +291,21 @@ public final class FerrymanMomentService {
 
     public static void end(ServerWorld world) {
         end(world, FerrymanMomentWorldComponent.get(world), false);
+    }
+
+    /**
+     * The moment ends because the Charon is gone: every living Lost Soul is killed first, then the state is cleared.
+     * Souls are killed before the set is cleared, because the set is what names them.
+     * 时刻因卡戎消失而结束：先杀死所有存活的迷失灵魂，再清空状态。必须先杀后清，因为名单正是从集合里取的。
+     */
+    public static void endWithSouls(ServerWorld world, FerrymanMomentWorldComponent moment) {
+        for (UUID soulId : moment.souls()) {
+            ServerPlayerEntity soul = world.getServer().getPlayerManager().getPlayer(soulId);
+            if (isSoulAlive(soul)) {
+                GameFunctions.killPlayer(soul, false, null, SparkWitchDeathReasons.FERRYMAN_MOMENT_LOST);
+            }
+        }
+        moment.clear();
     }
 
     private static void broadcast(ServerWorld world, Text message) {

@@ -9,6 +9,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -43,14 +45,27 @@ public final class FerrymanWinService {
         UUID ownerId = moment.owner();
         ServerPlayerEntity owner = ownerId == null ? null : world.getServer().getPlayerManager().getPlayer(ownerId);
         if (owner == null || !FerrymanParticipation.isActiveFerryman(owner)) {
-            FerrymanMomentService.end(world);
+            // The Charon is gone: the Lost Souls die with him before normal resolution resumes.
+            // 卡戎已不在：迷失的灵魂随他一同消亡，然后恢复常规结算。
+            FerrymanMomentService.endWithSouls(world, moment);
             return null;
         }
         if (moment.soulCount() == 0) {
             return null;
         }
-        return FerrymanMomentRules.outsidersAlive(world, moment) == 0
-                ? CheckWinCondition.WinResult.neutralWin(owner)
-                : CheckWinCondition.WinResult.block();
+        if (FerrymanMomentRules.outsidersAlive(world, moment) != 0) {
+            return CheckWinCondition.WinResult.block();
+        }
+        // The Charon never wins alone: every Lost Soul still standing is a co-winner, so the round resolves for the
+        // whole moment instead of crediting only its owner (owner report: the souls were not winning with him).
+        // 卡戎从不独自获胜：每一名仍存活的迷失灵魂都是并列胜利者，结算按整个时刻算，而不是只记在拥有者名下。
+        List<ServerPlayerEntity> coWinners = new ArrayList<>();
+        for (UUID soulId : moment.souls()) {
+            ServerPlayerEntity soul = world.getServer().getPlayerManager().getPlayer(soulId);
+            if (soul != null && GameFunctions.isPlayerPlayingAndAlive(soul)) {
+                coWinners.add(soul);
+            }
+        }
+        return CheckWinCondition.WinResult.neutralWin(owner, coWinners);
     }
 }
