@@ -13,11 +13,12 @@ package dev.caecorthus.sparkwitch.client.bear.smoke.occlusion;
  */
 public final class SmokeHeatMath {
     /**
-     * Owner question Q6 default (smoke shows as a warm haze in the thermal view): the heat that fully opaque smoke
-     * writes, on the heat target's 0..1 scale where a body is 1. / 所有者问题 Q6 的默认（烟在热成像中显示为暖色薄雾）：
-     * 完全不透明的烟写入的热值，按热图 0..1 的刻度（人体为 1）。
+     * Owner Q6 (2026-11-06, "能，但是就是一坨亮白"): hot smoke shows in the thermal view as a bright white blob, as hot
+     * as a body; the heat that fully opaque smoke writes, on the heat target's 0..1 scale where a body is 1.
+     * 所有者 Q6（2026-11-06，“能，但是就是一坨亮白”）：热烟在热成像中显示为一团亮白，与人体一样热；完全不透明的烟写入的热值，
+     * 按热图 0..1 的刻度（人体为 1）。
      */
-    public static final float DEFAULT_HAZE = 0.35F;
+    public static final float DEFAULT_HAZE = 1.0F;
     /** Largest heat target edge accepted, in pixels. / 接受的最大热图边长（像素）。 */
     public static final int MAX_TARGET_SIZE = 16384;
     /**

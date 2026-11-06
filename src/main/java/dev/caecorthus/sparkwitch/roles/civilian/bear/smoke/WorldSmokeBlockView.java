@@ -20,23 +20,21 @@ import java.util.List;
  * smoke through and a closed one (its 4/16-thick slab between cell centres) stops it. Wathe doors keep their closed
  * shape for rays ({@code getRaycastShape}); smoke deliberately follows collision instead, so it pours through open
  * doors. Fluids, unloaded chunks and the build limit block smoke; nothing here loads a chunk or writes a block.
- * Invisible barriers (vanilla {@code minecraft:barrier}, Wathe's light barrier and barrier panels) are treated as air
- * ({@link #BARRIERS_PASS_SMOKE}): they are player clips, and smoke stopping on an invisible plane would read as a
- * rendering bug.
+ * Invisible barriers (vanilla {@code minecraft:barrier}, Wathe's light barrier and barrier panels) block smoke by
+ * their collision like any other block (owner Q5, 2026-11-06: "挡"; {@link #BARRIERS_PASS_SMOKE} is false).
  * 世界到 {@link SmokeBlockView} 的只读服务端适配。碰撞取自 {@code getCollisionShape(world, pos, ShapeContext.absent())}：
  * 无实体上下文，因此冤魂、钓鱼佬与骑士按玩家实体生效的穿门豁免永不适用；打开的 Wathe 门（碰撞为空）让烟通过，关着的门
  * （夹在格中心之间的 4/16 厚板）挡住烟。Wathe 门对射线始终保持关闭形状（{@code getRaycastShape}）；烟刻意按碰撞走，
  * 所以会从开着的门涌出。流体、未加载区块与建筑高度之外都会挡住烟；这里从不加载区块，也从不写方块。不可见屏障（原版
- * {@code minecraft:barrier}、Wathe 的光屏障与屏障面板）视为空气（{@link #BARRIERS_PASS_SMOKE}）：它们只是玩家碰撞墙，
- * 烟停在看不见的平面上会像渲染错误。
+ * {@code minecraft:barrier}、Wathe 的光屏障与屏障面板）与其他方块一样按碰撞挡烟（所有者 Q5，2026-11-06：“挡”；
+ * {@link #BARRIERS_PASS_SMOKE} 为 false）。
  */
 final class WorldSmokeBlockView implements SmokeBlockView {
     /**
-     * Owner question Q5 (pending, default kept from the spike): invisible barriers let smoke through. Flip to false and
-     * they block it like any full collision box. / 所有者问题 Q5（待定，沿用原型的默认）：不可见屏障让烟通过。改为 false
-     * 后它们像任何完整碰撞箱一样挡烟。
+     * Owner Q5 (2026-11-06, "挡"): invisible barriers block smoke by their collision. True would treat them as air
+     * (the spike's default). / 所有者 Q5（2026-11-06，“挡”）：不可见屏障按碰撞挡烟。设为 true 则视为空气（原型的默认）。
      */
-    static final boolean BARRIERS_PASS_SMOKE = true;
+    static final boolean BARRIERS_PASS_SMOKE = false;
 
     private final ServerWorld world;
     private final BlockPos.Mutable pos = new BlockPos.Mutable();

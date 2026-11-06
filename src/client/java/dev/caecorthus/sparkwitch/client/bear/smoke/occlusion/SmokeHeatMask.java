@@ -12,7 +12,7 @@ import org.lwjgl.opengl.GL30;
 
 /**
  * BEAR smoke inside another mod's heat image (BEAR WP5; SparkStrength's Undercover thermal, owner S4 "hot smoke blocks
- * thermal", Q6 default "a warm haze that also hides bodies"), behind {@code api.client.BearSmokeViewApi}. The caller
+ * thermal", owner Q6 "a bright white blob that also hides bodies"), behind {@code api.client.BearSmokeViewApi}. The caller
  * owns a heat framebuffer (a colour texture whose alpha, and colour, is heat, plus a depth texture holding the world
  * depth and, where it drew bodies, their depth) and calls this during a {@code WorldRenderer#render} pass, after it drew
  * its bodies. Per call (render thread only):
@@ -31,7 +31,7 @@ import org.lwjgl.opengl.GL30;
  * unknown) is cleared where possible and the call returns false, so the caller hides it too ({@link #smokeRect}). A
  * failing haze only returns false. The heat target is taken to cover exactly the pass's view: {@code width} x
  * {@code height} is the whole texture, mapped to the whole screen of the current world render.
- * 另一模组热图中的 BEAR 烟雾（BEAR WP5；SparkStrength 卧底热成像，所有者 S4“热烟挡住热成像”，Q6 默认“显示为暖色薄雾并遮住
+ * 另一模组热图中的 BEAR 烟雾（BEAR WP5；SparkStrength 卧底热成像，所有者 S4“热烟挡住热成像”，所有者 Q6“显示为一团亮白并遮住
  * 人体”），位于 {@code api.client.BearSmokeViewApi} 之后。调用方持有一个热图帧缓冲（颜色纹理的 alpha 与颜色即热值，深度纹理
  * 含世界深度以及其画人体之处的人体深度），在一次 {@code WorldRenderer#render} 中画完人体后调用本类。每次调用（仅渲染线程）：
  * 1. 本次渲染没有烟（{@link SmokeOutlineMask#passCoverage()} 为 null）时不做任何事。2. 对本次渲染的整个烟雾矩形步进
@@ -59,9 +59,9 @@ public final class SmokeHeatMask {
     }
 
     /**
-     * Scales the heat behind smoke ({@code haze} &lt; 0) or adds the warm haze ({@code haze} in (0, 1]); see the
+     * Scales the heat behind smoke ({@code haze} &lt; 0) or adds the white-hot haze ({@code haze} in (0, 1]); see the
      * class comment. Returns true when the heat target is right (masked, or no smoke touches this pass).
-     * 缩放烟后的热值（{@code haze} &lt; 0）或加上暖色热雾（{@code haze} 属于 (0, 1]）；见类注释。热图正确（已遮罩，或烟不触及
+     * 缩放烟后的热值（{@code haze} &lt; 0）或加上白热热雾（{@code haze} 属于 (0, 1]）；见类注释。热图正确（已遮罩，或烟不触及
      * 本次渲染）时返回 true。
      */
     public static boolean apply(int colorTexture, int depthTexture, int width, int height, float haze) {

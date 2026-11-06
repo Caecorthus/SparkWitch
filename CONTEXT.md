@@ -1570,8 +1570,10 @@ Current build baseline:
     `RICOCHET_CHANCE` once per shot (`RicochetMemo`, key victim + killer + reason + server tick + origin, so Heavy
     Artillery's and Second Strike's re-entries reuse it); visor up + origin in the head-yaw front hemisphere (D3)
     never rolls. A ricochet only cancels the kill: the shooter's innocent-shot punishment and mood loss (decided before
-    `killPlayer` in Wathe's receiver and USEC's `killAndPunish`) stay, kill-time effects (Conscience, Q4) do not
-    fire, TR survivor debuffs still apply (Q3). Origin order (`BearRicochetRules.resolveOrigin`): an open
+    `killPlayer` in Wathe's receiver and USEC's `killAndPunish`) stay, kill-time effects (Conscience, owner Q4 "吃不到") do not
+    fire. TR survivor debuffs still apply, and a worn Rys-T rolls for them on its own (owner Q3 2026-11-06,
+    `BearRicochetService.deflectsAfterEffect` from `TrShellEffect`; presentation only if the kill roll of the same
+    blast did not already play it). Origin order (`BearRicochetRules.resolveOrigin`): an open
     `RangedOriginScope` (its unknown scope stays unknown, `isOpen()` added for this), else for blasts SparkStrength's
     `AttackOriginScope.currentBlast()` by reflection (`SparkStrengthBlastOrigin`, fail = unknown), else for direct
     fire the killer's eye; unknown or within 0.3 blocks of the wearer is "not front". Scopes are pushed only where
@@ -1646,13 +1648,14 @@ Current build baseline:
     (`HeadsetLifecycle`) and BEAR death clean-up empty it; the ComTac keeps the Blind strip rule.
   - Hearing (WP4, `client/bear/hearing/`): `BearHearingClient.factor()` is the local player's gear factor (on a
     confirmed server) times the WP3 ricochet muffle envelope (`BearMuffleEnvelope`: longer/deeper call wins, 10-tick ease
-    back, floor 0.05). `BearHearingSoundRules` scales every category except MASTER and MUSIC (Q2 default);
+    back, floor 0.05). `BearHearingSoundRules` scales every category, MASTER and MUSIC included (owner Q2 "全部");
     `EXEMPT_SOUND_IDS` are never scaled. `mixin/bear/HearingSoundSystemMixin` multiplies the gain at the Holy Flash seams
-    (gain only, never range). It also raises `AL_MAX_GAIN` on scaled sources to 1.5 so the earplugs really amplify (Q1,
-    proven by `BearHearingOpenAlTest` on OpenAL Soft 1.23.1), failing closed to a clamp at 1. Voice:
+    (gain only, never range). It also raises `AL_MAX_GAIN` on scaled sources to 1.5 so the earplugs really amplify
+    (owner Q1 "可以", proven by `BearHearingOpenAlTest` on OpenAL Soft 1.23.1), failing closed to a clamp at 1. Voice:
     `BearHearingVoiceReceiver`, reached through `voice/BearHearingVoiceClientBridge` after Holy Flash, scales incoming
     Simple Voice Chat audio from a volatile per-tick snapshot, with a soft limiter above 1.
-    Invisible barriers pass smoke (`WorldSmokeBlockView.BARRIERS_PASS_SMOKE`, owner Q5 pending).
+    Invisible barriers block smoke by their collision like any block (`WorldSmokeBlockView.BARRIERS_PASS_SMOKE`
+    false, owner Q5 "挡").
   - Smoke tunnels (WP5): `carveTunnel(world, from, to, radius[, shooter UUID])` clips the segment to each live cloud
     box it crosses, grown by the radius plus `SmokeTunnels.CLIP_MARGIN` 2 (the visible warp band; one capsule per cloud,
     touching ones joined up to 95 blocks; nothing sent when it crosses none), merges a near-duplicate into a recent
@@ -1669,7 +1672,7 @@ Current build baseline:
     ages are taken in `long` (`SmokeTimeline` long overloads), exact at any world time. Each volume cycles through 3
     textures so a per-tick upload never writes a texture an in-flight frame still reads.
   - Thermal heat mask (WP5, for SparkStrength's Undercover thermal, S4/Q6): `api.client.BearSmokeViewApi`
-    `maskHeatTarget(color, depth, w, h)`, `drawHeatHaze(color, depth, w, h, heat)` (`DEFAULT_HEAT_HAZE` 0.35) and
+    `maskHeatTarget(color, depth, w, h)`, `drawHeatHaze(color, depth, w, h, heat)` (`DEFAULT_HEAT_HAZE` 1.0: owner Q6 "一坨亮白", smoke as hot as a body) and
     `heatSmokeRect(w, h)`, called right after SS draws its bodies (body depth makes it exact, world depth fails
     closed). `occlusion/SmokeHeatMask` marches the whole smoke rectangle of the pass once (the outline mask only marches
     outline regions), then `smoke/heat_mask.fsh` scales the heat by the outline visibility at each pixel's depth

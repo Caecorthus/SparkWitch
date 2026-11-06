@@ -9,23 +9,19 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * Pure rules for which vanilla sounds the BEAR hearing factor scales (pending owner Q2, coordinator default): every
- * in-game sound the local player hears through their ears, own footsteps and shots included, so every
- * {@link SoundCategory} except {@link SoundCategory#MASTER} (menu and UI clicks, toasts) and {@link SoundCategory#MUSIC}
- * (the non-diegetic soundtrack). Jukebox records, weather, blocks, mobs, players, ambient and voice are in-world and
- * scaled. {@link BearHearingClient#EXEMPT_SOUND_IDS} (the wearer's own ricochet, visor hit and tinnitus) are never
- * scaled. Flipping Q2 is a one-line change to {@link #SCALED_CATEGORIES}. Gain only, never range: the seams sit after
- * vanilla derived the attenuation distance from the raw volume.
- * BEAR 听力倍数缩放哪些原版声音的纯规则（所有者 Q2 待定，协调者默认）：本地玩家用耳朵听到的所有游戏内声音，包括自己的
- * 脚步与枪声，即除 {@link SoundCategory#MASTER}（菜单与界面点击、提示）和 {@link SoundCategory#MUSIC}（非剧情内的配乐）外的
- * 所有类别。唱片机、天气、方块、生物、玩家、环境与语音都在世界中，因此都会缩放。{@link BearHearingClient#EXEMPT_SOUND_IDS}
- * （佩戴者自己的跳弹、面罩命中与耳鸣）从不缩放。改动 Q2 只需改 {@link #SCALED_CATEGORIES} 一行。只改增益不改范围：接缝位于
- * 原版用原始音量算出衰减距离之后。
+ * Pure rules for which vanilla sounds the BEAR hearing factor scales (owner Q2, 2026-11-06: "全部"): every sound in
+ * every {@link SoundCategory}, menu and UI clicks ({@link SoundCategory#MASTER}) and the soundtrack
+ * ({@link SoundCategory#MUSIC}) included, own footsteps and shots included; voice chat is scaled by its own bridge.
+ * Only {@link BearHearingClient#EXEMPT_SOUND_IDS} (the wearer's own ricochet, visor hit and tinnitus) are never
+ * scaled. Gain only, never range: the seams sit after vanilla derived the attenuation distance from the raw volume.
+ * BEAR 听力倍数缩放哪些原版声音的纯规则（所有者 Q2，2026-11-06：“全部”）：所有 {@link SoundCategory} 中的所有声音，包括
+ * 菜单与界面点击（{@link SoundCategory#MASTER}）和配乐（{@link SoundCategory#MUSIC}），也包括自己的脚步与枪声；语音由其自有
+ * 桥接缩放。只有 {@link BearHearingClient#EXEMPT_SOUND_IDS}（佩戴者自己的跳弹、面罩命中与耳鸣）从不缩放。只改增益不改范围：
+ * 接缝位于原版用原始音量算出衰减距离之后。
  */
 public final class BearHearingSoundRules {
-    /** Q2 default: everything but menu/UI ({@code MASTER}) and the soundtrack ({@code MUSIC}). / Q2 默认值。 */
-    public static final Set<SoundCategory> SCALED_CATEGORIES =
-            EnumSet.complementOf(EnumSet.of(SoundCategory.MASTER, SoundCategory.MUSIC));
+    /** Owner Q2: every category. / 所有者 Q2：所有类别。 */
+    public static final Set<SoundCategory> SCALED_CATEGORIES = EnumSet.allOf(SoundCategory.class);
 
     /**
      * The largest factor any gear combination yields (earplugs alone, 1.5). Scaled sources get this as their OpenAL

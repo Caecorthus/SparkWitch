@@ -14,7 +14,7 @@ import dev.caecorthus.sparkwitch.client.bear.smoke.occlusion.SmokeHeatMath;
  * 的视图（目前为 SparkStrength 卧底热成像，S4）能把烟视为不透明。SparkStrength 通过反射访问本类，因此完整类名与仅使用 JDK
  * 类型的签名都不得更改。纯视觉：服务端从不读取烟雾。
  *
- * <p>Heat image (S4 "hot smoke blocks thermal", Q6 default: smoke shows as a warm haze and hides bodies behind it).
+ * <p>Heat image (S4 "hot smoke blocks thermal", owner Q6: smoke shows as a bright white blob and hides bodies behind it).
  * Call order inside one {@code WorldRenderer#render} pass (SparkStrength's {@code captureHeat} at
  * {@code BEFORE_DEBUG_RENDER}; any framebuffer may be bound, every GL state is restored):
  * <ol>
@@ -22,8 +22,8 @@ import dev.caecorthus.sparkwitch.client.bear.smoke.occlusion.SmokeHeatMath;
  *   exact; without it the world depth behind them is used, which hides a little more, never less);</li>
  *   <li>{@link #maskHeatTarget}: heat behind smoke fades exactly where an instinct outline would (optical depth 0.3 to
  *   1.5 along each pixel's view ray up to its depth);</li>
- *   <li>{@link #drawHeatHaze} with {@link #DEFAULT_HEAT_HAZE}: smoke in front of the depth glows warm, never through a
- *   wall;</li>
+ *   <li>{@link #drawHeatHaze} with {@link #DEFAULT_HEAT_HAZE}: smoke in front of the depth glows white-hot, never
+ *   through a wall;</li>
  *   <li>the first-person arm and the bloom composite as before.</li>
  * </ol>
  * Fail closed: when {@link #maskHeatTarget} returns false the heat was not masked; SparkWitch has already tried to clear
@@ -32,11 +32,11 @@ import dev.caecorthus.sparkwitch.client.bear.smoke.occlusion.SmokeHeatMath;
  * Self-test: a client-side driver may call both on its own framebuffer during a world render, read the pixels back and
  * compare them with {@code SmokeHeatMath.maskedHeat}/{@code hazedHeat} fed with {@link #opticalDepth} along the pixel
  * ray.
- * 热图（S4“热烟挡住热成像”，Q6 默认：烟显示为暖色薄雾并遮住其后的人体）。在同一次 {@code WorldRenderer#render} 中的调用顺序
+ * 热图（S4“热烟挡住热成像”，所有者 Q6：烟显示为一团亮白并遮住其后的人体）。在同一次 {@code WorldRenderer#render} 中的调用顺序
  * （SparkStrength 在 {@code BEFORE_DEBUG_RENDER} 的 {@code captureHeat}；可绑定任意帧缓冲，所有 GL 状态都会恢复）：
  * 1. 清空热图、拷入世界深度、画人体（写入人体深度可使遮罩精确；不写则使用其后的世界深度，只会多遮、不会少遮）；
  * 2. {@link #maskHeatTarget}：烟后的热值恰好在本能描边会变淡处变淡（沿每个像素视线到其深度的光学厚度 0.3 到 1.5）；
- * 3. 以 {@link #DEFAULT_HEAT_HAZE} 调用 {@link #drawHeatHaze}：深度之前的烟发出暖色，绝不透墙；4. 第一人称手臂与柔光合成照旧。
+ * 3. 以 {@link #DEFAULT_HEAT_HAZE} 调用 {@link #drawHeatHaze}：深度之前的烟呈白热，绝不透墙；4. 第一人称手臂与柔光合成照旧。
  * 失败即遮挡：{@link #maskHeatTarget} 返回 false 表示热图未被遮罩；SparkWitch 已尝试清掉烟雾矩形内的热值，调用方仍须把
  * {@link #heatSmokeRect} 内的热值藏起来（返回整个目标时即全部）。{@link #drawHeatHaze} 返回 false 无需处理（热雾只是外观）。
  * 自测：客户端驱动可在世界渲染中对自己的帧缓冲调用二者，回读像素，并与用像素视线上的 {@link #opticalDepth} 算出的
@@ -44,8 +44,8 @@ import dev.caecorthus.sparkwitch.client.bear.smoke.occlusion.SmokeHeatMath;
  */
 public final class BearSmokeViewApi {
     /**
-     * Q6 default haze heat (0..1, a body is 1) for {@link #drawHeatHaze}. / {@link #drawHeatHaze} 的 Q6 默认热雾热值
-     * （0..1，人体为 1）。
+     * Owner Q6 haze heat (0..1, a body is 1; 1 = bright white) for {@link #drawHeatHaze}. / {@link #drawHeatHaze} 的
+     * 所有者 Q6 热雾热值（0..1，人体为 1；1 即亮白）。
      */
     public static final float DEFAULT_HEAT_HAZE = SmokeHeatMath.DEFAULT_HAZE;
 
