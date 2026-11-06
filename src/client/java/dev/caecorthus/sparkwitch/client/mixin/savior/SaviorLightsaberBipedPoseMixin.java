@@ -1,55 +1,96 @@
 package dev.caecorthus.sparkwitch.client.mixin.savior;
 
-import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.client.savior.SaviorLightsaberDrawAnimation;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Lowers the support (left) hand on the Savior lightsaber. Vanilla's crossbow-charge pose sets both arms to the same
- * pitch, so the supporting hand ends up level with the item hand and visually grabs the blade; the owner asked for the
- * left hand about half a hand lower. Pitch is increased by 0.25 rad after the pose is applied, which drops the hand
- * roughly 2 model pixels (half of the 4-pixel hand). Vertical hand position depends only on the arm pitch (yaw and
- * roll do not change it), so this is a pure vertical drop.
- * <p>
- * Both position methods are hooked: whichever one applies the charge pose last, its TAIL drops the left hand exactly
- * once (an earlier drop is overwritten by the charge pose).
- * 降低救世主光剑的支撑手（左手）。原版弩蓄力姿势把双臂设成相同俯仰，支撑手与持剑手同高、看起来抓住了刀刃；所有者要求
- * 左手大约低半个手。姿势应用后把俯仰增加 0.25 弧度，手部约下降 2 个模型像素（4 像素手的一半）。手的垂直位置只取决于
- * 手臂俯仰（偏航与翻滚不影响高度），因此这是纯垂直下降。
- * <p>
- * 两个 position 方法都挂接：无论哪一个最后应用蓄力姿势，它的 TAIL 都只会让左手下降一次（更早的下降会被蓄力姿势覆盖）。
+ * Third-person right-arm animation for the Savior lightsaber. Vanilla applies the arm pose inside
+ * {@code positionRightArm}; the TAIL override then replaces the whole right arm with the draw animation's current
+ * angles: 0.2 s reach to the front-left waist, 0.3 s settle to the down-right-back hold, then stay. The left arm is
+ * deliberately untouched here, so the vanilla support-arm animation plays.
+ * 救世主光剑的第三人称右臂动画。原版在 {@code positionRightArm} 内应用臂姿；TAIL 覆盖随后把整条右臂替换为拔出动画
+ * 当前的三个角度：0.2 秒伸向左前腰、0.3 秒落到下方偏右偏后的持握姿势并保持。这里刻意不碰左臂，因此支撑手播放原版动画。
  */
 @Mixin(BipedEntityModel.class)
 public abstract class SaviorLightsaberBipedPoseMixin<T extends LivingEntity> {
     @Shadow
     @Final
+    public ModelPart rightArm;
+
+    @Shadow
+    @Final
     public ModelPart leftArm;
 
+    @Shadow
+    @Final
+    public ModelPart head;
+
     @Inject(method = "positionRightArm(Lnet/minecraft/entity/LivingEntity;)V", at = @At("TAIL"))
-    private void sparkwitch$lowerSupportHandRight(T entity, CallbackInfo ci) {
-        sparkwitch$lowerSupportHand(entity);
-    }
-
-    @Inject(method = "positionLeftArm(Lnet/minecraft/entity/LivingEntity;)V", at = @At("TAIL"))
-    private void sparkwitch$lowerSupportHandLeft(T entity, CallbackInfo ci) {
-        sparkwitch$lowerSupportHand(entity);
-    }
-
-    @Unique
-    private void sparkwitch$lowerSupportHand(T entity) {
-        if (entity.getMainHandStack().isOf(SparkWitchItems.saviorLightsaber())) {
-            // ~14 degrees down (half a hand), then a small yaw nudge toward the item hand (screen right).
-            // 约下移 14 度（半只手），再小幅偏航朝持剑手方向（屏幕右侧）挪一点。
-            this.leftArm.pitch += 0.25F;
-            this.leftArm.yaw += 0.2F;
+    private void sparkwitch$animateDraw(T entity, CallbackInfo ci) {
+        if (!(entity instanceof PlayerEntity player) || !SaviorLightsaberDrawAnimation.isHolding(player)) {
+            return;
         }
+        SaviorLightsaberDrawAnimation.ArmAngles angles =
+                SaviorLightsaberDrawAnimation.armAngles(player, this.head.pitch);
+        this.rightArm.pitch = angles.pitch();
+        this.rightArm.yaw = angles.yaw();
+        this.rightArm.roll = angles.roll();
+    }
+
+    /** Normal left arm by state, then the attack overrides it: swing goes back 25° → forward 20°, hold keeps forward 20°.
+     *  先按状态算常态左臂，再用攻击覆盖：挥砍时从后 25° 转到前 20°，保持阶段停在前 20°。 */
+    @Inject(method = "positionLeftArm(Lnet/minecraft/entity/LivingEntity;)V", at = @At("TAIL"))
+    private void sparkwitch$overrideLeftArm(T entity, CallbackInfo ci) {
+        if (!(entity instanceof PlayerEntity player) || !SaviorLightsaberDrawAnimation.isHolding(player)) {
+            return;
+        }
+        float pitch = this.leftArm.pitch;
+        float yaw = this.leftArm.yaw;
+        float roll = this.leftArm.roll;
+        float run = SaviorLightsaberDrawAnimation.runningBlend(player);
+        if (run <= 0.0F && SaviorLightsaberDrawAnimation.blockHoldActive(player)) {
+            pitch = SaviorLightsaberDrawAnimation.LEFT_ARM_BACK_PITCH;
+            yaw = 0.0F;
+            roll = 0.0F;
+        } else if (run > 0.0F) {
+            // Point the arm along the head's look direction: pitch = 90° - head pitch, yaw = head yaw + 180°.
+            float targetPitch = (float) (Math.PI / 2.0) - this.head.pitch;
+            float targetYaw = this.head.yaw + (float) Math.PI;
+            float delta = targetYaw - yaw;
+            if (delta > Math.PI) {
+                targetYaw -= (float) (Math.PI * 2.0);
+            } else if (delta < -Math.PI) {
+                targetYaw += (float) (Math.PI * 2.0);
+            }
+            pitch += (targetPitch - pitch) * run;
+            yaw += (targetYaw - yaw) * run;
+            roll += (0.0F - roll) * run;
+        } else if (SaviorLightsaberDrawAnimation.shouldRaiseLeftArm(player)) {
+            pitch = SaviorLightsaberDrawAnimation.leftArmPitch(player);
+            yaw = 0.0F;
+            roll = 0.0F;
+        }
+        float weight = SaviorLightsaberDrawAnimation.attackWeight(player);
+        if (weight > 0.0F) {
+            float k = SaviorLightsaberDrawAnimation.attackSwingBlend(player);
+            float attackPitch = SaviorLightsaberDrawAnimation.LEFT_ARM_ATTACK_BACK_PITCH
+                    + (SaviorLightsaberDrawAnimation.LEFT_ARM_ATTACK_FRONT_PITCH
+                    - SaviorLightsaberDrawAnimation.LEFT_ARM_ATTACK_BACK_PITCH) * k;
+            pitch += (attackPitch - pitch) * weight;
+            yaw += (0.0F - yaw) * weight;
+            roll += (0.0F - roll) * weight;
+        }
+        this.leftArm.pitch = pitch;
+        this.leftArm.yaw = yaw;
+        this.leftArm.roll = roll;
     }
 }

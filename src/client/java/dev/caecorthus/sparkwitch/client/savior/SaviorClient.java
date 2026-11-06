@@ -45,6 +45,7 @@ public final class SaviorClient {
         ParticleFactoryRegistry.getInstance().register(SaviorParticles.GUNSHOT,
                 SaviorFlashParticle.GunshotFactory::new);
         SaviorLightsaberAnimation.register();
+        SaviorLightsaberDrawAnimation.register();
         SaviorDomainClient.register();
         ClientTickEvents.END_CLIENT_TICK.register(client -> SaviorHandFlash.tick());
         SaviorPistolItem.installClientShot(SaviorClient::shoot);

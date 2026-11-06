@@ -129,6 +129,12 @@
         "sparkwitch:preignition": 0.5
       },
       "model": "sparkwitch:item/savior_lightsaber_unlit"
+    },
+    {
+      "predicate": {
+        "sparkwitch:draw_hidden": 0.5
+      },
+      "model": "sparkwitch:item/savior_lightsaber_hidden"
     }
   ]
 }

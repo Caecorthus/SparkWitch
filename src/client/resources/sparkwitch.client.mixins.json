@@ -6,8 +6,8 @@
   "client": [
     "CrossSwordWatheCrosshairMixin",
     "savior.SaviorMuzzleTrackerMixin",
-    "savior.SaviorLightsaberArmPoseMixin",
     "savior.SaviorLightsaberBipedPoseMixin",
+    "savior.SaviorLightsaberRunningItemMixin",
     "savior.SaviorLightsaberCrosshairMixin",
     "savior.SaviorLightsaberSwingMixin",
     "savior.SaviorPistolArmPoseMixin",
