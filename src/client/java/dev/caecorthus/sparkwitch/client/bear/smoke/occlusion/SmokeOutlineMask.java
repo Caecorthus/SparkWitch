@@ -68,6 +68,12 @@ import java.util.List;
 public final class SmokeOutlineMask {
     private static boolean armed;
     private static boolean masking;
+    /**
+     * Between {@link #beginPass} and {@link #endPass}: a world render is in progress, so {@link #coverage} tells
+     * whether smoke can touch it ({@link SmokeHeatMask} relies on it). / 处于 {@link #beginPass} 与 {@link #endPass} 之间：
+     * 正在进行一次世界渲染，因此 {@link #coverage} 说明烟是否可能触及它（{@link SmokeHeatMask} 依赖此值）。
+     */
+    private static boolean passOpen;
     private static Camera camera;
     private static final Matrix4f POSITION = new Matrix4f();
     private static final Matrix4f PROJECTION = new Matrix4f();
@@ -114,6 +120,7 @@ public final class SmokeOutlineMask {
         armed = false;
         masking = false;
         coverage = null;
+        passOpen = true;
         OUTLINES.reset();
         if (SmokeClientState.isEmpty()) {
             return;
@@ -335,9 +342,32 @@ public final class SmokeOutlineMask {
         restoreOutlineDepth();
         armed = false;
         masking = false;
+        passOpen = false;
         maskRegions = List.of();
         coverage = null;
         camera = null;
+    }
+
+    /** A world render is between {@link #beginPass} and {@link #endPass}. / 正处于一次世界渲染之中。 */
+    static boolean passOpen() {
+        return passOpen;
+    }
+
+    /**
+     * Smoke in view of the current pass (computed at {@link #beginPass}), or null when none can touch it.
+     * 当前渲染视野内的烟（在 {@link #beginPass} 求出）；烟不可能触及时为 null。
+     */
+    static SmokeOcclusionMarch.Coverage passCoverage() {
+        return coverage;
+    }
+
+    /** Size of the current pass's target ({@code client.getFramebuffer()} at its HEAD). / 当前渲染目标的尺寸。 */
+    static int passWidth() {
+        return passWidth;
+    }
+
+    static int passHeight() {
+        return passHeight;
     }
 
     private static void mask(Framebuffer outline, List<int[]> regions) {

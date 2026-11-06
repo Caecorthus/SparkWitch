@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.bear.smoke.render;
 
 import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeVolumes;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.smoke.SmokeTimeline;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
@@ -145,6 +146,11 @@ public final class SmokeMarchRules {
     public static final float JITTER_FRAME_OFFSET = 5.588238F;
     /** Padding of the scissor rectangle, in full-resolution pixels. / 裁剪矩形的外扩（全分辨率像素）。 */
     public static final int SCREEN_RECT_PADDING = 4;
+    /**
+     * Extra reach of the per-pixel tunnel cull, in blocks, so float rounding never culls a tunnel the ray touches.
+     * 逐像素通道剔除的额外余量（格），使浮点舍入永远不会剔掉视线实际触及的通道。
+     */
+    public static final float TUNNEL_CULL_SLACK = 0.05F;
 
     private SmokeMarchRules() {
     }
@@ -190,6 +196,9 @@ public final class SmokeMarchRules {
         defines.put("UPSAMPLE_DEPTH_EPSILON", glsl(UPSAMPLE_DEPTH_EPSILON));
         defines.put("UPSAMPLE_BILINEAR_FLOOR", glsl(UPSAMPLE_BILINEAR_FLOOR));
         defines.put("UPSAMPLE_FLAT", glsl(UPSAMPLE_FLAT));
+        defines.put("MAX_TUNNELS", Integer.toString(SmokeVolumes.MAX_RENDER_TUNNELS));
+        defines.put("TUNNEL_EDGE", glsl(SmokeTimeline.TUNNEL_EDGE));
+        defines.put("TUNNEL_CULL_SLACK", glsl(TUNNEL_CULL_SLACK));
         return defines;
     }
 

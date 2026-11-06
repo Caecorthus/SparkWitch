@@ -6,12 +6,14 @@
 // Lighting: lightmap ambient (block light indoors, sky outside, dark at night) with sky occlusion, plus single
 // scattering of the sun/moon with a 3-tap shadow march. Steps that provably find no smoke (SmokeOccupancy) take the
 // empty branch without any noise or density taps. Every #define comes from SmokeMarchRules (injected by
-// SmokeProgram); the Java side mirrors the step, erosion and ray-box rules and its tests pin them.
+// SmokeProgram); the Java side mirrors the step, erosion and ray-box rules and its tests pin them. Bullet tunnels
+// (TunnelStart/TunnelAxis) scale the density analytically at the unwarped sample point.
 // BEAR 烟雾第 1 步（共 2 步）：半分辨率光线步进，穿过至多 MAX_CLOUDS 个浓度体（SmokeVolumes）。输出预乘的散射颜色与
 // 透射率，以及该纹素步进终点表面的视距（其 2x2 全分辨率深度按棋盘格交替取最近/最远），供深度感知放大使用。
 // 光照：光照图环境光（室内为方块光、室外为天空光、夜晚变暗）加天空遮蔽，以及日月光单次散射与 3 次阴影步进。可证明
 // 找不到烟的步（SmokeOccupancy）不做任何噪声或浓度采样，直接走空样本分支。所有 #define 都来自 SmokeMarchRules
-// （由 SmokeProgram 注入）；Java 端镜像步长、侵蚀与光线-盒子规则并由测试固定。
+// （由 SmokeProgram 注入）；Java 端镜像步长、侵蚀与光线-盒子规则并由测试固定。子弹通道（TunnelStart/TunnelAxis）
+// 在未扭曲的采样点上解析地缩放浓度。
 
 uniform sampler2D SceneDepth;
 uniform sampler3D Noise;
@@ -66,6 +68,85 @@ uniform vec4 FogColor;
 uniform float FogStart;
 uniform float FogEnd;
 uniform int FogShape;
+
+// BEAR WP5 bullet tunnels (SmokeVolumes.tunnels), evaluated analytically because they are thinner than a cell.
+// TunnelStart: camera-relative axis start (xyz) and current radius (w); TunnelAxis: end - start. Mirrors
+// SmokeTunnels.segmentSegmentDistanceSquared and SmokeTimeline.edgeFactor.
+// BEAR WP5 子弹通道（SmokeVolumes.tunnels），因为比一格还细，所以解析计算。TunnelStart：相对相机的轴线起点（xyz）与
+// 当前半径（w）；TunnelAxis：终点 - 起点。镜像 SmokeTunnels.segmentSegmentDistanceSquared 与 SmokeTimeline.edgeFactor。
+uniform int TunnelCount;
+uniform vec4 TunnelStart[MAX_TUNNELS];
+uniform vec3 TunnelAxis[MAX_TUNNELS];
+
+// Squared closest distance between the segments p0 + d1 * s and q0 + d2 * t, s and t in [0, 1] (Ericson 5.1.9).
+// 线段 p0 + d1 * s 与 q0 + d2 * t（s、t 属于 [0, 1]）之间最近距离的平方（Ericson 5.1.9）。
+float segmentDistanceSquared(vec3 p0, vec3 d1, vec3 q0, vec3 d2) {
+    vec3 r = p0 - q0;
+    float a = dot(d1, d1);
+    float e = dot(d2, d2);
+    float f = dot(d2, r);
+    float s = 0.0;
+    float t = 0.0;
+    if (a <= 1.0e-12) {
+        t = e <= 1.0e-12 ? 0.0 : clamp(f / e, 0.0, 1.0);
+    } else {
+        float c = dot(d1, r);
+        if (e <= 1.0e-12) {
+            s = clamp(-c / a, 0.0, 1.0);
+        } else {
+            float b = dot(d1, d2);
+            float denominator = a * e - b * b;
+            s = denominator > 1.0e-12 ? clamp((b * f - c * e) / denominator, 0.0, 1.0) : 0.0;
+            t = (b * s + f) / e;
+            if (t < 0.0) {
+                t = 0.0;
+                s = clamp(-c / a, 0.0, 1.0);
+            } else if (t > 1.0) {
+                t = 1.0;
+                s = clamp((b - c) / a, 0.0, 1.0);
+            }
+        }
+    }
+    vec3 d = p0 + d1 * s - (q0 + d2 * t);
+    return dot(d, d);
+}
+
+// Per-pixel cull: bit i is set when tunnel i comes within its radius of the ray segment rayStart + raySpan * s.
+// 逐像素剔除：通道 i 进入视线线段 rayStart + raySpan * s 的半径范围内时置第 i 位。
+int tunnelMask(vec3 rayStart, vec3 raySpan) {
+    int mask = 0;
+    for (int i = 0; i < MAX_TUNNELS; i++) {
+        if (i >= TunnelCount) {
+            break;
+        }
+        float reach = TunnelStart[i].w + TUNNEL_CULL_SLACK;
+        if (segmentDistanceSquared(rayStart, raySpan, TunnelStart[i].xyz, TunnelAxis[i]) < reach * reach) {
+            mask |= 1 << i;
+        }
+    }
+    return mask;
+}
+
+// Density multiplier the masked tunnels leave at p: SmokeTimeline.edgeFactor(radius, TUNNEL_EDGE, distance to axis).
+// 被选中的通道在 p 处留下的浓度系数：SmokeTimeline.edgeFactor(半径, TUNNEL_EDGE, 到轴线的距离)。
+float tunnelFactor(vec3 p, int mask) {
+    float factor = 1.0;
+    for (int i = 0; i < MAX_TUNNELS; i++) {
+        if (i >= TunnelCount) {
+            break;
+        }
+        if ((mask & (1 << i)) == 0) {
+            continue;
+        }
+        vec3 axis = TunnelAxis[i];
+        vec3 rel = p - TunnelStart[i].xyz;
+        float lengthSquared = dot(axis, axis);
+        float u = lengthSquared > 0.0 ? clamp(dot(rel, axis) / lengthSquared, 0.0, 1.0) : 0.0;
+        float radius = TunnelStart[i].w;
+        factor *= smoothstep(radius - TUNNEL_EDGE, radius, length(rel - axis * u));
+    }
+    return factor;
+}
 
 out vec4 OutSmoke;
 out float OutDepth;
@@ -244,6 +325,7 @@ void main() {
         OutSmoke = vec4(0.0, 0.0, 0.0, 1.0);
         return;
     }
+    int tunnels = TunnelCount > 0 ? tunnelMask(origin + dir * tStart, dir * (tEnd - tStart)) : 0;
 
     float jitter = ign(gl_FragCoord.xy + Jitter);
     float budget = (tEnd - tStart) / float(MAX_STEPS);
@@ -339,6 +421,11 @@ void main() {
             density = erode(raw, (1.0 - big.g) * NoiseStrength,
                     (1.0 - shapeNoise.r) * (1.0 - BREATHE_DEPTH + BREATHE_DEPTH * breath) * NoiseStrength,
                     (1.0 - detail.g) * NoiseStrength);
+        }
+        if (tunnels != 0) {
+            // Tunnels cut the unwarped point, so each stays a clean channel on its own ray.
+            // 通道在未扭曲的点上切开，因此每条都是沿自身射线的干净通道。
+            density *= tunnelFactor(p, tunnels);
         }
         empty = false;
         lastDensity = density;

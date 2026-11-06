@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.bear.smoke.shaderpack;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeClientState;
+import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeVolumes;
 import dev.caecorthus.sparkwitch.client.blind.render.BlindShaderPackCheck;
 import dev.caecorthus.sparkwitch.client.render.entity.SecondaryWorldPass;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -50,6 +51,9 @@ public final class SmokeShaderPackWiring {
             if (!SecondaryWorldPass.isActive()) {
                 shaderPack = BlindShaderPackCheck.isShaderPackInUse();
                 SmokeShaderPackBridge.onMainWorldPassStart();
+                // The billboards cannot show bullet tunnels, so outlines must not see through them either (WP5).
+                // 公告板显示不了子弹通道，描边也就不能透过通道（WP5）。
+                SmokeVolumes.showTunnels(!shaderPack || SmokeShaderPackBridge.primaryHealthy());
             }
         });
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {

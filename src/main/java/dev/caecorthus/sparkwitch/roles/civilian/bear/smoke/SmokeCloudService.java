@@ -12,6 +12,7 @@ import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -85,13 +86,59 @@ public final class SmokeCloudService {
     }
 
     /**
-     * Frozen contract (BEAR WP0), WP5 implements it: carves a temporary capsule-shaped tunnel of {@code radius} blocks
+     * Frozen contract (BEAR WP0, implemented by WP5): carves a temporary capsule-shaped tunnel of {@code radius} blocks
      * along the segment {@code from} → {@code to} (a hitscan ray through the smoke) into every cloud it crosses. WP3
-     * calls it on every hitscan ray. WP0 stub: does nothing yet.
-     * 冻结契约（BEAR WP0），由 WP5 实现：沿线段 {@code from} → {@code to}（穿过烟雾的命中扫描射线）在其经过的每个烟团中开出半径
-     * {@code radius} 格的胶囊形临时通道。WP3 在每条命中扫描射线上调用。WP0 桩：暂不做任何事。
+     * calls it on every hitscan ray (radius 0.35) and along the potion backblast lane (0.5). Same as
+     * {@link #carveTunnel(ServerWorld, Vec3d, Vec3d, float, UUID)} with the shooter unknown, so the rate limit is keyed
+     * on the shot's origin.
+     * 冻结契约（BEAR WP0，由 WP5 实现）：沿线段 {@code from} → {@code to}（穿过烟雾的命中扫描射线）在其经过的每个烟团中开出
+     * 半径 {@code radius} 格的胶囊形临时通道。WP3 在每条命中扫描射线（半径 0.35）与药炮后喷通道（0.5）上调用。等同于射手未知
+     * 的五参数版本，因此按射击起点限流。
      */
     public static void carveTunnel(ServerWorld world, Vec3d from, Vec3d to, float radius) {
+        carveTunnel(world, from, to, radius, null);
+    }
+
+    /**
+     * Carves a tunnel (see {@link #carveTunnel(ServerWorld, Vec3d, Vec3d, float)}) for a known {@code shooter}. Cheap
+     * when there is no smoke: nothing is sent unless the segment crosses a live cloud's box (server AABB test); the
+     * tunnel is clipped to each cloud it crosses (one capsule per cloud, touching ones joined, each reaching
+     * {@link SmokeTunnels#CLIP_MARGIN} past the box), merged into a recent wider one it adds nothing to, limited to
+     * {@link SmokeCloudRegistry#TUNNELS_PER_SHOOTER} per {@link SmokeCloudRegistry#TUNNEL_WINDOW_TICKS} per shooter (a
+     * shotgun's pellets) and to {@link SmokeCloudRegistry#MAX_TUNNELS} per world (oldest dropped, never a blast hole).
+     * A bullet tunnel lives {@link SmokeTimeline#TUNNEL_DURATION_TICKS}; a blast lane (radius at least
+     * {@link SmokeTimeline#BLAST_LANE_RADIUS}) lives as long as a blast hole. Visual only, like all smoke.
+     * 为已知射手 {@code shooter} 开出通道（见四参数版本）。无烟时开销极低：线段不穿过存活烟团的盒子（服务端 AABB 检测）就什么
+     * 都不发送；通道被裁剪到其穿过的每团烟（每团一条胶囊，相接的合并，各自越过盒子 {@link SmokeTunnels#CLIP_MARGIN}），
+     * 若对近期更宽的通道毫无增益则并入它，每名射手每
+     * {@link SmokeCloudRegistry#TUNNEL_WINDOW_TICKS} 至多 {@link SmokeCloudRegistry#TUNNELS_PER_SHOOTER} 条（霰弹枪的弹丸），
+     * 每个世界至多 {@link SmokeCloudRegistry#MAX_TUNNELS} 条（丢弃最早的，绝不挤掉爆炸空洞）。子弹通道存在
+     * {@link SmokeTimeline#TUNNEL_DURATION_TICKS}；爆炸通道（半径至少 {@link SmokeTimeline#BLAST_LANE_RADIUS}）与爆炸空洞同寿命。
+     * 与所有烟雾一样纯属视觉。
+     */
+    public static void carveTunnel(ServerWorld world, Vec3d from, Vec3d to, float radius, @Nullable UUID shooter) {
+        if (world == null || !finite(from) || !finite(to) || !(radius > 0.0F) || !Float.isFinite(radius)) {
+            return;
+        }
+        SmokeCloudRegistry registry = WORLDS.get(world);
+        if (registry == null) {
+            return;
+        }
+        long now = world.getTime();
+        float clamped = Math.min(radius, SmokeHoleS2CPayload.MAX_RADIUS);
+        List<SmokeHole> pieces = registry.clipTunnel(from.x, from.y, from.z, to.x, to.y, to.z, clamped, now,
+                SmokeTimeline.tunnelDurationTicks(clamped));
+        if (pieces.isEmpty()) {
+            return;
+        }
+        Object key = shooter != null ? shooter : SmokeCloudRegistry.originKey(from.x, from.y, from.z);
+        for (SmokeHole tunnel : registry.addTunnels(pieces, key, now)) {
+            SmokeNetworking.sendToWorld(world, new SmokeHoleS2CPayload(tunnel));
+        }
+    }
+
+    private static boolean finite(@Nullable Vec3d point) {
+        return point != null && Double.isFinite(point.x) && Double.isFinite(point.y) && Double.isFinite(point.z);
     }
 
     /** Removes every cloud in the world and tells clients. / 清除该世界所有烟团并通知客户端。 */
@@ -131,6 +178,9 @@ public final class SmokeCloudService {
         }
         for (SmokeHole hole : registry.holes()) {
             SmokeNetworking.send(player, new SmokeHoleS2CPayload(hole));
+        }
+        for (SmokeHole tunnel : registry.tunnels()) {
+            SmokeNetworking.send(player, new SmokeHoleS2CPayload(tunnel));
         }
     }
 

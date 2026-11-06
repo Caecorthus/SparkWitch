@@ -101,6 +101,8 @@ public final class SmokeRenderer {
     private static final float[] OCCUPANCY_MIN = new float[3 * SmokeMarchRules.OCCUPANCY_CLOUDS];
     private static final float[] OCCUPANCY_INV_SIZE = new float[3 * SmokeMarchRules.OCCUPANCY_CLOUDS];
     private static final int[] OCCUPANCY_TEXTURES = new int[SmokeMarchRules.OCCUPANCY_CLOUDS];
+    private static final float[] TUNNEL_START = new float[4 * SmokeVolumes.MAX_RENDER_TUNNELS];
+    private static final float[] TUNNEL_AXIS = new float[3 * SmokeVolumes.MAX_RENDER_TUNNELS];
     private static final float[] NOISE_OFFSETS = new float[9];
     private static final float[] SKY_LIGHT = new float[6];
     private static final float[] SKY_TINT = new float[3];
@@ -512,6 +514,10 @@ public final class SmokeRenderer {
         GL20.glUniform1i(program.uniform("OccupancyMask"), occupancyMask);
         GL20.glUniform3fv(program.uniform("OccupancyMin"), OCCUPANCY_MIN);
         GL20.glUniform3fv(program.uniform("OccupancyInvSize"), OCCUPANCY_INV_SIZE);
+        int tunnels = SmokeVolumes.packTunnels(camera.x, camera.y, camera.z, TUNNEL_START, TUNNEL_AXIS);
+        GL20.glUniform1i(program.uniform("TunnelCount"), tunnels);
+        GL20.glUniform4fv(program.uniform("TunnelStart"), TUNNEL_START);
+        GL20.glUniform3fv(program.uniform("TunnelAxis"), TUNNEL_AXIS);
         float tickDelta = context.tickCounter().getTickDelta(false);
         SmokeSkyLight.compute(world.getSkyAngle(tickDelta), world.getRainGradient(tickDelta), world.getMoonSize(),
                 SKY_LIGHT);
