@@ -1522,14 +1522,17 @@ Current build baseline:
     `ArmorItem`: no armor points; iron equip sound), so only the head armor slot takes it, right-click in hand and
     shift-click equip it, and vanilla `HeadFeatureRenderer` draws the art model (`display.head` scale 1.6; head box
     [4,12]^3, +x the wearer's right) for everyone; predicate `sparkwitch:visor_up` (`RysTModelPredicates`, 1 = raised)
-    picks `item/rys_t_visor_up` (Astra art 2026-11-06: the ten visor parts turn rigidly, no lift, +67.5° about +x
-    around the temple pivot (8, 9.5, 7.25), `up = P + Rx(+67.5°)·(down − P)`, baked as a 90° permutation plus a
-    −22.5° element rotation; `RysTVisorGeometry.UP_*`), and `RysTModels` swaps in the 2-D icons for GUI/ground/frame
-    (AXMC pattern). Visor toggle (H9, only way): `RysTVisorToggle` from `onClicked`, an empty-cursor right-click on
-    the helmet in the player's own head slot (inventory index 39) in any screen; both sides claim, the server writes
-    in place and plays `bear.rys_t.visor_up/down` publicly, the creative screen's client writes and plays it locally
-    (USEC writer rule, probe from `RysTHelmetClient`); Wathe's armor block exempts that press from its `mayPickUp`
-    gate (`RysTVisorClicks`, one hunk in `LimitedInventoryArmorSlotsMixin`). WP3 seams: `RysTVisorGeometry.glassPoint` /
+    picks `item/rys_t_visor_up` (art v3 2026-11-06: the sixteen visor parts turn rigidly, no lift, 90° about +x
+    around the temple bolts (8, 9, 7), `up = P + Rx(90°)·(down − P)`, baked as an exact axis permutation (only the
+    chin plate and its corner pieces keep their own −22.5° tuck); the visor wraps the face in three steps (front
+    x 4..12 at z 1, corners x 3..4 at z 2, wings x 2..3 from z 3), so raised it lies one unit outside the stepped
+    dome, glass flat at y 14.5, nothing above y 15 or ahead of z 1.5; `RysTVisorGeometry.UP_*`), and `RysTModels`
+    swaps in the 2-D icons for GUI/ground/frame (AXMC pattern). Visor toggle (H9, only way): `RysTVisorToggle` from
+    `onClicked`, an empty-cursor right-click on the helmet in the player's own head slot (inventory index 39) in any
+    screen; both sides claim, the server writes in place and plays `bear.rys_t.visor_up/down` publicly, the creative
+    screen's client writes and plays it locally (USEC writer rule, probe from `RysTHelmetClient`); Wathe's armor
+    block exempts that press from its `mayPickUp` gate (`RysTVisorClicks`, one hunk in
+    `LimitedInventoryArmorSlotsMixin`). WP3 seams: `RysTVisorGeometry.glassPoint` /
     `nearestGlassPoint(incomingDir, headYaw, pitch)` (shot aimed through the eye onto the visor-down glass slit
     x 4..12, y 6.5..8.5, face z 1.5; null off the glass / from the side or behind), `crackAt(point, Random)`,
     `RysTHelmetItem.addCrack(ServerPlayerEntity, VisorCrack)` (in place on the worn stack, synced by vanilla screen
