@@ -192,6 +192,8 @@ public final class SparkWitchEvents {
         StowawayFeatureService.register();
         SchrodingersCatService.register();
         JunkerService.register();
+        // BEAR smoke (spike): round-edge clears, expiry and player resyncs. / BEAR 烟雾（原型）：回合节点清除、过期与玩家重新同步。
+        dev.caecorthus.sparkwitch.roles.civilian.bear.smoke.SmokeCloudLifecycle.register();
         MagicianPlaybackManager.init();
         MagicianReplayEvents.register();
         MagicianPuppetAttackHandlers.register();

@@ -176,6 +176,14 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Noa painting line (role-owned HUD); the painting itself rides the shared ability key below.
         // 诺亚作画行（职业自有 HUD）；作画本身走下方的共享技能键。
         NoaClient.init();
+        // BEAR smoke (spike): the S2C receivers that write SmokeClientState, and the disconnect cleanup.
+        // BEAR 烟雾（原型）：写入 SmokeClientState 的 S2C 接收器与断线清理。
+        dev.caecorthus.sparkwitch.client.bear.smoke.SmokeNetworkClient.register();
+        // BEAR volumetric smoke (client presentation only; reads SmokeClientState). / BEAR 体积烟雾（纯客户端展示；只读 SmokeClientState）。
+        dev.caecorthus.sparkwitch.client.bear.smoke.render.SmokeRenderWiring.register();
+        // BEAR smoke under an Iris shader pack: liveness, billboard fallback, per-entity outline veto (no-op without a pack).
+        // Iris 光影包下的 BEAR 烟雾：存活判定、公告板兜底、逐实体描边否决（未用光影包时不做任何事）。
+        dev.caecorthus.sparkwitch.client.bear.smoke.shaderpack.SmokeShaderPackWiring.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
