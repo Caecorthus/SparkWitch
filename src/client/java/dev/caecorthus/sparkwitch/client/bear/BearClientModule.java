@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.bear;
 
+import dev.caecorthus.sparkwitch.client.bear.hearing.BearHearingClient;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.BearEntities;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
@@ -24,6 +25,7 @@ public final class BearClientModule {
             return;
         }
         registered = true;
+        BearHearingClient.register();
     }
 
     /**
