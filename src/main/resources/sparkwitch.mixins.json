@@ -262,7 +262,9 @@
     "dominator.GameFunctionsDominatorLetterMixin",
     "accountant.DecoratedPotBlockAccountantPassbookMixin",
     "bear.GameFunctionsBearItemDropMixin",
-    "bear.PlayerEntityBearItemMixin"
+    "bear.PlayerEntityBearItemMixin",
+    "bear.HeadsetPlayerScreenHandlerMixin",
+    "bear.HeadsetCreativeActionMixin"
   ],
   "injectors": {
     "defaultRequire": 1

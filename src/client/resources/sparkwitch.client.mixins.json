@@ -224,7 +224,9 @@
     "bear.SmokeIrisFinalPassMixin",
     "bear.SmokeOutlineVetoMixin",
     "bear.HearingSoundSystemMixin",
-    "bear.HearingSourceAccessor"
+    "bear.HearingSourceAccessor",
+    "bear.HeadsetInventoryScreenMixin",
+    "bear.HeadsetCreativeScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -17,6 +17,9 @@ import org.jetbrains.annotations.Nullable;
  * 都不绘制在头上，因此无人能看出耳机。只跳过 ComTac 的头部模型；其他头部物品与所有护甲保持原版渲染，对局外正常显示。
  * 服务器仍同步头部槽，佩戴者仍持有该物品并在护甲槽看到图标，玩法读取（{@code BlindParticipants.wearsComTac}）不受影响。
  * 仅为展示。
+ * Since 2026-11-05 (E1) the ComTac is worn in the headset slot and is no longer an {@code Equipment}, so it only
+ * reaches a head through a command; this hide is then effectively dead code, kept until the owner approves removing it.
+ * 自 2026-11-05（E1）起 ComTac 戴在耳机槽且不再是 {@code Equipment}，只能经由命令放到头上；此隐藏因此基本是死代码，在所有者批准删除前保留。
  */
 public final class BlindComTacHeadVisibility {
     private BlindComTacHeadVisibility() {

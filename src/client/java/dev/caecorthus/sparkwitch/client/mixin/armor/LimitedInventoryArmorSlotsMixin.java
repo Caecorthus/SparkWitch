@@ -6,6 +6,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout;
 import dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorPanel;
 import dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorSlots;
+import dev.caecorthus.sparkwitch.client.headset.LimitedInventoryHeadsetCell;
 import dev.doctor4t.wathe.client.gui.screen.ingame.LimitedHandledScreen;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -34,11 +35,17 @@ import java.util.Set;
  * the hidden main inventory. Client presentation only: every move is a vanilla slot click the server validates with
  * the vanilla armor-slot rules; no packet, NBT or server rule changes. The slots are live exactly while the panel added
  * at {@code init} (gated by {@link LimitedInventoryArmorSlots#applies}) is shown.
+ * BEAR WP4 (E1) adds the headset cell (handler slot 46) under the block through the same seams and gate: drawn,
+ * hit-tested, focused, shift-clicked (one {@code SWAP}) and returned on close like an armor slot, but only on frames
+ * where {@link LimitedInventoryArmorSlots#headsetShown} holds; the server validates with {@code HeadsetSlot.canInsert}.
  * 为所有玩家在 Wathe 玩家背包显示原版护甲槽 5..8（D10）。Wathe 界面只绘制并命中检测快捷栏槽 36..44，且从不发送
  * Shift 点击；这些接缝把护甲块作为不可交互控件加入，让 Wathe 自己的点击、拖动、松开与悬停代码能找到护甲槽，把
  * 符合条件的 Shift 点击转为一次原版 {@code SWAP}，并在关闭界面会把光标上的护甲放进隐藏主背包之前，将其放回自身的
  * 空护甲槽。仅为客户端展示：每次移动都是服务器按原版护甲槽规则校验的原版槽位点击；不改数据包、NBT 或服务器规则。
  * 护甲槽仅在 {@code init} 时加入的面板（由 {@link LimitedInventoryArmorSlots#applies} 控制）显示期间生效。
+ * BEAR WP4（E1）经由相同接缝与开关在护甲块下方加入耳机格（46 号界面栏位）：像护甲槽一样绘制、命中检测、获得焦点、Shift 点击
+ * （一次 {@code SWAP}）并在关闭时放回，但只在 {@link LimitedInventoryArmorSlots#headsetShown} 成立的帧生效；服务器以
+ * {@code HeadsetSlot.canInsert} 校验。
  */
 @Mixin(LimitedHandledScreen.class)
 public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
@@ -60,6 +67,9 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
     @Unique
     @Nullable
     private LimitedInventoryArmorPanel sparkwitch$armorPanel;
+    @Unique
+    @Nullable
+    private LimitedInventoryHeadsetCell sparkwitch$headsetCell;
 
     protected LimitedInventoryArmorSlotsMixin(Text title) {
         super(title);
@@ -83,6 +93,13 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
                 ? addDrawableChild(new LimitedInventoryArmorPanel(x, LimitedInventoryArmorSlots.anchorY(y),
                         this::sparkwitch$paintArmorSlots))
                 : null;
+        // BEAR WP4: the headset cell shares the armor panel's gate; its visibility follows headsetShown per frame.
+        // BEAR WP4：耳机格与护甲面板共用开关；其可见性每帧跟随 headsetShown。
+        sparkwitch$headsetCell = sparkwitch$armorPanel != null
+                ? addDrawableChild(new LimitedInventoryHeadsetCell(x, LimitedInventoryArmorSlots.anchorY(y),
+                        this::sparkwitch$paintHeadsetCell))
+                : null;
+        sparkwitch$updateHeadsetCell();
     }
 
     /**
@@ -96,6 +113,10 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
             focusedSlot = LimitedInventoryArmorSlots.slotAt(handler, x, LimitedInventoryArmorSlots.anchorY(y),
                     mouseX, mouseY);
         }
+        sparkwitch$updateHeadsetCell();
+        if (focusedSlot == null && sparkwitch$overShownHeadset(mouseX, mouseY)) {
+            focusedSlot = LimitedInventoryArmorSlots.headsetSlot(handler);
+        }
     }
 
     /**
@@ -108,7 +129,9 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
         if (original != null || sparkwitch$armorPanel == null) {
             return original;
         }
-        return LimitedInventoryArmorSlots.slotAt(handler, x, LimitedInventoryArmorSlots.anchorY(y), mouseX, mouseY);
+        Slot armor = LimitedInventoryArmorSlots.slotAt(handler, x, LimitedInventoryArmorSlots.anchorY(y), mouseX, mouseY);
+        return armor != null || !sparkwitch$overShownHeadset(mouseX, mouseY) ? armor
+                : LimitedInventoryArmorSlots.headsetSlot(handler);
     }
 
     /**
@@ -120,8 +143,8 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
     private boolean sparkwitch$armorBlockIsInside(boolean outside, double mouseX, double mouseY, int left, int top,
                                                  int button) {
         return outside && (sparkwitch$armorPanel == null
-                || LimitedInventoryArmorLayout.armorIndexAt(x, LimitedInventoryArmorSlots.anchorY(y), mouseX, mouseY)
-                < 0);
+                || (LimitedInventoryArmorLayout.armorIndexAt(x, LimitedInventoryArmorSlots.anchorY(y), mouseX, mouseY)
+                < 0 && !sparkwitch$overShownHeadset(mouseX, mouseY)));
     }
 
     /**
@@ -147,12 +170,19 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
                 && client != null && client.player != null) {
             if (button == 0 && hasShiftDown()) {
                 LimitedInventoryArmorLayout.Swap swap = LimitedInventoryArmorSlots.planShiftClick(client.player, handler, slot);
+                if (swap == null && sparkwitch$headsetShown()) {
+                    swap = LimitedInventoryArmorSlots.planHeadsetShiftClick(handler, slot);
+                }
                 if (swap != null) {
                     original.call(screen, handler.getSlot(swap.slotId()), swap.slotId(), swap.button(), SlotActionType.SWAP);
                     return;
                 }
             }
             if (!LimitedInventoryArmorSlots.mayPickUp(handler, slot)) {
+                return;
+            }
+            // BEAR WP4: same rule for the worn headset item. / BEAR WP4：已戴耳机物品同一规则。
+            if (!LimitedInventoryArmorSlots.mayPickUpHeadset(handler, slot)) {
                 return;
             }
         }
@@ -223,6 +253,50 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
             if (index == hovered && slot.canBeHighlighted()) {
                 LimitedHandledScreen.drawSlotHighlight(context, slotX, slotY, 0);
             }
+        }
+    }
+
+    @Unique
+    private boolean sparkwitch$headsetShown() {
+        return sparkwitch$headsetCell != null && sparkwitch$headsetCell.visible;
+    }
+
+    @Unique
+    private boolean sparkwitch$overShownHeadset(double mouseX, double mouseY) {
+        return sparkwitch$headsetShown() && LimitedInventoryArmorLayout.isOverHeadset(x,
+                LimitedInventoryArmorSlots.anchorY(y), mouseX, mouseY);
+    }
+
+    @Unique
+    private void sparkwitch$updateHeadsetCell() {
+        if (sparkwitch$headsetCell != null && client != null && client.player != null) {
+            sparkwitch$headsetCell.visible = LimitedInventoryArmorSlots.headsetShown(this, handler, client.player);
+        }
+    }
+
+    @Unique
+    private void sparkwitch$paintHeadsetCell(DrawContext context, int mouseX, int mouseY) {
+        Slot slot = LimitedInventoryArmorSlots.headsetSlot(handler);
+        if (slot == null) {
+            return;
+        }
+        int anchor = LimitedInventoryArmorSlots.anchorY(y);
+        LimitedInventoryArmorSlots.drawHeadsetFrame(context, LimitedInventoryArmorLayout.headsetPanelX(x),
+                LimitedInventoryArmorLayout.headsetPanelY(anchor));
+        int slotX = LimitedInventoryArmorLayout.headsetSlotX(x);
+        int slotY = LimitedInventoryArmorLayout.headsetSlotY(anchor);
+        ItemStack cursor = handler.getCursorStack();
+        boolean previewed = cursorDragging && !cursor.isEmpty() && cursorDragSlots.contains(slot);
+        if (!slot.hasStack() && !previewed && client != null) {
+            LimitedInventoryArmorSlots.drawEmptyIcon(client, context, slot, slotX, slotY);
+        }
+        MatrixStack matrices = context.getMatrices();
+        matrices.push();
+        matrices.translate(slotX - slot.x, slotY - slot.y, 0.0F);
+        drawSlot(context, slot);
+        matrices.pop();
+        if (LimitedInventoryArmorLayout.isOverHeadset(x, anchor, mouseX, mouseY) && slot.canBeHighlighted()) {
+            LimitedHandledScreen.drawSlotHighlight(context, slotX, slotY, 0);
         }
     }
 }

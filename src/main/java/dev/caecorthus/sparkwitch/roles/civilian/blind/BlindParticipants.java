@@ -1,12 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.headset.HeadsetSlots;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerPsychoComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import java.util.UUID;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.Nullable;
@@ -45,9 +45,13 @@ public final class BlindParticipants {
         return player != null && PlayerPsychoComponent.KEY.get(player).getPsychoTicks() > 0;
     }
 
-    /** Side-neutral: the head equipment slot holds the ComTac VIII. / 两端通用：头部装备槽是 ComTac VIII。 */
+    /**
+     * Side-neutral: the headset slot holds the ComTac VIII (E1, moved off the head slot on 2026-11-05; the effects
+     * read through here are unchanged). On a client only the local player's own headset slot is synced.
+     * 两端通用：耳机槽中是 ComTac VIII（E1，2026-11-05 从头部槽移出；经此读取的效果不变）。客户端只同步本地玩家自己的耳机槽。
+     */
     public static boolean wearsComTac(@Nullable PlayerEntity player) {
-        return player != null && player.getEquippedStack(EquipmentSlot.HEAD).isOf(SparkWitchItems.comTac());
+        return player != null && HeadsetSlots.wears(player, SparkWitchItems.comTac());
     }
 
     /**
