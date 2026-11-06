@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.bear.launcher;
 
+import dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.M32Ballistics;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
@@ -8,10 +9,14 @@ import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.joml.Vector4f;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Pure maths of the M32A1's 3-D M2A1 red-dot aim (SIGHT-CONTRACT v2, 2026-11-06): the aim progress and its ease, the
- * hand FOV, the range tilt, the full-aim pose, the hip-to-aim blend, the draw correction and the dot's window test.
- * No Minecraft types, so every number is unit-tested.
+ * Pure maths of the M32A1's 3-D M2A1 red-dot aim (SIGHT-CONTRACT v3, 2026-11-06): the aim progress and its ease, the
+ * hand FOV, the range tilt, the full-aim pose, the hip-to-aim blend, the draw correction, the dot's window test against
+ * the round tube's open bore, and the quadrant-grid reticle on the dot plane. No Minecraft types, so every number is
+ * unit-tested.
  * <p>
  * Spaces. Model units: 1 = one texel of the 64x64 sheet, -z muzzle, +x the launcher's right, +y up (the art JSON).
  * Vertex space: model units / 16 (what a baked quad holds; {@code ItemRenderer} translates it by -0.5 after the
@@ -24,8 +29,13 @@ import org.joml.Vector4f;
  * puts the TILTED eye point {@code P + Rx(-tilt)(E - P)} at the origin. The sight model is that pose times
  * {@link #sightTilt} (nose down about +x through the pivot). {@link #blend} moves the hip pose to it: the anchor's image
  * is lerped, the rotation slerped and the uniform scale lerped.
- * M32A1 三维 M2A1 红点瞄准的纯数学部分（SIGHT-CONTRACT v2，2026-11-06）：瞄准进度与缓动、手部视场角、射程俯仰、完全瞄准
- * 姿态、腰射到瞄准的过渡、绘制校正以及红点的窗口检测。不含 Minecraft 类型，因此每个数值都有单元测试。
+ * <p>
+ * The window is the tube's open bore: a regular {@link #WINDOW_SIDES}-gon of inner apothem {@link #WINDOW_APOTHEM}
+ * about the sight axis (the eye's x and y) from {@link #WINDOW_FRONT_Z} to {@link #WINDOW_REAR_Z}. The reticle
+ * ({@link #emitReticle}) lies on the dot plane {@link #DOT_Z}, inside {@link #RETICLE_CLIP_RADIUS}.
+ * M32A1 三维 M2A1 红点瞄准的纯数学部分（SIGHT-CONTRACT v3，2026-11-06）：瞄准进度与缓动、手部视场角、射程俯仰、完全瞄准
+ * 姿态、腰射到瞄准的过渡、绘制校正、红点相对圆形镜筒开放内孔的窗口检测，以及红点平面上的象限网格分划。不含 Minecraft 类型，
+ * 因此每个数值都有单元测试。
  * <p>
  * 坐标空间。模型单位：1 = 64x64 贴图的一个像素，-z 为炮口，+x 为发射器右侧，+y 向上（美术 JSON）。顶点空间：模型单位 / 16
  * （烘焙四边形中的坐标；{@code ItemRenderer} 在显示变换之后再平移 -0.5）。基准空间：在第一人称
@@ -35,21 +45,34 @@ import org.joml.Vector4f;
  * 完全瞄准姿态 {@link #aimPose} 保持相机朝向与第一人称缩放 {@link #AIM_SCALE}，并把俯仰后的眼点
  * {@code P + Rx(-tilt)(E - P)} 放在原点。瞄具模型为该姿态乘以 {@link #sightTilt}（绕经过枢轴的 +x 轴低头）。
  * {@link #blend} 把腰射姿态移向它：锚点的像做线性插值，旋转做球面插值，均匀缩放做线性插值。
+ * <p>
+ * 窗口即镜筒的开放内孔：绕瞄具轴（眼点的 x 与 y）、内切半径 {@link #WINDOW_APOTHEM} 的正 {@link #WINDOW_SIDES} 边形，从
+ * {@link #WINDOW_FRONT_Z} 到 {@link #WINDOW_REAR_Z}。分划（{@link #emitReticle}）位于红点平面 {@link #DOT_Z}，且在
+ * {@link #RETICLE_CLIP_RADIUS} 之内。
  */
 public final class M32SightPose {
     /** Model units per block (vertex space = model / 16). / 每格的模型单位数。 */
     public static final float UNITS_PER_BLOCK = 16.0F;
-    /** Eye point behind the open window, model units. / 开放窗口后方的眼点（模型单位）。 */
-    public static final Vector3fc EYE = new Vector3f(7.5F, 20.25F, 19.0F);
-    /** Range-tilt pivot (the mount), model units. / 射程俯仰枢轴（瞄具座），模型单位。 */
-    public static final Vector3fc PIVOT = new Vector3f(7.5F, 18.5F, 0.5F);
-    /** The open window tunnel, model units. / 开放窗口通道（模型单位）。 */
-    public static final float WINDOW_X0 = 6.0F;
-    public static final float WINDOW_X1 = 9.0F;
-    public static final float WINDOW_Y0 = 19.0F;
-    public static final float WINDOW_Y1 = 21.5F;
-    public static final float WINDOW_FRONT_Z = -1.0F;
-    public static final float WINDOW_REAR_Z = 2.0F;
+    /** Eye point behind the open bore, on the sight axis, model units. / 开放内孔后方、瞄具轴上的眼点（模型单位）。 */
+    public static final Vector3fc EYE = new Vector3f(8.0F, 20.5F, 19.0F);
+    /**
+     * Range-tilt pivot, model units: the centre of the rail clamp's top face, which the sight's saddle straddles.
+     * 射程俯仰枢轴（模型单位）：导轨夹座顶面中心，瞄具鞍座跨在其上。
+     */
+    public static final Vector3fc PIVOT = new Vector3f(8.0F, 18.0F, 0.5F);
+    /**
+     * The open bore of the round tube, model units: a regular 16-gon about the sight axis (the eye's x and y) with
+     * inner apothem {@link #WINDOW_APOTHEM}, its staves' normals at k x 22.5 degrees from the top, from the front
+     * aperture {@link #WINDOW_FRONT_Z} to the rear ring {@link #WINDOW_REAR_Z}. Nothing of the model lies inside it or
+     * on the axis in front of it.
+     * 圆形镜筒的开放内孔（模型单位）：绕瞄具轴（眼点的 x 与 y）、内切半径 {@link #WINDOW_APOTHEM} 的正 16 边形，各镜筒板法线位于
+     * 自顶部起 k x 22.5 度，从前孔 {@link #WINDOW_FRONT_Z} 到后环 {@link #WINDOW_REAR_Z}。模型的任何部分都不在其内部，也不在其前方
+     * 的轴线上。
+     */
+    public static final int WINDOW_SIDES = 16;
+    public static final float WINDOW_APOTHEM = 1.75F;
+    public static final float WINDOW_FRONT_Z = -2.5F;
+    public static final float WINDOW_REAR_Z = 2.5F;
     /** The dot's plane on the sight axis (70 units in front of the eye). / 红点所在平面（眼点前方 70 单位）。 */
     public static final float DOT_Z = -51.0F;
     /**
@@ -74,7 +97,65 @@ public final class M32SightPose {
     public static final double AIM_OUT_SECONDS = 0.15;
     /** Fail-safe bound on the range tilt; the dial never needs more. / 射程俯仰的失败安全上限，刻度从不需要更多。 */
     public static final double MAX_TILT_RADIANS = Math.toRadians(30.0);
+
+    // ---- Quadrant-grid reticle on the dot plane (SIGHT-CONTRACT v3); model units on the plane unless noted ----
+    // ---- 红点平面上的象限网格分划（SIGHT-CONTRACT v3）；除另有说明外均为平面上的模型单位 ----
+    /** Eye to dot plane (70): a hand angle a lands at 70 tan(a) from the axis. / 眼点到红点平面的距离。 */
+    public static final float RETICLE_DISTANCE = EYE.z() - DOT_Z;
+    /**
+     * The clip circle about the axis: the front aperture seen from the eye, times a 0.93 margin (about 5.30). Lines are
+     * clipped to it exactly; a tick or label draws only when its whole quad is inside.
+     * 绕轴的裁剪圆：自眼点看到的前孔，再乘以 0.93 的余量（约 5.30）。线条精确裁剪到圆上；刻度或数字只有整个四边形都在圆内时才绘制。
+     */
+    public static final float RETICLE_CLIP_RADIUS = WINDOW_APOTHEM * RETICLE_DISTANCE / (EYE.z() - WINDOW_FRONT_Z)
+            * 0.93F;
+    /** Range ticks: half-lengths (major = every 50 m) and nominal thickness. / 射程刻度：半长（每 50 米为主刻度）与名义粗细。 */
+    public static final float RANGE_TICK_MAJOR_HALF = 0.67F;
+    public static final float RANGE_TICK_MINOR_HALF = 0.39F;
+    public static final int RANGE_MAJOR_METRES = 50;
+    public static final float TICK_THICKNESS = 0.14F;
+    /**
+     * Range labels (majors only): left edge this far right of the tick end, glyph height, width and advance.
+     * 射程数字（仅主刻度）：左缘距刻度末端的距离、字形高度、宽度与步进。
+     */
+    public static final float LABEL_GAP = 0.30F;
+    public static final float GLYPH_HEIGHT = 0.72F;
+    public static final float GLYPH_WIDTH = 0.36F;
+    public static final float GLYPH_ADVANCE = 0.44F;
+    /** Lead ticks at +-1..3 hand degrees: half-lengths (odd / even degrees). / 提前量刻度（手部 ±1..3 度）：半长（奇 / 偶度）。 */
+    public static final int LEAD_TICK_MAX_DEGREES = 3;
+    public static final float LEAD_TICK_ODD_HALF = 0.27F;
+    public static final float LEAD_TICK_EVEN_HALF = 0.49F;
+    /** Cross lines: the gap round the dot and the nominal thickness. / 十字线：红点周围的间隙与名义粗细。 */
+    public static final float CROSS_GAP = 0.92F;
+    public static final float CROSS_THICKNESS = 0.07F;
+    /** Element alphas before visibility; the vertex RGB is red (255, 48, 36). / 可见度之前的元素透明度；顶点颜色为红色。 */
+    public static final float TICK_ALPHA = 0.9F;
+    public static final float CROSS_ALPHA = 0.65F;
+    public static final int RETICLE_RGB = 0xFF3024;
+    /**
+     * Atlas {@code m2a1_reticle.png} in texels (128 x 32): the bar (u 0..8, v 0..16; constant along u, opaque in the
+     * middle half of v, so bar quads are drawn {@link #BAR_DRAW_SCALE} times their nominal thickness with v across it;
+     * sampled at u 2..6 so the linear filter never reaches a neighbouring cell) and digit k's cell (u 8 + 12k .. 20 +
+     * 12k, v 4..28; the glyph quad is the whole cell).
+     * 分划贴图 {@code m2a1_reticle.png}（像素，128 x 32）：线条区（u 0..8、v 0..16；沿 u 不变，v 的中间一半不透明，因此线条四边形按
+     * 名义粗细的 {@link #BAR_DRAW_SCALE} 倍绘制且 v 横跨粗细方向；在 u 2..6 采样，使线性过滤不会采到相邻格）与数字 k 的格子
+     * （u 8 + 12k .. 20 + 12k、v 4..28；字形四边形即整个格子）。
+     */
+    public static final int ATLAS_WIDTH = 128;
+    public static final int ATLAS_HEIGHT = 32;
+    public static final float BAR_DRAW_SCALE = 2.0F;
+    public static final int BAR_U0 = 2;
+    public static final int BAR_U1 = 6;
+    public static final int BAR_V0 = 0;
+    public static final int BAR_V1 = 16;
+    public static final int DIGIT_U0 = 8;
+    public static final int DIGIT_CELL_WIDTH = 12;
+    public static final int DIGIT_V0 = 4;
+    public static final int DIGIT_V1 = 28;
     private static final float MIN_W = 1.0E-4F;
+    /** The front aperture's corners, vertex space (read only). / 前孔各角（顶点空间，只读）。 */
+    private static final Vector3fc[] FRONT_WINDOW = buildFrontWindow();
 
     private M32SightPose() {
     }
@@ -235,44 +316,50 @@ public final class M32SightPose {
     }
 
     /**
-     * The four front-window corners in vertex space, counter-clockwise seen from the eye.
-     * 前窗四个角（顶点空间），从眼点看为逆时针。
+     * The front aperture's {@link #WINDOW_SIDES} corners in vertex space, counter-clockwise seen from the eye: the
+     * inner 16-gon at {@link #WINDOW_FRONT_Z}, radius {@code WINDOW_APOTHEM / cos(11.25 deg)} about the axis, at
+     * 11.25 + k x 22.5 degrees from the top. Fresh copies.
+     * 前孔的 {@link #WINDOW_SIDES} 个角（顶点空间），从眼点看为逆时针：位于 {@link #WINDOW_FRONT_Z} 的内 16 边形，绕轴半径
+     * {@code WINDOW_APOTHEM / cos(11.25 度)}，位于自顶部起 11.25 + k x 22.5 度。返回新副本。
      */
     public static Vector3f[] frontWindowCorners() {
-        return new Vector3f[]{
-                new Vector3f(WINDOW_X0, WINDOW_Y0, WINDOW_FRONT_Z).div(UNITS_PER_BLOCK),
-                new Vector3f(WINDOW_X1, WINDOW_Y0, WINDOW_FRONT_Z).div(UNITS_PER_BLOCK),
-                new Vector3f(WINDOW_X1, WINDOW_Y1, WINDOW_FRONT_Z).div(UNITS_PER_BLOCK),
-                new Vector3f(WINDOW_X0, WINDOW_Y1, WINDOW_FRONT_Z).div(UNITS_PER_BLOCK)};
+        Vector3f[] corners = new Vector3f[FRONT_WINDOW.length];
+        for (int i = 0; i < corners.length; i++) {
+            corners[i] = new Vector3f(FRONT_WINDOW[i]);
+        }
+        return corners;
     }
 
     /**
-     * Whether the dot's centre projects inside the projected front window. {@code clipFromSight} maps sight vertex space
-     * to clip space (projection x model-view x base x the sight pose); every point must be in front of the camera
+     * Whether the dot's centre projects inside the projected front aperture. {@code clipFromSight} maps sight vertex
+     * space to clip space (projection x model-view x base x the sight pose); every point must be in front of the camera
      * (w > 0). Any affine image of the screen (aspect, FOV) keeps the answer, so NDC is tested directly.
-     * 红点中心的投影是否落在前窗投影之内。{@code clipFromSight} 把瞄具顶点空间映射到裁剪空间（投影 x 模型视图 x 基准 x 瞄具姿态）；
+     * 红点中心的投影是否落在前孔投影之内。{@code clipFromSight} 把瞄具顶点空间映射到裁剪空间（投影 x 模型视图 x 基准 x 瞄具姿态）；
      * 每个点都必须位于相机前方（w > 0）。屏幕的任意仿射变换（宽高比、视场角）都不改变结果，因此直接在 NDC 中检测。
      */
     public static boolean dotInWindow(Matrix4fc clipFromSight) {
-        float[] dot = ndc(clipFromSight, dotCenter());
-        if (dot == null) {
+        Vector4f scratch = new Vector4f();
+        float[] points = new float[2 * (FRONT_WINDOW.length + 1)];
+        if (!ndc(clipFromSight, EYE.x() / UNITS_PER_BLOCK, EYE.y() / UNITS_PER_BLOCK, DOT_Z / UNITS_PER_BLOCK, scratch,
+                points, 0)) {
             return false;
         }
-        Vector3f[] corners = frontWindowCorners();
-        float[][] projected = new float[corners.length][];
-        for (int i = 0; i < corners.length; i++) {
-            projected[i] = ndc(clipFromSight, corners[i]);
-            if (projected[i] == null) {
+        for (int i = 0; i < FRONT_WINDOW.length; i++) {
+            Vector3fc corner = FRONT_WINDOW[i];
+            if (!ndc(clipFromSight, corner.x(), corner.y(), corner.z(), scratch, points, 2 * (i + 1))) {
                 return false;
             }
         }
         // Inside a convex polygon: the dot is on the same side of every edge (either winding).
         // 位于凸多边形内：红点在每条边的同一侧（任一绕序）。
+        float dotX = points[0];
+        float dotY = points[1];
         int sign = 0;
-        for (int i = 0; i < projected.length; i++) {
-            float[] a = projected[i];
-            float[] b = projected[(i + 1) % projected.length];
-            float cross = (b[0] - a[0]) * (dot[1] - a[1]) - (b[1] - a[1]) * (dot[0] - a[0]);
+        for (int i = 0; i < FRONT_WINDOW.length; i++) {
+            int a = 2 * (i + 1);
+            int b = 2 * ((i + 1) % FRONT_WINDOW.length + 1);
+            float cross = (points[b] - points[a]) * (dotY - points[a + 1])
+                    - (points[b + 1] - points[a + 1]) * (dotX - points[a]);
             int side = cross > 0.0F ? 1 : cross < 0.0F ? -1 : 0;
             if (side == 0) {
                 return false;
@@ -286,13 +373,177 @@ public final class M32SightPose {
         return true;
     }
 
-    @Nullable
-    private static float[] ndc(Matrix4fc clip, Vector3f point) {
-        Vector4f v = clip.transform(new Vector4f(point, 1.0F));
-        if (!(v.w > MIN_W) || !Float.isFinite(v.x) || !Float.isFinite(v.y)) {
-            return null;
+    /**
+     * The reticle's visibility: smoothstep(0.75, 1, p), so it never floats beside the frame mid-transition. The dot's
+     * own alpha is 1, so this is the whole factor.
+     * 分划的可见度：smoothstep(0.75, 1, p)，过渡中途它不会飘在镜框之外。红点自身透明度为 1，因此这就是全部系数。
+     */
+    public static float reticleAlpha(float progress) {
+        float t = clamp01((clamp01(progress) - 0.75F) / 0.25F);
+        return t * t * (3.0F - 2.0F * t);
+    }
+
+    /** Vertex colour: {@link #RETICLE_RGB} at the clamped alpha. / 顶点颜色：钳制透明度下的 {@link #RETICLE_RGB}。 */
+    public static int reticleArgb(float alpha) {
+        return Math.round(clamp01(alpha) * 255.0F) << 24 | RETICLE_RGB;
+    }
+
+    /**
+     * Receives one axis-aligned reticle quad on the dot plane ({@code z = DOT_Z / 16}), vertex space, {@code x0 < x1},
+     * {@code y0 < y1}; atlas UVs normalised. {@code vAlongX == false}: u runs x0 to x1 as u0 to u1 and v runs top
+     * (y1) to bottom (y0) as v0 to v1. {@code vAlongX == true} (vertical bars): v runs x0 to x1 as v0 to v1 and u runs
+     * top to bottom as u0 to u1. {@code alpha} is the element's alpha before {@link #reticleAlpha}.
+     * 接收红点平面（{@code z = DOT_Z / 16}）上的一个轴对齐分划四边形（顶点空间，{@code x0 < x1}、{@code y0 < y1}；贴图 UV 已归一化）。
+     * {@code vAlongX == false}：u 从 x0 到 x1 对应 u0 到 u1，v 从上（y1）到下（y0）对应 v0 到 v1。{@code vAlongX == true}（竖直线条）：
+     * v 从 x0 到 x1 对应 v0 到 v1，u 从上到下对应 u0 到 u1。{@code alpha} 为乘以 {@link #reticleAlpha} 之前的元素透明度。
+     */
+    @FunctionalInterface
+    public interface ReticleSink {
+        void quad(float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1, boolean vAlongX,
+                  float alpha);
+    }
+
+    /** One quad as {@link ReticleSink} receives it (tests and tools). / {@link ReticleSink} 接收的一个四边形。 */
+    public record ReticleQuad(float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1,
+                              boolean vAlongX, float alpha) {
+    }
+
+    /**
+     * The quadrant-grid reticle in the sight's vertex space, emitted without allocating per quad: the four cross lines
+     * (a {@link #CROSS_GAP} gap round the dot, clipped exactly to {@link #RETICLE_CLIP_RADIUS}: their outer corners lie
+     * on it), lead ticks at +-1..{@link #LEAD_TICK_MAX_DEGREES} hand degrees on the horizontal axis, then one range tick
+     * per dial setting r except the dialled one at ay = h'(r) - h'(dial) below the axis
+     * (h' = {@link #tiltRadians}({@link M32Ballistics#holdoverRadians}), the dot's own solve; unsolved settings are
+     * skipped), majors followed by their digits. Ticks and labels are emitted only when their whole quad (a label: all
+     * its glyphs) is inside the clip circle. Nothing when the dialled setting has no solution.
+     * 瞄具顶点空间中的象限网格分划，逐个四边形输出且不为每个四边形分配对象：四条十字线（红点周围留 {@link #CROSS_GAP} 间隙，精确
+     * 裁剪到 {@link #RETICLE_CLIP_RADIUS}：外侧两角位于圆上）、水平轴上手部 ±1..{@link #LEAD_TICK_MAX_DEGREES} 度的提前量刻度，然后
+     * 除当前刻度外每个刻度值 r 一条射程刻度，位于轴下方 ay = h'(r) - h'(当前刻度) 处（h' = {@link #tiltRadians}(
+     * {@link M32Ballistics#holdoverRadians})，与红点同一求解；无解的刻度值跳过），主刻度后接其数字。刻度与数字只有整个四边形（数字为
+     * 其全部字形）都在裁剪圆内时才输出。当前刻度无解时不输出任何内容。
+     */
+    public static void emitReticle(double pitchDegrees, int dialMetres, double handFovDegrees, double worldFovDegrees,
+                                   ReticleSink sink) {
+        double dialTilt = tiltRadians(M32Ballistics.holdoverRadians(pitchDegrees, dialMetres), handFovDegrees,
+                worldFovDegrees);
+        if (!Double.isFinite(dialTilt)) {
+            return;
         }
-        return new float[]{v.x / v.w, v.y / v.w};
+        float cx = EYE.x();
+        float cy = EYE.y();
+        float radius = RETICLE_CLIP_RADIUS;
+        float lineHalf = CROSS_THICKNESS * BAR_DRAW_SCALE / 2.0F;
+        float lineEnd = (float) Math.sqrt(radius * radius - lineHalf * lineHalf);
+        bar(sink, cx + CROSS_GAP, cy - lineHalf, cx + lineEnd, cy + lineHalf, false, CROSS_ALPHA);
+        bar(sink, cx - lineEnd, cy - lineHalf, cx - CROSS_GAP, cy + lineHalf, false, CROSS_ALPHA);
+        bar(sink, cx - lineHalf, cy + CROSS_GAP, cx + lineHalf, cy + lineEnd, true, CROSS_ALPHA);
+        bar(sink, cx - lineHalf, cy - lineEnd, cx + lineHalf, cy - CROSS_GAP, true, CROSS_ALPHA);
+        float tickHalf = TICK_THICKNESS * BAR_DRAW_SCALE / 2.0F;
+        for (int degrees = -LEAD_TICK_MAX_DEGREES; degrees <= LEAD_TICK_MAX_DEGREES; degrees++) {
+            if (degrees == 0) {
+                continue;
+            }
+            float x = cx + (float) (RETICLE_DISTANCE * Math.tan(Math.toRadians(degrees)));
+            float half = (degrees & 1) != 0 ? LEAD_TICK_ODD_HALF : LEAD_TICK_EVEN_HALF;
+            if (insideClip(x - tickHalf, cy - half, x + tickHalf, cy + half)) {
+                bar(sink, x - tickHalf, cy - half, x + tickHalf, cy + half, true, TICK_ALPHA);
+            }
+        }
+        for (int metres : M32Ballistics.dialSettings()) {
+            if (metres == dialMetres) {
+                continue;
+            }
+            double tilt = tiltRadians(M32Ballistics.holdoverRadians(pitchDegrees, metres), handFovDegrees,
+                    worldFovDegrees);
+            if (!Double.isFinite(tilt)) {
+                continue;
+            }
+            float y = cy - (float) (RETICLE_DISTANCE * Math.tan(tilt - dialTilt));
+            boolean major = metres % RANGE_MAJOR_METRES == 0;
+            float half = major ? RANGE_TICK_MAJOR_HALF : RANGE_TICK_MINOR_HALF;
+            if (!insideClip(cx - half, y - tickHalf, cx + half, y + tickHalf)) {
+                continue;
+            }
+            bar(sink, cx - half, y - tickHalf, cx + half, y + tickHalf, false, TICK_ALPHA);
+            if (major) {
+                label(sink, metres, cx + half + LABEL_GAP, y);
+            }
+        }
+    }
+
+    /** {@link #emitReticle} collected into a list. / 收集为列表的 {@link #emitReticle}。 */
+    public static List<ReticleQuad> reticle(double pitchDegrees, int dialMetres, double handFovDegrees,
+                                            double worldFovDegrees) {
+        List<ReticleQuad> quads = new ArrayList<>();
+        emitReticle(pitchDegrees, dialMetres, handFovDegrees, worldFovDegrees,
+                (x0, y0, x1, y1, u0, v0, u1, v1, vAlongX, alpha)
+                        -> quads.add(new ReticleQuad(x0, y0, x1, y1, u0, v0, u1, v1, vAlongX, alpha)));
+        return quads;
+    }
+
+    /** {@code metres} in digit glyphs from {@code left}, centred on {@code y}, or nothing unless all fit. / 数字标签。 */
+    private static void label(ReticleSink sink, int metres, float left, float y) {
+        int digits = 1;
+        int divisor = 1;
+        while (divisor <= metres / 10) {
+            divisor *= 10;
+            digits++;
+        }
+        float y0 = y - GLYPH_HEIGHT / 2.0F;
+        float y1 = y + GLYPH_HEIGHT / 2.0F;
+        if (!insideClip(left, y0, left + (digits - 1) * GLYPH_ADVANCE + GLYPH_WIDTH, y1)) {
+            return;
+        }
+        float x = left;
+        for (; divisor > 0; divisor /= 10, x += GLYPH_ADVANCE) {
+            int digit = metres / divisor % 10;
+            float u0 = DIGIT_U0 + DIGIT_CELL_WIDTH * digit;
+            emit(sink, x, y0, x + GLYPH_WIDTH, y1, u0 / ATLAS_WIDTH, (float) DIGIT_V0 / ATLAS_HEIGHT,
+                    (u0 + DIGIT_CELL_WIDTH) / ATLAS_WIDTH, (float) DIGIT_V1 / ATLAS_HEIGHT, false, TICK_ALPHA);
+        }
+    }
+
+    private static void bar(ReticleSink sink, float x0, float y0, float x1, float y1, boolean vAlongX, float alpha) {
+        emit(sink, x0, y0, x1, y1, (float) BAR_U0 / ATLAS_WIDTH, (float) BAR_V0 / ATLAS_HEIGHT,
+                (float) BAR_U1 / ATLAS_WIDTH, (float) BAR_V1 / ATLAS_HEIGHT, vAlongX, alpha);
+    }
+
+    /** Model units on the plane to vertex space. / 平面上的模型单位转为顶点空间。 */
+    private static void emit(ReticleSink sink, float x0, float y0, float x1, float y1, float u0, float v0, float u1,
+                             float v1, boolean vAlongX, float alpha) {
+        sink.quad(x0 / UNITS_PER_BLOCK, y0 / UNITS_PER_BLOCK, x1 / UNITS_PER_BLOCK, y1 / UNITS_PER_BLOCK, u0, v0, u1, v1,
+                vAlongX, alpha);
+    }
+
+    /** All four corners inside the clip circle (a convex set, so the whole box is). / 四角都在裁剪圆内。 */
+    private static boolean insideClip(float x0, float y0, float x1, float y1) {
+        float dx = Math.max(Math.abs(x0 - EYE.x()), Math.abs(x1 - EYE.x()));
+        float dy = Math.max(Math.abs(y0 - EYE.y()), Math.abs(y1 - EYE.y()));
+        return dx * dx + dy * dy <= RETICLE_CLIP_RADIUS * RETICLE_CLIP_RADIUS;
+    }
+
+    private static Vector3fc[] buildFrontWindow() {
+        Vector3fc[] corners = new Vector3fc[WINDOW_SIDES];
+        double step = 2.0 * Math.PI / WINDOW_SIDES;
+        double radius = WINDOW_APOTHEM / Math.cos(step / 2.0);
+        for (int k = 0; k < WINDOW_SIDES; k++) {
+            // From the top towards -x: counter-clockwise seen from the eye (looking along -z, +x right).
+            // 自顶部向 -x 方向：从眼点看为逆时针（沿 -z 看，+x 在右）。
+            double angle = step / 2.0 + k * step;
+            corners[k] = new Vector3f((float) (EYE.x() - radius * Math.sin(angle)),
+                    (float) (EYE.y() + radius * Math.cos(angle)), WINDOW_FRONT_Z).div(UNITS_PER_BLOCK);
+        }
+        return corners;
+    }
+
+    private static boolean ndc(Matrix4fc clip, float x, float y, float z, Vector4f scratch, float[] out, int at) {
+        Vector4f v = clip.transform(scratch.set(x, y, z, 1.0F));
+        if (!(v.w > MIN_W) || !Float.isFinite(v.x) || !Float.isFinite(v.y)) {
+            return false;
+        }
+        out[at] = v.x / v.w;
+        out[at + 1] = v.y / v.w;
+        return true;
     }
 
     /** The cube root of the 3x3 determinant; NaN or non-positive for a mirror or degenerate pose. / 均匀缩放。 */
