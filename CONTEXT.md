@@ -1534,7 +1534,8 @@ Current build baseline:
     block exempts that press from its `mayPickUp` gate (`RysTVisorClicks`, one hunk in
     `LimitedInventoryArmorSlotsMixin`). WP3 seams: `RysTVisorGeometry.glassPoint` /
     `nearestGlassPoint(incomingDir, headYaw, pitch)` (shot aimed through the eye onto the visor-down glass window
-    x 4..12, y 5.5..9.5, face z 1.5; null off the glass / from the side or behind), `crackAt(point, Random)`,
+    x 4..12, y 6..9 (art v6: 8 × 3, eye row centred, above the mouth), face z 1.5; null off the glass / from the side
+    or behind), `crackAt(point, Random)`,
     `RysTHelmetItem.addCrack(ServerPlayerEntity, VisorCrack)` (in place on the worn stack, synced by vanilla screen
     handler and equipment sync), `wornHelmet`/`wornVisor`. Client: `client/mixin/bear/RysTVisorHudMixin`
     (`InGameHud.render` HEAD → `RysTVisorOverlay`: rotated Tarkov-style crack decals (0.75 x screen height) placed in
@@ -1545,7 +1546,7 @@ Current build baseline:
     only the local wearer, visor down, own first-person camera, not spectator, not Blind view or Seeker remote view;
     survives F1, over the ricochet double vision, under the HUD and the Holy Flash) and `RysTHeadFeatureMixin` (HEAD cancel on a wearer whose body
     this viewer cannot see, D7; after the single `HeldItemRenderer#renderItem`, `RysTWornCracks` draws unrotated
-    3-unit decals on the crack plane z 1.45, kept wholly inside the glass, following the plate through
+    2.5-unit decals on the crack plane z 1.45, kept wholly inside the glass, following the plate through
     `applyRaisedPose` when raised). Crack `angle` is radians (frozen `VisorCrack`).
   - Shop (`BearShopRules`/`BearShopService`, USEC rebuild with SparkTraits entries preserved and the Charisma
     discount): Rys-T 100 (stock 1), earplugs 50 (stock 1), smoke round 75 (unlimited, tops up a shown stack). D9: the
