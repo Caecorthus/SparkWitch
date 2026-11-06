@@ -1618,10 +1618,39 @@ Current build baseline:
     `SmokeRoundFlight`: no damage and no vanilla hit handler (G1); arms after 4 blocks of path, an earlier impact
     bounces (damped, can come to rest), the first armed block/entity impact or the backup fuse bursts it through
     `SmokeCloudService.spawn` (stepped out of the surface) + `BEAR_SMOKE_BURST` + a puff; a match round is discarded
-    unburst once the round leaves ACTIVE. Client: `M32ScopeProfile` (1x M2A1 reflex: `ScopeProfile.drawsLens() == false`
-    keeps the scope module from drawing a lens, PiP, rim or periphery), `M32RangeDial` (wheel, 25 m steps, per holding
-    session = same hotbar slot), `M32ReticleRules`/`M32ReticleOverlay` (art options 1/2, one constant `STYLE`, holdover
-    re-solved per frame), `M32Hud` (6-chamber sheet `textures/gui/bear/m32_chambers.png`, USEC ammo-row placement,
+    unburst once the round leaves ACTIVE. Client: `M32ScopeProfile` (M2A1 reflex: `drawsLens() == false` keeps the scope
+    module from drawing a lens, PiP, rim or periphery; `hidesHeldItem() == false` keeps the hand pass; world zoom 0.8
+    (1.25x) and look 0.8 in both scope modes; `drawReticle` is empty, so the crosshair is only hidden), the 3-D red-dot
+    aim (SIGHT-CONTRACT v2, 2026-11-06, owner rejected the 2-D reticle; TACZ technique, none of its GPL code):
+    `M32SightState` (aim progress p, 0→1 in 0.20 s while `M32ScopeProfile.isActive()`, 1→0 in 0.15 s, integrated over
+    real frame time on every read, 0 at once with no launcher in the main hand, on a world change or disconnect),
+    `M32SightPose` (pure maths: smoothstep ease, hand FOV lerp(vanilla, 45, ease), h' = atan(tan h · tan(hand/2) /
+    tan(world/2)), full-aim pose = camera orientation, scale 0.5, tilted eye P + Rx(-h')(E - P) at the origin, eye
+    (7.5, 20.25, 19), pivot (7.5, 18.5, 0.5), window x 6..9 / y 19..21.5 / z -1..2 (v2.1: quarter-unit walls, a
+    3-deep housing), dot z -51, halo 0.8 / core 0.22 units; the blend lerps the anchor's image and the scale and slerps the rotation; the dot window test projects the
+    dot and the four front-window corners through one clip matrix), `M32SightRenderer` and two client mixins after
+    `M32ArmPoseMixin`. `client/mixin/bear/M32SightHeldItemMixin`: HEAD/TAIL of the first-person
+    `HeldItemRenderer#renderItem(F…)` bracket the pass and capture the base `B` (hurt tilt + view bob; vanilla and Iris
+    both call it), and a `@WrapOperation` on the single `ItemRenderer#renderItem(LivingEntity…)` call inside
+    `renderItem(LivingEntity…)` (Wathe's AFTER hand-particle inject on that call, SparkTraits' Last Stand and
+    SparkStrength's skateboard HEAD cancels keep working) answers only for the renderer's own `mainHand` reference; at
+    p > 0 it draws `item/m32a1_body` at `blend(hipPre·D·T(-0.5), aim)` and `item/m32a1_sight` at that times the range
+    tilt about the pivot through the public `ItemRenderer#renderItem(…BakedModel)` in the vanilla first-person mode,
+    the stack pre-multiplied by `hipPre⁻¹·target·T(0.5)·D_model⁻¹` (`hipPre = B⁻¹·S` at vanilla's draw), then the dot:
+    two full-bright quads (red halo, white core 0.05 units nearer) on `RenderLayer.getEntityTranslucentEmissive`
+    (`textures/entity/bear/m2a1_dot.png`, 64 × 32 with linear filtering: a saturated red halo and a hot core), depth tested, never depth written, skipped unless its projection
+    through the bound hand projection × model-view × `B` lies inside the projected front window; anything missing
+    (either extra model, an unusable matrix, no base) declines before drawing and vanilla's call runs; p = 0 always
+    runs vanilla's call unchanged. h = `M32Ballistics.holdoverRadians` (interpolated pitch, dialled metres) with the
+    live world FOV (`ScopeGameRendererInvoker`) and this pass's hand FOV; the tilt blends in with ease(p); no aim
+    solution draws an untilted sight and no dot. At default settings the largest tilt is about 8.5° and the tilted
+    axis clears the body up to about 16° (`M32SightModelTest`); a world FOV under about 30° at 200 m tilts past it and
+    the top rail hides the dot. `client/mixin/bear/M32SightFovMixin` (`@ModifyReturnValue` on
+    `GameRenderer#getFov`): `changingFov == false` (vanilla `renderHand`, Iris `HandRenderer.setupGlState`) becomes
+    `M32SightState.handFov` (exactly the original at p = 0); the world projection passes through. The two halves are
+    added in `M32LauncherClient`'s model plugin and fetched through `FabricBakedModelManager`; body ∪ sight equals the
+    full model element for element (same texture and display block). `M32RangeDial` (wheel, 25 m steps, per holding
+    session = same hotbar slot), `M32Hud` (6-chamber sheet `textures/gui/bear/m32_chambers.png`, USEC ammo-row placement,
     count + dial texts with shadow on one translucent dark plate `M32HudRules.plate`/`PLATE_COLOR`),
     `M32FireInput` + `M32InputMixin`/`M32MacControlClickMixin` (the launcher's input scheme), `M32ArmPoseMixin`
     (CROSSBOW_HOLD at priority 1600 like the launcher; the art's hold lives in `m32a1.json` display transforms: the
@@ -1916,7 +1945,11 @@ Current build baseline:
     player's Scoped Sensitivity (only SparkStrength's stunned Engineer cancels `updateMouse`; nothing redirects the
     call). `ScopeHeldItemRendererMixin` cancels HEAD of the first-person `HeldItemRenderer#renderItem(F…)` only (never
     the third-person overload), so `renderHand` and its in-wall/underwater/fire overlays always run; vanilla's
-    `renderHand` and Iris's shader-pack `HandRenderer` both call that method, so hands hide with and without Iris.
+    `renderHand` and Iris's shader-pack `HandRenderer` both call that method, so hands hide with and without Iris. It
+    cancels only while the active profile's `ScopeProfile.hidesHeldItem()` (default true; 2026-11-06) holds
+    (`ScopeRuntime.hidesHand`); only the M32A1's M2A1 answers false, to draw its own aimed launcher in the hand pass.
+    A lensless profile (`drawsLens() == false`) zooms the main view in both modes (`ScopeRuntime.fovMultiplier`; PiP
+    has no lens for it), while lens-drawing profiles (USEC, the anti-tank launcher) keep PiP at 1× as before.
     `ScopeInGameHudMixin`, a priority-1100 `@WrapMethod` on `renderCrosshair` outside Wathe's, draws, in order, the
     fallback ring when needed (Full-Screen Zoom only), the lens rim, then `drawReticle(ctx, ScopeFrame)` with the real
     projection FOV from `ScopeGameRendererInvoker` (PiP: the FOV Full-Screen Zoom would need to show the lens at its

@@ -1,0 +1,101 @@
+{
+  "credit": "SparkWitch BEAR M32A1 MSGL + M2A1 sight (generated, bear-full/art/scripts/m32a1.py) [sight only, first-person aim pass]",
+  "texture_size": [64, 64],
+  "gui_light": "side",
+  "textures": {"0": "sparkwitch:item/m32a1", "particle": "sparkwitch:item/m32a1"},
+  "elements": [
+    {
+      "name": "sight_mount",
+      "from": [6, 17, -1],
+      "to": [9, 18.5, 2],
+      "faces": {
+        "north": {"uv": [0, 12.75, 0.75, 13.25], "texture": "#0"},
+        "east": {"uv": [15, 12.25, 15.75, 12.75], "texture": "#0"},
+        "south": {"uv": [0.75, 12.75, 1.5, 13.25], "texture": "#0"},
+        "west": {"uv": [1.5, 12.75, 2.25, 13.25], "texture": "#0"},
+        "up": {"uv": [0, 11, 0.75, 11.75], "texture": "#0"}
+      }
+    },
+    {
+      "name": "sight_floor",
+      "from": [5.75, 18.5, -1],
+      "to": [9.25, 19, 2],
+      "faces": {
+        "north": {"uv": [14.5, 13.5, 15.5, 13.75], "texture": "#0"},
+        "east": {"uv": [11, 13.75, 11.75, 14], "texture": "#0"},
+        "south": {"uv": [0, 13.75, 1, 14], "texture": "#0"},
+        "west": {"uv": [11.75, 13.75, 12.5, 14], "texture": "#0"},
+        "up": {"uv": [12.25, 10, 13.25, 10.75], "texture": "#0"},
+        "down": {"uv": [11.25, 10, 12.25, 10.75], "texture": "#0"}
+      }
+    },
+    {
+      "name": "sight_wall_l",
+      "from": [5.75, 19, -1],
+      "to": [6, 21.5, 2],
+      "faces": {
+        "north": {"uv": [5.25, 11, 5.5, 11.75], "texture": "#0"},
+        "east": {"uv": [0.75, 11, 1.5, 11.75], "texture": "#0"},
+        "south": {"uv": [5.5, 11, 5.75, 11.75], "texture": "#0"},
+        "west": {"uv": [1.5, 11, 2.25, 11.75], "texture": "#0"}
+      }
+    },
+    {
+      "name": "sight_wall_r",
+      "from": [9, 19, -1],
+      "to": [9.25, 21.5, 2],
+      "faces": {
+        "north": {"uv": [5.75, 11, 6, 11.75], "texture": "#0"},
+        "east": {"uv": [2.25, 11, 3, 11.75], "texture": "#0"},
+        "south": {"uv": [6, 11, 6.25, 11.75], "texture": "#0"},
+        "west": {"uv": [3, 11, 3.75, 11.75], "texture": "#0"}
+      }
+    },
+    {
+      "name": "sight_roof",
+      "from": [5.75, 21.5, -1.5],
+      "to": [9.25, 21.75, 2],
+      "faces": {
+        "north": {"uv": [2, 13.75, 3, 14], "texture": "#0"},
+        "east": {"uv": [1, 13.75, 2, 14], "texture": "#0"},
+        "south": {"uv": [3, 13.75, 4, 14], "texture": "#0"},
+        "west": {"uv": [4, 13.75, 5, 14], "texture": "#0"},
+        "up": {"uv": [1, 10, 2, 11], "texture": "#0"},
+        "down": {"uv": [0, 10, 1, 11], "texture": "#0"}
+      }
+    },
+    {
+      "name": "sight_dial",
+      "from": [4.75, 19, -0.5],
+      "to": [5.75, 21, 1.5],
+      "faces": {
+        "north": {"uv": [6.25, 12.75, 6.5, 13.25], "texture": "#0"},
+        "south": {"uv": [6.5, 12.75, 6.75, 13.25], "texture": "#0"},
+        "west": {"uv": [3.75, 12.75, 4.25, 13.25], "texture": "#0"},
+        "up": {"uv": [6.75, 12.75, 7, 13.25], "texture": "#0"},
+        "down": {"uv": [6, 12.75, 6.25, 13.25], "texture": "#0"}
+      }
+    },
+    {
+      "name": "sight_battery",
+      "from": [9.25, 19, 0],
+      "to": [9.75, 20, 1.5],
+      "faces": {
+        "north": {"uv": [3, 14, 3.25, 14.25], "texture": "#0"},
+        "east": {"uv": [15, 13.75, 15.5, 14], "texture": "#0"},
+        "south": {"uv": [3.25, 14, 3.5, 14.25], "texture": "#0"},
+        "up": {"uv": [5.75, 12.75, 6, 13.25], "texture": "#0"},
+        "down": {"uv": [5.5, 12.75, 5.75, 13.25], "texture": "#0"}
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {"rotation": [6, -12.25, -2.75], "translation": [1.75, -1.75, 0], "scale": [0.5, 0.5, 0.5]},
+    "thirdperson_lefthand": {"rotation": [6, -12.25, -2.75], "translation": [1.75, -1.75, 0], "scale": [0.5, 0.5, 0.5]},
+    "firstperson_righthand": {"rotation": [0, 15, 0], "translation": [-1.5, 0.5, -2.5], "scale": [0.5, 0.5, 0.5]},
+    "firstperson_lefthand": {"rotation": [0, 15, 0], "translation": [-1.5, 0.5, -2.5], "scale": [0.5, 0.5, 0.5]},
+    "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.35, 0.35, 0.35]},
+    "gui": {"rotation": [90, 45, -65], "translation": [0, -1.5, 0], "scale": [0.456, 0.456, 0.456]},
+    "fixed": {"rotation": [90, -45, 115], "translation": [0, -2, 0], "scale": [0.534, 0.534, 0.534]}
+  }
+}
