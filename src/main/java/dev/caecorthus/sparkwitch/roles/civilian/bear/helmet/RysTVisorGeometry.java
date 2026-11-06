@@ -29,8 +29,9 @@ public final class RysTVisorGeometry {
     public static final int CRACK_STYLE_COUNT = 6;
 
     /**
-     * Visor-down glass, head-model pixels: the 8 x 2 slit x 4..12, y 6.5..8.5 (Astra art, 2026-11-06). / 面罩放下时的
-     * 玻璃（头部模型像素）：8 × 2 的观察缝 x 4..12、y 6.5..8.5（Astra 美术，2026-11-06）。
+     * Visor-down glass, head-model pixels: the 8 x 2 slit x 4..12, y 6.5..8.5, recessed half a unit in the frame
+     * (art v3, 2026-11-06). / 面罩放下时的玻璃（头部模型像素）：8 × 2 的观察缝 x 4..12、y 6.5..8.5，嵌入面框半个单位
+     * （美术 v3，2026-11-06）。
      */
     public static final float GLASS_MIN_X = 4.0F;
     public static final float GLASS_MAX_X = 12.0F;
@@ -44,20 +45,23 @@ public final class RysTVisorGeometry {
     public static final float EYE_Z = 8.0F;
 
     /**
-     * Visor-up pose of the same glass ({@code models/item/rys_t_visor_up.json}): the whole visor assembly turns rigidly,
-     * with no lift, {@link #UP_TILT_DEGREES} about +x (right-handed, the vanilla element-rotation sense) around the
-     * temple pivot ({@link #UP_PIVOT_X}, {@link #UP_PIVOT_Y}, {@link #UP_PIVOT_Z}):
-     * {@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}. The model bakes it as an exact 90 degree axis permutation plus
-     * a legal -22.5 degree element rotation about the same pivot. Drawing only.
-     * 同一块玻璃的抬起姿态（{@code models/item/rys_t_visor_up.json}）：整个面罩组件不上移，绕太阳穴枢轴
-     * （{@link #UP_PIVOT_X}, {@link #UP_PIVOT_Y}, {@link #UP_PIVOT_Z}）绕 +x 轴（右手定则，即原版元素旋转方向）刚性旋转
-     * {@link #UP_TILT_DEGREES}：{@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}。模型中以精确的 90 度坐标轴置换加上合法的
-     * -22.5 度元素旋转（同一枢轴）实现。仅用于绘制。
+     * Visor-up pose of the same glass ({@code models/item/rys_t_visor_up.json}, Claude art v3, 2026-11-06): the whole
+     * visor assembly turns rigidly, with no lift, {@link #UP_TILT_DEGREES} about +x (right-handed, the vanilla
+     * element-rotation sense) around the temple bolts ({@link #UP_PIVOT_X}, {@link #UP_PIVOT_Y}, {@link #UP_PIVOT_Z}):
+     * {@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}. A quarter turn lays the frame flat on the crown (glass at
+     * y 14.5, facing up) with the chin plate as the short peak over the brow; the model bakes it as an exact axis
+     * permutation, so a raised part keeps only its own lowered-pose tilt (the chin plate and its corner pieces,
+     * -22.5 degrees about x). Drawing only.
+     * 同一块玻璃的抬起姿态（{@code models/item/rys_t_visor_up.json}，Claude 美术 v3，2026-11-06）：整个面罩组件不上移，绕太阳穴
+     * 螺栓（{@link #UP_PIVOT_X}, {@link #UP_PIVOT_Y}, {@link #UP_PIVOT_Z}）绕 +x 轴（右手定则，即原版元素旋转方向）刚性旋转
+     * {@link #UP_TILT_DEGREES}：{@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}。转四分之一圈后面框平贴在头顶（玻璃位于
+     * y 14.5，朝上），下巴板成为额头上方的短檐；模型以精确的坐标轴置换实现，因此抬起部件只保留它在放下姿态中的自身倾斜（下巴板
+     * 及其两角件绕 x 轴 -22.5 度）。仅用于绘制。
      */
-    public static final float UP_TILT_DEGREES = 67.5F;
+    public static final float UP_TILT_DEGREES = 90.0F;
     public static final float UP_PIVOT_X = 8.0F;
-    public static final float UP_PIVOT_Y = 9.5F;
-    public static final float UP_PIVOT_Z = 7.25F;
+    public static final float UP_PIVOT_Y = 9.0F;
+    public static final float UP_PIVOT_Z = 7.0F;
 
     private static final double EPSILON = 1.0E-6;
 

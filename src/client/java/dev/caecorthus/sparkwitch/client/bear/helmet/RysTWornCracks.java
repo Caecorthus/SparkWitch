@@ -76,9 +76,10 @@ public final class RysTWornCracks {
 
     /**
      * Moves model-unit geometry from the visor-down pose onto the raised visor:
-     * {@code up = P + Rx(UP_TILT_DEGREES) * (down - P)} with no lift ({@link RysTVisorGeometry}).
+     * {@code up = P + Rx(UP_TILT_DEGREES) * (down - P)} with no lift ({@link RysTVisorGeometry}); with the art v3
+     * quarter turn the crack plane z 1.45 lands flat at y 14.55, just above the raised glass, facing up.
      * 把模型单位几何从面罩放下姿态移到抬起的面罩上：{@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}，不上移
-     * （{@link RysTVisorGeometry}）。
+     * （{@link RysTVisorGeometry}）；美术 v3 转四分之一圈后，裂纹平面 z 1.45 平躺在 y 14.55，紧贴抬起的玻璃上方并朝上。
      */
     static void applyRaisedPose(MatrixStack matrices) {
         matrices.translate(RysTVisorGeometry.UP_PIVOT_X, RysTVisorGeometry.UP_PIVOT_Y, RysTVisorGeometry.UP_PIVOT_Z);
