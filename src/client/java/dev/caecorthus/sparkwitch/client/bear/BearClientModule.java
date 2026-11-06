@@ -24,6 +24,7 @@ public final class BearClientModule {
             return;
         }
         registered = true;
+        dev.caecorthus.sparkwitch.client.bear.helmet.RysTHelmetClient.register();
     }
 
     /**

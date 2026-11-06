@@ -152,6 +152,13 @@ public abstract class LimitedInventoryArmorSlotsMixin extends Screen {
                     return;
                 }
             }
+            // BEAR WP2: a right press on the worn Rys-T toggles its visor and never picks it up, so the gate below
+            // does not apply. / BEAR WP2：右键已戴的 Rys-T 只开合面罩、从不拿起，因此不受下方门槛限制。
+            if (dev.caecorthus.sparkwitch.client.bear.helmet.RysTVisorClicks.exemptsPickUpGate(client.player, handler,
+                    slot, button)) {
+                original.call(screen, slot, slotId, button, action);
+                return;
+            }
             if (!LimitedInventoryArmorSlots.mayPickUp(handler, slot)) {
                 return;
             }
