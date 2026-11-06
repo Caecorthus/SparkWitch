@@ -1533,17 +1533,19 @@ Current build baseline:
     screen's client writes and plays it locally (USEC writer rule, probe from `RysTHelmetClient`); Wathe's armor
     block exempts that press from its `mayPickUp` gate (`RysTVisorClicks`, one hunk in
     `LimitedInventoryArmorSlotsMixin`). WP3 seams: `RysTVisorGeometry.glassPoint` /
-    `nearestGlassPoint(incomingDir, headYaw, pitch)` (shot aimed through the eye onto the visor-down glass slit
-    x 4..12, y 6.5..8.5, face z 1.5; null off the glass / from the side or behind), `crackAt(point, Random)`,
+    `nearestGlassPoint(incomingDir, headYaw, pitch)` (shot aimed through the eye onto the visor-down glass window
+    x 4..12, y 5.5..9.5, face z 1.5; null off the glass / from the side or behind), `crackAt(point, Random)`,
     `RysTHelmetItem.addCrack(ServerPlayerEntity, VisorCrack)` (in place on the worn stack, synced by vanilla screen
     handler and equipment sync), `wornHelmet`/`wornVisor`. Client: `client/mixin/bear/RysTVisorHudMixin`
-    (`InGameHud.render` HEAD → `RysTVisorOverlay`: the art overlay stretched full-screen plus rotated crack decals
-    scissored to the option window, `RysTVisorOverlayLayout.OPTION` = `C1` (0.035, 0.270, 0.965, 0.750), the shipped
+    (`InGameHud.render` HEAD → `RysTVisorOverlay`: rotated Tarkov-style crack decals (0.75 x screen height) placed in
+    the option window and scissored to `crackClip` (that window ±0.10 screen height, full width), then the art overlay
+    stretched full-screen over them so its soft frame fades them out; `RysTVisorOverlayLayout.OPTION` = `C1`
+    (0.035, 0.270, 0.965, 0.750), the shipped
     `visor_overlay.png`; `C2` (0.035, 0.330, 0.965, 0.690) is the heavier art alternative, swapped with its texture;
     only the local wearer, visor down, own first-person camera, not spectator, not Blind view or Seeker remote view;
     survives F1, over the ricochet double vision, under the HUD and the Holy Flash) and `RysTHeadFeatureMixin` (HEAD cancel on a wearer whose body
     this viewer cannot see, D7; after the single `HeldItemRenderer#renderItem`, `RysTWornCracks` draws unrotated
-    1.75-unit decals on the crack plane z 1.45, kept wholly inside the glass, following the plate through
+    3-unit decals on the crack plane z 1.45, kept wholly inside the glass, following the plate through
     `applyRaisedPose` when raised). Crack `angle` is radians (frozen `VisorCrack`).
   - Shop (`BearShopRules`/`BearShopService`, USEC rebuild with SparkTraits entries preserved and the Charisma
     discount): Rys-T 100 (stock 1), earplugs 50 (stock 1), smoke round 75 (unlimited, tops up a shown stack). D9: the
