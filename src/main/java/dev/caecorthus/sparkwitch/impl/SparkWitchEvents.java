@@ -24,6 +24,12 @@ import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightKillService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorBlackoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorDomainService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorLoadoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorObservationService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorSanityService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorWinService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
@@ -154,6 +160,11 @@ public final class SparkWitchEvents {
         KnightFeatureService.register();
         KnightKillService.register();
         KnightDuelService.register();
+        SaviorLoadoutService.register();
+        SaviorSanityService.register();
+        SaviorObservationService.register();
+        SaviorBlackoutService.register();
+        SaviorWinService.register();
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();
@@ -193,6 +204,7 @@ public final class SparkWitchEvents {
                 PerfumerEconomyService.assignForRole(serverPlayer, role);
                 NinjaFeatureService.assignForRole(serverPlayer, role);
                 OrthopedistSkillService.assignForRole(serverPlayer, role);
+                SaviorDomainService.assignForRole(serverPlayer, role);
                 if (!GuardianAngelRules.isGuardianAngel(role)) {
                     GuardianAngelFeatureService.detachPlayer(serverPlayer);
                 }

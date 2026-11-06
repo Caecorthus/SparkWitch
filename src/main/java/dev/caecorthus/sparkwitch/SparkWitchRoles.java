@@ -213,6 +213,10 @@ public final class SparkWitchRoles {
         return SparkWitchRoleRegistry.knight();
     }
 
+    public static Role savior() {
+        return SparkWitchRoleRegistry.savior();
+    }
+
     public static Role recruit() {
         return SparkWitchRoleRegistry.recruit();
     }

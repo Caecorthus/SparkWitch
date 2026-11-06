@@ -32,6 +32,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCarItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetNecrologyItem;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetNecrologyRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorLightsaberItem;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPistolItem;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeLoadoutService;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.TollBellItem;
@@ -127,6 +130,8 @@ public final class SparkWitchItems {
     public static final Identifier USEC_AP_ROUND_ID = UsecRules.AP_ITEM_ID;
     public static final Identifier USEC_SUPPRESSOR_ID = UsecRules.SUPPRESSOR_ITEM_ID;
     public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
+    public static final Identifier SAVIOR_PISTOL_ID = SaviorRules.PISTOL_ID;
+    public static final Identifier SAVIOR_LIGHTSABER_ID = SaviorRules.LIGHTSABER_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -184,6 +189,8 @@ public final class SparkWitchItems {
     private static Item usecApRound;
     private static Item usecSuppressor;
     private static Item witherGohei;
+    private static Item saviorPistol;
+    private static Item saviorLightsaber;
 
     private static boolean registered;
 
@@ -484,6 +491,18 @@ public final class SparkWitchItems {
                 CROSS_SWORD_ID,
                 new CrossSwordItem(new Item.Settings().maxCount(1))
         );
+        // Savior (police): a self-contained revolver copy and a bat-stat lightsaber.
+        // 救世主（警类）：自包含的左轮复制品与球棒属性的光剑。
+        saviorPistol = Registry.register(
+                Registries.ITEM,
+                SAVIOR_PISTOL_ID,
+                new SaviorPistolItem(SaviorPistolItem.createSettings())
+        );
+        saviorLightsaber = Registry.register(
+                Registries.ITEM,
+                SAVIOR_LIGHTSABER_ID,
+                new SaviorLightsaberItem(SaviorLightsaberItem.createSettings())
+        );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
@@ -501,6 +520,20 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return crossSword;
+    }
+
+    public static Item saviorPistol() {
+        if (saviorPistol == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return saviorPistol;
+    }
+
+    public static Item saviorLightsaber() {
+        if (saviorLightsaber == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return saviorLightsaber;
     }
 
     public static Item firePoker() {

@@ -86,6 +86,10 @@ dependencies {
     if (!sparkFactionApiJar.isFile()) {
         throw new GradleException("Missing bundled SparkFactionAPI jar: ${sparkFactionApiJar}")
     }
+    def lambdynLightsApiJar = file("libs/lambdynamiclights-api-${project.lambdynlights_version}.jar")
+    if (!lambdynLightsApiJar.isFile()) {
+        throw new GradleException("Missing LambDynamicLights API jar: ${lambdynLightsApiJar}")
+    }
 
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
@@ -108,6 +112,9 @@ dependencies {
     modLocalRuntime "maven.modrinth:simple-voice-chat:fabric-${project.minecraft_version}-${project.voicechat_version}"
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
+    // Optional at runtime: only the "lambdynlights:initializer" entrypoint references this API.
+    // 运行时可选：只有 entrypoint 入口引用该 API，未安装 LDH 时不会加载。
+    modCompileOnly files(lambdynLightsApiJar)
     modRuntimeOnly "me.lucko:fabric-permissions-api:0.3.1"
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"

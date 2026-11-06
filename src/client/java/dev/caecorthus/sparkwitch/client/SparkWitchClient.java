@@ -17,6 +17,8 @@ import dev.caecorthus.sparkwitch.client.fisher.FisherClient;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
 import dev.caecorthus.sparkwitch.client.knight.KnightDuelClient;
 import dev.caecorthus.sparkwitch.client.knight.KnightSwordClient;
+import dev.caecorthus.sparkwitch.client.savior.SaviorClient;
+import dev.caecorthus.sparkwitch.client.savior.SaviorDomainClient;
 import dev.caecorthus.sparkwitch.client.prophet.ProphetClientModule;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
@@ -74,6 +76,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntit
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.UseSaviorSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashEntities;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
@@ -137,6 +142,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         JudgeClientModule.register();
         KnightSwordClient.register();
         KnightDuelClient.register();
+        SaviorClient.register();
         ProphetClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
@@ -252,6 +258,15 @@ public final class SparkWitchClient implements ClientModInitializer {
                         .isRole(client.player, dev.caecorthus.sparkwitch.SparkWitchRoles.orthopedist())) {
                     // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
                     ClientPlayNetworking.send(new UseOrthopedistSkillC2SPacket());
+                } else if (SaviorRules.isSavior(role)) {
+                    // Client-side guard is presentation only; the server re-checks role, round, cooldown and the active domain.
+                    // 客户端门槛仅用于表现；服务端会重新校验职业、回合、冷却与领域是否已展开。
+                    SaviorPlayerComponent savior = SaviorPlayerComponent.KEY.get(client.player);
+                    if (savior.getCooldownTicks() <= 0
+                            && savior.getDomainTicks() <= 0
+                            && ClientPlayNetworking.canSend(UseSaviorSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseSaviorSkillC2SPacket());
+                    }
                 } else if (BlindRules.isBlind(role)) {
                     // Real role only (the Blind is never a disguise target). / 仅真实职业（盲人不可被伪装）。
                     BlindKitClientWiring.onAbilityKey(client);
@@ -408,6 +423,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         SeekerClientModule.reset();
         StowawaySensesClient.reset();
         BlindClient.reset();
+        SaviorDomainClient.reset();
         releaseClosedWorldPlayers();
     }
 

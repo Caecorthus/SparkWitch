@@ -24,6 +24,12 @@
     ],
     "voicechat": [
       "dev.caecorthus.sparkwitch.voice.SparkWitchVoiceChatPlugin"
+    ],
+    "lambdynlights:initializer": [
+      "dev.caecorthus.sparkwitch.client.savior.SaviorDynamicLightsInitializer"
+    ],
+    "dynamiclights": [
+      "dev.caecorthus.sparkwitch.client.savior.SaviorDynamicLightsInitializer"
     ]
   },
   "custom": {
@@ -73,7 +79,8 @@
       "sparkwitch:mini_wither",
       "sparkwitch:black_raven_crow",
       "sparkwitch:knight_duel",
-      "sparkwitch:recruit"
+      "sparkwitch:recruit",
+      "sparkwitch:savior"
     ]
   },
   "mixins": [

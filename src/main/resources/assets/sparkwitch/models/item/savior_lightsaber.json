@@ -1,0 +1,134 @@
+{
+  "parent": "sparkwitch:item/savior_lightsaber_handheld",
+  "textures": {
+    "layer0": "sparkwitch:item/savior_lightsaber_lit"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.05
+      },
+      "model": "sparkwitch:item/savior_lightsaber_1"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.1
+      },
+      "model": "sparkwitch:item/savior_lightsaber_2"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.15
+      },
+      "model": "sparkwitch:item/savior_lightsaber_3"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.2
+      },
+      "model": "sparkwitch:item/savior_lightsaber_4"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.25
+      },
+      "model": "sparkwitch:item/savior_lightsaber_5"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.3
+      },
+      "model": "sparkwitch:item/savior_lightsaber_6"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.35
+      },
+      "model": "sparkwitch:item/savior_lightsaber_7"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.4
+      },
+      "model": "sparkwitch:item/savior_lightsaber_8"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.45
+      },
+      "model": "sparkwitch:item/savior_lightsaber_9"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.5
+      },
+      "model": "sparkwitch:item/savior_lightsaber_10"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.55
+      },
+      "model": "sparkwitch:item/savior_lightsaber_11"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.6
+      },
+      "model": "sparkwitch:item/savior_lightsaber_12"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.65
+      },
+      "model": "sparkwitch:item/savior_lightsaber_13"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.7
+      },
+      "model": "sparkwitch:item/savior_lightsaber_14"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.75
+      },
+      "model": "sparkwitch:item/savior_lightsaber_15"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.8
+      },
+      "model": "sparkwitch:item/savior_lightsaber_16"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.85
+      },
+      "model": "sparkwitch:item/savior_lightsaber_17"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.9
+      },
+      "model": "sparkwitch:item/savior_lightsaber_18"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 0.95
+      },
+      "model": "sparkwitch:item/savior_lightsaber_19"
+    },
+    {
+      "predicate": {
+        "sparkwitch:held_frame": 1
+      },
+      "model": "sparkwitch:item/savior_lightsaber_lit"
+    },
+    {
+      "predicate": {
+        "sparkwitch:preignition": 0.5
+      },
+      "model": "sparkwitch:item/savior_lightsaber_unlit"
+    }
+  ]
+}

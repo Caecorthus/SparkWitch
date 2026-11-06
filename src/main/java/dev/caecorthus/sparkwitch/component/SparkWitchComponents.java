@@ -14,6 +14,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeWorldComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRoundComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaPlayerComponent;
@@ -74,6 +75,10 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, OrthopedistPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(OrthopedistPlayerComponent::new);
+        // Savior G-skill cooldown and domain timer, synced to its owner only. / 救世主 G 技能冷却与领域计时，只同步给本人。
+        registry.beginRegistration(PlayerEntity.class, SaviorPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SaviorPlayerComponent::new);
         registry.beginRegistration(PlayerEntity.class, GuardianAngelPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(GuardianAngelPlayerComponent::new);

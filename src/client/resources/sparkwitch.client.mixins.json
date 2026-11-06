@@ -5,6 +5,13 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "CrossSwordWatheCrosshairMixin",
+    "savior.SaviorMuzzleTrackerMixin",
+    "savior.SaviorLightsaberArmPoseMixin",
+    "savior.SaviorLightsaberBipedPoseMixin",
+    "savior.SaviorLightsaberCrosshairMixin",
+    "savior.SaviorLightsaberSwingMixin",
+    "savior.SaviorPistolArmPoseMixin",
+    "savior.SaviorPistolEquipMixin",
     "knight.KnightDuelInventoryLockMixin",
     "AssassinSaboteurGuessMixin",
     "AssassinVendettaTargetMixin",

@@ -18,6 +18,7 @@ import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintHudLayoutRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -55,6 +56,7 @@ public final class RoleHudDispatcher {
         renderCurser(context);
         renderGuardianAngel(context);
         renderOrthopedist(context);
+        renderSavior(context);
         renderSaint(hud, context);
         renderVendetta(context);
         renderKidnapperControlled(context);
@@ -119,6 +121,21 @@ public final class RoleHudDispatcher {
         // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
         if (GameWorldComponent.KEY.get(player.getWorld()).isRole(player, SparkWitchRoles.orthopedist())) {
             OrthopedistHudRenderer.render(context, player);
+        }
+    }
+
+    /** The Savior's G-skill line at the bottom-right in the role color. / 右下角职业色的救世主 G 技能提示。 */
+    private static void renderSavior(DrawContext context) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
+        if (player == null || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+            return;
+        }
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        if (SaviorRules.isSavior(role)) {
+            SaviorHudRenderer.render(context, player);
         }
     }
 
