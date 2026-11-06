@@ -117,6 +117,7 @@
     "kidnapper.KidnapperControlledMouseMixin",
     "kidnapper.KidnapperThrowUseMixin",
     "hunter.DoubleBarrelAimClaimMixin",
+    "hunter.DoubleBarrelMuzzleTrackerMixin",
     "hunter.DoubleBarrelShotSoundSystemMixin",
     "hunter.DoubleBarrelShotgunCrosshairMixin",
     "hunter.DoubleBarrelSourceAccessor",

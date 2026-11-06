@@ -16,7 +16,10 @@ import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
+import dev.doctor4t.wathe.util.ShootMuzzleS2CPayload;
 import net.fabricmc.fabric.api.entity.FakePlayer;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -60,6 +63,9 @@ public final class DoubleBarrelShotgunItem extends Item {
     private static final String LOADED_SHELLS_KEY = "LoadedShells";
     private static final String RELOAD_WINDOW_UNTIL_KEY = "ReloadWindowUntil";
     private static final double TARGET_BOX_EXPANSION = 0.1D;
+    private static final ClientShot NO_CLIENT_SHOT = (player, stack) -> {
+    };
+    private static volatile ClientShot clientShot = NO_CLIENT_SHOT;
 
     public DoubleBarrelShotgunItem(Settings settings) {
         super(settings);
@@ -67,6 +73,16 @@ public final class DoubleBarrelShotgunItem extends Item {
 
     public static Settings createSettings() {
         return new Settings().maxCount(1);
+    }
+
+    /** Client-only first-person flash seam; a dedicated server keeps the no-op. / 客户端第一人称火焰接缝；专用服务器保持空操作。 */
+    @FunctionalInterface
+    public interface ClientShot {
+        void onShot(PlayerEntity player, ItemStack stack);
+    }
+
+    public static void installClientShot(ClientShot hook) {
+        clientShot = java.util.Objects.requireNonNull(hook, "hook");
     }
 
     @Override
@@ -98,6 +114,7 @@ public final class DoubleBarrelShotgunItem extends Item {
 
         if (world.isClient) {
             user.setPitch(user.getPitch() - 4.0F);
+            clientShot.onShot(user, shotgun);
             return TypedActionResult.consume(shotgun);
         }
 
@@ -121,6 +138,15 @@ public final class DoubleBarrelShotgunItem extends Item {
                 1.0F,
                 1.0F
         );
+        // Wathe's muzzle packet: the held-item mixin stores the barrel position, so every viewer gets the same yellow
+        // GUNSHOT flash as the revolver (the local first-person shooter draws its hand flash instead).
+        // Wathe 枪口数据包：手持物品 mixin 写入枪管位置，所有观察者得到与左轮相同的黄色 GUNSHOT 火焰
+        // （第一人称本人改用手部火焰）。
+        ShootMuzzleS2CPayload muzzle = new ShootMuzzleS2CPayload(user.getUuidAsString());
+        for (ServerPlayerEntity viewer : PlayerLookup.tracking(user)) {
+            ServerPlayNetworking.send(viewer, muzzle);
+        }
+        ServerPlayNetworking.send((ServerPlayerEntity) user, muzzle);
         user.getItemCooldownManager().set(this, HunterRules.cooldownAfterShot(remainingShells));
         return TypedActionResult.consume(shotgun);
     }
