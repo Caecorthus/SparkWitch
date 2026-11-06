@@ -1522,22 +1522,26 @@ Current build baseline:
     `ArmorItem`: no armor points; iron equip sound), so only the head armor slot takes it, right-click in hand and
     shift-click equip it, and vanilla `HeadFeatureRenderer` draws the art model (`display.head` scale 1.6; head box
     [4,12]^3, +x the wearer's right) for everyone; predicate `sparkwitch:visor_up` (`RysTModelPredicates`, 1 = raised)
-    picks `item/rys_t_visor_up`, and `RysTModels` swaps in the 2-D icons for GUI/ground/frame (AXMC pattern). Visor
-    toggle (H9, only way): `RysTVisorToggle` from `onClicked`, an empty-cursor right-click on the helmet in the player's
-    own head slot (inventory index 39) in any screen; both sides claim, the server writes in place and plays
-    `bear.rys_t.visor_up/down` publicly, the creative screen's client writes and plays it locally (USEC writer rule,
-    probe from `RysTHelmetClient`); Wathe's armor block exempts that press from its `mayPickUp` gate
-    (`RysTVisorClicks`, one hunk in `LimitedInventoryArmorSlotsMixin`). WP3 seams: `RysTVisorGeometry.glassPoint` /
-    `nearestGlassPoint(incomingDir, headYaw, pitch)` (shot aimed through the eye onto the visor-down glass x 4..12,
-    y 6..9, face z 1.5; null off the glass / from the side or behind), `crackAt(point, Random)`,
+    picks `item/rys_t_visor_up` (Astra art 2026-11-06: the ten visor parts turn rigidly, no lift, +67.5° about +x
+    around the temple pivot (8, 9.5, 7.25), `up = P + Rx(+67.5°)·(down − P)`, baked as a 90° permutation plus a
+    −22.5° element rotation; `RysTVisorGeometry.UP_*`), and `RysTModels` swaps in the 2-D icons for GUI/ground/frame
+    (AXMC pattern). Visor toggle (H9, only way): `RysTVisorToggle` from `onClicked`, an empty-cursor right-click on
+    the helmet in the player's own head slot (inventory index 39) in any screen; both sides claim, the server writes
+    in place and plays `bear.rys_t.visor_up/down` publicly, the creative screen's client writes and plays it locally
+    (USEC writer rule, probe from `RysTHelmetClient`); Wathe's armor block exempts that press from its `mayPickUp`
+    gate (`RysTVisorClicks`, one hunk in `LimitedInventoryArmorSlotsMixin`). WP3 seams: `RysTVisorGeometry.glassPoint` /
+    `nearestGlassPoint(incomingDir, headYaw, pitch)` (shot aimed through the eye onto the visor-down glass slit
+    x 4..12, y 6.5..8.5, face z 1.5; null off the glass / from the side or behind), `crackAt(point, Random)`,
     `RysTHelmetItem.addCrack(ServerPlayerEntity, VisorCrack)` (in place on the worn stack, synced by vanilla screen
     handler and equipment sync), `wornHelmet`/`wornVisor`. Client: `client/mixin/bear/RysTVisorHudMixin`
     (`InGameHud.render` HEAD → `RysTVisorOverlay`: the art overlay stretched full-screen plus rotated crack decals
-    scissored to the option-B window, `RysTVisorOverlayLayout.OPTION`; only the local wearer, visor down, own
-    first-person camera, not spectator, not Blind view or Seeker remote view; survives F1, under the HUD and the Holy
-    Flash) and `RysTHeadFeatureMixin` (HEAD cancel on a wearer whose body this viewer cannot see, D7; after the single
-    `HeldItemRenderer#renderItem`, `RysTWornCracks` draws 2.5-unit decals on the worn glass, following the plate when
-    raised). Crack `angle` is radians (frozen `VisorCrack`).
+    scissored to the option window, `RysTVisorOverlayLayout.OPTION` = `C1` (0.035, 0.270, 0.965, 0.750), the shipped
+    `visor_overlay.png`; `C2` (0.035, 0.330, 0.965, 0.690) is the heavier art alternative, swapped with its texture;
+    only the local wearer, visor down, own first-person camera, not spectator, not Blind view or Seeker remote view;
+    survives F1, under the HUD and the Holy Flash) and `RysTHeadFeatureMixin` (HEAD cancel on a wearer whose body
+    this viewer cannot see, D7; after the single `HeldItemRenderer#renderItem`, `RysTWornCracks` draws unrotated
+    1.75-unit decals on the crack plane z 1.45, kept wholly inside the glass, following the plate through
+    `applyRaisedPose` when raised). Crack `angle` is radians (frozen `VisorCrack`).
   - Shop (`BearShopRules`/`BearShopService`, USEC rebuild with SparkTraits entries preserved and the Charisma
     discount): Rys-T 100 (stock 1), earplugs 50 (stock 1), smoke round 75 (unlimited, tops up a shown stack). D9: the
     helmet lands on an empty head slot and the earplugs in an empty headset slot, else Wathe's default insertion; a
@@ -1610,8 +1614,9 @@ Current build baseline:
     session = same hotbar slot), `M32ReticleRules`/`M32ReticleOverlay` (art options 1/2, one constant `STYLE`, holdover
     re-solved per frame), `M32Hud` (6-chamber sheet `textures/gui/bear/m32_chambers.png`, USEC ammo-row placement),
     `M32FireInput` + `M32InputMixin`/`M32MacControlClickMixin` (the launcher's input scheme), `M32ArmPoseMixin`
-    (CROSSBOW_HOLD at priority 1600 like the launcher), `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6),
-    `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
+    (CROSSBOW_HOLD at priority 1600 like the launcher; the art's hold lives in `m32a1.json` display transforms, and the
+    support fist stays ≈0.7 block short of the vertical foregrip, which no vanilla `ArmPose` reaches),
+    `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6), `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
   - Headset slot (WP4, E1, design A; `headset/`): `HeadsetSlot` is a real slot that
     `mixin/bear/HeadsetPlayerScreenHandlerMixin` appends to every `PlayerScreenHandler` on both sides (handler index
     46, after vanilla 0..45), backed by `HeadsetInventory` (a live one-stack view of `HeadsetSlots`, not a

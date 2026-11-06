@@ -3,27 +3,30 @@ package dev.caecorthus.sparkwitch.client.bear.helmet;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.helmet.RysTVisorGeometry;
 
 /**
- * Pure layout of the visor-down overlay (art contract, {@code bear-full/art/README.md} section 5-6): the overlay texture
- * is stretched over the whole scaled window like vanilla's pumpkin blur, the glass window is a fixed rectangle in
- * normalised screen coordinates that depends on the art option ({@link Option}; the owner picks A, B or C, B is the
- * shipped recommendation), and each crack decal is a square of {@link #DECAL_SIZE} x the screen height centred at the
+ * Pure layout of the visor-down overlay (Astra art handoff 2026-11-06, "Overlay integration"): the overlay texture is
+ * stretched over the whole scaled window like vanilla's pumpkin blur, the glass window is a fixed rectangle in
+ * normalised screen coordinates (the nominal soft-edge boundary of the chosen art {@link Option} and the exact crack
+ * clipping rectangle), and each crack decal is a square of {@link #DECAL_SIZE} x the screen height centred at the
  * crack's (u, v) inside the window, rotated by its angle and clipped to the window. The crack atlas is 4 x 2 cells
- * (any resolution; UVs are taken in cell units). Switching the option is the {@link #OPTION} line plus the matching
- * {@code visor_overlay.png}.
- * 面罩放下遮罩的纯布局（美术契约，{@code bear-full/art/README.md} 第 5-6 节）：遮罩贴图像原版南瓜模糊一样拉伸铺满整个缩放窗口；
- * 玻璃视窗是归一化屏幕坐标中的固定矩形，取决于美术方案（{@link Option}；所有者在 A、B、C 中选择，随包为推荐的 B）；每个裂纹
- * 贴花是边长为屏幕高度 × {@link #DECAL_SIZE} 的正方形，以裂纹 (u, v) 在视窗内的位置为中心，按其角度旋转并裁剪到视窗内。裂纹图集
- * 为 4 × 2 格（任意分辨率；UV 以格为单位）。切换方案只需改 {@link #OPTION} 一行并换上对应的 {@code visor_overlay.png}。
+ * (any resolution; UVs are taken in cell units). The window numbers here are the single source of truth for the
+ * shipped texture: switching to {@link Option#C2} is the {@link #OPTION} line plus the art package's
+ * {@code visor_overlay_c2.png} copied over {@code visor_overlay.png}.
+ * 面罩放下遮罩的纯布局（Astra 美术交付 2026-11-06，“Overlay integration”）：遮罩贴图像原版南瓜模糊一样拉伸铺满整个缩放窗口；
+ * 玻璃视窗是归一化屏幕坐标中的固定矩形（所选美术方案 {@link Option} 柔和边缘的名义边界，也是裂纹裁剪的精确矩形）；每个裂纹贴花是
+ * 边长为屏幕高度 × {@link #DECAL_SIZE} 的正方形，以裂纹 (u, v) 在视窗内的位置为中心，按其角度旋转并裁剪到视窗内。裂纹图集为
+ * 4 × 2 格（任意分辨率；UV 以格为单位）。这里的视窗数值是随包贴图的唯一依据：切换到 {@link Option#C2} 只需改 {@link #OPTION}
+ * 一行，并用美术包的 {@code visor_overlay_c2.png} 覆盖 {@code visor_overlay.png}。
  */
 public final class RysTVisorOverlayLayout {
-    /** The art options' glass windows (x0, y0, x1, y1), normalised. / 各美术方案的玻璃视窗（归一化）。 */
+    /**
+     * The art options' glass windows (x0, y0, x1, y1), normalised; both keep option C's soft out-of-focus edge with
+     * more of the top and bottom covered. / 各美术方案的玻璃视窗（归一化）；两者都保留方案 C 的柔和失焦边缘，并遮住更多上下部分。
+     */
     public enum Option {
-        /** Thin titanium bevel frame, slight tint. / 细钛合金斜边框，轻微着色。 */
-        A(0.100F, 0.305F, 0.900F, 0.690F),
-        /** Heavy machined frame with screws (recommended). / 带螺丝的厚重机加工框（推荐）。 */
-        B(0.135F, 0.325F, 0.865F, 0.675F),
-        /** Soft out-of-focus edge vignette only. / 只有柔和的失焦边缘暗角。 */
-        C(0.035F, 0.160F, 0.965F, 0.845F);
+        /** Window 48% of the screen height (owner's "C but more covered", shipped). / 视窗高 48%（随包）。 */
+        C1(0.035F, 0.270F, 0.965F, 0.750F),
+        /** Heavier slit, window 36% of the screen height. / 更窄的观察缝，视窗高 36%。 */
+        C2(0.035F, 0.330F, 0.965F, 0.690F);
 
         final float x0;
         final float y0;
@@ -39,7 +42,7 @@ public final class RysTVisorOverlayLayout {
     }
 
     /** The shipped option (must match {@code textures/gui/bear/visor_overlay.png}). / 随包方案（须与贴图一致）。 */
-    public static final Option OPTION = Option.B;
+    public static final Option OPTION = Option.C1;
     /** Crack decal edge as a fraction of the screen height. / 裂纹贴花边长占屏幕高度的比例。 */
     public static final float DECAL_SIZE = 0.26F;
     public static final int ATLAS_COLUMNS = 4;
