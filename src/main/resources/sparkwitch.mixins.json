@@ -260,7 +260,9 @@
     "dominator.ServerPlayerEntityForcedShotScreenMixin",
     "dominator.DecoratedPotBlockForcedShotGunMixin",
     "dominator.GameFunctionsDominatorLetterMixin",
-    "accountant.DecoratedPotBlockAccountantPassbookMixin"
+    "accountant.DecoratedPotBlockAccountantPassbookMixin",
+    "bear.GameFunctionsBearItemDropMixin",
+    "bear.PlayerEntityBearItemMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -314,6 +314,11 @@ public final class SparkWitchEvents {
                 }
             }
         });
+        // Headset slot round edges (BEAR earplugs, Blind ComTac). / 耳机槽回合节点（BEAR 耳塞、盲人 ComTac）。
+        dev.caecorthus.sparkwitch.headset.HeadsetLifecycle.register();
+        // BEAR (civilian): its hub fixes the order of the BEAR services; registered before USEC, which stays last.
+        // BEAR（平民）：BEAR 各服务的顺序由其注册中心固定；注册在 USEC 之前，USEC 保持最后。
+        dev.caecorthus.sparkwitch.roles.civilian.bear.BearFeatureService.register();
         // USEC (police variant): appended last so every existing listener keeps its order; the hub fixes the order of
         // the USEC services. / USEC（警察变体）：追加在最后，使所有既有监听器保持顺序；USEC 各服务的顺序由注册中心固定。
         UsecFeatureService.register();

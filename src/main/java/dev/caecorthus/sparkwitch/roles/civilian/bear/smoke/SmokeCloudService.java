@@ -84,6 +84,16 @@ public final class SmokeCloudService {
         }
     }
 
+    /**
+     * Frozen contract (BEAR WP0), WP5 implements it: carves a temporary capsule-shaped tunnel of {@code radius} blocks
+     * along the segment {@code from} → {@code to} (a hitscan ray through the smoke) into every cloud it crosses. WP3
+     * calls it on every hitscan ray. WP0 stub: does nothing yet.
+     * 冻结契约（BEAR WP0），由 WP5 实现：沿线段 {@code from} → {@code to}（穿过烟雾的命中扫描射线）在其经过的每个烟团中开出半径
+     * {@code radius} 格的胶囊形临时通道。WP3 在每条命中扫描射线上调用。WP0 桩：暂不做任何事。
+     */
+    public static void carveTunnel(ServerWorld world, Vec3d from, Vec3d to, float radius) {
+    }
+
     /** Removes every cloud in the world and tells clients. / 清除该世界所有烟团并通知客户端。 */
     public static void clearAll(ServerWorld world) {
         SmokeCloudRegistry registry = WORLDS.remove(world);

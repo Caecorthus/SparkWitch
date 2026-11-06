@@ -32,6 +32,9 @@ The Ragpicker (`sparkwitch:ragpicker`, 拾荒者, contributed in PR #184) is an 
 through walls and takes one item from a corpse with the shared ability key (G).
 The Accountant (`sparkwitch:accountant`, 会计, contributed in PR #195) is an ordinary task civilian with no active skill
 that earns coins from tasks and over time and keeps them in a shop-bought passbook (存折).
+BEAR (`sparkwitch:bear`, 2026-11-05) is an ordinary civilian (never a police variant) with USEC's stamina and coins that
+fires smoke-only 40 mm rounds from an M32A1 launcher anyone may use, and buys a ricocheting Rys-T helmet and CENS
+earplugs worn in a fifth "headset" slot; every BEAR item is deleted when its holder dies.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -1476,6 +1479,60 @@ Current build baseline:
     body), Seeker-session and Rift-occupant lists, and off the Grand Witch Fear and Knight duel lists.
   - Open: no SparkAssist guidebook page; SparkStrength's Taotie daze list and SparkFactionAPI's opening safe-time list
     have no `accountant_withdraw` entry yet.
+- `roles/civilian/bear/`: BEAR (`sparkwitch:bear`, olive `0x6E7F3F`; owner spec 2026-11-05 with coordinator defaults
+  D1-D12). WP0 froze the contracts below; work packages add to them, never change them. Every number lives in
+  `BearRules`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, `UsecRules.MAX_SPRINT_TICKS`, no round
+    clock, no appearance condition) registered after 夏目安安, right before the Insider, and guessed in the civilian block
+    right after the Accountant. Drawn by Wathe's civilian pass; not in `PoliceRoles` or the police `VARIANT_IDS` pool,
+    not in `isRegisteredSparkWitchRole`, never in the `gui.sparkwitch.skills` panel; in the Black Raven DENYLIST (never
+    claimable, like USEC). `SparkWitchRoles` exposes `BEAR_ID` and `bear()`.
+  - Hubs (all registered right before USEC, which stays last): `BearFeatureService` in `SparkWitchEvents`
+    (`BearLifecycleService`, `BearEconomyService`, `BearShopService`, in that order), `bear.net.BearNetworking` in
+    `SparkWitchPackets` (payload types), `client/bear/BearClientModule` in `SparkWitchClient` (plus
+    `registerEntityRenderers()`); `headset.HeadsetLifecycle` sits before the BEAR hub in `SparkWitchEvents`. Only
+    `bear.*` mixins follow the Accountant's common mixin and the mood-flag client mixin.
+  - Frozen contracts: `BearRules` (ids, numbers, `isBear(Role|PlayerEntity|World,UUID)`, `isBearItemType`);
+    `BearItems` (`M32A1` `sparkwitch:m32a1` `launcher.M32A1Item`, `SMOKE_ROUND` `sparkwitch:smoke_round_40mm`
+    `launcher.SmokeRoundItem` (stack 6), `RYS_T` `sparkwitch:rys_t` `helmet.RysTHelmetItem`, `EARPLUGS`
+    `sparkwitch:cens_proflex_dx5` `headset.CensEarplugsItem`; registered on class init, forced by `BearItems.register()`
+    right after `SparkWitchItems`; `isBearItem(ItemStack)` by class); data components in `SparkWitchDataComponents`:
+    `sparkwitch:m32_cylinder` = `launcher.M32Cylinder(loadedMask, next)` (default on every launcher; the loaded
+    chambers are always one run from `next`, so `unload()` removing the last loaded chamber in rotation is exactly the
+    most recently loaded round, with no extra state) and `sparkwitch:rys_t_visor` = `helmet.RysTVisor(down, cracks)`
+    with `helmet.VisorCrack(u, v, angle, style)` (default visor down, at most `MAX_VISOR_CRACKS`, oldest dropped);
+    entity `sparkwitch:smoke_round_40mm` = `launcher.SmokeRoundEntity` (`launcher.BearEntities.SMOKE_ROUND`, a WP0 stub
+    that flies and discards; never saved) with a stub `FlyingItemEntityRenderer`; `hearing.BearHearingRules`
+    (`factor(helmet, earplugs)` = max(0, 1 - 0.75·helmet + 0.5·earplugs), `factorFor(PlayerEntity)` reads the head and
+    headset slots); the twelve `SparkWitchSounds.BEAR_*` events (`bear.m32.*`, `bear.smoke.burst`, `bear.rys_t.*`,
+    `bear.earplugs.insert`; ricochet = helmet A, visor hit = visor B, tinnitus = tinnitus B, the other nine silent
+    placeholders).
+  - Shared seams added by WP0: `headset/` (`HeadsetComponent`, CCA `sparkwitch:headset`, NEVER_COPY, one saved stack
+    synced to its owner, appended last; `HeadsetSlots` facade `get`/`set`/`accepts` (earplugs or ComTac VIII)/`wears`,
+    `HANDLER_SLOT_ID = 46`; no Slot or screen yet, WP4), `util/hitscan/RangedOriginScope` (per-thread origin deque
+    `call`/`run`/`current`, null or non-finite = unknown origin; WP3 pushes at the sources),
+    `SmokeCloudService.carveTunnel` (no-op until WP5), `SparkWitchApi.carveSmoke(ServerWorld, Vec3d, double)` and the
+    client facade `api.client.BearSmokeViewApi` (`opticalDepth`, `hasSmoke`; render thread).
+  - Economy (`BearEconomyService`, USEC model): balance 0 in its own `ON_FINISH_INITIALIZE` phase, +50 per task
+    (never for a SparkTraits Impostor, `SparkTraitsTaskIncomeBridge`), +5 every 200 world ticks with no cap, both through
+    `addToBalance`; `CanSeeMoney` ALLOW for a living BEAR. Stamina: the single USEC regen mixin boosts
+    `UsecStaminaRules.boostsRole` (USEC or BEAR).
+  - Shop (`BearShopRules`/`BearShopService`, USEC rebuild with SparkTraits entries preserved and the Charisma
+    discount): Rys-T 100 (stock 1), earplugs 50 (stock 1), smoke round 75 (unlimited, tops up a shown stack). D9: the
+    helmet lands on an empty head slot and the earplugs in an empty headset slot, else Wathe's default insertion; a
+    second helmet or pair of earplugs is refused (`shop.error.sparkwitch.bear_owned`) while one is owned.
+  - Items and death (`BearLoadoutService`/`BearLifecycleService`, the AXMC #199 model): an empty M32A1 once per
+    assignment (round start or a mid-round ACTIVE assignment); BEAR items follow Wathe's own item rules (no sweep, no
+    transfer guard, no role-change strip). Any holder's death (unless SparkTraits intercepts it) deletes every BEAR item
+    from inventory 0..40, the cursor, `playerScreenHandler` slots and the headset slot, never an open container;
+    `mixin/bear/GameFunctionsBearItemDropMixin` keeps them out of Wathe's death-drop loop and
+    `mixin/bear/PlayerEntityBearItemMixin` cancels a dead player's drop (cancel-only, so no `GiveCommandDropScope`
+    read). Wathe's reset
+    and a disconnect from a live round strip too. `SparkWitchItemCooldownNominals` lists the M32A1 (20 ticks).
+  - Smoke (`bear/smoke/`, `client/bear/smoke/`): the finished volumetric smoke spike; `SmokeCloudService`
+    (`spawn`, `carveHole`, `carveTunnel`, `clearAll`) is the only server entry and smoke never feeds a server rule.
+  - Open (later packages): launcher (WP1), helmet (WP2), ricochet and ranged instrumentation (WP3), headset slot and
+    hearing (WP4), smoke tunnels and the thermal mask (WP5), art, sounds and the cross-repo seams (WP6).
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation

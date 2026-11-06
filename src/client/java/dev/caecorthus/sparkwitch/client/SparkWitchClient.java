@@ -338,6 +338,9 @@ public final class SparkWitchClient implements ClientModInitializer {
             return null;
         });
         CanSeePoison.EVENT.register(WitchPoisonVisionClientHooks::canSeeHiddenPoison);
+        // BEAR client hub (work packages append there), before USEC, which stays last.
+        // BEAR 客户端注册中心（各工作包在其中追加），位于 USEC 之前，USEC 保持最后。
+        dev.caecorthus.sparkwitch.client.bear.BearClientModule.register();
         // USEC client hub, appended last: scope, HUD, attachment screen, impact cracks.
         // USEC 客户端注册中心，追加在最后：开镜、HUD、配件界面、命中裂痕。
         UsecClientModule.register();
@@ -367,6 +370,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         // The flying shell draws its 3D model by stack type. / 飞行中的炮弹按物品种类绘制 3D 模型。
         EntityRendererRegistry.register(PotionGunnerEntities.potionShell(), PotionShellEntityRenderer::new);
         SeekerClientModule.registerEntityRenderers();
+        // BEAR smoke round (WP0 stub renderer). / BEAR 烟雾榴弹（WP0 桩渲染器）。
+        dev.caecorthus.sparkwitch.client.bear.BearClientModule.registerEntityRenderers();
         EntityRendererRegistry.register(SparkWitchEntities.magicianPlayback(), MagicianPlaybackEntityRenderer::new);
         // Raven Form world content: Homing Feather marker and black feather particle. / 化鸦世界内容：归羽标记与黑羽粒子。
         BlackRavenCrowWorldClient.register();

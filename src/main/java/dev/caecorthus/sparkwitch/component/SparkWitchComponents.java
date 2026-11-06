@@ -207,6 +207,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
                         dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent::new);
+        // Headset slot storage (BEAR earplugs, Blind ComTac VIII): saved, synced to its owner only; appended last.
+        // 耳机槽存储（BEAR 耳塞、盲人 ComTac VIII）：随存档保存，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, dev.caecorthus.sparkwitch.headset.HeadsetComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.headset.HeadsetComponent::new);
     }
 
     @Override

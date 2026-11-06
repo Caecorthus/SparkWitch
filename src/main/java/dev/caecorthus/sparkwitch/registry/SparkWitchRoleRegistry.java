@@ -11,6 +11,7 @@ import dev.caecorthus.sparkwitch.SparkWitchFactions;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSettlementExclusionCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantRules;
 import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.BearRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
@@ -120,6 +121,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier ACCOUNTANT_ID = AccountantRules.ROLE_ID;
     public static final Identifier NATSUME_ID =
             dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID;
+    public static final Identifier BEAR_ID = BearRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -169,6 +171,7 @@ public final class SparkWitchRoleRegistry {
     private static Role dominator;
     private static Role accountant;
     private static Role natsumeAnan;
+    private static Role bear;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -469,6 +472,11 @@ public final class SparkWitchRoleRegistry {
     public static Role natsumeAnan() {
         ensureRegistered();
         return natsumeAnan;
+    }
+
+    public static Role bear() {
+        ensureRegistered();
+        return bear;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -951,6 +959,24 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
+        // BEAR (2026-11-05): registered after 夏目安安, right before the Insider (nothing may follow the Insider,
+        // InsiderRegistrationContractTest), so only the Insider's own index shifts. An ordinary task civilian with the
+        // USEC stamina cap (REAL mood, UsecRules.MAX_SPRINT_TICKS, no round clock, no appearance condition) drawn by
+        // Wathe's civilian pass; never a police variant (not in PoliceRoles or the police VARIANT_IDS pool), never a
+        // Witch-skill role (kept out of isRegisteredSparkWitchRole) and never in the gui.sparkwitch.skills panel. Its
+        // coins, shop, kit and smoke live in roles/civilian/bear.
+        // BEAR（2026-11-05）：注册在夏目安安之后、紧挨内应之前（内应之后不得再注册，InsiderRegistrationContractTest），因此
+        // 只有内应自身的下标改变。普通任务平民，体力上限与 USEC 相同（真实情绪、UsecRules.MAX_SPRINT_TICKS、不可见回合时间、
+        // 无出现条件），由 Wathe 平民分配抽取；不是警察变体（不在 PoliceRoles 与警察 VARIANT_IDS 池中），不是魔女技能职业
+        // （不加入 isRegisteredSparkWitchRole），也不进入 gui.sparkwitch.skills 面板。金币、商店、装备与烟雾位于
+        // roles/civilian/bear。
+        bear = SparkFactionApi.registerRole(FactionRoleDefinition.builder(BEAR_ID, FactionIds.CIVILIAN)
+                .color(BearRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(UsecRules.MAX_SPRINT_TICKS)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
         // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
@@ -1006,14 +1032,15 @@ public final class SparkWitchRoleRegistry {
                 // Tarot Reader stays adjacent. 拾荒者同样加入平民段，排在调香师之前，使调香师至塔罗师一段保持相邻。
                 ragpicker,
                 perfumer,
-                // The Recruit, the Athlete, the Discoverer, Noa and then the Accountant (PR #195) join the civilian
-                // block; the promotion identities stay the tail.
-                // 新兵、运动员、探索者、诺亚与其后的会计（PR #195）加入平民段；晋升身份始终位于末尾。
+                // The Recruit, the Athlete, the Discoverer, Noa, the Accountant (PR #195) and then BEAR (2026-11-05)
+                // join the civilian block; the promotion identities stay the tail.
+                // 新兵、运动员、探索者、诺亚、会计（PR #195）与其后的 BEAR（2026-11-05）加入平民段；晋升身份始终位于末尾。
                 recruit,
                 athlete,
                 discoverer,
                 noa,
                 accountant,
+                bear,
                 pigGod,
                 tarotReader,
                 fisher,

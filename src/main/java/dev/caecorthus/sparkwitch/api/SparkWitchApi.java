@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.api;
 
+import dev.caecorthus.sparkwitch.roles.civilian.bear.smoke.SmokeCloudService;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
@@ -281,6 +282,22 @@ public final class SparkWitchApi {
     public static @Nullable String piercingShotAmmoId(PlayerEntity victim, PlayerEntity killer, Identifier deathReason) {
         UsecAmmoType ammo = UsecShieldPierce.scopedAmmo(victim, killer, deathReason);
         return ammo == null ? null : ammo.id();
+    }
+
+    /**
+     * Frozen cross-mod seam (BEAR WP0, 2026-11-05), server thread only: an add-on explosion (today SparkStrength's M67
+     * and Bomber drone) punches a temporary hole of {@code radius} blocks into every BEAR smoke cloud near
+     * {@code center}, exactly like SparkWitch's own blasts. Purely visual: smoke never affects a server rule. Does
+     * nothing for nulls, a non-finite centre, a radius that is not positive and finite, or when no smoke is near.
+     * 冻结的跨模组接缝（BEAR WP0，2026-11-05），仅服务端线程：附属模组的爆炸（目前为 SparkStrength 的 M67 与炸弹客无人机）
+     * 在 {@code center} 附近的每团 BEAR 烟雾中炸开半径 {@code radius} 格的临时空洞，与 SparkWitch 自身的爆炸完全一致。纯视觉：
+     * 烟雾从不影响任何服务端规则。参数为 null、中心非有限、半径不是正有限值或附近没有烟时不做任何事。
+     */
+    public static void carveSmoke(ServerWorld world, Vec3d center, double radius) {
+        if (world == null || center == null || !Double.isFinite(radius) || !(radius > 0.0)) {
+            return;
+        }
+        SmokeCloudService.carveHole(world, center, (float) radius);
     }
 
     public static boolean isWraithActive(PlayerEntity player) {

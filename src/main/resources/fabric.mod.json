@@ -80,7 +80,8 @@
       "sparkwitch:ragpicker_loot",
       "sparkwitch:dominator",
       "sparkwitch:dominator_forced_shot",
-      "sparkwitch:natsume_anan_player"
+      "sparkwitch:natsume_anan_player",
+      "sparkwitch:headset"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",
