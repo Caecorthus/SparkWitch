@@ -10,7 +10,6 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
 import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
@@ -21,11 +20,12 @@ import net.minecraft.util.math.Vec3d;
  * ({@code models/item/projectile/smoke_round_40mm.json}, the {@link ProjectileModels} contract: nose -Z, pivot
  * (8, 8, 8)) instead of a camera-facing sprite, nose along the client-predicted velocity, spinning slowly about its own
  * axis (a 40 mm round is spin-stabilised) and still once it lies at rest. Like vanilla {@code FlyingItemEntityRenderer}
- * it is hidden for its first two ticks near the camera entity, so it never flashes across the shooter's screen.
+ * it is hidden for its first two ticks near the camera ({@link #hiddenAtLaunch}), so it never flashes across the
+ * shooter's screen while everyone else still sees it leave the muzzle.
  * 仅客户端、仅展示：把飞行中的 40 mm 烟雾榴弹绘制为独立 3D 模型（{@code models/item/projectile/smoke_round_40mm.json}，遵循
  * {@link ProjectileModels} 约定：头部 -Z、枢轴 (8, 8, 8)），取代面向镜头的贴图；弹头沿客户端预测的速度方向，绕自身轴缓慢自旋
- * （40 mm 榴弹靠旋转稳定），静止后不再转动。与原版 {@code FlyingItemEntityRenderer} 一样，在镜头实体附近的前两刻不绘制，避免闪过
- * 射手屏幕。
+ * （40 mm 榴弹靠旋转稳定），静止后不再转动。与原版 {@code FlyingItemEntityRenderer} 一样，在镜头附近的前两刻不绘制
+ * （{@link #hiddenAtLaunch}），避免闪过射手屏幕，其他人仍能看到它离开炮口。
  */
 public final class SmokeRoundEntityRenderer extends EntityRenderer<SmokeRoundEntity> {
     public static final Identifier MODEL_ID = SparkWitch.id("item/projectile/smoke_round_40mm");
@@ -50,9 +50,7 @@ public final class SmokeRoundEntityRenderer extends EntityRenderer<SmokeRoundEnt
     @Override
     public void render(SmokeRoundEntity round, float yaw, float tickDelta, MatrixStack matrices,
                        VertexConsumerProvider vertexConsumers, int light) {
-        Entity focused = dispatcher.camera.getFocusedEntity();
-        double focusedDistanceSquared = focused == null ? Double.POSITIVE_INFINITY : focused.squaredDistanceTo(round);
-        if (PotionShellModelPose.hiddenAtLaunch(round.age, focusedDistanceSquared)) {
+        if (hiddenAtLaunch(round.age, dispatcher.camera.getPos(), round.getLerpedPos(tickDelta))) {
             return;
         }
         matrices.push();
@@ -72,6 +70,20 @@ public final class SmokeRoundEntityRenderer extends EntityRenderer<SmokeRoundEnt
                 light);
         matrices.pop();
         super.render(round, yaw, tickDelta, matrices, vertexConsumers, light);
+    }
+
+    /**
+     * Vanilla's launch hide ({@code age < 2} within 3.5 blocks, {@link PotionShellModelPose#hiddenAtLaunch}), measured
+     * from the camera to where the round is drawn this frame, like the Ninja hook head. Vanilla measures the focused
+     * entity's feet to the tick position, which a 3.8 b/t round leaves on its first client tick while the interpolated
+     * model still sits in front of the shooter's eye (one frame of a screen-filling round). Other viewers are far from
+     * it, so they still see it leave the muzzle.
+     * 原版出膛隐藏（{@code age < 2} 且在 3.5 格内，{@link PotionShellModelPose#hiddenAtLaunch}），但与忍者钩头一样，按镜头
+     * 到本帧绘制位置（插值后）的距离计算。原版用聚焦实体脚下到本刻位置的距离；3.8 格/刻的榴弹在客户端第一刻就已越出该
+     * 范围，而插值后的模型仍停在射手眼前（一帧铺满屏幕的榴弹）。其他观察者离它很远，仍能看到它离开炮口。
+     */
+    static boolean hiddenAtLaunch(int age, Vec3d cameraPos, Vec3d renderPos) {
+        return PotionShellModelPose.hiddenAtLaunch(age, cameraPos.squaredDistanceTo(renderPos));
     }
 
     /** Right-hand spin, wrapped to (-360, 0]. / 右旋自旋，限制在 (-360, 0]。 */

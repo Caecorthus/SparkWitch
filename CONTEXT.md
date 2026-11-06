@@ -1538,7 +1538,7 @@ Current build baseline:
     scissored to the option window, `RysTVisorOverlayLayout.OPTION` = `C1` (0.035, 0.270, 0.965, 0.750), the shipped
     `visor_overlay.png`; `C2` (0.035, 0.330, 0.965, 0.690) is the heavier art alternative, swapped with its texture;
     only the local wearer, visor down, own first-person camera, not spectator, not Blind view or Seeker remote view;
-    survives F1, under the HUD and the Holy Flash) and `RysTHeadFeatureMixin` (HEAD cancel on a wearer whose body
+    survives F1, over the ricochet double vision, under the HUD and the Holy Flash) and `RysTHeadFeatureMixin` (HEAD cancel on a wearer whose body
     this viewer cannot see, D7; after the single `HeldItemRenderer#renderItem`, `RysTWornCracks` draws unrotated
     1.75-unit decals on the crack plane z 1.45, kept wholly inside the glass, following the plate through
     `applyRaisedPose` when raised). Crack `angle` is radians (frozen `VisorCrack`).
@@ -1578,8 +1578,9 @@ Current build baseline:
     `sparkwitch:bear_rys_t_ricochet` (`RysTRicochetS2CPayload`: unit direction toward the origin or zero, glass flag)
     to the wearer only, which runs `RysTDazeClient`: a camera-only jolt away from the shot
     (`client/mixin/bear/RicochetDazeCameraMixin`, `tiltViewWhenHurt` RETURN) and a fading double-vision ghost of the
-    frame under the HUD (`RicochetDazeHudMixin`, `InGameHud.render` HEAD priority 1100, `RysTDazeGhostRenderer`,
-    disables itself on any GL error), both scaled by vanilla Distortion Effects, no flash; listener-relative tinnitus
+    world frame only (`RicochetDazeHudMixin`, `InGameHud.render` HEAD priority 900, before the default-1000
+    `RysTVisorHudMixin`, so the visor frame and cracks stay crisp over it, all under the HUD and the TAIL Holy Flash;
+    `RysTDazeGhostRenderer`, disables itself on any GL error), both scaled by vanilla Distortion Effects, no flash; listener-relative tinnitus
     and `BearHearingClient.muffle(MUFFLE_TICKS, MUFFLE_VOLUME)`.
   - Smoke carving at ranged sources (WP3, `RangedSmokeCarve`; visual only): `carveTunnel(…, 0.35)` on the revolver
     family (`GunShootPayloadSmokeCarveMixin` at the receiver's `recordItemUse`: eye to the entry on the target's
@@ -1612,11 +1613,14 @@ Current build baseline:
     unburst once the round leaves ACTIVE. Client: `M32ScopeProfile` (1x M2A1 reflex: `ScopeProfile.drawsLens() == false`
     keeps the scope module from drawing a lens, PiP, rim or periphery), `M32RangeDial` (wheel, 25 m steps, per holding
     session = same hotbar slot), `M32ReticleRules`/`M32ReticleOverlay` (art options 1/2, one constant `STYLE`, holdover
-    re-solved per frame), `M32Hud` (6-chamber sheet `textures/gui/bear/m32_chambers.png`, USEC ammo-row placement),
+    re-solved per frame), `M32Hud` (6-chamber sheet `textures/gui/bear/m32_chambers.png`, USEC ammo-row placement,
+    count + dial texts with shadow on one translucent dark plate `M32HudRules.plate`/`PLATE_COLOR`),
     `M32FireInput` + `M32InputMixin`/`M32MacControlClickMixin` (the launcher's input scheme), `M32ArmPoseMixin`
     (CROSSBOW_HOLD at priority 1600 like the launcher; the art's hold lives in `m32a1.json` display transforms, and the
     support fist stays ≈0.7 block short of the vertical foregrip, which no vanilla `ArmPose` reaches),
-    `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6), `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
+    `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6; launch hide = vanilla's age < 2 within 3.5 blocks, but
+    measured camera to the interpolated round like the Ninja hook head, since a 3.8 b/t round leaves vanilla's
+    feet-to-tick-position sphere on its first tick), `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
   - Headset slot (WP4, E1, design A; `headset/`): `HeadsetSlot` is a real slot that
     `mixin/bear/HeadsetPlayerScreenHandlerMixin` appends to every `PlayerScreenHandler` on both sides (handler index
     46, after vanilla 0..45), backed by `HeadsetInventory` (a live one-stack view of `HeadsetSlots`, not a

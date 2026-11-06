@@ -20,6 +20,9 @@ import org.jetbrains.annotations.Nullable;
  *   moves exactly like the USEC ammo row ({@code UsecAmmoHudRules}): one text row up while the shared corner line is
  *   drawn, and above the hotbar and Wathe's stamina row when it is wide enough to reach the hotbar column. The
  *   cooldown bar copies USEC's, 2 px under the count.</li>
+ *   <li>Plate: the two texts (and the bar) sit on one translucent dark rounded plate ({@link #plate}), so the light
+ *   count and the olive dial keep their contrast over bright ground, vanilla or under a shader pack; the texts keep
+ *   their vanilla drop shadow on top.</li>
  * </ul>
  * M32A1 HUD 行（{@link M32Hud}）的纯规则，依据 BEAR 美术包（README 第 8 节）：何时显示、精灵图、每个弹膛的绘制位置、加圈与
  * 变暗规则，以及右下角的行布局。文本为固定 ASCII（"4/6"、"100 m"），预先生成，每帧不分配内存。布局数值为 GUI 像素。转轮：第
@@ -28,7 +31,8 @@ import org.jetbrains.annotations.Nullable;
  * 装填时给 0 号槽位加圈。行：{@code "<n>/6"}、4 像素、{@code "<刻度> m"}、5 像素、25 x 29 图标（顶部为指针行）；右对齐于
  * {@code scaledWidth - 6}，图标底边距底部 7 像素，文字底边再高 3 像素。其移动规则与 USEC 弹药行（{@code UsecAmmoHudRules}）
  * 完全相同：共享角落行显示时上移一行文字高度；行宽伸入快捷栏列时抬升到快捷栏与 Wathe 体力行之上。冷却进度条照搬 USEC，
- * 位于弹数下方 2 像素。
+ * 位于弹数下方 2 像素。底板：两段文字（及进度条）共用一块半透明深色圆角底板（{@link #plate}），使浅色弹数与橄榄色
+ * 刻度在明亮地面上（原版或光影包下）仍保持对比度；文字其上仍保留原版投影。
  */
 public final class M32HudRules {
     /** The one texture id of the sprite sheet (64 x 32). / 精灵图的唯一贴图 id（64 x 32）。 */
@@ -64,6 +68,18 @@ public final class M32HudRules {
     public static final int ICON_GAP = 5;
     /** Texts' bottom above the icon's bottom. / 文字底边高于图标底边的像素。 */
     public static final int TEXT_LIFT = 3;
+    /**
+     * The text plate: a 63 % near-black with a faint BEAR olive cast (the Grand Witch sword's pip plate, lighter).
+     * Padding is 2 px of air around the glyphs (the right side's last advance column already holds the shadow) and
+     * room for the cooldown bar, so the plate never changes size when the bar appears.
+     * 文字底板：63% 不透明的近黑色，略带 BEAR 橄榄色调（大魔女仪礼剑点阵底板的浅一档）。字形四周留 2 像素空隙（右侧
+     * 最后一个字宽列已含投影），并为冷却进度条预留位置，因此进度条出现时底板尺寸不变。
+     */
+    public static final int PLATE_COLOR = 0xA00C1008;
+    public static final int PLATE_PAD_LEFT = 2;
+    public static final int PLATE_PAD_RIGHT = 1;
+    public static final int PLATE_PAD_TOP = 2;
+    public static final int PLATE_PAD_BOTTOM = 1;
 
     // Placement, the same numbers as UsecAmmoHudRules (pinned by a test). / 布局数值与 UsecAmmoHudRules 相同（由测试固定）。
     public static final int RIGHT_PADDING = 6;
@@ -201,6 +217,20 @@ public final class M32HudRules {
         return rowBottom - ICON_HEIGHT;
     }
 
+    /**
+     * The plate behind the texts that start at {@code textLeft}/{@code textY} and end (exclusive, the advance width)
+     * at {@code textRight}: it covers the glyphs, their shadow and the bar slot under the count; never left of 0.
+     * 位于文字之后的底板：文字从 {@code textLeft}/{@code textY} 开始，到 {@code textRight}（不含，按字宽计）结束；
+     * 覆盖字形、投影与弹数下方的进度条位置；左边不小于 0。
+     */
+    public static Plate plate(int textLeft, int textY, int textRight, int fontHeight) {
+        int left = Math.max(0, textLeft - PLATE_PAD_LEFT);
+        int right = Math.max(left, textRight + PLATE_PAD_RIGHT);
+        int top = textY - PLATE_PAD_TOP;
+        int bottom = textY + fontHeight + BAR_HEIGHT + PLATE_PAD_BOTTOM;
+        return new Plate(left, top, right - left, bottom - top);
+    }
+
     /** The bar shows while the launcher's item cooldown runs. / 发射器物品冷却期间显示进度条。 */
     public static boolean showsBar(boolean coolingDown) {
         return coolingDown;
@@ -221,5 +251,9 @@ public final class M32HudRules {
 
     /** A sprite rect on the sheet. / 精灵图上的矩形。 */
     public record Sprite(int u, int v, int width, int height) {
+    }
+
+    /** A GUI rect (top-left, size). / GUI 矩形（左上角与尺寸）。 */
+    public record Plate(int x, int y, int width, int height) {
     }
 }

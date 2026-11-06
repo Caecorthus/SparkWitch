@@ -20,17 +20,18 @@ import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL30;
 
 /**
- * Client only: the D5 double vision, drawn from {@code RicochetDazeHudMixin} at {@code InGameHud.render} HEAD, i.e.
- * after the world, the hand and every default-priority HUD-HEAD overlay (the Rys-T visor) but before any HUD layer. The
- * finished frame is blitted into a private copy, then drawn back over the main target twice (shifted along the
- * {@link RysTDazeCurve.Kick} ghost direction and half as far the other way) with fading alpha. Idle frames return
- * before touching GL; the copy is freed when the daze ends or on disconnect. Every GL value touched is read back first
- * and restored; any exception (an Iris pipeline, a failed framebuffer) disables the ghost for the rest of the game,
- * the jolt keeps working.
- * 仅客户端：D5 重影，由 {@code RicochetDazeHudMixin} 在 {@code InGameHud.render} HEAD 绘制，即世界、手部及所有默认优先级的
- * HUD HEAD 叠加层（Rys-T 面罩）之后、任何 HUD 层之前。把已完成的画面 blit 到私有副本，再以渐隐透明度两次画回主目标（沿
- * {@link RysTDazeCurve.Kick} 的重影方向偏移，另一次反向偏移一半）。空闲帧在触及 GL 之前返回；眩晕结束或断线时释放副本。
- * 改动的每个 GL 值都先读回再恢复；任何异常（Iris 管线、帧缓冲创建失败）都会在本次游戏余下时间里禁用重影，震动照常。
+ * Client only: the D5 double vision, drawn from {@code RicochetDazeHudMixin} at {@code InGameHud.render} HEAD
+ * priority 900, i.e. after the world and the hand but before the default-priority HUD-HEAD overlays (the Rys-T visor,
+ * which stays crisp on top) and every HUD layer. The finished frame is blitted into a private copy, then drawn back
+ * over the main target twice (shifted along the {@link RysTDazeCurve.Kick} ghost direction and half as far the other
+ * way) with fading alpha. Idle frames return before touching GL; the copy is freed when the daze ends or on
+ * disconnect. Every GL value touched is read back first and restored; any exception (an Iris pipeline, a failed
+ * framebuffer) disables the ghost for the rest of the game, the jolt keeps working.
+ * 仅客户端：D5 重影，由 {@code RicochetDazeHudMixin} 在 {@code InGameHud.render} HEAD 以优先级 900 绘制，即世界与手部
+ * 之后、默认优先级的 HUD HEAD 叠加层（Rys-T 面罩，清晰地位于其上）及任何 HUD 层之前。把已完成的画面 blit 到私有副本，
+ * 再以渐隐透明度两次画回主目标（沿 {@link RysTDazeCurve.Kick} 的重影方向偏移，另一次反向偏移一半）。空闲帧在触及 GL 之前
+ * 返回；眩晕结束或断线时释放副本。改动的每个 GL 值都先读回再恢复；任何异常（Iris 管线、帧缓冲创建失败）都会在本次游戏余下
+ * 时间里禁用重影，震动照常。
  */
 public final class RysTDazeGhostRenderer {
     /** The mirrored second ghost: offset and opacity relative to the first. / 反向的第二道重影：相对第一道的偏移与不透明度。 */
@@ -63,7 +64,8 @@ public final class RysTDazeGhostRenderer {
         if (pose.ghostAlpha() < MIN_ALPHA || shiftPixels < MIN_SHIFT_PIXELS || width <= 0 || height <= 0) {
             return;
         }
-        // Flush overlays batched before us (the visor) so the copy holds them. / 先冲刷之前批量提交的叠加层（面罩），使副本包含它们。
+        // Flush anything still batched so the copy holds the finished world frame.
+        // 先冲刷仍在批量中的绘制，使副本包含完整的世界画面。
         context.draw();
         GhostGlState saved = GhostGlState.save();
         try {
