@@ -222,7 +222,10 @@
     "bear.SmokeOutlineDepthMixin",
     "bear.SmokeRoleNameRaycastMixin",
     "bear.SmokeIrisFinalPassMixin",
-    "bear.SmokeOutlineVetoMixin"
+    "bear.SmokeOutlineVetoMixin",
+    "bear.M32InputMixin",
+    "bear.M32MacControlClickMixin",
+    "bear.M32ArmPoseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

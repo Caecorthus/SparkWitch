@@ -97,7 +97,9 @@ public final class ScopeRuntime {
         boolean worldRendered = ScopePictureInPicture.consumeWorldRendered();
         MinecraftClient client = MinecraftClient.getInstance();
         ScopeProfile profile = ScopeClient.activeProfile();
-        if (profile == null) {
+        // A lensless (reflex) profile has no lens to render: both pipelines idle as if unscoped.
+        // 无镜片（反射式）配置没有镜片可渲染：两条管线都像未开镜一样空闲。
+        if (profile == null || !profile.drawsLens()) {
             if (scopedSinceNanos != NOT_SCOPED) {
                 scopedSinceNanos = NOT_SCOPED;
                 SHADOW.reset();

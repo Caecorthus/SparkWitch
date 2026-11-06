@@ -64,4 +64,20 @@ public interface ScopeProfile {
     default float peripheryBlur() {
         return 1.0F;
     }
+
+    /**
+     * Whether the module draws a lens for this profile; true (the default) for a magnified optic. False means a reflex
+     * (red-dot) sight such as the M32A1's M2A1: the module draws no lens picture, runs no PiP pass, draws no tube rim,
+     * fallback ring or rim ring, and darkens no periphery. It still applies {@link #fovMultiplier} (Full-Screen Zoom
+     * only: PiP keeps the main view at 1x, so a lensless profile should stay at 1x) and the look scale, hides the hand,
+     * replaces the crosshair and calls {@link #drawReticle} (with the real projection FOV, no scope shadow and
+     * {@link ScopeMode#ZOOM_BLUR} as the frame's mode).
+     * 模块是否为本配置绘制镜片；放大光学瞄具为 true（默认）。false 表示反射式（红点）瞄具，例如 M32A1 的 M2A1：模块不绘制
+     * 镜内画面、不运行画中画渲染、不画镜筒边、回退环与镜框环，也不压暗镜外。仍会应用 {@link #fovMultiplier}（仅全画面放大：
+     * 画中画下主画面保持 1 倍，因此无镜片配置应保持 1 倍）与视角缩放、隐藏手、替换准星并调用 {@link #drawReticle}（传入真实
+     * 投影视场角、无镜内阴影，帧模式为 {@link ScopeMode#ZOOM_BLUR}）。
+     */
+    default boolean drawsLens() {
+        return true;
+    }
 }
