@@ -746,6 +746,8 @@
   "replay.skill.sparkwitch.savior.domain": "%s 展开了§b救世主领域§r",
   "replay.death.sparkwitch.savior_pistol_kill.killed": "%s 被 %s 用§e枪§r击杀",
   "replay.death.sparkwitch.savior_pistol_kill.died": "%s 被§e枪§r击杀",
+  "replay.death.sparkwitch.lightsaber_kill.killed": "%s 被 %s 的§b光剑§r刺穿",
+  "replay.death.sparkwitch.lightsaber_kill.died": "%s 被§b光剑§r刺穿",
   "death_reason.sparkwitch.savior_pistol_kill": "枪击",
   "death_reason.sparkwitch.lightsaber_kill": "被光剑刺穿",
   "announcement.goal.knight": "尊敬的骑士，您的决斗许可已生效，愿您的剑只为正义出鞘。",

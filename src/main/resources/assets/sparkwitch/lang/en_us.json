@@ -746,6 +746,8 @@
   "replay.skill.sparkwitch.savior.domain": "%s expanded the §bSavior's Domain§r",
   "replay.death.sparkwitch.savior_pistol_kill.killed": "%s was shot by %s with a §egun§r",
   "replay.death.sparkwitch.savior_pistol_kill.died": "%s was shot with a §egun§r",
+  "replay.death.sparkwitch.lightsaber_kill.killed": "%s was pierced by %s's §bLightsaber§r",
+  "replay.death.sparkwitch.lightsaber_kill.died": "%s was pierced by a §bLightsaber§r",
   "death_reason.sparkwitch.savior_pistol_kill": "Gunshot",
   "death_reason.sparkwitch.lightsaber_kill": "Pierced by Lightsaber",
   "announcement.goal.knight": "Esteemed Knight, your duelling licence is now in effect; may your blade leave its sheath only for justice.",
