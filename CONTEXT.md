@@ -1517,6 +1517,26 @@ Current build baseline:
     (never for a SparkTraits Impostor, `SparkTraitsTaskIncomeBridge`), +5 every 200 world ticks with no cap, both through
     `addToBalance`; `CanSeeMoney` ALLOW for a living BEAR. Stamina: the single USEC regen mixin boosts
     `UsecStaminaRules.boostsRole` (USEC or BEAR).
+  - Helmet (WP2, `bear/helmet/`, `client/bear/helmet/`): `RysTHelmetItem` is a head-slot vanilla `Equipment` (not an
+    `ArmorItem`: no armor points; iron equip sound), so only the head armor slot takes it, right-click in hand and
+    shift-click equip it, and vanilla `HeadFeatureRenderer` draws the art model (`display.head` scale 1.6; head box
+    [4,12]^3, +x the wearer's right) for everyone; predicate `sparkwitch:visor_up` (`RysTModelPredicates`, 1 = raised)
+    picks `item/rys_t_visor_up`, and `RysTModels` swaps in the 2-D icons for GUI/ground/frame (AXMC pattern). Visor
+    toggle (H9, only way): `RysTVisorToggle` from `onClicked`, an empty-cursor right-click on the helmet in the player's
+    own head slot (inventory index 39) in any screen; both sides claim, the server writes in place and plays
+    `bear.rys_t.visor_up/down` publicly, the creative screen's client writes and plays it locally (USEC writer rule,
+    probe from `RysTHelmetClient`); Wathe's armor block exempts that press from its `mayPickUp` gate
+    (`RysTVisorClicks`, one hunk in `LimitedInventoryArmorSlotsMixin`). WP3 seams: `RysTVisorGeometry.glassPoint` /
+    `nearestGlassPoint(incomingDir, headYaw, pitch)` (shot aimed through the eye onto the visor-down glass x 4..12,
+    y 6..9, face z 1.5; null off the glass / from the side or behind), `crackAt(point, Random)`,
+    `RysTHelmetItem.addCrack(ServerPlayerEntity, VisorCrack)` (in place on the worn stack, synced by vanilla screen
+    handler and equipment sync), `wornHelmet`/`wornVisor`. Client: `client/mixin/bear/RysTVisorHudMixin`
+    (`InGameHud.render` HEAD → `RysTVisorOverlay`: the art overlay stretched full-screen plus rotated crack decals
+    scissored to the option-B window, `RysTVisorOverlayLayout.OPTION`; only the local wearer, visor down, own
+    first-person camera, not spectator, not Blind view or Seeker remote view; survives F1, under the HUD and the Holy
+    Flash) and `RysTHeadFeatureMixin` (HEAD cancel on a wearer whose body this viewer cannot see, D7; after the single
+    `HeldItemRenderer#renderItem`, `RysTWornCracks` draws 2.5-unit decals on the worn glass, following the plate when
+    raised). Crack `angle` is radians (frozen `VisorCrack`).
   - Shop (`BearShopRules`/`BearShopService`, USEC rebuild with SparkTraits entries preserved and the Charisma
     discount): Rys-T 100 (stock 1), earplugs 50 (stock 1), smoke round 75 (unlimited, tops up a shown stack). D9: the
     helmet lands on an empty head slot and the earplugs in an empty headset slot, else Wathe's default insertion; a
