@@ -99,6 +99,10 @@ final class SmokeGlProgram {
         GL20.glUniform3fv(location(name), values);
     }
 
+    void setVec4Array(String name, float[] values) {
+        GL20.glUniform4fv(location(name), values);
+    }
+
     void setMatrix(String name, Matrix4f matrix) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             FloatBuffer buffer = stack.mallocFloat(16);

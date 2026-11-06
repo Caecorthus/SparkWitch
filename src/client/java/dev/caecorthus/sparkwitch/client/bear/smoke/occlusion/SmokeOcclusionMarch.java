@@ -47,7 +47,8 @@ public final class SmokeOcclusionMarch {
      * Sampled volumes and sealed boxes in view plus the pass-pixel rectangle they can touch.
      * 视野内的采样浓度体与封口盒，以及它们可能触及的像素矩形。
      */
-    record Coverage(List<Picked> volumes, List<Picked> sealed, int[] pixelRect, Matrix4f viewProjection) {
+    record Coverage(List<Picked> volumes, List<Picked> sealed, int[] pixelRect, Matrix4f viewProjection,
+                    double eyeX, double eyeY, double eyeZ) {
     }
 
     private static SmokeGlProgram program;
@@ -61,6 +62,9 @@ public final class SmokeOcclusionMarch {
     private static long useCounter;
 
     private static boolean ready;
+    /** What the ready texture was marched for: its coverage and whether every smoke texel was marched. / 已就绪纹理的来源。 */
+    private static Coverage marchedCoverage;
+    private static boolean marchedWhole;
     private static int[] failedRect;
     private static int[] pixelRect;
     private static final Matrix4f INVERSE_VIEW_PROJECTION = new Matrix4f();
@@ -147,13 +151,14 @@ public final class SmokeOcclusionMarch {
         if (rect == null || rect[2] <= rect[0] || rect[3] <= rect[1]) {
             return null;
         }
-        return new Coverage(inView, sealed, rect, viewProjection);
+        return new Coverage(inView, sealed, rect, viewProjection, eye.x, eye.y, eye.z);
     }
 
     /** Body of {@link SmokeOcclusion#prepare}. / {@link SmokeOcclusion#prepare} 的实现。 */
     public static boolean prepare(Camera camera, Matrix4f positionMatrix, Matrix4f projection, int width, int height) {
         RenderSystem.assertOnRenderThread();
         ready = false;
+        marchedCoverage = null;
         failedRect = null;
         Coverage coverage = coverage(camera, positionMatrix, projection, width, height);
         if (coverage == null) {
@@ -174,6 +179,7 @@ public final class SmokeOcclusionMarch {
     static boolean prepare(Coverage coverage, int width, int height, List<int[]> regions) {
         RenderSystem.assertOnRenderThread();
         ready = false;
+        marchedCoverage = null;
         failedRect = null;
         if (broken) {
             failedRect = coverage.pixelRect();
@@ -192,8 +198,23 @@ public final class SmokeOcclusionMarch {
         passWidth = width;
         passHeight = height;
         coverage.viewProjection().invert(INVERSE_VIEW_PROJECTION);
+        marchedCoverage = coverage;
+        marchedWhole = regions == null;
         ready = true;
         return true;
+    }
+
+    /**
+     * As {@link #prepare(Coverage, int, int, List)} with no regions (the whole smoke rectangle), reusing the ready
+     * texture when it already holds exactly that for this coverage and pass size (the heat mask after its haze, or an
+     * unbounded outline pass). / 同无区域的 {@link #prepare(Coverage, int, int, List)}（整个烟雾矩形）；若已就绪纹理正是
+     * 该覆盖与渲染尺寸下的完整结果（热成像遮罩之后的热雾，或无界的描边渲染）则直接复用。
+     */
+    static boolean prepareWhole(Coverage coverage, int width, int height) {
+        if (ready && marchedWhole && marchedCoverage == coverage && passWidth == width && passHeight == height) {
+            return true;
+        }
+        return prepare(coverage, width, height, null);
     }
 
     private static void march(Coverage coverage, List<int[]> regions, int width, int height) {
@@ -257,6 +278,14 @@ public final class SmokeOcclusionMarch {
             program.setVec3Array("SealedMax", sealedMax);
             program.setFloatArray("Checkpoints", CHECKPOINTS);
             program.setFloat("Never", SmokeOcclusion.NEVER);
+            // The same tunnels as the visible march, so an outline shows exactly where the smoke opens.
+            // 与可见步进相同的通道，使描边恰好在烟被打开处透出。
+            float[] tunnelStart = new float[4 * SmokeVolumes.MAX_RENDER_TUNNELS];
+            float[] tunnelAxis = new float[3 * SmokeVolumes.MAX_RENDER_TUNNELS];
+            program.setInt("TunnelCount", SmokeVolumes.packTunnels(coverage.eyeX(), coverage.eyeY(), coverage.eyeZ(),
+                    tunnelStart, tunnelAxis));
+            program.setVec4Array("TunnelStart", tunnelStart);
+            program.setVec3Array("TunnelAxis", tunnelAxis);
             if (regions == null) {
                 SmokeGlState.scissor(SmokeOcclusionMath.toMarchRect(coverage.pixelRect(), marchWidth, marchHeight));
                 SmokeGlProgram.drawFullscreenTriangle();

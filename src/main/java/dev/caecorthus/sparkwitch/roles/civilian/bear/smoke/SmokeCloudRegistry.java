@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.bear.smoke;
 
+import dev.caecorthus.sparkwitch.roles.civilian.bear.smoke.net.SmokeHoleS2CPayload;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.jetbrains.annotations.Nullable;
@@ -7,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,12 +20,14 @@ import java.util.UUID;
  * A cloud counts toward the caps until its fade begins. When a new cloud would exceed {@link #MAX_PER_OWNER} for its
  * owner or {@link #MAX_PER_WORLD} for the world, the oldest counted cloud is forced into its fade at once: its snapshot
  * is replaced by one whose {@code spawnTime} is moved back so the fade starts now, with not-yet-arrived cells dropped
- * (it stops growing) and the open-sky flag cleared so the whole cloud thins over the same 3 s. Callers broadcast the
- * returned changes. Server thread only.
+ * (it stops growing) and the open-sky flag cleared so the whole cloud thins over the same 3 s. Bullet tunnels (BEAR
+ * WP5) are kept apart from blast holes, with their own clipping, merge, per-shooter budget and cap. Callers broadcast
+ * the returned changes. Server thread only.
  * 纯粹的单世界烟团与空洞登记：上限、强制消散与按 {@link SmokeTimeline} 的过期。烟团在开始消散前都计入上限。新烟团会让
  * 某拥有者超过 {@link #MAX_PER_OWNER} 或世界超过 {@link #MAX_PER_WORLD} 时，最早的计数烟团立即被强制进入消散：其快照换成
  * {@code spawnTime} 前移、使消散从此刻开始的新快照；尚未到达的格被丢弃（停止扩散），露天标记被清除，使整团烟在同样的
- * 3 秒内一起变淡。调用方负责广播返回的变化。仅限服务端线程。
+ * 3 秒内一起变淡。子弹通道（BEAR WP5）与爆炸空洞分开登记，有各自的裁剪、合并、每射手预算与上限。调用方负责广播返回的
+ * 变化。仅限服务端线程。
  */
 final class SmokeCloudRegistry {
     /** Live clouds per owner (owner 2026-11-05 spike brief). / 每个拥有者的存活烟团数。 */
@@ -32,6 +36,31 @@ final class SmokeCloudRegistry {
     static final int MAX_PER_WORLD = 8;
     /** Live holes per world; the oldest goes first. / 每个世界的存活空洞数；超出时先丢最早的。 */
     static final int MAX_HOLES = 32;
+    /**
+     * Live tunnels per world, counted apart from blast holes so gunfire never evicts one; the oldest goes first. Also
+     * the most tunnels a GPU pass evaluates per pixel (client {@code SmokeVolumes.MAX_RENDER_TUNNELS}).
+     * 每个世界的存活通道数，与爆炸空洞分开计数，枪声永远挤不掉爆炸空洞；超出时先丢最早的。也是 GPU 每像素最多计算的通道数
+     * （客户端 {@code SmokeVolumes.MAX_RENDER_TUNNELS}）。
+     */
+    static final int MAX_TUNNELS = 16;
+    /**
+     * Per shooter (a shotgun fires many pellets in one tick): at most this many tunnel-carving rays per
+     * {@link #TUNNEL_WINDOW_TICKS} (a ray through several clouds is still one); the rest are dropped.
+     * 每名射手（霰弹枪一刻打出多颗弹丸）：每 {@link #TUNNEL_WINDOW_TICKS} 最多这么多条开出通道的射线（穿过多团烟的射线
+     * 仍算一条），其余丢弃。
+     */
+    static final int TUNNELS_PER_SHOOTER = 4;
+    static final int TUNNEL_WINDOW_TICKS = 10;
+    /**
+     * A new tunnel whose clipped axis stays within this share of a recent live tunnel's radius (carved at most
+     * {@link #TUNNEL_MERGE_TICKS} ago, at least as wide) adds nothing visible and is merged into it (dropped, not
+     * counted). / 新通道裁剪后的轴线若始终位于某条近期存活通道（至多 {@link #TUNNEL_MERGE_TICKS} 前开出、不比它窄）半径的
+     * 这一比例之内，则看不出区别，并入该通道（丢弃且不计数）。
+     */
+    static final double TUNNEL_MERGE_SHARE = 0.5;
+    static final int TUNNEL_MERGE_TICKS = 2;
+    /** Clipped tunnels shorter than this are dropped. / 裁剪后短于此长度的通道被丢弃。 */
+    static final double MIN_TUNNEL_LENGTH = 1.0E-3;
 
     /**
      * What a change means for clients: snapshots to resend (add or replace) and clouds to remove.
@@ -66,6 +95,10 @@ final class SmokeCloudRegistry {
     /** Insertion order is spawn order, so the first counted match is the oldest. / 插入顺序即生成顺序，首个匹配即最早。 */
     private final Map<Integer, Cloud> clouds = new LinkedHashMap<>();
     private final List<SmokeHole> holes = new ArrayList<>();
+    /** Live tunnels, oldest first. / 存活通道，最早的在前。 */
+    private final List<SmokeHole> tunnels = new ArrayList<>();
+    /** Shooter key -> {window start tick, tunnels in it}. / 射手键 -> {窗口起点 tick, 窗口内通道数}。 */
+    private final Map<Object, long[]> tunnelBudgets = new HashMap<>();
 
     /** Adds a new cloud, forcing older ones into their fade when a cap is exceeded. / 加入新烟团，超出上限时强制旧烟团消散。 */
     Changes add(SmokeCloudSnapshot snapshot, @Nullable UUID owner, long now) {
@@ -98,6 +131,8 @@ final class SmokeCloudRegistry {
             }
         }
         holes.removeIf(hole -> hole.expired(now));
+        tunnels.removeIf(tunnel -> tunnel.expired(now));
+        tunnelBudgets.values().removeIf(budget -> now - budget[0] >= TUNNEL_WINDOW_TICKS);
         return removed;
     }
 
@@ -123,6 +158,133 @@ final class SmokeCloudRegistry {
         return true;
     }
 
+    /**
+     * The tunnel {@code (x0, y0, z0)} → {@code (x1, y1, z1)} of {@code radius} clipped to the live clouds it crosses:
+     * one capsule per cloud box (grown by the radius plus {@link SmokeTunnels#CLIP_MARGIN}, so the visible smoke's
+     * warped edge band is cut too), overlapping or touching ones joined while the joined axis stays within the wire's
+     * {@link SmokeHoleS2CPayload#MAX_TUNNEL_LENGTH}, longer ones split. Ordered along the ray; empty when it crosses no
+     * cloud or every piece is shorter than {@link #MIN_TUNNEL_LENGTH}.
+     * 把半径 {@code radius} 的通道 {@code (x0, y0, z0)} → {@code (x1, y1, z1)} 裁剪到它穿过的存活烟团：每个烟团盒子（按半径加
+     * {@link SmokeTunnels#CLIP_MARGIN} 外扩，使可见烟雾被扭曲的边缘带也被切开）一条胶囊；重叠或相接的在合并后轴线不超过线格式
+     * {@link SmokeHoleS2CPayload#MAX_TUNNEL_LENGTH} 时合并，更长的拆开。按射线顺序排列；不穿过任何烟团或每段都短于
+     * {@link #MIN_TUNNEL_LENGTH} 时为空。
+     */
+    List<SmokeHole> clipTunnel(double x0, double y0, double z0, double x1, double y1, double z1, float radius,
+                               long now, int durationTicks) {
+        double dx = x1 - x0;
+        double dy = y1 - y0;
+        double dz = z1 - z0;
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (!(length >= MIN_TUNNEL_LENGTH)) {
+            return List.of();
+        }
+        double grow = radius + SmokeTunnels.CLIP_MARGIN;
+        double size = SmokeCloudSnapshot.CELL_SIZE;
+        List<double[]> spans = new ArrayList<>();
+        double[] span = new double[2];
+        for (Cloud cloud : clouds.values()) {
+            SmokeCloudSnapshot box = cloud.snapshot;
+            if (now < cloud.end && SmokeTunnels.clipToBox(x0, y0, z0, x1, y1, z1,
+                    box.minX() - grow, box.minY() - grow, box.minZ() - grow,
+                    box.minX() + box.sizeX() * size + grow, box.minY() + box.sizeY() * size + grow,
+                    box.minZ() + box.sizeZ() * size + grow, span)) {
+                spans.add(new double[]{span[0], span[1]});
+            }
+        }
+        spans.sort((a, b) -> Double.compare(a[0], b[0]));
+        // A block under the wire limit, so rounding never makes a piece the clients reject. / 比线格式上限少一格，舍入不会越限。
+        double maxSpan = (SmokeHoleS2CPayload.MAX_TUNNEL_LENGTH - 1.0) / length;
+        List<double[]> joined = new ArrayList<>();
+        for (double[] next : spans) {
+            double[] last = joined.isEmpty() ? null : joined.get(joined.size() - 1);
+            if (last != null && next[0] <= last[1] && Math.max(last[1], next[1]) - last[0] <= maxSpan) {
+                last[1] = Math.max(last[1], next[1]);
+            } else {
+                joined.add(next);
+            }
+        }
+        List<SmokeHole> pieces = new ArrayList<>();
+        for (double[] piece : joined) {
+            int parts = (int) Math.ceil((piece[1] - piece[0]) / maxSpan);
+            for (int part = 0; part < Math.max(1, parts); part++) {
+                double from = piece[0] + (piece[1] - piece[0]) * part / Math.max(1, parts);
+                double to = piece[0] + (piece[1] - piece[0]) * (part + 1) / Math.max(1, parts);
+                if ((to - from) * length >= MIN_TUNNEL_LENGTH) {
+                    pieces.add(new SmokeHole(x0 + dx * from, y0 + dy * from, z0 + dz * from, radius, now,
+                            durationTicks, x0 + dx * to, y0 + dy * to, z0 + dz * to));
+                }
+            }
+        }
+        return pieces;
+    }
+
+    /**
+     * Records the pieces of one shot ({@link #clipTunnel}) for {@code shooterKey}: pieces that merge into a recent,
+     * at-least-as-wide live tunnel are dropped first; if any remain, the shot takes one unit of the shooter's budget
+     * (refused when spent) and they are added, the oldest tunnels going at the cap. Returns the pieces clients must be
+     * told about (empty when none).
+     * 为 {@code shooterKey} 记录一次射击的各段（{@link #clipTunnel}）：先丢弃会并入近期、不比它窄的存活通道的段；若仍有剩余，
+     * 这次射击消耗射手预算的一个单位（用完则拒绝）并加入它们，达到上限时丢弃最早的通道。返回需要通知客户端的段（没有时为空）。
+     */
+    List<SmokeHole> addTunnels(List<SmokeHole> pieces, Object shooterKey, long now) {
+        List<SmokeHole> fresh = new ArrayList<>(pieces.size());
+        for (SmokeHole piece : pieces) {
+            if (!merges(piece, now)) {
+                fresh.add(piece);
+            }
+        }
+        if (fresh.isEmpty()) {
+            return List.of();
+        }
+        long[] budget = tunnelBudgets.get(shooterKey);
+        if (budget == null || now - budget[0] >= TUNNEL_WINDOW_TICKS) {
+            budget = new long[]{now, 0L};
+            tunnelBudgets.put(shooterKey, budget);
+        }
+        if (budget[1] >= TUNNELS_PER_SHOOTER) {
+            return List.of();
+        }
+        budget[1]++;
+        for (SmokeHole piece : fresh) {
+            if (tunnels.size() >= MAX_TUNNELS) {
+                tunnels.remove(0);
+            }
+            tunnels.add(piece);
+        }
+        return fresh;
+    }
+
+    /** One-piece {@link #addTunnels}: whether clients must be told. / 单段版本：是否需要通知客户端。 */
+    boolean addTunnel(SmokeHole tunnel, Object shooterKey, long now) {
+        return !addTunnels(List.of(tunnel), shooterKey, now).isEmpty();
+    }
+
+    private boolean merges(SmokeHole piece, long now) {
+        for (SmokeHole live : tunnels) {
+            if (now - live.startTime() <= TUNNEL_MERGE_TICKS && live.radius() >= piece.radius()
+                    && !live.expired(now) && covers(live, piece)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Rate-limit key of a shot with no known shooter: its origin, to the half block. / 射手未知时的限流键：射击起点，
+     * 精确到半格。
+     */
+    static Object originKey(double x, double y, double z) {
+        return new OriginKey((long) Math.floor(x * 2.0), (long) Math.floor(y * 2.0), (long) Math.floor(z * 2.0));
+    }
+
+    /** Half-block cell of a shot origin. / 射击起点所在的半格。 */
+    private record OriginKey(long x, long y, long z) {
+    }
+
+    List<SmokeHole> tunnels() {
+        return Collections.unmodifiableList(tunnels);
+    }
+
     Collection<SmokeCloudSnapshot> snapshots() {
         List<SmokeCloudSnapshot> list = new ArrayList<>(clouds.size());
         for (Cloud cloud : clouds.values()) {
@@ -136,7 +298,7 @@ final class SmokeCloudRegistry {
     }
 
     boolean isEmpty() {
-        return clouds.isEmpty() && holes.isEmpty();
+        return clouds.isEmpty() && holes.isEmpty() && tunnels.isEmpty();
     }
 
     /**
@@ -225,6 +387,13 @@ final class SmokeCloudRegistry {
             }
         }
         return false;
+    }
+
+    /** Both ends of {@code inner}'s axis lie within the merge share of {@code outer}'s radius. / 两端都在合并范围内。 */
+    private static boolean covers(SmokeHole outer, SmokeHole inner) {
+        double reach = outer.radius() * TUNNEL_MERGE_SHARE;
+        return outer.distanceTo(inner.x(), inner.y(), inner.z()) <= reach
+                && outer.distanceTo(inner.endX(), inner.endY(), inner.endZ()) <= reach;
     }
 
     /** Sphere against the cloud's box. / 球体与烟团盒子的相交检测。 */

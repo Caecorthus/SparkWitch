@@ -24,9 +24,13 @@ import net.minecraft.client.MinecraftClient;
  * 并在回合节点与换世界时清除；断线时清空状态并释放 GPU 浓度体。客户端上限约束异常服务端能让渲染器持有的数量。
  */
 public final class SmokeNetworkClient {
-    /** Server caps are 8 clouds and 32 holes per world. / 服务端上限为每世界 8 团烟与 32 个空洞。 */
+    /**
+     * Server caps are 8 clouds, 32 holes and 16 tunnels per world. / 服务端上限为每世界 8 团烟、32 个空洞与 16 条通道。
+     */
     static final int MAX_CLOUDS = 32;
     static final int MAX_HOLES = 64;
+    /** Tunnels kept; past it the oldest goes, so the newest shot always shows. / 保留的通道数；超出时丢最早的。 */
+    static final int MAX_TUNNELS = 32;
 
     private static boolean registered;
     private static boolean warnedMalformed;
@@ -72,7 +76,9 @@ public final class SmokeNetworkClient {
             warnMalformed("hole");
             return;
         }
-        if (SmokeClientState.holes().size() < MAX_HOLES) {
+        if (hole.isTunnel()) {
+            SmokeClientState.addTunnel(hole, MAX_TUNNELS);
+        } else if (SmokeClientState.holes().size() < MAX_HOLES) {
             SmokeClientState.addHole(hole);
         }
     }

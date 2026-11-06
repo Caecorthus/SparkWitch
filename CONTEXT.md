@@ -1531,8 +1531,33 @@ Current build baseline:
     and a disconnect from a live round strip too. `SparkWitchItemCooldownNominals` lists the M32A1 (20 ticks).
   - Smoke (`bear/smoke/`, `client/bear/smoke/`): the finished volumetric smoke spike; `SmokeCloudService`
     (`spawn`, `carveHole`, `carveTunnel`, `clearAll`) is the only server entry and smoke never feeds a server rule.
+    Invisible barriers pass smoke (`WorldSmokeBlockView.BARRIERS_PASS_SMOKE`, owner Q5 pending).
+  - Smoke tunnels (WP5): `carveTunnel(world, from, to, radius[, shooter UUID])` clips the segment to each live cloud
+    box it crosses, grown by the radius plus `SmokeTunnels.CLIP_MARGIN` 2 (the visible warp band; one capsule per cloud,
+    touching ones joined up to 95 blocks; nothing sent when it crosses none), merges a near-duplicate into a recent
+    wider tunnel, allows 4 rays per shooter per 10 ticks (origin half-block when no shooter, so WP3 should pass the
+    shooter's UUID) and 16 tunnels per world (oldest dropped, counted apart from the 32 blast holes). `SmokeHole` gained an end point (the
+    6-argument constructor is the sphere; `isTunnel()`), and `sparkwitch:bear_smoke_hole` appends 3 doubles only for a
+    tunnel, so blast holes keep their old bytes and an old body still decodes. Timeline (`SmokeTimeline`): a bullet
+    tunnel lives 30 ticks (open 10, radius shrinks over 20, edge 0.2); radius ≥ `BLAST_LANE_RADIUS` 0.5 (the potion
+    backblast) lives like a blast hole. Client: tunnels are never baked into the volumes (too thin for half-block
+    cells, and no re-upload); `SmokeVolumes.tunnels()` hands the newest 16 live ones of the prepared tick to the visible
+    march (applied at the unwarped sample point), the outline occlusion march (identical GLSL block, pinned by tests)
+    and the CPU `opticalDepth`, each culling them per pixel or per query. While the shader-pack billboard fallback runs
+    the client drops tunnels (`SmokeVolumes.showTunnels`), so outlines stay as closed as the puffs look. Whole-tick hole
+    ages are taken in `long` (`SmokeTimeline` long overloads), exact at any world time. Each volume cycles through 3
+    textures so a per-tick upload never writes a texture an in-flight frame still reads.
+  - Thermal heat mask (WP5, for SparkStrength's Undercover thermal, S4/Q6): `api.client.BearSmokeViewApi`
+    `maskHeatTarget(color, depth, w, h)`, `drawHeatHaze(color, depth, w, h, heat)` (`DEFAULT_HEAT_HAZE` 0.35) and
+    `heatSmokeRect(w, h)`, called right after SS draws its bodies (body depth makes it exact, world depth fails
+    closed). `occlusion/SmokeHeatMask` marches the whole smoke rectangle of the pass once (the outline mask only marches
+    outline regions), then `smoke/heat_mask.fsh` scales the heat by the outline visibility at each pixel's depth
+    (blend dst·v) or adds `heat·(1 − v)` with MAX, through a private framebuffer holding only the caller's colour
+    texture; all GL state is restored. A false mask (bad arguments, outside a world render, GL failure) means SS must
+    hide the heat inside `heatSmokeRect` (SparkWitch already tries to clear it); a failing haze only returns false. The
+    whole heat texture must show the pass's whole view. Pure rules in `SmokeHeatMath`.
   - Open (later packages): launcher (WP1), helmet (WP2), ricochet and ranged instrumentation (WP3), headset slot and
-    hearing (WP4), smoke tunnels and the thermal mask (WP5), art, sounds and the cross-repo seams (WP6).
+    hearing (WP4), art, sounds and the cross-repo seams (WP6: SS calls the heat entries and `SparkWitchApi.carveSmoke`).
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation
