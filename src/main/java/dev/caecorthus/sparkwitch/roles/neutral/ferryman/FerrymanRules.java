@@ -36,6 +36,8 @@ public final class FerrymanRules {
     public static final double FERRY_RANGE_SQUARED = FERRY_RANGE * FERRY_RANGE;
     public static final int FERRY_GOLD = 50;
     public static final int MERCY_BREAK_GOLD = 50;
+    /** Every successful ferry starts a 5 s cooldown on the secondary key. / 每次成功摆渡都会让第二技能键进入 5 秒冷却。 */
+    public static final int FERRY_COOLDOWN_TICKS = 5 * 20;
 
     /** Second hit on a marked attacker: 10 s of feign death, invisible to instinct for 5 s after it ends. */
     /** 被标记者再次攻击摆渡人：10 秒假死，结束后 5 秒内本能透视不到。 */

@@ -42,6 +42,8 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
     private int cooldownTicks;
     /** Owner's local copy of the remaining ticks, decremented every client tick for the HUD. / 拥有者本地倒计时，供 HUD 使用。 */
     private int clientCooldownTicks;
+    private int ferryCooldownTicks;
+    private int clientFerryCooldownTicks;
     private boolean pardoning;
     private @Nullable UUID pendingKiller;
     private @Nullable Identifier pendingDeathReason;
@@ -64,6 +66,35 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
     public void clientTick() {
         if (clientCooldownTicks > 0) {
             clientCooldownTicks--;
+        }
+        if (clientFerryCooldownTicks > 0) {
+            clientFerryCooldownTicks--;
+        }
+    }
+
+    /** Both sides: the ferry (secondary key) cooldown; the client reads its own countdown. / 双端：摆渡（第二技能键）冷却；客户端读本地倒计时。 */
+    public int ferryCooldownTicks() {
+        return player.getWorld().isClient ? clientFerryCooldownTicks : ferryCooldownTicks;
+    }
+
+    /** Server: arms the ferry for {@code ticks}. / 服务端：把摆渡设为 ticks 冷却。 */
+    public void setFerryCooldown(int ticks) {
+        int next = Math.max(0, ticks);
+        if (ferryCooldownTicks == next) {
+            return;
+        }
+        ferryCooldownTicks = next;
+        syncOwner();
+    }
+
+    /** Server: one tick of the ferry cooldown. / 服务端：推进一格摆渡冷却。 */
+    public void tickFerryCooldown() {
+        if (ferryCooldownTicks <= 0) {
+            return;
+        }
+        ferryCooldownTicks--;
+        if (ferryCooldownTicks == 0) {
+            syncOwner();
         }
     }
 
@@ -177,11 +208,13 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
     /** Server: drops every round-scoped field; the cooldown goes back to the round-start value. */
     /** 服务端：清除全部本局字段；冷却回到开局值。 */
     public void clearRoundState() {
-        boolean changed = pardoning || !gazeTargets.isEmpty() || !ferriedBodies.isEmpty() || cooldownTicks != 0;
+        boolean changed = pardoning || !gazeTargets.isEmpty() || !ferriedBodies.isEmpty() || cooldownTicks != 0
+                || ferryCooldownTicks != 0;
         gazesClear();
         ferriedBodies.clear();
         closePardon();
         cooldownTicks = FerrymanRules.INITIAL_COOLDOWN_TICKS;
+        ferryCooldownTicks = 0;
         if (changed) {
             syncOwner();
         }
@@ -207,6 +240,7 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
     @Override
     public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) {
         buf.writeVarInt(cooldownTicks);
+        buf.writeVarInt(ferryCooldownTicks);
         buf.writeVarInt(gazeTargets.size());
         for (UUID target : gazeTargets) {
             buf.writeUuid(target);
@@ -221,6 +255,8 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
     public void applySyncPacket(RegistryByteBuf buf) {
         cooldownTicks = buf.readVarInt();
         clientCooldownTicks = cooldownTicks;
+        ferryCooldownTicks = buf.readVarInt();
+        clientFerryCooldownTicks = ferryCooldownTicks;
         int gazeCount = buf.readVarInt();
         gazeTargets.clear();
         for (int i = 0; i < gazeCount; i++) {

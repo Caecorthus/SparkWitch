@@ -1454,10 +1454,10 @@
   "tip.letter.charon.tooltip1": "You start with nothing. A body that died within 60 s glows amber for you; aim at it and press the secondary key to ferry it.",
   "tip.letter.charon.tooltip2": "Skill key: a lethal hit opens a 0.5 s window instead of killing. Press inside it to refuse the death and mark the attacker with a Glance (dark red, seen through walls).",
   "tip.letter.charon.tooltip3": "A pardon costs a 10 s cooldown. A marked attacker who strikes you again falls into 10 s of feign death: while feigning they can be eaten by a Vulture, cannot be examined and cannot be bagged.",
-  "tip.letter.charon.tooltip4": "Ferrying pays 50 gold and leaves a Mercy mark on the body (pale blue, seen through walls). Each body once, within 60 s of death and 4 blocks of reach.",
+  "tip.letter.charon.tooltip4": "Ferrying pays 50 gold and leaves a Mercy mark on the body (pale blue, seen through walls). Each body once, within 60 s of death and 4 blocks of reach. The secondary key then cools down for 5 s.",
   "tip.letter.charon.tooltip5": "If a Mercy body is bagged or eaten, you are paid another 50 gold and whoever took it is marked with a Glance.",
   "tip.letter.charon.tooltip6": "Shop: crowbar 25 gold; Soul Moment 250 gold (one per round).",
-  "tip.letter.charon.tooltip7": "Soul Moment: one ferried body per 6 players rises beside you as a Lost Soul. They glow for everyone and carry a derringer with no rounds, a crowbar and a knife.",
+  "tip.letter.charon.tooltip7": "Soul Moment: one ferried body per 6 players rises beside you as a Lost Soul. Blue soul flames rise around them, and each carries a derringer with no rounds, a crowbar and a knife.",
   "tip.letter.charon.tooltip8": "Win: kill everyone outside the moment. If every Lost Soul dies first, you die with them.",
   "message.sparkwitch.ferryman.pardon.prompt": "Press the skill key to refuse this death…",
   "message.sparkwitch.ferryman.pardon.saved": "Rest, and do not disturb the dead…",
@@ -1479,7 +1479,7 @@
   "replay.death.sparkwitch.ferryman_feign.killed": "%s was killed by %s while feigning",
   "replay.death.sparkwitch.ferryman_feign.died": "%s was killed while feigning",
   "shop.sparkwitch.ferryman.moment": "Soul Moment",
-  "shop.sparkwitch.ferryman.moment.description": "Bring your ferried dead back as Lost Souls beside you. They glow for everyone; kill every other faction to win together.",
+  "shop.sparkwitch.ferryman.moment.description": "Bring your ferried dead back as Lost Souls beside you. Blue soul flames mark them; kill every other faction to win together.",
   "message.sparkwitch.ferryman.moment.start": "%s Lost Souls rise beside the Charon.",
   "message.sparkwitch.ferryman.moment.soul": "You walk again as a Lost Soul. Kill everyone else.",
   "message.sparkwitch.ferryman.moment.denied": "No ferried dead are waiting for you.",
@@ -1498,5 +1498,7 @@
   "message.sparkwitch.ferryman.mercy.broken": "A body you ferried was taken. +%s coins, and its destroyer is marked.",
   "hud.sparkwitch.ferryman.pardon.ready": "%s · Refuse death: ready",
   "hud.sparkwitch.ferryman.pardon.cooldown": "%s · Refuse death: %ss",
-  "hud.sparkwitch.ferryman.ferry.ready": "%s · Ferry a fresh body"
+  "hud.sparkwitch.ferryman.ferry.ready": "%s · Ferry a fresh body",
+  "hud.sparkwitch.ferryman.ferry.cooldown": "%s · Ferry: %ss",
+  "message.sparkwitch.ferryman.ferry.cooldown": "Ferry cooling down: %ss"
 }

@@ -1454,10 +1454,10 @@
   "tip.letter.charon.tooltip1": "开局不自带任何物品。60 秒内死亡的遗体会以琥珀色高亮；对准它按下第二技能键即可摆渡。",
   "tip.letter.charon.tooltip2": "技能键：受到致命伤时开启 0.5 秒窗口；窗口内按下即拒绝死亡，并给攻击者挂上「瞥视」（深红，可穿墙看见）。",
   "tip.letter.charon.tooltip3": "宽恕之后进入 10 秒冷却。带「瞥视」的攻击者再次攻击你，会陷入 10 秒假死：假死时可被秃鹫吃掉、验尸官查不出、裹尸袋收不了。",
-  "tip.letter.charon.tooltip4": "摆渡一具遗体得 50 金币并留下「怜悯」（淡蓝，可穿墙看见）。每具只能摆渡一次，需在死亡 60 秒内、4 格之内。",
+  "tip.letter.charon.tooltip4": "摆渡一具遗体得 50 金币并留下「怜悯」（淡蓝，可穿墙看见）。每具只能摆渡一次，需在死亡 60 秒内、4 格之内；之后第二技能键冷却 5 秒。",
   "tip.letter.charon.tooltip5": "带「怜悯」的遗体若被收走或被吃掉，你额外获得 50 金币，动手的人被挂上「瞥视」。",
   "tip.letter.charon.tooltip6": "商店：撬棍 25 金币；亡魂时刻 250 金币（每局限购一次）。",
-  "tip.letter.charon.tooltip7": "亡魂时刻：在你身边复活「人数/6」具已摆渡的遗体，成为迷失的灵魂——全场可见，各带空德林加、撬棍与匕首。",
+  "tip.letter.charon.tooltip7": "亡魂时刻：在你身边复活「人数/6」具已摆渡的遗体，成为迷失的灵魂——周身升起蓝色灵魂火焰，各带空德林加、撬棍与匕首。",
   "tip.letter.charon.tooltip8": "胜利：杀光时刻之外的所有人。若迷失的灵魂先全部阵亡，你随之而死。",
   "message.sparkwitch.ferryman.pardon.prompt": "按下技能键，拒绝这次死亡……",
   "message.sparkwitch.ferryman.pardon.saved": "安息吧，勿扰亡者安宁……",
@@ -1479,7 +1479,7 @@
   "replay.death.sparkwitch.ferryman_feign.killed": "%s 假死时被 %s 击杀",
   "replay.death.sparkwitch.ferryman_feign.died": "%s 假死时被击杀",
   "shop.sparkwitch.ferryman.moment": "亡魂时刻",
-  "shop.sparkwitch.ferryman.moment.description": "把你摆渡过的亡者作为迷失的灵魂带回身边。它们全场可见；杀光其他所有阵营即可共同获胜。",
+  "shop.sparkwitch.ferryman.moment.description": "把你摆渡过的亡者作为迷失的灵魂带回身边。它们周身升起蓝色灵魂火焰；杀光其他所有阵营即可共同获胜。",
   "message.sparkwitch.ferryman.moment.start": "%s 名迷失的灵魂在卡戎身边起身。",
   "message.sparkwitch.ferryman.moment.soul": "你以迷失的灵魂之身重新行走。杀光其他人。",
   "message.sparkwitch.ferryman.moment.denied": "没有等待你的亡者。",
@@ -1498,5 +1498,7 @@
   "message.sparkwitch.ferryman.mercy.broken": "你摆渡过的遗体被动了。+%s 金币，破坏者已被标记。",
   "hud.sparkwitch.ferryman.pardon.ready": "%s · 免死：就绪",
   "hud.sparkwitch.ferryman.pardon.cooldown": "%s · 免死：%s 秒",
-  "hud.sparkwitch.ferryman.ferry.ready": "%s · 摆渡新鲜遗体"
+  "hud.sparkwitch.ferryman.ferry.ready": "%s · 摆渡新鲜遗体",
+  "hud.sparkwitch.ferryman.ferry.cooldown": "%s · 摆渡：%s 秒",
+  "message.sparkwitch.ferryman.ferry.cooldown": "摆渡冷却中：%s 秒"
 }

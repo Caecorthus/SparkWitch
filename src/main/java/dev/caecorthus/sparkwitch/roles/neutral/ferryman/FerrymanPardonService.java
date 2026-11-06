@@ -92,6 +92,7 @@ public final class FerrymanPardonService {
             }
             FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(player);
             component.tickCooldown();
+            component.tickFerryCooldown();
             if (component.isPardoning() && now >= component.pardonDeadlineTick()) {
                 replayHeldDeath(player, component);
             }

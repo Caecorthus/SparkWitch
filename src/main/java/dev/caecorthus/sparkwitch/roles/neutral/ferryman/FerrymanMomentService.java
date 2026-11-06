@@ -8,9 +8,8 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.ItemStack;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -104,9 +103,8 @@ public final class FerrymanMomentService {
         soul.teleport(world, ferryman.getX(), ferryman.getY(), ferryman.getZ(), Set.of(),
                 ferryman.getYaw(), 0.0F);
         GameWorldComponent.KEY.get(world).addRole(soul, dev.caecorthus.sparkwitch.SparkWitchRoles.lostSoul());
-        // Everyone sees a Lost Soul; the mark is the GLOWING outline the whole lobby already renders.
-        // 全场都能看见迷失的灵魂：直接借原版发光描边。
-        soul.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, Integer.MAX_VALUE, 0, false, false));
+        // A Lost Soul is announced by blue soul particles around it, not by a GLOWING outline every client renders.
+        // 迷失的灵魂靠周身蓝色灵魂粒子被认出来，而不是所有人都渲染的发光描边。
         soul.getInventory().insertStack(new ItemStack(WatheItems.DERRINGER));
         soul.getInventory().insertStack(new ItemStack(WatheItems.CROWBAR));
         soul.getInventory().insertStack(new ItemStack(WatheItems.KNIFE));
@@ -157,6 +155,7 @@ public final class FerrymanMomentService {
     }
 
     private static void tick(MinecraftServer server) {
+        long now = server.getOverworld().getTime();
         for (ServerWorld world : server.getWorlds()) {
             FerrymanMomentWorldComponent moment = FerrymanMomentWorldComponent.get(world);
             if (!moment.isActive()) {
@@ -201,6 +200,7 @@ public final class FerrymanMomentService {
                     moment.removeSoul(soulId);
                 }
             }
+            spawnSoulParticles(world, server, moment, now);
             if (soulsAlive == 0) {
                 // Every Lost Soul is down: the Ferryman follows them.
                 // 迷失的灵魂全部倒下：摆渡人随之而去。
@@ -222,17 +222,33 @@ public final class FerrymanMomentService {
         return soul != null && !soul.isSpectator() && soul.isAlive() && soul.getHealth() > 0.0F;
     }
 
+    /**
+     * Blue soul flames rise around every living Lost Soul, every third tick: the lobby reads the threat from the
+     * particles instead of a GLOWING outline painted for everyone. Server side, so every client sees the same thing.
+     * 每三 tick 在每名存活的迷失灵魂周身升起蓝色灵魂火焰：全场从粒子读出威胁，而不是所有人共享的发光描边。
+     * 由服务端发出，因此每个客户端看到的一致。
+     */
+    private static void spawnSoulParticles(ServerWorld world, MinecraftServer server, FerrymanMomentWorldComponent moment,
+                                           long now) {
+        if (now % 3L != 0L) {
+            return;
+        }
+        for (UUID soulId : moment.souls()) {
+            ServerPlayerEntity soul = player(server, soulId);
+            if (!isSoulAlive(soul)) {
+                continue;
+            }
+            world.spawnParticles(ParticleTypes.SOUL_FIRE_FLAME,
+                    soul.getX(), soul.getY() + 1.1, soul.getZ(),
+                    8, 0.45, 0.75, 0.45, 0.01);
+        }
+    }
+
     private static @Nullable ServerPlayerEntity player(MinecraftServer server, @Nullable UUID id) {
         return id == null ? null : server.getPlayerManager().getPlayer(id);
     }
 
     private static void end(ServerWorld world, FerrymanMomentWorldComponent moment, boolean keepSouls) {
-        for (UUID soulId : moment.souls()) {
-            ServerPlayerEntity soul = world.getServer().getPlayerManager().getPlayer(soulId);
-            if (soul != null) {
-                soul.removeStatusEffect(StatusEffects.GLOWING);
-            }
-        }
         moment.clear();
     }
 

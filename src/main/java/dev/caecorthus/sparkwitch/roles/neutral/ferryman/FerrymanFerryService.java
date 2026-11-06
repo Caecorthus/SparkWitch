@@ -24,6 +24,7 @@ public final class FerrymanFerryService {
     private static final String STALE_KEY = "message.sparkwitch.ferryman.ferry.stale";
     private static final String FAR_KEY = "message.sparkwitch.ferryman.ferry.too_far";
     private static final String BLOCKED_KEY = "message.sparkwitch.ferryman.ferry.unavailable";
+    private static final String COOLDOWN_KEY = "message.sparkwitch.ferryman.ferry.cooldown";
 
     private FerrymanFerryService() {
     }
@@ -32,6 +33,14 @@ public final class FerrymanFerryService {
     /** 第二技能键数据包的服务端入口；{@code bodyEntityId} 来自客户端准星。 */
     public static void ferry(ServerPlayerEntity ferryman, int bodyEntityId) {
         if (!FerrymanParticipation.isActiveFerryman(ferryman)) {
+            return;
+        }
+        FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(ferryman);
+        // The secondary key cools down for 5 s after every successful ferry, before anything else is decided.
+        // 第二技能键在每次成功摆渡后冷却 5 秒；判定放在最前面。
+        int cooldown = component.ferryCooldownTicks();
+        if (cooldown > 0) {
+            ferryman.sendMessage(Text.translatable(COOLDOWN_KEY, (cooldown + 19) / 20), true);
             return;
         }
         Entity entity = ferryman.getServerWorld().getEntityById(bodyEntityId);
@@ -44,7 +53,6 @@ public final class FerrymanFerryService {
             ferryman.sendMessage(Text.translatable(BLOCKED_KEY), true);
             return;
         }
-        FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(ferryman);
         if (component.hasFerried(bodyOwner)) {
             ferryman.sendMessage(Text.translatable(ALREADY_KEY), true);
             return;
@@ -59,6 +67,7 @@ public final class FerrymanFerryService {
             return;
         }
         component.addFerried(bodyOwner);
+        component.setFerryCooldown(FerrymanRules.FERRY_COOLDOWN_TICKS);
         PlayerShopComponent.KEY.get(ferryman).addToBalance(FerrymanRules.FERRY_GOLD);
         ferryman.getServerWorld().playSound(null, ferryman.getX(), ferryman.getY(), ferryman.getZ(),
                 SoundEvents.BLOCK_SOUL_SAND_STEP, SoundCategory.PLAYERS, 0.7F, 0.6F);
