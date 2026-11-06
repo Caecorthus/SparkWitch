@@ -22,23 +22,23 @@ import net.minecraft.util.math.RotationAxis;
 /**
  * Bullet holes on the worn Rys-T glass, for every viewer: one flat quad per {@link VisorCrack}, {@link #DECAL_UNITS}
  * model units square, {@link #LIFT_UNITS} in front of the glass face (the crack plane z 1.45), centred at
- * (4 + 8u, 9.5 - 4v) and then shifted so the whole square stays on the 8 x 4 glass window (u = 0 at the wearer's left,
+ * (4 + 8u, 9 - 3v) and then shifted so the whole square stays on the 8 x 3 glass window (u = 0 at the wearer's left,
  * v = 0 at the top, as on the HUD), using cell {@code style} of the decal strip. Drawn right after vanilla
  * {@code HeadFeatureRenderer} drew the helmet item, in the same head matrix (so EMF head animation is followed) with the
  * item model's own {@code display.head} transform; on the visor-up model the quad follows the plate through the
  * {@link RysTVisorGeometry} raised pose ({@link #applyRaisedPose}). The decal is not rotated on the model: a rotated
- * 3-unit square would overhang the 4-unit-tall window (the HUD rotates). Presentation only.
+ * 2.5-unit square would overhang the 3-unit-tall window (the HUD rotates). Presentation only.
  * 所有观察者都能看到的穿戴 Rys-T 玻璃弹孔：每个 {@link VisorCrack} 一个平面四边形，边长 {@link #DECAL_UNITS} 个模型单位，
- * 位于玻璃面前方 {@link #LIFT_UNITS}（裂纹平面 z 1.45），以 (4 + 8u, 9.5 - 4v) 为中心，再平移使整个正方形留在 8 × 4 的玻璃窗内
+ * 位于玻璃面前方 {@link #LIFT_UNITS}（裂纹平面 z 1.45），以 (4 + 8u, 9 - 3v) 为中心，再平移使整个正方形留在 8 × 3 的玻璃窗内
  * （u = 0 为佩戴者左侧，v = 0 为顶部，与 HUD 相同），使用贴花条中的第 {@code style} 格。在原版
  * {@code HeadFeatureRenderer} 绘制头盔物品之后立即绘制，使用同一头部矩阵（因此跟随 EMF 头部动画）与物品模型自身的
  * {@code display.head} 变换；面罩抬起模型上四边形通过 {@link RysTVisorGeometry} 的抬起姿态（{@link #applyRaisedPose}）跟随面板。
- * 贴花在模型上不旋转：旋转后的 3 单位正方形会超出 4 单位高的玻璃窗（HUD 上会旋转）。仅为展示。
+ * 贴花在模型上不旋转：旋转后的 2.5 单位正方形会超出 3 单位高的玻璃窗（HUD 上会旋转）。仅为展示。
  */
 public final class RysTWornCracks {
     public static final Identifier TEXTURE = SparkWitch.id("textures/entity/bear/visor_cracks_small.png");
-    /** Decal edge in model units (fits the 4-unit-tall window). / 贴花边长（模型单位，可放入 4 单位高的玻璃窗）。 */
-    public static final float DECAL_UNITS = 3.0F;
+    /** Decal edge in model units (fits the 3-unit-tall window). / 贴花边长（模型单位，可放入 3 单位高的玻璃窗）。 */
+    public static final float DECAL_UNITS = 2.5F;
     /** Lift off the glass face, in model units. / 离开玻璃面的距离（模型单位）。 */
     public static final float LIFT_UNITS = 0.05F;
     /** Cells in the decal strip (256 x 32, 32-px cells). / 贴花条的格数（256 × 32，每格 32 像素）。 */
