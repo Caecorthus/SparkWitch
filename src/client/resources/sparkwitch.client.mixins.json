@@ -230,6 +230,8 @@
     "bear.M32InputMixin",
     "bear.M32MacControlClickMixin",
     "bear.M32ArmPoseMixin",
+    "bear.M32SightHeldItemMixin",
+    "bear.M32SightFovMixin",
     "bear.HearingSoundSystemMixin",
     "bear.HearingSourceAccessor",
     "bear.HeadsetInventoryScreenMixin",

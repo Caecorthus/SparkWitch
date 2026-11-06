@@ -68,16 +68,29 @@ public interface ScopeProfile {
     /**
      * Whether the module draws a lens for this profile; true (the default) for a magnified optic. False means a reflex
      * (red-dot) sight such as the M32A1's M2A1: the module draws no lens picture, runs no PiP pass, draws no tube rim,
-     * fallback ring or rim ring, and darkens no periphery. It still applies {@link #fovMultiplier} (Full-Screen Zoom
-     * only: PiP keeps the main view at 1x, so a lensless profile should stay at 1x) and the look scale, hides the hand,
-     * replaces the crosshair and calls {@link #drawReticle} (with the real projection FOV, no scope shadow and
-     * {@link ScopeMode#ZOOM_BLUR} as the frame's mode).
+     * fallback ring or rim ring, and darkens no periphery. It still applies {@link #fovMultiplier} (in both modes: with
+     * no lens the main view is the only picture, so PiP zooms it too) and the look scale, hides the hand unless
+     * {@link #hidesHeldItem} says otherwise, replaces the crosshair and calls {@link #drawReticle} (with the real
+     * projection FOV, no scope shadow and {@link ScopeMode#ZOOM_BLUR} as the frame's mode).
      * 模块是否为本配置绘制镜片；放大光学瞄具为 true（默认）。false 表示反射式（红点）瞄具，例如 M32A1 的 M2A1：模块不绘制
-     * 镜内画面、不运行画中画渲染、不画镜筒边、回退环与镜框环，也不压暗镜外。仍会应用 {@link #fovMultiplier}（仅全画面放大：
-     * 画中画下主画面保持 1 倍，因此无镜片配置应保持 1 倍）与视角缩放、隐藏手、替换准星并调用 {@link #drawReticle}（传入真实
-     * 投影视场角、无镜内阴影，帧模式为 {@link ScopeMode#ZOOM_BLUR}）。
+     * 镜内画面、不运行画中画渲染、不画镜筒边、回退环与镜框环，也不压暗镜外。仍会应用 {@link #fovMultiplier}（两种模式都应用：
+     * 没有镜片时主画面是唯一的画面，因此画中画模式也放大它）与视角缩放、隐藏手（除非 {@link #hidesHeldItem} 另有答复）、替换准星
+     * 并调用 {@link #drawReticle}（传入真实投影视场角、无镜内阴影，帧模式为 {@link ScopeMode#ZOOM_BLUR}）。
      */
     default boolean drawsLens() {
+        return true;
+    }
+
+    /**
+     * Whether the module hides the local player's first-person hands and held items while this profile is active;
+     * true (the default) for an optic that replaces the view. False keeps the vanilla first-person hand pass, for a
+     * weapon that draws its own aimed model there (the M32A1's 3-D M2A1 sight, {@code M32SightRenderer}). Only
+     * {@code ScopeHeldItemRendererMixin} reads it, through {@code ScopeRuntime.hidesHand()}.
+     * 本配置生效时模块是否隐藏本地玩家的第一人称手与手持物品；替换视野的光学瞄具为 true（默认）。false 保留原版第一人称手部
+     * 渲染，供在那里自行绘制瞄准模型的武器使用（M32A1 的三维 M2A1 瞄具，{@code M32SightRenderer}）。只有
+     * {@code ScopeHeldItemRendererMixin} 经 {@code ScopeRuntime.hidesHand()} 读取它。
+     */
+    default boolean hidesHeldItem() {
         return true;
     }
 }
