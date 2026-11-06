@@ -46,6 +46,7 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
@@ -111,6 +112,8 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
+    public static final Identifier FERRYMAN_ID = FerrymanRules.ROLE_ID;
+    public static final Identifier LOST_SOUL_ID = SparkWitch.id("lost_soul");
     public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
     public static final Identifier ATHLETE_ID = AthleteRules.ROLE_ID;
     public static final Identifier DISCOVERER_ID = DiscovererRules.ROLE_ID;
@@ -161,6 +164,8 @@ public final class SparkWitchRoleRegistry {
     private static Role bewitched;
     private static Role usec;
     private static Role knight;
+    private static Role ferryman;
+    private static Role lostSoul;
     private static Role recruit;
     private static Role athlete;
     private static Role discoverer;
@@ -429,6 +434,16 @@ public final class SparkWitchRoleRegistry {
     public static Role knight() {
         ensureRegistered();
         return knight;
+    }
+
+    public static Role ferryman() {
+        ensureRegistered();
+        return ferryman;
+    }
+
+    public static Role lostSoul() {
+        ensureRegistered();
+        return lostSoul;
     }
 
     public static Role recruit() {
@@ -958,6 +973,27 @@ public final class SparkWitchRoleRegistry {
         // 追加在最后以保持既有注册顺序不变；嘉豪阵营成员（原生 Wathe JIAHAO），参数与黑警相同（伪装情绪但有任务、平民体力、
         // 可见回合时间）。从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole。
+        // The Charon and its Lost Souls. Registered before the Insider (nothing may follow the Insider): a
+        // Wathe-native neutral with the Fiend's stance (FAKE mood, no tasks, no round clock), drawn from MIN_PLAYERS up.
+        // The pardon, the ferry, the marks, the feign death and the Soul Moment live in roles/neutral/ferryman.
+        // Never Witch-skill roles: kept out of isRegisteredSparkWitchRole.
+        ferryman = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FERRYMAN_ID, FactionIds.NEUTRAL)
+                .color(FerrymanRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> context.getTotalPlayerCount() >= FerrymanRules.MIN_PLAYERS)
+                .build());
+        // Lost Soul: never drawn on its own; the Soul Moment assigns it to bodies the Charon already ferried.
+        lostSoul = SparkFactionApi.registerRole(FactionRoleDefinition.builder(LOST_SOUL_ID, FactionIds.NEUTRAL)
+                .color(0x7FB2C9)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> false)
+                .build());
         insider = SparkFactionApi.registerRole(FactionRoleDefinition.builder(INSIDER_ID, SparkWitchFactions.JIAHAO)
                 .color(InsiderRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -1051,6 +1087,7 @@ public final class SparkWitchRoleRegistry {
                 knight,
                 fiend,
                 insider,
+                ferryman,
                 stowaway,
                 schrodingersCat,
                 windSpirit,
