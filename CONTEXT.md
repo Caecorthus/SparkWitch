@@ -1551,8 +1551,44 @@ Current build baseline:
     and a disconnect from a live round strip too. `SparkWitchItemCooldownNominals` lists the M32A1 (20 ticks).
   - Smoke (`bear/smoke/`, `client/bear/smoke/`): the finished volumetric smoke spike; `SmokeCloudService`
     (`spawn`, `carveHole`, `carveTunnel`, `clearAll`) is the only server entry and smoke never feeds a server rule.
-  - Open (later packages): launcher (WP1), helmet (WP2), ricochet and ranged instrumentation (WP3), headset slot and
-    hearing (WP4), smoke tunnels and the thermal mask (WP5), art, sounds and the cross-repo seams (WP6).
+  - Ricochet (WP3, `bear/ricochet/`, `client/bear/ricochet/`): `mixin/bear/RicochetKillPlayerMixin` (HEAD of Wathe's
+    5-arg `killPlayer`, priority 1050: after every default-1000 immunity guard, before the Fiend / SparkStrength vest
+    at 1100, every `KillPlayer.BEFORE` listener, psycho armour, Tofana and the Cat) calls
+    `BearRicochetService.interceptKill`: a non-forced kill of a living participant WEARING the Rys-T in the head slot
+    (D1) by someone else for a reason in `BearRicochetRules.RANGED_REASONS` (D2; blasts in `BLAST_REASONS`) rolls
+    `RICOCHET_CHANCE` once per shot (`RicochetMemo`, key victim + killer + reason + server tick + origin, so Heavy
+    Artillery's and Second Strike's re-entries reuse it); visor up + origin in the head-yaw front hemisphere (D3)
+    never rolls. A ricochet only cancels the kill: the shooter's innocent-shot punishment and mood loss (decided before
+    `killPlayer` in Wathe's receiver and USEC's `killAndPunish`) stay, kill-time effects (Conscience, Q4) do not
+    fire, TR survivor debuffs still apply (Q3). Origin order (`BearRicochetRules.resolveOrigin`): an open
+    `RangedOriginScope` (its unknown scope stays unknown, `isOpen()` added for this), else for blasts SparkStrength's
+    `AttackOriginScope.currentBlast()` by reflection (`SparkStrengthBlastOrigin`, fail = unknown), else for direct
+    fire the killer's eye; unknown or within 0.3 blocks of the wearer is "not front". Scopes are pushed only where
+    the origin is not the killer's eye: TR (blast centre), shuriken and crimson skull (position − velocity), the
+    Magician puppet kill (puppet eye), the Wathe grenade (`GrenadeEntityOriginSmokeCarveMixin`, `@WrapMethod
+    onCollision`) and the NR throwing axe (`ThrowingAxeRangedOriginMixin`); the revolver family, shotgun, USEC,
+    Death Ray, Demon Hunter and backblast (not in `BLAST_REASONS`) use the killer's eye, which is their muzzle. Effects: a glass hit (visor down + front, D4) writes a crack on the worn stack
+    (`RysTVisorCracks`, a stand-in for WP2's `glassPoint`/`addCrack`); the public `bear.rys_t.ricochet` or
+    `bear.rys_t.visor_hit` at the helmet (volume 1.5 ≈ 24 blocks) with crit sparks (+ glass shards); S2C
+    `sparkwitch:bear_rys_t_ricochet` (`RysTRicochetS2CPayload`: unit direction toward the origin or zero, glass flag)
+    to the wearer only, which runs `RysTDazeClient`: a camera-only jolt away from the shot
+    (`client/mixin/bear/RicochetDazeCameraMixin`, `tiltViewWhenHurt` RETURN) and a fading double-vision ghost of the
+    frame under the HUD (`RicochetDazeHudMixin`, `InGameHud.render` HEAD priority 1100, `RysTDazeGhostRenderer`,
+    disables itself on any GL error), both scaled by vanilla Distortion Effects, no flash; listener-relative tinnitus
+    and `BearHearingClient.muffle(MUFFLE_TICKS, MUFFLE_VOLUME)`.
+  - Smoke carving at ranged sources (WP3, `RangedSmokeCarve`; visual only): `carveTunnel(…, 0.35)` on the revolver
+    family (`GunShootPayloadSmokeCarveMixin` at the receiver's `recordItemUse`: eye to the entry on the target's
+    lag-compensated boxes, or the server look ray clipped by blocks), the Demon Hunter (`DemonHunterShotSmokeCarveMixin`),
+    the Magician puppet revolver, every shotgun pellet `Aim`, the AXMC polyline to its stop, the Death Ray and the
+    backblast lane (r 0.5); `carveHole` at the Wathe grenade 3, firecracker 1.5 (`FirecrackerSmokeCarveMixin`, its
+    only `discard()` in `tick`), NR bomb 3 at the carrier + 0.5 y (`BomberExplosionSmokeCarveMixin`, HEAD priority 900,
+    before SparkTraits' Conscience-bomb cancel; no origin scope, so the bomb stays "at the victim"), potion shell
+    `PotionBlastRings.half(size)`, Holy Flash 3, Mini Wither 1 and every vanilla `ServerWorld.createExplosion` = power
+    (`ServerWorldExplosionSmokeCarveMixin`). SparkStrength's M67 and drone use `SparkWitchApi.carveSmoke`. The
+    Wathe/NoellesRoles-facing selectors (and the 1050 / 900 priorities) are pinned on the shipped jar by
+    `watheCommonMixinContracts` in `verifyClientMixinSelectors`.
+  - Open (later packages): launcher (WP1), helmet (WP2), headset slot and hearing (WP4), smoke tunnels and the
+    thermal mask (WP5), art, sounds and the cross-repo seams (WP6).
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation
@@ -4658,6 +4694,9 @@ Client mixin changes also need `verifyClientMixinSelectors`, a standalone task t
 (`build.gradle`) it checks the selector and `@At` target the remapped jar actually ships against the
 pinned Wathe and NoellesRoles jars, and fails on a missing handler or provider method, selector
 drift, or an injection weakened to `require = 0`.
+Since BEAR WP3 (2026-11-05) the same task also checks `watheCommonMixinContracts`: common mixins on Wathe or
+NoellesRoles members against the shipped `sparkwitch.mixins.json` `mixins` list, plus an optional pinned class-level
+`@Mixin` priority where HEAD order is part of the contract.
 
 `verifyArchitecture` first runs `verifyBlackRavenActingRoleSeams`, which you can also run on its
 own.

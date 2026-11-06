@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastContext;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastHit;
+import dev.caecorthus.sparkwitch.util.hitscan.RangedOriginScope;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
 
@@ -32,7 +33,9 @@ public final class TrShellEffect {
                 continue;
             }
             ServerPlayerEntity killer = TrShellEffectRules.killer(gunner, PotionShellTargets.isSelf(context, hit));
-            GameFunctions.killPlayer(target, true, killer, SparkWitchDeathReasons.POTION_SHELL);
+            RangedOriginScope.run(context.center(), () -> { // BEAR: blast-centre origin / 爆心来源
+                GameFunctions.killPlayer(target, true, killer, SparkWitchDeathReasons.POTION_SHELL);
+            });
             if (TrShellEffectRules.needsFallback(livingBefore, PotionShellTargets.isLiving(target))) {
                 PotionShellDebuff.apply(target, PotionGunnerRules.TR_FALLBACK_TICKS, killer);
                 PotionShellBurn.ignite(target, PotionGunnerRules.TR_FALLBACK_TICKS);

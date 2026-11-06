@@ -262,7 +262,15 @@
     "dominator.GameFunctionsDominatorLetterMixin",
     "accountant.DecoratedPotBlockAccountantPassbookMixin",
     "bear.GameFunctionsBearItemDropMixin",
-    "bear.PlayerEntityBearItemMixin"
+    "bear.PlayerEntityBearItemMixin",
+    "bear.RicochetKillPlayerMixin",
+    "bear.GunShootPayloadSmokeCarveMixin",
+    "bear.DemonHunterShotSmokeCarveMixin",
+    "bear.GrenadeEntityOriginSmokeCarveMixin",
+    "bear.FirecrackerSmokeCarveMixin",
+    "bear.BomberExplosionSmokeCarveMixin",
+    "bear.ThrowingAxeRangedOriginMixin",
+    "bear.ServerWorldExplosionSmokeCarveMixin"
   ],
   "injectors": {
     "defaultRequire": 1

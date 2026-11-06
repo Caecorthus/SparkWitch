@@ -1,5 +1,8 @@
 package dev.caecorthus.sparkwitch.roles.civilian.bear.net;
 
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.RysTRicochetS2CPayload;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+
 /**
  * BEAR payload-type registration hub (the smoke payloads stay in {@code bear.smoke.net.SmokeNetworking}): the single
  * line in {@code SparkWitchPackets}, placed right before USEC's (USEC stays last). Work packages register their
@@ -18,5 +21,7 @@ public final class BearNetworking {
             return;
         }
         registered = true;
+        // WP3: the wearer's ricochet daze (S2C, presentation only). / WP3：佩戴者的跳弹眩晕（S2C，纯表现）。
+        PayloadTypeRegistry.playS2C().register(RysTRicochetS2CPayload.ID, RysTRicochetS2CPayload.CODEC);
     }
 }

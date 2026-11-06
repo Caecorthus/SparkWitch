@@ -62,6 +62,16 @@ public final class RangedOriginScope {
         return scopes != null && scopes.peek() instanceof Vec3d origin ? origin : null;
     }
 
+    /**
+     * Added by BEAR WP3: whether any scope, known or unknown, is open on this thread. An open unknown-origin scope must
+     * stop the ricochet hook from falling back to the shooter's eye. / BEAR WP3 新增：本线程是否打开了任何作用域（已知或
+     * 未知）。打开的“来源未知”作用域必须阻止跳弹钩子回退到射手眼睛。
+     */
+    public static boolean isOpen() {
+        ArrayDeque<Object> scopes = SCOPES.get();
+        return scopes != null && !scopes.isEmpty();
+    }
+
     private static boolean isFinite(@Nullable Vec3d origin) {
         return origin != null && Double.isFinite(origin.x) && Double.isFinite(origin.y) && Double.isFinite(origin.z);
     }

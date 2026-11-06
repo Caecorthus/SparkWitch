@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.bear;
 
+import dev.caecorthus.sparkwitch.client.bear.ricochet.RysTDazeClient;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.BearEntities;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
@@ -25,6 +26,8 @@ public final class BearClientModule {
         }
         registered = true;
         dev.caecorthus.sparkwitch.client.bear.helmet.RysTHelmetClient.register();
+        // WP3: Rys-T ricochet daze (jolt, double vision, tinnitus, muffle). / WP3：Rys-T 跳弹眩晕（震动、重影、耳鸣、发闷）。
+        RysTDazeClient.register();
     }
 
     /**
