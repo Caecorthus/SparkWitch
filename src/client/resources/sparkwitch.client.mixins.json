@@ -222,7 +222,9 @@
     "bear.SmokeOutlineDepthMixin",
     "bear.SmokeRoleNameRaycastMixin",
     "bear.SmokeIrisFinalPassMixin",
-    "bear.SmokeOutlineVetoMixin"
+    "bear.SmokeOutlineVetoMixin",
+    "bear.RicochetDazeCameraMixin",
+    "bear.RicochetDazeHudMixin"
   ],
   "injectors": {
     "defaultRequire": 1

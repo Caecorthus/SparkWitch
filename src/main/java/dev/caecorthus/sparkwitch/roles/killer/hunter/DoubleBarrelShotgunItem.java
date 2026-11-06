@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
 import dev.caecorthus.sparkwitch.compat.SparkStrengthJunctionBoxCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.RangedSmokeCarve;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
@@ -165,6 +166,7 @@ public final class DoubleBarrelShotgunItem extends Item {
         for (int index = 0; index < aims.size(); index++) {
             rays.add(readRay(shooter, aims.get(index), HunterShotgunAim.claimForRay(claim, aims.size(), index)));
         }
+        aims.forEach(aim -> RangedSmokeCarve.ray(shooter.getWorld(), aim.eye(), aim.end())); // BEAR: pellet tunnels / 弹丸通道
 
         RayOutcome centre = rays.get(0);
         boolean sparkStrengthAbsorbed = false;
