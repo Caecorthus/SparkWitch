@@ -72,17 +72,20 @@ public final class RysTVisorOverlay {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         context.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        context.drawTexture(OVERLAY_TEXTURE, 0, 0, OVERLAY_Z, 0.0F, 0.0F, width, height, width, height);
+        // Cracks first, then the overlay over them: the frame's soft edge fades a crack out where it leaves the glass.
+        // 先画裂纹再盖上遮罩：裂纹离开玻璃处由面框的柔和边缘渐隐。
         if (!visor.cracks().isEmpty()) {
             drawCracks(context, visor, RysTVisorOverlayLayout.window(width, height),
-                    RysTVisorOverlayLayout.decalSize(height));
+                    RysTVisorOverlayLayout.decalSize(height), width, height);
         }
+        context.drawTexture(OVERLAY_TEXTURE, 0, 0, OVERLAY_Z, 0.0F, 0.0F, width, height, width, height);
         RenderSystem.disableBlend();
         RenderSystem.depthMask(true);
         RenderSystem.enableDepthTest();
     }
 
-    private static void drawCracks(DrawContext context, RysTVisor visor, Window window, int size) {
+    private static void drawCracks(DrawContext context, RysTVisor visor, Window window, int size, int width,
+                                   int height) {
         if (window.width() <= 0 || window.height() <= 0) {
             return;
         }
@@ -90,7 +93,8 @@ public final class RysTVisorOverlay {
         int cell = RysTVisorOverlayLayout.ATLAS_CELL;
         int atlasWidth = cell * RysTVisorOverlayLayout.ATLAS_COLUMNS;
         int atlasHeight = cell * RysTVisorOverlayLayout.ATLAS_ROWS;
-        context.enableScissor(window.x0(), window.y0(), window.x1(), window.y1());
+        Window clip = RysTVisorOverlayLayout.crackClip(window, width, height);
+        context.enableScissor(clip.x0(), clip.y0(), clip.x1(), clip.y1());
         MatrixStack matrices = context.getMatrices();
         for (VisorCrack crack : visor.cracks()) {
             matrices.push();

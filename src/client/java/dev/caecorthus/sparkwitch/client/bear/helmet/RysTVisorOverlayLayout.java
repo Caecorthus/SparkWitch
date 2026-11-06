@@ -5,15 +5,19 @@ import dev.caecorthus.sparkwitch.roles.civilian.bear.helmet.RysTVisorGeometry;
 /**
  * Pure layout of the visor-down overlay (Astra art handoff 2026-11-06, "Overlay integration"): the overlay texture is
  * stretched over the whole scaled window like vanilla's pumpkin blur, the glass window is a fixed rectangle in
- * normalised screen coordinates (the nominal soft-edge boundary of the chosen art {@link Option} and the exact crack
- * clipping rectangle), and each crack decal is a square of {@link #DECAL_SIZE} x the screen height centred at the
- * crack's (u, v) inside the window, rotated by its angle and clipped to the window. The crack atlas is 4 x 2 cells
+ * normalised screen coordinates (the nominal soft-edge boundary of the chosen art {@link Option}, where u/v place a
+ * crack), and each crack decal is a square of {@link #DECAL_SIZE} x the screen height centred at the crack's (u, v)
+ * inside the window, rotated by its angle, clipped to {@link #crackClip} (the window grown by {@link #CLIP_MARGIN} of
+ * the screen height above and below, full width) and drawn UNDER the overlay, so the overlay's soft frame fades the
+ * cracks out instead of a straight scissor edge. The crack atlas is 4 x 2 cells
  * (any resolution; UVs are taken in cell units). The window numbers here are the single source of truth for the
  * shipped texture: switching to {@link Option#C2} is the {@link #OPTION} line plus the art package's
  * {@code visor_overlay_c2.png} copied over {@code visor_overlay.png}.
  * 面罩放下遮罩的纯布局（Astra 美术交付 2026-11-06，“Overlay integration”）：遮罩贴图像原版南瓜模糊一样拉伸铺满整个缩放窗口；
- * 玻璃视窗是归一化屏幕坐标中的固定矩形（所选美术方案 {@link Option} 柔和边缘的名义边界，也是裂纹裁剪的精确矩形）；每个裂纹贴花是
- * 边长为屏幕高度 × {@link #DECAL_SIZE} 的正方形，以裂纹 (u, v) 在视窗内的位置为中心，按其角度旋转并裁剪到视窗内。裂纹图集为
+ * 玻璃视窗是归一化屏幕坐标中的固定矩形（所选美术方案 {@link Option} 柔和边缘的名义边界，u/v 按它定位裂纹）；每个裂纹贴花是
+ * 边长为屏幕高度 × {@link #DECAL_SIZE} 的正方形，以裂纹 (u, v) 在视窗内的位置为中心，按其角度旋转，裁剪到 {@link #crackClip}
+ * （视窗上下各扩大屏幕高度的 {@link #CLIP_MARGIN}、横向铺满），并画在遮罩之下，由遮罩的柔和边框把裂纹渐隐，而不是一条笔直的
+ * 裁剪边。裂纹图集为
  * 4 × 2 格（任意分辨率；UV 以格为单位）。这里的视窗数值是随包贴图的唯一依据：切换到 {@link Option#C2} 只需改 {@link #OPTION}
  * 一行，并用美术包的 {@code visor_overlay_c2.png} 覆盖 {@code visor_overlay.png}。
  */
@@ -43,8 +47,17 @@ public final class RysTVisorOverlayLayout {
 
     /** The shipped option (must match {@code textures/gui/bear/visor_overlay.png}). / 随包方案（须与贴图一致）。 */
     public static final Option OPTION = Option.C1;
-    /** Crack decal edge as a fraction of the screen height. / 裂纹贴花边长占屏幕高度的比例。 */
-    public static final float DECAL_SIZE = 0.26F;
+    /**
+     * Crack decal edge as a fraction of the screen height: Tarkov-sized hits whose long radial cracks run across much of
+     * the glass (art v4). / 裂纹贴花边长占屏幕高度的比例：按塔科夫的大小，长放射裂纹能延伸到大半块玻璃（美术 v4）。
+     */
+    public static final float DECAL_SIZE = 0.75F;
+    /**
+     * How far past the window's top and bottom cracks may still be drawn, as a fraction of the screen height; there the
+     * overlay is already almost opaque (C1: about 87% at the clip edge). / 裂纹可越过视窗上下边缘继续绘制的距离（占屏幕
+     * 高度的比例）；该处遮罩已接近不透明（C1 在裁剪边缘约 87%）。
+     */
+    public static final float CLIP_MARGIN = 0.10F;
     public static final int ATLAS_COLUMNS = 4;
     public static final int ATLAS_ROWS = 2;
     /** Nominal cell size used for UV math (the PNG may be any multiple). / UV 计算所用的名义格尺寸（PNG 可为任意倍数）。 */
@@ -71,6 +84,16 @@ public final class RysTVisorOverlayLayout {
     public static Window window(Option option, int screenWidth, int screenHeight) {
         return new Window(Math.round(option.x0 * screenWidth), Math.round(option.y0 * screenHeight),
                 Math.round(option.x1 * screenWidth), Math.round(option.y1 * screenHeight));
+    }
+
+    /**
+     * Scissor rectangle for the crack decals: the window grown by {@link #CLIP_MARGIN} above and below, full screen
+     * width. / 裂纹贴花的裁剪矩形：视窗上下各扩大 {@link #CLIP_MARGIN}，横向为整个屏幕宽度。
+     */
+    public static Window crackClip(Window window, int screenWidth, int screenHeight) {
+        int margin = Math.round(CLIP_MARGIN * screenHeight);
+        return new Window(0, Math.max(0, window.y0() - margin), screenWidth,
+                Math.min(screenHeight, window.y1() + margin));
     }
 
     /** Crack centre x for glass {@code u}. / 玻璃 {@code u} 对应的裂纹中心 x。 */
