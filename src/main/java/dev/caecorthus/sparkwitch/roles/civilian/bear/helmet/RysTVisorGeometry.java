@@ -29,14 +29,15 @@ public final class RysTVisorGeometry {
     public static final int CRACK_STYLE_COUNT = 6;
 
     /**
-     * Visor-down glass, head-model pixels: the 8 x 4 window x 4..12, y 5.5..9.5 (half the face height, the eye line in
-     * its middle), recessed half a unit in the frame (art v4, 2026-11-06). / 面罩放下时的玻璃（头部模型像素）：8 × 4 的
-     * 玻璃窗 x 4..12、y 5.5..9.5（占脸高一半，视线位于正中），嵌入面框半个单位（美术 v4，2026-11-06）。
+     * Visor-down glass, head-model pixels: the 8 x 3 window x 4..12, y 6..9 (the eye row y 7..8 in its middle, the
+     * bottom edge above the mouth row y 5..6), recessed half a unit in one-unit rims (art v6, 2026-11-06).
+     * 面罩放下时的玻璃（头部模型像素）：8 × 3 的玻璃窗 x 4..12、y 6..9（眼睛那一行 y 7..8 位于正中，下沿在嘴那一行 y 5..6
+     * 之上），嵌在一个单位宽的框边内半个单位（美术 v6，2026-11-06）。
      */
     public static final float GLASS_MIN_X = 4.0F;
     public static final float GLASS_MAX_X = 12.0F;
-    public static final float GLASS_MIN_Y = 5.5F;
-    public static final float GLASS_MAX_Y = 9.5F;
+    public static final float GLASS_MIN_Y = 6.0F;
+    public static final float GLASS_MAX_Y = 9.0F;
     /** The glass's outer (north) face. / 玻璃外侧（北面）。 */
     public static final float GLASS_FACE_Z = 1.5F;
     /** The eye (camera) in head-model pixels: head centre, on the eye line. / 眼睛（相机）位置：头部中心、视线高度。 */
