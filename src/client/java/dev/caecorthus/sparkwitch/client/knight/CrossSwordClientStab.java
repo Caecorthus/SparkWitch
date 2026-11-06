@@ -7,7 +7,6 @@ import dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldCompo
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.item.ItemStack;
@@ -19,11 +18,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 /**
- * Client target pick for the cross sword. {@link #aimedDuelTarget} is the one selector: the release sender and the
- * Wathe crosshair both use it, so the knife reticle shows exactly when a release would send a stab. The duel state is
- * read only from the auto-synced {@link KnightDuelWorldComponent}; the server revalidates every stab.
- * 十字剑的客户端选靶。{@link #aimedDuelTarget} 是唯一的选靶方法：松手发送与 Wathe 准星共用，因此刀准星出现的时刻
- * 恰好就是松手会发送刺击的时刻。决斗状态只读取自动同步的 {@link KnightDuelWorldComponent}；服务端会重新校验每次刺击。
+ * Client target pick for the cross sword. {@link #aimedDuelTarget} is the one selector: the release sender uses it, and
+ * the Wathe crosshair gates on it, so the knife reticle appears whenever the duel target is within knife reach (the
+ * release additionally requires the 11-tick hold). The duel state is read only from the auto-synced
+ * {@link KnightDuelWorldComponent}; the server revalidates every stab.
+ * 十字剑的客户端选靶。{@link #aimedDuelTarget} 是唯一的选靶方法：松手发送使用它，Wathe 准星也以它为准，因此决斗目标
+ * 进入刀距时刀准星就会出现（松手还须举满 11 tick）。决斗状态只读取自动同步的 {@link KnightDuelWorldComponent}；服务端
+ * 会重新校验每次刺击。
  */
 public final class CrossSwordClientStab {
     private CrossSwordClientStab() {
@@ -48,21 +49,6 @@ public final class CrossSwordClientStab {
                 CrossSwordItem.STAB_RANGE);
         return hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof PlayerEntity target
                 ? target : null;
-    }
-
-    /**
-     * Crosshair gate: the local player is raising the main-hand cross sword long enough and has the target in reach.
-     * 准星门槛：本地玩家正以主手举起十字剑且已举够时长，目标在可刺范围内。
-     */
-    public static boolean canStabNow(ItemStack mainHandStack) {
-        ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        if (player == null || player.isSpectator() || !mainHandStack.isOf(SparkWitchItems.crossSword())
-                || !player.isUsingItem() || player.getActiveHand() != Hand.MAIN_HAND
-                || player.getActiveItem() != mainHandStack) {
-            return false;
-        }
-        int heldTicks = mainHandStack.getMaxUseTime(player) - player.getItemUseTimeLeft();
-        return CrossSwordItem.qualifiedHold(heldTicks) && aimedDuelTarget(player) != null;
     }
 
     /**

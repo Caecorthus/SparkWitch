@@ -80,8 +80,11 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.usecFmjRound(),
                                     SparkWitchItems.usecApRound(),
                                     SparkWitchItems.usecSuppressor(),
-                                    // Knight (civilian police) / 骑士（平民警察）
-                                    SparkWitchItems.crossSword(),
+                                    // NoellesRoles Attendant's Spare Key (civilian) / NoellesRoles 乘务员的备用钥匙（平民）
+                                    SparkWitchItems.spareKey(),
+                                    SparkWitchItems.bigDogPortrait(),
+                                    // Accountant's passbook (civilian) / 会计的存折（平民）
+                                    SparkWitchItems.accountantPassbook(),
                                     // Black Raven (civilian police) / 黑羽鸦（平民警察）
                                     SparkWitchItems.featherBlade(),
                                     SparkWitchItems.blackRavenLedger(),
@@ -105,13 +108,16 @@ public final class SparkWitchItemGroups {
                             );
                             factionOrder.forEach(entries::add);
                             // Any other item in our namespace follows in registration order, so new items join automatically.
-                            // Operator-only items are the exception: they live in vanilla's Operator Utilities tab only.
+                            // Operator-only items are the exception: they live in vanilla's Operator Utilities tab only;
+                            // hidden items stay out of creative entirely.
                             // 本模组命名空间下的其他物品按注册顺序追加在后，新增物品无需再手动加入。
-                            // 管理员专用物品例外：只放在原版「管理员用品」物品栏。
+                            // 管理员专用物品例外：只放在原版「管理员用品」物品栏；隐藏物品则完全不出现在创造模式物品栏。
                             List<Item> operatorOnly = operatorOnlyItems();
+                            List<Item> creativeHidden = creativeHiddenItems();
                             for (Item item : Registries.ITEM) {
                                 if (SparkWitch.MOD_ID.equals(Registries.ITEM.getId(item).getNamespace())
-                                        && !factionOrder.contains(item) && !operatorOnly.contains(item)) {
+                                        && !factionOrder.contains(item) && !operatorOnly.contains(item)
+                                        && !creativeHidden.contains(item)) {
                                     // The display-only Homing Feather is never obtainable. / 仅用于显示的归羽永不可获得。
                                     if (!BlackRavenFeatherRegistry.isHomingFeather(item)) {
                                         entries.add(item);
@@ -131,5 +137,15 @@ public final class SparkWitchItemGroups {
     /** SparkWitch items kept out of the SparkWitch tab and listed under Operator Utilities. / 管理员专用物品。 */
     private static List<Item> operatorOnlyItems() {
         return List.of(SparkWitchItems.riftGateRemover());
+    }
+
+    /**
+     * Items hidden from the creative tab (owner decision 2026-11-02): the Cross Sword is a duel-only Knight weapon,
+     * still granted by the Knight loadout and obtainable with commands, but no longer browsable in creative.
+     * 不显示在创造模式物品栏的物品（所有者 2026-11-02 决定）：十字剑是仅用于决斗的骑士武器，仍由骑士开局发放并可用命令
+     * 获取，但不再在创造模式中浏览。
+     */
+    private static List<Item> creativeHiddenItems() {
+        return List.of(SparkWitchItems.crossSword());
     }
 }

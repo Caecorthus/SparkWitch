@@ -26,13 +26,13 @@ import java.util.function.BooleanSupplier;
 
 /**
  * Server-only blast targeting, grenade rules plus line of sight. A candidate is a living round participant in
- * survival/adventure whose feet lie in the N×N×N cube ({@link PotionBlastRings#inCube}) with a clear COLLIDER segment
+ * survival/adventure whose body overlaps the N×N×N cube ({@link PotionBlastRings#inCube}) with a clear COLLIDER segment
  * from the blast centre to its feet, body centre or eye (closed doors block). Factions use the target's real
  * SparkFactionAPI effective faction, never the Black Raven {@code isRole} overlay; an unknown faction counts as an
  * ally (fail closed). GW-DK/AC/MR drop allies and the gunner; TR keeps everyone and flags them. Every non-self target
  * also needs the online gunner's SparkFactionAPI affect permission ({@link PotionGunnerRules#BLAST_ACTION}: Wraith
  * isolation) and Vendetta exact-pair isolation; an offline gunner vetoes nobody, the faction filter still applies.
- * 仅服务端的爆炸目标判定：手雷规则加视线。候选者为生存/冒险模式、存活的对局参与者，其脚下位于 N×N×N 立方体内，
+ * 仅服务端的爆炸目标判定：手雷规则加视线。候选者为生存/冒险模式、存活的对局参与者，其身体与 N×N×N 立方体重叠，
  * 且爆心到其脚部、身体中心或眼睛至少一条 COLLIDER 线段无遮挡（关闭的门会挡住）。阵营取目标真实的 SparkFactionAPI 有效阵营，
  * 绝不使用黑羽鸦 {@code isRole} 伪装覆盖；阵营未知按己方处理（失败关闭）。GW-DK/AC/MR 排除己方与药炮手本人；TR 保留所有人
  * 并加以标记。每个非本人目标还须通过在线药炮手的 SparkFactionAPI 影响许可（冤魂隔离）与复仇者精确配对隔离；
@@ -55,8 +55,7 @@ public final class PotionBlastResolver {
             double dx = target.getX() - center.x;
             double dz = target.getZ() - center.z;
             Box box = target.getBoundingBox();
-            if (!PotionBlastRings.inCube(size, dx, dz, box.minY - center.y, box.maxY - center.y)
-                    || !hasLineOfSight(world, center, target)) {
+            if (!inCube(size, box, center) || !hasLineOfSight(world, center, target)) {
                 continue;
             }
             boolean self = isSelf(gunnerUuid, target.getUuid());
@@ -76,10 +75,10 @@ public final class PotionBlastResolver {
 
     /**
      * Raven Form seam (plan v2 §2.5): only the lethal TR shell catches a crow. The player rule is measured at the crow
-     * (its feet and box in the cube, a clear line to its feet, centre or eye) and judged on its owner (liveness,
+     * (its box overlapping the cube, a clear line to its feet, centre or eye) and judged on its owner (liveness,
      * faction flags, the gunner's permission); the hit carries the substituted owner, so TR's own kill, ally flag and
      * reward apply to the Black Raven as if it stood there. The gunner's own crow and an owner whose body is already
-     * caught are skipped. / 化鸦接缝（计划 v2 §2.5）：只有致命的 TR 炮弹会波及乌鸦。玩家规则在乌鸦处量取（其脚下与箱体位于立方体内，
+     * caught are skipped. / 化鸦接缝（计划 v2 §2.5）：只有致命的 TR 炮弹会波及乌鸦。玩家规则在乌鸦处量取（其箱体与立方体重叠，
      * 到其脚部、中心或眼睛的视线畅通），并以其主人判定（存活、阵营标记、药炮手许可）；命中记录的是被替身的主人，因此 TR 自身的击杀、
      * 己方标记与奖励如同黑羽鸦站在该处一样生效。跳过药炮手自己的乌鸦，以及本体已被波及的主人。
      */
@@ -96,8 +95,7 @@ public final class PotionBlastResolver {
             double dx = entity.getX() - center.x;
             double dz = entity.getZ() - center.z;
             Box box = entity.getBoundingBox();
-            if (!PotionBlastRings.inCube(size, dx, dz, box.minY - center.y, box.maxY - center.y)
-                    || !hasLineOfSight(world, center, entity)) {
+            if (!inCube(size, box, center) || !hasLineOfSight(world, center, entity)) {
                 continue;
             }
             boolean ally = isAlly(SparkFactionApi.resolveEffectiveFaction(owner, game));
@@ -149,6 +147,12 @@ public final class PotionBlastResolver {
     private static boolean isCandidate(PlayerEntity player) {
         return GameFunctions.isPlayerAliveAndSurvival(player) && GameFunctions.isPlayerPlayingAndAlive(player)
                 && !SparkTraitsKillerBridge.isLastEscapeActive(player);
+    }
+
+    /** Any part of {@code box} is in the cube around {@code center}. / {@code box} 任一部分位于爆心周围的立方体内。 */
+    public static boolean inCube(int size, Box box, Vec3d center) {
+        return PotionBlastRings.inCube(size, box.minX - center.x, box.maxX - center.x, box.minZ - center.z,
+                box.maxZ - center.z, box.minY - center.y, box.maxY - center.y);
     }
 
     private static boolean hasLineOfSight(ServerWorld world, Vec3d center, Entity target) {

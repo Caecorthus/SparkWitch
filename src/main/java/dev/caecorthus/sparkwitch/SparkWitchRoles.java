@@ -19,6 +19,7 @@ public final class SparkWitchRoles {
     public static final Identifier NINJA_ID = SparkWitchRoleRegistry.NINJA_ID;
     public static final Identifier BLACK_RAVEN_ID = SparkWitchRoleRegistry.BLACK_RAVEN_ID;
     public static final Identifier HUNTER_ID = SparkWitchRoleRegistry.HUNTER_ID;
+    public static final Identifier DOMINATOR_ID = SparkWitchRoleRegistry.DOMINATOR_ID;
     public static final Identifier ORTHOPEDIST_ID = SparkWitchRoleRegistry.ORTHOPEDIST_ID;
     public static final Identifier KIDNAPPER_ID = SparkWitchRoleRegistry.KIDNAPPER_ID;
     public static final Identifier MAGICIAN_ID = SparkWitchRoleRegistry.MAGICIAN_ID;
@@ -38,6 +39,8 @@ public final class SparkWitchRoles {
     public static final Identifier FISHER_ID = SparkWitchRoleRegistry.FISHER_ID;
     public static final Identifier BLIND_ID = SparkWitchRoleRegistry.BLIND_ID;
     public static final Identifier FIEND_ID = SparkWitchRoleRegistry.FIEND_ID;
+    public static final Identifier STOWAWAY_ID = SparkWitchRoleRegistry.STOWAWAY_ID;
+    public static final Identifier SCHRODINGERS_CAT_ID = SparkWitchRoleRegistry.SCHRODINGERS_CAT_ID;
     public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
     public static final Identifier ABYSS_LISTENER_ID = SparkWitchRoleRegistry.ABYSS_LISTENER_ID;
     public static final Identifier POTION_GUNNER_ID = SparkWitchRoleRegistry.POTION_GUNNER_ID;
@@ -47,6 +50,13 @@ public final class SparkWitchRoles {
     public static final Identifier KNIGHT_ID = SparkWitchRoleRegistry.KNIGHT_ID;
     public static final Identifier FERRYMAN_ID = SparkWitchRoleRegistry.FERRYMAN_ID;
     public static final Identifier LOST_SOUL_ID = SparkWitchRoleRegistry.LOST_SOUL_ID;
+
+    public static final Identifier RECRUIT_ID = SparkWitchRoleRegistry.RECRUIT_ID;
+    public static final Identifier ATHLETE_ID = SparkWitchRoleRegistry.ATHLETE_ID;
+    public static final Identifier DISCOVERER_ID = SparkWitchRoleRegistry.DISCOVERER_ID;
+    public static final Identifier NOA_ID = SparkWitchRoleRegistry.NOA_ID;
+    public static final Identifier RAGPICKER_ID = SparkWitchRoleRegistry.RAGPICKER_ID;
+    public static final Identifier ACCOUNTANT_ID = SparkWitchRoleRegistry.ACCOUNTANT_ID;
 
     private SparkWitchRoles() {
     }
@@ -185,6 +195,14 @@ public final class SparkWitchRoles {
         return SparkWitchRoleRegistry.fiend();
     }
 
+    public static Role stowaway() {
+        return SparkWitchRoleRegistry.stowaway();
+    }
+
+    public static Role schrodingersCat() {
+        return SparkWitchRoleRegistry.schrodingersCat();
+    }
+
     public static Role insider() {
         return SparkWitchRoleRegistry.insider();
     }
@@ -215,6 +233,34 @@ public final class SparkWitchRoles {
 
     public static Role lostSoul() {
         return SparkWitchRoleRegistry.lostSoul();
+    }
+
+    public static Role recruit() {
+        return SparkWitchRoleRegistry.recruit();
+    }
+
+    public static Role athlete() {
+        return SparkWitchRoleRegistry.athlete();
+    }
+
+    public static Role discoverer() {
+        return SparkWitchRoleRegistry.discoverer();
+    }
+
+    public static Role noa() {
+        return SparkWitchRoleRegistry.noa();
+    }
+
+    public static Role ragpicker() {
+        return SparkWitchRoleRegistry.ragpicker();
+    }
+
+    public static Role dominator() {
+        return SparkWitchRoleRegistry.dominator();
+    }
+
+    public static Role accountant() {
+        return SparkWitchRoleRegistry.accountant();
     }
 
     public static List<Role> assassinGuessRoles() {

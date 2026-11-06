@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.net;
 
+import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookService;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindAttuneService;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.BlindPulseS2CPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.net.UseBlindAttuneC2SPayload;
@@ -9,9 +10,13 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishStabSe
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaSkillService;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerService;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetProphecyService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotS2CPacket;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.UseDominatorSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPacket;
@@ -85,6 +90,10 @@ public final class SparkWitchPackets {
                 UseOrthopedistSkillC2SPacket.CODEC
         );
         PayloadTypeRegistry.playC2S().register(
+                UseDominatorSkillC2SPacket.ID,
+                UseDominatorSkillC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
                 ThrowKidnapperBodyC2SPacket.ID,
                 ThrowKidnapperBodyC2SPacket.CODEC
         );
@@ -107,6 +116,10 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
                 SparkWitchServerConfirmS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                DominatorForcedShotS2CPacket.ID,
+                DominatorForcedShotS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 TarotDivinationSnapshotS2CPacket.ID,
@@ -154,6 +167,24 @@ public final class SparkWitchPackets {
                 BlindPulseS2CPayload.ID,
                 BlindPulseS2CPayload.CODEC
         );
+        PayloadTypeRegistry.playC2S().register(JunkerSearchC2SPacket.ID, JunkerSearchC2SPacket.CODEC);
+        // Accountant passbook left-click withdraw: a held-item action (not a role skill), on the stun, Seeker and Rift
+        // lists like the potion launcher fire. / 会计存折左键取钱：手持物品操作（不是职业技能），与炮筒开火一样列入眩晕、
+        // 搜寻者与裂隙名单。
+        PayloadTypeRegistry.playC2S().register(AccountantWithdrawC2SPacket.ID, AccountantWithdrawC2SPacket.CODEC);
+        // 夏目安安 (PR #194): the target-menu request, the menu itself, and the confirmed pick.
+        // 夏目安安（PR #194）：目标菜单请求、菜单本身与确认选择。
+        PayloadTypeRegistry.playC2S().register(RequestNatsumeMenuC2SPacket.ID, RequestNatsumeMenuC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(ConfirmNatsumeTargetC2SPacket.ID, ConfirmNatsumeTargetC2SPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(OpenNatsumeMenuS2CPacket.ID, OpenNatsumeMenuS2CPacket.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(RequestNatsumeMenuC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeService
+                                .requestMenu(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmNatsumeTargetC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeService
+                                .cast(context.player(), payload.target())));
         ServerPlayNetworking.registerGlobalReceiver(UseWitchSkillC2SPacket.ID,
                 (payload, context) -> FocusedFootstepsRequestService.use(
                         context.player(), payload.targetUuid()));
@@ -188,6 +219,8 @@ public final class SparkWitchPackets {
                 (payload, context) -> CurserFeatureService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseOrthopedistSkillC2SPacket.ID,
                 (payload, context) -> OrthopedistSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseDominatorSkillC2SPacket.ID,
+                (payload, context) -> DominatorSkillService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(ThrowKidnapperBodyC2SPacket.ID,
                 (payload, context) -> KidnapperThrowService.throwCarriedBody(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseGuardianAngelSkillC2SPacket.ID,
@@ -204,6 +237,10 @@ public final class SparkWitchPackets {
                         context.player(), payload.session(), payload.target()));
         ServerPlayNetworking.registerGlobalReceiver(UseBlindAttuneC2SPayload.ID,
                 (payload, context) -> BlindAttuneService.tryUse(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(JunkerSearchC2SPacket.ID,
+                (payload, context) -> JunkerService.handleSearchRequest(context.player(), payload.bodyUuid()));
+        ServerPlayNetworking.registerGlobalReceiver(AccountantWithdrawC2SPacket.ID,
+                (payload, context) -> AccountantPassbookService.handleWithdrawRequest(context.player()));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {

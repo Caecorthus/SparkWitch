@@ -84,6 +84,10 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
             // Blind Attune (UseBlindAttuneC2SPayload). / 盲人凝神。
             Identifier.of("sparkwitch", "use_blind_attune"),
+            // Noa painting (UseNoaPaintC2SPayload). / 诺亚作画。
+            Identifier.of("sparkwitch", "use_noa_paint"),
+            // Ragpicker corpse search (JunkerSearchC2SPacket, G key). / 拾荒者搜刮尸体（G 键）。
+            Identifier.of("sparkwitch", "ragpicker_search"),
             // Riftwalker gate hop and console close; the occupant's own exit and the console snapshot request stay
             // allowed (leaving must always pass; the request is UI-only). / 隙行者跳门与控制台关门；门内玩家自己的
             // 出门与控制台快照请求放行（出门必须始终放行；快照请求仅为界面用途）。
@@ -91,6 +95,14 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "rift_gate_close"),
             // Fiend Dash (UseFiendDashC2SPayload), moment-only. / 魔人疾驰，仅限时刻中。
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            // Athlete dash (UseAthleteDashC2SPayload). / 运动员冲刺。
+            Identifier.of("sparkwitch", "use_athlete_dash"),
+            // Dominator mark/release (UseDominatorSkillC2SPacket, G key). / 支配者标记/释放（G 键）。
+            Identifier.of("sparkwitch", "use_dominator_skill"),
+            // 夏目安安 hypnosis menu request and target confirm, both halves like the Judge pair.
+            // 夏目安安催眠菜单请求与目标确认，与法官的两个包一样两半都拦截。
+            Identifier.of("sparkwitch", "request_natsume_menu"),
+            Identifier.of("sparkwitch", "confirm_natsume_target"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a
@@ -104,6 +116,11 @@ public final class ControlExpertStunRules {
             // 开镜状态仅为表现，保持放行。
             Identifier.of("sparkwitch", "fire_usec_rifle"),
             Identifier.of("sparkwitch", "usec_attachment"),
+            // Accountant passbook withdraw (AccountantWithdrawC2SPacket, left-click with the passbook): a held-item action
+            // like the launcher and USEC fire; the stun already denies the passbook's right-click item use.
+            // 会计存折取钱（AccountantWithdrawC2SPacket，手持存折左键）：与发射器、USEC 开火同类的手持物品操作；眩晕本已拒绝
+            // 存折的右键物品使用。
+            Identifier.of("sparkwitch", "accountant_withdraw"),
             // Witch Maiden Mini Wither toggle (key 2) and crimson skull fire. / 巫女小凋灵切换（技能键 2）与赤首射击。
             Identifier.of("sparkwitch", "mini_wither_toggle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),

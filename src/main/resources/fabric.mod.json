@@ -76,8 +76,20 @@
       "sparkwitch:ferryman",
       "sparkwitch:ferryman_feign",
       "sparkwitch:ferryman_feign_veil",
-      "sparkwitch:ferryman_moment"
-    ]
+      "sparkwitch:ferryman_moment",
+      "sparkwitch:recruit",
+      "sparkwitch:athlete",
+      "sparkwitch:noa_player",
+      "sparkwitch:ragpicker_player",
+      "sparkwitch:ragpicker_loot",
+      "sparkwitch:dominator",
+      "sparkwitch:dominator_forced_shot",
+      "sparkwitch:natsume_anan_player"
+    ],
+    "sparkfactionapi:native_wathe_factions": {
+      "sparkwitch:jiahao": "JIAHAO",
+      "sparkwitch:witch": "WITCH"
+    }
   },
   "mixins": [
     "sparkwitch.mixins.json",

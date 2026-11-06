@@ -44,13 +44,19 @@ public final class SparkWitchDeathReasons {
      */
     public static final Identifier DUEL_SUICIDE = SparkWitch.id("duel_suicide");
     /**
-     * A duel was lost without a duel kill: a third party killed the other duelist, or 120 s passed (both die). Forced,
-     * body kept, no killer, and registered SparkTraits-terminal (owner 2026-10-30).
-     * 决斗失败（非决斗击杀）：第三人击杀了另一方，或 120 秒到时（双方均死）。强制击杀、保留尸体、无凶手，并注册为
-     * SparkTraits 终结死亡原因（所有者 2026-10-30）。
+     * The duel ran 120 s without a duel kill (both die). Forced, body kept, no killer, and registered
+     * SparkTraits-terminal (owner 2026-10-30). Third-party interference no longer kills the other duelist
+     * (owner 2026-10-31).
+     * 决斗 120 秒未分胜负（双方均死）。强制击杀、保留尸体、无凶手，并注册为 SparkTraits 终结死亡原因（所有者 2026-10-30）。
+     * 第三方干预不再使另一名决斗者死亡（所有者 2026-10-31）。
      */
     public static final Identifier DUEL_FAILED = SparkWitch.id("duel_failed");
-    /** The Knight pushed a good player off the train. / 骑士把好人推下列车。 */
+    /**
+     * Legacy: the Knight's push-off penalty before it moved to Wathe's {@code shot_innocent}. Nothing produces it now;
+     * the id, its lang line and its Prophecy PENALTY group stay so older replays and records still read.
+     * 旧版：骑士推下好人的惩罚改用 Wathe 的 {@code shot_innocent} 之前的原因。现已无处产生；保留该 id、语言条目与预言
+     * PENALTY 分组，使旧回放与记录仍可读取。
+     */
     public static final Identifier CEREBELLUM = SparkWitch.id("cerebellum");
     /**
      * The Ferryman's 0.5 s pardon window expired: the held kill replays with this reason when the original one is
@@ -69,6 +75,14 @@ public final class SparkWitchDeathReasons {
      * 亡魂时刻的迷失灵魂全部死亡：摆渡人随之而亡，时刻结束。
      */
     public static final Identifier FERRYMAN_MOMENT_LOST = SparkWitch.id("ferryman_moment_lost");
+    /**
+     * A third party attacked a duelist while the duel variable was 1. Forced, body kept, no killer, and registered
+     * SparkTraits-terminal, so the attacker's traits and every shield are bypassed; the attack itself resolves normally
+     * (owner 2026-10-31).
+     * 决斗变量为 1 时第三人攻击决斗者。强制击杀、保留尸体、无凶手，并注册为 SparkTraits 终结死亡原因，绕过攻击者
+     * 的词条与一切护盾；攻击本身正常结算（所有者 2026-10-31）。
+     */
+    public static final Identifier DUEL_INTERFERENCE = SparkWitch.id("duel_interference");
 
     private SparkWitchDeathReasons() {
     }

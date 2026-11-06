@@ -101,14 +101,24 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "request_prophecy"),
             Identifier.of("sparkwitch", "confirm_prophecy"),
             Identifier.of("sparkwitch", "use_blind_attune"),
+            Identifier.of("sparkwitch", "use_noa_paint"),
+            Identifier.of("sparkwitch", "ragpicker_search"),
             Identifier.of("sparkwitch", "rift_gate_close"),
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            Identifier.of("sparkwitch", "use_athlete_dash"),
+            Identifier.of("sparkwitch", "use_dominator_skill"),
+            // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
+            Identifier.of("sparkwitch", "request_natsume_menu"),
+            Identifier.of("sparkwitch", "confirm_natsume_target"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
             // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.
             // USEC 步枪开火与配件界面操作；开镜状态仅为表现，保持放行。
             Identifier.of("sparkwitch", "fire_usec_rifle"),
             Identifier.of("sparkwitch", "usec_attachment"),
+            // Accountant passbook withdraw (left-click), a held-item action like the launcher fire.
+            // 会计存折取钱（左键），与发射器开火一样属于手持物品操作。
+            Identifier.of("sparkwitch", "accountant_withdraw"),
             // Witch Maiden Mini Wither toggle and crimson skull fire. / 巫女小凋灵切换与赤首射击。
             Identifier.of("sparkwitch", "mini_wither_toggle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),

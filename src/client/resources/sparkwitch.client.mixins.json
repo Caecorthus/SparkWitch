@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "CrossSwordWatheCrosshairMixin",
+    "knight.KnightDuelInventoryLockMixin",
     "AssassinSaboteurGuessMixin",
     "AssassinVendettaTargetMixin",
     "ClientPlayNetworkingFearMixin",
@@ -145,9 +146,14 @@
     "witchmaiden.FocusedFootstepsKeyboardInputMixin",
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin",
+    "witchmaiden.MiniWitherSkinOptionsMixin",
     "witchmaiden.WitherGoheiInputMixin",
     "witchmaiden.WitherGoheiMacControlClickMixin",
+    "witchmaiden.MiniWitherSkinSoundLoaderMixin",
+    "witchmaiden.MiniWitherSkinSoundManagerMixin",
     "fiend.WatheClientFiendHighlightMixin",
+    "stowaway.StowawayInGameHudOverlayAccessor",
+    "stowaway.StowawayWelcomeTextMixin",
     "blind.BlindAttuneSoundSystemMixin",
     "blind.BlindGateArmorFeatureRendererMixin",
     "blind.BlindGateBipedEntityModelMixin",
@@ -200,7 +206,15 @@
     "scope.ScopeParticleManagerMixin",
     "scope.ScopeMinecraftClientAccessor",
     "scope.ScopeMouseScrollMixin",
-    "input.SelectedSlotFlushInvoker"
+    "input.SelectedSlotFlushInvoker",
+    "noa.NoaMoodRendererMixin",
+    "dominator.DominatorForcedShotInventoryMixin",
+    "accountant.AccountantAirSwingMixin",
+    "natsume.NatsumeGarbleMixin",
+    "natsume.NatsumeHudGarbleScopeMixin",
+    "natsume.NatsumeInstinctGateMixin",
+    "natsume.NatsumeMoodRendererMixin",
+    "moodflag.MoodFlagRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

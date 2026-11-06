@@ -12,7 +12,7 @@ import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRuntimeCompone
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionShellType;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher.PotionBackblastRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastGeometry;
-import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastRings;
+import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastResolver;
 import dev.doctor4t.wathe.api.WatheGameModes;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerPsychoComponent;
@@ -553,12 +553,12 @@ public final class MagicianPuppetHits {
     /**
      * Potion Gunner shell blast, after the Seeker blast and before the shell's own targets. Only the TR shell kills
      * (GW-DK/AC/MR only debuff players, so they leave a puppet untouched, as the copied player would stay standing);
-     * a TR blast ends every live puppet the player rule would catch: feet in the N×N×N cube with a clear COLLIDER line
+     * a TR blast ends every live puppet the player rule would catch: body overlapping the N×N×N cube with a clear COLLIDER line
      * from the centre to the feet, body centre or eye ({@code potion_shell}). An offline gunner still ends puppets,
      * unpaid. In flight the shell already stops at a puppet through vanilla collision (any non-player living entity
      * stops it), so its burst lands on the puppet like on a player.
      * 药炮手炮弹爆炸，在搜寻者爆炸之后、炮弹自身目标判定之前。只有 TR 炮弹会击杀（GW-DK/AC/MR 只给玩家施加减益，因此不触及
-     * 皮套，正如被复制的玩家仍会站着）；TR 爆炸结束玩家规则会波及的所有活皮套：脚下位于 N×N×N 立方体内，且爆心到其脚部、身体
+     * 皮套，正如被复制的玩家仍会站着）；TR 爆炸结束玩家规则会波及的所有活皮套：身体与 N×N×N 立方体重叠，且爆心到其脚部、身体
      * 中心或眼睛至少一条 COLLIDER 线段无遮挡（{@code potion_shell}）。药炮手离线时照样结束皮套，但没有奖励。飞行中的炮弹已经
      * 通过原版碰撞停在皮套上（任何非玩家生物都会挡下它），因此爆炸与命中玩家时一样落在皮套上。
      */
@@ -573,8 +573,7 @@ public final class MagicianPuppetHits {
         for (MagicianPlaybackEntity puppet : MagicianPlaybackManager.livePuppets(world)) {
             Box box = puppet.getBoundingBox();
             if (MagicianPlaybackManager.isOwnedBy(puppet, gunner)
-                    || !PotionBlastRings.inCube(size, puppet.getX() - center.x, puppet.getZ() - center.z,
-                    box.minY - center.y, box.maxY - center.y)) {
+                    || !PotionBlastResolver.inCube(size, box, center)) {
                 continue;
             }
             for (Vec3d point : PotionBlastGeometry.sightPoints(puppet.getPos(), box, puppet.getEyeY())) {

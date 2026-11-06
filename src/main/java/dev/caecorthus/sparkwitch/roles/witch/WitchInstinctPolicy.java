@@ -56,7 +56,12 @@ public final class WitchInstinctPolicy {
         // A living Rift Gate occupant is a spectator but keeps this instinct; see shouldUseCustomInstinctHighlight.
         // 存活的裂隙门内玩家虽是旁观者，仍保留此本能；见 shouldUseCustomInstinctHighlight。
         if (curserViewer ? !curserOutlineEligible : !WitchFactionRules.shouldUseCustomInstinctHighlight(viewerAlive)) {
-            return null;
+            return unansweredViewerHighlight(
+                    viewerRole,
+                    target instanceof PlayerEntity,
+                    viewerAlive,
+                    viewerSpectatingOrCreative
+            );
         }
         // The Apprentice's own skill outlines are spell-immune, so they answer before Obscure (owner 2026-10-06 D4).
         // 预备魔女自己的技能描边不受法术影响，因此在障眼之前作答（所有者 2026-10-06 D4）。
@@ -120,6 +125,28 @@ public final class WitchInstinctPolicy {
 
     static FactionInstinctPolicy.InstinctResult restrictedWraithHighlight(boolean restricted) {
         return restricted ? FactionInstinctPolicy.InstinctResult.skip(OBSCURE_SKIP_PRIORITY) : null;
+    }
+
+    /**
+     * The answer for a viewer this policy gives no Witch instinct to. A Witch-faction viewer gets a skip for player
+     * targets so SparkFactionAPI's faction-colour fallback never runs (see
+     * {@link WitchFactionRules#shouldSkipUnansweredViewer}); a Wathe-dead spectator, any other viewer and non-player
+     * targets (which the fallback ignores) keep null.
+     * 此策略不给魔女本能时的答复。魔女阵营观察者对玩家目标得到跳过，使 SparkFactionAPI 的阵营色兜底永不运行
+     * （见 {@link WitchFactionRules#shouldSkipUnansweredViewer}）；已死亡的旁观者、其他观察者以及非玩家目标
+     * （兜底本就忽略）仍返回 null。
+     */
+    static FactionInstinctPolicy.InstinctResult unansweredViewerHighlight(
+            Role viewerRole,
+            boolean playerTarget,
+            boolean viewerAlive,
+            boolean viewerSpectatingOrCreative
+    ) {
+        return playerTarget && WitchFactionRules.shouldSkipUnansweredViewer(
+                WitchFactionRules.isWitchFactionMember(viewerRole),
+                viewerAlive,
+                viewerSpectatingOrCreative
+        ) ? FactionInstinctPolicy.InstinctResult.skip(GRAND_WITCH_INSTINCT_PRIORITY) : null;
     }
 
     /**

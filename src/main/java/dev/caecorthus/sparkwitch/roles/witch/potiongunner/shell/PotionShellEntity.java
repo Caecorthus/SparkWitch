@@ -34,6 +34,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -308,9 +309,9 @@ public class PotionShellEntity extends ThrownItemEntity {
      *     <li>The hit takes the tick only when it is strictly nearer than vanilla's own result
      *     ({@link PotionShellFlight#lagCompensatedHitFirst}), so blocks, closed doors and Rift Gates keep shielding a
      *     player behind them.</li>
-     *     <li>It bursts on the player's current box ({@link PotionBlastGeometry#entityImpact}) when the blast's own
-     *     line of sight reaches it from the rewound entry point, else at that entry point, so a door shut behind the
-     *     player in the meantime still shields them and the room behind it.</li>
+     *     <li>It bursts on the player's current body ({@link #bodyBurst}: the axis, else the entered face) when the
+     *     blast's own line of sight reaches it from the rewound entry point, else at that entry point, so a door shut
+     *     behind the player in the meantime still shields them and the room behind it.</li>
      * </ul>
      * 仅服务端：本刻路径（从 {@link #getPos} 沿速度移动一次）上延迟补偿玩家命中的爆心；返回 null 时本刻交给原版碰撞。
      * <ul>
@@ -320,7 +321,7 @@ public class PotionShellEntity extends ThrownItemEntity {
      *     与原版的过滤相同。</li>
      *     <li>只有严格近于原版自身结果时（{@link PotionShellFlight#lagCompensatedHitFirst}）才接管本刻，因此方块、关闭的门
      *     与裂隙门仍会挡住其后的玩家。</li>
-     *     <li>若爆炸视线能从回溯进入点到达玩家当前箱体，则在当前箱体上爆炸（{@link PotionBlastGeometry#entityImpact}），
+     *     <li>若爆炸视线能从回溯进入点到达玩家当前身体（{@link #bodyBurst}：轴线，否则进入面），则在该处爆炸，
      *     否则在该进入点爆炸；因此玩家身后期间关上的门仍能保护其本人及门后的房间。</li>
      * </ul>
      */
@@ -360,8 +361,25 @@ public class PotionShellEntity extends ThrownItemEntity {
             return null;
         }
         Vec3d entryPoint = PotionBlastGeometry.alongSegment(from, to, hitEntry);
-        Vec3d onPlayer = PotionBlastGeometry.entityImpact(from, to, hit.getBoundingBox());
-        return SeekerDamageRules.segmentClear(world, entryPoint, onPlayer, null) ? onPlayer : entryPoint;
+        return bodyBurst(world, entryPoint, from, to, hit.getBoundingBox());
+    }
+
+    /**
+     * Where a body hit bursts: on the body axis ({@link PotionBlastGeometry#bodyImpact}) when no block lies between
+     * {@code anchor} and it, else on the entered face ({@link PotionBlastGeometry#entityImpact}) when that is clear,
+     * else at {@code anchor}. A seated player's axis can lie inside the stool or couch under them; the burst then stays
+     * on the face as it did before the axis rule, so furniture blocks exactly as before.
+     * 身体命中的爆炸位置：{@code anchor} 到身体轴线（{@link PotionBlastGeometry#bodyImpact}）之间没有方块时在轴线上；否则
+     * 到进入面（{@link PotionBlastGeometry#entityImpact}）畅通时在进入面上；否则在 {@code anchor}。坐着的玩家的轴线可能位于
+     * 身下的凳子或沙发内，此时仍像轴线规则之前一样在进入面爆炸，家具的遮挡与以前完全相同。
+     */
+    private static Vec3d bodyBurst(World world, Vec3d anchor, Vec3d from, Vec3d to, Box box) {
+        Vec3d axis = PotionBlastGeometry.bodyImpact(from, to, box);
+        if (SeekerDamageRules.segmentClear(world, anchor, axis, null)) {
+            return axis;
+        }
+        Vec3d face = PotionBlastGeometry.entityImpact(from, to, box);
+        return SeekerDamageRules.segmentClear(world, anchor, face, null) ? face : anchor;
     }
 
     /**
@@ -421,8 +439,10 @@ public class PotionShellEntity extends ThrownItemEntity {
 
     private Vec3d impactCenter(HitResult hitResult) {
         if (hitResult instanceof EntityHitResult entityHit) {
-            return PotionBlastGeometry.entityImpact(getPos(), getPos().add(getVelocity()),
-                    entityHit.getEntity().getBoundingBox());
+            Vec3d from = getPos();
+            Vec3d to = from.add(getVelocity());
+            Box box = entityHit.getEntity().getBoundingBox();
+            return bodyBurst(getWorld(), PotionBlastGeometry.entityImpact(from, to, box), from, to, box);
         }
         if (hitResult instanceof BlockHitResult blockHit && hitResult.getType() == HitResult.Type.BLOCK) {
             Direction side = blockHit.getSide();

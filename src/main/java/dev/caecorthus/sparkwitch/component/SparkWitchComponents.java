@@ -1,15 +1,20 @@
 package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit.FisherSpiritComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerStatusComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeWorldComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerLootWorldComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRoundComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
@@ -22,6 +27,8 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponen
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenMarkPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseComponent;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotComponent;
+import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerComponent;
@@ -182,6 +189,43 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, FerrymanInstinctVeilComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(FerrymanInstinctVeilComponent::new);
+        // Recruit first-task progress and knife grant, synced to its owner only; appended last.
+        // 新兵首个任务进度与发刀状态，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, RecruitPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(RecruitPlayerComponent::new);
+        // Athlete dash ready tick, synced to its owner only; appended last.
+        // 运动员冲刺就绪刻，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, AthleteComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(AthleteComponent::new);
+        // 城崎诺亚's paint ready tick (owner-synced) and this round's painted one-offs; appended last.
+        // 城崎诺亚的作画就绪刻（只同步给本人）与本局已画出的一次性结果；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, NoaComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(NoaComponent::new);
+        // Ragpicker search progress and ready tick, synced to its owner only; appended last.
+        // 拾荒者搜刮进度与就绪刻，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, JunkerPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(JunkerPlayerComponent::new);
+        // Dominator uses and mark target, synced to its owner only; appended last.
+        // 支配者剩余次数与标记目标，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, DominatorPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(DominatorPlayerComponent::new);
+        // Forced-shot sequence. Only the "active" flag is saved/copied: a loaded or respawn-copied sequence never resumes,
+        // it purges leftover marked guns on its next tick and keeps no stash.
+        // 强制开枪序列。只保存/复制“进行中”标记：读档或重生复制后的序列绝不继续，下一刻清除残留的标记左轮且不保留原物品。
+        registry.beginRegistration(PlayerEntity.class, DominatorForcedShotComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.ALWAYS_COPY)
+                .end(DominatorForcedShotComponent::new);
+        // 夏目安安 (PR #194): hypnosis window and cooldown ready tick (server), their shown seconds synced to the owner
+        // only; appended last. / 夏目安安（PR #194）：催眠窗口与冷却就绪刻（服务端），显示秒数只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent::new);
     }
 
     @Override
@@ -198,5 +242,6 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.register(dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent.KEY,
                 dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent::new);
         registry.register(FerrymanMomentWorldComponent.KEY, FerrymanMomentWorldComponent::new);
+        registry.register(JunkerLootWorldComponent.KEY, JunkerLootWorldComponent::new);
     }
 }
