@@ -7,6 +7,7 @@ import net.minecraft.item.MiningToolItem;
 import net.minecraft.item.ToolMaterials;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 /**
  * The Savior's lightsaber. Attributes are copied verbatim from Wathe's bat: one item per stack and the bat's
@@ -28,8 +29,12 @@ public final class SaviorLightsaberItem extends Item {
                 .attributeModifiers(MiningToolItem.createAttributeModifiers(ToolMaterials.WOOD, 0.0F, -3.0F));
     }
 
-    /** Wathe's bat suppresses its tooltip; the lightsaber keeps the same bare presentation. / Wathe 球棒不显示提示文本；光剑保持同样简洁。 */
+    /** Two-line role hint, matching the other SparkWitch weapon tooltips. / 两行职业提示，与其他 SparkWitch 武器提示一致。 */
     @Override
     public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
+        tooltip.add(Text.translatable("item.sparkwitch.savior_lightsaber.tooltip.line1")
+                .formatted(Formatting.GRAY));
+        tooltip.add(Text.translatable("item.sparkwitch.savior_lightsaber.tooltip.line2")
+                .formatted(Formatting.GRAY));
     }
 }

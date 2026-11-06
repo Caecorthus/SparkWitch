@@ -1,9 +1,13 @@
 package dev.caecorthus.sparkwitch.roles.civilian.savior;
 
+import java.util.List;
 import java.util.Objects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.tooltip.TooltipType;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
@@ -53,5 +57,14 @@ public final class SaviorPistolItem extends Item {
         }
         // Wathe's revolver consumes rather than succeeds: CONSUME does not swing the hand. / 与 Wathe 左轮一致：CONSUME 不会触发挥手动作。
         return TypedActionResult.consume(stack);
+    }
+
+    /** Two-line role hint, matching the other SparkWitch weapon tooltips. / 两行职业提示，与其他 SparkWitch 武器提示一致。 */
+    @Override
+    public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
+        tooltip.add(Text.translatable("item.sparkwitch.savior_pistol.tooltip.line1")
+                .formatted(Formatting.GRAY));
+        tooltip.add(Text.translatable("item.sparkwitch.savior_pistol.tooltip.line2")
+                .formatted(Formatting.GRAY));
     }
 }
