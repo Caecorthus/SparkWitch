@@ -15,8 +15,9 @@ import org.jetbrains.annotations.Nullable;
  * ({@link M32ClientState#isAiming}: use held with the launcher in the main hand) on a confirmed SparkWitch server;
  * {@code ScopeClient}'s view gate adds first person, the camera being the player and no screen. The sight is lensless
  * ({@link #drawsLens} false: no lens, rim, mask or periphery blur) and keeps the held launcher
- * ({@link #hidesHeldItem} false): the aimed 3-D launcher, its range-tilted sight and the dot are drawn in the hand pass
- * by {@link M32SightRenderer}, so {@link #drawReticle} draws nothing and the module only hides the crosshair. The world
+ * ({@link #hidesHeldItem} false): the aimed 3-D launcher, its range-tilted sight and the dot with its quadrant-grid
+ * reticle are drawn in the hand pass by {@link M32SightRenderer}, so {@link #drawReticle} draws nothing and the module
+ * only hides the crosshair. The world
  * zooms 1.25x ({@link M32SightPose#WORLD_FOV_MULTIPLIER}) with look scale {@link M32SightPose#LOOK_MULTIPLIER}. The
  * wheel turns the range dial ({@link M32RangeDial}) and never reaches the hotbar. The launcher's item use never
  * coincides with the USEC rifle's or the anti-tank launcher's (one active item), so no other provider answers at the
@@ -25,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
  * {@link ScopeClient#registerProvider} 注册一次）。在已确认的 SparkWitch 服务器上、本地玩家瞄准时提供
  * （{@link M32ClientState#isAiming}：主手持发射器并按住使用键）；{@code ScopeClient} 的视角条件再加上第一人称、相机即玩家与
  * 未打开界面。该瞄具无镜片（{@link #drawsLens} 为 false：没有镜片、镜框、遮罩或镜外模糊），并保留手中的发射器
- * （{@link #hidesHeldItem} 为 false）：瞄准中的三维发射器、按射程俯仰的瞄具与红点由 {@link M32SightRenderer} 在手部渲染中绘制，
+ * （{@link #hidesHeldItem} 为 false）：瞄准中的三维发射器、按射程俯仰的瞄具、红点及其象限网格分划由 {@link M32SightRenderer} 在手部渲染中绘制，
  * 因此 {@link #drawReticle} 不绘制任何内容，模块只隐藏准星。世界放大 1.25 倍（{@link M32SightPose#WORLD_FOV_MULTIPLIER}），视角缩放
  * {@link M32SightPose#LOOK_MULTIPLIER}。滚轮转动射程刻度（{@link M32RangeDial}），从不切换快捷栏。发射器的物品使用与 USEC 步枪或
  * 反坦克炮筒的从不同时发生（只有一个使用中物品），因此不会有其他提供者同时作答。仅为客户端表现，服务端从不知晓。

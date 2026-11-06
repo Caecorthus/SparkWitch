@@ -1621,14 +1621,16 @@ Current build baseline:
     unburst once the round leaves ACTIVE. Client: `M32ScopeProfile` (M2A1 reflex: `drawsLens() == false` keeps the scope
     module from drawing a lens, PiP, rim or periphery; `hidesHeldItem() == false` keeps the hand pass; world zoom 0.8
     (1.25x) and look 0.8 in both scope modes; `drawReticle` is empty, so the crosshair is only hidden), the 3-D red-dot
-    aim (SIGHT-CONTRACT v2, 2026-11-06, owner rejected the 2-D reticle; TACZ technique, none of its GPL code):
+    aim (SIGHT-CONTRACT v2, 2026-11-06, owner rejected the 2-D reticle; TACZ technique, none of its GPL code; v3 the same
+    day: a round tube sight on the bore line with a quadrant-grid reticle inside):
     `M32SightState` (aim progress p, 0→1 in 0.20 s while `M32ScopeProfile.isActive()`, 1→0 in 0.15 s, integrated over
     real frame time on every read, 0 at once with no launcher in the main hand, on a world change or disconnect),
     `M32SightPose` (pure maths: smoothstep ease, hand FOV lerp(vanilla, 45, ease), h' = atan(tan h · tan(hand/2) /
     tan(world/2)), full-aim pose = camera orientation, scale 0.5, tilted eye P + Rx(-h')(E - P) at the origin, eye
-    (7.5, 20.25, 19), pivot (7.5, 18.5, 0.5), window x 6..9 / y 19..21.5 / z -1..2 (v2.1: quarter-unit walls, a
-    3-deep housing), dot z -51, halo 0.8 / core 0.22 units; the blend lerps the anchor's image and the scale and slerps the rotation; the dot window test projects the
-    dot and the four front-window corners through one clip matrix), `M32SightRenderer` and two client mixins after
+    (8, 20.5, 19), pivot (8, 18, 0.5) (the rail clamp's top), window = the tube's open bore (16-gon, inner apothem
+    1.75, z -2.5..2.5), dot z -51, halo 0.8 / core 0.22 units; the blend lerps the anchor's image and the scale and
+    slerps the rotation; the dot window test projects the dot and the 16 front-aperture corners through one clip matrix;
+    `emitReticle` streams the reticle quads without per-quad allocation), `M32SightRenderer` and two client mixins after
     `M32ArmPoseMixin`. `client/mixin/bear/M32SightHeldItemMixin`: HEAD/TAIL of the first-person
     `HeldItemRenderer#renderItem(F…)` bracket the pass and capture the base `B` (hurt tilt + view bob; vanilla and Iris
     both call it), and a `@WrapOperation` on the single `ItemRenderer#renderItem(LivingEntity…)` call inside
@@ -1639,12 +1641,17 @@ Current build baseline:
     the stack pre-multiplied by `hipPre⁻¹·target·T(0.5)·D_model⁻¹` (`hipPre = B⁻¹·S` at vanilla's draw), then the dot:
     two full-bright quads (red halo, white core 0.05 units nearer) on `RenderLayer.getEntityTranslucentEmissive`
     (`textures/entity/bear/m2a1_dot.png`, 64 × 32 with linear filtering: a saturated red halo and a hot core), depth tested, never depth written, skipped unless its projection
-    through the bound hand projection × model-view × `B` lies inside the projected front window; anything missing
+    through the bound hand projection × model-view × `B` lies inside the projected front window; with the dot and on its
+    matrix, the quadrant-grid reticle on the dot plane (`textures/entity/bear/m2a1_reticle.png`, 128 × 32 bar + digit
+    atlas, same layer type, red (255, 48, 36) at 0.9 for ticks/labels and 0.65 for lines times smoothstep(0.75, 1, p)):
+    a range tick at h'(r) − h'(dial) for every solved dial setting but the dialled one (50 m majors labelled), lead ticks
+    at ±1..3 hand degrees, cross lines with a 0.92 gap clipped exactly to the circle 1.75·70/21.5·0.93 ≈ 5.30, ticks and
+    labels only when wholly inside it; anything missing
     (either extra model, an unusable matrix, no base) declines before drawing and vanilla's call runs; p = 0 always
     runs vanilla's call unchanged. h = `M32Ballistics.holdoverRadians` (interpolated pitch, dialled metres) with the
     live world FOV (`ScopeGameRendererInvoker`) and this pass's hand FOV; the tilt blends in with ease(p); no aim
-    solution draws an untilted sight and no dot. At default settings the largest tilt is about 8.5° and the tilted
-    axis clears the body up to about 16° (`M32SightModelTest`); a world FOV under about 30° at 200 m tilts past it and
+    solution draws an untilted sight, no dot and no reticle. At default settings the largest tilt is about 8.5° and the
+    tilted axis clears the body up to about 17° (`M32SightModelTest`); a world FOV under about 30° at 200 m tilts past it and
     the top rail hides the dot. `client/mixin/bear/M32SightFovMixin` (`@ModifyReturnValue` on
     `GameRenderer#getFov`): `changingFov == false` (vanilla `renderHand`, Iris `HandRenderer.setupGlState`) becomes
     `M32SightState.handFov` (exactly the original at p = 0); the world projection passes through. The two halves are
