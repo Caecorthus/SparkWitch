@@ -1,9 +1,10 @@
 package dev.caecorthus.sparkwitch.client.bear;
 
 import dev.caecorthus.sparkwitch.client.bear.ricochet.RysTDazeClient;
+import dev.caecorthus.sparkwitch.client.bear.launcher.M32LauncherClient;
+import dev.caecorthus.sparkwitch.client.bear.launcher.SmokeRoundEntityRenderer;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.BearEntities;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 
 /**
  * BEAR client registration hub: one line in {@code SparkWitchClient.onInitializeClient}, right before the USEC hub
@@ -28,13 +29,14 @@ public final class BearClientModule {
         dev.caecorthus.sparkwitch.client.bear.helmet.RysTHelmetClient.register();
         // WP3: Rys-T ricochet daze (jolt, double vision, tinnitus, muffle). / WP3：Rys-T 跳弹眩晕（震动、重影、耳鸣、发闷）。
         RysTDazeClient.register();
+        // WP1: M2A1 sight, chamber HUD, fire input, cursor-loading probe, models. / WP1：瞄具、弹膛 HUD、开火输入、装填探针、模型。
+        M32LauncherClient.init();
     }
 
     /**
-     * WP0 stub: the flying smoke round draws its synced item stack like vanilla thrown items; WP1 replaces it with the
-     * 3D projectile model. / WP0 桩：飞行中的烟雾榴弹像原版投掷物一样绘制其同步物品；WP1 将替换为 3D 投射物模型。
+     * WP1: the flying smoke round draws its standalone 3D projectile model. / WP1：飞行中的烟雾榴弹绘制独立 3D 投射物模型。
      */
     public static void registerEntityRenderers() {
-        EntityRendererRegistry.register(BearEntities.SMOKE_ROUND, FlyingItemEntityRenderer::new);
+        EntityRendererRegistry.register(BearEntities.SMOKE_ROUND, SmokeRoundEntityRenderer::new);
     }
 }

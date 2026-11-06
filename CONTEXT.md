@@ -1501,8 +1501,8 @@ Current build baseline:
     chambers are always one run from `next`, so `unload()` removing the last loaded chamber in rotation is exactly the
     most recently loaded round, with no extra state) and `sparkwitch:rys_t_visor` = `helmet.RysTVisor(down, cracks)`
     with `helmet.VisorCrack(u, v, angle, style)` (default visor down, at most `MAX_VISOR_CRACKS`, oldest dropped);
-    entity `sparkwitch:smoke_round_40mm` = `launcher.SmokeRoundEntity` (`launcher.BearEntities.SMOKE_ROUND`, a WP0 stub
-    that flies and discards; never saved) with a stub `FlyingItemEntityRenderer`; `hearing.BearHearingRules`
+    entity `sparkwitch:smoke_round_40mm` = `launcher.SmokeRoundEntity` (`launcher.BearEntities.SMOKE_ROUND`, never
+    saved; flight and burst filled in by WP1, below); `hearing.BearHearingRules`
     (`factor(helmet, earplugs)` = max(0, 1 - 0.75·helmet + 0.5·earplugs), `factorFor(PlayerEntity)` reads the head and
     headset slots); the twelve `SparkWitchSounds.BEAR_*` events (`bear.m32.*`, `bear.smoke.burst`, `bear.rys_t.*`,
     `bear.earplugs.insert`; ricochet = helmet A, visor hit = visor B, tinnitus = tinnitus B, the other nine silent
@@ -1568,7 +1568,7 @@ Current build baseline:
     Magician puppet kill (puppet eye), the Wathe grenade (`GrenadeEntityOriginSmokeCarveMixin`, `@WrapMethod
     onCollision`) and the NR throwing axe (`ThrowingAxeRangedOriginMixin`); the revolver family, shotgun, USEC,
     Death Ray, Demon Hunter and backblast (not in `BLAST_REASONS`) use the killer's eye, which is their muzzle. Effects: a glass hit (visor down + front, D4) writes a crack on the worn stack
-    (`RysTVisorCracks`, a stand-in for WP2's `glassPoint`/`addCrack`); the public `bear.rys_t.ricochet` or
+    (`RysTVisorCracks`, delegating to WP2's `RysTVisorGeometry.nearestGlassPoint` + `RysTHelmetItem.addCrack`); the public `bear.rys_t.ricochet` or
     `bear.rys_t.visor_hit` at the helmet (volume 1.5 ≈ 24 blocks) with crit sparks (+ glass shards); S2C
     `sparkwitch:bear_rys_t_ricochet` (`RysTRicochetS2CPayload`: unit direction toward the origin or zero, glass flag)
     to the wearer only, which runs `RysTDazeClient`: a camera-only jolt away from the shot
@@ -1587,8 +1587,32 @@ Current build baseline:
     (`ServerWorldExplosionSmokeCarveMixin`). SparkStrength's M67 and drone use `SparkWitchApi.carveSmoke`. The
     Wathe/NoellesRoles-facing selectors (and the 1050 / 900 priorities) are pinned on the shipped jar by
     `watheCommonMixinContracts` in `verifyClientMixinSelectors`.
-  - Open (later packages): launcher (WP1), helmet (WP2), headset slot and hearing (WP4), smoke tunnels and the
-    thermal mask (WP5), art, sounds and the cross-repo seams (WP6).
+  - Launcher (WP1, `bear/launcher/`, `client/bear/launcher/`, `client/mixin/bear/M32*`): anyone holding the M32A1 may
+    use it (`OffMatchUse`; off-match shots fly and sound but never make a cloud). Use (main hand) only aims; the USEC
+    scope-while-cooling wraps (`mixin/usec/ServerPlayerInteractionManagerUsecScopeMixin`, client
+    `UsecRifleUseCooldownMixin`) also exempt the M32A1. Cursor loading `M32CursorLoading` (USEC Writer rule: the server
+    writes every click it resolves, the client only creative-screen clicks through the probe `M32LauncherClient`
+    installs): rounds on the cursor + right-click loads one (`M32Cylinder.load`), an empty cursor unloads the most
+    recent one, a full cylinder answers FULL. Fire = C2S `sparkwitch:fire_m32a1` (`net.FireM32A1C2SPayload`, type in
+    `BearNetworking`, receiver `M32FireService`; on the Control Expert stun, Seeker session, Rift occupant and Knight
+    duel lists; cross-repo: SS `TaotieHeadRules`, SFA `AntiFastRoundRules`) with the click-time aim; the server
+    validates `M32FireRules` (mode, holding, spectator, stun, Seeker, Kidnapper, Wraith, SparkTraits weapon block,
+    cooldown, loaded), spawns the round from its own eye, then fires the cylinder (D8) and writes the 1 s cooldown
+    through its exact floor writer `writeFloorExact`; empty = shooter-only dry click, no cooldown. `M32Ballistics`
+    (pure, shared with the sight): 3.8 b/t (76 m/s), gravity 9.81/400, drag 0.998/tick, launch 0.1 below the eye; every
+    dial step (25-200 m) arrives before the 3 s fuse at level pitch (200 m in about 55 ticks). `SmokeRoundEntity` +
+    `SmokeRoundFlight`: no damage and no vanilla hit handler (G1); arms after 4 blocks of path, an earlier impact
+    bounces (damped, can come to rest), the first armed block/entity impact or the backup fuse bursts it through
+    `SmokeCloudService.spawn` (stepped out of the surface) + `BEAR_SMOKE_BURST` + a puff; a match round is discarded
+    unburst once the round leaves ACTIVE. Client: `M32ScopeProfile` (1x M2A1 reflex: `ScopeProfile.drawsLens() == false`
+    keeps the scope module from drawing a lens, PiP, rim or periphery), `M32RangeDial` (wheel, 25 m steps, per holding
+    session = same hotbar slot), `M32ReticleRules`/`M32ReticleOverlay` (art options 1/2, one constant `STYLE`, holdover
+    re-solved per frame), `M32Hud` (6-chamber sheet `textures/gui/bear/m32_chambers.png`, USEC ammo-row placement),
+    `M32FireInput` + `M32InputMixin`/`M32MacControlClickMixin` (the launcher's input scheme), `M32ArmPoseMixin`
+    (CROSSBOW_HOLD at priority 1600 like the launcher), `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6),
+    `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
+  - Open (later packages): headset slot and hearing (WP4), smoke tunnels and the thermal mask (WP5), the
+    cross-repo seams (WP6).
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation

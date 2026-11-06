@@ -226,7 +226,10 @@
     "bear.RysTVisorHudMixin",
     "bear.RysTHeadFeatureMixin",
     "bear.RicochetDazeCameraMixin",
-    "bear.RicochetDazeHudMixin"
+    "bear.RicochetDazeHudMixin",
+    "bear.M32InputMixin",
+    "bear.M32MacControlClickMixin",
+    "bear.M32ArmPoseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

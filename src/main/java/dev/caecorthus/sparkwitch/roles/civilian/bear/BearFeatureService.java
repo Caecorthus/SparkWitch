@@ -21,5 +21,7 @@ public final class BearFeatureService {
         BearLifecycleService.register();
         BearEconomyService.register();
         BearShopService.register();
+        // WP1: the M32A1 fire receiver. / WP1：M32A1 开火接收器。
+        dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.M32FireService.register();
     }
 }

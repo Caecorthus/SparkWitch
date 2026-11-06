@@ -114,6 +114,9 @@ public final class KnightDuelSkillLock {
             Identifier.of("sparkwitch", "fire_potion_launcher"),
             Identifier.of("sparkwitch", "fire_usec_rifle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),
+            // BEAR M32A1 (cooldown-gated handler like the launcher's; it fires smoke, sealed like every C2S launcher).
+            // BEAR M32A1（与炮筒一样处理器受冷却限制；虽只发射烟雾，仍与所有 C2S 发射器一样被封印）。
+            Identifier.of("sparkwitch", "fire_m32a1"),
             // Vendetta knife (the Vendetta is an active Wraith, who cannot duel; listed for completeness) and the
             // Fisher's swordfish stab. / 仇杀刀（仇杀者是活跃冤魂，无法决斗；为完整起见列入）与钓鱼佬的剑鱼刺击。
             Identifier.of("sparkwitch", "vendetta_knife_stab"),
