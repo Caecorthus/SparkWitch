@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.client.bear;
 import dev.caecorthus.sparkwitch.client.bear.ricochet.RysTDazeClient;
 import dev.caecorthus.sparkwitch.client.bear.launcher.M32LauncherClient;
 import dev.caecorthus.sparkwitch.client.bear.launcher.SmokeRoundEntityRenderer;
+import dev.caecorthus.sparkwitch.client.bear.hearing.BearHearingClient;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.BearEntities;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 
@@ -31,6 +32,7 @@ public final class BearClientModule {
         RysTDazeClient.register();
         // WP1: M2A1 sight, chamber HUD, fire input, cursor-loading probe, models. / WP1：瞄具、弹膛 HUD、开火输入、装填探针、模型。
         M32LauncherClient.init();
+        BearHearingClient.register();
     }
 
     /**

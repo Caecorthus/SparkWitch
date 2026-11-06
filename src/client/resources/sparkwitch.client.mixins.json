@@ -229,7 +229,11 @@
     "bear.RicochetDazeHudMixin",
     "bear.M32InputMixin",
     "bear.M32MacControlClickMixin",
-    "bear.M32ArmPoseMixin"
+    "bear.M32ArmPoseMixin",
+    "bear.HearingSoundSystemMixin",
+    "bear.HearingSourceAccessor",
+    "bear.HeadsetInventoryScreenMixin",
+    "bear.HeadsetCreativeScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

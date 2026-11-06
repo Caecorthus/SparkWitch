@@ -1491,7 +1491,8 @@ Current build baseline:
     (`BearLifecycleService`, `BearEconomyService`, `BearShopService`, in that order), `bear.net.BearNetworking` in
     `SparkWitchPackets` (payload types), `client/bear/BearClientModule` in `SparkWitchClient` (plus
     `registerEntityRenderers()`); `headset.HeadsetLifecycle` sits before the BEAR hub in `SparkWitchEvents`. Only
-    `bear.*` mixins follow the Accountant's common mixin and the mood-flag client mixin.
+    `bear.*` mixins follow the Accountant's common mixin and the mood-flag client mixin (WP4's headset mixins are
+    `bear.Headset*`).
   - Frozen contracts: `BearRules` (ids, numbers, `isBear(Role|PlayerEntity|World,UUID)`, `isBearItemType`);
     `BearItems` (`M32A1` `sparkwitch:m32a1` `launcher.M32A1Item`, `SMOKE_ROUND` `sparkwitch:smoke_round_40mm`
     `launcher.SmokeRoundItem` (stack 6), `RYS_T` `sparkwitch:rys_t` `helmet.RysTHelmetItem`, `EARPLUGS`
@@ -1509,7 +1510,7 @@ Current build baseline:
     placeholders).
   - Shared seams added by WP0: `headset/` (`HeadsetComponent`, CCA `sparkwitch:headset`, NEVER_COPY, one saved stack
     synced to its owner, appended last; `HeadsetSlots` facade `get`/`set`/`accepts` (earplugs or ComTac VIII)/`wears`,
-    `HANDLER_SLOT_ID = 46`; no Slot or screen yet, WP4), `util/hitscan/RangedOriginScope` (per-thread origin deque
+    `HANDLER_SLOT_ID = 46`; the Slot and screens are WP4, below), `util/hitscan/RangedOriginScope` (per-thread origin deque
     `call`/`run`/`current`, null or non-finite = unknown origin; WP3 pushes at the sources),
     `SmokeCloudService.carveTunnel` (no-op until WP5), `SparkWitchApi.carveSmoke(ServerWorld, Vec3d, double)` and the
     client facade `api.client.BearSmokeViewApi` (`opticalDepth`, `hasSmoke`; render thread).
@@ -1611,8 +1612,30 @@ Current build baseline:
     `M32FireInput` + `M32InputMixin`/`M32MacControlClickMixin` (the launcher's input scheme), `M32ArmPoseMixin`
     (CROSSBOW_HOLD at priority 1600 like the launcher), `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6),
     `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
-  - Open (later packages): headset slot and hearing (WP4), smoke tunnels and the thermal mask (WP5), the
-    cross-repo seams (WP6).
+  - Headset slot (WP4, E1, design A; `headset/`): `HeadsetSlot` is a real slot that
+    `mixin/bear/HeadsetPlayerScreenHandlerMixin` appends to every `PlayerScreenHandler` on both sides (handler index
+    46, after vanilla 0..45), backed by `HeadsetInventory` (a live one-stack view of `HeadsetSlots`, not a
+    `PlayerInventory`, so SparkFactionAPI's two-row rows 27-35 and every 0..40 loop ignore it). `canInsert` =
+    `HeadsetSlots.accepts`, max 1, empty sprite `sparkwitch:item/empty_slot_headset` (block atlas, art package); on the
+    client it is enabled only on a confirmed SparkWitch server. Shift-click: the same mixin routes an accepted item from
+    9..45 into the empty slot (`HeadsetQuickMove`); vanilla's last branch already moves 46 back to 9..44. Creative:
+    `mixin/bear/HeadsetCreativeActionMixin` (TAIL, server thread only) applies a creative write to
+    slot 46 when it clears it or holds one accepted item (vanilla accepts only 1..45). Right-click in hand
+    (`HeadsetSlots.insertFromHand`, earplugs and ComTac `use`) moves one item into the EMPTY slot, server write only;
+    the earplugs play `bear.earplugs.insert` to the wearer only, the ComTac stays silent. Screens: vanilla survival
+    (77,44) and creative tab (127,20, `client/mixin/bear/HeadsetCreativeScreenMixin` moves the slot's
+    `CreativeSlot`) draw a vanilla `container/slot` frame (`client/headset/HeadsetScreenFrames`); Wathe's limited
+    inventory shows a one-cell Wathe-strip frame under the armor block's head column (`client/armor`). Round reset
+    (`HeadsetLifecycle`) and BEAR death clean-up empty it; the ComTac keeps the Blind strip rule.
+  - Hearing (WP4, `client/bear/hearing/`): `BearHearingClient.factor()` is the local player's gear factor (on a
+    confirmed server) times the WP3 ricochet muffle envelope (`BearMuffleEnvelope`: longer/deeper call wins, 10-tick ease
+    back, floor 0.05). `BearHearingSoundRules` scales every category except MASTER and MUSIC (Q2 default);
+    `EXEMPT_SOUND_IDS` are never scaled. `mixin/bear/HearingSoundSystemMixin` multiplies the gain at the Holy Flash seams
+    (gain only, never range). It also raises `AL_MAX_GAIN` on scaled sources to 1.5 so the earplugs really amplify (Q1,
+    proven by `BearHearingOpenAlTest` on OpenAL Soft 1.23.1), failing closed to a clamp at 1. Voice:
+    `BearHearingVoiceReceiver`, reached through `voice/BearHearingVoiceClientBridge` after Holy Flash, scales incoming
+    Simple Voice Chat audio from a volatile per-tick snapshot, with a soft limiter above 1.
+  - Open (later packages): smoke tunnels and the thermal mask (WP5), the cross-repo seams (WP6).
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation
@@ -1998,7 +2021,8 @@ Current build baseline:
   `LimitedInventoryScreen` for every player (D10), client presentation only.
   `LimitedInventoryArmorLayout` (pure geometry, the shift-click plan and the full-hotbar rule),
   `LimitedInventoryArmorSlots` (gate, frame, empty icons, hit test, shift-click and pick-up adapters)
-  and `LimitedInventoryArmorPanel` (the block as a visible, inactive `ClickableWidget`). Its one
+  and `LimitedInventoryArmorPanel` (the block as a visible, inactive `ClickableWidget`); BEAR WP4 adds the headset
+  cell (`client/headset/LimitedInventoryHeadsetCell`, rules below). Its one
   mixin, `client/mixin/armor/LimitedInventoryArmorSlotsMixin`, has seven seams on Wathe's
   `LimitedHandledScreen`, each pinned in `watheClientMixinContracts`: `init` TAIL adds the panel,
   `render` TAIL hands an unset `focusedSlot` to a hovered armor slot, `getSlotAt` RETURN answers
@@ -2032,6 +2056,14 @@ Current build baseline:
   - **Neighbours.** The SparkWitch/SparkTraits info card and SparkAssist's guidebook route around
     the panel because it is a visible `ClickableWidget` child; being inactive, it never consumes a
     click.
+  - **Headset cell** (BEAR WP4, E1). The real handler slot 46 in a 32x32 one-cell frame cut from the same strip
+    texture, 2 px under the block's head column (`[X-54, X-22)`, from `Y+43`, or `Y+32` with the second row). The
+    2x2 block already fills the band between the shop row and the role head rows, so the cell reaches into the head-row
+    band and is shown (widget `visible`, recomputed each frame in the `render` TAIL seam) only while the slot holds an
+    item, the cursor or inventory holds an accepted item, or a shop entry on the screen sells one (BEAR earplugs, Blind
+    ComTac); no head-row role owns such an item. The same seven seams hit-test, focus, shift-click (one `SWAP` between
+    the hotbar and slot 46), guard the empty-cursor pick-up and return an accepted cursor item on close, exactly like
+    an armor slot; the server checks `HeadsetSlot.canInsert`.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, the
   Seeker, USEC and the Black Raven share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
@@ -3079,8 +3111,9 @@ never reads `sparkwitch:holy_flash`, so a flashed Blind's pulses are unchanged. 
 Wathe round runs on a confirmed SparkWitch server, `BlindComTacHeadRenderMixin` (HEAD cancel on the
 typed `HeadFeatureRenderer.render`, which draws only the head-slot item) skips a worn ComTac VIII on
 every head for every viewer (D5/C15); other head items and all armor render normally, the ComTac
-renders outside rounds, and the HEAD slot still syncs, so `BlindParticipants.wearsComTac` is
-unchanged.
+renders outside rounds, and the HEAD slot still syncs. Since 2026-11-05 (E1) the ComTac is worn in the headset slot
+(`BlindParticipants.wearsComTac` reads `HeadsetSlots`; effects unchanged) and is no longer an `Equipment`, so only a
+command can put it on a head and this hide is effectively dead code, kept until the owner approves removing it.
 
 The Blind kit is granted at round start in the `sparkwitch:blind_finish_initialize` phase of
 `GameEvents.ON_FINISH_INITIALIZE`, ordered after `Event.DEFAULT_PHASE` (so SparkTraits' Conscience
@@ -3110,26 +3143,26 @@ cooling down, and with the Grand Witch Fear skill-blocked message while Feared; 
 nothing. Forced cooldowns reach Attune only through the `sparkwitch:blind_attune` store. The cane,
 like every carried non-exempt item, is floored by `raiseAll`; its item nominal only sizes nominal-based
 extensions such as GW-AC (see the SparkFactionAPI `ForcedCooldowns` registrations). The White Cane and the ComTac VIII are bound: never an item entity (drop, death drop),
-never outside the holder's own inventory slots (head slot included; QUICK_MOVE only for the ComTac
-quick-equip from the hotbar into an empty head slot; never the offhand (Wathe's server already
+never outside the holder's own slots (PlayerInventory slots plus their own headset slot, handler 46; QUICK_MOVE only
+for the ComTac quick-equip from the hotbar into the empty headset slot; never the offhand (Wathe's server already
 refuses the swap-hands action in a round), a container, the crafting grid, an item frame, an armor
 stand, an allay or a decorated pot, where `BlindKitDecoratedPotMixin` answers `SKIP_DEFAULT_BLOCK_INTERACTION`
 on both sides so the pot never takes it and the cane tap or ComTac equip still runs), hidden in hand
 from other players through `NoellesHiddenEquipment` (D9),
-and stripped from inventory, head slot, cursor and open screens of anyone who is not a living,
+and stripped from inventory, headset slot, cursor and open screens of anyone who is not a living,
 playing, exact Blind (role change, terminal death, reset, finalize, disconnect and a staggered
 20-tick sweep that spares a real Blind inside a SparkTraits-intercepted Last Stand death). A
 ComTac caught by the `dropItem` guard is emptied in place and re-delivered only to a living, active
 Blind (`BlindItemDrops`); a cane is just refused. Vanilla `/give`'s cosmetic count-1 copy
-(`util/GiveCommandDropScope`) is only cancelled, so a give never adds a second ComTac to the head
+(`util/GiveCommandDropScope`) is only cancelled, so a give never adds a second ComTac to the headset
 slot and its message keeps the item name. The
-ComTac equips silently (`minecraft:intentionally_empty` equip sound) and neither item's `use` ever
-returns SUCCESS, so no arm swing is broadcast. The Blind's shop is role-gated (rebuilt for the exact
+ComTac goes in silently (right-click moves it into the empty headset slot, server write, no sound) and neither item's
+`use` ever returns SUCCESS, so no arm swing is broadcast. The Blind's shop is role-gated (rebuilt for the exact
 role, `sparktraits:*` entries preserved) and sells one ComTac VIII for 100 coins, stock 1, shown with
 the `shop.sparkwitch.comtac_viii` name and its "one per round" description (Fiend shop precedent),
 refused with `shop.error.sparkwitch.comtac_owned` when the buyer already owns one or already bought
-one in this match (also after a strip or for a role gained mid-round); it lands on the head when
-the head slot is empty, else in the first empty hotbar slot, and with no room the purchase fails
+one in this match (also after a strip or for a role gained mid-round); it lands in the headset slot when
+that is empty, else in the first empty hotbar slot, and with no room the purchase fails
 without charging. Money follows the Angler: visible to a living Blind, 0 on assignment, +50 per
 task, no Impostor check. Any role change away from the Blind strips the kit at once
 (`BlindLoadoutService.onRoleAssigned`).

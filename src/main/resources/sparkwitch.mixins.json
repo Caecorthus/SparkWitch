@@ -270,7 +270,9 @@
     "bear.FirecrackerSmokeCarveMixin",
     "bear.BomberExplosionSmokeCarveMixin",
     "bear.ThrowingAxeRangedOriginMixin",
-    "bear.ServerWorldExplosionSmokeCarveMixin"
+    "bear.ServerWorldExplosionSmokeCarveMixin",
+    "bear.HeadsetPlayerScreenHandlerMixin",
+    "bear.HeadsetCreativeActionMixin"
   ],
   "injectors": {
     "defaultRequire": 1
