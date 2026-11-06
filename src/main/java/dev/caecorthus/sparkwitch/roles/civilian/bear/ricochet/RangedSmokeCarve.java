@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * The one-line call sites that let ranged fire carve BEAR smoke (S3 + bullet tunnels): every hitscan ray carves a
@@ -41,8 +42,17 @@ public final class RangedSmokeCarve {
 
     /** A segment with its own radius (the potion backblast lane). / 自定半径的线段（药炮尾焰通道）。 */
     public static void tunnel(@Nullable World world, @Nullable Vec3d from, @Nullable Vec3d to, float radius) {
+        tunnel(world, from, to, radius, null);
+    }
+
+    /**
+     * {@link #tunnel} with the shooter known, so the smoke service's per-shooter rate limit follows a moving shooter.
+     * 已知射手的 {@link #tunnel}，使烟雾服务的按射手限流能跟上移动中的射手。
+     */
+    private static void tunnel(@Nullable World world, @Nullable Vec3d from, @Nullable Vec3d to, float radius,
+                               @Nullable UUID shooter) {
         if (world instanceof ServerWorld server && finite(from) && finite(to) && from.squaredDistanceTo(to) > 1.0E-6) {
-            SmokeCloudService.carveTunnel(server, from, to, radius);
+            SmokeCloudService.carveTunnel(server, from, to, radius, shooter);
         }
     }
 
@@ -71,7 +81,7 @@ public final class RangedSmokeCarve {
      * 对其延迟补偿碰撞箱，否则为指向其碰撞箱中心的射线）；未命中时沿服务端朝向，被 {@code range} 内第一个 COLLIDER 方块截断。
      */
     public static void gunShot(@Nullable PlayerEntity shooter, @Nullable Entity hit, double range) {
-        if (shooter == null || !(shooter.getWorld() instanceof ServerWorld world)) {
+        if (shooter == null || !(shooter.getWorld() instanceof ServerWorld world) || !SmokeCloudService.hasSmoke(world)) {
             return;
         }
         Vec3d eye = shooter.getEyePos();
@@ -82,7 +92,7 @@ public final class RangedSmokeCarve {
                 && hit.squaredDistanceTo(shooter) < MAX_TARGET_DISTANCE * MAX_TARGET_DISTANCE;
         Vec3d end = hits ? entryPoint(shooter, hit, eye, look)
                 : blockClipped(world, shooter, eye, eye.add(look.multiply(range)));
-        ray(world, eye, end);
+        tunnel(world, eye, end, BearRicochetRules.TUNNEL_RADIUS, shooter.getUuid());
     }
 
     /** {@link #gunShot} for a payload's target entity id. / 以数据包目标实体 id 调用 {@link #gunShot}。 */

@@ -184,7 +184,11 @@ public final class SmokeCloudService {
         }
     }
 
-    static boolean hasSmoke(ServerWorld world) {
+    /**
+     * True while the world has a live cloud; ranged sources use it to skip ray work when nothing can be carved.
+     * 世界中存在存活烟团时为 true；远程来源据此在无可开洞时跳过射线计算。
+     */
+    public static boolean hasSmoke(ServerWorld world) {
         SmokeCloudRegistry registry = WORLDS.get(world);
         return registry != null && !registry.isEmpty();
     }
