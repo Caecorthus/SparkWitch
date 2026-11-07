@@ -29,7 +29,7 @@ import org.joml.Vector3f;
  * launcher stays visible: instead of vanilla's single full-model draw ({@code item/m32a1}) it draws the body
  * ({@code item/m32a1_body}) at the hip-to-aim blend of {@link M32SightPose}, the sight ({@code item/m32a1_sight}) at
  * the same pose times the range tilt, then the dot and the quadrant-grid reticle on the dot plane (SIGHT-CONTRACT v3:
- * the round tube's open bore is the window). Every matrix is computed before anything is drawn, and any missing
+ * the open bore of the square housing is the window). Every matrix is computed before anything is drawn, and any missing
  * model, unusable matrix or missing base answers false, so the caller draws vanilla's full model instead (fail safe);
  * p == 0 always answers false, so the vanilla call runs unchanged.
  * <p>
@@ -51,7 +51,7 @@ import org.joml.Vector3f;
  * render thread only; the server decides every shot.
  * 仅客户端：M2A1 瞄准进度 p 大于 0 时（{@link M32SightState}）的第一人称 M32A1。手中的发射器保持可见：不再进行原版的单次完整
  * 模型绘制（{@code item/m32a1}），而是按 {@link M32SightPose} 的腰射到瞄准过渡绘制机身（{@code item/m32a1_body}），在同一姿态再乘
- * 以射程俯仰绘制瞄具（{@code item/m32a1_sight}），最后绘制红点与红点平面上的象限网格分划（SIGHT-CONTRACT v3：圆形镜筒的开放
+ * 以射程俯仰绘制瞄具（{@code item/m32a1_sight}），最后绘制红点与红点平面上的象限网格分划（SIGHT-CONTRACT v3：方形机匣的开放
  * 内孔即窗口）。所有矩阵都在绘制任何内容之前算好；缺少模型、矩阵不可用或没有基准时返回 false，调用方改为绘制原版完整模型
  * （失败安全）；p == 0 时总是返回 false，原版调用原样执行。
  * <p>
