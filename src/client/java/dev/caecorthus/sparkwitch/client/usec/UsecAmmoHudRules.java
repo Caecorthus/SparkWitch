@@ -4,19 +4,20 @@ import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoType;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecCooldowns;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecMagazineContents;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Pure presentation rules for the owner-only USEC ammo line (S2, WP6 mockup {@code s2_ammo_hud_states.png}):
+ * Pure presentation rules for the holder-only AXMC ammo line (any holder since 2026-11-05) (S2, WP6 mockup {@code s2_ammo_hud_states.png}):
  * {@code <chamber> » [<magazine in firing order>] · 消音}, a tan magnification tag ({@code 3.4×}) left of it while
  * scoped, and a 2-px progress bar under the chamber token while the rifle cools down. The chamber token is the round
  * label in its own colour, {@code 空膛}, or {@code 拉栓中} while the bolt cycles; without a magazine the feed reads
  * {@code · 无弹匣}. It is role-owned, bottom-right, and never part of the witch skill inventory panel (AGENTS.md).
  * Colours are opaque ARGB.
- * 仅拥有者可见的 USEC 弹药行的纯展示规则（S2，WP6 样稿 {@code s2_ammo_hud_states.png}）：
+ * 仅持有者可见的 AXMC 弹药行的纯展示规则（2026-11-05 起任何持有者）（S2，WP6 样稿 {@code s2_ammo_hud_states.png}）：
  * {@code <弹膛> » [<按发射顺序的弹匣>] · 消音}，开镜时左侧有沙色倍率标签（{@code 3.4×}），步枪冷却期间弹膛标记下方有
  * 2 像素进度条。弹膛标记为自身颜色的弹种标签、{@code 空膛}，或拉栓时的 {@code 拉栓中}；没有弹匣时显示 {@code · 无弹匣}。
  * 属于职业自有的右下角展示，从不进入魔女技能背包面板（AGENTS.md）。颜色为不透明 ARGB。
@@ -69,18 +70,29 @@ public final class UsecAmmoHudRules {
     }
 
     /**
-     * HUD gates: a confirmed SparkWitch server, HUD not hidden (F1), Wathe's own HUD showing, an ACTIVE round, a living
-     * participant whose exact role is USEC, not spectating, holding the rifle in the main hand. Owner-facing choice:
-     * the line describes the stack that fires, so it shows only while that stack is in hand; the hotbar cooldown
-     * overlay still covers the rifle when it is not held.
-     * HUD 门槛：已确认的 SparkWitch 服务端、HUD 未隐藏（F1）、Wathe 自身 HUD 正在显示、ACTIVE 对局、真实职业为 USEC 的存活
-     * 参与者、非旁观、主手持步枪。面向所有者的取舍：该行描述的是实际开火的那把枪，因此只在它在手中时显示；不手持时快捷栏
-     * 冷却遮罩仍会显示步枪冷却。
+     * HUD gates: a confirmed SparkWitch server, HUD not hidden (F1), not spectating, holding the rifle in the main hand,
+     * and a use mode that may fire ({@code OffMatchUse}). The role is never read (owner, 2026-11-05: any holder sees
+     * the line). A live participant of an ACTIVE round also needs Wathe's own HUD showing; an off-match holder (no
+     * round, STARTING/STOPPING, a lobby player) sees it without Wathe's HUD; a dead participant never does.
+     * Owner-facing choice: the line describes the stack that fires, so it shows only while that stack is in hand; the
+     * hotbar cooldown overlay still covers the rifle when it is not held.
+     * HUD 门槛：已确认的 SparkWitch 服务端、HUD 未隐藏（F1）、非旁观、主手持步枪，且使用模式允许开火（{@code OffMatchUse}）。
+     * 从不读取职业（所有者 2026-11-05：任何持有者都能看到该行）。ACTIVE 对局的存活参与者还需要 Wathe 自身 HUD 正在显示；
+     * 对局外的持有者（没有对局、STARTING/STOPPING、大厅玩家）无需 Wathe HUD 也能看到；已死亡的参与者永远看不到。面向所有者的
+     * 取舍：该行描述的是实际开火的那把枪，因此只在它在手中时显示；不手持时快捷栏冷却遮罩仍会显示步枪冷却。
+     *
+     * @param mode {@code OffMatchUse.mode(player)} on the client's synced Wathe state; null or REFUSED hides the line
      */
-    public static boolean visible(boolean confirmedServer, boolean hudHidden, boolean watheHud, boolean gameActive,
-                                  boolean playingAndAlive, boolean usec, boolean spectator, boolean holdingRifle) {
-        return confirmedServer && !hudHidden && watheHud && gameActive && playingAndAlive && usec && !spectator
-                && holdingRifle;
+    public static boolean visible(boolean confirmedServer, boolean hudHidden, boolean watheHud,
+                                  @Nullable OffMatchUse.Mode mode, boolean spectator, boolean holdingRifle) {
+        if (!confirmedServer || hudHidden || spectator || !holdingRifle || mode == null) {
+            return false;
+        }
+        return switch (mode) {
+            case MATCH -> watheHud;
+            case PRESENTATION -> true;
+            case REFUSED -> false;
+        };
     }
 
     /**
