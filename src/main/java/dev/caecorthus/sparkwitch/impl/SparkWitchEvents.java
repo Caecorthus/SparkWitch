@@ -60,6 +60,7 @@ import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedPromotionService
 import dev.caecorthus.sparkwitch.mana.WitchManaService;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeature.MurderousWitchFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
@@ -182,6 +183,7 @@ public final class SparkWitchEvents {
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();
+        FerrymanFeatureService.register();
         InsiderFeatureService.register();
         BlindFeatureService.register();
         AbyssListenerFeatureService.register();

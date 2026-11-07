@@ -35,6 +35,10 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerCompo
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeTheftPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendMomentWorldComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeignComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanInstinctVeilComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanMomentWorldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.AbyssZoneExposureComponent;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariantRoundComponent;
 import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedPlayerComponent;
@@ -170,6 +174,21 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, BlackRavenCrowPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(BlackRavenCrowPlayerComponent::new);
+        // Ferryman pardon window, cooldown and marks, synced to its owner only; appended last.
+        // 摆渡人的宽恕窗口、冷却与标记，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, FerrymanPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FerrymanPlayerComponent::new);
+        // Ferryman feign death: the marked attacker's 30 s fake corpse, server only; appended last.
+        // 摆渡人的假死：被标记者 30 秒的假尸体，仅服务端；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, FerrymanFeignComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FerrymanFeignComponent::new);
+        // Ferryman instinct veil: broadcast to everyone because instinct is drawn per client; appended last.
+        // 摆渡人的本能帷幕：本能按客户端绘制，因此同步给所有人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, FerrymanInstinctVeilComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FerrymanInstinctVeilComponent::new);
         // Recruit first-task progress and knife grant, synced to its owner only; appended last.
         // 新兵首个任务进度与发刀状态，只同步给本人；追加在最后。
         registry.beginRegistration(PlayerEntity.class, RecruitPlayerComponent.KEY)
@@ -222,6 +241,7 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.register(RiftGateRegistryComponent.KEY, RiftGateRegistryComponent::new);
         registry.register(dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent.KEY,
                 dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent::new);
+        registry.register(FerrymanMomentWorldComponent.KEY, FerrymanMomentWorldComponent::new);
         registry.register(JunkerLootWorldComponent.KEY, JunkerLootWorldComponent::new);
     }
 }

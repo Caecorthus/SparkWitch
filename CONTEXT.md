@@ -35,6 +35,16 @@ that earns coins from tasks and over time and keeps them in a shop-bought passbo
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
+It also adds the Insider, a neutral paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
+the two form Team Jiahao and win together.
+It also adds the Charon (`sparkwitch:charon`, 摆渡人), a neutral drawn from 8 players up that starts with nothing:
+a lethal hit opens a 0.5 s window instead of killing, a press inside it refuses the death and marks the attacker
+with 瞥视 (dark red, seen through walls, forever), and a second strike by that marked attacker drops them into 10 s of
+feign death. Its secondary key ferries a body that died within 60 s for 50 gold and a 怜悯 mark (pale blue), and a
+ferried body that is later bagged or eaten pays a second share and marks whoever took it. Its shop sells a 25 gold
+crowbar and, for 250 gold, the Soul Moment: the bodies it ferried come back as Lost Souls (`sparkwitch:lost_soul`,
+derringer with no rounds, crowbar, knife, glowing to everyone) beside the Charon, and the moment is won only by
+killing every player outside it; if every Lost Soul dies first, the Charon dies with them.
 It also adds the Insider, a Team Jiahao member paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao (嘉豪阵营, `sparkwitch:jiahao`) and win together.
 Since 2026-11-04 the witch faction (`sparkwitch:witch`) and Team Jiahao (`sparkwitch:jiahao`) are real Wathe
@@ -832,6 +842,24 @@ Current build baseline:
   `FiendFeignComponent`, `FiendFeignService`, the server-only fake-corpse registry `FiendFakeBodies`). Its mixins live
   in `mixin/fiend/` and `client/mixin/fiend/`; client presentation (countdown HUD, Dash HUD, feign HUD, outline
   decision) in `client/fiend/`.
+- `roles/neutral/ferryman/`: the Charon (`sparkwitch:charon`) and its Lost Souls (`sparkwitch:lost_soul`, never drawn;
+  only the Soul Moment assigns it). Rules and the side-safe predicate (`FerrymanRules`, `FerrymanParticipation`); the
+  owner-only `sparkwitch:ferryman` player component (`FerrymanPlayerComponent`: cooldown, pending pardon window, 瞥视 and
+  怜悯 id sets) and the server-only `sparkwitch:ferryman_feign` component (`FerrymanFeignComponent`); the pardon
+  (`FerrymanPardonService`: a `KillPlayer.BEFORE` veto that holds the kill for 0.5 s and replays it unchanged, with the
+  same killer and death reason, when the window lapses); the ferry (`FerrymanFerryService`: 60 s freshness, 4 block
+  reach, one payment per body) and the second share for a ferried body that is taken (`FerrymanMercyService`); the shop
+  (`FerrymanShopService`: crowbar and the 250 gold Soul Moment) and the moment itself
+  (`FerrymanMomentWorldComponent` + `FerrymanMomentRules` + `FerrymanMomentService` + `FerrymanWinService`, which runs
+  in its own `CheckWinCondition` phase before the default one: it blocks every other win while the moment runs and wins
+  for the Charon once no outsider is left alive). The 10 s feign death lives in `FerrymanFeignService` with its own
+  fake corpse (civilian cover role), and the 5 s instinct veil that follows it in `FerrymanInstinctVeilComponent`, the
+  one component broadcast to every client because instinct is drawn locally. Both payloads
+  (`net/FerrymanPardonC2SPayload`, `net/FerrymanFerryC2SPayload`) register through `FerrymanNetworking`, called by
+  `FerrymanFeatureService.register()` from `SparkWitchEvents`. Its mixins live in `mixin/ferryman/`
+  (`NoellesVultureFerrymanFakeBodyMixin` kills the feigning player a Vulture eats; `BodyBagItemFerrymanFeignMixin`
+  refuses a fake corpse and pays for a bagged ferried body); client presentation (highlight colours, the secondary-key
+  ferry request) in `client/ferryman/`.
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
@@ -4544,6 +4572,11 @@ Server:
   round edges. `SparkTraitsKillerBridge.isLastEscapeActive` uses a cached MethodHandle.
 - `ShadowJesterShowdownBridge`, `SparkStrengthCoronerCompat` and `SparkStrengthJunctionBoxCompat` resolve their
   reflection once (lazy holders, failing closed). `CeremonialSwordDashService.DASHES` is cleared on SERVER_STOPPING.
+- The Charon owns two cheap per-tick sweeps, both over the player list and both no-ops for an idle round:
+  `FerrymanPardonService.tick` decrements one cooldown integer per player and checks a deadline only while a pardon
+  window is open, and `FerrymanFeignService.tick` decrements every player's `sparkwitch:ferryman_feign_veil` counter
+  (kept because instinct is drawn per client) and then acts only on players whose feign is active. Neither allocates,
+  reaches a world lookup, or syncs unless a value actually changed.
 
 Network:
 - `HunterTrapEntity` zeroes and syncs its velocity only when it was non-zero.
