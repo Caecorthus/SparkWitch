@@ -15,6 +15,7 @@ import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedModelManager;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
+import net.minecraft.client.util.Window;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
@@ -49,6 +50,10 @@ import org.joml.Vector3f;
  * FOV ({@link M32SightPose#tiltRadians}); it blends in with ease(p) so the sight never pops off the hip pose. No aim
  * solution (out of range before the fuse) leaves the sight untilted and draws no dot and no reticle. Presentation only;
  * render thread only; the server decides every shot.
+ * <p>
+ * Badge anchor (owner, 2026-11-06, option B): every main-hand draw also hands {@link M32BadgeAnchor} this frame's
+ * screen anchor of the readout badge, p = 0 included ({@link #captureHipAnchor}: the hip pose vanilla is about to
+ * draw), so {@link M32Hud} can ride the launcher; a declined aimed draw captures nothing and the HUD falls back.
  * 仅客户端：M2A1 瞄准进度 p 大于 0 时（{@link M32SightState}）的第一人称 M32A1。手中的发射器保持可见：不再进行原版的单次完整
  * 模型绘制（{@code item/m32a1}），而是按 {@link M32SightPose} 的腰射到瞄准过渡绘制机身（{@code item/m32a1_body}），在同一姿态再乘
  * 以射程俯仰绘制瞄具（{@code item/m32a1_sight}），最后绘制红点与红点平面上的象限网格分划（SIGHT-CONTRACT v3：圆形镜筒的开放
@@ -66,6 +71,9 @@ import org.joml.Vector3f;
  * 射程俯仰：h = 插值俯仰角与当前刻度下的 {@link M32Ballistics#holdoverRadians}（即已退役的 2D 分划所用的值），再用实时世界投影
  * 视场角与本次手部视场角换算到手部投影（{@link M32SightPose#tiltRadians}）；它随 ease(p) 淡入，瞄具不会从腰射姿态跳变。没有
  * 瞄准解（引信前飞不到该距离）时瞄具不俯仰，也不画红点与分划。仅为表现；仅渲染线程；每次发射都由服务端决定。
+ * <p>
+ * 标记锚点（所有者 2026-11-06，方案 B）：每次主手绘制也把本帧读数标记的屏幕锚点交给 {@link M32BadgeAnchor}，p = 0 时也一样
+ * （{@link #captureHipAnchor}：原版即将绘制的腰射姿态），使 {@link M32Hud} 能跟随枪身；放弃的瞄准绘制不捕获任何内容，HUD 回退。
  */
 public final class M32SightRenderer {
     public static final Identifier BODY_MODEL_ID = SparkWitch.id("item/m32a1_body");
@@ -118,6 +126,7 @@ public final class M32SightRenderer {
         }
         float progress = M32SightState.progress();
         if (!(progress > 0.0F)) {
+            captureHipAnchor(renderer, entity, stack, mode, leftHanded, matrices, world, seed);
             return false;
         }
         BakedModel body = extraModel(BODY_MODEL_ID);
@@ -154,8 +163,13 @@ public final class M32SightRenderer {
         // The hand projection and model-view now bound (vanilla renderHand / Iris HandRenderer), so the window test
         // sees exactly the picture the quads will make. / 当前绑定的手部投影与模型视图（原版 renderHand / Iris HandRenderer），
         // 因此窗口检测看到的正是这些四边形将呈现的画面。
-        boolean dot = dotCorrection != null && M32SightPose.dotInWindow(new Matrix4f(RenderSystem.getProjectionMatrix())
-                .mul(RenderSystem.getModelViewMatrix()).mul(PASS_BASE).mul(sightPose));
+        boolean dot = dotCorrection != null && M32SightPose.dotInWindow(clipFromBase().mul(sightPose));
+        // The badge anchor of this frame: the hip anchor under the body pose, the aim anchor under the tilted sight
+        // pose, blended like the poses (M32BadgeAnchor). / 本帧标记锚点：机身姿态下的腰射锚点、俯仰后瞄具姿态下的瞄准锚点，
+        // 与姿态同样混合（M32BadgeAnchor）。
+        Window window = client.getWindow();
+        M32BadgeAnchor.capture(clipFromBase(), bodyPose, sightPose, ease, window.getScaledWidth(),
+                window.getScaledHeight());
 
         drawModel(renderer, stack, mode, leftHanded, matrices, consumers, light, overlay, body, bodyCorrection);
         drawModel(renderer, stack, mode, leftHanded, matrices, consumers, light, overlay, sight, sightCorrection);
@@ -169,6 +183,39 @@ public final class M32SightRenderer {
                     M32SightPose.reticleAlpha(progress));
         }
         return true;
+    }
+
+    /**
+     * p = 0: vanilla is about to draw the full model at the hip, so the badge anchor is the rail top under that very
+     * pose ({@code hipPre * D_full * T(-0.5)}), blend 0. A singular base leaves no anchor (the HUD falls back).
+     * p = 0：原版即将在腰射姿态绘制完整模型，因此标记锚点就是该姿态（{@code hipPre * D_full * T(-0.5)}）下的导轨顶，混合为 0。
+     * 基准奇异时不产生锚点（HUD 回退）。
+     */
+    private static void captureHipAnchor(ItemRenderer renderer, LivingEntity entity, ItemStack stack,
+                                         ModelTransformationMode mode, boolean leftHanded, MatrixStack matrices,
+                                         World world, int seed) {
+        Matrix4f inverseBase = M32SightPose.invert(PASS_BASE);
+        if (inverseBase == null) {
+            return;
+        }
+        Matrix4f hipPre = inverseBase.mul(matrices.peek().getPositionMatrix());
+        BakedModel full = renderer.getModel(stack, world, entity, seed);
+        Matrix4f hip = M32SightPose.hipPose(hipPre, display(full, mode, leftHanded));
+        Window window = MinecraftClient.getInstance().getWindow();
+        M32BadgeAnchor.capture(clipFromBase(), hip, hip, 0.0F, window.getScaledWidth(), window.getScaledHeight());
+    }
+
+    /**
+     * Base space to clip space of this hand pass: the bound hand projection and model-view (vanilla {@code renderHand}
+     * loads {@code getBasicProjectionMatrix(getFov(camera, tickDelta, false))} and pushes the camera rotation that the
+     * base inverts; Iris's {@code HandRenderer} binds the same) times the base, so a vertex-space point through a pose
+     * and this matrix is exactly the picture the quads make. Fresh copy.
+     * 本次手部渲染从基准空间到裁剪空间的矩阵：当前绑定的手部投影与模型视图（原版 {@code renderHand} 加载
+     * {@code getBasicProjectionMatrix(getFov(camera, tickDelta, false))} 并压入基准所抵消的相机旋转；Iris 的 {@code HandRenderer}
+     * 绑定相同内容）乘以基准，因此顶点空间的点经姿态再经此矩阵得到的正是四边形呈现的画面。返回新副本。
+     */
+    private static Matrix4f clipFromBase() {
+        return new Matrix4f(RenderSystem.getProjectionMatrix()).mul(RenderSystem.getModelViewMatrix()).mul(PASS_BASE);
     }
 
     /** The extra model, or null when it is missing or failed to bake. / 额外模型；缺失或烘焙失败时为 null。 */

@@ -1657,9 +1657,21 @@ Current build baseline:
     `M32SightState.handFov` (exactly the original at p = 0); the world projection passes through. The two halves are
     added in `M32LauncherClient`'s model plugin and fetched through `FabricBakedModelManager`; body ∪ sight equals the
     full model element for element (same texture and display block). `M32RangeDial` (wheel, 25 m steps, per holding
-    session = same hotbar slot), `M32Hud` (owner, 2026-11-06: a slot badge above the launcher's hotbar slot only while
-    it is in the main hand, like the Ceremonial Sword badge; the bottom-right corner row is gone, so no corner row
-    stacks against it. The 6-chamber icon from `textures/gui/bear/m32_chambers.png`, then the dial over the count on
+    session = same hotbar slot), `M32Hud` (owner, 2026-11-06, option B 跟随枪身: the readout badge rides the held
+    launcher in first person. `M32BadgeAnchor` holds the only two anchor points, in sight model space (hip = the top
+    rail's top centre (8, 23.4, 0.5), aim = the sight's visible right silhouette at the eye height, on the current art
+    the elevation turret's rear outer edge (10.9, 20.5, 3); UPDATE BOTH WHEN THE SIGHT MODEL CHANGES, the maths never
+    names them); `M32SightRenderer` projects the hip point through the body
+    pose and the aim point through the tilted sight pose with the hand pass's clip matrix (hand projection x model-view
+    x base) at every main-hand draw, p = 0 included (`captureHipAnchor`), lerps the two by ease(p) and stamps the frame
+    id that `WorldRenderEvents.START` advances, so `M32BadgeAnchor.current()` is never stale. `M32Hud` follows the
+    anchor with a time-based exponential smoothing (`M32HudRules.follow`, τ 0.1 s; snap on the first frame or a jump
+    over w/3), centred above it with its bottom 18 px up at the hip and 10 px right of it, vertically centred, at full
+    aim (placement lerped by the same blend), clamped to a 4 px margin and above `h - 45` (`followBadge`), with a 1 px
+    leader in the dial colour at 65 % from the badge's nearest edge midpoint to a 5x5 hollow ring on the anchor
+    (`leader`). No anchor this frame (F5, hidden hand, the launcher not drawn, a declined aimed draw) falls back to the
+    slot badge above the launcher's hotbar slot, only while it is in the main hand, like the Ceremonial Sword badge;
+    the bottom-right corner row is gone, so no corner row stacks against it. The 6-chamber icon from `textures/gui/bear/m32_chambers.png`, then the dial over the count on
     one translucent dark plate `PLATE_COLOR` as tall as the cylinder and the cooldown bar under the count; pure layout
     `M32HudRules.badge`: centred on Wathe's slot centre `w/2 - 80 + 20·slot`, clamped, the text column reserves
     "200 m", bottom on the selection frame's top row `h - 23`, so the count sits on Wathe's cooldown-number line

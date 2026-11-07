@@ -27,6 +27,13 @@ import org.jetbrains.annotations.Nullable;
  *   <li>Plate: the texts and the bar sit on one translucent dark rounded plate exactly as tall as the cylinder, so the
  *   light count and the olive dial keep their contrast over bright ground, vanilla or under a shader pack; the texts
  *   keep their vanilla drop shadow on top.</li>
+ *   <li>Following badge (owner, 2026-11-06, option B 跟随枪身; the slot badge is now the fallback): for an anchor on
+ *   the drawn launcher ({@code M32BadgeAnchor}) the ideal top-left is centred above it with its bottom
+ *   {@link #FOLLOW_HIP_GAP} up at the hip and {@link #FOLLOW_AIM_GAP} right of it, vertically centred, at full aim
+ *   (lerped by the aim blend); {@link #follow} smooths it over real time with {@link #FOLLOW_TIME_CONSTANT_SECONDS},
+ *   snapping on the first frame or a jump over {@link #FOLLOW_SNAP_SHARE} of the width; {@link #followBadge} clamps
+ *   it to a {@link #FOLLOW_MARGIN} and above {@code h - }{@link #FOLLOW_HOTBAR_BAND}; {@link #leader} is the 1 px
+ *   line from the nearest edge midpoint to a hollow ring on the anchor.</li>
  * </ul>
  * M32A1 物品栏格标记（{@link M32Hud}）的纯规则，依据 BEAR 美术包（README 第 8 节）：何时显示、精灵图、每个弹膛的绘制位置、
  * 加圈与变暗规则，以及发射器所在快捷栏格上方的标记布局（所有者 2026-11-06：右下角的行可能与技能行重合，因此改为像仪礼剑
@@ -264,7 +271,176 @@ public final class M32HudRules {
         int width = badgeWidth(column);
         int x = badgeX(scaledWidth, selectedSlot, width);
         boolean lifted = staminaRowShown && reachesStaminaRow(scaledWidth, x, width);
-        int bottom = badgeBottom(scaledHeight, lifted);
+        return badgeAt(x, badgeBottom(scaledHeight, lifted), column, fontHeight, lifted);
+    }
+
+    // ---- Following badge (owner, 2026-11-06, option B 跟随枪身): the badge rides the launcher drawn in first person ----
+    // ---- 跟随枪身的标记（所有者 2026-11-06，方案 B）：标记随第一人称绘制的发射器移动 ----
+    /** The badge's height: the icon is its tallest part and the plate shares its bottom. / 标记高度：图标最高，底板共用底边。 */
+    public static final int BADGE_HEIGHT = ICON_HEIGHT;
+    /** Screen margin the following badge keeps. / 跟随标记与屏幕边缘的最小距离。 */
+    public static final int FOLLOW_MARGIN = 4;
+    /**
+     * The following badge's bottom stays above {@code h - 45}: clear of the hotbar, Wathe's cooldown number
+     * ({@code h - 35}) and its stamina row ({@code h - 39}) wherever it is, so no column test is needed.
+     * 跟随标记的底边保持在 {@code h - 45} 之上：无论在哪一列都避开快捷栏、Wathe 冷却数字（{@code h - 35}）与体力行（{@code h - 39}），
+     * 因此无需按列判断。
+     */
+    public static final int FOLLOW_HOTBAR_BAND = 45;
+    /** Hip: the badge bottom this far above the anchor. / 腰射：标记底边位于锚点上方的距离。 */
+    public static final int FOLLOW_HIP_GAP = 18;
+    /** Aim: the badge left this far right of the anchor. / 瞄准：标记左缘位于锚点右侧的距离。 */
+    public static final int FOLLOW_AIM_GAP = 10;
+    /** Time constant of the exponential smoothing of the badge position. / 标记位置指数平滑的时间常数。 */
+    public static final double FOLLOW_TIME_CONSTANT_SECONDS = 0.1;
+    /** A target jump over this share of the screen width snaps instead of gliding. / 目标跳动超过屏幕宽度的这一比例时直接跳转。 */
+    public static final float FOLLOW_SNAP_SHARE = 1.0F / 3.0F;
+    /** Leader line and ring: {@link #DIAL_COLOR} at 65 %. / 引线与圆环：65% 透明度的 {@link #DIAL_COLOR}。 */
+    public static final int LEADER_COLOR = 0xA6A4B86A;
+    public static final int LEADER_RING_SIZE = 5;
+    /** The line stops this far short of the anchor, on the ring's edge. / 引线在锚点前这么远处停下，即圆环边缘。 */
+    public static final int LEADER_RING_CLEARANCE = 3;
+
+    /**
+     * Ideal badge left for an anchor, unclamped: centred on it at the hip (blend 0), {@link #FOLLOW_AIM_GAP} right of
+     * it at full aim (blend 1), lerped between so the placement moves with the hip-to-aim blend instead of switching.
+     * 锚点对应的理想标记左侧（未钳制）：腰射（混合 0）时居中于锚点，完全瞄准（混合 1）时位于锚点右侧 {@link #FOLLOW_AIM_GAP}，
+     * 其间线性插值，使布局随腰射到瞄准的过渡移动而不是切换。
+     */
+    public static float followTargetX(float anchorX, int badgeWidth, float aimBlend) {
+        float t = clamp01(aimBlend);
+        float hip = anchorX - Math.max(0, badgeWidth) / 2.0F;
+        float aim = anchorX + FOLLOW_AIM_GAP;
+        return hip + (aim - hip) * t;
+    }
+
+    /**
+     * Ideal badge top, unclamped: bottom {@link #FOLLOW_HIP_GAP} above the anchor at the hip, vertically centred on
+     * it at full aim, lerped between.
+     * 理想标记顶边（未钳制）：腰射时底边位于锚点上方 {@link #FOLLOW_HIP_GAP}，完全瞄准时垂直居中于锚点，其间线性插值。
+     */
+    public static float followTargetY(float anchorY, int badgeHeight, float aimBlend) {
+        float t = clamp01(aimBlend);
+        int height = Math.max(0, badgeHeight);
+        float hip = anchorY - FOLLOW_HIP_GAP - height;
+        float aim = anchorY - height / 2.0F;
+        return hip + (aim - hip) * t;
+    }
+
+    /**
+     * Whether the badge snaps to its target this frame: its first appearance, or a target jump over
+     * {@link #FOLLOW_SNAP_SHARE} of the screen width (an unusable distance snaps too).
+     * 本帧标记是否直接跳到目标：首次出现，或目标跳动超过屏幕宽度的 {@link #FOLLOW_SNAP_SHARE}（距离不可用时同样跳转）。
+     */
+    public static boolean followSnaps(boolean hadTarget, float previousX, float previousY, float targetX, float targetY,
+                                      int scaledWidth) {
+        if (!hadTarget) {
+            return true;
+        }
+        float dx = targetX - previousX;
+        float dy = targetY - previousY;
+        float limit = Math.max(0, scaledWidth) * FOLLOW_SNAP_SHARE;
+        return !(dx * dx + dy * dy <= limit * limit);
+    }
+
+    /**
+     * One axis of the smoothing: {@code target + (previous - target) * exp(-seconds / tau)}. A snap, an unusable
+     * previous value or unusable time answers the target; no elapsed time keeps the previous value.
+     * 平滑的一个轴：{@code target + (previous - target) * exp(-seconds / tau)}。跳转、先前值不可用或时间不可用时返回目标；
+     * 没有经过时间则保持先前值。
+     */
+    public static float follow(float previous, float target, double seconds, boolean snap) {
+        if (snap || !Float.isFinite(previous) || !Double.isFinite(seconds)) {
+            return target;
+        }
+        if (seconds <= 0.0) {
+            return previous;
+        }
+        return (float) (target + (previous - target) * Math.exp(-seconds / FOLLOW_TIME_CONSTANT_SECONDS));
+    }
+
+    /** Badge left clamped to the margin on both sides (the left margin wins on a tiny screen). / 左侧 x 两侧钳制到边距。 */
+    public static int followX(int scaledWidth, int x, int badgeWidth) {
+        return Math.max(FOLLOW_MARGIN, Math.min(x, scaledWidth - FOLLOW_MARGIN - Math.max(0, badgeWidth)));
+    }
+
+    /**
+     * Badge top clamped to the margin and above the hotbar band ({@link #FOLLOW_HOTBAR_BAND}; the top margin wins).
+     * 顶边钳制到边距并位于快捷栏区域（{@link #FOLLOW_HOTBAR_BAND}）之上（顶部边距优先）。
+     */
+    public static int followTop(int scaledHeight, int top, int badgeHeight) {
+        return Math.max(FOLLOW_MARGIN, Math.min(top, scaledHeight - FOLLOW_HOTBAR_BAND - Math.max(0, badgeHeight)));
+    }
+
+    /**
+     * The following badge from its smoothed ideal top-left: clamped ({@link #followX}, {@link #followTop}), never
+     * lifted (the band keeps it clear of the stamina row), laid out by {@link #badgeAt}.
+     * 由平滑后的理想左上角得到的跟随标记：钳制（{@link #followX}、{@link #followTop}），从不抬升（该区域已避开体力行），由
+     * {@link #badgeAt} 布局。
+     */
+    public static Badge followBadge(int scaledWidth, int scaledHeight, int targetX, int targetTop, int columnWidth,
+                                    int fontHeight) {
+        int column = Math.max(0, columnWidth);
+        int x = followX(scaledWidth, targetX, badgeWidth(column));
+        int top = followTop(scaledHeight, targetTop, BADGE_HEIGHT);
+        return badgeAt(x, top + BADGE_HEIGHT, column, fontHeight, false);
+    }
+
+    /**
+     * The leader from the badge to its anchor: a 1 px line from the midpoint of the badge edge nearest the anchor
+     * (bottom, left, right, top; the first wins a tie), stopping {@link #LEADER_RING_CLEARANCE} short of the anchor,
+     * and a {@link #LEADER_RING_SIZE} hollow ring centred on the anchor. No line when the anchor is that close.
+     * Always drawn: when the badge was clamped away, the line explains the offset.
+     * 从标记到锚点的引线：自离锚点最近的标记边（下、左、右、上；相同时取前者）中点出发的 1 像素线，在锚点前
+     * {@link #LEADER_RING_CLEARANCE} 处停下，以及以锚点为中心的 {@link #LEADER_RING_SIZE} 空心圆环。锚点足够近时不画线。
+     * 总是绘制：标记被钳制移开时，引线说明了偏移。
+     */
+    public static Leader leader(Badge badge, int badgeWidth, int anchorX, int anchorY) {
+        int width = Math.max(0, badgeWidth);
+        int left = badge.iconX();
+        int top = badge.iconY();
+        int right = left + width;
+        int bottom = top + BADGE_HEIGHT;
+        int centreX = left + width / 2;
+        int centreY = top + BADGE_HEIGHT / 2;
+        int[][] midpoints = {{centreX, bottom}, {left, centreY}, {right, centreY}, {centreX, top}};
+        int startX = centreX;
+        int startY = bottom;
+        long best = Long.MAX_VALUE;
+        for (int[] midpoint : midpoints) {
+            long dx = midpoint[0] - anchorX;
+            long dy = midpoint[1] - anchorY;
+            long distance = dx * dx + dy * dy;
+            if (distance < best) {
+                best = distance;
+                startX = midpoint[0];
+                startY = midpoint[1];
+            }
+        }
+        double length = Math.sqrt(best);
+        boolean line = length > LEADER_RING_CLEARANCE;
+        int endX = anchorX;
+        int endY = anchorY;
+        if (line) {
+            endX = (int) Math.round(anchorX - (anchorX - startX) / length * LEADER_RING_CLEARANCE);
+            endY = (int) Math.round(anchorY - (anchorY - startY) / length * LEADER_RING_CLEARANCE);
+        }
+        int half = LEADER_RING_SIZE / 2;
+        return new Leader(startX, startY, endX, endY, anchorX - half, anchorY - half, line);
+    }
+
+    private static float clamp01(float value) {
+        return Float.isNaN(value) ? 0.0F : Math.max(0.0F, Math.min(1.0F, value));
+    }
+
+    /**
+     * The badge laid out from its left x and bottom edge (exclusive). From the bottom up: the plate's 1 px pad, the 2
+     * px bar, the count line, 2 px, the dial line, the plate's 2 px pad; the icon shares the bottom edge.
+     * 由左侧 x 与底边（不含）布局的标记。自下而上：底板 1 像素内边距、2 像素进度条、弹数行、2 像素、刻度行、底板 2 像素内边距；
+     * 图标与其共用底边。
+     */
+    public static Badge badgeAt(int x, int bottom, int columnWidth, int fontHeight, boolean lifted) {
+        int column = Math.max(0, columnWidth);
         int barY = bottom - PLATE_PAD_BOTTOM - BAR_HEIGHT;
         int countY = barY - fontHeight;
         int dialY = countY - LINE_GAP - fontHeight;
@@ -308,5 +484,14 @@ public final class M32HudRules {
      */
     public record Badge(int iconX, int iconY, int textX, int dialY, int countY, int barY, Plate plate,
                         boolean lifted) {
+    }
+
+    /**
+     * One frame's leader: the line from the badge edge midpoint {@code (startX, startY)} to {@code (endX, endY)} on
+     * the ring's edge (drawn only when {@code line}), and the ring's top-left on the anchor.
+     * 单帧引线：从标记边中点 {@code (startX, startY)} 到圆环边缘 {@code (endX, endY)} 的线（仅 {@code line} 为真时绘制），
+     * 以及位于锚点上的圆环左上角。
+     */
+    public record Leader(int startX, int startY, int endX, int endY, int ringX, int ringY, boolean line) {
     }
 }
