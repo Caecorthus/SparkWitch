@@ -21,15 +21,15 @@ import net.minecraft.util.math.RotationAxis;
 
 /**
  * Bullet holes on the worn Rys-T glass, for every viewer: one flat quad per {@link VisorCrack}, {@link #DECAL_UNITS}
- * model units square, {@link #LIFT_UNITS} in front of the glass face (the crack plane z 1.45), centred at
- * (4 + 8u, 9 - 3v) and then shifted so the whole square stays on the 8 x 3 glass window (u = 0 at the wearer's left,
+ * model units square, {@link #LIFT_UNITS} in front of the glass face (the crack plane z 1.70), centred at
+ * (3 + 10u, 9 - 3v) and then shifted so the whole square stays on the 10 x 3 glass window (u = 0 at the wearer's left,
  * v = 0 at the top, as on the HUD), using cell {@code style} of the decal strip. Drawn right after vanilla
  * {@code HeadFeatureRenderer} drew the helmet item, in the same head matrix (so EMF head animation is followed) with the
  * item model's own {@code display.head} transform; on the visor-up model the quad follows the plate through the
  * {@link RysTVisorGeometry} raised pose ({@link #applyRaisedPose}). The decal is not rotated on the model: a rotated
  * 2.5-unit square would overhang the 3-unit-tall window (the HUD rotates). Presentation only.
  * 所有观察者都能看到的穿戴 Rys-T 玻璃弹孔：每个 {@link VisorCrack} 一个平面四边形，边长 {@link #DECAL_UNITS} 个模型单位，
- * 位于玻璃面前方 {@link #LIFT_UNITS}（裂纹平面 z 1.45），以 (4 + 8u, 9 - 3v) 为中心，再平移使整个正方形留在 8 × 3 的玻璃窗内
+ * 位于玻璃面前方 {@link #LIFT_UNITS}（裂纹平面 z 1.70），以 (3 + 10u, 9 - 3v) 为中心，再平移使整个正方形留在 10 × 3 的玻璃窗内
  * （u = 0 为佩戴者左侧，v = 0 为顶部，与 HUD 相同），使用贴花条中的第 {@code style} 格。在原版
  * {@code HeadFeatureRenderer} 绘制头盔物品之后立即绘制，使用同一头部矩阵（因此跟随 EMF 头部动画）与物品模型自身的
  * {@code display.head} 变换；面罩抬起模型上四边形通过 {@link RysTVisorGeometry} 的抬起姿态（{@link #applyRaisedPose}）跟随面板。
@@ -76,10 +76,10 @@ public final class RysTWornCracks {
 
     /**
      * Moves model-unit geometry from the visor-down pose onto the raised visor:
-     * {@code up = P + Rx(UP_TILT_DEGREES) * (down - P)} with no lift ({@link RysTVisorGeometry}); with the art v3
-     * quarter turn the crack plane z 1.45 lands flat at y 14.55, just above the raised glass, facing up.
+     * {@code up = P + Rx(UP_TILT_DEGREES) * (down - P)} with no lift ({@link RysTVisorGeometry}); with the art v8
+     * quarter turn the crack plane z 1.70 lands flat at y 14.30, just above the raised glass, facing up.
      * 把模型单位几何从面罩放下姿态移到抬起的面罩上：{@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}，不上移
-     * （{@link RysTVisorGeometry}）；美术 v3 转四分之一圈后，裂纹平面 z 1.45 平躺在 y 14.55，紧贴抬起的玻璃上方并朝上。
+     * （{@link RysTVisorGeometry}）；美术 v8 转四分之一圈后，裂纹平面 z 1.70 平躺在 y 14.30，紧贴抬起的玻璃上方并朝上。
      */
     static void applyRaisedPose(MatrixStack matrices) {
         matrices.translate(RysTVisorGeometry.UP_PIVOT_X, RysTVisorGeometry.UP_PIVOT_Y, RysTVisorGeometry.UP_PIVOT_Z);
