@@ -14,6 +14,7 @@
     "savior.SaviorPistolEquipMixin",
     "knight.KnightDuelInventoryLockMixin",
     "AssassinSaboteurGuessMixin",
+    "AssassinSaviorGuessMixin",
     "AssassinVendettaTargetMixin",
     "ClientPlayNetworkingFearMixin",
     "CurserConfusionSkinMixin",
