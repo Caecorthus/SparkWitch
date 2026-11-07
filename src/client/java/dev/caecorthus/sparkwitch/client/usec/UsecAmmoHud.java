@@ -7,10 +7,8 @@ import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecCooldowns;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecMagazineItem;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRifleState;
-import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.doctor4t.wathe.client.WatheClient;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -31,10 +29,12 @@ import java.util.List;
  * Role-owned presentation: the USEC's bottom-right ammo line (S2), registered as its own {@code HudRenderCallback}
  * like the Seeker's status line, so no shared HUD dispatcher changes. It reads only the local player's own held rifle
  * stack (synced {@code CUSTOM_DATA}), its synced vanilla item cooldown and the local zoom; the server stays
- * authoritative. It hides under F1 or without Wathe's HUD, and it is never part of the witch skill inventory panel.
+ * authoritative. Any holder sees it, off-match included (owner, 2026-11-05; gates in {@link UsecAmmoHudRules#visible}).
+ * It hides under F1 or, in a live round, without Wathe's HUD, and it is never part of the witch skill inventory panel.
  * 职业自有展示：USEC 右下角弹药行（S2），与搜寻者状态行一样注册为独立的 {@code HudRenderCallback}，不改动任何共享 HUD
  * 分发。只读取本地玩家自己手持步枪的物品数据（已同步的 {@code CUSTOM_DATA}）、已同步的原版物品冷却与本地倍率；服务端保持
- * 权威。F1 或 Wathe HUD 隐藏时不显示，且从不属于魔女技能背包面板。
+ * 权威。任何持有者都能看到，含对局外（所有者 2026-11-05；门槛见 {@link UsecAmmoHudRules#visible}）。F1 时，或进行中的对局里
+ * Wathe HUD 隐藏时不显示，且从不属于魔女技能背包面板。
  */
 public final class UsecAmmoHud {
     // Render-thread caches. Item components are immutable, so one CUSTOM_DATA instance always decodes to the same rifle
@@ -76,11 +76,8 @@ public final class UsecAmmoHud {
         // HudRenderCallback still fires under F1, unlike Wathe's own HUD layer; follow both.
         // HudRenderCallback 在 F1 下仍会触发，与 Wathe 自身 HUD 层不同；两者都要遵循。
         boolean watheHud = WatheClient.trainComponent != null && WatheClient.trainComponent.hasHud();
-        GameWorldComponent game = GameWorldComponent.KEY.get(client.world);
         if (!UsecAmmoHudRules.visible(SparkWitchServerConnection.isConfirmedServer(), client.options.hudHidden,
-                watheHud, game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE,
-                GameFunctions.isPlayerPlayingAndAlive(player), UsecRules.isUsec(game.getRole(player)),
-                player.isSpectator(), true)) {
+                watheHud, OffMatchUse.mode(player), player.isSpectator(), true)) {
             return;
         }
         UsecRifleState state = rifleState(rifle);

@@ -7,11 +7,14 @@ import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
  * {@code UsecPlayerComponent.scoped} flag), a viewer at most {@link UsecRules#INSTINCT_CLOAK_RANGE} blocks away (feet
  * to feet, inclusive, the Apprentice Murder Sense and Vendetta measure) cannot see that USEC through keyed instinct.
  * Never cloaked: the viewer's own player, any target on a server that is not a confirmed SparkWitch server, and every
- * exempt viewer ({@link #exemptViewer}), who keeps seeing a scoped USEC at any distance.
+ * exempt viewer ({@link #exemptViewer}), who keeps seeing a scoped USEC at any distance. Since 2026-11-05 any holder
+ * of the rifle sets the scoped flag (glint and scope-in sound for everyone), so {@code UsecInstinctCloak} also requires
+ * the target's synced role to be exactly USEC before asking this rule; a non-USEC holder is never cloaked.
  * 开镜 USEC 本能隐蔽（所有者 2026-10-08）的纯规则：USEC 开镜期间（服务端检查并同步的 {@code UsecPlayerComponent.scoped}
  * 标记），距离不超过 {@link UsecRules#INSTINCT_CLOAK_RANGE} 格（脚到脚、含边界，与预备魔女杀意感知和仇杀客的量法一致）
  * 的观察者无法通过按键本能看到该 USEC。永不隐蔽：观察者自己、未确认 SparkWitch 服务端时的任何目标，以及所有豁免观察者
- * （{@link #exemptViewer}），他们在任何距离都照常看到开镜的 USEC。
+ * （{@link #exemptViewer}），他们在任何距离都照常看到开镜的 USEC。自 2026-11-05 起任何持枪者都会写入开镜标记（人人都有反光
+ * 与开镜声），因此 {@code UsecInstinctCloak} 在询问本规则前还要求目标的同步身份恰为 USEC；非 USEC 持枪者永不隐蔽。
  */
 public final class UsecInstinctCloakRules {
     public static final double RANGE_SQUARED = UsecRules.INSTINCT_CLOAK_RANGE * UsecRules.INSTINCT_CLOAK_RANGE;
