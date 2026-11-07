@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
 import net.minecraft.client.util.ModelIdentifier;
@@ -43,6 +44,9 @@ public final class M32LauncherClient {
         ScopeClient.register();
         ScopeClient.registerProvider(M32ScopeProfile::provide);
         HudRenderCallback.EVENT.register(M32Hud::render);
+        // Frame id of the badge anchor: every world pass precedes the hand pass, the HUD follows it (M32BadgeAnchor).
+        // 标记锚点的帧号：所有世界渲染都在手部渲染之前，HUD 在其之后（M32BadgeAnchor）。
+        WorldRenderEvents.START.register(context -> M32BadgeAnchor.beginFrame());
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             M32RangeDial.tick(client);
             if (!SparkWitchServerConnection.isConfirmedServer()) {
