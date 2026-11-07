@@ -48,16 +48,16 @@ public final class M32BadgeAnchor {
     public static final Vector3fc HIP_ANCHOR_SIGHT_SPACE = new Vector3f(8.0F, 24.5F, 0.0F)
             .div(M32SightPose.UNITS_PER_BLOCK);
     /**
-     * Aim anchor, sight model space (model units / 16): with the v5 art the eye sits inside the rear eyecup, so the
-     * housing fills the aimed view and the only drawn edge beside the window is the front lens frame. The anchor is the
-     * housing's right outer wall at the front face, on the sight-axis row, (10, 21.75, -4.125): the ring lands on the
-     * window's right frame and the badge sits beside the window, never over the bore. Update when the sight model
-     * changes.
-     * 瞄准锚点（瞄具模型空间，模型单位 / 16）：v5 美术中眼睛位于后方眼罩内，机匣充满瞄准视图，窗口旁唯一绘制出的边缘是前方镜框。
-     * 锚点取机匣右外壁在前端面上、瞄具轴线那一行的点 (10, 21.75, -4.125)：圆环落在窗口右框上，标记位于窗口旁，绝不压在内孔上。
-     * 瞄具模型改动时更新。
+     * Aim anchor, sight model space (model units / 16): with the v5 art and the eye at a real eye relief (18 behind
+     * the housing), the sight's outermost drawn silhouette round the window is the rear rubber eyecup, which hides the
+     * housing walls and the front frame behind it. The anchor is the eyecup's right outer face at its z middle, on the
+     * sight-axis row, (10.375, 21.75, 4.4375): the ring lands on the eyecup's right edge and the badge sits beside the
+     * sight, never over the bore. Update when the sight model changes.
+     * 瞄准锚点（瞄具模型空间，模型单位 / 16）：v5 美术配合真实眼距（眼点在机匣后 18 单位）时，窗口周围最外侧的轮廓是后方橡胶眼罩，
+     * 它把其后的机匣壁与前镜框都遮住。锚点取眼罩右外侧面在其 z 中点、瞄具轴线那一行的点 (10.375, 21.75, 4.4375)：圆环落在
+     * 眼罩右缘上，标记位于瞄具旁，绝不压在内孔上。瞄具模型改动时更新。
      */
-    public static final Vector3fc AIM_ANCHOR_SIGHT_SPACE = new Vector3f(10.0F, 21.75F, -4.125F)
+    public static final Vector3fc AIM_ANCHOR_SIGHT_SPACE = new Vector3f(10.375F, 21.75F, 4.4375F)
             .div(M32SightPose.UNITS_PER_BLOCK);
     private static final float MIN_W = 1.0E-4F;
     private static long frame;

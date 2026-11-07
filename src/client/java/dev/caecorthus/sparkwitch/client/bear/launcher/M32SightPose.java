@@ -55,11 +55,15 @@ public final class M32SightPose {
     /** Model units per block (vertex space = model / 16). / 每格的模型单位数。 */
     public static final float UNITS_PER_BLOCK = 16.0F;
     /**
-     * Eye point on the sight axis, just inside the rubber eyecup (1/8 behind the housing's rear face at z 3.5), so the
-     * front aperture fills about 55 % of the aimed view's height and the housing frames it; model units.
-     * 瞄具轴上的眼点，位于橡胶眼罩内侧（机匣后端面 z 3.5 之后 1/8），使前孔约占瞄准画面高度的 55%，机匣围成边框（模型单位）。
+     * Eye point on the sight axis at a long eye relief, 18 units behind the housing's rear face at z 3.5 (the cheek on
+     * the stock), so the front aperture is a small red-dot window of about 25 % of the aimed view's height at the
+     * {@link #AIM_HAND_FOV_DEGREES} hand FOV and the sight body and the world stay visible round it (owner 2026-11-06:
+     * "it is just a red dot", the eye-in-the-eyecup tunnel was far too big); model units.
+     * 瞄具轴上的眼点，取真实的眼距：机匣后端面 z 3.5 之后 18 单位（脸颊贴枪托），使前孔在 {@link #AIM_HAND_FOV_DEGREES} 手部视场角下
+     * 成为约占瞄准画面高度 25% 的小红点窗口，周围仍能看到瞄具本体与世界（所有者 2026-11-06：“人家就是个红点”，眼睛贴在眼罩里的
+     * 隧道构图太大了）（模型单位）。
      */
-    public static final Vector3fc EYE = new Vector3f(8.0F, 21.75F, 3.625F);
+    public static final Vector3fc EYE = new Vector3f(8.0F, 21.75F, 21.5F);
     /**
      * Range-tilt pivot, model units: the quadrant bracket's pin at the centre of the engraved range arc (front of the
      * left plate, below the housing's front half), so the range lever at the plate's rear edge sweeps the arc.
@@ -80,7 +84,7 @@ public final class M32SightPose {
     public static final float WINDOW_FRONT_Z = -4.125F;
     public static final float WINDOW_REAR_Z = 3.5F;
     /** The dot's plane on the sight axis (70 units in front of the eye). / 红点所在平面（眼点前方 70 单位）。 */
-    public static final float DOT_Z = -66.375F;
+    public static final float DOT_Z = -48.5F;
     /**
      * Halo and core quad edges, model units (about 0.65 and 0.18 degrees from the eye; the halo's solid part is about
      * half of it). / 光晕与核心四边形边长（模型单位，自眼点看约 0.65 与 0.18 度；光晕实心部分约为其一半）。
@@ -94,8 +98,11 @@ public final class M32SightPose {
     public static final float CORE_LEAD = 0.05F;
     /** First-person scale of the full aim pose (the display block's 0.5). / 完全瞄准姿态的第一人称缩放。 */
     public static final float AIM_SCALE = 0.5F;
-    /** Hand render FOV at full aim. / 完全瞄准时的手部渲染视场角。 */
-    public static final double AIM_HAND_FOV_DEGREES = 45.0;
+    /**
+     * Hand render FOV at full aim (narrower than the 45 of the eyecup composition so the pulled-back window still
+     * reads). / 完全瞄准时的手部渲染视场角（比眼罩构图的 45 窄，使后撤后的窗口仍清晰可读）。
+     */
+    public static final double AIM_HAND_FOV_DEGREES = 32.0;
     /** World zoom while aiming (1.25x) and its look scale. / 瞄准时的世界放大（1.25 倍）及视角缩放。 */
     public static final float WORLD_FOV_MULTIPLIER = 0.8F;
     public static final float LOOK_MULTIPLIER = 0.8F;
@@ -110,8 +117,8 @@ public final class M32SightPose {
     public static final float RETICLE_DISTANCE = EYE.z() - DOT_Z;
     /**
      * The clip circle about the axis: the front aperture's inscribed circle seen from the eye, times a 0.93 margin
-     * (about 14.70). Lines are clipped to it exactly; a tick or label draws only when its whole quad is inside.
-     * 绕轴的裁剪圆：自眼点看到的前孔内切圆，再乘以 0.93 的余量（约 14.70）。线条精确裁剪到圆上；刻度或数字只有整个四边形都在圆内
+     * (about 4.45). Lines are clipped to it exactly; a tick or label draws only when its whole quad is inside.
+     * 绕轴的裁剪圆：自眼点看到的前孔内切圆，再乘以 0.93 的余量（约 4.45）。线条精确裁剪到圆上；刻度或数字只有整个四边形都在圆内
      * 时才绘制。
      */
     public static final float RETICLE_CLIP_RADIUS = WINDOW_APOTHEM * RETICLE_DISTANCE / (EYE.z() - WINDOW_FRONT_Z)
