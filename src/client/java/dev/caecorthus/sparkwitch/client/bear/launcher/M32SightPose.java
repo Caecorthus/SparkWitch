@@ -13,10 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Pure maths of the M32A1's 3-D M2A1 red-dot aim (SIGHT-CONTRACT v3, 2026-11-06): the aim progress and its ease, the
- * hand FOV, the range tilt, the full-aim pose, the hip-to-aim blend, the draw correction, the dot's window test against
- * the round tube's open bore, and the quadrant-grid reticle on the dot plane. No Minecraft types, so every number is
- * unit-tested.
+ * Pure maths of the M32A1's 3-D M2A1 red-dot aim (SIGHT-CONTRACT v3, 2026-11-06; v5 art the same week: a square
+ * housing on a left quadrant bracket): the aim progress and its ease, the hand FOV, the range tilt, the full-aim pose,
+ * the hip-to-aim blend, the draw correction, the dot's window test against the housing's square front aperture, and the
+ * quadrant-grid reticle on the dot plane. No Minecraft types, so every number is unit-tested.
  * <p>
  * Spaces. Model units: 1 = one texel of the 64x64 sheet, -z muzzle, +x the launcher's right, +y up (the art JSON).
  * Vertex space: model units / 16 (what a baked quad holds; {@code ItemRenderer} translates it by -0.5 after the
@@ -27,15 +27,16 @@ import java.util.List;
  * <p>
  * The full aim pose {@link #aimPose} keeps the camera's orientation, the first-person scale {@link #AIM_SCALE} and
  * puts the TILTED eye point {@code P + Rx(-tilt)(E - P)} at the origin. The sight model is that pose times
- * {@link #sightTilt} (nose down about +x through the pivot). {@link #blend} moves the hip pose to it: the anchor's image
- * is lerped, the rotation slerped and the uniform scale lerped.
+ * {@link #sightTilt} (nose down about +x through the pivot, the quadrant bracket's pin). {@link #blend} moves the hip
+ * pose to it: the anchor's image is lerped, the rotation slerped and the uniform scale lerped.
  * <p>
- * The window is the tube's open bore: a regular {@link #WINDOW_SIDES}-gon of inner apothem {@link #WINDOW_APOTHEM}
- * about the sight axis (the eye's x and y) from {@link #WINDOW_FRONT_Z} to {@link #WINDOW_REAR_Z}. The reticle
- * ({@link #emitReticle}) lies on the dot plane {@link #DOT_Z}, inside {@link #RETICLE_CLIP_RADIUS}.
- * M32A1 三维 M2A1 红点瞄准的纯数学部分（SIGHT-CONTRACT v3，2026-11-06）：瞄准进度与缓动、手部视场角、射程俯仰、完全瞄准
- * 姿态、腰射到瞄准的过渡、绘制校正、红点相对圆形镜筒开放内孔的窗口检测，以及红点平面上的象限网格分划。不含 Minecraft 类型，
- * 因此每个数值都有单元测试。
+ * The window is the housing's open square bore: a regular {@link #WINDOW_SIDES}-gon (a square, flats up, down and to
+ * the sides) of inner apothem {@link #WINDOW_APOTHEM} about the sight axis (the eye's x and y), limited by the front
+ * hood's lens aperture at {@link #WINDOW_FRONT_Z} and open back to the housing's rear face {@link #WINDOW_REAR_Z}. The
+ * reticle ({@link #emitReticle}) lies on the dot plane {@link #DOT_Z}, inside {@link #RETICLE_CLIP_RADIUS}.
+ * M32A1 三维 M2A1 红点瞄准的纯数学部分（SIGHT-CONTRACT v3，2026-11-06；同周的 v5 美术：方形机匣装在左侧象限托架上）：瞄准
+ * 进度与缓动、手部视场角、射程俯仰、完全瞄准姿态、腰射到瞄准的过渡、绘制校正、红点相对机匣方形前孔的窗口检测，以及红点平面上的
+ * 象限网格分划。不含 Minecraft 类型，因此每个数值都有单元测试。
  * <p>
  * 坐标空间。模型单位：1 = 64x64 贴图的一个像素，-z 为炮口，+x 为发射器右侧，+y 向上（美术 JSON）。顶点空间：模型单位 / 16
  * （烘焙四边形中的坐标；{@code ItemRenderer} 在显示变换之后再平移 -0.5）。基准空间：在第一人称
@@ -43,38 +44,43 @@ import java.util.List;
  * 的模型视图矩阵抵消了其中的相机旋转，因此基准空间即相机空间（+x 右、+y 上、-z 前）。这里的每个姿态都把顶点空间映射到基准空间。
  * <p>
  * 完全瞄准姿态 {@link #aimPose} 保持相机朝向与第一人称缩放 {@link #AIM_SCALE}，并把俯仰后的眼点
- * {@code P + Rx(-tilt)(E - P)} 放在原点。瞄具模型为该姿态乘以 {@link #sightTilt}（绕经过枢轴的 +x 轴低头）。
- * {@link #blend} 把腰射姿态移向它：锚点的像做线性插值，旋转做球面插值，均匀缩放做线性插值。
+ * {@code P + Rx(-tilt)(E - P)} 放在原点。瞄具模型为该姿态乘以 {@link #sightTilt}（绕经过枢轴，即象限托架销轴的 +x 轴
+ * 低头）。{@link #blend} 把腰射姿态移向它：锚点的像做线性插值，旋转做球面插值，均匀缩放做线性插值。
  * <p>
- * 窗口即镜筒的开放内孔：绕瞄具轴（眼点的 x 与 y）、内切半径 {@link #WINDOW_APOTHEM} 的正 {@link #WINDOW_SIDES} 边形，从
- * {@link #WINDOW_FRONT_Z} 到 {@link #WINDOW_REAR_Z}。分划（{@link #emitReticle}）位于红点平面 {@link #DOT_Z}，且在
- * {@link #RETICLE_CLIP_RADIUS} 之内。
+ * 窗口即机匣的开放方形内孔：绕瞄具轴（眼点的 x 与 y）、内切半径 {@link #WINDOW_APOTHEM} 的正 {@link #WINDOW_SIDES} 边形
+ * （正方形，上下左右为平边），由 {@link #WINDOW_FRONT_Z} 处前遮光罩的镜孔限定，向后一直开放到机匣后端面
+ * {@link #WINDOW_REAR_Z}。分划（{@link #emitReticle}）位于红点平面 {@link #DOT_Z}，且在 {@link #RETICLE_CLIP_RADIUS} 之内。
  */
 public final class M32SightPose {
     /** Model units per block (vertex space = model / 16). / 每格的模型单位数。 */
     public static final float UNITS_PER_BLOCK = 16.0F;
-    /** Eye point behind the open bore, on the sight axis, model units. / 开放内孔后方、瞄具轴上的眼点（模型单位）。 */
-    public static final Vector3fc EYE = new Vector3f(8.0F, 20.5F, 19.0F);
     /**
-     * Range-tilt pivot, model units: the centre of the rail clamp's top face, which the sight's saddle straddles.
-     * 射程俯仰枢轴（模型单位）：导轨夹座顶面中心，瞄具鞍座跨在其上。
+     * Eye point on the sight axis, just inside the rubber eyecup (1/8 behind the housing's rear face at z 3.5), so the
+     * front aperture fills about 55 % of the aimed view's height and the housing frames it; model units.
+     * 瞄具轴上的眼点，位于橡胶眼罩内侧（机匣后端面 z 3.5 之后 1/8），使前孔约占瞄准画面高度的 55%，机匣围成边框（模型单位）。
      */
-    public static final Vector3fc PIVOT = new Vector3f(8.0F, 18.0F, 0.5F);
+    public static final Vector3fc EYE = new Vector3f(8.0F, 21.75F, 3.625F);
     /**
-     * The open bore of the round tube, model units: a regular 16-gon about the sight axis (the eye's x and y) with
-     * inner apothem {@link #WINDOW_APOTHEM}, its staves' normals at k x 22.5 degrees from the top, from the front
-     * aperture {@link #WINDOW_FRONT_Z} to the rear ring {@link #WINDOW_REAR_Z}. Nothing of the model lies inside it or
-     * on the axis in front of it.
-     * 圆形镜筒的开放内孔（模型单位）：绕瞄具轴（眼点的 x 与 y）、内切半径 {@link #WINDOW_APOTHEM} 的正 16 边形，各镜筒板法线位于
-     * 自顶部起 k x 22.5 度，从前孔 {@link #WINDOW_FRONT_Z} 到后环 {@link #WINDOW_REAR_Z}。模型的任何部分都不在其内部，也不在其前方
-     * 的轴线上。
+     * Range-tilt pivot, model units: the quadrant bracket's pin at the centre of the engraved range arc (front of the
+     * left plate, below the housing's front half), so the range lever at the plate's rear edge sweeps the arc.
+     * 射程俯仰枢轴（模型单位）：象限托架的销轴，即刻度弧的圆心（左侧板前部、机匣前半部下方），使板后缘的射程拨杆沿弧扫过。
      */
-    public static final int WINDOW_SIDES = 16;
+    public static final Vector3fc PIVOT = new Vector3f(8.0F, 20.25F, -3.25F);
+    /**
+     * The open bore of the square housing, model units: a square about the sight axis (the eye's x and y) with inner
+     * apothem {@link #WINDOW_APOTHEM} (half the lens aperture of the front hood; the housing walls behind it sit at
+     * 1.875), corners at 45 + k x 90 degrees from the top, from the front aperture {@link #WINDOW_FRONT_Z} back to the
+     * housing's rear face {@link #WINDOW_REAR_Z}. Nothing of the model lies inside it or on the axis in front of it.
+     * 方形机匣的开放内孔（模型单位）：绕瞄具轴（眼点的 x 与 y）、内切半径 {@link #WINDOW_APOTHEM}（前遮光罩镜孔的半宽；其后的
+     * 机匣内壁位于 1.875）的正方形，各角位于自顶部起 45 + k x 90 度，从前孔 {@link #WINDOW_FRONT_Z} 向后到机匣后端面
+     * {@link #WINDOW_REAR_Z}。模型的任何部分都不在其内部，也不在其前方的轴线上。
+     */
+    public static final int WINDOW_SIDES = 4;
     public static final float WINDOW_APOTHEM = 1.75F;
-    public static final float WINDOW_FRONT_Z = -2.5F;
-    public static final float WINDOW_REAR_Z = 2.5F;
+    public static final float WINDOW_FRONT_Z = -4.125F;
+    public static final float WINDOW_REAR_Z = 3.5F;
     /** The dot's plane on the sight axis (70 units in front of the eye). / 红点所在平面（眼点前方 70 单位）。 */
-    public static final float DOT_Z = -51.0F;
+    public static final float DOT_Z = -66.375F;
     /**
      * Halo and core quad edges, model units (about 0.65 and 0.18 degrees from the eye; the halo's solid part is about
      * half of it). / 光晕与核心四边形边长（模型单位，自眼点看约 0.65 与 0.18 度；光晕实心部分约为其一半）。
@@ -103,9 +109,10 @@ public final class M32SightPose {
     /** Eye to dot plane (70): a hand angle a lands at 70 tan(a) from the axis. / 眼点到红点平面的距离。 */
     public static final float RETICLE_DISTANCE = EYE.z() - DOT_Z;
     /**
-     * The clip circle about the axis: the front aperture seen from the eye, times a 0.93 margin (about 5.30). Lines are
-     * clipped to it exactly; a tick or label draws only when its whole quad is inside.
-     * 绕轴的裁剪圆：自眼点看到的前孔，再乘以 0.93 的余量（约 5.30）。线条精确裁剪到圆上；刻度或数字只有整个四边形都在圆内时才绘制。
+     * The clip circle about the axis: the front aperture's inscribed circle seen from the eye, times a 0.93 margin
+     * (about 14.70). Lines are clipped to it exactly; a tick or label draws only when its whole quad is inside.
+     * 绕轴的裁剪圆：自眼点看到的前孔内切圆，再乘以 0.93 的余量（约 14.70）。线条精确裁剪到圆上；刻度或数字只有整个四边形都在圆内
+     * 时才绘制。
      */
     public static final float RETICLE_CLIP_RADIUS = WINDOW_APOTHEM * RETICLE_DISTANCE / (EYE.z() - WINDOW_FRONT_Z)
             * 0.93F;
@@ -317,10 +324,10 @@ public final class M32SightPose {
 
     /**
      * The front aperture's {@link #WINDOW_SIDES} corners in vertex space, counter-clockwise seen from the eye: the
-     * inner 16-gon at {@link #WINDOW_FRONT_Z}, radius {@code WINDOW_APOTHEM / cos(11.25 deg)} about the axis, at
-     * 11.25 + k x 22.5 degrees from the top. Fresh copies.
-     * 前孔的 {@link #WINDOW_SIDES} 个角（顶点空间），从眼点看为逆时针：位于 {@link #WINDOW_FRONT_Z} 的内 16 边形，绕轴半径
-     * {@code WINDOW_APOTHEM / cos(11.25 度)}，位于自顶部起 11.25 + k x 22.5 度。返回新副本。
+     * square at {@link #WINDOW_FRONT_Z}, radius {@code WINDOW_APOTHEM / cos(180 deg / WINDOW_SIDES)} about the axis, at
+     * (k + 1/2) x 360 / WINDOW_SIDES degrees from the top. Fresh copies.
+     * 前孔的 {@link #WINDOW_SIDES} 个角（顶点空间），从眼点看为逆时针：位于 {@link #WINDOW_FRONT_Z} 的正方形，绕轴半径
+     * {@code WINDOW_APOTHEM / cos(180 度 / WINDOW_SIDES)}，位于自顶部起 (k + 1/2) x 360 / WINDOW_SIDES 度。返回新副本。
      */
     public static Vector3f[] frontWindowCorners() {
         Vector3f[] corners = new Vector3f[FRONT_WINDOW.length];

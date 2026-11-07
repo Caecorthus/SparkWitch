@@ -41,24 +41,23 @@ import org.joml.Vector4f;
  */
 public final class M32BadgeAnchor {
     /**
-     * Hip anchor, sight model space (model units / 16): the top centre of the M2A1's top rail, (8, 23.4, 0.5) on the
-     * current art (the rail element reaches y 23.4 over the tube axis (8, 20.5)). Update when the sight model changes.
-     * 腰射锚点（瞄具模型空间，模型单位 / 16）：M2A1 顶部导轨的顶面中心，当前美术为 (8, 23.4, 0.5)（导轨元素顶到 y 23.4，镜筒轴线
-     * 为 (8, 20.5)）。瞄具模型改动时更新。
+     * Hip anchor, sight model space (model units / 16): the top centre of the M2A1's top rail teeth, (8, 24.5, 0) on the
+     * v5 art (housing top under the rail at y 23.75, sight axis (8, 21.75)). Update when the sight model changes.
+     * 腰射锚点（瞄具模型空间，模型单位 / 16）：M2A1 顶部导轨齿的顶面中心，v5 美术为 (8, 24.5, 0)（导轨下的机匣顶为 y 23.75，瞄具轴线为 (8, 21.75)）。瞄具模型改动时更新。
      */
-    public static final Vector3fc HIP_ANCHOR_SIGHT_SPACE = new Vector3f(8.0F, 23.4F, 0.5F)
+    public static final Vector3fc HIP_ANCHOR_SIGHT_SPACE = new Vector3f(8.0F, 24.5F, 0.0F)
             .div(M32SightPose.UNITS_PER_BLOCK);
     /**
-     * Aim anchor, sight model space (model units / 16): the sight's visible right silhouette at the eye height, i.e.
-     * the point of the right side nearest the eye and furthest out, so the ring sits on the drawn edge and the badge
-     * beside the whole sight, never over the bore window or the turret. On the current art that is the elevation
-     * turret's rear outer edge, (10.9, 20.5, 3) (the tube rim at z 0, 2.25 out, projects inside it, harness 2026-11-06).
-     * Update when the sight model changes.
-     * 瞄准锚点（瞄具模型空间，模型单位 / 16）：眼高处瞄具可见的右侧轮廓，即右侧离眼最近、伸出最远的点，使圆环落在绘制出的边缘上、
-     * 标记位于整个瞄具旁，绝不压在内孔窗口或调节钮上。当前美术为调节钮的后方外缘 (10.9, 20.5, 3)（z 0 处伸出 2.25 的镜筒缘投影
-     * 在其内侧，2026-11-06 测试台）。瞄具模型改动时更新。
+     * Aim anchor, sight model space (model units / 16): with the v5 art the eye sits inside the rear eyecup, so the
+     * housing fills the aimed view and the only drawn edge beside the window is the front lens frame. The anchor is the
+     * housing's right outer wall at the front face, on the sight-axis row, (10, 21.75, -4.125): the ring lands on the
+     * window's right frame and the badge sits beside the window, never over the bore. Update when the sight model
+     * changes.
+     * 瞄准锚点（瞄具模型空间，模型单位 / 16）：v5 美术中眼睛位于后方眼罩内，机匣充满瞄准视图，窗口旁唯一绘制出的边缘是前方镜框。
+     * 锚点取机匣右外壁在前端面上、瞄具轴线那一行的点 (10, 21.75, -4.125)：圆环落在窗口右框上，标记位于窗口旁，绝不压在内孔上。
+     * 瞄具模型改动时更新。
      */
-    public static final Vector3fc AIM_ANCHOR_SIGHT_SPACE = new Vector3f(10.9F, 20.5F, 3.0F)
+    public static final Vector3fc AIM_ANCHOR_SIGHT_SPACE = new Vector3f(10.0F, 21.75F, -4.125F)
             .div(M32SightPose.UNITS_PER_BLOCK);
     private static final float MIN_W = 1.0E-4F;
     private static long frame;
