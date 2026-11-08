@@ -142,7 +142,7 @@ public final class SaviorLightsaberCombatService {
         // 与手枪一致，在受害者仍存活时判定误杀惩罚。
         punishInnocentSwordKill(attacker, victim);
         GameRecordManager.recordItemUse(attacker, SaviorRules.LIGHTSABER_ID, victim, null);
-        GameFunctions.killPlayer(victim, true, attacker, SaviorRules.LIGHTSABER_DEATH_REASON);
+        SaviorRules.settleKill(victim, attacker, SaviorRules.LIGHTSABER_DEATH_REASON);
         SaviorCooldowns.set(attacker, stack.getItem(), SaviorRules.LIGHTSABER_KILL_COOLDOWN_TICKS);
         return ActionResult.SUCCESS;
     }

@@ -96,7 +96,7 @@ public final class SaviorPistolService {
                 }
             }
             if (!backfired) {
-                GameFunctions.killPlayer(target, true, shooter, SaviorRules.PISTOL_DEATH_REASON);
+                SaviorRules.settleKill(target, shooter, SaviorRules.PISTOL_DEATH_REASON);
             }
         }
 

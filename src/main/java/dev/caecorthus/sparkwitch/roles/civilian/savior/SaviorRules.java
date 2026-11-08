@@ -2,6 +2,8 @@ package dev.caecorthus.sparkwitch.roles.civilian.savior;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.game.GameFunctions;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,5 +68,25 @@ public final class SaviorRules {
 
     public static boolean isSavior(@Nullable Role role) {
         return role != null && ROLE_ID.equals(role.identifier());
+    }
+
+    /** True for the two terminal Savior weapon reasons. / 救世主两把武器的终结死因。 */
+    public static boolean isTerminalKill(@Nullable Identifier deathReason) {
+        return PISTOL_DEATH_REASON.equals(deathReason) || LIGHTSABER_DEATH_REASON.equals(deathReason);
+    }
+
+    /**
+     * Settles the hit up to ten times, stopping as soon as the victim is no longer playing and alive. Each settlement
+     * can spend one shield layer, so stacked protections are not missed by a single kill attempt.
+     * 最多结算 10 次，目标一旦不再存活立即停止。每次结算可消耗一层护盾，避免单次尝试漏掉多层保护。
+     */
+    public static void settleKill(
+            ServerPlayerEntity victim,
+            @Nullable ServerPlayerEntity killer,
+            Identifier deathReason
+    ) {
+        for (int attempt = 0; attempt < 10 && GameFunctions.isPlayerPlayingAndAlive(victim); attempt++) {
+            GameFunctions.killPlayer(victim, true, killer, deathReason);
+        }
     }
 }
