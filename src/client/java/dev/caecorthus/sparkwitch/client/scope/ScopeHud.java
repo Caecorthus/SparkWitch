@@ -29,6 +29,10 @@ public final class ScopeHud {
         if (client.player == null || client.options.hudHidden) {
             return;
         }
+        if (!profile.drawsLens()) {
+            renderReticleOnly(context, tickCounter, profile, client);
+            return;
+        }
         Window window = client.getWindow();
         double scale = window.getScaleFactor();
         int framebufferWidth = window.getFramebufferWidth();
@@ -79,6 +83,29 @@ public final class ScopeHud {
                         .sparkwitch$scopeFov(client.gameRenderer.getCamera(), tickDelta, true);
         profile.drawReticle(context, new ScopeFrame(context.getScaledWindowWidth(), context.getScaledWindowHeight(),
                 centerX, centerY, radius, fov, tickDelta, ScopeRuntime.shadowX(), ScopeRuntime.shadowY(), mode));
+    }
+
+    /**
+     * A lensless profile ({@link ScopeProfile#drawsLens} false): no ring, rim or periphery, only the weapon's reticle,
+     * with the same centre and radius maths, the real projection FOV (the main view is the only picture, in either
+     * mode), no scope shadow and ZOOM_BLUR as the frame's mode.
+     * 无镜片配置（{@link ScopeProfile#drawsLens} 为 false）：不画回退环、镜框或镜外，只画武器的分划；中心与半径算法相同，
+     * 使用真实投影视场角（任一模式下主画面都是唯一的画面），无镜内阴影，帧模式为全画面放大。
+     */
+    private static void renderReticleOnly(DrawContext context, RenderTickCounter tickCounter, ScopeProfile profile,
+                                          MinecraftClient client) {
+        Window window = client.getWindow();
+        double scale = window.getScaleFactor();
+        int framebufferWidth = window.getFramebufferWidth();
+        int framebufferHeight = window.getFramebufferHeight();
+        float centerX = (float) (framebufferWidth / scale / 2.0);
+        float centerY = (float) (framebufferHeight / scale / 2.0);
+        float radius = (float) (ScopeLensGeometry.lensRadius(framebufferWidth, framebufferHeight) / scale);
+        float tickDelta = tickCounter.getTickDelta(true);
+        double fov = ((ScopeGameRendererInvoker) client.gameRenderer)
+                .sparkwitch$scopeFov(client.gameRenderer.getCamera(), tickDelta, true);
+        profile.drawReticle(context, new ScopeFrame(context.getScaledWindowWidth(), context.getScaledWindowHeight(),
+                centerX, centerY, radius, fov, tickDelta, 0.0F, 0.0F, ScopeMode.ZOOM_BLUR));
     }
 
     /**

@@ -28,9 +28,18 @@ public final class BlindKitRules {
     /** Hotbar cooldown written at a cane tap: the window plus the cooldown after it (C2). / 敲击时写入的物品冷却：窗口加其后冷却。 */
     public static final int CANE_USE_ITEM_COOLDOWN_TICKS =
             BlindRules.CANE_ACTIVE_TICKS + BlindRules.CANE_COOLDOWN_TICKS;
-    /** PlayerInventory index of the head equipment slot (39). / 头部装备槽在 PlayerInventory 中的下标（39）。 */
+    /**
+     * PlayerInventory index of the head equipment slot (39). Since 2026-11-05 the ComTac is worn in the headset slot
+     * instead ({@link #HEADSET_SLOT}); kept as a stable constant.
+     * 头部装备槽在 PlayerInventory 中的下标（39）。自 2026-11-05 起 ComTac 改戴在耳机槽（{@link #HEADSET_SLOT}）；作为稳定常量保留。
+     */
     public static final int HEAD_SLOT = PlayerInventory.MAIN_SIZE + EquipmentSlot.HEAD.getEntitySlotId();
     public static final int NO_SLOT = -1;
+    /**
+     * Landing marker for the headset slot ({@code HeadsetSlots}), which is not a PlayerInventory index.
+     * 耳机槽（{@code HeadsetSlots}）的落点标记；它不是 PlayerInventory 下标。
+     */
+    public static final int HEADSET_SLOT = -2;
 
     private BlindKitRules() {
     }
@@ -223,13 +232,13 @@ public final class BlindKitRules {
     }
 
     /**
-     * Where a bought ComTac lands (C14): the head slot when it is empty, else the leftmost empty hotbar slot (Wathe's
-     * default purchase rule), else nowhere (the purchase fails and charges nothing).
-     * 购得的 ComTac 落点（C14）：头部槽为空则戴上，否则放入最左侧空快捷栏位（Wathe 默认购买规则），否则无处可放
-     * （购买失败且不扣费）。
+     * Where a bought ComTac lands (C14, E1): {@link #HEADSET_SLOT} when the headset slot is empty, else the leftmost
+     * empty hotbar slot (Wathe's default purchase rule), else nowhere (the purchase fails and charges nothing).
+     * 购得的 ComTac 落点（C14、E1）：耳机槽为空则为 {@link #HEADSET_SLOT}（直接戴上），否则放入最左侧空快捷栏位（Wathe 默认购买
+     * 规则），否则无处可放（购买失败且不扣费）。
      */
-    public static int comTacLanding(boolean headEmpty, IntPredicate emptyHotbarSlot) {
-        return headEmpty ? HEAD_SLOT : firstEmptyHotbarSlot(emptyHotbarSlot);
+    public static int comTacLanding(boolean headsetEmpty, IntPredicate emptyHotbarSlot) {
+        return headsetEmpty ? HEADSET_SLOT : firstEmptyHotbarSlot(emptyHotbarSlot);
     }
 
     /**

@@ -3,7 +3,9 @@ package dev.caecorthus.sparkwitch.roles.killer.magician;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthM67ReplayCompat;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.RangedSmokeCarve;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
+import dev.caecorthus.sparkwitch.util.hitscan.RangedOriginScope;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -139,6 +141,7 @@ public final class MagicianPlaybackActionExecutor {
             GameRecordManager.recordItemUse(owner, net.minecraft.registry.Registries.ITEM.getId(WatheItems.REVOLVER), null, null);
             if (partygoer != null) SparkStrengthPartygoerCompat.killByWeapon(owner, partygoer, GameConstants.DeathReasons.GUN);
         }
+        RangedSmokeCarve.gunShot(proxy, partygoer != null ? partygoer : target, MagicianConstants.REVOLVER_RANGE); // BEAR: bullet tunnel / 弹道通道
         proxy.getWorld().playSound(null, proxy.getX(), proxy.getEyeY(), proxy.getZ(), WatheSounds.ITEM_REVOLVER_SHOOT, SoundCategory.PLAYERS, 5f, 1f);
         // Wathe 原版火花是客户端手部特效；回放代理没有真实客户端手部，因此补发服务端粒子让所有客户端可见。
         if (proxy.getWorld() instanceof ServerWorld world) {
@@ -183,7 +186,9 @@ public final class MagicianPlaybackActionExecutor {
         UUID disguise = visible.disguise();
         boolean disguiseDead = disguise != null && game.isPlayerDead(disguise);
         boolean wasDead = game.isPlayerDead(target.getUuid());
-        GameFunctions.killPlayer(target, true, owner, deathReason);
+        RangedOriginScope.run(visible.getEyePos(), () -> { // BEAR: the puppet is the origin / 皮套即来源
+            GameFunctions.killPlayer(target, true, owner, deathReason);
+        });
         if (killTook(wasDead, game.isPlayerDead(target.getUuid()))) {
             AchievementRecords.magicianPuppetKill(owner, target, Registries.ITEM.getId(weapon), disguise, disguiseDead);
         }

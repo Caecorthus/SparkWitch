@@ -256,6 +256,12 @@ public final class SparkWitchPackets {
             // 进入 play 阶段后再次确认 SparkWitch 服务端，因为代理可能吞掉登录查询。
             sender.sendPacket(new SparkWitchServerConfirmS2CPacket(SparkWitchVersionHandshake.localVersion()));
         });
+        // BEAR smoke S2C payload types, role-owned like USEC; the receivers are client-side.
+        // BEAR 烟雾 S2C 数据包类型，与 USEC 一样在自有类中注册；接收器在客户端。
+        dev.caecorthus.sparkwitch.roles.civilian.bear.smoke.net.SmokeNetworking.register();
+        // BEAR payload types (work packages append there), before USEC, which stays last.
+        // BEAR 数据包类型（各工作包在其中追加），位于 USEC 之前，USEC 保持最后。
+        dev.caecorthus.sparkwitch.roles.civilian.bear.net.BearNetworking.register();
         // USEC payload types register in their own role-owned class, like the Seeker; the owning services register the
         // receivers from SparkWitchEvents, which runs after this. / USEC 数据包类型与搜寻者一样在自有类中注册；
         // 接收器由各自的服务在之后运行的 SparkWitchEvents 中注册。

@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell;
 
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.RangedSmokeCarve;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerBreakSource;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
@@ -67,6 +68,7 @@ public final class PotionBlastService {
         ServerPlayerEntity gunner = shell.getOwner() instanceof ServerPlayerEntity player ? player : null;
 
         present(world, shell, center);
+        RangedSmokeCarve.blast(world, center, PotionBlastRings.half(type.size())); // BEAR: blast hole / 爆炸空洞
         // Off-match shot: sound and particles only, so no Seeker device, target, effect, Judge attribution or reward.
         // 场外射击：只有声音与粒子，因此没有搜寻者设备、目标、效果、审判官归因或奖励。
         if (shell.isPresentation()) {

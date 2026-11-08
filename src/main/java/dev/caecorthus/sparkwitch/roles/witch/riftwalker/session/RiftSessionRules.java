@@ -128,6 +128,8 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "black_raven_crow_move"),
             Identifier.of("sparkwitch", "black_raven_crow_use"),
             Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
+            // BEAR M32A1 fire, a held-item shot like the launcher's. / BEAR M32A1 开火，与炮筒同类的手持射击。
+            Identifier.of("sparkwitch", "fire_m32a1"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

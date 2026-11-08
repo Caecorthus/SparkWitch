@@ -258,7 +258,19 @@
     "dominator.ServerPlayerEntityForcedShotScreenMixin",
     "dominator.DecoratedPotBlockForcedShotGunMixin",
     "dominator.GameFunctionsDominatorLetterMixin",
-    "accountant.DecoratedPotBlockAccountantPassbookMixin"
+    "accountant.DecoratedPotBlockAccountantPassbookMixin",
+    "bear.GameFunctionsBearItemDropMixin",
+    "bear.PlayerEntityBearItemMixin",
+    "bear.RicochetKillPlayerMixin",
+    "bear.GunShootPayloadSmokeCarveMixin",
+    "bear.DemonHunterShotSmokeCarveMixin",
+    "bear.GrenadeEntityOriginSmokeCarveMixin",
+    "bear.FirecrackerSmokeCarveMixin",
+    "bear.BomberExplosionSmokeCarveMixin",
+    "bear.ThrowingAxeRangedOriginMixin",
+    "bear.ServerWorldExplosionSmokeCarveMixin",
+    "bear.HeadsetPlayerScreenHandlerMixin",
+    "bear.HeadsetCreativeActionMixin"
   ],
   "injectors": {
     "defaultRequire": 1

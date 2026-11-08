@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.item.firepoker.FirePokerRules;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.BearRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindKitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
@@ -113,6 +114,9 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             // its only writer.
             // USEC 步枪：2 秒拉栓（快速装填 x0.7 因人而异），而非开局 60 秒锁定；UsecCooldowns 是唯一写入方。
             entries.put(SparkWitchItems.USEC_RIFLE_ID, UsecRules.BOLT_TICKS);
+            // BEAR M32A1: the 1 s between shots (D12: the admin clear releases it like any vanilla cooldown).
+            // BEAR M32A1：两次射击之间的 1 秒（D12：管理员清除冷却时与其他原版冷却一样释放）。
+            entries.put(BearRules.M32A1_ITEM_ID, BearRules.M32_COOLDOWN_TICKS);
             // Witch Maiden Wither Gohei: the crimson skull cooldown. / 巫女凋灵御币：赤首冷却。
             entries.put(SparkWitchItems.WITHER_GOHEI_ID, MiniWitherRules.CRIMSON_COOLDOWN_TICKS);
             // Spare Key: the 5 s cooldown after each opening. / 备用钥匙：每次开门后的 5 秒冷却。

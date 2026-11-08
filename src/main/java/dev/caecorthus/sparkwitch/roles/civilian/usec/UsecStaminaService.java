@@ -36,9 +36,9 @@ public final class UsecStaminaService {
     }
 
     /**
-     * Doubles this tick's regeneration for a running, living, survival USEC. No sync call: Wathe's component tick
-     * syncs on its own thresholds.
-     * 为对局中存活、生存模式的 USEC 将本刻恢复量翻倍。不主动同步：Wathe 组件刻会按自身阈值同步。
+     * Doubles this tick's regeneration for a running, living, survival USEC or BEAR. No sync call: Wathe's component
+     * tick syncs on its own thresholds.
+     * 为对局中存活、生存模式的 USEC 或 BEAR 将本刻恢复量翻倍。不主动同步：Wathe 组件刻会按自身阈值同步。
      */
     public static void boostRegen(PlayerEntity player, float previous) {
         if (Float.isNaN(previous)) {
@@ -48,10 +48,11 @@ public final class UsecStaminaService {
         if (game == null) {
             return;
         }
-        // Runs for every player every tick: the role test rejects non-USEC players before the other (side-effect
-        // free) lookups. / 每 tick 对每名玩家执行：先用职业判断排除非 USEC 玩家，再做其余（无副作用的）查询。
+        // Runs for every player every tick: the role test rejects other players (USEC and BEAR boost) before the other
+        // (side-effect free) lookups. / 每 tick 对每名玩家执行：先用职业判断排除其他玩家（USEC 与 BEAR 享有加成），再做其余
+        // （无副作用的）查询。
         Role role = game.getRole(player);
-        if (!UsecRules.isUsec(role) || !UsecStaminaRules.appliesTo(game.isRunning(),
+        if (!UsecStaminaRules.boostsRole(role) || !UsecStaminaRules.appliesTo(game.isRunning(),
                 GameFunctions.isPlayerAliveAndSurvival(player), role)) {
             return;
         }
