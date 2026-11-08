@@ -1527,8 +1527,8 @@ Current build baseline:
     with no element rotations; lowered, the 10 × 3 glass (x 3..13, y 6..9, face z 1.75) sits in a proud frame
     (z 1.5..2.25) over a chin plate (y 4..5, z 2.25..2.75) with four-piece side arms (x 2.25..2.75) ending at the
     bolts; raised, the frame lies flat on the crown cap (y 13.75..14.5 over z 3..8, glass at y 14.25) with the chin
-    plate as a short peak (z 2..3), nothing above y 15 or ahead of z 1.5; `RysTVisorGeometry.UP_*`), and `RysTModels`
-    swaps in the 2-D icons for GUI/ground/frame (AXMC pattern). Visor toggle (H9, only way): `RysTVisorToggle` from
+    plate as a short peak (z 2..3), nothing above y 15 or ahead of z 1.5; `RysTVisorGeometry.UP_*`); the same 3-D
+    model is the GUI/ground/item-frame look through its own `display` entries (no 2-D icon, owner call 2026-11-07). Visor toggle (H9, only way): `RysTVisorToggle` from
     `onClicked`, an empty-cursor right-click on the helmet in the player's own head slot (inventory index 39) in any
     screen; both sides claim, the server writes in place and plays `bear.rys_t.visor_up/down` publicly, the creative
     screen's client writes and plays it locally (USEC writer rule, probe from `RysTHelmetClient`); Wathe's armor
