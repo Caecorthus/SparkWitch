@@ -946,9 +946,14 @@ Current build baseline:
     no cap (Q1+). The stamina cap is 20 s and regeneration is doubled, both stacking with traits. Death drops one Wathe
     revolver and deletes the rifle and its parts (Q2). Right-click scopes, left-click fires, and hip fire is as accurate
     (Q15). Grand Witch Fear blocks neither the shot nor the attachments (Q14).
+    Any holder (owner, 2026-11-05: "AXMC 用不了是个 Bug", "只是死后不掉落罢了"; same rule as the BEAR M32A1): whoever
+    holds the rifle and its parts may use them with the full effect (fire, attachments, cursor loading, shield
+    piercing, the scope glint and scope-in sound, the ammo HUD), in a round or off-match (presentation-only there,
+    `util/OffMatchUse`); Wathe's own rules decide every drop, nothing strips them from a holder, and they vanish
+    instead of dropping when any holder dies. The shop, the stamina, the income and the instinct cloak stay the USEC's.
     Passive (owner, 2026-10-08): while scoped, a USEC is hidden from the keyed instinct x-ray of every living viewer
     within 12 blocks; spectators, Rift occupants and active Wraiths still see it, and always-on highlights stay (see
-    `client/usec/` instinct cloak).
+    `client/usec/` instinct cloak). Other holders are never cloaked.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 20 s `maxSprintTime`, no appearance
     condition) registered right before the Insider in `registerFactionApiRoles` and right after the Seeker in the
     assassin-guess order. It is drawn only through the shared Vigilante slots
@@ -1008,21 +1013,23 @@ Current build baseline:
     STARTING), each living final USEC gets one empty rifle through `insertStack` plus the 60 s lock. The rifle is
     outside `wathe:guns`, so the SparkTraits Impostor gun rule never refuses it. A playing, alive player who becomes
     USEC while the round is ACTIVE gets the same grant once per round (`UsecLoadoutService.isGranted`). Nothing
-    re-grants, so a confiscated rifle stays gone.
-  - Bound items: the five items, identified by class in `UsecInventoryRules` (no creative exemption), never leave the
-    holder's own inventory but move freely inside it, cursor included: PICKUP, PICKUP_ALL, number-key or offhand SWAP
-    and drags across the player's own slots (cursor loading is one of these). Throws, clones, shift-clicks of a bound
-    stack, the creative clone drag, drag steps onto foreign slots and clicks outside the player's own slots are refused.
-    The slot-click veto sees only server-resolved clicks: the vanilla creative inventory screen sets slots through
-    creative packets, so a creative player (an admin) can already forge, clone or delete these items there.
-    The guards are five `mixin/usec/` HEAD injects (Q drop, `dropItem`, slot click, `shouldDropOnDeath`, and the
-    decorated pot, which answers `SKIP_DEFAULT_BLOCK_INTERACTION`) plus a both-sides `UseEntityCallback` veto for item
-    frames, armor stands and allays. A refused drop goes back to a living USEC or free holder through explicit slot
-    writes. Exemption: vanilla `/give`'s cosmetic count-1 drop (`util/GiveCommandDropScope`) is only cancelled, never
-    restored or emptied, so a give yields exactly the requested count and its message keeps the item name. Match
-    participants who are not USEC (`OffMatchUse.isMatchParticipant`) are stripped on role change and by a
-    staggered 20-tick sweep; free holders are never touched. Reset, finalize and disconnect strip the items and unscope
-    (`UsecPlayerComponent.setScoped(false)`).
+    re-grants, so a confiscated rifle stays gone. A role change away from USEC changes nothing: the former USEC keeps
+    the rifle and the grant record (no second grant or lock in the same round).
+  - Bound items (owner, 2026-11-05; the BEAR M32A1 answer "直接走 wathe 的机制……不应该到别人的包里就被收走"): the five
+    items, identified by class in `UsecInventoryRules`, are bound to the holder's life only. They move like every other
+    item under Wathe's own rules: in a live round (train HUD, alive, survival) Wathe already refuses Q, Drop All, the
+    offhand swap, in-screen THROW and click-outside drops and puts a closing screen's cursor back into the inventory;
+    containers, item frames and off-match drops are vanilla. No sweep, role change or round end strips them from a
+    holder, USEC or not (an AXMC in someone else's inventory got there on purpose, e.g. an admin's `/give`, which now
+    yields exactly the requested count without any `GiveCommandDropScope` handling). They never drop on death:
+    `mixin/usec/GameFunctionsUsecItemDropMixin` (HEAD of Wathe's `shouldDropOnDeath`) keeps them out of Wathe's
+    death-drop loop, `UsecDeathDrops` deletes every copy a victim still carries (below), and the HEAD of
+    `mixin/usec/PlayerEntityUsecItemMixin` cancels a dead player's `dropItem` of one (vanilla's death drop when
+    KEEP_INVENTORY is off, a dead player's cursor), so it vanishes. The other strips are the terminal exits: Wathe's
+    `ResetPlayer` (it clears the inventory; the strip also clears the cursor and the 2x2 crafting grid) and a
+    disconnect while Wathe `isPlayerPlayingAndAlive` (Wathe turns it into an ESCAPED death after the player is saved,
+    so the items are stripped before the save); a free holder keeps them across a relog. Finalize only unscopes and
+    forgets grants. A strip never touches a container the player has open.
   - No guns (owner O2, 2026-10-07; `UsecGunRules`): a player whose live role is exactly USEC never picks up or receives
     a `wathe:guns` item (the AXMC is outside the tag). Server only, creative exempt (the Wathe and SparkTraits Impostor
     precedent): `mixin/usec/ItemEntityUsecGunMixin` cancels `ItemEntity.onPlayerCollision` at HEAD,
@@ -1032,7 +1039,8 @@ Current build baseline:
     A SparkTraits Last Stand revive's `ensureRevolver` therefore drops that revolver at the USEC's feet.
   - Death (`UsecDeathDrops`, `KillPlayer.AFTER`): unless SparkTraits intercepted the death
     (`WitchFactorTraitsBridge.isDeathIntercepted`, as for the Seeker), every bound item is deleted (inventory, offhand,
-    cursor, open slots), the component is cleared, and a USEC victim drops exactly one `WatheItems.REVOLVER` with
+    cursor, the player's own 2x2 crafting grid; never a container they have open, which may now store one), the
+    component is cleared, and a USEC victim drops exactly one `WatheItems.REVOLVER` with
     `dropItem(stack, true, false)`, so normal Wathe pickup rules apply. Wathe's drop loop runs before
     `KillPlayer.AFTER`, so `PlayerEntityUsecItemMixin` records at RETURN every revolver item entity created for a USEC;
     a revolver that left the USEC in the same world tick (a carried one dropped by Wathe's loop, or Wathe's misfire
@@ -1164,9 +1172,12 @@ Current build baseline:
     the result. `UsecAttachmentClient.register` installs that screen probe
     (`UsecAttachmentCursorLoading.installCreativeScreenProbe`); a dedicated server keeps the default "never".
   - Scope (`UsecScopeService`): the only writer of `UsecPlayerComponent.scoped`. The `sparkwitch:usec_scope` receiver
-    stores true only for a playing, alive, non-spectator, non-Wraith, exact-role USEC using the rifle in the main hand,
-    and a per-tick sweep clears anyone who stops qualifying. The payload is harmless and on no deny-list. When the flag
-    turns on, a subtle `item.usec_rifle.scope` plays through the public `ServerWorld#playSound` at the shooter's eye
+    stores true for any holder who may use the rifle (owner, 2026-11-05: the role is never read; `OffMatchUse.mode` not
+    REFUSED, so off-match holders qualify and dead participants do not), alive, non-spectator, non-Wraith, using the
+    rifle in the main hand, and a per-tick sweep clears anyone who stops qualifying. The glint and the scope-in sound
+    follow the flag for every holder; only the instinct cloak also checks the target's role. The payload is harmless
+    and on no deny-list. When the flag turns on, a subtle `item.usec_rifle.scope` plays through the public
+    `ServerWorld#playSound` at the shooter's eye
     (owner, 2026-10-07): a fixed `SCOPE_SOUND_RANGE` (8-block) broadcast at volume 0.8, so the shooter and nearby
     players hear it and the Blind perceives it as an ordinary sound; at most once per `SCOPE_SOUND_MIN_INTERVAL_TICKS`
     per player, and scoping out is silent.
@@ -1797,8 +1808,10 @@ Current build baseline:
   - Ammo HUD (`UsecAmmoHud`, `UsecAmmoHudRules`): a role-owned bottom-right `HudRenderCallback` line (chamber »
     [magazine] · 消音, a magnification tag and a bolt bar; the tag shows the shown magnification to one decimal, `3.4×`,
     dropping `.0` for whole numbers, `4×`, and the row's placement reserves the widest form so it never jumps while the
-    zoom eases), shown only to a living, exact-role USEC holding the rifle in an ACTIVE
-    round; never in the witch skill panel. `拉栓中` comes only from the `UsecCooldowns` classifier read through
+    zoom eases), shown to any holder of the rifle in the main hand (owner, 2026-11-05; the role is never read): a
+    live participant of an ACTIVE round while Wathe's HUD shows, an off-match holder (`OffMatchUse` PRESENTATION)
+    always, a dead participant or spectator never; F1 hides it; never in the witch skill panel. `拉栓中` comes only from
+    the `UsecCooldowns` classifier read through
     `UsecBoltWatchClient.status` (exact entry ticks plus bolt evidence), never from the interpolated cooldown share, so
     it cannot flicker, and a short forced lock keeps the chamber token with the bar. A shot's `拉栓中` waits for its
     slot update, up to about a server tick after the cooldown packet (the fired round shows with the bar until then);
@@ -1908,7 +1921,8 @@ Current build baseline:
     when Wathe's `isRunning` flips; vanilla draws them only within 32 blocks of the camera. The client never changes a
     block and never sends a packet.
   - Instinct cloak (owner, 2026-10-08; `UsecInstinctCloak`, pure `UsecInstinctCloakRules`, range
-    `UsecRules.INSTINCT_CLOAK_RANGE`): a target with the synced `UsecPlayerComponent.scoped` flag is cloaked from the
+    `UsecRules.INSTINCT_CLOAK_RANGE`): a target with the synced `UsecPlayerComponent.scoped` flag whose synced Wathe
+    role is exactly USEC (any holder sets it since 2026-11-05; other holders are never cloaked) is cloaked from the
     local viewer at a feet-to-feet distance of at most 12 blocks (`squaredDistanceTo`, inclusive, the Apprentice Murder
     Sense and Vendetta measure) on a confirmed server, never from itself and never from an exempt viewer
     (`UsecInstinctCloakRules.exemptViewer`, owner 2026-10-08), who keeps seeing a scoped USEC at any distance: the
@@ -2341,10 +2355,11 @@ Current build baseline:
   (the shared count-1 template). `mixin/GiveCommandDropScopeMixin` (common config) is the one `@WrapOperation` on
   `GiveCommand.execute`'s second `dropItem(ItemStack, boolean)` (ordinal 1); ordinal 0, the real remainder drop, stays
   outside. It is read by the drop guards that copy or empty a refused drop, each only cancelling the marked template:
-  `UsecLoadoutService.interceptDrop`, `PotionGunnerLoadoutService.interceptDrop` (launcher and shells),
+  `PotionGunnerLoadoutService.interceptDrop` (launcher and shells),
   `BlindItemDrops.intercept` (ComTac) and `TimeStealerItemDrops.intercept` (stamps). The other bound-item guards
   only cancel (Clock, Gift Watch, White Cane, Black Raven ledger and mask, Vendetta knife, Toll Bell, Prophet Necrology)
-  or hand back only the cursor stack (Abyss Listener), which `/give` never drops, so they do not read it.
+  or hand back only the cursor stack (Abyss Listener), which `/give` never drops, so they do not read it. The USEC items
+  have no refused-drop guard since 2026-11-05 (only a dead player's drop vanishes), so `/give` of them is vanilla.
 
 ## Runtime Invariants
 
