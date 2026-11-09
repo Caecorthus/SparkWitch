@@ -99,6 +99,8 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "use_athlete_dash"),
             // Dominator mark/release (UseDominatorSkillC2SPacket, G key). / 支配者标记/释放（G 键）。
             Identifier.of("sparkwitch", "use_dominator_skill"),
+            // Savior domain (UseSaviorSkillC2SPacket, G key, PR #200). / 救世主领域（UseSaviorSkillC2SPacket，G 键，PR #200）。
+            Identifier.of("sparkwitch", "use_savior_skill"),
             // 夏目安安 hypnosis menu request and target confirm, both halves like the Judge pair.
             // 夏目安安催眠菜单请求与目标确认，与法官的两个包一样两半都拦截。
             Identifier.of("sparkwitch", "request_natsume_menu"),
@@ -136,6 +138,12 @@ public final class ControlExpertStunRules {
             // BEAR M32A1 开火（FireM32A1C2SPayload，左键），与反坦克炮筒同类的手持射击；光标装填属于背包点击（眩晕会关闭游戏
             // 界面），瞄具仅为表现。
             Identifier.of("sparkwitch", "fire_m32a1"),
+            // Savior pistol shot (SaviorPistolShootC2SPayload, PR #200), a gun shot like wathe:gunshoot. The lightsaber
+            // kills through the vanilla attack the stun already denies; its swing/ignite sound intents
+            // (savior_lightsaber_swing, savior_lightsaber_ignite) are presentation only and stay allowed.
+            // 救世主手枪射击（SaviorPistolShootC2SPayload，PR #200），与 wathe:gunshoot 同类的枪击。光剑经眩晕已拒绝的原版攻击
+            // 击杀；其挥动/点火音效意图（savior_lightsaber_swing、savior_lightsaber_ignite）仅为表现，保持放行。
+            Identifier.of("sparkwitch", "savior_pistol_shoot"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

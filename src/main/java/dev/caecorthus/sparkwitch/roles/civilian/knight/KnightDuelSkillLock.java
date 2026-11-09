@@ -66,6 +66,8 @@ public final class KnightDuelSkillLock {
             Identifier.of("sparkwitch", "use_athlete_dash"),
             // Dominator mark/release (UseDominatorSkillC2SPacket). / 支配者标记/释放（UseDominatorSkillC2SPacket）。
             Identifier.of("sparkwitch", "use_dominator_skill"),
+            // Savior domain (UseSaviorSkillC2SPacket, PR #200). / 救世主领域（UseSaviorSkillC2SPacket，PR #200）。
+            Identifier.of("sparkwitch", "use_savior_skill"),
             // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
@@ -88,7 +90,9 @@ public final class KnightDuelSkillLock {
      * {@code sparkwitch:double_barrel_aim} (aim claims for a shotgun shot that is an item use the seal blocks),
      * {@code sparkwitch:throw_kidnapper_body} (moves a corpse, hurts no one), {@code sparkwitch:accountant_withdraw}
      * (the passbook's left-click; moves coins, hurts no one), {@code sparkwitch:usec_attachment} and
-     * {@code usec_scope} (loading and presentation), {@code sparkstrength:taotie_head_fire} (a skill-key-2 volley that
+     * {@code usec_scope} (loading and presentation), {@code sparkwitch:savior_lightsaber_swing} and
+     * {@code savior_lightsaber_ignite} (sound intents; the lightsaber kills through the vanilla attack the seal's
+     * Attack guard refuses), {@code sparkstrength:taotie_head_fire} (a skill-key-2 volley that
      * dazes and never kills), {@code sparkstrength:drone_pilot_start}, {@code drone_pilot_move} and
      * {@code drone_pilot_exit} (flying a drone; exit must always pass) and {@code sparkstrength:m67_cancel} (cancels a
      * throw).
@@ -98,7 +102,9 @@ public final class KnightDuelSkillLock {
      * {@code sparkwitch:double_barrel_aim}（猎枪射击的瞄准声明，射击本身是被封印拦截的物品使用）、
      * {@code sparkwitch:throw_kidnapper_body}（只移动尸体，不伤人）、{@code sparkwitch:accountant_withdraw}（存折左键，
      * 只移动金币，不伤人）、{@code sparkwitch:usec_attachment} 与
-     * {@code usec_scope}（装填与表现）、{@code sparkstrength:taotie_head_fire}（技能键 2 的齐射，只造成眩晕、从不致死）、
+     * {@code usec_scope}（装填与表现）、{@code sparkwitch:savior_lightsaber_swing} 与 {@code savior_lightsaber_ignite}
+     * （音效意图；光剑经原版攻击击杀，封印的攻击拦截会拒绝它）、
+     * {@code sparkstrength:taotie_head_fire}（技能键 2 的齐射，只造成眩晕、从不致死）、
      * {@code sparkstrength:drone_pilot_start}、{@code drone_pilot_move} 与 {@code drone_pilot_exit}（驾驶无人机；退出必须
      * 始终放行）以及 {@code sparkstrength:m67_cancel}（取消投掷）。
      */
@@ -117,6 +123,11 @@ public final class KnightDuelSkillLock {
             // BEAR M32A1 (cooldown-gated handler like the launcher's; it fires smoke, sealed like every C2S launcher).
             // BEAR M32A1（与炮筒一样处理器受冷却限制；虽只发射烟雾，仍与所有 C2S 发射器一样被封印）。
             Identifier.of("sparkwitch", "fire_m32a1"),
+            // Savior pistol (SaviorPistolShootC2SPayload, PR #200): its receiver checks the pistol cooldown but skips
+            // it in creative mode, so it is listed like the Demon Hunter pistol rather than resting on the handler.
+            // 救世主手枪（SaviorPistolShootC2SPayload，PR #200）：接收器会检查手枪冷却，但创造模式下跳过，因此与猎魔人手枪一样
+            // 列入名单，而不依赖处理器。
+            Identifier.of("sparkwitch", "savior_pistol_shoot"),
             // Vendetta knife (the Vendetta is an active Wraith, who cannot duel; listed for completeness) and the
             // Fisher's swordfish stab. / 仇杀刀（仇杀者是活跃冤魂，无法决斗；为完整起见列入）与钓鱼佬的剑鱼刺击。
             Identifier.of("sparkwitch", "vendetta_knife_stab"),

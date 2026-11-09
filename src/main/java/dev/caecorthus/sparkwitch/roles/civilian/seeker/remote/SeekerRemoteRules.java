@@ -73,6 +73,8 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "use_fiend_dash"),
             Identifier.of("sparkwitch", "use_athlete_dash"),
             Identifier.of("sparkwitch", "use_dominator_skill"),
+            // Savior domain (UseSaviorSkillC2SPacket, G key, PR #200). / 救世主领域（UseSaviorSkillC2SPacket，G 键，PR #200）。
+            Identifier.of("sparkwitch", "use_savior_skill"),
             // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
@@ -96,6 +98,10 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
             // BEAR M32A1 fire, a held-item shot like the launcher's. / BEAR M32A1 开火，与炮筒同类的手持射击。
             Identifier.of("sparkwitch", "fire_m32a1"),
+            // Savior pistol shot (SaviorPistolShootC2SPayload, PR #200), a gun shot like wathe:gunshoot; the lightsaber
+            // swing/ignite sound intents are presentation only and stay allowed.
+            // 救世主手枪射击（SaviorPistolShootC2SPayload，PR #200），与 wathe:gunshoot 同类的枪击；光剑挥动/点火音效意图仅为表现，保持放行。
+            Identifier.of("sparkwitch", "savior_pistol_shoot"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

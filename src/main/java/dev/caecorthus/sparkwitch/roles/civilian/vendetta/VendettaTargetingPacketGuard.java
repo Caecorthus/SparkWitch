@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 
+import dev.caecorthus.sparkwitch.net.SaviorPistolShootC2SPayload;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowTargets;
 import dev.doctor4t.wathe.util.GunShootPayload;
 import dev.doctor4t.wathe.util.KnifeStabPayload;
@@ -18,9 +19,10 @@ import java.util.OptionalInt;
 
 /**
  * Rejects target payloads before they spend items or emit effects for an isolated Vendetta pair: Wathe's knife stab
- * and gun shot, and the SparkStrength Serial Killer pistol shot, treated exactly like the gun shot (owner 2026-10-07).
+ * and gun shot, plus the SparkStrength Serial Killer pistol shot (owner 2026-10-07) and the Savior pistol shot
+ * (PR #200), both treated exactly like the gun shot.
  * 在目标数据包消耗物品或生成效果前，拒绝不属于仇杀绑定双方的请求：Wathe 刀刺与开枪，以及与开枪完全同等处理的
- * SparkStrength 连环杀手手枪射击（所有者 2026-10-07）。
+ * SparkStrength 连环杀手手枪射击（所有者 2026-10-07）与救世主手枪射击（PR #200）。
  */
 public final class VendettaTargetingPacketGuard {
     /**
@@ -43,6 +45,7 @@ public final class VendettaTargetingPacketGuard {
      */
     public static boolean isTargetPayload(@Nullable CustomPayload payload) {
         return payload instanceof KnifeStabPayload || payload instanceof GunShootPayload
+                || payload instanceof SaviorPistolShootC2SPayload
                 || payload != null && payload.getId() != null && SERIAL_PISTOL_SHOOT_ID.equals(payload.getId().id());
     }
 
@@ -76,6 +79,12 @@ public final class VendettaTargetingPacketGuard {
         }
         if (payload instanceof GunShootPayload gun) {
             return OptionalInt.of(gun.target());
+        }
+        // Savior pistol (PR #200): our own record, whose codec is a fixed-width INTEGER, so the id is read directly and
+        // never through leadingVarInt. / 救世主手枪（PR #200）：本模组自己的 record，编解码器为定长 INTEGER，因此直接读取 id，
+        // 从不经 leadingVarInt。
+        if (payload instanceof SaviorPistolShootC2SPayload saviorPistol) {
+            return OptionalInt.of(saviorPistol.targetEntityId());
         }
         if (payload != null && payload.getId() != null && SERIAL_PISTOL_SHOOT_ID.equals(payload.getId().id())) {
             return leadingVarInt(PayloadTypeRegistryImpl.PLAY_C2S.get(SERIAL_PISTOL_SHOOT_ID), payload,
