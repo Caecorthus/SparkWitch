@@ -65,9 +65,10 @@ final class TimeGiftWatchLoadout {
 
     /**
      * Keeps exactly one Gift Watch, in the hotbar: the leftmost hotbar copy is kept, every other copy (main slots 9-35,
-     * armor, offhand, cursor, crafting grid or open container) is removed, and a missing one is recreated in the hotbar.
-     * 保持恰好一块赠时怀表并使其位于快捷栏：保留最左侧的快捷栏副本，移除其他所有副本（主背包 9-35、盔甲、副手、光标、
-     * 合成格或已打开的容器），缺失时在快捷栏重新创建。
+     * armor, offhand, crafting grid or open container) is removed, and a missing one is recreated in the hotbar. A copy
+     * on the cursor counts as the kept one while the hotbar has none, so a left-click pickup holds.
+     * 保持恰好一块赠时怀表并使其位于快捷栏：保留最左侧的快捷栏副本，移除其他所有副本（主背包 9-35、盔甲、副手、
+     * 合成格或已打开的容器），缺失时在快捷栏重新创建。快捷栏没有时，光标上的副本视为保留的那一块，因此左键拿起能保持住。
      */
     private static void ensureGiftWatchInHotbar(ServerPlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
@@ -94,9 +95,21 @@ final class TimeGiftWatchLoadout {
             }
             changed = true;
         }
-        if (TimeStealerInventoryRules.isGiftWatch(handler.getCursorStack())) {
-            handler.setCursorStack(ItemStack.EMPTY);
-            changed = true;
+        // A Gift Watch on the cursor is being carried: it is the kept copy unless the hotbar already has one (as for the Clock).
+        // 光标上的赠时怀表正被携带：除非快捷栏已有一块，否则它就是保留的那一份（与时钟相同）。
+        boolean carried = false;
+        ItemStack cursor = handler.getCursorStack();
+        if (TimeStealerInventoryRules.isGiftWatch(cursor)) {
+            if (kept == NO_SLOT) {
+                carried = true;
+                if (cursor.getCount() > 1) {
+                    cursor.setCount(1);
+                    changed = true;
+                }
+            } else {
+                handler.setCursorStack(ItemStack.EMPTY);
+                changed = true;
+            }
         }
         for (Slot slot : handler.slots) {
             if (slot.inventory != inventory && TimeStealerInventoryRules.isGiftWatch(slot.getStack())) {
@@ -104,7 +117,7 @@ final class TimeGiftWatchLoadout {
                 changed = true;
             }
         }
-        if (kept == NO_SLOT) {
+        if (kept == NO_SLOT && !carried) {
             changed |= placeGiftWatchInHotbar(inventory, vacated);
         }
         if (changed) {

@@ -80,6 +80,16 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.usecFmjRound(),
                                     SparkWitchItems.usecApRound(),
                                     SparkWitchItems.usecSuppressor(),
+                                    // BEAR (civilian) / BEAR（平民）
+                                    dev.caecorthus.sparkwitch.roles.civilian.bear.BearItems.M32A1,
+                                    dev.caecorthus.sparkwitch.roles.civilian.bear.BearItems.SMOKE_ROUND,
+                                    dev.caecorthus.sparkwitch.roles.civilian.bear.BearItems.RYS_T,
+                                    dev.caecorthus.sparkwitch.roles.civilian.bear.BearItems.EARPLUGS,
+                                    // NoellesRoles Attendant's Spare Key (civilian) / NoellesRoles 乘务员的备用钥匙（平民）
+                                    SparkWitchItems.spareKey(),
+                                    SparkWitchItems.bigDogPortrait(),
+                                    // Accountant's passbook (civilian) / 会计的存折（平民）
+                                    SparkWitchItems.accountantPassbook(),
                                     // Savior (civilian police) / 救世主（平民警察）
                                     SparkWitchItems.saviorPistol(),
                                     SparkWitchItems.saviorLightsaber(),

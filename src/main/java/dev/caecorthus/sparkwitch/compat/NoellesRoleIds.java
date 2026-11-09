@@ -20,6 +20,13 @@ public final class NoellesRoleIds {
      * SparkStrength 也按同一 id 识别；NoellesRoles 只为该 id 注册一个职业。
      */
     public static final Identifier TIMEKEEPER = Identifier.of(NAMESPACE, "time_keeper");
+    /**
+     * NoellesRoles Attendant (乘务员), keyed by id like SparkStrength's {@code AttendantRules.ATTENDANT_ID}; it starts
+     * each round with one SparkWitch Spare Key.
+     * NoellesRoles 乘务员，与 SparkStrength 的 {@code AttendantRules.ATTENDANT_ID} 一样按 id 识别；每局开局获得一把
+     * SparkWitch 备用钥匙。
+     */
+    public static final Identifier ATTENDANT = Identifier.of(NAMESPACE, "attendant");
     public static final Identifier VOODOO_CURSE_DEATH_REASON = Identifier.of(NAMESPACE, "voodoo");
 
     private NoellesRoleIds() {
@@ -40,6 +47,11 @@ public final class NoellesRoleIds {
     /** Exact current-role check by id only; faction is a separate gate. / 仅按 id 精确判断当前职业；阵营是另一道判定。 */
     public static boolean isTimekeeper(@Nullable Role role) {
         return hasId(role, TIMEKEEPER);
+    }
+
+    /** Exact real-role check by id; never a disguise. / 仅按 id 判断真实职业，从不看伪装。 */
+    public static boolean isAttendant(@Nullable Role role) {
+        return hasId(role, ATTENDANT);
     }
 
     public static boolean hasId(@Nullable Role role, Identifier id) {

@@ -12,10 +12,10 @@ import org.spongepowered.asm.mixin.injection.At;
 
 /**
  * Marks the admin path only: SparkFactionAPI {@code /sparkfactionapi:clearCooldown} (the same method body from 0.1.5.12
- * through 0.1.5.15). When its {@code remove} really cleared the held item, the clear also sticks against Saint Karma.
+ * through 0.1.6.0). When its {@code remove} really cleared the held item, the clear also sticks against Saint Karma.
  * Role mechanics that remove a cooldown (NoellesRoles Catalyst, the Bomber pass) never come through here, so Karma
  * still re-covers those items.
- * 只标记管理员路径：SparkFactionAPI {@code /sparkfactionapi:clearCooldown}（0.1.5.12 至 0.1.5.15 方法体相同）。其
+ * 只标记管理员路径：SparkFactionAPI {@code /sparkfactionapi:clearCooldown}（0.1.5.12 至 0.1.6.0 方法体相同）。其
  * {@code remove} 真正清除了手持物品的冷却时，该清除对圣徒业障也保持有效。移除冷却的职业机制（NoellesRoles 催化剂、
  * 投弹手传递）不经过这里，因此业障仍会重新覆盖那些物品。
  */

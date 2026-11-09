@@ -95,6 +95,37 @@ public final class SparkWitchSounds {
     public static SoundEvent DUEL_MANBA;
     public static SoundEvent DUEL_SF;
     /**
+     * Frozen contract (BEAR WP0): the twelve BEAR sound events, all variable range (the playing code picks the volume).
+     * The ricochet, visor hit and tinnitus files are the owner's picks of 2026-11-05 (helmet A, visor B, tinnitus B);
+     * the other nine are silent placeholders until the sound package delivers.
+     * 冻结契约（BEAR WP0）：十二个 BEAR 音效事件，均为可变范围（由播放代码决定音量）。跳弹、面罩命中与耳鸣音频为所有者
+     * 2026-11-05 的选择（头盔 A、面罩 B、耳鸣 B）；其余九个在音效工作包交付前为静音占位。
+     */
+    public static final Identifier BEAR_M32_FIRE_ID = SparkWitch.id("bear.m32.fire");
+    public static final Identifier BEAR_M32_LOAD_ID = SparkWitch.id("bear.m32.load");
+    public static final Identifier BEAR_M32_UNLOAD_ID = SparkWitch.id("bear.m32.unload");
+    public static final Identifier BEAR_M32_EMPTY_ID = SparkWitch.id("bear.m32.empty");
+    public static final Identifier BEAR_M32_DIAL_ID = SparkWitch.id("bear.m32.dial");
+    public static final Identifier BEAR_SMOKE_BURST_ID = SparkWitch.id("bear.smoke.burst");
+    public static final Identifier BEAR_RYS_T_VISOR_DOWN_ID = SparkWitch.id("bear.rys_t.visor_down");
+    public static final Identifier BEAR_RYS_T_VISOR_UP_ID = SparkWitch.id("bear.rys_t.visor_up");
+    public static final Identifier BEAR_RYS_T_RICOCHET_ID = SparkWitch.id("bear.rys_t.ricochet");
+    public static final Identifier BEAR_RYS_T_VISOR_HIT_ID = SparkWitch.id("bear.rys_t.visor_hit");
+    public static final Identifier BEAR_RYS_T_TINNITUS_ID = SparkWitch.id("bear.rys_t.tinnitus");
+    public static final Identifier BEAR_EARPLUGS_INSERT_ID = SparkWitch.id("bear.earplugs.insert");
+    public static SoundEvent BEAR_M32_FIRE;
+    public static SoundEvent BEAR_M32_LOAD;
+    public static SoundEvent BEAR_M32_UNLOAD;
+    public static SoundEvent BEAR_M32_EMPTY;
+    public static SoundEvent BEAR_M32_DIAL;
+    public static SoundEvent BEAR_SMOKE_BURST;
+    public static SoundEvent BEAR_RYS_T_VISOR_DOWN;
+    public static SoundEvent BEAR_RYS_T_VISOR_UP;
+    public static SoundEvent BEAR_RYS_T_RICOCHET;
+    public static SoundEvent BEAR_RYS_T_VISOR_HIT;
+    public static SoundEvent BEAR_RYS_T_TINNITUS;
+    public static SoundEvent BEAR_EARPLUGS_INSERT;
+    /**
      * The Mini Wither's own events, one per {@link MiniWitherSoundSlot}: variable range like the vanilla events they
      * replaced, and sounds.json defaults each to the same vanilla files and subtitle. Read with {@link #miniWither}.
      * 小凋灵自有事件，每个 {@link MiniWitherSoundSlot} 一个：与被替换的原版事件一样为可变范围，sounds.json 默认指向相同的
@@ -169,6 +200,18 @@ public final class SparkWitchSounds {
                 SoundEvent.of(SAVIOR_LIGHTSABER_SWING_ID));
         DUEL_MANBA = Registry.register(Registries.SOUND_EVENT, DUEL_MANBA_ID, SoundEvent.of(DUEL_MANBA_ID));
         DUEL_SF = Registry.register(Registries.SOUND_EVENT, DUEL_SF_ID, SoundEvent.of(DUEL_SF_ID));
+        BEAR_M32_FIRE = Registry.register(Registries.SOUND_EVENT, BEAR_M32_FIRE_ID, SoundEvent.of(BEAR_M32_FIRE_ID));
+        BEAR_M32_LOAD = Registry.register(Registries.SOUND_EVENT, BEAR_M32_LOAD_ID, SoundEvent.of(BEAR_M32_LOAD_ID));
+        BEAR_M32_UNLOAD = Registry.register(Registries.SOUND_EVENT, BEAR_M32_UNLOAD_ID, SoundEvent.of(BEAR_M32_UNLOAD_ID));
+        BEAR_M32_EMPTY = Registry.register(Registries.SOUND_EVENT, BEAR_M32_EMPTY_ID, SoundEvent.of(BEAR_M32_EMPTY_ID));
+        BEAR_M32_DIAL = Registry.register(Registries.SOUND_EVENT, BEAR_M32_DIAL_ID, SoundEvent.of(BEAR_M32_DIAL_ID));
+        BEAR_SMOKE_BURST = Registry.register(Registries.SOUND_EVENT, BEAR_SMOKE_BURST_ID, SoundEvent.of(BEAR_SMOKE_BURST_ID));
+        BEAR_RYS_T_VISOR_DOWN = Registry.register(Registries.SOUND_EVENT, BEAR_RYS_T_VISOR_DOWN_ID, SoundEvent.of(BEAR_RYS_T_VISOR_DOWN_ID));
+        BEAR_RYS_T_VISOR_UP = Registry.register(Registries.SOUND_EVENT, BEAR_RYS_T_VISOR_UP_ID, SoundEvent.of(BEAR_RYS_T_VISOR_UP_ID));
+        BEAR_RYS_T_RICOCHET = Registry.register(Registries.SOUND_EVENT, BEAR_RYS_T_RICOCHET_ID, SoundEvent.of(BEAR_RYS_T_RICOCHET_ID));
+        BEAR_RYS_T_VISOR_HIT = Registry.register(Registries.SOUND_EVENT, BEAR_RYS_T_VISOR_HIT_ID, SoundEvent.of(BEAR_RYS_T_VISOR_HIT_ID));
+        BEAR_RYS_T_TINNITUS = Registry.register(Registries.SOUND_EVENT, BEAR_RYS_T_TINNITUS_ID, SoundEvent.of(BEAR_RYS_T_TINNITUS_ID));
+        BEAR_EARPLUGS_INSERT = Registry.register(Registries.SOUND_EVENT, BEAR_EARPLUGS_INSERT_ID, SoundEvent.of(BEAR_EARPLUGS_INSERT_ID));
         for (MiniWitherSoundSlot slot : MiniWitherSoundSlot.values()) {
             MINI_WITHER.put(slot, Registry.register(Registries.SOUND_EVENT, slot.eventId(),
                     SoundEvent.of(slot.eventId())));

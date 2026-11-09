@@ -59,7 +59,16 @@ public final class KnightDuelSkillLock {
             // Tarot Reader pick in the selector its use_skill opened. / 塔罗师在 use_skill 打开的选择界面中的选择。
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
             Identifier.of("sparkwitch", "use_blind_attune"),
+            Identifier.of("sparkwitch", "use_noa_paint"),
+            // Ragpicker corpse search (JunkerSearchC2SPacket). / 拾荒者搜刮尸体（JunkerSearchC2SPacket）。
+            Identifier.of("sparkwitch", "ragpicker_search"),
             Identifier.of("sparkwitch", "use_fiend_dash"),
+            Identifier.of("sparkwitch", "use_athlete_dash"),
+            // Dominator mark/release (UseDominatorSkillC2SPacket). / 支配者标记/释放（UseDominatorSkillC2SPacket）。
+            Identifier.of("sparkwitch", "use_dominator_skill"),
+            // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
+            Identifier.of("sparkwitch", "request_natsume_menu"),
+            Identifier.of("sparkwitch", "confirm_natsume_target"),
             // The Knight's own pick; a non-duelist is never locked, so it always passes for them.
             // 骑士自己的选择包；非决斗者从不被锁，因此对他们始终放行。
             Identifier.of("sparkwitch", "knight_duel_target"),
@@ -77,7 +86,8 @@ public final class KnightDuelSkillLock {
      * revolver is already sealed because Wathe's receiver checks the held gun's cooldown), {@code wathe:knifestab} and
      * {@code sparkwitch:cross_sword_stab} (the duel's own weapons). Classified as not weapons and left out:
      * {@code sparkwitch:double_barrel_aim} (aim claims for a shotgun shot that is an item use the seal blocks),
-     * {@code sparkwitch:throw_kidnapper_body} (moves a corpse, hurts no one), {@code sparkwitch:usec_attachment} and
+     * {@code sparkwitch:throw_kidnapper_body} (moves a corpse, hurts no one), {@code sparkwitch:accountant_withdraw}
+     * (the passbook's left-click; moves coins, hurts no one), {@code sparkwitch:usec_attachment} and
      * {@code usec_scope} (loading and presentation), {@code sparkstrength:taotie_head_fire} (a skill-key-2 volley that
      * dazes and never kills), {@code sparkstrength:drone_pilot_start}, {@code drone_pilot_move} and
      * {@code drone_pilot_exit} (flying a drone; exit must always pass) and {@code sparkstrength:m67_cancel} (cancels a
@@ -86,7 +96,8 @@ public final class KnightDuelSkillLock {
      * 永不列入：{@code wathe:gunshoot}（德林加必须能开火；左轮已被封印，因为 Wathe 的接收器会检查手中枪械的冷却）、
      * {@code wathe:knifestab} 与 {@code sparkwitch:cross_sword_stab}（决斗自身的武器）。判定为非武器而不列入：
      * {@code sparkwitch:double_barrel_aim}（猎枪射击的瞄准声明，射击本身是被封印拦截的物品使用）、
-     * {@code sparkwitch:throw_kidnapper_body}（只移动尸体，不伤人）、{@code sparkwitch:usec_attachment} 与
+     * {@code sparkwitch:throw_kidnapper_body}（只移动尸体，不伤人）、{@code sparkwitch:accountant_withdraw}（存折左键，
+     * 只移动金币，不伤人）、{@code sparkwitch:usec_attachment} 与
      * {@code usec_scope}（装填与表现）、{@code sparkstrength:taotie_head_fire}（技能键 2 的齐射，只造成眩晕、从不致死）、
      * {@code sparkstrength:drone_pilot_start}、{@code drone_pilot_move} 与 {@code drone_pilot_exit}（驾驶无人机；退出必须
      * 始终放行）以及 {@code sparkstrength:m67_cancel}（取消投掷）。
@@ -103,6 +114,9 @@ public final class KnightDuelSkillLock {
             Identifier.of("sparkwitch", "fire_potion_launcher"),
             Identifier.of("sparkwitch", "fire_usec_rifle"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),
+            // BEAR M32A1 (cooldown-gated handler like the launcher's; it fires smoke, sealed like every C2S launcher).
+            // BEAR M32A1（与炮筒一样处理器受冷却限制；虽只发射烟雾，仍与所有 C2S 发射器一样被封印）。
+            Identifier.of("sparkwitch", "fire_m32a1"),
             // Vendetta knife (the Vendetta is an active Wraith, who cannot duel; listed for completeness) and the
             // Fisher's swordfish stab. / 仇杀刀（仇杀者是活跃冤魂，无法决斗；为完整起见列入）与钓鱼佬的剑鱼刺击。
             Identifier.of("sparkwitch", "vendetta_knife_stab"),

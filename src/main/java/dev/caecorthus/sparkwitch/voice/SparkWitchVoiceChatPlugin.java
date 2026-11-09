@@ -12,6 +12,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
+import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
@@ -64,6 +65,9 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         // Physical client only: Holy Flash muffles incoming voice; a no-op on dedicated servers.
         // 仅物理客户端：圣光弹压低传入语音；专用服务器上不做任何事。
         HolyFlashVoiceClientBridge.register(registration);
+        // Physical client only, after Holy Flash so both compose: BEAR hearing scales incoming voice (H7).
+        // 仅物理客户端，排在圣光弹之后以便二者相乘：BEAR 听力缩放传入语音（H7）。
+        BearHearingVoiceClientBridge.register(registration);
         VoicechatPlugin.super.registerEvents(registration);
     }
 
@@ -174,6 +178,12 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         if (FiendFeignService.isFeigning(speaker)) {
             // A feigning Fiend plays dead: muted but still hears, and never joins the dead players' group.
             // 假死的魔人在装死：被静音但仍能听见，也从不加入死者语音组。
+            event.cancel();
+            return;
+        }
+        if (SchrodingersCatService.isSpectre(speaker)) {
+            // A Schrödinger's Cat in its 3 s spectre is a living spectator: muted but still hears, like a feigning
+            // Fiend. / 处于 3 秒幽魂阶段的薛定谔之猫是活着的旁观者：被静音但仍能听见，与假死的魔人相同。
             event.cancel();
             return;
         }

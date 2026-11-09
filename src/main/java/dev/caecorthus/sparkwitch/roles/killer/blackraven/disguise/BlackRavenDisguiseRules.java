@@ -78,6 +78,14 @@ public final class BlackRavenDisguiseRules {
             sparkwitch("vendetta"),
             sparkwitch("pig_god"),
             sparkwitch("blind"),
+            // Owner 2026-11-03: the dash and unlimited stamina read the real role, so no disguise.
+            // 所有者 2026-11-03：冲刺与无限体力读取真实职业，因此不可伪装。
+            sparkwitch("athlete"),
+            // BEAR (2026-11-05), never claimable like USEC: its stamina, coins and kit read the real role. A civilian, so
+            // the denylist rather than the police ids (whose reason line says "police role").
+            // BEAR（2026-11-05）与 USEC 一样不可伪装：其体力、金币与装备读取真实职业。它是平民，因此放入黑名单而不是警察
+            // id（后者的提示写着“警察职业”）。
+            sparkwitch("bear"),
             noelles("demon_hunter"),
             noelles("undercover"),
             wathe("civilian"),

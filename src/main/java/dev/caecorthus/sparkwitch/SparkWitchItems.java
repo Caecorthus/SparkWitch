@@ -8,6 +8,10 @@ import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
+import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyItem;
+import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
+import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookItem;
+import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.item.ComTacItem;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.item.WhiteCaneItem;
@@ -23,6 +27,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FishingRodItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.KeyFishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.CrossSwordItem;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashItem;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashRules;
@@ -115,6 +120,7 @@ public final class SparkWitchItems {
     public static final Identifier CLOWNFISH_ID = FisherRules.CLOWNFISH_ID;
     public static final Identifier GOLDFISH_ID = FisherRules.GOLDFISH_ID;
     public static final Identifier KEY_FISH_ID = FisherRules.KEY_FISH_ID;
+    public static final Identifier SPARE_KEY_ID = SpareKeyRules.ITEM_ID;
     public static final Identifier SWORDFISH_ID = FisherRules.SWORDFISH_ID;
     public static final Identifier GLIMMERFISH_ID = FisherRules.GLIMMERFISH_ID;
     public static final Identifier WHITE_CANE_ID = BlindRules.WHITE_CANE_ID;
@@ -130,6 +136,8 @@ public final class SparkWitchItems {
     public static final Identifier USEC_AP_ROUND_ID = UsecRules.AP_ITEM_ID;
     public static final Identifier USEC_SUPPRESSOR_ID = UsecRules.SUPPRESSOR_ITEM_ID;
     public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
+    public static final Identifier BIG_DOG_PORTRAIT_ID = NoaRules.DOG_PORTRAIT_ITEM_ID;
+    public static final Identifier ACCOUNTANT_PASSBOOK_ID = AccountantRules.PASSBOOK_ID;
     public static final Identifier SAVIOR_PISTOL_ID = SaviorRules.PISTOL_ID;
     public static final Identifier SAVIOR_LIGHTSABER_ID = SaviorRules.LIGHTSABER_ID;
     private static Item ceremonialSword;
@@ -170,6 +178,7 @@ public final class SparkWitchItems {
     private static Item clownfish;
     private static Item goldfish;
     private static Item keyFish;
+    private static Item spareKey;
     private static Item swordfish;
     private static Item glimmerfish;
     private static Item whiteCane;
@@ -189,6 +198,8 @@ public final class SparkWitchItems {
     private static Item usecApRound;
     private static Item usecSuppressor;
     private static Item witherGohei;
+    private static Item bigDogPortrait;
+    private static Item accountantPassbook;
     private static Item saviorPistol;
     private static Item saviorLightsaber;
 
@@ -386,6 +397,14 @@ public final class SparkWitchItems {
                 KEY_FISH_ID,
                 new KeyFishItem(KeyFishItem.createSettings())
         );
+        // Spare Key: the NoellesRoles Attendant's round-start key, usable by any holder; 7 points, train door 3, key-locked
+        // small door 1, 5 s cooldown after each opening.
+        // 备用钥匙：NoellesRoles 乘务员的开局钥匙，任何持有者都能使用；共 7 点，列车门 3 点、上锁小门 1 点，每次开门后冷却 5 秒。
+        spareKey = Registry.register(
+                Registries.ITEM,
+                SPARE_KEY_ID,
+                new SpareKeyItem(SpareKeyItem.createSettings())
+        );
         swordfish = Registry.register(
                 Registries.ITEM,
                 SWORDFISH_ID,
@@ -490,6 +509,23 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 CROSS_SWORD_ID,
                 new CrossSwordItem(new Item.Settings().maxCount(1))
+        );
+        // Noa's Big Dog Portrait: a plain carried token with no use action. NoaKillWatch finds it by registry id
+        // (NoaRules.DOG_PORTRAIT_ITEM_ID); appended last.
+        // 诺亚的大狗画像：无使用动作的普通携带物品。NoaKillWatch 按注册 ID（NoaRules.DOG_PORTRAIT_ITEM_ID）识别；追加在最后。
+        bigDogPortrait = Registry.register(
+                Registries.ITEM,
+                BIG_DOG_PORTRAIT_ID,
+                new Item(new Item.Settings().maxCount(1))
+        );
+        // Accountant passbook (PR #195): stored coins live in the stack's custom data, so maxCount(1) is mandatory; a
+        // stack would share one stored value and splitting it would duplicate coins. Appended last.
+        // 会计的存折（PR #195）：存款保存在物品的自定义数据中，因此必须 maxCount(1)；堆叠会共享同一存款值，拆分即复制金币。
+        // 追加在最后。
+        accountantPassbook = Registry.register(
+                Registries.ITEM,
+                ACCOUNTANT_PASSBOOK_ID,
+                new AccountantPassbookItem(new Item.Settings().maxCount(1))
         );
         // Savior (police): a self-contained revolver copy and a bat-stat lightsaber.
         // 救世主（警类）：自包含的左轮复制品与球棒属性的光剑。
@@ -814,6 +850,13 @@ public final class SparkWitchItems {
         return keyFish;
     }
 
+    public static Item spareKey() {
+        if (spareKey == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return spareKey;
+    }
+
     public static Item swordfish() {
         if (swordfish == null) {
             throw new IllegalStateException("SparkWitch items are not registered yet");
@@ -961,5 +1004,19 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return witherGohei;
+    }
+
+    public static Item bigDogPortrait() {
+        if (bigDogPortrait == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return bigDogPortrait;
+    }
+
+    public static Item accountantPassbook() {
+        if (accountantPassbook == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return accountantPassbook;
     }
 }

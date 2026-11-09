@@ -1,10 +1,11 @@
 package dev.caecorthus.sparkwitch.roles.civilian.usec;
 
+import dev.caecorthus.sparkwitch.roles.civilian.bear.BearRules;
 import dev.doctor4t.wathe.api.Role;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Pure USEC stamina-regeneration math (twice the police regen, stacking with traits). The cap needs no code: the role's
+ * Pure USEC (and BEAR, {@link #boostsRole}) stamina-regeneration math (twice the police regen, stacking with traits). The cap needs no code: the role's
  * {@code maxSprintTime} is {@link UsecRules#MAX_SPRINT_TICKS} (twice the Vigilante's), which Wathe writes as the
  * {@code wathe:max_sprint_time} base every tick, so SparkTraits Excellent Physique's +1.0 ADD_MULTIPLIED_TOTAL doubles it
  * again. The regen boost doubles the whole per-tick gain measured from before Wathe's tick to after SparkTraits'
@@ -30,11 +31,21 @@ public final class UsecStaminaRules {
     }
 
     /**
-     * Same gate as Wathe's own regen (running round, not spectator/creative) plus the exact USEC role.
-     * 与 Wathe 自身恢复相同的门槛（对局进行中、非旁观/创造），外加身份恰为 USEC。
+     * Same gate as Wathe's own regen (running round, not spectator/creative) plus a boosted role ({@link #boostsRole}).
+     * 与 Wathe 自身恢复相同的门槛（对局进行中、非旁观/创造），外加受加成的职业（{@link #boostsRole}）。
      */
     public static boolean appliesTo(boolean running, boolean aliveAndSurvival, @Nullable Role role) {
-        return running && aliveAndSurvival && UsecRules.isUsec(role);
+        return running && aliveAndSurvival && boostsRole(role);
+    }
+
+    /**
+     * Roles with the doubled regen: USEC and BEAR (owner 2026-11-05: BEAR's stamina cap and regen equal USEC's). One
+     * predicate for the single regen mixin, so no second mixin ever doubles the boost again.
+     * 享有双倍恢复的职业：USEC 与 BEAR（所有者 2026-11-05：BEAR 的体力上限与恢复与 USEC 相同）。唯一的恢复 mixin 只用这一个
+     * 判定，因此绝不会有第二个 mixin 再次翻倍。
+     */
+    public static boolean boostsRole(@Nullable Role role) {
+        return UsecRules.isUsec(role) || BearRules.isBear(role);
     }
 
     /**

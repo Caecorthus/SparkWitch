@@ -3,8 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.usec;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.net.UsecScopeC2SPacket;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
-import dev.doctor4t.wathe.game.GameFunctions;
+import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -14,6 +13,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Hand;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,16 +21,22 @@ import java.util.UUID;
 
 /**
  * Server authority for {@code UsecPlayerComponent.scoped}, the all-player flag behind the scope glint (S1). The
- * {@code sparkwitch:usec_scope} receiver stores {@code scoped = true} only for a qualifying shooter: a playing, alive,
- * non-spectating, non-Wraith player whose exact role is USEC, holding the rifle in the main hand and using it (the
- * held use that {@code UsecRifleItem.use} starts); anything else stores false. Every server tick the scoped players
- * are re-checked and cleared once they stop qualifying (released use, swapped item, death, role or round change), so a
- * lost "false" packet can never leave a stale glint. The payload is harmless presentation and is deliberately on no
+ * {@code sparkwitch:usec_scope} receiver stores {@code scoped = true} only for a qualifying shooter: any holder who may
+ * use the rifle (owner, 2026-11-05: the role is never read; {@code OffMatchUse} not REFUSED, so a dead participant of an
+ * ACTIVE round never qualifies while an off-match holder does), alive, non-spectating, non-Wraith, holding the rifle in
+ * the main hand and using it (the held use that {@code UsecRifleItem.use} starts); anything else stores false. The glint
+ * and the scope-in sound follow the flag for every holder; only the instinct cloak, a USEC passive, also checks the
+ * target's role (client {@code UsecInstinctCloak}). Every server tick the scoped players are re-checked and cleared
+ * once they stop qualifying (released use, swapped item, death, round change), so a lost "false" packet can never
+ * leave a stale glint. The payload is harmless presentation and is deliberately on no
  * deny-list. Fabric runs play receivers on the server thread, so no hand-off is needed.
  * {@code UsecPlayerComponent.scoped}（镜头反光 S1 背后的全员同步标记）的服务端权威。{@code sparkwitch:usec_scope} 接收器
- * 只为符合条件的射手写入 {@code scoped = true}：在局、存活、非旁观、非冤魂、真实职业为 USEC、主手持狙击步枪并正在使用
- * （即 {@code UsecRifleItem.use} 开始的按住使用）；其他情况一律写入 false。每个服务端刻都会复查已开镜的玩家，一旦不再
- * 符合条件（松开使用、换物品、死亡、职业或对局变化）即清除，因此丢失的 "false" 数据包永远不会留下过期反光。该数据包是
+ * 只为符合条件的射手写入 {@code scoped = true}：任何可以使用步枪的持有者（所有者 2026-11-05：从不读取职业；
+ * {@code OffMatchUse} 不为 REFUSED，因此 ACTIVE 对局中已死亡的参与者永不符合，对局外的持有者则符合）、存活、非旁观、非冤魂、
+ * 主手持狙击步枪并正在使用（即 {@code UsecRifleItem.use} 开始的按住使用）；其他情况一律写入 false。镜头反光与开镜声对每名
+ * 持有者都跟随该标记；只有作为 USEC 被动的本能隐蔽还会检查目标的职业（客户端 {@code UsecInstinctCloak}）。每个服务端刻都会
+ * 复查已开镜的玩家，一旦不再符合条件（松开使用、换物品、死亡、对局变化）即清除，因此丢失的 "false" 数据包永远不会留下过期
+ * 反光。该数据包是
  * 无害的表现信息，刻意不进入任何拒绝列表。Fabric 在服务端线程执行游戏数据包接收器，因此无需切换线程。
  * <p>
  * Scope-in sound (owner, 2026-10-07): when the flag turns on, a subtle {@code item.usec_rifle.scope} plays through the
@@ -102,7 +108,7 @@ public final class UsecScopeService {
         }
     }
 
-    /** The live server facts behind {@link #qualifies(boolean, boolean, boolean, boolean, boolean, boolean)}. */
+    /** The live server facts behind {@link #qualifies(OffMatchUse.Mode, boolean, boolean, boolean, boolean, boolean)}. */
     public static boolean qualifies(ServerPlayerEntity player) {
         if (player == null || player.isDisconnected()) {
             return false;
@@ -112,20 +118,24 @@ public final class UsecScopeService {
         boolean usingRifle = rifleInMainHand && player.isUsingItem() && player.getActiveHand() == Hand.MAIN_HAND
                 && player.getActiveItem().getItem() instanceof UsecRifleItem;
         return qualifies(
-                GameFunctions.isPlayerPlayingAndAlive(player),
+                OffMatchUse.mode(player),
+                player.isAlive(),
                 player.isSpectator(),
                 WraithStateService.isActive(player),
-                UsecRules.isUsec(GameWorldComponent.KEY.get(player.getWorld()).getRole(player)),
                 rifleInMainHand,
                 usingRifle);
     }
 
     /**
-     * Pure rule: who may show a scope glint. / 纯规则：谁可以显示镜头反光。
+     * Pure rule: who may show a scope glint. Any holder; the role is never read (owner, 2026-11-05).
+     * 纯规则：谁可以显示镜头反光。任何持有者；从不读取职业（所有者 2026-11-05）。
+     *
+     * @param mode {@link OffMatchUse#mode(net.minecraft.entity.player.PlayerEntity)}; REFUSED or null never qualifies
      */
-    public static boolean qualifies(boolean playingAndAlive, boolean spectator, boolean wraithActive, boolean usecRole,
-                                    boolean rifleInMainHand, boolean usingRifleInMainHand) {
-        return playingAndAlive && !spectator && !wraithActive && usecRole && rifleInMainHand && usingRifleInMainHand;
+    public static boolean qualifies(@Nullable OffMatchUse.Mode mode, boolean alive, boolean spectator,
+                                    boolean wraithActive, boolean rifleInMainHand, boolean usingRifleInMainHand) {
+        return mode != null && mode != OffMatchUse.Mode.REFUSED && alive && !spectator && !wraithActive
+                && rifleInMainHand && usingRifleInMainHand;
     }
 
     private static UsecPlayerComponent component(ServerPlayerEntity player) {

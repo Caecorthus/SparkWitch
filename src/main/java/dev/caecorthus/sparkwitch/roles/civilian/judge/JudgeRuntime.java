@@ -97,6 +97,22 @@ public final class JudgeRuntime {
         }
     }
 
+    /**
+     * Mid-round entry for a player who becomes a Judge after the round start (Schrödinger's Cat transformation): the
+     * same per-player revolver and economy, gated by the same once-per-round {@code initializeJudge} the round start
+     * hands out, called once after {@code RoleAssigned}.
+     * 对局开始后才成为法官的玩家的中途入口（薛定谔之猫转化）：
+     * 与开局相同的个人左轮与经济，受同一个每局一次的 {@code initializeJudge} 约束，在 {@code RoleAssigned} 之后调用一次。
+     */
+    public static void grantLateLoadout(ServerPlayerEntity player) {
+        JudgeWorldComponent component = JudgeWorldComponent.KEY.get(player.getServerWorld());
+        if (JudgeRules.isJudge(GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player))
+                && component.initializeJudge(player.getUuid())) {
+            player.giveItemStack(new ItemStack(WatheItems.REVOLVER));
+            JudgeEconomyService.initialize(player);
+        }
+    }
+
     static void tick(ServerWorld world, JudgeWorldComponent component) {
         if (GameWorldComponent.KEY.get(world).getGameStatus() != GameWorldComponent.GameStatus.ACTIVE) {
             if (component.state().active()) {

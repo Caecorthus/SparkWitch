@@ -11,6 +11,7 @@ import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastGeome
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGateEntity;
 import dev.caecorthus.sparkwitch.util.hitscan.HitscanLagRules;
 import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
+import dev.caecorthus.sparkwitch.util.hitscan.RangedOriginScope;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -268,7 +269,8 @@ public class MiniWitherSkullEntity extends ThrownEntity {
         // judges a Conscience owner's innocent victim (小脑) from this killer. / 非强制击杀，凶手为在线主人：金币、记录与
         // 所有防护照常生效，SparkTraits 也据此判定善良主人误杀好人（小脑）。
         if (owner == null || MiniWitherTargeting.mayAffect(owner, victim, game)) {
-            GameFunctions.killPlayer(victim, true, owner, SparkWitchDeathReasons.CRIMSON_WITHER_SKULL);
+            RangedOriginScope.run(getPos().subtract(getVelocity()),
+                    () -> GameFunctions.killPlayer(victim, true, owner, SparkWitchDeathReasons.CRIMSON_WITHER_SKULL));
         }
         discard();
     }

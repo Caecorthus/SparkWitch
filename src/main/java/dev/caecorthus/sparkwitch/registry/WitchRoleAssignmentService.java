@@ -43,11 +43,13 @@ public final class WitchRoleAssignmentService {
             assigned += assignRole(gameComponent, availablePlayers, grandWitch, grandRemaining);
         }
 
-        // D1: a round with a Grand Witch (dealt here, drawn as a neutral or forced) deals the Bewitched quota on the
-        // remaining civilian seats; forced Bewitched count toward it. The Bewitched never appears naturally, so only
-        // the enabled switch is checked (its appearance condition is always false).
-        // D1：有大魔女的对局（此处发放、中立抽取或强制指定）在剩余平民席位上发放魔化使名额；被强制指定的魔化使计入名额。
-        // 魔化使从不自然出现，因此只检查启用开关（其出现条件恒为 false）。
+        // D1: a round with a Grand Witch (dealt here or forced) deals the Bewitched quota on the remaining civilian
+        // seats; forced Bewitched count toward it. The Bewitched never appears naturally, so only the enabled switch is
+        // checked (its appearance condition is always false). Witch roles are the native Wathe WITCH faction, drawn by
+        // no Wathe pass and taking no neutral slot (owner D1, 2026-11-04), so this pass is the only natural source.
+        // D1：有大魔女的对局（此处发放或强制指定）在剩余平民席位上发放魔化使名额；被强制指定的魔化使计入名额。
+        // 魔化使从不自然出现，因此只检查启用开关（其出现条件恒为 false）。魔女职业属于原生 Wathe WITCH 阵营，
+        // 不参与任何 Wathe 抽取、不占中立名额（所有者 D1，2026-11-04），因此本分配是唯一的自然来源。
         Role bewitched = SparkWitchRoles.bewitched();
         if (countRole(gameComponent, players, grandWitch) > 0 && gameComponent.isRoleEnabled(bewitched)) {
             int bewitchedRemaining = counts.bewitched() - countRole(gameComponent, players, bewitched);

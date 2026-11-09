@@ -12,6 +12,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
+import dev.caecorthus.sparkwitch.util.hitscan.RangedOriginScope;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -131,12 +132,12 @@ public final class NinjaShurikenEntity extends PersistentProjectileEntity implem
                     1.0F,
                     1.0F
             );
-            GameFunctions.killPlayer(
+            RangedOriginScope.run(getPos().subtract(getVelocity()), () -> GameFunctions.killPlayer(
                     victim,
                     true,
                     thrower,
                     SparkWitchDeathReasons.NINJA_SHURIKEN_KILL
-            );
+            ));
             discard();
         }
     }

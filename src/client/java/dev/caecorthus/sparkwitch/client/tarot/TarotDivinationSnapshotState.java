@@ -13,9 +13,9 @@ public final class TarotDivinationSnapshotState {
     private Snapshot snapshot;
     private Snapshot previous;
 
-    public void overwrite(int civilianCount, int killerCount, int neutralCount, int witchCount) {
+    public void overwrite(int civilianCount, int killerCount, int neutralCount, int witchCount, int jiahaoCount) {
         previous = snapshot;
-        snapshot = new Snapshot(civilianCount, killerCount, neutralCount, witchCount);
+        snapshot = new Snapshot(civilianCount, killerCount, neutralCount, witchCount, jiahaoCount);
     }
 
     public Optional<Snapshot> snapshot() {
@@ -39,6 +39,6 @@ public final class TarotDivinationSnapshotState {
         previous = null;
     }
 
-    public record Snapshot(int civilianCount, int killerCount, int neutralCount, int witchCount) {
+    public record Snapshot(int civilianCount, int killerCount, int neutralCount, int witchCount, int jiahaoCount) {
     }
 }

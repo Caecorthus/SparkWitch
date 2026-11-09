@@ -47,6 +47,13 @@ public final class WraithRules {
                 && (attributedFall || !GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason));
     }
 
+    /**
+     * Wraith alignment of an effective faction. Any other faction (Wathe neutral, Team Jiahao {@code sparkwitch:jiahao}
+     * for the Insider and the Corrupt Cop, Murderous Witch) throws, and {@code WraithConversion} treats that as "never
+     * becomes a Wraith", as for Wathe neutrals before Team Jiahao became a native faction (2026-11-04).
+     * 有效阵营对应的冤魂阵营。其他阵营（Wathe 中立、内应与黑警所属的嘉豪阵营 {@code sparkwitch:jiahao}、杀意魔女）会抛出
+     * 异常，{@code WraithConversion} 将其视为“永不成为冤魂”，与嘉豪阵营成为原生阵营（2026-11-04）之前的 Wathe 中立相同。
+     */
     public static WraithState.Alignment alignmentFor(Identifier effectiveFaction) {
         if (FactionIds.KILLER.equals(effectiveFaction)) {
             return WraithState.Alignment.KILLER;

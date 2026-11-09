@@ -2,13 +2,17 @@ package dev.caecorthus.sparkwitch.client.armor;
 
 import com.mojang.datafixers.util.Pair;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
+import dev.caecorthus.sparkwitch.headset.HeadsetSlot;
+import dev.caecorthus.sparkwitch.headset.HeadsetSlots;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.doctor4t.wathe.client.gui.screen.ingame.LimitedInventoryScreen;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.screen.ScreenHandler;
@@ -21,6 +25,8 @@ import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.CELL_ROW_V;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.FIRST_ARMOR_SLOT_ID;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.FRAME;
+import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.HEADSET_SLOT_ID;
+import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.HEADSET_STRIP_LEFT_WIDTH;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.HOTBAR_END;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.HOTBAR_START;
 import static dev.caecorthus.sparkwitch.client.armor.LimitedInventoryArmorLayout.SECOND_ROW_END;
@@ -130,8 +136,16 @@ public final class LimitedInventoryArmorSlots {
         ItemStack cursor = handler.getCursorStack();
         int preferred = preferredArmorSlotId(player, cursor);
         boolean preferredEmpty = preferred >= 0 && !handler.getSlot(preferred).hasStack();
-        return LimitedInventoryArmorLayout.cursorReturnArmorSlotId(
+        int armor = LimitedInventoryArmorLayout.cursorReturnArmorSlotId(
                 !cursor.isEmpty(), preferred, preferredEmpty, shownSlotFree(handler));
+        if (armor >= 0) {
+            return armor;
+        }
+        // BEAR WP4: an accepted cursor item (the headset cell is shown then) goes back into the empty headset slot.
+        // BEAR WP4：光标上的可接受物品（此时耳机格必然显示）放回空的耳机栏位。
+        Slot headset = headsetSlot(handler);
+        return headset == null ? -1 : LimitedInventoryArmorLayout.cursorReturnHeadsetSlotId(
+                HeadsetSlots.accepts(cursor), !headset.hasStack(), shownSlotFree(handler));
     }
 
     private static int preferredArmorSlotId(PlayerEntity player, ItemStack stack) {
@@ -151,6 +165,77 @@ public final class LimitedInventoryArmorSlots {
     public static boolean mayPickUp(ScreenHandler handler, Slot slot) {
         return LimitedInventoryArmorLayout.mayPickUpArmor(slot.id, slot.hasStack(), handler.getCursorStack().isEmpty(),
                 shownSlotFree(handler));
+    }
+
+    // ---- Headset cell (BEAR WP4, E1): the real handler slot 46 under the armor block. / 耳机格：护甲块下方的真实 46 号栏位。
+
+    /** The handler's headset slot, or null (no SparkWitch slot). / 界面中的耳机栏位，没有则为 null。 */
+    public static @Nullable Slot headsetSlot(ScreenHandler handler) {
+        return handler.slots.size() > HEADSET_SLOT_ID && handler.slots.get(HEADSET_SLOT_ID) instanceof HeadsetSlot slot
+                ? slot : null;
+    }
+
+    /**
+     * Whether the headset cell is shown this frame ({@link LimitedInventoryArmorLayout#headsetShown}): the slot holds an
+     * item, the cursor or inventory 0..40 holds an item it accepts, or one of Wathe's shop entries on this screen sells
+     * one. Cheap enough for every frame (41 stacks and the screen's children).
+     * 本帧是否显示耳机格（{@link LimitedInventoryArmorLayout#headsetShown}）：栏位中有物品、光标或背包 0..40 中有其可接受的物品、或本界面
+     * 的 Wathe 商店条目出售此类物品。开销足够低，可每帧计算（41 个物品堆与界面子元素）。
+     */
+    public static boolean headsetShown(Screen screen, ScreenHandler handler, PlayerEntity player) {
+        Slot headset = headsetSlot(handler);
+        if (headset == null || !headset.isEnabled()) {
+            return false;
+        }
+        boolean owns = false;
+        PlayerInventory inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.size() && !owns; slot++) {
+            owns = HeadsetSlots.accepts(inventory.getStack(slot));
+        }
+        boolean shopSells = false;
+        for (Element child : screen.children()) {
+            if (child instanceof LimitedInventoryScreen.StoreItemWidget store && HeadsetSlots.accepts(store.entry.stack())) {
+                shopSells = true;
+                break;
+            }
+        }
+        return LimitedInventoryArmorLayout.headsetShown(headset.hasStack(), HeadsetSlots.accepts(handler.getCursorStack()),
+                owns, shopSells);
+    }
+
+    /**
+     * Draws the headset cell frame from Wathe's own strip texture: the strip's left part through its first cell and
+     * its right cap. / 用 Wathe 自己的热栏贴图绘制耳机格边框：热栏条左段到第一格，加右端帽。
+     */
+    public static void drawHeadsetFrame(DrawContext context, int panelX, int panelY) {
+        Identifier texture = LimitedInventoryScreen.BACKGROUND_TEXTURE;
+        context.drawTexture(texture, panelX, panelY, 0, 0, HEADSET_STRIP_LEFT_WIDTH, STRIP_HEIGHT);
+        context.drawTexture(texture, panelX + HEADSET_STRIP_LEFT_WIDTH, panelY, STRIP_RIGHT_CAP_U, 0, FRAME,
+                STRIP_HEIGHT);
+    }
+
+    /**
+     * Shift-click plan for the headset cell ({@link LimitedInventoryArmorLayout#planHeadsetShiftClick}), or null.
+     * 耳机格的 Shift 点击规划，没有则为 null。
+     */
+    public static LimitedInventoryArmorLayout.@Nullable Swap planHeadsetShiftClick(ScreenHandler handler, Slot slot) {
+        Slot headset = headsetSlot(handler);
+        if (headset == null) {
+            return null;
+        }
+        ItemStack stack = slot.getStack();
+        return LimitedInventoryArmorLayout.planHeadsetShiftClick(slot.id, !stack.isEmpty(), HeadsetSlots.accepts(stack),
+                !headset.hasStack(), firstEmptyHotbarButton(handler));
+    }
+
+    /**
+     * The worn headset item leaves on an empty cursor only while a shown slot is free (same reason as
+     * {@link #mayPickUp}); every other press is Wathe's. / 已戴的耳机物品仅在有空的显示栏位时才能用空光标取下（理由同
+     * {@link #mayPickUp}）；其他按下交给 Wathe。
+     */
+    public static boolean mayPickUpHeadset(ScreenHandler handler, Slot slot) {
+        return LimitedInventoryArmorLayout.mayPickUpHeadset(slot.id, slot.hasStack(),
+                handler.getCursorStack().isEmpty(), shownSlotFree(handler));
     }
 
     /**

@@ -125,6 +125,25 @@ public final class WitchFactionRules {
     }
 
     /**
+     * Whether the Witch instinct policy must answer an explicit skip for a player target when it gives the viewer no
+     * Witch instinct (an ineligible Curser, or a viewer that is not Wathe-alive). A null answer for a Witch-faction
+     * viewer reaches SparkFactionAPI's client fallback, which outlines every player in its faction colour on the
+     * instinct key and so tells killers and neutrals apart. Only a Wathe-dead spectator keeps the null answer: it
+     * falls through to Wathe's spectator information colours (the same gate SparkFactionAPI applies). Other viewers
+     * are not this policy's to answer.
+     * 魔女本能策略不给观察者魔女本能时（不合格的诅咒者，或 wathe 判定未存活的观察者），是否必须对玩家目标显式跳过。
+     * 对魔女阵营观察者返回 null 会落入 SparkFactionAPI 客户端兜底：按住本能键时以阵营色描边所有玩家，从而分辨杀手与中立。
+     * 只有已死亡的旁观者保留 null，回落到 wathe 旁观信息颜色（与 SparkFactionAPI 的门槛一致）；其他观察者不由此策略作答。
+     */
+    public static boolean shouldSkipUnansweredViewer(
+            boolean witchFactionViewer,
+            boolean viewerAlive,
+            boolean viewerSpectatingOrCreative
+    ) {
+        return witchFactionViewer && (viewerAlive || !viewerSpectatingOrCreative);
+    }
+
+    /**
      * Obscure blocks only living non-Witch instinct users; dead spectators keep Wathe information vision.
      * 障眼只遮蔽存活的非魔女本能使用者；已死亡的旁观者保留 wathe 信息透视。
      */

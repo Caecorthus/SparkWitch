@@ -30,13 +30,16 @@ public final class ScopeRuntime {
     /**
      * The camera player's FOV multiplier as {@code GameRenderer#updateFovMultiplier} reads it: zoomed only while scoped
      * in ZOOM_BLUR (the view gate requires the camera to be the local player); PICTURE_IN_PICTURE keeps the main view
-     * at 1x and zooms the lens instead.
+     * at 1x and zooms the lens instead. A lensless profile ({@link ScopeProfile#drawsLens} false) has no lens to zoom,
+     * so its main view zooms in both modes.
      * {@code GameRenderer#updateFovMultiplier} 读取到的相机玩家视场倍率：仅在全画面放大模式开镜时放大（视角条件要求相机即本地
-     * 玩家）；画中画模式下主画面保持 1 倍，改为放大镜内画面。
+     * 玩家）；画中画模式下主画面保持 1 倍，改为放大镜内画面。无镜片配置（{@link ScopeProfile#drawsLens} 为 false）没有镜片可放大，
+     * 因此两种模式下都放大主画面。
      */
     public static float fovMultiplier(float original) {
         ScopeProfile profile = ScopeClient.activeProfile();
-        if (profile == null || ScopeClient.effectiveMode() == ScopeMode.PICTURE_IN_PICTURE) {
+        if (profile == null
+                || profile.drawsLens() && ScopeClient.effectiveMode() == ScopeMode.PICTURE_IN_PICTURE) {
             return original;
         }
         return original * ScopeRules.zoomFactor(profile.fovMultiplier());
@@ -70,8 +73,14 @@ public final class ScopeRuntime {
         return profile == null ? 1.0F : ScopeRules.peripheryBlur(profile.peripheryBlur());
     }
 
+    /**
+     * {@code ScopeHeldItemRendererMixin}: hide the first-person hands while a profile is active that asks for it
+     * ({@link ScopeProfile#hidesHeldItem}, default true). / 当前配置要求时（{@link ScopeProfile#hidesHeldItem}，默认 true）隐藏
+     * 第一人称手。
+     */
     public static boolean hidesHand() {
-        return ScopeClient.isScoped();
+        ScopeProfile profile = ScopeClient.activeProfile();
+        return profile != null && profile.hidesHeldItem();
     }
 
     /** Smoothed scope-shadow offset (lens radii, GUI axes). / 平滑后的镜内阴影偏移（镜片半径，GUI 坐标轴）。 */
@@ -97,7 +106,9 @@ public final class ScopeRuntime {
         boolean worldRendered = ScopePictureInPicture.consumeWorldRendered();
         MinecraftClient client = MinecraftClient.getInstance();
         ScopeProfile profile = ScopeClient.activeProfile();
-        if (profile == null) {
+        // A lensless (reflex) profile has no lens to render: both pipelines idle as if unscoped.
+        // 无镜片（反射式）配置没有镜片可渲染：两条管线都像未开镜一样空闲。
+        if (profile == null || !profile.drawsLens()) {
             if (scopedSinceNanos != NOT_SCOPED) {
                 scopedSinceNanos = NOT_SCOPED;
                 SHADOW.reset();

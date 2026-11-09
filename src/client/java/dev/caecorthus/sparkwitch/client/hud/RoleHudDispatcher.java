@@ -60,6 +60,7 @@ public final class RoleHudDispatcher {
         renderSaint(hud, context);
         renderVendetta(context);
         renderKidnapperControlled(context);
+        renderNatsume(context);
         renderSaboteur(context);
     }
 
@@ -202,6 +203,22 @@ public final class RoleHudDispatcher {
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (player != null) {
             KidnapperControlledHudRenderer.render(context, player);
+        }
+    }
+
+    /**
+     * 夏目安安's hypnosis readout (PR #194, new layer in the fork's slot, right before the Saboteur): a living, playing
+     * local player on a confirmed server; the renderer checks the role.
+     * 夏目安安的催眠提示（PR #194，新增层，位于 fork 中的位置，紧挨破坏者之前）：已确认服务器上存活且在局的本地玩家；
+     * 职业由渲染器判断。
+     */
+    private static void renderNatsume(DrawContext context) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
+        if (player != null && GameFunctions.isPlayerPlayingAndAlive(player)) {
+            NatsumeHudRenderer.render(context, player);
         }
     }
 
