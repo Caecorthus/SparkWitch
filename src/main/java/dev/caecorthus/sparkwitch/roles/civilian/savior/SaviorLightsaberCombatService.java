@@ -45,12 +45,14 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 /**
- * Server-side lightsaber sounds. The impact sound fires only when the main-hand lightsaber kills a player, at the
- * victim's position. The ignition and swing intents arrive from the client and are broadcast at the holder's position
- * so nearby players hear them with distance attenuation. All are positional server sounds; {@code sounds.json} keeps
- * no subtitle.
- * 光剑服务端音效。命中音只在主手光剑击杀玩家时、于被击杀者位置播放；点火与挥动意图由客户端发来，服务端在持有者位置
- * 广播，附近玩家可按距离衰减听到。全部为服务端位置音效；sounds.json 不设字幕。
+ * Server half of the lightsaber: the kill (a full-charge main-hand strike from {@code AttackEntityCallback}, behind
+ * the role binding and the SparkTraits / Vendetta / SparkFactionAPI melee gates), the innocent-kill punishment and the
+ * 30 s post-kill cooldown, plus its sounds. The impact sound fires only when the main-hand lightsaber kills a player,
+ * at the victim's position; the ignition and swing intents arrive from the client and are broadcast at the holder's
+ * position with distance attenuation. {@code sounds.json} keeps no subtitle.
+ * 光剑的服务端部分：击杀（{@code AttackEntityCallback} 中满蓄力的主手攻击，经过职业绑定与 SparkTraits / 复仇者 /
+ * SparkFactionAPI 近战门控）、误杀惩罚与击杀后 30 秒冷却，以及其音效。命中音只在主手光剑击杀玩家时、于被击杀者位置播放；
+ * 点火与挥动意图由客户端发来，服务端在持有者位置按距离衰减广播。sounds.json 不设字幕。
  */
 public final class SaviorLightsaberCombatService {
     /** Spam guard: an ignition may not be requested more than once per half second on the server. / 防刷：服务端每半秒最多播放一次点火音。 */

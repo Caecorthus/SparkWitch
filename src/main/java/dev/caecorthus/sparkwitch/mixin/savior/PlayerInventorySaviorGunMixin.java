@@ -13,9 +13,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Server only. Gives/offers that insert a foreign gun into the Savior's inventory fail and fall back to their drop path,
- * and the pick-from-inventory swap never pulls the hidden revolver out of the client-only locked rows.
- * 仅服务端。给救世主放入外部枪械的给予/offer 失败并退回丢出；从背包选取的交换永远不会把隐藏左轮拉出仅客户端锁定的行。
+ * Server only. Inserting a foreign gun into the Savior's inventory fails; vanilla {@code offer} ignores a refused
+ * insert (the split stack would vanish), so an offered foreign gun is dropped at the Savior's feet instead. The
+ * pick-from-inventory swap never pulls the hidden revolver out of the client-only locked rows.
+ * 仅服务端。向救世主物品栏插入外部枪械会失败；原版 {@code offer} 会忽略被拒绝的插入（拆出的物品堆会凭空消失），因此 offer
+ * 的外部枪械改为掉在救世主脚下。从背包选取的交换永远不会把隐藏左轮拉出仅客户端锁定的行。
  */
 @Mixin(PlayerInventory.class)
 public abstract class PlayerInventorySaviorGunMixin {
@@ -37,6 +39,16 @@ public abstract class PlayerInventorySaviorGunMixin {
         if (this.player instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer
                 && SaviorGunPickupRules.blocks(serverPlayer, stack)) {
             cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "offer(Lnet/minecraft/item/ItemStack;Z)V", at = @At("HEAD"), cancellable = true)
+    private void sparkwitch$dropOfferedSaviorGun(ItemStack stack, boolean notifiesClient, CallbackInfo ci) {
+        if (!stack.isEmpty()
+                && this.player instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer
+                && SaviorGunPickupRules.blocks(serverPlayer, stack)) {
+            serverPlayer.dropItem(stack.copyAndEmpty(), false);
+            ci.cancel();
         }
     }
 

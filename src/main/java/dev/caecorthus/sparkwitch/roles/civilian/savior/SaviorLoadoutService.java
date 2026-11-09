@@ -178,7 +178,12 @@ public final class SaviorLoadoutService {
         }
         putSlot(player, PISTOL_SLOT, new ItemStack(SparkWitchItems.saviorPistol()), false);
         putSlot(player, LIGHTSABER_SLOT, new ItemStack(SparkWitchItems.saviorLightsaber()), false);
-        putSlot(player, HIDDEN_REVOLVER_SLOT, new ItemStack(WatheItems.REVOLVER), true);
+        // A player who already carries a Wathe revolver (an admin turned a Vigilante into a Savior) keeps that one as
+        // the death-drop revolver: a second plant would add a gun to the round.
+        // 已携带 Wathe 左轮的玩家（管理员把义警改成救世主）沿用那一把作为死亡掉落左轮：再放一把会让本局多出一把枪。
+        if (!inventory.contains(stack -> stack.isOf(WatheItems.REVOLVER))) {
+            putSlot(player, HIDDEN_REVOLVER_SLOT, new ItemStack(WatheItems.REVOLVER), true);
+        }
 
         // Creative players get the weapons without the round-start cooldowns. / 创造模式玩家拿到武器但不进入开局冷却。
         if (!player.isCreative()) {

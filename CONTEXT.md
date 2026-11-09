@@ -1313,9 +1313,10 @@ Current build baseline:
     forced-cooldown store `sparkwitch:savior_domain`. `client/savior/SaviorDomainClient` outlines domain members
     without the instinct key at priority 95 (below `skip()`), skipping players an ordinary viewer cannot see.
   - Passives: `SaviorSanityService` pins mood at full; `SaviorBlackoutService` gives night vision instead of the
-    blackout blindness (Veteran parity); `SaviorObservationService` halves the Savior's own remaining weapon cooldown
-    (never a forced remainder, `SaviorCooldowns`) when a player inside its 64-block, 120° view is killed by another
-    player (intercepted deaths and the Savior's own kills excluded).
+    blackout blindness (Veteran parity); when a player inside the Savior's 64-block, 120° view is killed by another
+    player (intercepted deaths and the Savior's own kills excluded), `SaviorObservationService` takes half of each
+    weapon's own effective cooldown length off its own remaining cooldown (never a forced remainder,
+    `SaviorCooldowns`).
   - Payload lists: `use_savior_skill` is on the stun (and so hypnosis / crow body), Fear, Seeker, Rift and Knight G
     lists; `savior_pistol_shoot` on stun, Seeker, Rift, the Knight seal and the Vendetta guard, not Fear; the
     lightsaber swing/ignite sound intents are deliberately on none (`SaviorPayloadClassificationTest`).
@@ -2744,10 +2745,11 @@ Killer's psycho-pistol shot (`sparkstrength:serial_pistol_shoot`, 2026-10-07) is
 shot: it sits on every list that holds `wathe:gunshoot` (stun, Seeker session, Rift occupant), and
 `roles/civilian/vendetta/VendettaTargetingPacketGuard` drops it like `wathe:gunshoot` when Vendetta
 pair isolation refuses the target (target id read through the id's registered codec, no SparkStrength
-class named). The Savior pistol shot (`sparkwitch:savior_pistol_shoot`, PR #200) is a gun shot on the same lists and is
-dropped by that guard too; its target id is read directly from `SaviorPistolShootC2SPayload` (a fixed INTEGER, not a
-VarInt). It is not on Fear's list. Unlike `wathe:gunshoot`, it is also on Grand Witch Fear's list, like the Demon Hunter
-pistol (owner decision 2026-10-07). The Disruptor gates
+class named). Unlike `wathe:gunshoot`, it is also on Grand Witch Fear's list, like the Demon Hunter
+pistol (owner decision 2026-10-07). The Savior pistol shot (`sparkwitch:savior_pistol_shoot`, PR #200) is a gun shot
+on the same lists and is dropped by that guard too; its target id is read directly from `SaviorPistolShootC2SPayload`
+(a fixed INTEGER, not a VarInt). Like `wathe:gunshoot` and unlike the Serial Killer shot, it is not on Fear's list.
+The Disruptor gates
 keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.

@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.savior;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
 import dev.caecorthus.sparkwitch.api.SparkWitchApi;
 import dev.caecorthus.sparkwitch.net.SaviorGunDropS2CPayload;
 import dev.caecorthus.sparkwitch.net.SaviorMuzzleS2CPayload;
@@ -83,18 +84,21 @@ public final class SaviorClient {
      * {@code SparkWitchApi.preferNearerGunWorldTarget} adds the strictly nearer Seeker device that SparkWitch wraps
      * inside {@code RevolverItem#use}; {@code RevolverItem.resolveTargetFromHitResult} turns it into the id a revolver
      * sends (the entity hit, the sleeping player on an aimed bed with the Wraith bed miss, else -1). The id may name a
-     * puppet, crow or device; the server re-validates and resolves it. Not covered, as for the Serial Killer pistols:
+     * puppet, crow, device or Partygoer ({@code SparkStrengthPartygoerCompat.preferNearer}, the strictly nearer one,
+     * as SparkStrength's Serial Killer pistols do); the server re-validates and resolves it. Not covered:
      * SparkStrength's drone pick, which only wraps the call inside {@code RevolverItem#use} and has no public seam.
      * 左轮自身的选靶，沿用附属枪械先例（CONTEXT「Add-on gun world hits」，SparkStrength 连环杀手手枪）：
      * {@code RevolverItem.getGunTarget} 带有左轮射线上的全部客户端钩子（SparkTraits 神射手射程、SparkWitch 激活冤魂穿透、
      * 严格更近的魔术师皮套与化鸦乌鸦）；{@code SparkWitchApi.preferNearerGunWorldTarget} 补上 SparkWitch 包装在
      * {@code RevolverItem#use} 内、严格更近的搜寻者设备；{@code RevolverItem.resolveTargetFromHitResult} 换算成左轮会发送的
-     * id（命中的实体、所瞄床上的睡眠玩家并含冤魂床位未命中，否则 -1）。id 可能指向皮套、乌鸦或设备，由服务端复核并解析。
-     * 与连环杀手手枪相同不覆盖：SparkStrength 无人机选靶，它只包装 {@code RevolverItem#use} 内的调用且没有公开接缝。
+     * id（命中的实体、所瞄床上的睡眠玩家并含冤魂床位未命中，否则 -1）。id 可能指向皮套、乌鸦、设备或派对客
+     * （{@code SparkStrengthPartygoerCompat.preferNearer}，严格更近者，与 SparkStrength 连环杀手手枪相同），由服务端复核并
+     * 解析。不覆盖：SparkStrength 无人机选靶，它只包装 {@code RevolverItem#use} 内的调用且没有公开接缝。
      */
     private static int pickTargetId(PlayerEntity player) {
         HitResult aim = SparkWitchApi.preferNearerGunWorldTarget(player, RevolverItem.getGunTarget(player),
                 SaviorRules.PISTOL_CLIENT_RANGE);
+        aim = SparkStrengthPartygoerCompat.preferNearer(player, aim, SaviorRules.PISTOL_CLIENT_RANGE);
         return RevolverItem.resolveTargetFromHitResult(player.getWorld(), aim);
     }
 

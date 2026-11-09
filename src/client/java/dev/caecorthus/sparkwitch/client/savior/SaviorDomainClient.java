@@ -167,9 +167,16 @@ public final class SaviorDomainClient {
             return null;
         }
         Entity entity = client.world.getEntityById(saviorEntityId);
+        // Mirrors the server's SaviorDomainService#holdsDomain (ACTIVE round, living, not spectating or swallowed), so
+        // the outline never outlives a domain the server already stopped.
+        // 与服务端 SaviorDomainService#holdsDomain 一致（ACTIVE 回合、存活、非旁观、未被吞），描边不会比服务端已结束的领域更久。
+        GameWorldComponent game = GameWorldComponent.KEY.get(client.world);
         if (!(entity instanceof PlayerEntity savior)
+                || game.getGameStatus() != GameWorldComponent.GameStatus.ACTIVE
                 || !GameFunctions.isPlayerPlayingAndAlive(savior)
-                || !SaviorRules.isSavior(GameWorldComponent.KEY.get(savior.getWorld()).getRole(savior))) {
+                || savior.isSpectator()
+                || NoellesTaotieSeekerBridge.isSwallowed(savior)
+                || !SaviorRules.isSavior(game.getRole(savior))) {
             return null;
         }
         return savior;
