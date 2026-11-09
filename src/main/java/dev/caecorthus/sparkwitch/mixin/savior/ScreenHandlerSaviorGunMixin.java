@@ -9,7 +9,13 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Container clicks can move a gun without insertStack; this refuses the same moves for the Savior. / 容器点击绕过 insertStack，这里同样拒绝。 */
+/**
+ * Server authority for container clicks, which move items without insertStack: refuses pulling a foreign gun into the
+ * Savior and any click/swap/throw/quick-move on the Savior's hidden revolver in the client-only locked rows 9–26
+ * ({@link SaviorGunPickupRules#blocksSlotClick}), then resyncs the screen.
+ * 容器点击的服务端裁定（点击绕过 insertStack）：拒绝把外部枪械拿进救世主，也拒绝对仅客户端锁定的 9–26 行中隐藏左轮的
+ * 任何点击/交换/丢出/快速移动（{@link SaviorGunPickupRules#blocksSlotClick}），随后重新同步界面。
+ */
 @Mixin(ScreenHandler.class)
 public abstract class ScreenHandlerSaviorGunMixin {
     @Inject(
@@ -20,7 +26,7 @@ public abstract class ScreenHandlerSaviorGunMixin {
     private void sparkwitch$blockSaviorGunSlotClick(int slotIndex, int button, SlotActionType actionType,
                                                     PlayerEntity player, CallbackInfo ci) {
         ScreenHandler handler = (ScreenHandler) (Object) this;
-        if (SaviorGunPickupRules.blocksSlotClick(handler, player, slotIndex, actionType)) {
+        if (SaviorGunPickupRules.blocksSlotClick(handler, player, slotIndex, button, actionType)) {
             player.currentScreenHandler.sendContentUpdates();
             ci.cancel();
         }
