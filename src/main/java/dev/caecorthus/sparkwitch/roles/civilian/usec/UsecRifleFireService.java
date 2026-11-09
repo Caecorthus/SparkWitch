@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.usec;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsUsecBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.RangedSmokeCarve;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
@@ -125,6 +126,7 @@ public final class UsecRifleFireService {
         if (mode == OffMatchUse.Mode.MATCH) {
             stop = resolveMatchHit(player, rifle, cycle.fired(), trace);
         }
+        RangedSmokeCarve.path(world, trace.path().pointsUpTo(stop)); // BEAR: bullet tunnel / 弹道通道
         List<UsecImpactRules.Impact> impacts = UsecImpactRules.impacts(eye, trace, stop);
         spawnDebris(world, impacts);
         sendImpacts(world, impacts);

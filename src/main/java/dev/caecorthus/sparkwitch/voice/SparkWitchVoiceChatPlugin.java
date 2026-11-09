@@ -92,6 +92,9 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         // Physical client only: Holy Flash muffles incoming voice; a no-op on dedicated servers.
         // 仅物理客户端：圣光弹压低传入语音；专用服务器上不做任何事。
         HolyFlashVoiceClientBridge.register(registration);
+        // Physical client only, after Holy Flash so both compose: BEAR hearing scales incoming voice (H7).
+        // 仅物理客户端，排在圣光弹之后以便二者相乘：BEAR 听力缩放传入语音（H7）。
+        BearHearingVoiceClientBridge.register(registration);
         VoicechatPlugin.super.registerEvents(registration);
     }
 

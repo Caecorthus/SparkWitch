@@ -32,6 +32,9 @@ The Ragpicker (`sparkwitch:ragpicker`, 拾荒者, contributed in PR #184) is an 
 through walls and takes one item from a corpse with the shared ability key (G).
 The Accountant (`sparkwitch:accountant`, 会计, contributed in PR #195) is an ordinary task civilian with no active skill
 that earns coins from tasks and over time and keeps them in a shop-bought passbook (存折).
+BEAR (`sparkwitch:bear`, 2026-11-05) is an ordinary civilian (never a police variant) with USEC's stamina and coins that
+fires smoke-only 40 mm rounds from an M32A1 launcher anyone may use, and buys a ricocheting Rys-T helmet and CENS
+earplugs worn in a fifth "headset" slot; every BEAR item is deleted when its holder dies.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -63,6 +66,10 @@ It also adds the Dominator (`sparkwitch:dominator`, 支配者, contributed in PR
 (G) marks a player through walls and then forces that player to fire one shot along their own aim.
 It also adds 夏目安安 Natsume Anan (`sparkwitch:natsume_anan`, contributed in PR #194), a killer whose ability key
 hypnotises a player within 3 blocks: blinded, locked out of items and role skills, and losing sanity.
+It also adds the Specter (`sparkwitch:specter`, 幽魂, contributed in PR #207), a killer whose ability key (G) marks a
+player within 3 blocks and then makes them shriek (fear), and whose Role Skill 2 key opens the world-wide 30 s
+Otherworld (里世界), in which its knife only lands on low-sanity or cowardly non-killers and low-sanity players get a
+Peachwood Sword that can hurt it.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
 the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
 It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only a
@@ -742,6 +749,81 @@ Current build baseline:
     or Spiritualist sessions or an already summoned Mini Wither (the lock only refuses new actions); the menu sends
     real profile names (no disguise or Emma visible-name mapping); the 8 s for neutrals, witches and Jiahao is a
     coordinator default (`NatsumeRules.durationTicks` is the single switch).
+- `roles/killer/specter/`: the Specter (`sparkwitch:specter`, 幽魂, color `0x6B2F2F`), contributed in PR #207 and
+  fixed in review (2026-11-09); every number and shared gate lives in `SpecterRules`. Mixins in `mixin/specter/`,
+  client in `client/specter/`, `client/hud/SpecterHudRenderer`, `client/mixin/specter/` and
+  `client/compat/SparkTraitsDepressionVisionBridge`.
+  - Registration: a SparkFactionAPI killer (Wathe-native KILLER, FAKE mood, unlimited sprint, round clock) registered
+    after BEAR, right before the Insider, and guessed in the killer block right after 夏目安安, before the Murderous
+    Witch. No witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel, never a
+    Black Raven disguise target; code reads the raw role.
+  - State (all `NEVER_COPY`, appended last in the CCA list and `fabric.mod.json`): `SpecterPlayerComponent`
+    (`sparkwitch:specter`, owner-synced: mark target and ticks, skill-one cooldown, the server-resolved sanity-band
+    outline map), `SpecterFearComponent` (`sparkwitch:specter_fear`), `SpecterSecondSkillComponent`
+    (`sparkwitch:specter_second_skill`, owner-synced: unlock, window, cooldown, Specter-owned shield layers),
+    `SpecterCowardiceComponent` (`sparkwitch:specter_cowardice`, synced only to its owner and to raw-role Specters) and
+    the world `SpecterOtherworldComponent` (`sparkwitch:specter_otherworld`: window ticks and the BGM variant, synced to
+    everyone). Fear, cowardice and the second skill clear on a committed death (gated on
+    `WitchFactorTraitsBridge.isDeathIntercepted`), reset and round end; fear freezes while SparkTraits Last Stand is
+    pending.
+  - Caster gate (`SpecterRules.mayCast`, Dominator pattern): ACTIVE round, raw role, alive, not spectating/creative, not
+    swallowed, not held (`NinjaGrappleService.isHeld`), not silenced, not SparkTraits role-skill-blocked; then
+    `GrandWitchFearService.denyRoleSkillIfFeared`. Effective sanity everywhere is `SpecterRules.hasRealSanity`
+    (`AbyssSuppression.hasRealSanity`: SparkTraits Conscience/Impostor/Wraith aware); low sanity is ≤25.
+  - Skill one (`SpecterSkillService`, empty C2S `sparkwitch:use_specter_skill`, G): marks the crosshair player within
+    3 blocks with line of sight (`SpecterRules.isMarkable`: not invisible to the caster, not swallowed, not an active
+    Wraith, not SparkTraits instinct-hidden, not creative; then SparkFactionAPI `canAffectPlayer` with
+    `sparkwitch:specter_mark`) for 10 s; the next press makes the marked player shriek (same world, same gates,
+    `sparkwitch:specter_shriek`), giving fear to effective-real-sanity players within 5 blocks (+2 to the target,
+    `sparkwitch:specter_fear`). 45 s opening cooldown and 45 s after a shriek; an expired mark costs nothing.
+  - Otherworld (`SpecterSecondSkillService`, empty C2S `sparkwitch:use_specter_second_skill`, Role Skill 2): unlocks
+    120 s after role assignment, lasts 30 s, 120 s cooldown from the end. The window is world-level and outlives the
+    Specter's death. The Specter gets invisibility, +40 % speed and a Specter-owned shield of 3 layers per alive
+    low-sanity player, absorbed in `mixin/specter/GameFunctionsSpecterShieldMixin` at Wathe psycho armour's position
+    (after every `KillPlayer.BEFORE` listener, honouring `force` and `ShouldPiercePsychoArmour`, recording
+    `shield_blocked` with source `sparkwitch:specter_otherworld`); it never touches Wathe psycho state (borrowing it
+    froze the server-side hotbar and corrupted `psychosActive`). Non-killers get Slowness I for the window
+    (`SpecterOtherworldService`, every 10 ticks).
+  - Otherworld knife: the knife's natural cooldown is cleared with SparkFactionAPI
+    `ForcedCooldowns.clearItemKeepingForced`, so forced penalties still lock it. The targeting rule
+    (`GameFunctionsSpecterOtherworldTargetMixin`, `killPlayer` HEAD priority 1040, pinned in
+    `watheCommonMixinContracts`) voids only `wathe:knife` kills by a Specter during the window on effective killers and
+    on players who are neither cowardly nor low-sanity; guns, poison and other deaths are untouched.
+    `SpecterOtherworldKnifeMixin` (Wathe knife receiver HEAD, priority 900) only drops a stab that rule would void, with
+    no side effects; every other stab runs Wathe's receiver and all its guards (SparkTraits, SparkStrength, Knight duel).
+  - Ghost Trigger (`GhostTriggerItem` / `GhostTriggerEntity`, Specter shop 50 coins, POISON frame, registered in the
+    DEFAULT `BuildShopEntries` phase so Charisma applies): one per support block, arms after 0.5 s; victims follow
+    `HunterTrapEntity.canCatch` (owner and killer teammates included, Wraiths only for their bound killer) plus a role.
+    Effect (`SpecterTriggerService`): −30 effective real sanity (never raises a negative bar), blindness and Slowness II
+    for 2 s, a private cave sound, a viewer-only `GhostVisageEntity` (not hittable, `canBeSpectated` viewer only), an
+    automatic mark when the owner's skill one is ready and passes `mayCast`, and cowardice for non-killer fake-mood
+    roles and the Savior (`sparkwitch:savior`, a role from the still-open PR #200; the id check fails closed). Triggers
+    stamp the Wathe match id, discard themselves outside an ACTIVE round or on a mismatch, and are swept on
+    `ON_WIN_DETERMINED` and `ON_FINISH_FINALIZE`.
+  - Peachwood Sword (`SpecterPeachwoodService`, every 10 ticks): during the window every alive, non-killer,
+    low-sanity or cowardly player (never the Specter) holds one, inserted only into the hotbar or the SparkFactionAPI
+    second row, and stripped when they stop qualifying or the window ends. A full-charge hit on the Specter (attack
+    ticks reset on every swing; SparkTraits `blocksWeaponAction` / `shouldCancelMeleeAttack`) settles 4 sequential
+    `wathe:knife` kills, each spending a shield layer. Item frames, armor stands, allays (`UseEntityCallback` FAIL) and
+    decorated pots (`DecoratedPotBlockPeachwoodSwordMixin`) refuse it.
+  - Deny lists: both payloads are on the Control Expert stun (so also the Natsume hypnosis lock), Seeker remote, Rift
+    occupant and Grand Witch Fear lists; only `use_specter_skill` is on the Knight duel lock (skill-key-2 rule).
+    Companion lists: SparkFactionAPI `AntiFastRoundRules` and SparkStrength `TaotieHeadRules`. Forced-cooldown stores
+    19 `sparkwitch:specter_skill` and 20 `sparkwitch:specter_otherworld`.
+  - Client (presentation only): `SpecterFeatureService` instinct policy (always-on sanity-band outlines from the
+    owner-only map, mark outline, cowardice outline; low-sanity viewers see an invisible Specter);
+    `SpecterHudRenderer` draws two bottom-right rows (skill one below, Otherworld above), and `SaintHudLayoutRules`
+    reserves two rows for the role. `SpecterOtherworldScreenEffects` (post chain `sparkwitch:shaders/post/otherworld`,
+    `GameRenderer#render` before `beginWrite`) ramps saturation/contrast and a red vignette for living participants,
+    fades out over 5 s, steps aside for Wraith/Vendetta/Black Raven perception (`BlackRavenPerceptionScreenEffects
+    .isActiveFor`, sharing one resolver with its own render), Blind, Rift occupants, the Seeker camera,
+    `ScopeClient.isScoped()`, Iris packs, any vanilla post processor (NoellesRoles' included) and a drawn SparkTraits
+    Depression grayscale, and releases its processor when
+    idle, on join/disconnect/stop and resource reload. `ClientWorldOtherworldSkyMixin` tints the sky/fog colour (Wathe
+    skips the sky dome while the train moves). Soul-fire particles, a play-once BGM (one of three variants chosen by the
+    server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item tooltips. Lang:
+    `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
+    placement and trigger, peachwood hits and the shield.
 - `client/bedrock/` (2026-11-02): a role-neutral Bedrock model runtime for player-supplied files, first used by the
   Mini Wither skins. `geo/`: `BedrockGeometryParser` (format 1.12+ `minecraft:geometry`, also inside a Java item-model
   shell, and legacy 1.8; box and per-face UV, mirror, inflate, bone/cube pivots and rotations, glow bones by name
@@ -1515,6 +1597,280 @@ Current build baseline:
     body), Seeker-session and Rift-occupant lists, and off the Grand Witch Fear and Knight duel lists.
   - Open: no SparkAssist guidebook page; SparkStrength's Taotie daze list and SparkFactionAPI's opening safe-time list
     have no `accountant_withdraw` entry yet.
+- `roles/civilian/bear/`: BEAR (`sparkwitch:bear`, olive `0x6E7F3F`; owner spec 2026-11-05 with coordinator defaults
+  D1-D12). WP0 froze the contracts below; work packages add to them, never change them. Every number lives in
+  `BearRules`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, `UsecRules.MAX_SPRINT_TICKS`, no round
+    clock, no appearance condition) registered after 夏目安安, right before the Insider, and guessed in the civilian block
+    right after the Accountant. Drawn by Wathe's civilian pass; not in `PoliceRoles` or the police `VARIANT_IDS` pool,
+    not in `isRegisteredSparkWitchRole`, never in the `gui.sparkwitch.skills` panel; in the Black Raven DENYLIST (never
+    claimable, like USEC). `SparkWitchRoles` exposes `BEAR_ID` and `bear()`.
+  - Hubs (all registered right before USEC, which stays last): `BearFeatureService` in `SparkWitchEvents`
+    (`BearLifecycleService`, `BearEconomyService`, `BearShopService`, in that order), `bear.net.BearNetworking` in
+    `SparkWitchPackets` (payload types), `client/bear/BearClientModule` in `SparkWitchClient` (plus
+    `registerEntityRenderers()`); `headset.HeadsetLifecycle` sits before the BEAR hub in `SparkWitchEvents`. Only
+    `bear.*` mixins follow the Accountant's common mixin and the mood-flag client mixin (WP4's headset mixins are
+    `bear.Headset*`).
+  - Frozen contracts: `BearRules` (ids, numbers, `isBear(Role|PlayerEntity|World,UUID)`, `isBearItemType`);
+    `BearItems` (`M32A1` `sparkwitch:m32a1` `launcher.M32A1Item`, `SMOKE_ROUND` `sparkwitch:smoke_round_40mm`
+    `launcher.SmokeRoundItem` (stack 6), `RYS_T` `sparkwitch:rys_t` `helmet.RysTHelmetItem`, `EARPLUGS`
+    `sparkwitch:cens_proflex_dx5` `headset.CensEarplugsItem`; registered on class init, forced by `BearItems.register()`
+    right after `SparkWitchItems`; `isBearItem(ItemStack)` by class); data components in `SparkWitchDataComponents`:
+    `sparkwitch:m32_cylinder` = `launcher.M32Cylinder(loadedMask, next)` (default on every launcher; the loaded
+    chambers are always one run from `next`, so `unload()` removing the last loaded chamber in rotation is exactly the
+    most recently loaded round, with no extra state) and `sparkwitch:rys_t_visor` = `helmet.RysTVisor(down, cracks)`
+    with `helmet.VisorCrack(u, v, angle, style)` (default visor down, at most `MAX_VISOR_CRACKS`, oldest dropped);
+    entity `sparkwitch:smoke_round_40mm` = `launcher.SmokeRoundEntity` (`launcher.BearEntities.SMOKE_ROUND`, never
+    saved; flight and burst filled in by WP1, below); `hearing.BearHearingRules`
+    (`factor(helmet, earplugs)` = max(0, 1 - 0.75·helmet + 0.5·earplugs), `factorFor(PlayerEntity)` reads the head and
+    headset slots); the twelve `SparkWitchSounds.BEAR_*` events (`bear.m32.*`, `bear.smoke.burst`, `bear.rys_t.*`,
+    `bear.earplugs.insert`; ricochet = helmet A, visor hit = visor B, tinnitus = tinnitus B, the other nine silent
+    placeholders).
+  - Shared seams added by WP0: `headset/` (`HeadsetComponent`, CCA `sparkwitch:headset`, NEVER_COPY, one saved stack
+    synced to its owner, appended last; `HeadsetSlots` facade `get`/`set`/`accepts` (earplugs or ComTac VIII)/`wears`,
+    `HANDLER_SLOT_ID = 46`; the Slot and screens are WP4, below), `util/hitscan/RangedOriginScope` (per-thread origin deque
+    `call`/`run`/`current`, null or non-finite = unknown origin; WP3 pushes at the sources),
+    `SmokeCloudService.carveTunnel` (no-op until WP5), `SparkWitchApi.carveSmoke(ServerWorld, Vec3d, double)` and the
+    client facade `api.client.BearSmokeViewApi` (`opticalDepth`, `hasSmoke`; render thread).
+  - Economy (`BearEconomyService`, USEC model): balance 0 in its own `ON_FINISH_INITIALIZE` phase, +50 per task
+    (never for a SparkTraits Impostor, `SparkTraitsTaskIncomeBridge`), +5 every 200 world ticks with no cap, both through
+    `addToBalance`; `CanSeeMoney` ALLOW for a living BEAR. Stamina: the single USEC regen mixin boosts
+    `UsecStaminaRules.boostsRole` (USEC or BEAR).
+  - Helmet (WP2, `bear/helmet/`, `client/bear/helmet/`): `RysTHelmetItem` is a head-slot vanilla `Equipment` (not an
+    `ArmorItem`: no armor points; iron equip sound), so only the head armor slot takes it, right-click in hand and
+    shift-click equip it, and vanilla `HeadFeatureRenderer` draws the art model (`display.head` scale 1.6; head box
+    [4,12]^3, +x the wearer's right) for everyone; predicate `sparkwitch:visor_up` (`RysTModelPredicates`, 1 = raised)
+    picks `item/rys_t_visor_up` (art v8 2026-11-06, clean-slate: the sixteen visor parts turn rigidly, no lift, 90°
+    about +x around the temple bolts (8, 9, 7), `up = P + Rx(90°)·(down − P)`, baked as an exact axis permutation
+    with no element rotations; lowered, the 10 × 3 glass (x 3..13, y 6..9, face z 1.75) sits in a proud frame
+    (z 1.5..2.25) over a chin plate (y 4..5, z 2.25..2.75) with four-piece side arms (x 2.25..2.75) ending at the
+    bolts; raised, the frame lies flat on the crown cap (y 13.75..14.5 over z 3..8, glass at y 14.25) with the chin
+    plate as a short peak (z 2..3), nothing above y 15 or ahead of z 1.5; `RysTVisorGeometry.UP_*`); the same 3-D
+    model is the GUI/ground/item-frame look through its own `display` entries (no 2-D icon, owner call 2026-11-07). Visor toggle (H9, only way): `RysTVisorToggle` from
+    `onClicked`, an empty-cursor right-click on the helmet in the player's own head slot (inventory index 39) in any
+    screen; both sides claim, the server writes in place and plays `bear.rys_t.visor_up/down` publicly, the creative
+    screen's client writes and plays it locally (USEC writer rule, probe from `RysTHelmetClient`); Wathe's armor
+    block exempts that press from its `mayPickUp` gate (`RysTVisorClicks`, one hunk in
+    `LimitedInventoryArmorSlotsMixin`). WP3 seams: `RysTVisorGeometry.glassPoint` /
+    `nearestGlassPoint(incomingDir, headYaw, pitch)` (shot aimed through the eye onto the visor-down glass window
+    x 4..12, y 6..9 (art v6: 8 × 3, eye row centred, above the mouth), face z 1.5; null off the glass / from the side
+    or behind), `crackAt(point, Random)`,
+    `RysTHelmetItem.addCrack(ServerPlayerEntity, VisorCrack)` (in place on the worn stack, synced by vanilla screen
+    handler and equipment sync), `wornHelmet`/`wornVisor`. Client: `client/mixin/bear/RysTVisorHudMixin`
+    (`InGameHud.render` HEAD → `RysTVisorOverlay`: rotated Tarkov-style crack decals (0.75 x screen height) placed in
+    the option window and scissored to `crackClip` (that window ±0.10 screen height, full width), then the art overlay
+    stretched full-screen over them so its soft frame fades them out; `RysTVisorOverlayLayout.OPTION` = `C1`
+    (0.035, 0.270, 0.965, 0.750), the shipped
+    `visor_overlay.png`; `C2` (0.035, 0.330, 0.965, 0.690) is the heavier art alternative, swapped with its texture;
+    only the local wearer, visor down, own first-person camera, not spectator, not Blind view or Seeker remote view;
+    survives F1, over the ricochet double vision, under the HUD and the Holy Flash) and `RysTHeadFeatureMixin` (HEAD cancel on a wearer whose body
+    this viewer cannot see, D7; after the single `HeldItemRenderer#renderItem`, `RysTWornCracks` draws unrotated
+    2.5-unit decals on the crack plane z 1.45, kept wholly inside the glass, following the plate through
+    `applyRaisedPose` when raised). Crack `angle` is radians (frozen `VisorCrack`).
+  - Shop (`BearShopRules`/`BearShopService`, USEC rebuild with SparkTraits entries preserved and the Charisma
+    discount): Rys-T 100 (stock 1), earplugs 50 (stock 1), smoke round 75 (unlimited, tops up a shown stack). D9: the
+    helmet lands on an empty head slot and the earplugs in an empty headset slot, else Wathe's default insertion; a
+    second helmet or pair of earplugs is refused (`shop.error.sparkwitch.bear_owned`) while one is owned.
+  - Items and death (`BearLoadoutService`/`BearLifecycleService`, the AXMC #199 model): an empty M32A1 once per
+    assignment (round start or a mid-round ACTIVE assignment); BEAR items follow Wathe's own item rules (no sweep, no
+    transfer guard, no role-change strip). Any holder's death (unless SparkTraits intercepts it) deletes every BEAR item
+    from inventory 0..40, the cursor, `playerScreenHandler` slots and the headset slot, never an open container;
+    `mixin/bear/GameFunctionsBearItemDropMixin` keeps them out of Wathe's death-drop loop and
+    `mixin/bear/PlayerEntityBearItemMixin` cancels a dead player's drop (cancel-only, so no `GiveCommandDropScope`
+    read). Wathe's reset
+    and a disconnect from a live round strip too. `SparkWitchItemCooldownNominals` lists the M32A1 (20 ticks).
+  - Smoke (`bear/smoke/`, `client/bear/smoke/`): the finished volumetric smoke spike; `SmokeCloudService`
+    (`spawn`, `carveHole`, `carveTunnel`, `clearAll`) is the only server entry and smoke never feeds a server rule.
+  - Ricochet (WP3, `bear/ricochet/`, `client/bear/ricochet/`): `mixin/bear/RicochetKillPlayerMixin` (HEAD of Wathe's
+    5-arg `killPlayer`, priority 1050: after every default-1000 immunity guard, before the Fiend / SparkStrength vest
+    at 1100, every `KillPlayer.BEFORE` listener, psycho armour, Tofana and the Cat) calls
+    `BearRicochetService.interceptKill`: a non-forced kill of a living participant WEARING the Rys-T in the head slot
+    (D1) by someone else for a reason in `BearRicochetRules.RANGED_REASONS` (D2; blasts in `BLAST_REASONS`) rolls
+    `RICOCHET_CHANCE` once per shot (`RicochetMemo`, key victim + killer + reason + server tick + origin, so Heavy
+    Artillery's and Second Strike's re-entries reuse it); visor up + origin in the head-yaw front hemisphere (D3)
+    never rolls. A ricochet only cancels the kill: the shooter's innocent-shot punishment and mood loss (decided before
+    `killPlayer` in Wathe's receiver and USEC's `killAndPunish`) stay, kill-time effects (Conscience, owner Q4 "吃不到") do not
+    fire. TR survivor debuffs still apply, and a worn Rys-T rolls for them on its own (owner Q3 2026-11-06,
+    `BearRicochetService.deflectsAfterEffect` from `TrShellEffect`; presentation only if the kill roll of the same
+    blast did not already play it). Origin order (`BearRicochetRules.resolveOrigin`): an open
+    `RangedOriginScope` (its unknown scope stays unknown, `isOpen()` added for this), else for blasts SparkStrength's
+    `AttackOriginScope.currentBlast()` by reflection (`SparkStrengthBlastOrigin`, fail = unknown), else for direct
+    fire the killer's eye; unknown or within 0.3 blocks of the wearer is "not front". Scopes are pushed only where
+    the origin is not the killer's eye: TR (blast centre), shuriken and crimson skull (position − velocity), the
+    Magician puppet kill (puppet eye), the Wathe grenade (`GrenadeEntityOriginSmokeCarveMixin`, `@WrapMethod
+    onCollision`) and the NR throwing axe (`ThrowingAxeRangedOriginMixin`); the revolver family, shotgun, USEC,
+    Death Ray, Demon Hunter and backblast (not in `BLAST_REASONS`) use the killer's eye, which is their muzzle. Effects: a glass hit (visor down + front, D4) writes a crack on the worn stack
+    (`RysTVisorCracks`, delegating to WP2's `RysTVisorGeometry.nearestGlassPoint` + `RysTHelmetItem.addCrack`); the public `bear.rys_t.ricochet` or
+    `bear.rys_t.visor_hit` at the helmet (volume 1.5 ≈ 24 blocks) with crit sparks (+ glass shards); S2C
+    `sparkwitch:bear_rys_t_ricochet` (`RysTRicochetS2CPayload`: unit direction toward the origin or zero, glass flag)
+    to the wearer only, which runs `RysTDazeClient`: a camera-only jolt away from the shot
+    (`client/mixin/bear/RicochetDazeCameraMixin`, `tiltViewWhenHurt` RETURN) and a fading double-vision ghost of the
+    world frame only (`RicochetDazeHudMixin`, `InGameHud.render` HEAD priority 900, before the default-1000
+    `RysTVisorHudMixin`, so the visor frame and cracks stay crisp over it, all under the HUD and the TAIL Holy Flash;
+    `RysTDazeGhostRenderer`, disables itself on any GL error), both scaled by vanilla Distortion Effects, no flash; listener-relative tinnitus
+    and `BearHearingClient.muffle(MUFFLE_TICKS, MUFFLE_VOLUME)`.
+  - Smoke carving at ranged sources (WP3, `RangedSmokeCarve`; visual only): `carveTunnel(…, 0.35)` on the revolver
+    family (`GunShootPayloadSmokeCarveMixin` at the receiver's `recordItemUse`: eye to the entry on the target's
+    lag-compensated boxes, or the server look ray clipped by blocks), the Demon Hunter (`DemonHunterShotSmokeCarveMixin`),
+    the Magician puppet revolver, every shotgun pellet `Aim`, the AXMC polyline to its stop, the Death Ray and the
+    backblast lane (r 0.5); `carveHole` at the Wathe grenade 3, firecracker 1.5 (`FirecrackerSmokeCarveMixin`, its
+    only `discard()` in `tick`), NR bomb 3 at the carrier + 0.5 y (`BomberExplosionSmokeCarveMixin`, HEAD priority 900,
+    before SparkTraits' Conscience-bomb cancel; no origin scope, so the bomb stays "at the victim"), potion shell
+    `PotionBlastRings.half(size)`, Holy Flash 3, Mini Wither 1 and every vanilla `ServerWorld.createExplosion` = power
+    (`ServerWorldExplosionSmokeCarveMixin`). SparkStrength's M67 and drone use `SparkWitchApi.carveSmoke`. The
+    Wathe/NoellesRoles-facing selectors (and the 1050 / 900 priorities) are pinned on the shipped jar by
+    `watheCommonMixinContracts` in `verifyClientMixinSelectors`.
+  - Launcher (WP1, `bear/launcher/`, `client/bear/launcher/`, `client/mixin/bear/M32*`): anyone holding the M32A1 may
+    use it (`OffMatchUse`; off-match shots fly and sound but never make a cloud). Use (main hand) only aims; the USEC
+    scope-while-cooling wraps (`mixin/usec/ServerPlayerInteractionManagerUsecScopeMixin`, client
+    `UsecRifleUseCooldownMixin`) also exempt the M32A1. Cursor loading `M32CursorLoading` (USEC Writer rule: the server
+    writes every click it resolves, the client only creative-screen clicks through the probe `M32LauncherClient`
+    installs): rounds on the cursor + right-click loads one (`M32Cylinder.load`), an empty cursor unloads the most
+    recent one, a full cylinder answers FULL. Fire = C2S `sparkwitch:fire_m32a1` (`net.FireM32A1C2SPayload`, type in
+    `BearNetworking`, receiver `M32FireService`; on the Control Expert stun, Seeker session, Rift occupant and Knight
+    duel lists; cross-repo: SS `TaotieHeadRules`, SFA `AntiFastRoundRules`) with the click-time aim; the server
+    validates `M32FireRules` (mode, holding, spectator, stun, Seeker, Kidnapper, Wraith, SparkTraits weapon block,
+    cooldown, loaded), spawns the round from its own eye, then fires the cylinder (D8) and writes the 1 s cooldown
+    through its exact floor writer `writeFloorExact`; empty = shooter-only dry click, no cooldown. `M32Ballistics`
+    (pure, shared with the sight): 3.8 b/t (76 m/s), gravity 9.81/400, drag 0.998/tick, launch 0.1 below the eye; every
+    dial step (25-200 m) arrives before the 3 s fuse at level pitch (200 m in about 55 ticks). `SmokeRoundEntity` +
+    `SmokeRoundFlight`: no damage and no vanilla hit handler (G1); arms after 4 blocks of path, an earlier impact
+    bounces (damped, can come to rest), the first armed block/entity impact or the backup fuse bursts it through
+    `SmokeCloudService.spawn` (stepped out of the surface) + `BEAR_SMOKE_BURST` + a puff; a match round is discarded
+    unburst once the round leaves ACTIVE. Client: `M32ScopeProfile` (M2A1 reflex: `drawsLens() == false` keeps the scope
+    module from drawing a lens, PiP, rim or periphery; `hidesHeldItem() == false` keeps the hand pass; world zoom 0.8
+    (1.25x) and look 0.8 in both scope modes; `drawReticle` is empty, so the crosshair is only hidden), the 3-D red-dot
+    aim (SIGHT-CONTRACT v2, 2026-11-06, owner rejected the 2-D reticle; TACZ technique, none of its GPL code; v3 the same
+    day: a quadrant-grid reticle inside the sight; v5 art the same week: a clean-slate square-housing M2A1 on a left
+    quadrant bracket, generated by the scratch `sight-v5/gen.py`):
+    `M32SightState` (aim progress p, 0→1 in 0.20 s while `M32ScopeProfile.isActive()`, 1→0 in 0.15 s, integrated over
+    real frame time on every read, 0 at once with no launcher in the main hand, on a world change or disconnect),
+    `M32SightPose` (pure maths: smoothstep ease, hand FOV lerp(vanilla, 32, ease), h' = atan(tan h · tan(hand/2) /
+    tan(world/2)), full-aim pose = camera orientation, scale 0.5, tilted eye P + Rx(-h')(E - P) at the origin, eye
+    (8, 21.75, 21.5) (a long eye relief, 18 behind the housing's rear face; the front aperture is a small red-dot
+    window of about 25 % of the aimed view's height and the sight body and the world stay visible round it — owner
+    2026-11-06 "人家就是个红点", the eye-in-the-eyecup 55 % tunnel was far too big), pivot (8, 20.25, -3.25) (the quadrant pin, the range arc's centre),
+    window = the housing's open square bore (`WINDOW_SIDES` 4, inner apothem 1.75 = the front hood's lens aperture,
+    z -4.125..3.5; housing walls at 1.875), dot z -48.5, halo 0.8 / core 0.22 units; the blend lerps the anchor's
+    image and the scale and slerps the rotation; the dot window test projects the dot and the 4 front-aperture corners
+    through one clip matrix;
+    `emitReticle` streams the reticle quads without per-quad allocation), `M32SightRenderer` and two client mixins after
+    `M32ArmPoseMixin`. `client/mixin/bear/M32SightHeldItemMixin`: HEAD/TAIL of the first-person
+    `HeldItemRenderer#renderItem(F…)` bracket the pass and capture the base `B` (hurt tilt + view bob; vanilla and Iris
+    both call it), and a `@WrapOperation` on the single `ItemRenderer#renderItem(LivingEntity…)` call inside
+    `renderItem(LivingEntity…)` (Wathe's AFTER hand-particle inject on that call, SparkTraits' Last Stand and
+    SparkStrength's skateboard HEAD cancels keep working) answers only for the renderer's own `mainHand` reference; at
+    p > 0 it draws `item/m32a1_body` at `blend(hipPre·D·T(-0.5), aim)` and `item/m32a1_sight` at that times the range
+    tilt about the pivot through the public `ItemRenderer#renderItem(…BakedModel)` in the vanilla first-person mode,
+    the stack pre-multiplied by `hipPre⁻¹·target·T(0.5)·D_model⁻¹` (`hipPre = B⁻¹·S` at vanilla's draw), then the dot:
+    two full-bright quads (red halo, white core 0.05 units nearer) on `RenderLayer.getEntityTranslucentEmissive`
+    (`textures/entity/bear/m2a1_dot.png`, 64 × 32 with linear filtering: a saturated red halo and a hot core), depth tested, never depth written, skipped unless its projection
+    through the bound hand projection × model-view × `B` lies inside the projected front window; with the dot and on its
+    matrix, the quadrant-grid reticle on the dot plane (`textures/entity/bear/m2a1_reticle.png`, 128 × 32 bar + digit
+    atlas, same layer type, red (255, 48, 36) at 0.9 for ticks/labels and 0.65 for lines times smoothstep(0.75, 1, p)):
+    a range tick at h'(r) − h'(dial) for every solved dial setting but the dialled one (50 m majors labelled), lead ticks
+    at ±1..3 hand degrees, cross lines with a 0.92 gap clipped exactly to the circle 1.75·70/25.625·0.93 ≈ 4.45, ticks and
+    labels only when wholly inside it; anything missing
+    (either extra model, an unusable matrix, no base) declines before drawing and vanilla's call runs; p = 0 always
+    runs vanilla's call unchanged. h = `M32Ballistics.holdoverRadians` (interpolated pitch, dialled metres) with the
+    live world FOV (`ScopeGameRendererInvoker`) and this pass's hand FOV; the tilt blends in with ease(p); no aim
+    solution draws an untilted sight, no dot and no reticle. At default settings the largest tilt is about 8.3°; the
+    tilted axis clears the body up to 17° and every ray through the aperture clears it up to 8.5° (10° in fact: the sight
+    sits 2.5 forward of the drum's front so the launcher's front rail stays under the window), and the tilting sight
+    never runs into the fixed mount (`M32SightModelTest`); a world FOV under about 30° at 200 m tilts past it and
+    the launcher's front shows in the window. `client/mixin/bear/M32SightFovMixin` (`@ModifyReturnValue` on
+    `GameRenderer#getFov`): `changingFov == false` (vanilla `renderHand`, Iris `HandRenderer.setupGlState`) becomes
+    `M32SightState.handFov` (exactly the original at p = 0); the world projection passes through. The two halves are
+    added in `M32LauncherClient`'s model plugin and fetched through `FabricBakedModelManager`; body ∪ sight equals the
+    full model element for element (same textures and display block). Art (v5): the body's own elements use
+    `#0` = `item/m32a1` (64 × 64, untouched); every `m2_*` part uses `#1` = `item/m32a1_m2a1` (512 × 512; 8 px per
+    unit, the quadrant plate, pin, lever and pointer 16). `m32a1_body` = body + the fixed mount (`m2_base`, the two
+    rail jaws, the L-shaped quadrant plate `m2_plate_front`/`m2_plate_rear` engraved 0..200 m at the pointer's true
+    level-aim tilts, labels 50/100/150/200 fanned out with leaders); `m32a1_sight` = the tilting rest (square housing
+    walls, front hood, two 16-gon rubber eyecup rings, Picatinny top/left/right rails with teeth, pivot pin, range
+    lever + pointer + knob, right knob). `M32RangeDial` (wheel, 25 m steps, per holding
+    session = same hotbar slot), `M32Hud` (owner, 2026-11-06, option B 跟随枪身: the readout badge rides the held
+    launcher in first person. `M32BadgeAnchor` holds the only two anchor points, in sight model space (hip = the top
+    rail's top centre (8, 24.5, 0) on the v5 rail teeth, aim = the sight's visible right silhouette at the eye height, on the v5 art
+    the rear eyecup ring's outer edge (10.375, 21.75, 4.875); UPDATE BOTH WHEN THE SIGHT MODEL CHANGES, the maths never
+    names them); `M32SightRenderer` projects the hip point through the body
+    pose and the aim point through the tilted sight pose with the hand pass's clip matrix (hand projection x model-view
+    x base) at every main-hand draw, p = 0 included (`captureHipAnchor`), lerps the two by ease(p) and stamps the frame
+    id that `WorldRenderEvents.START` advances, so `M32BadgeAnchor.current()` is never stale. `M32Hud` follows the
+    anchor with a time-based exponential smoothing (`M32HudRules.follow`, τ 0.1 s; snap on the first frame or a jump
+    over w/3), centred above it with its bottom 18 px up at the hip and 10 px right of it, vertically centred, at full
+    aim (placement lerped by the same blend), clamped to a 4 px margin and above `h - 45` (`followBadge`), with a 1 px
+    leader in the dial colour at 65 % from the badge's nearest edge midpoint to a 5x5 hollow ring on the anchor
+    (`leader`). No anchor this frame (F5, hidden hand, the launcher not drawn, a declined aimed draw) falls back to the
+    slot badge above the launcher's hotbar slot, only while it is in the main hand, like the Ceremonial Sword badge;
+    the bottom-right corner row is gone, so no corner row stacks against it. The 6-chamber icon from `textures/gui/bear/m32_chambers.png`, then the dial over the count on
+    one translucent dark plate `PLATE_COLOR` as tall as the cylinder and the cooldown bar under the count; pure layout
+    `M32HudRules.badge`: centred on Wathe's slot centre `w/2 - 80 + 20·slot`, clamped, the text column reserves
+    "200 m", bottom on the selection frame's top row `h - 23`, so the count sits on Wathe's cooldown-number line
+    `h - 35` and the bar on the sword's pip row `h - 26`; lifted to `h - 41` above Wathe's stamina row only when that
+    row is drawn under the badge, i.e. hotbar keys 5-9 with the vanilla font), `client/mixin/bear/M32CooldownNumberMixin`
+    (`@WrapOperation` on the one `drawTextWithShadow` in Wathe's `CooldownRenderer#renderHud`: skipped exactly while
+    `M32Hud.isShown`, since the badge shows the cooldown and the number would sit under the count; never cancels the
+    method, so `GrandWitchSwordCooldownMixin`'s HEAD inject is unaffected; pinned in `verifyClientMixinSelectors`),
+    `M32FireInput` + `M32InputMixin`/`M32MacControlClickMixin` (the launcher's input scheme), `M32ArmPoseMixin`
+    (CROSSBOW_HOLD at priority 1600 like the launcher; the art's hold lives in `m32a1.json` display transforms: the
+    owner-approved first-pass art, restored 2026-11-06, with only its third-person entries re-solved so the pistol grip
+    sits in the dominant fist, the butt on the shoulder beside the head, the bore level and toed in 5°, scale 0.5;
+    the support fist stays ≈0.8 block short of the vertical foregrip, which no vanilla `ArmPose` reaches),
+    `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6; launch hide = vanilla's age < 2 within 3.5 blocks, but
+    measured camera to the interpolated round like the Ninja hook head, since a 3.8 b/t round leaves vanilla's
+    feet-to-tick-position sphere on its first tick), `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
+  - Headset slot (WP4, E1, design A; `headset/`): `HeadsetSlot` is a real slot that
+    `mixin/bear/HeadsetPlayerScreenHandlerMixin` appends to every `PlayerScreenHandler` on both sides (handler index
+    46, after vanilla 0..45), backed by `HeadsetInventory` (a live one-stack view of `HeadsetSlots`, not a
+    `PlayerInventory`, so SparkFactionAPI's two-row rows 27-35 and every 0..40 loop ignore it). `canInsert` =
+    `HeadsetSlots.accepts`, max 1, empty sprite `sparkwitch:item/empty_slot_headset` (block atlas, art package); on the
+    client it is enabled only on a confirmed SparkWitch server. Shift-click: the same mixin routes an accepted item from
+    9..45 into the empty slot (`HeadsetQuickMove`); vanilla's last branch already moves 46 back to 9..44. Creative:
+    `mixin/bear/HeadsetCreativeActionMixin` (TAIL, server thread only) applies a creative write to
+    slot 46 when it clears it or holds one accepted item (vanilla accepts only 1..45). Right-click in hand
+    (`HeadsetSlots.insertFromHand`, earplugs and ComTac `use`) moves one item into the EMPTY slot, server write only;
+    the earplugs play `bear.earplugs.insert` to the wearer only, the ComTac stays silent. Screens: vanilla survival
+    (77,44) and creative tab (127,20, `client/mixin/bear/HeadsetCreativeScreenMixin` moves the slot's
+    `CreativeSlot`) draw a vanilla `container/slot` frame (`client/headset/HeadsetScreenFrames`); Wathe's limited
+    inventory shows a one-cell Wathe-strip frame under the armor block's head column (`client/armor`). Round reset
+    (`HeadsetLifecycle`) and BEAR death clean-up empty it; the ComTac keeps the Blind strip rule.
+  - Hearing (WP4, `client/bear/hearing/`): `BearHearingClient.factor()` is the local player's gear factor (on a
+    confirmed server) times the WP3 ricochet muffle envelope (`BearMuffleEnvelope`: longer/deeper call wins, 10-tick ease
+    back, floor 0.05). `BearHearingSoundRules` scales every category, MASTER and MUSIC included (owner Q2 "全部");
+    `EXEMPT_SOUND_IDS` are never scaled. `mixin/bear/HearingSoundSystemMixin` multiplies the gain at the Holy Flash seams
+    (gain only, never range). It also raises `AL_MAX_GAIN` on scaled sources to 1.5 so the earplugs really amplify
+    (owner Q1 "可以", proven by `BearHearingOpenAlTest` on OpenAL Soft 1.23.1), failing closed to a clamp at 1. Voice:
+    `BearHearingVoiceReceiver`, reached through `voice/BearHearingVoiceClientBridge` after Holy Flash, scales incoming
+    Simple Voice Chat audio from a volatile per-tick snapshot, with a soft limiter above 1.
+    Invisible barriers block smoke by their collision like any block (`WorldSmokeBlockView.BARRIERS_PASS_SMOKE`
+    false, owner Q5 "挡").
+  - Smoke tunnels (WP5): `carveTunnel(world, from, to, radius[, shooter UUID])` clips the segment to each live cloud
+    box it crosses, grown by the radius plus `SmokeTunnels.CLIP_MARGIN` 2 (the visible warp band; one capsule per cloud,
+    touching ones joined up to 95 blocks; nothing sent when it crosses none), merges a near-duplicate into a recent
+    wider tunnel, allows 4 rays per shooter per 10 ticks (origin half-block when no shooter, so WP3 should pass the
+    shooter's UUID) and 16 tunnels per world (oldest dropped, counted apart from the 32 blast holes). `SmokeHole` gained an end point (the
+    6-argument constructor is the sphere; `isTunnel()`), and `sparkwitch:bear_smoke_hole` appends 3 doubles only for a
+    tunnel, so blast holes keep their old bytes and an old body still decodes. Timeline (`SmokeTimeline`): a bullet
+    tunnel lives 30 ticks (open 10, radius shrinks over 20, edge 0.2); radius ≥ `BLAST_LANE_RADIUS` 0.5 (the potion
+    backblast) lives like a blast hole. Client: tunnels are never baked into the volumes (too thin for half-block
+    cells, and no re-upload); `SmokeVolumes.tunnels()` hands the newest 16 live ones of the prepared tick to the visible
+    march (applied at the unwarped sample point), the outline occlusion march (identical GLSL block, pinned by tests)
+    and the CPU `opticalDepth`, each culling them per pixel or per query. While the shader-pack billboard fallback runs
+    the client drops tunnels (`SmokeVolumes.showTunnels`), so outlines stay as closed as the puffs look. Whole-tick hole
+    ages are taken in `long` (`SmokeTimeline` long overloads), exact at any world time. Each volume cycles through 3
+    textures so a per-tick upload never writes a texture an in-flight frame still reads.
+  - Thermal heat mask (WP5, for SparkStrength's Undercover thermal, S4/Q6): `api.client.BearSmokeViewApi`
+    `maskHeatTarget(color, depth, w, h)`, `drawHeatHaze(color, depth, w, h, heat)` (`DEFAULT_HEAT_HAZE` 1.0: owner Q6 "一坨亮白", smoke as hot as a body) and
+    `heatSmokeRect(w, h)`, called right after SS draws its bodies (body depth makes it exact, world depth fails
+    closed). `occlusion/SmokeHeatMask` marches the whole smoke rectangle of the pass once (the outline mask only marches
+    outline regions), then `smoke/heat_mask.fsh` scales the heat by the outline visibility at each pixel's depth
+    (blend dst·v) or adds `heat·(1 − v)` with MAX, through a private framebuffer holding only the caller's colour
+    texture; all GL state is restored. A false mask (bad arguments, outside a world render, GL failure) means SS must
+    hide the heat inside `heatSmokeRect` (SparkWitch already tries to clear it); a failing haze only returns false. The
+    whole heat texture must show the pass's whole view. Pure rules in `SmokeHeatMath`.
+  - Open: the cross-repo seams (WP6: SparkStrength thermal mask + M67/drone carve + Taotie list, SparkFactionAPI
+    safe time, SparkAssist guide).
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
   `UsecHudClient`, `UsecAttachmentClient`, `UsecImpactClient`, `UsecRifleModels`, `UsecBoltSwayClient`,
   `UsecBoltWatchClient`. Presentation
@@ -1752,7 +2108,11 @@ Current build baseline:
     player's Scoped Sensitivity (only SparkStrength's stunned Engineer cancels `updateMouse`; nothing redirects the
     call). `ScopeHeldItemRendererMixin` cancels HEAD of the first-person `HeldItemRenderer#renderItem(F…)` only (never
     the third-person overload), so `renderHand` and its in-wall/underwater/fire overlays always run; vanilla's
-    `renderHand` and Iris's shader-pack `HandRenderer` both call that method, so hands hide with and without Iris.
+    `renderHand` and Iris's shader-pack `HandRenderer` both call that method, so hands hide with and without Iris. It
+    cancels only while the active profile's `ScopeProfile.hidesHeldItem()` (default true; 2026-11-06) holds
+    (`ScopeRuntime.hidesHand`); only the M32A1's M2A1 answers false, to draw its own aimed launcher in the hand pass.
+    A lensless profile (`drawsLens() == false`) zooms the main view in both modes (`ScopeRuntime.fovMultiplier`; PiP
+    has no lens for it), while lens-drawing profiles (USEC, the anti-tank launcher) keep PiP at 1× as before.
     `ScopeInGameHudMixin`, a priority-1100 `@WrapMethod` on `renderCrosshair` outside Wathe's, draws, in order, the
     fallback ring when needed (Full-Screen Zoom only), the lens rim, then `drawReticle(ctx, ScopeFrame)` with the real
     projection FOV from `ScopeGameRendererInvoker` (PiP: the FOV Full-Screen Zoom would need to show the lens at its
@@ -1903,7 +2263,8 @@ Current build baseline:
   `LimitedInventoryScreen` for every player (D10), client presentation only.
   `LimitedInventoryArmorLayout` (pure geometry, the shift-click plan and the full-hotbar rule),
   `LimitedInventoryArmorSlots` (gate, frame, empty icons, hit test, shift-click and pick-up adapters)
-  and `LimitedInventoryArmorPanel` (the block as a visible, inactive `ClickableWidget`). Its one
+  and `LimitedInventoryArmorPanel` (the block as a visible, inactive `ClickableWidget`); BEAR WP4 adds the headset
+  cell (`client/headset/LimitedInventoryHeadsetCell`, rules below). Its one
   mixin, `client/mixin/armor/LimitedInventoryArmorSlotsMixin`, has seven seams on Wathe's
   `LimitedHandledScreen`, each pinned in `watheClientMixinContracts`: `init` TAIL adds the panel,
   `render` TAIL hands an unset `focusedSlot` to a hovered armor slot, `getSlotAt` RETURN answers
@@ -1937,6 +2298,14 @@ Current build baseline:
   - **Neighbours.** The SparkWitch/SparkTraits info card and SparkAssist's guidebook route around
     the panel because it is a visible `ClickableWidget` child; being inactive, it never consumes a
     click.
+  - **Headset cell** (BEAR WP4, E1). The real handler slot 46 in a 32x32 one-cell frame cut from the same strip
+    texture, 2 px under the block's head column (`[X-54, X-22)`, from `Y+43`, or `Y+32` with the second row). The
+    2x2 block already fills the band between the shop row and the role head rows, so the cell reaches into the head-row
+    band and is shown (widget `visible`, recomputed each frame in the `render` TAIL seam) only while the slot holds an
+    item, the cursor or inventory holds an accepted item, or a shop entry on the screen sells one (BEAR earplugs, Blind
+    ComTac); no head-row role owns such an item. The same seven seams hit-test, focus, shift-click (one `SWAP` between
+    the hotbar and slot 46), guard the empty-cursor pick-up and return an accepted cursor item on close, exactly like
+    an armor slot; the server checks `HeadsetSlot.canInsert`.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, the
   Seeker, USEC and the Black Raven share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
@@ -2070,6 +2439,20 @@ Current build baseline:
   (`client/hunter/DoubleBarrelShotAudio`, `client/mixin/hunter/DoubleBarrelShotSoundSystemMixin` wrapping the first
   setup `Channel$SourceManager#run` in `SoundSystem#play`, OpenAL Soft `AL_SOFT_source_spatialize`, fails closed to
   non-positional stereo) so it has a direction and fades out at its 16-block `attenuation_distance`.
+- Hunter shotgun muzzle flash (PR #201, 2026-11-09; revolver parity, presentation only). The server branch of
+  `DoubleBarrelShotgunItem.use` sends Wathe's `ShootMuzzleS2CPayload` to every tracking player and to the shooter
+  (`sendMuzzleFlash`). The world flash (Wathe's yellow `GUNSHOT`) sits where Wathe's own `wathe:guns` held-item hook
+  records it, with the revolver's offset (about one pixel off the shotgun's barrel tip): the shotgun is in that tag,
+  and Wathe's hook translates the shared matrix without popping it, so no SparkWitch hook may record a second
+  position there (the offsets would add). A Magician puppet proxy is never
+  spawned, so it spawns a server `GUNSHOT` at its eye instead, like the puppet revolver replay. The shooter's
+  first-person hand flash (`client/hunter/DoubleBarrelMuzzleFlash`, Wathe's revolver flash shifted to the sprite's
+  barrel tip, mirrored for the left hand, drawn only in the hand rendering the shotgun by
+  `client/mixin/hunter/DoubleBarrelHandFlashMixin`) is predicted through the `DoubleBarrelShotgunItem.installClientShot`
+  seam, then paired with the shooter's own muzzle packet (`DoubleBarrelOwnMuzzlePacketMixin` at the head of Wathe's
+  receiver, `DoubleBarrelMuzzlePredictions`, 40-tick window): a packet with no prediction is a shot the client did not
+  predict (the held-trigger repeat), so the flash is shown then, once. Revolver-family packets for the shooter are
+  ignored unless the shotgun is in the main hand, or in the off hand under a main hand without a `wathe:guns` item.
 - `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
   Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
   an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;
@@ -2985,8 +3368,9 @@ never reads `sparkwitch:holy_flash`, so a flashed Blind's pulses are unchanged. 
 Wathe round runs on a confirmed SparkWitch server, `BlindComTacHeadRenderMixin` (HEAD cancel on the
 typed `HeadFeatureRenderer.render`, which draws only the head-slot item) skips a worn ComTac VIII on
 every head for every viewer (D5/C15); other head items and all armor render normally, the ComTac
-renders outside rounds, and the HEAD slot still syncs, so `BlindParticipants.wearsComTac` is
-unchanged.
+renders outside rounds, and the HEAD slot still syncs. Since 2026-11-05 (E1) the ComTac is worn in the headset slot
+(`BlindParticipants.wearsComTac` reads `HeadsetSlots`; effects unchanged) and is no longer an `Equipment`, so only a
+command can put it on a head and this hide is effectively dead code, kept until the owner approves removing it.
 
 The Blind kit is granted at round start in the `sparkwitch:blind_finish_initialize` phase of
 `GameEvents.ON_FINISH_INITIALIZE`, ordered after `Event.DEFAULT_PHASE` (so SparkTraits' Conscience
@@ -3016,26 +3400,26 @@ cooling down, and with the Grand Witch Fear skill-blocked message while Feared; 
 nothing. Forced cooldowns reach Attune only through the `sparkwitch:blind_attune` store. The cane,
 like every carried non-exempt item, is floored by `raiseAll`; its item nominal only sizes nominal-based
 extensions such as GW-AC (see the SparkFactionAPI `ForcedCooldowns` registrations). The White Cane and the ComTac VIII are bound: never an item entity (drop, death drop),
-never outside the holder's own inventory slots (head slot included; QUICK_MOVE only for the ComTac
-quick-equip from the hotbar into an empty head slot; never the offhand (Wathe's server already
+never outside the holder's own slots (PlayerInventory slots plus their own headset slot, handler 46; QUICK_MOVE only
+for the ComTac quick-equip from the hotbar into the empty headset slot; never the offhand (Wathe's server already
 refuses the swap-hands action in a round), a container, the crafting grid, an item frame, an armor
 stand, an allay or a decorated pot, where `BlindKitDecoratedPotMixin` answers `SKIP_DEFAULT_BLOCK_INTERACTION`
 on both sides so the pot never takes it and the cane tap or ComTac equip still runs), hidden in hand
 from other players through `NoellesHiddenEquipment` (D9),
-and stripped from inventory, head slot, cursor and open screens of anyone who is not a living,
+and stripped from inventory, headset slot, cursor and open screens of anyone who is not a living,
 playing, exact Blind (role change, terminal death, reset, finalize, disconnect and a staggered
 20-tick sweep that spares a real Blind inside a SparkTraits-intercepted Last Stand death). A
 ComTac caught by the `dropItem` guard is emptied in place and re-delivered only to a living, active
 Blind (`BlindItemDrops`); a cane is just refused. Vanilla `/give`'s cosmetic count-1 copy
-(`util/GiveCommandDropScope`) is only cancelled, so a give never adds a second ComTac to the head
+(`util/GiveCommandDropScope`) is only cancelled, so a give never adds a second ComTac to the headset
 slot and its message keeps the item name. The
-ComTac equips silently (`minecraft:intentionally_empty` equip sound) and neither item's `use` ever
-returns SUCCESS, so no arm swing is broadcast. The Blind's shop is role-gated (rebuilt for the exact
+ComTac goes in silently (right-click moves it into the empty headset slot, server write, no sound) and neither item's
+`use` ever returns SUCCESS, so no arm swing is broadcast. The Blind's shop is role-gated (rebuilt for the exact
 role, `sparktraits:*` entries preserved) and sells one ComTac VIII for 100 coins, stock 1, shown with
 the `shop.sparkwitch.comtac_viii` name and its "one per round" description (Fiend shop precedent),
 refused with `shop.error.sparkwitch.comtac_owned` when the buyer already owns one or already bought
-one in this match (also after a strip or for a role gained mid-round); it lands on the head when
-the head slot is empty, else in the first empty hotbar slot, and with no room the purchase fails
+one in this match (also after a strip or for a role gained mid-round); it lands in the headset slot when
+that is empty, else in the first empty hotbar slot, and with no room the purchase fails
 without charging. Money follows the Angler: visible to a living Blind, 0 on assignment, +50 per
 task, no Impostor check. Any role change away from the Blind strips the kit at once
 (`BlindLoadoutService.onRoleAssigned`).
@@ -3300,6 +3684,15 @@ deliberate and kept:
    includes the 60 s opening cooldown; the nominal is the 90 s post-cast cooldown (`NatsumeRules.COOLDOWN_TICKS`,
    1800). Every write only moves the ready tick later through the owner-syncing
    `NatsumeComponent.setCooldownReadyTick`; it never touches a running hypnosis.
+19. `sparkwitch:specter_skill` (`SparkWitchForcedCooldowns#specterSkill`, PR #207, appended after 夏目安安): the
+   Specter's mark/shriek key, for the raw role in an ACTIVE round and never while a mark is active (Dominator
+   precedent). Remaining time is the counting-down tick total in `sparkwitch:specter`, so it includes the 45 s opening
+   cooldown; the nominal is the 45 s post-shriek cooldown. The setter is exact (floored at 0) and owner-syncing.
+20. `sparkwitch:specter_otherworld` (`SparkWitchForcedCooldowns#specterOtherworld`, PR #207, appended after store 19):
+   the Specter's Otherworld, for the raw role in an ACTIVE round. Remaining time includes the 120 s unlock and, during
+   the 30 s window, the rest of the window plus the cooldown after it; the nominal is the 120 s post-window cooldown.
+   Writes only lengthen; during a window the forced time is held as the pending post-window cooldown, so a running
+   Otherworld is never cut short.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
@@ -4557,6 +4950,9 @@ Client (render thread):
   processor is open. `OwnerInventoryPresenter.traitsFacade()` resolves the facade once per session, failing closed.
 
 Server:
+- Specter sweeps (PR #207): `SpecterOtherworldService` (Otherworld slowness) and `SpecterPeachwoodService`
+  (sword distribution) run every 10 server ticks and return at once while no world window is open (the sword sweep
+  still strips swords from players who no longer qualify).
 - `util/RaycastShapeScope` is a per-thread depth counter (`enter`/`exit` in `finally`, `query` kept); `isRaycast()` means
   depth above zero.
 - The Wraith and Fisher door-passing mixins test the block type first. `WraithStateService` reads `getNullable`.
@@ -4629,6 +5025,9 @@ Client mixin changes also need `verifyClientMixinSelectors`, a standalone task t
 (`build.gradle`) it checks the selector and `@At` target the remapped jar actually ships against the
 pinned Wathe and NoellesRoles jars, and fails on a missing handler or provider method, selector
 drift, or an injection weakened to `require = 0`.
+Since BEAR WP3 (2026-11-05) the same task also checks `watheCommonMixinContracts`: common mixins on Wathe or
+NoellesRoles members against the shipped `sparkwitch.mixins.json` `mixins` list, plus an optional pinned class-level
+`@Mixin` priority where HEAD order is part of the contract.
 
 `verifyArchitecture` first runs `verifyBlackRavenActingRoleSeams`, which you can also run on its
 own.

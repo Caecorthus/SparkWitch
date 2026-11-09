@@ -165,12 +165,13 @@ public final class TimeStealerLoadoutService {
 
     /**
      * Keeps exactly one Clock and forces it into the hotbar: the leftmost hotbar Clock is kept, every other copy (main
-     * slots 9-35, including the second row 27-35 that SparkFactionAPI 0.1.5.13+ shows, armor, offhand, cursor, crafting
-     * grid or open container) is removed, and a missing hotbar Clock is recreated in the hotbar. Cheap when nothing is
-     * wrong: a slot scan with no writes.
+     * slots 9-35, including the second row 27-35 that SparkFactionAPI 0.1.5.13+ shows, armor, offhand, crafting grid or
+     * open container) is removed, and a missing hotbar Clock is recreated in the hotbar. A Clock on the cursor counts as
+     * the kept copy while the hotbar has none, so a left-click pickup holds; it is removed only beside a hotbar Clock.
+     * Cheap when nothing is wrong: a slot scan with no writes.
      * 保持恰好一个时钟并强制其位于快捷栏：保留最左侧的快捷栏时钟，移除其他所有副本（主背包 9-35，包括 SparkFactionAPI
-     * 0.1.5.13+ 显示的第二行 27-35、盔甲、副手、光标、合成格或已打开的容器），并在快捷栏缺失时重新创建。一切正常时开销
-     * 很低：只扫描栏位而不写入。
+     * 0.1.5.13+ 显示的第二行 27-35、盔甲、副手、合成格或已打开的容器），并在快捷栏缺失时重新创建。快捷栏没有时钟时，
+     * 光标上的时钟视为保留的那一份，因此左键拿起能保持住；只有快捷栏已有时钟时才移除它。一切正常时开销很低：只扫描栏位而不写入。
      */
     private static void ensureClockInHotbar(ServerPlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
@@ -197,9 +198,23 @@ public final class TimeStealerLoadoutService {
             }
             changed = true;
         }
-        if (TimeStealerInventoryRules.isClock(handler.getCursorStack())) {
-            handler.setCursorStack(ItemStack.EMPTY);
-            changed = true;
+        // A Clock on the cursor is being carried (a left-click pickup in the holder's own screen): it is the kept copy
+        // unless the hotbar already has one. Removing it here undid every pickup on the next tick.
+        // 光标上的时钟正被携带（在自身界面中左键拿起）：除非快捷栏已有一个，否则它就是保留的那一份。
+        // 若在此删除，每次拿起都会在下一 tick 被撤销。
+        boolean carried = false;
+        ItemStack cursor = handler.getCursorStack();
+        if (TimeStealerInventoryRules.isClock(cursor)) {
+            if (kept == NO_SLOT) {
+                carried = true;
+                if (cursor.getCount() > 1) {
+                    cursor.setCount(1);
+                    changed = true;
+                }
+            } else {
+                handler.setCursorStack(ItemStack.EMPTY);
+                changed = true;
+            }
         }
         for (Slot slot : handler.slots) {
             if (slot.inventory != inventory && TimeStealerInventoryRules.isClock(slot.getStack())) {
@@ -207,7 +222,7 @@ public final class TimeStealerLoadoutService {
                 changed = true;
             }
         }
-        if (kept == NO_SLOT) {
+        if (kept == NO_SLOT && !carried) {
             changed |= placeClockInHotbar(inventory, vacated);
         }
         if (changed) {

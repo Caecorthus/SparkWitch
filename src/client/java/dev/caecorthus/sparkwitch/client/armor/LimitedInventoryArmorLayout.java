@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.armor;
 
+import dev.caecorthus.sparkwitch.headset.HeadsetSlots;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -7,11 +8,13 @@ import org.jetbrains.annotations.Nullable;
  * A 2x2 block (head, chest / legs, feet) hangs left of the inventory block, centred on it, so it stays clear of the
  * shop row above, the role head rows below, the right-hand info card and the logo. The inventory block is Wathe's
  * 176x32 hotbar strip, plus, with SparkFactionAPI 0.1.5.13+, the 22 px second row (main slots 27-35) above it. Slots
- * are the real {@code PlayerScreenHandler} armor slots 5..8; only their on-screen position is ours.
+ * are the real {@code PlayerScreenHandler} armor slots 5..8; only their on-screen position is ours. BEAR WP4 adds the
+ * headset cell (handler slot 46) under the block's head column, shown only to players with a headset item.
  * Wathe {@code LimitedInventoryScreen} 四个护甲槽（D10）的像素布局与 Shift 点击规划。2x2 方块（头、胸 / 腿、脚）挂在
  * 物品栏块左侧并与其垂直居中，避开上方的商店行、下方的职业头像行、右侧信息卡和标志。物品栏块是 Wathe 176x32 热栏，
  * 在 SparkFactionAPI 0.1.5.13+ 下再加上其上方 22 像素高的第二行（主背包 27-35）。槽位就是原版
- * {@code PlayerScreenHandler} 的护甲槽 5..8，这里只决定它们在屏幕上的位置。
+ * {@code PlayerScreenHandler} 的护甲槽 5..8，这里只决定它们在屏幕上的位置。BEAR WP4 在护甲块头部列下方加入耳机格（46 号界面栏位），
+ * 只对持有耳机物品的玩家显示。
  */
 public final class LimitedInventoryArmorLayout {
     /**
@@ -198,5 +201,111 @@ public final class LimitedInventoryArmorLayout {
             return -1;
         }
         return FIRST_ARMOR_SLOT_ID + ARMOR_SLOT_COUNT - 1 - entitySlotId;
+    }
+
+    // ---- Headset cell (BEAR WP4, E1) ----
+
+    /** Handler index of the headset slot ({@code HeadsetSlots.HANDLER_SLOT_ID}). / 耳机栏位的界面下标。 */
+    public static final int HEADSET_SLOT_ID = HeadsetSlots.HANDLER_SLOT_ID;
+    /** Gap between the armor block and the headset cell under it. / 护甲块与其下方耳机格之间的间距。 */
+    public static final int HEADSET_GAP = 2;
+    /**
+     * The headset cell is one Wathe strip cell: the strip's left part through its first cell (8 + 16) plus its right
+     * cap, 32x32. / 耳机格是一个 Wathe 热栏格：热栏条左段到第一格（8 + 16）加右端帽，共 32x32。
+     */
+    public static final int HEADSET_STRIP_LEFT_WIDTH = FRAME + SLOT_SIZE;
+    public static final int HEADSET_PANEL_WIDTH = HEADSET_STRIP_LEFT_WIDTH + FRAME;
+    public static final int HEADSET_PANEL_HEIGHT = STRIP_HEIGHT;
+
+    /**
+     * Left edge of the headset cell: under the armor block's head column, so the headset sits below the head slot.
+     * 耳机格左边缘：位于护甲块头部列下方，使耳机格正处于头部槽之下。
+     */
+    public static int headsetPanelX(int screenX) {
+        return panelX(screenX);
+    }
+
+    /**
+     * Top edge of the headset cell, {@link #HEADSET_GAP} below the armor block; {@code screenY} is the anchor
+     * ({@link #anchorY}). The 2x2 block already fills the band between the shop row and the role head rows, so the cell
+     * reaches into the head-row band and is shown only to players with a headset item to wear or buy (see
+     * {@link #headsetShown}); roles with head rows never own one.
+     * 耳机格顶边，位于护甲块下方 {@link #HEADSET_GAP} 处；{@code screenY} 为布局锚点（{@link #anchorY}）。2x2 护甲块已占满商店行与
+     * 职业头像行之间的区域，因此耳机格会伸入头像行区域，只对有耳机物品可戴或可买的玩家显示（见 {@link #headsetShown}）；带头像行的
+     * 职业从不持有此类物品。
+     */
+    public static int headsetPanelY(int screenY) {
+        return panelY(screenY) + PANEL_HEIGHT + HEADSET_GAP;
+    }
+
+    public static int headsetSlotX(int screenX) {
+        return headsetPanelX(screenX) + FRAME;
+    }
+
+    public static int headsetSlotY(int screenY) {
+        return headsetPanelY(screenY) + FRAME;
+    }
+
+    public static boolean isHeadsetSlotId(int slotId) {
+        return slotId == HEADSET_SLOT_ID;
+    }
+
+    /** Whether the mouse is over the headset cell, with Wathe's slot slack. / 鼠标是否位于耳机格上（沿用 Wathe 的判定余量）。 */
+    public static boolean isOverHeadset(int screenX, int screenY, double mouseX, double mouseY) {
+        int x = headsetSlotX(screenX);
+        int y = headsetSlotY(screenY);
+        return mouseX >= x - 1 && mouseX < x + SLOT_SIZE + 1 && mouseY >= y - 1 && mouseY < y + SLOT_SIZE + 1;
+    }
+
+    /**
+     * The headset cell is shown while it holds an item, the cursor or inventory holds an item it accepts, or the shop
+     * sells one (the BEAR earplugs, the Blind ComTac). Every other player keeps today's screen.
+     * 耳机格在以下情况显示：其中有物品、光标或背包中有其可接受的物品、或商店出售此类物品（BEAR 耳塞、盲人 ComTac）。其他玩家的界面
+     * 保持现状。
+     */
+    public static boolean headsetShown(boolean occupied, boolean cursorAccepted, boolean ownsAccepted,
+                                       boolean shopSellsAccepted) {
+        return occupied || cursorAccepted || ownsAccepted || shopSellsAccepted;
+    }
+
+    /**
+     * Shift-click plan for the headset cell, as one vanilla {@code SWAP} (the server applies {@code canInsert}): an
+     * accepted hotbar item goes into the empty headset slot; the worn item goes to the first empty hotbar slot.
+     * Everything else returns null.
+     * 耳机格的 Shift 点击规划，作为一次原版 {@code SWAP}（服务器执行 {@code canInsert}）：可接受的快捷栏物品放入空耳机栏位；
+     * 已戴的物品移到第一个空快捷栏格。其余情况返回 null。
+     */
+    public static @Nullable Swap planHeadsetShiftClick(int clickedSlotId, boolean clickedHasStack,
+                                                       boolean clickedAccepted, boolean headsetEmpty,
+                                                       int firstEmptyHotbarButton) {
+        if (!clickedHasStack) {
+            return null;
+        }
+        if (isHotbarSlotId(clickedSlotId)) {
+            return clickedAccepted && headsetEmpty ? new Swap(HEADSET_SLOT_ID, clickedSlotId - HOTBAR_START) : null;
+        }
+        if (isHeadsetSlotId(clickedSlotId)) {
+            return firstEmptyHotbarButton >= 0 && firstEmptyHotbarButton < HOTBAR_END - HOTBAR_START
+                    ? new Swap(HEADSET_SLOT_ID, firstEmptyHotbarButton)
+                    : null;
+        }
+        return null;
+    }
+
+    /**
+     * The armor pick-up rule ({@link #mayPickUpArmor}) for the headset slot: its item leaves on an empty cursor only
+     * while a shown slot is free. / 耳机栏位的拾取规则（同 {@link #mayPickUpArmor}）：仅在有空的显示栏位时才能用空光标取下。
+     */
+    public static boolean mayPickUpHeadset(int slotId, boolean slotHasStack, boolean cursorEmpty,
+                                           boolean shownSlotFree) {
+        return !isHeadsetSlotId(slotId) || !slotHasStack || !cursorEmpty || shownSlotFree;
+    }
+
+    /**
+     * The headset slot id an accepted cursor item is put back into before the screen closes (no shown slot free, the
+     * headset slot empty), or -1. / 关闭界面前光标上可接受的物品应放回的耳机栏位 id（没有空的显示栏位且耳机栏位为空），否则 -1。
+     */
+    public static int cursorReturnHeadsetSlotId(boolean cursorAccepted, boolean headsetEmpty, boolean shownSlotFree) {
+        return cursorAccepted && headsetEmpty && !shownSlotFree ? HEADSET_SLOT_ID : -1;
     }
 }

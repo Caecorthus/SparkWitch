@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.blind.kit;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.headset.HeadsetSlots;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
@@ -111,9 +112,9 @@ public final class BlindLoadoutService {
     }
 
     /**
-     * Removes every cane and ComTac (inventory 0..40 including the head slot, cursor, open handler slots), clears the
+     * Removes every cane and ComTac (inventory 0..40, the headset slot, cursor, open handler slots), clears the
      * component and forgets the cane window. Used for role loss, death, reset, finalize, disconnect and the sweep.
-     * 移除所有盲杖与 ComTac（背包 0..40 含头部槽、光标、已打开界面栏位），清空组件并忘记盲杖窗口。用于失去职业、死亡、
+     * 移除所有盲杖与 ComTac（背包 0..40、耳机槽、光标、已打开界面栏位），清空组件并忘记盲杖窗口。用于失去职业、死亡、
      * 重置、局末、断线与定期清理。
      */
     public static void strip(ServerPlayerEntity player) {
@@ -123,15 +124,18 @@ public final class BlindLoadoutService {
     }
 
     /**
-     * Puts a ComTac that a refused drop emptied back: the head slot when empty, else the first empty hotbar or hidden
-     * main slot. With no room at all it is lost (the inventory is completely full).
-     * 把被拒绝丢弃而清空的 ComTac 放回：头部槽为空则放回头部，否则放入第一个空的快捷栏或隐藏主背包栏位。
+     * Puts a ComTac that a refused drop emptied back: the headset slot when empty (E1), else the first empty hotbar or
+     * hidden main slot. With no room at all it is lost (the inventory is completely full).
+     * 把被拒绝丢弃而清空的 ComTac 放回：耳机槽为空则放回耳机槽（E1），否则放入第一个空的快捷栏或隐藏主背包栏位。
      * 完全没有空间时它会丢失（背包已全满）。
      */
     static void redeliverComTac(ServerPlayerEntity player, ItemStack stack) {
+        if (HeadsetSlots.get(player).isEmpty()) {
+            HeadsetSlots.set(player, stack);
+            return;
+        }
         PlayerInventory inventory = player.getInventory();
-        int target = inventory.getStack(BlindKitRules.HEAD_SLOT).isEmpty() ? BlindKitRules.HEAD_SLOT
-                : inventory.getEmptySlot();
+        int target = inventory.getEmptySlot();
         if (target < 0) {
             return;
         }
@@ -139,7 +143,10 @@ public final class BlindLoadoutService {
         inventory.markDirty();
     }
 
-    /** Whether the player holds a ComTac anywhere (inventory incl. head slot, or cursor). / 玩家是否在任意位置持有 ComTac。 */
+    /**
+     * Whether the player holds a ComTac anywhere (inventory 0..40, the headset slot, or cursor).
+     * 玩家是否在任意位置持有 ComTac（背包 0..40、耳机槽或光标）。
+     */
     public static boolean ownsComTac(ServerPlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
         for (int slot = 0; slot < inventory.size(); slot++) {
@@ -147,7 +154,8 @@ public final class BlindLoadoutService {
                 return true;
             }
         }
-        return BlindInventoryRules.isComTac(player.currentScreenHandler.getCursorStack());
+        return BlindInventoryRules.isComTac(HeadsetSlots.get(player))
+                || BlindInventoryRules.isComTac(player.currentScreenHandler.getCursorStack());
     }
 
     private static void ensureGranted(ServerPlayerEntity player) {
@@ -271,7 +279,10 @@ public final class BlindLoadoutService {
                 || slot == PlayerInventory.OFF_HAND_SLOT;
     }
 
-    /** Removes every matching stack from inventory 0..40, the cursor and open handler slots. / 移除所有匹配物品。 */
+    /**
+     * Removes every matching stack from inventory 0..40, the headset slot (even while a foreign container is open), the
+     * cursor and open handler slots. / 移除背包 0..40、耳机槽（即使打开了外部容器）、光标与已打开界面栏位中的所有匹配物品。
+     */
     private static void removeAll(ServerPlayerEntity player, Predicate<ItemStack> bound) {
         boolean changed = false;
         PlayerInventory inventory = player.getInventory();
@@ -280,6 +291,10 @@ public final class BlindLoadoutService {
                 inventory.setStack(slot, ItemStack.EMPTY);
                 changed = true;
             }
+        }
+        if (bound.test(HeadsetSlots.get(player))) {
+            HeadsetSlots.set(player, ItemStack.EMPTY);
+            changed = true;
         }
         ScreenHandler handler = player.currentScreenHandler;
         if (bound.test(handler.getCursorStack())) {

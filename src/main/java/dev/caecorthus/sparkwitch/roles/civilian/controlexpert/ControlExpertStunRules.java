@@ -103,6 +103,9 @@ public final class ControlExpertStunRules {
             // 夏目安安催眠菜单请求与目标确认，与法官的两个包一样两半都拦截。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
+            // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
+            Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_specter_second_skill"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a
@@ -131,6 +134,11 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "black_raven_crow_move"),
             Identifier.of("sparkwitch", "black_raven_crow_use"),
             Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
+            // BEAR M32A1 fire (FireM32A1C2SPayload, left-click), a held-item shot like the anti-tank launcher's; cursor
+            // loading is an inventory click (the stun closes gameplay screens) and the sight is presentation only.
+            // BEAR M32A1 开火（FireM32A1C2SPayload，左键），与反坦克炮筒同类的手持射击；光标装填属于背包点击（眩晕会关闭游戏
+            // 界面），瞄具仅为表现。
+            Identifier.of("sparkwitch", "fire_m32a1"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

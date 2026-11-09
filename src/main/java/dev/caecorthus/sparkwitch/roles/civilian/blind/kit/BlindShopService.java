@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.blind.kit;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsShopEntryPreserver;
+import dev.caecorthus.sparkwitch.headset.HeadsetSlots;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
@@ -23,14 +24,14 @@ import org.jetbrains.annotations.Nullable;
  * The Blind's role-gated shop (C14): SparkTraits entries are preserved and the only own entry is the ComTac VIII,
  * {@link BlindRules#COMTAC_PRICE} coins, stock 1, shown with the {@code shop.sparkwitch.comtac_viii} name and its
  * "one per round" description. Wathe caches stock while STARTING, so the gate is the synced role alone; stock is
- * unenforced for a role gained mid-round, so the buy gate also refuses a buyer who already owns one (inventory, head
- * slot or cursor) or already bought one in this match (a server-only mark in {@link BlindComponent}). A bought ComTac
- * lands on the head when the head slot is empty, else in the first empty hotbar slot; with no room the purchase fails
- * and charges nothing.
+ * unenforced for a role gained mid-round, so the buy gate also refuses a buyer who already owns one (inventory,
+ * headset slot or cursor) or already bought one in this match (a server-only mark in {@link BlindComponent}). A bought
+ * ComTac goes into the headset slot when it is empty (E1), else the first empty hotbar slot; with no room the purchase
+ * fails and charges nothing.
  * 盲人的职业限定商店（C14）：保留 SparkTraits 条目，自有条目只有 ComTac VIII，{@link BlindRules#COMTAC_PRICE} 金币、
  * 库存 1，以 {@code shop.sparkwitch.comtac_viii} 名称及其“每局一件”说明显示。Wathe 在 STARTING 阶段缓存库存，因此只按
- * 同步职业筛选；中途获得的职业不受库存约束，因此购买门槛还会拒绝已持有者（背包、头部槽或光标）以及本局已买过者
- * （{@link BlindComponent} 中仅服务端的记录）。购得的 ComTac 在头部槽为空时直接戴上，否则放入第一个空快捷栏位；没有空间时
+ * 同步职业筛选；中途获得的职业不受库存约束，因此购买门槛还会拒绝已持有者（背包、耳机槽或光标）以及本局已买过者
+ * （{@link BlindComponent} 中仅服务端的记录）。购得的 ComTac 在耳机槽为空时直接放入（E1），否则放入第一个空快捷栏位；没有空间时
  * 购买失败且不扣费。
  */
 public final class BlindShopService {
@@ -88,9 +89,9 @@ public final class BlindShopService {
     }
 
     /**
-     * Server-side buy handler ({@code PlayerShopComponent.tryBuy}); false charges nothing. The head-slot write is a
-     * plain inventory write, so no equip sound is played.
-     * 服务端购买处理（{@code PlayerShopComponent.tryBuy}）；返回 false 不扣费。头部槽写入是普通背包写入，因此不播放穿戴音效。
+     * Server-side buy handler ({@code PlayerShopComponent.tryBuy}); false charges nothing. Both landings are plain
+     * writes (headset component or inventory slot), so no sound is played.
+     * 服务端购买处理（{@code PlayerShopComponent.tryBuy}）；返回 false 不扣费。两种落点都是普通写入（耳机组件或背包栏位），因此不播放音效。
      */
     private static boolean buyComTac(PlayerEntity player) {
         // Normally already denied with a message by denyDuplicate; this is the authoritative backstop.
@@ -100,12 +101,16 @@ public final class BlindShopService {
             return false;
         }
         PlayerInventory inventory = buyer.getInventory();
-        int slot = BlindKitRules.comTacLanding(inventory.getStack(BlindKitRules.HEAD_SLOT).isEmpty(),
+        int slot = BlindKitRules.comTacLanding(HeadsetSlots.get(buyer).isEmpty(),
                 hotbar -> inventory.getStack(hotbar).isEmpty());
         if (slot == BlindKitRules.NO_SLOT) {
             return false;
         }
-        inventory.setStack(slot, new ItemStack(SparkWitchItems.comTac()));
+        if (slot == BlindKitRules.HEADSET_SLOT) {
+            HeadsetSlots.set(buyer, new ItemStack(SparkWitchItems.comTac()));
+        } else {
+            inventory.setStack(slot, new ItemStack(SparkWitchItems.comTac()));
+        }
         BlindComponent.KEY.get(buyer).markComTacBought(BlindParticipants.currentMatchId());
         inventory.markDirty();
         buyer.currentScreenHandler.sendContentUpdates();

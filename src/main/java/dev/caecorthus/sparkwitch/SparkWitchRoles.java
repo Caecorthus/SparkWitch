@@ -57,6 +57,7 @@ public final class SparkWitchRoles {
     public static final Identifier NOA_ID = SparkWitchRoleRegistry.NOA_ID;
     public static final Identifier RAGPICKER_ID = SparkWitchRoleRegistry.RAGPICKER_ID;
     public static final Identifier ACCOUNTANT_ID = SparkWitchRoleRegistry.ACCOUNTANT_ID;
+    public static final Identifier BEAR_ID = SparkWitchRoleRegistry.BEAR_ID;
 
     private SparkWitchRoles() {
     }
@@ -239,6 +240,10 @@ public final class SparkWitchRoles {
         return SparkWitchRoleRegistry.recruit();
     }
 
+    public static Role specter() {
+        return SparkWitchRoleRegistry.specter();
+    }
+
     public static Role athlete() {
         return SparkWitchRoleRegistry.athlete();
     }
@@ -261,6 +266,10 @@ public final class SparkWitchRoles {
 
     public static Role accountant() {
         return SparkWitchRoleRegistry.accountant();
+    }
+
+    public static Role bear() {
+        return SparkWitchRoleRegistry.bear();
     }
 
     public static List<Role> assassinGuessRoles() {
