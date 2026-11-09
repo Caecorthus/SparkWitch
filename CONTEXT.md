@@ -17,6 +17,9 @@ The Black Raven (`sparkwitch:black_raven`, 黑羽鸦) is a police variant too si
 Blade, keeps its Raven Mask disguise, and never counts as alive for round settlement.
 The Knight (`sparkwitch:knight`, 骑士, contributed in PR #169 and reworked 2026-10-30) is a police variant that shares
 the Vigilante slots and spends 150 coins on the shared ability key (G) to duel one living player.
+The Savior (`sparkwitch:savior`, 救世主, contributed in PR #200) is a police variant that shares the Vigilante slots,
+keeps full sanity, carries a revolver-like pistol and a lightsaber whose kills use terminal death reasons, and opens a
+15-block domain with the shared ability key (G).
 The Recruit (`sparkwitch:recruit`, 新兵, contributed in PR #176) is an ordinary civilian that takes no police slot,
 gets Wathe's knife after its first task, and may pick up one ground gun per round.
 The Athlete (`sparkwitch:athlete`, 运动员, contributed in PR #191) is an ordinary civilian with unlimited stamina whose
@@ -747,7 +750,8 @@ Current build baseline:
     after BEAR, right before the Insider, and guessed in the killer block right after 夏目安安, before the Murderous
     Witch. No witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel, never a
     Black Raven disguise target; code reads the raw role.
-  - State (all `NEVER_COPY`, appended last in the CCA list and `fabric.mod.json`): `SpecterPlayerComponent`
+  - State (all `NEVER_COPY`, appended after the headset in the CCA list and `fabric.mod.json`; only the Savior's
+    `sparkwitch:savior`, PR #200, follows): `SpecterPlayerComponent`
     (`sparkwitch:specter`, owner-synced: mark target and ticks, skill-one cooldown, the server-resolved sanity-band
     outline map), `SpecterFearComponent` (`sparkwitch:specter_fear`), `SpecterSecondSkillComponent`
     (`sparkwitch:specter_second_skill`, owner-synced: unlock, window, cooldown, Specter-owned shield layers),
@@ -1305,8 +1309,8 @@ Current build baseline:
     are whitelisted) is raised through SparkFactionAPI `ForcedCooldowns` every 10 ticks. Guards cover paths that skip
     the cooldown check: UseItem, UseEntity, main-hand Attack, and UseBlock only on Wathe `FoodPlatterBlock` /
     `TrimmedBedBlock` (doors and buttons stay usable). Payload weapons (`KnightDuelSkillLock.SEALED_WEAPON_PAYLOADS`:
-    Death Ray, crimson skull, launcher, AXMC, Demon Hunter and Serial Killer pistols, Vendetta knife, Swordfish, drone
-    fire) are dropped for duelists; `wathe:gunshoot`, `wathe:knifestab` and `sparkwitch:cross_sword_stab` never are.
+    Death Ray, crimson skull, launcher, AXMC, M32A1, Demon Hunter, Serial Killer and Savior pistols, Vendetta knife,
+    Swordfish, drone fire) are dropped for duelists; `wathe:gunshoot`, `wathe:knifestab` and `sparkwitch:cross_sword_stab` never are.
     At the end only sealed items are written back to their pre-duel remaining time (a longer cooldown someone else
     raised during the duel is kept), never through `ItemCooldownManager.remove`.
   - Knives (`duel/KnightDuelKnives`): a target with no knife in reach gets one marked with the `sparkwitch:duel_knife`
@@ -1345,6 +1349,75 @@ Current build baseline:
     screens while the synced duel state marks the local player as a duelist, so E is unavailable until the duel ends.
     The lock is client presentation, not a server check, and needs no unlock packet. SparkAssist has no guidebook page
     yet.
+- `roles/civilian/savior/`: the Savior (`sparkwitch:savior`, 救世主, color `0x55FFFF`), contributed in PR #200 by
+  ray7245 and fixed in review (2026-11-09); every number lives in `SaviorRules`.
+  - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
+    appearance condition) drawn only through the shared Vigilante slots (`PoliceSlotAssignmentService.VARIANT_IDS`,
+    last); `PoliceRoles.register` gives it the SparkTraits police traits and the free SparkStrength tablet. It closes
+    the police block of the assassin-guess order (after the Knight), but `client/mixin/AssassinSaviorGuessMixin` hides
+    it from the NoellesRoles Assassin panel and `mixin/savior/NoellesAssassinSaviorGuessMixin` drops a guess that names
+    the Savior on a real Savior before `canGuess` is spent. It is not a witch-skill role and never renders in the
+    `gui.sparkwitch.skills` panel.
+  - Loadout (`SaviorLoadoutService`): one grant per player per round, at `ON_FINISH_INITIALIZE` in the after-default
+    phase `savior_finish_initialize` or on a `RoleAssigned` to the Savior in an ACTIVE round (admin change,
+    Schrödinger's Cat via `SchrodingersCatLoadouts`). Hotbar: Wathe key 0, letter 1, SparkStrength tablet 2, pistol 3,
+    lightsaber 4; a Wathe revolver is planted in the hidden main row (slot 9) for Wathe's death drop and the
+    innocent-kill punishment. Opening cooldowns: pistol 60 s, lightsaber 45 s. Every kit item is placed with
+    `setStack`, and `addToPreventGunPickup` is set for the round. Any holder may use the weapons (owner 2026-11-09,
+    the AXMC precedent), and they vanish with whoever holds them on a terminal death (not one SparkTraits intercepts)
+    and on a live-round disconnect, so a corpse never hands them on; Wathe still drops the hidden revolver. A role
+    change away strips nothing.
+  - Weapons (`SaviorPistolService`, `SaviorLightsaberCombatService`): while a game runs they work for any living
+    holder (`SaviorRules.mayUseWeapons`). The pistol (`sparkwitch:savior_pistol_shoot`) copies Wathe's
+    revolver receiver (client pick through `RevolverItem.getGunTarget` + `SparkWitchApi.preferNearerGunWorldTarget`,
+    65-block server tolerance, 10 s after every shot) with the USEC shooter gates (SparkTraits weapon action, stun,
+    Seeker lock, Kidnapper control, Wraith, Dominator hand-shot refusal) and an SFA `canAffectPlayer` pre-veto for
+    both `wathe:gun` and its death reason; crows resolve through `BlackRavenCrowHits.onGunTargetLookup`, puppets and
+    Seeker devices through their `onAddonGunShot`, Partygoers through `SparkStrengthPartygoerCompat`. SparkTraits
+    Niko covers the pistol like the revolver, without the burst (owner 2026-11-09): a sneaking Niko holder of another
+    police role picks at 300 blocks on the client (`RevolverItem.getGunTarget`), so the player-target tolerance comes
+    from `compat/SparkTraitsSaviorBridge.pistolServerRange` (`SparkTraitsApi.getServerGunTargetRange`, widen-only,
+    capped at 300, base 65 on any failure), and SparkTraits pins that shot's cooldown to 60 s through the vanilla
+    write. Crows, puppets, devices and Partygoers keep the 65-block cap. The Savior role itself never has Niko.
+    The lightsaber
+    kills from an `AttackEntityCallback` on a full charge (bat attributes), behind SparkTraits `blocksWeaponAction` /
+    `shouldCancelMeleeAttack`, the Vendetta target rule and the SFA veto, and costs 30 s only after a kill (or a
+    puppet/Partygoer hit). Kills use the terminal reasons `sparkwitch:savior_pistol_kill` (Prophecy GUNSHOT) and
+    `sparkwitch:lightsaber_kill` (BLADE) through `SaviorRules.settleKill` (up to 10 `killPlayer` retries, each may
+    spend one shield layer); SparkTraits skips Last Escape / Last Stand / Depression for them, they pierce psycho
+    armour, and the Saint and NoellesRoles Iron Man / whiskey / Jester mixins let them through (the swallowed
+    no-body rule still applies). Both are Knight-duel interference reasons; the Fiend's D5 hit reward counts the
+    pistol as GUN and the lightsaber as BAT; the Rys-T may deflect the pistol (ranged set; its same-tick memo makes a
+    deflection hold for every settle retry).
+  - Innocent kill (SparkFactionAPI effective faction CIVILIAN, the Knight/Recruit rule): Wathe's policy 4 ticks later,
+    only while the shooter is still alive in the round: the used weapon is taken; a killer-feature shooter loses only
+    that; otherwise a Savior's hidden revolver (not a new one) is dropped, mood 0, gun pickup blocked, `KILL_SHOOTER`
+    kills a good shooter with `shot_innocent`; the pistol also rolls Wathe's backfire for a good shooter. The gun-pickup rules (`SaviorGunPickupRules` + three mixins) veto only foreign guns (Wathe `guns`, Hunter
+    shotgun, AXMC, Shriek Gun) and refuse server-side every click, swap or pick-from-inventory that would move the
+    hidden revolver out of rows 9–26.
+  - Domain (G, `use_savior_skill`, `SaviorDomainService`): ACTIVE round, living, not spectating or swallowed, not
+    SparkTraits skill-blocked, not Feared; 10 s around the Savior, 15 blocks: night vision and blindness removal for
+    everyone inside, Slowness I for everyone but the Savior; 60 s opening and post-use cooldown in
+    `SaviorPlayerComponent` (`sparkwitch:savior`, owner-synced, `NEVER_COPY`, appended last in the CCA list) and the
+    forced-cooldown store `sparkwitch:savior_domain`. `client/savior/SaviorDomainClient` outlines domain members
+    without the instinct key at priority 95 (below `skip()`), skipping players an ordinary viewer cannot see.
+  - Passives: `SaviorSanityService` pins mood at full; `SaviorBlackoutService` gives night vision instead of the
+    blackout blindness (Veteran parity); when a player inside the Savior's 64-block, 120° view is killed by another
+    player (intercepted deaths and the Savior's own kills excluded), `SaviorObservationService` takes half of each
+    weapon's own effective cooldown length off its own remaining cooldown (never a forced remainder,
+    `SaviorCooldowns`).
+  - Payload lists: `use_savior_skill` is on the stun (and so hypnosis / crow body), Fear, Seeker, Rift and Knight G
+    lists; `savior_pistol_shoot` on stun, Seeker, Rift, the Knight seal and the Vendetta guard, not Fear; the
+    lightsaber swing/ignite sound intents are deliberately on none (`SaviorPayloadClassificationTest`).
+  - Client: `client/savior/` (pistol shot, muzzle tracker, lightsaber draw/ignite/hum animation, third-person poses,
+    crosshair) and the optional LambDynamicLights light (`SaviorDynamicLightsInitializer`, compile-only from
+    `maven.gegy.dev`, entrypoints `lambdynlights:initializer` and `dynamiclights`, never bundled). The G line owns
+    the bottom-right corner in `SaintHudLayoutRules` and hides with F1.
+  - Open (owner calls): SparkStrength Bodyguard shield and taotie daze / SFA safe-time lists do not know the Savior
+    ids yet; rules keyed on `wathe:gun_shot` / `wathe:bat_hit` (Fiend hit reward, Rys-T ricochet) ignore the custom
+    reasons (SparkTraits PR #76 makes Heavy Artillery count `sparkwitch:savior_pistol_kill`); Niko's burst never
+    fires the pistol; a punished Savior keeps the other weapon and G; the domain strips every
+    blindness source; SparkAssist has no Savior page.
 - `roles/civilian/recruit/`: the Recruit (`sparkwitch:recruit`, 新兵, color `0x5B862D`), contributed in PR #176; the
   PR description is the spec, every number lives in `RecruitRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no
@@ -2777,7 +2850,10 @@ shot: it sits on every list that holds `wathe:gunshoot` (stun, Seeker session, R
 `roles/civilian/vendetta/VendettaTargetingPacketGuard` drops it like `wathe:gunshoot` when Vendetta
 pair isolation refuses the target (target id read through the id's registered codec, no SparkStrength
 class named). Unlike `wathe:gunshoot`, it is also on Grand Witch Fear's list, like the Demon Hunter
-pistol (owner decision 2026-10-07). The Disruptor gates
+pistol (owner decision 2026-10-07). The Savior pistol shot (`sparkwitch:savior_pistol_shoot`, PR #200) is a gun shot
+on the same lists and is dropped by that guard too; its target id is read directly from `SaviorPistolShootC2SPayload`
+(a fixed INTEGER, not a VarInt). Like `wathe:gunshoot` and unlike the Serial Killer shot, it is not on Fear's list.
+The Disruptor gates
 keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGateMixin`
 (`@WrapMethod` on `WatheClient`). The Control Expert never renders in the
 `gui.sparkwitch.skills` panel.
@@ -3665,6 +3741,10 @@ deliberate and kept:
    the 30 s window, the rest of the window plus the cooldown after it; the nominal is the 120 s post-window cooldown.
    Writes only lengthen; during a window the forced time is held as the pending post-window cooldown, so a running
    Otherworld is never cut short.
+21. `sparkwitch:savior_domain` (`SparkWitchForcedCooldowns#saviorDomain`, PR #200, appended after the Specter
+   Otherworld): the Savior's G domain cooldown, for the raw role in an ACTIVE round with no domain running. Remaining
+   time is `SaviorPlayerComponent` cooldown ticks (60 s opening cooldown included); the nominal is
+   `SaviorRules.DOMAIN_COOLDOWN_TICKS` (1200), written through the owner-syncing `setCooldownTicks`.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
@@ -4412,6 +4492,11 @@ write, and cleanup on every death. A present build whose facade lacks or fails a
 1.0 multiplier, a 2 s bolt, no task money (unknown fails closed), full prices, no block, a vanilla write, or an
 intercepted death: the `KillPlayer.AFTER` cleanup and revolver drop are skipped (reset and finalize still strip the
 kit), and an innocent shot goes unpunished.
+The Savior pistol may query only `getServerGunTargetRange` (the server's player-target distance for this shooter and
+gun; a sneaking Niko holder gets 300 blocks) through `compat/SparkTraitsSaviorBridge`, beyond the existing
+`SparkTraitsKillerBridge.blocksWeaponAction`; Niko's 60 s cooldown, Fast Reload and Fast Hands reach the pistol
+through the vanilla cooldown write, with no SparkWitch call. An absent, older (before SparkTraits PR #76) or failing
+SparkTraits means the 65-block tolerance; the answer is widen-only and capped at 300 blocks.
 
 Black Raven disguise state never enters `sparkwitch:player`, `sparkwitch:black_raven_perception`,
 or `sparkwitch:black_raven_mark`. `sparkwitch:black_raven_disguise` (`NEVER_COPY`, owner-only

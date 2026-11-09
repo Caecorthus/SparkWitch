@@ -26,6 +26,8 @@ import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
 import dev.caecorthus.sparkwitch.client.junker.JunkerClientModule;
 import dev.caecorthus.sparkwitch.client.knight.KnightDuelClient;
 import dev.caecorthus.sparkwitch.client.knight.KnightSwordClient;
+import dev.caecorthus.sparkwitch.client.savior.SaviorClient;
+import dev.caecorthus.sparkwitch.client.savior.SaviorDomainClient;
 import dev.caecorthus.sparkwitch.client.prophet.ProphetClientModule;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
@@ -90,6 +92,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.UseDominatorSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.UseSaviorSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashEntities;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
@@ -159,6 +164,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         // 夏目安安 (PR #194): the target-menu receiver (instinct is gated by NatsumeInstinctGateMixin).
         // 夏目安安（PR #194）：目标菜单接收器（本能由 NatsumeInstinctGateMixin 屏蔽）。
         dev.caecorthus.sparkwitch.client.natsume.NatsumeClientModule.register();
+        SaviorClient.register();
         ProphetClientModule.register();
         ControlExpertStunClient.register();
         ControlExpertStatusHud.register();
@@ -313,6 +319,15 @@ public final class SparkWitchClient implements ClientModInitializer {
                         .isRole(client.player, dev.caecorthus.sparkwitch.SparkWitchRoles.orthopedist())) {
                     // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
                     ClientPlayNetworking.send(new UseOrthopedistSkillC2SPacket());
+                } else if (SaviorRules.isSavior(role)) {
+                    // Client-side guard is presentation only; the server re-checks role, round, cooldown and the active domain.
+                    // 客户端门槛仅用于表现；服务端会重新校验职业、回合、冷却与领域是否已展开。
+                    SaviorPlayerComponent savior = SaviorPlayerComponent.KEY.get(client.player);
+                    if (savior.getCooldownTicks() <= 0
+                            && savior.getDomainTicks() <= 0
+                            && ClientPlayNetworking.canSend(UseSaviorSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseSaviorSkillC2SPacket());
+                    }
                 } else if (BlindRules.isBlind(role)) {
                     // Real role only (the Blind is never a disguise target). / 仅真实职业（盲人不可被伪装）。
                     BlindKitClientWiring.onAbilityKey(client);
@@ -490,19 +505,21 @@ public final class SparkWitchClient implements ClientModInitializer {
         SeekerClientModule.reset();
         StowawaySensesClient.reset();
         BlindClient.reset();
+        SaviorDomainClient.reset();
         releaseClosedWorldPlayers();
     }
 
     /**
      * Connection edges (login, disconnect, join): drops client-side player references that would otherwise keep a
-     * closed ClientWorld alive, namely the Magician stand-in copies and Wathe's muzzle-position map
+     * closed ClientWorld alive, namely the Magician stand-in copies, the Savior client caches (lightsaber hums and
+     * held-stack state, pistol muzzle positions; {@code SaviorClient.releaseClosedWorld}) and Wathe's muzzle-position map
      * ({@code WatheClient.particleMap}, keyed by player and never cleared by Wathe). Wathe only reads and writes that
-     * map on the client thread (held-item render, muzzle packet task) and never iterates it, so both are cleared there;
-     * calls from another thread (login events run on the network thread) are deferred to it.
-     * 连接生命周期节点（登录、断开、加入）：丢弃否则会让已关闭 ClientWorld 一直存活的客户端玩家引用，即魔术师替身副本与
-     * Wathe 的枪口位置表（{@code WatheClient.particleMap}，以玩家为键且 Wathe 从不清空）。Wathe 只在客户端线程（手持物品
-     * 渲染、枪口数据包任务）读写该表且从不遍历它，因此二者都在该线程清理；来自其他线程的调用（登录事件在网络线程触发）
-     * 会推迟到该线程。
+     * map on the client thread (held-item render, muzzle packet task) and never iterates it, so all of them are cleared
+     * there; calls from another thread (login events run on the network thread) are deferred to it.
+     * 连接生命周期节点（登录、断开、加入）：丢弃否则会让已关闭 ClientWorld 一直存活的客户端玩家引用，即魔术师替身副本、
+     * 救世主客户端缓存（光剑嗡鸣与手持物品状态、手枪枪口位置；{@code SaviorClient.releaseClosedWorld}）与 Wathe 的枪口位置表
+     * （{@code WatheClient.particleMap}，以玩家为键且 Wathe 从不清空）。Wathe 只在客户端线程（手持物品渲染、枪口数据包任务）
+     * 读写该表且从不遍历它，因此它们都在该线程清理；来自其他线程的调用（登录事件在网络线程触发）会推迟到该线程。
      */
     private static void releaseClosedWorldPlayers() {
         MinecraftClient client = MinecraftClient.getInstance();
@@ -511,6 +528,7 @@ public final class SparkWitchClient implements ClientModInitializer {
             return;
         }
         MagicianPuppetStandIn.reset();
+        SaviorClient.releaseClosedWorld();
         var muzzles = WatheClient.particleMap;
         if (muzzles != null) {
             muzzles.clear();

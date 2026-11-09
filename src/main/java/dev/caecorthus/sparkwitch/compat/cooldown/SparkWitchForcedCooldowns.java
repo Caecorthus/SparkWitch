@@ -20,6 +20,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowRules;
@@ -82,6 +84,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier NATSUME_HYPNOSIS_ID = NatsumeRules.HYPNOSIS_SKILL_ID;
     static final Identifier SPECTER_SKILL_ID = SparkWitch.id("specter_skill");
     static final Identifier SPECTER_OTHERWORLD_ID = SparkWitch.id("specter_otherworld");
+    static final Identifier SAVIOR_DOMAIN_ID = SparkWitch.id("savior_domain");
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -147,7 +150,10 @@ public final class SparkWitchForcedCooldowns {
                 specterSkill(),
                 // Specter Otherworld (PR #207), store 20, appended after the Specter's skill-one store.
                 // 幽魂里世界（PR #207），第 20 个存储，追加在幽魂技能一存储之后。
-                specterOtherworld()
+                specterOtherworld(),
+                // Savior G domain (PR #200), store 21, appended after the Specter Otherworld.
+                // 救世主 G 领域（PR #200），第 21 个存储，追加在幽魂里世界之后。
+                saviorDomain()
         );
     }
 
@@ -500,6 +506,30 @@ public final class SparkWitchForcedCooldowns {
                 player -> SpecterSecondSkillComponent.KEY.get(player).forcedCooldownRemainingTicks(),
                 () -> SpecterRules.SECOND_SKILL_COOLDOWN_TICKS,
                 (player, ticks) -> SpecterSecondSkillComponent.KEY.get(player).setForcedCooldownRemainingTicks(ticks)
+        );
+    }
+
+    /**
+     * The Savior's G domain cooldown (PR #200), kept as a counting-down tick total in the owner-synced
+     * {@code sparkwitch:savior} component. {@code SaviorDomainService}'s role and round gates: an ACTIVE round and the
+     * raw role; and no running domain, because the cast already wrote the post-cast cooldown and a running domain is
+     * never forced (the Dominator's running mark precedent). Remaining time includes the 60 s round-start cooldown; the
+     * nominal is the 60 s cooldown after each cast. The setter is exact (floored at 0) and syncs the owner. The skill
+     * has no item, so SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it.
+     * 救世主 G 领域冷却（PR #200），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:savior} 组件中。与
+     * SaviorDomainService 的职业与回合门控一致：ACTIVE 回合且为真实职业；并且没有进行中的领域，因为施放时已写入施放后冷却，
+     * 进行中的领域绝不强制（沿用支配者进行中标记的先例）。剩余时间包含 60 秒开局冷却；标准冷却为每次施放后的 60 秒。setter
+     * 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）
+     * 触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore saviorDomain() {
+        return SimpleRoleSkillCooldownStore.exact(
+                SAVIOR_DOMAIN_ID,
+                whileActive((game, player) -> SaviorRules.isSavior(game.getRole(player))
+                        && !SaviorPlayerComponent.KEY.get(player).isDomainActive()),
+                player -> SaviorPlayerComponent.KEY.get(player).getCooldownTicks(),
+                () -> SaviorRules.DOMAIN_COOLDOWN_TICKS,
+                (player, ticks) -> SaviorPlayerComponent.KEY.get(player).setCooldownTicks(ticks)
         );
     }
 

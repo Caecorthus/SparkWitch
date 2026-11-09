@@ -24,6 +24,12 @@
     ],
     "voicechat": [
       "dev.caecorthus.sparkwitch.voice.SparkWitchVoiceChatPlugin"
+    ],
+    "lambdynlights:initializer": [
+      "dev.caecorthus.sparkwitch.client.savior.SaviorDynamicLightsInitializer"
+    ],
+    "dynamiclights": [
+      "dev.caecorthus.sparkwitch.client.savior.SaviorDynamicLightsInitializer"
     ]
   },
   "custom": {
@@ -86,7 +92,8 @@
       "sparkwitch:specter_fear",
       "sparkwitch:specter_second_skill",
       "sparkwitch:specter_cowardice",
-      "sparkwitch:specter_otherworld"
+      "sparkwitch:specter_otherworld",
+      "sparkwitch:savior"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",
@@ -115,7 +122,8 @@
   },
   "suggests": {
     "sparktraits": ">=0.1.9.11",
-    "sparkstrength": "*"
+    "sparkstrength": "*",
+    "lambdynlights": ">=3.0.0"
   },
   "breaks": {
     "sparktraits": "<0.1.9.11"

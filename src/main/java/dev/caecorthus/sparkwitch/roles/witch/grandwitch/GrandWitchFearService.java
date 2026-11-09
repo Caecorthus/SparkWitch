@@ -75,6 +75,11 @@ public final class GrandWitchFearService {
             // Dominator mark/release (G); the server also re-checks fear on use.
             // 支配者标记/释放（G 键）；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "use_dominator_skill"),
+            // Savior domain (G, PR #200); the server also re-checks fear on use. The Savior pistol shot stays allowed
+            // like wathe:gunshoot (Fear blocks role skills, not weapons); the lightsaber sound intents are not skills.
+            // 救世主领域（G 键，PR #200）；服务端在使用时也会再次检查恐惧。救世主手枪射击与 wathe:gunshoot 一样放行（恐惧只封锁
+            // 职业技能，不封锁武器），光剑音效意图也不是技能。
+            Identifier.of("sparkwitch", "use_savior_skill"),
             // 夏目安安 hypnosis menu request and target confirm; the server also re-checks fear on both.
             // 夏目安安催眠菜单请求与目标确认；服务端在两者上也会再次检查恐惧。
             Identifier.of("sparkwitch", "request_natsume_menu"),

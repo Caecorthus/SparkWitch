@@ -29,6 +29,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
@@ -113,6 +114,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
+    public static final Identifier SAVIOR_ID = SaviorRules.ROLE_ID;
     public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
     public static final Identifier ATHLETE_ID = AthleteRules.ROLE_ID;
     public static final Identifier DISCOVERER_ID = DiscovererRules.ROLE_ID;
@@ -165,6 +167,7 @@ public final class SparkWitchRoleRegistry {
     private static Role bewitched;
     private static Role usec;
     private static Role knight;
+    private static Role savior;
     private static Role recruit;
     private static Role athlete;
     private static Role discoverer;
@@ -217,6 +220,7 @@ public final class SparkWitchRoleRegistry {
         // Police classification, like the other Vigilante variants (SparkTraits police traits, SparkStrength tablet);
         // cop slots come from PoliceSlotAssignmentService.
         // 与其他义警变体相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(SAVIOR_ID);
         PoliceRoles.register(BLACK_RAVEN_ID);
         // Plan v2 §3.3: the Black Raven never counts as alive for settlement in other mods either (reflective, fails
         // closed on an older SparkFactionAPI). 计划 v2 §3.3：黑羽鸦在其他模组的结算中同样不算存活（反射调用，旧版
@@ -435,6 +439,11 @@ public final class SparkWitchRoleRegistry {
     public static Role knight() {
         ensureRegistered();
         return knight;
+    }
+
+    public static Role savior() {
+        ensureRegistered();
+        return savior;
     }
 
     public static Role recruit() {
@@ -830,6 +839,15 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Vigilante-equivalent police variant; loadout and full sanity live in roles/civilian/savior.
+        // 与义警等同的警察变体；开局装备与恒满理智位于 roles/civilian/savior。
+        savior = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SAVIOR_ID, FactionIds.CIVILIAN)
+                .color(SaviorRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Registered before the Recruit and the Insider (nothing may follow the Insider). A Wathe-native neutral with
         // tasks and fake mood, available at every player count. It never blocks any win; at round end a living Stowaway
         // joins the winning team, and a dead one loses.
@@ -1100,6 +1118,11 @@ public final class SparkWitchRoleRegistry {
                 seeker,
                 usec,
                 knight,
+                // The Savior (PR #200) closes the police block; NoellesRoles sends role identifiers, so this order is
+                // presentation only (its panel entry is hidden anyway) and the promotion identities stay the tail.
+                // 救世主（PR #200）排在警察段末尾；NoellesRoles 发送的是职业标识符，此顺序仅影响展示（其面板条目本就隐藏），
+                // 晋升身份仍位于末尾。
+                savior,
                 fiend,
                 insider,
                 stowaway,

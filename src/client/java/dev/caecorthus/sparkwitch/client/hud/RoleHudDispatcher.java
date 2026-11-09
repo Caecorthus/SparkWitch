@@ -18,9 +18,11 @@ import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintHudLayoutRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.client.WatheClient;
 import dev.doctor4t.wathe.game.GameFunctions;
 import java.util.List;
 import net.minecraft.client.MinecraftClient;
@@ -55,6 +57,7 @@ public final class RoleHudDispatcher {
         renderCurser(context);
         renderGuardianAngel(context);
         renderOrthopedist(context);
+        renderSavior(context);
         renderSaint(hud, context);
         renderVendetta(context);
         renderKidnapperControlled(context);
@@ -120,6 +123,30 @@ public final class RoleHudDispatcher {
         // Widened by the Black Raven acting overlay; getRole stays raw. / 黑羽鸦扮演覆盖层会放宽此判定；getRole 仍为真实身份。
         if (GameWorldComponent.KEY.get(player.getWorld()).isRole(player, SparkWitchRoles.orthopedist())) {
             OrthopedistHudRenderer.render(context, player);
+        }
+    }
+
+    /**
+     * The Savior's G-skill line at the bottom-right in the role color, in the shared corner slot that
+     * {@code SaintHudLayoutRules} reserves. This seam still draws under F1, so the layer follows the Dominator and
+     * Ragpicker corner lines: hidden with F1 and whenever Wathe's train HUD is.
+     * 右下角职业色的救世主 G 技能提示，位于 {@code SaintHudLayoutRules} 预留的共享角落位置。本接缝在 F1 下仍会绘制，因此
+     * 该层与支配者、拾荒者角落行一致：F1 或 Wathe 列车 HUD 隐藏时都不绘制。
+     */
+    private static void renderSavior(DrawContext context) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
+        MinecraftClient client = MinecraftClient.getInstance();
+        ClientPlayerEntity player = client.player;
+        if (player == null || client.options.hudHidden
+                || WatheClient.trainComponent == null || !WatheClient.trainComponent.hasHud()
+                || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+            return;
+        }
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        if (SaviorRules.isSavior(role)) {
+            SaviorHudRenderer.render(context, player);
         }
     }
 

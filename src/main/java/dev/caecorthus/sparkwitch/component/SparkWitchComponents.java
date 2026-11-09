@@ -18,6 +18,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRoundComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaPlayerComponent;
@@ -231,6 +232,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, SpecterCowardiceComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(SpecterCowardiceComponent::new);
+        // Savior G-skill cooldown and domain timer (PR #200), synced to its owner only; appended last.
+        // 救世主 G 技能冷却与领域计时（PR #200），只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, SaviorPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SaviorPlayerComponent::new);
     }
 
     @Override

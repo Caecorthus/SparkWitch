@@ -35,8 +35,11 @@ public enum ProphetDeathCauseGroup {
             entry("sparkwitch:ceremonial_blade", BLADE),
             entry("sparkwitch:ninja_knife_kill", BLADE),
             entry("sparkwitch:swordfish_stab", BLADE),
+            // Savior (PR #200): the lightsaber is a blade, the pistol a gunshot. / 救世主（PR #200）：光剑为利刃，手枪为枪击。
+            entry("sparkwitch:lightsaber_kill", BLADE),
             entry("wathe:gun_shot", GUNSHOT),
             entry("wathe:gun_shot_backfire", GUNSHOT),
+            entry("sparkwitch:savior_pistol_kill", GUNSHOT),
             // Witch Maiden crimson wither skull: a gunshot for every other system (owner Q5, 2026-10-20).
             // 巫女赤色凋灵之首：在其他系统中按枪击处理（所有者 Q5，2026-10-20）。
             entry("sparkwitch:crimson_wither_skull", GUNSHOT),
