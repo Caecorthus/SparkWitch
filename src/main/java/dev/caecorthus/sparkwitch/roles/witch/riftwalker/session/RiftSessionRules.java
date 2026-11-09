@@ -110,6 +110,9 @@ public final class RiftSessionRules {
             // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
+            // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
+            Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_specter_second_skill"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
             // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.
@@ -128,6 +131,8 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "black_raven_crow_move"),
             Identifier.of("sparkwitch", "black_raven_crow_use"),
             Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
+            // BEAR M32A1 fire, a held-item shot like the launcher's. / BEAR M32A1 开火，与炮筒同类的手持射击。
+            Identifier.of("sparkwitch", "fire_m32a1"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

@@ -3,6 +3,8 @@ package dev.caecorthus.sparkwitch.roles.witch.potiongunner.launcher;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.BearRicochetRules;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.RangedSmokeCarve;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeKillAttribution;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
@@ -61,6 +63,8 @@ public final class PotionBackblastService {
         Vec3d backwards = PotionBackblastRules.backwards(fireYaw);
         double length = PotionBackblastRules.laneLength(blockDistance(world, gunner, origin, backwards));
         present(world, gunner, origin, backwards, length);
+        RangedSmokeCarve.tunnel(world, origin, origin.add(backwards.multiply(length)),
+                BearRicochetRules.BACKBLAST_TUNNEL_RADIUS); // BEAR: blast lane / 尾焰通道
         if (presentation) {
             return;
         }

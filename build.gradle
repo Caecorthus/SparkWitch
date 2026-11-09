@@ -235,6 +235,32 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
         [
+                // BEAR smoke (owner, 2026-11-05): the crosshair labels skip players and corpses hidden by smoke.
+                // BEAR 烟雾（所有者 2026-11-05）：准星标签跳过被烟挡住的玩家与尸体。
+                configName: "bear.SmokeRoleNameRaycastMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/bear/SmokeRoleNameRaycastMixin.class",
+                handler: "sparkwitch\$skipSmokeHiddenLabelTargets",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/ModifyArg;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_1675;method_49998(Lnet/minecraft/class_1297;Ljava/util/function/Predicate;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                // BEAR M32A1 (owner, 2026-11-06): the slot badge replaces Wathe's selected-slot cooldown number.
+                // BEAR M32A1（所有者 2026-11-06）：格标记取代 Wathe 选中格冷却数字。
+                configName: "bear.M32CooldownNumberMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/bear/M32CooldownNumberMixin.class",
+                handler: "sparkwitch\$yieldToM32Badge",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_332;method_25303(Lnet/minecraft/class_327;Ljava/lang/String;III)I",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CooldownRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
                 configName: "witchmaiden.WitchMaidenInventoryScreenMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/witchmaiden/WitchMaidenInventoryScreenMixin.class",
                 handler: "sparkwitch\$attachWitchMaidenUi",
@@ -798,6 +824,144 @@ def watheClientMixinContracts = [
         ]
 ]
 
+// Common (server-side) mixins on Wathe/NoellesRoles members, checked by the same task against the shipped common config
+// (`sparkwitch.mixins.json` `mixins`). `priority` (optional) pins the class-level @Mixin priority where the order among
+// HEAD callbacks is part of the contract. Vanilla targets stay pinned by local tests.
+// Wathe/NoellesRoles 成员上的通用（服务端）mixin，由同一任务按发布的通用配置（`sparkwitch.mixins.json` 的 `mixins`）校验。
+// `priority`（可选）在 HEAD 回调顺序属于契约时固定类级 @Mixin 优先级。原版目标仍由本地测试固定。
+def watheCommonMixinContracts = [
+        [
+                // BEAR Rys-T ricochet: HEAD 1050, after the default-1000 immunity guards, before the 1100 vest.
+                // BEAR Rys-T 跳弹：HEAD 1050，位于默认 1000 的免疫守卫之后、1100 护甲之前。
+                configName: "bear.RicochetKillPlayerMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/bear/RicochetKillPlayerMixin.class",
+                handler: "sparkwitch\$rysTRicochet",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                priority: 1050,
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // BEAR bullet tunnel for the Wathe revolver family, at the accepted-shot record anchor.
+                // Wathe 左轮系的 BEAR 弹道通道，挂在已接受射击的记录锚点。
+                configName: "bear.GunShootPayloadSmokeCarveMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/bear/GunShootPayloadSmokeCarveMixin.class",
+                handler: "sparkwitch\$carveBulletTunnel",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "receive(Ldev/doctor4t/wathe/util/GunShootPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                atTarget: "Ldev/doctor4t/wathe/record/GameRecordManager;recordItemUse(Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;Lnet/minecraft/class_3222;Lnet/minecraft/class_2487;)V",
+                providerEntry: "dev/doctor4t/wathe/util/GunShootPayload\$Receiver.class",
+                providerMethod: "receive",
+                providerDescriptor: "(Ldev/doctor4t/wathe/util/GunShootPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // BEAR bullet tunnel for the NoellesRoles Demon Hunter pistol. / NoellesRoles 猎魔枪的 BEAR 弹道通道。
+                configName: "bear.DemonHunterShotSmokeCarveMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/bear/DemonHunterShotSmokeCarveMixin.class",
+                handler: "sparkwitch\$carveBulletTunnel",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "receive(Lorg/agmas/noellesroles/demonhunter/DemonHunterShootC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                atTarget: "Ldev/doctor4t/wathe/record/GameRecordManager;recordItemUse(Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;Lnet/minecraft/class_3222;Lnet/minecraft/class_2487;)V",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/demonhunter/DemonHunterShootC2SPacket\$Receiver.class",
+                providerMethod: "receive",
+                providerDescriptor: "(Lorg/agmas/noellesroles/demonhunter/DemonHunterShootC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // BEAR: the Wathe grenade's whole onCollision runs in its origin scope, then carves smoke.
+                // BEAR：Wathe 手雷整个 onCollision 在其来源作用域内执行，随后在烟雾中开洞。
+                configName: "bear.GrenadeEntityOriginSmokeCarveMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/bear/GrenadeEntityOriginSmokeCarveMixin.class",
+                handler: "sparkwitch\$scopeGrenadeBlast",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "method_7488(Lnet/minecraft/class_239;)V",
+                providerEntry: "dev/doctor4t/wathe/entity/GrenadeEntity.class",
+                providerMethod: "method_7488",
+                providerDescriptor: "(Lnet/minecraft/class_239;)V"
+        ],
+        [
+                // BEAR: the firecracker's bang, at the only discard() in its tick. / BEAR：鞭炮炸响，挂在其 tick 唯一的 discard()。
+                configName: "bear.FirecrackerSmokeCarveMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/bear/FirecrackerSmokeCarveMixin.class",
+                handler: "sparkwitch\$carveFirecrackerBang",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_5773()V",
+                atTarget: "Ldev/doctor4t/wathe/entity/FirecrackerEntity;method_31472()V",
+                providerEntry: "dev/doctor4t/wathe/entity/FirecrackerEntity.class",
+                providerMethod: "method_5773",
+                providerDescriptor: "()V"
+        ],
+        [
+                // BEAR: the NoellesRoles bomb blast, HEAD 900 so it precedes SparkTraits' Conscience-bomb cancel.
+                // BEAR：NoellesRoles 炸弹爆炸，HEAD 900，先于 SparkTraits 的善良炸弹取消。
+                configName: "bear.BomberExplosionSmokeCarveMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/bear/BomberExplosionSmokeCarveMixin.class",
+                handler: "sparkwitch\$carveBombBlast",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "explode()V",
+                priority: 900,
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/bomber/BomberPlayerComponent.class",
+                providerMethod: "explode",
+                providerDescriptor: "()V"
+        ],
+        [
+                // BEAR: the throwing-axe kill runs in its flight-origin scope. / BEAR：飞斧击杀在其飞行来源作用域内执行。
+                configName: "bear.ThrowingAxeRangedOriginMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/bear/ThrowingAxeRangedOriginMixin.class",
+                handler: "sparkwitch\$scopeAxeOrigin",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "method_7454(Lnet/minecraft/class_3966;)V",
+                atTarget: "Ldev/doctor4t/wathe/game/GameFunctions;killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;)V",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/entity/ThrowingAxeEntity.class",
+                providerMethod: "method_7454",
+                providerDescriptor: "(Lnet/minecraft/class_3966;)V"
+        ],
+        [
+                // Specter Otherworld targeting rule: HEAD 1040, after the default-1000 immunity guards and before the
+                // 1050 ricochet and the 1100 Fiend/vest, so a voided knife kill spends nothing.
+                // 幽魂里世界索敌规则：HEAD 1040，位于默认 1000 的免疫守卫之后，并先于 1050 跳弹与 1100 魔人/防弹衣，作废的刀杀不消耗任何东西。
+                configName: "specter.GameFunctionsSpecterOtherworldTargetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/specter/GameFunctionsSpecterOtherworldTargetMixin.class",
+                handler: "sparkwitch\$blockOtherworldKillOnInvalidTarget",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                priority: 1040,
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // Specter Otherworld shield, at the psycho-armour branch (first getPsychoTicks: non-forced, non-piercing).
+                // 幽魂里世界护盾，挂在疯魔护甲分支（第一次 getPsychoTicks：非强制、非穿盾）。
+                configName: "specter.GameFunctionsSpecterShieldMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/specter/GameFunctionsSpecterShieldMixin.class",
+                handler: "sparkwitch\$absorbWithOtherworldShield",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                atTarget: "Ldev/doctor4t/wathe/cca/PlayerPsychoComponent;getPsychoTicks()I",
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // Specter Otherworld knife drop: HEAD 900, before the default-1000 knife guards (rejected targets only).
+                // 幽魂里世界刀刺丢弃：HEAD 900，先于默认 1000 的刀守卫（仅被拒绝的目标）。
+                configName: "specter.SpecterOtherworldKnifeMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/specter/SpecterOtherworldKnifeMixin.class",
+                handler: "sparkwitch\$dropRejectedOtherworldStab",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "receive(Ldev/doctor4t/wathe/util/KnifeStabPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                priority: 900,
+                providerEntry: "dev/doctor4t/wathe/util/KnifeStabPayload\$Receiver.class",
+                providerMethod: "receive",
+                providerDescriptor: "(Ldev/doctor4t/wathe/util/KnifeStabPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ]
+]
+
 def readClassNode = { java.util.zip.ZipFile archive, String entryName ->
     def entry = archive.getEntry(entryName)
     if (entry == null) {
@@ -829,6 +993,7 @@ def verifyClientMixinSelectors = tasks.register("verifyClientMixinSelectors") {
     inputs.file("libs/wathe-${project.wathe_version}.jar")
     inputs.file("libs/noellesroles-${project.noellesroles_version}.jar")
     inputs.file("src/client/resources/sparkwitch.client.mixins.json")
+    inputs.file("src/main/resources/sparkwitch.mixins.json")
 
     doLast {
         def jarFile = remappedModJar.get().archiveFile.get().asFile
@@ -858,16 +1023,42 @@ def verifyClientMixinSelectors = tasks.register("verifyClientMixinSelectors") {
                 )
             }
             def configuredMixins = config.client ?: []
+            def commonConfigEntry = modZip.getEntry("sparkwitch.mixins.json")
+            if (commonConfigEntry == null) {
+                throw new GradleException("Missing sparkwitch.mixins.json in ${jarFile.name}")
+            }
+            def commonConfig = new groovy.json.JsonSlurper().parse(modZip.getInputStream(commonConfigEntry))
+            if (commonConfig.injectors?.defaultRequire?.toString() != "1") {
+                throw new GradleException(
+                        "Common mixin defaultRequire drift: expected 1, found ${commonConfig.injectors?.defaultRequire}"
+                )
+            }
+            def commonMixins = commonConfig.mixins ?: []
             def providerNodes = [:]
 
-            watheClientMixinContracts.each { contract ->
-                if (!configuredMixins.contains(contract.configName)) {
+            def allContracts = watheClientMixinContracts.collect { it + [common: false] } +
+                    watheCommonMixinContracts.collect { it + [common: true] }
+            allContracts.each { contract ->
+                def configLabel = contract.common ? "sparkwitch.mixins.json" : "sparkwitch.client.mixins.json"
+                if (!(contract.common ? commonMixins : configuredMixins).contains(contract.configName)) {
                     throw new GradleException(
-                            "Missing client mixin ${contract.configName} from sparkwitch.client.mixins.json"
+                            "Missing ${contract.common ? 'common' : 'client'} mixin ${contract.configName} from ${configLabel}"
                     )
                 }
 
                 def mixinNode = readClassNode(modZip, contract.mixinEntry)
+                if (contract.priority != null) {
+                    def classAnnotations = []
+                    classAnnotations.addAll(mixinNode.visibleAnnotations ?: [])
+                    classAnnotations.addAll(mixinNode.invisibleAnnotations ?: [])
+                    def mixinAnnotation = classAnnotations.find { it.desc == "Lorg/spongepowered/asm/mixin/Mixin;" }
+                    def priority = annotationValue(mixinAnnotation, "priority")
+                    if (priority?.toString() != contract.priority.toString()) {
+                        throw new GradleException(
+                                "Mixin priority drift for ${contract.mixinEntry}: expected ${contract.priority}, found ${priority}"
+                        )
+                    }
+                }
                 def handler = mixinNode.methods.find { it.name == contract.handler }
                 if (handler == null) {
                     throw new GradleException("Missing handler ${contract.handler} in ${contract.mixinEntry}")

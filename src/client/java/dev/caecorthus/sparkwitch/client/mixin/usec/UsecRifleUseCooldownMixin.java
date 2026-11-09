@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.mixin.usec;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.M32A1Item;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRifleItem;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.player.ItemCooldownManager;
@@ -14,11 +15,13 @@ import org.spongepowered.asm.mixin.injection.At;
  * {@code interactItem} checks the cooldown inside the sequenced-packet lambda {@code method_41929} and answers PASS
  * without calling {@code ItemStack#use} (the packet is still sent). For {@link UsecRifleItem} only, that check reads
  * "not cooling down", so Shift + right-click and scoping work during the round-start lock and the bolt. Presentation
- * and intent only: the server applies the same rule on its own, and firing stays cooldown-gated there.
+ * and intent only: the server applies the same rule on its own, and firing stays cooldown-gated there. BEAR
+ * (2026-11-05): the M32A1 gets the same exemption, so the M2A1 sight works during its 1 s shot cooldown.
  * A1，{@code mixin/usec/ServerPlayerInteractionManagerUsecScopeMixin} 的客户端一半：原版客户端 {@code interactItem}
  * 在顺序数据包 lambda {@code method_41929} 中检查冷却，冷却时返回 PASS 且不调用 {@code ItemStack#use}（数据包仍会发出）。
  * 仅对 {@link UsecRifleItem}，这一处检查视为“未冷却”，因此开局锁定与拉栓期间也能 Shift + 右键跳转倍率并开镜。仅为表现与
- * 意图：服务端独立执行同样的规则，开火在服务端仍受冷却限制。
+ * 意图：服务端独立执行同样的规则，开火在服务端仍受冷却限制。BEAR（2026-11-05）：M32A1 享有同样的豁免，因此 1 秒射击冷却期间
+ * M2A1 瞄具照常可用。
  */
 @Mixin(ClientPlayerInteractionManager.class)
 public abstract class UsecRifleUseCooldownMixin {
@@ -31,6 +34,6 @@ public abstract class UsecRifleUseCooldownMixin {
     )
     private boolean sparkwitch$scopeUsecRifleWhileCooling(ItemCooldownManager manager, Item item,
                                                            Operation<Boolean> original) {
-        return !(item instanceof UsecRifleItem) && original.call(manager, item);
+        return !(item instanceof UsecRifleItem || item instanceof M32A1Item) && original.call(manager, item);
     }
 }

@@ -1,6 +1,8 @@
 package dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither;
 
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.BearRicochetRules;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.RangedSmokeCarve;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.PotionBlastGeometry;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -39,6 +41,7 @@ public final class MiniWitherBurstService {
         world.spawnParticles(ParticleTypes.EXPLOSION, center.x, center.y, center.z, 1, 0.0, 0.0, 0.0, 0.0);
         world.spawnParticles(blessed ? ParticleTypes.HAPPY_VILLAGER : ParticleTypes.SOUL, center.x, center.y, center.z,
                 8, 0.5, 0.5, 0.5, 0.02);
+        RangedSmokeCarve.blast(world, center, BearRicochetRules.MINI_WITHER_HOLE_RADIUS); // BEAR: burst hole / 爆炸空洞
 
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         UUID ownerUuid = skull.ownerUuid();

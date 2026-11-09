@@ -80,6 +80,11 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.usecFmjRound(),
                                     SparkWitchItems.usecApRound(),
                                     SparkWitchItems.usecSuppressor(),
+                                    // BEAR (civilian) / BEAR（平民）
+                                    dev.caecorthus.sparkwitch.roles.civilian.bear.BearItems.M32A1,
+                                    dev.caecorthus.sparkwitch.roles.civilian.bear.BearItems.SMOKE_ROUND,
+                                    dev.caecorthus.sparkwitch.roles.civilian.bear.BearItems.RYS_T,
+                                    dev.caecorthus.sparkwitch.roles.civilian.bear.BearItems.EARPLUGS,
                                     // NoellesRoles Attendant's Spare Key (civilian) / NoellesRoles 乘务员的备用钥匙（平民）
                                     SparkWitchItems.spareKey(),
                                     SparkWitchItems.bigDogPortrait(),
@@ -104,7 +109,10 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.tollBell(),
                                     SparkWitchItems.timeStealerClock(),
                                     SparkWitchItems.timeStealerGiftWatch(),
-                                    SparkWitchItems.timeStamp()
+                                    SparkWitchItems.timeStamp(),
+                                    // Specter (killer) / 幽魂（杀手）
+                                    SparkWitchItems.ghostTrigger(),
+                                    SparkWitchItems.peachwoodSword()
                             );
                             factionOrder.forEach(entries::add);
                             // Any other item in our namespace follows in registration order, so new items join automatically.

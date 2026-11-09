@@ -27,6 +27,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistEffects;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelEffects;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEffects;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterEntities;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterEntities;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.FocusedFootstepsEffects;
 import dev.caecorthus.sparkwitch.roles.witch.curser.CurserFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
@@ -56,6 +57,7 @@ public final class SparkWitch implements ModInitializer {
         GuardianAngelEffects.register();
         FocusedFootstepsEffects.register();
         HunterEntities.register();
+        SpecterEntities.register();
         ControlExpertEntities.register();
         AbyssListenerEntities.register();
         RiftGateEntities.register();
@@ -65,8 +67,13 @@ public final class SparkWitch implements ModInitializer {
         MiniWitherEntities.register();
         BlackRavenCrowEntities.register();
         BlackRavenFeatherRegistry.register();
+        // BEAR smoke round entity type. / BEAR 烟雾榴弹实体类型。
+        dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.BearEntities.register();
         SparkWitchDataComponents.register();
         SparkWitchItems.register();
+        // BEAR items (launcher, smoke round, Rys-T, earplugs), after the data components they carry and before the tab.
+        // BEAR 物品（发射器、烟雾榴弹、Rys-T、耳塞），位于其携带的数据组件之后、物品栏之前。
+        dev.caecorthus.sparkwitch.roles.civilian.bear.BearItems.register();
         SparkWitchItemGroups.register();
         SparkWitchEntities.register();
         // NoellesRoles remains the packet-filter owner; FactionAPI only extends its hidden-item predicate.

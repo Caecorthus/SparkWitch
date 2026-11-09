@@ -10,6 +10,10 @@ import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.bewitched.BewitchedClientPresentation;
 import dev.caecorthus.sparkwitch.client.recruit.RecruitClientPresentation;
+import dev.caecorthus.sparkwitch.client.specter.SpecterClientModule;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
+import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteClient;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteDashClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaClient;
@@ -133,6 +137,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         BlackRavenClientModule.register();
         GrandWitchClientModule.register();
         ApprenticeClientModule.register();
+        SpecterClientModule.register();
         WitchMaidenClientModule.register();
         MiniWitherClient.register();
         BlackRavenCrowClient.register();
@@ -177,6 +182,14 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Noa painting line (role-owned HUD); the painting itself rides the shared ability key below.
         // 诺亚作画行（职业自有 HUD）；作画本身走下方的共享技能键。
         NoaClient.init();
+        // BEAR smoke (spike): the S2C receivers that write SmokeClientState, and the disconnect cleanup.
+        // BEAR 烟雾（原型）：写入 SmokeClientState 的 S2C 接收器与断线清理。
+        dev.caecorthus.sparkwitch.client.bear.smoke.SmokeNetworkClient.register();
+        // BEAR volumetric smoke (client presentation only; reads SmokeClientState). / BEAR 体积烟雾（纯客户端展示；只读 SmokeClientState）。
+        dev.caecorthus.sparkwitch.client.bear.smoke.render.SmokeRenderWiring.register();
+        // BEAR smoke under an Iris shader pack: liveness, billboard fallback, per-entity outline veto (no-op without a pack).
+        // Iris 光影包下的 BEAR 烟雾：存活判定、公告板兜底、逐实体描边否决（未用光影包时不做任何事）。
+        dev.caecorthus.sparkwitch.client.bear.smoke.shaderpack.SmokeShaderPackWiring.register();
         AllowPlayerChat.EVENT.register(player -> {
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 return false;
@@ -283,6 +296,13 @@ public final class SparkWitchClient implements ClientModInitializer {
                             && ClientPlayNetworking.canSend(UseDominatorSkillC2SPacket.ID)) {
                         ClientPlayNetworking.send(new UseDominatorSkillC2SPacket());
                     }
+                } else if (SpecterRules.isSpecter(role)) {
+                    // The server owns the full validation; the synced cooldown only trims obviously dead presses.
+                    // 完整校验在服务端；本地同步的冷却只用来过滤明显无效的按键。
+                    if (!SpecterPlayerComponent.KEY.get(client.player).isOnCooldown()
+                            && ClientPlayNetworking.canSend(UseSpecterSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseSpecterSkillC2SPacket());
+                    }
                 } else if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.CURSER_ID)) {
                     if (CurserClientHooks.canUse(client.player)) {
                         CurserClientHooks.use();
@@ -332,6 +352,9 @@ public final class SparkWitchClient implements ClientModInitializer {
             return null;
         });
         CanSeePoison.EVENT.register(WitchPoisonVisionClientHooks::canSeeHiddenPoison);
+        // BEAR client hub (work packages append there), before USEC, which stays last.
+        // BEAR 客户端注册中心（各工作包在其中追加），位于 USEC 之前，USEC 保持最后。
+        dev.caecorthus.sparkwitch.client.bear.BearClientModule.register();
         // USEC client hub, appended last: scope, HUD, attachment screen, impact cracks.
         // USEC 客户端注册中心，追加在最后：开镜、HUD、配件界面、命中裂痕。
         UsecClientModule.register();
@@ -361,6 +384,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         // The flying shell draws its 3D model by stack type. / 飞行中的炮弹按物品种类绘制 3D 模型。
         EntityRendererRegistry.register(PotionGunnerEntities.potionShell(), PotionShellEntityRenderer::new);
         SeekerClientModule.registerEntityRenderers();
+        // BEAR smoke round (WP0 stub renderer). / BEAR 烟雾榴弹（WP0 桩渲染器）。
+        dev.caecorthus.sparkwitch.client.bear.BearClientModule.registerEntityRenderers();
         EntityRendererRegistry.register(SparkWitchEntities.magicianPlayback(), MagicianPlaybackEntityRenderer::new);
         // Raven Form world content: Homing Feather marker and black feather particle. / 化鸦世界内容：归羽标记与黑羽粒子。
         BlackRavenCrowWorldClient.register();
