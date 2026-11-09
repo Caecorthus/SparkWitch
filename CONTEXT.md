@@ -1373,7 +1373,13 @@ Current build baseline:
     65-block server tolerance, 10 s after every shot) with the USEC shooter gates (SparkTraits weapon action, stun,
     Seeker lock, Kidnapper control, Wraith, Dominator hand-shot refusal) and an SFA `canAffectPlayer` pre-veto for
     both `wathe:gun` and its death reason; crows resolve through `BlackRavenCrowHits.onGunTargetLookup`, puppets and
-    Seeker devices through their `onAddonGunShot`, Partygoers through `SparkStrengthPartygoerCompat`. The lightsaber
+    Seeker devices through their `onAddonGunShot`, Partygoers through `SparkStrengthPartygoerCompat`. SparkTraits
+    Niko covers the pistol like the revolver, without the burst (owner 2026-11-09): a sneaking Niko holder of another
+    police role picks at 300 blocks on the client (`RevolverItem.getGunTarget`), so the player-target tolerance comes
+    from `compat/SparkTraitsSaviorBridge.pistolServerRange` (`SparkTraitsApi.getServerGunTargetRange`, widen-only,
+    capped at 300, base 65 on any failure), and SparkTraits pins that shot's cooldown to 60 s through the vanilla
+    write. Crows, puppets, devices and Partygoers keep the 65-block cap. The Savior role itself never has Niko.
+    The lightsaber
     kills from an `AttackEntityCallback` on a full charge (bat attributes), behind SparkTraits `blocksWeaponAction` /
     `shouldCancelMeleeAttack`, the Vendetta target rule and the SFA veto, and costs 30 s only after a kill (or a
     puppet/Partygoer hit). Kills use the terminal reasons `sparkwitch:savior_pistol_kill` (Prophecy GUNSHOT) and
@@ -1408,8 +1414,9 @@ Current build baseline:
     `maven.gegy.dev`, entrypoints `lambdynlights:initializer` and `dynamiclights`, never bundled). The G line owns
     the bottom-right corner in `SaintHudLayoutRules` and hides with F1.
   - Open (owner calls): SparkStrength Bodyguard shield and taotie daze / SFA safe-time lists do not know the Savior
-    ids yet; rules keyed on `wathe:gun_shot` / `wathe:bat_hit` (Fiend hit reward, Rys-T ricochet, Heavy Artillery,
-    Niko) ignore the custom reasons; a punished Savior keeps the other weapon and G; the domain strips every
+    ids yet; rules keyed on `wathe:gun_shot` / `wathe:bat_hit` (Fiend hit reward, Rys-T ricochet) ignore the custom
+    reasons (SparkTraits PR #76 makes Heavy Artillery count `sparkwitch:savior_pistol_kill`); Niko's burst never
+    fires the pistol; a punished Savior keeps the other weapon and G; the domain strips every
     blindness source; SparkAssist has no Savior page.
 - `roles/civilian/recruit/`: the Recruit (`sparkwitch:recruit`, 新兵, color `0x5B862D`), contributed in PR #176; the
   PR description is the spec, every number lives in `RecruitRules`.
@@ -4485,6 +4492,11 @@ write, and cleanup on every death. A present build whose facade lacks or fails a
 1.0 multiplier, a 2 s bolt, no task money (unknown fails closed), full prices, no block, a vanilla write, or an
 intercepted death: the `KillPlayer.AFTER` cleanup and revolver drop are skipped (reset and finalize still strip the
 kit), and an innocent shot goes unpunished.
+The Savior pistol may query only `getServerGunTargetRange` (the server's player-target distance for this shooter and
+gun; a sneaking Niko holder gets 300 blocks) through `compat/SparkTraitsSaviorBridge`, beyond the existing
+`SparkTraitsKillerBridge.blocksWeaponAction`; Niko's 60 s cooldown, Fast Reload and Fast Hands reach the pistol
+through the vanilla cooldown write, with no SparkWitch call. An absent, older (before SparkTraits PR #76) or failing
+SparkTraits means the 65-block tolerance; the answer is widen-only and capped at 300 blocks.
 
 Black Raven disguise state never enters `sparkwitch:player`, `sparkwitch:black_raven_perception`,
 or `sparkwitch:black_raven_mark`. `sparkwitch:black_raven_disguise` (`NEVER_COPY`, owner-only
