@@ -14,6 +14,33 @@
       }
     ]
   },
+  "ambient.specter_otherworld_bgm_0": {
+    "subtitle": "subtitles.sparkwitch.ambient.specter_otherworld_bgm",
+    "sounds": [
+      {
+        "name": "sparkwitch:ambient/specter_otherworld_bgm_0",
+        "stream": true
+      }
+    ]
+  },
+  "ambient.specter_otherworld_bgm_1": {
+    "subtitle": "subtitles.sparkwitch.ambient.specter_otherworld_bgm",
+    "sounds": [
+      {
+        "name": "sparkwitch:ambient/specter_otherworld_bgm_1",
+        "stream": true
+      }
+    ]
+  },
+  "ambient.specter_otherworld_bgm_2": {
+    "subtitle": "subtitles.sparkwitch.ambient.specter_otherworld_bgm",
+    "sounds": [
+      {
+        "name": "sparkwitch:ambient/specter_otherworld_bgm_2",
+        "stream": true
+      }
+    ]
+  },
   "ambient.saint_bell": {
     "subtitle": "subtitles.sparkwitch.ambient.saint_bell",
     "sounds": [

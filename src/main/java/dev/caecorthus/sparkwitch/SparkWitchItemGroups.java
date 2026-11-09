@@ -112,7 +112,10 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.tollBell(),
                                     SparkWitchItems.timeStealerClock(),
                                     SparkWitchItems.timeStealerGiftWatch(),
-                                    SparkWitchItems.timeStamp()
+                                    SparkWitchItems.timeStamp(),
+                                    // Specter (killer) / 幽魂（杀手）
+                                    SparkWitchItems.ghostTrigger(),
+                                    SparkWitchItems.peachwoodSword()
                             );
                             factionOrder.forEach(entries::add);
                             // Any other item in our namespace follows in registration order, so new items join automatically.

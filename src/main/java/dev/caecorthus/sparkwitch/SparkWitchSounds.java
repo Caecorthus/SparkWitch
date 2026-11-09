@@ -17,6 +17,12 @@ public final class SparkWitchSounds {
     public static final Identifier PIG_CHASE_ID = SparkWitch.id("skill.pig_chase");
     public static final Identifier GRAND_WITCH_CEREMONIAL_SWORD_BGM_ID =
             SparkWitch.id("ambient.grand_witch_ceremonial_sword_bgm");
+    /** Otherworld BGM: three bundled variants, one chosen per window and synced to everyone. / 里世界 BGM：三首，窗口开启时随机选一同步给所有人。 */
+    public static final Identifier[] SPECTER_OTHERWORLD_BGM_IDS = {
+            SparkWitch.id("ambient.specter_otherworld_bgm_0"),
+            SparkWitch.id("ambient.specter_otherworld_bgm_1"),
+            SparkWitch.id("ambient.specter_otherworld_bgm_2")
+    };
     public static final Identifier SAINT_BELL_ID = SparkWitch.id("ambient.saint_bell");
     /** Reuses vanilla bell audio; no new asset. / 复用原版钟声音频，不新增资源。 */
     public static final Identifier BELL_RINGER_TOLL_ID = SparkWitch.id("ambient.bell_ringer_toll");
@@ -70,6 +76,7 @@ public final class SparkWitchSounds {
     public static final Identifier SAVIOR_LIGHTSABER_SWING_ID = SaviorRules.LIGHTSABER_SWING_SOUND_ID;
     public static SoundEvent PIG_CHASE;
     public static SoundEvent GRAND_WITCH_CEREMONIAL_SWORD_BGM;
+    public static final SoundEvent[] SPECTER_OTHERWORLD_BGM = new SoundEvent[3];
     public static SoundEvent SAINT_BELL;
     public static SoundEvent BELL_RINGER_TOLL;
     public static SoundEvent TIME_STEALER_CHIME;
@@ -148,6 +155,10 @@ public final class SparkWitchSounds {
                 GRAND_WITCH_CEREMONIAL_SWORD_BGM_ID,
                 SoundEvent.of(GRAND_WITCH_CEREMONIAL_SWORD_BGM_ID)
         );
+        for (int index = 0; index < SPECTER_OTHERWORLD_BGM_IDS.length; index++) {
+            Identifier id = SPECTER_OTHERWORLD_BGM_IDS[index];
+            SPECTER_OTHERWORLD_BGM[index] = Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id));
+        }
         SAINT_BELL = Registry.register(Registries.SOUND_EVENT, SAINT_BELL_ID, SoundEvent.of(SAINT_BELL_ID));
         BELL_RINGER_TOLL = Registry.register(
                 Registries.SOUND_EVENT,

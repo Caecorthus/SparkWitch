@@ -17,6 +17,10 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotS2CPacket;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.UseDominatorSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSecondSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPacket;
@@ -115,6 +119,11 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playC2S().register(
                 SwordfishStabC2SPayload.ID,
                 SwordfishStabC2SPayload.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(UseSpecterSkillC2SPacket.ID, UseSpecterSkillC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(
+                UseSpecterSecondSkillC2SPacket.ID,
+                UseSpecterSecondSkillC2SPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
@@ -244,6 +253,10 @@ public final class SparkWitchPackets {
                 (payload, context) -> JunkerService.handleSearchRequest(context.player(), payload.bodyUuid()));
         ServerPlayNetworking.registerGlobalReceiver(AccountantWithdrawC2SPacket.ID,
                 (payload, context) -> AccountantPassbookService.handleWithdrawRequest(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseSpecterSkillC2SPacket.ID,
+                (payload, context) -> SpecterSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseSpecterSecondSkillC2SPacket.ID,
+                (payload, context) -> SpecterSecondSkillService.use(context.player()));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {

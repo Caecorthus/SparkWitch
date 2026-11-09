@@ -233,6 +233,10 @@ public final class SparkWitchRoles {
         return SparkWitchRoleRegistry.recruit();
     }
 
+    public static Role specter() {
+        return SparkWitchRoleRegistry.specter();
+    }
+
     public static Role athlete() {
         return SparkWitchRoleRegistry.athlete();
     }

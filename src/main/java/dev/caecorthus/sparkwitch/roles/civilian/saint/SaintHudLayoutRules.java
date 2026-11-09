@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.saint;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,6 +25,11 @@ public final class SaintHudLayoutRules {
     ) {
         if (roleId == null) {
             return 0;
+        }
+        // The Specter (PR #207) draws two corner rows: skill one below, the Otherworld state above.
+        // 幽魂（PR #207）在右下角绘制两行：下行技能一，上行里世界状态。
+        if (SpecterRules.ROLE_ID.equals(roleId)) {
+            return fontHeight * 2 + LINE_GAP + SPARKWITCH_BOTTOM_PADDING;
         }
         if ("sparkwitch".equals(roleId.getNamespace()) && (hasSparkWitchSkill || ownsCornerSkillLine(roleId))) {
             return fontHeight + SPARKWITCH_BOTTOM_PADDING;
@@ -59,13 +65,17 @@ public final class SaintHudLayoutRules {
 
     /**
      * SparkWitch roles without a witch skill that still draw their own skill line in the shared corner slot (5 px
-     * padding, one font row): the Ragpicker, the Dominator (always on, PR #192) and the Savior (G-skill line, PR #200).
-     * Reserved by role so the Karma line any player can carry sits above it.
+     * padding, one font row): the Ragpicker, the Dominator (always on, PR #192) and the Savior (G-skill line, PR #200);
+     * the Specter (PR #207) shares the padding but reserves two rows above. Reserved by role so the Karma line any player
+     * can carry sits above it.
      * 没有魔女技能、却在共享右下角位置绘制自有技能行（5 像素边距、一行字高）的 SparkWitch 职业：拾荒者、支配者（常驻显示，
-     * PR #192）与救世主（G 技能行，PR #200）。按职业预留，使任何玩家都可能带有的业障行位于其上方。
+     * PR #192）与救世主（G 技能行，PR #200）；幽魂（PR #207）共用该边距，但向上预留两行。按职业预留，使任何玩家都可能带有的
+     * 业障行位于其上方。
      */
     private static boolean ownsCornerSkillLine(Identifier roleId) {
-        return JunkerRules.ROLE_ID.equals(roleId) || DominatorRules.ROLE_ID.equals(roleId)
+        return JunkerRules.ROLE_ID.equals(roleId)
+                || DominatorRules.ROLE_ID.equals(roleId)
+                || SpecterRules.ROLE_ID.equals(roleId)
                 || SaviorRules.ROLE_ID.equals(roleId);
     }
 }

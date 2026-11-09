@@ -129,6 +129,8 @@
     "kidnapper.KidnapperControlledMouseMixin",
     "kidnapper.KidnapperThrowUseMixin",
     "hunter.DoubleBarrelAimClaimMixin",
+    "hunter.DoubleBarrelHandFlashMixin",
+    "hunter.DoubleBarrelOwnMuzzlePacketMixin",
     "hunter.DoubleBarrelShotSoundSystemMixin",
     "hunter.DoubleBarrelShotgunCrosshairMixin",
     "hunter.DoubleBarrelSourceAccessor",
@@ -245,7 +247,9 @@
     "bear.HearingSoundSystemMixin",
     "bear.HearingSourceAccessor",
     "bear.HeadsetInventoryScreenMixin",
-    "bear.HeadsetCreativeScreenMixin"
+    "bear.HeadsetCreativeScreenMixin",
+    "specter.SpecterOtherworldGameRendererMixin",
+    "specter.ClientWorldOtherworldSkyMixin"
   ],
   "injectors": {
     "defaultRequire": 1

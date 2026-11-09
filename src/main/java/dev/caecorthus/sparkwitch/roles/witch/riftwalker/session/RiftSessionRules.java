@@ -112,6 +112,9 @@ public final class RiftSessionRules {
             // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
+            // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
+            Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_specter_second_skill"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
             // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.

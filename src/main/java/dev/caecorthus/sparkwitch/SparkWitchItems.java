@@ -51,6 +51,8 @@ import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelSlugItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
+import dev.caecorthus.sparkwitch.roles.killer.specter.GhostTriggerItem;
+import dev.caecorthus.sparkwitch.roles.killer.specter.PeachwoodSwordItem;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KnockoutDrugItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStampItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftWatchItem;
@@ -138,6 +140,8 @@ public final class SparkWitchItems {
     public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
     public static final Identifier BIG_DOG_PORTRAIT_ID = NoaRules.DOG_PORTRAIT_ITEM_ID;
     public static final Identifier ACCOUNTANT_PASSBOOK_ID = AccountantRules.PASSBOOK_ID;
+    public static final Identifier PEACHWOOD_SWORD_ID = SparkWitch.id("peachwood_sword");
+    public static final Identifier GHOST_TRIGGER_ID = SparkWitch.id("ghost_trigger");
     public static final Identifier SAVIOR_PISTOL_ID = SaviorRules.PISTOL_ID;
     public static final Identifier SAVIOR_LIGHTSABER_ID = SaviorRules.LIGHTSABER_ID;
     private static Item ceremonialSword;
@@ -198,6 +202,8 @@ public final class SparkWitchItems {
     private static Item usecApRound;
     private static Item usecSuppressor;
     private static Item witherGohei;
+    private static Item peachwoodSword;
+    private static Item ghostTrigger;
     private static Item bigDogPortrait;
     private static Item accountantPassbook;
     private static Item saviorPistol;
@@ -527,6 +533,22 @@ public final class SparkWitchItems {
                 ACCOUNTANT_PASSBOOK_ID,
                 new AccountantPassbookItem(new Item.Settings().maxCount(1))
         );
+        // Specter (PR #207) items, appended last so earlier registration order stays unchanged.
+        // 幽魂（PR #207）物品，追加在最后以保持既有注册顺序不变。
+        // Specter counterplay: the peachwood sword handed to low-sanity players while the Otherworld is open.
+        // 幽魂的反制：里世界期间发给低理智玩家的桃木剑。
+        peachwoodSword = Registry.register(
+                Registries.ITEM,
+                PEACHWOOD_SWORD_ID,
+                new PeachwoodSwordItem(PeachwoodSwordItem.createSettings())
+        );
+        // Specter shop: an invisible placed trigger spent by the first player who steps on it.
+        // 幽魂商店：放在地上隐形的触发器，第一个踩到的玩家将其消耗。
+        ghostTrigger = Registry.register(
+                Registries.ITEM,
+                GHOST_TRIGGER_ID,
+                new GhostTriggerItem(GhostTriggerItem.createSettings())
+        );
         // Savior (police): a self-contained revolver copy and a bat-stat lightsaber.
         // 救世主（警类）：自包含的左轮复制品与球棒属性的光剑。
         saviorPistol = Registry.register(
@@ -556,6 +578,20 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return crossSword;
+    }
+
+    public static Item peachwoodSword() {
+        if (peachwoodSword == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return peachwoodSword;
+    }
+
+    public static Item ghostTrigger() {
+        if (ghostTrigger == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return ghostTrigger;
     }
 
     public static Item saviorPistol() {

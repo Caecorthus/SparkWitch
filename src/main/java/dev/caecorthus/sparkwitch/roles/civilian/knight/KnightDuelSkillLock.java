@@ -71,6 +71,9 @@ public final class KnightDuelSkillLock {
             // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
+            // Specter mark/shriek (G), PR #207; its Otherworld is skill key 2 (N) and stays allowed by this list's rule.
+            // 幽魂标记/尖啸（G 键），PR #207；里世界属于技能键 2（N），按本名单规则保持放行。
+            Identifier.of("sparkwitch", "use_specter_skill"),
             // The Knight's own pick; a non-duelist is never locked, so it always passes for them.
             // 骑士自己的选择包；非决斗者从不被锁，因此对他们始终放行。
             Identifier.of("sparkwitch", "knight_duel_target"),

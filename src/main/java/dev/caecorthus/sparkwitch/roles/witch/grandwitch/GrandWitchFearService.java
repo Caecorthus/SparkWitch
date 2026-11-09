@@ -84,6 +84,9 @@ public final class GrandWitchFearService {
             // 夏目安安催眠菜单请求与目标确认；服务端在两者上也会再次检查恐惧。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
+            // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
+            Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_specter_second_skill"),
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),

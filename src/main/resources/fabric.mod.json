@@ -88,6 +88,11 @@
       "sparkwitch:dominator_forced_shot",
       "sparkwitch:natsume_anan_player",
       "sparkwitch:headset",
+      "sparkwitch:specter",
+      "sparkwitch:specter_fear",
+      "sparkwitch:specter_second_skill",
+      "sparkwitch:specter_cowardice",
+      "sparkwitch:specter_otherworld",
       "sparkwitch:savior"
     ],
     "sparkfactionapi:native_wathe_factions": {
