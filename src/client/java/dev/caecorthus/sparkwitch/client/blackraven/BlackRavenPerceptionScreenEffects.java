@@ -127,6 +127,24 @@ public final class BlackRavenPerceptionScreenEffects {
         return true;
     }
 
+    /** Whether this frame would render Wraith/Vendetta/Perception/Last-Escape vision; used by other filters to yield. / 本帧是否会渲染冤魂/复仇/感知/脱险滤镜。 */
+    public static boolean isActiveFor(ClientPlayerEntity player) {
+        if (LastEscapeTraitsVisionBridge.composition(player)[0] >= 0.5f) {
+            return true;
+        }
+        float desaturation = VendettaClientPresentation.hasActiveOwnerState(player)
+                ? VendettaClientPresentation.desaturation(player)
+                : WraithVisionRules.desaturation(
+                        WraithClientState.isActive(player),
+                        WraithClientState.isRestricted(player)
+                );
+        return WraithVisionRules.usePerception(
+                desaturation,
+                BlackRavenClientState.isPerceptionActive(player),
+                false
+        ) || desaturation > 0.0F;
+    }
+
     public static void close() {
         closeProcessor();
         loadFailed = false;

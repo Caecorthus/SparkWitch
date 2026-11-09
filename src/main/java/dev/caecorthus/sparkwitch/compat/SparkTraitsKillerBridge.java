@@ -42,6 +42,8 @@ public final class SparkTraitsKillerBridge {
             Runnable.class);
     private static final OptionalStaticMethod LAST_STAND_INTERCEPTED = resolve("isLastStandDeathIntercepted",
             PlayerEntity.class);
+    private static Method forcedClearItem;
+    private static boolean forcedClearResolved;
 
     private SparkTraitsKillerBridge() {
     }
@@ -163,6 +165,37 @@ public final class SparkTraitsKillerBridge {
             if (!ran[0]) {
                 kill.run();
             }
+        }
+    }
+
+    /**
+     * Drops SparkTraits' forced melee floor for one item. The knife receiver's Close Quarters guard cancels a knife
+     * packet while that floor is positive, which is separate from the vanilla item cooldown.
+     * 清除 SparkTraits 对某物品的强制近战下限。近身守卫在该值大于 0 时会取消刀刺包；它与原版物品冷却是两套。
+     */
+    public static void clearForcedMeleeCooldown(ServerPlayerEntity player, Item item) {
+        if (player == null || item == null) {
+            return;
+        }
+        if (!forcedClearResolved) {
+            forcedClearResolved = true;
+            try {
+                Class<?> service = Class.forName(
+                        "dev.caecorthus.sparktraits.impl.traits.killer.combat.ForcedMeleeCooldownService",
+                        false,
+                        SparkTraitsKillerBridge.class.getClassLoader()
+                );
+                forcedClearItem = service.getMethod("clearItem", ServerPlayerEntity.class, Item.class);
+            } catch (ReflectiveOperationException | LinkageError | SecurityException ignored) {
+                forcedClearItem = null;
+            }
+        }
+        if (forcedClearItem == null) {
+            return;
+        }
+        try {
+            forcedClearItem.invoke(null, player, item);
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
         }
     }
 

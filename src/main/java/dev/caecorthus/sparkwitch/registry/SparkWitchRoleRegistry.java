@@ -39,6 +39,7 @@ import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianConstants;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
@@ -122,6 +123,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier NATSUME_ID =
             dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID;
     public static final Identifier BEAR_ID = BearRules.ROLE_ID;
+    public static final Identifier SPECTER_ID = SpecterRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -170,6 +172,7 @@ public final class SparkWitchRoleRegistry {
     private static Role ragpicker;
     private static Role dominator;
     private static Role accountant;
+    private static Role specter;
     private static Role natsumeAnan;
     private static Role bear;
     private static boolean registered;
@@ -462,6 +465,11 @@ public final class SparkWitchRoleRegistry {
     public static Role dominator() {
         ensureRegistered();
         return dominator;
+    }
+
+    public static Role specter() {
+        ensureRegistered();
+        return specter;
     }
 
     public static Role accountant() {
@@ -984,6 +992,15 @@ public final class SparkWitchRoleRegistry {
         // 追加在最后以保持既有注册顺序不变；嘉豪阵营成员（原生 Wathe JIAHAO），参数与黑警相同（伪装情绪但有任务、平民体力、
         // 可见回合时间）。从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole。
+        // Specter: a plain Wathe killer clone, registered before the Insider (nothing may follow it); one killer slot,
+        // at most one per round. 幽魂：纯 Wathe 杀手克隆，注册在内应之前（内应之后不得再注册）；只占一个杀手位、每局至多一人。
+        specter = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SPECTER_ID, FactionIds.KILLER)
+                .color(SpecterRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
         insider = SparkFactionApi.registerRole(FactionRoleDefinition.builder(INSIDER_ID, SparkWitchFactions.JIAHAO)
                 .color(InsiderRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -1084,7 +1101,9 @@ public final class SparkWitchRoleRegistry {
                 guardianAngel,
                 vendetta,
                 saboteur,
-                curser
+                curser,
+                // New roles append to the tail so every existing assassin-guess index stays put. / 新职业追加到末尾，既有下标不变。
+                specter
         );
     }
 

@@ -236,7 +236,10 @@
     "bear.HearingSoundSystemMixin",
     "bear.HearingSourceAccessor",
     "bear.HeadsetInventoryScreenMixin",
-    "bear.HeadsetCreativeScreenMixin"
+    "bear.HeadsetCreativeScreenMixin",
+    "specter.SpecterOtherworldGameRendererMixin",
+    "specter.ClientWorldOtherworldSkyMixin",
+    "specter.SpecterOtherworldKnifeRayMixin"
   ],
   "injectors": {
     "defaultRequire": 1

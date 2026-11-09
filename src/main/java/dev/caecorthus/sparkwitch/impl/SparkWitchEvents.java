@@ -38,6 +38,17 @@ import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotLifec
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotService;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPsychoGazeService;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFeatureService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPeachwoodService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterReplayService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterShopService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaDisconnectService;
@@ -172,6 +183,12 @@ public final class SparkWitchEvents {
         KnightDuelService.register();
         DominatorPsychoGazeService.register();
         DominatorForcedShotLifecycle.register();
+        SpecterFeatureService.register();
+        SpecterSkillService.register();
+        SpecterPeachwoodService.register();
+        SpecterOtherworldService.register();
+        SpecterShopService.register();
+        SpecterReplayService.register();
         // 夏目安安 (PR #194): runtime listeners, then its replay formatter (the fork kept it in a shared
         // SparkWitchReplayFormatters class that main does not have). 夏目安安（PR #194）：运行期监听器，然后是回放格式化器
         // （fork 中位于 main 没有的共享 SparkWitchReplayFormatters 类）。
@@ -200,6 +217,10 @@ public final class SparkWitchEvents {
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 DominatorForcedShotService.onRoleAssigned(serverPlayer);
+                SpecterPlayerComponent.KEY.get(serverPlayer).assignForRole(role);
+                SpecterFearComponent.KEY.get(serverPlayer).clear();
+                SpecterSecondSkillComponent.KEY.get(serverPlayer).assignForRole(role);
+                SpecterCowardiceComponent.KEY.get(serverPlayer).clear();
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
                 if (role != null && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())) {
                     // One sync with the final state instead of one per write. / 只用最终状态同步一次，而不是每次写入各同步一次。
@@ -260,6 +281,9 @@ public final class SparkWitchEvents {
             FirePokerFallAttributionService.clearPlayer(victim);
             PigGodChaseRuntime.clear(victim, WitchPlayerComponent.KEY.get(victim));
             PerfumerPlayerComponent.KEY.get(victim).stopCologne();
+            SpecterFearComponent.KEY.get(victim).clear();
+            SpecterSecondSkillComponent.KEY.get(victim).clear();
+            SpecterCowardiceComponent.KEY.get(victim).clear();
             OrthopedistSkillService.clearPlayer(victim);
             if (!WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
                 DominatorSkillService.clearPlayer(victim);
@@ -275,6 +299,9 @@ public final class SparkWitchEvents {
                 // ResetPlayer fires after Wathe cleared the inventory: the stash is discarded, never re-inserted.
                 // ResetPlayer 在 Wathe 清空物品栏之后触发：原物品被丢弃，绝不重新放入。
                 DominatorForcedShotService.discard(serverPlayer);
+                SpecterFearComponent.KEY.get(serverPlayer).clear();
+                SpecterSecondSkillComponent.KEY.get(serverPlayer).clear();
+                SpecterCowardiceComponent.KEY.get(serverPlayer).clear();
                 OrthopedistSkillService.clearPlayer(serverPlayer);
                 DominatorSkillService.clearPlayer(serverPlayer);
                 GuardianAngelFeatureService.clearRoundPlayer(serverPlayer);
@@ -290,6 +317,7 @@ public final class SparkWitchEvents {
             if (world instanceof ServerWorld serverWorld) {
                 WraithConversion.beginRound(serverWorld, gameComponent.getAllPlayers().size());
                 MagicianRoster.captureAll(serverWorld);
+                SpecterOtherworldComponent.KEY.get(serverWorld).clear();
             }
         });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
@@ -298,6 +326,7 @@ public final class SparkWitchEvents {
                 // 回合结束只清理 SparkWitch 运行态，身份表和其他模组状态仍由 wathe 自己管理。
                 WitchWorldComponent.KEY.get(serverWorld).clearRoundState();
                 FirePokerFallAttributionService.clearAll();
+                SpecterOtherworldComponent.KEY.get(serverWorld).clear();
                 WraithLifecycle.clearRoundState(serverWorld);
                 PoisonApplePlateService.clearLoadedPlates();
                 MagicianPlaybackManager.clearAll();
@@ -307,6 +336,9 @@ public final class SparkWitchEvents {
                     WitchPlayerComponent.KEY.get(player).clear();
                     MagicianPlayerComponent.KEY.get(player).reset();
                     PerfumerPlayerComponent.KEY.get(player).clear();
+                    SpecterFearComponent.KEY.get(player).clear();
+                    SpecterSecondSkillComponent.KEY.get(player).clear();
+                    SpecterCowardiceComponent.KEY.get(player).clear();
                     DominatorForcedShotService.discard(player);
                     OrthopedistSkillService.clearPlayer(player);
                     DominatorSkillService.clearPlayer(player);
