@@ -16,10 +16,10 @@ import java.util.UUID;
 
 /**
  * The Soul Moment's round-scoped state ({@code sparkwitch:ferryman_moment}): whether it is running, its owner and the
- * Lost Souls it revived. Server only and transient; the clients learn who the souls are from their synced roles and the
- * GLOWING effect the moment applies.
- * 亡魂时刻的本局状态（{@code sparkwitch:ferryman_moment}）：是否进行中、拥有者与它复活的迷失灵魂。仅服务端且为瞬时状态；
- * 客户端通过已同步的职业与时刻施加的发光效果得知谁是迷失的灵魂。
+ * Lost Souls it revived. Server only, never synced and transient; the clients learn who the souls are from their synced
+ * roles and the soul-fire particles the server spawns around them. Cleared at every round boundary and server stop.
+ * 亡魂时刻的本局状态（{@code sparkwitch:ferryman_moment}）：是否进行中、拥有者与它复活的迷失灵魂。仅服务端、从不同步且为
+ * 瞬时状态；客户端通过已同步的职业以及服务端在灵魂周身生成的灵魂火粒子得知谁是迷失的灵魂。每个回合边界与服务器停止时清空。
  */
 public final class FerrymanMomentWorldComponent implements Component {
     public static final ComponentKey<FerrymanMomentWorldComponent> KEY = ComponentRegistry.getOrCreate(
@@ -30,28 +30,18 @@ public final class FerrymanMomentWorldComponent implements Component {
     private boolean active;
     private @Nullable UUID owner;
     private final Set<UUID> souls = new LinkedHashSet<>();
-    /** Ticks left before the moment judges whether a soul survived its revival. / 判定灵魂是否复活成功的剩余宽限 tick。 */
-    private int graceTicks;
-    /** True once at least one soul actually left spectator. / 至少有一名灵魂真的脱离旁观后为 true。 */
+    /**
+     * True once at least one soul was verified alive in Wathe when the moment started; a moment without one is a
+     * revival failure and ends without killing the Charon.
+     * 时刻开始时至少有一名灵魂被 Wathe 确认存活后为 true；没有任何灵魂的时刻属于复活失败，结束时不处死摆渡人。
+     */
     private boolean soulsEverAlive;
 
     public FerrymanMomentWorldComponent(World world) {
     }
 
-    public int graceTicks() {
-        return graceTicks;
-    }
-
-    public void setGraceTicks(int ticks) {
-        graceTicks = Math.max(0, ticks);
-    }
-
     public boolean soulsEverAlive() {
         return soulsEverAlive;
-    }
-
-    public void markSoulAlive() {
-        soulsEverAlive = true;
     }
 
     public static FerrymanMomentWorldComponent get(World world) {
@@ -82,13 +72,16 @@ public final class FerrymanMomentWorldComponent implements Component {
         return active && souls.contains(player);
     }
 
+    /**
+     * {@code revived} holds only souls Wathe already reports alive (the revival verifies each one before it is added).
+     * {@code revived} 只包含 Wathe 已报告存活的灵魂（复活流程在加入前逐一确认）。
+     */
     public void start(UUID ownerId, Set<UUID> revived) {
         active = true;
         owner = ownerId;
         souls.clear();
         souls.addAll(revived);
-        graceTicks = FerrymanRules.MOMENT_REVIVE_GRACE_TICKS;
-        soulsEverAlive = false;
+        soulsEverAlive = !souls.isEmpty();
     }
 
     public void removeSoul(UUID soul) {
@@ -99,7 +92,6 @@ public final class FerrymanMomentWorldComponent implements Component {
         active = false;
         owner = null;
         souls.clear();
-        graceTicks = 0;
         soulsEverAlive = false;
     }
 

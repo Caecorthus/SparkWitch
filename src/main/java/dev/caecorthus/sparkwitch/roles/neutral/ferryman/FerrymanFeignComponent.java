@@ -14,10 +14,10 @@ import java.util.UUID;
 
 /**
  * The 10 s feign death a marked attacker falls into ({@code sparkwitch:ferryman_feign}): the fake body, the anchor it
- * was laid at, the saved game mode and the previous invulnerability flag. Server only and transient — a round reset
- * or a respawn copy never carries it, and no client is told anything.
- * 被标记者陷入的 10 秒假死（{@code sparkwitch:ferryman_feign}）：假尸体、铺设它的锚点、保存的游戏模式与先前的无敌标记。
- * 仅服务端且为瞬时状态——换局或重生不会带走它，也不会告诉任何客户端。
+ * was laid at with the facing to restore, the saved game mode and the previous invulnerability flag. Server only and
+ * transient — a round reset or a respawn copy never carries it, and no client is told anything.
+ * 被标记者陷入的 10 秒假死（{@code sparkwitch:ferryman_feign}）：假尸体、铺设它的锚点及需恢复的朝向、保存的游戏模式与
+ * 先前的无敌标记。仅服务端且为瞬时状态——换局或重生不会带走它，也不会告诉任何客户端。
  */
 public final class FerrymanFeignComponent implements org.ladysnake.cca.api.v3.component.Component {
     public static final ComponentKey<FerrymanFeignComponent> KEY = ComponentRegistry.getOrCreate(
@@ -32,6 +32,8 @@ public final class FerrymanFeignComponent implements org.ladysnake.cca.api.v3.co
     private double anchorX;
     private double anchorY;
     private double anchorZ;
+    private float anchorYaw;
+    private float anchorPitch;
     private GameMode previousMode = GameMode.SURVIVAL;
     private boolean wasInvulnerable;
 
@@ -67,6 +69,14 @@ public final class FerrymanFeignComponent implements org.ladysnake.cca.api.v3.co
         return anchorZ;
     }
 
+    public float anchorYaw() {
+        return anchorYaw;
+    }
+
+    public float anchorPitch() {
+        return anchorPitch;
+    }
+
     public GameMode previousMode() {
         return previousMode;
     }
@@ -75,14 +85,16 @@ public final class FerrymanFeignComponent implements org.ladysnake.cca.api.v3.co
         return wasInvulnerable;
     }
 
-    public void start(long until, @Nullable UUID body, double x, double y, double z, GameMode mode,
-                      boolean invulnerable) {
+    public void start(long until, @Nullable UUID body, double x, double y, double z, float yaw, float pitch,
+                      GameMode mode, boolean invulnerable) {
         feigning = true;
         untilTick = until;
         bodyId = body;
         anchorX = x;
         anchorY = y;
         anchorZ = z;
+        anchorYaw = yaw;
+        anchorPitch = pitch;
         previousMode = mode;
         wasInvulnerable = invulnerable;
     }
@@ -94,6 +106,8 @@ public final class FerrymanFeignComponent implements org.ladysnake.cca.api.v3.co
         anchorX = 0.0;
         anchorY = 0.0;
         anchorZ = 0.0;
+        anchorYaw = 0.0F;
+        anchorPitch = 0.0F;
         previousMode = GameMode.SURVIVAL;
         wasInvulnerable = false;
     }

@@ -16,11 +16,12 @@ import net.minecraft.text.Text;
 import java.util.List;
 
 /**
- * Rebuilds the Ferryman's shop on both sides: the crowbar (25 gold) today, plus the Soul Moment entry once that
- * purchase exists. Purchases resolve by list index, so the list depends on the synced role alone; SparkTraits entries
- * already present are preserved across the rebuild, as the Fiend's shop does.
- * 两端重建摆渡人商店：目前只有撬棍（25 金币），「亡魂时刻」条目在购买逻辑落地后加入。购买按列表下标解析，因此列表只
- * 依赖已同步的职业；重建时保留已存在的 SparkTraits 条目，与魔人商店相同。
+ * Rebuilds the Ferryman's shop on both sides: the crowbar (25 gold) and the stock-1 Soul Moment (250 gold, started by
+ * {@link FerrymanMomentService#tryStart}, which charges nothing when it refuses). Purchases resolve by list index, so
+ * the list depends on the synced role alone; SparkTraits entries already present are preserved across the rebuild, as
+ * the Fiend's shop does.
+ * 两端重建摆渡人商店：撬棍（25 金币）与库存 1 的「亡魂时刻」（250 金币，由 {@link FerrymanMomentService#tryStart} 开启，
+ * 拒绝时不扣费）。购买按列表下标解析，因此列表只依赖已同步的职业；重建时保留已存在的 SparkTraits 条目，与魔人商店相同。
  */
 public final class FerrymanShopService {
     private static final String CROWBAR_NAME_KEY = "shop.sparkwitch.ferryman.crowbar";

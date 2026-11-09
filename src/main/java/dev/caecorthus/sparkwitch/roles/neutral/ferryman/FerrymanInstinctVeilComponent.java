@@ -51,6 +51,18 @@ public final class FerrymanInstinctVeilComponent implements AutoSyncedComponent,
         KEY.sync(player);
     }
 
+    /**
+     * Server: drops a running veil (round reset), so it never leaks into the next round; syncs only when one ran.
+     * 服务端：撤掉正在进行的帷幕（换局），使其绝不会带进下一局；仅在确有帷幕时同步。
+     */
+    public void clear() {
+        if (player.getWorld().isClient || serverTicks <= 0) {
+            return;
+        }
+        serverTicks = 0;
+        KEY.sync(player);
+    }
+
     /** Server: one tick of the veil; syncs only when it ends. / 服务端：推进一格，仅在结束时同步。 */
     public void tickServer() {
         if (serverTicks <= 0) {

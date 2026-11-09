@@ -47,6 +47,8 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
     private boolean pardoning;
     private @Nullable UUID pendingKiller;
     private @Nullable Identifier pendingDeathReason;
+    /** The held kill's own {@code spawnBody}, replayed unchanged. / 被扣住击杀自身的 {@code spawnBody}，原样重放。 */
+    private boolean pendingSpawnBody = true;
     private long pardonDeadlineTick;
 
     public FerrymanPlayerComponent(PlayerEntity player) {
@@ -127,10 +129,11 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
         return pardoning;
     }
 
-    public void openPardon(UUID killer, @Nullable Identifier deathReason, long deadlineTick) {
+    public void openPardon(UUID killer, @Nullable Identifier deathReason, boolean spawnBody, long deadlineTick) {
         pardoning = true;
         pendingKiller = killer;
         pendingDeathReason = deathReason;
+        pendingSpawnBody = spawnBody;
         pardonDeadlineTick = deadlineTick;
     }
 
@@ -146,10 +149,15 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
         return pendingDeathReason;
     }
 
+    public boolean pendingSpawnBody() {
+        return pendingSpawnBody;
+    }
+
     public void closePardon() {
         pardoning = false;
         pendingKiller = null;
         pendingDeathReason = null;
+        pendingSpawnBody = true;
         pardonDeadlineTick = 0L;
     }
 
@@ -205,12 +213,15 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
         return Set.copyOf(ferriedBodies);
     }
 
-    /** Server: drops every round-scoped field; the cooldown goes back to the round-start value. */
-    /** 服务端：清除全部本局字段；冷却回到开局值。 */
+    /**
+     * Server: drops every round-scoped field; the cooldown goes back to the round-start value. Syncs whenever a synced
+     * value differs from what it was, so the first round-start 60 s (0 → 1200) reaches the HUD.
+     * 服务端：清除全部本局字段；冷却回到开局值。只要同步字段与之前不同就同步，因此首次开局的 60 秒（0 → 1200）能到达 HUD。
+     */
     public void clearRoundState() {
-        boolean changed = pardoning || !gazeTargets.isEmpty() || !ferriedBodies.isEmpty() || cooldownTicks != 0
-                || ferryCooldownTicks != 0;
-        gazesClear();
+        boolean changed = FerrymanRules.roundResetChanges(gazeTargets.size(), ferriedBodies.size(), cooldownTicks,
+                ferryCooldownTicks);
+        gazeTargets.clear();
         ferriedBodies.clear();
         closePardon();
         cooldownTicks = FerrymanRules.INITIAL_COOLDOWN_TICKS;
@@ -218,10 +229,6 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
         if (changed) {
             syncOwner();
         }
-    }
-
-    private void gazesClear() {
-        gazeTargets.clear();
     }
 
     // ---- Sync / 同步 ----
@@ -281,6 +288,7 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
         gazeTargets.clear();
         ferriedBodies.clear();
         cooldownTicks = 0;
+        ferryCooldownTicks = 0;
     }
 
     @Override

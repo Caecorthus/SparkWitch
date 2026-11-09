@@ -1,12 +1,10 @@
 package dev.caecorthus.sparkwitch.roles.neutral.ferryman;
 
 import dev.doctor4t.wathe.api.event.CanSeeMoney;
-import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -41,17 +39,12 @@ public final class FerrymanFeatureService {
                 FerrymanPlayerComponent.KEY.get(serverPlayer).clearRoundState();
             }
         });
-        GameEvents.ON_FINISH_FINALIZE.register((world, game) -> {
-            if (!(world instanceof ServerWorld serverWorld)) {
-                return;
-            }
-            FerrymanMomentService.end(serverWorld);
-            for (ServerPlayerEntity player : serverWorld.getPlayers()) {
-                if (FerrymanParticipation.isFerryman(player)) {
-                    FerrymanPlayerComponent.KEY.get(player).clearRoundState();
-                }
-            }
-        });
+        // Round end needs no per-Charon pass here: Wathe's finalizeGame clears the role map before ON_FINISH_FINALIZE,
+        // so a role check there never matches; ResetPlayer (FerrymanPardonService) and RoleAssigned above reset the
+        // component, and FerrymanMomentService ends the moment at every round boundary itself.
+        // 回合结束无需在此逐个处理摆渡人：Wathe 的 finalizeGame 在 ON_FINISH_FINALIZE 之前就清空了职业表，那里的职业判断
+        // 永远不会命中；组件由 ResetPlayer（FerrymanPardonService）与上方的 RoleAssigned 重置，时刻则由
+        // FerrymanMomentService 在每个回合边界自行结束。
     }
 
     /**

@@ -60,14 +60,17 @@ public final class SparkWitchDeathReasons {
     public static final Identifier CEREBELLUM = SparkWitch.id("cerebellum");
     /**
      * The Ferryman's 0.5 s pardon window expired: the held kill replays with this reason when the original one is
-     * unknown. Ordinary kill, body kept.
-     * 摆渡人的 0.5 秒宽恕窗口过期：原死亡原因未知时以该原因重放被扣住的击杀。普通击杀、保留尸体。
+     * unknown. Ordinary, non-forced kill; the body follows the held kill's own {@code spawnBody}.
+     * 摆渡人的 0.5 秒宽恕窗口过期：原死亡原因未知时以该原因重放被扣住的击杀。普通、非强制击杀；是否留尸沿用被扣住击杀
+     * 自身的 {@code spawnBody}。
      */
     public static final Identifier PARDON_EXPIRED = SparkWitch.id("pardon_expired");
     /**
-     * A marked attacker feigned death for 30 s and something really killed the body (the Vulture, or an admin kill).
-     * Ordinary kill, body kept.
-     * 被标记者假死 30 秒期间被真正杀死（秃鹫或管理员击杀）。普通击杀、保留尸体。
+     * A Vulture ate the fake corpse of a marked attacker feigning (10 s) before the Ferryman: forced, body-less and
+     * registered SparkTraits-terminal, so the player dies outright (the {@link #FIEND_DEVOURED} pattern). Never shown on
+     * the fake corpse itself, which carries a common murder reason.
+     * 秃鹫吃掉了在摆渡人面前假死（10 秒）的被标记者的假尸体：强制、不留尸体，并注册为 SparkTraits 终结死亡原因，该玩家直接
+     * 死亡（沿用 {@link #FIEND_DEVOURED} 的做法）。假尸体本身从不显示该原因，而是显示常见谋杀死因。
      */
     public static final Identifier FERRYMAN_FEIGN = SparkWitch.id("ferryman_feign");
     /**

@@ -73,10 +73,6 @@
       "sparkwitch:mini_wither",
       "sparkwitch:black_raven_crow",
       "sparkwitch:knight_duel",
-      "sparkwitch:ferryman",
-      "sparkwitch:ferryman_feign",
-      "sparkwitch:ferryman_feign_veil",
-      "sparkwitch:ferryman_moment",
       "sparkwitch:recruit",
       "sparkwitch:athlete",
       "sparkwitch:noa_player",
@@ -90,7 +86,11 @@
       "sparkwitch:specter_fear",
       "sparkwitch:specter_second_skill",
       "sparkwitch:specter_cowardice",
-      "sparkwitch:specter_otherworld"
+      "sparkwitch:specter_otherworld",
+      "sparkwitch:ferryman",
+      "sparkwitch:ferryman_feign",
+      "sparkwitch:ferryman_feign_veil",
+      "sparkwitch:ferryman_moment"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",

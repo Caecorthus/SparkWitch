@@ -15,6 +15,7 @@ import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeignService;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanMomentService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
@@ -205,6 +206,12 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         if (FiendFeignService.isFeigning(speaker)) {
             // A feigning Fiend plays dead: muted but still hears, and never joins the dead players' group.
             // 假死的魔人在装死：被静音但仍能听见，也从不加入死者语音组。
+            event.cancel();
+            return;
+        }
+        if (FerrymanFeignService.isFeigning(speaker)) {
+            // A player feigning before the Charon plays dead too: muted but still hears, like a feigning Fiend.
+            // 在卡戎面前假死的玩家同样在装死：被静音但仍能听见，与假死的魔人相同。
             event.cancel();
             return;
         }

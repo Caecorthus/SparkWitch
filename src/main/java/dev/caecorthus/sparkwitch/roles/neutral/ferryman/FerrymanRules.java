@@ -1,9 +1,14 @@
 package dev.caecorthus.sparkwitch.roles.neutral.ferryman;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.game.GameConstants;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
-import dev.doctor4t.wathe.api.Role;
+
+import java.util.List;
+import java.util.Set;
+import java.util.random.RandomGenerator;
 
 /**
  * Stable Ferryman contract: identifiers, tuning values and pure gates (identifiers and numbers in, values out, no
@@ -44,6 +49,34 @@ public final class FerrymanRules {
     public static final int FEIGN_TICKS = 10 * 20;
     public static final int FEIGN_INSTINCT_BLOCK_TICKS = 5 * 20;
 
+    /**
+     * Wathe deaths the Charon never holds, neither with a pardon window nor with a gaze feign: the train fall (Wathe
+     * re-kills every tick below the play area, crediting the last attacker), a disconnect, the vanilla-death safety net
+     * and drowning. None is an attack the Charon could answer, and a held one would only replay or repeat.
+     * 摆渡人从不扣住的 Wathe 死亡，宽恕窗口与「瞥视」假死都不适用：坠车（玩家低于游戏区时 Wathe 每刻重新击杀并记给最后的
+     * 攻击者）、断线、原版死亡兜底与溺水。它们都不是摆渡人能回应的攻击，扣住只会被重放或重复触发。
+     */
+    public static final Set<Identifier> UNHELD_DEATH_REASONS = Set.of(
+            GameConstants.DeathReasons.FELL_OUT_OF_TRAIN,
+            GameConstants.DeathReasons.ESCAPED,
+            GameConstants.DeathReasons.VANILLA_DEATH,
+            GameConstants.DeathReasons.DROWNED
+    );
+
+    /**
+     * Reasons the marked attacker's fake corpse may show: common Wathe-core murder reasons only, mirroring the Fiend's
+     * periodic pool (owner decision: the Charon's feign stays standalone, so the pool is copied, not shared). A
+     * Charon-specific reason would tell every body reader (Coroner, dead spectators) that the body is a feign.
+     * 被标记者假尸体可显示的死因：只取 Wathe 本体的常见谋杀死因，与魔人的定时死因池一致（所有者决定摆渡人的假死独立实现，
+     * 因此复制而非共用）。摆渡人专属的死因会让所有能读取尸体的人（验尸官、已死亡的旁观者）看出这是假死。
+     */
+    public static final List<Identifier> FEIGN_CORPSE_REASONS = List.of(
+            GameConstants.DeathReasons.KNIFE,
+            GameConstants.DeathReasons.GUN,
+            GameConstants.DeathReasons.POISON,
+            GameConstants.DeathReasons.BAT
+    );
+
     /** Shop. / 商店。 */
     public static final int MOMENT_PRICE = 250;
     public static final int CROWBAR_PRICE = 25;
@@ -52,14 +85,6 @@ public final class FerrymanRules {
 
     /** Lost Soul revival: one body per 6 players in the round, at least one. / 亡魂时刻复活数量：每 6 名玩家 1 具，至少 1 具。 */
     public static final int SOUL_PLAYERS_PER_BODY = 6;
-
-    /**
-     * Ticks the moment waits before judging whether a revived soul survived: Wathe's death state can outlive the
-     * game-mode write, so the revival is re-asserted during this window instead of counted as a loss.
-     * 判定灵魂是否复活成功前的等待 tick：Wathe 的死亡状态可能比游戏模式写入更晚消失，因此这段时间只重新施加复活，
-     * 不计为损失。
-     */
-    public static final int MOMENT_REVIVE_GRACE_TICKS = 40;
 
     private FerrymanRules() {
     }
@@ -71,6 +96,55 @@ public final class FerrymanRules {
 
     public static boolean canPardon(int cooldownTicks) {
         return cooldownTicks <= 0;
+    }
+
+    /** False for the {@link #UNHELD_DEATH_REASONS}; a missing reason may be held. / 不扣住的死因返回 false；缺失死因可扣住。 */
+    public static boolean isHeldReason(@Nullable Identifier deathReason) {
+        return deathReason == null || !UNHELD_DEATH_REASONS.contains(deathReason);
+    }
+
+    /**
+     * Whether the Charon may hold this kill at all (pardon window or gaze feign). A forced kill ignores a cancel, so it
+     * is never held (no window, no feign, no gaze spent); neither is a SparkTraits-terminal reason, a kill with no
+     * attacker or by the Charon itself, an unheld Wathe reason, or the window's own replay.
+     * 摆渡人能否扣住这次击杀（宽恕窗口或「瞥视」假死）。强制击杀无视取消，因此从不扣住（不开窗口、不假死、不消耗瞥视）；
+     * SparkTraits 终结死因、没有攻击者或由摆渡人自己造成的击杀、不扣住的 Wathe 死因以及窗口自身的重放同样不扣住。
+     */
+    public static boolean mayHoldKill(boolean replaying, boolean force, boolean terminal, boolean hasKiller,
+                                      boolean selfKill, @Nullable Identifier deathReason) {
+        return !replaying && !force && !terminal && hasKiller && !selfKill && isHeldReason(deathReason);
+    }
+
+    /**
+     * Whether a marked attacker can fall into the feign now (the Fiend's start gate, mirrored): an ACTIVE round, the
+     * attacker playing and alive and standing in the world (not a spectator, not creative), not already feigning, not
+     * swallowed by a Taotie, and not held by another session that owns its camera, body or game mode (Rift Gate,
+     * Kidnapper control, Raven Form, Seeker remote session). When it cannot, the hit falls back to the plain pardon.
+     * 被标记者此刻能否陷入假死（照搬魔人的开始条件）：ACTIVE 回合，攻击者在局内存活且站在世界中（非旁观、非创造），尚未假死，
+     * 未被饕餮吞下，也未被其他占用其视角、身体或游戏模式的状态控制（裂隙门、绑匪控制、化鸦、搜寻者远程会话）。不能时，
+     * 这一击回到普通宽恕逻辑。
+     */
+    public static boolean canFeign(boolean gameActive, boolean playingAndAlive, boolean inWorld, boolean feigning,
+                                   boolean swallowed, boolean otherSession) {
+        return gameActive && playingAndAlive && inWorld && !feigning && !swallowed && !otherSession;
+    }
+
+    /**
+     * Whether a round reset changes anything the owner's client holds (both mark sets, the pardon cooldown that becomes
+     * {@link #INITIAL_COOLDOWN_TICKS}, the ferry cooldown that becomes 0), compared with the values before the reset.
+     * The pardon window is server-only and never synced, so it is not part of the answer.
+     * 换局重置是否改变了拥有者客户端持有的任何值（两组标记、变为 {@link #INITIAL_COOLDOWN_TICKS} 的宽恕冷却、变为 0 的
+     * 摆渡冷却），与重置前的值比较。宽恕窗口只在服务端、从不同步，因此不计入。
+     */
+    public static boolean roundResetChanges(int gazeCount, int ferriedCount, int cooldownTicks,
+                                            int ferryCooldownTicks) {
+        return gazeCount != 0 || ferriedCount != 0 || cooldownTicks != INITIAL_COOLDOWN_TICKS
+                || ferryCooldownTicks != 0;
+    }
+
+    /** One believable reason for the fake corpse. / 为假尸体抽取一个可信的死因。 */
+    public static Identifier feignCorpseReason(RandomGenerator random) {
+        return FEIGN_CORPSE_REASONS.get(random.nextInt(FEIGN_CORPSE_REASONS.size()));
     }
 
     public static boolean isFreshBody(long now, long deathGameTime) {

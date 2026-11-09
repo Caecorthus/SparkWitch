@@ -156,7 +156,7 @@ tasks.named("jar") {
 }
 
 def remappedModJar = tasks.named("remapJar")
-def compatibilityReleaseVersion = "0.1.6.8"
+def compatibilityReleaseVersion = "0.1.6.2"
 def compatibilityBaselines = [
         wathe: [
                 property: "wathe_version",
@@ -971,6 +971,21 @@ def watheCommonMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/util/KnifeStabPayload\$Receiver.class",
                 providerMethod: "receive",
                 providerDescriptor: "(Ldev/doctor4t/wathe/util/KnifeStabPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // Charon pardon window / gaze feign: HEAD 1200, after every other HEAD guard (default 1000, Specter
+                // 1040, ricochet 1050, Fiend/vest 1100) and before every KillPlayer.BEFORE listener; sees force.
+                // 卡戎宽恕窗口 /「瞥视」假死：HEAD 1200，位于其他所有 HEAD 守卫（默认 1000、幽魂 1040、跳弹 1050、
+                // 魔人/防弹衣 1100）之后，并先于所有 KillPlayer.BEFORE 监听器；可见 force。
+                configName: "ferryman.GameFunctionsFerrymanPardonMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/ferryman/GameFunctionsFerrymanPardonMixin.class",
+                handler: "sparkwitch\$holdCharonKill",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                priority: 1200,
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
         ]
 ]
 

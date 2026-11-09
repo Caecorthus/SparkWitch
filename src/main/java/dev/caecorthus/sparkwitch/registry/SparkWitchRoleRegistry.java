@@ -1013,17 +1013,15 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
-        // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
-        // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
-        // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
-        // of isRegisteredSparkWitchRole.
-        // 追加在最后以保持既有注册顺序不变；嘉豪阵营成员（原生 Wathe JIAHAO），参数与黑警相同（伪装情绪但有任务、平民体力、
-        // 可见回合时间）。从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入
+        // The Charon (PR #202) and its Lost Soul: registered after the Specter and right before the Insider, which stays
+        // last (InsiderRegistrationContractTest), so only the Insider's own index shifts. A Wathe-native neutral with
+        // the Fiend's stance (FAKE mood, no tasks, no round clock), drawn from MIN_PLAYERS up. The pardon, the ferry,
+        // the marks, the feign death and the Soul Moment live in roles/neutral/ferryman. Never Witch-skill roles: kept
+        // out of isRegisteredSparkWitchRole.
+        // 卡戎（PR #202）与迷失的灵魂：注册在幽魂之后、紧挨内应之前（内应仍为最后一个，InsiderRegistrationContractTest），
+        // 因此只有内应自身的下标改变。原生 Wathe 中立，参数与魔人相同（虚假情绪、无任务、不可见回合时间），人数达到
+        // MIN_PLAYERS 起才抽取。宽恕、摆渡、标记、假死与亡魂时刻位于 roles/neutral/ferryman。均不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole。
-        // The Charon and its Lost Souls. Registered before the Insider (nothing may follow the Insider): a
-        // Wathe-native neutral with the Fiend's stance (FAKE mood, no tasks, no round clock), drawn from MIN_PLAYERS up.
-        // The pardon, the ferry, the marks, the feign death and the Soul Moment live in roles/neutral/ferryman.
-        // Never Witch-skill roles: kept out of isRegisteredSparkWitchRole.
         ferryman = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FERRYMAN_ID, FactionIds.NEUTRAL)
                 .color(FerrymanRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -1032,7 +1030,8 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> context.getTotalPlayerCount() >= FerrymanRules.MIN_PLAYERS)
                 .build());
-        // Lost Soul: never drawn on its own; the Soul Moment assigns it to bodies the Charon already ferried.
+        // Lost Soul: never drawn on its own; the Soul Moment assigns it to the players whose bodies the Charon ferried.
+        // 迷失的灵魂：从不单独抽取；亡魂时刻把它分配给卡戎摆渡过其遗体的玩家。
         lostSoul = SparkFactionApi.registerRole(FactionRoleDefinition.builder(LOST_SOUL_ID, FactionIds.NEUTRAL)
                 .color(0x7FB2C9)
                 .moodType(Role.MoodType.FAKE)
@@ -1041,6 +1040,13 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> false)
                 .build());
+        // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
+        // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
+        // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
+        // of isRegisteredSparkWitchRole.
+        // 追加在最后以保持既有注册顺序不变；嘉豪阵营成员（原生 Wathe JIAHAO），参数与黑警相同（伪装情绪但有任务、平民体力、
+        // 可见回合时间）。从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole。
         insider = SparkFactionApi.registerRole(FactionRoleDefinition.builder(INSIDER_ID, SparkWitchFactions.JIAHAO)
                 .color(InsiderRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -1138,9 +1144,13 @@ public final class SparkWitchRoleRegistry {
                 knight,
                 fiend,
                 insider,
-                ferryman,
                 stowaway,
                 schrodingersCat,
+                // The Charon (PR #202) and then its Lost Soul (owner 2026-11-09) close the neutral block after
+                // Schrödinger's Cat; the promotion identities stay the tail.
+                // 卡戎（PR #202）及其后的迷失的灵魂（所有者 2026-11-09）排在薛定谔之猫之后、结束中立段；晋升身份仍位于末尾。
+                ferryman,
+                lostSoul,
                 windSpirit,
                 guardianAngel,
                 vendetta,
