@@ -91,11 +91,11 @@ public final class SaviorRules {
     }
 
     /**
-     * Role binding (coordinator decision): while a Wathe game is running, the pistol and the lightsaber work only for
-     * a living Savior by raw role, so a looter (Ragpicker) or a disguise never gets terminal kills. Off-match anyone
-     * may use them (creative testing).
-     * 职业绑定（协调者决定）：Wathe 对局进行中，手枪与光剑只对按原始职业判定的存活救世主生效，捡尸者（拾荒者）或伪装者
-     * 永远拿不到终结击杀。对局外任何人都可使用（创造模式测试）。
+     * Role binding (PR #200 review default, 2026-11-09): while a Wathe game is running, the pistol and the lightsaber
+     * work only for a living Savior by raw role, so a looter (Ragpicker) or a disguise never gets terminal kills.
+     * Off-match anyone may use them (creative testing).
+     * 职业绑定（PR #200 审查默认，2026-11-09）：Wathe 对局进行中，手枪与光剑只对按原始职业判定的存活救世主生效，
+     * 捡尸者（拾荒者）或伪装者永远拿不到终结击杀。对局外任何人都可使用（创造模式测试）。
      */
     public static boolean mayUseWeapons(ServerPlayerEntity player) {
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
