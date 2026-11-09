@@ -1,8 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.civilian.savior;
 
+import dev.caecorthus.sparkfactionapi.api.FactionIds;
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -71,6 +75,16 @@ public final class SaviorRules {
     }
 
     /** True for the two terminal Savior weapon reasons. / 救世主两把武器的终结死因。 */
+    /**
+     * Effective good alignment, the same rule Knight/Recruit use: the Impostor trait is excluded and Conscience is
+     * included. The Savior's innocent-shooting punishment must use this instead of the raw role flag.
+     * 有效好人阵营，与骑士/新兵同口径：排除内鬼、包含善良杀手。救世主的误杀惩罚必须用它，而不是原始职业标记。
+     */
+    public static boolean isGoodPlayer(@Nullable PlayerEntity player, GameWorldComponent game) {
+        return player != null && game != null
+                && FactionIds.CIVILIAN.equals(SparkFactionApi.resolveEffectiveFaction(player, game));
+    }
+
     public static boolean isTerminalKill(@Nullable Identifier deathReason) {
         return PISTOL_DEATH_REASON.equals(deathReason) || LIGHTSABER_DEATH_REASON.equals(deathReason);
     }

@@ -161,7 +161,7 @@ public final class SaviorLightsaberCombatService {
      */
     private static void punishInnocentSwordKill(ServerPlayerEntity attacker, ServerPlayerEntity victim) {
         GameWorldComponent game = GameWorldComponent.KEY.get(attacker.getWorld());
-        if (attacker.isCreative() || !game.isInnocent(victim)) {
+        if (attacker.isCreative() || !SaviorRules.isGoodPlayer(victim, game)) {
             return;
         }
         ShouldPunishGunShooter.PunishResult punishment =
@@ -189,7 +189,7 @@ public final class SaviorLightsaberCombatService {
         }
         PlayerMoodComponent.KEY.get(shooter).setMood(0.0F);
         game.addToPreventGunPickup(shooter);
-        if (game.isInnocent(shooter) && policy == ShootInnocentPunishment.KILL_SHOOTER) {
+        if (SaviorRules.isGoodPlayer(shooter, game) && policy == ShootInnocentPunishment.KILL_SHOOTER) {
             GameFunctions.killPlayer(shooter, true, null, GameConstants.DeathReasons.SHOT_INNOCENT);
         }
     }

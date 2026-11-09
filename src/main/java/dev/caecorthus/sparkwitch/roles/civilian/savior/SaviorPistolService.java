@@ -87,10 +87,11 @@ public final class SaviorPistolService {
                     ShouldPunishGunShooter.EVENT.invoker().shouldPunish(shooter, target);
             if (punishment != null && punishment.hasCustomPunishment()) {
                 Scheduler.schedule(punishment::executeCustomPunishment, SaviorRules.PUNISH_DELAY_TICKS);
-            } else if (game.isInnocent(target) && !shooter.isCreative()
+            } else if (SaviorRules.isGoodPlayer(target, game) && !shooter.isCreative()
                     && (punishment == null || punishment.shouldPunish())) {
                 ShootInnocentPunishment policy = game.getShootInnocentPunishment();
-                if (game.isInnocent(shooter) && shooter.getRandom().nextFloat() <= game.getBackfireChance()) {
+                if (SaviorRules.isGoodPlayer(shooter, game)
+                        && shooter.getRandom().nextFloat() <= game.getBackfireChance()) {
                     // The gun backfires before the bullet leaves: the target survives. / 炸膛先于子弹离膛：目标存活。
                     backfired = true;
                     GameFunctions.killPlayer(shooter, true, shooter, GameConstants.DeathReasons.GUN_BACKFIRE);
@@ -140,7 +141,7 @@ public final class SaviorPistolService {
         ServerPlayNetworking.send(shooter, new SaviorGunDropS2CPayload());
         PlayerMoodComponent.KEY.get(shooter).setMood(0.0F);
         game.addToPreventGunPickup(shooter);
-        if (game.isInnocent(shooter) && policy == ShootInnocentPunishment.KILL_SHOOTER) {
+        if (SaviorRules.isGoodPlayer(shooter, game) && policy == ShootInnocentPunishment.KILL_SHOOTER) {
             GameFunctions.killPlayer(shooter, true, null, GameConstants.DeathReasons.SHOT_INNOCENT);
         }
     }
