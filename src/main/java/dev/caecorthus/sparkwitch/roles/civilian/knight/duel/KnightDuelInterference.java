@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.knight.duel;
 
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -50,6 +51,9 @@ public final class KnightDuelInterference {
             SparkWitchDeathReasons.POTION_BACKBLAST,
             SparkWitchDeathReasons.FIEND_DEVOURED,
             SparkWitchDeathReasons.CRIMSON_WITHER_SKULL,
+            // Savior pistol and lightsaber: terminal, but still a player's kill. / 救世主手枪与光剑：终结死因，但仍是玩家击杀。
+            SaviorRules.PISTOL_DEATH_REASON,
+            SaviorRules.LIGHTSABER_DEATH_REASON,
             // SparkStrength player-caused kills. / SparkStrength 玩家造成的击杀。
             Identifier.of("sparkstrength", "tomahawk"),
             Identifier.of("sparkstrength", "partygoer_eaten"),
