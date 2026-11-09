@@ -509,20 +509,6 @@ public final class SparkWitchItems {
                 CROSS_SWORD_ID,
                 new CrossSwordItem(new Item.Settings().maxCount(1))
         );
-        // Specter counterplay: the peachwood sword handed to low-sanity players while the Otherworld is open.
-        // 幽魂的反制：里世界期间发给低理智玩家的桃木剑。
-        peachwoodSword = Registry.register(
-                Registries.ITEM,
-                PEACHWOOD_SWORD_ID,
-                new PeachwoodSwordItem(PeachwoodSwordItem.createSettings())
-        );
-        // Specter shop: an invisible placed trigger spent by the first player who steps on it.
-        // 幽魂商店：放在地上隐形的触发器，第一个踩到的玩家将其消耗。
-        ghostTrigger = Registry.register(
-                Registries.ITEM,
-                GHOST_TRIGGER_ID,
-                new GhostTriggerItem(GhostTriggerItem.createSettings())
-        );
         // Noa's Big Dog Portrait: a plain carried token with no use action. NoaKillWatch finds it by registry id
         // (NoaRules.DOG_PORTRAIT_ITEM_ID); appended last.
         // 诺亚的大狗画像：无使用动作的普通携带物品。NoaKillWatch 按注册 ID（NoaRules.DOG_PORTRAIT_ITEM_ID）识别；追加在最后。
@@ -539,6 +525,22 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 ACCOUNTANT_PASSBOOK_ID,
                 new AccountantPassbookItem(new Item.Settings().maxCount(1))
+        );
+        // Specter (PR #207) items, appended last so earlier registration order stays unchanged.
+        // 幽魂（PR #207）物品，追加在最后以保持既有注册顺序不变。
+        // Specter counterplay: the peachwood sword handed to low-sanity players while the Otherworld is open.
+        // 幽魂的反制：里世界期间发给低理智玩家的桃木剑。
+        peachwoodSword = Registry.register(
+                Registries.ITEM,
+                PEACHWOOD_SWORD_ID,
+                new PeachwoodSwordItem(PeachwoodSwordItem.createSettings())
+        );
+        // Specter shop: an invisible placed trigger spent by the first player who steps on it.
+        // 幽魂商店：放在地上隐形的触发器，第一个踩到的玩家将其消耗。
+        ghostTrigger = Registry.register(
+                Registries.ITEM,
+                GHOST_TRIGGER_ID,
+                new GhostTriggerItem(GhostTriggerItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();

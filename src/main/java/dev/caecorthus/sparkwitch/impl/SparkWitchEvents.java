@@ -46,6 +46,7 @@ import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPeachwoodService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterReplayService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterShopService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
@@ -221,6 +222,11 @@ public final class SparkWitchEvents {
                 SpecterFearComponent.KEY.get(serverPlayer).clear();
                 SpecterSecondSkillComponent.KEY.get(serverPlayer).assignForRole(role);
                 SpecterCowardiceComponent.KEY.get(serverPlayer).clear();
+                if (SpecterRules.isSpecter(role)) {
+                    // Cowardice syncs only to its owner and Specters: a new Specter needs every current flag now.
+                    // 怯懦只同步给本人与幽魂：新的幽魂需要立即收到当前所有标记。
+                    SpecterCowardiceComponent.resyncTo(serverPlayer);
+                }
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
                 if (role != null && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())) {
                     // One sync with the final state instead of one per write. / 只用最终状态同步一次，而不是每次写入各同步一次。
@@ -281,9 +287,13 @@ public final class SparkWitchEvents {
             FirePokerFallAttributionService.clearPlayer(victim);
             PigGodChaseRuntime.clear(victim, WitchPlayerComponent.KEY.get(victim));
             PerfumerPlayerComponent.KEY.get(victim).stopCologne();
-            SpecterFearComponent.KEY.get(victim).clear();
-            SpecterSecondSkillComponent.KEY.get(victim).clear();
-            SpecterCowardiceComponent.KEY.get(victim).clear();
+            if (!WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
+                // A Last Stand survivor keeps fear, the Otherworld state and cowardice (Dominator / Time Stealer /
+                // Seeker precedent). / 背水一战存活者保留恐惧、里世界状态与怯懦（支配者、窃时者、搜寻者先例）。
+                SpecterFearComponent.KEY.get(victim).clear();
+                SpecterSecondSkillComponent.KEY.get(victim).clear();
+                SpecterCowardiceComponent.KEY.get(victim).clear();
+            }
             OrthopedistSkillService.clearPlayer(victim);
             if (!WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
                 DominatorSkillService.clearPlayer(victim);

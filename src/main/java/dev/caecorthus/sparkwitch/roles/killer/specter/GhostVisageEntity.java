@@ -17,17 +17,20 @@ import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Arm;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Short-lived floating player-model hallucination spawned in front of the ghost-trigger victim. Only its viewer's
- * client renders it (the renderer checks the synced viewer UUID), it ignores collision/damage, and the server removes
- * it after the 2 s fade.
- * 鬼魂触发器受害者面前生成的浮空玩家模型幻影。只有受害者的客户端会渲染它（渲染器检查同步的 viewer UUID），
- * 它无视碰撞与伤害，2 秒渐变结束后由服务端移除。
+ * Short-lived player-model hallucination spawned in front of the ghost-trigger victim. The server tracks it only to
+ * its viewer ({@link #canBeSpectated}; the viewer is set before {@code spawnEntity}), and the renderer also checks the
+ * synced viewer UUID. It is no target for anyone: crosshairs, attacks and pushes pass through it and it takes no
+ * damage, so it never blocks a knife, gun or interaction aimed past it. The server removes it after the 2 s fade.
+ * 鬼魂触发器受害者面前生成的玩家模型幻影。服务端只把它追踪给观看者（{@link #canBeSpectated}；观看者在
+ * {@code spawnEntity} 之前设置），渲染器也会检查同步的观看者 UUID。它不是任何人的目标：准星、攻击与推挤都会穿过它，
+ * 也不受伤害，因此不会挡住越过它的刀、枪或交互。2 秒渐变结束后由服务端移除。
  */
 public final class GhostVisageEntity extends LivingEntity {
     public static final int LIFETIME_TICKS = 40;
@@ -59,6 +62,27 @@ public final class GhostVisageEntity extends LivingEntity {
     @Nullable
     public UUID getViewerUuid() {
         return dataTracker.get(VIEWER).orElse(null);
+    }
+
+    /**
+     * Server tracking gate: only the viewer's client ever receives the entity, so nobody else can hit, see or collide
+     * with an invisible body. / 服务端追踪门槛：只有观看者的客户端会收到该实体，其他人无法命中、看到或碰到隐形身体。
+     */
+    @Override
+    public boolean canBeSpectated(ServerPlayerEntity spectator) {
+        UUID viewer = getViewerUuid();
+        return viewer != null && viewer.equals(spectator.getUuid()) && super.canBeSpectated(spectator);
+    }
+
+    /** No crosshair/raycast target, even for its viewer. / 不作为准星或射线目标，观看者亦然。 */
+    @Override
+    public boolean canHit() {
+        return false;
+    }
+
+    @Override
+    public boolean isAttackable() {
+        return false;
     }
 
     @Override

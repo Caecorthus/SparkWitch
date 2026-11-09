@@ -15,6 +15,7 @@
     ]
   },
   "ambient.specter_otherworld_bgm_0": {
+    "subtitle": "subtitles.sparkwitch.ambient.specter_otherworld_bgm",
     "sounds": [
       {
         "name": "sparkwitch:ambient/specter_otherworld_bgm_0",
@@ -23,6 +24,7 @@
     ]
   },
   "ambient.specter_otherworld_bgm_1": {
+    "subtitle": "subtitles.sparkwitch.ambient.specter_otherworld_bgm",
     "sounds": [
       {
         "name": "sparkwitch:ambient/specter_otherworld_bgm_1",
@@ -31,6 +33,7 @@
     ]
   },
   "ambient.specter_otherworld_bgm_2": {
+    "subtitle": "subtitles.sparkwitch.ambient.specter_otherworld_bgm",
     "sounds": [
       {
         "name": "sparkwitch:ambient/specter_otherworld_bgm_2",

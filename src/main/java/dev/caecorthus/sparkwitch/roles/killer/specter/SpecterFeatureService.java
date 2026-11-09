@@ -2,18 +2,26 @@ package dev.caecorthus.sparkwitch.roles.killer.specter;
 
 import dev.caecorthus.sparkfactionapi.api.FactionInstinctPolicy;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
-import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 
 /**
- * Specter client-side presentation: the always-on sanity outline. The server resolves the bands in
- * {@link SpecterPlayerComponent}; this policy only reads the owner-private synced map, so other viewers are unaffected.
- * 幽魂的客户端表现：常驻理智描边。区间由服务端在 {@link SpecterPlayerComponent} 中判定；本策略只读取仅本人同步的映射，
- * 其他观察者不受影响。
+ * Specter feature wiring.
+ * <ul>
+ *   <li>Client presentation: the always-on sanity outline. The server resolves the bands in
+ *       {@link SpecterPlayerComponent}; this policy only reads the owner-private synced map and the cowardice flags
+ *       that are synced only to their owner and to Specters, so other viewers are unaffected.</li>
+ *   <li>Round edges (Hunter trap pattern): every loaded ghost trigger is discarded when the winner is determined and
+ *       again at finalize; triggers in unloaded chunks are caught by their own match-id check on load.</li>
+ * </ul>
+ * 幽魂功能接线。客户端表现：常驻理智描边。区间由服务端在 {@link SpecterPlayerComponent} 中判定；本策略只读取仅本人同步的映射，
+ * 以及只同步给本人与幽魂的怯懦标记，其他观察者不受影响。回合节点（猎人捕兽夹模式）：判定胜负时与回合收尾时各清除一次所有已加载的
+ * 鬼魂触发器；未加载区块中的触发器在加载后由自身的对局 id 检查清除。
  */
 public final class SpecterFeatureService {
     private static boolean registered;
@@ -27,6 +35,13 @@ public final class SpecterFeatureService {
         }
         registered = true;
         SparkFactionApi.registerInstinctPolicy(SpecterFeatureService::instinctHighlight);
+        GameEvents.ON_WIN_DETERMINED.register((world, game, status, neutralWinner) ->
+                GhostTriggerEntity.discardAll(world));
+        GameEvents.ON_FINISH_FINALIZE.register((world, game) -> {
+            if (world instanceof ServerWorld serverWorld) {
+                GhostTriggerEntity.discardAll(serverWorld);
+            }
+        });
     }
 
     private static FactionInstinctPolicy.InstinctResult instinctHighlight(
@@ -47,7 +62,7 @@ public final class SpecterFeatureService {
         // 低理智的真实理智玩家可以穿墙看到隐身的幽魂，使用职业色描边。
         if (SpecterRules.isSpecter(gameComponent.getRole(targetPlayer))
                 && targetPlayer.isInvisible()
-                && isLowSanityViewer(viewer, gameComponent)) {
+                && isLowSanityViewer(viewer)) {
             return FactionInstinctPolicy.InstinctResult.show(
                     SpecterRules.COLOR,
                     false,
@@ -85,15 +100,21 @@ public final class SpecterFeatureService {
         return FactionInstinctPolicy.InstinctResult.show(color, false, SpecterRules.OUTLINE_PRIORITY);
     }
 
-    /** Real-mood player at or below 25 sanity, or a cowardly player of any mood type. / 真实理智不高于 25，或任何理智类型的怯懦者。 */
-    private static boolean isLowSanityViewer(PlayerEntity viewer, GameWorldComponent gameComponent) {
+    /**
+     * Real-mood player at or below 25 sanity, or a cowardly player of any mood type. Client-side (SparkFactionAPI only
+     * evaluates instinct policies on the client) and only for the local viewer, whose own mood, traits and cowardice
+     * are synced to it, so it uses the side-neutral {@link SpecterRules#hasRealSanityEitherSide} rather than the
+     * server-typed {@link SpecterRules#hasRealSanity}; both apply SparkTraits Conscience/Impostor and exclude active
+     * Wraiths the same way.
+     * 真实理智不高于 25，或任何理智类型的怯懦者。在客户端求值（SparkFactionAPI 只在客户端调用本能策略），且只针对本地观察者，
+     * 其本人的理智、词条与怯懦都会同步给本人，因此使用两端通用的 {@link SpecterRules#hasRealSanityEitherSide}，而非仅限服务端
+     * 类型的 {@link SpecterRules#hasRealSanity}；二者以相同方式计入 SparkTraits 善良/内鬼并排除激活冤魂。
+     */
+    private static boolean isLowSanityViewer(PlayerEntity viewer) {
         if (SpecterCowardiceComponent.KEY.get(viewer).isCoward()) {
             return true;
         }
-        Role role = gameComponent.getRole(viewer);
-        if (role == null || role.getMoodType() != Role.MoodType.REAL) {
-            return false;
-        }
-        return PlayerMoodComponent.KEY.get(viewer).getMood() * 100.0F <= SpecterRules.LOW_SANITY_THRESHOLD;
+        return SpecterRules.hasRealSanityEitherSide(viewer)
+                && PlayerMoodComponent.KEY.get(viewer).getMood() * 100.0F <= SpecterRules.LOW_SANITY_THRESHOLD;
     }
 }

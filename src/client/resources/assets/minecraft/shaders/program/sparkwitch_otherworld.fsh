@@ -1,7 +1,11 @@
 #version 150
 
 // Otherworld screen filter: saturation down, contrast up, red edge vignette.
+// Output is opaque and the program blends one/zero: vanilla clears the main target with alpha 0, so passing the
+// sampled alpha through (or blending by source alpha) would turn sky/clear-colour pixels black.
 // 里世界画面滤镜：降低饱和度、提高对比度、屏幕边缘泛红。
+// 输出不透明，程序混合模式为 one/zero：原版以 alpha 0 清空主帧缓冲，若透传采样的 alpha（或按源 alpha 混合），
+// 天空/清屏颜色像素会变黑。
 uniform sampler2D DiffuseSampler;
 uniform float Saturation;
 uniform float Contrast;
@@ -22,5 +26,5 @@ void main()
     float edge = smoothstep(0.55, 1.0, length(edgeUv));
     rgb = mix(rgb, vec3(0.55, 0.0, 0.02), edge * Vignette);
 
-    fragColor = vec4(clamp(rgb, 0.0, 1.0), color.a);
+    fragColor = vec4(clamp(rgb, 0.0, 1.0), 1.0);
 }

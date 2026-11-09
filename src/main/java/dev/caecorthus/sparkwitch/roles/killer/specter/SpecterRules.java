@@ -1,8 +1,21 @@
 package dev.caecorthus.sparkwitch.roles.killer.specter;
 
+import dev.caecorthus.sparkfactionapi.api.FactionIds;
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.compat.NoellesSilenceBridge;
+import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
+import dev.caecorthus.sparkwitch.compat.OptionalStaticMethod;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsAbyssListenerBridge;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaGrappleService;
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
+import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssSuppression;
 import dev.doctor4t.wathe.api.Role;
+import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.cca.PlayerMoodComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
+import net.minecraft.server.network.ServerPlayerEntity;
 import java.util.Optional;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
@@ -10,8 +23,8 @@ import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Specter (幽魂) tuning and role predicate. Step 1 is a plain Wathe killer clone: only the name and colour differ.
- * 幽魂的数值与职业判定。第一步是纯 Wathe 杀手克隆：只有名称与颜色不同。
+ * Specter (幽魂) tuning, role predicate, the shared caster gate and the side-neutral mark target filter.
+ * 幽魂的数值、职业判定、共用的施放者门槛，以及两端通用的标记目标过滤。
  */
 public final class SpecterRules {
     public static final Identifier ROLE_ID = SparkWitch.id("specter");
@@ -40,8 +53,19 @@ public final class SpecterRules {
     public static final int MARK_DURATION_TICKS = 10 * 20;
     public static final int INITIAL_COOLDOWN_TICKS = 45 * 20;
     public static final int SHRIEK_COOLDOWN_TICKS = 45 * 20;
+    /**
+     * Replay skill ids, also the SparkFactionAPI {@code canAffectPlayer} action ids of the mark (manual or by a ghost
+     * trigger) and the shriek, so Wraith, Vendetta, Rift occupant and Knight duel policies answer them.
+     * 回放技能 id，同时也是标记（手动或经鬼魂触发器）与尖啸的 SparkFactionAPI {@code canAffectPlayer} 行为 id，
+     * 使冤魂、仇杀客、裂隙门内与骑士决斗策略可以作答。
+     */
     public static final Identifier MARK_SKILL_ID = SparkWitch.id("specter_mark");
     public static final Identifier SHRIEK_SKILL_ID = SparkWitch.id("specter_shriek");
+    /**
+     * SparkFactionAPI {@code canAffectPlayer} action id for the fear levels a shriek spreads around the marked player.
+     * 尖啸向被标记者周围施加恐惧层数时使用的 SparkFactionAPI {@code canAffectPlayer} 行为 id。
+     */
+    public static final Identifier FEAR_ACTION_ID = SparkWitch.id("specter_fear");
     public static final Identifier OTHERWORLD_SKILL_ID = SparkWitch.id("specter_otherworld_skill");
     // Fear: up to 3 levels; level 1/2 drain every 10 s, level 3 every 5 s; one level decays every 60 s; sanity floor 5.
     // 恐惧：最多 3 层；1/2 层每 10 秒扣 san，3 层每 5 秒；每 60 秒掉 1 层；理智最低扣到 5。
@@ -76,6 +100,78 @@ public final class SpecterRules {
         return role != null && ROLE_ID.equals(role.identifier());
     }
 
+    /**
+     * Server caster gate shared by skill one, the Otherworld and the ghost trigger (Dominator {@code mayCast}
+     * pattern): an ACTIVE round, the raw Specter role, alive and playing, not spectating/creative, not swallowed, not
+     * held (Ninja hook, Kidnapper, stun, Last Escape/Stand, Hunter root, Seeker session), not silenced, and not
+     * role-skill-blocked by SparkTraits. Callers then apply the Grand Witch Fear re-check themselves.
+     * 技能一、里世界与鬼魂触发器共用的服务端施放门槛（支配者 {@code mayCast} 模式）：回合处于 ACTIVE、真实身份为幽魂、
+     * 存活且参与对局、非旁观/创造、未被吞下、未被控制（忍者钩爪、绑匪、眩晕、脱险/背水、猎人定身、搜寻者会话）、未被沉默，
+     * 且未被 SparkTraits 封锁职业技能。调用方随后自行再检查大魔女恐惧。
+     */
+    public static boolean mayCast(ServerPlayerEntity caster) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(caster.getWorld());
+        return game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
+                && isSpecter(game.getRole(caster))
+                && GameFunctions.isPlayerPlayingAndAlive(caster)
+                && !caster.isSpectator()
+                && !GameFunctions.isPlayerSpectatingOrCreative(caster)
+                && !NoellesTaotieSeekerBridge.isSwallowed(caster)
+                && !NinjaGrappleService.isHeld(caster)
+                && !NoellesSilenceBridge.isSilenced(caster)
+                && !SparkTraitsKillerBridge.isRoleSkillBlocked(caster);
+    }
+
+    /**
+     * Effective "has a real sanity bar" for every Specter sanity rule: SparkTraits' effective mood type (Conscience
+     * makes a killer REAL, Impostor makes a civilian FAKE, an active Wraith never counts), via the shared
+     * {@link AbyssSuppression#hasRealSanity} rule rather than the raw {@code Role.getMoodType()}.
+     * 幽魂所有理智规则使用的“拥有真实理智条”判定：SparkTraits 的有效理智类型（善良让杀手变为真实，内鬼让平民变为虚假，
+     * 活跃冤魂从不计入），复用共享的 {@link AbyssSuppression#hasRealSanity} 规则，而非原始 {@code Role.getMoodType()}。
+     */
+    public static boolean hasRealSanity(ServerPlayerEntity player) {
+        return AbyssSuppression.hasRealSanity(player);
+    }
+
+    /**
+     * Side-neutral copy of {@link #hasRealSanity} for client presentation (the low-sanity viewer outline): the same
+     * public reads ({@link SparkTraitsAbyssListenerBridge} Conscience/Impostor facade, raw role mood type,
+     * {@link WraithStateService#isActive}) and the same combination as {@code AbyssSuppression.effectiveRealSanity}.
+     * On a client it is only meaningful for the local player, whose own traits and mood are synced to it. An unknown
+     * trait answer fails closed (no real sanity). Server rules must keep using {@link #hasRealSanity}.
+     * {@link #hasRealSanity} 的两端通用副本，供客户端表现使用（低理智观察者描边）：读取相同的公共数据（
+     * {@link SparkTraitsAbyssListenerBridge} 的良知/内鬼门面、原始职业理智类型、{@link WraithStateService#isActive}），
+     * 组合方式与 {@code AbyssSuppression.effectiveRealSanity} 相同。在客户端只对本地玩家有意义，因为只有本人的词条与理智会同步给
+     * 本人。词条查询结果未知时失败关闭（视为无真实理智）。服务端规则必须继续使用 {@link #hasRealSanity}。
+     */
+    public static boolean hasRealSanityEitherSide(@Nullable PlayerEntity player) {
+        if (player == null || WraithStateService.isActive(player)) {
+            return false;
+        }
+        if (player instanceof ServerPlayerEntity serverPlayer) {
+            return hasRealSanity(serverPlayer);
+        }
+        if (Boolean.TRUE.equals(SparkTraitsAbyssListenerBridge.isConscienceActive(player))) {
+            return true;
+        }
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        return role != null
+                && role.getMoodType() == Role.MoodType.REAL
+                && Boolean.FALSE.equals(SparkTraitsAbyssListenerBridge.isImpostorActive(player));
+    }
+
+    /** Effective real sanity at or below {@link #LOW_SANITY_THRESHOLD}. / 有效真实理智且不高于 {@link #LOW_SANITY_THRESHOLD}。 */
+    public static boolean isLowSanity(ServerPlayerEntity player) {
+        return hasRealSanity(player)
+                && PlayerMoodComponent.KEY.get(player).getMood() * 100.0F <= LOW_SANITY_THRESHOLD;
+    }
+
+    /** SparkFactionAPI effective killer faction (non-Conscience killers, Impostors). / SFA 有效杀手阵营（非善良杀手、内鬼）。 */
+    public static boolean isEffectiveKiller(ServerPlayerEntity player) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
+        return FactionIds.KILLER.equals(SparkFactionApi.resolveEffectiveFaction(player, game));
+    }
+
     /** Ticks between two sanity drains at the given fear level. / 指定恐惧层数的扣 san 间隔（tick）。 */
     public static int fearDrainIntervalTicks(int level) {
         return level >= FEAR_MAX_LEVEL ? 5 * 20 : 10 * 20;
@@ -103,8 +199,52 @@ public final class SpecterRules {
     }
 
     /**
-     * Nearest player hit by the crosshair ray within {@link #MARK_RANGE} blocks, requiring line of sight.
-     * 准星射线 {@link #MARK_RANGE} 格内最近的玩家，并要求视线可见。
+     * Side-neutral mark filter, shared by the client HUD and the server ({@code DominatorRules.isMarkable} pattern):
+     * never the caster; a living, non-spectator, non-creative Wathe participant (so never a Rift Gate occupant or a
+     * swallowed player, both living spectators); not invisible (the flag also covers SparkTraits Last Escape and Last
+     * Stand pending) and not invisible to the caster; not swallowed; not an active Wraith; not hidden from the caster's
+     * instinct by SparkTraits ({@link #IS_INSTINCT_HIDDEN}). The server additionally asks SparkFactionAPI
+     * {@code canAffectPlayer} in {@code SpecterSkillService}; that check is server-only and never runs here.
+     * 两端通用的标记过滤，客户端 HUD 与服务端共用（{@code DominatorRules.isMarkable} 模式）：不是施放者本人；在 Wathe 中存活、
+     * 非旁观、非创造的参与者（因此不会是裂隙门内或被吞下的玩家，二者都是活体旁观者）；未隐身（隐身标记也覆盖 SparkTraits 脱险与
+     * 背水一战待定），且对施放者不隐身；未被吞下；不是激活冤魂；未被 SparkTraits 对施放者本能隐藏。服务端在
+     * {@code SpecterSkillService} 中另行询问 SparkFactionAPI {@code canAffectPlayer}；该检查仅在服务端进行，从不在此运行。
+     */
+    public static boolean isMarkable(PlayerEntity caster, @Nullable PlayerEntity target) {
+        return target != null
+                && target != caster
+                && !target.isSpectator()
+                && !target.isCreative()
+                && GameFunctions.isPlayerPlayingAndAlive(target)
+                && !target.isInvisible()
+                && !target.isInvisibleTo(caster)
+                && !NoellesTaotieSeekerBridge.isSwallowed(target)
+                && !WraithStateService.isActive(target)
+                && !IS_INSTINCT_HIDDEN.callBoolean(false, false, false, caster, target);
+    }
+
+    /**
+     * External seam (optional SparkTraits): the Specter's own copy of the public, side-neutral
+     * {@code SparkTraitsApi.isInstinctHidden(viewer, target)} facade (Going Dark and other instinct hiding), as the
+     * Dominator keeps one. The marked body is outlined through walls, an instinct-like sight, so a target hidden from
+     * the caster's instinct is neither marked by the server nor named on the HUD. An absent mod, older build, wrong
+     * type or throwing call hides nothing (fail closed).
+     * 外部接缝（可选 SparkTraits）：幽魂自有的一份公共、两端通用的 {@code SparkTraitsApi.isInstinctHidden(viewer, target)}
+     * 门面读取（隐匿等本能隐藏），与支配者各自保留一份相同。被标记者会被穿墙描边，属于类本能视野，因此对施放者本能隐藏的目标
+     * 既不会被服务端标记，也不会在 HUD 上被点名。模组缺失、旧版本、类型不符或调用抛异常时都不隐藏任何人（失败关闭）。
+     */
+    private static final OptionalStaticMethod IS_INSTINCT_HIDDEN = OptionalStaticMethod.of("sparktraits",
+            "dev.caecorthus.sparktraits.api.SparkTraitsApi", "isInstinctHidden",
+            PlayerEntity.class, PlayerEntity.class).returning(boolean.class);
+
+    /**
+     * Nearest {@link #isMarkable} player hit by the crosshair ray within {@link #MARK_RANGE} blocks, requiring line of
+     * sight. Side-neutral: the HUD names exactly this player, and the server marks exactly this player after its own
+     * SparkFactionAPI check (a refused target is not skipped for the one behind it, so the HUD never names someone the
+     * server would not pick).
+     * 准星射线 {@link #MARK_RANGE} 格内最近的 {@link #isMarkable} 玩家，并要求视线可见。两端通用：HUD 点名的正是该玩家，
+     * 服务端在自身的 SparkFactionAPI 检查后标记的也正是该玩家（被拒绝的目标不会让射线改选其身后的玩家，因此 HUD 不会点名服务端
+     * 不会选中的人）。
      */
     public static @Nullable PlayerEntity findMarkTarget(PlayerEntity caster) {
         Vec3d start = caster.getEyePos();
@@ -112,10 +252,7 @@ public final class SpecterRules {
         PlayerEntity nearest = null;
         double nearestSquared = MARK_RANGE * MARK_RANGE;
         for (PlayerEntity target : caster.getWorld().getPlayers()) {
-            if (target == caster
-                    || target.isSpectator()
-                    || !GameFunctions.isPlayerPlayingAndAlive(target)
-                    || !caster.canSee(target)) {
+            if (!isMarkable(caster, target) || !caster.canSee(target)) {
                 continue;
             }
             Optional<Vec3d> hit = target.getBoundingBox()

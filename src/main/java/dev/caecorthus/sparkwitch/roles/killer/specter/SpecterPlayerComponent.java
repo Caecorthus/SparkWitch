@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.specter;
 
+import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
@@ -114,11 +115,26 @@ public final class SpecterPlayerComponent
         syncOwner();
     }
 
-    /** Server only: the shriek consumed the mark and starts the 60 s cooldown. / 仅服务端：尖啸消耗标记并进入 60 秒冷却。 */
+    /** Server only: the shriek consumed the mark and starts the 45 s cooldown. / 仅服务端：尖啸消耗标记并进入 45 秒冷却。 */
     public void consumeMarkForShriek() {
         markedTarget = null;
         markRemainingTicks = 0;
         cooldownTicks = SpecterRules.SHRIEK_COOLDOWN_TICKS;
+        syncOwner();
+    }
+
+    /**
+     * Server only, the SparkFactionAPI forced-cooldown write path (store {@code sparkwitch:specter_skill}): sets the
+     * skill-one cooldown exactly (floored at 0) and syncs the owner. The store's gate already excludes a running mark.
+     * 仅服务端，SparkFactionAPI 强制冷却的写入路径（存储 {@code sparkwitch:specter_skill}）：精确设置技能一冷却（下限为 0）
+     * 并同步给本人。存储门控已排除进行中的标记。
+     */
+    public void setCooldownTicks(int ticks) {
+        int next = Math.max(0, ticks);
+        if (cooldownTicks == next) {
+            return;
+        }
+        cooldownTicks = next;
         syncOwner();
     }
 
@@ -150,9 +166,13 @@ public final class SpecterPlayerComponent
             ServerPlayerEntity target = owner.getServer() == null
                     ? null
                     : owner.getServer().getPlayerManager().getPlayer(markedTarget);
+            // Cheap per-tick validity; the shriek re-runs the full target gate (instinct hiding, SparkFactionAPI).
+            // 每刻只做低成本的有效性检查；尖啸时会重新执行完整的目标门槛（本能隐藏、SparkFactionAPI）。
             if (target == null
+                    || target.getServerWorld() != owner.getServerWorld()
                     || target.isSpectator()
-                    || !GameFunctions.isPlayerPlayingAndAlive(target)) {
+                    || !GameFunctions.isPlayerPlayingAndAlive(target)
+                    || WraithStateService.isActive(target)) {
                 clearMark();
             } else if (markRemainingTicks > 0) {
                 markRemainingTicks--;
@@ -166,7 +186,7 @@ public final class SpecterPlayerComponent
             return;
         }
         refreshTicks = 0;
-        refreshHighlights(owner, game);
+        refreshHighlights(owner);
     }
 
     @Override
@@ -186,7 +206,7 @@ public final class SpecterPlayerComponent
         }
     }
 
-    private void refreshHighlights(ServerPlayerEntity owner, GameWorldComponent game) {
+    private void refreshHighlights(ServerPlayerEntity owner) {
         Map<UUID, Integer> next = new HashMap<>();
         for (ServerPlayerEntity target : owner.getServerWorld().getPlayers()) {
             if (target == owner
@@ -195,10 +215,10 @@ public final class SpecterPlayerComponent
                     || !GameFunctions.isPlayerPlayingAndAlive(target)) {
                 continue;
             }
-            Role role = game.getRole(target);
-            // Only real mood bars carry a sanity value; FAKE/NONE roles stay at full mood and never highlight.
-            // 只有真实理智条带有理智值；FAKE/NONE 身份始终满理智，永不参与高亮。
-            if (role == null || role.getMoodType() != Role.MoodType.REAL) {
+            // Only effective real mood bars carry a sanity value (SparkTraits Conscience/Impostor applied, active
+            // Wraiths never); FAKE/NONE bars stay at full mood and never highlight.
+            // 只有有效真实理智条带有理智值（已计入 SparkTraits 善良/内鬼，激活冤魂永不计入）；FAKE/NONE 始终满理智，永不高亮。
+            if (!SpecterRules.hasRealSanity(target)) {
                 continue;
             }
             float sanity = MathHelper.clamp(PlayerMoodComponent.KEY.get(target).getMood() * 100.0F, 0.0F, 100.0F);

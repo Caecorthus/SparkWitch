@@ -2,13 +2,5 @@
   "parent": "minecraft:item/generated",
   "textures": {
     "layer0": "sparkwitch:item/ghost_trigger"
-  },
-  "display": {
-    "ground": {
-      "scale": [ 0, 0, 0 ]
-    },
-    "fixed": {
-      "scale": [ 0, 0, 0 ]
-    }
   }
 }

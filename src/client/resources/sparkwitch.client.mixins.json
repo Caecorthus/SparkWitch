@@ -238,8 +238,7 @@
     "bear.HeadsetInventoryScreenMixin",
     "bear.HeadsetCreativeScreenMixin",
     "specter.SpecterOtherworldGameRendererMixin",
-    "specter.ClientWorldOtherworldSkyMixin",
-    "specter.SpecterOtherworldKnifeRayMixin"
+    "specter.ClientWorldOtherworldSkyMixin"
   ],
   "injectors": {
     "defaultRequire": 1

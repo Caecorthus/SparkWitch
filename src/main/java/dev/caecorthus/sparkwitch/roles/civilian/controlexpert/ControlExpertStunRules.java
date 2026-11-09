@@ -103,6 +103,9 @@ public final class ControlExpertStunRules {
             // 夏目安安催眠菜单请求与目标确认，与法官的两个包一样两半都拦截。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
+            // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
+            Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_specter_second_skill"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a

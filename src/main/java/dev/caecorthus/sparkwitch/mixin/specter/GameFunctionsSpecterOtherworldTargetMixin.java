@@ -11,14 +11,19 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Otherworld targeting rule on Wathe's 5-arg {@code killPlayer} (Wathe member, {@code remap = false}), before every
- * {@code KillPlayer.BEFORE} listener, psycho armour and Tofana: a kill credited to a Specter whose window is open only
- * lands on good, real-mood players at or below 25 sanity. Other victims take no damage and spend no shields.
- * 里世界索敌规则，挂在 Wathe 五参 {@code killPlayer} 上（Wathe 成员，{@code remap = false}），先于所有
- * {@code KillPlayer.BEFORE} 监听、疯魔护甲与托法娜：幽魂窗口开启时，只有真实理智不高于 25 的好人会成为击杀目标；
- * 其他受害者不受伤、不消耗护盾。
+ * Otherworld targeting rule at HEAD of Wathe's 5-arg {@code killPlayer} (Wathe member, {@code remap = false}): while the
+ * world window is open, a non-forced {@code wathe:knife} kill credited to a Specter that the rule rejects
+ * ({@link SpecterOtherworldService#blocksKill}) is cancelled with no side effects. HEAD callbacks run in ascending
+ * mixin priority, so 1040 lands after the default-1000 immunity guards and before BEAR's Rys-T ricochet (1050), the
+ * Fiend and SparkStrength's vest/Democracy Shield (1100), every {@code KillPlayer.BEFORE} listener, psycho armour, the
+ * Specter shield, Tofana and the Cat: a voided stab spends nothing. Every other death reason is untouched.
+ * 里世界索敌规则，挂在 Wathe 五参 {@code killPlayer} 的 HEAD（Wathe 成员，{@code remap = false}）：世界窗口开启时，记在幽魂
+ * 名下、被规则拒绝（{@link SpecterOtherworldService#blocksKill}）的非强制 {@code wathe:knife} 击杀被无副作用地取消。HEAD 回调
+ * 按 mixin 优先级升序执行，因此 1040 位于默认 1000 的免疫守卫之后，并先于 BEAR Rys-T 跳弹（1050）、魔人与 SparkStrength
+ * 防弹衣/民主盾牌（1100）、所有 {@code KillPlayer.BEFORE} 监听、疯魔护甲、幽魂护盾、托法娜与猫：被作废的刺击不消耗任何东西。
+ * 其他死因不受影响。
  */
-@Mixin(value = GameFunctions.class, remap = false, priority = 1100)
+@Mixin(value = GameFunctions.class, remap = false, priority = 1040)
 public abstract class GameFunctionsSpecterOtherworldTargetMixin {
     @Inject(
             method = "killPlayer(Lnet/minecraft/server/network/ServerPlayerEntity;ZLnet/minecraft/server/network/ServerPlayerEntity;Lnet/minecraft/util/Identifier;Z)V",
@@ -33,7 +38,7 @@ public abstract class GameFunctionsSpecterOtherworldTargetMixin {
             boolean force,
             CallbackInfo ci
     ) {
-        if (SpecterOtherworldService.blocksKill(victim, killer)) {
+        if (SpecterOtherworldService.blocksKill(victim, killer, deathReason, force)) {
             ci.cancel();
         }
     }

@@ -272,7 +272,9 @@
     "bear.HeadsetPlayerScreenHandlerMixin",
     "bear.HeadsetCreativeActionMixin",
     "specter.GameFunctionsSpecterOtherworldTargetMixin",
-    "specter.SpecterOtherworldKnifeMixin"
+    "specter.SpecterOtherworldKnifeMixin",
+    "specter.GameFunctionsSpecterShieldMixin",
+    "specter.DecoratedPotBlockPeachwoodSwordMixin"
   ],
   "injectors": {
     "defaultRequire": 1
