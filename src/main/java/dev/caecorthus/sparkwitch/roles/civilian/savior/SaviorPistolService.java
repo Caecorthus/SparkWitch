@@ -44,10 +44,10 @@ import org.jetbrains.annotations.Nullable;
  * click/shoot sounds, 4° recoil feedback, muzzle packet, 65-block target tolerance, innocent-shooting punishment and
  * backfire, but drops the two civilian-pistol modifiers the owner excluded: the innocent gun cooldown override and the
  * -0.35 mood cost of a kill (the Savior is police). The 10 s cooldown is always written, hit or miss, except in
- * creative mode. While a game runs only the living Savior may fire ({@link SaviorRules#mayUseWeapons}).
+ * creative mode. While a game runs any living holder may fire ({@link SaviorRules#mayUseWeapons}).
  * 救世主手枪的服务端部分，复制自 Wathe 的 {@code GunShootPayload.Receiver}。保留左轮的点击/开枪音效、4° 后坐反馈、
  * 枪口数据包、65 格目标容差、误杀惩罚与后坐反噬，但去掉所有者排除的两项平民手枪修正：误杀冷却覆盖与击杀的 -0.35 理智
- * 损失（救世主属于警类）。无论命中与否都写入 10 秒冷却，创造模式除外。对局进行中只有存活的救世主能开枪
+ * 损失（救世主属于警类）。无论命中与否都写入 10 秒冷却，创造模式除外。对局进行中任何存活的持有者都能开枪
  * （{@link SaviorRules#mayUseWeapons}）。
  */
 public final class SaviorPistolService {
@@ -216,15 +216,16 @@ public final class SaviorPistolService {
     }
 
     /**
-     * Wathe's innocent-shooting punishment, four ticks after the shot and only on a shooter who is still the living
-     * Savior: take the pistol; when the shooter cannot use killer features, drop the Savior's own hidden revolver
+     * Wathe's innocent-shooting punishment, four ticks after the shot and only on a shooter still alive in the round
+     * (any holder): take the pistol; when the shooter cannot use killer features, drop a Savior's own hidden revolver
      * (Wathe removes one gun and drops one, so the count stays constant), clear mood, block picking guns back up, and
      * under {@code KILL_SHOOTER} also kill the shooter.
-     * Wathe 的误杀惩罚，在开枪四刻后执行，且只作用于仍存活的救世主：收走手枪；当射手不能使用杀手功能时掉落救世主自己的
-     * 隐藏左轮（Wathe 收走一把、掉落一把，枪支数量不变）、清空理智、禁止再拾枪，并在 {@code KILL_SHOOTER} 策略下击杀射手。
+     * Wathe 的误杀惩罚，在开枪四刻后执行，且只作用于仍在对局中存活的射手（任何持有者）：收走手枪；当射手不能使用杀手功能时
+     * 掉落救世主自己的隐藏左轮（Wathe 收走一把、掉落一把，枪支数量不变）、清空理智、禁止再拾枪，并在 {@code KILL_SHOOTER}
+     * 策略下击杀射手。
      */
     private static void punish(ServerPlayerEntity shooter, GameWorldComponent game, ShootInnocentPunishment policy) {
-        if (!SaviorRules.isPunishable(shooter, game)
+        if (!SaviorRules.isPunishable(shooter)
                 || !SaviorRules.takeOne(shooter.getInventory(), SparkWitchItems.saviorPistol())) {
             return;
         }

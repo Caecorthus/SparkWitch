@@ -43,17 +43,17 @@ import org.jetbrains.annotations.Nullable;
  * One grant per player per round ({@link #GRANTED}): at the round start in an after-default
  * {@code ON_FINISH_INITIALIZE} phase (after SparkStrength's default-phase tablet grant, on final roles), or on a
  * {@code RoleAssigned} to the Savior while the round is ACTIVE (an admin role change, a Schrödinger's Cat
- * transformation; the USEC pattern). The weapons are role-bound (PR #200 review default, 2026-11-09): they vanish
- * with their holder on a terminal death (not one SparkTraits intercepted) and on a live-round disconnect; Wathe's own
- * death drop still drops the hidden revolver. A role change away strips nothing.
+ * transformation; the USEC pattern). Any holder may use the weapons (owner, 2026-11-09, the AXMC precedent), and they
+ * vanish with whoever holds them on a terminal death (not one SparkTraits intercepted) and on a live-round
+ * disconnect; Wathe's own death drop still drops the hidden revolver. A role change away strips nothing.
  * 救世主装备及其生命周期。仅服务端。布局：游戏发放的房间钥匙与信件放在快捷栏 0/1，SparkStrength 警用平板放在 2，然后是
  * 手枪（3）与光剑（4），保证枪在剑左边。主背包 9 槽塞一把 Wathe 左轮：对局中 SparkFactionAPI 的受限物品栏只绘制快捷栏与
  * 第二行（27–35），9–26 行完全不绘制，因此该左轮不可见也碰不到；它留作 Wathe 死亡掉落（以及误杀惩罚）。两把可见武器都带开局
  * 冷却。所有装备都用 {@code setStack} 放置：向救世主物品栏插入枪械会被 mixin 拒绝。每名玩家每回合只发放一次
  * （{@link #GRANTED}）：开局时在默认阶段之后的 {@code ON_FINISH_INITIALIZE} 阶段（晚于 SparkStrength 默认阶段的平板发放，
  * 按最终身份）发放，或在 ACTIVE 对局中通过 {@code RoleAssigned} 成为救世主时发放（管理员换职业、薛定谔之猫转化；USEC 模式）。
- * 武器与职业绑定（PR #200 审查默认，2026-11-09）：持有者最终死亡（不含被 SparkTraits 拦截的死亡）以及在进行中的对局里
- * 断线时随之消失；Wathe 自身的死亡掉落仍会掉出隐藏的左轮。转出救世主不收走任何东西。
+ * 武器任何持有者都能使用（所有者 2026-11-09，与 AXMC 先例一致），持有者最终死亡（不含被 SparkTraits 拦截的死亡）以及在
+ * 进行中的对局里断线时随之消失；Wathe 自身的死亡掉落仍会掉出隐藏的左轮。转出救世主不收走任何东西。
  */
 public final class SaviorLoadoutService {
     /**

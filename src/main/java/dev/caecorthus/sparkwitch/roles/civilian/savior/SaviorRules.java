@@ -91,16 +91,17 @@ public final class SaviorRules {
     }
 
     /**
-     * Role binding (PR #200 review default, 2026-11-09): while a Wathe game is running, the pistol and the lightsaber
-     * work only for a living Savior by raw role, so a looter (Ragpicker) or a disguise never gets terminal kills.
-     * Off-match anyone may use them (creative testing).
-     * 职业绑定（PR #200 审查默认，2026-11-09）：Wathe 对局进行中，手枪与光剑只对按原始职业判定的存活救世主生效，
-     * 捡尸者（拾荒者）或伪装者永远拿不到终结击杀。对局外任何人都可使用（创造模式测试）。
+     * Any holder (owner, 2026-11-09: "武器给谁都可以用", the AXMC precedent): while a Wathe game is running, the pistol
+     * and the lightsaber work for any living round participant who holds them; off-match anyone may use them (creative
+     * testing). They still vanish when their holder dies or leaves a live round ({@code SaviorLoadoutService}), so a
+     * corpse never hands them on.
+     * 任何持有者（所有者 2026-11-09：“武器给谁都可以用”，与 AXMC 先例一致）：Wathe 对局进行中，手枪与光剑对持有它们的任何存活
+     * 参与者生效；对局外任何人都可使用（创造模式测试）。持有者死亡或在进行中的对局里断线时它们仍随之消失
+     * （{@code SaviorLoadoutService}），因此尸体永远不会把它们传下去。
      */
     public static boolean mayUseWeapons(ServerPlayerEntity player) {
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
-        return !game.isRunning()
-                || (isSavior(game.getRole(player)) && GameFunctions.isPlayerPlayingAndAlive(player));
+        return !game.isRunning() || GameFunctions.isPlayerPlayingAndAlive(player);
     }
 
     /**
@@ -132,12 +133,12 @@ public final class SaviorRules {
     }
 
     /**
-     * The delayed innocent-kill punishment still applies only to a living Savior: a shooter who died, left the round
-     * or lost the role in the four ticks keeps everything. / 延迟的误杀惩罚只作用于仍存活的救世主：四刻内已死亡、离开对局或
-     * 失去职业的射手不受影响。
+     * The delayed innocent-kill punishment applies to any holder who is still alive in the round: a shooter who died or
+     * left it in the four ticks keeps everything (the death already took the weapons).
+     * 延迟的误杀惩罚作用于仍在对局中存活的任何持有者：四刻内已死亡或离开对局的射手不受影响（死亡已收走武器）。
      */
-    static boolean isPunishable(ServerPlayerEntity shooter, GameWorldComponent game) {
-        return GameFunctions.isPlayerPlayingAndAlive(shooter) && isSavior(game.getRole(shooter));
+    static boolean isPunishable(ServerPlayerEntity shooter) {
+        return GameFunctions.isPlayerPlayingAndAlive(shooter);
     }
 
     /** Removes one stack of {@code item} from the inventory; false when none was found. / 移除一件该物品；未找到时返回 false。 */
@@ -154,11 +155,17 @@ public final class SaviorRules {
     /**
      * Wathe keeps the gun count constant (one removed, one dropped), so the punishment drops the Savior's own hidden
      * revolver (slot {@link #HIDDEN_REVOLVER_SLOT} first, then any other) instead of a new one, with Wathe's pickup
-     * delay and owner. Nothing drops when the Savior carries no revolver.
+     * delay and owner. Nothing drops when the Savior carries no revolver. Only the Savior has a planted revolver: for
+     * any other holder the confiscated Savior weapon is the whole loss and their own guns stay (USEC any-holder
+     * precedent).
      * Wathe 保持枪支数量不变（收走一把、掉落一把），因此惩罚掉落救世主自己的隐藏左轮（先查 {@link #HIDDEN_REVOLVER_SLOT}
-     * 号槽，再查其他槽），而不是新建一把；沿用 Wathe 的拾取延迟与所有者。救世主身上没有左轮时不掉落任何东西。
+     * 号槽，再查其他槽），而不是新建一把；沿用 Wathe 的拾取延迟与所有者。救世主身上没有左轮时不掉落任何东西。只有救世主
+     * 身上有预置左轮：其他持有者只损失被没收的救世主武器，自己的枪保持不动（USEC 任何持有者先例）。
      */
     static void dropHiddenRevolver(ServerPlayerEntity shooter) {
+        if (!isSavior(GameWorldComponent.KEY.get(shooter.getWorld()).getRole(shooter))) {
+            return;
+        }
         PlayerInventory inventory = shooter.getInventory();
         int slot = inventory.getStack(HIDDEN_REVOLVER_SLOT).isOf(WatheItems.REVOLVER) ? HIDDEN_REVOLVER_SLOT : -1;
         for (int index = 0; slot < 0 && index < inventory.size(); index++) {

@@ -46,11 +46,11 @@ import net.minecraft.world.World;
 
 /**
  * Server half of the lightsaber: the kill (a full-charge main-hand strike from {@code AttackEntityCallback}, behind
- * the role binding and the SparkTraits / Vendetta / SparkFactionAPI melee gates), the innocent-kill punishment and the
+ * the living-holder gate and the SparkTraits / Vendetta / SparkFactionAPI melee gates), the innocent-kill punishment and the
  * 30 s post-kill cooldown, plus its sounds. The impact sound fires only when the main-hand lightsaber kills a player,
  * at the victim's position; the ignition and swing intents arrive from the client and are broadcast at the holder's
  * position with distance attenuation. {@code sounds.json} keeps no subtitle.
- * 光剑的服务端部分：击杀（{@code AttackEntityCallback} 中满蓄力的主手攻击，经过职业绑定与 SparkTraits / 复仇者 /
+ * 光剑的服务端部分：击杀（{@code AttackEntityCallback} 中满蓄力的主手攻击，经过存活持有者门槛与 SparkTraits / 复仇者 /
  * SparkFactionAPI 近战门控）、误杀惩罚与击杀后 30 秒冷却，以及其音效。命中音只在主手光剑击杀玩家时、于被击杀者位置播放；
  * 点火与挥动意图由客户端发来，服务端在持有者位置按距离衰减广播。sounds.json 不设字幕。
  */
@@ -141,14 +141,14 @@ public final class SaviorLightsaberCombatService {
 
     /**
      * Lightsaber kill: only a fully charged swing while the blade is off item cooldown kills, and while a game runs only
-     * in a living Savior's hand ({@link SaviorRules#mayUseWeapons}). Gates in order, like the Swordfish and the
+     * in a living holder's hand ({@link SaviorRules#mayUseWeapons}). Gates in order, like the Swordfish and the
      * Ceremonial Sword: the SparkTraits weapon gate, cooldown and charge, an ordinary living survival target, the
      * SparkFactionAPI veto, then the SparkTraits melee parry (Close Quarters / forced melee lock), and only then the
      * innocent-kill punishment and the terminal kill. The 30 s cooldown follows only a real kill. A Black Raven crow in
      * reach stands in for its owner; a Magician puppet or a SparkStrength Partygoer takes the strike as a kill (decoy
      * rule D3: same 30 s cost). Every refused strike answers FAIL, so it never falls through to vanilla damage.
      * Creative mode ignores both the cooldown gate and the post-kill cooldown.
-     * 光剑击杀：只有蓄满且武器不在物品冷却时的一击才会击杀；对局进行中还必须握在存活救世主手里
+     * 光剑击杀：只有蓄满且武器不在物品冷却时的一击才会击杀；对局进行中还必须握在存活的持有者手里
      * （{@link SaviorRules#mayUseWeapons}）。门槛顺序与剑鱼、仪礼剑一致：SparkTraits 武器门槛、冷却与蓄力、普通存活的生存
      * 模式目标、SparkFactionAPI 否决，然后是 SparkTraits 近战格挡（近身格斗 / 强制近战锁），最后才是误杀惩罚与终结击杀。
      * 30 秒冷却只在真正击杀后生效。近战距离内的黑羽鸦乌鸦以其主人代入；魔术师皮套或 SparkStrength 派对客按一次击杀承受这一击
@@ -287,13 +287,13 @@ public final class SaviorLightsaberCombatService {
     }
 
     /**
-     * Sword innocent-kill punishment: mirrors the pistol's Shot Innocent policy, four ticks later and only on a shooter
-     * who is still the living Savior. The lightsaber is taken and the Savior's own hidden revolver drops (count kept,
-     * like Wathe); mood is cleared (overridden by full sanity), gun pickup is blocked and KILL_SHOOTER still kills the
-     * shooter. The pistol's random gun-backfire is not applied to a melee hit.
-     * 光剑误杀惩罚：沿用与手枪相同的 Shot Innocent 策略，四刻后执行且只作用于仍存活的救世主。收走光剑并掉落救世主自己的
-     * 隐藏左轮（与 Wathe 一样数量不变）；理智清零（随后被恒满覆盖）、禁止拾枪；KILL_SHOOTER 仍会击杀射手。手枪的随机炸膛
-     * 不适用于近战。
+     * Sword innocent-kill punishment: mirrors the pistol's Shot Innocent policy, four ticks later and only on a holder
+     * still alive in the round. The lightsaber is taken and, for a Savior, its own hidden revolver drops (count kept,
+     * like Wathe); mood is cleared (a Savior's is pinned full again), gun pickup is blocked and KILL_SHOOTER still kills
+     * the shooter. The pistol's random gun-backfire is not applied to a melee hit.
+     * 光剑误杀惩罚：沿用与手枪相同的 Shot Innocent 策略，四刻后执行且只作用于仍在对局中存活的持有者。收走光剑；若是救世主，
+     * 再掉落其自己的隐藏左轮（与 Wathe 一样数量不变）；理智清零（救世主随后又被钉回满值）、禁止拾枪；KILL_SHOOTER 仍会击杀射手。
+     * 手枪的随机炸膛不适用于近战。
      */
     private static void punishInnocentSwordKill(ServerPlayerEntity attacker, ServerPlayerEntity victim) {
         GameWorldComponent game = GameWorldComponent.KEY.get(attacker.getWorld());
@@ -312,7 +312,7 @@ public final class SaviorLightsaberCombatService {
 
     private static void punishSword(ServerPlayerEntity shooter, GameWorldComponent game,
                                     ShootInnocentPunishment policy) {
-        if (!SaviorRules.isPunishable(shooter, game)
+        if (!SaviorRules.isPunishable(shooter)
                 || !SaviorRules.takeOne(shooter.getInventory(), SparkWitchItems.saviorLightsaber())) {
             return;
         }

@@ -1283,11 +1283,12 @@ Current build baseline:
     Schrödinger's Cat via `SchrodingersCatLoadouts`). Hotbar: Wathe key 0, letter 1, SparkStrength tablet 2, pistol 3,
     lightsaber 4; a Wathe revolver is planted in the hidden main row (slot 9) for Wathe's death drop and the
     innocent-kill punishment. Opening cooldowns: pistol 60 s, lightsaber 45 s. Every kit item is placed with
-    `setStack`, and `addToPreventGunPickup` is set for the round. The weapons are role-bound (review default): a
-    terminal death (not one SparkTraits intercepts) and a live-round disconnect strip the pistol and the lightsaber;
-    Wathe still drops the hidden revolver. A role change away strips nothing.
-  - Weapons (`SaviorPistolService`, `SaviorLightsaberCombatService`): while a game runs they work only for a living
-    Savior by raw role (`SaviorRules.mayUseWeapons`). The pistol (`sparkwitch:savior_pistol_shoot`) copies Wathe's
+    `setStack`, and `addToPreventGunPickup` is set for the round. Any holder may use the weapons (owner 2026-11-09,
+    the AXMC precedent), and they vanish with whoever holds them on a terminal death (not one SparkTraits intercepts)
+    and on a live-round disconnect, so a corpse never hands them on; Wathe still drops the hidden revolver. A role
+    change away strips nothing.
+  - Weapons (`SaviorPistolService`, `SaviorLightsaberCombatService`): while a game runs they work for any living
+    holder (`SaviorRules.mayUseWeapons`). The pistol (`sparkwitch:savior_pistol_shoot`) copies Wathe's
     revolver receiver (client pick through `RevolverItem.getGunTarget` + `SparkWitchApi.preferNearerGunWorldTarget`,
     65-block server tolerance, 10 s after every shot) with the USEC shooter gates (SparkTraits weapon action, stun,
     Seeker lock, Kidnapper control, Wraith, Dominator hand-shot refusal) and an SFA `canAffectPlayer` pre-veto for
@@ -1299,11 +1300,13 @@ Current build baseline:
     `sparkwitch:lightsaber_kill` (BLADE) through `SaviorRules.settleKill` (up to 10 `killPlayer` retries, each may
     spend one shield layer); SparkTraits skips Last Escape / Last Stand / Depression for them, they pierce psycho
     armour, and the Saint and NoellesRoles Iron Man / whiskey / Jester mixins let them through (the swallowed
-    no-body rule still applies). Both are Knight-duel interference reasons.
+    no-body rule still applies). Both are Knight-duel interference reasons; the Fiend's D5 hit reward counts the
+    pistol as GUN and the lightsaber as BAT; the Rys-T may deflect the pistol (ranged set; its same-tick memo makes a
+    deflection hold for every settle retry).
   - Innocent kill (SparkFactionAPI effective faction CIVILIAN, the Knight/Recruit rule): Wathe's policy 4 ticks later,
-    only while the shooter is still a living Savior: the used weapon is taken, the hidden revolver (not a new one) is
-    dropped, mood 0, gun pickup blocked, `KILL_SHOOTER` kills with `shot_innocent`; the pistol also rolls Wathe's
-    backfire. The gun-pickup rules (`SaviorGunPickupRules` + three mixins) veto only foreign guns (Wathe `guns`, Hunter
+    only while the shooter is still alive in the round: the used weapon is taken; a killer-feature shooter loses only
+    that; otherwise a Savior's hidden revolver (not a new one) is dropped, mood 0, gun pickup blocked, `KILL_SHOOTER`
+    kills a good shooter with `shot_innocent`; the pistol also rolls Wathe's backfire for a good shooter. The gun-pickup rules (`SaviorGunPickupRules` + three mixins) veto only foreign guns (Wathe `guns`, Hunter
     shotgun, AXMC, Shriek Gun) and refuse server-side every click, swap or pick-from-inventory that would move the
     hidden revolver out of rows 9–26.
   - Domain (G, `use_savior_skill`, `SaviorDomainService`): ACTIVE round, living, not spectating or swallowed, not
