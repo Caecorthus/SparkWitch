@@ -117,7 +117,8 @@
   },
   "suggests": {
     "sparktraits": ">=0.1.9.11",
-    "sparkstrength": "*"
+    "sparkstrength": "*",
+    "lambdynlights": ">=3.0.0"
   },
   "breaks": {
     "sparktraits": "<0.1.9.11"

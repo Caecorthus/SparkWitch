@@ -11,11 +11,18 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 /**
- * Gives the Savior lightsaber Wathe's bat crosshair, including the attack-cooldown bar. The renderer branches on
- * {@code stack.isOf(WatheItems.BAT)}; this wraps every {@code ItemStack.isOf} call in {@code renderCrosshair} and only
- * overrides the bat check, so the revolver/derringer/knife branches stay untouched.
- * 让救世主光剑使用 Wathe 球棒准星（含攻击冷却条）。渲染器用 {@code stack.isOf(WatheItems.BAT)} 分支；这里包住
- * {@code renderCrosshair} 里所有 {@code ItemStack.isOf} 调用，只改写球棒判定，不干扰左轮/德林加/刀分支。
+ * External Wathe seam (pinned in {@code watheClientMixinContracts}): gives the Savior lightsaber Wathe's bat crosshair,
+ * including the attack-cooldown bar, and the Savior pistol Wathe's revolver crosshair. The renderer branches on
+ * {@code stack.isOf(WatheItems.BAT)} / {@code isOf(WatheItems.REVOLVER)}; this wraps every {@code ItemStack.isOf} call in
+ * {@code renderCrosshair} and only widens those two checks, so the derringer and knife branches stay untouched. The
+ * pistol fires with the revolver's own pick ({@code SaviorClient}), so its crosshair is exactly the revolver's: the
+ * same cooldown check on the held item and the same {@code getVisibleGunTarget} target pip, with the Magician puppet
+ * and Raven Form crow seams that sit on it.
+ * 外部 Wathe 接缝（已固定在 {@code watheClientMixinContracts}）：让救世主光剑使用 Wathe 球棒准星（含攻击冷却条），救世主手枪
+ * 使用 Wathe 左轮准星。渲染器用 {@code stack.isOf(WatheItems.BAT)} / {@code isOf(WatheItems.REVOLVER)} 分支；这里包住
+ * {@code renderCrosshair} 里所有 {@code ItemStack.isOf} 调用，只放宽这两处判定，不干扰德林加与刀分支。手枪开火使用左轮自身的
+ * 选靶（{@code SaviorClient}），因此其准星与左轮完全一致：对手持物品相同的冷却判断，以及相同的 {@code getVisibleGunTarget}
+ * 目标准星，连同其上的魔术师皮套与化鸦乌鸦接缝。
  */
 @Mixin(CrosshairRenderer.class)
 public abstract class SaviorLightsaberCrosshairMixin {

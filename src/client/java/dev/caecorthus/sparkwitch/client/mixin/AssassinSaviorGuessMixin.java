@@ -11,7 +11,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Hides the Savior from NoellesRoles' Assassin guess panel; the server also ignores guesses naming it. */
+/**
+ * External NoellesRoles seam (client presentation): hides the Savior from the Assassin's guess panel by filtering the
+ * list {@code AssassinScreen#getAllGuessableRoles} returns, leaving every other role and its order untouched. The
+ * server half ({@code mixin/savior/NoellesAssassinSaviorGuessMixin}) still drops a guess that names the Savior for a
+ * target who really is one, so a modified client gains nothing. Pinned in {@code watheClientMixinContracts}.
+ * 外部 NoellesRoles 接缝（客户端展示）：过滤 {@code AssassinScreen#getAllGuessableRoles} 返回的列表，把救世主从刺客猜测面板中
+ * 隐藏，其他职业及其顺序保持不变。服务端部分（{@code mixin/savior/NoellesAssassinSaviorGuessMixin}）仍会丢弃对真正救世主
+ * 点名救世主的猜测，因此改过的客户端也得不到任何好处。已固定在 {@code watheClientMixinContracts} 中。
+ */
 @Mixin(AssassinScreen.class)
 public abstract class AssassinSaviorGuessMixin {
     // Keep Yarn: intermediary selectors crash runClient; remapJar emits the intermediary form verifyClientMixinSelectors checks.

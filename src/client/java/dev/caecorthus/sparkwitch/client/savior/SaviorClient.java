@@ -1,41 +1,32 @@
 package dev.caecorthus.sparkwitch.client.savior;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.api.SparkWitchApi;
 import dev.caecorthus.sparkwitch.net.SaviorGunDropS2CPayload;
 import dev.caecorthus.sparkwitch.net.SaviorMuzzleS2CPayload;
 import dev.caecorthus.sparkwitch.net.SaviorPistolShootC2SPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorParticles;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPistolItem;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
-import dev.doctor4t.wathe.game.GameFunctions;
-import java.util.Optional;
+import dev.doctor4t.wathe.item.RevolverItem;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
-import net.minecraft.block.BedBlock;
-import net.minecraft.block.enums.BedPart;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.Perspective;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
 
 /**
- * Client half of the Savior pistol. Target picking is Wathe's revolver geometry (30-block {@code ProjectileUtil} ray,
- * sleeping players on the aimed bed included); the recoil, local muzzle flash, the muzzle packet for observers and the
- * local gun removal on an innocent-kill punishment all mirror Wathe's revolver.
- * 救世主手枪的客户端部分。选靶沿用 Wathe 左轮的几何（30 格 {@code ProjectileUtil} 射线，包含瞄准床上的睡眠玩家）；后坐、
- * 本地枪口火焰、给观察者的枪口数据包、误杀惩罚时的本地手枪移除，全部对应 Wathe 左轮。
+ * Client half of the Savior pistol. The target pick is Wathe's revolver pick taken as an add-on gun
+ * ({@link #pickTargetId}); the recoil, local muzzle flash, the muzzle packet for observers and the local gun removal on
+ * an innocent-kill punishment all mirror Wathe's revolver.
+ * 救世主手枪的客户端部分。选靶按附属枪械方式沿用 Wathe 左轮选靶（{@link #pickTargetId}）；后坐、本地枪口火焰、给观察者的
+ * 枪口数据包、误杀惩罚时的本地手枪移除，全部对应 Wathe 左轮。
  */
 public final class SaviorClient {
     private SaviorClient() {
@@ -59,6 +50,20 @@ public final class SaviorClient {
         });
     }
 
+    /**
+     * Connection edges ({@code SparkWitchClient.releaseClosedWorldPlayers}, already on the client thread): drops every
+     * Savior client cache keyed by player or held stack (hums, ignition and draw state, muzzle positions, the hand-render
+     * mark), so none of them keeps a closed ClientWorld alive or leaks into the next world.
+     * 连接边界（{@code SparkWitchClient.releaseClosedWorldPlayers}，已在客户端线程）：丢弃所有按玩家或手持物品堆记录的救世主
+     * 客户端缓存（嗡鸣、点火与拔出状态、枪口位置、手部渲染标记），使它们都不会让已关闭的 ClientWorld 继续存活或带入下一个世界。
+     */
+    public static void releaseClosedWorld() {
+        SaviorLightsaberAnimation.reset();
+        SaviorLightsaberDrawAnimation.reset();
+        SaviorMuzzleTracker.clear();
+        SaviorHandRenderScope.reset();
+    }
+
     private static void shoot(PlayerEntity player, ItemStack stack) {
         ClientPlayNetworking.send(new SaviorPistolShootC2SPayload(pickTargetId(player)));
         player.setPitch(player.getPitch() - SaviorRules.PISTOL_RECOIL_PITCH);
@@ -71,54 +76,26 @@ public final class SaviorClient {
         }
     }
 
-    /** Wathe revolver target pick: nearest alive player on the look ray, or the occupant of the aimed bed. / 左轮选靶。 */
+    /**
+     * The revolver's own pick, the add-on gun precedent (CONTEXT "Add-on gun world hits", SparkStrength's Serial Killer
+     * pistols): {@code RevolverItem.getGunTarget} carries every client hook on the revolver ray (SparkTraits Marksman
+     * range, SparkWitch's active-Wraith pass-through, the strictly nearer Magician puppet and Raven Form crow);
+     * {@code SparkWitchApi.preferNearerGunWorldTarget} adds the strictly nearer Seeker device that SparkWitch wraps
+     * inside {@code RevolverItem#use}; {@code RevolverItem.resolveTargetFromHitResult} turns it into the id a revolver
+     * sends (the entity hit, the sleeping player on an aimed bed with the Wraith bed miss, else -1). The id may name a
+     * puppet, crow or device; the server re-validates and resolves it. Not covered, as for the Serial Killer pistols:
+     * SparkStrength's drone pick, which only wraps the call inside {@code RevolverItem#use} and has no public seam.
+     * 左轮自身的选靶，沿用附属枪械先例（CONTEXT「Add-on gun world hits」，SparkStrength 连环杀手手枪）：
+     * {@code RevolverItem.getGunTarget} 带有左轮射线上的全部客户端钩子（SparkTraits 神射手射程、SparkWitch 激活冤魂穿透、
+     * 严格更近的魔术师皮套与化鸦乌鸦）；{@code SparkWitchApi.preferNearerGunWorldTarget} 补上 SparkWitch 包装在
+     * {@code RevolverItem#use} 内、严格更近的搜寻者设备；{@code RevolverItem.resolveTargetFromHitResult} 换算成左轮会发送的
+     * id（命中的实体、所瞄床上的睡眠玩家并含冤魂床位未命中，否则 -1）。id 可能指向皮套、乌鸦或设备，由服务端复核并解析。
+     * 与连环杀手手枪相同不覆盖：SparkStrength 无人机选靶，它只包装 {@code RevolverItem#use} 内的调用且没有公开接缝。
+     */
     private static int pickTargetId(PlayerEntity player) {
-        double range = SaviorRules.PISTOL_CLIENT_RANGE
-                * dev.caecorthus.sparkwitch.compat.SparkTraitsUsecBridge.marksmanRangeMultiplier(player);
-        HitResult hit = ProjectileUtil.getCollision(player,
-                entity -> entity instanceof PlayerEntity candidate
-                        && GameFunctions.isPlayerAliveAndSurvival(candidate),
-                range);
-        return resolveTargetFromHitResult(player.getWorld(), hit);
-    }
-
-    private static int resolveTargetFromHitResult(World world, HitResult hit) {
-        if (hit instanceof EntityHitResult entityHit) {
-            Entity entity = entityHit.getEntity();
-            if (entity != null) {
-                return entity.getId();
-            }
-        } else if (hit instanceof BlockHitResult blockHit) {
-            Optional<PlayerEntity> sleeping = findSleepingPlayerOnBed(world, blockHit);
-            if (sleeping.isPresent()) {
-                return sleeping.get().getId();
-            }
-        }
-        return -1;
-    }
-
-    private static Optional<PlayerEntity> findSleepingPlayerOnBed(World world, BlockHitResult hit) {
-        BlockPos pos = hit.getBlockPos();
-        if (!(world.getBlockState(pos).getBlock() instanceof BedBlock bed)) {
-            return Optional.empty();
-        }
-        var state = world.getBlockState(pos);
-        BedPart part = state.get(BedBlock.PART);
-        Direction facing = state.get(BedBlock.FACING);
-        BlockPos headPos = part == BedPart.HEAD ? pos : pos.offset(facing);
-        for (PlayerEntity candidate : world.getPlayers()) {
-            if (!candidate.isSleeping()) {
-                continue;
-            }
-            Optional<BlockPos> sleepingPos = candidate.getSleepingPosition();
-            if (sleepingPos.isEmpty()) {
-                continue;
-            }
-            if (sleepingPos.get().equals(headPos) || sleepingPos.get().equals(pos)) {
-                return Optional.of(candidate);
-            }
-        }
-        return Optional.empty();
+        HitResult aim = SparkWitchApi.preferNearerGunWorldTarget(player, RevolverItem.getGunTarget(player),
+                SaviorRules.PISTOL_CLIENT_RANGE);
+        return RevolverItem.resolveTargetFromHitResult(player.getWorld(), aim);
     }
 
     private static void spawnTrackedMuzzle(MinecraftClient client, String shooterId) {

@@ -16,28 +16,50 @@ import org.joml.Vector4f;
 /**
  * Records each rendered player's pistol muzzle position and spawns the flash. The matrix conversion is copied from
  * Wathe's {@code MatrixUtils.matrixToVec}; the position map mirrors {@code WatheClient.particleMap} but only holds the
- * Savior pistol.
+ * Savior pistol. Each position carries the world tick it was rendered on and is used only while fresh, so a shooter
+ * who stopped being rendered (culled, out of range) gets the eye fallback instead of a stale barrel; the map is
+ * cleared on connection edges by {@code SparkWitchClient.releaseClosedWorldPlayers}.
  * 记录每个被渲染玩家的手枪枪口位置并生成火焰。矩阵换算复制自 Wathe 的 {@code MatrixUtils.matrixToVec}；位置表对应
- * {@code WatheClient.particleMap}，但只记录救世主手枪。
+ * {@code WatheClient.particleMap}，但只记录救世主手枪。每个位置带有其渲染时的世界刻，只在仍新鲜时使用，因此已不再被渲染
+ * （被剔除、超出范围）的射手改用眼部回退位置而不是过期的枪管位置；连接边界时由
+ * {@code SparkWitchClient.releaseClosedWorldPlayers} 清空该表。
  */
 public final class SaviorMuzzleTracker {
-    private static final Map<UUID, Vec3d> MUZZLE_POSITIONS = new ConcurrentHashMap<>();
+    /** Rendered every frame while visible; a few ticks absorbs low frame rates. / 可见时每帧都会渲染；几刻的余量可容纳低帧率。 */
+    private static final long MAX_AGE_TICKS = 5L;
+    private static final Map<UUID, Muzzle> MUZZLE_POSITIONS = new ConcurrentHashMap<>();
+
+    private record Muzzle(Vec3d position, long renderedAt) {
+    }
 
     private SaviorMuzzleTracker() {
     }
 
     public static void set(PlayerEntity player, Vec3d position) {
-        MUZZLE_POSITIONS.put(player.getUuid(), position);
+        MUZZLE_POSITIONS.put(player.getUuid(), new Muzzle(position, player.getWorld().getTime()));
     }
 
     /** Uses and consumes the last rendered muzzle position, like Wathe's muzzle packet. / 使用并消耗最后渲染的枪口位置。 */
     public static Vec3d take(PlayerEntity player) {
-        return MUZZLE_POSITIONS.remove(player.getUuid());
+        return fresh(player, MUZZLE_POSITIONS.remove(player.getUuid()));
     }
 
     /** Uses the last rendered position without consuming it (the shooter's local flash). / 不消耗地使用最后渲染位置（射手的本地火焰）。 */
     public static Vec3d peek(PlayerEntity player) {
-        return MUZZLE_POSITIONS.get(player.getUuid());
+        return fresh(player, MUZZLE_POSITIONS.get(player.getUuid()));
+    }
+
+    /** Connection edges: drops every recorded position. / 连接边界：丢弃所有已记录位置。 */
+    public static void clear() {
+        MUZZLE_POSITIONS.clear();
+    }
+
+    private static Vec3d fresh(PlayerEntity player, Muzzle muzzle) {
+        if (muzzle == null) {
+            return null;
+        }
+        long age = player.getWorld().getTime() - muzzle.renderedAt();
+        return age >= 0L && age <= MAX_AGE_TICKS ? muzzle.position() : null;
     }
 
     public static Vec3d fallback(PlayerEntity player) {

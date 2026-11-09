@@ -71,6 +71,14 @@ repositories {
         name = "Gegy"
         url = "https://maven.gegy.dev"
     }
+    maven {
+        // LambDynamicLights API, compile-only (see dependencies). / LambDynamicLights API，仅编译期（见 dependencies）。
+        name = "Gegy Releases"
+        url = "https://maven.gegy.dev/releases"
+        content {
+            includeGroup "dev.lambdaurora.lambdynamiclights"
+        }
+    }
 }
 
 dependencies {
@@ -85,10 +93,6 @@ dependencies {
     def sparkFactionApiJar = file("libs/sparkfactionapi-${project.sparkfactionapi_version}.jar")
     if (!sparkFactionApiJar.isFile()) {
         throw new GradleException("Missing bundled SparkFactionAPI jar: ${sparkFactionApiJar}")
-    }
-    def lambdynLightsApiJar = file("libs/lambdynamiclights-api-${project.lambdynlights_version}.jar")
-    if (!lambdynLightsApiJar.isFile()) {
-        throw new GradleException("Missing LambDynamicLights API jar: ${lambdynLightsApiJar}")
     }
 
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -112,9 +116,16 @@ dependencies {
     modLocalRuntime "maven.modrinth:simple-voice-chat:fabric-${project.minecraft_version}-${project.voicechat_version}"
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
-    // Optional at runtime: only the "lambdynlights:initializer" entrypoint references this API.
-    // 运行时可选：只有 entrypoint 入口引用该 API，未安装 LDH 时不会加载。
-    modCompileOnly files(lambdynLightsApiJar)
+    // LambDynamicLights API: compile-only from Gegy's maven, never committed or bundled (the Lambda License forbids
+    // redistributing its binaries). Optional at runtime: only the "lambdynlights:initializer" and legacy
+    // "dynamiclights" entrypoints name client/savior/SaviorDynamicLightsInitializer, so nothing loads the API without
+    // LambDynamicLights. Non-transitive: compiling the initializer needs only the API's own classes.
+    // LambDynamicLights API：仅编译期，从 Gegy maven 获取，绝不提交到仓库或打包进 jar（Lambda License 禁止再分发其二进制）。
+    // 运行时可选：只有 "lambdynlights:initializer" 与旧版 "dynamiclights" 入口指向 client/savior/SaviorDynamicLightsInitializer，
+    // 未安装 LambDynamicLights 时不会加载该 API。不传递依赖：编译该入口类只需要 API 自身的类。
+    modCompileOnly("dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:${project.lambdynlights_version}") {
+        transitive = false
+    }
     modRuntimeOnly "me.lucko:fabric-permissions-api:0.3.1"
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
@@ -393,6 +404,32 @@ def watheClientMixinContracts = [
                 providerEntry: "org/agmas/noellesroles/client/screen/AssassinScreen.class",
                 providerMethod: "method_25426",
                 providerDescriptor: "()V"
+        ],
+        [
+                // Savior (PR #200): the Assassin guess panel hides the Savior. / 救世主（PR #200）：刺客猜测面板隐藏救世主。
+                configName: "AssassinSaviorGuessMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/AssassinSaviorGuessMixin.class",
+                handler: "sparkwitch\$hideSaviorFromAssassinGuess",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "getAllGuessableRoles()Ljava/util/List;",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/client/screen/AssassinScreen.class",
+                providerMethod: "getAllGuessableRoles",
+                providerDescriptor: "()Ljava/util/List;"
+        ],
+        [
+                // Savior (PR #200): the lightsaber takes the bat crosshair and the pistol the revolver crosshair, by
+                // widening Wathe's isOf branch checks. / 救世主（PR #200）：放宽 Wathe 的 isOf 分支判定，光剑使用球棒准星、
+                // 手枪使用左轮准星。
+                configName: "savior.SaviorLightsaberCrosshairMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/savior/SaviorLightsaberCrosshairMixin.class",
+                handler: "sparkwitch\$lightsaberUsesBatCrosshair",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_1799;method_31574(Lnet/minecraft/class_1792;)Z",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
         [
                 // Team Jiahao end title: the neutral-win title's role text lookup, the only getForRole(Identifier)

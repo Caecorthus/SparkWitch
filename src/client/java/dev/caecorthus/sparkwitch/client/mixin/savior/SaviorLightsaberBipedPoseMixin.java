@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.mixin.savior;
 
+import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.client.savior.SaviorLightsaberDrawAnimation;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.model.BipedEntityModel;
@@ -39,7 +40,7 @@ public abstract class SaviorLightsaberBipedPoseMixin<T extends LivingEntity> {
 
     @Inject(method = "positionRightArm(Lnet/minecraft/entity/LivingEntity;)V", at = @At("TAIL"))
     private void sparkwitch$poseRightArm(T entity, CallbackInfo ci) {
-        if (!(entity instanceof PlayerEntity player) || !SaviorLightsaberDrawAnimation.isHolding(player)) {
+        if (!(entity instanceof PlayerEntity player) || !sparkwitch$isPosed(player)) {
             return;
         }
         if (player.getMainArm() == Arm.RIGHT) {
@@ -51,7 +52,7 @@ public abstract class SaviorLightsaberBipedPoseMixin<T extends LivingEntity> {
 
     @Inject(method = "positionLeftArm(Lnet/minecraft/entity/LivingEntity;)V", at = @At("TAIL"))
     private void sparkwitch$poseLeftArm(T entity, CallbackInfo ci) {
-        if (!(entity instanceof PlayerEntity player) || !SaviorLightsaberDrawAnimation.isHolding(player)) {
+        if (!(entity instanceof PlayerEntity player) || !sparkwitch$isPosed(player)) {
             return;
         }
         if (player.getMainArm() == Arm.LEFT) {
@@ -59,6 +60,16 @@ public abstract class SaviorLightsaberBipedPoseMixin<T extends LivingEntity> {
         } else {
             sparkwitch$poseSupportArm(this.leftArm, player, false);
         }
+    }
+
+    /**
+     * Runs for every biped model twice a frame: the held-item check comes before the animation-state map lookup.
+     * 每帧对每个双足模型执行两次：先判断手持物品，再查动画状态表。
+     */
+    @Unique
+    private static boolean sparkwitch$isPosed(PlayerEntity player) {
+        return player.getMainHandStack().isOf(SparkWitchItems.saviorLightsaber())
+                && SaviorLightsaberDrawAnimation.isHolding(player);
     }
 
     /** Saber arm: the whole arm is replaced by the draw animation's current angles. / 持剑手：整条手臂替换为拔出动画当前的角度。 */

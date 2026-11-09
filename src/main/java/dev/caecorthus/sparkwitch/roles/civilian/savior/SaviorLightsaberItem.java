@@ -11,12 +11,12 @@ import net.minecraft.util.Formatting;
 
 /**
  * The Savior's lightsaber. Attributes are copied verbatim from Wathe's bat: one item per stack and the bat's
- * {@code ToolMaterials.WOOD} damage/speed modifiers (no extra attack damage, -3 attack speed). The blade lights the
- * holder's surroundings through the bundled LambDynamicLights data file
- * {@code assets/sparkwitch/dynamiclights/item/savior_lightsaber.json} (torch-level 14).
+ * {@code ToolMaterials.WOOD} damage/speed modifiers (no extra attack damage, -3 attack speed). With the optional
+ * LambDynamicLights installed, the extended blade lights the holder's surroundings (luminance 15) through the
+ * client-only player handler {@code client/savior/SaviorDynamicLightsInitializer}; there is no static item light file.
  * 救世主光剑。属性逐项复制 Wathe 球棒：每堆一个，以及球棒使用的 {@code ToolMaterials.WOOD} 伤害/攻速修饰（无额外攻击伤害，
- * 攻速 -3）。光刃通过内置的 LambDynamicLights 数据文件
- * {@code assets/sparkwitch/dynamiclights/item/savior_lightsaber.json} 照亮持有者周围（火把级 14）。
+ * 攻速 -3）。安装可选的 LambDynamicLights 时，伸出的光刃通过仅客户端的玩家光源
+ * {@code client/savior/SaviorDynamicLightsInitializer} 照亮持有者周围（亮度 15）；没有静态物品光源文件。
  */
 public final class SaviorLightsaberItem extends Item {
     public SaviorLightsaberItem(Settings settings) {

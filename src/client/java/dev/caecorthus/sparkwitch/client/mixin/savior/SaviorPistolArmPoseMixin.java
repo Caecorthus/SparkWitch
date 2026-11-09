@@ -6,6 +6,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Arm;
 import org.spongepowered.asm.mixin.Final;
@@ -49,35 +50,39 @@ public abstract class SaviorPistolArmPoseMixin<T extends LivingEntity> {
 
     @Inject(method = "positionRightArm(Lnet/minecraft/entity/LivingEntity;)V", at = @At("TAIL"))
     private void sparkwitch$holdSaviorPistolRight(T entity, CallbackInfo ci) {
-        if (entity.getMainArm() == Arm.RIGHT && sparkwitch$isHoldingSaviorPistol(entity)) {
+        if (sparkwitch$isHoldingSaviorPistol(entity) && entity.getMainArm() == Arm.RIGHT) {
             sparkwitch$holdGun(this.rightArm, this.head, true);
         }
     }
 
     @Inject(method = "positionLeftArm(Lnet/minecraft/entity/LivingEntity;)V", at = @At("TAIL"))
     private void sparkwitch$holdSaviorPistolLeft(T entity, CallbackInfo ci) {
-        if (entity.getMainArm() != Arm.RIGHT && sparkwitch$isHoldingSaviorPistol(entity)) {
+        if (sparkwitch$isHoldingSaviorPistol(entity) && entity.getMainArm() != Arm.RIGHT) {
             sparkwitch$holdGun(this.leftArm, this.head, false);
         }
     }
 
     /**
      * Main hand as the viewer actually sees it: Wathe's CCA hallucination item wins when present, otherwise the real
-     * stack. Mirrors Wathe's {@code isHoldingGun}.
-     * 观察者实际看到的主手：有 Wathe 的幻觉物品时优先用它，否则用真实物品堆。与 Wathe 的 {@code isHoldingGun} 一致。
+     * stack. Mirrors Wathe's {@code isHoldingGun}. Runs for every biped model twice a frame, so the cheap checks come
+     * first: a hallucination is drawn from {@code wathe:psychosis_items}, which does not hold the pistol, so it can only
+     * hide a real pistol, never show one; and only players carry hallucinations (keyed by player UUID). The viewer's
+     * mood component is read only for a player really holding the pistol.
+     * 观察者实际看到的主手：有 Wathe 的幻觉物品时优先用它，否则用真实物品堆。与 Wathe 的 {@code isHoldingGun} 一致。每帧
+     * 对每个双足模型执行两次，因此先做廉价判断：幻觉物品取自不含该手枪的 {@code wathe:psychosis_items}，只会遮住真实手枪、
+     * 不会凭空显示手枪；且只有玩家带幻觉（按玩家 UUID 记录）。只有真正手持手枪的玩家才读取观察者的情绪组件。
      */
     @Unique
     private boolean sparkwitch$isHoldingSaviorPistol(T entity) {
-        ItemStack shown = entity.getMainHandStack();
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player != null) {
-            PlayerMoodComponent mood = PlayerMoodComponent.KEY.get(client.player);
-            ItemStack psychosis = mood.getPsychosisItems().get(entity.getUuid());
-            if (psychosis != null) {
-                shown = psychosis;
-            }
+        if (!entity.getMainHandStack().isOf(SparkWitchItems.saviorPistol())) {
+            return false;
         }
-        return shown.isOf(SparkWitchItems.saviorPistol());
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (!(entity instanceof PlayerEntity) || client.player == null) {
+            return true;
+        }
+        ItemStack psychosis = PlayerMoodComponent.KEY.get(client.player).getPsychosisItems().get(entity.getUuid());
+        return psychosis == null || psychosis.isOf(SparkWitchItems.saviorPistol());
     }
 
     /** Wathe's straight-arm hold math, verbatim. / 与 Wathe 平举持枪完全相同的计算。 */

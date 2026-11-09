@@ -8,6 +8,7 @@
     "savior.SaviorMuzzleTrackerMixin",
     "savior.SaviorLightsaberBipedPoseMixin",
     "savior.SaviorLightsaberRunningItemMixin",
+    "savior.SaviorLightsaberHandRenderMixin",
     "savior.SaviorLightsaberCrosshairMixin",
     "savior.SaviorLightsaberSwingMixin",
     "savior.SaviorPistolArmPoseMixin",

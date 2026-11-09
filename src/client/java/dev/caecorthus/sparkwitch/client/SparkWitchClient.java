@@ -496,14 +496,15 @@ public final class SparkWitchClient implements ClientModInitializer {
 
     /**
      * Connection edges (login, disconnect, join): drops client-side player references that would otherwise keep a
-     * closed ClientWorld alive, namely the Magician stand-in copies and Wathe's muzzle-position map
+     * closed ClientWorld alive, namely the Magician stand-in copies, the Savior client caches (lightsaber hums and
+     * held-stack state, pistol muzzle positions; {@code SaviorClient.releaseClosedWorld}) and Wathe's muzzle-position map
      * ({@code WatheClient.particleMap}, keyed by player and never cleared by Wathe). Wathe only reads and writes that
-     * map on the client thread (held-item render, muzzle packet task) and never iterates it, so both are cleared there;
-     * calls from another thread (login events run on the network thread) are deferred to it.
-     * 连接生命周期节点（登录、断开、加入）：丢弃否则会让已关闭 ClientWorld 一直存活的客户端玩家引用，即魔术师替身副本与
-     * Wathe 的枪口位置表（{@code WatheClient.particleMap}，以玩家为键且 Wathe 从不清空）。Wathe 只在客户端线程（手持物品
-     * 渲染、枪口数据包任务）读写该表且从不遍历它，因此二者都在该线程清理；来自其他线程的调用（登录事件在网络线程触发）
-     * 会推迟到该线程。
+     * map on the client thread (held-item render, muzzle packet task) and never iterates it, so all of them are cleared
+     * there; calls from another thread (login events run on the network thread) are deferred to it.
+     * 连接生命周期节点（登录、断开、加入）：丢弃否则会让已关闭 ClientWorld 一直存活的客户端玩家引用，即魔术师替身副本、
+     * 救世主客户端缓存（光剑嗡鸣与手持物品状态、手枪枪口位置；{@code SaviorClient.releaseClosedWorld}）与 Wathe 的枪口位置表
+     * （{@code WatheClient.particleMap}，以玩家为键且 Wathe 从不清空）。Wathe 只在客户端线程（手持物品渲染、枪口数据包任务）
+     * 读写该表且从不遍历它，因此它们都在该线程清理；来自其他线程的调用（登录事件在网络线程触发）会推迟到该线程。
      */
     private static void releaseClosedWorldPlayers() {
         MinecraftClient client = MinecraftClient.getInstance();
@@ -512,6 +513,7 @@ public final class SparkWitchClient implements ClientModInitializer {
             return;
         }
         MagicianPuppetStandIn.reset();
+        SaviorClient.releaseClosedWorld();
         var muzzles = WatheClient.particleMap;
         if (muzzles != null) {
             muzzles.clear();

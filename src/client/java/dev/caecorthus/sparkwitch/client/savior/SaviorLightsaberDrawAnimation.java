@@ -21,7 +21,12 @@ import net.minecraft.util.Identifier;
  * 0.3 秒（6 刻）内落到下方偏右偏后的持握姿势并保持。左臂暂时保留原版动画。
  */
 public final class SaviorLightsaberDrawAnimation {
-    /** Model predicate selecting the invisible model during the reach. / 伸手期间选择隐形模型的模型谓词。 */
+    /**
+     * Model predicate selecting the invisible model during the reach: only for the drawing player's own main-hand stack
+     * while a hand draws it ({@link SaviorHandRenderScope}), never for GUI icons, which pass the local player too.
+     * 伸手期间选择隐形模型的模型谓词：只针对正在拔剑玩家自己的主手物品堆、且由手部绘制时（{@link SaviorHandRenderScope}），
+     * 绝不作用于同样传入本地玩家的 GUI 图标。
+     */
     public static final Identifier DRAW_HIDDEN_ID = SparkWitch.id("draw_hidden");
     /** Reach to the waist: 0.2 s = 4 ticks. / 伸向腰部：0.2 秒 = 4 刻。 */
     public static final int REACH_TICKS = 4;
@@ -94,7 +99,9 @@ public final class SaviorLightsaberDrawAnimation {
     public static void register() {
         FabricModelPredicateProviderRegistry.register(DRAW_HIDDEN_ID, (stack, world, entity, seed) -> {
             if (world == null || !(entity instanceof PlayerEntity player)
-                    || !stack.isOf(SparkWitchItems.saviorLightsaber())) {
+                    || !stack.isOf(SparkWitchItems.saviorLightsaber())
+                    || player.getMainHandStack() != stack
+                    || !SaviorHandRenderScope.isRendering(stack)) {
                 return 0.0F;
             }
             return elapsedTicks(player) < REACH_TICKS ? 1.0F : 0.0F;
@@ -104,10 +111,7 @@ public final class SaviorLightsaberDrawAnimation {
 
     private static void tick(MinecraftClient client) {
         if (client.world == null) {
-            START_TICKS.clear();
-            RUNNING_AMOUNTS.clear();
-            ATTACK_START.clear();
-            WAS_SWINGING.clear();
+            reset();
             return;
         }
         Set<UUID> holding = new HashSet<>();
@@ -134,6 +138,18 @@ public final class SaviorLightsaberDrawAnimation {
         RUNNING_AMOUNTS.keySet().retainAll(holding);
         ATTACK_START.keySet().retainAll(holding);
         WAS_SWINGING.keySet().retainAll(holding);
+    }
+
+    /**
+     * Connection edges ({@code SparkWitchClient.releaseClosedWorldPlayers}, client thread): drops every per-player
+     * animation state. / 连接边界（{@code SparkWitchClient.releaseClosedWorldPlayers}，客户端线程）：丢弃所有按玩家记录的
+     * 动画状态。
+     */
+    public static void reset() {
+        START_TICKS.clear();
+        RUNNING_AMOUNTS.clear();
+        ATTACK_START.clear();
+        WAS_SWINGING.clear();
     }
 
     /** Whether this player is in the draw/rest animation (main hand holds the saber). / 该玩家是否处于拔出/持握动画中。 */
