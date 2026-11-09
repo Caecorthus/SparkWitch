@@ -821,6 +821,18 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
                 providerMethod: "isInstinctEnabledAndIsKiller",
                 providerDescriptor: "()Z"
+        ],
+        [
+                // Hunter shotgun: confirms the predicted first-person flash against Wathe's muzzle packet.
+                // 猎人霰弹枪：用 Wathe 枪口数据包核对预测的第一人称火焰。
+                configName: "hunter.DoubleBarrelOwnMuzzlePacketMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/hunter/DoubleBarrelOwnMuzzlePacketMixin.class",
+                handler: "sparkwitch\$confirmDoubleBarrelFlash",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "receive(Ldev/doctor4t/wathe/util/ShootMuzzleS2CPayload;Lnet/fabricmc/fabric/api/client/networking/v1/ClientPlayNetworking\$Context;)V",
+                providerEntry: "dev/doctor4t/wathe/util/ShootMuzzleS2CPayload\$Receiver.class",
+                providerMethod: "receive",
+                providerDescriptor: "(Ldev/doctor4t/wathe/util/ShootMuzzleS2CPayload;Lnet/fabricmc/fabric/api/client/networking/v1/ClientPlayNetworking\$Context;)V"
         ]
 ]
 

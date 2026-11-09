@@ -2411,6 +2411,20 @@ Current build baseline:
   (`client/hunter/DoubleBarrelShotAudio`, `client/mixin/hunter/DoubleBarrelShotSoundSystemMixin` wrapping the first
   setup `Channel$SourceManager#run` in `SoundSystem#play`, OpenAL Soft `AL_SOFT_source_spatialize`, fails closed to
   non-positional stereo) so it has a direction and fades out at its 16-block `attenuation_distance`.
+- Hunter shotgun muzzle flash (PR #201, 2026-11-09; revolver parity, presentation only). The server branch of
+  `DoubleBarrelShotgunItem.use` sends Wathe's `ShootMuzzleS2CPayload` to every tracking player and to the shooter
+  (`sendMuzzleFlash`). The world flash (Wathe's yellow `GUNSHOT`) sits where Wathe's own `wathe:guns` held-item hook
+  records it, with the revolver's offset (about one pixel off the shotgun's barrel tip): the shotgun is in that tag,
+  and Wathe's hook translates the shared matrix without popping it, so no SparkWitch hook may record a second
+  position there (the offsets would add). A Magician puppet proxy is never
+  spawned, so it spawns a server `GUNSHOT` at its eye instead, like the puppet revolver replay. The shooter's
+  first-person hand flash (`client/hunter/DoubleBarrelMuzzleFlash`, Wathe's revolver flash shifted to the sprite's
+  barrel tip, mirrored for the left hand, drawn only in the hand rendering the shotgun by
+  `client/mixin/hunter/DoubleBarrelHandFlashMixin`) is predicted through the `DoubleBarrelShotgunItem.installClientShot`
+  seam, then paired with the shooter's own muzzle packet (`DoubleBarrelOwnMuzzlePacketMixin` at the head of Wathe's
+  receiver, `DoubleBarrelMuzzlePredictions`, 40-tick window): a packet with no prediction is a shot the client did not
+  predict (the held-trigger repeat), so the flash is shown then, once. Revolver-family packets for the shooter are
+  ignored unless the shotgun is in the main hand, or in the off hand under a main hand without a `wathe:guns` item.
 - `util/OffMatchUse`: the owner rule (2026-10-04) for heavy weapons any holder may use (Anti-Tank Launcher and shells,
   Shriek Gun, SparkStrength M67, and the USEC AXMC with its attachment actions). `mode` gives a living participant of
   an `ACTIVE` round a match shot, refuses a dead one, and gives anyone else a presentation-only shot;

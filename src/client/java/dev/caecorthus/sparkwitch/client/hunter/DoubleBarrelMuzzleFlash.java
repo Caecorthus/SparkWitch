@@ -1,44 +1,47 @@
 package dev.caecorthus.sparkwitch.client.hunter;
 
+import dev.doctor4t.wathe.client.render.WatheRenderLayers;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.RenderPhase;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexFormat.DrawMode;
-import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
 /**
- * First-person muzzle flash for the double-barrel shotgun, rendered in hand space like Wathe's revolver flash. The
- * texture is Wathe's yellow {@code gunshot.png}, not the Savior's cyan copy. The position is Wathe's revolver hand
- * pose (0.1, 0.275, -0.2) shifted by the shotgun sprite's muzzle offset: the barrel tip sits 2 px left and 1 px up of
- * the revolver's in the 16x16 texture, which maps to (0, -0.0265, -0.0796) in hand space under the shared
- * first-person display transform.
- * 双管猎枪的第一人称枪口火焰，与 Wathe 左轮一样在手部矩阵中绘制。贴图使用 Wathe 的黄色
- * {@code gunshot.png}，不是救世主的青色副本。位置以 Wathe 左轮的手部姿态 (0.1, 0.275, -0.2) 为基准，加上猎枪
- * 贴图的枪口偏移：16x16 贴图中猎枪枪口比左轮靠左 2 像素、靠上 1 像素，在共用的第一人称 display 变换下对应手部
- * 空间 (0, -0.0265, -0.0796)。
+ * First-person muzzle flash for the double-barrel shotgun: Wathe's revolver hand flash (yellow {@code gunshot.png},
+ * Wathe's additive layer, size 0.5, 4 ticks, alpha 1 to 0.1, full bright) drawn only in the hand that renders the
+ * shotgun. Wathe's own hand-particle manager draws in every first-person hand with any item, which would put a
+ * second flash on whatever the other hand holds. The position is the revolver pose (0.1, 0.275, -0.2) shifted by the
+ * shotgun sprite's muzzle offset: the barrel tip sits 2 px left and 1 px up of the revolver's in the 16x16 texture,
+ * which maps to (0, -0.0265, -0.0796) in hand space under the shared first-person display transform. The left hand
+ * uses the same rotation with the display translation x (1.13/16) negated, so its muzzle sits 2 x 1.13/16 further to
+ * the left.
+ * 双管猎枪的第一人称枪口火焰：即 Wathe 左轮的手部火焰（黄色 {@code gunshot.png}、Wathe 加色层、尺寸 0.5、4 刻、透明度
+ * 1 到 0.1、全亮），但只画在渲染猎枪的那只手上。Wathe 自己的手部粒子管理器会在每只持物的第一人称手上都绘制，另一只手持物时
+ * 会多出一团火。位置以左轮姿态 (0.1, 0.275, -0.2) 为基准，加上猎枪贴图的枪口偏移：16x16 贴图中猎枪枪口比左轮靠左 2 像素、
+ * 靠上 1 像素，在共用的第一人称 display 变换下对应手部空间 (0, -0.0265, -0.0796)。左手旋转相同，但 display 平移 x
+ * （1.13/16）取反，因此枪口再向左移 2 × 1.13/16。
  */
 public final class DoubleBarrelMuzzleFlash {
     private static final Identifier TEXTURE = Identifier.of("wathe", "textures/particle/gunshot.png");
     /** Wathe revolver pose plus the shotgun's muzzle delta. / Wathe 左轮姿态加上猎枪枪口偏移。 */
-    private static final float X = 0.1F;
+    private static final float RIGHT_X = 0.1F;
+    private static final float LEFT_X = RIGHT_X - 2.0F * 1.13F / 16.0F;
     private static final float Y = 0.2485F;
     private static final float Z = -0.2796F;
-    private static final float SIZE = 0.5F;
+    private static final float HALF_SIZE = 0.25F;
     /** Wathe's setMaxAge(3) adds one. / Wathe 的 setMaxAge(3) 会加一。 */
     private static final float MAX_AGE = 4.0F;
     private static final float ALPHA_START = 1.0F;
     private static final float ALPHA_END = 0.1F;
-    /** Packed full-bright light, same as Wathe's hand flash. / 打包的全亮光照，与 Wathe 手部火焰相同。 */
+    /** Wathe's setLight(15, 15). / 即 Wathe 的 setLight(15, 15)。 */
     private static final int FULL_BRIGHT = 15_728_880;
-    private static final RenderLayer LAYER = additive(TEXTURE);
+    private static final int MAX_ACTIVE = 8;
+    private static final RenderLayer LAYER = WatheRenderLayers.additive(TEXTURE);
     private static final List<DoubleBarrelMuzzleFlash> ACTIVE = new CopyOnWriteArrayList<>();
 
     private float age;
@@ -48,7 +51,7 @@ public final class DoubleBarrelMuzzleFlash {
 
     /** One flash per shot; a newer shot starts its own fade. / 每次开枪一个火焰；新开枪会开启自己的淡出。 */
     public static void spawn() {
-        if (ACTIVE.size() >= 8) {
+        if (ACTIVE.size() >= MAX_ACTIVE) {
             ACTIVE.remove(0);
         }
         ACTIVE.add(new DoubleBarrelMuzzleFlash());
@@ -64,54 +67,38 @@ public final class DoubleBarrelMuzzleFlash {
         }
     }
 
-    /** Draws the quads in the current hand matrix; called after the first-person item render. / 在当前手部矩阵中绘制四边形；第一人称物品渲染后调用。 */
-    public static void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
+    /** Drops every flash (disconnect). / 清空所有火焰（断开连接）。 */
+    public static void reset() {
+        ACTIVE.clear();
+    }
+
+    /**
+     * Draws the quads in the current first-person hand matrix, right after the shotgun item itself.
+     * 在当前第一人称手部矩阵中绘制四边形，紧接在猎枪物品本身之后。
+     */
+    public static void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, boolean leftHanded) {
         if (ACTIVE.isEmpty()) {
             return;
         }
         Matrix4f model = matrices.peek().getPositionMatrix();
         VertexConsumer consumer = vertexConsumers.getBuffer(LAYER);
-        float half = SIZE * 0.5F;
-        Vector3f center = new Vector3f(X, Y, Z);
-        Vector3f right = new Vector3f(half, 0.0F, 0.0F);
-        Vector3f up = new Vector3f(0.0F, half, 0.0F);
+        float x = leftHanded ? LEFT_X : RIGHT_X;
         for (DoubleBarrelMuzzleFlash flash : ACTIVE) {
             float alpha = ALPHA_START + (flash.age / MAX_AGE) * (ALPHA_END - ALPHA_START);
-            putVertex(consumer, model, center, right, up, -1.0F, -1.0F, 0.0F, 1.0F, alpha);
-            putVertex(consumer, model, center, right, up, -1.0F, 1.0F, 0.0F, 0.0F, alpha);
-            putVertex(consumer, model, center, right, up, 1.0F, 1.0F, 1.0F, 0.0F, alpha);
-            putVertex(consumer, model, center, right, up, 1.0F, -1.0F, 1.0F, 1.0F, alpha);
+            putVertex(consumer, model, x - HALF_SIZE, Y - HALF_SIZE, 0.0F, 1.0F, alpha);
+            putVertex(consumer, model, x - HALF_SIZE, Y + HALF_SIZE, 0.0F, 0.0F, alpha);
+            putVertex(consumer, model, x + HALF_SIZE, Y + HALF_SIZE, 1.0F, 0.0F, alpha);
+            putVertex(consumer, model, x + HALF_SIZE, Y - HALF_SIZE, 1.0F, 1.0F, alpha);
         }
     }
 
-    private static void putVertex(VertexConsumer consumer, Matrix4f model, Vector3f center, Vector3f right, Vector3f up,
-                                  float dx, float dy, float u, float v, float alpha) {
-        Vector3f pos = new Vector3f(center).add(new Vector3f(right).mul(dx)).add(new Vector3f(up).mul(dy));
-        consumer.vertex(model, pos.x, pos.y, pos.z)
+    private static void putVertex(VertexConsumer consumer, Matrix4f model, float x, float y, float u, float v,
+                                  float alpha) {
+        consumer.vertex(model, x, y, Z)
                 .color(alpha, alpha, alpha, alpha)
                 .texture(u, v)
                 .overlay(OverlayTexture.DEFAULT_UV)
                 .light(FULL_BRIGHT)
                 .normal(0.0F, 1.0F, 0.0F);
-    }
-
-    /** Wathe's additive layer: bright flash without darkening the gun behind it. / Wathe 的加色层：火焰发亮且不会压暗后面的枪。 */
-    private static RenderLayer additive(Identifier texture) {
-        return RenderLayer.of(
-                "sparkwitch_double_barrel_hand_flash",
-                VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL,
-                DrawMode.QUADS,
-                256,
-                true,
-                true,
-                RenderLayer.MultiPhaseParameters.builder()
-                        .program(RenderPhase.ENTITY_TRANSLUCENT_PROGRAM)
-                        .texture(new RenderPhase.Texture(texture, false, false))
-                        .transparency(RenderPhase.ADDITIVE_TRANSPARENCY)
-                        .depthTest(RenderPhase.LEQUAL_DEPTH_TEST)
-                        .cull(RenderPhase.DISABLE_CULLING)
-                        .lightmap(RenderPhase.ENABLE_LIGHTMAP)
-                        .overlay(RenderPhase.ENABLE_OVERLAY_COLOR)
-                        .build(true));
     }
 }

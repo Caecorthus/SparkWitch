@@ -482,6 +482,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         WitchAbilityKeyBridge.reset();
         SecondaryAbilityController.reset();
         KidnapperThrowClientHooks.reset();
+        DoubleBarrelMuzzleClient.reset();
         WitchMaidenClientModule.clear();
         TarotDivinationClientState.clear();
         JudgeClientModule.clear();
