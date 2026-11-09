@@ -33,9 +33,9 @@ public abstract class SaviorLightsaberSwingMixin {
                 || !SaviorLightsaberAnimation.isBladeExtended(stack)) {
             return;
         }
-        // Item cooldown (45 s start / 50 s after a kill) blocks the left click entirely, animation included.
-        // 物品冷却（开局 45 秒/击杀后 50 秒）期间彻底封锁左键，包括挥手动画。
-        if (player.getItemCooldownManager().isCoolingDown(stack.getItem())) {
+        // Item cooldown (45 s start / 30 s after a kill) blocks the left click entirely, animation included.
+        // Creative mode ignores it. / 物品冷却（开局 45 秒/击杀后 30 秒）期间彻底封锁左键，包括挥手动画；创造模式忽略。
+        if (!player.isCreative() && player.getItemCooldownManager().isCoolingDown(stack.getItem())) {
             cir.setReturnValue(false);
             return;
         }

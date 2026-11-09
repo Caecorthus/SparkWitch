@@ -29,10 +29,11 @@ import net.minecraft.sound.SoundCategory;
  * Server half of the Savior's pistol, copied from Wathe's {@code GunShootPayload.Receiver}. It keeps the revolver's
  * click/shoot sounds, 4° recoil feedback, muzzle packet, 65-block target tolerance, innocent-shooting punishment and
  * backfire, but drops the two civilian-pistol modifiers the owner excluded: the innocent gun cooldown override and the
- * -0.35 mood cost of a kill (the Savior is police). The 10 s cooldown is always written, hit or miss.
+ * -0.35 mood cost of a kill (the Savior is police). The 10 s cooldown is always written, hit or miss, except in
+ * creative mode.
  * 救世主手枪的服务端部分，复制自 Wathe 的 {@code GunShootPayload.Receiver}。保留左轮的点击/开枪音效、4° 后坐反馈、
  * 枪口数据包、65 格目标容差、误杀惩罚与后坐反噬，但去掉所有者排除的两项平民手枪修正：误杀冷却覆盖与击杀的 -0.35 理智
- * 损失（救世主属于警类）。无论命中与否都写入 10 秒冷却。
+ * 损失（救世主属于警类）。无论命中与否都写入 10 秒冷却，创造模式除外。
  */
 public final class SaviorPistolService {
     private static boolean registered;
@@ -57,8 +58,10 @@ public final class SaviorPistolService {
             return;
         }
         ItemStack pistol = shooter.getMainHandStack();
+        // Creative mode may fire even if an old cooldown is still ticking. / 创造模式即使旧冷却仍在也能开枪。
+        boolean creative = shooter.isCreative();
         if (!pistol.isOf(SparkWitchItems.saviorPistol())
-                || shooter.getItemCooldownManager().isCoolingDown(pistol.getItem())) {
+                || (!creative && shooter.getItemCooldownManager().isCoolingDown(pistol.getItem()))) {
             return;
         }
         ServerWorld world = shooter.getServerWorld();
@@ -108,9 +111,9 @@ public final class SaviorPistolService {
             ServerPlayNetworking.send(viewer, muzzle);
         }
         ServerPlayNetworking.send(shooter, muzzle);
-        if (!shooter.isSpectator()) {
-            // 10 s after every shot; a kill grants no extra cooldown.
-            // 每次射击固定 10 秒；击杀不额外增加冷却。
+        if (!shooter.isSpectator() && !creative) {
+            // 10 s after every shot; a kill grants no extra cooldown. Creative mode never enters cooldown.
+            // 每次射击固定 10 秒；击杀不额外增加冷却。创造模式不进入冷却。
             SaviorCooldowns.set(shooter, pistol.getItem(), SaviorRules.PISTOL_COOLDOWN_TICKS);
         }
     }

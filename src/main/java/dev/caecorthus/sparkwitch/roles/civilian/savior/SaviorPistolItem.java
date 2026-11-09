@@ -47,7 +47,8 @@ public final class SaviorPistolItem extends Item {
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
         ItemStack stack = user.getStackInHand(hand);
-        if (user.getItemCooldownManager().isCoolingDown(stack.getItem())) {
+        // Creative mode ignores the weapon cooldown entirely (testing/building). / 创造模式完全忽略武器冷却（测试/建造）。
+        if (!user.isCreative() && user.getItemCooldownManager().isCoolingDown(stack.getItem())) {
             return TypedActionResult.fail(stack);
         }
         if (world.isClient()) {

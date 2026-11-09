@@ -19,9 +19,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Sets the sword/arm wrist angle: 120 degrees while standing or walking, 165 degrees while sprinting, by rotating the
  * held saber about its grip. The axis is fixed in the hand frame (the arm's local Y axis crossed with the saber's blade
- * axis); the rotation is applied before the item display transform, so the grip stays in the palm.
+ * axis); the rotation is applied before the item display transform, so the grip stays in the palm. Both third-person
+ * hand slots are handled: the left-hand display transform is the mirror of the right-hand one, so the same hand-local
+ * X rotation yields the mirrored sword angle and needs no sign flip.
  * 站立/走路时剑与胳膊夹角 120 度，跑步时 165 度：把光剑绕握点旋转。旋转轴在手的局部坐标里由手臂轴与剑身轴叉乘
- * 得到，在物品显示变换之前应用，因此握点仍贴在手里。
+ * 得到，在物品显示变换之前应用，因此握点仍贴在手里。两个第三人称手槽都处理：左手 display 变换是右手的镜像，
+ * 因此同一个手部局部 X 轴旋转就会得到镜像后的剑角，不需要改符号。
  */
 @Mixin(ItemRenderer.class)
 public class SaviorLightsaberRunningItemMixin {
@@ -45,7 +48,8 @@ public class SaviorLightsaberRunningItemMixin {
                                              boolean leftHand, MatrixStack matrices,
                                              VertexConsumerProvider vertexConsumers, World world,
                                              int light, int overlay, int seed, CallbackInfo ci) {
-        if (mode != ModelTransformationMode.THIRD_PERSON_RIGHT_HAND
+        if ((mode != ModelTransformationMode.THIRD_PERSON_RIGHT_HAND
+                && mode != ModelTransformationMode.THIRD_PERSON_LEFT_HAND)
                 || !stack.isOf(SparkWitchItems.saviorLightsaber())
                 || !(entity instanceof PlayerEntity player)) {
             return;

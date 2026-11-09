@@ -115,9 +115,10 @@ public final class SaviorLightsaberCombatService {
 
     /**
      * Lightsaber kill: only a fully charged main-hand swing while the blade is off item cooldown kills. The kill uses a
-     * terminal death reason, so shields and Last Escape cannot save the victim; the sword then enters its 50 s cooldown.
+     * terminal death reason, so shields and Last Escape cannot save the victim; the sword then enters its 30 s cooldown.
+     * Creative mode ignores both the cooldown gate and the post-kill cooldown.
      * 光剑击杀：只有主手、攻击冷却满、且武器不在物品冷却时命中才会击杀。击杀使用终结死因，护盾与绝处逢生都救不了，
-     * 随后光剑进入 50 秒冷却。
+     * 随后光剑进入 30 秒冷却。创造模式同时忽略冷却门槛与击杀后冷却。
      */
     private static ActionResult onSwordAttack(PlayerEntity player, World world, Hand hand, Entity target,
                                               EntityHitResult hitResult) {
@@ -132,7 +133,9 @@ public final class SaviorLightsaberCombatService {
         if (!stack.isOf(SparkWitchItems.saviorLightsaber())) {
             return ActionResult.PASS;
         }
-        if (attacker.getItemCooldownManager().isCoolingDown(stack.getItem())) {
+        // Creative mode ignores the weapon cooldown entirely (testing/building). / 创造模式完全忽略武器冷却（测试/建造）。
+        boolean creative = attacker.isCreative();
+        if (!creative && attacker.getItemCooldownManager().isCoolingDown(stack.getItem())) {
             return ActionResult.FAIL;
         }
         if (attacker.getAttackCooldownProgress(0.5F) < 1.0F) {
@@ -143,7 +146,9 @@ public final class SaviorLightsaberCombatService {
         punishInnocentSwordKill(attacker, victim);
         GameRecordManager.recordItemUse(attacker, SaviorRules.LIGHTSABER_ID, victim, null);
         SaviorRules.settleKill(victim, attacker, SaviorRules.LIGHTSABER_DEATH_REASON);
-        SaviorCooldowns.set(attacker, stack.getItem(), SaviorRules.LIGHTSABER_KILL_COOLDOWN_TICKS);
+        if (!creative) {
+            SaviorCooldowns.set(attacker, stack.getItem(), SaviorRules.LIGHTSABER_KILL_COOLDOWN_TICKS);
+        }
         return ActionResult.SUCCESS;
     }
 
