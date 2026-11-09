@@ -59,6 +59,20 @@ public final class SaviorPlayerComponent
         }
     }
 
+    /**
+     * Server only: exact G cooldown write for the SparkFactionAPI role-skill store {@code sparkwitch:savior_domain}
+     * ({@code SparkWitchForcedCooldowns#saviorDomain}), floored at 0; syncs the owner when the value changes.
+     * 仅服务端：供 SparkFactionAPI 职业技能存储 {@code sparkwitch:savior_domain} 精确写入 G 冷却，下限为 0；值变化时同步给本人。
+     */
+    public void setCooldownTicks(int ticks) {
+        int next = Math.max(0, ticks);
+        if (next == cooldownTicks) {
+            return;
+        }
+        cooldownTicks = next;
+        syncOwner();
+    }
+
     /** Server only: starts the 10 s domain and its 60 s cooldown, syncing once. / 仅服务端：展开 10 秒领域并进入 60 秒冷却，同步一次。 */
     public void startDomain() {
         domainTicks = SaviorRules.DOMAIN_DURATION_TICKS;
