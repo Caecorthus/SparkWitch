@@ -270,7 +270,11 @@
     "bear.ThrowingAxeRangedOriginMixin",
     "bear.ServerWorldExplosionSmokeCarveMixin",
     "bear.HeadsetPlayerScreenHandlerMixin",
-    "bear.HeadsetCreativeActionMixin"
+    "bear.HeadsetCreativeActionMixin",
+    "specter.GameFunctionsSpecterOtherworldTargetMixin",
+    "specter.SpecterOtherworldKnifeMixin",
+    "specter.GameFunctionsSpecterShieldMixin",
+    "specter.DecoratedPotBlockPeachwoodSwordMixin"
   ],
   "injectors": {
     "defaultRequire": 1

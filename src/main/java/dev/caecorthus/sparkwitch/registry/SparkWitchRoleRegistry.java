@@ -39,6 +39,7 @@ import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianConstants;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
@@ -122,6 +123,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier NATSUME_ID =
             dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID;
     public static final Identifier BEAR_ID = BearRules.ROLE_ID;
+    public static final Identifier SPECTER_ID = SpecterRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -170,6 +172,7 @@ public final class SparkWitchRoleRegistry {
     private static Role ragpicker;
     private static Role dominator;
     private static Role accountant;
+    private static Role specter;
     private static Role natsumeAnan;
     private static Role bear;
     private static boolean registered;
@@ -462,6 +465,11 @@ public final class SparkWitchRoleRegistry {
     public static Role dominator() {
         ensureRegistered();
         return dominator;
+    }
+
+    public static Role specter() {
+        ensureRegistered();
+        return specter;
     }
 
     public static Role accountant() {
@@ -977,6 +985,19 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Specter (PR #207): a SparkFactionAPI killer (native Wathe KILLER, FAKE mood, unlimited sprint, round clock),
+        // registered after BEAR and right before the Insider, which stays last; skills and state live in
+        // roles/killer/specter (CONTEXT.md). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // 幽魂（PR #207）：SparkFactionAPI 杀手（原生 Wathe KILLER、虚假理智、无限体力、可见回合时间），注册在 BEAR 之后、
+        // 内应之前，内应仍为最后一个；技能与状态位于 roles/killer/specter（见 CONTEXT.md）。不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole。
+        specter = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SPECTER_ID, FactionIds.KILLER)
+                .color(SpecterRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
         // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
@@ -1061,6 +1082,9 @@ public final class SparkWitchRoleRegistry {
                 // 夏目安安 (PR #194) joins the killer block after the Dominator (the fork listed it after Noa, outside
                 // the killer block). 夏目安安（PR #194）加入杀手段，排在支配者之后（fork 中排在诺亚之后、杀手段之外）。
                 natsumeAnan,
+                // The Specter (PR #207) joins the killer block after 夏目安安; the promotion identities stay the tail.
+                // 幽魂（PR #207）加入杀手段，排在夏目安安之后；晋升身份仍位于末尾。
+                specter,
                 murderousWitch,
                 accomplice,
                 abyssListener,

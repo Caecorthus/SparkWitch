@@ -56,6 +56,10 @@ It also adds the Dominator (`sparkwitch:dominator`, 支配者, contributed in PR
 (G) marks a player through walls and then forces that player to fire one shot along their own aim.
 It also adds 夏目安安 Natsume Anan (`sparkwitch:natsume_anan`, contributed in PR #194), a killer whose ability key
 hypnotises a player within 3 blocks: blinded, locked out of items and role skills, and losing sanity.
+It also adds the Specter (`sparkwitch:specter`, 幽魂, contributed in PR #207), a killer whose ability key (G) marks a
+player within 3 blocks and then makes them shriek (fear), and whose Role Skill 2 key opens the world-wide 30 s
+Otherworld (里世界), in which its knife only lands on low-sanity or cowardly non-killers and low-sanity players get a
+Peachwood Sword that can hurt it.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
 the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
 It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only a
@@ -735,6 +739,81 @@ Current build baseline:
     or Spiritualist sessions or an already summoned Mini Wither (the lock only refuses new actions); the menu sends
     real profile names (no disguise or Emma visible-name mapping); the 8 s for neutrals, witches and Jiahao is a
     coordinator default (`NatsumeRules.durationTicks` is the single switch).
+- `roles/killer/specter/`: the Specter (`sparkwitch:specter`, 幽魂, color `0x6B2F2F`), contributed in PR #207 and
+  fixed in review (2026-11-09); every number and shared gate lives in `SpecterRules`. Mixins in `mixin/specter/`,
+  client in `client/specter/`, `client/hud/SpecterHudRenderer`, `client/mixin/specter/` and
+  `client/compat/SparkTraitsDepressionVisionBridge`.
+  - Registration: a SparkFactionAPI killer (Wathe-native KILLER, FAKE mood, unlimited sprint, round clock) registered
+    after BEAR, right before the Insider, and guessed in the killer block right after 夏目安安, before the Murderous
+    Witch. No witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel, never a
+    Black Raven disguise target; code reads the raw role.
+  - State (all `NEVER_COPY`, appended last in the CCA list and `fabric.mod.json`): `SpecterPlayerComponent`
+    (`sparkwitch:specter`, owner-synced: mark target and ticks, skill-one cooldown, the server-resolved sanity-band
+    outline map), `SpecterFearComponent` (`sparkwitch:specter_fear`), `SpecterSecondSkillComponent`
+    (`sparkwitch:specter_second_skill`, owner-synced: unlock, window, cooldown, Specter-owned shield layers),
+    `SpecterCowardiceComponent` (`sparkwitch:specter_cowardice`, synced only to its owner and to raw-role Specters) and
+    the world `SpecterOtherworldComponent` (`sparkwitch:specter_otherworld`: window ticks and the BGM variant, synced to
+    everyone). Fear, cowardice and the second skill clear on a committed death (gated on
+    `WitchFactorTraitsBridge.isDeathIntercepted`), reset and round end; fear freezes while SparkTraits Last Stand is
+    pending.
+  - Caster gate (`SpecterRules.mayCast`, Dominator pattern): ACTIVE round, raw role, alive, not spectating/creative, not
+    swallowed, not held (`NinjaGrappleService.isHeld`), not silenced, not SparkTraits role-skill-blocked; then
+    `GrandWitchFearService.denyRoleSkillIfFeared`. Effective sanity everywhere is `SpecterRules.hasRealSanity`
+    (`AbyssSuppression.hasRealSanity`: SparkTraits Conscience/Impostor/Wraith aware); low sanity is ≤25.
+  - Skill one (`SpecterSkillService`, empty C2S `sparkwitch:use_specter_skill`, G): marks the crosshair player within
+    3 blocks with line of sight (`SpecterRules.isMarkable`: not invisible to the caster, not swallowed, not an active
+    Wraith, not SparkTraits instinct-hidden, not creative; then SparkFactionAPI `canAffectPlayer` with
+    `sparkwitch:specter_mark`) for 10 s; the next press makes the marked player shriek (same world, same gates,
+    `sparkwitch:specter_shriek`), giving fear to effective-real-sanity players within 5 blocks (+2 to the target,
+    `sparkwitch:specter_fear`). 45 s opening cooldown and 45 s after a shriek; an expired mark costs nothing.
+  - Otherworld (`SpecterSecondSkillService`, empty C2S `sparkwitch:use_specter_second_skill`, Role Skill 2): unlocks
+    120 s after role assignment, lasts 30 s, 120 s cooldown from the end. The window is world-level and outlives the
+    Specter's death. The Specter gets invisibility, +40 % speed and a Specter-owned shield of 3 layers per alive
+    low-sanity player, absorbed in `mixin/specter/GameFunctionsSpecterShieldMixin` at Wathe psycho armour's position
+    (after every `KillPlayer.BEFORE` listener, honouring `force` and `ShouldPiercePsychoArmour`, recording
+    `shield_blocked` with source `sparkwitch:specter_otherworld`); it never touches Wathe psycho state (borrowing it
+    froze the server-side hotbar and corrupted `psychosActive`). Non-killers get Slowness I for the window
+    (`SpecterOtherworldService`, every 10 ticks).
+  - Otherworld knife: the knife's natural cooldown is cleared with SparkFactionAPI
+    `ForcedCooldowns.clearItemKeepingForced`, so forced penalties still lock it. The targeting rule
+    (`GameFunctionsSpecterOtherworldTargetMixin`, `killPlayer` HEAD priority 1040, pinned in
+    `watheCommonMixinContracts`) voids only `wathe:knife` kills by a Specter during the window on effective killers and
+    on players who are neither cowardly nor low-sanity; guns, poison and other deaths are untouched.
+    `SpecterOtherworldKnifeMixin` (Wathe knife receiver HEAD, priority 900) only drops a stab that rule would void, with
+    no side effects; every other stab runs Wathe's receiver and all its guards (SparkTraits, SparkStrength, Knight duel).
+  - Ghost Trigger (`GhostTriggerItem` / `GhostTriggerEntity`, Specter shop 50 coins, POISON frame, registered in the
+    DEFAULT `BuildShopEntries` phase so Charisma applies): one per support block, arms after 0.5 s; victims follow
+    `HunterTrapEntity.canCatch` (owner and killer teammates included, Wraiths only for their bound killer) plus a role.
+    Effect (`SpecterTriggerService`): −30 effective real sanity (never raises a negative bar), blindness and Slowness II
+    for 2 s, a private cave sound, a viewer-only `GhostVisageEntity` (not hittable, `canBeSpectated` viewer only), an
+    automatic mark when the owner's skill one is ready and passes `mayCast`, and cowardice for non-killer fake-mood
+    roles and the Savior (`sparkwitch:savior`, a role from the still-open PR #200; the id check fails closed). Triggers
+    stamp the Wathe match id, discard themselves outside an ACTIVE round or on a mismatch, and are swept on
+    `ON_WIN_DETERMINED` and `ON_FINISH_FINALIZE`.
+  - Peachwood Sword (`SpecterPeachwoodService`, every 10 ticks): during the window every alive, non-killer,
+    low-sanity or cowardly player (never the Specter) holds one, inserted only into the hotbar or the SparkFactionAPI
+    second row, and stripped when they stop qualifying or the window ends. A full-charge hit on the Specter (attack
+    ticks reset on every swing; SparkTraits `blocksWeaponAction` / `shouldCancelMeleeAttack`) settles 4 sequential
+    `wathe:knife` kills, each spending a shield layer. Item frames, armor stands, allays (`UseEntityCallback` FAIL) and
+    decorated pots (`DecoratedPotBlockPeachwoodSwordMixin`) refuse it.
+  - Deny lists: both payloads are on the Control Expert stun (so also the Natsume hypnosis lock), Seeker remote, Rift
+    occupant and Grand Witch Fear lists; only `use_specter_skill` is on the Knight duel lock (skill-key-2 rule).
+    Companion lists: SparkFactionAPI `AntiFastRoundRules` and SparkStrength `TaotieHeadRules`. Forced-cooldown stores
+    19 `sparkwitch:specter_skill` and 20 `sparkwitch:specter_otherworld`.
+  - Client (presentation only): `SpecterFeatureService` instinct policy (always-on sanity-band outlines from the
+    owner-only map, mark outline, cowardice outline; low-sanity viewers see an invisible Specter);
+    `SpecterHudRenderer` draws two bottom-right rows (skill one below, Otherworld above), and `SaintHudLayoutRules`
+    reserves two rows for the role. `SpecterOtherworldScreenEffects` (post chain `sparkwitch:shaders/post/otherworld`,
+    `GameRenderer#render` before `beginWrite`) ramps saturation/contrast and a red vignette for living participants,
+    fades out over 5 s, steps aside for Wraith/Vendetta/Black Raven perception (`BlackRavenPerceptionScreenEffects
+    .isActiveFor`, sharing one resolver with its own render), Blind, Rift occupants, the Seeker camera,
+    `ScopeClient.isScoped()`, Iris packs, any vanilla post processor (NoellesRoles' included) and a drawn SparkTraits
+    Depression grayscale, and releases its processor when
+    idle, on join/disconnect/stop and resource reload. `ClientWorldOtherworldSkyMixin` tints the sky/fog colour (Wathe
+    skips the sky dome while the train moves). Soul-fire particles, a play-once BGM (one of three variants chosen by the
+    server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item tooltips. Lang:
+    `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
+    placement and trigger, peachwood hits and the shield.
 - `client/bedrock/` (2026-11-02): a role-neutral Bedrock model runtime for player-supplied files, first used by the
   Mini Wither skins. `geo/`: `BedrockGeometryParser` (format 1.12+ `minecraft:geometry`, also inside a Java item-model
   shell, and legacy 1.8; box and per-face UV, mirror, inflate, bone/cube pivots and rotations, glow bones by name
@@ -3563,6 +3642,15 @@ deliberate and kept:
    includes the 60 s opening cooldown; the nominal is the 90 s post-cast cooldown (`NatsumeRules.COOLDOWN_TICKS`,
    1800). Every write only moves the ready tick later through the owner-syncing
    `NatsumeComponent.setCooldownReadyTick`; it never touches a running hypnosis.
+19. `sparkwitch:specter_skill` (`SparkWitchForcedCooldowns#specterSkill`, PR #207, appended after 夏目安安): the
+   Specter's mark/shriek key, for the raw role in an ACTIVE round and never while a mark is active (Dominator
+   precedent). Remaining time is the counting-down tick total in `sparkwitch:specter`, so it includes the 45 s opening
+   cooldown; the nominal is the 45 s post-shriek cooldown. The setter is exact (floored at 0) and owner-syncing.
+20. `sparkwitch:specter_otherworld` (`SparkWitchForcedCooldowns#specterOtherworld`, PR #207, appended after store 19):
+   the Specter's Otherworld, for the raw role in an ACTIVE round. Remaining time includes the 120 s unlock and, during
+   the 30 s window, the rest of the window plus the cooldown after it; the nominal is the 120 s post-window cooldown.
+   Writes only lengthen; during a window the forced time is held as the pending post-window cooldown, so a running
+   Otherworld is never cut short.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
@@ -4820,6 +4908,9 @@ Client (render thread):
   processor is open. `OwnerInventoryPresenter.traitsFacade()` resolves the facade once per session, failing closed.
 
 Server:
+- Specter sweeps (PR #207): `SpecterOtherworldService` (Otherworld slowness) and `SpecterPeachwoodService`
+  (sword distribution) run every 10 server ticks and return at once while no world window is open (the sword sweep
+  still strips swords from players who no longer qualify).
 - `util/RaycastShapeScope` is a per-thread depth counter (`enter`/`exit` in `finally`, `query` kept); `isRaycast()` means
   depth above zero.
 - The Wraith and Fisher door-passing mixins test the block type first. `WraithStateService` reads `getNullable`.
