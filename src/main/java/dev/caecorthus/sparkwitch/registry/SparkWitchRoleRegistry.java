@@ -1094,6 +1094,11 @@ public final class SparkWitchRoleRegistry {
                 seeker,
                 usec,
                 knight,
+                // The Savior (PR #200) closes the police block; NoellesRoles sends role identifiers, so this order is
+                // presentation only (its panel entry is hidden anyway) and the promotion identities stay the tail.
+                // 救世主（PR #200）排在警察段末尾；NoellesRoles 发送的是职业标识符，此顺序仅影响展示（其面板条目本就隐藏），
+                // 晋升身份仍位于末尾。
+                savior,
                 fiend,
                 insider,
                 stowaway,
@@ -1102,10 +1107,7 @@ public final class SparkWitchRoleRegistry {
                 guardianAngel,
                 vendetta,
                 saboteur,
-                curser,
-                // New roles append to the tail so every existing assassin-guess index stays put.
-                // 新职业追加到末尾，既有刺客猜测下标全部保持不变。
-                savior
+                curser
         );
     }
 

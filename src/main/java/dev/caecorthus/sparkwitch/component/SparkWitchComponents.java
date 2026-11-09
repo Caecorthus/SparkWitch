@@ -81,10 +81,6 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, OrthopedistPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(OrthopedistPlayerComponent::new);
-        // Savior G-skill cooldown and domain timer, synced to its owner only. / 救世主 G 技能冷却与领域计时，只同步给本人。
-        registry.beginRegistration(PlayerEntity.class, SaviorPlayerComponent.KEY)
-                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
-                .end(SaviorPlayerComponent::new);
         registry.beginRegistration(PlayerEntity.class, GuardianAngelPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(GuardianAngelPlayerComponent::new);
@@ -217,6 +213,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, dev.caecorthus.sparkwitch.headset.HeadsetComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(dev.caecorthus.sparkwitch.headset.HeadsetComponent::new);
+        // Savior G-skill cooldown and domain timer (PR #200), synced to its owner only; appended last.
+        // 救世主 G 技能冷却与领域计时（PR #200），只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, SaviorPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SaviorPlayerComponent::new);
     }
 
     @Override

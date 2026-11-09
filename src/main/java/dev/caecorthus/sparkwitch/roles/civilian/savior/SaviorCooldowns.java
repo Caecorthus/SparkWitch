@@ -22,8 +22,13 @@ public final class SaviorCooldowns {
     private SaviorCooldowns() {
     }
 
-    /** Sets the cooldown and remembers its effective duration after Traits modifiers. / 写入冷却并记录倍率后的实际时长。 */
-    public static void set(ServerPlayerEntity player, Item item, int ticks) {
+    /**
+     * Sets the cooldown and remembers its effective duration after Traits modifiers. Every Savior weapon cooldown goes
+     * through this one writer; the post-use values are the SFA nominals in {@code SparkWitchItemCooldownNominals}.
+     * 写入冷却并记录倍率后的实际时长。救世主武器冷却只经由此写入；使用后数值即 {@code SparkWitchItemCooldownNominals} 中的
+     * SFA 标准冷却。
+     */
+    public static void writeCooldown(ServerPlayerEntity player, Item item, int ticks) {
         player.getItemCooldownManager().set(item, ticks);
         int effective = SparkTraitsKillerBridge.getItemCooldownRemaining(player, item);
         ENTRIES.computeIfAbsent(player.getUuid(), ignored -> new HashMap<>())

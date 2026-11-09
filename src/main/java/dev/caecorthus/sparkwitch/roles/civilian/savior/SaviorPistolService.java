@@ -115,7 +115,7 @@ public final class SaviorPistolService {
         if (!shooter.isSpectator() && !creative) {
             // 10 s after every shot; a kill grants no extra cooldown. Creative mode never enters cooldown.
             // 每次射击固定 10 秒；击杀不额外增加冷却。创造模式不进入冷却。
-            SaviorCooldowns.set(shooter, pistol.getItem(), SaviorRules.PISTOL_COOLDOWN_TICKS);
+            SaviorCooldowns.writeCooldown(shooter, pistol.getItem(), SaviorRules.PISTOL_COOLDOWN_TICKS);
         }
     }
 

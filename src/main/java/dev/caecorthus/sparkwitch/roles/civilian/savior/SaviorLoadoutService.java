@@ -76,8 +76,8 @@ public final class SaviorLoadoutService {
 
         // Creative players get the weapons without the round-start cooldowns. / 创造模式玩家拿到武器但不进入开局冷却。
         if (!player.isCreative()) {
-            SaviorCooldowns.set(player, SparkWitchItems.saviorPistol(), SaviorRules.PISTOL_START_COOLDOWN_TICKS);
-            SaviorCooldowns.set(player, SparkWitchItems.saviorLightsaber(), SaviorRules.LIGHTSABER_START_COOLDOWN_TICKS);
+            SaviorCooldowns.writeCooldown(player, SparkWitchItems.saviorPistol(), SaviorRules.PISTOL_START_COOLDOWN_TICKS);
+            SaviorCooldowns.writeCooldown(player, SparkWitchItems.saviorLightsaber(), SaviorRules.LIGHTSABER_START_COOLDOWN_TICKS);
         }
         // The Savior may not pick guns back up for the whole round (Wathe tag); our mixin covers SparkWitch guns.
         // 整局禁止救世主捡枪（Wathe 标签）；SparkWitch 自有枪械由 mixin 拦截。

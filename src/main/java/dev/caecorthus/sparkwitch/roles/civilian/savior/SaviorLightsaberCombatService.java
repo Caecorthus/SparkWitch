@@ -147,7 +147,7 @@ public final class SaviorLightsaberCombatService {
         GameRecordManager.recordItemUse(attacker, SaviorRules.LIGHTSABER_ID, victim, null);
         SaviorRules.settleKill(victim, attacker, SaviorRules.LIGHTSABER_DEATH_REASON);
         if (!creative) {
-            SaviorCooldowns.set(attacker, stack.getItem(), SaviorRules.LIGHTSABER_KILL_COOLDOWN_TICKS);
+            SaviorCooldowns.writeCooldown(attacker, stack.getItem(), SaviorRules.LIGHTSABER_KILL_COOLDOWN_TICKS);
         }
         return ActionResult.SUCCESS;
     }
