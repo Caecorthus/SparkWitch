@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.bear;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.SmokeRoundEntity;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -26,13 +27,14 @@ import java.util.List;
  * {@code mixin.bear.PlayerEntityBearItemMixin} out of vanilla's), so nothing BEAR ever drops. A SparkTraits-intercepted
  * death (Last Stand) keeps everything. Wathe's reset also strips the cursor and own screen slots (it clears the
  * inventory itself; {@code HeadsetLifecycle} clears the headset slot); a disconnect from a live round strips before
- * the save, since Wathe's ESCAPED kill only runs afterwards. Role changes and the round end strip nothing.
+ * the save, since Wathe's ESCAPED kill only runs afterwards. Role changes and the round end strip nothing; the round
+ * end only discards the smoke rounds still loaded in the world ({@code SmokeRoundEntity.discardAll}).
  * BEAR 生命周期：开局与中途发放发射器，以及终局清理（沿用 AXMC #199 模式，所有者 2026-11-05“直接走 wathe 的机制”）。仅服务端。
  * 任何持有者死亡都会失去所有 BEAR 物品（{@code KillPlayer.AFTER} 删除它们；{@code mixin.bear.GameFunctionsBearItemDropMixin}
  * 使其不进入 Wathe 死亡掉落流程，{@code mixin.bear.PlayerEntityBearItemMixin} 使其不进入原版掉落），因此 BEAR 物品从不掉落。被
  * SparkTraits 拦截的死亡（背水一战）保留一切。Wathe 重置时还会清除光标与自身界面栏位（背包由 Wathe 自己清空；耳机槽由
  * {@code HeadsetLifecycle} 清空）；在进行中的对局里断线会在存档前清除，因为 Wathe 的 ESCAPED 击杀在之后才执行。换职业与回合
- * 结束都不收走任何东西。
+ * 结束都不收走任何东西；回合结束只移除世界中仍已加载的烟雾榴弹（{@code SmokeRoundEntity.discardAll}）。
  */
 final class BearLifecycleService {
     /** BEAR's ON_FINISH_INITIALIZE phase, after the default one (roles are final). / BEAR 的 ON_FINISH_INITIALIZE 阶段。 */
@@ -71,6 +73,8 @@ final class BearLifecycleService {
                     BearLoadoutService.forget(player);
                 }
                 BearLoadoutService.forgetRound();
+                // Smoke rounds still loaded never outlive the round. / 仍已加载的烟雾榴弹不会延续到对局之外。
+                SmokeRoundEntity.discardAll(serverWorld);
             }
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
