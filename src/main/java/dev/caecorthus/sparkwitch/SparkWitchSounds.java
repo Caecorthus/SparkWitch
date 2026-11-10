@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherSoundSlot;
@@ -57,6 +58,22 @@ public final class SparkWitchSounds {
      */
     public static final Identifier DOUBLE_BARREL_SHOT_ID = HunterRules.SHOT_SOUND_ID;
     public static final Identifier DOUBLE_BARREL_LOAD_ID = HunterRules.LOAD_SOUND_ID;
+    /**
+     * Savior pistol sounds (ids live in SaviorRules): the shot carries at Wathe's revolver volume 5.0 and the click at
+     * 0.5. The bundled audio lives under {@code sparkwitch:sounds/item/} so it can be replaced.
+     * 救世主手枪音效（id 定义在 SaviorRules）：枪声沿用 Wathe 左轮的 5.0 音量，点击声 0.5。音频位于
+     * {@code sparkwitch:sounds/item/}，可直接替换。
+     */
+    public static final Identifier SAVIOR_PISTOL_SHOOT_ID = SaviorRules.PISTOL_SHOOT_SOUND_ID;
+    public static final Identifier SAVIOR_PISTOL_CLICK_ID = SaviorRules.PISTOL_CLICK_SOUND_ID;
+    /** Savior lightsaber impact (single CC0 variant); no subtitle. / 救世主光剑命中（单个 CC0 变体）；无字幕。 */
+    public static final Identifier SAVIOR_LIGHTSABER_HIT_ID = SaviorRules.LIGHTSABER_HIT_SOUND_ID;
+    /** Savior lightsaber ignition, requested by the client at the 0.95 s mark; no subtitle. / 救世主光剑点火音，客户端在 0.95 秒处请求；无字幕。 */
+    public static final Identifier SAVIOR_LIGHTSABER_IGNITE_ID = SaviorRules.LIGHTSABER_IGNITE_SOUND_ID;
+    /** Looping idle hum while the blade is lit; non-streamed so OpenAL loops it seamlessly. / 刀刃点亮时的循环嗡鸣；非流式以便 OpenAL 无缝循环。 */
+    public static final Identifier SAVIOR_LIGHTSABER_HUM_ID = SaviorRules.LIGHTSABER_HUM_SOUND_ID;
+    /** Lightsaber swing, requested on left-click only while the blade is lit. / 光剑挥动音，仅在刀刃点亮时左键请求。 */
+    public static final Identifier SAVIOR_LIGHTSABER_SWING_ID = SaviorRules.LIGHTSABER_SWING_SOUND_ID;
     public static SoundEvent PIG_CHASE;
     public static SoundEvent GRAND_WITCH_CEREMONIAL_SWORD_BGM;
     public static final SoundEvent[] SPECTER_OTHERWORLD_BGM = new SoundEvent[3];
@@ -73,6 +90,12 @@ public final class SparkWitchSounds {
     public static SoundEvent USEC_RIFLE_SCOPE;
     public static SoundEvent DOUBLE_BARREL_SHOT;
     public static SoundEvent DOUBLE_BARREL_LOAD;
+    public static SoundEvent SAVIOR_PISTOL_SHOOT;
+    public static SoundEvent SAVIOR_PISTOL_CLICK;
+    public static SoundEvent SAVIOR_LIGHTSABER_HIT;
+    public static SoundEvent SAVIOR_LIGHTSABER_IGNITE;
+    public static SoundEvent SAVIOR_LIGHTSABER_HUM;
+    public static SoundEvent SAVIOR_LIGHTSABER_SWING;
     /** Knight duel audio; no subtitles. / 骑士决斗音频；无字幕。 */
     public static final Identifier DUEL_MANBA_ID = dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelRules.MANBA_SOUND_ID;
     public static final Identifier DUEL_SF_ID = dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelRules.SF_SOUND_ID;
@@ -174,6 +197,18 @@ public final class SparkWitchSounds {
                 SoundEvent.of(DOUBLE_BARREL_SHOT_ID));
         DOUBLE_BARREL_LOAD = Registry.register(Registries.SOUND_EVENT, DOUBLE_BARREL_LOAD_ID,
                 SoundEvent.of(DOUBLE_BARREL_LOAD_ID));
+        SAVIOR_PISTOL_SHOOT = Registry.register(Registries.SOUND_EVENT, SAVIOR_PISTOL_SHOOT_ID,
+                SoundEvent.of(SAVIOR_PISTOL_SHOOT_ID));
+        SAVIOR_PISTOL_CLICK = Registry.register(Registries.SOUND_EVENT, SAVIOR_PISTOL_CLICK_ID,
+                SoundEvent.of(SAVIOR_PISTOL_CLICK_ID));
+        SAVIOR_LIGHTSABER_HIT = Registry.register(Registries.SOUND_EVENT, SAVIOR_LIGHTSABER_HIT_ID,
+                SoundEvent.of(SAVIOR_LIGHTSABER_HIT_ID));
+        SAVIOR_LIGHTSABER_IGNITE = Registry.register(Registries.SOUND_EVENT, SAVIOR_LIGHTSABER_IGNITE_ID,
+                SoundEvent.of(SAVIOR_LIGHTSABER_IGNITE_ID));
+        SAVIOR_LIGHTSABER_HUM = Registry.register(Registries.SOUND_EVENT, SAVIOR_LIGHTSABER_HUM_ID,
+                SoundEvent.of(SAVIOR_LIGHTSABER_HUM_ID));
+        SAVIOR_LIGHTSABER_SWING = Registry.register(Registries.SOUND_EVENT, SAVIOR_LIGHTSABER_SWING_ID,
+                SoundEvent.of(SAVIOR_LIGHTSABER_SWING_ID));
         DUEL_MANBA = Registry.register(Registries.SOUND_EVENT, DUEL_MANBA_ID, SoundEvent.of(DUEL_MANBA_ID));
         DUEL_SF = Registry.register(Registries.SOUND_EVENT, DUEL_SF_ID, SoundEvent.of(DUEL_SF_ID));
         BEAR_M32_FIRE = Registry.register(Registries.SOUND_EVENT, BEAR_M32_FIRE_ID, SoundEvent.of(BEAR_M32_FIRE_ID));

@@ -244,6 +244,36 @@
       }
     ]
   },
+  "item.savior_pistol.shoot": {
+    "sounds": [
+      "sparkwitch:item/savior_pistol_shoot"
+    ]
+  },
+  "item.savior_pistol.click": {
+    "sounds": [
+      "sparkwitch:item/savior_pistol_click"
+    ]
+  },
+  "item.savior_lightsaber.hit": {
+    "sounds": [
+      "sparkwitch:item/savior_lightsaber_hit"
+    ]
+  },
+  "item.savior_lightsaber.ignite": {
+    "sounds": [
+      "sparkwitch:item/savior_lightsaber_ignite"
+    ]
+  },
+  "item.savior_lightsaber.hum": {
+    "sounds": [
+      "sparkwitch:item/savior_lightsaber_hum"
+    ]
+  },
+  "item.savior_lightsaber.swing": {
+    "sounds": [
+      "sparkwitch:item/savior_lightsaber_swing"
+    ]
+  },
   "duel.manba": {
     "sounds": [
       {

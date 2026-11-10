@@ -30,6 +30,11 @@ import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightKillService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorBlackoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorDomainService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorLoadoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorObservationService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorSanityService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerService;
@@ -203,6 +208,10 @@ public final class SparkWitchEvents {
         dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeReplay.register();
         // Hypnosis item and skill lock (both sides). / 催眠的道具与技能锁（两端）。
         dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeHypnosisGuards.register();
+        SaviorLoadoutService.register();
+        SaviorSanityService.register();
+        SaviorObservationService.register();
+        SaviorBlackoutService.register();
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();
@@ -257,6 +266,7 @@ public final class SparkWitchEvents {
                 NinjaFeatureService.assignForRole(serverPlayer, role);
                 OrthopedistSkillService.assignForRole(serverPlayer, role);
                 DominatorSkillService.assignForRole(serverPlayer, role);
+                SaviorDomainService.assignForRole(serverPlayer, role);
                 if (!GuardianAngelRules.isGuardianAngel(role)) {
                     GuardianAngelFeatureService.detachPlayer(serverPlayer);
                 }

@@ -236,6 +236,10 @@ public final class SparkWitchRoles {
         return SparkWitchRoleRegistry.lostSoul();
     }
 
+    public static Role savior() {
+        return SparkWitchRoleRegistry.savior();
+    }
+
     public static Role recruit() {
         return SparkWitchRoleRegistry.recruit();
     }
