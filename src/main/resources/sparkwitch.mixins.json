@@ -278,7 +278,8 @@
     "specter.GameFunctionsSpecterOtherworldTargetMixin",
     "specter.SpecterOtherworldKnifeMixin",
     "specter.GameFunctionsSpecterShieldMixin",
-    "specter.DecoratedPotBlockPeachwoodSwordMixin"
+    "specter.DecoratedPotBlockPeachwoodSwordMixin",
+    "WatheKillerShopRestrictionMixin"
   ],
   "injectors": {
     "defaultRequire": 1
