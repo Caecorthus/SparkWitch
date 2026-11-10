@@ -58,9 +58,9 @@ public final class MediumVoteClient {
     /**
      * The local player could answer right now: confirmed SparkWitch server, a live window whose question the server
      * revealed to this client, and the server's own side-neutral voter gate (a dead member of the running round who
-     * is not a promoted Wraith; a promoted Wraith keeps the ability key for its own skill).
+     * is not a Wraith; a Wraith keeps the ability key for its own play).
      * 本地玩家此刻可以作答：已确认的 SparkWitch 服务器、窗口进行中且服务端已向本客户端公开提问，并满足与服务端相同的
-     * 两端通用投票门槛（进行中对局的本局死者，且不是已晋升的冤魂；已晋升的冤魂的技能键留给自己的技能）。
+     * 两端通用投票门槛（进行中对局的本局死者，且不是冤魂；冤魂的技能键留给自己使用）。
      */
     static boolean canVote(MinecraftClient client) {
         if (client.world == null || client.player == null || !SparkWitchServerConnection.isConfirmedServer()) {
