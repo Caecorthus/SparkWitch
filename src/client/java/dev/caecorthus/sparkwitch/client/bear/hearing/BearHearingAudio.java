@@ -51,6 +51,17 @@ public final class BearHearingAudio {
         };
     }
 
+    /**
+     * The source action of a BEAR re-volume push: set the gain to {@code volume} (0 stays a silent, still playing
+     * source), never {@code stop()}. The returned consumer runs on the sound executor.
+     * BEAR 重设音量推送所用的声源操作：把增益设为 {@code volume}（0 即保持播放但无声的声源），从不 {@code stop()}。返回的回调在
+     * 声音执行线程运行。
+     */
+    public static Consumer<Source> gainOnly(float volume) {
+        float gain = Math.max(0.0F, volume);
+        return source -> source.setVolume(gain);
+    }
+
     /** Sound executor thread only. / 仅限声音执行线程。 */
     static void raiseMaxGain(Source source) {
         if (unavailable) {

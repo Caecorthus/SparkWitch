@@ -1083,7 +1083,9 @@ Current build baseline:
     (after the default phase) sets each living final USEC's balance to 0; the loadout never writes the balance. Each
     task pays +50, never to a SparkTraits Impostor or on an unknown answer (`UsecEconomyTraitsProbe`, facade only).
     Wathe's passive-money ticks (`getTime() % 200 == 0`, `END_WORLD_TICK`) pay +5 with no cap to an ACTIVE, playing,
-    alive, survival, exact USEC that is not a restricted Wraith. `CanSeeMoney` allows a living USEC.
+    alive, survival, exact USEC that is not a restricted Wraith. `CanSeeMoney` allows a living USEC and answers DENY
+    for a dead one (Insider model, 2026-11-10; no answer while STARTING, so Wathe's role-only shop fallback no longer
+    shows a dead USEC its coins).
   - Shop (`UsecShopService`, `UsecShopRules`): rebuilt on both sides for the exact role (a role-only gate, because Wathe
     caches stock limits while STARTING), keeping `sparktraits:*` entries and applying the Charisma discount. A bought
     round (`UsecShopPurchase`) first tops up a shown same-item stack with room for the whole purchase (hotbar 0-8, then
@@ -1420,8 +1422,10 @@ Current build baseline:
     `maven.gegy.dev`, entrypoints `lambdynlights:initializer` and `dynamiclights`, never bundled). The G line owns
     the bottom-right corner in `SaintHudLayoutRules` and hides with F1.
   - Open (owner calls): SparkStrength Bodyguard shield and taotie daze / SFA safe-time lists do not know the Savior
-    ids yet; rules keyed on `wathe:gun_shot` / `wathe:bat_hit` (Fiend hit reward, Rys-T ricochet) ignore the custom
-    reasons (SparkTraits PR #76 makes Heavy Artillery count `sparkwitch:savior_pistol_kill`); Niko's burst never
+    ids yet; the Fiend hit reward (`FiendRules`) and the Rys-T ricochet (`BearRicochetRules.RANGED_REASONS`, pistol
+    only: the lightsaber is melee) do recognise the custom reasons, other rules keyed on `wathe:gun_shot` /
+    `wathe:bat_hit` still ignore them (SparkTraits PR #76 makes Heavy Artillery count
+    `sparkwitch:savior_pistol_kill`); Niko's burst never
     fires the pistol; a punished Savior keeps the other weapon and G; the domain strips every
     blindness source; SparkAssist has no Savior page.
 - `roles/civilian/recruit/`: the Recruit (`sparkwitch:recruit`, 新兵, color `0x5B862D`), contributed in PR #176; the
@@ -1685,7 +1689,8 @@ Current build baseline:
     client facade `api.client.BearSmokeViewApi` (`opticalDepth`, `hasSmoke`; render thread).
   - Economy (`BearEconomyService`, USEC model): balance 0 in its own `ON_FINISH_INITIALIZE` phase, +50 per task
     (never for a SparkTraits Impostor, `SparkTraitsTaskIncomeBridge`), +5 every 200 world ticks with no cap, both through
-    `addToBalance`; `CanSeeMoney` ALLOW for a living BEAR. Stamina: the single USEC regen mixin boosts
+    `addToBalance`; `CanSeeMoney` ALLOW for a living BEAR, DENY for a dead one (Insider model, 2026-11-10; no answer
+    while STARTING). Stamina: the single USEC regen mixin boosts
     `UsecStaminaRules.boostsRole` (USEC or BEAR).
   - Helmet (WP2, `bear/helmet/`, `client/bear/helmet/`): `RysTHelmetItem` is a head-slot vanilla `Equipment` (not an
     `ArmorItem`: no armor points; iron equip sound), so only the head armor slot takes it, right-click in hand and
@@ -1770,7 +1775,10 @@ Current build baseline:
     `PotionBlastRings.half(size)`, Holy Flash 3, Mini Wither 1 and every vanilla `ServerWorld.createExplosion` = power
     (`ServerWorldExplosionSmokeCarveMixin`). SparkStrength's M67 and drone use `SparkWitchApi.carveSmoke`. The
     Wathe/NoellesRoles-facing selectors (and the 1050 / 900 priorities) are pinned on the shipped jar by
-    `watheCommonMixinContracts` in `verifyClientMixinSelectors`.
+    `watheCommonMixinContracts` in `verifyClientMixinSelectors`. The Savior pistol carves at its own `recordItemUse`
+    with its shot tolerance. The Wathe receiver carves through `RangedSmokeCarve.widenedGunShot`: the target cap is the
+    widen-only `SparkTraitsApi.getServerGunTargetRange` value (65, Niko 300), a widened cap is also the miss length,
+    and a miss is block-clipped only up to `SmokeCloudService.tunnelReach` (2026-11-10).
   - Launcher (WP1, `bear/launcher/`, `client/bear/launcher/`, `client/mixin/bear/M32*`): anyone holding the M32A1 may
     use it (`OffMatchUse`; off-match shots fly and sound but never make a cloud). Use (main hand) only aims; the USEC
     scope-while-cooling wraps (`mixin/usec/ServerPlayerInteractionManagerUsecScopeMixin`, client
@@ -1788,7 +1796,10 @@ Current build baseline:
     `SmokeRoundFlight`: no damage and no vanilla hit handler (G1); arms after 4 blocks of path, an earlier impact
     bounces (damped, can come to rest), the first armed block/entity impact or the backup fuse bursts it through
     `SmokeCloudService.spawn` (stepped out of the surface) + `BEAR_SMOKE_BURST` + a puff; a match round is discarded
-    unburst once the round leaves ACTIVE. Client: `M32ScopeProfile` (M2A1 reflex: `drawsLens() == false` keeps the scope
+    unburst once the round leaves ACTIVE. `BearLifecycleService` sweeps loaded rounds at `ON_FINISH_FINALIZE`
+    (`SmokeRoundEntity.discardAll`); a round alive more than fuse + 20 world ticks after launch
+    (`SmokeRoundFlight.stale`, in memory only) missed ticks outside entity-ticking range and removes itself unburst.
+    Client: `M32ScopeProfile` (M2A1 reflex: `drawsLens() == false` keeps the scope
     module from drawing a lens, PiP, rim or periphery; `hidesHeldItem() == false` keeps the hand pass; world zoom 0.8
     (1.25x) and look 0.8 in both scope modes; `drawReticle` is empty, so the crosshair is only hidden), the 3-D red-dot
     aim (SIGHT-CONTRACT v2, 2026-11-06, owner rejected the 2-D reticle; TACZ technique, none of its GPL code; v3 the same
@@ -1843,7 +1854,7 @@ Current build baseline:
     session = same hotbar slot), `M32Hud` (owner, 2026-11-06, option B 跟随枪身: the readout badge rides the held
     launcher in first person. `M32BadgeAnchor` holds the only two anchor points, in sight model space (hip = the top
     rail's top centre (8, 24.5, 0) on the v5 rail teeth, aim = the sight's visible right silhouette at the eye height, on the v5 art
-    the rear eyecup ring's outer edge (10.375, 21.75, 4.875); UPDATE BOTH WHEN THE SIGHT MODEL CHANGES, the maths never
+    the rear eyecup ring's outer edge (10.375, 21.75, 4.4375); UPDATE BOTH WHEN THE SIGHT MODEL CHANGES, the maths never
     names them); `M32SightRenderer` projects the hip point through the body
     pose and the aim point through the tilted sight pose with the hand pass's clip matrix (hand projection x model-view
     x base) at every main-hand draw, p = 0 included (`captureHipAnchor`), lerps the two by ease(p) and stamps the frame
@@ -1885,13 +1896,18 @@ Current build baseline:
     (77,44) and creative tab (127,20, `client/mixin/bear/HeadsetCreativeScreenMixin` moves the slot's
     `CreativeSlot`) draw a vanilla `container/slot` frame (`client/headset/HeadsetScreenFrames`); Wathe's limited
     inventory shows a one-cell Wathe-strip frame under the armor block's head column (`client/armor`). Round reset
-    (`HeadsetLifecycle`) and BEAR death clean-up empty it; the ComTac keeps the Blind strip rule.
+    (`HeadsetLifecycle`), Wathe's join-time inventory wipe (`mixin/bear/HeadsetWatheInventoryWipeMixin`, right after
+    the `PlayerInventory.clear()` in `GameFunctions.teleportPlayer`'s server-thread lambda; a living survival rejoin
+    into a running round never reaches it) and BEAR death clean-up empty it. The creative write applies only when
+    handler slot 46 is a `HeadsetSlot`. The ComTac keeps the Blind strip rule.
   - Hearing (WP4, `client/bear/hearing/`): `BearHearingClient.factor()` is the local player's gear factor (on a
     confirmed server) times the WP3 ricochet muffle envelope (`BearMuffleEnvelope`: longer/deeper call wins, 10-tick ease
     back, floor 0.05). `BearHearingSoundRules` scales every category, MASTER and MUSIC included (owner Q2 "全部");
     `EXEMPT_SOUND_IDS` are never scaled. `mixin/bear/HearingSoundSystemMixin` multiplies the gain at the Holy Flash seams
     (gain only, never range). It also raises `AL_MAX_GAIN` on scaled sources to 1.5 so the earplugs really amplify
-    (owner Q1 "可以", proven by `BearHearingOpenAlTest` on OpenAL Soft 1.23.1), failing closed to a clamp at 1. Voice:
+    (owner Q1 "可以", proven by `BearHearingOpenAlTest` on OpenAL Soft 1.23.1), failing closed to a clamp at 1. The
+    re-volume push is gain-only: while `BearHearingClient.isGainOnlyPush()` the mixin replaces vanilla's stop-at-0
+    source action in `SoundSystem.method_19754`, so silent always-play loops are never stopped. Voice:
     `BearHearingVoiceReceiver`, reached through `voice/BearHearingVoiceClientBridge` after Holy Flash, scales incoming
     Simple Voice Chat audio from a volatile per-tick snapshot, with a soft limiter above 1.
     Invisible barriers block smoke by their collision like any block (`WorldSmokeBlockView.BARRIERS_PASS_SMOKE`
@@ -1910,7 +1926,24 @@ Current build baseline:
     and the CPU `opticalDepth`, each culling them per pixel or per query. While the shader-pack billboard fallback runs
     the client drops tunnels (`SmokeVolumes.showTunnels`), so outlines stay as closed as the puffs look. Whole-tick hole
     ages are taken in `long` (`SmokeTimeline` long overloads), exact at any world time. Each volume cycles through 3
-    textures so a per-tick upload never writes a texture an in-flight frame still reads.
+    textures so a per-tick upload never writes a texture an in-flight frame still reads. `SmokeCloudService.tunnelReach`
+    (read-only) is the distance along a ray after which no live cloud can be carved. A cap eviction keeps every cell
+    that still shows smoke, including open-sky cells inside their own fade; only cells whose fade ended are dropped.
+  - Client hardening (audit 2026-11-10): both shader loaders (`render/SmokeProgram` for `shaders/bear_smoke/*`,
+    `occlusion/SmokeGlProgram` for `shaders/smoke/*`) read from the mod container, never the resource manager, so a
+    resource pack cannot replace a smoke shader. `SmokeViewTargets.bindComposite` attaches the world colour texture on
+    every bind; never cache a framebuffer by a vanilla target's texture name, because a resize reuses the name.
+    `SmokeNetworkClient` releases `SmokeVolumes` when a remove/clear packet leaves no cloud.
+    `client/bear/smoke/SmokeTargetOcclusion` (owner 2026-11-10) is the one "does smoke hide this target from the local
+    viewer" query for HUD target hints and SparkWitch's own label raycasts: players and corpses are answered by
+    `occlusion/SmokeLabelOcclusion` (optical depth ≥ `HIDDEN_OPTICAL_DEPTH` to where the look ray enters the 0.3-grown
+    box), a Magician puppet, Raven Form crow or Seeker device by the same rule; with no cloud it returns its input.
+    `mixin/bear/SmokeCrosshairHintMixin` (three entries in `watheClientMixinContracts`) filters Wathe's gun, knife and
+    bat hint reads in `renderCrosshair`; the AXMC, Hunter shotgun, Taser, Shriek Gun, Clock, Swordfish and cross-sword
+    hints and the witch / Team Jiahao cohort labels ask the same helper. `SmokeRoleNameRaycastMixin` runs at priority
+    1100, after the puppet widening. Presentation only: never ask it from a selector a shot, stab or packet is built
+    from. SparkStrength's own HEAD-cancelled crosshairs (Serial Killer pistol, Morphling reagent, Professor serum) are
+    not covered.
   - Thermal heat mask (WP5, for SparkStrength's Undercover thermal, S4/Q6): `api.client.BearSmokeViewApi`
     `maskHeatTarget(color, depth, w, h)`, `drawHeatHaze(color, depth, w, h, heat)` (`DEFAULT_HEAT_HAZE` 1.0: owner Q6 "一坨亮白", smoke as hot as a body) and
     `heatSmokeRect(w, h)`, called right after SS draws its bodies (body depth makes it exact, world depth fails
@@ -1919,7 +1952,9 @@ Current build baseline:
     (blend dst·v) or adds `heat·(1 − v)` with MAX, through a private framebuffer holding only the caller's colour
     texture; all GL state is restored. A false mask (bad arguments, outside a world render, GL failure) means SS must
     hide the heat inside `heatSmokeRect` (SparkWitch already tries to clear it); a failing haze only returns false. The
-    whole heat texture must show the pass's whole view. Pure rules in `SmokeHeatMath`.
+    whole heat texture must show the pass's whole view. Pure rules in `SmokeHeatMath`. `SmokeOcclusion.NEVER` is 32768
+    (2^15): it must be exactly representable in the `GL_RGBA16F` occlusion texture, since the shaders test `>= Never`
+    (65000 read back as 64992 and painted sky inside the smoke rectangle white).
   - Open: the cross-repo seams (WP6: SparkStrength thermal mask + M67/drone carve + Taotie list, SparkFactionAPI
     safe time, SparkAssist guide).
 - `client/usec/`: the USEC rifle client, registered once by `UsecClientModule` in this order: `ScopeClient.register()`,
