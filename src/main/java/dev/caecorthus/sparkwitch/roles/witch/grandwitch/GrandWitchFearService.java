@@ -87,6 +87,15 @@ public final class GrandWitchFearService {
             // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
             Identifier.of("sparkwitch", "use_specter_skill"),
             Identifier.of("sparkwitch", "use_specter_second_skill"),
+            // Medium 通灵 (G) and 招魂 (Role Skill 2): the two menu requests and their two paid confirmations (PR #209).
+            // The dead voter's submit_medium_vote is deliberately absent: only a dead round member may send it, and its
+            // handler validates that itself.
+            // 通灵师的通灵（G 键）与招魂（职业技能 2）：两个菜单请求及其两个付费确认（PR #209）。死者投票包
+            // submit_medium_vote 有意不列入：只有本局死者可以发送，其处理器自行校验。
+            Identifier.of("sparkwitch", "use_medium_skill"),
+            Identifier.of("sparkwitch", "submit_medium_seance"),
+            Identifier.of("sparkwitch", "use_medium_second_skill"),
+            Identifier.of("sparkwitch", "submit_medium_haunt_target"),
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),

@@ -18,11 +18,11 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 招魂 (the Medium's Role Skill 2), server-authoritative. The press opens a menu of every online round member, alive
- * or dead; the confirm is the paid act. A bound target is never told. Its vote weighs
+ * 招魂 (the Medium's Role Skill 2), server-authoritative. The press opens a menu of every other online round member,
+ * alive or dead; the confirm is the paid act. A bound target is never told. Its vote weighs
  * {@link MediumRules#BIND_VOTE_WEIGHT}, and when the round's death count is over half its own answer is revealed to the
  * Medium. Bindings accumulate for the round; repeats are refused before the charge.
- * 招魂（通灵师职业技能 2），服务端权威。按键打开所有在线本局成员（无论生死）的菜单；确认才是付费动作。被绑定者不会收到
+ * 招魂（通灵师职业技能 2），服务端权威。按键打开除自己外所有在线本局成员（无论生死）的菜单；确认才是付费动作。被绑定者不会收到
  * 任何提示。其投票记 {@link MediumRules#BIND_VOTE_WEIGHT} 票，当局死者过半时其个人答案会额外给通灵师看。绑定在本局
  * 内累积；重复绑定在扣费前即被拒绝。
  */
@@ -57,25 +57,30 @@ public final class MediumSecondSkillService {
         List<String> names = new ArrayList<>();
         for (UUID uuid : game.getAllPlayers()) {
             ServerPlayerEntity online = caster.getServer().getPlayerManager().getPlayer(uuid);
-            if (online == null || online.getServerWorld() != caster.getServerWorld()) {
+            // Never the caster: a self-binding could only matter if the Medium died mid-window and then answered
+            // their own question at triple weight. / 不含施放者本人：自绑只在通灵师于窗口中途死亡后以三倍票权回答
+            // 自己的提问时才有意义。
+            if (online == null || online == caster || online.getServerWorld() != caster.getServerWorld()) {
                 continue;
             }
             ids.add(uuid);
             names.add(online.getGameProfile().getName());
         }
-        if (ids.isEmpty()) {
+        if (ids.isEmpty() || MediumSkillService.deniedByFear(caster)
+                || !ServerPlayNetworking.canSend(caster, OpenMediumHauntSelectS2CPacket.ID)) {
             return;
         }
         ServerPlayNetworking.send(caster, new OpenMediumHauntSelectS2CPacket(ids, names, price));
     }
 
     /**
-     * The confirmed pick: re-validated (round member, online in this world, not yet bound, gates and price) before the
-     * charge; the picked player is never told.
-     * 确认选择：扣费前重新校验（本局成员、在同一世界在线、尚未绑定、门槛与价格）；被选玩家不会收到任何提示。
+     * The confirmed pick: re-validated (not the caster, round member, online in this world, not yet bound, gates and
+     * price) before the charge; the picked player is never told.
+     * 确认选择：扣费前重新校验（不是施放者本人、本局成员、在同一世界在线、尚未绑定、门槛与价格）；被选玩家不会收到任何提示。
      */
     public static void submit(ServerPlayerEntity caster, @Nullable UUID targetUuid) {
-        if (caster == null || targetUuid == null || !MediumSkillService.mayUse(caster)) {
+        if (caster == null || targetUuid == null || targetUuid.equals(caster.getUuid())
+                || !MediumSkillService.mayUse(caster)) {
             return;
         }
         MediumPlayerComponent component = MediumPlayerComponent.KEY.get(caster);
@@ -92,7 +97,7 @@ public final class MediumSecondSkillService {
         }
         int price = MediumRules.hauntPrice();
         PlayerShopComponent shop = PlayerShopComponent.KEY.get(caster);
-        if (shop.getBalance() < price) {
+        if (shop.getBalance() < price || MediumSkillService.deniedByFear(caster)) {
             return;
         }
         if (price > 0) {

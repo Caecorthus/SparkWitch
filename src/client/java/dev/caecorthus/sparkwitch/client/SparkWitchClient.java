@@ -15,6 +15,7 @@ import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
 import dev.caecorthus.sparkwitch.client.medium.MediumClientModule;
+import dev.caecorthus.sparkwitch.client.medium.MediumVoteClient;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSkillC2SPacket;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteClient;
@@ -258,7 +259,14 @@ public final class SparkWitchClient implements ClientModInitializer {
                 var role = GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player);
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
-                if (KnightDuelClient.ownsAbilityKey(client.player, role)) {
+                if (MediumVoteClient.ownsAbilityKey(client)) {
+                    // Ahead of every role branch: during a live 通灵 window a dead round member's press opens the vote
+                    // screen, whatever role they held (the dead have no other use for the key). The server re-checks
+                    // every vote.
+                    // 位于所有职业分支之前：通灵窗口进行期间，本局死者的按下打开投票界面，无论其原职业为何（死者的技能键
+                    // 别无他用）。每一票都由服务端重新校验。
+                    MediumVoteClient.onAbilityKey(client);
+                } else if (KnightDuelClient.ownsAbilityKey(client.player, role)) {
                     // Checked first: either duelist's press does nothing (any role, owner 2026-10-30; the server also
                     // drops their G-skill payloads), and a Knight's press opens the duel target panel.
                     // 最先判定：任一决斗者的按下无效（任何职业，所有者 2026-10-30；服务端也会丢弃其 G 键技能包），

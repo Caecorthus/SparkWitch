@@ -137,11 +137,14 @@ public final class MediumPlayerComponent implements AutoSyncedComponent, ServerT
             return;
         }
         // A Last Stand hold keeps the state counting (Dominator / Time Stealer / Seeker precedent).
-        // 背水战一的保持期内状态照常倒数（支配者、窃时者、搜寻者先例）。
+        // 背水一战的保持期内状态照常倒数（支配者、窃时者、搜寻者先例）。
         boolean lastStandPending = SparkTraitsAbyssListenerBridge.isLastStandPending(owner);
-        if (!lastStandPending
-                && (!GameFunctions.isPlayerPlayingAndAlive(owner)
-                || GameFunctions.isPlayerSpectatingOrCreative(owner))) {
+        // Only a Wathe death clears. An alive spectator (Taotie-swallowed, inside a Rift gate) is still playing: it
+        // keeps the paid 招魂 bindings and the cooldown keeps counting, so being swallowed or hopping a gate can
+        // neither wipe paid state nor zero the opening cooldown. It cannot cast meanwhile (mayUse refuses).
+        // 只有 Wathe 判定的死亡才清空。存活旁观者（被饕餮吞下、身处裂隙门内）仍在对局中：保留已付费的招魂绑定，冷却照常
+        // 倒数，因此被吞或钻门既不会抹掉已付费状态，也不会把开局冷却清零。其间无法施放（mayUse 会拒绝）。
+        if (!lastStandPending && !GameFunctions.isPlayerPlayingAndAlive(owner)) {
             clear();
             return;
         }

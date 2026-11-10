@@ -1,10 +1,8 @@
 package dev.caecorthus.sparkwitch.client.medium;
 
-import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumHauntTargetC2SPacket;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -18,11 +16,11 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * The 招魂 target menu: every online round member, alive or dead, as avatar tiles in the Knight duel style (Wathe shop
+ * The 招魂 target menu: every other online round member, alive or dead, as avatar tiles in the Knight duel style (Wathe shop
  * slot frame + player head); already-bound targets stay visible but dimmed and inert. Pick one, then confirm — the
  * confirm is the single paid submit. The menu auto-closes once the player is no longer a live Medium. Everything is
  * re-checked server-side.
- * 招魂目标菜单：所有在线本局成员（无论生死）以骑士决斗同款头像格子列出（Wathe 商店边框 + 玩家头颅）；已绑定目标仍然
+ * 招魂目标菜单：除自己外所有在线本局成员（无论生死）以骑士决斗同款头像格子列出（Wathe 商店边框 + 玩家头颅）；已绑定目标仍然
  * 显示但压暗且不可选。选中后确认——确认才是唯一的付费提交。玩家不再是存活的通灵师时界面自动关闭。一切由服务端重新校验。
  */
 public final class MediumHauntScreen extends Screen {
@@ -92,10 +90,11 @@ public final class MediumHauntScreen extends Screen {
 
     @Override
     public void tick() {
-        if (this.client == null || this.client.player == null
-                || !SparkWitchServerConnection.isConfirmedServer()
-                || !MediumRules.isMedium(this.client.player)
-                || !GameFunctions.isPlayerPlayingAndAlive(this.client.player)) {
+        // The HUD's gate: confirmed server, raw Medium role, alive, not spectating and not swallowed, so the box
+        // closes in every state in which the server would refuse the paid submit anyway.
+        // 与 HUD 相同的门槛：已确认服务器、真实职业为通灵师、存活、非旁观、未被吞下；凡是服务端会拒绝付费提交的状态，
+        // 界面都会自动关闭。
+        if (this.client == null || !MediumHudRenderer.isActiveMedium(this.client.player)) {
             close();
         }
     }
@@ -111,6 +110,11 @@ public final class MediumHauntScreen extends Screen {
                 return true;
             }
             case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+                // Enter on a keyboard-focused Cancel/Confirm button presses that button; only otherwise is it the
+                // paid confirm. / 键盘焦点在「取消/确认」按钮上时回车按下该按钮；否则才是付费确认。
+                if (getFocused() instanceof ButtonWidget focused && !(focused instanceof MediumHauntPlayerButton)) {
+                    return super.keyPressed(keyCode, scanCode, modifiers);
+                }
                 submit();
                 return true;
             }

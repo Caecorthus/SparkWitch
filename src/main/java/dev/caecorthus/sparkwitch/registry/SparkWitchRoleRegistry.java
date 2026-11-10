@@ -1027,13 +1027,13 @@ public final class SparkWitchRoleRegistry {
         // Medium (通灵师, 2026-11-10): registered after the Specter, right before the Insider (nothing may follow
         // the Insider, InsiderRegistrationContractTest), so only the Insider's own index shifts. An ordinary task
         // civilian (REAL mood, passenger stamina, no round clock, no appearance condition) drawn by Wathe's civilian
-        // pass; never a police variant, never a Witch-skill role (kept out of isRegisteredSparkWitchRole). Skeleton
-        // only for now: no skills, just the plain civilian baseline (letter/title text falls back to the Wathe
-        // civilian wording). Later work packages add 通灵/招魂 in roles/civilian/medium.
+        // pass; never a police variant, never a Witch-skill role (kept out of isRegisteredSparkWitchRole). Its skills
+        // (通灵 on the shared ability key, 招魂 on Role Skill 2) and task coins live in roles/civilian/medium; the
+        // letter/title text still falls back to the Wathe civilian wording.
         // 通灵师（2026-11-10）：注册在幽魂之后、紧挨内应之前（内应之后不得再注册，InsiderRegistrationContractTest），
         // 因此只有内应自身的下标改变。普通任务平民（真实情绪、乘客体力、不可见回合时间、无出现条件），由 Wathe 平民
-        // 分配抽取；不是警察变体，不是魔女技能职业（不加入 isRegisteredSparkWitchRole）。当前仅为骨架：无技能，
-        // 只保留普通平民基线（信件/标题文本沿用 Wathe 平民措辞）。后续工作包在 roles/civilian/medium 追加通灵/招魂。
+        // 分配抽取；不是警察变体，不是魔女技能职业（不加入 isRegisteredSparkWitchRole）。技能（共享技能键上的通灵、
+        // 职业技能 2 上的招魂）与任务金币位于 roles/civilian/medium；信件/标题文本仍沿用 Wathe 平民措辞。
         medium = SparkFactionApi.registerRole(FactionRoleDefinition.builder(MEDIUM_ID, FactionIds.CIVILIAN)
                 .color(MediumRules.COLOR)
                 .moodType(Role.MoodType.REAL)

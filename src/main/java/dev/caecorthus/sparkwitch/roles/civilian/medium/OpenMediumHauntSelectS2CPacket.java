@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Opens the 招魂 target menu: the candidates (every round member who is online, alive or dead — the owner rule
+ * Opens the 招魂 target menu: the candidates (every other round member who is online, alive or dead — the owner rule
  * 2026-11-10 is "everyone is selectable") and the re-checked price. Opening changes nothing; the confirm is the paid
  * act. The client grays out already-bound targets from its synced component; the server never charges for them.
- * 打开招魂目标菜单：候选（所有在线的本局成员，无论生死——用户规则 2026-11-10「所有人都能选」）与复核过的价格。打开不改变
+ * 打开招魂目标菜单：候选（除施放者外所有在线的本局成员，无论生死——用户规则 2026-11-10「所有人都能选」）与复核过的价格。打开不改变
  * 任何东西；确认才是付费动作。客户端根据同步组件把已绑定目标置灰；服务端绝不为重复绑定收费。
  */
 public record OpenMediumHauntSelectS2CPacket(List<UUID> targets, List<String> names, int price)

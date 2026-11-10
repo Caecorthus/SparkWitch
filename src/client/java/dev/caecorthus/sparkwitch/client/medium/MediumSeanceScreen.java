@@ -1,9 +1,7 @@
 package dev.caecorthus.sparkwitch.client.medium;
 
-import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumSeanceC2SPacket;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -66,10 +64,11 @@ public final class MediumSeanceScreen extends Screen {
 
     @Override
     public void tick() {
-        if (this.client == null || this.client.player == null
-                || !SparkWitchServerConnection.isConfirmedServer()
-                || !MediumRules.isMedium(this.client.player)
-                || !GameFunctions.isPlayerPlayingAndAlive(this.client.player)) {
+        // The HUD's gate: confirmed server, raw Medium role, alive, not spectating and not swallowed, so the box
+        // closes in every state in which the server would refuse the paid submit anyway.
+        // 与 HUD 相同的门槛：已确认服务器、真实职业为通灵师、存活、非旁观、未被吞下；凡是服务端会拒绝付费提交的状态，
+        // 界面都会自动关闭。
+        if (this.client == null || !MediumHudRenderer.isActiveMedium(this.client.player)) {
             close();
         }
     }

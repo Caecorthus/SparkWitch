@@ -74,6 +74,10 @@ public final class KnightDuelSkillLock {
             // Specter mark/shriek (G), PR #207; its Otherworld is skill key 2 (N) and stays allowed by this list's rule.
             // 幽魂标记/尖啸（G 键），PR #207；里世界属于技能键 2（N），按本名单规则保持放行。
             Identifier.of("sparkwitch", "use_specter_skill"),
+            // Medium 通灵 (G) and its paid question submit, PR #209; 招魂 is skill key 2 (N) and stays allowed by this
+            // list's rule. / 通灵师的通灵（G 键）及其付费提问提交，PR #209；招魂属于技能键 2（N），按本名单规则保持放行。
+            Identifier.of("sparkwitch", "use_medium_skill"),
+            Identifier.of("sparkwitch", "submit_medium_seance"),
             // The Knight's own pick; a non-duelist is never locked, so it always passes for them.
             // 骑士自己的选择包；非决斗者从不被锁，因此对他们始终放行。
             Identifier.of("sparkwitch", "knight_duel_target"),

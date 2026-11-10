@@ -16,7 +16,7 @@ public record SubmitMediumSeanceC2SPacket(String question) implements CustomPayl
     public static final Identifier PAYLOAD_ID = SparkWitch.id("submit_medium_seance");
     public static final Id<SubmitMediumSeanceC2SPacket> ID = new Id<>(PAYLOAD_ID);
     public static final PacketCodec<RegistryByteBuf, SubmitMediumSeanceC2SPacket> CODEC = PacketCodec.tuple(
-            PacketCodecs.STRING,
+            PacketCodecs.string(MediumRules.QUESTION_MAX_CHARS * 4),
             SubmitMediumSeanceC2SPacket::question,
             SubmitMediumSeanceC2SPacket::new
     );

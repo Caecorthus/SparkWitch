@@ -1,5 +1,10 @@
 package dev.caecorthus.sparkwitch.roles.civilian.medium;
 
+import dev.caecorthus.sparkwitch.compat.NoellesSilenceBridge;
+import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaGrappleService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -9,17 +14,14 @@ import dev.doctor4t.wathe.record.replay.ReplayGenerator;
 import dev.doctor4t.wathe.record.replay.ReplayRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -27,19 +29,18 @@ import java.util.UUID;
 /**
  * 通灵 (the Medium's shared ability-key skill), server-authoritative. The press only asks the server to open the
  * question box; the paid act is the Enter submit, which re-checks every gate, charges the live price, starts the
- * cooldown and opens the world vote window. The dead then answer 1 (是) / 2 (否) in chat for 20 s; the tally keeps each
- * voter's last choice, weighs a 招魂-bound voter {@link MediumRules#BIND_VOTE_WEIGHT} votes, resolves a tie with the
- * last vote cast, and sends the answer privately to the caster. When the death count is over half, each bound dead
- * target's own answer is revealed to the caster as well.
+ * cooldown and opens the world vote window. The dead then answer 是 / 否 from their vote screen
+ * ({@link SubmitMediumVoteC2SPacket}) for 20 s; the tally keeps each voter's last choice, weighs a 招魂-bound voter
+ * {@link MediumRules#BIND_VOTE_WEIGHT} votes, resolves a tie with the last vote cast, and sends the answer privately to
+ * the caster as {@link MediumSeanceResultS2CPacket} (a HUD card on the client, never a vanilla title). When the death
+ * count is over half, the tie note and each bound dead target's own answer are included as well.
  * 通灵（通灵师共享技能键技能），服务端权威。按键只请求服务端打开提问框；付费动作是回车提交，它会重新复核所有门槛、
- * 扣除实时价格、进入冷却并开启世界级投票窗口。随后死者在聊天中发送 1（是）/ 2（否）投票 20 秒；计票保留每人的最后
- * 选择，被招魂绑定的投票记 {@link MediumRules#BIND_VOTE_WEIGHT} 票，平票以最后投出的一票定夺，答案私下发给通灵师。
- * 当局死者过半时，还会额外把每个绑定死者的个人答案单独给通灵师看。
+ * 扣除实时价格、进入冷却并开启世界级投票窗口。随后死者在投票界面（{@link SubmitMediumVoteC2SPacket}）回答「是」/「否」，
+ * 持续 20 秒；计票保留每人的最后选择，被招魂绑定的投票记 {@link MediumRules#BIND_VOTE_WEIGHT} 票，平票以最后投出的
+ * 一票定夺，答案以 {@link MediumSeanceResultS2CPacket} 私下发给通灵师（客户端绘制为 HUD 卡片，绝不使用原版标题）。
+ * 当局死者过半时，还会附带平票提示与每个绑定死者的个人答案。
  */
 public final class MediumSkillService {
-    private static final int TITLE_FADE_IN = 10;
-    private static final int TITLE_STAY = 100;
-    private static final int TITLE_FADE_OUT = 20;
     private static boolean registered;
 
     private MediumSkillService() {
@@ -72,6 +73,9 @@ public final class MediumSkillService {
         if (PlayerShopComponent.KEY.get(caster).getBalance() < price) {
             return;
         }
+        if (deniedByFear(caster) || !ServerPlayNetworking.canSend(caster, OpenMediumSeanceInputS2CPacket.ID)) {
+            return;
+        }
         ServerPlayNetworking.send(caster, new OpenMediumSeanceInputS2CPacket(price));
     }
 
@@ -100,7 +104,7 @@ public final class MediumSkillService {
         int tier = MediumRules.currentTier(game);
         int price = MediumRules.seancePrice(tier);
         PlayerShopComponent shop = PlayerShopComponent.KEY.get(caster);
-        if (shop.getBalance() < price) {
+        if (shop.getBalance() < price || deniedByFear(caster)) {
             return;
         }
         if (price > 0) {
@@ -114,28 +118,23 @@ public final class MediumSkillService {
     }
 
     /**
-     * Server-only chat vote: a dead round member's latest "1"/"2" inside the window. Living players and strangers are
-     * ignored; the message itself is not cancelled.
-     * 仅服务端的聊天投票：窗口内死者发送的最新的「1」/「2」。存活玩家与局外玩家忽略；聊天消息本身不拦截。
+     * A vote from the vote screen: accepted only inside a live window and only from a dead round member who is not a
+     * promoted Wraith ({@link MediumRules#mayVote(net.minecraft.entity.player.PlayerEntity)}); the latest answer
+     * replaces the earlier one. Anything else is dropped silently.
+     * 来自投票界面的一票：只在窗口进行中、且发送者是未晋升为冤魂身份的本局死者
+     * （{@link MediumRules#mayVote(net.minecraft.entity.player.PlayerEntity)}）时接受；后发的回答覆盖先前的回答。
+     * 其余情况一律静默丢弃。
      */
-    public static void onChatMessage(ServerPlayerEntity sender, @Nullable String content) {
-        if (sender == null || content == null) {
+    public static void vote(ServerPlayerEntity sender, int windowId, boolean yes) {
+        if (sender == null) {
             return;
         }
         MediumSeanceComponent seance = MediumSeanceComponent.KEY.get(sender.getWorld());
-        if (!seance.isActive()) {
+        // The serial pins the answer to the window its screen showed. / 序号把回答固定在界面所展示的那个窗口。
+        if (!seance.isActive() || seance.getWindowId() != windowId || !MediumRules.mayVote(sender)) {
             return;
         }
-        GameWorldComponent game = GameWorldComponent.KEY.get(sender.getWorld());
-        if (!game.isRunning() || !game.hasAnyRole(sender) || !game.isPlayerDead(sender.getUuid())) {
-            return;
-        }
-        String vote = content.strip();
-        if ("1".equals(vote)) {
-            seance.recordVote(sender.getUuid(), true);
-        } else if ("2".equals(vote)) {
-            seance.recordVote(sender.getUuid(), false);
-        }
+        seance.recordVote(sender.getUuid(), yes);
     }
 
     /**
@@ -149,8 +148,7 @@ public final class MediumSkillService {
         UUID casterId = seance.getCasterUuid();
         String question = seance.getQuestion();
         Map<UUID, Boolean> votes = seance.getVotes();
-        UUID lastVoter = seance.getLastVoter();
-        Set<UUID> bound = new HashSet<>(seance.getBoundTargets());
+        Set<UUID> bound = new LinkedHashSet<>(seance.getBoundTargets());
         ServerPlayerEntity caster = casterId == null
                 ? null
                 : world.getServer().getPlayerManager().getPlayer(casterId);
@@ -162,82 +160,96 @@ public final class MediumSkillService {
             // A 招魂 bought while the window is open still applies to it.
             // 窗口开着时买的招魂同样对本次通灵生效。
             bound.addAll(MediumPlayerComponent.KEY.get(caster).getBoundTargets());
-            Text questionLine = Text.translatable("message.sparkwitch.medium.seance.title", question)
-                    .formatted(Formatting.GRAY);
-            if (votes.isEmpty()) {
-                sendTitle(caster,
-                        Text.translatable("message.sparkwitch.medium.seance.no_response.title"),
-                        null);
+            if (!ServerPlayNetworking.canSend(caster, MediumSeanceResultS2CPacket.ID)) {
                 return;
             }
+            // Votes arrive in casting order (a changed vote moves to the end). A voter who is no longer in the dead set
+            // at the tally is dropped, so nobody alive ever decides; the last remaining vote breaks a tie.
+            // 票按投出的先后排列（改票会移到最后）。计票时已不在死亡集合中的投票者被剔除，因此活人绝不参与裁决；
+            // 平票由剩余的最后一票定夺。
             int yes = 0;
             int no = 0;
+            Boolean lastChoice = null;
             for (Map.Entry<UUID, Boolean> entry : votes.entrySet()) {
+                if (!game.isPlayerDead(entry.getKey())) {
+                    continue;
+                }
                 int weight = bound.contains(entry.getKey()) ? MediumRules.BIND_VOTE_WEIGHT : 1;
                 if (entry.getValue()) {
                     yes += weight;
                 } else {
                     no += weight;
                 }
+                lastChoice = entry.getValue();
+            }
+            if (lastChoice == null) {
+                ServerPlayNetworking.send(caster, new MediumSeanceResultS2CPacket(
+                        question, MediumSeanceResultS2CPacket.OUTCOME_NO_RESPONSE, false, List.of()));
+                return;
             }
             boolean tie = yes == no;
-            Boolean lastChoice = lastVoter == null ? null : votes.get(lastVoter);
-            boolean answer = tie ? Boolean.TRUE.equals(lastChoice) : yes > no;
-            // Players in a round cannot see chat, so the answer arrives as a title: the big word is the answer.
-            // The subtitle (question, tie note, bound-target answers) only appears once deaths are over half;
-            // bound targets who did not vote are simply omitted.
-            // 对局中玩家看不到聊天栏，因此答案以大标题呈现。只有死者过半时才显示副标题（问题、平票提示、
-            // 绑定目标的个人答案）；没投票的招魂者不显示。
-            MutableText subtitle = null;
-            if (MediumRules.deathsOverHalf(game)) {
-                subtitle = questionLine.copy();
-                if (tie) {
-                    subtitle.append(Text.literal(" ")).append(Text.translatable("message.sparkwitch.medium.seance.tie"));
-                }
+            boolean answer = tie ? lastChoice : yes > no;
+            // The answer and the caster's own question always go out. The tie note and the bound targets' own answers
+            // are extra knowledge, sent only once deaths are over half; bound targets who did not vote are omitted.
+            // 答案与通灵师自己的提问始终发送。平票提示与绑定目标的个人答案属于额外情报，只有死者过半时才发送；
+            // 没投票的招魂者不列出。
+            boolean detail = MediumRules.deathsOverHalf(game);
+            List<MediumSeanceResultS2CPacket.BoundAnswer> boundAnswers = new ArrayList<>();
+            if (detail) {
                 for (UUID target : bound) {
+                    if (boundAnswers.size() >= MediumSeanceResultS2CPacket.MAX_BOUND_ANSWERS) {
+                        break;
+                    }
                     if (game.isPlayerDead(target) && votes.containsKey(target)) {
-                        subtitle.append(Text.literal(" ｜ ")).append(Text.translatable(
-                                "message.sparkwitch.medium.seance.bound",
-                                playerName(game, target),
-                                answerText(votes.get(target))));
+                        boundAnswers.add(new MediumSeanceResultS2CPacket.BoundAnswer(
+                                playerName(game, target), votes.get(target)));
                     }
                 }
             }
-            sendTitle(caster, answerText(answer), subtitle);
+            ServerPlayNetworking.send(caster, new MediumSeanceResultS2CPacket(
+                    question,
+                    answer ? MediumSeanceResultS2CPacket.OUTCOME_YES : MediumSeanceResultS2CPacket.OUTCOME_NO,
+                    detail && tie,
+                    boundAnswers));
         } finally {
             seance.clear();
         }
     }
 
     /**
-     * Shared caster gate: an ACTIVE round, playing and alive, exactly the Medium.
-     * 共用施放者门槛：对局 ACTIVE、参与且存活、职业恰为通灵师。
+     * Shared caster gate of both skills and both paid confirmations (the Specter/Dominator {@code mayCast} set): an
+     * ACTIVE round, the raw Medium role, playing and alive, never an alive spectator (Taotie-swallowed, Rift
+     * occupant) or creative, not held by a Ninja grapple, not silenced and not role-skill blocked by SparkTraits.
+     * Refusals are silent. Grand Witch Fear is checked last by each entry ({@link #deniedByFear}) because it tells the
+     * player why.
+     * 两个技能及两个付费确认共用的施放者门槛（幽魂/支配者 {@code mayCast} 的同一组条件）：对局 ACTIVE、真实职业为通灵师、
+     * 参与且存活、不是存活旁观者（被饕餮吞下、裂隙门内）或创造模式、未被忍者钩爪拉住、未被沉默、未被 SparkTraits 禁用职业
+     * 技能。拒绝时不提示。大魔女恐惧由各入口最后检查（{@link #deniedByFear}），因为它会提示原因。
      */
     static boolean mayUse(ServerPlayerEntity player) {
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
         return game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
+                && MediumRules.isMedium(game.getRole(player))
                 && GameFunctions.isPlayerPlayingAndAlive(player)
-                && MediumRules.isMedium(game.getRole(player));
+                && !player.isSpectator()
+                && !GameFunctions.isPlayerSpectatingOrCreative(player)
+                && !NoellesTaotieSeekerBridge.isSwallowed(player)
+                && !NinjaGrappleService.isHeld(player)
+                && !NoellesSilenceBridge.isSilenced(player)
+                && !SparkTraitsKillerBridge.isRoleSkillBlocked(player);
     }
 
-    private static Text answerText(boolean yes) {
-        return Text.translatable(yes
-                ? "message.sparkwitch.medium.answer.yes"
-                : "message.sparkwitch.medium.answer.no");
+    /**
+     * Grand Witch Fear refusal, with the shared "skill blocked" message; call it after every silent gate.
+     * 大魔女恐惧拒绝，附带共用的「技能被封锁」提示；在所有静默门槛之后调用。
+     */
+    static boolean deniedByFear(ServerPlayerEntity player) {
+        return GrandWitchFearService.denyRoleSkillIfFeared(player);
     }
 
     private static String playerName(GameWorldComponent game, UUID uuid) {
         var profile = game.getGameProfiles().get(uuid);
         return profile == null ? "??" : profile.getName();
-    }
-
-    /** Private title delivery (round players cannot read chat). / 私发标题（对局中玩家看不到聊天栏）。 */
-    private static void sendTitle(ServerPlayerEntity player, Text title, @Nullable Text subtitle) {
-        player.networkHandler.sendPacket(new TitleFadeS2CPacket(TITLE_FADE_IN, TITLE_STAY, TITLE_FADE_OUT));
-        if (subtitle != null) {
-            player.networkHandler.sendPacket(new SubtitleS2CPacket(subtitle));
-        }
-        player.networkHandler.sendPacket(new TitleS2CPacket(title));
     }
 
     private static @Nullable Text formatSeance(

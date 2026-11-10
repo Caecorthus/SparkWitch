@@ -34,81 +34,81 @@ import org.jetbrains.annotations.Nullable;
  * {@code CanSeeMoney} 对存活的通灵师返回 ALLOW，使金币 HUD 显示。只有服务端写入；客户端只读取 {@code CanSeeMoney}。
  */
 final class MediumEconomyService {
-	/** The Medium's own ON_FINISH_INITIALIZE phase, after the default one. / 通灵师自有的 ON_FINISH_INITIALIZE 阶段，排在默认阶段之后。 */
-	static final Identifier FINISH_INITIALIZE_PHASE = SparkWitch.id("medium_economy_finish_initialize");
+    /** The Medium's own ON_FINISH_INITIALIZE phase, after the default one. / 通灵师自有的 ON_FINISH_INITIALIZE 阶段，排在默认阶段之后。 */
+    static final Identifier FINISH_INITIALIZE_PHASE = SparkWitch.id("medium_economy_finish_initialize");
 
-	private static boolean registered;
+    private static boolean registered;
 
-	private MediumEconomyService() {
-	}
+    private MediumEconomyService() {
+    }
 
-	static synchronized void register() {
-		if (registered) {
-			return;
-		}
-		registered = true;
-		TaskComplete.EVENT.register((player, task) -> onTaskComplete(player));
-		CanSeeMoney.EVENT.register(MediumEconomyService::canSeeMoney);
-		GameEvents.ON_FINISH_INITIALIZE.addPhaseOrdering(Event.DEFAULT_PHASE, FINISH_INITIALIZE_PHASE);
-		GameEvents.ON_FINISH_INITIALIZE.register(FINISH_INITIALIZE_PHASE, (world, game) -> {
-			if (world instanceof ServerWorld serverWorld) {
-				initializeBalances(serverWorld, game);
-			}
-		});
-	}
+    static synchronized void register() {
+        if (registered) {
+            return;
+        }
+        registered = true;
+        TaskComplete.EVENT.register((player, task) -> onTaskComplete(player));
+        CanSeeMoney.EVENT.register(MediumEconomyService::canSeeMoney);
+        GameEvents.ON_FINISH_INITIALIZE.addPhaseOrdering(Event.DEFAULT_PHASE, FINISH_INITIALIZE_PHASE);
+        GameEvents.ON_FINISH_INITIALIZE.register(FINISH_INITIALIZE_PHASE, (world, game) -> {
+            if (world instanceof ServerWorld serverWorld) {
+                initializeBalances(serverWorld, game);
+            }
+        });
+    }
 
-	// ---- Start ----
+    // ---- Start ----
 
-	static void initializeBalances(ServerWorld world, GameWorldComponent game) {
-		for (ServerPlayerEntity player : world.getPlayers()) {
-			// Still STARTING here, so the running-state helper would reject everyone. / 此时仍为 STARTING，运行态判定会拒绝所有人。
-			if (receivesStartingBalance(game.hasAnyRole(player), game.isPlayerDead(player.getUuid()),
-					game.getRole(player))) {
-				PlayerShopComponent.KEY.get(player).setBalance(MediumRules.INITIAL_MONEY);
-			}
-		}
-	}
+    static void initializeBalances(ServerWorld world, GameWorldComponent game) {
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            // Still STARTING here, so the running-state helper would reject everyone. / 此时仍为 STARTING，运行态判定会拒绝所有人。
+            if (receivesStartingBalance(game.hasAnyRole(player), game.isPlayerDead(player.getUuid()),
+                    game.getRole(player))) {
+                PlayerShopComponent.KEY.get(player).setBalance(MediumRules.INITIAL_MONEY);
+            }
+        }
+    }
 
-	/** Only a living final Medium with a role. / 只有拥有身份且存活的最终通灵师。 */
-	static boolean receivesStartingBalance(boolean hasRole, boolean dead, @Nullable Role finalRole) {
-		return hasRole && !dead && MediumRules.isMedium(finalRole);
-	}
+    /** Only a living final Medium with a role. / 只有拥有身份且存活的最终通灵师。 */
+    static boolean receivesStartingBalance(boolean hasRole, boolean dead, @Nullable Role finalRole) {
+        return hasRole && !dead && MediumRules.isMedium(finalRole);
+    }
 
-	// ---- Tasks ----
+    // ---- Tasks ----
 
-	static void onTaskComplete(ServerPlayerEntity player) {
-		if (canEarn(player) && MediumRules.receivesTaskMoney(SparkTraitsTaskIncomeBridge.isImpostor(player))) {
-			PlayerShopComponent.KEY.get(player).addToBalance(MediumRules.TASK_REWARD);
-		}
-	}
+    static void onTaskComplete(ServerPlayerEntity player) {
+        if (canEarn(player) && MediumRules.receivesTaskMoney(SparkTraitsTaskIncomeBridge.isImpostor(player))) {
+            PlayerShopComponent.KEY.get(player).addToBalance(MediumRules.TASK_REWARD);
+        }
+    }
 
-	// ---- Eligibility ----
+    // ---- Eligibility ----
 
-	static boolean canEarn(@Nullable PlayerEntity player) {
-		if (player == null) {
-			return false;
-		}
-		GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
-		Role role = game.getRole(player);
-		// Cheap role test first: this runs on every task completion for every player. / 先做廉价的职业判断：每次任务完成都会执行。
-		if (!MediumRules.isMedium(role)) {
-			return false;
-		}
-		return MediumRules.canEarn(game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE,
-				GameFunctions.isPlayerPlayingAndAlive(player), role, player.isSpectator(), player.isCreative(),
-				SparkWitchApi.isWraithRestricted(player));
-	}
+    static boolean canEarn(@Nullable PlayerEntity player) {
+        if (player == null) {
+            return false;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
+        Role role = game.getRole(player);
+        // Cheap role test first: this runs on every task completion for every player. / 先做廉价的职业判断：每次任务完成都会执行。
+        if (!MediumRules.isMedium(role)) {
+            return false;
+        }
+        return MediumRules.canEarn(game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE,
+                GameFunctions.isPlayerPlayingAndAlive(player), role, player.isSpectator(), player.isCreative(),
+                SparkWitchApi.isWraithRestricted(player));
+    }
 
-	// ---- Visibility ----
+    // ---- Visibility ----
 
-	static @Nullable CanSeeMoney.Result moneyVisibilityResult(@Nullable Role role) {
-		return MediumRules.isMedium(role) ? CanSeeMoney.Result.ALLOW : null;
-	}
+    static @Nullable CanSeeMoney.Result moneyVisibilityResult(@Nullable Role role) {
+        return MediumRules.isMedium(role) ? CanSeeMoney.Result.ALLOW : null;
+    }
 
-	private static @Nullable CanSeeMoney.Result canSeeMoney(PlayerEntity player) {
-		if (player == null || !GameFunctions.isPlayerPlayingAndAlive(player)) {
-			return null;
-		}
-		return moneyVisibilityResult(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
-	}
+    private static @Nullable CanSeeMoney.Result canSeeMoney(PlayerEntity player) {
+        if (player == null || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+            return null;
+        }
+        return moneyVisibilityResult(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
+    }
 }
