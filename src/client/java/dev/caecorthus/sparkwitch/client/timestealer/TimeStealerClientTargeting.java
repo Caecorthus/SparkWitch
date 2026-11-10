@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.timestealer;
 
+import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeTargetOcclusion;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.ClockGeometry;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftWatchItem;
@@ -37,8 +38,10 @@ public final class TimeStealerClientTargeting {
                 || !TimeStealerRules.isTimeStealer(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
             return false;
         }
-        return ClockGeometry.findTarget(player, TimeStealerRules.CLOCK_RANGE, player.clientWorld.getPlayers(),
-                candidate -> candidate != player && isVisibleCandidate(candidate)) != null;
+        PlayerEntity target = ClockGeometry.findTarget(player, TimeStealerRules.CLOCK_RANGE,
+                player.clientWorld.getPlayers(), candidate -> candidate != player && isVisibleCandidate(candidate));
+        // A target hidden by BEAR smoke does not light the hint (hint only). / 被 BEAR 烟雾挡住的目标不点亮提示（仅提示）。
+        return target != null && !SmokeTargetOcclusion.hides(player, target);
     }
 
     /**
