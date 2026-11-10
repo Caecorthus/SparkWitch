@@ -265,6 +265,43 @@ def watheClientMixinContracts = [
                 providerMethod: "renderHud",
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
+        // BEAR smoke (owner, 2026-11-10): Wathe's gun, knife and bat crosshair hints skip a target hidden by smoke, at
+        // the three target reads of renderCrosshair (hint only; the selectors themselves are untouched).
+        // BEAR 烟雾（所有者 2026-11-10）：Wathe 的枪、刀、球棒准星提示在 renderCrosshair 的三处目标读取上跳过被烟挡住的
+        // 目标（仅提示；选靶方法本身不改动）。
+        [
+                configName: "bear.SmokeCrosshairHintMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/bear/SmokeCrosshairHintMixin.class",
+                handler: "sparkwitch\$gunHintSkipsSmokeHiddenTarget",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Ldev/doctor4t/wathe/client/gui/CrosshairRenderer;getVisibleGunTarget(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "bear.SmokeCrosshairHintMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/bear/SmokeCrosshairHintMixin.class",
+                handler: "sparkwitch\$knifeHintSkipsSmokeHiddenTarget",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Ldev/doctor4t/wathe/item/KnifeItem;getKnifeTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "bear.SmokeCrosshairHintMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/bear/SmokeCrosshairHintMixin.class",
+                handler: "sparkwitch\$batHintSkipsSmokeHiddenTarget",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_310;field_1765:Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
         [
                 // BEAR M32A1 (owner, 2026-11-06): the slot badge replaces Wathe's selected-slot cooldown number.
                 // BEAR M32A1（所有者 2026-11-06）：格标记取代 Wathe 选中格冷却数字。

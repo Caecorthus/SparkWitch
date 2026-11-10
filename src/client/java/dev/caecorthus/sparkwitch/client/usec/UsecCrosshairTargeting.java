@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
+import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeTargetOcclusion;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsUsecBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecAmmoType;
@@ -8,6 +9,7 @@ import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
@@ -18,6 +20,7 @@ import net.minecraft.world.RaycastContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Client crosshair hint for the AXMC at the hip: Wathe's target crosshair while a ready, chambered rifle points at a
@@ -62,17 +65,20 @@ public final class UsecCrosshairTargeting {
 
     private static List<Box> candidateVolumes(ClientPlayerEntity player, Vec3d eye, Vec3d end) {
         List<Box> volumes = new ArrayList<>();
+        // A candidate hidden by BEAR smoke does not light the hint, puppets included (hint only; always true with
+        // no smoke). / 被 BEAR 烟雾挡住的候选者（含皮套）不点亮提示（仅提示；没有烟时恒为真）。
+        Predicate<Entity> shown = SmokeTargetOcclusion.shownTo(player);
         for (AbstractClientPlayerEntity candidate : player.clientWorld.getPlayers()) {
             if (UsecCrosshairRules.playerCandidate(candidate == player, candidate.isAlive(),
                     GameFunctions.isPlayerAliveAndSurvival(candidate), candidate.isInvisible(),
-                    WraithClientState.isActive(candidate))) {
+                    WraithClientState.isActive(candidate)) && shown.test(candidate)) {
                 volumes.add(UsecCrosshairRules.hitVolume(candidate.getBoundingBox()));
             }
         }
         for (MagicianPlaybackEntity puppet : player.getWorld().getEntitiesByClass(MagicianPlaybackEntity.class,
                 new Box(eye, end).expand(PUPPET_SEARCH_PADDING),
                 candidate -> UsecCrosshairRules.puppetCandidate(candidate.isAlive(), candidate.isRemoved(),
-                        candidate.isInvisible()))) {
+                        candidate.isInvisible()) && shown.test(candidate))) {
             volumes.add(UsecCrosshairRules.hitVolume(puppet.getBoundingBox()));
         }
         return volumes;

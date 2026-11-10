@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.hunter;
 
+import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeTargetOcclusion;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
@@ -10,6 +11,7 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Identifier;
@@ -18,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * The two 15x15 crosshairs a loaded buckshot shows: the target one once the next shot would kill — at least the
@@ -113,8 +116,11 @@ public final class HunterShotgunCrosshair {
     private static int raysOnTarget(ClientPlayerEntity player, ItemStack stack) {
         List<DoubleBarrelShotgunItem.Aim> aims = DoubleBarrelShotgunItem.shotAims(player, stack);
         List<Box> targets = new ArrayList<>();
+        // A candidate hidden by BEAR smoke does not light the hint, puppets included (hint only; always true with
+        // no smoke). / 被 BEAR 烟雾挡住的候选者（含皮套）不点亮提示（仅提示；没有烟时恒为真）。
+        Predicate<Entity> shown = SmokeTargetOcclusion.shownTo(player);
         for (AbstractClientPlayerEntity candidate : player.clientWorld.getPlayers()) {
-            if (candidate != player && isVisibleCandidate(candidate)) {
+            if (candidate != player && isVisibleCandidate(candidate) && shown.test(candidate)) {
                 targets.add(candidate.getBoundingBox().expand(PLAYER_BOX_EXPANSION));
             }
         }
@@ -123,7 +129,8 @@ public final class HunterShotgunCrosshair {
             reach = reach.union(new Box(aim.eye(), aim.end()));
         }
         for (MagicianPlaybackEntity puppet : player.getWorld().getEntitiesByClass(MagicianPlaybackEntity.class,
-                reach.expand(1.0D), candidate -> candidate.isAlive() && !candidate.isRemoved())) {
+                reach.expand(1.0D),
+                candidate -> candidate.isAlive() && !candidate.isRemoved() && shown.test(candidate))) {
             targets.add(puppet.getBoundingBox().expand(PLAYER_BOX_EXPANSION));
         }
         if (targets.isEmpty()) {

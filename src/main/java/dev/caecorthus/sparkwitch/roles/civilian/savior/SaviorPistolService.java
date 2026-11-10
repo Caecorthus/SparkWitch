@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsSaviorBridge;
 import dev.caecorthus.sparkwitch.net.SaviorGunDropS2CPayload;
 import dev.caecorthus.sparkwitch.net.SaviorMuzzleS2CPayload;
 import dev.caecorthus.sparkwitch.net.SaviorPistolShootC2SPayload;
+import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.RangedSmokeCarve;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDamageRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.hit.SeekerDeviceHits;
@@ -126,6 +127,12 @@ public final class SaviorPistolService {
             // 不扣理智）。
             hitWorldTarget(shooter, resolved, pistol);
         }
+        // BEAR bullet tunnel, at the revolver's own anchor (an accepted shot, right before the record): eye to the
+        // entry on the raw target, or the look ray on a miss, with this shot's own target tolerance. Visual only.
+        // BEAR 弹道通道，位于与左轮相同的锚点（已接受的射击，紧接记录之前）：从眼睛到原始目标的进入点，未命中时沿视线，
+        // 使用这一枪自身的目标容差。纯视觉。
+        RangedSmokeCarve.gunShot(shooter, world.getEntityById(targetEntityId), SaviorRules.PISTOL_CLIENT_RANGE,
+                tolerance);
         // Record the shot exactly like Wathe's revolver instead of the custom pistol id. / 按 Wathe 左轮的身份记录，不用自定义手枪 id。
         GameRecordManager.recordItemUse(shooter, Registries.ITEM.getId(WatheItems.REVOLVER), target, null);
 

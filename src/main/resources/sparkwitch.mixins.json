@@ -275,6 +275,7 @@
     "bear.ServerWorldExplosionSmokeCarveMixin",
     "bear.HeadsetPlayerScreenHandlerMixin",
     "bear.HeadsetCreativeActionMixin",
+    "bear.HeadsetWatheInventoryWipeMixin",
     "specter.GameFunctionsSpecterOtherworldTargetMixin",
     "specter.SpecterOtherworldKnifeMixin",
     "specter.GameFunctionsSpecterShieldMixin",
