@@ -1,30 +1,33 @@
 package dev.caecorthus.sparkwitch.client.bear.smoke.render;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import net.minecraft.resource.Resource;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.util.Identifier;
+import net.fabricmc.loader.api.FabricLoader;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * A raw GL program for the smoke passes, compiled from {@code assets/sparkwitch/shaders/bear_smoke/*}. Vanilla's
  * JSON {@code ShaderProgram} cannot bind {@code sampler3D}, so these programs bypass it; {@link SmokeMarchRules}
- * constants are injected as {@code #define}s right after the {@code #version} line. Uniform locations are cached by
- * name. Render thread only.
+ * constants are injected as {@code #define}s right after the {@code #version} line. Sources are read from the
+ * SparkWitch jar itself, never through the resource manager (like the occlusion passes'
+ * {@code occlusion.SmokeGlProgram}), so a client resource pack cannot replace the march or the composite with a no-op
+ * and see through smoke, nor break them with a bad override. Uniform locations are cached by name. Render thread only.
  * 烟雾各步骤使用的原生 GL 程序，由 {@code assets/sparkwitch/shaders/bear_smoke/*} 编译。原版 JSON
  * {@code ShaderProgram} 无法绑定 {@code sampler3D}，因此绕开它；{@link SmokeMarchRules} 常量以 {@code #define} 形式
- * 注入到 {@code #version} 行之后。uniform 位置按名称缓存。仅限渲染线程。
+ * 注入到 {@code #version} 行之后。源码直接从 SparkWitch jar 读取，从不经过资源管理器（与遮挡步骤的
+ * {@code occlusion.SmokeGlProgram} 相同），因此客户端资源包无法把步进或合成换成空操作来透视烟雾，也无法用错误的覆盖文件
+ * 弄坏它们。uniform 位置按名称缓存。仅限渲染线程。
  */
 final class SmokeProgram {
-    private static final String SHADER_DIR = "shaders/bear_smoke/";
+    private static final String SOURCE_ROOT = "assets/sparkwitch/shaders/bear_smoke/";
     private final int id;
     private final Map<String, Integer> uniforms = new HashMap<>();
 
@@ -38,22 +41,21 @@ final class SmokeProgram {
      * 编译并链接 {@code vertex} + {@code fragment}；片元输出按给定顺序绑定到颜色附件。失败时抛出带 GL 日志的
      * {@link IllegalStateException}。
      */
-    static SmokeProgram load(ResourceManager resources, String vertex, String fragment, String... outputs)
-            throws IOException {
-        return load(resources, vertex, fragment, Map.of(), outputs);
+    static SmokeProgram load(String vertex, String fragment, String... outputs) throws IOException {
+        return load(vertex, fragment, Map.of(), outputs);
     }
 
     /**
-     * As {@link #load(ResourceManager, String, String, String...)} with extra {@code #define}s after the shared ones.
+     * As {@link #load(String, String, String...)} with extra {@code #define}s after the shared ones.
      * 同上，另在共享定义之后加入额外的 {@code #define}。
      */
-    static SmokeProgram load(ResourceManager resources, String vertex, String fragment, Map<String, String> extra,
-                             String... outputs) throws IOException {
+    static SmokeProgram load(String vertex, String fragment, Map<String, String> extra, String... outputs)
+            throws IOException {
         String defines = defineBlock(SmokeMarchRules.shaderDefines()) + defineBlock(extra);
-        int vs = compile(GL20.GL_VERTEX_SHADER, vertex, inject(read(resources, vertex), defines));
+        int vs = compile(GL20.GL_VERTEX_SHADER, vertex, inject(read(vertex), defines));
         int fs;
         try {
-            fs = compile(GL20.GL_FRAGMENT_SHADER, fragment, inject(read(resources, fragment), defines));
+            fs = compile(GL20.GL_FRAGMENT_SHADER, fragment, inject(read(fragment), defines));
         } catch (RuntimeException exception) {
             GL20.glDeleteShader(vs);
             throw exception;
@@ -114,12 +116,15 @@ final class SmokeProgram {
         return source.substring(0, newline + 1) + defines + source.substring(newline + 1);
     }
 
-    private static String read(ResourceManager resources, String name) throws IOException {
-        Identifier id = SparkWitch.id(SHADER_DIR + name);
-        Resource resource = resources.getResource(id).orElseThrow(() -> new IOException("missing " + id));
-        try (InputStream stream = resource.getInputStream()) {
-            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
-        }
+    /**
+     * The mod's own copy of a shader (jar, or the dev source-set roots), which no resource pack can override.
+     * 模组自带的着色器文件（jar，或开发环境的源集目录），任何资源包都无法覆盖。
+     */
+    private static String read(String name) throws IOException {
+        Path path = FabricLoader.getInstance().getModContainer(SparkWitch.MOD_ID)
+                .flatMap(container -> container.findPath(SOURCE_ROOT + name))
+                .orElseThrow(() -> new IOException("missing BEAR smoke shader " + name));
+        return Files.readString(path, StandardCharsets.UTF_8);
     }
 
     private static int compile(int type, String name, String source) {
