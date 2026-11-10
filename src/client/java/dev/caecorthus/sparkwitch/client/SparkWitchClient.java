@@ -14,6 +14,9 @@ import dev.caecorthus.sparkwitch.client.specter.SpecterClientModule;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
+import dev.caecorthus.sparkwitch.client.medium.MediumClientModule;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSkillC2SPacket;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteClient;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteDashClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaClient;
@@ -349,6 +352,12 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role only (getRole stays raw, so a Black Raven acting as Noa keeps its own key); the server
                     // decides use. / 仅真实职业（getRole 始终是真实身份，扮演诺亚的黑羽鸦保留自己的按键）；是否生效由服务端决定。
                     NoaPaintClient.onAbilityKey(client);
+                } else if (MediumRules.isMedium(role)) {
+                    // 通灵 (the shared ability key): empty request, the server owns every check and opens the box.
+                    // 通灵（共享技能键）：空请求，全部校验在服务端，并由服务端打开提问框。
+                    if (ClientPlayNetworking.canSend(UseMediumSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseMediumSkillC2SPacket());
+                    }
                 } else if (!WitchMaidenRules.isWitchMaiden(role)
                         && (WitchPlayerComponent.KEY.get(client.player).hasSkill()
                         || SaintRules.isSaint(role))) {
@@ -370,6 +379,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         // BEAR client hub (work packages append there), before USEC, which stays last.
         // BEAR 客户端注册中心（各工作包在其中追加），位于 USEC 之前，USEC 保持最后。
         dev.caecorthus.sparkwitch.client.bear.BearClientModule.register();
+        // Medium client hub (Role Skill 2 key), after BEAR and before USEC, which stays last.
+        // 通灵师客户端注册中心（职业技能 2 键），位于 BEAR 之后、USEC 之前，USEC 保持最后。
+        MediumClientModule.register();
         // USEC client hub, appended last: scope, HUD, attachment screen, impact cracks.
         // USEC 客户端注册中心，追加在最后：开镜、HUD、配件界面、命中裂痕。
         UsecClientModule.register();
