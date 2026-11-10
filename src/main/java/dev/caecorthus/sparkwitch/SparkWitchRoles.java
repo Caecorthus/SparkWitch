@@ -55,6 +55,7 @@ public final class SparkWitchRoles {
     public static final Identifier RAGPICKER_ID = SparkWitchRoleRegistry.RAGPICKER_ID;
     public static final Identifier ACCOUNTANT_ID = SparkWitchRoleRegistry.ACCOUNTANT_ID;
     public static final Identifier BEAR_ID = SparkWitchRoleRegistry.BEAR_ID;
+    public static final Identifier MEDIUM_ID = SparkWitchRoleRegistry.MEDIUM_ID;
 
     private SparkWitchRoles() {
     }
@@ -263,6 +264,10 @@ public final class SparkWitchRoles {
 
     public static Role bear() {
         return SparkWitchRoleRegistry.bear();
+    }
+
+    public static Role medium() {
+        return SparkWitchRoleRegistry.medium();
     }
 
     public static List<Role> assassinGuessRoles() {

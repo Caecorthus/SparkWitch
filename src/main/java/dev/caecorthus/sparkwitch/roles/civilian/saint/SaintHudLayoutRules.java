@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.civilian.saint;
 
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
@@ -29,6 +30,11 @@ public final class SaintHudLayoutRules {
         // The Specter (PR #207) draws two corner rows: skill one below, the Otherworld state above.
         // 幽魂（PR #207）在右下角绘制两行：下行技能一，上行里世界状态。
         if (SpecterRules.ROLE_ID.equals(roleId)) {
+            return fontHeight * 2 + LINE_GAP + SPARKWITCH_BOTTOM_PADDING;
+        }
+        // The Medium draws two corner rows too: 通灵 above, 招魂 below.
+        // 通灵师同样在右下角绘制两行：上行为通灵，下行为招魂。
+        if (MediumRules.ROLE_ID.equals(roleId)) {
             return fontHeight * 2 + LINE_GAP + SPARKWITCH_BOTTOM_PADDING;
         }
         if ("sparkwitch".equals(roleId.getNamespace()) && (hasSparkWitchSkill || ownsCornerSkillLine(roleId))) {
@@ -76,6 +82,7 @@ public final class SaintHudLayoutRules {
         return JunkerRules.ROLE_ID.equals(roleId)
                 || DominatorRules.ROLE_ID.equals(roleId)
                 || SpecterRules.ROLE_ID.equals(roleId)
-                || SaviorRules.ROLE_ID.equals(roleId);
+                || SaviorRules.ROLE_ID.equals(roleId)
+                || MediumRules.ROLE_ID.equals(roleId);
     }
 }

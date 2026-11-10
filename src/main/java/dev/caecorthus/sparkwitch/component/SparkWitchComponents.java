@@ -20,6 +20,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRoundComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellEchoPlayerComponent;
@@ -237,6 +239,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, SaviorPlayerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(SaviorPlayerComponent::new);
+        // Medium cooldowns and 招魂 bindings, synced to the owner only; appended last.
+        // 通灵师冷却与招魂绑定，只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, MediumPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(MediumPlayerComponent::new);
     }
 
     @Override
@@ -254,5 +261,6 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
                 dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent::new);
         registry.register(JunkerLootWorldComponent.KEY, JunkerLootWorldComponent::new);
         registry.register(SpecterOtherworldComponent.KEY, SpecterOtherworldComponent::new);
+        registry.register(MediumSeanceComponent.KEY, MediumSeanceComponent::new);
     }
 }
