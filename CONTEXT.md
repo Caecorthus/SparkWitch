@@ -2349,8 +2349,8 @@ Current build baseline:
     charges and returns "no response" (owner 2026-11-10: kept; a refusal would tell the Medium for free whether
     anyone has died).
   - Vote (owner 2026-11-10: a GUI, not chat): a dead round member (`MediumRules.mayVote`: running round, has a role,
-    in Wathe's dead set, not a promoted Wraith, which is back in play and keeps the ability key for its own skill, and
-    not held by a SparkTraits Last Stand) answers with `submit_medium_vote` (window serial + answer,
+    in Wathe's dead set, not a Wraith, restricted or promoted (owner 2026-11-10: a Wraith is back on the train and
+    keeps the ability key for its own play), and not held by a SparkTraits Last Stand) answers with `submit_medium_vote` (window serial + answer,
     `MediumSkillService.vote`; a serial that is not the live window's is dropped); each voter's latest answer counts,
     and a voter no longer in the dead set at the tally is dropped. At window end `onSeanceEnded` weighs a bound voter 3 (bindings frozen at the start plus any bought during
     the window), breaks a tie with the last vote cast, and sends the caster `medium_seance_result`: the question and

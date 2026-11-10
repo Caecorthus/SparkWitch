@@ -229,8 +229,8 @@ public final class MediumSeanceComponent implements AutoSyncedComponent, ServerT
 
     /**
      * Server only: the question is revealed to the voters ({@link MediumRules#mayVote(net.minecraft.entity.player
-     * .PlayerEntity)}: dead round members who are not promoted Wraiths) and to the caster, nobody else.
-     * 仅服务端：提问只向投票者（未晋升为冤魂身份的本局死者）与施放者公开，其他人一律不发。
+     * .PlayerEntity)}: dead round members who are not Wraiths) and to the caster, nobody else.
+     * 仅服务端：提问只向投票者（不属于冤魂的本局死者）与施放者公开，其他人一律不发。
      */
     private boolean revealsQuestionTo(ServerPlayerEntity recipient) {
         if (recipient.getUuid().equals(casterUuid)) {

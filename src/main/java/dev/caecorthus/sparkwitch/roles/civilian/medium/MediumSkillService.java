@@ -119,9 +119,9 @@ public final class MediumSkillService {
 
     /**
      * A vote from the vote screen: accepted only inside a live window and only from a dead round member who is not a
-     * promoted Wraith ({@link MediumRules#mayVote(net.minecraft.entity.player.PlayerEntity)}); the latest answer
+     * Wraith ({@link MediumRules#mayVote(net.minecraft.entity.player.PlayerEntity)}); the latest answer
      * replaces the earlier one. Anything else is dropped silently.
-     * 来自投票界面的一票：只在窗口进行中、且发送者是未晋升为冤魂身份的本局死者
+     * 来自投票界面的一票：只在窗口进行中、且发送者是不属于冤魂的本局死者
      * （{@link MediumRules#mayVote(net.minecraft.entity.player.PlayerEntity)}）时接受；后发的回答覆盖先前的回答。
      * 其余情况一律静默丢弃。
      */

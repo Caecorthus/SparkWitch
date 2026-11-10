@@ -140,18 +140,20 @@ public final class MediumRules {
 
     /**
      * The full voter gate for a player entity, used by both sides: {@link #mayVote(GameWorldComponent, UUID)}, not
-     * a promoted Wraith and not held by a SparkTraits Last Stand. A promoted Wraith (Saboteur, Vendetta) is in Wathe's
-     * dead set but is back in play with the shared ability key and its own skills, so it is neither asked nor
-     * interrupted by the vote screen. A Last Stand player is in the dead set only for the few seconds of the hold and
-     * then lives on, so it must never see the question or cast a vote (an absent SparkTraits reads as "not held").
-     * 针对玩家实体的完整投票门槛，两端通用：{@link #mayVote(GameWorldComponent, UUID)}、不是已晋升的冤魂、且未处于
-     * SparkTraits 背水一战的保持期。已晋升的冤魂（破坏者、复仇者）虽在 Wathe 的死亡集合中，却已带着共享技能键与自己的
-     * 技能重新参与对局，因此既不被提问，也不会被投票界面打断。背水一战的玩家只在保持期的几秒内位于死亡集合中，随后继续
-     * 存活，因此绝不能看到提问或投票（未安装 SparkTraits 视为「未保持」）。
+     * a Wraith and not held by a SparkTraits Last Stand. A Wraith, restricted or promoted (owner 2026-11-10: Wraiths
+     * are not asked), is in Wathe's dead set but is back on the train and the shared ability key belongs to its own
+     * play, so it is neither asked nor interrupted by the vote screen. A Last Stand player is in the dead set only for
+     * the few seconds of the hold and then lives on, so it must never see the question or cast a vote (an absent
+     * SparkTraits reads as "not held").
+     * 针对玩家实体的完整投票门槛，两端通用：{@link #mayVote(GameWorldComponent, UUID)}、不是冤魂、且未处于 SparkTraits
+     * 背水一战的保持期。冤魂无论受限还是已晋升（所有者 2026-11-10：通灵不包括冤魂），虽在 Wathe 的死亡集合中，却已回到
+     * 列车上，共享技能键归其自身使用，因此既不被提问，也不会被投票界面打断。背水一战的玩家只在保持期的几秒内位于死亡集合中，
+     * 随后继续存活，因此绝不能看到提问或投票（未安装 SparkTraits 视为「未保持」）。
      */
     public static boolean mayVote(@Nullable PlayerEntity player) {
         return player != null
                 && mayVote(GameWorldComponent.KEY.get(player.getWorld()), player.getUuid())
+                && !SparkWitchApi.isWraithActive(player)
                 && !SparkWitchApi.isWraithPromoted(player)
                 && !SparkTraitsAbyssListenerBridge.isLastStandPending(player);
     }
