@@ -794,6 +794,12 @@ Current build baseline:
     roles and the Savior (`sparkwitch:savior`, a role from the still-open PR #200; the id check fails closed). Triggers
     stamp the Wathe match id, discard themselves outside an ACTIVE round or on a mismatch, and are swept on
     `ON_WIN_DETERMINED` and `ON_FINISH_FINALIZE`.
+  - Shop removals (`SpecterShopService`, same listener, before the Ghost Trigger insert; owner decision 2026-11-10):
+    the Specter's shop has no Psycho Mode, Poison Vial or Scorpion (native ids `psycho_mode`, `poison_vial`,
+    `scorpion`). Role-scoped on purpose — never filter `ShopUtils.getShopEntriesForPlayer` globally by these ids: the
+    Grand Witch, Witch Maiden, 夏目安安, Bell Ringer, Hunter and the Time Stealer's stamp Psycho sell entries under
+    them, and SparkTraits (Paranoid / Manic gate) and SparkStrength (Demon Hunter sniff) read `psycho_mode` in the
+    final list. For the Specter those two readers correctly answer "cannot go psycho".
   - Peachwood Sword (`SpecterPeachwoodService`, every 10 ticks): during the window every alive, non-killer,
     low-sanity or cowardly player (never the Specter) holds one, inserted only into the hotbar or the SparkFactionAPI
     second row, and stripped when they stop qualifying or the window ends. A full-charge hit on the Specter (attack
