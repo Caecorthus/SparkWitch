@@ -232,6 +232,7 @@
     "bear.SmokeOutlineWorldRendererMixin",
     "bear.SmokeOutlineDepthMixin",
     "bear.SmokeRoleNameRaycastMixin",
+    "bear.SmokeCrosshairHintMixin",
     "bear.SmokeIrisFinalPassMixin",
     "bear.SmokeOutlineVetoMixin",
     "bear.RysTVisorHudMixin",
