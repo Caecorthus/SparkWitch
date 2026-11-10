@@ -24,6 +24,8 @@ public final class SmokeRoundFlight {
     public static final double FLOOR_NORMAL_Y = 0.7;
     /** The bounce and burst points sit this far off the surface. / 反弹点与爆开点离开表面的距离。 */
     public static final double SURFACE_OFFSET = 0.05;
+    /** World ticks past the backup fuse before a round still alive counts as {@link #stale}. / 超过备用引信这么多世界刻仍存在的榴弹视为 {@link #stale}。 */
+    public static final int STALE_GRACE_TICKS = 20;
 
     private SmokeRoundFlight() {
     }
@@ -41,6 +43,19 @@ public final class SmokeRoundFlight {
     /** G3: the backup fuse bursts the round on its 60th tick wherever it is. / G3：备用引信在第 60 刻无论在何处都会引爆。 */
     public static boolean fuseDue(int age) {
         return age >= BearRules.BACKUP_FUSE_TICKS;
+    }
+
+    /**
+     * Whether a round launched {@code worldTicksSinceLaunch} world ticks ago is stale. A round that ticks every world
+     * tick is gone by its backup fuse, so one still alive {@link #STALE_GRACE_TICKS} past it stopped ticking: it left
+     * entity-ticking range and, never saved, stayed in memory there. Such a round must not resume, in this round or a
+     * later one; the server removes it unburst.
+     * 发射后已过 {@code worldTicksSinceLaunch} 个世界刻的榴弹是否已过期。每个世界刻都在 tick 的榴弹最迟在备用引信时消失，因此
+     * 超过引信 {@link #STALE_GRACE_TICKS} 刻仍存在的榴弹一定停止过 tick：它飞出了实体 tick 范围，且因从不存盘而一直留在内存里。
+     * 这样的榴弹不得在本局或之后的对局中恢复飞行；服务端直接移除、不爆开。
+     */
+    public static boolean stale(long worldTicksSinceLaunch) {
+        return worldTicksSinceLaunch < 0L || worldTicksSinceLaunch > BearRules.BACKUP_FUSE_TICKS + STALE_GRACE_TICKS;
     }
 
     /**
