@@ -3694,6 +3694,34 @@ gets no trap back (the trap itself stays armed until it expires or the round end
 A reclaimed poisoned trap returns as a stack carrying its poison and poisoner (custom data `Poisoned` + `Poisoner`,
 `HunterTrapItem.poison`), and the next placement restores both, so its poison kill, credit and poisoner/placer rewards
 are as if it had never moved (T-0011, 2026-10-25). An unpoisoned trap still returns as a plain stack.
+Hunter trap rules (PR #213, 2026-11-11) split the players a trap deals with into two classes, both decided in
+`HunterRules`. Class 1 (`isTrapPolice`) is every police role (the live SparkFactionAPI `PoliceRoles` registry plus a
+fixed list that also names the NoellesRoles Engineer and Corrupt Cop, which the registry may not hold) and, checked by
+the callers through the public SparkTraits facade and failing closed, any Impostor (内鬼) holder. Class 2
+(`isTrapKiller`) is every `Faction.KILLER` role plus `wathe:loose_end` and `noellesroles:undercover`; class 2 wins when
+a player is in both. Everyone else, the witch side included, can neither dismantle nor poison a trap.
+Sight (`HunterRules.trapVisibility`, read by `client/hunter/HunterTrapVisibilityHelper`): only a dead in-match spectator
+sees traps through walls passively. Both classes need line of sight; a `Faction.KILLER` viewer gets the through-wall
+view and outline only while the instinct key is held, the Loose End and the Undercover never do, and the witch-side
+instinct viewers are unchanged.
+Dismantling (`HunterRules.trapDismantle`, sneak-use with line of sight, after the owner reclaim): class 2 removes the
+trap at once and touches no cooldown; class 1 channels for `DISMANTLE_CHANNEL_TICKS` (5 s) of held right-clicks. The
+channel belongs to the trap and the server: `HunterTrapEntity.pressDismantle` keeps one dismantler, the tick it started
+on and the last press, restarts after a gap over `DISMANTLE_PRESS_TIMEOUT_TICKS` (12), ignores another player's presses
+while it lives, and a press on one trap drops the same player's channel on any other. The trap syncs the dismantler and
+start tick as tracked data (never saved); `client/hunter/HunterTrapDismantleHud` reads them once per client tick for the
+dismantler's own progress bar and for the Hunter's outline of the dismantler (`HunterTrapClientHooks`, in the Hunter's
+own colour `HunterRules.COLOR`, never the dismantler's role colour, above every other outline). `interactWithTrap` answers `SUCCESS` on both sides for either
+class: a client `PASS` would let vanilla go on to use the held item, so no client listener may sit behind it.
+A dead or spectating player (a swallowed one included) gets `PASS` before any branch: no reclaim, dismantle or poison.
+Every accepted press except the finishing one floors the dismantler's carried items at
+`DISMANTLE_HELD_ITEM_COOLDOWN_TICKS` (the press timeout + 1 = 13 ticks), so they stay locked exactly while the channel
+can still be continued, with one write per press rather than per tick; a caught victim's carried items get a 3 s floor
+once (`HunterFeatureService.forceCarriedItemCooldown`). Both go through
+SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, ticks)` and nowhere else: monotonic, exact (Fast
+Hands, Stimulation and per-item rewrites cannot shorten it), and skipping the registered forced-cooldown exemptions
+(NoellesRoles timed bomb, Seeker car, Knight cross sword). A victim who dies within `TRAP_KILL_REWARD_WINDOW_TICKS` (3 s) of the
+catch, whatever the cause, pays the trap's placer `TRAP_KILL_REWARD` (30) once, unless the placer is the victim.
 A Hunter shotgun shot that reaches the wall takes `HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE` (7000 in SparkStrength's
 unit, 10000 = 100%, so 70%; owner, 2026-10-21) from the SparkStrength junction box (`sparkstrength:junction_box`) it
 lands on, so two shots open a full box. Only the centre ray counts (the slug's ray at 15, buckshot's at 8;
