@@ -5,9 +5,10 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Pure rules of the M2A1 range dial ({@link M32RangeDial}): wheel stepping on the 25 m grid of
- * {@link M32Ballistics#dialSettings()} and the holding-session test. No Minecraft state, so both are unit-tested.
- * M2A1 射程刻度（{@link M32RangeDial}）的纯规则：在 {@link M32Ballistics#dialSettings()} 的 25 米网格上按滚轮步进，以及
- * 持握会话判定。不涉及 Minecraft 状态，两者都有单元测试。
+ * {@link M32Ballistics#dialSettings()}, the holding-session test and the launch pitch of an aimed shot. No Minecraft
+ * state, so all are unit-tested.
+ * M2A1 射程刻度（{@link M32RangeDial}）的纯规则：在 {@link M32Ballistics#dialSettings()} 的 25 米网格上按滚轮步进、
+ * 持握会话判定，以及开镜射击的发射俯仰角。不涉及 Minecraft 状态，均有单元测试。
  */
 public final class M32DialRules {
     /** Where every holding session starts. / 每个持握会话的起始刻度。 */
@@ -63,6 +64,32 @@ public final class M32DialRules {
                                        boolean holding, @Nullable Object player, @Nullable Object world, int slot) {
         return holding && sessionPlayer != null && sessionWorld != null && player == sessionPlayer
                 && world == sessionWorld && slot == sessionSlot;
+    }
+
+    /**
+     * The pitch the fire intent carries (Minecraft degrees, positive looks down). Hip fire leaves along the look. An
+     * aimed shot (the M2A1 scope profile is active) leaves above the look by the bore elevation that lands the round
+     * {@code dialMetres} away on the line of sight ({@link M32Ballistics#elevationToHitRadians}), so the reticle at
+     * the screen centre is the aim point at the dialled range; the sight draws the launcher nosed up by that same
+     * angle. The whole elevation applies as soon as the profile is active, the 0.2 s the sight takes to come up
+     * included (the drawn nose-up eases in; the input state, not the animation, decides the shot). No solution (the
+     * round cannot reach that far along this look before the fuse) or a non-finite look falls back to the look itself;
+     * the result never passes straight up.
+     * 开火意图携带的俯仰角（Minecraft 角度，正值朝下）。腰射沿视线射出。开镜射击（M2A1 瞄具配置生效时）在视线之上再抬高一个
+     * 枪膛抬高角，使榴弹落在视线上 {@code dialMetres} 远处（{@link M32Ballistics#elevationToHitRadians}），因此屏幕中心的分划
+     * 就是当前刻度下的瞄准点；瞄具把发射器画成抬头同样的角度。配置一生效就应用完整的抬高角，包括瞄具抬起的 0.2 秒
+     * （绘制的抬头是缓动的；决定射击的是输入状态而非动画）。无解（沿该视线在引信前飞不到这么远）或视线非有限时回退到视线
+     * 本身；结果不会越过正上方。
+     */
+    public static float launchPitch(float lookPitch, boolean aiming, int dialMetres) {
+        if (!aiming || !Float.isFinite(lookPitch)) {
+            return lookPitch;
+        }
+        double elevation = M32Ballistics.elevationToHitRadians(lookPitch, dialMetres);
+        if (!Double.isFinite(elevation)) {
+            return lookPitch;
+        }
+        return (float) Math.max(-90.0, lookPitch - Math.toDegrees(elevation));
     }
 
     /**
