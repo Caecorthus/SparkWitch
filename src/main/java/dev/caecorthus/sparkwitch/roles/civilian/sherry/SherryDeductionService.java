@@ -1,12 +1,23 @@
 package dev.caecorthus.sparkwitch.roles.civilian.sherry;
 
-import dev.caecorthus.sparkwitch.net.OpenSherryDeductionS2CPacket;
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.caecorthus.sparkwitch.compat.NoellesHiddenBodiesBridge;
+import dev.caecorthus.sparkwitch.compat.NoellesSilenceBridge;
+import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
+import dev.caecorthus.sparkwitch.compat.SparkStrengthPartygoerCompat;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.net.OpenSherryDeductionS2CPacket;
+import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaGrappleService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
-import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
+import dev.doctor4t.wathe.record.GameRecordEvent;
+import dev.doctor4t.wathe.record.GameRecordManager;
+import dev.doctor4t.wathe.record.replay.ReplayGenerator;
+import dev.doctor4t.wathe.record.replay.ReplayRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -15,237 +26,220 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.Vec3d;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
- * 推演 — the detective's kill: aim at a corpse, pick a target within 60 blocks, pay 200 coins.
- * <p>Killing an innocent is a misjudgement: the coins are still spent, the target still dies, and the detective pays
- * 35% sanity plus 5 s of Slowness and Blindness. Killing a non-innocent is a clean deduction.
- * 推演——侦探的击杀：对准尸体，选择 60 格内的目标，支付 200 金币。
- * <p>杀好人属于误判：金币照扣、目标照死，侦探再付 35% 理智与 5 秒缓慢、失明。杀非好人则是一次正确的推断。
+ * 推演 (橘雪莉's shared ability-key skill), server-authoritative. The press only asks the server to open the candidate
+ * panel; the paid act is the confirmed pick, which re-checks every gate, charges {@link SherryRules#DEDUCTION_COST}
+ * and starts the cooldown whatever the outcome. A target on the killer faction is a correct deduction and is revealed
+ * to her alone for {@link SherryRules#REVEAL_TICKS} every {@link SherryRules#DEDUCTION_REVEAL_INTERVAL_TICKS}; anyone
+ * else is a failure (owner rule 2026-11-11) that costs sanity plus Blindness and Slowness II. Nobody is ever killed and
+ * the picked player is never told.
+ * 推演（橘雪莉的共享技能键技能），服务端权威。按键只请求服务端打开候选面板；付费动作是确认选择，它会重新复核所有门槛、
+ * 扣除 {@link SherryRules#DEDUCTION_COST} 金币，并且无论结果如何都进入冷却。选中杀手阵营的目标为推演正确，该目标每
+ * {@link SherryRules#DEDUCTION_REVEAL_INTERVAL_TICKS} 刻只对她高亮 {@link SherryRules#REVEAL_TICKS} 刻；其余目标一律失败
+ * （所有者规则 2026-11-11），扣理智并附加失明与缓慢 II。推演从不击杀任何人，被选玩家不会收到任何提示。
  */
 public final class SherryDeductionService {
+    private static final String OUTCOME_KEY = "outcome";
+    private static final String OUTCOME_RIGHT = "right";
+    private static final String OUTCOME_WRONG = "wrong";
 
-    private static final Map<UUID, Long> COOLDOWN_UNTIL = new HashMap<>();
-
-    /** Verdicts waiting to land: victim -> (detective, tick to kill). 待执行的判罪：死者 -> (侦探, 执行时刻)。 */
-    private static final Map<UUID, PendingVerdict> PENDING = new HashMap<>();
-
-    /** The detective's delayed kill reason. 侦探延迟处决的死因。 */
-    public static final net.minecraft.util.Identifier VERDICT_DEATH =
-            net.minecraft.util.Identifier.of("sparkwitch", "sherry_verdict");
-
-    /** Five seconds between the verdict and the death. 判罪到处决之间有 5 秒。 */
-    public static final int VERDICT_DELAY_TICKS = 5 * 20;
-
-    /** Whether the pending verdict was a misjudgement travels with it, so the replay can never read another kill's flag. */
-    /** 是否为误判随判罪一起保存，回放不会读到别人的标记。 */
-    private record PendingVerdict(UUID detective, long dueTick, int lastShownSeconds, boolean innocent) {
-    }
+    private static boolean registered;
 
     private SherryDeductionService() {
     }
 
-    /** Round-start cooldown for the deduction skill. 推演的回合初始冷却。 */
-    public static void applyInitialCooldown(ServerPlayerEntity player) {
-        COOLDOWN_UNTIL.put(player.getUuid(),
-                player.getServer().getTicks() + (long) SherryRules.INITIAL_COOLDOWN_TICKS);
-        SherryComponent.KEY.get(player)
-                .setDeductionCooldownSeconds(SherryRules.INITIAL_COOLDOWN_TICKS / 20);
+    static synchronized void register() {
+        if (registered) {
+            return;
+        }
+        registered = true;
+        ReplayRegistry.registerSkillFormatter(SherryRules.DEDUCTION_SKILL_ID, SherryDeductionService::formatDeduction);
     }
 
-    public static boolean onCooldown(ServerPlayerEntity player) {
-        long now = player.getServer().getTicks();
-        long until = COOLDOWN_UNTIL.getOrDefault(player.getUuid(), 0L);
-        if (now >= until) {
-            COOLDOWN_UNTIL.remove(player.getUuid());
-            SherryComponent.KEY.get(player).setDeductionCooldownSeconds(0);
+    /**
+     * Server entry of the shared ability key: opens the candidate panel. Nothing is charged here.
+     * 共享技能键的服务端入口：打开候选面板。此处不扣任何费用。
+     */
+    public static void requestOpen(ServerPlayerEntity detective) {
+        if (detective == null || !mayUse(detective)) {
+            return;
+        }
+        if (!passesToldGates(detective) || GrandWitchFearService.denyRoleSkillIfFeared(detective)) {
+            return;
+        }
+        List<UUID> ids = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        for (ServerPlayerEntity other : detective.getServerWorld().getPlayers()) {
+            if (ids.size() >= SherryRules.MAX_CANDIDATES) {
+                break;
+            }
+            if (isCandidate(detective, other)) {
+                ids.add(other.getUuid());
+                names.add(other.getGameProfile().getName());
+            }
+        }
+        if (ids.isEmpty()) {
+            tell(detective, Text.translatable("message.sparkwitch.sherry.deduction.no_target"), Formatting.GRAY);
+            return;
+        }
+        if (ServerPlayNetworking.canSend(detective, OpenSherryDeductionS2CPacket.ID)) {
+            ServerPlayNetworking.send(detective,
+                    new OpenSherryDeductionS2CPacket(ids, names, SherryRules.DEDUCTION_COST));
+        }
+    }
+
+    /**
+     * The confirmed pick: every gate is re-checked before the charge, so a stale panel can never buy a deduction the
+     * key itself would refuse.
+     * 确认选择：扣费前重新复核所有门槛，因此过期的面板无法买到按键本身会拒绝的推演。
+     */
+    public static void confirm(ServerPlayerEntity detective, @Nullable UUID targetUuid) {
+        if (detective == null || targetUuid == null || !mayUse(detective)) {
+            return;
+        }
+        if (!passesToldGates(detective)) {
+            return;
+        }
+        ServerPlayerEntity target = detective.getServer().getPlayerManager().getPlayer(targetUuid);
+        if (target == null || !isCandidate(detective, target)) {
+            tell(detective, Text.translatable("message.sparkwitch.sherry.deduction.no_target"), Formatting.GRAY);
+            return;
+        }
+        if (GrandWitchFearService.denyRoleSkillIfFeared(detective)) {
+            return;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(detective.getWorld());
+        boolean correct = SherryRules.isCorrectDeduction(SparkFactionApi.resolveEffectiveFaction(target, game));
+
+        PlayerShopComponent.KEY.get(detective).addToBalance(-SherryRules.DEDUCTION_COST);
+        SherryComponent component = SherryComponent.KEY.get(detective);
+        component.startDeductionCooldown(SherryRules.DEDUCTION_COOLDOWN_TICKS);
+
+        if (correct) {
+            component.track(target.getUuid(), SherryRules.DEDUCTION_REVEAL_INTERVAL_TICKS);
+            tell(detective, Text.translatable("message.sparkwitch.sherry.deduction.right",
+                    target.getGameProfile().getName()), Formatting.AQUA);
+        } else {
+            PlayerMoodComponent mood = PlayerMoodComponent.KEY.get(detective);
+            mood.setMood(mood.getMood() - SherryRules.WRONG_TARGET_MOOD_LOSS);
+            detective.addStatusEffect(new StatusEffectInstance(StatusEffects.BLINDNESS,
+                    SherryRules.WRONG_TARGET_EFFECT_TICKS, 0, false, false, false));
+            detective.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS,
+                    SherryRules.WRONG_TARGET_EFFECT_TICKS, SherryRules.WRONG_TARGET_SLOWNESS_AMPLIFIER,
+                    false, false, false));
+            tell(detective, Text.translatable("message.sparkwitch.sherry.deduction.wrong",
+                    target.getGameProfile().getName()), Formatting.RED);
+        }
+        NbtCompound extra = new NbtCompound();
+        extra.putString(OUTCOME_KEY, correct ? OUTCOME_RIGHT : OUTCOME_WRONG);
+        GameRecordManager.recordSkillUse(detective, SherryRules.DEDUCTION_SKILL_ID, target, extra);
+    }
+
+    /**
+     * Shared caster gate of 推演, 巨力魔法 and the badge hand-over (the Medium/Specter {@code mayUse} set): an ACTIVE
+     * round, the raw role, playing and alive, never an alive spectator (Taotie-swallowed, Rift occupant) or creative,
+     * not held by a Ninja grapple, not silenced and not role-skill blocked by SparkTraits. Refusals are silent; Grand
+     * Witch Fear is checked last by each entry because it tells the player why.
+     * 推演、巨力魔法与赠送徽章共用的施放者门槛（通灵师/幽魂 {@code mayUse} 的同一组条件）：对局 ACTIVE、真实职业、参与且存活、
+     * 不是存活旁观者（被饕餮吞下、裂隙门内）或创造模式、未被忍者钩爪拉住、未被沉默、未被 SparkTraits 禁用职业技能。拒绝时不提示；
+     * 大魔女恐惧由各入口最后检查，因为它会提示原因。
+     */
+    static boolean mayUse(ServerPlayerEntity player) {
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
+        return game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
+                && SherryRules.isSherry(game.getRole(player))
+                && GameFunctions.isPlayerPlayingAndAlive(player)
+                && !player.isSpectator()
+                && !GameFunctions.isPlayerSpectatingOrCreative(player)
+                && !NoellesTaotieSeekerBridge.isSwallowed(player)
+                && !NinjaGrappleService.isHeld(player)
+                && !NoellesSilenceBridge.isSilenced(player)
+                && !SparkTraitsKillerBridge.isRoleSkillBlocked(player);
+    }
+
+    /**
+     * The three refusals she is told about, in order: no corpse, cooldown, coins. Returns true when none applies.
+     * 会告知原因的三种拒绝，依次为：没有尸体、冷却中、金币不足。都不成立时返回 true。
+     */
+    private static boolean passesToldGates(ServerPlayerEntity detective) {
+        if (!aimsAtCorpse(detective)) {
+            tell(detective, Text.translatable("message.sparkwitch.sherry.deduction.no_body"), Formatting.GRAY);
+            return false;
+        }
+        int cooldown = SherryComponent.KEY.get(detective).getDeductionCooldownTicks();
+        if (cooldown > 0) {
+            tell(detective, Text.translatable("message.sparkwitch.sherry.deduction.cooldown",
+                    (cooldown + 19) / 20), Formatting.GRAY);
+            return false;
+        }
+        if (PlayerShopComponent.KEY.get(detective).getBalance() < SherryRules.DEDUCTION_COST) {
+            tell(detective, Text.translatable("message.sparkwitch.sherry.deduction.no_coins",
+                    SherryRules.DEDUCTION_COST), Formatting.RED);
             return false;
         }
         return true;
     }
 
-    /** Recomputes the HUD's remaining seconds from the tick deadline. 按 tick 截止时间重算 HUD 剩余秒数。 */
-    public static void refreshHud(ServerPlayerEntity player) {
-        long until = COOLDOWN_UNTIL.getOrDefault(player.getUuid(), 0L);
-        long left = until - player.getServer().getTicks();
-        int seconds = left > 0 ? (int) Math.ceil(left / 20.0) : 0;
-        SherryComponent.KEY.get(player).setDeductionCooldownSeconds(seconds);
-        if (left <= 0) {
-            COOLDOWN_UNTIL.remove(player.getUuid());
-        }
+    /**
+     * A candidate is another living round player in this world inside reach who is physically present: an alive
+     * spectator (Taotie-swallowed, Rift occupant) is not on the list, so the panel never tells where nobody stands.
+     * 候选是本世界射程内另一名存活的本局玩家，且必须确实在场：存活旁观者（被饕餮吞下、裂隙门内）不在名单上，
+     * 面板不会透露并不在场的人。
+     */
+    static boolean isCandidate(ServerPlayerEntity detective, ServerPlayerEntity other) {
+        return other != detective
+                && other.getServerWorld() == detective.getServerWorld()
+                && GameFunctions.isPlayerPlayingAndAlive(other)
+                && !other.isSpectator()
+                && !GameFunctions.isPlayerSpectatingOrCreative(other)
+                && detective.squaredDistanceTo(other) <= SherryRules.DEDUCTION_RANGE * SherryRules.DEDUCTION_RANGE;
     }
 
-    public static void tickCooldowns() {
-        // Cooldowns are re-checked lazily; the HUD second is refreshed when the component is queried.
-        // 冷却按需检查；HUD 的秒数在查询组件时刷新。
+    /**
+     * A visible Wathe corpse in front of her (see {@link SherryRules#aimsAtCorpse}); hidden bodies and a Partygoer's
+     * corpse never count (Perfumer precedent).
+     * 她面前有一具可见的 Wathe 尸体（见 {@link SherryRules#aimsAtCorpse}）；被隐藏的尸体与派对客的尸体不算（调香师先例）。
+     */
+    static boolean aimsAtCorpse(ServerPlayerEntity detective) {
+        ServerWorld world = detective.getServerWorld();
+        Vec3d eye = detective.getEyePos();
+        Vec3d look = detective.getRotationVec(1.0F);
+        return !world.getEntitiesByClass(
+                PlayerBodyEntity.class,
+                detective.getBoundingBox().expand(SherryRules.CORPSE_REACH + 1.0D),
+                body -> !NoellesHiddenBodiesBridge.isHidden(world, body.getPlayerUuid())
+                        && !SparkStrengthPartygoerCompat.isPartygoerCorpse(body)
+                        && SherryRules.aimsAtCorpse(eye, look, body.getBoundingBox().getCenter())
+        ).isEmpty();
     }
 
-    /** Opens the candidate panel if the detective is aiming at a corpse. 若正对准尸体，则打开候选面板。 */
-    public static void openSelection(ServerPlayerEntity player) {
-        if (!SherryService.isSherry(player) || !GameFunctions.isPlayerPlayingAndAlive(player)) {
-            return;
-        }
-        if (!(player.getWorld() instanceof ServerWorld world)) {
-            return;
-        }
-        if (!isAimingAtCorpse(player)) {
-            player.sendMessage(Text.translatable("message.sparkwitch.sherry.deduction.no_body")
-                    .formatted(Formatting.GRAY), true);
-            return;
-        }
-        if (onCooldown(player)) {
-            player.sendMessage(Text.translatable("message.sparkwitch.sherry.deduction.cooldown",
-                    SherryComponent.KEY.get(player).getDeductionCooldownSeconds())
-                    .formatted(Formatting.GRAY), true);
-            return;
-        }
-        PlayerShopComponent shop = PlayerShopComponent.KEY.get(player);
-        if (shop.getBalance() < SherryRules.DEDUCTION_COST) {
-            player.sendMessage(Text.translatable("message.sparkwitch.sherry.deduction.no_coins",
-                    SherryRules.DEDUCTION_COST).formatted(Formatting.RED), true);
-            return;
-        }
-        List<UUID> uuids = new ArrayList<>();
-        List<String> names = new ArrayList<>();
-        for (ServerPlayerEntity other : world.getPlayers()) {
-            if (other == player || !GameFunctions.isPlayerPlayingAndAlive(other)) {
-                continue;
-            }
-            if (player.squaredDistanceTo(other) > SherryRules.DEDUCTION_RANGE * SherryRules.DEDUCTION_RANGE) {
-                continue;
-            }
-            uuids.add(other.getUuid());
-            names.add(other.getGameProfile().getName());
-        }
-        if (uuids.isEmpty()) {
-            player.sendMessage(Text.translatable("message.sparkwitch.sherry.deduction.no_target")
-                    .formatted(Formatting.GRAY), true);
-            return;
-        }
-        ServerPlayNetworking.send(player, new OpenSherryDeductionS2CPacket(uuids, names));
+    private static void tell(ServerPlayerEntity player, Text text, Formatting formatting) {
+        player.sendMessage(text.copy().formatted(formatting), true);
     }
 
-    /** Resolves the kill and the misjudgement penalty. 结算击杀与误判惩罚。 */
-    /** Sherry's reveal windows: the killer every 20 s, other non-innocents every 40 s, 5 s each. */
-    /** 雪莉的揭示窗口：凶手每 20 秒、其它非好人每 40 秒，各亮 5 秒。 */
-    private static final Map<UUID, UUID> VISION_TARGET = new HashMap<>();
-    private static final Map<UUID, Long> VISION_NEXT = new HashMap<>();
-
-    public static void confirm(ServerPlayerEntity player, UUID targetId) {
-        if (!dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryService.isSherry(player)) {
-            return;
+    private static @Nullable Text formatDeduction(
+            GameRecordEvent event,
+            GameRecordManager.MatchRecord match,
+            ServerWorld world
+    ) {
+        NbtCompound data = event.data();
+        if (!data.containsUuid("actor") || !data.containsUuid("target")) {
+            return null;
         }
-        long now = player.getServer().getTicks();
-        Long until = COOLDOWN_UNTIL.get(player.getUuid());
-        if (until != null && now < until) {
-            player.sendMessage(Text.translatable("message.sparkwitch.sherry.cooldown",
-                    (until - now) / 20).formatted(Formatting.GRAY), true);
-            return;
-        }
-        ServerPlayerEntity target = player.getServer().getPlayerManager().getPlayer(targetId);
-        if (target == null) {
-            return;
-        }
-        var shop = dev.doctor4t.wathe.cca.PlayerShopComponent.KEY.get(player);
-        if (shop.getBalance() < SherryRules.DEDUCTION_COST) {
-            player.sendMessage(Text.translatable("message.sparkwitch.sherry.no_coins")
-                    .formatted(Formatting.RED), true);
-            return;
-        }
-        var world = player.getServerWorld();
-        var role = GameWorldComponent.KEY.get(world).getRole(target);
-        boolean innocent = role != null && role.isInnocent();
-        boolean killer = role != null && GameWorldComponent.KEY.get(world).canUseKillerFeatures(target);
-
-        shop.setBalance(shop.getBalance() - SherryRules.DEDUCTION_COST);
-        COOLDOWN_UNTIL.put(player.getUuid(), now + (long) SherryRules.DEDUCTION_COOLDOWN_TICKS);
-
-        if (innocent) {
-            // Misjudgement: -20% sanity, Blindness + Slowness II for 3 s.
-            // 误判：-20% 理智，失明与缓慢 II 各 3 秒。
-            var mood = dev.doctor4t.wathe.cca.PlayerMoodComponent.KEY.get(player);
-            mood.setMood(Math.max(-1.0F, mood.getMood() - 0.20F));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.BLINDNESS,
-                    (3 * 20), 0, false, false, false));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS,
-                    (3 * 20), 1, false, false, false));
-            player.sendMessage(Text.translatable("message.sparkwitch.sherry.wrong")
-                    .formatted(Formatting.RED), true);
-            VISION_TARGET.remove(player.getUuid());
-            VISION_NEXT.remove(player.getUuid());
-            record(player, "fail", target, null);
-            return;
-        }
-
-        // Correct: open a repeating reveal window. 正确：开启循环揭示窗口。
-        VISION_TARGET.put(player.getUuid(), target.getUuid());
-        VISION_NEXT.put(player.getUuid(), now + (long) SherryRules.DEDUCTION_COOLDOWN_TICKS);
-        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(player)
-                .setVision(target.getUuid(), 0);
-        player.sendMessage(Text.translatable(killer
-                        ? "message.sparkwitch.sherry.right_killer"
-                        : "message.sparkwitch.sherry.right_non_innocent")
-                .formatted(Formatting.AQUA), true);
-        record(player, killer ? "success_killer" : "success_non_innocent", target, null);
-    }
-
-    private static void record(ServerPlayerEntity player, String outcome, ServerPlayerEntity target, String detail) {
-        NbtCompound replay = new NbtCompound();
-        replay.putString("action", "deduction");
-        replay.putString("outcome", outcome);
-        replay.putUuid("target", target == null ? player.getUuid() : target.getUuid());
-        dev.doctor4t.wathe.record.GameRecordManager.recordSkillUse(
-                player, SherryRules.ROLE_ID, target, replay);
-    }
-
-    /** Repeating reveal: 5 s of Glowing on the deduced target. 循环揭示：目标发光 5 秒。 */
-    public static void tickVision(net.minecraft.server.MinecraftServer server) {
-        if (VISION_TARGET.isEmpty()) {
-            return;
-        }
-        long now = server.getTicks();
-        var it = VISION_TARGET.entrySet().iterator();
-        while (it.hasNext()) {
-            var entry = it.next();
-            UUID sherryId = entry.getKey();
-            Long next = VISION_NEXT.get(sherryId);
-            if (next == null || now < next) {
-                continue;
-            }
-            ServerPlayerEntity sherry = server.getPlayerManager().getPlayer(sherryId);
-            ServerPlayerEntity target = server.getPlayerManager().getPlayer(entry.getValue());
-            if (sherry == null || target == null || !dev.doctor4t.wathe.game.GameFunctions
-                    .isPlayerPlayingAndAlive(target)) {
-                it.remove();
-                VISION_NEXT.remove(sherryId);
-                continue;
-            }
-            // Reveal is client-side and private to Sherry: the component carries the target and a fresh window.
-            // 揭示在客户端完成、只对雪莉可见：组件带着目标与一个刚刷新的窗口。
-            dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(sherry)
-                    .setVision(target.getUuid(), (5 * 20));
-            boolean killer = GameWorldComponent.KEY.get(sherry.getServerWorld()).canUseKillerFeatures(target);
-            VISION_NEXT.put(sherryId, now + (long) (killer
-                    ? (20 * 20)
-                    : (40 * 20)));
-        }
-    }
-
-    private static boolean isAimingAtCorpse(ServerPlayerEntity player) {
-        var hit = player.raycast(3.0D, 0.0F, false);
-        if (hit instanceof net.minecraft.util.hit.EntityHitResult entityHit
-                && entityHit.getEntity() instanceof PlayerBodyEntity) {
-            return true;
-        }
-        // Wathe's bodies sit on the ground; accept any body within three blocks in front of the player.
-        // Wathe 的尸体躺在地上；只要玩家前方三格内有尸体即可。
-        var box = player.getBoundingBox().expand(3.0D, 1.0D, 3.0D);
-        return !player.getWorld().getOtherEntities(player, box, e -> e instanceof PlayerBodyEntity).isEmpty();
+        var playerInfo = ReplayGenerator.getPlayerInfoCache(match);
+        return Text.translatable(
+                OUTCOME_RIGHT.equals(data.getString(OUTCOME_KEY))
+                        ? "replay.skill.sparkwitch.sherry_deduction.right"
+                        : "replay.skill.sparkwitch.sherry_deduction.wrong",
+                ReplayGenerator.formatPlayerName(data.getUuid("actor"), playerInfo),
+                ReplayGenerator.formatPlayerName(data.getUuid("target"), playerInfo)
+        );
     }
 }

@@ -235,6 +235,8 @@ public final class SparkWitchEvents {
                 DominatorForcedShotService.onRoleAssigned(serverPlayer);
                 dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(serverPlayer)
                         .assignForRole(role);
+                dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(serverPlayer)
+                        .assignForRole(role);
                 SpecterPlayerComponent.KEY.get(serverPlayer).assignForRole(role);
                 SpecterFearComponent.KEY.get(serverPlayer).clear();
                 SpecterSecondSkillComponent.KEY.get(serverPlayer).assignForRole(role);
@@ -314,6 +316,9 @@ public final class SparkWitchEvents {
                 // A Last Stand survivor keeps the Medium cooldowns and 招魂 bindings (same precedent).
                 // 背水一战存活者保留通灵师冷却与招魂绑定（同一先例）。
                 dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(victim).clear();
+                // A dead 橘雪莉 loses her cooldowns, badge holders and reveals (same Last Stand precedent).
+                // 死亡的橘雪莉失去冷却、徽章持有者与揭示（同一背水一战先例）。
+                dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(victim).clear();
             }
             OrthopedistSkillService.clearPlayer(victim);
             if (!WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
@@ -334,6 +339,7 @@ public final class SparkWitchEvents {
                 SpecterSecondSkillComponent.KEY.get(serverPlayer).clear();
                 SpecterCowardiceComponent.KEY.get(serverPlayer).clear();
                 dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(serverPlayer).clear();
+                dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(serverPlayer).clear();
                 OrthopedistSkillService.clearPlayer(serverPlayer);
                 DominatorSkillService.clearPlayer(serverPlayer);
                 GuardianAngelFeatureService.clearRoundPlayer(serverPlayer);
@@ -376,6 +382,7 @@ public final class SparkWitchEvents {
                     SpecterSecondSkillComponent.KEY.get(player).clear();
                     SpecterCowardiceComponent.KEY.get(player).clear();
                     dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(player).clear();
+                    dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(player).clear();
                     DominatorForcedShotService.discard(player);
                     OrthopedistSkillService.clearPlayer(player);
                     DominatorSkillService.clearPlayer(player);
@@ -391,6 +398,10 @@ public final class SparkWitchEvents {
         // Medium (civilian): its hub fixes the order of the Medium services; registered after BEAR and before USEC,
         // which stays last. / 通灵师（平民）：通灵师各服务的顺序由其注册中心固定；注册在 BEAR 之后、USEC 之前，USEC 保持最后。
         dev.caecorthus.sparkwitch.roles.civilian.medium.MediumFeatureService.register();
+        // 橘雪莉 (civilian, PR #206): its hub fixes the order of her services; registered after the Medium and before
+        // USEC, which stays last. / 橘雪莉（平民，PR #206）：各服务的顺序由其注册中心固定；注册在通灵师之后、USEC 之前，
+        // USEC 保持最后。
+        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryFeatureService.register();
         // USEC (police variant): appended last so every existing listener keeps its order; the hub fixes the order of
         // the USEC services. / USEC（警察变体）：追加在最后，使所有既有监听器保持顺序；USEC 各服务的顺序由注册中心固定。
         UsecFeatureService.register();

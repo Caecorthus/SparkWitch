@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.mana;
 
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
@@ -10,9 +11,11 @@ import dev.doctor4t.wathe.api.Role;
 
 /**
  * Pure mana economy rules for the mana-bearing roles: the three witches, Emma, the Abyss Listener and the
- * Riftwalker (which use the Grand Witch's economy, Abyss Listener D11 and Riftwalker D7), and the Witch Maiden (crimson
- * skull mana, 2026-10-20).
- * 魔力角色的纯规则集中在这里（三位魔女、艾玛，以及沿用大魔女魔力机制的聆渊者与隙行者，聆渊者 D11、隙行者 D7），
+ * Riftwalker (which use the Grand Witch's economy, Abyss Listener D11 and Riftwalker D7), the Witch Maiden (crimson
+ * skull mana, 2026-10-20), and 橘雪莉 (PR #206: 1 mana per 5 s up to the default cap, +10 per task, for her own Mighty
+ * Force; being a mana role grants no witch skill panel access).
+ * 魔力角色的纯规则集中在这里（三位魔女、艾玛、沿用大魔女魔力机制的聆渊者与隙行者（聆渊者 D11、隙行者 D7）、巫女，
+ * 以及橘雪莉（PR #206：每 5 秒 1 点、不超过默认上限，每任务 +10，用于她自己的巨力；魔力职业不代表拥有魔女技能面板资格）），
  * 避免事件、组件和 HUD 各写一份判断。
  */
 public final class WitchManaRules {
@@ -42,7 +45,8 @@ public final class WitchManaRules {
 
     public static boolean isManaRole(Role role) {
         return isWitchManaRole(role) || EmmaRules.isEmma(role) || AbyssListenerRules.isAbyssListener(role)
-                || RiftwalkerRules.isRiftwalker(role) || WitchMaidenRules.isWitchMaiden(role);
+                || RiftwalkerRules.isRiftwalker(role) || WitchMaidenRules.isWitchMaiden(role)
+                || SherryRules.isSherry(role);
     }
 
     /**
@@ -110,10 +114,16 @@ public final class WitchManaRules {
         if (role == SparkWitchRoles.apprenticeWitch()) {
             return APPRENTICE_REGENERATION_INTERVAL_TICKS;
         }
+        if (SherryRules.isSherry(role)) {
+            return SherryRules.MANA_REGENERATION_INTERVAL_TICKS;
+        }
         return REGENERATION_INTERVAL_TICKS;
     }
 
     public static int taskReward(Role role) {
+        if (SherryRules.isSherry(role)) {
+            return SherryRules.TASK_MANA;
+        }
         return role == SparkWitchRoles.apprenticeWitch() || EmmaRules.isEmma(role) ? APPRENTICE_TASK_REWARD : 0;
     }
 

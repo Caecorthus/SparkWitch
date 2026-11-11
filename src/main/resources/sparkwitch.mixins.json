@@ -243,6 +243,7 @@
     "abysslistener.GameFunctionsAbyssListenerGunDropMixin",
     "abysslistener.PlayerMoodComponentAbyssZoneDrainMixin",
     "noa.PlayerMoodComponentNoaMoodLockMixin",
+    "sherry.PlayerMoodComponentSherryDimLightMixin",
     "riftwalker.RiftSessionPayloadGuardMixin",
     "riftwalker.RiftThrowingAxeMixin",
     "riftwalker.RiftSwapperCrushMixin",

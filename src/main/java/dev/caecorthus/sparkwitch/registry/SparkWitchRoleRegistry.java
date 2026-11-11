@@ -19,6 +19,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentServic
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
@@ -131,6 +132,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEAR_ID = BearRules.ROLE_ID;
     public static final Identifier SPECTER_ID = SpecterRules.ROLE_ID;
     public static final Identifier MEDIUM_ID = MediumRules.ROLE_ID;
+    public static final Identifier SHERRY_ID = SherryRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -186,6 +188,7 @@ public final class SparkWitchRoleRegistry {
     private static Role natsumeAnan;
     private static Role bear;
     private static Role medium;
+    private static Role sherry;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -517,6 +520,11 @@ public final class SparkWitchRoleRegistry {
     public static Role medium() {
         ensureRegistered();
         return medium;
+    }
+
+    public static Role sherry() {
+        ensureRegistered();
+        return sherry;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -1083,6 +1091,24 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> false)
                 .build());
+        // 橘雪莉 Tachibana Sherry (PR #206): registered after the Charon's Lost Soul and right before the Insider, which
+        // stays last (InsiderRegistrationContractTest), so only the Insider's own index shifts. An ordinary task civilian
+        // (REAL mood, 1.5x passenger stamina, no round clock, no appearance condition) drawn by Wathe's civilian pass;
+        // never a police variant. A mana role (WitchManaRules) with her own 巨力魔法, but never a Witch-skill role: kept
+        // out of isRegisteredSparkWitchRole and out of the witch skill panel (AGENTS.md panel rule). Her skills, coins,
+        // badge and reveals live in roles/civilian/sherry; the letter/title text falls back to the Wathe civilian wording.
+        // 橘雪莉（PR #206）：注册在卡戎的迷失的灵魂之后、紧挨内应之前（内应仍为最后一个，InsiderRegistrationContractTest），
+        // 因此只有内应自身的下标改变。普通任务平民（真实情绪、1.5 倍乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配
+        // 抽取；不是警察变体。属于魔力职业（WitchManaRules）并拥有自己的巨力魔法，但不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole，也不进入魔女技能面板（AGENTS.md 面板规则）。技能、金币、徽章与揭示位于
+        // roles/civilian/sherry；信件/标题文本沿用 Wathe 平民措辞。
+        sherry = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SHERRY_ID, FactionIds.CIVILIAN)
+                .color(SherryRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(SherryRules.MAX_SPRINT_TICKS)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
         // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
@@ -1149,6 +1175,8 @@ public final class SparkWitchRoleRegistry {
                 accountant,
                 bear,
                 medium,
+                // 橘雪莉 (PR #206) closes the newer civilian run, after the Medium. / 橘雪莉（PR #206）排在通灵师之后。
+                sherry,
                 pigGod,
                 tarotReader,
                 fisher,

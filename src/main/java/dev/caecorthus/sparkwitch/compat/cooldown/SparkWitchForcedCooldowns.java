@@ -20,6 +20,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
@@ -92,6 +94,8 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier MEDIUM_SEANCE_ID = MediumRules.SEANCE_SKILL_ID;
     static final Identifier FERRYMAN_PARDON_ID = SparkWitch.id("ferryman_pardon");
     static final Identifier FERRYMAN_FERRY_ID = SparkWitch.id("ferryman_ferry");
+    static final Identifier SHERRY_DEDUCTION_ID = SherryRules.DEDUCTION_SKILL_ID;
+    static final Identifier SHERRY_MIGHTY_FORCE_ID = SherryRules.MIGHTY_FORCE_SKILL_ID;
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -169,7 +173,13 @@ public final class SparkWitchForcedCooldowns {
                 ferrymanPardon(),
                 // Charon ferry (Role Skill 2, PR #202), store 24, appended after the Charon's pardon.
                 // 卡戎摆渡（职业技能 2，PR #202），第 24 个存储，追加在卡戎宽恕之后。
-                ferrymanFerry()
+                ferrymanFerry(),
+                // 橘雪莉 推演 (shared key G, PR #206), store 25, appended after the Charon's ferry.
+                // 橘雪莉推演（共享 G 键，PR #206），第 25 个存储，追加在卡戎摆渡之后。
+                sherryDeduction(),
+                // 橘雪莉 巨力魔法 (Role Skill 2, PR #206), store 26, appended after her 推演.
+                // 橘雪莉巨力魔法（职业技能 2，PR #206），第 26 个存储，追加在她的推演之后。
+                sherryMightyForce()
         );
     }
 
@@ -615,6 +625,45 @@ public final class SparkWitchForcedCooldowns {
                 player -> FerrymanPlayerComponent.KEY.get(player).ferryCooldownTicks(),
                 () -> FerrymanRules.FERRY_COOLDOWN_TICKS,
                 (player, ticks) -> FerrymanPlayerComponent.KEY.get(player).setFerryCooldown(ticks)
+        );
+    }
+
+    /**
+     * 橘雪莉's 推演 cooldown (PR #206), kept as counting-down ticks in the owner-synced {@code sparkwitch:sherry}
+     * component. An ACTIVE round and the raw role (the {@code SherryDeductionService.mayUse} role and round gates). The
+     * remaining time includes the 45 s opening cooldown; the nominal is the 30 s cooldown after a paid deduction. The
+     * setter is exact (floored at 0) and syncs the owner. The skill has no item, so SparkFactionAPI's admin
+     * {@code clearCooldown} (held item only) does not reach it.
+     * 橘雪莉推演冷却（PR #206），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:sherry} 组件中。ACTIVE 回合且为真实职业
+     * （与 SherryDeductionService.mayUse 的职业与回合门控一致）。剩余时间包含 45 秒开局冷却；标准冷却为付费推演后的 30 秒。
+     * setter 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}
+     * （只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore sherryDeduction() {
+        return SimpleRoleSkillCooldownStore.exact(
+                SHERRY_DEDUCTION_ID,
+                whileActive((game, player) -> SherryRules.isSherry(game.getRole(player))),
+                player -> SherryComponent.KEY.get(player).getDeductionCooldownTicks(),
+                () -> SherryRules.DEDUCTION_COOLDOWN_TICKS,
+                (player, ticks) -> SherryComponent.KEY.get(player).startDeductionCooldown(ticks)
+        );
+    }
+
+    /**
+     * 橘雪莉's own 巨力魔法 cooldown (Role Skill 2, PR #206), in the same component. It only counts down once her
+     * window has ended, so a raise during a live window lands when the window closes (the component keeps the larger
+     * value). The nominal is the Apprentice's 45 s Mighty Force cooldown. Exact setter, owner sync, no item.
+     * 橘雪莉自己的巨力魔法冷却（职业技能 2，PR #206），保存在同一组件中。只有窗口结束后才开始倒数，因此窗口期间被抬高的冷却
+     * 在窗口结束时生效（组件保留较大值）。标准冷却为预备魔女巨力的 45 秒。精确写入、同步给本人、没有物品。
+     */
+    static SimpleRoleSkillCooldownStore sherryMightyForce() {
+        return SimpleRoleSkillCooldownStore.exact(
+                SHERRY_MIGHTY_FORCE_ID,
+                whileActive((game, player) -> SherryRules.isSherry(game.getRole(player))),
+                player -> SherryComponent.KEY.get(player).getMightyCooldownTicks(),
+                () -> dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceAbility
+                        .COOLDOWN_TICKS,
+                (player, ticks) -> SherryComponent.KEY.get(player).setMightyCooldownTicks(ticks)
         );
     }
 

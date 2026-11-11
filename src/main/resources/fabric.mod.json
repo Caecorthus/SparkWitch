@@ -99,7 +99,8 @@
       "sparkwitch:ferryman",
       "sparkwitch:ferryman_feign",
       "sparkwitch:ferryman_feign_veil",
-      "sparkwitch:ferryman_moment"
+      "sparkwitch:ferryman_moment",
+      "sparkwitch:sherry"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",
