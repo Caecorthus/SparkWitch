@@ -880,11 +880,53 @@ Current build baseline:
   - `shop/` (complete): `HiroShopService` clears the killer shop for the raw role and adds the five
     `HiroShopRules` rows: knife 100 (stock 1), lockpick 50 (stock 1), crowbar 25 (stock 1), Fire Poker 50 (stock 1),
     Rope 50 (unlimited), with the Murderous Witch shop's entry ids and frames.
-  - `item/rope/` (绳索, in progress): `RopeItem` (stack of 1, three tooltip lines, `use` passes), `RopeRules`,
-    `RopeStrangleService` (`register()` is empty). Registered last in `SparkWitchItems`, in the killer block of the
-    creative tab after the Specter's items, with a 200-tick nominal in `SparkWitchItemCooldownNominals`; placeholder
-    2D art (`models/item/rope.json`, `textures/item/rope.png`). Death reason `sparkwitch:strangled` (窒息), Prophecy
-    group BLUNT (coordinator default).
+  - `item/rope/` (绳索, complete 2026-11-11; no role gate, anyone holding the rope may use it): `RopeItem` (stack of
+    1, three tooltip lines; `use` is only the request, the client returns `consume` and predicts nothing), registered last
+    in `SparkWitchItems`, in the killer block of the creative tab after the Specter's items, with a 200-tick nominal in
+    `SparkWitchItemCooldownNominals`; placeholder 2D art (`models/item/rope.json`, `textures/item/rope.png`). Death
+    reason `sparkwitch:strangled` (窒息), Prophecy group BLUNT, on `KnightDuelInterference.HUMAN_LETHAL_REASONS`.
+    - `RopeRules` (pure): the numbers above plus `TARGET_BOX_EXPANSION` 0.2, `CHOKE_SOUND_RANGE` 8,
+      `DRIFT_THRESHOLD` 0.25, `DISPLACEMENT_TOLERANCE` 1.0; `rearOffsetDegrees` / `isBehind` (the user stands within
+      60 degrees of straight behind the target's head yaw, boundary included), `refusal`, `isHitTick` (20/40/60),
+      `isComplete`, `secondsLeft`, `holdStep` (KEEP / FOLLOW_FALL / PULL_BACK / DISPLACED), `interrupt`,
+      `interruptCoolsDown`, `outcome`.
+    - `RopeTargeting` (server): the user gate (ACTIVE round, `RoundParticipants.ROLE_HOLDER`, in no strangle, not
+      controlled: Taser stun, Raven landing hold, Grand Witch Fear, hypnosis, Kidnapper, forced shot, swallowed, Last
+      Stand/Escape, Seeker session, foreign camera, any feign, Cat spectre, Rift, Raven Form, active Vendetta, Knight
+      duelist), the target gate (another `ROLE_HOLDER` in the same world, `SparkFactionApi.canAffectPlayer` with the
+      action id `sparkwitch:strangled`, not Last Escape/Stand, swallowed, carried, feigned incl.
+      `HiroReturnService.isFeignedVictim`, spectre, Rift, Raven Form, and in no strangle) and the pick:
+      `ControlExpertTaserTargeting.findTarget` (eye ray cut at the first block, lag-compensated
+      `PlayerHitboxHistory` volumes) at `RANGE`.
+    - `RopeStrangleService` (server authority, in-memory sessions keyed by strangler and by victim): stable seams
+      `interruptUser(ServerPlayerEntity)`, `isStrangling(PlayerEntity)`, `isStrangled(PlayerEntity)` (both sides).
+      `tryStart`: SparkTraits `blocksWeaponAction` (silent), the gates, then SparkTraits `shouldCancelMeleeAttack`
+      (Close Quarters); a refusal costs nothing (action-bar `message.sparkwitch.rope.blocked` / `.no_target` /
+      `.not_behind`). A start records `recordItemUse`, snaps both players to anchors and holds them for 60 ticks; at
+      ticks 20/40/60 the victim shows one vanilla hurt through `ServerWorld.sendEntityDamage` with the attacker-less
+      `generic` source (the server damage pipeline is never entered, so no `damage()` hook, health, invulnerability
+      frame or attacker is touched) plus a fixed-range (8 blocks) `entity.player.hurt_drown` choke; at tick 60 a
+      non-forced `killPlayer(victim, true, user, STRANGLED)`. The rope is consumed only when `RopeRules.outcome` says
+      so (victim dead in Wathe and not Last Stand pending, or `HiroReturnService.isFeignedVictim`); otherwise it is
+      kept, cools down 200 ticks and the user reads `.protected`. Interrupts (victim released, rope kept, 200-tick
+      vanilla cooldown, `.interrupted` / `.released`): a kill attempt on the user by another player
+      (`mixin/rope/GameFunctionsRopeStrangleInterruptMixin`, HEAD of `killPlayer`, priority 1030: after the
+      default-1000 structural guards, before every shield and immunity), `RopeTargeting.isControlled`, the rope leaving
+      both hands, either player displaced beyond `DISPLACEMENT_TOLERANCE` (falling never counts; our own pull-backs
+      land on the anchor), either player dying, leaving or no longer eligible, or `interruptUser`. Silent release on
+      `ResetPlayer`, `ON_FINISH_FINALIZE` and server stop. `KillPlayer.AFTER` deletes every rope the dead player
+      carries (inventory, personal crafting grid, cursor; Ninja precedent).
+    - Hold: `RopeStrangleHold.isHeld` is read by `ControlExpertStun.isStunned` (Raven landing-hold precedent), so the
+      stun's interaction guards, payload deny-list, role refusals and the client key lock apply to both players
+      without Blindness/Slowness; mouse look and voice stay free. The owner-synced, never-saved
+      `RopeHoldComponent` (`sparkwitch:rope_hold`, `Side` NONE / STRANGLER / STRANGLED, registered beside the stun
+      status) is what the owner's client reads; the server reads the session table.
+    - Shields ("不破盾", `RopeShieldPolicy.passesShields`): passed without consuming: Guardian Angel shield, Pig God
+      chase freeze, Ninja parry (early `null` in each `beforeKill`), NoellesRoles Iron Man and whiskey
+      (`mixin/rope/NoellesRopeShieldPassMixin`, two `@ModifyExpressionValue` in the pinned BEFORE lambda), Wathe psycho
+      armour and the Specter's Otherworld shield (a `ShouldPiercePsychoArmour` listener); SparkStrength's shield/vest
+      table and the Rys-T ricochet never list the reason. Still stopping it: SparkTraits traits, the Fiend, the
+      Charon's pardon, Saint/SparkFactionAPI vetoes, Tofana, the Cat, NoellesRoles moment immunities and Jester stasis.
   - Client (presentation only): `client/hiro/HiroClientModule` registers `client/hud/HiroHudRenderer` (gate only, empty
     body; no `SaintHudLayoutRules` rows reserved yet); the ability-key branch in `SparkWitchClient` follows the
     Specter's. Lang seeds: `hud.sparkwitch.nikaido_hiro.return.ready`,
