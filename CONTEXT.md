@@ -888,8 +888,12 @@ Current build baseline:
       killed again. Never feigned: Hiro herself, a death without a corpse, a train fall / disconnect / vanilla death /
       drowning, a victim another session holds (swallowed, Rift Gate, Kidnapper control, Raven Form, Seeker session).
       Each victim runs its own 15 s timer; on expiry (or its disconnect) it is restored and the kill is replayed
-      forced with Hiro as the killer (an offline Hiro: Judge attribution scope of her UUID), so rewards, records and
-      `KillPlayer.AFTER` happen only then. Round end or a reset just clears. `HiroReturnService.isFeignedVictim` is the
+      forced with Hiro as the killer, so rewards, records and `KillPlayer.AFTER` happen only then. The replay is
+      never refused because of what Hiro became meanwhile: the Judge sentence check skips it
+      (`HiroVictimFeignService.isSettling` in `JudgeKillAttribution.attempt`), and a Hiro who is offline, dead, an
+      active Wraith or otherwise refused by SparkFactionAPI's affect veto is not passed as the killer (null `killer`
+      inside the Judge attribution scope of her UUID, so `committedResponsible` still names her). A late protection of
+      the victim itself still lets it live. Round end or a reset just clears. `HiroReturnService.isFeignedVictim` is the
       Rope's seam.
     - Fake corpse contract: every corpse consumer leaves a `HiroFakeBodies.isFake` body alone, silently (Vulture eat,
       body bag, Kidnapper drag, Ragpicker search, Charon ferry, Prophet pulse, Wraith death body). SparkStrength's
@@ -898,10 +902,14 @@ Current build baseline:
       (`killer` or the Judge-attributed cause), never an environment death or her own action, and not gated on stun
       or control. Any attack revives her fake-dead victims, also after the window and when it kills her. Inside the
       window a cancellable attack (not forced, not SparkTraits- or Savior-terminal, she is not a Knight duelist) is
-      cancelled before any shield is spent and the Return fires once: +75 coins (0 from a killer-team attacker),
+      cancelled before any shield is spent and the Return fires once: +75 coins (0 from an attacker whose
+      SparkFactionAPI effective faction is killer: an Impostor ally pays nothing, a Conscience killer pays),
       teleport to the record point (skipped in another dimension, when swallowed, in a Rift Gate, Kidnapper-controlled
       or in a Seeker session), 5 s Glowing, 10 s all-item cooldown at `END_SERVER_TICK`
       (`ForcedCooldowns.raiseAll`, `ITEM`), `RopeStrangleService.interruptUser`, window closed, 45 s cooldown.
+      Current behaviour: a retaliation kill on Hiro that her own attack caused (e.g. the Tofana backlash, killer =
+      the elixir holder) is an attack like any other and fires the Return; the hook runs before SparkFactionAPI's
+      structural veto, so an attacker who could not have affected her still triggers it ("blocked or not").
     - Mixins (`mixin/hiro/`): `GameFunctionsHiroReturnMixin` (HEAD `order = 0` fake-dead victim untouchable, HEAD
       `order = 900` attack on Hiro before every default-order HEAD guard, `changeGameMode` call `order = 1200` after
       Tofana / Last Escape / the Cat), `ServerPlayerEntityHiroFeignMixin` and

@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.hiro.returning;
 
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthCoronerCompat;
@@ -149,6 +150,16 @@ public final class HiroVictimFeignService {
      */
     public static boolean blocksKill(@Nullable ServerPlayerEntity victim) {
         return victim != null && FEIGNS.containsKey(victim.getUuid()) && !victim.getUuid().equals(settlingVictim);
+    }
+
+    /**
+     * Cross-role seam, true only while the service replays this victim's real death ({@link #settle}): the Judge's
+     * sentence check lets exactly that one {@code killPlayer} call through. Server thread only.
+     * 跨职业接缝，仅在服务重放该受害者的真正死亡（{@link #settle}）期间为 true：法官的判决检查只放行这一次
+     * {@code killPlayer} 调用。仅服务端线程。
+     */
+    public static boolean isSettling(@Nullable ServerPlayerEntity victim) {
+        return victim != null && victim.getUuid().equals(settlingVictim);
     }
 
     /** How many of {@code hiro}'s victims are fake-dead right now. / {@code hiro} 此刻有多少名受害者处于假死。 */
@@ -329,6 +340,11 @@ public final class HiroVictimFeignService {
             return;
         }
         for (Feign feign : List.copyOf(FEIGNS.values())) {
+            // Revived or settled earlier in this loop (a replayed kill can revive others): never re-held from the snapshot.
+            // 已在本轮循环中起身或结算（重放的击杀可能让其他人复活）：绝不按快照中的旧记录再次固定。
+            if (FEIGNS.get(feign.victim()) != feign) {
+                continue;
+            }
             try {
                 tickFeign(server, feign);
             } catch (RuntimeException exception) {
@@ -426,20 +442,33 @@ public final class HiroVictimFeignService {
     /**
      * The victim's own timer ran out (or it is leaving): it is restored at its anchor as a normal player, the fake
      * corpse is discarded, and the original kill is replayed at once, forced, with Hiro as the killer so
-     * {@code KillPlayer.AFTER}, the kill rewards, the derringer reload and the death record see her. An offline Hiro
-     * cannot be passed as the killer; the replay then runs inside the Judge attribution scope of her UUID, so
-     * {@code JudgeKillAttribution.committedResponsible} still names her and nobody else is credited. If a late
-     * protection still stops the replay, the victim simply lives.
+     * {@code KillPlayer.AFTER}, the kill rewards, the derringer reload and the death record see her. Two guards on
+     * {@code killPlayer} ignore {@code force} and judge the killer, not the victim; neither may undo a death that
+     * committed 15 s ago: the Judge's sentence check skips this one call ({@link #isSettling}), and a Hiro who is no
+     * longer a living participant the SparkFactionAPI affect veto accepts (offline, dead, an active Wraith…;
+     * {@link HiroReturnRules#replaysWithHiroAsKiller}) is not passed as the killer: the replay then runs inside the
+     * Judge attribution scope of her UUID, so {@code JudgeKillAttribution.committedResponsible} still names her and
+     * nobody else is credited. If a late protection of the victim still stops the replay, the victim simply lives.
      * 受害者自己的计时结束（或其正在离线）：在锚点还原为普通玩家，移除假尸体，并立即以强制方式重放原击杀，凶手为希罗，使
-     * {@code KillPlayer.AFTER}、击杀奖励、德林加装填与死亡记录都记在她头上。希罗离线时无法作为凶手传入；此时重放在以她的
-     * UUID 建立的法官归因作用域内运行，{@code JudgeKillAttribution.committedResponsible} 仍指向她，也不会记到别人头上。
-     * 若仍有保护拦下重放，受害者就此存活。
+     * {@code KillPlayer.AFTER}、击杀奖励、德林加装填与死亡记录都记在她头上。{@code killPlayer} 上有两个守卫无视 {@code force}
+     * 且审查的是凶手而非受害者，它们都不能撤销 15 秒前已落定的死亡：法官的判决检查跳过这一次调用（{@link #isSettling}）；希罗
+     * 若已不是 SparkFactionAPI 影响否决所接受的存活参与者（离线、已死亡、成为激活冤魂……，见
+     * {@link HiroReturnRules#replaysWithHiroAsKiller}），则不作为凶手传入：此时重放在以她的 UUID 建立的法官归因作用域内运行，
+     * {@code JudgeKillAttribution.committedResponsible} 仍指向她，也不会记到别人头上。若受害者自身的保护仍拦下重放，受害者
+     * 就此存活。
      */
     private static void settle(MinecraftServer server, Feign feign, ServerPlayerEntity victim) {
         FEIGNS.remove(feign.victim());
         restore(victim, feign);
         syncCount(server, feign.hiro());
-        ServerPlayerEntity hiro = server.getPlayerManager().getPlayer(feign.hiro());
+        ServerPlayerEntity online = server.getPlayerManager().getPlayer(feign.hiro());
+        ServerPlayerEntity hiro = online != null && HiroReturnRules.replaysWithHiroAsKiller(true,
+                GameFunctions.isPlayerPlayingAndAlive(online),
+                // The exact question SparkFactionAPI's HEAD veto asks about a kill. / 与 SFA 的 HEAD 否决对击杀所问完全相同。
+                SparkFactionApi.canAffectPlayer(online, victim, feign.deathReason(),
+                        GameWorldComponent.KEY.get(online.getWorld())))
+                ? online
+                : null;
         Runnable kill = () -> GameFunctions.killPlayer(victim, feign.spawnBody(), hiro, feign.deathReason(), true);
         UUID previous = settlingVictim;
         settlingVictim = feign.victim();
