@@ -835,15 +835,26 @@ Current build baseline:
     owner-only map, mark outline, cowardice outline; low-sanity viewers see an invisible Specter);
     `SpecterHudRenderer` draws two bottom-right rows (skill one below, Otherworld above), and `SaintHudLayoutRules`
     reserves two rows for the role. `SpecterOtherworldScreenEffects` (post chain `sparkwitch:shaders/post/otherworld`,
-    `GameRenderer#render` before `beginWrite`) ramps saturation/contrast and a red vignette for living participants,
-    fades out over 5 s, steps aside for Wraith/Vendetta/Black Raven perception (`BlackRavenPerceptionScreenEffects
-    .isActiveFor`, sharing one resolver with its own render), Blind, Rift occupants, the Seeker camera,
-    `ScopeClient.isScoped()`, Iris packs, any vanilla post processor (NoellesRoles' included) and a drawn SparkTraits
-    Depression grayscale, and releases its processor when
-    idle, on join/disconnect/stop and resource reload. `ClientWorldOtherworldSkyMixin` tints the sky/fog colour (Wathe
-    skips the sky dome while the train moves). Soul-fire particles, a play-once BGM (one of three variants chosen by the
-    server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item tooltips. Lang:
-    `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
+    `GameRenderer#render` before `beginWrite`) draws the "Yin realm" look for living participants (owner pick
+    2026-11-11, replacing the saturation/contrast ramp and red vignette): a ghost-fire teal split-tone that keeps only
+    vivid reds, teal-black fog by view distance, edge double vision and a slow breathing warp (scaled by vanilla's
+    Distortion Effects option), and an opening wave that sweeps outward through depth in the first ~1.3 s. Vanilla
+    clears the main depth before the hand, so the filter copies the world depth at
+    `WorldRenderEvents.AFTER_TRANSLUCENT` (`LAST` as a fallback) into the chain's `otherworld_depth` target, never in
+    a `SecondaryWorldPass`: from main while it is the bound target, or from the particles target in Fabulous!, whose
+    transparency composite overwrites the main depth before `LAST`. It reads `minecraft:main:depth` to treat the hand
+    as distance 0; a frame without the copy draws the look with no wave and
+    no fog. It fades out over 5 s, steps aside for Wraith/Vendetta/Black Raven perception
+    (`BlackRavenPerceptionScreenEffects.isActiveFor`, sharing one resolver with its own render), Blind, Rift
+    occupants, the Seeker camera, `ScopeClient.isScoped()`, Iris packs, any vanilla post processor (NoellesRoles'
+    included) and a drawn SparkTraits Depression grayscale, and releases its processor when
+    idle, on join/disconnect/stop and resource reload. `ClientWorldOtherworldSkyMixin` tints the sky/fog colour dark
+    ghost-green over the first 1.5 s (Wathe skips the sky dome while the train moves). `SpecterOtherworldParticles`
+    spawns, in air blocks near the local player only, a few soul-fire flames and falling joss paper: the particle
+    type `sparkwitch:joss_paper` is registered in common init by `SpecterParticles` and drawn by
+    `client/specter/JossPaperParticle` (three sprites, presentation only). A play-once BGM (one of three variants
+    chosen by the server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item
+    tooltips. Lang: `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
     placement and trigger, peachwood hits and the shield.
 - `client/bedrock/` (2026-11-02): a role-neutral Bedrock model runtime for player-supplied files, first used by the
   Mini Wither skins. `geo/`: `BedrockGeometryParser` (format 1.12+ `minecraft:geometry`, also inside a Java item-model
@@ -3754,6 +3765,34 @@ gets no trap back (the trap itself stays armed until it expires or the round end
 A reclaimed poisoned trap returns as a stack carrying its poison and poisoner (custom data `Poisoned` + `Poisoner`,
 `HunterTrapItem.poison`), and the next placement restores both, so its poison kill, credit and poisoner/placer rewards
 are as if it had never moved (T-0011, 2026-10-25). An unpoisoned trap still returns as a plain stack.
+Hunter trap rules (PR #213, 2026-11-11) split the players a trap deals with into two classes, both decided in
+`HunterRules`. Class 1 (`isTrapPolice`) is every police role (the live SparkFactionAPI `PoliceRoles` registry plus a
+fixed list that also names the NoellesRoles Engineer and Corrupt Cop, which the registry may not hold) and, checked by
+the callers through the public SparkTraits facade and failing closed, any Impostor (内鬼) holder. Class 2
+(`isTrapKiller`) is every `Faction.KILLER` role plus `wathe:loose_end` and `noellesroles:undercover`; class 2 wins when
+a player is in both. Everyone else, the witch side included, can neither dismantle nor poison a trap.
+Sight (`HunterRules.trapVisibility`, read by `client/hunter/HunterTrapVisibilityHelper`): only a dead in-match spectator
+sees traps through walls passively. Both classes need line of sight; a `Faction.KILLER` viewer gets the through-wall
+view and outline only while the instinct key is held, the Loose End and the Undercover never do, and the witch-side
+instinct viewers are unchanged.
+Dismantling (`HunterRules.trapDismantle`, sneak-use with line of sight, after the owner reclaim): class 2 removes the
+trap at once and touches no cooldown; class 1 channels for `DISMANTLE_CHANNEL_TICKS` (5 s) of held right-clicks. The
+channel belongs to the trap and the server: `HunterTrapEntity.pressDismantle` keeps one dismantler, the tick it started
+on and the last press, restarts after a gap over `DISMANTLE_PRESS_TIMEOUT_TICKS` (12), ignores another player's presses
+while it lives, and a press on one trap drops the same player's channel on any other. The trap syncs the dismantler and
+start tick as tracked data (never saved); `client/hunter/HunterTrapDismantleHud` reads them once per client tick for the
+dismantler's own progress bar and for the Hunter's outline of the dismantler (`HunterTrapClientHooks`, in the Hunter's
+own colour `HunterRules.COLOR`, never the dismantler's role colour, above every other outline). `interactWithTrap` answers `SUCCESS` on both sides for either
+class: a client `PASS` would let vanilla go on to use the held item, so no client listener may sit behind it.
+A dead or spectating player (a swallowed one included) gets `PASS` before any branch: no reclaim, dismantle or poison.
+Every accepted press except the finishing one floors the dismantler's carried items at
+`DISMANTLE_HELD_ITEM_COOLDOWN_TICKS` (the press timeout + 1 = 13 ticks), so they stay locked exactly while the channel
+can still be continued, with one write per press rather than per tick; a caught victim's carried items get a 3 s floor
+once (`HunterFeatureService.forceCarriedItemCooldown`). Both go through
+SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, ticks)` and nowhere else: monotonic, exact (Fast
+Hands, Stimulation and per-item rewrites cannot shorten it), and skipping the registered forced-cooldown exemptions
+(NoellesRoles timed bomb, Seeker car, Knight cross sword). A victim who dies within `TRAP_KILL_REWARD_WINDOW_TICKS` (3 s) of the
+catch, whatever the cause, pays the trap's placer `TRAP_KILL_REWARD` (30) once, unless the placer is the victim.
 A Hunter shotgun shot that reaches the wall takes `HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE` (7000 in SparkStrength's
 unit, 10000 = 100%, so 70%; owner, 2026-10-21) from the SparkStrength junction box (`sparkstrength:junction_box`) it
 lands on, so two shots open a full box. Only the centre ray counts (the slug's ray at 15, buckshot's at 8;
