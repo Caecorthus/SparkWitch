@@ -145,6 +145,10 @@ public final class SparkWitchItems {
     public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
     public static final Identifier BIG_DOG_PORTRAIT_ID = NoaRules.DOG_PORTRAIT_ITEM_ID;
     public static final Identifier ACCOUNTANT_PASSBOOK_ID = AccountantRules.PASSBOOK_ID;
+    public static final Identifier SHERRY_BADGE_ID =
+            dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules.BADGE_ITEM_ID;
+    public static final Identifier SHERRY_NOTE_ID =
+            dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules.NOTE_ITEM_ID;
     public static final Identifier PEACHWOOD_SWORD_ID = SparkWitch.id("peachwood_sword");
     public static final Identifier GHOST_TRIGGER_ID = SparkWitch.id("ghost_trigger");
     public static final Identifier SAVIOR_PISTOL_ID = SaviorRules.PISTOL_ID;
@@ -211,6 +215,8 @@ public final class SparkWitchItems {
     private static Item usecSuppressor;
     private static Item witherGohei;
     private static Item peachwoodSword;
+    private static Item sherryBadge;
+    private static Item sherryNote;
     private static Item ghostTrigger;
     private static Item bigDogPortrait;
     private static Item accountantPassbook;
@@ -586,8 +592,23 @@ public final class SparkWitchItems {
                 HANNA_HANDKERCHIEF_ID,
                 new HannaHandkerchiefItem(HannaHandkerchiefItem.createSettings())
         );
-        // 二阶堂希罗's Rope (2026-11-11), appended last, after Tono Hanna's items, so earlier registration order
-        // stays unchanged. / 二阶堂希罗的绳索（2026-11-11），追加在最后（远野汉娜的物品之后），以保持既有注册顺序不变。
+        // 橘雪莉 (PR #206) items, appended last so earlier registration order stays unchanged. The badge is a plain
+        // token handed over by SherryBadgeService (no use action of its own); the note names a dead badge holder in its
+        // custom data, so maxCount(1) keeps two notes from merging into one name.
+        // 橘雪莉（PR #206）物品，追加在最后以保持既有注册顺序不变。徽章是普通携带物，由 SherryBadgeService 负责赠送（自身没有
+        // 使用动作）；纸条在自定义数据中写着死去的徽章持有者名字，因此用 maxCount(1) 防止两张纸条合并成同一个名字。
+        sherryBadge = Registry.register(
+                Registries.ITEM,
+                SHERRY_BADGE_ID,
+                new dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryBadgeItem(new Item.Settings().maxCount(1))
+        );
+        sherryNote = Registry.register(
+                Registries.ITEM,
+                SHERRY_NOTE_ID,
+                new dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryNoteItem(new Item.Settings().maxCount(1))
+        );
+        // 二阶堂希罗's Rope (2026-11-11), appended last, after 橘雪莉's items, so earlier registration order
+        // stays unchanged. / 二阶堂希罗的绳索（2026-11-11），追加在最后（橘雪莉的物品之后），以保持既有注册顺序不变。
         rope = Registry.register(
                 Registries.ITEM,
                 ROPE_ID,
@@ -1107,5 +1128,19 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return hannaHandkerchief;
+    }
+
+    public static Item sherryBadge() {
+        if (sherryBadge == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return sherryBadge;
+    }
+
+    public static Item sherryNote() {
+        if (sherryNote == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return sherryNote;
     }
 }

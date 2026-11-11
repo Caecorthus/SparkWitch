@@ -33,6 +33,12 @@ import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumSeanceC2SPack
 import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumVoteC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSecondSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryDeductionService;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryMightyForceService;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.net.ConfirmSherryDeductionC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.net.OpenSherryDeductionS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.net.RequestSherryDeductionC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.net.UseSherryMightyForceC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPacket;
@@ -169,6 +175,25 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playS2C().register(
                 MediumSeanceResultS2CPacket.ID,
                 MediumSeanceResultS2CPacket.CODEC
+        );
+        // 橘雪莉 (PR #206): the 推演 panel request (shared key), its paid confirmation, her own 巨力魔法 (Role Skill 2),
+        // and the candidate panel the server answers with.
+        // 橘雪莉（PR #206）：推演面板请求（共享技能键）、付费确认、她自己的巨力魔法（职业技能 2），以及服务端回应的候选面板。
+        PayloadTypeRegistry.playC2S().register(
+                RequestSherryDeductionC2SPacket.ID,
+                RequestSherryDeductionC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
+                ConfirmSherryDeductionC2SPacket.ID,
+                ConfirmSherryDeductionC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
+                UseSherryMightyForceC2SPacket.ID,
+                UseSherryMightyForceC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                OpenSherryDeductionS2CPacket.ID,
+                OpenSherryDeductionS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
@@ -317,6 +342,15 @@ public final class SparkWitchPackets {
         ServerPlayNetworking.registerGlobalReceiver(SubmitMediumVoteC2SPacket.ID,
                 (payload, context) -> context.server().execute(() ->
                         MediumSkillService.vote(context.player(), payload.windowId(), payload.yes())));
+        ServerPlayNetworking.registerGlobalReceiver(RequestSherryDeductionC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        SherryDeductionService.requestOpen(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmSherryDeductionC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        SherryDeductionService.confirm(context.player(), payload.target())));
+        ServerPlayNetworking.registerGlobalReceiver(UseSherryMightyForceC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        SherryMightyForceService.use(context.player())));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {
