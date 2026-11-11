@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.component;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
+import dev.caecorthus.sparkwitch.item.rope.RopeHoldComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
@@ -33,6 +34,8 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPla
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.witchification.HiroWitchificationComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldComponent;
@@ -138,6 +141,12 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, ControlExpertStatusComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(ControlExpertStatusComponent::new);
+        // Rope strangle hold (2026-11-11): which side of a strangle the owner is on, owner-synced and transient; kept
+        // beside the stun status because it drives the same client input lock.
+        // 绳索勒杀定身（2026-11-11）：拥有者处于勒杀的哪一方，只同步给本人且不保存；与眩晕状态相邻，因为它驱动同一套客户端输入锁。
+        registry.beginRegistration(PlayerEntity.class, RopeHoldComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(RopeHoldComponent::new);
         registry.beginRegistration(PlayerEntity.class, HolyFlashComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HolyFlashComponent::new);
@@ -273,6 +282,23 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, HannaComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HannaComponent::new);
+        // 橘雪莉 (PR #206): skill cooldowns, her Mighty Force window, badge holders and reveal trackers, synced to the
+        // owner only; appended last, after Tono Hanna's.
+        // 橘雪莉（PR #206）：技能冷却、巨力窗口、徽章持有者与揭示追踪，只同步给本人；追加在最后，位于远野汉娜的组件之后。
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent::new);
+        // 二阶堂希罗 (2026-11-11): 死亡回归 cooldown, window and record point, then 魔女化 progress; both synced to
+        // the owner only; appended last, after 橘雪莉's component.
+        // 二阶堂希罗（2026-11-11）：死亡回归的冷却、窗口与记录点，以及魔女化进度；均只同步给本人；追加在最后，位于橘雪莉的
+        // 组件之后。
+        registry.beginRegistration(PlayerEntity.class, HiroReturnComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(HiroReturnComponent::new);
+        registry.beginRegistration(PlayerEntity.class, HiroWitchificationComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(HiroWitchificationComponent::new);
     }
 
     @Override

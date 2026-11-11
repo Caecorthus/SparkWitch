@@ -85,6 +85,13 @@ public final class KnightDuelSkillLock {
             // 卡戎宽恕（共享 G 键），PR #202；所有者 2026-11-09：决斗中的卡戎同样不能宽恕，被丢弃的按键只会让窗口过期。
             // 其摆渡属于技能键 2（N），按本名单规则保持放行。
             Identifier.of("sparkwitch", "ferryman_pardon"),
+            // 橘雪莉 推演 (shared key G) panel request and its paid confirmation, PR #206; her 巨力魔法 is skill key 2 (N)
+            // and stays allowed by this list's rule. / 橘雪莉推演（共享 G 键）面板请求及其付费确认，PR #206；她的巨力魔法属于
+            // 技能键 2（N），按本名单规则保持放行。
+            Identifier.of("sparkwitch", "request_sherry_deduction"),
+            Identifier.of("sparkwitch", "confirm_sherry_deduction"),
+            // 二阶堂希罗 死亡回归 (shared key G), 2026-11-11. / 二阶堂希罗的死亡回归（共享 G 键），2026-11-11。
+            Identifier.of("sparkwitch", "use_hiro_skill"),
             // The Knight's own pick; a non-duelist is never locked, so it always passes for them.
             // 骑士自己的选择包；非决斗者从不被锁，因此对他们始终放行。
             Identifier.of("sparkwitch", "knight_duel_target"),

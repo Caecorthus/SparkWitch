@@ -60,6 +60,8 @@ public final class SparkWitchRoles {
     public static final Identifier BEAR_ID = SparkWitchRoleRegistry.BEAR_ID;
     public static final Identifier MEDIUM_ID = SparkWitchRoleRegistry.MEDIUM_ID;
     public static final Identifier HANNA_ID = SparkWitchRoleRegistry.HANNA_ID;
+    public static final Identifier SHERRY_ID = SparkWitchRoleRegistry.SHERRY_ID;
+    public static final Identifier NIKAIDO_HIRO_ID = SparkWitchRoleRegistry.NIKAIDO_HIRO_ID;
 
     private SparkWitchRoles() {
     }
@@ -284,6 +286,14 @@ public final class SparkWitchRoles {
 
     public static Role hanna() {
         return SparkWitchRoleRegistry.hanna();
+    }
+
+    public static Role sherry() {
+        return SparkWitchRoleRegistry.sherry();
+    }
+
+    public static Role nikaidoHiro() {
+        return SparkWitchRoleRegistry.nikaidoHiro();
     }
 
     public static List<Role> assassinGuessRoles() {

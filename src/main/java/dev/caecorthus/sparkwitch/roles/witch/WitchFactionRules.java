@@ -3,9 +3,16 @@ package dev.caecorthus.sparkwitch.roles.witch;
 import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
+import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
+import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariants;
 import dev.doctor4t.wathe.api.Role;
 import java.util.OptionalInt;
+import java.util.Set;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,6 +32,24 @@ public final class WitchFactionRules {
     // 普通魔女本能必须低于 wathe 硬跳过规则，例如背水一战和被遮挡的生存大师。
     public static final int INSTINCT_PRIORITY = 90;
     public static final int HIDDEN_PHANTOM_SKIP_PRIORITY = 1_000;
+
+    /**
+     * Role ids of the 魔裁 characters (see {@link #isWitchTrialGirl}). A new 魔裁 role adds its id here. Ids, not
+     * {@link Role} instances, so the set needs no registration order. 二阶堂希罗 is in it before and after her 魔女化:
+     * her role-colour factor-network view is a client fallback that only fills when no instinct colour answered, so
+     * the Grand Witch's held instinct shows this class colour and the role colour shows without the key.
+     * 魔裁角色的职业 ID（见 {@link #isWitchTrialGirl}）。新增魔裁职业时把 ID 加到这里。用 ID 而非 {@link Role} 实例，
+     * 因此不依赖注册顺序。二阶堂希罗在魔女化前后都属于此名单：她的职业色因子网络视图只是客户端后备，仅在没有本能颜色时
+     * 补缺，因此大魔女按住本能键时看到此分类颜色，未按键时看到职业色。
+     */
+    private static final Set<Identifier> WITCH_TRIAL_GIRL_IDS = Set.of(
+            EmmaRules.ROLE_ID,
+            NoaRules.ROLE_ID,
+            HannaRules.ROLE_ID,
+            NatsumeRules.ROLE_ID,
+            SherryRules.ROLE_ID,
+            HiroRules.ROLE_ID
+    );
 
     private WitchFactionRules() {
     }
@@ -176,8 +201,30 @@ public final class WitchFactionRules {
         return affectedByFear || affectedByObscure;
     }
 
+    /**
+     * The roles the Grand Witch's instinct reads as witches outside her faction ({@link #OTHER_WITCH_INSTINCT_COLOR}):
+     * the Murderous Witch, the Apprentice Witch and every Witch Trial girl ({@link #isWitchTrialGirl}). Only
+     * {@link #instinctColor} reads it; it is not Witch faction membership.
+     * 大魔女本能视为「阵营外的魔女」的职业（{@link #OTHER_WITCH_INSTINCT_COLOR}）：杀意魔女、预备魔女以及所有魔裁少女
+     * （{@link #isWitchTrialGirl}）。只有 {@link #instinctColor} 读取它；它不等于魔女阵营成员。
+     */
     public static boolean isOtherWitchRole(Role role) {
-        return role != null && (role == SparkWitchRoles.murderousWitch() || role == SparkWitchRoles.apprenticeWitch());
+        return role != null && (role == SparkWitchRoles.murderousWitch()
+                || role == SparkWitchRoles.apprenticeWitch()
+                || isWitchTrialGirl(role));
+    }
+
+    /**
+     * Whether the role is a 魔法少女的魔女裁判 (魔裁) character, by role id ({@link #WITCH_TRIAL_GIRL_IDS}). Owner
+     * 2026-11-11: they count as witch roles for the Grand Witch's instinct, whatever their own faction. This grants
+     * nothing else: no Witch faction membership, mana, factor or kill-mana bonus, Rift Gate access, trait pool or
+     * {@code gui.sparkwitch.skills} panel.
+     * 该职业是否为《魔法少女的魔女裁判》（魔裁）角色，按职业 ID 判定（{@link #WITCH_TRIAL_GIRL_IDS}）。所有者 2026-11-11：
+     * 无论自身阵营，她们在大魔女的本能里都算魔女职业。除此之外不授予任何东西：不是魔女阵营成员，不影响魔力、因子与击杀
+     * 魔力加成、裂隙门权限、词条池，也不进入 {@code gui.sparkwitch.skills} 面板。
+     */
+    public static boolean isWitchTrialGirl(@Nullable Role role) {
+        return role != null && WITCH_TRIAL_GIRL_IDS.contains(role.identifier());
     }
 
     public static boolean isAffectedByWitchAreaSpell(Role role) {

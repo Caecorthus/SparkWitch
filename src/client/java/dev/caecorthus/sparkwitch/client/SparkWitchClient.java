@@ -10,7 +10,11 @@ import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.bewitched.BewitchedClientPresentation;
 import dev.caecorthus.sparkwitch.client.recruit.RecruitClientPresentation;
+import dev.caecorthus.sparkwitch.client.hiro.HiroClientModule;
 import dev.caecorthus.sparkwitch.client.specter.SpecterClientModule;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.UseHiroSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
@@ -18,6 +22,8 @@ import dev.caecorthus.sparkwitch.client.medium.MediumClientModule;
 import dev.caecorthus.sparkwitch.client.medium.MediumVoteClient;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSkillC2SPacket;
+import dev.caecorthus.sparkwitch.client.sherry.SherryClient;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteClient;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteDashClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaClient;
@@ -151,6 +157,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         GrandWitchClientModule.register();
         ApprenticeClientModule.register();
         SpecterClientModule.register();
+        // 二阶堂希罗 (2026-11-11): role-owned HUD hub. / 二阶堂希罗（2026-11-11）：职业自有 HUD 注册中心。
+        HiroClientModule.register();
         WitchMaidenClientModule.register();
         MiniWitherClient.register();
         BlackRavenCrowClient.register();
@@ -329,6 +337,15 @@ public final class SparkWitchClient implements ClientModInitializer {
                             && ClientPlayNetworking.canSend(UseSpecterSkillC2SPacket.ID)) {
                         ClientPlayNetworking.send(new UseSpecterSkillC2SPacket());
                     }
+                } else if (HiroRules.isHiro(role)) {
+                    // 二阶堂希罗 死亡回归, real role only: an empty request. The server owns the full validation (mana,
+                    // window, gates); the synced cooldown only trims obviously dead presses, as for the Specter.
+                    // 二阶堂希罗的死亡回归，仅限真实职业：空请求。完整校验（魔力、窗口、门槛）在服务端；与幽魂一样，本地同步的冷却
+                    // 只用来过滤明显无效的按键。
+                    if (!HiroReturnComponent.KEY.get(client.player).isOnCooldown()
+                            && ClientPlayNetworking.canSend(UseHiroSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseHiroSkillC2SPacket());
+                    }
                 } else if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.CURSER_ID)) {
                     if (CurserClientHooks.canUse(client.player)) {
                         CurserClientHooks.use();
@@ -383,6 +400,11 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role only (getRole stays raw, so a Black Raven acting as Hanna keeps its own key); the server
                     // decides use. / 仅真实职业（getRole 始终是真实身份，扮演汉娜的黑羽鸦保留自己的按键）；是否生效由服务端决定。
                     HannaClient.onAbilityKey(client);
+                } else if (SherryRules.isSherry(role)) {
+                    // 推演 (the shared ability key), real role only: empty request, the server checks the corpse,
+                    // cooldown and coins and answers with the candidate panel.
+                    // 推演（共享技能键），仅限真实职业：空请求，服务端检查尸体、冷却与金币后以候选面板应答。
+                    SherryClient.onAbilityKey(client);
                 } else if (!WitchMaidenRules.isWitchMaiden(role)
                         && (WitchPlayerComponent.KEY.get(client.player).hasSkill()
                         || SaintRules.isSaint(role))) {
@@ -407,6 +429,10 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Medium client hub (Role Skill 2 key), after BEAR and before USEC, which stays last.
         // 通灵师客户端注册中心（职业技能 2 键），位于 BEAR 之后、USEC 之前，USEC 保持最后。
         MediumClientModule.register();
+        // 橘雪莉 client hub (PR #206: panel, Role Skill 2 key, private outlines, corner HUD), after the Medium and
+        // before USEC, which stays last.
+        // 橘雪莉客户端注册中心（PR #206：面板、职业技能 2 键、私有描边、右下角 HUD），位于通灵师之后、USEC 之前，USEC 保持最后。
+        SherryClient.register();
         // USEC client hub, appended last: scope, HUD, attachment screen, impact cracks.
         // USEC 客户端注册中心，追加在最后：开镜、HUD、配件界面、命中裂痕。
         UsecClientModule.register();

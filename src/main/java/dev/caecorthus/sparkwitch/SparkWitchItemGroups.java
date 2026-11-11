@@ -93,6 +93,9 @@ public final class SparkWitchItemGroups {
                                     // Tono Hanna's parasol and handkerchief (civilian) / 远野汉娜的洋伞与手帕（平民）
                                     SparkWitchItems.hannaUmbrella(),
                                     SparkWitchItems.hannaHandkerchief(),
+                                    // 橘雪莉's detective badge and note (civilian) / 橘雪莉的侦探徽章与纸条（平民）
+                                    SparkWitchItems.sherryBadge(),
+                                    SparkWitchItems.sherryNote(),
                                     // Savior (civilian police) / 救世主（平民警察）
                                     SparkWitchItems.saviorPistol(),
                                     SparkWitchItems.saviorLightsaber(),
@@ -118,7 +121,9 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.timeStamp(),
                                     // Specter (killer) / 幽魂（杀手）
                                     SparkWitchItems.ghostTrigger(),
-                                    SparkWitchItems.peachwoodSword()
+                                    SparkWitchItems.peachwoodSword(),
+                                    // 二阶堂希罗 (killer) / 二阶堂希罗（杀手）
+                                    SparkWitchItems.rope()
                             );
                             factionOrder.forEach(entries::add);
                             // Any other item in our namespace follows in registration order, so new items join automatically.

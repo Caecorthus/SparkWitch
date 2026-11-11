@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WraithRoundComponent;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianDecoyBodies;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroFakeBodies;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFakeBodies;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithState;
@@ -239,7 +240,9 @@ public final class WraithConversion {
         // 同一刻的该玩家的魔术师诱饵尸体或魔人假死尸体绝不是真尸体。
         return playerUuid.equals(body.getPlayerUuid()) && body.getDeathGameTime() == deathGameTime
                 && !MagicianDecoyBodies.isDecoy(body)
-                && !FiendFakeBodies.isFake(body);
+                && !FiendFakeBodies.isFake(body)
+                // Nor is the fake corpse of a 二阶堂希罗 victim. / 二阶堂希罗受害者的假尸体同样不是真尸体。
+                && !HiroFakeBodies.isFake(body);
     }
 
     private static @Nullable UUID resolveCreditedKiller(

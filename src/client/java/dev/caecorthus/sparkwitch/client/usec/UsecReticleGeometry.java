@@ -50,6 +50,30 @@ public final class UsecReticleGeometry {
     public static final List<String> PERSON_GLYPH = List.of(".##.", ".##.", "####", ".##.", ".##.", ".##.", ".#.#",
             ".#.#");
 
+    // ---- R2 low-magnification level of detail (1080p framebuffer px, times the stroke scale) ----
+    // The tree is first focal plane, so it shrinks with the zoom while strokes and digits keep their pixel size: at 1x
+    // one mrad is under a pixel and every mark would land on its neighbour. A mark is therefore drawn only where it
+    // clears the marks around it; whatever is drawn still sits at its true angle.
+    // 树形分划位于第一焦平面，随倍率缩小，而线宽与数字保持像素大小：1 倍时 1 密位不足 1 像素，所有刻度都会叠在相邻刻度上。
+    // 因此刻度只在不与周围刻度相碰时才绘制；画出的刻度仍位于真实角度。
+    /** 1-mrad hashes need this pitch; below it only the 5-mrad majors stay. / 每密位刻度所需间距，不足时只保留 5 密位大刻度。 */
+    public static final double R2_MIN_MINOR_PITCH_PX = 2.5;
+    /** The 5-mrad majors need this pitch; below it the wire is bare. / 5 密位大刻度所需间距，不足时细线上不画刻度。 */
+    public static final double R2_MIN_MAJOR_PITCH_PX = 6.0;
+    /** Clear rows a ladder bar keeps below the centre dot. / 抬枪横杠与中心点之间须留出的空行。 */
+    public static final int R2_MIN_DOT_GAP_PX = 2;
+    /** Pitch a ladder bar keeps from every bar that outranks it. / 抬枪横杠与优先级更高的横杠之间的最小间距。 */
+    public static final double R2_MIN_LADDER_PITCH_PX = 3.5;
+    /**
+     * Order in which the ladder fills in as the tree grows: the far end and the middle first, the in-between holds
+     * last. / 分划放大时抬枪梯补全的顺序：先远端与中间，最后是夹在中间的距离。
+     */
+    public static final List<Integer> R2_LADDER_PRIORITY = List.of(200, 150, 100, 175, 125);
+    /** A ladder label may sit this far below its centred place to fit. / 抬枪标签为放得下最多可下移的量。 */
+    public static final int R2_LABEL_MAX_LOWER_PX = 2;
+    /** The ranging brackets need this column pitch; below it the block is left out. / 测距括号所需列间距，不足时整块不画。 */
+    public static final double R2_MIN_RANGING_PITCH_PX = 9.0;
+
     // ---- R1 classic Mil-Dot (second focal plane, true at the top 6x; every position in mil) ----
     public static final int R1_DOTS_SIDE = 4;
     public static final int R1_DOTS_DOWN = 14;
@@ -121,6 +145,21 @@ public final class UsecReticleGeometry {
         return 0.8 + 1.4 * (distance - 100) / 100.0;
     }
 
+    /**
+     * Spacing in mrad of the hashes drawn at {@code pxPerMrad}: 1 (every hash), 5 (majors only) or 0 (none), by
+     * {@link #R2_MIN_MINOR_PITCH_PX} and {@link #R2_MIN_MAJOR_PITCH_PX}. At 1080p and 70 degrees that is every hash
+     * from about 3x, majors from about 1.5x and a bare wire at 1x.
+     * 在 {@code pxPerMrad} 下绘制的刻度间隔（密位）：1（全部）、5（仅大刻度）或 0（不画）。1080p、70 度下约 3 倍起画全部，
+     * 约 1.5 倍起只画大刻度，1 倍时细线上不画刻度。
+     */
+    public static int hashStepMrad(double pxPerMrad, int strokeScale) {
+        int s = Math.max(1, strokeScale);
+        if (pxPerMrad >= R2_MIN_MINOR_PITCH_PX * s) {
+            return 1;
+        }
+        return 5.0 * pxPerMrad >= R2_MIN_MAJOR_PITCH_PX * s ? 5 : 0;
+    }
+
     /** Stroke scale: {@code round(H / 1080)}, at least 1. / 线宽倍数：{@code round(H / 1080)}，至少为 1。 */
     public static int strokeScale(double heightPx) {
         return Double.isFinite(heightPx) ? Math.max(1, (int) Math.round(heightPx / 1080.0)) : 1;
@@ -182,13 +221,16 @@ public final class UsecReticleGeometry {
             out.etch(low, bottom, low + post, r + 1);
         }
 
-        // 1-mrad hashes to 10 on the sides and top; left-only hashes down the trunk to 16.
-        // 两侧与上方每 1 密位刻度到 10；主干只在左侧刻度，到 16。
+        // 1-mrad hashes to 10 on the sides and top and down the trunk to 16, every one across its wire (owner,
+        // 2026-11-11: the trunk's used to run left of the line only and read as half missing). Low magnifications keep
+        // only the hashes that stay apart (hashStepMrad). / 两侧与上方每 1 密位刻度到 10，主干到 16，每条刻度都横跨所在的线
+        // （所有者 2026-11-11：主干刻度原先只在线左侧，看起来像少了一半）。低倍率下只保留互不相碰的刻度（hashStepMrad）。
+        int step = hashStepMrad(pxPerMrad, s);
         for (int mrad = 1; mrad <= R2_HASH_EXTENT_MRAD; mrad++) {
             boolean major = mrad % 5 == 0;
             int half = Math.max((major ? 4 : 2) * s, px(ppt, major ? R2_MAJOR_HALF_MRAD : R2_MINOR_HALF_MRAD));
             int at = px(ppt, mrad);
-            if (at < side) {
+            if (step != 0 && mrad % step == 0 && at < side) {
                 out.etch(at, -half, at + s, half + 1);
                 out.etch(-at, -half, -at + s, half + 1);
                 out.etch(-half, -at, half + 1, -at + s);
@@ -196,10 +238,10 @@ public final class UsecReticleGeometry {
         }
         for (int mrad = 1; mrad <= R2_TRUNK_HASHES; mrad++) {
             boolean major = mrad % 5 == 0;
-            int half = Math.max((major ? 3 : 2) * s, px(ppt, major ? R2_MAJOR_HALF_MRAD : R2_MINOR_HALF_MRAD));
+            int half = Math.max((major ? 4 : 2) * s, px(ppt, major ? R2_MAJOR_HALF_MRAD : R2_MINOR_HALF_MRAD));
             int at = px(ppt, mrad);
-            if (at < trunk) {
-                out.etch(-half, at, 0, at + s);
+            if (step != 0 && mrad % step == 0 && at < trunk) {
+                out.etch(-half, at, half + 1, at + s);
             }
         }
 
@@ -215,53 +257,140 @@ public final class UsecReticleGeometry {
             out.illum(c[0], c[1], c[0] + s, c[1] + s, corner);
         }
 
-        addLadder(out, ppt, marksman, gap, trunk);
+        // Ladder labels stay below the wire's furniture: the tallest hash drawn, or the side posts on a bare wire.
+        // 抬枪标签位于十字线附属物下方：画出的最长刻度；细线上没有刻度时则为两侧粗柱。
+        out.keepOut(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY,
+                step != 0 ? Math.max(4 * s, px(ppt, R2_MAJOR_HALF_MRAD)) + 1 : low + post);
+        // The brackets go first so the ladder labels can keep off them. / 先画括号，抬枪标签才能避开它们。
         addRanging(out, ppt);
+        addLadder(out, ppt, marksman, d0 + dot);
+    }
+
+    /**
+     * {@link #px} before it is floored ({@code floor(exact) == px}). Label placement compares these instead of pixels:
+     * two rounded positions that both scale with the zoom would trade a pixel back and forth and make a label blink
+     * while the zoom eases; a placement that clears by unrounded positions also clears in pixels.
+     * 取整前的 {@link #px}（{@code floor(exact) == px}）。标签摆放比较这些值而不是像素：两个都随倍率缩放的取整位置会来回
+     * 差一个像素，使标签在倍率缓动时闪烁；按未取整位置不相碰的摆放，在像素上也不相碰。
+     */
+    private static double exact(double ppt, double mrad) {
+        return mradToPixels(mrad, ppt) + 0.5;
     }
 
     /**
      * AP ladder (illuminated): a bar per distance at its holdover, half width {@link #ladderHalfWidthMrad} (min 3 px),
-     * labels alternating right, left, right... in fixed columns. A hold inside the open centre needs no bar (Marksman
-     * at 100); a label that would touch the previous one on its side is dropped (low resolutions only).
+     * labels in fixed columns, alternating right, left, right... by distance. A hold inside the open centre needs no
+     * bar (Marksman at 100). Low magnifications thin it out. A bar is drawn only {@link #R2_MIN_DOT_GAP_PX} clear rows
+     * below the centre dot and {@link #R2_MIN_LADDER_PITCH_PX} from every bar that outranks it in
+     * {@link #R2_LADDER_PRIORITY}, shown or not, so zooming in only ever adds bars. A label is drawn only where its
+     * outlined digits keep off the wire's hashes and posts, the ranging brackets and every other label (the
+     * {@link Builder#keepOut keep-out} boxes): it tries its own side, then the other, then up to
+     * {@link #R2_LABEL_MAX_LOWER_PX} px lower while it stays nearer its own bar than the next one, else the bar stays
+     * bare. With room for everything that is the full layout: all five bars, each label centred on its bar on its
+     * own side.
      * AP 抬枪梯（发光）：每个距离在其抬枪角处一条横杠，半宽 {@link #ladderHalfWidthMrad}（至少 3 像素），标签在固定列中
-     * 右、左、右……交替。落在中心镂空内的抬枪无需横杠（精确枪手下的 100 格）；会碰到同侧上一个标签的标签被省略（仅在低分辨率）。
+     * 按距离右、左、右……交替。落在中心镂空内的抬枪无需横杠（精确枪手下的 100 格）。低倍率下会抽稀：横杠须与中心点相隔
+     * {@link #R2_MIN_DOT_GAP_PX} 个空行，并与 {@link #R2_LADDER_PRIORITY} 中优先级更高的每条横杠（无论是否显示）相距
+     * {@link #R2_MIN_LADDER_PITCH_PX}，因此放大时横杠只增不减。标签只在带描边的数字避开十字线的刻度与粗柱、测距括号和其他
+     * 所有标签（{@link Builder#keepOut 避让框}）时绘制：先试本侧，再试另一侧，再最多下移 {@link #R2_LABEL_MAX_LOWER_PX}
+     * 像素（仍须离自己的横杠比离下一条更近），否则横杠不带标签。空间足够时就是完整布局：五条横杠，标签各在本侧并与横杠居中。
+     *
+     * @param dotBottom first row below the illuminated centre dot / 发光中心点下方的第一行
      */
-    private static void addLadder(Builder out, double ppt, double marksman, int gap, int trunk) {
+    private static void addLadder(Builder out, double ppt, double marksman, int dotBottom) {
         int s = out.scale;
-        int digits = DIGIT_HEIGHT * s;
-        int[] lastBottom = {Integer.MIN_VALUE, Integer.MIN_VALUE};
-        for (int index = 0; index < AP_HOLDOVER_DISTANCES.size(); index++) {
-            int distance = AP_HOLDOVER_DISTANCES.get(index);
-            double mrad = apHoldoverMrad(distance, marksman);
-            int y = px(ppt, mrad);
-            if (mrad < R2_OPEN_CENTRE_MRAD || y >= trunk) {
-                continue;
+        int count = AP_HOLDOVER_DISTANCES.size();
+        double[] holdMrad = new double[count];
+        boolean[] drawn = new boolean[count];
+        for (int index = 0; index < count; index++) {
+            holdMrad[index] = apHoldoverMrad(AP_HOLDOVER_DISTANCES.get(index), marksman);
+        }
+        for (int rank = 0; rank < R2_LADDER_PRIORITY.size(); rank++) {
+            int index = AP_HOLDOVER_DISTANCES.indexOf(R2_LADDER_PRIORITY.get(rank));
+            int y = px(ppt, holdMrad[index]);
+            // On the trunk (by angle, so two rounded pixels never decide it) and inside the lens.
+            // 位于主干上（按角度判断，不由两个取整像素决定）且在镜片内。
+            boolean clear = holdMrad[index] >= R2_OPEN_CENTRE_MRAD && holdMrad[index] < R2_TRUNK_END_MRAD
+                    && y < out.radius && y >= dotBottom + R2_MIN_DOT_GAP_PX * s;
+            for (int above = 0; clear && above < rank; above++) {
+                double other = holdMrad[AP_HOLDOVER_DISTANCES.indexOf(R2_LADDER_PRIORITY.get(above))];
+                clear = other < R2_OPEN_CENTRE_MRAD || Math.abs(mradToPixels(holdMrad[index], ppt)
+                        - mradToPixels(other, ppt)) >= R2_MIN_LADDER_PITCH_PX * s;
             }
-            int half = Math.max(3 * s, px(ppt, ladderHalfWidthMrad(distance)));
-            out.illum(-half, y, half + 1, y + s, ILLUM_COLOR);
-            boolean right = index % 2 == 0;
-            int column = Math.max(half, px(ppt, R2_LABEL_COLUMN_MRAD)) + 4 * s;
-            int top = y - 3 * s;
-            int side = right ? 0 : 1;
-            boolean labelled = top > lastBottom[side];
-            if (labelled) {
-                lastBottom[side] = top + digits;
-                out.labels.add(new Label(Integer.toString(distance), right ? column : -column, top, s, Layer.ILLUM,
-                        right ? Anchor.LEFT : Anchor.RIGHT));
+            drawn[index] = clear;
+        }
+        int[] halves = new int[count];
+        for (int index = 0; index < count; index++) {
+            if (drawn[index]) {
+                int y = px(ppt, holdMrad[index]);
+                halves[index] = Math.max(3 * s, px(ppt, ladderHalfWidthMrad(AP_HOLDOVER_DISTANCES.get(index))));
+                out.illum(-halves[index], y, halves[index] + 1, y + s, ILLUM_COLOR);
             }
-            out.holdovers.add(new HoldoverMark(distance, mrad, y, labelled, right));
+        }
+        // Every label gets its centred place before any is lowered, in priority order, so a lowered label never
+        // takes the row a centred one needs. / 所有标签先按优先级放在居中位置，之后才下移，下移的标签不会占用居中标签的行。
+        Label[] labels = new Label[count];
+        for (int lower = 0; lower <= R2_LABEL_MAX_LOWER_PX; lower++) {
+            for (int distance : R2_LADDER_PRIORITY) {
+                int index = AP_HOLDOVER_DISTANCES.indexOf(distance);
+                if (!drawn[index] || labels[index] != null) {
+                    continue;
+                }
+                double bar = exact(ppt, holdMrad[index]);
+                int below = index + 1;
+                while (below < count && !drawn[below]) {
+                    below++;
+                }
+                if (below < count && 2.0 * lower * s >= exact(ppt, holdMrad[below]) - bar) {
+                    continue;
+                }
+                String text = Integer.toString(distance);
+                int column = Math.max(halves[index], px(ppt, R2_LABEL_COLUMN_MRAD)) + 4 * s;
+                double x = Math.max(Math.max(3 * s, exact(ppt, ladderHalfWidthMrad(distance))),
+                        exact(ppt, R2_LABEL_COLUMN_MRAD)) + 4 * s;
+                double width = approximateDigitWidth(text, s);
+                double top = bar + (lower - 3) * s;
+                boolean ownRight = index % 2 == 0;
+                for (boolean right : new boolean[]{ownRight, !ownRight}) {
+                    double x0 = right ? x : -x - width;
+                    if (out.clearOfKeepOuts(x0 - s, top - s, x0 + width + s, top + (DIGIT_HEIGHT + 1) * s)) {
+                        out.keepOut(x0, top, x0 + width, top + DIGIT_HEIGHT * s);
+                        labels[index] = new Label(text, right ? column : -column, px(ppt, holdMrad[index])
+                                + (lower - 3) * s, s, Layer.ILLUM, right ? Anchor.LEFT : Anchor.RIGHT);
+                        out.labels.add(labels[index]);
+                        break;
+                    }
+                }
+            }
+        }
+        for (int index = 0; index < count; index++) {
+            if (drawn[index]) {
+                Label label = labels[index];
+                out.holdovers.add(new HoldoverMark(AP_HOLDOVER_DISTANCES.get(index), holdMrad[index],
+                        px(ppt, holdMrad[index]), label != null,
+                        label != null ? label.anchor() == Anchor.LEFT : index % 2 == 0));
+            }
         }
     }
 
     /**
      * PSO-style person-height brackets: feet on a baseline 30 mrad below centre, one upright per distance whose height
      * is a standing player at that range, a top serif, the range underneath and a 4 x 8 legend glyph at the right end.
-     * Pieces that would leave the lens are skipped.
+     * Pieces that would leave the lens are skipped, and the whole block is left out while its columns are closer than
+     * {@link #R2_MIN_RANGING_PITCH_PX} (low magnifications, where the brackets bunch up under the ladder).
      * PSO 式人形高度括号：脚部位于中心下方 30 密位的基线上，每个距离一根竖线，高度为该距离下的站立玩家，顶部有短横，
-     * 下方标注距离，右端有 4 x 8 图例小人。会超出镜片的部分被跳过。
+     * 下方标注距离，右端有 4 x 8 图例小人。会超出镜片的部分被跳过；列间距不足 {@link #R2_MIN_RANGING_PITCH_PX} 时
+     * （低倍率，括号会挤在抬枪梯下方）整块不画。
      */
     private static void addRanging(Builder out, double ppt) {
         int s = out.scale;
+        double pitchMrad = Double.MAX_VALUE;
+        for (int index = 1; index < R2_RANGING_X_MRAD.size(); index++) {
+            pitchMrad = Math.min(pitchMrad, Math.abs(R2_RANGING_X_MRAD.get(index) - R2_RANGING_X_MRAD.get(index - 1)));
+        }
+        if (mradToPixels(pitchMrad, ppt) < R2_MIN_RANGING_PITCH_PX * s) {
+            return;
+        }
         int base = px(ppt, R2_RANGING_BASE_MRAD);
         double farthest = R2_RANGING_X_MRAD.stream().mapToDouble(Double::doubleValue).max().orElse(0.0);
         double nearest = R2_RANGING_X_MRAD.stream().mapToDouble(Double::doubleValue).min().orElse(0.0);
@@ -272,6 +401,10 @@ public final class UsecReticleGeometry {
             return;
         }
         out.etch(left, base, right + 1, base + s);
+        // Ladder labels keep off the baseline and everything under it, and off each bracket from its serif down.
+        // 抬枪标签避开基线及其下方的一切，并避开每个括号自顶部短横以下的部分。
+        out.keepOut(Double.NEGATIVE_INFINITY, exact(ppt, R2_RANGING_BASE_MRAD), Double.POSITIVE_INFINITY,
+                Double.POSITIVE_INFINITY);
         int serif = Math.max(2 * s, px(ppt, R2_SERIF_HALF_MRAD));
         int lastLabelLeft = Integer.MAX_VALUE;
         for (int index = 0; index < AP_HOLDOVER_DISTANCES.size(); index++) {
@@ -280,6 +413,9 @@ public final class UsecReticleGeometry {
             int top = px(ppt, R2_RANGING_BASE_MRAD - personHeightMrad(distance));
             out.etch(x, top, x + s, base);
             out.etch(x - serif, top, x + serif + 1, top + s);
+            double column = -exact(ppt, R2_RANGING_X_MRAD.get(index));
+            out.keepOut(column - serif, exact(ppt, R2_RANGING_BASE_MRAD - personHeightMrad(distance)),
+                    column + serif + 1, Double.POSITIVE_INFINITY);
             // Labels march left from the nearest bracket; one that would touch its neighbour is dropped.
             // 标签自最近的括号向左排列；会碰到相邻标签的标签被省略。
             String text = Integer.toString(distance);
@@ -395,6 +531,7 @@ public final class UsecReticleGeometry {
         final int scale;
         final List<Rect> rects = new ArrayList<>();
         final List<Label> labels = new ArrayList<>();
+        final List<double[]> keepOuts = new ArrayList<>();
         final List<HoldoverMark> holdovers = new ArrayList<>();
 
         Builder(int radius, int scale) {
@@ -422,6 +559,24 @@ public final class UsecReticleGeometry {
 
         boolean inside(int x, int y) {
             return Math.hypot(x, y) <= radius;
+        }
+
+        /**
+         * Reserves an area ladder labels must keep off, in unrounded pixels ({@link #exact}), [x0, x1) x [y0, y1).
+         * 以未取整像素（{@link #exact}）登记一块抬枪标签必须避开的区域。
+         */
+        void keepOut(double x0, double y0, double x1, double y1) {
+            keepOuts.add(new double[]{x0, y0, x1, y1});
+        }
+
+        /** True when the area touches no keep-out. / 该区域不与任何避让框相交时为 true。 */
+        boolean clearOfKeepOuts(double x0, double y0, double x1, double y1) {
+            for (double[] box : keepOuts) {
+                if (box[0] < x1 && x0 < box[2] && box[1] < y1 && y0 < box[3]) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         Layout build() {

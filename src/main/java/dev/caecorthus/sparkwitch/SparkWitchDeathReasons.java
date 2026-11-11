@@ -86,6 +86,13 @@ public final class SparkWitchDeathReasons {
      * 的词条与一切护盾；攻击本身正常结算（所有者 2026-10-31）。
      */
     public static final Identifier DUEL_INTERFERENCE = SparkWitch.id("duel_interference");
+    /**
+     * 二阶堂希罗's Rope finished its strangle (窒息 / Asphyxiated). The kill bypasses shields without consuming them
+     * (owner spec 2026-11-11); how it is issued belongs to {@code item/rope/RopeStrangleService}.
+     * 二阶堂希罗的绳索完成勒杀（窒息）。该击杀无视护盾且不消耗护盾（所有者规格 2026-11-11）；具体的击杀方式由
+     * {@code item/rope/RopeStrangleService} 负责。
+     */
+    public static final Identifier STRANGLED = SparkWitch.id("strangled");
 
     private SparkWitchDeathReasons() {
     }

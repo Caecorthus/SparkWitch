@@ -3,7 +3,9 @@ package dev.caecorthus.sparkwitch.roles.civilian.saint;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import net.minecraft.util.Identifier;
@@ -71,11 +73,11 @@ public final class SaintHudLayoutRules {
     /**
      * SparkWitch roles without a witch skill that still draw their own skill line in the shared corner slot (5 px
      * padding, one font row): the Ragpicker, the Dominator (always on, PR #192) and the Savior (G-skill line, PR #200);
-     * the Specter (PR #207) and the Charon (PR #202) share the padding but reserve two rows above
-     * ({@link #ownsTwoCornerRows}). Reserved by role so the Karma line any player can carry sits above it.
+     * the Specter (PR #207), the Charon (PR #202), 橘雪莉 (PR #206) and 二阶堂希罗 share the padding but reserve two rows
+     * above ({@link #ownsTwoCornerRows}). Reserved by role so the Karma line any player can carry sits above it.
      * 没有魔女技能、却在共享右下角位置绘制自有技能行（5 像素边距、一行字高）的 SparkWitch 职业：拾荒者、支配者（常驻显示，
-     * PR #192）与救世主（G 技能行，PR #200）；幽魂（PR #207）与卡戎（PR #202）共用该边距，但向上预留两行
-     * （{@link #ownsTwoCornerRows}）。按职业预留，使任何玩家都可能带有的业障行位于其上方。
+     * PR #192）与救世主（G 技能行，PR #200）；幽魂（PR #207）、卡戎（PR #202）、橘雪莉（PR #206）与二阶堂希罗共用该边距，但向上
+     * 预留两行（{@link #ownsTwoCornerRows}）。按职业预留，使任何玩家都可能带有的业障行位于其上方。
      */
     private static boolean ownsCornerSkillLine(Identifier roleId) {
         return JunkerRules.ROLE_ID.equals(roleId)
@@ -86,13 +88,18 @@ public final class SaintHudLayoutRules {
     }
 
     /**
-     * Roles that draw two corner rows: the Specter (PR #207: skill one below, the Otherworld state above) and the
+     * Roles that draw two corner rows: the Specter (PR #207: skill one below, the Otherworld state above), the
      * Charon (PR #202, {@code client/ferryman/FerrymanHud}: the pardon above, the ferry below; both rows lift together
-     * above the hotbar column at narrow GUI widths, which still leaves the reserved corner free).
-     * 绘制两行右下角提示的职业：幽魂（PR #207：下行技能一，上行里世界状态）与卡戎（PR #202，
-     * {@code client/ferryman/FerrymanHud}：上行宽恕，下行摆渡；GUI 较窄时两行一同抬升到快捷栏列之上，预留的角落依然空着）。
+     * above the hotbar column at narrow GUI widths, which still leaves the reserved corner free), 橘雪莉 (PR #206,
+     * {@code client/sherry/SherryHud}: 推演 above, her own 巨力魔法 below, with the Charon's layout and lift) and
+     * 二阶堂希罗 ({@code client/hud/HiroHudRenderer}: 魔女化 above, 死亡回归 below).
+     * 绘制两行右下角提示的职业：幽魂（PR #207：下行技能一，上行里世界状态）、卡戎（PR #202，
+     * {@code client/ferryman/FerrymanHud}：上行宽恕，下行摆渡；GUI 较窄时两行一同抬升到快捷栏列之上，预留的角落依然空着）、
+     * 橘雪莉（PR #206，{@code client/sherry/SherryHud}：上行推演，下行她自己的巨力魔法，布局与抬升同卡戎）
+     * 与二阶堂希罗（{@code client/hud/HiroHudRenderer}：上行魔女化，下行死亡回归）。
      */
     private static boolean ownsTwoCornerRows(Identifier roleId) {
-        return SpecterRules.ROLE_ID.equals(roleId) || FerrymanRules.ROLE_ID.equals(roleId);
+        return SpecterRules.ROLE_ID.equals(roleId) || FerrymanRules.ROLE_ID.equals(roleId)
+                || SherryRules.ROLE_ID.equals(roleId) || HiroRules.ROLE_ID.equals(roleId);
     }
 }

@@ -52,6 +52,7 @@
       "sparkwitch:time_theft",
       "sparkwitch:time_gift",
       "sparkwitch:control_expert_status",
+      "sparkwitch:rope_hold",
       "sparkwitch:holy_flash",
       "sparkwitch:seeker_status",
       "sparkwitch:fisher_spirit",
@@ -100,7 +101,10 @@
       "sparkwitch:ferryman_feign",
       "sparkwitch:ferryman_feign_veil",
       "sparkwitch:ferryman_moment",
-      "sparkwitch:hanna_player"
+      "sparkwitch:hanna_player",
+      "sparkwitch:sherry",
+      "sparkwitch:nikaido_hiro_return",
+      "sparkwitch:nikaido_hiro_witchification"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",
