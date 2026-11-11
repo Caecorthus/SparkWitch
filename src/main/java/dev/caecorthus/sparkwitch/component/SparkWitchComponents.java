@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.component;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
+import dev.caecorthus.sparkwitch.item.rope.RopeHoldComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
@@ -139,6 +140,12 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, ControlExpertStatusComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(ControlExpertStatusComponent::new);
+        // Rope strangle hold (2026-11-11): which side of a strangle the owner is on, owner-synced and transient; kept
+        // beside the stun status because it drives the same client input lock.
+        // 绳索勒杀定身（2026-11-11）：拥有者处于勒杀的哪一方，只同步给本人且不保存；与眩晕状态相邻，因为它驱动同一套客户端输入锁。
+        registry.beginRegistration(PlayerEntity.class, RopeHoldComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(RopeHoldComponent::new);
         registry.beginRegistration(PlayerEntity.class, HolyFlashComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HolyFlashComponent::new);

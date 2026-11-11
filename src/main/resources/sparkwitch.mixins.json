@@ -150,6 +150,8 @@
     "controlexpert.ControlExpertPoliceGunMixin",
     "controlexpert.ControlExpertStunPayloadGuardMixin",
     "controlexpert.ScreenHandlerControlExpertItemMixin",
+    "rope.GameFunctionsRopeStrangleInterruptMixin",
+    "rope.NoellesRopeShieldPassMixin",
     "hunter.GameFunctionsHunterDropMixin",
     "saint.GameFunctionsHolyFlashDropMixin",
     "fiend.BomberPlayerComponentFiendLedgerMixin",
