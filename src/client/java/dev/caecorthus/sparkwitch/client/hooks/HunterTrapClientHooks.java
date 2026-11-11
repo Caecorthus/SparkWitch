@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.hooks;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.client.hunter.HunterTrapDismantleHud;
 import dev.caecorthus.sparkwitch.client.hunter.HunterTrapVisibilityHelper;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapEntity;
@@ -45,14 +46,16 @@ public final class HunterTrapClientHooks {
 
     /**
      * While a class-1 player is channelling a dismantle on a trap, the Hunter sees that player outlined in the
-     * player's own role colour. The trap syncs its dismantler, so every client agrees on when the channel started and
-     * the entity clears it once the presses stop.
-     * 第一类玩家正在引导拆除时，猎人能看到该玩家以自身职业色描边。夹子同步了拆除者，因此每个客户端对引导何时开始是一致的，
-     * 按键停止后由实体自行清除。
+     * player's own role colour. The trap syncs its dismantler and clears it once the presses stop, so the outline
+     * ends with the channel on every client; the lookup is the per-tick set in {@link HunterTrapDismantleHud}, not a
+     * world query per rendered player.
+     * 第一类玩家正在引导拆除时，猎人能看到该玩家以自身职业色描边。夹子同步其拆除者并在按键停止后清除，因此描边在每个客户端
+     * 都随引导一起结束；查询用的是 {@link HunterTrapDismantleHud} 每刻整理的集合，而不是每渲染一名玩家就查一次世界。
      */
     @Nullable
     private static GetInstinctHighlight.HighlightResult dismantlerHighlight(Entity target) {
-        if (!(target instanceof PlayerEntity targetPlayer)) {
+        if (!(target instanceof PlayerEntity targetPlayer)
+                || !HunterTrapDismantleHud.isDismantling(targetPlayer.getUuid())) {
             return null;
         }
         PlayerEntity viewer = MinecraftClient.getInstance().player;
@@ -62,14 +65,6 @@ public final class HunterTrapClientHooks {
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(viewer.getWorld());
         Role viewerRole = gameComponent.getRole(viewer);
         if (viewerRole == null || !HunterRules.ROLE_ID.equals(viewerRole.identifier())) {
-            return null;
-        }
-        boolean dismantling = !viewer.getWorld().getEntitiesByClass(
-                HunterTrapEntity.class,
-                targetPlayer.getBoundingBox().expand(4.0D),
-                candidate -> targetPlayer.getUuid().equals(candidate.getDismantlerUuid())
-        ).isEmpty();
-        if (!dismantling) {
             return null;
         }
         Role targetRole = gameComponent.getRole(targetPlayer);

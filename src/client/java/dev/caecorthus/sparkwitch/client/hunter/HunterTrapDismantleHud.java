@@ -1,36 +1,29 @@
 package dev.caecorthus.sparkwitch.client.hunter;
 
-import dev.caecorthus.sparkwitch.compat.SparkTraitsMoodFlagBridge;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapEntity;
-import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
-import dev.doctor4t.wathe.api.Faction;
-import dev.doctor4t.wathe.api.Role;
-import dev.doctor4t.wathe.cca.GameWorldComponent;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.Entity;
 import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.Box;
-import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 /**
- * HUD for the class-1 dismantle channel: "拆除中", ten boxes and the remaining seconds with one decimal, just above the
- * hotbar, styled after the owner's reference image. The timer starts on the first accepted right-click and restarts
- * whenever a press gap exceeds {@link HunterRules#DISMANTLE_PRESS_TIMEOUT_TICKS}, matching the server session.
- * 第一类拆除引导的 HUD：物品栏上方显示“拆除中”、十个方框与一位小数的剩余秒数，样式参照所有者提供的图片。计时从第一次被
- * 接受的右键开始，按键间隔超过 {@link HunterRules#DISMANTLE_PRESS_TIMEOUT_TICKS} 时与服务器会话一样重新开始。
+ * Client view of the class-1 dismantle channel. Once per client tick it reads the channel every loaded trap syncs
+ * (dismantler and start tick): the local player's own channel drives the HUD ("拆除中", ten boxes and the remaining
+ * seconds with one decimal, just above the hotbar), and the set of dismantlers answers the Hunter's highlight. Nothing
+ * here decides anything: the server owns the channel, so the bar restarts and ends exactly when the server's does.
+ * 第一类拆除引导的客户端视图。每个客户端刻读取一次所有已加载夹子同步的引导（拆除者与开始刻）：本地玩家自己的引导驱动 HUD
+ * （物品栏上方的“拆除中”、十个方框与一位小数的剩余秒数），拆除者集合供猎人的高亮查询。这里不做任何判定：引导归服务端所有，
+ * 因此进度条的重新开始与结束都与服务端完全一致。
  */
 public final class HunterTrapDismantleHud {
     private static final int SEGMENTS = 10;
@@ -41,10 +34,11 @@ public final class HunterTrapDismantleHud {
     private static final String EMPTY_BLOCK = "□";
     private static final String BRACKET_OPEN = "[";
     private static final String BRACKET_CLOSE = "]";
+    private static final long NO_CHANNEL = -1L;
 
-    private static @Nullable HunterTrapEntity trap;
-    private static long startTick;
-    private static long lastPressTick;
+    // Client thread only (tick event, HUD and outline queries). / 仅在客户端线程读写（刻事件、HUD 与描边查询）。
+    private static final Set<UUID> DISMANTLERS = new HashSet<>();
+    private static long ownChannelStartTick = NO_CHANNEL;
     private static boolean registered;
 
     private HunterTrapDismantleHud() {
@@ -55,95 +49,53 @@ public final class HunterTrapDismantleHud {
             return;
         }
         registered = true;
-        UseBlockCallback.EVENT.register(HunterTrapDismantleHud::interact);
+        ClientTickEvents.END_CLIENT_TICK.register(HunterTrapDismantleHud::scanChannels);
         HudRenderCallback.EVENT.register((context, tickCounter) -> render(context));
     }
 
-    private static ActionResult interact(
-            PlayerEntity player,
-            World world,
-            Hand hand,
-            BlockHitResult hitResult
-    ) {
-        if (!world.isClient || hand != Hand.MAIN_HAND || !player.isSneaking()
-                || !(player instanceof ClientPlayerEntity)) {
-            return ActionResult.PASS;
-        }
-        GameWorldComponent game = GameWorldComponent.KEY.get(world);
-        if (!game.isRunning()) {
-            return ActionResult.PASS;
-        }
-        Role role = game.getRole(player);
-        if (role == null) {
-            return ActionResult.PASS;
-        }
-        Identifier roleId = role.identifier();
-        if (HunterRules.isTrapKiller(roleId, role.getFaction() == Faction.KILLER)) {
-            // Class 2 removes the trap on the first press; there is no channel to show.
-            // 第二类第一次按键就拆除，没有可显示的引导。
-            return ActionResult.PASS;
-        }
-        if (!HunterRules.isTrapPolice(roleId, isRegisteredPolice(role))
-                && !SparkTraitsMoodFlagBridge.isImpostorActive(player)) {
-            return ActionResult.PASS;
-        }
-        HunterTrapEntity hit = nearestTrap(world, hitResult);
-        if (hit == null || !player.canSee(hit)) {
-            return ActionResult.PASS;
-        }
-        press(hit, world.getTime());
-        return ActionResult.SUCCESS;
+    /** Whether a loaded trap reports this player as its dismantler. / 是否有已加载的夹子把该玩家记为拆除者。 */
+    public static boolean isDismantling(UUID playerUuid) {
+        return !DISMANTLERS.isEmpty() && DISMANTLERS.contains(playerUuid);
     }
 
-    private static void press(HunterTrapEntity target, long now) {
-        if (trap != target || now - lastPressTick > HunterRules.DISMANTLE_PRESS_TIMEOUT_TICKS) {
-            trap = target;
-            startTick = now;
+    private static void scanChannels(MinecraftClient client) {
+        DISMANTLERS.clear();
+        ownChannelStartTick = NO_CHANNEL;
+        ClientWorld world = client.world;
+        ClientPlayerEntity player = client.player;
+        if (world == null || player == null) {
+            return;
         }
-        lastPressTick = now;
-    }
-
-    private static boolean isRegisteredPolice(Role role) {
-        try {
-            return PoliceRoles.contains(role);
-        } catch (RuntimeException | LinkageError ignored) {
-            return false;
+        UUID self = player.getUuid();
+        for (Entity entity : world.getEntities()) {
+            if (!(entity instanceof HunterTrapEntity trap)) {
+                continue;
+            }
+            UUID dismantler = trap.getDismantlerUuid();
+            if (dismantler == null) {
+                continue;
+            }
+            DISMANTLERS.add(dismantler);
+            if (dismantler.equals(self)) {
+                ownChannelStartTick = trap.getDismantleStartTick();
+            }
         }
-    }
-
-    private static @Nullable HunterTrapEntity nearestTrap(World world, BlockHitResult hitResult) {
-        Box searchBox = new Box(hitResult.getBlockPos()).expand(1.5D);
-        return world.getEntitiesByClass(
-                        HunterTrapEntity.class,
-                        searchBox,
-                        candidate -> candidate.squaredDistanceTo(hitResult.getPos()) < 2.25D
-                ).stream()
-                .min(Comparator.comparingDouble((HunterTrapEntity candidate) ->
-                                candidate.squaredDistanceTo(hitResult.getPos()))
-                        .thenComparingInt(HunterTrapEntity::getId))
-                .orElse(null);
     }
 
     private static void render(DrawContext context) {
+        long startTick = ownChannelStartTick;
+        if (startTick == NO_CHANNEL) {
+            return;
+        }
         MinecraftClient client = MinecraftClient.getInstance();
-        HunterTrapEntity target = trap;
-        if (target == null) {
-            return;
-        }
-        World world = client.world;
+        ClientWorld world = client.world;
         ClientPlayerEntity player = client.player;
-        if (world == null || player == null || target.isRemoved() || player.isSpectator()) {
-            reset();
-            return;
-        }
-        long now = world.getTime();
-        if (now - lastPressTick > HunterRules.DISMANTLE_PRESS_TIMEOUT_TICKS) {
-            reset();
+        if (world == null || player == null || player.isSpectator()) {
             return;
         }
 
-        long elapsed = Math.max(0L, now - startTick);
-        long remainingTicks = Math.max(0L, HunterRules.DISMANTLE_CHANNEL_TICKS - elapsed);
+        long elapsed = Math.clamp(world.getTime() - startTick, 0L, (long) HunterRules.DISMANTLE_CHANNEL_TICKS);
+        long remainingTicks = HunterRules.DISMANTLE_CHANNEL_TICKS - elapsed;
         int filled = (int) Math.min(SEGMENTS,
                 (elapsed * SEGMENTS + HunterRules.DISMANTLE_CHANNEL_TICKS - 1) / HunterRules.DISMANTLE_CHANNEL_TICKS);
 
@@ -172,11 +124,5 @@ public final class HunterTrapDismantleHud {
         context.drawTextWithShadow(client.textRenderer, Text.literal(BRACKET_CLOSE), x, y, TEXT_COLOR);
         x += client.textRenderer.getWidth(BRACKET_CLOSE);
         context.drawTextWithShadow(client.textRenderer, Text.literal(" " + time), x, y, TEXT_COLOR);
-    }
-
-    private static void reset() {
-        trap = null;
-        startTick = 0L;
-        lastPressTick = 0L;
     }
 }

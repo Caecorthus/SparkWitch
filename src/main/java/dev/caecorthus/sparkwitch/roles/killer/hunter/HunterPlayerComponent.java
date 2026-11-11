@@ -83,7 +83,14 @@ public final class HunterPlayerComponent implements AutoSyncedComponent, ServerT
         return lastTrapPlacerUuid;
     }
 
-    public boolean healOneFractureLayer() {        if (!injury.healOneFractureLayer()) {
+    /** Forgets the last trap catch once its reward window has been settled. / 奖励时间窗结算后清除上次夹住的记录。 */
+    public void clearTrapCatch() {
+        lastTrapTick = -1L;
+        lastTrapPlacerUuid = null;
+    }
+
+    public boolean healOneFractureLayer() {
+        if (!injury.healOneFractureLayer()) {
             return false;
         }
         refreshFractureState();
@@ -164,8 +171,7 @@ public final class HunterPlayerComponent implements AutoSyncedComponent, ServerT
         ownedTrapUuids.clear();
         clearPoisonAttribution();
         clearFractureState();
-        lastTrapTick = -1L;
-        lastTrapPlacerUuid = null;
+        clearTrapCatch();
         sync();
     }
 

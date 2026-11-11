@@ -51,15 +51,21 @@ public final class HunterTrapVisibilityHelper {
         Identifier roleId = role == null ? null : role.identifier();
         boolean killerFaction = role != null && role.getFaction() == Faction.KILLER;
         boolean deadSpectator = isDeadMatchSpectator(viewer, gameComponent);
-        boolean trapKiller = HunterRules.isTrapKiller(roleId, killerFaction);
         // Class 1 (police, plus any SparkTraits Impostor holder) and class 2 (every killer, the Loose End and the
-        // Undercover) both see a trap through the police rule: line of sight. Class 2 keeps the old instinct x-ray:
-        // holding the instinct key turns it into a through-wall view. The trait probe fails closed. Owner 2026-11-11.
+        // Undercover) both see a trap through the police rule: line of sight. Only the killer faction keeps the old
+        // x-ray, and only while the instinct key is held; the Loose End and the Undercover are class 2 by id, have no
+        // killer instinct, and so stay on line of sight whatever key they hold. Killers and the witch-side instinct
+        // viewers never read the police answer, so the registry and trait lookups run only for the remaining viewers
+        // (this is evaluated per trap, per frame). The trait probe fails closed. Owner 2026-11-11.
         // 第一类（警职，外加任何带 SparkTraits 内鬼词条的玩家）与第二类（所有杀手、亡命徒和卧底）都走警察规则看见捕兽夹：
-        // 需要视线。第二类保留旧的透视本能：按住本能键时变为隔墙视野。词条查询失败即关闭（所有者 2026-11-11）。
-        boolean policeViewer = HunterRules.isTrapPolice(roleId, isRegisteredPolice(role))
-                || trapKiller
-                || SparkTraitsMoodFlagBridge.isImpostorActive(viewer);
+        // 需要视线。只有杀手阵营保留旧的透视，且仅在按住本能键时；亡命徒与卧底按 ID 归入第二类，没有杀手本能，无论按什么键都
+        // 只走视线。杀手与魔女方本能观察者不会读取警察判定，因此注册表与词条查询只对其余观察者执行（本方法每帧对每个夹子求值）。
+        // 词条查询失败即关闭（所有者 2026-11-11）。
+        boolean policeViewer = !killerFaction
+                && !HunterRules.isInstinctTrapViewer(roleId)
+                && (HunterRules.isTrapKiller(roleId, false)
+                || HunterRules.isTrapPolice(roleId, isRegisteredPolice(role))
+                || SparkTraitsMoodFlagBridge.isImpostorActive(viewer));
         // The instinct key stays eager: its Fear gate may post the "instinct blocked" action-bar line, so it keeps its
         // old call count. The pure Obscure/Fear check and the raycast run only when the rule reads them.
         // 本能键保持立即求值：其恐惧门禁可能发送“本能被封锁”动作栏提示，因此调用次数不变。纯粹的障眼/恐惧检查与
@@ -68,7 +74,7 @@ public final class HunterTrapVisibilityHelper {
         return HunterRules.trapVisibility(
                 roleId,
                 deadSpectator,
-                trapKiller,
+                killerFaction,
                 policeViewer,
                 hasLineOfSight,
                 () -> instinctKey && !WitchInstinctSuppressionClientHooks.shouldSuppressInstinctHighlight()

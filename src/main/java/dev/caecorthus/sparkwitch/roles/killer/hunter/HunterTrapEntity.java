@@ -53,19 +53,24 @@ public final class HunterTrapEntity extends Entity {
             HunterTrapEntity.class,
             TrackedDataHandlerRegistry.BOOLEAN
     );
-    // Who is currently channelling a class-1 dismantle on this trap, synced so the Hunter can highlight them and so
-    // every client drops a stale highlight once the presses stop (owner 2026-11-11).
-    // 当前正在引导第一类拆除的玩家，同步出去以便猎人对其实施高亮，并在按键停止后让所有客户端撤掉过期高亮（所有者 2026-11-11）。
+    // The class-1 dismantle channel is owned by the trap and server-authoritative: one dismantler at a time, synced with
+    // the world tick it started on. The dismantler's HUD and the Hunter's highlight both read these two values, so
+    // neither can disagree with the server about who is channelling or since when (2026-11-11).
+    // 第一类拆除引导归夹子所有，以服务端为准：同一时间只有一名拆除者，并连同开始时的世界刻一起同步。拆除者的 HUD 与猎人的
+    // 高亮都读这两个值，因此对“谁在引导、从何时开始”不会与服务端不一致（2026-11-11）。
     private static final TrackedData<Optional<UUID>> DISMANTLER_UUID = DataTracker.registerData(
             HunterTrapEntity.class,
             TrackedDataHandlerRegistry.OPTIONAL_UUID
+    );
+    private static final TrackedData<Long> DISMANTLE_START_TICK = DataTracker.registerData(
+            HunterTrapEntity.class,
+            TrackedDataHandlerRegistry.LONG
     );
     private static final double TRIGGER_EXPAND_XZ = 0.35D;
     private static final double TRIGGER_EXPAND_Y = 0.15D;
 
     private @Nullable UUID ownerUuid;
     private @Nullable UUID poisonerUuid;
-    private @Nullable UUID dismantlerUuid;
     private long dismantleLastPressTick;
     private int armTicks = HunterRules.TRAP_ARM_TICKS;
     private @Nullable BlockPos supportPos;
@@ -83,6 +88,7 @@ public final class HunterTrapEntity extends Entity {
         builder.add(OWNER_UUID, Optional.empty());
         builder.add(POISONED, false);
         builder.add(DISMANTLER_UUID, Optional.empty());
+        builder.add(DISMANTLE_START_TICK, 0L);
     }
 
     public void setOwner(@Nullable PlayerEntity owner) {
@@ -128,22 +134,46 @@ public final class HunterTrapEntity extends Entity {
         this.supportPos = supportPos.toImmutable();
     }
 
-    /** Records or clears the class-1 dismantler, along with the last press that keeps the channel alive.
-     * 记录或清除第一类拆除者，以及维持引导的最后一次按键。 */
-    public void setDismantler(@Nullable UUID dismantler, long pressTick) {
-        dismantlerUuid = dismantler;
-        dismantleLastPressTick = pressTick;
-        dataTracker.set(DISMANTLER_UUID, Optional.ofNullable(dismantler));
+    /**
+     * Server side: one accepted right-click of a class-1 dismantle. Starts the channel, or continues it when the same
+     * player pressed within the timeout; a press while another player's channel is alive is ignored. Returns true once
+     * the channel has run its full length, which is when the caller removes the trap.
+     * 服务端：第一类拆除的一次有效右键。开始引导，或在同一玩家于超时内再次按键时延续引导；他人引导仍然存续时的按键被忽略。
+     * 引导满时长后返回 true，由调用方移除夹子。
+     */
+    public boolean pressDismantle(UUID dismantler, long now) {
+        UUID current = getDismantlerUuid();
+        boolean alive = current != null
+                && HunterRules.isDismantleChannelAlive(now, dismantleLastPressTick);
+        if (alive && !current.equals(dismantler)) {
+            return false;
+        }
+        if (!alive) {
+            dataTracker.set(DISMANTLER_UUID, Optional.of(dismantler));
+            dataTracker.set(DISMANTLE_START_TICK, now);
+        }
+        dismantleLastPressTick = now;
+        return HunterRules.isDismantleChannelComplete(now, dataTracker.get(DISMANTLE_START_TICK));
     }
 
-    /** The player channelling a dismantle, else null. / 正在引导拆除的玩家，否则为 null。 */
+    /** Ends the channel without removing the trap. / 结束引导但不移除夹子。 */
+    public void clearDismantle() {
+        dataTracker.set(DISMANTLER_UUID, Optional.empty());
+        dataTracker.set(DISMANTLE_START_TICK, 0L);
+        dismantleLastPressTick = 0L;
+    }
+
+    /** The player channelling a dismantle, else null; tracked, so clients see it clear. / 正在引导拆除的玩家，否则为 null；
+     * 该值经同步，客户端能看到它被清除。 */
     @Nullable
     public UUID getDismantlerUuid() {
-        Optional<UUID> tracked = dataTracker.get(DISMANTLER_UUID);
-        if (tracked.isPresent()) {
-            dismantlerUuid = tracked.get();
-        }
-        return dismantlerUuid;
+        return dataTracker.get(DISMANTLER_UUID).orElse(null);
+    }
+
+    /** World tick the current channel started on; meaningful only while {@link #getDismantlerUuid()} is non-null.
+     * 当前引导开始时的世界刻；仅在 {@link #getDismantlerUuid()} 非空时有意义。 */
+    public long getDismantleStartTick() {
+        return dataTracker.get(DISMANTLE_START_TICK);
     }
 
     @Override
@@ -185,25 +215,9 @@ public final class HunterTrapEntity extends Entity {
             discardTrap();
             return;
         }
+        tickDismantleChannel();
         if (armTicks > 0) {
             return;
-        }
-
-        // While the channel lives, every item of the dismantler stays on the 0.4 s cooldown, refreshed each tick; once
-        // the trap is removed or the presses stop, that cooldown simply finishes counting down.
-        // 引导存续期间，拆除者背包内所有物品由这里每刻保持在 0.4 秒冷却上；夹子消失或按键停止后，该冷却自然走完。
-        if (dismantlerUuid != null) {
-            if (getWorld().getTime() - dismantleLastPressTick > HunterRules.DISMANTLE_PRESS_TIMEOUT_TICKS) {
-                setDismantler(null, 0L);
-            } else {
-                PlayerEntity dismantler = getWorld().getPlayerByUuid(dismantlerUuid);
-                if (dismantler != null) {
-                    HunterFeatureService.holdInventoryCooldown(
-                            dismantler,
-                            HunterRules.DISMANTLE_HELD_ITEM_COOLDOWN_TICKS
-                    );
-                }
-            }
         }
 
         Box triggerBox = getBoundingBox().expand(TRIGGER_EXPAND_XZ, TRIGGER_EXPAND_Y, TRIGGER_EXPAND_XZ);
@@ -222,6 +236,25 @@ public final class HunterTrapEntity extends Entity {
                 break;
             }
         }
+    }
+
+    /**
+     * Keeps the dismantler's whole inventory on the short held cooldown while the channel lives, and ends the channel
+     * once the presses stop (or the dismantler left), which also drops the Hunter's highlight on every client.
+     * 引导存续期间把拆除者整个背包保持在短暂的按住冷却上；按键停止（或拆除者离开）后结束引导，同时让所有客户端撤掉猎人的高亮。
+     */
+    private void tickDismantleChannel() {
+        UUID dismantlerUuid = getDismantlerUuid();
+        if (dismantlerUuid == null) {
+            return;
+        }
+        PlayerEntity dismantler = getWorld().getPlayerByUuid(dismantlerUuid);
+        if (dismantler == null
+                || !HunterRules.isDismantleChannelAlive(getWorld().getTime(), dismantleLastPressTick)) {
+            clearDismantle();
+            return;
+        }
+        HunterFeatureService.forceCarriedItemCooldown(dismantler, HunterRules.DISMANTLE_HELD_ITEM_COOLDOWN_TICKS);
     }
 
     private boolean canCatch(PlayerEntity player) {
@@ -244,7 +277,7 @@ public final class HunterTrapEntity extends Entity {
     private void trigger(PlayerEntity player) {
         // A floor, not an overwrite: items already cooling longer than three seconds keep their own timer.
         // 这是下限而非覆盖：本来冷却就超过三秒的物品保持原有计时。
-        HunterFeatureService.holdInventoryCooldown(player, HunterRules.TRAP_VICTIM_ITEM_COOLDOWN_TICKS);
+        HunterFeatureService.forceCarriedItemCooldown(player, HunterRules.TRAP_VICTIM_ITEM_COOLDOWN_TICKS);
         HunterPlayerComponent injuryComponent = HunterPlayerComponent.KEY.get(player);
         // Marks the catch so a death inside the reward window pays this trap's placer.
         // 记下这次夹住，若受害者在奖励时间窗内死亡则由本夹子的放置者领赏。
