@@ -67,7 +67,11 @@ public final class HannaFloatService {
     static void register() {
         KillPlayer.BEFORE.addPhaseOrdering(OBSERVE_PHASE, Event.DEFAULT_PHASE);
         KillPlayer.BEFORE.register(OBSERVE_PHASE, (victim, killer, deathReason) -> {
-            touch(victim, killer);
+            // A death nobody caused (a train fall, a breakdown) is not another player's touch: the world tick ends
+            // her float without a penalty. / 无人造成的死亡（坠车、精神崩溃）不算他人的接触：浮游由世界刻直接结束，没有惩罚。
+            if (killer != null) {
+                touch(victim, killer);
+            }
             return null;
         });
         // Both callbacks also fire on the client and for spectators; only a server-side living participant counts,
@@ -151,11 +155,11 @@ public final class HannaFloatService {
     /**
      * The single interruption entry (server thread): {@code toucher} attacked, right-clicked, shot or tried to kill
      * {@code target}. A running float ends at once and the penalty starts when {@link HannaRules#interrupts} agrees:
-     * an unknown toucher ({@code null}: an ownerless projectile, a kill without a killer) interrupts, she never
+     * an unknown toucher ({@code null}: an ownerless projectile) interrupts, she never
      * interrupts herself, and anything that is not a living, non-spectator round participant (a dead spectator
      * clicking through her, a non-player entity) never does. Does nothing unless {@code target} is floating.
      * 唯一的打断入口（服务端线程）：{@code toucher} 攻击、右键、射中或试图击杀了 {@code target}。当 {@link HannaRules#interrupts}
-     * 认可时，进行中的浮游立刻结束并开始惩罚：未知的接触者（{@code null}：无归属的投掷物、没有凶手的击杀）会打断，她自己不会
+     * 认可时，进行中的浮游立刻结束并开始惩罚：未知的接触者（{@code null}：无归属的投掷物）会打断，她自己不会
      * 打断自己，而不是局内存活且非旁观的参与者（点穿她的死亡旁观者、非玩家实体）则永远不会。{@code target} 未在浮游时什么都不做。
      */
     public static void touch(ServerPlayerEntity target, @Nullable Entity toucher) {

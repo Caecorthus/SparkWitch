@@ -13,10 +13,10 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Replay for Hanna: skill events under her role id, one action name each and never a server-resolved string, so every
  * viewer reads the line in their own language. An interruption stores the interrupter as the event's target; a float
- * cut short by nobody in particular (an ownerless projectile, a death without a killer) has no target and gets its own
+ * cut short by nobody in particular (an ownerless projectile) has no target and gets its own
  * line. The parasol and the handkerchief are recorded for whoever used them (owner 2026-11-11: any holder).
  * 汉娜的回放：以其职业 id 记录的技能事件，每条只保存一个动作名，从不保存服务端解析好的字符串，因此每位观看者都以自己的语言
- * 阅读。打断把打断者保存为事件目标；没有明确打断者的情况（无归属的投掷物、没有凶手的死亡）没有目标，使用单独的文案。洋伞与
+ * 阅读。打断把打断者保存为事件目标；没有明确打断者的情况（无归属的投掷物）没有目标，使用单独的文案。洋伞与
  * 手帕记录在实际使用者名下（所有者 2026-11-11：谁拿到都能用）。
  */
 final class HannaReplay {
