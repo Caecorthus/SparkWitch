@@ -55,6 +55,7 @@ import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterShopService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaDisconnectService;
@@ -195,6 +196,11 @@ public final class SparkWitchEvents {
         SpecterOtherworldService.register();
         SpecterShopService.register();
         SpecterReplayService.register();
+        // The Charon (PR #202): one hub line right after the Specter's services, following role registration order
+        // (Specter, Charon, Insider) and leaving the Seeker, Angler, Fiend, Insider run below contiguous.
+        // 卡戎（PR #202）：紧随幽魂各服务之后的一行注册中心，与职业注册顺序（幽魂、卡戎、内应）一致，并保持下方搜寻者、钓鱼佬、
+        // 魔人、内应这一段连续。
+        FerrymanFeatureService.register();
         // 夏目安安 (PR #194): runtime listeners, then its replay formatter (the fork kept it in a shared
         // SparkWitchReplayFormatters class that main does not have). 夏目安安（PR #194）：运行期监听器，然后是回放格式化器
         // （fork 中位于 main 没有的共享 SparkWitchReplayFormatters 类）。

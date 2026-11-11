@@ -95,7 +95,11 @@
       "sparkwitch:specter_otherworld",
       "sparkwitch:savior",
       "sparkwitch:medium",
-      "sparkwitch:medium_seance"
+      "sparkwitch:medium_seance",
+      "sparkwitch:ferryman",
+      "sparkwitch:ferryman_feign",
+      "sparkwitch:ferryman_feign_veil",
+      "sparkwitch:ferryman_moment"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",

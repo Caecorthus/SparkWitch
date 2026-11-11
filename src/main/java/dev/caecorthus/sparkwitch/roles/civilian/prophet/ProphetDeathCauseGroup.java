@@ -73,6 +73,14 @@ public enum ProphetDeathCauseGroup {
             // A Vulture ate a feigning Fiend's fake corpse (2026-10-16); grouped with the Taotie's digestion.
             // 秃鹫吃掉假死魔人的假尸体（2026-10-16）；与饕餮消化同组。
             entry("sparkwitch:fiend_devoured", SUPERNATURAL),
+            // Charon (PR #202, owner 2026-11-09): all three reasons are supernatural. A lapsed pardon window replaying a
+            // kill whose own reason was unknown; a Vulture eating a gaze-feign fake corpse (grouped like fiend_devoured);
+            // a lost Soul Moment (the Charon dies with his last Lost Soul, or the souls die with their Charon).
+            // 卡戎（PR #202，所有者 2026-11-09）：三个死因均为超自然。宽恕窗口过期后重放原死因未知的击杀；秃鹫吃掉「瞥视」假死的
+            // 假尸体（与 fiend_devoured 同组）；亡魂时刻失败（卡戎随最后一名迷失的灵魂而亡，或灵魂随其卡戎而亡）。
+            entry("sparkwitch:pardon_expired", SUPERNATURAL),
+            entry("sparkwitch:ferryman_feign", SUPERNATURAL),
+            entry("sparkwitch:ferryman_moment_lost", SUPERNATURAL),
             entry("wathe:shot_innocent", PENALTY),
             entry("noellesroles:assassin_misfire", PENALTY),
             entry("noellesroles:jester_timeout", PENALTY),

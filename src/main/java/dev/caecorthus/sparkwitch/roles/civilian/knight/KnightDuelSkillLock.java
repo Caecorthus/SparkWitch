@@ -78,6 +78,11 @@ public final class KnightDuelSkillLock {
             // list's rule. / 通灵师的通灵（G 键）及其付费提问提交，PR #209；招魂属于技能键 2（N），按本名单规则保持放行。
             Identifier.of("sparkwitch", "use_medium_skill"),
             Identifier.of("sparkwitch", "submit_medium_seance"),
+            // Charon pardon (shared key G), PR #202; owner 2026-11-09: a dueling Charon cannot pardon either, and the
+            // dropped press just lets the window lapse. Its ferry is skill key 2 (N) and stays allowed by this list's rule.
+            // 卡戎宽恕（共享 G 键），PR #202；所有者 2026-11-09：决斗中的卡戎同样不能宽恕，被丢弃的按键只会让窗口过期。
+            // 其摆渡属于技能键 2（N），按本名单规则保持放行。
+            Identifier.of("sparkwitch", "ferryman_pardon"),
             // The Knight's own pick; a non-duelist is never locked, so it always passes for them.
             // 骑士自己的选择包；非决斗者从不被锁，因此对他们始终放行。
             Identifier.of("sparkwitch", "knight_duel_target"),

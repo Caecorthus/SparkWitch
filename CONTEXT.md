@@ -44,6 +44,18 @@ Skill 2: a secretly bound player's vote weighs 3).
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
+It also adds the Charon (`sparkwitch:charon`, 卡戎, PR #202), a neutral drawn from 8 players up that starts with
+nothing: another player's lethal hit (never a forced kill, a train fall, a disconnect, a vanilla death or drowning)
+opens a 0.5 s window instead of killing, and an ability-key press inside it refuses the death and marks the attacker
+with 瞥视 (dark red, seen through walls); the pardon is armed 60 s after the round starts and 10 s after each use. A
+marked attacker's next lethal hit spends the mark and drops them into 10 s of feign death behind a fake corpse that
+shows a civilian and an ordinary death. Its secondary key ferries a real corpse that died within 60 s, within 4 blocks
+and in sight, for 50 gold and a 怜悯 mark (pale blue); a ferried body that is later bagged or eaten pays a second share
+and marks whoever took it. A controlled Charon (stun, Fear, daze, Rift Gate) uses neither key, and a Knight duel blocks
+the pardon. Its shop sells a 25 gold crowbar and, for 250 gold, the Soul Moment: one ferried body per 6 players comes
+back beside the Charon as a Lost Soul (`sparkwitch:lost_soul`, 迷失的灵魂, never drawn) in soul-fire particles, with an
+empty derringer (reloads on a kill), a crowbar and a knife. The moment blocks every faction win until no player outside
+it is alive, the Charon and the souls die together, and a round whose train clock runs out settles normally.
 It also adds the Insider, a Team Jiahao member paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
 the two form Team Jiahao (嘉豪阵营, `sparkwitch:jiahao`) and win together.
 Since 2026-11-04 the witch faction (`sparkwitch:witch`) and Team Jiahao (`sparkwitch:jiahao`) are real Wathe
@@ -750,12 +762,13 @@ Current build baseline:
   client in `client/specter/`, `client/hud/SpecterHudRenderer`, `client/mixin/specter/` and
   `client/compat/SparkTraitsDepressionVisionBridge`.
   - Registration: a SparkFactionAPI killer (Wathe-native KILLER, FAKE mood, unlimited sprint, round clock) registered
-    after BEAR (only the Medium, PR #209, sits between it and the Insider), and guessed in the killer block right after
-    夏目安安, before the Murderous
+    after BEAR (only the Medium, PR #209, and the Charon with its Lost Soul, PR #202, sit between it and the Insider),
+    and guessed in the killer block right after 夏目安安, before the Murderous
     Witch. No witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel, never a
     Black Raven disguise target; code reads the raw role.
   - State (all `NEVER_COPY`, appended after the headset in the CCA list and `fabric.mod.json`; only the Savior's
-    `sparkwitch:savior`, PR #200, and then the Medium's two ids, PR #209, follow): `SpecterPlayerComponent`
+    `sparkwitch:savior`, PR #200, then the Medium's two ids, PR #209, and the Charon's four, PR #202, follow):
+    `SpecterPlayerComponent`
     (`sparkwitch:specter`, owner-synced: mark target and ticks, skill-one cooldown, the server-resolved sanity-band
     outline map), `SpecterFearComponent` (`sparkwitch:specter_fear`), `SpecterSecondSkillComponent`
     (`sparkwitch:specter_second_skill`, owner-synced: unlock, window, cooldown, Specter-owned shield layers),
@@ -928,6 +941,83 @@ Current build baseline:
   `FiendFeignComponent`, `FiendFeignService`, the server-only fake-corpse registry `FiendFakeBodies`). Its mixins live
   in `mixin/fiend/` and `client/mixin/fiend/`; client presentation (countdown HUD, Dash HUD, feign HUD, outline
   decision) in `client/fiend/`.
+- `roles/neutral/ferryman/`: the Charon (`sparkwitch:charon`, 卡戎, PR #202) and its Lost Souls (`sparkwitch:lost_soul`,
+  never drawn; only the Soul Moment assigns it). Both register right before the Insider; in the assassin-guess order the
+  Lost Soul follows the Charon. Rules and the side-safe predicate (`FerrymanRules`, `FerrymanParticipation`); the
+  owner-only `sparkwitch:ferryman` player component (`FerrymanPlayerComponent`: pardon and ferry cooldowns, which the
+  owner's client counts down locally, the server-only pending window, and the 瞥视 and 怜悯 id sets; `RoleAssigned` and
+  `ResetPlayer` give a Charon the 60 s round-start pardon cooldown) and the server-only `sparkwitch:ferryman_feign`
+  component (`FerrymanFeignComponent`).
+  - Pardon (`FerrymanPardonService.interceptKill`): `mixin/ferryman/GameFunctionsFerrymanPardonMixin` is a cancellable
+    HEAD guard on Wathe's 5-arg `killPlayer` at priority 1200 (pinned in `watheCommonMixinContracts`), never a
+    `KillPlayer.BEFORE` listener, so it sees `force` and keeps `spawnBody`. It holds nothing for a forced kill, a
+    SparkTraits-terminal reason, a kill without an attacker or by the Charon itself, `wathe:fell_out_of_train`,
+    `wathe:escaped`, `wathe:vanilla_death`, `wathe:drowned` (`FerrymanRules.UNHELD_DEATH_REASONS`, `mayHoldKill`), its
+    own replay, or a Charon that is not playing and alive or is swallowed. A marked attacker's lethal hit is answered
+    by the gaze feign first, and 瞥视 is consumed when the feign starts (an attacker that cannot feign keeps the mark
+    and the hit falls through to the pardon). Otherwise a ready Charon with no open window gets a 0.5 s window; a
+    second lethal hit inside it kills normally. A press closes the window, marks the attacker and re-arms 10 s; a lapsed
+    window replays the held kill unchanged (killer, reason, `spawnBody`, not forced) only while the Charon is still
+    playing and alive, and any committed death of the Charon (`KillPlayer.AFTER`) closes the window.
+  - Feign (`FerrymanFeignService`, 10 s; `FerrymanRules.canFeign` copies the Fiend's start gate: ACTIVE round,
+    attacker playing and alive in the world, not already feigning, not swallowed, not in a Rift session, Kidnapper
+    control, Raven Form or Seeker session): the attacker becomes a living spectator pinned to a fake corpse at its feet
+    with a civilian cover role (`WraithBodyRoleAccess` plus SparkStrength's coroner record) and a random common Wathe
+    reason (`FEIGN_CORPSE_REASONS`: knife, gun, poison, bat). Side doors are closed by
+    `mixin/ferryman/ServerPlayerEntityFerrymanFeignMixin` (cancels spectator `attack`, vetoes every camera but the
+    corpse and itself), `ServerPlayNetworkHandlerFerrymanFeignMixin` (drops spectator-menu teleports),
+    `NoellesSwapperFerrymanFeignMixin` (drops a Swapper request naming a feigning player at HEAD, before its
+    cooldown), the voice plugin (muted, still hears) and `BodyBagItemFerrymanFeignMixin` (refuses the fake corpse with
+    FAIL and resyncs the bagger's client: body spawn packets, screen handler, cooldown). The player gets up in place
+    with the saved game mode and facing; `FerrymanInstinctVeilComponent` (`sparkwitch:ferryman_feign_veil`, the one
+    component synced to every client) then hides them from every instinct outline for 5 s through a hide result at
+    priority 300 in `FerrymanClientHighlights` (the Fisher / SparkStrength hide), cleared on `ResetPlayer`. A Vulture
+    that eats the fake corpse (`NoellesVultureFerrymanFakeBodyMixin`, after the eat receiver's `recordSkillUse`) kills
+    the feigner with `sparkwitch:ferryman_feign` (forced, no body, registered SparkTraits-terminal at server start); the
+    fake corpse itself never shows that reason. A real death, round reset or disconnect mid-feign drops the corpse (a
+    disconnect gets the player up first).
+  - Ferry (`FerrymanFerryService`, secondary key, `net/FerrymanFerryC2SPayload` carrying the body's entity id): an
+    active, non-spectator, unswallowed Charon off its 5 s ferry cooldown, and a real corpse whose owner Wathe holds dead
+    (a Charon feign, Fiend, Magician decoy or SparkTraits fake body is refused like an untargetable one), passing
+    `CanTargetBody`, not ferried yet, fresh (`isFreshBody`, 60 s), within 4 blocks feet to body and in line of sight;
+    pays 50 gold and adds the 怜悯 mark. `FerrymanMercyService`: a ferried body that is bagged or eaten pays a
+    still-active Charon 50 more and marks the destroyer, once; the Charon's own destruction pays nothing.
+  - Shop (`FerrymanShopService`): crowbar 25 (refused on a full inventory) and the stock-1 Soul Moment 250 (refused and
+    uncharged when no soul rises).
+  - Soul Moment (`FerrymanMomentWorldComponent` + `FerrymanMomentRules` + `FerrymanMomentService` +
+    `FerrymanWinService`): eligible souls are online ferried participants Wathe holds dead that are not a Charon, whose
+    death no pending SparkTraits Last Stand holds, and that are not an active Wraith; one per 6 round participants rises (Wathe's
+    `deadPlayers` entry removed by reflection, role written under the SparkFactionAPI replay cause
+    `sparkwitch:ferryman_moment_revive`) in ADVENTURE with health, air and food restored, at the Charon, with a cleared
+    inventory and then an empty derringer (`USED = true`; Wathe's reload-on-kill unchanged), a crowbar and a knife; its
+    bodies are discarded and it leaves every voice group. Every third tick the server spawns soul-fire particles around
+    each living, visible soul; nobody gets GLOWING. The win listener runs in phase `sparkwitch:ferryman_moment_win`,
+    ordered after the Fiend's `sparkwitch:fiend_moment_win` and before `Event.DEFAULT_PHASE`: it steps aside on `TIME`
+    (owner 2026-11-09: when the train clock runs out the round settles normally; the moment only blocks faction wins),
+    blocks every other win while an outsider is alive (counted through `FiendWinExclusion.countsAsAlive`, owner D1),
+    and otherwise wins neutral with the living souls as co-winners. All souls dead kills the Charon and the Charon gone
+    kills every soul, both forced with `sparkwitch:ferryman_moment_lost` (SparkTraits-terminal); round boundaries and a
+    server stop end the moment silently.
+  - Death reasons `sparkwitch:pardon_expired` (replay fallback for a held kill without a reason),
+    `sparkwitch:ferryman_feign` and `sparkwitch:ferryman_moment_lost` are all Prophet group SUPERNATURAL. Deny lists
+    (owner 2026-11-09: a controlled Charon uses neither key): `sparkwitch:ferryman_pardon` and `sparkwitch:ferryman_ferry`
+    are on the Control Expert stun, Grand Witch Fear, Riftwalker session and Seeker session lists; only the pardon is on
+    the Knight duel lock (skill-key-2 rule). Companion lists: SparkFactionAPI `AntiFastRoundRules` and SparkStrength
+    `TaotieHeadRules` (daze). Forced-cooldown stores 23 `sparkwitch:ferryman_pardon` (nominal 10 s, never forced while
+    a window is open) and 24 `sparkwitch:ferryman_ferry` (nominal 5 s) in `SparkWitchForcedCooldowns`, after the
+    Medium's store 22. The Charon and then the Lost Soul (owner 2026-11-09) close the neutral block of the
+    assassin-guess list, after Schrödinger's Cat and before the promotion tail; both roles register after the Medium
+    and right before the Insider, and their four components are appended last, after the Medium's two.
+  - Wiring: `FerrymanFeatureService.register()` (from `SparkWitchEvents`) registers `FerrymanNetworking` (both
+    payloads), the shop, pardon, feign, moment and win services, and a `CanSeeMoney` answer for the Charon.
+  - Client (`client/ferryman/`, presentation and request trimming only): `FerrymanClient` (the G-key pardon request;
+    the secondary-key ferry with its own body-only ray of 4 blocks plus the eye height, since the vanilla crosshair stops
+    at 3; `isActiveLocalCharon` mirrors the server's acting gate), `FerrymanClientHighlights` (瞥视 only on marked
+    attackers that are playing, alive and not spectating; amber only on fresh, targetable, unferried bodies, never
+    reading fake-body state; pale blue on ferried bodies; a Lost Soul sees the Charon always and players within 6 blocks
+    in red; the veil hide), and `FerrymanHud` + `FerrymanHudRules` (pardon row above the ferry row in the shared
+    bottom-right slot with the Fiend Dash layout and hotbar lift; `SaintHudLayoutRules` reserves both rows, as for the
+    Specter).
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
@@ -1411,8 +1501,8 @@ Current build baseline:
     SparkTraits skill-blocked, not Feared; 10 s around the Savior, 15 blocks: night vision and blindness removal for
     everyone inside, Slowness I for everyone but the Savior; 60 s opening and post-use cooldown in
     `SaviorPlayerComponent` (`sparkwitch:savior`, owner-synced, `NEVER_COPY`, appended after the Specter's in the CCA
-    list; only the Medium's follow) and the
-    forced-cooldown store `sparkwitch:savior_domain`. `client/savior/SaviorDomainClient` outlines domain members
+    list; only the Medium's and the Charon's follow) and the forced-cooldown store `sparkwitch:savior_domain`.
+    `client/savior/SaviorDomainClient` outlines domain members
     without the instinct key at priority 95 (below `skip()`), skipping players an ordinary viewer cannot see.
   - Passives: `SaviorSanityService` pins mood at full; `SaviorBlackoutService` gives night vision instead of the
     blackout blindness (Veteran parity); when a player inside the Savior's 64-block, 120° view is killed by another
@@ -1745,7 +1835,8 @@ Current build baseline:
     (`spawn`, `carveHole`, `carveTunnel`, `clearAll`) is the only server entry and smoke never feeds a server rule.
   - Ricochet (WP3, `bear/ricochet/`, `client/bear/ricochet/`): `mixin/bear/RicochetKillPlayerMixin` (HEAD of Wathe's
     5-arg `killPlayer`, priority 1050: after every default-1000 immunity guard, before the Fiend / SparkStrength vest
-    at 1100, every `KillPlayer.BEFORE` listener, psycho armour, Tofana and the Cat) calls
+    at 1100, the Charon's pardon guard at 1200, every `KillPlayer.BEFORE` listener, psycho armour, Tofana and the Cat)
+    calls
     `BearRicochetService.interceptKill`: a non-forced kill of a living participant WEARING the Rys-T in the head slot
     (D1) by someone else for a reason in `BearRicochetRules.RANGED_REASONS` (D2; blasts in `BLAST_REASONS`) rolls
     `RICOCHET_CHANCE` once per shot (`RicochetMemo`, key victim + killer + reason + server tick + origin, so Heavy
@@ -2318,11 +2409,11 @@ Current build baseline:
   - Hubs: `MediumFeatureService` in `SparkWitchEvents` (economy, 通灵, 招魂, in that order) and
     `client/medium/MediumClientModule` in `SparkWitchClient`, both after the BEAR hub and before USEC, which stays
     last. Payload types and server receivers are in `SparkWitchPackets`.
-  - State: `MediumPlayerComponent` (`sparkwitch:medium`, owner-synced, `NEVER_COPY`, last in the CCA list: 通灵
-    cooldown and the 招魂-bound targets in binding order; cleared on death unless SparkTraits Last Stand intercepted
+  - State: `MediumPlayerComponent` (`sparkwitch:medium`, owner-synced, `NEVER_COPY`, in the CCA list before the
+    Charon's three: 通灵 cooldown and the 招魂-bound targets in binding order; cleared on death unless SparkTraits Last Stand intercepted
     it, on reset, round end and role change; an alive spectator, swallowed or inside a Rift gate, keeps it and the
-    cooldown keeps counting) and the world `MediumSeanceComponent` (`sparkwitch:medium_seance`, last
-    world component: the one live vote window). The window syncs per recipient: the question goes only to the voters
+    cooldown keeps counting) and the world `MediumSeanceComponent` (`sparkwitch:medium_seance`, the
+    world component before the Charon's Soul Moment: the one live vote window). The window syncs per recipient: the question goes only to the voters
     (`MediumRules.mayVote`) and to the caster; another Medium gets the countdown and the window serial (`getWindowId`,
     real serials start at 1); every other client receives no packet at all (`shouldSyncWith`; a recipient that stops
     being informed gets one resetting packet), and the caster's identity is never synced. Votes and the frozen bindings are server-only and never persisted.
@@ -3209,7 +3300,8 @@ server-only, never-synced spent ledger bound to the match id. A dormant Fiend (F
 the moment Fiend, not spent) dies only to `wathe:fell_out_of_train`, `wathe:escaped`, `wathe:vanilla_death` and the
 feign-death `sparkwitch:fiend_devoured` (below):
 `mixin/fiend/GameFunctionsFiendImmunityMixin` is a cancellable HEAD guard on Wathe's 5-arg `killPlayer`
-(priority 1100, so SparkFactionAPI's affect veto runs first) that ignores `force`, so the owner-approved piercing
+(priority 1100, so SparkFactionAPI's affect veto runs first and the Charon's pardon guard at 1200 runs after it) that
+ignores `force`, so the owner-approved piercing
 kills (bell toll, time curse, portal crush) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
 per attack: `wathe:gun_shot` (every gun) gives the Fiend +50 gold and Speed III 5 s (deferred to the revival while it
 feigns), and puts a 20 s item-cooldown
@@ -3867,6 +3959,14 @@ deliberate and kept:
    `MediumRules.CD_AFTER_USE_TICKS` (1200), written exactly through the owner-syncing `startSeanceCooldown`. The
    cooldown starts at the paid submit, so a forced write never touches a running vote window. 招魂 has no cooldown and
    no store.
+23. `sparkwitch:ferryman_pardon` (`SparkWitchForcedCooldowns#ferrymanPardon`, PR #202, appended after the Medium's
+   通灵): the Charon's pardon cooldown, for the raw role in an ACTIVE round with no pardon window open. Remaining time
+   is `FerrymanPlayerComponent` cooldown ticks (60 s opening cooldown included); the nominal is
+   `FerrymanRules.PARDON_COOLDOWN_TICKS` (200), written exactly through the owner-syncing `setCooldown`.
+24. `sparkwitch:ferryman_ferry` (`SparkWitchForcedCooldowns#ferrymanFerry`, PR #202, appended after the Charon's
+   pardon): the Charon's ferry cooldown, for the raw role in an ACTIVE round. Remaining time is
+   `FerrymanPlayerComponent` ferry cooldown ticks (0 at round start); the nominal is
+   `FerrymanRules.FERRY_COOLDOWN_TICKS` (100), written exactly through the owner-syncing `setFerryCooldown`.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
@@ -5147,6 +5247,13 @@ Server:
   round edges. `SparkTraitsKillerBridge.isLastEscapeActive` uses a cached MethodHandle.
 - `ShadowJesterShowdownBridge`, `SparkStrengthCoronerCompat` and `SparkStrengthJunctionBoxCompat` resolve their
   reflection once (lazy holders, failing closed). `CeremonialSwordDashService.DASHES` is cleared on SERVER_STOPPING.
+- The Charon owns three per-tick sweeps, all no-ops for an idle round: `FerrymanPardonService.tick` walks the live
+  player list once, reads each player's raw role and counts down a Charon's pardon and ferry cooldowns (syncing only
+  when one reaches zero), and reads the world clock only while a pardon window is open; `FerrymanFeignService.tick`
+  counts down every player's `sparkwitch:ferryman_feign_veil` (kept because instinct is drawn per client; it syncs only
+  when a veil ends) and then acts only on players whose feign is active (camera pin, anchor pull-back, wake-up at the
+  deadline); `FerrymanMomentService.tick` returns per world at once unless a Soul Moment runs, then prunes fallen souls
+  and spawns soul-fire particles every third tick. None allocates for an idle round or syncs unless a value changed.
 
 Network:
 - `HunterTrapEntity` zeroes and syncs its velocity only when it was non-zero.

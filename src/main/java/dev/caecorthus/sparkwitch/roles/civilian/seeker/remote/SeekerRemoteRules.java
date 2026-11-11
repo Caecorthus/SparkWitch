@@ -90,6 +90,12 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "submit_medium_seance"),
             Identifier.of("sparkwitch", "use_medium_second_skill"),
             Identifier.of("sparkwitch", "submit_medium_haunt_target"),
+            // Charon pardon (shared key G) and ferry (Role Skill 2), PR #202; owner 2026-11-09: a controlled Charon cannot
+            // pardon either. A dropped pardon simply lets the 0.5 s window lapse and the held kill replay.
+            // 卡戎宽恕（共享 G 键）与摆渡（职业技能 2），PR #202；所有者 2026-11-09：被控制的卡戎同样不能宽恕。被丢弃的宽恕包只会
+            // 让 0.5 秒窗口过期，被扣住的击杀随之重放。
+            Identifier.of("sparkwitch", "ferryman_pardon"),
+            Identifier.of("sparkwitch", "ferryman_ferry"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
             // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.

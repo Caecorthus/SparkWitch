@@ -25,6 +25,7 @@ import dev.caecorthus.sparkwitch.client.noa.NoaPaintClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
+import dev.caecorthus.sparkwitch.client.ferryman.FerrymanClient;
 import dev.caecorthus.sparkwitch.client.fisher.FisherClient;
 import dev.caecorthus.sparkwitch.client.judge.JudgeClientModule;
 import dev.caecorthus.sparkwitch.client.junker.JunkerClientModule;
@@ -152,6 +153,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         BlackRavenCrowClient.register();
         BellRingerClient.init();
         TimeStealerClient.init();
+        FerrymanClient.register();
         VendettaKnifeModelLoadingPlugin.register();
         SecondaryAbilityController.reset();
         SparkWitchClientVersionHandshake.registerClient();
@@ -346,6 +348,10 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role plus the synced moment owner; Dash exists only during the moment. The server decides use.
                     // 真实职业加同步的时刻拥有者；疾驰只在时刻中存在，是否生效由服务端决定。
                     FiendDashClient.onAbilityKey(client);
+                } else if (FerrymanClient.isLocalFerryman(client)) {
+                    // Real role only; the press asks the server to pardon a held lethal hit (0.5 s window).
+                    // 仅真实职业；按下即请求服务端宽恕一次被扣住的致命击杀（0.5 秒窗口）。
+                    FerrymanClient.onAbilityKey(client);
                 } else if (AthleteRules.isAthlete(role)) {
                     // Real role only (the Athlete is never a disguise target); the server decides use.
                     // 仅真实职业（运动员不可被伪装）；是否生效由服务端决定。

@@ -48,6 +48,9 @@ public final class SparkWitchRoles {
     public static final Identifier BEWITCHED_ID = SparkWitchRoleRegistry.BEWITCHED_ID;
     public static final Identifier USEC_ID = SparkWitchRoleRegistry.USEC_ID;
     public static final Identifier KNIGHT_ID = SparkWitchRoleRegistry.KNIGHT_ID;
+    public static final Identifier FERRYMAN_ID = SparkWitchRoleRegistry.FERRYMAN_ID;
+    public static final Identifier LOST_SOUL_ID = SparkWitchRoleRegistry.LOST_SOUL_ID;
+
     public static final Identifier RECRUIT_ID = SparkWitchRoleRegistry.RECRUIT_ID;
     public static final Identifier ATHLETE_ID = SparkWitchRoleRegistry.ATHLETE_ID;
     public static final Identifier DISCOVERER_ID = SparkWitchRoleRegistry.DISCOVERER_ID;
@@ -224,6 +227,14 @@ public final class SparkWitchRoles {
 
     public static Role knight() {
         return SparkWitchRoleRegistry.knight();
+    }
+
+    public static Role ferryman() {
+        return SparkWitchRoleRegistry.ferryman();
+    }
+
+    public static Role lostSoul() {
+        return SparkWitchRoleRegistry.lostSoul();
     }
 
     public static Role savior() {

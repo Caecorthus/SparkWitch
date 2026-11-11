@@ -33,6 +33,7 @@ public final class SparkTraitsKillerBridge {
     private static final OptionalStaticMethod DESATURATION = resolve("getLastEscapeDesaturation", PlayerEntity.class);
     private static final OptionalStaticMethod ROLE_SKILL = resolve("isRoleSkillBlocked", PlayerEntity.class);
     private static final OptionalStaticMethod TERMINAL = resolve("registerTerminalDeathReason", Identifier.class);
+    private static final OptionalStaticMethod IS_TERMINAL = resolve("isTerminalDeathReason", Identifier.class);
     private static final OptionalStaticMethod EXACT_COOLDOWN = resolve("setExactItemCooldownRemaining",
             ServerPlayerEntity.class, Item.class, int.class);
     private static final OptionalStaticMethod COOLDOWN_REMAINING = resolve("getItemCooldownRemaining",
@@ -105,6 +106,14 @@ public final class SparkTraitsKillerBridge {
      * 使该死亡原因跳过 Traits 复活/反击钩子；Traits 缺失或过旧时返回 false。 */
     public static boolean registerTerminalDeathReason(Identifier reason) {
         return reason != null && TERMINAL.callVoid(reason);
+    }
+
+    /** Whether a reason is registered SparkTraits-terminal (an unprotectable penalty). Absent or older Traits keeps no
+     * such registry, so it answers false; a failing call answers true, so a protection that asks stays off.
+     * 该死亡原因是否已注册为 SparkTraits 终结原因（不可保护的惩罚）。Traits 缺失或过旧时没有该登记表，返回 false；单次调用
+     * 失败时返回 true，使询问它的保护保守地不生效。 */
+    public static boolean isTerminalDeathReason(Identifier reason) {
+        return reason != null && IS_TERMINAL.callBoolean(false, false, true, reason);
     }
 
     /** Writes an exact cooldown past Traits modifiers, performing the vanilla set itself; on false the
