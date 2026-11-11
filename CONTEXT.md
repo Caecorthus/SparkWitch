@@ -41,6 +41,10 @@ earplugs worn in a fifth "headset" slot; every BEAR item is deleted when its hol
 The Medium (`sparkwitch:medium`, 通灵师, contributed in PR #209) is an ordinary task civilian that earns coins from
 tasks and spends them on 通灵 (ability key G: a yes/no question the dead answer from a vote screen) and 招魂 (Role
 Skill 2: a secretly bound player's vote weighs 3).
+橘雪莉 (`sparkwitch:sherry`, Tachibana Sherry, contributed in PR #206) is a task civilian with real sanity and 1.5x
+stamina that earns coins and mana, deduces killers next to a corpse (推演, ability key G: a correct pick lights that
+killer up for her for 5 s every 20 s, any other pick costs sanity), carries her own 巨力魔法 (Role Skill 2) and hands
+out detective badges whose holder's killer lights up for 5 s every 40 s.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -762,12 +766,14 @@ Current build baseline:
   client in `client/specter/`, `client/hud/SpecterHudRenderer`, `client/mixin/specter/` and
   `client/compat/SparkTraitsDepressionVisionBridge`.
   - Registration: a SparkFactionAPI killer (Wathe-native KILLER, FAKE mood, unlimited sprint, round clock) registered
-    after BEAR (only the Medium, PR #209, and the Charon with its Lost Soul, PR #202, sit between it and the Insider),
+    after BEAR (only the Medium, PR #209, the Charon with its Lost Soul, PR #202, and 橘雪莉, PR #206, sit between it
+    and the Insider),
     and guessed in the killer block right after 夏目安安, before the Murderous
     Witch. No witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel, never a
     Black Raven disguise target; code reads the raw role.
   - State (all `NEVER_COPY`, appended after the headset in the CCA list and `fabric.mod.json`; only the Savior's
-    `sparkwitch:savior`, PR #200, then the Medium's two ids, PR #209, and the Charon's four, PR #202, follow):
+    `sparkwitch:savior`, PR #200, then the Medium's two ids, PR #209, the Charon's four, PR #202, and
+    `sparkwitch:sherry`, PR #206, follow):
     `SpecterPlayerComponent`
     (`sparkwitch:specter`, owner-synced: mark target and ticks, skill-one cooldown, the server-resolved sanity-band
     outline map), `SpecterFearComponent` (`sparkwitch:specter_fear`), `SpecterSecondSkillComponent`
@@ -1007,7 +1013,8 @@ Current build baseline:
     a window is open) and 24 `sparkwitch:ferryman_ferry` (nominal 5 s) in `SparkWitchForcedCooldowns`, after the
     Medium's store 22. The Charon and then the Lost Soul (owner 2026-11-09) close the neutral block of the
     assassin-guess list, after Schrödinger's Cat and before the promotion tail; both roles register after the Medium
-    and right before the Insider, and their four components are appended last, after the Medium's two.
+    and before the Insider (only 橘雪莉, PR #206, sits between them and the Insider), and their four components are
+    appended after the Medium's two (only `sparkwitch:sherry` follows).
   - Wiring: `FerrymanFeatureService.register()` (from `SparkWitchEvents`) registers `FerrymanNetworking` (both
     payloads), the shop, pardon, feign, moment and win services, and a `CanSeeMoney` answer for the Charon.
   - Client (`client/ferryman/`, presentation and request trimming only): `FerrymanClient` (the G-key pardon request;
@@ -2466,6 +2473,84 @@ Current build baseline:
     then fades; it never takes the mouse, needs no living player, and draws only what the server sent.
   - Lang: `role`/`announcement` keys for `medium` and `sparkwitch.medium`, `hud.sparkwitch.medium.*`,
     `screen.sparkwitch.medium.*`, and the two replay keys.
+- `roles/civilian/sherry/`: 橘雪莉 (`sparkwitch:sherry`, Tachibana Sherry, `0x65D0EE`), contributed in PR #206 as 13
+  unwired files and rewritten in review (owner decisions 2026-11-11); every number lives in `SherryRules`. Client in
+  `client/sherry/`; one mixin, `mixin/sherry/PlayerMoodComponentSherryDimLightMixin`.
+  - Owner rules 2026-11-11: no Mighty Force exclusivity with the Apprentice; a deduction succeeds only on a
+    killer-faction target and every other target is a failure with the full penalty; successful targets and badge
+    killers are all tracked at once and a wrong pick clears nothing; a badge holder's death gives a note with the dead
+    holder's name only and reveals the killer every 40 s (never the killer's name or role); no mutual reveal with any
+    other role (the PR's Hanna and Emma links are gone); her Mighty Force follows the Apprentice misfire rule.
+  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 15 s `maxSprintTime`, no round clock,
+    no appearance condition) registered after the Charon's Lost Soul, right before the Insider (which stays last), and
+    guessed in the civilian block right after the Medium. Drawn by Wathe's civilian pass, never a police variant; no
+    witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel (AGENTS.md panel
+    rule: being a mana role and owning a Mighty Force grants no panel access); in neither Black Raven disguise list.
+    `SparkWitchRoles` exposes `SHERRY_ID` and `sherry()`. Companion: SparkTraits blocks her from the Impostor trait.
+  - Hubs: `SherryFeatureService` in `SparkWitchEvents` (economy, 推演, 巨力魔法, badge, in that order), after the
+    Medium hub and before USEC, which stays last; `client/sherry/SherryClient` in `SparkWitchClient`. Payload types
+    and server receivers are in `SparkWitchPackets`.
+  - State: `SherryComponent` (`sparkwitch:sherry`, owner-synced only, `NEVER_COPY`, appended last in the CCA player
+    list and `fabric.mod.json`): 推演 cooldown, her Mighty Force window, cooldown and forfeit flag, the badge holders,
+    and the reveal trackers (target, interval, ticks to the next window, ticks left of the current one). The server
+    counts everything and syncs on every change and once per second; the client only counts down between syncs. It is
+    assigned from `RoleAssigned` (45 s opening cooldown on both skills, everything else empty; cleared for every other
+    role) and cleared on a real death, `ResetPlayer`, round end and role change; a SparkTraits Last Stand hold and an
+    alive spectator keep it counting (Medium precedent). No static per-player maps.
+  - Coins and mana: `SherryEconomyService` pays +5 coins every 10 s (driven by the component's server tick) and +50
+    per completed task through `addToBalance` (never to a SparkTraits Impostor, `SparkTraitsTaskIncomeBridge`), behind
+    the USEC/Medium `canEarn` gate; `CanSeeMoney` ALLOW for a living Sherry. Mana is `WitchManaRules`: a mana role
+    from assignment (starts at 0), 1 per 5 s up to the default cap of 100, +10 per task, no kill reward.
+  - Sanity: below light level 10 (`World.getLightLevel` at her feet) her task drain is halved by scaling Wathe's own
+    `MOOD_DRAIN` read in `serverTick`/`clientTick` (`@ModifyExpressionValue`, `require = 2`, the Bell Echo scaler's
+    seam; MixinExtras chains both). One-off `setMood` drops (Fear, gun penalties, her own failed deduction) are never
+    halved.
+  - Caster gate (`SherryDeductionService.mayUse`, the Medium `mayUse` set, shared by 推演, its paid confirmation, 巨力
+    魔法 and the badge hand-over): ACTIVE round, raw role, alive, not spectating/creative, not swallowed, not held by a
+    Ninja grapple, not silenced, not SparkTraits role-skill blocked; each entry checks `GrandWitchFearService
+    .denyRoleSkillIfFeared` last. `request_sherry_deduction`, `confirm_sherry_deduction` and
+    `use_sherry_mighty_force` are on the Grand Witch Fear, Rift occupant, Control Expert stun and Seeker remote lists;
+    only the two 推演 ids are on the Knight duel lock (skill-key-2 rule). Companion lists: SparkFactionAPI
+    `AntiFastRoundRules` and SparkStrength `TaotieHeadRules` (daze).
+  - 推演 (`SherryDeductionService`, G): the empty `request_sherry_deduction` is answered with `open_sherry_deduction`
+    (other living, physically present round players within 60 blocks, at most 64, and the price) only when a visible
+    corpse is in front of her (`SherryRules.aimsAtCorpse`: within 3 blocks inside a 60° cone, or within 1.25 blocks;
+    hidden bodies and Partygoer corpses never count), the cooldown is over and she holds 100 coins; she is told which
+    of the three failed. Nothing is charged. The paid act is `confirm_sherry_deduction`, which re-checks every gate
+    and the target, then charges 100 coins and starts the 30 s cooldown whatever the outcome. Correct means the
+    target's effective faction is KILLER (`SparkFactionApi.resolveEffectiveFaction`): the target is tracked on a 20 s
+    cycle. Anything else: −0.20 sanity through `setMood`, Blindness and Slowness II for 3 s. Nobody is killed and the
+    target is never told. Replay id `sparkwitch:sherry_deduction` (`outcome` right/wrong).
+  - Reveals: a tracker's first 5 s window opens at once and re-opens every interval (20 s for a deduced killer, 40 s
+    for a badge holder's killer); tracking a player twice keeps the shorter interval; at most 32 trackers; a dead
+    target is dropped. Only the owner's client ever learns of them, and draws the outline itself.
+  - 巨力魔法 (`SherryMightyForceService`, Role Skill 2): the Apprentice's numbers (`MightyForceAbility`: 60 mana, 10 s
+    window, 45 s cooldown that starts when the window ends) with her own state in `SherryComponent`; it never touches
+    `WitchPlayerComponent`'s active skill or cooldown. `MightyForceCombatService.hasLiveMightyForce` accepts the
+    Apprentice's window or `SherryMightyForceService.hasLiveWindow`, `spendWindow` ends whichever allowed the strike,
+    and the misfire rule stores a forfeit in her component. Strike, death reason, knockback, Partygoer seam and replay
+    line are the Apprentice's.
+  - 侦探徽章 (`SherryBadgeService`): shop entry `sparkwitch:sherry_badge` (50 coins, stock 2, Charisma discount) for
+    the exact role on both sides. `sparkwitch:sherry_badge` is a plain item; `UseEntityCallback` hands it to another
+    living player (PASS for everything else, the stack is spent only on success, a second badge on the same holder is
+    refused). In `KillPlayer.AFTER`, for a real death (not a Last Stand interception) of a holder, each living Sherry
+    who gave the badge gets a `sparkwitch:sherry_note` naming the dead holder (custom data `victim_name`, dropped at
+    her feet when her inventory is full) and, when another living player killed the holder, tracks that killer on the
+    40 s cycle. Replay id `sparkwitch:sherry_badge` (`action` handed/holder_died).
+  - Forced cooldowns: stores 25 `sparkwitch:sherry_deduction` and 26 `sparkwitch:sherry_mighty_force`.
+  - Client (presentation only, `client/sherry/`): `SherryClient` is the hub (candidate packet receiver that never
+    replaces an open screen, Role Skill 2 handler, hooks, HUD) and owns `isActiveSherry`; the shared ability key
+    branch in `SparkWitchClient` sits right after the Medium's. `SherryDeductionScreen` (select a tile, then Confirm)
+    sends the paid confirmation. `SherryHud` draws two bottom-right rows from `SherryHudRules` (推演 above, 巨力魔法
+    below; `SaintHudLayoutRules.ownsTwoCornerRows` reserves them). `SherryInstinctHooks` answers
+    `GetInstinctHighlight` from her owner-synced component with `always` results at priority 96
+    (`SherryHighlightRules`: above the 95 mark/domain slot and the 90 faction outlines, below `skip()`): a revealed
+    target in her colour, otherwise a living badge holder in gold. Target gates are the Seeker/Dominator/Savior
+    outline's (alive participant, not spectating/creative, not invisible, not swallowed, not SparkTraits
+    instinct-hidden). No instinct key is needed; Fear/Obscure/swallow vetoes and any `skip()` still hide them.
+  - Lang: `role`/`announcement` keys for `sherry` and `sparkwitch.sherry`, `item.sparkwitch.sherry_*`,
+    `message.sparkwitch.sherry.*`, `hud.sparkwitch.sherry.*`, `screen.sparkwitch.sherry.*`, `tip.letter.sherry.*`
+    and the four replay keys.
 - `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
   bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
   Key Fish doors, tracked pufferfish, replay formatting, and lifecycle cleanup. Subpackages:
@@ -3967,6 +4052,14 @@ deliberate and kept:
    pardon): the Charon's ferry cooldown, for the raw role in an ACTIVE round. Remaining time is
    `FerrymanPlayerComponent` ferry cooldown ticks (0 at round start); the nominal is
    `FerrymanRules.FERRY_COOLDOWN_TICKS` (100), written exactly through the owner-syncing `setFerryCooldown`.
+25. `sparkwitch:sherry_deduction` (`SparkWitchForcedCooldowns#sherryDeduction`, PR #206, appended after the Charon's
+   ferry): 橘雪莉's 推演 cooldown, for the raw role in an ACTIVE round. Remaining time is `SherryComponent` deduction
+   cooldown ticks (45 s opening cooldown included); the nominal is `SherryRules.DEDUCTION_COOLDOWN_TICKS` (600),
+   written exactly through the owner-syncing `startDeductionCooldown`.
+26. `sparkwitch:sherry_mighty_force` (`SparkWitchForcedCooldowns#sherryMightyForce`, PR #206, appended after her
+   推演): her own Mighty Force cooldown in the same component, for the raw role in an ACTIVE round. It counts down
+   only once her window has ended; the nominal is `MightyForceAbility.COOLDOWN_TICKS` (900), written exactly through
+   the owner-syncing `setMightyCooldownTicks`.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s

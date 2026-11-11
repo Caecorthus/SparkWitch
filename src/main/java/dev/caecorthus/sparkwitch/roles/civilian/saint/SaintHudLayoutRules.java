@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.saint;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
@@ -86,13 +87,16 @@ public final class SaintHudLayoutRules {
     }
 
     /**
-     * Roles that draw two corner rows: the Specter (PR #207: skill one below, the Otherworld state above) and the
+     * Roles that draw two corner rows: the Specter (PR #207: skill one below, the Otherworld state above), the
      * Charon (PR #202, {@code client/ferryman/FerrymanHud}: the pardon above, the ferry below; both rows lift together
-     * above the hotbar column at narrow GUI widths, which still leaves the reserved corner free).
-     * 绘制两行右下角提示的职业：幽魂（PR #207：下行技能一，上行里世界状态）与卡戎（PR #202，
-     * {@code client/ferryman/FerrymanHud}：上行宽恕，下行摆渡；GUI 较窄时两行一同抬升到快捷栏列之上，预留的角落依然空着）。
+     * above the hotbar column at narrow GUI widths, which still leaves the reserved corner free) and 橘雪莉 (PR #206,
+     * {@code client/sherry/SherryHud}: 推演 above, her own 巨力魔法 below, with the Charon's layout and lift).
+     * 绘制两行右下角提示的职业：幽魂（PR #207：下行技能一，上行里世界状态）、卡戎（PR #202，
+     * {@code client/ferryman/FerrymanHud}：上行宽恕，下行摆渡；GUI 较窄时两行一同抬升到快捷栏列之上，预留的角落依然空着）
+     * 与橘雪莉（PR #206，{@code client/sherry/SherryHud}：上行推演，下行她自己的巨力魔法，布局与抬升同卡戎）。
      */
     private static boolean ownsTwoCornerRows(Identifier roleId) {
-        return SpecterRules.ROLE_ID.equals(roleId) || FerrymanRules.ROLE_ID.equals(roleId);
+        return SpecterRules.ROLE_ID.equals(roleId) || FerrymanRules.ROLE_ID.equals(roleId)
+                || SherryRules.ROLE_ID.equals(roleId);
     }
 }

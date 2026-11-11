@@ -87,9 +87,10 @@ public final class MightyForceCombatService {
 
     /**
      * The living current Apprentice inside her own Mighty Force window, or the living current 橘雪莉 inside hers
-     * (PR #206: her window lives in her own component and never needs the Apprentice's active skill). Fabric fires {@link AttackEntityCallback} before
-     * vanilla's spectator check, and a Taotie-swallowed player is a Wathe-alive spectator riding the Taotie's camera, so
-     * both are refused here or she could strike whoever stands in front of the Taotie.
+     * (PR #206: her window lives in her own component and never needs the Apprentice's active skill). Fabric fires
+     * {@link AttackEntityCallback} before vanilla's spectator check, and a Taotie-swallowed player is a Wathe-alive
+     * spectator riding the Taotie's camera, so both are refused here or she could strike whoever stands in front of
+     * the Taotie.
      * 处于自己巨力窗口内的存活现任预备魔女，或处于自己窗口内的存活现任橘雪莉（PR #206：她的窗口保存在自己的组件中，
      * 不需要预备魔女的当前技能）。Fabric 的 {@link AttackEntityCallback} 在原版旁观者检查之前触发，而被饕餮吞下的
      * 玩家是 Wathe 视为存活、视角锁在饕餮身上的旁观者，因此两者都在此拒绝，否则她能在肚子里击杀饕餮面前的玩家。
