@@ -78,9 +78,12 @@ It also adds the Specter (`sparkwitch:specter`, 幽魂, contributed in PR #207),
 player within 3 blocks and then makes them shriek (fear), and whose Role Skill 2 key opens the world-wide 30 s
 Otherworld (里世界), in which its knife only lands on low-sanity or cowardly non-killers and low-sanity players get a
 Peachwood Sword that can hurt it.
-It also adds 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, scaffold 2026-11-11, features in progress), a
-killer whose ability key (G) casts 死亡回归 (Return by Death, 100 mana): it records her position for 15 s, her victims
-in that window only feign death, and an attack on her is cancelled and returns her to the record point; whose passive
+It also adds 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, 2026-11-11), a
+killer whose ability key (G) casts 死亡回归 (Return by Death, 100 mana, first use 90 s in, 45 s cooldown from its
+end): it records her position for 15 s; everyone she kills in that window only feigns death for 15 s each and then
+dies for real, unless another player attacks her first, which revives them; an attack inside the window is cancelled
+and returns her to the record point with 75 coins (none from a fellow killer), 5 s Glowing and a 10 s all-item
+cooldown; whose passive
 魔女化 (Witchification) grants a witch factor, Speed II and a derringer after enough kills; and whose shop replaces
 the killer shop with a knife, lockpick, crowbar, Fire Poker and the Rope (`sparkwitch:rope`, a strangle from behind).
 She is a mana role on the Witch Maiden's numbers, never a Witch-skill role.
@@ -847,8 +850,8 @@ Current build baseline:
     server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item tooltips. Lang:
     `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
     placement and trigger, peachwood hits and the shield.
-- `roles/killer/hiro/`: 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, placeholder color `0xC8324B`), scaffold
-  of 2026-11-11; the three features below are IN PROGRESS (stubs with a fixed API; replace this text when they land).
+- `roles/killer/hiro/`: 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, placeholder color `0xC8324B`, owner has not
+  picked one), added 2026-11-11.
   Every role number lives in `HiroRules`: `RETURN_WINDOW_TICKS` 300, `VICTIM_FEIGN_TICKS` 300,
   `OPENING_COOLDOWN_TICKS` 1800 (90 s), `RETURN_COOLDOWN_TICKS` 900 (45 s, from the moment the skill ends),
   `RETURN_MANA_COST` 100, `RETURN_REWARD_COINS` 75, `RETURN_GLOW_TICKS` 100, `RETURN_ITEM_LOCK_TICKS` 200,
@@ -856,8 +859,8 @@ Current build baseline:
   id `RETURN_SKILL_ID` (`sparkwitch:nikaido_hiro_return`). Every Rope number lives in `item/rope/RopeRules`: `RANGE`
   2.0, `BACK_HALF_ARC_DEGREES` 60, `CHANNEL_TICKS` 60, `HIT_INTERVAL_TICKS` 20, `INTERRUPT_COOLDOWN_TICKS` 200,
   `PRICE` 50.
-  - Registration: a SparkFactionAPI killer with 夏目安安's profile (Wathe-native KILLER, REAL mood, 8 s sprint cap,
-    round clock), one killer slot, no appearance condition, registered after the Charon's Lost Soul and right before
+  - Registration: a SparkFactionAPI killer with the Specter's profile (Wathe-native KILLER, FAKE mood, unlimited
+    sprint, round clock), one killer slot, no appearance condition, registered after the Charon's Lost Soul and right before
     the Insider, and guessed in the killer block right after the Specter, before the Murderous Witch. No witch skill
     (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel; code reads the raw role.
   - Mana (owner 2026-11-11): exactly the Witch Maiden's system through `mana/WitchManaRules` (`isManaRole`,
@@ -866,14 +869,46 @@ Current build baseline:
     `WitchManaHudRenderer` row (stacked under SparkStrength's killer team purse) and every `hasManaSystem` reader
     are role-neutral. So the Fire Poker's debuff branch (20 mana) applies to her like to any mana holder (owner
     2026-11-11); `FirePokerCombatService` is unchanged.
-  - `returning/` (死亡回归, in progress): `HiroReturnComponent` (`sparkwitch:nikaido_hiro_return`, `NEVER_COPY`,
-    owner-synced: counting-down cooldown, absolute `windowEndTick`, nullable `RecordPoint`), `HiroReturnService`
-    (`register()` wires the opening cooldown at role assignment and the reset clear; `use` is a stub that only checks
-    an ACTIVE round and a living raw-role Hiro) and the empty C2S `UseHiroSkillC2SPacket`
-    (`sparkwitch:use_hiro_skill`, G). The id is on the Control Expert stun, Seeker session, Rift occupant, Grand
-    Witch Fear and Knight duel lists; SparkStrength's daze list and SparkFactionAPI's safe-time list do not list it
-    yet. Forced-cooldown store 25 `sparkwitch:nikaido_hiro_return` (ACTIVE round, raw role, no running window; nominal
-    45 s).
+  - `returning/` (死亡回归, complete 2026-11-11; pure rules in `HiroReturnRules`):
+    - State: `HiroReturnComponent` (`sparkwitch:nikaido_hiro_return`, `NEVER_COPY`, owner-synced, everything a HUD
+      needs: counting-down cooldown, absolute `windowEndTick`, nullable `RecordPoint`, `feignedVictimCount()`). A
+      window that ends un-attacked closes itself in `serverTick` and starts the 45 s cooldown. Forced-cooldown store
+      25 `sparkwitch:nikaido_hiro_return` (ACTIVE round, raw role, no running window; nominal 45 s).
+    - Cast: `HiroReturnService.use` from the empty C2S `UseHiroSkillC2SPacket` (`sparkwitch:use_hiro_skill`, G; on
+      the Control Expert stun, Seeker session, Rift occupant, Grand Witch Fear and Knight duel lists; SparkStrength's
+      daze list and SparkFactionAPI's safe-time list do not list it yet). Order: `mayCast` (ACTIVE, living raw role,
+      not swallowed / held / silenced / SparkTraits-blocked / in a Rift Gate; silent), running window, cooldown (both
+      tell her), Fear last, then `spendMana(100)`; a refusal costs nothing. Success opens the 15 s window at
+      `RecordPoint.of(caster)` with a private line and sound and a `RETURN_SKILL_ID` replay record.
+    - Victims: `HiroVictimFeignService` + server-only `HiroFakeBodies`. A kill credited to her (the `killer` argument
+      or `JudgeKillAttribution.attemptResponsible`) that reaches the commit point of Wathe's `killPlayer` while her
+      window runs becomes a fake death: the victim stays alive in Wathe (counted alive by every win check, including
+      NoellesRoles' moment counter), is a spectator locked on a fake corpse laid exactly like the real one (real death
+      reason and role), keeps its inventory, is muted, cannot act (the Rift occupant payload list), be swapped or be
+      killed again. Never feigned: Hiro herself, a death without a corpse, a train fall / disconnect / vanilla death /
+      drowning, a victim another session holds (swallowed, Rift Gate, Kidnapper control, Raven Form, Seeker session).
+      Each victim runs its own 15 s timer; on expiry (or its disconnect) it is restored and the kill is replayed
+      forced with Hiro as the killer (an offline Hiro: Judge attribution scope of her UUID), so rewards, records and
+      `KillPlayer.AFTER` happen only then. Round end or a reset just clears. `HiroReturnService.isFeignedVictim` is the
+      Rope's seam.
+    - Fake corpse contract: every corpse consumer leaves a `HiroFakeBodies.isFake` body alone, silently (Vulture eat,
+      body bag, Kidnapper drag, Ragpicker search, Charon ferry, Prophet pulse, Wraith death body). SparkStrength's
+      Coroner already ignores a corpse whose owner is alive in Wathe.
+    - Attacked: `HiroReturnService.onKillAttempt` at HEAD of `killPlayer`. An attack is another player's kill attempt
+      (`killer` or the Judge-attributed cause), never an environment death or her own action, and not gated on stun
+      or control. Any attack revives her fake-dead victims, also after the window and when it kills her. Inside the
+      window a cancellable attack (not forced, not SparkTraits- or Savior-terminal, she is not a Knight duelist) is
+      cancelled before any shield is spent and the Return fires once: +75 coins (0 from a killer-team attacker),
+      teleport to the record point (skipped in another dimension, when swallowed, in a Rift Gate, Kidnapper-controlled
+      or in a Seeker session), 5 s Glowing, 10 s all-item cooldown at `END_SERVER_TICK`
+      (`ForcedCooldowns.raiseAll`, `ITEM`), `RopeStrangleService.interruptUser`, window closed, 45 s cooldown.
+    - Mixins (`mixin/hiro/`): `GameFunctionsHiroReturnMixin` (HEAD `order = 0` fake-dead victim untouchable, HEAD
+      `order = 900` attack on Hiro before every default-order HEAD guard, `changeGameMode` call `order = 1200` after
+      Tofana / Last Escape / the Cat), `ServerPlayerEntityHiroFeignMixin` and
+      `ServerPlayNetworkHandlerHiroFeignMixin` (camera possession, spectator teleport), `HiroFeignPayloadGuardMixin`,
+      `NoellesSwapperHiroFeignMixin`, `NoellesVultureHiroFakeBodyMixin`, `NoellesRolesHiroFeignAliveCountMixin`.
+      Lifecycle: a role assignment or reset clears Hiro's own state; a re-roled or offline Hiro keeps her fake-dead
+      victims (own timers, die credited to her, still revive when that player is attacked).
   - `witchification/` (魔女化, complete 2026-11-11): `HiroWitchificationComponent`
     (`sparkwitch:nikaido_hiro_witchification`, `NEVER_COPY`, owner-synced: `kills`, `required`, `witchified`; plus the
     server-only saved `DerringerOwed`), pure `HiroWitchificationRules`, `HiroWitchificationService` and

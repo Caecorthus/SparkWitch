@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.neutral.ferryman;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsBodyDragBridge;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianDecoyBodies;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroFakeBodies;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFakeBodies;
 import dev.doctor4t.wathe.api.event.CanTargetBody;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -142,6 +143,8 @@ public final class FerrymanFerryService {
         return body == null
                 || FerrymanFeignService.isFakeBody(body)
                 || FiendFakeBodies.isFake(body)
+                // The fake corpse of a 二阶堂希罗 victim (2026-11-11). / 二阶堂希罗受害者的假尸体（2026-11-11）。
+                || HiroFakeBodies.isFake(body)
                 || MagicianDecoyBodies.isDecoy(body)
                 || !SparkTraitsBodyDragBridge.canDragBody(body);
     }

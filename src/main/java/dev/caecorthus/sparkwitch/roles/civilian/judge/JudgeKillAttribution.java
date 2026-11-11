@@ -60,6 +60,20 @@ public final class JudgeKillAttribution {
         return attempt.actor;
     }
 
+    /**
+     * Read-only: the responsible UUID (cause, else killer) of this victim's kill attempt still on the stack, whether
+     * or not it has committed yet; null otherwise. For hooks inside {@code killPlayer} that run before the death commits
+     * (二阶堂希罗's 死亡回归 at HEAD and at the commit point). Never changes Judge state.
+     * 只读：该受害者仍在调用栈中的击杀尝试的责任人（归因优先，否则凶手），无论是否已提交；否则为 null。供
+     * {@code killPlayer} 内早于死亡提交运行的钩子使用（二阶堂希罗「死亡回归」的 HEAD 与提交点）。不改变法官状态。
+     */
+    public static @Nullable UUID attemptResponsible(ServerPlayerEntity victim) {
+        Attempt attempt = ATTEMPTS.get();
+        if (attempt == null || attempt.world != victim.getServerWorld()
+                || !attempt.victim.equals(victim.getUuid())) return null;
+        return attempt.actor;
+    }
+
     private static final class Attempt {
         private final ServerWorld world;
         private final UUID actor;
