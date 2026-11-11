@@ -831,15 +831,26 @@ Current build baseline:
     owner-only map, mark outline, cowardice outline; low-sanity viewers see an invisible Specter);
     `SpecterHudRenderer` draws two bottom-right rows (skill one below, Otherworld above), and `SaintHudLayoutRules`
     reserves two rows for the role. `SpecterOtherworldScreenEffects` (post chain `sparkwitch:shaders/post/otherworld`,
-    `GameRenderer#render` before `beginWrite`) ramps saturation/contrast and a red vignette for living participants,
-    fades out over 5 s, steps aside for Wraith/Vendetta/Black Raven perception (`BlackRavenPerceptionScreenEffects
-    .isActiveFor`, sharing one resolver with its own render), Blind, Rift occupants, the Seeker camera,
-    `ScopeClient.isScoped()`, Iris packs, any vanilla post processor (NoellesRoles' included) and a drawn SparkTraits
-    Depression grayscale, and releases its processor when
-    idle, on join/disconnect/stop and resource reload. `ClientWorldOtherworldSkyMixin` tints the sky/fog colour (Wathe
-    skips the sky dome while the train moves). Soul-fire particles, a play-once BGM (one of three variants chosen by the
-    server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item tooltips. Lang:
-    `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
+    `GameRenderer#render` before `beginWrite`) draws the "Yin realm" look for living participants (owner pick
+    2026-11-11, replacing the saturation/contrast ramp and red vignette): a ghost-fire teal split-tone that keeps only
+    vivid reds, teal-black fog by view distance, edge double vision and a slow breathing warp (scaled by vanilla's
+    Distortion Effects option), and an opening wave that sweeps outward through depth in the first ~1.3 s. Vanilla
+    clears the main depth before the hand, so the filter copies the world depth at
+    `WorldRenderEvents.AFTER_TRANSLUCENT` (`LAST` as a fallback) into the chain's `otherworld_depth` target, never in
+    a `SecondaryWorldPass`: from main while it is the bound target, or from the particles target in Fabulous!, whose
+    transparency composite overwrites the main depth before `LAST`. It reads `minecraft:main:depth` to treat the hand
+    as distance 0; a frame without the copy draws the look with no wave and
+    no fog. It fades out over 5 s, steps aside for Wraith/Vendetta/Black Raven perception
+    (`BlackRavenPerceptionScreenEffects.isActiveFor`, sharing one resolver with its own render), Blind, Rift
+    occupants, the Seeker camera, `ScopeClient.isScoped()`, Iris packs, any vanilla post processor (NoellesRoles'
+    included) and a drawn SparkTraits Depression grayscale, and releases its processor when
+    idle, on join/disconnect/stop and resource reload. `ClientWorldOtherworldSkyMixin` tints the sky/fog colour dark
+    ghost-green over the first 1.5 s (Wathe skips the sky dome while the train moves). `SpecterOtherworldParticles`
+    spawns, in air blocks near the local player only, a few soul-fire flames and falling joss paper: the particle
+    type `sparkwitch:joss_paper` is registered in common init by `SpecterParticles` and drawn by
+    `client/specter/JossPaperParticle` (three sprites, presentation only). A play-once BGM (one of three variants
+    chosen by the server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item
+    tooltips. Lang: `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
     placement and trigger, peachwood hits and the shield.
 - `client/bedrock/` (2026-11-02): a role-neutral Bedrock model runtime for player-supplied files, first used by the
   Mini Wither skins. `geo/`: `BedrockGeometryParser` (format 1.12+ `minecraft:geometry`, also inside a Java item-model

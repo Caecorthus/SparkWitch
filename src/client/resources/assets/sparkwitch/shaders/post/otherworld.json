@@ -1,30 +1,21 @@
 {
   "targets": [
-    "swap"
+    "swap",
+    "otherworld_depth"
   ],
   "passes": [
     {
       "name": "sparkwitch_otherworld",
       "intarget": "minecraft:main",
       "outtarget": "swap",
-      "uniforms": [
+      "auxtargets": [
         {
-          "name": "Saturation",
-          "values": [
-            1.0
-          ]
+          "name": "WorldDepthSampler",
+          "id": "otherworld_depth:depth"
         },
         {
-          "name": "Contrast",
-          "values": [
-            1.0
-          ]
-        },
-        {
-          "name": "Vignette",
-          "values": [
-            0.0
-          ]
+          "name": "HandDepthSampler",
+          "id": "minecraft:main:depth"
         }
       ]
     },
