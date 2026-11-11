@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.killer.ninja;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordProtectionPolicy;
+import dev.caecorthus.sparkwitch.item.rope.RopeShieldPolicy;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
@@ -72,6 +73,10 @@ public final class NinjaFeatureService {
         // Current forced/admin/scripted call sites pass no killer; only a real, distinct player killer may be parried.
         // 当前强制、管理和脚本死亡调用不传 killer；格挡只接受真实且非自身的玩家击杀者。
         if (killer == null || !GameFunctions.isPlayerPlayingAndAlive(victim)) {
+            return null;
+        }
+        // Rope seam ("不破盾"): the strangle passes the parry without ending its window. / 绳索接缝（「不破盾」）：勒杀穿过格挡且不结束格挡窗口。
+        if (RopeShieldPolicy.passesShields(deathReason)) {
             return null;
         }
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(victim.getServerWorld());

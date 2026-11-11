@@ -1014,6 +1014,51 @@ def watheCommonMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_3966;)V"
         ],
         [
+                // Rope interrupt observer: HEAD 1030, after the default-1000 structural guards and before every
+                // shield or immunity (1040 Otherworld void, 1050 ricochet, 1100 Fiend/vest, 1200 pardon), so a
+                // blocked attack on a strangling player still breaks the strangle.
+                // 绳索打断观察者：HEAD 1030，位于默认 1000 的结构性守卫之后、所有护盾与免疫（1040 里世界作废、1050 跳弹、
+                // 1100 魔人/防弹衣、1200 宽恕）之前，因此被挡下的攻击同样会打断勒杀。
+                configName: "rope.GameFunctionsRopeStrangleInterruptMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/rope/GameFunctionsRopeStrangleInterruptMixin.class",
+                handler: "sparkwitch\$interruptRopeStrangle",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                priority: 1030,
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // Rope shield pass, NoellesRoles Iron Man layer: the buff read inside the pinned BEFORE listener.
+                // 绳索穿盾之 NoellesRoles 铁人层：固定版本 BEFORE 监听内的增益读取。
+                configName: "rope.NoellesRopeShieldPassMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/rope/NoellesRopeShieldPassMixin.class",
+                handler: "sparkwitch\$ropePassesIronMan",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "lambda\$registerEvents\$5(Lnet/minecraft/class_3222;Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/api/event/KillPlayer\$KillResult;",
+                atTarget: "Lorg/agmas/noellesroles/professor/IronManPlayerComponent;hasBuff()Z",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "lambda\$registerEvents\$5",
+                providerDescriptor: "(Lnet/minecraft/class_3222;Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/api/event/KillPlayer\$KillResult;"
+        ],
+        [
+                // Rope shield pass, NoellesRoles whiskey layer: the listener's only hasStatusEffect call (vanilla
+                // target, remapped in the shipped jar).
+                // 绳索穿盾之 NoellesRoles 威士忌层：该监听内唯一的 hasStatusEffect 调用（原版目标，发布包中已重映射）。
+                configName: "rope.NoellesRopeShieldPassMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/rope/NoellesRopeShieldPassMixin.class",
+                handler: "sparkwitch\$ropePassesWhiskey",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "lambda\$registerEvents\$5(Lnet/minecraft/class_3222;Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/api/event/KillPlayer\$KillResult;",
+                atTarget: "Lnet/minecraft/class_3222;method_6059(Lnet/minecraft/class_6880;)Z",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "lambda\$registerEvents\$5",
+                providerDescriptor: "(Lnet/minecraft/class_3222;Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/api/event/KillPlayer\$KillResult;"
+        ],
+        [
                 // Specter Otherworld targeting rule: HEAD 1040, after the default-1000 immunity guards and before the
                 // 1050 ricochet and the 1100 Fiend/vest, so a voided knife kill spends nothing.
                 // 幽魂里世界索敌规则：HEAD 1040，位于默认 1000 的免疫守卫之后，并先于 1050 跳弹与 1100 魔人/防弹衣，作废的刀杀不消耗任何东西。
