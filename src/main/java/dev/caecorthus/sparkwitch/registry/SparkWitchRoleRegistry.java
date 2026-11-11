@@ -1091,22 +1091,22 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> false)
                 .build());
-        // 二阶堂希罗 Nikaido Hiro (2026-11-11): a SparkFactionAPI killer with 夏目安安's profile (native Wathe KILLER,
-        // REAL mood, 8 s sprint cap, round clock), one killer slot, no appearance condition (drawn at any player
+        // 二阶堂希罗 Nikaido Hiro (2026-11-11): a SparkFactionAPI killer with the Specter's profile (native Wathe KILLER,
+        // FAKE mood, unlimited sprint, round clock), one killer slot, no appearance condition (drawn at any player
         // count). Registered after the Charon's Lost Soul and right before the Insider, which stays last
         // (InsiderRegistrationContractTest), so only the Insider's own index shifts. Skills, shop and state live in
         // roles/killer/hiro, the Rope in item/rope (CONTEXT.md). A mana role on the Witch Maiden's numbers
         // (mana/WitchManaRules) but never a Witch-skill role: kept out of isRegisteredSparkWitchRole and out of the
         // gui.sparkwitch.skills panel.
-        // 二阶堂希罗（2026-11-11）：SparkFactionAPI 杀手，参数与夏目安安相同（原生 Wathe KILLER、真实理智、8 秒冲刺上限、可见回合
+        // 二阶堂希罗（2026-11-11）：SparkFactionAPI 杀手，参数与幽魂相同（原生 Wathe KILLER、伪装情绪、无限冲刺、可见回合
         // 时间），占 1 个杀手名额，无出现条件（任何人数都可抽取）。注册在卡戎的迷失的灵魂之后、紧挨内应之前（内应仍为最后一个，
         // InsiderRegistrationContractTest），因此只有内应自身的下标改变。技能、商店与状态位于 roles/killer/hiro，绳索位于
         // item/rope（见 CONTEXT.md）。魔力沿用巫女的数值（mana/WitchManaRules），但不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole，也不进入 gui.sparkwitch.skills 面板。
         nikaidoHiro = SparkFactionApi.registerRole(FactionRoleDefinition.builder(NIKAIDO_HIRO_ID, FactionIds.KILLER)
                 .color(HiroRules.COLOR)
-                .moodType(Role.MoodType.REAL)
-                .maxSprintTime(GameConstants.getInTicks(0, 8))
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
