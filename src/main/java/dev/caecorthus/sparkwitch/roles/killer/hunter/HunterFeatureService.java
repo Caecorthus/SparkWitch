@@ -97,6 +97,14 @@ public final class HunterFeatureService {
         if (trap == null) {
             return ActionResult.PASS;
         }
+        // The dead and spectators (a swallowed player included) never touch a trap. Fabric fires this callback before
+        // vanilla's spectator check and a spectator client still sends the click, so without this gate a dead killer
+        // could clear traps and a dead police player could channel one (found by the PR #213 probe, 2026-11-11).
+        // 死者与旁观者（含被吞者）不能操作捕兽夹。Fabric 在原版旁观检查之前触发本回调，而旁观客户端照样发送点击；没有这道
+        // 门禁，死亡的杀手可以清除夹子，死亡的警察可以引导拆除（PR #213 探针于 2026-11-11 发现）。
+        if (player.isSpectator() || GameWorldComponent.KEY.get(world).isPlayerDead(player.getUuid())) {
+            return ActionResult.PASS;
+        }
 
         Role role = GameWorldComponent.KEY.get(world).getRole(player);
         // Owner reclaim needs the placer to still be the real Hunter, so an ex-Hunter whose role changed gets no trap

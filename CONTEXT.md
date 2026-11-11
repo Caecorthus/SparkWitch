@@ -3713,6 +3713,7 @@ start tick as tracked data (never saved); `client/hunter/HunterTrapDismantleHud`
 dismantler's own progress bar and for the Hunter's outline of the dismantler (`HunterTrapClientHooks`, the
 dismantler's role colour, above every other outline). `interactWithTrap` answers `SUCCESS` on both sides for either
 class: a client `PASS` would let vanilla go on to use the held item, so no client listener may sit behind it.
+A dead or spectating player (a swallowed one included) gets `PASS` before any branch: no reclaim, dismantle or poison.
 While a channel lives the trap floors the dismantler's carried items at a 0.4 s cooldown every tick, and a caught
 victim's carried items get a 3 s floor once (`HunterFeatureService.forceCarriedItemCooldown`). Both go through
 SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, ticks)` and nowhere else: monotonic, exact (Fast
