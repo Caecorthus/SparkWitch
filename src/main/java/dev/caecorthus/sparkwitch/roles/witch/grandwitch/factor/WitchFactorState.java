@@ -28,18 +28,37 @@ final class WitchFactorState {
     private boolean active;
     private boolean speedUnlocked;
 
-    record Factor(UUID owner, int manaTicks, int moodTicks, int admissionTicks) {
+    /**
+     * {@code selfMade} marks a factor that began as {@link #grantSelfMade} (二阶堂希罗's 魔女化) and stays set on every
+     * copy of it, an heir's inherited one included. It changes one thing only: such a factor never counts toward
+     * Emma's Speed threshold ({@link #countsTowardSpeed}), which measures how far the quota-spread network has grown.
+     * {@code selfMade} 标记源自 {@link #grantSelfMade}（二阶堂希罗的魔女化）的因子，并保留在它的每一份副本上，包括继承者得到的那份。
+     * 它只改变一件事：这类因子永不计入艾玛速度的门槛（{@link #countsTowardSpeed}），该门槛衡量的是占用额度传播出去的网络规模。
+     */
+    record Factor(UUID owner, int manaTicks, int moodTicks, int admissionTicks, boolean selfMade) {
         Factor {
             java.util.Objects.requireNonNull(owner);
             manaTicks = Math.floorMod(manaTicks, MANA_INTERVAL);
             moodTicks = Math.floorMod(moodTicks, MOOD_INTERVAL);
             admissionTicks = Math.clamp(admissionTicks, 0, ADMISSION_TICKS);
         }
-        boolean mature() { return admissionTicks == 0; }
-        Factor advance() {
-            return new Factor(owner, manaTicks + 1, moodTicks + 1, Math.max(0, admissionTicks - 1));
+        /** A spread (quota) factor. / 传播所得（占用额度）的因子。 */
+        Factor(UUID owner, int manaTicks, int moodTicks, int admissionTicks) {
+            this(owner, manaTicks, moodTicks, admissionTicks, false);
         }
-        Factor inherited() { return new Factor(owner, manaTicks, moodTicks, ADMISSION_TICKS); }
+        boolean mature() { return admissionTicks == 0; }
+        /**
+         * Counted by the tick toward Emma's permanent Speed: mature and spread out of the quota. A self-made factor
+         * never counts, on its maker or on an heir; otherwise Hiro's passive alone would unlock the Speed in a 6-8
+         * player round (threshold 1).
+         * 每刻计入艾玛永久速度的条件：已成熟且出自额度传播。自成因子无论在制造者还是继承者身上都不计入；否则在 6-8 人局（门槛为 1）
+         * 中，仅凭希罗的被动就会解锁该速度。
+         */
+        boolean countsTowardSpeed() { return mature() && !selfMade; }
+        Factor advance() {
+            return new Factor(owner, manaTicks + 1, moodTicks + 1, Math.max(0, admissionTicks - 1), selfMade);
+        }
+        Factor inherited() { return new Factor(owner, manaTicks, moodTicks, ADMISSION_TICKS, selfMade); }
     }
 
     static int capacity(int participants) { return WitchFactorSettings.DEFAULT.limit(participants); }
@@ -85,13 +104,15 @@ final class WitchFactorState {
     /**
      * A factor its holder made herself (二阶堂希罗's 魔女化): no source, so it spends no quota and ignores an exhausted
      * one, and it is mature at once. The owner is the holder herself, since provenance must name somebody and nobody
-     * spread it; from then on it is an ordinary factor (income, mood, purification, inheritance keep that owner).
+     * spread it; from then on it is an ordinary factor (income, mood, purification, inheritance keep that owner),
+     * except that it never counts toward Emma's Speed threshold ({@code Factor.countsTowardSpeed}).
      * 持有者自己生成的因子（二阶堂希罗的魔女化）：没有来源，因此不消耗额度、额度耗尽时也可生成，并且立即成熟。来源记为持有者
-     * 本人（溯源必须指向某人，而它并非他人传播）；此后它就是普通因子（收益、情绪、净化与继承都沿用该来源）。
+     * 本人（溯源必须指向某人，而它并非他人传播）；此后它就是普通因子（收益、情绪、净化与继承都沿用该来源），唯一的例外是它永不计入
+     * 艾玛速度的门槛（{@code Factor.countsTowardSpeed}）。
      */
     boolean grantSelfMade(UUID holder) {
         if (!active || factors.containsKey(holder)) return false;
-        factors.put(holder, new Factor(holder, 0, 0, 0));
+        factors.put(holder, new Factor(holder, 0, 0, 0, true));
         if (selfMade < Integer.MAX_VALUE) selfMade++;
         return true;
     }
@@ -110,6 +131,7 @@ final class WitchFactorState {
         return true;
     }
 
+    /** {@code count}: factors that {@link Factor#countsTowardSpeed}. / {@code count}：满足 {@link Factor#countsTowardSpeed} 的因子数。 */
     void observeMatureCarriers(int count) {
         if (active && count >= WitchFactorSettings.speedThreshold(openingParticipants, limit)) speedUnlocked = true;
     }

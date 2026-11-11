@@ -10,6 +10,7 @@ import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,11 +31,14 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * 二阶堂希罗's passive 魔女化 (Witchification), server-authoritative (owner rules 2026-11-11).
- * <p>Kills: every kill Wathe commits ({@code KillPlayer.AFTER}) whose responsible player is a living raw-role Hiro in
- * an ACTIVE round counts; the responsible player is the killer, else {@code JudgeKillAttribution}'s committed cause.
- * Self-kills and SparkTraits-intercepted deaths do not count. A 死亡回归 fake death counts only when it becomes a real
- * kill, because only then does {@code AFTER} fire. The threshold is {@code HiroRules.requiredKills} of the round's
- * player count, written at role assignment and again at {@code ON_FINISH_INITIALIZE}.
+ * <p>Kills: every kill Wathe commits ({@code KillPlayer.AFTER}) whose responsible player is a raw-role Hiro not dead
+ * in Wathe, in an ACTIVE round, counts; the responsible player is the killer, else {@code JudgeKillAttribution}'s
+ * committed cause. She counts while swallowed by a Taotie or inside a Rift Gate too (alive, but a spectator); if that
+ * kill reaches the threshold, the moment below waits until she is back in her own body
+ * ({@code HiroWitchificationRules.isPending}). Self-kills and SparkTraits-intercepted deaths do not count. A 死亡回归
+ * fake death counts only when it becomes a real kill, because only then does {@code AFTER} fire. The threshold is
+ * {@code HiroRules.requiredKills} of the round's player count, written at role assignment and again at
+ * {@code ON_FINISH_INITIALIZE}.
  * <p>Reaching it, once per round: a quota-free witch factor if she holds none
  * ({@code WitchFactorService.grantSelfMade}), her role colour in the witch-factor network view for the rest of her life
  * ({@code exposeRoleColor}), infinite Speed II, one loaded {@code wathe:derringer}, and a private line plus a sound
@@ -43,9 +47,10 @@ import org.jetbrains.annotations.Nullable;
  * <p>The derringer never drops: Wathe refuses every gun pickup by a non-innocent, so with no free shown slot it stays
  * owed (saved in the component) and is handed over as soon as a shown slot frees.
  * 二阶堂希罗的被动「魔女化」，服务端权威（所有者规则 2026-11-11）。
- * <p>击杀：Wathe 提交的每一次击杀（{@code KillPlayer.AFTER}），只要责任人是 ACTIVE 对局中存活的真实身份希罗就计数；责任人取
- * 凶手，否则取 {@code JudgeKillAttribution} 已提交的归因。自杀与被 SparkTraits 拦截的死亡不计数。死亡回归的假死只有在变成真正
- * 击杀时才计数，因为那时 {@code AFTER} 才会触发。所需数为本局玩家数的 {@code HiroRules.requiredKills}，在分配职业时写入，并在
+ * <p>击杀：Wathe 提交的每一次击杀（{@code KillPlayer.AFTER}），只要责任人是 ACTIVE 对局中在 Wathe 里未死亡的真实身份希罗就计数；
+ * 责任人取凶手，否则取 {@code JudgeKillAttribution} 已提交的归因。她被饕餮吞下或身处裂隙门内时（存活但为旁观者）同样计数；若这次
+ * 击杀达到所需数，下述的魔女化时刻会等到她回到自己身体后再发生（{@code HiroWitchificationRules.isPending}）。自杀与被 SparkTraits
+ * 拦截的死亡不计数。死亡回归的假死只有在变成真正击杀时才计数，因为那时 {@code AFTER} 才会触发。所需数为本局玩家数的 {@code HiroRules.requiredKills}，在分配职业时写入，并在
  * {@code ON_FINISH_INITIALIZE} 时再次写入。
  * <p>达到后每局仅一次：若没有魔女因子则获得一个不占额度的因子（{@code WitchFactorService.grantSelfMade}），此后终生在魔女因子
  * 网络视图中以职业色显示（{@code exposeRoleColor}），获得无限速度 II、一把已装填的 {@code wathe:derringer}，以及只有她能看到的
@@ -147,9 +152,12 @@ public final class HiroWitchificationService {
         }
         ServerWorld world = responsible.getServerWorld();
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
+        // Not dead in Wathe is enough, whatever her body is doing: swallowed by a Taotie or inside a Rift Gate she is an
+        // alive spectator, and her poison or grenade kill committing then must not be lost.
+        // 只要在 Wathe 中未死亡即可，与身体状态无关：被饕餮吞下或身处裂隙门内时她是存活的旁观者，此时结算的毒杀或手雷击杀不能丢失。
         if (!HiroWitchificationRules.countsKill(
                 game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE,
-                HiroRules.isLivingHiro(responsible),
+                HiroRules.isHiro(game, responsible) && GameFunctions.isPlayerPlayingAndAlive(responsible),
                 responsible == victim,
                 intercepted)) {
             return;
@@ -159,6 +167,12 @@ public final class HiroWitchificationService {
                 ? component.required() : HiroRules.requiredKills(game.getAllPlayers().size());
         HiroWitchificationRules.Step step = HiroWitchificationRules.afterCountedKill(
                 component.kills(), required, component.isWitchified());
+        if (step.witchifiesNow() && !HiroRules.isLivingHiro(responsible)) {
+            // Out of her body: the kill is counted, the moment (factor, Speed, derringer, message) is left pending
+            // for the tick. / 不在自己身体里：击杀照常计入，魔女化时刻（因子、速度、德林加、提示）留给每刻逻辑补上。
+            component.set(step.kills(), step.required(), false);
+            return;
+        }
         component.set(step.kills(), step.required(), step.witchified());
         if (step.witchifiesNow()) {
             witchify(world, responsible, component);
@@ -193,6 +207,13 @@ public final class HiroWitchificationService {
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (active && HiroRules.isHiro(game, player)) {
                 HiroWitchificationComponent component = HiroWitchificationComponent.KEY.get(player);
+                // A threshold reached while she was swallowed or inside a Rift Gate: the moment happens now.
+                // 在被吞下或身处裂隙门内时达到所需数：魔女化时刻在此刻发生。
+                if (HiroWitchificationRules.isPending(component.kills(), component.required(), component.isWitchified())
+                        && HiroRules.isLivingHiro(player)) {
+                    component.set(component.kills(), component.required(), true);
+                    witchify(world, player, component);
+                }
                 if (component.isWitchified() && HiroRules.isLivingHiro(player)) {
                     maintainSpeed(player);
                     // Idempotent set insert; it also restores the entry after a restart or a ledger reset.

@@ -27,14 +27,29 @@ public final class HiroWitchificationRules {
 
     /**
      * A kill counts when Wathe committed it ({@code KillPlayer.AFTER}) for a victim other than the responsible player,
-     * SparkTraits did not intercept the death, the round is ACTIVE and the responsible player is a living raw-role
-     * Hiro. The victim's role or faction does not matter.
+     * SparkTraits did not intercept the death, the round is ACTIVE and the responsible player is a raw-role Hiro who
+     * is not dead in Wathe. Her body does not matter: swallowed by a Taotie or inside a Rift Gate she is a spectator
+     * but alive, and a poison or grenade kill committing then still counts. The victim's role or faction does not
+     * matter.
      * 击杀计数的条件：Wathe 已提交该击杀（{@code KillPlayer.AFTER}）、受害者不是责任人本人、SparkTraits 未拦截这次死亡、对局处于
-     * ACTIVE，且责任人是存活的真实身份希罗。受害者的职业与阵营不影响计数。
+     * ACTIVE，且责任人是在 Wathe 中未死亡的真实身份希罗。与她的身体状态无关：被饕餮吞下或身处裂隙门内时她是旁观者但仍然存活，此时
+     * 结算的毒杀或手雷击杀照样计数。受害者的职业与阵营不影响计数。
      */
-    public static boolean countsKill(boolean activeRound, boolean responsibleIsLivingHiro, boolean selfKill,
+    public static boolean countsKill(boolean activeRound, boolean responsibleIsHiroAliveInWathe, boolean selfKill,
                                      boolean deathIntercepted) {
-        return activeRound && responsibleIsLivingHiro && !selfKill && !deathIntercepted;
+        return activeRound && responsibleIsHiroAliveInWathe && !selfKill && !deathIntercepted;
+    }
+
+    /**
+     * The threshold is reached but the 魔女化 moment has not happened yet: the deciding kill was counted while she was
+     * out of her body (swallowed, inside a Rift Gate), where no factor, Speed or derringer can be handed over. The
+     * tick performs the moment once she is a living Hiro in her own body again. A threshold below 1 is treated as 1,
+     * so an unset component is never pending.
+     * 已达到所需击杀数但「魔女化」尚未发生：决定性的那次击杀是在她不在自己身体里（被吞下、身处裂隙门内）时计入的，此时无法发放因子、
+     * 速度与德林加手枪。待她重新成为身体内存活的希罗时，由每刻逻辑补上这一刻。小于 1 的所需数按 1 处理，因此未设置的组件永不处于待定。
+     */
+    public static boolean isPending(int kills, int required, boolean witchified) {
+        return !witchified && Math.max(0, kills) >= Math.max(1, required);
     }
 
     /**

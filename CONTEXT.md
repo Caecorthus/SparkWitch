@@ -913,9 +913,12 @@ Current build baseline:
     (`sparkwitch:nikaido_hiro_witchification`, `NEVER_COPY`, owner-synced: `kills`, `required`, `witchified`; plus the
     server-only saved `DerringerOwed`), pure `HiroWitchificationRules`, `HiroWitchificationService` and
     `HiroWitchificationReplay`. Kills: `KillPlayer.AFTER` with the killer, else
-    `JudgeKillAttribution.committedResponsible`, as the responsible player; it counts for a living raw-role Hiro in an
-    ACTIVE round, never a self-kill or a SparkTraits-intercepted death, whatever the victim's role (a 死亡回归 fake death
-    counts when it becomes a real kill). Threshold `HiroRules.requiredKills(game.getAllPlayers().size())`, written at
+    `JudgeKillAttribution.committedResponsible`, as the responsible player; it counts for a raw-role Hiro who is not
+    dead in Wathe (`isPlayerPlayingAndAlive`, so also while she is an alive spectator: swallowed by a Taotie or inside
+    a Rift Gate) in an ACTIVE round, never a self-kill or a SparkTraits-intercepted death, whatever the victim's role
+    (a 死亡回归 fake death counts when it becomes a real kill). A threshold reached while she is out of her body is
+    counted at once but the moment below stays pending (`HiroWitchificationRules.isPending`: kills at the threshold,
+    `witchified` still false) until the tick finds her a living Hiro in her own body again. Threshold `HiroRules.requiredKills(game.getAllPlayers().size())`, written at
     `RoleAssigned` and again at `ON_FINISH_INITIALIZE`. Reaching it, once per round (the `witchified` flag latches until
     a role change or reset): `WitchFactorService.exposeRoleColor`, `WitchFactorService.grantSelfMade` (no-op when she
     already holds a factor; registered after `GrandWitchFeatureService`, so a threshold kill of a factor holder first
@@ -938,23 +941,33 @@ Current build baseline:
     `SparkWitchItemCooldownNominals`; 2D art (`models/item/rope.json`, `textures/item/rope.png`: a hemp coil, owner
     pick A). Death reason `sparkwitch:strangled` (窒息), Prophecy group BLUNT, on `KnightDuelInterference.HUMAN_LETHAL_REASONS`.
     - `RopeRules` (pure): the numbers above plus `TARGET_BOX_EXPANSION` 0.2, `CHOKE_SOUND_RANGE` 8,
-      `DRIFT_THRESHOLD` 0.25, `DISPLACEMENT_TOLERANCE` 1.0; `rearOffsetDegrees` / `isBehind` (the user stands within
-      60 degrees of straight behind the target's head yaw, boundary included), `refusal`, `isHitTick` (20/40/60),
-      `isComplete`, `secondsLeft`, `holdStep` (KEEP / FOLLOW_FALL / PULL_BACK / DISPLACED), `interrupt`,
+      `DRIFT_THRESHOLD` 0.25, `DISPLACEMENT_TOLERANCE` 1.0, `REACH_MARGIN` 0.5, `PAIR_BREAK_MARGIN` 1.5;
+      `rearOffsetDegrees` / `isBehind` (the user stands within 60 degrees of straight behind the target's head yaw,
+      boundary included), `distanceSquaredToBox` (the reach metric: user's eye to the target's body box),
+      `confirmsGrab` (current positions: within `RANGE + REACH_MARGIN` and in sight), `pairSeparated` (different
+      worlds or further than `RANGE + PAIR_BREAK_MARGIN`), `refusal`, `isHitTick` (20/40/60), `isComplete`,
+      `secondsLeft`, `holdStep(dx, dy, dz, breaksWhenDisplaced)` (KEEP / FOLLOW_FALL / PULL_BACK, then beyond the
+      tolerance DISPLACED for the strangler and RETURN for the victim), `interrupt` (no victim-position input),
       `interruptCoolsDown`, `outcome`.
     - `RopeTargeting` (server): the user gate (ACTIVE round, `RoundParticipants.ROLE_HOLDER`, in no strangle, not
-      controlled: Taser stun, Raven landing hold, Grand Witch Fear, hypnosis, Kidnapper, forced shot, swallowed, Last
-      Stand/Escape, Seeker session, foreign camera, any feign, Cat spectre, Rift, Raven Form, active Vendetta, Knight
-      duelist), the target gate (another `ROLE_HOLDER` in the same world, `SparkFactionApi.canAffectPlayer` with the
+      controlled: Taser stun, Raven landing hold, Grand Witch Fear, hypnosis, Kidnapper, forced shot, SparkStrength's
+      `engineer_stunned` lock (capture device and Jester Moment freeze, through the optional
+      `RiftwalkerStatusProbes.isCaptureStunned`; SparkStrength's Taotie head daze has no seam here and is not
+      covered), swallowed, Last Stand/Escape, Seeker session, foreign camera, any feign, Cat spectre, Rift, Raven Form,
+      active Vendetta, Knight duelist), the target gate (another `ROLE_HOLDER` in the same world, `SparkFactionApi.canAffectPlayer` with the
       action id `sparkwitch:strangled`, not Last Escape/Stand, swallowed, carried, feigned incl.
       `HiroReturnService.isFeignedVictim`, spectre, Rift, Raven Form, and in no strangle) and the pick:
       `ControlExpertTaserTargeting.findTarget` (eye ray cut at the first block, lag-compensated
-      `PlayerHitboxHistory` volumes) at `RANGE`.
+      `PlayerHitboxHistory` volumes) at `RANGE`, which must then also hold on CURRENT server positions
+      (`isInReachNow`: `RopeRules.confirmsGrab` of the eye-to-body distance and vanilla `canSee`), so a volume left
+      behind by a sprint or a teleport picks nobody; the back check already reads current positions.
     - `RopeStrangleService` (server authority, in-memory sessions keyed by strangler and by victim): stable seams
       `interruptUser(ServerPlayerEntity)`, `isStrangling(PlayerEntity)`, `isStrangled(PlayerEntity)` (both sides).
       `tryStart`: SparkTraits `blocksWeaponAction` (silent), the gates, then SparkTraits `shouldCancelMeleeAttack`
       (Close Quarters); a refusal costs nothing (action-bar `message.sparkwitch.rope.blocked` / `.no_target` /
-      `.not_behind`). A start records `recordItemUse`, snaps both players to anchors and holds them for 60 ticks; at
+      `.not_behind`). A start records `recordItemUse`, snaps both players to anchors and holds them for 60 ticks (every
+      hold teleport passes the player's own yaw/pitch: in 1.21.1 `requestTeleport`'s rotation is absolute and `ROT`
+      only sends its difference from the server's, so zeros would turn the camera to yaw 0 / pitch 0); at
       ticks 20/40/60 the victim shows one vanilla hurt through `ServerWorld.sendEntityDamage` with the attacker-less
       `generic` source (the server damage pipeline is never entered, so no `damage()` hook, health, invulnerability
       frame or attacker is touched) plus a fixed-range (8 blocks) `entity.player.hurt_drown` choke; at tick 60 a
@@ -964,8 +977,12 @@ Current build baseline:
       vanilla cooldown, `.interrupted` / `.released`): a kill attempt on the user by another player
       (`mixin/rope/GameFunctionsRopeStrangleInterruptMixin`, HEAD of `killPlayer`, priority 1030: after the
       default-1000 structural guards, before every shield and immunity), `RopeTargeting.isControlled`, the rope leaving
-      both hands, either player displaced beyond `DISPLACEMENT_TOLERANCE` (falling never counts; our own pull-backs
-      land on the anchor), either player dying, leaving or no longer eligible, or `interruptUser`. Silent release on
+      both hands, the USER displaced beyond `DISPLACEMENT_TOLERANCE` (falling never counts; our own pull-backs land on
+      the anchor), the pair apart after the pull-backs (`RopeRules.pairSeparated`: a fall, a moving seat), either
+      player dying, leaving, changing world or no longer eligible, or `interruptUser` (called by 死亡回归 and by
+      `FirePokerCombatService` when its push lands on a strangler, because the per-tick pull-back would swallow the
+      push). The VICTIM never breaks it by moving: beyond the tolerance it is returned to its exact anchor
+      (`HoldStep.RETURN`), so a modified client cannot walk out and hand the strangler the cooldown. Silent release on
       `ResetPlayer`, `ON_FINISH_FINALIZE` and server stop. `KillPlayer.AFTER` deletes every rope the dead player
       carries (inventory, personal crafting grid, cursor; Ninja precedent).
     - Hold: `RopeStrangleHold.isHeld` is read by `ControlExpertStun.isStunned` (Raven landing-hold precedent), so the
@@ -1201,7 +1218,10 @@ Current build baseline:
   `ON_FINISH_INITIALIZE` whatever the roles are). `WitchFactorService.grantSelfMade(holder)`: a quota-free factor
   for a living eligible carrier without one, mature at once, owner = the holder herself; it spends nothing, ignores an
   exhausted quota (NBT `SelfMade` keeps the reload floor from counting it) and is otherwise an ordinary factor (Grand
-  Witch mana, mood drain for REAL-mood roles, Purify, inheritance, Emma's rules). `exposeRoleColor` /
+  Witch mana, mood drain for REAL-mood roles, Purify, inheritance, Emma's kill reward, the network view) with one
+  exception: it never counts toward Emma's Speed threshold. `Factor.selfMade` (per-entry NBT `SelfMade`, written only
+  when set; an older entry is self-made when owner == holder) stays on every copy, an heir's inherited one included,
+  and the tick counts only `Factor.countsTowardSpeed` (mature and spread) into `observeMatureCarriers`. `exposeRoleColor` /
   `concealRoleColor`: a server set of players shown in their own role colour instead of the factor violet, with or
   without a factor; it is not saved (its writer re-asserts it every tick), ends with the player's death or role, and
   travels only in the per-recipient `View` (`View.sanitized`: an unauthorized recipient gets no id; living targets
@@ -5330,7 +5350,8 @@ Seeker car.
   playing owner lands at the feather (a still-falling feather is projected to the floor); `BlackRavenCrowLandingSafety`
   (a copy of the package-private `RiftExitSafety`, driven by the public `RiftExitSearch` ring) picks the spot, else the
   owner stays at the body with `message.sparkwitch.black_raven_crow.feather_blocked`. A landing teleports (body
-  yaw/pitch kept), starts the 3 s `setLandingHoldUntil`, plays parrot fly 0.6 + phantom flap 0.5 at the spot, and
+  yaw/pitch kept; the hold's per-tick pull-back passes the player's own yaw/pitch too, since `requestTeleport`'s
+  rotation is absolute in 1.21.1), starts the 3 s `setLandingHoldUntil`, plays parrot fly 0.6 + phantom flap 0.5 at the spot, and
   swirls `black_feather` particles from 3 per tick to none: vanilla velocity-mode particle packets launched
   tangentially, the client particle turning its velocity by `SWIRL_TURN` each tick so it orbits (no custom packet).
 - **Landing hold.** `ControlExpertStun.isStunned` answers true while `BlackRavenCrowLandingHold.isHeld` (server: world

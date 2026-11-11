@@ -124,11 +124,13 @@ public final class WitchFactorService {
      * round and a living eligible carrier without a factor; a holder who already has one keeps it untouched and this
      * returns false. The ledger is opened at every {@code ON_FINISH_INITIALIZE} whatever the roles are; if a running
      * round is nevertheless found without one, it is opened here exactly as the round start would have. The new factor
-     * is an ordinary one (see {@code WitchFactorState.grantSelfMade} for its owner).
+     * is an ordinary one (see {@code WitchFactorState.grantSelfMade} for its owner) in everything but Emma's Speed
+     * threshold, toward which it never counts, on her or on an heir (owner 2026-11-11).
      * 持有者自成因子（二阶堂希罗的魔女化）的免额度入口：不需要大魔女或艾玛、不占额度（没有任何魔女或额度已用尽的对局同样授予）、
      * 也没有 20 秒潜伏期。要求对局进行中、目标存活且可携带、且尚无因子；已持有因子者保持原样并返回 false。账本在每次
      * {@code ON_FINISH_INITIALIZE} 时开启，与职业无关；若进行中的对局仍没有账本，则在此按开局时的方式开启。新因子是普通因子
-     * （来源见 {@code WitchFactorState.grantSelfMade}）。
+     * （来源见 {@code WitchFactorState.grantSelfMade}），唯一的例外是它无论在她还是继承者身上都永不计入艾玛速度的门槛
+     * （所有者 2026-11-11）。
      */
     public static boolean grantSelfMade(ServerPlayerEntity holder) {
         ServerWorld world = holder.getServerWorld();
@@ -234,7 +236,9 @@ public final class WitchFactorService {
             if (!previous.mature() && factor.mature()) {
                 holder.sendMessage(Text.translatable("message.sparkwitch.factor.awakened"), false);
             }
-            if (factor.mature()) matureCount++;
+            // Emma's Speed threshold counts spread factors only; mana, mood and the view below treat every factor alike.
+            // 艾玛速度的门槛只统计传播所得的因子；下面的魔力、情绪与视图对所有因子一视同仁。
+            if (factor.countsTowardSpeed()) matureCount++;
             Role role = game.getRole(holder);
             boolean apprentice = role == SparkWitchRoles.apprenticeWitch();
             if (factor.manaTicks() == 0) {
