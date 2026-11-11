@@ -99,10 +99,30 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "use_athlete_dash"),
             // Dominator mark/release (UseDominatorSkillC2SPacket, G key). / 支配者标记/释放（G 键）。
             Identifier.of("sparkwitch", "use_dominator_skill"),
+            // Savior domain (UseSaviorSkillC2SPacket, G key, PR #200). / 救世主领域（UseSaviorSkillC2SPacket，G 键，PR #200）。
+            Identifier.of("sparkwitch", "use_savior_skill"),
             // 夏目安安 hypnosis menu request and target confirm, both halves like the Judge pair.
             // 夏目安安催眠菜单请求与目标确认，与法官的两个包一样两半都拦截。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
+            // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
+            Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_specter_second_skill"),
+            // Medium 通灵 (G) and 招魂 (Role Skill 2): the two menu requests and their two paid confirmations (PR #209).
+            // The dead voter's submit_medium_vote is deliberately absent: only a dead round member may send it, and its
+            // handler validates that itself.
+            // 通灵师的通灵（G 键）与招魂（职业技能 2）：两个菜单请求及其两个付费确认（PR #209）。死者投票包
+            // submit_medium_vote 有意不列入：只有本局死者可以发送，其处理器自行校验。
+            Identifier.of("sparkwitch", "use_medium_skill"),
+            Identifier.of("sparkwitch", "submit_medium_seance"),
+            Identifier.of("sparkwitch", "use_medium_second_skill"),
+            Identifier.of("sparkwitch", "submit_medium_haunt_target"),
+            // Charon pardon (shared key G) and ferry (Role Skill 2), PR #202; owner 2026-11-09: a controlled Charon cannot
+            // pardon either. A dropped pardon simply lets the 0.5 s window lapse and the held kill replay.
+            // 卡戎宽恕（共享 G 键）与摆渡（职业技能 2），PR #202；所有者 2026-11-09：被控制的卡戎同样不能宽恕。被丢弃的宽恕包只会
+            // 让 0.5 秒窗口过期，被扣住的击杀随之重放。
+            Identifier.of("sparkwitch", "ferryman_pardon"),
+            Identifier.of("sparkwitch", "ferryman_ferry"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a
@@ -136,6 +156,12 @@ public final class ControlExpertStunRules {
             // BEAR M32A1 开火（FireM32A1C2SPayload，左键），与反坦克炮筒同类的手持射击；光标装填属于背包点击（眩晕会关闭游戏
             // 界面），瞄具仅为表现。
             Identifier.of("sparkwitch", "fire_m32a1"),
+            // Savior pistol shot (SaviorPistolShootC2SPayload, PR #200), a gun shot like wathe:gunshoot. The lightsaber
+            // kills through the vanilla attack the stun already denies; its swing/ignite sound intents
+            // (savior_lightsaber_swing, savior_lightsaber_ignite) are presentation only and stay allowed.
+            // 救世主手枪射击（SaviorPistolShootC2SPayload，PR #200），与 wathe:gunshoot 同类的枪击。光剑经眩晕已拒绝的原版攻击
+            // 击杀；其挥动/点火音效意图（savior_lightsaber_swing、savior_lightsaber_ignite）仅为表现，保持放行。
+            Identifier.of("sparkwitch", "savior_pistol_shoot"),
 
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。

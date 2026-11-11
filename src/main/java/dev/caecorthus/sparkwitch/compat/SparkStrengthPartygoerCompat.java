@@ -5,6 +5,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.hit.HitResult;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
@@ -23,6 +24,10 @@ import java.lang.reflect.Method;
  *   <li>{@code PartygoerService#isKillable(Entity)}: server; false while it is inside a Taotie. / 服务端；在饕餮肚里时为 false。</li>
  *   <li>{@code annina.sparkstrength.component.partyanimal.PartygoerCorpseComponent#isPartygoerCorpse(Entity)}: both
  *   sides. / 双端可用。</li>
+ *   <li>{@code annina.sparkstrength.role.partyanimal.PartygoerHitGeometry#preferNearer(Entity, HitResult, double)}:
+ *   any side; the strictly nearer Partygoer on a gun ray, used by the Savior pistol's client pick (PR #200) like the
+ *   SparkStrength Serial Killer pistols. / 双端；枪械射线上严格更近的派对客，救世主手枪的客户端选靶（PR #200）与
+ *   SparkStrength 连环杀手手枪一样使用。</li>
  * </ul>
  * Absent, older (no such method) or failing SparkStrength means there is no Partygoer and no such corpse.
  * SparkStrength 缺失、过旧（无此方法）或调用失败时，视为没有派对客，也没有这种尸体。
@@ -33,9 +38,11 @@ public final class SparkStrengthPartygoerCompat {
     public static final Identifier PARTYGOER_ID = Identifier.of(MOD_ID, "partygoer");
     static final String SERVICE = "annina.sparkstrength.role.partyanimal.PartygoerService";
     static final String CORPSE_COMPONENT = "annina.sparkstrength.component.partyanimal.PartygoerCorpseComponent";
+    static final String HIT_GEOMETRY = "annina.sparkstrength.role.partyanimal.PartygoerHitGeometry";
     static final String KILL_BY_WEAPON = "killByWeapon";
     static final String IS_KILLABLE = "isKillable";
     static final String IS_CORPSE = "isPartygoerCorpse";
+    static final String PREFER_NEARER = "preferNearer";
 
     private SparkStrengthPartygoerCompat() {
     }
@@ -83,6 +90,21 @@ public final class SparkStrengthPartygoerCompat {
         return result instanceof Boolean corpse && corpse;
     }
 
+    /**
+     * Any side: {@code original}, or a strictly nearer targetable Partygoer on the shooter's gun ray within
+     * {@code range}. Absent or failing SparkStrength returns {@code original} unchanged.
+     * 双端：返回 {@code original}，或射手枪械射线上 {@code range} 内严格更近、可被瞄准的派对客。SparkStrength 缺失或调用失败时
+     * 原样返回 {@code original}。
+     */
+    public static @Nullable HitResult preferNearer(@Nullable Entity shooter, @Nullable HitResult original,
+                                                   double range) {
+        if (Methods.PREFER_NEARER == null || shooter == null || original == null) {
+            return original;
+        }
+        Object result = invoke(Methods.PREFER_NEARER, shooter, original, range);
+        return result instanceof HitResult hit ? hit : original;
+    }
+
     private static @Nullable Object invoke(@Nullable Method method, Object... arguments) {
         if (method == null) {
             return null;
@@ -102,6 +124,7 @@ public final class SparkStrengthPartygoerCompat {
         static final @Nullable Method IS_KILLABLE = find(SERVICE, SparkStrengthPartygoerCompat.IS_KILLABLE, Entity.class);
         static final @Nullable Method IS_CORPSE = find(CORPSE_COMPONENT, SparkStrengthPartygoerCompat.IS_CORPSE,
                 Entity.class);
+        static final @Nullable Method PREFER_NEARER = findPreferNearer();
 
         private static @Nullable Method find(String owner, String name, Class<?>... parameters) {
             if (!FabricLoader.getInstance().isModLoaded(MOD_ID)) {
@@ -110,6 +133,20 @@ public final class SparkStrengthPartygoerCompat {
             try {
                 Method method = Class.forName(owner).getMethod(name, parameters);
                 return method.getReturnType() == boolean.class ? method : null;
+            } catch (ReflectiveOperationException | LinkageError ignored) {
+                return null;
+            }
+        }
+
+        /** The one non-boolean seam: it must return a {@code HitResult}, else it fails closed. / 唯一的非布尔接缝：必须返回 {@code HitResult}，否则失败即关闭。 */
+        private static @Nullable Method findPreferNearer() {
+            if (!FabricLoader.getInstance().isModLoaded(MOD_ID)) {
+                return null;
+            }
+            try {
+                Method method = Class.forName(HIT_GEOMETRY).getMethod(SparkStrengthPartygoerCompat.PREFER_NEARER,
+                        Entity.class, HitResult.class, double.class);
+                return method.getReturnType() == HitResult.class ? method : null;
             } catch (ReflectiveOperationException | LinkageError ignored) {
                 return null;
             }

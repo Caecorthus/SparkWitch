@@ -174,10 +174,34 @@ public final class UsecEconomyService {
         return UsecRules.isUsec(role) ? CanSeeMoney.Result.ALLOW : null;
     }
 
-    private static @Nullable CanSeeMoney.Result canSeeMoney(PlayerEntity player) {
-        if (player == null || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+    /**
+     * For the exact USEC role: DENY once it is dead (the Insider precedent), ALLOW while playing and alive, otherwise
+     * no answer as before. The explicit DENY is needed because with no answer Wathe falls back to
+     * {@code ShopUtils.canAccessShop}, and the USEC shop is built from the role alone, so a dead USEC kept the coin HUD.
+     * A USEC that is not dead but not playing (the round still STARTING, when SparkTraits rolls money traits) is
+     * deliberately left to that fallback, unchanged. Other roles get no answer. Reads only synced facts (role, dead
+     * set), so both sides agree.
+     * 对精确的 USEC 职业：死亡后返回 DENY（沿用内应先例），参与且存活时返回 ALLOW，其余情况与之前一样不作答。显式 DENY 是必要
+     * 的：不作答时 Wathe 退回 {@code ShopUtils.canAccessShop}，而 USEC 商店只按职业构建，死亡的 USEC 因此仍看得到金币 HUD。
+     * 未死亡但未参与的 USEC（对局仍为 STARTING、SparkTraits 抽取金钱词条时）刻意保持交给该回退，行为不变。其他职业不作答。只读取
+     * 已同步的信息（职业、死亡名单），因此两端一致。
+     */
+    static @Nullable CanSeeMoney.Result moneyVisibility(@Nullable Role role, boolean dead, boolean playingAndAlive) {
+        if (!UsecRules.isUsec(role)) {
             return null;
         }
-        return moneyVisibilityResult(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
+        if (dead) {
+            return CanSeeMoney.Result.DENY;
+        }
+        return playingAndAlive ? moneyVisibilityResult(role) : null;
+    }
+
+    private static @Nullable CanSeeMoney.Result canSeeMoney(PlayerEntity player) {
+        if (player == null) {
+            return null;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
+        return moneyVisibility(game.getRole(player), game.isPlayerDead(player.getUuid()),
+                GameFunctions.isPlayerPlayingAndAlive(player));
     }
 }

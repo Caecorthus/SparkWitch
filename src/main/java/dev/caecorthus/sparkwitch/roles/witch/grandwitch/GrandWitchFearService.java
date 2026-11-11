@@ -75,10 +75,33 @@ public final class GrandWitchFearService {
             // Dominator mark/release (G); the server also re-checks fear on use.
             // 支配者标记/释放（G 键）；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "use_dominator_skill"),
+            // Savior domain (G, PR #200); the server also re-checks fear on use. The Savior pistol shot stays allowed
+            // like wathe:gunshoot (Fear blocks role skills, not weapons); the lightsaber sound intents are not skills.
+            // 救世主领域（G 键，PR #200）；服务端在使用时也会再次检查恐惧。救世主手枪射击与 wathe:gunshoot 一样放行（恐惧只封锁
+            // 职业技能，不封锁武器），光剑音效意图也不是技能。
+            Identifier.of("sparkwitch", "use_savior_skill"),
             // 夏目安安 hypnosis menu request and target confirm; the server also re-checks fear on both.
             // 夏目安安催眠菜单请求与目标确认；服务端在两者上也会再次检查恐惧。
             Identifier.of("sparkwitch", "request_natsume_menu"),
             Identifier.of("sparkwitch", "confirm_natsume_target"),
+            // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
+            Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_specter_second_skill"),
+            // Medium 通灵 (G) and 招魂 (Role Skill 2): the two menu requests and their two paid confirmations (PR #209).
+            // The dead voter's submit_medium_vote is deliberately absent: only a dead round member may send it, and its
+            // handler validates that itself.
+            // 通灵师的通灵（G 键）与招魂（职业技能 2）：两个菜单请求及其两个付费确认（PR #209）。死者投票包
+            // submit_medium_vote 有意不列入：只有本局死者可以发送，其处理器自行校验。
+            Identifier.of("sparkwitch", "use_medium_skill"),
+            Identifier.of("sparkwitch", "submit_medium_seance"),
+            Identifier.of("sparkwitch", "use_medium_second_skill"),
+            Identifier.of("sparkwitch", "submit_medium_haunt_target"),
+            // Charon pardon (shared key G) and ferry (Role Skill 2), PR #202; owner 2026-11-09: a controlled Charon cannot
+            // pardon either. A dropped pardon simply lets the 0.5 s window lapse and the held kill replay.
+            // 卡戎宽恕（共享 G 键）与摆渡（职业技能 2），PR #202；所有者 2026-11-09：被控制的卡戎同样不能宽恕。被丢弃的宽恕包只会
+            // 让 0.5 秒窗口过期，被扣住的击杀随之重放。
+            Identifier.of("sparkwitch", "ferryman_pardon"),
+            Identifier.of("sparkwitch", "ferryman_ferry"),
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),

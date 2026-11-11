@@ -65,7 +65,14 @@ public final class BlackRavenPerceptionScreenEffects {
         return escape[0] >= 0.5f && renderComposition(localPlayer, delta, escape);
     }
 
-    private static boolean renderComposition(ClientPlayerEntity player, float delta, float[] escape) {
+    /**
+     * The single vision decision shared by {@link #renderComposition} and {@link #isActiveFor}: the composed
+     * Vendetta / Wraith / Perception look, merged with the Last Escape parameters when {@code escape} is non-null, or
+     * null when that look is off. Pure: no GL work and no processor changes.
+     * {@link #renderComposition} 与 {@link #isActiveFor} 共用的唯一效果判定：合成后的复仇者/冤魂/感知效果（{@code escape}
+     * 非空时再与脱险参数合成），效果关闭时为 null。纯查询：不做 GL 操作，也不改动处理器。
+     */
+    private static WraithVisionRules.Vision resolveVision(ClientPlayerEntity player, float[] escape) {
         float desaturation = VendettaClientPresentation.hasActiveOwnerState(player)
                 ? VendettaClientPresentation.desaturation(player)
                 : WraithVisionRules.desaturation(
@@ -86,14 +93,21 @@ public final class BlackRavenPerceptionScreenEffects {
         // Without an escape composeLastEscape returns the existing vision unchanged, so an off effect is known here,
         // before building it. / 没有脱险时 composeLastEscape 原样返回现有效果，因此可在构建前得知效果已关闭。
         if (escape == null && desaturation <= 0.0F) {
-            closeProcessor();
-            return false;
+            return null;
         }
         WraithVisionRules.Vision vision = WraithVisionRules.composeLastEscape(
                 new WraithVisionRules.Vision(desaturation, 0.0f, 1.0f,
                         luminanceScale, lumaRed, lumaGreen, lumaBlue), escape);
         desaturation = vision.desaturation();
         if (desaturation <= 0.0F) {
+            return null;
+        }
+        return vision;
+    }
+
+    private static boolean renderComposition(ClientPlayerEntity player, float delta, float[] escape) {
+        WraithVisionRules.Vision vision = resolveVision(player, escape);
+        if (vision == null) {
             closeProcessor();
             return false;
         }
@@ -103,10 +117,11 @@ public final class BlackRavenPerceptionScreenEffects {
         if (activeProcessor == null) {
             return false;
         }
-        luminanceScale = vision.luminance();
-        lumaRed = vision.red();
-        lumaGreen = vision.green();
-        lumaBlue = vision.blue();
+        float desaturation = vision.desaturation();
+        float luminanceScale = vision.luminance();
+        float lumaRed = vision.red();
+        float lumaGreen = vision.green();
+        float lumaBlue = vision.blue();
         activeProcessor.setUniforms("DesaturateFactor", desaturation);
         activeProcessor.setUniforms("LuminanceScale", luminanceScale);
         activeProcessor.setUniforms("LumaRed", lumaRed);
@@ -125,6 +140,26 @@ public final class BlackRavenPerceptionScreenEffects {
         // Black Raven priority without treating arbitrary red world pixels as a shader key.
         client.worldRenderer.drawEntityOutlinesFramebuffer();
         return true;
+    }
+
+    /**
+     * Read-only seam for other client filters (today the Specter's Otherworld filter): whether a Wraith / Vendetta /
+     * Perception / Last Escape grayscale is on screen this frame, so they can yield instead of stacking. It follows the
+     * same gates as the render paths: a Last Escape frame always shows a grayscale (this compositor's pass through
+     * {@link #renderLastEscape}, or SparkTraits' own fallback when that returns false); otherwise the plain path's
+     * unconfirmed-server skip, a shader that failed to load, and {@link #resolveVision} decide. Never renders.
+     * 供其他客户端滤镜（目前是幽魂的里世界滤镜）使用的只读接缝：本帧屏幕上是否有冤魂/复仇/感知/脱险灰阶，以便让路而不是
+     * 叠加。它与渲染路径使用相同的门槛：脱险帧总会显示灰阶（本合成器经 {@link #renderLastEscape} 绘制，返回 false 时由
+     * SparkTraits 自行回退绘制）；否则由普通路径的未确认服务端跳过、着色器加载失败与 {@link #resolveVision} 决定。从不渲染。
+     */
+    public static boolean isActiveFor(ClientPlayerEntity player) {
+        if (LastEscapeTraitsVisionBridge.composition(player)[0] >= 0.5f) {
+            return true;
+        }
+        if (processor == null && !SparkWitchServerConnection.isConfirmedServer()) {
+            return false;
+        }
+        return !loadFailed && resolveVision(player, null) != null;
     }
 
     public static void close() {

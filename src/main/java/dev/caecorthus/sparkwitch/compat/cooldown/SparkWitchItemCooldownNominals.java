@@ -14,6 +14,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindKitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
@@ -121,6 +122,11 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             entries.put(SparkWitchItems.WITHER_GOHEI_ID, MiniWitherRules.CRIMSON_COOLDOWN_TICKS);
             // Spare Key: the 5 s cooldown after each opening. / 备用钥匙：每次开门后的 5 秒冷却。
             entries.put(SparkWitchItems.SPARE_KEY_ID, SpareKeyRules.COOLDOWN_TICKS);
+            // Savior (PR #200): the pistol's 10 s after every shot and the lightsaber's 30 s after a kill, not the
+            // 60 s / 45 s round-start locks.
+            // 救世主（PR #200）：手枪每次射击后 10 秒、光剑击杀后 30 秒，而非开局的 60 秒 / 45 秒锁定。
+            entries.put(SparkWitchItems.SAVIOR_PISTOL_ID, SaviorRules.PISTOL_COOLDOWN_TICKS);
+            entries.put(SparkWitchItems.SAVIOR_LIGHTSABER_ID, SaviorRules.LIGHTSABER_KILL_COOLDOWN_TICKS);
             // NoellesRoles items: public constants of the pinned 1.7.6 jar, plus the master key, which both
             // NoellesRoles (literal) and the Insider door path write as 200 ticks. The timed bomb stays exempt in
             // SparkFactionAPI itself (Bomber pass gate).

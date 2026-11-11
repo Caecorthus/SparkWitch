@@ -21,6 +21,10 @@
     "knight.KnightDuelSkillPayloadGuardMixin",
     "recruit.RecruitGunParityMixin",
     "recruit.ItemEntityRecruitGunMixin",
+    "savior.SaviorGunPickupMixin",
+    "savior.PlayerInventorySaviorGunMixin",
+    "savior.ScreenHandlerSaviorGunMixin",
+    "savior.NoellesAssassinSaviorGuessMixin",
     "JudgeKillCompletionMixin",
     "JudgeLivingLethalDamageMixin",
     "JudgePlayerLethalDamageMixin",
@@ -158,6 +162,12 @@
     "fiend.SerialKillerPlayerComponentFiendTargetMixin",
     "fiend.ServerPlayNetworkHandlerFiendFeignMixin",
     "fiend.ServerPlayerEntityFiendFeignMixin",
+    "ferryman.NoellesVultureFerrymanFakeBodyMixin",
+    "ferryman.BodyBagItemFerrymanFeignMixin",
+    "ferryman.GameFunctionsFerrymanPardonMixin",
+    "ferryman.NoellesSwapperFerrymanFeignMixin",
+    "ferryman.ServerPlayNetworkHandlerFerrymanFeignMixin",
+    "ferryman.ServerPlayerEntityFerrymanFeignMixin",
     "fiend.TaotiePlayerComponentFiendMixin",
     "fiend.TaotiePlayerComponentFiendSwallowMixin",
     "fiend.VentHatchBlockFiendCooldownMixin",
@@ -270,7 +280,12 @@
     "bear.ThrowingAxeRangedOriginMixin",
     "bear.ServerWorldExplosionSmokeCarveMixin",
     "bear.HeadsetPlayerScreenHandlerMixin",
-    "bear.HeadsetCreativeActionMixin"
+    "bear.HeadsetCreativeActionMixin",
+    "bear.HeadsetWatheInventoryWipeMixin",
+    "specter.GameFunctionsSpecterOtherworldTargetMixin",
+    "specter.SpecterOtherworldKnifeMixin",
+    "specter.GameFunctionsSpecterShieldMixin",
+    "specter.DecoratedPotBlockPeachwoodSwordMixin"
   ],
   "injectors": {
     "defaultRequire": 1

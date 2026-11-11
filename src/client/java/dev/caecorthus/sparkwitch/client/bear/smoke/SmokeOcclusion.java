@@ -44,8 +44,17 @@ public final class SmokeOcclusion {
     public static final float HIDDEN_OPTICAL_DEPTH = 1.5F;
     /** Checkpoints per texel, evenly spaced from fade start to hidden. / 每个纹素的检查点数，从开始变淡到消失等距分布。 */
     public static final int CHECKPOINT_COUNT = 4;
-    /** Distance value meaning "never reached". / 表示“永远达不到”的距离值。 */
-    public static final float NEVER = 65000.0F;
+    /**
+     * Distance value meaning "never reached". It is written into the {@code GL_RGBA16F} texture (clear colour and
+     * shader output) and compared there with {@code >= Never}, so it must survive the half-float round trip exactly:
+     * 2^15 does, whereas the former 65000 came back as 64992 and every "no smoke" texel read as a real distance (an
+     * infinitely far pixel, such as sky in the heat image, then took the full optical depth). Real distances stay far
+     * below it: a marched cloud meets the view frustum, whose far plane is 2048 blocks at 32 chunks.
+     * 表示“永远达不到”的距离值。它会写入 {@code GL_RGBA16F} 纹理（清除色与着色器输出）并在那里以 {@code >= Never} 比较，因此必须
+     * 在半精度浮点往返后保持不变：2^15 可以，而原先的 65000 读回为 64992，使每个“无烟”纹素都被当成真实距离（无限远的像素，例如
+     * 热图中的天空，于是得到全部光学厚度）。真实距离远小于它：被步进的烟团必与视锥相交，32 区块视距下远平面为 2048 格。
+     */
+    public static final float NEVER = 32768.0F;
 
     private SmokeOcclusion() {
     }

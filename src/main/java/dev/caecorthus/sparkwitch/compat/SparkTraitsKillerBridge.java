@@ -33,8 +33,11 @@ public final class SparkTraitsKillerBridge {
     private static final OptionalStaticMethod DESATURATION = resolve("getLastEscapeDesaturation", PlayerEntity.class);
     private static final OptionalStaticMethod ROLE_SKILL = resolve("isRoleSkillBlocked", PlayerEntity.class);
     private static final OptionalStaticMethod TERMINAL = resolve("registerTerminalDeathReason", Identifier.class);
+    private static final OptionalStaticMethod IS_TERMINAL = resolve("isTerminalDeathReason", Identifier.class);
     private static final OptionalStaticMethod EXACT_COOLDOWN = resolve("setExactItemCooldownRemaining",
             ServerPlayerEntity.class, Item.class, int.class);
+    private static final OptionalStaticMethod COOLDOWN_REMAINING = resolve("getItemCooldownRemaining",
+            PlayerEntity.class, Item.class);
     private static final OptionalStaticMethod NON_FINAL_KILL = resolve("isNonFinalKillPending",
             ServerPlayerEntity.class, ServerPlayerEntity.class);
     private static final OptionalStaticMethod NON_FINAL_COOLDOWN = resolve("getNonFinalKillCooldownTicks", int.class);
@@ -105,11 +108,29 @@ public final class SparkTraitsKillerBridge {
         return reason != null && TERMINAL.callVoid(reason);
     }
 
+    /** Whether a reason is registered SparkTraits-terminal (an unprotectable penalty). Absent or older Traits keeps no
+     * such registry, so it answers false; a failing call answers true, so a protection that asks stays off.
+     * 该死亡原因是否已注册为 SparkTraits 终结原因（不可保护的惩罚）。Traits 缺失或过旧时没有该登记表，返回 false；单次调用
+     * 失败时返回 true，使询问它的保护保守地不生效。 */
+    public static boolean isTerminalDeathReason(Identifier reason) {
+        return reason != null && IS_TERMINAL.callBoolean(false, false, true, reason);
+    }
+
     /** Writes an exact cooldown past Traits modifiers, performing the vanilla set itself; on false the
      * caller must fall back to {@code ItemCooldownManager.set}.
      * 越过 Traits 冷却倍率写入精确冷却（其内部自行完成原版写入）；返回 false 时调用方需回退到原版冷却写入。 */
     public static boolean setExactItemCooldownRemaining(ServerPlayerEntity player, Item item, int ticks) {
         return player != null && item != null && EXACT_COOLDOWN.callVoid(player, item, Math.max(0, ticks));
+    }
+
+    /** Exact remaining ticks of an item cooldown; 0 when Traits is absent/older or the item is not cooling.
+     *  物品冷却的精确剩余刻数；Traits 缺失/过旧或未在冷却时为 0。 */
+    public static int getItemCooldownRemaining(PlayerEntity player, Item item) {
+        if (player == null || item == null) {
+            return 0;
+        }
+        Object result = COOLDOWN_REMAINING.callOrNull(player, item);
+        return result instanceof Integer ticks ? Math.max(0, ticks) : 0;
     }
 
     /** Whether Traits turned this attacker's hit into a non-final kill (e.g. a Depression fake death);

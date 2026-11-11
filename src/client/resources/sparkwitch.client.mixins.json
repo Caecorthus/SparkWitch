@@ -5,8 +5,17 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "CrossSwordWatheCrosshairMixin",
+    "savior.SaviorMuzzleTrackerMixin",
+    "savior.SaviorLightsaberBipedPoseMixin",
+    "savior.SaviorLightsaberRunningItemMixin",
+    "savior.SaviorLightsaberHandRenderMixin",
+    "savior.SaviorLightsaberCrosshairMixin",
+    "savior.SaviorLightsaberSwingMixin",
+    "savior.SaviorPistolArmPoseMixin",
+    "savior.SaviorPistolEquipMixin",
     "knight.KnightDuelInventoryLockMixin",
     "AssassinSaboteurGuessMixin",
+    "AssassinSaviorGuessMixin",
     "AssassinVendettaTargetMixin",
     "ClientPlayNetworkingFearMixin",
     "CurserConfusionSkinMixin",
@@ -120,6 +129,8 @@
     "kidnapper.KidnapperControlledMouseMixin",
     "kidnapper.KidnapperThrowUseMixin",
     "hunter.DoubleBarrelAimClaimMixin",
+    "hunter.DoubleBarrelHandFlashMixin",
+    "hunter.DoubleBarrelOwnMuzzlePacketMixin",
     "hunter.DoubleBarrelShotSoundSystemMixin",
     "hunter.DoubleBarrelShotgunCrosshairMixin",
     "hunter.DoubleBarrelSourceAccessor",
@@ -221,6 +232,7 @@
     "bear.SmokeOutlineWorldRendererMixin",
     "bear.SmokeOutlineDepthMixin",
     "bear.SmokeRoleNameRaycastMixin",
+    "bear.SmokeCrosshairHintMixin",
     "bear.SmokeIrisFinalPassMixin",
     "bear.SmokeOutlineVetoMixin",
     "bear.RysTVisorHudMixin",
@@ -236,7 +248,9 @@
     "bear.HearingSoundSystemMixin",
     "bear.HearingSourceAccessor",
     "bear.HeadsetInventoryScreenMixin",
-    "bear.HeadsetCreativeScreenMixin"
+    "bear.HeadsetCreativeScreenMixin",
+    "specter.SpecterOtherworldGameRendererMixin",
+    "specter.ClientWorldOtherworldSkyMixin"
   ],
   "injectors": {
     "defaultRequire": 1

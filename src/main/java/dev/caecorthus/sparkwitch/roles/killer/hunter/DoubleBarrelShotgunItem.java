@@ -16,14 +16,19 @@ import dev.caecorthus.sparkwitch.util.hitscan.HitscanLagRules;
 import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
+import dev.doctor4t.wathe.index.WatheParticles;
 import dev.doctor4t.wathe.record.GameRecordManager;
+import dev.doctor4t.wathe.util.ShootMuzzleS2CPayload;
 import net.fabricmc.fabric.api.entity.FakePlayer;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -61,6 +66,9 @@ public final class DoubleBarrelShotgunItem extends Item {
     private static final String LOADED_SHELLS_KEY = "LoadedShells";
     private static final String RELOAD_WINDOW_UNTIL_KEY = "ReloadWindowUntil";
     private static final double TARGET_BOX_EXPANSION = 0.1D;
+    private static final ClientShot NO_CLIENT_SHOT = (player, stack) -> {
+    };
+    private static volatile ClientShot clientShot = NO_CLIENT_SHOT;
 
     public DoubleBarrelShotgunItem(Settings settings) {
         super(settings);
@@ -68,6 +76,21 @@ public final class DoubleBarrelShotgunItem extends Item {
 
     public static Settings createSettings() {
         return new Settings().maxCount(1);
+    }
+
+    /**
+     * Client-only seam for the predicted first-person muzzle flash, called on the client branch of {@link #use} after
+     * every client-side refusal; a dedicated server keeps the no-op. The server never calls it.
+     * 预测的第一人称枪口火焰的仅客户端接缝，在 {@link #use} 客户端分支通过所有客户端拒绝检查后调用；专用服务器保持空操作。
+     * 服务端从不调用。
+     */
+    @FunctionalInterface
+    public interface ClientShot {
+        void onShot(PlayerEntity player, ItemStack stack);
+    }
+
+    public static void installClientShot(ClientShot hook) {
+        clientShot = Objects.requireNonNull(hook, "hook");
     }
 
     @Override
@@ -99,6 +122,7 @@ public final class DoubleBarrelShotgunItem extends Item {
 
         if (world.isClient) {
             user.setPitch(user.getPitch() - 4.0F);
+            clientShot.onShot(user, shotgun);
             return TypedActionResult.consume(shotgun);
         }
 
@@ -122,8 +146,36 @@ public final class DoubleBarrelShotgunItem extends Item {
                 1.0F,
                 1.0F
         );
+        if (user instanceof ServerPlayerEntity shooter) {
+            sendMuzzleFlash(shooter);
+        }
         user.getItemCooldownManager().set(this, HunterRules.cooldownAfterShot(remainingShells));
         return TypedActionResult.consume(shotgun);
+    }
+
+    /**
+     * The revolver's yellow muzzle flash for one fired shot. A real shooter sends Wathe's muzzle packet to every
+     * tracking player and to itself: the shotgun is in {@code wathe:guns}, so Wathe's held-item hook already records
+     * its barrel position on each client, and the shooter's client confirms its predicted first-person flash with its
+     * own copy ({@code DoubleBarrelMuzzleClient}). A Magician puppet proxy is never spawned, so nobody tracks it and
+     * its packet would name the owner's UUID; like the puppet revolver replay it spawns a server GUNSHOT particle, so a
+     * puppet shot flashes like a real one.
+     * 一次开火的左轮同款黄色枪口火焰。真实射手把 Wathe 枪口数据包发给所有追踪者和自己：猎枪在 {@code wathe:guns} 中，Wathe
+     * 的手持物品钩子已在各客户端记录其枪管位置，射手客户端则用发给自己的那份确认预测的第一人称火焰
+     * （{@code DoubleBarrelMuzzleClient}）。魔术师皮套代理从不生成，没人追踪它，且其数据包会带上主人的 UUID；因此与皮套
+     * 左轮回放一样改为生成服务端 GUNSHOT 粒子，让皮套开枪与真人一样有火光。
+     */
+    private static void sendMuzzleFlash(ServerPlayerEntity shooter) {
+        if (shooter instanceof FakePlayer) {
+            shooter.getServerWorld().spawnParticles(WatheParticles.GUNSHOT, shooter.getX(), shooter.getEyeY() - 0.15D,
+                    shooter.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
+            return;
+        }
+        ShootMuzzleS2CPayload muzzle = new ShootMuzzleS2CPayload(shooter.getUuidAsString());
+        for (ServerPlayerEntity viewer : PlayerLookup.tracking(shooter)) {
+            ServerPlayNetworking.send(viewer, muzzle);
+        }
+        ServerPlayNetworking.send(shooter, muzzle);
     }
 
     /**

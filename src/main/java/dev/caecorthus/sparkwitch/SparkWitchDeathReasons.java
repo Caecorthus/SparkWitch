@@ -59,6 +59,26 @@ public final class SparkWitchDeathReasons {
      */
     public static final Identifier CEREBELLUM = SparkWitch.id("cerebellum");
     /**
+     * The Ferryman's 0.5 s pardon window expired: the held kill replays with this reason when the original one is
+     * unknown. Ordinary, non-forced kill; the body follows the held kill's own {@code spawnBody}.
+     * 摆渡人的 0.5 秒宽恕窗口过期：原死亡原因未知时以该原因重放被扣住的击杀。普通、非强制击杀；是否留尸沿用被扣住击杀
+     * 自身的 {@code spawnBody}。
+     */
+    public static final Identifier PARDON_EXPIRED = SparkWitch.id("pardon_expired");
+    /**
+     * A Vulture ate the fake corpse of a marked attacker feigning (10 s) before the Ferryman: forced, body-less and
+     * registered SparkTraits-terminal, so the player dies outright (the {@link #FIEND_DEVOURED} pattern). Never shown on
+     * the fake corpse itself, which carries a common murder reason.
+     * 秃鹫吃掉了在摆渡人面前假死（10 秒）的被标记者的假尸体：强制、不留尸体，并注册为 SparkTraits 终结死亡原因，该玩家直接
+     * 死亡（沿用 {@link #FIEND_DEVOURED} 的做法）。假尸体本身从不显示该原因，而是显示常见谋杀死因。
+     */
+    public static final Identifier FERRYMAN_FEIGN = SparkWitch.id("ferryman_feign");
+    /**
+     * Every Lost Soul of a Soul Moment died: the Ferryman dies with them and the moment ends.
+     * 亡魂时刻的迷失灵魂全部死亡：摆渡人随之而亡，时刻结束。
+     */
+    public static final Identifier FERRYMAN_MOMENT_LOST = SparkWitch.id("ferryman_moment_lost");
+    /**
      * A third party attacked a duelist while the duel variable was 1. Forced, body kept, no killer, and registered
      * SparkTraits-terminal, so the attacker's traits and every shield are bypassed; the attack itself resolves normally
      * (owner 2026-10-31).

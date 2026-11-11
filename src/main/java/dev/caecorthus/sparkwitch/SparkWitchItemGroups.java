@@ -90,6 +90,9 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.bigDogPortrait(),
                                     // Accountant's passbook (civilian) / 会计的存折（平民）
                                     SparkWitchItems.accountantPassbook(),
+                                    // Savior (civilian police) / 救世主（平民警察）
+                                    SparkWitchItems.saviorPistol(),
+                                    SparkWitchItems.saviorLightsaber(),
                                     // Black Raven (civilian police) / 黑羽鸦（平民警察）
                                     SparkWitchItems.featherBlade(),
                                     SparkWitchItems.blackRavenLedger(),
@@ -109,7 +112,10 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.tollBell(),
                                     SparkWitchItems.timeStealerClock(),
                                     SparkWitchItems.timeStealerGiftWatch(),
-                                    SparkWitchItems.timeStamp()
+                                    SparkWitchItems.timeStamp(),
+                                    // Specter (killer) / 幽魂（杀手）
+                                    SparkWitchItems.ghostTrigger(),
+                                    SparkWitchItems.peachwoodSword()
                             );
                             factionOrder.forEach(entries::add);
                             // Any other item in our namespace follows in registration order, so new items join automatically.

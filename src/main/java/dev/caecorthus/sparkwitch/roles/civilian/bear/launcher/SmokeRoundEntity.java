@@ -20,6 +20,7 @@ import net.minecraft.entity.projectile.thrown.ThrownItemEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -45,14 +46,18 @@ import java.util.UUID;
  * {@link BearRules#BACKUP_FUSE_TICKS}th tick wherever it is. A burst is {@code SmokeCloudService.spawn} at the point
  * stepped out of the surface plus the public burst sound and a small puff; an off-match presentation round (D11) only
  * plays the sound and the puff, never a cloud. A match round discards itself without bursting once the round leaves
- * ACTIVE (so no cloud lands after the result). Never saved.
+ * ACTIVE (so no cloud lands after the result). Never saved, so a round that flies out of entity-ticking range stays in
+ * memory unticked: {@link #discardAll} sweeps the loaded ones at Wathe's finalize, and one that only ticks again later
+ * (this round or a later one) is {@link SmokeRoundFlight#stale} by world time and removes itself unburst.
  * 发射出的 40 mm 烟雾榴弹（{@code sparkwitch:smoke_round_40mm}）。服务端权威：只有服务端决定爆开；两端执行相同的飞行（
  * {@link M32Ballistics} 步进、{@link SmokeRoundFlight} 解除保险与反弹），使客户端预测一致，且服务端在每次反弹时推送位置/速度
  * 重新同步。它从不伤害任何东西（G1）：它覆盖 {@link #onCollision} 且不调用原版处理，因此不会触发任何方块反应（打碎陶罐、敲响钟）或
  * 实体命中。G3：路径不足 {@link BearRules#ARMING_DISTANCE} 格时的撞击只会（阻尼）反弹而不爆开；此后首次撞击方块或实体即爆开；备用
  * 引信在第 {@link BearRules#BACKUP_FUSE_TICKS} 刻无论在何处都会引爆。爆开即在退出表面的点调用 {@code SmokeCloudService.spawn}，并
  * 播放公开的爆开声与小团烟雾粒子；场外仅表现的榴弹（D11）只播放声音与粒子，从不产生烟团。对局榴弹在对局离开 ACTIVE 后直接移除、
- * 不爆开（结果确定后不再出现烟团）。从不存盘。
+ * 不爆开（结果确定后不再出现烟团）。从不存盘，因此飞出实体 tick 范围的榴弹会留在内存里不再 tick：{@link #discardAll} 在 Wathe
+ * 收尾时清扫已加载的榴弹；之后（本局或之后的对局）才重新 tick 的榴弹按世界时间判定为 {@link SmokeRoundFlight#stale}，直接移除、
+ * 不爆开。
  */
 public class SmokeRoundEntity extends ThrownItemEntity {
     /**
@@ -71,6 +76,13 @@ public class SmokeRoundEntity extends ThrownItemEntity {
     private UUID shooterUuid;
     /** Server only: an off-match presentation round (no cloud). / 仅服务端：场外仅表现的榴弹（无烟团）。 */
     private boolean presentation;
+    /**
+     * Server only, never saved: world time at launch (at the first server tick for a round not spawned by
+     * {@link #launch}); {@code Long.MIN_VALUE} until set. Read by the {@link SmokeRoundFlight#stale} check.
+     * 仅服务端，从不存盘：发射时的世界时间（非 {@link #launch} 生成的榴弹取首个服务端 tick）；未设置时为
+     * {@code Long.MIN_VALUE}。供 {@link SmokeRoundFlight#stale} 检查读取。
+     */
+    private long launchTime = Long.MIN_VALUE;
     private boolean burst;
     /** Path flown so far; NaN on a client until its first tick. / 已飞行的路径；客户端首刻之前为 NaN。 */
     private double travelled = Double.NaN;
@@ -114,6 +126,7 @@ public class SmokeRoundEntity extends ThrownItemEntity {
         SmokeRoundEntity round = new SmokeRoundEntity(world, shooter);
         round.presentation = presentation;
         round.travelled = 0.0;
+        round.launchTime = world.getTime();
         round.setItem(new ItemStack(BearItems.SMOKE_ROUND));
         round.setLaunchOrigin(round.getPos());
         Vec3d unit = direction.normalize();
@@ -132,6 +145,15 @@ public class SmokeRoundEntity extends ThrownItemEntity {
         boolean client = getWorld().isClient();
         if (!client) {
             if (!presentation && !isRoundActive(getWorld())) {
+                discard();
+                return;
+            }
+            long now = getWorld().getTime();
+            if (launchTime == Long.MIN_VALUE) {
+                launchTime = now;
+            } else if (SmokeRoundFlight.stale(now - launchTime)) {
+                // It missed ticks outside entity-ticking range (possibly a whole round ago): never resume or burst.
+                // 它在实体 tick 范围之外漏过了 tick（可能已隔了一整局）：绝不恢复飞行或爆开。
                 discard();
                 return;
             }
@@ -305,6 +327,22 @@ public class SmokeRoundEntity extends ThrownItemEntity {
 
     private void setLaunchOrigin(Vec3d origin) {
         getDataTracker().set(LAUNCH_ORIGIN, new Vector3f((float) origin.x, (float) origin.y, (float) origin.z));
+    }
+
+    /**
+     * Round-end sweep for {@code BearLifecycleService} at Wathe's finalize (the Potion Gunner shell's model): no loaded
+     * round, flying, resting or frozen in a loaded chunk that no longer ticks entities, carries into the lobby or the
+     * next round. A round in an unloaded chunk is not reachable here; the {@link SmokeRoundFlight#stale} check in
+     * {@link #tick} removes it when it ticks again.
+     * 供 {@code BearLifecycleService} 在 Wathe 收尾时调用的回合结束清扫（沿用药炮手炮弹的做法）：任何已加载的榴弹，无论在飞、
+     * 静止还是停在不再 tick 实体的已加载区块里，都不会带入大厅或下一局。未加载区块中的榴弹在这里够不到；它再次 tick 时由
+     * {@link #tick} 中的 {@link SmokeRoundFlight#stale} 检查移除。
+     */
+    public static void discardAll(ServerWorld world) {
+        for (SmokeRoundEntity round
+                : world.getEntitiesByType(BearEntities.SMOKE_ROUND, EntityPredicates.VALID_ENTITY)) {
+            round.discard();
+        }
     }
 
     /** Match rounds fly and burst only while Wathe's round is exactly ACTIVE. / 对局榴弹只在对局恰为 ACTIVE 时飞行与爆开。 */
