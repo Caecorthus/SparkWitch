@@ -398,6 +398,18 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_1297;)I"
         ],
         [
+                // A floating 远野汉娜 is never visible to instinct (PR #212, owner 2026-11-11): veto just inside the
+                // Black Raven one. / 浮游中的远野汉娜永不被本能透视（PR #212，所有者 2026-11-11）：紧贴黑羽鸦否决之内。
+                configName: "hanna.HannaInstinctVetoMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/hanna/HannaInstinctVetoMixin.class",
+                handler: "sparkwitch\$vetoFloatingHannaInstinct",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
                 // USEC scoped instinct cloak (owner, 2026-10-08): a cloaked target's whole highlight runs with Wathe's
                 // two keyed instinct gates closed. / USEC 开镜本能隐蔽（所有者 2026-10-08）：被隐蔽目标的整个高亮求值
                 // 在 Wathe 两个按键本能入口关闭的状态下运行。

@@ -60,6 +60,8 @@ public final class KnightDuelSkillLock {
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
             Identifier.of("sparkwitch", "use_blind_attune"),
             Identifier.of("sparkwitch", "use_noa_paint"),
+            // Hanna float (UseHannaFloatC2SPayload). / 汉娜浮游。
+            Identifier.of("sparkwitch", "use_hanna_float"),
             // Ragpicker corpse search (JunkerSearchC2SPacket). / 拾荒者搜刮尸体（JunkerSearchC2SPacket）。
             Identifier.of("sparkwitch", "ragpicker_search"),
             Identifier.of("sparkwitch", "use_fiend_dash"),

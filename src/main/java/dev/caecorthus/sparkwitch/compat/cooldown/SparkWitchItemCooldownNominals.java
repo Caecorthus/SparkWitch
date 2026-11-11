@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.bear.BearRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindKitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashRules;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
@@ -122,6 +123,11 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             entries.put(SparkWitchItems.WITHER_GOHEI_ID, MiniWitherRules.CRIMSON_COOLDOWN_TICKS);
             // Spare Key: the 5 s cooldown after each opening. / 备用钥匙：每次开门后的 5 秒冷却。
             entries.put(SparkWitchItems.SPARE_KEY_ID, SpareKeyRules.COOLDOWN_TICKS);
+            // Tono Hanna's shop items (PR #212): the parasol's 10 s after it is opened and the handkerchief's 15 s
+            // between uses.
+            // 远野汉娜的商店物品（PR #212）：洋伞撑开后的 10 秒，以及手帕两次使用之间的 15 秒。
+            entries.put(SparkWitchItems.HANNA_UMBRELLA_ID, HannaRules.UMBRELLA_OPEN_TICKS);
+            entries.put(SparkWitchItems.HANNA_HANDKERCHIEF_ID, HannaRules.HANDKERCHIEF_COOLDOWN_TICKS);
             // Savior (PR #200): the pistol's 10 s after every shot and the lightsaber's 30 s after a kill, not the
             // 60 s / 45 s round-start locks.
             // 救世主（PR #200）：手枪每次射击后 10 秒、光剑击杀后 30 秒，而非开局的 60 秒 / 45 秒锁定。

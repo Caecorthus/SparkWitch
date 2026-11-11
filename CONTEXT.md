@@ -41,6 +41,10 @@ earplugs worn in a fifth "headset" slot; every BEAR item is deleted when its hol
 The Medium (`sparkwitch:medium`, 通灵师, contributed in PR #209) is an ordinary task civilian that earns coins from
 tasks and spends them on 通灵 (ability key G: a yes/no question the dead answer from a vote screen) and 招魂 (Role
 Skill 2: a secretly bound player's vote weighs 3).
+远野汉娜 Tono Hanna (`sparkwitch:hanna`, contributed in PR #212 and reworked in review) is a task civilian with a mana
+pool that only tasks refill (40 at the deal, +20 per task), whose shared ability key (G) spends 40 mana on a 10 s float
+(Speed II, silent for others, hidden from every instinct) that another living player's touch ends with a 10 s sanity
+drain, and whose shop sells a parasol and a handkerchief that any holder can use.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -2466,6 +2470,62 @@ Current build baseline:
     then fades; it never takes the mouse, needs no living player, and draws only what the server sent.
   - Lang: `role`/`announcement` keys for `medium` and `sparkwitch.medium`, `hud.sparkwitch.medium.*`,
     `screen.sparkwitch.medium.*`, and the two replay keys.
+- `roles/civilian/hanna/`: 远野汉娜 Tono Hanna (`sparkwitch:hanna`, color `0xFFAF9F`), contributed in PR #212 and
+  rebuilt in review on the Noa model (owner decisions 2026-11-11); every number lives in `HannaRules`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
+    no appearance condition) registered after the Lost Soul, right before the Insider (which stays last), and guessed
+    in the civilian block right after the Medium. Drawn by Wathe's civilian pass, never a police variant or slot.
+    `SparkWitchRoles` exposes `HANNA_ID` and `hanna()`.
+  - Mana without witch skills: she is a mana role in `WitchManaRules` (`isManaRole`), with `initialMana` 40 granted by
+    `WitchManaService.assignForRole` right after `initializeMana()`, `taskReward` 20, no natural regeneration
+    (`canRegenerateNaturally` is false for her only) and no kill reward. She is not in `isRegisteredSparkWitchRole`,
+    never gets an active witch skill and never appears in the `gui.sparkwitch.skills` panel; the shared mana HUD row
+    shows her pool because it reads only `hasManaSystem()`.
+  - Float (`HannaFeatureService` registers the empty C2S `sparkwitch:use_hanna_float`, the replay formatter, economy,
+    the interruption hooks, the world tick and lifecycle): `HannaFloatService.tryUse` gates through the pure
+    `HannaRules.floatVerdict` (real role, ACTIVE round, alive and not spectating, not swallowed, not stunned, not
+    role-skill blocked, not already floating, ready; then Fear, which sends Grand Witch's "skill blocked" line; then
+    40 mana, else `message.sparkwitch.hanna.no_mana`), spends the mana, starts the 10 s float and adds the transient
+    `sparkwitch:hanna_float_speed` movement modifier (+0.4 `ADD_MULTIPLIED_TOTAL`, Speed II; never a status effect, so
+    ending it strips nobody else's Speed). The 45 s cooldown starts when the float ends.
+  - Interruption (`HannaFloatService.touch(target, toucher)`, the only entry): Wathe's `KillPlayer.BEFORE` (phase
+    `sparkwitch:hanna_float_observe` before the default one, always answering null, so cancelled attempts are seen
+    and nothing is altered), Fabric's `AttackEntityCallback` and `UseEntityCallback` (server side, always PASS) and
+    the projectile mixin in `mixin/hanna/`. `HannaRules.interrupts`: an unknown toucher (null) interrupts, she never
+    interrupts herself, and only a living, non-spectator round participant counts otherwise. An interruption ends
+    the float, restarts the cooldown, removes the modifier and starts 10 s of penalty (-5% sanity per second through
+    `PlayerMoodComponent.setMood`, with an action-bar countdown).
+  - State: `HannaComponent` (`sparkwitch:hanna_player`, `NEVER_COPY`, appended last in the CCA list after the
+    Charon's) keeps four absolute world ticks (float ready, float end, penalty end, handkerchief end) in NBT.
+    Everyone receives only the float's remaining ticks (instinct is drawn per client); the owner also gets the ready
+    and penalty ticks. The world tick skips `idle()` players, re-applies the modifier after a relog, and ends a float
+    (no penalty) or a penalty when she is no longer a living Hanna in an ACTIVE round. `RoleAssigned` clears the
+    component and starts the 40 s opening cooldown for a drawn Hanna; Wathe's `ResetPlayer` clears it. The
+    forced-cooldown store `sparkwitch:hanna_float` (store 25) only moves the ready tick later.
+  - Coins and shop (`HannaEconomyService`, gated to a living Hanna in an ACTIVE round, survival, not a restricted
+    Wraith): +50 per task for a confirmed non-Impostor (`compat/SparkTraitsTaskIncomeBridge`), +15 every 30 s of world
+    time, `CanSeeMoney` ALLOW while alive and DENY otherwise, and two `TOOL` rows (parasol 150, handkerchief 100) that
+    hand over the real items and pass through `SparkTraitsCharismaBridge`.
+  - Items (owner: any holder can use them; uses are vanilla durability, `maxCount(1)`, nothing in custom data, no
+    death drop): `HannaUmbrellaItem` (`sparkwitch:hanna_umbrella`, 25 durability) keeps Slow Falling II on while held
+    in either hand by a living non-spectator (a 2 s effect refreshed in its last second), spends 1 durability per
+    second of world time (not in creative) and disappears at 0; right-click gives 10 s of Slow Falling II with a 10 s
+    item cooldown. `HannaHandkerchiefItem` (`sparkwitch:hanna_handkerchief`, 2 uses) is held for 1 s (`UseAction.NONE`,
+    living participant of an ACTIVE round only; releasing early costs nothing), then starts 5 s of +6% sanity per
+    second (REAL-mood roles only, pulsed by `HannaFloatService`), ends a float penalty and starts a 15 s item
+    cooldown. Both cooldowns are in `SparkWitchItemCooldownNominals`; both items follow the Accountant passbook in
+    the creative tab. Their cues are private sounds.
+  - Deny lists: `use_hanna_float` is classified right after `use_noa_paint` in the Control Expert stun, Knight duel,
+    Seeker session, Riftwalker session and Grand Witch Fear lists; SparkStrength's Taotie daze list and
+    SparkFactionAPI's opening safe-time list classify it on their own side.
+  - Replay (`HannaReplay`, skill events under the role id): `float`, `interrupted` (the interrupter is the event
+    target; none uses the plain `interrupted` key, one uses `interrupted_by`), `umbrella`, `handkerchief` and
+    `handkerchief_clear`; item uses are recorded for whoever used them.
+  - Client (`client/hanna/`, presentation only): the role-owned float HUD row, the instinct veto and the silence of
+    a floating player all read `HannaComponent`; the ability key sends the empty payload with no prediction.
+  - Lang: `role`/`announcement` keys for `hanna` and `sparkwitch.hanna`, `tip.letter.hanna.tooltip1`,
+    `hud.sparkwitch.hanna.float.*`, `message.sparkwitch.hanna.*`, both item names and tooltips, and the six
+    `replay.skill.sparkwitch.hanna.*` keys.
 - `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
   bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
   Key Fish doors, tracked pufferfish, replay formatting, and lifecycle cleanup. Subpackages:
@@ -3736,6 +3796,10 @@ Bewitched. These rules are `HunterRules.isInstinctTrapViewer` (`BEWITCHED_ROLE_I
 Bewitched. These never include variants merely for being variants, nor the Bewitched: `WitchManaRules.isManaRole`
 (the Abyss Listener and the Riftwalker are added by exact role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`
 (the Abyss Listener and the Riftwalker are added by exact role, each for its shared skill).
+`WitchManaRules.isManaRole` also holds two roles outside the witch faction, each by exact role: the Witch Maiden
+(crimson skull mana) and the civilian Tono Hanna (PR #212), who starts at `initialMana` 40, gains 20 per task and is
+the only mana role with `canRegenerateNaturally` false; neither is in `isRegisteredSparkWitchRole` for it, and the
+other mana roles' numbers are unchanged.
 
 Witch task money (owner request 2026-10-04, lowered from 50 to 25 on 2026-10-07): `WitchEconomyService.onTaskComplete`
 pays `WitchFactionRules.WITCH_TASK_MONEY_REWARD` (+25) per completed task to the Grand Witch and every accomplice (plain or
@@ -3967,6 +4031,11 @@ deliberate and kept:
    pardon): the Charon's ferry cooldown, for the raw role in an ACTIVE round. Remaining time is
    `FerrymanPlayerComponent` ferry cooldown ticks (0 at round start); the nominal is
    `FerrymanRules.FERRY_COOLDOWN_TICKS` (100), written exactly through the owner-syncing `setFerryCooldown`.
+25. `sparkwitch:hanna_float` (`SparkWitchForcedCooldowns#hannaFloat`, PR #212, appended after the Charon's ferry):
+   Tono Hanna's float cooldown, for the raw role in an ACTIVE round (`HannaFloatService`'s role and round gates).
+   Remaining time counts to the absolute ready tick in `HannaComponent`, so it includes the 40 s opening cooldown and,
+   while she floats, the rest of the float; the nominal is `HannaRules.COOLDOWN_TICKS` (900). Every write only moves
+   the ready tick later through the syncing `setFloatReadyTick`, so it never shortens and never ends a running float.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s

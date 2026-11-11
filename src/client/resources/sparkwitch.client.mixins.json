@@ -221,6 +221,8 @@
     "scope.ScopeMinecraftClientAccessor",
     "scope.ScopeMouseScrollMixin",
     "input.SelectedSlotFlushInvoker",
+    "hanna.HannaInstinctVetoMixin",
+    "hanna.HannaPresenceFootstepsVolumeMixin",
     "noa.NoaMoodRendererMixin",
     "dominator.DominatorForcedShotInventoryMixin",
     "accountant.AccountantAirSwingMixin",
