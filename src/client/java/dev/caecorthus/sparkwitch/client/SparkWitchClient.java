@@ -14,6 +14,10 @@ import dev.caecorthus.sparkwitch.client.specter.SpecterClientModule;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
+import dev.caecorthus.sparkwitch.client.medium.MediumClientModule;
+import dev.caecorthus.sparkwitch.client.medium.MediumVoteClient;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSkillC2SPacket;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteClient;
 import dev.caecorthus.sparkwitch.client.athlete.AthleteDashClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaClient;
@@ -257,7 +261,14 @@ public final class SparkWitchClient implements ClientModInitializer {
                 var role = GameWorldComponent.KEY.get(client.player.getWorld()).getRole(client.player);
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
-                if (KnightDuelClient.ownsAbilityKey(client.player, role)) {
+                if (MediumVoteClient.ownsAbilityKey(client)) {
+                    // Ahead of every role branch: during a live 通灵 window a dead round member's press opens the vote
+                    // screen, whatever role they held (the dead have no other use for the key). The server re-checks
+                    // every vote.
+                    // 位于所有职业分支之前：通灵窗口进行期间，本局死者的按下打开投票界面，无论其原职业为何（死者的技能键
+                    // 别无他用）。每一票都由服务端重新校验。
+                    MediumVoteClient.onAbilityKey(client);
+                } else if (KnightDuelClient.ownsAbilityKey(client.player, role)) {
                     // Checked first: either duelist's press does nothing (any role, owner 2026-10-30; the server also
                     // drops their G-skill payloads), and a Knight's press opens the duel target panel.
                     // 最先判定：任一决斗者的按下无效（任何职业，所有者 2026-10-30；服务端也会丢弃其 G 键技能包），
@@ -355,6 +366,12 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role only (getRole stays raw, so a Black Raven acting as Noa keeps its own key); the server
                     // decides use. / 仅真实职业（getRole 始终是真实身份，扮演诺亚的黑羽鸦保留自己的按键）；是否生效由服务端决定。
                     NoaPaintClient.onAbilityKey(client);
+                } else if (MediumRules.isMedium(role)) {
+                    // 通灵 (the shared ability key): empty request, the server owns every check and opens the box.
+                    // 通灵（共享技能键）：空请求，全部校验在服务端，并由服务端打开提问框。
+                    if (ClientPlayNetworking.canSend(UseMediumSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseMediumSkillC2SPacket());
+                    }
                 } else if (!WitchMaidenRules.isWitchMaiden(role)
                         && (WitchPlayerComponent.KEY.get(client.player).hasSkill()
                         || SaintRules.isSaint(role))) {
@@ -376,6 +393,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         // BEAR client hub (work packages append there), before USEC, which stays last.
         // BEAR 客户端注册中心（各工作包在其中追加），位于 USEC 之前，USEC 保持最后。
         dev.caecorthus.sparkwitch.client.bear.BearClientModule.register();
+        // Medium client hub (Role Skill 2 key), after BEAR and before USEC, which stays last.
+        // 通灵师客户端注册中心（职业技能 2 键），位于 BEAR 之后、USEC 之前，USEC 保持最后。
+        MediumClientModule.register();
         // USEC client hub, appended last: scope, HUD, attachment screen, impact cracks.
         // USEC 客户端注册中心，追加在最后：开镜、HUD、配件界面、命中裂痕。
         UsecClientModule.register();
