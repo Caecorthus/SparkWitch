@@ -36,6 +36,7 @@ public final class SherryDeductionScreen extends Screen {
     private int selected = -1;
     private int selectedY;
     private boolean submitted;
+    private ButtonWidget confirmButton;
 
     public SherryDeductionScreen(List<UUID> targets, List<String> names, int price) {
         super(Text.translatable("screen.sparkwitch.sherry.deduction.title"));
@@ -84,10 +85,13 @@ public final class SherryDeductionScreen extends Screen {
                         Text.translatable("screen.sparkwitch.sherry.deduction.cancel"), button -> close())
                 .dimensions(this.width / 2 - 154, buttonY, 150, 20)
                 .build());
-        addDrawableChild(ButtonWidget.builder(
+        // Greyed out until a tile is picked, so the paid button never looks pressable with nothing selected.
+        // 选中头像之前置灰，没有选择时付费按钮不会看起来可按。
+        confirmButton = addDrawableChild(ButtonWidget.builder(
                         Text.translatable("screen.sparkwitch.sherry.deduction.confirm"), button -> submit())
                 .dimensions(this.width / 2 + 4, buttonY, 150, 20)
                 .build());
+        confirmButton.active = selected >= 0 && selected < targets.size();
     }
 
     @Override
@@ -134,6 +138,9 @@ public final class SherryDeductionScreen extends Screen {
         selected = index;
         for (int i = 0; i < tiles.size(); i++) {
             tiles.get(i).setSelected(i == index);
+        }
+        if (confirmButton != null) {
+            confirmButton.active = true;
         }
     }
 

@@ -15,9 +15,11 @@ import java.util.UUID;
 /**
  * One avatar button in the 推演 candidate panel, in the Medium 招魂 / Knight duel style (Wathe's shop slot frame and
  * the player's head). A candidate she already tracks keeps a thin identity-colour frame and a tooltip note, from her
- * own owner-synced state only, and stays selectable: the server lets her pay again to reopen the reveal at once.
+ * own owner-synced state only, and stays selectable: a badge killer on the 40 s cycle can still be deduced, while the server refuses a target
+ * already on the 20 s cycle before any charge.
  * 推演候选面板的头像按钮，样式与通灵师招魂、骑士决斗一致（Wathe 商店格子边框与玩家头颅）。已在追踪中的候选保留一圈细的身份色
- * 边框与提示文字（只来自仅同步给本人的状态），并且仍可选择：服务端允许她再次付费以立即重新开启揭示。
+ * 边框与提示文字（只来自仅同步给本人的状态），并且仍可选择：处于 40 秒周期的徽章凶手仍可被推演，
+ * 已处于 20 秒周期的目标会被服务端在扣费前拒绝。
  */
 public final class SherryDeductionPlayerButton extends ButtonWidget {
     private static final Identifier FRAME = ShopEntry.Type.TOOL.getTexture();
