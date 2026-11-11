@@ -4,10 +4,12 @@ import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityHandler;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityRegistry;
 import dev.caecorthus.sparkwitch.client.hud.SpecterHudRenderer;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterEntities;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterParticles;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSecondSkillC2SPacket;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
@@ -29,6 +31,7 @@ public final class SpecterClientModule {
         registered = true;
         EntityRendererRegistry.register(SpecterEntities.ghostTrigger(), GhostTriggerEntityRenderer::new);
         EntityRendererRegistry.register(SpecterEntities.ghostVisage(), GhostVisageEntityRenderer::new);
+        ParticleFactoryRegistry.getInstance().register(SpecterParticles.jossPaper(), JossPaperParticle.Factory::new);
         // Bottom-right skill + Otherworld lines (the PR shipped the lang keys without a renderer).
         // 右下角技能与里世界提示行（原 PR 只提交了语言键，没有渲染器）。
         HudRenderCallback.EVENT.register((context, tickCounter) -> SpecterHudRenderer.render(context));

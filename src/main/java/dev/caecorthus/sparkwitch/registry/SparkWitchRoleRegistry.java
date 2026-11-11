@@ -18,6 +18,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules;
@@ -132,6 +133,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEAR_ID = BearRules.ROLE_ID;
     public static final Identifier SPECTER_ID = SpecterRules.ROLE_ID;
     public static final Identifier MEDIUM_ID = MediumRules.ROLE_ID;
+    public static final Identifier HANNA_ID = HannaRules.ROLE_ID;
     public static final Identifier NIKAIDO_HIRO_ID = HiroRules.ROLE_ID;
 
     private static Role emma;
@@ -188,6 +190,7 @@ public final class SparkWitchRoleRegistry {
     private static Role natsumeAnan;
     private static Role bear;
     private static Role medium;
+    private static Role hanna;
     private static Role nikaidoHiro;
     private static boolean registered;
 
@@ -520,6 +523,11 @@ public final class SparkWitchRoleRegistry {
     public static Role medium() {
         ensureRegistered();
         return medium;
+    }
+
+    public static Role hanna() {
+        ensureRegistered();
+        return hanna;
     }
 
     public static Role nikaidoHiro() {
@@ -1091,15 +1099,34 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> false)
                 .build());
+        // 远野汉娜 Tono Hanna (PR #212, reworked in review 2026-11-11): registered after the Lost Soul and before
+        // 二阶堂希罗 and the Insider, which stays last (nothing may follow the Insider, InsiderRegistrationContractTest),
+        // so only the later-registered 二阶堂希罗's and the Insider's indexes shift. An ordinary task civilian (REAL
+        // mood: the float penalty drains real sanity; passenger stamina, no round clock, no appearance condition)
+        // drawn by Wathe's civilian pass; never a police variant. Her float, coins, shop and items live in
+        // roles/civilian/hanna. She uses the shared mana pool (WitchManaRules) but is never a Witch-skill role: kept
+        // out of isRegisteredSparkWitchRole, so she never gets a witch skill or the witch skill panel.
+        // 远野汉娜（PR #212，2026-11-11 审核中重写）：注册在迷失的灵魂之后、二阶堂希罗与内应之前（内应仍为最后一个，内应之后
+        // 不得再注册，InsiderRegistrationContractTest），因此只有后注册的二阶堂希罗与内应的下标改变。普通任务平民（真实理智：
+        // 浮游惩罚扣的是真实理智；乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配抽取；不是警察变体。浮游、金币、
+        // 商店与物品位于 roles/civilian/hanna。她使用共享魔力池（WitchManaRules），但不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole，因此既不会获得魔女技能，也不会出现魔女技能面板。
+        hanna = SparkFactionApi.registerRole(FactionRoleDefinition.builder(HANNA_ID, FactionIds.CIVILIAN)
+                .color(HannaRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // 二阶堂希罗 Nikaido Hiro (2026-11-11): a SparkFactionAPI killer with the Specter's profile (native Wathe KILLER,
         // FAKE mood, unlimited sprint, round clock), one killer slot, no appearance condition (drawn at any player
-        // count). Registered after the Charon's Lost Soul and right before the Insider, which stays last
+        // count). Registered after Tono Hanna (main's PR #212) and right before the Insider, which stays last
         // (InsiderRegistrationContractTest), so only the Insider's own index shifts. Skills, shop and state live in
         // roles/killer/hiro, the Rope in item/rope (CONTEXT.md). A mana role on the Witch Maiden's numbers
         // (mana/WitchManaRules) but never a Witch-skill role: kept out of isRegisteredSparkWitchRole and out of the
         // gui.sparkwitch.skills panel.
         // 二阶堂希罗（2026-11-11）：SparkFactionAPI 杀手，参数与幽魂相同（原生 Wathe KILLER、伪装情绪、无限冲刺、可见回合
-        // 时间），占 1 个杀手名额，无出现条件（任何人数都可抽取）。注册在卡戎的迷失的灵魂之后、紧挨内应之前（内应仍为最后一个，
+        // 时间），占 1 个杀手名额，无出现条件（任何人数都可抽取）。注册在远野汉娜（PR #212）之后、紧挨内应之前（内应仍为最后一个，
         // InsiderRegistrationContractTest），因此只有内应自身的下标改变。技能、商店与状态位于 roles/killer/hiro，绳索位于
         // item/rope（见 CONTEXT.md）。魔力沿用巫女的数值（mana/WitchManaRules），但不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole，也不进入 gui.sparkwitch.skills 面板。
@@ -1165,10 +1192,11 @@ public final class SparkWitchRoleRegistry {
                 // Tarot Reader stays adjacent. 拾荒者同样加入平民段，排在调香师之前，使调香师至塔罗师一段保持相邻。
                 ragpicker,
                 perfumer,
-                // The Recruit, the Athlete, the Discoverer, Noa, the Accountant (PR #195), then BEAR (2026-11-05) and
-                // the Medium (2026-11-10) join the civilian block; the promotion identities stay the tail.
-                // 新兵、运动员、探索者、诺亚、会计（PR #195）、BEAR（2026-11-05）与其后的通灵师（2026-11-10）加入
-                // 平民段；晋升身份始终位于末尾。
+                // The Recruit, the Athlete, the Discoverer, Noa, the Accountant (PR #195), then BEAR (2026-11-05),
+                // the Medium (2026-11-10) and Tono Hanna (PR #212, 2026-11-11) join the civilian block; the promotion
+                // identities stay the tail.
+                // 新兵、运动员、探索者、诺亚、会计（PR #195）、BEAR（2026-11-05）、其后的通灵师（2026-11-10）与远野汉娜
+                // （PR #212，2026-11-11）加入平民段；晋升身份始终位于末尾。
                 recruit,
                 athlete,
                 discoverer,
@@ -1176,6 +1204,7 @@ public final class SparkWitchRoleRegistry {
                 accountant,
                 bear,
                 medium,
+                hanna,
                 pigGod,
                 tarotReader,
                 fisher,

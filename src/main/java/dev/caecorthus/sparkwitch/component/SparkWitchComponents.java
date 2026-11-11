@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlay
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashComponent;
@@ -273,9 +274,18 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, FerrymanInstinctVeilComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(FerrymanInstinctVeilComponent::new);
+        // Tono Hanna (PR #212): float, penalty and handkerchief timers. Everyone receives only the float's remaining
+        // ticks (instinct is drawn per client); the owner also gets the ready and penalty ticks. Appended last, after
+        // the Charon's components.
+        // 远野汉娜（PR #212）：浮游、惩罚与手帕计时。所有人只收到浮游的剩余刻数（本能按客户端绘制）；本人额外收到就绪刻与
+        // 惩罚刻。追加在最后，位于卡戎的组件之后。
+        registry.beginRegistration(PlayerEntity.class, HannaComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(HannaComponent::new);
         // 二阶堂希罗 (2026-11-11): 死亡回归 cooldown, window and record point, then 魔女化 progress; both synced to
-        // the owner only; appended last.
-        // 二阶堂希罗（2026-11-11）：死亡回归的冷却、窗口与记录点，以及魔女化进度；均只同步给本人；追加在最后。
+        // the owner only; appended last, after Tono Hanna's component.
+        // 二阶堂希罗（2026-11-11）：死亡回归的冷却、窗口与记录点，以及魔女化进度；均只同步给本人；追加在最后，位于远野汉娜的
+        // 组件之后。
         registry.beginRegistration(PlayerEntity.class, HiroReturnComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HiroReturnComponent::new);

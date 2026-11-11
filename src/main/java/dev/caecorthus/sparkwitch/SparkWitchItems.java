@@ -28,6 +28,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FisherFishKind;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FishingRodItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.KeyFishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishItem;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaHandkerchiefItem;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaUmbrellaItem;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.CrossSwordItem;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
@@ -146,6 +149,8 @@ public final class SparkWitchItems {
     public static final Identifier GHOST_TRIGGER_ID = SparkWitch.id("ghost_trigger");
     public static final Identifier SAVIOR_PISTOL_ID = SaviorRules.PISTOL_ID;
     public static final Identifier SAVIOR_LIGHTSABER_ID = SaviorRules.LIGHTSABER_ID;
+    public static final Identifier HANNA_UMBRELLA_ID = HannaRules.UMBRELLA_ID;
+    public static final Identifier HANNA_HANDKERCHIEF_ID = HannaRules.HANDKERCHIEF_ID;
     public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
@@ -211,6 +216,8 @@ public final class SparkWitchItems {
     private static Item accountantPassbook;
     private static Item saviorPistol;
     private static Item saviorLightsaber;
+    private static Item hannaUmbrella;
+    private static Item hannaHandkerchief;
     private static Item rope;
 
     private static boolean registered;
@@ -565,8 +572,22 @@ public final class SparkWitchItems {
                 SAVIOR_LIGHTSABER_ID,
                 new SaviorLightsaberItem(SaviorLightsaberItem.createSettings())
         );
-        // 二阶堂希罗's Rope (2026-11-11), appended last so earlier registration order stays unchanged.
-        // 二阶堂希罗的绳索（2026-11-11），追加在最后以保持既有注册顺序不变。
+        // Tono Hanna's shop items (PR #212), usable by any holder: the parasol (25 durability, 1 per second held) and
+        // the handkerchief (2 uses). Uses are vanilla durability, so maxCount(1). Appended last.
+        // 远野汉娜的商店物品（PR #212），谁拿到都能用：洋伞（25 点耐久，手持每秒 1 点）与手帕（2 次）。次数即原版耐久，
+        // 因此 maxCount(1)。追加在最后。
+        hannaUmbrella = Registry.register(
+                Registries.ITEM,
+                HANNA_UMBRELLA_ID,
+                new HannaUmbrellaItem(HannaUmbrellaItem.createSettings())
+        );
+        hannaHandkerchief = Registry.register(
+                Registries.ITEM,
+                HANNA_HANDKERCHIEF_ID,
+                new HannaHandkerchiefItem(HannaHandkerchiefItem.createSettings())
+        );
+        // 二阶堂希罗's Rope (2026-11-11), appended last, after Tono Hanna's items, so earlier registration order
+        // stays unchanged. / 二阶堂希罗的绳索（2026-11-11），追加在最后（远野汉娜的物品之后），以保持既有注册顺序不变。
         rope = Registry.register(
                 Registries.ITEM,
                 ROPE_ID,
@@ -1072,5 +1093,19 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return accountantPassbook;
+    }
+
+    public static Item hannaUmbrella() {
+        if (hannaUmbrella == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return hannaUmbrella;
+    }
+
+    public static Item hannaHandkerchief() {
+        if (hannaHandkerchief == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return hannaHandkerchief;
     }
 }

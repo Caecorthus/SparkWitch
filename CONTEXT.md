@@ -41,6 +41,10 @@ earplugs worn in a fifth "headset" slot; every BEAR item is deleted when its hol
 The Medium (`sparkwitch:medium`, 通灵师, contributed in PR #209) is an ordinary task civilian that earns coins from
 tasks and spends them on 通灵 (ability key G: a yes/no question the dead answer from a vote screen) and 招魂 (Role
 Skill 2: a secretly bound player's vote weighs 3).
+远野汉娜 Tono Hanna (`sparkwitch:hanna`, contributed in PR #212 and reworked in review) is a task civilian with a mana
+pool that only tasks refill (40 at the deal, +20 per task), whose shared ability key (G) spends 40 mana on a 10 s float
+(Speed II, silent for others, hidden from every instinct) that another living player's touch ends with a 10 s sanity
+drain, and whose shop sells a parasol and a handkerchief that any holder can use.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -840,15 +844,26 @@ Current build baseline:
     owner-only map, mark outline, cowardice outline; low-sanity viewers see an invisible Specter);
     `SpecterHudRenderer` draws two bottom-right rows (skill one below, Otherworld above), and `SaintHudLayoutRules`
     reserves two rows for the role. `SpecterOtherworldScreenEffects` (post chain `sparkwitch:shaders/post/otherworld`,
-    `GameRenderer#render` before `beginWrite`) ramps saturation/contrast and a red vignette for living participants,
-    fades out over 5 s, steps aside for Wraith/Vendetta/Black Raven perception (`BlackRavenPerceptionScreenEffects
-    .isActiveFor`, sharing one resolver with its own render), Blind, Rift occupants, the Seeker camera,
-    `ScopeClient.isScoped()`, Iris packs, any vanilla post processor (NoellesRoles' included) and a drawn SparkTraits
-    Depression grayscale, and releases its processor when
-    idle, on join/disconnect/stop and resource reload. `ClientWorldOtherworldSkyMixin` tints the sky/fog colour (Wathe
-    skips the sky dome while the train moves). Soul-fire particles, a play-once BGM (one of three variants chosen by the
-    server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item tooltips. Lang:
-    `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
+    `GameRenderer#render` before `beginWrite`) draws the "Yin realm" look for living participants (owner pick
+    2026-11-11, replacing the saturation/contrast ramp and red vignette): a ghost-fire teal split-tone that keeps only
+    vivid reds, teal-black fog by view distance, edge double vision and a slow breathing warp (scaled by vanilla's
+    Distortion Effects option), and an opening wave that sweeps outward through depth in the first ~1.3 s. Vanilla
+    clears the main depth before the hand, so the filter copies the world depth at
+    `WorldRenderEvents.AFTER_TRANSLUCENT` (`LAST` as a fallback) into the chain's `otherworld_depth` target, never in
+    a `SecondaryWorldPass`: from main while it is the bound target, or from the particles target in Fabulous!, whose
+    transparency composite overwrites the main depth before `LAST`. It reads `minecraft:main:depth` to treat the hand
+    as distance 0; a frame without the copy draws the look with no wave and
+    no fog. It fades out over 5 s, steps aside for Wraith/Vendetta/Black Raven perception
+    (`BlackRavenPerceptionScreenEffects.isActiveFor`, sharing one resolver with its own render), Blind, Rift
+    occupants, the Seeker camera, `ScopeClient.isScoped()`, Iris packs, any vanilla post processor (NoellesRoles'
+    included) and a drawn SparkTraits Depression grayscale, and releases its processor when
+    idle, on join/disconnect/stop and resource reload. `ClientWorldOtherworldSkyMixin` tints the sky/fog colour dark
+    ghost-green over the first 1.5 s (Wathe skips the sky dome while the train moves). `SpecterOtherworldParticles`
+    spawns, in air blocks near the local player only, a few soul-fire flames and falling joss paper: the particle
+    type `sparkwitch:joss_paper` is registered in common init by `SpecterParticles` and drawn by
+    `client/specter/JossPaperParticle` (three sprites, presentation only). A play-once BGM (one of three variants
+    chosen by the server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item
+    tooltips. Lang: `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
     placement and trigger, peachwood hits and the shield.
 - `roles/killer/hiro/`: 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, placeholder color `0xC8324B`, owner has not
   picked one), added 2026-11-11.
@@ -860,8 +875,8 @@ Current build baseline:
   2.0, `BACK_HALF_ARC_DEGREES` 60, `CHANNEL_TICKS` 60, `HIT_INTERVAL_TICKS` 20, `INTERRUPT_COOLDOWN_TICKS` 200,
   `PRICE` 50.
   - Registration: a SparkFactionAPI killer with the Specter's profile (Wathe-native KILLER, FAKE mood, unlimited
-    sprint, round clock), one killer slot, no appearance condition, registered after the Charon's Lost Soul and right before
-    the Insider, and guessed in the killer block right after the Specter, before the Murderous Witch. No witch skill
+    sprint, round clock), one killer slot, no appearance condition, registered after Tono Hanna (PR #212) and right
+    before the Insider, and guessed in the killer block right after the Specter, before the Murderous Witch. No witch skill
     (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel; code reads the raw role.
   - Mana (owner 2026-11-11): exactly the Witch Maiden's system through `mana/WitchManaRules` (`isManaRole`,
     `naturalCap` 250, 20-tick regeneration; 0 at role assignment, no kill or task rewards). Nothing else is
@@ -873,7 +888,7 @@ Current build baseline:
     - State: `HiroReturnComponent` (`sparkwitch:nikaido_hiro_return`, `NEVER_COPY`, owner-synced, everything a HUD
       needs: counting-down cooldown, absolute `windowEndTick`, nullable `RecordPoint`, `feignedVictimCount()`). A
       window that ends un-attacked closes itself in `serverTick` and starts the 45 s cooldown. Forced-cooldown store
-      25 `sparkwitch:nikaido_hiro_return` (ACTIVE round, raw role, no running window; nominal 45 s).
+      26 `sparkwitch:nikaido_hiro_return` (ACTIVE round, raw role, no running window; nominal 45 s).
     - Cast: `HiroReturnService.use` from the empty C2S `UseHiroSkillC2SPacket` (`sparkwitch:use_hiro_skill`, G; on
       the Control Expert stun, Seeker session, Rift occupant, Grand Witch Fear and Knight duel lists; SparkStrength's
       daze list and SparkFactionAPI's safe-time list do not list it yet). Order: `mayCast` (ACTIVE, living raw role,
@@ -2651,6 +2666,62 @@ Current build baseline:
     then fades; it never takes the mouse, needs no living player, and draws only what the server sent.
   - Lang: `role`/`announcement` keys for `medium` and `sparkwitch.medium`, `hud.sparkwitch.medium.*`,
     `screen.sparkwitch.medium.*`, and the two replay keys.
+- `roles/civilian/hanna/`: 远野汉娜 Tono Hanna (`sparkwitch:hanna`, color `0xFFAF9F`), contributed in PR #212 and
+  rebuilt in review on the Noa model (owner decisions 2026-11-11); every number lives in `HannaRules`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
+    no appearance condition) registered after the Lost Soul, before 二阶堂希罗 and the Insider (which stays last), and guessed
+    in the civilian block right after the Medium. Drawn by Wathe's civilian pass, never a police variant or slot.
+    `SparkWitchRoles` exposes `HANNA_ID` and `hanna()`.
+  - Mana without witch skills: she is a mana role in `WitchManaRules` (`isManaRole`), with `initialMana` 40 granted by
+    `WitchManaService.assignForRole` right after `initializeMana()`, `taskReward` 20, no natural regeneration
+    (`canRegenerateNaturally` is false for her only) and no kill reward. She is not in `isRegisteredSparkWitchRole`,
+    never gets an active witch skill and never appears in the `gui.sparkwitch.skills` panel; the shared mana HUD row
+    shows her pool because it reads only `hasManaSystem()`.
+  - Float (`HannaFeatureService` registers the empty C2S `sparkwitch:use_hanna_float`, the replay formatter, economy,
+    the interruption hooks, the world tick and lifecycle): `HannaFloatService.tryUse` gates through the pure
+    `HannaRules.floatVerdict` (real role, ACTIVE round, alive and not spectating, not swallowed, not stunned, not
+    role-skill blocked, not already floating, ready; then Fear, which sends Grand Witch's "skill blocked" line; then
+    40 mana, else `message.sparkwitch.hanna.no_mana`), spends the mana, starts the 10 s float and adds the transient
+    `sparkwitch:hanna_float_speed` movement modifier (+0.4 `ADD_MULTIPLIED_TOTAL`, Speed II; never a status effect, so
+    ending it strips nobody else's Speed). The 45 s cooldown starts when the float ends.
+  - Interruption (`HannaFloatService.touch(target, toucher)`, the only entry): Wathe's `KillPlayer.BEFORE` (phase
+    `sparkwitch:hanna_float_observe` before the default one, always answering null, so cancelled attempts are seen
+    and nothing is altered), Fabric's `AttackEntityCallback` and `UseEntityCallback` (server side, always PASS) and
+    the projectile mixin in `mixin/hanna/`. `HannaRules.interrupts`: an unknown toucher (null) interrupts, she never
+    interrupts herself, and only a living, non-spectator round participant counts otherwise. An interruption ends
+    the float, restarts the cooldown, removes the modifier and starts 10 s of penalty (-5% sanity per second through
+    `PlayerMoodComponent.setMood`, with an action-bar countdown).
+  - State: `HannaComponent` (`sparkwitch:hanna_player`, `NEVER_COPY`, appended in the CCA list after the
+    Charon's, before 二阶堂希罗's two) keeps four absolute world ticks (float ready, float end, penalty end, handkerchief end) in NBT.
+    Everyone receives only the float's remaining ticks (instinct is drawn per client); the owner also gets the ready
+    and penalty ticks. The world tick skips `idle()` players, re-applies the modifier after a relog, and ends a float
+    (no penalty) or a penalty when she is no longer a living Hanna in an ACTIVE round. `RoleAssigned` clears the
+    component and starts the 40 s opening cooldown for a drawn Hanna; Wathe's `ResetPlayer` clears it. The
+    forced-cooldown store `sparkwitch:hanna_float` (store 25) only moves the ready tick later.
+  - Coins and shop (`HannaEconomyService`, gated to a living Hanna in an ACTIVE round, survival, not a restricted
+    Wraith): +50 per task for a confirmed non-Impostor (`compat/SparkTraitsTaskIncomeBridge`), +15 every 30 s of world
+    time, `CanSeeMoney` ALLOW while alive and DENY otherwise, and two `TOOL` rows (parasol 150, handkerchief 100) that
+    hand over the real items and pass through `SparkTraitsCharismaBridge`.
+  - Items (owner: any holder can use them; uses are vanilla durability, `maxCount(1)`, nothing in custom data, no
+    death drop): `HannaUmbrellaItem` (`sparkwitch:hanna_umbrella`, 25 durability) keeps Slow Falling II on while held
+    in either hand by a living non-spectator (a 2 s effect refreshed in its last second), spends 1 durability per
+    second of world time (not in creative) and disappears at 0; right-click gives 10 s of Slow Falling II with a 10 s
+    item cooldown. `HannaHandkerchiefItem` (`sparkwitch:hanna_handkerchief`, 2 uses) is held for 1 s (`UseAction.NONE`,
+    living participant of an ACTIVE round only; releasing early costs nothing), then starts 5 s of +6% sanity per
+    second (REAL-mood roles only, pulsed by `HannaFloatService`), ends a float penalty and starts a 15 s item
+    cooldown. Both cooldowns are in `SparkWitchItemCooldownNominals`; both items follow the Accountant passbook in
+    the creative tab. Their cues are private sounds.
+  - Deny lists: `use_hanna_float` is classified right after `use_noa_paint` in the Control Expert stun, Knight duel,
+    Seeker session, Riftwalker session and Grand Witch Fear lists; SparkStrength's Taotie daze list and
+    SparkFactionAPI's opening safe-time list classify it on their own side.
+  - Replay (`HannaReplay`, skill events under the role id): `float`, `interrupted` (the interrupter is the event
+    target; none uses the plain `interrupted` key, one uses `interrupted_by`), `umbrella`, `handkerchief` and
+    `handkerchief_clear`; item uses are recorded for whoever used them.
+  - Client (`client/hanna/`, presentation only): the role-owned float HUD row, the instinct veto and the silence of
+    a floating player all read `HannaComponent`; the ability key sends the empty payload with no prediction.
+  - Lang: `role`/`announcement` keys for `hanna` and `sparkwitch.hanna`, `tip.letter.hanna.tooltip1`,
+    `hud.sparkwitch.hanna.float.*`, `message.sparkwitch.hanna.*`, both item names and tooltips, and the six
+    `replay.skill.sparkwitch.hanna.*` keys.
 - `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
   bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
   Key Fish doors, tracked pufferfish, replay formatting, and lifecycle cleanup. Subpackages:
@@ -3881,6 +3952,34 @@ gets no trap back (the trap itself stays armed until it expires or the round end
 A reclaimed poisoned trap returns as a stack carrying its poison and poisoner (custom data `Poisoned` + `Poisoner`,
 `HunterTrapItem.poison`), and the next placement restores both, so its poison kill, credit and poisoner/placer rewards
 are as if it had never moved (T-0011, 2026-10-25). An unpoisoned trap still returns as a plain stack.
+Hunter trap rules (PR #213, 2026-11-11) split the players a trap deals with into two classes, both decided in
+`HunterRules`. Class 1 (`isTrapPolice`) is every police role (the live SparkFactionAPI `PoliceRoles` registry plus a
+fixed list that also names the NoellesRoles Engineer and Corrupt Cop, which the registry may not hold) and, checked by
+the callers through the public SparkTraits facade and failing closed, any Impostor (内鬼) holder. Class 2
+(`isTrapKiller`) is every `Faction.KILLER` role plus `wathe:loose_end` and `noellesroles:undercover`; class 2 wins when
+a player is in both. Everyone else, the witch side included, can neither dismantle nor poison a trap.
+Sight (`HunterRules.trapVisibility`, read by `client/hunter/HunterTrapVisibilityHelper`): only a dead in-match spectator
+sees traps through walls passively. Both classes need line of sight; a `Faction.KILLER` viewer gets the through-wall
+view and outline only while the instinct key is held, the Loose End and the Undercover never do, and the witch-side
+instinct viewers are unchanged.
+Dismantling (`HunterRules.trapDismantle`, sneak-use with line of sight, after the owner reclaim): class 2 removes the
+trap at once and touches no cooldown; class 1 channels for `DISMANTLE_CHANNEL_TICKS` (5 s) of held right-clicks. The
+channel belongs to the trap and the server: `HunterTrapEntity.pressDismantle` keeps one dismantler, the tick it started
+on and the last press, restarts after a gap over `DISMANTLE_PRESS_TIMEOUT_TICKS` (12), ignores another player's presses
+while it lives, and a press on one trap drops the same player's channel on any other. The trap syncs the dismantler and
+start tick as tracked data (never saved); `client/hunter/HunterTrapDismantleHud` reads them once per client tick for the
+dismantler's own progress bar and for the Hunter's outline of the dismantler (`HunterTrapClientHooks`, in the Hunter's
+own colour `HunterRules.COLOR`, never the dismantler's role colour, above every other outline). `interactWithTrap` answers `SUCCESS` on both sides for either
+class: a client `PASS` would let vanilla go on to use the held item, so no client listener may sit behind it.
+A dead or spectating player (a swallowed one included) gets `PASS` before any branch: no reclaim, dismantle or poison.
+Every accepted press except the finishing one floors the dismantler's carried items at
+`DISMANTLE_HELD_ITEM_COOLDOWN_TICKS` (the press timeout + 1 = 13 ticks), so they stay locked exactly while the channel
+can still be continued, with one write per press rather than per tick; a caught victim's carried items get a 3 s floor
+once (`HunterFeatureService.forceCarriedItemCooldown`). Both go through
+SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, ticks)` and nowhere else: monotonic, exact (Fast
+Hands, Stimulation and per-item rewrites cannot shorten it), and skipping the registered forced-cooldown exemptions
+(NoellesRoles timed bomb, Seeker car, Knight cross sword). A victim who dies within `TRAP_KILL_REWARD_WINDOW_TICKS` (3 s) of the
+catch, whatever the cause, pays the trap's placer `TRAP_KILL_REWARD` (30) once, unless the placer is the victim.
 A Hunter shotgun shot that reaches the wall takes `HunterRules.SHOTGUN_JUNCTION_BOX_DAMAGE` (7000 in SparkStrength's
 unit, 10000 = 100%, so 70%; owner, 2026-10-21) from the SparkStrength junction box (`sparkstrength:junction_box`) it
 lands on, so two shots open a full box. Only the centre ray counts (the slug's ray at 15, buckshot's at 8;
@@ -3923,6 +4022,10 @@ Bewitched. These rules are `HunterRules.isInstinctTrapViewer` (`BEWITCHED_ROLE_I
 Bewitched. These never include variants merely for being variants, nor the Bewitched: `WitchManaRules.isManaRole`
 (the Abyss Listener and the Riftwalker are added by exact role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`
 (the Abyss Listener and the Riftwalker are added by exact role, each for its shared skill).
+`WitchManaRules.isManaRole` also holds two roles outside the witch faction, each by exact role: the Witch Maiden
+(crimson skull mana) and the civilian Tono Hanna (PR #212), who starts at `initialMana` 40, gains 20 per task and is
+the only mana role with `canRegenerateNaturally` false; neither is in `isRegisteredSparkWitchRole` for it, and the
+other mana roles' numbers are unchanged.
 
 Witch task money (owner request 2026-10-04, lowered from 50 to 25 on 2026-10-07): `WitchEconomyService.onTaskComplete`
 pays `WitchFactionRules.WITCH_TASK_MONEY_REWARD` (+25) per completed task to the Grand Witch and every accomplice (plain or
@@ -4154,6 +4257,16 @@ deliberate and kept:
    pardon): the Charon's ferry cooldown, for the raw role in an ACTIVE round. Remaining time is
    `FerrymanPlayerComponent` ferry cooldown ticks (0 at round start); the nominal is
    `FerrymanRules.FERRY_COOLDOWN_TICKS` (100), written exactly through the owner-syncing `setFerryCooldown`.
+25. `sparkwitch:hanna_float` (`SparkWitchForcedCooldowns#hannaFloat`, PR #212, appended after the Charon's ferry):
+   Tono Hanna's float cooldown, for the raw role in an ACTIVE round (`HannaFloatService`'s role and round gates).
+   Remaining time counts to the absolute ready tick in `HannaComponent`, so it includes the 40 s opening cooldown and,
+   while she floats, the rest of the float; the nominal is `HannaRules.COOLDOWN_TICKS` (900). Every write only moves
+   the ready tick later through the syncing `setFloatReadyTick`, so it never shortens and never ends a running float.
+26. `sparkwitch:nikaido_hiro_return` (`SparkWitchForcedCooldowns#hiroReturn`, 2026-11-11, appended after Tono Hanna's
+   float): 二阶堂希罗's 死亡回归 cooldown, for the raw role in an ACTIVE round with no window running (the cooldown is
+   written when the window ends, so a running window is never forced). Remaining time is `HiroReturnComponent`
+   cooldown ticks (90 s opening cooldown included); the nominal is `HiroRules.RETURN_COOLDOWN_TICKS` (900), written
+   exactly through the owner-syncing `setCooldownTicks`.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s

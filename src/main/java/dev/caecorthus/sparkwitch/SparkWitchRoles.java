@@ -59,6 +59,7 @@ public final class SparkWitchRoles {
     public static final Identifier ACCOUNTANT_ID = SparkWitchRoleRegistry.ACCOUNTANT_ID;
     public static final Identifier BEAR_ID = SparkWitchRoleRegistry.BEAR_ID;
     public static final Identifier MEDIUM_ID = SparkWitchRoleRegistry.MEDIUM_ID;
+    public static final Identifier HANNA_ID = SparkWitchRoleRegistry.HANNA_ID;
     public static final Identifier NIKAIDO_HIRO_ID = SparkWitchRoleRegistry.NIKAIDO_HIRO_ID;
 
     private SparkWitchRoles() {
@@ -280,6 +281,10 @@ public final class SparkWitchRoles {
 
     public static Role medium() {
         return SparkWitchRoleRegistry.medium();
+    }
+
+    public static Role hanna() {
+        return SparkWitchRoleRegistry.hanna();
     }
 
     public static Role nikaidoHiro() {

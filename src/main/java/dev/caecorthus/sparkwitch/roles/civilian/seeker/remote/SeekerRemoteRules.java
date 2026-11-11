@@ -67,6 +67,8 @@ public final class SeekerRemoteRules {
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
             Identifier.of("sparkwitch", "use_blind_attune"),
             Identifier.of("sparkwitch", "use_noa_paint"),
+            // Hanna float (UseHannaFloatC2SPayload). / 汉娜浮游。
+            Identifier.of("sparkwitch", "use_hanna_float"),
             Identifier.of("sparkwitch", "ragpicker_search"),
             Identifier.of("sparkwitch", "rift_hop"),
             Identifier.of("sparkwitch", "rift_gate_close"),

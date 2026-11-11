@@ -86,6 +86,8 @@ public final class ControlExpertStunRules {
             Identifier.of("sparkwitch", "use_blind_attune"),
             // Noa painting (UseNoaPaintC2SPayload). / 诺亚作画。
             Identifier.of("sparkwitch", "use_noa_paint"),
+            // Hanna float (UseHannaFloatC2SPayload). / 汉娜浮游。
+            Identifier.of("sparkwitch", "use_hanna_float"),
             // Ragpicker corpse search (JunkerSearchC2SPacket, G key). / 拾荒者搜刮尸体（G 键）。
             Identifier.of("sparkwitch", "ragpicker_search"),
             // Riftwalker gate hop and console close; the occupant's own exit and the console snapshot request stay

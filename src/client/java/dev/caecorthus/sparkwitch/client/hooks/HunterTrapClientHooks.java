@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.hooks;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.client.hunter.HunterTrapDismantleHud;
 import dev.caecorthus.sparkwitch.client.hunter.HunterTrapVisibilityHelper;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapEntity;
@@ -24,6 +25,10 @@ public final class HunterTrapClientHooks {
     public static final Identifier HUNTER_TRAP_PLACED_MODEL_ID = SparkWitch.id("item/hunter_trap_placed");
     public static final int HIGHLIGHT_PRIORITY =
             WitchInstinctSuppressionClientHooks.SUPPRESSION_PRIORITY - 1;
+    // Class-1 dismantlers outrank every other outline while the channel runs (owner 2026-11-11).
+    // 第一类拆除引导期间的高亮优先级高于其他描边（所有者 2026-11-11）。
+    private static final int DISMANTLER_HIGHLIGHT_PRIORITY =
+            GetInstinctHighlight.HighlightResult.PRIORITY_HIGH + 10;
     private static boolean registered;
 
     private HunterTrapClientHooks() {
@@ -36,6 +41,34 @@ public final class HunterTrapClientHooks {
         registered = true;
         ModelLoadingPlugin.register(context -> context.addModels(HUNTER_TRAP_PLACED_MODEL_ID));
         GetInstinctHighlight.EVENT.register(HunterTrapClientHooks::trapHighlight);
+        GetInstinctHighlight.EVENT.register(HunterTrapClientHooks::dismantlerHighlight);
+    }
+
+    /**
+     * While a class-1 player is channelling a dismantle on a trap, the Hunter sees that player outlined in the
+     * Hunter's own role colour (owner 2026-11-11: never the dismantler's colour, which would tell the Hunter their
+     * exact role). The trap syncs its dismantler and clears it once the presses stop, so the outline ends with the
+     * channel on every client; the lookup is the per-tick set in {@link HunterTrapDismantleHud}, not a world query per
+     * rendered player.
+     * 第一类玩家正在引导拆除时，猎人能看到该玩家以猎人自己的职业色描边（所有者 2026-11-11：不用拆除者的职业色，否则等于把对方
+     * 的具体身份告诉猎人）。夹子同步其拆除者并在按键停止后清除，因此描边在每个客户端都随引导一起结束；查询用的是
+     * {@link HunterTrapDismantleHud} 每刻整理的集合，而不是每渲染一名玩家就查一次世界。
+     */
+    @Nullable
+    private static GetInstinctHighlight.HighlightResult dismantlerHighlight(Entity target) {
+        if (!(target instanceof PlayerEntity targetPlayer)
+                || !HunterTrapDismantleHud.isDismantling(targetPlayer.getUuid())) {
+            return null;
+        }
+        PlayerEntity viewer = MinecraftClient.getInstance().player;
+        if (viewer == null || targetPlayer == viewer) {
+            return null;
+        }
+        Role viewerRole = GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer);
+        if (viewerRole == null || !HunterRules.ROLE_ID.equals(viewerRole.identifier())) {
+            return null;
+        }
+        return GetInstinctHighlight.HighlightResult.always(HunterRules.COLOR, DISMANTLER_HIGHLIGHT_PRIORITY);
     }
 
     @Nullable
