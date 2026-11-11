@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.judge;
 
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroVictimFeignService;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +23,10 @@ public final class JudgeKillAttribution {
         ServerWorld world = victim.getServerWorld();
         UUID cause = CAUSES.actor(world);
         UUID responsible = cause != null ? cause : killer == null ? null : killer.getUuid();
-        if (JudgeRuntime.blocksKill(world, responsible, victim.getUuid())) return;
+        // 二阶堂希罗's settlement replay is a kill that committed before any sentence could matter: never refused here.
+        // 二阶堂希罗的结算重放是在任何判决生效之前就已落定的击杀：此处绝不拒绝。
+        if (!HiroVictimFeignService.isSettling(victim)
+                && JudgeRuntime.blocksKill(world, responsible, victim.getUuid())) return;
 
         Attempt previous = ATTEMPTS.get();
         ATTEMPTS.set(new Attempt(world, responsible, victim.getUuid()));

@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.killer.hiro.returning;
 
+import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkfactionapi.api.cooldown.CooldownKind;
 import dev.caecorthus.sparkfactionapi.api.cooldown.ForcedCooldowns;
 import dev.caecorthus.sparkwitch.compat.NoellesSilenceBridge;
@@ -62,7 +63,7 @@ import java.util.UUID;
  *   <li>A kill attempt on her by another player ({@link #onKillAttempt}, HEAD of Wathe's {@code killPlayer}) revives
  *   her fake-dead victims, also after the window ended and also when that attack kills her. Inside the window a
  *   cancellable attack is cancelled before any of her shields is touched and the Return fires, once per cast:
- *   {@link HiroRules#RETURN_REWARD_COINS} coins (none from a killer-team attacker), back to the record point,
+ *   {@link HiroRules#RETURN_REWARD_COINS} coins (none from an effective killer-team attacker), back to the record point,
  *   {@link HiroRules#RETURN_GLOW_TICKS} Glowing, a {@link HiroRules#RETURN_ITEM_LOCK_TICKS} all-item cooldown, her
  *   Rope strangle interrupted, the window closed and the {@link HiroRules#RETURN_COOLDOWN_TICKS} cooldown started.</li>
  *   <li>A window that ends un-attacked closes itself ({@link HiroReturnComponent#serverTick}); her real death closes
@@ -286,8 +287,16 @@ public final class HiroReturnService {
         RecordPoint point = component.recordPoint();
         component.closeWindow(HiroRules.RETURN_COOLDOWN_TICKS);
 
+        ServerPlayerEntity attackerPlayer = attacker == null || server == null
+                ? null
+                : server.getPlayerManager().getPlayer(attacker);
+        // Anti-farm by the attacker's effective side (Impostor ally pays 0, Conscience killer pays); the raw role
+        // only answers for an attributed attacker who is offline.
+        // 防刷按攻击者的有效阵营判定（内鬼同伴不给金币，善良杀手给）；只有被归因但已离线的攻击者才按原始职业判定。
         Role attackerRole = attacker == null ? null : game.getRole(attacker);
-        int coins = HiroReturnRules.rewardCoins(attackerRole != null && attackerRole.canUseKiller());
+        int coins = HiroReturnRules.rewardCoins(HiroReturnRules.attackerOnKillerTeam(
+                attackerPlayer == null ? null : SparkFactionApi.resolveEffectiveFaction(attackerPlayer, game),
+                attackerRole != null && attackerRole.canUseKiller()));
         if (coins > 0) {
             PlayerShopComponent.KEY.get(hiro).addToBalance(coins);
         }
@@ -312,9 +321,6 @@ public final class HiroReturnService {
         extra.putInt("coins", coins);
         extra.putInt("revived", revived);
         extra.putBoolean("moved", moved);
-        ServerPlayerEntity attackerPlayer = attacker == null || server == null
-                ? null
-                : server.getPlayerManager().getPlayer(attacker);
         GameRecordManager.recordSkillUse(hiro, HiroRules.RETURN_SKILL_ID, attackerPlayer, extra);
     }
 
