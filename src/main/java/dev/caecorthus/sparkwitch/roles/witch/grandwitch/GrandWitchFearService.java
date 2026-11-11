@@ -109,6 +109,8 @@ public final class GrandWitchFearService {
             Identifier.of("sparkwitch", "request_sherry_deduction"),
             Identifier.of("sparkwitch", "confirm_sherry_deduction"),
             Identifier.of("sparkwitch", "use_sherry_mighty_force"),
+            // 二阶堂希罗 死亡回归 (shared key G), 2026-11-11. / 二阶堂希罗的死亡回归（共享 G 键），2026-11-11。
+            Identifier.of("sparkwitch", "use_hiro_skill"),
             // Magician record/playback stages; the server also re-checks fear on use.
             // 魔术师录制/播放阶段；服务端在使用时也会再次检查恐惧。
             Identifier.of("sparkwitch", "magician_ability"),

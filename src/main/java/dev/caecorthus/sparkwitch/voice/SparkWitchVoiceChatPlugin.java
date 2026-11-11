@@ -10,6 +10,7 @@ import de.maxhenkel.voicechat.api.events.SoundPacketEvent;
 import de.maxhenkel.voicechat.api.packets.SoundPacket;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroVictimFeignService;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
@@ -212,6 +213,13 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         if (FerrymanFeignService.isFeigning(speaker)) {
             // A player feigning before the Charon plays dead too: muted but still hears, like a feigning Fiend.
             // 在卡戎面前假死的玩家同样在装死：被静音但仍能听见，与假死的魔人相同。
+            event.cancel();
+            return;
+        }
+        if (HiroVictimFeignService.isFeigned(speaker)) {
+            // A fake-dead victim of 二阶堂希罗 lies dead to everyone: muted but still hears, and it joins the dead
+            // players' group only when the death becomes real.
+            // 二阶堂希罗的假死受害者在所有人眼中已经死亡：被静默但仍能听见，只有死亡成真时才加入死者语音组。
             event.cancel();
             return;
         }

@@ -33,6 +33,8 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     private final WitchFactorState state = new WitchFactorState();
     private WitchFactorSettings settings = WitchFactorSettings.DEFAULT;
     private final Set<UUID> visibleHolders = new HashSet<>();
+    /** Client: players this recipient sees in their role colour. / 客户端：当前接收者以职业色看到的玩家。 */
+    private final Set<UUID> visibleRoleColored = new HashSet<>();
     private boolean networkView;
     private boolean exposeEmma;
     /**
@@ -45,8 +47,49 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     /** Server: the mature set shared by every recipient of one {@link #sync()}. / 服务端：一次同步内所有接收者共用的成熟集合。 */
     private @Nullable Set<UUID> syncMature;
 
-    private record View(boolean authorized, boolean exposeEmma, Set<UUID> holders) { }
-    private static final View UNAUTHORIZED = new View(false, false, Set.of());
+    /**
+     * One recipient's packet contents and their wire format. The server builds it only through {@link #sanitized}, so
+     * an unauthorized recipient gets no id of any kind. Layout: holder list, the two view bits, then the role-colour
+     * list (appended 2026-11-11; a packet that ends after the bits still reads, as an empty list).
+     * 单个接收者的数据包内容及其线上格式。服务端只经 {@link #sanitized} 构造，未获准的接收者拿不到任何 id。布局：持有者列表、
+     * 两个视图标记，然后是职业色列表（2026-11-11 追加；在标记处结束的数据包仍可读取，按空列表处理）。
+     */
+    record View(boolean authorized, boolean exposeEmma, Set<UUID> holders, Set<UUID> roleColored) {
+        static final View UNAUTHORIZED = new View(false, false, Set.of(), Set.of());
+
+        static View sanitized(boolean authorized, boolean pink, Set<UUID> mature, Set<UUID> roleColored) {
+            return authorized ? new View(true, pink, mature, roleColored) : UNAUTHORIZED;
+        }
+
+        void encode(RegistryByteBuf buf) {
+            // Preserve the original list prefix; the appended bits distinguish an empty authorized network.
+            // 保留原有列表前缀；追加权限位可区分获准但为空的网络。
+            buf.writeVarInt(holders.size());
+            holders.forEach(buf::writeUuid);
+            buf.writeBoolean(authorized);
+            buf.writeBoolean(exposeEmma);
+            buf.writeVarInt(roleColored.size());
+            roleColored.forEach(buf::writeUuid);
+        }
+
+        /** Client: ids are dropped again unless the view bit is set. / 客户端：视图标记未置位时再次丢弃所有 id。 */
+        static View decode(RegistryByteBuf buf) {
+            Set<UUID> holders = readIds(buf);
+            boolean authorized = buf.isReadable() && buf.readBoolean();
+            boolean exposeEmma = buf.isReadable() && buf.readBoolean();
+            Set<UUID> roleColored = buf.isReadable() ? readIds(buf) : Set.of();
+            return new View(authorized, exposeEmma, authorized ? holders : Set.of(), authorized ? roleColored : Set.of());
+        }
+
+        private static Set<UUID> readIds(RegistryByteBuf buf) {
+            int count = buf.readVarInt();
+            if (count < 0 || count > buf.readableBytes() / 16) throw new IllegalArgumentException("Invalid factor view");
+            Set<UUID> ids = new HashSet<>();
+            for (int i = 0; i < count; i++) ids.add(buf.readUuid());
+            return ids;
+        }
+    }
+    private static final View UNAUTHORIZED = View.UNAUTHORIZED;
 
     public WitchFactorWorldComponent(World world) { this.world = world; }
     WitchFactorState state() { return state; }
@@ -58,6 +101,10 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     public boolean mayExposeEmma() { return exposeEmma; }
     public boolean isFactorHolder(UUID player) {
         return world.isClient ? visibleHolders.contains(player) : state.factors().containsKey(player);
+    }
+    /** Client: this recipient's sanitized role-colour set; server: the ledger. / 客户端：当前接收者获准的职业色集合；服务端：账本。 */
+    public boolean isRoleColored(UUID player) {
+        return world.isClient ? visibleRoleColored.contains(player) : state.roleColored().contains(player);
     }
     public void sync() {
         if (!(world instanceof ServerWorld serverWorld)) return;
@@ -74,11 +121,27 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
         return Set.copyOf(result);
     }
 
+    /**
+     * Living role-coloured players of this world. The ledger set is empty in almost every round, so this is not shared
+     * across the recipients of one sync the way the mature set is.
+     * 本世界存活的职业色玩家。该账本集合在绝大多数对局中为空，因此不像成熟集合那样在一次同步的接收者之间共用。
+     */
+    private Set<UUID> livingRoleColored() {
+        if (state.roleColored().isEmpty()) return Set.of();
+        Set<UUID> result = new HashSet<>();
+        for (UUID id : state.roleColored()) {
+            if (world.getPlayerByUuid(id) instanceof ServerPlayerEntity player && WitchFactorService.alive(player)) {
+                result.add(id);
+            }
+        }
+        return Set.copyOf(result);
+    }
+
     private View view(ServerPlayerEntity recipient, Set<UUID> mature) {
         boolean authorized = recipient.getWorld() == world && WitchFactorService.isNetworkViewer(recipient);
         boolean pink = authorized && (GameWorldComponent.KEY.get(world).getRole(recipient) == SparkWitchRoles.grandWitch()
                 || state.mature(recipient.getUuid()));
-        return new View(authorized, pink, authorized ? mature : Set.of());
+        return View.sanitized(authorized, pink, mature, authorized ? livingRoleColored() : Set.of());
     }
 
     /**
@@ -115,22 +178,17 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
 
     private void write(RegistryByteBuf buf, ServerPlayerEntity recipient, View view) {
         sentViews.put(recipient.getUuid(), view);
-        // Preserve the original list prefix; the appended bits distinguish an empty authorized network.
-        // 保留原有列表前缀；追加权限位可区分获准但为空的网络。
-        buf.writeVarInt(view.holders().size());
-        view.holders().forEach(buf::writeUuid);
-        buf.writeBoolean(view.authorized());
-        buf.writeBoolean(view.exposeEmma());
+        view.encode(buf);
     }
 
     @Override public void applySyncPacket(RegistryByteBuf buf) {
+        View view = View.decode(buf);
         visibleHolders.clear();
-        int count = buf.readVarInt();
-        if (count < 0 || count > buf.readableBytes() / 16) throw new IllegalArgumentException("Invalid factor view");
-        for (int i = 0; i < count; i++) visibleHolders.add(buf.readUuid());
-        networkView = buf.isReadable() && buf.readBoolean();
-        exposeEmma = buf.isReadable() && buf.readBoolean();
-        if (!networkView) visibleHolders.clear();
+        visibleHolders.addAll(view.holders());
+        visibleRoleColored.clear();
+        visibleRoleColored.addAll(view.roleColored());
+        networkView = view.authorized();
+        exposeEmma = view.exposeEmma();
     }
 
     @Override public void writeToNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
@@ -139,6 +197,7 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
 
     @Override public void readFromNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
         visibleHolders.clear();
+        visibleRoleColored.clear();
         sentViews.clear();
         networkView = false;
         exposeEmma = false;

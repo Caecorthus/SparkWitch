@@ -47,6 +47,9 @@ public enum ProphetDeathCauseGroup {
             entry("noellesroles:throwing_axe", THROWN),
             entry("wathe:bat_hit", BLUNT),
             entry("sparkwitch:mighty_force", BLUNT),
+            // 二阶堂希罗's Rope strangle (2026-11-11): a bare-hands kill without a blade, grouped with the blunt ones.
+            // 二阶堂希罗的绳索勒杀（2026-11-11）：不用利刃的徒手击杀，与钝器同组。
+            entry("sparkwitch:strangled", BLUNT),
             entry("wathe:grenade", EXPLOSION),
             entry("noellesroles:bomb", EXPLOSION),
             // Potion Gunner TR shell and launcher backblast; the gunner is the responsible player (owner 2026-10-03).

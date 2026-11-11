@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.client.render.WraithViewerRules;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorWorldComponent;
+import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GetInstinctHighlight;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -42,19 +43,27 @@ public final class WitchFactorClientHooks {
         // Authorization is a server-sanitized bit, including empty networks. / 授权由服务端裁剪的标记给出，空网络也可区分。
         boolean emma = WitchFactorWorldComponent.KEY.get(viewer.getWorld()).mayExposeEmma()
                 && game.getRole(target) != null && EMMA_ID.equals(game.getRole(target).identifier());
-        // Both exits return the original color and every check is a side-effect-free read, so the cheap carrier/Emma
-        // bits run before the costlier hard-hide gates (reflection, Traits bridge) without changing any answer.
-        // 两个出口都返回原颜色且各项检查均为无副作用读取，因此先做廉价的携带者/艾玛判断，再做较贵的硬隐藏门禁
+        // A self-made witch (二阶堂希罗 after 魔女化): the server sends her id to living network viewers only (the set
+        // is empty for everyone else), and she is drawn in her role colour with or without a factor. The role is read
+        // from Wathe's synced role map, so this shared fallback depends on no role implementation.
+        // 自成魔女（魔女化后的二阶堂希罗）：服务端只把她的 id 发给存活的因子网络观看者（其他人的集合为空），无论是否仍有因子都以
+        // 其职业色显示。职业取自 Wathe 同步的身份表，因此这个共用后备不依赖任何职业实现。
+        boolean roleColored = WitchFactorWorldComponent.KEY.get(viewer.getWorld()).isRoleColored(target.getUuid());
+        // Both exits return the original color and every check is a side-effect-free read, so the cheap carrier/Emma/
+        // role-colour bits run before the costlier hard-hide gates (reflection, Traits bridge) without changing any
+        // answer.
+        // 两个出口都返回原颜色且各项检查均为无副作用读取，因此先做廉价的携带者/艾玛/职业色判断，再做较贵的硬隐藏门禁
         // （反射、Traits 桥接），结果不变。
-        if (!carrier && !emma || isHardHidden(viewer, target)) {
+        if (!carrier && !emma && !roleColored || isHardHidden(viewer, target)) {
             return originalColor;
         }
 
         // Requery only when adding a fallback: Traits HEAD may have bypassed the event entirely.
         // 仅补后备色时复核事件；Traits 的 HEAD 返回可能完全跳过了事件。
         GetInstinctHighlight.HighlightResult event = GetInstinctHighlight.EVENT.invoker().getHighlight(target);
+        Role targetRole = roleColored ? game.getRole(target) : null;
         return WitchFactorOutlineRules.resolve(originalColor, false, event != null && event.isSkip(),
-                emma, carrier);
+                emma, carrier, targetRole != null, targetRole == null ? -1 : targetRole.color());
     }
 
     private static boolean isHardHidden(PlayerEntity viewer, PlayerEntity target) {
