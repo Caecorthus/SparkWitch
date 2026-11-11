@@ -221,11 +221,11 @@ public final class HunterFeatureService {
         )) {
             other.clearDismantle();
         }
-        boolean channelling = playerUuid.equals(trap.getDismantlerUuid());
         boolean complete = trap.pressDismantle(playerUuid, world.getTime());
-        if (!channelling && playerUuid.equals(trap.getDismantlerUuid())) {
-            // The press that starts a channel locks the items at once; from the next tick on the trap holds them.
-            // 开始引导的那次按键立即锁住物品；从下一刻起由夹子保持。
+        if (!complete && playerUuid.equals(trap.getDismantlerUuid())) {
+            // Each accepted press locks the carried items until the channel could no longer be continued; the
+            // finishing press adds nothing, so the lock ends with what the previous press left.
+            // 每次有效按键把携带物品锁到引导无法再延续为止；完成引导的那次按键不再追加，锁定随上一次按键留下的时间结束。
             forceCarriedItemCooldown(player, HunterRules.DISMANTLE_HELD_ITEM_COOLDOWN_TICKS);
         }
         return complete;
@@ -234,14 +234,12 @@ public final class HunterFeatureService {
     /**
      * Floors every carried item's cooldown at {@code ticks} through SparkFactionAPI's shared forced-cooldown contract
      * ({@code ForcedCooldowns.raiseAll}); this class never writes a cooldown itself. The contract is monotonic, so an
-     * item already cooling for longer is left alone until it drops below the floor (a 2.4 s gun cooldown runs down to
-     * 0.4 s during a dismantle instead of being cut to 0.4 s at once); exact, so Fast Hands, Stimulation and per-item
-     * cooldown rewrites cannot shorten it; and it skips the registered exemptions (NoellesRoles timed bomb, Seeker car,
-     * Knight cross sword), like every other forced lock. Server only.
+     * item already cooling for longer keeps its own timer; exact, so Fast Hands, Stimulation and per-item cooldown
+     * rewrites cannot shorten it; and it skips the registered exemptions (NoellesRoles timed bomb, Seeker car, Knight
+     * cross sword), like every other forced lock. Server only.
      * 通过 SparkFactionAPI 的共享强制冷却契约（{@code ForcedCooldowns.raiseAll}）把携带的每件物品的冷却抬高到至少
-     * {@code ticks}；本类从不自行写冷却。该契约单调：冷却剩余更长的物品保持原样，降到下限以下后才被按住（拆除期间一把还剩
-     * 2.4 秒冷却的枪先自然降到 0.4 秒，而不是被立刻截成 0.4 秒）；精确：快手、兴奋剂与按物品改写冷却的逻辑都无法缩短它；并且
-     * 与其他强制锁定一样跳过已登记的豁免物品（NoellesRoles 定时炸弹、寻踪者小车、骑士十字剑）。仅服务端。
+     * {@code ticks}；本类从不自行写冷却。该契约单调：冷却剩余更长的物品保持原有计时；精确：快手、兴奋剂与按物品改写冷却的逻辑
+     * 都无法缩短它；并且与其他强制锁定一样跳过已登记的豁免物品（NoellesRoles 定时炸弹、寻踪者小车、骑士十字剑）。仅服务端。
      */
     static void forceCarriedItemCooldown(PlayerEntity player, int ticks) {
         if (player instanceof ServerPlayerEntity serverPlayer) {

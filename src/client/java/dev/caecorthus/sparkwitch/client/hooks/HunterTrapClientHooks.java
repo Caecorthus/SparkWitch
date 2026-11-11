@@ -46,11 +46,13 @@ public final class HunterTrapClientHooks {
 
     /**
      * While a class-1 player is channelling a dismantle on a trap, the Hunter sees that player outlined in the
-     * player's own role colour. The trap syncs its dismantler and clears it once the presses stop, so the outline
-     * ends with the channel on every client; the lookup is the per-tick set in {@link HunterTrapDismantleHud}, not a
-     * world query per rendered player.
-     * 第一类玩家正在引导拆除时，猎人能看到该玩家以自身职业色描边。夹子同步其拆除者并在按键停止后清除，因此描边在每个客户端
-     * 都随引导一起结束；查询用的是 {@link HunterTrapDismantleHud} 每刻整理的集合，而不是每渲染一名玩家就查一次世界。
+     * Hunter's own role colour (owner 2026-11-11: never the dismantler's colour, which would tell the Hunter their
+     * exact role). The trap syncs its dismantler and clears it once the presses stop, so the outline ends with the
+     * channel on every client; the lookup is the per-tick set in {@link HunterTrapDismantleHud}, not a world query per
+     * rendered player.
+     * 第一类玩家正在引导拆除时，猎人能看到该玩家以猎人自己的职业色描边（所有者 2026-11-11：不用拆除者的职业色，否则等于把对方
+     * 的具体身份告诉猎人）。夹子同步其拆除者并在按键停止后清除，因此描边在每个客户端都随引导一起结束；查询用的是
+     * {@link HunterTrapDismantleHud} 每刻整理的集合，而不是每渲染一名玩家就查一次世界。
      */
     @Nullable
     private static GetInstinctHighlight.HighlightResult dismantlerHighlight(Entity target) {
@@ -62,14 +64,11 @@ public final class HunterTrapClientHooks {
         if (viewer == null || targetPlayer == viewer) {
             return null;
         }
-        GameWorldComponent gameComponent = GameWorldComponent.KEY.get(viewer.getWorld());
-        Role viewerRole = gameComponent.getRole(viewer);
+        Role viewerRole = GameWorldComponent.KEY.get(viewer.getWorld()).getRole(viewer);
         if (viewerRole == null || !HunterRules.ROLE_ID.equals(viewerRole.identifier())) {
             return null;
         }
-        Role targetRole = gameComponent.getRole(targetPlayer);
-        int color = targetRole == null ? 0xFFFFFF : targetRole.color() & 0xFFFFFF;
-        return GetInstinctHighlight.HighlightResult.always(color, DISMANTLER_HIGHLIGHT_PRIORITY);
+        return GetInstinctHighlight.HighlightResult.always(HunterRules.COLOR, DISMANTLER_HIGHLIGHT_PRIORITY);
     }
 
     @Nullable

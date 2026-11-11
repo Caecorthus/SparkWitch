@@ -239,22 +239,21 @@ public final class HunterTrapEntity extends Entity {
     }
 
     /**
-     * Keeps the dismantler's whole inventory on the short held cooldown while the channel lives, and ends the channel
-     * once the presses stop (or the dismantler left), which also drops the Hunter's highlight on every client.
-     * 引导存续期间把拆除者整个背包保持在短暂的按住冷却上；按键停止（或拆除者离开）后结束引导，同时让所有客户端撤掉猎人的高亮。
+     * Ends the channel once the presses stop or the dismantler left, which also drops the Hunter's highlight and the
+     * dismantler's progress bar on every client. The item lock needs no tick here: each press already locks the
+     * carried items for as long as the channel can still be continued.
+     * 按键停止或拆除者离开后结束引导，同时让所有客户端撤掉猎人的高亮与拆除者的进度条。物品锁定不需要在这里逐刻处理：每次按键
+     * 已经把携带物品锁到引导无法再延续为止。
      */
     private void tickDismantleChannel() {
         UUID dismantlerUuid = getDismantlerUuid();
         if (dismantlerUuid == null) {
             return;
         }
-        PlayerEntity dismantler = getWorld().getPlayerByUuid(dismantlerUuid);
-        if (dismantler == null
+        if (getWorld().getPlayerByUuid(dismantlerUuid) == null
                 || !HunterRules.isDismantleChannelAlive(getWorld().getTime(), dismantleLastPressTick)) {
             clearDismantle();
-            return;
         }
-        HunterFeatureService.forceCarriedItemCooldown(dismantler, HunterRules.DISMANTLE_HELD_ITEM_COOLDOWN_TICKS);
     }
 
     private boolean canCatch(PlayerEntity player) {

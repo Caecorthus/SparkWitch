@@ -64,12 +64,17 @@ public final class HunterRules {
     public static final int MAX_FRACTURE_LAYERS = 5;
     public static final double SLOW_PER_FRACTURE_LAYER = 0.20D;
     public static final int TRAP_POISON_TICKS = 20 * 40;
-    // Class 1 dismantling is a channel: five seconds of held right-clicks in range, a gap longer than the press
-    // timeout restarts it, and every item stays on a 0.4 s cooldown while it runs (owner 2026-11-11).
-    // 第一类拆除是引导：在距离内连续右键五秒，超过按键超时即重新开始，引导期间所有物品保持 0.4 秒冷却（所有者 2026-11-11）。
+    // Class 1 dismantling is a channel: five seconds of held right-clicks in range, and a gap longer than the press
+    // timeout restarts it (owner 2026-11-11). Every accepted press but the one that finishes the channel floors the
+    // dismantler's carried items at the press timeout plus one tick, so they stay locked for exactly as long as the
+    // channel can still be continued and unlock with it: one forced-cooldown write per press (a held button repeats
+    // every 4 ticks) instead of one per tick, and no extra lock on top of the timeout after letting go.
+    // 第一类拆除是引导：在距离内连续右键五秒，超过按键超时即重新开始（所有者 2026-11-11）。除完成引导的那一次外，每次有效按键
+    // 都把拆除者携带物品的冷却抬到“按键超时 + 1 刻”，于是物品恰好在引导仍可延续的时间内保持锁定，并随引导一起解锁：每次按键
+    // 写一次强制冷却（按住按键每 4 刻重复一次），而不是每刻一次，松手后也不会在超时之外再多锁一段。
     public static final int DISMANTLE_CHANNEL_TICKS = 5 * 20;
     public static final int DISMANTLE_PRESS_TIMEOUT_TICKS = 12;
-    public static final int DISMANTLE_HELD_ITEM_COOLDOWN_TICKS = 8;
+    public static final int DISMANTLE_HELD_ITEM_COOLDOWN_TICKS = DISMANTLE_PRESS_TIMEOUT_TICKS + 1;
     public static final int POISONER_REWARD = 75;
     public static final int PLACER_REWARD = 50;
     // Dying within three seconds of being caught by a trap pays the placer (owner 2026-11-11).

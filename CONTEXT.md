@@ -3710,12 +3710,14 @@ channel belongs to the trap and the server: `HunterTrapEntity.pressDismantle` ke
 on and the last press, restarts after a gap over `DISMANTLE_PRESS_TIMEOUT_TICKS` (12), ignores another player's presses
 while it lives, and a press on one trap drops the same player's channel on any other. The trap syncs the dismantler and
 start tick as tracked data (never saved); `client/hunter/HunterTrapDismantleHud` reads them once per client tick for the
-dismantler's own progress bar and for the Hunter's outline of the dismantler (`HunterTrapClientHooks`, the
-dismantler's role colour, above every other outline). `interactWithTrap` answers `SUCCESS` on both sides for either
+dismantler's own progress bar and for the Hunter's outline of the dismantler (`HunterTrapClientHooks`, in the Hunter's
+own colour `HunterRules.COLOR`, never the dismantler's role colour, above every other outline). `interactWithTrap` answers `SUCCESS` on both sides for either
 class: a client `PASS` would let vanilla go on to use the held item, so no client listener may sit behind it.
 A dead or spectating player (a swallowed one included) gets `PASS` before any branch: no reclaim, dismantle or poison.
-While a channel lives the trap floors the dismantler's carried items at a 0.4 s cooldown every tick, and a caught
-victim's carried items get a 3 s floor once (`HunterFeatureService.forceCarriedItemCooldown`). Both go through
+Every accepted press except the finishing one floors the dismantler's carried items at
+`DISMANTLE_HELD_ITEM_COOLDOWN_TICKS` (the press timeout + 1 = 13 ticks), so they stay locked exactly while the channel
+can still be continued, with one write per press rather than per tick; a caught victim's carried items get a 3 s floor
+once (`HunterFeatureService.forceCarriedItemCooldown`). Both go through
 SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, ticks)` and nowhere else: monotonic, exact (Fast
 Hands, Stimulation and per-item rewrites cannot shorten it), and skipping the registered forced-cooldown exemptions
 (NoellesRoles timed bomb, Seeker car, Knight cross sword). A victim who dies within `TRAP_KILL_REWARD_WINDOW_TICKS` (3 s) of the
