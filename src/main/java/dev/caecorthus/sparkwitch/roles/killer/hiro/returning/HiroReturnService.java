@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
@@ -50,6 +51,17 @@ public final class HiroReturnService {
         // TODO(死亡回归): window expiry and settlement, the kill interception for Hiro and her victims, round-end
         // clears, the replay formatter for HiroRules.RETURN_SKILL_ID.
         // TODO（死亡回归）：窗口到期与结算、对希罗及其受害者的击杀拦截、回合结束清理、HiroRules.RETURN_SKILL_ID 的回放格式化器。
+    }
+
+    /**
+     * Cross-feature seam (stable signature): whether {@code player} is currently one of Hiro's fake-dead victims (alive
+     * in Wathe, spectating its own fake corpse, waiting for its own timer). The Rope treats a kill that ended in this
+     * state as a successful kill.
+     * 跨功能接缝（签名稳定）：{@code player} 此刻是否是希罗的假死受害者（在 Wathe 中仍存活、旁观自己的假尸体、等待各自的计时）。
+     * 绳索把以此状态结束的击杀视为成功击杀。
+     */
+    public static boolean isFeignedVictim(PlayerEntity player) {
+        return false;
     }
 
     /**
