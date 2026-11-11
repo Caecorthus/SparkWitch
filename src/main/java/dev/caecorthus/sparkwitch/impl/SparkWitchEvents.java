@@ -43,6 +43,10 @@ import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotLifec
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotService;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPsychoGazeService;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
+import dev.caecorthus.sparkwitch.item.rope.RopeStrangleService;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnService;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.shop.HiroShopService;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.witchification.HiroWitchificationService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFeatureService;
@@ -202,6 +206,14 @@ public final class SparkWitchEvents {
         // 卡戎（PR #202）：紧随幽魂各服务之后的一行注册中心，与职业注册顺序（幽魂、卡戎、内应）一致，并保持下方搜寻者、钓鱼佬、
         // 魔人、内应这一段连续。
         FerrymanFeatureService.register();
+        // 二阶堂希罗 (2026-11-11), right after the Charon's hub line (role registration order): shop, 死亡回归, 魔女化 and the Rope strangle; each service registers its own
+        // listeners (role assignment, reset), so this hub needs no further lines for the role.
+        // 二阶堂希罗（2026-11-11），紧随卡戎的注册行（与职业注册顺序一致）：商店、死亡回归、魔女化与绳索勒杀；各服务自行注册监听（职业分配、重置），本注册中心无需为该职业
+        // 再添加其他行。
+        HiroShopService.register();
+        HiroReturnService.register();
+        HiroWitchificationService.register();
+        RopeStrangleService.register();
         // 夏目安安 (PR #194): runtime listeners, then its replay formatter (the fork kept it in a shared
         // SparkWitchReplayFormatters class that main does not have). 夏目安安（PR #194）：运行期监听器，然后是回放格式化器
         // （fork 中位于 main 没有的共享 SparkWitchReplayFormatters 类）。

@@ -42,6 +42,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
@@ -135,6 +136,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier MEDIUM_ID = MediumRules.ROLE_ID;
     public static final Identifier HANNA_ID = HannaRules.ROLE_ID;
     public static final Identifier SHERRY_ID = SherryRules.ROLE_ID;
+    public static final Identifier NIKAIDO_HIRO_ID = HiroRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -192,6 +194,7 @@ public final class SparkWitchRoleRegistry {
     private static Role medium;
     private static Role hanna;
     private static Role sherry;
+    private static Role nikaidoHiro;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -533,6 +536,11 @@ public final class SparkWitchRoleRegistry {
     public static Role sherry() {
         ensureRegistered();
         return sherry;
+    }
+
+    public static Role nikaidoHiro() {
+        ensureRegistered();
+        return nikaidoHiro;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -1100,16 +1108,16 @@ public final class SparkWitchRoleRegistry {
                 .appearanceCondition(context -> false)
                 .build());
         // 远野汉娜 Tono Hanna (PR #212, reworked in review 2026-11-11): registered after the Lost Soul and before
-        // the Insider, which stays last (nothing may follow the Insider, InsiderRegistrationContractTest; only 橘雪莉,
-        // PR #206, sits between them), so only the later indices shift. An ordinary task civilian (REAL mood: the float penalty drains real sanity;
-        // passenger stamina, no round clock, no appearance condition) drawn by Wathe's civilian pass; never a police
-        // variant. Her float, coins, shop and items live in roles/civilian/hanna. She uses the shared mana pool
-        // (WitchManaRules) but is never a Witch-skill role: kept out of isRegisteredSparkWitchRole, so she never gets
-        // a witch skill or the witch skill panel.
-        // 远野汉娜（PR #212，2026-11-11 审核中重写）：注册在迷失的灵魂之后、内应之前（内应仍为最后一个，内应之后不得
-        // 再注册，InsiderRegistrationContractTest；两者之间只有橘雪莉，PR #206），因此只有其后的下标改变。普通任务平民（真实理智：浮游惩罚扣的是
-        // 真实理智；乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配抽取；不是警察变体。浮游、金币、商店与物品
-        // 位于 roles/civilian/hanna。她使用共享魔力池（WitchManaRules），但不是魔女技能职业：不加入
+        // 橘雪莉 (PR #206), 二阶堂希罗 and the Insider, which stays last (nothing may follow the Insider,
+        // InsiderRegistrationContractTest), so only the later indices shift. An ordinary task civilian (REAL mood: the
+        // float penalty drains real sanity; passenger stamina, no round clock, no appearance condition) drawn by
+        // Wathe's civilian pass; never a police variant. Her float, coins, shop and items live in
+        // roles/civilian/hanna. She uses the shared mana pool (WitchManaRules) but is never a Witch-skill role: kept
+        // out of isRegisteredSparkWitchRole, so she never gets a witch skill or the witch skill panel.
+        // 远野汉娜（PR #212，2026-11-11 审核中重写）：注册在迷失的灵魂之后，橘雪莉（PR #206）、二阶堂希罗与内应之前（内应仍为
+        // 最后一个，内应之后不得再注册，InsiderRegistrationContractTest），因此只有其后的下标改变。普通任务平民（真实理智：
+        // 浮游惩罚扣的是真实理智；乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配抽取；不是警察变体。浮游、金币、
+        // 商店与物品位于 roles/civilian/hanna。她使用共享魔力池（WitchManaRules），但不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole，因此既不会获得魔女技能，也不会出现魔女技能面板。
         hanna = SparkFactionApi.registerRole(FactionRoleDefinition.builder(HANNA_ID, FactionIds.CIVILIAN)
                 .color(HannaRules.COLOR)
@@ -1118,14 +1126,14 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
-        // 橘雪莉 Tachibana Sherry (PR #206): registered after Tono Hanna and right before the Insider, which
-        // stays last (InsiderRegistrationContractTest), so only the Insider's own index shifts. An ordinary task civilian
+        // 橘雪莉 Tachibana Sherry (PR #206): registered after Tono Hanna and before 二阶堂希罗 and the Insider, which
+        // stays last (InsiderRegistrationContractTest), so only the later indices shift. An ordinary task civilian
         // (REAL mood, 1.5x passenger stamina, no round clock, no appearance condition) drawn by Wathe's civilian pass;
         // never a police variant. A mana role (WitchManaRules) with her own 巨力魔法, but never a Witch-skill role: kept
         // out of isRegisteredSparkWitchRole and out of the witch skill panel (AGENTS.md panel rule). Her skills, coins,
         // badge and reveals live in roles/civilian/sherry; the letter/title text falls back to the Wathe civilian wording.
-        // 橘雪莉（PR #206）：注册在远野汉娜之后、紧挨内应之前（内应仍为最后一个，InsiderRegistrationContractTest），
-        // 因此只有内应自身的下标改变。普通任务平民（真实情绪、1.5 倍乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配
+        // 橘雪莉（PR #206）：注册在远野汉娜之后、二阶堂希罗与内应之前（内应仍为最后一个，InsiderRegistrationContractTest），
+        // 因此只有其后的下标改变。普通任务平民（真实情绪、1.5 倍乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配
         // 抽取；不是警察变体。属于魔力职业（WitchManaRules）并拥有自己的巨力魔法，但不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole，也不进入魔女技能面板（AGENTS.md 面板规则）。技能、金币、徽章与揭示位于
         // roles/civilian/sherry；信件/标题文本沿用 Wathe 平民措辞。
@@ -1135,6 +1143,25 @@ public final class SparkWitchRoleRegistry {
                 .maxSprintTime(SherryRules.MAX_SPRINT_TICKS)
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // 二阶堂希罗 Nikaido Hiro (2026-11-11): a SparkFactionAPI killer with the Specter's profile (native Wathe KILLER,
+        // FAKE mood, unlimited sprint, round clock), one killer slot, no appearance condition (drawn at any player
+        // count). Registered after 橘雪莉 (main's PR #206) and right before the Insider, which stays last
+        // (InsiderRegistrationContractTest), so only the Insider's own index shifts. Skills, shop and state live in
+        // roles/killer/hiro, the Rope in item/rope (CONTEXT.md). A mana role on the Witch Maiden's numbers
+        // (mana/WitchManaRules) but never a Witch-skill role: kept out of isRegisteredSparkWitchRole and out of the
+        // gui.sparkwitch.skills panel.
+        // 二阶堂希罗（2026-11-11）：SparkFactionAPI 杀手，参数与幽魂相同（原生 Wathe KILLER、伪装情绪、无限冲刺、可见回合
+        // 时间），占 1 个杀手名额，无出现条件（任何人数都可抽取）。注册在橘雪莉（PR #206）之后、紧挨内应之前（内应仍为最后一个，
+        // InsiderRegistrationContractTest），因此只有内应自身的下标改变。技能、商店与状态位于 roles/killer/hiro，绳索位于
+        // item/rope（见 CONTEXT.md）。魔力沿用巫女的数值（mana/WitchManaRules），但不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole，也不进入 gui.sparkwitch.skills 面板。
+        nikaidoHiro = SparkFactionApi.registerRole(FactionRoleDefinition.builder(NIKAIDO_HIRO_ID, FactionIds.KILLER)
+                .color(HiroRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
                 .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
@@ -1233,6 +1260,9 @@ public final class SparkWitchRoleRegistry {
                 // The Specter (PR #207) joins the killer block after 夏目安安; the promotion identities stay the tail.
                 // 幽魂（PR #207）加入杀手段，排在夏目安安之后；晋升身份仍位于末尾。
                 specter,
+                // 二阶堂希罗 (2026-11-11) joins the killer block after the Specter; the promotion identities stay the tail.
+                // 二阶堂希罗（2026-11-11）加入杀手段，排在幽魂之后；晋升身份仍位于末尾。
+                nikaidoHiro,
                 murderousWitch,
                 accomplice,
                 abyssListener,

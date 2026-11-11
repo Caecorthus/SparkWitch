@@ -39,6 +39,8 @@ import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent;
 import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
@@ -99,6 +101,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier HANNA_FLOAT_ID = HannaRules.FLOAT_SKILL_ID;
     static final Identifier SHERRY_DEDUCTION_ID = SherryRules.DEDUCTION_SKILL_ID;
     static final Identifier SHERRY_MIGHTY_FORCE_ID = SherryRules.MIGHTY_FORCE_SKILL_ID;
+    static final Identifier HIRO_RETURN_ID = HiroRules.RETURN_SKILL_ID;
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -185,7 +188,34 @@ public final class SparkWitchForcedCooldowns {
                 sherryDeduction(),
                 // 橘雪莉 巨力魔法 (Role Skill 2, PR #206), store 27, appended after her 推演.
                 // 橘雪莉巨力魔法（职业技能 2，PR #206），第 27 个存储，追加在她的推演之后。
-                sherryMightyForce()
+                sherryMightyForce(),
+                // 二阶堂希罗 死亡回归 (shared key G, 2026-11-11), store 28, appended after 橘雪莉's 巨力魔法.
+                // 二阶堂希罗的死亡回归（共享 G 键，2026-11-11），第 28 个存储，追加在橘雪莉巨力魔法之后。
+                hiroReturn()
+        );
+    }
+
+    /**
+     * 二阶堂希罗's 死亡回归 cooldown (2026-11-11), kept as a counting-down tick total in the owner-synced
+     * {@code sparkwitch:nikaido_hiro_return} component. An ACTIVE round, the raw role and no running window: the
+     * cooldown is written when the window ends, so a running window is never forced (Dominator / Specter / Charon
+     * precedent). Remaining time includes the 90 s opening cooldown; the nominal is the 45 s cooldown after the skill
+     * ends. The setter is exact (floored at 0) and syncs the owner. The skill has no item, so SparkFactionAPI's admin
+     * {@code clearCooldown} (held item only) does not reach it. The Rope's interrupt cooldown is an item cooldown and
+     * goes through the item nominal table instead.
+     * 二阶堂希罗的死亡回归冷却（2026-11-11），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:nikaido_hiro_return} 组件中。
+     * ACTIVE 回合、真实职业且没有进行中的窗口：冷却在窗口结束时写入，因此进行中的窗口绝不强制（支配者、幽魂、卡戎先例）。剩余
+     * 时间包含 90 秒开局冷却；标准冷却为技能结束后的 45 秒。setter 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此
+     * SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）触及不到它。绳索的打断冷却属于物品冷却，改由物品标准冷却表处理。
+     */
+    static SimpleRoleSkillCooldownStore hiroReturn() {
+        return SimpleRoleSkillCooldownStore.exact(
+                HIRO_RETURN_ID,
+                whileActive((game, player) -> HiroRules.isHiro(game.getRole(player))
+                        && !HiroReturnComponent.KEY.get(player).isWindowActive(player.getWorld().getTime())),
+                player -> HiroReturnComponent.KEY.get(player).getCooldownTicks(),
+                () -> HiroRules.RETURN_COOLDOWN_TICKS,
+                (player, ticks) -> HiroReturnComponent.KEY.get(player).setCooldownTicks(ticks)
         );
     }
 

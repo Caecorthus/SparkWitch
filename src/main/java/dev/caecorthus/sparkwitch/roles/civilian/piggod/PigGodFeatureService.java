@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.piggod;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordProtectionPolicy;
+import dev.caecorthus.sparkwitch.item.rope.RopeShieldPolicy;
 import dev.caecorthus.sparkfactionapi.api.FactionInstinctPolicy;
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
@@ -110,6 +111,10 @@ public final class PigGodFeatureService {
             Identifier deathReason
     ) {
         if (SparkTraitsKillerBridge.isLastEscapeActive(victim)) {
+            return null;
+        }
+        // Rope seam ("不破盾"): the strangle passes the chase freeze. / 绳索接缝（「不破盾」）：勒杀穿过追杀定身的免伤。
+        if (RopeShieldPolicy.passesShields(deathReason)) {
             return null;
         }
         return shouldBlockDamage(victim) ? CeremonialSwordProtectionPolicy.afterProtection(deathReason) : null;

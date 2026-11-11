@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.controlexpert;
 
+import dev.caecorthus.sparkwitch.item.rope.RopeStrangleHold;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowLandingHold;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -31,12 +32,20 @@ public final class ControlExpertStun {
      * look). Readers of {@link ControlExpertStatusComponent} itself never see the hold.
      * 接缝：黑羽鸦 3 秒归羽落地定身复用此输入锁（计划 §3.6），因此落地中的黑羽鸦在此同样视为被眩晕（交互拦截、受限数据包、职业拒绝、
      * 鼠标视角自由的客户端按键锁）。直接读取 {@link ControlExpertStatusComponent} 的地方永远看不到定身。</p>
+     *
+     * <p>Seam: the Rope strangle ({@code item/rope}, 2026-11-11) holds both its strangler and its victim the same way
+     * for 3 s ({@link RopeStrangleHold}), without the Taser's Blindness or Slowness.
+     * 接缝：绳索勒杀（{@code item/rope}，2026-11-11）以同样的方式定身勒杀者与被勒者 3 秒（{@link RopeStrangleHold}），不附带电击枪的
+     * 失明与缓慢。</p>
      */
     public static boolean isStunned(@Nullable PlayerEntity player) {
         if (player == null) {
             return false;
         }
         if (BlackRavenCrowLandingHold.isHeld(player)) {
+            return true;
+        }
+        if (RopeStrangleHold.isHeld(player)) {
             return true;
         }
         ControlExpertStatusComponent status = ControlExpertStatusComponent.KEY.getNullable(player);
