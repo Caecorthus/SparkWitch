@@ -1161,7 +1161,11 @@ public final class SparkWitchRoleRegistry {
                 Role.MoodType.REAL,
                 GameConstants.getInTicks(0, 10),
                 false,
-                RoleAppearanceCondition.minPlayers(24)
+                // Never one of Wathe's once-each special civilian picks: she only fills plain-civilian fallback seats
+                // (ApprenticeCivilianPool, owner 2026-11-11; no 24-player minimum, no quota).
+                // 不参与 Wathe 每职业一次的特殊平民抽取：只填普通平民兜底席位（ApprenticeCivilianPool，
+                // 所有者 2026-11-11；无 24 人门槛、无名额）。
+                context -> false
         ));
         murderousWitch = WatheRoles.registerRole(new Role(
                 MURDEROUS_WITCH_ID,
