@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "dev.caecorthus.sparkwitch.client.mixin.planner",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "PlannerTaskColorMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

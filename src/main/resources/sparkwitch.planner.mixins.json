@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "dev.caecorthus.sparkwitch.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "PlannerMoodMixin",
+    "planner.PlannerTaskOverwriteGuardMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
