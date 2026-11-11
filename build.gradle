@@ -1054,6 +1054,84 @@ def watheCommonMixinContracts = [
                 providerDescriptor: "(Ldev/doctor4t/wathe/util/KnifeStabPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
         ],
         [
+                // 二阶堂希罗 死亡回归: HEAD order 0, a fake-dead victim cannot be killed again (the @Inject order values are
+                // pinned by the local HiroReturnMixinContractTest; this task pins the shipped selectors).
+                // 二阶堂希罗死亡回归：HEAD order 0，假死的受害者不会再次被杀（@Inject 的 order 由本地 HiroReturnMixinContractTest 固定；
+                // 本任务固定发布的选择器）。
+                configName: "hiro.GameFunctionsHiroReturnMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/GameFunctionsHiroReturnMixin.class",
+                handler: "sparkwitch\$feignedVictimIsUntouchable",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: HEAD order 900, a kill attempt on Hiro, before every default-order HEAD shield guard.
+                // 二阶堂希罗死亡回归：HEAD order 900，针对希罗的击杀尝试，先于所有默认 order 的 HEAD 护盾守卫。
+                configName: "hiro.GameFunctionsHiroReturnMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/GameFunctionsHiroReturnMixin.class",
+                handler: "sparkwitch\$returnOnAttack",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: the commit point (changeGameMode call), order 1200, after Tofana, Last Escape and the Cat.
+                // 二阶堂希罗死亡回归：提交点（changeGameMode 调用），order 1200，位于托法娜、绝境逃生与猫之后。
+                configName: "hiro.GameFunctionsHiroReturnMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/GameFunctionsHiroReturnMixin.class",
+                handler: "sparkwitch\$feignAtDeathCommit",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                atTarget: "Lnet/minecraft/class_3222;method_7336(Lnet/minecraft/class_1934;)Z",
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: the Swapper never swaps a fake-dead victim. / 二阶堂希罗死亡回归：换位者不会换走假死的受害者。
+                configName: "hiro.NoellesSwapperHiroFeignMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/NoellesSwapperHiroFeignMixin.class",
+                handler: "sparkwitch\$swapperSkipsFeignedVictim",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "lambda\$registerPackets\$4(Lorg/agmas/noellesroles/packet/SwapperC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "lambda\$registerPackets\$4",
+                providerDescriptor: "(Lorg/agmas/noellesroles/packet/SwapperC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: the Vulture never eats a fake corpse. / 二阶堂希罗死亡回归：秃鹫不会吃掉假尸体。
+                configName: "hiro.NoellesVultureHiroFakeBodyMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/NoellesVultureHiroFakeBodyMixin.class",
+                handler: "sparkwitch\$vultureSkipsHiroFakeBodies",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "lambda\$registerPackets\$2(Lorg/agmas/noellesroles/packet/VultureEatC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                atTarget: "Lnet/minecraft/class_1937;method_18023(Lnet/minecraft/class_5575;Lnet/minecraft/class_238;Ljava/util/function/Predicate;)Ljava/util/List;",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "lambda\$registerPackets\$2",
+                providerDescriptor: "(Lorg/agmas/noellesroles/packet/VultureEatC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: a fake-dead victim counts as alive for the NoellesRoles moment triggers.
+                // 二阶堂希罗死亡回归：假死的受害者在 NoellesRoles 时刻触发计数中算作存活。
+                configName: "hiro.NoellesRolesHiroFeignAliveCountMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/NoellesRolesHiroFeignAliveCountMixin.class",
+                handler: "sparkwitch\$feignedVictimCountsAsAlive",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "countAliveAndNotSwallowed(Lnet/minecraft/class_3218;)I",
+                atTarget: "Lnet/minecraft/class_3222;method_7325()Z",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "countAliveAndNotSwallowed",
+                providerDescriptor: "(Lnet/minecraft/class_3218;)I"
+        ],
+        [
                 // Charon pardon window / gaze feign: HEAD 1200, after every other HEAD guard (default 1000, Specter
                 // 1040, ricochet 1050, Fiend/vest 1100) and before every KillPlayer.BEFORE listener; sees force.
                 // 卡戎宽恕窗口 /「瞥视」假死：HEAD 1200，位于其他所有 HEAD 守卫（默认 1000、幽魂 1040、跳弹 1050、

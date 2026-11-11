@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.mixin.ferryman;
 
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroFakeBodies;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeignService;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanMercyService;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
@@ -34,7 +35,10 @@ public abstract class BodyBagItemFerrymanFeignMixin {
     @Inject(method = "useOnEntity", at = @At("HEAD"), cancellable = true)
     private void sparkwitch$refuseFeigningBody(ItemStack stack, PlayerEntity user, LivingEntity entity, Hand hand,
                                                CallbackInfoReturnable<ActionResult> cir) {
-        if (entity instanceof PlayerBodyEntity body && FerrymanFeignService.isFakeBody(body)) {
+        // 二阶堂希罗's fake-dead victims lie under the same refusal (owner rule 4): inert, with the same resync.
+        // 二阶堂希罗的假死受害者适用同样的拒绝（所有者规则 4）：不可收取，并做同样的重新同步。
+        if (entity instanceof PlayerBodyEntity body
+                && (FerrymanFeignService.isFakeBody(body) || HiroFakeBodies.isFake(body))) {
             if (user instanceof ServerPlayerEntity bagger) {
                 FerrymanFeignService.resyncRefusedBodyBag(bagger, body, stack);
             }

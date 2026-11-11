@@ -26,15 +26,21 @@ import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
  *       client counts locally in between); it is the SparkFactionAPI forced-cooldown store
  *       {@code sparkwitch:nikaido_hiro_return};</li>
  *   <li>the window as an absolute world-time end tick ({@code world.getTime()}), 0 when closed;</li>
- *   <li>the record point taken when the window opened, null when there is none.</li>
+ *   <li>the record point taken when the window opened, null when there is none;</li>
+ *   <li>how many of her victims are fake-dead right now (written by {@link HiroVictimFeignService}; it can stay above
+ *       0 after the window closed, because each victim runs its own timer).</li>
  * </ul>
- * Synced to its owner only. The component only stores state: opening and settling the window, the mana spend, the
- * victims and the teleport belong to {@link HiroReturnService}.
+ * Synced to its owner only; this is everything a HUD needs. The component only stores state, with one exception: a
+ * window that runs out un-attacked closes itself in {@link #serverTick} and starts the
+ * {@link HiroRules#RETURN_COOLDOWN_TICKS} cooldown (owner rule 7), so a window never outlives its end tick. Opening
+ * the window, the mana spend, the triggered Return, the victims and the teleport belong to {@link HiroReturnService}.
  * 二阶堂希罗仅本人可见的「死亡回归」状态，组件 {@code sparkwitch:nikaido_hiro_return}：技能冷却为倒计时刻数（幽魂模式：服务端
  * 计数并每秒同步一次，客户端在两次同步之间本地倒计时），也是 SparkFactionAPI 强制冷却存储
  * {@code sparkwitch:nikaido_hiro_return}；窗口以世界时间（{@code world.getTime()}）的绝对结束刻保存，关闭时为 0；记录点在窗口
- * 开启时写入，没有时为 null。只同步给本人。组件只保存状态：窗口的开启与结算、魔力消耗、受害者与传送都属于
- * {@link HiroReturnService}。
+ * 开启时写入，没有时为 null；另有她此刻处于假死的受害者人数（由 {@link HiroVictimFeignService} 写入；每名受害者各自计时，
+ * 因此窗口关闭后它仍可能大于 0）。只同步给本人，HUD 所需数据尽在于此。组件只保存状态，唯一例外：未遭攻击而到期的窗口会在
+ * {@link #serverTick} 中自行关闭并进入 {@link HiroRules#RETURN_COOLDOWN_TICKS} 冷却（所有者规则 7），窗口因此绝不会超过其
+ * 结束刻。窗口的开启、魔力消耗、回归的触发、受害者与传送都属于 {@link HiroReturnService}。
  */
 public final class HiroReturnComponent
         implements AutoSyncedComponent, ServerTickingComponent, ClientTickingComponent {
@@ -50,6 +56,7 @@ public final class HiroReturnComponent
     private int cooldownTicks;
     private long windowEndTick;
     private @Nullable RecordPoint recordPoint;
+    private int feignedVictims;
 
     public HiroReturnComponent(PlayerEntity player) {
         this.player = player;
@@ -91,6 +98,30 @@ public final class HiroReturnComponent
 
     public @Nullable RecordPoint recordPoint() {
         return recordPoint;
+    }
+
+    /**
+     * How many of this player's victims are fake-dead right now (HUD data; the server truth is
+     * {@link HiroVictimFeignService#victimCount}).
+     * 该玩家此刻处于假死的受害者人数（HUD 数据；服务端以 {@link HiroVictimFeignService#victimCount} 为准）。
+     */
+    public int feignedVictimCount() {
+        return Math.max(0, feignedVictims);
+    }
+
+    /**
+     * Server only, written by {@link HiroVictimFeignService} whenever a victim falls, gets up or dies: syncs on change.
+     * It is transient (never saved) and is not touched by a role assignment, because the victims keep their own timers.
+     * 仅服务端，由 {@link HiroVictimFeignService} 在受害者倒下、起身或死亡时写入：变化时同步。它是瞬时状态（从不保存），职业
+     * 分配也不会改动它，因为受害者各自继续计时。
+     */
+    public void setFeignedVictimCount(int count) {
+        int next = Math.max(0, count);
+        if (feignedVictims == next) {
+            return;
+        }
+        feignedVictims = next;
+        syncOwner();
     }
 
     /**
@@ -146,19 +177,29 @@ public final class HiroReturnComponent
         syncOwner();
     }
 
-    /** Server only: drops cooldown, window and record point (round reset). / 仅服务端：清除冷却、窗口与记录点（回合重置）。 */
+    /**
+     * Server only: drops cooldown, window, record point and the victim count (round reset).
+     * 仅服务端：清除冷却、窗口、记录点与受害者计数（回合重置）。
+     */
     public void clear() {
-        if (cooldownTicks == 0 && windowEndTick == 0L && recordPoint == null) {
+        if (cooldownTicks == 0 && windowEndTick == 0L && recordPoint == null && feignedVictims == 0) {
             return;
         }
         cooldownTicks = 0;
         windowEndTick = 0L;
         recordPoint = null;
+        feignedVictims = 0;
         syncOwner();
     }
 
     @Override
     public void serverTick() {
+        // Owner rule 7: a window that ends un-attacked closes and the cooldown starts from that moment.
+        // 所有者规则 7：未遭攻击而结束的窗口关闭，冷却从此刻开始。
+        if (windowEndTick > 0L && player.getWorld().getTime() >= windowEndTick) {
+            closeWindow(HiroRules.RETURN_COOLDOWN_TICKS);
+            return;
+        }
         if (cooldownTicks <= 0) {
             return;
         }
@@ -234,6 +275,7 @@ public final class HiroReturnComponent
             buf.writeFloat(recordPoint.pitch());
             buf.writeIdentifier(recordPoint.dimension());
         }
+        buf.writeVarInt(feignedVictimCount());
     }
 
     @Override
@@ -244,6 +286,7 @@ public final class HiroReturnComponent
                 ? new RecordPoint(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readFloat(),
                         buf.readFloat(), buf.readIdentifier())
                 : null;
+        feignedVictims = Math.max(0, buf.readVarInt());
     }
 
     private void syncOwner() {
