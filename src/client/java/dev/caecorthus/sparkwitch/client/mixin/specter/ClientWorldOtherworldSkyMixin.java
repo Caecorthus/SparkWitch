@@ -9,27 +9,29 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Client-only presentation: blends {@code ClientWorld#getSkyColor} toward crimson during the Otherworld, ramped over the
- * same first five seconds as the screen filter. Two vanilla readers see it: the sky dome, and the fog/clear colour,
- * which {@code BackgroundRenderer} pulls part-way toward the sky colour. Wathe's {@code WorldRendererMixin} skips the
- * sky dome while the train moves (except at sundown), so on a moving train this mostly tints the horizon fog and clear
- * colour; the full crimson dome only shows on a stopped train or at sundown. It applies to every client in the window,
- * dead or alive and including players whose screen filter yields to another shader, and snaps back as soon as the
- * window closes (the screen filter fades over five seconds instead).
- * 纯客户端表现：里世界期间把 {@code ClientWorld#getSkyColor} 混向猩红，与画面滤镜一样在前 5 秒渐变。原版有两处读取：
- * 天空穹顶，以及雾/清屏颜色（{@code BackgroundRenderer} 会把它部分混向天空色）。Wathe 的 {@code WorldRendererMixin}
- * 在列车行驶时（日落除外）跳过天空穹顶，因此行驶中的列车上主要是地平线雾与清屏颜色被染红；完整的猩红天空只在列车
- * 停止或日落时出现。窗口内所有客户端都生效（无论生死，也包括画面滤镜让路给其他着色器的人）；窗口一结束立即恢复
- * （画面滤镜则在 5 秒内渐隐）。
+ * Client-only presentation: blends {@code ClientWorld#getSkyColor} toward a dark ghost-fire green during the
+ * Otherworld ("Yin realm" look, owner pick 2026-11-11; it was crimson before), ramped over the first 1.5 seconds, the
+ * time the screen filter's opening wave needs to reach the horizon. Two vanilla readers see it: the sky dome, and the
+ * fog/clear colour, which {@code BackgroundRenderer} pulls part-way toward the sky colour. Wathe's
+ * {@code WorldRendererMixin} skips the sky dome while the train moves (except at sundown), so on a moving train this
+ * mostly tints the horizon fog and clear colour; the full dome only shows on a stopped train or at sundown. It applies
+ * to every client in the window, dead or alive and including players whose screen filter yields to another shader, and
+ * snaps back as soon as the window closes (the screen filter fades over five seconds instead).
+ * 纯客户端表现：里世界期间把 {@code ClientWorld#getSkyColor} 混向暗鬼火绿（「阴间」画面，所有者 2026-11-11 选定；此前为
+ * 猩红），在最初 1.5 秒内渐变，即画面滤镜的开场波纹扫到地平线所需的时间。原版有两处读取：天空穹顶，以及雾/清屏颜色
+ * （{@code BackgroundRenderer} 会把它部分混向天空色）。Wathe 的 {@code WorldRendererMixin} 在列车行驶时（日落除外）跳过
+ * 天空穹顶，因此行驶中的列车上主要是地平线雾与清屏颜色被染色；完整的天空穹顶只在列车停止或日落时出现。窗口内所有客户端
+ * 都生效（无论生死，也包括画面滤镜让路给其他着色器的人）；窗口一结束立即恢复（画面滤镜则在 5 秒内渐隐）。
  */
 @Mixin(ClientWorld.class)
 public abstract class ClientWorldOtherworldSkyMixin {
-    private static final double CRIMSON_RED = 0.45D;
-    private static final double CRIMSON_GREEN = 0.02D;
-    private static final double CRIMSON_BLUE = 0.03D;
+    private static final double GHOST_RED = 0.03D;
+    private static final double GHOST_GREEN = 0.13D;
+    private static final double GHOST_BLUE = 0.12D;
+    private static final float RAMP_TICKS = 30.0F;
 
     @Inject(method = "getSkyColor", at = @At("RETURN"), cancellable = true)
-    private void sparkwitch$crimsonOtherworldSky(
+    private void sparkwitch$ghostOtherworldSky(
             Vec3d cameraPos,
             float tickDelta,
             CallbackInfoReturnable<Vec3d> cir
@@ -43,11 +45,11 @@ public abstract class ClientWorldOtherworldSkyMixin {
         if (vanilla == null) {
             return;
         }
-        float ramp = Math.min(1.0F, (otherworld.getElapsedTicks() + tickDelta) / 100.0F);
+        float ramp = Math.min(1.0F, (otherworld.getElapsedTicks() + tickDelta) / RAMP_TICKS);
         cir.setReturnValue(new Vec3d(
-                vanilla.x + (CRIMSON_RED - vanilla.x) * ramp,
-                vanilla.y + (CRIMSON_GREEN - vanilla.y) * ramp,
-                vanilla.z + (CRIMSON_BLUE - vanilla.z) * ramp
+                vanilla.x + (GHOST_RED - vanilla.x) * ramp,
+                vanilla.y + (GHOST_GREEN - vanilla.y) * ramp,
+                vanilla.z + (GHOST_BLUE - vanilla.z) * ramp
         ));
     }
 }

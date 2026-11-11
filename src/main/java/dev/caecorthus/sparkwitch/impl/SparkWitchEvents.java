@@ -66,6 +66,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
@@ -280,6 +281,11 @@ public final class SparkWitchEvents {
         DiscovererService.register();
         DiscovererShopService.register();
         AccountantFeatureService.register();
+        // Tono Hanna (PR #212): after the shared RoleAssigned listener above, whose WitchManaService.assignForRole
+        // grants her opening mana; her own listener only resets the float component.
+        // 远野汉娜（PR #212）：排在上方共享 RoleAssigned 监听器之后，其开局魔力由其中的 WitchManaService.assignForRole
+        // 发放；她自己的监听器只重置浮游组件。
+        HannaFeatureService.register();
         SpareKeyDoors.register();
         SpareKeyAttendantKit.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));

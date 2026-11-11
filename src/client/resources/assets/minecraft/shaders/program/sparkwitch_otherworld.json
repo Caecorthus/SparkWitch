@@ -12,6 +12,12 @@
   "samplers": [
     {
       "name": "DiffuseSampler"
+    },
+    {
+      "name": "WorldDepthSampler"
+    },
+    {
+      "name": "HandDepthSampler"
     }
   ],
   "uniforms": [
@@ -48,27 +54,68 @@
       ]
     },
     {
-      "name": "Saturation",
+      "name": "InSize",
       "type": "float",
-      "count": 1,
+      "count": 2,
       "values": [
+        1,
         1
       ]
     },
     {
-      "name": "Contrast",
-      "type": "float",
-      "count": 1,
-      "values": [
-        1
-      ]
-    },
-    {
-      "name": "Vignette",
+      "name": "Intensity",
       "type": "float",
       "count": 1,
       "values": [
         0
+      ]
+    },
+    {
+      "name": "OpenSeconds",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0
+      ]
+    },
+    {
+      "name": "LookTime",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0
+      ]
+    },
+    {
+      "name": "Near",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0.05
+      ]
+    },
+    {
+      "name": "Far",
+      "type": "float",
+      "count": 1,
+      "values": [
+        256
+      ]
+    },
+    {
+      "name": "HasDepth",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0
+      ]
+    },
+    {
+      "name": "Distortion",
+      "type": "float",
+      "count": 1,
+      "values": [
+        1
       ]
     }
   ]

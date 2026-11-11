@@ -18,6 +18,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
@@ -132,6 +133,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEAR_ID = BearRules.ROLE_ID;
     public static final Identifier SPECTER_ID = SpecterRules.ROLE_ID;
     public static final Identifier MEDIUM_ID = MediumRules.ROLE_ID;
+    public static final Identifier HANNA_ID = HannaRules.ROLE_ID;
     public static final Identifier SHERRY_ID = SherryRules.ROLE_ID;
 
     private static Role emma;
@@ -188,6 +190,7 @@ public final class SparkWitchRoleRegistry {
     private static Role natsumeAnan;
     private static Role bear;
     private static Role medium;
+    private static Role hanna;
     private static Role sherry;
     private static boolean registered;
 
@@ -520,6 +523,11 @@ public final class SparkWitchRoleRegistry {
     public static Role medium() {
         ensureRegistered();
         return medium;
+    }
+
+    public static Role hanna() {
+        ensureRegistered();
+        return hanna;
     }
 
     public static Role sherry() {
@@ -1091,13 +1099,32 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> false)
                 .build());
-        // 橘雪莉 Tachibana Sherry (PR #206): registered after the Charon's Lost Soul and right before the Insider, which
+        // 远野汉娜 Tono Hanna (PR #212, reworked in review 2026-11-11): registered after the Lost Soul and before
+        // the Insider, which stays last (nothing may follow the Insider, InsiderRegistrationContractTest; only 橘雪莉,
+        // PR #206, sits between them), so only the later indices shift. An ordinary task civilian (REAL mood: the float penalty drains real sanity;
+        // passenger stamina, no round clock, no appearance condition) drawn by Wathe's civilian pass; never a police
+        // variant. Her float, coins, shop and items live in roles/civilian/hanna. She uses the shared mana pool
+        // (WitchManaRules) but is never a Witch-skill role: kept out of isRegisteredSparkWitchRole, so she never gets
+        // a witch skill or the witch skill panel.
+        // 远野汉娜（PR #212，2026-11-11 审核中重写）：注册在迷失的灵魂之后、内应之前（内应仍为最后一个，内应之后不得
+        // 再注册，InsiderRegistrationContractTest；两者之间只有橘雪莉，PR #206），因此只有其后的下标改变。普通任务平民（真实理智：浮游惩罚扣的是
+        // 真实理智；乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配抽取；不是警察变体。浮游、金币、商店与物品
+        // 位于 roles/civilian/hanna。她使用共享魔力池（WitchManaRules），但不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole，因此既不会获得魔女技能，也不会出现魔女技能面板。
+        hanna = SparkFactionApi.registerRole(FactionRoleDefinition.builder(HANNA_ID, FactionIds.CIVILIAN)
+                .color(HannaRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // 橘雪莉 Tachibana Sherry (PR #206): registered after Tono Hanna and right before the Insider, which
         // stays last (InsiderRegistrationContractTest), so only the Insider's own index shifts. An ordinary task civilian
         // (REAL mood, 1.5x passenger stamina, no round clock, no appearance condition) drawn by Wathe's civilian pass;
         // never a police variant. A mana role (WitchManaRules) with her own 巨力魔法, but never a Witch-skill role: kept
         // out of isRegisteredSparkWitchRole and out of the witch skill panel (AGENTS.md panel rule). Her skills, coins,
         // badge and reveals live in roles/civilian/sherry; the letter/title text falls back to the Wathe civilian wording.
-        // 橘雪莉（PR #206）：注册在卡戎的迷失的灵魂之后、紧挨内应之前（内应仍为最后一个，InsiderRegistrationContractTest），
+        // 橘雪莉（PR #206）：注册在远野汉娜之后、紧挨内应之前（内应仍为最后一个，InsiderRegistrationContractTest），
         // 因此只有内应自身的下标改变。普通任务平民（真实情绪、1.5 倍乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配
         // 抽取；不是警察变体。属于魔力职业（WitchManaRules）并拥有自己的巨力魔法，但不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole，也不进入魔女技能面板（AGENTS.md 面板规则）。技能、金币、徽章与揭示位于
@@ -1164,10 +1191,11 @@ public final class SparkWitchRoleRegistry {
                 // Tarot Reader stays adjacent. 拾荒者同样加入平民段，排在调香师之前，使调香师至塔罗师一段保持相邻。
                 ragpicker,
                 perfumer,
-                // The Recruit, the Athlete, the Discoverer, Noa, the Accountant (PR #195), then BEAR (2026-11-05) and
-                // the Medium (2026-11-10) join the civilian block; the promotion identities stay the tail.
-                // 新兵、运动员、探索者、诺亚、会计（PR #195）、BEAR（2026-11-05）与其后的通灵师（2026-11-10）加入
-                // 平民段；晋升身份始终位于末尾。
+                // The Recruit, the Athlete, the Discoverer, Noa, the Accountant (PR #195), then BEAR (2026-11-05),
+                // the Medium (2026-11-10) and Tono Hanna (PR #212, 2026-11-11) join the civilian block; the promotion
+                // identities stay the tail.
+                // 新兵、运动员、探索者、诺亚、会计（PR #195）、BEAR（2026-11-05）、其后的通灵师（2026-11-10）与远野汉娜
+                // （PR #212，2026-11-11）加入平民段；晋升身份始终位于末尾。
                 recruit,
                 athlete,
                 discoverer,
@@ -1175,7 +1203,8 @@ public final class SparkWitchRoleRegistry {
                 accountant,
                 bear,
                 medium,
-                // 橘雪莉 (PR #206) closes the newer civilian run, after the Medium. / 橘雪莉（PR #206）排在通灵师之后。
+                hanna,
+                // 橘雪莉 (PR #206) closes the newer civilian run, after Tono Hanna. / 橘雪莉（PR #206）排在远野汉娜之后。
                 sherry,
                 pigGod,
                 tarotReader,

@@ -90,6 +90,9 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.bigDogPortrait(),
                                     // Accountant's passbook (civilian) / 会计的存折（平民）
                                     SparkWitchItems.accountantPassbook(),
+                                    // Tono Hanna's parasol and handkerchief (civilian) / 远野汉娜的洋伞与手帕（平民）
+                                    SparkWitchItems.hannaUmbrella(),
+                                    SparkWitchItems.hannaHandkerchief(),
                                     // 橘雪莉's detective badge and note (civilian) / 橘雪莉的侦探徽章与纸条（平民）
                                     SparkWitchItems.sherryBadge(),
                                     SparkWitchItems.sherryNote(),
