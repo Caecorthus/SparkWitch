@@ -16,6 +16,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindLoadoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent;
@@ -92,6 +94,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier MEDIUM_SEANCE_ID = MediumRules.SEANCE_SKILL_ID;
     static final Identifier FERRYMAN_PARDON_ID = SparkWitch.id("ferryman_pardon");
     static final Identifier FERRYMAN_FERRY_ID = SparkWitch.id("ferryman_ferry");
+    static final Identifier HANNA_FLOAT_ID = HannaRules.FLOAT_SKILL_ID;
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -169,7 +172,10 @@ public final class SparkWitchForcedCooldowns {
                 ferrymanPardon(),
                 // Charon ferry (Role Skill 2, PR #202), store 24, appended after the Charon's pardon.
                 // 卡戎摆渡（职业技能 2，PR #202），第 24 个存储，追加在卡戎宽恕之后。
-                ferrymanFerry()
+                ferrymanFerry(),
+                // Tono Hanna's float (PR #212), store 25, appended after the Charon's ferry.
+                // 远野汉娜浮游（PR #212），第 25 个存储，追加在卡戎摆渡之后。
+                hannaFloat()
         );
     }
 
@@ -615,6 +621,32 @@ public final class SparkWitchForcedCooldowns {
                 player -> FerrymanPlayerComponent.KEY.get(player).ferryCooldownTicks(),
                 () -> FerrymanRules.FERRY_COOLDOWN_TICKS,
                 (player, ticks) -> FerrymanPlayerComponent.KEY.get(player).setFerryCooldown(ticks)
+        );
+    }
+
+    /**
+     * Tono Hanna's float cooldown (PR #212), kept as an absolute ready tick in the {@code sparkwitch:hanna_player}
+     * component (the ready tick syncs to its owner only). Same role and round gates as {@code HannaFloatService}: an
+     * ACTIVE round and the real Hanna. Remaining time counts to the ready tick, so it includes the 40 s round-start
+     * cooldown and, while she floats, the rest of the float (the cooldown starts when the float ends). The nominal is
+     * the 45 s cooldown after a float; writes only move the ready tick later through {@code setFloatReadyTick}, so a
+     * running float is never cut short. The skill has no item, so SparkFactionAPI's admin {@code clearCooldown} (held
+     * item only) does not reach it.
+     * 远野汉娜浮游冷却（PR #212），以绝对就绪刻保存在 {@code sparkwitch:hanna_player} 组件中（就绪刻只同步给本人）。与
+     * HannaFloatService 的职业与回合门控一致：ACTIVE 回合且为真实汉娜。剩余时间计到就绪刻，因此包含 40 秒开局冷却，以及
+     * 浮游期间尚未走完的浮游时间（冷却从浮游结束起算）。标准冷却为浮游结束后的 45 秒；写入只经 {@code setFloatReadyTick}
+     * 把就绪刻推后，因此绝不打断进行中的浮游。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}
+     * （只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore hannaFloat() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                HANNA_FLOAT_ID,
+                whileActive((game, player) -> HannaRules.isHanna(game.getRole(player))),
+                player -> HannaComponent.KEY.get(player).floatCooldownRemaining(player.getServerWorld().getTime()),
+                () -> HannaRules.COOLDOWN_TICKS,
+                player -> HannaComponent.KEY.get(player),
+                HannaComponent::floatReadyTick,
+                HannaComponent::setFloatReadyTick
         );
     }
 

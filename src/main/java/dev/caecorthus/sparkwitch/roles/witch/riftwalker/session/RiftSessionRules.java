@@ -102,6 +102,8 @@ public final class RiftSessionRules {
             Identifier.of("sparkwitch", "confirm_prophecy"),
             Identifier.of("sparkwitch", "use_blind_attune"),
             Identifier.of("sparkwitch", "use_noa_paint"),
+            // Hanna float (UseHannaFloatC2SPayload). / 汉娜浮游。
+            Identifier.of("sparkwitch", "use_hanna_float"),
             Identifier.of("sparkwitch", "ragpicker_search"),
             Identifier.of("sparkwitch", "rift_gate_close"),
             Identifier.of("sparkwitch", "use_fiend_dash"),
