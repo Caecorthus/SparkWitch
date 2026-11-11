@@ -18,7 +18,8 @@ import org.spongepowered.asm.mixin.injection.At;
  * {@code @ModifyExpressionValue}, never {@code @Redirect}: MixinExtras chains this handler with the Bell Echo scaler on
  * the same read in either order (both multiply), and nothing here touches the Noa / Abyss {@code Map.size()} handlers
  * or the SparkTraits redirects. Non-Sherry players get the constant back unchanged. Both sides read Wathe's synced role
- * map and the local light level, so the client drain prediction follows the server value. The target uses only a
+ * map and compute the light level the same way (see {@code SherryDimLight}), so the client drain prediction follows the
+ * server value. The target uses only a
  * Wathe constant, so {@code remap = false} holds in dev and production.
  * 橘雪莉的暗处理智补偿（PR #206）：亮度低于 10 时任务理智消耗减半。只缩放 Wathe 情绪循环内它自身的单任务消耗常量，与敲钟人回响
  * 缩放使用完全相同的接缝，因此其他所有 {@code setMood} 调用方（恐惧、枪械惩罚、她自己的推演失败惩罚、任务回复）仍全额生效。

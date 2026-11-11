@@ -114,6 +114,17 @@ public final class SherryDeductionService {
             tell(detective, Text.translatable("message.sparkwitch.sherry.deduction.no_target"), Formatting.GRAY);
             return;
         }
+        SherryComponent component = SherryComponent.KEY.get(detective);
+        // A target already on the 20 s cycle (or faster) has nothing left to buy: refuse before the charge, so a
+        // misclick on a known killer costs nothing. A badge killer on the 40 s cycle may still be deduced.
+        // 已处于 20 秒周期（或更快）的目标没有可再购买的内容：扣费前拒绝，误点已知的杀手不花钱。处于 40 秒周期的徽章凶手
+        // 仍可被推演。
+        int trackedInterval = component.getTrackedIntervalTicks(target.getUuid());
+        if (trackedInterval > 0 && trackedInterval <= SherryRules.DEDUCTION_REVEAL_INTERVAL_TICKS) {
+            tell(detective, Text.translatable("message.sparkwitch.sherry.deduction.tracked",
+                    target.getGameProfile().getName()), Formatting.GRAY);
+            return;
+        }
         if (GrandWitchFearService.denyRoleSkillIfFeared(detective)) {
             return;
         }
@@ -121,7 +132,6 @@ public final class SherryDeductionService {
         boolean correct = SherryRules.isCorrectDeduction(SparkFactionApi.resolveEffectiveFaction(target, game));
 
         PlayerShopComponent.KEY.get(detective).addToBalance(-SherryRules.DEDUCTION_COST);
-        SherryComponent component = SherryComponent.KEY.get(detective);
         component.startDeductionCooldown(SherryRules.DEDUCTION_COOLDOWN_TICKS);
 
         if (correct) {

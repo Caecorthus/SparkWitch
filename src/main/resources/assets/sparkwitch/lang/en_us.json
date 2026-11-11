@@ -1940,6 +1940,7 @@
   "message.sparkwitch.sherry.deduction.no_target": "There is nobody nearby to deduce",
   "message.sparkwitch.sherry.deduction.right": "Correct: %s is a killer and will be outlined for 5s every 20s",
   "message.sparkwitch.sherry.deduction.wrong": "Wrong: %s is not a killer",
+  "message.sparkwitch.sherry.deduction.tracked": "%s is already being tracked",
   "message.sparkwitch.sherry.mighty.cooldown": "Mighty Force cooling down: %ss",
   "message.sparkwitch.sherry.badge.already": "%s already holds your badge",
   "message.sparkwitch.sherry.badge.handed": "You handed the Detective Badge to %s",

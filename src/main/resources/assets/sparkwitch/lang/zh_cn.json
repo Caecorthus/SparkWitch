@@ -1940,6 +1940,7 @@
   "message.sparkwitch.sherry.deduction.no_target": "附近没有可推演的目标",
   "message.sparkwitch.sherry.deduction.right": "推演正确：%s 是杀手，其每20秒会高亮5秒",
   "message.sparkwitch.sherry.deduction.wrong": "推演失败：%s 不是杀手",
+  "message.sparkwitch.sherry.deduction.tracked": "%s 已在追踪中，无需再次推演",
   "message.sparkwitch.sherry.mighty.cooldown": "巨力魔法冷却中：%s秒",
   "message.sparkwitch.sherry.badge.already": "%s 已经持有你的徽章",
   "message.sparkwitch.sherry.badge.handed": "已将侦探徽章交给 %s",

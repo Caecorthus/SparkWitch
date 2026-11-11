@@ -23,6 +23,7 @@ import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -68,7 +69,9 @@ public final class SherryComponent implements AutoSyncedComponent, ServerTicking
 
         Tracker(UUID target, int intervalTicks, int nextTicks, int revealTicks) {
             this.target = target;
-            this.intervalTicks = Math.max(1, intervalTicks);
+            // Never shorter than one window, also for saved or synced data: a missing or corrupt interval must not
+            // turn into a permanent reveal. / 绝不短于一个窗口，存档与同步数据同样如此：缺失或损坏的周期不得变成常亮揭示。
+            this.intervalTicks = Math.max(SherryRules.REVEAL_TICKS, intervalTicks);
             this.nextTicks = Math.max(0, nextTicks);
             this.revealTicks = Math.max(0, revealTicks);
         }
@@ -135,7 +138,7 @@ public final class SherryComponent implements AutoSyncedComponent, ServerTicking
 
     /** A defensive copy, in hand-out order. / 按赠出先后排序的防御性副本。 */
     public Set<UUID> getBadgeHolders() {
-        return Set.copyOf(badgeHolders);
+        return Collections.unmodifiableSet(new LinkedHashSet<>(badgeHolders));
     }
 
     public List<Tracker> getTrackers() {
@@ -144,6 +147,12 @@ public final class SherryComponent implements AutoSyncedComponent, ServerTicking
 
     public boolean isTracked(@Nullable UUID uuid) {
         return findTracker(uuid) != null;
+    }
+
+    /** The tracked player's reveal interval, or 0 when not tracked. / 被追踪玩家的揭示周期；未被追踪时为 0。 */
+    public int getTrackedIntervalTicks(@Nullable UUID uuid) {
+        Tracker tracker = findTracker(uuid);
+        return tracker == null ? 0 : tracker.intervalTicks;
     }
 
     /** Whether this player is inside a live reveal window right now. / 该玩家此刻是否处于揭示窗口内。 */
@@ -513,7 +522,10 @@ public final class SherryComponent implements AutoSyncedComponent, ServerTicking
             int interval = buf.readVarInt();
             int next = buf.readVarInt();
             int reveal = buf.readVarInt();
-            trackers.add(new Tracker(target, interval, next, reveal));
+            // Always drain the buffer; keep at most the documented bound. / 始终读完缓冲区；最多保留文档规定的上限。
+            if (trackers.size() < SherryRules.MAX_TRACKED) {
+                trackers.add(new Tracker(target, interval, next, reveal));
+            }
         }
     }
 
