@@ -874,9 +874,26 @@ Current build baseline:
     Witch Fear and Knight duel lists; SparkStrength's daze list and SparkFactionAPI's safe-time list do not list it
     yet. Forced-cooldown store 25 `sparkwitch:nikaido_hiro_return` (ACTIVE round, raw role, no running window; nominal
     45 s).
-  - `witchification/` (魔女化, in progress): `HiroWitchificationComponent`
-    (`sparkwitch:nikaido_hiro_witchification`, `NEVER_COPY`, owner-synced: `kills`, `required`, `witchified`) and
-    `HiroWitchificationService` (`register()` only clears the progress at role assignment and reset).
+  - `witchification/` (魔女化, complete 2026-11-11): `HiroWitchificationComponent`
+    (`sparkwitch:nikaido_hiro_witchification`, `NEVER_COPY`, owner-synced: `kills`, `required`, `witchified`; plus the
+    server-only saved `DerringerOwed`), pure `HiroWitchificationRules`, `HiroWitchificationService` and
+    `HiroWitchificationReplay`. Kills: `KillPlayer.AFTER` with the killer, else
+    `JudgeKillAttribution.committedResponsible`, as the responsible player; it counts for a living raw-role Hiro in an
+    ACTIVE round, never a self-kill or a SparkTraits-intercepted death, whatever the victim's role (a 死亡回归 fake death
+    counts when it becomes a real kill). Threshold `HiroRules.requiredKills(game.getAllPlayers().size())`, written at
+    `RoleAssigned` and again at `ON_FINISH_INITIALIZE`. Reaching it, once per round (the `witchified` flag latches until
+    a role change or reset): `WitchFactorService.exposeRoleColor`, `WitchFactorService.grantSelfMade` (no-op when she
+    already holds a factor; registered after `GrandWitchFeatureService`, so a threshold kill of a factor holder first
+    inherits that factor), infinite Speed II (Wind Spirit pattern; removal compares the granted instance and its exact
+    shape, Emma precedent, and an effect of that shape on a witchified Hiro is adopted after a relog or restart), one
+    loaded `wathe:derringer` (`USED` unset) through `insertStack(slot, …)` into the first empty shown slot (hotbar,
+    then 27-35 while the second row is shown), a private chat line (`message.sparkwitch.nikaido_hiro.witchified`) and
+    a witch cackle only she hears, and the replay global event `sparkwitch:nikaido_hiro_witchified`
+    (`replay.global.sparkwitch.nikaido_hiro_witchified`). The derringer never drops (Wathe refuses gun pickups by
+    non-innocents): with no shown slot free it stays owed and is delivered by the tick as soon as one frees. The tick
+    (`END_WORLD_TICK`, ACTIVE rounds) re-asserts Speed and the role colour for a living witchified Hiro; both end at
+    her real death (`KillPlayer.AFTER`, not a Last Stand one), a role change, `ResetPlayer` and `ON_FINISH_FINALIZE`,
+    and resume if she is ever revived as Hiro. The factor is never removed by this role.
   - `shop/` (complete): `HiroShopService` clears the killer shop for the raw role and adds the five
     `HiroShopRules` rows: knife 100 (stock 1), lockpick 50 (stock 1), crowbar 25 (stock 1), Fire Poker 50 (stock 1),
     Rope 50 (unlimited), with the Murderous Witch shop's entry ids and frames.
@@ -885,9 +902,14 @@ Current build baseline:
     creative tab after the Specter's items, with a 200-tick nominal in `SparkWitchItemCooldownNominals`; placeholder
     2D art (`models/item/rope.json`, `textures/item/rope.png`). Death reason `sparkwitch:strangled` (窒息), Prophecy
     group BLUNT (coordinator default).
-  - Client (presentation only): `client/hiro/HiroClientModule` registers `client/hud/HiroHudRenderer` (gate only, empty
-    body; no `SaintHudLayoutRules` rows reserved yet); the ability-key branch in `SparkWitchClient` follows the
-    Specter's. Lang seeds: `hud.sparkwitch.nikaido_hiro.return.ready`,
+  - Client (presentation only): `client/hiro/HiroClientModule` registers `client/hud/HiroHudRenderer`, two
+    right-aligned corner rows like the Specter's (pure layout and state in `client/hud/HiroHudRules`;
+    `SaintHudLayoutRules.ownsTwoCornerRows` reserves both): 死亡回归 below (key hint, `魔力不足` under
+    `RETURN_MANA_COST`, cooldown seconds, or the running window's seconds; only the `HiroReturnComponent` getters
+    `isWindowActive`, `windowRemainingTicks`, `isOnCooldown`, `getCooldownTicks`) and 魔女化 above (`kills/required`
+    or `已魔女化`). Lang `hud.sparkwitch.nikaido_hiro.hud.return.*` and `hud.sparkwitch.nikaido_hiro.witchification.*`.
+    Her role colour in the witch-factor network view is drawn by the shared `client/factor` fallback. The ability-key
+    branch in `SparkWitchClient` follows the Specter's. Lang seeds: `hud.sparkwitch.nikaido_hiro.return.ready`,
     `message.sparkwitch.nikaido_hiro.return.recorded`, `message.sparkwitch.nikaido_hiro.witchified`,
     `message.sparkwitch.rope.no_target`.
 - `client/bedrock/` (2026-11-02): a role-neutral Bedrock model runtime for player-supplied files, first used by the
@@ -1098,6 +1120,15 @@ Current build baseline:
   `GrandWitchFeatureService` also owns the round lifecycle of the special-accomplice ledger (seed at
   `ON_FINISH_INITIALIZE`, clear at `ON_FINISH_FINALIZE`). Its `factor/` ledger is shared: cumulative world-wide
   quota, delayed private network views, source-independent income, and persistent provenance.
+  Two entries serve 二阶堂希罗's 魔女化 (2026-11-11) and need no Grand Witch or Emma (the ledger opens at every
+  `ON_FINISH_INITIALIZE` whatever the roles are). `WitchFactorService.grantSelfMade(holder)`: a quota-free factor
+  for a living eligible carrier without one, mature at once, owner = the holder herself; it spends nothing, ignores an
+  exhausted quota (NBT `SelfMade` keeps the reload floor from counting it) and is otherwise an ordinary factor (Grand
+  Witch mana, mood drain for REAL-mood roles, Purify, inheritance, Emma's rules). `exposeRoleColor` /
+  `concealRoleColor`: a server set of players shown in their own role colour instead of the factor violet, with or
+  without a factor; it is not saved (its writer re-asserts it every tick), ends with the player's death or role, and
+  travels only in the per-recipient `View` (`View.sanitized`: an unauthorized recipient gets no id; living targets
+  only), appended after the two view bits, so the older packet layout still reads.
   Its client presentation lives in `client/grandwitch/`. The held sword's cooldowns (owner pick A2 + B2, 2026-10-05)
   are drawn by `GrandWitchSwordHud`, with pure layout in `GrandWitchSwordHudRules`. `GrandWitchSwordCrosshairMixin`
   draws a kill glyph left of Wathe's crosshair, dash chevrons right of it, and the attack bar under it.
@@ -2624,7 +2655,9 @@ Current build baseline:
   (owner spec, PR #176). A new police role needs its own wrap; registering in `PoliceRoles` is not enough.
   USEC has no wrap because it carries no revolver: the AXMC fires through its own `sparkwitch:fire_usec_rifle` path,
   never Wathe's gun receiver.
-- `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding.
+- `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding: Emma pink, then the role
+  colour of a self-made witch (the server-sanitized `isRoleColored` set, colour from Wathe's synced role map, no role
+  dependency), then the factor violet.
 - `client/emma/`: shared-key dispatch and role-owned target HUD; no witch inventory panel.
 - `client/judge/`: primary-key selector and the role-owned bottom-right line (`JudgeHudRenderer`: "press key to
   judge, 100 coins" or the coin requirement below 100). `WitchSkillHudRenderer` dispatches it right after Emma,
