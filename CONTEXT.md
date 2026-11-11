@@ -2542,8 +2542,15 @@ Current build baseline:
   - Forced cooldowns: stores 25 `sparkwitch:sherry_deduction` and 26 `sparkwitch:sherry_mighty_force`.
   - Client (presentation only, `client/sherry/`): `SherryClient` is the hub (candidate packet receiver that never
     replaces an open screen, Role Skill 2 handler, hooks, HUD) and owns `isActiveSherry`; the shared ability key
-    branch in `SparkWitchClient` sits right after the Medium's. `SherryDeductionScreen` (select a tile, then Confirm)
-    sends the paid confirmation. `SherryHud` draws two bottom-right rows from `SherryHudRules` (推演 above, 巨力魔法
+    branch in `SparkWitchClient` sits right after the Medium's. `SherryDeductionScreen` is a hand-drawn panel in the
+    Harpy Express house grammar (owner redesign 2026-11-11, replacing the avatar-tile grid): title band with the
+    price chip, a rule line, candidates as ruled rows (16 px face + name; two columns, three when the roster is
+    long, paged), a select band, a status pill and house buttons. Pick a row, then Confirm, Enter or a second click
+    sends the paid confirmation. A target on the 20 s cycle shows 追踪中 and cannot be picked; a badge killer on the
+    40 s cycle shows 线索 and can. Geometry and hit-testing live in the pure `SherryDeductionLayout`; the palette
+    (owner pick: material B 侦探徽章, sampled from the badge art: navy, gold trim, ice text, one orange gem) and the
+    fill primitives in `SherryDeductionPaint`. `SherryHud` draws two bottom-right rows from `SherryHudRules` (推演
+    above, 巨力魔法
     below; `SaintHudLayoutRules.ownsTwoCornerRows` reserves them). `SherryInstinctHooks` answers
     `GetInstinctHighlight` from her owner-synced component with `always` results at priority 96
     (`SherryHighlightRules`: above the 95 mark/domain slot and the 90 faction outlines, below `skip()`): a revealed
