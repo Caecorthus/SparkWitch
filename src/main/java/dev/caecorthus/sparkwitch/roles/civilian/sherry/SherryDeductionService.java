@@ -26,7 +26,9 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -203,21 +205,41 @@ public final class SherryDeductionService {
     }
 
     /**
-     * A visible Wathe corpse in front of her (see {@link SherryRules#aimsAtCorpse}); hidden bodies and a Partygoer's
-     * corpse never count (Perfumer precedent).
-     * 她面前有一具可见的 Wathe 尸体（见 {@link SherryRules#aimsAtCorpse}）；被隐藏的尸体与派对客的尸体不算（调香师先例）。
+     * A Wathe corpse in front of her (see {@link SherryRules#aimsAtCorpse}) that she can actually see: no block may
+     * stand between her eyes and the body, so a corpse behind a wall never counts. Hidden bodies and a Partygoer's
+     * corpse never count either (Perfumer precedent).
+     * 她面前有一具她确实看得到的 Wathe 尸体（见 {@link SherryRules#aimsAtCorpse}）：眼睛与尸体之间不能有方块阻挡，
+     * 因此隔墙的尸体不算。被隐藏的尸体与派对客的尸体同样不算（调香师先例）。
      */
     static boolean aimsAtCorpse(ServerPlayerEntity detective) {
         ServerWorld world = detective.getServerWorld();
         Vec3d eye = detective.getEyePos();
         Vec3d look = detective.getRotationVec(1.0F);
+        Vec3d feet = detective.getPos();
         return !world.getEntitiesByClass(
                 PlayerBodyEntity.class,
                 detective.getBoundingBox().expand(SherryRules.CORPSE_REACH + 1.0D),
                 body -> !NoellesHiddenBodiesBridge.isHidden(world, body.getPlayerUuid())
                         && !SparkStrengthPartygoerCompat.isPartygoerCorpse(body)
-                        && SherryRules.aimsAtCorpse(eye, look, body.getBoundingBox().getCenter())
+                        && SherryRules.aimsAtCorpse(eye, look, feet, body.getBoundingBox().getCenter())
+                        && hasLineOfSight(detective, eye, body)
         ).isEmpty();
+    }
+
+    /**
+     * Two block rays from her eyes, to the body's centre and to a point just above it, so floor trim, a carpet or a
+     * bed edge under the corpse does not hide it; either clear ray is enough.
+     * 从她的眼睛发出两条方块射线，分别指向尸体中心与其正上方一点，这样尸体下的地板边缘、地毯或床沿不会把它挡住；
+     * 任意一条畅通即可。
+     */
+    private static boolean hasLineOfSight(ServerPlayerEntity detective, Vec3d eye, PlayerBodyEntity body) {
+        Vec3d center = body.getBoundingBox().getCenter();
+        return isClear(detective, eye, center) || isClear(detective, eye, center.add(0.0D, 0.5D, 0.0D));
+    }
+
+    private static boolean isClear(ServerPlayerEntity detective, Vec3d from, Vec3d to) {
+        return detective.getWorld().raycast(new RaycastContext(from, to, RaycastContext.ShapeType.COLLIDER,
+                RaycastContext.FluidHandling.NONE, detective)).getType() == HitResult.Type.MISS;
     }
 
     private static void tell(ServerPlayerEntity player, Text text, Formatting formatting) {

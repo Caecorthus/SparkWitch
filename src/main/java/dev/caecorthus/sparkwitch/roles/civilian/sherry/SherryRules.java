@@ -61,7 +61,7 @@ public final class SherryRules {
     public static final double CORPSE_REACH = 3.0D;
     /** Half-angle of the "aiming at the corpse" cone, as a cosine (60 degrees). / “对准尸体”视锥半角的余弦（60 度）。 */
     public static final double CORPSE_AIM_COSINE = 0.5D;
-    /** Inside this distance the corpse counts whatever she looks at. / 在此距离内无论视线朝向都算对准。 */
+    /** Within this distance of her feet the corpse counts whatever she looks at. / 距她脚下此距离内无论视线朝向都算对准。 */
     public static final double CORPSE_TOUCH_DISTANCE = 1.25D;
     public static final float WRONG_TARGET_MOOD_LOSS = 0.20F;
     public static final int WRONG_TARGET_EFFECT_TICKS = GameConstants.getInTicks(0, 3);
@@ -112,18 +112,20 @@ public final class SherryRules {
     }
 
     /**
-     * Whether a corpse at {@code corpse} counts as aimed at from {@code eye} looking along {@code look}: within reach
-     * and inside the cone, or close enough to be standing over it.
-     * 从 {@code eye} 沿 {@code look} 望去时，位于 {@code corpse} 的尸体是否算“对准”：在触及范围内且位于视锥中，或近到就站在它旁边。
+     * Whether a corpse at {@code corpse} counts as aimed at: close enough to her {@code feet} to be standing over it
+     * (a corpse lies on the floor, so that is measured from the feet, never from the eyes 1.62 above), or within reach
+     * of her {@code eye} and inside the cone around {@code look}.
+     * 位于 {@code corpse} 的尸体是否算“对准”：距她的 {@code feet} 近到就站在它旁边（尸体躺在地上，因此从脚下而不是从高出
+     * 1.62 的眼睛量起），或在 {@code eye} 的触及范围内且位于 {@code look} 的视锥中。
      */
-    public static boolean aimsAtCorpse(Vec3d eye, Vec3d look, Vec3d corpse) {
+    public static boolean aimsAtCorpse(Vec3d eye, Vec3d look, Vec3d feet, Vec3d corpse) {
+        if (corpse.squaredDistanceTo(feet) <= CORPSE_TOUCH_DISTANCE * CORPSE_TOUCH_DISTANCE) {
+            return true;
+        }
         Vec3d offset = corpse.subtract(eye);
         double distanceSquared = offset.lengthSquared();
         if (distanceSquared > CORPSE_REACH * CORPSE_REACH) {
             return false;
-        }
-        if (distanceSquared <= CORPSE_TOUCH_DISTANCE * CORPSE_TOUCH_DISTANCE) {
-            return true;
         }
         double lookLength = look.length();
         if (lookLength < 1.0E-6) {

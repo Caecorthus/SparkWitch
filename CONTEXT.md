@@ -2514,8 +2514,10 @@ Current build baseline:
     `AntiFastRoundRules` and SparkStrength `TaotieHeadRules` (daze).
   - 推演 (`SherryDeductionService`, G): the empty `request_sherry_deduction` is answered with `open_sherry_deduction`
     (other living, physically present round players within 60 blocks, at most 64, and the price) only when a visible
-    corpse is in front of her (`SherryRules.aimsAtCorpse`: within 3 blocks inside a 60° cone, or within 1.25 blocks;
-    hidden bodies and Partygoer corpses never count), the cooldown is over and she holds 100 coins; she is told which
+    corpse is in front of her (`SherryRules.aimsAtCorpse`: within 1.25 blocks of her feet, or within 3 blocks of her
+    eyes inside a 60° cone; a block ray from her eyes to the body must be clear, so a corpse behind a wall never
+    counts; hidden bodies and Partygoer corpses never count), the cooldown is over and she holds 100 coins; she is
+    told which
     of the three failed. Nothing is charged. The paid act is `confirm_sherry_deduction`, which re-checks every gate
     and the target, then charges 100 coins and starts the 30 s cooldown whatever the outcome. Correct means the
     target's effective faction is KILLER (`SparkFactionApi.resolveEffectiveFaction`): the target is tracked on a 20 s
