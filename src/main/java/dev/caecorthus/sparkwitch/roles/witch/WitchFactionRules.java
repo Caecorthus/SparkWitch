@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariants;
 import dev.doctor4t.wathe.api.Role;
@@ -34,16 +35,20 @@ public final class WitchFactionRules {
 
     /**
      * Role ids of the 魔裁 characters (see {@link #isWitchTrialGirl}). A new 魔裁 role adds its id here. Ids, not
-     * {@link Role} instances, so the set needs no registration order.
+     * {@link Role} instances, so the set needs no registration order. 二阶堂希罗 is in it before and after her 魔女化:
+     * her role-colour factor-network view is a client fallback that only fills when no instinct colour answered, so
+     * the Grand Witch's held instinct shows this class colour and the role colour shows without the key.
      * 魔裁角色的职业 ID（见 {@link #isWitchTrialGirl}）。新增魔裁职业时把 ID 加到这里。用 ID 而非 {@link Role} 实例，
-     * 因此不依赖注册顺序。
+     * 因此不依赖注册顺序。二阶堂希罗在魔女化前后都属于此名单：她的职业色因子网络视图只是客户端后备，仅在没有本能颜色时
+     * 补缺，因此大魔女按住本能键时看到此分类颜色，未按键时看到职业色。
      */
     private static final Set<Identifier> WITCH_TRIAL_GIRL_IDS = Set.of(
             EmmaRules.ROLE_ID,
             NoaRules.ROLE_ID,
             HannaRules.ROLE_ID,
             NatsumeRules.ROLE_ID,
-            SherryRules.ROLE_ID
+            SherryRules.ROLE_ID,
+            HiroRules.ROLE_ID
     );
 
     private WitchFactionRules() {

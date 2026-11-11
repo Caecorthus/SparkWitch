@@ -879,7 +879,9 @@ Current build baseline:
     tooltips. Lang: `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
     placement and trigger, peachwood hits and the shield.
 - `roles/killer/hiro/`: 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, placeholder color `0xC8324B`, owner has not
-  picked one), added 2026-11-11.
+  picked one), added 2026-11-11. She is a Witch Trial girl (`WitchFactionRules.WITCH_TRIAL_GIRL_IDS`, owner
+  2026-11-11): the Grand Witch's held instinct shows her in `OTHER_WITCH_INSTINCT_COLOR` before and after 魔女化,
+  and the witchified role-colour view below still only fills when no instinct colour answered (key not held).
   Every role number lives in `HiroRules`: `RETURN_WINDOW_TICKS` 300, `VICTIM_FEIGN_TICKS` 300,
   `OPENING_COOLDOWN_TICKS` 1800 (90 s), `RETURN_COOLDOWN_TICKS` 900 (45 s, from the moment the skill ends),
   `RETURN_MANA_COST` 100, `RETURN_REWARD_COINS` 75, `RETURN_GLOW_TICKS` 100, `RETURN_ITEM_LOCK_TICKS` 200,
@@ -1238,7 +1240,8 @@ Current build baseline:
   `compat/SparkTraitsSchrodingersCatBridge`. No client code.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
   - Witch Trial girls (魔裁, owner 2026-11-11): `WitchFactionRules.isWitchTrialGirl` classes the 魔法少女的魔女裁判
-    character roles by role id (`WITCH_TRIAL_GIRL_IDS`: Emma, Noa, Hanna, Natsume Anan, Tachibana Sherry).
+    character roles by role id (`WITCH_TRIAL_GIRL_IDS`: Emma, Noa, Hanna, Natsume Anan, Tachibana Sherry, Nikaido
+    Hiro).
     `isOtherWitchRole` includes them, so the Grand Witch's instinct shows them in
     `OTHER_WITCH_INSTINCT_COLOR` like the Apprentice and the Murderous Witch, whatever their own faction;
     accomplices and the Curser still see them in the non-witch colour. It is an instinct class only: no Witch
