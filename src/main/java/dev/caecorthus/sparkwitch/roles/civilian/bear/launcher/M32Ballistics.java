@@ -82,15 +82,15 @@ public final class M32Ballistics {
     /**
      * Angle in radians between the bore ({@code pitchDegrees}, Minecraft convention: positive looks down) and the
      * eye-to-round direction at the moment the round is first {@code slantRange} blocks from the eye; positive means
-     * the round is below the bore line there. The bore IS the line of sight (the round leaves along the look), so this
-     * is exactly how far below the screen centre a target at that slant range must sit to be hit: the M2A1 reticle
-     * draws its aim point there and re-solves it at the current pitch every frame. The path is the per-tick polyline
+     * the round is below the bore line there. For hip fire the bore is the line of sight (the round leaves along the
+     * look), so this is how far below the screen centre a target at that slant range must sit to be hit; the M2A1 uses
+     * the inverse, {@link #elevationToHitRadians}. The path is the per-tick polyline
      * of the entity (straight segments between ticks, as its collision ray); the crossing is solved exactly on the
      * first segment whose end is at least the range away. NaN when the round never gets that far before the backup
      * fuse, or for a non-finite pitch or a non-positive range.
      * 枪膛方向（{@code pitchDegrees}，Minecraft 约定：正值朝下）与榴弹第一次距眼睛 {@code slantRange} 格时“眼睛到榴弹”方向之间的
-     * 弧度夹角；正值表示此时榴弹位于枪膛线下方。枪膛线即视线（榴弹沿视线方向射出），因此这正是位于该斜距的目标必须处在屏幕中心
-     * 下方多远才能被命中：M2A1 分划把瞄准点画在那里，并每帧按当前俯仰角重新求解。路径为实体的逐刻折线（两刻之间为直线段，与其
+     * 弧度夹角；正值表示此时榴弹位于枪膛线下方。腰射时枪膛线即视线（榴弹沿视线方向射出），因此这正是位于该斜距的目标必须处在
+     * 屏幕中心下方多远才能被命中；M2A1 使用其反解 {@link #elevationToHitRadians}。路径为实体的逐刻折线（两刻之间为直线段，与其
      * 碰撞射线一致）；在终点首次不小于该距离的线段上精确求解交点。若榴弹在备用引信前飞不到这么远，或俯仰角非有限、距离不为正，
      * 则返回 NaN。
      */
@@ -126,12 +126,12 @@ public final class M32Ballistics {
 
     /**
      * The bore elevation above a target line needed to hit a target {@code slantRange} blocks away along
-     * {@code targetPitchDegrees}: the fixed point of {@code alpha = holdover(targetPitch - alpha, range)}. Used by tests
-     * and the holdover table; the reticle itself uses {@link #holdoverRadians} at the live pitch, which is the same
-     * answer seen from the bore. NaN when out of range.
+     * {@code targetPitchDegrees}: the fixed point of {@code alpha = holdover(targetPitch - alpha, range)}. The M2A1
+     * aims with it: a shot through the sight leaves this far above the look at the dialled range, and the sight draws
+     * the launcher nosed up by it, so the screen centre is the aim point. NaN when out of range.
      * 命中沿 {@code targetPitchDegrees} 方向、斜距 {@code slantRange} 格处目标所需的枪膛相对目标线的抬高角：
-     * {@code alpha = holdover(targetPitch - alpha, range)} 的不动点。供测试与抬高量表使用；分划本身在实时俯仰角下使用
-     * {@link #holdoverRadians}，即从枪膛方向看到的同一答案。超出射程时为 NaN。
+     * {@code alpha = holdover(targetPitch - alpha, range)} 的不动点。M2A1 以它瞄准：通过瞄具射击时，榴弹在视线之上按当前刻度
+     * 抬高这么多射出，瞄具也把发射器画成抬头同样的角度，因此屏幕中心就是瞄准点。超出射程时为 NaN。
      */
     public static double elevationToHitRadians(double targetPitchDegrees, double slantRange) {
         double alpha = 0.0;
