@@ -17,6 +17,9 @@ final class WitchFactorCodec {
         tag.putInt("OpeningParticipants", state.openingParticipants());
         tag.putInt("RoundLimit", state.limit());
         tag.putInt("Spent", state.spent());
+        // Optional since 2026-11-11; absent in older saves, which never held a self-made factor.
+        // 2026-11-11 起的可选字段；旧存档没有该字段，也从未有过自成因子。
+        tag.putInt("SelfMade", state.selfMade());
         tag.putBoolean("SpeedUnlocked", state.speedUnlocked());
         NbtList factors = new NbtList();
         state.factors().forEach((holder, factor) -> {
@@ -51,6 +54,7 @@ final class WitchFactorCodec {
                         entry.contains("AdmissionTicks") ? entry.getInt("AdmissionTicks") : WitchFactorState.ADMISSION_TICKS));
             }
         }
+        state.restoreSelfMade(tag.getInt("SelfMade"));
         // Surviving records cannot establish historical usage; never refund old finite quotas.
         // 幸存记录不能证明历史使用次数，旧有限额度不得在迁移时返还。
         state.restoreProgress(tag.contains("Spent") ? tag.getInt("Spent") : Math.max(limit, factors.size()),
