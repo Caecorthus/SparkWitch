@@ -9,13 +9,14 @@ import net.minecraft.util.Identifier;
  * toward the user (the user stands inside the {@link #BACK_HALF_ARC_DEGREES} half-arc behind the target); both are
  * held for {@link #CHANNEL_TICKS}, the target takes a cosmetic hit every {@link #HIT_INTERVAL_TICKS}, then dies of
  * {@code sparkwitch:strangled}, passing shields without consuming them. An attacked, controlled or displaced user
- * aborts and the rope cools down for {@link #INTERRUPT_COOLDOWN_TICKS}; the rope is consumed only by a successful
- * kill. No Minecraft state is read here, so every rule is unit-testable.
+ * aborts and the rope cools down for {@link #INTERRUPT_COOLDOWN_TICKS}; the victim can never move out of the grip
+ * (it is always returned to its anchor). The rope is consumed only by a successful kill. No Minecraft state is read
+ * here, so every rule is unit-testable.
  * 绳索（{@code sparkwitch:rope}，二阶堂希罗的商店道具；任何持有者都可使用）的全部数值与纯判定。所有者规格（2026-11-11）：瞄准
  * {@link #RANGE} 格内背对使用者的玩家使用（使用者位于目标身后 {@link #BACK_HALF_ARC_DEGREES} 的半弧内）；双方定身
  * {@link #CHANNEL_TICKS}，目标每 {@link #HIT_INTERVAL_TICKS} 受到一次仅表现的受击，随后以 {@code sparkwitch:strangled} 死亡，
- * 无视护盾且不消耗护盾。使用者被攻击、被控制或被移位时中断，绳索进入 {@link #INTERRUPT_COOLDOWN_TICKS} 冷却；只有击杀成功才消耗
- * 绳索。本类不读取任何 Minecraft 状态，因此每条规则都可单元测试。
+ * 无视护盾且不消耗护盾。使用者被攻击、被控制或被移位时中断，绳索进入 {@link #INTERRUPT_COOLDOWN_TICKS} 冷却；目标永远无法靠移动
+ * 脱身（始终被送回锚点）。只有击杀成功才消耗绳索。本类不读取任何 Minecraft 状态，因此每条规则都可单元测试。
  */
 public final class RopeRules {
     public static final Identifier ITEM_ID = SparkWitch.id("rope");
@@ -34,11 +35,27 @@ public final class RopeRules {
     /** A held player further than this from the anchor is pulled back. / 被定身者偏离锚点超过该距离即被拉回。 */
     public static final double DRIFT_THRESHOLD = 0.25D;
     /**
-     * A held player further than this from the anchor was moved by something else (a push, a teleport): the strangle
-     * breaks. Our own pull-backs land on the anchor, so they never count.
-     * 被定身者偏离锚点超过该距离，说明被其他机制移动（推搡、传送）：勒杀中断。我们自己的拉回落在锚点上，因此从不计入。
+     * A strangler further than this from the anchor was moved by something else (a push, a teleport): the strangle
+     * breaks. Our own pull-backs land on the anchor, so they never count. A victim beyond it is returned instead
+     * ({@link HoldStep#RETURN}): its own movement must never free it.
+     * 勒杀者偏离锚点超过该距离，说明被其他机制移动（推搡、传送）：勒杀中断。我们自己的拉回落在锚点上，因此从不计入。目标超过该距离时
+     * 改为送回锚点（{@link HoldStep#RETURN}）：目标自身的移动绝不能让它脱身。
      */
     public static final double DISPLACEMENT_TOLERANCE = 1.0D;
+    /**
+     * Slack over {@link #RANGE} for the grab's check on CURRENT positions (user's eye to the target's body). The aim
+     * ray runs against lag-compensated volumes, which may still stand where the target was before a sprint or a
+     * teleport; the margin covers the hit-volume expansion and ordinary movement inside the compensation window.
+     * 抓取时按当前位置复核（使用者眼睛到目标身体）在 {@link #RANGE} 之上的余量。瞄准射线对的是延迟补偿后的体积，它可能仍停在目标冲刺或
+     * 传送之前的位置；该余量覆盖命中体积的扩张与补偿窗口内的正常移动。
+     */
+    public static final double REACH_MARGIN = 0.5D;
+    /**
+     * A running strangle breaks once the two are further apart than {@link #RANGE} plus this (a fall, a moving seat),
+     * measured like the grab's reach after both were put back on their anchors.
+     * 进行中的勒杀在双方距离超过 {@link #RANGE} 加该值时中断（坠落、移动的座位）；度量方式与抓取距离相同，并在双方被放回锚点之后测量。
+     */
+    public static final double PAIR_BREAK_MARGIN = 1.5D;
     /** Floating-point slack of the arc boundary, in degrees. / 弧边界的浮点容差（度）。 */
     private static final double ARC_EPSILON_DEGREES = 1.0E-6D;
     private static final double SAME_SPOT_SQUARED = 1.0E-8D;
@@ -82,13 +99,48 @@ public final class RopeRules {
                 <= BACK_HALF_ARC_DEGREES + ARC_EPSILON_DEGREES;
     }
 
+    /**
+     * Squared distance from a point to the nearest point of an axis-aligned box (0 inside it): the reach metric, the
+     * user's eye against the target's body box.
+     * 点到轴对齐箱体最近点的距离平方（在箱体内为 0）：距离的度量方式，即使用者眼睛对目标身体箱体。
+     */
+    public static double distanceSquaredToBox(double x, double y, double z, double minX, double minY, double minZ,
+                                              double maxX, double maxY, double maxZ) {
+        double dx = Math.max(Math.max(minX - x, 0.0D), x - maxX);
+        double dy = Math.max(Math.max(minY - y, 0.0D), y - maxY);
+        double dz = Math.max(Math.max(minZ - z, 0.0D), z - maxZ);
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    /**
+     * The grab's check on current positions: the aimed player really is within {@link #RANGE} +
+     * {@link #REACH_MARGIN} right now and in the user's line of sight. A stale lag-compensated volume alone never
+     * starts a strangle.
+     * 抓取时按当前位置复核：被瞄准的玩家此刻确实在 {@link #RANGE} + {@link #REACH_MARGIN} 之内，且在使用者视线内。仅凭过期的延迟补偿
+     * 体积绝不会开始勒杀。
+     */
+    public static boolean confirmsGrab(double eyeToBodySquared, boolean lineOfSight) {
+        double reach = RANGE + REACH_MARGIN;
+        return lineOfSight && eyeToBodySquared <= reach * reach;
+    }
+
+    /**
+     * Whether a running strangle's pair came apart: different worlds, or further than {@link #RANGE} +
+     * {@link #PAIR_BREAK_MARGIN} (a non-finite distance counts as apart).
+     * 进行中的勒杀双方是否已分开：不在同一世界，或距离超过 {@link #RANGE} + {@link #PAIR_BREAK_MARGIN}（非有限距离视为已分开）。
+     */
+    public static boolean pairSeparated(boolean sameWorld, double eyeToBodySquared) {
+        double limit = RANGE + PAIR_BREAK_MARGIN;
+        return !sameWorld || !(eyeToBodySquared <= limit * limit);
+    }
+
     /** Why a use starts nothing; every refusal is free. / 使用未能开始的原因；任何拒绝都没有代价。 */
     public enum Refusal {
         /** The strangle starts. / 开始勒杀。 */
         NONE,
         /** The user may not act now (not a living participant, held, feared, ...). / 使用者此刻无法行动。 */
         USER_BLOCKED,
-        /** No eligible player on the aim ray within reach. / 瞄准线上、距离内没有合格玩家。 */
+        /** No eligible player on the aim ray who is within reach and in sight right now. / 瞄准线上没有此刻在距离与视线内的合格玩家。 */
         NO_TARGET,
         /** The aimed player does not have their back toward the user. / 被瞄准的玩家没有背对使用者。 */
         NOT_BEHIND
@@ -129,22 +181,31 @@ public final class RopeRules {
         FOLLOW_FALL,
         /** A small drift: pull the player back to the anchor. / 小幅漂移：把玩家拉回锚点。 */
         PULL_BACK,
-        /** Moved by something else beyond the tolerance. / 被其他机制移动且超出容差。 */
-        DISPLACED
+        /** The strangler was moved by something else beyond the tolerance: the strangle breaks. / 勒杀者被其他机制移动且超出容差：勒杀中断。 */
+        DISPLACED,
+        /**
+         * The victim is beyond the tolerance: put it back on the exact anchor (a spot it really stood on). Never an
+         * interrupt, so a modified client cannot walk out of the grip and hand the strangler the cooldown.
+         * 目标超出容差：送回锚点原位（它确实站过的位置）。绝不构成打断，因此修改过的客户端无法走出控制并让勒杀者吃到冷却。
+         */
+        RETURN
     }
 
     /**
      * {@code dx}/{@code dy}/{@code dz} are the player's offset from the anchor. Falling never counts as displacement
-     * (a player caught mid-jump lands); a sideways or upward offset beyond {@link #DISPLACEMENT_TOLERANCE} does.
+     * (a player caught mid-jump lands); a sideways or upward offset beyond {@link #DISPLACEMENT_TOLERANCE} does. Only
+     * the strangler ({@code breaksWhenDisplaced}) answers {@link HoldStep#DISPLACED}; the victim answers
+     * {@link HoldStep#RETURN} there.
      * {@code dx}/{@code dy}/{@code dz} 为玩家相对锚点的偏移。下落永不算作移位（跳跃中被定身的玩家会落地）；水平或向上的偏移超过
-     * {@link #DISPLACEMENT_TOLERANCE} 才算。
+     * {@link #DISPLACEMENT_TOLERANCE} 才算。只有勒杀者（{@code breaksWhenDisplaced}）返回 {@link HoldStep#DISPLACED}；目标在同样
+     * 情况下返回 {@link HoldStep#RETURN}。
      */
-    public static HoldStep holdStep(double dx, double dy, double dz) {
+    public static HoldStep holdStep(double dx, double dy, double dz, boolean breaksWhenDisplaced) {
         double horizontal = dx * dx + dz * dz;
         double rise = Math.max(0.0D, dy);
         if (!Double.isFinite(horizontal) || !Double.isFinite(dy)
                 || horizontal + rise * rise > DISPLACEMENT_TOLERANCE * DISPLACEMENT_TOLERANCE) {
-            return HoldStep.DISPLACED;
+            return breaksWhenDisplaced ? HoldStep.DISPLACED : HoldStep.RETURN;
         }
         if (horizontal > DRIFT_THRESHOLD * DRIFT_THRESHOLD || dy > DRIFT_THRESHOLD) {
             return HoldStep.PULL_BACK;
@@ -168,16 +229,19 @@ public final class RopeRules {
         ROPE_LOST,
         /** A push or teleport moved the user off the anchor. / 推搡或传送使使用者离开锚点。 */
         USER_DISPLACED,
-        /** A push or teleport moved the victim out of the grip. / 推搡或传送使目标脱离控制。 */
-        VICTIM_DISPLACED
+        /** The two came apart ({@link #pairSeparated}); never caused by the victim walking. / 双方已分开（{@link #pairSeparated}）；目标自行走动不会导致。 */
+        PAIR_SEPARATED
     }
 
     /**
-     * Per-tick classification, most decisive first: a missing player ends everything, then the user's own state, then
-     * the victim's position. / 每刻的分类，按决定性从高到低：有人不在则直接结束，其次是使用者自身状态，最后是目标位置。
+     * Per-tick classification, most decisive first: a missing player ends everything, then the user's own state. The
+     * victim's position is no reason: it is returned to its anchor ({@link HoldStep#RETURN}); {@link #pairSeparated}
+     * is asked separately once both are back on their anchors.
+     * 每刻的分类，按决定性从高到低：有人不在则直接结束，其次是使用者自身状态。目标的位置不是打断理由：它会被送回锚点
+     * （{@link HoldStep#RETURN}）；{@link #pairSeparated} 在双方回到锚点之后另行判定。
      */
     public static Interrupt interrupt(boolean userPresent, boolean victimPresent, boolean userControlled,
-                                      boolean userHoldsRope, boolean userDisplaced, boolean victimDisplaced) {
+                                      boolean userHoldsRope, boolean userDisplaced) {
         if (!userPresent) {
             return Interrupt.USER_GONE;
         }
@@ -190,10 +254,7 @@ public final class RopeRules {
         if (!userHoldsRope) {
             return Interrupt.ROPE_LOST;
         }
-        if (userDisplaced) {
-            return Interrupt.USER_DISPLACED;
-        }
-        return victimDisplaced ? Interrupt.VICTIM_DISPLACED : Interrupt.NONE;
+        return userDisplaced ? Interrupt.USER_DISPLACED : Interrupt.NONE;
     }
 
     /**

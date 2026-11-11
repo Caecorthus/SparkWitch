@@ -22,12 +22,14 @@ import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeignService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
+import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerStatusProbes;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.caecorthus.sparkwitch.util.RoundParticipants;
 import dev.caecorthus.sparkwitch.util.hitscan.PlayerHitboxHistory;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.math.Box;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -65,10 +67,14 @@ final class RopeTargeting {
      * Whether something other than the strangle itself holds, hides or controls {@code user}; checked at the start and
      * again every tick of a running strangle, where it is the "stunned / feared / hypnotised / controlled" interrupt.
      * It reads the Taser stun and the Raven landing hold directly rather than {@code ControlExpertStun.isStunned},
-     * which also answers true for the Rope's own hold.
+     * which also answers true for the Rope's own hold. SparkStrength: its {@code sparkstrength:engineer_stunned} lock
+     * (the Engineer's capture device and the Jester Moment's freeze share that component) is read through the existing
+     * optional probe {@code RiftwalkerStatusProbes.isCaptureStunned}, which fails open; its Taotie head daze has no
+     * SparkWitch seam and is not covered.
      * 是否有勒杀之外的机制持有、隐藏或控制着 {@code user}；开始时检查一次，勒杀进行中的每一刻再次检查，即「被眩晕 / 恐惧 / 催眠 / 控制」
      * 的打断条件。这里直接读取电击眩晕与黑羽鸦落地定身，而不读 {@code ControlExpertStun.isStunned}，后者对绳索自身的定身同样返回
-     * true。
+     * true。SparkStrength：其 {@code sparkstrength:engineer_stunned} 锁定（工程师捕捉装置与小丑时刻的全员定身共用该组件）通过已有的
+     * 可选探针 {@code RiftwalkerStatusProbes.isCaptureStunned} 读取（失败时放行）；饕餮头颅眩晕在 SparkWitch 中没有接缝，未覆盖。
      */
     static boolean isControlled(ServerPlayerEntity user) {
         ControlExpertStatusComponent stun = ControlExpertStatusComponent.KEY.getNullable(user);
@@ -79,6 +85,7 @@ final class RopeTargeting {
                 || NatsumeHypnosisGuards.isLocked(user)
                 || kidnap != null && kidnap.isControlled()
                 || DominatorForcedShotComponent.isSequenceActive(user)
+                || RiftwalkerStatusProbes.isCaptureStunned(user)
                 || NoellesTaotieSeekerBridge.isSwallowed(user)
                 || SparkTraitsSeekerBridge.isLastStandPending(user)
                 || SparkTraitsKillerBridge.isLastEscapeActive(user)
@@ -125,14 +132,35 @@ final class RopeTargeting {
 
     /**
      * Nearest eligible player on the user's eye ray, cut at the first block (so line of sight is required), against
-     * lag-compensated hit volumes: the Taser's geometry with the Rope's reach.
+     * lag-compensated hit volumes: the Taser's geometry with the Rope's reach. A strangle then holds both players
+     * where they stand NOW, so the pick must also hold on current server state ({@link #isInReachNow}); a volume left
+     * behind by a sprint or a teleport picks nobody.
      * 使用者视线射线上最近的合格玩家，射线在第一个方块处截断（因此要求视线无遮挡），按延迟补偿后的命中体积判定：沿用电击枪的几何，
-     * 距离取绳索的距离。
+     * 距离取绳索的距离。勒杀随后会把双方定在「此刻」所站的位置，因此选中的目标还必须在当前服务端状态下成立
+     * （{@link #isInReachNow}）；冲刺或传送后残留的体积选不中任何人。
      */
     static @Nullable ServerPlayerEntity findTarget(ServerPlayerEntity user) {
-        return ControlExpertTaserTargeting.findTarget(user, RopeRules.RANGE, user.getServerWorld().getPlayers(),
+        ServerPlayerEntity picked = ControlExpertTaserTargeting.findTarget(user, RopeRules.RANGE,
+                user.getServerWorld().getPlayers(),
                 candidate -> mayTarget(user, candidate),
                 candidate -> PlayerHitboxHistory.hitVolumes(user, candidate, RopeRules.TARGET_BOX_EXPANSION));
+        return picked != null && isInReachNow(user, picked) ? picked : null;
+    }
+
+    /**
+     * Current server positions only: the target's body is within the Rope's reach of the user's eye and vanilla line
+     * of sight (eye to eye, collider blocks) is clear.
+     * 仅看当前服务端位置：目标身体在使用者眼睛的绳索距离内，且原版视线（眼对眼、碰撞方块）无遮挡。
+     */
+    static boolean isInReachNow(ServerPlayerEntity user, ServerPlayerEntity target) {
+        return RopeRules.confirmsGrab(eyeToBodySquared(user, target), user.canSee(target));
+    }
+
+    /** The reach metric on current positions: user's eye to the target's body box. / 当前位置下的距离度量：使用者眼睛到目标身体箱体。 */
+    static double eyeToBodySquared(ServerPlayerEntity user, ServerPlayerEntity target) {
+        Box body = target.getBoundingBox();
+        return RopeRules.distanceSquaredToBox(user.getX(), user.getEyeY(), user.getZ(),
+                body.minX, body.minY, body.minZ, body.maxX, body.maxY, body.maxZ);
     }
 
     /** The back check on current server positions and the target's head yaw. / 按当前服务端位置与目标头部朝向做背后判定。 */
