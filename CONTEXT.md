@@ -218,6 +218,12 @@ Current build baseline:
     RETURN to its nearest Bomber drone, so keep that name and signature.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
   D1–D10, numbers in each ability class):
+  - Dealing (owner, 2026-11-11): no 24-player minimum and no 1-per-8 quota. Her appearance condition is always false,
+    so she is never one of Wathe's once-each special civilian picks; `mixin/ApprenticeCivilianPoolMixin` wraps every
+    `addRole` in `ScoreboardRoleSelectorComponent.assignCivilians` and `ApprenticeCivilianPool.chooseSeatRole` turns
+    each plain-Civilian fallback seat (every special civilian already dealt, or a group seat Wathe gave up) into an
+    Apprentice on a 50/50 coin while she is enabled (a disabled Apprentice draws no random number). She can appear
+    several times; `WitchRoleAssignmentService` / `WitchRoleCounts` no longer deal her. `/wathe:forceRole` still works.
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
     buff's state out of the frozen `sparkwitch:player` packet. Only the Clairvoyance exposure timer syncs to everyone;
     tasks toward graduation, the Purify cooldown, the two Swift Step recharge timers, the Mighty Force forfeit flag and
@@ -2311,6 +2317,21 @@ Current build baseline:
     tree is the default (`UsecReticleStyle.DEFAULT` = `TACTICAL`); R1 `MIL_DOT` is calibrated at the top 6×. The AP
     holds (100-200 blocks) are atan(`UsecBallistics.apDropAt`/d) at the frame's real projection FOV, with the shooter's
     SparkTraits Marksman multiplier, so R2's marks stay at true angles at every magnification, mid-ease included.
+    The trunk's hashes (1-16 mrad) cross the line like the top arm's (owner, 2026-11-11; the spec sheet's left-only
+    hashes read as half missing).
+    Low-magnification level of detail (2026-11-11, "1× 时很多点挤在一起"): R2 shrinks with the zoom while strokes and
+    digits keep their pixel size (1 mrad is 0.77 px at 1×, 1080p, 70°), so a mark is drawn only where it clears its
+    neighbours, by framebuffer pixels times the stroke scale and never by magnification: 1-mrad hashes from 2.5 px
+    pitch and only the 5-mrad majors from 6 px per 5 mrad (`hashStepMrad`), a ladder bar 2 clear rows below the dot
+    and 3.5 px from every bar that outranks it in `R2_LADDER_PRIORITY` (200, 150, 100, 175, 125; shown or not, so
+    zooming in only ever adds bars), the ranging brackets from 9 px column pitch. A ladder label keeps its outlined
+    digits off the wire's hashes and posts, the brackets and every other label (`Builder.keepOut` boxes): own side,
+    then the other, then up to 2 px lower while it stays nearer its own bar than the next, else the bar stays bare.
+    Label placement compares unrounded positions (`exact`, `floor(exact) == px`), never two rounded pixels, so a
+    label cannot blink while the zoom or the FOV eases. At 1× that leaves the wire, posts, dot and the 150/200 bars;
+    from about 3.5 px/mrad (4× at 1080p) the layout without Marksman is exactly the spec sheet one (with Marksman the
+    first bar sits under the wire's hashes, so its label is lowered or left out instead of drawn over them). Hashes
+    and bars never move, and the wire, posts and dot are never thinned.
   - Ammo HUD (`UsecAmmoHud`, `UsecAmmoHudRules`): a role-owned bottom-right `HudRenderCallback` line (chamber »
     [magazine] · 消音, a magnification tag and a bolt bar; the tag shows the shown magnification to one decimal, `3.4×`,
     dropping `.0` for whole numbers, `4×`, and the row's placement reserves the widest form so it never jumps while the

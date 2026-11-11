@@ -39,6 +39,7 @@
     "JudgeTeleportRecoveryMixin",
     "JudgeNetworkTeleportRecoveryMixin",
     "PoliceSlotAssignmentMixin",
+    "ApprenticeCivilianPoolMixin",
     "PoliceRoleHistoryMixin",
     "EmmaBacklashDeathMixin",
     "EmmaRoleClaimMixin",

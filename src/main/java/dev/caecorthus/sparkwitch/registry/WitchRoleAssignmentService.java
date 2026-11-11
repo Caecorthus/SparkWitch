@@ -22,7 +22,7 @@ public final class WitchRoleAssignmentService {
             List<ServerPlayerEntity> players
     ) {
         WitchRoleCounts.Counts counts = WitchRoleCounts.forPlayerCount(players.size());
-        if (counts.grandWitches() == 0 && counts.apprenticeWitches() == 0) {
+        if (counts.grandWitches() == 0) {
             return 0;
         }
 
@@ -33,7 +33,6 @@ public final class WitchRoleAssignmentService {
         Collections.shuffle(availablePlayers, new java.util.Random(world.getRandom().nextLong()));
 
         Role grandWitch = SparkWitchRoles.grandWitch();
-        Role apprenticeWitch = SparkWitchRoles.apprenticeWitch();
         RoleSelectionContext roleContext = roleSelectionContext(world, gameComponent, players);
 
         int assigned = 0;
@@ -54,13 +53,6 @@ public final class WitchRoleAssignmentService {
         if (countRole(gameComponent, players, grandWitch) > 0 && gameComponent.isRoleEnabled(bewitched)) {
             int bewitchedRemaining = counts.bewitched() - countRole(gameComponent, players, bewitched);
             assigned += assignRole(gameComponent, availablePlayers, bewitched, bewitchedRemaining);
-        }
-
-        // Apprentice Witch is a civilian role and follows the >=24 rule directly, independent of actual Grand Witch assignment.
-        // 预备魔女是好人职业，只按 >=24 的人数规则刷新，不依赖大魔女是否真的被分到。
-        if (isEligible(gameComponent, roleContext, apprenticeWitch)) {
-            int apprenticeRemaining = counts.apprenticeWitches() - countRole(gameComponent, players, apprenticeWitch);
-            assigned += assignRole(gameComponent, availablePlayers, apprenticeWitch, apprenticeRemaining);
         }
 
         return assigned;

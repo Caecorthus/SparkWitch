@@ -6,9 +6,7 @@ package dev.caecorthus.sparkwitch.registry;
  */
 public final class WitchRoleCounts {
     public static final int WITCH_THRESHOLD = 18;
-    public static final int APPRENTICE_WITCH_THRESHOLD = 24;
     public static final int BEWITCHED_INTERVAL = 6;
-    public static final int APPRENTICE_DIVIDEND = 8;
 
     private WitchRoleCounts() {
     }
@@ -16,8 +14,7 @@ public final class WitchRoleCounts {
     public static Counts forPlayerCount(int totalPlayers) {
         return new Counts(
                 grandWitches(totalPlayers),
-                bewitched(totalPlayers),
-                apprenticeWitches(totalPlayers)
+                bewitched(totalPlayers)
         );
     }
 
@@ -35,13 +32,12 @@ public final class WitchRoleCounts {
         return totalPlayers < WITCH_THRESHOLD ? 0 : (totalPlayers - WITCH_THRESHOLD) / BEWITCHED_INTERVAL;
     }
 
-    public static int apprenticeWitches(int totalPlayers) {
-        if (totalPlayers < APPRENTICE_WITCH_THRESHOLD) {
-            return 0;
-        }
-        return Math.floorDiv(totalPlayers, APPRENTICE_DIVIDEND);
-    }
-
-    public record Counts(int grandWitches, int bewitched, int apprenticeWitches) {
+    /*
+     * No Apprentice Witch quota (owner, 2026-11-11): she shares Wathe's plain-civilian fallback seats instead, see
+     * roles/civilian/apprentice/ApprenticeCivilianPool.
+     * 预备魔女不再有名额（所有者 2026-11-11）：改为与 Wathe 普通平民共享兜底席位，见
+     * roles/civilian/apprentice/ApprenticeCivilianPool。
+     */
+    public record Counts(int grandWitches, int bewitched) {
     }
 }
