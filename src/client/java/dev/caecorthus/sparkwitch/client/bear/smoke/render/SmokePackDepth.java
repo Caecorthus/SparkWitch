@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.client.bear.smoke.render;
 
 import com.mojang.blaze3d.platform.GlStateManager;
-import net.minecraft.resource.ResourceManager;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
@@ -52,10 +51,10 @@ final class SmokePackDepth {
     }
 
     /** Writes the merged depth and returns its texture id. / 写入合并深度并返回其纹理 id。 */
-    static int merge(ResourceManager resources, int depthAll, int depthOpaque, int depthBeforeHand,
-                     int fullWidth, int fullHeight) throws IOException {
+    static int merge(int depthAll, int depthOpaque, int depthBeforeHand, int fullWidth, int fullHeight)
+            throws IOException {
         if (program == null) {
-            program = SmokeProgram.load(resources, "fullscreen.vsh", "pack_depth.fsh", "OutDepth");
+            program = SmokeProgram.load("fullscreen.vsh", "pack_depth.fsh", "OutDepth");
             GL20.glUseProgram(program.id());
             program.sampler("DepthAll", UNIT_ALL);
             program.sampler("DepthOpaque", UNIT_OPAQUE);

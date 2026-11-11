@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.fisher;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeTargetOcclusion;
 import dev.doctor4t.wathe.item.KnifeItem;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.util.Identifier;
@@ -22,6 +23,8 @@ public final class SwordfishClientTargeting {
     public static boolean showsTarget(ClientPlayerEntity player) {
         return player != null
                 && player.getMainHandStack().isOf(SparkWitchItems.swordfish())
-                && KnifeItem.getKnifeTarget(player) instanceof EntityHitResult;
+                // Hint only (the stab asks getKnifeTarget itself): a target hidden by BEAR smoke does not light it.
+                // 仅提示（刺击自行调用 getKnifeTarget）：被 BEAR 烟雾挡住的目标不点亮准星。
+                && SmokeTargetOcclusion.visibleHit(player, KnifeItem.getKnifeTarget(player)) instanceof EntityHitResult;
     }
 }

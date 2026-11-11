@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.controlexpert;
 
+import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeTargetOcclusion;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsControlExpertBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertTaserTargeting;
@@ -33,8 +34,10 @@ public final class TaserClientTargeting {
             return false;
         }
         double range = ControlExpertRules.taserRange(SparkTraitsControlExpertBridge.marksmanRangeMultiplier(player));
-        return ControlExpertTaserTargeting.findTarget(player, range, player.clientWorld.getPlayers(),
-                TaserClientTargeting::isVisibleCandidate) != null;
+        PlayerEntity target = ControlExpertTaserTargeting.findTarget(player, range, player.clientWorld.getPlayers(),
+                TaserClientTargeting::isVisibleCandidate);
+        // A target hidden by BEAR smoke does not light the hint (hint only). / 被 BEAR 烟雾挡住的目标不点亮提示（仅提示）。
+        return target != null && !SmokeTargetOcclusion.hides(player, target);
     }
 
     /** Same public filter as Wathe's own gun crosshair. / 与 Wathe 自身枪械准星相同的公开过滤。 */

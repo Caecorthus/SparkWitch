@@ -115,6 +115,21 @@ public final class RiftSessionRules {
             // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
             Identifier.of("sparkwitch", "use_specter_skill"),
             Identifier.of("sparkwitch", "use_specter_second_skill"),
+            // Medium 通灵 (G) and 招魂 (Role Skill 2): the two menu requests and their two paid confirmations (PR #209).
+            // The dead voter's submit_medium_vote is deliberately absent: only a dead round member may send it, and its
+            // handler validates that itself.
+            // 通灵师的通灵（G 键）与招魂（职业技能 2）：两个菜单请求及其两个付费确认（PR #209）。死者投票包
+            // submit_medium_vote 有意不列入：只有本局死者可以发送，其处理器自行校验。
+            Identifier.of("sparkwitch", "use_medium_skill"),
+            Identifier.of("sparkwitch", "submit_medium_seance"),
+            Identifier.of("sparkwitch", "use_medium_second_skill"),
+            Identifier.of("sparkwitch", "submit_medium_haunt_target"),
+            // Charon pardon (shared key G) and ferry (Role Skill 2), PR #202; owner 2026-11-09: a controlled Charon cannot
+            // pardon either. A dropped pardon simply lets the 0.5 s window lapse and the held kill replay.
+            // 卡戎宽恕（共享 G 键）与摆渡（职业技能 2），PR #202；所有者 2026-11-09：被控制的卡戎同样不能宽恕。被丢弃的宽恕包只会
+            // 让 0.5 秒窗口过期，被扣住的击杀随之重放。
+            Identifier.of("sparkwitch", "ferryman_pardon"),
+            Identifier.of("sparkwitch", "ferryman_ferry"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
             // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.

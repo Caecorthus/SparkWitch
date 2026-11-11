@@ -55,6 +55,7 @@ import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterShopService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaDisconnectService;
@@ -195,6 +196,11 @@ public final class SparkWitchEvents {
         SpecterOtherworldService.register();
         SpecterShopService.register();
         SpecterReplayService.register();
+        // The Charon (PR #202): one hub line right after the Specter's services, following role registration order
+        // (Specter, Charon, Insider) and leaving the Seeker, Angler, Fiend, Insider run below contiguous.
+        // 卡戎（PR #202）：紧随幽魂各服务之后的一行注册中心，与职业注册顺序（幽魂、卡戎、内应）一致，并保持下方搜寻者、钓鱼佬、
+        // 魔人、内应这一段连续。
+        FerrymanFeatureService.register();
         // 夏目安安 (PR #194): runtime listeners, then its replay formatter (the fork kept it in a shared
         // SparkWitchReplayFormatters class that main does not have). 夏目安安（PR #194）：运行期监听器，然后是回放格式化器
         // （fork 中位于 main 没有的共享 SparkWitchReplayFormatters 类）。
@@ -227,6 +233,8 @@ public final class SparkWitchEvents {
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 DominatorForcedShotService.onRoleAssigned(serverPlayer);
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(serverPlayer)
+                        .assignForRole(role);
                 SpecterPlayerComponent.KEY.get(serverPlayer).assignForRole(role);
                 SpecterFearComponent.KEY.get(serverPlayer).clear();
                 SpecterSecondSkillComponent.KEY.get(serverPlayer).assignForRole(role);
@@ -303,6 +311,9 @@ public final class SparkWitchEvents {
                 SpecterFearComponent.KEY.get(victim).clear();
                 SpecterSecondSkillComponent.KEY.get(victim).clear();
                 SpecterCowardiceComponent.KEY.get(victim).clear();
+                // A Last Stand survivor keeps the Medium cooldowns and 招魂 bindings (same precedent).
+                // 背水一战存活者保留通灵师冷却与招魂绑定（同一先例）。
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(victim).clear();
             }
             OrthopedistSkillService.clearPlayer(victim);
             if (!WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
@@ -322,6 +333,7 @@ public final class SparkWitchEvents {
                 SpecterFearComponent.KEY.get(serverPlayer).clear();
                 SpecterSecondSkillComponent.KEY.get(serverPlayer).clear();
                 SpecterCowardiceComponent.KEY.get(serverPlayer).clear();
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(serverPlayer).clear();
                 OrthopedistSkillService.clearPlayer(serverPlayer);
                 DominatorSkillService.clearPlayer(serverPlayer);
                 GuardianAngelFeatureService.clearRoundPlayer(serverPlayer);
@@ -338,6 +350,9 @@ public final class SparkWitchEvents {
                 WraithConversion.beginRound(serverWorld, gameComponent.getAllPlayers().size());
                 MagicianRoster.captureAll(serverWorld);
                 SpecterOtherworldComponent.KEY.get(serverWorld).clear();
+                // A window from the previous round never survives into a new one.
+                // 上一局的投票窗口绝不带入新一局。
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceComponent.KEY.get(serverWorld).clear();
             }
         });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
@@ -347,6 +362,7 @@ public final class SparkWitchEvents {
                 WitchWorldComponent.KEY.get(serverWorld).clearRoundState();
                 FirePokerFallAttributionService.clearAll();
                 SpecterOtherworldComponent.KEY.get(serverWorld).clear();
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceComponent.KEY.get(serverWorld).clear();
                 WraithLifecycle.clearRoundState(serverWorld);
                 PoisonApplePlateService.clearLoadedPlates();
                 MagicianPlaybackManager.clearAll();
@@ -359,6 +375,7 @@ public final class SparkWitchEvents {
                     SpecterFearComponent.KEY.get(player).clear();
                     SpecterSecondSkillComponent.KEY.get(player).clear();
                     SpecterCowardiceComponent.KEY.get(player).clear();
+                    dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(player).clear();
                     DominatorForcedShotService.discard(player);
                     OrthopedistSkillService.clearPlayer(player);
                     DominatorSkillService.clearPlayer(player);
@@ -371,6 +388,9 @@ public final class SparkWitchEvents {
         // BEAR (civilian): its hub fixes the order of the BEAR services; registered before USEC, which stays last.
         // BEAR（平民）：BEAR 各服务的顺序由其注册中心固定；注册在 USEC 之前，USEC 保持最后。
         dev.caecorthus.sparkwitch.roles.civilian.bear.BearFeatureService.register();
+        // Medium (civilian): its hub fixes the order of the Medium services; registered after BEAR and before USEC,
+        // which stays last. / 通灵师（平民）：通灵师各服务的顺序由其注册中心固定；注册在 BEAR 之后、USEC 之前，USEC 保持最后。
+        dev.caecorthus.sparkwitch.roles.civilian.medium.MediumFeatureService.register();
         // USEC (police variant): appended last so every existing listener keeps its order; the hub fixes the order of
         // the USEC services. / USEC（警察变体）：追加在最后，使所有既有监听器保持顺序；USEC 各服务的顺序由注册中心固定。
         UsecFeatureService.register();

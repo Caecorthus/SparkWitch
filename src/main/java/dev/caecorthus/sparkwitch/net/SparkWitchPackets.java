@@ -21,6 +21,16 @@ import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSecondSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceResultS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSecondSkillService;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSkillService;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.OpenMediumHauntSelectS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.OpenMediumSeanceInputS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumHauntTargetC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumSeanceC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumVoteC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSecondSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPacket;
@@ -124,6 +134,38 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playC2S().register(
                 UseSpecterSecondSkillC2SPacket.ID,
                 UseSpecterSecondSkillC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(UseMediumSkillC2SPacket.ID, UseMediumSkillC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(
+                UseMediumSecondSkillC2SPacket.ID,
+                UseMediumSecondSkillC2SPacket.CODEC
+        );
+        // Medium: the paid submits and the two menus they answer. / 通灵师：付费提交与它们回应的两个菜单。
+        PayloadTypeRegistry.playC2S().register(
+                SubmitMediumSeanceC2SPacket.ID,
+                SubmitMediumSeanceC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
+                SubmitMediumHauntTargetC2SPacket.ID,
+                SubmitMediumHauntTargetC2SPacket.CODEC
+        );
+        // The dead answer a 通灵 from their vote screen; never a chat message.
+        // 死者在投票界面回答通灵；绝不走聊天消息。
+        PayloadTypeRegistry.playC2S().register(
+                SubmitMediumVoteC2SPacket.ID,
+                SubmitMediumVoteC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                OpenMediumSeanceInputS2CPacket.ID,
+                OpenMediumSeanceInputS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                OpenMediumHauntSelectS2CPacket.ID,
+                OpenMediumHauntSelectS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                MediumSeanceResultS2CPacket.ID,
+                MediumSeanceResultS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
@@ -257,6 +299,19 @@ public final class SparkWitchPackets {
                 (payload, context) -> SpecterSkillService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseSpecterSecondSkillC2SPacket.ID,
                 (payload, context) -> SpecterSecondSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseMediumSkillC2SPacket.ID,
+                (payload, context) -> MediumSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseMediumSecondSkillC2SPacket.ID,
+                (payload, context) -> MediumSecondSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(SubmitMediumSeanceC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        MediumSkillService.submit(context.player(), payload.question())));
+        ServerPlayNetworking.registerGlobalReceiver(SubmitMediumHauntTargetC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        MediumSecondSkillService.submit(context.player(), payload.target())));
+        ServerPlayNetworking.registerGlobalReceiver(SubmitMediumVoteC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        MediumSkillService.vote(context.player(), payload.windowId(), payload.yes())));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {
