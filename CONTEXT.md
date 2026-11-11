@@ -209,6 +209,12 @@ Current build baseline:
     RETURN to its nearest Bomber drone, so keep that name and signature.
 - `roles/civilian/apprentice/`: Apprentice instinct and ability runtime, plus the 2026-10-06 buff (owner decisions
   D1–D10, numbers in each ability class):
+  - Dealing (owner, 2026-11-11): no 24-player minimum and no 1-per-8 quota. Her appearance condition is always false,
+    so she is never one of Wathe's once-each special civilian picks; `mixin/ApprenticeCivilianPoolMixin` wraps every
+    `addRole` in `ScoreboardRoleSelectorComponent.assignCivilians` and `ApprenticeCivilianPool.chooseSeatRole` turns
+    each plain-Civilian fallback seat (every special civilian already dealt, or a group seat Wathe gave up) into an
+    Apprentice on a 50/50 coin while she is enabled (a disabled Apprentice draws no random number). She can appear
+    several times; `WitchRoleAssignmentService` / `WitchRoleCounts` no longer deal her. `/wathe:forceRole` still works.
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
     buff's state out of the frozen `sparkwitch:player` packet. Only the Clairvoyance exposure timer syncs to everyone;
     tasks toward graduation, the Purify cooldown, the two Swift Step recharge timers, the Mighty Force forfeit flag and
