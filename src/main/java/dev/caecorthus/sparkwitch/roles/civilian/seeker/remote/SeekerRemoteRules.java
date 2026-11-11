@@ -98,6 +98,11 @@ public final class SeekerRemoteRules {
             // 让 0.5 秒窗口过期，被扣住的击杀随之重放。
             Identifier.of("sparkwitch", "ferryman_pardon"),
             Identifier.of("sparkwitch", "ferryman_ferry"),
+            // 橘雪莉 推演 (shared key G): the panel request and its paid confirmation, and her own 巨力魔法 (Role Skill 2),
+            // PR #206. / 橘雪莉推演（共享 G 键）：面板请求及其付费确认，以及她自己的巨力魔法（职业技能 2），PR #206。
+            Identifier.of("sparkwitch", "request_sherry_deduction"),
+            Identifier.of("sparkwitch", "confirm_sherry_deduction"),
+            Identifier.of("sparkwitch", "use_sherry_mighty_force"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "magician_ability"),
             // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.

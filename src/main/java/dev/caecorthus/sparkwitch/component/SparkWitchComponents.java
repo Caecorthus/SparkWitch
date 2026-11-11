@@ -273,6 +273,13 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, HannaComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HannaComponent::new);
+        // 橘雪莉 (PR #206): skill cooldowns, her Mighty Force window, badge holders and reveal trackers, synced to the
+        // owner only; appended last, after Tono Hanna's.
+        // 橘雪莉（PR #206）：技能冷却、巨力窗口、徽章持有者与揭示追踪，只同步给本人；追加在最后，位于远野汉娜的组件之后。
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent::new);
     }
 
     @Override
