@@ -2017,12 +2017,13 @@ Current build baseline:
     `ArmorItem`: no armor points; iron equip sound), so only the head armor slot takes it, right-click in hand and
     shift-click equip it, and vanilla `HeadFeatureRenderer` draws the art model (`display.head` scale 1.6; head box
     [4,12]^3, +x the wearer's right) for everyone; predicate `sparkwitch:visor_up` (`RysTModelPredicates`, 1 = raised)
-    picks `item/rys_t_visor_up` (art v8 2026-11-06, clean-slate: the sixteen visor parts turn rigidly, no lift, 90°
-    about +x around the temple bolts (8, 9, 7), `up = P + Rx(90°)·(down − P)`, baked as an exact axis permutation
-    with no element rotations; lowered, the 10 × 3 glass (x 3..13, y 6..9, face z 1.75) sits in a proud frame
-    (z 1.5..2.25) over a chin plate (y 4..5, z 2.25..2.75) with four-piece side arms (x 2.25..2.75) ending at the
-    bolts; raised, the frame lies flat on the crown cap (y 13.75..14.5 over z 3..8, glass at y 14.25) with the chin
-    plate as a short peak (z 2..3), nothing above y 15 or ahead of z 1.5; `RysTVisorGeometry.UP_*`); the same 3-D
+    picks `item/rys_t_visor_up` (art v9 2026-11-11, owner call: a plain cube shell x 3..13, y 4..13, z 3..13 with no
+    dome, the shield as dark as the shell, one 64 × 64 atlas at one texel per model unit; the eleven visor parts turn
+    rigidly, no lift, 90° about +x around the temple pivots (8, 8.5, 7.5), `up = P + Rx(90°)·(down − P)`, baked as an
+    exact axis permutation with no element rotations; lowered, the 8 × 3 glass (x 4..12, y 6..9, z 2.5) sits at the
+    back of a half-unit frame (z 2..2.5) on the flat face plate (y 4..11, z 2.5..3) with one side arm each
+    (x 2.5..3 / 13..13.5) back to the pivots; raised, the plate lies flat on the roof (y 13..13.5 over z 3..10, glass
+    at y 13.5), nothing above y 14 or ahead of the shell front; `RysTVisorGeometry.UP_*`); the same 3-D
     model is the GUI/ground/item-frame look through its own `display` entries (no 2-D icon, owner call 2026-11-07). Visor toggle (H9, only way): `RysTVisorToggle` from
     `onClicked`, an empty-cursor right-click on the helmet in the player's own head slot (inventory index 39) in any
     screen; both sides claim, the server writes in place and plays `bear.rys_t.visor_up/down` publicly, the creative
