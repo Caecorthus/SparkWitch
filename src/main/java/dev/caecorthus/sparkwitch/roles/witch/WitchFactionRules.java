@@ -1,12 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.witch;
 
 import dev.caecorthus.sparkfactionapi.api.FactionEconomyPolicy;
-import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules;
 import dev.caecorthus.sparkwitch.roles.witch.accomplice.variant.AccompliceVariants;
 import dev.doctor4t.wathe.api.Role;
@@ -34,17 +34,16 @@ public final class WitchFactionRules {
 
     /**
      * Role ids of the 魔裁 characters (see {@link #isWitchTrialGirl}). A new 魔裁 role adds its id here. Ids, not
-     * {@link Role} instances, so the set needs no registration order; 橘雪莉 ({@code sparkwitch:sherry}, PR #206) is
-     * listed ahead of its merge and matches nothing until that role registers.
+     * {@link Role} instances, so the set needs no registration order.
      * 魔裁角色的职业 ID（见 {@link #isWitchTrialGirl}）。新增魔裁职业时把 ID 加到这里。用 ID 而非 {@link Role} 实例，
-     * 因此不依赖注册顺序；橘雪莉（{@code sparkwitch:sherry}，PR #206）在合并前先行列入，该职业注册之前不会匹配任何对象。
+     * 因此不依赖注册顺序。
      */
     private static final Set<Identifier> WITCH_TRIAL_GIRL_IDS = Set.of(
             EmmaRules.ROLE_ID,
             NoaRules.ROLE_ID,
             HannaRules.ROLE_ID,
             NatsumeRules.ROLE_ID,
-            SparkWitch.id("sherry")
+            SherryRules.ROLE_ID
     );
 
     private WitchFactionRules() {

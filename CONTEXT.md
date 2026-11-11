@@ -1059,8 +1059,8 @@ Current build baseline:
   `compat/SparkTraitsSchrodingersCatBridge`. No client code.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
   - Witch Trial girls (魔裁, owner 2026-11-11): `WitchFactionRules.isWitchTrialGirl` classes the 魔法少女的魔女裁判
-    character roles by role id (`WITCH_TRIAL_GIRL_IDS`: Emma, Noa, Hanna, Natsume Anan, plus `sparkwitch:sherry`
-    listed ahead of PR #206). `isOtherWitchRole` includes them, so the Grand Witch's instinct shows them in
+    character roles by role id (`WITCH_TRIAL_GIRL_IDS`: Emma, Noa, Hanna, Natsume Anan, Tachibana Sherry).
+    `isOtherWitchRole` includes them, so the Grand Witch's instinct shows them in
     `OTHER_WITCH_INSTINCT_COLOR` like the Apprentice and the Murderous Witch, whatever their own faction;
     accomplices and the Curser still see them in the non-witch colour. It is an instinct class only: no Witch
     faction membership, mana, factor or kill-mana bonus, Rift Gate access, trait pool or `gui.sparkwitch.skills`
