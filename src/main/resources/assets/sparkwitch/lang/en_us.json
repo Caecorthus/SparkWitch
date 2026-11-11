@@ -572,6 +572,7 @@
   "item.sparkwitch.hunter_trap.tooltip.line4": "- Native killers may coat a placed trap with a Poison Vial; poison lasts 40 seconds.",
   "item.sparkwitch.hunter_trap.tooltip.line5": "- Keep up to 4 traps. Sneak-use your own trap to reclaim it.",
   "item.sparkwitch.hunter_trap.poisoned": "Poisoned",
+  "hud.sparkwitch.hunter_trap.dismantling": "DISARMING",
   "item.sparkwitch.double_barrel_shotgun": "Double-Barrel Shotgun",
   "item.sparkwitch.double_barrel_shotgun.tooltip.line1": "- Current load: %s / 2",
   "item.sparkwitch.double_barrel_shotgun.tooltip.line2": "- Right-click the shotgun with a shell in your inventory, or use shells from the other hand.",

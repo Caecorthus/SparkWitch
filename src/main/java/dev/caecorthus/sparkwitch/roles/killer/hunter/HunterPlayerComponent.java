@@ -43,6 +43,8 @@ public final class HunterPlayerComponent implements AutoSyncedComponent, ServerT
     private final List<UUID> ownedTrapUuids = new ArrayList<>();
     private @Nullable Identifier activePoisonSource;
     private @Nullable HunterPoisonAttribution trapPoisonAttribution;
+    private long lastTrapTick = -1L;
+    private @Nullable UUID lastTrapPlacerUuid;
     private int appliedFractureLayers = -1;
 
     public HunterPlayerComponent(PlayerEntity player) {
@@ -63,8 +65,25 @@ public final class HunterPlayerComponent implements AutoSyncedComponent, ServerT
         return application;
     }
 
-    public boolean healOneFractureLayer() {
-        if (!injury.healOneFractureLayer()) {
+    /** Marks the moment this player was caught by a trap and who placed it, for the placer's kill-reward window.
+     * 记录该玩家被夹住的时刻与放置者，用于放置者的击杀奖励时间窗。 */
+    public void markTrapped(long tick, @Nullable UUID placerUuid) {
+        lastTrapTick = tick;
+        lastTrapPlacerUuid = placerUuid;
+    }
+
+    /** Whether the last trap catch happened less than {@code windowTicks} ago. / 上次被夹住是否发生在窗口之内。 */
+    public boolean wasCaughtByTrapWithin(long currentTick, int windowTicks) {
+        return lastTrapTick >= 0L && currentTick - lastTrapTick < windowTicks;
+    }
+
+    /** The placer credited for the last trap catch, else null. / 上次夹住所记的放置者，否则为 null。 */
+    @Nullable
+    public UUID getLastTrapPlacerUuid() {
+        return lastTrapPlacerUuid;
+    }
+
+    public boolean healOneFractureLayer() {        if (!injury.healOneFractureLayer()) {
             return false;
         }
         refreshFractureState();
@@ -145,6 +164,8 @@ public final class HunterPlayerComponent implements AutoSyncedComponent, ServerT
         ownedTrapUuids.clear();
         clearPoisonAttribution();
         clearFractureState();
+        lastTrapTick = -1L;
+        lastTrapPlacerUuid = null;
         sync();
     }
 

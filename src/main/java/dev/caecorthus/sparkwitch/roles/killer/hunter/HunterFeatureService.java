@@ -1,7 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.killer.hunter;
 
+import dev.caecorthus.sparkwitch.compat.SparkTraitsAbyssListenerBridge;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownEntryAccessor;
 import dev.caecorthus.sparkwitch.mixin.accessor.ItemCooldownManagerAccessor;
+import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.doctor4t.wathe.api.Faction;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -18,6 +20,7 @@ import dev.doctor4t.wathe.record.GameRecordManager;
 import dev.doctor4t.wathe.record.replay.ReplayGenerator;
 import dev.doctor4t.wathe.record.replay.ReplayRegistry;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -40,10 +43,11 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.math.Box;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 
 /** Wires Hunter-only interactions, economy, cleanup, and replay behavior into Wathe events. */
 public final class HunterFeatureService {
-    private static final int DISMANTLE_COOLDOWN_TICKS = 15 * 20;
+    private static final Map<UUID, DismantleSession> DISMANTLE_SESSIONS = new HashMap<>();
     private static boolean registered;
 
     private HunterFeatureService() {
@@ -128,30 +132,39 @@ public final class HunterFeatureService {
             return ActionResult.SUCCESS;
         }
 
-        // Dismantlers have direct-view access only; owner reclaim above intentionally needs no line of sight.
-        // 拆除者只能直视操作；上方放置者回收路径有意不要求视线。
-        if (player.isSneaking() && role != null
-                && HunterRules.canDismantle(role.identifier(), player.canSee(trap))) {
-            if (!world.isClient) {
-                applyDismantleCooldown(player);
-                recordTrapInteraction(player, trap, "dismantle");
-                world.playSound(
-                        null,
-                        trap.getBlockPos(),
-                        SoundEvents.BLOCK_CHAIN_FALL,
-                        SoundCategory.PLAYERS,
-                        0.8F,
-                        1.2F
-                );
-                trap.discardTrap();
+        // Dismantlers need direct view. Class 2 (every killer, the Loose End and the Undercover) removes the trap at
+        // once; class 1 (police, plus any SparkTraits Impostor holder) must keep pressing the right button for five
+        // seconds. 拆除者需要直视。第二类（所有杀手、亡命徒、卧底）瞬间拆除；第一类（警职，外加带内鬼词条者）必须连续右键五秒。
+        if (player.isSneaking() && role != null && player.canSee(trap)) {
+            // On the client this returns PASS so the client-only HUD listener registered behind this one still runs;
+            // the server is the only side that removes the trap.
+            // 客户端这里返回 PASS，让注册在其后的客户端 HUD 监听器仍能收到按键；只有服务端真正移除夹子。
+            if (HunterRules.isTrapKiller(role.identifier(), role.getFaction() == Faction.KILLER)) {
+                if (world.isClient) {
+                    return ActionResult.PASS;
+                }
+                finishDismantle(world, player, trap);
+                return ActionResult.SUCCESS;
             }
-            return ActionResult.SUCCESS;
+            if (isTrapPoliceClass(player, role)) {
+                if (world.isClient) {
+                    return ActionResult.PASS;
+                }
+                DismantleSession completed = pressDismantle(world, player, trap);
+                if (completed != null) {
+                    finishDismantle(world, player, trap);
+                }
+                return ActionResult.SUCCESS;
+            }
         }
 
         ItemStack heldStack = player.getStackInHand(hand);
+        // Poisoning is class 2 as well; the Loose End and the Undercover never receive a trap or a Poison Vial in
+        // normal play, so naming them here costs nothing. / 淬毒同样按第二类判定；正常玩法里亡命徒与卧底拿不到捕兽夹或毒药瓶，
+        // 把他们算进来没有代价。
         if (!heldStack.isOf(WatheItems.POISON_VIAL)
                 || role == null
-                || role.getFaction() != Faction.KILLER
+                || !HunterRules.isTrapKiller(role.identifier(), role.getFaction() == Faction.KILLER)
                 || trap.isPoisoned()) {
             return ActionResult.PASS;
         }
@@ -171,6 +184,115 @@ public final class HunterFeatureService {
         return ActionResult.SUCCESS;
     }
 
+    /** Class 1: the live PoliceRoles registry, the fixed list, or a SparkTraits Impostor holder.
+     * 第一类：实时 PoliceRoles 注册表、固定名单，或带 SparkTraits 内鬼词条者。 */
+    private static boolean isTrapPoliceClass(PlayerEntity player, Role role) {
+        if (role == null) {
+            return false;
+        }
+        boolean registeredPolice;
+        try {
+            registeredPolice = PoliceRoles.contains(role);
+        } catch (RuntimeException | LinkageError ignored) {
+            registeredPolice = false;
+        }
+        return HunterRules.isTrapPolice(role.identifier(), registeredPolice)
+                || Boolean.TRUE.equals(SparkTraitsAbyssListenerBridge.isImpostorActive(player));
+    }
+
+    /**
+     * One right-click of a class-1 channel: starts or continues the session, refreshes the held-item cooldown and the
+     * trap's synced dismantler. Returns the finished session once the five seconds are up, else null.
+     * 第一类引导的一次右键：开始或延续会话，刷新按住期间的物品冷却与夹子同步的拆除者。五秒满后返回结束的会话，否则为 null。
+     */
+    private static @Nullable DismantleSession pressDismantle(
+            World world,
+            PlayerEntity player,
+            HunterTrapEntity trap
+    ) {
+        long now = world.getTime();
+        DismantleSession session = DISMANTLE_SESSIONS.get(player.getUuid());
+        boolean continuing = session != null
+                && session.trapUuid.equals(trap.getUuid())
+                && now - session.lastPressTick <= HunterRules.DISMANTLE_PRESS_TIMEOUT_TICKS;
+        if (!continuing) {
+            session = new DismantleSession(trap.getUuid(), now);
+            DISMANTLE_SESSIONS.put(player.getUuid(), session);
+        }
+        session.lastPressTick = now;
+        trap.setDismantler(player.getUuid(), now);
+        // The held 0.4 s cooldown is refreshed every tick by the trap while the channel lives, not once per press.
+        // 按住期间的 0.4 秒冷却由夹子在引导存续期间每刻刷新，而不是每次按键刷一次。
+        holdHeldItemCooldowns(player);
+        if (now - session.startTick < HunterRules.DISMANTLE_CHANNEL_TICKS) {
+            return null;
+        }
+        DISMANTLE_SESSIONS.remove(player.getUuid());
+        return session;
+    }
+
+    /** Every item in the inventory sits on the 0.4 s held cooldown, refreshed on each press while the channel runs.
+     * 引导期间背包内每一件物品都保持在 0.4 秒冷却上，每次按键刷新一次。 */
+    private static void holdHeldItemCooldowns(PlayerEntity player) {
+        holdInventoryCooldown(player, HunterRules.DISMANTLE_HELD_ITEM_COOLDOWN_TICKS);
+    }
+
+    /**
+     * Keeps a floor, never shortens: an item already cooling for longer than {@code ticks} is left alone until it drops
+     * below the floor, then held there. This is what lets a 2.4 s gun cooldown run down to 0.4 s during the channel
+     * instead of being cut to 0.4 s at once.
+     * 只抬高不缩短：冷却剩余高于 {@code ticks} 的物品保持原样，降到下限以下后才被按在下限上。这使引导期间一把还剩 2.4 秒
+     * 冷却的枪先自然降到 0.4 秒，而不是被立刻截成 0.4 秒。
+     */
+    static void holdInventoryCooldown(PlayerEntity player, int ticks) {
+        ItemCooldownManager manager = player.getItemCooldownManager();
+        ItemCooldownManagerAccessor managerAccessor = (ItemCooldownManagerAccessor) manager;
+        Map<Item, ?> entries = managerAccessor.sparkwitch$getEntries();
+        int currentTick = managerAccessor.sparkwitch$getTick();
+        for (Item item : inventoryItems(player)) {
+            if (remainingCooldownTicks(entries.get(item), currentTick) < ticks) {
+                manager.set(item, ticks);
+            }
+        }
+    }
+
+    private static Set<Item> inventoryItems(PlayerEntity player) {
+        Set<Item> items = new HashSet<>();
+        for (int slot = 0; slot < player.getInventory().size(); slot++) {
+            ItemStack stack = player.getInventory().getStack(slot);
+            if (!stack.isEmpty()) {
+                items.add(stack.getItem());
+            }
+        }
+        return items;
+    }
+
+    private static void finishDismantle(World world, PlayerEntity player, HunterTrapEntity trap) {
+        recordTrapInteraction(player, trap, "dismantle");
+        world.playSound(
+                null,
+                trap.getBlockPos(),
+                SoundEvents.BLOCK_CHAIN_FALL,
+                SoundCategory.PLAYERS,
+                0.8F,
+                1.2F
+        );
+        trap.setDismantler(null, 0L);
+        trap.discardTrap();
+    }
+
+    private static final class DismantleSession {
+        private final UUID trapUuid;
+        private final long startTick;
+        private long lastPressTick;
+
+        private DismantleSession(UUID trapUuid, long tick) {
+            this.trapUuid = trapUuid;
+            this.startTick = tick;
+            this.lastPressTick = tick;
+        }
+    }
+
     private static HunterTrapEntity nearestTrap(
             World world,
             net.minecraft.util.hit.BlockHitResult hitResult
@@ -184,35 +306,6 @@ public final class HunterFeatureService {
                 .min(Comparator.comparingDouble((HunterTrapEntity trap) -> trap.squaredDistanceTo(hitResult.getPos()))
                         .thenComparingInt(HunterTrapEntity::getId))
                 .orElse(null);
-    }
-
-    private static void applyDismantleCooldown(PlayerEntity player) {
-        Set<Item> cooldownItems = new HashSet<>();
-        for (int slot = 0; slot < player.getInventory().size(); slot++) {
-            ItemStack stack = player.getInventory().getStack(slot);
-            if (!stack.isEmpty() && isCooldownBearing(player, stack.getItem())) {
-                cooldownItems.add(stack.getItem());
-            }
-        }
-
-        ItemCooldownManager manager = player.getItemCooldownManager();
-        ItemCooldownManagerAccessor managerAccessor = (ItemCooldownManagerAccessor) manager;
-        Map<Item, ?> entries = managerAccessor.sparkwitch$getEntries();
-        int currentTick = managerAccessor.sparkwitch$getTick();
-        for (Item item : cooldownItems) {
-            int existingTicks = remainingCooldownTicks(entries.get(item), currentTick);
-            if (existingTicks < DISMANTLE_COOLDOWN_TICKS) {
-                manager.set(item, DISMANTLE_COOLDOWN_TICKS);
-            }
-        }
-    }
-
-    private static boolean isCooldownBearing(PlayerEntity player, Item item) {
-        Identifier itemId = Registries.ITEM.getId(item);
-        return GameConstants.ITEM_COOLDOWNS.containsKey(item)
-                || item instanceof DoubleBarrelShotgunItem
-                || HunterRules.isExtraDismantleCooldownItem(itemId)
-                || player.getItemCooldownManager().isCoolingDown(item);
     }
 
     private static int remainingCooldownTicks(Object entry, int currentTick) {
@@ -238,6 +331,17 @@ public final class HunterFeatureService {
             PlayerPoisonComponent poison = PlayerPoisonComponent.KEY.get(victim);
             if (component.hasConfirmedTrapPoisonDeath(victim.getServerWorld().getTime(), poison.poisoner)) {
                 awardTrapPoison(component.getTrapPoisonAttribution(), victim.getServerWorld());
+            }
+        }
+        // Dying inside the catch window pays the trap's placer, whatever killed the victim.
+        // 在夹住后的时间窗内死亡，无论死于何因，都由该夹子的放置者领赏。
+        if (component.wasCaughtByTrapWithin(
+                victim.getServerWorld().getTime(),
+                HunterRules.TRAP_KILL_REWARD_WINDOW_TICKS
+        )) {
+            UUID placerUuid = component.getLastTrapPlacerUuid();
+            if (placerUuid != null) {
+                addKillerReward(victim.getServerWorld(), placerUuid, HunterRules.TRAP_KILL_REWARD);
             }
         }
         component.clearPoisonAttribution();

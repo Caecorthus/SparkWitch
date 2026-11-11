@@ -24,6 +24,10 @@ public final class HunterTrapClientHooks {
     public static final Identifier HUNTER_TRAP_PLACED_MODEL_ID = SparkWitch.id("item/hunter_trap_placed");
     public static final int HIGHLIGHT_PRIORITY =
             WitchInstinctSuppressionClientHooks.SUPPRESSION_PRIORITY - 1;
+    // Class-1 dismantlers outrank every other outline while the channel runs (owner 2026-11-11).
+    // 第一类拆除引导期间的高亮优先级高于其他描边（所有者 2026-11-11）。
+    private static final int DISMANTLER_HIGHLIGHT_PRIORITY =
+            GetInstinctHighlight.HighlightResult.PRIORITY_HIGH + 10;
     private static boolean registered;
 
     private HunterTrapClientHooks() {
@@ -36,6 +40,41 @@ public final class HunterTrapClientHooks {
         registered = true;
         ModelLoadingPlugin.register(context -> context.addModels(HUNTER_TRAP_PLACED_MODEL_ID));
         GetInstinctHighlight.EVENT.register(HunterTrapClientHooks::trapHighlight);
+        GetInstinctHighlight.EVENT.register(HunterTrapClientHooks::dismantlerHighlight);
+    }
+
+    /**
+     * While a class-1 player is channelling a dismantle on a trap, the Hunter sees that player outlined in the
+     * player's own role colour. The trap syncs its dismantler, so every client agrees on when the channel started and
+     * the entity clears it once the presses stop.
+     * 第一类玩家正在引导拆除时，猎人能看到该玩家以自身职业色描边。夹子同步了拆除者，因此每个客户端对引导何时开始是一致的，
+     * 按键停止后由实体自行清除。
+     */
+    @Nullable
+    private static GetInstinctHighlight.HighlightResult dismantlerHighlight(Entity target) {
+        if (!(target instanceof PlayerEntity targetPlayer)) {
+            return null;
+        }
+        PlayerEntity viewer = MinecraftClient.getInstance().player;
+        if (viewer == null || targetPlayer == viewer) {
+            return null;
+        }
+        GameWorldComponent gameComponent = GameWorldComponent.KEY.get(viewer.getWorld());
+        Role viewerRole = gameComponent.getRole(viewer);
+        if (viewerRole == null || !HunterRules.ROLE_ID.equals(viewerRole.identifier())) {
+            return null;
+        }
+        boolean dismantling = !viewer.getWorld().getEntitiesByClass(
+                HunterTrapEntity.class,
+                targetPlayer.getBoundingBox().expand(4.0D),
+                candidate -> targetPlayer.getUuid().equals(candidate.getDismantlerUuid())
+        ).isEmpty();
+        if (!dismantling) {
+            return null;
+        }
+        Role targetRole = gameComponent.getRole(targetPlayer);
+        int color = targetRole == null ? 0xFFFFFF : targetRole.color() & 0xFFFFFF;
+        return GetInstinctHighlight.HighlightResult.always(color, DISMANTLER_HIGHLIGHT_PRIORITY);
     }
 
     @Nullable

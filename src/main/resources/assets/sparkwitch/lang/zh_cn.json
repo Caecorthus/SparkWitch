@@ -572,6 +572,7 @@
   "item.sparkwitch.hunter_trap.tooltip.line4": "- 原生杀手可用毒药瓶为已放置捕兽夹淬毒，中毒持续40秒。",
   "item.sparkwitch.hunter_trap.tooltip.line5": "- 最多保留4个；潜行使用自己放置的捕兽夹可将其回收。",
   "item.sparkwitch.hunter_trap.poisoned": "已淬毒",
+  "hud.sparkwitch.hunter_trap.dismantling": "拆除中",
   "item.sparkwitch.double_barrel_shotgun": "双管猎枪",
   "item.sparkwitch.double_barrel_shotgun.tooltip.line1": "- 当前装填：%s / 2",
   "item.sparkwitch.double_barrel_shotgun.tooltip.line2": "- 在背包中用弹药右键猎枪，或在另一只手持枪时直接使用弹药进行装填。",

@@ -53,11 +53,20 @@ public final class HunterTrapEntity extends Entity {
             HunterTrapEntity.class,
             TrackedDataHandlerRegistry.BOOLEAN
     );
+    // Who is currently channelling a class-1 dismantle on this trap, synced so the Hunter can highlight them and so
+    // every client drops a stale highlight once the presses stop (owner 2026-11-11).
+    // 当前正在引导第一类拆除的玩家，同步出去以便猎人对其实施高亮，并在按键停止后让所有客户端撤掉过期高亮（所有者 2026-11-11）。
+    private static final TrackedData<Optional<UUID>> DISMANTLER_UUID = DataTracker.registerData(
+            HunterTrapEntity.class,
+            TrackedDataHandlerRegistry.OPTIONAL_UUID
+    );
     private static final double TRIGGER_EXPAND_XZ = 0.35D;
     private static final double TRIGGER_EXPAND_Y = 0.15D;
 
     private @Nullable UUID ownerUuid;
     private @Nullable UUID poisonerUuid;
+    private @Nullable UUID dismantlerUuid;
+    private long dismantleLastPressTick;
     private int armTicks = HunterRules.TRAP_ARM_TICKS;
     private @Nullable BlockPos supportPos;
     private @Nullable BlockPos cachedSupportPos;
@@ -73,6 +82,7 @@ public final class HunterTrapEntity extends Entity {
     protected void initDataTracker(DataTracker.Builder builder) {
         builder.add(OWNER_UUID, Optional.empty());
         builder.add(POISONED, false);
+        builder.add(DISMANTLER_UUID, Optional.empty());
     }
 
     public void setOwner(@Nullable PlayerEntity owner) {
@@ -118,6 +128,24 @@ public final class HunterTrapEntity extends Entity {
         this.supportPos = supportPos.toImmutable();
     }
 
+    /** Records or clears the class-1 dismantler, along with the last press that keeps the channel alive.
+     * 记录或清除第一类拆除者，以及维持引导的最后一次按键。 */
+    public void setDismantler(@Nullable UUID dismantler, long pressTick) {
+        dismantlerUuid = dismantler;
+        dismantleLastPressTick = pressTick;
+        dataTracker.set(DISMANTLER_UUID, Optional.ofNullable(dismantler));
+    }
+
+    /** The player channelling a dismantle, else null. / 正在引导拆除的玩家，否则为 null。 */
+    @Nullable
+    public UUID getDismantlerUuid() {
+        Optional<UUID> tracked = dataTracker.get(DISMANTLER_UUID);
+        if (tracked.isPresent()) {
+            dismantlerUuid = tracked.get();
+        }
+        return dismantlerUuid;
+    }
+
     @Override
     public void tick() {
         super.tick();
@@ -161,6 +189,23 @@ public final class HunterTrapEntity extends Entity {
             return;
         }
 
+        // While the channel lives, every item of the dismantler stays on the 0.4 s cooldown, refreshed each tick; once
+        // the trap is removed or the presses stop, that cooldown simply finishes counting down.
+        // 引导存续期间，拆除者背包内所有物品由这里每刻保持在 0.4 秒冷却上；夹子消失或按键停止后，该冷却自然走完。
+        if (dismantlerUuid != null) {
+            if (getWorld().getTime() - dismantleLastPressTick > HunterRules.DISMANTLE_PRESS_TIMEOUT_TICKS) {
+                setDismantler(null, 0L);
+            } else {
+                PlayerEntity dismantler = getWorld().getPlayerByUuid(dismantlerUuid);
+                if (dismantler != null) {
+                    HunterFeatureService.holdInventoryCooldown(
+                            dismantler,
+                            HunterRules.DISMANTLE_HELD_ITEM_COOLDOWN_TICKS
+                    );
+                }
+            }
+        }
+
         Box triggerBox = getBoundingBox().expand(TRIGGER_EXPAND_XZ, TRIGGER_EXPAND_Y, TRIGGER_EXPAND_XZ);
         for (PlayerEntity player : getWorld().getEntitiesByClass(
                 PlayerEntity.class,
@@ -197,7 +242,13 @@ public final class HunterTrapEntity extends Entity {
     }
 
     private void trigger(PlayerEntity player) {
+        // A floor, not an overwrite: items already cooling longer than three seconds keep their own timer.
+        // 这是下限而非覆盖：本来冷却就超过三秒的物品保持原有计时。
+        HunterFeatureService.holdInventoryCooldown(player, HunterRules.TRAP_VICTIM_ITEM_COOLDOWN_TICKS);
         HunterPlayerComponent injuryComponent = HunterPlayerComponent.KEY.get(player);
+        // Marks the catch so a death inside the reward window pays this trap's placer.
+        // 记下这次夹住，若受害者在奖励时间窗内死亡则由本夹子的放置者领赏。
+        injuryComponent.markTrapped(getWorld().getTime(), getOwnerUuid());
         HunterInjuryState.FractureApplication fracture = injuryComponent.applyTrapInjury();
         // Recorded after the injury so the record can tell whether Bone Setting absorbed it (W16); the injury writes no
         // record, and the trigger record still precedes the trap poison's, as before.

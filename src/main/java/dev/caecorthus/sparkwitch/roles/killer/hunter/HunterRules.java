@@ -19,7 +19,7 @@ public final class HunterRules {
     public static final int SHOTGUN_PRICE = 75;
     public static final int SHELL_PRICE = 150;
     public static final int SLUG_PRICE = 50;
-    public static final int TRAP_PRICE = 25;
+    public static final int TRAP_PRICE = 50;
     public static final int SHOTGUN_STOCK = 1;
 
     public static final int MAX_SHELLS = 2;
@@ -56,12 +56,25 @@ public final class HunterRules {
     public static final int TRAP_ARM_TICKS = 10;
     public static final int TRAP_LIFESPAN_TICKS = 20 * 60 * 10;
     public static final int TRAP_ROOT_TICKS = 20 * 3;
+    // Catching a trap locks every item in the victim's inventory for three seconds, matching the root (owner 2026-11-11).
+    // 被夹住时受害者背包内所有物品进入三秒冷却，与禁锢时长一致（所有者 2026-11-11）。
+    public static final int TRAP_VICTIM_ITEM_COOLDOWN_TICKS = 20 * 3;
     public static final int FRACTURE_LAYER_TICKS = 20 * 60;
     public static final int MAX_FRACTURE_LAYERS = 5;
     public static final double SLOW_PER_FRACTURE_LAYER = 0.20D;
     public static final int TRAP_POISON_TICKS = 20 * 40;
+    // Class 1 dismantling is a channel: five seconds of held right-clicks in range, a gap longer than the press
+    // timeout restarts it, and every item stays on a 0.4 s cooldown while it runs (owner 2026-11-11).
+    // 第一类拆除是引导：在距离内连续右键五秒，超过按键超时即重新开始，引导期间所有物品保持 0.4 秒冷却（所有者 2026-11-11）。
+    public static final int DISMANTLE_CHANNEL_TICKS = 5 * 20;
+    public static final int DISMANTLE_PRESS_TIMEOUT_TICKS = 12;
+    public static final int DISMANTLE_HELD_ITEM_COOLDOWN_TICKS = 8;
     public static final int POISONER_REWARD = 75;
     public static final int PLACER_REWARD = 50;
+    // Dying within three seconds of being caught by a trap pays the placer (owner 2026-11-11).
+    // 被夹住后三秒内死亡，给放置者 30 金币（所有者 2026-11-11）。
+    public static final int TRAP_KILL_REWARD = 30;
+    public static final int TRAP_KILL_REWARD_WINDOW_TICKS = 20 * 3;
 
     public static final Identifier VIGILANTE_ROLE_ID = Identifier.of("wathe", "vigilante");
     public static final Identifier VETERAN_ROLE_ID = Identifier.of("wathe", "veteran");
@@ -71,13 +84,39 @@ public final class HunterRules {
     public static final Identifier ACCOMPLICE_ROLE_ID = Identifier.of("sparkwitch", "accomplice");
     public static final Identifier BEWITCHED_ROLE_ID = Identifier.of("sparkwitch", "bewitched");
     public static final Identifier MURDEROUS_WITCH_ROLE_ID = Identifier.of("sparkwitch", "murderous_witch");
+    public static final Identifier INSIDER_ROLE_ID = Identifier.of("sparkwitch", "insider");
+    public static final Identifier SAVIOR_ROLE_ID = Identifier.of("sparkwitch", "savior");
+    public static final Identifier KNIGHT_ROLE_ID = Identifier.of("sparkwitch", "knight");
+    public static final Identifier SEEKER_ROLE_ID = Identifier.of("sparkwitch", "seeker");
+    public static final Identifier LOOSE_END_ROLE_ID = Identifier.of("wathe", "loose_end");
+    public static final Identifier UNDERCOVER_ROLE_ID = Identifier.of("noellesroles", "undercover");
 
-    private static final Set<Identifier> DIRECT_VIEWERS = Set.of(
+    // Trap rule class 1 (police): every police role and any SparkTraits Impostor holder. This single class owns the
+    // trap's police-side rules (visibility today; dismantling reuses it). The live SparkFactionAPI PoliceRoles registry
+    // is checked alongside this fixed list, so later police variants are covered without editing it; corrupt_cop and the
+    // Insider are Jiahao-factioned but still count. Owner 2026-11-11.
+    // 夹子规则第一类（警察类）：所有警职与任何带 SparkTraits 内鬼词条的玩家。夹子所有警察侧规则都归这一类（目前是可见性，
+    // 拆除也复用）。实时 SparkFactionAPI PoliceRoles 注册表与此固定名单一起检查，之后新增的警察变体无需改这里；
+    // 黑警与内应属嘉豪阵营但仍算数。
+    private static final Set<Identifier> TRAP_POLICE_IDS = Set.of(
             VIGILANTE_ROLE_ID,
             VETERAN_ROLE_ID,
             CORRUPT_COP_ROLE_ID,
-            ENGINEER_ROLE_ID
+            ENGINEER_ROLE_ID,
+            INSIDER_ROLE_ID,
+            SAVIOR_ROLE_ID,
+            KNIGHT_ROLE_ID,
+            SEEKER_ROLE_ID
     );
+    // Trap rule class 2: every killer-faction role plus the Loose End and NoellesRoles' Undercover, which are
+    // civilian/special-factioned but still count. None of them sees traps through walls: class 2 uses the police
+    // line-of-sight rule, and the Undercover has no sight power at all (owner 2026-11-11).
+    // 夹子规则第二类：所有杀手阵营职业，外加亡命徒与 NoellesRoles 卧底（属平民/特殊阵营但仍算数）。他们都不能隔墙看见捕兽夹：
+    // 第二类走警察的视线规则，卧底本身没有任何透视能力（所有者 2026-11-11）。
+    public static boolean isTrapKiller(@Nullable Identifier roleId, boolean killerFaction) {
+        return killerFaction || LOOSE_END_ROLE_ID.equals(roleId) || UNDERCOVER_ROLE_ID.equals(roleId);
+    }
+
     // Fixed instinct viewers (the Bewitched is accomplice-like, C2); special accomplices join through
     // isInstinctTrapViewer, which reads the live registry.
     // 固定的本能观察者（魔化使属于共犯类，C2）；特殊共犯经 isInstinctTrapViewer 读取实时注册表加入。
@@ -160,37 +199,46 @@ public final class HunterRules {
 
     public static TrapVisibility trapVisibility(
             @Nullable Identifier roleId,
-            boolean nativeKiller,
-            boolean deadSpectator,
+            boolean throughWallViewer,
+            boolean trapKillerViewer,
+            boolean policeViewer,
             boolean hasLineOfSight,
             boolean instinctActive
     ) {
-        return trapVisibility(roleId, nativeKiller, deadSpectator, () -> hasLineOfSight, () -> instinctActive);
+        return trapVisibility(roleId, throughWallViewer, trapKillerViewer, policeViewer,
+                () -> hasLineOfSight, () -> instinctActive);
     }
 
     /**
      * Same matrix with lazy inputs: line of sight (a raycast) and instinct are read only for the viewers whose answer
      * depends on them, at most once each. Line of sight only ever separates {@code DIRECT_ONLY} from {@code HIDDEN}.
+     * {@code throughWallViewer} is the dead in-match spectator; class 1 and class 2 both use {@code policeViewer}
+     * (line of sight) since owner rule 2026-11-11, so no living role sees traps through walls passively. Instinct still
+     * penetrates for the witch side and for class 2: {@code trapKillerViewer} turns instinct into a through-wall view,
+     * which is how a killer keeps the old x-ray while the key is held.
      * 输入惰性求值的同一矩阵：视线（射线检测）与本能仅在答案依赖它们的观察者上读取，且各至多一次。视线只区分
-     * {@code DIRECT_ONLY} 与 {@code HIDDEN}。
+     * {@code DIRECT_ONLY} 与 {@code HIDDEN}。{@code throughWallViewer} 指死亡观战者；自所有者 2026-11-11 规则起，
+     * 第一类与第二类都走 {@code policeViewer}（需要视线），所以活着的职业都不会被动隔墙看见捕兽夹。本能仍可穿透：
+     * 魔女方照旧，第二类通过 {@code trapKillerViewer} 在按住本能时获得隔墙视野，保留旧的透视能力。
      */
     public static TrapVisibility trapVisibility(
             @Nullable Identifier roleId,
-            boolean nativeKiller,
-            boolean deadSpectator,
+            boolean throughWallViewer,
+            boolean trapKillerViewer,
+            boolean policeViewer,
             BooleanSupplier hasLineOfSight,
             BooleanSupplier instinctActive
     ) {
-        if (nativeKiller || deadSpectator) {
+        if (throughWallViewer) {
             return TrapVisibility.THROUGH_WALL;
         }
-        if (isInstinctTrapViewer(roleId)) {
+        if (isInstinctTrapViewer(roleId) || trapKillerViewer) {
             if (instinctActive.getAsBoolean()) {
                 return TrapVisibility.THROUGH_WALL;
             }
             return hasLineOfSight.getAsBoolean() ? TrapVisibility.DIRECT_ONLY : TrapVisibility.HIDDEN;
         }
-        if (roleId != null && DIRECT_VIEWERS.contains(roleId) && hasLineOfSight.getAsBoolean()) {
+        if (policeViewer && hasLineOfSight.getAsBoolean()) {
             return TrapVisibility.DIRECT_ONLY;
         }
         return TrapVisibility.HIDDEN;
@@ -206,8 +254,19 @@ public final class HunterRules {
                 && (INSTINCT_VIEWERS.contains(roleId) || WitchFactionRules.isAccompliceVariantId(roleId));
     }
 
-    public static boolean canDismantle(@Nullable Identifier roleId, boolean hasLineOfSight) {
-        return hasLineOfSight && roleId != null && DISMANTLERS.contains(roleId);
+    public static boolean canDismantle(@Nullable Identifier roleId, boolean trapKiller, boolean hasLineOfSight) {
+        return hasLineOfSight
+                && (trapKiller || (roleId != null && DISMANTLERS.contains(roleId)));
+    }
+
+    /**
+     * The police half of {@link #trapVisibility}: {@code registeredPolice} is the live SparkFactionAPI PoliceRoles
+     * answer, so every police variant counts even when this build does not name it.
+     * {@link #trapVisibility} 的警察一半：{@code registeredPolice} 是实时 SparkFactionAPI PoliceRoles 的结果，因此即使本
+     * 构建没有点名，任何警察变体也算数。
+     */
+    public static boolean isTrapPolice(@Nullable Identifier roleId, boolean registeredPolice) {
+        return registeredPolice || (roleId != null && TRAP_POLICE_IDS.contains(roleId));
     }
 
     /**
