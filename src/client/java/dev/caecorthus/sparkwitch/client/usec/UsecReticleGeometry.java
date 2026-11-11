@@ -221,9 +221,10 @@ public final class UsecReticleGeometry {
             out.etch(low, bottom, low + post, r + 1);
         }
 
-        // 1-mrad hashes to 10 on the sides and top; left-only hashes down the trunk to 16. Low magnifications keep only
-        // the hashes that stay apart (hashStepMrad). / 两侧与上方每 1 密位刻度到 10；主干只在左侧刻度，到 16。低倍率下
-        // 只保留互不相碰的刻度（hashStepMrad）。
+        // 1-mrad hashes to 10 on the sides and top and down the trunk to 16, every one across its wire (owner,
+        // 2026-11-11: the trunk's used to run left of the line only and read as half missing). Low magnifications keep
+        // only the hashes that stay apart (hashStepMrad). / 两侧与上方每 1 密位刻度到 10，主干到 16，每条刻度都横跨所在的线
+        // （所有者 2026-11-11：主干刻度原先只在线左侧，看起来像少了一半）。低倍率下只保留互不相碰的刻度（hashStepMrad）。
         int step = hashStepMrad(pxPerMrad, s);
         for (int mrad = 1; mrad <= R2_HASH_EXTENT_MRAD; mrad++) {
             boolean major = mrad % 5 == 0;
@@ -237,10 +238,10 @@ public final class UsecReticleGeometry {
         }
         for (int mrad = 1; mrad <= R2_TRUNK_HASHES; mrad++) {
             boolean major = mrad % 5 == 0;
-            int half = Math.max((major ? 3 : 2) * s, px(ppt, major ? R2_MAJOR_HALF_MRAD : R2_MINOR_HALF_MRAD));
+            int half = Math.max((major ? 4 : 2) * s, px(ppt, major ? R2_MAJOR_HALF_MRAD : R2_MINOR_HALF_MRAD));
             int at = px(ppt, mrad);
             if (step != 0 && mrad % step == 0 && at < trunk) {
-                out.etch(-half, at, 0, at + s);
+                out.etch(-half, at, half + 1, at + s);
             }
         }
 

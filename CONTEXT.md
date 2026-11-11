@@ -2110,6 +2110,8 @@ Current build baseline:
     tree is the default (`UsecReticleStyle.DEFAULT` = `TACTICAL`); R1 `MIL_DOT` is calibrated at the top 6×. The AP
     holds (100-200 blocks) are atan(`UsecBallistics.apDropAt`/d) at the frame's real projection FOV, with the shooter's
     SparkTraits Marksman multiplier, so R2's marks stay at true angles at every magnification, mid-ease included.
+    The trunk's hashes (1-16 mrad) cross the line like the top arm's (owner, 2026-11-11; the spec sheet's left-only
+    hashes read as half missing).
     Low-magnification level of detail (2026-11-11, "1× 时很多点挤在一起"): R2 shrinks with the zoom while strokes and
     digits keep their pixel size (1 mrad is 0.77 px at 1×, 1080p, 70°), so a mark is drawn only where it clears its
     neighbours, by framebuffer pixels times the stroke scale and never by magnification: 1-mrad hashes from 2.5 px
