@@ -137,6 +137,27 @@ public final class SmokeCloudService {
         }
     }
 
+    /**
+     * Blocks along {@code from} → {@code to} after which a tunnel of {@code radius} can no longer touch live smoke (the
+     * far end of the last cloud box the segment crosses, as {@link #carveTunnel} would clip it); 0 when it crosses
+     * none. A long miss ray (SparkTraits Niko: 300 blocks) uses it to raycast blocks only as far as smoke exists.
+     * Read-only: nothing is recorded or sent.
+     * 沿 {@code from} → {@code to} 的格数，越过它之后半径 {@code radius} 的通道不可能再碰到存活烟雾（线段穿过的最后一个烟团盒子
+     * 的远端，与 {@link #carveTunnel} 的裁剪一致）；不穿过任何烟团时为 0。很长的未命中射线（SparkTraits Niko：300 格）据此只在
+     * 有烟的范围内做方块射线检测。只读：不记录也不发送任何东西。
+     */
+    public static double tunnelReach(ServerWorld world, Vec3d from, Vec3d to, float radius) {
+        if (world == null || !finite(from) || !finite(to) || !(radius > 0.0F) || !Float.isFinite(radius)) {
+            return 0.0;
+        }
+        SmokeCloudRegistry registry = WORLDS.get(world);
+        if (registry == null) {
+            return 0.0;
+        }
+        return from.distanceTo(to) * registry.tunnelReach(from.x, from.y, from.z, to.x, to.y, to.z,
+                Math.min(radius, SmokeHoleS2CPayload.MAX_RADIUS), world.getTime());
+    }
+
     private static boolean finite(@Nullable Vec3d point) {
         return point != null && Double.isFinite(point.x) && Double.isFinite(point.y) && Double.isFinite(point.z);
     }

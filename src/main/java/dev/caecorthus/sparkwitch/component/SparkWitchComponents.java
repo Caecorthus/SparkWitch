@@ -18,7 +18,10 @@ import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRoundComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellEchoPlayerComponent;
@@ -29,10 +32,19 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPla
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeTheftPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeignComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanInstinctVeilComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanMomentWorldComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendMomentWorldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.AbyssZoneExposureComponent;
@@ -212,6 +224,46 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, dev.caecorthus.sparkwitch.headset.HeadsetComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(dev.caecorthus.sparkwitch.headset.HeadsetComponent::new);
+        // Specter sanity-outline colours, fear levels, second-skill state and cowardice; appended last.
+        // 幽魂理智描边颜色、恐惧层数、二技能状态与怯懦；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, SpecterPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SpecterPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, SpecterFearComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SpecterFearComponent::new);
+        registry.beginRegistration(PlayerEntity.class, SpecterSecondSkillComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SpecterSecondSkillComponent::new);
+        registry.beginRegistration(PlayerEntity.class, SpecterCowardiceComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SpecterCowardiceComponent::new);
+        // Savior G-skill cooldown and domain timer (PR #200), synced to its owner only; appended after the
+        // Specter's components.
+        // 救世主 G 技能冷却与领域计时（PR #200），只同步给本人；追加在幽魂组件之后。
+        registry.beginRegistration(PlayerEntity.class, SaviorPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SaviorPlayerComponent::new);
+        // Medium cooldowns and 招魂 bindings, synced to the owner only; appended after the Savior's.
+        // 通灵师冷却与招魂绑定，只同步给本人；追加在救世主组件之后。
+        registry.beginRegistration(PlayerEntity.class, MediumPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(MediumPlayerComponent::new);
+        // Charon (PR #202): pardon window (server only), both cooldowns and the marks (owner only); appended after the
+        // Medium's component. / 卡戎（PR #202）：宽恕窗口（仅服务端）、两个冷却与标记（只同步给本人）；追加在通灵师组件之后。
+        registry.beginRegistration(PlayerEntity.class, FerrymanPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FerrymanPlayerComponent::new);
+        // Charon gaze feign: the marked attacker's 10 s fake corpse, server only; appended last.
+        // 卡戎「瞥视」假死：被标记者 10 秒的假尸体，仅服务端；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, FerrymanFeignComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FerrymanFeignComponent::new);
+        // Charon instinct veil: broadcast to everyone because instinct is drawn per client; appended last.
+        // 卡戎的本能帷幕：本能按客户端绘制，因此同步给所有人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, FerrymanInstinctVeilComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FerrymanInstinctVeilComponent::new);
     }
 
     @Override
@@ -228,5 +280,10 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.register(dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent.KEY,
                 dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent::new);
         registry.register(JunkerLootWorldComponent.KEY, JunkerLootWorldComponent::new);
+        registry.register(SpecterOtherworldComponent.KEY, SpecterOtherworldComponent::new);
+        registry.register(MediumSeanceComponent.KEY, MediumSeanceComponent::new);
+        // Charon (PR #202) Soul Moment, appended last, after the Medium's seance.
+        // 卡戎（PR #202）亡魂时刻，追加在最后，位于通灵师通灵组件之后。
+        registry.register(FerrymanMomentWorldComponent.KEY, FerrymanMomentWorldComponent::new);
     }
 }

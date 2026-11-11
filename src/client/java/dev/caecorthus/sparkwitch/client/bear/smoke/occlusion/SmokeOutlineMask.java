@@ -207,9 +207,9 @@ public final class SmokeOutlineMask {
             return;
         }
         try {
-            // Creating or resizing the scratch target rebinds framebuffers. / 创建或调整暂存目标会改动帧缓冲绑定。
+            // Keeps the outline target bound and the pass's viewport even when it (re)creates the scratch target.
+            // 即使（重新）创建暂存目标，也保持描边目标的绑定与本次渲染的视口。
             ensureScratch(outline);
-            GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, outline.fbo);
             GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D,
                     scratch.getDepthAttachment(), 0);
             swappedFbo = outline.fbo;
@@ -468,14 +468,42 @@ public final class SmokeOutlineMask {
 
     /**
      * Same size and formats as the outline target (both vanilla framebuffers), so depth can be blitted across.
-     * 与描边目标同尺寸同格式（都是原版帧缓冲），深度才能直接 blit。
+     * Creating or resizing a vanilla framebuffer leaves framebuffer 0 bound, the viewport at the new size, the depth
+     * test on and the active unit's 2D binding at 0; all four are put back, because this runs in the middle of a pass
+     * whose viewport need not be the outline target's size (the scope lens renders the world into a smaller target, so
+     * a viewport left at the window size mis-scaled that frame's outlines).
+     * 与描边目标同尺寸同格式（都是原版帧缓冲），深度才能直接 blit。创建或调整原版帧缓冲会留下绑定 0 号帧缓冲、视口变为新尺寸、
+     * 开启深度测试、活动纹理单元的 2D 绑定变为 0；这四项都要恢复，因为此处位于一次渲染的中途，其视口未必等于描边目标的尺寸
+     * （瞄具镜内把世界渲染进更小的目标，视口若停留在窗口尺寸，会让那一帧的描边比例错误）。
      */
     private static void ensureScratch(Framebuffer outline) {
-        if (scratch == null) {
-            scratch = new SimpleFramebuffer(outline.textureWidth, outline.textureHeight, true,
-                    MinecraftClient.IS_SYSTEM_MAC);
-        } else if (scratch.textureWidth != outline.textureWidth || scratch.textureHeight != outline.textureHeight) {
-            scratch.resize(outline.textureWidth, outline.textureHeight, MinecraftClient.IS_SYSTEM_MAC);
+        if (scratch != null && scratch.textureWidth == outline.textureWidth
+                && scratch.textureHeight == outline.textureHeight) {
+            return;
+        }
+        int drawFramebuffer = GlStateManager._getInteger(GL30.GL_DRAW_FRAMEBUFFER_BINDING);
+        int readFramebuffer = GlStateManager._getInteger(GL30.GL_READ_FRAMEBUFFER_BINDING);
+        int boundTexture = GlStateManager._getInteger(GL11.GL_TEXTURE_BINDING_2D);
+        boolean depthTest = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
+        int[] viewport = new int[4];
+        GL11.glGetIntegerv(GL11.GL_VIEWPORT, viewport);
+        try {
+            if (scratch == null) {
+                scratch = new SimpleFramebuffer(outline.textureWidth, outline.textureHeight, true,
+                        MinecraftClient.IS_SYSTEM_MAC);
+            } else {
+                scratch.resize(outline.textureWidth, outline.textureHeight, MinecraftClient.IS_SYSTEM_MAC);
+            }
+        } finally {
+            // Through GlStateManager, so its viewport, depth-test and texture caches stay true.
+            // 经 GlStateManager 恢复，使其视口、深度测试与纹理缓存不脱节。
+            GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, drawFramebuffer);
+            GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, readFramebuffer);
+            GlStateManager._viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+            GlStateManager._bindTexture(boundTexture);
+            if (!depthTest) {
+                GlStateManager._disableDepthTest();
+            }
         }
     }
 

@@ -15,6 +15,8 @@ import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithCommunicationPolicy;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeignService;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanMomentService;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
@@ -33,6 +35,32 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * 在物理客户端上还会通过 {@link HolyFlashVoiceClientBridge} 接入圣光弹的传入语音压低。
  */
 public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
+    /** Server API, kept so gameplay code can drop a revived player out of its group. / 服务端 API，供玩法代码把复活的玩家移出语音分组。 */
+    private static volatile de.maxhenkel.voicechat.api.VoicechatApi api;
+
+    @Override
+    public void initialize(de.maxhenkel.voicechat.api.VoicechatApi api) {
+        SparkWitchVoiceChatPlugin.api = api;
+        FerrymanMomentService.installVoiceGroupReset(SparkWitchVoiceChatPlugin::leaveAllGroups);
+        VoicechatPlugin.super.initialize(api);
+    }
+
+    /**
+     * Removes the player from every voice group (a revived Lost Soul must not keep the dead channel). Fails soft: an
+     * absent connection or an older API just leaves the group state alone.
+     * 把玩家移出所有语音分组（复活的迷失灵魂不能继续待在死者频道）。失败即降级：连接不存在或旧版 API 时不改动分组状态。
+     */
+    private static void leaveAllGroups(net.minecraft.server.network.ServerPlayerEntity player) {
+        if (!(api instanceof de.maxhenkel.voicechat.api.VoicechatServerApi serverApi)) {
+            return;
+        }
+        de.maxhenkel.voicechat.api.VoicechatConnection connection = serverApi.getConnectionOf(player.getUuid());
+        if (connection == null || !connection.isInGroup()) {
+            return;
+        }
+        connection.setGroup(null);
+    }
+
     @Override
     public String getPluginId() {
         return SparkWitch.MOD_ID;
@@ -178,6 +206,12 @@ public final class SparkWitchVoiceChatPlugin implements VoicechatPlugin {
         if (FiendFeignService.isFeigning(speaker)) {
             // A feigning Fiend plays dead: muted but still hears, and never joins the dead players' group.
             // 假死的魔人在装死：被静音但仍能听见，也从不加入死者语音组。
+            event.cancel();
+            return;
+        }
+        if (FerrymanFeignService.isFeigning(speaker)) {
+            // A player feigning before the Charon plays dead too: muted but still hears, like a feigning Fiend.
+            // 在卡戎面前假死的玩家同样在装死：被静音但仍能听见，与假死的魔人相同。
             event.cancel();
             return;
         }

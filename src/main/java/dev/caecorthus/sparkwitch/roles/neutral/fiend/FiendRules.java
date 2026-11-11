@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.neutral.fiend;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.doctor4t.wathe.game.GameConstants;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -91,22 +92,26 @@ public final class FiendRules {
 
     /**
      * Owner decision D5: every gun counts as GUN (revolver, derringer and the Hunter shotgun share
-     * {@code wathe:gun_shot}; plus the Demon Hunter pistol). A {@code wathe:knife_stab} counts only when the attacker
-     * holds a knife in hand. Bat and Ceremonial Sword throat-cut map to BAT and SWORD; everything else is NONE.
-     * 所有者决定 D5：所有枪械都算 GUN（左轮、短管手枪与猎人霰弹枪共用 {@code wathe:gun_shot}，另加猎魔枪）。
-     * {@code wathe:knife_stab} 仅在攻击者手持刀时算 KNIFE。球棒与仪礼剑封喉分别为 BAT 与 SWORD，其余均为 NONE。
+     * {@code wathe:gun_shot}; plus the Demon Hunter pistol and the Savior pistol, PR #200). A {@code wathe:knife_stab}
+     * counts only when the attacker holds a knife in hand. Bat and Ceremonial Sword throat-cut map to BAT and SWORD, and
+     * the Savior lightsaber (bat attributes) to BAT; everything else is NONE.
+     * 所有者决定 D5：所有枪械都算 GUN（左轮、短管手枪与猎人霰弹枪共用 {@code wathe:gun_shot}，另加猎魔枪与救世主手枪，PR #200）。
+     * {@code wathe:knife_stab} 仅在攻击者手持刀时算 KNIFE。球棒与仪礼剑封喉分别为 BAT 与 SWORD，救世主光剑（球棒属性）算 BAT，
+     * 其余均为 NONE。
      */
     public static Hit classify(@Nullable Identifier deathReason, boolean killerHoldsKnife) {
         if (deathReason == null) {
             return Hit.NONE;
         }
-        if (GameConstants.DeathReasons.GUN.equals(deathReason) || DEMON_HUNTER_SHOT_ID.equals(deathReason)) {
+        if (GameConstants.DeathReasons.GUN.equals(deathReason) || DEMON_HUNTER_SHOT_ID.equals(deathReason)
+                || SaviorRules.PISTOL_DEATH_REASON.equals(deathReason)) {
             return Hit.GUN;
         }
         if (GameConstants.DeathReasons.KNIFE.equals(deathReason)) {
             return killerHoldsKnife ? Hit.KNIFE : Hit.NONE;
         }
-        if (GameConstants.DeathReasons.BAT.equals(deathReason)) {
+        if (GameConstants.DeathReasons.BAT.equals(deathReason)
+                || SaviorRules.LIGHTSABER_DEATH_REASON.equals(deathReason)) {
             return Hit.BAT;
         }
         if (SparkWitchDeathReasons.CEREMONIAL_BLADE.equals(deathReason)) {

@@ -16,12 +16,14 @@ import net.minecraft.client.MinecraftClient;
  * Netty thread (decoding never throws, a bad body arrives as null and is dropped here); Fabric 4.3.0 then runs every
  * play handler through {@code MinecraftClient#execute} ({@code ClientPlayNetworkAddon#receive}), and {@link #onClient}
  * still hops there itself, so the state is written on the client (render) thread only. The server decides who gets
- * smoke and clears it on round edges and world changes; a disconnect clears the state and frees the GPU volumes.
+ * smoke and clears it on round edges and world changes; a disconnect clears the state and frees the GPU volumes, and
+ * so does the packet that takes the last cloud away ({@link #releaseIfEmpty}).
  * Client-side caps bound what a misbehaving server can make the renderer hold.
  * 仅客户端：BEAR 烟雾接收器，是 {@link SmokeClientState} 唯一的写入方。数据包在 Netty 线程解码（解码从不抛出，坏正文以
  * null 到达并在此丢弃）；Fabric 4.3.0 随后通过 {@code MinecraftClient#execute}（{@code ClientPlayNetworkAddon#receive}）
  * 执行每个 play 处理器，{@link #onClient} 仍会自行切到该线程，因此状态只在客户端（渲染）线程写入。由服务端决定谁收到烟雾，
- * 并在回合节点与换世界时清除；断线时清空状态并释放 GPU 浓度体。客户端上限约束异常服务端能让渲染器持有的数量。
+ * 并在回合节点与换世界时清除；断线时清空状态并释放 GPU 浓度体，带走最后一团烟的数据包同样如此（{@link #releaseIfEmpty}）。
+ * 客户端上限约束异常服务端能让渲染器持有的数量。
  */
 public final class SmokeNetworkClient {
     /**
@@ -46,11 +48,17 @@ public final class SmokeNetworkClient {
         ClientPlayNetworking.registerGlobalReceiver(SmokeCloudS2CPayload.ID, (payload, context) ->
                 onClient(context.client(), () -> putCloud(payload.cloud())));
         ClientPlayNetworking.registerGlobalReceiver(SmokeCloudRemoveS2CPayload.ID, (payload, context) ->
-                onClient(context.client(), () -> SmokeClientState.remove(payload.cloudId())));
+                onClient(context.client(), () -> {
+                    SmokeClientState.remove(payload.cloudId());
+                    releaseIfEmpty();
+                }));
         ClientPlayNetworking.registerGlobalReceiver(SmokeHoleS2CPayload.ID, (payload, context) ->
                 onClient(context.client(), () -> addHole(payload.hole())));
         ClientPlayNetworking.registerGlobalReceiver(SmokeClearS2CPayload.ID, (payload, context) ->
-                onClient(context.client(), SmokeClientState::clear));
+                onClient(context.client(), () -> {
+                    SmokeClientState.clear();
+                    releaseIfEmpty();
+                }));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(SmokeNetworkClient::reset));
     }
 
@@ -58,6 +66,20 @@ public final class SmokeNetworkClient {
     static void reset() {
         SmokeClientState.clear();
         SmokeVolumes.releaseAll();
+    }
+
+    /**
+     * After a remove or clear packet (render thread): once no cloud is left every pass stops at
+     * {@link SmokeClientState#isEmpty()} and never calls {@link SmokeVolumes#prepare} again, so the volumes of the last
+     * cloud would otherwise stay (textures, upload buffers, and a stale {@link SmokeVolumes#opticalDepth}) until the next
+     * cloud or the disconnect. / 收到移除或清空数据包之后（渲染线程）：一旦没有烟团，各步骤都会停在
+     * {@link SmokeClientState#isEmpty()}，不再调用 {@link SmokeVolumes#prepare}，否则最后一团烟的浓度体（纹理、上传缓冲，以及
+     * 过期的 {@link SmokeVolumes#opticalDepth}）会一直留到下一团烟出现或断线。
+     */
+    private static void releaseIfEmpty() {
+        if (SmokeClientState.isEmpty()) {
+            SmokeVolumes.releaseAll();
+        }
     }
 
     private static void putCloud(SmokeCloudSnapshot cloud) {

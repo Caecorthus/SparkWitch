@@ -18,6 +18,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
@@ -29,6 +30,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
@@ -39,6 +41,7 @@ import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianConstants;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
@@ -47,6 +50,7 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
@@ -112,6 +116,9 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
+    public static final Identifier SAVIOR_ID = SaviorRules.ROLE_ID;
+    public static final Identifier FERRYMAN_ID = FerrymanRules.ROLE_ID;
+    public static final Identifier LOST_SOUL_ID = SparkWitch.id("lost_soul");
     public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
     public static final Identifier ATHLETE_ID = AthleteRules.ROLE_ID;
     public static final Identifier DISCOVERER_ID = DiscovererRules.ROLE_ID;
@@ -122,6 +129,8 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier NATSUME_ID =
             dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID;
     public static final Identifier BEAR_ID = BearRules.ROLE_ID;
+    public static final Identifier SPECTER_ID = SpecterRules.ROLE_ID;
+    public static final Identifier MEDIUM_ID = MediumRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -163,6 +172,9 @@ public final class SparkWitchRoleRegistry {
     private static Role bewitched;
     private static Role usec;
     private static Role knight;
+    private static Role savior;
+    private static Role ferryman;
+    private static Role lostSoul;
     private static Role recruit;
     private static Role athlete;
     private static Role discoverer;
@@ -170,8 +182,10 @@ public final class SparkWitchRoleRegistry {
     private static Role ragpicker;
     private static Role dominator;
     private static Role accountant;
+    private static Role specter;
     private static Role natsumeAnan;
     private static Role bear;
+    private static Role medium;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -214,6 +228,7 @@ public final class SparkWitchRoleRegistry {
         // Police classification, like the other Vigilante variants (SparkTraits police traits, SparkStrength tablet);
         // cop slots come from PoliceSlotAssignmentService.
         // 与其他义警变体相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(SAVIOR_ID);
         PoliceRoles.register(BLACK_RAVEN_ID);
         // Plan v2 §3.3: the Black Raven never counts as alive for settlement in other mods either (reflective, fails
         // closed on an older SparkFactionAPI). 计划 v2 §3.3：黑羽鸦在其他模组的结算中同样不算存活（反射调用，旧版
@@ -434,6 +449,21 @@ public final class SparkWitchRoleRegistry {
         return knight;
     }
 
+    public static Role savior() {
+        ensureRegistered();
+        return savior;
+    }
+
+    public static Role ferryman() {
+        ensureRegistered();
+        return ferryman;
+    }
+
+    public static Role lostSoul() {
+        ensureRegistered();
+        return lostSoul;
+    }
+
     public static Role recruit() {
         ensureRegistered();
         return recruit;
@@ -464,6 +494,11 @@ public final class SparkWitchRoleRegistry {
         return dominator;
     }
 
+    public static Role specter() {
+        ensureRegistered();
+        return specter;
+    }
+
     public static Role accountant() {
         ensureRegistered();
         return accountant;
@@ -477,6 +512,11 @@ public final class SparkWitchRoleRegistry {
     public static Role bear() {
         ensureRegistered();
         return bear;
+    }
+
+    public static Role medium() {
+        ensureRegistered();
+        return medium;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -822,6 +862,15 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Vigilante-equivalent police variant; loadout and full sanity live in roles/civilian/savior.
+        // 与义警等同的警察变体；开局装备与恒满理智位于 roles/civilian/savior。
+        savior = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SAVIOR_ID, FactionIds.CIVILIAN)
+                .color(SaviorRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Registered before the Recruit and the Insider (nothing may follow the Insider). A Wathe-native neutral with
         // tasks and fake mood, available at every player count. It never blocks any win; at round end a living Stowaway
         // joins the winning team, and a dead one loses.
@@ -977,6 +1026,63 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Specter (PR #207): a SparkFactionAPI killer (native Wathe KILLER, FAKE mood, unlimited sprint, round clock),
+        // registered after BEAR and right before the Insider, which stays last; skills and state live in
+        // roles/killer/specter (CONTEXT.md). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // 幽魂（PR #207）：SparkFactionAPI 杀手（原生 Wathe KILLER、虚假理智、无限体力、可见回合时间），注册在 BEAR 之后、
+        // 内应之前，内应仍为最后一个；技能与状态位于 roles/killer/specter（见 CONTEXT.md）。不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole。
+        specter = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SPECTER_ID, FactionIds.KILLER)
+                .color(SpecterRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
+        // Medium (通灵师, 2026-11-10): registered after the Specter, before the Charon and the Insider (nothing may follow
+        // the Insider, InsiderRegistrationContractTest), so only the Insider's own index shifts. An ordinary task
+        // civilian (REAL mood, passenger stamina, no round clock, no appearance condition) drawn by Wathe's civilian
+        // pass; never a police variant, never a Witch-skill role (kept out of isRegisteredSparkWitchRole). Its skills
+        // (通灵 on the shared ability key, 招魂 on Role Skill 2) and task coins live in roles/civilian/medium; the
+        // letter/title text still falls back to the Wathe civilian wording.
+        // 通灵师（2026-11-10）：注册在幽魂之后、卡戎与内应之前（内应之后不得再注册，InsiderRegistrationContractTest），
+        // 因此只有内应自身的下标改变。普通任务平民（真实情绪、乘客体力、不可见回合时间、无出现条件），由 Wathe 平民
+        // 分配抽取；不是警察变体，不是魔女技能职业（不加入 isRegisteredSparkWitchRole）。技能（共享技能键上的通灵、
+        // 职业技能 2 上的招魂）与任务金币位于 roles/civilian/medium；信件/标题文本仍沿用 Wathe 平民措辞。
+        medium = SparkFactionApi.registerRole(FactionRoleDefinition.builder(MEDIUM_ID, FactionIds.CIVILIAN)
+                .color(MediumRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // The Charon (PR #202) and its Lost Soul: registered after the Medium and right before the Insider, which stays
+        // last (InsiderRegistrationContractTest), so only the Insider's own index shifts. A Wathe-native neutral with
+        // the Fiend's stance (FAKE mood, no tasks, no round clock), drawn from MIN_PLAYERS up. The pardon, the ferry,
+        // the marks, the feign death and the Soul Moment live in roles/neutral/ferryman. Never Witch-skill roles: kept
+        // out of isRegisteredSparkWitchRole.
+        // 卡戎（PR #202）与迷失的灵魂：注册在通灵师之后、紧挨内应之前（内应仍为最后一个，InsiderRegistrationContractTest），
+        // 因此只有内应自身的下标改变。原生 Wathe 中立，参数与魔人相同（虚假情绪、无任务、不可见回合时间），人数达到
+        // MIN_PLAYERS 起才抽取。宽恕、摆渡、标记、假死与亡魂时刻位于 roles/neutral/ferryman。均不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole。
+        ferryman = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FERRYMAN_ID, FactionIds.NEUTRAL)
+                .color(FerrymanRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> context.getTotalPlayerCount() >= FerrymanRules.MIN_PLAYERS)
+                .build());
+        // Lost Soul: never drawn on its own; the Soul Moment assigns it to the players whose bodies the Charon ferried.
+        // 迷失的灵魂：从不单独抽取；亡魂时刻把它分配给卡戎摆渡过其遗体的玩家。
+        lostSoul = SparkFactionApi.registerRole(FactionRoleDefinition.builder(LOST_SOUL_ID, FactionIds.NEUTRAL)
+                .color(0x7FB2C9)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> false)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
         // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
@@ -1032,15 +1138,17 @@ public final class SparkWitchRoleRegistry {
                 // Tarot Reader stays adjacent. 拾荒者同样加入平民段，排在调香师之前，使调香师至塔罗师一段保持相邻。
                 ragpicker,
                 perfumer,
-                // The Recruit, the Athlete, the Discoverer, Noa, the Accountant (PR #195) and then BEAR (2026-11-05)
-                // join the civilian block; the promotion identities stay the tail.
-                // 新兵、运动员、探索者、诺亚、会计（PR #195）与其后的 BEAR（2026-11-05）加入平民段；晋升身份始终位于末尾。
+                // The Recruit, the Athlete, the Discoverer, Noa, the Accountant (PR #195), then BEAR (2026-11-05) and
+                // the Medium (2026-11-10) join the civilian block; the promotion identities stay the tail.
+                // 新兵、运动员、探索者、诺亚、会计（PR #195）、BEAR（2026-11-05）与其后的通灵师（2026-11-10）加入
+                // 平民段；晋升身份始终位于末尾。
                 recruit,
                 athlete,
                 discoverer,
                 noa,
                 accountant,
                 bear,
+                medium,
                 pigGod,
                 tarotReader,
                 fisher,
@@ -1061,6 +1169,9 @@ public final class SparkWitchRoleRegistry {
                 // 夏目安安 (PR #194) joins the killer block after the Dominator (the fork listed it after Noa, outside
                 // the killer block). 夏目安安（PR #194）加入杀手段，排在支配者之后（fork 中排在诺亚之后、杀手段之外）。
                 natsumeAnan,
+                // The Specter (PR #207) joins the killer block after 夏目安安; the promotion identities stay the tail.
+                // 幽魂（PR #207）加入杀手段，排在夏目安安之后；晋升身份仍位于末尾。
+                specter,
                 murderousWitch,
                 accomplice,
                 abyssListener,
@@ -1076,10 +1187,20 @@ public final class SparkWitchRoleRegistry {
                 seeker,
                 usec,
                 knight,
+                // The Savior (PR #200) closes the police block; NoellesRoles sends role identifiers, so this order is
+                // presentation only (its panel entry is hidden anyway) and the promotion identities stay the tail.
+                // 救世主（PR #200）排在警察段末尾；NoellesRoles 发送的是职业标识符，此顺序仅影响展示（其面板条目本就隐藏），
+                // 晋升身份仍位于末尾。
+                savior,
                 fiend,
                 insider,
                 stowaway,
                 schrodingersCat,
+                // The Charon (PR #202) and then its Lost Soul (owner 2026-11-09) close the neutral block after
+                // Schrödinger's Cat; the promotion identities stay the tail.
+                // 卡戎（PR #202）及其后的迷失的灵魂（所有者 2026-11-09）排在薛定谔之猫之后、结束中立段；晋升身份仍位于末尾。
+                ferryman,
+                lostSoul,
                 windSpirit,
                 guardianAngel,
                 vendetta,

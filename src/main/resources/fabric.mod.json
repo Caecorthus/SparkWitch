@@ -24,6 +24,12 @@
     ],
     "voicechat": [
       "dev.caecorthus.sparkwitch.voice.SparkWitchVoiceChatPlugin"
+    ],
+    "lambdynlights:initializer": [
+      "dev.caecorthus.sparkwitch.client.savior.SaviorDynamicLightsInitializer"
+    ],
+    "dynamiclights": [
+      "dev.caecorthus.sparkwitch.client.savior.SaviorDynamicLightsInitializer"
     ]
   },
   "custom": {
@@ -81,7 +87,19 @@
       "sparkwitch:dominator",
       "sparkwitch:dominator_forced_shot",
       "sparkwitch:natsume_anan_player",
-      "sparkwitch:headset"
+      "sparkwitch:headset",
+      "sparkwitch:specter",
+      "sparkwitch:specter_fear",
+      "sparkwitch:specter_second_skill",
+      "sparkwitch:specter_cowardice",
+      "sparkwitch:specter_otherworld",
+      "sparkwitch:savior",
+      "sparkwitch:medium",
+      "sparkwitch:medium_seance",
+      "sparkwitch:ferryman",
+      "sparkwitch:ferryman_feign",
+      "sparkwitch:ferryman_feign_veil",
+      "sparkwitch:ferryman_moment"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",
@@ -110,7 +128,8 @@
   },
   "suggests": {
     "sparktraits": ">=0.1.9.11",
-    "sparkstrength": "*"
+    "sparkstrength": "*",
+    "lambdynlights": ">=3.0.0"
   },
   "breaks": {
     "sparktraits": "<0.1.9.11"

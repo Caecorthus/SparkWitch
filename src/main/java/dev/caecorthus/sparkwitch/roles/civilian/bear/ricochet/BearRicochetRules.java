@@ -43,10 +43,18 @@ public final class BearRicochetRules {
     public static final Identifier CRIMSON_WITHER_SKULL = Identifier.of("sparkwitch", "crimson_wither_skull");
     public static final Identifier POTION_SHELL = Identifier.of("sparkwitch", "potion_shell");
     public static final Identifier POTION_BACKBLAST = Identifier.of("sparkwitch", "potion_backblast");
+    /**
+     * Savior pistol (PR #200): a gunshot for the Rys-T. Its up-to-10 same-tick kill retries share one {@link ShotKey},
+     * so the ricochet memo keeps the "one roll per shot" rule (H2) and a deflection holds for every retry.
+     * 救世主手枪（PR #200）：对 Rys-T 而言是一次枪击。它在同一刻内最多 10 次的击杀重试共用一个 {@link ShotKey}，因此跳弹记忆仍遵守
+     * “每枪只掷一次骰”（H2），一次弹开对每次重试都有效。
+     */
+    public static final Identifier SAVIOR_PISTOL_KILL = Identifier.of("sparkwitch", "savior_pistol_kill");
 
     /** Every death reason the Rys-T may deflect (D2). / Rys-T 可能弹开的所有死因（D2）。 */
     public static final Set<Identifier> RANGED_REASONS = Set.of(GUN_SHOT, GRENADE, DEMON_HUNTER_SHOT, THROWING_AXE,
-            BOMB, PIERCED_BY_RAY, NINJA_SHURIKEN_KILL, CRIMSON_WITHER_SKULL, POTION_SHELL, POTION_BACKBLAST);
+            BOMB, PIERCED_BY_RAY, NINJA_SHURIKEN_KILL, CRIMSON_WITHER_SKULL, POTION_SHELL, POTION_BACKBLAST,
+            SAVIOR_PISTOL_KILL);
     /**
      * Blasts centred away from the killer: without an explicit origin scope their origin is unknown, never the killer's
      * eye. The potion backblast counts as an explosion for the ranged set (owner H1) but is NOT listed: it leaves the
