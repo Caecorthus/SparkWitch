@@ -123,6 +123,8 @@ public final class ControlExpertStunRules {
             // 让 0.5 秒窗口过期，被扣住的击杀随之重放。
             Identifier.of("sparkwitch", "ferryman_pardon"),
             Identifier.of("sparkwitch", "ferryman_ferry"),
+            // 二阶堂希罗 死亡回归 (shared key G), 2026-11-11. / 二阶堂希罗的死亡回归（共享 G 键），2026-11-11。
+            Identifier.of("sparkwitch", "use_hiro_skill"),
             // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a

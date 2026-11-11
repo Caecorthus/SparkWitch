@@ -32,6 +32,8 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPla
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.witchification.HiroWitchificationComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldComponent;
@@ -264,6 +266,15 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, FerrymanInstinctVeilComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(FerrymanInstinctVeilComponent::new);
+        // 二阶堂希罗 (2026-11-11): 死亡回归 cooldown, window and record point, then 魔女化 progress; both synced to
+        // the owner only; appended last.
+        // 二阶堂希罗（2026-11-11）：死亡回归的冷却、窗口与记录点，以及魔女化进度；均只同步给本人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, HiroReturnComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(HiroReturnComponent::new);
+        registry.beginRegistration(PlayerEntity.class, HiroWitchificationComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(HiroWitchificationComponent::new);
     }
 
     @Override

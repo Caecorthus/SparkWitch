@@ -99,7 +99,9 @@
       "sparkwitch:ferryman",
       "sparkwitch:ferryman_feign",
       "sparkwitch:ferryman_feign_veil",
-      "sparkwitch:ferryman_moment"
+      "sparkwitch:ferryman_moment",
+      "sparkwitch:nikaido_hiro_return",
+      "sparkwitch:nikaido_hiro_witchification"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",

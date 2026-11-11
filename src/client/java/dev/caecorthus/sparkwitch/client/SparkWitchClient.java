@@ -10,7 +10,11 @@ import dev.caecorthus.sparkwitch.SparkWitchEntities;
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.client.bewitched.BewitchedClientPresentation;
 import dev.caecorthus.sparkwitch.client.recruit.RecruitClientPresentation;
+import dev.caecorthus.sparkwitch.client.hiro.HiroClientModule;
 import dev.caecorthus.sparkwitch.client.specter.SpecterClientModule;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.UseHiroSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
@@ -148,6 +152,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         GrandWitchClientModule.register();
         ApprenticeClientModule.register();
         SpecterClientModule.register();
+        // 二阶堂希罗 (2026-11-11): role-owned HUD hub. / 二阶堂希罗（2026-11-11）：职业自有 HUD 注册中心。
+        HiroClientModule.register();
         WitchMaidenClientModule.register();
         MiniWitherClient.register();
         BlackRavenCrowClient.register();
@@ -321,6 +327,15 @@ public final class SparkWitchClient implements ClientModInitializer {
                     if (!SpecterPlayerComponent.KEY.get(client.player).isOnCooldown()
                             && ClientPlayNetworking.canSend(UseSpecterSkillC2SPacket.ID)) {
                         ClientPlayNetworking.send(new UseSpecterSkillC2SPacket());
+                    }
+                } else if (HiroRules.isHiro(role)) {
+                    // 二阶堂希罗 死亡回归, real role only: an empty request. The server owns the full validation (mana,
+                    // window, gates); the synced cooldown only trims obviously dead presses, as for the Specter.
+                    // 二阶堂希罗的死亡回归，仅限真实职业：空请求。完整校验（魔力、窗口、门槛）在服务端；与幽魂一样，本地同步的冷却
+                    // 只用来过滤明显无效的按键。
+                    if (!HiroReturnComponent.KEY.get(client.player).isOnCooldown()
+                            && ClientPlayNetworking.canSend(UseHiroSkillC2SPacket.ID)) {
+                        ClientPlayNetworking.send(new UseHiroSkillC2SPacket());
                     }
                 } else if (role != null && role.identifier().equals(dev.caecorthus.sparkwitch.SparkWitchRoles.CURSER_ID)) {
                     if (CurserClientHooks.canUse(client.player)) {

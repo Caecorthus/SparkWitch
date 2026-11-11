@@ -8,6 +8,8 @@ import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
+import dev.caecorthus.sparkwitch.item.rope.RopeItem;
+import dev.caecorthus.sparkwitch.item.rope.RopeRules;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
 import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookItem;
@@ -144,6 +146,7 @@ public final class SparkWitchItems {
     public static final Identifier GHOST_TRIGGER_ID = SparkWitch.id("ghost_trigger");
     public static final Identifier SAVIOR_PISTOL_ID = SaviorRules.PISTOL_ID;
     public static final Identifier SAVIOR_LIGHTSABER_ID = SaviorRules.LIGHTSABER_ID;
+    public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -208,6 +211,7 @@ public final class SparkWitchItems {
     private static Item accountantPassbook;
     private static Item saviorPistol;
     private static Item saviorLightsaber;
+    private static Item rope;
 
     private static boolean registered;
 
@@ -561,6 +565,13 @@ public final class SparkWitchItems {
                 SAVIOR_LIGHTSABER_ID,
                 new SaviorLightsaberItem(SaviorLightsaberItem.createSettings())
         );
+        // 二阶堂希罗's Rope (2026-11-11), appended last so earlier registration order stays unchanged.
+        // 二阶堂希罗的绳索（2026-11-11），追加在最后以保持既有注册顺序不变。
+        rope = Registry.register(
+                Registries.ITEM,
+                ROPE_ID,
+                new RopeItem(RopeItem.createSettings())
+        );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
@@ -606,6 +617,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return saviorLightsaber;
+    }
+
+    public static Item rope() {
+        if (rope == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return rope;
     }
 
     public static Item firePoker() {

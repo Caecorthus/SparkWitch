@@ -17,6 +17,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotS2CPacket;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.UseDominatorSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnService;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.UseHiroSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSecondSkillC2SPacket;
@@ -135,6 +137,7 @@ public final class SparkWitchPackets {
                 UseSpecterSecondSkillC2SPacket.ID,
                 UseSpecterSecondSkillC2SPacket.CODEC
         );
+        PayloadTypeRegistry.playC2S().register(UseHiroSkillC2SPacket.ID, UseHiroSkillC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(UseMediumSkillC2SPacket.ID, UseMediumSkillC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(
                 UseMediumSecondSkillC2SPacket.ID,
@@ -299,6 +302,8 @@ public final class SparkWitchPackets {
                 (payload, context) -> SpecterSkillService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseSpecterSecondSkillC2SPacket.ID,
                 (payload, context) -> SpecterSecondSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseHiroSkillC2SPacket.ID,
+                (payload, context) -> HiroReturnService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseMediumSkillC2SPacket.ID,
                 (payload, context) -> MediumSkillService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseMediumSecondSkillC2SPacket.ID,

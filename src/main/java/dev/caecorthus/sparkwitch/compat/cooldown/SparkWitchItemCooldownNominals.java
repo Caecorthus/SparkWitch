@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerRules;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
+import dev.caecorthus.sparkwitch.item.rope.RopeRules;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.BearRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindKitRules;
@@ -127,6 +128,8 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             // 救世主（PR #200）：手枪每次射击后 10 秒、光剑击杀后 30 秒，而非开局的 60 秒 / 45 秒锁定。
             entries.put(SparkWitchItems.SAVIOR_PISTOL_ID, SaviorRules.PISTOL_COOLDOWN_TICKS);
             entries.put(SparkWitchItems.SAVIOR_LIGHTSABER_ID, SaviorRules.LIGHTSABER_KILL_COOLDOWN_TICKS);
+            // 二阶堂希罗's Rope: the 10 s cooldown after an interrupted strangle. / 二阶堂希罗的绳索：勒杀被打断后的 10 秒冷却。
+            entries.put(SparkWitchItems.ROPE_ID, RopeRules.INTERRUPT_COOLDOWN_TICKS);
             // NoellesRoles items: public constants of the pinned 1.7.6 jar, plus the master key, which both
             // NoellesRoles (literal) and the Insider door path write as 200 ticks. The timed bomb stays exempt in
             // SparkFactionAPI itself (Bomber pass gate).

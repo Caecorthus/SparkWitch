@@ -40,6 +40,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
@@ -131,6 +132,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEAR_ID = BearRules.ROLE_ID;
     public static final Identifier SPECTER_ID = SpecterRules.ROLE_ID;
     public static final Identifier MEDIUM_ID = MediumRules.ROLE_ID;
+    public static final Identifier NIKAIDO_HIRO_ID = HiroRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -186,6 +188,7 @@ public final class SparkWitchRoleRegistry {
     private static Role natsumeAnan;
     private static Role bear;
     private static Role medium;
+    private static Role nikaidoHiro;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -517,6 +520,11 @@ public final class SparkWitchRoleRegistry {
     public static Role medium() {
         ensureRegistered();
         return medium;
+    }
+
+    public static Role nikaidoHiro() {
+        ensureRegistered();
+        return nikaidoHiro;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -1083,6 +1091,25 @@ public final class SparkWitchRoleRegistry {
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .appearanceCondition(context -> false)
                 .build());
+        // 二阶堂希罗 Nikaido Hiro (2026-11-11): a SparkFactionAPI killer with 夏目安安's profile (native Wathe KILLER,
+        // REAL mood, 8 s sprint cap, round clock), one killer slot, no appearance condition (drawn at any player
+        // count). Registered after the Charon's Lost Soul and right before the Insider, which stays last
+        // (InsiderRegistrationContractTest), so only the Insider's own index shifts. Skills, shop and state live in
+        // roles/killer/hiro, the Rope in item/rope (CONTEXT.md). A mana role on the Witch Maiden's numbers
+        // (mana/WitchManaRules) but never a Witch-skill role: kept out of isRegisteredSparkWitchRole and out of the
+        // gui.sparkwitch.skills panel.
+        // 二阶堂希罗（2026-11-11）：SparkFactionAPI 杀手，参数与夏目安安相同（原生 Wathe KILLER、真实理智、8 秒冲刺上限、可见回合
+        // 时间），占 1 个杀手名额，无出现条件（任何人数都可抽取）。注册在卡戎的迷失的灵魂之后、紧挨内应之前（内应仍为最后一个，
+        // InsiderRegistrationContractTest），因此只有内应自身的下标改变。技能、商店与状态位于 roles/killer/hiro，绳索位于
+        // item/rope（见 CONTEXT.md）。魔力沿用巫女的数值（mana/WitchManaRules），但不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole，也不进入 gui.sparkwitch.skills 面板。
+        nikaidoHiro = SparkFactionApi.registerRole(FactionRoleDefinition.builder(NIKAIDO_HIRO_ID, FactionIds.KILLER)
+                .color(HiroRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 8))
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
         // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
@@ -1172,6 +1199,9 @@ public final class SparkWitchRoleRegistry {
                 // The Specter (PR #207) joins the killer block after 夏目安安; the promotion identities stay the tail.
                 // 幽魂（PR #207）加入杀手段，排在夏目安安之后；晋升身份仍位于末尾。
                 specter,
+                // 二阶堂希罗 (2026-11-11) joins the killer block after the Specter; the promotion identities stay the tail.
+                // 二阶堂希罗（2026-11-11）加入杀手段，排在幽魂之后；晋升身份仍位于末尾。
+                nikaidoHiro,
                 murderousWitch,
                 accomplice,
                 abyssListener,

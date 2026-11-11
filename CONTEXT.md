@@ -78,6 +78,12 @@ It also adds the Specter (`sparkwitch:specter`, 幽魂, contributed in PR #207),
 player within 3 blocks and then makes them shriek (fear), and whose Role Skill 2 key opens the world-wide 30 s
 Otherworld (里世界), in which its knife only lands on low-sanity or cowardly non-killers and low-sanity players get a
 Peachwood Sword that can hurt it.
+It also adds 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, scaffold 2026-11-11, features in progress), a
+killer whose ability key (G) casts 死亡回归 (Return by Death, 100 mana): it records her position for 15 s, her victims
+in that window only feign death, and an attack on her is cancelled and returns her to the record point; whose passive
+魔女化 (Witchification) grants a witch factor, Speed II and a derringer after enough kills; and whose shop replaces
+the killer shop with a knife, lockpick, crowbar, Fire Poker and the Rope (`sparkwitch:rope`, a strangle from behind).
+She is a mana role on the Witch Maiden's numbers, never a Witch-skill role.
 It also adds the Blind (`sparkwitch:blind`), a civilian whose screen stays black and who perceives
 the world through sounds, helped by a White Cane, the Attune skill and a ComTac VIII headset.
 It also adds the Abyss Listener (`sparkwitch:abyss_listener`, 聆渊者), a witch-faction special accomplice that only a
@@ -841,6 +847,49 @@ Current build baseline:
     server), ghost-trigger particles at Wathe's poison cadence for players who see poison, item tooltips. Lang:
     `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
     placement and trigger, peachwood hits and the shield.
+- `roles/killer/hiro/`: 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, placeholder color `0xC8324B`), scaffold
+  of 2026-11-11; the three features below are IN PROGRESS (stubs with a fixed API; replace this text when they land).
+  Every role number lives in `HiroRules`: `RETURN_WINDOW_TICKS` 300, `VICTIM_FEIGN_TICKS` 300,
+  `OPENING_COOLDOWN_TICKS` 1800 (90 s), `RETURN_COOLDOWN_TICKS` 900 (45 s, from the moment the skill ends),
+  `RETURN_MANA_COST` 100, `RETURN_REWARD_COINS` 75, `RETURN_GLOW_TICKS` 100, `RETURN_ITEM_LOCK_TICKS` 200,
+  `requiredKills(players) = players / 6 + 1`, the raw-role predicates `isHiro` / `isLivingHiro` and the stable skill
+  id `RETURN_SKILL_ID` (`sparkwitch:nikaido_hiro_return`). Every Rope number lives in `item/rope/RopeRules`: `RANGE`
+  2.0, `BACK_HALF_ARC_DEGREES` 60, `CHANNEL_TICKS` 60, `HIT_INTERVAL_TICKS` 20, `INTERRUPT_COOLDOWN_TICKS` 200,
+  `PRICE` 50.
+  - Registration: a SparkFactionAPI killer with 夏目安安's profile (Wathe-native KILLER, REAL mood, 8 s sprint cap,
+    round clock), one killer slot, no appearance condition, registered after the Charon's Lost Soul and right before
+    the Insider, and guessed in the killer block right after the Specter, before the Murderous Witch. No witch skill
+    (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel; code reads the raw role.
+  - Mana (owner 2026-11-11): exactly the Witch Maiden's system through `mana/WitchManaRules` (`isManaRole`,
+    `naturalCap` 250, 20-tick regeneration; 0 at role assignment, no kill or task rewards). Nothing else is
+    role-specific: `WitchManaService.assignForRole`, the component sync, `/sparkwitch:setMana`, the top-right
+    `WitchManaHudRenderer` row (stacked under SparkStrength's killer team purse) and every `hasManaSystem` reader
+    are role-neutral. So the Fire Poker's debuff branch (20 mana) applies to her like to any mana holder (owner
+    2026-11-11); `FirePokerCombatService` is unchanged.
+  - `returning/` (死亡回归, in progress): `HiroReturnComponent` (`sparkwitch:nikaido_hiro_return`, `NEVER_COPY`,
+    owner-synced: counting-down cooldown, absolute `windowEndTick`, nullable `RecordPoint`), `HiroReturnService`
+    (`register()` wires the opening cooldown at role assignment and the reset clear; `use` is a stub that only checks
+    an ACTIVE round and a living raw-role Hiro) and the empty C2S `UseHiroSkillC2SPacket`
+    (`sparkwitch:use_hiro_skill`, G). The id is on the Control Expert stun, Seeker session, Rift occupant, Grand
+    Witch Fear and Knight duel lists; SparkStrength's daze list and SparkFactionAPI's safe-time list do not list it
+    yet. Forced-cooldown store 25 `sparkwitch:nikaido_hiro_return` (ACTIVE round, raw role, no running window; nominal
+    45 s).
+  - `witchification/` (魔女化, in progress): `HiroWitchificationComponent`
+    (`sparkwitch:nikaido_hiro_witchification`, `NEVER_COPY`, owner-synced: `kills`, `required`, `witchified`) and
+    `HiroWitchificationService` (`register()` only clears the progress at role assignment and reset).
+  - `shop/` (complete): `HiroShopService` clears the killer shop for the raw role and adds the five
+    `HiroShopRules` rows: knife 100 (stock 1), lockpick 50 (stock 1), crowbar 25 (stock 1), Fire Poker 50 (stock 1),
+    Rope 50 (unlimited), with the Murderous Witch shop's entry ids and frames.
+  - `item/rope/` (绳索, in progress): `RopeItem` (stack of 1, three tooltip lines, `use` passes), `RopeRules`,
+    `RopeStrangleService` (`register()` is empty). Registered last in `SparkWitchItems`, in the killer block of the
+    creative tab after the Specter's items, with a 200-tick nominal in `SparkWitchItemCooldownNominals`; placeholder
+    2D art (`models/item/rope.json`, `textures/item/rope.png`). Death reason `sparkwitch:strangled` (窒息), Prophecy
+    group BLUNT (coordinator default).
+  - Client (presentation only): `client/hiro/HiroClientModule` registers `client/hud/HiroHudRenderer` (gate only, empty
+    body; no `SaintHudLayoutRules` rows reserved yet); the ability-key branch in `SparkWitchClient` follows the
+    Specter's. Lang seeds: `hud.sparkwitch.nikaido_hiro.return.ready`,
+    `message.sparkwitch.nikaido_hiro.return.recorded`, `message.sparkwitch.nikaido_hiro.witchified`,
+    `message.sparkwitch.rope.no_target`.
 - `client/bedrock/` (2026-11-02): a role-neutral Bedrock model runtime for player-supplied files, first used by the
   Mini Wither skins. `geo/`: `BedrockGeometryParser` (format 1.12+ `minecraft:geometry`, also inside a Java item-model
   shell, and legacy 1.8; box and per-face UV, mirror, inflate, bone/cube pivots and rotations, glow bones by name
