@@ -15,8 +15,8 @@ import org.joml.Vector4f;
  * {@code item/m32a1_sight}, model units / 16; the sight model shares the full model's coordinates, so the hip anchor
  * is also a point of {@code item/m32a1}): {@link #HIP_ANCHOR_SIGHT_SPACE} and {@link #AIM_ANCHOR_SIGHT_SPACE}.
  * UPDATE BOTH WHEN THE SIGHT MODEL CHANGES; the projection and placement maths never name them.
- * {@link M32SightRenderer} projects the hip anchor through the body pose and the aim anchor through the sight's own
- * pose (camera-aligned at full aim, so the aimed badge does not move with the dial) with the hand pass's own clip matrix (hand projection x model-view x base, exactly what the reticle window test
+ * {@link M32SightRenderer} projects both anchors through the launcher's one pose (camera-aligned at full aim) with
+ * the hand pass's own clip matrix (hand projection x model-view x base, exactly what the reticle window test
  * uses), lerps the two screen points by the renderer's ease(p) so nothing pops, and stores the result with the current
  * frame id. At p = 0 vanilla draws the full model at the hip, so both poses are the hip pose and the blend is 0.
  * <p>
@@ -31,7 +31,7 @@ import org.joml.Vector4f;
  * 锚点契约。两个锚点只在这里定义，使用瞄具模型空间（{@code item/m32a1_sight} 的顶点空间，模型单位 / 16；瞄具模型与完整模型共用
  * 坐标，因此腰射锚点同时也是 {@code item/m32a1} 中的点）：{@link #HIP_ANCHOR_SIGHT_SPACE} 与 {@link #AIM_ANCHOR_SIGHT_SPACE}。
  * 瞄具模型改动时请一并更新这两个常量；投影与布局数学从不引用它们。{@link M32SightRenderer} 用本次手部渲染自己的裁剪矩阵（手部
- * 投影 x 模型视图 x 基准，与分划窗口检测所用完全相同）把腰射锚点经机身姿态、瞄准锚点经瞄具自身的姿态（完全瞄准时与相机对齐，因此瞄准时标记不随刻度移动）投影到屏幕，再按渲染器的
+ * 投影 x 模型视图 x 基准，与分划窗口检测所用完全相同）把两个锚点都经发射器的同一个姿态（完全瞄准时与相机对齐）投影到屏幕，再按渲染器的
  * ease(p) 对两个屏幕点做线性插值使其不跳变，并连同当前帧号一起保存。p = 0 时原版在腰射姿态绘制完整模型，因此两个姿态都是腰射
  * 姿态、混合为 0。
  * <p>

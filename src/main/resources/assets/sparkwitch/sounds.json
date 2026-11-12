@@ -374,12 +374,6 @@
       "sparkwitch:bear/m32_empty"
     ]
   },
-  "bear.m32.dial": {
-    "subtitle": "subtitles.sparkwitch.bear.m32.dial",
-    "sounds": [
-      "sparkwitch:bear/m32_dial"
-    ]
-  },
   "bear.smoke.burst": {
     "subtitle": "subtitles.sparkwitch.bear.smoke.burst",
     "sounds": [

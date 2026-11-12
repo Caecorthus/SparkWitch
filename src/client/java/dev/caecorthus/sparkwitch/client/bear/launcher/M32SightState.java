@@ -47,8 +47,8 @@ public final class M32SightState {
 
     /**
      * {@code GameRenderer#getFov} for the hand pass ({@code changingFov == false}): records the answer for this frame's
-     * range tilt and returns it; exactly {@code vanillaFov} while p is 0.
-     * 手部渲染的 {@code GameRenderer#getFov}（{@code changingFov == false}）：记录本帧射程俯仰使用的结果并返回；p 为 0 时严格等于
+     * range scale and returns it; exactly {@code vanillaFov} while p is 0.
+     * 手部渲染的 {@code GameRenderer#getFov}（{@code changingFov == false}）：记录本帧射程刻度尺使用的结果并返回；p 为 0 时严格等于
      * {@code vanillaFov}。
      */
     public static double handFov(double vanillaFov) {

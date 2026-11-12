@@ -11,8 +11,9 @@ import org.joml.Vector4f;
 /**
  * Pure maths of the M32A1's 3-D M2A1 reflex aim (pixel-style art v7, 2026-11-11: the round rail-shrouded tube on a
  * two-plate cradle, after the Milkor sight as Escape from Tarkov shows it): the aim progress and its ease, the hand FOV,
- * the range tilt, the full-aim pose, the hip-to-aim blend, the draw correction, the reticle's window test against the
- * tube's front aperture, and the reticle quad on its plane. No Minecraft types, so every number is unit-tested.
+ * the full-aim pose, the hip-to-aim blend, the draw correction, the reticle's window test against the tube's front
+ * aperture, and the reticle on its plane: the centre mark and the fixed range scale under it. No Minecraft types, so
+ * every number is unit-tested.
  * <p>
  * Spaces. Model units: the art JSON's own units (16 to a block), -z muzzle, +x the launcher's right, +y up.
  * Vertex space: model units / 16 (what a baked quad holds; {@code ItemRenderer} translates it by -0.5 after the
@@ -21,35 +22,45 @@ import org.joml.Vector4f;
  * pass's model-view undoes its camera rotation, so base space is camera space (+x right, +y up, -z forward). Every
  * pose here maps vertex space to base space.
  * <p>
- * The full aim puts the SIGHT on the camera (owner 2026-11-11: the sight stays in the middle of the screen when the
- * range goes up, the launcher noses up under it): the sight's axis is the view axis and its eye point the origin, at
- * the first-person scale {@link #AIM_SCALE}, so the reticle sits at the screen centre. The body's pose
- * {@link #aimPose} is that turned nose up about the pivot by the range tilt, {@code S T(-E) sightTilt^-1}; the sight
- * model is the body pose times {@link #sightTilt} (nose down about +x through the pivot, the cradle's front pin),
- * which is {@code S T(-E)} again. {@link #blend} moves the hip pose to the body pose: the anchor's image is lerped,
- * the rotation slerped and the uniform scale lerped.
+ * The full aim puts the sight on the camera: the sight's axis is the view axis and its eye point the origin, at the
+ * first-person scale {@link #AIM_SCALE}, so the centre mark sits at the screen centre ({@link #aimPose}). The whole
+ * launcher shares that pose (owner 2026-11-11: there is no range dial, so nothing tilts). {@link #blend} moves the hip
+ * pose to it: the anchor's image is lerped, the rotation slerped and the uniform scale lerped.
  * <p>
  * The window is the tube's round bore: a regular {@link #WINDOW_SIDES}-gon (flats up, down and to the sides) of inner
  * apothem {@link #WINDOW_APOTHEM} about the sight axis (the eye's x and y), limited by the tube's front end at
- * {@link #WINDOW_FRONT_Z} and open back to the eyecup's rear face {@link #WINDOW_REAR_Z}. The reticle is one quad on
- * the plane {@link #RETICLE_Z}, centred on the axis ({@link #reticleQuad}).
+ * {@link #WINDOW_FRONT_Z} and open back to the eyecup's rear face {@link #WINDOW_REAR_Z}. The reticle lies on the plane
+ * {@link #RETICLE_Z}, where the front aperture's image from the eye has apothem {@link #RETICLE_WINDOW_APOTHEM}.
+ * <p>
+ * Range scale (owner 2026-11-11: "no dial, let them shoot by the scale"; layout "centre direct fire, scale below").
+ * The round leaves along the look, so the centre mark is the bore line. For each range the round is
+ * {@code M32Ballistics.holdoverRadians} below the bore line as the shooter sees it; {@link #scaleOffset} turns that
+ * world-projection angle into model units below the axis on the reticle plane for the live hand and world FOV, and the
+ * mark is drawn there ({@link #tickRect}, {@link #labelRect}), joined to the centre by {@link #stemRect}. A mark is
+ * drawn only while it fits the window ({@link #tickFits}, {@link #labelFits}) and keeps clear of the mark above it
+ * ({@link #markClear}): 25, 50 and 75 m at the default FOV.
  * M32A1 三维 M2A1 反射式瞄准的纯数学部分（像素风美术 v7，2026-11-11：导轨包覆的圆筒装在双侧板托架上，参照《逃离塔科夫》中的
- * Milkor 瞄具）：瞄准进度与缓动、手部视场角、射程俯仰、完全瞄准姿态、腰射到瞄准的过渡、绘制校正、分划相对镜筒前孔的窗口检测，
- * 以及分划平面上的分划四边形。不含 Minecraft 类型，因此每个数值都有单元测试。
+ * Milkor 瞄具）：瞄准进度与缓动、手部视场角、完全瞄准姿态、腰射到瞄准的过渡、绘制校正、分划相对镜筒前孔的窗口检测，
+ * 以及分划平面上的分划：中心分划及其下方的固定射程刻度尺。不含 Minecraft 类型，因此每个数值都有单元测试。
  * <p>
  * 坐标空间。模型单位：美术 JSON 自身的单位（每格 16），-z 为炮口，+x 为发射器右侧，+y 向上。顶点空间：模型单位 / 16
  * （烘焙四边形中的坐标；{@code ItemRenderer} 在显示变换之后再平移 -0.5）。基准空间：在第一人称
  * {@code HeldItemRenderer#renderItem(float, ...)} 的 HEAD 捕获的手部渲染矩阵（{@code B}）；它已包含受伤倾斜与视角摇晃，且该渲染
  * 的模型视图矩阵抵消了其中的相机旋转，因此基准空间即相机空间（+x 右、+y 上、-z 前）。这里的每个姿态都把顶点空间映射到基准空间。
  * <p>
- * 完全瞄准时瞄具对准相机（所有者 2026-11-11：调高射程时镜子留在屏幕正中，发射器在它下面抬头）：瞄具轴线即视线，其眼点位于
- * 原点，缩放为第一人称缩放 {@link #AIM_SCALE}，因此分划位于屏幕中心。机身姿态 {@link #aimPose} 是在此基础上绕枢轴抬头一个射程
- * 俯仰角，即 {@code S T(-E) sightTilt^-1}；瞄具模型为机身姿态乘以 {@link #sightTilt}（绕经过枢轴，即托架前销轴的 +x 轴低头），
- * 结果仍是 {@code S T(-E)}。{@link #blend} 把腰射姿态移向机身姿态：锚点的像做线性插值，旋转做球面插值，均匀缩放做线性插值。
+ * 完全瞄准时瞄具对准相机：瞄具轴线即视线，其眼点位于原点，缩放为第一人称缩放 {@link #AIM_SCALE}，因此中心分划位于屏幕中心
+ * （{@link #aimPose}）。整支发射器共用这一姿态（所有者 2026-11-11：不设射程调节，因此没有任何部件俯仰）。{@link #blend} 把腰射
+ * 姿态移向它：锚点的像做线性插值，旋转做球面插值，均匀缩放做线性插值。
  * <p>
  * 窗口即镜筒的圆形内孔：绕瞄具轴（眼点的 x 与 y）、内切半径 {@link #WINDOW_APOTHEM} 的正 {@link #WINDOW_SIDES} 边形
  * （上下左右为平边），由 {@link #WINDOW_FRONT_Z} 处的镜筒前端限定，向后一直开放到眼罩后端面 {@link #WINDOW_REAR_Z}。
- * 分划是平面 {@link #RETICLE_Z} 上以轴线为中心的一个四边形（{@link #reticleQuad}）。
+ * 分划位于平面 {@link #RETICLE_Z}，自眼点看前孔在该平面上的像内切半径为 {@link #RETICLE_WINDOW_APOTHEM}。
+ * <p>
+ * 射程刻度尺（所有者 2026-11-11：“刻度不需要调，按刻度尺打”；排法为“中心直射＋下方刻度”）。榴弹沿视线射出，因此中心分划就是
+ * 枪膛线。对每个射程，射手看到榴弹位于枪膛线下方 {@code M32Ballistics.holdoverRadians}；{@link #scaleOffset} 按实时的手部与世界
+ * 视场角把这个世界投影中的角度换算为分划平面上轴线下方的模型单位，刻度就画在那里（{@link #tickRect}、{@link #labelRect}），并由
+ * {@link #stemRect} 与中心相连。只有落在窗口内（{@link #tickFits}、{@link #labelFits}）且与上方刻度保持间距（{@link #markClear}）的
+ * 刻度才绘制：默认视场角下为 25、50、75 米。
  */
 public final class M32SightPose {
     /** Model units per block (vertex space = model / 16). / 每格的模型单位数。 */
@@ -65,14 +76,6 @@ public final class M32SightPose {
      * （所有者 2026-11-06：“人家就是个红点”；2026-11-11：参照塔科夫的 M2A1 重做瞄具与镜内画面）（模型单位）。
      */
     public static final Vector3fc EYE = new Vector3f(8.0F, 21.5F, 28.5F);
-    /**
-     * Range-tilt pivot, model units: the cradle's front pin between the two side plates, below the tube's front half,
-     * so relative to the launcher the rear of the sight lifts as the range goes up and the white pointer on the left
-     * climbs the dotted scale on the plate's rear edge.
-     * 射程俯仰枢轴（模型单位）：两侧板之间的托架前销轴，位于镜筒前半部下方，因此射程增大时瞄具后端相对发射器抬起，左侧的白色
-     * 指针沿侧板后缘的点状刻度上升。
-     */
-    public static final Vector3fc PIVOT = new Vector3f(8.0F, 19.0F, -1.25F);
     /**
      * The tube's round bore, model units: a regular 16-gon about the sight axis (the eye's x and y) with inner apothem
      * {@link #WINDOW_APOTHEM} (the 16 tube staves), corners at 11.25 + k x 22.5 degrees from the top, from the tube's
@@ -93,15 +96,54 @@ public final class M32SightPose {
     /** Eye to reticle plane (70): a hand angle a lands at 70 tan(a) from the axis. / 眼点到分划平面的距离。 */
     public static final float RETICLE_DISTANCE = EYE.z() - RETICLE_Z;
     /**
-     * Edge of the reticle quad on its plane, model units. The texture {@code m2a1_reticle.png} (128 x 128, colour
-     * baked, linear filtering) holds the four double-barred arms round an empty centre inside its middle 72 texels, so
-     * the mark itself spans about 1.6 units: 1.3 degrees from the eye and 30 % of the bore's width, as on the Tarkov
-     * sight. The aim point is the empty centre.
-     * 分划四边形在其平面上的边长（模型单位）。贴图 {@code m2a1_reticle.png}（128 x 128，颜色已烘焙，线性过滤）的中间 72 像素内是
-     * 围绕空心中心的四条双横杠短臂，因此分划本身约宽 1.6 单位：自眼点看约 1.3 度，占内孔宽度的 30%，与塔科夫中的瞄具一致。
-     * 瞄准点是空心的中心。
+     * Apothem of the front aperture's image on the reticle plane as the eye sees it at full aim (similar triangles
+     * from the eye: about 2.69 model units). Anything drawn within this distance of the axis is inside the bore.
+     * 完全瞄准时自眼点看前孔在分划平面上的像的内切半径（由眼点出发的相似三角形：约 2.69 模型单位）。距轴线不超过该值的内容
+     * 都位于内孔之内。
      */
-    public static final float RETICLE_EDGE = 2.875F;
+    public static final float RETICLE_WINDOW_APOTHEM = WINDOW_APOTHEM * RETICLE_DISTANCE / (EYE.z() - WINDOW_FRONT_Z);
+
+    // ---- Reticle layout on its plane, model units from the axis / 分划在其平面上的布局（距轴线的模型单位）----
+    /** Bar thickness of the arms, the stem and the ticks. / 短臂、主干与刻度线的线宽。 */
+    public static final float RETICLE_STROKE = 0.09F;
+    /** Edge of the centre dot, the aim point of a direct shot. / 中心点边长，即直射的瞄准点。 */
+    public static final float RETICLE_DOT = 0.13F;
+    /** The left, right and top arms run from here to {@link #RETICLE_ARM_END}. / 左、右、上三条短臂的起点。 */
+    public static final float RETICLE_ARM_START = 0.22F;
+    public static final float RETICLE_ARM_END = 0.55F;
+    /** Each range tick runs this far left of the axis. / 每条刻度线向轴线左侧延伸的长度。 */
+    public static final float SCALE_TICK_LENGTH = 0.30F;
+    /** Axis to the left edge of a range label. / 轴线到射程数字左缘的距离。 */
+    public static final float SCALE_LABEL_GAP = 0.12F;
+    /** Height of a label cell, centred on its tick (the digits fill 14 of its 16 texel rows). / 数字单元格的高度。 */
+    public static final float SCALE_LABEL_HEIGHT = 0.30F;
+    /** Air kept between a mark and the bore's wall. / 刻度与内孔壁之间保留的空隙。 */
+    public static final float SCALE_WINDOW_MARGIN = 0.04F;
+
+    // ---- Reticle atlas m2a1_reticle.png (128 x 128, colour baked) / 分划图集 ----
+    public static final int ATLAS_SIZE = 128;
+    /** A solid red patch; bars sample its middle so linear filtering never reaches its edge. / 纯红色块。 */
+    public static final int ATLAS_SOLID_X = 6;
+    public static final int ATLAS_SOLID_Y = 6;
+    public static final int ATLAS_SOLID_SIZE = 8;
+    /**
+     * Range labels: label {@code i} (the {@code i}-th mark, "25" ... "200") sits left-aligned in the cell at
+     * ({@link #ATLAS_LABEL_X} + (i mod 2) x {@link #ATLAS_LABEL_STEP_X}, {@link #ATLAS_LABEL_Y} + (i / 2) x
+     * {@link #ATLAS_LABEL_STEP_Y}), {@link #ATLAS_LABEL_WIDTH} x {@link #ATLAS_LABEL_HEIGHT} texels. Digits are 10 x 14
+     * texels, 2 apart, one texel inside the cell, so a label of n digits is 12 n texels wide including that inset.
+     * 射程数字：第 {@code i} 个数字（即第 {@code i} 条刻度，"25" ... "200"）左对齐放在
+     * （{@link #ATLAS_LABEL_X} + (i mod 2) x {@link #ATLAS_LABEL_STEP_X}，{@link #ATLAS_LABEL_Y} + (i / 2) x
+     * {@link #ATLAS_LABEL_STEP_Y}）处的单元格内，单元格为 {@link #ATLAS_LABEL_WIDTH} x {@link #ATLAS_LABEL_HEIGHT} 像素。
+     * 每个数字 10 x 14 像素、间隔 2、距单元格边缘 1 像素，因此 n 位数字连同该内缩共宽 12 n 像素。
+     */
+    public static final int ATLAS_LABEL_X = 4;
+    public static final int ATLAS_LABEL_Y = 24;
+    public static final int ATLAS_LABEL_STEP_X = 62;
+    public static final int ATLAS_LABEL_STEP_Y = 24;
+    public static final int ATLAS_LABEL_WIDTH = 36;
+    public static final int ATLAS_LABEL_HEIGHT = 16;
+    public static final int ATLAS_DIGIT_ADVANCE = 12;
+
     /** First-person scale of the full aim pose (the display block's 0.5). / 完全瞄准姿态的第一人称缩放。 */
     public static final float AIM_SCALE = 0.5F;
     /**
@@ -114,11 +156,12 @@ public final class M32SightPose {
     public static final float LOOK_MULTIPLIER = 0.8F;
     public static final double AIM_IN_SECONDS = 0.20;
     public static final double AIM_OUT_SECONDS = 0.15;
-    /** Fail-safe bound on the range tilt; the dial never needs more. / 射程俯仰的失败安全上限，刻度从不需要更多。 */
-    public static final double MAX_TILT_RADIANS = Math.toRadians(30.0);
     private static final float MIN_W = 1.0E-4F;
     /** The front aperture's corners, vertex space (read only). / 前孔各角（顶点空间，只读）。 */
     private static final Vector3fc[] FRONT_WINDOW = buildFrontWindow();
+    /** The centre mark: dot, left, right and top arm, vertex space (read only). / 中心分划：点与左、右、上短臂。 */
+    private static final Rect[] CENTRE_MARK = buildCentreMark();
+    private static final Rect SOLID_UV = buildSolidUv();
 
     private M32SightPose() {
     }
@@ -157,53 +200,19 @@ public final class M32SightPose {
     }
 
     /**
-     * The tilt h' between sight and bore in the hand projection that shows the bore's elevation {@code h} (world
-     * projection, the angle the round leaves above the line of sight) at the same screen row:
-     * atan(tan(h) * tan(handFov / 2) / tan(worldFov / 2)). NaN for unusable inputs or past {@link #MAX_TILT_RADIANS}.
-     * 手部投影中瞄具与枪膛之间的俯仰 h'，使枪膛抬高角 {@code h}（世界投影，榴弹出膛方向高于瞄准线的角度）落在同一屏幕行：
-     * atan(tan(h) * tan(手部视场角 / 2) / tan(世界视场角 / 2))。输入不可用或超过 {@link #MAX_TILT_RADIANS} 时为 NaN。
+     * Full aim pose of the launcher, vertex space to base space: {@code S T(-E)}, camera-aligned with the eye point at
+     * the origin, scale {@link #AIM_SCALE}. Fresh copy.
+     * 发射器的完全瞄准姿态（顶点空间到基准空间）：{@code S T(-E)}，与相机对齐、眼点位于原点，缩放为 {@link #AIM_SCALE}。
+     * 返回新副本。
      */
-    public static double tiltRadians(double holdoverRadians, double handFovDegrees, double worldFovDegrees) {
-        if (!Double.isFinite(holdoverRadians) || !(Math.abs(holdoverRadians) < Math.PI / 2.0)
-                || !usableFov(handFovDegrees) || !usableFov(worldFovDegrees)) {
-            return Double.NaN;
-        }
-        double tilt = Math.atan(Math.tan(holdoverRadians) * Math.tan(Math.toRadians(handFovDegrees) / 2.0)
-                / Math.tan(Math.toRadians(worldFovDegrees) / 2.0));
-        return Math.abs(tilt) <= MAX_TILT_RADIANS ? tilt : Double.NaN;
+    public static Matrix4f aimPose() {
+        Vector3f eye = anchor();
+        return new Matrix4f().scaling(AIM_SCALE).translate(-eye.x, -eye.y, -eye.z);
     }
 
-    /** The eye point in the body's space, P + Rx(-tilt)(E - P), model units. / 机身空间中的眼点（模型单位）。 */
-    public static Vector3f tiltedEye(float tilt) {
-        return sightTiltModel(tilt).transformPosition(new Vector3f(EYE));
-    }
-
-    /**
-     * The sight's range tilt in vertex space: nose down by {@code tilt} radians about +x through the pivot.
-     * 顶点空间中的瞄具射程俯仰：绕经过枢轴的 +x 轴低头 {@code tilt} 弧度。
-     */
-    public static Matrix4f sightTilt(float tilt) {
-        Vector3f pivot = new Vector3f(PIVOT).div(UNITS_PER_BLOCK);
-        return new Matrix4f().translation(pivot).rotateX(-tilt).translate(-pivot.x, -pivot.y, -pivot.z);
-    }
-
-    /**
-     * Full aim pose of the body, vertex space to base space: {@code S T(-E) sightTilt(tilt)^-1}. The sight (this times
-     * {@link #sightTilt}) is camera-aligned with its eye point at the origin; the body is turned nose up about the pivot
-     * by {@code tilt} radians, scale {@link #AIM_SCALE}.
-     * 机身的完全瞄准姿态（顶点空间到基准空间）：{@code S T(-E) sightTilt(tilt)^-1}。瞄具（本姿态乘以 {@link #sightTilt}）与相机
-     * 对齐、眼点位于原点；机身绕枢轴抬头 {@code tilt} 弧度，缩放为 {@link #AIM_SCALE}。
-     */
-    public static Matrix4f aimPose(float tilt) {
-        Vector3f eye = new Vector3f(EYE).div(UNITS_PER_BLOCK);
-        Vector3f pivot = new Vector3f(PIVOT).div(UNITS_PER_BLOCK);
-        return new Matrix4f().scaling(AIM_SCALE).translate(-eye.x, -eye.y, -eye.z)
-                .translate(pivot).rotateX(tilt).translate(-pivot.x, -pivot.y, -pivot.z);
-    }
-
-    /** The eye point in the body's vertex space, the blend's anchor. / 机身顶点空间中的眼点，即过渡锚点。 */
-    public static Vector3f anchor(float tilt) {
-        return tiltedEye(tilt).div(UNITS_PER_BLOCK);
+    /** The eye point in vertex space, the blend's anchor. / 顶点空间中的眼点，即过渡锚点。 */
+    public static Vector3f anchor() {
+        return new Vector3f(EYE).div(UNITS_PER_BLOCK);
     }
 
     /**
@@ -356,20 +365,164 @@ public final class M32SightPose {
     }
 
     /**
-     * The reticle quad on the plane {@code z = RETICLE_Z / 16}, vertex space, {@code x0 < x1}, {@code y0 < y1}: the
-     * square of edge {@link #RETICLE_EDGE} about the sight axis. The whole texture maps onto it, u along +x and v from
-     * the top (y1) down.
-     * 平面 {@code z = RETICLE_Z / 16} 上的分划四边形（顶点空间，{@code x0 < x1}、{@code y0 < y1}）：绕瞄具轴、边长
-     * {@link #RETICLE_EDGE} 的正方形。整张贴图映射其上，u 沿 +x，v 自上（y1）向下。
+     * An axis-aligned rectangle, {@code x0 < x1}, {@code y0 < y1}: on the reticle plane {@code z = RETICLE_Z / 16} in
+     * vertex space (+x the launcher's right, +y up), or a texture region in UV (u along +x, v from the top (y1) down,
+     * so {@code y0} is the top row's v).
+     * 轴对齐矩形，{@code x0 < x1}、{@code y0 < y1}：位于顶点空间的分划平面 {@code z = RETICLE_Z / 16} 上（+x 为发射器右侧，
+     * +y 向上），或为 UV 中的贴图区域（u 沿 +x，v 自上（y1）向下，因此 {@code y0} 是顶行的 v）。
      */
-    public record ReticleQuad(float x0, float y0, float x1, float y1) {
+    public record Rect(float x0, float y0, float x1, float y1) {
     }
 
-    /** {@link ReticleQuad} about the axis. / 绕轴线的 {@link ReticleQuad}。 */
-    public static ReticleQuad reticleQuad() {
-        float half = RETICLE_EDGE / 2.0F;
-        return new ReticleQuad((EYE.x() - half) / UNITS_PER_BLOCK, (EYE.y() - half) / UNITS_PER_BLOCK,
-                (EYE.x() + half) / UNITS_PER_BLOCK, (EYE.y() + half) / UNITS_PER_BLOCK);
+    /**
+     * The centre mark in vertex space: the dot on the axis, then the left, right and top arms. The fourth, lower arm
+     * is the scale's stem ({@link #stemRect}). Fresh array of shared records.
+     * 顶点空间中的中心分划：轴线上的点，以及左、右、上三条短臂。第四条（下方）短臂就是刻度尺的主干（{@link #stemRect}）。
+     * 返回新数组（记录共享）。
+     */
+    public static Rect[] centreMark() {
+        return CENTRE_MARK.clone();
+    }
+
+    /**
+     * Model units below the sight axis, on the reticle plane, of a point the shooter sees {@code holdoverRadians} below
+     * the bore line in the world projection: {@code RETICLE_DISTANCE tan(h) tan(handFov / 2) / tan(worldFov / 2)}, so
+     * the hand-pass mark and the world direction share a screen row. NaN for unusable inputs.
+     * 射手在世界投影中看到位于枪膛线下方 {@code holdoverRadians} 的点，在分划平面上位于瞄具轴线下方多少模型单位：
+     * {@code RETICLE_DISTANCE tan(h) tan(手部视场角 / 2) / tan(世界视场角 / 2)}，使手部渲染中的刻度与该世界方向落在同一屏幕行。
+     * 输入不可用时为 NaN。
+     */
+    public static double scaleOffset(double holdoverRadians, double handFovDegrees, double worldFovDegrees) {
+        if (!Double.isFinite(holdoverRadians) || !(Math.abs(holdoverRadians) < Math.PI / 2.0)
+                || !usableFov(handFovDegrees) || !usableFov(worldFovDegrees)) {
+            return Double.NaN;
+        }
+        return RETICLE_DISTANCE * Math.tan(holdoverRadians) * Math.tan(Math.toRadians(handFovDegrees) / 2.0)
+                / Math.tan(Math.toRadians(worldFovDegrees) / 2.0);
+    }
+
+    /**
+     * Whether the tick {@code offset} units below the axis lies inside the bore with {@link #SCALE_WINDOW_MARGIN} to
+     * spare, below the centre mark's arms (so it can never run into them).
+     * 位于轴线下方 {@code offset} 单位的刻度线是否落在内孔之内（留有 {@link #SCALE_WINDOW_MARGIN}），且位于中心分划短臂之下
+     * （因此绝不会与其相碰）。
+     */
+    public static boolean tickFits(double offset) {
+        double half = RETICLE_STROKE / 2.0;
+        return Double.isFinite(offset) && offset - half > RETICLE_ARM_START
+                && insideWindow(SCALE_TICK_LENGTH, offset + half);
+    }
+
+    /**
+     * Whether the label of {@code digits} digits beside the tick at {@code offset} lies inside the bore as well.
+     * 位于 {@code offset} 处刻度线旁、共 {@code digits} 位的数字是否同样落在内孔之内。
+     */
+    public static boolean labelFits(double offset, int digits) {
+        return tickFits(offset) && digits > 0
+                && insideWindow(SCALE_LABEL_GAP + labelWidth(digits), offset + SCALE_LABEL_HEIGHT / 2.0);
+    }
+
+    /**
+     * Whether a mark at {@code offset} keeps clear of the mark drawn above it at {@code previousOffset} (NaN = none
+     * yet): their label cells must not touch, so a steep look, where the marks crowd together, thins the scale out
+     * instead of stacking numbers on each other.
+     * {@code offset} 处的刻度是否与其上方已绘制的 {@code previousOffset} 处刻度（NaN 表示尚无）保持间距：两者的数字单元格不得相碰，
+     * 因此在俯仰很大、刻度挤在一起时，刻度尺会变稀疏，而不是把数字叠在一起。
+     */
+    public static boolean markClear(double offset, double previousOffset) {
+        return Double.isNaN(previousOffset) || offset - previousOffset >= SCALE_LABEL_HEIGHT + RETICLE_STROKE;
+    }
+
+    /** Width on the plane of a label's drawn part, {@code digits} digits. / {@code digits} 位数字实际绘制部分的宽度。 */
+    public static float labelWidth(int digits) {
+        return SCALE_LABEL_HEIGHT * Math.max(0, digits) * ATLAS_DIGIT_ADVANCE / ATLAS_LABEL_HEIGHT;
+    }
+
+    /**
+     * The tick {@code offset} model units below the axis, vertex space: from {@link #SCALE_TICK_LENGTH} left of the
+     * axis to the stem's left edge (they abut, never overlap, so the translucent layer blends each texel once).
+     * 轴线下方 {@code offset} 处的刻度线（顶点空间）：自轴线左侧 {@link #SCALE_TICK_LENGTH} 到主干左缘（两者相接而不重叠，
+     * 半透明渲染层对每个像素只混合一次）。
+     */
+    public static Rect tickRect(double offset) {
+        float y = EYE.y() - (float) offset;
+        float half = RETICLE_STROKE / 2.0F;
+        return planeRect(EYE.x() - SCALE_TICK_LENGTH, y - half, EYE.x() - half, y + half);
+    }
+
+    /**
+     * The label quad beside the tick at {@code offset}, vertex space: {@code digits} digits wide, one cell high,
+     * centred on the tick's row. Its texture region is {@link #labelUv} of the same mark and digit count.
+     * {@code offset} 处刻度线旁的数字四边形（顶点空间）：宽 {@code digits} 位、高一个单元格，以刻度线所在行为中心。其贴图区域为
+     * 同一刻度、同一位数的 {@link #labelUv}。
+     */
+    public static Rect labelRect(double offset, int digits) {
+        float y = EYE.y() - (float) offset;
+        float half = SCALE_LABEL_HEIGHT / 2.0F;
+        float x = EYE.x() + SCALE_LABEL_GAP;
+        return planeRect(x, y - half, x + labelWidth(digits), y + half);
+    }
+
+    /**
+     * The stem under the centre mark, vertex space: from {@link #RETICLE_ARM_START} below the axis down to
+     * {@code lowestOffset} (the lowest tick drawn, its lower edge included), and never shorter than the other three
+     * arms. / 中心分划下方的主干（顶点空间）：自轴线下方 {@link #RETICLE_ARM_START} 向下到 {@code lowestOffset}（所绘制的最低
+     * 刻度线，含其下缘），且不短于另外三条短臂。
+     */
+    public static Rect stemRect(double lowestOffset) {
+        float half = RETICLE_STROKE / 2.0F;
+        float end = Double.isFinite(lowestOffset) ? Math.max(RETICLE_ARM_END, (float) lowestOffset + half)
+                : RETICLE_ARM_END;
+        return planeRect(EYE.x() - half, EYE.y() - end, EYE.x() + half, EYE.y() - RETICLE_ARM_START);
+    }
+
+    /** UV of the solid patch's middle, for every bar. / 纯色块中部的 UV，用于所有线条。 */
+    public static Rect solidUv() {
+        return SOLID_UV;
+    }
+
+    /**
+     * UV of the first {@code digits} digits of label {@code index} (0 = the first scale mark). Out-of-range arguments
+     * are clamped. / 第 {@code index} 个数字（0 为第一条刻度）前 {@code digits} 位的 UV。越界参数会被钳制。
+     */
+    public static Rect labelUv(int index, int digits) {
+        int i = Math.max(0, index);
+        float u0 = ATLAS_LABEL_X + (i % 2) * ATLAS_LABEL_STEP_X;
+        float v0 = ATLAS_LABEL_Y + (i / 2) * ATLAS_LABEL_STEP_Y;
+        float width = Math.min(ATLAS_LABEL_WIDTH, Math.max(0, digits) * ATLAS_DIGIT_ADVANCE);
+        return new Rect(u0 / ATLAS_SIZE, v0 / ATLAS_SIZE, (u0 + width) / ATLAS_SIZE,
+                (v0 + ATLAS_LABEL_HEIGHT) / ATLAS_SIZE);
+    }
+
+    /** Whether the point (x right of, y below the axis) keeps the margin to the bore's wall. / 点是否位于内孔内并留有空隙。 */
+    private static boolean insideWindow(double x, double y) {
+        return Math.hypot(x, y) <= RETICLE_WINDOW_APOTHEM - SCALE_WINDOW_MARGIN;
+    }
+
+    /** Model units to a vertex-space {@link Rect}. / 模型单位转为顶点空间的 {@link Rect}。 */
+    private static Rect planeRect(float x0, float y0, float x1, float y1) {
+        return new Rect(x0 / UNITS_PER_BLOCK, y0 / UNITS_PER_BLOCK, x1 / UNITS_PER_BLOCK, y1 / UNITS_PER_BLOCK);
+    }
+
+    private static Rect[] buildCentreMark() {
+        float x = EYE.x();
+        float y = EYE.y();
+        float dot = RETICLE_DOT / 2.0F;
+        float half = RETICLE_STROKE / 2.0F;
+        return new Rect[]{
+                planeRect(x - dot, y - dot, x + dot, y + dot),
+                planeRect(x - RETICLE_ARM_END, y - half, x - RETICLE_ARM_START, y + half),
+                planeRect(x + RETICLE_ARM_START, y - half, x + RETICLE_ARM_END, y + half),
+                planeRect(x - half, y + RETICLE_ARM_START, x + half, y + RETICLE_ARM_END),
+        };
+    }
+
+    private static Rect buildSolidUv() {
+        // The middle half of the patch. / 色块的中间一半。
+        float inset = ATLAS_SOLID_SIZE / 4.0F;
+        return new Rect((ATLAS_SOLID_X + inset) / ATLAS_SIZE, (ATLAS_SOLID_Y + inset) / ATLAS_SIZE,
+                (ATLAS_SOLID_X + ATLAS_SOLID_SIZE - inset) / ATLAS_SIZE,
+                (ATLAS_SOLID_Y + ATLAS_SOLID_SIZE - inset) / ATLAS_SIZE);
     }
 
     private static Vector3fc[] buildFrontWindow() {
@@ -403,11 +556,6 @@ public final class M32SightPose {
         }
         float det = matrix.determinant3x3();
         return det > 0.0F ? (float) Math.cbrt(det) : Float.NaN;
-    }
-
-    private static Matrix4f sightTiltModel(float tilt) {
-        return new Matrix4f().translation(PIVOT.x(), PIVOT.y(), PIVOT.z()).rotateX(-tilt)
-                .translate(-PIVOT.x(), -PIVOT.y(), -PIVOT.z());
     }
 
     private static boolean usableFov(double degrees) {

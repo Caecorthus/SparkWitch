@@ -15,23 +15,23 @@ import org.jetbrains.annotations.Nullable;
  * ({@link M32ClientState#isAiming}: use held with the launcher in the main hand) on a confirmed SparkWitch server;
  * {@code ScopeClient}'s view gate adds first person, the camera being the player and no screen. The sight is lensless
  * ({@link #drawsLens} false: no lens, rim, mask or periphery blur) and keeps the held launcher
- * ({@link #hidesHeldItem} false): the aimed 3-D launcher nosed up under its screen-centred sight and the four-arm
- * reticle are drawn in the hand pass by {@link M32SightRenderer}, so {@link #drawReticle} draws nothing and the module
- * only hides the crosshair. The world
+ * ({@link #hidesHeldItem} false): the aimed 3-D launcher with its screen-centred sight, the centre mark and the fixed
+ * range scale under it are drawn in the hand pass by {@link M32SightRenderer}, so {@link #drawReticle} draws nothing
+ * and the module only hides the crosshair. The world
  * zooms 1.25x ({@link M32SightPose#WORLD_FOV_MULTIPLIER}) with look scale {@link M32SightPose#LOOK_MULTIPLIER}. The
- * wheel turns the range dial ({@link M32RangeDial}) and never reaches the hotbar. The launcher's item use never
+ * wheel is left to vanilla (owner 2026-11-11: there is no range dial). The launcher's item use never
  * coincides with the USEC rifle's or the anti-tank launcher's (one active item), so no other provider answers at the
- * same time. Client only; while it is active {@link M32FireInput} raises the shot by the dial's elevation
- * ({@link M32DialRules#launchPitch}), which reaches the server only as the fire intent's pitch.
+ * same time. Client only and presentation only: an aimed shot leaves along the look exactly like a hip shot
+ * ({@link M32FireInput}), and the scale shows how far below the centre the round is at each range.
  * M32A1 的 M2A1 反射式瞄具，供共享 {@code client/scope} 模块使用（由 {@code M32LauncherClient} 经
  * {@link ScopeClient#registerProvider} 注册一次）。在已确认的 SparkWitch 服务器上、本地玩家瞄准时提供
  * （{@link M32ClientState#isAiming}：主手持发射器并按住使用键）；{@code ScopeClient} 的视角条件再加上第一人称、相机即玩家与
  * 未打开界面。该瞄具无镜片（{@link #drawsLens} 为 false：没有镜片、镜框、遮罩或镜外模糊），并保留手中的发射器
- * （{@link #hidesHeldItem} 为 false）：瞄准中的三维发射器（在居于屏幕正中的瞄具下方抬头）与四臂分划由 {@link M32SightRenderer} 在手部渲染中绘制，
+ * （{@link #hidesHeldItem} 为 false）：瞄准中的三维发射器（瞄具居于屏幕正中）、中心分划及其下方的固定射程刻度尺由 {@link M32SightRenderer} 在手部渲染中绘制，
  * 因此 {@link #drawReticle} 不绘制任何内容，模块只隐藏准星。世界放大 1.25 倍（{@link M32SightPose#WORLD_FOV_MULTIPLIER}），视角缩放
- * {@link M32SightPose#LOOK_MULTIPLIER}。滚轮转动射程刻度（{@link M32RangeDial}），从不切换快捷栏。发射器的物品使用与 USEC 步枪或
- * 反坦克炮筒的从不同时发生（只有一个使用中物品），因此不会有其他提供者同时作答。仅客户端；它生效时 {@link M32FireInput} 按刻度的抬高角抬高射击
- * （{@link M32DialRules#launchPitch}），服务端只在开火意图的俯仰角中看到这一点。
+ * {@link M32SightPose#LOOK_MULTIPLIER}。滚轮交还原版（所有者 2026-11-11：不设射程调节）。发射器的物品使用与 USEC 步枪或
+ * 反坦克炮筒的从不同时发生（只有一个使用中物品），因此不会有其他提供者同时作答。仅客户端、仅为表现：开镜射击与腰射一样沿视线射出
+ * （{@link M32FireInput}），刻度尺标出各射程下榴弹位于中心下方多远。
  */
 public final class M32ScopeProfile implements ScopeProfile {
     public static final M32ScopeProfile INSTANCE = new M32ScopeProfile();
@@ -83,16 +83,10 @@ public final class M32ScopeProfile implements ScopeProfile {
         return false;
     }
 
-    /** Every wheel event while aiming turns the dial; none reaches the hotbar. / 瞄准时每个滚轮事件都转动刻度。 */
-    @Override
-    public boolean onWheel(double notches) {
-        M32RangeDial.scroll(notches);
-        return true;
-    }
-
     /**
-     * No 2-D reticle, drum or ladder: the sight is the 3-D model in the hand pass. The module still replaces the
-     * crosshair with this (empty) call. / 没有 2D 分划、刻度鼓或刻度尺：瞄具是手部渲染中的三维模型。模块仍以这个（空）调用替换准星。
+     * No 2-D reticle here: the sight, its centre mark and its range scale are drawn in the hand pass. The module
+     * still replaces the crosshair with this (empty) call. / 这里没有 2D 分划：瞄具、中心分划与射程刻度尺都在手部渲染中绘制。
+     * 模块仍以这个（空）调用替换准星。
      */
     @Override
     public void drawReticle(DrawContext context, ScopeFrame frame) {

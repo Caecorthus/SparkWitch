@@ -115,11 +115,10 @@ public final class M32FireInput {
         if (client.interactionManager != null) {
             ((SelectedSlotFlushInvoker) client.interactionManager).sparkwitch$flushSelectedSlot();
         }
-        // Rotation at press time: the attack key is handled before this tick's rotation packet. Through the M2A1 the
-        // shot leaves above the look by the dialled elevation (M32DialRules.launchPitch); hip fire is the look itself.
-        // 按下瞬间的朝向：攻击键先于本刻的朝向数据包处理。通过 M2A1 瞄准时，榴弹在视线之上按刻度抬高射出
-        // （M32DialRules.launchPitch）；腰射即视线本身。
-        float pitch = M32DialRules.launchPitch(player.getPitch(), M32ScopeProfile.isActive(), M32RangeDial.metres());
-        ClientPlayNetworking.send(new FireM32A1C2SPayload(player.getYaw(), pitch));
+        // Rotation at press time: the attack key is handled before this tick's rotation packet. The round always
+        // leaves along the look, aimed or from the hip (owner 2026-11-11: no range dial; the M2A1's fixed scale is
+        // the hold-over). / 按下瞬间的朝向：攻击键先于本刻的朝向数据包处理。无论开镜还是腰射，榴弹始终沿视线射出
+        // （所有者 2026-11-11：不设射程调节；M2A1 的固定刻度尺就是抬高量）。
+        ClientPlayNetworking.send(new FireM32A1C2SPayload(player.getYaw(), player.getPitch()));
     }
 }

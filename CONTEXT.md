@@ -2115,7 +2115,7 @@ Current build baseline:
     cooldown, loaded), spawns the round from its own eye, then fires the cylinder (D8) and writes the 1 s cooldown
     through its exact floor writer `writeFloorExact`; empty = shooter-only dry click, no cooldown. `M32Ballistics`
     (pure, shared with the sight): 3.8 b/t (76 m/s), gravity 9.81/400, drag 0.998/tick, launch 0.1 below the eye; every
-    dial step (25-200 m) arrives before the 3 s fuse at level pitch (200 m in about 55 ticks). `SmokeRoundEntity` +
+    scale mark (25-200 m) arrives before the 3 s fuse at level pitch (200 m in about 55 ticks). `SmokeRoundEntity` +
     `SmokeRoundFlight`: no damage and no vanilla hit handler (G1); arms after 4 blocks of path, an earlier impact
     bounces (damped, can come to rest), the first armed block/entity impact or the backup fuse bursts it through
     `SmokeCloudService.spawn` (stepped out of the surface) + `BEAR_SMOKE_BURST` + a puff; a match round is discarded
@@ -2124,53 +2124,54 @@ Current build baseline:
     (`SmokeRoundFlight.stale`, in memory only) missed ticks outside entity-ticking range and removes itself unburst.
     Client: `M32ScopeProfile` (M2A1 reflex: `drawsLens() == false` keeps the scope
     module from drawing a lens, PiP, rim or periphery; `hidesHeldItem() == false` keeps the hand pass; world zoom 0.8
-    (1.25x) and look 0.8 in both scope modes; `drawReticle` is empty, so the crosshair is only hidden), the 3-D reflex
+    (1.25x) and look 0.8 in both scope modes; `drawReticle` is empty, so the crosshair is only hidden; the wheel is
+    left to vanilla), the 3-D reflex
     aim (SIGHT-CONTRACT v2, 2026-11-06, owner rejected the 2-D reticle; TACZ technique, none of its GPL code; redone
-    2026-11-11 at the owner's request: the round rail-shrouded M2A1 on a two-plate cradle with the four-arm reticle,
-    after the Milkor sight as Escape from Tarkov shows it, in the house pixel style, and THE SIGHT STAYS AT THE SCREEN
-    CENTRE: dialling the range noses the launcher up under it and an aimed shot leaves above the look):
+    2026-11-11 at the owner's request: the round rail-shrouded M2A1 on a two-plate cradle, after the Milkor sight as
+    Escape from Tarkov shows it, in the house pixel style. THE SIGHT STAYS AT THE SCREEN CENTRE AND THERE IS NO RANGE
+    DIAL (owner 2026-11-11: "榴弹的刻度根本不需要调，直接让他们按刻度尺打就行", layout "中心直射＋下方刻度"): a round
+    always leaves along the look, aimed or from the hip (`M32FireInput` sends the yaw and pitch at press time), the
+    centre mark is that direction and the fixed range scale under it is the hold-over):
     `M32SightState` (aim progress p, 0→1 in 0.20 s while `M32ScopeProfile.isActive()`, 1→0 in 0.15 s, integrated over
     real frame time on every read, 0 at once with no launcher in the main hand, on a world change or disconnect),
-    `M32SightPose` (pure maths: smoothstep ease, hand FOV lerp(vanilla, 32, ease), h' = atan(tan h · tan(hand/2) /
-    tan(world/2)), full aim = the sight on the camera: sight pose S·T(-E) (its axis is the view axis, the eye point the
-    origin, scale 0.5) and body pose `aimPose` = S·T(-E)·sightTilt(h')⁻¹ (nosed up about the pivot), eye
+    `M32SightPose` (pure maths: smoothstep ease, hand FOV lerp(vanilla, 32, ease), full aim `aimPose` = S·T(-E): the
+    sight's axis is the view axis, the eye point the origin, scale 0.5, and the whole launcher shares that pose; eye
     (8, 21.5, 28.5) (a long eye relief, 24 behind the eyecup's rear face; at the 32° hand FOV the bore is a window of
     about 13 % of the aimed view's height, the eyepiece ring about 26 % and the three-eared rear plate about 44 %, and
-    the world stays visible round it — owner 2026-11-06 "人家就是个红点"), pivot (8, 19, -1.25) (the cradle's front
-    pin, the range arc's centre: the sight's rear lifts as the range goes up),
+    the world stays visible round it — owner 2026-11-06 "人家就是个红点"),
     window = the tube's open round bore (`WINDOW_SIDES` 16, inner apothem 1.25 = the 16 tube staves, z -4.0..4.5),
-    reticle plane z -41.5 (70 from the eye), reticle quad edge 2.875 (`reticleQuad`, the mark is the texture's middle
-    72 of 128 texels: about 1.6 units, 1.3°, 30 % of the bore); the blend lerps the anchor's image and the scale and
-    slerps the rotation; the window test (`reticleInWindow`) projects the reticle's centre and the 16 front-aperture
-    corners through one clip matrix), `M32SightRenderer` and two client mixins after
+    reticle plane z -41.5 (70 from the eye), where the front aperture's image has apothem `RETICLE_WINDOW_APOTHEM`
+    ≈ 2.69; reticle layout in model units from the axis: a 0.13 centre dot, left/right/top arms 0.22..0.55, stroke
+    0.09, and the range scale: `scaleOffset(h, hand, world)` = 70·tan h·tan(hand/2)/tan(world/2) below the axis for a
+    world-projection angle h, a tick 0.30 to the left of the stem and a label cell 0.30 high to its right (`tickRect`,
+    `labelRect`, `stemRect`; `tickFits`/`labelFits` keep 0.04 to the bore's wall, and `markClear` drops a mark closer
+    than a label cell plus a stroke to the one drawn above it, so a steep look thins the scale instead of stacking
+    numbers); the blend lerps the anchor's image
+    and the scale and slerps the rotation; the window test (`reticleInWindow`) projects the reticle's centre and the
+    16 front-aperture corners through one clip matrix), `M32SightRenderer` and two client mixins after
     `M32ArmPoseMixin`. `client/mixin/bear/M32SightHeldItemMixin`: HEAD/TAIL of the first-person
     `HeldItemRenderer#renderItem(F…)` bracket the pass and capture the base `B` (hurt tilt + view bob; vanilla and Iris
     both call it), and a `@WrapOperation` on the single `ItemRenderer#renderItem(LivingEntity…)` call inside
     `renderItem(LivingEntity…)` (Wathe's AFTER hand-particle inject on that call, SparkTraits' Last Stand and
     SparkStrength's skateboard HEAD cancels keep working) answers only for the renderer's own `mainHand` reference; at
-    p > 0 it draws `item/m32a1_body` at `blend(hipPre·D·T(-0.5), aim)` and `item/m32a1_sight` at that times the range
-    tilt about the pivot through the public `ItemRenderer#renderItem(…BakedModel)` in the vanilla first-person mode,
+    p > 0 it draws `item/m32a1_body` and `item/m32a1_sight` at the one pose `blend(hipPre·D·T(-0.5), aim)`
+    through the public `ItemRenderer#renderItem(…BakedModel)` in the vanilla first-person mode,
     the stack pre-multiplied by `hipPre⁻¹·target·T(0.5)·D_model⁻¹` (`hipPre = B⁻¹·S` at vanilla's draw), then the reticle:
-    one full-bright quad on `RenderLayer.getEntityTranslucentEmissive`
-    (`textures/entity/bear/m2a1_reticle.png`, 128 × 128 with linear filtering and its colour baked in: four
-    double-barred red arms round an empty centre, the aim point), depth tested, never depth written, alpha
+    full-bright quads on `RenderLayer.getEntityTranslucentEmissive` from the one atlas
+    (`textures/entity/bear/m2a1_reticle.png`, 128 × 128 with linear filtering and its colour baked in: a solid red
+    patch for every bar and the eight labels "25".."200" as 5 × 7 pixel digits at 2x, cells per
+    `M32SightPose.ATLAS_*`), depth tested, never depth written, alpha
     smoothstep(0.75, 1, p), skipped unless its centre's projection through the bound hand projection × model-view × `B`
-    lies inside the projected front window; there is no dot, range ladder or lead tick any more (the dial and the
-    readout badge carry the range); anything missing
+    lies inside the projected front window: the centre mark, then for every `M32Ballistics.scaleMarks()` range
+    (25..200 m, 25 m apart) whose tick fits the bore a tick and its label at
+    `scaleOffset(M32Ballistics.holdoverRadians(interpolated look pitch, range), this pass's hand FOV, live world FOV
+    (`ScopeGameRendererInvoker`))`, i.e. where the shooter sees the round at that range, so the scale is exact at any
+    pitch and FOV option, and last the stem down to the lowest tick drawn. At the default FOV 70 the bore shows 25,
+    50 and 75 m (0.84 / 1.58 / 2.39 units; 100 m at 3.22 is outside); FOV 90 adds 100 m and FOV 110 125 m, FOV 60
+    shows 25 and 50 m and the minimum FOV 30 only 25 m; past the last mark the shooter raises by feel. Anything missing
     (either extra model, an unusable matrix, no base) declines before drawing and vanilla's call runs; p = 0 always
-    runs vanilla's call unchanged. h = `M32Ballistics.elevationToHitRadians` (interpolated look pitch, dialled metres:
-    the bore elevation that lands the round on the line of sight at that range) with the live world FOV
-    (`ScopeGameRendererInvoker`) and this pass's hand FOV; the tilt blends in with ease(p); no aim solution draws an
-    untilted sight and no reticle. The same angle raises the shot: `M32FireInput` sends
-    `M32DialRules.launchPitch(look pitch, M32ScopeProfile.isActive(), dial)` = the look minus that elevation while the
-    scope profile is active (never past straight up; no solution or hip fire = the look itself), and the server, which
-    already takes the payload's aim as the launch direction from its own eye, is unchanged. The whole elevation
-    applies as soon as the profile is active, the 0.2 s aim-in included (the drawn nose-up eases in; the input state
-    decides the shot). At default settings the largest tilt is about 5.9° (200 m,
-    look 11° up) and 14.5° at the minimum FOV option (the renderer uses the live world FOV); the nosed-up launcher
-    stays 1.1 units or more outside the sight cone (eye through the front aperture to the reticle plane) and first
-    enters it at 20.7° (the muzzle's top), and no sight part meets the cradle before 17.2° (`m2_pointer_link` against
-    the left plate's riser), both asserted from the model JSON by `M32SightPoseTest`.
+    runs vanilla's call unchanged. The server, which takes the payload's aim as the launch direction from its own
+    eye, is unchanged.
     `client/mixin/bear/M32SightFovMixin` (`@ModifyReturnValue` on
     `GameRenderer#getFov`): `changingFov == false` (vanilla `renderHand`, Iris `HandRenderer.setupGlState`) becomes
     `M32SightState.handFov` (exactly the original at p = 0); the world projection passes through. The two halves are
@@ -2186,7 +2187,7 @@ Current build baseline:
     (flat, upright, ±45°) that draw only their flats and caps. Every `m2_*` part uses `#1` = `item/m32a1_m2a1`
     (128 × 128). `m32a1_body` = launcher + the fixed cradle (`m2_clamp`, the two rail jaws, the left and right side
     plates `m2_plate_*` with a riser and a dotted range scale on the rear edge, and the `m2_plunger`); `m32a1_sight` =
-    the tilting rest about the axis (8, 21.5): four 16-stave rings (`m2_tube_*` the bore, `m2_bell_*` the objective
+    the rest about the sight axis (8, 21.5) (the split dates from the removed range tilt; it stays because the aimed draw must not carry the lens): four 16-stave rings (`m2_tube_*` the bore, `m2_bell_*` the objective
     bell, `m2_ocular_*` the eyepiece, `m2_cup_*` the rubber eyecup), the 4 × 4 shroud with striped top/left/right
     rails and four `m2_shroud_corner_*` posts that close the corners between the round tube and the square shroud
     (seen along the axis nothing but the bore is see-through; owner 2026-11-11 spotted the gaps), the three ears round
@@ -2197,25 +2198,25 @@ Current build baseline:
     under perspective); `M32SightModelTest` pins no see-through silhouette holes but the bore and no floating element.
     `m2_lens`, the red objective, is one muzzle-facing quad that exists only in the full model (`item/m32a1`: the hip
     and every other 3-D draw), so nothing can ever sit in the aimed window.
-    `M32RangeDial` (wheel, 25 m steps, per holding
-    session = same hotbar slot), `M32Hud` (owner, 2026-11-06, option B 跟随枪身: the readout badge rides the held
+    `M32Hud` (owner, 2026-11-06, option B 跟随枪身: the readout badge rides the held
     launcher in first person. `M32BadgeAnchor` holds the only two anchor points, in sight model space (hip = the top
     rail's top centre (8, 24, 0) on the v7 rail, aim = the sight's visible right silhouette at the eye height, on the v7 art
     the right ear's outer edge (11, 21.5, 3.25); UPDATE BOTH WHEN THE SIGHT MODEL CHANGES, the maths never
-    names them); `M32SightRenderer` projects the hip point through the body
-    pose and the aim point through the tilted sight pose with the hand pass's clip matrix (hand projection x model-view
+    names them); `M32SightRenderer` projects both points through the launcher's one pose
+    with the hand pass's clip matrix (hand projection x model-view
     x base) at every main-hand draw, p = 0 included (`captureHipAnchor`), lerps the two by ease(p) and stamps the frame
     id that `WorldRenderEvents.START` advances, so `M32BadgeAnchor.current()` is never stale. `M32Hud` follows the
     anchor with a time-based exponential smoothing (`M32HudRules.follow`, τ 0.1 s; snap on the first frame or a jump
     over w/3), centred above it with its bottom 18 px up at the hip and 10 px right of it, vertically centred, at full
     aim (placement lerped by the same blend), clamped to a 4 px margin and above `h - 45` (`followBadge`), with a 1 px
-    leader in the dial colour at 65 % from the badge's nearest edge midpoint to a 5x5 hollow ring on the anchor
+    leader in the BEAR olive at 65 % from the badge's nearest edge midpoint to a 5x5 hollow ring on the anchor
     (`leader`). No anchor this frame (F5, hidden hand, the launcher not drawn, a declined aimed draw) falls back to the
     slot badge above the launcher's hotbar slot, only while it is in the main hand, like the Ceremonial Sword badge;
-    the bottom-right corner row is gone, so no corner row stacks against it. The 6-chamber icon from `textures/gui/bear/m32_chambers.png`, then the dial over the count on
-    one translucent dark plate `PLATE_COLOR` as tall as the cylinder and the cooldown bar under the count; pure layout
-    `M32HudRules.badge`: centred on Wathe's slot centre `w/2 - 80 + 20·slot`, clamped, the text column reserves
-    "200 m", bottom on the selection frame's top row `h - 23`, so the count sits on Wathe's cooldown-number line
+    the bottom-right corner row is gone, so no corner row stacks against it. The 6-chamber icon from
+    `textures/gui/bear/m32_chambers.png`, then the count on one translucent dark plate `PLATE_COLOR` (2 px above the
+    count down to the badge's bottom) with the cooldown bar under the count; there is no range line (owner 2026-11-11:
+    no dial); pure layout `M32HudRules.badge`: centred on Wathe's slot centre `w/2 - 80 + 20·slot`, clamped, the text
+    column is the count's width, bottom on the selection frame's top row `h - 23`, so the count sits on Wathe's cooldown-number line
     `h - 35` and the bar on the sword's pip row `h - 26`; lifted to `h - 41` above Wathe's stamina row only when that
     row is drawn under the badge, i.e. hotbar keys 5-9 with the vanilla font), `client/mixin/bear/M32CooldownNumberMixin`
     (`@WrapOperation` on the one `drawTextWithShadow` in Wathe's `CooldownRenderer#renderHud`: skipped exactly while
