@@ -133,6 +133,11 @@ public final class SeekerRemoteRules {
             // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
             // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。
             Identifier.of("sparkstrength", "serial_pistol_shoot"),
+            // Bandit moddable revolver (BanditRevolverShootC2SPayload, SparkStrength #135): the Bandit's gun shot,
+            // which no longer travels as wathe:gunshoot. Fitting parts and loading rounds (bandit_revolver_action)
+            // stay allowed. / 强盗改装左轮（BanditRevolverShootC2SPayload，SparkStrength #135）：强盗的开枪，不再经
+            // wathe:gunshoot 发送。装配件与装弹（bandit_revolver_action）保持放行。
+            Identifier.of("sparkstrength", "bandit_revolver_shoot"),
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
             Identifier.of("sparkstrength", "coroner_morph"),

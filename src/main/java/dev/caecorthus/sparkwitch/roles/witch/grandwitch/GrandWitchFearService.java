@@ -132,6 +132,10 @@ public final class GrandWitchFearService {
             // The Serial Killer pistol shot is blocked like the Demon Hunter pistol above, although Wathe's own
             // wathe:gunshoot stays allowed (owner decision 2026-10-07).
             // 连环杀手手枪射击与上方猎魔人手枪一样被拦截，Wathe 自身的 wathe:gunshoot 仍放行（所有者 2026-10-07 决定）。
+            // Not listed: sparkstrength:bandit_revolver_shoot. The Bandit's moddable revolver (SparkStrength #135)
+            // replaces the Wathe revolver the Bandit used to buy, so it stays allowed like wathe:gunshoot.
+            // 未列入：sparkstrength:bandit_revolver_shoot。强盗改装左轮（SparkStrength #135）取代强盗原先购买的 Wathe 左轮，
+            // 因此与 wathe:gunshoot 一样放行。
             Identifier.of("sparkstrength", "serial_pistol_shoot"),
             Identifier.of("sparkstrength", "noisemaker_glow"),
             Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
