@@ -279,6 +279,10 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         // the Charon's components.
         // 远野汉娜（PR #212）：浮游、惩罚与手帕计时。所有人只收到浮游的剩余刻数（本能按客户端绘制）；本人额外收到就绪刻与
         // 惩罚刻。追加在最后，位于卡戎的组件之后。
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.neutral.koko.KokoComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.neutral.koko.KokoComponent::new);
         registry.beginRegistration(PlayerEntity.class, HannaComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HannaComponent::new);

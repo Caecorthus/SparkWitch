@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.client.gui.MoodRenderer;
@@ -66,6 +67,8 @@ public final class MoodFlags {
     public static final Identifier CONSCIENCE = flag("conscience");
     public static final Identifier IMPOSTOR = flag("impostor");
     public static final Identifier NO_SANITY = flag("no_sanity");
+    /** Koko: Wathe's neutral face re-tinted to her orange (owner 2026-11-12). / 可可：Wathe 中立表情染成她的橙色（所有者 2026-11-12）。 */
+    public static final Identifier KOKO = flag("koko");
 
     /**
      * Role id to its own flag. NoellesRoles ids are literal (no class reference), pinned to the shipped jar.
@@ -78,6 +81,7 @@ public final class MoodFlags {
             Map.entry(SparkWitchRoles.INSIDER_ID, INSIDER),
             Map.entry(InsiderRules.CORRUPT_COP_ID, CORRUPT_COP),
             Map.entry(SparkWitchRoles.FIEND_ID, FIEND),
+            Map.entry(KokoRules.ROLE_ID, KOKO),
             Map.entry(Identifier.of("noellesroles", "jester"), JESTER),
             Map.entry(Identifier.of("noellesroles", "pathogen"), PATHOGEN),
             Map.entry(Identifier.of("noellesroles", "taotie"), TAOTIE),

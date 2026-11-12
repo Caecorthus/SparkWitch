@@ -298,6 +298,7 @@ public final class SparkWitchEvents {
         // 远野汉娜（PR #212）：排在上方共享 RoleAssigned 监听器之后，其开局魔力由其中的 WitchManaService.assignForRole
         // 发放；她自己的监听器只重置浮游组件。
         HannaFeatureService.register();
+        dev.caecorthus.sparkwitch.roles.neutral.koko.KokoService.register();
         SpareKeyDoors.register();
         SpareKeyAttendantKit.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));

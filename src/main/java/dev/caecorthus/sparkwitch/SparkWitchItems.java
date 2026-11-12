@@ -156,6 +156,10 @@ public final class SparkWitchItems {
     public static final Identifier HANNA_UMBRELLA_ID = HannaRules.UMBRELLA_ID;
     public static final Identifier HANNA_HANDKERCHIEF_ID = HannaRules.HANDKERCHIEF_ID;
     public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
+    public static final Identifier KOKO_LIGHTSTICK_ID =
+            dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules.LIGHTSTICK_ID;
+    public static final Identifier KOKO_KNIFE_ID =
+            dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules.KNIFE_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -216,6 +220,8 @@ public final class SparkWitchItems {
     private static Item witherGohei;
     private static Item peachwoodSword;
     private static Item sherryBadge;
+    private static Item kokoLightstick;
+    private static Item kokoKnife;
     private static Item sherryNote;
     private static Item ghostTrigger;
     private static Item bigDogPortrait;
@@ -613,6 +619,18 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 ROPE_ID,
                 new RopeItem(RopeItem.createSettings())
+        );
+        // 泽渡可可（2026-11-11），追加在最后以保持既有注册顺序不变。应援棒有主动效果，刀只是普通武器。
+        kokoLightstick = Registry.register(
+                Registries.ITEM,
+                KOKO_LIGHTSTICK_ID,
+                new dev.caecorthus.sparkwitch.roles.neutral.koko.KokoItems.Lightstick(
+                        new Item.Settings().maxCount(1))
+        );
+        kokoKnife = Registry.register(
+                Registries.ITEM,
+                KOKO_KNIFE_ID,
+                new Item(new Item.Settings().maxCount(1))
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -1128,6 +1146,20 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return hannaHandkerchief;
+    }
+
+    public static Item kokoLightstick() {
+        if (kokoLightstick == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return kokoLightstick;
+    }
+
+    public static Item kokoKnife() {
+        if (kokoKnife == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return kokoKnife;
     }
 
     public static Item sherryBadge() {

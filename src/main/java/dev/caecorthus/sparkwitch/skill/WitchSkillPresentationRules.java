@@ -36,6 +36,9 @@ public final class WitchSkillPresentationRules {
         if (role == SparkWitchRoles.apprenticeWitch()) {
             return ApprenticeAbilityCatalog.ABILITY_IDS.contains(skillId);
         }
+        if (role == SparkWitchRoles.koko()) {
+            return dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules.STREAM_SKILL_ID.equals(skillId);
+        }
         if (role == SparkWitchRoles.murderousWitch()) {
             return MurderousWitchDeathRayRules.isDeathRaySkill(skillId);
         }

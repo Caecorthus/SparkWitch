@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.mana;
 
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
@@ -60,6 +61,7 @@ public final class WitchManaRules {
                 || RiftwalkerRules.isRiftwalker(role) || WitchMaidenRules.isWitchMaiden(role)
                 || HannaRules.isHanna(role)
                 || SherryRules.isSherry(role)
+                || dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules.ROLE_ID.equals(role.identifier())
                 || HiroRules.isHiro(role);
     }
 
@@ -98,10 +100,15 @@ public final class WitchManaRules {
      * 除汉娜外的所有魔力角色；汉娜的魔力只靠任务增长（所有者 2026-11-11）。
      */
     public static boolean canRegenerateNaturally(Role role) {
-        return isManaRole(role) && !HannaRules.isHanna(role);
+        // Koko regenerates through her own 2-per-second wage, capped at 120 (owner 2026-11-12).
+        // 可可走自己的每秒 2 点，上限 120（所有者 2026-11-12）。
+        return isManaRole(role) && !HannaRules.isHanna(role) && !KokoRules.isKoko(role);
     }
 
     public static int naturalCap(Role role) {
+        if (KokoRules.isKoko(role)) {
+            return KokoRules.MAX_MANA;
+        }
         if (usesGrandWitchManaEconomy(role)) {
             return GRAND_WITCH_NATURAL_CAP;
         }

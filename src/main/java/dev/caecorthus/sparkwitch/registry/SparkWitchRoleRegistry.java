@@ -53,6 +53,7 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
@@ -110,6 +111,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier FISHER_ID = FisherRules.ROLE_ID;
     public static final Identifier BLIND_ID = BlindRules.ROLE_ID;
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
+    public static final Identifier KOKO_ID = KokoRules.ROLE_ID;
     public static final Identifier STOWAWAY_ID = StowawayRules.ROLE_ID;
     public static final Identifier SCHRODINGERS_CAT_ID = SchrodingersCatRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
@@ -171,6 +173,7 @@ public final class SparkWitchRoleRegistry {
     private static Role fiend;
     private static Role stowaway;
     private static Role schrodingersCat;
+    private static Role koko;
     private static Role insider;
     private static Role abyssListener;
     private static Role potionGunner;
@@ -531,6 +534,11 @@ public final class SparkWitchRoleRegistry {
     public static Role hanna() {
         ensureRegistered();
         return hanna;
+    }
+
+    public static Role koko() {
+        ensureRegistered();
+        return koko;
     }
 
     public static Role sherry() {
@@ -1170,6 +1178,15 @@ public final class SparkWitchRoleRegistry {
         // 追加在最后以保持既有注册顺序不变；嘉豪阵营成员（原生 Wathe JIAHAO），参数与黑警相同（伪装情绪但有任务、平民体力、
         // 可见回合时间）。从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole。
+        // 泽渡可可（2026-11-11）：中立直播主，有任务、真实情绪、乘客体力。必须在 Insider 之前注册（内应之后不得再注册）。
+        // It is a mana role with a skill panel, so it joins isRegisteredSparkWitchRole and WitchManaRules.
+        koko = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KOKO_ID, FactionIds.NEUTRAL)
+                .color(KokoRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .build());
         insider = SparkFactionApi.registerRole(FactionRoleDefinition.builder(INSIDER_ID, SparkWitchFactions.JIAHAO)
                 .color(InsiderRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -1327,6 +1344,8 @@ public final class SparkWitchRoleRegistry {
                 // Shared skill path (Witches' Sabbath) only; grants no witch skill panel access (the panel reads the
                 // role's accomplice-variant hooks, AGENTS.md panel rule). 仅用于共享技能路径（魔女集会）；不授予魔女技能
                 // 面板资格（面板读取本职业的特殊共犯回调，AGENTS.md 面板规则）。
-                || role == riftwalker;
+                || role == riftwalker
+                // 可可：中立但有魔女技能面板与魔力（直播），必须走共享技能路径。
+                || role == koko;
     }
 }

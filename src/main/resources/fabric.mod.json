@@ -34,6 +34,7 @@
   },
   "custom": {
     "cardinal-components": [
+      "sparkwitch:koko_player",
       "sparkwitch:judge_round",
       "sparkwitch:player",
       "sparkwitch:perfumer_player",

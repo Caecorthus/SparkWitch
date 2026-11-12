@@ -196,6 +196,10 @@ public final class SparkWitchRoles {
         return SparkWitchRoleRegistry.blind();
     }
 
+    public static Role koko() {
+        return SparkWitchRoleRegistry.koko();
+    }
+
     public static Role fiend() {
         return SparkWitchRoleRegistry.fiend();
     }
