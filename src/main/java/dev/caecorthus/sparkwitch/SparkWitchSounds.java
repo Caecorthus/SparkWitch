@@ -102,17 +102,18 @@ public final class SparkWitchSounds {
     public static SoundEvent DUEL_MANBA;
     public static SoundEvent DUEL_SF;
     /**
-     * Frozen contract (BEAR WP0): the twelve BEAR sound events, all variable range (the playing code picks the volume).
+     * Frozen contract (BEAR WP0): the eleven BEAR sound events, all variable range (the playing code picks the volume).
      * The ricochet, visor hit and tinnitus files are the owner's picks of 2026-11-05 (helmet A, visor B, tinnitus B);
-     * the other nine are silent placeholders until the sound package delivers.
-     * 冻结契约（BEAR WP0）：十二个 BEAR 音效事件，均为可变范围（由播放代码决定音量）。跳弹、面罩命中与耳鸣音频为所有者
-     * 2026-11-05 的选择（头盔 A、面罩 B、耳鸣 B）；其余九个在音效工作包交付前为静音占位。
+     * the other eight are silent placeholders until the sound package delivers. The twelfth, the M2A1 sight click, left
+     * with the range adjustment (owner, 2026-11-11).
+     * 冻结契约（BEAR WP0）：十一个 BEAR 音效事件，均为可变范围（由播放代码决定音量）。跳弹、面罩命中与耳鸣音频为所有者
+     * 2026-11-05 的选择（头盔 A、面罩 B、耳鸣 B）；其余八个在音效工作包交付前为静音占位。第十二个（M2A1 瞄具咔嗒声）已随
+     * 射程调节一并移除（所有者 2026-11-11）。
      */
     public static final Identifier BEAR_M32_FIRE_ID = SparkWitch.id("bear.m32.fire");
     public static final Identifier BEAR_M32_LOAD_ID = SparkWitch.id("bear.m32.load");
     public static final Identifier BEAR_M32_UNLOAD_ID = SparkWitch.id("bear.m32.unload");
     public static final Identifier BEAR_M32_EMPTY_ID = SparkWitch.id("bear.m32.empty");
-    public static final Identifier BEAR_M32_DIAL_ID = SparkWitch.id("bear.m32.dial");
     public static final Identifier BEAR_SMOKE_BURST_ID = SparkWitch.id("bear.smoke.burst");
     public static final Identifier BEAR_RYS_T_VISOR_DOWN_ID = SparkWitch.id("bear.rys_t.visor_down");
     public static final Identifier BEAR_RYS_T_VISOR_UP_ID = SparkWitch.id("bear.rys_t.visor_up");
@@ -124,7 +125,6 @@ public final class SparkWitchSounds {
     public static SoundEvent BEAR_M32_LOAD;
     public static SoundEvent BEAR_M32_UNLOAD;
     public static SoundEvent BEAR_M32_EMPTY;
-    public static SoundEvent BEAR_M32_DIAL;
     public static SoundEvent BEAR_SMOKE_BURST;
     public static SoundEvent BEAR_RYS_T_VISOR_DOWN;
     public static SoundEvent BEAR_RYS_T_VISOR_UP;
@@ -215,7 +215,6 @@ public final class SparkWitchSounds {
         BEAR_M32_LOAD = Registry.register(Registries.SOUND_EVENT, BEAR_M32_LOAD_ID, SoundEvent.of(BEAR_M32_LOAD_ID));
         BEAR_M32_UNLOAD = Registry.register(Registries.SOUND_EVENT, BEAR_M32_UNLOAD_ID, SoundEvent.of(BEAR_M32_UNLOAD_ID));
         BEAR_M32_EMPTY = Registry.register(Registries.SOUND_EVENT, BEAR_M32_EMPTY_ID, SoundEvent.of(BEAR_M32_EMPTY_ID));
-        BEAR_M32_DIAL = Registry.register(Registries.SOUND_EVENT, BEAR_M32_DIAL_ID, SoundEvent.of(BEAR_M32_DIAL_ID));
         BEAR_SMOKE_BURST = Registry.register(Registries.SOUND_EVENT, BEAR_SMOKE_BURST_ID, SoundEvent.of(BEAR_SMOKE_BURST_ID));
         BEAR_RYS_T_VISOR_DOWN = Registry.register(Registries.SOUND_EVENT, BEAR_RYS_T_VISOR_DOWN_ID, SoundEvent.of(BEAR_RYS_T_VISOR_DOWN_ID));
         BEAR_RYS_T_VISOR_UP = Registry.register(Registries.SOUND_EVENT, BEAR_RYS_T_VISOR_UP_ID, SoundEvent.of(BEAR_RYS_T_VISOR_UP_ID));

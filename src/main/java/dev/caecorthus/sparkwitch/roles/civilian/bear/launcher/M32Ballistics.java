@@ -5,11 +5,11 @@ import net.minecraft.util.math.Vec3d;
 
 /**
  * Pure, side-neutral ballistics of the 40 mm smoke round, shared by {@link SmokeRoundEntity} (both sides) and the
- * client's M2A1 sight, so the reticle's aim point and the flying round can never disagree. Reference: a 40 mm
+ * client's M2A1 sight, so the range scale in the sight and the flying round can never disagree. Reference: a 40 mm
  * low-velocity grenade leaves the M32A1 at about 76 m/s and falls under real gravity; one block is one metre and one
  * tick is 1/20 s, so the round starts at {@link #MUZZLE_SPEED} = 3.8 blocks per tick and loses {@link #GRAVITY} =
  * 9.81 / 400 blocks per tick each tick. {@link #DRAG} is a small per-tick velocity factor (about 4 % per second): it
- * keeps the top of the dial (200 m, about 2.9 s of flight) inside the 3 s backup fuse while a real-looking lob stays
+ * keeps the last scale mark (200 m, about 2.9 s of flight) inside the 3 s backup fuse while a real-looking lob stays
  * (about 1.4 degrees of holdover at 25 m, 11 degrees at 200 m). In a train most shots are 5 to 40 blocks, where the
  * round flies almost flat and lands within about a block of the line of sight. Water is not modelled (no train has
  * any).
@@ -18,10 +18,10 @@ import net.minecraft.util.math.Vec3d;
  * (no inherited shooter motion, no divergence); every tick it first moves by its velocity, then the velocity is
  * multiplied by {@link #DRAG} and loses {@link #GRAVITY} vertically ({@link #nextVelocity}). It moves on ages 1 to
  * {@link #MOVES_BEFORE_FUSE} and the backup fuse bursts it in place on its {@link BearRules#BACKUP_FUSE_TICKS}th tick.
- * 40 mm 烟雾榴弹的纯计算弹道（两端通用），由 {@link SmokeRoundEntity}（两端）与客户端 M2A1 瞄具共用，使分划瞄准点与飞行中的
+ * 40 mm 烟雾榴弹的纯计算弹道（两端通用），由 {@link SmokeRoundEntity}（两端）与客户端 M2A1 瞄具共用，使瞄具内的射程刻度尺与飞行中的
  * 榴弹永远一致。参考：40 mm 低速榴弹以约 76 m/s 离开 M32A1，并受真实重力下坠；一格即一米、一刻即 1/20 秒，因此初速
  * {@link #MUZZLE_SPEED} = 每刻 3.8 格，每刻损失 {@link #GRAVITY} = 9.81 / 400 格/刻。{@link #DRAG} 为每刻的小幅速度系数（约每秒
- * 4%）：既让刻度最远处（200 米，约 2.9 秒飞行）落在 3 秒备用引信之内，又保留真实的抛物线（25 米约 1.4 度抬高量，200 米约 11
+ * 4%）：既让最远的刻度（200 米，约 2.9 秒飞行）落在 3 秒备用引信之内，又保留真实的抛物线（25 米约 1.4 度抬高量，200 米约 11
  * 度）。在列车中多数射击为 5 到 40 格，榴弹几乎平飞，落点距视线约一格以内。不模拟水（列车里没有水）。
  * <p>
  * 步进即实体自身的步进：榴弹在眼睛下方 {@link #LAUNCH_BELOW_EYE} 处以精确的发射速度生成（不继承射手运动，无散布）；每刻先按
@@ -48,12 +48,18 @@ public final class M32Ballistics {
      */
     public static final int MOVES_BEFORE_FUSE = BearRules.BACKUP_FUSE_TICKS - 1;
 
-    // ---- M2A1 range dial (G2) / M2A1 射程刻度（G2）----
-    public static final int DIAL_MIN_METRES = 25;
-    public static final int DIAL_MAX_METRES = 200;
-    public static final int DIAL_STEP_METRES = 25;
-    /** Fixed-point iterations of {@link #holdoverRadians}; three already agree to 1e-6 rad. / 不动点迭代次数。 */
-    private static final int HOLDOVER_ITERATIONS = 6;
+    // ---- M2A1 range scale / M2A1 射程刻度尺 ----
+    /**
+     * The fixed range scale of the M2A1 (owner 2026-11-11: nothing to dial, the shooter holds over with the scale):
+     * one mark every {@link #SCALE_STEP_METRES} from {@link #SCALE_MIN_METRES} to {@link #SCALE_MAX_METRES}. The sight
+     * draws only the marks its window shows (25, 50 and 75 m at the default FOV).
+     * M2A1 的固定射程刻度尺（所有者 2026-11-11：无需调节，射手按刻度尺抬高瞄准）：自 {@link #SCALE_MIN_METRES} 到
+     * {@link #SCALE_MAX_METRES}，每 {@link #SCALE_STEP_METRES} 一条刻度。瞄具只画出窗口内看得到的刻度（默认视场角下为
+     * 25、50、75 米）。
+     */
+    public static final int SCALE_MIN_METRES = 25;
+    public static final int SCALE_MAX_METRES = 200;
+    public static final int SCALE_STEP_METRES = 25;
 
     private M32Ballistics() {
     }
@@ -63,34 +69,28 @@ public final class M32Ballistics {
         return new Vec3d(velocity.x * DRAG, velocity.y * DRAG - GRAVITY, velocity.z * DRAG);
     }
 
-    /** Clamps a dial setting onto the 25 m grid between 25 and 200 m. / 把刻度值钳制到 25 到 200 米之间的 25 米网格。 */
-    public static int clampDial(int metres) {
-        int clamped = Math.max(DIAL_MIN_METRES, Math.min(DIAL_MAX_METRES, metres));
-        return DIAL_MIN_METRES + Math.round((clamped - DIAL_MIN_METRES) / (float) DIAL_STEP_METRES) * DIAL_STEP_METRES;
-    }
-
-    /** Every dial setting in ascending order (8 of them). / 按升序排列的全部刻度值（共 8 个）。 */
-    public static int[] dialSettings() {
-        int count = (DIAL_MAX_METRES - DIAL_MIN_METRES) / DIAL_STEP_METRES + 1;
-        int[] settings = new int[count];
+    /** Every scale mark in ascending order (8 of them). / 按升序排列的全部刻度（共 8 条）。 */
+    public static int[] scaleMarks() {
+        int count = (SCALE_MAX_METRES - SCALE_MIN_METRES) / SCALE_STEP_METRES + 1;
+        int[] marks = new int[count];
         for (int i = 0; i < count; i++) {
-            settings[i] = DIAL_MIN_METRES + i * DIAL_STEP_METRES;
+            marks[i] = SCALE_MIN_METRES + i * SCALE_STEP_METRES;
         }
-        return settings;
+        return marks;
     }
 
     /**
      * Angle in radians between the bore ({@code pitchDegrees}, Minecraft convention: positive looks down) and the
      * eye-to-round direction at the moment the round is first {@code slantRange} blocks from the eye; positive means
-     * the round is below the bore line there. For hip fire the bore is the line of sight (the round leaves along the
-     * look), so this is how far below the screen centre a target at that slant range must sit to be hit; the M2A1 uses
-     * the inverse, {@link #elevationToHitRadians}. The path is the per-tick polyline
+     * the round is below the bore line there. The bore is the line of sight (the round always leaves along the look), so
+     * this is how far below the screen centre a target at that slant range must sit to be hit: the M2A1 draws its
+     * scale mark for that range exactly there. The path is the per-tick polyline
      * of the entity (straight segments between ticks, as its collision ray); the crossing is solved exactly on the
      * first segment whose end is at least the range away. NaN when the round never gets that far before the backup
      * fuse, or for a non-finite pitch or a non-positive range.
      * 枪膛方向（{@code pitchDegrees}，Minecraft 约定：正值朝下）与榴弹第一次距眼睛 {@code slantRange} 格时“眼睛到榴弹”方向之间的
-     * 弧度夹角；正值表示此时榴弹位于枪膛线下方。腰射时枪膛线即视线（榴弹沿视线方向射出），因此这正是位于该斜距的目标必须处在
-     * 屏幕中心下方多远才能被命中；M2A1 使用其反解 {@link #elevationToHitRadians}。路径为实体的逐刻折线（两刻之间为直线段，与其
+     * 弧度夹角；正值表示此时榴弹位于枪膛线下方。枪膛线即视线（榴弹始终沿视线方向射出），因此这正是位于该斜距的目标必须处在
+     * 屏幕中心下方多远才能被命中：M2A1 把该射程的刻度恰好画在那里。路径为实体的逐刻折线（两刻之间为直线段，与其
      * 碰撞射线一致）；在终点首次不小于该距离的线段上精确求解交点。若榴弹在备用引信前飞不到这么远，或俯仰角非有限、距离不为正，
      * 则返回 NaN。
      */
@@ -122,27 +122,6 @@ public final class M32Ballistics {
             vy = vy * DRAG - GRAVITY;
         }
         return Double.NaN;
-    }
-
-    /**
-     * The bore elevation above a target line needed to hit a target {@code slantRange} blocks away along
-     * {@code targetPitchDegrees}: the fixed point of {@code alpha = holdover(targetPitch - alpha, range)}. The M2A1
-     * aims with it: a shot through the sight leaves this far above the look at the dialled range, and the sight draws
-     * the launcher nosed up by it, so the screen centre is the aim point. NaN when out of range.
-     * 命中沿 {@code targetPitchDegrees} 方向、斜距 {@code slantRange} 格处目标所需的枪膛相对目标线的抬高角：
-     * {@code alpha = holdover(targetPitch - alpha, range)} 的不动点。M2A1 以它瞄准：通过瞄具射击时，榴弹在视线之上按当前刻度
-     * 抬高这么多射出，瞄具也把发射器画成抬头同样的角度，因此屏幕中心就是瞄准点。超出射程时为 NaN。
-     */
-    public static double elevationToHitRadians(double targetPitchDegrees, double slantRange) {
-        double alpha = 0.0;
-        for (int i = 0; i < HOLDOVER_ITERATIONS; i++) {
-            double next = holdoverRadians(targetPitchDegrees - Math.toDegrees(alpha), slantRange);
-            if (!Double.isFinite(next)) {
-                return Double.NaN;
-            }
-            alpha = next;
-        }
-        return alpha;
     }
 
     /**

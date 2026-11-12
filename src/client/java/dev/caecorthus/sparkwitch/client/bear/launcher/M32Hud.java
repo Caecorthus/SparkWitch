@@ -30,24 +30,25 @@ import org.joml.Matrix4f;
  * inside the screen and above the hotbar band ({@link M32HudRules#followBadge}), and a thin leader line ends in a
  * hollow ring on the anchor ({@link M32HudRules#leader}). With no anchor this frame (third person, hand hidden, the
  * launcher not drawn) it falls back to the slot badge above the launcher's hotbar slot ({@link M32HudRules#badge},
- * like the Ceremonial Sword badge). Plate, texts, bar and icon are the same in both placements: the six-chamber
- * cylinder icon from the BEAR sprite sheet, then the M2A1 dial ({@code "100 m"}) over {@code "4/6"} on one dark plate
- * (the next round at 12 o'clock under the pointer, rounds dimmed and a bar under the count while the launcher's item
- * cooldown runs). Visibility is {@link #isShown}; while it shows, {@code M32CooldownNumberMixin} skips Wathe's own
- * cooldown number above the selected slot. It reads only the local player's own synced launcher stack, item cooldown
- * and stamina flag, the client-only dial and the client-only anchor, so it never leaks anything. Role-owned
- * presentation, never the witch skill inventory panel; the server decides every shot.
+ * like the Ceremonial Sword badge). Plate, count, bar and icon are the same in both placements: the six-chamber
+ * cylinder icon from the BEAR sprite sheet, then the loaded count {@code "4/6"} on a dark plate (the next round at 12
+ * o'clock under the pointer, rounds dimmed and a bar under the count while the launcher's item cooldown runs). No
+ * range readout (owner, 2026-11-11: the range is read off the M2A1's fixed scale in the sight). Visibility is
+ * {@link #isShown}; while it shows, {@code M32CooldownNumberMixin} skips Wathe's own cooldown number above the
+ * selected slot. It reads only the local player's own synced launcher stack, item cooldown and stamina flag and the
+ * client-only anchor, so it never leaks anything. Role-owned presentation, never the witch skill inventory panel; the
+ * server decides every shot.
  * 仅客户端：本地玩家主手持发射器时（瞄准时也显示），且仅在此时，绘制 M32A1 读数标记。自所有者 2026-11-06 的方案 B（"跟随枪身"）起，
  * 它随第一人称绘制的发射器移动：本帧的屏幕锚点来自 {@link M32BadgeAnchor}（在手部渲染中捕获，仅本帧有效），标记以基于时间的指数
  * 平滑跟随它（{@link M32HudRules#follow}，首次出现或跳动超过屏幕三分之一时直接跳转），腰射时居中于锚点上方、完全瞄准时位于其
  * 右侧（{@link M32HudRules#followTargetX} / {@link M32HudRules#followTargetY}，按瞄准混合插值），钳制在屏幕内且位于快捷栏区域之上
  * （{@link M32HudRules#followBadge}），并有一条细引线终止于锚点上的空心圆环（{@link M32HudRules#leader}）。本帧没有锚点时（第三
  * 人称、隐藏手部、未绘制发射器）回退到发射器所在快捷栏格上方的格标记（{@link M32HudRules#badge}，与仪礼剑标记一致）。两种布局
- * 的底板、文字、进度条与图标完全相同：来自 BEAR 精灵图的六弹膛转轮图标，其右同一块深色底板上为 M2A1 刻度（{@code "100 m"}）及
- * 其下方的 {@code "4/6"}（下一发位于指针下方的 12 点钟方向；发射器物品冷却期间榴弹变暗，弹数下方显示进度条）。显示条件为
- * {@link #isShown}；显示期间 {@code M32CooldownNumberMixin} 跳过 Wathe 自己在选中格上方的冷却数字。只读取本地玩家自己已同步的
- * 发射器物品、物品冷却与体力标记、仅客户端的刻度以及仅客户端的锚点，因此不会泄露任何信息。职业自有展示，从不使用魔女技能背包
- * 面板；每次发射都由服务端决定。
+ * 的底板、弹数、进度条与图标完全相同：来自 BEAR 精灵图的六弹膛转轮图标，其右深色底板上为装填数 {@code "4/6"}（下一发位于
+ * 指针下方的 12 点钟方向；发射器物品冷却期间榴弹变暗，弹数下方显示进度条）。不显示射程读数（所有者 2026-11-11：射程由
+ * 瞄具内 M2A1 的固定刻度读取）。显示条件为 {@link #isShown}；显示期间 {@code M32CooldownNumberMixin} 跳过 Wathe
+ * 自己在选中格上方的冷却数字。只读取本地玩家自己已同步的发射器物品、物品冷却与体力标记以及仅客户端的锚点，因此不会泄露任何
+ * 信息。职业自有展示，从不使用魔女技能背包面板；每次发射都由服务端决定。
  */
 public final class M32Hud {
     // Smoothing state of the following badge: the last smoothed ideal top-left, its target and its time.
@@ -94,10 +95,9 @@ public final class M32Hud {
         TextRenderer renderer = client.textRenderer;
         int loaded = cylinder.loadedCount();
         String count = M32HudRules.countText(loaded);
-        String dial = M32HudRules.dialText(M32RangeDial.metres());
+        // The text column is the count alone. / 文字列只有弹数。
         int countWidth = renderer.getWidth(count);
-        int column = M32HudRules.columnWidth(countWidth, renderer.getWidth(M32HudRules.WIDEST_DIAL_TEXT));
-        int width = M32HudRules.badgeWidth(column);
+        int width = M32HudRules.badgeWidth(countWidth);
         int scaledWidth = context.getScaledWindowWidth();
         int scaledHeight = context.getScaledWindowHeight();
         // Option B: ride the launcher the hand pass drew this frame; otherwise the slot badge.
@@ -114,23 +114,22 @@ public final class M32Hud {
                     PlayerStaminaComponent.KEY.get(player).isInfiniteStamina());
             // The main hand is the selected slot, so the badge sits above the launcher's own slot.
             // 主手即选中格，因此标记位于发射器自己的格子上方。
-            badge = M32HudRules.badge(scaledWidth, scaledHeight, player.getInventory().selectedSlot, column,
+            badge = M32HudRules.badge(scaledWidth, scaledHeight, player.getInventory().selectedSlot, countWidth,
                     renderer.fontHeight, staminaRow);
         } else {
-            badge = followBadge(anchor, scaledWidth, scaledHeight, width, column, renderer.fontHeight);
+            badge = followBadge(anchor, scaledWidth, scaledHeight, width, countWidth, renderer.fontHeight);
             leader = M32HudRules.leader(badge, width, Math.round(anchor.x()), Math.round(anchor.y()));
         }
         if (leader != null) {
             // Under the plate in buffer order, so the plate covers it where they meet. / 缓冲顺序在底板之下，相接处由底板覆盖。
             drawLeader(context, leader);
         }
-        // One dark plate under both texts and the bar: readable over bright grass and shader packs.
-        // 两段文字与进度条共用一块深色底板：在明亮草地与光影包下也清晰可读。
+        // One dark plate under the count and the bar: readable over bright grass and shader packs.
+        // 弹数与进度条共用一块深色底板：在明亮草地与光影包下也清晰可读。
         M32HudRules.Plate plate = badge.plate();
         InventoryCardPaint.roundedFill(context, plate.x(), plate.y(), plate.width(), plate.height(),
                 M32HudRules.PLATE_COLOR);
         int x = badge.textX();
-        context.drawTextWithShadow(renderer, dial, x, badge.dialY(), M32HudRules.DIAL_COLOR);
         context.drawTextWithShadow(renderer, count, x, badge.countY(), M32HudRules.countColor(loaded));
         if (M32HudRules.showsBar(coolingDown)) {
             // Directly under the count, as wide as it. / 紧贴弹数下方，与其等宽。

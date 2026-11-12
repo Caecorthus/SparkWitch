@@ -18,14 +18,14 @@ import net.minecraft.util.Identifier;
 /**
  * BEAR WP1 client entry (called once from {@code client.bear.BearClientModule.register()}): the M2A1 sight on the
  * shared {@code client/scope} module ({@code ScopeClient.register()} is idempotent, so the init order against the
- * launcher and USEC does not matter), the chamber HUD, the fire latch's tick and resets, the range dial's session
- * tick, the creative-screen probe of cursor loading (the client writes only creative-screen clicks, see
+ * launcher and USEC does not matter), the chamber HUD, the fire latch's tick and resets, the creative-screen probe of
+ * cursor loading (the client writes only creative-screen clicks, see
  * {@link M32CursorLoading}), the standalone projectile model, the 2-D inventory icon of the held model and the aimed
  * launcher's body and sight models ({@link M32SightRenderer}). The input
  * mixins in {@code client/mixin/bear/M32*} read the state kept here. Presentation only; never the witch skill panel.
  * BEAR WP1 客户端入口（由 {@code client.bear.BearClientModule.register()} 调用一次）：共享 {@code client/scope} 模块上的 M2A1 瞄具
- * （{@code ScopeClient.register()} 是幂等的，因此与炮筒、USEC 的初始化顺序无关）、弹膛 HUD、开火闩锁的逐刻与重置、射程刻度的会话
- * 逐刻、光标装填的创造界面探针（客户端只写入创造界面中的点击，见 {@link M32CursorLoading}）、独立投射物模型、手持模型的 2D 背包
+ * （{@code ScopeClient.register()} 是幂等的，因此与炮筒、USEC 的初始化顺序无关）、弹膛 HUD、开火闩锁的逐刻与重置、
+ * 光标装填的创造界面探针（客户端只写入创造界面中的点击，见 {@link M32CursorLoading}）、独立投射物模型、手持模型的 2D 背包
  * 图标以及瞄准中发射器的机身与瞄具模型（{@link M32SightRenderer}）。{@code client/mixin/bear/M32*} 中的输入 mixin 读取这里维护的状态。仅为表现；从不使用魔女技能面板。
  */
 public final class M32LauncherClient {
@@ -48,7 +48,6 @@ public final class M32LauncherClient {
         // 标记锚点的帧号：所有世界渲染都在手部渲染之前，HUD 在其之后（M32BadgeAnchor）。
         WorldRenderEvents.START.register(context -> M32BadgeAnchor.beginFrame());
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            M32RangeDial.tick(client);
             if (!SparkWitchServerConnection.isConfirmedServer()) {
                 M32FireInput.reset();
                 return;
@@ -57,7 +56,6 @@ public final class M32LauncherClient {
         });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             M32FireInput.reset();
-            M32RangeDial.reset();
             M32SightState.reset();
         });
         M32CursorLoading.installCreativeScreenProbe(M32LauncherClient::creativeScreenOpen);
