@@ -47,10 +47,13 @@ public final class NatsumeHypnosisGuards {
      * Stable payload contract: payloads refused for a locked sender on top of the Control Expert stun deny-list
      * ({@link ControlExpertStunRules#BLOCKED_PAYLOADS}: Wathe knife, gun and shop, and every classified role skill).
      * The cross sword and Swordfish stabs are item releases whose handlers reject only stunned senders themselves, and
-     * Natsume's own menu request and cast are her role skill. Plain ids, so no other module's class is loaded.
+     * Natsume's own menu request and cast are her role skill. Plain ids, so no other module's class is loaded. Since
+     * 2026-11-13 both stabs are on the stun list too (classified like {@code wathe:knifestab}); their entries here are
+     * redundant and kept on purpose.
      * 稳定数据包契约：在控场专家眩晕拦截名单（{@link ControlExpertStunRules#BLOCKED_PAYLOADS}：Wathe 刀、枪与商店，以及所有已归类的职业
      * 技能）之外，对被锁定发送者额外拒绝的数据包。十字剑与剑鱼刺击是道具松手动作，其处理器只自行拒绝被眩晕者；夏目安安自己的菜单请求与
-     * 施放是她的职业技能。以纯 id 保存，不加载其他模块的类。
+     * 施放是她的职业技能。以纯 id 保存，不加载其他模块的类。自 2026-11-13 起两种刺击也在眩晕名单中（与 {@code wathe:knifestab}
+     * 同样归类）；此处的条目因此重复，有意保留。
      */
     // Generated HYPNOSIS_EXTRA column of SparkFactionAPI config/payload-policy/actions.tsv: edit that table and
     // rerun tools/payload_policy.py, never list ids here; per-id reasons are in its note column.

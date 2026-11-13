@@ -34,13 +34,15 @@ public final class GrandWitchFearService {
     // stay allowed, while the Serial Killer and Demon Hunter pistols are blocked (owner 2026-10-07). Tablet
     // meetings, votes and chat, breaker repair, detective notes, drone moves and exit, the Timekeeper's watch-mode
     // pick and the Seeker's close and car moves stay allowed, so a feared Seeker can always leave the view. Many
-    // handlers re-check Fear on use as well.
+    // handlers re-check Fear on use as well. Since 2026-11-13 a role-owned weapon (the Vendetta knife) is blocked
+    // like those two pistols, while weapons any holder may fire (the USEC rifle, M32A1, potion launcher) stay allowed.
     // 生成的 FEAR 列（SparkFactionAPI config/payload-policy/actions.tsv）：请修改该表并重新运行
     // tools/payload_policy.py，不要在此列出 id；各 id 的理由见其 note 列。
     // 原字面量名单的规则：拦截 SparkWitch、NoellesRoles 与 SparkStrength 的所有职业技能（所有者 2026-10-07）；不拦截武器：
     // wathe:gunshoot、救世主手枪与强盗左轮放行，连环杀手与猎魔人手枪被拦截（所有者 2026-10-07）。平板会议、投票与聊天、
     // 修电闸、侦探笔记、无人机移动与退出、计时员怀表模式切换以及搜寻者的关闭与小车移动放行，使被恐惧的搜寻者总能退出视角。
-    // 许多处理器在使用时也会再次检查恐惧。
+    // 许多处理器在使用时也会再次检查恐惧。自 2026-11-13 起，职业专属武器（仇杀客的刀）与这两把手枪一样被拦截，而任何
+    // 持有者都能开火的武器（USEC 步枪、M32A1、药炮发射器）仍然放行。
     private static final Set<Identifier> BLOCKED_ROLE_SKILL_PAYLOADS = GeneratedPayloadPolicy.FEAR;
 
     /**
