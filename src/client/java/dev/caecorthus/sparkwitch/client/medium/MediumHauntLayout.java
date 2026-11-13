@@ -3,7 +3,7 @@ package dev.caecorthus.sparkwitch.client.medium;
 /**
  * Pure geometry of the 招魂 drawer in Wathe's inventory screen (owner pick 2026-11-13: face tiles): docked below the
  * hotbar block, centred, in the band the NoellesRoles / Magician / Witch Maiden head rows use (the Medium owns none of
- * them and has no shop row). The drawer is as wide as the candidate count needs (2..4 rows of 20 px tiles on a 22 px
+ * them and has no shop row). The drawer is as wide as the candidate count needs (1..4 rows of 20 px tiles on a 22 px
  * pitch, capped by the screen width) and pages when they do not all fit. Every rect and hit test lives here, so what
  * is clicked is exactly what is painted; it holds no client types and the drawer passes measured label widths in. GUI
  * px; right and bottom edges are exclusive, like {@code DrawContext.fill}.
