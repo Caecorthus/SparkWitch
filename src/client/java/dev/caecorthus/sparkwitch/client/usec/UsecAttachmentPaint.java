@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.usec.UsecAttachmentLayout.Column;
 import dev.caecorthus.sparkwitch.client.usec.UsecAttachmentLayout.Rect;
 import dev.caecorthus.sparkwitch.client.usec.UsecAttachmentModel.BoltStatus;
@@ -23,11 +23,11 @@ import static dev.caecorthus.sparkwitch.client.usec.UsecAttachmentLayout.*;
  * numbered callout balloons, dimension lines and a dash-dot bore line. Every colour and shape of the screen lives here
  * and every position in {@link UsecAttachmentLayout}, so a restyle touches these two classes only. Primitives are
  * fill-only and never draw text; the screen draws text afterwards in the colours exposed here. Shapes reuse
- * {@link InventoryCardPaint} helpers (which must stay byte-identical with SparkTraits, so nothing is added there).
+ * {@link InventoryCardPaint} helpers (SparkFactionAPI's copy, shared with SparkTraits, so nothing is added there).
  * 仅客户端。所有者选定（2026-10-07）的 USEC 配件界面 U2「野战手册蓝图」样式：深海军蓝图纸、细网格、浅色线条、有效槽位用青色
  * 强调、不可用按钮为点线框、编号引出圈、尺寸线与点划线枪膛中心线。界面的所有颜色与形状都在此处，所有位置都在
  * {@link UsecAttachmentLayout}，换皮只需改动这两个类。原语只做填充、从不绘制文字；界面随后用这里给出的颜色绘制文字。图形复用
- * {@link InventoryCardPaint} 的辅助方法（须与 SparkTraits 逐字节一致，因此不在其中添加任何内容）。
+ * {@link InventoryCardPaint} 的辅助方法（SparkFactionAPI 中与 SparkTraits 共用，因此不在其中添加任何内容）。
  */
 public final class UsecAttachmentPaint {
     // ---- tokens (ARGB, README U2) ----

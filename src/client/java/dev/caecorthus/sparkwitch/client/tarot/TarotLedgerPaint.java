@@ -1,17 +1,17 @@
 package dev.caecorthus.sparkwitch.client.tarot;
 
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.net.OpenTarotDivinationSelectorS2CPacket;
 import java.util.List;
 import net.minecraft.client.gui.DrawContext;
 
 /**
  * Role-local Harpy Express tokens and fill primitives for the Tarot Reader ledger (selector and reading slip).
- * InventoryCardPaint must stay byte-identical with SparkTraits, so the few SparkAssist ExpressPalette tokens and
+ * InventoryCardPaint is SparkFactionAPI's copy, shared with SparkTraits, so the few SparkAssist ExpressPalette tokens and
  * ExpressPaint recipes it lacks are copied here value for value. Sizes and width rules belong to
  * {@link TarotLedgerLayout}, so what is painted is what is hit-tested. Every primitive is fill-only: none batches and
  * none draws text, so callers wrap them in {@link InventoryCardPaint#batch} and draw text after the batch.
- * 塔罗牌师占卜台账（选择界面与结果纸条）的职业自有令牌与填充原语。InventoryCardPaint 须与 SparkTraits 逐字节一致，
+ * 塔罗牌师占卜台账（选择界面与结果纸条）的职业自有令牌与填充原语。InventoryCardPaint 位于 SparkFactionAPI、与 SparkTraits 共用，
  * 因此它缺少的 SparkAssist ExpressPalette 令牌与 ExpressPaint 配方按原值复制于此。尺寸与宽度规则归
  * {@link TarotLedgerLayout} 所有，绘制位置与命中判定一致。所有原语只做填充，既不自行分批也不绘制文字；调用方用
  * {@link InventoryCardPaint#batch} 包裹，批次结束后再绘制文字。
