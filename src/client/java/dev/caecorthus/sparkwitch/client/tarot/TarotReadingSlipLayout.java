@@ -81,11 +81,7 @@ public final class TarotReadingSlipLayout {
         return (((argb >>> 24) * alpha / 0xFF) << 24) | (argb & 0xFFFFFF);
     }
 
-    /**
-     * The content box handed to brassTooltip; {@code frame*} are its drawn bounds, exclusive right/bottom like
-     * {@code DrawContext.fill}.
-     * 传给 brassTooltip 的内容框；{@code frame*} 为实际绘制范围，右缘与下缘为开区间，与 fill 一致。
-     */
+    /** The content box handed to brassTooltip. / 传给 brassTooltip 的内容框。 */
     public record Geometry(int x, int y, int width, int height) {
         public int iconX() {
             return x;
@@ -109,22 +105,6 @@ public final class TarotReadingSlipLayout {
 
         public int textY() {
             return y + TEXT_Y;
-        }
-
-        public int frameLeft() {
-            return x - FRAME;
-        }
-
-        public int frameTop() {
-            return y - FRAME;
-        }
-
-        public int frameRight() {
-            return x + width + FRAME;
-        }
-
-        public int frameBottom() {
-            return y + height + FRAME;
         }
     }
 }

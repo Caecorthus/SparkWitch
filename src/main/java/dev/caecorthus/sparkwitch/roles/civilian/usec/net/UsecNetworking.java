@@ -22,8 +22,6 @@ public final class UsecNetworking {
             FireUsecRifleC2SPacket.PAYLOAD_ID,
             UsecAttachmentC2SPacket.PAYLOAD_ID,
             UsecScopeC2SPacket.PAYLOAD_ID);
-    /** Every USEC S2C payload id. / 所有 USEC S2C 数据包 id。 */
-    public static final List<Identifier> S2C_IDS = List.of(UsecBulletImpactsS2CPacket.PAYLOAD_ID);
 
     private static boolean registered;
 

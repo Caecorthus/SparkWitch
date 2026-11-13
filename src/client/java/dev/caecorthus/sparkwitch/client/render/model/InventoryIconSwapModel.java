@@ -1,4 +1,4 @@
-package dev.caecorthus.sparkwitch.client.usec;
+package dev.caecorthus.sparkwitch.client.render.model;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import net.fabricmc.fabric.api.renderer.v1.model.FabricBakedModel;
@@ -32,23 +32,31 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Client only. Wraps one USEC rifle model with its 2-D inventory icon (see {@link UsecRifleModels}). Fail-safe: if the
- * icon is missing, is not an item/generated sprite, or cannot be baked, baking returns the plain 3-D model, which keeps
- * its own GUI/ground/fixed display entries as the fallback look. The wrapped 3-D models are baked directly (no
- * item/generated branch), so they must stay element models, and no model may use a wrapped id as its {@code parent}
- * (vanilla only accepts JSON parents).
- * 仅客户端。为一个 USEC 狙击步枪模型包上它的 2D 背包图标（见 {@link UsecRifleModels}）。失败安全：图标缺失、不是
- * item/generated 图标或无法烘焙时，直接返回原 3D 模型，其自带的背包/掉落物/展示框显示变换作为后备外观。被包装的 3D 模型直接
- * 烘焙（不走 item/generated 分支），因此必须保持为元素模型；任何模型都不得以被包装的 id 作为 {@code parent}（原版只接受
- * JSON 父模型）。
+ * Client only. Shared by the USEC rifle ({@code client.usec.UsecRifleModels}) and the M32A1
+ * ({@code client.bear.launcher.M32LauncherClient}): wraps one held 3-D item model with its 2-D inventory icon for GUI,
+ * ground and item frames, the vanilla trident/spyglass split. Fail-safe: if the icon is missing, is not an
+ * item/generated sprite, or cannot be baked, baking returns the plain 3-D model, which keeps its own GUI/ground/fixed
+ * display entries as the fallback look; {@code diagnosticName} only labels that warning. The wrapped 3-D models are
+ * baked directly (no item/generated branch), so they must stay element models, and no model may use a wrapped id as
+ * its {@code parent} (vanilla only accepts JSON parents). Each caller skips a model that is already an
+ * {@code InventoryIconSwapModel} (never double-wraps); the USEC and M32A1 model ids are disjoint, so neither caller
+ * ever sees the other's wrapper.
+ * 仅客户端。由 USEC 狙击步枪（{@code client.usec.UsecRifleModels}）与 M32A1（{@code client.bear.launcher.M32LauncherClient}）
+ * 共用：为一个手持 3D 物品模型包上它的 2D 背包图标，用于背包、掉落物与物品展示框，即原版三叉戟/望远镜的分流。失败安全：
+ * 图标缺失、不是 item/generated 图标或无法烘焙时，直接返回原 3D 模型，其自带的背包/掉落物/展示框显示变换作为后备外观；
+ * {@code diagnosticName} 只用于标注该警告。被包装的 3D 模型直接烘焙（不走 item/generated 分支），因此必须保持为元素模型；
+ * 任何模型都不得以被包装的 id 作为 {@code parent}（原版只接受 JSON 父模型）。各调用方会跳过已是
+ * {@code InventoryIconSwapModel} 的模型（从不重复包装）；USEC 与 M32A1 的模型 id 互不重叠，因此任一调用方都不会遇到另一方的包装。
  */
-final class UsecRifleIconSwapModel implements UnbakedModel {
+public final class InventoryIconSwapModel implements UnbakedModel {
     private final UnbakedModel held;
     private final Identifier iconId;
+    private final String diagnosticName;
 
-    UsecRifleIconSwapModel(UnbakedModel held, Identifier iconId) {
+    public InventoryIconSwapModel(UnbakedModel held, Identifier iconId, String diagnosticName) {
         this.held = held;
         this.iconId = iconId;
+        this.diagnosticName = diagnosticName;
     }
 
     @Override
@@ -76,15 +84,15 @@ final class UsecRifleIconSwapModel implements UnbakedModel {
             // 缺失模型的根模型就是它自己，因此这里同样能发现缺失的图标 JSON。
             if (!(baker.getOrLoadModel(iconId) instanceof JsonUnbakedModel icon)
                     || icon.getRootModel() != ModelLoader.GENERATION_MARKER) {
-                SparkWitch.LOGGER.warn("USEC rifle icon model {} is missing or not item/generated; showing the 3-D "
-                        + "model everywhere", iconId);
+                SparkWitch.LOGGER.warn("{} icon model {} is missing or not item/generated; showing the 3-D "
+                        + "model everywhere", diagnosticName, iconId);
                 return heldModel;
             }
             BakedModel iconModel = baker.bake(iconId, settings);
             return iconModel == null ? heldModel : new Baked(heldModel, iconModel);
         } catch (RuntimeException exception) {
-            SparkWitch.LOGGER.warn("USEC rifle icon model {} failed to bake; showing the 3-D model everywhere",
-                    iconId, exception);
+            SparkWitch.LOGGER.warn("{} icon model {} failed to bake; showing the 3-D model everywhere",
+                    diagnosticName, iconId, exception);
             return heldModel;
         }
     }

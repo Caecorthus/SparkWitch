@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.apprentice.net;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -18,17 +17,10 @@ public record UseApprenticePurifyC2SPayload() implements CustomPayload {
     public static final Identifier PAYLOAD_ID = SparkWitch.id("use_apprentice_purify");
     public static final Id<UseApprenticePurifyC2SPayload> ID = new Id<>(PAYLOAD_ID);
     public static final PacketCodec<RegistryByteBuf, UseApprenticePurifyC2SPayload> CODEC =
-            PacketCodec.of(UseApprenticePurifyC2SPayload::write, UseApprenticePurifyC2SPayload::read);
+            PacketCodec.unit(new UseApprenticePurifyC2SPayload());
 
     @Override
     public Id<? extends CustomPayload> getId() {
         return ID;
-    }
-
-    public void write(PacketByteBuf buf) {
-    }
-
-    public static UseApprenticePurifyC2SPayload read(PacketByteBuf buf) {
-        return new UseApprenticePurifyC2SPayload();
     }
 }

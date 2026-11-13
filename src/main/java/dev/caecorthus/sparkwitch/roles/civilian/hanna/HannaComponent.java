@@ -84,11 +84,6 @@ public final class HannaComponent implements AutoSyncedComponent, ClientTickingC
         return (int) Math.clamp(floatReadyTick - now, 0L, Integer.MAX_VALUE);
     }
 
-    /** Ticks of penalty left at world time {@code now}. / 惩罚剩余刻数。 */
-    public int penaltyRemaining(long now) {
-        return penaltyEndTick <= 0L ? 0 : (int) Math.clamp(penaltyEndTick - now, 0L, Integer.MAX_VALUE);
-    }
-
     /** Server only (also the forced-cooldown store's setter): moves the ready tick. / 仅服务端（亦为强制冷却存储的写入口）。 */
     public void setFloatReadyTick(long tick) {
         long next = Math.max(0L, tick);

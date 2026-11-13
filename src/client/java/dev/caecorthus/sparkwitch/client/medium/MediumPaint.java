@@ -19,8 +19,6 @@ final class MediumPaint {
     /** The role colour, opaque. / 不透明的职业色。 */
     static final int TEAL = 0xFF000000 | MediumRules.COLOR;
     static final int TEAL_LO = InventoryCardPaint.mix(TEAL, 0xFF000000, 0.45);
-    static final int WISP_W = 5;
-    static final int WISP_H = 7;
     /**
      * Vanilla draws text with alpha below 4 fully opaque (TextRenderer.tweakTransparency), so a fading element stops
      * drawing under it.

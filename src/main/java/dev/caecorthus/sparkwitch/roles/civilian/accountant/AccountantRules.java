@@ -2,10 +2,6 @@ package dev.caecorthus.sparkwitch.roles.civilian.accountant;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.doctor4t.wathe.api.Role;
-import net.minecraft.block.DecoratedPotBlock;
-import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
@@ -141,21 +137,6 @@ public final class AccountantRules {
             return WithdrawVerdict.REFUSED;
         }
         return stored > 0 ? WithdrawVerdict.WITHDRAW : WithdrawVerdict.EMPTY;
-    }
-
-    /**
-     * World targets that would keep a passbook through Wathe's round reset (vanilla 1.21.1 item frames incl. glow,
-     * armor stands and allays take the held stack; a decorated pot inserts it). Pure class check, testable without a
-     * bootstrapped registry; asked by the passbook's world-use veto.
-     * 会让存折躲过 Wathe 回合重置的世界目标（原版 1.21.1 中物品展示框（含荧光）、盔甲架与悦灵会拿走手持物品；饰纹陶罐会放入
-     * 物品）。纯类判断，无需引导注册表即可测试；由存折的世界交互否决调用。
-     */
-    public static boolean takesHeldStack(@Nullable Class<?> targetType) {
-        return targetType != null
-                && (ItemFrameEntity.class.isAssignableFrom(targetType)
-                || ArmorStandEntity.class.isAssignableFrom(targetType)
-                || AllayEntity.class.isAssignableFrom(targetType)
-                || DecoratedPotBlock.class.isAssignableFrom(targetType));
     }
 
     /** Overflow-safe sum for stored coins and balances. / 存款与余额的防溢出加法。 */

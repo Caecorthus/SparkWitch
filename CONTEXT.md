@@ -1907,7 +1907,7 @@ Current build baseline:
     the low table (knife, revolver, whiskey shield, lose 10-30%, Speed III, crowbar, regain 10-30%). Dynamic weights
     are clamped to [0.5, 25], so none is ever zero or negative. Key, spyglass, knife, revolver and crowbar are
     one-offs per round. Items go to the hotbar (Recruit precedent). The key is the Spare Key below
-    (`sparkwitch:spare_key`, looked up by id; NoellesRoles' master key only if it were unregistered). The whiskey shield is NoellesRoles' own
+    (`sparkwitch:spare_key`, `SparkWitchItems.spareKey()`). The whiskey shield is NoellesRoles' own
     `WhiskeyShieldEffect.addShieldLayer` for 400 ticks (no mood bonus). The skill replay (role id) stores outcome
     names, item ids and amounts, formatted per viewer.
   - State: `NoaComponent` (`sparkwitch:noa_player`, `NEVER_COPY`, appended last in the CCA list) keeps the absolute
@@ -2254,7 +2254,7 @@ Current build baseline:
     the support fist stays ≈0.8 block short of the vertical foregrip, which no vanilla `ArmPose` reaches),
     `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6; launch hide = vanilla's age < 2 within 3.5 blocks, but
     measured camera to the interpolated round like the Ninja hook head, since a 3.8 b/t round leaves vanilla's
-    feet-to-tick-position sphere on its first tick), `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
+    feet-to-tick-position sphere on its first tick), `InventoryIconSwapModel` (2-D icon in GUI/ground/frames, shared with USEC).
   - Headset slot (WP4, E1, design A; `headset/`): `HeadsetSlot` is a real slot that
     `mixin/bear/HeadsetPlayerScreenHandlerMixin` appends to every `PlayerScreenHandler` on both sides (handler index
     46, after vanilla 0..45), backed by `HeadsetInventory` (a live one-stack view of `HeadsetSlots`, not a
@@ -2445,7 +2445,7 @@ Current build baseline:
     `item/usec_magazine_loaded` (brass round on top) once it holds a round. `UsecRifleModels` registers a
     ModelLoadingPlugin (Vendetta knife precedent) that wraps the top-level `sparkwitch:usec_rifle#inventory` model and
     the three override targets (`item/usec_rifle_no_mag`, `item/usec_rifle_suppressed`,
-    `item/usec_rifle_suppressed_no_mag`) in `UsecRifleIconSwapModel`.
+    `item/usec_rifle_suppressed_no_mag`) in the shared `client/render/model/InventoryIconSwapModel`.
     - GUI, ground and item frames draw the 2-D `item/usec_rifle_icon` / `item/usec_rifle_suppressed_icon`; every held
       context draws the 3-D AXMC element model.
     - The 3-D model (owner, 2026-10-08: "more faithful to the AXMC, and to a 1–6× scope") is the AXMC .338 LM with a

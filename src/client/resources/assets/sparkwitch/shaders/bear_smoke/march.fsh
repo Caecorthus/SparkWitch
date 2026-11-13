@@ -6,13 +6,13 @@
 // Lighting: lightmap ambient (block light indoors, sky outside, dark at night) with sky occlusion, plus single
 // scattering of the sun/moon with a 3-tap shadow march. Steps that provably find no smoke (SmokeOccupancy) take the
 // empty branch without any noise or density taps. Every #define comes from SmokeMarchRules (injected by
-// SmokeProgram); the Java side mirrors the step, erosion and ray-box rules and its tests pin them. Bullet tunnels
+// SmokeProgram); the test-side SmokeShaderReference mirrors the step, erosion and ray-box rules and pins them. Bullet tunnels
 // (TunnelStart/TunnelAxis) scale the density analytically at the unwarped sample point.
 // BEAR 烟雾第 1 步（共 2 步）：半分辨率光线步进，穿过至多 MAX_CLOUDS 个浓度体（SmokeVolumes）。输出预乘的散射颜色与
 // 透射率，以及该纹素步进终点表面的视距（其 2x2 全分辨率深度按棋盘格交替取最近/最远），供深度感知放大使用。
 // 光照：光照图环境光（室内为方块光、室外为天空光、夜晚变暗）加天空遮蔽，以及日月光单次散射与 3 次阴影步进。可证明
 // 找不到烟的步（SmokeOccupancy）不做任何噪声或浓度采样，直接走空样本分支。所有 #define 都来自 SmokeMarchRules
-// （由 SmokeProgram 注入）；Java 端镜像步长、侵蚀与光线-盒子规则并由测试固定。子弹通道（TunnelStart/TunnelAxis）
+// （由 SmokeProgram 注入）；测试端的 SmokeShaderReference 镜像步长、侵蚀与光线-盒子规则并加以固定。子弹通道（TunnelStart/TunnelAxis）
 // 在未扭曲的采样点上解析地缩放浓度。
 
 uniform sampler2D SceneDepth;
@@ -229,7 +229,7 @@ float lightTap(int cloud, vec3 q) {
     return cloudSample(cloud, q);
 }
 
-// Mirrors SmokeMarchRules.erode: noise only ever removes density. / 镜像 SmokeMarchRules.erode：噪声只会减少浓度。
+// Mirrors SmokeShaderReference.erode (tests): noise only ever removes density. / 镜像 SmokeShaderReference.erode（测试）：噪声只会减少浓度。
 float erode(float density, float patchErosion, float shapeErosion, float detailErosion) {
     float d = clamp(density, 0.0, 1.0);
     float lo = EROSION_PATCH * patchErosion;
@@ -241,7 +241,7 @@ float erode(float density, float patchErosion, float shapeErosion, float detailE
     return d * (1.0 - INTERIOR_THINNING * patchErosion);
 }
 
-// Mirrors SmokeMarchRules.stepLength. / 镜像 SmokeMarchRules.stepLength。
+// Mirrors SmokeShaderReference.stepLength (tests). / 镜像 SmokeShaderReference.stepLength（测试）。
 float stepLength(float t, float budget, bool empty, float transmittance, float lastDensity) {
     float base = max(min(MIN_STEP + STEP_GROWTH * t, NEAR_STEP_CAP), budget)
             * (1.0 + OPACITY_STEP_GROWTH * (1.0 - transmittance))
@@ -297,8 +297,8 @@ void main() {
     vec3 safeDir = mix(dir, vec3(1.0e-6), lessThan(abs(dir), vec3(1.0e-6)));
     vec3 invDir = 1.0 / safeDir;
 
-    // Ray-box slabs (mirrors SmokeMarchRules.rayBox), widened by the warp so outward wisps are reached.
-    // 光线-盒子板块求交（镜像 SmokeMarchRules.rayBox），按扭曲幅度外扩，使向外的烟丝也能被步进到。
+    // Ray-box slabs (mirrors SmokeShaderReference.rayBox in the tests), widened by the warp so outward wisps are reached.
+    // 光线-盒子板块求交（镜像测试中的 SmokeShaderReference.rayBox），按扭曲幅度外扩，使向外的烟丝也能被步进到。
     float tStart = tMax;
     float tEnd = 0.0;
     for (int i = 0; i < CLOUD_SLOTS; i++) {
