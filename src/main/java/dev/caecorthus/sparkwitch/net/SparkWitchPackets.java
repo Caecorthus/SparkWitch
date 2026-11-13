@@ -23,15 +23,15 @@ import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSecondSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumBlessingService;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceResultS2CPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSecondSkillService;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSkillService;
-import dev.caecorthus.sparkwitch.roles.civilian.medium.OpenMediumHauntSelectS2CPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.OpenMediumSeanceInputS2CPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumHauntTargetC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumSeanceC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumVoteC2SPacket;
-import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSecondSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumBlessingC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryDeductionService;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryMightyForceService;
@@ -145,11 +145,15 @@ public final class SparkWitchPackets {
         );
         PayloadTypeRegistry.playC2S().register(UseHiroSkillC2SPacket.ID, UseHiroSkillC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(UseMediumSkillC2SPacket.ID, UseMediumSkillC2SPacket.CODEC);
+        // Medium 幽灵的加护 (SparkWitch skill key): paid on receipt, no menu. It took the place of the removed
+        // use_medium_second_skill; 招魂 is now picked in the inventory screen.
+        // 通灵师幽灵的加护（SparkWitch 技能键）：收到即扣费，没有菜单。它取代了已移除的 use_medium_second_skill；
+        // 招魂改为在背包界面中选择。
         PayloadTypeRegistry.playC2S().register(
-                UseMediumSecondSkillC2SPacket.ID,
-                UseMediumSecondSkillC2SPacket.CODEC
+                UseMediumBlessingC2SPacket.ID,
+                UseMediumBlessingC2SPacket.CODEC
         );
-        // Medium: the paid submits and the two menus they answer. / 通灵师：付费提交与它们回应的两个菜单。
+        // Medium: the paid submits and the 通灵 question box. / 通灵师：付费提交与通灵提问框。
         PayloadTypeRegistry.playC2S().register(
                 SubmitMediumSeanceC2SPacket.ID,
                 SubmitMediumSeanceC2SPacket.CODEC
@@ -158,8 +162,8 @@ public final class SparkWitchPackets {
                 SubmitMediumHauntTargetC2SPacket.ID,
                 SubmitMediumHauntTargetC2SPacket.CODEC
         );
-        // The dead answer a 通灵 from their vote screen; never a chat message.
-        // 死者在投票界面回答通灵；绝不走聊天消息。
+        // The dead answer a 通灵 or pick a 加护 from their vote screen; never a chat message.
+        // 死者在投票界面回答通灵或选择加护；绝不走聊天消息。
         PayloadTypeRegistry.playC2S().register(
                 SubmitMediumVoteC2SPacket.ID,
                 SubmitMediumVoteC2SPacket.CODEC
@@ -167,10 +171,6 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playS2C().register(
                 OpenMediumSeanceInputS2CPacket.ID,
                 OpenMediumSeanceInputS2CPacket.CODEC
-        );
-        PayloadTypeRegistry.playS2C().register(
-                OpenMediumHauntSelectS2CPacket.ID,
-                OpenMediumHauntSelectS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 MediumSeanceResultS2CPacket.ID,
@@ -332,8 +332,9 @@ public final class SparkWitchPackets {
                 (payload, context) -> HiroReturnService.use(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(UseMediumSkillC2SPacket.ID,
                 (payload, context) -> MediumSkillService.use(context.player()));
-        ServerPlayNetworking.registerGlobalReceiver(UseMediumSecondSkillC2SPacket.ID,
-                (payload, context) -> MediumSecondSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseMediumBlessingC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        MediumBlessingService.use(context.player())));
         ServerPlayNetworking.registerGlobalReceiver(SubmitMediumSeanceC2SPacket.ID,
                 (payload, context) -> context.server().execute(() ->
                         MediumSkillService.submit(context.player(), payload.question())));
@@ -342,7 +343,7 @@ public final class SparkWitchPackets {
                         MediumSecondSkillService.submit(context.player(), payload.target())));
         ServerPlayNetworking.registerGlobalReceiver(SubmitMediumVoteC2SPacket.ID,
                 (payload, context) -> context.server().execute(() ->
-                        MediumSkillService.vote(context.player(), payload.windowId(), payload.yes())));
+                        MediumSkillService.vote(context.player(), payload.windowId(), payload.choice())));
         ServerPlayNetworking.registerGlobalReceiver(RequestSherryDeductionC2SPacket.ID,
                 (payload, context) -> context.server().execute(() ->
                         SherryDeductionService.requestOpen(context.player())));

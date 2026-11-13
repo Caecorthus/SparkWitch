@@ -160,6 +160,7 @@
     "witchmaiden.FocusedFootstepsKeyboardInputMixin",
     "witchmaiden.FocusedFootstepsOwnerSyncMixin",
     "witchmaiden.WitchMaidenInventoryScreenMixin",
+    "medium.MediumHauntInventoryScreenMixin",
     "witchmaiden.MiniWitherSkinOptionsMixin",
     "witchmaiden.WitherGoheiInputMixin",
     "witchmaiden.WitherGoheiMacControlClickMixin",

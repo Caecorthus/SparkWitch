@@ -336,6 +336,28 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
         ],
         [
+                // Medium 招魂 drawer (owner, 2026-11-13): attached at init, gate and layout re-checked at render head.
+                // 通灵师招魂抽屉（所有者 2026-11-13）：init 时挂载，渲染开头重新检查门槛与布局。
+                configName: "medium.MediumHauntInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/medium/MediumHauntInventoryScreenMixin.class",
+                handler: "sparkwitch\$attachHauntDrawer",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25426()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25426",
+                providerDescriptor: "()V"
+        ],
+        [
+                configName: "medium.MediumHauntInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/medium/MediumHauntInventoryScreenMixin.class",
+                handler: "sparkwitch\$refreshHauntDrawer",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25394",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
                 configName: "WraithRevolverAimMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/WraithRevolverAimMixin.class",
                 handler: "sparkwitch\$aimThroughWraiths",
