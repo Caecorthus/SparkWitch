@@ -1931,7 +1931,7 @@
   "announcement.win.sparkwitch.medium": "乘客胜利",
   "hud.sparkwitch.medium.seance.cooldown": "通灵在%s秒后可用",
   "hud.sparkwitch.medium.seance.active": "通灵进行中：剩余%s秒",
-  "hud.sparkwitch.medium.seance.price": "通灵需要%s",
+  "hud.sparkwitch.medium.seance.price": "通灵需要%s",
   "hud.sparkwitch.medium.seance.ready": "按%s使用通灵",
   "hud.sparkwitch.medium.blessing.cooldown": "加护在%s秒后可用",
   "hud.sparkwitch.medium.blessing.active": "加护进行中：剩余%s秒",

@@ -1931,7 +1931,7 @@
   "announcement.win.sparkwitch.medium": "Passengers Win!",
   "hud.sparkwitch.medium.seance.cooldown": "Séance ready in %ss",
   "hud.sparkwitch.medium.seance.active": "Séance running: %ss left",
-  "hud.sparkwitch.medium.seance.price": "Séance needs %s",
+  "hud.sparkwitch.medium.seance.price": "Séance needs %s",
   "hud.sparkwitch.medium.seance.ready": "Press %s for Séance",
   "hud.sparkwitch.medium.blessing.cooldown": "Blessing ready in %ss",
   "hud.sparkwitch.medium.blessing.active": "Blessing running: %ss left",

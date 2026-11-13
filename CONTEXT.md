@@ -2907,7 +2907,8 @@ Current build baseline:
       shared ability key, 加护 below with the Role Skill 2 key; `SaintHudLayoutRules` reserves two rows; both lift
       together above the hotbar column at narrow widths through `FiendDashHudRules.rowY`, measured with 99 s). Each row
       shows the first state that applies: its own window running (teal), its cooldown (grey), another live window (grey
-      `hud.sparkwitch.medium.window.busy`), short of coins (grey, price with the coin glyph), ready with its key (teal).
+      `hud.sparkwitch.medium.window.busy`), short of coins (grey, price with the coin glyph, which the renderer appends
+      to the number, so neither `*.price` HUD key carries U+E781 itself), ready with its key (teal).
       Active-blessing chips (9 px icons) sit left of the lower row: corpse sight while the synced set is not empty, the
       shield while the local whiskey-shield effect is infinite, Speed with its seconds only for a Speed effect within
       43 s of a granted-Speed result. 招魂 has no corner row.
