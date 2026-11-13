@@ -5751,7 +5751,37 @@ Network:
   Vendetta) go to the owner only (`KEY.syncWith(owner, …)`); every write to a field other players see still syncs to
   all, and the Apprentice stays broad while an exposure runs.
 - `WitchFactorWorldComponent` remembers per recipient what each client holds (`sentViews`) and syncs a recipient only
-  on a difference; `WitchFactorService.onRoleChanged` syncs only when `recover()` removed a factor.
+  on a difference; `WitchFactorService.onRoleChanged` syncs only when `recover()` removed a factor. An explicit
+  `sync()` after a ledger change uses the same per-recipient diff (2026-11 review pass, second wave), so spreading a
+  dormant factor, which is in nobody's view, sends nobody a packet.
+
+2026-11 review pass, second wave (authority, private state and request cadence):
+- The shared `sparkwitch:use_skill` dispatch (`WitchSkillUseService.use`) asks
+  `SparkTraitsKillerBridge.isRoleSkillBlocked` after the role, life and Fear gates and before the Saint delegation and
+  every registered skill, with the shared "unavailable" line. It is the rule the dedicated handlers already apply
+  (Last Escape, or a silenced effective killer); the bridge fails open without SparkTraits, and Wathe-dead Wraiths
+  never reach it.
+- `WitchPlayerComponent` shares its private state (active skill, cooldown, mana, sword progress) with the owner,
+  creative players and spectators who are not living round participants (`WitchPlayerSyncCodec.seesPrivateState`,
+  one predicate for the recipient gate and the writer). A living player in spectator mode (Rift Gate occupant,
+  Taotie-swallowed, feigning) receives nothing. No SparkWitch client code reads another player's copy.
+- `BlackRavenMarkPlayerComponent` syncs a mark or its clear to the marking Raven alone (the packet's one bit is true
+  only for that Raven; the victim and other tracking Ravens used to get a packet at the moment of the hit). CCA's
+  tracking-start sync still follows `shouldSyncWith`.
+- `HannaComponent` syncs writes of the owner-private ready and penalty ticks to the owner alone unless a float is set;
+  `WraithPlayerComponent.setPromotionPending` syncs to the owner alone unless the call imported legacy data.
+- The Grand Witch's Voodoo immunity also sits at the head of Wathe's `killPlayer`
+  (`mixin/GameFunctionsGrandWitchVoodooMixin`, the Witch Maiden guard's shape, non-forced kills only), so NoellesRoles'
+  earlier `allowWithoutBody()` for a Taotie-swallowed victim no longer lets the curse through. The `KillPlayer.BEFORE`
+  listener in `WitchFactionProtectionPolicy` stays registered with the same rule.
+- The Raven Form crow's block aim (`BlackRavenCrowPilotClient.crowBlockTarget`) goes through
+  `BlackRavenCrowUseRules.attributeHit`, like the Seeker car's, so a steep click on a door half is no longer refused
+  by the server's hit tolerance.
+- Request cadence: `MagicianPlayerComponent.setSelectedTarget` ignores an unchanged pick and a changed one is sent by
+  the next tick; `NatsumeService.requestMenu` answers at most one menu per tick per caster; a refused `rift_exit` is
+  not searched again within the same tick (`RiftSessionRules.mayRetryBlockedExit`; exit still has no stun, Fear or
+  cooldown gate). When a dead owner loses the Magician role with a live puppet (a death that converts into a Wraith),
+  the puppet ends with the same `PLAYBACK_FINISHED` replay line the playback tick records.
 
 ## Tofana Elixir Vocabulary
 

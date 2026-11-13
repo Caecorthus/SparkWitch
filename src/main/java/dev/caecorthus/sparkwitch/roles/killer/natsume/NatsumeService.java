@@ -122,6 +122,14 @@ public final class NatsumeService {
         if (caster == null || !mayUse(caster)) {
             return;
         }
+        // Opening the menu spends no cooldown, so nothing else limits how often the roster is scanned and sent.
+        // 打开菜单不消耗冷却，因此除此之外没有任何东西限制名单被扫描与发送的频率。
+        NatsumeComponent state = NatsumeComponent.KEY.get(caster);
+        long now = caster.getWorld().getTime();
+        if (!NatsumeRules.menuRequestDue(now, state.lastMenuRequestTick())) {
+            return;
+        }
+        state.markMenuRequest(now);
         GameWorldComponent game = GameWorldComponent.KEY.get(caster.getWorld());
         List<UUID> ids = new ArrayList<>();
         List<String> names = new ArrayList<>();

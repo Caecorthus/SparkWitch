@@ -55,6 +55,7 @@
     "GameFunctionsBlackRavenDropMixin",
     "GameFunctionsCeremonialSwordProtectionMixin",
     "GameFunctionsSaintProtectionMixin",
+    "GameFunctionsGrandWitchVoodooMixin",
     "GameRecordManagerItemUseMixin",
     "junker.LivingEntityJunkerReleaseMixin",
     "MagicianGunShootPayloadReceiverMixin",

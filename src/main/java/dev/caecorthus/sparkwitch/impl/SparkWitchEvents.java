@@ -283,7 +283,13 @@ public final class SparkWitchEvents {
                     // 状态的玩家会被跳过，因此其他职业既不会被重置也不会收到数据包。
                     MagicianPlayerComponent magician = MagicianPlayerComponent.KEY.get(serverPlayer);
                     if (magician.holdsMagicianState()) {
-                        magician.reset();
+                        // A dead owner's live puppet is first ended like the playback tick ends it (replay line
+                        // included); the reset then clears the rest, and both go out as one sync.
+                        // 已死亡主人的活皮套先按播放刻的方式结束（包含回放记录）；随后的重置清空其余状态，两者合并为一次同步。
+                        magician.syncOnceAfter(() -> {
+                            MagicianPlaybackManager.finishPlaybackOfDeadOwner(serverPlayer);
+                            magician.reset();
+                        });
                     }
                 }
                 ProphetRuntime.assignForRole(serverPlayer, role);

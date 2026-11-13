@@ -17,7 +17,6 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
@@ -44,8 +43,6 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
      * 因此它恰好等于各客户端持有的内容。
      */
     private final Map<UUID, View> sentViews = new HashMap<>();
-    /** Server: the mature set shared by every recipient of one {@link #sync()}. / 服务端：一次同步内所有接收者共用的成熟集合。 */
-    private @Nullable Set<UUID> syncMature;
 
     /**
      * One recipient's packet contents and their wire format. The server builds it only through {@link #sanitized}, so
@@ -106,11 +103,25 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     public boolean isRoleColored(UUID player) {
         return world.isClient ? visibleRoleColored.contains(player) : state.roleColored().contains(player);
     }
+    /**
+     * Sends, right after a ledger change, each player's view only when it differs from what that client holds, exactly
+     * like {@link #serverTick}. A broadcast would also reach everyone whose view did not change, and that packet's
+     * arrival alone is a signal: a dormant factor is in nobody's view, yet spreading one used to send every player in
+     * the world a packet at that instant.
+     * 在账本变化之后立即发送，但与 {@link #serverTick} 完全一样，只在视图与该客户端持有的内容不同时才发给该玩家。广播还会
+     * 发给视图没有变化的所有人，而该数据包的到达本身就是信号：潜伏因子不在任何人的视图中，但此前传播它会在那一刻给世界里的
+     * 每名玩家发一个数据包。
+     */
     public void sync() {
         if (!(world instanceof ServerWorld serverWorld)) return;
         // Recipients cannot change the ledger, so one mature set serves the whole sync. / 接收者不会改变账本，一次同步共用一份成熟集合。
-        syncMature = matureLivingHolders(serverWorld);
-        try { KEY.sync(world); } finally { syncMature = null; }
+        Set<UUID> mature = matureLivingHolders(serverWorld);
+        for (ServerPlayerEntity player : serverWorld.getPlayers()) {
+            View view = view(player, mature);
+            if (!view.equals(sentViews.get(player.getUuid()))) {
+                KEY.syncWith(player, (ComponentProvider) world, (buf, recipient) -> write(buf, recipient, view), this);
+            }
+        }
     }
 
     private Set<UUID> matureLivingHolders(ServerWorld serverWorld) {
@@ -173,7 +184,7 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     @Override public boolean shouldSyncWith(ServerPlayerEntity recipient) { return recipient.getWorld() == world; }
 
     @Override public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) {
-        write(buf, recipient, view(recipient, syncMature != null ? syncMature : matureLivingHolders((ServerWorld) world)));
+        write(buf, recipient, view(recipient, matureLivingHolders((ServerWorld) world)));
     }
 
     private void write(RegistryByteBuf buf, ServerPlayerEntity recipient, View view) {

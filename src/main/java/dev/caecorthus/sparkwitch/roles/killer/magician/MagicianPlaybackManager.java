@@ -90,6 +90,17 @@ public final class MagicianPlaybackManager {
     public static MagicianPlaybackEntity find(Object e) { return e instanceof MagicianPlaybackEntity p?p:null; }
     public static void stopPlaybackSilently(net.minecraft.entity.player.PlayerEntity p) { if (p instanceof ServerPlayerEntity sp) stop(sp, true, null, MagicianReplayEvents.PLAYBACK_FINISHED, null, null, null); }
     public static void stopPlaybackEarly(ServerPlayerEntity owner) { stop(owner, false, null, MagicianReplayEvents.PLAYBACK_STOPPED_EARLY, null, null, null); }
+    /**
+     * Role loss of an owner who is no longer alive in survival (a death that converts into a Wraith): ends the live
+     * puppet through the same path, with the same {@code PLAYBACK_FINISHED} replay line, that the playback tick gives
+     * a dead owner. Without it the conversion, which runs before that tick, would end the puppet silently and the
+     * replay would show a playback that started and never finished. Does nothing for a living owner or without a
+     * live playback.
+     * 主人已不再以生存模式存活（死亡后转化为冤魂）时的失去职业：经由播放刻对死亡主人所用的同一路径结束活皮套，并记录同样的
+     * {@code PLAYBACK_FINISHED} 回放行。否则，先于该播放刻执行的转化会无声地结束皮套，回放中就会出现一次只有开始、没有结束
+     * 的播放。主人仍存活或没有进行中的播放时不做任何事。
+     */
+    public static void finishPlaybackOfDeadOwner(ServerPlayerEntity owner) { if (!GameFunctions.isPlayerAliveAndSurvival(owner)) stop(owner, false, null, MagicianReplayEvents.PLAYBACK_FINISHED, null, null, null); }
 
     /**
      * Whether this puppet is a live, running playback (server only). A discarded puppet or one whose timeline already

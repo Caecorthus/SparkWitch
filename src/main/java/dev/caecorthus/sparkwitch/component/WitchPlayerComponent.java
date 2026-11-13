@@ -13,7 +13,6 @@ import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaParryRuntime;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
-import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.RegistryByteBuf;
@@ -643,7 +642,7 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
 
     @Override
     public boolean shouldSyncWith(ServerPlayerEntity recipient) {
-        return recipient == player || GameFunctions.isPlayerSpectatingOrCreative(recipient);
+        return WitchPlayerSyncCodec.seesPrivateState(player, recipient);
     }
 
     @Override

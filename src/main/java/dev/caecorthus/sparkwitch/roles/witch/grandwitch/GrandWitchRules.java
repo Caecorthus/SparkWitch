@@ -52,6 +52,14 @@ public final class GrandWitchRules {
                 && NoellesRoleIds.VOODOO_CURSE_DEATH_REASON.equals(deathReason);
     }
 
+    /**
+     * The same immunity for the head-of-kill guard; Wathe ignores a cancel on a forced kill, so the guard does too.
+     * 供击杀开头拦截使用的同一免疫；Wathe 不取消强制击杀，开头拦截保持一致。
+     */
+    public static boolean cancelsVoodooKill(Role role, Identifier deathReason, boolean force) {
+        return !force && shouldBlockVoodooCurse(role, deathReason);
+    }
+
     public enum GrandWitchSpell {
         OBSCURE("sparkwitch_obscure", 80, GameConstants.getInTicks(0, 30), GameConstants.getInTicks(2, 0)),
         BLINDNESS("sparkwitch_blindness", 80, GameConstants.getInTicks(0, 20), GameConstants.getInTicks(3, 0)),

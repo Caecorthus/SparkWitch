@@ -88,9 +88,18 @@ public final class WraithPlayerComponent implements AutoSyncedComponent {
     }
 
     public void setPromotionPending(boolean pending) {
+        boolean importPending = !legacyImportCompleted && !canonicalDataPresent;
         ensureLegacyImported();
         if (state.setPromotionPending(pending)) {
-            sync();
+            // The pending flag is written for the owner only, like the task count above: non-owners read only
+            // active/restricted, unchanged unless this very call imported legacy data, so they get no packet that
+            // only tells them a promotion is being held. / 待晋升标记只写给本人，与上方任务数相同：非本人只读取在场/受限
+            // 标记，除非本次调用刚导入旧数据，否则不变，因此他们不会收到仅能说明“晋升正被暂缓”的数据包。
+            if (!importPending && provider instanceof ServerPlayerEntity owner && owner.networkHandler != null) {
+                KEY.syncWith(owner, (ComponentProvider) owner);
+            } else {
+                sync();
+            }
         }
     }
 

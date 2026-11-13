@@ -391,6 +391,20 @@ public final class RiftSessionRules {
         return reason != RiftExitReason.PLAYER && bodyAction(reason) == BodyAction.RELEASE_AT_GATE;
     }
 
+    /**
+     * Whether the occupant's own exit request at world tick {@code now} runs the exit search. A refused search leaves
+     * the session inside, so without this every further request in the same tick repeats the whole search (ring
+     * candidates, collision, fluid and entity queries) and the "blocked" line. One search per tick loses nothing: the
+     * exit stays available under stun and Fear, has no cooldown, and the next tick searches again.
+     * {@code lastBlockedTick} is the tick of the last refused search, negative for none.
+     * 门内玩家自己在世界刻 {@code now} 的出门请求是否执行出口搜索。搜索被拒绝时会话仍在门内，若无此判断，同一刻内的每个后续
+     * 请求都会重复整套搜索（周围候选格、碰撞、流体与实体查询）以及“被堵”提示。每刻一次搜索不损失任何东西：出门在眩晕与恐惧
+     * 下仍然可用、没有冷却，下一刻会重新搜索。{@code lastBlockedTick} 为上一次被拒绝搜索所在的刻，负数表示没有。
+     */
+    public static boolean mayRetryBlockedExit(long now, long lastBlockedTick) {
+        return lastBlockedTick < 0 || now != lastBlockedTick;
+    }
+
     /** Owner-facing actionbar line for an exit, or null. / 出门时给本人的动作栏提示，或 null。 */
     @Nullable
     public static String exitMessageKey(RiftExitReason reason) {
