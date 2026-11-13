@@ -267,7 +267,8 @@ public class MiniWitherSkullEntity extends ThrownEntity {
         // judges a Conscience owner's innocent victim (小脑) from this killer. / 非强制击杀，凶手为在线主人：金币、记录与
         // 所有防护照常生效，SparkTraits 也据此判定善良主人误杀好人（小脑）。
         if (owner == null || MiniWitherTargeting.mayAffect(owner, victim, game)) {
-            RangedOriginScope.run(getPos().subtract(getVelocity()),
+            // BEAR: this skull is the Rys-T attack source. / BEAR：这颗头颅即 Rys-T 的攻击来源。
+            RangedOriginScope.run(getPos().subtract(getVelocity()), getUuid(),
                     () -> GameFunctions.killPlayer(victim, true, owner, SparkWitchDeathReasons.CRIMSON_WITHER_SKULL));
         }
         discard();
