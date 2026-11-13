@@ -191,7 +191,7 @@ def compatibilityBaselines = [
         sparkfactionapi: [
                 property: "sparkfactionapi_version",
                 version: "2.0.0",
-                sha256: "a642bbf99aeaf010c43939e3f8ba31fac1dda8a3e659b7a348db0040cbc21ae3",
+                sha256: "a124d4fb6ae6bc7034e912fa5c067420297a7cb1c035a3ba6cef975c80490773",
                 depends: [wathe: ">=1.5.6-spark-1.21.1"]
         ]
 ]
@@ -329,6 +329,28 @@ def watheClientMixinContracts = [
                 configName: "witchmaiden.WitchMaidenInventoryScreenMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/witchmaiden/WitchMaidenInventoryScreenMixin.class",
                 handler: "sparkwitch\$renderWitchMaidenEmptyState",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25394",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                // Medium 招魂 drawer (owner, 2026-11-13): attached at init, gate and layout re-checked at render head.
+                // 通灵师招魂抽屉（所有者 2026-11-13）：init 时挂载，渲染开头重新检查门槛与布局。
+                configName: "medium.MediumHauntInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/medium/MediumHauntInventoryScreenMixin.class",
+                handler: "sparkwitch\$attachHauntDrawer",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25426()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25426",
+                providerDescriptor: "()V"
+        ],
+        [
+                configName: "medium.MediumHauntInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/medium/MediumHauntInventoryScreenMixin.class",
+                handler: "sparkwitch\$refreshHauntDrawer",
                 annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
                 selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
                 providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",

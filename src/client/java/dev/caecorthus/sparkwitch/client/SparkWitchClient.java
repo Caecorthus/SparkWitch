@@ -290,11 +290,11 @@ public final class SparkWitchClient implements ClientModInitializer {
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
                 if (MediumVoteClient.ownsAbilityKey(client)) {
-                    // Ahead of every role branch: during a live 通灵 window a dead round member's press opens the vote
-                    // screen, whatever role they held (the dead have no other use for the key). The server re-checks
-                    // every vote.
-                    // 位于所有职业分支之前：通灵窗口进行期间，本局死者的按下打开投票界面，无论其原职业为何（死者的技能键
-                    // 别无他用）。每一票都由服务端重新校验。
+                    // Ahead of every role branch: during a live Medium vote window (a 通灵 question or 幽灵的加护) a
+                    // dead round member's press opens that window's vote screen, whatever role they held (the dead
+                    // have no other use for the key). The server re-checks every vote.
+                    // 位于所有职业分支之前：通灵师投票窗口（通灵提问或幽灵的加护）进行期间，本局死者的按下打开该窗口的
+                    // 投票界面，无论其原职业为何（死者的技能键别无他用）。每一票都由服务端重新校验。
                     MediumVoteClient.onAbilityKey(client);
                 } else if (KnightDuelClient.ownsAbilityKey(client.player, role)) {
                     // Checked first: either duelist's press does nothing (any role, owner 2026-10-30; the server also
@@ -405,7 +405,9 @@ public final class SparkWitchClient implements ClientModInitializer {
                     NoaPaintClient.onAbilityKey(client);
                 } else if (MediumRules.isMedium(role)) {
                     // 通灵 (the shared ability key): empty request, the server owns every check and opens the box.
-                    // 通灵（共享技能键）：空请求，全部校验在服务端，并由服务端打开提问框。
+                    // 幽灵的加护 is on the SparkWitch skill key (MediumClientModule) and 招魂 in the inventory drawer.
+                    // 通灵（共享技能键）：空请求，全部校验在服务端，并由服务端打开提问框。幽灵的加护在 SparkWitch 技能键上
+                    // （MediumClientModule），招魂在背包抽屉中。
                     if (ClientPlayNetworking.canSend(UseMediumSkillC2SPacket.ID)) {
                         ClientPlayNetworking.send(new UseMediumSkillC2SPacket());
                     }
@@ -443,8 +445,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         // BEAR client hub (work packages append there), before USEC, which stays last.
         // BEAR 客户端注册中心（各工作包在其中追加），位于 USEC 之前，USEC 保持最后。
         dev.caecorthus.sparkwitch.client.bear.BearClientModule.register();
-        // Medium client hub (Role Skill 2 key), after BEAR and before USEC, which stays last.
-        // 通灵师客户端注册中心（职业技能 2 键），位于 BEAR 之后、USEC 之前，USEC 保持最后。
+        // Medium client hub (Role Skill 2 key = 幽灵的加护), after BEAR and before USEC, which stays last.
+        // 通灵师客户端注册中心（职业技能 2 键 = 幽灵的加护），位于 BEAR 之后、USEC 之前，USEC 保持最后。
         MediumClientModule.register();
         // 橘雪莉 client hub (PR #206: panel, Role Skill 2 key, private outlines, corner HUD), after the Medium and
         // before USEC, which stays last.

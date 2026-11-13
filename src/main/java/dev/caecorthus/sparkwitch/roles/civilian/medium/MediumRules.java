@@ -16,9 +16,11 @@ import java.util.UUID;
 /**
  * The Medium (通灵师, {@code sparkwitch:medium}) is a plain task civilian drawn by Wathe's civilian assignment,
  * never through a police slot: the plain civilian baseline (REAL mood, passenger stamina, no round clock), 通灵 on the
- * shared ability key and 招魂 on Role Skill 2. This class owns the shared constants and the death-tier maths.
+ * shared ability key, 幽灵的加护 (Ghost's Blessing) on the SparkWitch skill key and 招魂 from the inventory screen.
+ * This class owns the shared constants and the death-tier maths.
  * 通灵师（{@code sparkwitch:medium}）是由 Wathe 平民分配抽取的普通任务平民，从不占用警位：普通平民基线
- * （真实情绪、乘客体力、不可见回合时间）、共享技能键上的通灵与职业技能 2 上的招魂。本类持有共享常量与死亡档位算法。
+ * （真实情绪、乘客体力、不可见回合时间）、共享技能键上的通灵、SparkWitch 技能键上的幽灵的加护，以及背包界面里的招魂。
+ * 本类持有共享常量与死亡档位算法。
  */
 public final class MediumRules {
     // ---- Role ----
@@ -34,19 +36,46 @@ public final class MediumRules {
     /** Replay skill ids. / 回放技能 id。 */
     public static final Identifier SEANCE_SKILL_ID = SparkWitch.id("medium_seance_skill");
     public static final Identifier HAUNT_SKILL_ID = SparkWitch.id("medium_haunt_skill");
+    /**
+     * 幽灵的加护. One id, two replay entries: the paid cast (no extra data) and the grant ({@code blessing} index and
+     * {@code random} flag).
+     * 幽灵的加护。同一 id 两条回放记录：付费施放（无附加数据）与获得加护（{@code blessing} 序号与 {@code random} 标记）。
+     */
+    public static final Identifier BLESSING_SKILL_ID = SparkWitch.id("medium_blessing_skill");
     /** 通灵 base price; every tier −50, floor 0. / 通灵基础价格；每档 −50，下限 0。 */
     public static final int SEANCE_BASE_PRICE = 300;
     /** 招魂 is a flat price; the death tier only discounts 通灵. / 招魂固定价格；死亡档位只给通灵降价。 */
     public static final int HAUNT_PRICE = 50;
     public static final int PRICE_TIER_STEP = 50;
-    /** Every tier also shortens the 通灵 cooldown by 10 s (招魂 has no cooldown). / 每档把通灵冷却缩短 10 秒（招魂无冷却）。 */
+    /** 加护 always costs 通灵's live price plus this, so never less than this. / 加护始终比通灵的实时价格贵这么多，因此不会低于此值。 */
+    public static final int BLESSING_PRICE_EXTRA = 100;
+    /** Every tier also shortens both cooldowns by 10 s (招魂 has no cooldown). / 每档把两个冷却各缩短 10 秒（招魂无冷却）。 */
     public static final int CD_TIER_STEP_TICKS = GameConstants.getInTicks(0, 10);
     /** Opening 通灵 cooldown (tier 0 at round start). / 通灵的开局冷却（开局死亡数为 0，档位为 0）。 */
     public static final int CD_OPENING_TICKS = GameConstants.getInTicks(0, 180);
+    /** Opening 加护 cooldown. / 加护的开局冷却。 */
+    public static final int BLESSING_CD_OPENING_TICKS = GameConstants.getInTicks(0, 300);
     /** The 通灵 cooldown entered after a paid use; the tier is read when the cooldown starts. / 付费使用后进入的通灵冷却；档位在进入冷却那一刻读取。 */
     public static final int CD_AFTER_USE_TICKS = GameConstants.getInTicks(0, 60);
-    /** The dead vote for this long after a paid 通灵. / 付费通灵后死者投票的窗口时长。 */
+    /**
+     * A paid 通灵 OR 加护 starts both cooldowns; 加护's is 通灵's plus this, so the tier can never take it below this.
+     * 付费通灵或加护都会同时开始两个冷却；加护冷却 = 通灵冷却 + 此值，因此档位无法把它降到此值以下。
+     */
+    public static final int BLESSING_CD_EXTRA_TICKS = GameConstants.getInTicks(0, 120);
+    /** The dead vote for this long after a paid 通灵 or 加护. / 付费通灵或加护后死者投票的窗口时长。 */
     public static final int SEANCE_WINDOW_TICKS = GameConstants.getInTicks(0, 20);
+    /** Vote choice indices of a 通灵 (question) window. / 通灵（提问）窗口的投票选项序号。 */
+    public static final int VOTE_NO = 0;
+    public static final int VOTE_YES = 1;
+    /** Speed I for this long. / 速度 I 的持续时间。 */
+    public static final int BLESSING_SPEED_TICKS = GameConstants.getInTicks(0, 40);
+    /**
+     * What the 回满 san blessing asks {@code PlayerMoodComponent.setMood} for: above every known cap, so the setter's
+     * own clamp lands on the true maximum (Wathe 1.0; SparkTraits Steady redirects that clamp to 1.25).
+     * 回满 san 加护传给 {@code PlayerMoodComponent.setMood} 的值：高于所有已知上限，由 setter 自身的钳制落到真正的最大值
+     * （Wathe 为 1.0；SparkTraits 沉稳把该钳制重定向为 1.25）。
+     */
+    public static final float BLESSING_SANITY_REQUEST = 2.0F;
     /** Question length cap; the box simply refuses more (owner: the excess is never typed). / 提问字数上限；输入框直接不收多余字符。 */
     public static final int QUESTION_MAX_CHARS = 20;
     /** A 招魂-bound player's vote weighs 3. / 被招魂绑定玩家的投票记 3 票。 */
@@ -71,6 +100,11 @@ public final class MediumRules {
         return Math.max(0, SEANCE_BASE_PRICE - PRICE_TIER_STEP * Math.max(0, tier));
     }
 
+    /** 加护's price at the tier: 通灵's price there plus 100. / 该档位下加护的价格：该档位通灵价格 +100。 */
+    public static int blessingPrice(int tier) {
+        return seancePrice(tier) + BLESSING_PRICE_EXTRA;
+    }
+
     /** 招魂's flat price; the tier never changes it. / 招魂的固定价格；档位不影响。 */
     public static int hauntPrice() {
         return HAUNT_PRICE;
@@ -79,6 +113,16 @@ public final class MediumRules {
     /** A cooldown entering now lasts this long at the tier (floor 0). / 此刻进入的冷却在该档位下的时长（下限 0）。 */
     public static int cooldownTicks(int baseTicks, int tier) {
         return Math.max(0, baseTicks - CD_TIER_STEP_TICKS * Math.max(0, tier));
+    }
+
+    /** The 通灵 cooldown a paid use (of either skill) starts at the tier. / 任一技能付费使用后在该档位下开始的通灵冷却。 */
+    public static int seanceCooldownAfterUse(int tier) {
+        return cooldownTicks(CD_AFTER_USE_TICKS, tier);
+    }
+
+    /** The 加护 cooldown a paid use (of either skill) starts at the tier. / 任一技能付费使用后在该档位下开始的加护冷却。 */
+    public static int blessingCooldownAfterUse(int tier) {
+        return seanceCooldownAfterUse(tier) + BLESSING_CD_EXTRA_TICKS;
     }
 
     /** Deaths among the round roster. / 本局名单中的死亡人数。 */
@@ -129,9 +173,22 @@ public final class MediumRules {
     }
 
     /**
-     * Who may answer a 通灵: a dead member of the running round (side-neutral; the roster and the dead set are synced).
-     * A living player, an overflow spectator without a role and anyone outside a running round is refused.
-     * 谁可以回答通灵：进行中对局的本局死者（两端通用；名单与死亡集合均已同步）。存活玩家、没有身份的旁观者以及
+     * Side-neutral half of the 招魂 candidate rule, shared with the client's inventory list: a round member other than
+     * the caster, alive or dead. The server additionally requires the target online in the caster's world and not yet
+     * bound.
+     * 招魂候选规则中两端通用的部分，与客户端背包列表共用：除施放者外的本局成员，无论生死。服务端另外要求目标在施放者所在
+     * 世界在线且尚未绑定。
+     */
+    public static boolean mayHaunt(@Nullable UUID caster, @Nullable UUID target, @Nullable GameWorldComponent game) {
+        return caster != null && target != null && game != null && !target.equals(caster)
+                && game.getAllPlayers().contains(target);
+    }
+
+    /**
+     * Who may answer a 通灵 or vote on a 加护: a dead member of the running round (side-neutral; the roster and the dead
+     * set are synced). A living player, an overflow spectator without a role and anyone outside a running round is
+     * refused.
+     * 谁可以回答通灵或为加护投票：进行中对局的本局死者（两端通用；名单与死亡集合均已同步）。存活玩家、没有身份的旁观者以及
      * 非进行中对局的任何人都被拒绝。
      */
     public static boolean mayVote(@Nullable GameWorldComponent game, @Nullable UUID uuid) {

@@ -20,6 +20,7 @@ public final class MediumFeatureService {
         registered = true;
         MediumEconomyService.register();
         MediumSkillService.register();
+        MediumBlessingService.register();
         MediumSecondSkillService.register();
     }
 }
