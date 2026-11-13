@@ -10,6 +10,8 @@ import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.item.rope.RopeItem;
 import dev.caecorthus.sparkwitch.item.rope.RopeRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoLightstickItem;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
 import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookItem;
@@ -156,6 +158,7 @@ public final class SparkWitchItems {
     public static final Identifier HANNA_UMBRELLA_ID = HannaRules.UMBRELLA_ID;
     public static final Identifier HANNA_HANDKERCHIEF_ID = HannaRules.HANDKERCHIEF_ID;
     public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
+    public static final Identifier KOKO_LIGHTSTICK_ID = KokoRules.LIGHTSTICK_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -225,6 +228,7 @@ public final class SparkWitchItems {
     private static Item hannaUmbrella;
     private static Item hannaHandkerchief;
     private static Item rope;
+    private static Item kokoLightstick;
 
     private static boolean registered;
 
@@ -614,6 +618,13 @@ public final class SparkWitchItems {
                 ROPE_ID,
                 new RopeItem(RopeItem.createSettings())
         );
+        // 泽渡可可's lightstick (PR #223), appended last, after 二阶堂希罗's Rope, so earlier registration order stays
+        // unchanged. / 泽渡可可的应援棒（PR #223），追加在最后（二阶堂希罗的绳索之后），以保持既有注册顺序不变。
+        kokoLightstick = Registry.register(
+                Registries.ITEM,
+                KOKO_LIGHTSTICK_ID,
+                new KokoLightstickItem(KokoLightstickItem.createSettings())
+        );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
@@ -666,6 +677,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return rope;
+    }
+
+    public static Item kokoLightstick() {
+        if (kokoLightstick == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return kokoLightstick;
     }
 
     public static Item firePoker() {

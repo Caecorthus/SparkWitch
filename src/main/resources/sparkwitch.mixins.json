@@ -274,6 +274,7 @@
     "usec.NoellesUsecShieldPierceMixin",
     "usec.GameFunctionsUsecPsychoArmourMixin",
     "discoverer.DiscovererSprintDrainMixin",
+    "koko.KokoSprintDrainMixin",
     "hanna.ServerWorldHannaSilenceMixin",
     "hanna.ServerPlayerInteractionManagerHannaSoundScopeMixin",
     "hanna.ServerPlayNetworkHandlerHannaSoundScopeMixin",

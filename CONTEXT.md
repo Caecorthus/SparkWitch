@@ -76,6 +76,12 @@ end, senses players within 10 blocks, and hides from instinct behind cover like 
 It also adds Schrödinger's Cat (`sparkwitch:schrodingers_cat`, 薛定谔之猫, contributed in PR #182), a neutral drawn at
 any player count that never wins or blocks a win; the first death that really commits on it (after every protection)
 turns it, 3 s later and where it fell, into its killer's side: Bewitched, Insider, plain killer or a random police role.
+It also adds 泽渡可可 Sawatari Koko (`sparkwitch:koko`, contributed in PR #223 and rebuilt in review), a neutral streamer
+drawn at any player count with fake tasks, a mana pool on the Murderous Witch's regeneration, and one neutral master
+key: her shared ability key (G) spends 60 mana on a 20 s stream (10 traffic per second, her held instinct key outlines
+every other player, everyone sees her through walls for the first 10 s, half sprint drain), a right-click on a corpse
+streams it once (the body glows for everyone for 50 s, +100 traffic), her shop sells one lightstick for 100 traffic,
+1000 traffic keeps Speed III on her, and she wins alone when she is live with 1500 traffic. She blocks nobody else's win.
 It also adds the Magician (`sparkwitch:magician`, 魔术师, merged from main), a killer whose recorded puppet replays
 its actions disguised as a chosen player.
 It also adds the Dominator (`sparkwitch:dominator`, 支配者, contributed in PR #192), a killer whose shared ability key
@@ -897,7 +903,7 @@ Current build baseline:
     tooltips. Lang: `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
     placement and trigger, peachwood hits and the shield.
 - `roles/killer/hiro/`: 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, placeholder color `0xC8324B`, owner has not
-  picked one), added 2026-11-11. She is a Witch Trial girl (`WitchFactionRules.WITCH_TRIAL_GIRL_IDS`, owner
+  picked one), added 2026-11-11. She is a Witch Trial girl (`OtherWitchRoles`, owner
   2026-11-11): the Grand Witch's held instinct shows her in `OTHER_WITCH_INSTINCT_COLOR` before and after 魔女化,
   and the witchified role-colour view below still only fills when no instinct colour answered (key not held).
   Every role number lives in `HiroRules`: `RETURN_WINDOW_TICKS` 300, `VICTIM_FEIGN_TICKS` 300,
@@ -1256,15 +1262,86 @@ Current build baseline:
   side and the transform gate), the spectre and transformation (`SchrodingersCatService`) and the settlement exclusion
   (`SchrodingersCatSettlement`). Its mixins live in `mixin/cat/`; the optional trait swap goes through
   `compat/SparkTraitsSchrodingersCatBridge`. No client code.
+- `roles/neutral/koko/`: 泽渡可可 Sawatari Koko (`sparkwitch:koko`, color `0xB5AFE2`), contributed in PR #223 and
+  rebuilt in review on the Hanna model (owner spec and decisions 2026-11-13); every number lives in `KokoRules`.
+  - Registration: a SparkFactionAPI neutral (Wathe-native NEUTRAL, FAKE mood so she has fake tasks, 10 s
+    `maxSprintTime`, no round clock, no appearance condition) registered after 二阶堂希罗 and right before the Insider
+    (which stays last), and guessed in the neutral block after the Lost Soul. Drawn by Wathe's neutral pass; she is
+    not settlement-excluded, so she counts as a living neutral for every other win. `SparkWitchRoles` exposes `KOKO_ID`
+    and `koko()`. She is a Witch Trial girl (`OtherWitchRoles`), so the Grand Witch's held instinct shows her in the
+    other-witch colour.
+  - Mana without witch skills: a mana role in `WitchManaRules` (`isManaRole`) on the Murderous Witch's natural
+    regeneration (owner 2026-11-13): 0 at the deal, 1 per 40 ticks, natural cap 150, `taskReward` 0, `killReward` 0.
+    She is not in `isRegisteredSparkWitchRole`, never gets an active witch skill and never appears in the
+    `gui.sparkwitch.skills` panel; the shared mana HUD row shows her pool because it reads only `hasManaSystem()`.
+  - Go live (`KokoFeatureService` registers the empty C2S `sparkwitch:use_koko_stream`, the replay formatter, shop,
+    key, win, the corpse interaction, the world tick and lifecycle): `KokoStreamService.tryGoLive` gates through the
+    pure `KokoRules.streamVerdict` (real role, ACTIVE round, alive and not spectating, not swallowed, stunned or
+    role-skill blocked, not already live, ready; then Fear, which sends Grand Witch's "skill blocked" line; then 60
+    mana, else `message.sparkwitch.koko.no_mana`), spends the mana, starts the 20 s stream, pays the first second of
+    traffic and puts vanilla Glowing on her for 10 s (how everyone sees her through walls; the Nikaido Hiro
+    precedent). The world tick pays 10 traffic at 1 s to 19 s (`KokoRules.pulseDue`, never on the end tick: 20
+    payments, 200 per stream), so every payment lands at least 1 s before the stream ends: Wathe's win check and this
+    world tick run in no fixed order, and the check sees the traffic in the same tick or the next, live either way.
+    A swallowed Koko or one inside a Rift Gate earns nothing and cannot win. Death, a role change or the round's end stops the stream. The 45 s cooldown
+    starts when the stream ends (the Hanna float rule).
+  - Corpse stream (`KokoStreamService`, `UseEntityCallback` in phase `sparkwitch:koko_corpse_stream` after the default
+    phase, so every lock guard has already refused a locked player; main hand, a Wathe `PlayerBodyEntity`): no mana,
+    vanilla Glowing on the body for 50 s (everyone sees it), +100 traffic and the 45 s shared cooldown, once per dead
+    player per Koko (`corpseKey`: the body's player UUID, kept in her component, so a repeated feigned death pays
+    once). `KokoRules.corpseVerdict`: role, round, control and aim gates (`canHit`, which NoellesRoles turns off for a
+    Scavenger-hidden body, `CanTargetBody` and line of sight; vanilla checked the range) pass the click on; Fear, a running stream, the
+    cooldown and a repeated body each refuse with their own action-bar line. A fake body is streamed like a real one,
+    so the stream never reveals a feigned death. Her own client answers SUCCESS for a body so the same click never
+    also uses the held item; it predicts nothing else.
+  - Speed and win: holding 1000 traffic renews Speed III (a 2.5 s ambient effect, once per second), so it lapses when
+    a purchase drops her below 1000. `KokoWinService` runs in phase `sparkwitch:koko_stream_win`, ordered after the
+    Fiend's and the Charon's phases and before `Event.DEFAULT_PHASE` (a default-phase `block()` from the Murderous
+    Witch or the witch faction would otherwise hide it): alive, not swallowed or spectating, live and 1500 traffic
+    (`KokoRules.wins`) is `neutralWin(koko)`; anything else is `null`, so she never blocks another side.
+  - Stamina (`KokoStaminaService`, `mixin/koko/KokoSprintDrainMixin`): the Discoverer's capture/rewrite pair around
+    Wathe's stamina tick with multiplier 0.5, gated to her exact role while live; server authority, and her own client
+    predicts from the owner-synced component.
+  - Shop (`KokoShopService`): exactly one entry, the lightstick, a 0-coin `TOOL` row with stock 1 whose `onBuy`
+    charges 100 traffic on the server (the Riftwalker Rift Gate pattern; refunded when the hotbar insert fails), a
+    deny-only `ShopPurchase.BEFORE` for the readable refusal, SparkTraits entries preserved across the rebuild, and
+    `CanSeeMoney` DENY for her (she earns and holds no coins). `client/text/WitchShopClientTexts` labels the price.
+    `KokoLightstickItem` (`sparkwitch:koko_lightstick`, `maxCount(1)`, never consumed, any holder): Speed II for 10 s,
+    doubled stream traffic for those 10 s for a living Koko, then a 30 s vanilla item cooldown
+    (`SparkWitchItemCooldownNominals`). No knife and no lockpick (owner 2026-11-13); kills pay nothing.
+  - Key (`KokoKeyService`): one `noellesroles:neutral_master_key` per living final Koko at `ON_FINISH_INITIALIZE`, and
+    a SparkWitch-owned `DoorInteraction` listener on both sides (train doors and key-locked room doors, 10 s key
+    cooldown) that reuses `InsiderDoorRules.masterKeyDoorResult`, so her doors do not depend on SparkStrength.
+  - State: `KokoComponent` (`sparkwitch:koko_player`, `NEVER_COPY`, appended last in the CCA list) keeps her traffic,
+    three absolute world ticks (stream end, ready, lightstick doubling end) and the streamed body UUIDs in NBT. Sync is
+    owner-only (traffic, stream end, ready), counted down against the client world clock. `RoleAssigned` clears it and
+    starts the 60 s opening cooldown for a drawn Koko; Wathe's `ResetPlayer` clears it. The forced-cooldown store
+    `sparkwitch:koko_stream` (store 30) only moves the ready tick later.
+  - Deny lists: `use_koko_stream` has its row in SparkFactionAPI's payload policy table with Tono Hanna's cells (denied
+    under the stun, a Seeker session, a Rift Gate, Fear, the Knight duel, SparkStrength's Taotie daze and the opening
+    safe time).
+  - Tablet: none of hers. SparkStrength gives every round role its free tablet and resolves channels from identity on
+    the server, so she reaches only the public proximity channel (owner 2026-11-13: no channel she has no right to).
+  - Replay (`KokoReplay`, skill events under the role id): `stream_start`, `stream_end`, `corpse_stream` (the dead
+    player's UUID is stored in the event data; `corpse_stream_unknown` without one) and `lightstick` (whoever used it).
+  - Client (`client/koko/`, presentation only): the two role-owned HUD rows (traffic against 1500, and the stream line:
+    live, cooling, needs mana, ready), the keyed instinct outline of the other living players while she is live
+    (`KokoInstinctHooks`, `withKeybind`, priority 90, never `always`), and the mood flag `hud/mood_flag/koko.png`; the
+    ability key sends the empty payload with no prediction.
+  - Lang: `role`/`announcement`/`game.win` keys for `koko` and `sparkwitch.koko`, `tip.letter.koko.tooltip1`-`6`,
+    `hud.sparkwitch.koko.*`, `message.sparkwitch.koko.*`, `gui.sparkwitch.shop.traffic_price`,
+    `shop.error.sparkwitch.koko.*`, the lightstick name and tooltips, and the five `replay.skill.sparkwitch.koko.*` keys.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
-  - Witch Trial girls (魔裁, owner 2026-11-11): `WitchFactionRules.isWitchTrialGirl` classes the 魔法少女的魔女裁判
-    character roles by role id (`WITCH_TRIAL_GIRL_IDS`: Emma, Noa, Hanna, Natsume Anan, Tachibana Sherry, Nikaido
-    Hiro).
-    `isOtherWitchRole` includes them, so the Grand Witch's instinct shows them in
-    `OTHER_WITCH_INSTINCT_COLOR` like the Apprentice and the Murderous Witch, whatever their own faction;
+  - Other-witch roles (owner 2026-11-13): `OtherWitchRoles` is the one list of roles the Grand Witch's instinct
+    specially recognises, by role id: the Apprentice Witch, the Murderous Witch and the Witch Trial girls (魔裁,
+    owner 2026-11-11, the 魔法少女的魔女裁判 character roles: Emma, Noa, Hanna, Natsume Anan, Tachibana Sherry,
+    Nikaido Hiro, Sawatari Koko). Ask it through `contains` / `isWitchTrialGirl` (Role or id) and `ids()`;
+    `WitchFactionRules.isOtherWitchRole` / `isWitchTrialGirl` delegate to it.
+    The Grand Witch's instinct shows them in
+    `OTHER_WITCH_INSTINCT_COLOR` (`OtherWitchRoles.INSTINCT_COLOR`), whatever their own faction;
     accomplices and the Curser still see them in the non-witch colour. It is an instinct class only: no Witch
     faction membership, mana, factor or kill-mana bonus, Rift Gate access, trait pool or `gui.sparkwitch.skills`
-    panel. A new 魔裁 role adds its id to that set.
+    panel. A new 魔裁 role adds its id to `OtherWitchRoles.WITCH_TRIAL_GIRL_IDS`.
 - `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the promotion roll
   `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the per-variant hooks: the
   post-promotion callback and the variant's own skills for the `gui.sparkwitch.skills` panel).
@@ -2874,7 +2951,7 @@ Current build baseline:
   rebuilt in review on the Noa model (owner decisions 2026-11-11); every number lives in `HannaRules`.
   - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
     no appearance condition) registered after the Lost Soul and before the Insider (which stays last; only 橘雪莉,
-    PR #206, and 二阶堂希罗 sit between them), and guessed in the civilian block right after the Medium (橘雪莉 follows her). Drawn by Wathe's civilian pass, never a police variant or slot.
+    PR #206, 二阶堂希罗 and 泽渡可可 sit between them), and guessed in the civilian block right after the Medium (橘雪莉 follows her). Drawn by Wathe's civilian pass, never a police variant or slot.
     `SparkWitchRoles` exposes `HANNA_ID` and `hanna()`.
   - Mana without witch skills: she is a mana role in `WitchManaRules` (`isManaRole`), with `initialMana` 40 granted by
     `WitchManaService.assignForRole` right after `initializeMana()`, `taskReward` 20, no natural regeneration
@@ -2896,7 +2973,7 @@ Current build baseline:
     the float, restarts the cooldown, removes the modifier and starts 10 s of penalty (-5% sanity per second through
     `PlayerMoodComponent.setMood`, with an action-bar countdown).
   - State: `HannaComponent` (`sparkwitch:hanna_player`, `NEVER_COPY`, appended in the CCA list after the
-    Charon's; `sparkwitch:sherry` and 二阶堂希罗's two follow) keeps four absolute world ticks (float ready, float end, penalty end, handkerchief end) in NBT.
+    Charon's; `sparkwitch:sherry`, 二阶堂希罗's two and 泽渡可可's follow) keeps four absolute world ticks (float ready, float end, penalty end, handkerchief end) in NBT.
     Everyone receives only the float's remaining ticks (instinct is drawn per client); the owner also gets the ready
     and penalty ticks. The world tick skips `idle()` players, re-applies the modifier after a relog, and ends a float
     (no penalty) or a penalty when she is no longer a living Hanna in an ACTIVE round. `RoleAssigned` clears the
@@ -4338,10 +4415,11 @@ Bewitched. These rules are `HunterRules.isInstinctTrapViewer` (`BEWITCHED_ROLE_I
 Bewitched. These never include variants merely for being variants, nor the Bewitched: `WitchManaRules.isManaRole`
 (the Abyss Listener and the Riftwalker are added by exact role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`
 (the Abyss Listener and the Riftwalker are added by exact role, each for its shared skill).
-`WitchManaRules.isManaRole` also holds two roles outside the witch faction, each by exact role: the Witch Maiden
-(crimson skull mana) and the civilian Tono Hanna (PR #212), who starts at `initialMana` 40, gains 20 per task and is
-the only mana role with `canRegenerateNaturally` false; neither is in `isRegisteredSparkWitchRole` for it, and the
-other mana roles' numbers are unchanged.
+`WitchManaRules.isManaRole` also holds roles outside the witch faction, each by exact role: the Witch Maiden
+(crimson skull mana), the civilian Tono Hanna (PR #212), who starts at `initialMana` 40, gains 20 per task and is
+the only mana role with `canRegenerateNaturally` false, and the neutral 泽渡可可 (PR #223), who shares the Murderous
+Witch's natural cap (150) and default 40-tick interval with no task or kill reward; none is in
+`isRegisteredSparkWitchRole` for it, and the other mana roles' numbers are unchanged.
 
 Witch task money (owner request 2026-10-04, lowered from 50 to 25 on 2026-10-07): `WitchEconomyService.onTaskComplete`
 pays `WitchFactionRules.WITCH_TASK_MONEY_REWARD` (+25) per completed task to the Grand Witch and every accomplice (plain or
@@ -4600,6 +4678,12 @@ deliberate and kept:
    writes the 加护 cooldown alone. The cooldown starts at the paid act (`use_medium_blessing`), so a forced write
    never touches a running vote window. Like 通灵 it has no item, so SparkFactionAPI's admin `clearCooldown` (held
    item only) does not reach it.
+30. `sparkwitch:koko_stream` (`SparkWitchForcedCooldowns#kokoStream`, PR #223, appended after the Medium's 幽灵的加护):
+   泽渡可可's shared stream cooldown, for the raw role in an ACTIVE round (`KokoStreamService`'s role and round
+   gates). Remaining time counts to the absolute ready tick in `KokoComponent`, so it includes the 60 s opening
+   cooldown and, while she is live, the rest of the stream; the nominal is `KokoRules.COOLDOWN_TICKS` (900). Every
+   write only moves the ready tick later through the syncing `setReadyTick`, so it never shortens and never ends a
+   running stream.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s

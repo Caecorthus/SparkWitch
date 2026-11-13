@@ -29,6 +29,7 @@ import dev.caecorthus.sparkwitch.client.athlete.AthleteDashClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaPaintClient;
 import dev.caecorthus.sparkwitch.client.hanna.HannaClient;
+import dev.caecorthus.sparkwitch.client.koko.KokoClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
@@ -101,6 +102,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntit
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
@@ -208,6 +210,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Hanna float line (role-owned HUD); the float itself rides the shared ability key below.
         // 汉娜浮游行（职业自有 HUD）；浮游本身走下方的共享技能键。
         HannaClient.init();
+        // Koko traffic and stream rows plus her live instinct outline (role-owned); going live rides the shared
+        // ability key below. / 可可的流量行、直播行与直播期间的本能描边（职业自有）；开播走下方的共享技能键。
+        KokoClient.init();
         // BEAR smoke (spike): the S2C receivers that write SmokeClientState, and the disconnect cleanup.
         // BEAR 烟雾（原型）：写入 SmokeClientState 的 S2C 接收器与断线清理。
         dev.caecorthus.sparkwitch.client.bear.smoke.SmokeNetworkClient.register();
@@ -406,6 +411,10 @@ public final class SparkWitchClient implements ClientModInitializer {
                     if (ClientPlayNetworking.canSend(UseMediumSkillC2SPacket.ID)) {
                         ClientPlayNetworking.send(new UseMediumSkillC2SPacket());
                     }
+                } else if (KokoRules.isKoko(role)) {
+                    // Go live (the shared ability key), real role only (getRole stays raw): empty request, the server
+                    // decides use. / 开播（共享技能键），仅真实职业（getRole 始终是真实身份）：空请求，是否生效由服务端决定。
+                    KokoClient.onAbilityKey(client);
                 } else if (HannaRules.isHanna(role)) {
                     // Real role only (getRole stays raw, so a Black Raven acting as Hanna keeps its own key); the server
                     // decides use. / 仅真实职业（getRole 始终是真实身份，扮演汉娜的黑羽鸦保留自己的按键）；是否生效由服务端决定。

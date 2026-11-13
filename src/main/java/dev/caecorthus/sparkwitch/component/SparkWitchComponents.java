@@ -36,6 +36,7 @@ import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotCompo
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.witchification.HiroWitchificationComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldComponent;
@@ -299,6 +300,13 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, HiroWitchificationComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HiroWitchificationComponent::new);
+        // 泽渡可可 (PR #223): traffic, the stream and shared-cooldown ticks, the lightstick window and the bodies she
+        // already streamed; synced to the owner only; appended last, after 二阶堂希罗's components.
+        // 泽渡可可（PR #223）：流量、直播与共用冷却的刻、应援棒窗口以及已直播过的尸体；只同步给本人；追加在最后，位于
+        // 二阶堂希罗的组件之后。
+        registry.beginRegistration(PlayerEntity.class, KokoComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(KokoComponent::new);
     }
 
     @Override
