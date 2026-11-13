@@ -37,9 +37,5 @@ public record PoisonApplePlateState(UUID placerUuid, int successfulTakeCount, UU
         static TakeResult cleared() {
             return new TakeResult(null, null);
         }
-
-        public boolean shouldPoison() {
-            return poisonerUuid != null;
-        }
     }
 }

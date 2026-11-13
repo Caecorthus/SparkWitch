@@ -19,7 +19,6 @@ public final class RiftSwapperCrushRules {
     /** Actionbar for every target who is inside a gate. / 发给每个门内目标的动作栏提示。 */
     public static final String OCCUPANT_MESSAGE_KEY = "message.sparkwitch.riftwalker.swapper.crushed";
     public static final String DEATH_REASON_KEY = "death_reason.sparkwitch.portal_crushed";
-    public static final String REPLAY_DEATH_KEY = "replay.death.sparkwitch.portal_crushed.died";
 
     /**
      * NoellesRoles' own Swapper cooldown ({@code GameConstants.getInTicks(1, 0)}), applied only on the should-not-happen
@@ -37,8 +36,6 @@ public final class RiftSwapperCrushRules {
     public static final int PORTAL_PARTICLES = 48;
     public static final int CRIT_PARTICLES = 16;
 
-    /** Half the width of a standing player (vanilla 0.6). / 站立玩家宽度的一半（原版 0.6）。 */
-    static final double PLAYER_HALF_WIDTH = 0.3;
     /**
      * Heights of the reachability ray: from the gate's centre ({@code GATE_HEIGHT / 2} above its base) to the middle of
      * the candidate's standing body, so a wall, pane or closed door between the gate opening and the cell rejects it.
@@ -117,16 +114,6 @@ public final class RiftSwapperCrushRules {
      */
     public static List<BodyOffset> bodyOffsets() {
         return BODY_OFFSETS;
-    }
-
-    /**
-     * Clearance between a standing player at {@code offset} and the gate slab (blocks): the larger of the gap in front
-     * of the slab and the gap beside it. / 候选位置与门板的间隙（格）：取门板前方间隙与侧方间隙中较大者。
-     */
-    static double slabClearance(BodyOffset offset) {
-        double front = offset.forward() - PLAYER_HALF_WIDTH - RiftwalkerRules.GATE_DEPTH / 2.0;
-        double side = Math.abs(offset.lateral()) - PLAYER_HALF_WIDTH - RiftwalkerRules.GATE_WIDTH / 2.0;
-        return Math.max(front, side);
     }
 
     /**

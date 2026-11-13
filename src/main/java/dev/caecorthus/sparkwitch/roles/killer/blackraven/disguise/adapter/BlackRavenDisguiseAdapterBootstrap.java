@@ -22,7 +22,10 @@ public final class BlackRavenDisguiseAdapterBootstrap {
         }
     }
 
-    /** Fresh batch-1 adapters in BATCH1_SHIPPED order. / 按 BATCH1_SHIPPED 顺序创建的批次一适配器。 */
+    /**
+     * Fresh batch-1 adapters in shipping order; roles in ALLOWED without an adapter here show as UNSUPPORTED.
+     * 按上线顺序创建的批次一适配器；ALLOWED 中未在此处提供适配器的职业显示为 UNSUPPORTED。
+     */
     static List<BlackRavenDisguiseAdapter> batchOne() {
         return List.of(
                 new ConductorDisguiseAdapter(),

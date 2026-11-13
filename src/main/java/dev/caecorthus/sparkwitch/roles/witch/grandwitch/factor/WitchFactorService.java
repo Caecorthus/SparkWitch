@@ -171,12 +171,6 @@ public final class WitchFactorService {
         return SpreadOutcome.SPREAD;
     }
 
-    /** The caller owns costs and targeting; successful insertion alone spends the common quota.
-     * 调用方负责消耗与选人；只有成功插入因子才扣除共用额度。 */
-    public static boolean trySpread(ServerPlayerEntity source, ServerPlayerEntity target) {
-        return attemptSpread(source, target) == SpreadOutcome.SPREAD;
-    }
-
     /**
      * Quota-free entry for a factor the holder makes herself (二阶堂希罗's 魔女化): no Grand Witch or Emma, no quota (a
      * round without any witch, or with the quota used up, still grants it) and no 20 s admission. It needs a running

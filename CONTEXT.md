@@ -3436,7 +3436,8 @@ never throws back into `PlayerShopComponent.tryBuy`. Time Stamps (`sparkwitch:ti
 64) are the role's physical currency; no component holds a stamp count. The balance is the stamps in
 the holder's own `PlayerInventory` plus the open handler's cursor: the server computes it for
 purchases, and the owner's client computes the same value from its synced inventory for the price
-label and HUD. The Clock and stamps are bound items: they share `TimeStealerInventoryRules` and the
+label and HUD. The Clock and stamps are bound items: they share `TimeStealerInventoryRules` (whose
+click and world-target checks are the strict `item/BoundItemRules` policy) and the
 three item-generic mixins in `mixin/timestealer/`, never become item entities, never leave the
 holder's own inventory slots, never death-drop, and are hidden from other living players' held-item
 view through `NoellesHiddenEquipment`; beyond the Bell Ringer's rules they also refuse shift-click
@@ -4597,7 +4598,8 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     Everyone else is a free holder whose copy the sweep never strips, grants, or deduplicates. `KillPlayer.AFTER`
     removes the gun unless `WitchFactorTraitsBridge.isDeathIntercepted`; `ResetPlayer` and `ON_FINISH_FINALIZE` remove
     it. There is no creative exemption.
-  - The binding matrix (`AbyssListenerInventoryRules`) is copied from, never shared with, the Time Stealer rules. Its
+  - The binding matrix (`AbyssListenerInventoryRules`) is the strict `item/BoundItemRules` policy it shares with the
+    Time Stealer, Potion Gunner and Wither Gohei rules, keyed on its own `isGun`. Its
     five guards in `mixin/abysslistener/` are HEAD, cancellable, and delegation-only:
     `PlayerEntityAbyssListenerGunMixin` (`dropItem(ItemStack,ZZ)`), `ServerPlayerEntityAbyssListenerGunDropMixin`
     (`dropSelectedItem(Z)Z`), `ScreenHandlerAbyssListenerGunMixin` (`internalOnSlotClick`),
@@ -4821,9 +4823,9 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
     (`PlayerHitboxHistory.projectileHitVolumes`, 0.3 margin like vanilla).
     - Those volumes stop at the first jump (teleport, gate exit) and at the first spectator, creative or Last Escape
       sample (Rift Gate occupants, swallowed or dead players).
-    - Entry follows `PotionShellFlight.laggedEntrySquared`. A path that starts inside the margin still hits on entering
-      the real box, and a start inside the real box counts once the shell has moved, never at the muzzle. Vanilla's
-      ray misses both.
+    - Entry follows `HitscanLagRules.laggedEntrySquared` (shared with the Mini Wither skull). A path that starts
+      inside the margin still hits on entering the real box, and a start inside the real box counts once the shell
+      has moved, never at the muzzle. Vanilla's ray misses both.
     - The gunner is never rewound. Only players that the shell's `canHit` and SparkFactionAPI's
       `sparkfactionapi:projectile` action accept count, as for vanilla.
     - The hit wins only when it is strictly nearer than vanilla's own collision

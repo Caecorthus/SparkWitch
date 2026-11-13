@@ -88,10 +88,9 @@ public final class SpecterRules {
     // Opening shields: 3 layers per alive real-mood player below 25 sanity. Shields clear with the window.
     // 开启护盾：每个存活的真实理智低于 25 的玩家提供 3 层，窗口结束时清空。
     public static final int SECOND_SKILL_SHIELD_PER_LOW_SANITY = 3;
-    // HUD colours blend 1:1 to COLOR: (0xA72F2F + 0x2F2F2F) / 2 = 0x6B2F2F.
-    // HUD 颜色按 1:1 平均正好是职业色 0x6B2F2F。
+    // The HUD colour blends 1:1 with 0x2F2F2F to COLOR: (0xA72F2F + 0x2F2F2F) / 2 = 0x6B2F2F.
+    // HUD 颜色与 0x2F2F2F 按 1:1 平均正好是职业色 0x6B2F2F。
     public static final int PRIMARY_HUD_COLOR = 0xA72F2F;
-    public static final int SECONDARY_HUD_COLOR = 0x2F2F2F;
 
     private SpecterRules() {
     }

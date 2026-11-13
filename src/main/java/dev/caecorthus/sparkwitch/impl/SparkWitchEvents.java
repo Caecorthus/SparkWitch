@@ -83,8 +83,10 @@ import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedPromotionService
 import dev.caecorthus.sparkwitch.mana.WitchManaService;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeature.MurderousWitchFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeatureService;
-import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderFeatureService;
-import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderEconomyService;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderEquipmentService;
+import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayKillRewardService;
+import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayLoadoutService;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodEconomyService;
@@ -231,14 +233,16 @@ public final class SparkWitchEvents {
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();
-        InsiderFeatureService.register();
+        InsiderEquipmentService.register();
+        InsiderEconomyService.register();
         BlindFeatureService.register();
         AbyssListenerFeatureService.register();
         PotionGunnerFeatureService.register();
         RiftwalkerFeatureService.register();
         BewitchedFeatureService.register();
         ApprenticeFeatureService.register();
-        StowawayFeatureService.register();
+        StowawayLoadoutService.register();
+        StowawayKillRewardService.register();
         SchrodingersCatService.register();
         JunkerService.register();
         // BEAR smoke (spike): round-edge clears, expiry and player resyncs. / BEAR 烟雾（原型）：回合节点清除、过期与玩家重新同步。
