@@ -53,9 +53,9 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
-import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRole;
@@ -111,7 +111,6 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier FISHER_ID = FisherRules.ROLE_ID;
     public static final Identifier BLIND_ID = BlindRules.ROLE_ID;
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
-    public static final Identifier KOKO_ID = KokoRules.ROLE_ID;
     public static final Identifier STOWAWAY_ID = StowawayRules.ROLE_ID;
     public static final Identifier SCHRODINGERS_CAT_ID = SchrodingersCatRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
@@ -139,6 +138,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier HANNA_ID = HannaRules.ROLE_ID;
     public static final Identifier SHERRY_ID = SherryRules.ROLE_ID;
     public static final Identifier NIKAIDO_HIRO_ID = HiroRules.ROLE_ID;
+    public static final Identifier KOKO_ID = KokoRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -173,7 +173,6 @@ public final class SparkWitchRoleRegistry {
     private static Role fiend;
     private static Role stowaway;
     private static Role schrodingersCat;
-    private static Role koko;
     private static Role insider;
     private static Role abyssListener;
     private static Role potionGunner;
@@ -198,6 +197,7 @@ public final class SparkWitchRoleRegistry {
     private static Role hanna;
     private static Role sherry;
     private static Role nikaidoHiro;
+    private static Role koko;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -535,11 +535,6 @@ public final class SparkWitchRoleRegistry {
         return hanna;
     }
 
-    public static Role koko() {
-        ensureRegistered();
-        return koko;
-    }
-
     public static Role sherry() {
         ensureRegistered();
         return sherry;
@@ -548,6 +543,11 @@ public final class SparkWitchRoleRegistry {
     public static Role nikaidoHiro() {
         ensureRegistered();
         return nikaidoHiro;
+    }
+
+    public static Role koko() {
+        ensureRegistered();
+        return koko;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -1170,6 +1170,24 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .nativeWatheFaction(Faction.KILLER)
                 .build());
+        // 泽渡可可 Sawatari Koko (PR #223, rebuilt in review 2026-11-13): a Wathe-native neutral with fake tasks (FAKE
+        // mood), passenger stamina and no round clock, drawn at any player count. Registered after 二阶堂希罗 and right
+        // before the Insider, which stays last (InsiderRegistrationContractTest), so only the Insider's own index
+        // shifts. Streams, shop, key and win live in roles/neutral/koko (CONTEXT.md). A mana role on the Murderous
+        // Witch's regeneration (mana/WitchManaRules) but never a Witch-skill role: kept out of
+        // isRegisteredSparkWitchRole and out of the gui.sparkwitch.skills panel.
+        // 泽渡可可（PR #223，2026-11-13 审核时重建）：Wathe 原生中立职业，有假任务（伪装情绪）、乘客体力、不可见回合时间，
+        // 任何人数都可抽取。注册在二阶堂希罗之后、紧挨内应之前（内应仍为最后一个，InsiderRegistrationContractTest），因此
+        // 只有内应自身的下标改变。直播、商店、钥匙与胜利条件位于 roles/neutral/koko（见 CONTEXT.md）。魔力恢复与杀意魔女
+        // 相同（mana/WitchManaRules），但不是魔女技能职业：不加入 isRegisteredSparkWitchRole，也不进入
+        // gui.sparkwitch.skills 面板。
+        koko = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KOKO_ID, FactionIds.NEUTRAL)
+                .color(KokoRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(KokoRules.MAX_SPRINT_TICKS)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
         // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
@@ -1177,15 +1195,6 @@ public final class SparkWitchRoleRegistry {
         // 追加在最后以保持既有注册顺序不变；嘉豪阵营成员（原生 Wathe JIAHAO），参数与黑警相同（伪装情绪但有任务、平民体力、
         // 可见回合时间）。从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole。
-        // 泽渡可可（2026-11-11）：中立直播主，有任务、真实情绪、乘客体力。必须在 Insider 之前注册（内应之后不得再注册）。
-        // It is a mana role with a skill panel, so it joins isRegisteredSparkWitchRole and WitchManaRules.
-        koko = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KOKO_ID, FactionIds.NEUTRAL)
-                .color(KokoRules.COLOR)
-                .moodType(Role.MoodType.REAL)
-                .maxSprintTime(GameConstants.getInTicks(0, 10))
-                .canSeeTime(false)
-                .nativeWatheFaction(Faction.NEUTRAL)
-                .build());
         insider = SparkFactionApi.registerRole(FactionRoleDefinition.builder(INSIDER_ID, SparkWitchFactions.JIAHAO)
                 .color(InsiderRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -1308,6 +1317,9 @@ public final class SparkWitchRoleRegistry {
                 // 卡戎（PR #202）及其后的迷失的灵魂（所有者 2026-11-09）排在薛定谔之猫之后、结束中立段；晋升身份仍位于末尾。
                 ferryman,
                 lostSoul,
+                // 泽渡可可 (PR #223) joins the neutral block after the Lost Soul; the promotion identities stay the tail.
+                // 泽渡可可（PR #223）加入中立段，排在迷失的灵魂之后；晋升身份仍位于末尾。
+                koko,
                 windSpirit,
                 guardianAngel,
                 vendetta,
@@ -1343,8 +1355,6 @@ public final class SparkWitchRoleRegistry {
                 // Shared skill path (Witches' Sabbath) only; grants no witch skill panel access (the panel reads the
                 // role's accomplice-variant hooks, AGENTS.md panel rule). 仅用于共享技能路径（魔女集会）；不授予魔女技能
                 // 面板资格（面板读取本职业的特殊共犯回调，AGENTS.md 面板规则）。
-                || role == riftwalker
-                // 可可：中立但有魔女技能面板与魔力（直播），必须走共享技能路径。
-                || role == koko;
+                || role == riftwalker;
     }
 }

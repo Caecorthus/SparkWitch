@@ -34,7 +34,6 @@
   },
   "custom": {
     "cardinal-components": [
-      "sparkwitch:koko_player",
       "sparkwitch:judge_round",
       "sparkwitch:player",
       "sparkwitch:perfumer_player",
@@ -105,7 +104,8 @@
       "sparkwitch:hanna_player",
       "sparkwitch:sherry",
       "sparkwitch:nikaido_hiro_return",
-      "sparkwitch:nikaido_hiro_witchification"
+      "sparkwitch:nikaido_hiro_witchification",
+      "sparkwitch:koko_player"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",

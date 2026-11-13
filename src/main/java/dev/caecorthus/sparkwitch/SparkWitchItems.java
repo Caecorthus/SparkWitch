@@ -10,6 +10,8 @@ import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.item.rope.RopeItem;
 import dev.caecorthus.sparkwitch.item.rope.RopeRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoLightstickItem;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
 import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookItem;
@@ -156,10 +158,7 @@ public final class SparkWitchItems {
     public static final Identifier HANNA_UMBRELLA_ID = HannaRules.UMBRELLA_ID;
     public static final Identifier HANNA_HANDKERCHIEF_ID = HannaRules.HANDKERCHIEF_ID;
     public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
-    public static final Identifier KOKO_LIGHTSTICK_ID =
-            dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules.LIGHTSTICK_ID;
-    public static final Identifier KOKO_KNIFE_ID =
-            dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules.KNIFE_ID;
+    public static final Identifier KOKO_LIGHTSTICK_ID = KokoRules.LIGHTSTICK_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -220,8 +219,6 @@ public final class SparkWitchItems {
     private static Item witherGohei;
     private static Item peachwoodSword;
     private static Item sherryBadge;
-    private static Item kokoLightstick;
-    private static Item kokoKnife;
     private static Item sherryNote;
     private static Item ghostTrigger;
     private static Item bigDogPortrait;
@@ -231,6 +228,7 @@ public final class SparkWitchItems {
     private static Item hannaUmbrella;
     private static Item hannaHandkerchief;
     private static Item rope;
+    private static Item kokoLightstick;
 
     private static boolean registered;
 
@@ -620,17 +618,12 @@ public final class SparkWitchItems {
                 ROPE_ID,
                 new RopeItem(RopeItem.createSettings())
         );
-        // 泽渡可可（2026-11-11），追加在最后以保持既有注册顺序不变。应援棒有主动效果，刀只是普通武器。
+        // 泽渡可可's lightstick (PR #223), appended last, after 二阶堂希罗's Rope, so earlier registration order stays
+        // unchanged. / 泽渡可可的应援棒（PR #223），追加在最后（二阶堂希罗的绳索之后），以保持既有注册顺序不变。
         kokoLightstick = Registry.register(
                 Registries.ITEM,
                 KOKO_LIGHTSTICK_ID,
-                new dev.caecorthus.sparkwitch.roles.neutral.koko.KokoItems.Lightstick(
-                        new Item.Settings().maxCount(1))
-        );
-        kokoKnife = Registry.register(
-                Registries.ITEM,
-                KOKO_KNIFE_ID,
-                new Item(new Item.Settings().maxCount(1))
+                new KokoLightstickItem(KokoLightstickItem.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -684,6 +677,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return rope;
+    }
+
+    public static Item kokoLightstick() {
+        if (kokoLightstick == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return kokoLightstick;
     }
 
     public static Item firePoker() {
@@ -1146,20 +1146,6 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return hannaHandkerchief;
-    }
-
-    public static Item kokoLightstick() {
-        if (kokoLightstick == null) {
-            throw new IllegalStateException("SparkWitch items are not registered yet");
-        }
-        return kokoLightstick;
-    }
-
-    public static Item kokoKnife() {
-        if (kokoKnife == null) {
-            throw new IllegalStateException("SparkWitch items are not registered yet");
-        }
-        return kokoKnife;
     }
 
     public static Item sherryBadge() {

@@ -3,7 +3,6 @@ package dev.caecorthus.sparkwitch.client.hud;
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
-import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.client.apprentice.ApprenticeClientPresentation;
 import dev.caecorthus.sparkwitch.client.emma.EmmaClientModule;
 import dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter;
@@ -13,7 +12,6 @@ import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
 import dev.caecorthus.sparkwitch.client.witchmaiden.MiniWitherClient;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
-import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchDeathRay.MurderousWitchDeathRayRules;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodRules;
@@ -95,16 +93,6 @@ public final class WitchSkillHudRenderer {
                     y - renderer.fontHeight - LINE_GAP, ApprenticeClientPresentation.PURIFY_COLOR);
         }
 
-        // Koko's second key (corpse stream) stays visible one line above her main skill line, so the key is
-        // discoverable before a body is ever nearby (owner 2026-11-12).
-        // 可可的第二技能（尸体直播）常显示在主技能行上方一行，这样在附近还没有尸体时就看得见按键。
-        if (KokoRules.STREAM_SKILL_ID.equals(skillId)) {
-            Text secondary = Text.translatable("hud.sparkwitch.koko.corpse_stream")
-                    .append(" ")
-                    .append(SecondaryAbilityController.secondaryKeyText());
-            int sx = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(secondary);
-            context.drawTextWithShadow(renderer, secondary, sx, y - renderer.fontHeight - LINE_GAP, KokoRules.COLOR);
-        }
         int balance = PlayerShopComponent.KEY.get(player).getBalance();
         Text line = stateText(player, component, skillId, balance);
         int x = context.getScaledWindowWidth() - RIGHT_PADDING - renderer.getWidth(line);
