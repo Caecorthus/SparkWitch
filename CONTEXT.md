@@ -3726,9 +3726,15 @@ that table and run `python3 <SparkFactionAPI>/tools/payload_policy.py generate -
 类型化目标判定，表中 VENDETTA_TARGET 列记录它判定的五个 id。
 
 Role HUD panels draw through `client/hud/RoleHudDispatcher` (2026-10-22), behind two default-priority seams:
-`client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, still drawn under F1: Curser, Guardian Angel,
-Orthopedist, Saint, Vendetta, Kidnapper control screen, Saboteur) and `client/mixin/RoleHudMainHudTailMixin`
-(`renderMainHud` TAIL, hidden by F1: Witch mana with the tarot snapshot and slip, Witch skill, Magician, Black Raven).
+`client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, which still runs under F1: Curser, Guardian Angel,
+Orthopedist, Savior, Saint, Vendetta, Kidnapper control screen, Natsume, Saboteur) and
+`client/mixin/RoleHudMainHudTailMixin` (`renderMainHud` TAIL, hidden by F1: Witch mana with the tarot snapshot and
+slip, Witch skill, Magician, Black Raven). Since 2026-11-13 every text layer of the first seam returns on vanilla
+`options.hudHidden` itself (`RoleHudDispatcher.hiddenByF1`; Savior and Natsume check it in their own gate); only the
+Kidnapper control screen stays under F1, because its black fill is the drug's blindness. `HudRenderCallback` HUDs
+(`HunterTrapDismantleHud`, the Blind view fallback hint in `BlindRenderWiring`, `BlackRavenCrowBoundaryOverlay`, the
+corner lines) also fire under F1 and check `hudHidden` themselves; full-screen gameplay masks that F1 must not peel
+off (Holy Flash, Rys-T visor, the Seeker remote-view panels) keep drawing.
 The layer order is the draw order and matches the old per-role mixins' config order, so the group keeps its slot
 relative to Fabric's `HudRenderCallback` and Wathe's own TAIL injects. Each layer owns its gate (the Vendetta,
 Kidnapper and Magician layers have no confirmed-server check, as before); a new panel adds a layer, not another

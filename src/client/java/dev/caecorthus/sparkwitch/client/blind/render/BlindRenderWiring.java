@@ -84,11 +84,17 @@ public final class BlindRenderWiring {
     }
 
     private static void renderFallbackHint(DrawContext context) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        // HudRenderCallback fires even with F1; the hint is HUD text, so F1 hides it like the rest of the HUD.
+        // HudRenderCallback 在 F1 下仍会触发；该提示属于 HUD 文字，因此与其余 HUD 一样随 F1 隐藏。
+        if (client.options.hudHidden) {
+            return;
+        }
         String key = hintKey(BlindEchoView.currentHint());
         if (key == null) {
             return;
         }
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        TextRenderer textRenderer = client.textRenderer;
         int width = context.getScaledWindowWidth();
         // Wrapped so the hint stays on screen at narrow GUI widths. / 自动换行，窄 GUI 宽度下提示仍在屏幕内。
         List<OrderedText> lines = textRenderer.wrapLines(Text.translatable(key), Math.max(64, width - 32));
