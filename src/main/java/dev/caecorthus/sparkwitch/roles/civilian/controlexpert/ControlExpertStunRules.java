@@ -1,9 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.civilian.controlexpert;
 
+import dev.caecorthus.sparkwitch.payloadpolicy.GeneratedPayloadPolicy;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -28,200 +28,17 @@ public final class ControlExpertStunRules {
      * known role-skill payload. Kept as plain ids so no optional mod class is loaded. UI-only payloads (notes, map
      * vote, walkie channel, grenade cancel, tablet chat/snapshot/channel, detective case notes, the Timekeeper's
      * watch-mode pick, whose use is an item use the stun already denies) stay allowed.
-     * A new skill payload must be classified here deliberately.
+     * A new skill payload must be classified deliberately, as a complete row of the canonical table (below).
      * 稳定契约：发送者处于眩晕时丢弃的 C2S 数据包——Wathe 致命行为、商店以及所有已知职业技能包。
      * 以纯 id 保存，不加载任何可选模组的类。仅界面用途的数据包（笔记、地图投票、对讲频道、手雷取消、
      * 平板聊天/快照/频道、侦探案件笔记、计时员怀表模式切换——其使用是眩晕已拒绝的物品使用）仍然放行。
-     * 新增技能包必须在此有意识地归类。
+     * 新增技能包必须作为规范表中完整的一行有意识地归类（见下）。
      */
-    public static final Set<Identifier> BLOCKED_PAYLOADS = Set.copyOf(List.of(
-            Identifier.of("wathe", "knifestab"),
-            Identifier.of("wathe", "gunshoot"),
-            Identifier.of("wathe", "storebuy"),
-
-            Identifier.of("noellesroles", "ability"),
-            Identifier.of("noellesroles", "assassin_guess_role"),
-            Identifier.of("noellesroles", "detective_investigate"),
-            Identifier.of("noellesroles", "morph"),
-            Identifier.of("noellesroles", "morph_corpse_toggle"),
-            Identifier.of("noellesroles", "party_animal_buzz"),
-            Identifier.of("noellesroles", "reporter_mark"),
-            Identifier.of("noellesroles", "silencer_silence"),
-            Identifier.of("noellesroles", "spirit_project"),
-            Identifier.of("noellesroles", "swapper"),
-            Identifier.of("noellesroles", "taotie_swallow"),
-            Identifier.of("noellesroles", "vulture"),
-            Identifier.of("noellesroles", "demon_hunter_shoot"),
-            Identifier.of("noellesroles", "shadow_ally_request"),
-
-            Identifier.of("sparkwitch", "use_skill"),
-            Identifier.of("sparkwitch", "emma_factor"),
-            Identifier.of("sparkwitch", "fire_death_ray"),
-            Identifier.of("sparkwitch", "fire_potion_launcher"),
-            Identifier.of("sparkwitch", "use_curser_ability"),
-            Identifier.of("sparkwitch", "use_orthopedist_skill"),
-            Identifier.of("sparkwitch", "use_saboteur_skill"),
-            Identifier.of("sparkwitch", "throw_kidnapper_body"),
-            Identifier.of("sparkwitch", "guardian"),
-            Identifier.of("sparkwitch", "vendetta_knife_stab"),
-            Identifier.of("sparkwitch", "open_judge_selection"),
-            Identifier.of("sparkwitch", "confirm_judge_selection"),
-            // Knight duel target pick (KnightDuelTargetC2SPayload), the Knight's priced G skill, like the Judge's.
-            // 骑士决斗目标选择（KnightDuelTargetC2SPayload），骑士的付费 G 键技能，与法官同类。
-            Identifier.of("sparkwitch", "knight_duel_target"),
-            // Prophet Prophecy request and priced confirmation, classified like the Judge's pair.
-            // 先知预言的请求与付费确认，与法官的两个包同样归类。
-            Identifier.of("sparkwitch", "request_prophecy"),
-            Identifier.of("sparkwitch", "confirm_prophecy"),
-            Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
-            // Seeker actions (open, swallow, remote recall); close and car moves stay allowed because a stun ends the
-            // session anyway. / 搜寻者行为（打开、吞车、远程回收）；关闭与小车移动放行，因为眩晕本身就会结束会话。
-            Identifier.of("sparkwitch", "seeker_remote_open"),
-            Identifier.of("sparkwitch", "seeker_car_swallow"),
-            Identifier.of("sparkwitch", "seeker_car_recall"),
-            Identifier.of("sparkwitch", "seeker_car_use"),
-            // Black Raven transform selection (SelectBlackRavenDisguiseC2SPacket). / 黑羽鸦变身选择。
-            Identifier.of("sparkwitch", "select_black_raven_disguise"),
-            // Blind Attune (UseBlindAttuneC2SPayload). / 盲人凝神。
-            Identifier.of("sparkwitch", "use_blind_attune"),
-            // Noa painting (UseNoaPaintC2SPayload). / 诺亚作画。
-            Identifier.of("sparkwitch", "use_noa_paint"),
-            // Hanna float (UseHannaFloatC2SPayload). / 汉娜浮游。
-            Identifier.of("sparkwitch", "use_hanna_float"),
-            // Ragpicker corpse search (JunkerSearchC2SPacket, G key). / 拾荒者搜刮尸体（G 键）。
-            Identifier.of("sparkwitch", "ragpicker_search"),
-            // Riftwalker gate hop and console close; the occupant's own exit and the console snapshot request stay
-            // allowed (leaving must always pass; the request is UI-only). / 隙行者跳门与控制台关门；门内玩家自己的
-            // 出门与控制台快照请求放行（出门必须始终放行；快照请求仅为界面用途）。
-            Identifier.of("sparkwitch", "rift_hop"),
-            Identifier.of("sparkwitch", "rift_gate_close"),
-            // Fiend Dash (UseFiendDashC2SPayload), moment-only. / 魔人疾驰，仅限时刻中。
-            Identifier.of("sparkwitch", "use_fiend_dash"),
-            // Athlete dash (UseAthleteDashC2SPayload). / 运动员冲刺。
-            Identifier.of("sparkwitch", "use_athlete_dash"),
-            // Dominator mark/release (UseDominatorSkillC2SPacket, G key). / 支配者标记/释放（G 键）。
-            Identifier.of("sparkwitch", "use_dominator_skill"),
-            // Savior domain (UseSaviorSkillC2SPacket, G key, PR #200). / 救世主领域（UseSaviorSkillC2SPacket，G 键，PR #200）。
-            Identifier.of("sparkwitch", "use_savior_skill"),
-            // 夏目安安 hypnosis menu request and target confirm, both halves like the Judge pair.
-            // 夏目安安催眠菜单请求与目标确认，与法官的两个包一样两半都拦截。
-            Identifier.of("sparkwitch", "request_natsume_menu"),
-            Identifier.of("sparkwitch", "confirm_natsume_target"),
-            // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
-            Identifier.of("sparkwitch", "use_specter_skill"),
-            Identifier.of("sparkwitch", "use_specter_second_skill"),
-            // Medium 通灵 (G) and 招魂 (Role Skill 2): the two menu requests and their two paid confirmations (PR #209).
-            // The dead voter's submit_medium_vote is deliberately absent: only a dead round member may send it, and its
-            // handler validates that itself.
-            // 通灵师的通灵（G 键）与招魂（职业技能 2）：两个菜单请求及其两个付费确认（PR #209）。死者投票包
-            // submit_medium_vote 有意不列入：只有本局死者可以发送，其处理器自行校验。
-            Identifier.of("sparkwitch", "use_medium_skill"),
-            Identifier.of("sparkwitch", "submit_medium_seance"),
-            Identifier.of("sparkwitch", "use_medium_second_skill"),
-            Identifier.of("sparkwitch", "submit_medium_haunt_target"),
-            // Charon pardon (shared key G) and ferry (Role Skill 2), PR #202; owner 2026-11-09: a controlled Charon cannot
-            // pardon either. A dropped pardon simply lets the 0.5 s window lapse and the held kill replay.
-            // 卡戎宽恕（共享 G 键）与摆渡（职业技能 2），PR #202；所有者 2026-11-09：被控制的卡戎同样不能宽恕。被丢弃的宽恕包只会
-            // 让 0.5 秒窗口过期，被扣住的击杀随之重放。
-            Identifier.of("sparkwitch", "ferryman_pardon"),
-            Identifier.of("sparkwitch", "ferryman_ferry"),
-            // 橘雪莉 推演 (shared key G): the panel request and its paid confirmation, and her own 巨力魔法 (Role Skill 2),
-            // PR #206. / 橘雪莉推演（共享 G 键）：面板请求及其付费确认，以及她自己的巨力魔法（职业技能 2），PR #206。
-            Identifier.of("sparkwitch", "request_sherry_deduction"),
-            Identifier.of("sparkwitch", "confirm_sherry_deduction"),
-            Identifier.of("sparkwitch", "use_sherry_mighty_force"),
-            // 二阶堂希罗 死亡回归 (shared key G), 2026-11-11. / 二阶堂希罗的死亡回归（共享 G 键），2026-11-11。
-            Identifier.of("sparkwitch", "use_hiro_skill"),
-            // Apprentice Purify (UseApprenticePurifyC2SPayload), graduated only. / 预备魔女净化，仅限出师后。
-            Identifier.of("sparkwitch", "use_apprentice_purify"),
-            // Magician record/playback stages (UseMagicianAbilityC2SPacket); its disguise pick (magician_target) is a
-            // stored pre-selection used only when playback starts, so it stays allowed like other UI-only payloads.
-            // 魔术师录制/播放阶段；皮套选择（magician_target）只是开始播放时才使用的预选，与其他仅界面数据包一样放行。
-            Identifier.of("sparkwitch", "magician_ability"),
-            // USEC rifle fire and attachment-screen actions. The stun closes gameplay screens only on the client
-            // (ControlExpertStunClient) and the server does not deny inventory clicks, so this list is the server-side
-            // refusal; the scope state is presentation only and stays allowed. / USEC 步枪开火与配件界面操作。眩晕只在
-            // 客户端关闭游戏界面（ControlExpertStunClient），服务端并不拒绝背包点击，因此本列表才是服务端的拒绝；
-            // 开镜状态仅为表现，保持放行。
-            Identifier.of("sparkwitch", "fire_usec_rifle"),
-            Identifier.of("sparkwitch", "usec_attachment"),
-            // Accountant passbook withdraw (AccountantWithdrawC2SPacket, left-click with the passbook): a held-item action
-            // like the launcher and USEC fire; the stun already denies the passbook's right-click item use.
-            // 会计存折取钱（AccountantWithdrawC2SPacket，手持存折左键）：与发射器、USEC 开火同类的手持物品操作；眩晕本已拒绝
-            // 存折的右键物品使用。
-            Identifier.of("sparkwitch", "accountant_withdraw"),
-            // Witch Maiden Mini Wither toggle (key 2) and crimson skull fire. / 巫女小凋灵切换（技能键 2）与赤首射击。
-            Identifier.of("sparkwitch", "mini_wither_toggle"),
-            Identifier.of("sparkwitch", "fire_crimson_skull"),
-            // Black Raven Raven Form: toggle (key 2), crow moves, right-click use and Homing Feather drop. A stun ends a
-            // session anyway; the toggle is the role skill. / 黑羽鸦化鸦：开关（技能键 2）、乌鸦移动、右键交互与丢出归羽。
-            // 眩晕本就会结束会话；开关属于职业技能。
-            Identifier.of("sparkwitch", "black_raven_crow_toggle"),
-            Identifier.of("sparkwitch", "black_raven_crow_move"),
-            Identifier.of("sparkwitch", "black_raven_crow_use"),
-            Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
-            // BEAR M32A1 fire (FireM32A1C2SPayload, left-click), a held-item shot like the anti-tank launcher's; cursor
-            // loading is an inventory click (the stun closes gameplay screens) and the sight is presentation only.
-            // BEAR M32A1 开火（FireM32A1C2SPayload，左键），与反坦克炮筒同类的手持射击；光标装填属于背包点击（眩晕会关闭游戏
-            // 界面），瞄具仅为表现。
-            Identifier.of("sparkwitch", "fire_m32a1"),
-            // Savior pistol shot (SaviorPistolShootC2SPayload, PR #200), a gun shot like wathe:gunshoot. The lightsaber
-            // kills through the vanilla attack the stun already denies; its swing/ignite sound intents
-            // (savior_lightsaber_swing, savior_lightsaber_ignite) are presentation only and stay allowed.
-            // 救世主手枪射击（SaviorPistolShootC2SPayload，PR #200），与 wathe:gunshoot 同类的枪击。光剑经眩晕已拒绝的原版攻击
-            // 击杀；其挥动/点火音效意图（savior_lightsaber_swing、savior_lightsaber_ignite）仅为表现，保持放行。
-            Identifier.of("sparkwitch", "savior_pistol_shoot"),
-
-            // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
-            // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。
-            Identifier.of("sparkstrength", "serial_pistol_shoot"),
-            // Bandit moddable revolver (BanditRevolverShootC2SPayload, SparkStrength #135): the Bandit's gun shot,
-            // which no longer travels as wathe:gunshoot. Fitting parts and loading rounds (bandit_revolver_action)
-            // stay allowed. / 强盗改装左轮（BanditRevolverShootC2SPayload，SparkStrength #135）：强盗的开枪，不再经
-            // wathe:gunshoot 发送。装配件与装弹（bandit_revolver_action）保持放行。
-            Identifier.of("sparkstrength", "bandit_revolver_shoot"),
-            Identifier.of("sparkstrength", "noisemaker_glow"),
-            Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
-            Identifier.of("sparkstrength", "coroner_morph"),
-            Identifier.of("sparkstrength", "professor_remote_feed"),
-            // Reporter connect/broadcast (ReporterCommunicationC2SPacket), cooldown-gated. / 记者接线/广播，受冷却限制。
-            Identifier.of("sparkstrength", "reporter_communication"),
-            // Bomber drone connect and FIRE (M67 drop or detonation); pilot moves and exit stay allowed (exit must always
-            // pass). / 炸弹客无人机连接与开火（投下 M67 或引爆）；驾驶移动与退出放行（退出必须始终放行）。
-            Identifier.of("sparkstrength", "drone_pilot_start"),
-            Identifier.of("sparkstrength", "drone_pilot_action"),
-            Identifier.of("sparkstrength", "demon_hunter_sniff"),
-            // Vulture Super Curse (SparkStrength, key 2): a voice line only, classified like the Sniff.
-            // 秃鹫超级骂（SparkStrength，技能键 2）：仅播放语音，与嗅探同样归类。
-            Identifier.of("sparkstrength", "vulture_super_curse"),
-            // Spiritualist Wraith possession (SparkStrength, key 2); its exit packet stays allowed.
-            // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
-            Identifier.of("sparkstrength", "spirit_possess"),
-            Identifier.of("sparkstrength", "call_tablet_meeting"),
-            Identifier.of("sparkstrength", "cast_tablet_vote"),
-            Identifier.of("sparkstrength", "confirm_tablet_vote"),
-            Identifier.of("sparkstrength", "approve_suspect_removal"),
-            // SparkStrength Taotie head launch (TaotieHeadFireC2SPacket). / SparkStrength 饕餮发射头颅。
-            Identifier.of("sparkstrength", "taotie_head_fire"),
-            // SparkStrength Party Animal's Partygoer: summoning it (key 2) and a Taotie swallowing it (G); the room
-            // picker request (partygoer_menu) is UI only and stays allowed.
-            // SparkStrength 派对狂的派对客：召唤（技能键 2）与饕餮吞下它（G）；选房请求（partygoer_menu）仅是界面，放行。
-            Identifier.of("sparkstrength", "partygoer_summon"),
-            Identifier.of("sparkstrength", "partygoer_swallow"),
-            // SparkStrength sabotage: triggering from the tablet and finishing a circuit breaker repair; their cancel
-            // packets (cancel_sabotage_channel, cancel_breaker_repair) stay allowed.
-            // SparkStrength 破坏系统：在平板触发破坏、完成电闸维修；对应的取消包（cancel_sabotage_channel、cancel_breaker_repair）放行。
-            Identifier.of("sparkstrength", "trigger_sabotage"),
-            Identifier.of("sparkstrength", "complete_breaker_repair"),
-            // SparkStrength Detective remote interrogation from the magnifier roster (cooldown skill); opening the roster
-            // is a vanilla item use and the case-folder edits stay allowed.
-            // SparkStrength 侦探在放大镜名单中远程审问（有冷却的技能）；打开名单是原版物品使用，文件夹编辑放行。
-            Identifier.of("sparkstrength", "interrogate_detective_suspect"),
-            // Legacy Criminologist skill: still registered by SparkStrength main-line and pre-b17ab75 1.0.7 builds,
-            // which "suggests: *" allows to load; an unregistered id never matches.
-            // 旧版犯罪学家技能：SparkStrength main 线及 b17ab75 之前的 1.0.7 仍注册此包，"suggests: *" 允许其同时加载；
-            // 未注册时该 id 永远不会命中。
-            Identifier.of("sparkstrength", "select_criminologist_target")));
+    // Generated STUN column of SparkFactionAPI config/payload-policy/actions.tsv: edit that table and
+    // rerun tools/payload_policy.py, never list ids here; per-id reasons are in its note column.
+    // 生成的 STUN 列（SparkFactionAPI config/payload-policy/actions.tsv）：请修改该表并重新运行
+    // tools/payload_policy.py，不要在此列出 id；各 id 的理由见其 note 列。
+    public static final Set<Identifier> BLOCKED_PAYLOADS = GeneratedPayloadPolicy.STUN;
 
     private ControlExpertStunRules() {
     }

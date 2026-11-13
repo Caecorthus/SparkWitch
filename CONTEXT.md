@@ -3508,6 +3508,20 @@ Netty it only picks payloads by id from immutable sets; it reads the player, wor
 scheduled Runnable, atomically with the handler (2026-10-22). The Fear/Vendetta wrapper has `priority = 900`: it is
 applied first, so it sits innermost and judges Vendetta (silent) and then Fear before any other guard.
 
+Those id sets (stun `ControlExpertStunRules.BLOCKED_PAYLOADS`, Seeker `SeekerRemoteRules.BLOCKED_WHILE_VIEWING`, Rift
+`RiftSessionRules.BLOCKED_WHILE_INSIDE`, Fear's role-skill and silent sets in `GrandWitchFearService`, the Knight's two
+lists in `KnightDuelSkillLock`, hypnosis extra and silent sets in `NatsumeHypnosisGuards`) are aliases of
+`payloadpolicy/GeneratedPayloadPolicy`, generated from SparkFactionAPI's `config/payload-policy/actions.tsv`: one row per
+C2S payload id, an explicit allow/deny per lock, reasons in its note column (2026-11-13). Never list ids by hand: edit
+that table and run `python3 <SparkFactionAPI>/tools/payload_policy.py generate --repo <SparkWitch> --mod witch`;
+`check` with the same arguments fails on a stale generated file or on a registered C2S payload without a row.
+`VendettaTargetingPacketGuard` keeps its typed target check; the table's VENDETTA_TARGET column records its five ids.
+这些 id 集合（眩晕、搜寻者、裂隙、恐惧的技能与静默集合、骑士的两份名单、催眠的额外与静默集合）都是
+`payloadpolicy/GeneratedPayloadPolicy` 的别名，由 SparkFactionAPI 的 `config/payload-policy/actions.tsv` 生成：每个 C2S
+数据包 id 一行，每种锁一格显式的 allow/deny，理由写在 note 列。不要手写 id：修改该表后运行上面的 `generate` 命令；
+同样参数的 `check` 会在生成文件过期或已注册的 C2S 数据包缺少表行时失败。`VendettaTargetingPacketGuard` 保留自己的
+类型化目标判定，表中 VENDETTA_TARGET 列记录它判定的五个 id。
+
 Role HUD panels draw through `client/hud/RoleHudDispatcher` (2026-10-22), behind two default-priority seams:
 `client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, still drawn under F1: Curser, Guardian Angel,
 Orthopedist, Saint, Vendetta, Kidnapper control screen, Saboteur) and `client/mixin/RoleHudMainHudTailMixin`

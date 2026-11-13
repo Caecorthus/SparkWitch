@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.natsume;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.payloadpolicy.GeneratedPayloadPolicy;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStunRules;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
@@ -51,17 +52,21 @@ public final class NatsumeHypnosisGuards {
      * 技能）之外，对被锁定发送者额外拒绝的数据包。十字剑与剑鱼刺击是道具松手动作，其处理器只自行拒绝被眩晕者；夏目安安自己的菜单请求与
      * 施放是她的职业技能。以纯 id 保存，不加载其他模块的类。
      */
-    public static final Set<Identifier> EXTRA_BLOCKED_PAYLOADS = Set.of(
-            Identifier.of("sparkwitch", "cross_sword_stab"),
-            Identifier.of("sparkwitch", "swordfish_stab"),
-            Identifier.of("sparkwitch", "request_natsume_menu"),
-            Identifier.of("sparkwitch", "confirm_natsume_target"));
+    // Generated HYPNOSIS_EXTRA column of SparkFactionAPI config/payload-policy/actions.tsv: edit that table and
+    // rerun tools/payload_policy.py, never list ids here; per-id reasons are in its note column.
+    // 生成的 HYPNOSIS_EXTRA 列（SparkFactionAPI config/payload-policy/actions.tsv）：请修改该表并重新运行
+    // tools/payload_policy.py，不要在此列出 id；各 id 的理由见其 note 列。
+    public static final Set<Identifier> EXTRA_BLOCKED_PAYLOADS = GeneratedPayloadPolicy.HYPNOSIS_EXTRA;
 
     /**
      * Refused without a notice: Raven Form's per-tick pose stream (Grand Witch Fear precedent).
      * 静默拒绝：化鸦每 tick 发送的位姿数据流（与大魔女恐惧相同）。
      */
-    public static final Set<Identifier> SILENT_PAYLOADS = Set.of(Identifier.of("sparkwitch", "black_raven_crow_move"));
+    // Generated HYPNOSIS_SILENT column of SparkFactionAPI config/payload-policy/actions.tsv: edit that table and
+    // rerun tools/payload_policy.py, never list ids here; per-id reasons are in its note column.
+    // 生成的 HYPNOSIS_SILENT 列（SparkFactionAPI config/payload-policy/actions.tsv）：请修改该表并重新运行
+    // tools/payload_policy.py，不要在此列出 id；各 id 的理由见其 note 列。
+    public static final Set<Identifier> SILENT_PAYLOADS = GeneratedPayloadPolicy.HYPNOSIS_SILENT;
 
     private static boolean registered;
 
