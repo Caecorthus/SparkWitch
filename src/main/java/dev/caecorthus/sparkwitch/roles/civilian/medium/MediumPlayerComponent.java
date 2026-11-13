@@ -129,10 +129,14 @@ public final class MediumPlayerComponent implements AutoSyncedComponent, ServerT
      * per tier, 加护 that + 120 s). The single entry both services use.
      * 仅服务端：刚以该死亡档位付费使用了通灵或加护，两个冷却此刻同时开始（通灵 60 秒 − 每档 10 秒，加护在此基础上 +120 秒）。
      * 两个服务共用的唯一入口。
+     * A timer that is already longer is kept: in normal play neither can be (加护 is never ready before 通灵), so this
+     * only stops a use of one skill from shortening a cooldown that was force-raised on the other skill's store.
+     * 已经更长的计时保持不变：正常对局中不会出现（加护不会先于通灵就绪），这只是防止使用其中一个技能时，
+     * 把另一个技能存储上被强制拉长的冷却缩短。
      */
     public void startCooldowns(int tier) {
-        seanceCooldownTicks = MediumRules.seanceCooldownAfterUse(tier);
-        blessingCooldownTicks = MediumRules.blessingCooldownAfterUse(tier);
+        seanceCooldownTicks = Math.max(seanceCooldownTicks, MediumRules.seanceCooldownAfterUse(tier));
+        blessingCooldownTicks = Math.max(blessingCooldownTicks, MediumRules.blessingCooldownAfterUse(tier));
         syncTicks = 0;
         syncOwner();
     }

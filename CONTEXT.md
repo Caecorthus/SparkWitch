@@ -2733,8 +2733,9 @@ Current build baseline:
     always read live: 通灵 300 − 50 per tier (floor 0), 加护 通灵's live price + 100 (`blessingPrice`, so never under
     100), 招魂 a flat 50. Cooldowns (owner 2026-11-13: two timers): any paid 通灵 or 加护 starts both through the single
     `MediumPlayerComponent.startCooldowns(tier)`, the tier read at that moment: 通灵 60 s − 10 s per tier (floor 0) and
-    加护 that + 120 s (so never under 120 s). The opening cooldowns are 180 s (通灵) and 300 s (加护). 招魂 has no
-    cooldown.
+    加护 that + 120 s (so never under 120 s); a timer that is already longer is kept (only a force-raised one can be), so
+    a use of one skill never shortens the other's forced cooldown. The opening cooldowns are 180 s (通灵) and 300 s
+    (加护). 招魂 has no cooldown.
   - Caster gate (`MediumSkillService.mayUse`, the Specter/Dominator `mayCast` set, shared by all three skills and their
     paid acts): ACTIVE round, raw role, alive, not spectating/creative, not swallowed, not held by a Ninja grapple, not
     silenced, not SparkTraits role-skill blocked; each entry then checks `GrandWitchFearService.denyRoleSkillIfFeared`
