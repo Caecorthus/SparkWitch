@@ -250,6 +250,14 @@ public final class SparkWitchClient implements ClientModInitializer {
         ClientLoginConnectionEvents.INIT.register((handler, client) -> resetConnectionState());
         ClientLoginConnectionEvents.DISCONNECT.register((handler, client) -> resetConnectionState());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> resetConnectionState());
+        // A proxy backend switch goes play -> configuration -> play on one connection: no DISCONNECT and no login INIT
+        // fire, only another JOIN, so the previous backend's session state is dropped here too. Play-phase state of the
+        // new session only arrives after JOIN, so nothing of it can be wiped. The confirmed-server flag is NOT reset
+        // here: on a direct connection it was set by this same connection's login query and must survive its own JOIN.
+        // 代理切换后端时，同一连接经历 play -> configuration -> play：既不触发 DISCONNECT 也不触发登录 INIT，只会再次 JOIN，
+        // 因此在这里同样丢弃上一个后端的会话状态。新会话的 play 阶段状态只会在 JOIN 之后到达，所以不会被误清。已确认服务端
+        // 标记不在此重置：直连时它由同一连接的登录查询设置，必须在自己的 JOIN 之后保留。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> resetSessionState());
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> releaseClosedWorldPlayers());
         WitchInstinctSuppressionClientHooks.register();
         HunterTrapClientHooks.register();
@@ -560,9 +568,33 @@ public final class SparkWitchClient implements ClientModInitializer {
                 }));
     }
 
+    /**
+     * Connection edges (login INIT, login DISCONNECT, play DISCONNECT). These fire on the server-connector or Netty
+     * thread. The confirmed flag is volatile and is the point of the early reset, so it is cleared at once; everything
+     * else is client-thread state (two of the resets close a screen, which grabs the cursor through GLFW), so it is
+     * handed to the client thread. Tasks run in order, so the reset still precedes every play packet of a new session.
+     * 连接生命周期节点（登录 INIT、登录 DISCONNECT、play DISCONNECT）。这些事件在连接线程或 Netty 线程触发。已确认标记是
+     * volatile 的，且提前重置正是为了它，因此立即清除；其余都是客户端线程状态（其中两个重置会关闭界面，进而通过 GLFW 抓取
+     * 光标），因此交给客户端线程执行。任务按顺序执行，所以重置仍先于新会话的任何 play 数据包。
+     */
     private static void resetConnectionState() {
-        dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter.reset();
         SparkWitchServerConnection.reset();
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (!client.isOnThread()) {
+            client.execute(SparkWitchClient::resetClientThreadState);
+            return;
+        }
+        resetClientThreadState();
+    }
+
+    private static void resetClientThreadState() {
+        resetSessionState();
+        releaseClosedWorldPlayers();
+    }
+
+    /** Client thread: per-session state of the shared modules; never the confirmed flag. / 客户端线程：共享模块的逐会话状态；绝不包含已确认标记。 */
+    private static void resetSessionState() {
+        dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter.reset();
         WitchAbilityKeyBridge.reset();
         SecondaryAbilityController.reset();
         KidnapperThrowClientHooks.reset();
@@ -575,7 +607,6 @@ public final class SparkWitchClient implements ClientModInitializer {
         StowawaySensesClient.reset();
         BlindClient.reset();
         SaviorDomainClient.reset();
-        releaseClosedWorldPlayers();
     }
 
     /**

@@ -20,7 +20,6 @@ import java.util.Optional;
  */
 public final class MiniWitherRules {
     public static final Identifier SKILL_ID = SparkWitch.id("mini_wither");
-    public static final Identifier CRIMSON_SKULL_ID = SparkWitch.id("crimson_wither_skull");
     public static final Identifier SKULL_ENTITY_ID = SparkWitch.id("mini_wither_skull");
     public static final Identifier GOHEI_ID = SparkWitch.id("wither_gohei");
     /** SparkFactionAPI action asked before a skull or burst touches a player. / 头颅或爆炸触及玩家前询问的 SFA 行为 id。 */

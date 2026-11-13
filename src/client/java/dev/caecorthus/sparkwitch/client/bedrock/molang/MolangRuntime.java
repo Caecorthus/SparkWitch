@@ -63,11 +63,6 @@ public final class MolangRuntime {
         variables.clear();
     }
 
-    /** Forgets every query value. / 清除所有查询值。 */
-    public void clearQueries() {
-        queries.clear();
-    }
-
     /** Makes {@code math.random*}/{@code math.die_roll*} repeatable. / 使随机函数可复现。 */
     public void setRandomSeed(long seed) {
         randomState = mixSeed(seed);

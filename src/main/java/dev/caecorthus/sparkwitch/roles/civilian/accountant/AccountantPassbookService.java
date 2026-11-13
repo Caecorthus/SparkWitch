@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.accountant;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.api.SparkWitchApi;
+import dev.caecorthus.sparkwitch.item.BoundItemRules;
 import dev.doctor4t.wathe.api.event.ShouldDropOnDeath;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
@@ -84,12 +85,12 @@ public final class AccountantPassbookService {
     }
 
     static boolean blocksEntityUse(@Nullable ItemStack held, @Nullable Entity target) {
-        return isPassbook(held) && target != null && AccountantRules.takesHeldStack(target.getClass());
+        return isPassbook(held) && target != null && BoundItemRules.takesHeldStack(target.getClass());
     }
 
     /** Asked by {@code DecoratedPotBlockAccountantPassbookMixin}. / 由该 mixin 调用。 */
     public static boolean blocksBlockUse(@Nullable ItemStack held, @Nullable BlockState target) {
-        return isPassbook(held) && target != null && AccountantRules.takesHeldStack(target.getBlock().getClass());
+        return isPassbook(held) && target != null && BoundItemRules.takesHeldStack(target.getBlock().getClass());
     }
 
     /** Coins stored in this stack (0 when none); safe on both sides. / 此物品中存入的金币（没有则为 0）；两端均可调用。 */

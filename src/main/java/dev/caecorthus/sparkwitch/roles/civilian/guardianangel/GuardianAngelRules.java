@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.guardianangel;
 
+import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
@@ -79,11 +80,23 @@ public final class GuardianAngelRules {
                 && squaredDistance <= TARGET_RANGE_SQUARED;
     }
 
-    /** Mirrors NoellesRoles Iron Man exclusions without loading its implementation classes. / 不加载其实现类并复刻铁人药剂的排除项。 */
+    /**
+     * Mirrors NoellesRoles Iron Man exclusions without loading its implementation classes, plus the three Knight duel
+     * deaths (owner 2026-11). Those are forced kills: Wathe asks {@code KillPlayer.BEFORE} for them but ignores the
+     * cancel, so the shield could never stop one and was only spent on it, with its armour sound and its replay line,
+     * for a player who died anyway. Excluded, the shield is left alone. Wathe's own forced deaths (mental breakdown,
+     * the ESCAPED disconnect) keep today's behaviour by the same owner decision.
+     * 不加载其实现类并复刻铁人药剂的排除项，另加三种骑士决斗死亡（所有者 2026-11）。它们是强制击杀：Wathe 会为其询问
+     * {@code KillPlayer.BEFORE} 但无视取消，因此护盾永远拦不住，只会被白白消耗，并为一名终究会死的玩家播放护甲音效、写入回放
+     * 记录。排除之后护盾保持不动。Wathe 自身的强制死亡（精神崩溃、ESCAPED 断线）按同一所有者决定保持现状。
+     */
     public static boolean shouldBlockDeath(Identifier deathReason) {
         return !GameConstants.DeathReasons.SHOT_INNOCENT.equals(deathReason)
                 && !GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason)
                 && !ASSASSINATED.equals(deathReason)
-                && !VOODOO.equals(deathReason);
+                && !VOODOO.equals(deathReason)
+                && !SparkWitchDeathReasons.DUEL_SUICIDE.equals(deathReason)
+                && !SparkWitchDeathReasons.DUEL_FAILED.equals(deathReason)
+                && !SparkWitchDeathReasons.DUEL_INTERFERENCE.equals(deathReason);
     }
 }

@@ -1,7 +1,7 @@
 package dev.caecorthus.sparkwitch.client.medium;
 
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.tarot.TarotLedgerLayout;
 import dev.caecorthus.sparkwitch.client.tarot.TarotLedgerPaint;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceComponent;

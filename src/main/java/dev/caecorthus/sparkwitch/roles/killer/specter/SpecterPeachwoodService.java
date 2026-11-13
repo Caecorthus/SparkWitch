@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.killer.specter;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.item.BoundItemRules;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -13,11 +14,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.DecoratedPotBlock;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
@@ -88,21 +85,12 @@ public final class SpecterPeachwoodService {
 
     /** Item frames, armor stands and allays would keep the held sword. / 物品展示框、盔甲架与悦灵会收走手持的剑。 */
     static boolean blocksEntityUse(@Nullable ItemStack held, @Nullable Entity target) {
-        return isPeachwoodSword(held) && target != null && takesHeldStack(target.getClass());
+        return isPeachwoodSword(held) && target != null && BoundItemRules.takesHeldStack(target.getClass());
     }
 
     /** Asked by {@code DecoratedPotBlockPeachwoodSwordMixin}. / 由该 mixin 调用。 */
     public static boolean blocksBlockUse(@Nullable ItemStack held, @Nullable BlockState target) {
-        return isPeachwoodSword(held) && target != null && takesHeldStack(target.getBlock().getClass());
-    }
-
-    /** Pure class check, testable without a bootstrapped registry. / 纯类判断，无需引导注册表即可测试。 */
-    static boolean takesHeldStack(@Nullable Class<?> targetType) {
-        return targetType != null
-                && (ItemFrameEntity.class.isAssignableFrom(targetType)
-                || ArmorStandEntity.class.isAssignableFrom(targetType)
-                || AllayEntity.class.isAssignableFrom(targetType)
-                || DecoratedPotBlock.class.isAssignableFrom(targetType));
+        return isPeachwoodSword(held) && target != null && BoundItemRules.takesHeldStack(target.getBlock().getClass());
     }
 
     /** Immediate pass after a window opens or closes; the periodic sweep covers everything else. / 窗口开关时立即刷新一次。 */

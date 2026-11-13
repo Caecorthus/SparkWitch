@@ -8,8 +8,6 @@ public final class PerfumerRules {
     public static final String ROLE_ID = "sparkwitch:perfumer";
     public static final String PERFUME_ESSENCE_ID = "sparkwitch:perfume_essence";
     public static final String COLOGNE_ID = "sparkwitch:cologne";
-    public static final String PERFUME_ESSENCE_ENTRY_ID = "perfume_essence";
-    public static final String COLOGNE_ENTRY_ID = "cologne";
 
     public static final int ROLE_COLOR = 0xF2A4A4;
     public static final int BLOODY_OUTLINE_COLOR = 0xC13838;
@@ -51,6 +49,24 @@ public final class PerfumerRules {
         return hasLineOfSight
                 ? isWithinVisibleOutlineRange(squaredDistance)
                 : isWithinWallOutlineRange(squaredDistance);
+    }
+
+    /**
+     * Whether {@link #shouldOutlinePlayer} can be true at this distance for some line-of-sight answer. False lets a
+     * caller skip every other check, the raycast included.
+     * 在该距离下，{@link #shouldOutlinePlayer} 是否可能对某个视线结果为真。为 false 时调用方可跳过其余全部检查（包括射线检测）。
+     */
+    public static boolean canOutlineAtDistance(double squaredDistance) {
+        return shouldOutlinePlayer(squaredDistance, true) || shouldOutlinePlayer(squaredDistance, false);
+    }
+
+    /**
+     * Whether line of sight changes {@link #shouldOutlinePlayer} at this distance. When false, the rule gives the same
+     * answer for either value, so a caller need not raycast.
+     * 在该距离下视线是否会改变 {@link #shouldOutlinePlayer} 的结果。为 false 时无论传入哪个值结果都相同，调用方无需做射线检测。
+     */
+    public static boolean outlineDependsOnLineOfSight(double squaredDistance) {
+        return shouldOutlinePlayer(squaredDistance, true) != shouldOutlinePlayer(squaredDistance, false);
     }
 
     /**

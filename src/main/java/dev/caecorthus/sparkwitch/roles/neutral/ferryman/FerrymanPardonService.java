@@ -112,6 +112,17 @@ public final class FerrymanPardonService {
         return true;
     }
 
+    /**
+     * Whether a held kill is replaying right now, on this thread's synchronous replay call (and its same-victim
+     * re-entries). The BEAR Rys-T ricochet reads this: the held kill already passed its earlier hook (priority 1050)
+     * un-deflected, so the replay is that same attack, not a new roll. Server thread only.
+     * 此刻是否正在重放被扣住的击杀，即本线程同步执行的那次重放调用（及其对同一受害者的重入）。BEAR Rys-T 跳弹读取此值：被扣住的
+     * 击杀先前已经未被弹开地通过了它更早的钩子（优先级 1050），因此重放是同一次攻击，而不是新的掷骰。仅限服务端线程。
+     */
+    public static boolean isReplayingHeldKill() {
+        return replayingDeath;
+    }
+
     /** A failing feign never cancels the kill silently: it falls back to the pardon. / 假死出错绝不会静默取消击杀：改走宽恕。 */
     private static boolean startFeign(ServerPlayerEntity killer) {
         try {

@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.net.ToggleMiniW
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.caecorthus.sparkwitch.util.OffMatchUse;
 import dev.caecorthus.sparkwitch.util.StaggeredSweep;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -17,7 +18,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -73,8 +73,8 @@ public final class MiniWitherFeatureService {
             MiniWitherPlayerComponent.KEY.get(player).clear();
             WitherGoheiLoadoutService.stripAll(player);
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                MiniWitherPlayerComponent.KEY.get(handler.player).setActive(false));
+        ServerDisconnectCleanup.register((player, server) ->
+                MiniWitherPlayerComponent.KEY.get(player).setActive(false));
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> {
             if (!(world instanceof ServerWorld serverWorld)) {
                 return;
@@ -92,9 +92,15 @@ public final class MiniWitherFeatureService {
     }
 
     /**
-     * Counts the Witch Maiden's own completed tasks. The Gohei is granted on the next server task, because Wathe is
-     * still iterating its task map during this event.
-     * 统计巫女自己完成的任务。御币在下一个服务端任务中发放，因为本事件期间 Wathe 仍在遍历其任务表。
+     * Counts the Witch Maiden's own completed tasks. Wathe is still iterating its task map during this event, and the
+     * Gohei grant below is NOT deferred past that iteration: this event fires on the server thread, where
+     * {@code MinecraftServer#execute} runs the task at once (it queues only from another thread). That is safe solely
+     * because {@code ensureGohei} edits the inventory and the open screen handler and never the mood component's
+     * tasks; anything that touches the task map must be queued for a later tick instead of being added to that block.
+     * 统计巫女自己完成的任务。本事件期间 Wathe 仍在遍历其任务表，而下方的御币发放并未推迟到遍历之后：本事件在服务端线程触发，
+     * 此时 {@code MinecraftServer#execute} 会立即执行任务（只有从其他线程调用才会排队）。之所以安全，仅仅是因为
+     * {@code ensureGohei} 只修改物品栏与已打开的界面处理器，从不触碰心情组件的任务；任何会改动任务表的逻辑都必须排到之后的刻
+     * 执行，而不能加进该代码块。
      */
     static void onTaskComplete(ServerPlayerEntity player) {
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getServerWorld());

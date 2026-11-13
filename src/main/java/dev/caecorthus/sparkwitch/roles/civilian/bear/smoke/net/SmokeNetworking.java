@@ -5,9 +5,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
-
-import java.util.List;
 
 /**
  * Stable packet contract: registers every BEAR smoke payload type (the only place that does), from
@@ -19,13 +16,6 @@ import java.util.List;
  * 源码集（{@code client/bear/smoke/SmokeNetworkClient}）。客户端没有该通道的玩家会被跳过。
  */
 public final class SmokeNetworking {
-    /** Every BEAR smoke S2C payload id. / 所有 BEAR 烟雾 S2C 数据包 id。 */
-    public static final List<Identifier> S2C_IDS = List.of(
-            SmokeCloudS2CPayload.PAYLOAD_ID,
-            SmokeCloudRemoveS2CPayload.PAYLOAD_ID,
-            SmokeHoleS2CPayload.PAYLOAD_ID,
-            SmokeClearS2CPayload.PAYLOAD_ID);
-
     private static boolean registered;
 
     private SmokeNetworking() {

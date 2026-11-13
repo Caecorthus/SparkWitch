@@ -48,10 +48,6 @@ public final class SpecterFearComponent implements AutoSyncedComponent, ServerTi
         this.player = player;
     }
 
-    public int getLevel() {
-        return level;
-    }
-
     /** Server only: adds levels (capped), refreshing both timers when the level actually rises. / 仅服务端：加层（封顶），实际升层时重置两个计时。 */
     public void addLevel(int amount) {
         if (amount <= 0 || level >= SpecterRules.FEAR_MAX_LEVEL) {

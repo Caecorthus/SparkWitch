@@ -6,9 +6,9 @@ import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
 import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.caecorthus.sparkfactionapi.api.settlement.SettlementExclusions;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
-import dev.caecorthus.sparkwitch.compat.SparkFactionSettlementExclusionCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantRules;
 import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.BearRules;
@@ -242,17 +242,16 @@ public final class SparkWitchRoleRegistry {
         // 与其他义警变体相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
         PoliceRoles.register(SAVIOR_ID);
         PoliceRoles.register(BLACK_RAVEN_ID);
-        // Plan v2 §3.3: the Black Raven never counts as alive for settlement in other mods either (reflective, fails
-        // closed on an older SparkFactionAPI). 计划 v2 §3.3：黑羽鸦在其他模组的结算中同样不算存活（反射调用，旧版
-        // SparkFactionAPI 下失败关闭）。
-        SparkFactionSettlementExclusionCompat.registerExcludedRole(BLACK_RAVEN_ID);
+        // Plan v2 §3.3: the Black Raven never counts as alive for settlement in other mods either.
+        // 计划 v2 §3.3：黑羽鸦在其他模组的结算中同样不算存活。
+        SettlementExclusions.registerRole(BLACK_RAVEN_ID);
         // A living Stowaway never counts as alive for settlement in other mods either.
         // 活着的偷渡客在其他模组的结算中同样不算存活。
-        SparkFactionSettlementExclusionCompat.registerExcludedRole(STOWAWAY_ID);
+        SettlementExclusions.registerRole(STOWAWAY_ID);
         // An untransformed Schrödinger's Cat never counts as alive for settlement in other mods either (owner
         // 2026-11-03); a transformed one holds another role id. 未转化的薛定谔之猫在其他模组的结算中同样不算存活
         //（所有者 2026-11-03）；转化后的猫持有其他职业 id。
-        SparkFactionSettlementExclusionCompat.registerExcludedRole(SCHRODINGERS_CAT_ID);
+        SettlementExclusions.registerRole(SCHRODINGERS_CAT_ID);
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 

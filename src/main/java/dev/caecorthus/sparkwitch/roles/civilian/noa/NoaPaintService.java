@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.noa;
 
+import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
@@ -22,7 +23,6 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
 import org.agmas.noellesroles.effect.WhiskeyShieldEffect;
 
 /**
@@ -35,11 +35,6 @@ import org.agmas.noellesroles.effect.WhiskeyShieldEffect;
  * 任何东西，也不消耗冷却。理智类结果只告诉她方向，从不给出数值（所有者 2026-11-04：从不显示她的理智值）。
  */
 public final class NoaPaintService {
-    /** Painted later than #189: the Attendant's spare key when that item exists. / 若存在备用钥匙（#189）则画出它。 */
-    static final Identifier SPARE_KEY_ID = Identifier.of("sparkwitch", "spare_key");
-    /** Otherwise NoellesRoles' master key. / 否则画出 NoellesRoles 的万能钥匙。 */
-    static final Identifier MASTER_KEY_ID = Identifier.of("noellesroles", "master_key");
-
     private NoaPaintService() {
     }
 
@@ -84,7 +79,7 @@ public final class NoaPaintService {
                 SoundCategory.PLAYERS, 1.0F, 1.0F);
         switch (outcome) {
             case DOG -> giveItem(player, outcome, Registries.ITEM.get(NoaRules.DOG_PORTRAIT_ITEM_ID));
-            case KEY -> giveItem(player, outcome, keyItem());
+            case KEY -> giveItem(player, outcome, SparkWitchItems.spareKey());
             case SPYGLASS -> giveItem(player, outcome, Items.SPYGLASS);
             case FIRECRACKER -> giveItem(player, outcome, WatheItems.FIRECRACKER);
             case NOTE -> giveItem(player, outcome, WatheItems.NOTE);
@@ -104,12 +99,6 @@ public final class NoaPaintService {
             case SANITY_LOSS_LOW -> changeSanity(player, outcome, -percent(player, 10, 30));
             case SANITY_GAIN_LOW -> changeSanity(player, outcome, percent(player, 10, 30));
         }
-    }
-
-    /** The spare key once #189 registers it, else NoellesRoles' master key. / 备用钥匙（#189 注册后），否则万能钥匙。 */
-    private static Item keyItem() {
-        Item spare = Registries.ITEM.get(SPARE_KEY_ID);
-        return spare != Items.AIR ? spare : Registries.ITEM.get(MASTER_KEY_ID);
     }
 
     private static int percent(ServerPlayerEntity player, int min, int max) {

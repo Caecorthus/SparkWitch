@@ -119,17 +119,4 @@ public final class FiendRules {
         }
         return Hit.NONE;
     }
-
-    public static int goldFor(@Nullable Hit hit) {
-        if (hit == null) {
-            return 0;
-        }
-        return switch (hit) {
-            case GUN -> GUN_GOLD;
-            case KNIFE -> KNIFE_GOLD;
-            case BAT -> BAT_GOLD;
-            case SWORD -> SWORD_GOLD;
-            case NONE -> 0;
-        };
-    }
 }

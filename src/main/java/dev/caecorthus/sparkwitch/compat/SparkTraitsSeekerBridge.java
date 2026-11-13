@@ -22,8 +22,6 @@ public final class SparkTraitsSeekerBridge {
     private static final String API_CLASS = "dev.caecorthus.sparktraits.api.SparkTraitsApi";
     private static final Identifier IMPOSTOR = Identifier.of("sparktraits", "impostor");
     private static final Logger LOGGER = LoggerFactory.getLogger("sparkwitch");
-    // Older SparkTraits builds lack this facade: silently "not pending". / 旧版缺少此门面：静默视为非待定。
-    private static final OptionalStaticMethod PENDING = resolve("isLastStandPending", PlayerEntity.class);
     private static final OptionalStaticMethod TRAIT = resolve("hasActiveTrait", PlayerEntity.class, Identifier.class)
             .warnOnce(error -> LOGGER.warn(
                     "Seeker cannot verify the optional Impostor trait; devices and task pay are denied", error));
@@ -33,12 +31,14 @@ public final class SparkTraitsSeekerBridge {
 
     /**
      * Whether SparkTraits Last Stand currently holds this player's pending death transition. Absent, older or
-     * failing providers read as false, so the final-death fallback then treats a dead Seeker as finally dead.
+     * failing providers read as false, so the final-death fallback then treats a dead Seeker as finally dead. The
+     * lookup is shared with the Abyss Listener through {@link SparkTraitsLastStandBridge#isLastStandPending}.
      * SparkTraits 背水一战当前是否持有该玩家的待决死亡转换。提供方缺失、过旧或出错时为 false，
-     * 此时最终死亡兜底会把已死亡的搜寻者视为最终死亡。
+     * 此时最终死亡兜底会把已死亡的搜寻者视为最终死亡。查询经 {@link SparkTraitsLastStandBridge#isLastStandPending}
+     * 与聆渊者共用。
      */
     public static boolean isLastStandPending(@Nullable PlayerEntity player) {
-        return player != null && PENDING.callBoolean(false, false, false, player);
+        return SparkTraitsLastStandBridge.isLastStandPending(player);
     }
 
     /**

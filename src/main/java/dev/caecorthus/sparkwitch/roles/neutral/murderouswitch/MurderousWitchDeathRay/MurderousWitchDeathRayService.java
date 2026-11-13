@@ -46,8 +46,19 @@ public final class MurderousWitchDeathRayService {
     private MurderousWitchDeathRayService() {
     }
 
+    /**
+     * Exactly ACTIVE (owner 2026-11), like the newer roles: Wathe's {@code isRunning()} and
+     * {@code isPlayerPlayingAndAlive} stay true during the post-win STOPPING fade, when the ray must neither open, fire
+     * nor stay armed.
+     * 必须恰为 ACTIVE（所有者 2026-11），与较新的职业一致：Wathe 的 {@code isRunning()} 与 {@code isPlayerPlayingAndAlive}
+     * 在胜负已定后的 STOPPING 淡出期间仍为真，而此时射线既不得开启、发射，也不得保持待发。
+     */
+    private static boolean roundActive(GameWorldComponent game) {
+        return game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE;
+    }
+
     public static WitchSkillUseResult use(WitchSkillUseContext context) {
-        if (!MurderousWitchDeathRayRules.canSelect(context.role())) {
+        if (!MurderousWitchDeathRayRules.canSelect(context.role()) || !roundActive(context.gameComponent())) {
             return WitchSkillUseResult.fail("message.sparkwitch.skill.unavailable");
         }
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(context.player());
@@ -77,6 +88,7 @@ public final class MurderousWitchDeathRayService {
         ServerWorld world = caster.getServerWorld();
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(world);
         if (!MurderousWitchDeathRayRules.canSelect(gameComponent.getRole(caster))
+                || !roundActive(gameComponent)
                 || !GameFunctions.isPlayerPlayingAndAlive(caster)) {
             return false;
         }
@@ -132,9 +144,10 @@ public final class MurderousWitchDeathRayService {
         if (component.getDeathRayTicks() <= 0 && component.getDeathRayCharges() <= 0) {
             return;
         }
-        if (!MurderousWitchDeathRayRules.canSelect(
-                GameWorldComponent.KEY.get(player.getWorld()).getRole(player)
-        ) || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+        // Leaving ACTIVE closes an armed window like losing the role or dying does. / 离开 ACTIVE 会像失去职业或死亡一样关闭待发窗口。
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
+        if (!MurderousWitchDeathRayRules.canSelect(game.getRole(player))
+                || !roundActive(game) || !GameFunctions.isPlayerPlayingAndAlive(player)) {
             component.resetDeathRayWindowState();
             component.clearDeferredCooldownState();
             component.sync();

@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrow
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackManager;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ShouldPiercePsychoArmour;
 import dev.doctor4t.wathe.api.event.ShouldPunishGunShooter;
@@ -30,7 +31,6 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -103,7 +103,7 @@ public final class SaviorLightsaberCombatService {
         AttackEntityCallback.EVENT.register(SaviorLightsaberCombatService::onSwordAttack);
         // The spam/dedupe maps are per player UUID; drop them on leave and on server stop so they never grow forever.
         // 防刷/去重表按玩家 UUID 记录；离线与服务器停止时清除，避免无限增长。
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> forget(handler.player.getUuid()));
+        ServerDisconnectCleanup.register((player, server) -> forget(player.getUuid()));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> clearAll());
     }
 

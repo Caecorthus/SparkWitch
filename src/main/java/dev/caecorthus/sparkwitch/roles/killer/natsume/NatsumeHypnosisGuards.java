@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.roles.killer.natsume;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.payloadpolicy.GeneratedPayloadPolicy;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStunRules;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
@@ -46,22 +47,29 @@ public final class NatsumeHypnosisGuards {
      * Stable payload contract: payloads refused for a locked sender on top of the Control Expert stun deny-list
      * ({@link ControlExpertStunRules#BLOCKED_PAYLOADS}: Wathe knife, gun and shop, and every classified role skill).
      * The cross sword and Swordfish stabs are item releases whose handlers reject only stunned senders themselves, and
-     * Natsume's own menu request and cast are her role skill. Plain ids, so no other module's class is loaded.
+     * Natsume's own menu request and cast are her role skill. Plain ids, so no other module's class is loaded. Since
+     * 2026-11-13 both stabs are on the stun list too (classified like {@code wathe:knifestab}); their entries here are
+     * redundant and kept on purpose.
      * 稳定数据包契约：在控场专家眩晕拦截名单（{@link ControlExpertStunRules#BLOCKED_PAYLOADS}：Wathe 刀、枪与商店，以及所有已归类的职业
      * 技能）之外，对被锁定发送者额外拒绝的数据包。十字剑与剑鱼刺击是道具松手动作，其处理器只自行拒绝被眩晕者；夏目安安自己的菜单请求与
-     * 施放是她的职业技能。以纯 id 保存，不加载其他模块的类。
+     * 施放是她的职业技能。以纯 id 保存，不加载其他模块的类。自 2026-11-13 起两种刺击也在眩晕名单中（与 {@code wathe:knifestab}
+     * 同样归类）；此处的条目因此重复，有意保留。
      */
-    public static final Set<Identifier> EXTRA_BLOCKED_PAYLOADS = Set.of(
-            Identifier.of("sparkwitch", "cross_sword_stab"),
-            Identifier.of("sparkwitch", "swordfish_stab"),
-            Identifier.of("sparkwitch", "request_natsume_menu"),
-            Identifier.of("sparkwitch", "confirm_natsume_target"));
+    // Generated HYPNOSIS_EXTRA column of SparkFactionAPI config/payload-policy/actions.tsv: edit that table and
+    // rerun tools/payload_policy.py, never list ids here; per-id reasons are in its note column.
+    // 生成的 HYPNOSIS_EXTRA 列（SparkFactionAPI config/payload-policy/actions.tsv）：请修改该表并重新运行
+    // tools/payload_policy.py，不要在此列出 id；各 id 的理由见其 note 列。
+    public static final Set<Identifier> EXTRA_BLOCKED_PAYLOADS = GeneratedPayloadPolicy.HYPNOSIS_EXTRA;
 
     /**
      * Refused without a notice: Raven Form's per-tick pose stream (Grand Witch Fear precedent).
      * 静默拒绝：化鸦每 tick 发送的位姿数据流（与大魔女恐惧相同）。
      */
-    public static final Set<Identifier> SILENT_PAYLOADS = Set.of(Identifier.of("sparkwitch", "black_raven_crow_move"));
+    // Generated HYPNOSIS_SILENT column of SparkFactionAPI config/payload-policy/actions.tsv: edit that table and
+    // rerun tools/payload_policy.py, never list ids here; per-id reasons are in its note column.
+    // 生成的 HYPNOSIS_SILENT 列（SparkFactionAPI config/payload-policy/actions.tsv）：请修改该表并重新运行
+    // tools/payload_policy.py，不要在此列出 id；各 id 的理由见其 note 列。
+    public static final Set<Identifier> SILENT_PAYLOADS = GeneratedPayloadPolicy.HYPNOSIS_SILENT;
 
     private static boolean registered;
 

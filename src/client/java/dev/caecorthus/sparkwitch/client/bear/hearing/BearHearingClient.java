@@ -62,6 +62,9 @@ public final class BearHearingClient {
         registered = true;
         ClientTickEvents.END_CLIENT_TICK.register(BearHearingClient::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> reset());
     }
 
     /** Current volume multiplier for the local player (1 when unaffected). / 本地玩家当前的音量倍数（不受影响时为 1）。 */

@@ -4,7 +4,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,11 +28,6 @@ final class ForcedAccompliceRoleLocks {
     /** Returns whether the stored lock changed. / 返回锁定是否发生变化。 */
     boolean set(UUID playerUuid, Identifier roleId) {
         return !roleId.equals(locks.put(playerUuid, roleId));
-    }
-
-    @Nullable
-    Identifier get(UUID playerUuid) {
-        return locks.get(playerUuid);
     }
 
     boolean clear(UUID playerUuid) {

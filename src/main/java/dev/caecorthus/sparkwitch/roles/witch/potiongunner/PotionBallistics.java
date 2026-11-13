@@ -104,14 +104,6 @@ public final class PotionBallistics {
     }
 
     /**
-     * How far a level shot has fallen below the eye line at {@code horizontalDistance}, launch offset included.
-     * 水平射击在 {@code horizontalDistance} 处低于视线的距离（含发射点偏移）。
-     */
-    public static double dropAt(double horizontalDistance) {
-        return -heightAt(0.0, horizontalDistance);
-    }
-
-    /**
      * Angle in radians between the line of sight ({@code pitchDegrees}) and the eye-to-shell direction at the moment
      * the shell is first {@code lineOfSightRange} blocks from the eye (slant range, the distance a target at the aim
      * point would be at); positive means the shell is below the aim point. The scope's range rows are labelled in this

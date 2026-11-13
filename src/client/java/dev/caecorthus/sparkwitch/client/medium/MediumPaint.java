@@ -1,26 +1,24 @@
 package dev.caecorthus.sparkwitch.client.medium;
 
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.tarot.TarotLedgerPaint;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import net.minecraft.client.gui.DrawContext;
 
 /**
  * Role-local tokens and fill primitives for the Medium's vote screen and result card, in the Harpy Express house
- * style with the ghost-fire teal as the only accent. {@link InventoryCardPaint} must stay byte-identical with
- * SparkTraits and the Tarot classes belong to the Tarot Reader, so the few recipes they lack (a taller answer button,
+ * style with the ghost-fire teal as the only accent. {@link InventoryCardPaint} is SparkFactionAPI's copy, shared with
+ * SparkTraits, and the Tarot classes belong to the Tarot Reader, so the few recipes they lack (a taller answer button,
  * a frame that can fade) live here. Every primitive is fill-only: callers wrap them in
  * {@link InventoryCardPaint#batch} and draw text after the batch.
  * 通灵师投票界面与结果卡片的职业自有令牌与填充原语，沿用哈比特快风格，仅以鬼火青绿作为强调色。
- * {@link InventoryCardPaint} 须与 SparkTraits 逐字节一致，塔罗类归塔罗牌师所有，因此它们缺少的少量配方（更高的作答按钮、
+ * {@link InventoryCardPaint} 位于 SparkFactionAPI、与 SparkTraits 共用，塔罗类归塔罗牌师所有，因此它们缺少的少量配方（更高的作答按钮、
  * 可渐隐的外框）放在这里。所有原语只做填充：调用方用 {@link InventoryCardPaint#batch} 包裹，批次结束后再绘制文字。
  */
 final class MediumPaint {
     /** The role colour, opaque. / 不透明的职业色。 */
     static final int TEAL = 0xFF000000 | MediumRules.COLOR;
     static final int TEAL_LO = InventoryCardPaint.mix(TEAL, 0xFF000000, 0.45);
-    static final int WISP_W = 5;
-    static final int WISP_H = 7;
     /**
      * Vanilla draws text with alpha below 4 fully opaque (TextRenderer.tweakTransparency), so a fading element stops
      * drawing under it.

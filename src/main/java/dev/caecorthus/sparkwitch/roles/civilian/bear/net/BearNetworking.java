@@ -2,9 +2,6 @@ package dev.caecorthus.sparkwitch.roles.civilian.bear.net;
 
 import dev.caecorthus.sparkwitch.roles.civilian.bear.ricochet.RysTRicochetS2CPayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.minecraft.util.Identifier;
-
-import java.util.List;
 
 /**
  * BEAR payload-type registration hub (the smoke payloads stay in {@code bear.smoke.net.SmokeNetworking}): the single
@@ -16,9 +13,6 @@ import java.util.List;
  * （接收器在 {@code launcher.M32FireService}）。
  */
 public final class BearNetworking {
-    /** WP1 C2S payload ids, in registration order. / WP1 的 C2S 数据包 id，按注册顺序。 */
-    public static final List<Identifier> LAUNCHER_C2S_IDS = List.of(FireM32A1C2SPayload.PAYLOAD_ID);
-
     private static boolean registered;
 
     private BearNetworking() {

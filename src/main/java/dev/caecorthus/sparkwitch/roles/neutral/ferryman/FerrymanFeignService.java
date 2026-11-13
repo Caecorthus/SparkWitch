@@ -9,6 +9,8 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithBodyRoleAccess;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
+import dev.caecorthus.sparkwitch.util.GroundAnchor;
 import dev.doctor4t.wathe.api.WatheRoles;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -18,7 +20,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheEntities;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -31,11 +32,8 @@ import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
-import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -76,7 +74,7 @@ public final class FerrymanFeignService {
         ServerTickEvents.END_SERVER_TICK.register(FerrymanFeignService::tick);
         KillPlayer.AFTER.register(FerrymanFeignService::afterKill);
         ResetPlayer.EVENT.register(FerrymanFeignService::onReset);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> onDisconnect(handler.getPlayer()));
+        ServerDisconnectCleanup.register((player, server) -> onDisconnect(player));
         // SparkTraits reads terminal reasons at kill time, so a Last Stand never turns the devoured death into a
         // revive; registering at server start is early enough and idempotent (the Fiend's FIEND_DEVOURED pattern).
         // SparkTraits 在击杀时读取终结原因，背水一战因此不会把被吞食的死亡变成复活；服务端启动时注册即足够早且幂等
@@ -212,7 +210,7 @@ public final class FerrymanFeignService {
         }
         player.clearActiveItem();
         player.closeHandledScreen();
-        Vec3d anchor = groundAnchor(world, player);
+        Vec3d anchor = GroundAnchor.of(world, player, GROUND_SNAP_DEPTH);
         PlayerBodyEntity body = spawnCorpse(world, player, anchor);
         component.start(
                 world.getTime() + FerrymanRules.FEIGN_TICKS,
@@ -333,17 +331,6 @@ public final class FerrymanFeignService {
     }
 
     // ---- Corpse / 尸体 ----
-
-    private static Vec3d groundAnchor(ServerWorld world, ServerPlayerEntity player) {
-        Vec3d feet = player.getPos();
-        if (player.isOnGround()) {
-            return feet;
-        }
-        BlockHitResult hit = world.raycast(new RaycastContext(feet.add(0.0, 0.1, 0.0),
-                feet.subtract(0.0, GROUND_SNAP_DEPTH, 0.0), RaycastContext.ShapeType.COLLIDER,
-                RaycastContext.FluidHandling.NONE, player));
-        return hit.getType() == HitResult.Type.BLOCK ? new Vec3d(feet.x, hit.getPos().y, feet.z) : feet;
-    }
 
     private static @Nullable PlayerBodyEntity spawnCorpse(ServerWorld world, ServerPlayerEntity player, Vec3d anchor) {
         PlayerBodyEntity body = WatheEntities.PLAYER_BODY.create(world);

@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.seeker.net;
 
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -15,17 +14,10 @@ import net.minecraft.network.packet.CustomPayload;
 public record SeekerCarRecallC2SPacket() implements CustomPayload {
     public static final Id<SeekerCarRecallC2SPacket> ID = new Id<>(SeekerRules.CAR_RECALL_PAYLOAD_ID);
     public static final PacketCodec<RegistryByteBuf, SeekerCarRecallC2SPacket> CODEC =
-            PacketCodec.of(SeekerCarRecallC2SPacket::write, SeekerCarRecallC2SPacket::read);
+            PacketCodec.unit(new SeekerCarRecallC2SPacket());
 
     @Override
     public Id<? extends CustomPayload> getId() {
         return ID;
-    }
-
-    public void write(PacketByteBuf buf) {
-    }
-
-    public static SeekerCarRecallC2SPacket read(PacketByteBuf buf) {
-        return new SeekerCarRecallC2SPacket();
     }
 }

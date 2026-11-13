@@ -4,9 +4,9 @@ import dev.caecorthus.sparkwitch.SparkWitchSounds;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.net.UsecScopeC2SPacket;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithStateService;
 import dev.caecorthus.sparkwitch.util.OffMatchUse;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
@@ -29,7 +29,9 @@ import java.util.UUID;
  * target's role (client {@code UsecInstinctCloak}). Every server tick the scoped players are re-checked and cleared
  * once they stop qualifying (released use, swapped item, death, round change), so a lost "false" packet can never
  * leave a stale glint. The payload is harmless presentation and is deliberately on no
- * deny-list. Fabric runs play receivers on the server thread, so no hand-off is needed.
+ * deny-list. Fabric runs play receivers on the server thread, so no hand-off is needed. The receiver only stores the
+ * flag; the same per-tick sweep is the one place that syncs it, at most once per player per tick, so a client that
+ * floods toggles cannot multiply them into broadcasts.
  * {@code UsecPlayerComponent.scoped}（镜头反光 S1 背后的全员同步标记）的服务端权威。{@code sparkwitch:usec_scope} 接收器
  * 只为符合条件的射手写入 {@code scoped = true}：任何可以使用步枪的持有者（所有者 2026-11-05：从不读取职业；
  * {@code OffMatchUse} 不为 REFUSED，因此 ACTIVE 对局中已死亡的参与者永不符合，对局外的持有者则符合）、存活、非旁观、非冤魂、
@@ -37,7 +39,8 @@ import java.util.UUID;
  * 持有者都跟随该标记；只有作为 USEC 被动的本能隐蔽还会检查目标的职业（客户端 {@code UsecInstinctCloak}）。每个服务端刻都会
  * 复查已开镜的玩家，一旦不再符合条件（松开使用、换物品、死亡、对局变化）即清除，因此丢失的 "false" 数据包永远不会留下过期
  * 反光。该数据包是
- * 无害的表现信息，刻意不进入任何拒绝列表。Fabric 在服务端线程执行游戏数据包接收器，因此无需切换线程。
+ * 无害的表现信息，刻意不进入任何拒绝列表。Fabric 在服务端线程执行游戏数据包接收器，因此无需切换线程。接收器只保存标记；
+ * 同一个逐刻清扫是唯一同步它的地方，每名玩家每刻至多一次，因此刷切换包的客户端无法把它们放大成广播。
  * <p>
  * Scope-in sound (owner, 2026-10-07): when the flag turns on, a subtle {@code item.usec_rifle.scope} plays through the
  * public {@code ServerWorld#playSound} at the shooter (fixed {@link UsecRules#SCOPE_SOUND_RANGE}-block broadcast, so the
@@ -63,8 +66,7 @@ public final class UsecScopeService {
         ServerPlayNetworking.registerGlobalReceiver(UsecScopeC2SPacket.ID,
                 (payload, context) -> receive(context.player(), payload.scoped()));
         ServerTickEvents.END_SERVER_TICK.register(UsecScopeService::sweep);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                LAST_SCOPE_SOUND.remove(handler.getPlayer().getUuid()));
+        ServerDisconnectCleanup.register((player, server) -> LAST_SCOPE_SOUND.remove(player.getUuid()));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> LAST_SCOPE_SOUND.clear());
     }
 
@@ -98,13 +100,25 @@ public final class UsecScopeService {
         return lastTick == Long.MIN_VALUE || now < lastTick || now - lastTick >= UsecRules.SCOPE_SOUND_MIN_INTERVAL_TICKS;
     }
 
-    /** Clears every scoped player who no longer qualifies; unscoped players cost one flag read. / 清除不再符合条件者。 */
+    /**
+     * Clears every scoped player who no longer qualifies, then sends each player's flag if it changed since it was
+     * last sent: the one place the flag is broadcast, so the unthrottled payload costs at most one sync per player per
+     * tick (as {@code SeekerCameraLookService} relies on the DataTracker for). Unscoped, unchanged players cost two
+     * flag reads.
+     * 清除不再符合条件者，然后在每名玩家的标记自上次发送以来发生变化时发送它：这是该标记唯一的广播点，因此不限速的数据包
+     * 每名玩家每刻至多引发一次同步（与 {@code SeekerCameraLookService} 依靠 DataTracker 的做法相同）。未开镜且无变化的玩家
+     * 只需两次标记读取。
+     */
     static void sweep(MinecraftServer server) {
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             UsecPlayerComponent component = component(player);
-            if (component != null && component.isScoped() && !qualifies(player)) {
+            if (component == null) {
+                continue;
+            }
+            if (component.isScoped() && !qualifies(player)) {
                 component.setScoped(false);
             }
+            component.flushScoped();
         }
     }
 

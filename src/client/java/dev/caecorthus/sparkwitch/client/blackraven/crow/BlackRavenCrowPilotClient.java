@@ -645,13 +645,21 @@ public final class BlackRavenCrowPilotClient {
 
     // ---- Helpers / 辅助 ----
 
-    /** Block the crow's eye looks at within reach, or null. / 乌鸦眼睛在使用距离内看着的方块，没有时为 null。 */
+    /**
+     * Block the crow's eye looks at within reach, or null. The hit goes through
+     * {@link BlackRavenCrowUseRules#attributeHit}, the aim fix written for this path (and what the Seeker car's aim
+     * already does): a steep ray can hit one door half's outline inside the other half's cell, and the server's
+     * {@code withinHitTolerance} refuses that raw hit, so a click on a reachable door did nothing.
+     * 乌鸦眼睛在使用距离内看着的方块，没有时为 null。命中会经过 {@link BlackRavenCrowUseRules#attributeHit}，即为此路径编写的
+     * 瞄准修正（搜寻者小车的瞄准已这样做）：陡峭射线可能在另一半的格子里命中这一半门的轮廓，而服务端的
+     * {@code withinHitTolerance} 会拒绝这个原始命中，于是点击一扇够得着的门却毫无反应。
+     */
     static @Nullable BlockHitResult crowBlockTarget(BlackRavenCrowEntity bound, float tickDelta) {
         Vec3d eye = bound.getCameraPosVec(tickDelta);
         Vec3d end = eye.add(bound.getRotationVec(tickDelta).multiply(BlackRavenCrowClientRules.USE_REACH));
         BlockHitResult hit = bound.getWorld().raycast(new RaycastContext(eye, end, RaycastContext.ShapeType.OUTLINE,
                 RaycastContext.FluidHandling.NONE, bound));
-        return hit.getType() == HitResult.Type.BLOCK ? hit : null;
+        return hit.getType() == HitResult.Type.BLOCK ? BlackRavenCrowUseRules.attributeHit(bound.getWorld(), hit) : null;
     }
 
     /**

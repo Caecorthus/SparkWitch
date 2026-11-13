@@ -1,12 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.killer.kidnapper;
 
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
@@ -32,8 +32,7 @@ public final class KidnapperDragLifecycle {
                 KidnapperDragService.release(serverPlayer);
             }
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                KidnapperDragService.release(handler.getPlayer()));
+        ServerDisconnectCleanup.register((player, server) -> KidnapperDragService.release(player));
         GameEvents.ON_WIN_DETERMINED.register((world, component, status, neutralWinner) -> clearWorld(world));
         GameEvents.ON_FINISH_FINALIZE.register((world, component) -> clearWorld(world));
         ServerLifecycleEvents.SERVER_STOPPING.register(server ->

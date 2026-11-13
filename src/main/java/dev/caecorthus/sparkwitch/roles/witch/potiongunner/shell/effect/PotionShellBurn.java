@@ -1,12 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.witch.potiongunner.shell.effect;
 
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.damage.DamageTypes;
@@ -49,7 +49,7 @@ public final class PotionShellBurn {
         });
         KillPlayer.AFTER.register((victim, killer, deathReason) -> release(victim));
         ResetPlayer.EVENT.register(PotionShellBurn::release);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> release(handler.player));
+        ServerDisconnectCleanup.register((player, server) -> release(player));
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> releaseAll(world));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> WINDOWS.clear());
     }

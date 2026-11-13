@@ -55,6 +55,9 @@ public final class BlindRenderWiring {
         HudRenderCallback.EVENT.register((context, tickCounter) -> renderFallbackHint(context));
         ClientLoginConnectionEvents.INIT.register((handler, client) -> BlindEchoView.reset());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> BlindEchoView.reset());
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> BlindEchoView.reset());
         // Reload listeners apply on the render thread, where GL objects may be released.
         // 重载监听器在渲染线程执行，可在此安全释放 GL 对象。
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(

@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.blind.kit;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -13,7 +14,6 @@ import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.entity.passive.AllayEntity;
@@ -79,11 +79,7 @@ public final class BlindKitWiring {
                 }
             }
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            if (handler.player != null) {
-                BlindLoadoutService.strip(handler.player);
-            }
-        });
+        ServerDisconnectCleanup.register((player, server) -> BlindLoadoutService.strip(player));
         ServerTickEvents.END_SERVER_TICK.register(BlindKitWiring::tick);
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> BlindCaneService.forgetAll());
         // Item frames, armor stands and allays would take a held bound item out of the inventory; every other entity

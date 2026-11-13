@@ -19,7 +19,6 @@ public final class KidnapperRules {
     public static final double FOLLOW_DISTANCE = 1.0D;
     public static final double THROW_SPEED = 0.8D;
     public static final double THROW_MIN_UPWARD_VELOCITY = 0.2D;
-    public static final double SPEED_MULTIPLIER = 0.8D;
     public static final double SPEED_MODIFIER_AMOUNT = -0.2D;
     public static final int KNOCKOUT_DRUG_START_COOLDOWN_TICKS = 40 * 20;
     public static final int KNOCKOUT_DRUG_COOLDOWN_TICKS = 45 * 20;

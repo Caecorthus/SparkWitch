@@ -3,12 +3,12 @@ package dev.caecorthus.sparkwitch.roles.civilian.fisher.spirit;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherParticipants;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.record.GameRecordManager;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -50,7 +50,7 @@ public final class FisherSpiritService {
                 }
             }
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> end(handler.player, false));
+        ServerDisconnectCleanup.register((player, server) -> end(player, false));
         // No role-change listener: transferred fish remain valid across role changes.
         // 不监听职业变化：转交的鱼在职业变化后仍然有效。
     }

@@ -1,12 +1,12 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.perception;
 
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 
@@ -34,7 +34,7 @@ public final class BlindPerceptionWiring {
         RoleAssigned.EVENT.register((player, role) -> BlindPerceptionTargets.markDirty());
         KillPlayer.AFTER.register((victim, killer, deathReason) -> BlindPerceptionTargets.markDirty());
         ResetPlayer.EVENT.register(player -> BlindPerceptionTargets.markDirty());
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> BlindPerceptionTargets.markDirty());
+        ServerDisconnectCleanup.register((player, server) -> BlindPerceptionTargets.markDirty());
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> clear());
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> clear());
     }

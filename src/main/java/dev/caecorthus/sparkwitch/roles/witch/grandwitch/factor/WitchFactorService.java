@@ -94,28 +94,81 @@ public final class WitchFactorService {
         }
         ServerPlayerEntity target = GrandWitchTargeting.findTarget(source,
                 context.target() == null ? null : context.target().getUuid());
-        if (target == null || !trySpread(source, target)) return WitchSkillUseResult.fail(null);
+        // No target and an open refusal stay free; a hidden refusal costs and reads exactly like a spread (owner 2026-11).
+        // 没有目标与公开的拒绝仍然免费；隐藏的拒绝与一次传播的消耗和提示完全相同（所有者 2026-11）。
+        if (target == null || attemptSpread(source, target) == SpreadOutcome.REFUSED) return WitchSkillUseResult.fail(null);
         WitchPlayerComponent mana = WitchPlayerComponent.KEY.get(source);
         mana.setMana(mana.getMana() - MANA_COST);
         return WitchSkillUseResult.success(COOLDOWN_TICKS, "message.sparkwitch.skill.witch_factor.spread");
     }
 
-    /** The caller owns costs and targeting; successful insertion alone spends the common quota.
-     * 调用方负责消耗与选人；只有成功插入因子才扣除共用额度。 */
-    public static boolean trySpread(ServerPlayerEntity source, ServerPlayerEntity target) {
+    /**
+     * How a spread on an aimed target ended, as far as the caster may be allowed to tell (owner 2026-11). A refusal
+     * the caster cannot see the reason for must not be free, or a ready caster could probe every player in reach at
+     * no cost: {@link #HIDDEN_REFUSAL} inserts nothing and spends no quota, but the caller charges mana and cooldown
+     * and answers exactly as for {@link #SPREAD}.
+     * 对已瞄准目标的一次传播的结局，以施放者被允许得知的程度为准（所有者 2026-11）。施放者看不到原因的拒绝不得免费，否则
+     * 就绪的施放者可以零成本试探射程内的每名玩家：{@link #HIDDEN_REFUSAL} 不插入因子、不消耗额度，但调用方照常扣除魔力与
+     * 冷却，并给出与 {@link #SPREAD} 完全相同的回应。
+     */
+    public enum SpreadOutcome {
+        /** A factor was inserted and the quota spent. / 已插入因子并消耗额度。 */
+        SPREAD,
+        /** Nothing changed, for a reason only hidden state explains. / 未发生变化，其原因只有隐藏状态才能解释。 */
+        HIDDEN_REFUSAL,
+        /** Nothing changed, for a reason the caster can see or that hits every target alike. / 未发生变化，其原因施放者可见，或对所有目标一视同仁。 */
+        REFUSED
+    }
+
+    /**
+     * Pure classification. Open refusals come first, so a hidden one is only ever reported where an ordinary target
+     * would have succeeded; otherwise the two would differ again (free against charged) and tell the caster the same
+     * thing. Open: the cast itself is not possible (round, caster, self, world, life), SparkFactionAPI vetoes the
+     * pair, the shared quota is closed, or the target visibly holds a factor (mature and in the caster's own network
+     * view). Hidden: the target's role makes it no carrier, or it holds a factor the caster cannot see (dormant).
+     * 纯分类。公开的拒绝优先判定，因此只有在普通目标本会成功的情况下才会报告隐藏的拒绝；否则两者又会出现差别（免费与扣费），
+     * 等于把同样的信息告诉施放者。公开：施放本身不成立（对局、施放者、自身、世界、存活）、SparkFactionAPI 否决这一对、
+     * 共用额度已关闭，或目标可见地持有因子（已成熟且在施放者自己的网络视图中）。隐藏：目标的职业使其不能携带因子，或它持有
+     * 施放者看不到的因子（潜伏）。
+     */
+    static SpreadOutcome classifySpread(boolean castPossible, boolean vetoed, boolean quotaOpen, boolean visibleHolder,
+                                        boolean eligibleCarrier, boolean holder) {
+        if (!castPossible || vetoed || !quotaOpen || visibleHolder) {
+            return SpreadOutcome.REFUSED;
+        }
+        return !eligibleCarrier || holder ? SpreadOutcome.HIDDEN_REFUSAL : SpreadOutcome.SPREAD;
+    }
+
+    /**
+     * Tries the spread and says how it ended. The caller owns costs and targeting; successful insertion alone spends
+     * the common quota.
+     * 尝试传播并说明结局。调用方负责消耗与选人；只有成功插入因子才扣除共用额度。
+     */
+    public static SpreadOutcome attemptSpread(ServerPlayerEntity source, ServerPlayerEntity target) {
         ServerWorld world = source.getServerWorld();
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         Role role = game.getRole(source);
-        if (!game.isRunning() || (role != SparkWitchRoles.grandWitch() && !isEmma(role))
-                || target == source || target.getServerWorld() != world || !alive(source) || !alive(target)
-                || !isEligibleCarrier(target) || isFactorHolder(target)
-                || !dev.caecorthus.sparkfactionapi.api.SparkFactionApi.canAffectPlayer(source, target, SKILL_ID, game)) return false;
+        boolean castPossible = game.isRunning() && (role == SparkWitchRoles.grandWitch() || isEmma(role))
+                && target != source && target.getServerWorld() == world && alive(source) && alive(target);
         WitchFactorWorldComponent component = WitchFactorWorldComponent.KEY.get(world);
-        if (!component.state().spread(source.getUuid(), target.getUuid())) return false;
+        WitchFactorState state = component.state();
+        SpreadOutcome outcome = classifySpread(
+                castPossible,
+                castPossible && !dev.caecorthus.sparkfactionapi.api.SparkFactionApi.canAffectPlayer(source, target, SKILL_ID, game),
+                state.active() && state.remaining() != 0,
+                castPossible && isVisibleTo(source, target),
+                isEligibleCarrier(target),
+                isFactorHolder(target));
+        if (outcome != SpreadOutcome.SPREAD) {
+            return outcome;
+        }
+        if (!state.spread(source.getUuid(), target.getUuid())) {
+            return SpreadOutcome.REFUSED;
+        }
         // Dormant identities never leave the server, even to their own recipient.
         // 潜伏因子的身份不离开服务端，包括其持有者本人。
         component.sync();
-        return true;
+        return SpreadOutcome.SPREAD;
     }
 
     /**

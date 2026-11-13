@@ -169,7 +169,8 @@ public final class SaviorPlayerComponent
     }
 
     private void syncOwner() {
-        if (player instanceof ServerPlayerEntity owner) {
+        // The handler check is CCA's own recipient rule for the owner. / 对网络处理器的判断即 CCA 自身为本人选择接收者的规则。
+        if (player instanceof ServerPlayerEntity owner && owner.networkHandler != null) {
             KEY.syncWith(owner, (ComponentProvider) owner);
         }
     }

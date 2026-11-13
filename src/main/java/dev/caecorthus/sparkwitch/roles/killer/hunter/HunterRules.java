@@ -299,10 +299,6 @@ public final class HunterRules {
         return aliveAndSurvival && (!activeWraith || ownerIsBoundKiller);
     }
 
-    public static TrapPoisonRewards trapPoisonRewards() {
-        return new TrapPoisonRewards(POISONER_REWARD, PLACER_REWARD);
-    }
-
     public enum TrapDismantle {
         NONE,
         INSTANT,
@@ -313,11 +309,5 @@ public final class HunterRules {
         HIDDEN,
         DIRECT_ONLY,
         THROUGH_WALL
-    }
-
-    public record TrapPoisonRewards(int poisoner, int placer) {
-        public int samePlayerTotal() {
-            return poisoner + placer;
-        }
     }
 }
