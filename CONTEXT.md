@@ -1027,7 +1027,9 @@ Current build baseline:
       `interruptUser(ServerPlayerEntity)`, `isStrangling(PlayerEntity)` (both sides).
       `tryStart`: SparkTraits `blocksWeaponAction` (silent), the gates, then SparkTraits `shouldCancelMeleeAttack`
       (Close Quarters); a refusal costs nothing (action-bar `message.sparkwitch.rope.blocked` / `.no_target` /
-      `.not_behind`). A start records `recordItemUse`, snaps both players to anchors and holds them for 60 ticks (every
+      `.not_behind`). A start records `recordItemUse` (replay line `replay.item_use.sparkwitch.rope` through
+      `RopeReplayFormatter`, registered from `RopeStrangleService.register()`; until 2026-11-13 no formatter existed
+      and Wathe dropped the line), snaps both players to anchors and holds them for 60 ticks (every
       hold teleport passes the player's own yaw/pitch: in 1.21.1 `requestTeleport`'s rotation is absolute and `ROT`
       only sends its difference from the server's, so zeros would turn the camera to yaw 0 / pitch 0); at
       ticks 20/40/60 the victim shows one vanilla hurt through `ServerWorld.sendEntityDamage` with the attacker-less
@@ -3756,7 +3758,10 @@ already carries 3 or more (main, hotbar, offhand, crafting grid and cursor stack
 `ShopUtils.canAccessShop` true for the Saint, `SaintEconomyService` answers `CanSeeMoney` DENY for a Saint that
 is not playing and alive, keeping dead and STARTING-phase coin visibility (and SparkTraits money-trait
 eligibility) unchanged. Throws, bursts and flashes exist only while Wathe's status is ACTIVE
-(`HolyFlashRules.isActivePhase`), so the ringing never spills into STOPPING. Any participant may throw one. The role-owned `HolyFlashEntity` (never Wathe's
+(`HolyFlashRules.isActivePhase`), so the ringing never spills into STOPPING. Any participant may throw one; the
+throw's `recordItemUse` shows as `replay.item_use.sparkwitch.holy_flash` through `HolyFlashReplayFormatter`
+(registered from `HolyFlashFeatureService.register()` since 2026-11-13; before that Wathe dropped it).
+The role-owned `HolyFlashEntity` (never Wathe's
 grenade, so no grenade hook fires) bursts on its first block or entity hit with sound and particles
 but no damage. It flashes every participant whose hitbox is within 6 blocks of the burst (nearest point
 of the body, `HolyFlashTargeting.bodyDistance`) and whose eyes have line of sight to it; facing away keeps
