@@ -121,10 +121,9 @@ Current build baseline:
 
 - Minecraft `1.21.1`
 - Java `21`
-- SparkWitch `0.1.6.0` (Emma branch)
-- SparkFactionAPI floor `0.1.6.0` (native Wathe factions: the `sparkfactionapi:native_wathe_factions` declaration,
-  `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`; version provisional until the
-  owner picks the release number). Every `0.1.5.13`+ feature (two-row limited inventory,
+- SparkWitch `2.0.0` (owner 2026-11-12: all five Spark mods share one version number)
+- SparkFactionAPI floor `2.0.0` (native Wathe factions: the `sparkfactionapi:native_wathe_factions` declaration,
+  `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`, first shipped as `0.1.6.0`). Every `0.1.5.13`+ feature (two-row limited inventory,
   `compat/SparkFactionSecondRowCompat`, settlement exclusions) is therefore present; the reflective compat paths are
   kept as they are.
 

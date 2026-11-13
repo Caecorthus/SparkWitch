@@ -174,7 +174,7 @@ tasks.named("jar") {
 }
 
 def remappedModJar = tasks.named("remapJar")
-def compatibilityReleaseVersion = "0.1.6.2"
+def compatibilityReleaseVersion = "2.0.0"
 def compatibilityBaselines = [
         wathe: [
                 property: "wathe_version",
@@ -190,8 +190,8 @@ def compatibilityBaselines = [
         ],
         sparkfactionapi: [
                 property: "sparkfactionapi_version",
-                version: "0.1.6.0",
-                sha256: "9fbc0dafac49ad3ba25619314b4a32a35feeeca528df14de9b4fdaf05dd87370",
+                version: "2.0.0",
+                sha256: "1abf647129115ace9a43961eafc9ea581dd5fa271a2dbe233014d95d0a187e00",
                 depends: [wathe: ">=1.5.6-spark-1.21.1"]
         ]
 ]
