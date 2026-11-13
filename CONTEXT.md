@@ -1210,7 +1210,8 @@ Current build baseline:
     pays 50 gold and adds the 怜悯 mark. `FerrymanMercyService`: a ferried body that is bagged or eaten pays a
     still-active Charon 50 more and marks the destroyer, once; the Charon's own destruction pays nothing.
   - Shop (`FerrymanShopService`): crowbar 25 (refused on a full inventory) and the stock-1 Soul Moment 250 (refused and
-    uncharged when no soul rises).
+    uncharged when no soul rises; its description is two LORE lines, `shop.sparkwitch.ferryman.moment.description` and
+    `.description.line2`, because vanilla tooltips never wrap and one line overflowed 1080p at the default GUI scale).
   - Soul Moment (`FerrymanMomentWorldComponent` + `FerrymanMomentRules` + `FerrymanMomentService` +
     `FerrymanWinService`): eligible souls are online ferried participants Wathe holds dead that are not a Charon, whose
     death no pending SparkTraits Last Stand holds, and that are not an active Wraith; one per 6 round participants rises (Wathe's
