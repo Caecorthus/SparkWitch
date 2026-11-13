@@ -38,6 +38,7 @@
     "JudgeVoodooQueueMixin",
     "JudgeTeleportRecoveryMixin",
     "JudgeNetworkTeleportRecoveryMixin",
+    "ServerPlayNetworkHandlerDisconnectCleanupMixin",
     "PoliceSlotAssignmentMixin",
     "ApprenticeCivilianPoolMixin",
     "PoliceRoleHistoryMixin",

@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm
 import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -21,7 +22,6 @@ import dev.doctor4t.wathe.index.WatheEntities;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.RegistryKey;
@@ -114,7 +114,7 @@ public final class HiroVictimFeignService {
         ServerTickEvents.END_SERVER_TICK.register(HiroVictimFeignService::tick);
         KillPlayer.AFTER.register(HiroVictimFeignService::afterKill);
         ResetPlayer.EVENT.register(HiroVictimFeignService::onReset);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> onDisconnect(server, handler.getPlayer()));
+        ServerDisconnectCleanup.register((player, server) -> onDisconnect(server, player));
         ServerEntityEvents.ENTITY_LOAD.register(HiroVictimFeignService::onEntityLoad);
         GameEvents.ON_FINISH_INITIALIZE.register((world, game) -> clearAll());
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> clearAll());

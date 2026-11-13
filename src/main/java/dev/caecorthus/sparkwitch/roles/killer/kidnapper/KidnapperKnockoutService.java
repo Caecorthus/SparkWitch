@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.killer.kidnapper;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsCharismaBridge;
 import dev.caecorthus.sparkwitch.compat.SparkStrengthCoronerCompat;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BuildShopEntries;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -18,7 +19,6 @@ import dev.doctor4t.wathe.record.replay.ReplayRegistry;
 import dev.doctor4t.wathe.util.ShopEntry;
 import java.util.List;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -46,8 +46,7 @@ public final class KidnapperKnockoutService {
         RoleAssigned.EVENT.register(KidnapperKnockoutService::assignForRole);
         ResetPlayer.EVENT.register(player -> KidnapperControlComponent.KEY.get(player).resetAll());
         KillPlayer.AFTER.register(KidnapperKnockoutService::afterKill);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                KidnapperControlComponent.KEY.get(handler.getPlayer()).reset());
+        ServerDisconnectCleanup.register((player, server) -> KidnapperControlComponent.KEY.get(player).reset());
         GameEvents.ON_WIN_DETERMINED.register((world, component, status, neutralWinner) -> clearWorld(world));
         GameEvents.ON_FINISH_FINALIZE.register((world, component) -> clearWorld(world));
         ServerLifecycleEvents.SERVER_STOPPING.register(server ->

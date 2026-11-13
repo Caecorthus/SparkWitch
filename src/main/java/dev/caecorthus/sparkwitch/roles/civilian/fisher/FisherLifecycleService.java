@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.fisher;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -11,7 +12,6 @@ import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -68,8 +68,7 @@ public final class FisherLifecycleService {
                 FisherPufferfishService.sweepAll(serverWorld.getServer());
             }
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, disconnected) ->
-                FisherPufferfishService.clearPlayer(handler.player.getUuid()));
+        ServerDisconnectCleanup.register((player, server) -> FisherPufferfishService.clearPlayer(player.getUuid()));
     }
 
     private static void grantRoundStartRods(ServerWorld world, GameWorldComponent game) {

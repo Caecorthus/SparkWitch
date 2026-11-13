@@ -5783,6 +5783,29 @@ Network:
   cooldown gate). When a dead owner loses the Magician role with a live puppet (a death that converts into a Wraith),
   the puppet ends with the same `PLAYBACK_FINISHED` replay line the playback tick records.
 
+2026-11 review pass, third wave (connection edges and per-tick cost):
+- Server disconnect cleanup: `util/ServerDisconnectCleanup.register((player, server) -> ...)` is how a module registers
+  per-player cleanup for a leaving player (40 registrations, each still at its own module, in its old order). Fabric
+  fires `ServerPlayConnectionEvents.DISCONNECT` once, usually from `channelInactive` on a Netty thread, where those
+  cleanups used to edit inventories, components, entities and plain maps. The helper runs them on the server thread
+  and keeps the order they were written for: before Wathe's ESCAPED kill (its listeners sit in the
+  `sparkwitch:disconnect_cleanup` phase, ordered before the default phase where Wathe queues the kill with
+  `server.execute`; the Dominator forced-shot and Schrödinger's Cat phases are the precedent) and before vanilla
+  saves the player (`mixin/ServerPlayNetworkHandlerDisconnectCleanupMixin` drains what is still queued at the head of
+  `onDisconnected`, which leads to `PlayerManager.remove`). Each task runs once. `PlayerHitboxHistory`, Junker, the
+  Hunter aim claims and the Magician keep their own default-phase `server.execute` (after the kill); the Dominator
+  and the Cat keep their own early phases. One seam for all of them stays an owner decision.
+- Client connection edges: `SparkWitchClient.resetConnectionState()` (login INIT, login DISCONNECT, play DISCONNECT;
+  all off the client thread) clears the volatile confirmed flag at once and hands the rest to the client thread.
+  Every module that resets per-session state on play DISCONNECT also resets it on JOIN, because a proxy backend
+  switch re-joins without DISCONNECT or login INIT; play-phase state only arrives after JOIN, so nothing of the new
+  session is wiped. The confirmed flag is never reset on JOIN (a direct connection's login query set it for this
+  same connection), so a switch to a backend without SparkWitch still leaves it set: open owner call.
+  `BlackRavenPerceptionScreenEffects.close()` defers to the render thread like its Specter and scope siblings.
+- Per-tick cost with unchanged results: `WitchFactorWorldComponent` builds the living role-colour set once per pass;
+  the Angler pufferfish tests contact before the role and participant lookups; the Dominator gaze tests the
+  one-block distance before the liveness and Wraith reads.
+
 ## Tofana Elixir Vocabulary
 
 - **Tofana protection**: A single-use protection granted by possessing Tofana Elixir. It cancels one otherwise valid, non-forced Wathe kill by another active player and consumes one elixir.

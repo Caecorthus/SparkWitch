@@ -79,7 +79,7 @@ public final class WraithPlayerComponent implements AutoSyncedComponent {
         int completedTasks = state.recordTaskCompletion();
         // Only the owner's task count changed; non-owners read only active/restricted, unchanged unless this very call
         // imported legacy data. / 只有本人的任务数改变；非本人只读取在场/受限标记，除非本次调用刚导入旧数据，否则不变。
-        if (!importPending && provider instanceof ServerPlayerEntity owner) {
+        if (!importPending && provider instanceof ServerPlayerEntity owner && owner.networkHandler != null) {
             KEY.syncWith(owner, (ComponentProvider) owner);
         } else {
             sync();

@@ -116,8 +116,9 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
         if (!(world instanceof ServerWorld serverWorld)) return;
         // Recipients cannot change the ledger, so one mature set serves the whole sync. / 接收者不会改变账本，一次同步共用一份成熟集合。
         Set<UUID> mature = matureLivingHolders(serverWorld);
+        Set<UUID> roleColored = livingRoleColored();
         for (ServerPlayerEntity player : serverWorld.getPlayers()) {
-            View view = view(player, mature);
+            View view = view(player, mature, roleColored);
             if (!view.equals(sentViews.get(player.getUuid()))) {
                 KEY.syncWith(player, (ComponentProvider) world, (buf, recipient) -> write(buf, recipient, view), this);
             }
@@ -133,9 +134,11 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     }
 
     /**
-     * Living role-coloured players of this world. The ledger set is empty in almost every round, so this is not shared
-     * across the recipients of one sync the way the mature set is.
-     * 本世界存活的职业色玩家。该账本集合在绝大多数对局中为空，因此不像成熟集合那样在一次同步的接收者之间共用。
+     * Living role-coloured players of this world. The ledger set is empty in almost every round (one emptiness test),
+     * but when it is not, every authorized viewer of a pass gets the same set, so each pass builds it once and shares
+     * it like the mature set instead of resolving the same players again per viewer.
+     * 本世界存活的职业色玩家。该账本集合在绝大多数对局中为空（只需一次判空）；但不为空时，同一轮中每名获准的观察者得到的是
+     * 同一个集合，因此每轮只构建一次并像成熟集合那样共用，而不是为每名观察者重新解析同一批玩家。
      */
     private Set<UUID> livingRoleColored() {
         if (state.roleColored().isEmpty()) return Set.of();
@@ -148,11 +151,11 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
         return Set.copyOf(result);
     }
 
-    private View view(ServerPlayerEntity recipient, Set<UUID> mature) {
+    private View view(ServerPlayerEntity recipient, Set<UUID> mature, Set<UUID> roleColored) {
         boolean authorized = recipient.getWorld() == world && WitchFactorService.isNetworkViewer(recipient);
         boolean pink = authorized && (GameWorldComponent.KEY.get(world).getRole(recipient) == SparkWitchRoles.grandWitch()
                 || state.mature(recipient.getUuid()));
-        return View.sanitized(authorized, pink, mature, authorized ? livingRoleColored() : Set.of());
+        return View.sanitized(authorized, pink, mature, authorized ? roleColored : Set.of());
     }
 
     /**
@@ -167,8 +170,9 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
         List<ServerPlayerEntity> players = serverWorld.getPlayers();
         boolean active = state.active();
         Set<UUID> mature = active ? matureLivingHolders(serverWorld) : Set.of();
+        Set<UUID> roleColored = active ? livingRoleColored() : Set.of();
         for (ServerPlayerEntity player : players) {
-            View view = active ? view(player, mature) : UNAUTHORIZED;
+            View view = active ? view(player, mature, roleColored) : UNAUTHORIZED;
             if (!view.equals(sentViews.get(player.getUuid()))) {
                 KEY.syncWith(player, (ComponentProvider) world, (buf, recipient) -> write(buf, recipient, view), this);
             }
@@ -184,7 +188,7 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     @Override public boolean shouldSyncWith(ServerPlayerEntity recipient) { return recipient.getWorld() == world; }
 
     @Override public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) {
-        write(buf, recipient, view(recipient, matureLivingHolders((ServerWorld) world)));
+        write(buf, recipient, view(recipient, matureLivingHolders((ServerWorld) world), livingRoleColored()));
     }
 
     private void write(RegistryByteBuf buf, ServerPlayerEntity recipient, View view) {

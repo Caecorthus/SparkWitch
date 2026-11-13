@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.item.rope.RopeShieldPolicy;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecShieldPierce;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -52,7 +53,7 @@ public final class GuardianAngelFeatureService {
         BlackoutEffect.BEFORE.register(GuardianAngelFeatureService::beforeBlackout);
         KillPlayer.BEFORE.register(GuardianAngelFeatureService::beforeKill);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> clearReconnectedTarget(handler.player));
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearDisconnectedTarget(handler.player));
+        ServerDisconnectCleanup.register((player, server) -> clearDisconnectedTarget(player));
         ReplayRegistry.registerSkillFormatter(GuardianAngelRules.SKILL_ID, GuardianAngelFeatureService::formatSkillUse);
         ReplayRegistry.registerGlobalEventFormatter(
                 SHIELD_ACTIVATED_EVENT,

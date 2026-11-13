@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponen
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignRules.Trigger;
 import dev.caecorthus.sparkwitch.roles.special.wraith.conversion.WraithBodyRoleAccess;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.WatheRoles;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -20,7 +21,6 @@ import dev.doctor4t.wathe.index.WatheEntities;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -81,7 +81,7 @@ public final class FiendFeignService {
         ServerTickEvents.END_SERVER_TICK.register(FiendFeignService::tick);
         KillPlayer.AFTER.register(FiendFeignService::afterKill);
         ResetPlayer.EVENT.register(FiendFeignService::onReset);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> onDisconnect(handler.getPlayer()));
+        ServerDisconnectCleanup.register((player, server) -> onDisconnect(player));
         ServerEntityEvents.ENTITY_LOAD.register(FiendFeignService::onEntityLoad);
         GameEvents.ON_FINISH_INITIALIZE.register((world, game) -> clearBodies());
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> clearBodies());

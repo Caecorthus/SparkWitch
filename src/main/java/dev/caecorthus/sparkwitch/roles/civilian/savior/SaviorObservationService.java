@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.savior;
 
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -14,7 +15,6 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -69,11 +69,7 @@ public final class SaviorObservationService {
                 onDeath(victim, source.getAttacker() instanceof ServerPlayerEntity killer ? killer : null);
             }
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            if (handler.player != null) {
-                forget(handler.player.getUuid());
-            }
-        });
+        ServerDisconnectCleanup.register((player, server) -> forget(player.getUuid()));
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> forgetAll());
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> forgetAll());
     }

@@ -1,9 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.killer.witchmaiden;
 
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
@@ -31,7 +31,7 @@ public final class FocusedFootstepsRuntime {
                 }
             }
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clear(handler.getPlayer()));
+        ServerDisconnectCleanup.register((player, server) -> clear(player));
     }
 
     private static void clear(ServerPlayerEntity player) {

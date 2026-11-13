@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -14,7 +15,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
@@ -125,7 +125,7 @@ public final class RopeStrangleService {
         ShouldPiercePsychoArmour.EVENT.register((victim, reason) -> RopeShieldPolicy.passesShields(reason));
         ServerTickEvents.END_SERVER_TICK.register(RopeStrangleService::tick);
         KillPlayer.AFTER.register((victim, killer, reason) -> onDeath(victim));
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> onGone(handler.player));
+        ServerDisconnectCleanup.register((player, server) -> onGone(player));
         ResetPlayer.EVENT.register(player -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 releaseSilently(serverPlayer);
