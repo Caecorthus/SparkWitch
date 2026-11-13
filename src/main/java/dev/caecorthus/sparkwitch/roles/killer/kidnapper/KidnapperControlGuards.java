@@ -23,21 +23,23 @@ import org.jetbrains.annotations.Nullable;
  * the acting player: {@link KidnapperControlComponent#isControlled()} and
  * {@link GameFunctions#isPlayerAliveAndSurvival}. While it holds, the five Fabric player callbacks fail (no empty-hand
  * exception: the client lock leaves no use or attack key at all), and
- * {@code mixin/kidnapper/KidnapperControlPayloadGuardMixin} drops the direct weapon payloads through
- * {@link #refusesPayload}. The listeners sit in a dedicated phase ordered before {@link Event#DEFAULT_PHASE} (Control
- * Expert stun and hypnosis precedent) and run on both sides; a player who is not controlled always gets PASS, so no
- * other role, faction or trait reaches a different result and the relative order of every other listener is
- * unchanged. Silent: the victim's screen is black and no new message is added.
- * Deliberately not covered, pending an owner decision (see the Kidnapper notes in CONTEXT.md): role-skill and shop
- * payloads, which the client lock does not stop either, and hotbar selection.
+ * {@code mixin/kidnapper/KidnapperControlPayloadGuardMixin} drops the weapon, role-skill and shop payloads (the
+ * Control Expert stun deny-list) through {@link #refusesPayload}: owner decision 2026-11, a controlled player uses no
+ * role skill and buys nothing, although the client lock leaves the ability keys and the inventory open. The listeners
+ * sit in a dedicated phase ordered before {@link Event#DEFAULT_PHASE} (Control Expert stun and hypnosis precedent) and
+ * run on both sides; a player who is not controlled always gets PASS, so no other role, faction or trait reaches a
+ * different result and the relative order of every other listener is unchanged. Silent: the victim's screen is black
+ * and no new message is added.
+ * Deliberately not covered (owner 2026-11): hotbar selection, which stays a client-side lock only.
  * 迷药“禁用攻击/使用”锁的服务端权威。此前该锁只存在于受害者客户端（{@code KidnapperControlledKeyMixin} 让攻击键与使用键
  * 始终返回 false），修改过的客户端在整个控制期间仍可使用道具、攻击与开枪。锁的判定与客户端完全一致，并对行动玩家读取：
  * {@link KidnapperControlComponent#isControlled()} 且 {@link GameFunctions#isPlayerAliveAndSurvival}。锁生效时五个
- * Fabric 玩家回调一律失败（没有空手例外：客户端锁根本不保留使用键与攻击键），直接的武器数据包则由
- * {@code mixin/kidnapper/KidnapperControlPayloadGuardMixin} 经 {@link #refusesPayload} 丢弃。监听器位于排在
+ * Fabric 玩家回调一律失败（没有空手例外：客户端锁根本不保留使用键与攻击键），武器、职业技能与商店数据包（即控场专家眩晕
+ * 拦截名单）则由 {@code mixin/kidnapper/KidnapperControlPayloadGuardMixin} 经 {@link #refusesPayload} 丢弃：所有者 2026-11
+ * 决定，被控制的玩家不能使用职业技能、不能购物，尽管客户端锁没有锁住技能键与物品栏。监听器位于排在
  * {@link Event#DEFAULT_PHASE} 之前的专用阶段（控场专家眩晕与催眠先例），两端都运行；未被控制的玩家始终得到 PASS，因此其他
  * 职业、阵营与天赋的结果不变，其他监听器的相对顺序也不变。静默拒绝：受害者本就黑屏，不新增任何提示。
- * 有意不覆盖，留待所有者决定（见 CONTEXT.md 的绑架者条目）：职业技能与商店数据包（客户端锁同样不拦截）以及快捷栏选择。
+ * 有意不覆盖（所有者 2026-11）：快捷栏选择，它仍只是客户端锁。
  */
 public final class KidnapperControlGuards {
     public static final Identifier CONTROL_PHASE = SparkWitch.id("kidnapper_control");

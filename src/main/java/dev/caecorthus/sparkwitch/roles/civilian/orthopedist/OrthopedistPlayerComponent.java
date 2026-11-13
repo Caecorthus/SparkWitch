@@ -81,7 +81,8 @@ public final class OrthopedistPlayerComponent
     public void serverTick() {
         if (cooldownTicks > 0) {
             cooldownTicks--;
-            if ((cooldownTicks == 0 || cooldownTicks % 20 == 0) && player instanceof ServerPlayerEntity owner) {
+            if ((cooldownTicks == 0 || cooldownTicks % 20 == 0) && player instanceof ServerPlayerEntity owner
+                    && owner.networkHandler != null) {
                 // Observers only read the Bone Setting bit, which every write syncs to all (and every new observer gets a
                 // full resend); the countdown checkpoint goes to the owner alone.
                 // 观察者只读取正骨标记，而每次写入都会同步给所有人（新观察者也会收到补发）；倒计时校准只发给本人。

@@ -70,27 +70,6 @@ public final class GuardianAngelFeatureService {
         player.removeStatusEffect(StatusEffects.BLINDNESS);
     }
 
-    /** Restores private ownership after reconnect without restarting either cooldown. / 重连时恢复私有归属，但不重置任一冷却。 */
-    public static void resumePlayer(ServerPlayerEntity player) {
-        Role role = GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player);
-        if (!GuardianAngelRules.isGuardianAngel(role)) {
-            detachPlayer(player);
-            return;
-        }
-        player.removeStatusEffect(StatusEffects.BLINDNESS);
-        GuardianAngelPlayerComponent component = GuardianAngelPlayerComponent.KEY.get(player);
-        UUID targetUuid = component.getShieldTargetUuid();
-        if (targetUuid != null) {
-            ServerPlayerEntity target = player.getServer().getPlayerManager().getPlayer(targetUuid);
-            if (target == null || !target.hasStatusEffect(GuardianAngelEffects.guardianShield())) {
-                component.clearShieldTarget(targetUuid);
-                SHIELD_OWNERS_BY_TARGET.remove(targetUuid, player.getUuid());
-            } else {
-                SHIELD_OWNERS_BY_TARGET.put(targetUuid, player.getUuid());
-            }
-        }
-    }
-
     /** Clears owner state on role exit while an applied target effect finishes independently. / 身份退出时清除持有者状态，但已施加的目标效果独立结束。 */
     public static void detachPlayer(ServerPlayerEntity player) {
         GuardianAngelPlayerComponent component = GuardianAngelPlayerComponent.KEY.get(player);

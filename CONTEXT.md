@@ -346,14 +346,15 @@ Current build baseline:
   SparkTraits fake bodies, camera-bound bodies, Magician decoys and Fiend feign-death corpses; a deliberate drag on a
   decoy tells the Kidnapper.
   - Knockout Drug control lock (2026-11 review pass): the client lock (`client/mixin/kidnapper/*`: attack key, use
-    key, hotbar keys and scroll, plus the black HUD) is now backed by the server for attack and use.
-    `KidnapperControlGuards` fails the five Fabric player callbacks in its own phase before the default one (both
-    sides, no empty-hand exception) and `mixin/kidnapper/KidnapperControlPayloadGuardMixin` drops the direct weapon
-    payloads, both only while the acting player is `isControlled()` and alive in survival (the client's own
-    predicate). The payload set is `VendettaTargetingPacketGuard.isTargetPayload` (Wathe knife and gun, Savior
-    pistol, SparkStrength Serial Killer pistol and Bandit revolver), reused, not copied. Open owner calls, not
-    enforced by the server: role-skill and shop payloads (the client lock does not stop the ability key or the
-    inventory either; several newer skills refuse a controlled caster in their own handler) and hotbar selection.
+    key, hotbar keys and scroll, plus the black HUD) is backed by the server. `KidnapperControlGuards` fails the five
+    Fabric player callbacks in its own phase before the default one (both sides, no empty-hand exception) and
+    `mixin/kidnapper/KidnapperControlPayloadGuardMixin` drops payloads, both only while the acting player is
+    `isControlled()` and alive in survival (the client's own predicate). Owner decision 2026-11: a controlled player
+    also uses no role skill and buys nothing, so the dropped set is the whole stun deny-list
+    (`ControlExpertStunRules.isBlockedPayload`: Wathe knife, gun and `wathe:storebuy`, the only purchase path, plus
+    every classified role-skill payload), reused, not copied, and dropped silently. The client lock still leaves the
+    ability keys and the inventory open; those presses simply do nothing. Hotbar selection stays a client-side lock
+    only (owner 2026-11).
 - `roles/killer/blackraven/`: the Black Raven, a police variant since 2026-10-21 (the package keeps its old
   `killer` path; moving it needs owner approval). Feather Blade marks, owner-private Perception state,
   bound ledger, and lifecycle cleanup. It has no shop of its own, like the Vigilante (the killer shop
@@ -1754,7 +1755,12 @@ Current build baseline:
     blackout blindness (Veteran parity); when a player inside the Savior's 64-block, 120° view is killed by another
     player (intercepted deaths and the Savior's own kills excluded), `SaviorObservationService` takes half of each
     weapon's own effective cooldown length off its own remaining cooldown (never a forced remainder,
-    `SaviorCooldowns`).
+    `SaviorCooldowns`). The view is sampled once per kill attempt (owner 2026-11), not every tick:
+    `mixin/savior/GameFunctionsSaviorObservationMixin` wraps Wathe's five-argument `killPlayer`
+    (`@WrapMethod` with `finally`, like the Judge's and SparkFactionAPI's kill snapshot), so the sample is taken while
+    the victim's pre-kill state is intact, read by `KillPlayer.AFTER`, and dropped when the attempt returns. The
+    filters are the old snapshot's: a victim that already was a spectator or Wathe-dead (a Hiro feign's delayed
+    death, a swallowed player) is seen by nobody. A vanilla death outside `killPlayer` is sampled on the spot.
   - Payload lists: `use_savior_skill` is on the stun (and so hypnosis / crow body), Fear, Seeker, Rift and Knight G
     lists; `savior_pistol_shoot` on stun, Seeker, Rift, the Knight seal and the Vendetta guard, not Fear; the
     lightsaber swing/ignite sound intents are deliberately on none (`SaviorPayloadClassificationTest`).
@@ -5805,6 +5811,24 @@ Network:
 - Per-tick cost with unchanged results: `WitchFactorWorldComponent` builds the living role-colour set once per pass;
   the Angler pufferfish tests contact before the role and participant lookups; the Dominator gaze tests the
   one-block distance before the liveness and Wraith reads.
+
+Owner decisions 2026-11 on the review pass's open items:
+- Kidnapper control also blocks role skills and the shop on the server (the stun deny-list); hotbar selection stays
+  client-only. See the Kidnapper entry.
+- Savior observation is sampled per kill attempt, not per tick. See the Savior entry.
+- Free failed factor casts are closed (`WitchFactorService.attemptSpread` / `SpreadOutcome`): a refusal that only
+  hidden state explains (the target holds a dormant factor, or its role carries none) spends no quota and inserts
+  nothing, but the Grand Witch and Emma pay mana and cooldown and get the same answer as for a spread. A refusal the
+  caster can see the reason for, or that hits every target alike, stays free: no target, a SparkFactionAPI veto, a
+  closed quota, a mature holder in the caster's own view, Emma's explicit "invalid target" / "no capacity" lines.
+  Open refusals are judged first, so a hidden one is only reported where an ordinary target would have succeeded.
+- The Guardian Angel's shield is not spent on the three Knight duel deaths (`duel_suicide`, `duel_failed`,
+  `duel_interference`: forced kills it could never stop). Mental breakdown and the ESCAPED disconnect are unchanged.
+- The Magician (ability and disguise pick), the Saboteur, the Bell toll and the Murderous Witch's Death Ray (opening,
+  firing, and the armed window, which closes when the round leaves ACTIVE) require the game status to be exactly
+  ACTIVE, like the newer roles; Wathe's `isRunning()` is also true during the post-win STOPPING fade.
+- `GuardianAngelFeatureService.resumePlayer` (no caller: a reconnecting Guardian Angel is terminated on join) is
+  deleted.
 
 ## Tofana Elixir Vocabulary
 

@@ -25,6 +25,7 @@
     "savior.PlayerInventorySaviorGunMixin",
     "savior.ScreenHandlerSaviorGunMixin",
     "savior.NoellesAssassinSaviorGuessMixin",
+    "savior.GameFunctionsSaviorObservationMixin",
     "JudgeKillCompletionMixin",
     "JudgeLivingLethalDamageMixin",
     "JudgePlayerLethalDamageMixin",
