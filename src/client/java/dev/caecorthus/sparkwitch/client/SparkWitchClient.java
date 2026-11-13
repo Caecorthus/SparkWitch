@@ -153,6 +153,11 @@ public final class SparkWitchClient implements ClientModInitializer {
         // 本能、描边与盲人钩子读取的本地观察者事实，按世界渲染 pass 缓存。
         LocalViewerSnapshot.register();
         SecondaryAbilityController.registerKeyBinding();
+        // 犯罪推理学家：推理菜单、隐身充能与 HUD。
+        dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule.register();
+        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(
+                (context, tickCounter) ->
+                        dev.caecorthus.sparkwitch.client.hud.CriminalReasonerHudRenderer.render(context));
         BlackRavenClientModule.register();
         GrandWitchClientModule.register();
         ApprenticeClientModule.register();
@@ -298,6 +303,12 @@ public final class SparkWitchClient implements ClientModInitializer {
                     }
                 } else if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
+                } else if (role != null
+                        && dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules.ROLE_ID
+                                .equals(role.identifier())) {
+                    // The reasoner's ability key opens its own reasoning menu. / 推理学家的技能键打开推理菜单。
+                    dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule
+                            .requestSelection(client);
                 } else if (JunkerRules.isRagpicker(role)) {
                     // Real role only; a dead or swallowed Ragpicker's press is dropped here, not sent as a witch skill.
                     // 仅限真实职业；死亡或被吞下的拾荒者的按键在此被丢弃，不会作为魔女技能发送。
@@ -563,6 +574,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         DoubleBarrelMuzzleClient.reset();
         WitchMaidenClientModule.clear();
         TarotDivinationClientState.clear();
+        dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule.clear();
         JudgeClientModule.clear();
         ProphetClientModule.clear();
         SeekerClientModule.reset();

@@ -299,6 +299,11 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, HiroWitchificationComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HiroWitchificationComponent::new);
+        // 犯罪推理学家：推理记录、胜利进度与隐身充能。不跨命继承。
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerComponent::new);
     }
 
     @Override

@@ -112,6 +112,8 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
     public static final Identifier STOWAWAY_ID = StowawayRules.ROLE_ID;
     public static final Identifier SCHRODINGERS_CAT_ID = SchrodingersCatRules.ROLE_ID;
+    public static final Identifier CRIMINAL_REASONER_ID =
+            dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
     public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
     public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
@@ -172,6 +174,7 @@ public final class SparkWitchRoleRegistry {
     private static Role stowaway;
     private static Role schrodingersCat;
     private static Role insider;
+    private static Role criminalReasoner;
     private static Role abyssListener;
     private static Role potionGunner;
     private static Role riftwalker;
@@ -426,6 +429,11 @@ public final class SparkWitchRoleRegistry {
     public static Role schrodingersCat() {
         ensureRegistered();
         return schrodingersCat;
+    }
+
+    public static Role criminalReasoner() {
+        ensureRegistered();
+        return criminalReasoner;
     }
 
     public static Role insider() {
@@ -1170,6 +1178,16 @@ public final class SparkWitchRoleRegistry {
         // 追加在最后以保持既有注册顺序不变；嘉豪阵营成员（原生 Wathe JIAHAO），参数与黑警相同（伪装情绪但有任务、平民体力、
         // 可见回合时间）。从不随机抽取：中立分配完成后才与已抽到的黑警配对（D1）。不是魔女技能职业：不加入
         // isRegisteredSparkWitchRole。
+        // Criminal Reasoner: neutral, fake sanity, passenger-grade stamina, carries the neutral master key.
+        // 犯罪推理学家：中立、假理智、乘客级体力，携带中立万能钥匙。必须在 Insider 之前注册。
+        criminalReasoner = SparkFactionApi.registerRole(FactionRoleDefinition.builder(CRIMINAL_REASONER_ID,
+                        FactionIds.NEUTRAL)
+                .color(dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .build());
         insider = SparkFactionApi.registerRole(FactionRoleDefinition.builder(INSIDER_ID, SparkWitchFactions.JIAHAO)
                 .color(InsiderRules.COLOR)
                 .moodType(Role.MoodType.FAKE)
@@ -1327,6 +1345,7 @@ public final class SparkWitchRoleRegistry {
                 // Shared skill path (Witches' Sabbath) only; grants no witch skill panel access (the panel reads the
                 // role's accomplice-variant hooks, AGENTS.md panel rule). 仅用于共享技能路径（魔女集会）；不授予魔女技能
                 // 面板资格（面板读取本职业的特殊共犯回调，AGENTS.md 面板规则）。
-                || role == riftwalker;
+                || role == riftwalker
+                || role == criminalReasoner;
     }
 }
