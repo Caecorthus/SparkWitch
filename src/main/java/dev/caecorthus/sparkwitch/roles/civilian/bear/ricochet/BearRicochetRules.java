@@ -44,10 +44,10 @@ public final class BearRicochetRules {
     public static final Identifier POTION_SHELL = Identifier.of("sparkwitch", "potion_shell");
     public static final Identifier POTION_BACKBLAST = Identifier.of("sparkwitch", "potion_backblast");
     /**
-     * Savior pistol (PR #200): a gunshot for the Rys-T. Its up-to-10 same-tick kill retries share one {@link ShotKey},
-     * so the ricochet memo keeps the "one roll per shot" rule (H2) and a deflection holds for every retry.
-     * 救世主手枪（PR #200）：对 Rys-T 而言是一次枪击。它在同一刻内最多 10 次的击杀重试共用一个 {@link ShotKey}，因此跳弹记忆仍遵守
-     * “每枪只掷一次骰”（H2），一次弹开对每次重试都有效。
+     * Savior pistol (PR #200): a gunshot for the Rys-T. Its up-to-10 same-tick kill retries are one call burst of one
+     * shooter ({@link AttackSource}), so they share one roll (H2) and a deflection holds for every retry.
+     * 救世主手枪（PR #200）：对 Rys-T 而言是一次枪击。它在同一刻内最多 10 次的击杀重试属于同一射手的同一调用批次
+     * （{@link AttackSource}），因此共用一次掷骰（H2），一次弹开对每次重试都有效。
      */
     public static final Identifier SAVIOR_PISTOL_KILL = Identifier.of("sparkwitch", "savior_pistol_kill");
 
@@ -210,12 +210,36 @@ public final class BearRicochetRules {
     }
 
     /**
-     * H2 memo key: one roll per shot. A second {@code killPlayer} for the same victim, killer, reason and origin in the
-     * same server tick (SparkTraits Heavy Artillery, Second Strike) reuses the first answer. A different origin (two
-     * grenades) or tick rolls again. / H2 记忆键：每一枪只掷一次骰。同一服务端刻内对同一受害者、击杀者、死因与来源的第二次
-     * {@code killPlayer}（SparkTraits 重炮、二连击）沿用第一次的结果。来源不同（两颗手雷）或刻不同则重新掷骰。
+     * H2 memo key (owner 2026-11-13: one attack source, one roll): the wearer and the {@link AttackSource}. Every
+     * attempt of one source on one wearer reuses the first answer, whatever its death reason or origin (Savior settle
+     * retries, Heavy Artillery, Second Strike, the TR fallback); two sources roll apart even from one shooter in one tick.
+     * H2 记忆键（所有者 2026-11-13：一个攻击来源只掷一次骰）：佩戴者与 {@link AttackSource}。同一来源对同一佩戴者的每次尝试都
+     * 沿用第一次的结果，无论死因或来源点（救世主结算重试、重炮、二连击、TR 后备效果）；两个来源即使出自同一射手、同一刻也分别掷骰。
      */
-    public record ShotKey(UUID victim, @Nullable UUID killer, Identifier reason, long tick, @Nullable Vec3d origin) {
+    public record ShotKey(UUID victim, AttackSource source) {
+    }
+
+    /**
+     * One attack source, the best identity the attempt carries (owner 2026-11-13). In order: an open SparkWitch
+     * {@code RangedOriginScope} ({@code frame}: a projectile entity's UUID, one shell's token, or the scope's own
+     * identity), plus SparkStrength's innermost blast centre so a blast it chains inside that scope stays apart; else
+     * SparkStrength's blast alone (one blast, one tick); else the call burst: the killer entity (its network id, so a
+     * Magician's stand-in is not the Magician) in one server tick. The burst is the fallback for bare hitscan: it cannot
+     * tell two scope-less weapons of one killer landing in one tick apart.
+     * 一个攻击来源，取本次尝试所带的最佳身份（所有者 2026-11-13）。依次为：打开的 SparkWitch {@code RangedOriginScope}
+     * （{@code frame}：投射物实体的 UUID、一发炮弹的令牌或该作用域自身的身份），并附上 SparkStrength 最内层爆心，使其在该作用域内
+     * 连锁引发的爆炸仍各自独立；否则单独取 SparkStrength 爆炸（一次爆炸、一刻）；否则取调用批次：同一服务端刻内的击杀者实体（按其
+     * 网络 id，因此魔术师的替身不等于魔术师本人）。调用批次是裸命中扫描的回退：它分不清同一击杀者在同一刻命中的两件无作用域武器。
+     */
+    public record AttackSource(@Nullable Object frame, @Nullable Vec3d blast, @Nullable Integer killer, long tick) {
+        public static AttackSource of(@Nullable Object frame, @Nullable Vec3d blast, @Nullable Integer killer,
+                                      long tick) {
+            if (frame != null) {
+                // A scoped source keeps its identity across ticks. / 有作用域的来源跨刻保持身份。
+                return new AttackSource(frame, blast, null, 0L);
+            }
+            return blast != null ? new AttackSource(null, blast, null, tick) : new AttackSource(null, null, killer, tick);
+        }
     }
 
     /** An injectable uniform roll in [0, 1). / 可注入的 [0, 1) 均匀随机数。 */

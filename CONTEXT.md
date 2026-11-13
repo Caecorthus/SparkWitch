@@ -1735,8 +1735,8 @@ Current build baseline:
     spend one shield layer); SparkTraits skips Last Escape / Last Stand / Depression for them, they pierce psycho
     armour, and the Saint and NoellesRoles Iron Man / whiskey / Jester mixins let them through (the swallowed
     no-body rule still applies). Both are Knight-duel interference reasons; the Fiend's D5 hit reward counts the
-    pistol as GUN and the lightsaber as BAT; the Rys-T may deflect the pistol (ranged set; its same-tick memo makes a
-    deflection hold for every settle retry).
+    pistol as GUN and the lightsaber as BAT; the Rys-T may deflect the pistol (ranged set; the settle retries are one
+    call burst of one shooter, so one roll holds for every retry).
   - Innocent kill (SparkFactionAPI effective faction CIVILIAN, the Knight/Recruit rule): Wathe's policy 4 ticks later,
     only while the shooter is still alive in the round: the used weapon is taken; a killer-feature shooter loses only
     that; otherwise a Savior's hidden revolver (not a new one) is dropped, mood 0, gun pickup blocked, `KILL_SHOOTER`
@@ -2031,7 +2031,8 @@ Current build baseline:
   - Shared seams added by WP0: `headset/` (`HeadsetComponent`, CCA `sparkwitch:headset`, NEVER_COPY, one saved stack
     synced to its owner, appended last; `HeadsetSlots` facade `get`/`set`/`accepts` (earplugs or ComTac VIII)/`wears`,
     `HANDLER_SLOT_ID = 46`; the Slot and screens are WP4, below), `util/hitscan/RangedOriginScope` (per-thread origin deque
-    `call`/`run`/`current`, null or non-finite = unknown origin; WP3 pushes at the sources),
+    `call`/`run`/`current`, null or non-finite = unknown origin; WP3 pushes at the sources; since 2026-11-13 every scope
+    is also one attack source, `currentSource()`, fresh per scope or the `source` passed to `call`/`run`),
     `SmokeCloudService.carveTunnel` (no-op until WP5), `SparkWitchApi.carveSmoke(ServerWorld, Vec3d, double)` and the
     client facade `api.client.BearSmokeViewApi` (`opticalDepth`, `hasSmoke`; render thread).
   - Economy (`BearEconomyService`, USEC model): balance 0 in its own `ON_FINISH_INITIALIZE` phase, +50 per task
@@ -2091,13 +2092,25 @@ Current build baseline:
     calls
     `BearRicochetService.interceptKill`: a non-forced kill of a living participant WEARING the Rys-T in the head slot
     (D1) by someone else for a reason in `BearRicochetRules.RANGED_REASONS` (D2; blasts in `BLAST_REASONS`) rolls
-    `RICOCHET_CHANCE` once per shot (`RicochetMemo`, key victim + killer + reason + server tick + origin, so Heavy
-    Artillery's and Second Strike's re-entries reuse it); visor up + origin in the head-yaw front hemisphere (D3)
+    `RICOCHET_CHANCE` once per attack source and wearer (owner 2026-11-13, "one source, one roll"; `RicochetMemo`, key
+    wearer + `BearRicochetRules.AttackSource`): every further attempt of that source reuses the first answer whatever
+    its reason or origin, silently (no second ping, crack, sparks or daze), and the first attempt's origin decides the
+    front test and the presentation. The source is, in order: the innermost open `RangedOriginScope` (the grenade,
+    throwing axe, shuriken and crimson skull pass their entity UUID, so the identity survives ticks; the TR shell one
+    token per blast; the Magician puppet a fresh one per scope), plus SparkStrength's innermost blast centre so a blast
+    it chains inside that scope (a bomb drone broken by a Wathe grenade) rolls apart; else SparkStrength's blast alone
+    (centre + tick); else the call burst: the killer entity's network id + server tick (the Savior settle loop, Heavy
+    Artillery, Second Strike, Bandit and USEC shots; each Niko burst bullet is its own tick). The memo keeps an entry
+    for 2400 ticks after its last use (the NoellesRoles axe's 120 s life), drops it when the tick runs backwards and
+    evicts the least recently used beyond 512. A Charon's expired pardon replays its held kill 10 ticks later outside
+    any scope; that replay never rolls (`FerrymanPardonService.isReplayingHeldKill`): the held kill already passed this
+    hook un-deflected. Visor up + origin in the head-yaw front hemisphere (D3)
     never rolls. A ricochet only cancels the kill: the shooter's innocent-shot punishment and mood loss (decided before
     `killPlayer` in Wathe's receiver and USEC's `killAndPunish`) stay, kill-time effects (Conscience, owner Q4 "吃不到") do not
-    fire. TR survivor debuffs still apply, and a worn Rys-T rolls for them on its own (owner Q3 2026-11-06,
-    `BearRicochetService.deflectsAfterEffect` from `TrShellEffect`; presentation only if the kill roll of the same
-    blast did not already play it). Origin order (`BearRicochetRules.resolveOrigin`): an open
+    fire. TR survivor debuffs still apply; owner Q3 (2026-11-06) gave them a roll of their own, superseded 2026-11-13:
+    `BearRicochetService.deflectsAfterEffect` from `TrShellEffect` is another attempt of the same shell (the token
+    its kill was scoped with), so a deflected kill also deflects the debuff silently, a failed roll is not rolled
+    again, and a survivor no kill attempt of that shell reached gets the shell's one roll there. Origin order (`BearRicochetRules.resolveOrigin`): an open
     `RangedOriginScope` (its unknown scope stays unknown, `isOpen()` added for this), else for blasts SparkStrength's
     `AttackOriginScope.currentBlast()` by reflection (`SparkStrengthBlastOrigin`, fail = unknown), else for direct
     fire the killer's eye; unknown or within 0.3 blocks of the wearer is "not front". Scopes are pushed only where
