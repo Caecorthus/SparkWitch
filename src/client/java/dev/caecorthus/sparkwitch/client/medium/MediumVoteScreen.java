@@ -145,7 +145,7 @@ public final class MediumVoteScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
-        Boolean choice = MediumVoteClient.choice(windowId);
+        Boolean choice = MediumVoteClient.answer(windowId);
         boolean yesHot = overButton(yesX, mouseX, mouseY);
         boolean noHot = overButton(noX, mouseX, mouseY);
         boolean yesChosen = Boolean.TRUE.equals(choice);
@@ -276,7 +276,7 @@ public final class MediumVoteScreen extends Screen {
     }
 
     private void answer(boolean yes) {
-        MediumVoteClient.submit(windowId, yes);
+        MediumVoteClient.submitAnswer(windowId, yes);
         close();
     }
 

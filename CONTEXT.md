@@ -38,8 +38,9 @@ BEAR (`sparkwitch:bear`, 2026-11-05) is an ordinary civilian (never a police var
 fires smoke-only 40 mm rounds from an M32A1 launcher anyone may use, and buys a ricocheting Rys-T helmet and CENS
 earplugs worn in a fifth "headset" slot; every BEAR item is deleted when its holder dies.
 The Medium (`sparkwitch:medium`, 通灵师, contributed in PR #209) is an ordinary task civilian that earns coins from
-tasks and spends them on 通灵 (ability key G: a yes/no question the dead answer from a vote screen) and 招魂 (Role
-Skill 2: a secretly bound player's vote weighs 3).
+tasks and spends them on 通灵 (ability key G: a yes/no question the dead answer from a vote screen), 幽灵的加护
+(Ghost's Blessing, Role Skill 2: the dead vote which of four blessings the Medium receives) and 招魂 (picked in the
+inventory screen: a secretly bound player's vote weighs 3).
 远野汉娜 Tono Hanna (`sparkwitch:hanna`, contributed in PR #212 and reworked in review) is a task civilian with a mana
 pool that only tasks refill (40 at the deal, +20 per task), whose shared ability key (G) spends 40 mana on a 10 s float
 (Speed II, silent for others, hidden from every instinct) that another living player's touch ends with a 10 s sanity
@@ -2701,75 +2702,174 @@ Current build baseline:
     The 1×–6× variable zoom (2026-10-08, same machine, vanilla, vsync off, a hill-top demo-world view, two 10 s windows
     each, other builds running) costs nothing extra at 1×: PiP 1× 106/111, PiP 6× 91/99, Full-Screen Zoom 1× 156/155,
     6× 151/163 FPS.
-- `roles/civilian/medium/`: the Medium (`sparkwitch:medium`, 通灵师, ghost-fire teal `0x54E0B8`), contributed in
-  PR #209 and fixed in review (owner decisions 2026-11-10); every number and the death-tier maths live in
-  `MediumRules`. Client in `client/medium/`. No mixins.
-  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
-    no appearance condition) registered after the Specter, right before the Insider, and guessed in the civilian block
+- `roles/civilian/medium/`: the Medium (`sparkwitch:medium`, 通灵师, ghost-fire teal `0x54E0B8`), contributed in PR #209
+  and fixed in review (owner decisions 2026-11-10); 幽灵的加护 and the inventory 招魂 follow the owner decisions of
+  2026-11-13. Every number and the death-tier maths live in `MediumRules`. Client in `client/medium/`; one client mixin,
+  `client/mixin/medium/MediumHauntInventoryScreenMixin`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock, no
+    appearance condition) registered after the Specter, right before the Insider, and guessed in the civilian block
     right after BEAR. Drawn by Wathe's civilian pass, never a police variant or slot; no witch skill (not in
-    `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel; in neither Black Raven disguise list
-    (never claimable). `SparkWitchRoles` exposes `MEDIUM_ID` and `medium()`. The letter and title text still fall back
-    to the Wathe civilian wording.
-  - Hubs: `MediumFeatureService` in `SparkWitchEvents` (economy, 通灵, 招魂, in that order) and
-    `client/medium/MediumClientModule` in `SparkWitchClient`, both after the BEAR hub and before USEC, which stays
-    last. Payload types and server receivers are in `SparkWitchPackets`.
-  - State: `MediumPlayerComponent` (`sparkwitch:medium`, owner-synced, `NEVER_COPY`, in the CCA list before the
-    Charon's three: 通灵 cooldown and the 招魂-bound targets in binding order; cleared on death unless SparkTraits Last Stand intercepted
-    it, on reset, round end and role change; an alive spectator, swallowed or inside a Rift gate, keeps it and the
-    cooldown keeps counting) and the world `MediumSeanceComponent` (`sparkwitch:medium_seance`, the
-    world component before the Charon's Soul Moment: the one live vote window). The window syncs per recipient: the question goes only to the voters
-    (`MediumRules.mayVote`) and to the caster; another Medium gets the countdown and the window serial (`getWindowId`,
-    real serials start at 1); every other client receives no packet at all (`shouldSyncWith`; a recipient that stops
-    being informed gets one resetting packet), and the caster's identity is never synced. Votes and the frozen bindings are server-only and never persisted.
+    `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel (招魂 is a role-owned drawer on the
+    inventory screen, not that panel); in neither Black Raven disguise list (never claimable). `SparkWitchRoles` exposes
+    `MEDIUM_ID` and `medium()`. The letter and title text still fall back to the Wathe civilian wording.
+  - Hubs: `MediumFeatureService` in `SparkWitchEvents` (economy, 通灵, 幽灵的加护, 招魂, in that order:
+    `MediumEconomyService`, `MediumSkillService`, `MediumBlessingService`, `MediumSecondSkillService`) and
+    `client/medium/MediumClientModule` in `SparkWitchClient`, both after the BEAR hub and before USEC, which stays last.
+    Payload types and server receivers are in `SparkWitchPackets`: C2S `use_medium_skill`, `use_medium_blessing`,
+    `submit_medium_seance`, `submit_medium_haunt_target` and `submit_medium_vote`; S2C `open_medium_seance_input` and
+    `medium_seance_result`. There is no 招魂 key or menu payload. `submit_medium_vote` carries a choice index and
+    `medium_seance_result` and both component sync packets carry the blessing fields, so client and server jars must
+    match.
+  - State: `MediumPlayerComponent` (`sparkwitch:medium`, owner-synced, `NEVER_COPY`, in the CCA list before the Charon's
+    three: the 通灵 cooldown, the 加护 cooldown, the 招魂-bound targets in binding order and the corpse-sight set, i.e.
+    the entity UUIDs of the corpses the 尸体透视 blessing outlines, unioned over repeated grants; NBT keys
+    `SeanceCooldownTicks`, `BlessingCooldownTicks`, `BoundTargets`, `CorpseSight`; the owner packet is those four in
+    that order, sent on every write and once per second while a cooldown runs, and the client counts both cooldowns down
+    locally; `assignForRole` sets the opening cooldowns, which hold until the round is running; cleared on death unless
+    SparkTraits Last Stand intercepted it, on reset, round end and role change; an alive spectator, swallowed or inside
+    a Rift gate, keeps it and both cooldowns keep counting) and the world `MediumSeanceComponent`
+    (`sparkwitch:medium_seance`, the world component before the Charon's Soul Moment: the one live vote window, of
+    either `MediumWindowKind`, `QUESTION` for 通灵 or `BLESSING` for 加护, with its serial, question, disabled-blessing
+    mask and caster). The window syncs per recipient, on start, on end and once per second: the content (the question,
+    or a blessing window's disabled mask) goes only to the voters (`MediumRules.mayVote`) and to the caster
+    (`isRevealed()` on their clients); another Medium gets the countdown, the window serial (`getWindowId`, real serials
+    start at 1) and the kind; every other client receives no packet at all (`shouldSyncWith`; a recipient that stops
+    being informed gets one resetting packet), and the caster's identity is never synced. Votes (voter to choice index,
+    in casting order) and the frozen bindings are server-only and never persisted. The `MediumWindowKind` and
+    `MediumBlessing` ordinals are the wire, NBT and replay indices (`SPEED` 0, `SHIELD` 1, `CORPSE_SIGHT` 2, `SANITY` 3;
+    new entries only at the end).
   - Coins (`MediumEconomyService`, the USEC/Accountant task-pay model): balance overwritten with 0 for every living
     final Medium in its own `ON_FINISH_INITIALIZE` phase after the default one, +50 per completed task through
     `addToBalance` (never for a SparkTraits Impostor or an unknown answer, `SparkTraitsTaskIncomeBridge`), no passive
     income; `CanSeeMoney` ALLOW for a living Medium.
-  - Death tier: `tier = floor(deaths / max(1, roster / 6))` over Wathe's roster and dead set, read live. It only
-    discounts 通灵 (300 − 50 per tier, floor 0) and shortens the 通灵 cooldown a use starts (60 s − 10 s per tier,
-    floor 0; the 180 s opening cooldown is tier 0). 招魂 is a flat 50 with no cooldown.
-  - Caster gate (`MediumSkillService.mayUse`, the Specter/Dominator `mayCast` set, shared by both skills and both paid
-    confirmations): ACTIVE round, raw role, alive, not spectating/creative, not swallowed, not held by a Ninja grapple,
-    not silenced, not SparkTraits role-skill blocked; each entry then checks `GrandWitchFearService
-    .denyRoleSkillIfFeared` last. The four caster ids (`use_medium_skill`, `submit_medium_seance`,
-    `use_medium_second_skill`, `submit_medium_haunt_target`) are on the Grand Witch Fear, Rift occupant, Control
-    Expert stun and Seeker remote lists; only the two 通灵 ids are on the Knight duel lock (skill-key-2 rule).
-    `submit_medium_vote` is deliberately on none of them: only a dead round member may send it and its handler checks
-    that itself.
-  - 通灵 (`MediumSkillService`, G): the empty `use_medium_skill` makes the server send `open_medium_seance_input` with
-    the live price; nothing is charged. The paid act is `submit_medium_seance` (question ≤ 20 code points, formatting
-    codes stripped, `MediumRules.sanitizeQuestion`), which re-checks every gate, the cooldown, the price and that no
-    window is live, then charges, starts the cooldown, opens the 20 s world window with the caster's bindings frozen
-    and records `sparkwitch:medium_seance_skill` (the question is in the replay line). A 通灵 with nobody dead still
-    charges and returns "no response" (owner 2026-11-10: kept; a refusal would tell the Medium for free whether
-    anyone has died).
-  - Vote (owner 2026-11-10: a GUI, not chat): a dead round member (`MediumRules.mayVote`: running round, has a role,
-    in Wathe's dead set, not a Wraith, restricted or promoted (owner 2026-11-10: a Wraith is back on the train and
-    keeps the ability key for its own play), and not held by a SparkTraits Last Stand) answers with `submit_medium_vote` (window serial + answer,
-    `MediumSkillService.vote`; a serial that is not the live window's is dropped); each voter's latest answer counts,
-    and a voter no longer in the dead set at the tally is dropped. At window end `onSeanceEnded` weighs a bound voter 3 (bindings frozen at the start plus any bought during
-    the window), breaks a tie with the last vote cast, and sends the caster `medium_seance_result`: the question and
-    the answer always, the tie note and each bound dead voter's own answer only when the round's deaths are strictly
-    over half (the server omits them otherwise). The window runs its full length even if the Medium dies; an offline
-    caster gets nothing.
-  - 招魂 (`MediumSecondSkillService`, Role Skill 2): `use_medium_second_skill` opens the menu of every other online
-    round member in the caster's world, alive or dead; the paid act is `submit_medium_haunt_target` (never the caster,
-    round member, online, not yet bound, gates and price re-checked). The target is never told; bindings last for the round and record
-    `sparkwitch:medium_haunt_skill`.
-  - Forced cooldown: store 22 `sparkwitch:medium_seance_skill` (see the store list below).
-  - Client (presentation only): `MediumHudRenderer` draws two bottom-right rows (通灵 above, 招魂 below;
-    `SaintHudLayoutRules` reserves two rows); `MediumSeanceScreen` is the question box and `MediumHauntScreen` the
-    target menu; both close when `MediumHudRenderer.isActiveMedium` turns false, and the two menu packets never
-    replace a screen that is already open. Vote: `MediumVoteClient` opens `MediumVoteScreen` (Harpy Express panel,
-    `MediumPaint`) once per window serial for a local voter, never over another open screen; a click on 是 / 否 sends
-    the vote and closes, Esc closes without answering, every other key is swallowed. While a voter has no screen
-    open, the shared ability key re-opens it (`MediumVoteClient.ownsAbilityKey`, the first branch of the ability-key
-    chain in `SparkWitchClient`) and `MediumSeanceHudRenderer` shows the question, the prompt or the remembered
-    answer, and the countdown. Result (owner 2026-11-10: a HUD card, never a vanilla title, so an admin `/title`
-    cannot collide with it): `MediumSeanceResultCard` draws the caster-only packet at the top centre for about 8 s,
-    then fades; it never takes the mouse, needs no living player, and draws only what the server sent.
+  - Death tier: `tier = floor(deaths / max(1, roster / 6))` over Wathe's roster and dead set, read live. Prices are
+    always read live: 通灵 300 − 50 per tier (floor 0), 加护 通灵's live price + 100 (`blessingPrice`, so never under
+    100), 招魂 a flat 50. Cooldowns (owner 2026-11-13: two timers): any paid 通灵 or 加护 starts both through the single
+    `MediumPlayerComponent.startCooldowns(tier)`, the tier read at that moment: 通灵 60 s − 10 s per tier (floor 0) and
+    加护 that + 120 s (so never under 120 s); a timer that is already longer is kept (only a force-raised one can be), so
+    a use of one skill never shortens the other's forced cooldown. The opening cooldowns are 180 s (通灵) and 300 s
+    (加护). 招魂 has no cooldown.
+  - Caster gate (`MediumSkillService.mayUse`, the Specter/Dominator `mayCast` set, shared by all three skills and their
+    paid acts): ACTIVE round, raw role, alive, not spectating/creative, not swallowed, not held by a Ninja grapple, not
+    silenced, not SparkTraits role-skill blocked; each entry then checks `GrandWitchFearService.denyRoleSkillIfFeared`
+    last (`deniedByFear`). The four caster ids (`use_medium_skill`, `submit_medium_seance`, `use_medium_blessing`,
+    `submit_medium_haunt_target`) are on the Grand Witch Fear, Rift occupant, Control Expert stun and Seeker remote
+    lists; only the two 通灵 ids are on the Knight duel lock (`use_medium_blessing` by the skill-key-2 rule;
+    `submit_medium_haunt_target` stays allowed there as an inventory-panel act). `submit_medium_vote` is deliberately on
+    none of them: only a dead round member may send it and its handler checks that itself. Companion lists:
+    SparkFactionAPI's opening safe-time list and SparkStrength's Taotie daze list deny the same four ids from the shared
+    SparkFactionAPI payload-policy table (its SAFE_TIME and DAZE columns); for `use_medium_blessing` that requires the
+    SparkFactionAPI build that carries the new table row.
+  - 通灵 Séance (`MediumSkillService`, shared ability key G): the empty `use_medium_skill` makes the server send
+    `open_medium_seance_input` with the live price (after the gate, no live window of either kind, the 通灵 cooldown,
+    the balance and Fear); nothing is charged. The paid act is `submit_medium_seance` (question ≤ 20 code points,
+    formatting codes stripped, `MediumRules.sanitizeQuestion`), which re-checks every gate, the cooldown, the price and
+    that no window is live, then charges, starts both cooldowns, opens the 20 s world window (kind `QUESTION`) with the
+    caster's bindings frozen and records `sparkwitch:medium_seance_skill` (the question is in the replay line). A 通灵
+    with nobody dead still charges and returns "no response" (owner 2026-11-10: kept; a refusal would tell the Medium
+    for free whether anyone has died).
+  - Vote (both window kinds; owner 2026-11-10: a GUI, not chat): a dead round member (`MediumRules.mayVote`: running
+    round, has a role, in Wathe's dead set, not a Wraith, restricted or promoted (owner 2026-11-10: a Wraith is back on
+    the train and keeps the ability key for its own play), and not held by a SparkTraits Last Stand) answers with
+    `submit_medium_vote` (window serial + choice index: `MediumRules.VOTE_NO` 0 / `VOTE_YES` 1 for a question, a
+    `MediumBlessing` index for a blessing; `MediumSkillService.vote`). A serial that is not the live window's is
+    dropped, and so is a choice the window does not offer (`MediumSeanceComponent.acceptsChoice`: out of range, or a
+    disabled blessing), which leaves an earlier vote untouched. Each voter's latest choice counts, and a voter no longer
+    in the dead set at the tally is dropped. At window end `onSeanceEnded` adds any binding bought during the window to
+    the frozen ones and dispatches by kind. `MediumTally.count` is the one count for both: a bound voter weighs 3, and
+    when several options share the highest total the last counted vote cast for one of those leaders decides (with two
+    options that is the last vote cast). A question ends in `onQuestionEnded`, which sends the caster
+    `medium_seance_result` (`kind`, `question`, `outcome`, `random`, `tie`, `boundAnswers`): the question and the answer
+    always, the tie note and each bound dead voter's own choice (binding order, at most 64) only when the round's deaths
+    are strictly over half (the server omits them otherwise). The window runs its full length even if the Medium dies or
+    changes role (`clear()` hands the bindings it paid for to its live window, `retainBoundTargets`); an offline caster
+    gets nothing.
+  - 幽灵的加护 Ghost's Blessing (`MediumBlessingService`, Role Skill 2, owner 2026-11-13): the empty
+    `use_medium_blessing` is the paid act itself (no input box, no menu). `use` checks the caster gate, no live window
+    of either kind, the 加护 cooldown and the price, Fear last, then charges, starts both cooldowns, opens the 20 s
+    world window in kind `BLESSING` with the bindings frozen and records `sparkwitch:medium_blessing_skill` (no extra
+    data). The disabled mask is decided once at window start and frozen in the window: `SANITY` is disabled when the
+    caster has no real sanity (`AbyssSuppression.hasRealSanity`, i.e. a SparkTraits Impostor; an unknown trait answer
+    fails closed), so the dead see it greyed and the server drops a vote for it (owner). The dead choose among the four
+    `MediumBlessing`s under the Vote rules above. `onWindowEnded` grants only to a caster who is online, still the
+    Medium and playing and alive; otherwise nothing is granted and nothing is sent. It grants the tally winner or, with
+    no counted vote, a random available blessing (owner; available means not disabled in this window, and `CORPSE_SIGHT`
+    only while a real corpse exists). The grant records a second `sparkwitch:medium_blessing_skill` entry (`blessing`
+    index, `random` flag) and sends `medium_seance_result` in kind `BLESSING`: the granted index
+    (`OUTCOME_BLESSING_NONE` −1 when nothing could be granted) and the `random` flag always, the tie note and the bound
+    dead voters' own picks only for a voted result with deaths strictly over half. Grants:
+    - `SPEED`: Speed I for 40 s (not ambient, no particles, icon shown).
+    - `SHIELD`: one NoellesRoles whiskey shield layer for the rest of the round (owner). The `ModEffects.WHISKEY_SHIELD`
+      stack is rebuilt by hand with amplifier + 1 and an infinite duration, because NoellesRoles'
+      `WhiskeyShieldEffect.addShieldLayer` keeps an existing stack's remaining time. The whole stack shares one
+      duration, so layers already there and any whiskey drunk later become round-long too; Wathe clears status effects
+      at the round edges.
+    - `CORPSE_SIGHT`: the entity UUIDs of the REAL corpses existing at the grant (`realCorpses`) join the owner-synced
+      corpse-sight set and stay outlined to the Medium alone until the component clears (owner: round-long, real corpses
+      only; corpses that appear later are not added, a removed corpse just stops resolving). A real corpse is a Wathe
+      `PlayerBodyEntity` in the caster's world whose owner is in Wathe's dead set (which drops any stand-in corpse of a
+      living player) and that is not a NoellesRoles-hidden body, a SparkTraits fake-death body, a Fiend or Hiro fake
+      corpse, a Charon feign corpse, a SparkStrength Partygoer corpse or a Magician decoy.
+    - `SANITY`: `PlayerMoodComponent.setMood(2.0)`; the setter's own clamp lands on the true maximum (1.0, or 1.25 under
+      SparkTraits Steady).
+  - 招魂 Haunt (`MediumSecondSkillService`; no key and no server menu, owner 2026-11-13: it lives in the inventory
+    screen): the client drawer builds the candidate list itself from the synced roster (`MediumRules.mayHaunt`: a round
+    member other than the caster, alive or dead). The only payload, and the paid act, is `submit_medium_haunt_target`,
+    fully re-validated because nothing the client sends is trusted: the caster gate, `mayHaunt`, not yet bound, target
+    online in the caster's world, the price, Fear last. The target is never told; bindings last for the round, weigh 3
+    in both window kinds and record `sparkwitch:medium_haunt_skill`.
+  - Forced cooldowns: stores 22 `sparkwitch:medium_seance_skill` and 29 `sparkwitch:medium_blessing_skill` (see the
+    store list below). Each writes its own timer alone, so a forced write never starts the other one.
+  - Client (presentation only; the 2026-11-13 screens follow a mock the owner approved and have not yet been seen in
+    game). `MediumClientModule` is the hub: the `open_medium_seance_input` receiver opens `MediumSeanceScreen`, the
+    question box, only on a confirmed SparkWitch server for a local Medium and never over an open screen (the box closes
+    when `MediumHudRenderer.isActiveMedium` turns false); the Role Skill 2 handler in `SecondaryAbilityRegistry` sends
+    the empty `use_medium_blessing` while no screen is open; it also registers the result receiver, the tick and HUD
+    callbacks and `MediumCorpseSightHighlights`.
+    - Corner HUD: `MediumHudRenderer` draws two bottom-right rows from the pure `MediumHudRules` (通灵 above with the
+      shared ability key, 加护 below with the Role Skill 2 key; `SaintHudLayoutRules` reserves two rows; both lift
+      together above the hotbar column at narrow widths through `FiendDashHudRules.rowY`, measured with 99 s). Each row
+      shows the first state that applies: its own window running (teal), its cooldown (grey), another live window (grey
+      `hud.sparkwitch.medium.window.busy`), short of coins (grey, price with the coin glyph), ready with its key (teal).
+      Active-blessing chips (9 px icons) sit left of the lower row: corpse sight while the synced set is not empty, the
+      shield while the local whiskey-shield effect is infinite, Speed with its seconds only for a Speed effect within
+      43 s of a granted-Speed result. 招魂 has no corner row.
+    - Vote: `MediumVoteClient` opens the window's screen once per window serial for a local voter (`canVote`: a revealed
+      live window and `MediumRules.mayVote`), never over another open screen: `MediumVoteScreen` for a question (Harpy
+      Express panel, `MediumPaint`; a click on 是 / 否 sends the vote and closes) or `MediumBlessingVoteScreen` for a
+      blessing (the same panel with 2x2 cards in blessing order from the pure `MediumBlessingVoteLayout`: icon, name and
+      the effect in at most two lines; a click on an offered card sends it and closes; a disabled card is a sunken,
+      padlocked slot that ignores the mouse and whose effect line is the reason
+      `screen.sparkwitch.medium.blessing.locked.impostor`, which names the Impostor trait). In both, Esc closes without
+      voting and every other key is swallowed; a screen closes itself when its window ends or is replaced or the player
+      may no longer vote. While a voter has no screen open, the shared ability key re-opens it
+      (`MediumVoteClient.ownsAbilityKey`, the first branch of the ability-key chain in `SparkWitchClient`) and
+      `MediumSeanceHudRenderer` shows the question or the blessing request, the prompt or the remembered choice, and the
+      countdown.
+    - Result (owner 2026-11-10: a HUD card, never a vanilla title, so an admin `/title` cannot collide with it):
+      `MediumResultCard` draws the caster-only packet of either kind at the top centre for about 8 s, then fades; it
+      never takes the mouse, needs no living player, and draws only what the server sent (a blessing result shows the
+      granted blessing with its icon and effect line, and says so when the server drew it at random). A granted Speed
+      also starts the Speed chip's timer.
+    - Corpse sight: `MediumCorpseSightHighlights` answers `GetInstinctHighlight` with an `always` result in the role
+      colour at `PRIORITY_DEFAULT + 40` (the Charon body-mark priority, below every `skip()`) for a `PlayerBodyEntity`
+      whose entity UUID is in the local active Medium's synced set, on a confirmed server and independent of the
+      instinct key; a NoellesRoles-hidden body stays hidden.
+    - 招魂 drawer: `MediumHauntInventoryScreenMixin` on Wathe's `LimitedInventoryScreen` (`init` TAIL attaches the
+      drawer, `render` HEAD calls `refresh()`; both pinned in `watheClientMixinContracts`) adds one `MediumHauntDrawer`
+      widget when the local raw synced role is the Medium. It is shown and active only for an active Medium
+      (`isActiveMedium`) in a running round, re-decided every frame. Candidates are the tab-list entries that pass
+      `mayHaunt`, sorted by name and then UUID, never filtered, ordered or tinted by death (leak guard); bound faces
+      stay listed, dimmed with the wisp badge, and inert. A click on a face only selects; the confirm button sends
+      `submit_medium_haunt_target` once and stays disabled until the binding syncs back or 2 s pass, so a double click
+      never pays twice. Every click inside the frame is consumed (only the left button acts) and the wheel turns pages.
+      Geometry and hit tests live in the pure `MediumHauntLayout`; the region is in the `client/armor/` rules below
+      (**Medium 招魂 drawer**).
   - Lang: `role`/`announcement` keys for `medium` and `sparkwitch.medium`, `hud.sparkwitch.medium.*`,
-    `screen.sparkwitch.medium.*`, and the two replay keys.
+    `screen.sparkwitch.medium.*` (`vote`, `blessing`, `seance`, `haunt`), the four `blessing.sparkwitch.medium.*` names
+    the replay line uses, and the four replay keys (`replay.skill.sparkwitch.medium_seance_skill`,
+    `replay.skill.sparkwitch.medium_haunt_skill`, `replay.skill.sparkwitch.medium_blessing_skill` and
+    `replay.skill.sparkwitch.medium_blessing_skill.granted`).
 - `roles/civilian/hanna/`: 远野汉娜 Tono Hanna (`sparkwitch:hanna`, color `0xFFAF9F`), contributed in PR #212 and
   rebuilt in review on the Noa model (owner decisions 2026-11-11); every number lives in `HannaRules`.
   - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
@@ -3005,6 +3105,18 @@ Current build baseline:
     ComTac); no head-row role owns such an item. The same seven seams hit-test, focus, shift-click (one `SWAP` between
     the hotbar and slot 46), guard the empty-cursor pick-up and return an accepted cursor item on close, exactly like
     an armor slot; the server checks `HeadsetSlot.canInsert`.
+  - **Medium 招魂 drawer** (`client/medium/MediumHauntDrawer`, pure geometry in `MediumHauntLayout`; owner
+    2026-11-13). Not part of this module, listed here because it occupies the head-row band under the inventory
+    block, the band the NoellesRoles, Magician and Witch Maiden head rows use; the Medium owns no head row and no shop
+    row. The frame is docked 6 px under the hotbar strip (top at `Y+38`) and centred: at least 236 px wide, wider
+    when its columns need it (20 px face tiles on a 22 px pitch, 8 px inset), never past an 8 px screen margin;
+    `48 + 22 * rows` px tall with 1 to 4 rows (as many as fit above a 6 px bottom gap, fewer preferred), paged when the
+    candidates do not fit. While the headset cell shows, the frame starts at least 4 px right of it (`X-18`). It is
+    one visible, active `ClickableWidget` (the frame plus its 1 px shadow) that `MediumHauntInventoryScreenMixin` adds
+    at `init` TAIL only when the local raw role is the Medium, shown only for an active Medium in a running round
+    (re-decided at `render` HEAD). The info card routes around it as a visible widget child, and it consumes every
+    click inside its frame. For the Medium this band is taken; a role that owns a head row cannot also dock a drawer
+    here.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, the
   Seeker, USEC and the Black Raven share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
@@ -4450,9 +4562,10 @@ deliberate and kept:
 22. `sparkwitch:medium_seance_skill` (`SparkWitchForcedCooldowns#mediumSeance`, PR #209, appended after the Savior
    domain): the Medium's 通灵 cooldown, for the raw role in an ACTIVE round. Remaining time is `MediumPlayerComponent`
    séance cooldown ticks (180 s opening cooldown included); the nominal is the untiered
-   `MediumRules.CD_AFTER_USE_TICKS` (1200), written exactly through the owner-syncing `startSeanceCooldown`. The
-   cooldown starts at the paid submit, so a forced write never touches a running vote window. 招魂 has no cooldown and
-   no store.
+   `MediumRules.CD_AFTER_USE_TICKS` (1200), written exactly through the owner-syncing `startSeanceCooldown`, which
+   writes the 通灵 cooldown alone (a real paid use of either skill starts both through `startCooldowns`). The cooldown
+   starts at the paid act, so a forced write never touches a running vote window. 幽灵的加护 has its own cooldown
+   and store 29; 招魂 has no cooldown and no store.
 23. `sparkwitch:ferryman_pardon` (`SparkWitchForcedCooldowns#ferrymanPardon`, PR #202, appended after the Medium's
    通灵): the Charon's pardon cooldown, for the raw role in an ACTIVE round with no pardon window open. Remaining time
    is `FerrymanPlayerComponent` cooldown ticks (60 s opening cooldown included); the nominal is
@@ -4479,6 +4592,14 @@ deliberate and kept:
    written when the window ends, so a running window is never forced). Remaining time is `HiroReturnComponent`
    cooldown ticks (90 s opening cooldown included); the nominal is `HiroRules.RETURN_COOLDOWN_TICKS` (900), written
    exactly through the owner-syncing `setCooldownTicks`.
+29. `sparkwitch:medium_blessing_skill` (`SparkWitchForcedCooldowns#mediumBlessing`, owner 2026-11-13, appended last,
+   after 二阶堂希罗's 死亡回归, so earlier slots keep their positions): the Medium's 幽灵的加护 cooldown, for the raw
+   role in an ACTIVE round (the same gate as store 22). Remaining time is `MediumPlayerComponent` blessing cooldown
+   ticks (300 s opening cooldown included); the nominal is the untiered `MediumRules.blessingCooldownAfterUse(0)`
+   (3600: the 60 s 通灵 cooldown + 120 s), written exactly through the owner-syncing `startBlessingCooldown`, which
+   writes the 加护 cooldown alone. The cooldown starts at the paid act (`use_medium_blessing`), so a forced write
+   never touches a running vote window. Like 通灵 it has no item, so SparkFactionAPI's admin `clearCooldown` (held
+   item only) does not reach it.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s

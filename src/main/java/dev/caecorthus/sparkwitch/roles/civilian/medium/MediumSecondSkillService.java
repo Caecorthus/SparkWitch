@@ -6,25 +6,25 @@ import dev.doctor4t.wathe.record.GameRecordEvent;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import dev.doctor4t.wathe.record.replay.ReplayGenerator;
 import dev.doctor4t.wathe.record.replay.ReplayRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
- * 招魂 (the Medium's Role Skill 2), server-authoritative. The press opens a menu of every other online round member,
- * alive or dead; the confirm is the paid act. A bound target is never told. Its vote weighs
- * {@link MediumRules#BIND_VOTE_WEIGHT}, and when the round's death count is over half its own answer is revealed to the
- * Medium. Bindings accumulate for the round; repeats are refused before the charge.
- * 招魂（通灵师职业技能 2），服务端权威。按键打开除自己外所有在线本局成员（无论生死）的菜单；确认才是付费动作。被绑定者不会收到
- * 任何提示。其投票记 {@link MediumRules#BIND_VOTE_WEIGHT} 票，当局死者过半时其个人答案会额外给通灵师看。绑定在本局
- * 内累积；重复绑定在扣费前即被拒绝。
+ * 招魂 (the Medium's binding skill), server-authoritative. It has no key and no server menu any more: the client lists
+ * the candidates in the inventory screen from the synced round roster ({@link MediumRules#mayHaunt}), and the confirm
+ * ({@link SubmitMediumHauntTargetC2SPacket}) is the paid act, fully re-validated here. A bound target is never told.
+ * Its vote weighs {@link MediumRules#BIND_VOTE_WEIGHT} in both window kinds, and when the round's death count is over
+ * half its own vote is revealed to the Medium. Bindings accumulate for the round; repeats are refused before the
+ * charge.
+ * 招魂（通灵师的绑定技能），服务端权威。它不再有按键，也不再有服务端菜单：客户端在背包界面里根据同步的本局名单列出候选
+ * （{@link MediumRules#mayHaunt}），确认（{@link SubmitMediumHauntTargetC2SPacket}）才是付费动作，并在此完整重新校验。
+ * 被绑定者不会收到任何提示。其投票在两种窗口中都记 {@link MediumRules#BIND_VOTE_WEIGHT} 票，当局死者过半时其个人投票会
+ * 额外给通灵师看。绑定在本局内累积；重复绑定在扣费前即被拒绝。
  */
 public final class MediumSecondSkillService {
     private static boolean registered;
@@ -41,54 +41,24 @@ public final class MediumSecondSkillService {
     }
 
     /**
-     * Server entry of the Role Skill 2 key: opens the target menu with the live price. Nothing is charged here.
-     * 职业技能 2 键的服务端入口：以实时价格打开目标菜单。此处不扣任何费用。
-     */
-    public static void use(ServerPlayerEntity caster) {
-        if (caster == null || !MediumSkillService.mayUse(caster)) {
-            return;
-        }
-        GameWorldComponent game = GameWorldComponent.KEY.get(caster.getWorld());
-        int price = MediumRules.hauntPrice();
-        if (PlayerShopComponent.KEY.get(caster).getBalance() < price) {
-            return;
-        }
-        List<UUID> ids = new ArrayList<>();
-        List<String> names = new ArrayList<>();
-        for (UUID uuid : game.getAllPlayers()) {
-            ServerPlayerEntity online = caster.getServer().getPlayerManager().getPlayer(uuid);
-            // Never the caster: a self-binding could only matter if the Medium died mid-window and then answered
-            // their own question at triple weight. / 不含施放者本人：自绑只在通灵师于窗口中途死亡后以三倍票权回答
-            // 自己的提问时才有意义。
-            if (online == null || online == caster || online.getServerWorld() != caster.getServerWorld()) {
-                continue;
-            }
-            ids.add(uuid);
-            names.add(online.getGameProfile().getName());
-        }
-        if (ids.isEmpty() || MediumSkillService.deniedByFear(caster)
-                || !ServerPlayNetworking.canSend(caster, OpenMediumHauntSelectS2CPacket.ID)) {
-            return;
-        }
-        ServerPlayNetworking.send(caster, new OpenMediumHauntSelectS2CPacket(ids, names, price));
-    }
-
-    /**
      * The confirmed pick: re-validated (not the caster, round member, online in this world, not yet bound, gates and
-     * price) before the charge; the picked player is never told.
+     * price) before the charge; the picked player is never told. The client builds its own candidate list, so nothing
+     * it sends is trusted.
      * 确认选择：扣费前重新校验（不是施放者本人、本局成员、在同一世界在线、尚未绑定、门槛与价格）；被选玩家不会收到任何提示。
+     * 候选列表由客户端自行生成，因此它发来的内容一概不可信。
      */
     public static void submit(ServerPlayerEntity caster, @Nullable UUID targetUuid) {
-        if (caster == null || targetUuid == null || targetUuid.equals(caster.getUuid())
-                || !MediumSkillService.mayUse(caster)) {
+        if (caster == null || targetUuid == null || !MediumSkillService.mayUse(caster)) {
+            return;
+        }
+        // Never the caster: a self-binding could only matter if the Medium died mid-window and then voted in their
+        // own window at triple weight. / 不含施放者本人：自绑只在通灵师于窗口中途死亡后以三倍票权给自己的窗口投票时
+        // 才有意义。
+        if (!MediumRules.mayHaunt(caster.getUuid(), targetUuid, GameWorldComponent.KEY.get(caster.getWorld()))) {
             return;
         }
         MediumPlayerComponent component = MediumPlayerComponent.KEY.get(caster);
         if (component.isBound(targetUuid)) {
-            return;
-        }
-        GameWorldComponent game = GameWorldComponent.KEY.get(caster.getWorld());
-        if (!game.getAllPlayers().contains(targetUuid)) {
             return;
         }
         ServerPlayerEntity target = caster.getServer().getPlayerManager().getPlayer(targetUuid);
