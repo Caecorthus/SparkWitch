@@ -1,7 +1,6 @@
 # SparkWitch Context
 
-This is a live routing map, not blanket permission to refactor. Structural
-changes require explicit owner approval.
+This is a live routing map.
 
 ## Product Boundary
 
