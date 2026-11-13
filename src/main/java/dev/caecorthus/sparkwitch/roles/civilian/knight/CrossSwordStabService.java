@@ -103,9 +103,10 @@ public final class CrossSwordStabService {
             return;
         }
         // Running round, alive, connected, not spectator or creative (Wathe playing-and-alive first). A stunned sender
-        // is refused here, like the Swordfish stab, because the payload is not on the stun deny-list.
-        // 对局进行中、存活、在线、非旁观且非创造（先判 Wathe 在局存活）。与剑鱼刺击相同，被眩晕的发送者在此拒绝，
-        // 因为该数据包不在眩晕拦截名单中。
+        // is refused here, like the Swordfish stab. Since 2026-11-13 the payload is also on the stun deny-list, like
+        // wathe:knifestab; this check stays as the handler's own guard.
+        // 对局进行中、存活、在线、非旁观且非创造（先判 Wathe 在局存活）。与剑鱼刺击相同，被眩晕的发送者在此拒绝。
+        // 自 2026-11-13 起该数据包与 wathe:knifestab 一样也在眩晕拦截名单中；此处检查保留为处理器自身的防线。
         if (!RoundParticipants.LIVING_SURVIVOR.test(player)
                 || player.getItemCooldownManager().isCoolingDown(stack.getItem())
                 || ControlExpertStun.isStunned(player)) {
@@ -124,10 +125,10 @@ public final class CrossSwordStabService {
             return;
         }
         // Same veto as the Swordfish stab, asked with the death reason it kills with. Rift occupants are alive
-        // spectators, so LIVING_SURVIVOR above refuses them as sender (the payload, like the Swordfish's, is not on the
-        // Rift deny-list) and the SFA Rift policy refuses them as target.
+        // spectators, so LIVING_SURVIVOR above refuses them as sender (since 2026-11-13 the payload, like the
+        // Swordfish's, is also on the Rift deny-list) and the SFA Rift policy refuses them as target.
         // 与剑鱼刺击相同的否决，以实际击杀死因询问。裂隙门内玩家是活着的旁观者，上方 LIVING_SURVIVOR 已拒绝其作为发送者
-        // （该数据包与剑鱼的一样不在裂隙拦截名单中），SFA 的裂隙策略拒绝其作为目标。
+        // （自 2026-11-13 起该数据包与剑鱼的一样也在裂隙拦截名单中），SFA 的裂隙策略拒绝其作为目标。
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         if (!SparkFactionApi.canAffectPlayer(player, victim, GameConstants.DeathReasons.KNIFE, game)
                 || SparkTraitsKillerBridge.isLastEscapeActive(victim)) {

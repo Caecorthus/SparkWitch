@@ -15,9 +15,9 @@ import java.util.Set;
  */
 public final class GeneratedPayloadPolicy {
     /** SHA-256 of the canonical table this file was generated from. / 生成本文件所用规范表的 SHA-256。 */
-    public static final String CONTRACT_SHA256 = "06e172356273dd4403002c0bd14b180531632866e3ccef27c6b52bde865c9646";
+    public static final String CONTRACT_SHA256 = "52bdb38dab7c9297817f486f99743ce3317a60a24e61ea9835895fce50048f0e";
 
-    /** Column STUN: 97 ids. / STUN 列：97 个 id。 */
+    /** Column STUN: 99 ids. / STUN 列：99 个 id。 */
     public static final Set<Identifier> STUN = Set.of(
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
@@ -64,6 +64,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "confirm_natsume_target"),
             Identifier.of("sparkwitch", "confirm_prophecy"),
             Identifier.of("sparkwitch", "confirm_sherry_deduction"),
+            Identifier.of("sparkwitch", "cross_sword_stab"),
             Identifier.of("sparkwitch", "emma_factor"),
             Identifier.of("sparkwitch", "ferryman_ferry"),
             Identifier.of("sparkwitch", "ferryman_pardon"),
@@ -92,6 +93,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "submit_medium_haunt_target"),
             Identifier.of("sparkwitch", "submit_medium_seance"),
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
+            Identifier.of("sparkwitch", "swordfish_stab"),
             Identifier.of("sparkwitch", "throw_kidnapper_body"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "use_athlete_dash"),
@@ -117,7 +119,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("wathe", "knifestab"),
             Identifier.of("wathe", "storebuy"));
 
-    /** Column SEEKER: 97 ids. / SEEKER 列：97 个 id。 */
+    /** Column SEEKER: 99 ids. / SEEKER 列：99 个 id。 */
     public static final Set<Identifier> SEEKER = Set.of(
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
@@ -164,6 +166,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "confirm_natsume_target"),
             Identifier.of("sparkwitch", "confirm_prophecy"),
             Identifier.of("sparkwitch", "confirm_sherry_deduction"),
+            Identifier.of("sparkwitch", "cross_sword_stab"),
             Identifier.of("sparkwitch", "emma_factor"),
             Identifier.of("sparkwitch", "ferryman_ferry"),
             Identifier.of("sparkwitch", "ferryman_pardon"),
@@ -190,6 +193,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "submit_medium_haunt_target"),
             Identifier.of("sparkwitch", "submit_medium_seance"),
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
+            Identifier.of("sparkwitch", "swordfish_stab"),
             Identifier.of("sparkwitch", "throw_kidnapper_body"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "use_athlete_dash"),
@@ -217,7 +221,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("wathe", "storebuy"),
             Identifier.of("wathe", "walkie_talkie_channel"));
 
-    /** Column RIFT: 96 ids. / RIFT 列：96 个 id。 */
+    /** Column RIFT: 98 ids. / RIFT 列：98 个 id。 */
     public static final Set<Identifier> RIFT = Set.of(
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
@@ -264,6 +268,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "confirm_natsume_target"),
             Identifier.of("sparkwitch", "confirm_prophecy"),
             Identifier.of("sparkwitch", "confirm_sherry_deduction"),
+            Identifier.of("sparkwitch", "cross_sword_stab"),
             Identifier.of("sparkwitch", "emma_factor"),
             Identifier.of("sparkwitch", "ferryman_ferry"),
             Identifier.of("sparkwitch", "ferryman_pardon"),
@@ -289,6 +294,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "submit_medium_haunt_target"),
             Identifier.of("sparkwitch", "submit_medium_seance"),
             Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
+            Identifier.of("sparkwitch", "swordfish_stab"),
             Identifier.of("sparkwitch", "throw_kidnapper_body"),
             Identifier.of("sparkwitch", "use_apprentice_purify"),
             Identifier.of("sparkwitch", "use_athlete_dash"),
@@ -316,7 +322,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("wathe", "storebuy"),
             Identifier.of("wathe", "walkie_talkie_channel"));
 
-    /** Column FEAR: 70 ids. / FEAR 列：70 个 id。 */
+    /** Column FEAR: 75 ids. / FEAR 列：75 个 id。 */
     public static final Set<Identifier> FEAR = Set.of(
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
@@ -326,6 +332,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("noellesroles", "morph_corpse_toggle"),
             Identifier.of("noellesroles", "party_animal_buzz"),
             Identifier.of("noellesroles", "reporter_mark"),
+            Identifier.of("noellesroles", "shadow_ally_request"),
             Identifier.of("noellesroles", "silencer_silence"),
             Identifier.of("noellesroles", "spirit_project"),
             Identifier.of("noellesroles", "swapper"),
@@ -358,6 +365,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "ferryman_pardon"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),
             Identifier.of("sparkwitch", "fire_death_ray"),
+            Identifier.of("sparkwitch", "guardian"),
             Identifier.of("sparkwitch", "knight_duel_target"),
             Identifier.of("sparkwitch", "magician_ability"),
             Identifier.of("sparkwitch", "mini_wither_toggle"),
@@ -371,9 +379,11 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "select_black_raven_disguise"),
             Identifier.of("sparkwitch", "submit_medium_haunt_target"),
             Identifier.of("sparkwitch", "submit_medium_seance"),
+            Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
             Identifier.of("sparkwitch", "throw_kidnapper_body"),
             Identifier.of("sparkwitch", "use_athlete_dash"),
             Identifier.of("sparkwitch", "use_blind_attune"),
+            Identifier.of("sparkwitch", "use_curser_ability"),
             Identifier.of("sparkwitch", "use_dominator_skill"),
             Identifier.of("sparkwitch", "use_fiend_dash"),
             Identifier.of("sparkwitch", "use_hanna_float"),
@@ -387,7 +397,8 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "use_sherry_mighty_force"),
             Identifier.of("sparkwitch", "use_skill"),
             Identifier.of("sparkwitch", "use_specter_second_skill"),
-            Identifier.of("sparkwitch", "use_specter_skill"));
+            Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "vendetta_knife_stab"));
 
     /** Column FEAR_SILENT: 1 ids. / FEAR_SILENT 列：1 个 id。 */
     public static final Set<Identifier> FEAR_SILENT = Set.of(
@@ -440,9 +451,10 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "use_skill"),
             Identifier.of("sparkwitch", "use_specter_skill"));
 
-    /** Column DUEL_WEAPON: 11 ids. / DUEL_WEAPON 列：11 个 id。 */
+    /** Column DUEL_WEAPON: 12 ids. / DUEL_WEAPON 列：12 个 id。 */
     public static final Set<Identifier> DUEL_WEAPON = Set.of(
             Identifier.of("noellesroles", "demon_hunter_shoot"),
+            Identifier.of("sparkstrength", "bandit_revolver_shoot"),
             Identifier.of("sparkstrength", "drone_pilot_action"),
             Identifier.of("sparkstrength", "serial_pistol_shoot"),
             Identifier.of("sparkwitch", "fire_crimson_skull"),
