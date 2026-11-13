@@ -1876,7 +1876,6 @@ def requiredArchitectureDocs = [
 ]
 def requiredArchitectureSources = [
         "src/main/java/dev/caecorthus/sparkwitch/api/SparkWitchApi.java",
-        "src/main/java/dev/caecorthus/sparkwitch/api/WitchManaApi.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/ApprenticeInstinctRules.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityRuntime.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/piggod/PigGodChaseRuntime.java",
@@ -1892,7 +1891,6 @@ def requiredArchitectureSources = [
 def localTestTree = file("src/test")
 def localArchitectureTests = [
         "src/test/java/dev/caecorthus/sparkwitch/api/SparkWitchApiTest.java",
-        "src/test/java/dev/caecorthus/sparkwitch/api/WitchManaApiTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityWindowRulesTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRulesTest.java"
 ]

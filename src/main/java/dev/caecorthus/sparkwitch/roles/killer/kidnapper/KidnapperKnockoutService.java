@@ -94,10 +94,6 @@ public final class KidnapperKnockoutService {
         return stack;
     }
 
-    public static void addKnockoutDrugShopEntry(BuildShopEntries.ShopContext context, int index) {
-        addKnockoutDrugShopEntry(context, index, null);
-    }
-
     public static void addKnockoutDrugShopEntry(BuildShopEntries.ShopContext context, int index, @Nullable PlayerEntity player) {
         context.addEntry(Math.max(0, Math.min(index, context.size())), shopEntry(player));
     }

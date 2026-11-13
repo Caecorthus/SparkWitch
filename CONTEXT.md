@@ -123,8 +123,8 @@ Current build baseline:
 - SparkWitch `2.0.0` (owner 2026-11-12: all five Spark mods share one version number)
 - SparkFactionAPI floor `2.0.0` (native Wathe factions: the `sparkfactionapi:native_wathe_factions` declaration,
   `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`, first shipped as `0.1.6.0`). Every `0.1.5.13`+ feature (two-row limited inventory,
-  `compat/SparkFactionSecondRowCompat`, settlement exclusions) is therefore present; the reflective compat paths are
-  kept as they are.
+  `compat/SparkFactionSecondRowCompat`, settlement exclusions) is therefore present, so SparkWitch no longer detects the
+  inventory version and registers settlement exclusions directly.
 
 ## Read Order
 
@@ -1017,7 +1017,7 @@ Current build baseline:
       (`isInReachNow`: `RopeRules.confirmsGrab` of the eye-to-body distance and vanilla `canSee`), so a volume left
       behind by a sprint or a teleport picks nobody; the back check already reads current positions.
     - `RopeStrangleService` (server authority, in-memory sessions keyed by strangler and by victim): stable seams
-      `interruptUser(ServerPlayerEntity)`, `isStrangling(PlayerEntity)`, `isStrangled(PlayerEntity)` (both sides).
+      `interruptUser(ServerPlayerEntity)`, `isStrangling(PlayerEntity)` (both sides).
       `tryStart`: SparkTraits `blocksWeaponAction` (silent), the gates, then SparkTraits `shouldCancelMeleeAttack`
       (Close Quarters); a refusal costs nothing (action-bar `message.sparkwitch.rope.blocked` / `.no_target` /
       `.not_behind`). A start records `recordItemUse`, snaps both players to anchors and holds them for 60 ticks (every
@@ -3020,12 +3020,10 @@ Current build baseline:
 - `component/`: CCA ids, stored fields, sync/NBT codecs, and narrow state
   operations used by the owning runtime Modules.
 - `compat/`: optional or version-sensitive cross-mod Adapters.
-- `compat/SparkFactionSecondRowCompat`: the two-row limited inventory gate. With SparkFactionAPI
-  0.1.5.13+ (read once from the local mod version; SparkFactionAPI requires client and server to
-  match exactly; unknown versions fail closed), Wathe's in-round inventory also shows main slots
-  27-35 directly above the hotbar, and `getEmptySlot` fills 0-8, 27-35, then 9-26. With the bundled
-  floor every caller keeps its old behavior (the Abyss Listener's vacated-slot reuse below is new on
-  either version). Callers: bound-item displacement (Blind cane, Time Stealer Clock and Gift Watch, Abyss Listener
+- `compat/SparkFactionSecondRowCompat`: the two-row limited inventory gate. Every admitted
+  SparkFactionAPI (floor 2.0.0; the row first shipped in 0.1.5.13) shows it, so `isShown()` is always
+  true and the old one-row version detection is gone: Wathe's in-round inventory also shows main slots
+  27-35 directly above the hotbar, and `getEmptySlot` fills 0-8, 27-35, then 9-26. Callers: bound-item displacement (Blind cane, Time Stealer Clock and Gift Watch, Abyss Listener
   gun: a full-hotbar re-grant moves the displaced item into the slot a removed stray vacated, but
   never into hidden storage while the shown row has room), Potion Gunner launcher placement and
   keeper move, shell returns and surfacing, the Seeker's swallowed-car return, USEC round purchases
@@ -3255,10 +3253,9 @@ the Raven on top of the host's own alive test:
   its own `mixin/blackraven/NoellesRolesPathogenBlackRavenSettlementMixin`, which skips only the Raven (the dormant
   Fiend keeps the old Pathogen behaviour). Ordinals are pinned by `BlackRavenSettlementContractTest`.
 - Wathe's civilian-death time bonus: `mixin/blackraven/GameFunctionsBlackRavenTimeBonusMixin`.
-- Other mods: `compat/SparkFactionSettlementExclusionCompat` registers `sparkwitch:black_raven` at init into
-  SparkFactionAPI's `api.settlement.SettlementExclusions.registerRole(Identifier)` (0.1.5.16+) by reflection.
-  SparkWitch compiles against an older floor, so an older SparkFactionAPI only logs at debug and those mods keep
-  counting the Raven. SparkTraits (Last Stand, Final Moment, its own win listener) and SparkStrength (Shadow Jester
+- Other mods: `SparkWitchRoleRegistry` registers `sparkwitch:black_raven` at init directly into SparkFactionAPI's
+  `api.settlement.SettlementExclusions.registerRole(Identifier)` (present in every admitted SparkFactionAPI).
+  SparkTraits (Last Stand, Final Moment, its own win listener) and SparkStrength (Shadow Jester
   showdown) read that registry; SparkWitch's own seams never do.
 
 Stowaway rules (owner spec 2026-11-02, PR #178). Profile: Wathe-native neutral, FAKE mood with tasks (tasks pay
@@ -5733,8 +5730,9 @@ Server:
   to 1 s (drops stay blocked by the mixins).
 - `PlayerHitboxHistory` keeps recording every tick everywhere: off-match shells and early-round rewinds read across
   round edges. `SparkTraitsKillerBridge.isLastEscapeActive` uses a cached MethodHandle.
-- `ShadowJesterShowdownBridge`, `SparkStrengthCoronerCompat` and `SparkStrengthJunctionBoxCompat` resolve their
-  reflection once (lazy holders, failing closed). `CeremonialSwordDashService.DASHES` is cleared on SERVER_STOPPING.
+- `SparkStrengthCoronerCompat` and `SparkStrengthJunctionBoxCompat` resolve their reflection once (a lazy holder and
+  `OptionalStaticMethod`, failing closed); `ShadowJesterShowdownBridge` calls the pinned NoellesRoles component
+  directly. `CeremonialSwordDashService.DASHES` is cleared on SERVER_STOPPING.
 - The Charon owns three per-tick sweeps, all no-ops for an idle round: `FerrymanPardonService.tick` walks the live
   player list once, reads each player's raw role and counts down a Charon's pardon and ferry cooldowns (syncing only
   when one reaches zero), and reads the world clock only while a pardon window is open; `FerrymanFeignService.tick`

@@ -372,17 +372,6 @@ public final class WitchPlayerComponent implements AutoSyncedComponent, ServerTi
         return true;
     }
 
-    public void beginCeremonialSwordWindow(int slot, int durationTicks) {
-        int normalizedDuration = Math.max(0, durationTicks);
-        int normalizedSlot = normalizedDuration > 0 ? Math.max(0, slot) : -1;
-        if (ceremonialSwordTicks == normalizedDuration && ceremonialSwordSlot == normalizedSlot) {
-            return;
-        }
-        ceremonialSwordTicks = normalizedDuration;
-        ceremonialSwordSlot = normalizedSlot;
-        sync();
-    }
-
     public void recordGrandWitchCeremonialSwordTask() {
         setGrandWitchCeremonialSwordTasks(grandWitchCeremonialSwordTasks + 1);
     }
