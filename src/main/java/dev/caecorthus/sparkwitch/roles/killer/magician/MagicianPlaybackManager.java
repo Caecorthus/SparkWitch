@@ -246,8 +246,28 @@ public final class MagicianPlaybackManager {
             return new RecordingData(List.copyOf(frames), List.copyOf(component.actions()));
         }
     }
+    /**
+     * Pure playback step over a recording's action list: runs, in list order, every action recorded at {@code index}
+     * and returns the cursor for the next tick. The list is ordered by tick (a recording only ever appends at its
+     * current, never-decreasing tick, and a new recording starts from an empty list), so the cursor never has to look
+     * behind itself and one playback visits each action once instead of rescanning the whole list every tick; the
+     * actions that run, and their order, are exactly those of the full scan.
+     * 对一次录制的动作列表执行的纯播放步进：按列表顺序执行所有在 {@code index} 刻录制的动作，并返回下一刻使用的游标。列表按
+     * 刻有序（录制只会在当前且永不减小的刻追加，新录制从空列表开始），因此游标无需回看，一次播放只访问每条动作一次，而不是每刻
+     * 重新扫描整个列表；被执行的动作及其顺序与完整扫描完全一致。
+     */
+    static int runDueActions(List<MagicianRecordedAction> actions, int cursor, int index,
+                             java.util.function.Consumer<MagicianRecordedAction> run) {
+        while (cursor < actions.size() && actions.get(cursor).tick() <= index) {
+            MagicianRecordedAction action = actions.get(cursor++);
+            if (action.tick() == index) run.accept(action);
+        }
+        return cursor;
+    }
     private static final class Active {
         final ServerPlayerEntity owner; final MagicianPlayerComponent component; final MagicianPlaybackEntity entity; final MagicianPlaybackFakePlayer proxy; final java.util.List<MagicianReplayFrame> frames; final java.util.List<MagicianRecordedAction> actions; int index;
+        /** Next unvisited entry of {@link #actions}; see {@link #runDueActions}. / {@link #actions} 中下一条未访问的条目。 */
+        int actionCursor;
         Active(ServerPlayerEntity o,MagicianPlayerComponent c,MagicianPlaybackEntity e,MagicianPlaybackFakePlayer p,java.util.List<MagicianReplayFrame> f,java.util.List<MagicianRecordedAction> a){owner=o;component=c;entity=e;proxy=p;frames=f;actions=a;}
         boolean tick(){
             if(!GameFunctions.isPlayerAliveAndSurvival(owner)||entity.isRemoved()||index>=frames.size())return true;
@@ -264,7 +284,7 @@ public final class MagicianPlaybackManager {
                 proxy.getWorld().playSound(null, proxy.getX(), proxy.getY(), proxy.getZ(),
                         WatheSounds.ITEM_KNIFE_PREPARE, SoundCategory.PLAYERS, 1.0F, 1.0F);
             }
-            for(MagicianRecordedAction action:actions)if(action.tick()==index)MagicianPlaybackActionExecutor.execute(owner,proxy,entity,action);
+            actionCursor=runDueActions(actions,actionCursor,index,action->MagicianPlaybackActionExecutor.execute(owner,proxy,entity,action));
             index++;
             return index>=frames.size();
         }

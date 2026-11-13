@@ -227,7 +227,10 @@ Current build baseline:
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
     buff's state out of the frozen `sparkwitch:player` packet. Only the Clairvoyance exposure timer syncs to everyone;
     tasks toward graduation, the Purify cooldown, the two Swift Step recharge timers, the Mighty Force forfeit flag and
-    the Healing fear ward sync to the owner only. Apprentice-only fields clear themselves once the role changes;
+    the Healing fear ward sync to the owner only: a write to them sends its packet to the owner alone
+    (`syncPrivate()`, 2026-11 review pass; a broadcast carrying zeros still told every tracking client who is the
+    Apprentice and whom her Healing aura warded), and only the exposure timer's own changes broadcast. While an
+    exposure runs, owner-only syncs still go to everyone. Apprentice-only fields clear themselves once the role changes;
     `ApprenticeFeatureService` clears everything on role assignment, `ResetPlayer` and round finalize.
   - Graduation (D2): the second completed task as Apprentice (`TaskComplete`) raises her natural mana to cap 150 and
     1 per 2 s through the graduated overloads of `WitchManaRules` (the role-only signatures are unchanged), widens
@@ -342,6 +345,15 @@ Current build baseline:
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
   SparkTraits fake bodies, camera-bound bodies, Magician decoys and Fiend feign-death corpses; a deliberate drag on a
   decoy tells the Kidnapper.
+  - Knockout Drug control lock (2026-11 review pass): the client lock (`client/mixin/kidnapper/*`: attack key, use
+    key, hotbar keys and scroll, plus the black HUD) is now backed by the server for attack and use.
+    `KidnapperControlGuards` fails the five Fabric player callbacks in its own phase before the default one (both
+    sides, no empty-hand exception) and `mixin/kidnapper/KidnapperControlPayloadGuardMixin` drops the direct weapon
+    payloads, both only while the acting player is `isControlled()` and alive in survival (the client's own
+    predicate). The payload set is `VendettaTargetingPacketGuard.isTargetPayload` (Wathe knife and gun, Savior
+    pistol, SparkStrength Serial Killer pistol and Bandit revolver), reused, not copied. Open owner calls, not
+    enforced by the server: role-skill and shop payloads (the client lock does not stop the ability key or the
+    inventory either; several newer skills refuse a controlled caster in their own handler) and hotbar selection.
 - `roles/killer/blackraven/`: the Black Raven, a police variant since 2026-10-21 (the package keeps its old
   `killer` path; moving it needs owner approval). Feather Blade marks, owner-private Perception state,
   bound ledger, and lifecycle cleanup. It has no shop of its own, like the Vigilante (the killer shop
@@ -532,11 +544,17 @@ Current build baseline:
     the round roster). `MagicianRoster` (D7) captures every round participant when the round starts or a player
     becomes the Magician; the disguise list and the target packet accept any roster member, alive or dead, so a pick
     never reveals a death. `client/magician/MagicianKeyRepeatGuard` drops key-repeat presses (one stage step per
-    physical press).
+    physical press). The shared `RoleAssigned` listener resets the component for a new Magician and, since the
+    2026-11 review pass, also for anyone re-roled away while `holdsMagicianState()` (a live puppet, a recording, a
+    cooldown, the roster): the playback tick watches only the owner's life, so a Magician who died and converted
+    into a Wraith in the same tick used to keep the puppet replaying.
   - Recording only records accepted actions: gun shots and knife stabs at Wathe's `recordItemUse` anchor
     (`mixin/MagicianGunShootPayloadReceiverMixin`, `mixin/MagicianKnifeStabPayloadReceiverMixin`), full-charge bat
     kills at Wathe's `killPlayer(..., BAT)` (`mixin/MagicianRecordBatKillMixin`); the other `MagicianRecord*Mixin`s
-    capture movement-side interactions. A rejected, parried or out-of-range action never replays.
+    capture movement-side interactions. A rejected, parried or out-of-range action never replays. One recording
+    stores at most `MagicianConstants.MAX_RECORDED_ACTIONS` actions (a safety bound far above legitimate use: swing
+    and slot packets are not rate-limited), and playback walks the tick-ordered list with a cursor
+    (`MagicianPlaybackManager.runDueActions`) instead of rescanning it every tick.
   - Replay: `MagicianPlaybackManager` alone owns live puppets (spawn, per-tick frames, the replay proxy, round-end
     `clearAll`, disconnect cleanup, discarding a finished puppet even when its owner is offline).
     `MagicianPlaybackActionExecutor` replays through a `FakePlayer` proxy that carries the owner's UUID; weapon
@@ -1584,7 +1602,10 @@ Current build baseline:
   - Scope (`UsecScopeService`): the only writer of `UsecPlayerComponent.scoped`. The `sparkwitch:usec_scope` receiver
     stores true for any holder who may use the rifle (owner, 2026-11-05: the role is never read; `OffMatchUse.mode` not
     REFUSED, so off-match holders qualify and dead participants do not), alive, non-spectator, non-Wraith, using the
-    rifle in the main hand, and a per-tick sweep clears anyone who stops qualifying. The glint and the scope-in sound
+    rifle in the main hand, and a per-tick sweep clears anyone who stops qualifying. The receiver only stores the
+    flag; that sweep is also the single place it is synced (`UsecPlayerComponent.flushScoped`, at most once per player
+    per tick and only when it differs from the value last sent, 2026-11 review pass), so a flood of toggles is not
+    multiplied into broadcasts and the glint follows at most one tick later. The glint and the scope-in sound
     follow the flag for every holder; only the instinct cloak also checks the target's role. The payload is harmless
     and on no deny-list. When the flag turns on, a subtle `item.usec_rifle.scope` plays through the public
     `ServerWorld#playSound` at the shooter's eye
@@ -3479,7 +3500,8 @@ keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGat
 Fabric runs `ServerPlayNetworkAddon#receive` on the Netty thread (vanilla `onCustomPayload` has no
 `forceMainThread`); only the Runnable it hands to `MinecraftServer#execute` runs on the server thread. Every
 SparkWitch payload guard there (`mixin/ServerPlayNetworkAddonFearMixin` for Vendetta targets and Fear, plus the stun,
-Seeker session, Rift session and crow-body guards) is a `@WrapOperation` on that single call, never an `@Inject`. On
+Seeker session, Rift session, crow-body, hypnosis, Knight duel, Hiro feign and Kidnapper control guards) is a
+`@WrapOperation` on that single call, never an `@Inject`. On
 Netty it only picks payloads by id from immutable sets; it reads the player, world and components inside the
 scheduled Runnable, atomically with the handler (2026-10-22). The Fear/Vendetta wrapper has `priority = 900`: it is
 applied first, so it sits innermost and judges Vendetta (silent) and then Fear before any other guard.

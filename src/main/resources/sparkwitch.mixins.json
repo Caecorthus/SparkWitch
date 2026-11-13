@@ -227,6 +227,7 @@
     "blackraven.BlackRavenCrowKnifeReceiverMixin",
     "blackraven.BlackRavenCrowThrowingAxeMixin",
     "natsume.NatsumeHypnosisPayloadGuardMixin",
+    "kidnapper.KidnapperControlPayloadGuardMixin",
     "fisher.FisherDoorPassingMixin",
     "blind.BlindKitDeathDropMixin",
     "blind.BlindKitDecoratedPotMixin",
