@@ -2,10 +2,10 @@ package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.util.StaggeredSweep;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 
@@ -29,8 +29,7 @@ public final class VendettaKnifeLoadoutService {
             return;
         }
         registered = true;
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                VendettaKnifeService.clearPlayer(handler.player));
+        ServerDisconnectCleanup.register((player, server) -> VendettaKnifeService.clearPlayer(player));
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> VendettaKnifeService.clearAll());
         ServerTickEvents.END_WORLD_TICK.register(world -> {
             long time = world.getTime();

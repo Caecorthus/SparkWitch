@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.remote.SeekerRemoteSessionService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -12,7 +13,6 @@ import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -113,12 +113,9 @@ public final class SeekerLifecycleService {
 
         // Only the session ends here; Wathe's ESCAPED kill then runs the KillPlayer.AFTER cleanup.
         // 这里只结束会话；随后 Wathe 的 ESCAPED 击杀会执行 KillPlayer.AFTER 清理。
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, disconnected) -> {
-            ServerPlayerEntity player = handler.player;
-            if (player != null) {
-                endSession(player, SeekerExitReason.DISCONNECTED);
-                SeekerStatusComponent.KEY.get(player).setSessionState(null);
-            }
+        ServerDisconnectCleanup.register((player, server) -> {
+            endSession(player, SeekerExitReason.DISCONNECTED);
+            SeekerStatusComponent.KEY.get(player).setSessionState(null);
         });
     }
 

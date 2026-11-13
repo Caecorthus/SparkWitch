@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.component;
 
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.doctor4t.wathe.game.GameFunctions;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
@@ -11,8 +12,29 @@ final class WitchPlayerSyncCodec {
     private WitchPlayerSyncCodec() {
     }
 
+    /**
+     * Who receives a player's shared private state (active skill, cooldown, mana, sword progress): the owner, a
+     * creative player, and a spectator who is not a living round participant. A living player is only put into
+     * spectator mode by a mechanic (inside a Rift Gate, Taotie-swallowed, feigning death); treating that as a dead
+     * observer handed them every tracked player's mana and cooldowns to keep after they came back. The one predicate
+     * serves both {@code shouldSyncWith} and {@link #write}.
+     * 谁能收到玩家的共享私有状态（当前技能、冷却、魔力、仪式剑进度）：本人、创造模式玩家，以及不是本局存活参与者的旁观者。
+     * 存活玩家只会因某个机制被切成旁观模式（在裂隙门内、被饕餮吞下、假死）；把这种情况当作死亡观察者，会让他们拿到所有被追踪
+     * 玩家的魔力与冷却，并在恢复后继续持有。{@code shouldSyncWith} 与 {@link #write} 共用这一个判定。
+     */
+    static boolean seesPrivateState(@Nullable PlayerEntity owner, ServerPlayerEntity recipient) {
+        return recipient == owner
+                || isInformationObserver(recipient.isCreative(), recipient.isSpectator(),
+                        GameFunctions.isPlayerPlayingAndAlive(recipient));
+    }
+
+    /** Pure: creative always; a spectator only when not playing and alive. / 纯函数：创造模式始终可见；旁观者仅在并非存活在局时可见。 */
+    static boolean isInformationObserver(boolean creative, boolean spectator, boolean playingAndAlive) {
+        return creative || spectator && !playingAndAlive;
+    }
+
     static void write(WitchPlayerComponent component, RegistryByteBuf buf, ServerPlayerEntity recipient) {
-        boolean visible = recipient == component.player || GameFunctions.isPlayerSpectatingOrCreative(recipient);
+        boolean visible = seesPrivateState(component.player, recipient);
         boolean ownerVisible = recipient == component.player;
         writeOptionalIdentifier(buf, visible ? component.activeSkillId : null);
         buf.writeVarInt(visible ? component.cooldownTicks : 0);

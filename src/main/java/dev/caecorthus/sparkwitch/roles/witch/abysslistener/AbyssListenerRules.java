@@ -95,13 +95,4 @@ public final class AbyssListenerRules {
     public static boolean isAbyssListener(Role role) {
         return role != null && ROLE_ID.equals(role.identifier());
     }
-
-    /**
-     * Per-tick extra mood drain multiplier for an exposed player: (real tasks + pseudo) × 15 relative to one task.
-     * Returned as the factor applied to Wathe's per-task drain; 0 real tasks still drains like 15 tasks.
-     * 暴露玩家每 tick 的下降倍率：(真实任务数 + 临时任务) × 15，相对单个任务的速度。
-     */
-    public static float exposedDrainTasks(int realTasks) {
-        return (Math.max(0, realTasks) + ZONE_PSEUDO_TASKS) * (float) ZONE_DRAIN_MULTIPLIER;
-    }
 }

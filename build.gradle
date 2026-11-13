@@ -174,7 +174,7 @@ tasks.named("jar") {
 }
 
 def remappedModJar = tasks.named("remapJar")
-def compatibilityReleaseVersion = "0.1.6.2"
+def compatibilityReleaseVersion = "2.0.0"
 def compatibilityBaselines = [
         wathe: [
                 property: "wathe_version",
@@ -190,8 +190,8 @@ def compatibilityBaselines = [
         ],
         sparkfactionapi: [
                 property: "sparkfactionapi_version",
-                version: "0.1.6.0",
-                sha256: "9fbc0dafac49ad3ba25619314b4a32a35feeeca528df14de9b4fdaf05dd87370",
+                version: "2.0.0",
+                sha256: "5e02f018d19cf3a96d6c6f902b070e52e5750245db5d4062b98ee13e5d46c198",
                 depends: [wathe: ">=1.5.6-spark-1.21.1"]
         ]
 ]
@@ -1876,7 +1876,6 @@ def requiredArchitectureDocs = [
 ]
 def requiredArchitectureSources = [
         "src/main/java/dev/caecorthus/sparkwitch/api/SparkWitchApi.java",
-        "src/main/java/dev/caecorthus/sparkwitch/api/WitchManaApi.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/ApprenticeInstinctRules.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityRuntime.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/piggod/PigGodChaseRuntime.java",
@@ -1892,7 +1891,6 @@ def requiredArchitectureSources = [
 def localTestTree = file("src/test")
 def localArchitectureTests = [
         "src/test/java/dev/caecorthus/sparkwitch/api/SparkWitchApiTest.java",
-        "src/test/java/dev/caecorthus/sparkwitch/api/WitchManaApiTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityWindowRulesTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRulesTest.java"
 ]

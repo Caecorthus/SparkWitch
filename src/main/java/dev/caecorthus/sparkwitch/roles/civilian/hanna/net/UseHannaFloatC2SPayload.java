@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.hanna.net;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -20,17 +19,10 @@ public record UseHannaFloatC2SPayload() implements CustomPayload {
     public static final Identifier PAYLOAD_ID = SparkWitch.id("use_hanna_float");
     public static final Id<UseHannaFloatC2SPayload> ID = new Id<>(PAYLOAD_ID);
     public static final PacketCodec<RegistryByteBuf, UseHannaFloatC2SPayload> CODEC =
-            PacketCodec.of(UseHannaFloatC2SPayload::write, UseHannaFloatC2SPayload::read);
+            PacketCodec.unit(new UseHannaFloatC2SPayload());
 
     @Override
     public Id<? extends CustomPayload> getId() {
         return ID;
-    }
-
-    public void write(PacketByteBuf buf) {
-    }
-
-    public static UseHannaFloatC2SPayload read(PacketByteBuf buf) {
-        return new UseHannaFloatC2SPayload();
     }
 }

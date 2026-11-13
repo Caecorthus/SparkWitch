@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.client.sherry;
 
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.sherry.SherryDeductionLayout.Rect;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import net.minecraft.client.gui.DrawContext;
@@ -9,13 +9,13 @@ import net.minecraft.client.gui.DrawContext;
  * Role-local tokens and fill primitives for 橘雪莉's 推演 panel: the Harpy Express house grammar (bevelled frame,
  * title band, ruled rows, select band, status pill, tag buttons) in a palette sampled from her badge art
  * ({@code textures/item/sherry_badge.png}): deep navy, gold trim, pale ice blue and one orange gem (owner pick
- * 2026-11-11, material B 「侦探徽章」 of the three shown). Shapes reuse {@link InventoryCardPaint} (which must stay
- * byte-identical with SparkTraits, so nothing is added there); sizes belong to {@link SherryDeductionLayout}, so what
+ * 2026-11-11, material B 「侦探徽章」 of the three shown). Shapes reuse {@link InventoryCardPaint} (SparkFactionAPI's
+ * copy, shared with SparkTraits, so nothing is added there); sizes belong to {@link SherryDeductionLayout}, so what
  * is painted is what is hit-tested. Every primitive is fill-only: none batches and none draws text, so the screen
  * wraps them in {@link InventoryCardPaint#batch} and draws text after the batch.
  * 橘雪莉推演面板的职业自有令牌与填充原语：沿用哈比特快面板语法（斜面外框、标题带、带横线的行、选中带、状态牌、价签按钮），
  * 配色取自她的徽章贴图（{@code textures/item/sherry_badge.png}）：深藏青、金边、浅冰蓝与一颗橙色宝石（所有者 2026-11-11
- * 选定，三种候选中的材质 B「侦探徽章」）。图形复用 {@link InventoryCardPaint}（须与 SparkTraits 逐字节一致，因此不在其中
+ * 选定，三种候选中的材质 B「侦探徽章」）。图形复用 {@link InventoryCardPaint}（SparkFactionAPI 中与 SparkTraits 共用，因此不在其中
  * 添加任何内容）；尺寸归 {@link SherryDeductionLayout} 所有，绘制位置与命中判定一致。所有原语只做填充，既不自行分批也不
  * 绘制文字；界面用 {@link InventoryCardPaint#batch} 包裹，批次结束后再绘制文字。
  */

@@ -18,8 +18,6 @@ public final class BlindRules {
 
     public static final Identifier WHITE_CANE_ID = SparkWitch.id("white_cane");
     public static final Identifier COMTAC_ID = SparkWitch.id("comtac_viii");
-    /** Role-owned skill id; deliberately not {@code sparktraits:focus} and not a witch skill. / 职业自有技能 id。 */
-    public static final Identifier ATTUNE_ID = SparkWitch.id("blind_attune");
     /** Shop entry id; its name keys are {@code shop.sparkwitch.comtac_viii(.description)}. / 商店条目 id。 */
     public static final String COMTAC_SHOP_ENTRY_ID = "comtac_viii";
 

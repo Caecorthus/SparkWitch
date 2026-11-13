@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.bear;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.SmokeRoundEntity;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -12,7 +13,6 @@ import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -77,11 +77,8 @@ final class BearLifecycleService {
                 SmokeRoundEntity.discardAll(serverWorld);
             }
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            if (handler.player != null) {
-                onDisconnect(handler.player, GameFunctions.isPlayerPlayingAndAlive(handler.player));
-            }
-        });
+        ServerDisconnectCleanup.register((player, server) ->
+                onDisconnect(player, GameFunctions.isPlayerPlayingAndAlive(player)));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> BearLoadoutService.forgetRound());
     }
 

@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.client.medium;
 
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceResultS2CPacket;
 import net.minecraft.client.MinecraftClient;

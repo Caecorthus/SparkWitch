@@ -1,6 +1,6 @@
 package dev.caecorthus.sparkwitch.client.sherry;
 
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.sherry.SherryDeductionLayout.Footer;
 import dev.caecorthus.sparkwitch.client.sherry.SherryDeductionLayout.Grid;
 import dev.caecorthus.sparkwitch.client.sherry.SherryDeductionLayout.Hit;

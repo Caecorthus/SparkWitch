@@ -1,14 +1,11 @@
 package dev.caecorthus.sparkwitch.roles.killer.dominator;
 
+import dev.caecorthus.sparkwitch.item.BoundItemRules;
 import dev.caecorthus.sparkwitch.registry.SparkWitchDataComponents;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.DecoratedPotBlock;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
@@ -56,21 +53,12 @@ public final class DominatorForcedShotGuns {
      * 双端，{@code UseEntityCallback}：标记左轮永远不会交给物品展示框、盔甲架或悦灵。
      */
     public static boolean blocksEntityUse(@Nullable ItemStack held, @Nullable Entity target) {
-        return isForcedShotGun(held) && target != null && takesHeldStack(target.getClass());
+        return isForcedShotGun(held) && target != null && BoundItemRules.takesHeldStack(target.getClass());
     }
 
     /** Both sides, decorated pot ({@code DecoratedPotBlockForcedShotGunMixin}). / 双端，饰纹陶罐。 */
     public static boolean blocksBlockUse(@Nullable ItemStack held, @Nullable BlockState target) {
-        return isForcedShotGun(held) && target != null && takesHeldStack(target.getBlock().getClass());
-    }
-
-    /** Pure class check. / 纯类判断。 */
-    static boolean takesHeldStack(@Nullable Class<?> targetType) {
-        return targetType != null
-                && (ItemFrameEntity.class.isAssignableFrom(targetType)
-                || ArmorStandEntity.class.isAssignableFrom(targetType)
-                || AllayEntity.class.isAssignableFrom(targetType)
-                || DecoratedPotBlock.class.isAssignableFrom(targetType));
+        return isForcedShotGun(held) && target != null && BoundItemRules.takesHeldStack(target.getBlock().getClass());
     }
 
     /**

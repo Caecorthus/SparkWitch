@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsSeekerBridge;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -14,7 +15,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
@@ -62,8 +62,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li><b>Lifecycle</b>: sessions live in memory only and always release (death, disconnect, player reset, round
  *       end, server stop). Every rope a player carries is deleted when that player dies (Ninja item precedent).</li>
  * </ul>
- * Server thread only, except the two session lookups behind {@link #isStrangling} / {@link #isStrangled}, which payload
- * guards may read from a network thread (hence the concurrent maps).
+ * Server thread only, except the two session lookups behind {@link #isStrangling} / {@link RopeStrangleHold}, which
+ * payload guards may read from a network thread (hence the concurrent maps).
  * 服务端权威的绳索勒杀（所有者规格 2026-11-11；数值与纯判定见 {@link RopeRules}）。开始：使用者门槛、电击枪式的瞄准目标、背后判定与
  * SparkTraits 近战接缝；被拒绝没有任何代价（仅私有提示，无冷却）。定身：双方被定身 {@link RopeRules#CHANNEL_TICKS}；
  * {@link RopeStrangleHold} 把会话表接入 {@code ControlExpertStun.isStunned}，因此所有眩晕拦截、数据包拦截名单与客户端按键锁都对双方
@@ -77,7 +77,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 同样触发）、使用者受到任何控制、使用者被推离或传送离开锚点、双方分开（{@link RopeRules#pairSeparated}：坠落、移动的座位）、绳索
  * 离手、任一方死亡或离开，或调用 {@link #interruptUser}（火钳的推搡会调用它：否则每刻的拉回会把推搡吞掉）；目标毫发无伤地被放开，
  * 绳索保留并冷却 {@link RopeRules#INTERRUPT_COOLDOWN_TICKS}。生命周期：会话只存在于内存且必定释放（死亡、断线、玩家重置、
- * 回合结束、服务器停止）；玩家死亡时其携带的所有绳索都会被删除（忍者道具先例）。除 {@link #isStrangling} / {@link #isStrangled} 背后的
+ * 回合结束、服务器停止）；玩家死亡时其携带的所有绳索都会被删除（忍者道具先例）。除 {@link #isStrangling} / {@link RopeStrangleHold} 背后的
  * 两个会话查询可能被数据包拦截从网络线程读取（因此使用并发映射）外，仅在服务端线程运行。
  */
 public final class RopeStrangleService {
@@ -125,7 +125,7 @@ public final class RopeStrangleService {
         ShouldPiercePsychoArmour.EVENT.register((victim, reason) -> RopeShieldPolicy.passesShields(reason));
         ServerTickEvents.END_SERVER_TICK.register(RopeStrangleService::tick);
         KillPlayer.AFTER.register((victim, killer, reason) -> onDeath(victim));
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> onGone(handler.player));
+        ServerDisconnectCleanup.register((player, server) -> onGone(player));
         ResetPlayer.EVENT.register(player -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 releaseSilently(serverPlayer);
@@ -166,14 +166,6 @@ public final class RopeStrangleService {
      */
     public static boolean isStrangling(PlayerEntity player) {
         return RopeStrangleHold.side(player) == RopeHoldComponent.Side.STRANGLER;
-    }
-
-    /**
-     * Whether {@code player} is being strangled right now. Both sides; a client only knows its own player.
-     * {@code player} 此刻是否正被勒住。两端可用；客户端只知道本地玩家自己的状态。
-     */
-    public static boolean isStrangled(PlayerEntity player) {
-        return RopeStrangleHold.side(player) == RopeHoldComponent.Side.STRANGLED;
     }
 
     /** Server truth for {@link RopeStrangleHold}. / {@link RopeStrangleHold} 的服务端权威读取。 */

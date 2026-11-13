@@ -215,7 +215,8 @@ public final class VendettaPlayerComponent
      * 只发给本人的倒计时秒数补发；绑定凶手收到的标记内容与计时无关。
      */
     void syncOwner() {
-        if (player instanceof ServerPlayerEntity owner) {
+        // The handler check is CCA's own recipient rule for the owner. / 对网络处理器的判断即 CCA 自身为本人选择接收者的规则。
+        if (player instanceof ServerPlayerEntity owner && owner.networkHandler != null) {
             KEY.syncWith(owner, (ComponentProvider) owner);
         }
     }

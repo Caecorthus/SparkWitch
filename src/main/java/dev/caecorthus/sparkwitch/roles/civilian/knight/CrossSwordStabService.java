@@ -7,13 +7,13 @@ import dev.caecorthus.sparkwitch.net.CrossSwordStabC2SPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent;
 import dev.caecorthus.sparkwitch.util.RoundParticipants;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheSounds;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -64,7 +64,7 @@ public final class CrossSwordStabService {
         PayloadTypeRegistry.playC2S().register(CrossSwordStabC2SPayload.ID, CrossSwordStabC2SPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(CrossSwordStabC2SPayload.ID,
                 (payload, context) -> stab(context.player(), payload.targetEntityId()));
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> RELEASES.remove(handler.player.getUuid()));
+        ServerDisconnectCleanup.register((player, server) -> RELEASES.remove(player.getUuid()));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> RELEASES.clear());
     }
 

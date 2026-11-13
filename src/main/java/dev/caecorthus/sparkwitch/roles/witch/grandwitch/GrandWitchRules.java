@@ -12,14 +12,7 @@ import net.minecraft.util.Identifier;
  * 仅由大魔女角色拥有的纯规则，包括仪礼剑、法术和巫毒保护。
  */
 public final class GrandWitchRules {
-    // Legacy spell constants remain linkable, but the temporary spell is no longer gameplay.
-    // 保留旧法术常量的链接兼容性；临时大招不再参与玩法。
-    public static final int CEREMONIAL_SWORD_MANA_COST = 0;
-    public static final int CEREMONIAL_SWORD_DURATION_TICKS = 0;
-    public static final int CEREMONIAL_SWORD_COOLDOWN_TICKS = 0;
-    public static final int CEREMONIAL_SWORD_INITIAL_COOLDOWN_TICKS = 0;
     public static final int CEREMONIAL_SWORD_UNLOCK_TASKS = 2;
-    public static final int CEREMONIAL_SWORD_SPEED_AMPLIFIER = 1;
     public static final int CEREMONIAL_SWORD_KILL_COOLDOWN_TICKS = GameConstants.getInTicks(0, 30);
     public static final double CEREMONIAL_SWORD_ATTACK_SPEED = 2.0;
     public static final double CEREMONIAL_SWORD_MOVEMENT_SPEED_BONUS = 0.4;
@@ -50,6 +43,14 @@ public final class GrandWitchRules {
     public static boolean shouldBlockVoodooCurse(Role role, Identifier deathReason) {
         return WitchFactionRules.isGrandWitch(role)
                 && NoellesRoleIds.VOODOO_CURSE_DEATH_REASON.equals(deathReason);
+    }
+
+    /**
+     * The same immunity for the head-of-kill guard; Wathe ignores a cancel on a forced kill, so the guard does too.
+     * 供击杀开头拦截使用的同一免疫；Wathe 不取消强制击杀，开头拦截保持一致。
+     */
+    public static boolean cancelsVoodooKill(Role role, Identifier deathReason, boolean force) {
+        return !force && shouldBlockVoodooCurse(role, deathReason);
     }
 
     public enum GrandWitchSpell {

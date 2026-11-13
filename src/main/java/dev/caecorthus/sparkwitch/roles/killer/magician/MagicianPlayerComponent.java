@@ -51,6 +51,8 @@ public final class MagicianPlayerComponent implements AutoSyncedComponent, Serve
     private final List<RosterEntry> roster = new ArrayList<>();
     /** Server: nesting depth of {@link #syncOnceAfter}. Client: local countdown floors. / 服务端：合并同步深度；客户端：本地倒数下限。 */
     private int syncHold;
+    /** Server: a changed disguise pick waits for the next tick's sync. / 服务端：变化后的伪装选择等待下一刻同步。 */
+    private boolean selectionDirty;
     private int clientCooldownFloor;
     private int clientStageFloor;
     /** One round participant the Magician may copy. / 魔术师可复制的一名本局参与者。 */
@@ -65,13 +67,34 @@ public final class MagicianPlayerComponent implements AutoSyncedComponent, Serve
     public void setCooldownTicks(int ticks) { cooldownTicks = Math.max(0, ticks); sync(); }
     public List<MagicianReplayFrame> frames() { return List.copyOf(frames); }
     public List<MagicianRecordedAction> actions() { return List.copyOf(actions); }
-    public void setSelectedTarget(UUID uuid, String name) { selectedTarget=uuid; selectedName=name; sync(); }
+    /**
+     * Stores the disguise pick; an unchanged pick does nothing, and a changed one is sent by the next
+     * {@link #serverTick} (at most one sync per tick). The {@code magician_target} packet is on no deny-list and has no
+     * rate gate, and every sync carries the whole round roster, so syncing inside the write let a client that resent
+     * its pick turn each packet into a full roster serialization.
+     * 保存伪装选择；选择未变化时不做任何事，发生变化则由下一次 {@link #serverTick} 发送（每刻至多同步一次）。
+     * {@code magician_target} 数据包不在任何拒绝列表中，也没有限速，而每次同步都携带整份本局名单，在写入时立即同步会让反复
+     * 重发选择的客户端把每个数据包都变成一次完整的名单序列化。
+     */
+    public void setSelectedTarget(UUID uuid, String name) { if (java.util.Objects.equals(uuid, selectedTarget) && java.util.Objects.equals(name, selectedName)) return; selectedTarget=uuid; selectedName=name; selectionDirty=true; }
     public List<RosterEntry> roster() { return List.copyOf(roster); }
     public void setRoster(List<RosterEntry> entries) { roster.clear(); roster.addAll(entries); sync(); }
     /** The roster entry for {@code uuid}, or null when that player was not in this round. / 名单中的条目；不在本局时为 null。 */
     public @Nullable RosterEntry rosterEntry(UUID uuid) { for (RosterEntry entry : roster) if (entry.uuid().equals(uuid)) return entry; return null; }
     /** Forced-cooldown write: only ever lengthens. / 强制冷却写入：只会延长。 */
     public void raiseCooldownTicks(int ticks) { if (ticks > cooldownTicks) { cooldownTicks = ticks; sync(); } }
+    /**
+     * Whether anything a Magician owns is still held here: a running stage, a cooldown, recorded or cached frames, the
+     * roster or a disguise pick. False for a player who never was the Magician this round, so the role-change cleanup
+     * in {@code SparkWitchEvents} costs such players nothing (no reset, no sync packet).
+     * 此处是否仍持有魔术师的任何状态：进行中的阶段、冷却、已录制或已缓存的帧、名单或伪装选择。本局从未当过魔术师的玩家为
+     * false，因此 {@code SparkWitchEvents} 中的职业变更清理对这些玩家没有任何开销（不重置、不发同步包）。
+     */
+    public boolean holdsMagicianState() {
+        return stage != MagicianStage.IDLE || cooldownTicks > 0 || !frames.isEmpty() || !actions.isEmpty()
+                || !roster.isEmpty() || !safeOwnUuid().equals(selectedTarget())
+                || MagicianPlaybackManager.hasCachedRecording(player);
+    }
     public void reset() { MagicianPlaybackManager.stopPlaybackSilently(player); MagicianPlaybackManager.clearCachedRecording(player); MagicianAbility.forget(safeOwnUuid()); stage=MagicianStage.IDLE; stageTicks=0; recordedTicks=0; cooldownTicks=0; frames.clear(); actions.clear(); roster.clear(); selectedTarget=safeOwnUuid(); selectedName=safeOwnName(); sync(); }
     public void assignInitialCooldown() { cooldownTicks = MagicianConstants.INITIAL_COOLDOWN_TICKS; sync(); }
     public void startRecording() { if (cooldownTicks > 0) return; MagicianPlaybackManager.clearCachedRecording(player); frames.clear(); actions.clear(); recordedTicks=0; stage=MagicianStage.RECORDING; stageTicks=MagicianConstants.RECORD_DURATION_TICKS; frames.add(MagicianReplayFrame.capture(player)); if(player instanceof ServerPlayerEntity sp) GameRecordManager.recordGlobalEvent(sp.getServerWorld(), MagicianReplayEvents.RECORDING_STARTED, sp, null); sync(); }
@@ -79,16 +102,27 @@ public final class MagicianPlayerComponent implements AutoSyncedComponent, Serve
     private void finishRecording(boolean early) { if(stage!=MagicianStage.RECORDING)return; stage=MagicianStage.READY_PLAYBACK; stageTicks=0; MagicianPlaybackManager.cache(this); if(player instanceof ServerPlayerEntity sp) GameRecordManager.recordGlobalEvent(sp.getServerWorld(), early ? MagicianReplayEvents.RECORDING_STOPPED_EARLY : MagicianReplayEvents.RECORDING_FINISHED, sp, null); sync(); }
     public void startPlayback() { if (!(player instanceof ServerPlayerEntity serverPlayer)) return; MagicianPlaybackManager.startPlayback(serverPlayer); }
     public void stopRecordingEarly() { finishRecording(true); }
-    public void record(MagicianRecordedAction.Type type) { if(stage==MagicianStage.RECORDING) actions.add(switch(type) { case ATTACK -> MagicianRecordedAction.attack(recordedTicks); case RELEASE_USE_ITEM -> MagicianRecordedAction.release(recordedTicks); case GUN_SHOOT -> MagicianRecordedAction.gun(recordedTicks); case KNIFE_STAB -> MagicianRecordedAction.knife(recordedTicks); default -> new MagicianRecordedAction(recordedTicks,type,null,0,0,0,0,null,null,false); }); }
-    public void recordUse(Hand hand) { if(stage==MagicianStage.RECORDING) actions.add(MagicianRecordedAction.use(recordedTicks, hand)); }
-    public void recordBlockUse(Hand hand, BlockHitResult hit) { if(stage==MagicianStage.RECORDING) actions.add(MagicianRecordedAction.useBlock(recordedTicks, hand, hit)); }
-    public void recordSwing(Hand hand) { if(stage==MagicianStage.RECORDING) actions.add(MagicianRecordedAction.swing(recordedTicks, hand)); }
-    public void recordSlot(int slot) { if(stage==MagicianStage.RECORDING) actions.add(MagicianRecordedAction.slot(recordedTicks, slot)); }
+    /**
+     * Appends one recorded action unless this recording already holds {@link MagicianConstants#MAX_RECORDED_ACTIONS}.
+     * Frames are bounded by the recording's duration; actions are driven by client packets (swings, slot changes) that
+     * vanilla does not rate-limit, so without a bound a flooding client grows this list, the cached copy and the
+     * playback work without limit. The bound is far above anything an unmodified client produces in one recording.
+     * 追加一条录制动作，除非本次录制已达到 {@link MagicianConstants#MAX_RECORDED_ACTIONS}。帧数受录制时长限制；动作则由原版
+     * 不限速的客户端数据包（挥手、切换槽位）驱动，若无上限，刷包的客户端会让该列表、其缓存副本以及播放开销无限增长。该上限
+     * 远高于未修改的客户端在一次录制中能产生的数量。
+     */
+    private void addAction(MagicianRecordedAction action) { if (MagicianConstants.acceptsRecordedAction(actions.size())) actions.add(action); }
+    public void record(MagicianRecordedAction.Type type) { if(stage==MagicianStage.RECORDING) addAction(switch(type) { case ATTACK -> MagicianRecordedAction.attack(recordedTicks); case RELEASE_USE_ITEM -> MagicianRecordedAction.release(recordedTicks); case GUN_SHOOT -> MagicianRecordedAction.gun(recordedTicks); case KNIFE_STAB -> MagicianRecordedAction.knife(recordedTicks); default -> new MagicianRecordedAction(recordedTicks,type,null,0,0,0,0,null,null,false); }); }
+    public void recordUse(Hand hand) { if(stage==MagicianStage.RECORDING) addAction(MagicianRecordedAction.use(recordedTicks, hand)); }
+    public void recordBlockUse(Hand hand, BlockHitResult hit) { if(stage==MagicianStage.RECORDING) addAction(MagicianRecordedAction.useBlock(recordedTicks, hand, hit)); }
+    public void recordSwing(Hand hand) { if(stage==MagicianStage.RECORDING) addAction(MagicianRecordedAction.swing(recordedTicks, hand)); }
+    public void recordSlot(int slot) { if(stage==MagicianStage.RECORDING) addAction(MagicianRecordedAction.slot(recordedTicks, slot)); }
     @Override public void serverTick() {
         if (!(player instanceof ServerPlayerEntity sp)) return;
         // One sync per tick at most, and only when a shown second changed (finishRecording syncs everything itself).
         // 每刻至多同步一次，且只在显示的秒数变化时同步（finishRecording 自身会同步全部状态）。
-        boolean resync = false;
+        boolean resync = selectionDirty;
+        selectionDirty = false;
         if (cooldownTicks > 0) { cooldownTicks--; resync = Cadence.shownSecondChanged(cooldownTicks + 1, cooldownTicks); }
         if (stage==MagicianStage.RECORDING) { recordedTicks++; frames.add(MagicianReplayFrame.capture(player)); if(--stageTicks<=0) { finishRecording(); return; } resync |= Cadence.shownSecondChanged(stageTicks + 1, stageTicks); }
         else if(stage==MagicianStage.PLAYING) { int before=stageTicks; stageTicks=MagicianPlaybackManager.remaining(player); resync |= Cadence.shownSecondChanged(before, stageTicks); }

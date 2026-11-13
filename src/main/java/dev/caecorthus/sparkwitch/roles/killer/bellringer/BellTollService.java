@@ -34,8 +34,10 @@ public final class BellTollService {
         GameWorldComponent game = GameWorldComponent.KEY.get(ringer.getServerWorld());
         // Swallowed (Taotie) players are spectators; Grand Witch Fear intentionally does not block the bell.
         // 被饕餮吞下的玩家处于旁观模式；大魔女恐惧按设计不阻止敲钟。
+        // Exactly ACTIVE (owner 2026-11): a toll is a forced, terminal kill and must not land in a decided round.
+        // 必须恰为 ACTIVE（所有者 2026-11）：敲钟是强制的终结击杀，不得落在胜负已定的对局中。
         if (!BellRingerRules.isBellRinger(game.getRole(ringer))
-                || !game.isRunning()
+                || game.getGameStatus() != GameWorldComponent.GameStatus.ACTIVE
                 || !GameFunctions.isPlayerPlayingAndAlive(ringer)
                 || ringer.isSpectator()
                 || ringer.getItemCooldownManager().isCoolingDown(bell)

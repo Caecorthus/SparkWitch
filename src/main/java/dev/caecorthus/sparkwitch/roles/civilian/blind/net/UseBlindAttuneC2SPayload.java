@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.blind.net;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -17,17 +16,10 @@ public record UseBlindAttuneC2SPayload() implements CustomPayload {
     public static final Identifier PAYLOAD_ID = SparkWitch.id("use_blind_attune");
     public static final Id<UseBlindAttuneC2SPayload> ID = new Id<>(PAYLOAD_ID);
     public static final PacketCodec<RegistryByteBuf, UseBlindAttuneC2SPayload> CODEC =
-            PacketCodec.of(UseBlindAttuneC2SPayload::write, UseBlindAttuneC2SPayload::read);
+            PacketCodec.unit(new UseBlindAttuneC2SPayload());
 
     @Override
     public Id<? extends CustomPayload> getId() {
         return ID;
-    }
-
-    public void write(PacketByteBuf buf) {
-    }
-
-    public static UseBlindAttuneC2SPayload read(PacketByteBuf buf) {
-        return new UseBlindAttuneC2SPayload();
     }
 }

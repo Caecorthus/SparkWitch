@@ -1,12 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.item.BoundItemRules;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.DecoratedPotBlock;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.slot.SlotActionType;
@@ -49,7 +46,7 @@ public final class BlackRavenInventoryRules {
      * 一件普通物品，暴露本局有黑羽鸦。
      */
     public static boolean blocksEntityUse(ItemStack held, Entity target) {
-        return isBound(held) && target != null && takesHeldStack(target.getClass());
+        return isBound(held) && target != null && BoundItemRules.takesHeldStack(target.getClass());
     }
 
     /**
@@ -57,16 +54,7 @@ public final class BlackRavenInventoryRules {
      * {@link #blocksEntityUse} 的方块版本，由 {@code DecoratedPotBlockBlackRavenItemMixin} 调用。
      */
     public static boolean blocksBlockUse(ItemStack held, BlockState target) {
-        return isBound(held) && target != null && takesHeldStack(target.getBlock().getClass());
-    }
-
-    /** Pure class check, testable without a bootstrapped registry. / 纯类判断，无需引导注册表即可测试。 */
-    static boolean takesHeldStack(Class<?> targetType) {
-        return targetType != null
-                && (ItemFrameEntity.class.isAssignableFrom(targetType)
-                || ArmorStandEntity.class.isAssignableFrom(targetType)
-                || AllayEntity.class.isAssignableFrom(targetType)
-                || DecoratedPotBlock.class.isAssignableFrom(targetType));
+        return isBound(held) && target != null && BoundItemRules.takesHeldStack(target.getBlock().getClass());
     }
 
     public static boolean blocksSlotClick(

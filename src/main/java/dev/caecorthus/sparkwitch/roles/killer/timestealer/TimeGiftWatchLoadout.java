@@ -7,8 +7,6 @@ import dev.doctor4t.wathe.cca.GameWorldComponent;
 import java.util.function.IntPredicate;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
@@ -71,59 +69,8 @@ final class TimeGiftWatchLoadout {
      * 合成格或已打开的容器），缺失时在快捷栏重新创建。快捷栏没有时，光标上的副本视为保留的那一块，因此左键拿起能保持住。
      */
     private static void ensureGiftWatchInHotbar(ServerPlayerEntity player) {
-        PlayerInventory inventory = player.getInventory();
-        ScreenHandler handler = player.currentScreenHandler;
-        int kept = NO_SLOT;
-        int vacated = NO_SLOT;
-        boolean changed = false;
-        for (int slot = 0; slot < inventory.size(); slot++) {
-            ItemStack stack = inventory.getStack(slot);
-            if (!TimeStealerInventoryRules.isGiftWatch(stack)) {
-                continue;
-            }
-            if (kept == NO_SLOT && PlayerInventory.isValidHotbarIndex(slot)) {
-                kept = slot;
-                if (stack.getCount() > 1) {
-                    stack.setCount(1);
-                    changed = true;
-                }
-                continue;
-            }
-            inventory.setStack(slot, ItemStack.EMPTY);
-            if (vacated == NO_SLOT && isStorageSlot(slot)) {
-                vacated = slot;
-            }
-            changed = true;
-        }
-        // A Gift Watch on the cursor is being carried: it is the kept copy unless the hotbar already has one (as for the Clock).
-        // 光标上的赠时怀表正被携带：除非快捷栏已有一块，否则它就是保留的那一份（与时钟相同）。
-        boolean carried = false;
-        ItemStack cursor = handler.getCursorStack();
-        if (TimeStealerInventoryRules.isGiftWatch(cursor)) {
-            if (kept == NO_SLOT) {
-                carried = true;
-                if (cursor.getCount() > 1) {
-                    cursor.setCount(1);
-                    changed = true;
-                }
-            } else {
-                handler.setCursorStack(ItemStack.EMPTY);
-                changed = true;
-            }
-        }
-        for (Slot slot : handler.slots) {
-            if (slot.inventory != inventory && TimeStealerInventoryRules.isGiftWatch(slot.getStack())) {
-                slot.setStack(ItemStack.EMPTY);
-                changed = true;
-            }
-        }
-        if (kept == NO_SLOT && !carried) {
-            changed |= placeGiftWatchInHotbar(inventory, vacated);
-        }
-        if (changed) {
-            inventory.markDirty();
-            handler.sendContentUpdates();
-        }
+        TimeStealerLoadoutService.ensureOneInHotbar(player, TimeStealerInventoryRules::isGiftWatch,
+                TimeGiftWatchLoadout::placeGiftWatchInHotbar);
     }
 
     /**
@@ -154,34 +101,6 @@ final class TimeGiftWatchLoadout {
 
     /** Removes every Gift Watch from inventory 0..40, the cursor and open handler slots. / 从背包 0..40、光标与已打开界面栏位移除所有赠时怀表。 */
     static void removeGiftWatches(ServerPlayerEntity player) {
-        boolean changed = false;
-        PlayerInventory inventory = player.getInventory();
-        for (int slot = 0; slot < inventory.size(); slot++) {
-            if (TimeStealerInventoryRules.isGiftWatch(inventory.getStack(slot))) {
-                inventory.setStack(slot, ItemStack.EMPTY);
-                changed = true;
-            }
-        }
-        ScreenHandler handler = player.currentScreenHandler;
-        if (TimeStealerInventoryRules.isGiftWatch(handler.getCursorStack())) {
-            handler.setCursorStack(ItemStack.EMPTY);
-            changed = true;
-        }
-        for (Slot slot : handler.slots) {
-            if (TimeStealerInventoryRules.isGiftWatch(slot.getStack())) {
-                slot.setStack(ItemStack.EMPTY);
-                changed = true;
-            }
-        }
-        if (changed) {
-            inventory.markDirty();
-            handler.sendContentUpdates();
-        }
-    }
-
-    /** Main slots 9-35 or the offhand. / 主背包 9-35 或副手。 */
-    private static boolean isStorageSlot(int slot) {
-        return (slot >= PlayerInventory.getHotbarSize() && slot < PlayerInventory.MAIN_SIZE)
-                || slot == PlayerInventory.OFF_HAND_SLOT;
+        TimeStealerLoadoutService.removeAll(player, TimeStealerInventoryRules::isGiftWatch);
     }
 }

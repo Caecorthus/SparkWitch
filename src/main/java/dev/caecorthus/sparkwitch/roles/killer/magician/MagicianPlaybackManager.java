@@ -90,6 +90,17 @@ public final class MagicianPlaybackManager {
     public static MagicianPlaybackEntity find(Object e) { return e instanceof MagicianPlaybackEntity p?p:null; }
     public static void stopPlaybackSilently(net.minecraft.entity.player.PlayerEntity p) { if (p instanceof ServerPlayerEntity sp) stop(sp, true, null, MagicianReplayEvents.PLAYBACK_FINISHED, null, null, null); }
     public static void stopPlaybackEarly(ServerPlayerEntity owner) { stop(owner, false, null, MagicianReplayEvents.PLAYBACK_STOPPED_EARLY, null, null, null); }
+    /**
+     * Role loss of an owner who is no longer alive in survival (a death that converts into a Wraith): ends the live
+     * puppet through the same path, with the same {@code PLAYBACK_FINISHED} replay line, that the playback tick gives
+     * a dead owner. Without it the conversion, which runs before that tick, would end the puppet silently and the
+     * replay would show a playback that started and never finished. Does nothing for a living owner or without a
+     * live playback.
+     * 主人已不再以生存模式存活（死亡后转化为冤魂）时的失去职业：经由播放刻对死亡主人所用的同一路径结束活皮套，并记录同样的
+     * {@code PLAYBACK_FINISHED} 回放行。否则，先于该播放刻执行的转化会无声地结束皮套，回放中就会出现一次只有开始、没有结束
+     * 的播放。主人仍存活或没有进行中的播放时不做任何事。
+     */
+    public static void finishPlaybackOfDeadOwner(ServerPlayerEntity owner) { if (!GameFunctions.isPlayerAliveAndSurvival(owner)) stop(owner, false, null, MagicianReplayEvents.PLAYBACK_FINISHED, null, null, null); }
 
     /**
      * Whether this puppet is a live, running playback (server only). A discarded puppet or one whose timeline already
@@ -246,8 +257,28 @@ public final class MagicianPlaybackManager {
             return new RecordingData(List.copyOf(frames), List.copyOf(component.actions()));
         }
     }
+    /**
+     * Pure playback step over a recording's action list: runs, in list order, every action recorded at {@code index}
+     * and returns the cursor for the next tick. The list is ordered by tick (a recording only ever appends at its
+     * current, never-decreasing tick, and a new recording starts from an empty list), so the cursor never has to look
+     * behind itself and one playback visits each action once instead of rescanning the whole list every tick; the
+     * actions that run, and their order, are exactly those of the full scan.
+     * 对一次录制的动作列表执行的纯播放步进：按列表顺序执行所有在 {@code index} 刻录制的动作，并返回下一刻使用的游标。列表按
+     * 刻有序（录制只会在当前且永不减小的刻追加，新录制从空列表开始），因此游标无需回看，一次播放只访问每条动作一次，而不是每刻
+     * 重新扫描整个列表；被执行的动作及其顺序与完整扫描完全一致。
+     */
+    static int runDueActions(List<MagicianRecordedAction> actions, int cursor, int index,
+                             java.util.function.Consumer<MagicianRecordedAction> run) {
+        while (cursor < actions.size() && actions.get(cursor).tick() <= index) {
+            MagicianRecordedAction action = actions.get(cursor++);
+            if (action.tick() == index) run.accept(action);
+        }
+        return cursor;
+    }
     private static final class Active {
         final ServerPlayerEntity owner; final MagicianPlayerComponent component; final MagicianPlaybackEntity entity; final MagicianPlaybackFakePlayer proxy; final java.util.List<MagicianReplayFrame> frames; final java.util.List<MagicianRecordedAction> actions; int index;
+        /** Next unvisited entry of {@link #actions}; see {@link #runDueActions}. / {@link #actions} 中下一条未访问的条目。 */
+        int actionCursor;
         Active(ServerPlayerEntity o,MagicianPlayerComponent c,MagicianPlaybackEntity e,MagicianPlaybackFakePlayer p,java.util.List<MagicianReplayFrame> f,java.util.List<MagicianRecordedAction> a){owner=o;component=c;entity=e;proxy=p;frames=f;actions=a;}
         boolean tick(){
             if(!GameFunctions.isPlayerAliveAndSurvival(owner)||entity.isRemoved()||index>=frames.size())return true;
@@ -264,7 +295,7 @@ public final class MagicianPlaybackManager {
                 proxy.getWorld().playSound(null, proxy.getX(), proxy.getY(), proxy.getZ(),
                         WatheSounds.ITEM_KNIFE_PREPARE, SoundCategory.PLAYERS, 1.0F, 1.0F);
             }
-            for(MagicianRecordedAction action:actions)if(action.tick()==index)MagicianPlaybackActionExecutor.execute(owner,proxy,entity,action);
+            actionCursor=runDueActions(actions,actionCursor,index,action->MagicianPlaybackActionExecutor.execute(owner,proxy,entity,action));
             index++;
             return index>=frames.size();
         }

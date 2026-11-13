@@ -191,7 +191,16 @@ public final class RiftSessionService {
         if (session == null || !session.inside() || sessionId == 0 || sessionId != session.sessionId()) {
             return;
         }
-        end(player, session, RiftExitReason.PLAYER, null, null, null);
+        // One exit search per tick: a search that was just refused is not repeated for further packets of this tick.
+        // 每刻只做一次出口搜索：刚被拒绝的搜索不会为同一刻的后续数据包重复执行。
+        long now = player.getServerWorld().getTime();
+        if (!RiftSessionRules.mayRetryBlockedExit(now, session.blockedExitTick())) {
+            return;
+        }
+        boolean ended = end(player, session, RiftExitReason.PLAYER, null, null, null);
+        if (!ended) {
+            session.markBlockedExit(now);
+        }
     }
 
     /**

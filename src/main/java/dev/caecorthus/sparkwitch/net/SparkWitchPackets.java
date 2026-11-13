@@ -286,9 +286,10 @@ public final class SparkWitchPackets {
                     var role = game.getRole(context.player());
                     var component = MagicianPlayerComponent.KEY.get(context.player());
                     var entry = payload.target() == null ? null : component.rosterEntry(payload.target());
+                    // Exactly ACTIVE, like the ability itself (owner 2026-11). / 必须恰为 ACTIVE，与技能本身一致（所有者 2026-11）。
                     if (entry != null && role != null
                             && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())
-                            && game.isRunning()) {
+                            && game.getGameStatus() == dev.doctor4t.wathe.cca.GameWorldComponent.GameStatus.ACTIVE) {
                         component.setSelectedTarget(entry.uuid(), entry.name());
                     }
                 })

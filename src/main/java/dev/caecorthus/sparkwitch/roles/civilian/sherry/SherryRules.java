@@ -89,10 +89,6 @@ public final class SherryRules {
     private SherryRules() {
     }
 
-    public static boolean isSherryId(@Nullable Identifier roleId) {
-        return ROLE_ID.equals(roleId);
-    }
-
     public static boolean isSherry(@Nullable Role role) {
         return role != null && ROLE_ID.equals(role.identifier());
     }

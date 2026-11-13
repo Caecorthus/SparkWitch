@@ -303,11 +303,6 @@ public final class SherryDeductionLayout {
         return Math.clamp((long) count - firstIndex(grid, page), 0, grid.perPage());
     }
 
-    /** The page that shows roster index {@code index}. 显示名单第 index 人的页码。 */
-    public static int pageOf(Grid grid, int index) {
-        return clampPage(grid, Math.max(0, index) / Math.max(1, grid.perPage()));
-    }
-
     /** 3 + icon + 2 + label + 3. */
     public static int chipWidth(int labelWidth) {
         return CHIP_PAD + markWidth(labelWidth) + CHIP_PAD;

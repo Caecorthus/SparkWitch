@@ -51,6 +51,11 @@ public final class NatsumeComponent implements AutoSyncedComponent {
      * 本端上一次"被封锁"动作栏提示的世界刻；仅为临时值（不同步、不存档）。
      */
     private long lastBlockedNoticeTick = -1L;
+    /**
+     * Server: world tick of the last answered menu request; transient (never synced or saved).
+     * 服务端：上一次已应答的菜单请求所在的世界刻；仅为临时值（不同步、不存档）。
+     */
+    private long lastMenuRequestTick = -1L;
 
     public NatsumeComponent(PlayerEntity player) {
         this.player = player;
@@ -70,6 +75,14 @@ public final class NatsumeComponent implements AutoSyncedComponent {
 
     void markBlockedNotice(long tick) {
         lastBlockedNoticeTick = tick;
+    }
+
+    long lastMenuRequestTick() {
+        return lastMenuRequestTick;
+    }
+
+    void markMenuRequest(long tick) {
+        lastMenuRequestTick = tick;
     }
 
     /**

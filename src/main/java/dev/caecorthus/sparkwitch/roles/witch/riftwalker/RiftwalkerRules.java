@@ -78,10 +78,6 @@ public final class RiftwalkerRules {
     private RiftwalkerRules() {
     }
 
-    public static boolean isRiftwalkerId(Identifier roleId) {
-        return ROLE_ID.equals(roleId);
-    }
-
     /** Exact role, by id (never the Black Raven acting role). / 精确职业，按 id 判定（从不使用黑羽鸦伪装职业）。 */
     public static boolean isRiftwalker(Role role) {
         return role != null && ROLE_ID.equals(role.identifier());

@@ -30,8 +30,6 @@ public final class SeekerNetworking {
             SeekerCarRecallC2SPacket.ID.id(),
             SeekerCameraLookC2SPacket.ID.id(),
             SeekerCarUseC2SPacket.ID.id());
-    /** Every Seeker S2C payload id. / 所有搜寻者 S2C 数据包 id。 */
-    public static final List<Identifier> S2C_IDS = List.of(SeekerCarCorrectS2CPacket.ID.id());
 
     private static boolean registered;
 

@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.noa.net;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -18,17 +17,10 @@ public record UseNoaPaintC2SPayload() implements CustomPayload {
     public static final Identifier PAYLOAD_ID = SparkWitch.id("use_noa_paint");
     public static final Id<UseNoaPaintC2SPayload> ID = new Id<>(PAYLOAD_ID);
     public static final PacketCodec<RegistryByteBuf, UseNoaPaintC2SPayload> CODEC =
-            PacketCodec.of(UseNoaPaintC2SPayload::write, UseNoaPaintC2SPayload::read);
+            PacketCodec.unit(new UseNoaPaintC2SPayload());
 
     @Override
     public Id<? extends CustomPayload> getId() {
         return ID;
-    }
-
-    public void write(PacketByteBuf buf) {
-    }
-
-    public static UseNoaPaintC2SPayload read(PacketByteBuf buf) {
-        return new UseNoaPaintC2SPayload();
     }
 }

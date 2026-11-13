@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.medium;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -12,17 +11,10 @@ public record UseMediumSkillC2SPacket() implements CustomPayload {
     public static final Identifier PAYLOAD_ID = SparkWitch.id("use_medium_skill");
     public static final Id<UseMediumSkillC2SPacket> ID = new Id<>(PAYLOAD_ID);
     public static final PacketCodec<RegistryByteBuf, UseMediumSkillC2SPacket> CODEC =
-            PacketCodec.of(UseMediumSkillC2SPacket::write, UseMediumSkillC2SPacket::read);
+            PacketCodec.unit(new UseMediumSkillC2SPacket());
 
     @Override
     public Id<? extends CustomPayload> getId() {
         return ID;
-    }
-
-    public void write(PacketByteBuf buf) {
-    }
-
-    public static UseMediumSkillC2SPacket read(PacketByteBuf buf) {
-        return new UseMediumSkillC2SPacket();
     }
 }
