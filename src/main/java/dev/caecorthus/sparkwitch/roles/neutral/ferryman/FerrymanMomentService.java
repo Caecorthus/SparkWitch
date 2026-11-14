@@ -16,11 +16,14 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
@@ -51,6 +54,7 @@ public final class FerrymanMomentService {
     private static final String SOUL_KEY = "message.sparkwitch.ferryman.moment.soul";
     private static final String DENIED_KEY = "message.sparkwitch.ferryman.moment.denied";
     private static final String LOST_KEY = "message.sparkwitch.ferryman.moment.lost";
+    private static final String WARCRY_KEY = "title.sparkwitch.lost_soul.warcry";
 
     /**
      * SparkFactionAPI replay cause for the Lost Soul role write; the Charon is its source player.
@@ -243,6 +247,11 @@ public final class FerrymanMomentService {
                     soul.getGameProfile().getName(), exception);
         }
         soul.sendMessage(Text.translatable(SOUL_KEY), false);
+        // The order of the moment, in the largest red type the client draws: the Lost Souls are here to clear the board.
+        // 时刻的命令，用客户端能画出的最大红字宣布：迷失的灵魂是来清场的。
+        soul.networkHandler.sendPacket(new TitleFadeS2CPacket(5, 70, 15));
+        soul.networkHandler.sendPacket(new TitleS2CPacket(
+                Text.translatable(WARCRY_KEY).formatted(Formatting.RED, Formatting.BOLD)));
         return true;
     }
 

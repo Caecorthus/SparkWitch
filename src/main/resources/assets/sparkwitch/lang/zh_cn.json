@@ -1748,6 +1748,7 @@
   "shop.sparkwitch.ferryman.moment.description.line2": "杀光时刻之外的所有人即可共同获胜；灵魂全部倒下时，你也随之而亡。",
   "message.sparkwitch.ferryman.moment.start": "%s 名迷失的灵魂在卡戎身边起身。",
   "message.sparkwitch.ferryman.moment.soul": "你以迷失的灵魂之身重新行走。杀光其他人。",
+  "title.sparkwitch.lost_soul.warcry": "杀光他们所有人",
   "message.sparkwitch.ferryman.moment.denied": "没有等待你的亡者。",
   "message.sparkwitch.ferryman.moment.lost": "迷失的灵魂都已消散，卡戎随之而去。",
   "replay.sparkfactionapi.role_changed.cause.sparkwitch.ferryman_moment_revive": "（化为迷失的灵魂）",

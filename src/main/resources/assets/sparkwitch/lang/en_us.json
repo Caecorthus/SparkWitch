@@ -1748,6 +1748,7 @@
   "shop.sparkwitch.ferryman.moment.description.line2": "Kill everyone outside the moment to win together; if the souls all fall, you fall with them.",
   "message.sparkwitch.ferryman.moment.start": "%s Lost Souls rise beside the Charon.",
   "message.sparkwitch.ferryman.moment.soul": "You walk again as a Lost Soul. Kill everyone else.",
+  "title.sparkwitch.lost_soul.warcry": "Kill them all",
   "message.sparkwitch.ferryman.moment.denied": "No ferried dead are waiting for you.",
   "message.sparkwitch.ferryman.moment.lost": "The Lost Souls are gone. The Charon follows them.",
   "replay.sparkfactionapi.role_changed.cause.sparkwitch.ferryman_moment_revive": " (rose as a Lost Soul)",
