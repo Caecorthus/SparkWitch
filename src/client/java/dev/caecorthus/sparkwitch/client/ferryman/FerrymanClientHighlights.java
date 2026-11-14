@@ -111,6 +111,12 @@ public final class FerrymanClientHighlights {
         }
         FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(self);
         if (target instanceof PlayerEntity player) {
+            // The Charon always sees his Lost Souls through walls, in their own cyan: during the moment they are his
+            // squad, so he must find them the same way they find each other.
+            // 卡戎永远能穿墙看见自己的迷失灵魂，用的是灵魂的青色：时刻里他们就是他的队伍，找人方式必须和灵魂之间一致。
+            if (isLostSoul(player)) {
+                return GetInstinctHighlight.HighlightResult.always(FerrymanRules.SOUL_TEAM_COLOR, PRIORITY + 5);
+            }
             return component.hasGaze(player.getUuid()) && isGazeVisible(player)
                     ? GetInstinctHighlight.HighlightResult.always(GAZE_COLOR, PRIORITY)
                     : null;
@@ -128,6 +134,12 @@ public final class FerrymanClientHighlights {
                     : null;
         }
         return null;
+    }
+
+    /** Exact Lost Soul role, read from the same world component as every other mark. / 精确的迷失灵魂职业，与其他描边读同一个世界组件。 */
+    private static boolean isLostSoul(PlayerEntity player) {
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        return role != null && FerrymanRules.LOST_SOUL_ID.equals(role.identifier());
     }
 
     /**

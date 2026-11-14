@@ -27,12 +27,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.function.Predicate;
 
 /**
- * Draws "亡魂队友" in the Lost Souls' cyan under the name tag of a fellow Lost Soul, the Soul Moment's sibling of
+ * Draws "亡魂队友" in the Lost Souls' cyan under the name tag of a Lost Soul, for the Charon and for fellow souls alike, the Soul Moment's sibling of
  * {@code WitchCohortRoleNameMixin} and {@code InsiderCohortRoleNameMixin}: TAIL of Wathe's {@code renderHud}, so the
  * darkness early return hides it too; the same 2-block (8 for spectators) crosshair raycast with the Wraith name-tag
  * pass-through, the Magician puppet stand-in and the BEAR smoke filter; the name tag's fade alpha; and Wathe's cohort
  * offset. Wathe's own red "杀手同伙" never shows for this pair, because neither side holds a killer role.
- * 在同类迷失的灵魂的名牌下以迷失灵魂的青色绘制「亡魂队友」，是 {@code WitchCohortRoleNameMixin} 与
+ * 在迷失的灵魂的名牌下以迷失灵魂的青色绘制「亡魂队友」（卡戎与迷失的灵魂都能看到），是 {@code WitchCohortRoleNameMixin} 与
  * {@code InsiderCohortRoleNameMixin} 在亡魂时刻里的同构实现：注入 Wathe {@code renderHud} 的 TAIL，因此黑暗提前返回同样会隐藏
  * 本标签；相同的 2 格（旁观者 8 格）准星射线与冤魂名牌穿透、魔术师皮套替身与 BEAR 烟雾过滤；名牌淡出透明度；以及 Wathe 同伙
  * 提示的偏移。该配对双方都没有杀手指定的职业，所以 Wathe 自带的红色「杀手同伙」永远不会出现。
@@ -53,9 +53,9 @@ public abstract class FerrymanCohortRoleNameMixin {
         if (!SparkWitchServerConnection.isConfirmedServer()
                 || nametagAlpha <= 0.05f
                 || !GameWorldComponent.KEY.get(player.getWorld()).isRunning()
-                // The viewer must be a Lost Soul, so every other role skips the per-frame raycast.
-                // 观察者本身必须是迷失的灵魂，其他职业因此跳过每帧的射线检测。
-                || !isLostSoul(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
+                // Only the Charon and the Lost Souls read this label; every other role skips the per-frame raycast.
+                // 只有卡戎与迷失的灵魂读取本标签，其他职业因此跳过每帧的射线检测。
+                || !isCohortObserver(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
             return;
         }
 
@@ -86,5 +86,11 @@ public abstract class FerrymanCohortRoleNameMixin {
 
     private static boolean isLostSoul(Role role) {
         return role != null && FerrymanRules.LOST_SOUL_ID.equals(role.identifier());
+    }
+
+    /** Both the Charon and a Lost Soul read fellow souls as 亡魂队友. / 卡戎与迷失的灵魂都把同类看作「亡魂队友」。 */
+    private static boolean isCohortObserver(Role role) {
+        return role != null && (FerrymanRules.ROLE_ID.equals(role.identifier())
+                || FerrymanRules.LOST_SOUL_ID.equals(role.identifier()));
     }
 }

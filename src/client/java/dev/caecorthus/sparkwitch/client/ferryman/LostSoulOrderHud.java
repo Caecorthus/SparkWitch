@@ -20,7 +20,9 @@ import net.minecraft.text.Text;
 public final class LostSoulOrderHud {
     private static final String ORDER_KEY = "hud.sparkwitch.ferryman.soul_order";
     private static final int ORDER_COLOR = 0xFF4A4A;
-    private static final int MARGIN = 8;
+    /** Wathe's mood bar sits at 8,16, so the order line takes the strip directly above it. / Wathe 的理智条在 8,16，本行占它正上方那条。 */
+    private static final int MARGIN_X = 8;
+    private static final int MARGIN_Y = 6;
 
     private LostSoulOrderHud() {
     }
@@ -40,6 +42,6 @@ public final class LostSoulOrderHud {
         if (role == null || !FerrymanRules.LOST_SOUL_ID.equals(role.identifier())) {
             return;
         }
-        context.drawTextWithShadow(client.textRenderer, Text.translatable(ORDER_KEY), MARGIN, MARGIN, ORDER_COLOR);
+        context.drawTextWithShadow(client.textRenderer, Text.translatable(ORDER_KEY), MARGIN_X, MARGIN_Y, ORDER_COLOR);
     }
 }

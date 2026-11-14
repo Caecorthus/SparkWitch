@@ -16,11 +16,14 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
@@ -51,6 +54,7 @@ public final class FerrymanMomentService {
     private static final String SOUL_KEY = "message.sparkwitch.ferryman.moment.soul";
     private static final String DENIED_KEY = "message.sparkwitch.ferryman.moment.denied";
     private static final String LOST_KEY = "message.sparkwitch.ferryman.moment.lost";
+    private static final String TITLE_KEY = "title.sparkwitch.lost_soul.warcry";
 
     /**
      * SparkFactionAPI replay cause for the Lost Soul role write; the Charon is its source player.
@@ -243,9 +247,12 @@ public final class FerrymanMomentService {
                     soul.getGameProfile().getName(), exception);
         }
         soul.sendMessage(Text.translatable(SOUL_KEY), false);
-        // The order itself is not a flashing title: the client keeps it pinned in the top-left corner for as long as
-        // the player wears the Lost Soul role, the way the psycho order stays on screen.
-        // 命令本身不是一闪而过的标题：只要玩家还顶着迷失的灵魂职业，客户端就把它固定在左上角，和疯魔的命令一样常驻。
+        // Two layers of the same order: a big centred line at the moment of revival, then the kill order that the
+        // client keeps pinned beside the sanity bar for as long as the role lasts.
+        // 同一道命令的两层呈现：复活瞬间屏幕中央的大字，以及角色存续期间固定在理智条旁的那句杀令。
+        soul.networkHandler.sendPacket(new TitleFadeS2CPacket(5, 60, 15));
+        soul.networkHandler.sendPacket(new TitleS2CPacket(
+                Text.translatable(TITLE_KEY).formatted(Formatting.RED, Formatting.BOLD)));
         return true;
     }
 
