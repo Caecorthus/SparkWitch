@@ -7,7 +7,6 @@ import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
-import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.Item;
@@ -45,8 +44,6 @@ public final class SaviorRules {
     public static final float PISTOL_RECOIL_PITCH = 4.0F;
     /** Wathe's innocent-shooting punishment is scheduled four ticks later. / Wathe 误杀惩罚延迟四刻执行。 */
     public static final int PUNISH_DELAY_TICKS = 4;
-    /** Dropped gun pickup delay, same as Wathe's punishment. / 掉落手枪的拾取延迟，与 Wathe 惩罚相同。 */
-    public static final int DROPPED_GUN_PICKUP_DELAY = 10;
     /**
      * Player-inventory indices of the two main rows Wathe's LimitedInventoryScreen locks (only client-side; SFA
      * LimitedInventoryRows reopens 27–35). The hidden revolver lives at 9 ({@code SaviorLoadoutService}).
@@ -153,35 +150,48 @@ public final class SaviorRules {
     }
 
     /**
-     * Wathe keeps the gun count constant (one removed, one dropped), so the punishment drops the Savior's own hidden
-     * revolver (slot {@link #HIDDEN_REVOLVER_SLOT} first, then any other) instead of a new one, with Wathe's pickup
-     * delay and owner. Nothing drops when the Savior carries no revolver. Only the Savior has a planted revolver: for
-     * any other holder the confiscated Savior weapon is the whole loss and their own guns stay (USEC any-holder
-     * precedent).
-     * Wathe 保持枪支数量不变（收走一把、掉落一把），因此惩罚掉落救世主自己的隐藏左轮（先查 {@link #HIDDEN_REVOLVER_SLOT}
-     * 号槽，再查其他槽），而不是新建一把；沿用 Wathe 的拾取延迟与所有者。救世主身上没有左轮时不掉落任何东西。只有救世主
-     * 身上有预置左轮：其他持有者只损失被没收的救世主武器，自己的枪保持不动（USEC 任何持有者先例）。
+     * Hands the gun straight to the shooter instead of dropping it into the world: the planted revolver at
+     * {@link #HIDDEN_REVOLVER_SLOT} sits in the main-row corner Wathe's limited screen locks, and a ground drop owned
+     * by a shooter who may not pick guns up can never be taken. It swaps places with the stack in the selected hotbar
+     * slot, which puts the revolver in the hand and the old hand stack into slot 9; when the bag holds no revolver at
+     * all a fresh one is issued into the selected slot and the old hand stack moves to the first free slot. Only the
+     * Savior has a planted revolver: for any other holder the confiscated Savior weapon is the whole loss.
+     * 直接把枪交回射手手上而不是丢到世界里：预置左轮放在 {@link #HIDDEN_REVOLVER_SLOT}，正处在 Wathe 限定界面锁住的主背包角落，
+     * 而一名被禁止拾枪的射手掉在地上的枪永远没人能捡。该方法让它与当前选中的快捷栏物品互换位置，左轮到手上、原手持物品回到
+     * 9 号槽；背包里完全没有左轮时新发一把放进选中槽，原手持物品移到第一个空槽。只有救世主身上有预置左轮：其他持有者只损失
+     * 被没收的救世主武器。
      */
-    static void dropHiddenRevolver(ServerPlayerEntity shooter) {
+    static void swapInRevolver(ServerPlayerEntity shooter) {
         if (!isSavior(GameWorldComponent.KEY.get(shooter.getWorld()).getRole(shooter))) {
             return;
         }
         PlayerInventory inventory = shooter.getInventory();
-        int slot = inventory.getStack(HIDDEN_REVOLVER_SLOT).isOf(WatheItems.REVOLVER) ? HIDDEN_REVOLVER_SLOT : -1;
+        int selected = inventory.selectedSlot;
+        ItemStack hand = inventory.getStack(selected);
+        if (hand.isOf(WatheItems.REVOLVER)) {
+            return;
+        }
+        int slot = HIDDEN_REVOLVER_SLOT != selected && inventory.getStack(HIDDEN_REVOLVER_SLOT).isOf(WatheItems.REVOLVER)
+                ? HIDDEN_REVOLVER_SLOT
+                : -1;
         for (int index = 0; slot < 0 && index < inventory.size(); index++) {
-            if (inventory.getStack(index).isOf(WatheItems.REVOLVER)) {
+            if (index != selected && inventory.getStack(index).isOf(WatheItems.REVOLVER)) {
                 slot = index;
             }
         }
-        if (slot < 0) {
-            return;
+        if (slot >= 0) {
+            ItemStack revolver = inventory.getStack(slot).copy();
+            inventory.setStack(slot, hand);
+            inventory.setStack(selected, revolver);
+        } else {
+            int free = inventory.getEmptySlot();
+            if (free < 0) {
+                return;
+            }
+            inventory.setStack(free, hand);
+            inventory.setStack(selected, new ItemStack(WatheItems.REVOLVER));
         }
-        ItemStack revolver = inventory.removeStack(slot, 1);
-        ItemEntity dropped = shooter.dropItem(revolver, false, false);
-        if (dropped != null) {
-            dropped.setPickupDelay(DROPPED_GUN_PICKUP_DELAY);
-            dropped.setOwner(shooter.getUuid());
-        }
+        inventory.markDirty();
     }
 
     /**

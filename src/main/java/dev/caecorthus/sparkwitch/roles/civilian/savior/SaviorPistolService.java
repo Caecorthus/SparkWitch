@@ -233,12 +233,12 @@ public final class SaviorPistolService {
 
     /**
      * Wathe's innocent-shooting punishment, four ticks after the shot and only on a shooter still alive in the round
-     * (any holder): take the pistol; when the shooter cannot use killer features, drop a Savior's own hidden revolver
-     * (Wathe removes one gun and drops one, so the count stays constant), clear mood, block picking guns back up, and
-     * under {@code KILL_SHOOTER} also kill the shooter.
+     * (any holder): take the pistol; when the shooter cannot use killer features, swap the Savior's hidden revolver
+     * into the hand (no ground drop: the item sits in the locked bag corner and the pickup ban would strand it), clear
+     * mood, block picking guns back up, and under {@code KILL_SHOOTER} also kill the shooter.
      * Wathe 的误杀惩罚，在开枪四刻后执行，且只作用于仍在对局中存活的射手（任何持有者）：收走手枪；当射手不能使用杀手功能时
-     * 掉落救世主自己的隐藏左轮（Wathe 收走一把、掉落一把，枪支数量不变）、清空理智、禁止再拾枪，并在 {@code KILL_SHOOTER}
-     * 策略下击杀射手。
+     * 把救世主预置左轮换到手上（不落地：它放在锁住的背包角落，加上拾取封锁只会让地上那把永远没人能捡）、清空理智、禁止再拾枪，
+     * 并在 {@code KILL_SHOOTER} 策略下击杀射手。
      */
     private static void punish(ServerPlayerEntity shooter, GameWorldComponent game, ShootInnocentPunishment policy) {
         if (!SaviorRules.isPunishable(shooter)
@@ -248,7 +248,7 @@ public final class SaviorPistolService {
         if (game.canUseKillerFeatures(shooter)) {
             return;
         }
-        SaviorRules.dropHiddenRevolver(shooter);
+        SaviorRules.swapInRevolver(shooter);
         ServerPlayNetworking.send(shooter, new SaviorGunDropS2CPayload());
         PlayerMoodComponent.KEY.get(shooter).setMood(0.0F);
         game.addToPreventGunPickup(shooter);
