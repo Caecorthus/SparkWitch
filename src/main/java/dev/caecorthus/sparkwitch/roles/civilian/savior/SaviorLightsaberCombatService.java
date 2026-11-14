@@ -303,11 +303,11 @@ public final class SaviorLightsaberCombatService {
 
     /**
      * Sword innocent-kill punishment: mirrors the pistol's Shot Innocent policy, four ticks later and only on a holder
-     * still alive in the round. The lightsaber is taken and, for a Savior, its own hidden revolver drops (count kept,
-     * like Wathe); mood is cleared (a Savior's is pinned full again), gun pickup is blocked and KILL_SHOOTER still kills
-     * the shooter. The pistol's random gun-backfire is not applied to a melee hit.
+     * still alive in the round. The lightsaber is taken and, for a Savior, its own hidden revolver is swapped into the
+     * hand (no ground drop); mood is cleared (a Savior's is pinned full again), gun pickup is blocked and KILL_SHOOTER
+     * still kills the shooter. The pistol's random gun-backfire is not applied to a melee hit.
      * 光剑误杀惩罚：沿用与手枪相同的 Shot Innocent 策略，四刻后执行且只作用于仍在对局中存活的持有者。收走光剑；若是救世主，
-     * 再掉落其自己的隐藏左轮（与 Wathe 一样数量不变）；理智清零（救世主随后又被钉回满值）、禁止拾枪；KILL_SHOOTER 仍会击杀射手。
+     * 再把它自己的预置左轮换到手上（不掉到地上）；理智清零（救世主随后又被钉回满值）、禁止拾枪；KILL_SHOOTER 仍会击杀射手。
      * 手枪的随机炸膛不适用于近战。
      */
     private static void punishInnocentSwordKill(ServerPlayerEntity attacker, ServerPlayerEntity victim) {
@@ -334,7 +334,7 @@ public final class SaviorLightsaberCombatService {
         if (game.canUseKillerFeatures(shooter)) {
             return;
         }
-        SaviorRules.dropHiddenRevolver(shooter);
+        SaviorRules.swapInRevolver(shooter);
         PlayerMoodComponent.KEY.get(shooter).setMood(0.0F);
         game.addToPreventGunPickup(shooter);
         if (SaviorRules.isGoodPlayer(shooter, game) && policy == ShootInnocentPunishment.KILL_SHOOTER) {
