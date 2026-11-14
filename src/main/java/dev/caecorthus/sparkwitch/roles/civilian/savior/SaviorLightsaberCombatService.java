@@ -35,6 +35,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -168,14 +169,20 @@ public final class SaviorLightsaberCombatService {
         // 化鸦接缝：近战距离内的乌鸦以其主人代入，因此这一击及其误杀规则作用于黑羽鸦。被拒绝的攻击会解除替身，
         // 本刻之后的其他击杀不会因此结束该乌鸦会话。
         Entity resolved = BlackRavenCrowHits.meleeStandIn(attacker, target);
+        // The flash sits on the entity the blade struck: for a Raven Form crow that is the crow, not its owner's body
+        // elsewhere. Fabric passes no hit result on the server, so the struck entity's body centre is the position.
+        // flash 粒子落在剑刃击中的实体上：化鸦时是乌鸦本身，而不是别处的主人本体。服务端的 Fabric 回调不带命中结果，
+        // 因此取被击中实体的身体中心。
+        Vec3d hitPos = new Vec3d(target.getX(), target.getBodyY(0.5), target.getZ());
         try {
-            return strike(attacker, world, stack, resolved);
+            return strike(attacker, world, stack, resolved, hitPos);
         } finally {
             BlackRavenCrowTargets.forget(resolved);
         }
     }
 
-    private static ActionResult strike(ServerPlayerEntity attacker, World world, ItemStack stack, Entity resolved) {
+    private static ActionResult strike(ServerPlayerEntity attacker, World world, ItemStack stack, Entity resolved,
+                                       Vec3d hitPos) {
         boolean puppet = MagicianPuppetHits.isHittablePuppet(attacker, resolved);
         boolean partygoer = SparkStrengthPartygoerCompat.isPartygoer(resolved);
         if (!(resolved instanceof ServerPlayerEntity) && !puppet && !partygoer) {
@@ -220,6 +227,7 @@ public final class SaviorLightsaberCombatService {
         // 与手枪一致，在受害者仍存活时判定误杀惩罚。
         punishInnocentSwordKill(attacker, victim);
         GameRecordManager.recordItemUse(attacker, SaviorRules.LIGHTSABER_ID, victim, null);
+        spawnImpactFlash(attacker.getServerWorld(), hitPos);
         SaviorRules.settleKill(victim, attacker, SaviorRules.LIGHTSABER_DEATH_REASON);
         // "击杀 30s": only a strike that actually killed costs the cooldown. / 「击杀 30 秒」：只有真正击杀才进入冷却。
         if (!creative && !GameFunctions.isPlayerPlayingAndAlive(victim)) {
@@ -245,6 +253,7 @@ public final class SaviorLightsaberCombatService {
                 stack.getTranslationKey())) {
             return ActionResult.FAIL;
         }
+        spawnImpactFlash(attacker.getServerWorld(), new Vec3d(at.x, puppet.getBodyY(0.5), at.z));
         afterNonPlayerKill(attacker, stack, creative, at);
         return ActionResult.SUCCESS;
     }
@@ -265,6 +274,7 @@ public final class SaviorLightsaberCombatService {
         if (!SparkStrengthPartygoerCompat.killByWeapon(attacker, partygoer, SaviorRules.LIGHTSABER_DEATH_REASON)) {
             return ActionResult.FAIL;
         }
+        spawnImpactFlash(attacker.getServerWorld(), new Vec3d(at.x, partygoer.getBodyY(0.5), at.z));
         afterNonPlayerKill(attacker, stack, creative, at);
         return ActionResult.SUCCESS;
     }
@@ -284,6 +294,11 @@ public final class SaviorLightsaberCombatService {
         ServerWorld world = attacker.getServerWorld();
         world.playSound(null, at.x, at.y, at.z, SparkWitchSounds.SAVIOR_LIGHTSABER_HIT, SoundCategory.PLAYERS, 0.9F,
                 0.9F + world.random.nextFloat() * 0.2F);
+    }
+
+    /** One vanilla flash particle where the blade connected. / 剑刃命中处生成一个原版 flash 粒子。 */
+    private static void spawnImpactFlash(ServerWorld world, Vec3d at) {
+        world.spawnParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 1, 0.0, 0.0, 0.0, 0.0);
     }
 
     /**
