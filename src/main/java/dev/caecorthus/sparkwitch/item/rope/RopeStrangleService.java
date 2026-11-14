@@ -123,6 +123,9 @@ public final class RopeStrangleService {
         // the same answer, so it steps aside too; neither spends a layer.
         // 穿盾之疯魔护甲：使用 Wathe 自带事件（救世主先例）。幽魂里世界护盾依赖同一答案，因此同样让开；二者都不消耗层数。
         ShouldPiercePsychoArmour.EVENT.register((victim, reason) -> RopeShieldPolicy.passesShields(reason));
+        // The strangle start is a recordItemUse; Wathe shows it only through a formatter registered for the rope id.
+        // 开始勒杀记为 recordItemUse；Wathe 只有在为绳索 id 注册了格式化器时才会显示它。
+        RopeReplayFormatter.register();
         ServerTickEvents.END_SERVER_TICK.register(RopeStrangleService::tick);
         KillPlayer.AFTER.register((victim, killer, reason) -> onDeath(victim));
         ServerDisconnectCleanup.register((player, server) -> onGone(player));
