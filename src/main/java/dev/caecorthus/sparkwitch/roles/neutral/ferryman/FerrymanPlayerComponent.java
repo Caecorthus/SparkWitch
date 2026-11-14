@@ -50,6 +50,8 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
     /** The held kill's own {@code spawnBody}, replayed unchanged. / 被扣住击杀自身的 {@code spawnBody}，原样重放。 */
     private boolean pendingSpawnBody = true;
     private long pardonDeadlineTick;
+    private @Nullable UUID pendingMarkTarget;
+    private long pendingMarkDeadlineTick;
 
     public FerrymanPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -163,6 +165,30 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
 
     // ---- Marks / 标记 ----
 
+    /**
+     * Server only: a gaze mark that has been earned but must land later, so the attacker keeps a short window to answer
+     * the Charon before 瞥视 settles. Not synced: the client only ever renders marks that already exist.
+     * 仅服务端：已经挣到、但必须晚些落下的「瞥视」标记，攻击者因此还有一点时间回应摆渡人。不同步：客户端只渲染已经存在的标记。
+     */
+    public void scheduleGazeMark(UUID target, long deadlineTick) {
+        pendingMarkTarget = target;
+        pendingMarkDeadlineTick = deadlineTick;
+    }
+
+    public boolean hasPendingMark() {
+        return pendingMarkTarget != null;
+    }
+
+    /** Server: the mark's target once its deadline has come, otherwise null. / 服务端：到期后返回标记目标，否则 null。 */
+    public @Nullable UUID duePendingMark(long now) {
+        return pendingMarkTarget != null && now >= pendingMarkDeadlineTick ? pendingMarkTarget : null;
+    }
+
+    public void clearPendingMark() {
+        pendingMarkTarget = null;
+        pendingMarkDeadlineTick = 0L;
+    }
+
     public boolean hasGaze(UUID target) {
         return gazeTargets.contains(target);
     }
@@ -224,6 +250,7 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
         gazeTargets.clear();
         ferriedBodies.clear();
         closePardon();
+        clearPendingMark();
         cooldownTicks = FerrymanRules.INITIAL_COOLDOWN_TICKS;
         ferryCooldownTicks = 0;
         if (changed) {

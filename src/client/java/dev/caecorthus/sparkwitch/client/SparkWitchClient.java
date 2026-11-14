@@ -386,8 +386,8 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // 真实职业加同步的时刻拥有者；疾驰只在时刻中存在，是否生效由服务端决定。
                     FiendDashClient.onAbilityKey(client);
                 } else if (FerrymanClient.isLocalFerryman(client)) {
-                    // Real role only; the press asks the server to pardon a held lethal hit (0.5 s window).
-                    // 仅真实职业；按下即请求服务端宽恕一次被扣住的致命击杀（0.5 秒窗口）。
+                    // Real role only; the press asks the server to pardon a held lethal hit (1.5 s window).
+                    // 仅真实职业；按下即请求服务端宽恕一次被扣住的致命击杀（1.5 秒窗口）。
                     FerrymanClient.onAbilityKey(client);
                 } else if (AthleteRules.isAthlete(role)) {
                     // Real role only (the Athlete is never a disguise target); the server decides use.

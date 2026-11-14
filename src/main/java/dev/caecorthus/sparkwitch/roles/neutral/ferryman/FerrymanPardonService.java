@@ -18,11 +18,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 /**
- * The Ferryman's first skill on the shared ability key: a lethal hit opens a 0.5 s window instead of killing, and a
- * press inside it cancels the death, marks the attacker with 瞥视 and restarts a 10 s cooldown. An expired window
- * replays the exact kill it held (same killer, same death reason, same {@code spawnBody}, not forced), so nothing about
- * the original hit is rewritten. Server only.
- * 摆渡人在共享技能键上的第一技能：致命一击改为开启 0.5 秒窗口，窗口内按键即取消死亡、给攻击者挂上「瞥视」并进入
+ * The Ferryman's first skill on the shared ability key: a lethal hit opens a 1.5 s window instead of killing, and a
+ * press inside it cancels the death, restarts a 5 s cooldown and lands 瞥视 on the attacker 1.5 s later. A press with
+ * nothing to refuse is a whiff and costs 15 s. An expired window replays the exact kill it held (same killer, same
+ * death reason, same {@code spawnBody}, not forced), so nothing about the original hit is rewritten. Server only.
+ * 摆渡人在共享技能键上的第一技能：致命一击改为开启 1.5 秒窗口，窗口内按键即取消死亡、给攻击者挂上「瞥视」并进入
  * 10 秒冷却；窗口过期则原样重放它所保存的那次击杀（同凶手、同死亡原因、同 {@code spawnBody}、非强制），原命中的任何
  * 信息都不被改写。仅服务端。
  *
@@ -38,7 +38,8 @@ import java.util.UUID;
 public final class FerrymanPardonService {
     private static final String PROMPT_KEY = "message.sparkwitch.ferryman.pardon.prompt";
     private static final String SAVED_KEY = "message.sparkwitch.ferryman.pardon.saved";
-    private static final String UNAVAILABLE_KEY = "message.sparkwitch.ferryman.pardon.unavailable";
+    private static final String WHIFF_KEY = "message.sparkwitch.ferryman.pardon.whiff";
+    private static final String COOLING_KEY = "message.sparkwitch.ferryman.pardon.cooling";
     private static final String FEIGN_KEY = "message.sparkwitch.ferryman.gaze.feign";
     private static final String MARKED_KEY = "message.sparkwitch.ferryman.gaze.marked";
     /**
@@ -148,6 +149,9 @@ public final class FerrymanPardonService {
             if (component.isPardoning() && player.getServerWorld().getTime() >= component.pardonDeadlineTick()) {
                 resolveExpiredWindow(player, component);
             }
+            if (component.hasPendingMark()) {
+                resolvePendingMark(player, component);
+            }
         }
     }
 
@@ -203,25 +207,53 @@ public final class FerrymanPardonService {
         }
         FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(player);
         if (!component.isPardoning()) {
-            player.sendMessage(Text.translatable(UNAVAILABLE_KEY), true);
+            // A press while the cooldown still runs only reports the remaining time: it must never extend a cooldown
+            // the player already paid, or mashing the key would lock the skill at the long whiff timer.
+            // 冷却期间按键只回报剩余时间：绝不能延长已经付过的冷却，否则连按会把技能锁在空放的长冷却里。
+            int cooldown = component.cooldownTicks();
+            if (cooldown > 0) {
+                player.sendMessage(Text.translatable(COOLING_KEY, (cooldown + 19) / 20), true);
+                return false;
+            }
+            // Nothing lethal to refuse: the press is a whiff and costs the long cooldown, so the key cannot be used as
+            // a free "is anything about to kill me" probe and has to be held for a real hit.
+            // 没有致命伤可拒绝：这次按键就是空放，代价是更长的冷却，因此技能键不能当作"是不是有人要杀我"的免费探针，必须留到真正的
+            // 一击上。
+            component.setCooldown(FerrymanRules.PARDON_WHIFF_COOLDOWN_TICKS);
+            player.sendMessage(Text.translatable(WHIFF_KEY), true);
             return false;
         }
         UUID killerId = component.pendingKiller();
         component.closePardon();
         component.setCooldown(FerrymanRules.PARDON_COOLDOWN_TICKS);
         if (killerId != null) {
-            component.addGaze(killerId);
-            // The marked attacker is the one who must hear the warning, not the Ferryman who already survived.
-            // 该听到警告的是被标记的攻击者，而不是已经活下来的摆渡人。
-            ServerPlayerEntity killer = player.getServer() == null
-                    ? null
-                    : player.getServer().getPlayerManager().getPlayer(killerId);
-            if (killer != null) {
-                killer.sendMessage(Text.translatable(MARKED_KEY), true);
-            }
+            // The glance lands 1.5 s later, not now: the attacker keeps a short window to answer the Charon first.
+            // 「瞥视」1.5 秒后才落下：攻击者因此先有一小段时间回应摆渡人。
+            component.scheduleGazeMark(killerId, player.getServerWorld().getTime() + FerrymanRules.GAZE_MARK_DELAY_TICKS);
         }
         player.sendMessage(Text.translatable(SAVED_KEY), true);
         return true;
+    }
+
+    /**
+     * Applies a scheduled glance once its delay has run out, then tells the attacker. Runs for every player, so a mark
+     * still lands when the Charon has meanwhile lost the role.
+     * 延迟到期后落下一层已排定的「瞥视」，随后通知攻击者。对每名玩家都检查，因此即使摆渡人中途失去职业，标记也照样落下。
+     */
+    private static void resolvePendingMark(ServerPlayerEntity player, FerrymanPlayerComponent component) {
+        UUID target = component.duePendingMark(player.getServerWorld().getTime());
+        if (target == null) {
+            return;
+        }
+        component.clearPendingMark();
+        component.addGaze(target);
+        if (player.getServer() == null) {
+            return;
+        }
+        ServerPlayerEntity killer = player.getServer().getPlayerManager().getPlayer(target);
+        if (killer != null) {
+            killer.sendMessage(Text.translatable(MARKED_KEY), true);
+        }
     }
 
     private static void onReset(ServerPlayerEntity player) {
