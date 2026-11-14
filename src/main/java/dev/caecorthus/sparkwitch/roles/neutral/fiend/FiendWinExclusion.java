@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.roles.neutral.fiend;
 
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenSettlement;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatSettlement;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanSettlement;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawaySettlement;
 import net.minecraft.entity.player.PlayerEntity;
 import org.jetbrains.annotations.Nullable;
@@ -30,12 +31,14 @@ public final class FiendWinExclusion {
     }
 
     /**
-     * Keeps the host's alive answer, except that a dormant Fiend, the Black Raven, the Stowaway and an untransformed
-     * Schrödinger's Cat never count. Dead players skip every lookup.
-     * 保留宿主的存活判断结果，唯独休眠魔人、黑羽鸦、偷渡客与未转化的薛定谔之猫永不计入。已死亡玩家不会进行这些判断。
+     * Keeps the host's alive answer, except that a dormant Fiend, the Black Raven, the Stowaway, an untransformed
+     * Schrödinger's Cat and a Charon with no Lost Souls never count. Dead players skip every lookup.
+     * 保留宿主的存活判断结果，唯独休眠魔人、黑羽鸦、偷渡客、未转化的薛定谔之猫以及没有迷失灵魂的卡戎永不计入。已死亡玩家不会
+     * 进行这些判断。
      */
     public static boolean countsAsAlive(boolean hostAlive, @Nullable PlayerEntity player) {
         return hostAlive && !FiendParticipation.isDormantFiend(player) && !BlackRavenSettlement.isExcluded(player)
-                && !StowawaySettlement.isExcluded(player) && !SchrodingersCatSettlement.isExcluded(player);
+                && !StowawaySettlement.isExcluded(player) && !SchrodingersCatSettlement.isExcluded(player)
+                && !FerrymanSettlement.isExcluded(player);
     }
 }
