@@ -54,15 +54,17 @@ public final class SpecterOtherworldService {
     }
 
     /**
-     * Otherworld targeting rule (owner default: knife only): a {@code wathe:knife} kill credited to a Specter while the
-     * world Otherworld window is open only lands on a player who is not effective-killer faction
-     * ({@link SpecterRules#isEffectiveKiller}) and is either cowardly or at effective real sanity 25 or below
-     * ({@link SpecterRules#isLowSanity}). Any other victim takes no damage and spends no shield or protection. Guns,
-     * grenades, poison, the bat, falls and every other reason are untouched, as is a forced kill. Spectating, creative
-     * and role-less victims are not part of the rule.
-     * 里世界索敌规则（所有者默认：仅限刀）：世界里世界窗口开启时，记在幽魂名下的 {@code wathe:knife} 击杀只能落在不属于有效
-     * 杀手阵营（{@link SpecterRules#isEffectiveKiller}），且处于怯懦或有效真实理智不高于 25（{@link SpecterRules#isLowSanity}）
-     * 的玩家身上。其他受害者不受伤，也不消耗任何护盾或保护。枪、手雷、毒、球棒、坠落等其他所有死因以及强制击杀都不受影响。
+     * Otherworld targeting rule: any non-forced kill credited to a Specter while the world Otherworld window is open
+     * only lands on a player who is not effective-killer faction ({@link SpecterRules#isEffectiveKiller}) and is either
+     * cowardly or at effective real sanity 25 or below ({@link SpecterRules#isLowSanity}) — the same players the
+     * Specter sees framed. Any other victim takes no damage and spends no shield or protection, whatever weapon
+     * (knife, gun, bat, grenade, poison, a thrown item from another mod) delivered the blow. Falls, drowning, escapes
+     * and mental breakdowns carry no attack and stay untouched, as does a forced kill. Spectating, creative and
+     * role-less victims are not part of the rule.
+     * 里世界索敌规则：世界里世界窗口开启时，记在幽魂名下的任何非强制击杀都只能落在不属于有效杀手阵营
+     * （{@link SpecterRules#isEffectiveKiller}），且处于怯懦或有效真实理智不高于 25（{@link SpecterRules#isLowSanity}）
+     * 的玩家身上——也就是幽魂看到有边框的那批玩家。其他受害者不受伤，也不消耗任何护盾或保护，无论致命一击来自小刀、枪、
+     * 球棒、手雷、毒，还是其他模组投出的武器。坠落、溺水、逃离列车与精神崩溃不含攻击，不受影响；强制击杀同样不受影响。
      * 旁观、创造与没有职业的受害者不参与该规则。
      */
     public static boolean blocksKill(ServerPlayerEntity victim, @Nullable ServerPlayerEntity killer,
@@ -70,7 +72,7 @@ public final class SpecterOtherworldService {
         if (force
                 || killer == null
                 || killer == victim
-                || !GameConstants.DeathReasons.KNIFE.equals(deathReason)
+                || isNonAttackReason(deathReason)
                 || !SpecterOtherworldComponent.KEY.get(killer.getServerWorld()).isActive()) {
             return false;
         }
@@ -112,6 +114,14 @@ public final class SpecterOtherworldService {
             return false;
         }
         return blocksKill(victim, attacker, GameConstants.DeathReasons.KNIFE, false);
+    }
+
+    /** Deaths that carry no attack, so the rule has no target to pick. / 不含攻击的死因，规则不介入。 */
+    private static boolean isNonAttackReason(@Nullable Identifier deathReason) {
+        return GameConstants.DeathReasons.FELL_OUT_OF_TRAIN.equals(deathReason)
+                || GameConstants.DeathReasons.ESCAPED.equals(deathReason)
+                || GameConstants.DeathReasons.DROWNED.equals(deathReason)
+                || GameConstants.DeathReasons.MENTAL_BREAKDOWN.equals(deathReason);
     }
 
     /** Not effective killer, and cowardly or at low effective real sanity. / 非有效杀手，且怯懦或有效真实理智偏低。 */
