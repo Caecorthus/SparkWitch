@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.client.ferryman;
 
-import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanInstinctVeilComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanPlayerComponent;
@@ -39,8 +38,9 @@ public final class FerrymanClientHighlights {
     /** Fresh, not yet ferried. / 尚未摆渡的新鲜遗体。 */
     private static final int FRESH_BODY_COLOR = 0xFFD27A;
     /** A Lost Soul's 6 block red sight. / 迷失灵魂 6 格内的红色透视。 */
-    private static final int SOUL_SIGHT_COLOR = 0xFF4A4A;
-    private static final double SOUL_SIGHT_RANGE_SQUARED = 6.0 * 6.0;
+    /** A Lost Soul's sight: teammates cyan, the Charon grey, everyone else red. / 迷失灵魂的视野：队友青、卡戎灰、其余红色。 */
+    private static final int CHARON_GREY = 0x9AA0A6;
+    private static final int SOUL_ENEMY_COLOR = 0xFF4A4A;
     private static final int PRIORITY = GetInstinctHighlight.HighlightResult.PRIORITY_DEFAULT + 40;
     /**
      * The veil's hide priority: Wathe keeps the highest-priority result, and {@code skip()} carries only
@@ -84,21 +84,25 @@ public final class FerrymanClientHighlights {
         }
         GameWorldComponent game = GameWorldComponent.KEY.get(self.getWorld());
         Role selfRole = game.getRole(self);
-        // A Lost Soul sees the Charon through walls, always, in his own role colour, plus every player within 6 blocks
-        // in red. Both are outlines for that client only; nothing here changes what anyone else renders.
-        // 迷失的灵魂永远能穿墙看见卡戎（用他的职业颜色），另外 6 格内的玩家显示为红色。两者都只对这一台客户端生效，
-        // 不改变其他人看到的画面。
-        if (selfRole != null && SparkWitchRoles.LOST_SOUL_ID.equals(selfRole.identifier())) {
+        // A Lost Soul reads the whole lobby through walls: its teammates in cyan, the Charon in grey, everyone else in
+        // red. Distance never matters and every mark is local to this client, so nobody else renders these colours.
+        // 迷失的灵魂能穿墙看清全场：队友青色、卡戎灰色、其余所有人红色。距离不影响判定，且所有描边都只对本客户端生效，
+        // 其他人看到的画面不受影响。
+        if (selfRole != null && FerrymanRules.LOST_SOUL_ID.equals(selfRole.identifier())) {
             if (!(target instanceof PlayerEntity other)) {
                 return null;
             }
             Role otherRole = game.getRole(other);
-            if (otherRole != null && FerrymanRules.ROLE_ID.equals(otherRole.identifier())) {
-                return GetInstinctHighlight.HighlightResult.always(FerrymanRules.COLOR, PRIORITY + 5);
+            if (otherRole == null) {
+                return null;
             }
-            return self.squaredDistanceTo(other) <= SOUL_SIGHT_RANGE_SQUARED
-                    ? GetInstinctHighlight.HighlightResult.always(SOUL_SIGHT_COLOR, PRIORITY)
-                    : null;
+            if (FerrymanRules.ROLE_ID.equals(otherRole.identifier())) {
+                return GetInstinctHighlight.HighlightResult.always(CHARON_GREY, PRIORITY + 10);
+            }
+            if (FerrymanRules.LOST_SOUL_ID.equals(otherRole.identifier())) {
+                return GetInstinctHighlight.HighlightResult.always(FerrymanRules.SOUL_TEAM_COLOR, PRIORITY + 5);
+            }
+            return GetInstinctHighlight.HighlightResult.always(SOUL_ENEMY_COLOR, PRIORITY);
         }
         // Exact role on a confirmed server, in an ACTIVE round, playing and alive: a dead or swallowed Charon gets no
         // outlines. / 已确认服务器上、ACTIVE 回合中、在局存活的精确职业：死亡或被吞下的卡戎没有描边。
@@ -107,6 +111,12 @@ public final class FerrymanClientHighlights {
         }
         FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(self);
         if (target instanceof PlayerEntity player) {
+            // The Charon always sees his Lost Souls through walls, in their own cyan: during the moment they are his
+            // squad, so he must find them the same way they find each other.
+            // 卡戎永远能穿墙看见自己的迷失灵魂，用的是灵魂的青色：时刻里他们就是他的队伍，找人方式必须和灵魂之间一致。
+            if (isLostSoul(player)) {
+                return GetInstinctHighlight.HighlightResult.always(FerrymanRules.SOUL_TEAM_COLOR, PRIORITY + 5);
+            }
             return component.hasGaze(player.getUuid()) && isGazeVisible(player)
                     ? GetInstinctHighlight.HighlightResult.always(GAZE_COLOR, PRIORITY)
                     : null;
@@ -124,6 +134,12 @@ public final class FerrymanClientHighlights {
                     : null;
         }
         return null;
+    }
+
+    /** Exact Lost Soul role, read from the same world component as every other mark. / 精确的迷失灵魂职业，与其他描边读同一个世界组件。 */
+    private static boolean isLostSoul(PlayerEntity player) {
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        return role != null && FerrymanRules.LOST_SOUL_ID.equals(role.identifier());
     }
 
     /**

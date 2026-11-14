@@ -136,6 +136,7 @@
     "hunter.DoubleBarrelSourceAccessor",
     "insider.InsiderCohortRoleNameMixin",
     "insider.RoundTextRendererJiahaoTitleMixin",
+    "ferryman.FerrymanCohortRoleNameMixin",
     "saboteur.SaboteurInstinctMixin",
     "saint.HolyFlashHudMixin",
     "saint.HolyFlashSoundSystemMixin",
