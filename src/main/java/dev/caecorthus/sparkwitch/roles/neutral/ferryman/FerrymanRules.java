@@ -20,6 +20,12 @@ public final class FerrymanRules {
     public static final Identifier ROLE_ID = SparkWitch.id("charon");
     public static final int COLOR = 0x4C6B7A;
 
+    /** The Lost Souls' own role id and cyan, shared by the sight marks and the name-tag cohort label. */
+    /** 迷失的灵魂自身的职业 id 与青色，供视野描边与名牌同伙标签共用。 */
+    public static final Identifier LOST_SOUL_ID = SparkWitch.id("lost_soul");
+    public static final int SOUL_TEAM_COLOR = 0x39E6D0;
+    public static final String LOST_SOUL_COHORT_KEY = "game.tip.sparkwitch.lost_soul_cohort";
+
     /**
      * The Ferryman is never drawn below this population; it carries its own win condition, so small rounds keep it out.
      * 低于该人数时不抽取摆渡人：它自带胜利条件，小对局不放入。

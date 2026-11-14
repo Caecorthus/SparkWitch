@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.client.ferryman;
 
-import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanInstinctVeilComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanPlayerComponent;
@@ -40,7 +39,6 @@ public final class FerrymanClientHighlights {
     private static final int FRESH_BODY_COLOR = 0xFFD27A;
     /** A Lost Soul's 6 block red sight. / 迷失灵魂 6 格内的红色透视。 */
     /** A Lost Soul's sight: teammates cyan, the Charon grey, everyone else red. / 迷失灵魂的视野：队友青、卡戎灰、其余红色。 */
-    private static final int SOUL_TEAM_COLOR = 0x39E6D0;
     private static final int CHARON_GREY = 0x9AA0A6;
     private static final int SOUL_ENEMY_COLOR = 0xFF4A4A;
     private static final int PRIORITY = GetInstinctHighlight.HighlightResult.PRIORITY_DEFAULT + 40;
@@ -90,7 +88,7 @@ public final class FerrymanClientHighlights {
         // red. Distance never matters and every mark is local to this client, so nobody else renders these colours.
         // 迷失的灵魂能穿墙看清全场：队友青色、卡戎灰色、其余所有人红色。距离不影响判定，且所有描边都只对本客户端生效，
         // 其他人看到的画面不受影响。
-        if (selfRole != null && SparkWitchRoles.LOST_SOUL_ID.equals(selfRole.identifier())) {
+        if (selfRole != null && FerrymanRules.LOST_SOUL_ID.equals(selfRole.identifier())) {
             if (!(target instanceof PlayerEntity other)) {
                 return null;
             }
@@ -101,8 +99,8 @@ public final class FerrymanClientHighlights {
             if (FerrymanRules.ROLE_ID.equals(otherRole.identifier())) {
                 return GetInstinctHighlight.HighlightResult.always(CHARON_GREY, PRIORITY + 10);
             }
-            if (SparkWitchRoles.LOST_SOUL_ID.equals(otherRole.identifier())) {
-                return GetInstinctHighlight.HighlightResult.always(SOUL_TEAM_COLOR, PRIORITY + 5);
+            if (FerrymanRules.LOST_SOUL_ID.equals(otherRole.identifier())) {
+                return GetInstinctHighlight.HighlightResult.always(FerrymanRules.SOUL_TEAM_COLOR, PRIORITY + 5);
             }
             return GetInstinctHighlight.HighlightResult.always(SOUL_ENEMY_COLOR, PRIORITY);
         }
