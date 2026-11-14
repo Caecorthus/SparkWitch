@@ -46,7 +46,9 @@ public final class BlackRavenCrowBoundaryOverlay {
         }
         MinecraftClient client = MinecraftClient.getInstance();
         BlackRavenCrowEntity crow = BlackRavenCrowPilotClient.boundCrow();
-        if (crow == null || client.world == null) {
+        // HudRenderCallback fires even with F1; the edge warning is HUD, so F1 hides it like vanilla's vignette.
+        // HudRenderCallback 在 F1 下仍会触发；边界警告属于 HUD，因此与原版暗角一样随 F1 隐藏。
+        if (crow == null || client.world == null || client.options.hudHidden) {
             return;
         }
         WorldBorder border = client.world.getWorldBorder();

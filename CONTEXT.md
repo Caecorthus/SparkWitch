@@ -1027,7 +1027,9 @@ Current build baseline:
       `interruptUser(ServerPlayerEntity)`, `isStrangling(PlayerEntity)` (both sides).
       `tryStart`: SparkTraits `blocksWeaponAction` (silent), the gates, then SparkTraits `shouldCancelMeleeAttack`
       (Close Quarters); a refusal costs nothing (action-bar `message.sparkwitch.rope.blocked` / `.no_target` /
-      `.not_behind`). A start records `recordItemUse`, snaps both players to anchors and holds them for 60 ticks (every
+      `.not_behind`). A start records `recordItemUse` (replay line `replay.item_use.sparkwitch.rope` through
+      `RopeReplayFormatter`, registered from `RopeStrangleService.register()`; until 2026-11-13 no formatter existed
+      and Wathe dropped the line), snaps both players to anchors and holds them for 60 ticks (every
       hold teleport passes the player's own yaw/pitch: in 1.21.1 `requestTeleport`'s rotation is absolute and `ROT`
       only sends its difference from the server's, so zeros would turn the camera to yaw 0 / pitch 0); at
       ticks 20/40/60 the victim shows one vanilla hurt through `ServerWorld.sendEntityDamage` with the attacker-less
@@ -1210,7 +1212,8 @@ Current build baseline:
     pays 50 gold and adds the 怜悯 mark. `FerrymanMercyService`: a ferried body that is bagged or eaten pays a
     still-active Charon 50 more and marks the destroyer, once; the Charon's own destruction pays nothing.
   - Shop (`FerrymanShopService`): crowbar 25 (refused on a full inventory) and the stock-1 Soul Moment 250 (refused and
-    uncharged when no soul rises).
+    uncharged when no soul rises; its description is two LORE lines, `shop.sparkwitch.ferryman.moment.description` and
+    `.description.line2`, because vanilla tooltips never wrap and one line overflowed 1080p at the default GUI scale).
   - Soul Moment (`FerrymanMomentWorldComponent` + `FerrymanMomentRules` + `FerrymanMomentService` +
     `FerrymanWinService`): eligible souls are online ferried participants Wathe holds dead that are not a Charon, whose
     death no pending SparkTraits Last Stand holds, and that are not an active Wraith; one per 6 round participants rises (Wathe's
@@ -2907,7 +2910,8 @@ Current build baseline:
       shared ability key, 加护 below with the Role Skill 2 key; `SaintHudLayoutRules` reserves two rows; both lift
       together above the hotbar column at narrow widths through `FiendDashHudRules.rowY`, measured with 99 s). Each row
       shows the first state that applies: its own window running (teal), its cooldown (grey), another live window (grey
-      `hud.sparkwitch.medium.window.busy`), short of coins (grey, price with the coin glyph), ready with its key (teal).
+      `hud.sparkwitch.medium.window.busy`), short of coins (grey, price with the coin glyph, which the renderer appends
+      to the number, so neither `*.price` HUD key carries U+E781 itself), ready with its key (teal).
       Active-blessing chips (9 px icons) sit left of the lower row: corpse sight while the synced set is not empty, the
       shield while the local whiskey-shield effect is infinite, Speed with its seconds only for a Speed effect within
       43 s of a granted-Speed result. 招魂 has no corner row.
@@ -3725,9 +3729,15 @@ that table and run `python3 <SparkFactionAPI>/tools/payload_policy.py generate -
 类型化目标判定，表中 VENDETTA_TARGET 列记录它判定的五个 id。
 
 Role HUD panels draw through `client/hud/RoleHudDispatcher` (2026-10-22), behind two default-priority seams:
-`client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, still drawn under F1: Curser, Guardian Angel,
-Orthopedist, Saint, Vendetta, Kidnapper control screen, Saboteur) and `client/mixin/RoleHudMainHudTailMixin`
-(`renderMainHud` TAIL, hidden by F1: Witch mana with the tarot snapshot and slip, Witch skill, Magician, Black Raven).
+`client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, which still runs under F1: Curser, Guardian Angel,
+Orthopedist, Savior, Saint, Vendetta, Kidnapper control screen, Natsume, Saboteur) and
+`client/mixin/RoleHudMainHudTailMixin` (`renderMainHud` TAIL, hidden by F1: Witch mana with the tarot snapshot and
+slip, Witch skill, Magician, Black Raven). Since 2026-11-13 every text layer of the first seam returns on vanilla
+`options.hudHidden` itself (`RoleHudDispatcher.hiddenByF1`; Savior and Natsume check it in their own gate); only the
+Kidnapper control screen stays under F1, because its black fill is the drug's blindness. `HudRenderCallback` HUDs
+(`HunterTrapDismantleHud`, the Blind view fallback hint in `BlindRenderWiring`, `BlackRavenCrowBoundaryOverlay`, the
+corner lines) also fire under F1 and check `hudHidden` themselves; full-screen gameplay masks that F1 must not peel
+off (Holy Flash, Rys-T visor, the Seeker remote-view panels) keep drawing.
 The layer order is the draw order and matches the old per-role mixins' config order, so the group keeps its slot
 relative to Fabric's `HudRenderCallback` and Wathe's own TAIL injects. Each layer owns its gate (the Vendetta,
 Kidnapper and Magician layers have no confirmed-server check, as before); a new panel adds a layer, not another
@@ -3748,7 +3758,10 @@ already carries 3 or more (main, hotbar, offhand, crafting grid and cursor stack
 `ShopUtils.canAccessShop` true for the Saint, `SaintEconomyService` answers `CanSeeMoney` DENY for a Saint that
 is not playing and alive, keeping dead and STARTING-phase coin visibility (and SparkTraits money-trait
 eligibility) unchanged. Throws, bursts and flashes exist only while Wathe's status is ACTIVE
-(`HolyFlashRules.isActivePhase`), so the ringing never spills into STOPPING. Any participant may throw one. The role-owned `HolyFlashEntity` (never Wathe's
+(`HolyFlashRules.isActivePhase`), so the ringing never spills into STOPPING. Any participant may throw one; the
+throw's `recordItemUse` shows as `replay.item_use.sparkwitch.holy_flash` through `HolyFlashReplayFormatter`
+(registered from `HolyFlashFeatureService.register()` since 2026-11-13; before that Wathe dropped it).
+The role-owned `HolyFlashEntity` (never Wathe's
 grenade, so no grenade hook fires) bursts on its first block or entity hit with sound and particles
 but no damage. It flashes every participant whose hitbox is within 6 blocks of the burst (nearest point
 of the body, `HolyFlashTargeting.bodyDistance`) and whose eyes have line of sight to it; facing away keeps
