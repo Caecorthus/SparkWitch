@@ -169,10 +169,11 @@ public final class SaviorLightsaberCombatService {
         // 化鸦接缝：近战距离内的乌鸦以其主人代入，因此这一击及其误杀规则作用于黑羽鸦。被拒绝的攻击会解除替身，
         // 本刻之后的其他击杀不会因此结束该乌鸦会话。
         Entity resolved = BlackRavenCrowHits.meleeStandIn(attacker, target);
-        // The flash sits where the blow landed (the stand-in for a Raven Form crow). / flash 粒子落在实际命中的位置（化鸦时即乌鸦替身）。
-        Vec3d hitPos = hitResult != null
-                ? hitResult.getPos()
-                : new Vec3d(resolved.getX(), resolved.getBodyY(0.5), resolved.getZ());
+        // The flash sits on the entity the blade struck: for a Raven Form crow that is the crow, not its owner's body
+        // elsewhere. Fabric passes no hit result on the server, so the struck entity's body centre is the position.
+        // flash 粒子落在剑刃击中的实体上：化鸦时是乌鸦本身，而不是别处的主人本体。服务端的 Fabric 回调不带命中结果，
+        // 因此取被击中实体的身体中心。
+        Vec3d hitPos = new Vec3d(target.getX(), target.getBodyY(0.5), target.getZ());
         try {
             return strike(attacker, world, stack, resolved, hitPos);
         } finally {

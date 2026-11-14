@@ -1810,7 +1810,13 @@ Current build baseline:
     The lightsaber
     kills from an `AttackEntityCallback` on a full charge (bat attributes), behind SparkTraits `blocksWeaponAction` /
     `shouldCancelMeleeAttack`, the Vendetta target rule and the SFA veto, and costs 30 s only after a kill (or a
-    puppet/Partygoer hit). Kills use the terminal reasons `sparkwitch:savior_pistol_kill` (Prophecy GUNSHOT) and
+    puppet/Partygoer hit). A strike that passed every gate spawns one vanilla `flash` particle (PR #230) at the body
+    centre of the entity the blade struck: the raw callback target, so a Raven Form crow flashes at the crow, not at
+    its owner's body (Fabric's server callback has no hit result). The player branch flashes before the kill settles,
+    so a blocked or feigned kill looks the same; the puppet/Partygoer branches flash only after their kill succeeded.
+    The pistol shot file `item/savior_pistol_shoot.ogg` is stereo like Wathe's `revolver_shoot.ogg`, so at the copied
+    volume 5.0 it is non-positional (no direction, no falloff inside the 80-block packet range); only the Hunter
+    shotgun spatializes a stereo shot (`DoubleBarrelShotAudio`). Kills use the terminal reasons `sparkwitch:savior_pistol_kill` (Prophecy GUNSHOT) and
     `sparkwitch:lightsaber_kill` (BLADE) through `SaviorRules.settleKill` (up to 10 `killPlayer` retries, each may
     spend one shield layer); SparkTraits skips Last Escape / Last Stand / Depression for them, they pierce psycho
     armour, and the Saint and NoellesRoles Iron Man / whiskey / Jester mixins let them through (the swallowed
