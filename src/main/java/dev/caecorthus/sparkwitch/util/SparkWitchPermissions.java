@@ -13,6 +13,11 @@ public final class SparkWitchPermissions {
     public static final String COMMAND_FORCE_ACCOMPLICE_ROLE = "sparkwitch.command.forceaccomplicerole";
     public static final String COMMAND_GHOST_CHANCE = "sparkwitch.command.ghostchance";
     public static final String COMMAND_GHOST_MIN_REQUIREMENT = "sparkwitch.command.ghostminrequirement";
+    /**
+     * {@code /sparkwitch:thirdFactionMinRequirement}: SparkFactionAPI's third-faction player minimum.
+     * 设置 SparkFactionAPI 第三阵营最低人数的命令。
+     */
+    public static final String COMMAND_THIRD_FACTION_MIN_REQUIREMENT = "sparkwitch.command.thirdfactionminrequirement";
     /** Using the Rift Gate Remover (传送门清除工具). / 使用传送门清除工具。 */
     public static final String ITEM_RIFT_GATE_REMOVER = "sparkwitch.item.riftgateremover";
 

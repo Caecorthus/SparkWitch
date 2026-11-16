@@ -10,6 +10,7 @@ import dev.caecorthus.sparkwitch.command.ForceAccompliceRoleCommand;
 import dev.caecorthus.sparkwitch.command.ForcePromotionCommand;
 import dev.caecorthus.sparkwitch.command.GhostSettingsCommand;
 import dev.caecorthus.sparkwitch.command.SetManaCommand;
+import dev.caecorthus.sparkwitch.command.ThirdFactionSettingsCommand;
 import dev.caecorthus.sparkwitch.command.WatheGhostDividendCommand;
 import dev.caecorthus.sparkwitch.command.WitchFactorCommand;
 import dev.caecorthus.sparkwitch.skill.SparkWitchBuiltInSkills;
@@ -135,6 +136,7 @@ public final class SparkWitch implements ModInitializer {
             ForceAccompliceRoleCommand.register(dispatcher);
             GhostSettingsCommand.register(dispatcher);
             WatheGhostDividendCommand.register(dispatcher);
+            ThirdFactionSettingsCommand.register(dispatcher);
             WitchFactorCommand.register(dispatcher);
         });
     }
