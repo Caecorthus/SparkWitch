@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
+import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -32,6 +33,13 @@ public final class SaintHudLayoutRules {
         }
         if (ownsTwoCornerRows(roleId)) {
             return fontHeight * 2 + LINE_GAP + SPARKWITCH_BOTTOM_PADDING;
+        }
+        // The Criminal Reasoner draws three corner rows ({@code client/hud/CriminalReasonerHudRenderer}): reasoning
+        // key/cooldown, progress, invisibility; lifted above the hotbar column they also clear this Karma slot.
+        // 犯罪推理学家在右下角绘制三行（{@code client/hud/CriminalReasonerHudRenderer}）：推理按键/冷却、进度、隐身；
+        // 抬升到快捷栏列之上时同样避开此处的业障行。
+        if (CriminalReasonerRules.ROLE_ID.equals(roleId)) {
+            return fontHeight * 3 + LINE_GAP * 2 + SPARKWITCH_BOTTOM_PADDING;
         }
         // The Medium draws two corner rows too: 通灵 above, 幽灵的加护 below (招魂 lives in the inventory drawer and
         // has no row); both lift above the hotbar column at narrow widths like the Charon's.
@@ -86,6 +94,7 @@ public final class SaintHudLayoutRules {
                 || DominatorRules.ROLE_ID.equals(roleId)
                 || SaviorRules.ROLE_ID.equals(roleId)
                 || MediumRules.ROLE_ID.equals(roleId)
+                || CriminalReasonerRules.ROLE_ID.equals(roleId)
                 || ownsTwoCornerRows(roleId);
     }
 

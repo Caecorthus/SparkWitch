@@ -72,6 +72,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
@@ -332,6 +333,9 @@ public final class SparkWitchEvents {
         // 泽渡可可（中立，PR #223）：各服务的顺序由其注册中心固定。它排在上方共享 RoleAssigned 监听器之后，其魔力由其中的
         // WitchManaService.assignForRole 开启；她自己的监听器只重置组件。
         KokoFeatureService.register();
+        // 犯罪推理学家 (neutral, PR #228): right after 泽渡可可; its win phase is ordered after hers.
+        // 犯罪推理学家（中立，PR #228）：紧随泽渡可可；其胜负阶段排在她之后。
+        CriminalReasonerRuntime.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.

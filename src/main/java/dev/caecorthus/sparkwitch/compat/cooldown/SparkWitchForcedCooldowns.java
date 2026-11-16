@@ -45,6 +45,8 @@ import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules;
+import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRuntime;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
@@ -108,6 +110,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier HIRO_RETURN_ID = HiroRules.RETURN_SKILL_ID;
     static final Identifier MEDIUM_BLESSING_ID = MediumRules.BLESSING_SKILL_ID;
     static final Identifier KOKO_STREAM_ID = KokoRules.STREAM_SKILL_ID;
+    static final Identifier CRIMINAL_REASONER_REASONING_ID = CriminalReasonerRules.REASONING_SKILL_ID;
     static final Identifier PLANNER_RECOMMEND_ID = PlannerRules.RECOMMEND_SKILL_ID;
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
@@ -207,8 +210,11 @@ public final class SparkWitchForcedCooldowns {
                 // 泽渡可可's streams (shared key G and the corpse stream, PR #223), store 30, appended after the Medium's
                 // 幽灵的加护. / 泽渡可可的直播（共享 G 键与尸体直播，PR #223），第 30 个存储，追加在通灵师幽灵的加护之后。
                 kokoStream(),
-                // 规划大师's recommendation (shared key G, PR #219), store 31, appended after 泽渡可可's streams.
-                // 规划大师的推荐（共享 G 键，PR #219），第 31 个存储，追加在泽渡可可的直播之后。
+                // 犯罪推理学家 推理 (shared key G, PR #228), store 31, appended after 泽渡可可's streams.
+                // 犯罪推理学家的推理（共享 G 键，PR #228），第 31 个存储，追加在泽渡可可的直播之后。
+                criminalReasonerReasoning(),
+                // 规划大师's recommendation (shared key G, PR #219), store 32, appended after 犯罪推理学家's 推理.
+                // 规划大师的推荐（共享 G 键，PR #219），第 32 个存储，追加在犯罪推理学家的推理之后。
                 plannerRecommend()
         );
     }
@@ -284,6 +290,28 @@ public final class SparkWitchForcedCooldowns {
                 player -> KokoComponent.KEY.get(player),
                 KokoComponent::readyTick,
                 KokoComponent::setReadyTick
+        );
+    }
+
+    /**
+     * 犯罪推理学家's reasoning cooldown (PR #228), kept server-side by {@code CriminalReasonerRuntime} as a server-tick
+     * deadline per player and mirrored to the owner's HUD in whole seconds. An ACTIVE round and the raw role (the
+     * runtime's role and round gates). Remaining time includes the 45 s opening cooldown; the nominal is the 60 s
+     * cooldown after a wrong reasoning (a correct one earns the short 5 s). The setter is exact (0 clears). The skill has
+     * no item, so SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it; the neutral master
+     * key's door cooldown is an item cooldown in the item nominal table.
+     * 犯罪推理学家的推理冷却（PR #228），由 {@code CriminalReasonerRuntime} 在服务端按玩家保存为服务器刻截止时间，并以整秒同步给
+     * 本人 HUD。ACTIVE 回合且为真实职业（与运行期的职业与回合门控一致）。剩余时间包含 45 秒开局冷却；标准冷却为推理错误后的
+     * 60 秒（推理正确只有 5 秒的短冷却）。setter 为精确写入（0 即清除）。该技能没有物品，因此 SparkFactionAPI 的管理员
+     * {@code clearCooldown}（只清手持物品）触及不到它；中立万能钥匙的开门冷却属于物品冷却，由物品标准冷却表处理。
+     */
+    static SimpleRoleSkillCooldownStore criminalReasonerReasoning() {
+        return SimpleRoleSkillCooldownStore.exact(
+                CRIMINAL_REASONER_REASONING_ID,
+                whileActive((game, player) -> CriminalReasonerRules.isReasoner(game.getRole(player))),
+                CriminalReasonerRuntime::reasoningCooldownTicks,
+                () -> CriminalReasonerRules.FAIL_COOLDOWN_TICKS,
+                CriminalReasonerRuntime::setReasoningCooldownTicks
         );
     }
 
