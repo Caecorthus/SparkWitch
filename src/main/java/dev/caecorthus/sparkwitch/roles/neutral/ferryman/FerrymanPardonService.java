@@ -214,10 +214,11 @@ public final class FerrymanPardonService {
         }
         FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(player);
         if (!component.isPardoning()) {
-            // A Charon held in a Taotie's stomach (or otherwise spectating while Wathe still holds him alive) can never
-            // get a window (interceptKill refuses him), so his press is not a whiff and costs nothing.
-            // 被饕餮吞在胃里（或 Wathe 仍视其存活但处于旁观状态）的摆渡人不可能得到窗口（interceptKill 会拒绝），因此他的按键
-            // 不算空放，也不付任何代价。
+            // A Charon held in a Taotie's stomach can never get a window (interceptKill refuses him), and one that is
+            // spectating while Wathe still holds him alive is out of the world and cannot be hit there: with no window
+            // open, such a press is not a whiff and costs nothing.
+            // 被饕餮吞在胃里的摆渡人不可能得到窗口（interceptKill 会拒绝），而 Wathe 仍视其存活但处于旁观状态的摆渡人不在世界中、
+            // 在那里挨不到打：没有窗口开启时，这样的按键不算空放，也不付任何代价。
             if (NoellesTaotieSeekerBridge.isSwallowed(player) || player.isSpectator()) {
                 return false;
             }
