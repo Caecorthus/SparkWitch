@@ -306,6 +306,7 @@
     "bear.HeadsetWatheInventoryWipeMixin",
     "specter.GameFunctionsSpecterOtherworldTargetMixin",
     "specter.SpecterOtherworldKnifeMixin",
+    "specter.SpecterOtherworldGunMixin",
     "specter.GameFunctionsSpecterShieldMixin",
     "specter.DecoratedPotBlockPeachwoodSwordMixin"
   ],
