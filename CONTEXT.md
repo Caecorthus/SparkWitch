@@ -1388,6 +1388,50 @@ Current build baseline:
   - Lang: `role`/`announcement`/`game.win` keys for `koko` and `sparkwitch.koko`, `tip.letter.koko.tooltip1`-`6`,
     `hud.sparkwitch.koko.*`, `message.sparkwitch.koko.*`, `gui.sparkwitch.shop.traffic_price`,
     `shop.error.sparkwitch.koko.*`, the lightstick name and tooltips, and the five `replay.skill.sparkwitch.koko.*` keys.
+- `roles/neutral/criminalreasoner/`: 犯罪推理学家 Criminal Reasoner (`sparkwitch:criminal_reasoner`, color `0x704B4B`),
+  contributed in PR #228 (ported from the Parox NoellesRoles build) and fixed in review; every number lives in
+  `CriminalReasonerRules`.
+  - Registration: a SparkFactionAPI neutral (Wathe-native NEUTRAL, FAKE mood so he has fake tasks, 10 s
+    `maxSprintTime`, no round clock, no appearance condition) registered after 泽渡可可 and right before the Insider
+    (which stays last), and guessed in the neutral block right after 泽渡可可. Drawn by Wathe's neutral pass, not
+    settlement-excluded. Not in `isRegisteredSparkWitchRole` (that list hands out witch skills), never in the
+    `gui.sparkwitch.skills` panel. `SparkWitchRoles` exposes `CRIMINAL_REASONER_ID` and `criminalReasoner()`.
+  - Kit (`CriminalReasonerRuntime`): `RoleAssigned` resets his component and blocks revolver pickup; at
+    `ON_FINISH_INITIALIZE` each living final Reasoner without one gets one `noellesroles:neutral_master_key` (Koko
+    pattern) and a SparkWitch-owned `DoorInteraction` listener on both sides opens train doors and key-locked room
+    doors through `InsiderDoorRules.masterKeyDoorResult` with the 10 s key cooldown.
+  - Attribution: `KillPlayer.AFTER` records victim → killer for every Reasoner in the round (server-only answer key in
+    `CriminalReasonerComponent`, never synced). A death with no killer counts as self-inflicted only for
+    fell-out-of-train, shot-innocent, mental breakdown and escaped; any other killer-less death is never recorded and
+    never offered. A SparkTraits Last Stand interception is not a death.
+  - Reasoning (shared ability key, `request_criminal_reasoner` → S2C `open_criminal_reasoner_s2c` roster →
+    `confirm_criminal_reasoner`): the roster lists only recorded, unsolved dead victims and every other round player
+    as a suspect (≤ 64 each), bound to a 30 s server session. Right: +1 solved victim, +1 invisibility charge, 5 s
+    cooldown, and 5 s later everyone but him reads the anonymous "有人看穿了列车上的命案" notice. Wrong: 60 s cooldown.
+    The opening cooldown is 45 s. All three timers read one clock, `MinecraftServer#getTicks()`; the cooldown is a
+    static per-player deadline mirrored to the owner's component in whole seconds, cleared at round start and on
+    Wathe's `ResetPlayer`.
+  - Invisibility (secondary ability key, `criminal_reasoner_invisibility`): one charge → 20 s vanilla Invisibility
+    (no particles, icon shown); refused while already invisible. While a Reasoner is invisible every client hides his
+    instinct outline (`CriminalReasonerClientModule`, colour -1 at priority 1100, above the Specter mark's 1000);
+    other invisible players are untouched.
+  - Gates: every payload re-checks the exact role, an ACTIVE round, alive and not spectating, not swallowed, not
+    stunned, not SparkTraits role-skill-blocked, and Grand Witch Fear (with its own line). The three ids have rows in
+    SparkFactionAPI's payload policy table (G pair like 橘雪莉's 推演 pair; the invisibility like the other key-N skills,
+    allowed in a Knight duel).
+  - Win: own early phase `sparkwitch:criminal_reasoner_win`, ordered after the Fiend, Charon and Koko phases and before
+    the default (a default-phase `block()` would hide it): a living, non-spectating, unswallowed Reasoner with
+    `floor(round players / 3)` (min 1) solved victims wins alone (`neutralWin`); otherwise `null`. A Reasoner forced in
+    mid-round gets his threshold at `RoleAssigned`.
+  - Forced cooldown: store 31 `sparkwitch:criminal_reasoner_reasoning` (nominal 60 s).
+  - Replay (`CriminalReasonerReplay`, skill events under the role id): success / fail with victim and suspect.
+  - Client (`client/criminalreasoner/`, `client/hud/CriminalReasonerHudRenderer`, presentation only): the reasoning
+    menu (victim grid, then alive / dead suspects), three bottom-right HUD rows (key or cooldown, progress, charges or
+    invisibility countdown) reserved in `SaintHudLayoutRules`, and the key handlers, which drop presses a dead,
+    spectating or swallowed Reasoner makes.
+  - Lang: `role`/`announcement` keys for `criminal_reasoner` and `sparkwitch.criminal_reasoner`,
+    `screen.sparkwitch.criminal_reasoner.*`, `tip.sparkwitch.criminal_reasoner.*`, `hud.sparkwitch.criminal_reasoner.*`
+    and the two `replay.skill.sparkwitch.criminal_reasoner.*` keys.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
   - Other-witch roles (owner 2026-11-13): `OtherWitchRoles` is the one list of roles the Grand Witch's instinct
     specially recognises, by role id: the Apprentice Witch, the Murderous Witch and the Witch Trial girls (魔裁,
@@ -4792,6 +4836,11 @@ deliberate and kept:
    cooldown and, while she is live, the rest of the stream; the nominal is `KokoRules.COOLDOWN_TICKS` (900). Every
    write only moves the ready tick later through the syncing `setReadyTick`, so it never shortens and never ends a
    running stream.
+31. `sparkwitch:criminal_reasoner_reasoning` (`SparkWitchForcedCooldowns#criminalReasonerReasoning`, PR #228, appended
+   after 泽渡可可's streams): the Criminal Reasoner's reasoning cooldown, for the raw role in an ACTIVE round. Remaining
+   time is the server-tick deadline `CriminalReasonerRuntime` keeps per player, so it includes the 45 s opening
+   cooldown; the nominal is `CriminalReasonerRules.FAIL_COOLDOWN_TICKS` (1200). Writes are exact and refresh the owner's
+   HUD second; 0 clears. The skill has no item, so the admin `clearCooldown` (held item only) does not reach it.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
