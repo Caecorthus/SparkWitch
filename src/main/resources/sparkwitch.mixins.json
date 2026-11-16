@@ -19,7 +19,7 @@
     "knight.KnightDuelEntityCollisionMixin",
     "knight.KnightDuelLivingEntityCollisionMixin",
     "knight.KnightDuelSkillPayloadGuardMixin",
-    "recruit.RecruitGunParityMixin",
+    "recruit.RecruitGunSanityMixin",
     "recruit.ItemEntityRecruitGunMixin",
     "savior.SaviorGunPickupMixin",
     "savior.PlayerInventorySaviorGunMixin",
