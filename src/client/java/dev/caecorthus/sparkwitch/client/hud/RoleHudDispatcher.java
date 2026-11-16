@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.client.curser.CurserHudRules;
 import dev.caecorthus.sparkwitch.client.guardianangel.GuardianAngelHudRenderer;
 import dev.caecorthus.sparkwitch.client.kidnapper.KidnapperControlledHudRenderer;
 import dev.caecorthus.sparkwitch.client.magician.MagicianStatusHudRenderer;
+import dev.caecorthus.sparkwitch.client.planner.PlannerHud;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.client.saboteur.SaboteurHudRenderer;
 import dev.caecorthus.sparkwitch.client.saboteur.SaboteurHudRules;
@@ -65,6 +66,7 @@ public final class RoleHudDispatcher {
         renderGuardianAngel(context);
         renderOrthopedist(context);
         renderSavior(context);
+        renderPlanner(context);
         renderSaint(hud, context);
         renderVendetta(context);
         renderKidnapperControlled(context);
@@ -173,6 +175,26 @@ public final class RoleHudDispatcher {
         Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
         if (SaviorRules.isSavior(role)) {
             SaviorHudRenderer.render(context, player);
+        }
+    }
+
+    /**
+     * 规划大师 Master Planner (PR #219, new layer right after the Savior's corner line): her two owner-only corner rows,
+     * the next-task countdown and the recommendation. F1 and the confirmed server here; the raw role, round, fade,
+     * train HUD, liveness and swallow gates in {@link PlannerHud}.
+     * 规划大师（PR #219，新增层，紧接救世主的角落行之后）：她仅本人可见的两行角落读数，下个任务倒计时与推荐。F1 与已确认
+     * 服务器门槛在此；真实职业、回合、淡入、列车 HUD、存活与被吞下门槛在 {@link PlannerHud} 中。
+     */
+    private static void renderPlanner(DrawContext context) {
+        if (hiddenByF1()) {
+            return;
+        }
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
+        if (player != null) {
+            PlannerHud.render(context, player);
         }
     }
 

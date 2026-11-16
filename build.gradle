@@ -916,6 +916,19 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_1657;Lnet/minecraft/class_327;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
         [
+                // 规划大师 recommended task row: TaskRenderer.tick TAIL (its single return), after Wathe rebuilt the
+                // row text for this frame; Wathe-named, remap = false. / 规划大师推荐任务行：TaskRenderer.tick 的 TAIL
+                // （唯一返回点），位于 Wathe 本帧重建行文本之后；Wathe 命名成员，remap = false。
+                configName: "planner.PlannerTaskRowMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/planner/PlannerTaskRowMixin.class",
+                handler: "sparkwitch\$plannerRecommendedTaskRow",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "tick(Ldev/doctor4t/wathe/cca/PlayerMoodComponent\$TrainTask;FZ)Z",
+                providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer\$TaskRenderer.class",
+                providerMethod: "tick",
+                providerDescriptor: "(Ldev/doctor4t/wathe/cca/PlayerMoodComponent\$TrainTask;FZ)Z"
+        ],
+        [
                 // 夏目安安 hypnosis: no instinct at all for the hypnotised viewer (outermost veto + both keyed gates).
                 // 夏目安安催眠：被催眠的观察者完全没有本能（最外层否决 + 两个按键入口）。
                 configName: "natsume.NatsumeInstinctGateMixin",
