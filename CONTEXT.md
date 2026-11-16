@@ -3188,34 +3188,45 @@ Current build baseline:
     order): real role, ACTIVE round, alive and not spectating, not controlled (swallowed, stunned, SparkTraits
     role-skill blocked), ready, all silent; then Fear (Grand Witch "skill blocked" line); then, each with an action-bar
     line, the target (self, or a player of the planner's world who is a living present participant, not swallowed, not
-    an active Wraith, within 32 blocks of the eyes measured to the box, and with eyes or centre visible from the eyes
+    an active Wraith, not hidden from the planner (invisible or a NoellesRoles Morphling in corpse mode, the client
+    pick's filter), within 32 blocks of the eyes measured to the box, and with eyes or centre visible from the eyes
     through no block: `PlannerTargeting`), 25 coins, no recommendation on the target, and a free task type (absent from
     the target's map and no Bell Ringer Echo holding it). A refusal never charges or starts the cooldown. `USE` puts a
     NATIVE Wathe task of a uniformly random absent type into the target's `PlayerMoodComponent.tasks`
     (`PlannerTasks`, Wathe's own durations, `timesGotten` untouched), marks it (marker before `mood.sync()`), charges
     through `addToBalance(-25)` and sets the 70 s cooldown; private page-turn cues for both players. Feedback to
     the caster never names the target (the client also sends the UUID of a player hidden in BEAR smoke).
+    Intended: a recommendation to a NONE-mood player (Saboteur, Curser, Undercover, Loose End) is accepted and
+    charged like any other; Wathe never ticks that player's tasks, so it simply expires after 60 s. Refusing it would
+    reveal the role.
   - Lifecycle: the marked task is an ordinary task for Wathe and every `TaskComplete` listener (Wathe's +0.5
     included). `PlannerEconomyService`'s single `TaskComplete` listener first pays the planner's own +75 (living
     planner in an ACTIVE round, survival, not a restricted Wraith, confirmed non-Impostor via
     `SparkTraitsTaskIncomeBridge`), then, for a live recommendation, pays its holder 50 coins (Wathe faction CIVILIAN)
     or 25 (anyone else) through `addToBalance` and +0.75 through `setMood` (Wathe clamps; FAKE mood stays 1) and clears
     the marker; it never touches the task map (Wathe is iterating it). `PlannerLifecycleService` (END_WORLD_TICK)
-    settles markers with `PlannerRules.markerAction`: task gone or replaced (completed, rerolled, reset, a Bell
-    Ringer Echo or another mod writing a fresh task of the same type) clears the marker;
-    expired after 60 s or holder no longer a living participant drops the marker and its task silently (no pay, no
-    `TaskComplete`; Bell Ringer Echo precedent). A self-recommendation pays both the +75 and the reward.
+    settles markers with `PlannerRules.markerAction`: a task map a Bell Ringer Echo holds (`PlannerTasks.isLocked`;
+    also after a relog, when matching falls back to the type) and a task gone or replaced (completed, rerolled,
+    reset, another mod writing a fresh task of the same type) only clear the marker; a recommendation that would be
+    expired on the next mood tick (`expiresBeforeNextMoodTick`: the world clock advances before entities tick, so the
+    last tick it can complete and pay is `endTick - 1`) or whose holder is no longer a living participant is dropped
+    with its task silently (no pay, no `TaskComplete`; Bell Ringer Echo precedent). A self-recommendation pays both
+    the +75 and the reward.
   - Drain: `mixin/planner/PlayerMoodComponentPlannerDrainMixin` (common, `@ModifyExpressionValue` on the first
     `Map.size()` of `serverTick`/`clientTick`, `require = 2, allow = 2`, `remap = false`; chained with Noa's lock and
     the Abyss zone, never `@Redirect`; listed right after 橘雪莉's mood mixin) counts one task fewer while the marked
     task is held, floored at 0, and does nothing for a Noa-locked player. Not covered: the Perfumer's own corpse drain
     still scales with `tasks.size()`.
   - Next task: for a living planner in an ACTIVE round the world tick reads Wathe's private `nextTaskTimer` through
-    the existing `mixin/PlayerMoodComponentAccessor` (read only) and publishes whole seconds rounded up
-    (`setNextTaskSeconds`, owner sync on change); -1 for everyone else.
+    the existing `mixin/PlayerMoodComponentAccessor` (read only, never written), learns the timer's real per-tick
+    decrease from consecutive readings (`PlannerRules.nextTaskTimerRate`: an exponential average of the observed
+    decreases, readings that jump up when Wathe re-arms the timer ignored, kept transient in the component; SparkTraits
+    Anxiety makes it about 1.8) and publishes `ceil(timer / rate / 20)` seconds (`setNextTaskSeconds`, owner sync on
+    change). It publishes -1 ("unknown") when no deal can happen (all four types held, or a Bell Ringer Echo holding
+    generation: `canDealNextTask`) and for everyone else. Not detected: SparkTraits Minimalism's task cap.
   - State: `PlannerComponent` (`sparkwitch:planner_master_player`, `NEVER_COPY`, owner-only sync, appended last in the
-    CCA list after 泽渡可可's): the planner's ready tick and next-task seconds (never saved), and on any player the
-    recommended type and its end tick (at most one per player). The server also keeps a transient reference to the
+    CCA list after 泽渡可可's): the planner's ready tick (saved, so a mid-round relog keeps the cooldown) and next-task
+    seconds (never saved), and on any player the recommended type and its end tick (at most one per player, saved). The server also keeps a transient reference to the
     exact Wathe task object it inserted (never saved or synced; a relog falls back to the type), and every reader
     (reward, lifecycle, drop, drain) goes through `isRecommendedTask` / `holdsRecommendation`, so a same-type
     replacement is never the recommendation. The forced-cooldown store `sparkwitch:planner_recommend` (store 31) only
@@ -3225,15 +3236,29 @@ Current build baseline:
   - Task slip (`PlannerTaskSlipItem` / `PlannerTaskSlipService`, `sparkwitch:planner_task_slip`, 任务单, `maxCount(1)`,
     registered last in `SparkWitchItems`, listed after 橘雪莉's items; own 16x16 texture): any holder in an ACTIVE round,
     alive, present, not swallowed or stunned. Right-click rerolls the tasks of the targetable player under the
-    crosshair within 32 blocks (server ray stopped by the first block), or the user's own: the same count of distinct
-    random native types, marker cleared. No task (or a Bell Ringer Echo holding the map) refuses with a line and keeps
-    the slip; success consumes it and tells the target `message.sparkwitch.planner.task_slip` with the user's name (no
-    role claim; the user's own line never names the target). No item cooldown.
+    crosshair within 32 blocks (server ray stopped by the first block; players hidden from the user, invisible or a
+    Morphling corpse, are transparent like on the client; BEAR smoke hides nobody), or the user's own: the same count
+    of distinct random native types, marker cleared. On another player the slip is always handed over and used up
+    with the normal lines (`SlipVerdict.HAND_OVER`), even when nothing can be rerolled (no task, e.g. a NONE-mood
+    role, or a Bell Ringer Echo holding the map; the reroll is then a no-op), so it is never a free role probe; only
+    the user's own empty or held list refuses with a line and keeps it. The target's line
+    (`message.sparkwitch.planner.task_slip`) names nobody, and neither does the user's (the user may be a disguised
+    Morphling, invisible or in smoke); the replay keeps both. No item cooldown.
   - Replay (`PlannerReplay`): skill event `sparkwitch:planner_recommend` and item use `sparkwitch:planner_task_slip`,
     the other player as the event target; `replay.sparkwitch.planner_recommend[.self]` and
     `replay.sparkwitch.planner_task_slip[.self]`.
   - Deny lists: `use_planner_recommend` has its row in SparkFactionAPI's payload policy table with Tono Hanna's and
     泽渡可可's cells.
+  - Client (`client/planner/`, presentation only): the shared ability key (G) branch in `SparkWitchClient` calls
+    `PlannerClient.onAbilityKey` for the raw planner role and sends the payload with no prediction;
+    `client/planner/PlannerTargeting` is the block-clipped 32-block pick shared by the key and the HUD (skips the
+    viewer, spectators, the dead or non-participants, the invisible and Morphling corpses; BEAR smoke changes only the
+    HUD hint, never the packet). `PlannerHud` / `PlannerHudRules` are a `RoleHudDispatcher` layer right after the
+    Savior's (F1-hidden, confirmed server): two bottom-right rows, the next-task countdown (unknown at -1) and the
+    recommendation line, which lift over the Saint's Karma line themselves (not in `SaintHudLayoutRules`).
+    `client/mixin/planner/PlannerTaskRowMixin` (`MoodRenderer$TaskRenderer.tick` TAIL, `remap = false`, pinned in
+    `watheClientMixinContracts`) restyles the local recommended task row (`PlannerTaskLine`,
+    `task.planner_recommend.<type>`, planner colour, italic); a Bell Ringer Echo row wins (`PlannerTaskRowRules`).
   - Lang: `role`/`announcement` keys for `planner_master` and `sparkwitch.planner_master`,
     `tip.letter.planner_master.tooltip1`, the six client `hud.sparkwitch.planner.*` keys, `task.planner_recommend.*`
     (the target's task row, no format arguments), `message.sparkwitch.planner.*`, the slip's item name and tooltips,
