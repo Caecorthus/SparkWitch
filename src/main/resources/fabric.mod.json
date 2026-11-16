@@ -106,7 +106,8 @@
       "sparkwitch:nikaido_hiro_return",
       "sparkwitch:nikaido_hiro_witchification",
       "sparkwitch:koko_player",
-      "sparkwitch:criminal_reasoner_player"
+      "sparkwitch:criminal_reasoner_player",
+      "sparkwitch:planner_master_player"
     ],
     "sparkfactionapi:native_wathe_factions": {
       "sparkwitch:jiahao": "JIAHAO",

@@ -25,6 +25,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
@@ -109,6 +111,7 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier MEDIUM_BLESSING_ID = MediumRules.BLESSING_SKILL_ID;
     static final Identifier KOKO_STREAM_ID = KokoRules.STREAM_SKILL_ID;
     static final Identifier CRIMINAL_REASONER_REASONING_ID = CriminalReasonerRules.REASONING_SKILL_ID;
+    static final Identifier PLANNER_RECOMMEND_ID = PlannerRules.RECOMMEND_SKILL_ID;
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -209,7 +212,34 @@ public final class SparkWitchForcedCooldowns {
                 kokoStream(),
                 // 犯罪推理学家 推理 (shared key G, PR #228), store 31, appended after 泽渡可可's streams.
                 // 犯罪推理学家的推理（共享 G 键，PR #228），第 31 个存储，追加在泽渡可可的直播之后。
-                criminalReasonerReasoning()
+                criminalReasonerReasoning(),
+                // 规划大师's recommendation (shared key G, PR #219), store 32, appended after 犯罪推理学家's 推理.
+                // 规划大师的推荐（共享 G 键，PR #219），第 32 个存储，追加在犯罪推理学家的推理之后。
+                plannerRecommend()
+        );
+    }
+
+    /**
+     * 规划大师's recommendation cooldown (PR #219), kept as an absolute ready tick in the owner-synced
+     * {@code sparkwitch:planner_master_player} component. An ACTIVE round and the raw role (the
+     * {@code PlannerRecommendService} role and round gates). Remaining time counts to the ready tick, so it includes
+     * the 45 s opening cooldown; the nominal is the 70 s cooldown after a recommendation. Writes only move the ready
+     * tick later through {@code setSkillReadyTick}. The skill has no item, so SparkFactionAPI's admin
+     * {@code clearCooldown} (held item only) does not reach it; the task slip writes no item cooldown.
+     * 规划大师的推荐冷却（PR #219），以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:planner_master_player} 组件中。
+     * ACTIVE 回合且为真实职业（与 PlannerRecommendService 的职业与回合门控一致）。剩余时间计到就绪刻，因此包含 45 秒开局
+     * 冷却；标准冷却为每次推荐后的 70 秒。写入只经 {@code setSkillReadyTick} 把就绪刻推后。该技能没有物品，因此
+     * SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）触及不到它；任务单不写物品冷却。
+     */
+    static SimpleRoleSkillCooldownStore plannerRecommend() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                PLANNER_RECOMMEND_ID,
+                whileActive((game, player) -> PlannerRules.isPlanner(game.getRole(player))),
+                player -> PlannerComponent.KEY.get(player).skillCooldownRemaining(player.getServerWorld().getTime()),
+                () -> PlannerRules.COOLDOWN_TICKS,
+                player -> PlannerComponent.KEY.get(player),
+                PlannerComponent::skillReadyTick,
+                PlannerComponent::setSkillReadyTick
         );
     }
 
