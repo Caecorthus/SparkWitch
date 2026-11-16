@@ -24,12 +24,13 @@ import org.jetbrains.annotations.Nullable;
  * Server authority for the Recruit: the first completed task grants Wathe's knife, knife kills cost 35 sanity, and
  * killing a good player with the knife or pushing one off the train kills the Recruit with Wathe's own SHOT_INNOCENT
  * death (shown as "小脑" in zh_cn). A SparkTraits Impostor trait removes both the knife sanity cost and that penalty.
- * Revolver kills cost no sanity and keep the 10 s base cooldown through {@code mixin/recruit/RecruitGunParityMixin};
- * Wathe's own innocent-gun punishment still applies. Ground guns follow Wathe's own pickup rule, and
+ * Revolver kills cost no sanity through {@code mixin/recruit/RecruitGunSanityMixin}; the revolver keeps Wathe's 15 s
+ * passenger cooldown (the Recruit is not a police role), and Wathe's own innocent-gun punishment still applies. Ground guns follow Wathe's own pickup rule, and
  * {@code mixin/recruit/ItemEntityRecruitGunMixin} allows only one ground gun pickup per round.
  * 新兵的服务端权威：完成第一个任务获得 Wathe 的刀；用刀击杀损失 35 理智；用刀杀死好人或把好人推下列车时，以 Wathe 自身的
  * SHOT_INNOCENT 死亡（中文显示为“小脑”）处死新兵。拥有 SparkTraits 内鬼词条时，免除用刀理智消耗与该惩罚。左轮击杀
- * 不扣理智，并通过 {@code mixin/recruit/RecruitGunParityMixin} 保持 10 秒基础冷却；左轮误杀仍由 Wathe 自身惩罚处理。
+ * 不扣理智（{@code mixin/recruit/RecruitGunSanityMixin}）；左轮保持 Wathe 乘客规则的 15 秒冷却（新兵不是警类职业），左轮误杀
+ * 仍由 Wathe 自身惩罚处理。
  * 地面枪械沿用 Wathe 自身拾取规则，{@code mixin/recruit/ItemEntityRecruitGunMixin} 只允许每局从地面捡一把。
  */
 public final class RecruitRuntime {

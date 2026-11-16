@@ -1941,7 +1941,9 @@ Current build baseline:
     hidden revolver out of rows 9–26. Only the punishment moves it; once in the hotbar it is an ordinary item, and
     `SaviorGunPickupRules.blocksInsert` lets it back into the inventory (cursor stack on screen close or disconnect)
     while the Savior carries no other revolver. Ground pickup of any gun stays refused. Wathe fires that revolver
-    under its passenger rule (15 s; the Savior has no police gun-parity wrapper).
+    under its native Vigilante rule (10 s, no −0.35 mood per gun kill) through `mixin/savior/SaviorPoliceGunMixin`
+    (`SaviorRules.countsAsNativeVigilanteForGun`; owner 2026-11-16: police roles keep 10 s, everyone else 15 s), an
+    additive OR-wrap like the other police wrappers.
   - Domain (G, `use_savior_skill`, `SaviorDomainService`): ACTIVE round, living, not spectating or swallowed, not
     SparkTraits skill-blocked, not Feared; 10 s around the Savior, 15 blocks: night vision and blindness removal for
     everyone inside, Slowness I for everyone but the Savior; 60 s opening and post-use cooldown in
@@ -1993,8 +1995,9 @@ Current build baseline:
     (SparkFactionAPI effective faction CIVILIAN: Impostor out, Conscience in, neutrals not good) or a train-fall kill
     of one credited to the Recruit kills it with Wathe's `shot_innocent` (non-forced). An active SparkTraits Impostor
     trait (`compat/SparkTraitsRecruitBridge`, public facade only, fails closed to "not Impostor") lifts both.
-    Revolver kills follow the police gun parity below (`mixin/recruit/RecruitGunParityMixin`: 10 s cooldown, no mood
-    cost); Wathe's own innocent-shot punishment still applies.
+    Revolver kills cost no mood (`mixin/recruit/RecruitGunSanityMixin`, role spec PR #176), but the Recruit is not a
+    police role, so its revolver stays on Wathe's 15 s passenger cooldown (owner 2026-11-16); Wathe's own
+    innocent-shot punishment still applies.
   - Ground guns: Wathe's own `ItemEntityMixin` decides the first pickup (an innocent with no gun, not its own throw,
     no misfire ban; the SparkTraits Impostor refusal stays). `mixin/recruit/ItemEntityRecruitGunMixin` marks the
     round's one pickup at vanilla's `sendPickup` (reached only after a successful insert) and vetoes any later
@@ -3424,8 +3427,11 @@ Current build baseline:
   `mixin/JudgePoliceGunMixin`, `mixin/EmmaPoliceGunMixin`,
   `mixin/controlexpert/ControlExpertPoliceGunMixin`, `mixin/seeker/SeekerPoliceGunMixin` and
   `mixin/BlackRavenPoliceGunMixin` (raw role, so a disguised Raven keeps it; the M1 overlay wraps the callee), plus
-  the Knight's `mixin/KnightPoliceGunMixin` and, for a civilian, the Recruit's `mixin/recruit/RecruitGunParityMixin`
-  (owner spec, PR #176). A new police role needs its own wrap; registering in `PoliceRoles` is not enough.
+  the Knight's `mixin/KnightPoliceGunMixin` and the Savior's `mixin/savior/SaviorPoliceGunMixin` (its revolver only
+  reaches the hand through the innocent-kill punishment). Owner rule 2026-11-16: police roles keep 10 s, everyone else
+  15 s. A new police role needs its own wrap; registering in `PoliceRoles` is not enough. A non-police role gets no
+  such wrap: the Recruit's `mixin/recruit/RecruitGunSanityMixin` answers only the first `isRole` read (ordinal 0, the
+  mood check), so its gun kills cost no mood while its revolver stays at 15 s.
   USEC has no wrap because it carries no revolver: the AXMC fires through its own `sparkwitch:fire_usec_rifle` path,
   never Wathe's gun receiver.
 - `client/factor/`: low-priority fallback outlines after ordinary instincts and hiding: Emma pink, then the role
