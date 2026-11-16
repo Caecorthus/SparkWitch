@@ -21,11 +21,7 @@ public final class SaboteurNetworking {
         PayloadTypeRegistry.playC2S().register(UseSaboteurSkillC2SPacket.ID, UseSaboteurSkillC2SPacket.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(
                 UseSaboteurSkillC2SPacket.ID,
-                (payload, context) -> dispatch(context.player(), SaboteurAbilityService::use)
+                (payload, context) -> SaboteurAbilityService.use(context.player())
         );
-    }
-
-    static <P> boolean dispatch(P player, java.util.function.Predicate<P> ability) {
-        return ability.test(player);
     }
 }

@@ -71,6 +71,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
@@ -83,8 +84,10 @@ import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedPromotionService
 import dev.caecorthus.sparkwitch.mana.WitchManaService;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeature.MurderousWitchFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeatureService;
-import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderFeatureService;
-import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderEconomyService;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderEquipmentService;
+import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayKillRewardService;
+import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayLoadoutService;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodEconomyService;
@@ -103,6 +106,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenFeatureServic
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowWorldFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterFeatureService;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlGuards;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragLifecycle;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperKnockoutService;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaFeatureService;
@@ -176,6 +180,8 @@ public final class SparkWitchEvents {
         VendettaTerminalService.register();
         KidnapperKnockoutService.register();
         KidnapperDragLifecycle.register();
+        // Knockout Drug attack / use lock, server-enforced (both sides). / 迷药的攻击与使用锁，由服务端强制（两端）。
+        KidnapperControlGuards.register();
         TarotReaderFeatureService.register();
         BlackRavenFeatureService.register();
         BlackRavenCrowFeatureService.register();
@@ -228,14 +234,16 @@ public final class SparkWitchEvents {
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();
-        InsiderFeatureService.register();
+        InsiderEquipmentService.register();
+        InsiderEconomyService.register();
         BlindFeatureService.register();
         AbyssListenerFeatureService.register();
         PotionGunnerFeatureService.register();
         RiftwalkerFeatureService.register();
         BewitchedFeatureService.register();
         ApprenticeFeatureService.register();
-        StowawayFeatureService.register();
+        StowawayLoadoutService.register();
+        StowawayKillRewardService.register();
         SchrodingersCatService.register();
         JunkerService.register();
         // BEAR smoke (spike): round-edge clears, expiry and player resyncs. / BEAR 烟雾（原型）：回合节点清除、过期与玩家重新同步。
@@ -270,6 +278,24 @@ public final class SparkWitchEvents {
                         // 回合中途分配时立即记录名单；回合开始时会在全部身份发放后重新记录。
                         MagicianRoster.capture(serverPlayer);
                     });
+                } else {
+                    // A Magician who is re-roled mid-round (admin force-role, a death that converts into a Wraith,
+                    // any other conversion) must not keep a live puppet replaying shots in their name, nor a running
+                    // recording, cooldown or roster: the playback tick only watches the owner's life, never the role.
+                    // Everyone who holds no Magician state is skipped, so other roles see no reset and no packet.
+                    // 回合中途被更换职业的魔术师（管理员强制指定、死亡后转化为冤魂或其他转化）不得保留仍以其名义重放开枪的
+                    // 活皮套，也不得保留进行中的录制、冷却或名单：播放刻只检查主人是否存活，从不检查职业。不持有任何魔术师
+                    // 状态的玩家会被跳过，因此其他职业既不会被重置也不会收到数据包。
+                    MagicianPlayerComponent magician = MagicianPlayerComponent.KEY.get(serverPlayer);
+                    if (magician.holdsMagicianState()) {
+                        // A dead owner's live puppet is first ended like the playback tick ends it (replay line
+                        // included); the reset then clears the rest, and both go out as one sync.
+                        // 已死亡主人的活皮套先按播放刻的方式结束（包含回放记录）；随后的重置清空其余状态，两者合并为一次同步。
+                        magician.syncOnceAfter(() -> {
+                            MagicianPlaybackManager.finishPlaybackOfDeadOwner(serverPlayer);
+                            magician.reset();
+                        });
+                    }
                 }
                 ProphetRuntime.assignForRole(serverPlayer, role);
                 ProphetEconomyService.assignForRole(serverPlayer, role);
@@ -300,6 +326,12 @@ public final class SparkWitchEvents {
         HannaFeatureService.register();
         SpareKeyDoors.register();
         SpareKeyAttendantKit.register();
+        // 泽渡可可 (neutral, PR #223): its hub fixes the order of her services. It sits after the shared RoleAssigned
+        // listener above, whose WitchManaService.assignForRole turns her mana on; her own listener only resets her
+        // component.
+        // 泽渡可可（中立，PR #223）：各服务的顺序由其注册中心固定。它排在上方共享 RoleAssigned 监听器之后，其魔力由其中的
+        // WitchManaService.assignForRole 开启；她自己的监听器只重置组件。
+        KokoFeatureService.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.

@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
@@ -15,16 +16,18 @@ import dev.doctor4t.wathe.api.Role;
  * Pure mana economy rules for the mana-bearing roles: the three witches, Emma, the Abyss Listener and the
  * Riftwalker (which use the Grand Witch's economy, Abyss Listener D11 and Riftwalker D7), the Witch Maiden (crimson
  * skull mana, 2026-10-20), Tono Hanna (PR #212, owner 2026-11-11), 橘雪莉 (PR #206: 1 mana per 5 s up to the
- * default cap, +10 per task, for her own Mighty Force), and 二阶堂希罗 (死亡回归 mana on the Witch Maiden's exact
- * numbers, owner 2026-11-11).
+ * default cap, +10 per task, for her own Mighty Force), 二阶堂希罗 (死亡回归 mana on the Witch Maiden's exact
+ * numbers, owner 2026-11-11), and 泽渡可可 (PR #223: the Murderous Witch's natural regeneration, 1 mana per 2 s up
+ * to 150, with no task or kill reward, owner 2026-11-13).
  * <p>Hanna only borrows the pool for her float: {@link #initialMana} gives her 40 at deal time, {@link #taskReward}
  * 20 per task, and she has no natural regeneration and no kill reward. Being a mana role grants no witch skill and no
- * place in the witch skill panel; neither she, 橘雪莉 nor 二阶堂希罗 is ever a Witch-skill role.
+ * place in the witch skill panel; neither she, 橘雪莉, 二阶堂希罗 nor 泽渡可可 is ever a Witch-skill role.
  * 魔力角色的纯规则集中在这里（三位魔女、艾玛，沿用大魔女魔力机制的聆渊者与隙行者，聆渊者 D11、隙行者 D7，赤首魔力的巫女，
  * 远野汉娜（PR #212、所有者 2026-11-11），橘雪莉（PR #206：每 5 秒 1 点、不超过默认上限，每任务 +10，用于她自己的巨力），
- * 以及二阶堂希罗（死亡回归，数值与巫女完全相同，所有者 2026-11-11）），避免事件、组件和 HUD 各写一份判断。
+ * 二阶堂希罗（死亡回归，数值与巫女完全相同，所有者 2026-11-11），以及泽渡可可（PR #223：自然恢复与杀意魔女相同，每 2 秒
+ * 1 点、上限 150，没有任务或击杀奖励，所有者 2026-11-13）），避免事件、组件和 HUD 各写一份判断。
  * <p>汉娜只是借用魔力池来浮游：{@link #initialMana} 在发牌时给她 40，{@link #taskReward} 每个任务 20，没有自然回复，也没有
- * 击杀奖励。成为魔力角色不代表获得魔女技能，也不进入魔女技能面板；她、橘雪莉与二阶堂希罗都从来不是魔女技能职业。
+ * 击杀奖励。成为魔力角色不代表获得魔女技能，也不进入魔女技能面板；她、橘雪莉、二阶堂希罗与泽渡可可都从来不是魔女技能职业。
  */
 public final class WitchManaRules {
     public static final int INITIAL_MANA = 0;
@@ -57,7 +60,8 @@ public final class WitchManaRules {
 
     public static boolean isManaRole(Role role) {
         return isWitchManaRole(role) || EmmaRules.isEmma(role) || AbyssListenerRules.isAbyssListener(role)
-                || RiftwalkerRules.isRiftwalker(role) || WitchMaidenRules.isWitchMaiden(role)
+                || RiftwalkerRules.isRiftwalker(role) || KokoRules.isKoko(role)
+                || WitchMaidenRules.isWitchMaiden(role)
                 || HannaRules.isHanna(role)
                 || SherryRules.isSherry(role)
                 || HiroRules.isHiro(role);
@@ -105,7 +109,11 @@ public final class WitchManaRules {
         if (usesGrandWitchManaEconomy(role)) {
             return GRAND_WITCH_NATURAL_CAP;
         }
-        if (role == SparkWitchRoles.murderousWitch()) {
+        // 泽渡可可 (owner 2026-11-13): the Murderous Witch's natural regeneration, i.e. this cap and the default
+        // 1 mana per 2 s below; nothing at the deal, no task reward, no kill reward.
+        // 泽渡可可（所有者 2026-11-13）：自然恢复与杀意魔女相同，即此上限与下方默认的每 2 秒 1 点；开局为 0，没有任务奖励，
+        // 也没有击杀奖励。
+        if (role == SparkWitchRoles.murderousWitch() || KokoRules.isKoko(role)) {
             return MURDEROUS_WITCH_NATURAL_CAP;
         }
         if (WitchMaidenRules.isWitchMaiden(role) || HiroRules.isHiro(role)) {

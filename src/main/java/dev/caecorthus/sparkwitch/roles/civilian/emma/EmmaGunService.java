@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.emma;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsGunBridge;
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
@@ -10,7 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.Item;
@@ -29,8 +29,8 @@ public final class EmmaGunService {
         registered = true;
         SparkTraitsGunBridge.register();
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> SHOTS.clear());
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                SHOTS.values().removeIf(shot -> shot.shooter() == handler.player));
+        ServerDisconnectCleanup.register((player, server) ->
+                SHOTS.values().removeIf(shot -> shot.shooter() == player));
     }
 
     public static void cycleStarted(ServerPlayerEntity shooter, UUID cycleId, Item weapon) {

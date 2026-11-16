@@ -65,6 +65,9 @@ public final class SmokeShaderPackWiring {
                 shaderPack, !SmokeShaderPackBridge.primaryHealthy()));
         ClientLoginConnectionEvents.INIT.register((handler, client) -> client.execute(SmokeShaderPackWiring::reset));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(SmokeShaderPackWiring::reset));
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(SmokeShaderPackWiring::reset));
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new SimpleSynchronousResourceReloadListener() {
                     @Override

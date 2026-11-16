@@ -55,6 +55,9 @@ public final class BlindRenderWiring {
         HudRenderCallback.EVENT.register((context, tickCounter) -> renderFallbackHint(context));
         ClientLoginConnectionEvents.INIT.register((handler, client) -> BlindEchoView.reset());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> BlindEchoView.reset());
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> BlindEchoView.reset());
         // Reload listeners apply on the render thread, where GL objects may be released.
         // 重载监听器在渲染线程执行，可在此安全释放 GL 对象。
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(
@@ -81,11 +84,17 @@ public final class BlindRenderWiring {
     }
 
     private static void renderFallbackHint(DrawContext context) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        // HudRenderCallback fires even with F1; the hint is HUD text, so F1 hides it like the rest of the HUD.
+        // HudRenderCallback 在 F1 下仍会触发；该提示属于 HUD 文字，因此与其余 HUD 一样随 F1 隐藏。
+        if (client.options.hudHidden) {
+            return;
+        }
         String key = hintKey(BlindEchoView.currentHint());
         if (key == null) {
             return;
         }
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        TextRenderer textRenderer = client.textRenderer;
         int width = context.getScaledWindowWidth();
         // Wrapped so the hint stays on screen at narrow GUI widths. / 自动换行，窄 GUI 宽度下提示仍在屏幕内。
         List<OrderedText> lines = textRenderer.wrapLines(Text.translatable(key), Math.max(64, width - 32));

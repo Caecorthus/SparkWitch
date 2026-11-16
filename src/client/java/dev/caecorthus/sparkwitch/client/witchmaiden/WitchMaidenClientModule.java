@@ -29,6 +29,9 @@ public final class WitchMaidenClientModule {
         registered = true;
         ClientTickEvents.END_CLIENT_TICK.register(WitchMaidenClientModule::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> STATE.clearConnection());
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> STATE.clearConnection());
         ClientPlayNetworking.registerGlobalReceiver(FocusedFootstepsUseResultS2CPacket.ID, (payload, context) ->
                 context.client().execute(() -> onUseResult(payload)));
     }

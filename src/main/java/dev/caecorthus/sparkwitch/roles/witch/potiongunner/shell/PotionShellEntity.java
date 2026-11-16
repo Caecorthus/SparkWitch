@@ -302,7 +302,7 @@ public class PotionShellEntity extends ThrownItemEntity {
      * by the velocity), or null to leave the tick to vanilla collision.
      * <ul>
      *     <li>The path is tested against each player's view-delayed volumes
-     *     ({@link PlayerHitboxHistory#projectileHitVolumes}, entry by {@link PotionShellFlight#laggedEntrySquared}).
+     *     ({@link PlayerHitboxHistory#projectileHitVolumes}, entry by {@link HitscanLagRules#laggedEntrySquared}).
      *     The gunner is never rewound: their client draws them at their real position.</li>
      *     <li>The nearest such player counts only when {@link #canHit} accepts them and SparkFactionAPI's projectile
      *     action lets the gunner affect them, the same filters vanilla applies.</li>
@@ -316,7 +316,7 @@ public class PotionShellEntity extends ThrownItemEntity {
      * 仅服务端：本刻路径（从 {@link #getPos} 沿速度移动一次）上延迟补偿玩家命中的爆心；返回 null 时本刻交给原版碰撞。
      * <ul>
      *     <li>路径与每名玩家的视图滞后体积（{@link PlayerHitboxHistory#projectileHitVolumes}，进入点由
-     *     {@link PotionShellFlight#laggedEntrySquared} 计算）做检测。药炮手本人从不回溯：其客户端按真实位置绘制自己。</li>
+     *     {@link HitscanLagRules#laggedEntrySquared} 计算）做检测。药炮手本人从不回溯：其客户端按真实位置绘制自己。</li>
      *     <li>最近的这类玩家只有在被 {@link #canHit} 接受、且 SparkFactionAPI 的发射物行为允许药炮手影响时才算，
      *     与原版的过滤相同。</li>
      *     <li>只有严格近于原版自身结果时（{@link PotionShellFlight#lagCompensatedHitFirst}）才接管本刻，因此方块、关闭的门
@@ -345,7 +345,7 @@ public class PotionShellEntity extends ThrownItemEntity {
             if (candidate == owner || candidate.getUuid().equals(gunnerUuid)) {
                 continue;
             }
-            double entry = PotionShellFlight.laggedEntrySquared(from, to,
+            double entry = HitscanLagRules.laggedEntrySquared(from, to,
                     PlayerHitboxHistory.projectileHitVolumes(candidate, PLAYER_HIT_MARGIN), PLAYER_HIT_MARGIN,
                     startInsideCounts);
             if (entry < 0.0 || entry >= hitEntry || !canHit(candidate)

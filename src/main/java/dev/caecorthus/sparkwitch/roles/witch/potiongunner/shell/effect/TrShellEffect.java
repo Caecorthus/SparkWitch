@@ -13,12 +13,13 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * TR: ordinary kill of everyone hit; survivors get the 3-second fallback.
  * The kill is Wathe's non-forced 4-argument {@code killPlayer}, so every protection runs normally (shields, psycho
  * armour, Tofana retaliation on the gunner, Last Stand, a dormant Fiend). Any target still alive and playing
- * afterwards gets Blindness + Slowness II and harmless burning (a BEAR Rys-T wearer may deflect that with its own roll,
- * owner Q3); a dormant Fiend is not one, since the blocked kill puts it into its spectator feign death. The blast
- * service runs this inside Judge attribution.
+ * afterwards gets Blindness + Slowness II and harmless burning (a BEAR Rys-T wearer may deflect that with the shell's
+ * one ricochet roll: owner Q3's own roll, superseded 2026-11-13 by "one source, one roll"); a dormant Fiend is not one,
+ * since the blocked kill puts it into its spectator feign death. The blast service runs this inside Judge attribution.
  * TR：对所有被波及者进行普通击杀；幸存者获得 3 秒的后备效果。
  * 击杀使用 Wathe 非强制的四参数 {@code killPlayer}，所有保护照常生效（护盾、疯魔护甲、托法娜反杀药炮手、
- * 最后的坚守、休眠魔人）。之后仍存活且在对局中的目标获得失明 + 缓慢 II 与无伤燃烧（BEAR 的 Rys-T 佩戴者可单独掷骰弹开，所有者 Q3）；休眠魔人不在此列，因为被挡下的击杀
+ * 最后的坚守、休眠魔人）。之后仍存活且在对局中的目标获得失明 + 缓慢 II 与无伤燃烧（BEAR 的 Rys-T 佩戴者可凭该炮弹唯一的一次跳弹
+ * 掷骰弹开：所有者 Q3 的单独掷骰已于 2026-11-13 被“一个来源只掷一次骰”取代）；休眠魔人不在此列，因为被挡下的击杀
  * 会让它进入旁观假死。爆炸服务在审判官归因内调用本效果。
  */
 public final class TrShellEffect {
@@ -27,6 +28,9 @@ public final class TrShellEffect {
 
     public static void apply(PotionBlastContext context) {
         ServerPlayerEntity gunner = context.gunner();
+        // BEAR: this shell is one ricochet source for every target, its kill and its fallback alike.
+        // BEAR：这发炮弹对每个目标都是同一个跳弹来源，击杀与后备效果皆然。
+        Object shell = new Object();
         for (PotionBlastHit hit : TrShellEffectRules.killOrder(context.hits(),
                 candidate -> PotionShellTargets.isSelf(context, candidate))) {
             ServerPlayerEntity target = hit.target();
@@ -35,14 +39,16 @@ public final class TrShellEffect {
                 continue;
             }
             ServerPlayerEntity killer = TrShellEffectRules.killer(gunner, PotionShellTargets.isSelf(context, hit));
-            RangedOriginScope.run(context.center(), () -> { // BEAR: blast-centre origin / 爆心来源
+            RangedOriginScope.run(context.center(), shell, () -> { // BEAR: blast-centre origin / 爆心来源
                 GameFunctions.killPlayer(target, true, killer, SparkWitchDeathReasons.POTION_SHELL);
             });
-            // BEAR (owner Q3): a worn Rys-T rolls for the fallback on its own; everyone else always gets it.
-            // BEAR（所有者 Q3）：佩戴的 Rys-T 为后备效果单独掷骰；其他人照常获得。
+            // BEAR (owner Q3, superseded 2026-11-13: one source, one roll): a worn Rys-T deflects the fallback only with
+            // this shell's one roll; everyone else always gets it.
+            // BEAR（所有者 Q3，2026-11-13 被取代：一个来源只掷一次骰）：佩戴的 Rys-T 只凭这发炮弹唯一的一次掷骰弹开后备效果；
+            // 其他人照常获得。
             if (TrShellEffectRules.needsFallback(livingBefore, PotionShellTargets.isLiving(target))
                     && !BearRicochetService.deflectsAfterEffect(target, killer, SparkWitchDeathReasons.POTION_SHELL,
-                    context.center())) {
+                    context.center(), shell)) {
                 PotionShellDebuff.apply(target, PotionGunnerRules.TR_FALLBACK_TICKS, killer);
                 PotionShellBurn.ignite(target, PotionGunnerRules.TR_FALLBACK_TICKS);
             }

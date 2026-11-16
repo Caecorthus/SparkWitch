@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch.roles.civilian.savior;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -20,7 +21,6 @@ import java.util.function.IntPredicate;
 import java.util.stream.IntStream;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -112,11 +112,8 @@ public final class SaviorLoadoutService {
         // Wathe's reset already cleared the inventory: only state is forgotten. / Wathe 重置已清空物品栏：只忘记状态。
         ResetPlayer.EVENT.register(SaviorLoadoutService::forget);
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> forgetRound());
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            if (handler.player != null) {
-                onDisconnect(handler.player, GameFunctions.isPlayerPlayingAndAlive(handler.player));
-            }
-        });
+        ServerDisconnectCleanup.register((player, server) ->
+                onDisconnect(player, GameFunctions.isPlayerPlayingAndAlive(player)));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> forgetRound());
     }
 

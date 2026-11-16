@@ -11,11 +11,14 @@ import java.lang.reflect.Method;
  * ({@code annina.sparkstrength.role.bodyguard.AttackOriginScope#currentBlast()}, which SparkStrength pushes around the
  * Wathe grenade, M67 and Bomber drone kill loops for its Democracy Shield). SparkWitch never compiles against
  * SparkStrength, so this is reached by reflection on the server thread. Absent, older or failing SparkStrength answers
- * null: the blast's origin is then unknown, which counts as "not front" (fail closed toward the 25% roll).
+ * null: the blast's origin is then unknown, which counts as "not front" (fail closed toward the 25% roll). Since
+ * 2026-11-13 the same centre also names the blast as an attack source ({@code BearRicochetRules.AttackSource}), so two
+ * SparkStrength blasts roll apart; absent, the attempt falls back to its call burst.
  * 可选的 SparkStrength 接缝（D3 第 2 步）：本线程正在结算其击杀的、由 SparkStrength 标注的爆炸中心
  * （{@code annina.sparkstrength.role.bodyguard.AttackOriginScope#currentBlast()}，SparkStrength 为民主盾牌把它包在 Wathe 手雷、
  * M67 与炸弹客无人机的击杀循环外）。SparkWitch 从不针对 SparkStrength 编译，因此在服务端线程经反射读取。SparkStrength 缺失、
- * 过旧或调用失败时返回 null：该爆炸的来源即为未知，视为“非正面”（失败时偏向 25% 掷骰）。
+ * 过旧或调用失败时返回 null：该爆炸的来源即为未知，视为“非正面”（失败时偏向 25% 掷骰）。自 2026-11-13 起，同一爆心也用来标识该
+ * 爆炸这一攻击来源（{@code BearRicochetRules.AttackSource}），因此两次 SparkStrength 爆炸分别掷骰；缺失时该尝试回退为其调用批次。
  */
 final class SparkStrengthBlastOrigin {
     private static final String MOD_ID = "sparkstrength";

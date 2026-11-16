@@ -2,7 +2,6 @@ package dev.caecorthus.sparkwitch.roles.killer.natsume;
 
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -49,10 +48,5 @@ public final class NatsumeShopRules {
      */
     static int priceFor(@Nullable String entryId, int price) {
         return POISON_VIAL_ENTRY_ID.equals(entryId) ? POISON_VIAL_PRICE : price;
-    }
-
-    /** Ids kept, in order, for a list of entry ids (tests and documentation). / 保留下来的 id（按原顺序）。 */
-    static List<String> keptIds(List<String> entryIds) {
-        return entryIds.stream().filter(id -> !removes(id)).toList();
     }
 }

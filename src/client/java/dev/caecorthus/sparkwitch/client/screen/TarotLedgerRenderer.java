@@ -1,8 +1,8 @@
 package dev.caecorthus.sparkwitch.client.screen;
 
 import dev.caecorthus.sparkfactionapi.api.FactionIds;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.hud.TarotDivinationHudRenderer;
 import dev.caecorthus.sparkwitch.client.tarot.TarotDivinationClientState;
 import dev.caecorthus.sparkwitch.client.tarot.TarotLedgerEntries.Entry;

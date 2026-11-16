@@ -47,10 +47,6 @@ public final class SparkWitchApi {
         return lastEscapeVisionRenderer == null ? 0 : 1;
     }
 
-    public static boolean supportsLastEscapeVision() {
-        return getLastEscapeVisionProtocolVersion() == 1;
-    }
-
     /**
      * Render-thread only. True means a composed pass was actually rendered, not merely supported.
      * False (including dedicated servers and shader load failure) lets Traits render its fallback.

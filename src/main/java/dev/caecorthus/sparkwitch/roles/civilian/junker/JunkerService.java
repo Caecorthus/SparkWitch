@@ -17,7 +17,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -108,11 +107,6 @@ public final class JunkerService {
         });
         JunkerLootSpend.register();
         JunkerReplay.register();
-    }
-
-    /** The real (raw) role is the 拾荒者. / 真实职业是拾荒者。 */
-    public static boolean isJunker(PlayerEntity player) {
-        return player != null && JunkerRules.isRagpicker(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
     }
 
     /**

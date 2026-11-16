@@ -15,10 +15,12 @@ import org.spongepowered.asm.mixin.Mixin;
  * Wathe grenade blast (BEAR D3 + S3): the whole {@code onCollision} runs inside a {@code RangedOriginScope} at the
  * grenade's position, so the Rys-T front test sees the blast centre rather than the thrower's eyes; on the server the
  * blast then carves a {@link BearRicochetRules#GRENADE_HOLE_RADIUS} hole into any smoke. The wrapper encloses every other
- * mixin on the method (Judge attribution, Raven Form, Magician playback) and changes nothing they see.
+ * mixin on the method (Judge attribution, Raven Form, Magician playback) and changes nothing they see. The grenade's
+ * UUID is the scope's attack source, so its body kills and its Raven Form crow pass share one ricochet roll per wearer.
  * Wathe 手雷爆炸（BEAR D3 + S3）：整个 {@code onCollision} 在以手雷位置为来源的 {@code RangedOriginScope} 内执行，因此 Rys-T
  * 正面判定看到的是爆心而非投掷者眼睛；随后在服务端于烟雾中炸开半径 {@link BearRicochetRules#GRENADE_HOLE_RADIUS} 的洞。该包装
- * 包住此方法上的其他所有 mixin（法官归因、化鸦、魔术师回放），不改变它们看到的任何东西。
+ * 包住此方法上的其他所有 mixin（法官归因、化鸦、魔术师回放），不改变它们看到的任何东西。手雷的 UUID 即该作用域的攻击来源，因此
+ * 它对本体的击杀与化鸦乌鸦结算对每名佩戴者共用一次跳弹掷骰。
  */
 @Mixin(GrenadeEntity.class)
 public abstract class GrenadeEntityOriginSmokeCarveMixin {
@@ -26,7 +28,7 @@ public abstract class GrenadeEntityOriginSmokeCarveMixin {
     private void sparkwitch$scopeGrenadeBlast(HitResult hitResult, Operation<Void> original) {
         Entity grenade = (Entity) (Object) this;
         Vec3d centre = grenade.getPos();
-        RangedOriginScope.run(centre, () -> original.call(hitResult));
+        RangedOriginScope.run(centre, grenade.getUuid(), () -> original.call(hitResult));
         RangedSmokeCarve.blast(grenade.getWorld(), centre, BearRicochetRules.GRENADE_HOLE_RADIUS);
     }
 }

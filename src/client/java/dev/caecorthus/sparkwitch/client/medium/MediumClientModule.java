@@ -5,20 +5,22 @@ import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityRegistry;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceResultS2CPacket;
-import dev.caecorthus.sparkwitch.roles.civilian.medium.OpenMediumHauntSelectS2CPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.OpenMediumSeanceInputS2CPacket;
-import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSecondSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumBlessingC2SPacket;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 
 /**
- * The Medium's client hub: the two server menus open their screens, the caster-only result becomes a HUD card, the
- * corner HUD draws the two skill lines, the dead get the vote screen (once per window, then on the shared ability
- * key) with a three-line HUD prompt, and the Role Skill 2 key sends the empty 招魂 request.
- * 通灵师客户端注册中心：服务端的两个菜单打开对应界面，仅发给施放者的结果显示为 HUD 卡片，右下角 HUD 绘制两条技能行，
- * 死者获得投票界面（每个窗口自动弹出一次，之后按共享技能键打开）与三行 HUD 提示，职业技能 2 键发送空的招魂请求。
+ * The Medium's client hub: the 通灵 question box opens on the server's menu packet, the caster-only result of either
+ * window becomes a HUD card, the corner HUD draws the 通灵 / 幽灵的加护 rows, the dead get the vote screen of the live
+ * window's kind (once per window, then on the shared ability key) with a three-line HUD prompt, the SparkWitch skill
+ * key casts 幽灵的加护, and the corpse-sight outlines are registered. 招魂 is the inventory drawer
+ * ({@link MediumHauntDrawer}, attached by its own mixin).
+ * 通灵师客户端注册中心：服务端的菜单数据包打开通灵提问框，任一窗口仅发给施放者的结果显示为 HUD 卡片，右下角 HUD 绘制通灵 /
+ * 幽灵的加护两行，死者获得与进行中窗口种类相同的投票界面（每个窗口自动弹出一次，之后按共享技能键打开）与三行 HUD 提示，
+ * SparkWitch 技能键施放幽灵的加护，并注册尸体透视描边。招魂是背包抽屉（{@link MediumHauntDrawer}，由其自有 mixin 挂载）。
  */
 public final class MediumClientModule {
     private static boolean registered;
@@ -36,32 +38,33 @@ public final class MediumClientModule {
                 context.client().setScreen(new MediumSeanceScreen(payload.price()));
             }
         });
-        ClientPlayNetworking.registerGlobalReceiver(OpenMediumHauntSelectS2CPacket.ID, (payload, context) -> {
-            if (mayOpenMenu(context.client())) {
-                context.client().setScreen(new MediumHauntScreen(
-                        payload.targets(), payload.names(), payload.price()));
-            }
-        });
         ClientPlayNetworking.registerGlobalReceiver(MediumSeanceResultS2CPacket.ID, (payload, context) ->
-                context.client().execute(() -> MediumSeanceResultCard.receive(context.client(), payload)));
+                context.client().execute(() -> MediumResultCard.receive(context.client(), payload)));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             MediumVoteClient.tick(client);
-            MediumSeanceResultCard.tick(client);
+            MediumResultCard.tick(client);
         });
         HudRenderCallback.EVENT.register((context, tickCounter) -> {
             MediumHudRenderer.render(context);
             MediumSeanceHudRenderer.render(context);
-            MediumSeanceResultCard.render(context);
+            MediumResultCard.render(context);
         });
+        MediumCorpseSightHighlights.register();
         SecondaryAbilityRegistry.register(MediumRules.ROLE_ID, new SecondaryAbilityHandler() {
+            /**
+             * 幽灵的加护: the empty request IS the paid act (no confirm box, owner 2026-11-13); the server checks every
+             * gate, the price, both cooldowns and that no window is live. Never sent over an open screen.
+             * 幽灵的加护：空请求即付费行为（没有确认框，所有者 2026-11-13）；服务端检查全部门槛、价格、两个冷却以及当前没有
+             * 进行中的窗口。界面打开时绝不发送。
+             */
             @Override
             public void onPressed(MinecraftClient client) {
                 if (client.player == null
                         || client.currentScreen != null
-                        || !ClientPlayNetworking.canSend(UseMediumSecondSkillC2SPacket.ID)) {
+                        || !ClientPlayNetworking.canSend(UseMediumBlessingC2SPacket.ID)) {
                     return;
                 }
-                ClientPlayNetworking.send(new UseMediumSecondSkillC2SPacket());
+                ClientPlayNetworking.send(new UseMediumBlessingC2SPacket());
             }
         });
     }

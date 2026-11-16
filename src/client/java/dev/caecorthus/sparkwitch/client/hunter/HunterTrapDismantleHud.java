@@ -90,7 +90,9 @@ public final class HunterTrapDismantleHud {
         MinecraftClient client = MinecraftClient.getInstance();
         ClientWorld world = client.world;
         ClientPlayerEntity player = client.player;
-        if (world == null || player == null || player.isSpectator()) {
+        // HudRenderCallback fires even with F1, unlike Wathe's own HUD layer.
+        // HudRenderCallback 在 F1 下仍会触发，与 Wathe 自身 HUD 层不同。
+        if (world == null || player == null || player.isSpectator() || client.options.hudHidden) {
             return;
         }
 

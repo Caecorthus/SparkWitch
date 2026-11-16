@@ -1,6 +1,5 @@
 package dev.caecorthus.sparkwitch.roles.civilian.guardianangel;
 
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -11,17 +10,10 @@ public record UseGuardianAngelSkillC2SPacket() implements CustomPayload {
     public static final Identifier PAYLOAD_ID = GuardianAngelRules.SKILL_ID;
     public static final Id<UseGuardianAngelSkillC2SPacket> ID = new Id<>(PAYLOAD_ID);
     public static final PacketCodec<RegistryByteBuf, UseGuardianAngelSkillC2SPacket> CODEC =
-            PacketCodec.of(UseGuardianAngelSkillC2SPacket::write, UseGuardianAngelSkillC2SPacket::read);
+            PacketCodec.unit(new UseGuardianAngelSkillC2SPacket());
 
     @Override
     public Id<? extends CustomPayload> getId() {
         return ID;
-    }
-
-    public void write(PacketByteBuf buf) {
-    }
-
-    public static UseGuardianAngelSkillC2SPacket read(PacketByteBuf buf) {
-        return new UseGuardianAngelSkillC2SPacket();
     }
 }

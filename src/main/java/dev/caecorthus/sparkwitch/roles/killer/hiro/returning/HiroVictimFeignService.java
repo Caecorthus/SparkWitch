@@ -10,6 +10,8 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowForm
 import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlComponent;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
+import dev.caecorthus.sparkwitch.util.GroundAnchor;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -21,7 +23,6 @@ import dev.doctor4t.wathe.index.WatheEntities;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.RegistryKey;
@@ -30,11 +31,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
-import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
@@ -114,7 +112,7 @@ public final class HiroVictimFeignService {
         ServerTickEvents.END_SERVER_TICK.register(HiroVictimFeignService::tick);
         KillPlayer.AFTER.register(HiroVictimFeignService::afterKill);
         ResetPlayer.EVENT.register(HiroVictimFeignService::onReset);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> onDisconnect(server, handler.getPlayer()));
+        ServerDisconnectCleanup.register((player, server) -> onDisconnect(server, player));
         ServerEntityEvents.ENTITY_LOAD.register(HiroVictimFeignService::onEntityLoad);
         GameEvents.ON_FINISH_INITIALIZE.register((world, game) -> clearAll());
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> clearAll());
@@ -263,7 +261,12 @@ public final class HiroVictimFeignService {
         if (body == null) {
             return false;
         }
-        Vec3d anchor = groundAnchor(world, victim);
+        // Where the victim gets up or dies for real: its feet when it stands on the ground, otherwise the floor right
+        // below it (killed mid-jump), so nobody is restored in mid-air. With no floor within GROUND_SNAP_DEPTH blocks
+        // the anchor stays where the victim is.
+        // 受害者起身或真正死亡的位置：站在地面时为其脚下，否则为其正下方的地面（跳跃中被杀），因此不会有人在半空被还原。
+        // GROUND_SNAP_DEPTH 格内没有地面时锚点保持在受害者所在处。
+        Vec3d anchor = GroundAnchor.of(world, victim, GROUND_SNAP_DEPTH);
         Feign feign = new Feign(victim.getUuid(), hiro.getUuid(), reason, spawnBody,
                 world.getTime() + HiroRules.VICTIM_FEIGN_TICKS, body.getUuid(), world.getRegistryKey(),
                 anchor.x, anchor.y, anchor.z, victim.getYaw(), victim.getPitch(),
@@ -275,24 +278,6 @@ public final class HiroVictimFeignService {
         hold(victim, feign);
         syncCount(world.getServer(), feign.hiro());
         return true;
-    }
-
-    /**
-     * Where the victim gets up or dies for real: its feet when it stands on the ground, otherwise the floor right
-     * below it (killed mid-jump), so nobody is restored in mid-air. With no floor within {@link #GROUND_SNAP_DEPTH}
-     * blocks the anchor stays where the victim is.
-     * 受害者起身或真正死亡的位置：站在地面时为其脚下，否则为其正下方的地面（跳跃中被杀），因此不会有人在半空被还原。
-     * {@link #GROUND_SNAP_DEPTH} 格内没有地面时锚点保持在受害者所在处。
-     */
-    private static Vec3d groundAnchor(ServerWorld world, ServerPlayerEntity victim) {
-        Vec3d feet = victim.getPos();
-        if (victim.isOnGround()) {
-            return feet;
-        }
-        BlockHitResult hit = world.raycast(new RaycastContext(feet.add(0.0, 0.1, 0.0),
-                feet.subtract(0.0, GROUND_SNAP_DEPTH, 0.0), RaycastContext.ShapeType.COLLIDER,
-                RaycastContext.FluidHandling.NONE, victim));
-        return hit.getType() == HitResult.Type.BLOCK ? new Vec3d(feet.x, hit.getPos().y, feet.z) : feet;
     }
 
     /**

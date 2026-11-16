@@ -86,6 +86,20 @@ public final class SaviorCooldowns {
     }
 
     /**
+     * Raise-only and exact: {@code to} waits at least as long as {@code from} still does. The innocent-kill punishment
+     * uses it so the revolver it hands over is not ready before the confiscated weapon would have been; the remainder
+     * already carries any SparkTraits modifier, so it is written exactly, not through the natural write.
+     * 只抬高且精确：{@code to} 至少要等到 {@code from} 的剩余冷却结束。误杀惩罚用它保证交到手上的左轮不会比被没收的武器更早
+     * 就绪；该剩余值已包含 SparkTraits 倍率，因此精确写入，而不是走自然写入。
+     */
+    static void carryOver(ServerPlayerEntity player, Item from, Item to) {
+        int remaining = ForcedCooldowns.itemRemainingTicks(player, from);
+        if (remaining > ForcedCooldowns.itemRemainingTicks(player, to)) {
+            writeExact(player, to, remaining);
+        }
+    }
+
+    /**
      * Shortens both weapons' own cooldowns by half of their effective length; weapons not cooling are ignored.
      * 两把武器的自身冷却各减去其实际时长的一半；未冷却的忽略。
      */

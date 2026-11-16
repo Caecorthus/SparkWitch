@@ -71,8 +71,6 @@ public final class PotionGunnerRules {
     public static final double BACKBLAST_LENGTH = 4.0;
     /** Half-width of the backblast lane around its axis. / 尾焰判定通道相对轴线的半宽。 */
     public static final double BACKBLAST_HALF_WIDTH = 0.5;
-    /** Ordinary, non-forced backblast kill. / 普通、非强制的尾焰击杀。 */
-    public static final Identifier BACKBLAST_DEATH_REASON_ID = SparkWitch.id("potion_backblast");
 
     private PotionGunnerRules() {
     }

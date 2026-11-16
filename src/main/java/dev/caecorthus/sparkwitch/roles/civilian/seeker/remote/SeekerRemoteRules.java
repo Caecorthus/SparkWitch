@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.seeker.remote;
 
+import dev.caecorthus.sparkwitch.payloadpolicy.GeneratedPayloadPolicy;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerExitReason;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import net.minecraft.util.Identifier;
@@ -7,164 +8,26 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.Set;
 
 /**
- * Pure remote-view rules. {@link #BLOCKED_WHILE_VIEWING} is the Seeker's own literal deny-list (decoupled from the
+ * Pure remote-view rules. {@link #BLOCKED_WHILE_VIEWING} is the Seeker's own deny-list (decoupled from the
  * Control Expert list; only a test couples them): lethal Wathe actions, the shop, UI actions that would leak through the
  * frozen body, and every known role-skill payload. It is a deny-list, so voice handshakes still pass.
  * WP-09 may extend but never shrink the list. The helpers below are the side-neutral area, anchor and timeout rules
  * shared by session open, the per-tick exit checks and the move validator. There is no distance limit between the
  * body and a device (owner decision 2026-10-04): the Wathe play area is the only spatial bound.
- * 纯遥控视角规则。{@link #BLOCKED_WHILE_VIEWING} 是搜寻者自有的字面量拦截名单（与控场专家名单解耦，仅由测试关联）：
+ * 纯遥控视角规则。{@link #BLOCKED_WHILE_VIEWING} 是搜寻者自有的拦截名单（与控场专家名单解耦，仅由测试关联）：
  * Wathe 致命行为、商店、会经冻结本体泄漏的界面操作，以及所有已知职业技能包。它是黑名单，语音握手等照常通过。
  * 名单只增不减。下列辅助方法是会话打开、逐刻退出检查与移动校验共用的两端通用区域、锚点与超时规则。
  * 本体与设备之间没有距离限制（所有者决定 2026-10-04）：Wathe 游戏区域是唯一的空间边界。
  */
 public final class SeekerRemoteRules {
-    public static final Set<Identifier> BLOCKED_WHILE_VIEWING = Set.copyOf(List.of(
-            Identifier.of("wathe", "knifestab"),
-            Identifier.of("wathe", "gunshoot"),
-            Identifier.of("wathe", "storebuy"),
-            Identifier.of("wathe", "note"),
-            Identifier.of("wathe", "walkie_talkie_channel"),
-
-            Identifier.of("noellesroles", "ability"),
-            Identifier.of("noellesroles", "assassin_guess_role"),
-            Identifier.of("noellesroles", "detective_investigate"),
-            Identifier.of("noellesroles", "morph"),
-            Identifier.of("noellesroles", "morph_corpse_toggle"),
-            Identifier.of("noellesroles", "party_animal_buzz"),
-            Identifier.of("noellesroles", "reporter_mark"),
-            Identifier.of("noellesroles", "silencer_silence"),
-            Identifier.of("noellesroles", "spirit_project"),
-            Identifier.of("noellesroles", "swapper"),
-            Identifier.of("noellesroles", "taotie_swallow"),
-            Identifier.of("noellesroles", "vulture"),
-            Identifier.of("noellesroles", "demon_hunter_shoot"),
-            Identifier.of("noellesroles", "shadow_ally_request"),
-
-            Identifier.of("sparkwitch", "use_skill"),
-            Identifier.of("sparkwitch", "emma_factor"),
-            Identifier.of("sparkwitch", "fire_death_ray"),
-            Identifier.of("sparkwitch", "fire_potion_launcher"),
-            Identifier.of("sparkwitch", "use_curser_ability"),
-            Identifier.of("sparkwitch", "use_orthopedist_skill"),
-            Identifier.of("sparkwitch", "use_saboteur_skill"),
-            Identifier.of("sparkwitch", "throw_kidnapper_body"),
-            Identifier.of("sparkwitch", "guardian"),
-            Identifier.of("sparkwitch", "vendetta_knife_stab"),
-            Identifier.of("sparkwitch", "open_judge_selection"),
-            Identifier.of("sparkwitch", "confirm_judge_selection"),
-            // Knight duel target pick, classified like the Judge's pair. / 骑士决斗目标选择，与法官的两个包同样归类。
-            Identifier.of("sparkwitch", "knight_duel_target"),
-            Identifier.of("sparkwitch", "request_prophecy"),
-            Identifier.of("sparkwitch", "confirm_prophecy"),
-            Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
-            Identifier.of("sparkwitch", "seeker_car_swallow"),
-            Identifier.of("sparkwitch", "seeker_car_recall"),
-            Identifier.of("sparkwitch", "select_black_raven_disguise"),
-            Identifier.of("sparkwitch", "use_blind_attune"),
-            Identifier.of("sparkwitch", "use_noa_paint"),
-            // Hanna float (UseHannaFloatC2SPayload). / 汉娜浮游。
-            Identifier.of("sparkwitch", "use_hanna_float"),
-            Identifier.of("sparkwitch", "ragpicker_search"),
-            Identifier.of("sparkwitch", "rift_hop"),
-            Identifier.of("sparkwitch", "rift_gate_close"),
-            Identifier.of("sparkwitch", "use_fiend_dash"),
-            Identifier.of("sparkwitch", "use_athlete_dash"),
-            Identifier.of("sparkwitch", "use_dominator_skill"),
-            // Savior domain (UseSaviorSkillC2SPacket, G key, PR #200). / 救世主领域（UseSaviorSkillC2SPacket，G 键，PR #200）。
-            Identifier.of("sparkwitch", "use_savior_skill"),
-            // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
-            Identifier.of("sparkwitch", "request_natsume_menu"),
-            Identifier.of("sparkwitch", "confirm_natsume_target"),
-            // Specter mark/shriek (G) and Otherworld (Role Skill 2), PR #207. / 幽魂标记/尖啸（G 键）与里世界（职业技能 2），PR #207。
-            Identifier.of("sparkwitch", "use_specter_skill"),
-            Identifier.of("sparkwitch", "use_specter_second_skill"),
-            // Medium 通灵 (G) and 招魂 (Role Skill 2): the two menu requests and their two paid confirmations (PR #209).
-            // The dead voter's submit_medium_vote is deliberately absent: only a dead round member may send it, and its
-            // handler validates that itself.
-            // 通灵师的通灵（G 键）与招魂（职业技能 2）：两个菜单请求及其两个付费确认（PR #209）。死者投票包
-            // submit_medium_vote 有意不列入：只有本局死者可以发送，其处理器自行校验。
-            Identifier.of("sparkwitch", "use_medium_skill"),
-            Identifier.of("sparkwitch", "submit_medium_seance"),
-            Identifier.of("sparkwitch", "use_medium_second_skill"),
-            Identifier.of("sparkwitch", "submit_medium_haunt_target"),
-            // Charon pardon (shared key G) and ferry (Role Skill 2), PR #202; owner 2026-11-09: a controlled Charon cannot
-            // pardon either. A dropped pardon simply lets the 0.5 s window lapse and the held kill replay.
-            // 卡戎宽恕（共享 G 键）与摆渡（职业技能 2），PR #202；所有者 2026-11-09：被控制的卡戎同样不能宽恕。被丢弃的宽恕包只会
-            // 让 0.5 秒窗口过期，被扣住的击杀随之重放。
-            Identifier.of("sparkwitch", "ferryman_pardon"),
-            Identifier.of("sparkwitch", "ferryman_ferry"),
-            // 橘雪莉 推演 (shared key G): the panel request and its paid confirmation, and her own 巨力魔法 (Role Skill 2),
-            // PR #206. / 橘雪莉推演（共享 G 键）：面板请求及其付费确认，以及她自己的巨力魔法（职业技能 2），PR #206。
-            Identifier.of("sparkwitch", "request_sherry_deduction"),
-            Identifier.of("sparkwitch", "confirm_sherry_deduction"),
-            Identifier.of("sparkwitch", "use_sherry_mighty_force"),
-            // 二阶堂希罗 死亡回归 (shared key G), 2026-11-11. / 二阶堂希罗的死亡回归（共享 G 键），2026-11-11。
-            Identifier.of("sparkwitch", "use_hiro_skill"),
-            Identifier.of("sparkwitch", "use_apprentice_purify"),
-            Identifier.of("sparkwitch", "magician_ability"),
-            // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.
-            // USEC 步枪开火与配件界面操作；开镜状态仅为表现，保持放行。
-            Identifier.of("sparkwitch", "fire_usec_rifle"),
-            Identifier.of("sparkwitch", "usec_attachment"),
-            // Accountant passbook withdraw (left-click), a held-item action of the frozen body like the launcher fire.
-            // 会计存折取钱（左键），与发射器开火一样属于冻结本体的手持物品操作。
-            Identifier.of("sparkwitch", "accountant_withdraw"),
-            // Witch Maiden Mini Wither toggle and crimson skull fire. / 巫女小凋灵切换与赤首射击。
-            Identifier.of("sparkwitch", "mini_wither_toggle"),
-            Identifier.of("sparkwitch", "fire_crimson_skull"),
-            // Black Raven Raven Form toggle, crow moves, use and Homing Feather drop.
-            // 黑羽鸦化鸦开关、乌鸦移动、交互与丢出归羽。
-            Identifier.of("sparkwitch", "black_raven_crow_toggle"),
-            Identifier.of("sparkwitch", "black_raven_crow_move"),
-            Identifier.of("sparkwitch", "black_raven_crow_use"),
-            Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
-            // BEAR M32A1 fire, a held-item shot like the launcher's. / BEAR M32A1 开火，与炮筒同类的手持射击。
-            Identifier.of("sparkwitch", "fire_m32a1"),
-            // Savior pistol shot (SaviorPistolShootC2SPayload, PR #200), a gun shot like wathe:gunshoot; the lightsaber
-            // swing/ignite sound intents are presentation only and stay allowed.
-            // 救世主手枪射击（SaviorPistolShootC2SPayload，PR #200），与 wathe:gunshoot 同类的枪击；光剑挥动/点火音效意图仅为表现，保持放行。
-            Identifier.of("sparkwitch", "savior_pistol_shoot"),
-
-            // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
-            // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。
-            Identifier.of("sparkstrength", "serial_pistol_shoot"),
-            Identifier.of("sparkstrength", "noisemaker_glow"),
-            Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
-            Identifier.of("sparkstrength", "coroner_morph"),
-            Identifier.of("sparkstrength", "professor_remote_feed"),
-            // Reporter connect/broadcast; Bomber drone connect and FIRE (pilot moves and exit stay allowed).
-            // 记者接线/广播；炸弹客无人机连接与开火（驾驶移动与退出放行）。
-            Identifier.of("sparkstrength", "reporter_communication"),
-            Identifier.of("sparkstrength", "drone_pilot_start"),
-            Identifier.of("sparkstrength", "drone_pilot_action"),
-            Identifier.of("sparkstrength", "demon_hunter_sniff"),
-            Identifier.of("sparkstrength", "vulture_super_curse"),
-            // Spiritualist Wraith possession (SparkStrength, key 2); its exit packet stays allowed.
-            // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
-            Identifier.of("sparkstrength", "spirit_possess"),
-            Identifier.of("sparkstrength", "call_tablet_meeting"),
-            Identifier.of("sparkstrength", "cast_tablet_vote"),
-            Identifier.of("sparkstrength", "confirm_tablet_vote"),
-            Identifier.of("sparkstrength", "approve_suspect_removal"),
-            // SparkStrength Taotie head launch (TaotieHeadFireC2SPacket). / SparkStrength 饕餮发射头颅。
-            Identifier.of("sparkstrength", "taotie_head_fire"),
-            // SparkStrength Party Animal's Partygoer: summoning it (key 2) and a Taotie swallowing it (G); the room
-            // picker request (partygoer_menu) is UI only and stays allowed.
-            // SparkStrength 派对狂的派对客：召唤（技能键 2）与饕餮吞下它（G）；选房请求（partygoer_menu）仅是界面，放行。
-            Identifier.of("sparkstrength", "partygoer_summon"),
-            Identifier.of("sparkstrength", "partygoer_swallow"),
-            // SparkStrength sabotage trigger and breaker repair, classified like the tablet meeting and vote.
-            // SparkStrength 破坏触发与电闸维修，与平板会议、投票同类。
-            Identifier.of("sparkstrength", "trigger_sabotage"),
-            Identifier.of("sparkstrength", "complete_breaker_repair"),
-            // SparkStrength Detective remote interrogation (magnifier roster). / SparkStrength 侦探远程审问（放大镜名单）。
-            Identifier.of("sparkstrength", "interrogate_detective_suspect"),
-            Identifier.of("sparkstrength", "select_criminologist_target")));
+    // Generated SEEKER column of SparkFactionAPI config/payload-policy/actions.tsv: edit that table and
+    // rerun tools/payload_policy.py, never list ids here; per-id reasons are in its note column.
+    // 生成的 SEEKER 列（SparkFactionAPI config/payload-policy/actions.tsv）：请修改该表并重新运行
+    // tools/payload_policy.py，不要在此列出 id；各 id 的理由见其 note 列。
+    public static final Set<Identifier> BLOCKED_WHILE_VIEWING = GeneratedPayloadPolicy.SEEKER;
 
     /** Grace before an unsupported or wet body ends the session (BODY_MOVED). / 本体离地或入水多久后结束会话。 */
     public static final int UNGROUNDED_GRACE_TICKS = 10;

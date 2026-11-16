@@ -28,6 +28,11 @@ public final class FerrymanShopService {
     private static final String CROWBAR_DESCRIPTION_KEY = "shop.sparkwitch.ferryman.crowbar.description";
     private static final String MOMENT_NAME_KEY = "shop.sparkwitch.ferryman.moment";
     private static final String MOMENT_DESCRIPTION_KEY = "shop.sparkwitch.ferryman.moment.description";
+    /**
+     * Second LORE line: vanilla tooltips never wrap, and one line overflowed a 1080p screen at the default GUI scale.
+     * 第二行 LORE：原版提示框从不换行，单行在 1080p 默认 GUI 缩放下会超出屏幕。
+     */
+    private static final String MOMENT_DESCRIPTION_LINE2_KEY = "shop.sparkwitch.ferryman.moment.description.line2";
     private static final String INVENTORY_FULL_KEY = "message.sparkwitch.ferryman.shop.inventory_full";
     private static final int DESCRIPTION_COLOR = 0x808080;
     private static boolean registered;
@@ -57,8 +62,11 @@ public final class FerrymanShopService {
     static ShopEntry momentEntry() {
         ItemStack display = new ItemStack(Items.SOUL_LANTERN);
         display.set(DataComponentTypes.ITEM_NAME, Text.translatable(MOMENT_NAME_KEY));
-        display.set(DataComponentTypes.LORE, new LoreComponent(List.of(Text.translatable(MOMENT_DESCRIPTION_KEY)
-                .styled(style -> style.withItalic(false).withColor(DESCRIPTION_COLOR)))));
+        display.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+                Text.translatable(MOMENT_DESCRIPTION_KEY)
+                        .styled(style -> style.withItalic(false).withColor(DESCRIPTION_COLOR)),
+                Text.translatable(MOMENT_DESCRIPTION_LINE2_KEY)
+                        .styled(style -> style.withItalic(false).withColor(DESCRIPTION_COLOR)))));
         return new ShopEntry.Builder(FerrymanRules.MOMENT_SHOP_ENTRY_ID, display, FerrymanRules.MOMENT_PRICE,
                 ShopEntry.Type.TOOL)
                 .stock(1)

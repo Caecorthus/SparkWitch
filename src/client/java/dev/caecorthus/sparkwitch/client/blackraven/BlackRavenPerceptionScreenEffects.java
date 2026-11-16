@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.blackraven;
 
 import net.minecraft.entity.player.PlayerEntity;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.client.render.WraithVisionRules;
@@ -162,7 +163,22 @@ public final class BlackRavenPerceptionScreenEffects {
         return !loadFailed && resolveVision(player, null) != null;
     }
 
+    /**
+     * Releases the processor. The play DISCONNECT event that calls this fires on the Netty thread, and closing a post
+     * processor deletes framebuffers, which asserts the render thread: the throw used to leave Fabric's listener loop,
+     * so every disconnect reset registered after this module (SparkWitch's own and other mods') was skipped. Off the
+     * render thread the whole close is recorded as a render call, as {@code SpecterOtherworldScreenEffects.close} and
+     * {@code ScopeRuntime.reset} already do.
+     * 释放后处理器。调用它的 play DISCONNECT 事件在 Netty 线程触发，而关闭后处理器会删除帧缓冲，该操作会断言渲染线程：
+     * 抛出的异常会跳出 Fabric 的监听循环，于是在本模块之后注册的所有断线重置（SparkWitch 自身的与其他模组的）都被跳过。
+     * 不在渲染线程时，整个关闭操作会作为渲染调用记录下来，与 {@code SpecterOtherworldScreenEffects.close} 和
+     * {@code ScopeRuntime.reset} 的做法相同。
+     */
     public static void close() {
+        if (!RenderSystem.isOnRenderThread()) {
+            RenderSystem.recordRenderCall(BlackRavenPerceptionScreenEffects::close);
+            return;
+        }
         closeProcessor();
         loadFailed = false;
         LastEscapeTraitsVisionBridge.forgetProtocol();

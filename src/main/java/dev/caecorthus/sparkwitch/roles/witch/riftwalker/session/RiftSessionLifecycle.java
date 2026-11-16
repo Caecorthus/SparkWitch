@@ -1,10 +1,10 @@
 package dev.caecorthus.sparkwitch.roles.witch.riftwalker.session;
 
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
@@ -56,11 +56,8 @@ final class RiftSessionLifecycle {
 
         // Only the session ends here; Wathe's deferred ESCAPED kill then drops the body at the gate.
         // 这里只结束会话；随后 Wathe 延迟执行的 ESCAPED 击杀会把尸体留在门处。
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            if (handler.player != null) {
-                RiftSessionService.forceExit(handler.player, RiftExitReason.DISCONNECTED);
-            }
-        });
+        ServerDisconnectCleanup.register((player, server) ->
+                RiftSessionService.forceExit(player, RiftExitReason.DISCONNECTED));
     }
 
     /** ROUND_END: drops the session and the cooldown, never the mode or position. / 清除会话与冷却，不动模式与位置。 */

@@ -1,7 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.sherry.net;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -16,17 +15,10 @@ public record RequestSherryDeductionC2SPacket() implements CustomPayload {
     public static final Identifier PAYLOAD_ID = SparkWitch.id("request_sherry_deduction");
     public static final Id<RequestSherryDeductionC2SPacket> ID = new Id<>(PAYLOAD_ID);
     public static final PacketCodec<RegistryByteBuf, RequestSherryDeductionC2SPacket> CODEC =
-            PacketCodec.of(RequestSherryDeductionC2SPacket::write, RequestSherryDeductionC2SPacket::read);
+            PacketCodec.unit(new RequestSherryDeductionC2SPacket());
 
     @Override
     public Id<? extends CustomPayload> getId() {
         return ID;
-    }
-
-    public void write(PacketByteBuf buf) {
-    }
-
-    public static RequestSherryDeductionC2SPacket read(PacketByteBuf buf) {
-        return new RequestSherryDeductionC2SPacket();
     }
 }

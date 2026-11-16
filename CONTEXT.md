@@ -1,7 +1,6 @@
 # SparkWitch Context
 
-This is a live routing map, not blanket permission to refactor. Structural
-changes require explicit owner approval.
+This is a live routing map.
 
 ## Product Boundary
 
@@ -39,8 +38,9 @@ BEAR (`sparkwitch:bear`, 2026-11-05) is an ordinary civilian (never a police var
 fires smoke-only 40 mm rounds from an M32A1 launcher anyone may use, and buys a ricocheting Rys-T helmet and CENS
 earplugs worn in a fifth "headset" slot; every BEAR item is deleted when its holder dies.
 The Medium (`sparkwitch:medium`, 通灵师, contributed in PR #209) is an ordinary task civilian that earns coins from
-tasks and spends them on 通灵 (ability key G: a yes/no question the dead answer from a vote screen) and 招魂 (Role
-Skill 2: a secretly bound player's vote weighs 3).
+tasks and spends them on 通灵 (ability key G: a yes/no question the dead answer from a vote screen), 幽灵的加护
+(Ghost's Blessing, Role Skill 2: the dead vote which of four blessings the Medium receives) and 招魂 (picked in the
+inventory screen: a secretly bound player's vote weighs 3).
 远野汉娜 Tono Hanna (`sparkwitch:hanna`, contributed in PR #212 and reworked in review) is a task civilian with a mana
 pool that only tasks refill (40 at the deal, +20 per task), whose shared ability key (G) spends 40 mana on a 10 s float
 (Speed II, silent for others, hidden from every instinct) that another living player's touch ends with a 10 s sanity
@@ -54,8 +54,9 @@ train fall can kill, that feigns death for 5 s 60 s after the round start and af
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
 It also adds the Charon (`sparkwitch:charon`, 卡戎, PR #202), a neutral drawn from 8 players up that starts with
 nothing: another player's lethal hit (never a forced kill, a train fall, a disconnect, a vanilla death or drowning)
-opens a 0.5 s window instead of killing, and an ability-key press inside it refuses the death and marks the attacker
-with 瞥视 (dark red, seen through walls); the pardon is armed 60 s after the round starts and 10 s after each use. A
+opens a 1.5 s window instead of killing, and an ability-key press inside it refuses the death and, 1.5 s later, marks
+the attacker with 瞥视 (dark red, seen through walls); the pardon is armed 60 s after the round starts and 5 s after
+each block, and a press with nothing to refuse is a whiff that costs 15 s (PR #232). A
 marked attacker's next lethal hit spends the mark and drops them into 10 s of feign death behind a fake corpse that
 shows a civilian and an ordinary death. Its secondary key ferries a real corpse that died within 60 s, within 4 blocks
 and in sight, for 50 gold and a 怜悯 mark (pale blue); a ferried body that is later bagged or eaten pays a second share
@@ -64,18 +65,28 @@ the pardon. Its shop sells a 25 gold crowbar and, for 250 gold, the Soul Moment:
 back beside the Charon as a Lost Soul (`sparkwitch:lost_soul`, 迷失的灵魂, never drawn) in soul-fire particles, with an
 empty derringer (reloads on a kill), a crowbar and a knife. The moment blocks every faction win until no player outside
 it is alive, the Charon and the souls die together, and a round whose train clock runs out settles normally.
-It also adds the Insider, a Team Jiahao member paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
-the two form Team Jiahao (嘉豪阵营, `sparkwitch:jiahao`) and win together.
+It also adds the Insider, a Team Jiahao member dealt beside the NoellesRoles Corrupt Cop when Team Jiahao is the
+round's third faction and its member cap is at least 2; the two form Team Jiahao (嘉豪阵营, `sparkwitch:jiahao`) and win
+together.
 Since 2026-11-04 the witch faction (`sparkwitch:witch`) and Team Jiahao (`sparkwitch:jiahao`) are real Wathe
 `Faction` constants (WITCH, JIAHAO), declared in `fabric.mod.json` under
 `custom."sparkfactionapi:native_wathe_factions"` and appended by SparkFactionAPI `0.1.6.0`; they are no longer
 disguised as Wathe `NEUTRAL`. See "Native Wathe factions" under Runtime Invariants.
+Since 2026-11-16 they form SparkFactionAPI's `third_faction` category: at most one of them per round, drawn before
+Wathe's neutral pass and dealt from SparkWitch's lineups (the Murderous Witch stays a Wathe neutral). See
+"Third-faction draw" under Runtime Invariants.
 It also adds the Stowaway (`sparkwitch:stowaway`, 偷渡客, contributed in PR #178), a neutral drawn at any player count
 that starts with only a lockpick, never counts as alive for any win, joins the winning side if it is alive at round
 end, senses players within 10 blocks, and hides from instinct behind cover like NoellesRoles' Survival Master.
 It also adds Schrödinger's Cat (`sparkwitch:schrodingers_cat`, 薛定谔之猫, contributed in PR #182), a neutral drawn at
 any player count that never wins or blocks a win; the first death that really commits on it (after every protection)
 turns it, 3 s later and where it fell, into its killer's side: Bewitched, Insider, plain killer or a random police role.
+It also adds 泽渡可可 Sawatari Koko (`sparkwitch:koko`, contributed in PR #223 and rebuilt in review), a neutral streamer
+drawn at any player count with fake tasks, a mana pool on the Murderous Witch's regeneration, and one neutral master
+key: her shared ability key (G) spends 60 mana on a 20 s stream (10 traffic per second, her held instinct key outlines
+every other player, everyone sees her through walls for the first 10 s, half sprint drain), a right-click on a corpse
+streams it once (the body glows for everyone for 50 s, +100 traffic), her shop sells one lightstick for 100 traffic,
+1000 traffic keeps Speed III on her, and she wins alone when she is live with 1500 traffic. She blocks nobody else's win.
 It also adds the Magician (`sparkwitch:magician`, 魔术师, merged from main), a killer whose recorded puppet replays
 its actions disguised as a chosen player.
 It also adds the Dominator (`sparkwitch:dominator`, 支配者, contributed in PR #192), a killer whose shared ability key
@@ -84,8 +95,8 @@ It also adds 夏目安安 Natsume Anan (`sparkwitch:natsume_anan`, contributed i
 hypnotises a player within 3 blocks: blinded, locked out of items and role skills, and losing sanity.
 It also adds the Specter (`sparkwitch:specter`, 幽魂, contributed in PR #207), a killer whose ability key (G) marks a
 player within 3 blocks and then makes them shriek (fear), and whose Role Skill 2 key opens the world-wide 30 s
-Otherworld (里世界), in which its knife only lands on low-sanity or cowardly non-killers and low-sanity players get a
-Peachwood Sword that can hurt it.
+Otherworld (里世界), in which its kills (any weapon) only land on low-sanity or cowardly non-killers and low-sanity
+players get a Peachwood Sword that can hurt it.
 It also adds 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, 2026-11-11), a
 killer whose ability key (G) casts 死亡回归 (Return by Death, 100 mana, first use 90 s in, 45 s cooldown from its
 end): it records her position for 15 s; everyone she kills in that window only feigns death for 15 s each and then
@@ -103,9 +114,10 @@ It also adds the Potion Gunner (`sparkwitch:potion_gunner`), a witch-faction spe
 promotion (or an admin force) assigns; it fires four kinds of potion shell from a bound anti-tank launcher.
 It also adds the Riftwalker (`sparkwitch:riftwalker`, 隙行者), a witch-faction special accomplice that only a Bewitched
 promotion or an admin force assigns; its Rift Gates let the witches hide and travel between gates.
-It also adds the Bewitched (`sparkwitch:bewitched`, 魔化使), a witch-faction member dealt at round start in a Grand
-Witch round (it replaces Grand Witch recruitment); after 2 completed tasks it is promoted to an accomplice rolled from
-the special-accomplice pool.
+It also adds the Bewitched (`sparkwitch:bewitched`, 魔化使), a witch-faction member dealt at round start beside the
+Grand Witch when the witch faction is the round's third faction, on every member-cap slot after hers (it replaces
+Grand Witch recruitment); after 2 completed tasks it is promoted to an accomplice rolled from the special-accomplice
+pool.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -121,12 +133,13 @@ Current build baseline:
 
 - Minecraft `1.21.1`
 - Java `21`
-- SparkWitch `0.1.6.0` (Emma branch)
-- SparkFactionAPI floor `0.1.6.0` (native Wathe factions: the `sparkfactionapi:native_wathe_factions` declaration,
-  `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`; version provisional until the
-  owner picks the release number). Every `0.1.5.13`+ feature (two-row limited inventory,
-  `compat/SparkFactionSecondRowCompat`, settlement exclusions) is therefore present; the reflective compat paths are
-  kept as they are.
+- SparkWitch `2.0.0` (owner 2026-11-12: all five Spark mods share one version number)
+- SparkFactionAPI floor `2.0.0` (native Wathe factions: the `sparkfactionapi:native_wathe_factions` declaration,
+  `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`, first shipped as `0.1.6.0`; the
+  third-faction draw, `FactionCategory.THIRD_FACTION`, `registerThirdFactionLineup` and the third-faction settings,
+  in the 2.0.0 jar rebuilt on 2026-11-16). Every `0.1.5.13`+ feature (two-row limited inventory,
+  `compat/SparkFactionSecondRowCompat`, settlement exclusions) is therefore present, so SparkWitch no longer detects the
+  inventory version and registers settlement exclusions directly.
 
 ## Read Order
 
@@ -223,11 +236,15 @@ Current build baseline:
     `addRole` in `ScoreboardRoleSelectorComponent.assignCivilians` and `ApprenticeCivilianPool.chooseSeatRole` turns
     each plain-Civilian fallback seat (every special civilian already dealt, or a group seat Wathe gave up) into an
     Apprentice on a 50/50 coin while she is enabled (a disabled Apprentice draws no random number). She can appear
-    several times; `WitchRoleAssignmentService` / `WitchRoleCounts` no longer deal her. `/wathe:forceRole` still works.
+    several times; no witch dealing pass deals her (the old `WitchRoleAssignmentService` / `WitchRoleCounts` are gone
+    since 2026-11-16, and the witch third-faction lineup never names her). `/wathe:forceRole` still works.
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
     buff's state out of the frozen `sparkwitch:player` packet. Only the Clairvoyance exposure timer syncs to everyone;
     tasks toward graduation, the Purify cooldown, the two Swift Step recharge timers, the Mighty Force forfeit flag and
-    the Healing fear ward sync to the owner only. Apprentice-only fields clear themselves once the role changes;
+    the Healing fear ward sync to the owner only: a write to them sends its packet to the owner alone
+    (`syncPrivate()`, 2026-11 review pass; a broadcast carrying zeros still told every tracking client who is the
+    Apprentice and whom her Healing aura warded), and only the exposure timer's own changes broadcast. While an
+    exposure runs, owner-only syncs still go to everyone. Apprentice-only fields clear themselves once the role changes;
     `ApprenticeFeatureService` clears everything on role assignment, `ResetPlayer` and round finalize.
   - Graduation (D2): the second completed task as Apprentice (`TaskComplete`) raises her natural mana to cap 150 and
     1 per 2 s through the graduated overloads of `WitchManaRules` (the role-only signatures are unchanged), widens
@@ -342,6 +359,16 @@ Current build baseline:
 - `roles/killer/kidnapper/`: corpse targeting, dragging, positioning, and cleanup. `KidnapperFalseBodyPolicy` refuses
   SparkTraits fake bodies, camera-bound bodies, Magician decoys and Fiend feign-death corpses; a deliberate drag on a
   decoy tells the Kidnapper.
+  - Knockout Drug control lock (2026-11 review pass): the client lock (`client/mixin/kidnapper/*`: attack key, use
+    key, hotbar keys and scroll, plus the black HUD) is backed by the server. `KidnapperControlGuards` fails the five
+    Fabric player callbacks in its own phase before the default one (both sides, no empty-hand exception) and
+    `mixin/kidnapper/KidnapperControlPayloadGuardMixin` drops payloads, both only while the acting player is
+    `isControlled()` and alive in survival (the client's own predicate). Owner decision 2026-11: a controlled player
+    also uses no role skill and buys nothing, so the dropped set is the whole stun deny-list
+    (`ControlExpertStunRules.isBlockedPayload`: Wathe knife, gun and `wathe:storebuy`, the only purchase path, plus
+    every classified role-skill payload), reused, not copied, and dropped silently. The client lock still leaves the
+    ability keys and the inventory open; those presses simply do nothing. Hotbar selection stays a client-side lock
+    only (owner 2026-11).
 - `roles/killer/blackraven/`: the Black Raven, a police variant since 2026-10-21 (the package keeps its old
   `killer` path; moving it needs owner approval). Feather Blade marks, owner-private Perception state,
   bound ledger, and lifecycle cleanup. It has no shop of its own, like the Vigilante (the killer shop
@@ -532,11 +559,17 @@ Current build baseline:
     the round roster). `MagicianRoster` (D7) captures every round participant when the round starts or a player
     becomes the Magician; the disguise list and the target packet accept any roster member, alive or dead, so a pick
     never reveals a death. `client/magician/MagicianKeyRepeatGuard` drops key-repeat presses (one stage step per
-    physical press).
+    physical press). The shared `RoleAssigned` listener resets the component for a new Magician and, since the
+    2026-11 review pass, also for anyone re-roled away while `holdsMagicianState()` (a live puppet, a recording, a
+    cooldown, the roster): the playback tick watches only the owner's life, so a Magician who died and converted
+    into a Wraith in the same tick used to keep the puppet replaying.
   - Recording only records accepted actions: gun shots and knife stabs at Wathe's `recordItemUse` anchor
     (`mixin/MagicianGunShootPayloadReceiverMixin`, `mixin/MagicianKnifeStabPayloadReceiverMixin`), full-charge bat
     kills at Wathe's `killPlayer(..., BAT)` (`mixin/MagicianRecordBatKillMixin`); the other `MagicianRecord*Mixin`s
-    capture movement-side interactions. A rejected, parried or out-of-range action never replays.
+    capture movement-side interactions. A rejected, parried or out-of-range action never replays. One recording
+    stores at most `MagicianConstants.MAX_RECORDED_ACTIONS` actions (a safety bound far above legitimate use: swing
+    and slot packets are not rate-limited), and playback walks the tick-ordered list with a cursor
+    (`MagicianPlaybackManager.runDueActions`) instead of rescanning it every tick.
   - Replay: `MagicianPlaybackManager` alone owns live puppets (spawn, per-tick frames, the replay proxy, round-end
     `clearAll`, disconnect cleanup, discarding a finished puppet even when its owner is offline).
     `MagicianPlaybackActionExecutor` replays through a `FakePlayer` proxy that carries the owner's UUID; weapon
@@ -822,12 +855,23 @@ Current build baseline:
     froze the server-side hotbar and corrupted `psychosActive`). Non-killers get Slowness I for the window
     (`SpecterOtherworldService`, every 10 ticks).
   - Otherworld knife: the knife's natural cooldown is cleared with SparkFactionAPI
-    `ForcedCooldowns.clearItemKeepingForced`, so forced penalties still lock it. The targeting rule
-    (`GameFunctionsSpecterOtherworldTargetMixin`, `killPlayer` HEAD priority 1040, pinned in
-    `watheCommonMixinContracts`) voids only `wathe:knife` kills by a Specter during the window on effective killers and
-    on players who are neither cowardly nor low-sanity; guns, poison and other deaths are untouched.
-    `SpecterOtherworldKnifeMixin` (Wathe knife receiver HEAD, priority 900) only drops a stab that rule would void, with
-    no side effects; every other stab runs Wathe's receiver and all its guards (SparkTraits, SparkStrength, Knight duel).
+    `ForcedCooldowns.clearItemKeepingForced`, so forced penalties still lock it.
+  - Otherworld targeting rule (`SpecterOtherworldService.blocksKill`, PR #233: every weapon, not only the knife):
+    `GameFunctionsSpecterOtherworldTargetMixin` (`killPlayer` HEAD priority 1040, pinned in
+    `watheCommonMixinContracts`) voids any non-forced kill credited to a Specter during the window on effective
+    killers and on players who are neither cowardly nor low-sanity, before any protection of the victim is spent.
+    It is judged when the kill resolves (a grenade or poison follows the window state at that moment). Not judged:
+    forced kills, self-kills, `fell_out_of_train` / `escaped` / `drowned` / `mental_breakdown`, NoellesRoles
+    `bodyguard_sacrifice` (voiding it would make the protected valid target unkillable), the Tofana retaliation, a
+    shot the Dominator forces out of a Specter (`DominatorForcedShotScope.isFiring`) and a Charon pardon replay
+    (`FerrymanPardonService.isReplayingHeldKill`). A new death reason that credits a player who did not attack the
+    victim must join `NON_ATTACK_REASONS`.
+    `SpecterOtherworldKnifeMixin` and `SpecterOtherworldGunMixin` (Wathe knife / gun receiver HEAD, priority 900) only
+    drop a stab or shot that rule would void, with no side effects (no record, cooldown, Veteran use, spent derringer
+    or shot-an-innocent revolver loss); every other stab or shot runs Wathe's receiver and all its guards (SparkTraits,
+    SparkStrength, Knight duel). Thrown and delayed weapons (grenade, M67, poison, other mods' projectiles) have no
+    such seam: they are spent as usual and only the kill is voided. Raven Form: a kill the rule voids never ends the
+    crow session (`BlackRavenCrowTargets.killCanLand`), and the two receiver seams resolve a crow to its owner.
   - Ghost Trigger (`GhostTriggerItem` / `GhostTriggerEntity`, Specter shop 50 coins, POISON frame, registered in the
     DEFAULT `BuildShopEntries` phase so Charisma applies): one per support block, arms after 0.5 s; victims follow
     `HunterTrapEntity.canCatch` (owner and killer teammates included, Wraiths only for their bound killer) plus a role.
@@ -879,7 +923,7 @@ Current build baseline:
     tooltips. Lang: `hud.sparkwitch.specter.*`, one-sentence `announcement.goal(s)`, replay keys for mark, shriek, Otherworld, trigger
     placement and trigger, peachwood hits and the shield.
 - `roles/killer/hiro/`: 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, placeholder color `0xC8324B`, owner has not
-  picked one), added 2026-11-11. She is a Witch Trial girl (`WitchFactionRules.WITCH_TRIAL_GIRL_IDS`, owner
+  picked one), added 2026-11-11. She is a Witch Trial girl (`OtherWitchRoles`, owner
   2026-11-11): the Grand Witch's held instinct shows her in `OTHER_WITCH_INSTINCT_COLOR` before and after 魔女化,
   and the witchified role-colour view below still only fills when no instinct colour answered (key not held).
   Every role number lives in `HiroRules`: `RETURN_WINDOW_TICKS` 300, `VICTIM_FEIGN_TICKS` 300,
@@ -1000,10 +1044,12 @@ Current build baseline:
       (`isInReachNow`: `RopeRules.confirmsGrab` of the eye-to-body distance and vanilla `canSee`), so a volume left
       behind by a sprint or a teleport picks nobody; the back check already reads current positions.
     - `RopeStrangleService` (server authority, in-memory sessions keyed by strangler and by victim): stable seams
-      `interruptUser(ServerPlayerEntity)`, `isStrangling(PlayerEntity)`, `isStrangled(PlayerEntity)` (both sides).
+      `interruptUser(ServerPlayerEntity)`, `isStrangling(PlayerEntity)` (both sides).
       `tryStart`: SparkTraits `blocksWeaponAction` (silent), the gates, then SparkTraits `shouldCancelMeleeAttack`
       (Close Quarters); a refusal costs nothing (action-bar `message.sparkwitch.rope.blocked` / `.no_target` /
-      `.not_behind`). A start records `recordItemUse`, snaps both players to anchors and holds them for 60 ticks (every
+      `.not_behind`). A start records `recordItemUse` (replay line `replay.item_use.sparkwitch.rope` through
+      `RopeReplayFormatter`, registered from `RopeStrangleService.register()`; until 2026-11-13 no formatter existed
+      and Wathe dropped the line), snaps both players to anchors and holds them for 60 ticks (every
       hold teleport passes the player's own yaw/pitch: in 1.21.1 `requestTeleport`'s rotation is absolute and `ROT`
       only sends its difference from the server's, so zeros would turn the camera to yaw 0 / pitch 0); at
       ticks 20/40/60 the victim shows one vanilla hurt through `ServerWorld.sendEntityDamage` with the attacker-less
@@ -1148,18 +1194,26 @@ Current build baseline:
   never drawn; only the Soul Moment assigns it). Both register right before the Insider; in the assassin-guess order the
   Lost Soul follows the Charon. Rules and the side-safe predicate (`FerrymanRules`, `FerrymanParticipation`); the
   owner-only `sparkwitch:ferryman` player component (`FerrymanPlayerComponent`: pardon and ferry cooldowns, which the
-  owner's client counts down locally, the server-only pending window, and the 瞥视 and 怜悯 id sets; `RoleAssigned` and
+  owner's client counts down locally, the server-only pending window and pending 瞥视 mark, and the 瞥视 and 怜悯 id
+  sets; `RoleAssigned` and
   `ResetPlayer` give a Charon the 60 s round-start pardon cooldown) and the server-only `sparkwitch:ferryman_feign`
   component (`FerrymanFeignComponent`).
   - Pardon (`FerrymanPardonService.interceptKill`): `mixin/ferryman/GameFunctionsFerrymanPardonMixin` is a cancellable
     HEAD guard on Wathe's 5-arg `killPlayer` at priority 1200 (pinned in `watheCommonMixinContracts`), never a
     `KillPlayer.BEFORE` listener, so it sees `force` and keeps `spawnBody`. It holds nothing for a forced kill, a
-    SparkTraits-terminal reason, a kill without an attacker or by the Charon itself, `wathe:fell_out_of_train`,
+    SparkTraits-terminal reason or a Savior weapon reason (`SaviorRules.isTerminalKill`), a kill without an attacker or by the Charon itself, `wathe:fell_out_of_train`,
     `wathe:escaped`, `wathe:vanilla_death`, `wathe:drowned` (`FerrymanRules.UNHELD_DEATH_REASONS`, `mayHoldKill`), its
     own replay, or a Charon that is not playing and alive or is swallowed. A marked attacker's lethal hit is answered
     by the gaze feign first, and 瞥视 is consumed when the feign starts (an attacker that cannot feign keeps the mark
-    and the hit falls through to the pardon). Otherwise a ready Charon with no open window gets a 0.5 s window; a
-    second lethal hit inside it kills normally. A press closes the window, marks the attacker and re-arms 10 s; a lapsed
+    and the hit falls through to the pardon). Otherwise a ready Charon with no open window gets a 1.5 s window
+    (`PARDON_WINDOW_TICKS` 30, PR #232); a second lethal hit inside it kills normally. A press closes the window,
+    re-arms 5 s and schedules the attacker's 瞥视 1.5 s later (`GAZE_MARK_DELAY_TICKS`, one server-only pending mark on
+    the component, never synced or saved): until it lands the attacker's next lethal hit meets no gaze and a running
+    cooldown, so it kills. The mark lands only while the Charon is still playing and alive, and any committed death of
+    the Charon, a re-role or a reset drops it. `onPress` outside a window (PR #232): a running cooldown only reports
+    its remaining seconds (`message.sparkwitch.ferryman.pardon.cooling`) and is never extended; otherwise the press is
+    a whiff that starts `PARDON_WHIFF_COOLDOWN_TICKS` (15 s), except for a swallowed or spectating Charon, whose press
+    does nothing. A lapsed
     window replays the held kill unchanged (killer, reason, `spawnBody`, not forced) only while the Charon is still
     playing and alive, and any committed death of the Charon (`KillPlayer.AFTER`) closes the window.
   - Feign (`FerrymanFeignService`, 10 s; `FerrymanRules.canFeign` copies the Fiend's start gate: ACTIVE round,
@@ -1186,7 +1240,8 @@ Current build baseline:
     pays 50 gold and adds the 怜悯 mark. `FerrymanMercyService`: a ferried body that is bagged or eaten pays a
     still-active Charon 50 more and marks the destroyer, once; the Charon's own destruction pays nothing.
   - Shop (`FerrymanShopService`): crowbar 25 (refused on a full inventory) and the stock-1 Soul Moment 250 (refused and
-    uncharged when no soul rises).
+    uncharged when no soul rises; its description is two LORE lines, `shop.sparkwitch.ferryman.moment.description` and
+    `.description.line2`, because vanilla tooltips never wrap and one line overflowed 1080p at the default GUI scale).
   - Soul Moment (`FerrymanMomentWorldComponent` + `FerrymanMomentRules` + `FerrymanMomentService` +
     `FerrymanWinService`): eligible souls are online ferried participants Wathe holds dead that are not a Charon, whose
     death no pending SparkTraits Last Stand holds, and that are not an active Wraith; one per 6 round participants rises (Wathe's
@@ -1198,7 +1253,26 @@ Current build baseline:
     ordered after the Fiend's `sparkwitch:fiend_moment_win` and before `Event.DEFAULT_PHASE`: it steps aside on `TIME`
     (owner 2026-11-09: when the train clock runs out the round settles normally; the moment only blocks faction wins),
     blocks every other win while an outsider is alive (counted through `FiendWinExclusion.countsAsAlive`, owner D1),
-    and otherwise wins neutral with the living souls as co-winners. All souls dead kills the Charon and the Charon gone
+    and otherwise wins neutral with the living souls as co-winners. Each revived soul gets a centred red title
+    (`title.sparkwitch.lost_soul.warcry`, after a `ClearTitleS2CPacket`). Settlement exclusion (`FerrymanSettlement`,
+    PR #232): a Charon that does not own a running moment with at least one soul is not alive for win determination,
+    through `mixin/ferryman/GameFunctionsFerrymanSettlementMixin` (HEAD of `GameFunctions.isPlayerPlayingAndAlive`
+    inside `StowawayWinScope`, so every `CheckWinCondition` listener, the Witch and Murderous Witch counts included)
+    and through `FiendWinExclusion.countsAsAlive` (NoellesRoles moment triggers and head counts, the Taotie, the
+    moment's own outsider count). The rule is conditional, so it is not in SparkFactionAPI's unconditional role-id
+    set; `SparkWitchRoleRegistry.registerCharonConditionalSettlementExclusion` registers it as a conditional role
+    (`SettlementExclusions.registerConditionalRole(FERRYMAN_ID, FerrymanSettlement::isExcluded)`), which
+    `SettlementExclusions.isExcluded(game, uuid)` asks on server worlds for holders of the raw Charon role only. That
+    reaches the counts SparkTraits makes outside Wathe's win dispatch with no SparkTraits change: the Final Moment
+    trigger injected right before the dispatch (a soul-less Charon is no opposing faction, so no Final Moment starts
+    against him alone and the round settles through the normal win check) and the round-end finalization check at
+    `onWinDetermined` (he no longer keeps a sole surviving Loose End's win from being finalized). SparkTraits'
+    other readers are no-ops for a neutral (Last Stand's civilian population gate, the killer-win `isInnocent`
+    redirect, the Impostor cleanup, role-level Last Stand eligibility), and SparkStrength's only reader, the Shadow
+    Jester showdown `livingOthers` count, is a `CheckWinCondition` listener that the win scope already covered. The
+    registration fails closed (`LinkageError` caught and logged) against a SparkFactionAPI 2.0.0 jar built before
+    conditional roles existed. All
+    souls dead kills the Charon and the Charon gone
     kills every soul, both forced with `sparkwitch:ferryman_moment_lost` (SparkTraits-terminal); round boundaries and a
     server stop end the moment silently.
   - Death reasons `sparkwitch:pardon_expired` (replay fallback for a held kill without a reason),
@@ -1206,7 +1280,7 @@ Current build baseline:
     (owner 2026-11-09: a controlled Charon uses neither key): `sparkwitch:ferryman_pardon` and `sparkwitch:ferryman_ferry`
     are on the Control Expert stun, Grand Witch Fear, Riftwalker session and Seeker session lists; only the pardon is on
     the Knight duel lock (skill-key-2 rule). Companion lists: SparkFactionAPI `AntiFastRoundRules` and SparkStrength
-    `TaotieHeadRules` (daze). Forced-cooldown stores 23 `sparkwitch:ferryman_pardon` (nominal 10 s, never forced while
+    `TaotieHeadRules` (daze). Forced-cooldown stores 23 `sparkwitch:ferryman_pardon` (nominal 5 s, the block cooldown, never forced while
     a window is open) and 24 `sparkwitch:ferryman_ferry` (nominal 5 s) in `SparkWitchForcedCooldowns`, after the
     Medium's store 22. The Charon and then the Lost Soul (owner 2026-11-09) close the neutral block of the
     assassin-guess list, after Schrödinger's Cat and before the promotion tail; both roles register after the Medium
@@ -1219,15 +1293,22 @@ Current build baseline:
     the secondary-key ferry with its own body-only ray of 4 blocks plus the eye height, since the vanilla crosshair stops
     at 3; `isActiveLocalCharon` mirrors the server's acting gate), `FerrymanClientHighlights` (瞥视 only on marked
     attackers that are playing, alive and not spectating; amber only on fresh, targetable, unferried bodies, never
-    reading fake-body state; pale blue on ferried bodies; a Lost Soul sees the Charon always and players within 6 blocks
-    in red; the veil hide), and `FerrymanHud` + `FerrymanHudRules` (pardon row above the ferry row in the shared
+    reading fake-body state; pale blue on ferried bodies; the Charon sees every living Lost Soul in the souls' cyan
+    `FerrymanRules.SOUL_TEAM_COLOR`; a living Lost Soul, `isActiveLocalLostSoul`, sees the whole lobby at any distance,
+    fellow souls cyan, the Charon grey, everyone else red, PR #232; both new marks use the 瞥视 liveness rule, so a
+    fallen soul keeps Wathe's spectator instinct and dead, feigning, swallowed or creative targets draw nothing; the
+    veil hide), `FerrymanHud` + `FerrymanHudRules` (pardon row above the ferry row in the shared
     bottom-right slot with the Fiend Dash layout and hotbar lift; `SaintHudLayoutRules` reserves both rows, as for the
-    Specter).
+    Specter), `LostSoulOrderHud` (PR #232: the red `hud.sparkwitch.ferryman.soul_order` line for a living Lost Soul at
+    x 5, y `FiendMomentHudRules.MOOD_BLOCK_MAX_BOTTOM + 2`, under Wathe's FAKE-mood block, with the `showsHud` view
+    gates) and `client/mixin/ferryman/FerrymanCohortRoleNameMixin` (PR #232: `game.tip.sparkwitch.lost_soul_cohort`
+    in the souls' cyan under a Lost Soul's name tag for the Charon and for fellow souls, the third sibling of
+    `WitchCohortRoleNameMixin` and `InsiderCohortRoleNameMixin`, pinned in `watheClientMixinContracts`).
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
-  pairing with a drawn Corrupt Cop, task-money economy, shop, neutral master key doors, gun-punishment
-  exemption, and Team Jiahao win seams. Its mixins live in `mixin/insider/`; client presentation
+  the Team Jiahao third-faction lineup (`JiahaoThirdFactionLineup`, pure `JiahaoThirdFactionLineupRules`),
+  task-money economy, shop, neutral master key doors, gun-punishment exemption, and Team Jiahao win seams. Its mixins live in `mixin/insider/`; client presentation
   (instinct outlines, the "嘉豪同伙" label, the Team Jiahao end title) lives in
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
 - `roles/neutral/stowaway/`: Stowaway (`sparkwitch:stowaway`) rules, the opening loadout (`StowawayLoadoutService`),
@@ -1238,15 +1319,86 @@ Current build baseline:
   side and the transform gate), the spectre and transformation (`SchrodingersCatService`) and the settlement exclusion
   (`SchrodingersCatSettlement`). Its mixins live in `mixin/cat/`; the optional trait swap goes through
   `compat/SparkTraitsSchrodingersCatBridge`. No client code.
+- `roles/neutral/koko/`: 泽渡可可 Sawatari Koko (`sparkwitch:koko`, color `0xB5AFE2`), contributed in PR #223 and
+  rebuilt in review on the Hanna model (owner spec and decisions 2026-11-13); every number lives in `KokoRules`.
+  - Registration: a SparkFactionAPI neutral (Wathe-native NEUTRAL, FAKE mood so she has fake tasks, 10 s
+    `maxSprintTime`, no round clock, no appearance condition) registered after 二阶堂希罗 and right before the Insider
+    (which stays last), and guessed in the neutral block after the Lost Soul. Drawn by Wathe's neutral pass; she is
+    not settlement-excluded, so she counts as a living neutral for every other win. `SparkWitchRoles` exposes `KOKO_ID`
+    and `koko()`. She is a Witch Trial girl (`OtherWitchRoles`), so the Grand Witch's held instinct shows her in the
+    other-witch colour.
+  - Mana without witch skills: a mana role in `WitchManaRules` (`isManaRole`) on the Murderous Witch's natural
+    regeneration (owner 2026-11-13): 0 at the deal, 1 per 40 ticks, natural cap 150, `taskReward` 0, `killReward` 0.
+    She is not in `isRegisteredSparkWitchRole`, never gets an active witch skill and never appears in the
+    `gui.sparkwitch.skills` panel; the shared mana HUD row shows her pool because it reads only `hasManaSystem()`.
+  - Go live (`KokoFeatureService` registers the empty C2S `sparkwitch:use_koko_stream`, the replay formatter, shop,
+    key, win, the corpse interaction, the world tick and lifecycle): `KokoStreamService.tryGoLive` gates through the
+    pure `KokoRules.streamVerdict` (real role, ACTIVE round, alive and not spectating, not swallowed, stunned or
+    role-skill blocked, not already live, ready; then Fear, which sends Grand Witch's "skill blocked" line; then 60
+    mana, else `message.sparkwitch.koko.no_mana`), spends the mana, starts the 20 s stream, pays the first second of
+    traffic and puts vanilla Glowing on her for 10 s (how everyone sees her through walls; the Nikaido Hiro
+    precedent). The world tick pays 10 traffic at 1 s to 19 s (`KokoRules.pulseDue`, never on the end tick: 20
+    payments, 200 per stream), so every payment lands at least 1 s before the stream ends: Wathe's win check and this
+    world tick run in no fixed order, and the check sees the traffic in the same tick or the next, live either way.
+    A swallowed Koko or one inside a Rift Gate earns nothing and cannot win. Death, a role change or the round's end stops the stream. The 45 s cooldown
+    starts when the stream ends (the Hanna float rule).
+  - Corpse stream (`KokoStreamService`, `UseEntityCallback` in phase `sparkwitch:koko_corpse_stream` after the default
+    phase, so every lock guard has already refused a locked player; main hand, a Wathe `PlayerBodyEntity`): no mana,
+    vanilla Glowing on the body for 50 s (everyone sees it), +100 traffic and the 45 s shared cooldown, once per dead
+    player per Koko (`corpseKey`: the body's player UUID, kept in her component, so a repeated feigned death pays
+    once). `KokoRules.corpseVerdict`: role, round, control and aim gates (`canHit`, which NoellesRoles turns off for a
+    Scavenger-hidden body, `CanTargetBody` and line of sight; vanilla checked the range) pass the click on; Fear, a running stream, the
+    cooldown and a repeated body each refuse with their own action-bar line. A fake body is streamed like a real one,
+    so the stream never reveals a feigned death. Her own client answers SUCCESS for a body so the same click never
+    also uses the held item; it predicts nothing else.
+  - Speed and win: holding 1000 traffic renews Speed III (a 2.5 s ambient effect, once per second), so it lapses when
+    a purchase drops her below 1000. `KokoWinService` runs in phase `sparkwitch:koko_stream_win`, ordered after the
+    Fiend's and the Charon's phases and before `Event.DEFAULT_PHASE` (a default-phase `block()` from the Murderous
+    Witch or the witch faction would otherwise hide it): alive, not swallowed or spectating, live and 1500 traffic
+    (`KokoRules.wins`) is `neutralWin(koko)`; anything else is `null`, so she never blocks another side.
+  - Stamina (`KokoStaminaService`, `mixin/koko/KokoSprintDrainMixin`): the Discoverer's capture/rewrite pair around
+    Wathe's stamina tick with multiplier 0.5, gated to her exact role while live; server authority, and her own client
+    predicts from the owner-synced component.
+  - Shop (`KokoShopService`): exactly one entry, the lightstick, a 0-coin `TOOL` row with stock 1 whose `onBuy`
+    charges 100 traffic on the server (the Riftwalker Rift Gate pattern; refunded when the hotbar insert fails), a
+    deny-only `ShopPurchase.BEFORE` for the readable refusal, SparkTraits entries preserved across the rebuild, and
+    `CanSeeMoney` DENY for her (she earns and holds no coins). `client/text/WitchShopClientTexts` labels the price.
+    `KokoLightstickItem` (`sparkwitch:koko_lightstick`, `maxCount(1)`, never consumed, any holder): Speed II for 10 s,
+    doubled stream traffic for those 10 s for a living Koko, then a 30 s vanilla item cooldown
+    (`SparkWitchItemCooldownNominals`). No knife and no lockpick (owner 2026-11-13); kills pay nothing.
+  - Key (`KokoKeyService`): one `noellesroles:neutral_master_key` per living final Koko at `ON_FINISH_INITIALIZE`, and
+    a SparkWitch-owned `DoorInteraction` listener on both sides (train doors and key-locked room doors, 10 s key
+    cooldown) that reuses `InsiderDoorRules.masterKeyDoorResult`, so her doors do not depend on SparkStrength.
+  - State: `KokoComponent` (`sparkwitch:koko_player`, `NEVER_COPY`, appended last in the CCA list) keeps her traffic,
+    three absolute world ticks (stream end, ready, lightstick doubling end) and the streamed body UUIDs in NBT. Sync is
+    owner-only (traffic, stream end, ready), counted down against the client world clock. `RoleAssigned` clears it and
+    starts the 60 s opening cooldown for a drawn Koko; Wathe's `ResetPlayer` clears it. The forced-cooldown store
+    `sparkwitch:koko_stream` (store 30) only moves the ready tick later.
+  - Deny lists: `use_koko_stream` has its row in SparkFactionAPI's payload policy table with Tono Hanna's cells (denied
+    under the stun, a Seeker session, a Rift Gate, Fear, the Knight duel, SparkStrength's Taotie daze and the opening
+    safe time).
+  - Tablet: none of hers. SparkStrength gives every round role its free tablet and resolves channels from identity on
+    the server, so she reaches only the public proximity channel (owner 2026-11-13: no channel she has no right to).
+  - Replay (`KokoReplay`, skill events under the role id): `stream_start`, `stream_end`, `corpse_stream` (the dead
+    player's UUID is stored in the event data; `corpse_stream_unknown` without one) and `lightstick` (whoever used it).
+  - Client (`client/koko/`, presentation only): the two role-owned HUD rows (traffic against 1500, and the stream line:
+    live, cooling, needs mana, ready), the keyed instinct outline of the other living players while she is live
+    (`KokoInstinctHooks`, `withKeybind`, priority 90, never `always`), and the mood flag `hud/mood_flag/koko.png`; the
+    ability key sends the empty payload with no prediction.
+  - Lang: `role`/`announcement`/`game.win` keys for `koko` and `sparkwitch.koko`, `tip.letter.koko.tooltip1`-`6`,
+    `hud.sparkwitch.koko.*`, `message.sparkwitch.koko.*`, `gui.sparkwitch.shop.traffic_price`,
+    `shop.error.sparkwitch.koko.*`, the lightstick name and tooltips, and the five `replay.skill.sparkwitch.koko.*` keys.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
-  - Witch Trial girls (魔裁, owner 2026-11-11): `WitchFactionRules.isWitchTrialGirl` classes the 魔法少女的魔女裁判
-    character roles by role id (`WITCH_TRIAL_GIRL_IDS`: Emma, Noa, Hanna, Natsume Anan, Tachibana Sherry, Nikaido
-    Hiro).
-    `isOtherWitchRole` includes them, so the Grand Witch's instinct shows them in
-    `OTHER_WITCH_INSTINCT_COLOR` like the Apprentice and the Murderous Witch, whatever their own faction;
+  - Other-witch roles (owner 2026-11-13): `OtherWitchRoles` is the one list of roles the Grand Witch's instinct
+    specially recognises, by role id: the Apprentice Witch, the Murderous Witch and the Witch Trial girls (魔裁,
+    owner 2026-11-11, the 魔法少女的魔女裁判 character roles: Emma, Noa, Hanna, Natsume Anan, Tachibana Sherry,
+    Nikaido Hiro, Sawatari Koko). Ask it through `contains` / `isWitchTrialGirl` (Role or id) and `ids()`;
+    `WitchFactionRules.isOtherWitchRole` / `isWitchTrialGirl` delegate to it.
+    The Grand Witch's instinct shows them in
+    `OTHER_WITCH_INSTINCT_COLOR` (`OtherWitchRoles.INSTINCT_COLOR`), whatever their own faction;
     accomplices and the Curser still see them in the non-witch colour. It is an instinct class only: no Witch
     faction membership, mana, factor or kill-mana bonus, Rift Gate access, trait pool or `gui.sparkwitch.skills`
-    panel. A new 魔裁 role adds its id to that set.
+    panel. A new 魔裁 role adds its id to `OtherWitchRoles.WITCH_TRIAL_GIRL_IDS`.
 - `roles/witch/accomplice/variant/`: the special-accomplice pool (`AccompliceVariants`, the promotion roll
   `AccompliceVariantRoll`, the `sparkwitch:accomplice_variant_round` ledger, and the per-variant hooks: the
   post-promotion callback and the variant's own skills for the `gui.sparkwitch.skills` panel).
@@ -1323,8 +1475,8 @@ Current build baseline:
   choice and lock rules (`BewitchedPromotionRules`), the owner-synced task counter (`BewitchedPlayerComponent`,
   `sparkwitch:bewitched`), the end-of-tick promotion queue (`BewitchedPromotionQueue`), the promotion transaction
   (`BewitchedPromotionService`), the empty shop and balance visibility (`BewitchedShopService`) and the wiring
-  (`BewitchedFeatureService`). Its round-start dealing lives in `registry/WitchRoleAssignmentService` (formula
-  `WitchRoleCounts.bewitched`); the forced lock lives in `WitchWorldComponent` (`component/ForcedAccompliceRoleLocks`)
+  (`BewitchedFeatureService`). Its round-start dealing is the witch third-faction lineup
+  (`registry/WitchThirdFactionLineup`, pure `registry/WitchThirdFactionLineupRules`); the forced lock lives in `WitchWorldComponent` (`component/ForcedAccompliceRoleLocks`)
   and `command/ForceAccompliceRoleCommand`. Client presentation (the `n/2` HUD line) lives in
   `client/bewitched/BewitchedClientPresentation`, registered once from `SparkWitchClient`.
 - `roles/civilian/emma/`: unique cop claim, role-owned mana skill, delayed backlash,
@@ -1584,7 +1736,10 @@ Current build baseline:
   - Scope (`UsecScopeService`): the only writer of `UsecPlayerComponent.scoped`. The `sparkwitch:usec_scope` receiver
     stores true for any holder who may use the rifle (owner, 2026-11-05: the role is never read; `OffMatchUse.mode` not
     REFUSED, so off-match holders qualify and dead participants do not), alive, non-spectator, non-Wraith, using the
-    rifle in the main hand, and a per-tick sweep clears anyone who stops qualifying. The glint and the scope-in sound
+    rifle in the main hand, and a per-tick sweep clears anyone who stops qualifying. The receiver only stores the
+    flag; that sweep is also the single place it is synced (`UsecPlayerComponent.flushScoped`, at most once per player
+    per tick and only when it differs from the value last sent, 2026-11 review pass), so a flood of toggles is not
+    multiplied into broadcasts and the glint follows at most one tick later. The glint and the scope-in sound
     follow the flag for every holder; only the instinct cloak also checks the target's role. The payload is harmless
     and on no deny-list. When the flag turns on, a subtle `item.usec_rifle.scope` plays through the public
     `ServerWorld#playSound` at the shooter's eye
@@ -1709,19 +1864,35 @@ Current build baseline:
     The lightsaber
     kills from an `AttackEntityCallback` on a full charge (bat attributes), behind SparkTraits `blocksWeaponAction` /
     `shouldCancelMeleeAttack`, the Vendetta target rule and the SFA veto, and costs 30 s only after a kill (or a
-    puppet/Partygoer hit). Kills use the terminal reasons `sparkwitch:savior_pistol_kill` (Prophecy GUNSHOT) and
-    `sparkwitch:lightsaber_kill` (BLADE) through `SaviorRules.settleKill` (up to 10 `killPlayer` retries, each may
-    spend one shield layer); SparkTraits skips Last Escape / Last Stand / Depression for them, they pierce psycho
-    armour, and the Saint and NoellesRoles Iron Man / whiskey / Jester mixins let them through (the swallowed
-    no-body rule still applies). Both are Knight-duel interference reasons; the Fiend's D5 hit reward counts the
-    pistol as GUN and the lightsaber as BAT; the Rys-T may deflect the pistol (ranged set; its same-tick memo makes a
-    deflection hold for every settle retry).
+    puppet/Partygoer hit). A strike that passed every gate spawns one vanilla `flash` particle (PR #230) at the body
+    centre of the entity the blade struck: the raw callback target, so a Raven Form crow flashes at the crow, not at
+    its owner's body (Fabric's server callback has no hit result). The player branch flashes before the kill settles,
+    so a blocked or feigned kill looks the same; the puppet/Partygoer branches flash only after their kill succeeded.
+    The pistol shot file `item/savior_pistol_shoot.ogg` is stereo like Wathe's `revolver_shoot.ogg`, so at the copied
+    volume 5.0 it is non-positional (no direction, no falloff inside the 80-block packet range); only the Hunter
+    shotgun spatializes a stereo shot (`DoubleBarrelShotAudio`). Kills use the SparkWitch-terminal reasons
+    `sparkwitch:savior_pistol_kill` (Prophecy GUNSHOT) and `sparkwitch:lightsaber_kill` (BLADE,
+    `SaviorRules.isTerminalKill`) through `SaviorRules.settleKill` (up to 10 `killPlayer` retries, each may spend one
+    shield layer). They are deliberately NOT registered SparkTraits-terminal (owner 2026-11-16: a Last Escape killer
+    died to one pistol shot), so Last Escape (trigger and escape phase), Last Stand, Depression and Stands Firm answer
+    them like a Wathe gun or bat; a retry after such a protection is a no-op. They pierce psycho armour, the Saint and
+    NoellesRoles Iron Man / whiskey / Jester mixins let them through (the swallowed no-body rule still applies), and
+    the Charon never pardons them and the Hiro Return never cancels them (both OR `SaviorRules.isTerminalKill`). Both are Knight-duel interference reasons; the Fiend's D5 hit reward counts the
+    pistol as GUN and the lightsaber as BAT; the Rys-T may deflect the pistol (ranged set; the settle retries are one
+    call burst of one shooter, so one roll holds for every retry).
   - Innocent kill (SparkFactionAPI effective faction CIVILIAN, the Knight/Recruit rule): Wathe's policy 4 ticks later,
     only while the shooter is still alive in the round: the used weapon is taken; a killer-feature shooter loses only
-    that; otherwise a Savior's hidden revolver (not a new one) is dropped, mood 0, gun pickup blocked, `KILL_SHOOTER`
-    kills a good shooter with `shot_innocent`; the pistol also rolls Wathe's backfire for a good shooter. The gun-pickup rules (`SaviorGunPickupRules` + three mixins) veto only foreign guns (Wathe `guns`, Hunter
+    that; otherwise a Savior's hidden revolver moves into the selected hotbar slot (`SaviorRules.swapInRevolver`, owner
+    2026-11-16, PR #234: nothing drops and no revolver is created; a stack still in the hand goes to the first free
+    reachable slot, hotbar then 27–35, and takes the revolver's old slot only when none is free; the revolver inherits
+    the cooldown still running on the confiscated weapon through `SaviorCooldowns.carryOver`), mood 0, gun pickup
+    blocked, `KILL_SHOOTER` kills a good shooter with `shot_innocent`; the pistol also rolls Wathe's backfire for a
+    good shooter. The punished Savior goes on with that plain Wathe revolver. The gun-pickup rules (`SaviorGunPickupRules` + three mixins) veto only foreign guns (Wathe `guns`, Hunter
     shotgun, AXMC, Shriek Gun) and refuse server-side every click, swap or pick-from-inventory that would move the
-    hidden revolver out of rows 9–26.
+    hidden revolver out of rows 9–26. Only the punishment moves it; once in the hotbar it is an ordinary item, and
+    `SaviorGunPickupRules.blocksInsert` lets it back into the inventory (cursor stack on screen close or disconnect)
+    while the Savior carries no other revolver. Ground pickup of any gun stays refused. Wathe fires that revolver
+    under its passenger rule (15 s; the Savior has no police gun-parity wrapper).
   - Domain (G, `use_savior_skill`, `SaviorDomainService`): ACTIVE round, living, not spectating or swallowed, not
     SparkTraits skill-blocked, not Feared; 10 s around the Savior, 15 blocks: night vision and blindness removal for
     everyone inside, Slowness I for everyone but the Savior; 60 s opening and post-use cooldown in
@@ -1733,7 +1904,12 @@ Current build baseline:
     blackout blindness (Veteran parity); when a player inside the Savior's 64-block, 120° view is killed by another
     player (intercepted deaths and the Savior's own kills excluded), `SaviorObservationService` takes half of each
     weapon's own effective cooldown length off its own remaining cooldown (never a forced remainder,
-    `SaviorCooldowns`).
+    `SaviorCooldowns`). The view is sampled once per kill attempt (owner 2026-11), not every tick:
+    `mixin/savior/GameFunctionsSaviorObservationMixin` wraps Wathe's five-argument `killPlayer`
+    (`@WrapMethod` with `finally`, like the Judge's and SparkFactionAPI's kill snapshot), so the sample is taken while
+    the victim's pre-kill state is intact, read by `KillPlayer.AFTER`, and dropped when the attempt returns. The
+    filters are the old snapshot's: a victim that already was a spectator or Wathe-dead (a Hiro feign's delayed
+    death, a swallowed player) is seen by nobody. A vanilla death outside `killPlayer` is sampled on the spot.
   - Payload lists: `use_savior_skill` is on the stun (and so hypnosis / crow body), Fear, Seeker, Rift and Knight G
     lists; `savior_pistol_shoot` on stun, Seeker, Rift, the Knight seal and the Vendetta guard, not Fear; the
     lightsaber swing/ignite sound intents are deliberately on none (`SaviorPayloadClassificationTest`).
@@ -1882,7 +2058,7 @@ Current build baseline:
     the low table (knife, revolver, whiskey shield, lose 10-30%, Speed III, crowbar, regain 10-30%). Dynamic weights
     are clamped to [0.5, 25], so none is ever zero or negative. Key, spyglass, knife, revolver and crowbar are
     one-offs per round. Items go to the hotbar (Recruit precedent). The key is the Spare Key below
-    (`sparkwitch:spare_key`, looked up by id; NoellesRoles' master key only if it were unregistered). The whiskey shield is NoellesRoles' own
+    (`sparkwitch:spare_key`, `SparkWitchItems.spareKey()`). The whiskey shield is NoellesRoles' own
     `WhiskeyShieldEffect.addShieldLayer` for 400 ticks (no mood bonus). The skill replay (role id) stores outcome
     names, item ids and amounts, formatted per viewer.
   - State: `NoaComponent` (`sparkwitch:noa_player`, `NEVER_COPY`, appended last in the CCA list) keeps the absolute
@@ -2005,7 +2181,8 @@ Current build baseline:
   - Shared seams added by WP0: `headset/` (`HeadsetComponent`, CCA `sparkwitch:headset`, NEVER_COPY, one saved stack
     synced to its owner, appended last; `HeadsetSlots` facade `get`/`set`/`accepts` (earplugs or ComTac VIII)/`wears`,
     `HANDLER_SLOT_ID = 46`; the Slot and screens are WP4, below), `util/hitscan/RangedOriginScope` (per-thread origin deque
-    `call`/`run`/`current`, null or non-finite = unknown origin; WP3 pushes at the sources),
+    `call`/`run`/`current`, null or non-finite = unknown origin; WP3 pushes at the sources; since 2026-11-13 every scope
+    is also one attack source, `currentSource()`, fresh per scope or the `source` passed to `call`/`run`),
     `SmokeCloudService.carveTunnel` (no-op until WP5), `SparkWitchApi.carveSmoke(ServerWorld, Vec3d, double)` and the
     client facade `api.client.BearSmokeViewApi` (`opticalDepth`, `hasSmoke`; render thread).
   - Economy (`BearEconomyService`, USEC model): balance 0 in its own `ON_FINISH_INITIALIZE` phase, +50 per task
@@ -2065,13 +2242,25 @@ Current build baseline:
     calls
     `BearRicochetService.interceptKill`: a non-forced kill of a living participant WEARING the Rys-T in the head slot
     (D1) by someone else for a reason in `BearRicochetRules.RANGED_REASONS` (D2; blasts in `BLAST_REASONS`) rolls
-    `RICOCHET_CHANCE` once per shot (`RicochetMemo`, key victim + killer + reason + server tick + origin, so Heavy
-    Artillery's and Second Strike's re-entries reuse it); visor up + origin in the head-yaw front hemisphere (D3)
+    `RICOCHET_CHANCE` once per attack source and wearer (owner 2026-11-13, "one source, one roll"; `RicochetMemo`, key
+    wearer + `BearRicochetRules.AttackSource`): every further attempt of that source reuses the first answer whatever
+    its reason or origin, silently (no second ping, crack, sparks or daze), and the first attempt's origin decides the
+    front test and the presentation. The source is, in order: the innermost open `RangedOriginScope` (the grenade,
+    throwing axe, shuriken and crimson skull pass their entity UUID, so the identity survives ticks; the TR shell one
+    token per blast; the Magician puppet a fresh one per scope), plus SparkStrength's innermost blast centre so a blast
+    it chains inside that scope (a bomb drone broken by a Wathe grenade) rolls apart; else SparkStrength's blast alone
+    (centre + tick); else the call burst: the killer entity's network id + server tick (the Savior settle loop, Heavy
+    Artillery, Second Strike, Bandit and USEC shots; each Niko burst bullet is its own tick). The memo keeps an entry
+    for 2400 ticks after its last use (the NoellesRoles axe's 120 s life), drops it when the tick runs backwards and
+    evicts the least recently used beyond 512. A Charon's expired pardon replays its held kill up to 30 ticks later outside
+    any scope; that replay never rolls (`FerrymanPardonService.isReplayingHeldKill`): the held kill already passed this
+    hook un-deflected. Visor up + origin in the head-yaw front hemisphere (D3)
     never rolls. A ricochet only cancels the kill: the shooter's innocent-shot punishment and mood loss (decided before
     `killPlayer` in Wathe's receiver and USEC's `killAndPunish`) stay, kill-time effects (Conscience, owner Q4 "吃不到") do not
-    fire. TR survivor debuffs still apply, and a worn Rys-T rolls for them on its own (owner Q3 2026-11-06,
-    `BearRicochetService.deflectsAfterEffect` from `TrShellEffect`; presentation only if the kill roll of the same
-    blast did not already play it). Origin order (`BearRicochetRules.resolveOrigin`): an open
+    fire. TR survivor debuffs still apply; owner Q3 (2026-11-06) gave them a roll of their own, superseded 2026-11-13:
+    `BearRicochetService.deflectsAfterEffect` from `TrShellEffect` is another attempt of the same shell (the token
+    its kill was scoped with), so a deflected kill also deflects the debuff silently, a failed roll is not rolled
+    again, and a survivor no kill attempt of that shell reached gets the shell's one roll there. Origin order (`BearRicochetRules.resolveOrigin`): an open
     `RangedOriginScope` (its unknown scope stays unknown, `isOpen()` added for this), else for blasts SparkStrength's
     `AttackOriginScope.currentBlast()` by reflection (`SparkStrengthBlastOrigin`, fail = unknown), else for direct
     fire the killer's eye; unknown or within 0.3 blocks of the wearer is "not front". Scopes are pushed only where
@@ -2229,7 +2418,7 @@ Current build baseline:
     the support fist stays ≈0.8 block short of the vertical foregrip, which no vanilla `ArmPose` reaches),
     `SmokeRoundEntityRenderer` (`ProjectileModels`, scale 0.6; launch hide = vanilla's age < 2 within 3.5 blocks, but
     measured camera to the interpolated round like the Ninja hook head, since a 3.8 b/t round leaves vanilla's
-    feet-to-tick-position sphere on its first tick), `M32A1IconSwapModel` (2-D icon in GUI/ground/frames).
+    feet-to-tick-position sphere on its first tick), `InventoryIconSwapModel` (2-D icon in GUI/ground/frames, shared with USEC).
   - Headset slot (WP4, E1, design A; `headset/`): `HeadsetSlot` is a real slot that
     `mixin/bear/HeadsetPlayerScreenHandlerMixin` appends to every `PlayerScreenHandler` on both sides (handler index
     46, after vanilla 0..45), backed by `HeadsetInventory` (a live one-stack view of `HeadsetSlots`, not a
@@ -2420,7 +2609,7 @@ Current build baseline:
     `item/usec_magazine_loaded` (brass round on top) once it holds a round. `UsecRifleModels` registers a
     ModelLoadingPlugin (Vendetta knife precedent) that wraps the top-level `sparkwitch:usec_rifle#inventory` model and
     the three override targets (`item/usec_rifle_no_mag`, `item/usec_rifle_suppressed`,
-    `item/usec_rifle_suppressed_no_mag`) in `UsecRifleIconSwapModel`.
+    `item/usec_rifle_suppressed_no_mag`) in the shared `client/render/model/InventoryIconSwapModel`.
     - GUI, ground and item frames draw the 2-D `item/usec_rifle_icon` / `item/usec_rifle_suppressed_icon`; every held
       context draws the 3-D AXMC element model.
     - The 3-D model (owner, 2026-10-08: "more faithful to the AXMC, and to a 1–6× scope") is the AXMC .338 LM with a
@@ -2663,80 +2852,180 @@ Current build baseline:
     The 1×–6× variable zoom (2026-10-08, same machine, vanilla, vsync off, a hill-top demo-world view, two 10 s windows
     each, other builds running) costs nothing extra at 1×: PiP 1× 106/111, PiP 6× 91/99, Full-Screen Zoom 1× 156/155,
     6× 151/163 FPS.
-- `roles/civilian/medium/`: the Medium (`sparkwitch:medium`, 通灵师, ghost-fire teal `0x54E0B8`), contributed in
-  PR #209 and fixed in review (owner decisions 2026-11-10); every number and the death-tier maths live in
-  `MediumRules`. Client in `client/medium/`. No mixins.
-  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
-    no appearance condition) registered after the Specter, right before the Insider, and guessed in the civilian block
+- `roles/civilian/medium/`: the Medium (`sparkwitch:medium`, 通灵师, ghost-fire teal `0x54E0B8`), contributed in PR #209
+  and fixed in review (owner decisions 2026-11-10); 幽灵的加护 and the inventory 招魂 follow the owner decisions of
+  2026-11-13. Every number and the death-tier maths live in `MediumRules`. Client in `client/medium/`; one client mixin,
+  `client/mixin/medium/MediumHauntInventoryScreenMixin`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock, no
+    appearance condition) registered after the Specter, right before the Insider, and guessed in the civilian block
     right after BEAR. Drawn by Wathe's civilian pass, never a police variant or slot; no witch skill (not in
-    `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel; in neither Black Raven disguise list
-    (never claimable). `SparkWitchRoles` exposes `MEDIUM_ID` and `medium()`. The letter and title text still fall back
-    to the Wathe civilian wording.
-  - Hubs: `MediumFeatureService` in `SparkWitchEvents` (economy, 通灵, 招魂, in that order) and
-    `client/medium/MediumClientModule` in `SparkWitchClient`, both after the BEAR hub and before USEC, which stays
-    last. Payload types and server receivers are in `SparkWitchPackets`.
-  - State: `MediumPlayerComponent` (`sparkwitch:medium`, owner-synced, `NEVER_COPY`, in the CCA list before the
-    Charon's three: 通灵 cooldown and the 招魂-bound targets in binding order; cleared on death unless SparkTraits Last Stand intercepted
-    it, on reset, round end and role change; an alive spectator, swallowed or inside a Rift gate, keeps it and the
-    cooldown keeps counting) and the world `MediumSeanceComponent` (`sparkwitch:medium_seance`, the
-    world component before the Charon's Soul Moment: the one live vote window). The window syncs per recipient: the question goes only to the voters
-    (`MediumRules.mayVote`) and to the caster; another Medium gets the countdown and the window serial (`getWindowId`,
-    real serials start at 1); every other client receives no packet at all (`shouldSyncWith`; a recipient that stops
-    being informed gets one resetting packet), and the caster's identity is never synced. Votes and the frozen bindings are server-only and never persisted.
+    `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel (招魂 is a role-owned drawer on the
+    inventory screen, not that panel); in neither Black Raven disguise list (never claimable). `SparkWitchRoles` exposes
+    `MEDIUM_ID` and `medium()`. The letter and title text still fall back to the Wathe civilian wording.
+  - Hubs: `MediumFeatureService` in `SparkWitchEvents` (economy, 通灵, 幽灵的加护, 招魂, in that order:
+    `MediumEconomyService`, `MediumSkillService`, `MediumBlessingService`, `MediumSecondSkillService`) and
+    `client/medium/MediumClientModule` in `SparkWitchClient`, both after the BEAR hub and before USEC, which stays last.
+    Payload types and server receivers are in `SparkWitchPackets`: C2S `use_medium_skill`, `use_medium_blessing`,
+    `submit_medium_seance`, `submit_medium_haunt_target` and `submit_medium_vote`; S2C `open_medium_seance_input` and
+    `medium_seance_result`. There is no 招魂 key or menu payload. `submit_medium_vote` carries a choice index and
+    `medium_seance_result` and both component sync packets carry the blessing fields, so client and server jars must
+    match.
+  - State: `MediumPlayerComponent` (`sparkwitch:medium`, owner-synced, `NEVER_COPY`, in the CCA list before the Charon's
+    three: the 通灵 cooldown, the 加护 cooldown, the 招魂-bound targets in binding order and the corpse-sight set, i.e.
+    the entity UUIDs of the corpses the 尸体透视 blessing outlines, unioned over repeated grants; NBT keys
+    `SeanceCooldownTicks`, `BlessingCooldownTicks`, `BoundTargets`, `CorpseSight`; the owner packet is those four in
+    that order, sent on every write and once per second while a cooldown runs, and the client counts both cooldowns down
+    locally; `assignForRole` sets the opening cooldowns, which hold until the round is running; cleared on death unless
+    SparkTraits Last Stand intercepted it, on reset, round end and role change; an alive spectator, swallowed or inside
+    a Rift gate, keeps it and both cooldowns keep counting) and the world `MediumSeanceComponent`
+    (`sparkwitch:medium_seance`, the world component before the Charon's Soul Moment: the one live vote window, of
+    either `MediumWindowKind`, `QUESTION` for 通灵 or `BLESSING` for 加护, with its serial, question, disabled-blessing
+    mask and caster). The window syncs per recipient, on start, on end and once per second: the content (the question,
+    or a blessing window's disabled mask) goes only to the voters (`MediumRules.mayVote`) and to the caster
+    (`isRevealed()` on their clients); another Medium gets the countdown, the window serial (`getWindowId`, real serials
+    start at 1) and the kind; every other client receives no packet at all (`shouldSyncWith`; a recipient that stops
+    being informed gets one resetting packet), and the caster's identity is never synced. Votes (voter to choice index,
+    in casting order) and the frozen bindings are server-only and never persisted. The `MediumWindowKind` and
+    `MediumBlessing` ordinals are the wire, NBT and replay indices (`SPEED` 0, `SHIELD` 1, `CORPSE_SIGHT` 2, `SANITY` 3;
+    new entries only at the end).
   - Coins (`MediumEconomyService`, the USEC/Accountant task-pay model): balance overwritten with 0 for every living
     final Medium in its own `ON_FINISH_INITIALIZE` phase after the default one, +50 per completed task through
     `addToBalance` (never for a SparkTraits Impostor or an unknown answer, `SparkTraitsTaskIncomeBridge`), no passive
     income; `CanSeeMoney` ALLOW for a living Medium.
-  - Death tier: `tier = floor(deaths / max(1, roster / 6))` over Wathe's roster and dead set, read live. It only
-    discounts 通灵 (300 − 50 per tier, floor 0) and shortens the 通灵 cooldown a use starts (60 s − 10 s per tier,
-    floor 0; the 180 s opening cooldown is tier 0). 招魂 is a flat 50 with no cooldown.
-  - Caster gate (`MediumSkillService.mayUse`, the Specter/Dominator `mayCast` set, shared by both skills and both paid
-    confirmations): ACTIVE round, raw role, alive, not spectating/creative, not swallowed, not held by a Ninja grapple,
-    not silenced, not SparkTraits role-skill blocked; each entry then checks `GrandWitchFearService
-    .denyRoleSkillIfFeared` last. The four caster ids (`use_medium_skill`, `submit_medium_seance`,
-    `use_medium_second_skill`, `submit_medium_haunt_target`) are on the Grand Witch Fear, Rift occupant, Control
-    Expert stun and Seeker remote lists; only the two 通灵 ids are on the Knight duel lock (skill-key-2 rule).
-    `submit_medium_vote` is deliberately on none of them: only a dead round member may send it and its handler checks
-    that itself.
-  - 通灵 (`MediumSkillService`, G): the empty `use_medium_skill` makes the server send `open_medium_seance_input` with
-    the live price; nothing is charged. The paid act is `submit_medium_seance` (question ≤ 20 code points, formatting
-    codes stripped, `MediumRules.sanitizeQuestion`), which re-checks every gate, the cooldown, the price and that no
-    window is live, then charges, starts the cooldown, opens the 20 s world window with the caster's bindings frozen
-    and records `sparkwitch:medium_seance_skill` (the question is in the replay line). A 通灵 with nobody dead still
-    charges and returns "no response" (owner 2026-11-10: kept; a refusal would tell the Medium for free whether
-    anyone has died).
-  - Vote (owner 2026-11-10: a GUI, not chat): a dead round member (`MediumRules.mayVote`: running round, has a role,
-    in Wathe's dead set, not a Wraith, restricted or promoted (owner 2026-11-10: a Wraith is back on the train and
-    keeps the ability key for its own play), and not held by a SparkTraits Last Stand) answers with `submit_medium_vote` (window serial + answer,
-    `MediumSkillService.vote`; a serial that is not the live window's is dropped); each voter's latest answer counts,
-    and a voter no longer in the dead set at the tally is dropped. At window end `onSeanceEnded` weighs a bound voter 3 (bindings frozen at the start plus any bought during
-    the window), breaks a tie with the last vote cast, and sends the caster `medium_seance_result`: the question and
-    the answer always, the tie note and each bound dead voter's own answer only when the round's deaths are strictly
-    over half (the server omits them otherwise). The window runs its full length even if the Medium dies; an offline
-    caster gets nothing.
-  - 招魂 (`MediumSecondSkillService`, Role Skill 2): `use_medium_second_skill` opens the menu of every other online
-    round member in the caster's world, alive or dead; the paid act is `submit_medium_haunt_target` (never the caster,
-    round member, online, not yet bound, gates and price re-checked). The target is never told; bindings last for the round and record
-    `sparkwitch:medium_haunt_skill`.
-  - Forced cooldown: store 22 `sparkwitch:medium_seance_skill` (see the store list below).
-  - Client (presentation only): `MediumHudRenderer` draws two bottom-right rows (通灵 above, 招魂 below;
-    `SaintHudLayoutRules` reserves two rows); `MediumSeanceScreen` is the question box and `MediumHauntScreen` the
-    target menu; both close when `MediumHudRenderer.isActiveMedium` turns false, and the two menu packets never
-    replace a screen that is already open. Vote: `MediumVoteClient` opens `MediumVoteScreen` (Harpy Express panel,
-    `MediumPaint`) once per window serial for a local voter, never over another open screen; a click on 是 / 否 sends
-    the vote and closes, Esc closes without answering, every other key is swallowed. While a voter has no screen
-    open, the shared ability key re-opens it (`MediumVoteClient.ownsAbilityKey`, the first branch of the ability-key
-    chain in `SparkWitchClient`) and `MediumSeanceHudRenderer` shows the question, the prompt or the remembered
-    answer, and the countdown. Result (owner 2026-11-10: a HUD card, never a vanilla title, so an admin `/title`
-    cannot collide with it): `MediumSeanceResultCard` draws the caster-only packet at the top centre for about 8 s,
-    then fades; it never takes the mouse, needs no living player, and draws only what the server sent.
+  - Death tier: `tier = floor(deaths / max(1, roster / 6))` over Wathe's roster and dead set, read live. Prices are
+    always read live: 通灵 300 − 50 per tier (floor 0), 加护 通灵's live price + 100 (`blessingPrice`, so never under
+    100), 招魂 a flat 50. Cooldowns (owner 2026-11-13: two timers): any paid 通灵 or 加护 starts both through the single
+    `MediumPlayerComponent.startCooldowns(tier)`, the tier read at that moment: 通灵 60 s − 10 s per tier (floor 0) and
+    加护 that + 120 s (so never under 120 s); a timer that is already longer is kept (only a force-raised one can be), so
+    a use of one skill never shortens the other's forced cooldown. The opening cooldowns are 180 s (通灵) and 300 s
+    (加护). 招魂 has no cooldown.
+  - Caster gate (`MediumSkillService.mayUse`, the Specter/Dominator `mayCast` set, shared by all three skills and their
+    paid acts): ACTIVE round, raw role, alive, not spectating/creative, not swallowed, not held by a Ninja grapple, not
+    silenced, not SparkTraits role-skill blocked; each entry then checks `GrandWitchFearService.denyRoleSkillIfFeared`
+    last (`deniedByFear`). The four caster ids (`use_medium_skill`, `submit_medium_seance`, `use_medium_blessing`,
+    `submit_medium_haunt_target`) are on the Grand Witch Fear, Rift occupant, Control Expert stun and Seeker remote
+    lists; only the two 通灵 ids are on the Knight duel lock (`use_medium_blessing` by the skill-key-2 rule;
+    `submit_medium_haunt_target` stays allowed there as an inventory-panel act). `submit_medium_vote` is deliberately on
+    none of them: only a dead round member may send it and its handler checks that itself. Companion lists:
+    SparkFactionAPI's opening safe-time list and SparkStrength's Taotie daze list deny the same four ids from the shared
+    SparkFactionAPI payload-policy table (its SAFE_TIME and DAZE columns); for `use_medium_blessing` that requires the
+    SparkFactionAPI build that carries the new table row.
+  - 通灵 Séance (`MediumSkillService`, shared ability key G): the empty `use_medium_skill` makes the server send
+    `open_medium_seance_input` with the live price (after the gate, no live window of either kind, the 通灵 cooldown,
+    the balance and Fear); nothing is charged. The paid act is `submit_medium_seance` (question ≤ 20 code points,
+    formatting codes stripped, `MediumRules.sanitizeQuestion`), which re-checks every gate, the cooldown, the price and
+    that no window is live, then charges, starts both cooldowns, opens the 20 s world window (kind `QUESTION`) with the
+    caster's bindings frozen and records `sparkwitch:medium_seance_skill` (the question is in the replay line). A 通灵
+    with nobody dead still charges and returns "no response" (owner 2026-11-10: kept; a refusal would tell the Medium
+    for free whether anyone has died).
+  - Vote (both window kinds; owner 2026-11-10: a GUI, not chat): a dead round member (`MediumRules.mayVote`: running
+    round, has a role, in Wathe's dead set, not a Wraith, restricted or promoted (owner 2026-11-10: a Wraith is back on
+    the train and keeps the ability key for its own play), and not held by a SparkTraits Last Stand) answers with
+    `submit_medium_vote` (window serial + choice index: `MediumRules.VOTE_NO` 0 / `VOTE_YES` 1 for a question, a
+    `MediumBlessing` index for a blessing; `MediumSkillService.vote`). A serial that is not the live window's is
+    dropped, and so is a choice the window does not offer (`MediumSeanceComponent.acceptsChoice`: out of range, or a
+    disabled blessing), which leaves an earlier vote untouched. Each voter's latest choice counts, and a voter no longer
+    in the dead set at the tally is dropped. At window end `onSeanceEnded` adds any binding bought during the window to
+    the frozen ones and dispatches by kind. `MediumTally.count` is the one count for both: a bound voter weighs 3, and
+    when several options share the highest total the last counted vote cast for one of those leaders decides (with two
+    options that is the last vote cast). A question ends in `onQuestionEnded`, which sends the caster
+    `medium_seance_result` (`kind`, `question`, `outcome`, `random`, `tie`, `boundAnswers`): the question and the answer
+    always, the tie note and each bound dead voter's own choice (binding order, at most 64) only when the round's deaths
+    are strictly over half (the server omits them otherwise). The window runs its full length even if the Medium dies or
+    changes role (`clear()` hands the bindings it paid for to its live window, `retainBoundTargets`); an offline caster
+    gets nothing.
+  - 幽灵的加护 Ghost's Blessing (`MediumBlessingService`, Role Skill 2, owner 2026-11-13): the empty
+    `use_medium_blessing` is the paid act itself (no input box, no menu). `use` checks the caster gate, no live window
+    of either kind, the 加护 cooldown and the price, Fear last, then charges, starts both cooldowns, opens the 20 s
+    world window in kind `BLESSING` with the bindings frozen and records `sparkwitch:medium_blessing_skill` (no extra
+    data). The disabled mask is decided once at window start and frozen in the window: `SANITY` is disabled when the
+    caster has no real sanity (`AbyssSuppression.hasRealSanity`, i.e. a SparkTraits Impostor; an unknown trait answer
+    fails closed), so the dead see it greyed and the server drops a vote for it (owner). The dead choose among the four
+    `MediumBlessing`s under the Vote rules above. `onWindowEnded` grants only to a caster who is online, still the
+    Medium and playing and alive; otherwise nothing is granted and nothing is sent. It grants the tally winner or, with
+    no counted vote, a random available blessing (owner; available means not disabled in this window, and `CORPSE_SIGHT`
+    only while a real corpse exists). The grant records a second `sparkwitch:medium_blessing_skill` entry (`blessing`
+    index, `random` flag) and sends `medium_seance_result` in kind `BLESSING`: the granted index
+    (`OUTCOME_BLESSING_NONE` −1 when nothing could be granted) and the `random` flag always, the tie note and the bound
+    dead voters' own picks only for a voted result with deaths strictly over half. Grants:
+    - `SPEED`: Speed I for 40 s (not ambient, no particles, icon shown).
+    - `SHIELD`: one NoellesRoles whiskey shield layer for the rest of the round (owner). The `ModEffects.WHISKEY_SHIELD`
+      stack is rebuilt by hand with amplifier + 1 and an infinite duration, because NoellesRoles'
+      `WhiskeyShieldEffect.addShieldLayer` keeps an existing stack's remaining time. The whole stack shares one
+      duration, so layers already there and any whiskey drunk later become round-long too; Wathe clears status effects
+      at the round edges.
+    - `CORPSE_SIGHT`: the entity UUIDs of the REAL corpses existing at the grant (`realCorpses`) join the owner-synced
+      corpse-sight set and stay outlined to the Medium alone until the component clears (owner: round-long, real corpses
+      only; corpses that appear later are not added, a removed corpse just stops resolving). A real corpse is a Wathe
+      `PlayerBodyEntity` in the caster's world whose owner is in Wathe's dead set (which drops any stand-in corpse of a
+      living player) and that is not a NoellesRoles-hidden body, a SparkTraits fake-death body, a Fiend or Hiro fake
+      corpse, a Charon feign corpse, a SparkStrength Partygoer corpse or a Magician decoy.
+    - `SANITY`: `PlayerMoodComponent.setMood(2.0)`; the setter's own clamp lands on the true maximum (1.0, or 1.25 under
+      SparkTraits Steady).
+  - 招魂 Haunt (`MediumSecondSkillService`; no key and no server menu, owner 2026-11-13: it lives in the inventory
+    screen): the client drawer builds the candidate list itself from the synced roster (`MediumRules.mayHaunt`: a round
+    member other than the caster, alive or dead). The only payload, and the paid act, is `submit_medium_haunt_target`,
+    fully re-validated because nothing the client sends is trusted: the caster gate, `mayHaunt`, not yet bound, target
+    online in the caster's world, the price, Fear last. The target is never told; bindings last for the round, weigh 3
+    in both window kinds and record `sparkwitch:medium_haunt_skill`.
+  - Forced cooldowns: stores 22 `sparkwitch:medium_seance_skill` and 29 `sparkwitch:medium_blessing_skill` (see the
+    store list below). Each writes its own timer alone, so a forced write never starts the other one.
+  - Client (presentation only; the 2026-11-13 screens follow a mock the owner approved and have not yet been seen in
+    game). `MediumClientModule` is the hub: the `open_medium_seance_input` receiver opens `MediumSeanceScreen`, the
+    question box, only on a confirmed SparkWitch server for a local Medium and never over an open screen (the box closes
+    when `MediumHudRenderer.isActiveMedium` turns false); the Role Skill 2 handler in `SecondaryAbilityRegistry` sends
+    the empty `use_medium_blessing` while no screen is open; it also registers the result receiver, the tick and HUD
+    callbacks and `MediumCorpseSightHighlights`.
+    - Corner HUD: `MediumHudRenderer` draws two bottom-right rows from the pure `MediumHudRules` (通灵 above with the
+      shared ability key, 加护 below with the Role Skill 2 key; `SaintHudLayoutRules` reserves two rows; both lift
+      together above the hotbar column at narrow widths through `FiendDashHudRules.rowY`, measured with 99 s). Each row
+      shows the first state that applies: its own window running (teal), its cooldown (grey), another live window (grey
+      `hud.sparkwitch.medium.window.busy`), short of coins (grey, price with the coin glyph, which the renderer appends
+      to the number, so neither `*.price` HUD key carries U+E781 itself), ready with its key (teal).
+      Active-blessing chips (9 px icons) sit left of the lower row: corpse sight while the synced set is not empty, the
+      shield while the local whiskey-shield effect is infinite, Speed with its seconds only for a Speed effect within
+      43 s of a granted-Speed result. 招魂 has no corner row.
+    - Vote: `MediumVoteClient` opens the window's screen once per window serial for a local voter (`canVote`: a revealed
+      live window and `MediumRules.mayVote`), never over another open screen: `MediumVoteScreen` for a question (Harpy
+      Express panel, `MediumPaint`; a click on 是 / 否 sends the vote and closes) or `MediumBlessingVoteScreen` for a
+      blessing (the same panel with 2x2 cards in blessing order from the pure `MediumBlessingVoteLayout`: icon, name and
+      the effect in at most two lines; a click on an offered card sends it and closes; a disabled card is a sunken,
+      padlocked slot that ignores the mouse and whose effect line is the reason
+      `screen.sparkwitch.medium.blessing.locked.impostor`, which names the Impostor trait). In both, Esc closes without
+      voting and every other key is swallowed; a screen closes itself when its window ends or is replaced or the player
+      may no longer vote. While a voter has no screen open, the shared ability key re-opens it
+      (`MediumVoteClient.ownsAbilityKey`, the first branch of the ability-key chain in `SparkWitchClient`) and
+      `MediumSeanceHudRenderer` shows the question or the blessing request, the prompt or the remembered choice, and the
+      countdown.
+    - Result (owner 2026-11-10: a HUD card, never a vanilla title, so an admin `/title` cannot collide with it):
+      `MediumResultCard` draws the caster-only packet of either kind at the top centre for about 8 s, then fades; it
+      never takes the mouse, needs no living player, and draws only what the server sent (a blessing result shows the
+      granted blessing with its icon and effect line, and says so when the server drew it at random). A granted Speed
+      also starts the Speed chip's timer.
+    - Corpse sight: `MediumCorpseSightHighlights` answers `GetInstinctHighlight` with an `always` result in the role
+      colour at `PRIORITY_DEFAULT + 40` (the Charon body-mark priority, below every `skip()`) for a `PlayerBodyEntity`
+      whose entity UUID is in the local active Medium's synced set, on a confirmed server and independent of the
+      instinct key; a NoellesRoles-hidden body stays hidden.
+    - 招魂 drawer: `MediumHauntInventoryScreenMixin` on Wathe's `LimitedInventoryScreen` (`init` TAIL attaches the
+      drawer, `render` HEAD calls `refresh()`; both pinned in `watheClientMixinContracts`) adds one `MediumHauntDrawer`
+      widget when the local raw synced role is the Medium. It is shown and active only for an active Medium
+      (`isActiveMedium`) in a running round, re-decided every frame. Candidates are the tab-list entries that pass
+      `mayHaunt`, sorted by name and then UUID, never filtered, ordered or tinted by death (leak guard); bound faces
+      stay listed, dimmed with the wisp badge, and inert. A click on a face only selects; the confirm button sends
+      `submit_medium_haunt_target` once and stays disabled until the binding syncs back or 2 s pass, so a double click
+      never pays twice. Every click inside the frame is consumed (only the left button acts) and the wheel turns pages.
+      Geometry and hit tests live in the pure `MediumHauntLayout`; the region is in the `client/armor/` rules below
+      (**Medium 招魂 drawer**).
   - Lang: `role`/`announcement` keys for `medium` and `sparkwitch.medium`, `hud.sparkwitch.medium.*`,
-    `screen.sparkwitch.medium.*`, and the two replay keys.
+    `screen.sparkwitch.medium.*` (`vote`, `blessing`, `seance`, `haunt`), the four `blessing.sparkwitch.medium.*` names
+    the replay line uses, and the four replay keys (`replay.skill.sparkwitch.medium_seance_skill`,
+    `replay.skill.sparkwitch.medium_haunt_skill`, `replay.skill.sparkwitch.medium_blessing_skill` and
+    `replay.skill.sparkwitch.medium_blessing_skill.granted`).
 - `roles/civilian/hanna/`: 远野汉娜 Tono Hanna (`sparkwitch:hanna`, color `0xFFAF9F`), contributed in PR #212 and
   rebuilt in review on the Noa model (owner decisions 2026-11-11); every number lives in `HannaRules`.
   - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
     no appearance condition) registered after the Lost Soul and before the Insider (which stays last; only 橘雪莉,
-    PR #206, and 二阶堂希罗 sit between them), and guessed in the civilian block right after the Medium (橘雪莉 follows her). Drawn by Wathe's civilian pass, never a police variant or slot.
+    PR #206, 二阶堂希罗 and 泽渡可可 sit between them), and guessed in the civilian block right after the Medium (橘雪莉 follows her). Drawn by Wathe's civilian pass, never a police variant or slot.
     `SparkWitchRoles` exposes `HANNA_ID` and `hanna()`.
   - Mana without witch skills: she is a mana role in `WitchManaRules` (`isManaRole`), with `initialMana` 40 granted by
     `WitchManaService.assignForRole` right after `initializeMana()`, `taskReward` 20, no natural regeneration
@@ -2758,7 +3047,7 @@ Current build baseline:
     the float, restarts the cooldown, removes the modifier and starts 10 s of penalty (-5% sanity per second through
     `PlayerMoodComponent.setMood`, with an action-bar countdown).
   - State: `HannaComponent` (`sparkwitch:hanna_player`, `NEVER_COPY`, appended in the CCA list after the
-    Charon's; `sparkwitch:sherry` and 二阶堂希罗's two follow) keeps four absolute world ticks (float ready, float end, penalty end, handkerchief end) in NBT.
+    Charon's; `sparkwitch:sherry`, 二阶堂希罗's two and 泽渡可可's follow) keeps four absolute world ticks (float ready, float end, penalty end, handkerchief end) in NBT.
     Everyone receives only the float's remaining ticks (instinct is drawn per client); the owner also gets the ready
     and penalty ticks. The world tick skips `idle()` players, re-applies the modifier after a relog, and ends a float
     (no penalty) or a penalty when she is no longer a living Hanna in an ACTIVE round. `RoleAssigned` clears the
@@ -2967,6 +3256,18 @@ Current build baseline:
     ComTac); no head-row role owns such an item. The same seven seams hit-test, focus, shift-click (one `SWAP` between
     the hotbar and slot 46), guard the empty-cursor pick-up and return an accepted cursor item on close, exactly like
     an armor slot; the server checks `HeadsetSlot.canInsert`.
+  - **Medium 招魂 drawer** (`client/medium/MediumHauntDrawer`, pure geometry in `MediumHauntLayout`; owner
+    2026-11-13). Not part of this module, listed here because it occupies the head-row band under the inventory
+    block, the band the NoellesRoles, Magician and Witch Maiden head rows use; the Medium owns no head row and no shop
+    row. The frame is docked 6 px under the hotbar strip (top at `Y+38`) and centred: at least 236 px wide, wider
+    when its columns need it (20 px face tiles on a 22 px pitch, 8 px inset), never past an 8 px screen margin;
+    `48 + 22 * rows` px tall with 1 to 4 rows (as many as fit above a 6 px bottom gap, fewer preferred), paged when the
+    candidates do not fit. While the headset cell shows, the frame starts at least 4 px right of it (`X-18`). It is
+    one visible, active `ClickableWidget` (the frame plus its 1 px shadow) that `MediumHauntInventoryScreenMixin` adds
+    at `init` TAIL only when the local raw role is the Medium, shown only for an active Medium in a running round
+    (re-decided at `render` HEAD). The info card routes around it as a visible widget child, and it consumes every
+    click inside its frame. For the Medium this band is taken; a role that owns a head row cannot also dock a drawer
+    here.
 - `PoliceSlotAssignmentService` (`roles/civilian/judge/`) with `mixin/PoliceSlotAssignmentMixin`
   and `mixin/PoliceRoleHistoryMixin`: police-slot ownership. Judge, Emma, the Control Expert, the
   Seeker, USEC and the Black Raven share the Vigilante slots uniformly through `VARIANT_IDS`; no variant owns a
@@ -2995,12 +3296,10 @@ Current build baseline:
 - `component/`: CCA ids, stored fields, sync/NBT codecs, and narrow state
   operations used by the owning runtime Modules.
 - `compat/`: optional or version-sensitive cross-mod Adapters.
-- `compat/SparkFactionSecondRowCompat`: the two-row limited inventory gate. With SparkFactionAPI
-  0.1.5.13+ (read once from the local mod version; SparkFactionAPI requires client and server to
-  match exactly; unknown versions fail closed), Wathe's in-round inventory also shows main slots
-  27-35 directly above the hotbar, and `getEmptySlot` fills 0-8, 27-35, then 9-26. With the bundled
-  floor every caller keeps its old behavior (the Abyss Listener's vacated-slot reuse below is new on
-  either version). Callers: bound-item displacement (Blind cane, Time Stealer Clock and Gift Watch, Abyss Listener
+- `compat/SparkFactionSecondRowCompat`: the two-row limited inventory gate. Every admitted
+  SparkFactionAPI (floor 2.0.0; the row first shipped in 0.1.5.13) shows it, so `isShown()` is always
+  true and the old one-row version detection is gone: Wathe's in-round inventory also shows main slots
+  27-35 directly above the hotbar, and `getEmptySlot` fills 0-8, 27-35, then 9-26. Callers: bound-item displacement (Blind cane, Time Stealer Clock and Gift Watch, Abyss Listener
   gun: a full-hotbar re-grant moves the displaced item into the slot a removed stray vacated, but
   never into hidden storage while the shown row has room), Potion Gunner launcher placement and
   keeper move, shell returns and surfacing, the Seeker's swallowed-car return, USEC round purchases
@@ -3153,11 +3452,13 @@ SparkFactionAPI `0.1.6.0` reads it while Wathe's `Faction` class initializes and
 id), so they are real Wathe factions rather than the old `NEUTRAL` disguise. `SparkWitchRoleRegistry.registerFactions`
 builds the witch faction with `neutralAligned(true)` (D3: witch roles keep other mods' neutral perks through
 `SparkFactionApi.isNeutralAligned`) and `dealtInWatheNeutralPool(false)` (D1: no Wathe pass draws them and they take no
-neutral slot; `WitchRoleAssignmentService` alone deals the Grand Witch at 18+). It then appends Team Jiahao
+neutral slot; only the third-faction draw below deals them). It then appends Team Jiahao
 (`sparkwitch:jiahao`): `InsiderRules.TEAM_JIAHAO_COLOR`, prefix `faction.sparkwitch.jiahao`, capabilities copied from
 SparkFactionAPI's built-in `wathe:neutral`, no win condition (Jiahao wins stay on NoellesRoles' Corrupt Cop branch),
-`neutralAligned(true)` and `dealtInWatheNeutralPool(true)` (D6: Wathe's neutral pass still deals the Corrupt Cop with
-today's odds and slot). The Insider registers under it and the Corrupt Cop is bound to it (see the Insider rules).
+`neutralAligned(true)` and, since 2026-11-16, `dealtInWatheNeutralPool(false)` (owner overturned D6: Wathe's neutral pass
+no longer deals the Corrupt Cop; only the third-faction draw does, and SparkFactionAPI refuses a third-faction lineup on
+a faction still dealt in the neutral pool). The Insider registers under it and the Corrupt Cop is bound to it (see the
+Insider rules).
 At runtime witch roles read `Faction.WITCH`, the Insider and the Corrupt Cop `Faction.JIAHAO`, and `isNeutral()` is
 false for all of them, so Wathe's rotation history counts them as civilian rounds (D4); wins stay
 `WinStatus.NEUTRAL`; the Murderous Witch, Fiend, Stowaway and Schrödinger's Cat stay Wathe neutrals and the Apprentice
@@ -3170,6 +3471,31 @@ refuses it as before (neither ever becomes a Wraith), and SparkWitch match-recor
 generic letter keys. Unit tests run without mixins: the local `testsupport/NativeWatheFactionsTestInstaller`
 (auto-detected Jupiter extension) installs this declaration through SparkFactionAPI's production
 `NativeWatheFactions.install`, and `Role#getFaction()` there stays Wathe's flag-based value.
+
+Third-faction draw (owner 2026-11-16). SparkFactionAPI owns the `third_faction` category (`FactionCategory.THIRD_FACTION`,
+`SparkFactionApi.isThirdFaction` / `thirdFactionIds`): every faction outside Wathe's civilian, neutral and killer forms,
+today the witch faction and Team Jiahao (not the Murderous Witch, who stays a Wathe `NEUTRAL`). Before Wathe's neutral
+pass it draws at most one of them per round, 50/50 between the drawable ones, only from
+`SparkFactionApi.thirdFactionMinPlayers` players (default 18), with a member cap of `floor(players / dividend)`
+(`thirdFactionDividend`, default 10), and deals the roles a SparkWitch lineup returns; forced members of that faction are
+always kept, passed in as `presentMembers`, and count toward the cap (`remainingSlots()` = cap minus present).
+`SparkWitchRoleRegistry.registerThirdFactionLineups` (after factions, the Corrupt Cop binding and all roles) registers two
+pure lineups by method reference and fails closed on an older SparkFactionAPI jar (`LinkageError`: warning, no third
+faction dealt):
+- Witch (`registry/WitchThirdFactionLineup`, rules in `WitchThirdFactionLineupRules`): without a Grand Witch present,
+  one Grand Witch (empty, so undrawable, when she is disabled) then Bewitched on every remaining slot while the
+  Bewitched is enabled; with a forced Grand Witch, Bewitched only. Her appearance condition is always false and is not
+  consulted: the draw's own minimum replaced `minPlayers(18)`.
+- Team Jiahao (`roles/neutral/insider/JiahaoThirdFactionLineup`, rules in `JiahaoThirdFactionLineupRules`): the Corrupt
+  Cop, found by exact id in `WatheRoles.ROLES` (empty without NoellesRoles or when it is disabled), plus one Insider
+  when a second slot is free and the Insider is enabled; a forced member gets the missing partner; never more than two
+  members (`MAX_MEMBERS`), and no killer-count condition.
+Admins set the minimum with `/sparkwitch:thirdFactionMinRequirement <players>` (`command/ThirdFactionSettingsCommand`,
+permission `sparkwitch.command.thirdfactionminrequirement`, op level 2, `0` = no minimum; it writes
+`SparkFactionApi.setThirdFactionMinPlayers` and applies next round, like the Wraith settings) and the dividend with
+SparkFactionAPI's `/wathe:gameSettings set roleDividend third_faction <x>`; SparkWitch registers no dividend command.
+Tests: `registry/WitchThirdFactionLineupRulesTest`, `roles/neutral/insider/JiahaoThirdFactionLineupRulesTest`,
+`registry/ThirdFactionLineupContractTest`, `command/ThirdFactionSettingsCommandSourceTest`.
 
 `WitchPlayerComponent.serverTick()` preserves this order:
 
@@ -3230,11 +3556,11 @@ the Raven on top of the host's own alive test:
   its own `mixin/blackraven/NoellesRolesPathogenBlackRavenSettlementMixin`, which skips only the Raven (the dormant
   Fiend keeps the old Pathogen behaviour). Ordinals are pinned by `BlackRavenSettlementContractTest`.
 - Wathe's civilian-death time bonus: `mixin/blackraven/GameFunctionsBlackRavenTimeBonusMixin`.
-- Other mods: `compat/SparkFactionSettlementExclusionCompat` registers `sparkwitch:black_raven` at init into
-  SparkFactionAPI's `api.settlement.SettlementExclusions.registerRole(Identifier)` (0.1.5.16+) by reflection.
-  SparkWitch compiles against an older floor, so an older SparkFactionAPI only logs at debug and those mods keep
-  counting the Raven. SparkTraits (Last Stand, Final Moment, its own win listener) and SparkStrength (Shadow Jester
-  showdown) read that registry; SparkWitch's own seams never do.
+- Other mods: `SparkWitchRoleRegistry` registers `sparkwitch:black_raven` at init directly into SparkFactionAPI's
+  `api.settlement.SettlementExclusions.registerRole(Identifier)` (present in every admitted SparkFactionAPI).
+  SparkTraits (Last Stand, Final Moment, its own win listener) and SparkStrength (Shadow Jester
+  showdown) read that registry; SparkWitch's own seams never do. The same registry also holds the Charon as a
+  conditional role (`registerConditionalRole`, see the Charon's settlement exclusion).
 
 Stowaway rules (owner spec 2026-11-02, PR #178). Profile: Wathe-native neutral, FAKE mood with tasks (tasks pay
 nothing), infinite stamina (`maxSprintTime(-1)`), no round clock, no appearance condition; registered right before
@@ -3414,7 +3740,8 @@ never throws back into `PlayerShopComponent.tryBuy`. Time Stamps (`sparkwitch:ti
 64) are the role's physical currency; no component holds a stamp count. The balance is the stamps in
 the holder's own `PlayerInventory` plus the open handler's cursor: the server computes it for
 purchases, and the owner's client computes the same value from its synced inventory for the price
-label and HUD. The Clock and stamps are bound items: they share `TimeStealerInventoryRules` and the
+label and HUD. The Clock and stamps are bound items: they share `TimeStealerInventoryRules` (whose
+click and world-target checks are the strict `item/BoundItemRules` policy) and the
 three item-generic mixins in `mixin/timestealer/`, never become item entities, never leave the
 holder's own inventory slots, never death-drop, and are hidden from other living players' held-item
 view through `NoellesHiddenEquipment`; beyond the Bell Ringer's rules they also refuse shift-click
@@ -3479,15 +3806,36 @@ keyed instinct only through `client/mixin/controlexpert/ControlExpertInstinctGat
 Fabric runs `ServerPlayNetworkAddon#receive` on the Netty thread (vanilla `onCustomPayload` has no
 `forceMainThread`); only the Runnable it hands to `MinecraftServer#execute` runs on the server thread. Every
 SparkWitch payload guard there (`mixin/ServerPlayNetworkAddonFearMixin` for Vendetta targets and Fear, plus the stun,
-Seeker session, Rift session and crow-body guards) is a `@WrapOperation` on that single call, never an `@Inject`. On
+Seeker session, Rift session, crow-body, hypnosis, Knight duel, Hiro feign and Kidnapper control guards) is a
+`@WrapOperation` on that single call, never an `@Inject`. On
 Netty it only picks payloads by id from immutable sets; it reads the player, world and components inside the
 scheduled Runnable, atomically with the handler (2026-10-22). The Fear/Vendetta wrapper has `priority = 900`: it is
 applied first, so it sits innermost and judges Vendetta (silent) and then Fear before any other guard.
 
+Those id sets (stun `ControlExpertStunRules.BLOCKED_PAYLOADS`, Seeker `SeekerRemoteRules.BLOCKED_WHILE_VIEWING`, Rift
+`RiftSessionRules.BLOCKED_WHILE_INSIDE`, Fear's role-skill and silent sets in `GrandWitchFearService`, the Knight's two
+lists in `KnightDuelSkillLock`, hypnosis extra and silent sets in `NatsumeHypnosisGuards`) are aliases of
+`payloadpolicy/GeneratedPayloadPolicy`, generated from SparkFactionAPI's `config/payload-policy/actions.tsv`: one row per
+C2S payload id, an explicit allow/deny per lock, reasons in its note column (2026-11-13). Never list ids by hand: edit
+that table and run `python3 <SparkFactionAPI>/tools/payload_policy.py generate --repo <SparkWitch> --mod witch`;
+`check` with the same arguments fails on a stale generated file or on a registered C2S payload without a row.
+`VendettaTargetingPacketGuard` keeps its typed target check; the table's VENDETTA_TARGET column records its five ids.
+这些 id 集合（眩晕、搜寻者、裂隙、恐惧的技能与静默集合、骑士的两份名单、催眠的额外与静默集合）都是
+`payloadpolicy/GeneratedPayloadPolicy` 的别名，由 SparkFactionAPI 的 `config/payload-policy/actions.tsv` 生成：每个 C2S
+数据包 id 一行，每种锁一格显式的 allow/deny，理由写在 note 列。不要手写 id：修改该表后运行上面的 `generate` 命令；
+同样参数的 `check` 会在生成文件过期或已注册的 C2S 数据包缺少表行时失败。`VendettaTargetingPacketGuard` 保留自己的
+类型化目标判定，表中 VENDETTA_TARGET 列记录它判定的五个 id。
+
 Role HUD panels draw through `client/hud/RoleHudDispatcher` (2026-10-22), behind two default-priority seams:
-`client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, still drawn under F1: Curser, Guardian Angel,
-Orthopedist, Saint, Vendetta, Kidnapper control screen, Saboteur) and `client/mixin/RoleHudMainHudTailMixin`
-(`renderMainHud` TAIL, hidden by F1: Witch mana with the tarot snapshot and slip, Witch skill, Magician, Black Raven).
+`client/mixin/RoleHudRenderTailMixin` (`InGameHud.render` TAIL, which still runs under F1: Curser, Guardian Angel,
+Orthopedist, Savior, Saint, Vendetta, Kidnapper control screen, Natsume, Saboteur) and
+`client/mixin/RoleHudMainHudTailMixin` (`renderMainHud` TAIL, hidden by F1: Witch mana with the tarot snapshot and
+slip, Witch skill, Magician, Black Raven). Since 2026-11-13 every text layer of the first seam returns on vanilla
+`options.hudHidden` itself (`RoleHudDispatcher.hiddenByF1`; Savior and Natsume check it in their own gate); only the
+Kidnapper control screen stays under F1, because its black fill is the drug's blindness. `HudRenderCallback` HUDs
+(`HunterTrapDismantleHud`, the Blind view fallback hint in `BlindRenderWiring`, `BlackRavenCrowBoundaryOverlay`, the
+corner lines) also fire under F1 and check `hudHidden` themselves; full-screen gameplay masks that F1 must not peel
+off (Holy Flash, Rys-T visor, the Seeker remote-view panels) keep drawing.
 The layer order is the draw order and matches the old per-role mixins' config order, so the group keeps its slot
 relative to Fabric's `HudRenderCallback` and Wathe's own TAIL injects. Each layer owns its gate (the Vendetta,
 Kidnapper and Magician layers have no confirmed-server check, as before); a new panel adds a layer, not another
@@ -3508,7 +3856,10 @@ already carries 3 or more (main, hotbar, offhand, crafting grid and cursor stack
 `ShopUtils.canAccessShop` true for the Saint, `SaintEconomyService` answers `CanSeeMoney` DENY for a Saint that
 is not playing and alive, keeping dead and STARTING-phase coin visibility (and SparkTraits money-trait
 eligibility) unchanged. Throws, bursts and flashes exist only while Wathe's status is ACTIVE
-(`HolyFlashRules.isActivePhase`), so the ringing never spills into STOPPING. Any participant may throw one. The role-owned `HolyFlashEntity` (never Wathe's
+(`HolyFlashRules.isActivePhase`), so the ringing never spills into STOPPING. Any participant may throw one; the
+throw's `recordItemUse` shows as `replay.item_use.sparkwitch.holy_flash` through `HolyFlashReplayFormatter`
+(registered from `HolyFlashFeatureService.register()` since 2026-11-13; before that Wathe dropped it).
+The role-owned `HolyFlashEntity` (never Wathe's
 grenade, so no grenade hook fires) bursts on its first block or entity hit with sound and particles
 but no damage. It flashes every participant whose hitbox is within 6 blocks of the burst (nearest point
 of the body, `HolyFlashTargeting.bodyDistance`) and whose eyes have line of sight to it; facing away keeps
@@ -3811,12 +4162,10 @@ The Insider (`sparkwitch:insider`) has no component; every rule reads synced rol
 Jiahao (`SparkWitchFactions.JIAHAO`, native Wathe constant JIAHAO, no explicit `nativeWatheFaction` bucket), and
 `SparkWitchRoleRegistry.bindCorruptCopToTeamJiahao` binds `noellesroles:corrupt_cop` there with SparkFactionAPI
 `bindRoleFaction` during common init on both sides, right after the factions register (owner D2: every round). Wathe never draws it
-(`appearanceCondition(context -> false)`). `MurderGameModeMixin` calls, in order, the Hunter→Orthopedist
-pairing, the Witch assignment, then `InsiderAssignmentService`, all before Wathe's civilian pass: when a
-Corrupt Cop (exact id `noellesroles:corrupt_cop`) was drawn, no Insider exists, the role is enabled, and at
-least `InsiderRules.MIN_KILLERS` killer-team roles were assigned (`canUseKiller`, forced killers included,
-later SparkTraits Conscience compensation not counted), one uniformly random unassigned player becomes the
-Insider, taking a civilian seat rather than a neutral slot. A forced Insider is never demoted or re-paired.
+(`appearanceCondition(context -> false)`), and since 2026-11-16 no Wathe pass draws the Corrupt Cop either: both come
+only from the Team Jiahao third-faction lineup (see "Third-faction draw"; the old `InsiderAssignmentService`,
+`InsiderPairingRules` and the 4+ killers rule `InsiderRules.MIN_KILLERS` are gone). A forced Insider is never demoted
+or re-paired.
 At `ON_FINISH_INITIALIZE` each living Insider receives one NoellesRoles neutral master key (`offerOrDrop`, so a
 full inventory drops it at its feet), never removed; SparkWitch's own `DoorInteraction` listener lets an Insider
 holding it open train doors and key-locked doors (ALLOW, then a 200-tick key cooldown; DENY while cooling;
@@ -4175,10 +4524,11 @@ Bewitched. These rules are `HunterRules.isInstinctTrapViewer` (`BEWITCHED_ROLE_I
 Bewitched. These never include variants merely for being variants, nor the Bewitched: `WitchManaRules.isManaRole`
 (the Abyss Listener and the Riftwalker are added by exact role) and `SparkWitchRoleRegistry.isRegisteredSparkWitchRole`
 (the Abyss Listener and the Riftwalker are added by exact role, each for its shared skill).
-`WitchManaRules.isManaRole` also holds two roles outside the witch faction, each by exact role: the Witch Maiden
-(crimson skull mana) and the civilian Tono Hanna (PR #212), who starts at `initialMana` 40, gains 20 per task and is
-the only mana role with `canRegenerateNaturally` false; neither is in `isRegisteredSparkWitchRole` for it, and the
-other mana roles' numbers are unchanged.
+`WitchManaRules.isManaRole` also holds roles outside the witch faction, each by exact role: the Witch Maiden
+(crimson skull mana), the civilian Tono Hanna (PR #212), who starts at `initialMana` 40, gains 20 per task and is
+the only mana role with `canRegenerateNaturally` false, and the neutral 泽渡可可 (PR #223), who shares the Murderous
+Witch's natural cap (150) and default 40-tick interval with no task or kill reward; none is in
+`isRegisteredSparkWitchRole` for it, and the other mana roles' numbers are unchanged.
 
 Witch task money (owner request 2026-10-04, lowered from 50 to 25 on 2026-10-07): `WitchEconomyService.onTaskComplete`
 pays `WitchFactionRules.WITCH_TASK_MONEY_REWARD` (+25) per completed task to the Grand Witch and every accomplice (plain or
@@ -4248,13 +4598,12 @@ tasks it is promoted to an accomplice role through the pool above.
   special role, so `/wathe:forceRole` can force it. It is not in `isRegisteredSparkWitchRole` (it owns no skill),
   never shows the witch skill panel, and stays out of the Black Raven disguise pool like the Accomplice (not
   civilian-base).
-- **Dealing (D1).** `WitchRoleAssignmentService.assignAfterNeutralsBeforeCivilians`, right after the Grand Witch is
-  dealt: when the round then has at least one Grand Witch (dealt or forced; no Wathe pass draws witch roles since the
-  native WITCH faction, 2026-11-04) and the Bewitched is
-  enabled, it deals `WitchRoleCounts.bewitched(n)` minus the already forced Bewitched on the shuffled `NO_ROLE` seats,
-  where `bewitched(n) = n < 18 ? 0 : (n - 18) / 6` (owner, 2026-10-06: an 18-23 round has the Grand Witch alone,
-  24-29 deal 1, then +1 per further 6). There is no new mixin call: `MurderGameModeMixin` still runs
-  the Hunter/Orthopedist pairing, the witches and the Insider, in that order, before `assignCivilians`.
+- **Dealing (D1, reworked 2026-11-16).** The witch third-faction lineup (`registry/WitchThirdFactionLineup`) deals
+  the Bewitched right after the Grand Witch, only in a round that has one (dealt or forced; no Wathe pass draws witch
+  roles), on every member-cap slot left, while the Bewitched is enabled; forced Bewitched count toward the cap. This
+  replaced the old `WitchRoleCounts.bewitched(n) = (n - 18) / 6` quota (owner 2026-10-06) and its
+  `WitchRoleAssignmentService` pass; `MurderGameModeMixin` now runs only the Hunter/Orthopedist pairing before
+  `assignCivilians`. See "Third-faction draw" under Runtime Invariants.
 - **Before promotion (D2).** A witch-faction member with teammate vision and accomplice money (starting money,
   passive, kill rewards, the Grand Witch's +25 share), but no shop. `BewitchedShopService` empties its shop on both
   sides from the exact synced role, in its own `BuildShopEntries` phase `sparkwitch:bewitched_shop_clear` ordered after
@@ -4399,13 +4748,14 @@ deliberate and kept:
 22. `sparkwitch:medium_seance_skill` (`SparkWitchForcedCooldowns#mediumSeance`, PR #209, appended after the Savior
    domain): the Medium's 通灵 cooldown, for the raw role in an ACTIVE round. Remaining time is `MediumPlayerComponent`
    séance cooldown ticks (180 s opening cooldown included); the nominal is the untiered
-   `MediumRules.CD_AFTER_USE_TICKS` (1200), written exactly through the owner-syncing `startSeanceCooldown`. The
-   cooldown starts at the paid submit, so a forced write never touches a running vote window. 招魂 has no cooldown and
-   no store.
+   `MediumRules.CD_AFTER_USE_TICKS` (1200), written exactly through the owner-syncing `startSeanceCooldown`, which
+   writes the 通灵 cooldown alone (a real paid use of either skill starts both through `startCooldowns`). The cooldown
+   starts at the paid act, so a forced write never touches a running vote window. 幽灵的加护 has its own cooldown
+   and store 29; 招魂 has no cooldown and no store.
 23. `sparkwitch:ferryman_pardon` (`SparkWitchForcedCooldowns#ferrymanPardon`, PR #202, appended after the Medium's
    通灵): the Charon's pardon cooldown, for the raw role in an ACTIVE round with no pardon window open. Remaining time
    is `FerrymanPlayerComponent` cooldown ticks (60 s opening cooldown included); the nominal is
-   `FerrymanRules.PARDON_COOLDOWN_TICKS` (200), written exactly through the owner-syncing `setCooldown`.
+   `FerrymanRules.PARDON_COOLDOWN_TICKS` (100), written exactly through the owner-syncing `setCooldown`.
 24. `sparkwitch:ferryman_ferry` (`SparkWitchForcedCooldowns#ferrymanFerry`, PR #202, appended after the Charon's
    pardon): the Charon's ferry cooldown, for the raw role in an ACTIVE round. Remaining time is
    `FerrymanPlayerComponent` ferry cooldown ticks (0 at round start); the nominal is
@@ -4428,6 +4778,20 @@ deliberate and kept:
    written when the window ends, so a running window is never forced). Remaining time is `HiroReturnComponent`
    cooldown ticks (90 s opening cooldown included); the nominal is `HiroRules.RETURN_COOLDOWN_TICKS` (900), written
    exactly through the owner-syncing `setCooldownTicks`.
+29. `sparkwitch:medium_blessing_skill` (`SparkWitchForcedCooldowns#mediumBlessing`, owner 2026-11-13, appended last,
+   after 二阶堂希罗's 死亡回归, so earlier slots keep their positions): the Medium's 幽灵的加护 cooldown, for the raw
+   role in an ACTIVE round (the same gate as store 22). Remaining time is `MediumPlayerComponent` blessing cooldown
+   ticks (300 s opening cooldown included); the nominal is the untiered `MediumRules.blessingCooldownAfterUse(0)`
+   (3600: the 60 s 通灵 cooldown + 120 s), written exactly through the owner-syncing `startBlessingCooldown`, which
+   writes the 加护 cooldown alone. The cooldown starts at the paid act (`use_medium_blessing`), so a forced write
+   never touches a running vote window. Like 通灵 it has no item, so SparkFactionAPI's admin `clearCooldown` (held
+   item only) does not reach it.
+30. `sparkwitch:koko_stream` (`SparkWitchForcedCooldowns#kokoStream`, PR #223, appended after the Medium's 幽灵的加护):
+   泽渡可可's shared stream cooldown, for the raw role in an ACTIVE round (`KokoStreamService`'s role and round
+   gates). Remaining time counts to the absolute ready tick in `KokoComponent`, so it includes the 60 s opening
+   cooldown and, while she is live, the rest of the stream; the nominal is `KokoRules.COOLDOWN_TICKS` (900). Every
+   write only moves the ready tick later through the syncing `setReadyTick`, so it never shortens and never ends a
+   running stream.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
@@ -4574,7 +4938,8 @@ The Abyss Listener (`sparkwitch:abyss_listener`) is a special accomplice. Its ow
     Everyone else is a free holder whose copy the sweep never strips, grants, or deduplicates. `KillPlayer.AFTER`
     removes the gun unless `WitchFactorTraitsBridge.isDeathIntercepted`; `ResetPlayer` and `ON_FINISH_FINALIZE` remove
     it. There is no creative exemption.
-  - The binding matrix (`AbyssListenerInventoryRules`) is copied from, never shared with, the Time Stealer rules. Its
+  - The binding matrix (`AbyssListenerInventoryRules`) is the strict `item/BoundItemRules` policy it shares with the
+    Time Stealer, Potion Gunner and Wither Gohei rules, keyed on its own `isGun`. Its
     five guards in `mixin/abysslistener/` are HEAD, cancellable, and delegation-only:
     `PlayerEntityAbyssListenerGunMixin` (`dropItem(ItemStack,ZZ)`), `ServerPlayerEntityAbyssListenerGunDropMixin`
     (`dropSelectedItem(Z)Z`), `ScreenHandlerAbyssListenerGunMixin` (`internalOnSlotClick`),
@@ -4798,9 +5163,9 @@ special-accomplice pool from `PotionGunnerFeatureService`, and its post-promotio
     (`PlayerHitboxHistory.projectileHitVolumes`, 0.3 margin like vanilla).
     - Those volumes stop at the first jump (teleport, gate exit) and at the first spectator, creative or Last Escape
       sample (Rift Gate occupants, swallowed or dead players).
-    - Entry follows `PotionShellFlight.laggedEntrySquared`. A path that starts inside the margin still hits on entering
-      the real box, and a start inside the real box counts once the shell has moved, never at the muzzle. Vanilla's
-      ray misses both.
+    - Entry follows `HitscanLagRules.laggedEntrySquared` (shared with the Mini Wither skull). A path that starts
+      inside the margin still hits on entering the real box, and a start inside the real box counts once the shell
+      has moved, never at the muzzle. Vanilla's ray misses both.
     - The gunner is never rewound. Only players that the shell's `canHit` and SparkFactionAPI's
       `sparkfactionapi:projectile` action accept count, as for vanilla.
     - The hit wins only when it is strictly nearer than vanilla's own collision
@@ -5707,11 +6072,12 @@ Server:
   to 1 s (drops stay blocked by the mixins).
 - `PlayerHitboxHistory` keeps recording every tick everywhere: off-match shells and early-round rewinds read across
   round edges. `SparkTraitsKillerBridge.isLastEscapeActive` uses a cached MethodHandle.
-- `ShadowJesterShowdownBridge`, `SparkStrengthCoronerCompat` and `SparkStrengthJunctionBoxCompat` resolve their
-  reflection once (lazy holders, failing closed). `CeremonialSwordDashService.DASHES` is cleared on SERVER_STOPPING.
+- `SparkStrengthCoronerCompat` and `SparkStrengthJunctionBoxCompat` resolve their reflection once (a lazy holder and
+  `OptionalStaticMethod`, failing closed); `ShadowJesterShowdownBridge` calls the pinned NoellesRoles component
+  directly. `CeremonialSwordDashService.DASHES` is cleared on SERVER_STOPPING.
 - The Charon owns three per-tick sweeps, all no-ops for an idle round: `FerrymanPardonService.tick` walks the live
   player list once, reads each player's raw role and counts down a Charon's pardon and ferry cooldowns (syncing only
-  when one reaches zero), and reads the world clock only while a pardon window is open; `FerrymanFeignService.tick`
+  when one reaches zero), and reads the world clock only while a pardon window is open or a 瞥视 mark is waiting out its delay; `FerrymanFeignService.tick`
   counts down every player's `sparkwitch:ferryman_feign_veil` (kept because instinct is drawn per client; it syncs only
   when a veil ends) and then acts only on players whose feign is active (camera pin, anchor pull-back, wake-up at the
   deadline); `FerrymanMomentService.tick` returns per world at once unless a Soul Moment runs, then prunes fallen souls
@@ -5729,7 +6095,78 @@ Network:
   Vendetta) go to the owner only (`KEY.syncWith(owner, …)`); every write to a field other players see still syncs to
   all, and the Apprentice stays broad while an exposure runs.
 - `WitchFactorWorldComponent` remembers per recipient what each client holds (`sentViews`) and syncs a recipient only
-  on a difference; `WitchFactorService.onRoleChanged` syncs only when `recover()` removed a factor.
+  on a difference; `WitchFactorService.onRoleChanged` syncs only when `recover()` removed a factor. An explicit
+  `sync()` after a ledger change uses the same per-recipient diff (2026-11 review pass, second wave), so spreading a
+  dormant factor, which is in nobody's view, sends nobody a packet.
+
+2026-11 review pass, second wave (authority, private state and request cadence):
+- The shared `sparkwitch:use_skill` dispatch (`WitchSkillUseService.use`) asks
+  `SparkTraitsKillerBridge.isRoleSkillBlocked` after the role, life and Fear gates and before the Saint delegation and
+  every registered skill, with the shared "unavailable" line. It is the rule the dedicated handlers already apply
+  (Last Escape, or a silenced effective killer); the bridge fails open without SparkTraits, and Wathe-dead Wraiths
+  never reach it.
+- `WitchPlayerComponent` shares its private state (active skill, cooldown, mana, sword progress) with the owner,
+  creative players and spectators who are not living round participants (`WitchPlayerSyncCodec.seesPrivateState`,
+  one predicate for the recipient gate and the writer). A living player in spectator mode (Rift Gate occupant,
+  Taotie-swallowed, feigning) receives nothing. No SparkWitch client code reads another player's copy.
+- `BlackRavenMarkPlayerComponent` syncs a mark or its clear to the marking Raven alone (the packet's one bit is true
+  only for that Raven; the victim and other tracking Ravens used to get a packet at the moment of the hit). CCA's
+  tracking-start sync still follows `shouldSyncWith`.
+- `HannaComponent` syncs writes of the owner-private ready and penalty ticks to the owner alone unless a float is set;
+  `WraithPlayerComponent.setPromotionPending` syncs to the owner alone unless the call imported legacy data.
+- The Grand Witch's Voodoo immunity also sits at the head of Wathe's `killPlayer`
+  (`mixin/GameFunctionsGrandWitchVoodooMixin`, the Witch Maiden guard's shape, non-forced kills only), so NoellesRoles'
+  earlier `allowWithoutBody()` for a Taotie-swallowed victim no longer lets the curse through. The `KillPlayer.BEFORE`
+  listener in `WitchFactionProtectionPolicy` stays registered with the same rule.
+- The Raven Form crow's block aim (`BlackRavenCrowPilotClient.crowBlockTarget`) goes through
+  `BlackRavenCrowUseRules.attributeHit`, like the Seeker car's, so a steep click on a door half is no longer refused
+  by the server's hit tolerance.
+- Request cadence: `MagicianPlayerComponent.setSelectedTarget` ignores an unchanged pick and a changed one is sent by
+  the next tick; `NatsumeService.requestMenu` answers at most one menu per tick per caster; a refused `rift_exit` is
+  not searched again within the same tick (`RiftSessionRules.mayRetryBlockedExit`; exit still has no stun, Fear or
+  cooldown gate). When a dead owner loses the Magician role with a live puppet (a death that converts into a Wraith),
+  the puppet ends with the same `PLAYBACK_FINISHED` replay line the playback tick records.
+
+2026-11 review pass, third wave (connection edges and per-tick cost):
+- Server disconnect cleanup: `util/ServerDisconnectCleanup.register((player, server) -> ...)` is how a module registers
+  per-player cleanup for a leaving player (40 registrations, each still at its own module, in its old order). Fabric
+  fires `ServerPlayConnectionEvents.DISCONNECT` once, usually from `channelInactive` on a Netty thread, where those
+  cleanups used to edit inventories, components, entities and plain maps. The helper runs them on the server thread
+  and keeps the order they were written for: before Wathe's ESCAPED kill (its listeners sit in the
+  `sparkwitch:disconnect_cleanup` phase, ordered before the default phase where Wathe queues the kill with
+  `server.execute`; the Dominator forced-shot and Schrödinger's Cat phases are the precedent) and before vanilla
+  saves the player (`mixin/ServerPlayNetworkHandlerDisconnectCleanupMixin` drains what is still queued at the head of
+  `onDisconnected`, which leads to `PlayerManager.remove`). Each task runs once. `PlayerHitboxHistory`, Junker, the
+  Hunter aim claims and the Magician keep their own default-phase `server.execute` (after the kill); the Dominator
+  and the Cat keep their own early phases. One seam for all of them stays an owner decision.
+- Client connection edges: `SparkWitchClient.resetConnectionState()` (login INIT, login DISCONNECT, play DISCONNECT;
+  all off the client thread) clears the volatile confirmed flag at once and hands the rest to the client thread.
+  Every module that resets per-session state on play DISCONNECT also resets it on JOIN, because a proxy backend
+  switch re-joins without DISCONNECT or login INIT; play-phase state only arrives after JOIN, so nothing of the new
+  session is wiped. The confirmed flag is never reset on JOIN (a direct connection's login query set it for this
+  same connection), so a switch to a backend without SparkWitch still leaves it set: open owner call.
+  `BlackRavenPerceptionScreenEffects.close()` defers to the render thread like its Specter and scope siblings.
+- Per-tick cost with unchanged results: `WitchFactorWorldComponent` builds the living role-colour set once per pass;
+  the Angler pufferfish tests contact before the role and participant lookups; the Dominator gaze tests the
+  one-block distance before the liveness and Wraith reads.
+
+Owner decisions 2026-11 on the review pass's open items:
+- Kidnapper control also blocks role skills and the shop on the server (the stun deny-list); hotbar selection stays
+  client-only. See the Kidnapper entry.
+- Savior observation is sampled per kill attempt, not per tick. See the Savior entry.
+- Free failed factor casts are closed (`WitchFactorService.attemptSpread` / `SpreadOutcome`): a refusal that only
+  hidden state explains (the target holds a dormant factor, or its role carries none) spends no quota and inserts
+  nothing, but the Grand Witch and Emma pay mana and cooldown and get the same answer as for a spread. A refusal the
+  caster can see the reason for, or that hits every target alike, stays free: no target, a SparkFactionAPI veto, a
+  closed quota, a mature holder in the caster's own view, Emma's explicit "invalid target" / "no capacity" lines.
+  Open refusals are judged first, so a hidden one is only reported where an ordinary target would have succeeded.
+- The Guardian Angel's shield is not spent on the three Knight duel deaths (`duel_suicide`, `duel_failed`,
+  `duel_interference`: forced kills it could never stop). Mental breakdown and the ESCAPED disconnect are unchanged.
+- The Magician (ability and disguise pick), the Saboteur, the Bell toll and the Murderous Witch's Death Ray (opening,
+  firing, and the armed window, which closes when the round leaves ACTIVE) require the game status to be exactly
+  ACTIVE, like the newer roles; Wathe's `isRunning()` is also true during the post-win STOPPING fade.
+- `GuardianAngelFeatureService.resumePlayer` (no caller: a reconnecting Guardian Angel is terminated on join) is
+  deleted.
 
 ## Tofana Elixir Vocabulary
 

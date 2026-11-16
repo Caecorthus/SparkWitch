@@ -17,6 +17,7 @@ import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.caecorthus.sparkwitch.util.RoundParticipants;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
@@ -27,7 +28,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheSounds;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -64,7 +64,7 @@ public final class SwordfishStabService {
         KillPlayer.AFTER.register((victim, killer, reason) -> clearPlayer(victim));
         GameEvents.ON_GAME_START.register(mode -> RELEASES.clear());
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> RELEASES.clear());
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearPlayer(handler.player));
+        ServerDisconnectCleanup.register((player, server) -> clearPlayer(player));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> RELEASES.clear());
         ServerTickEvents.END_SERVER_TICK.register(server -> RELEASES.values().removeIf(release ->
                 !SwordfishRules.qualifiedRelease(release.heldTicks(),

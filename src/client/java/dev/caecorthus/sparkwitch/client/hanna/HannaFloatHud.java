@@ -1,7 +1,7 @@
 package dev.caecorthus.sparkwitch.client.hanna;
 
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
-import dev.caecorthus.sparkwitch.client.text.HudFontOptions;
+import dev.caecorthus.sparkwitch.client.hud.CachedHudText;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaComponent;
@@ -14,9 +14,6 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Language;
-
-import java.util.Objects;
 
 /**
  * Draws Hanna's owner-only float line ({@link HannaFloatHudRules}). Display only: it reads the local player's real
@@ -30,19 +27,10 @@ import java.util.Objects;
  * 动作栏，也绝不进入 {@code gui.sparkwitch.skills} 面板。
  */
 public final class HannaFloatHud {
-    // Render-thread cache: the Texts and widths are a pure function of the line, the ability key text, the active
-    // Language (replaced on every resource reload), the font renderer and the font glyph options (`HudFontOptions`,
-    // which a toggle changes without a reload), so they are rebuilt only when one changes.
-    // 渲染线程缓存：文本与宽度只取决于该行、技能按键文本、当前 Language（每次资源重载都会换新）、字体渲染器与字形选项
-    // （`HudFontOptions`，切换它们不会触发资源重载），因此只在其中之一变化时重建。
-    private static HannaFloatHudRules.Line cachedLine;
-    private static Text cachedKeyText;
-    private static Language cachedLanguage;
-    private static TextRenderer cachedRenderer;
-    private static int cachedFontOptions = -1;
-    private static Text cachedText;
-    private static int cachedTextWidth;
-    private static int cachedMeasured;
+    // Render-thread cache keyed on the line, the ability key text, the Language, the font renderer and the glyph
+    // options (see CachedHudText). / 渲染线程缓存，键为该行、技能按键文本、Language、字体渲染器与字形选项（见 CachedHudText）。
+    private static final CachedHudText<HannaFloatHudRules.Line> CACHE = new CachedHudText<>(HannaFloatHud::text,
+            HannaFloatHudRules.Line::value, HannaFloatHudRules::measuredValue);
 
     private HannaFloatHud() {
     }
@@ -83,26 +71,12 @@ public final class HannaFloatHud {
         // 期间击杀圣徒的人都可能带有，紧贴角落绘制）。
         boolean sharedLineOccupied = witch.getActiveSkillId() != null || witch.getSaintState().karmaCooldownTicks() > 0;
         TextRenderer renderer = client.textRenderer;
-        Text keyText = line.keyHint() ? SparkWitchClient.abilityKeyText() : null;
-        Language language = Language.getInstance();
-        int fontOptions = HudFontOptions.current();
-        if (!line.equals(cachedLine) || !Objects.equals(keyText, cachedKeyText) || language != cachedLanguage
-                || renderer != cachedRenderer
-                || fontOptions != cachedFontOptions) {
-            cachedText = text(line, line.value(), keyText);
-            cachedTextWidth = renderer.getWidth(cachedText);
-            cachedMeasured = renderer.getWidth(text(line, HannaFloatHudRules.measuredValue(line), keyText));
-            cachedLine = line;
-            cachedKeyText = keyText;
-            cachedLanguage = language;
-            cachedRenderer = renderer;
-            cachedFontOptions = fontOptions;
-        }
+        CACHE.update(line, line.keyHint() ? SparkWitchClient.abilityKeyText() : null, renderer);
         int width = context.getScaledWindowWidth();
-        int x = HannaFloatHudRules.rowX(width, cachedTextWidth);
-        int y = HannaFloatHudRules.rowY(width, context.getScaledWindowHeight(), cachedMeasured, renderer.fontHeight,
-                sharedLineOccupied);
-        context.drawTextWithShadow(renderer, cachedText, x, y, line.color());
+        int x = HannaFloatHudRules.rowX(width, CACHE.width());
+        int y = HannaFloatHudRules.rowY(width, context.getScaledWindowHeight(), CACHE.measuredWidth(),
+                renderer.fontHeight, sharedLineOccupied);
+        context.drawTextWithShadow(renderer, CACHE.text(), x, y, line.color());
     }
 
     private static Text text(HannaFloatHudRules.Line line, int value, Text keyText) {

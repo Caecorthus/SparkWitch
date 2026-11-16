@@ -183,7 +183,8 @@ public final class MiniWitherPlayerComponent
         }
         if (toggleCooldownTicks > 0) {
             toggleCooldownTicks--;
-            if (toggleCooldownTicks % SYNC_INTERVAL_TICKS == 0 && player instanceof ServerPlayerEntity owner) {
+            if (toggleCooldownTicks % SYNC_INTERVAL_TICKS == 0 && player instanceof ServerPlayerEntity owner
+                    && owner.networkHandler != null) {
                 // Non-owners only read the active flag and aim, which every write already synced to all; the countdown
                 // checkpoint goes to the owner alone. / 非本人只读取在场标记与朝向，而每次写入都已同步给所有人；倒计时校准只发给本人。
                 KEY.syncWith(owner, (ComponentProvider) owner);

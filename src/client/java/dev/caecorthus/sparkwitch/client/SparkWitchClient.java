@@ -29,6 +29,7 @@ import dev.caecorthus.sparkwitch.client.athlete.AthleteDashClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaPaintClient;
 import dev.caecorthus.sparkwitch.client.hanna.HannaClient;
+import dev.caecorthus.sparkwitch.client.koko.KokoClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
@@ -101,6 +102,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertEntit
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
@@ -213,6 +215,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Hanna float line (role-owned HUD); the float itself rides the shared ability key below.
         // 汉娜浮游行（职业自有 HUD）；浮游本身走下方的共享技能键。
         HannaClient.init();
+        // Koko traffic and stream rows plus her live instinct outline (role-owned); going live rides the shared
+        // ability key below. / 可可的流量行、直播行与直播期间的本能描边（职业自有）；开播走下方的共享技能键。
+        KokoClient.init();
         // BEAR smoke (spike): the S2C receivers that write SmokeClientState, and the disconnect cleanup.
         // BEAR 烟雾（原型）：写入 SmokeClientState 的 S2C 接收器与断线清理。
         dev.caecorthus.sparkwitch.client.bear.smoke.SmokeNetworkClient.register();
@@ -249,6 +254,14 @@ public final class SparkWitchClient implements ClientModInitializer {
         ClientLoginConnectionEvents.INIT.register((handler, client) -> resetConnectionState());
         ClientLoginConnectionEvents.DISCONNECT.register((handler, client) -> resetConnectionState());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> resetConnectionState());
+        // A proxy backend switch goes play -> configuration -> play on one connection: no DISCONNECT and no login INIT
+        // fire, only another JOIN, so the previous backend's session state is dropped here too. Play-phase state of the
+        // new session only arrives after JOIN, so nothing of it can be wiped. The confirmed-server flag is NOT reset
+        // here: on a direct connection it was set by this same connection's login query and must survive its own JOIN.
+        // 代理切换后端时，同一连接经历 play -> configuration -> play：既不触发 DISCONNECT 也不触发登录 INIT，只会再次 JOIN，
+        // 因此在这里同样丢弃上一个后端的会话状态。新会话的 play 阶段状态只会在 JOIN 之后到达，所以不会被误清。已确认服务端
+        // 标记不在此重置：直连时它由同一连接的登录查询设置，必须在自己的 JOIN 之后保留。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> resetSessionState());
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> releaseClosedWorldPlayers());
         WitchInstinctSuppressionClientHooks.register();
         HunterTrapClientHooks.register();
@@ -282,11 +295,11 @@ public final class SparkWitchClient implements ClientModInitializer {
                 boolean exactSaboteurRole = role != null
                         && SaboteurRole.ID.equals(role.identifier());
                 if (MediumVoteClient.ownsAbilityKey(client)) {
-                    // Ahead of every role branch: during a live 通灵 window a dead round member's press opens the vote
-                    // screen, whatever role they held (the dead have no other use for the key). The server re-checks
-                    // every vote.
-                    // 位于所有职业分支之前：通灵窗口进行期间，本局死者的按下打开投票界面，无论其原职业为何（死者的技能键
-                    // 别无他用）。每一票都由服务端重新校验。
+                    // Ahead of every role branch: during a live Medium vote window (a 通灵 question or 幽灵的加护) a
+                    // dead round member's press opens that window's vote screen, whatever role they held (the dead
+                    // have no other use for the key). The server re-checks every vote.
+                    // 位于所有职业分支之前：通灵师投票窗口（通灵提问或幽灵的加护）进行期间，本局死者的按下打开该窗口的
+                    // 投票界面，无论其原职业为何（死者的技能键别无他用）。每一票都由服务端重新校验。
                     MediumVoteClient.onAbilityKey(client);
                 } else if (KnightDuelClient.ownsAbilityKey(client.player, role)) {
                     // Checked first: either duelist's press does nothing (any role, owner 2026-10-30; the server also
@@ -384,8 +397,8 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // 真实职业加同步的时刻拥有者；疾驰只在时刻中存在，是否生效由服务端决定。
                     FiendDashClient.onAbilityKey(client);
                 } else if (FerrymanClient.isLocalFerryman(client)) {
-                    // Real role only; the press asks the server to pardon a held lethal hit (0.5 s window).
-                    // 仅真实职业；按下即请求服务端宽恕一次被扣住的致命击杀（0.5 秒窗口）。
+                    // Real role only; the press asks the server to pardon a held lethal hit (1.5 s window).
+                    // 仅真实职业；按下即请求服务端宽恕一次被扣住的致命击杀（1.5 秒窗口）。
                     FerrymanClient.onAbilityKey(client);
                 } else if (AthleteRules.isAthlete(role)) {
                     // Real role only (the Athlete is never a disguise target); the server decides use.
@@ -403,10 +416,16 @@ public final class SparkWitchClient implements ClientModInitializer {
                     NoaPaintClient.onAbilityKey(client);
                 } else if (MediumRules.isMedium(role)) {
                     // 通灵 (the shared ability key): empty request, the server owns every check and opens the box.
-                    // 通灵（共享技能键）：空请求，全部校验在服务端，并由服务端打开提问框。
+                    // 幽灵的加护 is on the SparkWitch skill key (MediumClientModule) and 招魂 in the inventory drawer.
+                    // 通灵（共享技能键）：空请求，全部校验在服务端，并由服务端打开提问框。幽灵的加护在 SparkWitch 技能键上
+                    // （MediumClientModule），招魂在背包抽屉中。
                     if (ClientPlayNetworking.canSend(UseMediumSkillC2SPacket.ID)) {
                         ClientPlayNetworking.send(new UseMediumSkillC2SPacket());
                     }
+                } else if (KokoRules.isKoko(role)) {
+                    // Go live (the shared ability key), real role only (getRole stays raw): empty request, the server
+                    // decides use. / 开播（共享技能键），仅真实职业（getRole 始终是真实身份）：空请求，是否生效由服务端决定。
+                    KokoClient.onAbilityKey(client);
                 } else if (HannaRules.isHanna(role)) {
                     // Real role only (getRole stays raw, so a Black Raven acting as Hanna keeps its own key); the server
                     // decides use. / 仅真实职业（getRole 始终是真实身份，扮演汉娜的黑羽鸦保留自己的按键）；是否生效由服务端决定。
@@ -437,8 +456,8 @@ public final class SparkWitchClient implements ClientModInitializer {
         // BEAR client hub (work packages append there), before USEC, which stays last.
         // BEAR 客户端注册中心（各工作包在其中追加），位于 USEC 之前，USEC 保持最后。
         dev.caecorthus.sparkwitch.client.bear.BearClientModule.register();
-        // Medium client hub (Role Skill 2 key), after BEAR and before USEC, which stays last.
-        // 通灵师客户端注册中心（职业技能 2 键），位于 BEAR 之后、USEC 之前，USEC 保持最后。
+        // Medium client hub (Role Skill 2 key = 幽灵的加护), after BEAR and before USEC, which stays last.
+        // 通灵师客户端注册中心（职业技能 2 键 = 幽灵的加护），位于 BEAR 之后、USEC 之前，USEC 保持最后。
         MediumClientModule.register();
         // 橘雪莉 client hub (PR #206: panel, Role Skill 2 key, private outlines, corner HUD), after the Medium and
         // before USEC, which stays last.
@@ -565,9 +584,33 @@ public final class SparkWitchClient implements ClientModInitializer {
                 }));
     }
 
+    /**
+     * Connection edges (login INIT, login DISCONNECT, play DISCONNECT). These fire on the server-connector or Netty
+     * thread. The confirmed flag is volatile and is the point of the early reset, so it is cleared at once; everything
+     * else is client-thread state (two of the resets close a screen, which grabs the cursor through GLFW), so it is
+     * handed to the client thread. Tasks run in order, so the reset still precedes every play packet of a new session.
+     * 连接生命周期节点（登录 INIT、登录 DISCONNECT、play DISCONNECT）。这些事件在连接线程或 Netty 线程触发。已确认标记是
+     * volatile 的，且提前重置正是为了它，因此立即清除；其余都是客户端线程状态（其中两个重置会关闭界面，进而通过 GLFW 抓取
+     * 光标），因此交给客户端线程执行。任务按顺序执行，所以重置仍先于新会话的任何 play 数据包。
+     */
     private static void resetConnectionState() {
-        dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter.reset();
         SparkWitchServerConnection.reset();
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (!client.isOnThread()) {
+            client.execute(SparkWitchClient::resetClientThreadState);
+            return;
+        }
+        resetClientThreadState();
+    }
+
+    private static void resetClientThreadState() {
+        resetSessionState();
+        releaseClosedWorldPlayers();
+    }
+
+    /** Client thread: per-session state of the shared modules; never the confirmed flag. / 客户端线程：共享模块的逐会话状态；绝不包含已确认标记。 */
+    private static void resetSessionState() {
+        dev.caecorthus.sparkwitch.client.gui.OwnerInventoryPresenter.reset();
         WitchAbilityKeyBridge.reset();
         SecondaryAbilityController.reset();
         KidnapperThrowClientHooks.reset();
@@ -581,7 +624,6 @@ public final class SparkWitchClient implements ClientModInitializer {
         StowawaySensesClient.reset();
         BlindClient.reset();
         SaviorDomainClient.reset();
-        releaseClosedWorldPlayers();
     }
 
     /**

@@ -12,6 +12,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowSess
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaGrappleService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BuildShopEntries;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -24,7 +25,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.record.GameRecordManager;
 import dev.doctor4t.wathe.util.ShopEntry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -72,7 +72,7 @@ public final class NatsumeService {
         ResetPlayer.EVENT.register(NatsumeService::clearPlayer);
         // A disconnect ends the victim's hypnosis before Wathe saves the player (NBT never stores it anyway).
         // 断线在 Wathe 保存玩家之前结束受害者的催眠（NBT 本来也不保存它）。
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> endHypnosis(handler.getPlayer(), false));
+        ServerDisconnectCleanup.register((player, server) -> endHypnosis(player, false));
         ServerTickEvents.END_SERVER_TICK.register(NatsumeService::tick);
         // Her shop, on both sides (Wathe builds it on both and resolves a purchase by index).
         // 她的商店，两端执行（Wathe 在两端构建商店并按下标解析购买）。
@@ -122,6 +122,14 @@ public final class NatsumeService {
         if (caster == null || !mayUse(caster)) {
             return;
         }
+        // Opening the menu spends no cooldown, so nothing else limits how often the roster is scanned and sent.
+        // 打开菜单不消耗冷却，因此除此之外没有任何东西限制名单被扫描与发送的频率。
+        NatsumeComponent state = NatsumeComponent.KEY.get(caster);
+        long now = caster.getWorld().getTime();
+        if (!NatsumeRules.menuRequestDue(now, state.lastMenuRequestTick())) {
+            return;
+        }
+        state.markMenuRequest(now);
         GameWorldComponent game = GameWorldComponent.KEY.get(caster.getWorld());
         List<UUID> ids = new ArrayList<>();
         List<String> names = new ArrayList<>();

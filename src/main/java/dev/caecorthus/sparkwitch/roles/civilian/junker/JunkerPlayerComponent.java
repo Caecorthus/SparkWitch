@@ -49,10 +49,6 @@ public final class JunkerPlayerComponent implements AutoSyncedComponent, ServerT
         return searching || searchBodyUuid != null;
     }
 
-    public int getProgressTicks() {
-        return progressTicks;
-    }
-
     public long getSearchReadyTick() {
         return searchReadyTick;
     }

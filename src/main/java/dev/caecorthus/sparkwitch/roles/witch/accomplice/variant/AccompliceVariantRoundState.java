@@ -45,10 +45,6 @@ public class AccompliceVariantRoundState {
         return role != null && used.contains(role.identifier());
     }
 
-    public Set<Identifier> usedIds() {
-        return Set.copyOf(used);
-    }
-
     public void writeToNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
         NbtList list = new NbtList();
         for (Identifier id : used) {

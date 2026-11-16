@@ -60,6 +60,9 @@ public final class SmokeNetworkClient {
                     releaseIfEmpty();
                 }));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(SmokeNetworkClient::reset));
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(SmokeNetworkClient::reset));
     }
 
     /** Clears every cloud and hole and frees their textures (render thread). / 清空全部烟团与空洞并释放其纹理（渲染线程）。 */

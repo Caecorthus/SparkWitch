@@ -62,13 +62,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
         return !disabledSkills.contains(skillId);
     }
 
-    public void setSkillEnabled(Identifier skillId, boolean enabled) {
-        boolean changed = enabled ? disabledSkills.remove(skillId) : disabledSkills.add(skillId);
-        if (changed) {
-            sync();
-        }
-    }
-
     public boolean setForcedWraithPromotion(UUID playerUuid, Identifier roleId) {
         return forcedWraithPromotions.set(playerUuid, roleId);
     }
@@ -105,10 +98,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
     public boolean setPendingForcedAccompliceRole(UUID playerUuid, Identifier roleId) {
         boolean dropped = forcedAccompliceRoles.clear(playerUuid);
         return pendingForcedAccompliceRoles.set(playerUuid, roleId) || dropped;
-    }
-
-    public Identifier getForcedAccompliceRole(UUID playerUuid) {
-        return forcedAccompliceRoles.get(playerUuid);
     }
 
     public boolean clearForcedAccompliceRole(UUID playerUuid) {
@@ -212,18 +201,6 @@ public final class WitchWorldComponent implements AutoSyncedComponent, ServerTic
 
     public void startFear(int durationTicks) {
         fearTicks = Math.max(0, durationTicks);
-        sync();
-    }
-
-    /**
-     * Tracks Grand Witch skill BGM by player UUID so overlapping casts keep the ambience alive.
-     * 按玩家 UUID 记录大魔女技能 BGM 来源，多个技能窗口重叠时不会误停全场环境音。
-     */
-    public void startGrandWitchCeremonialSwordBgm(UUID playerUuid) {
-        if (!grandWitchCeremonialSwordBgmSources.start(playerUuid)) {
-            return;
-        }
-        syncedGrandWitchCeremonialSwordBgmSources = grandWitchCeremonialSwordBgmSources.size();
         sync();
     }
 

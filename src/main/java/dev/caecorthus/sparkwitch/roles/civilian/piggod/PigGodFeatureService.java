@@ -56,21 +56,39 @@ public final class PigGodFeatureService {
         if (!(target instanceof PlayerEntity targetPlayer)) {
             return null;
         }
+        // This policy runs on every client several times per visible player per frame, and only a Pig God whose chase
+        // is active can ever get a highlight from it. Those two cheap reads go first, so every other viewer skips the
+        // liveness lookups and the Survival Master raycast, which is now asked last and only when everything else
+        // already allows the highlight. PigGodRules.shouldHighlight is a plain AND of these same inputs, so the result
+        // is unchanged.
+        // 该策略在每个客户端上对每名可见玩家每帧运行数次，而只有追杀进行中的皮革噶的才可能从中得到高亮。先做这两项廉价读取，
+        // 其他观察者因此跳过存活查询与生存大师射线检测；射线检测现在放在最后，且仅在其余条件都已允许高亮时才执行。
+        // PigGodRules.shouldHighlight 只是对同一组输入做与运算，因此结果不变。
         Role viewerRole = gameComponent.getRole(viewer);
+        if (!PigGodRules.isPigGod(viewerRole)) {
+            return null;
+        }
+        boolean chaseActive = WitchPlayerComponent.KEY.get(viewer).isPigChaseActive();
+        if (!chaseActive) {
+            return null;
+        }
+        boolean highlightUnlessHidden = PigGodRules.shouldHighlight(
+                viewerRole,
+                GameFunctions.isPlayerPlayingAndAlive(viewer),
+                GameFunctions.isPlayerSpectatingOrCreative(viewer),
+                chaseActive,
+                GameFunctions.isPlayerPlayingAndAlive(targetPlayer),
+                GameFunctions.isPlayerSpectatingOrCreative(targetPlayer),
+                false
+        );
+        if (!highlightUnlessHidden) {
+            return null;
+        }
         Role targetRole = gameComponent.getRole(targetPlayer);
         boolean hiddenSurvivalMaster = targetRole != null
                 && SURVIVAL_MASTER_ID.equals(targetRole.identifier())
                 && !viewer.canSee(targetPlayer);
-        boolean shouldHighlight = PigGodRules.shouldHighlight(
-                viewerRole,
-                GameFunctions.isPlayerPlayingAndAlive(viewer),
-                GameFunctions.isPlayerSpectatingOrCreative(viewer),
-                WitchPlayerComponent.KEY.get(viewer).isPigChaseActive(),
-                GameFunctions.isPlayerPlayingAndAlive(targetPlayer),
-                GameFunctions.isPlayerSpectatingOrCreative(targetPlayer),
-                hiddenSurvivalMaster
-        );
-        if (!shouldHighlight) {
+        if (hiddenSurvivalMaster) {
             return null;
         }
         return FactionInstinctPolicy.InstinctResult.show(

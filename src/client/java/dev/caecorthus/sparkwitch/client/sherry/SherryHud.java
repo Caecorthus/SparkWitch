@@ -2,7 +2,7 @@ package dev.caecorthus.sparkwitch.client.sherry;
 
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
-import dev.caecorthus.sparkwitch.client.text.HudFontOptions;
+import dev.caecorthus.sparkwitch.client.hud.CachedHudText;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent;
 import dev.doctor4t.wathe.cca.PlayerShopComponent;
@@ -14,9 +14,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.text.Text;
-import net.minecraft.util.Language;
-
-import java.util.Objects;
 
 /**
  * Draws 橘雪莉's two-row readout ({@link SherryHudRules}) in the shared bottom-right corner slot: 推演 on the shared
@@ -30,22 +27,14 @@ import java.util.Objects;
  * 每次按键都由服务端决定。
  */
 public final class SherryHud {
-    // Render-thread cache, as FerrymanHud: the Texts and widths depend only on both lines, both key texts, the active
-    // Language (replaced on every resource reload), the font renderer and the glyph options.
-    // 渲染线程缓存（同 FerrymanHud）：文本与宽度只取决于两行、两个键名文本、当前 Language（每次资源重载都会换新）、
-    // 字体渲染器与字形选项。
-    private static SherryHudRules.Line cachedDeductionLine;
-    private static SherryHudRules.Line cachedMightyLine;
-    private static Text cachedAbilityKey;
-    private static Text cachedSecondaryKey;
-    private static Language cachedLanguage;
-    private static TextRenderer cachedRenderer;
-    private static int cachedFontOptions = -1;
-    private static Text cachedDeductionText;
-    private static Text cachedMightyText;
-    private static int cachedDeductionWidth;
-    private static int cachedMightyWidth;
-    private static int cachedMeasured;
+    // Render-thread cache, one per row: each row's Text and widths depend only on its line, its key text, the active
+    // Language (replaced on every resource reload), the font renderer and the glyph options (see CachedHudText).
+    // 渲染线程缓存，每行一个：每行的文本与宽度只取决于该行、其键名文本、当前 Language（每次资源重载都会换新）、
+    // 字体渲染器与字形选项（见 CachedHudText）。
+    private static final CachedHudText<SherryHudRules.Line> DEDUCTION = new CachedHudText<>(SherryHud::text,
+            SherryHudRules.Line::number, SherryHudRules.Line::measuredNumber);
+    private static final CachedHudText<SherryHudRules.Line> MIGHTY = new CachedHudText<>(SherryHud::text,
+            SherryHudRules.Line::number, SherryHudRules.Line::measuredNumber);
 
     private SherryHud() {
     }
@@ -73,35 +62,17 @@ public final class SherryHud {
                 component.getMightyWindowTicks(), component.getMightyCooldownTicks(),
                 WitchPlayerComponent.KEY.get(player).getMana());
         TextRenderer renderer = client.textRenderer;
-        Text abilityKey = SparkWitchClient.abilityKeyText();
-        Text secondaryKey = SecondaryAbilityController.secondaryKeyText();
-        Language language = Language.getInstance();
-        int fontOptions = HudFontOptions.current();
-        if (!deduction.equals(cachedDeductionLine) || !mighty.equals(cachedMightyLine)
-                || !Objects.equals(abilityKey, cachedAbilityKey) || !Objects.equals(secondaryKey, cachedSecondaryKey)
-                || language != cachedLanguage || renderer != cachedRenderer || fontOptions != cachedFontOptions) {
-            cachedDeductionText = text(deduction, deduction.number(), abilityKey);
-            cachedMightyText = text(mighty, mighty.number(), secondaryKey);
-            cachedDeductionWidth = renderer.getWidth(cachedDeductionText);
-            cachedMightyWidth = renderer.getWidth(cachedMightyText);
-            cachedMeasured = Math.max(
-                    renderer.getWidth(text(deduction, deduction.measuredNumber(), abilityKey)),
-                    renderer.getWidth(text(mighty, mighty.measuredNumber(), secondaryKey)));
-            cachedDeductionLine = deduction;
-            cachedMightyLine = mighty;
-            cachedAbilityKey = abilityKey;
-            cachedSecondaryKey = secondaryKey;
-            cachedLanguage = language;
-            cachedRenderer = renderer;
-            cachedFontOptions = fontOptions;
-        }
+        DEDUCTION.update(deduction, SparkWitchClient.abilityKeyText(), renderer);
+        MIGHTY.update(mighty, SecondaryAbilityController.secondaryKeyText(), renderer);
+        // Both rows rise together: measured with the wider row. / 两行一同抬升：按较宽的一行测量。
+        int measured = Math.max(DEDUCTION.measuredWidth(), MIGHTY.measuredWidth());
         int width = context.getScaledWindowWidth();
-        int lowerY = SherryHudRules.lowerRowY(width, context.getScaledWindowHeight(), cachedMeasured,
+        int lowerY = SherryHudRules.lowerRowY(width, context.getScaledWindowHeight(), measured,
                 renderer.fontHeight);
         int upperY = SherryHudRules.upperRowY(lowerY, renderer.fontHeight);
-        context.drawTextWithShadow(renderer, cachedDeductionText, SherryHudRules.rowX(width, cachedDeductionWidth),
+        context.drawTextWithShadow(renderer, DEDUCTION.text(), SherryHudRules.rowX(width, DEDUCTION.width()),
                 upperY, deduction.color());
-        context.drawTextWithShadow(renderer, cachedMightyText, SherryHudRules.rowX(width, cachedMightyWidth), lowerY,
+        context.drawTextWithShadow(renderer, MIGHTY.text(), SherryHudRules.rowX(width, MIGHTY.width()), lowerY,
                 mighty.color());
     }
 

@@ -66,6 +66,8 @@ public final class MoodFlags {
     public static final Identifier CONSCIENCE = flag("conscience");
     public static final Identifier IMPOSTOR = flag("impostor");
     public static final Identifier NO_SANITY = flag("no_sanity");
+    /** 泽渡可可 (PR #223): the contributor's recolour of Wathe's face in her lavender. / 泽渡可可（PR #223）：贡献者把 Wathe 表情重新染成她的淡紫色。 */
+    public static final Identifier KOKO = flag("koko");
 
     /**
      * Role id to its own flag. NoellesRoles ids are literal (no class reference), pinned to the shipped jar.
@@ -78,6 +80,7 @@ public final class MoodFlags {
             Map.entry(SparkWitchRoles.INSIDER_ID, INSIDER),
             Map.entry(InsiderRules.CORRUPT_COP_ID, CORRUPT_COP),
             Map.entry(SparkWitchRoles.FIEND_ID, FIEND),
+            Map.entry(SparkWitchRoles.KOKO_ID, KOKO),
             Map.entry(Identifier.of("noellesroles", "jester"), JESTER),
             Map.entry(Identifier.of("noellesroles", "pathogen"), PATHOGEN),
             Map.entry(Identifier.of("noellesroles", "taotie"), TAOTIE),

@@ -25,6 +25,7 @@ import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGatePlacementService;
@@ -136,6 +137,8 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             entries.put(SparkWitchItems.SAVIOR_LIGHTSABER_ID, SaviorRules.LIGHTSABER_KILL_COOLDOWN_TICKS);
             // 二阶堂希罗's Rope: the 10 s cooldown after an interrupted strangle. / 二阶堂希罗的绳索：勒杀被打断后的 10 秒冷却。
             entries.put(SparkWitchItems.ROPE_ID, RopeRules.INTERRUPT_COOLDOWN_TICKS);
+            // 泽渡可可's lightstick (PR #223): the 30 s between uses. / 泽渡可可的应援棒（PR #223）：两次使用之间的 30 秒。
+            entries.put(SparkWitchItems.KOKO_LIGHTSTICK_ID, KokoRules.LIGHTSTICK_COOLDOWN_TICKS);
             // NoellesRoles items: public constants of the pinned 1.7.6 jar, plus the master key, which both
             // NoellesRoles (literal) and the Insider door path write as 200 ticks. The timed bomb stays exempt in
             // SparkFactionAPI itself (Bomber pass gate).

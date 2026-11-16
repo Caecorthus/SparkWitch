@@ -7,7 +7,6 @@ import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheItems;
-import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.Item;
@@ -15,6 +14,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.stream.IntStream;
 
 /**
  * Numbers shared by the Savior's pistol and lightsaber. The pistol copies Wathe's revolver (30-block client pick,
@@ -45,8 +46,6 @@ public final class SaviorRules {
     public static final float PISTOL_RECOIL_PITCH = 4.0F;
     /** Wathe's innocent-shooting punishment is scheduled four ticks later. / Wathe 误杀惩罚延迟四刻执行。 */
     public static final int PUNISH_DELAY_TICKS = 4;
-    /** Dropped gun pickup delay, same as Wathe's punishment. / 掉落手枪的拾取延迟，与 Wathe 惩罚相同。 */
-    public static final int DROPPED_GUN_PICKUP_DELAY = 10;
     /**
      * Player-inventory indices of the two main rows Wathe's LimitedInventoryScreen locks (only client-side; SFA
      * LimitedInventoryRows reopens 27–35). The hidden revolver lives at 9 ({@code SaviorLoadoutService}).
@@ -63,7 +62,12 @@ public final class SaviorRules {
     public static final Identifier PISTOL_SHOOT_SOUND_ID = SparkWitch.id("item.savior_pistol.shoot");
     public static final Identifier PISTOL_CLICK_SOUND_ID = SparkWitch.id("item.savior_pistol.click");
     public static final Identifier LIGHTSABER_HIT_SOUND_ID = SparkWitch.id("item.savior_lightsaber.hit");
-    /** Terminal kill reasons: SparkTraits skips Last Escape / Last Stand / Depression protections for these. / 终结击杀原因。 */
+    /**
+     * The weapons' own kill reasons. They are SparkWitch-terminal ({@link #isTerminalKill}) but never SparkTraits-terminal:
+     * trait protections (Last Escape, Last Stand, Depression, Stands Firm) still apply to them.
+     * 两把武器自己的击杀死因。它们在 SparkWitch 内部算终结（{@link #isTerminalKill}），但从不登记为 SparkTraits 终结死因：
+     * 词条保护（绝处逢生、背水一战、抑郁、立场坚定）对其照常生效。
+     */
     public static final Identifier PISTOL_DEATH_REASON = SparkWitch.id("savior_pistol_kill");
     public static final Identifier LIGHTSABER_DEATH_REASON = SparkWitch.id("lightsaber_kill");
     public static final Identifier LIGHTSABER_IGNITE_SOUND_ID = SparkWitch.id("item.savior_lightsaber.ignite");
@@ -127,7 +131,13 @@ public final class SaviorRules {
                 && FactionIds.CIVILIAN.equals(SparkFactionApi.resolveEffectiveFaction(player, game));
     }
 
-    /** True for the two terminal Savior weapon reasons. / 救世主两把武器的终结死因。 */
+    /**
+     * True for the two Savior weapon reasons. "Terminal" here is SparkWitch-local only: the Saint, the NoellesRoles
+     * shields, the Charon pardon and the Hiro return treat these kills as unstoppable. SparkTraits trait protections are
+     * not part of it (see {@link #PISTOL_DEATH_REASON}).
+     * 救世主两把武器的死因。这里的“终结”仅限 SparkWitch 内部：圣徒、NoellesRoles 护盾、卡戎宽恕与希罗回归视其为不可阻挡。
+     * SparkTraits 词条保护不在此列（见 {@link #PISTOL_DEATH_REASON}）。
+     */
     public static boolean isTerminalKill(@Nullable Identifier deathReason) {
         return PISTOL_DEATH_REASON.equals(deathReason) || LIGHTSABER_DEATH_REASON.equals(deathReason);
     }
@@ -153,35 +163,66 @@ public final class SaviorRules {
     }
 
     /**
-     * Wathe keeps the gun count constant (one removed, one dropped), so the punishment drops the Savior's own hidden
-     * revolver (slot {@link #HIDDEN_REVOLVER_SLOT} first, then any other) instead of a new one, with Wathe's pickup
-     * delay and owner. Nothing drops when the Savior carries no revolver. Only the Savior has a planted revolver: for
-     * any other holder the confiscated Savior weapon is the whole loss and their own guns stay (USEC any-holder
-     * precedent).
-     * Wathe 保持枪支数量不变（收走一把、掉落一把），因此惩罚掉落救世主自己的隐藏左轮（先查 {@link #HIDDEN_REVOLVER_SLOT}
-     * 号槽，再查其他槽），而不是新建一把；沿用 Wathe 的拾取延迟与所有者。救世主身上没有左轮时不掉落任何东西。只有救世主
-     * 身上有预置左轮：其他持有者只损失被没收的救世主武器，自己的枪保持不动（USEC 任何持有者先例）。
+     * Owner decision 2026-11-16 (PR #234): the punishment no longer drops a gun. The Savior's planted revolver (slot
+     * {@link #HIDDEN_REVOLVER_SLOT} first, then any other slot) moves into the selected hotbar slot, so the punished
+     * Savior goes on with a plain Wathe revolver. A stack still held in that slot moves to the first free slot the
+     * player can reach ({@link #displacedHandOrder}); only when none is free does it take the revolver's old slot, so
+     * nothing is deleted or dropped. No revolver is created: a Savior who carries none (it was already handed over and
+     * lost) gets nothing, which keeps one revolver per Savior. The revolver inherits the cooldown still running on the
+     * confiscated weapon {@code used} ({@link SaviorCooldowns#carryOver}), so the punishment never brings the next
+     * shot forward. Only the Savior has a planted revolver: for any other holder the confiscated Savior weapon is the
+     * whole loss and their own guns stay (USEC any-holder precedent).
+     * 所有者 2026-11-16 决定（PR #234）：惩罚不再掉落枪支。救世主的预置左轮（先查 {@link #HIDDEN_REVOLVER_SLOT} 号槽，再查
+     * 其他槽）移到当前选中的快捷栏槽，被惩罚的救世主改用普通的 Wathe 左轮。该槽里原有的物品移到玩家够得着的第一个空槽
+     * （{@link #displacedHandOrder}）；没有空槽时才放进左轮原来的槽位，因此不会删除或掉落任何物品。不会新建左轮：身上没有
+     * 左轮的救世主（那把已经交出并丢失）什么也得不到，保持每名救世主只有一把左轮。左轮继承被没收武器 {@code used} 上仍在运行的
+     * 冷却（{@link SaviorCooldowns#carryOver}），因此惩罚不会让下一枪提前。只有救世主身上有预置左轮：其他持有者只损失被没收的
+     * 救世主武器，自己的枪保持不动（USEC 任何持有者先例）。
      */
-    static void dropHiddenRevolver(ServerPlayerEntity shooter) {
+    static void swapInRevolver(ServerPlayerEntity shooter, Item used) {
         if (!isSavior(GameWorldComponent.KEY.get(shooter.getWorld()).getRole(shooter))) {
             return;
         }
         PlayerInventory inventory = shooter.getInventory();
-        int slot = inventory.getStack(HIDDEN_REVOLVER_SLOT).isOf(WatheItems.REVOLVER) ? HIDDEN_REVOLVER_SLOT : -1;
-        for (int index = 0; slot < 0 && index < inventory.size(); index++) {
-            if (inventory.getStack(index).isOf(WatheItems.REVOLVER)) {
-                slot = index;
-            }
+        if (inventory.contains(stack -> stack.isOf(WatheItems.REVOLVER))) {
+            SaviorCooldowns.carryOver(shooter, used, WatheItems.REVOLVER);
         }
-        if (slot < 0) {
+        int selected = inventory.selectedSlot;
+        ItemStack hand = inventory.getStack(selected);
+        if (hand.isOf(WatheItems.REVOLVER)) {
             return;
         }
-        ItemStack revolver = inventory.removeStack(slot, 1);
-        ItemEntity dropped = shooter.dropItem(revolver, false, false);
-        if (dropped != null) {
-            dropped.setPickupDelay(DROPPED_GUN_PICKUP_DELAY);
-            dropped.setOwner(shooter.getUuid());
+        int from = inventory.getStack(HIDDEN_REVOLVER_SLOT).isOf(WatheItems.REVOLVER) ? HIDDEN_REVOLVER_SLOT : -1;
+        for (int index = 0; from < 0 && index < inventory.size(); index++) {
+            if (inventory.getStack(index).isOf(WatheItems.REVOLVER)) {
+                from = index;
+            }
         }
+        if (from < 0) {
+            return;
+        }
+        ItemStack revolver = inventory.getStack(from);
+        int free = hand.isEmpty() ? -1 : SaviorLoadoutService.firstEmpty(displacedHandOrder(selected),
+                index -> inventory.getStack(index).isEmpty());
+        inventory.setStack(from, ItemStack.EMPTY);
+        if (!hand.isEmpty()) {
+            inventory.setStack(free >= 0 ? free : from, hand);
+        }
+        inventory.setStack(selected, revolver);
+        inventory.markDirty();
+    }
+
+    /**
+     * Pure: where the stack pushed out of the hand may go, in order: the other hotbar slots, then the second visible
+     * row 27–35 (SparkFactionAPI limited inventory). Never rows 9–26, which Wathe's LimitedInventoryScreen locks: a
+     * key or tool parked there could not be taken back.
+     * 纯函数：被挤出手的物品可去的槽位，按顺序：其余快捷栏槽，再到第二可见行 27–35（SparkFactionAPI 受限物品栏）。绝不放进
+     * Wathe LimitedInventoryScreen 锁住的 9–26 行：钥匙或工具放进去就再也拿不回来。
+     */
+    static int[] displacedHandOrder(int selected) {
+        return IntStream.concat(
+                IntStream.range(0, PlayerInventory.getHotbarSize()).filter(index -> index != selected),
+                IntStream.range(LOCKED_MAIN_LAST_SLOT + 1, PlayerInventory.MAIN_SIZE)).toArray();
     }
 
     /**

@@ -30,10 +30,6 @@ public final class WraithLegacyRoleIds {
     private WraithLegacyRoleIds() {
     }
 
-    public static Identifier canonicalize(Identifier roleId) {
-        return LEGACY_TO_CANONICAL.getOrDefault(roleId, roleId);
-    }
-
     /** Copies exact old role lists only when absent and canonicalizes exact disabled-role strings. / 仅补齐缺失的精确旧角色列表，并规范化精确禁用角色字符串。 */
     public static void migrateGameWorldNbt(NbtCompound nbt) {
         for (Map.Entry<Identifier, Identifier> alias : LEGACY_TO_CANONICAL.entrySet()) {

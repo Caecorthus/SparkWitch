@@ -1,10 +1,10 @@
 package dev.caecorthus.sparkwitch.roles.killer.blackraven.crow;
 
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
@@ -37,8 +37,8 @@ public final class BlackRavenCrowWorldFeatureService {
                 BlackRavenCrowForm.isInCrowForm(player) ? BlackoutEffect.BlackoutResult.cancel() : null);
         ServerTickEvents.END_WORLD_TICK.register(BlackRavenCrowFeatherService::tickWorld);
         ServerTickEvents.END_SERVER_TICK.register(BlackRavenCrowLandingService::tick);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                BlackRavenCrowLandingService.forget(handler.player.getUuid()));
+        ServerDisconnectCleanup.register((player, server) ->
+                BlackRavenCrowLandingService.forget(player.getUuid()));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> BlackRavenCrowLandingService.forgetAll());
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> {
             if (!(world instanceof ServerWorld serverWorld)) {

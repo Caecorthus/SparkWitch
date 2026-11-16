@@ -318,7 +318,7 @@ public final class BlackRavenCrowPlayerComponent
         BlackRavenCrowSessions.tick(serverPlayer, this);
         if (cooldownTicks > 0) {
             cooldownTicks--;
-            if (cooldownTicks % SYNC_INTERVAL_TICKS == 0) {
+            if (cooldownTicks % SYNC_INTERVAL_TICKS == 0 && serverPlayer.networkHandler != null) {
                 // Non-owners only read the active bit, which every write already synced to all; the countdown
                 // checkpoint goes to the owner alone. / 非本人只读取在场标记，而每次写入都已同步给所有人；倒计时校准只发给本人。
                 KEY.syncWith(serverPlayer, (ComponentProvider) serverPlayer);

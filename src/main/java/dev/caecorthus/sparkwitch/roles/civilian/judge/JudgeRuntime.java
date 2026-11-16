@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.net.OpenJudgeSelectionS2CPacket;
 import dev.caecorthus.sparkwitch.record.AchievementRecords;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.caecorthus.sparkwitch.util.RoundParticipants;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.CanSeeMoney;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -68,9 +69,9 @@ public final class JudgeRuntime {
         // 而加入不会改变他们的视图；随后 CCA 在 sendWorldInfo 中把所有世界组件同步给加入者。这里只同步加入者。
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 JudgeWorldComponent.KEY.syncWith(handler.player, (ComponentProvider) handler.player.getServerWorld()));
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+        ServerDisconnectCleanup.register((player, server) -> {
             for (ServerWorld world : server.getWorlds()) {
-                JudgeWorldComponent.KEY.get(world).sessions().invalidate(handler.player.getUuid());
+                JudgeWorldComponent.KEY.get(world).sessions().invalidate(player.getUuid());
             }
         });
         ServerWorldEvents.UNLOAD.register((server, world) -> clearRound(world));

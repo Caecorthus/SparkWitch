@@ -52,6 +52,8 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.riftGate(),
                                     // Neutral / 中立
                                     SparkWitchItems.firePoker(),
+                                    // 泽渡可可's lightstick (neutral) / 泽渡可可的应援棒（中立）
+                                    SparkWitchItems.kokoLightstick(),
                                     // Civilian / 平民
                                     SparkWitchItems.perfumeEssence(),
                                     SparkWitchItems.cologne(),

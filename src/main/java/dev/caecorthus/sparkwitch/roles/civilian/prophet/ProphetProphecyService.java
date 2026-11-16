@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent.P
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetProphecyRules.Verdict;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.caecorthus.sparkwitch.skill.WitchSkillUseService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
@@ -19,7 +20,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -51,8 +51,7 @@ public final class ProphetProphecyService {
         GameEvents.ON_FINISH_INITIALIZE.register((world, game) -> SESSIONS.clear());
         GameEvents.ON_FINISH_FINALIZE.register((world, game) -> SESSIONS.clear());
         RoleAssigned.EVENT.register((player, role) -> SESSIONS.invalidate(player.getUuid()));
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                SESSIONS.invalidate(handler.player.getUuid()));
+        ServerDisconnectCleanup.register((player, server) -> SESSIONS.invalidate(player.getUuid()));
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> SESSIONS.clear());
     }
 

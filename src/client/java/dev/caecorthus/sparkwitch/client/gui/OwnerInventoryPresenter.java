@@ -1,13 +1,18 @@
 package dev.caecorthus.sparkwitch.client.gui;
 
+import dev.caecorthus.sparkfactionapi.client.api.card.GuideDecorBridge;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryInfoCard;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.api.WitchSkillDefinition;
 import dev.caecorthus.sparkwitch.api.WitchSkillRegistry;
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
 import dev.caecorthus.sparkwitch.client.ability.SecondaryAbilityController;
 import dev.caecorthus.sparkwitch.client.apprentice.ApprenticeClientPresentation;
+import dev.caecorthus.sparkwitch.client.compat.SparkStrengthHudBridge;
 import dev.caecorthus.sparkwitch.client.grandwitch.GrandWitchClientPresentation;
 import dev.caecorthus.sparkwitch.client.text.WitchSkillClientTexts;
+import dev.caecorthus.sparkwitch.compat.SparkFactionSecondRowCompat;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.mana.WitchManaRules;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
@@ -44,6 +49,25 @@ public final class OwnerInventoryPresenter {
     private record Frame(InventoryRenderScope.Binding binding, InventoryInfoCard.Snapshot card, boolean ownsTraits) {}
     /** One visited trait as Traits handed it over (not yet copied). 从天赋模组收到的一项天赋（尚未复制）。 */
     private record VisitedTrait(Text name, List<Text> tooltip) {}
+    /**
+     * SparkWitch's own instance of SparkFactionAPI's shared info card (client/api/card): its caches, its "+N more"
+     * lang key, its SparkStrength HUD bridge and its SparkAssist decoration (own logger and failure latch). Never hand
+     * this instance to another mod. Created on first use, so a linkage failure still surfaces inside the guarded
+     * prepare/draw paths below. SparkFactionAPI 0.1.5.13+ draws a 22 px second row above the hotbar strip (its
+     * inactive widget there is already scanned by the card); the second-row rule counts it too, so the block stays
+     * reserved without relying on that widget. It goes through {@link SparkFactionSecondRowCompat#isShown()} so the
+     * wiring point stays shared.
+     * SparkWitch 自己的共享信息卡实例（由 SparkFactionAPI 的 client/api/card 提供）：自己的缓存、“+N 项”语言键、
+     * SparkStrength HUD 桥接与 SparkAssist 点缀（独立的日志名与失败锁存）。不要把该实例交给其他模组。首次使用时才创建，
+     * 因此链接失败仍发生在下方受保护的准备与绘制路径内。SparkFactionAPI 0.1.5.13+ 会在热栏上方绘制 22 像素高的第二行
+     * （其非激活控件已在卡片的扫描中避开）；第二行规则也将其计入，使物品栏块的预留不依赖该控件。该规则经由
+     * {@link SparkFactionSecondRowCompat#isShown()}，以保持同一个接线点。
+     */
+    private static final class Card {
+        private static final InventoryInfoCard INSTANCE = new InventoryInfoCard("gui.sparkwitch.inventory.more",
+                () -> SparkFactionSecondRowCompat.isShown() ? 22 : 0,
+                SparkStrengthHudBridge::topRightHudBottom, new GuideDecorBridge("SparkWitch/GuideDecor"));
+    }
     private static final InventoryRenderScope<Frame> CALLS = new InventoryRenderScope<>();
     private static final TraitsInventoryBridge TRAITS = new TraitsInventoryBridge(
             OwnerInventoryPresenter::traitsFacade, PlayerEntity.class, OwnerInventoryPresenter::ownsTraits);
@@ -109,7 +133,7 @@ public final class OwnerInventoryPresenter {
                 if (!entries.isEmpty()) sections.add(traitsSection(entries));
             });
             // Publish only AFTER all text conversion, eligibility, collection and geometry succeeded.
-            var card = InventoryInfoCard.prepare(screen, font, sections,
+            var card = Card.INSTANCE.prepare(screen, font, sections,
                     FabricLoader.getInstance().isModLoaded("sparktraits"), traits.isPresent());
             scope.publish(new Frame(new InventoryRenderScope.Binding(screen, player, client.world, client.getNetworkHandler()), card, traits.isPresent()));
         } catch (RuntimeException | LinkageError failure) {
@@ -162,10 +186,10 @@ public final class OwnerInventoryPresenter {
             if (frame != null && frame.binding.screen() == screen && frame.binding.player() == player) card = frame.card;
             else {
                 var skill = skillSection(player);
-                card = InventoryInfoCard.prepare(screen, font, skill == null ? List.of() : List.of(skill),
+                card = Card.INSTANCE.prepare(screen, font, skill == null ? List.of() : List.of(skill),
                         FabricLoader.getInstance().isModLoaded("sparktraits"), false);
             }
-            InventoryInfoCard.draw(context, font, card, mouseX, mouseY, screen.width, screen.height);
+            Card.INSTANCE.draw(context, font, card, mouseX, mouseY, screen.width, screen.height);
             if (showsManaTail(card)) manaTailScreen = screen;
             if (showsSkillSection(card)) skillSectionScreen = screen;
         } catch (RuntimeException | LinkageError failure) {
@@ -219,7 +243,7 @@ public final class OwnerInventoryPresenter {
         CALLS.invalidate(); TRAITS.reset(); PROGRESS.reset(); SWORD_PROGRESS.reset();
         cardFailed = false; prepareWarned = false; manaTailScreen = null; skillSectionScreen = null;
         skillKey = null; skillCache = null; traitsCache = null;
-        InventoryInfoCard.invalidateCaches();
+        Card.INSTANCE.invalidateCaches();
     }
 
     /**

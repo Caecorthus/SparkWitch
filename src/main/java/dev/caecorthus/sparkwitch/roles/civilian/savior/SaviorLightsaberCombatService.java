@@ -13,6 +13,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrow
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackManager;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ShouldPiercePsychoArmour;
 import dev.doctor4t.wathe.api.event.ShouldPunishGunShooter;
@@ -30,11 +31,11 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -91,10 +92,13 @@ public final class SaviorLightsaberCombatService {
                 playKillSound(killer, victim);
             }
         });
-        // Terminal reasons: SparkTraits treats these as unprotected kills (no Last Escape / Last Stand / Depression).
-        // 终结原因：SparkTraits 视为不可保护的击杀（无绝处逢生/背水一战/抑郁保护）。
-        SparkTraitsKillerBridge.registerTerminalDeathReason(SaviorRules.PISTOL_DEATH_REASON);
-        SparkTraitsKillerBridge.registerTerminalDeathReason(SaviorRules.LIGHTSABER_DEATH_REASON);
+        // Deliberately NOT SparkTraits-terminal (owner, 2026-11-16): both weapons are combat kills, so every SparkTraits
+        // trait protection (Last Escape, Last Stand, Depression, Stands Firm) answers them as it answers a Wathe gun or
+        // bat. Registering them made a Last Escape killer die to one shot. The SparkWitch-local piercing rules keyed on
+        // SaviorRules.isTerminalKill (Saint, NoellesRoles shields, Charon pardon, Hiro return) are unchanged.
+        // 有意不登记为 SparkTraits 终结死因（所有者 2026-11-16）：两把武器都是战斗击杀，因此 SparkTraits 的所有词条保护
+        // （绝处逢生、背水一战、抑郁、立场坚定）对其的反应与对 Wathe 枪/球棒相同。此前的登记让绝处逢生杀手一枪即死。
+        // 以 SaviorRules.isTerminalKill 为键的 SparkWitch 本地穿透规则（圣徒、NoellesRoles 护盾、卡戎宽恕、希罗回归）不变。
         // Pierce psycho armour (the Jester moment's shields) for these terminal weapon kills. Wathe's real-Jester
         // fake death only reacts to GUN/DEMON_HUNTER, so the custom reasons already skip it; this covers the shields.
         // 穿透精神护甲（小丑时刻的护盾）。Wathe 真正小丑的假死只认 GUN/恶魔猎手，所以自定义死因已绕过假死；这里补护盾。
@@ -103,7 +107,7 @@ public final class SaviorLightsaberCombatService {
         AttackEntityCallback.EVENT.register(SaviorLightsaberCombatService::onSwordAttack);
         // The spam/dedupe maps are per player UUID; drop them on leave and on server stop so they never grow forever.
         // 防刷/去重表按玩家 UUID 记录；离线与服务器停止时清除，避免无限增长。
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> forget(handler.player.getUuid()));
+        ServerDisconnectCleanup.register((player, server) -> forget(player.getUuid()));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> clearAll());
     }
 
@@ -168,14 +172,20 @@ public final class SaviorLightsaberCombatService {
         // 化鸦接缝：近战距离内的乌鸦以其主人代入，因此这一击及其误杀规则作用于黑羽鸦。被拒绝的攻击会解除替身，
         // 本刻之后的其他击杀不会因此结束该乌鸦会话。
         Entity resolved = BlackRavenCrowHits.meleeStandIn(attacker, target);
+        // The flash sits on the entity the blade struck: for a Raven Form crow that is the crow, not its owner's body
+        // elsewhere. Fabric passes no hit result on the server, so the struck entity's body centre is the position.
+        // flash 粒子落在剑刃击中的实体上：化鸦时是乌鸦本身，而不是别处的主人本体。服务端的 Fabric 回调不带命中结果，
+        // 因此取被击中实体的身体中心。
+        Vec3d hitPos = new Vec3d(target.getX(), target.getBodyY(0.5), target.getZ());
         try {
-            return strike(attacker, world, stack, resolved);
+            return strike(attacker, world, stack, resolved, hitPos);
         } finally {
             BlackRavenCrowTargets.forget(resolved);
         }
     }
 
-    private static ActionResult strike(ServerPlayerEntity attacker, World world, ItemStack stack, Entity resolved) {
+    private static ActionResult strike(ServerPlayerEntity attacker, World world, ItemStack stack, Entity resolved,
+                                       Vec3d hitPos) {
         boolean puppet = MagicianPuppetHits.isHittablePuppet(attacker, resolved);
         boolean partygoer = SparkStrengthPartygoerCompat.isPartygoer(resolved);
         if (!(resolved instanceof ServerPlayerEntity) && !puppet && !partygoer) {
@@ -220,6 +230,7 @@ public final class SaviorLightsaberCombatService {
         // 与手枪一致，在受害者仍存活时判定误杀惩罚。
         punishInnocentSwordKill(attacker, victim);
         GameRecordManager.recordItemUse(attacker, SaviorRules.LIGHTSABER_ID, victim, null);
+        spawnImpactFlash(attacker.getServerWorld(), hitPos);
         SaviorRules.settleKill(victim, attacker, SaviorRules.LIGHTSABER_DEATH_REASON);
         // "击杀 30s": only a strike that actually killed costs the cooldown. / 「击杀 30 秒」：只有真正击杀才进入冷却。
         if (!creative && !GameFunctions.isPlayerPlayingAndAlive(victim)) {
@@ -245,6 +256,7 @@ public final class SaviorLightsaberCombatService {
                 stack.getTranslationKey())) {
             return ActionResult.FAIL;
         }
+        spawnImpactFlash(attacker.getServerWorld(), new Vec3d(at.x, puppet.getBodyY(0.5), at.z));
         afterNonPlayerKill(attacker, stack, creative, at);
         return ActionResult.SUCCESS;
     }
@@ -265,6 +277,7 @@ public final class SaviorLightsaberCombatService {
         if (!SparkStrengthPartygoerCompat.killByWeapon(attacker, partygoer, SaviorRules.LIGHTSABER_DEATH_REASON)) {
             return ActionResult.FAIL;
         }
+        spawnImpactFlash(attacker.getServerWorld(), new Vec3d(at.x, partygoer.getBodyY(0.5), at.z));
         afterNonPlayerKill(attacker, stack, creative, at);
         return ActionResult.SUCCESS;
     }
@@ -286,13 +299,18 @@ public final class SaviorLightsaberCombatService {
                 0.9F + world.random.nextFloat() * 0.2F);
     }
 
+    /** One vanilla flash particle where the blade connected. / 剑刃命中处生成一个原版 flash 粒子。 */
+    private static void spawnImpactFlash(ServerWorld world, Vec3d at) {
+        world.spawnParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 1, 0.0, 0.0, 0.0, 0.0);
+    }
+
     /**
      * Sword innocent-kill punishment: mirrors the pistol's Shot Innocent policy, four ticks later and only on a holder
-     * still alive in the round. The lightsaber is taken and, for a Savior, its own hidden revolver drops (count kept,
-     * like Wathe); mood is cleared (a Savior's is pinned full again), gun pickup is blocked and KILL_SHOOTER still kills
-     * the shooter. The pistol's random gun-backfire is not applied to a melee hit.
+     * still alive in the round. The lightsaber is taken and, for a Savior, its own hidden revolver is swapped into the
+     * hand (no ground drop); mood is cleared (a Savior's is pinned full again), gun pickup is blocked and KILL_SHOOTER
+     * still kills the shooter. The pistol's random gun-backfire is not applied to a melee hit.
      * 光剑误杀惩罚：沿用与手枪相同的 Shot Innocent 策略，四刻后执行且只作用于仍在对局中存活的持有者。收走光剑；若是救世主，
-     * 再掉落其自己的隐藏左轮（与 Wathe 一样数量不变）；理智清零（救世主随后又被钉回满值）、禁止拾枪；KILL_SHOOTER 仍会击杀射手。
+     * 再把它自己的预置左轮换到手上（不掉到地上）；理智清零（救世主随后又被钉回满值）、禁止拾枪；KILL_SHOOTER 仍会击杀射手。
      * 手枪的随机炸膛不适用于近战。
      */
     private static void punishInnocentSwordKill(ServerPlayerEntity attacker, ServerPlayerEntity victim) {
@@ -319,7 +337,7 @@ public final class SaviorLightsaberCombatService {
         if (game.canUseKillerFeatures(shooter)) {
             return;
         }
-        SaviorRules.dropHiddenRevolver(shooter);
+        SaviorRules.swapInRevolver(shooter, SparkWitchItems.saviorLightsaber());
         PlayerMoodComponent.KEY.get(shooter).setMood(0.0F);
         game.addToPreventGunPickup(shooter);
         if (SaviorRules.isGoodPlayer(shooter, game) && policy == ShootInnocentPunishment.KILL_SHOOTER) {

@@ -14,6 +14,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderParticipation;
 import dev.caecorthus.sparkwitch.roles.special.wraith.runtime.WraithRoleAnnouncementService;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.util.RoleDisplayTextRules;
+import dev.caecorthus.sparkwitch.util.GroundAnchor;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.WatheRoles;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -38,12 +39,9 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.text.Texts;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.world.GameMode;
-import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -199,7 +197,12 @@ public final class SchrodingersCatService {
         // Drop a charging knife or bat without a release, and any open screen. / 放下蓄力中的刀或球棒（不触发释放），关闭界面。
         cat.clearActiveItem();
         cat.closeHandledScreen();
-        Spectre spectre = new Spectre(world.getRegistryKey(), groundAnchor(world, cat), cat.getYaw(), cat.getPitch(),
+        // "In place" (owner 2026-11-03): the cat's feet, or the floor right below when it was hit mid-air, so it never
+        // gets up falling. With no floor within GROUND_SNAP_DEPTH blocks the anchor stays where it is.
+        // “原地”（所有者 2026-11-03）：猫的脚下；若在半空被击中则取其正下方的地面，绝不在下落中起身。
+        // GROUND_SNAP_DEPTH 格内没有地面时锚点保持原处。
+        Spectre spectre = new Spectre(world.getRegistryKey(), GroundAnchor.of(world, cat, GROUND_SNAP_DEPTH),
+                cat.getYaw(), cat.getPitch(),
                 previous == GameMode.SPECTATOR ? GameMode.ADVENTURE : previous, side,
                 world.getTime() + SchrodingersCatRules.SPECTRE_TICKS);
         SPECTRES.put(cat.getUuid(), spectre);
@@ -219,23 +222,6 @@ public final class SchrodingersCatService {
         cat.fallDistance = 0.0F;
         hold(cat, spectre);
         cat.sendMessage(Text.translatable(COLLAPSING_KEY).withColor(SchrodingersCatRules.COLOR), true);
-    }
-
-    /**
-     * "In place" (owner 2026-11-03): the cat's feet, or the floor right below when it was hit mid-air, so it never
-     * gets up falling. With no floor within {@link #GROUND_SNAP_DEPTH} blocks the anchor stays where it is.
-     * “原地”（所有者 2026-11-03）：猫的脚下；若在半空被击中则取其正下方的地面，绝不在下落中起身。
-     * {@link #GROUND_SNAP_DEPTH} 格内没有地面时锚点保持原处。
-     */
-    private static Vec3d groundAnchor(ServerWorld world, ServerPlayerEntity cat) {
-        Vec3d feet = cat.getPos();
-        if (cat.isOnGround()) {
-            return feet;
-        }
-        BlockHitResult hit = world.raycast(new RaycastContext(feet.add(0.0, 0.1, 0.0),
-                feet.subtract(0.0, GROUND_SNAP_DEPTH, 0.0), RaycastContext.ShapeType.COLLIDER,
-                RaycastContext.FluidHandling.NONE, cat));
-        return hit.getType() == HitResult.Type.BLOCK ? new Vec3d(feet.x, hit.getPos().y, feet.z) : feet;
     }
 
     private static void tick(MinecraftServer server) {

@@ -33,8 +33,10 @@ public final class SaintHudLayoutRules {
         if (ownsTwoCornerRows(roleId)) {
             return fontHeight * 2 + LINE_GAP + SPARKWITCH_BOTTOM_PADDING;
         }
-        // The Medium draws two corner rows too: 通灵 above, 招魂 below.
-        // 通灵师同样在右下角绘制两行：上行为通灵，下行为招魂。
+        // The Medium draws two corner rows too: 通灵 above, 幽灵的加护 below (招魂 lives in the inventory drawer and
+        // has no row); both lift above the hotbar column at narrow widths like the Charon's.
+        // 通灵师同样在右下角绘制两行：上行为通灵，下行为幽灵的加护（招魂位于背包抽屉中，没有角落行）；GUI 较窄时两行与卡戎
+        // 一样抬升到快捷栏列之上。
         if (MediumRules.ROLE_ID.equals(roleId)) {
             return fontHeight * 2 + LINE_GAP + SPARKWITCH_BOTTOM_PADDING;
         }

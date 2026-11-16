@@ -1,7 +1,7 @@
 package dev.caecorthus.sparkwitch.client.bear.launcher;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.launcher.M32Cylinder;
 import dev.doctor4t.wathe.cca.GameWorldComponent;

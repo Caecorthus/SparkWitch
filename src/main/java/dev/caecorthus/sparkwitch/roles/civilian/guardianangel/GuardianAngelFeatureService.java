@@ -6,6 +6,7 @@ import dev.caecorthus.sparkwitch.item.rope.RopeShieldPolicy;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.component.WraithPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecShieldPierce;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.BlackoutEffect;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -52,7 +53,7 @@ public final class GuardianAngelFeatureService {
         BlackoutEffect.BEFORE.register(GuardianAngelFeatureService::beforeBlackout);
         KillPlayer.BEFORE.register(GuardianAngelFeatureService::beforeKill);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> clearReconnectedTarget(handler.player));
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearDisconnectedTarget(handler.player));
+        ServerDisconnectCleanup.register((player, server) -> clearDisconnectedTarget(player));
         ReplayRegistry.registerSkillFormatter(GuardianAngelRules.SKILL_ID, GuardianAngelFeatureService::formatSkillUse);
         ReplayRegistry.registerGlobalEventFormatter(
                 SHIELD_ACTIVATED_EVENT,
@@ -67,27 +68,6 @@ public final class GuardianAngelFeatureService {
         }
         GuardianAngelPlayerComponent.KEY.get(player).initializeForPromotion();
         player.removeStatusEffect(StatusEffects.BLINDNESS);
-    }
-
-    /** Restores private ownership after reconnect without restarting either cooldown. / 重连时恢复私有归属，但不重置任一冷却。 */
-    public static void resumePlayer(ServerPlayerEntity player) {
-        Role role = GameWorldComponent.KEY.get(player.getServerWorld()).getRole(player);
-        if (!GuardianAngelRules.isGuardianAngel(role)) {
-            detachPlayer(player);
-            return;
-        }
-        player.removeStatusEffect(StatusEffects.BLINDNESS);
-        GuardianAngelPlayerComponent component = GuardianAngelPlayerComponent.KEY.get(player);
-        UUID targetUuid = component.getShieldTargetUuid();
-        if (targetUuid != null) {
-            ServerPlayerEntity target = player.getServer().getPlayerManager().getPlayer(targetUuid);
-            if (target == null || !target.hasStatusEffect(GuardianAngelEffects.guardianShield())) {
-                component.clearShieldTarget(targetUuid);
-                SHIELD_OWNERS_BY_TARGET.remove(targetUuid, player.getUuid());
-            } else {
-                SHIELD_OWNERS_BY_TARGET.put(targetUuid, player.getUuid());
-            }
-        }
     }
 
     /** Clears owner state on role exit while an applied target effect finishes independently. / 身份退出时清除持有者状态，但已施加的目标效果独立结束。 */

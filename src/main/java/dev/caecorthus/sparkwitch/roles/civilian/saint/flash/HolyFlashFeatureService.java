@@ -26,6 +26,9 @@ public final class HolyFlashFeatureService {
             return;
         }
         registered = true;
+        // The throw is a recordItemUse; Wathe shows it only through a formatter registered for the Holy Flash id.
+        // 投掷记为 recordItemUse；Wathe 只有在为圣光弹 id 注册了格式化器时才会显示它。
+        HolyFlashReplayFormatter.register();
         KillPlayer.AFTER.register((victim, killer, reason) -> {
             // SparkTraits Last Stand keeps the victim in play, holding their flashes.
             // SparkTraits 背水一战会让受害者继续留在对局中，并保留其圣光弹。

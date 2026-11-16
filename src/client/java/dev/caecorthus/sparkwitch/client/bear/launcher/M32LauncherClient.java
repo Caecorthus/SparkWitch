@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.bear.launcher;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.client.render.model.InventoryIconSwapModel;
 import dev.caecorthus.sparkwitch.client.scope.ScopeClient;
 import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.BearRules;
@@ -58,6 +59,12 @@ public final class M32LauncherClient {
             M32FireInput.reset();
             M32SightState.reset();
         });
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            M32FireInput.reset();
+            M32SightState.reset();
+        });
         M32CursorLoading.installCreativeScreenProbe(M32LauncherClient::creativeScreenOpen);
         SmokeRoundEntityRenderer.registerModels();
         registerModels();
@@ -76,18 +83,20 @@ public final class M32LauncherClient {
 
     /**
      * The held 3-D model ({@code models/item/m32a1.json}, no overrides) becomes the 2-D icon in GUI, ground and item
-     * frames ({@link M32A1IconSwapModel}), as the art package recommends; the aimed launcher's two standalone halves
-     * ({@code item/m32a1_body}, {@code item/m32a1_sight}, same texture and display block) are baked beside it for
-     * {@link M32SightRenderer}. / 手持 3D 模型（{@code models/item/m32a1.json}，无覆盖）在背包、掉落物与物品展示框中换成 2D 图标
-     * （{@link M32A1IconSwapModel}），按美术包的建议；瞄准中发射器的两个独立部分（{@code item/m32a1_body}、
-     * {@code item/m32a1_sight}，贴图与显示块相同）一并烘焙，供 {@link M32SightRenderer} 使用。
+     * frames ({@link InventoryIconSwapModel} with {@code item/m32a1_icon}), as the art package recommends; the wrapped
+     * model must stay an element model and no model may use {@code item/m32a1} as its {@code parent}. The aimed
+     * launcher's two standalone halves ({@code item/m32a1_body}, {@code item/m32a1_sight}, same texture and display
+     * block) are baked beside it for {@link M32SightRenderer}. / 手持 3D 模型（{@code models/item/m32a1.json}，无覆盖）在背包、
+     * 掉落物与物品展示框中换成 2D 图标（{@link InventoryIconSwapModel}，图标 {@code item/m32a1_icon}），按美术包的建议；被包装的
+     * 模型必须保持为元素模型，任何模型都不得以 {@code item/m32a1} 作为 {@code parent}。瞄准中发射器的两个独立部分
+     * （{@code item/m32a1_body}、{@code item/m32a1_sight}，贴图与显示块相同）一并烘焙，供 {@link M32SightRenderer} 使用。
      */
     private static void registerModels() {
         ModelLoadingPlugin.register(context -> {
             context.addModels(ICON_MODEL_ID, M32SightRenderer.BODY_MODEL_ID, M32SightRenderer.SIGHT_MODEL_ID);
             context.modifyModelOnLoad().register((model, loadContext) ->
-                    INVENTORY_MODEL_ID.equals(loadContext.topLevelId()) && !(model instanceof M32A1IconSwapModel)
-                            ? new M32A1IconSwapModel(model, ICON_MODEL_ID)
+                    INVENTORY_MODEL_ID.equals(loadContext.topLevelId()) && !(model instanceof InventoryIconSwapModel)
+                            ? new InventoryIconSwapModel(model, ICON_MODEL_ID, "M32A1")
                             : model);
         });
     }

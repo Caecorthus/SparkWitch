@@ -106,19 +106,6 @@ public final class BlackRavenDisguiseRules {
             sparkwitch("black_raven")
     );
 
-    /** Roles whose adapters ship in batch 1; the rest of ALLOWED shows as UNSUPPORTED. / 第一批已上线适配器的职业。 */
-    public static final Set<Identifier> BATCH1_SHIPPED = orderedSet(
-            noelles("conductor"),
-            noelles("attendant"),
-            noelles("awesome_binglus"),
-            noelles("mermaid"),
-            noelles("time_keeper"),
-            noelles("waiter"),
-            noelles("reporter"),
-            sparkwitch("tarot_reader"),
-            sparkwitch("orthopedist")
-    );
-
     /** Stacks that never leave their slot during a swap. / 交换时永远留在原槽位的物品。 */
     public static final Set<Identifier> PINNED_ITEM_IDS = orderedSet(
             wathe("key"),

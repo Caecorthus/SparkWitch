@@ -7,6 +7,7 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
@@ -83,17 +84,12 @@ public final class HannaComponent implements AutoSyncedComponent, ClientTickingC
         return (int) Math.clamp(floatReadyTick - now, 0L, Integer.MAX_VALUE);
     }
 
-    /** Ticks of penalty left at world time {@code now}. / 惩罚剩余刻数。 */
-    public int penaltyRemaining(long now) {
-        return penaltyEndTick <= 0L ? 0 : (int) Math.clamp(penaltyEndTick - now, 0L, Integer.MAX_VALUE);
-    }
-
     /** Server only (also the forced-cooldown store's setter): moves the ready tick. / 仅服务端（亦为强制冷却存储的写入口）。 */
     public void setFloatReadyTick(long tick) {
         long next = Math.max(0L, tick);
         if (next != floatReadyTick) {
             floatReadyTick = next;
-            sync();
+            syncPrivate();
         }
     }
 
@@ -125,7 +121,7 @@ public final class HannaComponent implements AutoSyncedComponent, ClientTickingC
     /** Server only: starts the interruption penalty. / 仅服务端：开始被打断的惩罚。 */
     public void startPenalty(long now) {
         penaltyEndTick = now + HannaRules.PENALTY_TICKS;
-        sync();
+        syncPrivate();
     }
 
     /** Server only: ends the penalty; returns whether one was running. / 仅服务端：结束惩罚；返回此前是否在惩罚中。 */
@@ -134,7 +130,7 @@ public final class HannaComponent implements AutoSyncedComponent, ClientTickingC
             return false;
         }
         penaltyEndTick = 0L;
-        sync();
+        syncPrivate();
         return true;
     }
 
@@ -173,16 +169,40 @@ public final class HannaComponent implements AutoSyncedComponent, ClientTickingC
         if (floatReadyTick == 0L && floatEndTick == 0L && penaltyEndTick == 0L && sootheEndTick == 0L) {
             return;
         }
+        // Non-owners hold only the float countdown, so they are told only when a float was set. / 非本人只持有浮游倒数，因此只有设置过浮游时才通知他们。
+        boolean hadFloat = floatEndTick > 0L;
         floatReadyTick = 0L;
         floatEndTick = 0L;
         penaltyEndTick = 0L;
         sootheEndTick = 0L;
-        sync();
+        if (hadFloat) {
+            sync();
+        } else {
+            syncPrivate();
+        }
     }
 
+    /** Broadcast: for changes of the public float. / 广播：用于公开的浮游发生变化时。 */
     private void sync() {
         if (player instanceof ServerPlayerEntity) {
             KEY.sync(player);
+        }
+    }
+
+    /**
+     * Sync after a write that changed only the owner-private ready or penalty tick: to the owner alone, so trackers get
+     * no packet timed on Hanna's cooldown or penalty (the Apprentice component's rule). While a float is set it still
+     * goes to everyone, which refreshes their local countdown exactly as before. The network-handler check mirrors
+     * CCA's own recipient rule for the owner.
+     * 只改变本人私有的就绪刻或惩罚刻之后的同步：只发给本人，使追踪者不会收到与汉娜冷却或惩罚同步的数据包（与预备魔女组件
+     * 相同的规则）。浮游已设置时仍发给所有人，与此前完全一样地刷新他们的本地倒数。对网络处理器的判断与 CCA 自身为本人选择
+     * 接收者的规则一致。
+     */
+    private void syncPrivate() {
+        if (floatEndTick > 0L) {
+            sync();
+        } else if (player instanceof ServerPlayerEntity owner && owner.networkHandler != null) {
+            KEY.syncWith(owner, (ComponentProvider) owner);
         }
     }
 

@@ -82,15 +82,6 @@ public enum SeekerBreakSource {
         return kind != Kind.ENVIRONMENT;
     }
 
-    /** Nearest-wins: a nearer device absorbs the hit and shields the player behind it. / 最近者命中。 */
-    public boolean blocksPlayerBehind() {
-        return kind == Kind.RAY || kind == Kind.PROJECTILE;
-    }
-
-    public boolean isBlast() {
-        return kind == Kind.BLAST;
-    }
-
     /** Stable replay NBT value. / 稳定的回放 NBT 值。 */
     public String id() {
         return name().toLowerCase(Locale.ROOT);

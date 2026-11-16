@@ -45,6 +45,9 @@ public final class RysTDazeClient {
                 context.client().execute(() -> start(context.client(), payload)));
         ClientTickEvents.END_CLIENT_TICK.register(RysTDazeClient::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(RysTDazeClient::reset));
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(RysTDazeClient::reset));
     }
 
     /** Whether a daze is running (render thread). / 是否正在眩晕（渲染线程）。 */

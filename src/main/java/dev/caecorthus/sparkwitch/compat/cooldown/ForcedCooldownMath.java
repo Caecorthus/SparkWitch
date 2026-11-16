@@ -67,23 +67,6 @@ public final class ForcedCooldownMath {
     }
 
     /**
-     * Mirror of {@code WitchPlayerComponent#raiseForcedCooldownFloors}: never shortens and never creates a deferred
-     * cooldown.
-     * 与 WitchPlayerComponent#raiseForcedCooldownFloors 一致：绝不缩短，也绝不新建延后冷却。
-     */
-    public static WitchSkillCounters applyWitchSkillFloors(
-            int cooldownTicks,
-            int deferredCooldownTicks,
-            WitchSkillFloors floors
-    ) {
-        int cooldown = Math.max(cooldownTicks, floors.cooldownTicks());
-        int deferred = deferredCooldownTicks > 0
-                ? Math.max(deferredCooldownTicks, floors.deferredCooldownTicks())
-                : deferredCooldownTicks;
-        return new WitchSkillCounters(cooldown, deferred);
-    }
-
-    /**
      * A cooldown on the Kidnapper's drag skill also blocks the release press, so it is never forced while a body is
      * carried.
      * 绑架者拖尸技能的冷却也会拦住“放下”操作，因此携尸期间绝不强制冷却。
@@ -124,9 +107,5 @@ public final class ForcedCooldownMath {
 
     /** Absolute floors for the shared and deferred witch-skill counters. / 共享与延后魔女技能计数的绝对下限。 */
     public record WitchSkillFloors(int cooldownTicks, int deferredCooldownTicks) {
-    }
-
-    /** Resulting shared and deferred witch-skill counters. / 写入后的共享与延后魔女技能计数。 */
-    public record WitchSkillCounters(int cooldownTicks, int deferredCooldownTicks) {
     }
 }

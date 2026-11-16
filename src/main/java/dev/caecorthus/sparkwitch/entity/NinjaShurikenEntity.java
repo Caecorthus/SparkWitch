@@ -132,7 +132,9 @@ public final class NinjaShurikenEntity extends PersistentProjectileEntity implem
                     1.0F,
                     1.0F
             );
-            RangedOriginScope.run(getPos().subtract(getVelocity()), () -> GameFunctions.killPlayer(
+            // BEAR: one step back along the flight is the origin; this shuriken is the attack source.
+            // BEAR：沿飞行方向回退一步即来源点；这枚手里剑即攻击来源。
+            RangedOriginScope.run(getPos().subtract(getVelocity()), getUuid(), () -> GameFunctions.killPlayer(
                     victim,
                     true,
                     thrower,

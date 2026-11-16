@@ -18,6 +18,15 @@ import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 /**
  * Victim-owned delayed Feather Blade mark with recipient-private sync.
  * 由受害者持有的羽刃延迟标记，并按接收者私密同步。
+ * <p>The packet carries one bit that is true only for the Raven who made the mark, so only that Raven ever needs to be
+ * told when a mark is set or cleared; everyone else holds false before and after. A mark or clear therefore syncs to
+ * the marker alone ({@link #syncMarker}): the same packet sent to the victim or to another tracking Raven carried
+ * false, but its arrival told them a silent mark had just landed on this player. {@link #shouldSyncWith} still
+ * serves CCA's own tracking-start sync, which is sent whatever the mark state is and so reveals nothing.
+ * <p>数据包只携带一个比特，且只对做出标记的那名黑羽鸦为 true，因此标记被设置或清除时只需要通知这名黑羽鸦；其他人前后都是
+ * false。所以设置与清除只同步给标记者（{@link #syncMarker}）：发给受害者或其他正在追踪的黑羽鸦的同一个数据包虽然携带 false，
+ * 但它的到达本身就说明该玩家刚刚被无声标记。{@link #shouldSyncWith} 仍用于 CCA 自身在开始追踪时的同步，该同步与标记状态无关，
+ * 因此不泄露任何信息。
  */
 public final class BlackRavenMarkPlayerComponent implements AutoSyncedComponent, ServerTickingComponent {
     public static final ComponentKey<BlackRavenMarkPlayerComponent> KEY = ComponentRegistry.getOrCreate(
@@ -62,7 +71,7 @@ public final class BlackRavenMarkPlayerComponent implements AutoSyncedComponent,
         this.markerUuid = markerUuid;
         this.matchUuid = matchUuid;
         this.expiryTick = Math.max(0L, expiryTick);
-        sync();
+        syncMarker(markerUuid);
         return true;
     }
 
@@ -70,16 +79,26 @@ public final class BlackRavenMarkPlayerComponent implements AutoSyncedComponent,
         if (!hasMark() && matchUuid == null && expiryTick == 0L && !markedForLocalRaven) {
             return false;
         }
+        // The former marker is the only client that holds true and must be told it is gone. / 只有原标记者的客户端持有 true，需要被告知已清除。
+        UUID formerMarker = markerUuid;
         markerUuid = null;
         matchUuid = null;
         expiryTick = 0L;
         markedForLocalRaven = false;
-        sync();
+        if (formerMarker != null) {
+            syncMarker(formerMarker);
+        }
         return true;
     }
 
-    private void sync() {
-        KEY.sync(player);
+    /**
+     * Sends the current state to {@code marker} alone, and only if that player is among CCA's usual recipients (tracking
+     * this player, or this player itself), exactly as the broadcast reached it before.
+     * 只把当前状态发给 {@code marker}，且仅当该玩家属于 CCA 通常的接收者（正在追踪此玩家，或就是此玩家本人）时才发送，
+     * 与此前广播到达它的条件完全一致。
+     */
+    private void syncMarker(UUID marker) {
+        KEY.sync(player, this, recipient -> marker.equals(recipient.getUuid()));
     }
 
     @Override

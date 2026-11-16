@@ -80,21 +80,6 @@ public final class SeekerDeviceRaycast {
         return new EntityHitResult(hit.device(), hit.point());
     }
 
-    /**
-     * Ray check (side-neutral; server hooks and the optional CE taser crosshair hint): the nearest live device on
-     * {@code start → end} that is nearer than {@code playerTarget} (or any device when the target is null); null when
-     * the player (or nothing) is nearer. Ignores the shooter's own devices and does not judge breakability.
-     * 射线检查（两端通用；服务端钩子与可选的控场专家电击枪准星提示）：在 {@code start → end} 上比
-     * {@code playerTarget} 更近（目标为空时任意）的最近存活设备；玩家更近或没有设备时返回 null。
-     * 忽略射手自己的设备，不判断能否打坏。
-     */
-    @Nullable
-    public static SeekerDeviceEntity blockingDevice(Entity shooter, Vec3d start, Vec3d end,
-                                                    @Nullable Entity playerTarget) {
-        DeviceHit hit = blockingHit(shooter, start, end, playerTarget, device -> !isOwnDevice(shooter, device));
-        return hit == null ? null : hit.device();
-    }
-
     /** Pure nearest-wins comparison on squared distances. / 基于平方距离的纯“最近者命中”比较。 */
     public static boolean deviceWins(double deviceDistanceSquared, double targetDistanceSquared) {
         return deviceDistanceSquared < targetDistanceSquared;

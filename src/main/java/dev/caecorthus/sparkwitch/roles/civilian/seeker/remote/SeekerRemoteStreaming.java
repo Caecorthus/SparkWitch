@@ -8,9 +8,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerStatusComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerTargeting;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceEntity;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerDeviceService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicketType;
@@ -85,7 +85,7 @@ public final class SeekerRemoteStreaming {
         ServerTickEvents.END_WORLD_TICK.register(SeekerRemoteStreaming::tick);
         // A disconnected owner's view is gone with its connection; its device tickets simply expire.
         // 断线拥有者的视野随连接消失；其设备票据自行过期。
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> forget(handler.player.getUuid()));
+        ServerDisconnectCleanup.register((player, server) -> forget(player.getUuid()));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             STREAMING.clear();
             RESETTLING.clear();

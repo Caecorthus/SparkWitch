@@ -55,8 +55,8 @@ void main() {
     if (worst < UPSAMPLE_FLAT) {
         smoke = blurred;
     } else {
-        // Depth edge: the four nearest texels, weighted by depth match. Mirrors SmokeMarchRules.upsampleWeights.
-        // 深度边缘：取最近的四个纹素，按深度匹配加权。镜像 SmokeMarchRules.upsampleWeights。
+        // Depth edge: the four nearest texels, weighted by depth match. Mirrors SmokeShaderReference.upsampleWeights (tests).
+        // 深度边缘：取最近的四个纹素，按深度匹配加权。镜像 SmokeShaderReference.upsampleWeights（测试）。
         vec2 lowPos = (vec2(px) + 0.5) * 0.5 - 0.5;
         ivec2 base = ivec2(floor(lowPos));
         vec2 f = lowPos - vec2(base);

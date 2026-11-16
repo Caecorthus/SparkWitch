@@ -11,10 +11,10 @@ import dev.caecorthus.sparkwitch.roles.witch.riftwalker.net.RiftGateConsoleReque
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.net.RiftGateConsoleS2CPacket;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.net.RiftwalkerNetworking;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -61,7 +61,7 @@ public final class RiftGateConsoleService {
             return;
         }
         registered = true;
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> SESSIONS.remove(handler.player.getUuid()));
+        ServerDisconnectCleanup.register((player, server) -> SESSIONS.remove(player.getUuid()));
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> SESSIONS.clear());
     }
 
