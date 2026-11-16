@@ -8,6 +8,7 @@ import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.net.FerrymanFerryC2SPayload;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.net.FerrymanPardonC2SPayload;
+import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.CanTargetBody;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.entity.PlayerBodyEntity;
@@ -34,6 +35,7 @@ public final class FerrymanClient {
     public static void register() {
         FerrymanClientHighlights.register();
         FerrymanHud.register();
+        LostSoulOrderHud.register();
         SecondaryAbilityRegistry.register(SparkWitchRoles.FERRYMAN_ID, new SecondaryAbilityHandler() {
             @Override
             public void onPressed(MinecraftClient client) {
@@ -80,6 +82,29 @@ public final class FerrymanClient {
         return isLocalCharonRole(player)
                 && SparkWitchServerConnection.isConfirmedServer()
                 && GameWorldComponent.KEY.get(player.getWorld()).getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
+                && GameFunctions.isPlayerPlayingAndAlive(player)
+                && !GameFunctions.isPlayerSpectatingOrCreative(player)
+                && !NoellesTaotieSeekerBridge.isSwallowed(player);
+    }
+
+    /**
+     * The Lost Soul's twin of {@link #isActiveLocalCharon}: the raw synced Lost Soul role on a confirmed SparkWitch
+     * server, in an ACTIVE round, playing and alive, not a spectator (so not swallowed) and not in creative. Wathe
+     * keeps a dead player's role until the round is finalized, so the soul's sight and its order line must ask this
+     * instead of the bare role, or a fallen soul would keep both as a spectator. Presentation only.
+     * {@link #isActiveLocalCharon} 的迷失灵魂版本：已确认的 SparkWitch 服务器上、ACTIVE 回合中、真实同步职业为迷失的灵魂、
+     * 在局存活、非旁观（因此未被吞下）且非创造模式。Wathe 会把死者的职业保留到对局结算，因此灵魂的视野与命令行必须询问本
+     * 判定而不是只看职业，否则倒下的灵魂在旁观时仍会保留两者。仅用于展示。
+     */
+    public static boolean isActiveLocalLostSoul(@Nullable ClientPlayerEntity player) {
+        if (player == null) {
+            return false;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
+        Role role = game.getRole(player);
+        return role != null && FerrymanRules.LOST_SOUL_ID.equals(role.identifier())
+                && SparkWitchServerConnection.isConfirmedServer()
+                && game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE
                 && GameFunctions.isPlayerPlayingAndAlive(player)
                 && !GameFunctions.isPlayerSpectatingOrCreative(player)
                 && !NoellesTaotieSeekerBridge.isSwallowed(player);

@@ -59,9 +59,9 @@ public final class BearRicochetService {
         if (force) {
             return false;
         }
-        // A Charon's expired pardon replays, 10 ticks later and outside any scope, a kill it held at priority 1200,
+        // A Charon's expired pardon replays, up to 30 ticks later and outside any scope, a kill it held at priority 1200,
         // after this hook let it through: the same attack, so the same answer (not deflected) without a new roll.
-        // 摆渡人的宽恕窗口过期后，会在 10 刻后、于任何作用域之外重放它在优先级 1200 扣住的击杀，而该击杀已被本钩子放行：
+        // 摆渡人的宽恕窗口过期后，会在至多 30 刻后、于任何作用域之外重放它在优先级 1200 扣住的击杀，而该击杀已被本钩子放行：
         // 这是同一次攻击，因此不再掷骰，结果相同（未弹开）。
         if (FerrymanPardonService.isReplayingHeldKill()) {
             return false;

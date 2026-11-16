@@ -692,14 +692,14 @@ public final class SparkWitchForcedCooldowns {
      * {@code sparkwitch:ferryman} component; it gates whether a lethal hit opens a pardon window at all. An ACTIVE
      * round, the raw role (as {@code FerrymanParticipation} reads it; a disguise overlay never widens it) and no open
      * window: a press inside the window writes the post-pardon cooldown, so a running window is never forced
-     * (Dominator / Specter precedent). Remaining time includes the 60 s round-start cooldown; the nominal is the 10 s
-     * cooldown after each pardon. The setter is exact (floored at 0) and syncs the owner. The skill has no item, so
+     * (Dominator / Specter precedent). Remaining time includes the 60 s round-start cooldown; the nominal is the 5 s
+     * cooldown after each successful block (not the 15 s whiff). The setter is exact (floored at 0) and syncs the owner. The skill has no item, so
      * SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it; forced raises and extends
      * on role skills (the Abyss Listener's suppression, the Potion Gunner's AC shell) do.
      * 卡戎宽恕冷却（PR #202），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:ferryman} 组件中；它决定致命一击能否开启
      * 宽恕窗口。ACTIVE 回合、真实职业（与 FerrymanParticipation 的读取方式一致，伪装覆盖层绝不放宽）且没有开启的窗口：窗口内
-     * 按键会写入宽恕后冷却，因此进行中的窗口绝不强制（支配者、幽魂先例）。剩余时间包含 60 秒开局冷却；标准冷却为每次宽恕后的
-     * 10 秒。setter 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}
+     * 按键会写入宽恕后冷却，因此进行中的窗口绝不强制（支配者、幽魂先例）。剩余时间包含 60 秒开局冷却；标准冷却为每次成功格挡后的
+     * 5 秒（不是空放的 15 秒）。setter 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}
      * （只清手持物品）触及不到它；作用于职业技能的强制抬高与延长（聆渊者压制、药炮手 AC 弹）可以。
      */
     static SimpleRoleSkillCooldownStore ferrymanPardon() {

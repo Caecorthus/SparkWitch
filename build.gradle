@@ -528,6 +528,16 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
         [
+                configName: "ferryman.FerrymanCohortRoleNameMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/ferryman/FerrymanCohortRoleNameMixin.class",
+                handler: "sparkwitch\$renderLostSoulCohort",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
                 configName: "blind.BlindGateRoleNameRendererMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blind/BlindGateRoleNameRendererMixin.class",
                 handler: "sparkwitch\$blindHidesRoleNames",
@@ -1094,8 +1104,8 @@ def watheCommonMixinContracts = [
         ],
         [
                 // Specter Otherworld targeting rule: HEAD 1040, after the default-1000 immunity guards and before the
-                // 1050 ricochet and the 1100 Fiend/vest, so a voided knife kill spends nothing.
-                // 幽魂里世界索敌规则：HEAD 1040，位于默认 1000 的免疫守卫之后，并先于 1050 跳弹与 1100 魔人/防弹衣，作废的刀杀不消耗任何东西。
+                // 1050 ricochet and the 1100 Fiend/vest, so a kill it voids (any weapon) spends no protection.
+                // 幽魂里世界索敌规则：HEAD 1040，位于默认 1000 的免疫守卫之后，并先于 1050 跳弹与 1100 魔人/防弹衣，被作废的击杀（任何武器）不消耗任何保护。
                 configName: "specter.GameFunctionsSpecterOtherworldTargetMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/mixin/specter/GameFunctionsSpecterOtherworldTargetMixin.class",
                 handler: "sparkwitch\$blockOtherworldKillOnInvalidTarget",
@@ -1131,6 +1141,20 @@ def watheCommonMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/util/KnifeStabPayload\$Receiver.class",
                 providerMethod: "receive",
                 providerDescriptor: "(Ldev/doctor4t/wathe/util/KnifeStabPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // Specter Otherworld gun drop: HEAD 900, before the default-1000 gun guards (rejected targets only), so a
+                // shot the 1040 rule would void never reaches Wathe's shot-an-innocent branch.
+                // 幽魂里世界枪击丢弃：HEAD 900，先于默认 1000 的枪械守卫（仅被拒绝的目标），使会被 1040 规则作废的射击不会进入 Wathe 的误杀无辜分支。
+                configName: "specter.SpecterOtherworldGunMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/specter/SpecterOtherworldGunMixin.class",
+                handler: "sparkwitch\$dropRejectedOtherworldShot",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "receive(Ldev/doctor4t/wathe/util/GunShootPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                priority: 900,
+                providerEntry: "dev/doctor4t/wathe/util/GunShootPayload\$Receiver.class",
+                providerMethod: "receive",
+                providerDescriptor: "(Ldev/doctor4t/wathe/util/GunShootPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
         ],
         [
                 // 二阶堂希罗 死亡回归: HEAD order 0, a fake-dead victim cannot be killed again (the @Inject order values are

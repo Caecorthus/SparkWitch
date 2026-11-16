@@ -649,7 +649,7 @@ public final class BlackRavenCrowHits {
                     && !skipOwners.contains(owner.getUuid()) && !game.isPlayerDead(owner.getUuid())
                     && BlackRavenCrowHitRules.inBlastSphere(center, box.getCenter(), radius)
                     && SeekerDamageRules.hasLineOfSight(world, center, box, null)
-                    && BlackRavenCrowTargets.mayAffect(killer, owner, deathReason)) {
+                    && BlackRavenCrowTargets.killCanLand(killer, owner, deathReason)) {
                 hit.add(target.crow());
             }
         }

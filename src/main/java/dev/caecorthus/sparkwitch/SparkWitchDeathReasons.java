@@ -59,9 +59,9 @@ public final class SparkWitchDeathReasons {
      */
     public static final Identifier CEREBELLUM = SparkWitch.id("cerebellum");
     /**
-     * The Ferryman's 0.5 s pardon window expired: the held kill replays with this reason when the original one is
+     * The Ferryman's 1.5 s pardon window expired: the held kill replays with this reason when the original one is
      * unknown. Ordinary, non-forced kill; the body follows the held kill's own {@code spawnBody}.
-     * 摆渡人的 0.5 秒宽恕窗口过期：原死亡原因未知时以该原因重放被扣住的击杀。普通、非强制击杀；是否留尸沿用被扣住击杀
+     * 摆渡人的 1.5 秒宽恕窗口过期：原死亡原因未知时以该原因重放被扣住的击杀。普通、非强制击杀；是否留尸沿用被扣住击杀
      * 自身的 {@code spawnBody}。
      */
     public static final Identifier PARDON_EXPIRED = SparkWitch.id("pardon_expired");
