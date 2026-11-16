@@ -1860,10 +1860,17 @@ Current build baseline:
     call burst of one shooter, so one roll holds for every retry).
   - Innocent kill (SparkFactionAPI effective faction CIVILIAN, the Knight/Recruit rule): Wathe's policy 4 ticks later,
     only while the shooter is still alive in the round: the used weapon is taken; a killer-feature shooter loses only
-    that; otherwise a Savior's hidden revolver (not a new one) is dropped, mood 0, gun pickup blocked, `KILL_SHOOTER`
-    kills a good shooter with `shot_innocent`; the pistol also rolls Wathe's backfire for a good shooter. The gun-pickup rules (`SaviorGunPickupRules` + three mixins) veto only foreign guns (Wathe `guns`, Hunter
+    that; otherwise a Savior's hidden revolver moves into the selected hotbar slot (`SaviorRules.swapInRevolver`, owner
+    2026-11-16, PR #234: nothing drops and no revolver is created; a stack still in the hand goes to the first free
+    reachable slot, hotbar then 27–35, and takes the revolver's old slot only when none is free; the revolver inherits
+    the cooldown still running on the confiscated weapon through `SaviorCooldowns.carryOver`), mood 0, gun pickup
+    blocked, `KILL_SHOOTER` kills a good shooter with `shot_innocent`; the pistol also rolls Wathe's backfire for a
+    good shooter. The punished Savior goes on with that plain Wathe revolver. The gun-pickup rules (`SaviorGunPickupRules` + three mixins) veto only foreign guns (Wathe `guns`, Hunter
     shotgun, AXMC, Shriek Gun) and refuse server-side every click, swap or pick-from-inventory that would move the
-    hidden revolver out of rows 9–26.
+    hidden revolver out of rows 9–26. Only the punishment moves it; once in the hotbar it is an ordinary item, and
+    `SaviorGunPickupRules.blocksInsert` lets it back into the inventory (cursor stack on screen close or disconnect)
+    while the Savior carries no other revolver. Ground pickup of any gun stays refused. Wathe fires that revolver
+    under its passenger rule (15 s; the Savior has no police gun-parity wrapper).
   - Domain (G, `use_savior_skill`, `SaviorDomainService`): ACTIVE round, living, not spectating or swallowed, not
     SparkTraits skill-blocked, not Feared; 10 s around the Savior, 15 blocks: night vision and blindness removal for
     everyone inside, Slowness I for everyone but the Savior; 60 s opening and post-use cooldown in
