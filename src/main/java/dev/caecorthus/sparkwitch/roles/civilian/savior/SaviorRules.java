@@ -157,19 +157,25 @@ public final class SaviorRules {
      * Savior goes on with a plain Wathe revolver. A stack still held in that slot moves to the first free slot the
      * player can reach ({@link #displacedHandOrder}); only when none is free does it take the revolver's old slot, so
      * nothing is deleted or dropped. No revolver is created: a Savior who carries none (it was already handed over and
-     * lost) gets nothing, which keeps one revolver per Savior. Only the Savior has a planted revolver: for any other
-     * holder the confiscated Savior weapon is the whole loss and their own guns stay (USEC any-holder precedent).
+     * lost) gets nothing, which keeps one revolver per Savior. The revolver inherits the cooldown still running on the
+     * confiscated weapon {@code used} ({@link SaviorCooldowns#carryOver}), so the punishment never brings the next
+     * shot forward. Only the Savior has a planted revolver: for any other holder the confiscated Savior weapon is the
+     * whole loss and their own guns stay (USEC any-holder precedent).
      * 所有者 2026-11-16 决定（PR #234）：惩罚不再掉落枪支。救世主的预置左轮（先查 {@link #HIDDEN_REVOLVER_SLOT} 号槽，再查
      * 其他槽）移到当前选中的快捷栏槽，被惩罚的救世主改用普通的 Wathe 左轮。该槽里原有的物品移到玩家够得着的第一个空槽
      * （{@link #displacedHandOrder}）；没有空槽时才放进左轮原来的槽位，因此不会删除或掉落任何物品。不会新建左轮：身上没有
-     * 左轮的救世主（那把已经交出并丢失）什么也得不到，保持每名救世主只有一把左轮。只有救世主身上有预置左轮：其他持有者只
-     * 损失被没收的救世主武器，自己的枪保持不动（USEC 任何持有者先例）。
+     * 左轮的救世主（那把已经交出并丢失）什么也得不到，保持每名救世主只有一把左轮。左轮继承被没收武器 {@code used} 上仍在运行的
+     * 冷却（{@link SaviorCooldowns#carryOver}），因此惩罚不会让下一枪提前。只有救世主身上有预置左轮：其他持有者只损失被没收的
+     * 救世主武器，自己的枪保持不动（USEC 任何持有者先例）。
      */
-    static void swapInRevolver(ServerPlayerEntity shooter) {
+    static void swapInRevolver(ServerPlayerEntity shooter, Item used) {
         if (!isSavior(GameWorldComponent.KEY.get(shooter.getWorld()).getRole(shooter))) {
             return;
         }
         PlayerInventory inventory = shooter.getInventory();
+        if (inventory.contains(stack -> stack.isOf(WatheItems.REVOLVER))) {
+            SaviorCooldowns.carryOver(shooter, used, WatheItems.REVOLVER);
+        }
         int selected = inventory.selectedSlot;
         ItemStack hand = inventory.getStack(selected);
         if (hand.isOf(WatheItems.REVOLVER)) {

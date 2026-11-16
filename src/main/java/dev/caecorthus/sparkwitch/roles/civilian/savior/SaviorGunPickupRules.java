@@ -16,12 +16,14 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * The Savior already carries their pistol and may not pick up or otherwise obtain other guns: Wathe's gun tag plus
  * SparkWitch's own guns. The Savior's own pistol and lightsaber are never vetoed (taking them back from a chest or a
  * Knight duel hotbar move must work). The hidden revolver in the locked main rows stays put against a modified client;
- * only the innocent-kill punishment moves it into the hand ({@code SaviorRules.swapInRevolver}, owner 2026-11-16), and
- * a revolver outside rows 9–26 is no longer guarded. Server-authoritative and creative-exempt, following the USEC gun
- * rules.
+ * only the innocent-kill punishment moves it into the hand ({@code SaviorRules.swapInRevolver}, owner 2026-11-16).
+ * From then on it is an ordinary hotbar item: clicks on it are not refused, and it may come back into the inventory
+ * while the Savior carries no other revolver ({@link #blocksInsert}); picking a gun off the ground stays refused.
+ * Server-authoritative and creative-exempt, following the USEC gun rules.
  * 救世主已有手枪，不可再捡或获得其他枪：Wathe 枪械标签加上 SparkWitch 自己的枪械。救世主自己的手枪与光剑永不拦截
  * （从箱子取回、骑士决斗移到快捷栏都必须可行）。锁定主背包行中的隐藏左轮防止改包客户端移出；只有误杀惩罚会把它换到手上
- * （{@code SaviorRules.swapInRevolver}，所有者 2026-11-16），离开 9–26 行的左轮不再受保护。服务端裁定，创造模式豁免，
+ * （{@code SaviorRules.swapInRevolver}，所有者 2026-11-16）。此后它就是普通的快捷栏物品：对它的点击不再被拒绝，并且只要
+ * 救世主身上没有别的左轮，它就可以回到物品栏（{@link #blocksInsert}）；从地上捡枪仍被拒绝。服务端裁定，创造模式豁免，
  * 沿用 USEC 枪械规则。
  */
 public final class SaviorGunPickupRules {
@@ -30,6 +32,22 @@ public final class SaviorGunPickupRules {
 
     public static boolean blocks(ServerPlayerEntity player, ItemStack stack) {
         return isRestrictedSavior(player) && isForeignGun(stack);
+    }
+
+    /**
+     * Server, {@code PlayerInventory} insert and offer: a foreign gun is refused, but the Savior's own revolver may
+     * come back while the inventory holds no other one. After the punishment the revolver is a hotbar item the player
+     * can lift onto the cursor; vanilla {@code ScreenHandler.onClosed} (and Wathe's disconnect path) hand the cursor
+     * stack back through offer/insert, and refusing it there would drop the gun at the feet of a Savior who may never
+     * pick guns up, or delete it. One revolver per Savior still holds: a second one is refused.
+     * 服务端，{@code PlayerInventory} 的插入与 offer：外来枪械被拒绝，但只要物品栏里没有别的左轮，救世主自己的左轮可以放回。
+     * 惩罚之后左轮是玩家可以拿到光标上的快捷栏物品；原版 {@code ScreenHandler.onClosed}（以及 Wathe 的断线路径）通过
+     * offer/insert 归还光标物品，在那里拒绝会让枪掉在一名永远不能捡枪的救世主脚下，甚至被删除。每名救世主仍只有一把左轮：
+     * 第二把会被拒绝。
+     */
+    public static boolean blocksInsert(ServerPlayerEntity player, ItemStack stack) {
+        return blocks(player, stack) && !(stack.isOf(WatheItems.REVOLVER)
+                && !player.getInventory().contains(held -> held.isOf(WatheItems.REVOLVER)));
     }
 
     /**

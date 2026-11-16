@@ -334,7 +334,7 @@ public final class SaviorLightsaberCombatService {
         if (game.canUseKillerFeatures(shooter)) {
             return;
         }
-        SaviorRules.swapInRevolver(shooter);
+        SaviorRules.swapInRevolver(shooter, SparkWitchItems.saviorLightsaber());
         PlayerMoodComponent.KEY.get(shooter).setMood(0.0F);
         game.addToPreventGunPickup(shooter);
         if (SaviorRules.isGoodPlayer(shooter, game) && policy == ShootInnocentPunishment.KILL_SHOOTER) {

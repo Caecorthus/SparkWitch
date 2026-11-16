@@ -248,7 +248,7 @@ public final class SaviorPistolService {
         if (game.canUseKillerFeatures(shooter)) {
             return;
         }
-        SaviorRules.swapInRevolver(shooter);
+        SaviorRules.swapInRevolver(shooter, SparkWitchItems.saviorPistol());
         ServerPlayNetworking.send(shooter, new SaviorGunDropS2CPayload());
         PlayerMoodComponent.KEY.get(shooter).setMood(0.0F);
         game.addToPreventGunPickup(shooter);
