@@ -68,6 +68,9 @@ public abstract class FerrymanCohortRoleNameMixin {
                 SmokeTargetOcclusion.filterLabelTarget(player, MagicianPuppetNameTags.stopAtPuppets(nameTarget), range),
                 range)) instanceof EntityHitResult hit)
                 || !(hit.getEntity() instanceof PlayerEntity target)
+                // A Magician puppet of the viewer resolves to the viewer: never label yourself, as the siblings do.
+                // 魔术师为观察者本人放出的皮套会解析成观察者自己：与同构实现一样，绝不给自己贴标签。
+                || target.getUuid().equals(player.getUuid())
                 || !isLostSoul(GameWorldComponent.KEY.get(player.getWorld()).getRole(target))) {
             return;
         }

@@ -528,6 +528,16 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
         [
+                configName: "ferryman.FerrymanCohortRoleNameMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/ferryman/FerrymanCohortRoleNameMixin.class",
+                handler: "sparkwitch\$renderLostSoulCohort",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
                 configName: "blind.BlindGateRoleNameRendererMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/blind/BlindGateRoleNameRendererMixin.class",
                 handler: "sparkwitch\$blindHidesRoleNames",

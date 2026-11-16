@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.packet.s2c.play.ClearTitleS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
@@ -250,6 +251,9 @@ public final class FerrymanMomentService {
         // Two layers of the same order: a big centred line at the moment of revival, then the kill order that the
         // client keeps pinned beside the sanity bar for as long as the role lasts.
         // 同一道命令的两层呈现：复活瞬间屏幕中央的大字，以及角色存续期间固定在理智条旁的那句杀令。
+        // Drop a title or subtitle another moment may still be showing, so no stale subtitle sits under the order.
+        // 先清除其他时刻可能仍在显示的标题与副标题，避免旧副标题留在这句命令下面。
+        soul.networkHandler.sendPacket(new ClearTitleS2CPacket(false));
         soul.networkHandler.sendPacket(new TitleFadeS2CPacket(5, 60, 15));
         soul.networkHandler.sendPacket(new TitleS2CPacket(
                 Text.translatable(TITLE_KEY).formatted(Formatting.RED, Formatting.BOLD)));

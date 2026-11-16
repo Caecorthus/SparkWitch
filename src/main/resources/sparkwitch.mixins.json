@@ -171,6 +171,7 @@
     "ferryman.NoellesVultureFerrymanFakeBodyMixin",
     "ferryman.BodyBagItemFerrymanFeignMixin",
     "ferryman.GameFunctionsFerrymanPardonMixin",
+    "ferryman.GameFunctionsFerrymanSettlementMixin",
     "ferryman.NoellesSwapperFerrymanFeignMixin",
     "ferryman.ServerPlayNetworkHandlerFerrymanFeignMixin",
     "ferryman.ServerPlayerEntityFerrymanFeignMixin",

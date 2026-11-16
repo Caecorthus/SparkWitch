@@ -29,6 +29,16 @@ import java.util.UUID;
  * 仍然新鲜（死亡不超过 {@link FerrymanRules#FRESH_BODY_TICKS}，读取 Wathe 同步的死亡时间）且尚未摆渡的遗体以琥珀色显示，
  * 便于找到仍可摆渡的遗体。该事件仅客户端且标记只同步给拥有者，因此其他人看不到这些颜色；{@code always} 让它们不依赖
  * 本能键。颜色从不表示遗体是否为假：该判定只在服务端，因此假死尸体看起来与其他新鲜遗体无异，直到服务端拒绝摆渡。
+ *
+ * <p>PR #232: the Charon also sees every living Lost Soul through walls in the souls' cyan, and a living Lost Soul sees
+ * the whole lobby through walls at any distance, fellow souls in cyan, the Charon in grey and everyone else in red.
+ * Both marks follow the 瞥视 liveness rule ({@link #isGazeVisible}) and the viewer gates
+ * ({@link FerrymanClient#isActiveLocalLostSoul}, {@link FerrymanClient#isActiveLocalCharon}), so a dead viewer keeps
+ * Wathe's spectator instinct and a dead, feigning, swallowed or creative target draws nothing.
+ * PR #232：卡戎还能穿墙看见每一名存活的迷失灵魂（灵魂青色）；存活的迷失灵魂则不限距离穿墙看清全场：队友青色、卡戎灰色、
+ * 其余所有人红色。两种描边都遵循「瞥视」的存活规则（{@link #isGazeVisible}）与观察者门槛
+ * （{@link FerrymanClient#isActiveLocalLostSoul}、{@link FerrymanClient#isActiveLocalCharon}），因此死亡的观察者保留
+ * Wathe 的旁观者本能，已死亡、假死中、被吞下或创造模式的目标不会被描边。</p>
  */
 public final class FerrymanClientHighlights {
     /** 瞥视：dark red, as the owner's spec writes it. / 瞥视：深红，按所有者设定。 */
@@ -37,9 +47,9 @@ public final class FerrymanClientHighlights {
     private static final int MERCY_COLOR = 0x8FD3FF;
     /** Fresh, not yet ferried. / 尚未摆渡的新鲜遗体。 */
     private static final int FRESH_BODY_COLOR = 0xFFD27A;
-    /** A Lost Soul's 6 block red sight. / 迷失灵魂 6 格内的红色透视。 */
-    /** A Lost Soul's sight: teammates cyan, the Charon grey, everyone else red. / 迷失灵魂的视野：队友青、卡戎灰、其余红色。 */
+    /** A Lost Soul's sight of the Charon; fellow souls use {@link FerrymanRules#SOUL_TEAM_COLOR}. / 迷失灵魂眼中的卡戎；队友用灵魂青色。 */
     private static final int CHARON_GREY = 0x9AA0A6;
+    /** A Lost Soul's sight of everyone else. / 迷失灵魂眼中的其他所有人。 */
     private static final int SOUL_ENEMY_COLOR = 0xFF4A4A;
     private static final int PRIORITY = GetInstinctHighlight.HighlightResult.PRIORITY_DEFAULT + 40;
     /**
@@ -82,17 +92,19 @@ public final class FerrymanClientHighlights {
         if (self == null || target == null || target == self) {
             return null;
         }
-        GameWorldComponent game = GameWorldComponent.KEY.get(self.getWorld());
-        Role selfRole = game.getRole(self);
-        // A Lost Soul reads the whole lobby through walls: its teammates in cyan, the Charon in grey, everyone else in
-        // red. Distance never matters and every mark is local to this client, so nobody else renders these colours.
-        // 迷失的灵魂能穿墙看清全场：队友青色、卡戎灰色、其余所有人红色。距离不影响判定，且所有描边都只对本客户端生效，
-        // 其他人看到的画面不受影响。
-        if (selfRole != null && FerrymanRules.LOST_SOUL_ID.equals(selfRole.identifier())) {
-            if (!(target instanceof PlayerEntity other)) {
+        // A living Lost Soul reads the whole lobby through walls: its teammates in cyan, the Charon in grey, everyone
+        // else in red. Distance never matters and every mark is local to this client, so nobody else renders these
+        // colours. A fallen soul (Wathe keeps its role until the round is finalized) is not "active": it falls through
+        // to the Charon gate below, gets null and keeps Wathe's own spectator instinct. Targets follow the 瞥视 liveness
+        // rule, so a dead, feigning, swallowed or creative player is never outlined.
+        // 存活的迷失灵魂能穿墙看清全场：队友青色、卡戎灰色、其余所有人红色。距离不影响判定，且所有描边都只对本客户端生效，
+        // 其他人看到的画面不受影响。倒下的灵魂（Wathe 会把其职业保留到对局结算）不算“行动中”：落到下面的卡戎门槛、得到 null，
+        // 保留 Wathe 自带的旁观者本能。目标遵循「瞥视」的存活规则，因此已死亡、假死中、被吞下或创造模式的玩家不会被描边。
+        if (FerrymanClient.isActiveLocalLostSoul(self)) {
+            if (!(target instanceof PlayerEntity other) || !isGazeVisible(other)) {
                 return null;
             }
-            Role otherRole = game.getRole(other);
+            Role otherRole = GameWorldComponent.KEY.get(self.getWorld()).getRole(other);
             if (otherRole == null) {
                 return null;
             }
@@ -111,10 +123,10 @@ public final class FerrymanClientHighlights {
         }
         FerrymanPlayerComponent component = FerrymanPlayerComponent.KEY.get(self);
         if (target instanceof PlayerEntity player) {
-            // The Charon always sees his Lost Souls through walls, in their own cyan: during the moment they are his
-            // squad, so he must find them the same way they find each other.
-            // 卡戎永远能穿墙看见自己的迷失灵魂，用的是灵魂的青色：时刻里他们就是他的队伍，找人方式必须和灵魂之间一致。
-            if (isLostSoul(player)) {
+            // The Charon always sees his living Lost Souls through walls, in their own cyan: during the moment they are
+            // his squad, so he must find them the same way they find each other.
+            // 卡戎永远能穿墙看见自己仍存活的迷失灵魂，用的是灵魂的青色：时刻里他们就是他的队伍，找人方式必须和灵魂之间一致。
+            if (isLostSoul(player) && isGazeVisible(player)) {
                 return GetInstinctHighlight.HighlightResult.always(FerrymanRules.SOUL_TEAM_COLOR, PRIORITY + 5);
             }
             return component.hasGaze(player.getUuid()) && isGazeVisible(player)
@@ -143,7 +155,8 @@ public final class FerrymanClientHighlights {
     }
 
     /**
-     * A 瞥视 outline only for a marked attacker that is playing and alive and standing in the world, the liveness half
+     * A 瞥视 outline only for a marked attacker that is playing and alive and standing in the world (since PR #232 the
+     * Lost Soul sight and the Charon's soul marks ask the same question of their targets), the liveness half
      * of the Black Raven's public-visibility rule ({@code BlackRavenInstinctClientHooks.isPubliclyVisible}): a dead
      * attacker, a spectator (feigning, swallowed, inside a Rift Gate) and a creative player draw nothing. Invisibility
      * is still not read, exactly as before this gate.

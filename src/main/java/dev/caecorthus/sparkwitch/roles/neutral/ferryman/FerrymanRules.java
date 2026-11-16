@@ -20,8 +20,10 @@ public final class FerrymanRules {
     public static final Identifier ROLE_ID = SparkWitch.id("charon");
     public static final int COLOR = 0x4C6B7A;
 
-    /** The Lost Souls' own role id and cyan, shared by the sight marks and the name-tag cohort label. */
-    /** 迷失的灵魂自身的职业 id 与青色，供视野描边与名牌同伙标签共用。 */
+    /**
+     * The Lost Souls' own role id and cyan, shared by the sight marks and the name-tag cohort label.
+     * 迷失的灵魂自身的职业 id 与青色，供视野描边与名牌同伙标签共用。
+     */
     public static final Identifier LOST_SOUL_ID = SparkWitch.id("lost_soul");
     public static final int SOUL_TEAM_COLOR = 0x39E6D0;
     public static final String LOST_SOUL_COHORT_KEY = "game.tip.sparkwitch.lost_soul_cohort";
@@ -32,7 +34,7 @@ public final class FerrymanRules {
      */
     public static final int MIN_PLAYERS = 8;
 
-    /** The ability key is armed at round start, re-armed 5 s after a successful block. / 技能键开局 60 秒冷却，成功格挡后 5 秒。 */
+    /** The ability key is armed 60 s after the round starts and 5 s after a successful block. / 技能键开局 60 秒冷却，成功格挡后 5 秒。 */
     public static final int INITIAL_COOLDOWN_TICKS = 60 * 20;
     public static final int PARDON_COOLDOWN_TICKS = 5 * 20;
 
@@ -48,8 +50,10 @@ public final class FerrymanRules {
 
     /**
      * The mark lands 1.5 s after a successful block, not at the moment of the block: the attacker keeps a short window
-     * to answer the Charon before the glance settles on them.
-     * 标记在成功格挡后 1.5 秒才落下，而不是格挡的瞬间：攻击者因此还有一小段时间回应摆渡人，之后「瞥视」才落到他身上。
+     * to answer the Charon before the glance settles on them. Kept shorter than {@link #PARDON_COOLDOWN_TICKS}, so the
+     * one pending mark has always landed before the next block can schedule another.
+     * 标记在成功格挡后 1.5 秒才落下，而不是格挡的瞬间：攻击者因此还有一小段时间回应摆渡人，之后「瞥视」才落到他身上。必须短于
+     * {@link #PARDON_COOLDOWN_TICKS}，这样唯一的待落标记总会在下一次格挡排定新标记之前落下。
      */
     public static final int GAZE_MARK_DELAY_TICKS = 30;
 
