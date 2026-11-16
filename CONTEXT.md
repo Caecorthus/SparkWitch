@@ -54,8 +54,9 @@ train fall can kill, that feigns death for 5 s 60 s after the round start and af
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
 It also adds the Charon (`sparkwitch:charon`, 卡戎, PR #202), a neutral drawn from 8 players up that starts with
 nothing: another player's lethal hit (never a forced kill, a train fall, a disconnect, a vanilla death or drowning)
-opens a 0.5 s window instead of killing, and an ability-key press inside it refuses the death and marks the attacker
-with 瞥视 (dark red, seen through walls); the pardon is armed 60 s after the round starts and 10 s after each use. A
+opens a 1.5 s window instead of killing, and an ability-key press inside it refuses the death and, 1.5 s later, marks
+the attacker with 瞥视 (dark red, seen through walls); the pardon is armed 60 s after the round starts and 5 s after
+each block, and a press with nothing to refuse is a whiff that costs 15 s (PR #232). A
 marked attacker's next lethal hit spends the mark and drops them into 10 s of feign death behind a fake corpse that
 shows a civilian and an ordinary death. Its secondary key ferries a real corpse that died within 60 s, within 4 blocks
 and in sight, for 50 gold and a 怜悯 mark (pale blue); a ferried body that is later bagged or eaten pays a second share
@@ -1174,7 +1175,8 @@ Current build baseline:
   never drawn; only the Soul Moment assigns it). Both register right before the Insider; in the assassin-guess order the
   Lost Soul follows the Charon. Rules and the side-safe predicate (`FerrymanRules`, `FerrymanParticipation`); the
   owner-only `sparkwitch:ferryman` player component (`FerrymanPlayerComponent`: pardon and ferry cooldowns, which the
-  owner's client counts down locally, the server-only pending window, and the 瞥视 and 怜悯 id sets; `RoleAssigned` and
+  owner's client counts down locally, the server-only pending window and pending 瞥视 mark, and the 瞥视 and 怜悯 id
+  sets; `RoleAssigned` and
   `ResetPlayer` give a Charon the 60 s round-start pardon cooldown) and the server-only `sparkwitch:ferryman_feign`
   component (`FerrymanFeignComponent`).
   - Pardon (`FerrymanPardonService.interceptKill`): `mixin/ferryman/GameFunctionsFerrymanPardonMixin` is a cancellable
@@ -1184,8 +1186,15 @@ Current build baseline:
     `wathe:escaped`, `wathe:vanilla_death`, `wathe:drowned` (`FerrymanRules.UNHELD_DEATH_REASONS`, `mayHoldKill`), its
     own replay, or a Charon that is not playing and alive or is swallowed. A marked attacker's lethal hit is answered
     by the gaze feign first, and 瞥视 is consumed when the feign starts (an attacker that cannot feign keeps the mark
-    and the hit falls through to the pardon). Otherwise a ready Charon with no open window gets a 0.5 s window; a
-    second lethal hit inside it kills normally. A press closes the window, marks the attacker and re-arms 10 s; a lapsed
+    and the hit falls through to the pardon). Otherwise a ready Charon with no open window gets a 1.5 s window
+    (`PARDON_WINDOW_TICKS` 30, PR #232); a second lethal hit inside it kills normally. A press closes the window,
+    re-arms 5 s and schedules the attacker's 瞥视 1.5 s later (`GAZE_MARK_DELAY_TICKS`, one server-only pending mark on
+    the component, never synced or saved): until it lands the attacker's next lethal hit meets no gaze and a running
+    cooldown, so it kills. The mark lands only while the Charon is still playing and alive, and any committed death of
+    the Charon, a re-role or a reset drops it. `onPress` outside a window (PR #232): a running cooldown only reports
+    its remaining seconds (`message.sparkwitch.ferryman.pardon.cooling`) and is never extended; otherwise the press is
+    a whiff that starts `PARDON_WHIFF_COOLDOWN_TICKS` (15 s), except for a swallowed or spectating Charon, whose press
+    does nothing. A lapsed
     window replays the held kill unchanged (killer, reason, `spawnBody`, not forced) only while the Charon is still
     playing and alive, and any committed death of the Charon (`KillPlayer.AFTER`) closes the window.
   - Feign (`FerrymanFeignService`, 10 s; `FerrymanRules.canFeign` copies the Fiend's start gate: ACTIVE round,
@@ -1225,7 +1234,15 @@ Current build baseline:
     ordered after the Fiend's `sparkwitch:fiend_moment_win` and before `Event.DEFAULT_PHASE`: it steps aside on `TIME`
     (owner 2026-11-09: when the train clock runs out the round settles normally; the moment only blocks faction wins),
     blocks every other win while an outsider is alive (counted through `FiendWinExclusion.countsAsAlive`, owner D1),
-    and otherwise wins neutral with the living souls as co-winners. All souls dead kills the Charon and the Charon gone
+    and otherwise wins neutral with the living souls as co-winners. Each revived soul gets a centred red title
+    (`title.sparkwitch.lost_soul.warcry`, after a `ClearTitleS2CPacket`). Settlement exclusion (`FerrymanSettlement`,
+    PR #232): a Charon that does not own a running moment with at least one soul is not alive for win determination,
+    through `mixin/ferryman/GameFunctionsFerrymanSettlementMixin` (HEAD of `GameFunctions.isPlayerPlayingAndAlive`
+    inside `StowawayWinScope`, so every `CheckWinCondition` listener, the Witch and Murderous Witch counts included)
+    and through `FiendWinExclusion.countsAsAlive` (NoellesRoles moment triggers and head counts, the Taotie, the
+    moment's own outsider count). The rule is conditional, so it is not in SparkFactionAPI's static
+    `SettlementExclusions`: counts SparkTraits and SparkStrength make outside Wathe's win dispatch still see him. All
+    souls dead kills the Charon and the Charon gone
     kills every soul, both forced with `sparkwitch:ferryman_moment_lost` (SparkTraits-terminal); round boundaries and a
     server stop end the moment silently.
   - Death reasons `sparkwitch:pardon_expired` (replay fallback for a held kill without a reason),
@@ -1233,7 +1250,7 @@ Current build baseline:
     (owner 2026-11-09: a controlled Charon uses neither key): `sparkwitch:ferryman_pardon` and `sparkwitch:ferryman_ferry`
     are on the Control Expert stun, Grand Witch Fear, Riftwalker session and Seeker session lists; only the pardon is on
     the Knight duel lock (skill-key-2 rule). Companion lists: SparkFactionAPI `AntiFastRoundRules` and SparkStrength
-    `TaotieHeadRules` (daze). Forced-cooldown stores 23 `sparkwitch:ferryman_pardon` (nominal 10 s, never forced while
+    `TaotieHeadRules` (daze). Forced-cooldown stores 23 `sparkwitch:ferryman_pardon` (nominal 5 s, the block cooldown, never forced while
     a window is open) and 24 `sparkwitch:ferryman_ferry` (nominal 5 s) in `SparkWitchForcedCooldowns`, after the
     Medium's store 22. The Charon and then the Lost Soul (owner 2026-11-09) close the neutral block of the
     assassin-guess list, after Schrödinger's Cat and before the promotion tail; both roles register after the Medium
@@ -1246,10 +1263,17 @@ Current build baseline:
     the secondary-key ferry with its own body-only ray of 4 blocks plus the eye height, since the vanilla crosshair stops
     at 3; `isActiveLocalCharon` mirrors the server's acting gate), `FerrymanClientHighlights` (瞥视 only on marked
     attackers that are playing, alive and not spectating; amber only on fresh, targetable, unferried bodies, never
-    reading fake-body state; pale blue on ferried bodies; a Lost Soul sees the Charon always and players within 6 blocks
-    in red; the veil hide), and `FerrymanHud` + `FerrymanHudRules` (pardon row above the ferry row in the shared
+    reading fake-body state; pale blue on ferried bodies; the Charon sees every living Lost Soul in the souls' cyan
+    `FerrymanRules.SOUL_TEAM_COLOR`; a living Lost Soul, `isActiveLocalLostSoul`, sees the whole lobby at any distance,
+    fellow souls cyan, the Charon grey, everyone else red, PR #232; both new marks use the 瞥视 liveness rule, so a
+    fallen soul keeps Wathe's spectator instinct and dead, feigning, swallowed or creative targets draw nothing; the
+    veil hide), `FerrymanHud` + `FerrymanHudRules` (pardon row above the ferry row in the shared
     bottom-right slot with the Fiend Dash layout and hotbar lift; `SaintHudLayoutRules` reserves both rows, as for the
-    Specter).
+    Specter), `LostSoulOrderHud` (PR #232: the red `hud.sparkwitch.ferryman.soul_order` line for a living Lost Soul at
+    x 5, y `FiendMomentHudRules.MOOD_BLOCK_MAX_BOTTOM + 2`, under Wathe's FAKE-mood block, with the `showsHud` view
+    gates) and `client/mixin/ferryman/FerrymanCohortRoleNameMixin` (PR #232: `game.tip.sparkwitch.lost_soul_cohort`
+    in the souls' cyan under a Lost Soul's name tag for the Charon and for fellow souls, the third sibling of
+    `WitchCohortRoleNameMixin` and `InsiderCohortRoleNameMixin`, pinned in `watheClientMixinContracts`).
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
@@ -2188,7 +2212,7 @@ Current build baseline:
     (centre + tick); else the call burst: the killer entity's network id + server tick (the Savior settle loop, Heavy
     Artillery, Second Strike, Bandit and USEC shots; each Niko burst bullet is its own tick). The memo keeps an entry
     for 2400 ticks after its last use (the NoellesRoles axe's 120 s life), drops it when the tick runs backwards and
-    evicts the least recently used beyond 512. A Charon's expired pardon replays its held kill 10 ticks later outside
+    evicts the least recently used beyond 512. A Charon's expired pardon replays its held kill up to 30 ticks later outside
     any scope; that replay never rolls (`FerrymanPardonService.isReplayingHeldKill`): the held kill already passed this
     hook un-deflected. Visor up + origin in the head-yaw front hemisphere (D3)
     never rolls. A ricochet only cancels the kill: the shooter's innocent-shot punishment and mood loss (decided before
@@ -4666,7 +4690,7 @@ deliberate and kept:
 23. `sparkwitch:ferryman_pardon` (`SparkWitchForcedCooldowns#ferrymanPardon`, PR #202, appended after the Medium's
    通灵): the Charon's pardon cooldown, for the raw role in an ACTIVE round with no pardon window open. Remaining time
    is `FerrymanPlayerComponent` cooldown ticks (60 s opening cooldown included); the nominal is
-   `FerrymanRules.PARDON_COOLDOWN_TICKS` (200), written exactly through the owner-syncing `setCooldown`.
+   `FerrymanRules.PARDON_COOLDOWN_TICKS` (100), written exactly through the owner-syncing `setCooldown`.
 24. `sparkwitch:ferryman_ferry` (`SparkWitchForcedCooldowns#ferrymanFerry`, PR #202, appended after the Charon's
    pardon): the Charon's ferry cooldown, for the raw role in an ACTIVE round. Remaining time is
    `FerrymanPlayerComponent` ferry cooldown ticks (0 at round start); the nominal is
@@ -5988,7 +6012,7 @@ Server:
   directly. `CeremonialSwordDashService.DASHES` is cleared on SERVER_STOPPING.
 - The Charon owns three per-tick sweeps, all no-ops for an idle round: `FerrymanPardonService.tick` walks the live
   player list once, reads each player's raw role and counts down a Charon's pardon and ferry cooldowns (syncing only
-  when one reaches zero), and reads the world clock only while a pardon window is open; `FerrymanFeignService.tick`
+  when one reaches zero), and reads the world clock only while a pardon window is open or a 瞥视 mark is waiting out its delay; `FerrymanFeignService.tick`
   counts down every player's `sparkwitch:ferryman_feign_veil` (kept because instinct is drawn per client; it syncs only
   when a veil ends) and then acts only on players whose feign is active (camera pin, anchor pull-back, wake-up at the
   deadline); `FerrymanMomentService.tick` returns per world at once unless a Soul Moment runs, then prunes fallen souls

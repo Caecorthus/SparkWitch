@@ -21,12 +21,13 @@ import java.util.UUID;
 
 /**
  * Per-player Ferryman state ({@code sparkwitch:ferryman}): the ability cooldown, the pending pardon window (killer and
- * death reason held only until the window closes or the key is pressed), the attackers the Ferryman may see through
- * walls (瞥视) and the bodies already ferried (怜悯). The server owns every field; the owner's client receives the
+ * death reason held only until the window closes or the key is pressed), the one 瞥视 mark still waiting out its delay
+ * (server only, never synced or saved), the attackers the Ferryman may see through walls (瞥视) and the bodies already
+ * ferried (怜悯). The server owns every field; the owner's client receives the
  * remaining cooldown and both id sets (never the death reason or the server time) and renders the marks from them.
  * Transient: a round reset or a respawn copy never carries it (the Wathe round resets the role itself).
  * 每名玩家的摆渡人状态（{@code sparkwitch:ferryman}）：技能冷却、待决的宽恕窗口（仅保存到窗口关闭或按键为止的击杀者与
- * 死亡原因）、可被摆渡人透视的攻击者（瞥视）与已摆渡的遗体（怜悯）。全部字段由服务端拥有；拥有者客户端只接收剩余
+ * 死亡原因）、仍在等待延迟的那一层「瞥视」（仅服务端，从不同步或保存）、可被摆渡人透视的攻击者（瞥视）与已摆渡的遗体（怜悯）。全部字段由服务端拥有；拥有者客户端只接收剩余
  * 冷却与两组 id（绝不含死亡原因或服务端时间），并据此渲染标记。瞬时状态：换局或重生不会带走它。
  */
 public final class FerrymanPlayerComponent implements AutoSyncedComponent, ClientTickingComponent {
@@ -50,6 +51,8 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
     /** The held kill's own {@code spawnBody}, replayed unchanged. / 被扣住击杀自身的 {@code spawnBody}，原样重放。 */
     private boolean pendingSpawnBody = true;
     private long pardonDeadlineTick;
+    private @Nullable UUID pendingMarkTarget;
+    private long pendingMarkDeadlineTick;
 
     public FerrymanPlayerComponent(PlayerEntity player) {
         this.player = player;
@@ -163,6 +166,35 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
 
     // ---- Marks / 标记 ----
 
+    /**
+     * Server only: a gaze mark that has been earned but must land later, so the attacker keeps a short window to answer
+     * the Charon before 瞥视 settles. Not synced: the client only ever renders marks that already exist.
+     * 仅服务端：已经挣到、但必须晚些落下的「瞥视」标记，攻击者因此还有一点时间回应摆渡人。不同步：客户端只渲染已经存在的标记。
+     */
+    public void scheduleGazeMark(UUID target, long deadlineTick) {
+        pendingMarkTarget = target;
+        pendingMarkDeadlineTick = deadlineTick;
+    }
+
+    public boolean hasPendingMark() {
+        return pendingMarkTarget != null;
+    }
+
+    /** Server: the scheduled mark's target, due or not; null when none. / 服务端：已排定标记的目标（无论是否到期），没有则为 null。 */
+    public @Nullable UUID pendingMarkTarget() {
+        return pendingMarkTarget;
+    }
+
+    /** Server: the mark's target once its deadline has come, otherwise null. / 服务端：到期后返回标记目标，否则 null。 */
+    public @Nullable UUID duePendingMark(long now) {
+        return pendingMarkTarget != null && now >= pendingMarkDeadlineTick ? pendingMarkTarget : null;
+    }
+
+    public void clearPendingMark() {
+        pendingMarkTarget = null;
+        pendingMarkDeadlineTick = 0L;
+    }
+
     public boolean hasGaze(UUID target) {
         return gazeTargets.contains(target);
     }
@@ -224,6 +256,7 @@ public final class FerrymanPlayerComponent implements AutoSyncedComponent, Clien
         gazeTargets.clear();
         ferriedBodies.clear();
         closePardon();
+        clearPendingMark();
         cooldownTicks = FerrymanRules.INITIAL_COOLDOWN_TICKS;
         ferryCooldownTicks = 0;
         if (changed) {
