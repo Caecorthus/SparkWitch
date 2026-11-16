@@ -32,6 +32,20 @@ public final class WitchFactionProtectionPolicy {
         return WitchFactionRules.isWitchFactionMember(role) ? BlackoutEffect.BlackoutResult.cancel() : null;
     }
 
+    /**
+     * Asked by {@code mixin/GameFunctionsGrandWitchVoodooMixin} at the head of Wathe's {@code killPlayer}, before
+     * {@code KillPlayer.BEFORE}: that event stops at the first non-null result, and NoellesRoles answers
+     * {@code allowWithoutBody()} for a Taotie-swallowed victim before {@link #beforeKillPlayer} is asked. The listener
+     * below stays registered as the same rule on the event path.
+     * 由 {@code mixin/GameFunctionsGrandWitchVoodooMixin} 在 Wathe {@code killPlayer} 开头、{@code KillPlayer.BEFORE} 之前
+     * 调用：该事件以首个非空结果为准，NoellesRoles 会先对被饕餮吞下的受害者返回 {@code allowWithoutBody()}，轮不到
+     * {@link #beforeKillPlayer}。下方的监听仍然注册，作为事件路径上的同一条规则。
+     */
+    public static boolean cancelsVoodooKill(ServerPlayerEntity victim, Identifier deathReason, boolean force) {
+        Role role = GameWorldComponent.KEY.get(victim.getServerWorld()).getRole(victim);
+        return GrandWitchRules.cancelsVoodooKill(role, deathReason, force);
+    }
+
     static KillPlayer.KillResult beforeKillPlayer(
             ServerPlayerEntity victim,
             ServerPlayerEntity killer,

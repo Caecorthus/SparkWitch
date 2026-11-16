@@ -25,7 +25,12 @@ import net.minecraft.world.World;
  * 原版使用物品数据包（已携带瞄准方向）就是全部请求。
  */
 public final class ShriekGunItem extends Item {
-    private static final int TOOLTIP_LINES = 3;
+    /**
+     * Six short gray lines: the old three overflowed a 1080p screen at the default GUI scale (480 px wide), since
+     * vanilla tooltips never wrap. / 六行较短的灰字：原来的三行在 1080p 默认 GUI 缩放（480 像素宽）下会超出屏幕，
+     * 因为原版提示框从不换行。
+     */
+    private static final int TOOLTIP_LINES = 6;
     /** Local-only recoil, applied after vanilla captured the aim for the use packet. / 仅本地的后坐，在原版为使用数据包记录瞄准方向之后施加。 */
     private static final float RECOIL_PITCH = 3.0F;
 

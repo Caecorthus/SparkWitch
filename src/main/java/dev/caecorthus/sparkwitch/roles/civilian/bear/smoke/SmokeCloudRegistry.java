@@ -20,14 +20,15 @@ import java.util.UUID;
  * A cloud counts toward the caps until its fade begins. When a new cloud would exceed {@link #MAX_PER_OWNER} for its
  * owner or {@link #MAX_PER_WORLD} for the world, the oldest counted cloud is forced into its fade at once: its snapshot
  * is replaced by one whose {@code spawnTime} is moved back so the fade starts now, with not-yet-arrived cells dropped
- * (it stops growing) and the open-sky flag cleared so the whole cloud thins over the same 3 s. Bullet tunnels (BEAR
- * WP5) are kept apart from blast holes, with their own clipping, merge, per-shooter budget and cap. Callers broadcast
- * the returned changes. Server thread only.
+ * (it stops growing) and the open-sky flag cleared so the whole cloud thins over the same 3 s; every cell that still
+ * shows smoke is kept, an open-sky one already in its own shorter fade included, so nothing vanishes at once. Bullet
+ * tunnels (BEAR WP5) are kept apart from blast holes, with their own clipping, merge, per-shooter budget and cap.
+ * Callers broadcast the returned changes. Server thread only.
  * 纯粹的单世界烟团与空洞登记：上限、强制消散与按 {@link SmokeTimeline} 的过期。烟团在开始消散前都计入上限。新烟团会让
  * 某拥有者超过 {@link #MAX_PER_OWNER} 或世界超过 {@link #MAX_PER_WORLD} 时，最早的计数烟团立即被强制进入消散：其快照换成
  * {@code spawnTime} 前移、使消散从此刻开始的新快照；尚未到达的格被丢弃（停止扩散），露天标记被清除，使整团烟在同样的
- * 3 秒内一起变淡。子弹通道（BEAR WP5）与爆炸空洞分开登记，有各自的裁剪、合并、每射手预算与上限。调用方负责广播返回的
- * 变化。仅限服务端线程。
+ * 3 秒内一起变淡；仍有烟的格全部保留，包括已进入自身较短消散期的露天格，因此不会有烟瞬间消失。子弹通道（BEAR WP5）与
+ * 爆炸空洞分开登记，有各自的裁剪、合并、每射手预算与上限。调用方负责广播返回的变化。仅限服务端线程。
  */
 final class SmokeCloudRegistry {
     /** Live clouds per owner (owner 2026-11-05 spike brief). / 每个拥有者的存活烟团数。 */
@@ -219,6 +220,31 @@ final class SmokeCloudRegistry {
     }
 
     /**
+     * The share (0..1) of the segment {@code (x0, y0, z0)} → {@code (x1, y1, z1)} after which a tunnel of {@code radius}
+     * can no longer touch a live cloud: the far end of the last cloud box it crosses, grown as in {@link #clipTunnel};
+     * 0 when it crosses none. Lets a long miss ray stop its block raycast where the smoke ends.
+     * 线段 {@code (x0, y0, z0)} → {@code (x1, y1, z1)} 上的比例（0..1），越过它之后半径 {@code radius} 的通道不可能再碰到存活
+     * 烟团：即它穿过的最后一个烟团盒子（按 {@link #clipTunnel} 的方式外扩）的远端；不穿过任何烟团时为 0。供很长的未命中射线
+     * 在烟雾结束处停止方块射线检测。
+     */
+    double tunnelReach(double x0, double y0, double z0, double x1, double y1, double z1, float radius, long now) {
+        double grow = radius + SmokeTunnels.CLIP_MARGIN;
+        double size = SmokeCloudSnapshot.CELL_SIZE;
+        double reach = 0.0;
+        double[] span = new double[2];
+        for (Cloud cloud : clouds.values()) {
+            SmokeCloudSnapshot box = cloud.snapshot;
+            if (now < cloud.end && SmokeTunnels.clipToBox(x0, y0, z0, x1, y1, z1,
+                    box.minX() - grow, box.minY() - grow, box.minZ() - grow,
+                    box.minX() + box.sizeX() * size + grow, box.minY() + box.sizeY() * size + grow,
+                    box.minZ() + box.sizeZ() * size + grow, span)) {
+                reach = Math.max(reach, span[1]);
+            }
+        }
+        return reach;
+    }
+
+    /**
      * Records the pieces of one shot ({@link #clipTunnel}) for {@code shooterKey}: pieces that merge into a recent,
      * at-least-as-wide live tunnel are dropped first; if any remain, the shot takes one unit of the shooter's budget
      * (refused when spent) and they are added, the oldest tunnels going at the cap. Returns the pieces clients must be
@@ -320,8 +346,12 @@ final class SmokeCloudRegistry {
 
     /**
      * The cloud forced to start its fade at {@code now}, or null when none of its cells still shows smoke. Kept cells:
-     * arrived, and (open-sky ones) not yet past their own shorter fade start.
-     * 在 {@code now} 被强制开始消散的烟团；没有格仍有烟时返回 null。保留的格：已到达，且（露天格）尚未越过自身较早的消散起点。
+     * every arrived cell that still shows smoke, i.e. all but the open-sky ones whose own shorter fade has already
+     * ended. An open-sky cell caught inside that fade is kept (dropping it made it vanish at once): like a cell still
+     * ramping in, it joins the forced fade at full density, since a snapshot carries no per-cell fade state.
+     * 在 {@code now} 被强制开始消散的烟团；没有格仍有烟时返回 null。保留的格：所有已到达且仍有烟的格，即除了自身较短消散期
+     * 已经结束的露天格之外的全部。正处于该消散期内的露天格会被保留（丢弃会让它瞬间消失）：与仍在升浓的格一样，它以满浓度加入
+     * 强制消散，因为快照不携带逐格的消散状态。
      */
     @Nullable
     static SmokeCloudSnapshot fadeNow(SmokeCloudSnapshot cloud, long now) {
@@ -336,7 +366,8 @@ final class SmokeCloudRegistry {
             if (age <= arrival) {
                 continue;
             }
-            if (cloud.openSky(i) && age >= SmokeTimeline.GROW_TICKS + SmokeTimeline.FULL_TICKS / 2) {
+            if (cloud.openSky(i) && age >= SmokeTimeline.GROW_TICKS + SmokeTimeline.FULL_TICKS / 2
+                    + SmokeTimeline.FADE_TICKS / 2) {
                 continue;
             }
             cells[i] = SmokeCloudSnapshot.encodeCell(arrival, false);

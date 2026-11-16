@@ -9,6 +9,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticeRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryMightyForceService;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowHits;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
@@ -85,19 +86,22 @@ public final class MightyForceCombatService {
     }
 
     /**
-     * The living current Apprentice inside her own Mighty Force window. Fabric fires {@link AttackEntityCallback} before
-     * vanilla's spectator check, and a Taotie-swallowed player is a Wathe-alive spectator riding the Taotie's camera, so
-     * both are refused here or she could strike whoever stands in front of the Taotie.
-     * 处于自己巨力窗口内的存活现任预备魔女。Fabric 的 {@link AttackEntityCallback} 在原版旁观者检查之前触发，而被饕餮吞下的
+     * The living current Apprentice inside her own Mighty Force window, or the living current 橘雪莉 inside hers
+     * (PR #206: her window lives in her own component and never needs the Apprentice's active skill). Fabric fires
+     * {@link AttackEntityCallback} before vanilla's spectator check, and a Taotie-swallowed player is a Wathe-alive
+     * spectator riding the Taotie's camera, so both are refused here or she could strike whoever stands in front of
+     * the Taotie.
+     * 处于自己巨力窗口内的存活现任预备魔女，或处于自己窗口内的存活现任橘雪莉（PR #206：她的窗口保存在自己的组件中，
+     * 不需要预备魔女的当前技能）。Fabric 的 {@link AttackEntityCallback} 在原版旁观者检查之前触发，而被饕餮吞下的
      * 玩家是 Wathe 视为存活、视角锁在饕餮身上的旁观者，因此两者都在此拒绝，否则她能在肚子里击杀饕餮面前的玩家。
      */
     private static boolean hasLiveMightyForce(ServerPlayerEntity attacker) {
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(attacker);
         GameWorldComponent gameComponent = GameWorldComponent.KEY.get(attacker.getWorld());
-        boolean ownsMightyForce = gameComponent.getRole(attacker) == SparkWitchRoles.apprenticeWitch()
-                && MightyForceAbility.ID.equals(component.getActiveSkillId());
-        return ownsMightyForce
-                && component.hasActiveMightyForce()
+        boolean apprenticeWindow = gameComponent.getRole(attacker) == SparkWitchRoles.apprenticeWitch()
+                && MightyForceAbility.ID.equals(component.getActiveSkillId())
+                && component.hasActiveMightyForce();
+        return (apprenticeWindow || SherryMightyForceService.hasLiveWindow(attacker))
                 && GameFunctions.isPlayerPlayingAndAlive(attacker)
                 && !attacker.isSpectator()
                 && !NoellesTaotieSeekerBridge.isSwallowed(attacker);
@@ -123,9 +127,21 @@ public final class MightyForceCombatService {
         return ActionResult.SUCCESS;
     }
 
+    /**
+     * Spends the window that allowed this strike: 橘雪莉's own window when she holds one, otherwise the Apprentice's.
+     * 用掉允许这一击的窗口：橘雪莉持有自己的窗口时用掉她的，否则用掉预备魔女的。
+     */
+    private static void spendWindow(ServerPlayerEntity attacker) {
+        if (SherryMightyForceService.hasLiveWindow(attacker)) {
+            SherryMightyForceService.onStrike(attacker);
+            return;
+        }
+        WitchPlayerComponent.KEY.get(attacker).clearMightyForceWindow();
+    }
+
     private static void strike(ServerPlayerEntity attacker, ServerPlayerEntity target) {
-        WitchPlayerComponent component = WitchPlayerComponent.KEY.get(attacker);
-        component.clearMightyForceWindow();
+        boolean sherryStrike = SherryMightyForceService.hasLiveWindow(attacker);
+        spendWindow(attacker);
 
         ServerWorld world = attacker.getServerWorld();
         Vec3d impulse = knockbackImpulse(attacker, target);
@@ -153,7 +169,7 @@ public final class MightyForceCombatService {
         Identifier victimFaction = SparkFactionApi.resolveEffectiveFaction(target, game);
         boolean deadBefore = game.isPlayerDead(target.getUuid());
         GameFunctions.killPlayer(target, true, attacker, SparkWitchDeathReasons.MIGHTY_FORCE);
-        punishMisfire(attacker, target, game, attackerFaction, victimFaction, deadBefore);
+        punishMisfire(attacker, target, game, attackerFaction, victimFaction, deadBefore, sherryStrike);
         if (terminalVendetta) {
             // The terminal handler installs suppression before this caller-owned record is attempted.
             // 终止结算会先安装抑制标记，再尝试写入调用方自己的技能回放。
@@ -191,7 +207,7 @@ public final class MightyForceCombatService {
      * 它的尸体（击杀时生成、以派对客 UUID 为主人的 Wathe 尸体）与玩家尸体一样被击飞。
      */
     private static void strikePartygoer(ServerPlayerEntity attacker, Entity partygoer) {
-        WitchPlayerComponent.KEY.get(attacker).clearMightyForceWindow();
+        spendWindow(attacker);
 
         ServerWorld world = attacker.getServerWorld();
         Vec3d impulse = knockbackImpulse(attacker, partygoer);
@@ -214,9 +230,10 @@ public final class MightyForceCombatService {
 
     /**
      * Killing an innocent follows Wathe's shoot-innocent punishment: KILL_SHOOTER kills her with Wathe's own
-     * {@code shot_innocent} reason, PREVENT_GUN_PICKUP takes Mighty Force away for the round (owner D5).
+     * {@code shot_innocent} reason, PREVENT_GUN_PICKUP takes Mighty Force away for the round (owner D5). 橘雪莉's
+     * strike follows the same rule (owner 2026-11-11); only where the forfeit is stored differs.
      * 误杀好人沿用 Wathe 的误杀惩罚：KILL_SHOOTER 以 Wathe 自带的 {@code shot_innocent} 死因击杀她，PREVENT_GUN_PICKUP
-     * 让巨力本局失效（所有者 D5）。
+     * 让巨力本局失效（所有者 D5）。橘雪莉的出拳沿用同一规则（所有者 2026-11-11）；只有失效标记的存放位置不同。
      */
     private static void punishMisfire(
             ServerPlayerEntity attacker,
@@ -224,7 +241,8 @@ public final class MightyForceCombatService {
             GameWorldComponent game,
             Identifier attackerFaction,
             Identifier victimFaction,
-            boolean deadBefore
+            boolean deadBefore,
+            boolean sherryStrike
     ) {
         ApprenticeRules.MisfireOutcome outcome = ApprenticeRules.misfireOutcome(
                 attackerFaction,
@@ -242,7 +260,11 @@ public final class MightyForceCombatService {
                 }
             }
             case FORFEIT_MIGHTY_FORCE -> {
-                ApprenticePlayerComponent.KEY.get(attacker).forfeitMightyForce();
+                if (sherryStrike) {
+                    SherryMightyForceService.forfeit(attacker);
+                } else {
+                    ApprenticePlayerComponent.KEY.get(attacker).forfeitMightyForce();
+                }
                 attacker.sendMessage(Text.translatable("message.sparkwitch.skill.mighty_force.forfeited"), true);
             }
             case NONE -> {

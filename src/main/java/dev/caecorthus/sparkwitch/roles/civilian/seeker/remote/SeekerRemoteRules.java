@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.seeker.remote;
 
+import dev.caecorthus.sparkwitch.payloadpolicy.GeneratedPayloadPolicy;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerExitReason;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import net.minecraft.util.Identifier;
@@ -7,131 +8,26 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.Set;
 
 /**
- * Pure remote-view rules. {@link #BLOCKED_WHILE_VIEWING} is the Seeker's own literal deny-list (decoupled from the
+ * Pure remote-view rules. {@link #BLOCKED_WHILE_VIEWING} is the Seeker's own deny-list (decoupled from the
  * Control Expert list; only a test couples them): lethal Wathe actions, the shop, UI actions that would leak through the
  * frozen body, and every known role-skill payload. It is a deny-list, so voice handshakes still pass.
  * WP-09 may extend but never shrink the list. The helpers below are the side-neutral area, anchor and timeout rules
  * shared by session open, the per-tick exit checks and the move validator. There is no distance limit between the
  * body and a device (owner decision 2026-10-04): the Wathe play area is the only spatial bound.
- * 纯遥控视角规则。{@link #BLOCKED_WHILE_VIEWING} 是搜寻者自有的字面量拦截名单（与控场专家名单解耦，仅由测试关联）：
+ * 纯遥控视角规则。{@link #BLOCKED_WHILE_VIEWING} 是搜寻者自有的拦截名单（与控场专家名单解耦，仅由测试关联）：
  * Wathe 致命行为、商店、会经冻结本体泄漏的界面操作，以及所有已知职业技能包。它是黑名单，语音握手等照常通过。
  * 名单只增不减。下列辅助方法是会话打开、逐刻退出检查与移动校验共用的两端通用区域、锚点与超时规则。
  * 本体与设备之间没有距离限制（所有者决定 2026-10-04）：Wathe 游戏区域是唯一的空间边界。
  */
 public final class SeekerRemoteRules {
-    public static final Set<Identifier> BLOCKED_WHILE_VIEWING = Set.copyOf(List.of(
-            Identifier.of("wathe", "knifestab"),
-            Identifier.of("wathe", "gunshoot"),
-            Identifier.of("wathe", "storebuy"),
-            Identifier.of("wathe", "note"),
-            Identifier.of("wathe", "walkie_talkie_channel"),
-
-            Identifier.of("noellesroles", "ability"),
-            Identifier.of("noellesroles", "assassin_guess_role"),
-            Identifier.of("noellesroles", "detective_investigate"),
-            Identifier.of("noellesroles", "morph"),
-            Identifier.of("noellesroles", "morph_corpse_toggle"),
-            Identifier.of("noellesroles", "party_animal_buzz"),
-            Identifier.of("noellesroles", "reporter_mark"),
-            Identifier.of("noellesroles", "silencer_silence"),
-            Identifier.of("noellesroles", "spirit_project"),
-            Identifier.of("noellesroles", "swapper"),
-            Identifier.of("noellesroles", "taotie_swallow"),
-            Identifier.of("noellesroles", "vulture"),
-            Identifier.of("noellesroles", "demon_hunter_shoot"),
-            Identifier.of("noellesroles", "shadow_ally_request"),
-
-            Identifier.of("sparkwitch", "use_skill"),
-            Identifier.of("sparkwitch", "emma_factor"),
-            Identifier.of("sparkwitch", "fire_death_ray"),
-            Identifier.of("sparkwitch", "fire_potion_launcher"),
-            Identifier.of("sparkwitch", "use_curser_ability"),
-            Identifier.of("sparkwitch", "use_orthopedist_skill"),
-            Identifier.of("sparkwitch", "use_saboteur_skill"),
-            Identifier.of("sparkwitch", "throw_kidnapper_body"),
-            Identifier.of("sparkwitch", "guardian"),
-            Identifier.of("sparkwitch", "vendetta_knife_stab"),
-            Identifier.of("sparkwitch", "open_judge_selection"),
-            Identifier.of("sparkwitch", "confirm_judge_selection"),
-            // Knight duel target pick, classified like the Judge's pair. / 骑士决斗目标选择，与法官的两个包同样归类。
-            Identifier.of("sparkwitch", "knight_duel_target"),
-            Identifier.of("sparkwitch", "request_prophecy"),
-            Identifier.of("sparkwitch", "confirm_prophecy"),
-            Identifier.of("sparkwitch", "submit_tarot_divination_selection"),
-            Identifier.of("sparkwitch", "seeker_car_swallow"),
-            Identifier.of("sparkwitch", "seeker_car_recall"),
-            Identifier.of("sparkwitch", "select_black_raven_disguise"),
-            Identifier.of("sparkwitch", "use_blind_attune"),
-            Identifier.of("sparkwitch", "use_noa_paint"),
-            Identifier.of("sparkwitch", "ragpicker_search"),
-            Identifier.of("sparkwitch", "rift_hop"),
-            Identifier.of("sparkwitch", "rift_gate_close"),
-            Identifier.of("sparkwitch", "use_fiend_dash"),
-            Identifier.of("sparkwitch", "use_athlete_dash"),
-            Identifier.of("sparkwitch", "use_dominator_skill"),
-            // 夏目安安 hypnosis menu request and target confirm. / 夏目安安催眠菜单请求与目标确认。
-            Identifier.of("sparkwitch", "request_natsume_menu"),
-            Identifier.of("sparkwitch", "confirm_natsume_target"),
-            Identifier.of("sparkwitch", "use_apprentice_purify"),
-            Identifier.of("sparkwitch", "magician_ability"),
-            // USEC rifle fire and attachment-screen actions; the scope state is presentation only and stays allowed.
-            // USEC 步枪开火与配件界面操作；开镜状态仅为表现，保持放行。
-            Identifier.of("sparkwitch", "fire_usec_rifle"),
-            Identifier.of("sparkwitch", "usec_attachment"),
-            // Accountant passbook withdraw (left-click), a held-item action of the frozen body like the launcher fire.
-            // 会计存折取钱（左键），与发射器开火一样属于冻结本体的手持物品操作。
-            Identifier.of("sparkwitch", "accountant_withdraw"),
-            // Witch Maiden Mini Wither toggle and crimson skull fire. / 巫女小凋灵切换与赤首射击。
-            Identifier.of("sparkwitch", "mini_wither_toggle"),
-            Identifier.of("sparkwitch", "fire_crimson_skull"),
-            // Black Raven Raven Form toggle, crow moves, use and Homing Feather drop.
-            // 黑羽鸦化鸦开关、乌鸦移动、交互与丢出归羽。
-            Identifier.of("sparkwitch", "black_raven_crow_toggle"),
-            Identifier.of("sparkwitch", "black_raven_crow_move"),
-            Identifier.of("sparkwitch", "black_raven_crow_use"),
-            Identifier.of("sparkwitch", "black_raven_crow_drop_feather"),
-            // BEAR M32A1 fire, a held-item shot like the launcher's. / BEAR M32A1 开火，与炮筒同类的手持射击。
-            Identifier.of("sparkwitch", "fire_m32a1"),
-
-            // Serial Killer psycho pistols (SerialPistolShootC2SPayload): a gun shot, listed wherever wathe:gunshoot
-            // is. / 连环杀手疯魔双枪（SerialPistolShootC2SPayload）：属于开枪，凡拦截 wathe:gunshoot 处均拦截。
-            Identifier.of("sparkstrength", "serial_pistol_shoot"),
-            Identifier.of("sparkstrength", "noisemaker_glow"),
-            Identifier.of("sparkstrength", "phantom_backpack_invisibility"),
-            Identifier.of("sparkstrength", "coroner_morph"),
-            Identifier.of("sparkstrength", "professor_remote_feed"),
-            // Reporter connect/broadcast; Bomber drone connect and FIRE (pilot moves and exit stay allowed).
-            // 记者接线/广播；炸弹客无人机连接与开火（驾驶移动与退出放行）。
-            Identifier.of("sparkstrength", "reporter_communication"),
-            Identifier.of("sparkstrength", "drone_pilot_start"),
-            Identifier.of("sparkstrength", "drone_pilot_action"),
-            Identifier.of("sparkstrength", "demon_hunter_sniff"),
-            Identifier.of("sparkstrength", "vulture_super_curse"),
-            // Spiritualist Wraith possession (SparkStrength, key 2); its exit packet stays allowed.
-            // 灵界行者附身冤魂（SparkStrength，技能键 2）；退出附身的数据包放行。
-            Identifier.of("sparkstrength", "spirit_possess"),
-            Identifier.of("sparkstrength", "call_tablet_meeting"),
-            Identifier.of("sparkstrength", "cast_tablet_vote"),
-            Identifier.of("sparkstrength", "confirm_tablet_vote"),
-            Identifier.of("sparkstrength", "approve_suspect_removal"),
-            // SparkStrength Taotie head launch (TaotieHeadFireC2SPacket). / SparkStrength 饕餮发射头颅。
-            Identifier.of("sparkstrength", "taotie_head_fire"),
-            // SparkStrength Party Animal's Partygoer: summoning it (key 2) and a Taotie swallowing it (G); the room
-            // picker request (partygoer_menu) is UI only and stays allowed.
-            // SparkStrength 派对狂的派对客：召唤（技能键 2）与饕餮吞下它（G）；选房请求（partygoer_menu）仅是界面，放行。
-            Identifier.of("sparkstrength", "partygoer_summon"),
-            Identifier.of("sparkstrength", "partygoer_swallow"),
-            // SparkStrength sabotage trigger and breaker repair, classified like the tablet meeting and vote.
-            // SparkStrength 破坏触发与电闸维修，与平板会议、投票同类。
-            Identifier.of("sparkstrength", "trigger_sabotage"),
-            Identifier.of("sparkstrength", "complete_breaker_repair"),
-            // SparkStrength Detective remote interrogation (magnifier roster). / SparkStrength 侦探远程审问（放大镜名单）。
-            Identifier.of("sparkstrength", "interrogate_detective_suspect"),
-            Identifier.of("sparkstrength", "select_criminologist_target")));
+    // Generated SEEKER column of SparkFactionAPI config/payload-policy/actions.tsv: edit that table and
+    // rerun tools/payload_policy.py, never list ids here; per-id reasons are in its note column.
+    // 生成的 SEEKER 列（SparkFactionAPI config/payload-policy/actions.tsv）：请修改该表并重新运行
+    // tools/payload_policy.py，不要在此列出 id；各 id 的理由见其 note 列。
+    public static final Set<Identifier> BLOCKED_WHILE_VIEWING = GeneratedPayloadPolicy.SEEKER;
 
     /** Grace before an unsupported or wet body ends the session (BODY_MOVED). / 本体离地或入水多久后结束会话。 */
     public static final int UNGROUNDED_GRACE_TICKS = 10;

@@ -35,8 +35,11 @@ public enum ProphetDeathCauseGroup {
             entry("sparkwitch:ceremonial_blade", BLADE),
             entry("sparkwitch:ninja_knife_kill", BLADE),
             entry("sparkwitch:swordfish_stab", BLADE),
+            // Savior (PR #200): the lightsaber is a blade, the pistol a gunshot. / 救世主（PR #200）：光剑为利刃，手枪为枪击。
+            entry("sparkwitch:lightsaber_kill", BLADE),
             entry("wathe:gun_shot", GUNSHOT),
             entry("wathe:gun_shot_backfire", GUNSHOT),
+            entry("sparkwitch:savior_pistol_kill", GUNSHOT),
             // Witch Maiden crimson wither skull: a gunshot for every other system (owner Q5, 2026-10-20).
             // 巫女赤色凋灵之首：在其他系统中按枪击处理（所有者 Q5，2026-10-20）。
             entry("sparkwitch:crimson_wither_skull", GUNSHOT),
@@ -44,6 +47,9 @@ public enum ProphetDeathCauseGroup {
             entry("noellesroles:throwing_axe", THROWN),
             entry("wathe:bat_hit", BLUNT),
             entry("sparkwitch:mighty_force", BLUNT),
+            // 二阶堂希罗's Rope strangle (2026-11-11): a bare-hands kill without a blade, grouped with the blunt ones.
+            // 二阶堂希罗的绳索勒杀（2026-11-11）：不用利刃的徒手击杀，与钝器同组。
+            entry("sparkwitch:strangled", BLUNT),
             entry("wathe:grenade", EXPLOSION),
             entry("noellesroles:bomb", EXPLOSION),
             // Potion Gunner TR shell and launcher backblast; the gunner is the responsible player (owner 2026-10-03).
@@ -70,6 +76,14 @@ public enum ProphetDeathCauseGroup {
             // A Vulture ate a feigning Fiend's fake corpse (2026-10-16); grouped with the Taotie's digestion.
             // 秃鹫吃掉假死魔人的假尸体（2026-10-16）；与饕餮消化同组。
             entry("sparkwitch:fiend_devoured", SUPERNATURAL),
+            // Charon (PR #202, owner 2026-11-09): all three reasons are supernatural. A lapsed pardon window replaying a
+            // kill whose own reason was unknown; a Vulture eating a gaze-feign fake corpse (grouped like fiend_devoured);
+            // a lost Soul Moment (the Charon dies with his last Lost Soul, or the souls die with their Charon).
+            // 卡戎（PR #202，所有者 2026-11-09）：三个死因均为超自然。宽恕窗口过期后重放原死因未知的击杀；秃鹫吃掉「瞥视」假死的
+            // 假尸体（与 fiend_devoured 同组）；亡魂时刻失败（卡戎随最后一名迷失的灵魂而亡，或灵魂随其卡戎而亡）。
+            entry("sparkwitch:pardon_expired", SUPERNATURAL),
+            entry("sparkwitch:ferryman_feign", SUPERNATURAL),
+            entry("sparkwitch:ferryman_moment_lost", SUPERNATURAL),
             entry("wathe:shot_innocent", PENALTY),
             entry("noellesroles:assassin_misfire", PENALTY),
             entry("noellesroles:jester_timeout", PENALTY),

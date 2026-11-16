@@ -25,14 +25,14 @@ import org.jetbrains.annotations.Nullable;
  * {@link SparkTraitsTaskIncomeBridge}: SparkTraits pays an Impostor's task income itself, the Accountant precedent) and
  * +{@link BearRules#PASSIVE_INCOME} on Wathe's passive-money ticks with no cap (Impostor or not: nothing else pays it).
  * Income goes through {@code addToBalance} so income observers see it; the round-start overwrite is the only
- * {@code setBalance}. {@code CanSeeMoney} answers ALLOW for a living BEAR, so the money HUD shows. Server is the only
- * writer; the client only reads {@code CanSeeMoney}.
+ * {@code setBalance}. {@code CanSeeMoney} answers ALLOW for a living BEAR, so the money HUD shows, and DENY for a dead
+ * one. Server is the only writer; the client only reads {@code CanSeeMoney}.
  * BEAR 金币，沿用 USEC 模式（所有者 2026-11-05）：在 BEAR 自有的 {@code ON_FINISH_INITIALIZE} 阶段（排在默认阶段之后，此时职业
  * 已是最终职业）把每名存活的最终 BEAR 的余额覆盖为 {@link BearRules#INITIAL_MONEY}；每个任务 +{@link BearRules#TASK_PAY}
  * （SparkTraits 内鬼或无法判定时不发，经 {@link SparkTraitsTaskIncomeBridge}：内鬼的任务收入由 SparkTraits 自行支付，沿用会计
  * 先例）；在 Wathe 被动金币刻 +{@link BearRules#PASSIVE_INCOME}，不设上限（无论是否内鬼：没有其他系统支付）。收入经
  * {@code addToBalance} 发放，收入观察者都能看到；开局覆盖是唯一的 {@code setBalance}。{@code CanSeeMoney} 对存活的 BEAR 返回
- * ALLOW，使金币 HUD 显示。只有服务端写入；客户端只读取 {@code CanSeeMoney}。
+ * ALLOW，使金币 HUD 显示；对死亡的 BEAR 返回 DENY。只有服务端写入；客户端只读取 {@code CanSeeMoney}。
  */
 final class BearEconomyService {
     /** BEAR's own ON_FINISH_INITIALIZE phase, after the default one. / BEAR 自有的 ON_FINISH_INITIALIZE 阶段，排在默认阶段之后。 */
@@ -155,10 +155,34 @@ final class BearEconomyService {
         return BearRules.isBear(role) ? CanSeeMoney.Result.ALLOW : null;
     }
 
-    private static @Nullable CanSeeMoney.Result canSeeMoney(PlayerEntity player) {
-        if (player == null || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+    /**
+     * For the exact BEAR role: DENY once it is dead (the Insider precedent), ALLOW while playing and alive, otherwise
+     * no answer as before. The explicit DENY is needed because with no answer Wathe falls back to
+     * {@code ShopUtils.canAccessShop}, and the BEAR shop is built from the role alone, so a dead BEAR kept the coin HUD.
+     * A BEAR that is not dead but not playing (the round still STARTING, when SparkTraits rolls money traits) is
+     * deliberately left to that fallback, unchanged. Other roles get no answer. Reads only synced facts (role, dead
+     * set), so both sides agree.
+     * 对精确的 BEAR 职业：死亡后返回 DENY（沿用内应先例），参与且存活时返回 ALLOW，其余情况与之前一样不作答。显式 DENY 是必要
+     * 的：不作答时 Wathe 退回 {@code ShopUtils.canAccessShop}，而 BEAR 商店只按职业构建，死亡的 BEAR 因此仍看得到金币 HUD。
+     * 未死亡但未参与的 BEAR（对局仍为 STARTING、SparkTraits 抽取金钱词条时）刻意保持交给该回退，行为不变。其他职业不作答。只读取
+     * 已同步的信息（职业、死亡名单），因此两端一致。
+     */
+    static @Nullable CanSeeMoney.Result moneyVisibility(@Nullable Role role, boolean dead, boolean playingAndAlive) {
+        if (!BearRules.isBear(role)) {
             return null;
         }
-        return moneyVisibilityResult(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
+        if (dead) {
+            return CanSeeMoney.Result.DENY;
+        }
+        return playingAndAlive ? moneyVisibilityResult(role) : null;
+    }
+
+    private static @Nullable CanSeeMoney.Result canSeeMoney(PlayerEntity player) {
+        if (player == null) {
+            return null;
+        }
+        GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
+        return moneyVisibility(game.getRole(player), game.isPlayerDead(player.getUuid()),
+                GameFunctions.isPlayerPlayingAndAlive(player));
     }
 }

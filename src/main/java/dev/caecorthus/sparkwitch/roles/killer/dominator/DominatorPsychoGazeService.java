@@ -76,11 +76,14 @@ public final class DominatorPsychoGazeService {
 
     private static void forceNearbyPlayersUp(ServerPlayerEntity dominator, ServerWorld world) {
         for (ServerPlayerEntity other : world.getPlayers()) {
+            // The one-block distance test goes first: it rejects nearly everyone, so the liveness and Wraith component
+            // reads run only for a player standing next to the Dominator. Same conditions, same result.
+            // 先做一格距离判断：它会排除几乎所有人，因此只有站在支配者身边的玩家才会读取存活与冤魂组件。条件相同，结果相同。
             if (other == dominator
+                    || other.squaredDistanceTo(dominator) >= GAZE_RADIUS_SQUARED
                     || other.isSpectator()
                     || !GameFunctions.isPlayerPlayingAndAlive(other)
                     || WraithStateService.isActive(other)
-                    || other.squaredDistanceTo(dominator) >= GAZE_RADIUS_SQUARED
                     || isLookingUp(other.getPitch())) {
                 continue;
             }

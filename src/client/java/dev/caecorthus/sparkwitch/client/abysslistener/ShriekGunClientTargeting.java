@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.client.abysslistener;
 
+import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeTargetOcclusion;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.gun.ShriekGunItem;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.gun.ShriekGunTargeting;
@@ -34,8 +35,10 @@ public final class ShriekGunClientTargeting {
                 || !AbyssListenerRules.isAbyssListener(GameWorldComponent.KEY.get(player.getWorld()).getRole(player))) {
             return false;
         }
-        return ShriekGunTargeting.findTarget(player, player.clientWorld.getPlayers(),
-                ShriekGunClientTargeting::isVisibleCandidate) != null;
+        PlayerEntity target = ShriekGunTargeting.findTarget(player, player.clientWorld.getPlayers(),
+                ShriekGunClientTargeting::isVisibleCandidate);
+        // A target hidden by BEAR smoke does not light the hint (hint only). / 被 BEAR 烟雾挡住的目标不点亮提示（仅提示）。
+        return target != null && !SmokeTargetOcclusion.hides(player, target);
     }
 
     /** Same public filter as Wathe's own gun crosshair; no faction input. / 与 Wathe 自身枪械准星相同的公开过滤，不读取阵营。 */

@@ -24,9 +24,12 @@ public final class PoliceSlotAssignmentService {
     public static final Identifier BLACK_RAVEN_ID = Identifier.of("sparkwitch", "black_raven");
     /** Literal on purpose, like USEC_ID. / 与 USEC_ID 相同刻意使用字面量。 */
     public static final Identifier KNIGHT_ID = Identifier.of("sparkwitch", "knight");
+    /** Literal on purpose, like USEC_ID. / 与 USEC_ID 相同刻意使用字面量。 */
+    public static final Identifier SAVIOR_ID = Identifier.of("sparkwitch", "savior");
     private static final Identifier VIGILANTE_ID = Identifier.of("wathe", "vigilante");
     private static final List<Identifier> VARIANT_IDS =
-            List.of(JudgeRules.ROLE_ID, EMMA_ID, CONTROL_EXPERT_ID, SEEKER_ID, USEC_ID, BLACK_RAVEN_ID, KNIGHT_ID);
+            List.of(JudgeRules.ROLE_ID, EMMA_ID, CONTROL_EXPERT_ID, SEEKER_ID, USEC_ID, BLACK_RAVEN_ID, KNIGHT_ID,
+                    SAVIOR_ID);
 
     private PoliceSlotAssignmentService() {
     }

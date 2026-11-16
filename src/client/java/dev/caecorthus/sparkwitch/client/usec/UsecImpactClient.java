@@ -47,6 +47,9 @@ public final class UsecImpactClient {
                 context.client().execute(() -> receive(context.client(), payload)));
         ClientTickEvents.END_CLIENT_TICK.register(UsecImpactClient::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(UsecImpactClient::reset));
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(UsecImpactClient::reset));
     }
 
     static void receive(MinecraftClient client, UsecBulletImpactsS2CPacket packet) {

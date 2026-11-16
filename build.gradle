@@ -71,6 +71,14 @@ repositories {
         name = "Gegy"
         url = "https://maven.gegy.dev"
     }
+    maven {
+        // LambDynamicLights API, compile-only (see dependencies). / LambDynamicLights API，仅编译期（见 dependencies）。
+        name = "Gegy Releases"
+        url = "https://maven.gegy.dev/releases"
+        content {
+            includeGroup "dev.lambdaurora.lambdynamiclights"
+        }
+    }
 }
 
 dependencies {
@@ -108,6 +116,16 @@ dependencies {
     modLocalRuntime "maven.modrinth:simple-voice-chat:fabric-${project.minecraft_version}-${project.voicechat_version}"
     modRuntimeOnly "dev.upcraft.datasync:datasync-minecraft-1.21.1-fabric:0.10.2"
     modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
+    // LambDynamicLights API: compile-only from Gegy's maven, never committed or bundled (the Lambda License forbids
+    // redistributing its binaries). Optional at runtime: only the "lambdynlights:initializer" and legacy
+    // "dynamiclights" entrypoints name client/savior/SaviorDynamicLightsInitializer, so nothing loads the API without
+    // LambDynamicLights. Non-transitive: compiling the initializer needs only the API's own classes.
+    // LambDynamicLights API：仅编译期，从 Gegy maven 获取，绝不提交到仓库或打包进 jar（Lambda License 禁止再分发其二进制）。
+    // 运行时可选：只有 "lambdynlights:initializer" 与旧版 "dynamiclights" 入口指向 client/savior/SaviorDynamicLightsInitializer，
+    // 未安装 LambDynamicLights 时不会加载该 API。不传递依赖：编译该入口类只需要 API 自身的类。
+    modCompileOnly("dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:${project.lambdynlights_version}") {
+        transitive = false
+    }
     modRuntimeOnly "me.lucko:fabric-permissions-api:0.3.1"
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
@@ -156,7 +174,7 @@ tasks.named("jar") {
 }
 
 def remappedModJar = tasks.named("remapJar")
-def compatibilityReleaseVersion = "0.1.6.2"
+def compatibilityReleaseVersion = "2.0.0"
 def compatibilityBaselines = [
         wathe: [
                 property: "wathe_version",
@@ -172,8 +190,8 @@ def compatibilityBaselines = [
         ],
         sparkfactionapi: [
                 property: "sparkfactionapi_version",
-                version: "0.1.6.0",
-                sha256: "9fbc0dafac49ad3ba25619314b4a32a35feeeca528df14de9b4fdaf05dd87370",
+                version: "2.0.0",
+                sha256: "9c690fb7963e145c54a15da5b2ce7f7c7d0f3d3429c5688f4571ca3a83429cbe",
                 depends: [wathe: ">=1.5.6-spark-1.21.1"]
         ]
 ]
@@ -247,6 +265,43 @@ def watheClientMixinContracts = [
                 providerMethod: "renderHud",
                 providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
         ],
+        // BEAR smoke (owner, 2026-11-10): Wathe's gun, knife and bat crosshair hints skip a target hidden by smoke, at
+        // the three target reads of renderCrosshair (hint only; the selectors themselves are untouched).
+        // BEAR 烟雾（所有者 2026-11-10）：Wathe 的枪、刀、球棒准星提示在 renderCrosshair 的三处目标读取上跳过被烟挡住的
+        // 目标（仅提示；选靶方法本身不改动）。
+        [
+                configName: "bear.SmokeCrosshairHintMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/bear/SmokeCrosshairHintMixin.class",
+                handler: "sparkwitch\$gunHintSkipsSmokeHiddenTarget",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Ldev/doctor4t/wathe/client/gui/CrosshairRenderer;getVisibleGunTarget(Lnet/minecraft/class_1657;D)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "bear.SmokeCrosshairHintMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/bear/SmokeCrosshairHintMixin.class",
+                handler: "sparkwitch\$knifeHintSkipsSmokeHiddenTarget",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Ldev/doctor4t/wathe/item/KnifeItem;getKnifeTarget(Lnet/minecraft/class_1657;)Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "bear.SmokeCrosshairHintMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/bear/SmokeCrosshairHintMixin.class",
+                handler: "sparkwitch\$batHintSkipsSmokeHiddenTarget",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_310;field_1765:Lnet/minecraft/class_239;",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
         [
                 // BEAR M32A1 (owner, 2026-11-06): the slot badge replaces Wathe's selected-slot cooldown number.
                 // BEAR M32A1（所有者 2026-11-06）：格标记取代 Wathe 选中格冷却数字。
@@ -274,6 +329,28 @@ def watheClientMixinContracts = [
                 configName: "witchmaiden.WitchMaidenInventoryScreenMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/witchmaiden/WitchMaidenInventoryScreenMixin.class",
                 handler: "sparkwitch\$renderWitchMaidenEmptyState",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25394",
+                providerDescriptor: "(Lnet/minecraft/class_332;IIF)V"
+        ],
+        [
+                // Medium 招魂 drawer (owner, 2026-11-13): attached at init, gate and layout re-checked at render head.
+                // 通灵师招魂抽屉（所有者 2026-11-13）：init 时挂载，渲染开头重新检查门槛与布局。
+                configName: "medium.MediumHauntInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/medium/MediumHauntInventoryScreenMixin.class",
+                handler: "sparkwitch\$attachHauntDrawer",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "method_25426()V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
+                providerMethod: "method_25426",
+                providerDescriptor: "()V"
+        ],
+        [
+                configName: "medium.MediumHauntInventoryScreenMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/medium/MediumHauntInventoryScreenMixin.class",
+                handler: "sparkwitch\$refreshHauntDrawer",
                 annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
                 selector: "method_25394(Lnet/minecraft/class_332;IIF)V",
                 providerEntry: "dev/doctor4t/wathe/client/gui/screen/ingame/LimitedInventoryScreen.class",
@@ -343,6 +420,18 @@ def watheClientMixinContracts = [
                 providerDescriptor: "(Lnet/minecraft/class_1297;)I"
         ],
         [
+                // A floating 远野汉娜 is never visible to instinct (PR #212, owner 2026-11-11): veto just inside the
+                // Black Raven one. / 浮游中的远野汉娜永不被本能透视（PR #212，所有者 2026-11-11）：紧贴黑羽鸦否决之内。
+                configName: "hanna.HannaInstinctVetoMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/hanna/HannaInstinctVetoMixin.class",
+                handler: "sparkwitch\$vetoFloatingHannaInstinct",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
                 // USEC scoped instinct cloak (owner, 2026-10-08): a cloaked target's whole highlight runs with Wathe's
                 // two keyed instinct gates closed. / USEC 开镜本能隐蔽（所有者 2026-10-08）：被隐蔽目标的整个高亮求值
                 // 在 Wathe 两个按键本能入口关闭的状态下运行。
@@ -388,6 +477,32 @@ def watheClientMixinContracts = [
                 providerDescriptor: "()V"
         ],
         [
+                // Savior (PR #200): the Assassin guess panel hides the Savior. / 救世主（PR #200）：刺客猜测面板隐藏救世主。
+                configName: "AssassinSaviorGuessMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/AssassinSaviorGuessMixin.class",
+                handler: "sparkwitch\$hideSaviorFromAssassinGuess",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "getAllGuessableRoles()Ljava/util/List;",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/client/screen/AssassinScreen.class",
+                providerMethod: "getAllGuessableRoles",
+                providerDescriptor: "()Ljava/util/List;"
+        ],
+        [
+                // Savior (PR #200): the lightsaber takes the bat crosshair and the pistol the revolver crosshair, by
+                // widening Wathe's isOf branch checks. / 救世主（PR #200）：放宽 Wathe 的 isOf 分支判定，光剑使用球棒准星、
+                // 手枪使用左轮准星。
+                configName: "savior.SaviorLightsaberCrosshairMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/savior/SaviorLightsaberCrosshairMixin.class",
+                handler: "sparkwitch\$lightsaberUsesBatCrosshair",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "renderCrosshair(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                atTarget: "Lnet/minecraft/class_1799;method_31574(Lnet/minecraft/class_1792;)Z",
+                providerEntry: "dev/doctor4t/wathe/client/gui/CrosshairRenderer.class",
+                providerMethod: "renderCrosshair",
+                providerDescriptor: "(Lnet/minecraft/class_310;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
                 // Team Jiahao end title: the neutral-win title's role text lookup, the only getForRole(Identifier)
                 // call in renderHud. SparkFactionAPI's @Redirect on the winText read that follows it is untouched.
                 // 嘉豪阵营结算标题：中立胜利标题的职业文本查找，即 renderHud 中唯一的 getForRole(Identifier) 调用；
@@ -406,6 +521,16 @@ def watheClientMixinContracts = [
                 configName: "insider.InsiderCohortRoleNameMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/insider/InsiderCohortRoleNameMixin.class",
                 handler: "sparkwitch\$renderJiahaoCohort",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
+                providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
+                providerMethod: "renderHud",
+                providerDescriptor: "(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                configName: "ferryman.FerrymanCohortRoleNameMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/ferryman/FerrymanCohortRoleNameMixin.class",
+                handler: "sparkwitch\$renderLostSoulCohort",
                 annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
                 selector: "renderHud(Lnet/minecraft/class_327;Lnet/minecraft/class_746;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V",
                 providerEntry: "dev/doctor4t/wathe/client/gui/RoleNameRenderer.class",
@@ -821,6 +946,18 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
                 providerMethod: "isInstinctEnabledAndIsKiller",
                 providerDescriptor: "()Z"
+        ],
+        [
+                // Hunter shotgun: confirms the predicted first-person flash against Wathe's muzzle packet.
+                // 猎人霰弹枪：用 Wathe 枪口数据包核对预测的第一人称火焰。
+                configName: "hunter.DoubleBarrelOwnMuzzlePacketMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/hunter/DoubleBarrelOwnMuzzlePacketMixin.class",
+                handler: "sparkwitch\$confirmDoubleBarrelFlash",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "receive(Ldev/doctor4t/wathe/util/ShootMuzzleS2CPayload;Lnet/fabricmc/fabric/api/client/networking/v1/ClientPlayNetworking\$Context;)V",
+                providerEntry: "dev/doctor4t/wathe/util/ShootMuzzleS2CPayload\$Receiver.class",
+                providerMethod: "receive",
+                providerDescriptor: "(Ldev/doctor4t/wathe/util/ShootMuzzleS2CPayload;Lnet/fabricmc/fabric/api/client/networking/v1/ClientPlayNetworking\$Context;)V"
         ]
 ]
 
@@ -919,6 +1056,198 @@ def watheCommonMixinContracts = [
                 providerEntry: "org/agmas/noellesroles/entity/ThrowingAxeEntity.class",
                 providerMethod: "method_7454",
                 providerDescriptor: "(Lnet/minecraft/class_3966;)V"
+        ],
+        [
+                // Rope interrupt observer: HEAD 1030, after the default-1000 structural guards and before every
+                // shield or immunity (1040 Otherworld void, 1050 ricochet, 1100 Fiend/vest, 1200 pardon), so a
+                // blocked attack on a strangling player still breaks the strangle.
+                // 绳索打断观察者：HEAD 1030，位于默认 1000 的结构性守卫之后、所有护盾与免疫（1040 里世界作废、1050 跳弹、
+                // 1100 魔人/防弹衣、1200 宽恕）之前，因此被挡下的攻击同样会打断勒杀。
+                configName: "rope.GameFunctionsRopeStrangleInterruptMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/rope/GameFunctionsRopeStrangleInterruptMixin.class",
+                handler: "sparkwitch\$interruptRopeStrangle",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                priority: 1030,
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // Rope shield pass, NoellesRoles Iron Man layer: the buff read inside the pinned BEFORE listener.
+                // 绳索穿盾之 NoellesRoles 铁人层：固定版本 BEFORE 监听内的增益读取。
+                configName: "rope.NoellesRopeShieldPassMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/rope/NoellesRopeShieldPassMixin.class",
+                handler: "sparkwitch\$ropePassesIronMan",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "lambda\$registerEvents\$5(Lnet/minecraft/class_3222;Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/api/event/KillPlayer\$KillResult;",
+                atTarget: "Lorg/agmas/noellesroles/professor/IronManPlayerComponent;hasBuff()Z",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "lambda\$registerEvents\$5",
+                providerDescriptor: "(Lnet/minecraft/class_3222;Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/api/event/KillPlayer\$KillResult;"
+        ],
+        [
+                // Rope shield pass, NoellesRoles whiskey layer: the listener's only hasStatusEffect call (vanilla
+                // target, remapped in the shipped jar).
+                // 绳索穿盾之 NoellesRoles 威士忌层：该监听内唯一的 hasStatusEffect 调用（原版目标，发布包中已重映射）。
+                configName: "rope.NoellesRopeShieldPassMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/rope/NoellesRopeShieldPassMixin.class",
+                handler: "sparkwitch\$ropePassesWhiskey",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/ModifyExpressionValue;",
+                selector: "lambda\$registerEvents\$5(Lnet/minecraft/class_3222;Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/api/event/KillPlayer\$KillResult;",
+                atTarget: "Lnet/minecraft/class_3222;method_6059(Lnet/minecraft/class_6880;)Z",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "lambda\$registerEvents\$5",
+                providerDescriptor: "(Lnet/minecraft/class_3222;Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;)Ldev/doctor4t/wathe/api/event/KillPlayer\$KillResult;"
+        ],
+        [
+                // Specter Otherworld targeting rule: HEAD 1040, after the default-1000 immunity guards and before the
+                // 1050 ricochet and the 1100 Fiend/vest, so a kill it voids (any weapon) spends no protection.
+                // 幽魂里世界索敌规则：HEAD 1040，位于默认 1000 的免疫守卫之后，并先于 1050 跳弹与 1100 魔人/防弹衣，被作废的击杀（任何武器）不消耗任何保护。
+                configName: "specter.GameFunctionsSpecterOtherworldTargetMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/specter/GameFunctionsSpecterOtherworldTargetMixin.class",
+                handler: "sparkwitch\$blockOtherworldKillOnInvalidTarget",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                priority: 1040,
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // Specter Otherworld shield, at the psycho-armour branch (first getPsychoTicks: non-forced, non-piercing).
+                // 幽魂里世界护盾，挂在疯魔护甲分支（第一次 getPsychoTicks：非强制、非穿盾）。
+                configName: "specter.GameFunctionsSpecterShieldMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/specter/GameFunctionsSpecterShieldMixin.class",
+                handler: "sparkwitch\$absorbWithOtherworldShield",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                atTarget: "Ldev/doctor4t/wathe/cca/PlayerPsychoComponent;getPsychoTicks()I",
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // Specter Otherworld knife drop: HEAD 900, before the default-1000 knife guards (rejected targets only).
+                // 幽魂里世界刀刺丢弃：HEAD 900，先于默认 1000 的刀守卫（仅被拒绝的目标）。
+                configName: "specter.SpecterOtherworldKnifeMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/specter/SpecterOtherworldKnifeMixin.class",
+                handler: "sparkwitch\$dropRejectedOtherworldStab",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "receive(Ldev/doctor4t/wathe/util/KnifeStabPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                priority: 900,
+                providerEntry: "dev/doctor4t/wathe/util/KnifeStabPayload\$Receiver.class",
+                providerMethod: "receive",
+                providerDescriptor: "(Ldev/doctor4t/wathe/util/KnifeStabPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // Specter Otherworld gun drop: HEAD 900, before the default-1000 gun guards (rejected targets only), so a
+                // shot the 1040 rule would void never reaches Wathe's shot-an-innocent branch.
+                // 幽魂里世界枪击丢弃：HEAD 900，先于默认 1000 的枪械守卫（仅被拒绝的目标），使会被 1040 规则作废的射击不会进入 Wathe 的误杀无辜分支。
+                configName: "specter.SpecterOtherworldGunMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/specter/SpecterOtherworldGunMixin.class",
+                handler: "sparkwitch\$dropRejectedOtherworldShot",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "receive(Ldev/doctor4t/wathe/util/GunShootPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                priority: 900,
+                providerEntry: "dev/doctor4t/wathe/util/GunShootPayload\$Receiver.class",
+                providerMethod: "receive",
+                providerDescriptor: "(Ldev/doctor4t/wathe/util/GunShootPayload;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: HEAD order 0, a fake-dead victim cannot be killed again (the @Inject order values are
+                // pinned by the local HiroReturnMixinContractTest; this task pins the shipped selectors).
+                // 二阶堂希罗死亡回归：HEAD order 0，假死的受害者不会再次被杀（@Inject 的 order 由本地 HiroReturnMixinContractTest 固定；
+                // 本任务固定发布的选择器）。
+                configName: "hiro.GameFunctionsHiroReturnMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/GameFunctionsHiroReturnMixin.class",
+                handler: "sparkwitch\$feignedVictimIsUntouchable",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: HEAD order 900, a kill attempt on Hiro, before every default-order HEAD shield guard.
+                // 二阶堂希罗死亡回归：HEAD order 900，针对希罗的击杀尝试，先于所有默认 order 的 HEAD 护盾守卫。
+                configName: "hiro.GameFunctionsHiroReturnMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/GameFunctionsHiroReturnMixin.class",
+                handler: "sparkwitch\$returnOnAttack",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: the commit point (changeGameMode call), order 1200, after Tofana, Last Escape and the Cat.
+                // 二阶堂希罗死亡回归：提交点（changeGameMode 调用），order 1200，位于托法娜、绝境逃生与猫之后。
+                configName: "hiro.GameFunctionsHiroReturnMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/GameFunctionsHiroReturnMixin.class",
+                handler: "sparkwitch\$feignAtDeathCommit",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                atTarget: "Lnet/minecraft/class_3222;method_7336(Lnet/minecraft/class_1934;)Z",
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: the Swapper never swaps a fake-dead victim. / 二阶堂希罗死亡回归：换位者不会换走假死的受害者。
+                configName: "hiro.NoellesSwapperHiroFeignMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/NoellesSwapperHiroFeignMixin.class",
+                handler: "sparkwitch\$swapperSkipsFeignedVictim",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "lambda\$registerPackets\$4(Lorg/agmas/noellesroles/packet/SwapperC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "lambda\$registerPackets\$4",
+                providerDescriptor: "(Lorg/agmas/noellesroles/packet/SwapperC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: the Vulture never eats a fake corpse. / 二阶堂希罗死亡回归：秃鹫不会吃掉假尸体。
+                configName: "hiro.NoellesVultureHiroFakeBodyMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/NoellesVultureHiroFakeBodyMixin.class",
+                handler: "sparkwitch\$vultureSkipsHiroFakeBodies",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "lambda\$registerPackets\$2(Lorg/agmas/noellesroles/packet/VultureEatC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V",
+                atTarget: "Lnet/minecraft/class_1937;method_18023(Lnet/minecraft/class_5575;Lnet/minecraft/class_238;Ljava/util/function/Predicate;)Ljava/util/List;",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "lambda\$registerPackets\$2",
+                providerDescriptor: "(Lorg/agmas/noellesroles/packet/VultureEatC2SPacket;Lnet/fabricmc/fabric/api/networking/v1/ServerPlayNetworking\$Context;)V"
+        ],
+        [
+                // 二阶堂希罗 死亡回归: a fake-dead victim counts as alive for the NoellesRoles moment triggers.
+                // 二阶堂希罗死亡回归：假死的受害者在 NoellesRoles 时刻触发计数中算作存活。
+                configName: "hiro.NoellesRolesHiroFeignAliveCountMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/hiro/NoellesRolesHiroFeignAliveCountMixin.class",
+                handler: "sparkwitch\$feignedVictimCountsAsAlive",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;",
+                selector: "countAliveAndNotSwallowed(Lnet/minecraft/class_3218;)I",
+                atTarget: "Lnet/minecraft/class_3222;method_7325()Z",
+                provider: "noellesroles",
+                providerEntry: "org/agmas/noellesroles/Noellesroles.class",
+                providerMethod: "countAliveAndNotSwallowed",
+                providerDescriptor: "(Lnet/minecraft/class_3218;)I"
+        ],
+        [
+                // Charon pardon window / gaze feign: HEAD 1200, after every other HEAD guard (default 1000, Specter
+                // 1040, ricochet 1050, Fiend/vest 1100) and before every KillPlayer.BEFORE listener; sees force.
+                // 卡戎宽恕窗口 /「瞥视」假死：HEAD 1200，位于其他所有 HEAD 守卫（默认 1000、幽魂 1040、跳弹 1050、
+                // 魔人/防弹衣 1100）之后，并先于所有 KillPlayer.BEFORE 监听器；可见 force。
+                configName: "ferryman.GameFunctionsFerrymanPardonMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/ferryman/GameFunctionsFerrymanPardonMixin.class",
+                handler: "sparkwitch\$holdCharonKill",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "killPlayer(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V",
+                priority: 1200,
+                providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
+                providerMethod: "killPlayer",
+                providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
         ]
 ]
 
@@ -1593,7 +1922,6 @@ def requiredArchitectureDocs = [
 ]
 def requiredArchitectureSources = [
         "src/main/java/dev/caecorthus/sparkwitch/api/SparkWitchApi.java",
-        "src/main/java/dev/caecorthus/sparkwitch/api/WitchManaApi.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/ApprenticeInstinctRules.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityRuntime.java",
         "src/main/java/dev/caecorthus/sparkwitch/roles/civilian/piggod/PigGodChaseRuntime.java",
@@ -1609,7 +1937,6 @@ def requiredArchitectureSources = [
 def localTestTree = file("src/test")
 def localArchitectureTests = [
         "src/test/java/dev/caecorthus/sparkwitch/api/SparkWitchApiTest.java",
-        "src/test/java/dev/caecorthus/sparkwitch/api/WitchManaApiTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/civilian/apprentice/abilities/ApprenticeAbilityWindowRulesTest.java",
         "src/test/java/dev/caecorthus/sparkwitch/roles/witch/grandwitch/GrandWitchRulesTest.java"
 ]

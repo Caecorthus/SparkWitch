@@ -110,8 +110,12 @@ public final class BlackRavenCrowLandingService {
                 continue;
             }
             if (step == BlackRavenCrowLandingRules.HoldStep.PULL_BACK) {
-                // Relative zero rotation: the camera stays free. / 相对旋转为零：视角保持自由。
-                player.networkHandler.requestTeleport(anchor.x, anchor.y, anchor.z, 0.0F, 0.0F, PositionFlag.ROT);
+                // The yaw and pitch arguments are absolute in 1.21.1 (ROT only sends their difference from the server's
+                // own), so the player's own rotation keeps the camera free; zeros would snap it to yaw 0 / pitch 0.
+                // 1.21.1 中朝向参数是绝对值（ROT 只发送它与服务端自身朝向之差），传入玩家自己的朝向才能保持视角自由；传 0 会把视角扭到
+                // yaw 0 / pitch 0。
+                player.networkHandler.requestTeleport(anchor.x, anchor.y, anchor.z, player.getYaw(),
+                        player.getPitch(), PositionFlag.ROT);
                 player.setVelocity(Vec3d.ZERO);
             }
             spawnSwirl(world, player.getPos(),

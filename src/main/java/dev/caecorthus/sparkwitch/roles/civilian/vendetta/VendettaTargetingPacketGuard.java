@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.vendetta;
 
+import dev.caecorthus.sparkwitch.net.SaviorPistolShootC2SPayload;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.hit.BlackRavenCrowTargets;
 import dev.doctor4t.wathe.util.GunShootPayload;
 import dev.doctor4t.wathe.util.KnifeStabPayload;
@@ -18,9 +19,12 @@ import java.util.OptionalInt;
 
 /**
  * Rejects target payloads before they spend items or emit effects for an isolated Vendetta pair: Wathe's knife stab
- * and gun shot, and the SparkStrength Serial Killer pistol shot, treated exactly like the gun shot (owner 2026-10-07).
+ * and gun shot, plus the SparkStrength Serial Killer pistol shot (owner 2026-10-07), the Savior pistol shot
+ * (PR #200) and the SparkStrength Bandit moddable revolver shot (SparkStrength #135), all treated exactly like the
+ * gun shot.
  * 在目标数据包消耗物品或生成效果前，拒绝不属于仇杀绑定双方的请求：Wathe 刀刺与开枪，以及与开枪完全同等处理的
- * SparkStrength 连环杀手手枪射击（所有者 2026-10-07）。
+ * SparkStrength 连环杀手手枪射击（所有者 2026-10-07）、救世主手枪射击（PR #200）与 SparkStrength 强盗改装左轮射击
+ * （SparkStrength #135）。
  */
 public final class VendettaTargetingPacketGuard {
     /**
@@ -30,6 +34,15 @@ public final class VendettaTargetingPacketGuard {
      * 此处不引用任何 SparkStrength 类。
      */
     public static final Identifier SERIAL_PISTOL_SHOOT_ID = Identifier.of("sparkstrength", "serial_pistol_shoot");
+
+    /**
+     * SparkStrength {@code BanditRevolverShootC2SPayload} (SparkStrength #135), the Bandit's moddable revolver shot:
+     * wire layout one VAR_INT target entity id, -1 when the shot picked nobody. Matched and read like the Serial Killer
+     * pistol shot. The Bandit used to fire Wathe's revolver through {@code wathe:gunshoot}, which this guard judges.
+     * SparkStrength 强盗改装左轮开火包（SparkStrength #135）：线格式为一个 VAR_INT 目标实体 id，未选中任何人时为 -1。
+     * 匹配与读取方式同连环杀手手枪射击。强盗原先经 {@code wathe:gunshoot} 发射 Wathe 左轮，而该包由本防护判定。
+     */
+    public static final Identifier BANDIT_REVOLVER_SHOOT_ID = Identifier.of("sparkstrength", "bandit_revolver_shoot");
 
     private VendettaTargetingPacketGuard() {
     }
@@ -43,7 +56,10 @@ public final class VendettaTargetingPacketGuard {
      */
     public static boolean isTargetPayload(@Nullable CustomPayload payload) {
         return payload instanceof KnifeStabPayload || payload instanceof GunShootPayload
-                || payload != null && payload.getId() != null && SERIAL_PISTOL_SHOOT_ID.equals(payload.getId().id());
+                || payload instanceof SaviorPistolShootC2SPayload
+                || payload != null && payload.getId() != null && SERIAL_PISTOL_SHOOT_ID.equals(payload.getId().id())
+                || payload != null && payload.getId() != null
+                && BANDIT_REVOLVER_SHOOT_ID.equals(payload.getId().id());
     }
 
     /**
@@ -77,8 +93,18 @@ public final class VendettaTargetingPacketGuard {
         if (payload instanceof GunShootPayload gun) {
             return OptionalInt.of(gun.target());
         }
+        // Savior pistol (PR #200): our own record, whose codec is a fixed-width INTEGER, so the id is read directly and
+        // never through leadingVarInt. / 救世主手枪（PR #200）：本模组自己的 record，编解码器为定长 INTEGER，因此直接读取 id，
+        // 从不经 leadingVarInt。
+        if (payload instanceof SaviorPistolShootC2SPayload saviorPistol) {
+            return OptionalInt.of(saviorPistol.targetEntityId());
+        }
         if (payload != null && payload.getId() != null && SERIAL_PISTOL_SHOOT_ID.equals(payload.getId().id())) {
             return leadingVarInt(PayloadTypeRegistryImpl.PLAY_C2S.get(SERIAL_PISTOL_SHOOT_ID), payload,
+                    actor.getRegistryManager());
+        }
+        if (payload != null && payload.getId() != null && BANDIT_REVOLVER_SHOOT_ID.equals(payload.getId().id())) {
+            return leadingVarInt(PayloadTypeRegistryImpl.PLAY_C2S.get(BANDIT_REVOLVER_SHOOT_ID), payload,
                     actor.getRegistryManager());
         }
         return OptionalInt.empty();

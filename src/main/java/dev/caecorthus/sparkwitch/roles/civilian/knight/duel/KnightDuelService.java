@@ -11,6 +11,7 @@ import dev.caecorthus.sparkwitch.net.KnightDuelUiLockS2CPayload;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
@@ -86,8 +87,7 @@ public final class KnightDuelService {
             }
         });
         // Owner keeps it: a disconnect only ends the duel, nobody dies. / 所有者保留：断线只结束决斗，无人死亡。
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            ServerPlayerEntity player = handler.player;
+        ServerDisconnectCleanup.register((player, server) -> {
             if (player.getWorld() instanceof ServerWorld world) {
                 KnightDuelWorldComponent duel = KnightDuelWorldComponent.KEY.get(world);
                 if (duel.isDuelist(player.getUuid())) {

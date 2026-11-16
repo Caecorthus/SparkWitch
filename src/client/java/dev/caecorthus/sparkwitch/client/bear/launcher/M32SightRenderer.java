@@ -23,54 +23,56 @@ import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
 /**
  * Client only: the first-person M32A1 while the M2A1 aim progress p is above 0 ({@link M32SightState}). The held
  * launcher stays visible: instead of vanilla's single full-model draw ({@code item/m32a1}) it draws the body
- * ({@code item/m32a1_body}) at the hip-to-aim blend of {@link M32SightPose}, the sight ({@code item/m32a1_sight}) at
- * the same pose times the range tilt, then the dot and the quadrant-grid reticle on the dot plane (SIGHT-CONTRACT v3:
- * the open bore of the square housing is the window). Every matrix is computed before anything is drawn, and any missing
- * model, unusable matrix or missing base answers false, so the caller draws vanilla's full model instead (fail safe);
- * p == 0 always answers false, so the vanilla call runs unchanged.
+ * ({@code item/m32a1_body}) and the sight ({@code item/m32a1_sight}; together the full model without its objective
+ * lens) at the one hip-to-aim blend of {@link M32SightPose}, then the reticle on its plane (pixel-style art v7, 2026-11-11: the
+ * tube's open round bore is the window). Every matrix is computed before anything is drawn, and any missing model,
+ * unusable matrix or missing base answers false, so the caller draws vanilla's full model instead (fail safe); p == 0
+ * always answers false, so the vanilla call runs unchanged.
  * <p>
  * Matrix composition. The base {@code B} is captured at HEAD of the first-person
  * {@code HeldItemRenderer#renderItem(float, ...)} ({@link #beginHandPass}; vanilla's {@code renderHand} and Iris's
  * {@code HandRenderer} both call it, and it already carries hurt tilt and view bob). At vanilla's item draw the stack is
  * {@code S = B * hipPre} (lag sway, equip and swing offsets), and {@code ItemRenderer} would apply the display
- * transform {@code D} and {@code T(-0.5)}. Hip = {@code hipPre * D_full * T(-0.5)}; target = {@code blend(hip, aim)}
- * (body) or that times {@code sightTilt} (sight); the stack is multiplied by
- * {@code hipPre^-1 * target * T(0.5) * D_model^-1}, so {@code ItemRenderer}'s own display transform lands each model
- * exactly on {@code B * target}. The dot is two full-bright quads straight in the sight's vertex space; the reticle
- * ({@link M32SightPose#emitReticle}) uses the same matrix, draws only when the dot does and fades in with
- * {@link M32SightPose#reticleAlpha}.
+ * transform {@code D} and {@code T(-0.5)}. Hip = {@code hipPre * D_full * T(-0.5)}; target = {@code blend(hip, aim)};
+ * the stack is multiplied by {@code hipPre^-1 * target * T(0.5) * D_model^-1}, so {@code ItemRenderer}'s own display
+ * transform lands each model exactly on {@code B * target}.
  * <p>
- * Range tilt: h = {@link M32Ballistics#holdoverRadians} at the interpolated pitch and the dialled range (what the
- * retired 2-D reticle used), turned into the hand projection with the live world projection FOV and this pass's hand
- * FOV ({@link M32SightPose#tiltRadians}); it blends in with ease(p) so the sight never pops off the hip pose. No aim
- * solution (out of range before the fuse) leaves the sight untilted and draws no dot and no reticle. Presentation only;
- * render thread only; the server decides every shot.
+ * Reticle (owner 2026-11-11: no range dial, "let them shoot by the scale"; centre direct fire, scale below). It is a
+ * handful of full-bright quads straight in the sight's vertex space, all from the one atlas {@link #RETICLE_TEXTURE}:
+ * the centre mark ({@link M32SightPose#centreMark}: the screen centre is where a round leaves, aimed or from the hip),
+ * and under it the stem with one tick and label per range mark of {@code M32Ballistics.scaleMarks()}. Each mark sits
+ * where the round is at that range: {@code M32Ballistics.holdoverRadians} along the interpolated look, turned into the
+ * hand projection with the live world FOV and this pass's hand FOV ({@link M32SightPose#scaleOffset}), so the scale
+ * stays true at any pitch and FOV option; marks that do not fit the bore, or would crowd the mark above them at a
+ * steep look, are not drawn. The whole reticle draws only
+ * while its centre is inside the bore and fades in with {@link M32SightPose#reticleAlpha}. Presentation only; render
+ * thread only; the server decides every shot.
  * <p>
  * Badge anchor (owner, 2026-11-06, option B): every main-hand draw also hands {@link M32BadgeAnchor} this frame's
  * screen anchor of the readout badge, p = 0 included ({@link #captureHipAnchor}: the hip pose vanilla is about to
  * draw), so {@link M32Hud} can ride the launcher; a declined aimed draw captures nothing and the HUD falls back.
  * 仅客户端：M2A1 瞄准进度 p 大于 0 时（{@link M32SightState}）的第一人称 M32A1。手中的发射器保持可见：不再进行原版的单次完整
- * 模型绘制（{@code item/m32a1}），而是按 {@link M32SightPose} 的腰射到瞄准过渡绘制机身（{@code item/m32a1_body}），在同一姿态再乘
- * 以射程俯仰绘制瞄具（{@code item/m32a1_sight}），最后绘制红点与红点平面上的象限网格分划（SIGHT-CONTRACT v3：方形机匣的开放
- * 内孔即窗口）。所有矩阵都在绘制任何内容之前算好；缺少模型、矩阵不可用或没有基准时返回 false，调用方改为绘制原版完整模型
+ * 模型绘制（{@code item/m32a1}），而是按 {@link M32SightPose} 的腰射到瞄准过渡绘制机身（{@code item/m32a1_body}）与瞄具
+ * （{@code item/m32a1_sight}；两者合起来即不含物镜的完整模型），两者同一姿态，最后绘制其平面上的分划（像素风美术 v7，2026-11-11：镜筒开放的
+ * 圆形内孔即窗口）。所有矩阵都在绘制任何内容之前算好；缺少模型、矩阵不可用或没有基准时返回 false，调用方改为绘制原版完整模型
  * （失败安全）；p == 0 时总是返回 false，原版调用原样执行。
  * <p>
  * 矩阵组合。基准 {@code B} 在第一人称 {@code HeldItemRenderer#renderItem(float, ...)} 的 HEAD 捕获（{@link #beginHandPass}；
  * 原版 {@code renderHand} 与 Iris 的 {@code HandRenderer} 都调用它，且它已包含受伤倾斜与视角摇晃）。在原版物品绘制处矩阵栈为
  * {@code S = B * hipPre}（延迟摆动、装备与挥动偏移），随后 {@code ItemRenderer} 会应用显示变换 {@code D} 与 {@code T(-0.5)}。
- * 腰射 = {@code hipPre * D_full * T(-0.5)}；目标 = {@code blend(hip, aim)}（机身）或再乘以 {@code sightTilt}（瞄具）；矩阵栈乘以
+ * 腰射 = {@code hipPre * D_full * T(-0.5)}；目标 = {@code blend(hip, aim)}；矩阵栈乘以
  * {@code hipPre^-1 * target * T(0.5) * D_model^-1}，使 {@code ItemRenderer} 自己的显示变换把每个模型精确放到 {@code B * target}。
- * 红点是直接位于瞄具顶点空间的两个全亮四边形；分划（{@link M32SightPose#emitReticle}）使用同一矩阵，仅在红点绘制时绘制，并按
- * {@link M32SightPose#reticleAlpha} 淡入。
  * <p>
- * 射程俯仰：h = 插值俯仰角与当前刻度下的 {@link M32Ballistics#holdoverRadians}（即已退役的 2D 分划所用的值），再用实时世界投影
- * 视场角与本次手部视场角换算到手部投影（{@link M32SightPose#tiltRadians}）；它随 ease(p) 淡入，瞄具不会从腰射姿态跳变。没有
- * 瞄准解（引信前飞不到该距离）时瞄具不俯仰，也不画红点与分划。仅为表现；仅渲染线程；每次发射都由服务端决定。
+ * 分划（所有者 2026-11-11：不设射程调节，“按刻度尺打”；中心直射、下方刻度）。它是直接位于瞄具顶点空间的若干全亮四边形，全部
+ * 取自同一张图集 {@link #RETICLE_TEXTURE}：中心分划（{@link M32SightPose#centreMark}：无论开镜还是腰射，屏幕中心都是榴弹出膛
+ * 方向），以及其下方的主干和 {@code M32Ballistics.scaleMarks()} 每个射程的一条刻度线与数字。每条刻度位于榴弹在该射程时所在的
+ * 位置：沿插值视线的 {@code M32Ballistics.holdoverRadians}，再用实时世界视场角与本次手部视场角换算到手部投影
+ * （{@link M32SightPose#scaleOffset}），因此刻度尺在任何俯仰角与视场角设置下都准确；放不进内孔、或在大俯仰角下会与上方刻度挤在一起的刻度不绘制。仅当分划中心位于
+ * 内孔内时才绘制整个分划，并按 {@link M32SightPose#reticleAlpha} 淡入。仅为表现；仅渲染线程；每次发射都由服务端决定。
  * <p>
  * 标记锚点（所有者 2026-11-06，方案 B）：每次主手绘制也把本帧读数标记的屏幕锚点交给 {@link M32BadgeAnchor}，p = 0 时也一样
  * （{@link #captureHipAnchor}：原版即将绘制的腰射姿态），使 {@link M32Hud} 能跟随枪身；放弃的瞄准绘制不捕获任何内容，HUD 回退。
@@ -78,11 +80,11 @@ import org.joml.Vector3f;
 public final class M32SightRenderer {
     public static final Identifier BODY_MODEL_ID = SparkWitch.id("item/m32a1_body");
     public static final Identifier SIGHT_MODEL_ID = SparkWitch.id("item/m32a1_sight");
-    /** Left half: the soft red halo; right half: the crisp white core. / 左半为柔和红色光晕，右半为清晰白色核心。 */
-    public static final Identifier DOT_TEXTURE = SparkWitch.id("textures/entity/bear/m2a1_dot.png");
     /**
-     * The reticle atlas (128 x 32, white, linear filtering): a bar profile and the digits 0-9; tinted red per vertex.
-     * 分划贴图（128 x 32，白色，线性过滤）：线条轮廓与数字 0-9；按顶点染成红色。
+     * The reticle atlas (128 x 128, colour baked, linear filtering): one solid red patch for every bar and the eight
+     * range labels, laid out as {@link M32SightPose}'s {@code ATLAS_*} constants say.
+     * 分划图集（128 x 128，颜色已烘焙，线性过滤）：供所有线条使用的一块纯红色块与八个射程数字，布局见
+     * {@link M32SightPose} 的 {@code ATLAS_*} 常量。
      */
     public static final Identifier RETICLE_TEXTURE = SparkWitch.id("textures/entity/bear/m2a1_reticle.png");
     @Nullable
@@ -142,45 +144,34 @@ public final class M32SightRenderer {
         BakedModel full = renderer.getModel(stack, world, entity, seed);
         Matrix4f hip = M32SightPose.hipPose(hipPre, display(full, mode, leftHanded));
         float ease = M32SightPose.ease(progress);
-        float pitch = entity.getPitch(passTickDelta);
-        int dial = M32RangeDial.metres();
-        double handFov = M32SightState.handFovDegrees();
-        double worldFov = worldFov(client, passTickDelta);
-        double solvedTilt = M32SightPose.tiltRadians(M32Ballistics.holdoverRadians(pitch, dial), handFov, worldFov);
-        boolean solved = Double.isFinite(solvedTilt);
-        float tilt = solved ? (float) solvedTilt * ease : 0.0F;
-        Matrix4f bodyPose = M32SightPose.blend(hip, M32SightPose.aimPose(tilt), M32SightPose.anchor(tilt), ease);
-        if (bodyPose == null) {
+        Matrix4f pose = M32SightPose.blend(hip, M32SightPose.aimPose(), M32SightPose.anchor(), ease);
+        if (pose == null) {
             return false;
         }
-        Matrix4f sightPose = new Matrix4f(bodyPose).mul(M32SightPose.sightTilt(tilt));
-        Matrix4f bodyCorrection = M32SightPose.drawCorrection(hipPre, bodyPose, display(body, mode, leftHanded));
-        Matrix4f sightCorrection = M32SightPose.drawCorrection(hipPre, sightPose, display(sight, mode, leftHanded));
+        Matrix4f bodyCorrection = M32SightPose.drawCorrection(hipPre, pose, display(body, mode, leftHanded));
+        Matrix4f sightCorrection = M32SightPose.drawCorrection(hipPre, pose, display(sight, mode, leftHanded));
         if (bodyCorrection == null || sightCorrection == null) {
             return false;
         }
-        Matrix4f dotCorrection = solved ? M32SightPose.directCorrection(hipPre, sightPose) : null;
+        Matrix4f reticleCorrection = M32SightPose.directCorrection(hipPre, pose);
         // The hand projection and model-view now bound (vanilla renderHand / Iris HandRenderer), so the window test
         // sees exactly the picture the quads will make. / 当前绑定的手部投影与模型视图（原版 renderHand / Iris HandRenderer），
         // 因此窗口检测看到的正是这些四边形将呈现的画面。
-        boolean dot = dotCorrection != null && M32SightPose.dotInWindow(clipFromBase().mul(sightPose));
-        // The badge anchor of this frame: the hip anchor under the body pose, the aim anchor under the tilted sight
-        // pose, blended like the poses (M32BadgeAnchor). / 本帧标记锚点：机身姿态下的腰射锚点、俯仰后瞄具姿态下的瞄准锚点，
-        // 与姿态同样混合（M32BadgeAnchor）。
+        boolean reticle = reticleCorrection != null && M32SightPose.reticleInWindow(clipFromBase().mul(pose));
+        // The badge anchor of this frame: both anchors under the one launcher pose, blended like it (M32BadgeAnchor).
+        // 本帧标记锚点：两个锚点都经过同一个发射器姿态，并与其同样混合（M32BadgeAnchor）。
         Window window = client.getWindow();
-        M32BadgeAnchor.capture(clipFromBase(), bodyPose, sightPose, ease, window.getScaledWidth(),
-                window.getScaledHeight());
+        M32BadgeAnchor.capture(clipFromBase(), pose, pose, ease, window.getScaledWidth(), window.getScaledHeight());
 
         drawModel(renderer, stack, mode, leftHanded, matrices, consumers, light, overlay, body, bodyCorrection);
         drawModel(renderer, stack, mode, leftHanded, matrices, consumers, light, overlay, sight, sightCorrection);
-        if (dot) {
-            // After the launcher in code order. The dot and reticle layers test depth but never write it, and the opaque
-            // frame does, so the frame covers them outside the window whichever layer the buffer flushes first.
-            // 代码顺序上位于发射器之后。红点与分划渲染层测试深度但从不写入，而不透明的框体会写入，因此无论缓冲先刷新哪一层，框体
-            // 都会在窗口之外遮住它们。
-            drawDot(matrices, consumers, dotCorrection);
-            drawReticle(matrices, consumers, dotCorrection, pitch, dial, handFov, worldFov,
-                    M32SightPose.reticleAlpha(progress));
+        if (reticle) {
+            // After the launcher in code order. The reticle layer tests depth but never writes it, and the opaque tube
+            // does, so the tube covers it outside the window whichever layer the buffer flushes first.
+            // 代码顺序上位于发射器之后。分划渲染层测试深度但从不写入，而不透明的镜筒会写入，因此无论缓冲先刷新哪一层，镜筒都会在
+            // 窗口之外遮住它。
+            drawReticle(matrices, consumers, reticleCorrection, M32SightPose.reticleAlpha(progress),
+                    entity.getPitch(passTickDelta), M32SightState.handFovDegrees(), worldFov(client, passTickDelta));
         }
         return true;
     }
@@ -249,32 +240,16 @@ public final class M32SightRenderer {
     }
 
     /**
-     * The red halo, then the white core slightly nearer the eye, perpendicular to the sight axis at
-     * {@link M32SightPose#DOT_Z}; full bright on the emissive translucent entity layer.
-     * 先画红色光晕，再画离眼睛稍近的白色核心，均垂直于瞄具轴、位于 {@link M32SightPose#DOT_Z}；在自发光半透明实体渲染层上全亮绘制。
-     */
-    private static void drawDot(MatrixStack matrices, VertexConsumerProvider consumers, Matrix4f correction) {
-        matrices.push();
-        matrices.multiplyPositionMatrix(correction);
-        MatrixStack.Entry entry = matrices.peek();
-        VertexConsumer buffer = consumers.getBuffer(RenderLayer.getEntityTranslucentEmissive(DOT_TEXTURE));
-        Vector3f center = M32SightPose.dotCenter();
-        float perUnit = 1.0F / M32SightPose.UNITS_PER_BLOCK;
-        quad(buffer, entry, center.x, center.y, center.z, M32SightPose.HALO_EDGE * perUnit / 2.0F, 0.0F, 0.5F);
-        quad(buffer, entry, center.x, center.y, center.z + M32SightPose.CORE_LEAD * perUnit,
-                M32SightPose.CORE_EDGE * perUnit / 2.0F, 0.5F, 1.0F);
-        matrices.pop();
-    }
-
-    /**
-     * The quadrant-grid reticle on the dot plane with the dot's matrix, full bright on the emissive translucent entity
-     * layer (depth tested, never written), red at the element's alpha times {@code visibility}. One capturing sink per
-     * frame; the quads stream straight into the buffer.
-     * 以红点的矩阵在红点平面上绘制象限网格分划，在自发光半透明实体渲染层上全亮绘制（测试深度、从不写入），红色、透明度为元素透明度
-     * 乘以 {@code visibility}。每帧一个捕获式接收器；四边形直接写入缓冲。
+     * The reticle on its plane with the launcher's matrix, full bright on the emissive translucent entity layer (depth
+     * tested, never written), the atlas's own colour at {@code visibility}: the centre mark, then for each range mark
+     * that fits the bore its tick and (when it fits too) its label, and last the stem down to the lowest tick drawn.
+     * {@code pitch} is the look the round would leave along.
+     * 以发射器的矩阵在分划平面上绘制分划，在自发光半透明实体渲染层上全亮绘制（测试深度、从不写入），图集自身颜色、透明度为
+     * {@code visibility}：先是中心分划，然后对每个放得进内孔的射程刻度绘制刻度线及（同样放得下时）数字，最后是通到最低一条已绘制
+     * 刻度线的主干。{@code pitch} 为榴弹将沿其射出的视线俯仰角。
      */
     private static void drawReticle(MatrixStack matrices, VertexConsumerProvider consumers, Matrix4f correction,
-                                    float pitch, int dial, double handFov, double worldFov, float visibility) {
+                                    float visibility, float pitch, double handFov, double worldFov) {
         if (!(visibility > 0.0F)) {
             return;
         }
@@ -282,40 +257,39 @@ public final class M32SightRenderer {
         matrices.multiplyPositionMatrix(correction);
         MatrixStack.Entry entry = matrices.peek();
         VertexConsumer buffer = consumers.getBuffer(RenderLayer.getEntityTranslucentEmissive(RETICLE_TEXTURE));
-        float z = M32SightPose.DOT_Z / M32SightPose.UNITS_PER_BLOCK;
-        M32SightPose.emitReticle(pitch, dial, handFov, worldFov, (x0, y0, x1, y1, u0, v0, u1, v1, vAlongX, alpha) ->
-                reticleQuad(buffer, entry, z, x0, y0, x1, y1, u0, v0, u1, v1, vAlongX,
-                        M32SightPose.reticleArgb(alpha * visibility)));
+        int color = M32SightPose.reticleArgb(visibility);
+        M32SightPose.Rect solid = M32SightPose.solidUv();
+        for (M32SightPose.Rect bar : M32SightPose.centreMark()) {
+            quad(buffer, entry, bar, solid, color);
+        }
+        double lowest = Double.NaN;
+        int[] marks = M32Ballistics.scaleMarks();
+        for (int i = 0; i < marks.length; i++) {
+            double offset = M32SightPose.scaleOffset(M32Ballistics.holdoverRadians(pitch, marks[i]), handFov,
+                    worldFov);
+            if (!M32SightPose.tickFits(offset) || !M32SightPose.markClear(offset, lowest)) {
+                continue;
+            }
+            quad(buffer, entry, M32SightPose.tickRect(offset), solid, color);
+            int digits = marks[i] >= 100 ? 3 : 2;
+            if (M32SightPose.labelFits(offset, digits)) {
+                quad(buffer, entry, M32SightPose.labelRect(offset, digits), M32SightPose.labelUv(i, digits), color);
+            }
+            lowest = offset;
+        }
+        quad(buffer, entry, M32SightPose.stemRect(lowest), solid, color);
         matrices.pop();
     }
 
-    /**
-     * One axis-aligned quad, corners top-left, bottom-left, bottom-right, top-right; UVs as
-     * {@link M32SightPose.ReticleSink} defines them (vertical bars run v along x).
-     * 一个轴对齐四边形，角顺序为左上、左下、右下、右上；UV 按 {@link M32SightPose.ReticleSink} 的定义（竖直线条的 v 沿 x）。
-     */
-    private static void reticleQuad(VertexConsumer buffer, MatrixStack.Entry entry, float z, float x0, float y0,
-                                    float x1, float y1, float u0, float v0, float u1, float v1, boolean vAlongX,
-                                    int color) {
-        if (vAlongX) {
-            vertex(buffer, entry, x0, y1, z, u0, v0, color);
-            vertex(buffer, entry, x0, y0, z, u1, v0, color);
-            vertex(buffer, entry, x1, y0, z, u1, v1, color);
-            vertex(buffer, entry, x1, y1, z, u0, v1, color);
-        } else {
-            vertex(buffer, entry, x0, y1, z, u0, v0, color);
-            vertex(buffer, entry, x0, y0, z, u0, v1, color);
-            vertex(buffer, entry, x1, y0, z, u1, v1, color);
-            vertex(buffer, entry, x1, y1, z, u1, v0, color);
-        }
-    }
-
-    private static void quad(VertexConsumer buffer, MatrixStack.Entry entry, float x, float y, float z, float half,
-                             float u0, float u1) {
-        vertex(buffer, entry, x - half, y + half, z, u0, 0.0F, 0xFFFFFFFF);
-        vertex(buffer, entry, x - half, y - half, z, u0, 1.0F, 0xFFFFFFFF);
-        vertex(buffer, entry, x + half, y - half, z, u1, 1.0F, 0xFFFFFFFF);
-        vertex(buffer, entry, x + half, y + half, z, u1, 0.0F, 0xFFFFFFFF);
+    /** One quad on the reticle plane. / 分划平面上的一个四边形。 */
+    private static void quad(VertexConsumer buffer, MatrixStack.Entry entry, M32SightPose.Rect rect,
+                             M32SightPose.Rect uv, int color) {
+        float z = M32SightPose.RETICLE_Z / M32SightPose.UNITS_PER_BLOCK;
+        // Corners top-left, bottom-left, bottom-right, top-right. / 角顺序为左上、左下、右下、右上。
+        vertex(buffer, entry, rect.x0(), rect.y1(), z, uv.x0(), uv.y0(), color);
+        vertex(buffer, entry, rect.x0(), rect.y0(), z, uv.x0(), uv.y1(), color);
+        vertex(buffer, entry, rect.x1(), rect.y0(), z, uv.x1(), uv.y1(), color);
+        vertex(buffer, entry, rect.x1(), rect.y1(), z, uv.x1(), uv.y0(), color);
     }
 
     private static void vertex(VertexConsumer buffer, MatrixStack.Entry entry, float x, float y, float z, float u,

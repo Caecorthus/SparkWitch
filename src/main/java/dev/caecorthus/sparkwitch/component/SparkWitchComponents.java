@@ -3,10 +3,12 @@ package dev.caecorthus.sparkwitch.component;
 import dev.caecorthus.sparkwitch.roles.civilian.apprentice.ApprenticePlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
+import dev.caecorthus.sparkwitch.item.rope.RopeHoldComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStatusComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.flash.HolyFlashComponent;
@@ -18,7 +20,10 @@ import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRoundComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellEchoPlayerComponent;
@@ -29,10 +34,22 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenPerceptionPla
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.disguise.BlackRavenDisguiseComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.witchification.HiroWitchificationComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeTheftPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeignComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanInstinctVeilComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanMomentWorldComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeignComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendMomentWorldComponent;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.zone.AbyssZoneExposureComponent;
@@ -125,6 +142,12 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, ControlExpertStatusComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(ControlExpertStatusComponent::new);
+        // Rope strangle hold (2026-11-11): which side of a strangle the owner is on, owner-synced and transient; kept
+        // beside the stun status because it drives the same client input lock.
+        // 绳索勒杀定身（2026-11-11）：拥有者处于勒杀的哪一方，只同步给本人且不保存；与眩晕状态相邻，因为它驱动同一套客户端输入锁。
+        registry.beginRegistration(PlayerEntity.class, RopeHoldComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(RopeHoldComponent::new);
         registry.beginRegistration(PlayerEntity.class, HolyFlashComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(HolyFlashComponent::new);
@@ -212,6 +235,78 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, dev.caecorthus.sparkwitch.headset.HeadsetComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(dev.caecorthus.sparkwitch.headset.HeadsetComponent::new);
+        // Specter sanity-outline colours, fear levels, second-skill state and cowardice; appended last.
+        // 幽魂理智描边颜色、恐惧层数、二技能状态与怯懦；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, SpecterPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SpecterPlayerComponent::new);
+        registry.beginRegistration(PlayerEntity.class, SpecterFearComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SpecterFearComponent::new);
+        registry.beginRegistration(PlayerEntity.class, SpecterSecondSkillComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SpecterSecondSkillComponent::new);
+        registry.beginRegistration(PlayerEntity.class, SpecterCowardiceComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SpecterCowardiceComponent::new);
+        // Savior G-skill cooldown and domain timer (PR #200), synced to its owner only; appended after the
+        // Specter's components.
+        // 救世主 G 技能冷却与领域计时（PR #200），只同步给本人；追加在幽魂组件之后。
+        registry.beginRegistration(PlayerEntity.class, SaviorPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SaviorPlayerComponent::new);
+        // Medium cooldowns and 招魂 bindings, synced to the owner only; appended after the Savior's.
+        // 通灵师冷却与招魂绑定，只同步给本人；追加在救世主组件之后。
+        registry.beginRegistration(PlayerEntity.class, MediumPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(MediumPlayerComponent::new);
+        // Charon (PR #202): pardon window (server only), both cooldowns and the marks (owner only); appended after the
+        // Medium's component. / 卡戎（PR #202）：宽恕窗口（仅服务端）、两个冷却与标记（只同步给本人）；追加在通灵师组件之后。
+        registry.beginRegistration(PlayerEntity.class, FerrymanPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FerrymanPlayerComponent::new);
+        // Charon gaze feign: the marked attacker's 10 s fake corpse, server only; appended last.
+        // 卡戎「瞥视」假死：被标记者 10 秒的假尸体，仅服务端；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, FerrymanFeignComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FerrymanFeignComponent::new);
+        // Charon instinct veil: broadcast to everyone because instinct is drawn per client; appended last.
+        // 卡戎的本能帷幕：本能按客户端绘制，因此同步给所有人；追加在最后。
+        registry.beginRegistration(PlayerEntity.class, FerrymanInstinctVeilComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(FerrymanInstinctVeilComponent::new);
+        // Tono Hanna (PR #212): float, penalty and handkerchief timers. Everyone receives only the float's remaining
+        // ticks (instinct is drawn per client); the owner also gets the ready and penalty ticks. Appended last, after
+        // the Charon's components.
+        // 远野汉娜（PR #212）：浮游、惩罚与手帕计时。所有人只收到浮游的剩余刻数（本能按客户端绘制）；本人额外收到就绪刻与
+        // 惩罚刻。追加在最后，位于卡戎的组件之后。
+        registry.beginRegistration(PlayerEntity.class, HannaComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(HannaComponent::new);
+        // 橘雪莉 (PR #206): skill cooldowns, her Mighty Force window, badge holders and reveal trackers, synced to the
+        // owner only; appended last, after Tono Hanna's.
+        // 橘雪莉（PR #206）：技能冷却、巨力窗口、徽章持有者与揭示追踪，只同步给本人；追加在最后，位于远野汉娜的组件之后。
+        registry.beginRegistration(PlayerEntity.class,
+                        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent::new);
+        // 二阶堂希罗 (2026-11-11): 死亡回归 cooldown, window and record point, then 魔女化 progress; both synced to
+        // the owner only; appended last, after 橘雪莉's component.
+        // 二阶堂希罗（2026-11-11）：死亡回归的冷却、窗口与记录点，以及魔女化进度；均只同步给本人；追加在最后，位于橘雪莉的
+        // 组件之后。
+        registry.beginRegistration(PlayerEntity.class, HiroReturnComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(HiroReturnComponent::new);
+        registry.beginRegistration(PlayerEntity.class, HiroWitchificationComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(HiroWitchificationComponent::new);
+        // 泽渡可可 (PR #223): traffic, the stream and shared-cooldown ticks, the lightstick window and the bodies she
+        // already streamed; synced to the owner only; appended last, after 二阶堂希罗's components.
+        // 泽渡可可（PR #223）：流量、直播与共用冷却的刻、应援棒窗口以及已直播过的尸体；只同步给本人；追加在最后，位于
+        // 二阶堂希罗的组件之后。
+        registry.beginRegistration(PlayerEntity.class, KokoComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(KokoComponent::new);
     }
 
     @Override
@@ -228,5 +323,10 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.register(dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent.KEY,
                 dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelWorldComponent::new);
         registry.register(JunkerLootWorldComponent.KEY, JunkerLootWorldComponent::new);
+        registry.register(SpecterOtherworldComponent.KEY, SpecterOtherworldComponent::new);
+        registry.register(MediumSeanceComponent.KEY, MediumSeanceComponent::new);
+        // Charon (PR #202) Soul Moment, appended last, after the Medium's seance.
+        // 卡戎（PR #202）亡魂时刻，追加在最后，位于通灵师通灵组件之后。
+        registry.register(FerrymanMomentWorldComponent.KEY, FerrymanMomentWorldComponent::new);
     }
 }

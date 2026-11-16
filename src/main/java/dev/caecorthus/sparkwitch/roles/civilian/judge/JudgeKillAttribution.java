@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.civilian.judge;
 
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroVictimFeignService;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +23,10 @@ public final class JudgeKillAttribution {
         ServerWorld world = victim.getServerWorld();
         UUID cause = CAUSES.actor(world);
         UUID responsible = cause != null ? cause : killer == null ? null : killer.getUuid();
-        if (JudgeRuntime.blocksKill(world, responsible, victim.getUuid())) return;
+        // 二阶堂希罗's settlement replay is a kill that committed before any sentence could matter: never refused here.
+        // 二阶堂希罗的结算重放是在任何判决生效之前就已落定的击杀：此处绝不拒绝。
+        if (!HiroVictimFeignService.isSettling(victim)
+                && JudgeRuntime.blocksKill(world, responsible, victim.getUuid())) return;
 
         Attempt previous = ATTEMPTS.get();
         ATTEMPTS.set(new Attempt(world, responsible, victim.getUuid()));
@@ -56,6 +60,20 @@ public final class JudgeKillAttribution {
     public static @Nullable UUID committedResponsible(ServerPlayerEntity victim) {
         Attempt attempt = ATTEMPTS.get();
         if (attempt == null || !attempt.committed || attempt.world != victim.getServerWorld()
+                || !attempt.victim.equals(victim.getUuid())) return null;
+        return attempt.actor;
+    }
+
+    /**
+     * Read-only: the responsible UUID (cause, else killer) of this victim's kill attempt still on the stack, whether
+     * or not it has committed yet; null otherwise. For hooks inside {@code killPlayer} that run before the death commits
+     * (二阶堂希罗's 死亡回归 at HEAD and at the commit point). Never changes Judge state.
+     * 只读：该受害者仍在调用栈中的击杀尝试的责任人（归因优先，否则凶手），无论是否已提交；否则为 null。供
+     * {@code killPlayer} 内早于死亡提交运行的钩子使用（二阶堂希罗「死亡回归」的 HEAD 与提交点）。不改变法官状态。
+     */
+    public static @Nullable UUID attemptResponsible(ServerPlayerEntity victim) {
+        Attempt attempt = ATTEMPTS.get();
+        if (attempt == null || attempt.world != victim.getServerWorld()
                 || !attempt.victim.equals(victim.getUuid())) return null;
         return attempt.actor;
     }

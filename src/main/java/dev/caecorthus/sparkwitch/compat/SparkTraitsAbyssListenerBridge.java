@@ -22,7 +22,6 @@ public final class SparkTraitsAbyssListenerBridge {
     static final Identifier CONSCIENCE = Identifier.of(MOD_ID, "conscience");
     static final Identifier IMPOSTOR = Identifier.of(MOD_ID, "impostor");
 
-    private static final OptionalStaticMethod PENDING = resolve("isLastStandPending", PlayerEntity.class);
     private static final OptionalStaticMethod TRAIT = resolve("hasActiveTrait", PlayerEntity.class, Identifier.class);
 
     private SparkTraitsAbyssListenerBridge() {
@@ -30,11 +29,13 @@ public final class SparkTraitsAbyssListenerBridge {
 
     /**
      * Whether SparkTraits Last Stand currently holds this player's pending death transition; absent, older or
-     * failing providers read as false.
-     * SparkTraits 背水一战当前是否持有该玩家的待决死亡转换；提供方缺失、过旧或出错时为 false。
+     * failing providers read as false. The lookup is shared with the Seeker through
+     * {@link SparkTraitsLastStandBridge#isLastStandPending}.
+     * SparkTraits 背水一战当前是否持有该玩家的待决死亡转换；提供方缺失、过旧或出错时为 false。查询经
+     * {@link SparkTraitsLastStandBridge#isLastStandPending} 与搜寻者共用。
      */
     public static boolean isLastStandPending(@Nullable PlayerEntity player) {
-        return player != null && PENDING.callBoolean(false, false, false, player);
+        return SparkTraitsLastStandBridge.isLastStandPending(player);
     }
 
     /** Conscience trait: FALSE when SparkTraits is absent, null when unknown. / 良知词条：未安装为 FALSE，未知为 null。 */

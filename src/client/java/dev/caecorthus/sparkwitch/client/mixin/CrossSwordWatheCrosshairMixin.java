@@ -3,12 +3,14 @@ package dev.caecorthus.sparkwitch.client.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
+import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeTargetOcclusion;
 import dev.caecorthus.sparkwitch.client.knight.CrossSwordClientStab;
 import dev.doctor4t.wathe.client.gui.CrosshairRenderer;
 import dev.doctor4t.wathe.index.WatheItems;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.ItemCooldownManager;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,7 +37,11 @@ public abstract class CrossSwordWatheCrosshairMixin {
                                                                 Operation<Boolean> original) {
         if (item == WatheItems.KNIFE && stack.isOf(SparkWitchItems.crossSword())) {
             ClientPlayerEntity player = MinecraftClient.getInstance().player;
-            return player != null && CrossSwordClientStab.aimedDuelTarget(player) != null;
+            // Hint only: a duel target hidden by BEAR smoke keeps the plain crosshair; the release still sends the
+            // stab from the unfiltered aimedDuelTarget. / 仅提示：被 BEAR 烟雾挡住的决斗目标保持普通准星；松手仍按未过滤
+            // 的 aimedDuelTarget 发送刺击。
+            PlayerEntity target = player == null ? null : CrossSwordClientStab.aimedDuelTarget(player);
+            return target != null && !SmokeTargetOcclusion.hides(player, target);
         }
         return original.call(stack, item);
     }

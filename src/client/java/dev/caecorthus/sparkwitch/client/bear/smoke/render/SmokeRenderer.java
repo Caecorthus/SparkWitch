@@ -13,7 +13,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.render.FogShape;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
@@ -266,8 +265,7 @@ public final class SmokeRenderer {
         int marchDepth = 0;
         GL_STATE.save();
         try {
-            marchDepth = SmokePackDepth.merge(MinecraftClient.getInstance().getResourceManager(), depthAll,
-                    depthOpaque, depthBeforeHand, width, height);
+            marchDepth = SmokePackDepth.merge(depthAll, depthOpaque, depthBeforeHand, width, height);
         } catch (RuntimeException | IOException exception) {
             fail(exception);
         } finally {
@@ -349,7 +347,7 @@ public final class SmokeRenderer {
         }
         GL_STATE.save();
         try {
-            ensurePrograms(client.getResourceManager(), SmokeMarchRules.cloudSlotVariant(SELECTED.size()));
+            ensurePrograms(SmokeMarchRules.cloudSlotVariant(SELECTED.size()));
             SmokeViewTargets targets = TARGETS[passSlot];
             targets.ensureLow(width, height);
             targetsHeld = true;
@@ -574,7 +572,7 @@ public final class SmokeRenderer {
     private static void compositePass(SmokeViewTargets targets, int colorTexture, int depthTexture,
                                       int width, int height) {
         SmokeProgram program = composite;
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, targets.compositeFramebuffer(colorTexture));
+        targets.bindComposite(colorTexture);
         GL11.glViewport(0, 0, width, height);
         SmokeGlState.prepareFullscreenPass();
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
@@ -594,10 +592,10 @@ public final class SmokeRenderer {
         GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
     }
 
-    private static void ensurePrograms(ResourceManager resources, int variant) throws IOException {
+    private static void ensurePrograms(int variant) throws IOException {
         march = MARCH_VARIANTS[variant];
         if (march == null) {
-            march = SmokeProgram.load(resources, "fullscreen.vsh", "march.fsh",
+            march = SmokeProgram.load("fullscreen.vsh", "march.fsh",
                     Map.of("CLOUD_SLOTS", Integer.toString(SmokeMarchRules.CLOUD_SLOT_VARIANTS[variant])),
                     "OutSmoke", "OutDepth");
             MARCH_VARIANTS[variant] = march;
@@ -612,7 +610,7 @@ public final class SmokeRenderer {
             }
         }
         if (composite == null) {
-            composite = SmokeProgram.load(resources, "fullscreen.vsh", "composite.fsh", "OutColor");
+            composite = SmokeProgram.load("fullscreen.vsh", "composite.fsh", "OutColor");
             GL20.glUseProgram(composite.id());
             composite.sampler("SceneDepth", UNIT_DEPTH);
             composite.sampler("SmokeColor", UNIT_SMOKE_COLOR);

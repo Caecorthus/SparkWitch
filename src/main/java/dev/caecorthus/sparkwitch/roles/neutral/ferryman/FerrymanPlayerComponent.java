@@ -1,0 +1,331 @@
+package dev.caecorthus.sparkwitch.roles.neutral.ferryman;
+
+import dev.caecorthus.sparkwitch.SparkWitch;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.RegistryByteBuf;
+import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.ComponentRegistry;
+import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
+import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
+
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Per-player Ferryman state ({@code sparkwitch:ferryman}): the ability cooldown, the pending pardon window (killer and
+ * death reason held only until the window closes or the key is pressed), the one 瞥视 mark still waiting out its delay
+ * (server only, never synced or saved), the attackers the Ferryman may see through walls (瞥视) and the bodies already
+ * ferried (怜悯). The server owns every field; the owner's client receives the
+ * remaining cooldown and both id sets (never the death reason or the server time) and renders the marks from them.
+ * Transient: a round reset or a respawn copy never carries it (the Wathe round resets the role itself).
+ * 每名玩家的摆渡人状态（{@code sparkwitch:ferryman}）：技能冷却、待决的宽恕窗口（仅保存到窗口关闭或按键为止的击杀者与
+ * 死亡原因）、仍在等待延迟的那一层「瞥视」（仅服务端，从不同步或保存）、可被摆渡人透视的攻击者（瞥视）与已摆渡的遗体（怜悯）。全部字段由服务端拥有；拥有者客户端只接收剩余
+ * 冷却与两组 id（绝不含死亡原因或服务端时间），并据此渲染标记。瞬时状态：换局或重生不会带走它。
+ */
+public final class FerrymanPlayerComponent implements AutoSyncedComponent, ClientTickingComponent {
+    public static final ComponentKey<FerrymanPlayerComponent> KEY = ComponentRegistry.getOrCreate(
+            SparkWitch.id("ferryman"),
+            FerrymanPlayerComponent.class
+    );
+
+    private final PlayerEntity player;
+    private final Set<UUID> gazeTargets = new LinkedHashSet<>();
+    private final Set<UUID> ferriedBodies = new LinkedHashSet<>();
+
+    private int cooldownTicks;
+    /** Owner's local copy of the remaining ticks, decremented every client tick for the HUD. / 拥有者本地倒计时，供 HUD 使用。 */
+    private int clientCooldownTicks;
+    private int ferryCooldownTicks;
+    private int clientFerryCooldownTicks;
+    private boolean pardoning;
+    private @Nullable UUID pendingKiller;
+    private @Nullable Identifier pendingDeathReason;
+    /** The held kill's own {@code spawnBody}, replayed unchanged. / 被扣住击杀自身的 {@code spawnBody}，原样重放。 */
+    private boolean pendingSpawnBody = true;
+    private long pardonDeadlineTick;
+    private @Nullable UUID pendingMarkTarget;
+    private long pendingMarkDeadlineTick;
+
+    public FerrymanPlayerComponent(PlayerEntity player) {
+        this.player = player;
+    }
+
+    public static FerrymanPlayerComponent get(PlayerEntity player) {
+        return KEY.get(player);
+    }
+
+    /** Both sides: the server's own value, or the owner's countdown on the client. / 双端：服务端原值，客户端取本地倒计时。 */
+    public int cooldownTicks() {
+        return player.getWorld().isClient ? clientCooldownTicks : cooldownTicks;
+    }
+
+    @Override
+    public void clientTick() {
+        if (clientCooldownTicks > 0) {
+            clientCooldownTicks--;
+        }
+        if (clientFerryCooldownTicks > 0) {
+            clientFerryCooldownTicks--;
+        }
+    }
+
+    /** Both sides: the ferry (secondary key) cooldown; the client reads its own countdown. / 双端：摆渡（第二技能键）冷却；客户端读本地倒计时。 */
+    public int ferryCooldownTicks() {
+        return player.getWorld().isClient ? clientFerryCooldownTicks : ferryCooldownTicks;
+    }
+
+    /** Server: arms the ferry for {@code ticks}. / 服务端：把摆渡设为 ticks 冷却。 */
+    public void setFerryCooldown(int ticks) {
+        int next = Math.max(0, ticks);
+        if (ferryCooldownTicks == next) {
+            return;
+        }
+        ferryCooldownTicks = next;
+        syncOwner();
+    }
+
+    /** Server: one tick of the ferry cooldown. / 服务端：推进一格摆渡冷却。 */
+    public void tickFerryCooldown() {
+        if (ferryCooldownTicks <= 0) {
+            return;
+        }
+        ferryCooldownTicks--;
+        if (ferryCooldownTicks == 0) {
+            syncOwner();
+        }
+    }
+
+    /** Server: arms the ability for {@code ticks}; 0 clears it. / 服务端：把技能冷却设为 ticks，0 为就绪。 */
+    public void setCooldown(int ticks) {
+        int next = Math.max(0, ticks);
+        if (cooldownTicks == next) {
+            return;
+        }
+        cooldownTicks = next;
+        syncOwner();
+    }
+
+    /** Server: one tick of cooldown. Returns true when it became ready this tick. / 服务端：推进一格冷却；本 tick 变为就绪时返回 true。 */
+    public boolean tickCooldown() {
+        if (cooldownTicks <= 0) {
+            return false;
+        }
+        cooldownTicks--;
+        if (cooldownTicks == 0) {
+            syncOwner();
+            return true;
+        }
+        return false;
+    }
+
+    // ---- Pardon window (server only) / 宽恕窗口（仅服务端） ----
+
+    public boolean isPardoning() {
+        return pardoning;
+    }
+
+    public void openPardon(UUID killer, @Nullable Identifier deathReason, boolean spawnBody, long deadlineTick) {
+        pardoning = true;
+        pendingKiller = killer;
+        pendingDeathReason = deathReason;
+        pendingSpawnBody = spawnBody;
+        pardonDeadlineTick = deadlineTick;
+    }
+
+    public long pardonDeadlineTick() {
+        return pardonDeadlineTick;
+    }
+
+    public @Nullable UUID pendingKiller() {
+        return pendingKiller;
+    }
+
+    public @Nullable Identifier pendingDeathReason() {
+        return pendingDeathReason;
+    }
+
+    public boolean pendingSpawnBody() {
+        return pendingSpawnBody;
+    }
+
+    public void closePardon() {
+        pardoning = false;
+        pendingKiller = null;
+        pendingDeathReason = null;
+        pendingSpawnBody = true;
+        pardonDeadlineTick = 0L;
+    }
+
+    // ---- Marks / 标记 ----
+
+    /**
+     * Server only: a gaze mark that has been earned but must land later, so the attacker keeps a short window to answer
+     * the Charon before 瞥视 settles. Not synced: the client only ever renders marks that already exist.
+     * 仅服务端：已经挣到、但必须晚些落下的「瞥视」标记，攻击者因此还有一点时间回应摆渡人。不同步：客户端只渲染已经存在的标记。
+     */
+    public void scheduleGazeMark(UUID target, long deadlineTick) {
+        pendingMarkTarget = target;
+        pendingMarkDeadlineTick = deadlineTick;
+    }
+
+    public boolean hasPendingMark() {
+        return pendingMarkTarget != null;
+    }
+
+    /** Server: the scheduled mark's target, due or not; null when none. / 服务端：已排定标记的目标（无论是否到期），没有则为 null。 */
+    public @Nullable UUID pendingMarkTarget() {
+        return pendingMarkTarget;
+    }
+
+    /** Server: the mark's target once its deadline has come, otherwise null. / 服务端：到期后返回标记目标，否则 null。 */
+    public @Nullable UUID duePendingMark(long now) {
+        return pendingMarkTarget != null && now >= pendingMarkDeadlineTick ? pendingMarkTarget : null;
+    }
+
+    public void clearPendingMark() {
+        pendingMarkTarget = null;
+        pendingMarkDeadlineTick = 0L;
+    }
+
+    public boolean hasGaze(UUID target) {
+        return gazeTargets.contains(target);
+    }
+
+    public boolean addGaze(UUID target) {
+        if (!gazeTargets.add(target)) {
+            return false;
+        }
+        syncOwner();
+        return true;
+    }
+
+    /** Server: consumes one 瞥视 mark (the feign death that answers a second strike takes it). / 服务端：消耗一层「瞥视」（二次攻击引发的假死会吃掉它）。 */
+    public boolean removeGaze(UUID target) {
+        if (!gazeTargets.remove(target)) {
+            return false;
+        }
+        syncOwner();
+        return true;
+    }
+
+    public Set<UUID> gazeTargets() {
+        return Set.copyOf(gazeTargets);
+    }
+
+    public boolean hasFerried(UUID bodyOwner) {
+        return ferriedBodies.contains(bodyOwner);
+    }
+
+    public boolean addFerried(UUID bodyOwner) {
+        if (!ferriedBodies.add(bodyOwner)) {
+            return false;
+        }
+        syncOwner();
+        return true;
+    }
+
+    /** Server: drops one 怜悯 mark once its body is gone (paid or not). / 服务端：遗体消失后移除对应「怜悯」标记。 */
+    public boolean removeFerried(UUID bodyOwner) {
+        if (!ferriedBodies.remove(bodyOwner)) {
+            return false;
+        }
+        syncOwner();
+        return true;
+    }
+
+    public Set<UUID> ferriedBodies() {
+        return Set.copyOf(ferriedBodies);
+    }
+
+    /**
+     * Server: drops every round-scoped field; the cooldown goes back to the round-start value. Syncs whenever a synced
+     * value differs from what it was, so the first round-start 60 s (0 → 1200) reaches the HUD.
+     * 服务端：清除全部本局字段；冷却回到开局值。只要同步字段与之前不同就同步，因此首次开局的 60 秒（0 → 1200）能到达 HUD。
+     */
+    public void clearRoundState() {
+        boolean changed = FerrymanRules.roundResetChanges(gazeTargets.size(), ferriedBodies.size(), cooldownTicks,
+                ferryCooldownTicks);
+        gazeTargets.clear();
+        ferriedBodies.clear();
+        closePardon();
+        clearPendingMark();
+        cooldownTicks = FerrymanRules.INITIAL_COOLDOWN_TICKS;
+        ferryCooldownTicks = 0;
+        if (changed) {
+            syncOwner();
+        }
+    }
+
+    // ---- Sync / 同步 ----
+
+    public void syncOwner() {
+        if (!player.getWorld().isClient) {
+            KEY.sync(player);
+        }
+    }
+
+    @Override
+    public boolean shouldSyncWith(ServerPlayerEntity recipient) {
+        return recipient == player;
+    }
+
+    @Override
+    public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) {
+        buf.writeVarInt(cooldownTicks);
+        buf.writeVarInt(ferryCooldownTicks);
+        buf.writeVarInt(gazeTargets.size());
+        for (UUID target : gazeTargets) {
+            buf.writeUuid(target);
+        }
+        buf.writeVarInt(ferriedBodies.size());
+        for (UUID body : ferriedBodies) {
+            buf.writeUuid(body);
+        }
+    }
+
+    @Override
+    public void applySyncPacket(RegistryByteBuf buf) {
+        cooldownTicks = buf.readVarInt();
+        clientCooldownTicks = cooldownTicks;
+        ferryCooldownTicks = buf.readVarInt();
+        clientFerryCooldownTicks = ferryCooldownTicks;
+        int gazeCount = buf.readVarInt();
+        gazeTargets.clear();
+        for (int i = 0; i < gazeCount; i++) {
+            gazeTargets.add(buf.readUuid());
+        }
+        int bodyCount = buf.readVarInt();
+        ferriedBodies.clear();
+        for (int i = 0; i < bodyCount; i++) {
+            ferriedBodies.add(buf.readUuid());
+        }
+    }
+
+    @Override
+    public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
+        // Transient by design: the round resets the role and the marks with it.
+        // 刻意保持瞬时：换局时职业与标记一同重置。
+    }
+
+    @Override
+    public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
+        closePardon();
+        gazeTargets.clear();
+        ferriedBodies.clear();
+        cooldownTicks = 0;
+        ferryCooldownTicks = 0;
+    }
+
+    @Override
+    public String toString() {
+        return "FerrymanPlayerComponent{" + Objects.toString(player.getUuid()) + "}";
+    }
+}

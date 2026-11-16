@@ -1,7 +1,11 @@
 package dev.caecorthus.sparkwitch.mana;
 
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.SparkWitchRoles;
 import dev.caecorthus.sparkwitch.roles.witch.WitchFactionRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
@@ -10,10 +14,20 @@ import dev.doctor4t.wathe.api.Role;
 
 /**
  * Pure mana economy rules for the mana-bearing roles: the three witches, Emma, the Abyss Listener and the
- * Riftwalker (which use the Grand Witch's economy, Abyss Listener D11 and Riftwalker D7), and the Witch Maiden (crimson
- * skull mana, 2026-10-20).
- * 魔力角色的纯规则集中在这里（三位魔女、艾玛，以及沿用大魔女魔力机制的聆渊者与隙行者，聆渊者 D11、隙行者 D7），
- * 避免事件、组件和 HUD 各写一份判断。
+ * Riftwalker (which use the Grand Witch's economy, Abyss Listener D11 and Riftwalker D7), the Witch Maiden (crimson
+ * skull mana, 2026-10-20), Tono Hanna (PR #212, owner 2026-11-11), 橘雪莉 (PR #206: 1 mana per 5 s up to the
+ * default cap, +10 per task, for her own Mighty Force), 二阶堂希罗 (死亡回归 mana on the Witch Maiden's exact
+ * numbers, owner 2026-11-11), and 泽渡可可 (PR #223: the Murderous Witch's natural regeneration, 1 mana per 2 s up
+ * to 150, with no task or kill reward, owner 2026-11-13).
+ * <p>Hanna only borrows the pool for her float: {@link #initialMana} gives her 40 at deal time, {@link #taskReward}
+ * 20 per task, and she has no natural regeneration and no kill reward. Being a mana role grants no witch skill and no
+ * place in the witch skill panel; neither she, 橘雪莉, 二阶堂希罗 nor 泽渡可可 is ever a Witch-skill role.
+ * 魔力角色的纯规则集中在这里（三位魔女、艾玛，沿用大魔女魔力机制的聆渊者与隙行者，聆渊者 D11、隙行者 D7，赤首魔力的巫女，
+ * 远野汉娜（PR #212、所有者 2026-11-11），橘雪莉（PR #206：每 5 秒 1 点、不超过默认上限，每任务 +10，用于她自己的巨力），
+ * 二阶堂希罗（死亡回归，数值与巫女完全相同，所有者 2026-11-11），以及泽渡可可（PR #223：自然恢复与杀意魔女相同，每 2 秒
+ * 1 点、上限 150，没有任务或击杀奖励，所有者 2026-11-13）），避免事件、组件和 HUD 各写一份判断。
+ * <p>汉娜只是借用魔力池来浮游：{@link #initialMana} 在发牌时给她 40，{@link #taskReward} 每个任务 20，没有自然回复，也没有
+ * 击杀奖励。成为魔力角色不代表获得魔女技能，也不进入魔女技能面板；她、橘雪莉、二阶堂希罗与泽渡可可都从来不是魔女技能职业。
  */
 public final class WitchManaRules {
     public static final int INITIAL_MANA = 0;
@@ -30,6 +44,10 @@ public final class WitchManaRules {
     private static final int MURDEROUS_WITCH_NATURAL_CAP = 150;
     // Witch Maiden: mana from round start, 1 per second, natural cap 250, for the crimson skull (owner 2026-10-20 Q8).
     // 巫女：开局即有魔力，每秒 1 点，自然上限 250，用于赤色凋灵之首（所有者 2026-10-20 Q8）。
+    // 二阶堂希罗 (owner 2026-11-11) shares these exact numbers: from round start, 1 per second, natural cap 250, no
+    // kill or task rewards; her mana pays for 死亡回归 (and the Fire Poker's debuff branch, like any mana holder).
+    // 二阶堂希罗（所有者 2026-11-11）沿用完全相同的数值：开局即有、每秒 1 点、自然上限 250、无击杀或任务奖励；魔力用于死亡回归
+    // （以及与任何魔力持有者相同的烧火棍减益分支）。
     private static final int WITCH_MAIDEN_NATURAL_CAP = 250;
     private static final int APPRENTICE_TASK_REWARD = 20;
     private static final int GENERIC_KILL_REWARD = 25;
@@ -42,7 +60,19 @@ public final class WitchManaRules {
 
     public static boolean isManaRole(Role role) {
         return isWitchManaRole(role) || EmmaRules.isEmma(role) || AbyssListenerRules.isAbyssListener(role)
-                || RiftwalkerRules.isRiftwalker(role) || WitchMaidenRules.isWitchMaiden(role);
+                || RiftwalkerRules.isRiftwalker(role) || KokoRules.isKoko(role)
+                || WitchMaidenRules.isWitchMaiden(role)
+                || HannaRules.isHanna(role)
+                || SherryRules.isSherry(role)
+                || HiroRules.isHiro(role);
+    }
+
+    /**
+     * Mana a role holds right after the deal: Hanna's 40, {@link #INITIAL_MANA} for everyone else.
+     * 发牌后立即拥有的魔力：汉娜为 40，其余职业为 {@link #INITIAL_MANA}。
+     */
+    public static int initialMana(Role role) {
+        return HannaRules.isHanna(role) ? HannaRules.INITIAL_MANA : INITIAL_MANA;
     }
 
     /**
@@ -67,18 +97,26 @@ public final class WitchManaRules {
                 || role == SparkWitchRoles.murderousWitch());
     }
 
+    /**
+     * Every mana role except Hanna, whose pool only grows through tasks (owner 2026-11-11).
+     * 除汉娜外的所有魔力角色；汉娜的魔力只靠任务增长（所有者 2026-11-11）。
+     */
     public static boolean canRegenerateNaturally(Role role) {
-        return isManaRole(role);
+        return isManaRole(role) && !HannaRules.isHanna(role);
     }
 
     public static int naturalCap(Role role) {
         if (usesGrandWitchManaEconomy(role)) {
             return GRAND_WITCH_NATURAL_CAP;
         }
-        if (role == SparkWitchRoles.murderousWitch()) {
+        // 泽渡可可 (owner 2026-11-13): the Murderous Witch's natural regeneration, i.e. this cap and the default
+        // 1 mana per 2 s below; nothing at the deal, no task reward, no kill reward.
+        // 泽渡可可（所有者 2026-11-13）：自然恢复与杀意魔女相同，即此上限与下方默认的每 2 秒 1 点；开局为 0，没有任务奖励，
+        // 也没有击杀奖励。
+        if (role == SparkWitchRoles.murderousWitch() || KokoRules.isKoko(role)) {
             return MURDEROUS_WITCH_NATURAL_CAP;
         }
-        if (WitchMaidenRules.isWitchMaiden(role)) {
+        if (WitchMaidenRules.isWitchMaiden(role) || HiroRules.isHiro(role)) {
             return WITCH_MAIDEN_NATURAL_CAP;
         }
         return isManaRole(role) ? DEFAULT_NATURAL_CAP : 0;
@@ -104,16 +142,26 @@ public final class WitchManaRules {
         if (!canRegenerateNaturally(role)) {
             return 0;
         }
-        if (usesGrandWitchManaEconomy(role) || EmmaRules.isEmma(role) || WitchMaidenRules.isWitchMaiden(role)) {
+        if (usesGrandWitchManaEconomy(role) || EmmaRules.isEmma(role) || WitchMaidenRules.isWitchMaiden(role)
+                || HiroRules.isHiro(role)) {
             return GRAND_WITCH_REGENERATION_INTERVAL_TICKS;
         }
         if (role == SparkWitchRoles.apprenticeWitch()) {
             return APPRENTICE_REGENERATION_INTERVAL_TICKS;
         }
+        if (SherryRules.isSherry(role)) {
+            return SherryRules.MANA_REGENERATION_INTERVAL_TICKS;
+        }
         return REGENERATION_INTERVAL_TICKS;
     }
 
     public static int taskReward(Role role) {
+        if (HannaRules.isHanna(role)) {
+            return HannaRules.TASK_MANA;
+        }
+        if (SherryRules.isSherry(role)) {
+            return SherryRules.TASK_MANA;
+        }
         return role == SparkWitchRoles.apprenticeWitch() || EmmaRules.isEmma(role) ? APPRENTICE_TASK_REWARD : 0;
     }
 

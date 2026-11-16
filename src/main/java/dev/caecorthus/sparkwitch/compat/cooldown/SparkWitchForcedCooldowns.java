@@ -16,10 +16,18 @@ import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindParticipants;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.BlindRules;
 import dev.caecorthus.sparkwitch.roles.civilian.blind.kit.BlindLoadoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowRules;
@@ -31,9 +39,18 @@ import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeComponent;
 import dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherRules;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendMomentWorldComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendParticipation;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
@@ -77,6 +94,18 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier RAGPICKER_SEARCH_ID = SparkWitch.id("ragpicker_search");
     static final Identifier DOMINATOR_SKILL_ID = SparkWitch.id("dominator_skill");
     static final Identifier NATSUME_HYPNOSIS_ID = NatsumeRules.HYPNOSIS_SKILL_ID;
+    static final Identifier SPECTER_SKILL_ID = SparkWitch.id("specter_skill");
+    static final Identifier SPECTER_OTHERWORLD_ID = SparkWitch.id("specter_otherworld");
+    static final Identifier SAVIOR_DOMAIN_ID = SparkWitch.id("savior_domain");
+    static final Identifier MEDIUM_SEANCE_ID = MediumRules.SEANCE_SKILL_ID;
+    static final Identifier FERRYMAN_PARDON_ID = SparkWitch.id("ferryman_pardon");
+    static final Identifier FERRYMAN_FERRY_ID = SparkWitch.id("ferryman_ferry");
+    static final Identifier HANNA_FLOAT_ID = HannaRules.FLOAT_SKILL_ID;
+    static final Identifier SHERRY_DEDUCTION_ID = SherryRules.DEDUCTION_SKILL_ID;
+    static final Identifier SHERRY_MIGHTY_FORCE_ID = SherryRules.MIGHTY_FORCE_SKILL_ID;
+    static final Identifier HIRO_RETURN_ID = HiroRules.RETURN_SKILL_ID;
+    static final Identifier MEDIUM_BLESSING_ID = MediumRules.BLESSING_SKILL_ID;
+    static final Identifier KOKO_STREAM_ID = KokoRules.STREAM_SKILL_ID;
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -136,7 +165,149 @@ public final class SparkWitchForcedCooldowns {
                 dominatorSkill(),
                 // 夏目安安 hypnosis (PR #194), appended after the Dominator key.
                 // 夏目安安催眠（PR #194），追加在支配者按键之后。
-                natsumeHypnosis()
+                natsumeHypnosis(),
+                // Specter skill one mark/shriek key (PR #207), appended after 夏目安安's hypnosis.
+                // 幽魂技能一标记/尖啸键（PR #207），追加在夏目安安催眠之后。
+                specterSkill(),
+                // Specter Otherworld (PR #207), store 20, appended after the Specter's skill-one store.
+                // 幽魂里世界（PR #207），第 20 个存储，追加在幽魂技能一存储之后。
+                specterOtherworld(),
+                // Savior G domain (PR #200), store 21, appended after the Specter Otherworld.
+                // 救世主 G 领域（PR #200），第 21 个存储，追加在幽魂里世界之后。
+                saviorDomain(),
+                // Medium 通灵 (PR #209), store 22, appended after the Savior domain.
+                // 通灵师通灵（PR #209），第 22 个存储，追加在救世主领域之后。
+                mediumSeance(),
+                // Charon pardon (shared key G, PR #202), store 23, appended after the Medium's 通灵.
+                // 卡戎宽恕（共享 G 键，PR #202），第 23 个存储，追加在通灵师通灵之后。
+                ferrymanPardon(),
+                // Charon ferry (Role Skill 2, PR #202), store 24, appended after the Charon's pardon.
+                // 卡戎摆渡（职业技能 2，PR #202），第 24 个存储，追加在卡戎宽恕之后。
+                ferrymanFerry(),
+                // Tono Hanna's float (PR #212), store 25, appended after the Charon's ferry.
+                // 远野汉娜浮游（PR #212），第 25 个存储，追加在卡戎摆渡之后。
+                hannaFloat(),
+                // 橘雪莉 推演 (shared key G, PR #206), store 26, appended after Tono Hanna's float.
+                // 橘雪莉推演（共享 G 键，PR #206），第 26 个存储，追加在远野汉娜浮游之后。
+                sherryDeduction(),
+                // 橘雪莉 巨力魔法 (Role Skill 2, PR #206), store 27, appended after her 推演.
+                // 橘雪莉巨力魔法（职业技能 2，PR #206），第 27 个存储，追加在她的推演之后。
+                sherryMightyForce(),
+                // 二阶堂希罗 死亡回归 (shared key G, 2026-11-11), store 28, appended after 橘雪莉's 巨力魔法.
+                // 二阶堂希罗的死亡回归（共享 G 键，2026-11-11），第 28 个存储，追加在橘雪莉巨力魔法之后。
+                hiroReturn(),
+                // Medium 幽灵的加护 Ghost's Blessing (Role Skill 2, 2026-11 rework), store 29, appended after
+                // 二阶堂希罗's 死亡回归: the list is append-only, so it does not sit next to the Medium's 通灵 (store 22).
+                // 通灵师幽灵的加护（职业技能 2，2026-11 重做），第 29 个存储，追加在二阶堂希罗的死亡回归之后：
+                // 本列表只追加，因此它不与通灵师通灵（第 22 个存储）相邻。
+                mediumBlessing(),
+                // 泽渡可可's streams (shared key G and the corpse stream, PR #223), store 30, appended after the Medium's
+                // 幽灵的加护. / 泽渡可可的直播（共享 G 键与尸体直播，PR #223），第 30 个存储，追加在通灵师幽灵的加护之后。
+                kokoStream()
+        );
+    }
+
+    /**
+     * 二阶堂希罗's 死亡回归 cooldown (2026-11-11), kept as a counting-down tick total in the owner-synced
+     * {@code sparkwitch:nikaido_hiro_return} component. An ACTIVE round, the raw role and no running window: the
+     * cooldown is written when the window ends, so a running window is never forced (Dominator / Specter / Charon
+     * precedent). Remaining time includes the 90 s opening cooldown; the nominal is the 45 s cooldown after the skill
+     * ends. The setter is exact (floored at 0) and syncs the owner. The skill has no item, so SparkFactionAPI's admin
+     * {@code clearCooldown} (held item only) does not reach it. The Rope's interrupt cooldown is an item cooldown and
+     * goes through the item nominal table instead.
+     * 二阶堂希罗的死亡回归冷却（2026-11-11），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:nikaido_hiro_return} 组件中。
+     * ACTIVE 回合、真实职业且没有进行中的窗口：冷却在窗口结束时写入，因此进行中的窗口绝不强制（支配者、幽魂、卡戎先例）。剩余
+     * 时间包含 90 秒开局冷却；标准冷却为技能结束后的 45 秒。setter 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此
+     * SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）触及不到它。绳索的打断冷却属于物品冷却，改由物品标准冷却表处理。
+     */
+    static SimpleRoleSkillCooldownStore hiroReturn() {
+        return SimpleRoleSkillCooldownStore.exact(
+                HIRO_RETURN_ID,
+                whileActive((game, player) -> HiroRules.isHiro(game.getRole(player))
+                        && !HiroReturnComponent.KEY.get(player).isWindowActive(player.getWorld().getTime())),
+                player -> HiroReturnComponent.KEY.get(player).getCooldownTicks(),
+                () -> HiroRules.RETURN_COOLDOWN_TICKS,
+                (player, ticks) -> HiroReturnComponent.KEY.get(player).setCooldownTicks(ticks)
+        );
+    }
+
+    /**
+     * 泽渡可可's shared stream cooldown (PR #223), kept as an absolute ready tick in the owner-synced
+     * {@code sparkwitch:koko_player} component. An ACTIVE round and the raw role (the {@code KokoStreamService} role
+     * and round gates). Remaining time counts to the ready tick, so it includes the 60 s opening cooldown and, while
+     * she is live, the rest of the stream (the cooldown starts when the stream ends). The nominal is the 45 s cooldown
+     * after a stream or a streamed corpse; writes only move the ready tick later through {@code setReadyTick}, so a
+     * running stream is never cut short. The skill has no item, so SparkFactionAPI's admin {@code clearCooldown} (held
+     * item only) does not reach it; the lightstick's 30 s is an item cooldown in the item nominal table.
+     * 泽渡可可的直播共用冷却（PR #223），以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:koko_player} 组件中。ACTIVE 回合
+     * 且为真实职业（与 KokoStreamService 的职业与回合门控一致）。剩余时间计到就绪刻，因此包含 60 秒开局冷却，以及直播期间
+     * 尚未走完的直播时间（冷却从直播结束起算）。标准冷却为直播或尸体直播之后的 45 秒；写入只经 {@code setReadyTick} 把就绪刻
+     * 推后，因此绝不打断进行中的直播。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）
+     * 触及不到它；应援棒的 30 秒属于物品冷却，由物品标准冷却表处理。
+     */
+    static SimpleRoleSkillCooldownStore kokoStream() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                KOKO_STREAM_ID,
+                whileActive((game, player) -> KokoRules.isKoko(game.getRole(player))),
+                player -> KokoComponent.KEY.get(player).cooldownRemaining(player.getServerWorld().getTime()),
+                () -> KokoRules.COOLDOWN_TICKS,
+                player -> KokoComponent.KEY.get(player),
+                KokoComponent::readyTick,
+                KokoComponent::setReadyTick
+        );
+    }
+
+    /**
+     * The Medium's 通灵 cooldown (PR #209), kept as counting-down ticks in the owner-synced {@code sparkwitch:medium}
+     * component. An ACTIVE round and the raw role (the {@code MediumSkillService.mayUse} role and round gates).
+     * Remaining time includes the 180 s round-start cooldown; the nominal is the untiered 60 s 通灵 cooldown a paid
+     * 通灵 or 幽灵的加护 starts (either paid use starts both cooldowns; the death tier only shortens the cooldown a real
+     * use starts). The cooldown starts at the paid act, so a running vote window is unaffected by a forced write. The
+     * setter is exact (floored at 0), writes the 通灵 cooldown alone and syncs the owner. 幽灵的加护 has its own
+     * cooldown and store ({@link #mediumBlessing()}, store 29); 招魂 has no cooldown and no store. The skill has no
+     * item, so SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it.
+     * 通灵师通灵冷却（PR #209），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:medium} 组件中。ACTIVE 回合且为真实职业
+     * （与 MediumSkillService.mayUse 的职业与回合门控一致）。剩余时间包含 180 秒开局冷却；标准冷却为付费通灵或幽灵的加护后
+     * 进入的、未按档位缩短的 60 秒通灵冷却（任一技能付费使用都会同时开始两个冷却；死亡档位只缩短真实使用进入的冷却）。冷却在
+     * 付费动作时开始，因此强制写入不影响进行中的投票窗口。setter 为精确写入（下限为 0），只写通灵冷却并同步给本人。幽灵的加护
+     * 有自己的冷却与存储（{@link #mediumBlessing()}，第 29 个存储）；招魂没有冷却，也没有存储。该技能没有物品，因此
+     * SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore mediumSeance() {
+        return SimpleRoleSkillCooldownStore.exact(
+                MEDIUM_SEANCE_ID,
+                whileActive((game, player) -> MediumRules.isMedium(game.getRole(player))),
+                player -> MediumPlayerComponent.KEY.get(player).getSeanceCooldownTicks(),
+                () -> MediumRules.CD_AFTER_USE_TICKS,
+                (player, ticks) -> MediumPlayerComponent.KEY.get(player).startSeanceCooldown(ticks)
+        );
+    }
+
+    /**
+     * The Medium's 幽灵的加护 Ghost's Blessing cooldown (Role Skill 2, 2026-11 rework), the second counting-down tick
+     * total of the owner-synced {@code sparkwitch:medium} component. Same gate as {@link #mediumSeance()}: an ACTIVE
+     * round and the raw role (the {@code MediumSkillService.mayUse} role and round gates the blessing shares).
+     * Remaining time includes the 300 s round-start cooldown; the nominal is the untiered 180 s 加护 cooldown a paid
+     * 通灵 or 幽灵的加护 starts ({@code MediumRules.blessingCooldownAfterUse(0)}: 通灵's 60 s plus 120 s; the death
+     * tier only shortens the cooldown a real use starts). The cooldown starts at the paid act (the empty
+     * {@code UseMediumBlessingC2SPacket}), so a running vote window is unaffected by a forced write. The setter is
+     * exact (floored at 0), writes the 加护 cooldown alone and syncs the owner. The skill has no item, so
+     * SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it.
+     * 通灵师幽灵的加护冷却（职业技能 2，2026-11 重做），即只同步给本人的 {@code sparkwitch:medium} 组件中的第二个倒计时刻数。
+     * 门控与 {@link #mediumSeance()} 相同：ACTIVE 回合且为真实职业（加护共用的 MediumSkillService.mayUse 职业与回合门控）。
+     * 剩余时间包含 300 秒开局冷却；标准冷却为付费通灵或幽灵的加护后进入的、未按档位缩短的 180 秒加护冷却
+     * （{@code MediumRules.blessingCooldownAfterUse(0)}：通灵的 60 秒 + 120 秒；死亡档位只缩短真实使用进入的冷却）。冷却在
+     * 付费动作（空的 {@code UseMediumBlessingC2SPacket}）时开始，因此强制写入不影响进行中的投票窗口。setter 为精确写入
+     * （下限为 0），只写加护冷却并同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}
+     * （只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore mediumBlessing() {
+        return SimpleRoleSkillCooldownStore.exact(
+                MEDIUM_BLESSING_ID,
+                whileActive((game, player) -> MediumRules.isMedium(game.getRole(player))),
+                player -> MediumPlayerComponent.KEY.get(player).getBlessingCooldownTicks(),
+                () -> MediumRules.blessingCooldownAfterUse(0),
+                (player, ticks) -> MediumPlayerComponent.KEY.get(player).startBlessingCooldown(ticks)
         );
     }
 
@@ -439,6 +610,190 @@ public final class SparkWitchForcedCooldowns {
                 player -> NatsumeComponent.KEY.get(player),
                 NatsumeComponent::cooldownReadyTick,
                 NatsumeComponent::setCooldownReadyTick
+        );
+    }
+
+    /**
+     * The Specter's skill-one cooldown (PR #207), kept as a counting-down tick total in the owner-synced
+     * {@code sparkwitch:specter} component; it gates both marking and the shriek. An ACTIVE round, the raw role (the
+     * Specter is never a Black Raven disguise target, as for {@code SpecterRules.mayCast}) and no active mark: the same
+     * counter gates the shriek press and an expired mark costs nothing, so a running mark is never forced (Dominator
+     * precedent). Remaining time includes the 45 s round-start cooldown; the nominal is the 45 s cooldown after each
+     * shriek. The setter is exact (floored at 0) and syncs the owner. The skill has no item, so SparkFactionAPI's admin
+     * {@code clearCooldown} (held item only) does not reach it.
+     * 幽魂技能一冷却（PR #207），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:specter} 组件中；它同时拦住标记与尖啸。
+     * ACTIVE 回合、真实职业（幽魂不可能是黑羽鸦的伪装目标，与 SpecterRules.mayCast 一致）且没有进行中的标记：同一计数也拦着
+     * 尖啸键，且标记自然过期不进冷却，因此进行中的标记绝不强制（支配者先例）。剩余时间包含 45 秒回合初始冷却；标准冷却为每次
+     * 尖啸后的 45 秒。setter 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员
+     * {@code clearCooldown}（只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore specterSkill() {
+        return SimpleRoleSkillCooldownStore.exact(
+                SPECTER_SKILL_ID,
+                whileActive((game, player) -> SpecterRules.isSpecter(game.getRole(player))
+                        && !SpecterPlayerComponent.KEY.get(player).hasActiveMark()),
+                player -> SpecterPlayerComponent.KEY.get(player).getCooldownTicks(),
+                () -> SpecterRules.SHRIEK_COOLDOWN_TICKS,
+                (player, ticks) -> SpecterPlayerComponent.KEY.get(player).setCooldownTicks(ticks)
+        );
+    }
+
+    /**
+     * The Specter's Otherworld (skill two, PR #207), kept as counting-down ticks in the owner-synced
+     * {@code sparkwitch:specter_second_skill} component. An ACTIVE round and the raw role (the Specter is never a Black
+     * Raven disguise target). Remaining time includes the 120 s unlock; during the 30 s window it is the rest of the
+     * window plus the cooldown that starts when it ends. The nominal is that 120 s post-window cooldown. The setter
+     * only ever lengthens and syncs the owner; during a window the forced time is held as the pending post-window
+     * cooldown, so a running Otherworld is never cut short and the penalty still lands when it ends (as the witch-skill
+     * deferred cooldown). The skill has no item, so SparkFactionAPI's admin {@code clearCooldown} (held item only)
+     * does not reach it.
+     * 幽魂里世界（技能二，PR #207），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:specter_second_skill} 组件中。ACTIVE
+     * 回合且为真实职业（幽魂不可能是黑羽鸦的伪装目标）。剩余时间包含 120 秒解锁；在 30 秒窗口期间为剩余窗口加上窗口结束时开始的
+     * 冷却。标准冷却即该 120 秒窗口后冷却。setter 只会延长并同步本人；窗口期间被强制的时间作为挂起的窗口后冷却保存，因此进行中的
+     * 里世界绝不会被提前结束，惩罚仍在窗口结束时生效（与魔女技能的延后冷却相同）。该技能没有物品，因此 SparkFactionAPI 的管理员
+     * {@code clearCooldown}（只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore specterOtherworld() {
+        return SimpleRoleSkillCooldownStore.exact(
+                SPECTER_OTHERWORLD_ID,
+                whileActive((game, player) -> SpecterRules.isSpecter(game.getRole(player))),
+                player -> SpecterSecondSkillComponent.KEY.get(player).forcedCooldownRemainingTicks(),
+                () -> SpecterRules.SECOND_SKILL_COOLDOWN_TICKS,
+                (player, ticks) -> SpecterSecondSkillComponent.KEY.get(player).setForcedCooldownRemainingTicks(ticks)
+        );
+    }
+
+    /**
+     * The Savior's G domain cooldown (PR #200), kept as a counting-down tick total in the owner-synced
+     * {@code sparkwitch:savior} component. {@code SaviorDomainService}'s role and round gates: an ACTIVE round and the
+     * raw role; and no running domain, because the cast already wrote the post-cast cooldown and a running domain is
+     * never forced (the Dominator's running mark precedent). Remaining time includes the 60 s round-start cooldown; the
+     * nominal is the 60 s cooldown after each cast. The setter is exact (floored at 0) and syncs the owner. The skill
+     * has no item, so SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it.
+     * 救世主 G 领域冷却（PR #200），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:savior} 组件中。与
+     * SaviorDomainService 的职业与回合门控一致：ACTIVE 回合且为真实职业；并且没有进行中的领域，因为施放时已写入施放后冷却，
+     * 进行中的领域绝不强制（沿用支配者进行中标记的先例）。剩余时间包含 60 秒开局冷却；标准冷却为每次施放后的 60 秒。setter
+     * 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）
+     * 触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore saviorDomain() {
+        return SimpleRoleSkillCooldownStore.exact(
+                SAVIOR_DOMAIN_ID,
+                whileActive((game, player) -> SaviorRules.isSavior(game.getRole(player))
+                        && !SaviorPlayerComponent.KEY.get(player).isDomainActive()),
+                player -> SaviorPlayerComponent.KEY.get(player).getCooldownTicks(),
+                () -> SaviorRules.DOMAIN_COOLDOWN_TICKS,
+                (player, ticks) -> SaviorPlayerComponent.KEY.get(player).setCooldownTicks(ticks)
+        );
+    }
+
+    /**
+     * The Charon's pardon cooldown (PR #202), kept as a counting-down tick total in the owner-synced
+     * {@code sparkwitch:ferryman} component; it gates whether a lethal hit opens a pardon window at all. An ACTIVE
+     * round, the raw role (as {@code FerrymanParticipation} reads it; a disguise overlay never widens it) and no open
+     * window: a press inside the window writes the post-pardon cooldown, so a running window is never forced
+     * (Dominator / Specter precedent). Remaining time includes the 60 s round-start cooldown; the nominal is the 5 s
+     * cooldown after each successful block (not the 15 s whiff). The setter is exact (floored at 0) and syncs the owner. The skill has no item, so
+     * SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it; forced raises and extends
+     * on role skills (the Abyss Listener's suppression, the Potion Gunner's AC shell) do.
+     * 卡戎宽恕冷却（PR #202），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:ferryman} 组件中；它决定致命一击能否开启
+     * 宽恕窗口。ACTIVE 回合、真实职业（与 FerrymanParticipation 的读取方式一致，伪装覆盖层绝不放宽）且没有开启的窗口：窗口内
+     * 按键会写入宽恕后冷却，因此进行中的窗口绝不强制（支配者、幽魂先例）。剩余时间包含 60 秒开局冷却；标准冷却为每次成功格挡后的
+     * 5 秒（不是空放的 15 秒）。setter 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}
+     * （只清手持物品）触及不到它；作用于职业技能的强制抬高与延长（聆渊者压制、药炮手 AC 弹）可以。
+     */
+    static SimpleRoleSkillCooldownStore ferrymanPardon() {
+        return SimpleRoleSkillCooldownStore.exact(
+                FERRYMAN_PARDON_ID,
+                whileActive((game, player) -> FerrymanRules.isFerryman(game.getRole(player))
+                        && !FerrymanPlayerComponent.KEY.get(player).isPardoning()),
+                player -> FerrymanPlayerComponent.KEY.get(player).cooldownTicks(),
+                () -> FerrymanRules.PARDON_COOLDOWN_TICKS,
+                (player, ticks) -> FerrymanPlayerComponent.KEY.get(player).setCooldown(ticks)
+        );
+    }
+
+    /**
+     * The Charon's ferry cooldown (Role Skill 2, PR #202), kept as a counting-down tick total in the owner-synced
+     * {@code sparkwitch:ferryman} component. An ACTIVE round and the raw role. It starts at 0 each round; the nominal
+     * is the 5 s cooldown after each successful ferry. The setter is exact (floored at 0) and syncs the owner. The skill
+     * has no item, so SparkFactionAPI's admin {@code clearCooldown} (held item only) does not reach it.
+     * 卡戎摆渡冷却（职业技能 2，PR #202），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:ferryman} 组件中。ACTIVE 回合且为
+     * 真实职业。每局从 0 开始；标准冷却为每次成功摆渡后的 5 秒。setter 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此
+     * SparkFactionAPI 的管理员 {@code clearCooldown}（只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore ferrymanFerry() {
+        return SimpleRoleSkillCooldownStore.exact(
+                FERRYMAN_FERRY_ID,
+                whileActive((game, player) -> FerrymanRules.isFerryman(game.getRole(player))),
+                player -> FerrymanPlayerComponent.KEY.get(player).ferryCooldownTicks(),
+                () -> FerrymanRules.FERRY_COOLDOWN_TICKS,
+                (player, ticks) -> FerrymanPlayerComponent.KEY.get(player).setFerryCooldown(ticks)
+        );
+    }
+
+    /**
+     * Tono Hanna's float cooldown (PR #212), kept as an absolute ready tick in the {@code sparkwitch:hanna_player}
+     * component (the ready tick syncs to its owner only). Same role and round gates as {@code HannaFloatService}: an
+     * ACTIVE round and the real Hanna. Remaining time counts to the ready tick, so it includes the 40 s round-start
+     * cooldown and, while she floats, the rest of the float (the cooldown starts when the float ends). The nominal is
+     * the 45 s cooldown after a float; writes only move the ready tick later through {@code setFloatReadyTick}, so a
+     * running float is never cut short. The skill has no item, so SparkFactionAPI's admin {@code clearCooldown} (held
+     * item only) does not reach it.
+     * 远野汉娜浮游冷却（PR #212），以绝对就绪刻保存在 {@code sparkwitch:hanna_player} 组件中（就绪刻只同步给本人）。与
+     * HannaFloatService 的职业与回合门控一致：ACTIVE 回合且为真实汉娜。剩余时间计到就绪刻，因此包含 40 秒开局冷却，以及
+     * 浮游期间尚未走完的浮游时间（冷却从浮游结束起算）。标准冷却为浮游结束后的 45 秒；写入只经 {@code setFloatReadyTick}
+     * 把就绪刻推后，因此绝不打断进行中的浮游。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}
+     * （只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore hannaFloat() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                HANNA_FLOAT_ID,
+                whileActive((game, player) -> HannaRules.isHanna(game.getRole(player))),
+                player -> HannaComponent.KEY.get(player).floatCooldownRemaining(player.getServerWorld().getTime()),
+                () -> HannaRules.COOLDOWN_TICKS,
+                player -> HannaComponent.KEY.get(player),
+                HannaComponent::floatReadyTick,
+                HannaComponent::setFloatReadyTick
+        );
+    }
+
+    /**
+     * 橘雪莉's 推演 cooldown (PR #206), kept as counting-down ticks in the owner-synced {@code sparkwitch:sherry}
+     * component. An ACTIVE round and the raw role (the {@code SherryDeductionService.mayUse} role and round gates). The
+     * remaining time includes the 45 s opening cooldown; the nominal is the 30 s cooldown after a paid deduction. The
+     * setter is exact (floored at 0) and syncs the owner. The skill has no item, so SparkFactionAPI's admin
+     * {@code clearCooldown} (held item only) does not reach it.
+     * 橘雪莉推演冷却（PR #206），以倒计时刻数保存在只同步给本人的 {@code sparkwitch:sherry} 组件中。ACTIVE 回合且为真实职业
+     * （与 SherryDeductionService.mayUse 的职业与回合门控一致）。剩余时间包含 45 秒开局冷却；标准冷却为付费推演后的 30 秒。
+     * setter 为精确写入（下限为 0）并同步给本人。该技能没有物品，因此 SparkFactionAPI 的管理员 {@code clearCooldown}
+     * （只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore sherryDeduction() {
+        return SimpleRoleSkillCooldownStore.exact(
+                SHERRY_DEDUCTION_ID,
+                whileActive((game, player) -> SherryRules.isSherry(game.getRole(player))),
+                player -> SherryComponent.KEY.get(player).getDeductionCooldownTicks(),
+                () -> SherryRules.DEDUCTION_COOLDOWN_TICKS,
+                (player, ticks) -> SherryComponent.KEY.get(player).startDeductionCooldown(ticks)
+        );
+    }
+
+    /**
+     * 橘雪莉's own 巨力魔法 cooldown (Role Skill 2, PR #206), in the same component. It only counts down once her
+     * window has ended, so a raise during a live window lands when the window closes (the component keeps the larger
+     * value). The nominal is the Apprentice's 45 s Mighty Force cooldown. Exact setter, owner sync, no item.
+     * 橘雪莉自己的巨力魔法冷却（职业技能 2，PR #206），保存在同一组件中。只有窗口结束后才开始倒数，因此窗口期间被抬高的冷却
+     * 在窗口结束时生效（组件保留较大值）。标准冷却为预备魔女巨力的 45 秒。精确写入、同步给本人、没有物品。
+     */
+    static SimpleRoleSkillCooldownStore sherryMightyForce() {
+        return SimpleRoleSkillCooldownStore.exact(
+                SHERRY_MIGHTY_FORCE_ID,
+                whileActive((game, player) -> SherryRules.isSherry(game.getRole(player))),
+                player -> SherryComponent.KEY.get(player).getMightyCooldownTicks(),
+                () -> dev.caecorthus.sparkwitch.roles.civilian.apprentice.abilities.MightyForce.MightyForceAbility
+                        .COOLDOWN_TICKS,
+                (player, ticks) -> SherryComponent.KEY.get(player).setMightyCooldownTicks(ticks)
         );
     }
 

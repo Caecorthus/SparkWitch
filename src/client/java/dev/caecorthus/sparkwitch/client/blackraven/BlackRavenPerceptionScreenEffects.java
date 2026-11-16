@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.blackraven;
 
 import net.minecraft.entity.player.PlayerEntity;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.client.render.WraithVisionRules;
@@ -65,7 +66,14 @@ public final class BlackRavenPerceptionScreenEffects {
         return escape[0] >= 0.5f && renderComposition(localPlayer, delta, escape);
     }
 
-    private static boolean renderComposition(ClientPlayerEntity player, float delta, float[] escape) {
+    /**
+     * The single vision decision shared by {@link #renderComposition} and {@link #isActiveFor}: the composed
+     * Vendetta / Wraith / Perception look, merged with the Last Escape parameters when {@code escape} is non-null, or
+     * null when that look is off. Pure: no GL work and no processor changes.
+     * {@link #renderComposition} 与 {@link #isActiveFor} 共用的唯一效果判定：合成后的复仇者/冤魂/感知效果（{@code escape}
+     * 非空时再与脱险参数合成），效果关闭时为 null。纯查询：不做 GL 操作，也不改动处理器。
+     */
+    private static WraithVisionRules.Vision resolveVision(ClientPlayerEntity player, float[] escape) {
         float desaturation = VendettaClientPresentation.hasActiveOwnerState(player)
                 ? VendettaClientPresentation.desaturation(player)
                 : WraithVisionRules.desaturation(
@@ -86,14 +94,21 @@ public final class BlackRavenPerceptionScreenEffects {
         // Without an escape composeLastEscape returns the existing vision unchanged, so an off effect is known here,
         // before building it. / 没有脱险时 composeLastEscape 原样返回现有效果，因此可在构建前得知效果已关闭。
         if (escape == null && desaturation <= 0.0F) {
-            closeProcessor();
-            return false;
+            return null;
         }
         WraithVisionRules.Vision vision = WraithVisionRules.composeLastEscape(
                 new WraithVisionRules.Vision(desaturation, 0.0f, 1.0f,
                         luminanceScale, lumaRed, lumaGreen, lumaBlue), escape);
         desaturation = vision.desaturation();
         if (desaturation <= 0.0F) {
+            return null;
+        }
+        return vision;
+    }
+
+    private static boolean renderComposition(ClientPlayerEntity player, float delta, float[] escape) {
+        WraithVisionRules.Vision vision = resolveVision(player, escape);
+        if (vision == null) {
             closeProcessor();
             return false;
         }
@@ -103,10 +118,11 @@ public final class BlackRavenPerceptionScreenEffects {
         if (activeProcessor == null) {
             return false;
         }
-        luminanceScale = vision.luminance();
-        lumaRed = vision.red();
-        lumaGreen = vision.green();
-        lumaBlue = vision.blue();
+        float desaturation = vision.desaturation();
+        float luminanceScale = vision.luminance();
+        float lumaRed = vision.red();
+        float lumaGreen = vision.green();
+        float lumaBlue = vision.blue();
         activeProcessor.setUniforms("DesaturateFactor", desaturation);
         activeProcessor.setUniforms("LuminanceScale", luminanceScale);
         activeProcessor.setUniforms("LumaRed", lumaRed);
@@ -127,7 +143,42 @@ public final class BlackRavenPerceptionScreenEffects {
         return true;
     }
 
+    /**
+     * Read-only seam for other client filters (today the Specter's Otherworld filter): whether a Wraith / Vendetta /
+     * Perception / Last Escape grayscale is on screen this frame, so they can yield instead of stacking. It follows the
+     * same gates as the render paths: a Last Escape frame always shows a grayscale (this compositor's pass through
+     * {@link #renderLastEscape}, or SparkTraits' own fallback when that returns false); otherwise the plain path's
+     * unconfirmed-server skip, a shader that failed to load, and {@link #resolveVision} decide. Never renders.
+     * 供其他客户端滤镜（目前是幽魂的里世界滤镜）使用的只读接缝：本帧屏幕上是否有冤魂/复仇/感知/脱险灰阶，以便让路而不是
+     * 叠加。它与渲染路径使用相同的门槛：脱险帧总会显示灰阶（本合成器经 {@link #renderLastEscape} 绘制，返回 false 时由
+     * SparkTraits 自行回退绘制）；否则由普通路径的未确认服务端跳过、着色器加载失败与 {@link #resolveVision} 决定。从不渲染。
+     */
+    public static boolean isActiveFor(ClientPlayerEntity player) {
+        if (LastEscapeTraitsVisionBridge.composition(player)[0] >= 0.5f) {
+            return true;
+        }
+        if (processor == null && !SparkWitchServerConnection.isConfirmedServer()) {
+            return false;
+        }
+        return !loadFailed && resolveVision(player, null) != null;
+    }
+
+    /**
+     * Releases the processor. The play DISCONNECT event that calls this fires on the Netty thread, and closing a post
+     * processor deletes framebuffers, which asserts the render thread: the throw used to leave Fabric's listener loop,
+     * so every disconnect reset registered after this module (SparkWitch's own and other mods') was skipped. Off the
+     * render thread the whole close is recorded as a render call, as {@code SpecterOtherworldScreenEffects.close} and
+     * {@code ScopeRuntime.reset} already do.
+     * 释放后处理器。调用它的 play DISCONNECT 事件在 Netty 线程触发，而关闭后处理器会删除帧缓冲，该操作会断言渲染线程：
+     * 抛出的异常会跳出 Fabric 的监听循环，于是在本模块之后注册的所有断线重置（SparkWitch 自身的与其他模组的）都被跳过。
+     * 不在渲染线程时，整个关闭操作会作为渲染调用记录下来，与 {@code SpecterOtherworldScreenEffects.close} 和
+     * {@code ScopeRuntime.reset} 的做法相同。
+     */
     public static void close() {
+        if (!RenderSystem.isOnRenderThread()) {
+            RenderSystem.recordRenderCall(BlackRavenPerceptionScreenEffects::close);
+            return;
+        }
         closeProcessor();
         loadFailed = false;
         LastEscapeTraitsVisionBridge.forgetProtocol();

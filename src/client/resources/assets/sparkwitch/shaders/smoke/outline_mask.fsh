@@ -55,7 +55,7 @@ float silhouetteDepth(ivec2 pixel) {
     return 1.0;
 }
 
-// Mirrors SmokeOcclusionMath.opticalDepthAt. / 对应 SmokeOcclusionMath.opticalDepthAt。
+// Mirrors SmokeShaderReference.opticalDepthAt (tests). / 对应 SmokeShaderReference.opticalDepthAt（测试）。
 float opticalDepthAt(vec4 texel, float distance) {
     float value[CHECKPOINTS] = float[CHECKPOINTS](texel.x, texel.y, texel.z, texel.w);
     if (value[0] < 0.0 || value[0] >= Never || distance < value[0]) {

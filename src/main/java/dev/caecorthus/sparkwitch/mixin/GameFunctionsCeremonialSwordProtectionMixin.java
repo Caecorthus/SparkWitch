@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordProtectionPolicy;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.doctor4t.wathe.cca.PlayerPsychoComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import dev.doctor4t.wathe.index.WatheSounds;
@@ -45,15 +46,19 @@ public abstract class GameFunctionsCeremonialSwordProtectionMixin {
         return true;
     }
 
-    // Noelles' allowWithoutBody() would stop all later BEFORE listeners. Move only that sword case.
-    // Noelles 的 allowWithoutBody() 会终止后续 BEFORE 监听；仅迁移仪礼剑的无尸体分支。
+    // NoellesCeremonialSwordProtectionMixin skips Noelles' BEFORE listener (whose allowWithoutBody() would stop all later
+    // listeners) for the ceremonial sword and the Savior's terminal reasons, so its "swallowed player leaves no body"
+    // rule is re-applied here for exactly those reasons.
+    // NoellesCeremonialSwordProtectionMixin 对仪礼剑与救世主终结死因跳过 Noelles 的 BEFORE 监听（其 allowWithoutBody()
+    // 会终止后续监听），因此「被吞噬者不留尸体」规则在此仅对这些死因重新应用。
     @ModifyVariable(
             method = "killPlayer(Lnet/minecraft/server/network/ServerPlayerEntity;ZLnet/minecraft/server/network/ServerPlayerEntity;Lnet/minecraft/util/Identifier;Z)V",
             at = @At("HEAD"), argsOnly = true, ordinal = 0, require = 1, allow = 1
     )
     private static boolean sparkwitch$preserveSwallowedBodyRule(boolean original, ServerPlayerEntity victim,
             boolean spawnBody, @Nullable ServerPlayerEntity killer, Identifier deathReason, boolean force) {
-        return original && !(CeremonialSwordProtectionPolicy.pierces(deathReason)
+        return original && !((CeremonialSwordProtectionPolicy.pierces(deathReason)
+                || SaviorRules.isTerminalKill(deathReason))
                 && SwallowedPlayerComponent.KEY.get(victim).isSwallowed());
     }
 }

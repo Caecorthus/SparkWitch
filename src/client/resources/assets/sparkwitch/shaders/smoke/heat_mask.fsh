@@ -26,7 +26,7 @@ uniform float Haze;
 
 out vec4 fragColor;
 
-// Mirrors SmokeOcclusionMath.opticalDepthAt (as outline_mask.fsh). / 对应 SmokeOcclusionMath.opticalDepthAt（同 outline_mask.fsh）。
+// Mirrors SmokeShaderReference.opticalDepthAt (tests; as outline_mask.fsh). / 对应 SmokeShaderReference.opticalDepthAt（测试；同 outline_mask.fsh）。
 float opticalDepthAt(vec4 texel, float distance) {
     float value[CHECKPOINTS] = float[CHECKPOINTS](texel.x, texel.y, texel.z, texel.w);
     if (value[0] < 0.0 || value[0] >= Never || distance < value[0]) {

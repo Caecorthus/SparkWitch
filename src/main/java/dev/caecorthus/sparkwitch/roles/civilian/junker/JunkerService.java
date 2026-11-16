@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.registry.SparkWitchRoleRegistry;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightDuelSkillLock;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroFakeBodies;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.session.RiftSessionService;
 import dev.doctor4t.wathe.api.event.GameEvents;
@@ -16,7 +17,6 @@ import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -107,11 +107,6 @@ public final class JunkerService {
         });
         JunkerLootSpend.register();
         JunkerReplay.register();
-    }
-
-    /** The real (raw) role is the 拾荒者. / 真实职业是拾荒者。 */
-    public static boolean isJunker(PlayerEntity player) {
-        return player != null && JunkerRules.isRagpicker(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
     }
 
     /**
@@ -268,7 +263,10 @@ public final class JunkerService {
 
     @Nullable
     private static UUID bodyOwner(ServerWorld world, UUID bodyUuid) {
-        return world.getEntity(bodyUuid) instanceof PlayerBodyEntity body ? body.getPlayerUuid() : null;
+        // The fake corpse of a 二阶堂希罗 victim has no owner to search: refused silently, never marked searched.
+        // 二阶堂希罗受害者的假尸体没有可搜刮的主人：静默拒绝，也绝不标记为已搜刮。
+        return world.getEntity(bodyUuid) instanceof PlayerBodyEntity body && !HiroFakeBodies.isFake(body)
+                ? body.getPlayerUuid() : null;
     }
 
     private static void actionBar(ServerPlayerEntity player, Text text) {

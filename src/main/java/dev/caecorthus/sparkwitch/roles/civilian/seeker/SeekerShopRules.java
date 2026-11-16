@@ -41,10 +41,6 @@ public final class SeekerShopRules {
         return ENTRIES;
     }
 
-    public static boolean isCameraEntry(@Nullable String entryId) {
-        return CAMERA.id().equals(entryId);
-    }
-
     /** Which item an entry sells. / 条目出售的物品。 */
     public enum EntryKind {
         CAMERA

@@ -57,6 +57,9 @@ public final class DominatorClientModule {
                 context.client().execute(() -> DominatorForcedShotClientState.lock(payload.lockTicks())));
         ClientTickEvents.END_CLIENT_TICK.register(client -> DominatorForcedShotClientState.tick());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> DominatorForcedShotClientState.reset());
+        // Also on JOIN: a proxy backend switch re-joins without a disconnect, and play state only arrives after JOIN.
+        // JOIN 时同样重置：代理切换后端时不会断线而是重新加入，而 play 阶段的状态只会在 JOIN 之后到达。
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> DominatorForcedShotClientState.reset());
     }
 
     /**

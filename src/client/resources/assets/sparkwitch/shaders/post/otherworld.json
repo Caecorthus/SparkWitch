@@ -1,0 +1,28 @@
+{
+  "targets": [
+    "swap",
+    "otherworld_depth"
+  ],
+  "passes": [
+    {
+      "name": "sparkwitch_otherworld",
+      "intarget": "minecraft:main",
+      "outtarget": "swap",
+      "auxtargets": [
+        {
+          "name": "WorldDepthSampler",
+          "id": "otherworld_depth:depth"
+        },
+        {
+          "name": "HandDepthSampler",
+          "id": "minecraft:main:depth"
+        }
+      ]
+    },
+    {
+      "name": "blit",
+      "intarget": "swap",
+      "outtarget": "minecraft:main"
+    }
+  ]
+}

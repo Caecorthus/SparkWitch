@@ -27,6 +27,13 @@ import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
  * 共享 {@code sparkwitch:player} 同步包。除千里眼暴露计时（所有客户端都需要它来绘制暴露描边，D9）外，其余字段只同步给本人。
  * 恐惧庇护也存放在这里，因为疗愈光环会把它给予任意好人（D8）。仅属于预备魔女的字段（任务数、净化冷却、滑步充能、巨力失效）
  * 在玩家不再是预备魔女时自行清空。
+ * <p>Sync scope: a write to an owner-private field goes to the owner alone ({@link #syncPrivate()}); only the exposure
+ * timer's own changes are broadcast ({@link #sync()}). A broadcast packet tells every tracking client that something
+ * changed on this player even though it carries zeros for them, so a private write must not produce one: it would
+ * mark the Apprentice (tasks, Purify, Swift Step, Mighty Force) and every innocent her Healing aura wards.
+ * <p>同步范围：本人私有字段的写入只发给本人（{@link #syncPrivate()}）；只有暴露计时自身的变化才广播（{@link #sync()}）。
+ * 广播包即使对他人只携带零值，也会让所有追踪客户端得知该玩家身上发生了变化，因此私有写入不得产生广播：否则会暴露预备魔女
+ * （任务、净化、滑步、巨力）以及被其疗愈光环庇护的每一名好人。
  */
 public final class ApprenticePlayerComponent
         implements AutoSyncedComponent, ServerTickingComponent, ClientTickingComponent {
@@ -61,7 +68,7 @@ public final class ApprenticePlayerComponent
         int before = completedTasks;
         completedTasks = Math.min(ApprenticeRules.GRADUATION_TASKS, completedTasks + 1);
         if (completedTasks != before) {
-            sync();
+            syncPrivate();
         }
         return ApprenticeRules.graduatesOn(before, completedTasks);
     }
@@ -74,7 +81,7 @@ public final class ApprenticePlayerComponent
     public void raisePurifyCooldown(int ticks) {
         if (ticks > purifyCooldownTicks) {
             purifyCooldownTicks = ticks;
-            sync();
+            syncPrivate();
         }
     }
 
@@ -95,7 +102,7 @@ public final class ApprenticePlayerComponent
         } else {
             return false;
         }
-        sync();
+        syncPrivate();
         return true;
     }
 
@@ -106,7 +113,7 @@ public final class ApprenticePlayerComponent
     public void forfeitMightyForce() {
         if (!mightyForceForfeited) {
             mightyForceForfeited = true;
-            sync();
+            syncPrivate();
         }
     }
 
@@ -119,7 +126,7 @@ public final class ApprenticePlayerComponent
         boolean wasActive = fearWardTicks > 0;
         fearWardTicks = Math.max(fearWardTicks, ticks);
         if (!wasActive && fearWardTicks > 0) {
-            sync();
+            syncPrivate();
         }
     }
 
@@ -153,14 +160,37 @@ public final class ApprenticePlayerComponent
         if (isEmpty()) {
             return;
         }
+        // Non-owners hold only the exposure timer, so they are told only when one was running.
+        // 非本人只持有暴露计时，因此只有在暴露进行中时才需要通知他们。
+        boolean wasExposed = exposureTicks > 0;
         clearApprenticeOnlyState();
         fearWardTicks = 0;
         exposureTicks = 0;
-        sync();
+        if (wasExposed) {
+            sync();
+        } else {
+            syncPrivate();
+        }
     }
 
+    /** Broadcast: for changes of the public exposure timer. / 广播：用于公开的暴露计时发生变化时。 */
     public void sync() {
         KEY.sync(player);
+    }
+
+    /**
+     * Sync after a write that changed only owner-private fields: to the owner alone. While an exposure runs it still
+     * goes to everyone, as the countdown checkpoints always did (their copy of the timer is refreshed and the player
+     * is publicly exposed anyway). The network-handler check mirrors CCA's own recipient rule for the owner.
+     * 只改变本人私有字段的写入之后的同步：只发给本人。暴露进行中时仍发给所有人，与倒计时校准一贯的做法相同（刷新他们的计时
+     * 副本，且该玩家此时本就公开暴露）。对网络处理器的判断与 CCA 自身为本人选择接收者的规则一致。
+     */
+    private void syncPrivate() {
+        if (exposureTicks > 0) {
+            sync();
+        } else if (player instanceof ServerPlayerEntity owner && owner.networkHandler != null) {
+            KEY.syncWith(owner, (ComponentProvider) owner);
+        }
     }
 
     @Override
@@ -175,40 +205,44 @@ public final class ApprenticePlayerComponent
         if (isEmpty()) {
             return;
         }
+        // sync: the public exposure timer changed (broadcast). ownerOnly: only owner-private fields changed.
+        // sync：公开的暴露计时发生变化（广播）。ownerOnly：只有本人私有字段发生变化。
         boolean sync = false;
-        boolean ownerCheckpoint = false;
+        boolean ownerOnly = false;
         if (hasApprenticeOnlyState()
                 && GameWorldComponent.KEY.get(player.getWorld()).getRole(player) != SparkWitchRoles.apprenticeWitch()) {
             clearApprenticeOnlyState();
-            sync = true;
+            ownerOnly = true;
         }
         if (purifyCooldownTicks > 0) {
             purifyCooldownTicks--;
-            ownerCheckpoint |= purifyCooldownTicks % SYNC_INTERVAL_TICKS == 0;
+            ownerOnly |= purifyCooldownTicks % SYNC_INTERVAL_TICKS == 0;
         }
         if (swiftStepRechargeA > 0) {
             swiftStepRechargeA--;
-            ownerCheckpoint |= swiftStepRechargeA % SYNC_INTERVAL_TICKS == 0;
+            ownerOnly |= swiftStepRechargeA % SYNC_INTERVAL_TICKS == 0;
         }
         if (swiftStepRechargeB > 0) {
             swiftStepRechargeB--;
-            ownerCheckpoint |= swiftStepRechargeB % SYNC_INTERVAL_TICKS == 0;
+            ownerOnly |= swiftStepRechargeB % SYNC_INTERVAL_TICKS == 0;
         }
         if (fearWardTicks > 0) {
             fearWardTicks--;
-            sync |= fearWardTicks == 0;
+            ownerOnly |= fearWardTicks == 0;
         }
         if (exposureTicks > 0) {
             exposureTicks--;
             sync |= exposureTicks == 0;
         }
-        // A countdown checkpoint changes only owner-private fields; non-owners get the exposure timer, so it still goes to
-        // everyone while an exposure runs (their copy of the timer is refreshed as before).
-        // 倒计时校准只改变本人私有字段；非本人会收到暴露计时，因此暴露进行中仍发给所有人（照旧刷新他们的计时副本）。
-        if (sync || ownerCheckpoint && exposureTicks > 0) {
+        // A countdown checkpoint, the ward's end and the role-loss clear change only owner-private fields; non-owners get
+        // the exposure timer, so these still go to everyone while an exposure runs (their copy of the timer is refreshed
+        // as before) and to the owner alone otherwise.
+        // 倒计时校准、庇护结束与失去职业时的清空都只改变本人私有字段；非本人会收到暴露计时，因此暴露进行中仍发给所有人
+        // （照旧刷新他们的计时副本），否则只发给本人。
+        if (sync) {
             sync();
-        } else if (ownerCheckpoint && player instanceof ServerPlayerEntity owner) {
-            KEY.syncWith(owner, (ComponentProvider) owner);
+        } else if (ownerOnly) {
+            syncPrivate();
         }
     }
 

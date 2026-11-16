@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch;
 
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherSoundSlot;
@@ -16,6 +17,12 @@ public final class SparkWitchSounds {
     public static final Identifier PIG_CHASE_ID = SparkWitch.id("skill.pig_chase");
     public static final Identifier GRAND_WITCH_CEREMONIAL_SWORD_BGM_ID =
             SparkWitch.id("ambient.grand_witch_ceremonial_sword_bgm");
+    /** Otherworld BGM: three bundled variants, one chosen per window and synced to everyone. / 里世界 BGM：三首，窗口开启时随机选一同步给所有人。 */
+    public static final Identifier[] SPECTER_OTHERWORLD_BGM_IDS = {
+            SparkWitch.id("ambient.specter_otherworld_bgm_0"),
+            SparkWitch.id("ambient.specter_otherworld_bgm_1"),
+            SparkWitch.id("ambient.specter_otherworld_bgm_2")
+    };
     public static final Identifier SAINT_BELL_ID = SparkWitch.id("ambient.saint_bell");
     /** Reuses vanilla bell audio; no new asset. / 复用原版钟声音频，不新增资源。 */
     public static final Identifier BELL_RINGER_TOLL_ID = SparkWitch.id("ambient.bell_ringer_toll");
@@ -51,8 +58,25 @@ public final class SparkWitchSounds {
      */
     public static final Identifier DOUBLE_BARREL_SHOT_ID = HunterRules.SHOT_SOUND_ID;
     public static final Identifier DOUBLE_BARREL_LOAD_ID = HunterRules.LOAD_SOUND_ID;
+    /**
+     * Savior pistol sounds (ids live in SaviorRules): the shot carries at Wathe's revolver volume 5.0 and the click at
+     * 0.5. The bundled audio lives under {@code sparkwitch:sounds/item/} so it can be replaced.
+     * 救世主手枪音效（id 定义在 SaviorRules）：枪声沿用 Wathe 左轮的 5.0 音量，点击声 0.5。音频位于
+     * {@code sparkwitch:sounds/item/}，可直接替换。
+     */
+    public static final Identifier SAVIOR_PISTOL_SHOOT_ID = SaviorRules.PISTOL_SHOOT_SOUND_ID;
+    public static final Identifier SAVIOR_PISTOL_CLICK_ID = SaviorRules.PISTOL_CLICK_SOUND_ID;
+    /** Savior lightsaber impact (single CC0 variant); no subtitle. / 救世主光剑命中（单个 CC0 变体）；无字幕。 */
+    public static final Identifier SAVIOR_LIGHTSABER_HIT_ID = SaviorRules.LIGHTSABER_HIT_SOUND_ID;
+    /** Savior lightsaber ignition, requested by the client at the 0.95 s mark; no subtitle. / 救世主光剑点火音，客户端在 0.95 秒处请求；无字幕。 */
+    public static final Identifier SAVIOR_LIGHTSABER_IGNITE_ID = SaviorRules.LIGHTSABER_IGNITE_SOUND_ID;
+    /** Looping idle hum while the blade is lit; non-streamed so OpenAL loops it seamlessly. / 刀刃点亮时的循环嗡鸣；非流式以便 OpenAL 无缝循环。 */
+    public static final Identifier SAVIOR_LIGHTSABER_HUM_ID = SaviorRules.LIGHTSABER_HUM_SOUND_ID;
+    /** Lightsaber swing, requested on left-click only while the blade is lit. / 光剑挥动音，仅在刀刃点亮时左键请求。 */
+    public static final Identifier SAVIOR_LIGHTSABER_SWING_ID = SaviorRules.LIGHTSABER_SWING_SOUND_ID;
     public static SoundEvent PIG_CHASE;
     public static SoundEvent GRAND_WITCH_CEREMONIAL_SWORD_BGM;
+    public static final SoundEvent[] SPECTER_OTHERWORLD_BGM = new SoundEvent[3];
     public static SoundEvent SAINT_BELL;
     public static SoundEvent BELL_RINGER_TOLL;
     public static SoundEvent TIME_STEALER_CHIME;
@@ -66,23 +90,30 @@ public final class SparkWitchSounds {
     public static SoundEvent USEC_RIFLE_SCOPE;
     public static SoundEvent DOUBLE_BARREL_SHOT;
     public static SoundEvent DOUBLE_BARREL_LOAD;
+    public static SoundEvent SAVIOR_PISTOL_SHOOT;
+    public static SoundEvent SAVIOR_PISTOL_CLICK;
+    public static SoundEvent SAVIOR_LIGHTSABER_HIT;
+    public static SoundEvent SAVIOR_LIGHTSABER_IGNITE;
+    public static SoundEvent SAVIOR_LIGHTSABER_HUM;
+    public static SoundEvent SAVIOR_LIGHTSABER_SWING;
     /** Knight duel audio; no subtitles. / 骑士决斗音频；无字幕。 */
     public static final Identifier DUEL_MANBA_ID = dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelRules.MANBA_SOUND_ID;
     public static final Identifier DUEL_SF_ID = dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelRules.SF_SOUND_ID;
     public static SoundEvent DUEL_MANBA;
     public static SoundEvent DUEL_SF;
     /**
-     * Frozen contract (BEAR WP0): the twelve BEAR sound events, all variable range (the playing code picks the volume).
+     * Frozen contract (BEAR WP0): the eleven BEAR sound events, all variable range (the playing code picks the volume).
      * The ricochet, visor hit and tinnitus files are the owner's picks of 2026-11-05 (helmet A, visor B, tinnitus B);
-     * the other nine are silent placeholders until the sound package delivers.
-     * 冻结契约（BEAR WP0）：十二个 BEAR 音效事件，均为可变范围（由播放代码决定音量）。跳弹、面罩命中与耳鸣音频为所有者
-     * 2026-11-05 的选择（头盔 A、面罩 B、耳鸣 B）；其余九个在音效工作包交付前为静音占位。
+     * the other eight are silent placeholders until the sound package delivers. The twelfth, the M2A1 sight click, left
+     * with the range adjustment (owner, 2026-11-11).
+     * 冻结契约（BEAR WP0）：十一个 BEAR 音效事件，均为可变范围（由播放代码决定音量）。跳弹、面罩命中与耳鸣音频为所有者
+     * 2026-11-05 的选择（头盔 A、面罩 B、耳鸣 B）；其余八个在音效工作包交付前为静音占位。第十二个（M2A1 瞄具咔嗒声）已随
+     * 射程调节一并移除（所有者 2026-11-11）。
      */
     public static final Identifier BEAR_M32_FIRE_ID = SparkWitch.id("bear.m32.fire");
     public static final Identifier BEAR_M32_LOAD_ID = SparkWitch.id("bear.m32.load");
     public static final Identifier BEAR_M32_UNLOAD_ID = SparkWitch.id("bear.m32.unload");
     public static final Identifier BEAR_M32_EMPTY_ID = SparkWitch.id("bear.m32.empty");
-    public static final Identifier BEAR_M32_DIAL_ID = SparkWitch.id("bear.m32.dial");
     public static final Identifier BEAR_SMOKE_BURST_ID = SparkWitch.id("bear.smoke.burst");
     public static final Identifier BEAR_RYS_T_VISOR_DOWN_ID = SparkWitch.id("bear.rys_t.visor_down");
     public static final Identifier BEAR_RYS_T_VISOR_UP_ID = SparkWitch.id("bear.rys_t.visor_up");
@@ -94,7 +125,6 @@ public final class SparkWitchSounds {
     public static SoundEvent BEAR_M32_LOAD;
     public static SoundEvent BEAR_M32_UNLOAD;
     public static SoundEvent BEAR_M32_EMPTY;
-    public static SoundEvent BEAR_M32_DIAL;
     public static SoundEvent BEAR_SMOKE_BURST;
     public static SoundEvent BEAR_RYS_T_VISOR_DOWN;
     public static SoundEvent BEAR_RYS_T_VISOR_UP;
@@ -125,6 +155,10 @@ public final class SparkWitchSounds {
                 GRAND_WITCH_CEREMONIAL_SWORD_BGM_ID,
                 SoundEvent.of(GRAND_WITCH_CEREMONIAL_SWORD_BGM_ID)
         );
+        for (int index = 0; index < SPECTER_OTHERWORLD_BGM_IDS.length; index++) {
+            Identifier id = SPECTER_OTHERWORLD_BGM_IDS[index];
+            SPECTER_OTHERWORLD_BGM[index] = Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id));
+        }
         SAINT_BELL = Registry.register(Registries.SOUND_EVENT, SAINT_BELL_ID, SoundEvent.of(SAINT_BELL_ID));
         BELL_RINGER_TOLL = Registry.register(
                 Registries.SOUND_EVENT,
@@ -163,13 +197,24 @@ public final class SparkWitchSounds {
                 SoundEvent.of(DOUBLE_BARREL_SHOT_ID));
         DOUBLE_BARREL_LOAD = Registry.register(Registries.SOUND_EVENT, DOUBLE_BARREL_LOAD_ID,
                 SoundEvent.of(DOUBLE_BARREL_LOAD_ID));
+        SAVIOR_PISTOL_SHOOT = Registry.register(Registries.SOUND_EVENT, SAVIOR_PISTOL_SHOOT_ID,
+                SoundEvent.of(SAVIOR_PISTOL_SHOOT_ID));
+        SAVIOR_PISTOL_CLICK = Registry.register(Registries.SOUND_EVENT, SAVIOR_PISTOL_CLICK_ID,
+                SoundEvent.of(SAVIOR_PISTOL_CLICK_ID));
+        SAVIOR_LIGHTSABER_HIT = Registry.register(Registries.SOUND_EVENT, SAVIOR_LIGHTSABER_HIT_ID,
+                SoundEvent.of(SAVIOR_LIGHTSABER_HIT_ID));
+        SAVIOR_LIGHTSABER_IGNITE = Registry.register(Registries.SOUND_EVENT, SAVIOR_LIGHTSABER_IGNITE_ID,
+                SoundEvent.of(SAVIOR_LIGHTSABER_IGNITE_ID));
+        SAVIOR_LIGHTSABER_HUM = Registry.register(Registries.SOUND_EVENT, SAVIOR_LIGHTSABER_HUM_ID,
+                SoundEvent.of(SAVIOR_LIGHTSABER_HUM_ID));
+        SAVIOR_LIGHTSABER_SWING = Registry.register(Registries.SOUND_EVENT, SAVIOR_LIGHTSABER_SWING_ID,
+                SoundEvent.of(SAVIOR_LIGHTSABER_SWING_ID));
         DUEL_MANBA = Registry.register(Registries.SOUND_EVENT, DUEL_MANBA_ID, SoundEvent.of(DUEL_MANBA_ID));
         DUEL_SF = Registry.register(Registries.SOUND_EVENT, DUEL_SF_ID, SoundEvent.of(DUEL_SF_ID));
         BEAR_M32_FIRE = Registry.register(Registries.SOUND_EVENT, BEAR_M32_FIRE_ID, SoundEvent.of(BEAR_M32_FIRE_ID));
         BEAR_M32_LOAD = Registry.register(Registries.SOUND_EVENT, BEAR_M32_LOAD_ID, SoundEvent.of(BEAR_M32_LOAD_ID));
         BEAR_M32_UNLOAD = Registry.register(Registries.SOUND_EVENT, BEAR_M32_UNLOAD_ID, SoundEvent.of(BEAR_M32_UNLOAD_ID));
         BEAR_M32_EMPTY = Registry.register(Registries.SOUND_EVENT, BEAR_M32_EMPTY_ID, SoundEvent.of(BEAR_M32_EMPTY_ID));
-        BEAR_M32_DIAL = Registry.register(Registries.SOUND_EVENT, BEAR_M32_DIAL_ID, SoundEvent.of(BEAR_M32_DIAL_ID));
         BEAR_SMOKE_BURST = Registry.register(Registries.SOUND_EVENT, BEAR_SMOKE_BURST_ID, SoundEvent.of(BEAR_SMOKE_BURST_ID));
         BEAR_RYS_T_VISOR_DOWN = Registry.register(Registries.SOUND_EVENT, BEAR_RYS_T_VISOR_DOWN_ID, SoundEvent.of(BEAR_RYS_T_VISOR_DOWN_ID));
         BEAR_RYS_T_VISOR_UP = Registry.register(Registries.SOUND_EVENT, BEAR_RYS_T_VISOR_UP_ID, SoundEvent.of(BEAR_RYS_T_VISOR_UP_ID));

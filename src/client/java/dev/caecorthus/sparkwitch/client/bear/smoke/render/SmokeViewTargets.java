@@ -13,10 +13,12 @@ import java.nio.ByteBuffer;
  * Offscreen GL objects of one view (the main view, or a secondary world pass such as the scope lens, which has its own
  * size): the half-resolution march target (RGBA16F premultiplied colour + transmittance, R32F eye distance) and a
  * composite framebuffer that wraps ONLY the world target's colour texture (so the composite may sample that target's
- * depth texture without a feedback loop). Sized lazily, rebuilt on resize, freed by {@link #release()}. Render
- * thread only.
+ * depth texture without a feedback loop). The march target is sized lazily and rebuilt on resize; the composite
+ * framebuffer takes the world colour texture anew on every bind ({@link #bindComposite}). Freed by {@link #release()}.
+ * Render thread only.
  * 一个视图（主画面，或瞄具镜内等自带尺寸的第二次世界渲染）的离屏 GL 对象：半分辨率步进目标（RGBA16F 预乘颜色 + 透射率，
- * R32F 视距），以及只包装世界目标颜色纹理的合成帧缓冲（因此合成时可采样该目标的深度纹理而不形成反馈回路）。按需分配，尺寸变化时重建，由 {@link #release()} 释放。仅限渲染线程。
+ * R32F 视距），以及只包装世界目标颜色纹理的合成帧缓冲（因此合成时可采样该目标的深度纹理而不形成反馈回路）。步进目标按需分配、
+ * 尺寸变化时重建；合成帧缓冲每次绑定都重新挂接世界颜色纹理（{@link #bindComposite}）。由 {@link #release()} 释放。仅限渲染线程。
  */
 final class SmokeViewTargets {
     private int lowFramebuffer;
@@ -25,7 +27,6 @@ final class SmokeViewTargets {
     private int lowWidth;
     private int lowHeight;
     private int compositeFramebuffer;
-    private int compositeAttached;
 
     /** Ensures the half-resolution march target for a full-resolution size. / 确保与全分辨率尺寸对应的半分辨率步进目标。 */
     void ensureLow(int fullWidth, int fullHeight) {
@@ -45,21 +46,22 @@ final class SmokeViewTargets {
     }
 
     /**
-     * A framebuffer whose single attachment is {@code colorTexture} (the world target's colour), re-attached when the
-     * target recreated its texture (resize).
-     * 唯一附件为 {@code colorTexture}（世界目标的颜色纹理）的帧缓冲；目标重建纹理（尺寸变化）后会重新挂接。
+     * Binds (as {@code GL_FRAMEBUFFER}) the framebuffer whose single attachment is {@code colorTexture} (the world
+     * target's colour), attaching that texture again on EVERY call. A resize (window, F11) makes the target delete its
+     * colour texture and create a new one, which GL usually hands the SAME name: a framebuffer kept by texture name
+     * would stay attached to the deleted texture, still complete, and the composite would draw nowhere (no visible
+     * smoke while the outline mask keeps hiding outlines). The caller has saved the framebuffer bindings.
+     * 绑定（作为 {@code GL_FRAMEBUFFER}）唯一附件为 {@code colorTexture}（世界目标的颜色纹理）的帧缓冲，并且每次调用都重新挂接该
+     * 纹理。尺寸变化（窗口、F11）会让目标删除颜色纹理并新建一张，而 GL 通常分配同一个名字：按纹理名缓存的帧缓冲会继续挂着已删除的
+     * 纹理且仍然完整，合成便画不到任何地方（看不见烟，而描边遮罩照常隐藏描边）。调用方已保存帧缓冲绑定。
      */
-    int compositeFramebuffer(int colorTexture) {
-        if (compositeFramebuffer != 0 && compositeAttached == colorTexture) {
-            return compositeFramebuffer;
+    void bindComposite(int colorTexture) {
+        if (compositeFramebuffer == 0) {
+            compositeFramebuffer = framebuffer(colorTexture, 0);
         }
-        if (compositeFramebuffer != 0) {
-            GL30.glDeleteFramebuffers(compositeFramebuffer);
-            compositeFramebuffer = 0;
-        }
-        compositeFramebuffer = framebuffer(colorTexture, 0);
-        compositeAttached = colorTexture;
-        return compositeFramebuffer;
+        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, compositeFramebuffer);
+        GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D, colorTexture,
+                0);
     }
 
     int lowFramebuffer() {
@@ -87,7 +89,6 @@ final class SmokeViewTargets {
         if (compositeFramebuffer != 0) {
             GL30.glDeleteFramebuffers(compositeFramebuffer);
             compositeFramebuffer = 0;
-            compositeAttached = 0;
         }
     }
 

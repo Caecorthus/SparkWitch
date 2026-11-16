@@ -189,6 +189,17 @@ public final class NatsumeRules {
         return shownNow < shownBefore;
     }
 
+    /**
+     * Whether a menu request arriving at world tick {@code now} is answered: at most one roster scan and menu packet
+     * per tick per caster, so a flood of requests cannot multiply them. A legitimate client sends one per key press.
+     * {@code last} is the tick of the previous answered request, negative for none; a clock that went back never blocks.
+     * 在世界刻 {@code now} 到达的菜单请求是否应答：每名施放者每刻至多一次名单扫描与菜单数据包，刷请求无法将其成倍放大。
+     * 正常客户端每次按键只发一次。{@code last} 为上一次已应答请求所在的刻，负数表示没有；时钟倒退时绝不拦截。
+     */
+    static boolean menuRequestDue(long now, long last) {
+        return last < 0 || now != last;
+    }
+
     /** Whether the victim-only roar plays on this tick. / 本刻是否播放只给受害者的咆哮。 */
     static boolean roarsAt(long leftTicks) {
         return leftTicks > 0 && leftTicks % ROAR_INTERVAL_TICKS == 0;

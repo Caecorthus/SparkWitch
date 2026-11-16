@@ -167,16 +167,6 @@ public final class SeekerTaotieRules {
     }
 
     /**
-     * Client reach for sending {@code seeker_car_swallow} and for the hint: the crosshair shield distance and the
-     * server's feet-to-feet check, so the client never sends a request the server must refuse on reach.
-     * 发送 {@code seeker_car_swallow} 与显示提示的客户端距离：同时满足准星遮挡距离与服务端脚到脚判定，
-     * 客户端因此不会发送必然因距离被拒绝的请求。
-     */
-    public static boolean withinClientReach(double eyeToHitDistance, double squaredDistance, int reachSquared) {
-        return shieldsPress(eyeToHitDistance) && withinReach(squaredDistance, reachSquared);
-    }
-
-    /**
      * Client claim of one shared-key press. Cheap gates first: only a real press of the shared ability key on a
      * confirmed SparkWitch server that accepts {@code seeker_car_swallow}; then the local Taotie must be ready and the
      * vanilla crosshair must be on a Search Car that {@linkplain #shieldsPress shields} the press. Claimed means

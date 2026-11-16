@@ -17,7 +17,6 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
@@ -33,6 +32,8 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     private final WitchFactorState state = new WitchFactorState();
     private WitchFactorSettings settings = WitchFactorSettings.DEFAULT;
     private final Set<UUID> visibleHolders = new HashSet<>();
+    /** Client: players this recipient sees in their role colour. / 客户端：当前接收者以职业色看到的玩家。 */
+    private final Set<UUID> visibleRoleColored = new HashSet<>();
     private boolean networkView;
     private boolean exposeEmma;
     /**
@@ -42,11 +43,50 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
      * 因此它恰好等于各客户端持有的内容。
      */
     private final Map<UUID, View> sentViews = new HashMap<>();
-    /** Server: the mature set shared by every recipient of one {@link #sync()}. / 服务端：一次同步内所有接收者共用的成熟集合。 */
-    private @Nullable Set<UUID> syncMature;
 
-    private record View(boolean authorized, boolean exposeEmma, Set<UUID> holders) { }
-    private static final View UNAUTHORIZED = new View(false, false, Set.of());
+    /**
+     * One recipient's packet contents and their wire format. The server builds it only through {@link #sanitized}, so
+     * an unauthorized recipient gets no id of any kind. Layout: holder list, the two view bits, then the role-colour
+     * list (appended 2026-11-11; a packet that ends after the bits still reads, as an empty list).
+     * 单个接收者的数据包内容及其线上格式。服务端只经 {@link #sanitized} 构造，未获准的接收者拿不到任何 id。布局：持有者列表、
+     * 两个视图标记，然后是职业色列表（2026-11-11 追加；在标记处结束的数据包仍可读取，按空列表处理）。
+     */
+    record View(boolean authorized, boolean exposeEmma, Set<UUID> holders, Set<UUID> roleColored) {
+        static final View UNAUTHORIZED = new View(false, false, Set.of(), Set.of());
+
+        static View sanitized(boolean authorized, boolean pink, Set<UUID> mature, Set<UUID> roleColored) {
+            return authorized ? new View(true, pink, mature, roleColored) : UNAUTHORIZED;
+        }
+
+        void encode(RegistryByteBuf buf) {
+            // Preserve the original list prefix; the appended bits distinguish an empty authorized network.
+            // 保留原有列表前缀；追加权限位可区分获准但为空的网络。
+            buf.writeVarInt(holders.size());
+            holders.forEach(buf::writeUuid);
+            buf.writeBoolean(authorized);
+            buf.writeBoolean(exposeEmma);
+            buf.writeVarInt(roleColored.size());
+            roleColored.forEach(buf::writeUuid);
+        }
+
+        /** Client: ids are dropped again unless the view bit is set. / 客户端：视图标记未置位时再次丢弃所有 id。 */
+        static View decode(RegistryByteBuf buf) {
+            Set<UUID> holders = readIds(buf);
+            boolean authorized = buf.isReadable() && buf.readBoolean();
+            boolean exposeEmma = buf.isReadable() && buf.readBoolean();
+            Set<UUID> roleColored = buf.isReadable() ? readIds(buf) : Set.of();
+            return new View(authorized, exposeEmma, authorized ? holders : Set.of(), authorized ? roleColored : Set.of());
+        }
+
+        private static Set<UUID> readIds(RegistryByteBuf buf) {
+            int count = buf.readVarInt();
+            if (count < 0 || count > buf.readableBytes() / 16) throw new IllegalArgumentException("Invalid factor view");
+            Set<UUID> ids = new HashSet<>();
+            for (int i = 0; i < count; i++) ids.add(buf.readUuid());
+            return ids;
+        }
+    }
+    private static final View UNAUTHORIZED = View.UNAUTHORIZED;
 
     public WitchFactorWorldComponent(World world) { this.world = world; }
     WitchFactorState state() { return state; }
@@ -59,11 +99,30 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     public boolean isFactorHolder(UUID player) {
         return world.isClient ? visibleHolders.contains(player) : state.factors().containsKey(player);
     }
+    /** Client: this recipient's sanitized role-colour set; server: the ledger. / 客户端：当前接收者获准的职业色集合；服务端：账本。 */
+    public boolean isRoleColored(UUID player) {
+        return world.isClient ? visibleRoleColored.contains(player) : state.roleColored().contains(player);
+    }
+    /**
+     * Sends, right after a ledger change, each player's view only when it differs from what that client holds, exactly
+     * like {@link #serverTick}. A broadcast would also reach everyone whose view did not change, and that packet's
+     * arrival alone is a signal: a dormant factor is in nobody's view, yet spreading one used to send every player in
+     * the world a packet at that instant.
+     * 在账本变化之后立即发送，但与 {@link #serverTick} 完全一样，只在视图与该客户端持有的内容不同时才发给该玩家。广播还会
+     * 发给视图没有变化的所有人，而该数据包的到达本身就是信号：潜伏因子不在任何人的视图中，但此前传播它会在那一刻给世界里的
+     * 每名玩家发一个数据包。
+     */
     public void sync() {
         if (!(world instanceof ServerWorld serverWorld)) return;
         // Recipients cannot change the ledger, so one mature set serves the whole sync. / 接收者不会改变账本，一次同步共用一份成熟集合。
-        syncMature = matureLivingHolders(serverWorld);
-        try { KEY.sync(world); } finally { syncMature = null; }
+        Set<UUID> mature = matureLivingHolders(serverWorld);
+        Set<UUID> roleColored = livingRoleColored();
+        for (ServerPlayerEntity player : serverWorld.getPlayers()) {
+            View view = view(player, mature, roleColored);
+            if (!view.equals(sentViews.get(player.getUuid()))) {
+                KEY.syncWith(player, (ComponentProvider) world, (buf, recipient) -> write(buf, recipient, view), this);
+            }
+        }
     }
 
     private Set<UUID> matureLivingHolders(ServerWorld serverWorld) {
@@ -74,11 +133,29 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
         return Set.copyOf(result);
     }
 
-    private View view(ServerPlayerEntity recipient, Set<UUID> mature) {
+    /**
+     * Living role-coloured players of this world. The ledger set is empty in almost every round (one emptiness test),
+     * but when it is not, every authorized viewer of a pass gets the same set, so each pass builds it once and shares
+     * it like the mature set instead of resolving the same players again per viewer.
+     * 本世界存活的职业色玩家。该账本集合在绝大多数对局中为空（只需一次判空）；但不为空时，同一轮中每名获准的观察者得到的是
+     * 同一个集合，因此每轮只构建一次并像成熟集合那样共用，而不是为每名观察者重新解析同一批玩家。
+     */
+    private Set<UUID> livingRoleColored() {
+        if (state.roleColored().isEmpty()) return Set.of();
+        Set<UUID> result = new HashSet<>();
+        for (UUID id : state.roleColored()) {
+            if (world.getPlayerByUuid(id) instanceof ServerPlayerEntity player && WitchFactorService.alive(player)) {
+                result.add(id);
+            }
+        }
+        return Set.copyOf(result);
+    }
+
+    private View view(ServerPlayerEntity recipient, Set<UUID> mature, Set<UUID> roleColored) {
         boolean authorized = recipient.getWorld() == world && WitchFactorService.isNetworkViewer(recipient);
         boolean pink = authorized && (GameWorldComponent.KEY.get(world).getRole(recipient) == SparkWitchRoles.grandWitch()
                 || state.mature(recipient.getUuid()));
-        return new View(authorized, pink, authorized ? mature : Set.of());
+        return View.sanitized(authorized, pink, mature, authorized ? roleColored : Set.of());
     }
 
     /**
@@ -93,8 +170,9 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
         List<ServerPlayerEntity> players = serverWorld.getPlayers();
         boolean active = state.active();
         Set<UUID> mature = active ? matureLivingHolders(serverWorld) : Set.of();
+        Set<UUID> roleColored = active ? livingRoleColored() : Set.of();
         for (ServerPlayerEntity player : players) {
-            View view = active ? view(player, mature) : UNAUTHORIZED;
+            View view = active ? view(player, mature, roleColored) : UNAUTHORIZED;
             if (!view.equals(sentViews.get(player.getUuid()))) {
                 KEY.syncWith(player, (ComponentProvider) world, (buf, recipient) -> write(buf, recipient, view), this);
             }
@@ -110,27 +188,22 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
     @Override public boolean shouldSyncWith(ServerPlayerEntity recipient) { return recipient.getWorld() == world; }
 
     @Override public void writeSyncPacket(RegistryByteBuf buf, ServerPlayerEntity recipient) {
-        write(buf, recipient, view(recipient, syncMature != null ? syncMature : matureLivingHolders((ServerWorld) world)));
+        write(buf, recipient, view(recipient, matureLivingHolders((ServerWorld) world), livingRoleColored()));
     }
 
     private void write(RegistryByteBuf buf, ServerPlayerEntity recipient, View view) {
         sentViews.put(recipient.getUuid(), view);
-        // Preserve the original list prefix; the appended bits distinguish an empty authorized network.
-        // 保留原有列表前缀；追加权限位可区分获准但为空的网络。
-        buf.writeVarInt(view.holders().size());
-        view.holders().forEach(buf::writeUuid);
-        buf.writeBoolean(view.authorized());
-        buf.writeBoolean(view.exposeEmma());
+        view.encode(buf);
     }
 
     @Override public void applySyncPacket(RegistryByteBuf buf) {
+        View view = View.decode(buf);
         visibleHolders.clear();
-        int count = buf.readVarInt();
-        if (count < 0 || count > buf.readableBytes() / 16) throw new IllegalArgumentException("Invalid factor view");
-        for (int i = 0; i < count; i++) visibleHolders.add(buf.readUuid());
-        networkView = buf.isReadable() && buf.readBoolean();
-        exposeEmma = buf.isReadable() && buf.readBoolean();
-        if (!networkView) visibleHolders.clear();
+        visibleHolders.addAll(view.holders());
+        visibleRoleColored.clear();
+        visibleRoleColored.addAll(view.roleColored());
+        networkView = view.authorized();
+        exposeEmma = view.exposeEmma();
     }
 
     @Override public void writeToNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
@@ -139,6 +212,7 @@ public final class WitchFactorWorldComponent implements AutoSyncedComponent, Ser
 
     @Override public void readFromNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
         visibleHolders.clear();
+        visibleRoleColored.clear();
         sentViews.clear();
         networkView = false;
         exposeEmma = false;

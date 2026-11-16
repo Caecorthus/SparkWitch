@@ -1,11 +1,11 @@
 package dev.caecorthus.sparkwitch.roles.civilian.tarotreader;
 
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.api.event.TaskComplete;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
@@ -59,7 +59,7 @@ public final class TarotReaderFeatureService {
                 TarotReaderRoundRoleHistory.clear();
             }
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                TarotReaderSelectionSessionService.clear(handler.getPlayer().getUuid()));
+        ServerDisconnectCleanup.register((player, server) ->
+                TarotReaderSelectionSessionService.clear(player.getUuid()));
     }
 }

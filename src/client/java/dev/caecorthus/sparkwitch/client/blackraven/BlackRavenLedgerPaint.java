@@ -1,17 +1,17 @@
 package dev.caecorthus.sparkwitch.client.blackraven;
 
+import dev.caecorthus.sparkfactionapi.client.api.card.InventoryCardPaint;
 import dev.caecorthus.sparkwitch.client.blackraven.BlackRavenLedgerLayout.Rect;
-import dev.caecorthus.sparkwitch.client.gui.InventoryCardPaint;
 import net.minecraft.client.gui.DrawContext;
 
 /**
  * Role-local "raven noir" tokens and fill primitives for the Black Raven Perception Ledger: the Harpy Express panel
  * grammar (bevelled frame, title band, engraved rules, gems, pills) recoloured to obsidian, silver-violet and a
- * blue-green glint. Shapes reuse {@link InventoryCardPaint} (which must stay byte-identical with SparkTraits, so
+ * blue-green glint. Shapes reuse {@link InventoryCardPaint} (SparkFactionAPI's copy, shared with SparkTraits, so
  * nothing is added there); sizes belong to {@link BlackRavenLedgerLayout}. Every primitive is fill-only: none batches
  * and none draws text, so callers wrap them in {@link InventoryCardPaint#batch} and draw text after the batch.
  * 黑羽鸦感知册的职业自有“鸦羽暗夜”令牌与填充原语：沿用哈比特快面板语法（斜面外框、标题带、刻线、宝石、状态牌），
- * 配色改为黑曜石、银紫与蓝绿光泽。图形复用 {@link InventoryCardPaint}（须与 SparkTraits 逐字节一致，因此不在其中
+ * 配色改为黑曜石、银紫与蓝绿光泽。图形复用 {@link InventoryCardPaint}（SparkFactionAPI 中与 SparkTraits 共用，因此不在其中
  * 添加任何内容）；尺寸归 {@link BlackRavenLedgerLayout} 所有。所有原语只做填充，既不自行分批也不绘制文字；调用方用
  * {@link InventoryCardPaint#batch} 包裹，批次结束后再绘制文字。
  */

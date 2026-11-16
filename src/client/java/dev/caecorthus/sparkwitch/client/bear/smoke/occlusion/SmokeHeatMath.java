@@ -2,14 +2,14 @@ package dev.caecorthus.sparkwitch.client.bear.smoke.occlusion;
 
 /**
  * Pure rules of the heat-image smoke mask ({@link SmokeHeatMask}, BEAR WP5 for SparkStrength's Undercover thermal, S4):
- * argument checks of the cross-mod entry, the heat-target rectangle the passes cover, and the CPU reference of what
- * {@code heat_mask.fsh} writes per pixel. A client-side driver can render into its own heat framebuffer, call the
- * facade, read the pixels back and compare them with {@link #maskedHeat} / {@link #hazedHeat} fed with
- * {@code BearSmokeViewApi.opticalDepth} along the same pixel ray; tests pin the shader to these rules.
+ * argument checks of the cross-mod entry and the heat-target rectangle the passes cover. The CPU reference of what
+ * {@code heat_mask.fsh} writes per pixel (masked heat {@code heat * v}, hazed heat {@code max(heat, haze * (1 - v))},
+ * v the outline visibility at the pixel's optical depth) lives in the test sources ({@code SmokeShaderReference}),
+ * where tests pin the shader to it.
  * 热成像图像烟雾遮罩（{@link SmokeHeatMask}，BEAR WP5，供 SparkStrength 卧底热成像 S4 使用）的纯规则：跨模组入口的参数
- * 检查、各步骤覆盖的热图矩形，以及 {@code heat_mask.fsh} 逐像素写入结果的 CPU 参照。客户端驱动可以渲染到自己的热图帧缓冲、
- * 调用门面、回读像素，并与用同一像素视线上的 {@code BearSmokeViewApi.opticalDepth} 算出的 {@link #maskedHeat} /
- * {@link #hazedHeat} 比较；测试把着色器固定到这些规则上。
+ * 检查与各步骤覆盖的热图矩形。{@code heat_mask.fsh} 逐像素写入结果的 CPU 参照（遮罩热值 {@code heat * v}，热雾热值
+ * {@code max(heat, haze * (1 - v))}，v 为该像素光学厚度处的描边可见度）位于测试源码（{@code SmokeShaderReference}），
+ * 测试据此固定着色器。
  */
 public final class SmokeHeatMath {
     /**
@@ -58,23 +58,5 @@ public final class SmokeHeatMath {
         int y1 = (int) Math.ceil((double) grown[3] * height / passHeight);
         int[] rect = SmokeOcclusionMath.grow(new int[]{x0, y0, x1, y1}, 0, width, height);
         return rect[2] > rect[0] && rect[3] > rect[1] ? rect : null;
-    }
-
-    /**
-     * Mask pass: the heat a pixel keeps behind {@code opticalDepth} of smoke between the eye and its depth (the same
-     * visibility as an outline: 1 up to optical depth 0.3, 0 from 1.5, linear between).
-     * 遮罩步骤：像素在眼睛与其深度之间有 {@code opticalDepth} 的烟时保留的热值（与描边相同的可见度：光学厚度 0.3 以内为 1，
-     * 1.5 起为 0，其间线性）。
-     */
-    public static float maskedHeat(float heat, float opticalDepth) {
-        return heat * SmokeOcclusionMath.visibility(opticalDepth);
-    }
-
-    /**
-     * Haze pass: the heat after the smoke in front of the pixel's depth glows with {@code haze} (blended with MAX).
-     * 热雾步骤：像素深度之前的烟以 {@code haze} 发热之后的热值（按 MAX 混合）。
-     */
-    public static float hazedHeat(float heat, float haze, float opticalDepth) {
-        return Math.max(heat, haze * (1.0F - SmokeOcclusionMath.visibility(opticalDepth)));
     }
 }

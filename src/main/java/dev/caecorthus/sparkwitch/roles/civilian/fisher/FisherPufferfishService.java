@@ -96,9 +96,15 @@ public final class FisherPufferfishService {
             }
             ServerPlayerEntity fisher = server.getPlayerManager().getPlayer(tracked.fisher());
             for (ServerPlayerEntity target : ((ServerWorld) fish.getWorld()).getPlayers()) {
+                // Contact first: the sting needs it anyway and nearly every player in the world fails it, so the role
+                // and participant lookups run only for a player who touches this fish. Same conditions, same result.
+                // 先判断接触：蜇刺本来就需要接触，而世界里几乎所有玩家都不满足，因此只有碰到这只河豚的玩家才会做职业与
+                // 参与者查询。条件相同，结果相同。
+                if (!fish.getBoundingBox().intersects(target.getBoundingBox())) {
+                    continue;
+                }
                 Role role = game.getRole(target);
                 if (!FisherParticipants.isLivingParticipant(target) || role == null || role.getMoodType() != Role.MoodType.REAL
-                        || !fish.getBoundingBox().intersects(target.getBoundingBox())
                         || !stingReady(now, LAST_STING.get(target.getUuid()))) {
                     continue;
                 }

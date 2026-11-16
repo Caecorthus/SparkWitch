@@ -33,7 +33,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -41,7 +40,6 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -269,7 +267,8 @@ public class MiniWitherSkullEntity extends ThrownEntity {
         // judges a Conscience owner's innocent victim (小脑) from this killer. / 非强制击杀，凶手为在线主人：金币、记录与
         // 所有防护照常生效，SparkTraits 也据此判定善良主人误杀好人（小脑）。
         if (owner == null || MiniWitherTargeting.mayAffect(owner, victim, game)) {
-            RangedOriginScope.run(getPos().subtract(getVelocity()),
+            // BEAR: this skull is the Rys-T attack source. / BEAR：这颗头颅即 Rys-T 的攻击来源。
+            RangedOriginScope.run(getPos().subtract(getVelocity()), getUuid(),
                     () -> GameFunctions.killPlayer(victim, true, owner, SparkWitchDeathReasons.CRIMSON_WITHER_SKULL));
         }
         discard();
@@ -317,8 +316,9 @@ public class MiniWitherSkullEntity extends ThrownEntity {
             if (candidate == owner || candidate.getUuid().equals(ownerUuid)) {
                 continue;
             }
-            double entry = laggedEntrySquared(from, to,
-                    PlayerHitboxHistory.projectileHitVolumes(candidate, PLAYER_HIT_MARGIN), age > 0);
+            // A start inside the real box counts only once the skull has moved. / 起点位于真实箱体内只在头颅移动过后才算。
+            double entry = HitscanLagRules.laggedEntrySquared(from, to,
+                    PlayerHitboxHistory.projectileHitVolumes(candidate, PLAYER_HIT_MARGIN), PLAYER_HIT_MARGIN, age > 0);
             if (entry < 0.0 || entry >= hitEntry || !canHit(candidate)
                     || owner instanceof ServerPlayerEntity shooter
                     && !SparkFactionApi.canAffectPlayer(shooter, candidate, PROJECTILE_ACTION, game)) {
@@ -332,34 +332,6 @@ public class MiniWitherSkullEntity extends ThrownEntity {
             return null;
         }
         return hit;
-    }
-
-    /**
-     * Entry distance into lag-compensated volumes grown by the margin; a start inside the real box counts only once the
-     * skull has moved. -1 on a miss. / 进入按余量扩大的延迟补偿体积的距离；起点位于真实箱体内只在头颅移动过后才算。未命中为 -1。
-     */
-    static double laggedEntrySquared(Vec3d from, Vec3d to, List<Box> volumes, boolean startInsideCounts) {
-        double nearest = -1.0;
-        for (Box volume : volumes) {
-            Box real = volume.contract(PLAYER_HIT_MARGIN);
-            double entry;
-            if (real.contains(from)) {
-                if (!startInsideCounts) {
-                    continue;
-                }
-                entry = 0.0;
-            } else {
-                Optional<Vec3d> point = volume.contains(from) ? real.raycast(from, to) : volume.raycast(from, to);
-                if (point.isEmpty()) {
-                    continue;
-                }
-                entry = from.squaredDistanceTo(point.get());
-            }
-            if (nearest < 0.0 || entry < nearest) {
-                nearest = entry;
-            }
-        }
-        return nearest;
     }
 
     private static double vanillaEntrySquared(HitResult vanilla, Vec3d from, Vec3d to) {

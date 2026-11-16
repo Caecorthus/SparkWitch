@@ -1,7 +1,7 @@
 package dev.caecorthus.sparkwitch.client.noa;
 
 import dev.caecorthus.sparkwitch.client.SparkWitchClient;
-import dev.caecorthus.sparkwitch.client.text.HudFontOptions;
+import dev.caecorthus.sparkwitch.client.hud.CachedHudText;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaComponent;
@@ -14,9 +14,6 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Language;
-
-import java.util.Objects;
 
 /**
  * Draws Noa's owner-only painting line ({@link NoaPaintHudRules}). Reads only the local player's real synced role and
@@ -30,20 +27,10 @@ import java.util.Objects;
  * 也绝不进入 {@code gui.sparkwitch.skills} 面板。
  */
 public final class NoaPaintHud {
-    // Render-thread cache: the Texts and widths are a pure function of the line, the ability key text, the active
-    // Language (replaced on every resource reload) and the font renderer, so they are rebuilt only when one changes.
-    // 渲染线程缓存：文本与宽度只取决于该行、技能按键文本、当前 Language（每次资源重载都会换新）与字体渲染器，
-    // 因此只在其中之一变化时重建。
-    // The key also holds the font glyph options (`HudFontOptions`), which a toggle changes without a reload.
-    // 键还包含字形选项（`HudFontOptions`），切换它们不会触发资源重载。
-    private static NoaPaintHudRules.Line cachedLine;
-    private static Text cachedKeyText;
-    private static Language cachedLanguage;
-    private static TextRenderer cachedRenderer;
-    private static int cachedFontOptions = -1;
-    private static Text cachedText;
-    private static int cachedTextWidth;
-    private static int cachedMeasured;
+    // Render-thread cache keyed on the line, the ability key text, the Language, the font renderer and the glyph
+    // options (see CachedHudText). / 渲染线程缓存，键为该行、技能按键文本、Language、字体渲染器与字形选项（见 CachedHudText）。
+    private static final CachedHudText<NoaPaintHudRules.Line> CACHE = new CachedHudText<>(NoaPaintHud::text,
+            NoaPaintHudRules.Line::seconds, line -> NoaPaintHudRules.measuredSeconds(line.seconds()));
 
     private NoaPaintHud() {
     }
@@ -79,25 +66,11 @@ public final class NoaPaintHud {
         WitchPlayerComponent witch = WitchPlayerComponent.KEY.get(player);
         boolean sharedLineOccupied = witch.getActiveSkillId() != null || witch.getSaintState().karmaCooldownTicks() > 0;
         TextRenderer renderer = client.textRenderer;
-        Text keyText = line.keyHint() ? SparkWitchClient.abilityKeyText() : null;
-        Language language = Language.getInstance();
-        int fontOptions = HudFontOptions.current();
-        if (!line.equals(cachedLine) || !Objects.equals(keyText, cachedKeyText) || language != cachedLanguage
-                || renderer != cachedRenderer
-                || fontOptions != cachedFontOptions) {
-            cachedText = text(line, line.seconds(), keyText);
-            cachedTextWidth = renderer.getWidth(cachedText);
-            cachedMeasured = renderer.getWidth(text(line, NoaPaintHudRules.measuredSeconds(line.seconds()), keyText));
-            cachedLine = line;
-            cachedKeyText = keyText;
-            cachedLanguage = language;
-            cachedRenderer = renderer;
-            cachedFontOptions = fontOptions;
-        }
-        Text text = cachedText;
-        int measured = cachedMeasured;
+        CACHE.update(line, line.keyHint() ? SparkWitchClient.abilityKeyText() : null, renderer);
+        Text text = CACHE.text();
+        int measured = CACHE.measuredWidth();
         int width = context.getScaledWindowWidth();
-        int x = NoaPaintHudRules.rowX(width, cachedTextWidth);
+        int x = NoaPaintHudRules.rowX(width, CACHE.width());
         int y = NoaPaintHudRules.rowY(width, context.getScaledWindowHeight(), measured, renderer.fontHeight,
                 sharedLineOccupied);
         context.drawTextWithShadow(renderer, text, x, y, line.color());

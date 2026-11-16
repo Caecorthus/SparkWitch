@@ -52,6 +52,8 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.riftGate(),
                                     // Neutral / 中立
                                     SparkWitchItems.firePoker(),
+                                    // 泽渡可可's lightstick (neutral) / 泽渡可可的应援棒（中立）
+                                    SparkWitchItems.kokoLightstick(),
                                     // Civilian / 平民
                                     SparkWitchItems.perfumeEssence(),
                                     SparkWitchItems.cologne(),
@@ -90,6 +92,15 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.bigDogPortrait(),
                                     // Accountant's passbook (civilian) / 会计的存折（平民）
                                     SparkWitchItems.accountantPassbook(),
+                                    // Tono Hanna's parasol and handkerchief (civilian) / 远野汉娜的洋伞与手帕（平民）
+                                    SparkWitchItems.hannaUmbrella(),
+                                    SparkWitchItems.hannaHandkerchief(),
+                                    // 橘雪莉's detective badge and note (civilian) / 橘雪莉的侦探徽章与纸条（平民）
+                                    SparkWitchItems.sherryBadge(),
+                                    SparkWitchItems.sherryNote(),
+                                    // Savior (civilian police) / 救世主（平民警察）
+                                    SparkWitchItems.saviorPistol(),
+                                    SparkWitchItems.saviorLightsaber(),
                                     // Black Raven (civilian police) / 黑羽鸦（平民警察）
                                     SparkWitchItems.featherBlade(),
                                     SparkWitchItems.blackRavenLedger(),
@@ -109,7 +120,12 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.tollBell(),
                                     SparkWitchItems.timeStealerClock(),
                                     SparkWitchItems.timeStealerGiftWatch(),
-                                    SparkWitchItems.timeStamp()
+                                    SparkWitchItems.timeStamp(),
+                                    // Specter (killer) / 幽魂（杀手）
+                                    SparkWitchItems.ghostTrigger(),
+                                    SparkWitchItems.peachwoodSword(),
+                                    // 二阶堂希罗 (killer) / 二阶堂希罗（杀手）
+                                    SparkWitchItems.rope()
                             );
                             factionOrder.forEach(entries::add);
                             // Any other item in our namespace follows in registration order, so new items join automatically.

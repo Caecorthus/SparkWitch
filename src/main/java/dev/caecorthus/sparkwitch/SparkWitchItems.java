@@ -8,6 +8,10 @@ import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
+import dev.caecorthus.sparkwitch.item.rope.RopeItem;
+import dev.caecorthus.sparkwitch.item.rope.RopeRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoLightstickItem;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
 import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookItem;
@@ -26,6 +30,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FisherFishKind;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.FishingRodItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.item.KeyFishItem;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.swordfish.SwordfishItem;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaHandkerchiefItem;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaUmbrellaItem;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.CrossSwordItem;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.CologneItem;
@@ -37,6 +44,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.seeker.device.SeekerCarItem;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumeEssenceItem;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetNecrologyItem;
 import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetNecrologyRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorLightsaberItem;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPistolItem;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaKnifeLoadoutService;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.TollBellItem;
@@ -48,6 +58,8 @@ import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShellItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelSlugItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.DoubleBarrelShotgunItem;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterTrapItem;
+import dev.caecorthus.sparkwitch.roles.killer.specter.GhostTriggerItem;
+import dev.caecorthus.sparkwitch.roles.killer.specter.PeachwoodSwordItem;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KnockoutDrugItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStampItem;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeGiftWatchItem;
@@ -135,6 +147,18 @@ public final class SparkWitchItems {
     public static final Identifier WITHER_GOHEI_ID = MiniWitherRules.GOHEI_ID;
     public static final Identifier BIG_DOG_PORTRAIT_ID = NoaRules.DOG_PORTRAIT_ITEM_ID;
     public static final Identifier ACCOUNTANT_PASSBOOK_ID = AccountantRules.PASSBOOK_ID;
+    public static final Identifier SHERRY_BADGE_ID =
+            dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules.BADGE_ITEM_ID;
+    public static final Identifier SHERRY_NOTE_ID =
+            dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules.NOTE_ITEM_ID;
+    public static final Identifier PEACHWOOD_SWORD_ID = SparkWitch.id("peachwood_sword");
+    public static final Identifier GHOST_TRIGGER_ID = SparkWitch.id("ghost_trigger");
+    public static final Identifier SAVIOR_PISTOL_ID = SaviorRules.PISTOL_ID;
+    public static final Identifier SAVIOR_LIGHTSABER_ID = SaviorRules.LIGHTSABER_ID;
+    public static final Identifier HANNA_UMBRELLA_ID = HannaRules.UMBRELLA_ID;
+    public static final Identifier HANNA_HANDKERCHIEF_ID = HannaRules.HANDKERCHIEF_ID;
+    public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
+    public static final Identifier KOKO_LIGHTSTICK_ID = KokoRules.LIGHTSTICK_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -193,8 +217,18 @@ public final class SparkWitchItems {
     private static Item usecApRound;
     private static Item usecSuppressor;
     private static Item witherGohei;
+    private static Item peachwoodSword;
+    private static Item sherryBadge;
+    private static Item sherryNote;
+    private static Item ghostTrigger;
     private static Item bigDogPortrait;
     private static Item accountantPassbook;
+    private static Item saviorPistol;
+    private static Item saviorLightsaber;
+    private static Item hannaUmbrella;
+    private static Item hannaHandkerchief;
+    private static Item rope;
+    private static Item kokoLightstick;
 
     private static boolean registered;
 
@@ -520,6 +554,77 @@ public final class SparkWitchItems {
                 ACCOUNTANT_PASSBOOK_ID,
                 new AccountantPassbookItem(new Item.Settings().maxCount(1))
         );
+        // Specter (PR #207) items, appended last so earlier registration order stays unchanged.
+        // 幽魂（PR #207）物品，追加在最后以保持既有注册顺序不变。
+        // Specter counterplay: the peachwood sword handed to low-sanity players while the Otherworld is open.
+        // 幽魂的反制：里世界期间发给低理智玩家的桃木剑。
+        peachwoodSword = Registry.register(
+                Registries.ITEM,
+                PEACHWOOD_SWORD_ID,
+                new PeachwoodSwordItem(PeachwoodSwordItem.createSettings())
+        );
+        // Specter shop: an invisible placed trigger spent by the first player who steps on it.
+        // 幽魂商店：放在地上隐形的触发器，第一个踩到的玩家将其消耗。
+        ghostTrigger = Registry.register(
+                Registries.ITEM,
+                GHOST_TRIGGER_ID,
+                new GhostTriggerItem(GhostTriggerItem.createSettings())
+        );
+        // Savior (police): a self-contained revolver copy and a bat-stat lightsaber.
+        // 救世主（警类）：自包含的左轮复制品与球棒属性的光剑。
+        saviorPistol = Registry.register(
+                Registries.ITEM,
+                SAVIOR_PISTOL_ID,
+                new SaviorPistolItem(SaviorPistolItem.createSettings())
+        );
+        saviorLightsaber = Registry.register(
+                Registries.ITEM,
+                SAVIOR_LIGHTSABER_ID,
+                new SaviorLightsaberItem(SaviorLightsaberItem.createSettings())
+        );
+        // Tono Hanna's shop items (PR #212), usable by any holder: the parasol (25 durability, 1 per second held) and
+        // the handkerchief (2 uses). Uses are vanilla durability, so maxCount(1). Appended last.
+        // 远野汉娜的商店物品（PR #212），谁拿到都能用：洋伞（25 点耐久，手持每秒 1 点）与手帕（2 次）。次数即原版耐久，
+        // 因此 maxCount(1)。追加在最后。
+        hannaUmbrella = Registry.register(
+                Registries.ITEM,
+                HANNA_UMBRELLA_ID,
+                new HannaUmbrellaItem(HannaUmbrellaItem.createSettings())
+        );
+        hannaHandkerchief = Registry.register(
+                Registries.ITEM,
+                HANNA_HANDKERCHIEF_ID,
+                new HannaHandkerchiefItem(HannaHandkerchiefItem.createSettings())
+        );
+        // 橘雪莉 (PR #206) items, appended last so earlier registration order stays unchanged. The badge is a plain
+        // token handed over by SherryBadgeService (no use action of its own); the note names a dead badge holder in its
+        // custom data, so maxCount(1) keeps two notes from merging into one name.
+        // 橘雪莉（PR #206）物品，追加在最后以保持既有注册顺序不变。徽章是普通携带物，由 SherryBadgeService 负责赠送（自身没有
+        // 使用动作）；纸条在自定义数据中写着死去的徽章持有者名字，因此用 maxCount(1) 防止两张纸条合并成同一个名字。
+        sherryBadge = Registry.register(
+                Registries.ITEM,
+                SHERRY_BADGE_ID,
+                new dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryBadgeItem(new Item.Settings().maxCount(1))
+        );
+        sherryNote = Registry.register(
+                Registries.ITEM,
+                SHERRY_NOTE_ID,
+                new dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryNoteItem(new Item.Settings().maxCount(1))
+        );
+        // 二阶堂希罗's Rope (2026-11-11), appended last, after 橘雪莉's items, so earlier registration order
+        // stays unchanged. / 二阶堂希罗的绳索（2026-11-11），追加在最后（橘雪莉的物品之后），以保持既有注册顺序不变。
+        rope = Registry.register(
+                Registries.ITEM,
+                ROPE_ID,
+                new RopeItem(RopeItem.createSettings())
+        );
+        // 泽渡可可's lightstick (PR #223), appended last, after 二阶堂希罗's Rope, so earlier registration order stays
+        // unchanged. / 泽渡可可的应援棒（PR #223），追加在最后（二阶堂希罗的绳索之后），以保持既有注册顺序不变。
+        kokoLightstick = Registry.register(
+                Registries.ITEM,
+                KOKO_LIGHTSTICK_ID,
+                new KokoLightstickItem(KokoLightstickItem.createSettings())
+        );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
@@ -537,6 +642,48 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return crossSword;
+    }
+
+    public static Item peachwoodSword() {
+        if (peachwoodSword == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return peachwoodSword;
+    }
+
+    public static Item ghostTrigger() {
+        if (ghostTrigger == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return ghostTrigger;
+    }
+
+    public static Item saviorPistol() {
+        if (saviorPistol == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return saviorPistol;
+    }
+
+    public static Item saviorLightsaber() {
+        if (saviorLightsaber == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return saviorLightsaber;
+    }
+
+    public static Item rope() {
+        if (rope == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return rope;
+    }
+
+    public static Item kokoLightstick() {
+        if (kokoLightstick == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return kokoLightstick;
     }
 
     public static Item firePoker() {
@@ -985,5 +1132,33 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return accountantPassbook;
+    }
+
+    public static Item hannaUmbrella() {
+        if (hannaUmbrella == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return hannaUmbrella;
+    }
+
+    public static Item hannaHandkerchief() {
+        if (hannaHandkerchief == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return hannaHandkerchief;
+    }
+
+    public static Item sherryBadge() {
+        if (sherryBadge == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return sherryBadge;
+    }
+
+    public static Item sherryNote() {
+        if (sherryNote == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return sherryNote;
     }
 }

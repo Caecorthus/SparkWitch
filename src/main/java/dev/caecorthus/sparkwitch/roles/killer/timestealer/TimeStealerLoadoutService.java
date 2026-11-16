@@ -8,6 +8,7 @@ import dev.doctor4t.wathe.api.Role;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -174,6 +175,32 @@ public final class TimeStealerLoadoutService {
      * 光标上的时钟视为保留的那一份，因此左键拿起能保持住；只有快捷栏已有时钟时才移除它。一切正常时开销很低：只扫描栏位而不写入。
      */
     private static void ensureClockInHotbar(ServerPlayerEntity player) {
+        ensureOneInHotbar(player, TimeStealerInventoryRules::isClock, TimeStealerLoadoutService::placeClockInHotbar);
+    }
+
+    /**
+     * Places a fresh copy into the hotbar, given the storage slot a misplaced copy just vacated ({@code -1} when none);
+     * true when it wrote a slot. The Clock and the Gift Watch keep their own placement (the Gift Watch never displaces
+     * the Clock and may find no slot).
+     * 把新副本放入快捷栏，参数为刚被错放副本腾出的储物栏位（没有时为 {@code -1}）；写入了栏位时返回 true。时钟与赠时怀表
+     * 各自保留放置方式（赠时怀表从不挤走时钟，且可能找不到栏位）。
+     */
+    @FunctionalInterface
+    interface HotbarPlacement {
+        boolean place(PlayerInventory inventory, int vacated);
+    }
+
+    /**
+     * Shared by the Clock and the Gift Watch: keeps exactly one copy accepted by {@code item}, in the hotbar. The
+     * leftmost hotbar copy is kept with its count clamped to one, every other copy (inventory 0..40 outside that slot,
+     * crafting grid or open container) is removed, and a missing one is recreated through {@code place}. A copy on the
+     * cursor counts as the kept one while the hotbar has none; it is removed only beside a hotbar copy. Cheap when
+     * nothing is wrong: a slot scan with no writes, and the handler is synced only on a change.
+     * 时钟与赠时怀表共用：保持恰好一份 {@code item} 接受的副本并使其位于快捷栏。保留最左侧的快捷栏副本并把数量压为 1，
+     * 移除其他所有副本（该栏位以外的背包 0..40、合成格或已打开的容器），缺失时经 {@code place} 重新创建。快捷栏没有副本时，
+     * 光标上的副本视为保留的那一份；只有快捷栏已有副本时才移除它。一切正常时开销很低：只扫描栏位而不写入，且只在有变化时同步界面。
+     */
+    static void ensureOneInHotbar(ServerPlayerEntity player, Predicate<ItemStack> item, HotbarPlacement place) {
         PlayerInventory inventory = player.getInventory();
         ScreenHandler handler = player.currentScreenHandler;
         int kept = NO_SLOT;
@@ -181,7 +208,7 @@ public final class TimeStealerLoadoutService {
         boolean changed = false;
         for (int slot = 0; slot < inventory.size(); slot++) {
             ItemStack stack = inventory.getStack(slot);
-            if (!TimeStealerInventoryRules.isClock(stack)) {
+            if (!item.test(stack)) {
                 continue;
             }
             if (kept == NO_SLOT && PlayerInventory.isValidHotbarIndex(slot)) {
@@ -198,13 +225,13 @@ public final class TimeStealerLoadoutService {
             }
             changed = true;
         }
-        // A Clock on the cursor is being carried (a left-click pickup in the holder's own screen): it is the kept copy
+        // A copy on the cursor is being carried (a left-click pickup in the holder's own screen): it is the kept copy
         // unless the hotbar already has one. Removing it here undid every pickup on the next tick.
-        // 光标上的时钟正被携带（在自身界面中左键拿起）：除非快捷栏已有一个，否则它就是保留的那一份。
+        // 光标上的副本正被携带（在自身界面中左键拿起）：除非快捷栏已有一个，否则它就是保留的那一份。
         // 若在此删除，每次拿起都会在下一 tick 被撤销。
         boolean carried = false;
         ItemStack cursor = handler.getCursorStack();
-        if (TimeStealerInventoryRules.isClock(cursor)) {
+        if (item.test(cursor)) {
             if (kept == NO_SLOT) {
                 carried = true;
                 if (cursor.getCount() > 1) {
@@ -217,13 +244,13 @@ public final class TimeStealerLoadoutService {
             }
         }
         for (Slot slot : handler.slots) {
-            if (slot.inventory != inventory && TimeStealerInventoryRules.isClock(slot.getStack())) {
+            if (slot.inventory != inventory && item.test(slot.getStack())) {
                 slot.setStack(ItemStack.EMPTY);
                 changed = true;
             }
         }
         if (kept == NO_SLOT && !carried) {
-            changed |= placeClockInHotbar(inventory, vacated);
+            changed |= place.place(inventory, vacated);
         }
         if (changed) {
             inventory.markDirty();
@@ -278,22 +305,31 @@ public final class TimeStealerLoadoutService {
 
     /** Removes every Clock from inventory 0..40, the cursor and open handler slots. / 从背包 0..40、光标与已打开界面栏位移除所有时钟。 */
     private static void removeClocks(ServerPlayerEntity player) {
+        removeAll(player, TimeStealerInventoryRules::isClock);
+    }
+
+    /**
+     * Shared by the Clock and the Gift Watch: removes every copy accepted by {@code item} from inventory 0..40, the
+     * cursor and open handler slots, syncing only on a change.
+     * 时钟与赠时怀表共用：从背包 0..40、光标与已打开界面栏位移除 {@code item} 接受的所有副本，只在有变化时同步。
+     */
+    static void removeAll(ServerPlayerEntity player, Predicate<ItemStack> item) {
         boolean changed = false;
         PlayerInventory inventory = player.getInventory();
         for (int slot = 0; slot < inventory.size(); slot++) {
-            if (TimeStealerInventoryRules.isClock(inventory.getStack(slot))) {
+            if (item.test(inventory.getStack(slot))) {
                 inventory.setStack(slot, ItemStack.EMPTY);
                 changed = true;
             }
         }
         ScreenHandler handler = player.currentScreenHandler;
-        if (TimeStealerInventoryRules.isClock(handler.getCursorStack())) {
+        if (item.test(handler.getCursorStack())) {
             handler.setCursorStack(ItemStack.EMPTY);
             changed = true;
         }
         // Also covers the crafting grid and any open foreign container. / 同时覆盖合成格与已打开的外部容器。
         for (Slot slot : handler.slots) {
-            if (TimeStealerInventoryRules.isClock(slot.getStack())) {
+            if (item.test(slot.getStack())) {
                 slot.setStack(ItemStack.EMPTY);
                 changed = true;
             }

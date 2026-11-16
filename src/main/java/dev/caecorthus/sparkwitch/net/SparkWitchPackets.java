@@ -17,6 +17,28 @@ import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotS2CPacket;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.UseDominatorSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnService;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.UseHiroSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSecondSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.killer.specter.UseSpecterSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumBlessingService;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceResultS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSecondSkillService;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSkillService;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.OpenMediumSeanceInputS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumHauntTargetC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumSeanceC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.SubmitMediumVoteC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumBlessingC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.UseMediumSkillC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryDeductionService;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryMightyForceService;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.net.ConfirmSherryDeductionC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.net.OpenSherryDeductionS2CPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.net.RequestSherryDeductionC2SPacket;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.net.UseSherryMightyForceC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.UseVendettaKnifeC2SPacket;
@@ -57,6 +79,9 @@ public final class SparkWitchPackets {
         SeekerNetworking.register();
         dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelNetworking.registerServer();
         dev.caecorthus.sparkwitch.roles.civilian.knight.CrossSwordStabService.register();
+        dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPistolService.register();
+        dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorLightsaberCombatService.register();
+        dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorDomainService.register();
         // Riftwalker payloads register in their own role-owned class, like the Seeker. / 隙行者数据包与搜寻者一样在自有类中注册。
         RiftwalkerNetworking.register();
         // Hunter shotgun aim claim, also role-owned. / 猎人猎枪瞄准声明，同样在自有类中注册。
@@ -112,6 +137,63 @@ public final class SparkWitchPackets {
         PayloadTypeRegistry.playC2S().register(
                 SwordfishStabC2SPayload.ID,
                 SwordfishStabC2SPayload.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(UseSpecterSkillC2SPacket.ID, UseSpecterSkillC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(
+                UseSpecterSecondSkillC2SPacket.ID,
+                UseSpecterSecondSkillC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(UseHiroSkillC2SPacket.ID, UseHiroSkillC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(UseMediumSkillC2SPacket.ID, UseMediumSkillC2SPacket.CODEC);
+        // Medium 幽灵的加护 (SparkWitch skill key): paid on receipt, no menu. It took the place of the removed
+        // use_medium_second_skill; 招魂 is now picked in the inventory screen.
+        // 通灵师幽灵的加护（SparkWitch 技能键）：收到即扣费，没有菜单。它取代了已移除的 use_medium_second_skill；
+        // 招魂改为在背包界面中选择。
+        PayloadTypeRegistry.playC2S().register(
+                UseMediumBlessingC2SPacket.ID,
+                UseMediumBlessingC2SPacket.CODEC
+        );
+        // Medium: the paid submits and the 通灵 question box. / 通灵师：付费提交与通灵提问框。
+        PayloadTypeRegistry.playC2S().register(
+                SubmitMediumSeanceC2SPacket.ID,
+                SubmitMediumSeanceC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
+                SubmitMediumHauntTargetC2SPacket.ID,
+                SubmitMediumHauntTargetC2SPacket.CODEC
+        );
+        // The dead answer a 通灵 or pick a 加护 from their vote screen; never a chat message.
+        // 死者在投票界面回答通灵或选择加护；绝不走聊天消息。
+        PayloadTypeRegistry.playC2S().register(
+                SubmitMediumVoteC2SPacket.ID,
+                SubmitMediumVoteC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                OpenMediumSeanceInputS2CPacket.ID,
+                OpenMediumSeanceInputS2CPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                MediumSeanceResultS2CPacket.ID,
+                MediumSeanceResultS2CPacket.CODEC
+        );
+        // 橘雪莉 (PR #206): the 推演 panel request (shared key), its paid confirmation, her own 巨力魔法 (Role Skill 2),
+        // and the candidate panel the server answers with.
+        // 橘雪莉（PR #206）：推演面板请求（共享技能键）、付费确认、她自己的巨力魔法（职业技能 2），以及服务端回应的候选面板。
+        PayloadTypeRegistry.playC2S().register(
+                RequestSherryDeductionC2SPacket.ID,
+                RequestSherryDeductionC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
+                ConfirmSherryDeductionC2SPacket.ID,
+                ConfirmSherryDeductionC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
+                UseSherryMightyForceC2SPacket.ID,
+                UseSherryMightyForceC2SPacket.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                OpenSherryDeductionS2CPacket.ID,
+                OpenSherryDeductionS2CPacket.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 SparkWitchServerConfirmS2CPacket.ID,
@@ -204,9 +286,10 @@ public final class SparkWitchPackets {
                     var role = game.getRole(context.player());
                     var component = MagicianPlayerComponent.KEY.get(context.player());
                     var entry = payload.target() == null ? null : component.rosterEntry(payload.target());
+                    // Exactly ACTIVE, like the ability itself (owner 2026-11). / 必须恰为 ACTIVE，与技能本身一致（所有者 2026-11）。
                     if (entry != null && role != null
                             && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())
-                            && game.isRunning()) {
+                            && game.getGameStatus() == dev.doctor4t.wathe.cca.GameWorldComponent.GameStatus.ACTIVE) {
                         component.setSelectedTarget(entry.uuid(), entry.name());
                     }
                 })
@@ -241,6 +324,35 @@ public final class SparkWitchPackets {
                 (payload, context) -> JunkerService.handleSearchRequest(context.player(), payload.bodyUuid()));
         ServerPlayNetworking.registerGlobalReceiver(AccountantWithdrawC2SPacket.ID,
                 (payload, context) -> AccountantPassbookService.handleWithdrawRequest(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseSpecterSkillC2SPacket.ID,
+                (payload, context) -> SpecterSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseSpecterSecondSkillC2SPacket.ID,
+                (payload, context) -> SpecterSecondSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseHiroSkillC2SPacket.ID,
+                (payload, context) -> HiroReturnService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseMediumSkillC2SPacket.ID,
+                (payload, context) -> MediumSkillService.use(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(UseMediumBlessingC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        MediumBlessingService.use(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(SubmitMediumSeanceC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        MediumSkillService.submit(context.player(), payload.question())));
+        ServerPlayNetworking.registerGlobalReceiver(SubmitMediumHauntTargetC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        MediumSecondSkillService.submit(context.player(), payload.target())));
+        ServerPlayNetworking.registerGlobalReceiver(SubmitMediumVoteC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        MediumSkillService.vote(context.player(), payload.windowId(), payload.choice())));
+        ServerPlayNetworking.registerGlobalReceiver(RequestSherryDeductionC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        SherryDeductionService.requestOpen(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmSherryDeductionC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        SherryDeductionService.confirm(context.player(), payload.target())));
+        ServerPlayNetworking.registerGlobalReceiver(UseSherryMightyForceC2SPacket.ID,
+                (payload, context) -> context.server().execute(() ->
+                        SherryMightyForceService.use(context.player())));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
             if (!ServerPlayNetworking.canSend(player, SparkWitchServerConfirmS2CPacket.ID)) {

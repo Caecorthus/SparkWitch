@@ -11,14 +11,16 @@ import java.util.Map;
 
 /**
  * Pure rules of the visible BEAR smoke: the ray-march constants the GLSL receives as {@code #define}s (one source of
- * truth, see {@link #shaderDefines()}), and Java mirrors of the shader's ray-box, step, erosion and upsample math.
- * The CPU uses the culling helpers each frame; the mirrors document and pin what the shader does.
+ * truth, see {@link #shaderDefines()}) and the culling helpers the CPU uses each frame. The Java mirrors of the
+ * shader's ray-box, step, erosion and upsample math live in the test sources ({@code SmokeShaderReference}), where they
+ * pin what the shader does.
  * Noise erosion only ever removes density; the domain warp moves the visible boundary by at most
  * {@link #warpReach()} blocks either way (ragged wisps outside, curls and thin patches inside), so an outline mask
  * that marches the raw density with {@link SmokeVolumes#EXTINCTION_PER_BLOCK} agrees with the visible smoke away from
  * that band.
  * BEAR 可见烟雾的纯规则：GLSL 以 {@code #define} 形式接收的光线步进常量（唯一来源，见 {@link #shaderDefines()}），以及
- * 着色器中光线-盒子、步长、侵蚀与放大算法的 Java 镜像。CPU 每帧使用裁剪辅助函数；镜像用于说明并固定着色器行为。
+ * CPU 每帧使用的裁剪辅助函数。着色器中光线-盒子、步长、侵蚀与放大算法的 Java 镜像位于测试源码（{@code SmokeShaderReference}），
+ * 用于固定着色器行为。
  * 噪声侵蚀只会减少浓度；域扭曲把可见边界向内外各移动至多 {@link #warpReach()} 格（外侧是破碎烟丝，内侧是卷曲与稀薄
  * 区域），因此用 {@link SmokeVolumes#EXTINCTION_PER_BLOCK} 步进原始浓度的描边遮罩，在该边界带以外与可见烟雾一致。
  */
@@ -135,9 +137,10 @@ public final class SmokeMarchRules {
     public static final float UPSAMPLE_DEPTH_EPSILON = 0.05F;
     /**
      * Relative depth spread below which the composite's 3x3 tent (grain removal) lies on one surface; above it the
-     * nearest-depth weights of {@link #upsampleWeights} keep smoke off near silhouettes.
-     * 相对深度差低于此值时，合成的 3x3 帐篷滤波（去颗粒）位于同一表面；高于此值时用 {@link #upsampleWeights} 的最近深度
-     * 权重，使烟不会渗到近处的轮廓上。
+     * nearest-depth upsample weights ({@code SmokeShaderReference.upsampleWeights} in the tests) keep smoke off near
+     * silhouettes.
+     * 相对深度差低于此值时，合成的 3x3 帐篷滤波（去颗粒）位于同一表面；高于此值时用最近深度放大权重（测试中的
+     * {@code SmokeShaderReference.upsampleWeights}），使烟不会渗到近处的轮廓上。
      */
     public static final float UPSAMPLE_FLAT = 0.06F;
     /** Keeps a texel that sits exactly on a bilinear zero selectable by depth. / 让恰好处于双线性零权重位置的纹素仍可按深度被选中。 */
@@ -219,89 +222,9 @@ public final class SmokeMarchRules {
         return String.format(Locale.ROOT, "%.7f", value);
     }
 
-    /**
-     * Length of the next march segment starting {@code eyeDistance} blocks along the ray. {@code budget} is the
-     * marched span divided by {@link #MAX_STEPS}, so non-empty steps always cover the whole span; {@code transmittance}
-     * is the view's transmittance so far ({@link #OPACITY_STEP_GROWTH}) and {@code lastDensity} the previous sample's
-     * density ({@link #THIN_STEP_GROWTH}).
-     * 从光线上 {@code eyeDistance} 格处开始的下一段步进长度。{@code budget} 为步进区间除以 {@link #MAX_STEPS}，
-     * 因此非空步也总能覆盖整个区间；{@code transmittance} 为到目前为止的透射率（{@link #OPACITY_STEP_GROWTH}），
-     * {@code lastDensity} 为上一个样本的浓度（{@link #THIN_STEP_GROWTH}）。
-     */
-    public static float stepLength(float eyeDistance, float budget, boolean empty, float transmittance,
-                                   float lastDensity) {
-        float base = Math.max(Math.min(MIN_STEP + STEP_GROWTH * eyeDistance, NEAR_STEP_CAP), budget)
-                * (1.0F + OPACITY_STEP_GROWTH * (1.0F - transmittance))
-                * (1.0F + THIN_STEP_GROWTH * (1.0F - lastDensity));
-        return empty ? base * EMPTY_STEP_SCALE : base;
-    }
-
-    /**
-     * Noise erosion of a raw density (0..1 erosion inputs, 1 = most erosion): big-billow, shape and detail remaps,
-     * then up to {@link #INTERIOR_THINNING} in big-billow troughs. Never raises density.
-     * 原始浓度的噪声侵蚀（侵蚀输入 0..1，1 = 侵蚀最强）：依次做大团块、形状、细节重映射，再在大团块低谷处最多变稀
-     * {@link #INTERIOR_THINNING}。绝不提高浓度。
-     */
-    public static float erode(float density, float patchErosion, float shapeErosion, float detailErosion) {
-        float d = clamp01(density);
-        d = remap(d, EROSION_PATCH * patchErosion);
-        d = remap(d, EROSION_SHAPE * shapeErosion);
-        d = remap(d, EROSION_DETAIL * detailErosion);
-        return d * (1.0F - INTERIOR_THINNING * patchErosion);
-    }
-
     /** Farthest a density sample can be warped, in blocks. / 浓度采样最远可被扭曲的距离（格）。 */
     public static float warpReach() {
         return BIG_WARP + WARP_BLOCKS + FINE_WARP;
-    }
-
-    private static float remap(float d, float lo) {
-        return clamp01((d - lo) / (1.0F - lo));
-    }
-
-    /**
-     * Slab test of the ray {@code origin + t * dir} ({@code dir} normalised) against a box, clipped to
-     * {@code [0, tMax]}. Writes {@code tNear, tFar} into {@code out} and returns true on a hit.
-     * 光线 {@code origin + t * dir}（{@code dir} 已归一化）与盒子的板块求交，裁到 {@code [0, tMax]}。
-     * 命中时把 {@code tNear, tFar} 写入 {@code out} 并返回 true。
-     */
-    public static boolean rayBox(float[] origin, float[] dir, float[] min, float[] max, float tMax, float[] out) {
-        float tNear = 0.0F;
-        float tFar = tMax;
-        for (int axis = 0; axis < 3; axis++) {
-            float d = Math.abs(dir[axis]) < 1.0E-6F ? 1.0E-6F : dir[axis];
-            float a = (min[axis] - origin[axis]) / d;
-            float b = (max[axis] - origin[axis]) / d;
-            tNear = Math.max(tNear, Math.min(a, b));
-            tFar = Math.min(tFar, Math.max(a, b));
-        }
-        if (tFar <= tNear) {
-            return false;
-        }
-        out[0] = tNear;
-        out[1] = tFar;
-        return true;
-    }
-
-    /**
-     * Normalised weights of the four low-resolution taps around a full-resolution pixel: bilinear weights
-     * ({@code fx, fy} in 0..1; tap order (0,0), (1,0), (0,1), (1,1)) divided by the relative eye-distance mismatch,
-     * so a tap on another surface across a depth edge loses to one on the pixel's own surface.
-     * 全分辨率像素周围 4 个低分辨率采样的归一化权重：双线性权重（{@code fx, fy} 为 0..1；顺序 (0,0)、(1,0)、(0,1)、
-     * (1,1)）除以相对视距差，使深度边缘另一侧表面上的采样输给像素自身表面上的采样。
-     */
-    public static void upsampleWeights(float fullDistance, float[] lowDistances, float fx, float fy, float[] out) {
-        float sum = 0.0F;
-        for (int k = 0; k < 4; k++) {
-            float bx = (k & 1) == 1 ? fx : 1.0F - fx;
-            float by = (k >> 1) == 1 ? fy : 1.0F - fy;
-            float relative = Math.abs(fullDistance - lowDistances[k]) / Math.max(fullDistance, 1.0E-3F);
-            out[k] = (bx * by + UPSAMPLE_BILINEAR_FLOOR) / (UPSAMPLE_DEPTH_EPSILON + relative);
-            sum += out[k];
-        }
-        for (int k = 0; k < 4; k++) {
-            out[k] /= sum;
-        }
     }
 
     /** Squared distance from a point to a box (0 inside). / 点到盒子的距离平方（盒内为 0）。 */
@@ -382,9 +305,5 @@ public final class SmokeMarchRules {
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
-    }
-
-    private static float clamp01(float value) {
-        return Math.max(0.0F, Math.min(1.0F, value));
     }
 }

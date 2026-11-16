@@ -52,6 +52,8 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
     @Nullable
     private Vec3d entryOrigin;
     private long nextHopTick;
+    /** World tick of the occupant's last refused own exit, -1 for none; transient. / 本人上一次被拒绝的出门所在世界刻，-1 表示没有；临时值。 */
+    private long blockedExitTick = -1L;
     @Nullable
     private GameMode previousMode;
     @Nullable
@@ -154,6 +156,16 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
         return nextHopTick;
     }
 
+    /** Server only: see {@link RiftSessionRules#mayRetryBlockedExit}. / 仅服务端：见 {@link RiftSessionRules#mayRetryBlockedExit}。 */
+    public long blockedExitTick() {
+        return blockedExitTick;
+    }
+
+    /** Server only: the occupant's own exit found no safe cell at {@code tick}. / 仅服务端：本人在 {@code tick} 的出门没有找到安全格。 */
+    public void markBlockedExit(long tick) {
+        blockedExitTick = tick;
+    }
+
     /** Server only: game mode to restore on a living exit (normally ADVENTURE). / 仅服务端：存活出门时恢复的游戏模式。 */
     @Nullable
     public GameMode previousMode() {
@@ -231,6 +243,7 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
         this.stayLimitTicks = stayLimitTicks;
         this.readyAtTick = 0L;
         this.nextHopTick = 0L;
+        this.blockedExitTick = -1L;
         this.matchId = matchId;
         this.foreignMove = false;
         this.lastSyncedStaySeconds = RiftSessionRules.secondsCeil(stayRemainingTicks());
@@ -246,6 +259,8 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
         this.anchor = anchor;
         this.anchorFacing = facing;
         this.nextHopTick = nextHopTick;
+        // Another gate has other exit cells. / 另一扇门有不同的出口格。
+        this.blockedExitTick = -1L;
         this.foreignMove = false;
         syncOwner();
     }
@@ -339,6 +354,7 @@ public final class RiftSessionComponent implements AutoSyncedComponent, ServerTi
         readyAtTick = 0L;
         entryOrigin = null;
         nextHopTick = 0L;
+        blockedExitTick = -1L;
         previousMode = null;
         matchId = null;
         sessionUser = null;

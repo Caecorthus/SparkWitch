@@ -30,6 +30,11 @@ import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightKillService;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.duel.KnightDuelService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorBlackoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorDomainService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorLoadoutService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorObservationService;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorSanityService;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerService;
@@ -38,6 +43,23 @@ import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotLifec
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorForcedShotService;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPsychoGazeService;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorSkillService;
+import dev.caecorthus.sparkwitch.item.rope.RopeStrangleService;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnService;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.shop.HiroShopService;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.witchification.HiroWitchificationService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFeatureService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPeachwoodService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterReplayService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSecondSkillComponent;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterShopService;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterSkillService;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaDisconnectService;
@@ -48,6 +70,8 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerEconomyService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRuntime;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
@@ -60,8 +84,10 @@ import dev.caecorthus.sparkwitch.roles.witch.bewitched.BewitchedPromotionService
 import dev.caecorthus.sparkwitch.mana.WitchManaService;
 import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeature.MurderousWitchFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeatureService;
-import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderFeatureService;
-import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderEconomyService;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderEquipmentService;
+import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayKillRewardService;
+import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayLoadoutService;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.piggod.PigGodEconomyService;
@@ -80,6 +106,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenFeatureServic
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowWorldFeatureService;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterFeatureService;
+import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperControlGuards;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperDragLifecycle;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperKnockoutService;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaFeatureService;
@@ -153,6 +180,8 @@ public final class SparkWitchEvents {
         VendettaTerminalService.register();
         KidnapperKnockoutService.register();
         KidnapperDragLifecycle.register();
+        // Knockout Drug attack / use lock, server-enforced (both sides). / 迷药的攻击与使用锁，由服务端强制（两端）。
+        KidnapperControlGuards.register();
         TarotReaderFeatureService.register();
         BlackRavenFeatureService.register();
         BlackRavenCrowFeatureService.register();
@@ -172,6 +201,25 @@ public final class SparkWitchEvents {
         KnightDuelService.register();
         DominatorPsychoGazeService.register();
         DominatorForcedShotLifecycle.register();
+        SpecterFeatureService.register();
+        SpecterSkillService.register();
+        SpecterPeachwoodService.register();
+        SpecterOtherworldService.register();
+        SpecterShopService.register();
+        SpecterReplayService.register();
+        // The Charon (PR #202): one hub line right after the Specter's services, following role registration order
+        // (Specter, Charon, Insider) and leaving the Seeker, Angler, Fiend, Insider run below contiguous.
+        // 卡戎（PR #202）：紧随幽魂各服务之后的一行注册中心，与职业注册顺序（幽魂、卡戎、内应）一致，并保持下方搜寻者、钓鱼佬、
+        // 魔人、内应这一段连续。
+        FerrymanFeatureService.register();
+        // 二阶堂希罗 (2026-11-11), right after the Charon's hub line (role registration order): shop, 死亡回归, 魔女化 and the Rope strangle; each service registers its own
+        // listeners (role assignment, reset), so this hub needs no further lines for the role.
+        // 二阶堂希罗（2026-11-11），紧随卡戎的注册行（与职业注册顺序一致）：商店、死亡回归、魔女化与绳索勒杀；各服务自行注册监听（职业分配、重置），本注册中心无需为该职业
+        // 再添加其他行。
+        HiroShopService.register();
+        HiroReturnService.register();
+        HiroWitchificationService.register();
+        RopeStrangleService.register();
         // 夏目安安 (PR #194): runtime listeners, then its replay formatter (the fork kept it in a shared
         // SparkWitchReplayFormatters class that main does not have). 夏目安安（PR #194）：运行期监听器，然后是回放格式化器
         // （fork 中位于 main 没有的共享 SparkWitchReplayFormatters 类）。
@@ -179,17 +227,23 @@ public final class SparkWitchEvents {
         dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeReplay.register();
         // Hypnosis item and skill lock (both sides). / 催眠的道具与技能锁（两端）。
         dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeHypnosisGuards.register();
+        SaviorLoadoutService.register();
+        SaviorSanityService.register();
+        SaviorObservationService.register();
+        SaviorBlackoutService.register();
         SeekerFeatureService.register();
         FisherFeatureService.register();
         FiendFeatureService.register();
-        InsiderFeatureService.register();
+        InsiderEquipmentService.register();
+        InsiderEconomyService.register();
         BlindFeatureService.register();
         AbyssListenerFeatureService.register();
         PotionGunnerFeatureService.register();
         RiftwalkerFeatureService.register();
         BewitchedFeatureService.register();
         ApprenticeFeatureService.register();
-        StowawayFeatureService.register();
+        StowawayLoadoutService.register();
+        StowawayKillRewardService.register();
         SchrodingersCatService.register();
         JunkerService.register();
         // BEAR smoke (spike): round-edge clears, expiry and player resyncs. / BEAR 烟雾（原型）：回合节点清除、过期与玩家重新同步。
@@ -200,6 +254,19 @@ public final class SparkWitchEvents {
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer) {
                 DominatorForcedShotService.onRoleAssigned(serverPlayer);
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(serverPlayer)
+                        .assignForRole(role);
+                dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(serverPlayer)
+                        .assignForRole(role);
+                SpecterPlayerComponent.KEY.get(serverPlayer).assignForRole(role);
+                SpecterFearComponent.KEY.get(serverPlayer).clear();
+                SpecterSecondSkillComponent.KEY.get(serverPlayer).assignForRole(role);
+                SpecterCowardiceComponent.KEY.get(serverPlayer).clear();
+                if (SpecterRules.isSpecter(role)) {
+                    // Cowardice syncs only to its owner and Specters: a new Specter needs every current flag now.
+                    // 怯懦只同步给本人与幽魂：新的幽魂需要立即收到当前所有标记。
+                    SpecterCowardiceComponent.resyncTo(serverPlayer);
+                }
                 PerfumerPlayerComponent.KEY.get(serverPlayer).clear();
                 if (role != null && dev.caecorthus.sparkwitch.SparkWitchRoles.MAGICIAN_ID.equals(role.identifier())) {
                     // One sync with the final state instead of one per write. / 只用最终状态同步一次，而不是每次写入各同步一次。
@@ -211,6 +278,24 @@ public final class SparkWitchEvents {
                         // 回合中途分配时立即记录名单；回合开始时会在全部身份发放后重新记录。
                         MagicianRoster.capture(serverPlayer);
                     });
+                } else {
+                    // A Magician who is re-roled mid-round (admin force-role, a death that converts into a Wraith,
+                    // any other conversion) must not keep a live puppet replaying shots in their name, nor a running
+                    // recording, cooldown or roster: the playback tick only watches the owner's life, never the role.
+                    // Everyone who holds no Magician state is skipped, so other roles see no reset and no packet.
+                    // 回合中途被更换职业的魔术师（管理员强制指定、死亡后转化为冤魂或其他转化）不得保留仍以其名义重放开枪的
+                    // 活皮套，也不得保留进行中的录制、冷却或名单：播放刻只检查主人是否存活，从不检查职业。不持有任何魔术师
+                    // 状态的玩家会被跳过，因此其他职业既不会被重置也不会收到数据包。
+                    MagicianPlayerComponent magician = MagicianPlayerComponent.KEY.get(serverPlayer);
+                    if (magician.holdsMagicianState()) {
+                        // A dead owner's live puppet is first ended like the playback tick ends it (replay line
+                        // included); the reset then clears the rest, and both go out as one sync.
+                        // 已死亡主人的活皮套先按播放刻的方式结束（包含回放记录）；随后的重置清空其余状态，两者合并为一次同步。
+                        magician.syncOnceAfter(() -> {
+                            MagicianPlaybackManager.finishPlaybackOfDeadOwner(serverPlayer);
+                            magician.reset();
+                        });
+                    }
                 }
                 ProphetRuntime.assignForRole(serverPlayer, role);
                 ProphetEconomyService.assignForRole(serverPlayer, role);
@@ -224,6 +309,7 @@ public final class SparkWitchEvents {
                 NinjaFeatureService.assignForRole(serverPlayer, role);
                 OrthopedistSkillService.assignForRole(serverPlayer, role);
                 DominatorSkillService.assignForRole(serverPlayer, role);
+                SaviorDomainService.assignForRole(serverPlayer, role);
                 if (!GuardianAngelRules.isGuardianAngel(role)) {
                     GuardianAngelFeatureService.detachPlayer(serverPlayer);
                 }
@@ -233,8 +319,19 @@ public final class SparkWitchEvents {
         DiscovererService.register();
         DiscovererShopService.register();
         AccountantFeatureService.register();
+        // Tono Hanna (PR #212): after the shared RoleAssigned listener above, whose WitchManaService.assignForRole
+        // grants her opening mana; her own listener only resets the float component.
+        // 远野汉娜（PR #212）：排在上方共享 RoleAssigned 监听器之后，其开局魔力由其中的 WitchManaService.assignForRole
+        // 发放；她自己的监听器只重置浮游组件。
+        HannaFeatureService.register();
         SpareKeyDoors.register();
         SpareKeyAttendantKit.register();
+        // 泽渡可可 (neutral, PR #223): its hub fixes the order of her services. It sits after the shared RoleAssigned
+        // listener above, whose WitchManaService.assignForRole turns her mana on; her own listener only resets her
+        // component.
+        // 泽渡可可（中立，PR #223）：各服务的顺序由其注册中心固定。它排在上方共享 RoleAssigned 监听器之后，其魔力由其中的
+        // WitchManaService.assignForRole 开启；她自己的监听器只重置组件。
+        KokoFeatureService.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.
@@ -260,6 +357,19 @@ public final class SparkWitchEvents {
             FirePokerFallAttributionService.clearPlayer(victim);
             PigGodChaseRuntime.clear(victim, WitchPlayerComponent.KEY.get(victim));
             PerfumerPlayerComponent.KEY.get(victim).stopCologne();
+            if (!WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
+                // A Last Stand survivor keeps fear, the Otherworld state and cowardice (Dominator / Time Stealer /
+                // Seeker precedent). / 背水一战存活者保留恐惧、里世界状态与怯懦（支配者、窃时者、搜寻者先例）。
+                SpecterFearComponent.KEY.get(victim).clear();
+                SpecterSecondSkillComponent.KEY.get(victim).clear();
+                SpecterCowardiceComponent.KEY.get(victim).clear();
+                // A Last Stand survivor keeps the Medium cooldowns and 招魂 bindings (same precedent).
+                // 背水一战存活者保留通灵师冷却与招魂绑定（同一先例）。
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(victim).clear();
+                // A dead 橘雪莉 loses her cooldowns, badge holders and reveals (same Last Stand precedent).
+                // 死亡的橘雪莉失去冷却、徽章持有者与揭示（同一背水一战先例）。
+                dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(victim).clear();
+            }
             OrthopedistSkillService.clearPlayer(victim);
             if (!WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
                 DominatorSkillService.clearPlayer(victim);
@@ -275,6 +385,11 @@ public final class SparkWitchEvents {
                 // ResetPlayer fires after Wathe cleared the inventory: the stash is discarded, never re-inserted.
                 // ResetPlayer 在 Wathe 清空物品栏之后触发：原物品被丢弃，绝不重新放入。
                 DominatorForcedShotService.discard(serverPlayer);
+                SpecterFearComponent.KEY.get(serverPlayer).clear();
+                SpecterSecondSkillComponent.KEY.get(serverPlayer).clear();
+                SpecterCowardiceComponent.KEY.get(serverPlayer).clear();
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(serverPlayer).clear();
+                dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(serverPlayer).clear();
                 OrthopedistSkillService.clearPlayer(serverPlayer);
                 DominatorSkillService.clearPlayer(serverPlayer);
                 GuardianAngelFeatureService.clearRoundPlayer(serverPlayer);
@@ -290,6 +405,10 @@ public final class SparkWitchEvents {
             if (world instanceof ServerWorld serverWorld) {
                 WraithConversion.beginRound(serverWorld, gameComponent.getAllPlayers().size());
                 MagicianRoster.captureAll(serverWorld);
+                SpecterOtherworldComponent.KEY.get(serverWorld).clear();
+                // A window from the previous round never survives into a new one.
+                // 上一局的投票窗口绝不带入新一局。
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceComponent.KEY.get(serverWorld).clear();
             }
         });
         GameEvents.ON_FINISH_FINALIZE.register((world, gameComponent) -> {
@@ -298,6 +417,8 @@ public final class SparkWitchEvents {
                 // 回合结束只清理 SparkWitch 运行态，身份表和其他模组状态仍由 wathe 自己管理。
                 WitchWorldComponent.KEY.get(serverWorld).clearRoundState();
                 FirePokerFallAttributionService.clearAll();
+                SpecterOtherworldComponent.KEY.get(serverWorld).clear();
+                dev.caecorthus.sparkwitch.roles.civilian.medium.MediumSeanceComponent.KEY.get(serverWorld).clear();
                 WraithLifecycle.clearRoundState(serverWorld);
                 PoisonApplePlateService.clearLoadedPlates();
                 MagicianPlaybackManager.clearAll();
@@ -307,6 +428,11 @@ public final class SparkWitchEvents {
                     WitchPlayerComponent.KEY.get(player).clear();
                     MagicianPlayerComponent.KEY.get(player).reset();
                     PerfumerPlayerComponent.KEY.get(player).clear();
+                    SpecterFearComponent.KEY.get(player).clear();
+                    SpecterSecondSkillComponent.KEY.get(player).clear();
+                    SpecterCowardiceComponent.KEY.get(player).clear();
+                    dev.caecorthus.sparkwitch.roles.civilian.medium.MediumPlayerComponent.KEY.get(player).clear();
+                    dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryComponent.KEY.get(player).clear();
                     DominatorForcedShotService.discard(player);
                     OrthopedistSkillService.clearPlayer(player);
                     DominatorSkillService.clearPlayer(player);
@@ -319,6 +445,13 @@ public final class SparkWitchEvents {
         // BEAR (civilian): its hub fixes the order of the BEAR services; registered before USEC, which stays last.
         // BEAR（平民）：BEAR 各服务的顺序由其注册中心固定；注册在 USEC 之前，USEC 保持最后。
         dev.caecorthus.sparkwitch.roles.civilian.bear.BearFeatureService.register();
+        // Medium (civilian): its hub fixes the order of the Medium services; registered after BEAR and before USEC,
+        // which stays last. / 通灵师（平民）：通灵师各服务的顺序由其注册中心固定；注册在 BEAR 之后、USEC 之前，USEC 保持最后。
+        dev.caecorthus.sparkwitch.roles.civilian.medium.MediumFeatureService.register();
+        // 橘雪莉 (civilian, PR #206): its hub fixes the order of her services; registered after the Medium and before
+        // USEC, which stays last. / 橘雪莉（平民，PR #206）：各服务的顺序由其注册中心固定；注册在通灵师之后、USEC 之前，
+        // USEC 保持最后。
+        dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryFeatureService.register();
         // USEC (police variant): appended last so every existing listener keeps its order; the hub fixes the order of
         // the USEC services. / USEC（警察变体）：追加在最后，使所有既有监听器保持顺序；USEC 各服务的顺序由注册中心固定。
         UsecFeatureService.register();

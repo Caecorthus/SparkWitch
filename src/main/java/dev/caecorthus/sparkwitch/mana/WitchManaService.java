@@ -23,6 +23,9 @@ public final class WitchManaService {
         WitchPlayerComponent component = WitchPlayerComponent.KEY.get(player);
         if (WitchManaRules.isManaRole(role)) {
             component.initializeMana();
+            // Opening mana above the shared zero (Hanna's 40); a no-op for every other role.
+            // 高于共享起点 0 的开局魔力（汉娜的 40）；对其他职业不产生任何效果。
+            component.addMana(WitchManaRules.initialMana(role) - WitchManaRules.INITIAL_MANA);
         } else {
             component.clearMana();
         }

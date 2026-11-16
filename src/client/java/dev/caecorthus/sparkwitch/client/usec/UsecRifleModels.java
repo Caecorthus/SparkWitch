@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.usec;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.client.render.model.InventoryIconSwapModel;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelModifier;
@@ -59,9 +60,9 @@ public final class UsecRifleModels {
             context.addModels(ICON_MODEL_ID, SUPPRESSED_ICON_MODEL_ID);
             context.modifyModelOnLoad().register((model, loadContext) -> {
                 Identifier icon = iconFor(loadContext);
-                return icon == null || model instanceof UsecRifleIconSwapModel
+                return icon == null || model instanceof InventoryIconSwapModel
                         ? model
-                        : new UsecRifleIconSwapModel(model, icon);
+                        : new InventoryIconSwapModel(model, icon, "USEC rifle");
             });
         });
     }

@@ -13,13 +13,13 @@ import org.jetbrains.annotations.Nullable;
  * check and civilian-death time bonus ({@code mixin/blackraven/}), the Witch and Murderous Witch counts, the
  * NoellesRoles counts behind {@code FiendWinExclusion.countsAsAlive}, and the NoellesRoles Pathogen win. Other mods read
  * the same role through SparkFactionAPI's {@code SettlementExclusions}, into which SparkWitch registers the Raven
- * ({@code compat/SparkFactionSettlementExclusionCompat}).
+ * ({@code SparkWitchRoleRegistry}).
  * 结算排除（计划 v2 §3.3，所有者 2026-10-21）：黑羽鸦在回合结算中永远不算存活玩家，没有任何特例，因此所有胜利、阻止与
  * 时刻的结果都与黑羽鸦不在本局时完全相同。按原始职业（{@code GameWorldComponent#getRole}）判断；伪装覆盖层只放宽
  * {@code isRole}。调用方保留自身的存活判断，并在其之上跳过黑羽鸦。SparkWitch 的接缝：Wathe 杀手胜利的好人存活判断与好人
  * 死亡加时（{@code mixin/blackraven/}）、魔女与杀意魔女的计数、经由 {@code FiendWinExclusion.countsAsAlive} 的
  * NoellesRoles 计数，以及 NoellesRoles 病原体胜利。其他模组通过 SparkFactionAPI 的 {@code SettlementExclusions} 读取同一
- * 职业，SparkWitch 会把黑羽鸦注册进去（{@code compat/SparkFactionSettlementExclusionCompat}）。
+ * 职业，SparkWitch 会把黑羽鸦注册进去（{@code SparkWitchRoleRegistry}）。
  */
 public final class BlackRavenSettlement {
     private BlackRavenSettlement() {

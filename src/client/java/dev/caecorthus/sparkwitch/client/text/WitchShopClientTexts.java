@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.client.text;
 
 import dev.caecorthus.sparkwitch.client.timestealer.TimeStealerShopTexts;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.doctor4t.wathe.util.ShopEntry;
@@ -9,11 +10,11 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 /**
- * Client-only shop labels for the two non-coin currencies: mana-priced entries (Grand Witch spells and the Riftwalker's
- * Rift Gate) and Time-Stamp-priced Time Stealer entries (delegated to the role-owned {@link TimeStealerShopTexts}), so
- * none shows as 0 coins. Presentation only: the server alone validates and charges every purchase.
- * 两种非金币货币的客户端商店文本：魔力定价商品（大魔女法术与隙行者的裂隙门），以及窃时者的时光邮票商品（委托给职业自有的
- * {@link TimeStealerShopTexts}），避免显示成 0 金币。仅用于展示：每次购买的校验与扣费只由服务端完成。
+ * Client-only shop labels for the non-coin currencies: mana-priced entries (Grand Witch spells and the Riftwalker's
+ * Rift Gate), Time-Stamp-priced Time Stealer entries (delegated to the role-owned {@link TimeStealerShopTexts}) and
+ * 泽渡可可's traffic-priced lightstick, so none shows as 0 coins. Presentation only: the server alone validates and charges every purchase.
+ * 非金币货币的客户端商店文本：魔力定价商品（大魔女法术与隙行者的裂隙门）、窃时者的时光邮票商品（委托给职业自有的
+ * {@link TimeStealerShopTexts}），以及泽渡可可以流量定价的应援棒，避免显示成 0 金币。仅用于展示：每次购买的校验与扣费只由服务端完成。
  */
 public final class WitchShopClientTexts {
     private WitchShopClientTexts() {
@@ -29,6 +30,12 @@ public final class WitchShopClientTexts {
         if (RiftwalkerRules.GATE_SHOP_ENTRY_ID.equals(entry.id())) {
             return Text.translatable("gui.sparkwitch.shop.mana_price", RiftwalkerRules.GATE_MANA_COST)
                     .formatted(Formatting.LIGHT_PURPLE);
+        }
+        // 泽渡可可's lightstick: a 0-coin entry charged 100 traffic in its onBuy; its id is unique to her shop.
+        // 泽渡可可的应援棒：0 金币商品，在 onBuy 中扣除 100 流量；该 id 只出现在她的商店。
+        if (KokoRules.LIGHTSTICK_SHOP_ENTRY_ID.equals(entry.id())) {
+            return Text.translatable("gui.sparkwitch.shop.traffic_price", KokoRules.LIGHTSTICK_PRICE)
+                    .withColor(KokoRules.COLOR);
         }
         GrandWitchRules.GrandWitchSpell spell = GrandWitchRules.GrandWitchSpell.fromEntryId(entry.id());
         if (spell == null) {

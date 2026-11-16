@@ -158,7 +158,6 @@ public final class UsecAttachmentLayout {
     public static final int PILL_X = 8;
     public static final int PILL_Y = 243;
     public static final int GAUGE_W = 46;
-    public static final int FOOTER_RIGHT = DIVIDER_X - 4;
 
     /** Parts-table columns. 明细表列。 */
     public enum Column {

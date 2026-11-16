@@ -29,42 +29,43 @@ public final class RysTVisorGeometry {
     public static final int CRACK_STYLE_COUNT = 6;
 
     /**
-     * Visor-down glass, head-model pixels: the 10 x 3 letterbox window x 3..13, y 6..9 (the eye row y 7..8 in its
-     * middle, the bottom edge above the mouth row y 5..6), recessed a quarter unit in the proud frame (z 1.5..2.25)
-     * between one-unit rims and 0.75-unit end posts (art v8, 2026-11-06).
-     * 面罩放下时的玻璃（头部模型像素）：10 × 3 的横条玻璃窗 x 3..13、y 6..9（眼睛那一行 y 7..8 位于正中，下沿在嘴那一行
-     * y 5..6 之上），嵌在凸出的框体（z 1.5..2.25）内四分之一单位，上下为一个单位宽的框边、两端为 0.75 单位宽的立柱（美术
-     * v8，2026-11-06）。
+     * Visor-down glass, head-model pixels: the 8 x 3 window x 4..12, y 6..9 (the skin's forehead, eye and nose rows;
+     * the bottom edge on top of the mouth row y 5..6), at the back of the half-unit window frame (z 2..2.5) on the
+     * flat face plate (z 2.5..3) of the cube shell (art v9, 2026-11-11: plain cube x 3..13, y 4..13, z 3..13, one
+     * texel per unit).
+     * 面罩放下时的玻璃（头部模型像素）：8 × 3 的玻璃窗 x 4..12、y 6..9（皮肤的额头、眼睛、鼻子三行；下沿贴在嘴那一行
+     * y 5..6 之上），位于半个单位厚的窗框（z 2..2.5）底部，窗框装在方盒外壳的平面面板（z 2.5..3）上（美术 v9，
+     * 2026-11-11：纯方盒 x 3..13、y 4..13、z 3..13，每单位一个贴图像素）。
      */
-    public static final float GLASS_MIN_X = 3.0F;
-    public static final float GLASS_MAX_X = 13.0F;
+    public static final float GLASS_MIN_X = 4.0F;
+    public static final float GLASS_MAX_X = 12.0F;
     public static final float GLASS_MIN_Y = 6.0F;
     public static final float GLASS_MAX_Y = 9.0F;
-    /** The glass's outer (north) face. / 玻璃外侧（北面）。 */
-    public static final float GLASS_FACE_Z = 1.75F;
+    /** The glass pane (zero thickness; its north face looks out). / 玻璃面（零厚度，北面朝外）。 */
+    public static final float GLASS_FACE_Z = 2.5F;
     /** The eye (camera) in head-model pixels: head centre, on the eye line. / 眼睛（相机）位置：头部中心、视线高度。 */
     public static final float EYE_X = 8.0F;
     public static final float EYE_Y = 7.5F;
     public static final float EYE_Z = 8.0F;
 
     /**
-     * Visor-up pose of the same glass ({@code models/item/rys_t_visor_up.json}, art v8, 2026-11-06): the whole visor
+     * Visor-up pose of the same glass ({@code models/item/rys_t_visor_up.json}, art v9, 2026-11-11): the whole visor
      * assembly turns rigidly, with no lift, {@link #UP_TILT_DEGREES} about +x (right-handed, the vanilla
-     * element-rotation sense) around the temple bolts ({@link #UP_PIVOT_X}, {@link #UP_PIVOT_Y}, {@link #UP_PIVOT_Z}):
-     * {@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}. A quarter turn lays the frame flat on the crown cap (frame
-     * y 13.75..14.5, glass at y 14.25 facing up, over z 3..8) with the chin plate as the short peak over the brow
-     * (y 13.25..13.75, z 2..3) and the side arms standing down the dome to the bolts; the model bakes it as an exact
-     * axis permutation with no element rotations. Drawing only.
-     * 同一块玻璃的抬起姿态（{@code models/item/rys_t_visor_up.json}，美术 v8，2026-11-06）：整个面罩组件不上移，绕太阳穴
-     * 螺栓（{@link #UP_PIVOT_X}, {@link #UP_PIVOT_Y}, {@link #UP_PIVOT_Z}）绕 +x 轴（右手定则，即原版元素旋转方向）刚性旋转
-     * {@link #UP_TILT_DEGREES}：{@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}。转四分之一圈后框体平贴在头顶的顶盖上
-     * （框体 y 13.75..14.5，玻璃位于 y 14.25、朝上，覆盖 z 3..8），下巴板成为额头上方的短檐（y 13.25..13.75，z 2..3），
-     * 两侧臂板沿头盔侧面向下连到螺栓；模型以精确的坐标轴置换实现，不含任何元素旋转。仅用于绘制。
+     * element-rotation sense) around the temple pivots ({@link #UP_PIVOT_X}, {@link #UP_PIVOT_Y}, {@link #UP_PIVOT_Z}):
+     * {@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}. A quarter turn lays the plate flat on the cube's roof (plate
+     * y 13..13.5 on the roof at y 13, frame y 13.5..14, glass at y 13.5 facing up, over z 3..10 with its front edge
+     * flush with the shell front) and stands the two side arms up the shell sides from the pivots; the model bakes it
+     * as an exact axis permutation with no element rotations. Drawing only.
+     * 同一块玻璃的抬起姿态（{@code models/item/rys_t_visor_up.json}，美术 v9，2026-11-11）：整个面罩组件不上移，绕太阳穴
+     * 枢轴（{@link #UP_PIVOT_X}, {@link #UP_PIVOT_Y}, {@link #UP_PIVOT_Z}）绕 +x 轴（右手定则，即原版元素旋转方向）刚性旋转
+     * {@link #UP_TILT_DEGREES}：{@code up = P + Rx(UP_TILT_DEGREES) * (down - P)}。转四分之一圈后面板平贴在方盒顶面上
+     * （面板 y 13..13.5 贴在 y 13 的顶面上，窗框 y 13.5..14，玻璃位于 y 13.5、朝上，覆盖 z 3..10，前沿与外壳正面平齐），
+     * 两侧臂板从枢轴沿外壳侧面竖起；模型以精确的坐标轴置换实现，不含任何元素旋转。仅用于绘制。
      */
     public static final float UP_TILT_DEGREES = 90.0F;
     public static final float UP_PIVOT_X = 8.0F;
-    public static final float UP_PIVOT_Y = 9.0F;
-    public static final float UP_PIVOT_Z = 7.0F;
+    public static final float UP_PIVOT_Y = 8.5F;
+    public static final float UP_PIVOT_Z = 7.5F;
 
     private static final double EPSILON = 1.0E-6;
 

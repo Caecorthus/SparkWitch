@@ -16,12 +16,14 @@ import java.util.function.BooleanSupplier;
  * first time that screen initialises, by reflection against SparkAssist's public {@code SparkDlcSettingsApi}
  * ({@code boolean hostsScopeSettings()}), then asked again at every screen init. Without SparkAssist, with an older
  * SparkAssist that lacks the method, or after any failure (logged once, then off for the session) the answer is
- * false, and Accessibility shows the rows exactly as before. {@link GuideDecorBridge} precedent.
+ * false, and Accessibility shows the rows exactly as before. Precedent: SparkFactionAPI's
+ * {@link dev.caecorthus.sparkfactionapi.client.api.card.GuideDecorBridge GuideDecorBridge}.
  * 询问 SparkAssist 的 SparkDLC 设置界面是否（通过 {@code api.client.ScopeSettingsApi}）显示 SparkWitch 的开镜设置，若是，
  * 「选项 → 辅助功能」就不再加入自己的开镜选项行。在该界面第一次初始化时才通过反射解析 SparkAssist 公开的
  * {@code SparkDlcSettingsApi}（{@code boolean hostsScopeSettings()}），之后每次界面初始化都重新询问。未安装 SparkAssist、
  * SparkAssist 版本较旧缺少该方法，或任一次失败之后（只记录一次日志，本次会话内停用）答案均为 false，辅助功能界面照旧显示
- * 这些选项行。参照 {@link GuideDecorBridge}。
+ * 这些选项行。参照 SparkFactionAPI 的
+ * {@link dev.caecorthus.sparkfactionapi.client.api.card.GuideDecorBridge GuideDecorBridge}。
  */
 public final class SparkDlcSettingsBridge {
     static final String MOD_ID = "sparkassist";

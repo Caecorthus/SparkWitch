@@ -6,9 +6,9 @@ import dev.caecorthus.sparkfactionapi.api.FactionIds;
 import dev.caecorthus.sparkfactionapi.api.FactionRoleDefinition;
 import dev.caecorthus.sparkfactionapi.api.PoliceRoles;
 import dev.caecorthus.sparkfactionapi.api.SparkFactionApi;
+import dev.caecorthus.sparkfactionapi.api.settlement.SettlementExclusions;
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchFactions;
-import dev.caecorthus.sparkwitch.compat.SparkFactionSettlementExclusionCompat;
 import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantRules;
 import dev.caecorthus.sparkwitch.roles.civilian.athlete.AthleteRules;
 import dev.caecorthus.sparkwitch.roles.civilian.bear.BearRules;
@@ -18,6 +18,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.judge.JudgeRules;
 import dev.caecorthus.sparkwitch.roles.civilian.judge.PoliceSlotAssignmentService;
 import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
+import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
+import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaRules;
@@ -29,6 +32,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.prophet.ProphetRules;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.fisher.FisherRules;
 import dev.caecorthus.sparkwitch.roles.civilian.seeker.SeekerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.tarotreader.TarotReaderRules;
@@ -38,7 +42,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.windspirit.WindSpiritRole;
 import dev.caecorthus.sparkwitch.roles.killer.bellringer.BellRingerRules;
 import dev.caecorthus.sparkwitch.roles.killer.blackraven.BlackRavenRules;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
+import dev.caecorthus.sparkwitch.roles.killer.hiro.HiroRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterRules;
 import dev.caecorthus.sparkwitch.roles.killer.kidnapper.KidnapperRules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianConstants;
 import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
@@ -47,7 +53,10 @@ import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanSettlement;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRole;
@@ -112,6 +121,9 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier BEWITCHED_ID = BewitchedRules.ROLE_ID;
     public static final Identifier USEC_ID = UsecRules.ROLE_ID;
     public static final Identifier KNIGHT_ID = KnightRules.ROLE_ID;
+    public static final Identifier SAVIOR_ID = SaviorRules.ROLE_ID;
+    public static final Identifier FERRYMAN_ID = FerrymanRules.ROLE_ID;
+    public static final Identifier LOST_SOUL_ID = SparkWitch.id("lost_soul");
     public static final Identifier RECRUIT_ID = RecruitRules.ROLE_ID;
     public static final Identifier ATHLETE_ID = AthleteRules.ROLE_ID;
     public static final Identifier DISCOVERER_ID = DiscovererRules.ROLE_ID;
@@ -122,6 +134,12 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier NATSUME_ID =
             dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID;
     public static final Identifier BEAR_ID = BearRules.ROLE_ID;
+    public static final Identifier SPECTER_ID = SpecterRules.ROLE_ID;
+    public static final Identifier MEDIUM_ID = MediumRules.ROLE_ID;
+    public static final Identifier HANNA_ID = HannaRules.ROLE_ID;
+    public static final Identifier SHERRY_ID = SherryRules.ROLE_ID;
+    public static final Identifier NIKAIDO_HIRO_ID = HiroRules.ROLE_ID;
+    public static final Identifier KOKO_ID = KokoRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -163,6 +181,9 @@ public final class SparkWitchRoleRegistry {
     private static Role bewitched;
     private static Role usec;
     private static Role knight;
+    private static Role savior;
+    private static Role ferryman;
+    private static Role lostSoul;
     private static Role recruit;
     private static Role athlete;
     private static Role discoverer;
@@ -170,8 +191,14 @@ public final class SparkWitchRoleRegistry {
     private static Role ragpicker;
     private static Role dominator;
     private static Role accountant;
+    private static Role specter;
     private static Role natsumeAnan;
     private static Role bear;
+    private static Role medium;
+    private static Role hanna;
+    private static Role sherry;
+    private static Role nikaidoHiro;
+    private static Role koko;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -214,22 +241,42 @@ public final class SparkWitchRoleRegistry {
         // Police classification, like the other Vigilante variants (SparkTraits police traits, SparkStrength tablet);
         // cop slots come from PoliceSlotAssignmentService.
         // 与其他义警变体相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
+        PoliceRoles.register(SAVIOR_ID);
         PoliceRoles.register(BLACK_RAVEN_ID);
-        // Plan v2 §3.3: the Black Raven never counts as alive for settlement in other mods either (reflective, fails
-        // closed on an older SparkFactionAPI). 计划 v2 §3.3：黑羽鸦在其他模组的结算中同样不算存活（反射调用，旧版
-        // SparkFactionAPI 下失败关闭）。
-        SparkFactionSettlementExclusionCompat.registerExcludedRole(BLACK_RAVEN_ID);
+        // Plan v2 §3.3: the Black Raven never counts as alive for settlement in other mods either.
+        // 计划 v2 §3.3：黑羽鸦在其他模组的结算中同样不算存活。
+        SettlementExclusions.registerRole(BLACK_RAVEN_ID);
         // A living Stowaway never counts as alive for settlement in other mods either.
         // 活着的偷渡客在其他模组的结算中同样不算存活。
-        SparkFactionSettlementExclusionCompat.registerExcludedRole(STOWAWAY_ID);
+        SettlementExclusions.registerRole(STOWAWAY_ID);
         // An untransformed Schrödinger's Cat never counts as alive for settlement in other mods either (owner
         // 2026-11-03); a transformed one holds another role id. 未转化的薛定谔之猫在其他模组的结算中同样不算存活
         //（所有者 2026-11-03）；转化后的猫持有其他职业 id。
-        SparkFactionSettlementExclusionCompat.registerExcludedRole(SCHRODINGERS_CAT_ID);
+        SettlementExclusions.registerRole(SCHRODINGERS_CAT_ID);
+        registerCharonConditionalSettlementExclusion();
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
         SparkWitchAssassinGuessOrder.appendToTail(assassinGuessRolesInOrder());
+    }
+
+    /**
+     * A Charon without a running Soul Moment of his own (at least one soul) does not count as alive for settlement in
+     * other mods either (PR #232 follow-up): SparkFactionAPI asks {@code FerrymanSettlement.isExcluded(PlayerEntity)}
+     * per player, on server worlds only, for holders of the Charon's raw role. Fails closed: a SparkFactionAPI 2.0.0
+     * jar built before conditional roles existed lacks the method, and then SparkTraits keeps counting him as it did
+     * before instead of the server failing to start.
+     * 没有自己正在进行且至少有一名灵魂的亡魂时刻的卡戎，在其他模组的结算中同样不算存活（PR #232 后续）：SparkFactionAPI 只在
+     * 服务端世界、只对原始身份为卡戎的玩家逐个询问 {@code FerrymanSettlement.isExcluded(PlayerEntity)}。失败即关闭：在加入
+     * 带条件身份之前构建的 SparkFactionAPI 2.0.0 没有该方法，此时 SparkTraits 仍按原先方式把他计入，而不是让服务端无法启动。
+     */
+    private static void registerCharonConditionalSettlementExclusion() {
+        try {
+            SettlementExclusions.registerConditionalRole(FERRYMAN_ID, FerrymanSettlement::isExcluded);
+        } catch (LinkageError olderSparkFactionApi) {
+            SparkWitch.LOGGER.warn("SparkFactionAPI has no conditional settlement exclusions; "
+                    + "other mods' counts will still see a Charon without souls.", olderSparkFactionApi);
+        }
     }
 
     public static synchronized void refreshAssassinGuessRoleOrder() {
@@ -434,6 +481,21 @@ public final class SparkWitchRoleRegistry {
         return knight;
     }
 
+    public static Role savior() {
+        ensureRegistered();
+        return savior;
+    }
+
+    public static Role ferryman() {
+        ensureRegistered();
+        return ferryman;
+    }
+
+    public static Role lostSoul() {
+        ensureRegistered();
+        return lostSoul;
+    }
+
     public static Role recruit() {
         ensureRegistered();
         return recruit;
@@ -464,6 +526,11 @@ public final class SparkWitchRoleRegistry {
         return dominator;
     }
 
+    public static Role specter() {
+        ensureRegistered();
+        return specter;
+    }
+
     public static Role accountant() {
         ensureRegistered();
         return accountant;
@@ -477,6 +544,31 @@ public final class SparkWitchRoleRegistry {
     public static Role bear() {
         ensureRegistered();
         return bear;
+    }
+
+    public static Role medium() {
+        ensureRegistered();
+        return medium;
+    }
+
+    public static Role hanna() {
+        ensureRegistered();
+        return hanna;
+    }
+
+    public static Role sherry() {
+        ensureRegistered();
+        return sherry;
+    }
+
+    public static Role nikaidoHiro() {
+        ensureRegistered();
+        return nikaidoHiro;
+    }
+
+    public static Role koko() {
+        ensureRegistered();
+        return koko;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -822,6 +914,15 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Vigilante-equivalent police variant; loadout and full sanity live in roles/civilian/savior.
+        // 与义警等同的警察变体；开局装备与恒满理智位于 roles/civilian/savior。
+        savior = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SAVIOR_ID, FactionIds.CIVILIAN)
+                .color(SaviorRules.ROLE_COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Registered before the Recruit and the Insider (nothing may follow the Insider). A Wathe-native neutral with
         // tasks and fake mood, available at every player count. It never blocks any win; at round end a living Stowaway
         // joins the winning team, and a dead one loses.
@@ -977,6 +1078,137 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // Specter (PR #207): a SparkFactionAPI killer (native Wathe KILLER, FAKE mood, unlimited sprint, round clock),
+        // registered after BEAR and right before the Insider, which stays last; skills and state live in
+        // roles/killer/specter (CONTEXT.md). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // 幽魂（PR #207）：SparkFactionAPI 杀手（原生 Wathe KILLER、虚假理智、无限体力、可见回合时间），注册在 BEAR 之后、
+        // 内应之前，内应仍为最后一个；技能与状态位于 roles/killer/specter（见 CONTEXT.md）。不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole。
+        specter = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SPECTER_ID, FactionIds.KILLER)
+                .color(SpecterRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
+        // Medium (通灵师, 2026-11-10): registered after the Specter, before the Charon and the Insider (nothing may follow
+        // the Insider, InsiderRegistrationContractTest), so only the Insider's own index shifts. An ordinary task
+        // civilian (REAL mood, passenger stamina, no round clock, no appearance condition) drawn by Wathe's civilian
+        // pass; never a police variant, never a Witch-skill role (kept out of isRegisteredSparkWitchRole). Its skills
+        // (通灵 on the shared ability key, 招魂 on Role Skill 2) and task coins live in roles/civilian/medium; the
+        // letter/title text still falls back to the Wathe civilian wording.
+        // 通灵师（2026-11-10）：注册在幽魂之后、卡戎与内应之前（内应之后不得再注册，InsiderRegistrationContractTest），
+        // 因此只有内应自身的下标改变。普通任务平民（真实情绪、乘客体力、不可见回合时间、无出现条件），由 Wathe 平民
+        // 分配抽取；不是警察变体，不是魔女技能职业（不加入 isRegisteredSparkWitchRole）。技能（共享技能键上的通灵、
+        // 职业技能 2 上的招魂）与任务金币位于 roles/civilian/medium；信件/标题文本仍沿用 Wathe 平民措辞。
+        medium = SparkFactionApi.registerRole(FactionRoleDefinition.builder(MEDIUM_ID, FactionIds.CIVILIAN)
+                .color(MediumRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // The Charon (PR #202) and its Lost Soul: registered after the Medium and right before the Insider, which stays
+        // last (InsiderRegistrationContractTest), so only the Insider's own index shifts. A Wathe-native neutral with
+        // the Fiend's stance (FAKE mood, no tasks, no round clock), drawn from MIN_PLAYERS up. The pardon, the ferry,
+        // the marks, the feign death and the Soul Moment live in roles/neutral/ferryman. Never Witch-skill roles: kept
+        // out of isRegisteredSparkWitchRole.
+        // 卡戎（PR #202）与迷失的灵魂：注册在通灵师之后、紧挨内应之前（内应仍为最后一个，InsiderRegistrationContractTest），
+        // 因此只有内应自身的下标改变。原生 Wathe 中立，参数与魔人相同（虚假情绪、无任务、不可见回合时间），人数达到
+        // MIN_PLAYERS 起才抽取。宽恕、摆渡、标记、假死与亡魂时刻位于 roles/neutral/ferryman。均不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole。
+        ferryman = SparkFactionApi.registerRole(FactionRoleDefinition.builder(FERRYMAN_ID, FactionIds.NEUTRAL)
+                .color(FerrymanRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> context.getTotalPlayerCount() >= FerrymanRules.MIN_PLAYERS)
+                .build());
+        // Lost Soul: never drawn on its own; the Soul Moment assigns it to the players whose bodies the Charon ferried.
+        // 迷失的灵魂：从不单独抽取；亡魂时刻把它分配给卡戎摆渡过其遗体的玩家。
+        lostSoul = SparkFactionApi.registerRole(FactionRoleDefinition.builder(LOST_SOUL_ID, FactionIds.NEUTRAL)
+                .color(0x7FB2C9)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .appearanceCondition(context -> false)
+                .build());
+        // 远野汉娜 Tono Hanna (PR #212, reworked in review 2026-11-11): registered after the Lost Soul and before
+        // 橘雪莉 (PR #206), 二阶堂希罗 and the Insider, which stays last (nothing may follow the Insider,
+        // InsiderRegistrationContractTest), so only the later indices shift. An ordinary task civilian (REAL mood: the
+        // float penalty drains real sanity; passenger stamina, no round clock, no appearance condition) drawn by
+        // Wathe's civilian pass; never a police variant. Her float, coins, shop and items live in
+        // roles/civilian/hanna. She uses the shared mana pool (WitchManaRules) but is never a Witch-skill role: kept
+        // out of isRegisteredSparkWitchRole, so she never gets a witch skill or the witch skill panel.
+        // 远野汉娜（PR #212，2026-11-11 审核中重写）：注册在迷失的灵魂之后，橘雪莉（PR #206）、二阶堂希罗与内应之前（内应仍为
+        // 最后一个，内应之后不得再注册，InsiderRegistrationContractTest），因此只有其后的下标改变。普通任务平民（真实理智：
+        // 浮游惩罚扣的是真实理智；乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配抽取；不是警察变体。浮游、金币、
+        // 商店与物品位于 roles/civilian/hanna。她使用共享魔力池（WitchManaRules），但不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole，因此既不会获得魔女技能，也不会出现魔女技能面板。
+        hanna = SparkFactionApi.registerRole(FactionRoleDefinition.builder(HANNA_ID, FactionIds.CIVILIAN)
+                .color(HannaRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // 橘雪莉 Tachibana Sherry (PR #206): registered after Tono Hanna and before 二阶堂希罗 and the Insider, which
+        // stays last (InsiderRegistrationContractTest), so only the later indices shift. An ordinary task civilian
+        // (REAL mood, 1.5x passenger stamina, no round clock, no appearance condition) drawn by Wathe's civilian pass;
+        // never a police variant. A mana role (WitchManaRules) with her own 巨力魔法, but never a Witch-skill role: kept
+        // out of isRegisteredSparkWitchRole and out of the witch skill panel (AGENTS.md panel rule). Her skills, coins,
+        // badge and reveals live in roles/civilian/sherry; the letter/title text falls back to the Wathe civilian wording.
+        // 橘雪莉（PR #206）：注册在远野汉娜之后、二阶堂希罗与内应之前（内应仍为最后一个，InsiderRegistrationContractTest），
+        // 因此只有其后的下标改变。普通任务平民（真实情绪、1.5 倍乘客体力、不可见回合时间、无出现条件），由 Wathe 平民分配
+        // 抽取；不是警察变体。属于魔力职业（WitchManaRules）并拥有自己的巨力魔法，但不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole，也不进入魔女技能面板（AGENTS.md 面板规则）。技能、金币、徽章与揭示位于
+        // roles/civilian/sherry；信件/标题文本沿用 Wathe 平民措辞。
+        sherry = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SHERRY_ID, FactionIds.CIVILIAN)
+                .color(SherryRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(SherryRules.MAX_SPRINT_TICKS)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
+        // 二阶堂希罗 Nikaido Hiro (2026-11-11): a SparkFactionAPI killer with the Specter's profile (native Wathe KILLER,
+        // FAKE mood, unlimited sprint, round clock), one killer slot, no appearance condition (drawn at any player
+        // count). Registered after 橘雪莉 (main's PR #206) and right before the Insider, which stays last
+        // (InsiderRegistrationContractTest), so only the Insider's own index shifts. Skills, shop and state live in
+        // roles/killer/hiro, the Rope in item/rope (CONTEXT.md). A mana role on the Witch Maiden's numbers
+        // (mana/WitchManaRules) but never a Witch-skill role: kept out of isRegisteredSparkWitchRole and out of the
+        // gui.sparkwitch.skills panel.
+        // 二阶堂希罗（2026-11-11）：SparkFactionAPI 杀手，参数与幽魂相同（原生 Wathe KILLER、伪装情绪、无限冲刺、可见回合
+        // 时间），占 1 个杀手名额，无出现条件（任何人数都可抽取）。注册在橘雪莉（PR #206）之后、紧挨内应之前（内应仍为最后一个，
+        // InsiderRegistrationContractTest），因此只有内应自身的下标改变。技能、商店与状态位于 roles/killer/hiro，绳索位于
+        // item/rope（见 CONTEXT.md）。魔力沿用巫女的数值（mana/WitchManaRules），但不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole，也不进入 gui.sparkwitch.skills 面板。
+        nikaidoHiro = SparkFactionApi.registerRole(FactionRoleDefinition.builder(NIKAIDO_HIRO_ID, FactionIds.KILLER)
+                .color(HiroRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(-1)
+                .canSeeTime(true)
+                .nativeWatheFaction(Faction.KILLER)
+                .build());
+        // 泽渡可可 Sawatari Koko (PR #223, rebuilt in review 2026-11-13): a Wathe-native neutral with fake tasks (FAKE
+        // mood), passenger stamina and no round clock, drawn at any player count. Registered after 二阶堂希罗 and right
+        // before the Insider, which stays last (InsiderRegistrationContractTest), so only the Insider's own index
+        // shifts. Streams, shop, key and win live in roles/neutral/koko (CONTEXT.md). A mana role on the Murderous
+        // Witch's regeneration (mana/WitchManaRules) but never a Witch-skill role: kept out of
+        // isRegisteredSparkWitchRole and out of the gui.sparkwitch.skills panel.
+        // 泽渡可可（PR #223，2026-11-13 审核时重建）：Wathe 原生中立职业，有假任务（伪装情绪）、乘客体力、不可见回合时间，
+        // 任何人数都可抽取。注册在二阶堂希罗之后、紧挨内应之前（内应仍为最后一个，InsiderRegistrationContractTest），因此
+        // 只有内应自身的下标改变。直播、商店、钥匙与胜利条件位于 roles/neutral/koko（见 CONTEXT.md）。魔力恢复与杀意魔女
+        // 相同（mana/WitchManaRules），但不是魔女技能职业：不加入 isRegisteredSparkWitchRole，也不进入
+        // gui.sparkwitch.skills 面板。
+        koko = SparkFactionApi.registerRole(FactionRoleDefinition.builder(KOKO_ID, FactionIds.NEUTRAL)
+                .color(KokoRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(KokoRules.MAX_SPRINT_TICKS)
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
         // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
@@ -1002,7 +1234,11 @@ public final class SparkWitchRoleRegistry {
                 Role.MoodType.REAL,
                 GameConstants.getInTicks(0, 10),
                 false,
-                RoleAppearanceCondition.minPlayers(24)
+                // Never one of Wathe's once-each special civilian picks: she only fills plain-civilian fallback seats
+                // (ApprenticeCivilianPool, owner 2026-11-11; no 24-player minimum, no quota).
+                // 不参与 Wathe 每职业一次的特殊平民抽取：只填普通平民兜底席位（ApprenticeCivilianPool，
+                // 所有者 2026-11-11；无 24 人门槛、无名额）。
+                context -> false
         ));
         murderousWitch = WatheRoles.registerRole(new Role(
                 MURDEROUS_WITCH_ID,
@@ -1032,15 +1268,21 @@ public final class SparkWitchRoleRegistry {
                 // Tarot Reader stays adjacent. 拾荒者同样加入平民段，排在调香师之前，使调香师至塔罗师一段保持相邻。
                 ragpicker,
                 perfumer,
-                // The Recruit, the Athlete, the Discoverer, Noa, the Accountant (PR #195) and then BEAR (2026-11-05)
-                // join the civilian block; the promotion identities stay the tail.
-                // 新兵、运动员、探索者、诺亚、会计（PR #195）与其后的 BEAR（2026-11-05）加入平民段；晋升身份始终位于末尾。
+                // The Recruit, the Athlete, the Discoverer, Noa, the Accountant (PR #195), then BEAR (2026-11-05),
+                // the Medium (2026-11-10) and Tono Hanna (PR #212, 2026-11-11) join the civilian block; the promotion
+                // identities stay the tail.
+                // 新兵、运动员、探索者、诺亚、会计（PR #195）、BEAR（2026-11-05）、其后的通灵师（2026-11-10）与远野汉娜
+                // （PR #212，2026-11-11）加入平民段；晋升身份始终位于末尾。
                 recruit,
                 athlete,
                 discoverer,
                 noa,
                 accountant,
                 bear,
+                medium,
+                hanna,
+                // 橘雪莉 (PR #206) closes the newer civilian run, after Tono Hanna. / 橘雪莉（PR #206）排在远野汉娜之后。
+                sherry,
                 pigGod,
                 tarotReader,
                 fisher,
@@ -1061,6 +1303,12 @@ public final class SparkWitchRoleRegistry {
                 // 夏目安安 (PR #194) joins the killer block after the Dominator (the fork listed it after Noa, outside
                 // the killer block). 夏目安安（PR #194）加入杀手段，排在支配者之后（fork 中排在诺亚之后、杀手段之外）。
                 natsumeAnan,
+                // The Specter (PR #207) joins the killer block after 夏目安安; the promotion identities stay the tail.
+                // 幽魂（PR #207）加入杀手段，排在夏目安安之后；晋升身份仍位于末尾。
+                specter,
+                // 二阶堂希罗 (2026-11-11) joins the killer block after the Specter; the promotion identities stay the tail.
+                // 二阶堂希罗（2026-11-11）加入杀手段，排在幽魂之后；晋升身份仍位于末尾。
+                nikaidoHiro,
                 murderousWitch,
                 accomplice,
                 abyssListener,
@@ -1076,10 +1324,23 @@ public final class SparkWitchRoleRegistry {
                 seeker,
                 usec,
                 knight,
+                // The Savior (PR #200) closes the police block; NoellesRoles sends role identifiers, so this order is
+                // presentation only (its panel entry is hidden anyway) and the promotion identities stay the tail.
+                // 救世主（PR #200）排在警察段末尾；NoellesRoles 发送的是职业标识符，此顺序仅影响展示（其面板条目本就隐藏），
+                // 晋升身份仍位于末尾。
+                savior,
                 fiend,
                 insider,
                 stowaway,
                 schrodingersCat,
+                // The Charon (PR #202) and then its Lost Soul (owner 2026-11-09) close the neutral block after
+                // Schrödinger's Cat; the promotion identities stay the tail.
+                // 卡戎（PR #202）及其后的迷失的灵魂（所有者 2026-11-09）排在薛定谔之猫之后、结束中立段；晋升身份仍位于末尾。
+                ferryman,
+                lostSoul,
+                // 泽渡可可 (PR #223) joins the neutral block after the Lost Soul; the promotion identities stay the tail.
+                // 泽渡可可（PR #223）加入中立段，排在迷失的灵魂之后；晋升身份仍位于末尾。
+                koko,
                 windSpirit,
                 guardianAngel,
                 vendetta,

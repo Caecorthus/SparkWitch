@@ -18,7 +18,8 @@ public final class WitchFactionRules {
     public static final int WITCH_TEAM_KILL_MONEY_REWARD = 25;
     public static final int WITCH_TASK_MONEY_REWARD = 25;
 
-    public static final int OTHER_WITCH_INSTINCT_COLOR = 0x7AB8FF;
+    /** Alias of {@link OtherWitchRoles#INSTINCT_COLOR}, the list's owner. / {@link OtherWitchRoles#INSTINCT_COLOR} 的别名，名单归该类所有。 */
+    public static final int OTHER_WITCH_INSTINCT_COLOR = OtherWitchRoles.INSTINCT_COLOR;
     public static final int NON_WITCH_INSTINCT_COLOR = 0x36E51B;
     public static final int DROPPED_ITEM_INSTINCT_COLOR = 0xDB9D00;
     // Ordinary Witch instinct must stay below Wathe hard skips such as Last Stand and hidden Survival Master.
@@ -176,8 +177,23 @@ public final class WitchFactionRules {
         return affectedByFear || affectedByObscure;
     }
 
+    /**
+     * The roles the Grand Witch's instinct reads as witches outside her faction ({@link #OTHER_WITCH_INSTINCT_COLOR}).
+     * The list itself lives in {@link OtherWitchRoles} (owner 2026-11-13); this is the delegate {@link #instinctColor}
+     * reads. It is not Witch faction membership.
+     * 大魔女本能视为「阵营外的魔女」的职业（{@link #OTHER_WITCH_INSTINCT_COLOR}）。名单本身位于 {@link OtherWitchRoles}
+     * （所有者 2026-11-13）；这里是 {@link #instinctColor} 读取的委托。它不等于魔女阵营成员。
+     */
     public static boolean isOtherWitchRole(Role role) {
-        return role != null && (role == SparkWitchRoles.murderousWitch() || role == SparkWitchRoles.apprenticeWitch());
+        return OtherWitchRoles.contains(role);
+    }
+
+    /**
+     * Whether the role is a 魔法少女的魔女裁判 (魔裁) character; delegates to {@link OtherWitchRoles#isWitchTrialGirl}.
+     * 该职业是否为《魔法少女的魔女裁判》（魔裁）角色；委托给 {@link OtherWitchRoles#isWitchTrialGirl}。
+     */
+    public static boolean isWitchTrialGirl(@Nullable Role role) {
+        return OtherWitchRoles.isWitchTrialGirl(role);
     }
 
     public static boolean isAffectedByWitchAreaSpell(Role role) {

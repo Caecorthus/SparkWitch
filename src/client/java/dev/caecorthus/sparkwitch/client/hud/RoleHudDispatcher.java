@@ -18,9 +18,11 @@ import dev.caecorthus.sparkwitch.net.SparkWitchServerConnection;
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintHudLayoutRules;
 import dev.caecorthus.sparkwitch.roles.civilian.saint.SaintRules;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.killer.saboteur.SaboteurRole;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
+import dev.doctor4t.wathe.client.WatheClient;
 import dev.doctor4t.wathe.game.GameFunctions;
 import java.util.List;
 import net.minecraft.client.MinecraftClient;
@@ -37,24 +39,32 @@ import net.minecraft.util.Identifier;
  * so Mixin applied, and therefore ran, their TAIL injects in declaration order. Each layer keeps its former mixin's gate
  * verbatim and reads the player itself; there is no shared preamble, so layers that never checked the confirmed server
  * (Vendetta, Kidnapper, Magician) still do not. No layer is wrapped: a throwing layer aborts the rest of the frame, as
- * a throwing inject did.
+ * a throwing inject did. {@code InGameHud.render} TAIL still runs under F1, so every {@link #renderTail} text layer
+ * returns on vanilla {@code options.hudHidden} itself, like the {@code HudRenderCallback} corner lines; only the
+ * Kidnapper control screen keeps drawing, because its black fill is the drug's blindness, not HUD text.
  * 两个 {@code InGameHud} TAIL 接口背后的职业 HUD 面板，以两份写死的有序层列表组织。顺序即原各职业 mixin 在
  * {@code sparkwitch.client.mixins.json} 中的声明顺序：它们同属一个配置且优先级均为 1000，Mixin 按声明顺序应用并执行
  * 这些 TAIL 注入。每层逐字保留原 mixin 的门槛并自行读取玩家；没有共享前置判定，因此原本不检查已确认服务器的层
  * （仇杀客、绑匪、魔术师）仍不检查。各层不做异常包裹：某层抛出异常时与原注入一样中止本帧其余绘制。
+ * {@code InGameHud.render} TAIL 在 F1 下仍会执行，因此 {@link #renderTail} 的每个文字层都自行在原版
+ * {@code options.hudHidden} 时返回，与 {@code HudRenderCallback} 的角落行一致；只有迷药控制画面继续绘制，因为它的
+ * 黑屏是迷药造成的失明效果，不是 HUD 文字。
  */
 public final class RoleHudDispatcher {
     private RoleHudDispatcher() {
     }
 
     /**
-     * Layers at {@code InGameHud.render} TAIL (still drawn under F1), in the former JSON order.
-     * {@code InGameHud.render} TAIL 处的各层（F1 下仍绘制），按原 JSON 顺序。
+     * Layers at {@code InGameHud.render} TAIL, in the former JSON order. The seam runs under F1; each text layer hides
+     * itself through {@link #hiddenByF1()}, the Kidnapper control screen does not.
+     * {@code InGameHud.render} TAIL 处的各层，按原 JSON 顺序。该接缝在 F1 下仍会执行；各文字层通过
+     * {@link #hiddenByF1()} 自行隐藏，迷药控制画面不隐藏。
      */
     public static void renderTail(InGameHud hud, DrawContext context) {
         renderCurser(context);
         renderGuardianAngel(context);
         renderOrthopedist(context);
+        renderSavior(context);
         renderSaint(hud, context);
         renderVendetta(context);
         renderKidnapperControlled(context);
@@ -73,8 +83,21 @@ public final class RoleHudDispatcher {
         renderBlackRaven(context);
     }
 
+    /**
+     * F1 (vanilla {@code options.hudHidden}): the text layers of {@link #renderTail} return on it, since that seam
+     * still runs under F1 while vanilla and Wathe hide their HUD.
+     * F1（原版 {@code options.hudHidden}）：{@link #renderTail} 的文字层在此时返回，因为该接缝在 F1 下仍会执行，而原版与
+     * Wathe 的 HUD 均已隐藏。
+     */
+    private static boolean hiddenByF1() {
+        return MinecraftClient.getInstance().options.hudHidden;
+    }
+
     /** Was CurserHudMixin: the active promoted Curser only. / 原 CurserHudMixin：仅活动中的晋升诅咒师。 */
     private static void renderCurser(DrawContext context) {
+        if (hiddenByF1()) {
+            return;
+        }
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (player != null) {
             boolean exactCurserRole = GameWorldComponent.KEY.get(player.getWorld()).getRole(player)
@@ -95,6 +118,9 @@ public final class RoleHudDispatcher {
      * 原 GuardianAngelHudMixin：晋升守护天使仅本人可见的主技能提示。
      */
     private static void renderGuardianAngel(DrawContext context) {
+        if (hiddenByF1()) {
+            return;
+        }
         if (!SparkWitchServerConnection.isConfirmedServer()) {
             return;
         }
@@ -110,6 +136,9 @@ public final class RoleHudDispatcher {
 
     /** Was OrthopedistHudMixin: the Orthopedist line. / 原 OrthopedistHudMixin：骨科大夫提示。 */
     private static void renderOrthopedist(DrawContext context) {
+        if (hiddenByF1()) {
+            return;
+        }
         if (!SparkWitchServerConnection.isConfirmedServer()) {
             return;
         }
@@ -124,12 +153,39 @@ public final class RoleHudDispatcher {
     }
 
     /**
+     * The Savior's G-skill line at the bottom-right in the role color, in the shared corner slot that
+     * {@code SaintHudLayoutRules} reserves. This seam still draws under F1, so the layer follows the Dominator and
+     * Ragpicker corner lines: hidden with F1 and whenever Wathe's train HUD is.
+     * 右下角职业色的救世主 G 技能提示，位于 {@code SaintHudLayoutRules} 预留的共享角落位置。本接缝在 F1 下仍会绘制，因此
+     * 该层与支配者、拾荒者角落行一致：F1 或 Wathe 列车 HUD 隐藏时都不绘制。
+     */
+    private static void renderSavior(DrawContext context) {
+        if (!SparkWitchServerConnection.isConfirmedServer()) {
+            return;
+        }
+        MinecraftClient client = MinecraftClient.getInstance();
+        ClientPlayerEntity player = client.player;
+        if (player == null || client.options.hudHidden
+                || WatheClient.trainComponent == null || !WatheClient.trainComponent.hasHud()
+                || !GameFunctions.isPlayerPlayingAndAlive(player)) {
+            return;
+        }
+        Role role = GameWorldComponent.KEY.get(player.getWorld()).getRole(player);
+        if (SaviorRules.isSavior(role)) {
+            SaviorHudRenderer.render(context, player);
+        }
+    }
+
+    /**
      * Was SaintHudMixin: Saint and Karma lines stacked above, not in place of, the current role ability HUD. Text is
      * measured and drawn with {@code hud.getTextRenderer()}, the instance the mixin's {@code @Shadow} returned.
      * 原 SaintHudMixin：将圣徒与业障状态叠放在当前职业技能 HUD 上方而非覆盖。文字使用 {@code hud.getTextRenderer()}
      * 测量与绘制，即原 mixin 通过 {@code @Shadow} 取得的同一实例。
      */
     private static void renderSaint(InGameHud hud, DrawContext context) {
+        if (hiddenByF1()) {
+            return;
+        }
         if (!SparkWitchServerConnection.isConfirmedServer()) {
             return;
         }
@@ -172,6 +228,9 @@ public final class RoleHudDispatcher {
      * 原 VendettaHudMixin：晋升仇杀客仅本人可见的透视计时；{@code hasActiveOwnerState} 即全部门槛。
      */
     private static void renderVendetta(DrawContext context) {
+        if (hiddenByF1()) {
+            return;
+        }
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (VendettaClientPresentation.hasActiveOwnerState(player)) {
             VendettaHudRenderer.render(context, player);
@@ -179,8 +238,10 @@ public final class RoleHudDispatcher {
     }
 
     /**
-     * Was KidnapperControlledHudMixin: the drugged controller's screen over the finished HUD; the renderer gates.
-     * 原 KidnapperControlledHudMixin：在完整 HUD 绘制结束后覆盖迷药控制者的画面；门槛在渲染器内。
+     * Was KidnapperControlledHudMixin: the drugged controller's screen over the finished HUD; the renderer gates. It is
+     * the one layer that ignores F1: the black fill is the drug's blindness, so F1 must not lift it.
+     * 原 KidnapperControlledHudMixin：在完整 HUD 绘制结束后覆盖迷药控制者的画面；门槛在渲染器内。这是唯一不理会 F1 的层：
+     * 黑屏是迷药造成的失明，F1 不能将其解除。
      */
     private static void renderKidnapperControlled(DrawContext context) {
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
@@ -207,6 +268,9 @@ public final class RoleHudDispatcher {
 
     /** Was SaboteurHudMixin: the active promoted Saboteur only. / 原 SaboteurHudMixin：仅活动中的升变破坏者。 */
     private static void renderSaboteur(DrawContext context) {
+        if (hiddenByF1()) {
+            return;
+        }
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (player == null) {
             return;

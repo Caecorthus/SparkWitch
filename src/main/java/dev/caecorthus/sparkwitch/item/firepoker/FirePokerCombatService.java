@@ -1,6 +1,7 @@
 package dev.caecorthus.sparkwitch.item.firepoker;
 
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.item.rope.RopeStrangleService;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.SparkWitchItems;
@@ -68,6 +69,14 @@ public final class FirePokerCombatService {
 
     private static void strike(ServerPlayerEntity attacker, ServerPlayerEntity target) {
         knockback(attacker, target);
+        // Owner rule: being pushed aborts a Rope strangle. The strangle pulls its user back every tick, so this push
+        // would never carry the user the full block its displacement check needs; abort it here instead (no-op unless
+        // the pushed player is strangling). The released strangler then flies with the knockback above.
+        // 所有者规则：被推搡会中止绳索勒杀。勒杀每刻都会把使用者拉回，这次推搡永远无法把使用者推出移位判定所需的一整格，因此在此直接
+        // 中止（被推者未在勒杀时无任何效果）。被解除定身的勒杀者随后按上面的击退飞出。
+        if (RopeStrangleService.isStrangling(target)) {
+            RopeStrangleService.interruptUser(target);
+        }
         FirePokerFallAttributionService.recordPush(attacker, target, SparkWitchItems.firePoker());
         applyMagicEffects(attacker, target);
         attacker.getItemCooldownManager().set(SparkWitchItems.firePoker(), FirePokerRules.COOLDOWN_TICKS);
