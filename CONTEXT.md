@@ -1193,7 +1193,7 @@ Current build baseline:
   - Pardon (`FerrymanPardonService.interceptKill`): `mixin/ferryman/GameFunctionsFerrymanPardonMixin` is a cancellable
     HEAD guard on Wathe's 5-arg `killPlayer` at priority 1200 (pinned in `watheCommonMixinContracts`), never a
     `KillPlayer.BEFORE` listener, so it sees `force` and keeps `spawnBody`. It holds nothing for a forced kill, a
-    SparkTraits-terminal reason, a kill without an attacker or by the Charon itself, `wathe:fell_out_of_train`,
+    SparkTraits-terminal reason or a Savior weapon reason (`SaviorRules.isTerminalKill`), a kill without an attacker or by the Charon itself, `wathe:fell_out_of_train`,
     `wathe:escaped`, `wathe:vanilla_death`, `wathe:drowned` (`FerrymanRules.UNHELD_DEATH_REASONS`, `mayHoldKill`), its
     own replay, or a Charon that is not playing and alive or is swallowed. A marked attacker's lethal hit is answered
     by the gaze feign first, and 瞥视 is consumed when the feign starts (an attacker that cannot feign keeps the mark
@@ -1862,11 +1862,14 @@ Current build baseline:
     so a blocked or feigned kill looks the same; the puppet/Partygoer branches flash only after their kill succeeded.
     The pistol shot file `item/savior_pistol_shoot.ogg` is stereo like Wathe's `revolver_shoot.ogg`, so at the copied
     volume 5.0 it is non-positional (no direction, no falloff inside the 80-block packet range); only the Hunter
-    shotgun spatializes a stereo shot (`DoubleBarrelShotAudio`). Kills use the terminal reasons `sparkwitch:savior_pistol_kill` (Prophecy GUNSHOT) and
-    `sparkwitch:lightsaber_kill` (BLADE) through `SaviorRules.settleKill` (up to 10 `killPlayer` retries, each may
-    spend one shield layer); SparkTraits skips Last Escape / Last Stand / Depression for them, they pierce psycho
-    armour, and the Saint and NoellesRoles Iron Man / whiskey / Jester mixins let them through (the swallowed
-    no-body rule still applies). Both are Knight-duel interference reasons; the Fiend's D5 hit reward counts the
+    shotgun spatializes a stereo shot (`DoubleBarrelShotAudio`). Kills use the SparkWitch-terminal reasons
+    `sparkwitch:savior_pistol_kill` (Prophecy GUNSHOT) and `sparkwitch:lightsaber_kill` (BLADE,
+    `SaviorRules.isTerminalKill`) through `SaviorRules.settleKill` (up to 10 `killPlayer` retries, each may spend one
+    shield layer). They are deliberately NOT registered SparkTraits-terminal (owner 2026-11-16: a Last Escape killer
+    died to one pistol shot), so Last Escape (trigger and escape phase), Last Stand, Depression and Stands Firm answer
+    them like a Wathe gun or bat; a retry after such a protection is a no-op. They pierce psycho armour, the Saint and
+    NoellesRoles Iron Man / whiskey / Jester mixins let them through (the swallowed no-body rule still applies), and
+    the Charon never pardons them and the Hiro Return never cancels them (both OR `SaviorRules.isTerminalKill`). Both are Knight-duel interference reasons; the Fiend's D5 hit reward counts the
     pistol as GUN and the lightsaber as BAT; the Rys-T may deflect the pistol (ranged set; the settle retries are one
     call burst of one shooter, so one roll holds for every retry).
   - Innocent kill (SparkFactionAPI effective faction CIVILIAN, the Knight/Recruit rule): Wathe's policy 4 ticks later,
