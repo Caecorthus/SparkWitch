@@ -68,7 +68,9 @@ final class PlannerTasks {
             return;
         }
         PlayerMoodComponent mood = PlayerMoodComponent.KEY.get(player);
-        boolean held = state.holdsRecommendation(mood.tasks);
+        // Never touch a map a Bell Ringer Echo holds (after a relog the marker matches by type only).
+        // 从不改动被敲钟人回响占用的任务表（重新登录后标记只按类型匹配）。
+        boolean held = !isLocked(player) && state.holdsRecommendation(mood.tasks);
         state.clearRecommendation();
         if (held && mood.tasks.remove(type) != null) {
             mood.sync();

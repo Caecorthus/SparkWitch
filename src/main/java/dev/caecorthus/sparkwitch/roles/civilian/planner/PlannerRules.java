@@ -239,17 +239,32 @@ public final class PlannerRules {
     }
 
     /**
-     * Marker lifecycle: a task completed, rerolled or reset elsewhere only clears the marker; an expired one, or one
-     * on a player who is no longer a living round participant, also loses its task, so an unmarked leftover never
-     * starts draining (the Bell Ringer Echo's silent-drop precedent).
-     * 标记生命周期：任务已在别处完成、被重排或被重置时只清除标记；已过期，或其持有者不再是存活的局内参与者时，连同任务一起移除，
-     * 因此不会留下一个开始消耗理智的无标记任务（沿用敲钟人回响的静默清除先例）。
+     * Marker lifecycle: while a Bell Ringer Echo holds the player's task map ({@code locked}) the marker is only
+     * cleared, so the Echo task is never removed or paid (even after a relog, when the marker falls back to matching by
+     * type); a task completed, rerolled or reset elsewhere only clears the marker; an expired one, or one on a player
+     * who is no longer a living round participant, also loses its task, so an unmarked leftover never starts draining
+     * (the Bell Ringer Echo's silent-drop precedent).
+     * 标记生命周期：敲钟人回响占用任务表时（{@code locked}）只清除标记，因此回响任务永远不会被移除或结算（即使重新登录后标记
+     * 退回按类型匹配）；任务已在别处完成、被重排或被重置时只清除标记；已过期，或其持有者不再是存活的局内参与者时，连同任务一起
+     * 移除，因此不会留下一个开始消耗理智的无标记任务（沿用敲钟人回响的静默清除先例）。
      */
-    public static MarkerAction markerAction(boolean participant, boolean typeHeld, boolean expired) {
-        if (!typeHeld) {
+    public static MarkerAction markerAction(boolean participant, boolean locked, boolean typeHeld, boolean expired) {
+        if (locked || !typeHeld) {
             return MarkerAction.CLEAR;
         }
         return participant && !expired ? MarkerAction.KEEP : MarkerAction.DROP;
+    }
+
+    /**
+     * Whether a recommendation must be dropped now so that it cannot complete on the next Wathe mood tick: the next
+     * mood tick runs at world time {@code now + 1} (the world clock advances before entities tick), and the reward
+     * only pays while {@code isExpired(tickTime, endTick)} is false, so the last tick it can complete is
+     * {@code endTick - 1}.
+     * 推荐是否必须现在移除，以免在下一次 Wathe 情绪刻完成：下一次情绪刻发生在世界时间 {@code now + 1}（世界时钟先于实体刻
+     * 前进），而奖励只在 {@code isExpired(当刻, endTick)} 为假时发放，因此最后一个可完成的刻是 {@code endTick - 1}。
+     */
+    public static boolean expiresBeforeNextMoodTick(long now, long endTick) {
+        return isExpired(now + 1L, endTick);
     }
 
     /**
@@ -265,12 +280,51 @@ public final class PlannerRules {
         return Math.max(0, drainingTasks - 1);
     }
 
+    /** EMA weight of each new {@code nextTaskTimer} decrease. / 每次新观测到的计时减少量的指数平均权重。 */
+    public static final float NEXT_TASK_RATE_SMOOTHING = 0.05F;
+    /** Bounds of the estimated timer decrease per tick. / 估计的每刻计时减少量的上下限。 */
+    public static final float MIN_NEXT_TASK_RATE = 0.25F;
+    public static final float MAX_NEXT_TASK_RATE = 4.0F;
+
     /**
-     * Seconds the planner HUD shows until Wathe deals the next task: rounded up, or -1 when nothing is published.
-     * 规划大师 HUD 显示的距 Wathe 发下一个任务的秒数：向上取整；不发布时为 -1。
+     * Wathe deals a new task only when a type is free and no Bell Ringer Echo holds generation; otherwise the HUD shows
+     * "unknown" instead of counting down to a deal that never comes.
+     * Wathe 只在仍有空闲类型且敲钟人回响未暂停生成时才会发新任务；否则 HUD 显示“未知”，而不是倒数到一个不会来的任务。
      */
-    public static int nextTaskSeconds(int timerTicks, boolean publish) {
-        return publish ? TickTime.ceilSeconds(timerTicks) : -1;
+    public static boolean canDealNextTask(int heldTypes, boolean locked) {
+        return !locked && heldTypes < TASK_TYPES.length;
+    }
+
+    /**
+     * Smoothed per-tick decrease of Wathe's {@code nextTaskTimer} from two consecutive readings (one per world tick).
+     * Other features may speed the timer up (SparkTraits Anxiety takes 1 or 2 ticks a tick, about 1.8x); a reading
+     * above the previous one is Wathe re-arming the timer and is ignored, as is a first reading ({@code previous < 0}).
+     * 由相邻两次读数（每世界刻一次）估计 Wathe {@code nextTaskTimer} 每刻平滑后的减少量。其他功能可能加快计时（SparkTraits
+     * 焦虑每刻扣 1 或 2 刻，约 1.8 倍）；读数高于上一次表示 Wathe 重新设定了计时，予以忽略，首次读数（{@code previous < 0}）同样忽略。
+     */
+    public static float nextTaskTimerRate(float rate, int previous, int current) {
+        if (previous < 0 || current > previous) {
+            return rate;
+        }
+        float observed = previous - current;
+        return Math.clamp(rate + (observed - rate) * NEXT_TASK_RATE_SMOOTHING, MIN_NEXT_TASK_RATE, MAX_NEXT_TASK_RATE);
+    }
+
+    /**
+     * Seconds the planner HUD shows until Wathe deals the next task, at the observed timer rate, rounded up; -1
+     * ("unknown") when nothing is published.
+     * 规划大师 HUD 显示的距 Wathe 发下一个任务的秒数，按观测到的计时速率换算并向上取整；不发布时为 -1（“未知”）。
+     */
+    public static int nextTaskSeconds(int timerTicks, float rate, boolean publish) {
+        if (!publish) {
+            return -1;
+        }
+        if (timerTicks <= 0) {
+            return 0;
+        }
+        double perTick = Math.clamp(rate, MIN_NEXT_TASK_RATE, MAX_NEXT_TASK_RATE);
+        // The epsilon keeps float noise (1.8F is 1.79999995) from adding a whole second. / 容差避免浮点误差多算一秒。
+        return TickTime.ceilSeconds((int) Math.ceil(timerTicks / perTick - 1.0E-4D));
     }
 
     /** What the server does with a task slip. / 服务端如何处理一次任务单使用。 */

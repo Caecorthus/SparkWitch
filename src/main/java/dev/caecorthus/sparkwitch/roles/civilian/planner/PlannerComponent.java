@@ -57,6 +57,13 @@ public final class PlannerComponent implements AutoSyncedComponent {
     private long recommendationEndTick;
     /** Server only, never saved or synced: the exact task object inserted. / 仅服务端、不保存不同步：插入的那个任务对象。 */
     private @Nullable PlayerMoodComponent.TrainTask recommendedTask;
+    /**
+     * Planner only, server only, never saved or synced: the last {@code nextTaskTimer} reading (-1 none) and the
+     * smoothed per-tick decrease. / 仅规划大师、仅服务端、不保存不同步：上一次 {@code nextTaskTimer} 读数（-1 表示没有）与
+     * 平滑后的每刻减少量。
+     */
+    private int lastNextTaskTimer = -1;
+    private float nextTaskTimerRate = 1.0F;
 
     public PlannerComponent(PlayerEntity player) {
         this.player = player;
@@ -82,6 +89,21 @@ public final class PlannerComponent implements AutoSyncedComponent {
 
     public int nextTaskSeconds() {
         return nextTaskSeconds;
+    }
+
+    /**
+     * Server only: records this tick's {@code nextTaskTimer} reading and returns the smoothed per-tick decrease
+     * ({@link PlannerRules#nextTaskTimerRate}). / 仅服务端：记录本刻的 {@code nextTaskTimer} 读数并返回平滑后的每刻减少量。
+     */
+    public float observeNextTaskTimer(int timer) {
+        nextTaskTimerRate = PlannerRules.nextTaskTimerRate(nextTaskTimerRate, lastNextTaskTimer, timer);
+        lastNextTaskTimer = Math.max(0, timer);
+        return nextTaskTimerRate;
+    }
+
+    /** Server only: a gap in the readings (dead, off-round) starts a fresh pair. / 仅服务端：读数中断后重新配对。 */
+    public void forgetNextTaskTimer() {
+        lastNextTaskTimer = -1;
     }
 
     /** Server only: syncs only when the shown second changes (1 Hz at most). / 仅服务端：显示的秒数变化时才同步。 */
@@ -154,6 +176,8 @@ public final class PlannerComponent implements AutoSyncedComponent {
 
     /** Server only: clears everything (role assignment, round reset). / 仅服务端：清空全部状态（身份分配、换局）。 */
     public void clear() {
+        lastNextTaskTimer = -1;
+        nextTaskTimerRate = 1.0F;
         if (skillReadyTick == 0L && nextTaskSeconds == -1 && recommendedType == null && recommendationEndTick == 0L) {
             return;
         }
