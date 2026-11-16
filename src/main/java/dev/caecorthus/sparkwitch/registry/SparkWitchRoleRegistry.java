@@ -54,6 +54,7 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.WitchMaidenRules;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanSettlement;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
@@ -252,10 +253,30 @@ public final class SparkWitchRoleRegistry {
         // 2026-11-03); a transformed one holds another role id. 未转化的薛定谔之猫在其他模组的结算中同样不算存活
         //（所有者 2026-11-03）；转化后的猫持有其他职业 id。
         SettlementExclusions.registerRole(SCHRODINGERS_CAT_ID);
+        registerCharonConditionalSettlementExclusion();
         WatheRoles.SPECIAL_ROLES.add(WraithRole.ROLE);
         wraith = WatheRoles.registerRole(WraithRole.ROLE);
 
         SparkWitchAssassinGuessOrder.appendToTail(assassinGuessRolesInOrder());
+    }
+
+    /**
+     * A Charon without a running Soul Moment of his own (at least one soul) does not count as alive for settlement in
+     * other mods either (PR #232 follow-up): SparkFactionAPI asks {@code FerrymanSettlement.isExcluded(PlayerEntity)}
+     * per player, on server worlds only, for holders of the Charon's raw role. Fails closed: a SparkFactionAPI 2.0.0
+     * jar built before conditional roles existed lacks the method, and then SparkTraits keeps counting him as it did
+     * before instead of the server failing to start.
+     * 没有自己正在进行且至少有一名灵魂的亡魂时刻的卡戎，在其他模组的结算中同样不算存活（PR #232 后续）：SparkFactionAPI 只在
+     * 服务端世界、只对原始身份为卡戎的玩家逐个询问 {@code FerrymanSettlement.isExcluded(PlayerEntity)}。失败即关闭：在加入
+     * 带条件身份之前构建的 SparkFactionAPI 2.0.0 没有该方法，此时 SparkTraits 仍按原先方式把他计入，而不是让服务端无法启动。
+     */
+    private static void registerCharonConditionalSettlementExclusion() {
+        try {
+            SettlementExclusions.registerConditionalRole(FERRYMAN_ID, FerrymanSettlement::isExcluded);
+        } catch (LinkageError olderSparkFactionApi) {
+            SparkWitch.LOGGER.warn("SparkFactionAPI has no conditional settlement exclusions; "
+                    + "other mods' counts will still see a Charon without souls.", olderSparkFactionApi);
+        }
     }
 
     public static synchronized void refreshAssassinGuessRoleOrder() {

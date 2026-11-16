@@ -1251,8 +1251,19 @@ Current build baseline:
     through `mixin/ferryman/GameFunctionsFerrymanSettlementMixin` (HEAD of `GameFunctions.isPlayerPlayingAndAlive`
     inside `StowawayWinScope`, so every `CheckWinCondition` listener, the Witch and Murderous Witch counts included)
     and through `FiendWinExclusion.countsAsAlive` (NoellesRoles moment triggers and head counts, the Taotie, the
-    moment's own outsider count). The rule is conditional, so it is not in SparkFactionAPI's static
-    `SettlementExclusions`: counts SparkTraits and SparkStrength make outside Wathe's win dispatch still see him. All
+    moment's own outsider count). The rule is conditional, so it is not in SparkFactionAPI's unconditional role-id
+    set; `SparkWitchRoleRegistry.registerCharonConditionalSettlementExclusion` registers it as a conditional role
+    (`SettlementExclusions.registerConditionalRole(FERRYMAN_ID, FerrymanSettlement::isExcluded)`), which
+    `SettlementExclusions.isExcluded(game, uuid)` asks on server worlds for holders of the raw Charon role only. That
+    reaches the counts SparkTraits makes outside Wathe's win dispatch with no SparkTraits change: the Final Moment
+    trigger injected right before the dispatch (a soul-less Charon is no opposing faction, so no Final Moment starts
+    against him alone and the round settles through the normal win check) and the round-end finalization check at
+    `onWinDetermined` (he no longer keeps a sole surviving Loose End's win from being finalized). SparkTraits'
+    other readers are no-ops for a neutral (Last Stand's civilian population gate, the killer-win `isInnocent`
+    redirect, the Impostor cleanup, role-level Last Stand eligibility), and SparkStrength's only reader, the Shadow
+    Jester showdown `livingOthers` count, is a `CheckWinCondition` listener that the win scope already covered. The
+    registration fails closed (`LinkageError` caught and logged) against a SparkFactionAPI 2.0.0 jar built before
+    conditional roles existed. All
     souls dead kills the Charon and the Charon gone
     kills every soul, both forced with `sparkwitch:ferryman_moment_lost` (SparkTraits-terminal); round boundaries and a
     server stop end the moment silently.
@@ -3503,7 +3514,8 @@ the Raven on top of the host's own alive test:
 - Other mods: `SparkWitchRoleRegistry` registers `sparkwitch:black_raven` at init directly into SparkFactionAPI's
   `api.settlement.SettlementExclusions.registerRole(Identifier)` (present in every admitted SparkFactionAPI).
   SparkTraits (Last Stand, Final Moment, its own win listener) and SparkStrength (Shadow Jester
-  showdown) read that registry; SparkWitch's own seams never do.
+  showdown) read that registry; SparkWitch's own seams never do. The same registry also holds the Charon as a
+  conditional role (`registerConditionalRole`, see the Charon's settlement exclusion).
 
 Stowaway rules (owner spec 2026-11-02, PR #178). Profile: Wathe-native neutral, FAKE mood with tasks (tasks pay
 nothing), infinite stamina (`maxSprintTime(-1)`), no round clock, no appearance condition; registered right before
