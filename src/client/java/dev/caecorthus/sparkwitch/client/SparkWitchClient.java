@@ -30,6 +30,8 @@ import dev.caecorthus.sparkwitch.client.noa.NoaClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaPaintClient;
 import dev.caecorthus.sparkwitch.client.hanna.HannaClient;
 import dev.caecorthus.sparkwitch.client.koko.KokoClient;
+import dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule;
+import dev.caecorthus.sparkwitch.client.planner.PlannerClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
@@ -103,7 +105,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
@@ -213,6 +217,10 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Koko traffic and stream rows plus her live instinct outline (role-owned); going live rides the shared
         // ability key below. / 可可的流量行、直播行与直播期间的本能描边（职业自有）；开播走下方的共享技能键。
         KokoClient.init();
+        // 犯罪推理学家 (PR #228): reasoning menu, invisibility key, instinct hide and HUD rows (role-owned); the menu
+        // request rides the shared ability key below. / 犯罪推理学家（PR #228）：推理菜单、隐身键、本能屏蔽与 HUD 行（职业自有）；
+        // 菜单请求走下方的共享技能键。
+        CriminalReasonerClientModule.register();
         // BEAR smoke (spike): the S2C receivers that write SmokeClientState, and the disconnect cleanup.
         // BEAR 烟雾（原型）：写入 SmokeClientState 的 S2C 接收器与断线清理。
         dev.caecorthus.sparkwitch.client.bear.smoke.SmokeNetworkClient.register();
@@ -311,6 +319,10 @@ public final class SparkWitchClient implements ClientModInitializer {
                     }
                 } else if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
+                } else if (CriminalReasonerRules.isReasoner(role)) {
+                    // Real role only; the module drops a dead, spectating or swallowed Reasoner's press. The key opens
+                    // his own reasoning menu. / 仅限真实职业；死亡、旁观或被吞下的推理学家的按键由模块丢弃。该键打开推理菜单。
+                    CriminalReasonerClientModule.requestSelection(client);
                 } else if (JunkerRules.isRagpicker(role)) {
                     // Real role only; a dead or swallowed Ragpicker's press is dropped here, not sent as a witch skill.
                     // 仅限真实职业；死亡或被吞下的拾荒者的按键在此被丢弃，不会作为魔女技能发送。
@@ -403,6 +415,12 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role only (getRole stays raw, so a Black Raven acting as Noa keeps its own key); the server
                     // decides use. / 仅真实职业（getRole 始终是真实身份，扮演诺亚的黑羽鸦保留自己的按键）；是否生效由服务端决定。
                     NoaPaintClient.onAbilityKey(client);
+                } else if (PlannerRules.isPlanner(role)) {
+                    // 规划大师 recommendation, real role only (getRole stays raw, so a Black Raven acting as the planner
+                    // keeps its own key): sends the aimed player's UUID, or her own; the server decides use.
+                    // 规划大师的推荐，仅真实职业（getRole 始终是真实身份，扮演规划大师的黑羽鸦保留自己的按键）：发送准星下
+                    // 玩家的 UUID，没有目标时为她自己的；是否生效由服务端决定。
+                    PlannerClient.onAbilityKey(client);
                 } else if (MediumRules.isMedium(role)) {
                     // 通灵 (the shared ability key): empty request, the server owns every check and opens the box.
                     // 幽灵的加护 is on the SparkWitch skill key (MediumClientModule) and 招魂 in the inventory drawer.
@@ -606,6 +624,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         DoubleBarrelMuzzleClient.reset();
         WitchMaidenClientModule.clear();
         TarotDivinationClientState.clear();
+        CriminalReasonerClientModule.clear();
         JudgeClientModule.clear();
         ProphetClientModule.clear();
         SeekerClientModule.reset();

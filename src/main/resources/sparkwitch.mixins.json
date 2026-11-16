@@ -260,6 +260,7 @@
     "abysslistener.PlayerMoodComponentAbyssZoneDrainMixin",
     "noa.PlayerMoodComponentNoaMoodLockMixin",
     "sherry.PlayerMoodComponentSherryDimLightMixin",
+    "planner.PlayerMoodComponentPlannerDrainMixin",
     "riftwalker.RiftSessionPayloadGuardMixin",
     "riftwalker.RiftThrowingAxeMixin",
     "riftwalker.RiftSwapperCrushMixin",

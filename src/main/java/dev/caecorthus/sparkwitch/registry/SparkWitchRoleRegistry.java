@@ -20,6 +20,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
+import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules;
@@ -58,6 +59,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanSettlement;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.JiahaoThirdFactionLineup;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRole;
@@ -115,6 +117,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier FIEND_ID = FiendRules.ROLE_ID;
     public static final Identifier STOWAWAY_ID = StowawayRules.ROLE_ID;
     public static final Identifier SCHRODINGERS_CAT_ID = SchrodingersCatRules.ROLE_ID;
+    public static final Identifier CRIMINAL_REASONER_ID = CriminalReasonerRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
     public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
     public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
@@ -141,6 +144,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier SHERRY_ID = SherryRules.ROLE_ID;
     public static final Identifier NIKAIDO_HIRO_ID = HiroRules.ROLE_ID;
     public static final Identifier KOKO_ID = KokoRules.ROLE_ID;
+    public static final Identifier PLANNER_MASTER_ID = PlannerRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -176,6 +180,7 @@ public final class SparkWitchRoleRegistry {
     private static Role stowaway;
     private static Role schrodingersCat;
     private static Role insider;
+    private static Role criminalReasoner;
     private static Role abyssListener;
     private static Role potionGunner;
     private static Role riftwalker;
@@ -200,6 +205,7 @@ public final class SparkWitchRoleRegistry {
     private static Role sherry;
     private static Role nikaidoHiro;
     private static Role koko;
+    private static Role plannerMaster;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -453,6 +459,11 @@ public final class SparkWitchRoleRegistry {
         return schrodingersCat;
     }
 
+    public static Role criminalReasoner() {
+        ensureRegistered();
+        return criminalReasoner;
+    }
+
     public static Role insider() {
         ensureRegistered();
         return insider;
@@ -571,6 +582,11 @@ public final class SparkWitchRoleRegistry {
     public static Role koko() {
         ensureRegistered();
         return koko;
+    }
+
+    public static Role plannerMaster() {
+        ensureRegistered();
+        return plannerMaster;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -1243,6 +1259,41 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .build());
+        // 犯罪推理学家 Criminal Reasoner (PR #228): a Wathe-native neutral with fake tasks (FAKE mood), passenger
+        // stamina and no round clock. Registered after 泽渡可可 and before the Insider, which stays last
+        // (InsiderRegistrationContractTest). Menu, invisibility, key and win live in roles/neutral/criminalreasoner
+        // (CONTEXT.md). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole and out of the
+        // gui.sparkwitch.skills panel.
+        // 犯罪推理学家（PR #228）：Wathe 原生中立职业，有假任务（伪装情绪）、乘客体力、不可见回合时间。注册在泽渡可可之后、
+        // 内应之前（内应仍为最后一个，InsiderRegistrationContractTest）。菜单、隐身、钥匙与胜利条件位于
+        // roles/neutral/criminalreasoner（见 CONTEXT.md）。不是魔女技能职业：不加入 isRegisteredSparkWitchRole，也不进入
+        // gui.sparkwitch.skills 面板。
+        criminalReasoner = SparkFactionApi.registerRole(FactionRoleDefinition.builder(CRIMINAL_REASONER_ID,
+                        FactionIds.NEUTRAL)
+                .color(CriminalReasonerRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.NEUTRAL)
+                .build());
+        // 规划大师 Master Planner (PR #219, rebuilt in review 2026-11-16): registered after 犯罪推理学家 (PR #228) and
+        // right before the Insider, which stays last (InsiderRegistrationContractTest), so only the Insider's own index shifts. An
+        // ordinary task civilian (REAL mood, passenger stamina, no round clock, no appearance condition) drawn by
+        // Wathe's civilian pass; never a police variant, never a Witch-skill role (kept out of
+        // isRegisteredSparkWitchRole) and never in the gui.sparkwitch.skills panel. Recommendations, task income, the
+        // task slip and the next-task passive live in roles/civilian/planner.
+        // 规划大师（PR #219，2026-11-16 审核时重建）：注册在犯罪推理学家（PR #228）之后、紧挨内应之前（内应仍为最后一个，
+        // InsiderRegistrationContractTest），因此只有内应自身的下标改变。普通任务平民（真实理智、乘客体力、不可见回合时间、
+        // 无出现条件），由 Wathe 平民分配抽取；不是警察变体，不是魔女技能职业（不加入 isRegisteredSparkWitchRole），也不
+        // 进入 gui.sparkwitch.skills 面板。推荐、任务收入、任务单与下一任务被动位于 roles/civilian/planner。
+        plannerMaster = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PLANNER_MASTER_ID,
+                        FactionIds.CIVILIAN)
+                .color(PlannerRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn by a Wathe pass:
         // SparkFactionAPI's third-faction draw deals it beside the Corrupt Cop when Team Jiahao has a second slot
@@ -1317,6 +1368,9 @@ public final class SparkWitchRoleRegistry {
                 hanna,
                 // 橘雪莉 (PR #206) closes the newer civilian run, after Tono Hanna. / 橘雪莉（PR #206）排在远野汉娜之后。
                 sherry,
+                // 规划大师 (PR #219) follows 橘雪莉, before the Pig God; the promotion identities stay the tail.
+                // 规划大师（PR #219）排在橘雪莉之后、猪神之前；晋升身份仍位于末尾。
+                plannerMaster,
                 pigGod,
                 tarotReader,
                 fisher,
@@ -1375,6 +1429,8 @@ public final class SparkWitchRoleRegistry {
                 // 泽渡可可 (PR #223) joins the neutral block after the Lost Soul; the promotion identities stay the tail.
                 // 泽渡可可（PR #223）加入中立段，排在迷失的灵魂之后；晋升身份仍位于末尾。
                 koko,
+                // 犯罪推理学家 (PR #228) follows 泽渡可可 in the neutral block. / 犯罪推理学家（PR #228）在中立段紧随泽渡可可。
+                criminalReasoner,
                 windSpirit,
                 guardianAngel,
                 vendetta,

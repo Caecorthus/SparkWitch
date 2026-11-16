@@ -10,12 +10,12 @@ import java.util.Objects;
 import java.util.function.ToIntFunction;
 
 /**
- * Render-thread cache of one role HUD row (Athlete, Noa, Hanna, and each of 橘雪莉's two rows): the Text and widths
- * are a pure function of the row's line, its key text, the active Language (replaced on every resource reload), the
- * font renderer and the font glyph options ({@link HudFontOptions}, which a toggle changes without a reload), so they
- * are rebuilt only when one changes. The row keeps its own role gate, line selection, colour and placement; it builds
+ * Render-thread cache of one role HUD row (Athlete, Noa, Hanna, and each of 橘雪莉's and the Master Planner's two
+ * rows): the Text and widths are a pure function of the row's line, its key text, the active Language (replaced on
+ * every resource reload), the font renderer and the font glyph options ({@link HudFontOptions}, which a toggle changes
+ * without a reload), so they are rebuilt only when one changes. The row keeps its own role gate, line selection, colour and placement; it builds
  * the shown Text from {@code number} and the stable-width Text from {@code measuredNumber}.
- * 单个职业 HUD 行（运动员、诺亚、汉娜，以及橘雪莉两行中的每一行）的渲染线程缓存：文本与宽度只取决于该行、其按键文本、
+ * 单个职业 HUD 行（运动员、诺亚、汉娜，以及橘雪莉与规划大师两行中的每一行）的渲染线程缓存：文本与宽度只取决于该行、其按键文本、
  * 当前 Language（每次资源重载都会换新）、字体渲染器与字形选项（{@link HudFontOptions}，切换它们不会触发资源重载），
  * 因此只在其中之一变化时重建。职业判定、行的选择、颜色与位置仍由各行自己负责；显示文本由 {@code number} 构建，
  * 用于稳定宽度的文本由 {@code measuredNumber} 构建。

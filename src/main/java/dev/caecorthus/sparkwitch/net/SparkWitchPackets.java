@@ -103,6 +103,26 @@ public final class SparkWitchPackets {
         ServerPlayNetworking.registerGlobalReceiver(ConfirmProphecyC2SPacket.ID,
                 (payload, context) -> ProphetProphecyService.confirmGuess(
                         context.player(), payload.sessionId(), payload.victim(), payload.groupId()));
+        // Criminal Reasoner: ability key asks for the roster, menu confirms one pair, secondary key spends a charge.
+        // 犯罪推理学家：技能键要名单、菜单提交一对、第二技能键消耗隐身充能。
+        PayloadTypeRegistry.playC2S().register(RequestCriminalReasonerC2SPacket.ID,
+                RequestCriminalReasonerC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(ConfirmCriminalReasonerC2SPacket.ID,
+                ConfirmCriminalReasonerC2SPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(CriminalReasonerInvisibilityC2SPacket.ID,
+                CriminalReasonerInvisibilityC2SPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(OpenCriminalReasonerS2CPacket.ID,
+                OpenCriminalReasonerS2CPacket.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(RequestCriminalReasonerC2SPacket.ID,
+                (payload, context) -> dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner
+                        .CriminalReasonerRuntime.openSelection(context.player()));
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmCriminalReasonerC2SPacket.ID,
+                (payload, context) -> dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner
+                        .CriminalReasonerRuntime.reason(context.player(), payload.sessionId(), payload.victimId(),
+                                payload.suspectId()));
+        ServerPlayNetworking.registerGlobalReceiver(CriminalReasonerInvisibilityC2SPacket.ID,
+                (payload, context) -> dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner
+                        .CriminalReasonerRuntime.activateInvisibility(context.player()));
         PayloadTypeRegistry.playC2S().register(UseWitchSkillC2SPacket.ID, UseWitchSkillC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(EmmaFactorC2SPacket.ID, EmmaFactorC2SPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(UseMagicianAbilityC2SPacket.ID, UseMagicianAbilityC2SPacket.CODEC);

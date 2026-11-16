@@ -191,7 +191,7 @@ def compatibilityBaselines = [
         sparkfactionapi: [
                 property: "sparkfactionapi_version",
                 version: "2.0.0",
-                sha256: "5a47ab5c69aa60fbb876c53ea07d5b9e98a5fe1bcaee45961c42772f4fdeda4d",
+                sha256: "b818a95be88f3eb9f0450ffa05ab89fca7fbd58f15b7e6a67466701ca743c30c",
                 depends: [wathe: ">=1.5.6-spark-1.21.1"]
         ]
 ]
@@ -914,6 +914,19 @@ def watheClientMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer.class",
                 providerMethod: "renderHud",
                 providerDescriptor: "(Lnet/minecraft/class_1657;Lnet/minecraft/class_327;Lnet/minecraft/class_332;Lnet/minecraft/class_9779;)V"
+        ],
+        [
+                // 规划大师 recommended task row: TaskRenderer.tick TAIL (its single return), after Wathe rebuilt the
+                // row text for this frame; Wathe-named, remap = false. / 规划大师推荐任务行：TaskRenderer.tick 的 TAIL
+                // （唯一返回点），位于 Wathe 本帧重建行文本之后；Wathe 命名成员，remap = false。
+                configName: "planner.PlannerTaskRowMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/planner/PlannerTaskRowMixin.class",
+                handler: "sparkwitch\$plannerRecommendedTaskRow",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "tick(Ldev/doctor4t/wathe/cca/PlayerMoodComponent\$TrainTask;FZ)Z",
+                providerEntry: "dev/doctor4t/wathe/client/gui/MoodRenderer\$TaskRenderer.class",
+                providerMethod: "tick",
+                providerDescriptor: "(Ldev/doctor4t/wathe/cca/PlayerMoodComponent\$TrainTask;FZ)Z"
         ],
         [
                 // 夏目安安 hypnosis: no instinct at all for the hypnotised viewer (outermost veto + both keyed gates).

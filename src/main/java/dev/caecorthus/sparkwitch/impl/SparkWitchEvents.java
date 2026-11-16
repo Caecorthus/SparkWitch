@@ -72,6 +72,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchActiveSkillService;
@@ -332,6 +333,9 @@ public final class SparkWitchEvents {
         // 泽渡可可（中立，PR #223）：各服务的顺序由其注册中心固定。它排在上方共享 RoleAssigned 监听器之后，其魔力由其中的
         // WitchManaService.assignForRole 开启；她自己的监听器只重置组件。
         KokoFeatureService.register();
+        // 犯罪推理学家 (neutral, PR #228): right after 泽渡可可; its win phase is ordered after hers.
+        // 犯罪推理学家（中立，PR #228）：紧随泽渡可可；其胜负阶段排在她之后。
+        CriminalReasonerRuntime.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.
@@ -452,6 +456,10 @@ public final class SparkWitchEvents {
         // USEC, which stays last. / 橘雪莉（平民，PR #206）：各服务的顺序由其注册中心固定；注册在通灵师之后、USEC 之前，
         // USEC 保持最后。
         dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryFeatureService.register();
+        // 规划大师 (civilian, PR #219): its hub fixes the order of its services; registered after 橘雪莉 and before USEC,
+        // which stays last. / 规划大师（平民，PR #219）：各服务的顺序由其注册中心固定；注册在橘雪莉之后、USEC 之前，USEC
+        // 保持最后。
+        dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerFeatureService.register();
         // USEC (police variant): appended last so every existing listener keeps its order; the hub fixes the order of
         // the USEC services. / USEC（警察变体）：追加在最后，使所有既有监听器保持顺序；USEC 各服务的顺序由注册中心固定。
         UsecFeatureService.register();
