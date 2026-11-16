@@ -70,12 +70,16 @@ the pardon. Its shop sells a 25 gold crowbar and, for 250 gold, the Soul Moment:
 back beside the Charon as a Lost Soul (`sparkwitch:lost_soul`, 迷失的灵魂, never drawn) in soul-fire particles, with an
 empty derringer (reloads on a kill), a crowbar and a knife. The moment blocks every faction win until no player outside
 it is alive, the Charon and the souls die together, and a round whose train clock runs out settles normally.
-It also adds the Insider, a Team Jiahao member paired with a drawn NoellesRoles Corrupt Cop in rounds with 4+ killers;
-the two form Team Jiahao (嘉豪阵营, `sparkwitch:jiahao`) and win together.
+It also adds the Insider, a Team Jiahao member dealt beside the NoellesRoles Corrupt Cop when Team Jiahao is the
+round's third faction and its member cap is at least 2; the two form Team Jiahao (嘉豪阵营, `sparkwitch:jiahao`) and win
+together.
 Since 2026-11-04 the witch faction (`sparkwitch:witch`) and Team Jiahao (`sparkwitch:jiahao`) are real Wathe
 `Faction` constants (WITCH, JIAHAO), declared in `fabric.mod.json` under
 `custom."sparkfactionapi:native_wathe_factions"` and appended by SparkFactionAPI `0.1.6.0`; they are no longer
 disguised as Wathe `NEUTRAL`. See "Native Wathe factions" under Runtime Invariants.
+Since 2026-11-16 they form SparkFactionAPI's `third_faction` category: at most one of them per round, drawn before
+Wathe's neutral pass and dealt from SparkWitch's lineups (the Murderous Witch stays a Wathe neutral). See
+"Third-faction draw" under Runtime Invariants.
 It also adds the Stowaway (`sparkwitch:stowaway`, 偷渡客, contributed in PR #178), a neutral drawn at any player count
 that starts with only a lockpick, never counts as alive for any win, joins the winning side if it is alive at round
 end, senses players within 10 blocks, and hides from instinct behind cover like NoellesRoles' Survival Master.
@@ -115,9 +119,10 @@ It also adds the Potion Gunner (`sparkwitch:potion_gunner`), a witch-faction spe
 promotion (or an admin force) assigns; it fires four kinds of potion shell from a bound anti-tank launcher.
 It also adds the Riftwalker (`sparkwitch:riftwalker`, 隙行者), a witch-faction special accomplice that only a Bewitched
 promotion or an admin force assigns; its Rift Gates let the witches hide and travel between gates.
-It also adds the Bewitched (`sparkwitch:bewitched`, 魔化使), a witch-faction member dealt at round start in a Grand
-Witch round (it replaces Grand Witch recruitment); after 2 completed tasks it is promoted to an accomplice rolled from
-the special-accomplice pool.
+It also adds the Bewitched (`sparkwitch:bewitched`, 魔化使), a witch-faction member dealt at round start beside the
+Grand Witch when the witch faction is the round's third faction, on every member-cap slot after hers (it replaces
+Grand Witch recruitment); after 2 completed tasks it is promoted to an accomplice rolled from the special-accomplice
+pool.
 SparkFactionAPI owns shared faction contracts;
 SparkTraits and NoellesRoles integrations stay behind compatibility Adapters.
 SparkStrength and SparkAssist do not own SparkWitch gameplay.
@@ -135,7 +140,9 @@ Current build baseline:
 - Java `21`
 - SparkWitch `2.0.0` (owner 2026-11-12: all five Spark mods share one version number)
 - SparkFactionAPI floor `2.0.0` (native Wathe factions: the `sparkfactionapi:native_wathe_factions` declaration,
-  `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`, first shipped as `0.1.6.0`). Every `0.1.5.13`+ feature (two-row limited inventory,
+  `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`, first shipped as `0.1.6.0`; the
+  third-faction draw, `FactionCategory.THIRD_FACTION`, `registerThirdFactionLineup` and the third-faction settings,
+  in the 2.0.0 jar rebuilt on 2026-11-16). Every `0.1.5.13`+ feature (two-row limited inventory,
   `compat/SparkFactionSecondRowCompat`, settlement exclusions) is therefore present, so SparkWitch no longer detects the
   inventory version and registers settlement exclusions directly.
 
@@ -234,7 +241,8 @@ Current build baseline:
     `addRole` in `ScoreboardRoleSelectorComponent.assignCivilians` and `ApprenticeCivilianPool.chooseSeatRole` turns
     each plain-Civilian fallback seat (every special civilian already dealt, or a group seat Wathe gave up) into an
     Apprentice on a 50/50 coin while she is enabled (a disabled Apprentice draws no random number). She can appear
-    several times; `WitchRoleAssignmentService` / `WitchRoleCounts` no longer deal her. `/wathe:forceRole` still works.
+    several times; no witch dealing pass deals her (the old `WitchRoleAssignmentService` / `WitchRoleCounts` are gone
+    since 2026-11-16, and the witch third-faction lineup never names her). `/wathe:forceRole` still works.
   - `ApprenticePlayerComponent` (`sparkwitch:apprentice_player`, `NEVER_COPY`, appended last in the CCA list) keeps the
     buff's state out of the frozen `sparkwitch:player` packet. Only the Clairvoyance exposure timer syncs to everyone;
     tasks toward graduation, the Purify cooldown, the two Swift Step recharge timers, the Mighty Force forfeit flag and
@@ -1304,8 +1312,8 @@ Current build baseline:
 - `roles/neutral/murderouswitch/`: Murderous Witch feature, Death Ray, shop,
   and win rules.
 - `roles/neutral/insider/`: Insider (`sparkwitch:insider`) rules, Team Jiahao membership predicates,
-  pairing with a drawn Corrupt Cop, task-money economy, shop, neutral master key doors, gun-punishment
-  exemption, and Team Jiahao win seams. Its mixins live in `mixin/insider/`; client presentation
+  the Team Jiahao third-faction lineup (`JiahaoThirdFactionLineup`, pure `JiahaoThirdFactionLineupRules`),
+  task-money economy, shop, neutral master key doors, gun-punishment exemption, and Team Jiahao win seams. Its mixins live in `mixin/insider/`; client presentation
   (instinct outlines, the "嘉豪同伙" label, the Team Jiahao end title) lives in
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
 - `roles/neutral/stowaway/`: Stowaway (`sparkwitch:stowaway`) rules, the opening loadout (`StowawayLoadoutService`),
@@ -1472,8 +1480,8 @@ Current build baseline:
   choice and lock rules (`BewitchedPromotionRules`), the owner-synced task counter (`BewitchedPlayerComponent`,
   `sparkwitch:bewitched`), the end-of-tick promotion queue (`BewitchedPromotionQueue`), the promotion transaction
   (`BewitchedPromotionService`), the empty shop and balance visibility (`BewitchedShopService`) and the wiring
-  (`BewitchedFeatureService`). Its round-start dealing lives in `registry/WitchRoleAssignmentService` (formula
-  `WitchRoleCounts.bewitched`); the forced lock lives in `WitchWorldComponent` (`component/ForcedAccompliceRoleLocks`)
+  (`BewitchedFeatureService`). Its round-start dealing is the witch third-faction lineup
+  (`registry/WitchThirdFactionLineup`, pure `registry/WitchThirdFactionLineupRules`); the forced lock lives in `WitchWorldComponent` (`component/ForcedAccompliceRoleLocks`)
   and `command/ForceAccompliceRoleCommand`. Client presentation (the `n/2` HUD line) lives in
   `client/bewitched/BewitchedClientPresentation`, registered once from `SparkWitchClient`.
 - `roles/civilian/emma/`: unique cop claim, role-owned mana skill, delayed backlash,
@@ -3518,11 +3526,13 @@ SparkFactionAPI `0.1.6.0` reads it while Wathe's `Faction` class initializes and
 id), so they are real Wathe factions rather than the old `NEUTRAL` disguise. `SparkWitchRoleRegistry.registerFactions`
 builds the witch faction with `neutralAligned(true)` (D3: witch roles keep other mods' neutral perks through
 `SparkFactionApi.isNeutralAligned`) and `dealtInWatheNeutralPool(false)` (D1: no Wathe pass draws them and they take no
-neutral slot; `WitchRoleAssignmentService` alone deals the Grand Witch at 18+). It then appends Team Jiahao
+neutral slot; only the third-faction draw below deals them). It then appends Team Jiahao
 (`sparkwitch:jiahao`): `InsiderRules.TEAM_JIAHAO_COLOR`, prefix `faction.sparkwitch.jiahao`, capabilities copied from
 SparkFactionAPI's built-in `wathe:neutral`, no win condition (Jiahao wins stay on NoellesRoles' Corrupt Cop branch),
-`neutralAligned(true)` and `dealtInWatheNeutralPool(true)` (D6: Wathe's neutral pass still deals the Corrupt Cop with
-today's odds and slot). The Insider registers under it and the Corrupt Cop is bound to it (see the Insider rules).
+`neutralAligned(true)` and, since 2026-11-16, `dealtInWatheNeutralPool(false)` (owner overturned D6: Wathe's neutral pass
+no longer deals the Corrupt Cop; only the third-faction draw does, and SparkFactionAPI refuses a third-faction lineup on
+a faction still dealt in the neutral pool). The Insider registers under it and the Corrupt Cop is bound to it (see the
+Insider rules).
 At runtime witch roles read `Faction.WITCH`, the Insider and the Corrupt Cop `Faction.JIAHAO`, and `isNeutral()` is
 false for all of them, so Wathe's rotation history counts them as civilian rounds (D4); wins stay
 `WinStatus.NEUTRAL`; the Murderous Witch, Fiend, Stowaway and Schrödinger's Cat stay Wathe neutrals and the Apprentice
@@ -3535,6 +3545,31 @@ refuses it as before (neither ever becomes a Wraith), and SparkWitch match-recor
 generic letter keys. Unit tests run without mixins: the local `testsupport/NativeWatheFactionsTestInstaller`
 (auto-detected Jupiter extension) installs this declaration through SparkFactionAPI's production
 `NativeWatheFactions.install`, and `Role#getFaction()` there stays Wathe's flag-based value.
+
+Third-faction draw (owner 2026-11-16). SparkFactionAPI owns the `third_faction` category (`FactionCategory.THIRD_FACTION`,
+`SparkFactionApi.isThirdFaction` / `thirdFactionIds`): every faction outside Wathe's civilian, neutral and killer forms,
+today the witch faction and Team Jiahao (not the Murderous Witch, who stays a Wathe `NEUTRAL`). Before Wathe's neutral
+pass it draws at most one of them per round, 50/50 between the drawable ones, only from
+`SparkFactionApi.thirdFactionMinPlayers` players (default 18), with a member cap of `floor(players / dividend)`
+(`thirdFactionDividend`, default 10), and deals the roles a SparkWitch lineup returns; forced members of that faction are
+always kept, passed in as `presentMembers`, and count toward the cap (`remainingSlots()` = cap minus present).
+`SparkWitchRoleRegistry.registerThirdFactionLineups` (after factions, the Corrupt Cop binding and all roles) registers two
+pure lineups by method reference and fails closed on an older SparkFactionAPI jar (`LinkageError`: warning, no third
+faction dealt):
+- Witch (`registry/WitchThirdFactionLineup`, rules in `WitchThirdFactionLineupRules`): without a Grand Witch present,
+  one Grand Witch (empty, so undrawable, when she is disabled) then Bewitched on every remaining slot while the
+  Bewitched is enabled; with a forced Grand Witch, Bewitched only. Her appearance condition is always false and is not
+  consulted: the draw's own minimum replaced `minPlayers(18)`.
+- Team Jiahao (`roles/neutral/insider/JiahaoThirdFactionLineup`, rules in `JiahaoThirdFactionLineupRules`): the Corrupt
+  Cop, found by exact id in `WatheRoles.ROLES` (empty without NoellesRoles or when it is disabled), plus one Insider
+  when a second slot is free and the Insider is enabled; a forced member gets the missing partner; never more than two
+  members (`MAX_MEMBERS`), and no killer-count condition.
+Admins set the minimum with `/sparkwitch:thirdFactionMinRequirement <players>` (`command/ThirdFactionSettingsCommand`,
+permission `sparkwitch.command.thirdfactionminrequirement`, op level 2, `0` = no minimum; it writes
+`SparkFactionApi.setThirdFactionMinPlayers` and applies next round, like the Wraith settings) and the dividend with
+SparkFactionAPI's `/wathe:gameSettings set roleDividend third_faction <x>`; SparkWitch registers no dividend command.
+Tests: `registry/WitchThirdFactionLineupRulesTest`, `roles/neutral/insider/JiahaoThirdFactionLineupRulesTest`,
+`registry/ThirdFactionLineupContractTest`, `command/ThirdFactionSettingsCommandSourceTest`.
 
 `WitchPlayerComponent.serverTick()` preserves this order:
 
@@ -4201,12 +4236,10 @@ The Insider (`sparkwitch:insider`) has no component; every rule reads synced rol
 Jiahao (`SparkWitchFactions.JIAHAO`, native Wathe constant JIAHAO, no explicit `nativeWatheFaction` bucket), and
 `SparkWitchRoleRegistry.bindCorruptCopToTeamJiahao` binds `noellesroles:corrupt_cop` there with SparkFactionAPI
 `bindRoleFaction` during common init on both sides, right after the factions register (owner D2: every round). Wathe never draws it
-(`appearanceCondition(context -> false)`). `MurderGameModeMixin` calls, in order, the Hunter→Orthopedist
-pairing, the Witch assignment, then `InsiderAssignmentService`, all before Wathe's civilian pass: when a
-Corrupt Cop (exact id `noellesroles:corrupt_cop`) was drawn, no Insider exists, the role is enabled, and at
-least `InsiderRules.MIN_KILLERS` killer-team roles were assigned (`canUseKiller`, forced killers included,
-later SparkTraits Conscience compensation not counted), one uniformly random unassigned player becomes the
-Insider, taking a civilian seat rather than a neutral slot. A forced Insider is never demoted or re-paired.
+(`appearanceCondition(context -> false)`), and since 2026-11-16 no Wathe pass draws the Corrupt Cop either: both come
+only from the Team Jiahao third-faction lineup (see "Third-faction draw"; the old `InsiderAssignmentService`,
+`InsiderPairingRules` and the 4+ killers rule `InsiderRules.MIN_KILLERS` are gone). A forced Insider is never demoted
+or re-paired.
 At `ON_FINISH_INITIALIZE` each living Insider receives one NoellesRoles neutral master key (`offerOrDrop`, so a
 full inventory drops it at its feet), never removed; SparkWitch's own `DoorInteraction` listener lets an Insider
 holding it open train doors and key-locked doors (ALLOW, then a 200-tick key cooldown; DENY while cooling;
@@ -4639,13 +4672,12 @@ tasks it is promoted to an accomplice role through the pool above.
   special role, so `/wathe:forceRole` can force it. It is not in `isRegisteredSparkWitchRole` (it owns no skill),
   never shows the witch skill panel, and stays out of the Black Raven disguise pool like the Accomplice (not
   civilian-base).
-- **Dealing (D1).** `WitchRoleAssignmentService.assignAfterNeutralsBeforeCivilians`, right after the Grand Witch is
-  dealt: when the round then has at least one Grand Witch (dealt or forced; no Wathe pass draws witch roles since the
-  native WITCH faction, 2026-11-04) and the Bewitched is
-  enabled, it deals `WitchRoleCounts.bewitched(n)` minus the already forced Bewitched on the shuffled `NO_ROLE` seats,
-  where `bewitched(n) = n < 18 ? 0 : (n - 18) / 6` (owner, 2026-10-06: an 18-23 round has the Grand Witch alone,
-  24-29 deal 1, then +1 per further 6). There is no new mixin call: `MurderGameModeMixin` still runs
-  the Hunter/Orthopedist pairing, the witches and the Insider, in that order, before `assignCivilians`.
+- **Dealing (D1, reworked 2026-11-16).** The witch third-faction lineup (`registry/WitchThirdFactionLineup`) deals
+  the Bewitched right after the Grand Witch, only in a round that has one (dealt or forced; no Wathe pass draws witch
+  roles), on every member-cap slot left, while the Bewitched is enabled; forced Bewitched count toward the cap. This
+  replaced the old `WitchRoleCounts.bewitched(n) = (n - 18) / 6` quota (owner 2026-10-06) and its
+  `WitchRoleAssignmentService` pass; `MurderGameModeMixin` now runs only the Hunter/Orthopedist pairing before
+  `assignCivilians`. See "Third-faction draw" under Runtime Invariants.
 - **Before promotion (D2).** A witch-faction member with teammate vision and accomplice money (starting money,
   passive, kill rewards, the Grand Witch's +25 share), but no shop. `BewitchedShopService` empties its shop on both
   sides from the exact synced role, in its own `BuildShopEntries` phase `sparkwitch:bewitched_shop_clear` ordered after

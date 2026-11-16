@@ -6,10 +6,12 @@ import dev.doctor4t.wathe.api.Role;
 
 /**
  * Bewitched (魔化使) role definition: a witch-faction member with the plain Accomplice profile (FAKE mood, unlimited
- * sprint, round clock, C1). SparkWitch deals it at round start in a Grand Witch round; it is never drawn naturally and
- * is not a Wathe special role, so {@code /wathe:forceRole} can still force it.
- * 魔化使职业定义：魔女阵营成员，参数与普通共犯一致（伪装情绪、无限疾跑、可见回合时间，C1）。由 SparkWitch 在有大魔女的
- * 对局开局时发放；从不自然抽取，也不是 Wathe 特殊职业，因此仍可用 {@code /wathe:forceRole} 强制指定。
+ * sprint, round clock, C1). SparkFactionAPI's third-faction draw deals it at round start in a Grand Witch round
+ * ({@code registry/WitchThirdFactionLineup}); it is never drawn by a Wathe pass and is not a Wathe special role, so
+ * {@code /wathe:forceRole} can still force it.
+ * 魔化使职业定义：魔女阵营成员，参数与普通共犯一致（伪装情绪、无限疾跑、可见回合时间，C1）。由 SparkFactionAPI 第三阵营
+ * 抽取在有大魔女的对局开局时发放（{@code registry/WitchThirdFactionLineup}）；从不由 Wathe 分配抽取，也不是 Wathe 特殊职业，
+ * 因此仍可用 {@code /wathe:forceRole} 强制指定。
  */
 public final class BewitchedRole {
     public static final FactionRoleDefinition DEFINITION =
@@ -18,8 +20,8 @@ public final class BewitchedRole {
                     .moodType(Role.MoodType.FAKE)
                     .maxSprintTime(-1)
                     .canSeeTime(true)
-                    // Exclude natural selection; WitchRoleAssignmentService deals it.
-                    // 排除自然抽选；由 WitchRoleAssignmentService 发放。
+                    // Exclude natural selection; the third-faction draw deals it (WitchThirdFactionLineup).
+                    // 排除自然抽选；由第三阵营抽取发放（WitchThirdFactionLineup）。
                     .appearanceCondition(context -> false)
                     .build();
 

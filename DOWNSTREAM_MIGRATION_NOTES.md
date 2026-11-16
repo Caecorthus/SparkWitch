@@ -32,3 +32,24 @@ Optional downstream queries must use the null-safe
 `dev.caecorthus.sparkwitch.api.SparkWitchApi` facade. SparkTraits remains an
 optional provider of generic trait and Last Stand state only and no longer owns
 Wraith lifecycle, rendering, faction, role, or component contracts.
+
+## 2026-11-16 Third-Faction Draw
+
+The witch faction (`sparkwitch:witch`) and Team Jiahao (`sparkwitch:jiahao`) are
+now SparkFactionAPI `third_faction` factions, dealt only by SparkFactionAPI's
+round-start third-faction draw from lineups SparkWitch registers with
+`SparkFactionApi.registerThirdFactionLineup`. This needs the SparkFactionAPI
+2.0.0 jar rebuilt with that draw; an older jar fails closed (no third faction
+is dealt).
+
+- Removed the internal dealing classes `registry/WitchRoleAssignmentService`,
+  `registry/WitchRoleCounts`, `roles/neutral/insider/InsiderAssignmentService`,
+  `roles/neutral/insider/InsiderPairingRules` and the constant
+  `InsiderRules.MIN_KILLERS`. None was public API; no Spark mod used them.
+- The Grand Witch's appearance condition is now always false (it was
+  `minPlayers(18)`), so `shouldAppear` no longer reports her as drawable.
+- Team Jiahao is built with `dealtInWatheNeutralPool(false)`: Wathe's neutral
+  pass no longer deals NoellesRoles' Corrupt Cop.
+- New admin command `/sparkwitch:thirdFactionMinRequirement <players>`
+  (permission `sparkwitch.command.thirdfactionminrequirement`) writes
+  SparkFactionAPI's third-faction player minimum.
