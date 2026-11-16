@@ -30,6 +30,7 @@ import dev.caecorthus.sparkwitch.client.noa.NoaClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaPaintClient;
 import dev.caecorthus.sparkwitch.client.hanna.HannaClient;
 import dev.caecorthus.sparkwitch.client.koko.KokoClient;
+import dev.caecorthus.sparkwitch.client.planner.PlannerClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
@@ -104,6 +105,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSk
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
+import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorRules;
@@ -403,6 +405,12 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role only (getRole stays raw, so a Black Raven acting as Noa keeps its own key); the server
                     // decides use. / 仅真实职业（getRole 始终是真实身份，扮演诺亚的黑羽鸦保留自己的按键）；是否生效由服务端决定。
                     NoaPaintClient.onAbilityKey(client);
+                } else if (PlannerRules.isPlanner(role)) {
+                    // 规划大师 recommendation, real role only (getRole stays raw, so a Black Raven acting as the planner
+                    // keeps its own key): sends the aimed player's UUID, or her own; the server decides use.
+                    // 规划大师的推荐，仅真实职业（getRole 始终是真实身份，扮演规划大师的黑羽鸦保留自己的按键）：发送准星下
+                    // 玩家的 UUID，没有目标时为她自己的；是否生效由服务端决定。
+                    PlannerClient.onAbilityKey(client);
                 } else if (MediumRules.isMedium(role)) {
                     // 通灵 (the shared ability key): empty request, the server owns every check and opens the box.
                     // 幽灵的加护 is on the SparkWitch skill key (MediumClientModule) and 招魂 in the inventory drawer.

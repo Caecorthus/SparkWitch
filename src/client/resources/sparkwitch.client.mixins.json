@@ -228,6 +228,7 @@
     "noa.NoaMoodRendererMixin",
     "dominator.DominatorForcedShotInventoryMixin",
     "accountant.AccountantAirSwingMixin",
+    "planner.PlannerTaskRowMixin",
     "natsume.NatsumeGarbleMixin",
     "natsume.NatsumeHudGarbleScopeMixin",
     "natsume.NatsumeInstinctGateMixin",
